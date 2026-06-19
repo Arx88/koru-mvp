@@ -510,6 +510,55 @@
   color: var(--koru-accent);
 }
 
+.koru-stitch-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.koru-stitch-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.koru-stitch-tile {
+  border: 1px solid var(--koru-border);
+  border-radius: 14px;
+  background: var(--koru-inner);
+  padding: 12px;
+  text-align: center;
+}
+
+.koru-stitch-tile strong {
+  display: block;
+  font-size: 18px;
+  font-weight: 850;
+  line-height: 1.1;
+  margin-top: 6px;
+}
+
+.koru-stitch-tile small {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--koru-muted);
+}
+
+.koru-stitch-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  border: 1px solid var(--koru-border);
+  border-radius: 14px;
+  background: var(--koru-inner);
+  padding: 10px 12px;
+}
+
 .koru-saved-record-card {
   border-color: color-mix(in srgb, var(--koru-accent) 24%, var(--koru-border));
 }
