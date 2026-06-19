@@ -1574,6 +1574,7 @@ function buildJsonComposerMessages(
 function buildMemoryExtractorMessages(
   request: KoruBackendTurnRequest,
   toolExecutions: ToolExecution[],
+  composedRaw?: Record<string, unknown>,
 ): ChatMessage[] {
   return [
     {
@@ -1597,9 +1598,16 @@ function buildMemoryExtractorMessages(
         "",
         `Current user input: ${request.input}`,
         "",
+        composedRaw
+          ? `Respuesta final que Koru enviÃ³ al usuario: "${cleanText(composedRaw.reply)}"`
+          : "",
+        composedRaw && composedRaw.understanding
+          ? `Entendimiento del Composer: ${JSON.stringify(composedRaw.understanding)}`
+          : "",
+        "",
         "Tool observations:",
         toolObservationSummary(toolExecutions),
-      ].join("\n"),
+      ].filter(Boolean).join("\n"),
     },
   ];
 }
@@ -1659,8 +1667,9 @@ async function extractMemoryWithJsonPrompt(
   request: KoruBackendTurnRequest,
   config: ProviderConfig,
   toolExecutions: ToolExecution[],
+  composedRaw?: Record<string, unknown>,
 ): Promise<{ raw: Record<string, unknown>; provider: "nvidia" | "openrouter"; model?: string; fallbackReason?: string }> {
-  const result = await callProvider(config, buildMemoryExtractorMessages(request, toolExecutions), 16_000, false);
+  const result = await callProvider(config, buildMemoryExtractorMessages(request, toolExecutions, composedRaw), 16_000, false);
   const content = cleanText(result.message.content);
   const raw = safeJsonObjectFromContent(content);
   return {
@@ -2286,7 +2295,7 @@ async function finalizePayload(
   toolExecutions: ToolExecution[],
 ): Promise<KoruBackendTurnResponse & { memoryFallbackReason?: string; memoryProvider?: "nvidia" | "openrouter"; memoryModel?: string }> {
   try {
-    const extracted = await extractMemoryWithJsonPrompt(request, config, toolExecutions);
+    const extracted = await extractMemoryWithJsonPrompt(request, config, toolExecutions, raw);
     return {
       ...normalizeFinalPayload(raw, request.input, toolExecutions, extracted.raw),
       memoryProvider: extracted.provider,
