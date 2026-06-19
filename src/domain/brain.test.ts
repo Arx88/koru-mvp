@@ -656,7 +656,7 @@ describe("selectRelevantMemories", () => {
     { id: "1", text: "Trabajo con clientes por la manana", kind: "routine", confidence: 0.9, status: "confirmed", createdAt: mockDateRecent, sourceEntryId: "e1", sensitivity: "normal", useForSuggestions: true },
     { id: "2", text: "Mi mama vive lejos y la extrano", kind: "relationship", confidence: 0.8, status: "confirmed", createdAt: mockDateOld, sourceEntryId: "e2", sensitivity: "normal", useForSuggestions: true },
     { id: "3", text: "Prefiero cafe fuerte", kind: "preference", confidence: 0.7, status: "candidate", createdAt: mockDateRecent, sourceEntryId: "e3", sensitivity: "normal", useForSuggestions: true },
-    { id: "4", text: "El cielo esta nublado hoy", kind: "observation", confidence: 0.6, status: "confirmed", createdAt: mockDateRecent, sourceEntryId: "e4", sensitivity: "normal", useForSuggestions: true },
+    { id: "4", text: "El cielo esta nublado hoy", kind: "routine", confidence: 0.6, status: "confirmed", createdAt: mockDateRecent, sourceEntryId: "e4", sensitivity: "normal", useForSuggestions: true },
   ];
 
   it("returns memories matching keywords from input", () => {
