@@ -13,6 +13,7 @@ import type {
 } from "../domain/types";
 import { VALID_MASCOT_STATES } from "../domain/types";
 import { selectRelevantMemories } from "../domain/store";
+import { isConversationalTurn } from "../domain/pipeline";
 
 export type ProviderConfig = {
   nvidiaApiKey?: string;
@@ -1375,6 +1376,34 @@ async function executeTool(name: string, args: Record<string, unknown>, state: K
   return { type: "unknown", error: `Unknown tool ${name}` };
 }
 
+function routerContext(state: KoruState, input: string): string {
+  const relevant = selectRelevantMemories(
+    state.memories || [],
+    input,
+    5,
+  );
+  const relevantMemoriesText = relevant.length
+    ? relevant.map(m => `- [${m.kind}] ${m.text.replace(/[\n\r`]+/g, " ").trim()}`).join("\n")
+    : "- ninguna memoria directamente relevante";
+  const openCommitments = state.commitments
+    .filter(c => c.status === "open")
+    .slice(0, 6)
+    .map(c => `- ${c.title.replace(/[\n\r`]+/g, " ").trim()} (${(c.dueHint || "sin fecha").replace(/[\n\r`]+/g, " ").trim()})`)
+    .join("\n") || "- ninguno";
+
+  return [
+    `Usuario: ${state.userName?.trim() || "amigo"}`,
+    "",
+    "Memorias relevantes al pedido actual (usá solo estas para entender contexto):",
+    relevantMemoriesText,
+    "",
+    "Pendientes abiertos (solo si el usuario los menciona o pregunta por ellos):",
+    openCommitments,
+    "",
+    `Total de registros guardados: ${state.records.length}`,
+  ].join("\n");
+}
+
 function stateSummary(state: KoruState): string {
   const confirmedMemories = state.memories
     .filter((item) => item.status === "confirmed" && item.useForSuggestions !== false)
@@ -1492,7 +1521,7 @@ function buildJsonRouterMessages(request: KoruBackendTurnRequest, assistantText?
       role: "user",
       content: [
         "Context:",
-        stateSummary(request.state),
+        routerContext(request.state, request.input),
         "",
         `User input: ${request.input}`,
         assistantText ? `Previous assistant prose to repair: ${assistantText}` : "",
@@ -2318,6 +2347,26 @@ export async function runKoruBackendTurn(
     const toolCalls = asArray(message.tool_calls) as ProviderToolCall[];
     if (!toolCalls.length) {
       const content = cleanText(message.content, "No pude componer una respuesta util.");
+
+      // FAST PATH: turnos puramente conversacionales no necesitan Router JSON.
+      // El systemPrompt ya inyectó personalidad + memorias relevantes.
+      if (step === 0 && !toolExecutions.length && content && isConversationalTurn(request.input)) {
+        const response = await finalizePayload(request, config, {
+          reply: content,
+          uiBlocks: [],
+          suggestedActions: [],
+          memoryCandidates: [],
+          commitments: [],
+          records: [],
+        }, toolExecutions);
+        return {
+          ...response,
+          provider,
+          model,
+          fallbackReason: fallbackReason ?? "conversational-fast-path",
+        };
+      }
+
       if (toolExecutions.length) {
         try {
           const composed = await composeWithJsonPrompt(request, config, toolExecutions, content);
