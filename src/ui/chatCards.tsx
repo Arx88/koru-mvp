@@ -16,7 +16,6 @@ import {
   MoveRight,
   PiggyBank,
   Pill,
-  Shirt,
   SearchCheck,
   ShoppingBasket,
   Sparkles,
@@ -24,13 +23,12 @@ import {
   Sun,
   Truck,
   Users,
-  Wallet,
   Waypoints,
   X,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "../lib/utils";
-import type { AssistantArtifact, AssistantPlanItem, AssistantSource } from "../domain/types";
+import type { AssistantArtifact, AssistantPlanItem, AssistantSource, UiBlock } from "../domain/types";
 import type { KoruTurnItem } from "./KoruProvider";
 
 export type CardActionHandlers = {
@@ -67,20 +65,6 @@ function planIcon(icon: AssistantPlanItem["icon"], index: number): LucideIcon {
   if (icon === "heart") return Stethoscope;
   if (icon === "home") return Home;
   return index === 1 ? BookOpen : index === 2 ? MoveRight : Flag;
-}
-
-function activityIcon(kind: string): LucideIcon {
-  if (kind === "weather") return CloudSun;
-  if (kind === "outfit") return Shirt;
-  if (kind === "traffic") return Waypoints;
-  if (kind === "calendar") return CalendarDays;
-  if (kind === "health") return Pill;
-  if (kind === "food" || kind === "home") return Home;
-  if (kind === "money") return Wallet;
-  if (kind === "wellbeing") return HeartPulse;
-  if (kind === "relationship") return Users;
-  if (kind === "work") return Flag;
-  return Sparkles;
 }
 
 function signalIcon(category: string): LucideIcon {
@@ -127,6 +111,301 @@ function savedRecordTitle(records: NonNullable<KoruTurnItem["records"]>): string
   return "Dato guardado";
 }
 
+function cleanLabel(value?: string): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+function joinParts(parts: Array<string | number | undefined | null>): string {
+  return parts
+    .map((part) => (part === undefined || part === null ? "" : String(part).trim()))
+    .filter(Boolean)
+    .join(" - ");
+}
+
+function moneyLabel(amount?: number, currency?: string): string | undefined {
+  if (amount === undefined) return undefined;
+  return `${amount}${currency ? ` ${currency}` : ""}`;
+}
+
+function firstClockText(...values: Array<string | undefined>): string | undefined {
+  for (const value of values) {
+    const match = value?.match(/\b(?:[01]?\d|2[0-3]):[0-5]\d\b/);
+    if (match) return match[0];
+  }
+  return undefined;
+}
+
+function stitchBlockFromLegacyItem(item: KoruTurnItem): UiBlock | undefined {
+  if (item.uiBlock) return item.uiBlock;
+
+  if (item.actionKind === "day_plan" && item.planItems?.length) {
+    return {
+      type: "plan",
+      title: item.text,
+      items: item.planItems,
+      note: item.recommendation ?? item.payloadPreview ?? item.result,
+    };
+  }
+
+  if ((item.actionKind === "web_research" || item.actionKind === "world_signal") && item.comparisonItems?.length) {
+    return {
+      type: "comparison",
+      title: item.text,
+      items: item.comparisonItems,
+      recommendation: item.recommendation ?? item.result ?? item.payloadPreview,
+      sources: item.sources,
+    };
+  }
+
+  if (
+    (item.actionKind === "web_research" || item.actionKind === "world_signal") &&
+    (item.sources?.length || item.searchQueries?.length || item.recommendation || item.externalStatus)
+  ) {
+    return {
+      type: "research_sources",
+      title: item.text,
+      summary: item.recommendation ?? item.payloadPreview ?? item.result ?? item.text,
+      mode: item.webMode,
+      sources: item.sources ?? [],
+      sourceStatus: item.externalStatus ?? (item.sources?.length ? "verified" : "pending"),
+      followUpQuestion: item.questions?.[0],
+    };
+  }
+
+  if (item.actionKind === "money_summary" && (item.summaryItems?.length || item.totalAmount !== undefined || item.recommendation)) {
+    return {
+      type: "money_summary",
+      title: item.text,
+      total: item.totalAmount,
+      currency: item.currency,
+      summaryItems: item.summaryItems,
+      recommendation: item.recommendation ?? item.result ?? item.payloadPreview,
+    };
+  }
+
+  if ((item.actionKind === "reminder" || item.actionKind === "calendar_event") && (item.text || item.payloadPreview)) {
+    return {
+      type: "reminder",
+      title: item.text,
+      dueText: item.payloadPreview,
+      note: item.recommendation ?? item.result,
+    };
+  }
+
+  if (item.actionKind === "alarm") {
+    return {
+      type: "alarm",
+      title: item.text,
+      time: firstClockText(item.payloadPreview, item.text) ?? "Alarma",
+      note: item.payloadPreview,
+    };
+  }
+
+  const shoppingItems = item.records
+    ?.filter((record) => record.kind === "shopping_item")
+    .map((record) => record.value ?? record.title)
+    .filter(Boolean)
+    .slice(0, 8) as string[] | undefined;
+
+  if ((item.actionKind === "restock_note" || item.actionKind === "structured_note") && shoppingItems?.length) {
+    return {
+      type: "shopping_list",
+      title: item.text || "Lista de compras",
+      items: shoppingItems,
+      dueText: item.payloadPreview,
+      note: item.recommendation ?? item.result,
+    };
+  }
+
+  if (item.actionKind === "structured_note" && item.records?.length) {
+    return {
+      type: "saved_record",
+      title: item.text,
+      records: item.records.slice(0, 6),
+    };
+  }
+
+  if (item.actionKind === "file_bundle" && item.files?.length) {
+    return {
+      type: "resource_bundle",
+      title: item.text,
+      files: item.files,
+      summary: item.payloadPreview ?? item.result,
+    };
+  }
+
+  if (
+    ["morning_brief", "meeting_brief", "daily_brief", "decision_support"].includes(item.actionKind ?? "") &&
+    (item.summaryItems?.length || item.contextReview?.length || item.recommendation || item.decisionVote)
+  ) {
+    const sectionTitle = item.actionKind === "decision_support"
+      ? "Criterio"
+      : item.actionKind === "meeting_brief"
+        ? "Reunion"
+        : "Actividad";
+    return {
+      type: "activity_group",
+      title: item.text || (item.actionKind === "decision_support" ? "Decision" : "Actividad"),
+      subtitle: item.recommendation ?? item.payloadPreview,
+      sections: [
+        {
+          title: sectionTitle,
+          tone: item.actionKind === "decision_support" ? "amber" : "green",
+          tiles: item.summaryItems?.map((summary) => ({
+            kind: item.actionKind === "decision_support" || item.actionKind === "morning_brief" ? "money" : "work",
+            label: summary.label,
+            value: summary.value,
+            detail: summary.detail,
+          })),
+          rows: [
+            ...(item.decisionVote
+              ? [{
+                  title: item.decisionVote === "wait" ? "Yo esperaria" : item.decisionVote === "go" ? "Yo avanzaria con cuidado" : "Me falta un dato",
+                  detail: item.decisionAssumption,
+                  meta: "Mi voto",
+                  urgent: item.decisionVote === "wait",
+                }]
+              : []),
+            ...(item.contextReview ?? []).map((review) => ({
+              title: review.title,
+              detail: review.detail,
+              meta: review.priority,
+              urgent: review.priority === "Alta",
+            })),
+          ],
+        },
+      ],
+      note: item.recommendation ?? item.result,
+    };
+  }
+
+  return undefined;
+}
+
+function statusLabel(status?: KoruTurnItem["externalStatus"]): string {
+  if (status === "verified") return "Fuentes verificadas";
+  if (status === "partial") return "Resultados parciales";
+  if (status === "failed") return "No se pudo navegar";
+  if (status === "not_configured") return "Sin conector completo";
+  return "Fuentes";
+}
+
+function recordKindLabel(kind: string): string {
+  return kind.replace(/_/g, " ");
+}
+
+function uniqueLabels(values: Array<string | undefined>): string[] {
+  const seen = new Set<string>();
+  return values
+    .map(cleanLabel)
+    .filter((value): value is string => Boolean(value))
+    .filter((value) => {
+      const key = value.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+function StitchHeader({
+  icon: Icon,
+  hint,
+  title,
+  tone = "accent",
+}: {
+  icon: LucideIcon;
+  hint: string;
+  title: string;
+  tone?: "accent" | "amber" | "rose" | "purple" | "blue";
+}) {
+  return (
+    <div className="koru-stitch-card-header">
+      <span className={cn("koru-stitch-icon", tone !== "accent" && `is-${tone}`)}>
+        <Icon size={16} />
+      </span>
+      <span className="koru-stitch-heading">
+        <span className="koru-card-hint">{hint}</span>
+        <strong className="koru-card-title">{title}</strong>
+      </span>
+    </div>
+  );
+}
+
+function StitchRow({
+  icon: Icon,
+  eyebrow,
+  title,
+  detail,
+  chip,
+  href,
+  highlighted,
+  tone = "accent",
+}: {
+  icon?: LucideIcon;
+  eyebrow?: string;
+  title: string;
+  detail?: string;
+  chip?: string;
+  href?: string;
+  highlighted?: boolean;
+  tone?: "accent" | "amber" | "rose" | "purple" | "blue" | "muted";
+}) {
+  const marker = (
+    <span className={cn("koru-stitch-row-marker", `is-${tone}`)}>
+      {Icon ? <Icon size={14} /> : eyebrow}
+    </span>
+  );
+  const content = (
+    <>
+      {marker}
+      <span className="koru-stitch-row-copy">
+        <strong>{title}</strong>
+        {detail && <small>{detail}</small>}
+      </span>
+      {chip && <em>{chip}</em>}
+    </>
+  );
+  const className = cn("koru-stitch-row", highlighted && "is-highlighted");
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noreferrer" className={className}>
+        {content}
+      </a>
+    );
+  }
+  return <div className={className}>{content}</div>;
+}
+
+function StitchNote({ children, tone = "accent" }: { children?: string; tone?: "accent" | "amber" | "blue" }) {
+  if (!children) return null;
+  return <p className={cn("koru-stitch-note", `is-${tone}`)}>{children}</p>;
+}
+
+function StitchPills({ labels }: { labels: string[] }) {
+  if (!labels.length) return null;
+  return (
+    <div className="koru-stitch-pill-row">
+      {labels.slice(0, 4).map((label) => <span key={label} className="koru-stitch-pill">{label}</span>)}
+    </div>
+  );
+}
+
+function StitchSummaryGrid({ items }: { items: Array<{ label: string; value: string; detail?: string }> }) {
+  if (!items.length) return null;
+  return (
+    <div className={cn("koru-stitch-grid", items.length === 1 && "is-single")}>
+      {items.slice(0, 4).map((summary) => (
+        <div key={`${summary.label}-${summary.value}`} className="koru-stitch-tile">
+          <small>{summary.label}</small>
+          <strong>{summary.value}</strong>
+          {summary.detail && <span>{summary.detail}</span>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function primaryLine(item: KoruTurnItem): string {
   if (item.actionKind === "day_plan") return "Te lo ordene para que puedas empezar sin reconstruir todo.";
   if (item.actionKind === "structured_note") return item.records?.length ? savedRecordTitle(item.records) : "Dato guardado.";
@@ -145,23 +424,29 @@ function SavedRecordCard({ item, records, title }: { item: KoruTurnItem; records
   const compactTitle = !title || /^(datos?(?:\s+guardados?)?|guardar\s+datos?(?:\s+util(?:es)?)?|guardado)$/i.test(title.trim())
     ? savedRecordTitle(records)
     : title;
+  const first = records[0];
+  const hint = first?.kind === "tool_link"
+    ? "Herramienta guardada"
+    : first?.kind === "expense"
+      ? "Gasto guardado"
+      : first?.kind === "shopping_item"
+        ? "Compra guardada"
+        : "Dato guardado";
+  const chips = uniqueLabels(records.flatMap((record) => [record.collection, record.domain, record.kind ? recordKindLabel(record.kind) : undefined]));
   return (
     <div className="koru-saved-record-card koru-stitch-card" data-ui-block="saved_record" data-card-kind={item.actionKind ?? item.kind}>
-      <div className="koru-stitch-card-header">
-        <span className="koru-stitch-icon"><Check size={16} /></span>
-        <span>{compactTitle}</span>
-      </div>
-      <div className="koru-saved-record-list">
+      <StitchHeader icon={Check} hint={hint} title={compactTitle} />
+      <div className="koru-stitch-content">
         {records.slice(0, 6).map((record) => (
-          <div key={`${record.domain}-${record.kind}-${record.title}-${record.value ?? ""}`} className="koru-saved-record-row">
-            <span className="koru-record-check" />
-            <span>
-              <strong>{recordDisplay(record)}</strong>
-              <small>{recordDetail(record)}</small>
-            </span>
-            <em>{record.domain}</em>
-          </div>
+          <StitchRow
+            key={`${record.domain}-${record.kind}-${record.title}-${record.value ?? ""}`}
+            icon={Check}
+            title={recordDisplay(record)}
+            detail={recordDetail(record)}
+            chip={record.collection ?? record.domain}
+          />
         ))}
+        <StitchPills labels={chips} />
       </div>
     </div>
   );
@@ -174,266 +459,6 @@ function ActionTitle({ item, icon: Icon = Sparkles }: { item: KoruTurnItem; icon
       <span>{primaryLine(item)}</span>
     </p>
   );
-}
-
-function UiBlockCard({ item }: { item: KoruTurnItem }) {
-  const block = item.uiBlock;
-  if (!block) return null;
-
-  if (block.type === "clarifying_question") {
-    return (
-      <div className="koru-question-card koru-stitch-card" data-ui-block="clarifying_question">
-        <span className="koru-card-kicker">{block.title ?? "Solo necesito esto"}</span>
-        <strong>{block.question}</strong>
-        {block.options?.length ? (
-          <div className="koru-question-followups">
-            {block.options.map((option) => <span key={option}>{option}</span>)}
-          </div>
-        ) : null}
-      </div>
-    );
-  }
-
-  if (block.type === "weather") {
-    const sourceTitle = block.sources?.[0]?.title;
-    return (
-      <div className="koru-weather-card koru-stitch-card" data-ui-block="weather">
-        <div className="koru-stitch-card-header">
-          <span className="koru-stitch-icon"><SearchCheck size={16} /></span>
-          <span>{block.city ? `Clima en ${block.city}` : "Clima"}</span>
-        </div>
-        {sourceTitle && <p className="koru-source-status is-verified">Fuentes verificadas · {sourceTitle}</p>}
-        <div className="koru-stitch-grid">
-          {block.now && <div className="koru-stitch-tile"><small>Ahora</small><strong>{block.now}</strong></div>}
-          {block.range && <div className="koru-stitch-tile"><small>Hoy</small><strong>{block.range}</strong></div>}
-          {block.rain && <div className="koru-stitch-tile"><small>Lluvia</small><strong>{block.rain}</strong></div>}
-          {block.wind && <div className="koru-stitch-tile"><small>Viento</small><strong>{block.wind}</strong></div>}
-        </div>
-        {block.advice && <p className="koru-stitch-note">{block.advice}</p>}
-      </div>
-    );
-  }
-
-  if (block.type === "alarm") {
-    return (
-      <div className="koru-alarm-card koru-stitch-card" data-ui-block="alarm">
-        <div className="koru-stitch-card-header">
-          <span className="koru-stitch-icon is-amber"><Clock size={16} /></span>
-          <span>Alarma</span>
-        </div>
-        <div className="koru-stitch-content">
-          <strong className="koru-alarm-time">{block.time}</strong>
-          <p>{block.title}</p>
-          {block.note && <small>{block.note}</small>}
-        </div>
-      </div>
-    );
-  }
-
-  if (block.type === "reminder") {
-    return (
-      <div className="koru-reminder-card koru-stitch-card" data-ui-block="reminder">
-        <div className="koru-stitch-card-header">
-          <span className="koru-stitch-icon"><CalendarDays size={16} /></span>
-          <span>{block.title ?? "Recordatorio"}</span>
-        </div>
-        <div className="koru-stitch-content">
-          {block.dueText && <small>{block.dueText}</small>}
-          {block.note && <p>{block.note}</p>}
-        </div>
-      </div>
-    );
-  }
-
-  if (block.type === "shopping_list") {
-    return (
-      <div className="koru-list-module koru-stitch-card" data-ui-block="shopping_list">
-        <div className="koru-stitch-card-header">
-          <span className="koru-stitch-icon"><ShoppingBasket size={16} /></span>
-          <span>{block.title ?? "Lista de compras"}</span>
-        </div>
-        {block.items.map((shoppingItem) => (
-          <div key={shoppingItem} className="koru-list-row">
-            <span className="koru-record-check" />
-            <span>
-              <strong>{shoppingItem}</strong>
-              <small>{block.dueText ?? "compras"}</small>
-            </span>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  if (block.type === "plan") {
-    return (
-      <div className="koru-stitch-card" data-ui-block="plan">
-        <div className="koru-stitch-card-header">
-          <span className="koru-stitch-icon"><Flag size={16} /></span>
-          <span>{block.title ?? "Plan"}</span>
-        </div>
-        <PlanPreview items={block.items} />
-        {block.note && <p className="koru-stitch-note">{block.note}</p>}
-      </div>
-    );
-  }
-
-  if (block.type === "comparison") {
-    return (
-      <div className="koru-stitch-card" data-ui-block="comparison">
-        <div className="koru-stitch-card-header">
-          <span className="koru-stitch-icon"><SearchCheck size={16} /></span>
-          <span>{block.title ?? "Comparativa"}</span>
-        </div>
-        {block.sources?.length ? <p className="koru-source-status is-verified">Fuentes verificadas</p> : null}
-        <ComparisonPreview item={{ ...item, comparisonItems: block.items, recommendation: block.recommendation, sources: block.sources }} />
-        <SourcePreview sources={block.sources?.filter((source) => !block.items.some((offer) => offer.url === source.url))} />
-      </div>
-    );
-  }
-
-  if (block.type === "research_sources") {
-    const status = block.sourceStatus ?? item.externalStatus ?? (block.sources.length ? "verified" : "pending");
-    return (
-      <div className="koru-stitch-card" data-ui-block="research_sources">
-        <div className="koru-stitch-card-header">
-          <span className="koru-stitch-icon"><SearchCheck size={16} /></span>
-          <span>{block.title ?? "Fuentes"}</span>
-        </div>
-        <p className={cn("koru-source-status", status === "verified" && "is-verified")}>
-          {status === "verified" ? "Fuentes verificadas" : status === "partial" ? "Resultados parciales" : status === "failed" ? "No se pudo navegar" : "Listo para abrir fuentes reales"}
-        </p>
-        <p className="koru-stitch-note">{block.summary}</p>
-        <SourcePreview sources={block.sources} />
-        {block.followUpQuestion && <p className="koru-card-note">{block.followUpQuestion}</p>}
-      </div>
-    );
-  }
-
-  if (block.type === "money_summary") {
-    return (
-      <div className="koru-stitch-card" data-ui-block="money_summary">
-        <div className="koru-stitch-card-header">
-          <span className="koru-stitch-icon"><DollarSign size={16} /></span>
-          <span>{block.title ?? "Resumen de gastos"}</span>
-        </div>
-        <div className="koru-stitch-content">
-          <SummaryModule item={{ ...item, summaryItems: block.summaryItems, totalAmount: block.total, currency: block.currency, recommendation: block.recommendation }} />
-        </div>
-      </div>
-    );
-  }
-
-  if (block.type === "saved_record") {
-    return <SavedRecordCard item={item} records={block.records} title={block.title} />;
-  }
-
-  if (block.type === "activity_group") {
-    return (
-      <div className="koru-activity-group koru-stitch-card" data-ui-block="activity_group">
-        <div className="koru-activity-group-head">
-          <span className="koru-stitch-icon"><Sun size={16} /></span>
-          <span>
-            <strong>{block.title}</strong>
-            {block.subtitle && <small>{block.subtitle}</small>}
-          </span>
-          {block.energy && (
-            <span className="koru-energy-rail" aria-label={block.energy.label ?? "Energia"}>
-              <span style={{ height: `${Math.max(8, Math.min(100, block.energy.value))}%` }} />
-            </span>
-          )}
-        </div>
-        {block.sections.map((section) => (
-          <div key={section.id ?? section.title} className="koru-activity-section" data-tone={section.tone ?? "neutral"}>
-            <div className="koru-activity-section-title">{section.title}</div>
-            {section.tiles?.length ? (
-              <div className="koru-activity-tiles">
-                {section.tiles.map((tile) => {
-                  const Icon = activityIcon(tile.kind);
-                  return (
-                    <div key={`${tile.label}-${tile.value}`} className="koru-activity-tile" data-urgent={tile.urgent ? "true" : undefined}>
-                      <div className="koru-activity-tile-top">
-                        <Icon size={18} />
-                        {tile.actionLabel && <span>{tile.actionLabel}</span>}
-                      </div>
-                      <span className="koru-card-kicker">{tile.label}</span>
-                      <strong>{tile.value}</strong>
-                      {tile.detail && <small>{tile.detail}</small>}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : null}
-            {section.rows?.length ? (
-              <div className="koru-activity-rows">
-                {section.rows.map((row) => (
-                  <div key={`${row.title}-${row.meta ?? ""}`} className="koru-activity-row" data-urgent={row.urgent ? "true" : undefined}>
-                    <span className="koru-record-check" />
-                    <span>
-                      <strong>{row.title}</strong>
-                      {row.detail && <small>{row.detail}</small>}
-                    </span>
-                    {row.meta && <em>{row.meta}</em>}
-                  </div>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        ))}
-        {item.actionKind === "decision_support" ? <DecisionCard item={item} /> : null}
-        {block.note && <p className="koru-stitch-note">{block.note}</p>}
-      </div>
-    );
-  }
-
-  if (block.type === "proactive_signal") {
-    const Icon = signalIcon(block.category);
-    const status = block.sourceStatus ?? item.externalStatus;
-    return (
-      <div className="koru-proactive-card koru-stitch-card" data-ui-block="proactive_signal" data-severity={block.severity ?? "info"}>
-        <div className="koru-stitch-card-header">
-          <span className="koru-stitch-icon"><Icon size={16} /></span>
-          <span>{block.title ?? "Señal"}</span>
-        </div>
-        <div className="koru-stitch-content">
-        {status && (
-          <p className={cn("koru-source-status", status === "verified" && "is-verified")}>
-            {status === "verified" ? "Fuentes verificadas" : status === "partial" ? "Resultados parciales" : status === "failed" ? "No se pudo navegar" : "Listo para abrir fuentes reales"}
-          </p>
-        )}
-        <p>{block.body}</p>
-        {block.summaryItems?.length ? (
-          <div className={cn("koru-summary-grid", block.summaryItems.length === 1 && "is-single")}>
-            {block.summaryItems.slice(0, 4).map((summary) => (
-              <div key={`${summary.label}-${summary.value}`} className="koru-summary-tile">
-                <span className="koru-summary-label">{summary.label}</span>
-                <strong>{summary.value}</strong>
-                {summary.detail && <small>{summary.detail}</small>}
-              </div>
-            ))}
-          </div>
-        ) : null}
-        <SourcePreview sources={block.sources} />
-        {block.followUpQuestion && <p className="koru-card-note">{block.followUpQuestion}</p>}
-        </div>
-      </div>
-    );
-  }
-
-  if (block.type === "resource_bundle") {
-    return (
-      <div className="koru-stitch-card" data-ui-block="resource_bundle">
-        <div className="koru-stitch-card-header">
-          <span className="koru-stitch-icon"><FileText size={16} /></span>
-          <span>{block.title ?? "Archivos"}</span>
-        </div>
-        {block.summary && <p className="koru-stitch-note">{block.summary}</p>}
-        <FileBundle files={block.files} />
-      </div>
-    );
-  }
-
-  return null;
 }
 
 function WorkSteps({ item }: { item: KoruTurnItem }) {
@@ -756,6 +781,297 @@ function ComparisonPreview({ item }: { item: KoruTurnItem }) {
   );
 }
 
+function PlanCardA({ items, note, title }: { items: AssistantPlanItem[]; note?: string; title?: string }) {
+  return (
+    <div className="koru-stitch-card" data-ui-block="plan">
+      <StitchHeader icon={CalendarDays} hint="Tu plan" title={title ?? `${items.length} pasos priorizados`} tone="purple" />
+      <div className="koru-stitch-plan">
+        {items.slice(0, 6).map((plan, index) => {
+          const Icon = planIcon(plan.icon, index);
+          const tone = index === 0 ? "accent" : index === 1 ? "amber" : "purple";
+          const meta = joinParts([
+            plan.durationMinutes ? `${plan.durationMinutes} min` : undefined,
+            plan.rationale,
+          ]);
+          return (
+            <div key={`${plan.time ?? index}-${plan.title}`} className="koru-stitch-plan-row">
+              <span className={cn("koru-stitch-plan-icon", `is-${tone}`)}>
+                <Icon size={14} />
+              </span>
+              <span className="koru-stitch-plan-time">{plan.time ?? ""}</span>
+              <span className="koru-stitch-plan-copy">
+                <strong>{plan.title}</strong>
+                {meta && <small>{meta}</small>}
+              </span>
+              {plan.priority && <em className={cn("koru-stitch-priority", plan.priority !== "Alta" && "is-medium")}>{plan.priority}</em>}
+            </div>
+          );
+        })}
+      </div>
+      <StitchNote>{note}</StitchNote>
+    </div>
+  );
+}
+
+function ComparisonCardA({ item, title, recommendation }: { item: KoruTurnItem; title?: string; recommendation?: string }) {
+  const offers = item.comparisonItems ?? [];
+  return (
+    <div className="koru-stitch-card" data-ui-block="comparison">
+      <StitchHeader icon={ShoppingBasket} hint="Comparacion" title={title ?? `${offers.length} opciones`} tone="amber" />
+      {item.sources?.length ? <p className="koru-source-status is-verified">Fuentes verificadas</p> : null}
+      <div className="koru-stitch-content">
+        {offers.slice(0, 5).map((offer, index) => (
+          <StitchRow
+            key={`${offer.title}-${offer.url ?? offer.vendor ?? index}`}
+            eyebrow={index === 0 ? "Mejor" : `#${index + 1}`}
+            title={joinParts([offer.title, offer.price])}
+            detail={joinParts([offer.vendor, offer.score ? `${offer.score}/100` : undefined, offer.evidence])}
+            href={offer.url}
+            highlighted={index === 0}
+            tone={index === 0 ? "amber" : "muted"}
+          />
+        ))}
+      </div>
+      <StitchNote tone="amber">{recommendation}</StitchNote>
+    </div>
+  );
+}
+
+function ResearchSourcesCardA({ block, item }: { block: Extract<NonNullable<KoruTurnItem["uiBlock"]>, { type: "research_sources" }>; item: KoruTurnItem }) {
+  const status = block.sourceStatus ?? item.externalStatus ?? (block.sources.length ? "verified" : "pending");
+  return (
+    <div className="koru-stitch-card" data-ui-block="research_sources">
+      <StitchHeader icon={SearchCheck} hint={statusLabel(status)} title={block.title ?? "Fuentes"} tone="purple" />
+      <StitchNote>{block.summary}</StitchNote>
+      <div className="koru-stitch-content">
+        {block.sources.slice(0, 4).map((source, index) => (
+          <StitchRow
+            key={source.url}
+            eyebrow={index === 0 ? "Top" : `#${index + 1}`}
+            title={source.title}
+            detail={source.domain}
+            href={source.url}
+            highlighted={index === 0}
+            tone={index === 0 ? "purple" : "muted"}
+          />
+        ))}
+      </div>
+      <StitchNote>{block.followUpQuestion}</StitchNote>
+    </div>
+  );
+}
+
+function SourceRowsA({ sources }: { sources?: AssistantSource[] }) {
+  if (!sources?.length) return null;
+  return (
+    <div className="koru-stitch-content">
+      {sources.slice(0, 4).map((source, index) => (
+        <StitchRow
+          key={source.url}
+          eyebrow={index === 0 ? "Top" : `#${index + 1}`}
+          title={source.title}
+          detail={source.domain}
+          href={source.url}
+          highlighted={index === 0}
+          tone={index === 0 ? "purple" : "muted"}
+        />
+      ))}
+    </div>
+  );
+}
+
+function ResourceBundleCardA({ block }: { block: Extract<UiBlock, { type: "resource_bundle" }> }) {
+  return (
+    <div className="koru-stitch-card" data-ui-block="resource_bundle">
+      <StitchHeader icon={FileText} hint="Archivo listo" title={block.title ?? `${block.files.length} archivo(s)`} tone="purple" />
+      <StitchNote>{block.summary}</StitchNote>
+      <div className="koru-stitch-content">
+        {block.files.slice(0, 6).map((file) => {
+          const Icon = fileIcon(file.kind);
+          return (
+            <button
+              key={file.name}
+              type="button"
+              onClick={() => downloadArtifact(file)}
+              className="koru-stitch-row"
+              aria-label={`Descargar ${file.name}`}
+            >
+              <span className="koru-stitch-row-marker is-purple"><Icon size={14} /></span>
+              <span className="koru-stitch-row-copy">
+                <strong>{file.name}</strong>
+                <small>{file.kind.toUpperCase()} - {file.sizeLabel}</small>
+              </span>
+              <ExternalLink size={15} />
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function UiBlockCardA({ item }: { item: KoruTurnItem }) {
+  const block = item.uiBlock;
+  if (!block) return null;
+
+  if (block.type === "clarifying_question") {
+    return (
+      <div className="koru-question-card koru-stitch-card" data-ui-block="clarifying_question">
+        <StitchHeader icon={Sparkles} hint={block.title ?? "Necesito un dato"} title={block.question} tone="purple" />
+        <StitchPills labels={block.options ?? []} />
+      </div>
+    );
+  }
+
+  if (block.type === "weather") {
+    const sourceTitle = block.sources?.[0]?.title;
+    const metrics = [
+      block.range ? { label: "Hoy", value: block.range } : undefined,
+      block.rain ? { label: "Lluvia", value: block.rain } : undefined,
+      block.wind ? { label: "Viento", value: block.wind } : undefined,
+    ].filter((summary): summary is { label: string; value: string } => Boolean(summary));
+    return (
+      <div className="koru-weather-card koru-stitch-card" data-ui-block="weather">
+        <StitchHeader icon={CloudSun} hint={block.city ? `Clima - ${block.city}` : "Clima"} title={block.title ?? block.now ?? "Estado actualizado"} tone="blue" />
+        {sourceTitle && <p className="koru-source-status is-verified">{statusLabel(block.sourceStatus ?? "verified")} - {sourceTitle}</p>}
+        <StitchSummaryGrid items={metrics} />
+        <StitchNote tone="amber">{block.advice}</StitchNote>
+      </div>
+    );
+  }
+
+  if (block.type === "alarm") {
+    return (
+      <div className="koru-alarm-card koru-stitch-card" data-ui-block="alarm">
+        <StitchHeader icon={Clock} hint="Alarma activada" title={joinParts([block.time, block.repeat]) || block.time} tone="rose" />
+        <div className="koru-stitch-content">
+          <StitchRow icon={Clock} title={block.title} detail={cleanLabel(block.note ?? block.repeat)} />
+        </div>
+      </div>
+    );
+  }
+
+  if (block.type === "reminder") {
+    return (
+      <div className="koru-reminder-card koru-stitch-card" data-ui-block="reminder">
+        <StitchHeader icon={CalendarDays} hint="Recordatorio guardado" title={block.title} />
+        <div className="koru-stitch-content">
+          <StitchRow icon={Clock} title={block.title} detail={block.dueText} chip={block.dueText} />
+        </div>
+      </div>
+    );
+  }
+
+  if (block.type === "shopping_list") {
+    return (
+      <div className="koru-list-module koru-stitch-card" data-ui-block="shopping_list">
+        <StitchHeader icon={ShoppingBasket} hint="Lista guardada" title={block.title ?? `${block.items.length} items`} tone="amber" />
+        <div className="koru-stitch-content">
+          {block.items.map((shoppingItem) => (
+            <StitchRow key={shoppingItem} icon={Check} title={shoppingItem} detail={block.dueText} />
+          ))}
+          <StitchNote>{block.note}</StitchNote>
+        </div>
+      </div>
+    );
+  }
+
+  if (block.type === "plan") {
+    return <PlanCardA items={block.items} note={block.note} title={block.title} />;
+  }
+
+  if (block.type === "comparison") {
+    return <ComparisonCardA item={{ ...item, comparisonItems: block.items, recommendation: block.recommendation, sources: block.sources }} title={block.title} recommendation={block.recommendation} />;
+  }
+
+  if (block.type === "research_sources") {
+    return <ResearchSourcesCardA block={block} item={item} />;
+  }
+
+  if (block.type === "money_summary") {
+    const summaryItems = [...(block.summaryItems ?? [])];
+    const total = moneyLabel(block.total, block.currency);
+    if (total && !summaryItems.some((summary) => /total|gast/i.test(summary.label))) {
+      summaryItems.unshift({ label: "Total", value: total });
+    }
+    return (
+      <div className="koru-stitch-card" data-ui-block="money_summary">
+        <StitchHeader icon={DollarSign} hint="Resumen" title={block.title ?? total ?? "Dinero"} tone="blue" />
+        <StitchSummaryGrid items={summaryItems} />
+        <StitchNote>{block.recommendation}</StitchNote>
+      </div>
+    );
+  }
+
+  if (block.type === "saved_record") {
+    return <SavedRecordCard item={item} records={block.records} title={block.title} />;
+  }
+
+  if (block.type === "activity_group") {
+    const tileSummaries = block.sections.flatMap((section) =>
+      (section.tiles ?? []).map((tile) => ({
+        label: tile.label,
+        value: tile.value,
+        detail: joinParts([section.title, tile.detail]),
+      })),
+    );
+    const rows = block.sections.flatMap((section) =>
+      (section.rows ?? []).map((row) => ({
+        ...row,
+        sectionTitle: section.title,
+        tone: section.tone,
+      })),
+    );
+    return (
+      <div className="koru-activity-group koru-stitch-card" data-ui-block="activity_group">
+        <StitchHeader icon={Sun} hint={block.subtitle ?? "Actividad"} title={block.title} />
+        <StitchSummaryGrid items={tileSummaries} />
+        {rows.length > 0 && (
+          <div className="koru-stitch-content">
+            {rows.slice(0, 6).map((row, index) => (
+              <StitchRow
+                key={`${row.sectionTitle}-${row.title}-${row.meta ?? index}`}
+                icon={Check}
+                title={row.title}
+                detail={joinParts([row.sectionTitle, row.detail])}
+                chip={row.meta}
+                highlighted={row.urgent}
+                tone={row.urgent ? "amber" : row.tone === "purple" ? "purple" : "accent"}
+              />
+            ))}
+          </div>
+        )}
+        {block.energy && (
+          <StitchNote tone="blue">
+            {joinParts([block.energy.label ?? "Energia", `${Math.max(0, Math.min(100, block.energy.value))}%`])}
+          </StitchNote>
+        )}
+        <StitchNote>{block.note}</StitchNote>
+      </div>
+    );
+  }
+
+  if (block.type === "proactive_signal") {
+    const Icon = signalIcon(block.category);
+    const status = block.sourceStatus ?? item.externalStatus;
+    return (
+      <div className="koru-proactive-card koru-stitch-card" data-ui-block="proactive_signal" data-severity={block.severity ?? "info"}>
+        <StitchHeader icon={Icon} hint={statusLabel(status)} title={block.title} tone={block.severity === "important" || block.severity === "urgent" ? "amber" : "purple"} />
+        <StitchNote>{block.body}</StitchNote>
+        <StitchSummaryGrid items={block.summaryItems ?? []} />
+        <SourceRowsA sources={block.sources} />
+        <StitchNote tone="amber">{block.followUpQuestion}</StitchNote>
+      </div>
+    );
+  }
+
+  if (block.type === "resource_bundle") {
+    return <ResourceBundleCardA block={block} />;
+  }
+
+  return null;
+}
+
 function secondaryActions(item: KoruTurnItem): Array<{ label: string; icon: LucideIcon; onClick?: () => void }> {
   if (item.actionKind === "web_research" || item.actionKind === "world_signal") {
     const firstUrl = item.sources?.[0]?.url;
@@ -900,11 +1216,13 @@ export function KoruSemanticCard({ item, handlers }: { item: KoruTurnItem; handl
   if (item.kind === "memory" || item.kind === "commitment") {
     return <MemoryCard item={item} handlers={handlers} />;
   }
-  if (item.uiBlock) {
+  const stitchBlock = stitchBlockFromLegacyItem(item);
+  if (stitchBlock) {
+    const stitchItem = item.uiBlock === stitchBlock ? item : { ...item, uiBlock: stitchBlock };
     return (
-      <div className="koru-action-content" data-card-kind={item.actionKind ?? item.kind} data-ui-block={item.uiBlock.type} data-web-mode={item.webMode ?? undefined}>
-        <UiBlockCard item={item} />
-        <ActionButtons item={item} handlers={handlers} />
+      <div className="koru-action-content" data-card-kind={stitchItem.actionKind ?? stitchItem.kind} data-ui-block={stitchBlock.type} data-web-mode={stitchItem.webMode ?? undefined}>
+        <UiBlockCardA item={stitchItem} />
+        <ActionButtons item={stitchItem} handlers={handlers} />
       </div>
     );
   }
