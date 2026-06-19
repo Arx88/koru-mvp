@@ -649,12 +649,14 @@ describe("Koru Brain", () => {
 });
 
 describe("selectRelevantMemories", () => {
-  const mockDate = new Date().toISOString();
+  const mockDateRecent = new Date().toISOString();
+  const mockDateOld = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
 
   const memories: MemoryFact[] = [
-    { id: "1", text: "Trabajo con clientes por la manana", kind: "routine", confidence: 0.9, status: "confirmed", createdAt: mockDate, sourceEntryId: "e1", sensitivity: "normal", useForSuggestions: true },
-    { id: "2", text: "Mi mama vive lejos y la extrano", kind: "relationship", confidence: 0.8, status: "confirmed", createdAt: mockDate, sourceEntryId: "e2", sensitivity: "normal", useForSuggestions: true },
-    { id: "3", text: "Prefiero cafe fuerte", kind: "preference", confidence: 0.7, status: "candidate", createdAt: mockDate, sourceEntryId: "e3", sensitivity: "normal", useForSuggestions: true },
+    { id: "1", text: "Trabajo con clientes por la manana", kind: "routine", confidence: 0.9, status: "confirmed", createdAt: mockDateRecent, sourceEntryId: "e1", sensitivity: "normal", useForSuggestions: true },
+    { id: "2", text: "Mi mama vive lejos y la extrano", kind: "relationship", confidence: 0.8, status: "confirmed", createdAt: mockDateOld, sourceEntryId: "e2", sensitivity: "normal", useForSuggestions: true },
+    { id: "3", text: "Prefiero cafe fuerte", kind: "preference", confidence: 0.7, status: "candidate", createdAt: mockDateRecent, sourceEntryId: "e3", sensitivity: "normal", useForSuggestions: true },
+    { id: "4", text: "El cielo esta nublado hoy", kind: "observation", confidence: 0.6, status: "confirmed", createdAt: mockDateRecent, sourceEntryId: "e4", sensitivity: "normal", useForSuggestions: true },
   ];
 
   it("returns memories matching keywords from input", () => {
@@ -666,5 +668,28 @@ describe("selectRelevantMemories", () => {
   it("returns up to maxResults", () => {
     const result = selectRelevantMemories(memories, "cafe clientes trabajo", 2);
     expect(result.length).toBeLessThanOrEqual(2);
+    // Verify only memories with keyword overlap are returned (cafe, clientes, trabajo)
+    const texts = result.map(r => r.text.toLowerCase());
+    expect(texts.some(t => t.includes("trabajo") || t.includes("clientes") || t.includes("cafe"))).toBe(true);
+  });
+
+  it("returns empty array when input has no meaningful keywords", () => {
+    const result = selectRelevantMemories(memories, "a b c", 5);
+    expect(result).toEqual([]);
+  });
+
+  it("excludes memories with no keyword overlap", () => {
+    // Query: "trabajo" matches memory 1 only (and "nublado" has no overlap)
+    // With maxResults=2, memory 4 (zero overlap) should be excluded
+    const result = selectRelevantMemories(memories, "trabajo", 2);
+    const texts = result.map(r => r.text);
+    expect(texts).not.toContain("El cielo esta nublado hoy");
+    expect(texts).toContain("Trabajo con clientes por la manana");
+  });
+
+  it("returns objects with correct RelevantMemory shape", () => {
+    const result = selectRelevantMemories(memories, "trabajo", 5);
+    expect(result[0]).toHaveProperty("kind");
+    expect(result[0]).toHaveProperty("confidence");
   });
 });

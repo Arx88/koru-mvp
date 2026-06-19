@@ -847,12 +847,15 @@ export function selectRelevantMemories(
     input.toLowerCase().split(/\W+/).filter(w => w.length > 3),
   );
 
+  if (inputWords.size === 0) return [];
+
   const scored = memories
     .filter(m => m.status === "confirmed" || m.status === "candidate")
     .map(m => {
       const textLower = m.text.toLowerCase();
       const matchCount = Array.from(inputWords).filter(w => textLower.includes(w)).length;
-      const recencyBonus = Date.now() - new Date(m.createdAt).getTime() < 7 * 24 * 60 * 60 * 1000 ? 0.2 : 0;
+      const createdTime = new Date(m.createdAt).getTime();
+      const recencyBonus = !isNaN(createdTime) && Date.now() - createdTime < 7 * 24 * 60 * 60 * 1000 ? 0.2 : 0;
       const score = matchCount * 0.5 + recencyBonus + (m.confidence ?? 0.7) * 0.3;
       return { memory: m, score };
     })
