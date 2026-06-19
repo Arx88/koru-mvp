@@ -37,7 +37,7 @@ import {
   updateMemoryText,
   stageFor as domainStageFor,
 } from "../domain/store";
-import { runBackendAgentTurn, type KoruBackendTurnResponse } from "../domain/backendAgentClient";
+import { runBackendAgentTurn, type KoruBackendTurnResponse, type KoruSuggestedAction } from "../domain/backendAgentClient";
 import { buildHeartbeatNudges } from "../domain/heartbeat";
 import { runWebNavigation, webResultToPayload } from "../domain/web";
 import { dueLabel } from "../domain/time";
@@ -765,6 +765,47 @@ function uiBlockToAction(block: UiBlock, entryId: string, createdAt: string): As
   };
 }
 
+function typeToAssistantKind(type?: string): AssistantAction["kind"] {
+  if (!type) return "structured_note";
+  if (type === "alarm_context") return "alarm";
+  if (type === "health_followup" || type === "routine_reminder") return "reminder";
+  if (type === "meeting_prep") return "meeting_brief";
+  if (type === "subscription_tagging" || type === "transport_tagging") return "money_summary";
+  if (type === "metadata_extraction") return "structured_note";
+  if (type === "meal_suggestion") return "day_plan";
+  if (type === "person_followup") return "structured_note";
+  return "clarifying_question";
+}
+
+function suggestedActionToAssistantAction(
+  sa: KoruSuggestedAction,
+  entryId: string,
+  createdAt: string,
+): AssistantAction {
+  const kind = typeToAssistantKind(sa.payload?.enhancementType as string | undefined);
+  const uiBlock = sa.payload?.uiBlock as UiBlock | undefined;
+
+  return {
+    id: sa.id,
+    kind,
+    title: sa.label,
+    body: sa.label,
+    status: sa.requiresApproval ? "proposed" : "executed",
+    approvalRequired: sa.requiresApproval,
+    createdAt,
+    updatedAt: createdAt,
+    executedAt: sa.requiresApproval ? undefined : createdAt,
+    sourceEntryId: entryId,
+    payload: {
+      title: sa.label,
+      body: sa.label,
+      uiBlock,
+      ...sa.payload,
+    },
+    result: sa.requiresApproval ? undefined : sa.label,
+  };
+}
+
 function createBackendEntry(
   text: string,
   transcriptSource: DailyEntry["transcriptSource"],
@@ -843,8 +884,10 @@ function applyBackendTurnToState(
           sourceEntryId: entryId,
         }));
   const actions = result.uiBlocks.map((block) => uiBlockToAction(block, entryId, createdAt));
+  const suggestedActions = result.suggestedActions.map((sa) => suggestedActionToAssistantAction(sa, entryId, createdAt));
+  const allActions = [...actions, ...suggestedActions];
   const items = compactTurnItems([
-    ...actions.map(actionToTurnItem),
+    ...allActions.map(actionToTurnItem),
     ...commitments.slice(0, 3).map((commitment): KoruTurnItem => ({
       id: commitment.id,
       kind: "commitment",
@@ -864,7 +907,7 @@ function applyBackendTurnToState(
     createdAt,
     memories.map((memory) => memory.id),
     commitments.map((commitment) => commitment.id),
-    actions.map((action) => action.id),
+    allActions.map((action) => action.id),
     records.map((record) => record.id),
   );
   const energyEvent: EnergyEvent = {
@@ -892,7 +935,7 @@ function applyBackendTurnToState(
     entries: state.ephemeralMode ? state.entries : [entry, ...state.entries],
     memories: [...memories, ...state.memories],
     commitments: [...commitments, ...state.commitments],
-    actions: [...actions, ...state.actions],
+    actions: [...allActions, ...state.actions],
     records: [...records, ...state.records].slice(0, 500),
     energyEvents: state.ephemeralMode ? state.energyEvents : [energyEvent, ...state.energyEvents],
     modelCalls: [modelCall, ...state.modelCalls].slice(0, 120),

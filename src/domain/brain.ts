@@ -8,7 +8,7 @@ import {
   hasTaskCue,
   isAvailabilityStatement,
 } from "./intent";
-import { renderKoruResponse, sanitizeKoruVoice } from "./soul";
+import { sanitizeKoruVoice } from "./soul";
 import { dueAtFromText, recurrenceFromText } from "./time";
 import { orchestrateTurn, uiBlocksToActionProposals } from "./orchestrator";
 import type {
@@ -779,7 +779,6 @@ function normalizeDraft(
   const actionProposalsLocal = buildActionProposalsLocal(input, commitments, sentiment, state, records);
   const actionProposals = mergeActionProposals(actionProposalsLocal, actionProposalsFromModel);
   const summary = sentenceCase(draft.summary ?? summarize(input, ideas));
-  const sensitiveCount = memoryCandidates.filter((memory) => memory.sensitivity === "sensitive").length;
   const nudges = state.ephemeralMode
     ? []
     : commitments.slice(0, 2).map((commitment) => ({
@@ -806,21 +805,23 @@ function normalizeDraft(
     model,
     response: draft.response
       ? sanitizeKoruVoice(draft.response)
-      : renderKoruResponse({
-          summary,
-          memoryCount: memoryCandidates.length,
-          commitmentCount: commitments.length,
-          actionCount: actionProposals.length,
-          primaryActionTitle: actionProposals[0]?.title,
-          primaryActionKind: actionProposals[0]?.kind,
-          sensitiveCount,
-          sentiment,
-          activeMemoryCount: activeMemories.length,
-          activeMemorySummary: activeMemories.map((memory) => memory.text).join(" / "),
-          provider,
-          preference: state.voicePreference,
-        }),
+      : smartFallback(actionProposals, records, commitments),
   };
+}
+
+function smartFallback(
+  actionProposals: KoruAnalysis["actionProposals"],
+  records: KoruAnalysis["records"],
+  commitments: KoruAnalysis["commitments"],
+): string {
+  const act = actionProposals[0];
+  if (act?.kind === "alarm") return `Listo, preparé una alarma. ¿Querés que le agregue algo más?`;
+  if (act?.kind === "reminder") return `Listo, dejé el recordatorio. ¿Necesitás algo adicional?`;
+  if (act?.kind === "day_plan") return `Te organicé el día en pasos concretos.`;
+  if (records.length) return `Guardado. ¿Querés que haga algo más con eso?`;
+  if (commitments.length) return `Lo dejé como pendiente. ¿Querés que te avise antes?`;
+  if (act) return `Ya preparé lo que pediste. ¿Avanzamos con algo más?`;
+  return "¿Me lo repetís de otra forma? Así lo entiendo bien y te ayudo.";
 }
 
 function tileKindForLabel(label: string): ActivityTile["kind"] {

@@ -525,6 +525,13 @@ export type AssistantAction = {
   result?: string;
 };
 
+export type LearningPreference = {
+  type: string;
+  acceptedCount: number;
+  rejectedCount: number;
+  lastInteractionAt: string;
+};
+
 export type KoruState = {
   userName?: string;
   stage: KoruStage;
@@ -548,6 +555,7 @@ export type KoruState = {
   durableMemoryEnabled: boolean;
   actionPreparationEnabled: boolean;
   worldSignalsEnabled: boolean;
+  learningPreferences: LearningPreference[];
 };
 
 export type KoruAnalysis = {

@@ -10,7 +10,7 @@ import {
   writeLegacyState,
   writePersistedState,
 } from "./persistence";
-import type { RelevantMemory } from "./types";
+import type { LearningPreference, RelevantMemory } from "./types";
 import { koruSoulCapsule } from "./soul";
 import { dueAtFromText, nextDueAtFromRecurrence } from "./time";
 import type {
@@ -99,6 +99,7 @@ export function createInitialState(): KoruState {
     durableMemoryEnabled: true,
     actionPreparationEnabled: true,
     worldSignalsEnabled: false,
+    learningPreferences: [],
   };
 }
 
@@ -449,13 +450,53 @@ export function completeCommitment(state: KoruState, id: string): KoruState {
   return next;
 }
 
+function updateLearningPreference(
+  state: KoruState,
+  type: string | undefined,
+  accepted: boolean,
+): LearningPreference[] {
+  if (!type) return state.learningPreferences;
+  const now = nowIso();
+  const existing = state.learningPreferences.find((p) => p.type === type);
+  if (existing) {
+    return state.learningPreferences.map((p) =>
+      p.type === type
+        ? {
+            ...p,
+            acceptedCount: accepted ? p.acceptedCount + 1 : p.acceptedCount,
+            rejectedCount: accepted ? p.rejectedCount : p.rejectedCount + 1,
+            lastInteractionAt: now,
+          }
+        : p,
+    );
+  }
+  return [
+    ...state.learningPreferences,
+    {
+      type,
+      acceptedCount: accepted ? 1 : 0,
+      rejectedCount: accepted ? 0 : 1,
+      lastInteractionAt: now,
+    },
+  ];
+}
+
+function enhancementTypeFromAction(action?: { payload?: Record<string, unknown> }): string | undefined {
+  if (!action?.payload) return undefined;
+  const type = action.payload.enhancementType;
+  return typeof type === "string" ? type : undefined;
+}
+
 export function rejectAction(state: KoruState, id: string): KoruState {
   const now = nowIso();
+  const action = state.actions.find((item) => item.id === id);
+  const type = enhancementTypeFromAction(action);
   const next = {
     ...state,
     actions: state.actions.map((action) =>
       action.id === id ? { ...action, status: "rejected" as const, updatedAt: now } : action,
     ),
+    learningPreferences: updateLearningPreference(state, type, false),
     updatedAt: now,
   };
   saveState(next);
@@ -467,6 +508,7 @@ export function approveAndExecuteAction(state: KoruState, id: string): KoruState
   if (!action || action.status === "executed" || action.status === "rejected") return state;
 
   const now = nowIso();
+  const type = enhancementTypeFromAction(action);
   const execution = executeApprovedAction(
     state,
     { ...action, status: "approved", updatedAt: now },
@@ -484,6 +526,7 @@ export function approveAndExecuteAction(state: KoruState, id: string): KoruState
   const next = {
     ...state,
     actions: state.actions.map((item) => (item.id === id ? execution.action : item)),
+    learningPreferences: updateLearningPreference(state, type, true),
     commitments: [
       ...newCommitments,
       ...state.commitments.map((commitment) =>

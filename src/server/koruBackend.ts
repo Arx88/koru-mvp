@@ -8,12 +8,15 @@ import type {
   MemoryFact,
   MascotState,
   RelevantMemory,
+  ToolCall,
   ToolResult,
   UiBlock,
 } from "../domain/types";
 import { VALID_MASCOT_STATES } from "../domain/types";
 import { selectRelevantMemories } from "../domain/store";
 import { isConversationalTurn } from "../domain/pipeline";
+import { generateEnhancements, enhancementPrompt } from "../domain/enhancementEngine";
+import { extractOpportunities } from "../domain/enhancementExtractor";
 
 export type ProviderConfig = {
   nvidiaApiKey?: string;
@@ -1544,6 +1547,7 @@ function buildJsonComposerMessages(
   request: KoruBackendTurnRequest,
   toolExecutions: ToolExecution[],
   assistantText?: string,
+  enhancementInstruction?: string,
 ): ChatMessage[] {
   const boundaries = request.state.memories
     .filter((m) => m.status === "confirmed" && m.kind === "boundary")
@@ -1568,6 +1572,7 @@ function buildJsonComposerMessages(
         "- If a boundary is vague, ask clarification before skipping.",
         "Current user boundaries:",
         boundaries,
+        ...(enhancementInstruction ? ["", enhancementInstruction] : []),
       ].join("\n"),
     },
     {
@@ -1664,8 +1669,9 @@ async function composeWithJsonPrompt(
   config: ProviderConfig,
   toolExecutions: ToolExecution[],
   assistantText?: string,
+  enhancementInstruction?: string,
 ): Promise<{ raw: Record<string, unknown>; provider: "nvidia" | "openrouter"; model?: string; fallbackReason?: string }> {
-  const result = await callProvider(config, buildJsonComposerMessages(request, toolExecutions, assistantText), 22_000, false);
+  const result = await callProvider(config, buildJsonComposerMessages(request, toolExecutions, assistantText, enhancementInstruction), 22_000, false);
   const content = cleanText(result.message.content);
   const raw = safeJsonObjectFromContent(content);
   return {
@@ -2231,7 +2237,7 @@ function normalizeFinalPayload(
   const cleanedReply = cleanReplyText(raw.reply, uiBlocks.length > 0);
   const blockReply = replyFromBlocks(uiBlocks, input);
   return {
-    reply: !cleanedReply || isGenericAgentReply(cleanedReply) ? blockReply || "Listo. Te dejo lo importante y el siguiente paso." : cleanedReply,
+    reply: !cleanedReply || isGenericAgentReply(cleanedReply) ? blockReply || "Tuve un problema para armar la respuesta. ¿Me lo repetís de otra forma para ayudarte bien?" : cleanedReply,
     uiBlocks,
     suggestedActions: normalizeSuggestedActions(raw.suggestedActions),
     understanding: normalizeUnderstanding(raw.understanding, input),
@@ -2275,7 +2281,7 @@ function normalizeFinalPayload(
 function contentFallback(content: string, input: string, toolExecutions: ToolExecution[]): KoruBackendTurnResponse {
   const toolBlocks = blocksFromToolResults(toolExecutions);
   return normalizeFinalPayload({
-    reply: cleanReplyText(content, toolBlocks.length > 0) || "Listo. Te dejo lo importante en la tarjeta.",
+    reply: cleanReplyText(content, toolBlocks.length > 0) || "No pude armar una respuesta clara. ¿Me lo repetís de otra forma?",
     understanding: {
       literalRequest: input,
       userGoal: "Resolver el pedido con ayuda de Koru.",
@@ -2358,6 +2364,74 @@ async function executeProviderToolCalls(
   return null;
 }
 
+async function buildEnhancementInstruction(
+  request: KoruBackendTurnRequest,
+  config: ProviderConfig,
+  toolExecutions: ToolExecution[],
+): Promise<{
+  prompt: string;
+  enhancementBlocks: UiBlock[];
+  enhancementActions: KoruSuggestedAction[];
+}> {
+  try {
+    const uiBlocks = blocksFromToolResults(toolExecutions);
+
+    const toolBlocks: ToolResult[] = toolExecutions.flatMap((t) => {
+      const resultStatus = (t.result as Record<string, unknown> | undefined)?.status;
+      const status = resultStatus === "verified" ? "ok" : resultStatus === "failed" ? "failed" : "partial";
+      return [{
+        id: t.id,
+        tool: t.name as ToolCall["tool"],
+        status,
+        summary: typeof t.result === "object" && t.result !== null ? JSON.stringify(t.result).slice(0, 200) : "ok",
+        data: typeof t.result === "object" && t.result !== null ? (t.result as Record<string, unknown>) : undefined,
+      }];
+    });
+
+    const chatFn = async (messages: { role: string; content: string }[], _options: { temperature: number; maxTokens: number }) => {
+      const result = await callProvider(config, messages.map((m) => ({ role: m.role as "system" | "user", content: m.content })), 8_000, false);
+      return { content: result.message.content ?? "" };
+    };
+
+    const opportunities = await extractOpportunities({
+      input: request.input,
+      intent: { domain: "chat", kind: "user_request", confidence: 0.6 },
+      uiBlocks,
+      toolResults: toolBlocks,
+      state: request.state,
+      runtime: request.state.runtime,
+    }, chatFn);
+
+    const candidates = generateEnhancements(opportunities, request.state);
+    const prompt = enhancementPrompt(candidates);
+
+    const enhancementBlocks: UiBlock[] = candidates
+      .filter((c): c is typeof c & { action: { mode: "auto"; uiBlock: UiBlock } } =>
+        c.action.mode === "auto" && "uiBlock" in c.action && Boolean(c.action.uiBlock)
+      )
+      .map((c) => c.action.uiBlock);
+
+    const enhancementActions: KoruSuggestedAction[] = candidates
+      .filter((c): c is typeof c & { action: { mode: "ask"; question: string; uiBlock?: UiBlock } | { mode: "suggest"; text: string; uiBlock?: UiBlock } } =>
+        c.action.mode === "ask" || c.action.mode === "suggest"
+      )
+      .map((c) => ({
+        id: c.id,
+        label: c.action.mode === "ask" ? c.action.question : c.action.text,
+        kind: c.action.mode === "ask" ? "approve" : "save",
+        requiresApproval: c.action.mode === "ask",
+        payload: {
+          enhancementType: c.title,
+          ...(c.action.uiBlock ? { uiBlock: c.action.uiBlock } : {}),
+        },
+      }));
+
+    return { prompt, enhancementBlocks, enhancementActions };
+  } catch {
+    return { prompt: "", enhancementBlocks: [], enhancementActions: [] };
+  }
+}
+
 export async function runKoruBackendTurn(
   request: KoruBackendTurnRequest,
   config: ProviderConfig,
@@ -2381,10 +2455,11 @@ export async function runKoruBackendTurn(
       // FAST PATH: turnos puramente conversacionales no necesitan Router JSON.
       // El systemPrompt ya inyectó personalidad + memorias relevantes.
       if (step === 0 && !toolExecutions.length && content && isConversationalTurn(request.input)) {
+        const { enhancementActions } = await buildEnhancementInstruction(request, config, toolExecutions);
         const response = await finalizePayload(request, config, {
           reply: content,
           uiBlocks: [],
-          suggestedActions: [],
+          suggestedActions: enhancementActions,
           memoryCandidates: [],
           commitments: [],
           records: [],
@@ -2399,7 +2474,10 @@ export async function runKoruBackendTurn(
 
       if (toolExecutions.length) {
         try {
-          const composed = await composeWithJsonPrompt(request, config, toolExecutions, content);
+          const { prompt: enhancementPromptText, enhancementBlocks, enhancementActions } = await buildEnhancementInstruction(request, config, toolExecutions);
+          const composed = await composeWithJsonPrompt(request, config, toolExecutions, content, enhancementPromptText);
+          composed.raw.uiBlocks = [...enhancementBlocks, ...asArray(composed.raw.uiBlocks)];
+          composed.raw.suggestedActions = [...enhancementActions, ...asArray(composed.raw.suggestedActions)];
           const response = await finalizePayload(request, config, composed.raw, toolExecutions);
           return {
             ...response,
@@ -2449,7 +2527,10 @@ export async function runKoruBackendTurn(
 
   if (toolExecutions.length) {
     try {
-      const composed = await composeWithJsonPrompt(request, config, toolExecutions);
+      const { prompt: enhancementPromptText, enhancementBlocks, enhancementActions } = await buildEnhancementInstruction(request, config, toolExecutions);
+      const composed = await composeWithJsonPrompt(request, config, toolExecutions, undefined, enhancementPromptText);
+      composed.raw.uiBlocks = [...enhancementBlocks, ...asArray(composed.raw.uiBlocks)];
+      composed.raw.suggestedActions = [...enhancementActions, ...asArray(composed.raw.suggestedActions)];
       const response = await finalizePayload(request, config, composed.raw, toolExecutions);
       return {
         ...response,
