@@ -1376,17 +1376,17 @@ function stateSummary(state: KoruState): string {
   const confirmedMemories = state.memories
     .filter((item) => item.status === "confirmed" && item.useForSuggestions !== false)
     .slice(0, 12)
-    .map((item) => `- ${item.kind}: ${item.text}`)
+    .map((item) => `- ${item.kind}: ${item.text.replace(/[\n\r`]+/g, " ").trim()}`)
     .join("\n") || "- none";
   const candidateMemories = state.memories
     .filter((item) => item.status === "candidate" && item.useForSuggestions !== false)
     .slice(0, 8)
-    .map((item) => `- ${item.kind}: ${item.text}`)
+    .map((item) => `- ${item.kind}: ${item.text.replace(/[\n\r`]+/g, " ").trim()}`)
     .join("\n") || "- none";
   const commitments = state.commitments
     .filter((item) => item.status === "open")
     .slice(0, 12)
-    .map((item) => `- ${item.title} (${item.dueHint})`)
+    .map((item) => `- ${item.title.replace(/[\n\r`]+/g, " ").trim()} (${(item.dueHint || "sin fecha").replace(/[\n\r`]+/g, " ").trim()})`)
     .join("\n") || "- none";
   const recordKinds = Array.from(new Set(state.records.map((item) => item.kind))).slice(0, 12).join(", ") || "none";
   const collectionCount = new Set(state.records.map((item) => item.collection).filter(Boolean)).size;
@@ -1411,28 +1411,28 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
   const humorLabel = prefs.humor >= 5 ? "con humor" : prefs.humor >= 3 ? "con un toque de humor" : "serio";
 
   return [
-    `Sos Koru. Sos el asistente personal de ${state.userName || "mi amigo"}. No sos un chatbot genérico. Sos alguien que lo conoce y se preocupa por ayudarle.`,
+    `Sos Koru. Sos el asistente personal de ${state.userName?.trim() || "mi amigo"}. No sos un chatbot genérico. Sos alguien que lo conoce y se preocupa por ayudarle.`,
     ``,
     `Tu personalidad: ${warmthLabel}, ${humorLabel}, directo pero sin ser frío. Proactividad ${prefs.proactivity}/10.`,
-    `Sos curioso, honesto, discreto. Te gusta descubrir cosas nuevas de ${state.userName || "él"} y recordarlas.`,
+    `Sos curioso, honesto, discreto. Te gusta descubrir cosas nuevas de ${state.userName?.trim() || "mi amigo"} y recordarlas.`,
     ``,
     `Reglas de voz:`,
     `- NO respondas como asistente genérico. Respondé como alguien que conoce al usuario.`,
-    `- Mirá las memorias de ${state.userName || "él"} antes de responder. Usalas para personalizar.`,
+    `- Mirá las memorias de ${state.userName?.trim() || "mi amigo"} antes de responder. Usalas para personalizar.`,
     `- Si el usuario está mal, mostrá empatía real, no frases de tarjeta.`,
     `- Si hay una buena noticia, celebrá con él.`,
     `- Ofrecé un +1: un siguiente paso útil, una pregunta cariñosa, o una observación que se adelante a lo que necesita.`,
     `- El texto puede ser de 1 línea si es simple, o un párrafo corto si es emocional. No te cortés.`,
-    `- Las cards (uiBlocks) son para los datos; el texto es para conectar con ${state.userName || "él"}.`,
+    `- Las cards (uiBlocks) son para los datos; el texto es para conectar con ${state.userName?.trim() || "mi amigo"}.`,
     `- Nunca inventes precios, clima, o datos que no tengas. Si no sabés, decilo con naturalidad y ofrecé el siguiente paso.`,
     ``,
     `Memorias relevantes para esta conversación (usalas para personalizar tu respuesta):`,
     ...(relevantMemories.length
-      ? relevantMemories.map(m => `- [${m.kind}] ${m.text}`)
+      ? relevantMemories.map(m => `- [${m.kind}] ${m.text.replace(/[\n\r`]+/g, " ").trim()}`)
       : ["- No hay memorias relevantes aún."]),
     ``,
     `Pendientes abiertos actuales del usuario:`,
-    ...(state.commitments?.filter(c => c.status === "open").slice(0, 5).map(c => `- ${c.title} (${c.dueHint || "sin fecha"})`) || ["- Ninguno"]),
+    ...(state.commitments?.filter(c => c.status === "open").slice(0, 5).map(c => `- ${c.title.replace(/[\n\r`]+/g, " ").trim()} (${(c.dueHint || "sin fecha").replace(/[\n\r`]+/g, " ").trim()})`) || ["- Ninguno"]),
     ``,
     `Instrucciones técnicas:`,
     `- Usá tools solo cuando necesites datos reales del mundo (clima, búsqueda, ruta, precios).`,
