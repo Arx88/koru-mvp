@@ -33,6 +33,12 @@ export type MascotState =
   | "affectionate"
   | "curious";
 
+export const VALID_MASCOT_STATES: MascotState[] = [
+  "idle", "thinking", "working", "happy", "tired", "sleeping",
+  "mistake", "planning", "product-search", "building", "cooking",
+  "thinking-2", "celebrating", "worried", "affectionate", "curious",
+];
+
 export type RelevantMemory = {
   text: string;
   kind: MemoryKind;

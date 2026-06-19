@@ -5,12 +5,13 @@ import type {
   KoruConversationMessage,
   KoruState,
   LifeRecord,
-  MascotState,
   MemoryFact,
+  MascotState,
   RelevantMemory,
   ToolResult,
   UiBlock,
 } from "../domain/types";
+import { VALID_MASCOT_STATES } from "../domain/types";
 import { selectRelevantMemories } from "../domain/store";
 
 export type ProviderConfig = {
@@ -2145,14 +2146,12 @@ function normalizeFinalPayload(
 ): KoruBackendTurnResponse {
   const modelBlocks = asArray(raw.uiBlocks).map(normalizeUiBlock).filter((block): block is UiBlock => Boolean(block));
   const mascotState = cleanText(raw.mascotState) || "idle";
-  const validMascotStates: MascotState[] = [
-    "idle", "thinking", "working", "happy", "tired", "sleeping",
-    "mistake", "planning", "product-search", "building", "cooking",
-    "thinking-2", "celebrating", "worried", "affectionate", "curious",
-  ];
-  const validatedMascotState = validMascotStates.includes(mascotState as MascotState)
+  const validatedMascotState = VALID_MASCOT_STATES.includes(mascotState as MascotState)
     ? (mascotState as MascotState)
     : "idle";
+  if (mascotState !== "idle" && !VALID_MASCOT_STATES.includes(mascotState as MascotState)) {
+    console.warn(`[Koru] LLM returned invalid mascotState: "${mascotState}". Falling back to "idle".`);
+  }
   const toolBlocks = blocksFromToolResults(toolExecutions);
   const uiBlocks = mergeModelAndToolBlocks(modelBlocks, toolBlocks);
   const captures = personalCapturesFromTools(toolExecutions);

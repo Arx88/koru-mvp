@@ -363,6 +363,7 @@ function greetingTurn(userName?: string): KoruChatTurn {
     createdAt: new Date().toISOString(),
     status: "done",
   };
+    mascotState: "idle",
 }
 
 function readChatTurns(userName?: string): KoruChatTurn[] {
