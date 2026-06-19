@@ -1440,7 +1440,7 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
     `Instrucciones técnicas:`,
     `- Usá tools solo cuando necesites datos reales del mundo (clima, búsqueda, ruta, precios).`,
     `- Para datos personales ya guardados, no llames tools; respondé directamente usando el contexto.`,
-    `- Agregá mascotState al JSON final según el tono de tu respuesta: "celebrating" si hay buena noticia, "worried" si el usuario está mal, "affectionate" si mostrá cariño, "curious" si preguntás algo, "happy" si todo está bien.`,
+    `- Agregá mascotState al JSON final Elijí SOLO de esta lista exacta: "celebrating", "worried", "affectionate", "curious", "happy", "thinking", "working", "tired", "sleeping", "mistake", "planning", "product-search", "building", "cooking", "thinking-2". Si nada aplica, usá "idle".`,
     `- Formato de respuesta final: {"reply":"...","uiBlocks":[...],"mascotState":"...",...}`,
     `Hora actual: ${nowIso}`,
   ].join("\n");

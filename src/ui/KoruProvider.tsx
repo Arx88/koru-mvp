@@ -359,11 +359,11 @@ function greetingTurn(userName?: string): KoruChatTurn {
   return {
     id: createId("turn"),
     role: "koru",
-    text: `Hola${userName ? `, ${userName}` : ""}. CuÃ©ntame cÃ³mo estÃ¡s.`,
+    text: `Hola${userName ? `, ${userName}` : ""}. Cuéntame cómo estás.`,
     createdAt: new Date().toISOString(),
     status: "done",
-  };
     mascotState: "idle",
+  };
 }
 
 function readChatTurns(userName?: string): KoruChatTurn[] {
