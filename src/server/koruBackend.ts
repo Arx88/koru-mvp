@@ -5,6 +5,7 @@ import type {
   KoruConversationMessage,
   KoruState,
   LifeRecord,
+  MascotState,
   MemoryFact,
   RelevantMemory,
   ToolResult,
@@ -55,6 +56,7 @@ export type KoruBackendTurnResponse = {
   provider: "nvidia" | "openrouter";
   model?: string;
   fallbackReason?: string;
+  mascotState?: MascotState;
 };
 
 type ChatRole = "system" | "user" | "assistant" | "tool";
@@ -2142,6 +2144,15 @@ function normalizeFinalPayload(
   extractedRaw?: Record<string, unknown>,
 ): KoruBackendTurnResponse {
   const modelBlocks = asArray(raw.uiBlocks).map(normalizeUiBlock).filter((block): block is UiBlock => Boolean(block));
+  const mascotState = cleanText(raw.mascotState) || "idle";
+  const validMascotStates: MascotState[] = [
+    "idle", "thinking", "working", "happy", "tired", "sleeping",
+    "mistake", "planning", "product-search", "building", "cooking",
+    "thinking-2", "celebrating", "worried", "affectionate", "curious",
+  ];
+  const validatedMascotState = validMascotStates.includes(mascotState as MascotState)
+    ? (mascotState as MascotState)
+    : "idle";
   const toolBlocks = blocksFromToolResults(toolExecutions);
   const uiBlocks = mergeModelAndToolBlocks(modelBlocks, toolBlocks);
   const captures = personalCapturesFromTools(toolExecutions);
@@ -2199,6 +2210,7 @@ function normalizeFinalPayload(
       { kind: "done", label: "Respuesta lista" },
     ],
     provider: "nvidia",
+    mascotState: validatedMascotState,
   };
 }
 

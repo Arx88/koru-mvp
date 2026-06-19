@@ -11,6 +11,7 @@ import type {
   KoruState,
   KoruStage,
   LifeRecord,
+  MascotState,
   MemoryFact,
   ModelCall,
 } from "../domain/types";
@@ -128,6 +129,7 @@ export type KoruChatTurn = {
   items?: KoruTurnItem[];
   liked?: boolean;
   status?: "done" | "working" | "error";
+  mascotState?: MascotState;
 };
 
 export const STAGE_META: Record<Stage, { label: string; meaning: string; capability: string; minEnergy: number }> = {
@@ -924,7 +926,7 @@ type KoruContextValue = {
   togglePermission: (id: string) => void;
   setEphemeral: (v: boolean) => void;
   logRitual: (count: number) => void;
-  submitEntry: (text: string, transcriptSource?: DailyEntry["transcriptSource"], history?: KoruChatTurn[]) => Promise<{ response: string; items: KoruTurnItem[]; state: KoruState }>;
+  submitEntry: (text: string, transcriptSource?: DailyEntry["transcriptSource"], history?: KoruChatTurn[]) => Promise<{ response: string; items: KoruTurnItem[]; state: KoruState; mascotState?: MascotState }>;
   sendMessage: (text: string, transcriptSource?: DailyEntry["transcriptSource"]) => Promise<KoruChatTurn | null>;
   reviewAction: (id: string, approve: boolean) => KoruTurnItem | null;
   toggleTurnLike: (id: string) => void;
@@ -1359,7 +1361,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
         state: auditStateSnapshot(result.state),
         delta: auditStateDelta(previousState, result.state),
       });
-      return { response: agentResult.reply, items: result.items, state: result.state };
+      return { response: agentResult.reply, items: result.items, state: result.state, mascotState: agentResult.mascotState };
     } finally {
       setProcessing(false);
       setActivity(null);
@@ -1403,6 +1405,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
         createdAt: new Date().toISOString(),
         items: result.items,
         status: "done",
+        mascotState: result.mascotState ?? "idle",
       };
       commitChatTurns((prev) => [...prev, koruTurn].slice(-120));
       writeAuditEvent({
