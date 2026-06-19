@@ -101,9 +101,18 @@ export function isConversationalTurn(input: string): boolean {
   if (conversationalPatterns.some((pattern) => pattern.test(clean))) return true;
 
   // Frases muy cortas (<4 palabras) sin verbos de acción fuertes
-  const actionVerbs = /\b(guarda|anota|recorda|busca|investiga|compra|compara|agenda|programa|guardar|anotar|recordar|buscar|investigar|comprar|comparar|agendar|programar|resumen|total|cuanto)\b/i;
+  const actionVerbRoots = [
+    "guarda", "guardar", "anota", "anotar", "recorda", "recordar",
+    "busca", "buscar", "investiga", "investigar", "compra", "comprar",
+    "compara", "comparar", "agenda", "agendar", "programa", "programar",
+    "resumen", "total", "cuanto", "cuenta",
+  ];
   const words = clean.split(/\s+/).filter(Boolean);
-  if (words.length <= 3 && !actionVerbs.test(clean)) return true;
+  const hasActionVerb = words.some((word) => {
+    const w = word.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    return actionVerbRoots.some((root) => w === root || w.startsWith(root));
+  });
+  if (words.length <= 3 && !hasActionVerb) return true;
 
   return false;
 }
