@@ -830,7 +830,7 @@ function rowsFromRecords(records: LifeRecord[]): NonNullable<Extract<UiBlock, { 
   }));
 }
 
-function emptyContextBlock(title: string, note: string): Extract<UiBlock, { type: "activity_group" }> {
+function emptyContextBlock(title: string, _note: string): Extract<UiBlock, { type: "activity_group" }> {
   return {
     type: "activity_group",
     title,
@@ -839,10 +839,10 @@ function emptyContextBlock(title: string, note: string): Extract<UiBlock, { type
       {
         title: "Siguiente paso",
         tone: "neutral",
-        rows: [{ title: note }],
+        rows: [{ title: _note }],
       },
     ],
-    note,
+    note: _note,
   };
 }
 
@@ -935,7 +935,7 @@ function queryPersonalContextFromState(state: KoruState, args: Record<string, un
 
   if (topic === "food_inventory") {
     const food = records.filter((record) => record.kind === "meal_inventory");
-    if (!food.length) return { type: "personal_query", block: emptyContextBlock("Comida en casa", "Podes decirme 'tengo arroz, pollo y huevos en casa' y lo dejo guardado.") };
+    if (!food.length) return { type: "personal_query", block: { type: "saved_record", title: "Comida en casa", records: [] } };
     return {
       type: "personal_query",
       block: {
@@ -1011,7 +1011,7 @@ function queryPersonalContextFromState(state: KoruState, args: Record<string, un
     const useful = state.memories
       .filter((memory) => memory.status !== "rejected" && memory.useForSuggestions !== false)
       .slice(0, 8);
-    if (!useful.length) return { type: "personal_query", block: emptyContextBlock("Memoria", "Todavia no tengo recuerdos confirmados utiles para mostrarte.") };
+    if (!useful.length) return { type: "personal_query", block: { type: "saved_record", title: "Memoria", records: [] } };
     return {
       type: "personal_query",
       block: {
@@ -1092,7 +1092,7 @@ function queryPersonalContextFromState(state: KoruState, args: Record<string, un
       ? (query ? [] : records)
       : acceptedKinds.length ? records.filter((record) => acceptedKinds.includes(record.kind)) : records;
   const finalMatches = uniqueLifeRecords([...matching, ...semanticMatches]).slice(0, 8);
-  if (!finalMatches.length) return { type: "personal_query", block: emptyContextBlock("Contexto guardado", "No encontre datos guardados para esa consulta.") };
+  if (!finalMatches.length) return { type: "personal_query", block: { type: "saved_record", title: "Contexto guardado", records: [] } };
   return {
     type: "personal_query",
     block: {
