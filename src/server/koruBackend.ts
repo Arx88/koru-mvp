@@ -59,6 +59,8 @@ export type KoruBackendTurnResponse = {
   model?: string;
   fallbackReason?: string;
   mascotState?: MascotState;
+  skippedBecauseBoundary?: string[];
+  behaviorNotes?: string[];
 };
 
 type ChatRole = "system" | "user" | "assistant" | "tool";
@@ -1543,12 +1545,17 @@ function buildJsonComposerMessages(
   toolExecutions: ToolExecution[],
   assistantText?: string,
 ): ChatMessage[] {
+  const boundaries = request.state.memories
+    .filter((m) => m.status === "confirmed" && m.kind === "boundary")
+    .map((m) => `- ${m.kind}: ${m.text.replace(/[\n\r`]+/g, " ").trim()}`)
+    .join("\n") || "- ninguno";
+
   return [
     {
       role: "system",
       content: [
         "You are Koru's final response composer. Return ONLY valid JSON, no markdown.",
-        "Schema: {\"reply\":\"...\",\"uiBlocks\":[],\"mascotState\":\"...\",\"understanding\":{\"literalRequest\":\"...\",\"userGoal\":\"...\",\"unstatedNeeds\":[],\"assumptions\":[],\"confidence\":0.0},\"suggestedActions\":[],\"memoryCandidates\":[],\"commitments\":[],\"records\":[]}",
+        "Schema: {\"reply\":\"...\",\"uiBlocks\":[],\"mascotState\":\"...\",\"understanding\":{\"literalRequest\":\"...\",\"userGoal\":\"...\",\"unstatedNeeds\":[],\"assumptions\":[],\"confidence\":0.0},\"suggestedActions\":[],\"memoryCandidates\":[],\"commitments\":[],\"records\":[],\"skippedBecauseBoundary\":[]}",
         "mascotState refleja la emoción dominante de tu reply.",
         "You are not routing anymore. Read the tool observations and compose the final user experience.",
         "Keep text short and human. Put data in semantic uiBlocks only when you improve or add structure; the backend already has raw tool blocks.",
@@ -1556,6 +1563,11 @@ function buildJsonComposerMessages(
         "Do not invent any weather, prices, sources, memories, totals, links, or commitments. Use only tool observations and provided context.",
         "If a tool result saved or retrieved personal data, acknowledge exactly what was useful without sounding like a database.",
         "If the user only greeted, reply naturally and offer a light useful direction. Do not manufacture emotion or a fake prior problem.",
+        "Rules for skipping enrich steps:",
+        "- If the user has explicit boundaries (e.g. 'dont ask me for summaries when I save links'), skip those enrich actions and list them in skippedBecauseBoundary.",
+        "- If a boundary is vague, ask clarification before skipping.",
+        "Current user boundaries:",
+        boundaries,
       ].join("\n"),
     },
     {
@@ -1581,13 +1593,14 @@ function buildMemoryExtractorMessages(
       role: "system",
       content: [
         "You are Koru's asynchronous memory extractor. Return ONLY valid JSON, no markdown.",
-        "Schema: {\"memoryCandidates\":[],\"commitments\":[],\"records\":[]}",
+        "Schema: {\"memoryCandidates\":[],\"commitments\":[],\"records\":[],\"behaviorNotes\":[]}",
         "Extract only durable, reusable user-owned context from the current user turn and tool observations.",
         "If the user says 'prefiero...', 'soy de...', 'mi mama...', 'avisame si...', 'todos los dias...', or equivalent meaning, extract it as memory. Do not skip just because another tool was used.",
         "Capture preferences, identity, routines, goals, relationships, medication/health facts, important dates, interests to follow, folders/collections, saved links, inventory, expenses, tasks and decisions.",
         "Do not answer the user. Do not infer from generic chit-chat. Do not duplicate records already present in tool observations.",
         "Use Spanish wording when the user spoke Spanish. Preserve names and dates.",
         "Never inherit collection, person, tags, or domain from previous turns unless the current user explicitly refers to the same object.",
+        "Capture behavior notes: if the user corrects Koru's behavior (e.g. 'do not ask me for summaries when I save links', 'I prefer you to be more direct'), extract it as behaviorNote so future turns are governed by it.",
       ].join("\n"),
     },
     {
@@ -2248,6 +2261,14 @@ function normalizeFinalPayload(
     ],
     provider: "nvidia",
     mascotState: validatedMascotState,
+    skippedBecauseBoundary: [...new Set([
+      ...asArray(raw.skippedBecauseBoundary).map((v) => cleanText(v)).filter(Boolean),
+      ...asArray(extractedRaw?.skippedBecauseBoundary).map((v) => cleanText(v)).filter(Boolean),
+    ])],
+    behaviorNotes: [...new Set([
+      ...asArray(raw.behaviorNotes).map((v) => cleanText(v)).filter(Boolean),
+      ...asArray(extractedRaw?.behaviorNotes).map((v) => cleanText(v)).filter(Boolean),
+    ])],
   };
 }
 
