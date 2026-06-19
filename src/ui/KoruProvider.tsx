@@ -1133,7 +1133,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     commitChatTurns((prev) => {
       if (prev.length === 0) return [greetingTurn(cleanName)];
       if (prev.length === 1 && prev[0].role === "koru") {
-        return [{ ...prev[0], text: `Hola, ${cleanName}. CuÃ©ntame cÃ³mo estÃ¡s.` }];
+        return [{ ...prev[0], text: `Hola, ${cleanName}. Cuéntame cómo estás.` }];
       }
       return prev;
     });
