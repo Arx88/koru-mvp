@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Koru — Tarjetas</title>
+<title>Koru — Cards</title>
 <style>
   :root {
     --koru-bg: #fcfcfa; --koru-surface: #ffffff; --koru-surface-soft: #f8f9fa; --koru-inner: #f8f9fa; --koru-user: #e4efe3;
@@ -17,12 +17,13 @@
   body { background: var(--koru-bg); color: var(--koru-text); font-family: var(--koru-font); -webkit-font-smoothing: antialiased; }
 
   .page { max-width: 1180px; margin: 0 auto; padding: 40px 24px 80px; }
-  .sec-head { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .sec-head { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
   .sec-num { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 999px; background: var(--koru-accent-soft); color: var(--koru-accent); font-size: 12px; font-weight: 850; }
   .sec-title { font-size: 20px; font-weight: 800; line-height: 1.2; }
   .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
   @media (max-width: 960px) { .grid-3 { grid-template-columns: 1fr; } }
 
+  /* ======= Koru primitives (from style.css) ======= */
   .koru-stitch-card { display: flex; flex-direction: column; gap: 12px; width: 100%; border: 1px solid color-mix(in srgb, var(--koru-border-strong) 78%, transparent); border-radius: 18px; background: linear-gradient(180deg, var(--koru-surface) 0%, color-mix(in srgb, var(--koru-surface) 82%, var(--koru-inner)) 100%); padding: 16px; box-shadow: 0 10px 28px rgba(31,41,51,0.06); }
   .koru-stitch-card-header { display: flex; align-items: center; gap: 10px; color: var(--koru-text); font-size: 14px; font-weight: 800; line-height: 1.2; }
   .koru-stitch-icon { display: grid; width: 36px; height: 36px; flex: 0 0 auto; place-items: center; border-radius: 12px; background: var(--koru-accent-soft); color: var(--koru-accent); font-size: 14px; font-weight: 800; }
@@ -54,78 +55,72 @@
   .koru-source-status { align-self: flex-start; border: 1px solid color-mix(in srgb, var(--koru-border-strong) 70%, transparent); border-radius: 999px; background: var(--koru-inner); color: var(--koru-muted); padding: 6px 9px; font-size: 11px; font-weight: 800; line-height: 1.1; }
   .koru-source-status.is-verified { border-color: color-mix(in srgb, var(--koru-accent) 28%, var(--koru-border)); background: color-mix(in srgb, var(--koru-accent-soft) 72%, var(--koru-surface)); color: var(--koru-accent-strong); }
 
-  /* Plan rows */
-  .koru-plan-row { display: grid; grid-template-columns: 32px 52px minmax(0,1fr) auto auto; align-items: center; gap: 8px; min-height: 52px; border-bottom: 1px dashed var(--koru-border); padding: 10px 0; }
-  .koru-plan-row:last-child { border-bottom: 0; }
-  .koru-plan-icon { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 8px; background: var(--koru-accent-soft); color: var(--koru-accent); font-size: 14px; }
-  .koru-plan-icon.is-amber { background: var(--koru-amber-soft); color: var(--koru-amber); }
-  .koru-plan-icon.is-purple { background: var(--koru-purple-soft); color: var(--koru-purple); }
-  .koru-plan-time { color: var(--koru-text-soft); font-size: 14px; font-weight: 600; }
-  .koru-plan-title { min-width: 0; color: var(--koru-text); font-size: 15px; font-weight: 500; line-height: 1.25; overflow-wrap: anywhere; }
-  .koru-plan-duration { border-radius: 4px; background: var(--koru-inner); color: var(--koru-text-soft); padding: 2px 7px; font-size: 10px; font-weight: 700; line-height: 1.4; border: 1px solid var(--koru-border); }
-  .koru-plan-rationale { grid-column: 3 / -1; margin-top: -4px; color: var(--koru-muted); font-size: 11px; line-height: 1.25; }
+  .koru-stitch-plan { display: flex; flex-direction: column; gap: 0; }
+  .koru-stitch-plan-row { display: grid; grid-template-columns: 32px 52px minmax(0,1fr) auto; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px dashed var(--koru-border); }
+  .koru-stitch-plan-row:last-child { border-bottom: 0; }
+  .koru-stitch-plan-icon { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 8px; background: var(--koru-accent-soft); color: var(--koru-accent); font-size: 14px; }
+  .koru-stitch-plan-icon.is-amber { background: var(--koru-amber-soft); color: var(--koru-amber); }
+  .koru-stitch-plan-icon.is-purple { background: var(--koru-purple-soft); color: var(--koru-purple); }
+  .koru-stitch-plan-time { color: var(--koru-text-soft); font-size: 14px; font-weight: 650; line-height: 1.2; white-space: nowrap; }
+  .koru-stitch-plan-copy strong { display: block; color: var(--koru-text); font-size: 15px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; text-wrap: pretty; }
+  .koru-stitch-plan-copy small { display: block; margin-top: 2px; color: var(--koru-muted); font-size: 11px; font-weight: 620; line-height: 1.2; overflow-wrap: anywhere; }
+  .koru-stitch-priority { border-radius: 4px; background: var(--koru-accent-soft); color: var(--koru-accent); padding: 3px 8px; font-size: 10px; font-style: normal; font-weight: 800; line-height: 1; white-space: nowrap; }
+  .koru-stitch-priority.is-medium { background: var(--koru-amber-soft); color: var(--koru-amber); }
 
-  /* Decision card */
   .koru-decision-card { display: flex; flex-direction: column; gap: 10px; border: 1px solid var(--koru-border); border-radius: 14px; background: var(--koru-surface); padding: 14px; }
   .koru-decision-or { display: flex; align-items: center; gap: 10px; color: var(--koru-muted); font-size: 11px; text-align: center; }
   .koru-decision-or::before,.koru-decision-or::after { content: ""; flex: 1; height: 1px; background: var(--koru-border); }
 
-  /* Weather / crypto grid */
   .koru-weather-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
   .koru-weather-grid > div { min-height: 74px; border: 1px solid var(--koru-border); border-radius: 15px; background: var(--koru-inner); padding: 12px; }
   .koru-weather-grid > div > span { display: block; color: var(--koru-muted); font-size: 10px; font-weight: 800; letter-spacing: 0.05em; line-height: 1.2; text-transform: uppercase; }
-  .koru-weather-grid > div > strong { display: block; margin-top: 7px; color: var(--koru-text); font-size: 18px; font-weight: 850; line-height: 1.1; }
+  .koru-weather-grid > div > strong { display: block; margin-top: 7px; color: var(--koru-text); font-size: 18px; font-weight: 850; line-height: 1.1; overflow-wrap: anywhere; }
 
-  /* Alarm */
   .koru-alarm-card { display: flex; flex-direction: column; gap: 6px; }
-  .koru-alarm-time { color: var(--koru-text); font-size: 38px; font-weight: 850; letter-spacing: -1px; line-height: 1; }
+  .koru-alarm-time { color: var(--koru-text); font-size: 38px; font-weight: 850; letter-spacing: 0; line-height: 1; }
   .koru-alarm-card p { color: var(--koru-text-soft); font-size: 14px; font-weight: 700; line-height: 1.35; }
   .koru-alarm-card small { color: var(--koru-muted); font-size: 12px; line-height: 1.35; }
 
-  /* Activity / tiles */
-  .koru-activity-group { display: flex; flex-direction: column; gap: 14px; }
-  .koru-activity-group-head { display: flex; align-items: center; gap: 10px; }
-  .koru-activity-group-head > span:nth-child(2) { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 3px; }
-  .koru-activity-group-head strong { color: var(--koru-text); font-size: 15px; font-weight: 800; line-height: 1.2; overflow-wrap: anywhere; }
-  .koru-activity-group-head small { color: var(--koru-muted); font-size: 11px; font-weight: 650; line-height: 1.25; }
   .koru-activity-section { display: flex; flex-direction: column; gap: 10px; }
   .koru-activity-section-title { color: var(--koru-text-soft); font-size: 13px; font-weight: 780; line-height: 1.2; }
   .koru-activity-tiles { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
-  .koru-activity-tile { display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; gap: 6px; height: 100%; min-height: 84px; min-width: 0; border-radius: 14px; background: var(--koru-surface); border: 1px solid var(--koru-border); padding: 12px; }
+  .koru-activity-tile { display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; gap: 6px; height: 100%; min-height: 84px; min-width: 0; border: 1px solid var(--koru-border); border-radius: 14px; background: var(--koru-surface); padding: 12px; }
   .koru-activity-tile strong { color: var(--koru-text); font-size: 14px; font-weight: 850; line-height: 1.2; overflow-wrap: anywhere; }
   .koru-activity-tile small { color: var(--koru-muted); font-size: 11px; font-weight: 650; line-height: 1.25; }
   .koru-activity-tile-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--koru-accent); width: 100%; }
   .koru-activity-tile-top span { border-radius: 999px; background: rgba(255,255,255,0.72); color: var(--koru-muted); padding: 3px 7px; font-size: 10px; font-weight: 750; line-height: 1; }
-  .koru-activity-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; min-height: 48px; border: 1px solid var(--koru-border); border-radius: 14px; background: var(--koru-surface); padding: 10px 12px; }
-  .koru-activity-row strong { display: block; color: var(--koru-text); font-size: 13px; font-weight: 800; line-height: 1.25; }
-  .koru-activity-row small, .koru-activity-row em { color: var(--koru-muted); font-size: 11px; font-style: normal; font-weight: 650; line-height: 1.2; }
-  .koru-activity-icon { display: grid; min-width: 32px; min-height: 32px; place-items: center; border-radius: 10px; background: var(--koru-accent-soft); color: var(--koru-accent); font-size: 16px; }
 
-  /* Summary tiles */
   .koru-summary-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
   .koru-summary-tile { display: flex; min-height: 86px; flex-direction: column; justify-content: center; gap: 4px; border: 1px solid var(--koru-border); border-radius: 14px; background: var(--koru-inner); padding: 12px; text-align: center; }
   .koru-summary-tile strong { color: var(--koru-text); font-size: 15px; font-weight: 800; line-height: 1.2; overflow-wrap: anywhere; }
   .koru-summary-tile small { color: var(--koru-muted); font-size: 10px; font-weight: 700; letter-spacing: 0.04em; line-height: 1.2; text-transform: uppercase; }
 
-  /* Inline card */
-  .koru-inline-card { margin-top: 12px; border: 1px solid var(--koru-border); border-radius: 12px; background: var(--koru-inner); padding: 12px; }
+  .koru-inline-card { border: 1px solid var(--koru-border); border-radius: 12px; background: var(--koru-inner); padding: 12px; }
 
-  /* Proactive card */
   .koru-proactive-card { gap: 12px; }
   .koru-proactive-card > p { color: var(--koru-text-soft); font-size: 13px; font-weight: 650; line-height: 1.42; text-wrap: pretty; }
   .koru-proactive-head { display: flex; align-items: center; gap: 10px; }
   .koru-proactive-head strong { color: var(--koru-text); font-size: 15px; font-weight: 800; line-height: 1.2; text-wrap: pretty; }
   .koru-proactive-head small { color: var(--koru-muted); font-size: 11px; font-weight: 650; line-height: 1.25; text-wrap: pretty; }
 
-  /* Saved records */
-  .koru-saved-record-list { display: flex; flex-direction: column; gap: 8px; }
-  .koru-saved-record-row { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 10px; min-height: 48px; border: 1px solid var(--koru-border); border-radius: 14px; background: var(--koru-inner); padding: 10px 11px; }
-  .koru-saved-record-row strong { display: block; color: var(--koru-text); font-size: 15px; font-weight: 850; line-height: 1.18; overflow-wrap: anywhere; }
-  .koru-saved-record-row small { display: block; margin-top: 3px; color: var(--koru-text-soft); font-size: 12px; font-weight: 650; line-height: 1.25; }
-  .koru-saved-record-row em { border-radius: 999px; background: var(--koru-accent-soft); color: var(--koru-accent); padding: 4px 8px; font-size: 10px; font-style: normal; font-weight: 800; line-height: 1; text-transform: capitalize; }
+  .koru-record-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
+  .koru-record-chip { display: flex; min-width: 0; align-items: flex-start; gap: 8px; border: 1px solid var(--koru-border); border-radius: 10px; background: var(--koru-inner); padding: 9px; }
+  .koru-record-chip strong { display: block; color: var(--koru-text); font-size: 12px; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
+  .koru-record-chip small { display: block; margin-top: 2px; color: var(--koru-muted); font-size: 10px; font-weight: 600; line-height: 1.2; }
 
-  /* Divider */
-  .koru-divider { width: 100%; height: 1px; background: linear-gradient(90deg, transparent 0%, var(--koru-border) 50%, transparent 100%); }
+  .koru-energy-rail { position: relative; width: 6px; height: 58px; flex: 0 0 auto; overflow: hidden; border-radius: 999px; background: var(--koru-accent-soft); }
+  .koru-energy-rail span { position: absolute; inset-inline: 0; bottom: 0; border-radius: inherit; background: var(--koru-accent); }
+
+  .koru-context-row { display: grid; grid-template-columns: 64px minmax(0,1fr) auto; align-items: center; gap: 8px; min-height: 42px; }
+  .koru-context-source { border-radius: 999px; background: var(--koru-accent-soft); color: var(--koru-accent); padding: 4px 8px; text-align: center; font-size: 10px; font-weight: 700; line-height: 1; }
+
+  /* Severity / tone overrides (Koru real) */
+  .koru-stitch-card[data-severity="info"] { background: linear-gradient(180deg, #f8fbff 0%, #eef5ff 100%); border-color: color-mix(in srgb, #bfdbfe 65%, var(--koru-border)); }
+  .koru-stitch-card[data-severity="useful"] { background: linear-gradient(180deg, #f5faf5 0%, #eaf5ea 100%); border-color: color-mix(in srgb, var(--koru-accent) 28%, var(--koru-border)); }
+  .koru-stitch-card[data-severity="important"] { background: linear-gradient(180deg, #fffbf5 0%, #fff6ea 100%); border-color: color-mix(in srgb, var(--koru-amber) 28%, var(--koru-border)); }
+  .koru-stitch-card[data-severity="urgent"] { background: linear-gradient(180deg, #fff8f8 0%, #fff2f2 100%); border-color: color-mix(in srgb, #fecdd3 68%, var(--koru-border)); }
+  .koru-stitch-card[data-tone="blue"] { background: linear-gradient(180deg, #f8fbff 0%, #eef5ff 100%); border-color: color-mix(in srgb, #bfdbfe 65%, var(--koru-border)); }
+  .koru-stitch-card[data-tone="purple"] { background: linear-gradient(180deg, #faf8ff 0%, #f5f0ff 100%); border-color: color-mix(in srgb, #d8c8ff 58%, var(--koru-border)); }
 </style>
 </head>
 <body>
@@ -134,36 +129,35 @@
 
 <header style="margin-bottom:44px;">
   <h1 style="font-size:28px; font-weight:800; line-height:1.15;">Diseño de tarjetas</h1>
-  <p style="font-size:13px; color:var(--koru-muted); margin-top:6px;">7 temas · 3 opciones · Distintas en cada una</p>
+  <p style="font-size:13px; color:var(--koru-muted); margin-top:6px;">7 temas · 3 opciones · Cada una distinta visualmente</p>
 </header>
 
 <!-- 1 FUTBOL -->
 <section style="margin-bottom:48px;">
   <div class="sec-head"><span class="sec-num">1</span><h2 class="sec-title">Resultados de fútbol</h2></div>
   <div class="grid-3">
-    <!-- A = Plan rows -->
+    <!-- A = Plan rows (timeline) -->
     <div class="koru-stitch-card">
       <div class="koru-stitch-card-header"><div class="koru-stitch-icon">⚽</div><div class="koru-stitch-heading"><span class="koru-card-hint">Fixture hoy</span><strong class="koru-card-title">3 partidos programados</strong></div></div>
-      <div class="koru-stitch-content" style="gap:0;">
-        <div class="koru-plan-row"><span class="koru-plan-icon">🏠</span><span class="koru-plan-time">16:00</span><span class="koru-plan-title">Boca vs River</span><span class="koru-plan-duration">La Bombonera</span></div>
-        <div class="koru-plan-row"><span class="koru-plan-icon is-amber">✈️</span><span class="koru-plan-time">18:30</span><span class="koru-plan-title">Racing vs Independiente</span><span class="koru-plan-duration">Cilindro</span></div>
-        <div class="koru-plan-row"><span class="koru-plan-icon is-purple">🏆</span><span class="koru-plan-time">21:00</span><span class="koru-plan-title">San Lorenzo vs Huracán</span><span class="koru-plan-duration">Nuevo Gasómetro</span></div>
+      <div class="koru-stitch-plan">
+        <div class="koru-stitch-plan-row"><div class="koru-stitch-plan-icon">🏠</div><span class="koru-stitch-plan-time">16:00</span><div class="koru-stitch-plan-copy"><strong>Boca vs River</strong></div><span class="koru-stitch-priority">La Bombonera</span></div>
+        <div class="koru-stitch-plan-row"><div class="koru-stitch-plan-icon is-amber">✈️</div><span class="koru-stitch-plan-time">18:30</span><div class="koru-stitch-plan-copy"><strong>Racing vs Independiente</strong></div><span class="koru-stitch-priority is-medium">Cilindro</span></div>
+        <div class="koru-stitch-plan-row"><div class="koru-stitch-plan-icon is-purple">🏆</div><span class="koru-stitch-plan-time">21:00</span><div class="koru-stitch-plan-copy"><strong>San Lorenzo vs Huracán</strong></div><span class="koru-stitch-priority is-medium">Nuevo Gasómetro</span></div>
       </div>
       <div class="koru-actions"><button class="koru-pill-button">Ver todos</button></div>
     </div>
-    <!-- B = Stitch rows + status -->
-    <div class="koru-stitch-card">
-      <div class="koru-stitch-card-header"><div class="koru-stitch-icon is-amber">📊</div><div class="koru-stitch-heading"><span class="koru-card-hint">Finalizado</span><strong class="koru-card-title">Resultados</strong></div></div>
-      <span class="koru-source-status is-verified">Fuentes verificadas</span>
-      <div class="koru-stitch-content">
-        <div class="koru-stitch-row is-highlighted"><span class="koru-stitch-row-marker is-amber">1</span><div class="koru-stitch-row-copy"><strong>Boca 2 : 1 River</strong><small>Benedetto 34', 67' · Álvarez 12'</small></div><em>FT</em></div>
-        <div class="koru-stitch-row"><span class="koru-stitch-row-marker">2</span><div class="koru-stitch-row-copy"><strong>Racing 1 : 0 Independiente</strong><small>R. Martínez 81'</small></div></div>
+    <!-- B = Urgent live ticker (red bg, no icon header) -->
+    <div class="koru-stitch-card" data-severity="urgent">
+      <div style="display:flex; align-items:center; gap:8px;"><span style="width:8px;height:8px;border-radius:999px;background:#ef4444; animation:pulse 1.2s infinite;"></span><span style="font-size:11px; font-weight:800; color:var(--koru-rose); text-transform:uppercase; letter-spacing:0.06em;">En vivo</span></div>
+      <div class="koru-stitch-content" style="gap:0;">
+        <div class="koru-stitch-row is-highlighted"><span class="koru-stitch-row-marker is-rose">●</span><div class="koru-stitch-row-copy"><strong>Boca 2 — 1 River</strong><small>Min 78 · Benedetto 67'</small></div><em style="background:var(--koru-rose-soft);color:var(--koru-rose)">LIVE</em></div>
+        <div class="koru-stitch-row"><span class="koru-stitch-row-marker is-muted">●</span><div class="koru-stitch-row-copy"><strong>Racing 1 — 0 Independiente</strong><small>Min 45+2</small></div></div>
       </div>
-      <p class="koru-stitch-note">Jugado en La Bombonera · Primera División</p>
+      <p class="koru-stitch-note is-amber">Jugado en La Bombonera · Primera División</p>
     </div>
-    <!-- C = Weather grid -->
-    <div class="koru-stitch-card">
-      <div class="koru-stitch-card-header"><div class="koru-stitch-icon is-rose">🏟️</div><div class="koru-stitch-heading"><span class="koru-card-hint">Estadísticas</span><strong class="koru-card-title">Boca vs River</strong></div></div>
+    <!-- C = Dashboard grid (no card wrapper → grid directo) -->
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <div style="display:flex; align-items:center; gap:10px; font-size:14px; font-weight:800; color:var(--koru-text);"><span style="width:30px;height:30px;display:grid;place-items:center;border-radius:8px;background:var(--koru-accent-soft);color:var(--koru-accent); font-size:14px;">📊</span><span>Estadísticas — Boca vs River</span></div>
       <div class="koru-weather-grid">
         <div><span>Posesión</span><strong>62%</strong></div>
         <div><span>Tiros</span><strong>14</strong></div>
@@ -178,31 +172,35 @@
 <section style="margin-bottom:48px;">
   <div class="sec-head"><span class="sec-num">2</span><h2 class="sec-title">Resultados de elecciones</h2></div>
   <div class="grid-3">
-    <!-- A = Activity tiles -->
+    <!-- A = Energy rails (bars verticales) -->
     <div class="koru-stitch-card">
-      <div class="koru-stitch-card-header"><div class="koru-stitch-icon">🗳️</div><div class="koru-stitch-heading"><span class="koru-card-hint">Escrutinio 87%</span><strong class="koru-card-title">Elecciones 2025</strong></div></div>
-      <div class="koru-activity-group">
-        <div class="koru-activity-group-head"><div class="koru-stitch-icon is-amber">M</div><span><strong>Martínez</strong><small>Unión por la Patria · 42,3%</small></span></div>
-        <div class="koru-activity-tiles">
-          <div class="koru-activity-tile"><div class="koru-activity-tile-top"><span>42,3%</span></div><strong>Unión</strong><small>Ganando</small></div>
-          <div class="koru-activity-tile"><div class="koru-activity-tile-top"><span>35,1%</span></div><strong>Frente</strong><small>Segundo</small></div>
-          <div class="koru-activity-tile"><div class="koru-activity-tile-top"><span>22,6%</span></div><strong>Otros</strong><small>Tercero</small></div>
-          <div class="koru-activity-tile"><div class="koru-activity-tile-top"><span>87%</span></div><strong>Escrutado</strong><small>Mesas</small></div>
+      <div class="koru-stitch-card-header"><div class="koru-stitch-icon is-amber">🗳️</div><div class="koru-stitch-heading"><span class="koru-card-hint">Escrutinio 87%</span><strong class="koru-card-title">Elecciones 2025</strong></div></div>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div class="koru-energy-rail"><span style="height:42px;"></span></div>
+          <div style="flex:1;"><strong style="font-size:14px;">Martínez</strong><small style="display:block;color:var(--koru-muted);font-size:11px;">42,3%</small></div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div class="koru-energy-rail" style="background:var(--koru-amber-soft);"><span style="height:35px;background:var(--koru-amber);"></span></div>
+          <div style="flex:1;"><strong style="font-size:14px;">Frente Amplio</strong><small style="display:block;color:var(--koru-muted);font-size:11px;">35,1%</small></div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div class="koru-energy-rail" style="background:var(--koru-blue-soft);"><span style="height:22px;background:var(--koru-blue);"></span></div>
+          <div style="flex:1;"><strong style="font-size:14px;">Otros</strong><small style="display:block;color:var(--koru-muted);font-size:11px;">22,6%</small></div>
         </div>
       </div>
+      <div class="koru-actions"><button class="koru-pill-button">Ver detalle</button></div>
     </div>
-    <!-- B = Decision card -->
-    <div class="koru-stitch-card">
-      <div class="koru-stitch-card-header"><div class="koru-stitch-icon is-purple">✅</div><div class="koru-stitch-heading"><span class="koru-card-hint">Votar</span><strong class="koru-card-title">¿Aprobás la reforma?</strong></div></div>
-      <div class="koru-decision-card">
-        <div class="koru-stitch-row"><div class="koru-stitch-row-copy"><strong>Sí — Reforma laboral</strong><small>Flexibilización de contratos</small></div></div>
-        <div class="koru-decision-or">o</div>
-        <div class="koru-stitch-row"><div class="koru-stitch-row-copy"><strong>No — Mantener actual</strong><small>Legislación vigente</small></div></div>
-      </div>
+    <!-- B = Decision card ROOT -->
+    <div class="koru-decision-card">
+      <div style="display:flex; align-items:center; gap:10px;"><div style="width:28px;height:28px;display:grid;place-items:center;border-radius:8px;background:var(--koru-accent-soft);color:var(--koru-accent); font-weight:800; font-size:12px;">✅</div><span style="font-size:15px; font-weight:800;">¿Aprobás la reforma?</span></div>
+      <div class="koru-stitch-row"><div class="koru-stitch-row-copy"><strong>Sí — Reforma laboral</strong><small>Flexibilización de contratos</small></div></div>
+      <div class="koru-decision-or">o</div>
+      <div class="koru-stitch-row"><div class="koru-stitch-row-copy"><strong>No — Mantener actual</strong><small>Legislación vigente</small></div></div>
       <div class="koru-actions"><button class="koru-pill-button is-primary">Confirmar voto</button></div>
     </div>
-    <!-- C = Summary tiles -->
-    <div class="koru-stitch-card">
+    <!-- C = Summary grid (info bg) -->
+    <div class="koru-stitch-card" data-severity="info">
       <div class="koru-stitch-card-header"><div class="koru-stitch-icon is-blue">🏛️</div><div class="koru-stitch-heading"><span class="koru-card-hint">Resumen</span><strong class="koru-card-title">Datos del escrutinio</strong></div></div>
       <div class="koru-summary-grid">
         <div class="koru-summary-tile"><small>Votos válidos</small><strong>28,4M</strong></div>
@@ -219,7 +217,7 @@
 <section style="margin-bottom:48px;">
   <div class="sec-head"><span class="sec-num">3</span><h2 class="sec-title">Crypto y Forex</h2></div>
   <div class="grid-3">
-    <!-- A = Alarm card -->
+    <!-- A = Alarm card (price huge) -->
     <div class="koru-stitch-card">
       <div class="koru-stitch-card-header"><div class="koru-stitch-icon is-amber">₿</div><div class="koru-stitch-heading"><span class="koru-card-hint">Bitcoin</span><strong class="koru-card-title">Precio alcanzado</strong></div></div>
       <div class="koru-alarm-card">
@@ -229,25 +227,23 @@
       </div>
       <div class="koru-actions"><button class="koru-pill-button is-primary">Ver gráfico</button></div>
     </div>
-    <!-- B = Inline card -->
-    <div class="koru-stitch-card">
-      <div class="koru-stitch-card-header"><div class="koru-stitch-icon is-rose">Ξ</div><div class="koru-stitch-heading"><span class="koru-card-hint">Cartera</span><strong class="koru-card-title">Mis activos</strong></div></div>
-      <div class="koru-inline-card">
-        <div class="koru-stitch-row" style="background:transparent;border:0;padding:6px 0;"><div class="koru-stitch-row-marker">₿</div><div class="koru-stitch-row-copy"><strong>Bitcoin</strong></div><em style="background:var(--koru-accent-soft);color:var(--koru-accent)">+2,4%</em></div>
-        <div class="koru-stitch-row" style="background:transparent;border:0;padding:6px 0;"><div class="koru-stitch-row-marker is-rose">Ξ</div><div class="koru-stitch-row-copy"><strong>Ethereum</strong></div><em style="background:var(--koru-rose-soft);color:var(--koru-rose)">−1,2%</em></div>
-        <div class="koru-stitch-row" style="background:transparent;border:0;padding:6px 0;"><div class="koru-stitch-row-marker is-muted">$</div><div class="koru-stitch-row-copy"><strong>USDC</strong></div><em style="background:var(--koru-border);color:var(--koru-muted)">0,0%</em></div>
-      </div>
+    <!-- B = Inline card ROOT (compact list) -->
+    <div class="koru-inline-card" style="display:flex; flex-direction:column; gap:6px;">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;"><span style="width:26px;height:26px;display:grid;place-items:center;border-radius:6px;background:var(--koru-accent-soft);color:var(--koru-accent); font-weight:800; font-size:12px;">Ξ</span><span style="font-size:14px; font-weight:800;">Mi cartera</span></div>
+      <div class="koru-context-row"><span style="font-weight:700; font-size:13px;">Bitcoin</span><span></span><span class="koru-context-source">+2,4%</span></div>
+      <div style="height:1px;background:var(--koru-border);"></div>
+      <div class="koru-context-row"><span style="font-weight:700; font-size:13px;">Ethereum</span><span></span><span class="koru-context-source" style="background:var(--koru-rose-soft);color:var(--koru-rose)">-1,2%</span></div>
+      <div style="height:1px;background:var(--koru-border);"></div>
+      <div class="koru-context-row"><span style="font-weight:700; font-size:13px;">USDC</span><span></span><span class="koru-context-source" style="background:var(--koru-border);color:var(--koru-muted)">0,0%</span></div>
     </div>
-    <!-- C = Activity tiles -->
-    <div class="koru-stitch-card">
+    <!-- C = Record grid (chips) -->
+    <div class="koru-stitch-card" data-severity="useful">
       <div class="koru-stitch-card-header"><div class="koru-stitch-icon is-blue">$</div><div class="koru-stitch-heading"><span class="koru-card-hint">Forex en vivo</span><strong class="koru-card-title">Cruces principales</strong></div></div>
-      <div class="koru-activity-group">
-        <div class="koru-activity-tiles">
-          <div class="koru-activity-tile"><div class="koru-activity-tile-top"><span>+0,02%</span></div><strong>EUR/USD</strong><small>1,0854</small></div>
-          <div class="koru-activity-tile"><div class="koru-activity-tile-top"><span>+0,08%</span></div><strong>GBP/USD</strong><small>1,2730</small></div>
-          <div class="koru-activity-tile"><div class="koru-activity-tile-top"><span>−0,15%</span></div><strong>USD/JPY</strong><small>148,32</small></div>
-          <div class="koru-activity-tile"><div class="koru-activity-tile-top"><span>+0,04%</span></div><strong>AUD/USD</strong><small>0,6645</small></div>
-        </div>
+      <div class="koru-record-grid">
+        <div class="koru-record-chip"><span style="font-size:16px;">🇪🇺</span><div><strong>EUR/USD</strong><small>1,0854 · +0,02%</small></div></div>
+        <div class="koru-record-chip"><span style="font-size:16px;">🇬🇧</span><div><strong>GBP/USD</strong><small>1,2730 · +0,08%</small></div></div>
+        <div class="koru-record-chip"><span style="font-size:16px;">🇯🇵</span><div><strong>USD/JPY</strong><small>148,32 · -0,15%</small></div></div>
+        <div class="koru-record-chip"><span style="font-size:16px;">🇦🇺</span><div><strong>AUD/USD</strong><small>0,6645 · +0,04%</small></div></div>
       </div>
     </div>
   </div>
@@ -257,19 +253,19 @@
 <section style="margin-bottom:48px;">
   <div class="sec-head"><span class="sec-num">4</span><h2 class="sec-title">Indicaciones de cómo llegar</h2></div>
   <div class="grid-3">
-    <!-- A = Plan rows -->
+    <!-- A = Plan timeline -->
     <div class="koru-stitch-card">
       <div class="koru-stitch-card-header"><div class="koru-stitch-icon">📍</div><div class="koru-stitch-heading"><span class="koru-card-hint">Ruta más rápida</span><strong class="koru-card-title">18 min · Auto</strong></div></div>
-      <div class="koru-stitch-content" style="gap:0;">
-        <div class="koru-plan-row"><span class="koru-plan-icon">⬅️</span><span class="koru-plan-time">1</span><span class="koru-plan-title">Girá a la izquierda</span><span class="koru-plan-duration">450 m</span></div>
-        <div class="koru-plan-row"><span class="koru-plan-icon is-amber">⬆️</span><span class="koru-plan-time">2</span><span class="koru-plan-title">Continuá por Acceso Norte</span><span class="koru-plan-duration">5,8 km</span></div>
-        <div class="koru-plan-row"><span class="koru-plan-icon is-purple">🏁</span><span class="koru-plan-time">3</span><span class="koru-plan-title">Salida 12 hacia Olivos</span><span class="koru-plan-duration">1,9 km</span></div>
+      <div class="koru-stitch-plan">
+        <div class="koru-stitch-plan-row"><div class="koru-stitch-plan-icon">⬅️</div><span class="koru-stitch-plan-time">1</span><div class="koru-stitch-plan-copy"><strong>Girá a la izquierda</strong></div><span class="koru-stitch-priority">450 m</span></div>
+        <div class="koru-stitch-plan-row"><div class="koru-stitch-plan-icon is-amber">⬆️</div><span class="koru-stitch-plan-time">2</span><div class="koru-stitch-plan-copy"><strong>Continuá por Acceso Norte</strong></div><span class="koru-stitch-priority is-medium">5,8 km</span></div>
+        <div class="koru-stitch-plan-row"><div class="koru-stitch-plan-icon is-purple">🏁</div><span class="koru-stitch-plan-time">3</span><div class="koru-stitch-plan-copy"><strong>Salida 12 hacia Olivos</strong></div><span class="koru-stitch-priority is-medium">1,9 km</span></div>
       </div>
       <div class="koru-actions"><button class="koru-pill-button is-primary">Iniciar GPS</button></div>
     </div>
-    <!-- B = Weather grid -->
-    <div class="koru-stitch-card">
-      <div class="koru-stitch-card-header"><div class="koru-stitch-icon is-amber">🚗</div><div class="koru-stitch-heading"><span class="koru-card-hint">Modos de transporte</span><strong class="koru-card-title">Comparativa de tiempos</strong></div></div>
+    <!-- B = Blue tone card + weather grid -->
+    <div class="koru-stitch-card" data-tone="blue">
+      <div class="koru-stitch-card-header"><div class="koru-stitch-icon is-blue">🚗</div><div class="koru-stitch-heading"><span class="koru-card-hint">Modos</span><strong class="koru-card-title">Comparativa tiempos</strong></div></div>
       <div class="koru-weather-grid">
         <div><span>Auto</span><strong>18 min</strong></div>
         <div><span>Transporte</span><strong>42 min</strong></div>
@@ -277,15 +273,15 @@
         <div><span>Bicicleta</span><strong>32 min</strong></div>
       </div>
     </div>
-    <!-- C = Stitch rows -->
-    <div class="koru-stitch-card">
-      <div class="koru-stitch-card-header"><div class="koru-stitch-icon is-purple">🗺️</div><div class="koru-stitch-heading"><span class="koru-card-hint">Ruta</span><strong class="koru-card-title">Origen → Destino</strong></div></div>
-      <div class="koru-stitch-content">
-        <div class="koru-stitch-row"><div class="koru-stitch-row-marker is-rose">●</div><div class="koru-stitch-row-copy"><strong>Origen</strong><small>Av. Corrientes 1234, CABA</small></div></div>
-        <div style="margin-left:24px;border-left:1px dashed var(--koru-border);height:12px;"></div>
-        <div class="koru-stitch-row is-highlighted"><div class="koru-stitch-row-marker is-amber">●</div><div class="koru-stitch-row-copy"><strong>Ruta rápida</strong><small>Por Acceso Norte</small></div></div>
-        <div style="margin-left:24px;border-left:1px dashed var(--koru-border);height:12px;"></div>
-        <div class="koru-stitch-row"><div class="koru-stitch-row-marker">●</div><div class="koru-stitch-row-copy"><strong>Destino</strong><small>Shopping de Olivos</small></div></div>
+    <!-- C = Proactive route (no header, quote + route dots) -->
+    <div class="koru-stitch-card" data-severity="important">
+      <div class="koru-proactive-head" style="margin-bottom:4px;"><div class="koru-stitch-icon is-purple">🗺️</div><span><strong>Olivos — CABA</strong><small>Shopping de Olivos</small></span></div>
+      <div style="display:flex; flex-direction:column; gap:0; padding-left:8px;">
+        <div style="display:flex; align-items:center; gap:8px;"><span style="width:10px;height:10px;border-radius:999px;background:var(--koru-accent); flex:0 0 auto;"></span><span style="font-size:13px; font-weight:700;">Av. Corrientes 1234</span></div>
+        <div style="margin-left:5px; border-left:2px dashed var(--koru-border); height:18px;"></div>
+        <div style="display:flex; align-items:center; gap:8px;"><span style="width:10px;height:10px;border-radius:999px;background:var(--koru-amber); flex:0 0 auto;"></span><span style="font-size:13px; font-weight:700;">Retiro</span></div>
+        <div style="margin-left:5px; border-left:2px dashed var(--koru-border); height:18px;"></div>
+        <div style="display:flex; align-items:center; gap:8px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--koru-purple); flex:0 0 auto;"></span><span style="font-size:13px; font-weight:700;">Shopping de Olivos</span></div>
       </div>
     </div>
   </div>
@@ -295,7 +291,7 @@
 <section style="margin-bottom:48px;">
   <div class="sec-head"><span class="sec-num">5</span><h2 class="sec-title">Cumpleaños de conocidos</h2></div>
   <div class="grid-3">
-    <!-- A = Alarm card -->
+    <!-- A = Alarm (age huge) -->
     <div class="koru-stitch-card">
       <div class="koru-stitch-card-header"><div class="koru-stitch-icon is-rose">🎂</div><div class="koru-stitch-heading"><span class="koru-card-hint">Próximo</span><strong class="koru-card-title">Ana López</strong></div></div>
       <div class="koru-alarm-card">
@@ -303,29 +299,28 @@
         <p>12 de julio de 2025</p>
         <small>Faltan 8 días</small>
       </div>
-      <div class="koru-actions"><button class="koru-pill-button">Recordar</button><button class="koru-pill-button is-primary">Saludar</button></div>
+      <div class="koru-actions"><button class="koru-pill-button is-primary">Saludar</button></div>
     </div>
-    <!-- B = Activity tiles -->
-    <div class="koru-stitch-card">
-      <div class="koru-stitch-card-header"><div class="koru-stitch-icon">📅</div><div class="koru-stitch-heading"><span class="koru-card-hint">Próximos</span><strong class="koru-card-title">Este mes</strong></div></div>
-      <div class="koru-activity-group">
-        <div class="koru-activity-tiles">
-          <div class="koru-activity-tile"><div class="koru-activity-tile-top"><span>12 jul</span></div><strong>Ana López</strong><small>35 años</small></div>
-          <div class="koru-activity-tile"><div class="koru-activity-tile-top"><span>22 jul</span></div><strong>Roberto Díaz</strong><small>42 años</small></div>
-          <div class="koru-activity-tile"><div class="koru-activity-tile-top"><span>3 ago</span></div><strong>María Sosa</strong><small>29 años</small></div>
-          <div class="koru-activity-tile"><div class="koru-activity-tile-top"><span>15 ago</span></div><strong>Carlos Ruiz</strong><small>31 años</small></div>
-        </div>
+    <!-- B = Activity tiles ROOT -->
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <div style="font-size:14px; font-weight:800;">📅 Próximos este mes</div>
+      <div class="koru-activity-tiles">
+        <div class="koru-activity-tile"><div class="koru-activity-tile-top"><span>12 jul</span></div><strong>Ana López</strong><small>35 años</small></div>
+        <div class="koru-activity-tile"><div class="koru-activity-tile-top" style="color:var(--koru-amber)"><span>22 jul</span></div><strong>Roberto Díaz</strong><small>42 años</small></div>
+        <div class="koru-activity-tile"><div class="koru-activity-tile-top" style="color:var(--koru-blue)"><span>3 ago</span></div><strong>María Sosa</strong><small>29 años</small></div>
+        <div class="koru-activity-tile"><div class="koru-activity-tile-top" style="color:var(--koru-rose)"><span>15 ago</span></div><strong>Carlos Ruiz</strong><small>31 años</small></div>
       </div>
     </div>
-    <!-- C = Summary tiles -->
-    <div class="koru-stitch-card">
-      <div class="koru-stitch-card-header"><div class="koru-stitch-icon is-purple">📆</div><div class="koru-stitch-heading"><span class="koru-card-hint">Resumen</span><strong class="koru-card-title">Agosto 2025</strong></div></div>
-      <div class="koru-summary-grid">
-        <div class="koru-summary-tile"><small>Cumpleaños</small><strong>2</strong></div>
-        <div class="koru-summary-tile"><small>Recordatorios</small><strong>1</strong></div>
-        <div class="koru-summary-tile"><small>Regalos</small><strong>0</strong></div>
-        <div class="koru-summary-tile"><small>Contactos</small><strong>4</strong></div>
-      </div>
+    <!-- C = Inline list ROOT -->
+    <div class="koru-inline-card" style="display:flex; flex-direction:column; gap:4px;">
+      <div style="font-size:14px; font-weight:800; margin-bottom:6px;">📆 Resumen</div>
+      <div class="koru-context-row"><span style="font-weight:700; font-size:13px;">Cumpleaños</span><span></span><span class="koru-context-source">2</span></div>
+      <div style="height:1px;background:var(--koru-border);"></div>
+      <div class="koru-context-row"><span style="font-weight:700; font-size:13px;">Recordatorios</span><span></span><span class="koru-context-source">1</span></div>
+      <div style="height:1px;background:var(--koru-border);"></div>
+      <div class="koru-context-row"><span style="font-weight:700; font-size:13px;">Contactos</span><span></span><span class="koru-context-source">4</span></div>
+      <div style="height:1px;background:var(--koru-border);"></div>
+      <div class="koru-context-row"><span style="font-weight:700; font-size:13px;">Regalos</span><span></span><span class="koru-context-source" style="background:var(--koru-rose-soft);color:var(--koru-rose)">0</span></div>
     </div>
   </div>
 </section>
@@ -334,33 +329,31 @@
 <section style="margin-bottom:48px;">
   <div class="sec-head"><span class="sec-num">6</span><h2 class="sec-title">Comparativa de productos</h2></div>
   <div class="grid-3">
-    <!-- A = Comparison rows -->
+    <!-- A = Comparison rows (classic stitch) -->
     <div class="koru-stitch-card">
-      <div class="koru-stitch-card-header"><div class="koru-stitch-icon is-amber">☕</div><div class="koru-stitch-heading"><span class="koru-card-hint">Cafeteras</span><strong class="koru-card-title">Nespresso A vs Dolce Gusto B</strong></div></div>
+      <div class="koru-stitch-card-header"><div class="koru-stitch-icon is-amber">☕</div><div class="koru-stitch-heading"><span class="koru-card-hint">Cafeteras</span><strong class="koru-card-title">Nespresso A vs Dolce B</strong></div></div>
       <div class="koru-stitch-content">
-        <div class="koru-stitch-row is-highlighted"><div class="koru-stitch-row-marker is-amber">#1</div><div class="koru-stitch-row-copy"><strong>Nespresso A · $89</strong><small>19 bar · Universal · 2 años</small></div><em>Mejor</em></div>
+        <div class="koru-stitch-row is-highlighted"><div class="koru-stitch-row-marker is-amber">#1</div><div class="koru-stitch-row-copy"><strong>Nespresso A · $89</strong><small>19 bar · Universal · 2 años</small></div><em style="background:var(--koru-amber-soft);color:var(--koru-amber)">Mejor</em></div>
         <div class="koru-stitch-row"><div class="koru-stitch-row-marker is-muted">#2</div><div class="koru-stitch-row-copy"><strong>Dolce Gusto B · $110</strong><small>15 bar · Propia · 3 años</small></div></div>
       </div>
       <p class="koru-stitch-note is-amber">Nespresso A gana en precio, potencia y compatibilidad</p>
     </div>
-    <!-- B = Decision card -->
-    <div class="koru-stitch-card">
-      <div class="koru-stitch-card-header"><div class="koru-stitch-icon is-rose">🏷️</div><div class="koru-stitch-heading"><span class="koru-card-hint">Elegir</span><strong class="koru-card-title">¿Cuál te interesa?</strong></div></div>
-      <div class="koru-decision-card">
-        <div class="koru-stitch-row"><div class="koru-stitch-row-copy"><strong>Nespresso A</strong><small>$89 · 19 bar · Universal</small></div></div>
-        <div class="koru-decision-or">o</div>
-        <div class="koru-stitch-row"><div class="koru-stitch-row-copy"><strong>Dolce Gusto B</strong><small>$110 · 15 bar · Propia</small></div></div>
-      </div>
+    <!-- B = VS decision card ROOT -->
+    <div class="koru-decision-card">
+      <div style="display:flex; align-items:center; gap:10px;"><div style="width:28px;height:28px;display:grid;place-items:center;border-radius:8px;background:var(--koru-amber-soft);color:var(--koru-amber); font-weight:800; font-size:12px;">🏷️</div><span style="font-size:15px; font-weight:800;">¿Cuál elegís?</span></div>
+      <div class="koru-stitch-row is-highlighted"><div class="koru-stitch-row-copy"><strong>Nespresso A</strong><small>$89 · 19 bar · Universal</small></div></div>
+      <div class="koru-decision-or">vs</div>
+      <div class="koru-stitch-row"><div class="koru-stitch-row-copy"><strong>Dolce Gusto B</strong><small>$110 · 15 bar · Propia</small></div></div>
       <div class="koru-actions"><button class="koru-pill-button is-primary">Nespresso A</button><button class="koru-pill-button">Dolce Gusto B</button></div>
     </div>
-    <!-- C = Weather grid -->
-    <div class="koru-stitch-card">
-      <div class="koru-stitch-card-header"><div class="koru-stitch-icon is-purple">📋</div><div class="koru-stitch-heading"><span class="koru-card-hint">Specs</span><strong class="koru-card-title">Ficha técnica</strong></div></div>
-      <div class="koru-weather-grid">
-        <div><span>Precio</span><strong style="color:var(--koru-accent)">$89</strong></div>
-        <div><span>Presión</span><strong>19 bar</strong></div>
-        <div><span>Depósito</span><strong>0,7 L</strong></div>
-        <div><span>Garantía</span><strong>2 años</strong></div>
+    <!-- C = Purple tone + record chips -->
+    <div class="koru-stitch-card" data-tone="purple">
+      <div class="koru-stitch-card-header"><div class="koru-stitch-icon is-purple">📋</div><div class="koru-stitch-heading"><span class="koru-card-hint">Specs</span><strong class="koru-card-title">Ficha técnica Nespresso A</strong></div></div>
+      <div class="koru-record-grid">
+        <div class="koru-record-chip" style="background:var(--koru-surface);"><span style="font-size:16px;">💰</span><div><strong>Precio</strong><small>$89</small></div></div>
+        <div class="koru-record-chip" style="background:var(--koru-surface);"><span style="font-size:16px;">⚡</span><div><strong>Presión</strong><small>19 bar</small></div></div>
+        <div class="koru-record-chip" style="background:var(--koru-surface);"><span style="font-size:16px;">🫗</span><div><strong>Depósito</strong><small>0,7 L</small></div></div>
+        <div class="koru-record-chip" style="background:var(--koru-surface);"><span style="font-size:16px;">🛡️</span><div><strong>Garantía</strong><small>2 años</small></div></div>
       </div>
     </div>
   </div>
@@ -370,43 +363,40 @@
 <section style="margin-bottom:48px;">
   <div class="sec-head"><span class="sec-num">7</span><h2 class="sec-title">Product review</h2></div>
   <div class="grid-3">
-    <!-- A = Activity tiles -->
-    <div class="koru-stitch-card">
-      <div class="koru-stitch-card-header"><div class="koru-stitch-icon">🎧</div><div class="koru-stitch-heading"><span class="koru-card-hint">Sony WH-1000XM5</span><strong class="koru-card-title">Puntuaciones</strong></div></div>
-      <div class="koru-activity-group">
-        <div class="koru-activity-tiles">
-          <div class="koru-activity-tile"><div class="koru-activity-tile-top"><span>9,2</span></div><strong>Calidad</strong><small>Cancelación top</small></div>
-          <div class="koru-activity-tile"><div class="koru-activity-tile-top"><span>8,8</span></div><strong>Batería</strong><small>Dos días</small></div>
-          <div class="koru-activity-tile"><div class="koru-activity-tile-top"><span>7,5</span></div><strong>Comfort</strong><small>Livianos</small></div>
-          <div class="koru-activity-tile"><div class="koru-activity-tile-top"><span>5,5</span></div><strong>Precio</strong><small>$349 · caro</small></div>
-        </div>
+    <!-- A = Activity tiles (scores) ROOT -->
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <div style="font-size:14px; font-weight:800;">🎧 Sony WH-1000XM5</div>
+      <div class="koru-activity-tiles">
+        <div class="koru-activity-tile"><div class="koru-activity-tile-top" style="color:var(--koru-accent)"><span>9,2</span></div><strong>Calidad</strong><small>Cancelación top</small></div>
+        <div class="koru-activity-tile"><div class="koru-activity-tile-top" style="color:var(--koru-amber)"><span>8,8</span></div><strong>Batería</strong><small>Dos días</small></div>
+        <div class="koru-activity-tile"><div class="koru-activity-tile-top" style="color:var(--koru-blue)"><span>7,5</span></div><strong>Comfort</strong><small>Livianos</small></div>
+        <div class="koru-activity-tile"><div class="koru-activity-tile-top" style="color:var(--koru-rose)"><span>5,5</span></div><strong>Precio</strong><small>$349</small></div>
       </div>
-      <p class="koru-stitch-note">Veredicto: recomendado si priorizás silencio</p>
+      <p class="koru-stitch-note" style="margin-top:4px;">Veredicto: recomendado si priorizás silencio</p>
     </div>
-    <!-- B = Stitch rows + note -->
-    <div class="koru-stitch-card">
-      <div class="koru-stitch-card-header"><div class="koru-stitch-icon is-rose">⭐</div><div class="koru-stitch-heading"><span class="koru-card-hint">Review</span><strong class="koru-card-title">Opinión del experto</strong></div></div>
-      <div class="koru-stitch-content">
-        <div class="koru-stitch-row"><div class="koru-stitch-row-marker is-blue">✓</div><div class="koru-stitch-row-copy"><strong>Pros</strong><small>Cancelación, batería, app</small></div></div>
-        <div class="koru-stitch-row"><div class="koru-stitch-row-marker is-rose">✕</div><div class="koru-stitch-row-copy"><strong>Contras</strong><small>Precio alto, case grande</small></div></div>
-      </div>
-      <p class="koru-stitch-note is-amber">Nota general: 8,4 / 10</p>
+    <!-- B = Inline ROOT with pros/cons -->
+    <div class="koru-inline-card" style="display:flex; flex-direction:column; gap:6px;">
+      <div style="font-size:14px; font-weight:800; margin-bottom:2px;">⭐ Opinión experto</div>
+      <div class="koru-stitch-row" style="background:var(--koru-surface);"><div class="koru-stitch-row-marker is-blue">✓</div><div class="koru-stitch-row-copy"><strong>Pros</strong><small>Cancelación, batería, app</small></div></div>
+      <div class="koru-stitch-row" style="background:var(--koru-surface);"><div class="koru-stitch-row-marker is-rose">✕</div><div class="koru-stitch-row-copy"><strong>Contras</strong><small>Precio alto, case grande</small></div></div>
+      <p class="koru-stitch-note is-amber" style="margin-top:4px;">Nota: 8,4 / 10</p>
     </div>
-    <!-- C = Proactive card -->
-    <div class="koru-stitch-card">
-      <div class="koru-proactive-head"><div class="koru-stitch-icon is-purple">💬</div><span><strong>Veredicto final</strong><small>Review por TechKoru</small></span></div>
-      <p>“El rey de la cancelación activa regresa con mejor batería y un diseño más liviano.”</p>
-      <div class="koru-divider"></div>
-      <div class="koru-stitch-content" style="gap:6px;">
-        <div class="koru-stitch-pill">Calidad top</div>
-        <div class="koru-stitch-pill">Segmento premium</div>
+    <!-- C = Quote card (useful tone, no header) -->
+    <div class="koru-stitch-card" data-severity="useful">
+      <div class="koru-proactive-head" style="margin-bottom:4px;"><div class="koru-stitch-icon is-blue">💬</div><span><strong>Veredicto final</strong><small>Review por TechKoru</small></span></div>
+      <p style="font-size:14px; font-weight:650; color:var(--koru-text-soft); line-height:1.5; font-style:italic;">“El rey de la cancelación activa regresa con mejor batería y un diseño más liviano.”</p>
+      <div style="height:1px; background:var(--koru-border); margin:6px 0;"></div>
+      <div style="display:flex; flex-wrap:wrap; gap:6px;">
+        <span class="koru-stitch-pill">Calidad top</span>
+        <span class="koru-stitch-pill">Segmento premium</span>
       </div>
       <div class="koru-actions"><button class="koru-pill-button is-primary">Leer completo</button></div>
     </div>
   </div>
 </section>
 
-<footer style="text-align:center; padding:24px 0; color:var(--koru-muted); font-size:11px;">21 diseños de tarjetas · Estilo Koru real · Cada una distinta</footer>
+<footer style="text-align:center; padding:24px 0; color:var(--koru-muted); font-size:11px;">21 diseños · Cada tarjeta usa un layout o contenedor distinto del sistema Koru</footer>
+
 </div>
 </body>
 </html>
