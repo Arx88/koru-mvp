@@ -6,116 +6,148 @@
 <title>Koru — Diseño Tarjetas</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,1,0" rel="stylesheet">
 <style>
   body { font-family: 'Plus Jakarta Sans', sans-serif; background: #FCFCFA; color: #333; -webkit-font-smoothing: antialiased; }
-  .card-shadow { box-shadow: 0 4px 20px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.02); }
-  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  .card-base { background: white; border-radius: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.03), 0 0.5px 2px rgba(0,0,0,0.02); transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), box-shadow 0.3s cubic-bezier(0.4,0,0.2,1); }
+  .card-base:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,0.07), 0 2px 6px rgba(0,0,0,0.03); }
+  .material-symbols-outlined { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .anim-in { animation: fadeInUp 0.55s cubic-bezier(0.4,0,0.2,1) forwards; opacity: 0; }
+  .d1 { animation-delay: 0.05s; }
+  .d2 { animation-delay: 0.10s; }
+  .d3 { animation-delay: 0.15s; }
+  .d4 { animation-delay: 0.20s; }
+  .d5 { animation-delay: 0.25s; }
+  .d6 { animation-delay: 0.30s; }
+
+  @keyframes barFill {
+    from { width: 0; }
+  }
+  .bar-anim { animation: barFill 1s cubic-bezier(0.4,0,0.2,1) forwards; }
+
+  @keyframes growBar {
+    from { height: 0; }
+  }
+  .grow-anim { animation: growBar 0.8s cubic-bezier(0.4,0,0.2,1) forwards; }
+
+  @keyframes pulseSoft {
+    0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(239,68,68,0.3); }
+    50% { opacity: 0.85; box-shadow: 0 0 0 6px rgba(239,68,68,0); }
+  }
+  .pulse-badge { animation: pulseSoft 1.6s ease-in-out infinite; }
+
+  .glass { background: rgba(255,255,255,0.72); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 </style>
 </head>
 <body class="min-h-screen">
 
 <div class="max-w-[1180px] mx-auto px-6 py-10 pb-20">
 
-  <header class="mb-10">
-    <h1 class="text-[28px] font-extrabold leading-tight text-gray-900">Diseño de tarjetas</h1>
-    <p class="text-[13px] text-gray-400 mt-1 font-semibold">7 temas · 3 opciones · Mismo universo visual</p>
+  <header class="mb-12 anim-in">
+    <h1 class="text-[30px] font-extrabold leading-tight text-gray-900 tracking-tight">Diseño de tarjetas</h1>
+    <p class="text-[13px] text-gray-400 mt-2 font-semibold">7 temas · 3 opciones · Premium & Animado</p>
   </header>
 
   <!-- ===================== 1 FÚTBOL ===================== -->
-  <section class="mb-14">
-    <div class="flex items-center gap-3 mb-5">
-      <div class="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 text-[16px] font-bold">1</div>
+  <section class="mb-16">
+    <div class="flex items-center gap-3 mb-6 anim-in d1">
+      <div class="w-9 h-9 rounded-[14px] bg-emerald-50 flex items-center justify-center text-emerald-600 text-[15px] font-bold">1</div>
       <h2 class="text-[20px] font-extrabold text-gray-900">Resultados de fútbol</h2>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
 
-      <!-- 1A — Live Scoreboard -->
-      <div class="bg-white rounded-3xl p-5 card-shadow">
-        <div class="flex items-center justify-between mb-4">
-          <span class="text-[10px] font-extrabold text-emerald-500 uppercase tracking-[0.15em]">En Vivo</span>
-          <div class="bg-red-50 text-red-500 text-[10px] font-extrabold px-2.5 py-1 rounded-lg animate-pulse">78'</div>
+      <!-- 1A — Live Scoreboard (escudos reales) -->
+      <div class="card-base p-6 anim-in d2">
+        <div class="flex items-center justify-between mb-5">
+          <span class="text-[10px] font-extrabold text-emerald-500 uppercase tracking-[0.15em]">Champions · En Vivo</span>
+          <div class="pulse-badge bg-red-50 text-red-500 text-[10px] font-extrabold px-2.5 py-1 rounded-lg">72'</div>
         </div>
-        <div class="flex items-center justify-between px-1">
-          <div class="flex flex-col items-center gap-2 w-[28%]">
-            <div class="w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center text-blue-700 font-bold text-xl border border-blue-100/70">BOC</div>
-            <span class="text-[13px] font-bold text-gray-900">Boca</span>
+        <div class="flex items-center justify-between px-2">
+          <div class="flex flex-col items-center gap-2.5 flex-1">
+            <img src="https://crests.football-data.org/86.png" alt="RMA" class="w-[52px] h-[52px] object-contain drop-shadow-sm" loading="lazy" />
+            <span class="text-[13px] font-bold text-gray-900">R. Madrid</span>
           </div>
-          <div class="flex flex-col items-center w-[40%]">
-            <span class="text-[40px] font-extrabold text-gray-900 leading-none tracking-tight">2-1</span>
-            <span class="text-[10px] text-gray-400 font-extrabold uppercase tracking-widest mt-1.5">La Bombonera</span>
+          <div class="flex flex-col items-center flex-1">
+            <span class="text-[42px] font-extrabold text-gray-900 leading-none tracking-tight">2-1</span>
+            <span class="text-[10px] text-gray-400 font-extrabold uppercase tracking-widest mt-1.5">Global 3-3</span>
           </div>
-          <div class="flex flex-col items-center gap-2 w-[28%]">
-            <div class="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center text-red-700 font-bold text-xl border border-red-100/70">RIV</div>
-            <span class="text-[13px] font-bold text-gray-900">River</span>
+          <div class="flex flex-col items-center gap-2.5 flex-1">
+            <img src="https://crests.football-data.org/65.png" alt="MCI" class="w-[52px] h-[52px] object-contain drop-shadow-sm" loading="lazy" />
+            <span class="text-[13px] font-bold text-gray-900">Man City</span>
           </div>
         </div>
-        <div class="mt-5 pt-4 border-t border-gray-50">
+        <div class="mt-6 pt-5 border-t border-gray-50/80">
           <div class="flex justify-between text-center">
-            <div><div class="text-[11px] text-gray-400 font-bold uppercase tracking-wider">Posesión</div><div class="text-[13px] font-extrabold text-gray-900 mt-0.5">62%</div></div>
-            <div><div class="text-[11px] text-gray-400 font-bold uppercase tracking-wider">Tiros</div><div class="text-[13px] font-extrabold text-gray-900 mt-0.5">14</div></div>
-            <div><div class="text-[11px] text-gray-400 font-bold uppercase tracking-wider">Córners</div><div class="text-[13px] font-extrabold text-gray-900 mt-0.5">8</div></div>
+            <div><div class="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider">Posesión</div><div class="text-[13px] font-extrabold text-gray-900 mt-1">62%</div></div>
+            <div><div class="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider">Tiros</div><div class="text-[13px] font-extrabold text-gray-900 mt-1">14</div></div>
+            <div><div class="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider">Córners</div><div class="text-[13px] font-extrabold text-gray-900 mt-1">8</div></div>
+            <div><div class="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider">Faltas</div><div class="text-[13px] font-extrabold text-gray-900 mt-1">3</div></div>
           </div>
         </div>
       </div>
 
       <!-- 1B — Match Timeline -->
-      <div class="bg-white rounded-3xl p-5 card-shadow">
-        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-[0.15em] block mb-4">Fixture · En vivo</span>
-        <div class="flex items-center gap-3 mb-5">
-          <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-            <span class="material-symbols-outlined text-[20px]">sports_soccer</span>
+      <div class="card-base p-6 anim-in d3">
+        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-[0.15em] block mb-5">Timeline · En vivo</span>
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-11 h-11 rounded-[12px] bg-emerald-50 flex items-center justify-center text-emerald-600">
+            <span class="material-symbols-outlined text-[22px]">sports_soccer</span>
           </div>
           <div>
-            <p class="text-[15px] font-bold text-gray-900">Minuto a minuto</p>
-            <p class="text-[12px] text-gray-500 font-semibold">Boca vs River · Primera</p>
+            <p class="text-[15px] font-bold text-gray-900 leading-snug">Minuto a minuto</p>
+            <p class="text-[12px] text-gray-500 font-semibold">R. Madrid 2-1 Man City · Semifinal</p>
           </div>
         </div>
-        <div class="relative pl-2">
-          <div class="absolute left-[17px] top-2 bottom-2 w-px bg-gray-100"></div>
-          <div class="relative flex items-start gap-3 mb-4">
-            <div class="w-3.5 h-3.5 rounded-full bg-emerald-500 border-[3px] border-white shadow-sm shrink-0 mt-1 relative z-10"></div>
+        <div class="relative pl-[10px]">
+          <div class="absolute left-[19px] top-3 bottom-3 w-px bg-gray-100"></div>
+          <div class="relative flex items-start gap-4 mb-5">
+            <div class="w-[18px] h-[18px] rounded-full bg-emerald-500 border-[3px] border-white shadow-md shrink-0 mt-0.5 relative z-10"></div>
             <div>
-              <p class="text-[13px] font-bold text-gray-900">Boca <span class="text-gray-500 font-semibold">1-0</span></p>
-              <p class="text-[11px] text-gray-400 font-semibold">Benedetto · 34'</p>
+              <p class="text-[14px] font-bold text-gray-900 leading-snug">R. Madrid <span class="text-gray-500 font-semibold">1-0</span></p>
+              <p class="text-[11px] text-gray-400 font-semibold mt-0.5">Vinicius Jr. · 23'</p>
             </div>
           </div>
-          <div class="relative flex items-start gap-3 mb-4">
-            <div class="w-3.5 h-3.5 rounded-full bg-gray-200 border-[3px] border-white shrink-0 mt-1 relative z-10"></div>
+          <div class="relative flex items-start gap-4 mb-5">
+            <div class="w-[18px] h-[18px] rounded-full bg-[#6CABDD] border-[3px] border-white shadow-md shrink-0 mt-0.5 relative z-10"></div>
             <div>
-              <p class="text-[13px] font-bold text-gray-900">River <span class="text-gray-500 font-semibold">1-1</span></p>
-              <p class="text-[11px] text-gray-400 font-semibold">Álvarez · 59'</p>
+              <p class="text-[14px] font-bold text-gray-900 leading-snug">Man City <span class="text-gray-500 font-semibold">1-1</span></p>
+              <p class="text-[11px] text-gray-400 font-semibold mt-0.5">Haaland · 56'</p>
             </div>
           </div>
-          <div class="relative flex items-start gap-3">
-            <div class="w-3.5 h-3.5 rounded-full bg-emerald-500 border-[3px] border-white shadow-sm shrink-0 mt-1 relative z-10"></div>
+          <div class="relative flex items-start gap-4">
+            <div class="w-[18px] h-[18px] rounded-full bg-emerald-500 border-[3px] border-white shadow-md shrink-0 mt-0.5 relative z-10"></div>
             <div>
-              <p class="text-[13px] font-bold text-gray-900">Boca <span class="text-gray-500 font-semibold">2-1</span></p>
-              <p class="text-[11px] text-gray-400 font-semibold">Benedetto · 78' — Ahora</p>
+              <p class="text-[14px] font-bold text-gray-900 leading-snug">R. Madrid <span class="text-gray-500 font-semibold">2-1</span></p>
+              <p class="text-[11px] text-gray-400 font-semibold mt-0.5">Bellingham · 71' — Ahora</p>
             </div>
           </div>
         </div>
       </div>
 
       <!-- 1C — Stats -->
-      <div class="bg-white rounded-3xl p-5 card-shadow">
-        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-[0.15em] block mb-4">Estadísticas</span>
+      <div class="card-base p-6 anim-in d4">
+        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-[0.15em] block mb-5">Estadísticas</span>
         <div class="grid grid-cols-2 gap-3">
-          <div class="bg-gray-50 rounded-2xl p-4 flex flex-col justify-between h-24">
+          <div class="bg-gray-50/70 rounded-[18px] p-4 flex flex-col justify-between h-[88px]">
             <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Posesión</span>
-            <span class="text-[22px] font-extrabold text-gray-900">62%</span>
+            <span class="text-[24px] font-extrabold text-gray-900 leading-none">62%</span>
           </div>
-          <div class="bg-gray-50 rounded-2xl p-4 flex flex-col justify-between h-24">
+          <div class="bg-gray-50/70 rounded-[18px] p-4 flex flex-col justify-between h-[88px]">
             <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Tiros</span>
-            <span class="text-[22px] font-extrabold text-gray-900">14</span>
+            <span class="text-[24px] font-extrabold text-gray-900 leading-none">14</span>
           </div>
-          <div class="bg-gray-50 rounded-2xl p-4 flex flex-col justify-between h-24">
+          <div class="bg-gray-50/70 rounded-[18px] p-4 flex flex-col justify-between h-[88px]">
             <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Córners</span>
-            <span class="text-[22px] font-extrabold text-gray-900">8</span>
+            <span class="text-[24px] font-extrabold text-gray-900 leading-none">8</span>
           </div>
-          <div class="bg-gray-50 rounded-2xl p-4 flex flex-col justify-between h-24">
+          <div class="bg-gray-50/70 rounded-[18px] p-4 flex flex-col justify-between h-[88px]">
             <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Faltas</span>
-            <span class="text-[22px] font-extrabold text-gray-900">3</span>
+            <span class="text-[24px] font-extrabold text-gray-900 leading-none">3</span>
           </div>
         </div>
       </div>
@@ -123,30 +155,30 @@
   </section>
 
   <!-- ===================== 2 ELECCIONES ===================== -->
-  <section class="mb-14">
-    <div class="flex items-center gap-3 mb-5">
-      <div class="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 text-[16px] font-bold">2</div>
+  <section class="mb-16">
+    <div class="flex items-center gap-3 mb-6 anim-in d1">
+      <div class="w-9 h-9 rounded-[14px] bg-amber-50 flex items-center justify-center text-amber-600 text-[15px] font-bold">2</div>
       <h2 class="text-[20px] font-extrabold text-gray-900">Resultados de elecciones</h2>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
 
       <!-- 2A — Bars -->
-      <div class="bg-white rounded-3xl p-5 card-shadow">
-        <span class="text-[10px] font-extrabold text-amber-500 uppercase tracking-[0.15em] block mb-4">Escrutinio 87%</span>
-        <div class="flex items-center gap-3 mb-5">
-          <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
-            <span class="material-symbols-outlined text-[20px]">how_to_vote</span>
+      <div class="card-base p-6 anim-in d2">
+        <span class="text-[10px] font-extrabold text-amber-500 uppercase tracking-[0.15em] block mb-5">Escrutinio 87%</span>
+        <div class="flex items-center gap-3.5 mb-6">
+          <div class="w-11 h-11 rounded-[12px] bg-amber-50 flex items-center justify-center text-amber-600">
+            <span class="material-symbols-outlined text-[22px]">how_to_vote</span>
           </div>
-          <h3 class="text-[15px] font-bold text-gray-900">Elecciones 2025</h3>
+          <h3 class="text-[16px] font-bold text-gray-900 leading-snug">Elecciones 2025</h3>
         </div>
-        <div class="space-y-4">
+        <div class="space-y-5">
           <div>
             <div class="flex justify-between mb-2">
               <span class="text-[13px] font-bold text-gray-900">Martínez</span>
               <span class="text-[13px] font-extrabold text-gray-900">42,3%</span>
             </div>
             <div class="h-2.5 bg-gray-100 rounded-full overflow-hidden">
-              <div class="h-full bg-emerald-400 rounded-full" style="width:42.3%"></div>
+              <div class="h-full bg-emerald-400 rounded-full bar-anim" style="width:42.3%; animation-delay:0.5s;"></div>
             </div>
           </div>
           <div>
@@ -155,7 +187,7 @@
               <span class="text-[13px] font-extrabold text-gray-900">35,1%</span>
             </div>
             <div class="h-2.5 bg-gray-100 rounded-full overflow-hidden">
-              <div class="h-full bg-amber-400 rounded-full" style="width:35.1%"></div>
+              <div class="h-full bg-amber-400 rounded-full bar-anim" style="width:35.1%; animation-delay:0.7s;"></div>
             </div>
           </div>
           <div>
@@ -164,167 +196,179 @@
               <span class="text-[13px] font-extrabold text-gray-900">22,6%</span>
             </div>
             <div class="h-2.5 bg-gray-100 rounded-full overflow-hidden">
-              <div class="h-full bg-gray-300 rounded-full" style="width:22.6%"></div>
+              <div class="h-full bg-gray-300 rounded-full bar-anim" style="width:22.6%; animation-delay:0.9s;"></div>
             </div>
           </div>
         </div>
-        <button class="mt-5 w-full py-3 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-2xl text-[13px] font-bold transition-colors">Ver detalle</button>
+        <button class="mt-6 w-full py-3 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-[14px] text-[13px] font-bold transition-colors">Ver detalle</button>
       </div>
 
       <!-- 2B — Vote -->
-      <div class="bg-white rounded-3xl p-5 card-shadow">
-        <span class="text-[10px] font-extrabold text-violet-500 uppercase tracking-[0.15em] block mb-4">Votar</span>
-        <h3 class="text-[16px] font-bold text-gray-900 mb-1">¿Aprobás la reforma?</h3>
-        <p class="text-[13px] text-gray-500 font-semibold mb-5">Reforma laboral · Vinculante</p>
-        <div class="space-y-3 mb-5">
-          <button class="w-full group flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-colors text-left border border-transparent hover:border-gray-200">
+      <div class="card-base p-6 anim-in d3">
+        <span class="text-[10px] font-extrabold text-violet-500 uppercase tracking-[0.15em] block mb-5">Votar</span>
+        <h3 class="text-[17px] font-bold text-gray-900 leading-snug mb-1">¿Aprobás la reforma?</h3>
+        <p class="text-[13px] text-gray-500 font-semibold mb-6">Reforma laboral · Vinculante</p>
+        <div class="space-y-3.5 mb-6">
+          <button class="w-full group flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-[14px] transition-all text-left border border-transparent hover:border-gray-200 hover:shadow-sm">
             <div>
               <p class="text-[14px] font-bold text-gray-900">Sí — Reforma</p>
-              <p class="text-[12px] text-gray-500 font-semibold">Flexibilización de contratos</p>
+              <p class="text-[12px] text-gray-500 font-semibold mt-0.5">Flexibilización de contratos</p>
             </div>
-            <div class="w-5 h-5 rounded-full border-2 border-gray-300 group-hover:border-violet-400 shrink-0"></div>
+            <div class="w-5 h-5 rounded-full border-2 border-gray-300 group-hover:border-violet-400 shrink-0 transition-colors"></div>
           </button>
-          <button class="w-full group flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-colors text-left border border-transparent hover:border-gray-200">
+          <button class="w-full group flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-[14px] transition-all text-left border border-transparent hover:border-gray-200 hover:shadow-sm">
             <div>
               <p class="text-[14px] font-bold text-gray-900">No — Mantener</p>
-              <p class="text-[12px] text-gray-500 font-semibold">Legislación vigente</p>
+              <p class="text-[12px] text-gray-500 font-semibold mt-0.5">Legislación vigente</p>
             </div>
-            <div class="w-5 h-5 rounded-full border-2 border-gray-300 group-hover:border-violet-400 shrink-0"></div>
+            <div class="w-5 h-5 rounded-full border-2 border-gray-300 group-hover:border-violet-400 shrink-0 transition-colors"></div>
           </button>
         </div>
-        <button class="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-2xl text-[13px] font-bold transition-colors">Confirmar voto</button>
+        <button class="w-full py-3.5 bg-violet-600 hover:bg-violet-700 text-white rounded-[14px] text-[13px] font-bold transition-colors shadow-sm hover:shadow-md">Confirmar voto</button>
       </div>
 
       <!-- 2C — Summary -->
-      <div class="bg-white rounded-3xl p-5 card-shadow">
-        <span class="text-[10px] font-extrabold text-sky-500 uppercase tracking-[0.15em] block mb-4">Resumen</span>
+      <div class="card-base p-6 anim-in d4">
+        <span class="text-[10px] font-extrabold text-sky-500 uppercase tracking-[0.15em] block mb-5">Resumen</span>
         <div class="grid grid-cols-2 gap-3">
-          <div class="bg-sky-50 rounded-2xl p-4 flex flex-col justify-center items-center h-[90px]">
+          <div class="bg-sky-50/60 rounded-[18px] p-5 flex flex-col justify-center items-center h-[94px]">
             <span class="text-[10px] font-extrabold text-sky-400 uppercase tracking-wider">Votos</span>
-            <span class="text-[18px] font-extrabold text-gray-900 mt-1">28,4M</span>
+            <span class="text-[20px] font-extrabold text-gray-900 mt-1">28,4M</span>
           </div>
-          <div class="bg-sky-50 rounded-2xl p-4 flex flex-col justify-center items-center h-[90px]">
+          <div class="bg-sky-50/60 rounded-[18px] p-5 flex flex-col justify-center items-center h-[94px]">
             <span class="text-[10px] font-extrabold text-sky-400 uppercase tracking-wider">Mesas</span>
-            <span class="text-[18px] font-extrabold text-gray-900 mt-1">12.847</span>
+            <span class="text-[20px] font-extrabold text-gray-900 mt-1">12.847</span>
           </div>
-          <div class="bg-sky-50 rounded-2xl p-4 flex flex-col justify-center items-center h-[90px]">
+          <div class="bg-sky-50/60 rounded-[18px] p-5 flex flex-col justify-center items-center h-[94px]">
             <span class="text-[10px] font-extrabold text-sky-400 uppercase tracking-wider">Participación</span>
-            <span class="text-[18px] font-extrabold text-gray-900 mt-1">77%</span>
+            <span class="text-[20px] font-extrabold text-gray-900 mt-1">77%</span>
           </div>
-          <div class="bg-sky-50 rounded-2xl p-4 flex flex-col justify-center items-center h-[90px]">
+          <div class="bg-sky-50/60 rounded-[18px] p-5 flex flex-col justify-center items-center h-[94px]">
             <span class="text-[10px] font-extrabold text-sky-400 uppercase tracking-wider">Abstención</span>
-            <span class="text-[18px] font-extrabold text-gray-900 mt-1">23%</span>
+            <span class="text-[20px] font-extrabold text-gray-900 mt-1">23%</span>
           </div>
         </div>
-        <p class="mt-4 text-[12px] text-amber-600 font-bold bg-amber-50 rounded-xl p-3 text-center">Diferencia de 7,2 pp entre primero y segundo</p>
+        <p class="mt-5 text-[12px] text-amber-600 font-bold bg-amber-50 rounded-xl p-3.5 text-center">Diferencia de 7,2 pp entre primero y segundo</p>
       </div>
     </div>
   </section>
 
   <!-- ===================== 3 CRYPTO ===================== -->
-  <section class="mb-14">
-    <div class="flex items-center gap-3 mb-5">
-      <div class="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center text-orange-500 text-[16px] font-bold">3</div>
+  <section class="mb-16">
+    <div class="flex items-center gap-3 mb-6 anim-in d1">
+      <div class="w-9 h-9 rounded-[14px] bg-orange-50 flex items-center justify-center text-orange-500 text-[15px] font-bold">3</div>
       <h2 class="text-[20px] font-extrabold text-gray-900">Crypto y Forex</h2>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
 
       <!-- 3A — Price Alert -->
-      <div class="bg-white rounded-3xl p-5 card-shadow">
-        <div class="flex items-center justify-between mb-3">
+      <div class="card-base p-6 anim-in d2">
+        <div class="flex items-center justify-between mb-4">
           <span class="text-[10px] font-extrabold text-orange-400 uppercase tracking-[0.15em]">Bitcoin</span>
           <span class="material-symbols-outlined text-[18px] text-orange-400">trending_up</span>
         </div>
-        <span class="text-[44px] font-extrabold text-gray-900 leading-none block tracking-tight">$64.230</span>
-        <p class="text-[13px] text-emerald-500 font-bold mt-1">+2,4% en 24h</p>
-        <div class="flex items-end gap-[3px] h-10 mt-4">
-          <div class="flex-1 bg-emerald-100 rounded-t" style="height:40%"></div>
-          <div class="flex-1 bg-emerald-200 rounded-t" style="height:55%"></div>
-          <div class="flex-1 bg-emerald-300 rounded-t" style="height:45%"></div>
-          <div class="flex-1 bg-emerald-200 rounded-t" style="height:65%"></div>
-          <div class="flex-1 bg-emerald-400 rounded-t" style="height:55%"></div>
-          <div class="flex-1 bg-emerald-300 rounded-t" style="height:75%"></div>
-          <div class="flex-1 bg-emerald-500 rounded-t" style="height:90%"></div>
-          <div class="flex-1 bg-emerald-400 rounded-t" style="height:85%"></div>
-          <div class="flex-1 bg-emerald-600 rounded-t" style="height:100%"></div>
-          <div class="flex-1 bg-emerald-500 rounded-t" style="height:80%"></div>
+        <span class="text-[48px] font-extrabold text-gray-900 leading-none block tracking-tight">$64.230</span>
+        <p class="text-[13px] text-emerald-500 font-bold mt-2">+2,4% en 24h</p>
+        <div class="flex items-end gap-[4px] h-11 mt-5">
+          <div class="flex-1 bg-emerald-100/70 rounded-t grow-anim" style="height:45%; --h:45%;"></div>
+          <div class="flex-1 bg-emerald-200/70 rounded-t grow-anim" style="height:60%; animation-delay:0.05s;"></div>
+          <div class="flex-1 bg-emerald-300/70 rounded-t grow-anim" style="height:50%; animation-delay:0.10s;"></div>
+          <div class="flex-1 bg-emerald-200/70 rounded-t grow-anim" style="height:70%; animation-delay:0.15s;"></div>
+          <div class="flex-1 bg-emerald-400/70 rounded-t grow-anim" style="height:60%; animation-delay:0.20s;"></div>
+          <div class="flex-1 bg-emerald-300/70 rounded-t grow-anim" style="height:80%; animation-delay:0.25s;"></div>
+          <div class="flex-1 bg-emerald-500/70 rounded-t grow-anim" style="height:95%; animation-delay:0.30s;"></div>
+          <div class="flex-1 bg-emerald-400/70 rounded-t grow-anim" style="height:88%; animation-delay:0.35s;"></div>
+          <div class="flex-1 bg-emerald-600/70 rounded-t grow-anim" style="height:100%; animation-delay:0.40s;"></div>
+          <div class="flex-1 bg-emerald-500/70 rounded-t grow-anim" style="height:82%; animation-delay:0.45s;"></div>
         </div>
-        <div class="flex gap-2 mt-4">
-          <button class="flex-1 py-3 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-2xl text-[12px] font-bold transition-colors">Vender</button>
-          <button class="flex-1 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl text-[12px] font-bold transition-colors">Comprar</button>
+        <div class="flex gap-2.5 mt-5">
+          <button class="flex-1 py-3 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-[14px] text-[12px] font-bold transition-colors">Vender</button>
+          <button class="flex-1 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-[14px] text-[12px] font-bold transition-colors shadow-sm hover:shadow-md">Comprar</button>
         </div>
       </div>
 
       <!-- 3B — Portfolio -->
-      <div class="bg-white rounded-3xl p-5 card-shadow">
-        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-[0.15em] block mb-4">Cartera</span>
+      <div class="card-base p-6 anim-in d3">
+        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-[0.15em] block mb-5">Cartera</span>
         <div class="space-y-0">
-          <div class="flex items-center justify-between py-3 hover:bg-gray-50/50 rounded-2xl transition-colors -mx-2 px-2 cursor-pointer">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 font-bold text-sm">₿</div>
+          <div class="flex items-center justify-between py-3.5 hover:bg-gray-50/60 rounded-[14px] transition-all -mx-2 px-2 cursor-pointer">
+            <div class="flex items-center gap-3.5">
+              <div class="w-11 h-11 rounded-full bg-orange-50/80 flex items-center justify-center text-orange-500 font-bold text-base">₿</div>
               <div>
-                <p class="text-[14px] font-bold text-gray-900">Bitcoin</p>
+                <p class="text-[14px] font-bold text-gray-900 leading-snug">Bitcoin</p>
                 <p class="text-[12px] text-gray-500 font-semibold">0,45 BTC</p>
               </div>
             </div>
             <div class="text-right">
-              <p class="text-[14px] font-bold text-gray-900">$28.904</p>
+              <p class="text-[14px] font-bold text-gray-900 leading-snug">$28.904</p>
               <p class="text-[12px] text-emerald-500 font-bold">+2,4%</p>
             </div>
           </div>
           <div class="h-px bg-gray-50 mx-2"></div>
-          <div class="flex items-center justify-between py-3 hover:bg-gray-50/50 rounded-2xl transition-colors -mx-2 px-2 cursor-pointer">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 font-bold text-sm">Ξ</div>
+          <div class="flex items-center justify-between py-3.5 hover:bg-gray-50/60 rounded-[14px] transition-all -mx-2 px-2 cursor-pointer">
+            <div class="flex items-center gap-3.5">
+              <div class="w-11 h-11 rounded-full bg-blue-50/80 flex items-center justify-center text-blue-500 font-bold text-base">Ξ</div>
               <div>
-                <p class="text-[14px] font-bold text-gray-900">Ethereum</p>
+                <p class="text-[14px] font-bold text-gray-900 leading-snug">Ethereum</p>
                 <p class="text-[12px] text-gray-500 font-semibold">3,20 ETH</p>
               </div>
             </div>
             <div class="text-right">
-              <p class="text-[14px] font-bold text-gray-900">$11.040</p>
+              <p class="text-[14px] font-bold text-gray-900 leading-snug">$11.040</p>
               <p class="text-[12px] text-red-500 font-bold">-1,2%</p>
             </div>
           </div>
           <div class="h-px bg-gray-50 mx-2"></div>
-          <div class="flex items-center justify-between py-3 hover:bg-gray-50/50 rounded-2xl transition-colors -mx-2 px-2 cursor-pointer">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold text-sm">USDC</div>
+          <div class="flex items-center justify-between py-3.5 hover:bg-gray-50/60 rounded-[14px] transition-all -mx-2 px-2 cursor-pointer">
+            <div class="flex items-center gap-3.5">
+              <div class="w-11 h-11 rounded-full bg-gray-100/80 flex items-center justify-center text-gray-600 font-bold text-base">USDC</div>
               <div>
-                <p class="text-[14px] font-bold text-gray-900">USDC</p>
+                <p class="text-[14px] font-bold text-gray-900 leading-snug">USDC</p>
                 <p class="text-[12px] text-gray-500 font-semibold">Stable</p>
               </div>
             </div>
             <div class="text-right">
-              <p class="text-[14px] font-bold text-gray-900">$1.000</p>
+              <p class="text-[14px] font-bold text-gray-900 leading-snug">$1.000</p>
               <p class="text-[12px] text-gray-400 font-bold">0,0%</p>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 3C — Forex Chips -->
-      <div class="bg-white rounded-3xl p-5 card-shadow">
-        <span class="text-[10px] font-extrabold text-blue-500 uppercase tracking-[0.15em] block mb-4">Forex en vivo</span>
+      <!-- 3C — Forex Chips (banderas reales) -->
+      <div class="card-base p-6 anim-in d4">
+        <span class="text-[10px] font-extrabold text-blue-500 uppercase tracking-[0.15em] block mb-5">Forex en vivo</span>
         <div class="grid grid-cols-2 gap-3">
-          <div class="bg-blue-50 rounded-2xl p-4">
-            <span class="text-[10px] font-extrabold text-blue-400 uppercase tracking-wider block">EUR/USD</span>
-            <span class="text-[18px] font-extrabold text-gray-900 mt-1 block">1,0854</span>
+          <div class="bg-blue-50/60 rounded-[18px] p-4 flex flex-col justify-between h-[110px]">
+            <div class="flex items-center gap-2">
+              <img src="https://flagsapi.com/DE/flat/32.png" alt="" class="w-6 h-6 rounded-full shadow-sm" loading="lazy" />
+              <span class="text-[10px] font-extrabold text-blue-400 uppercase tracking-wider">EUR/USD</span>
+            </div>
+            <span class="text-[20px] font-extrabold text-gray-900 leading-none">1,0854</span>
             <span class="text-[11px] text-emerald-500 font-bold">+0,02%</span>
           </div>
-          <div class="bg-blue-50 rounded-2xl p-4">
-            <span class="text-[10px] font-extrabold text-blue-400 uppercase tracking-wider block">GBP/USD</span>
-            <span class="text-[18px] font-extrabold text-gray-900 mt-1 block">1,2730</span>
+          <div class="bg-blue-50/60 rounded-[18px] p-4 flex flex-col justify-between h-[110px]">
+            <div class="flex items-center gap-2">
+              <img src="https://flagsapi.com/GB/flat/32.png" alt="" class="w-6 h-6 rounded-full shadow-sm" loading="lazy" />
+              <span class="text-[10px] font-extrabold text-blue-400 uppercase tracking-wider">GBP/USD</span>
+            </div>
+            <span class="text-[20px] font-extrabold text-gray-900 leading-none">1,2730</span>
             <span class="text-[11px] text-emerald-500 font-bold">+0,08%</span>
           </div>
-          <div class="bg-red-50 rounded-2xl p-4">
-            <span class="text-[10px] font-extrabold text-red-400 uppercase tracking-wider block">USD/JPY</span>
-            <span class="text-[18px] font-extrabold text-gray-900 mt-1 block">148,32</span>
+          <div class="bg-red-50/60 rounded-[18px] p-4 flex flex-col justify-between h-[110px]">
+            <div class="flex items-center gap-2">
+              <img src="https://flagsapi.com/JP/flat/32.png" alt="" class="w-6 h-6 rounded-full shadow-sm" loading="lazy" />
+              <span class="text-[10px] font-extrabold text-red-400 uppercase tracking-wider">USD/JPY</span>
+            </div>
+            <span class="text-[20px] font-extrabold text-gray-900 leading-none">148,32</span>
             <span class="text-[11px] text-red-500 font-bold">-0,15%</span>
           </div>
-          <div class="bg-blue-50 rounded-2xl p-4">
-            <span class="text-[10px] font-extrabold text-blue-400 uppercase tracking-wider block">AUD/USD</span>
-            <span class="text-[18px] font-extrabold text-gray-900 mt-1 block">0,6645</span>
+          <div class="bg-blue-50/60 rounded-[18px] p-4 flex flex-col justify-between h-[110px]">
+            <div class="flex items-center gap-2">
+              <img src="https://flagsapi.com/AU/flat/32.png" alt="" class="w-6 h-6 rounded-full shadow-sm" loading="lazy" />
+              <span class="text-[10px] font-extrabold text-blue-400 uppercase tracking-wider">AUD/USD</span>
+            </div>
+            <span class="text-[20px] font-extrabold text-gray-900 leading-none">0,6645</span>
             <span class="text-[11px] text-emerald-500 font-bold">+0,04%</span>
           </div>
         </div>
@@ -333,78 +377,81 @@
   </section>
 
   <!-- ===================== 4 INDICACIONES ===================== -->
-  <section class="mb-14">
-    <div class="flex items-center gap-3 mb-5">
-      <div class="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-500 text-[16px] font-bold">4</div>
+  <section class="mb-16">
+    <div class="flex items-center gap-3 mb-6 anim-in d1">
+      <div class="w-9 h-9 rounded-[14px] bg-indigo-50 flex items-center justify-center text-indigo-500 text-[15px] font-bold">4</div>
       <h2 class="text-[20px] font-extrabold text-gray-900">Indicaciones de cómo llegar</h2>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
 
       <!-- 4A — Route Steps -->
-      <div class="bg-white rounded-3xl p-5 card-shadow">
-        <span class="text-[10px] font-extrabold text-indigo-400 uppercase tracking-[0.15em] block mb-4">Ruta más rápida — 18 min</span>
-        <div class="relative pl-1">
-          <div class="absolute left-[13px] top-2 bottom-2 w-px bg-gray-100"></div>
-          <div class="relative flex items-start gap-3 mb-4">
-            <div class="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[11px] font-extrabold shrink-0 border-2 border-white shadow-sm relative z-10">1</div>
+      <div class="card-base p-6 anim-in d2">
+        <span class="text-[10px] font-extrabold text-indigo-400 uppercase tracking-[0.15em] block mb-5">Ruta más rápida — 18 min</span>
+        <div class="relative pl-[6px]">
+          <div class="absolute left-[17px] top-2.5 bottom-2.5 w-px bg-gray-100/80"></div>
+          <div class="relative flex items-start gap-4 mb-5">
+            <div class="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[11px] font-extrabold shrink-0 border-[2.5px] border-white shadow-md relative z-10">1</div>
             <div>
-              <p class="text-[14px] font-bold text-gray-900">Girá a la izquierda</p>
-              <p class="text-[12px] text-gray-400 font-semibold">450 m · Av. Corrientes</p>
+              <p class="text-[14px] font-bold text-gray-900 leading-snug">Girá a la izquierda</p>
+              <p class="text-[12px] text-gray-400 font-semibold mt-0.5">450 m · Av. Corrientes</p>
             </div>
+            <span class="ml-auto text-[13px] font-extrabold text-emerald-600">→</span>
           </div>
-          <div class="relative flex items-start gap-3 mb-4">
-            <div class="w-7 h-7 rounded-full bg-amber-400 text-white flex items-center justify-center text-[11px] font-extrabold shrink-0 border-2 border-white shadow-sm relative z-10">2</div>
+          <div class="relative flex items-start gap-4 mb-5">
+            <div class="w-7 h-7 rounded-full bg-amber-400 text-white flex items-center justify-center text-[11px] font-extrabold shrink-0 border-[2.5px] border-white shadow-md relative z-10">2</div>
             <div>
-              <p class="text-[14px] font-bold text-gray-900">Continuá por Acceso Norte</p>
-              <p class="text-[12px] text-gray-400 font-semibold">5,8 km · Rápido</p>
+              <p class="text-[14px] font-bold text-gray-900 leading-snug">Continuá por Acceso Norte</p>
+              <p class="text-[12px] text-gray-400 font-semibold mt-0.5">5,8 km · Rápido</p>
             </div>
+            <span class="ml-auto text-[13px] font-extrabold text-amber-500">↑</span>
           </div>
-          <div class="relative flex items-start gap-3">
-            <div class="w-7 h-7 rounded-full bg-violet-500 text-white flex items-center justify-center text-[11px] font-extrabold shrink-0 border-2 border-white shadow-sm relative z-10">3</div>
+          <div class="relative flex items-start gap-4">
+            <div class="w-7 h-7 rounded-full bg-violet-500 text-white flex items-center justify-center text-[11px] font-extrabold shrink-0 border-[2.5px] border-white shadow-md relative z-10">3</div>
             <div>
-              <p class="text-[14px] font-bold text-gray-900">Salida 12 hacia Olivos</p>
-              <p class="text-[12px] text-gray-400 font-semibold">1,9 km · Destino</p>
+              <p class="text-[14px] font-bold text-gray-900 leading-snug">Salida 12 hacia Olivos</p>
+              <p class="text-[12px] text-gray-400 font-semibold mt-0.5">1,9 km · Destino</p>
             </div>
+            <span class="ml-auto text-[13px] font-extrabold text-violet-500">🏁</span>
           </div>
         </div>
-        <button class="w-full mt-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-[13px] font-bold transition-colors">Iniciar GPS</button>
+        <button class="w-full mt-6 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[14px] text-[13px] font-bold transition-colors shadow-sm hover:shadow-md">Iniciar GPS</button>
       </div>
 
-      <!-- 4B — Transport Compare -->
-      <div class="bg-white rounded-3xl p-5 card-shadow">
-        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-[0.15em] block mb-4">Comparativa de tiempos</span>
+      <!-- 4B — Transport Compare (con iconos materiales) -->
+      <div class="card-base p-6 anim-in d3">
+        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-[0.15em] block mb-5">Comparativa de tiempos</span>
         <div class="space-y-3">
-          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-2xl">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600">
-                <span class="material-symbols-outlined text-[18px]">directions_car</span>
+          <div class="flex items-center justify-between p-4 bg-gray-50/70 rounded-[14px] hover:bg-gray-50 transition-colors cursor-pointer">
+            <div class="flex items-center gap-3.5">
+              <div class="w-11 h-11 rounded-[12px] bg-gray-100/80 flex items-center justify-center text-gray-600">
+                <span class="material-symbols-outlined text-[20px]">directions_car</span>
               </div>
               <span class="text-[14px] font-bold text-gray-900">Auto</span>
             </div>
             <span class="text-[15px] font-extrabold text-gray-900">18 min</span>
           </div>
-          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-2xl">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600">
-                <span class="material-symbols-outlined text-[18px]">directions_bus</span>
+          <div class="flex items-center justify-between p-4 bg-gray-50/70 rounded-[14px] hover:bg-gray-50 transition-colors cursor-pointer">
+            <div class="flex items-center gap-3.5">
+              <div class="w-11 h-11 rounded-[12px] bg-gray-100/80 flex items-center justify-center text-gray-600">
+                <span class="material-symbols-outlined text-[20px]">directions_bus</span>
               </div>
               <span class="text-[14px] font-bold text-gray-900">Transporte</span>
             </div>
             <span class="text-[15px] font-extrabold text-amber-500">42 min</span>
           </div>
-          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-2xl">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600">
-                <span class="material-symbols-outlined text-[18px]">directions_walk</span>
+          <div class="flex items-center justify-between p-4 bg-gray-50/70 rounded-[14px] hover:bg-gray-50 transition-colors cursor-pointer">
+            <div class="flex items-center gap-3.5">
+              <div class="w-11 h-11 rounded-[12px] bg-gray-100/80 flex items-center justify-center text-gray-600">
+                <span class="material-symbols-outlined text-[20px]">directions_walk</span>
               </div>
               <span class="text-[14px] font-bold text-gray-900">Caminando</span>
             </div>
             <span class="text-[15px] font-extrabold text-gray-400">1h 50m</span>
           </div>
-          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-2xl">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600">
-                <span class="material-symbols-outlined text-[18px]">pedal_bike</span>
+          <div class="flex items-center justify-between p-4 bg-gray-50/70 rounded-[14px] hover:bg-gray-50 transition-colors cursor-pointer">
+            <div class="flex items-center gap-3.5">
+              <div class="w-11 h-11 rounded-[12px] bg-gray-100/80 flex items-center justify-center text-gray-600">
+                <span class="material-symbols-outlined text-[20px]">pedal_bike</span>
               </div>
               <span class="text-[14px] font-bold text-gray-900">Bicicleta</span>
             </div>
@@ -414,30 +461,30 @@
       </div>
 
       <!-- 4C — Map Route -->
-      <div class="bg-white rounded-3xl p-5 card-shadow">
-        <span class="text-[10px] font-extrabold text-sky-500 uppercase tracking-[0.15em] block mb-4">Mapa</span>
-        <div class="flex items-center gap-3 mb-5">
-          <div class="w-10 h-10 rounded-full bg-white border border-gray-100 flex items-center justify-center text-sky-500 shadow-sm">
-            <span class="material-symbols-outlined text-[20px]">map</span>
+      <div class="card-base p-6 anim-in d4">
+        <span class="text-[10px] font-extrabold text-sky-500 uppercase tracking-[0.15em] block mb-5">Mapa</span>
+        <div class="flex items-center gap-3.5 mb-6">
+          <div class="w-11 h-11 rounded-full bg-sky-50 border border-sky-100/50 flex items-center justify-center text-sky-500 shadow-sm">
+            <span class="material-symbols-outlined text-[22px]">map</span>
           </div>
           <div>
-            <h3 class="text-[15px] font-bold text-gray-900">Olivos → CABA</h3>
+            <h3 class="text-[15px] font-bold text-gray-900 leading-snug">Olivos → CABA</h3>
             <p class="text-[12px] text-gray-500 font-semibold">Shopping de Olivos</p>
           </div>
         </div>
         <div class="flex flex-col gap-0 pl-1">
-          <div class="flex items-center gap-3">
-            <span class="w-3 h-3 rounded-full bg-emerald-500 border-2 border-white shadow-sm shrink-0"></span>
+          <div class="flex items-center gap-3.5 py-1.5">
+            <span class="w-[14px] h-[14px] rounded-full bg-emerald-500 border-[2.5px] border-white shadow-md shrink-0"></span>
             <span class="text-[13px] font-bold text-gray-900">Av. Corrientes 1234</span>
           </div>
-          <div class="h-6 border-l-2 border-dashed border-gray-200 ml-[5px]"></div>
-          <div class="flex items-center gap-3">
-            <span class="w-3 h-3 rounded-full bg-amber-400 border-2 border-white shadow-sm shrink-0"></span>
+          <div class="h-6 border-l-[2px] border-dashed border-gray-200 ml-[6px]"></div>
+          <div class="flex items-center gap-3.5 py-1.5">
+            <span class="w-[14px] h-[14px] rounded-full bg-amber-400 border-[2.5px] border-white shadow-md shrink-0"></span>
             <span class="text-[13px] font-bold text-gray-900">Retiro</span>
           </div>
-          <div class="h-6 border-l-2 border-dashed border-gray-200 ml-[5px]"></div>
-          <div class="flex items-center gap-3">
-            <span class="w-3 h-3 rounded-sm bg-violet-500 border-2 border-white shadow-sm shrink-0"></span>
+          <div class="h-6 border-l-[2px] border-dashed border-gray-200 ml-[6px]"></div>
+          <div class="flex items-center gap-3.5 py-1.5">
+            <span class="w-[14px] h-[14px] rounded-[4px] bg-violet-500 border-[2.5px] border-white shadow-md shrink-0"></span>
             <span class="text-[13px] font-bold text-gray-900">Shopping de Olivos</span>
           </div>
         </div>
@@ -446,186 +493,186 @@
   </section>
 
   <!-- ===================== 5 CUMPLEAÑOS ===================== -->
-  <section class="mb-14">
-    <div class="flex items-center gap-3 mb-5">
-      <div class="w-9 h-9 rounded-xl bg-pink-50 flex items-center justify-center text-pink-500 text-[16px] font-bold">5</div>
+  <section class="mb-16">
+    <div class="flex items-center gap-3 mb-6 anim-in d1">
+      <div class="w-9 h-9 rounded-[14px] bg-pink-50 flex items-center justify-center text-pink-500 text-[15px] font-bold">5</div>
       <h2 class="text-[20px] font-extrabold text-gray-900">Cumpleaños de conocidos</h2>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
 
       <!-- 5A — Birthday Alert -->
-      <div class="bg-white rounded-3xl p-6 card-shadow">
-        <span class="text-[10px] font-extrabold text-pink-500 uppercase tracking-[0.15em] block mb-4">Próximo · 8 días</span>
-        <div class="flex items-start gap-4 mb-5">
-          <div class="w-12 h-12 rounded-full bg-gradient-to-br from-pink-100 to-purple-100 flex items-center justify-center text-2xl shadow-sm">🎂</div>
+      <div class="card-base p-6 anim-in d2" style="background: linear-gradient(135deg, #fff8f8 0%, #fff0f5 50%, #faf6ff 100%);">
+        <span class="text-[10px] font-extrabold text-pink-500 uppercase tracking-[0.15em] block mb-5">Próximo · 8 días</span>
+        <div class="flex items-start gap-4 mb-6">
+          <div class="w-12 h-12 rounded-full bg-white/80 backdrop-blur flex items-center justify-center text-2xl shadow-sm border border-pink-100/40">🎂</div>
           <div>
-            <h3 class="text-[17px] font-bold text-gray-900">Ana López</h3>
+            <h3 class="text-[17px] font-bold text-gray-900 leading-snug">Ana López</h3>
             <p class="text-[13px] text-gray-500 font-semibold">12 de julio de 2025</p>
           </div>
         </div>
         <span class="text-[56px] font-extrabold text-gray-900 leading-none block tracking-tight">35</span>
         <p class="text-[13px] text-pink-500 font-extrabold mt-1">años</p>
-        <div class="flex gap-2 mt-6">
-          <button class="flex-1 py-3 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-2xl text-[12px] font-bold transition-colors">Recordar</button>
-          <button class="flex-1 py-3 bg-pink-500 hover:bg-pink-600 text-white rounded-2xl text-[12px] font-bold transition-colors">Saludar</button>
+        <div class="flex gap-2.5 mt-7">
+          <button class="flex-1 py-3 bg-white/80 hover:bg-white backdrop-blur text-gray-700 rounded-[14px] text-[12px] font-bold transition-colors border border-gray-100/50">Recordar</button>
+          <button class="flex-1 py-3 bg-pink-500 hover:bg-pink-600 text-white rounded-[14px] text-[12px] font-bold transition-colors shadow-sm hover:shadow-md">Saludar</button>
         </div>
       </div>
 
       <!-- 5B — Calendar Tiles -->
-      <div class="bg-white rounded-3xl p-5 card-shadow">
-        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-[0.15em] block mb-4">Próximos este mes</span>
+      <div class="card-base p-6 anim-in d3">
+        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-[0.15em] block mb-5">Próximos este mes</span>
         <div class="grid grid-cols-2 gap-3">
-          <div class="bg-gray-50 rounded-2xl p-3.5 flex flex-col gap-2">
-            <div class="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center text-pink-500 font-bold text-xs">A</div>
-            <span class="text-[13px] font-bold text-gray-900">Ana</span>
+          <div class="bg-gray-50/70 rounded-[16px] p-3.5 flex flex-col gap-2 hover:bg-gray-50 transition-colors cursor-pointer">
+            <div class="w-9 h-9 rounded-full bg-pink-100 flex items-center justify-center text-pink-500 font-bold text-sm shadow-sm">A</div>
+            <span class="text-[13px] font-bold text-gray-900 leading-snug">Ana</span>
             <span class="text-[11px] text-gray-400 font-bold">12 jul · 35</span>
           </div>
-          <div class="bg-gray-50 rounded-2xl p-3.5 flex flex-col gap-2">
-            <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-500 font-bold text-xs">R</div>
-            <span class="text-[13px] font-bold text-gray-900">Roberto</span>
+          <div class="bg-gray-50/70 rounded-[16px] p-3.5 flex flex-col gap-2 hover:bg-gray-50 transition-colors cursor-pointer">
+            <div class="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center text-amber-500 font-bold text-sm shadow-sm">R</div>
+            <span class="text-[13px] font-bold text-gray-900 leading-snug">Roberto</span>
             <span class="text-[11px] text-gray-400 font-bold">22 jul · 42</span>
           </div>
-          <div class="bg-gray-50 rounded-2xl p-3.5 flex flex-col gap-2">
-            <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 font-bold text-xs">M</div>
-            <span class="text-[13px] font-bold text-gray-900">María</span>
+          <div class="bg-gray-50/70 rounded-[16px] p-3.5 flex flex-col gap-2 hover:bg-gray-50 transition-colors cursor-pointer">
+            <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 font-bold text-sm shadow-sm">M</div>
+            <span class="text-[13px] font-bold text-gray-900 leading-snug">María</span>
             <span class="text-[11px] text-gray-400 font-bold">3 ago · 29</span>
           </div>
-          <div class="bg-gray-50 rounded-2xl p-3.5 flex flex-col gap-2">
-            <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-500 font-bold text-xs">C</div>
-            <span class="text-[13px] font-bold text-gray-900">Carlos</span>
+          <div class="bg-gray-50/70 rounded-[16px] p-3.5 flex flex-col gap-2 hover:bg-gray-50 transition-colors cursor-pointer">
+            <div class="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-500 font-bold text-sm shadow-sm">C</div>
+            <span class="text-[13px] font-bold text-gray-900 leading-snug">Carlos</span>
             <span class="text-[11px] text-gray-400 font-bold">15 ago · 31</span>
           </div>
         </div>
       </div>
 
       <!-- 5C — Compact Reminder -->
-      <div class="bg-white rounded-3xl p-5 card-shadow">
-        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-[0.15em] block mb-4">Agosto 2025</span>
-        <div class="flex items-center gap-3 mb-5">
-          <div class="w-10 h-10 rounded-xl bg-pink-50 flex items-center justify-center text-pink-500">
-            <span class="material-symbols-outlined text-[20px]">calendar_month</span>
+      <div class="card-base p-6 anim-in d4">
+        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-[0.15em] block mb-5">Agosto 2025</span>
+        <div class="flex items-center gap-3.5 mb-6">
+          <div class="w-11 h-11 rounded-[12px] bg-pink-50 flex items-center justify-center text-pink-500">
+            <span class="material-symbols-outlined text-[22px]">calendar_month</span>
           </div>
           <div>
-            <h3 class="text-[15px] font-bold text-gray-900">Resumen del mes</h3>
+            <h3 class="text-[15px] font-bold text-gray-900 leading-snug">Resumen del mes</h3>
             <p class="text-[12px] text-gray-500 font-semibold">Cumpleaños y recordatorios</p>
           </div>
         </div>
-        <div class="grid grid-cols-2 gap-3 mb-4">
-          <div class="bg-gray-50 rounded-2xl p-4 text-center">
+        <div class="grid grid-cols-2 gap-3 mb-5">
+          <div class="bg-gray-50/70 rounded-[14px] p-4 text-center">
             <span class="text-[22px] font-extrabold text-gray-900">2</span>
             <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Cumples</p>
           </div>
-          <div class="bg-gray-50 rounded-2xl p-4 text-center">
+          <div class="bg-gray-50/70 rounded-[14px] p-4 text-center">
             <span class="text-[22px] font-extrabold text-gray-900">4</span>
             <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Contactos</p>
           </div>
         </div>
-        <button class="w-full py-3 bg-pink-50 hover:bg-pink-100 text-pink-600 rounded-2xl text-[12px] font-bold transition-colors">Ver calendario</button>
+        <button class="w-full py-3 bg-pink-50 hover:bg-pink-100 text-pink-600 rounded-[14px] text-[12px] font-bold transition-colors">Ver calendario</button>
       </div>
     </div>
   </section>
 
   <!-- ===================== 6 COMPARATIVA ===================== -->
-  <section class="mb-14">
-    <div class="flex items-center gap-3 mb-5">
-      <div class="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 text-[16px] font-bold">6</div>
+  <section class="mb-16">
+    <div class="flex items-center gap-3 mb-6 anim-in d1">
+      <div class="w-9 h-9 rounded-[14px] bg-amber-50 flex items-center justify-center text-amber-600 text-[15px] font-bold">6</div>
       <h2 class="text-[20px] font-extrabold text-gray-900">Comparativa de productos</h2>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
 
       <!-- 6A — Comparison -->
-      <div class="bg-white rounded-3xl p-5 card-shadow">
-        <span class="text-[10px] font-extrabold text-amber-500 uppercase tracking-[0.15em] block mb-4">Cafeteras</span>
-        <div class="flex items-center gap-3 mb-5">
-          <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
-            <span class="material-symbols-outlined text-[20px]">coffee</span>
+      <div class="card-base p-6 anim-in d2">
+        <span class="text-[10px] font-extrabold text-amber-500 uppercase tracking-[0.15em] block mb-5">Cafeteras</span>
+        <div class="flex items-center gap-3.5 mb-6">
+          <div class="w-11 h-11 rounded-[12px] bg-amber-50 flex items-center justify-center text-amber-600">
+            <span class="material-symbols-outlined text-[22px]">coffee</span>
           </div>
-          <h3 class="text-[15px] font-bold text-gray-900">Nespresso A vs Dolce B</h3>
+          <h3 class="text-[15px] font-bold text-gray-900 leading-snug">Nespresso A vs Dolce B</h3>
         </div>
         <div class="space-y-3">
-          <div class="p-4 bg-amber-50 rounded-2xl border border-amber-100/50">
+          <div class="p-4 bg-amber-50/60 rounded-[14px] border border-amber-100/40 hover:shadow-sm transition-shadow">
             <div class="flex items-center justify-between mb-1">
               <p class="text-[14px] font-bold text-gray-900">Nespresso A</p>
-              <span class="bg-white text-amber-600 text-[10px] font-extrabold px-2 py-1 rounded-md shadow-sm uppercase">Mejor</span>
+              <span class="bg-white text-amber-600 text-[10px] font-extrabold px-2 py-1 rounded-lg shadow-sm uppercase">Mejor</span>
             </div>
             <p class="text-[12px] text-gray-500 font-semibold">$89 · 19 bar · Universal</p>
           </div>
-          <div class="p-4 bg-gray-50 rounded-2xl">
+          <div class="p-4 bg-gray-50/70 rounded-[14px] hover:shadow-sm transition-shadow">
             <p class="text-[14px] font-bold text-gray-900 mb-0.5">Dolce Gusto B</p>
             <p class="text-[12px] text-gray-500 font-semibold">$110 · 15 bar · Propia</p>
           </div>
         </div>
-        <p class="mt-4 text-[12px] text-amber-600 font-bold">Nespresso gana en precio y potencia</p>
+        <p class="mt-5 text-[12px] text-amber-600 font-bold">Nespresso gana en precio y potencia</p>
       </div>
 
       <!-- 6B — VS Card -->
-      <div class="bg-white rounded-3xl p-5 card-shadow">
-        <span class="text-[10px] font-extrabold text-amber-500 uppercase tracking-[0.15em] block mb-4">Votar</span>
-        <h3 class="text-[16px] font-bold text-gray-900 mb-1">¿Cuál elegís?</h3>
-        <p class="text-[13px] text-gray-500 font-semibold mb-5">Cafeteras · Segmento doméstico</p>
+      <div class="card-base p-6 anim-in d3">
+        <span class="text-[10px] font-extrabold text-amber-500 uppercase tracking-[0.15em] block mb-5">Votar</span>
+        <h3 class="text-[17px] font-bold text-gray-900 leading-snug mb-1">¿Cuál elegís?</h3>
+        <p class="text-[13px] text-gray-500 font-semibold mb-6">Cafeteras · Segmento doméstico</p>
         <div class="space-y-3">
-          <div class="flex items-center justify-between p-3.5 bg-gray-50 rounded-2xl">
+          <div class="flex items-center justify-between p-3.5 bg-gray-50/70 rounded-[14px]">
             <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600 text-xs font-bold">A</div>
+              <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600 text-xs font-bold shadow-sm">A</div>
               <span class="text-[14px] font-bold text-gray-900">Nespresso A</span>
             </div>
             <span class="text-[14px] font-extrabold text-gray-900">$89</span>
           </div>
-          <div class="flex items-center justify-center">
+          <div class="flex items-center justify-center my-1">
             <span class="text-[11px] font-extrabold text-gray-300 uppercase tracking-[0.2em]">VS</span>
           </div>
-          <div class="flex items-center justify-between p-3.5 bg-gray-50 rounded-2xl">
+          <div class="flex items-center justify-between p-3.5 bg-gray-50/70 rounded-[14px]">
             <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold">B</div>
+              <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold shadow-sm">B</div>
               <span class="text-[14px] font-bold text-gray-900">Dolce Gusto B</span>
             </div>
             <span class="text-[14px] font-extrabold text-gray-900">$110</span>
           </div>
         </div>
-        <div class="flex gap-2 mt-5">
-          <button class="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl text-[12px] font-bold transition-colors">Nespresso A</button>
-          <button class="flex-1 py-3 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-2xl text-[12px] font-bold transition-colors">Dolce B</button>
+        <div class="flex gap-2.5 mt-6">
+          <button class="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-[14px] text-[12px] font-bold transition-colors shadow-sm hover:shadow-md">Nespresso A</button>
+          <button class="flex-1 py-3 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-[14px] text-[12px] font-bold transition-colors">Dolce B</button>
         </div>
       </div>
 
       <!-- 6C — Specs Grid -->
-      <div class="bg-white rounded-3xl p-5 card-shadow">
-        <span class="text-[10px] font-extrabold text-purple-500 uppercase tracking-[0.15em] block mb-4">Ficha técnica</span>
+      <div class="card-base p-6 anim-in d4">
+        <span class="text-[10px] font-extrabold text-purple-500 uppercase tracking-[0.15em] block mb-5">Ficha técnica</span>
         <div class="grid grid-cols-2 gap-3">
-          <div class="bg-purple-50 rounded-2xl p-4 flex flex-col justify-between h-[110px]">
-            <div class="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-purple-500 shadow-sm">
-              <span class="material-symbols-outlined text-[16px]">payments</span>
+          <div class="bg-purple-50/60 rounded-[16px] p-4 flex flex-col justify-between h-[114px]">
+            <div class="w-9 h-9 rounded-[10px] bg-white/80 flex items-center justify-center text-purple-500 shadow-sm">
+              <span class="material-symbols-outlined text-[18px]">payments</span>
             </div>
             <div>
               <span class="text-[10px] font-extrabold text-purple-400 uppercase tracking-wider block">Precio</span>
-              <span class="text-[16px] font-extrabold text-gray-900">$89</span>
+              <span class="text-[17px] font-extrabold text-gray-900 leading-none">$89</span>
             </div>
           </div>
-          <div class="bg-purple-50 rounded-2xl p-4 flex flex-col justify-between h-[110px]">
-            <div class="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-purple-500 shadow-sm">
-              <span class="material-symbols-outlined text-[16px]">bolt</span>
+          <div class="bg-purple-50/60 rounded-[16px] p-4 flex flex-col justify-between h-[114px]">
+            <div class="w-9 h-9 rounded-[10px] bg-white/80 flex items-center justify-center text-purple-500 shadow-sm">
+              <span class="material-symbols-outlined text-[18px]">bolt</span>
             </div>
             <div>
               <span class="text-[10px] font-extrabold text-purple-400 uppercase tracking-wider block">Presión</span>
-              <span class="text-[16px] font-extrabold text-gray-900">19 bar</span>
+              <span class="text-[17px] font-extrabold text-gray-900 leading-none">19 bar</span>
             </div>
           </div>
-          <div class="bg-purple-50 rounded-2xl p-4 flex flex-col justify-between h-[110px]">
-            <div class="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-purple-500 shadow-sm">
-              <span class="material-symbols-outlined text-[16px]">water_drop</span>
+          <div class="bg-purple-50/60 rounded-[16px] p-4 flex flex-col justify-between h-[114px]">
+            <div class="w-9 h-9 rounded-[10px] bg-white/80 flex items-center justify-center text-purple-500 shadow-sm">
+              <span class="material-symbols-outlined text-[18px]">water_drop</span>
             </div>
             <div>
               <span class="text-[10px] font-extrabold text-purple-400 uppercase tracking-wider block">Depósito</span>
-              <span class="text-[16px] font-extrabold text-gray-900">0,7 L</span>
+              <span class="text-[17px] font-extrabold text-gray-900 leading-none">0,7 L</span>
             </div>
           </div>
-          <div class="bg-purple-50 rounded-2xl p-4 flex flex-col justify-between h-[110px]">
-            <div class="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-purple-500 shadow-sm">
-              <span class="material-symbols-outlined text-[16px]">verified</span>
+          <div class="bg-purple-50/60 rounded-[16px] p-4 flex flex-col justify-between h-[114px]">
+            <div class="w-9 h-9 rounded-[10px] bg-white/80 flex items-center justify-center text-purple-500 shadow-sm">
+              <span class="material-symbols-outlined text-[18px]">verified</span>
             </div>
             <div>
               <span class="text-[10px] font-extrabold text-purple-400 uppercase tracking-wider block">Garantía</span>
-              <span class="text-[16px] font-extrabold text-gray-900">2 años</span>
+              <span class="text-[17px] font-extrabold text-gray-900 leading-none">2 años</span>
             </div>
           </div>
         </div>
@@ -634,89 +681,89 @@
   </section>
 
   <!-- ===================== 7 REVIEW ===================== -->
-  <section class="mb-14">
-    <div class="flex items-center gap-3 mb-5">
-      <div class="w-9 h-9 rounded-xl bg-violet-50 flex items-center justify-center text-violet-500 text-[16px] font-bold">7</div>
+  <section class="mb-16">
+    <div class="flex items-center gap-3 mb-6 anim-in d1">
+      <div class="w-9 h-9 rounded-[14px] bg-violet-50 flex items-center justify-center text-violet-500 text-[15px] font-bold">7</div>
       <h2 class="text-[20px] font-extrabold text-gray-900">Product review</h2>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
 
       <!-- 7A — Score Radar -->
-      <div class="bg-white rounded-3xl p-5 card-shadow">
-        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-[0.15em] block mb-4">Sony WH-1000XM5</span>
+      <div class="card-base p-6 anim-in d2">
+        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-[0.15em] block mb-5">Sony WH-1000XM5</span>
         <div class="grid grid-cols-2 gap-3">
-          <div class="bg-emerald-50 rounded-2xl p-4">
+          <div class="bg-emerald-50/60 rounded-[16px] p-4 hover:shadow-sm transition-shadow cursor-pointer">
             <span class="text-[10px] font-extrabold text-emerald-400 uppercase tracking-wider block">Calidad</span>
-            <span class="text-[22px] font-extrabold text-gray-900 mt-1 block">9,2</span>
+            <span class="text-[22px] font-extrabold text-gray-900 mt-1 block leading-none">9,2</span>
             <span class="text-[11px] text-emerald-500 font-bold">Cancelación top</span>
           </div>
-          <div class="bg-amber-50 rounded-2xl p-4">
+          <div class="bg-amber-50/60 rounded-[16px] p-4 hover:shadow-sm transition-shadow cursor-pointer">
             <span class="text-[10px] font-extrabold text-amber-400 uppercase tracking-wider block">Batería</span>
-            <span class="text-[22px] font-extrabold text-gray-900 mt-1 block">8,8</span>
+            <span class="text-[22px] font-extrabold text-gray-900 mt-1 block leading-none">8,8</span>
             <span class="text-[11px] text-amber-500 font-bold">Dos días</span>
           </div>
-          <div class="bg-blue-50 rounded-2xl p-4">
+          <div class="bg-blue-50/60 rounded-[16px] p-4 hover:shadow-sm transition-shadow cursor-pointer">
             <span class="text-[10px] font-extrabold text-blue-400 uppercase tracking-wider block">Comfort</span>
-            <span class="text-[22px] font-extrabold text-gray-900 mt-1 block">7,5</span>
+            <span class="text-[22px] font-extrabold text-gray-900 mt-1 block leading-none">7,5</span>
             <span class="text-[11px] text-blue-500 font-bold">Livianos</span>
           </div>
-          <div class="bg-red-50 rounded-2xl p-4">
+          <div class="bg-red-50/60 rounded-[16px] p-4 hover:shadow-sm transition-shadow cursor-pointer">
             <span class="text-[10px] font-extrabold text-red-400 uppercase tracking-wider block">Precio</span>
-            <span class="text-[22px] font-extrabold text-gray-900 mt-1 block">5,5</span>
+            <span class="text-[22px] font-extrabold text-gray-900 mt-1 block leading-none">5,5</span>
             <span class="text-[11px] text-red-500 font-bold">$349 · caro</span>
           </div>
         </div>
-        <p class="mt-4 text-[12px] text-emerald-600 font-bold bg-emerald-50 rounded-xl p-3 text-center">Recomendado si priorizás silencio</p>
+        <p class="mt-5 text-[12px] text-emerald-600 font-bold bg-emerald-50 rounded-xl p-3.5 text-center">Recomendado si priorizás silencio</p>
       </div>
 
       <!-- 7B — Pros/Cons -->
-      <div class="bg-white rounded-3xl p-5 card-shadow">
-        <span class="text-[10px] font-extrabold text-violet-500 uppercase tracking-[0.15em] block mb-4">Opinión del experto</span>
-        <div class="flex items-center gap-3 mb-4">
-          <div class="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center text-violet-500">
-            <span class="material-symbols-outlined text-[20px]">reviews</span>
+      <div class="card-base p-6 anim-in d3">
+        <span class="text-[10px] font-extrabold text-violet-500 uppercase tracking-[0.15em] block mb-5">Opinión del experto</span>
+        <div class="flex items-center gap-3.5 mb-5">
+          <div class="w-11 h-11 rounded-[12px] bg-violet-50 flex items-center justify-center text-violet-500">
+            <span class="material-symbols-outlined text-[22px]">reviews</span>
           </div>
-          <h3 class="text-[15px] font-bold text-gray-900">Pros & Contras</h3>
+          <h3 class="text-[15px] font-bold text-gray-900 leading-snug">Pros & Contras</h3>
         </div>
-        <div class="space-y-2">
-          <div class="flex items-center gap-3 p-3.5 bg-emerald-50 rounded-2xl">
-            <span class="material-symbols-outlined text-[18px] text-emerald-500">check_circle</span>
-            <p class="text-[13px] font-semibold text-gray-800">Cancelación top, batería, app</p>
+        <div class="space-y-2.5">
+          <div class="flex items-start gap-3 p-3.5 bg-emerald-50/60 rounded-[14px]">
+            <span class="material-symbols-outlined text-[20px] text-emerald-500 shrink-0 mt-0">check_circle</span>
+            <p class="text-[13px] font-semibold text-gray-800 leading-snug">Cancelación top, batería larga, app completa</p>
           </div>
-          <div class="flex items-center gap-3 p-3.5 bg-rose-50 rounded-2xl">
-            <span class="material-symbols-outlined text-[18px] text-rose-400">cancel</span>
-            <p class="text-[13px] font-semibold text-gray-800">Precio alto, case grande</p>
+          <div class="flex items-start gap-3 p-3.5 bg-red-50/60 rounded-[14px]">
+            <span class="material-symbols-outlined text-[20px] text-red-400 shrink-0 mt-0">cancel</span>
+            <p class="text-[13px] font-semibold text-gray-800 leading-snug">Precio alto, case grande, sin jack 3.5mm</p>
           </div>
         </div>
-        <div class="mt-4 p-3 bg-amber-50 rounded-xl text-center">
+        <div class="mt-5 p-3.5 bg-amber-50 rounded-xl text-center">
           <span class="text-[13px] font-extrabold text-amber-600">Nota general: 8,4 / 10</span>
         </div>
       </div>
 
       <!-- 7C — Veredicto -->
-      <div class="bg-gradient-to-br from-[#F8F7FF] to-white rounded-3xl p-6 card-shadow border border-violet-100/30">
-        <span class="text-[10px] font-extrabold text-violet-500 uppercase tracking-[0.15em] block mb-4">Veredicto final</span>
-        <div class="flex items-center gap-3 mb-4">
-          <div class="w-10 h-10 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center">
-            <span class="material-symbols-outlined text-[20px]">auto_awesome</span>
+      <div class="card-base p-6 anim-in d4" style="background: linear-gradient(160deg, #F8F7FF 0%, #ffffff 60%);">
+        <span class="text-[10px] font-extrabold text-violet-500 uppercase tracking-[0.15em] block mb-5">Veredicto final</span>
+        <div class="flex items-center gap-3.5 mb-5">
+          <div class="w-11 h-11 rounded-[12px] bg-violet-100/80 flex items-center justify-center text-violet-600">
+            <span class="material-symbols-outlined text-[22px]">auto_awesome</span>
           </div>
           <div>
-            <h3 class="text-[16px] font-bold text-gray-900">TechKoru</h3>
-            <p class="text-[11px] text-gray-400 font-bold">Review completa</p>
+            <h3 class="text-[16px] font-bold text-gray-900 leading-snug">TechKoru</h3>
+            <p class="text-[11px] text-gray-400 font-bold">Review completa · 2025</p>
           </div>
         </div>
-        <p class="text-[15px] text-gray-700 font-semibold leading-relaxed mb-5 italic">“El rey de la cancelación activa regresa con mejor batería y un diseño más liviano.”</p>
-        <div class="flex flex-wrap gap-2 mb-5">
-          <span class="bg-white px-3 py-1.5 rounded-xl text-[11px] font-bold text-violet-600 shadow-sm border border-gray-50">Calidad top</span>
-          <span class="bg-white px-3 py-1.5 rounded-xl text-[11px] font-bold text-violet-600 shadow-sm border border-gray-50">Premium</span>
-          <span class="bg-white px-3 py-1.5 rounded-xl text-[11px] font-bold text-violet-600 shadow-sm border border-gray-50">Recomendado</span>
+        <p class="text-[15px] text-gray-600 font-semibold leading-relaxed mb-6 italic">“El rey de la cancelación activa regresa con mejor batería y un diseño más liviano.”</p>
+        <div class="flex flex-wrap gap-2 mb-6">
+          <span class="bg-white/80 backdrop-blur px-3 py-1.5 rounded-xl text-[11px] font-bold text-violet-600 shadow-sm border border-gray-50/80">Calidad top</span>
+          <span class="bg-white/80 backdrop-blur px-3 py-1.5 rounded-xl text-[11px] font-bold text-violet-600 shadow-sm border border-gray-50/80">Premium</span>
+          <span class="bg-white/80 backdrop-blur px-3 py-1.5 rounded-xl text-[11px] font-bold text-violet-600 shadow-sm border border-gray-50/80">Recomendado</span>
         </div>
-        <button class="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-2xl text-[13px] font-bold transition-colors shadow-sm">Leer completo</button>
+        <button class="w-full py-3.5 bg-violet-600 hover:bg-violet-700 text-white rounded-[14px] text-[13px] font-bold transition-colors shadow-sm hover:shadow-md">Leer completo</button>
       </div>
     </div>
   </section>
 
-  <footer class="text-center py-6 text-[11px] text-gray-300 font-semibold">21 diseños · Universo visual Koru · Premium & Coherente</footer>
+  <footer class="text-center py-6 text-[11px] text-gray-300 font-semibold anim-in">21 diseños · Universo visual Koru · Premium & Animado</footer>
 </div>
 
 </body>
