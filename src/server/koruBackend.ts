@@ -2266,7 +2266,7 @@ export async function runKoruBackendTurn(
   let fallbackReason: string | undefined;
 
   // Paso 1: una sola llamada al LLM con tools habilitadas
-  let firstResult: ProviderResult;
+  let firstResult: ProviderResult & { fallbackReason?: string };
   try {
     firstResult = await callProvider(config, messages, 30_000, true);
   } catch {
@@ -2289,6 +2289,7 @@ export async function runKoruBackendTurn(
     }
 
     // Paso 2: segunda llamada (sin tools) para que el LLM síntetice la respuesta final
+    messages.push({ role: "user", content: "IMPORTANTE: Respondé con el JSON estricto pedido en system prompt. No agregues texto fuera del JSON." });
     const secondResult = await callProvider(config, messages, 24_000, false);
     provider = secondResult.provider;
     model = secondResult.model ?? model;
