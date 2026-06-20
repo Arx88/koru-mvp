@@ -3,610 +3,540 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Koru — Tarjetas Creativas</title>
+<title>Koru — Tarjetas</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,1,0" rel="stylesheet" />
 <style>
-  body { font-family: 'Plus Jakarta Sans', sans-serif; background: #FCFCFA; color: #333; -webkit-font-smoothing: antialiased; }
-
-  .card-base { background: white; border-radius: 24px; transition: transform .25s cubic-bezier(.4,0,.2,1), box-shadow .25s cubic-bezier(.4,0,.2,1); box-shadow: 0 2px 8px rgba(0,0,0,.03), 0 0 0 1px rgba(0,0,0,.02); }
-  .card-base:hover { transform: translateY(-3px); box-shadow: 0 16px 44px rgba(0,0,0,.07), 0 4px 12px rgba(0,0,0,.04); }
+  body { font-family: 'Plus Jakarta Sans', 'Space Grotesk', sans-serif; background: #FCFCFA; color: #1f2937; -webkit-font-smoothing: antialiased; }
+  .font-mono { font-family: 'Space Grotesk', monospace; }
   .material-symbols-outlined { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
 
-  @keyframes cardIn { from { opacity:0; transform: translateY(16px); } to { opacity:1; transform:none; } }
-  .card-entra { animation: cardIn .55s cubic-bezier(.4,0,.2,1) forwards; opacity:0; }
-  .d1 { animation-delay:.03s; } .d2 { animation-delay:.06s; } .d3 { animation-delay:.09s; } .d4 { animation-delay:.12s; }
+  @keyframes cardIn { from { opacity:0; transform: translateY(12px); } to { opacity:1; transform:none; } }
+  .entra { animation: cardIn .5s cubic-bezier(.4,0,.2,1) forwards; opacity:0; }
+  .d1 { animation-delay:.03s; } .d2 { animation-delay:.06s; } .d3 { animation-delay:.09s; }
 
   @keyframes barGo { from { width:0; } to { width:var(--w); } }
-  .bar-anim { animation: barGo 1s cubic-bezier(.4,0,.2,1) forwards; }
+  .bar { animation: barGo 1s cubic-bezier(.4,0,.2,1) forwards; width:0; }
 
   @keyframes growUp { from { height:0; } to { height:var(--h); } }
-  .grow-anim { animation: growUp .7s cubic-bezier(.4,0,.2,1) forwards; }
+  .grow { animation: growUp .7s cubic-bezier(.4,0,.2,1) forwards; }
 
-  @keyframes pulseRing {
+  .hoverlift { transition: transform .2s ease, box-shadow .2s ease; }
+  .hoverlift:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(0,0,0,.06); }
+
+  @keyframes pingSoft {
     0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,.3); }
-    50% { box-shadow: 0 0 0 6px rgba(239,68,68,0); }
+    50% { box-shadow: 0 0 0 5px rgba(239,68,68,0); }
   }
-  .pulse-badge { animation: pulseRing 1.8s ease-in-out infinite; }
-
-  .gauge-track { stroke-dasharray: 251; stroke-dashoffset: 251; animation: gaugeDraw 1.2s cubic-bezier(.4,0,.2,1) forwards; }
-  @keyframes gaugeDraw { to { stroke-dashoffset: var(--off); } }
-
-  .radar-poly { animation: radarPop .8s ease forwards; transform: scale(0); transform-origin: center; }
-  @keyframes radarPop { to { transform: scale(1); } }
+  .live-dot { animation: pingSoft 1.8s infinite; }
 </style>
 </head>
 <body>
 
 <div class="max-w-[1180px] mx-auto px-6 py-10 pb-20">
 
-  <header class="mb-12 card-entra">
-    <h1 class="text-[30px] font-black text-gray-900 tracking-tight leading-none">Diseño de tarjetas</h1>
-    <p class="text-sm text-gray-400 font-semibold mt-2">7 temas · 3 opciones · App funcional · Universo claro</p>
+  <header class="mb-14 entra">
+    <h1 class="text-[28px] font-black tracking-tight leading-none">Tarjetas</h1>
+    <p class="text-sm text-gray-400 font-medium mt-2">Cada una con identidad propia</p>
   </header>
 
-  <!-- ═══════════════════ 1 FÚTBOL ═══════════════════ -->
+  <!-- ══════════════════ 1 FÚTBOL ══════════════════ -->
   <section class="mb-16">
-    <div class="flex items-center gap-3 mb-5 card-entra d1">
-      <div class="w-9 h-9 rounded-[14px] bg-emerald-50 flex items-center justify-center text-emerald-600 text-[15px] font-bold">1</div>
-      <h2 class="text-[20px] font-extrabold text-gray-900">Fútbol</h2>
-    </div>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+    <h2 class="text-sm font-extrabold text-gray-900 uppercase tracking-widest mb-5 flex items-center gap-2">
+      <span class="w-7 h-7 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600 text-xs font-black">1</span>
+      Fútbol
+    </h2>
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
 
-      <!-- 1A → Scoreboard claro funcional -->
-      <div class="card-base p-6 card-entra d2">
-        <div class="flex items-center justify-between mb-5">
-          <span class="text-[10px] font-extrabold uppercase tracking-[0.15em] text-emerald-500">Champions · 72'</span>
-          <span class="relative inline-flex h-2.5 w-2.5"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span></span>
+      <!-- 1A → BANNER ancho bajo -->
+      <div class="md:col-span-12 bg-white rounded-2xl p-4 hoverlift entra d1 flex items-center gap-4" style="box-shadow:0 1px 4px rgba(0,0,0,.04);">
+        <span class="text-[9px] font-extrabold uppercase tracking-[0.15em] text-gray-400 shrink-0 hidden md:block">Champions</span>
+        <div class="flex items-center gap-2"><span class="live-dot relative inline-flex h-2 w-2 rounded-full bg-red-500"></span><span class="text-xs font-bold text-red-500">72'</span></div>
+        <div class="flex-1 flex items-center justify-center gap-6">
+          <div class="flex items-center gap-2"><img src="https://crests.football-data.org/86.png" class="w-8 h-8 object-contain" loading="lazy"><span class="text-xs font-bold hidden sm:inline">Real Madrid</span></div>
+          <span class="text-2xl font-black tracking-tight">2-1</span>
+          <div class="flex items-center gap-2"><img src="https://crests.football-data.org/65.png" class="w-8 h-8 object-contain" loading="lazy"><span class="text-xs font-bold hidden sm:inline">Man City</span></div>
         </div>
-        <div class="flex items-center justify-center gap-6 mb-5">
-          <div class="text-center">
-            <img src="https://crests.football-data.org/86.png" class="w-[52px] h-[52px] object-contain mx-auto mb-2" loading="lazy" />
-            <p class="text-[11px] font-bold text-gray-900">R. Madrid</p>
-          </div>
-          <div class="text-center">
-            <div class="text-[38px] font-black text-gray-900 leading-none tracking-tight">2-1</div>
-            <div class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mt-1">Global 3-3</div>
-          </div>
-          <div class="text-center">
-            <img src="https://crests.football-data.org/65.png" class="w-[52px] h-[52px] object-contain mx-auto mb-2" loading="lazy" />
-            <p class="text-[11px] font-bold text-gray-900">Man City</p>
-          </div>
-        </div>
-        <div class="grid grid-cols-4 gap-2 pt-4 border-t border-gray-50 text-center">
-          <div><div class="text-[9px] font-extrabold text-gray-400 uppercase tracking-wider">Posesión</div><div class="text-[13px] font-extrabold text-gray-900 mt-0.5">62%</div></div>
-          <div><div class="text-[9px] font-extrabold text-gray-400 uppercase tracking-wider">Tiros</div><div class="text-[13px] font-extrabold text-gray-900 mt-0.5">14</div></div>
-          <div><div class="text-[9px] font-extrabold text-gray-400 uppercase tracking-wider">Córners</div><div class="text-[13px] font-extrabold text-gray-900 mt-0.5">8</div></div>
-          <div><div class="text-[9px] font-extrabold text-gray-400 uppercase tracking-wider">Faltas</div><div class="text-[13px] font-extrabold text-gray-900 mt-0.5">3</div></div>
+        <div class="hidden md:flex items-center gap-4 text-xs font-medium text-gray-400">
+          <span>Pos 62%</span><span>Tir 14</span><span>Cor 8</span>
         </div>
       </div>
 
-      <!-- 1B → Timeline vertical tipo app -->
-      <div class="card-base p-6 card-entra d3">
-        <span class="text-[10px] font-extrabold uppercase tracking-[0.15em] text-gray-400 block mb-4">Timeline · En vivo</span>
-        <div class="flex items-center gap-3 mb-5">
-          <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600"><span class="material-symbols-outlined text-[20px]">sports_soccer</span></div>
-          <div><p class="text-sm font-bold text-gray-900">Minuto a minuto</p><p class="text-[11px] text-gray-400 font-medium">R. Madrid vs Man City</p></div>
-        </div>
-        <div class="relative pl-2">
-          <div class="absolute left-[17px] top-1.5 bottom-1.5 w-px bg-gray-100"></div>
-          <div class="relative flex items-start gap-3 mb-4">
-            <div class="w-[18px] h-[18px] rounded-full bg-emerald-500 border-[3px] border-white shadow-sm shrink-0 mt-0.5 z-10 relative"></div>
-            <div><p class="text-[13px] font-bold text-gray-900">Gol · Vinicius Jr. <span class="text-gray-400 font-medium">23'</span></p><p class="text-xs text-gray-400 font-medium">R. Madrid 1-0</p></div>
+      <!-- 1B → TARJETA ALTA ESTRECHA -->
+      <div class="md:col-span-4 bg-white rounded-3xl p-5 hoverlift entra d2" style="box-shadow:0 1px 4px rgba(0,0,0,.04);">
+        <div class="text-[9px] font-extrabold uppercase tracking-[0.15em] text-emerald-500 mb-4">Timeline</div>
+        <div class="relative pl-4 space-y-4">
+          <div class="absolute left-2 top-2 bottom-2 w-px bg-gray-100"></div>
+          <div class="relative flex items-center gap-3">
+            <div class="w-[10px] h-[10px] rounded-full bg-emerald-500 border-[2.5px] border-white shadow-sm shrink-0 z-10 relative"></div>
+            <div><p class="text-[13px] font-bold">Vinicius Jr. <span class="text-gray-400 font-medium">23'</span></p><p class="text-[11px] text-gray-400 font-medium">R. Madrid 1-0</p></div>
           </div>
-          <div class="relative flex items-start gap-3 mb-4">
-            <div class="w-[18px] h-[18px] rounded-full bg-sky-400 border-[3px] border-white shadow-sm shrink-0 mt-0.5 z-10 relative"></div>
-            <div><p class="text-[13px] font-bold text-gray-900">Gol · Haaland <span class="text-gray-400 font-medium">56'</span></p><p class="text-xs text-gray-400 font-medium">1-1</p></div>
+          <div class="relative flex items-center gap-3">
+            <div class="w-[10px] h-[10px] rounded-full bg-sky-400 border-[2.5px] border-white shadow-sm shrink-0 z-10 relative"></div>
+            <div><p class="text-[13px] font-bold">Haaland <span class="text-gray-400 font-medium">56'</span></p><p class="text-[11px] text-gray-400 font-medium">1-1</p></div>
           </div>
-          <div class="relative flex items-start gap-3">
-            <div class="w-[18px] h-[18px] rounded-full bg-emerald-500 border-[3px] border-white shadow-sm shrink-0 mt-0.5 z-10 relative ring-2 ring-emerald-100"></div>
-            <div><p class="text-[13px] font-bold text-gray-900">Gol · Bellingham <span class="text-emerald-600 font-medium">71'</span></p><p class="text-xs text-gray-400 font-medium">R. Madrid 2-1 — Ahora</p></div>
+          <div class="relative flex items-center gap-3">
+            <div class="w-[10px] h-[10px] rounded-full bg-emerald-500 border-[2.5px] border-white shadow-sm shrink-0 z-10 relative"></div>
+            <div><p class="text-[13px] font-bold">Bellingham <span class="text-emerald-600 font-medium">71'</span></p><p class="text-[11px] text-emerald-600 font-medium">2-1 · Ahora</p></div>
           </div>
         </div>
       </div>
 
-      <!-- 1C → Stats puro funcional -->
-      <div class="card-base p-6 card-entra d4">
-        <span class="text-[10px] font-extrabold uppercase tracking-[0.15em] text-gray-400 block mb-4">Estadísticas</span>
-        <div class="grid grid-cols-2 gap-3">
-          <div class="bg-gray-50 rounded-2xl p-4">
-            <div class="text-[9px] font-extrabold text-gray-400 uppercase tracking-wider mb-2">Posesión</div>
-            <div class="text-[24px] font-black text-gray-900 leading-none">62%</div>
-            <div class="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-emerald-400 rounded-full bar-anim" style="--w:62%;"></div></div>
+      <!-- 1C → CARD ALTA con gauge + stats -->
+      <div class="md:col-span-8 bg-white rounded-3xl p-5 hoverlift entra d3" style="box-shadow:0 1px 4px rgba(0,0,0,.04);">
+        <div class="text-[9px] font-extrabold uppercase tracking-[0.15em] text-gray-400 mb-4">Estadísticas</div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="bg-gray-50 rounded-[20px] p-4 flex flex-col justify-between" style="min-height:120px;">
+            <div class="text-[9px] font-extrabold text-gray-400 uppercase tracking-wider">Posesión</div>
+            <div><div class="text-3xl font-black">62%</div><div class="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-emerald-400 rounded-full bar" style="--w:62%"></div></div></div>
           </div>
-          <div class="bg-gray-50 rounded-2xl p-4">
-            <div class="text-[9px] font-extrabold text-gray-400 uppercase tracking-wider mb-2">Tiros</div>
-            <div class="text-[24px] font-black text-gray-900 leading-none">14</div>
-            <div class="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-emerald-400 rounded-full bar-anim" style="--w:70%;"></div></div>
+          <div class="bg-gray-50 rounded-[20px] p-4 flex flex-col justify-between" style="min-height:120px;">
+            <div class="text-[9px] font-extrabold text-gray-400 uppercase tracking-wider">Tiros</div>
+            <div><div class="text-3xl font-black">14</div><div class="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-emerald-400 rounded-full bar" style="--w:70%"></div></div></div>
           </div>
-          <div class="bg-gray-50 rounded-2xl p-4">
-            <div class="text-[9px] font-extrabold text-gray-400 uppercase tracking-wider mb-2">Córners</div>
-            <div class="text-[24px] font-black text-gray-900 leading-none">8</div>
-            <div class="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-emerald-400 rounded-full bar-anim" style="--w:45%;"></div></div>
+          <div class="bg-gray-50 rounded-[20px] p-4 flex flex-col justify-between" style="min-height:120px;">
+            <div class="text-[9px] font-extrabold text-gray-400 uppercase tracking-wider">Córners</div>
+            <div><div class="text-3xl font-black">8</div><div class="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-emerald-400 rounded-full bar" style="--w:45%"></div></div></div>
           </div>
-          <div class="bg-gray-50 rounded-2xl p-4">
-            <div class="text-[9px] font-extrabold text-gray-400 uppercase tracking-wider mb-2">Faltas</div>
-            <div class="text-[24px] font-black text-gray-900 leading-none">3</div>
-            <div class="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-emerald-400 rounded-full bar-anim" style="--w:20%;"></div></div>
+          <div class="bg-gray-50 rounded-[20px] p-4 flex flex-col justify-between" style="min-height:120px;">
+            <div class="text-[9px] font-extrabold text-gray-400 uppercase tracking-wider">Faltas</div>
+            <div><div class="text-3xl font-black">3</div><div class="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-emerald-400 rounded-full bar" style="--w:20%"></div></div></div>
           </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ═══════════════════ 2 ELECCIONES ═══════════════════ -->
+  <!-- ══════════════════ 2 ELECCIONES ══════════════════ -->
   <section class="mb-16">
-    <div class="flex items-center gap-3 mb-5 card-entra d1">
-      <div class="w-9 h-9 rounded-[14px] bg-amber-50 flex items-center justify-center text-amber-600 text-[15px] font-bold">2</div>
-      <h2 class="text-[20px] font-extrabold text-gray-900">Elecciones</h2>
-    </div>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+    <h2 class="text-sm font-extrabold text-gray-900 uppercase tracking-widest mb-5 flex items-center gap-2">
+      <span class="w-7 h-7 bg-amber-100 rounded-lg flex items-center justify-center text-amber-600 text-xs font-black">2</span> Elecciones
+    </h2>
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
 
-      <!-- 2A → Circular gauges funcional -->
-      <div class="card-base p-6 card-entra d2">
-        <span class="text-[10px] font-extrabold uppercase tracking-[0.15em] text-amber-500 block mb-4">Escrutinio 87%</span>
-        <div class="flex items-center gap-3 mb-5">
-          <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600"><span class="material-symbols-outlined text-[20px]">how_to_vote</span></div>
-          <p class="text-sm font-bold text-gray-900">Elecciones 2025</p>
-        </div>
-        <div class="flex justify-around items-end">
+      <!-- 2A → TARJETA ANCHA BAJA con gauges -->
+      <div class="md:col-span-8 bg-white rounded-3xl p-5 hoverlift entra d1" style="box-shadow:0 1px 4px rgba(0,0,0,.04);">
+        <div class="text-[9px] font-extrabold uppercase tracking-[0.15em] text-amber-500 mb-2">Escrutinio 87%</div>
+        <div class="flex items-center justify-around">
           <div class="text-center">
-            <svg width="70" height="44" viewBox="0 0 80 50"><path d="M10,40 A30,30 0 1,1 70,40" fill="none" stroke="#eee" stroke-width="8" stroke-linecap="round"/><path d="M10,40 A30,30 0 1,1 70,40" fill="none" stroke="#70B873" stroke-width="8" stroke-linecap="round" class="gauge-track" style="--off:144;"/></svg>
-            <div class="text-xl font-black text-gray-900 -mt-2">42<span class="text-sm">%</span></div>
-            <div class="text-[10px] font-bold text-gray-400 mt-0.5">Martínez</div>
+            <svg width="64" height="38" viewBox="0 0 80 50"><path d="M10,40 A30,30 0 1,1 70,40" fill="none" stroke="#eee" stroke-width="7" stroke-linecap="round"/><path d="M10,40 A30,30 0 1,1 70,40" fill="none" stroke="#70B873" stroke-width="7" stroke-linecap="round" class="bar" style="stroke-dasharray:188; stroke-dashoffset:188; --w:109;"/></svg>
+            <div class="text-lg font-black -mt-1">42%</div><div class="text-[10px] text-gray-400 font-bold">Martínez</div>
           </div>
           <div class="text-center">
-            <svg width="70" height="44" viewBox="0 0 80 50"><path d="M10,40 A30,30 0 1,1 70,40" fill="none" stroke="#eee" stroke-width="8" stroke-linecap="round"/><path d="M10,40 A30,30 0 1,1 70,40" fill="none" stroke="#D9A05B" stroke-width="8" stroke-linecap="round" class="gauge-track" style="--off:164;"/></svg>
-            <div class="text-xl font-black text-gray-900 -mt-2">35<span class="text-sm">%</span></div>
-            <div class="text-[10px] font-bold text-gray-400 mt-0.5">Frente</div>
+            <svg width="64" height="38" viewBox="0 0 80 50"><path d="M10,40 A30,30 0 1,1 70,40" fill="none" stroke="#eee" stroke-width="7" stroke-linecap="round"/><path d="M10,40 A30,30 0 1,1 70,40" fill="none" stroke="#D9A05B" stroke-width="7" stroke-linecap="round" class="bar" style="stroke-dasharray:188; stroke-dashoffset:188; --w:122;"/></svg>
+            <div class="text-lg font-black -mt-1">35%</div><div class="text-[10px] text-gray-400 font-bold">Frente</div>
           </div>
           <div class="text-center">
-            <svg width="70" height="44" viewBox="0 0 80 50"><path d="M10,40 A30,30 0 1,1 70,40" fill="none" stroke="#eee" stroke-width="8" stroke-linecap="round"/><path d="M10,40 A30,30 0 1,1 70,40" fill="none" stroke="#d1d5db" stroke-width="8" stroke-linecap="round" class="gauge-track" style="--off:194;"/></svg>
-            <div class="text-xl font-black text-gray-900 -mt-2">23<span class="text-sm">%</span></div>
-            <div class="text-[10px] font-bold text-gray-400 mt-0.5">Otros</div>
+            <svg width="64" height="38" viewBox="0 0 80 50"><path d="M10,40 A30,30 0 1,1 70,40" fill="none" stroke="#eee" stroke-width="7" stroke-linecap="round"/><path d="M10,40 A30,30 0 1,1 70,40" fill="none" stroke="#d1d5db" stroke-width="7" stroke-linecap="round" class="bar" style="stroke-dasharray:188; stroke-dashoffset:188; --w:145;"/></svg>
+            <div class="text-lg font-black -mt-1">23%</div><div class="text-[10px] text-gray-400 font-bold">Otros</div>
           </div>
         </div>
       </div>
 
-      <!-- 2B → Split vote limpio -->
-      <div class="card-base overflow-hidden card-entra d3">
-        <div class="text-[10px] font-extrabold uppercase tracking-[0.15em] text-violet-500 pt-5 px-6 pb-2">Votar</div>
-        <div class="grid grid-cols-2 divide-x divide-gray-100">
-          <button class="p-5 text-center hover:bg-emerald-50/40 transition-colors cursor-pointer group">
-            <div class="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 mx-auto mb-3 group-hover:scale-110 transition-transform"><span class="material-symbols-outlined text-[24px]">thumb_up</span></div>
-            <p class="text-sm font-bold text-gray-900">Sí</p>
-            <p class="text-[11px] text-gray-400 font-medium mt-0.5">Reforma</p>
-            <div class="mt-3 w-5 h-5 rounded-full border-2 border-gray-200 mx-auto group-hover:border-emerald-400 transition-colors"></div>
-          </button>
-          <button class="p-5 text-center hover:bg-red-50/40 transition-colors cursor-pointer group">
-            <div class="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center text-red-400 mx-auto mb-3 group-hover:scale-110 transition-transform"><span class="material-symbols-outlined text-[24px]">thumb_down</span></div>
-            <p class="text-sm font-bold text-gray-900">No</p>
-            <p class="text-[11px] text-gray-400 font-medium mt-0.5">Mantener</p>
-            <div class="mt-3 w-5 h-5 rounded-full border-2 border-gray-200 mx-auto group-hover:border-red-400 transition-colors"></div>
-          </button>
-        </div>
-        <div class="px-6 pb-5 pt-2"><button class="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-2xl text-xs font-bold transition-colors">Confirmar voto</button></div>
+      <!-- 2B → DOBLE CARDS juntas (Sí / No) -->
+      <div class="md:col-span-4 grid grid-cols-2 gap-3 entra d2">
+        <button class="bg-emerald-50 hover:bg-emerald-100 rounded-2xl p-5 flex flex-col items-center justify-center transition-all hover:scale-[1.03]" style="min-height:140px;">
+          <span class="material-symbols-outlined text-[28px] text-emerald-600 mb-2">thumb_up</span>
+          <span class="text-sm font-bold text-gray-900">Sí</span>
+          <span class="text-[10px] text-gray-500 font-medium mt-0.5">Reforma</span>
+        </button>
+        <button class="bg-red-50 hover:bg-red-100 rounded-2xl p-5 flex flex-col items-center justify-center transition-all hover:scale-[1.03]" style="min-height:140px;">
+          <span class="material-symbols-outlined text-[28px] text-red-400 mb-2">thumb_down</span>
+          <span class="text-sm font-bold text-gray-900">No</span>
+          <span class="text-[10px] text-gray-500 font-medium mt-0.5">Mantener</span>
+        </button>
       </div>
 
-      <!-- 2C → Data ticker funcional -->
-      <div class="card-base p-6 card-entra d4">
-        <span class="text-[10px] font-extrabold uppercase tracking-[0.15em] text-sky-500 block mb-4">Resumen</span>
-        <div class="space-y-4">
+      <!-- 2C → CARD ELEGANTE alta con números grandes -->
+      <div class="md:col-span-4 bg-white rounded-[28px] p-6 hoverlift entra d3" style="box-shadow:0 1px 4px rgba(0,0,0,.04);">
+        <div class="text-[9px] font-extrabold uppercase tracking-[0.15em] text-sky-500 mb-6">Datos del escrutinio</div>
+        <div class="space-y-5">
+          <div class="flex items-center justify-between border-b border-gray-50 pb-4">
+            <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Votos</span>
+            <span class="text-2xl font-black">28.4M</span>
+          </div>
+          <div class="flex items-center justify-between border-b border-gray-50 pb-4">
+            <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Mesas</span>
+            <span class="text-2xl font-black">12.8k</span>
+          </div>
           <div class="flex items-center justify-between">
-            <div class="flex items-baseline gap-2"><span class="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider">Votos</span><span class="text-[28px] font-black text-gray-900 tracking-tight">28.4M</span></div>
-            <div class="flex gap-[3px] items-end h-8">
-              <div class="w-[4px] bg-sky-200 rounded-sm grow-anim" style="--h:40%;animation-delay:.1s;"></div>
-              <div class="w-[4px] bg-sky-300 rounded-sm grow-anim" style="--h:65%;animation-delay:.2s;"></div>
-              <div class="w-[4px] bg-sky-400 rounded-sm grow-anim" style="--h:80%;animation-delay:.3s;"></div>
-              <div class="w-[4px] bg-sky-500 rounded-sm grow-anim" style="--h:100%;animation-delay:.4s;"></div>
-            </div>
+            <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Particip.</span>
+            <span class="text-2xl font-black text-emerald-600">77%</span>
           </div>
-          <div class="h-px bg-gray-50"></div>
-          <div class="flex justify-between">
-            <div class="text-center flex-1"><div class="text-xl font-black text-gray-900">12.847</div><div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">Mesas</div></div>
-            <div class="w-px h-10 bg-gray-50 mx-2"></div>
-            <div class="text-center flex-1"><div class="text-xl font-black text-gray-900">77%</div><div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">Participación</div></div>
-            <div class="w-px h-10 bg-gray-50 mx-2"></div>
-            <div class="text-center flex-1"><div class="text-xl font-black text-gray-900">23%</div><div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">Abstención</div></div>
-          </div>
-          <div class="bg-amber-50 rounded-xl p-3 text-center"><span class="text-xs font-bold text-amber-600">Diferencia de 7.2 pp entre primero y segundo</span></div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ═══════════════════ 3 CRYPTO ═══════════════════ -->
+  <!-- ══════════════════ 3 CRYPTO ══════════════════ -->
   <section class="mb-16">
-    <div class="flex items-center gap-3 mb-5 card-entra d1">
-      <div class="w-9 h-9 rounded-[14px] bg-orange-50 flex items-center justify-center text-orange-500 text-[15px] font-bold">3</div>
-      <h2 class="text-[20px] font-extrabold text-gray-900">Crypto</h2>
-    </div>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+    <h2 class="text-sm font-extrabold text-gray-900 uppercase tracking-widest mb-5 flex items-center gap-2">
+      <span class="w-7 h-7 bg-orange-100 rounded-lg flex items-center justify-center text-orange-500 text-xs font-black">3</span> Crypto
+    </h2>
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
 
-      <!-- 3A → Hero number funcional -->
-      <div class="card-base p-6 card-entra d2 overflow-hidden" style="background: linear-gradient(145deg,#fff8f5,#fff);">
-        <div class="flex justify-between items-start mb-5">
-          <span class="text-[10px] font-extrabold uppercase tracking-[0.15em] text-orange-400">Bitcoin</span>
+      <!-- 3A → HERO CARD con número gigante -->
+      <div class="md:col-span-6 bg-gradient-to-br from-orange-50 via-white to-emerald-50 rounded-[28px] p-6 hoverlift entra d1" style="box-shadow:0 1px 4px rgba(0,0,0,.04);">
+        <div class="flex justify-between items-start mb-3">
+          <span class="text-[9px] font-extrabold uppercase tracking-[0.15em] text-orange-400">Bitcoin</span>
           <span class="bg-emerald-100 text-emerald-600 text-[10px] font-extrabold px-2 py-1 rounded-full">+2.4%</span>
         </div>
-        <span class="text-[52px] font-black text-gray-900 leading-none tracking-tighter block">$64.230</span>
-        <span class="text-xs text-gray-400 font-semibold mt-2 block">+$1,482 hoy</span>
-        <div class="flex items-end gap-[3px] h-12 mt-6">
-          <div class="flex-1 bg-orange-200 rounded-t grow-anim" style="--h:35%;"></div>
-          <div class="flex-1 bg-orange-300 rounded-t grow-anim" style="--h:50%;animation-delay:.05s;"></div>
-          <div class="flex-1 bg-orange-200 rounded-t grow-anim" style="--h:40%;animation-delay:.1s;"></div>
-          <div class="flex-1 bg-orange-400 rounded-t grow-anim" style="--h:65%;animation-delay:.15s;"></div>
-          <div class="flex-1 bg-emerald-300 rounded-t grow-anim" style="--h:55%;animation-delay:.2s;"></div>
-          <div class="flex-1 bg-emerald-400 rounded-t grow-anim" style="--h:75%;animation-delay:.25s;"></div>
-          <div class="flex-1 bg-emerald-500 rounded-t grow-anim" style="--h:90%;animation-delay:.3s;"></div>
-          <div class="flex-1 bg-emerald-600 rounded-t grow-anim" style="--h:100%;animation-delay:.35s;"></div>
-          <div class="flex-1 bg-emerald-500 rounded-t grow-anim" style="--h:85%;animation-delay:.4s;"></div>
+        <span class="text-[56px] font-black text-gray-900 leading-none tracking-tighter block">$64.230</span>
+        <span class="text-xs text-gray-400 font-semibold mt-1 block">+$1,482 hoy</span>
+        <div class="flex items-end gap-[3px] h-12 mt-5">
+          <div class="flex-1 bg-orange-200 rounded-t grow" style="--h:35%"></div>
+          <div class="flex-1 bg-orange-300 rounded-t grow" style="--h:50%;animation-delay:.05s"></div>
+          <div class="flex-1 bg-orange-200 rounded-t grow" style="--h:40%;animation-delay:.1s"></div>
+          <div class="flex-1 bg-orange-400 rounded-t grow" style="--h:65%;animation-delay:.15s"></div>
+          <div class="flex-1 bg-emerald-300 rounded-t grow" style="--h:55%;animation-delay:.2s"></div>
+          <div class="flex-1 bg-emerald-400 rounded-t grow" style="--h:75%;animation-delay:.25s"></div>
+          <div class="flex-1 bg-emerald-500 rounded-t grow" style="--h:90%;animation-delay:.3s"></div>
+          <div class="flex-1 bg-emerald-600 rounded-t grow" style="--h:100%;animation-delay:.35s"></div>
+          <div class="flex-1 bg-emerald-500 rounded-t grow" style="--h:85%;animation-delay:.4s"></div>
         </div>
-        <div class="flex gap-2.5 mt-5">
-          <button class="flex-1 py-3 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl text-xs font-bold transition-colors">Vender</button>
-          <button class="flex-1 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold transition-colors">Comprar</button>
-        </div>
-      </div>
-
-      <!-- 3B → Wallet CLARA funcional (antes oscura) -->
-      <div class="card-base p-6 card-entra d3">
-        <div class="flex items-center justify-between mb-5">
-          <span class="text-[10px] font-extrabold uppercase tracking-[0.15em] text-gray-400">Cartera</span>
-          <span class="material-symbols-outlined text-gray-400 text-lg">wallet</span>
-        </div>
-        <div class="space-y-0">
-          <div class="flex items-center justify-between py-3 hover:bg-gray-50 rounded-xl transition-colors px-1 cursor-pointer">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 font-bold text-sm">₿</div>
-              <div><p class="text-sm font-bold text-gray-900">Bitcoin</p><p class="text-[11px] text-gray-400 font-medium">0.45 BTC</p></div>
-            </div>
-            <div class="text-right"><p class="text-sm font-bold text-gray-900">$28.9k</p><p class="text-[11px] text-emerald-500 font-bold">+2.4%</p></div>
-          </div>
-          <div class="h-px bg-gray-50 mx-1"></div>
-          <div class="flex items-center justify-between py-3 hover:bg-gray-50 rounded-xl transition-colors px-1 cursor-pointer">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 font-bold text-sm">Ξ</div>
-              <div><p class="text-sm font-bold text-gray-900">Ethereum</p><p class="text-[11px] text-gray-400 font-medium">3.20 ETH</p></div>
-            </div>
-            <div class="text-right"><p class="text-sm font-bold text-gray-900">$11.0k</p><p class="text-[11px] text-red-400 font-bold">-1.2%</p></div>
-          </div>
-          <div class="h-px bg-gray-50 mx-1"></div>
-          <div class="flex items-center justify-between py-3 hover:bg-gray-50 rounded-xl transition-colors px-1 cursor-pointer">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-sm">$</div>
-              <div><p class="text-sm font-bold text-gray-900">USDC</p><p class="text-[11px] text-gray-400 font-medium">Stable</p></div>
-            </div>
-            <div class="text-right"><p class="text-sm font-bold text-gray-900">$1,000</p><p class="text-[11px] text-gray-400 font-bold">0.0%</p></div>
-          </div>
+        <div class="flex gap-2 mt-5">
+          <button class="flex-1 py-3 bg-white border border-gray-100 text-gray-700 rounded-xl text-xs font-bold hover:bg-gray-50 transition">Vender</button>
+          <button class="flex-1 py-3 bg-orange-500 text-white rounded-xl text-xs font-bold hover:bg-orange-600 transition">Comprar</button>
         </div>
       </div>
 
-      <!-- 3C → Forex list funcional -->
-      <div class="card-base p-6 card-entra d4">
-        <span class="text-[10px] font-extrabold uppercase tracking-[0.15em] text-sky-500 block mb-4">Forex en vivo</span>
+      <!-- 3B → LISTA COMPACTA -->
+      <div class="md:col-span-3 bg-white rounded-2xl p-0 overflow-hidden hoverlift entra d2" style="box-shadow:0 1px 4px rgba(0,0,0,.04);">
+        <div class="p-4 border-b border-gray-50 flex items-center justify-between">
+          <span class="text-[9px] font-extrabold uppercase tracking-[0.15em] text-gray-400">Cartera</span>
+          <span class="material-symbols-outlined text-gray-400 text-sm">wallet</span>
+        </div>
         <div class="divide-y divide-gray-50">
-          <div class="flex items-center justify-between py-3">
-            <div class="flex items-center gap-3"><img src="https://flagsapi.com/DE/flat/32.png" class="w-7 h-7 rounded-full shadow-sm" loading="lazy" /><div><p class="text-sm font-bold text-gray-900">EUR/USD</p><p class="text-[11px] text-gray-400 font-medium">Euro</p></div></div>
-            <div class="text-right"><p class="text-sm font-bold text-gray-900">1.0854</p><p class="text-[11px] text-emerald-500 font-bold">+0.02%</p></div>
+          <div class="flex items-center justify-between px-4 py-3">
+            <div class="flex items-center gap-2"><div class="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 font-bold text-xs">₿</div><span class="text-xs font-bold">Bitcoin</span></div>
+            <div class="text-right"><span class="text-xs font-bold">$28.9k</span><span class="text-[10px] text-emerald-500 font-bold ml-1">+2.4%</span></div>
           </div>
-          <div class="flex items-center justify-between py-3">
-            <div class="flex items-center gap-3"><img src="https://flagsapi.com/GB/flat/32.png" class="w-7 h-7 rounded-full shadow-sm" loading="lazy" /><div><p class="text-sm font-bold text-gray-900">GBP/USD</p><p class="text-[11px] text-gray-400 font-medium">Libra</p></div></div>
-            <div class="text-right"><p class="text-sm font-bold text-gray-900">1.2730</p><p class="text-[11px] text-emerald-500 font-bold">+0.08%</p></div>
+          <div class="flex items-center justify-between px-4 py-3">
+            <div class="flex items-center gap-2"><div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 font-bold text-xs">Ξ</div><span class="text-xs font-bold">Ethereum</span></div>
+            <div class="text-right"><span class="text-xs font-bold">$11.0k</span><span class="text-[10px] text-red-400 font-bold ml-1">-1.2%</span></div>
           </div>
-          <div class="flex items-center justify-between py-3">
-            <div class="flex items-center gap-3"><img src="https://flagsapi.com/JP/flat/32.png" class="w-7 h-7 rounded-full shadow-sm" loading="lazy" /><div><p class="text-sm font-bold text-gray-900">USD/JPY</p><p class="text-[11px] text-gray-400 font-medium">Yen</p></div></div>
-            <div class="text-right"><p class="text-sm font-bold text-gray-900">148.32</p><p class="text-[11px] text-red-400 font-bold">-0.15%</p></div>
+          <div class="flex items-center justify-between px-4 py-3">
+            <div class="flex items-center gap-2"><div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-xs">$</div><span class="text-xs font-bold">USDC</span></div>
+            <div class="text-right"><span class="text-xs font-bold">$1,000</span><span class="text-[10px] text-gray-400 font-bold ml-1">0%</span></div>
           </div>
-          <div class="flex items-center justify-between py-3">
-            <div class="flex items-center gap-3"><img src="https://flagsapi.com/AU/flat/32.png" class="w-7 h-7 rounded-full shadow-sm" loading="lazy" /><div><p class="text-sm font-bold text-gray-900">AUD/USD</p><p class="text-[11px] text-gray-400 font-medium">Dólar australiano</p></div></div>
-            <div class="text-right"><p class="text-sm font-bold text-gray-900">0.6645</p><p class="text-[11px] text-emerald-500 font-bold">+0.04%</p></div>
-          </div>
+        </div>
+      </div>
+
+      <!-- 3C → GRID TIGHT de 2x2 -->
+      <div class="md:col-span-3 grid grid-cols-2 gap-2 entra d3">
+        <div class="bg-sky-50 rounded-2xl p-3.5 flex flex-col justify-between" style="min-height:90px;">
+          <div class="flex items-center gap-1.5"><img src="https://flagsapi.com/DE/flat/24.png" class="w-5 h-5 rounded-full" loading="lazy"><span class="text-[9px] font-bold text-sky-400 uppercase tracking-wider">EUR/USD</span></div>
+          <div><div class="text-base font-black text-gray-900">1.0854</div><div class="text-[10px] text-emerald-500 font-bold">+0.02%</div></div>
+        </div>
+        <div class="bg-sky-50 rounded-2xl p-3.5 flex flex-col justify-between" style="min-height:90px;">
+          <div class="flex items-center gap-1.5"><img src="https://flagsapi.com/GB/flat/24.png" class="w-5 h-5 rounded-full" loading="lazy"><span class="text-[9px] font-bold text-sky-400 uppercase tracking-wider">GBP/USD</span></div>
+          <div><div class="text-base font-black text-gray-900">1.2730</div><div class="text-[10px] text-emerald-500 font-bold">+0.08%</div></div>
+        </div>
+        <div class="bg-red-50 rounded-2xl p-3.5 flex flex-col justify-between" style="min-height:90px;">
+          <div class="flex items-center gap-1.5"><img src="https://flagsapi.com/JP/flat/24.png" class="w-5 h-5 rounded-full" loading="lazy"><span class="text-[9px] font-bold text-red-400 uppercase tracking-wider">USD/JPY</span></div>
+          <div><div class="text-base font-black text-gray-900">148.32</div><div class="text-[10px] text-red-500 font-bold">-0.15%</div></div>
+        </div>
+        <div class="bg-sky-50 rounded-2xl p-3.5 flex flex-col justify-between" style="min-height:90px;">
+          <div class="flex items-center gap-1.5"><img src="https://flagsapi.com/AU/flat/24.png" class="w-5 h-5 rounded-full" loading="lazy"><span class="text-[9px] font-bold text-sky-400 uppercase tracking-wider">AUD/USD</span></div>
+          <div><div class="text-base font-black text-gray-900">0.6645</div><div class="text-[10px] text-emerald-500 font-bold">+0.04%</div></div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ═══════════════════ 4 INDICACIONES ═══════════════════ -->
+  <!-- ══════════════════ 4 INDICACIONES ══════════════════ -->
   <section class="mb-16">
-    <div class="flex items-center gap-3 mb-5 card-entra d1">
-      <div class="w-9 h-9 rounded-[14px] bg-indigo-50 flex items-center justify-center text-indigo-500 text-[15px] font-bold">4</div>
-      <h2 class="text-[20px] font-extrabold text-gray-900">Indicaciones</h2>
+    <h2 class="text-sm font-extrabold text-gray-900 uppercase tracking-widest mb-5 flex items-center gap-2">
+      <span class="w-7 h-7 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-500 text-xs font-black">4</span> Indicaciones
+    </h2>
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+
+      <!-- 4A → CARD ALTA con timeline -->
+      <div class="md:col-span-3 bg-white rounded-3xl p-5 hoverlift entra d1" style="box-shadow:0 1px 4px rgba(0,0,0,.04);">
+        <div class="text-[9px] font-extrabold uppercase tracking-[0.15em] text-indigo-500 mb-4">Ruta · 18 min</div>
+        <div class="relative pl-4 space-y-4">
+          <div class="absolute left-2 top-2 bottom-2 w-px bg-gray-100"></div>
+          <div class="relative flex items-center gap-2">
+            <div class="w-[10px] h-[10px] rounded-full bg-emerald-500 border-[2.5px] border-white shadow-sm shrink-0 z-10 relative"></div>
+            <p class="text-xs font-bold text-gray-900">Girá izquierda <span class="text-gray-400 font-medium">450 m</span></p>
+          </div>
+          <div class="relative flex items-center gap-2">
+            <div class="w-[10px] h-[10px] rounded-full bg-amber-400 border-[2.5px] border-white shadow-sm shrink-0 z-10 relative"></div>
+            <p class="text-xs font-bold text-gray-900">Acceso Norte <span class="text-gray-400 font-medium">5.8 km</span></p>
+          </div>
+          <div class="relative flex items-center gap-2">
+            <div class="w-[10px] h-[10px] rounded-full bg-violet-500 border-[2.5px] border-white shadow-sm shrink-0 z-10 relative"></div>
+            <p class="text-xs font-bold text-gray-900">Salida 12 <span class="text-gray-400 font-medium">1.9 km</span></p>
+          </div>
+        </div>
+        <button class="w-full mt-5 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-bold">GPS</button>
+      </div>
+
+      <!-- 4B → CARD ANCHA con transporte -->
+      <div class="md:col-span-5 bg-white rounded-2xl p-0 overflow-hidden hoverlift entra d2" style="box-shadow:0 1px 4px rgba(0,0,0,.04);">
+        <div class="px-4 py-3 border-b border-gray-50 flex items-center justify-between">
+          <span class="text-[9px] font-extrabold uppercase tracking-[0.15em] text-gray-400">Comparativa</span>
+          <span class="text-[10px] font-bold text-gray-400">Olivos</span>
+        </div>
+        <div class="divide-y divide-gray-50">
+          <div class="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer">
+            <div class="flex items-center gap-2"><span class="material-symbols-outlined text-gray-400 text-lg">directions_car</span><span class="text-xs font-bold">Auto</span></div>
+            <span class="text-xs font-extrabold text-gray-900">18 min</span>
+          </div>
+          <div class="flex items-center justify-between px-4 py-3 bg-amber-50/40">
+            <div class="flex items-center gap-2"><span class="material-symbols-outlined text-amber-500 text-lg">directions_bus</span><span class="text-xs font-bold">Transporte</span></div>
+            <span class="text-xs font-extrabold text-amber-500">42 min</span>
+          </div>
+          <div class="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer">
+            <div class="flex items-center gap-2"><span class="material-symbols-outlined text-gray-400 text-lg">directions_walk</span><span class="text-xs font-bold">Caminando</span></div>
+            <span class="text-xs font-extrabold text-gray-400">1h 50m</span>
+          </div>
+          <div class="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer">
+            <div class="flex items-center gap-2"><span class="material-symbols-outlined text-gray-400 text-lg">pedal_bike</span><span class="text-xs font-bold">Bicicleta</span></div>
+            <span class="text-xs font-extrabold text-gray-900">32 min</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4C → MINIMALISTA con puntos -->
+      <div class="md:col-span-4 bg-indigo-50/40 rounded-[24px] p-6 flex flex-col justify-between hoverlift entra d3" style="min-height:220px;">
+        <div>
+          <div class="text-[9px] font-extrabold uppercase tracking-[0.15em] text-indigo-400 mb-4">Mapa</div>
+          <div class="flex items-center gap-2 mb-4">
+            <span class="material-symbols-outlined text-indigo-400">map</span>
+            <span class="text-xs font-bold text-gray-900">Olivos → Shopping</span>
+          </div>
+        </div>
+        <div class="flex flex-col gap-0 pl-1 mb-4">
+          <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-400"></span><span class="text-[11px] font-bold text-gray-900">Av. Corrientes</span></div>
+          <div class="h-4 border-l border-dashed border-gray-300 ml-[3px]"></div>
+          <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-amber-400"></span><span class="text-[11px] font-bold text-gray-900">Retiro</span></div>
+          <div class="h-4 border-l border-dashed border-gray-300 ml-[3px]"></div>
+          <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-[2px] bg-violet-500"></span><span class="text-[11px] font-bold text-gray-900">Shopping Olivos</span></div>
+        </div>
+        <button class="w-full py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-bold">Iniciar GPS</button>
+      </div>
     </div>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+  </section>
 
-      <!-- 4A → Route steps funcional -->
-      <div class="card-base p-6 card-entra d2" style="background: linear-gradient(145deg,#f8f8ff,#fff);">
-        <span class="text-[10px] font-extrabold uppercase tracking-[0.15em] text-indigo-500 block mb-4">Ruta rápida · 18 min</span>
-        <div class="flex justify-center mb-4">
-          <div class="relative w-20 h-20 rounded-full bg-white border border-indigo-100 shadow-sm flex items-center justify-center">
-            <div class="absolute inset-0 rounded-full border border-dashed border-indigo-100/60"></div>
-            <span class="text-3xl text-indigo-500">↗</span>
-          </div>
-        </div>
-        <div class="space-y-2.5">
-          <div class="flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm">
-            <div class="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] font-bold shrink-0">1</div>
-            <div class="flex-1"><p class="text-xs font-bold text-gray-900">Girá a la izquierda</p><p class="text-[10px] text-gray-400 font-medium">450 m · Av. Corrientes</p></div>
-            <span class="text-xs font-extrabold text-emerald-600">→</span>
-          </div>
-          <div class="flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm">
-            <div class="w-7 h-7 rounded-full bg-amber-400 text-white flex items-center justify-center text-[10px] font-bold shrink-0">2</div>
-            <div class="flex-1"><p class="text-xs font-bold text-gray-900">Acceso Norte</p><p class="text-[10px] text-gray-400 font-medium">5.8 km · Rápido</p></div>
-            <span class="text-xs font-extrabold text-amber-500">↑</span>
-          </div>
-          <div class="flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm">
-            <div class="w-7 h-7 rounded-full bg-violet-500 text-white flex items-center justify-center text-[10px] font-bold shrink-0">3</div>
-            <div class="flex-1"><p class="text-xs font-bold text-gray-900">Salida 12 Olivos</p><p class="text-[10px] text-gray-400 font-medium">1.9 km · Destino</p></div>
-            <span class="text-xs font-extrabold text-violet-500">🏁</span>
-          </div>
-        </div>
-        <button class="w-full mt-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-colors">Iniciar GPS</button>
-      </div>
+  <!-- ══════════════════ 5 CUMPLEAÑOS ══════════════════ -->
+  <section class="mb-16">
+    <h2 class="text-sm font-extrabold text-gray-900 uppercase tracking-widest mb-5 flex items-center gap-2">
+      <span class="w-7 h-7 bg-pink-100 rounded-lg flex items-center justify-center text-pink-500 text-xs font-black">5</span> Cumpleaños
+    </h2>
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
 
-      <!-- 4B → Transport compare funcional -->
-      <div class="card-base p-6 card-entra d3">
-        <span class="text-[10px] font-extrabold uppercase tracking-[0.15em] text-gray-400 block mb-4">Comparativa de tiempos</span>
-        <div class="space-y-2.5">
-          <div class="flex items-center justify-between p-3.5 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer">
-            <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500"><span class="material-symbols-outlined text-[18px]">directions_car</span></div><span class="text-sm font-bold text-gray-900">Auto</span></div>
-            <span class="text-sm font-extrabold text-gray-900">18 min</span>
-          </div>
-          <div class="flex items-center justify-between p-3.5 bg-amber-50 rounded-xl border border-amber-100/40">
-            <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-500"><span class="material-symbols-outlined text-[18px]">directions_bus</span></div><span class="text-sm font-bold text-gray-900">Transporte</span></div>
-            <span class="text-sm font-extrabold text-amber-500">42 min</span>
-          </div>
-          <div class="flex items-center justify-between p-3.5 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer">
-            <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500"><span class="material-symbols-outlined text-[18px]">directions_walk</span></div><span class="text-sm font-bold text-gray-900">Caminando</span></div>
-            <span class="text-sm font-extrabold text-gray-400">1h 50m</span>
-          </div>
-          <div class="flex items-center justify-between p-3.5 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer">
-            <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500"><span class="material-symbols-outlined text-[18px]">pedal_bike</span></div><span class="text-sm font-bold text-gray-900">Bicicleta</span></div>
-            <span class="text-sm font-extrabold text-gray-900">32 min</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 4C → Map route funcional (sin foto de stock) -->
-      <div class="card-base p-6 card-entra d4" style="background: linear-gradient(145deg,#f0f4ff,#fff);">
-        <span class="text-[10px] font-extrabold uppercase tracking-[0.15em] text-indigo-500 block mb-4">Ruta visual</span>
+      <!-- 5A → MINIMALISTA con número gigante -->
+      <div class="md:col-span-4 bg-gradient-to-br from-pink-50 to-white rounded-[28px] p-6 hoverlift entra d1" style="box-shadow:0 1px 4px rgba(0,0,0,.04);">
+        <div class="text-[9px] font-extrabold uppercase tracking-[0.15em] text-pink-500 mb-3">Próximo · 8 días</div>
         <div class="flex items-center gap-3 mb-5">
-          <div class="w-10 h-10 rounded-full bg-white border border-indigo-100 flex items-center justify-center text-indigo-500 shadow-sm"><span class="material-symbols-outlined text-[20px]">map</span></div>
-          <div><p class="text-sm font-bold text-gray-900">Olivos → Shopping</p><p class="text-[11px] text-gray-400 font-medium">3 km · 18 min</p></div>
+          <div class="w-12 h-12 rounded-full bg-gradient-to-br from-pink-200 to-purple-200 flex items-center justify-center text-white text-xl font-black">A</div>
+          <div><p class="text-sm font-bold text-gray-900">Ana López</p><p class="text-[11px] text-gray-400 font-medium">12 de julio</p></div>
         </div>
-        <div class="flex flex-col gap-0 pl-1">
-          <div class="flex items-center gap-3 py-1.5"><span class="w-3 h-3 rounded-full bg-emerald-400 border-2 border-white shadow-sm shrink-0"></span><span class="text-xs font-bold text-gray-900">Av. Corrientes 1234</span><span class="ml-auto text-[10px] font-bold text-gray-400">Origen</span></div>
-          <div class="h-5 border-l-[2px] border-dashed border-indigo-200 ml-[5.5px]"></div>
-          <div class="flex items-center gap-3 py-1.5"><span class="w-3 h-3 rounded-full bg-amber-400 border-2 border-white shadow-sm shrink-0"></span><span class="text-xs font-bold text-gray-900">Retiro</span><span class="ml-auto text-[10px] font-bold text-gray-400">1.2 km</span></div>
-          <div class="h-5 border-l-[2px] border-dashed border-indigo-200 ml-[5.5px]"></div>
-          <div class="flex items-center gap-3 py-1.5"><span class="w-3 h-3 rounded-[4px] bg-violet-500 border-2 border-white shadow-sm shrink-0"></span><span class="text-xs font-bold text-gray-900">Shopping de Olivos</span><span class="ml-auto text-[10px] font-bold text-violet-500">Destino</span></div>
-        </div>
-        <button class="w-full mt-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-colors">Iniciar GPS</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════════════ 5 CUMPLEAÑOS ═══════════════════ -->
-  <section class="mb-16">
-    <div class="flex items-center gap-3 mb-5 card-entra d1">
-      <div class="w-9 h-9 rounded-[14px] bg-pink-50 flex items-center justify-center text-pink-500 text-[15px] font-bold">5</div>
-      <h2 class="text-[20px] font-extrabold text-gray-900">Cumpleaños</h2>
-    </div>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-
-      <!-- 5A → Avatar card (sin foto de stock) -->
-      <div class="card-base p-6 card-entra d2" style="background: linear-gradient(145deg,#fff5f5,#fdf2f8);">
-        <span class="text-[10px] font-extrabold uppercase tracking-[0.15em] text-pink-500 block mb-4">Próximo · 8 días</span>
-        <div class="flex items-start gap-4 mb-5">
-          <div class="w-14 h-14 rounded-full bg-gradient-to-br from-pink-200 to-purple-200 flex items-center justify-center text-xl font-black text-white shadow-sm">A</div>
-          <div>
-            <h3 class="text-base font-bold text-gray-900">Ana López</h3>
-            <p class="text-[12px] text-gray-500 font-medium">12 de julio de 2025</p>
-          </div>
-        </div>
-        <span class="text-[56px] font-black text-gray-900 leading-none block tracking-tight">35</span>
-        <p class="text-[13px] text-pink-500 font-extrabold mt-1">años</p>
+        <div class="text-[72px] font-black text-gray-900 leading-none tracking-tighter">35</div>
+        <div class="text-[10px] font-extrabold text-pink-500 uppercase tracking-wider mt-1">años</div>
         <div class="flex gap-2 mt-6">
-          <button class="flex-1 py-3 bg-white hover:bg-gray-50 text-gray-700 rounded-xl text-xs font-bold transition-colors border border-gray-100/60">Recordar</button>
-          <button class="flex-1 py-3 bg-pink-500 hover:bg-pink-600 text-white rounded-xl text-xs font-bold transition-colors">Saludar</button>
+          <button class="flex-1 py-2.5 bg-white border border-gray-100 text-gray-700 rounded-xl text-xs font-bold">Recordar</button>
+          <button class="flex-1 py-2.5 bg-pink-500 text-white rounded-xl text-xs font-bold">Saludar</button>
         </div>
       </div>
 
-      <!-- 5B → Calendar grid -->
-      <div class="card-base p-6 card-entra d3">
-        <span class="text-[10px] font-extrabold uppercase tracking-[0.15em] text-gray-400 block mb-4">Julio 2025</span>
+      <!-- 5B → CALENDARIO solo -->
+      <div class="md:col-span-4 bg-white rounded-3xl p-5 hoverlift entra d2" style="box-shadow:0 1px 4px rgba(0,0,0,.04);">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs font-bold text-gray-900">Julio 2025</span>
+          <span class="text-[9px] font-extrabold text-gray-400 uppercase tracking-wider">Cumpleaños</span>
+        </div>
         <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-gray-300 mb-1">
           <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
         </div>
-        <div class="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold text-gray-500">
-          <span class="py-1.5"></span><span class="py-1.5">1</span><span class="py-1.5">2</span><span class="py-1.5">3</span><span class="py-1.5">4</span><span class="py-1.5">5</span><span class="py-1.5">6</span>
-          <span class="py-1.5">7</span><span class="py-1.5">8</span><span class="py-1.5">9</span><span class="py-1.5">10</span><span class="py-1.5">11</span><span class="py-1.5 rounded-lg bg-pink-500 text-white font-bold shadow-sm">12</span><span class="py-1.5">13</span>
-          <span class="py-1.5">14</span><span class="py-1.5">15</span><span class="py-1.5">16</span><span class="py-1.5">17</span><span class="py-1.5">18</span><span class="py-1.5">19</span><span class="py-1.5 rounded-lg bg-amber-400 text-white font-bold shadow-sm">20</span>
-          <span class="py-1.5">21</span><span class="py-1.5 rounded-lg bg-blue-400 text-white font-bold shadow-sm">22</span><span class="py-1.5">23</span><span class="py-1.5">24</span><span class="py-1.5">25</span><span class="py-1.5">26</span><span class="py-1.5">27</span>
-          <span class="py-1.5">28</span><span class="py-1.5">29</span><span class="py-1.5">30</span><span class="py-1.5">31</span>
-        </div>
-        <div class="mt-4 pt-3 border-t border-gray-50 space-y-1.5">
-          <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-pink-500"></span><span class="text-[11px] font-semibold text-gray-700">12 jul · Ana (35)</span></div>
-          <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-amber-400"></span><span class="text-[11px] font-semibold text-gray-700">20 jul · Roberto (42)</span></div>
-          <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-blue-400"></span><span class="text-[11px] font-semibold text-gray-700">22 jul · María (29)</span></div>
+        <div class="grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-gray-600">
+          <span></span><span class="py-1">1</span><span class="py-1">2</span><span class="py-1">3</span><span class="py-1">4</span><span class="py-1">5</span><span class="py-1">6</span>
+          <span class="py-1">7</span><span class="py-1">8</span><span class="py-1">9</span><span class="py-1">10</span><span class="py-1">11</span><span class="py-1 rounded-md bg-pink-500 text-white font-bold">12</span><span class="py-1">13</span>
+          <span class="py-1">14</span><span class="py-1">15</span><span class="py-1">16</span><span class="py-1">17</span><span class="py-1">18</span><span class="py-1">19</span><span class="py-1 rounded-md bg-amber-400 text-white font-bold">20</span>
+          <span class="py-1">21</span><span class="py-1 rounded-md bg-blue-400 text-white font-bold">22</span><span class="py-1">23</span><span class="py-1">24</span><span class="py-1">25</span><span class="py-1">26</span><span class="py-1">27</span>
+          <span class="py-1">28</span><span class="py-1">29</span><span class="py-1">30</span><span class="py-1">31</span>
         </div>
       </div>
 
-      <!-- 5C → Countdown funcional -->
-      <div class="card-base p-6 card-entra d4" style="background: linear-gradient(145deg,#fff8f8,#fff);">
-        <span class="text-[10px] font-extrabold uppercase tracking-[0.15em] text-pink-500 block mb-4">Faltan para el próximo</span>
-        <div class="grid grid-cols-3 gap-2.5 mb-5">
-          <div class="bg-white rounded-2xl p-3 shadow-sm border border-pink-100/40">
-            <div class="text-2xl font-black text-gray-900">08</div>
-            <div class="text-[9px] font-extrabold text-gray-400 uppercase tracking-wider mt-0.5">días</div>
+      <!-- 5C → COUNTDOWN ancho -->
+      <div class="md:col-span-4 bg-white rounded-2xl p-5 hoverlift entra d3" style="box-shadow:0 1px 4px rgba(0,0,0,.04);">
+        <div class="text-[9px] font-extrabold uppercase tracking-[0.15em] text-gray-400 mb-4">Faltan</div>
+        <div class="flex gap-2 mb-4">
+          <div class="flex-1 bg-gray-50 rounded-2xl p-3 text-center">
+            <div class="text-2xl font-black">08</div>
+            <div class="text-[9px] font-extrabold text-gray-400 uppercase tracking-wider">días</div>
           </div>
-          <div class="bg-white rounded-2xl p-3 shadow-sm border border-pink-100/40">
-            <div class="text-2xl font-black text-gray-900">14</div>
-            <div class="text-[9px] font-extrabold text-gray-400 uppercase tracking-wider mt-0.5">horas</div>
+          <div class="flex-1 bg-gray-50 rounded-2xl p-3 text-center">
+            <div class="text-2xl font-black">14</div>
+            <div class="text-[9px] font-extrabold text-gray-400 uppercase tracking-wider">horas</div>
           </div>
-          <div class="bg-white rounded-2xl p-3 shadow-sm border border-pink-100/40">
-            <div class="text-2xl font-black text-gray-900">32</div>
-            <div class="text-[9px] font-extrabold text-gray-400 uppercase tracking-wider mt-0.5">min</div>
-          </div>
-        </div>
-        <p class="text-sm font-bold text-gray-900 mb-0.5">Ana López</p>
-        <p class="text-xs text-gray-400 font-medium mb-4">12 de julio · 35 años</p>
-        <button class="w-full py-3 bg-pink-500 hover:bg-pink-600 text-white rounded-xl text-xs font-bold transition-colors">Ver calendario</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════════════ 6 COMPARATIVA ═══════════════════ -->
-  <section class="mb-16">
-    <div class="flex items-center gap-3 mb-5 card-entra d1">
-      <div class="w-9 h-9 rounded-[14px] bg-amber-50 flex items-center justify-center text-amber-600 text-[15px] font-bold">6</div>
-      <h2 class="text-[20px] font-extrabold text-gray-900">Comparativa</h2>
-    </div>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-
-      <!-- 6A → VS arena funcional -->
-      <div class="card-base p-6 card-entra d2" style="background: linear-gradient(145deg,#fffbf5,#fff);">
-        <span class="text-[10px] font-extrabold uppercase tracking-[0.15em] text-amber-500 block mb-4">Cafeteras</span>
-        <div class="flex items-center justify-between mb-5">
-          <div class="text-center flex-1">
-            <div class="w-14 h-14 rounded-2xl bg-white border border-amber-100/60 shadow-sm flex items-center justify-center text-amber-600 text-xl font-bold mx-auto mb-2">A</div>
-            <p class="text-sm font-bold text-gray-900">Nespresso</p><p class="text-xs text-gray-400 font-medium">$89</p>
-          </div>
-          <span class="text-[11px] font-black text-gray-300 uppercase tracking-widest">VS</span>
-          <div class="text-center flex-1">
-            <div class="w-14 h-14 rounded-2xl bg-white border border-blue-100/60 shadow-sm flex items-center justify-center text-blue-600 text-xl font-bold mx-auto mb-2">B</div>
-            <p class="text-sm font-bold text-gray-900">Dolce Gusto</p><p class="text-xs text-gray-400 font-medium">$110</p>
+          <div class="flex-1 bg-gray-50 rounded-2xl p-3 text-center">
+            <div class="text-2xl font-black">32</div>
+            <div class="text-[9px] font-extrabold text-gray-400 uppercase tracking-wider">min</div>
           </div>
         </div>
-        <div class="space-y-2">
-          <div class="flex items-center justify-between text-xs bg-white rounded-xl px-3 py-2 shadow-sm">
-            <span class="font-semibold text-gray-500">Presión</span>
-            <div class="flex items-center gap-2"><span class="font-bold text-emerald-600">19 bar</span><span class="text-gray-300">/</span><span class="font-bold text-gray-400">15 bar</span></div>
-          </div>
-          <div class="flex items-center justify-between text-xs bg-white rounded-xl px-3 py-2 shadow-sm">
-            <span class="font-semibold text-gray-500">Compat.</span>
-            <div class="flex items-center gap-2"><span class="font-bold text-emerald-600">Universal</span><span class="text-gray-300">/</span><span class="font-bold text-gray-400">Propia</span></div>
-          </div>
-          <div class="flex items-center justify-between text-xs bg-white rounded-xl px-3 py-2 shadow-sm">
-            <span class="font-semibold text-gray-500">Precio</span>
-            <div class="flex items-center gap-2"><span class="font-bold text-emerald-600">$89</span><span class="text-gray-300">/</span><span class="font-bold text-gray-400">$110</span></div>
-          </div>
-        </div>
-        <div class="mt-4 p-3 bg-amber-50 rounded-xl text-center"><span class="text-xs font-bold text-amber-600">Nespresso gana en precio y potencia</span></div>
-      </div>
-
-      <!-- 6B → Benchmark bars -->
-      <div class="card-base p-6 card-entra d3">
-        <span class="text-[10px] font-extrabold uppercase tracking-[0.15em] text-amber-500 block mb-4">Benchmark</span>
-        <h3 class="text-base font-bold text-gray-900 mb-1">Nespresso A vs Dolce B</h3>
-        <p class="text-xs text-gray-400 font-medium mb-5">Comparativa de especificaciones</p>
-        <div class="space-y-4">
-          <div><div class="flex justify-between text-xs font-bold mb-1.5"><span class="text-gray-500">Presión</span><span class="text-gray-900">19 <span class="text-gray-300">vs</span> 15 bar</span></div><div class="flex gap-1 h-2.5"><div class="flex-1 bg-emerald-400 rounded-full bar-anim" style="--w:100%;"></div><div class="flex-1 bg-gray-100 rounded-full bar-anim" style="--w:79%;"></div></div></div>
-          <div><div class="flex justify-between text-xs font-bold mb-1.5"><span class="text-gray-500">Depósito</span><span class="text-gray-900">0.7 <span class="text-gray-300">vs</span> 0.6 L</span></div><div class="flex gap-1 h-2.5"><div class="flex-1 bg-emerald-400 rounded-full bar-anim" style="--w:100%;"></div><div class="flex-1 bg-gray-100 rounded-full bar-anim" style="--w:86%;"></div></div></div>
-          <div><div class="flex justify-between text-xs font-bold mb-1.5"><span class="text-gray-500">Garantía</span><span class="text-gray-900">2 <span class="text-gray-300">vs</span> 3 años</span></div><div class="flex gap-1 h-2.5"><div class="flex-1 bg-gray-100 rounded-full bar-anim" style="--w:66%;"></div><div class="flex-1 bg-emerald-400 rounded-full bar-anim" style="--w:100%;"></div></div></div>
-          <div><div class="flex justify-between text-xs font-bold mb-1.5"><span class="text-gray-500">Precio</span><span class="text-gray-900">$89 <span class="text-gray-300">vs</span> $110</span></div><div class="flex gap-1 h-2.5"><div class="flex-1 bg-emerald-400 rounded-full bar-anim" style="--w:100%;"></div><div class="flex-1 bg-gray-100 rounded-full bar-anim" style="--w:81%;"></div></div></div>
-        </div>
-      </div>
-
-      <!-- 6C → Feature matrix -->
-      <div class="card-base p-6 card-entra d4">
-        <span class="text-[10px] font-extrabold uppercase tracking-[0.15em] text-purple-500 block mb-4">Ficha técnica</span>
-        <div class="grid grid-cols-3 gap-2 text-center mb-3">
-          <div class="text-[10px] font-bold text-gray-300">Característica</div>
-          <div class="text-[10px] font-bold text-emerald-600">Nespresso A</div>
-          <div class="text-[10px] font-bold text-blue-500">Dolce B</div>
-        </div>
-        <div class="divide-y divide-gray-50">
-          <div class="grid grid-cols-3 gap-2 text-center py-2.5"><div class="text-[11px] font-semibold text-gray-500 self-center">Precio</div><div class="text-sm font-extrabold text-gray-900">$89</div><div class="text-sm font-extrabold text-gray-400">$110</div></div>
-          <div class="grid grid-cols-3 gap-2 text-center py-2.5"><div class="text-[11px] font-semibold text-gray-500 self-center">Presión</div><div class="text-sm font-extrabold text-emerald-600">19 bar</div><div class="text-sm font-extrabold text-gray-400">15 bar</div></div>
-          <div class="grid grid-cols-3 gap-2 text-center py-2.5"><div class="text-[11px] font-semibold text-gray-500 self-center">Depósito</div><div class="text-sm font-extrabold text-emerald-600">0.7 L</div><div class="text-sm font-extrabold text-gray-400">0.6 L</div></div>
-          <div class="grid grid-cols-3 gap-2 text-center py-2.5"><div class="text-[11px] font-semibold text-gray-500 self-center">Garantía</div><div class="text-sm font-extrabold text-gray-400">2 años</div><div class="text-sm font-extrabold text-emerald-600">3 años</div></div>
-          <div class="grid grid-cols-3 gap-2 text-center py-2.5"><div class="text-[11px] font-semibold text-gray-500 self-center">Compat.</div><div class="text-sm font-extrabold text-emerald-600">Universal</div><div class="text-sm font-extrabold text-gray-400">Propia</div></div>
+        <div class="flex items-center justify-between">
+          <div><p class="text-sm font-bold">Ana López</p><p class="text-[11px] text-gray-400 font-medium">12 jul · 35 años</p></div>
+          <button class="px-4 py-2 bg-pink-100 text-pink-600 rounded-xl text-xs font-bold">Calendario</button>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ═══════════════════ 7 REVIEW ═══════════════════ -->
+  <!-- ══════════════════ 6 COMPARATIVA ══════════════════ -->
   <section class="mb-16">
-    <div class="flex items-center gap-3 mb-5 card-entra d1">
-      <div class="w-9 h-9 rounded-[14px] bg-violet-50 flex items-center justify-center text-violet-500 text-[15px] font-bold">7</div>
-      <h2 class="text-[20px] font-extrabold text-gray-900">Review</h2>
-    </div>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+    <h2 class="text-sm font-extrabold text-gray-900 uppercase tracking-widest mb-5 flex items-center gap-2">
+      <span class="w-7 h-7 bg-amber-100 rounded-lg flex items-center justify-center text-amber-600 text-xs font-black">6</span> Comparativa
+    </h2>
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
 
-      <!-- 7A → Radar chart SVG (sobre fondo claro) -->
-      <div class="card-base p-6 card-entra d2">
-        <span class="text-[10px] font-extrabold uppercase tracking-[0.15em] text-violet-500 block mb-1">Sony WH-1000XM5</span>
-        <p class="text-xs text-gray-400 font-medium mb-4">Radar de puntuación</p>
+      <!-- 6A → DISEÑO TIPO TICKET -->
+      <div class="md:col-span-5 bg-white rounded-2xl p-0 overflow-hidden hoverlift entra d1" style="box-shadow:0 1px 4px rgba(0,0,0,.04);">
+        <div class="bg-amber-50/40 p-5">
+          <span class="text-[9px] font-extrabold uppercase tracking-[0.15em] text-amber-500">Nespresso A vs Dolce B</span>
+          <p class="text-[11px] text-gray-400 font-medium mt-0.5">Segmento doméstico</p>
+        </div>
+        <div class="p-5 space-y-3">
+          <div class="flex items-center gap-3">
+            <div class="flex-1 text-center p-3 bg-emerald-50 rounded-xl">
+              <div class="text-xl font-black text-emerald-600">A</div>
+              <div class="text-xs font-bold text-gray-900">Nespresso</div>
+              <div class="text-[11px] text-gray-400 font-medium">$89</div>
+            </div>
+            <span class="text-xs font-black text-gray-300">VS</span>
+            <div class="flex-1 text-center p-3 bg-blue-50 rounded-xl">
+              <div class="text-xl font-black text-blue-600">B</div>
+              <div class="text-xs font-bold text-gray-900">Dolce Gusto</div>
+              <div class="text-[11px] text-gray-400 font-medium">$110</div>
+            </div>
+          </div>
+          <div class="space-y-2">
+            <div class="flex justify-between text-xs"><span class="text-gray-500 font-medium">Presión</span><span class="font-bold text-gray-900">19 <span class="text-gray-300">vs</span> 15 bar</span></div>
+            <div class="flex justify-between text-xs"><span class="text-gray-500 font-medium">Depósito</span><span class="font-bold text-gray-900">0.7 <span class="text-gray-300">vs</span> 0.6 L</span></div>
+            <div class="flex justify-between text-xs"><span class="text-gray-500 font-medium">Garantía</span><span class="font-bold text-gray-900">2 <span class="text-gray-300">vs</span> 3 años</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6B → BARS altas -->
+      <div class="md:col-span-7 bg-white rounded-3xl p-6 hoverlift entra d2" style="box-shadow:0 1px 4px rgba(0,0,0,.04);">
+        <div class="text-[9px] font-extrabold uppercase tracking-[0.15em] text-gray-400 mb-5">Benchmark</div>
+        <div class="space-y-5">
+          <div>
+            <div class="flex justify-between text-xs font-bold mb-1.5"><span class="text-gray-500">Presión</span><span class="text-gray-900">19 <span class="text-gray-300">vs</span> 15 bar</span></div>
+            <div class="flex gap-1.5 h-3"><div class="flex-1 bg-emerald-400 rounded-full bar" style="--w:100%"></div><div class="flex-1 bg-gray-100 rounded-full bar" style="--w:79%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs font-bold mb-1.5"><span class="text-gray-500">Depósito</span><span class="text-gray-900">0.7 <span class="text-gray-300">vs</span> 0.6 L</span></div>
+            <div class="flex gap-1.5 h-3"><div class="flex-1 bg-emerald-400 rounded-full bar" style="--w:100%"></div><div class="flex-1 bg-gray-100 rounded-full bar" style="--w:86%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs font-bold mb-1.5"><span class="text-gray-500">Garantía</span><span class="text-gray-900">2 <span class="text-gray-300">vs</span> 3 años</span></div>
+            <div class="flex gap-1.5 h-3"><div class="flex-1 bg-gray-100 rounded-full bar" style="--w:66%"></div><div class="flex-1 bg-emerald-400 rounded-full bar" style="--w:100%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs font-bold mb-1.5"><span class="text-gray-500">Precio</span><span class="text-gray-900">$89 <span class="text-gray-300">vs</span> $110</span></div>
+            <div class="flex gap-1.5 h-3"><div class="flex-1 bg-emerald-400 rounded-full bar" style="--w:100%"></div><div class="flex-1 bg-gray-100 rounded-full bar" style="--w:81%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6C → TABLA tipo ficha técnica (span 12) -->
+    <div class="mt-4 bg-white rounded-xl overflow-hidden hoverlift entra d3" style="box-shadow:0 1px 4px rgba(0,0,0,.04);">
+      <div class="grid grid-cols-5 gap-0 text-center border-b border-gray-100">
+        <div class="p-3 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider bg-gray-50">Característica</div>
+        <div class="p-3 text-[10px] font-extrabold text-emerald-600 uppercase tracking-wider bg-gray-50">Nespresso A</div>
+        <div class="p-3 text-[10px] font-extrabold text-blue-500 uppercase tracking-wider bg-gray-50">Dolce B</div>
+        <div class="p-3 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider bg-gray-50">Ventaja</div>
+        <div class="p-3 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider bg-gray-50">Diferencia</div>
+      </div>
+      <div class="grid grid-cols-5 gap-0 text-center divide-y divide-gray-50">
+        <div class="p-3 text-xs font-semibold text-gray-500 self-center">Precio</div><div class="p-3 text-sm font-extrabold text-gray-900 self-center">$89</div><div class="p-3 text-sm font-extrabold text-gray-400 self-center">$110</div><div class="p-3 text-xs font-bold text-emerald-600 self-center">Nespresso</div><div class="p-3 text-xs font-bold text-emerald-600 self-center">-24%</div>
+        <div class="p-3 text-xs font-semibold text-gray-500 self-center">Presión</div><div class="p-3 text-sm font-extrabold text-emerald-600 self-center">19 bar</div><div class="p-3 text-sm font-extrabold text-gray-400 self-center">15 bar</div><div class="p-3 text-xs font-bold text-emerald-600 self-center">Nespresso</div><div class="p-3 text-xs font-bold text-emerald-600 self-center">+27%</div>
+        <div class="p-3 text-xs font-semibold text-gray-500 self-center">Depósito</div><div class="p-3 text-sm font-extrabold text-emerald-600 self-center">0.7 L</div><div class="p-3 text-sm font-extrabold text-gray-400 self-center">0.6 L</div><div class="p-3 text-xs font-bold text-emerald-600 self-center">Nespresso</div><div class="p-3 text-xs font-bold text-emerald-600 self-center">+17%</div>
+        <div class="p-3 text-xs font-semibold text-gray-500 self-center">Garantía</div><div class="p-3 text-sm font-extrabold text-gray-400 self-center">2 años</div><div class="p-3 text-sm font-extrabold text-emerald-600 self-center">3 años</div><div class="p-3 text-xs font-bold text-emerald-600 self-center">Dolce</div><div class="p-3 text-xs font-bold text-emerald-600 self-center">+50%</div>
+        <div class="p-3 text-xs font-semibold text-gray-500 self-center">Compat.</div><div class="p-3 text-sm font-extrabold text-emerald-600 self-center">Universal</div><div class="p-3 text-sm font-extrabold text-gray-400 self-center">Propia</div><div class="p-3 text-xs font-bold text-emerald-600 self-center">Nespresso</div><div class="p-3 text-xs font-bold text-emerald-600 self-center">—</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════ 7 REVIEW ══════════════════ -->
+  <section class="mb-16">
+    <h2 class="text-sm font-extrabold text-gray-900 uppercase tracking-widest mb-5 flex items-center gap-2">
+      <span class="w-7 h-7 bg-violet-100 rounded-lg flex items-center justify-center text-violet-500 text-xs font-black">7</span> Review
+    </h2>
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+
+      <!-- 7A → RADAR cuadrado -->
+      <div class="md:col-span-4 bg-white rounded-3xl p-5 hoverlift entra d1" style="box-shadow:0 1px 4px rgba(0,0,0,.04);">
+        <div class="text-[9px] font-extrabold uppercase tracking-[0.15em] text-violet-500 mb-1">Sony WH-1000XM5</div>
+        <p class="text-[11px] text-gray-400 font-medium mb-3">Radar</p>
         <div class="flex justify-center">
-          <svg width="180" height="155" viewBox="0 0 200 170">
+          <svg width="160" height="140" viewBox="0 0 200 170">
             <polygon points="100,10 177,65 148,150 52,150 23,65" fill="none" stroke="#f1f5f9" stroke-width="1"/>
             <polygon points="100,35 154,72 134,124 66,124 46,72" fill="none" stroke="#f1f5f9" stroke-width="1"/>
             <polygon points="100,60 130,82 118,98 82,98 70,82" fill="none" stroke="#f1f5f9" stroke-width="1"/>
-            <polygon points="100,22 166,68 138,138 48,130 32,58" fill="rgba(134,118,177,0.12)" stroke="#8676B1" stroke-width="2" class="radar-poly"/>
+            <polygon points="100,22 166,68 138,138 48,130 32,58" fill="rgba(134,118,177,0.12)" stroke="#8676B1" stroke-width="2"/>
             <text x="100" y="6" text-anchor="middle" fill="#9ca3af" font-size="9" font-weight="700">Calidad</text>
-            <text x="186" y="62" text-anchor="start" fill="#9ca3af" font-size="9" font-weight="700">Batería</text>
+            <text x="186" y="62" text-anchor="start" fill="#9ca3af" font-size="9" font-weight="700">Bat</text>
             <text x="156" y="162" text-anchor="middle" fill="#9ca3af" font-size="9" font-weight="700">Precio</text>
             <text x="44" y="162" text-anchor="middle" fill="#9ca3af" font-size="9" font-weight="700">Comfort</text>
             <text x="14" y="62" text-anchor="end" fill="#9ca3af" font-size="9" font-weight="700">Diseño</text>
           </svg>
         </div>
-        <div class="grid grid-cols-4 gap-2 mt-3 text-center">
-          <div><div class="text-xs font-black text-gray-900">9.2</div><div class="text-[9px] font-bold text-emerald-500 uppercase tracking-wider">Calidad</div></div>
-          <div><div class="text-xs font-black text-gray-900">8.8</div><div class="text-[9px] font-bold text-amber-500 uppercase tracking-wider">Batería</div></div>
-          <div><div class="text-xs font-black text-gray-900">7.5</div><div class="text-[9px] font-bold text-blue-500 uppercase tracking-wider">Comfort</div></div>
-          <div><div class="text-xs font-black text-gray-900">5.5</div><div class="text-[9px] font-bold text-red-400 uppercase tracking-wider">Precio</div></div>
+        <div class="grid grid-cols-4 gap-1 mt-2 text-center">
+          <div><div class="text-xs font-black">9.2</div><div class="text-[8px] font-bold text-emerald-500 uppercase tracking-wider">Cal</div></div>
+          <div><div class="text-xs font-black">8.8</div><div class="text-[8px] font-bold text-amber-500 uppercase tracking-wider">Bat</div></div>
+          <div><div class="text-xs font-black">7.5</div><div class="text-[8px] font-bold text-blue-500 uppercase tracking-wider">Com</div></div>
+          <div><div class="text-xs font-black">5.5</div><div class="text-[8px] font-bold text-red-400 uppercase tracking-wider">Pre</div></div>
         </div>
       </div>
 
-      <!-- 7B → Pros/Cons split -->
-      <div class="card-base p-6 card-entra d3">
-        <span class="text-[10px] font-extrabold uppercase tracking-[0.15em] text-violet-500 block mb-4">Opinión del experto</span>
-        <div class="flex items-center gap-3 mb-4">
-          <div class="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center text-violet-500"><span class="material-symbols-outlined text-[20px]">reviews</span></div>
-          <div><p class="text-sm font-bold text-gray-900">TechKoru</p><p class="text-[11px] text-gray-400 font-medium">Review 2025</p></div>
+      <!-- 7B → PROS/CONS lado a lado ancho -->
+      <div class="md:col-span-4 bg-white rounded-2xl p-0 overflow-hidden hoverlift entra d2" style="box-shadow:0 1px 4px rgba(0,0,0,.04);">
+        <div class="p-4 border-b border-gray-50 flex items-center gap-2">
+          <span class="material-symbols-outlined text-violet-400 text-lg">reviews</span>
+          <span class="text-xs font-bold text-gray-900">Opinión del experto</span>
         </div>
-        <div class="grid grid-cols-2 gap-2.5">
-          <div class="bg-emerald-50 rounded-2xl p-3.5">
-            <div class="text-[10px] font-extrabold text-emerald-500 uppercase tracking-wider mb-2">Pros</div>
-            <ul class="space-y-1.5">
-              <li class="flex items-start gap-1 text-[11px] font-semibold text-gray-700"><span class="material-symbols-outlined text-emerald-500 text-[14px] shrink-0">check_circle</span>Cancelación top</li>
-              <li class="flex items-start gap-1 text-[11px] font-semibold text-gray-700"><span class="material-symbols-outlined text-emerald-500 text-[14px] shrink-0">check_circle</span>Batería 2 días</li>
-              <li class="flex items-start gap-1 text-[11px] font-semibold text-gray-700"><span class="material-symbols-outlined text-emerald-500 text-[14px] shrink-0">check_circle</span>App completa</li>
+        <div class="grid grid-cols-2 divide-x divide-gray-50">
+          <div class="p-4">
+            <div class="text-[9px] font-extrabold text-emerald-500 uppercase tracking-wider mb-2">Pros</div>
+            <ul class="space-y-2">
+              <li class="flex items-start gap-1 text-[11px] font-semibold text-gray-700"><span class="material-symbols-outlined text-emerald-500 text-[13px] shrink-0">check_circle</span>Cancelación top</li>
+              <li class="flex items-start gap-1 text-[11px] font-semibold text-gray-700"><span class="material-symbols-outlined text-emerald-500 text-[13px] shrink-0">check_circle</span>Batería 2 días</li>
+              <li class="flex items-start gap-1 text-[11px] font-semibold text-gray-700"><span class="material-symbols-outlined text-emerald-500 text-[13px] shrink-0">check_circle</span>App completa</li>
             </ul>
           </div>
-          <div class="bg-red-50 rounded-2xl p-3.5">
-            <div class="text-[10px] font-extrabold text-red-400 uppercase tracking-wider mb-2">Contras</div>
-            <ul class="space-y-1.5">
-              <li class="flex items-start gap-1 text-[11px] font-semibold text-gray-700"><span class="material-symbols-outlined text-red-400 text-[14px] shrink-0">cancel</span>Precio alto</li>
-              <li class="flex items-start gap-1 text-[11px] font-semibold text-gray-700"><span class="material-symbols-outlined text-red-400 text-[14px] shrink-0">cancel</span>Case grande</li>
-              <li class="flex items-start gap-1 text-[11px] font-semibold text-gray-700"><span class="material-symbols-outlined text-red-400 text-[14px] shrink-0">cancel</span>Sin jack</li>
+          <div class="p-4">
+            <div class="text-[9px] font-extrabold text-red-400 uppercase tracking-wider mb-2">Contras</div>
+            <ul class="space-y-2">
+              <li class="flex items-start gap-1 text-[11px] font-semibold text-gray-700"><span class="material-symbols-outlined text-red-400 text-[13px] shrink-0">cancel</span>Precio alto</li>
+              <li class="flex items-start gap-1 text-[11px] font-semibold text-gray-700"><span class="material-symbols-outlined text-red-400 text-[13px] shrink-0">cancel</span>Case grande</li>
+              <li class="flex items-start gap-1 text-[11px] font-semibold text-gray-700"><span class="material-symbols-outlined text-red-400 text-[13px] shrink-0">cancel</span>Sin jack</li>
             </ul>
           </div>
         </div>
-        <div class="mt-3 p-3 bg-amber-50 rounded-xl text-center"><span class="text-sm font-extrabold text-amber-600">Nota: 8.4 / 10</span></div>
+        <div class="p-3 bg-amber-50 text-center"><span class="text-xs font-extrabold text-amber-600">Nota: 8.4 / 10</span></div>
       </div>
 
-      <!-- 7C → Quote editorial sobre fondo CLARO (no oscuro) -->
-      <div class="card-base p-8 card-entra d4" style="background: linear-gradient(160deg,#F8F7FF 0%,#fff 60%);">
-        <span class="text-[10px] font-extrabold uppercase tracking-[0.15em] text-violet-500 block mb-5">Veredicto final</span>
-        <div class="text-4xl font-black text-violet-200/60 leading-none mb-3">“</div>
-        <p class="text-[15px] font-semibold text-gray-700 leading-relaxed mb-6">El rey de la cancelación activa regresa con mejor batería y un diseño más liviano.</p>
-        <div class="flex flex-wrap gap-2 mb-6">
-          <span class="bg-white/80 px-3 py-1.5 rounded-lg text-[11px] font-bold text-violet-600 shadow-sm border border-gray-50">Calidad top</span>
-          <span class="bg-white/80 px-3 py-1.5 rounded-lg text-[11px] font-bold text-violet-600 shadow-sm border border-gray-50">Premium</span>
-          <span class="bg-white/80 px-3 py-1.5 rounded-lg text-[11px] font-bold text-violet-600 shadow-sm border border-gray-50">Recomendado</span>
+      <!-- 7C → QUOTE editorial GRANDE -->
+      <div class="md:col-span-4 bg-gradient-to-br from-violet-50 to-white rounded-[28px] p-7 hoverlift entra d3" style="box-shadow:0 1px 4px rgba(0,0,0,.04);">
+        <div class="text-[9px] font-extrabold uppercase tracking-[0.15em] text-violet-500 mb-4">Veredicto final · TechKoru</div>
+        <div class="text-5xl font-black text-violet-200/60 leading-none mb-3">“</div>
+        <p class="text-[15px] font-semibold text-gray-700 leading-relaxed mb-5">El rey de la cancelación activa regresa con mejor batería y un diseño más liviano.</p>
+        <div class="flex flex-wrap gap-2 mb-5">
+          <span class="bg-white px-2.5 py-1 rounded-lg text-[10px] font-bold text-violet-600 shadow-sm border border-gray-100">Calidad top</span>
+          <span class="bg-white px-2.5 py-1 rounded-lg text-[10px] font-bold text-violet-600 shadow-sm border border-gray-100">Premium</span>
         </div>
-        <div class="flex items-center justify-between pt-5 border-t border-violet-100/40">
-          <div><p class="text-sm font-bold text-gray-900">TechKoru</p><p class="text-[11px] text-gray-400 font-medium">Review 2025</p></div>
-          <button class="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-xs font-bold transition-colors">Leer →</button>
-        </div>
+        <button class="w-full py-2.5 bg-violet-600 text-white rounded-xl text-xs font-bold">Leer completo →</button>
       </div>
     </div>
   </section>
 
-  <footer class="text-center py-8 text-[11px] text-gray-300 font-semibold card-entra">21 diseños · App funcional · Universo claro</footer>
+  <footer class="text-center py-8 text-[11px] text-gray-300 font-semibold entra">21 cards · Formas y densidades distintas · Universo claro</footer>
 
 </div>
 </body>
