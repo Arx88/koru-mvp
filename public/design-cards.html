@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Koru — Diseño de Tarjetas</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          forest: '#5c7a5f',
+          sage: '#8b9d83',
+          moss: '#6b8f71',
+          leaf: '#a8c5a0',
+          cream: '#faf8f5',
+          'warm-white': '#f5f3ee',
+          sand: '#e8e4dc',
+          gold: '#c9a96e',
+          bark: '#3d3632',
+          earth: '#6b5b4f',
+          stone: '#b8a99a',
+          blush: '#e8d5d0',
+          background: '#faf8f5',
+          foreground: '#3d3632',
+          primary: '#5c7a5f',
+          'primary-foreground': '#faf8f5',
+          destructive: '#c4736b',
+          border: '#e8e4dc',
+        },
+        fontFamily: {
+          sans: ['ui-sans-serif','system-ui','sans-serif'],
+          serif: ['Georgia','serif'],
+        },
+        borderRadius: {
+          '2xl': '0.75rem',
+          '3xl': '1rem',
+        }
+      }
+    }
+  }
+</script>
+<style>
+  body { background: #faf8f5; color: #3d3632; }
+  .card-shadow { box-shadow: 0 4px 24px rgba(61,54,50,0.06), 0 1px 4px rgba(61,54,50,0.04); }
+  .badge { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-wide uppercase; }
+</style>
+</head>
+<body class="min-h-screen font-sans">
+
+<div class="max-w-5xl mx-auto px-6 py-10">
+  <header class="mb-12 text-center">
+    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-forest/10 text-forest mb-4">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9.536V7a4 4 0 0 1 4-4h1.5a.5.5 0 0 1 .5.5V5a4 4 0 0 1-4 4 4 4 0 0 0-4 4c0 2 1 3 1 5a5 5 0 0 1-1 3"/></svg>
+    </div>
+    <h1 class="font-serif text-3xl text-bark leading-tight">Diseño de tarjetas</h1>
+    <p class="text-sm text-earth mt-2">7 temas × 3 opciones. Estilo Koru.</p>
+  </header>
+
+  <!-- 1) FÚTBOL -->
+  <section class="mb-16">
+    <div class="flex items-center gap-3 mb-6">
+      <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-forest text-cream text-xs font-bold">1</span>
+      <h2 class="font-serif text-xl text-bark">Resultados de fútbol</h2>
+    </div>
+    <div class="grid md:grid-cols-3 gap-6">
+
+      <!-- Opción A: Lista de partidos -->
+      <div class="bg-white rounded-2xl card-shadow p-5 border border-sand">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-serif text-base text-bark">Partidos de hoy</h3>
+          <span class="badge bg-forest/10 text-forest">Finalizados</span>
+        </div>
+        <div class="space-y-3">
+          <div class="flex items-center justify-between py-2 border-b border-sand/60">
+            <div class="flex items-center gap-2 text-sm font-medium text-bark">
+              <div class="w-6 h-6 rounded-full bg-sand flex items-center justify-center text-[10px]">B</div> BOCA
+            </div>
+            <span class="text-sm font-bold text-bark">2</span>
+          </div>
+          <div class="flex items-center justify-between py-2 border-b border-sand/60">
+            <div class="flex items-center gap-2 text-sm font-medium text-bark">
+              <div class="w-6 h-6 rounded-full bg-sand flex items-center justify-center text-[10px]">R</div> RIVER
+            </div>
+            <span class="text-sm font-bold text-bark">1</span>
+          </div>
+          <div class="flex items-center justify-between py-2">
+            <div class="flex items-center gap-2 text-sm font-medium text-earth">
+              <div class="w-6 h-6 rounded-full bg-sand flex items-center justify-center text-[10px]">R</div> RACING
+            </div>
+            <span class="text-sm font-bold text-earth">—</span>
+          </div>
+        </div>
+        <p class="text-[11px] text-stone mt-3">Actualizado hace 12 min</p>
+      </div>
+
+      <!-- Opción B: Card vs grande -->
+      <div class="bg-white rounded-2xl card-shadow p-5 border border-sand text-center">
+        <span class="badge bg-gold/15 text-earth mb-4">Primera división</span>
+        <div class="flex items-center justify-between px-2">
+          <div class="flex flex-col items-center">
+            <div class="w-14 h-14 rounded-full bg-sand flex items-center justify-center text-lg font-bold text-bark">B</div>
+            <span class="text-xs font-semibold text-bark mt-2">BOCA</span>
+          </div>
+          <div class="flex flex-col items-center px-3">
+            <span class="text-3xl font-bold text-bark">2 : 1</span>
+            <span class="text-[11px] text-stone mt-1">Final</span>
+          </div>
+          <div class="flex flex-col items-center">
+            <div class="w-14 h-14 rounded-full bg-sand flex items-center justify-center text-lg font-bold text-bark">R</div>
+            <span class="text-xs font-semibold text-bark mt-2">RIVER</span>
+          </div>
+        </div>
+        <div class="mt-5 flex items-center justify-center gap-4 text-[11px] text-earth">
+          <span>Goles: Benedetto 34', 67'</span>
+          <span class="w-1 h-1 rounded-full bg-stone"></span>
+          <span>Álvarez 12'</span>
+        </div>
+      </div>
+
+      <!-- Opción C: Compacta con mini tabla -->
+      <div class="bg-white rounded-2xl card-shadow p-5 border border-sand">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-serif text-base text-bark">Liga argentina</h3>
+          <span class="text-[11px] text-stone">Fecha 14</span>
+        </div>
+        <div class="grid grid-cols-[1fr_auto_auto_auto] gap-y-2 text-xs">
+          <div class="text-stone font-medium uppercase text-[10px] pb-1">Equipo</div>
+          <div class="text-stone font-medium uppercase text-[10px] pb-1 text-center">PJ</div>
+          <div class="text-stone font-medium uppercase text-[10px] pb-1 text-center">DG</div>
+          <div class="text-stone font-medium uppercase text-[10px] pb-1 text-right">Pts</div>
+
+          <div class="flex items-center gap-2 text-bark font-semibold"><span class="w-5 h-5 rounded-full bg-forest/10 text-forest flex items-center justify-center text-[10px]">1</span> River</div>
+          <div class="text-center text-bark">14</div>
+          <div class="text-center text-bark">+18</div>
+          <div class="text-right text-bark font-bold">32</div>
+
+          <div class="flex items-center gap-2 text-earth"><span class="w-5 h-5 rounded-full bg-sand flex items-center justify-center text-[10px]">2</span> Racing</div>
+          <div class="text-center text-earth">14</div>
+          <div class="text-center text-earth">+12</div>
+          <div class="text-right text-earth">29</div>
+
+          <div class="flex items-center gap-2 text-earth"><span class="w-5 h-5 rounded-full bg-sand flex items-center justify-center text-[10px]">3</span> Boca</div>
+          <div class="text-center text-earth">14</div>
+          <div class="text-center text-earth">+8</div>
+          <div class="text-right text-earth">27</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2) ELECCIONES -->
+  <section class="mb-16">
+    <div class="flex items-center gap-3 mb-6">
+      <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-forest text-cream text-xs font-bold">2</span>
+      <h2 class="font-serif text-xl text-bark">Resultados de elecciones</h2>
+    </div>
+    <div class="grid md:grid-cols-3 gap-6">
+
+      <!-- Opción A: Barras -->
+      <div class="bg-white rounded-2xl card-shadow p-5 border border-sand">
+        <h3 class="font-serif text-base text-bark mb-1">Elecciones 2025</h3>
+        <p class="text-[11px] text-stone mb-4">Escrutinio: 87,4%</p>
+        <div class="space-y-3">
+          <div>
+            <div class="flex justify-between text-xs mb-1"><span class="font-medium text-bark">Unión</span><span class="font-bold text-bark">42,3%</span></div>
+            <div class="h-2.5 bg-sand rounded-full overflow-hidden"><div class="h-full bg-forest rounded-full" style="width:42.3%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1"><span class="font-medium text-earth">Frente</span><span class="font-bold text-earth">35,1%</span></div>
+            <div class="h-2.5 bg-sand rounded-full overflow-hidden"><div class="h-full bg-gold rounded-full" style="width:35.1%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1"><span class="font-medium text-stone">Otros</span><span class="font-bold text-stone">22,6%</span></div>
+            <div class="h-2.5 bg-sand rounded-full overflow-hidden"><div class="h-full bg-stone/60 rounded-full" style="width:22.6%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Opción B: Tarjetas de candidato -->
+      <div class="bg-white rounded-2xl card-shadow p-5 border border-sand">
+        <h3 class="font-serif text-base text-bark mb-4">Candidatos</h3>
+        <div class="space-y-3">
+          <div class="flex items-center gap-3 p-3 rounded-xl bg-warm-white border border-sand">
+            <div class="w-10 h-10 rounded-full bg-forest text-cream flex items-center justify-center text-sm font-bold">M</div>
+            <div class="flex-1">
+              <p class="text-sm font-semibold text-bark">Martínez</p>
+              <p class="text-[11px] text-stone">Unión por la Patria</p>
+            </div>
+            <span class="text-sm font-bold text-forest">42%</span>
+          </div>
+          <div class="flex items-center gap-3 p-3 rounded-xl bg-warm-white border border-sand">
+            <div class="w-10 h-10 rounded-full bg-gold text-bark flex items-center justify-center text-sm font-bold">L</div>
+            <div class="flex-1">
+              <p class="text-sm font-semibold text-bark">López</p>
+              <p class="text-[11px] text-stone">La Libertad</p>
+            </div>
+            <span class="text-sm font-bold text-gold">35%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Opción C: Gráfica de anillo + leyenda -->
+      <div class="bg-white rounded-2xl card-shadow p-5 border border-sand text-center">
+        <h3 class="font-serif text-base text-bark mb-3">Resultado final</h3>
+        <div class="relative w-28 h-28 mx-auto mb-3">
+          <svg viewBox="0 0 36 36" class="w-full h-full -rotate-90">
+            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e8e4dc" stroke-width="4" />
+            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#5c7a5f" stroke-width="4" stroke-dasharray="42.3, 100" />
+            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#c9a96e" stroke-width="4" stroke-dasharray="35.1, 100" stroke-dashoffset="-42.3" />
+          </svg>
+          <div class="absolute inset-0 flex items-center justify-center">
+            <span class="text-lg font-bold text-bark">87%</span>
+          </div>
+        </div>
+        <div class="flex justify-center gap-4 text-[11px]">
+          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-forest"></span> Unión</span>
+          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-gold"></span> Frente</span>
+          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-stone"></span> Otros</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3) CRYPTO / FOREX -->
+  <section class="mb-16">
+    <div class="flex items-center gap-3 mb-6">
+      <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-forest text-cream text-xs font-bold">3</span>
+      <h2 class="font-serif text-xl text-bark">Crypto y Forex</h2>
+    </div>
+    <div class="grid md:grid-cols-3 gap-6">
+
+      <!-- Opción A: Lista de precios -->
+      <div class="bg-white rounded-2xl card-shadow p-5 border border-sand">
+        <h3 class="font-serif text-base text-bark mb-4">Mercado en vivo</h3>
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2"><span class="w-6 h-6 rounded-full bg-gold/20 text-gold flex items-center justify-center text-[10px] font-bold">₿</span><span class="text-sm font-medium text-bark">Bitcoin</span></div>
+            <div class="text-right"><div class="text-sm font-bold text-bark">$64.230</div><div class="text-[11px] text-moss">+2,4%</div></div>
+          </div>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2"><span class="w-6 h-6 rounded-full bg-stone/20 text-stone flex items-center justify-center text-[10px] font-bold">Ξ</span><span class="text-sm font-medium text-bark">Ethereum</span></div>
+            <div class="text-right"><div class="text-sm font-bold text-bark">$3.410</div><div class="text-[11px] text-destructive">−1,2%</div></div>
+          </div>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2"><span class="w-6 h-6 rounded-full bg-forest/15 text-forest flex items-center justify-center text-[10px] font-bold">$</span><span class="text-sm font-medium text-bark">EUR/USD</span></div>
+            <div class="text-right"><div class="text-sm font-bold text-bark">1,085</div><div class="text-[11px] text-stone">0,0%</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Opción B: Card con stats -->
+      <div class="bg-white rounded-2xl card-shadow p-5 border border-sand">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-full bg-gold/20 text-gold flex items-center justify-center text-sm font-bold">₿</div>
+            <div>
+              <p class="text-sm font-bold text-bark">Bitcoin</p>
+              <p class="text-[11px] text-stone">BTC/USD</p>
+            </div>
+          </div>
+          <span class="badge bg-moss/10 text-moss">+2,4%</span>
+        </div>
+        <div class="text-3xl font-bold text-bark mb-4">$64.230,50</div>
+        <div class="grid grid-cols-3 gap-2 text-center">
+          <div class="bg-warm-white rounded-xl p-2 border border-sand">
+            <p class="text-[10px] text-stone uppercase">Máx</p>
+            <p class="text-xs font-semibold text-bark">$65.100</p>
+          </div>
+          <div class="bg-warm-white rounded-xl p-2 border border-sand">
+            <p class="text-[10px] text-stone uppercase">Mín</p>
+            <p class="text-xs font-semibold text-bark">$62.800</p>
+          </div>
+          <div class="bg-warm-white rounded-xl p-2 border border-sand">
+            <p class="text-[10px] text-stone uppercase">Vol</p>
+            <p class="text-xs font-semibold text-bark">28B</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Opción C: Grid compacto -->
+      <div class="bg-white rounded-2xl card-shadow p-5 border border-sand">
+        <h3 class="font-serif text-base text-bark mb-3">Tendencias</h3>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="p-3 rounded-xl bg-warm-white border border-sand text-center">
+            <span class="text-[10px] text-stone uppercase block mb-1">BTC</span>
+            <span class="text-sm font-bold text-bark block">$64.230</span>
+            <span class="text-[11px] text-moss flex items-center justify-center gap-0.5 mt-0.5">▲ +2,4%</span>
+          </div>
+          <div class="p-3 rounded-xl bg-warm-white border border-sand text-center">
+            <span class="text-[10px] text-stone uppercase block mb-1">ETH</span>
+            <span class="text-sm font-bold text-bark block">$3.410</span>
+            <span class="text-[11px] text-destructive flex items-center justify-center gap-0.5 mt-0.5">▼ −1,2%</span>
+          </div>
+          <div class="p-3 rounded-xl bg-warm-white border border-sand text-center">
+            <span class="text-[10px] text-stone uppercase block mb-1">EUR/USD</span>
+            <span class="text-sm font-bold text-bark block">1,085</span>
+            <span class="text-[11px] text-stone flex items-center justify-center gap-0.5 mt-0.5">− 0,0%</span>
+          </div>
+          <div class="p-3 rounded-xl bg-warm-white border border-sand text-center">
+            <span class="text-[10px] text-stone uppercase block mb-1">GBP/USD</span>
+            <span class="text-sm font-bold text-bark block">1,273</span>
+            <span class="text-[11px] text-moss flex items-center justify-center gap-0.5 mt-0.5">▲ +0,8%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4) INDICACIONES -->
+  <section class="mb-16">
+    <div class="flex items-center gap-3 mb-6">
+      <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-forest text-cream text-xs font-bold">4</span>
+      <h2 class="font-serif text-xl text-bark">Indicaciones de cómo llegar</h2>
+    </div>
+    <div class="grid md:grid-cols-3 gap-6">
+
+      <!-- Opción A: Lista paso a paso -->
+      <div class="bg-white rounded-2xl card-shadow p-5 border border-sand">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-serif text-base text-bark">Ruta sugerida</h3>
+          <span class="badge bg-forest/10 text-forest">Auto</span>
+        </div>
+        <div class="flex items-baseline gap-2 mb-3">
+          <span class="text-xl font-bold text-bark">18 min</span>
+          <span class="text-xs text-stone">· 8,2 km</span>
+        </div>
+        <div class="relative pl-6 space-y-4 border-l-2 border-sand">
+          <div class="relative">
+            <span class="absolute -left-[29px] top-0.5 w-5 h-5 rounded-full bg-forest text-cream text-[10px] flex items-center justify-center font-bold">1</span>
+            <p class="text-xs font-medium text-bark">Girá a la izquierda por Av. Libertador</p>
+            <p class="text-[11px] text-stone">450 m</p>
+          </div>
+          <div class="relative">
+            <span class="absolute -left-[29px] top-0.5 w-5 h-5 rounded-full bg-sand text-earth text-[10px] flex items-center justify-center font-bold">2</span>
+            <p class="text-xs font-medium text-bark">Continuá por Acceso Norte</p>
+            <p class="text-[11px] text-stone">5,8 km</p>
+          </div>
+          <div class="relative">
+            <span class="absolute -left-[29px] top-0.5 w-5 h-5 rounded-full bg-sand text-earth text-[10px] flex items-center justify-center font-bold">3</span>
+            <p class="text-xs font-medium text-bark">Tomá la salida 12 hacia Olivos</p>
+            <p class="text-[11px] text-stone">1,9 km</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Opción B: Card con mapa y recuadro -->
+      <div class="bg-white rounded-2xl card-shadow border border-sand overflow-hidden">
+        <div class="h-28 bg-sand/60 flex items-center justify-center">
+          <div class="text-center">
+            <div class="text-3xl font-bold text-bark">8,2 km</div>
+            <div class="text-xs text-earth">Av. del Libertador → Acceso Norte</div>
+          </div>
+        </div>
+        <div class="p-5">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-sm font-bold text-bark">Destino</span>
+            <span class="badge bg-gold/15 text-earth">Estimado 18 min</span>
+          </div>
+          <p class="text-sm text-earth mb-3">Shopping de Olivos</p>
+          <div class="flex gap-2">
+            <button class="flex-1 rounded-full bg-forest text-cream py-2.5 text-xs font-semibold">Iniciar GPS</button>
+            <button class="flex-1 rounded-full bg-warm-white text-bark border border-sand py-2.5 text-xs font-semibold">Copiar dirección</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Opción C: Timeline vertical -->
+      <div class="bg-white rounded-2xl card-shadow p-5 border border-sand">
+        <h3 class="font-serif text-base text-bark mb-4">Recorrido</h3>
+        <div class="relative pl-7 space-y-5">
+          <div class="relative">
+            <span class="absolute -left-7 top-0 w-5 h-5 rounded-full bg-forest/10 text-forest flex items-center justify-center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></span>
+            <p class="text-xs font-bold text-bark">Origen</p>
+            <p class="text-[11px] text-stone">Tu ubicación actual</p>
+          </div>
+          <div class="relative">
+            <span class="absolute -left-7 top-0 w-5 h-5 rounded-full bg-gold/15 text-gold flex items-center justify-center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z"/></svg></span>
+            <p class="text-xs font-bold text-bark">Ruta rápida</p>
+            <p class="text-[11px] text-stone">Acceso Norte · 5,8 km</p>
+          </div>
+          <div class="relative">
+            <span class="absolute -left-7 top-0 w-5 h-5 rounded-full bg-forest text-cream flex items-center justify-center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></span>
+            <p class="text-xs font-bold text-bark">Destino</p>
+            <p class="text-[11px] text-stone">Shopping de Olivos</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5) CUMPLEAÑOS -->
+  <section class="mb-16">
+    <div class="flex items-center gap-3 mb-6">
+      <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-forest text-cream text-xs font-bold">5</span>
+      <h2 class="font-serif text-xl text-bark">Cumpleaños de conocidos</h2>
+    </div>
+    <div class="grid md:grid-cols-3 gap-6">
+
+      <!-- Opción A: Lista con avatares -->
+      <div class="bg-white rounded-2xl card-shadow p-5 border border-sand">
+        <h3 class="font-serif text-base text-bark mb-4">Próximos</h3>
+        <div class="space-y-3">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-blush text-bark flex items-center justify-center text-sm font-bold">A</div>
+            <div class="flex-1">
+              <p class="text-sm font-semibold text-bark">Ana López</p>
+              <p class="text-[11px] text-stone">12 de julio · en 8 días</p>
+            </div>
+            <span class="badge bg-gold/15 text-earth">35 años</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-leaf text-bark flex items-center justify-center text-sm font-bold">R</div>
+            <div class="flex-1">
+              <p class="text-sm font-semibold text-bark">Roberto Díaz</p>
+              <p class="text-[11px] text-stone">22 de julio · en 18 días</p>
+            </div>
+            <span class="badge bg-stone/25 text-earth">42 años</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Opción B: Destacado del próximo -->
+      <div class="bg-white rounded-2xl card-shadow p-5 border border-sand text-center">
+        <div class="w-16 h-16 mx-auto rounded-full bg-blush/60 flex items-center justify-center text-2xl mb-3">🎂</div>
+        <h3 class="font-serif text-lg text-bark">Ana López</h3>
+        <p class="text-sm text-earth mt-1">12 de julio · 35 años</p>
+        <p class="text-xs text-moss font-semibold mt-2">¡Faltan 8 días!</p>
+        <div class="mt-4 flex gap-2 justify-center">
+          <button class="rounded-full bg-forest text-cream px-4 py-2 text-xs font-semibold">Recordar</button>
+          <button class="rounded-full bg-warm-white text-bark border border-sand px-4 py-2 text-xs font-semibold">Regalo</button>
+        </div>
+      </div>
+
+      <!-- Opción C: Calendario mensual -->
+      <div class="bg-white rounded-2xl card-shadow p-5 border border-sand">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-serif text-base text-bark">Julio 2025</h3>
+          <span class="text-[11px] text-stone">2 cumpleaños</span>
+        </div>
+        <div class="grid grid-cols-7 gap-1 text-center text-[10px]">
+          <span class="text-stone">L</span><span class="text-stone">M</span><span class="text-stone">M</span><span class="text-stone">J</span><span class="text-stone">V</span><span class="text-stone">S</span><span class="text-stone">D</span>
+          <span class="py-1 text-stone/40">—</span><span class="py-1 text-stone/40">—</span>
+          <span class="py-1">1</span><span class="py-1">2</span><span class="py-1">3</span><span class="py-1">4</span><span class="py-1">5</span><span class="py-1">6</span>
+          <span class="py-1">7</span><span class="py-1">8</span><span class="py-1">9</span><span class="py-1">10</span><span class="py-1">11</span>
+          <span class="py-1 rounded-lg bg-gold/20 text-bark font-bold">12</span>
+          <span class="py-1">13</span>
+          <span class="py-1">14</span><span class="py-1">15</span><span class="py-1">16</span><span class="py-1">17</span><span class="py-1">18</span><span class="py-1">19</span><span class="py-1">20</span>
+          <span class="py-1">21</span>
+          <span class="py-1 rounded-lg bg-moss/15 text-bark font-bold">22</span>
+          <span class="py-1">23</span><span class="py-1">24</span><span class="py-1">25</span><span class="py-1">26</span><span class="py-1">27</span><span class="py-1">28</span>
+          <span class="py-1">29</span><span class="py-1">30</span><span class="py-1">31</span>
+        </div>
+        <div class="mt-3 space-y-1.5">
+          <div class="flex items-center gap-2 text-[11px]"><span class="w-2 h-2 rounded-full bg-gold"></span> Ana · 12/07</div>
+          <div class="flex items-center gap-2 text-[11px]"><span class="w-2 h-2 rounded-full bg-moss"></span> Roberto · 22/07</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6) COMPARATIVA DE PRODUCTOS -->
+  <section class="mb-16">
+    <div class="flex items-center gap-3 mb-6">
+      <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-forest text-cream text-xs font-bold">6</span>
+      <h2 class="font-serif text-xl text-bark">Comparativa entre 2 productos</h2>
+    </div>
+    <div class="grid md:grid-cols-3 gap-6">
+
+      <!-- Opción A: Tabla lado a lado -->
+      <div class="bg-white rounded-2xl card-shadow p-5 border border-sand">
+        <h3 class="font-serif text-base text-bark mb-4">Cafeteras</h3>
+        <div class="grid grid-cols-[1fr_1fr_1fr] gap-y-2 text-xs">
+          <div class="text-stone font-medium">Característica</div>
+          <div class="text-bark font-bold text-center">Nespresso A</div>
+          <div class="text-bark font-bold text-center">Dolce B</div>
+
+          <div class="text-stone">Precio</div><div class="text-center text-moss font-bold">$89</div><div class="text-center text-bark">$110</div>
+          <div class="text-stone">Presión</div><div class="text-center">19 bar</div><div class="text-center">15 bar</div>
+          <div class="text-stone">Depósito</div><div class="text-center">0,7 L</div><div class="text-center">0,8 L</div>
+          <div class="text-stone">Capsulas</div><div class="text-center text-moss">Universal</div><div class="text-center text-destructive">Propia</div>
+          <div class="text-stone">Garantía</div><div class="text-center">2 años</div><div class="text-center text-moss">3 años</div>
+        </div>
+        <div class="mt-4 flex gap-2">
+          <button class="flex-1 rounded-full bg-forest text-cream py-2 text-xs font-semibold">Elegir Nespresso</button>
+          <button class="flex-1 rounded-full bg-warm-white text-bark border border-sand py-2 text-xs font-semibold">Elegir Dolce</button>
+        </div>
+      </div>
+
+      <!-- Opción B: Tarjeta VS -->
+      <div class="bg-white rounded-2xl card-shadow p-5 border border-sand">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-serif text-base text-bark">Comparativa</h3>
+          <span class="text-xs font-bold text-gold">VS</span>
+        </div>
+        <div class="flex gap-3 mb-4">
+          <div class="flex-1 p-3 rounded-xl bg-warm-white border border-sand text-center">
+            <div class="w-10 h-10 rounded-lg bg-sand mx-auto mb-2 flex items-center justify-center text-lg">☕</div>
+            <p class="text-xs font-bold text-bark">Nespresso A</p>
+            <p class="text-lg font-bold text-moss mt-1">$89</p>
+            <span class="text-[10px] text-stone">19 bar · 0,7 L</span>
+          </div>
+          <div class="flex-1 p-3 rounded-xl bg-warm-white border border-sand text-center">
+            <div class="w-10 h-10 rounded-lg bg-sand mx-auto mb-2 flex items-center justify-center text-lg">☕</div>
+            <p class="text-xs font-bold text-bark">Dolce B</p>
+            <p class="text-lg font-bold text-bark mt-1">$110</p>
+            <span class="text-[10px] text-stone">15 bar · 0,8 L</span>
+          </div>
+        </div>
+        <div class="space-y-2 text-xs">
+          <div class="flex items-center justify-between py-1 border-b border-sand/50"><span class="text-stone">Relación calidad/precio</span><span class="text-moss font-bold">Nespresso</span></div>
+          <div class="flex items-center justify-between py-1 border-b border-sand/50"><span class="text-stone">Compatibilidad</span><span class="text-moss font-bold">Nespresso</span></div>
+          <div class="flex items-center justify-between py-1"><span class="text-stone">Garantía</span><span class="text-bark font-bold">Dolce</span></div>
+        </div>
+      </div>
+
+      <!-- Opción C: Radar descriptivo -->
+      <div class="bg-white rounded-2xl card-shadow p-5 border border-sand">
+        <h3 class="font-serif text-base text-bark mb-3">Criterios</h3>
+        <div class="space-y-3">
+          <div>
+            <div class="flex justify-between text-xs mb-1"><span class="text-stone">Precio</span><span class="text-moss font-bold">Nespresso gana</span></div>
+            <div class="flex gap-1">
+              <div class="h-2 flex-1 rounded-l-full bg-moss"></div>
+              <div class="h-2 flex-1 bg-sand"></div>
+              <div class="h-2 flex-1 rounded-r-full bg-sand"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1"><span class="text-stone">Potencia</span><span class="text-moss font-bold">Nespresso gana</span></div>
+            <div class="flex gap-1">
+              <div class="h-2 flex-1 rounded-l-full bg-moss"></div>
+              <div class="h-2 flex-1 bg-moss"></div>
+              <div class="h-2 flex-1 rounded-r-full bg-sand"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1"><span class="text-stone">Capacidad</span><span class="text-bark font-bold">Dolce gana</span></div>
+            <div class="flex gap-1">
+              <div class="h-2 flex-1 rounded-l-full bg-sand"></div>
+              <div class="h-2 flex-1 bg-gold"></div>
+              <div class="h-2 flex-1 rounded-r-full bg-gold"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1"><span class="text-stone">Compatibilidad</span><span class="text-moss font-bold">Nespresso gana</span></div>
+            <div class="flex gap-1">
+              <div class="h-2 flex-1 rounded-l-full bg-moss"></div>
+              <div class="h-2 flex-1 bg-sand"></div>
+              <div class="h-2 flex-1 rounded-r-full bg-sand"></div>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 p-3 rounded-xl bg-warm-white border border-sand text-center">
+          <p class="text-xs text-earth">Recomendación de Koru</p>
+          <p class="text-sm font-bold text-bark mt-0.5">Nespresso A</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7) PRODUCT REVIEW -->
+  <section class="mb-16">
+    <div class="flex items-center gap-3 mb-6">
+      <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-forest text-cream text-xs font-bold">7</span>
+      <h2 class="font-serif text-xl text-bark">Product review</h2>
+    </div>
+    <div class="grid md:grid-cols-3 gap-6">
+
+      <!-- Opción A: Estrellas + pros/cons -->
+      <div class="bg-white rounded-2xl card-shadow p-5 border border-sand">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-12 h-12 rounded-xl bg-sand flex items-center justify-center text-xl">🎧</div>
+          <div>
+            <h3 class="font-serif text-base text-bark">Sony WH-1000XM5</h3>
+            <div class="flex items-center gap-1 text-gold text-sm">★★★★☆ <span class="text-[11px] text-stone">(4,2)</span></div>
+          </div>
+        </div>
+        <div class="space-y-2 text-xs mb-3">
+          <div class="flex justify-between"><span class="text-stone">Cancelación</span><div class="w-24 h-2 bg-sand rounded-full overflow-hidden"><div class="h-full bg-moss rounded-full" style="width:92%"></div></div></div>
+          <div class="flex justify-between"><span class="text-stone">Batería</span><div class="w-24 h-2 bg-sand rounded-full overflow-hidden"><div class="h-full bg-moss rounded-full" style="width:88%"></div></div></div>
+          <div class="flex justify-between"><span class="text-stone">Comfort</span><div class="w-24 h-2 bg-sand rounded-full overflow-hidden"><div class="h-full bg-gold rounded-full" style="width:75%"></div></div></div>
+          <div class="flex justify-between"><span class="text-stone">Precio</span><div class="w-24 h-2 bg-sand rounded-full overflow-hidden"><div class="h-full bg-stone/60 rounded-full" style="width:55%"></div></div></div>
+        </div>
+        <div class="flex gap-2 text-[11px]">
+          <span class="inline-flex items-center gap-1 rounded-full bg-moss/10 text-moss px-2 py-0.5">Reducción top</span>
+          <span class="inline-flex items-center gap-1 rounded-full bg-destructive/10 text-destructive px-2 py-0.5">Precio alto</span>
+        </div>
+      </div>
+
+      <!-- Opción B: Card grande con nota -->
+      <div class="bg-white rounded-2xl card-shadow p-5 border border-sand text-center">
+        <div class="w-14 h-14 rounded-xl bg-sand mx-auto mb-3 flex items-center justify-center text-2xl">🎧</div>
+        <h3 class="font-serif text-base text-bark">Sony WH-1000XM5</h3>
+        <p class="text-[11px] text-stone mb-3">Auriculares con cancelación</p>
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-forest/10 text-forest mb-3">
+          <span class="text-2xl font-bold">8,4</span>
+        </div>
+        <p class="text-sm text-earth italic mb-3">"El mejor cancelación activa del mercado. La batería dura dos días."</p>
+        <div class="flex justify-center gap-4 text-[11px] text-stone">
+          <span>92% calidad</span>
+          <span>·</span>
+          <span>88% batería</span>
+          <span>·</span>
+          <span>75% precio</span>
+        </div>
+      </div>
+
+      <!-- Opción C: Grid de aspectos -->
+      <div class="bg-white rounded-2xl card-shadow p-5 border border-sand">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-serif text-base text-bark">Review</h3>
+          <div class="text-gold text-sm">★★★★☆</div>
+        </div>
+        <p class="text-xs text-earth mb-3">Sony WH-1000XM5 · $349</p>
+        <div class="grid grid-cols-2 gap-2">
+          <div class="p-2.5 rounded-xl bg-warm-white border border-sand text-center">
+            <span class="text-[10px] text-stone uppercase">Calidad</span>
+            <span class="block text-sm font-bold text-moss mt-0.5">9,2</span>
+          </div>
+          <div class="p-2.5 rounded-xl bg-warm-white border border-sand text-center">
+            <span class="text-[10px] text-stone uppercase">Batería</span>
+            <span class="block text-sm font-bold text-moss mt-0.5">8,8</span>
+          </div>
+          <div class="p-2.5 rounded-xl bg-warm-white border border-sand text-center">
+            <span class="text-[10px] text-stone uppercase">Comfort</span>
+            <span class="block text-sm font-bold text-gold mt-0.5">7,5</span>
+          </div>
+          <div class="p-2.5 rounded-xl bg-warm-white border border-sand text-center">
+            <span class="text-[10px] text-stone uppercase">Precio</span>
+            <span class="block text-sm font-bold text-stone mt-0.5">5,5</span>
+          </div>
+        </div>
+        <p class="text-[11px] text-earth mt-3">Veredicto: <span class="font-bold text-bark">Recomendado</span> si priorizás silencio.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="text-center text-xs text-stone pb-10">
+    Diseños de tarjetas para Koru · 21 propuestas · Estilo orgánico / botánico
+  </footer>
+</div>
+
+</body>
+</html>
