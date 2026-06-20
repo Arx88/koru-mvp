@@ -252,8 +252,8 @@ test("chat asks for context first and then executes a real plan", async ({ page 
   await sendComposer(page, page.getByPlaceholder(/Escribe tu mensaje/i), "Tengo que lanzar Koru, hablar con mi socio, preparar una demo y comparar proveedores");
 
   await expect(chat.getByRole("button", { name: /Aplicar plan/i })).toBeVisible({ timeout: 30_000 });
-  await expect(chat.locator(".koru-plan-title").filter({ hasText: /^Lanzar Koru$/ })).toBeVisible();
-  await expect(chat.locator(".koru-plan-title").filter({ hasText: /^Preparar una demo$/ })).toBeVisible();
+  await expect(chat.locator('[data-ui-block="plan"] .koru-stitch-plan-copy strong').filter({ hasText: /^Lanzar Koru$/ })).toBeVisible();
+  await expect(chat.locator('[data-ui-block="plan"] .koru-stitch-plan-copy strong').filter({ hasText: /^Preparar una demo$/ })).toBeVisible();
 
   await chat.getByRole("button", { name: /Aplicar plan/i }).click();
   await expect(chat.getByText(/Plan aplicado/i).first()).toBeVisible();
@@ -302,7 +302,7 @@ test("real user journey keeps memory, tasks and useful cards across sessions", a
 
   await sendComposer(page, input, "Tengo que mandar presupuesto hoy, preparar una demo y llamar a Ana manana.");
   await expect(chat.getByRole("button", { name: /Aplicar plan/i })).toBeVisible({ timeout: 30_000 });
-  await expect(chat.locator(".koru-plan-row")).toHaveCount(3);
+  await expect(chat.locator('[data-ui-block="plan"] .koru-stitch-plan-row')).toHaveCount(3);
 
   await sendComposer(page, input, "Anota gasto de 25 euros en farmacia");
   await expect(chat.getByText(/25.*EUR|farmacia/i).first()).toBeVisible({ timeout: 30_000 });
