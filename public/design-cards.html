@@ -3,864 +3,513 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Koru — Diseño de Tarjetas Premium</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<script>
-  tailwind.config = {
-    theme: {
-      extend: {
-        colors: {
-          forest: '#5c7a5f',
-          'forest-dark': '#4a634d',
-          sage: '#8b9d83',
-          moss: '#6b8f71',
-          leaf: '#a8c5a0',
-          cream: '#faf8f5',
-          'warm-white': '#f5f3ee',
-          sand: '#e8e4dc',
-          'sand-dark': '#d5cfc5',
-          gold: '#c9a96e',
-          'gold-light': '#e0c896',
-          bark: '#3d3632',
-          'bark-light': '#5a524d',
-          earth: '#6b5b4f',
-          stone: '#b8a99a',
-          blush: '#e8d5d0',
-          'cream-dark': '#f0ece5',
-          accent: '#c4736b',
-        },
-        fontFamily: {
-          serif: ['"Playfair Display"', 'Georgia', 'serif'],
-          sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-          mono: ['"Space Mono"', 'ui-monospace', 'monospace'],
-        },
-      }
-    }
-  }
-</script>
+<title>Koru — Tarjetas</title>
 <style>
-  html { scroll-behavior: smooth; }
-  body {
-    background: #faf8f5;
-    color: #3d3632;
-    font-family: 'Inter', sans-serif;
-    -webkit-font-smoothing: antialiased;
+  :root {
+    --koru-bg: #fcfcfa;
+    --koru-surface: #ffffff;
+    --koru-surface-soft: #f8f9fa;
+    --koru-inner: #f8f9fa;
+    --koru-user: #e4efe3;
+    --koru-border: rgba(243, 244, 246, 0.92);
+    --koru-border-strong: #e5e7eb;
+    --koru-text: #1f2937;
+    --koru-text-soft: #4b5563;
+    --koru-muted: #727d8a;
+    --koru-pill: #f3f4f6;
+    --koru-accent: #70b873;
+    --koru-accent-soft: #eaf2ea;
+    --koru-accent-strong: #4a9e4f;
+    --koru-amber: #d9a05b;
+    --koru-amber-soft: #fff4e5;
+    --koru-purple: #8676b1;
+    --koru-purple-soft: #eae6f4;
+    --koru-heart: #e67e60;
+    --koru-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    --koru-mic: #8a9a86;
+    --koru-rose-soft: #fdf2f0;
+    --koru-rose: #c4736b;
+    --koru-blue-soft: #eff6ff;
+    --koru-blue: #3b82f6;
+    --koru-font: Inter, ui-sans-serif, system-ui, sans-serif;
   }
-  .card-premium {
-    background: rgba(255,255,255,0.82);
-    backdrop-filter: blur(20px) saturate(1.4);
-    -webkit-backdrop-filter: blur(20px) saturate(1.4);
-    border: 1px solid rgba(232,228,220,0.6);
-    box-shadow: 0 8px 32px rgba(61,54,50,0.06), 0 1px 3px rgba(61,54,50,0.04), inset 0 0 0 1px rgba(255,255,255,0.5);
-    transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), box-shadow 0.35s cubic-bezier(0.4,0,0.2,1);
+  @font-face { font-family: 'Inter'; src: local('Inter'), local('Inter-Regular'); }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--koru-bg); color: var(--koru-text); font-family: var(--koru-font); -webkit-font-smoothing: antialiased; }
+
+  .page { max-width: 1180px; margin: 0 auto; padding: 40px 24px 80px; }
+  .section-title { font-size: 20px; font-weight: 800; line-height: 1.2; margin-bottom: 16px; }
+  .section-num { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 999px; background: var(--koru-accent-soft); color: var(--koru-accent); font-size: 12px; font-weight: 850; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 960px) { .grid-3 { grid-template-columns: 1fr; } }
+
+  .koru-stitch-card {
+    display: flex; flex-direction: column; gap: 12px; width: 100%;
+    border: 1px solid color-mix(in srgb, var(--koru-border-strong) 78%, transparent);
+    border-radius: 18px;
+    background: linear-gradient(180deg, var(--koru-surface) 0%, color-mix(in srgb, var(--koru-surface) 82%, var(--koru-inner)) 100%);
+    padding: 16px;
+    box-shadow: 0 10px 28px rgba(31, 41, 51, 0.06);
   }
-  .card-premium:hover {
-    transform: translateY(-4px) scale(1.005);
-    box-shadow: 0 16px 48px rgba(61,54,50,0.1), 0 2px 6px rgba(61,54,50,0.06), inset 0 0 0 1px rgba(255,255,255,0.6);
-  }
-  .text-gradient { background: linear-gradient(135deg, #5c7a5f 0%, #8b9d83 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-  .gold-gradient { background: linear-gradient(135deg, #c9a96e 0%, #e0c896 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-  .glass-badge {
-    background: rgba(92,122,95,0.1);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(92,122,95,0.15);
-  }
-  .img-cover { object-fit: cover; transition: transform 0.6s cubic-bezier(0.4,0,0.2,1); }
-  .card-premium:hover .img-cover { transform: scale(1.04); }
-  .divider-gradient { height: 1px; background: linear-gradient(90deg, transparent 0%, #e8e4dc 50%, transparent 100%); }
-  .sparkline path { stroke-dasharray: 200; stroke-dashoffset: 200; animation: draw 1.5s ease-out forwards; }
-  @keyframes draw { to { stroke-dashoffset: 0; } }
-  .float-badge { animation: float 3s ease-in-out infinite; }
-  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
-  .shimmer { position: relative; overflow: hidden; }
-  .shimmer::after {
-    content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-    animation: shimmer 3s infinite;
-  }
-  @keyframes shimmer { 0%{left:-100%} 100%{left:200%} }
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #d5cfc5; border-radius: 3px; }
+  .koru-stitch-card-header { display: flex; align-items: center; gap: 10px; color: var(--koru-text); font-size: 14px; font-weight: 800; line-height: 1.2; }
+  .koru-stitch-icon { display: grid; width: 36px; height: 36px; flex: 0 0 auto; place-items: center; border-radius: 12px; background: var(--koru-accent-soft); color: var(--koru-accent); font-size: 14px; font-weight: 800; }
+  .koru-stitch-icon.is-amber { background: var(--koru-amber-soft) !important; color: var(--koru-amber) !important; }
+  .koru-stitch-icon.is-purple { background: var(--koru-purple-soft) !important; color: var(--koru-purple) !important; }
+  .koru-stitch-icon.is-rose { background: var(--koru-rose-soft) !important; color: var(--koru-rose) !important; }
+  .koru-stitch-icon.is-blue { background: var(--koru-blue-soft) !important; color: var(--koru-blue) !important; }
+  .koru-stitch-heading { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
+  .koru-card-hint { color: var(--koru-muted); font-size: 10px; font-weight: 800; letter-spacing: 0.05em; line-height: 1.1; text-transform: uppercase; }
+  .koru-card-title { display: block; color: var(--koru-text); font-size: 15px; font-weight: 850; line-height: 1.2; overflow-wrap: anywhere; }
+  .koru-stitch-content { display: flex; flex-direction: column; gap: 8px; }
+  .koru-stitch-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .koru-stitch-grid.is-single { grid-template-columns: 1fr; }
+  .koru-stitch-tile { border: 1px solid var(--koru-border); border-radius: 14px; background: var(--koru-inner); padding: 12px; text-align: center; }
+  .koru-stitch-tile strong { display: block; font-size: 18px; font-weight: 850; line-height: 1.1; margin-top: 6px; overflow-wrap: anywhere; }
+  .koru-stitch-tile small { display: block; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--koru-muted); }
+  .koru-stitch-tile span { display: block; margin-top: 4px; color: var(--koru-text-soft); font-size: 11px; font-weight: 650; line-height: 1.2; }
+  .koru-stitch-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; min-height: 48px; border: 1px solid var(--koru-border); border-radius: 14px; background: var(--koru-inner); padding: 10px 12px; }
+  .koru-stitch-row.is-highlighted { border-color: color-mix(in srgb, var(--koru-amber) 28%, var(--koru-border)); background: color-mix(in srgb, var(--koru-amber-soft) 30%, var(--koru-inner)); }
+  .koru-stitch-row-marker { display: grid; min-width: 28px; min-height: 28px; place-items: center; color: var(--koru-accent); font-size: 10px; font-weight: 850; line-height: 1; text-transform: uppercase; }
+  .koru-stitch-row-marker.is-amber { color: var(--koru-amber); }
+  .koru-stitch-row-marker.is-purple { color: var(--koru-purple); }
+  .koru-stitch-row-marker.is-rose { color: var(--koru-rose); }
+  .koru-stitch-row-marker.is-blue { color: var(--koru-blue); }
+  .koru-stitch-row-marker.is-muted { color: var(--koru-muted); }
+  .koru-stitch-row-copy strong { display: block; color: var(--koru-text); font-size: 15px; font-weight: 850; line-height: 1.18; overflow-wrap: anywhere; }
+  .koru-stitch-row-copy small { display: block; margin-top: 3px; color: var(--koru-text-soft); font-size: 12px; font-weight: 650; line-height: 1.25; }
+  .koru-stitch-row em { border-radius: 999px; background: var(--koru-accent-soft); color: var(--koru-accent); padding: 4px 8px; font-size: 10px; font-style: normal; font-weight: 800; line-height: 1; text-transform: capitalize; white-space: nowrap; }
+  .koru-stitch-note { border-radius: 14px; background: color-mix(in srgb, var(--koru-accent-soft) 54%, var(--koru-surface)); color: var(--koru-text-soft); padding: 11px 12px; font-size: 13px; font-weight: 650; line-height: 1.4; }
+  .koru-stitch-note.is-amber { background: color-mix(in srgb, var(--koru-amber-soft) 60%, var(--koru-surface)); }
+  .koru-stitch-pill { display: inline-flex; min-height: 30px; align-items: center; border: 1px solid var(--koru-border-strong); border-radius: 999px; background: var(--koru-surface); color: var(--koru-text-soft); padding: 6px 10px; box-shadow: var(--koru-shadow); font-size: 11px; font-weight: 750; line-height: 1; }
+  .koru-pill-button { display: inline-flex; min-height: 32px; align-items: center; gap: 6px; border: 1px solid var(--koru-border-strong); border-radius: 999px; background: var(--koru-surface); color: var(--koru-text-soft); padding: 6px 12px; box-shadow: var(--koru-shadow); font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer; }
+  .koru-pill-button.is-primary { border-color: var(--koru-accent); background: var(--koru-accent-soft); color: var(--koru-accent-strong); }
+  .koru-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
+  .koru-activity-group-head { display: flex; align-items: center; gap: 10px; }
+  .koru-energy-rail { position: relative; width: 6px; height: 58px; flex: 0 0 auto; overflow: hidden; border-radius: 999px; background: var(--koru-accent-soft); }
+  .koru-energy-rail span { position: absolute; inset-inline: 0; bottom: 0; border-radius: inherit; background: var(--koru-accent); width: 100%; }
+  .koru-source-status { align-self: flex-start; border: 1px solid color-mix(in srgb, var(--koru-border-strong) 70%, transparent); border-radius: 999px; background: var(--koru-inner); color: var(--koru-muted); padding: 6px 9px; font-size: 11px; font-weight: 800; line-height: 1.1; }
+  .koru-source-status.is-verified { border-color: color-mix(in srgb, var(--koru-accent) 28%, var(--koru-border)); background: color-mix(in srgb, var(--koru-accent-soft) 72%, var(--koru-surface)); color: var(--koru-accent-strong); }
+  .koru-activity-group-head > span:nth-child(2) { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 3px; }
+  .koru-activity-group-head strong { color: var(--koru-text); font-size: 15px; font-weight: 800; line-height: 1.2; }
+  .koru-activity-group-head small { color: var(--koru-muted); font-size: 11px; font-weight: 650; line-height: 1.25; }
+  .koru-activity-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .koru-activity-tile { display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; gap: 6px; height: 100%; min-height: 84px; min-width: 0; border-radius: 14px; background: var(--koru-surface); border: 1px solid var(--koru-border); padding: 12px; }
+  .koru-activity-tile strong { color: var(--koru-text); font-size: 14px; font-weight: 850; line-height: 1.2; }
+  .koru-activity-tile small { color: var(--koru-muted); font-size: 11px; font-weight: 650; line-height: 1.25; }
+  .koru-activity-tile-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--koru-accent); width: 100%; }
+  .koru-activity-tile-top span { border-radius: 999px; background: rgba(255,255,255,0.72); color: var(--koru-muted); padding: 3px 7px; font-size: 10px; font-weight: 750; line-height: 1; }
+  .koru-activity-section { display: flex; flex-direction: column; gap: 10px; }
+  .koru-activity-section-title { color: var(--koru-text-soft); font-size: 13px; font-weight: 780; line-height: 1.2; }
+  .koru-activity-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; min-height: 48px; border: 1px solid var(--koru-border); border-radius: 14px; background: var(--koru-surface); padding: 10px 12px; }
+  .koru-activity-icon { display: grid; min-width: 32px; min-height: 32px; place-items: center; border-radius: 10px; background: var(--koru-accent-soft); color: var(--koru-accent); font-size: 16px; }
+  .koru-decision-card { border: 1px solid var(--koru-border); border-radius: 14px; background: var(--koru-surface); padding: 14px; display: flex; flex-direction: column; gap: 10px; }
 </style>
 </head>
-<body class="min-h-screen">
+<body>
 
-<div class="max-w-6xl mx-auto px-6 py-16">
-  <!-- Header -->
-  <header class="mb-20 text-center">
-    <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-forest/15 to-moss/10 border border-forest/20 mb-6 float-badge">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#5c7a5f" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9.536V7a4 4 0 0 1 4-4h1.5a.5.5 0 0 1 .5.5V5a4 4 0 0 1-4 4 4 4 0 0 0-4 4c0 2 1 3 1 5a5 5 0 0 1-1 3"/></svg>
-    </div>
-    <h1 class="font-serif text-5xl md:text-6xl text-bark leading-[1.1] tracking-tight">Diseño de<br><span class="text-gradient italic">tarjetas</span></h1>
-    <p class="text-earth mt-4 text-sm tracking-wide uppercase">7 temas · 3 opciones · Estilo Koru Premium</p>
+<div class="page">
+
+  <header style="margin-bottom:44px;">
+    <h1 style="font-size:28px; font-weight:800; line-height:1.15;">Diseño de tarjetas</h1>
+    <p style="font-size:13px; color:var(--koru-muted); margin-top:6px;">7 temas · 3 opciones · Estilo Koru exacto</p>
   </header>
 
-  <!-- 1 FÚTBOL -->
-  <section class="mb-24">
-    <div class="flex items-end gap-4 mb-10">
-      <span class="font-serif text-6xl text-sand-dark/40 leading-none">1</span>
-      <div>
-        <h2 class="font-serif text-2xl text-bark">Resultados de fútbol</h2>
-        <div class="w-12 h-0.5 bg-gradient-to-r from-forest to-transparent mt-2"></div>
-      </div>
+  <!-- 1 FUTBOL -->
+  <section style="margin-bottom:48px;">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+      <span class="section-num">1</span>
+      <h2 class="section-title">Resultados de fútbol</h2>
     </div>
-    <div class="grid md:grid-cols-3 gap-8">
+    <div class="grid-3">
 
-      <!-- A: Scoreboard artístico -->
-      <div class="card-premium rounded-2xl overflow-hidden group">
-        <div class="relative h-36 overflow-hidden">
-          <img src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=600&q=80" class="img-cover w-full h-full" alt="">
-          <div class="absolute inset-0 bg-gradient-to-t from-bark/80 via-bark/20 to-transparent"></div>
-          <div class="absolute bottom-3 left-4 right-4">
-            <p class="text-[10px] text-cream/60 uppercase tracking-wider">Primera División · Final</p>
-          </div>
+      <!-- A -->
+      <div class="koru-stitch-card">
+        <div class="koru-stitch-card-header">
+          <div class="koru-stitch-icon">⚽</div>
+          <div class="koru-stitch-heading"><span class="koru-card-hint">Partido finalizado</span><span class="koru-card-title">Boca 2 : 1 River</span></div>
         </div>
-        <div class="p-5">
-          <div class="flex items-center justify-between">
-            <div class="text-center">
-              <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-gold/20 to-gold/5 border border-gold/30 flex items-center justify-center text-gold text-lg font-bold font-serif">B</div>
-              <p class="text-[10px] font-semibold text-bark mt-1.5 tracking-wide">BOCA</p>
-            </div>
-            <div class="text-center px-3">
-              <p class="text-3xl font-bold text-bark font-mono tracking-tight">2 <span class="text-stone text-lg">:</span> 1</p>
-              <p class="text-[10px] text-stone mt-0.5">90'+4</p>
-            </div>
-            <div class="text-center">
-              <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-forest/15 to-forest/5 border border-forest/20 flex items-center justify-center text-forest text-lg font-bold font-serif">R</div>
-              <p class="text-[10px] font-semibold text-bark mt-1.5 tracking-wide">RIVER</p>
-            </div>
-          </div>
-          <div class="mt-4 space-y-1.5">
-            <div class="flex items-center justify-between text-[11px]"><span class="text-stone">34' Benedetto</span><span class="text-gold font-semibold">⚽</span></div>
-            <div class="flex items-center justify-between text-[11px]"><span class="text-stone">67' Benedetto</span><span class="text-gold font-semibold">⚽</span></div>
-            <div class="flex items-center justify-between text-[11px]"><span class="text-stone">12' Álvarez</span><span class="text-forest font-semibold">⚽</span></div>
-          </div>
+        <div class="koru-stitch-content">
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker">B</div><div class="koru-stitch-row-copy"><strong>Boca Juniors</strong><small>Benedetto 67'</small></div><em>2</em></div>
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker is-amber">R</div><div class="koru-stitch-row-copy"><strong>River Plate</strong><small>Álvarez 12'</small></div><em>1</em></div>
+          <div class="koru-stitch-note">Jugado en La Bombonera · Primera División</div>
         </div>
+        <div class="koru-actions"><button class="koru-pill-button">Ver ficha</button><button class="koru-pill-button is-primary">Ver tabla</button></div>
       </div>
 
-      <!-- B: Ficha técnica partido -->
-      <div class="card-premium rounded-2xl p-6">
-        <div class="flex items-center justify-between mb-5">
-          <span class="glass-badge text-forest text-[10px] font-semibold px-3 py-1 rounded-full">En vivo</span>
-          <span class="text-[10px] text-stone font-mono">Liga Profesional</span>
+      <!-- B -->
+      <div class="koru-stitch-card">
+        <div class="koru-stitch-card-header">
+          <div class="koru-stitch-icon is-amber">📊</div>
+          <div class="koru-stitch-heading"><span class="koru-card-hint">Estadísticas</span><span class="koru-card-title">Racing 1 : 0 Independiente</span></div>
         </div>
-        <div class="flex items-center justify-between">
-          <div class="flex-1">
-            <div class="flex items-center gap-3 mb-1">
-              <img src="https://images.unsplash.com/photo-1628890923662-2cb23c2e0cfe?w=100&q=80" class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm" alt="">
-              <div>
-                <p class="text-sm font-bold text-bark">Racing</p>
-                <p class="text-[10px] text-stone">Cilindro de Avellaneda</p>
-              </div>
-            </div>
-            <div class="mt-3 flex items-center gap-2">
-              <div class="w-full h-1.5 bg-sand rounded-full overflow-hidden"><div class="h-full bg-forest rounded-full" style="width:62%"></div></div>
-              <span class="text-[10px] font-bold text-forest font-mono">62%</span>
-            </div>
-          </div>
-          <div class="px-4 text-center">
-            <p class="text-4xl font-bold text-bark font-mono">1<span class="text-stone mx-1">:</span>0</p>
-          </div>
-          <div class="flex-1 text-right">
-            <div class="flex items-center justify-end gap-3 mb-1">
-              <div>
-                <p class="text-sm font-bold text-bark">Independiente</p>
-                <p class="text-[10px] text-stone">Libertadores de América</p>
-              </div>
-              <img src="https://images.unsplash.com/photo-1522778119026-d647f0565c6a?w=100&q=80" class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm" alt="">
-            </div>
-            <div class="mt-3 flex items-center justify-end gap-2">
-              <span class="text-[10px] font-bold text-gold font-mono">38%</span>
-              <div class="w-full h-1.5 bg-sand rounded-full overflow-hidden max-w-[80px]"><div class="h-full bg-gold rounded-full" style="width:38%"></div></div>
-            </div>
+        <div class="koru-stitch-content" style="gap:12px;">
+          <div class="koru-stitch-row is-highlighted"><div class="koru-stitch-row-marker is-amber">⚽</div><div class="koru-stitch-row-copy"><strong>Gol de Racing</strong><small>Roger Martínez 81'</small></div><em>81'</em></div>
+          <div class="koru-stitch-grid">
+            <div class="koru-stitch-tile"><small>Posesión</small><strong>62%</strong><span>Racing</span></div>
+            <div class="koru-stitch-tile"><small>Tiros</small><strong>14</strong><span>Racing</span></div>
+            <div class="koru-stitch-tile"><small>Córners</small><strong>8</strong><span>Racing</span></div>
+            <div class="koru-stitch-tile"><small>Faltas</small><strong>3</strong><span>Racing</span></div>
           </div>
         </div>
-        <div class="divider-gradient my-4"></div>
-        <div class="grid grid-cols-3 gap-4 text-center text-[10px] text-stone">
-          <div><span class="block text-lg font-bold text-bark font-mono">14</span>Tiros</div>
-          <div><span class="block text-lg font-bold text-bark font-mono">8</span>Córners</div>
-          <div><span class="block text-lg font-bold text-bark font-mono">3</span>Faltas</div>
-        </div>
+        <div class="koru-actions"><button class="koru-pill-button">Resumen</button></div>
       </div>
 
-      <!-- C: Tabla de posiciones estilo editorial -->
-      <div class="card-premium rounded-2xl overflow-hidden">
-        <div class="p-5 pb-3">
-          <h3 class="font-serif text-lg text-bark">Tabla de posiciones</h3>
-          <p class="text-[10px] text-stone mt-0.5">Liga Profesional · Fecha 14</p>
+      <!-- C -->
+      <div class="koru-stitch-card">
+        <div class="koru-stitch-card-header">
+          <div class="koru-stitch-icon is-purple">🏆</div>
+          <div class="koru-stitch-heading"><span class="koru-card-hint">Tabla de posiciones</span><span class="koru-card-title">Primera División</span></div>
         </div>
-        <div class="px-5 pb-5 space-y-1">
-          <div class="flex items-center gap-3 p-2.5 rounded-xl bg-gradient-to-r from-forest/8 to-transparent border border-forest/10">
-            <span class="w-6 h-6 rounded-full bg-forest text-cream text-[10px] font-bold flex items-center justify-center">1</span>
-            <img src="https://images.unsplash.com/photo-1517466787929-bc90951d0974?w=80&q=80" class="w-7 h-7 rounded-full object-cover" alt="">
-            <span class="flex-1 text-xs font-semibold text-bark">River Plate</span>
-            <span class="text-[10px] font-mono text-stone">14 PJ</span>
-            <span class="text-xs font-bold text-forest font-mono">32</span>
-          </div>
-          <div class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-warm-white/60 transition-colors">
-            <span class="w-6 h-6 rounded-full bg-gold/20 text-gold text-[10px] font-bold flex items-center justify-center">2</span>
-            <img src="https://images.unsplash.com/photo-1552064562-4f4e0e4e2137?w=80&q=80" class="w-7 h-7 rounded-full object-cover" alt="">
-            <span class="flex-1 text-xs font-medium text-bark">Racing</span>
-            <span class="text-[10px] font-mono text-stone">14 PJ</span>
-            <span class="text-xs font-bold text-bark font-mono">29</span>
-          </div>
-          <div class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-warm-white/60 transition-colors">
-            <span class="w-6 h-6 rounded-full bg-sand text-stone text-[10px] font-bold flex items-center justify-center">3</span>
-            <img src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=80&q=80" class="w-7 h-7 rounded-full object-cover" alt="">
-            <span class="flex-1 text-xs font-medium text-bark">Boca Juniors</span>
-            <span class="text-[10px] font-mono text-stone">14 PJ</span>
-            <span class="text-xs font-bold text-bark font-mono">27</span>
-          </div>
-          <div class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-warm-white/60 transition-colors">
-            <span class="w-6 h-6 rounded-full bg-sand text-stone text-[10px] font-bold flex items-center justify-center">4</span>
-            <img src="https://images.unsplash.com/photo-1522778119026-d647f0565c6a?w=80&q=80" class="w-7 h-7 rounded-full object-cover" alt="">
-            <span class="flex-1 text-xs font-medium text-bark">Independiente</span>
-            <span class="text-[10px] font-mono text-stone">14 PJ</span>
-            <span class="text-xs font-bold text-bark font-mono">25</span>
-          </div>
+        <div class="koru-stitch-content">
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker">1</div><div class="koru-stitch-row-copy"><strong>River Plate</strong><small>14 PJ · +18 DG</small></div><em>32</em></div>
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker is-amber">2</div><div class="koru-stitch-row-copy"><strong>Racing Club</strong><small>14 PJ · +12 DG</small></div><em>29</em></div>
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker is-muted">3</div><div class="koru-stitch-row-copy"><strong>Boca Juniors</strong><small>14 PJ · +8 DG</small></div><em>27</em></div>
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker is-muted">4</div><div class="koru-stitch-row-copy"><strong>Independiente</strong><small>14 PJ · +5 DG</small></div><em>25</em></div>
         </div>
+        <div class="koru-actions"><button class="koru-pill-button">Ver todas</button></div>
       </div>
     </div>
   </section>
 
   <!-- 2 ELECCIONES -->
-  <section class="mb-24">
-    <div class="flex items-end gap-4 mb-10">
-      <span class="font-serif text-6xl text-sand-dark/40 leading-none">2</span>
-      <div>
-        <h2 class="font-serif text-2xl text-bark">Elecciones políticas</h2>
-        <div class="w-12 h-0.5 bg-gradient-to-r from-forest to-transparent mt-2"></div>
-      </div>
+  <section style="margin-bottom:48px;">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+      <span class="section-num">2</span>
+      <h2 class="section-title">Resultados de elecciones</h2>
     </div>
-    <div class="grid md:grid-cols-3 gap-8">
+    <div class="grid-3">
 
-      <!-- A: Perfil candidato destacado -->
-      <div class="card-premium rounded-2xl overflow-hidden">
-        <div class="relative h-44">
-          <img src="https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=600&q=80" class="img-cover w-full h-full" alt="">
-          <div class="absolute inset-0 bg-gradient-to-t from-bark via-bark/40 to-transparent"></div>
-          <div class="absolute bottom-4 left-5 right-5">
-            <p class="text-cream/60 text-[10px] uppercase tracking-widest mb-1">Candidato a Presidente</p>
-            <h3 class="font-serif text-xl text-cream">Martínez</h3>
-          </div>
-          <div class="absolute top-4 right-4">
-            <span class="glass-badge text-forest text-[10px] font-bold px-3 py-1.5 rounded-full">En primera vuelta</span>
-          </div>
+      <!-- A -->
+      <div class="koru-stitch-card">
+        <div class="koru-stitch-card-header">
+          <div class="koru-stitch-icon">🗳️</div>
+          <div class="koru-stitch-heading"><span class="koru-card-hint">Escrutinio 87,4%</span><span class="koru-card-title">Elecciones 2025</span></div>
         </div>
-        <div class="p-5">
-          <div class="flex items-end gap-2 mb-3">
-            <span class="text-4xl font-bold text-forest font-mono">42,3%</span>
-            <span class="text-[10px] text-stone mb-1.5">de los votos</span>
-          </div>
-          <div class="h-2 bg-sand rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-forest to-moss rounded-full shimmer" style="width:42.3%"></div></div>
-          <p class="text-[11px] text-earth mt-3">Escrutinio: 87,4% — Diferencia de +7,2 pp sobre el segundo.</p>
+        <div class="koru-stitch-content">
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker is-amber">M</div><div class="koru-stitch-row-copy"><strong>Unión por la Patria</strong><small>Candidato Martínez</small></div><em>42,3%</em></div>
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker is-purple">L</div><div class="koru-stitch-row-copy"><strong>La Libertad</strong><small>Candidato López</small></div><em>35,1%</em></div>
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker is-muted">O</div><div class="koru-stitch-row-copy"><strong>Otros / En blanco</strong><small>Diferentes fuerzas</small></div><em>22,6%</em></div>
+          <div class="koru-stitch-note">Diferencia de 7,2 puntos porcentuales entre primero y segundo</div>
         </div>
+        <div class="koru-actions"><button class="koru-pill-button">Fuentes</button></div>
       </div>
 
-      <!-- B: Layout VS editorial -->
-      <div class="card-premium rounded-2xl p-6">
-        <p class="text-center text-[10px] text-stone uppercase tracking-widest mb-4">Resultados parciales</p>
-        <div class="flex items-center gap-3 mb-6">
-          <div class="flex-1 text-center">
-            <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=120&q=80" class="w-16 h-16 rounded-2xl object-cover mx-auto mb-2 border-2 border-white shadow-md" alt="">
-            <p class="text-xs font-bold text-bark">Martínez</p>
-            <p class="text-[10px] text-stone">Unión</p>
-            <p class="text-xl font-bold text-forest font-mono mt-1">42%</p>
-          </div>
-          <div class="flex flex-col items-center justify-center">
-            <span class="text-[10px] text-stone uppercase tracking-wider">vs</span>
-            <div class="w-px h-12 bg-gradient-to-b from-sand to-transparent my-1"></div>
-          </div>
-          <div class="flex-1 text-center">
-            <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=120&q=80" class="w-16 h-16 rounded-2xl object-cover mx-auto mb-2 border-2 border-white shadow-md" alt="">
-            <p class="text-xs font-bold text-bark">López</p>
-            <p class="text-[10px] text-stone">Frente</p>
-            <p class="text-xl font-bold text-gold font-mono mt-1">35%</p>
-          </div>
+      <!-- B -->
+      <div class="koru-stitch-card">
+        <div class="koru-stitch-card-header">
+          <div class="koru-stitch-icon is-amber">📈</div>
+          <div class="koru-stitch-heading"><span class="koru-card-hint">Proyección</span><span class="koru-card-title">Tendencias por provincia</span></div>
         </div>
-        <div class="divider-gradient mb-4"></div>
-        <div class="grid grid-cols-3 gap-2 text-center">
-          <div class="p-2 rounded-xl bg-warm-white border border-sand">
-            <p class="text-[10px] text-stone uppercase">Votos</p>
-            <p class="text-sm font-bold text-bark font-mono">12,4M</p>
-          </div>
-          <div class="p-2 rounded-xl bg-warm-white border border-sand">
-            <p class="text-[10px] text-stone uppercase">Abstención</p>
-            <p class="text-sm font-bold text-bark font-mono">23%</p>
-          </div>
-          <div class="p-2 rounded-xl bg-warm-white border border-sand">
-            <p class="text-[10px] text-stone uppercase">Mesas</p>
-            <p class="text-sm font-bold text-bark font-mono">94%</p>
-          </div>
+        <div class="koru-stitch-content">
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker">BA</div><div class="koru-stitch-row-copy"><strong>Buenos Aires</strong><small>85% escrutado</small></div><em>+4%</em></div>
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker">CBA</div><div class="koru-stitch-row-copy"><strong>Córdoba</strong><small>92% escrutado</small></div><em>+12%</em></div>
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker">SF</div><div class="koru-stitch-row-copy"><strong>Santa Fe</strong><small>78% escrutado</small></div><em>-2%</em></div>
         </div>
+        <div class="koru-actions"><button class="koru-pill-button is-primary">Ver mapa</button></div>
       </div>
 
-      <!-- C: Donut couture -->
-      <div class="card-premium rounded-2xl p-6 text-center">
-        <h3 class="font-serif text-lg text-bark mb-1">Distribución</h3>
-        <p class="text-[10px] text-stone mb-5">Votos válidos por alianza</p>
-        <div class="relative w-36 h-36 mx-auto mb-5">
-          <svg viewBox="0 0 36 36" class="w-full h-full -rotate-90">
-            <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#e8e4dc" stroke-width="3"/>
-            <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#5c7a5f" stroke-width="3" stroke-dasharray="42.3 100" stroke-linecap="round"/>
-            <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#c9a96e" stroke-width="3" stroke-dasharray="35.1 100" stroke-dashoffset="-42.3" stroke-linecap="round"/>
-            <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#b8a99a" stroke-width="3" stroke-dasharray="22.6 100" stroke-dashoffset="-77.4" stroke-linecap="round"/>
-          </svg>
-          <div class="absolute inset-0 flex items-center justify-center">
-            <div>
-              <p class="text-[10px] text-stone uppercase tracking-wider">Total</p>
-              <p class="text-lg font-bold text-bark font-mono">100%</p>
-            </div>
+      <!-- C -->
+      <div class="koru-stitch-card">
+        <div class="koru-stitch-card-header">
+          <div class="koru-stitch-icon is-purple">✅</div>
+          <div class="koru-stitch-heading"><span class="koru-card-hint">Ganador</span><span class="koru-card-title">Martínez</span></div>
+        </div>
+        <div class="koru-stitch-content">
+          <div class="koru-stitch-grid is-single">
+            <div class="koru-stitch-tile"><small>Porcentaje</small><strong>42,3%</strong><span>Votos válidos</span></div>
           </div>
+          <div class="koru-stitch-grid">
+            <div class="koru-stitch-tile"><small>Votos</small><strong>12,4M</strong></div>
+            <div class="koru-stitch-tile"><small>Mesas</small><strong>12.847</strong></div>
+          </div>
+          <div class="koru-stitch-note is-amber">Balotaje: Unión por la Patria gana en primera vuelta</div>
         </div>
-        <div class="space-y-2 text-left max-w-[200px] mx-auto">
-          <div class="flex items-center justify-between text-xs"><span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-forest"></span>Unión</span><span class="font-bold text-bark font-mono">42,3%</span></div>
-          <div class="flex items-center justify-between text-xs"><span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-gold"></span>Frente</span><span class="font-bold text-bark font-mono">35,1%</span></div>
-          <div class="flex items-center justify-between text-xs"><span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-stone"></span>Otros</span><span class="font-bold text-bark font-mono">22,6%</span></div>
-        </div>
+        <div class="koru-actions"><button class="koru-pill-button">Biografía</button></div>
       </div>
     </div>
   </section>
 
   <!-- 3 CRYPTO -->
-  <section class="mb-24">
-    <div class="flex items-end gap-4 mb-10">
-      <span class="font-serif text-6xl text-sand-dark/40 leading-none">3</span>
-      <div>
-        <h2 class="font-serif text-2xl text-bark">Crypto y Forex</h2>
-        <div class="w-12 h-0.5 bg-gradient-to-r from-forest to-transparent mt-2"></div>
-      </div>
+  <section style="margin-bottom:48px;">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+      <span class="section-num">3</span>
+      <h2 class="section-title">Crypto y Forex</h2>
     </div>
-    <div class="grid md:grid-cols-3 gap-8">
+    <div class="grid-3">
 
-      <!-- A: Card dark coin -->
-      <div class="card-premium rounded-2xl overflow-hidden bg-gradient-to-br from-bark to-bark-light text-cream border-0">
-        <div class="p-6">
-          <div class="flex items-center justify-between mb-6">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-xl bg-gold/20 border border-gold/30 flex items-center justify-center text-gold text-lg font-bold">₿</div>
-              <div>
-                <p class="text-sm font-bold">Bitcoin</p>
-                <p class="text-[10px] text-cream/50">BTC / USD</p>
-              </div>
-            </div>
-            <span class="bg-moss/20 text-moss text-[10px] font-bold px-2.5 py-1 rounded-full border border-moss/30">+2,4%</span>
-          </div>
-          <p class="text-3xl font-bold font-mono tracking-tight">$64.230,50</p>
-          <svg class="w-full h-16 mt-4" viewBox="0 0 200 60">
-            <path d="M0,50 Q20,45 40,48 T80,35 T120,40 T160,20 T200,15" fill="none" stroke="#6b8f71" stroke-width="2" stroke-linecap="round"/>
-            <path d="M0,50 Q20,45 40,48 T80,35 T120,40 T160,20 T200,15 L200,60 L0,60 Z" fill="url(#grad1)" opacity="0.15"/>
-            <defs><linearGradient id="grad1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6b8f71"/><stop offset="100%" stop-color="#6b8f71" stop-opacity="0"/></linearGradient></defs>
-          </svg>
-          <div class="grid grid-cols-3 gap-2 mt-2 text-center text-[10px]">
-            <div><p class="text-cream/40">MÁX</p><p class="font-semibold">$65.100</p></div>
-            <div><p class="text-cream/40">MÍN</p><p class="font-semibold">$62.800</p></div>
-            <div><p class="text-cream/40">VOL</p><p class="font-semibold">$28B</p></div>
-          </div>
+      <!-- A -->
+      <div class="koru-stitch-card">
+        <div class="koru-stitch-card-header">
+          <div class="koru-stitch-icon is-amber">₿</div>
+          <div class="koru-stitch-heading"><span class="koru-card-hint">Bitcoin</span><span class="koru-card-title">$64.230,50</span></div>
         </div>
+        <div class="koru-stitch-content">
+          <div class="koru-stitch-grid is-single"><div class="koru-stitch-tile"><small>Variación 24h</small><strong style="color:var(--koru-accent)">+2,4%</strong></div></div>
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker">↑</div><div class="koru-stitch-row-copy"><strong>Máximo</strong></div><em>$65.100</em></div>
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker is-muted">↓</div><div class="koru-stitch-row-copy"><strong>Mínimo</strong></div><em>$62.800</em></div>
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker is-muted">$</div><div class="koru-stitch-row-copy"><strong>Volumen</strong></div><em>$28B</em></div>
+        </div>
+        <div class="koru-actions"><button class="koru-pill-button">Ver gráfico</button></div>
       </div>
 
-      <!-- B: Portfolio glance -->
-      <div class="card-premium rounded-2xl p-6">
-        <div class="flex items-center justify-between mb-5">
-          <h3 class="font-serif text-lg text-bark">Cartera</h3>
-          <span class="text-[10px] text-stone font-mono">Actualizado</span>
+      <!-- B -->
+      <div class="koru-stitch-card">
+        <div class="koru-stitch-card-header">
+          <div class="koru-stitch-icon is-rose">Ξ</div>
+          <div class="koru-stitch-heading"><span class="koru-card-hint">Ethereum</span><span class="koru-card-title">$3.410,20</span></div>
         </div>
-        <p class="text-2xl font-bold text-bark font-mono mb-1">$12.847,30</p>
-        <p class="text-[11px] text-moss mb-5">+$340,20 (2,72%) este mes</p>
-        <div class="space-y-3">
-          <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center text-gold text-xs font-bold">₿</div>
-            <div class="flex-1"><div class="flex justify-between text-xs mb-1"><span class="font-medium text-bark">Bitcoin</span><span class="font-bold text-bark">$8.420</span></div><div class="h-1.5 bg-sand rounded-full overflow-hidden"><div class="h-full bg-gold rounded-full" style="width:65%"></div></div></div>
-          </div>
-          <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg bg-stone/10 border border-stone/20 flex items-center justify-center text-stone text-xs font-bold">Ξ</div>
-            <div class="flex-1"><div class="flex justify-between text-xs mb-1"><span class="font-medium text-bark">Ethereum</span><span class="font-bold text-bark">$3.210</span></div><div class="h-1.5 bg-sand rounded-full overflow-hidden"><div class="h-full bg-stone rounded-full" style="width:25%"></div></div></div>
-          </div>
-          <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg bg-forest/10 border border-forest/20 flex items-center justify-center text-forest text-xs font-bold">$</div>
-            <div class="flex-1"><div class="flex justify-between text-xs mb-1"><span class="font-medium text-bark">USDC</span><span class="font-bold text-bark">$1.217</span></div><div class="h-1.5 bg-sand rounded-full overflow-hidden"><div class="h-full bg-forest rounded-full" style="width:10%"></div></div></div>
+        <div class="koru-stitch-content" style="gap:12px;">
+          <div class="koru-stitch-grid is-single"><div class="koru-stitch-tile"><small>Variación</small><strong style="color:var(--koru-rose)">−1,2%</strong></div></div>
+          <div class="koru-stitch-grid">
+            <div class="koru-stitch-tile"><small>Market cap</small><strong>$410B</strong></div>
+            <div class="koru-stitch-tile"><small>Supply</small><strong>120M</strong></div>
           </div>
         </div>
+        <div class="koru-actions"><button class="koru-pill-button is-primary">Ver detalle</button></div>
       </div>
 
-      <!-- C: Forex ticker -->
-      <div class="card-premium rounded-2xl overflow-hidden">
-        <div class="p-5 pb-4">
-          <h3 class="font-serif text-base text-bark mb-1">Mercado Forex</h3>
-          <p class="text-[10px] text-stone">Cruces principales · en vivo</p>
+      <!-- C -->
+      <div class="koru-stitch-card">
+        <div class="koru-stitch-card-header">
+          <div class="koru-stitch-icon is-blue">$</div>
+          <div class="koru-stitch-heading"><span class="koru-card-hint">Forex</span><span class="koru-card-title">Cruces principales</span></div>
         </div>
-        <div class="px-5 pb-5 space-y-1">
-          <div class="flex items-center justify-between p-3 rounded-xl bg-warm-white border border-sand hover:bg-white transition-colors group">
-            <div class="flex items-center gap-3">
-              <div class="flex -space-x-1.5">
-                <span class="w-6 h-6 rounded-full bg-gold/20 border border-white flex items-center justify-center text-[8px] font-bold text-gold">€</span>
-                <span class="w-6 h-6 rounded-full bg-forest/15 border border-white flex items-center justify-center text-[8px] font-bold text-forest">$</span>
-              </div>
-              <span class="text-xs font-medium text-bark">EUR/USD</span>
-            </div>
-            <div class="text-right"><p class="text-sm font-bold text-bark font-mono">1,0854</p><p class="text-[10px] text-stone">+0,02%</p></div>
-          </div>
-          <div class="flex items-center justify-between p-3 rounded-xl bg-warm-white border border-sand hover:bg-white transition-colors group">
-            <div class="flex items-center gap-3">
-              <div class="flex -space-x-1.5">
-                <span class="w-6 h-6 rounded-full bg-stone/20 border border-white flex items-center justify-center text-[8px] font-bold text-stone">£</span>
-                <span class="w-6 h-6 rounded-full bg-forest/15 border border-white flex items-center justify-center text-[8px] font-bold text-forest">$</span>
-              </div>
-              <span class="text-xs font-medium text-bark">GBP/USD</span>
-            </div>
-            <div class="text-right"><p class="text-sm font-bold text-bark font-mono">1,2730</p><p class="text-[10px] text-moss">+0,08%</p></div>
-          </div>
-          <div class="flex items-center justify-between p-3 rounded-xl bg-warm-white border border-sand hover:bg-white transition-colors group">
-            <div class="flex items-center gap-3">
-              <div class="flex -space-x-1.5">
-                <span class="w-6 h-6 rounded-full bg-accent/10 border border-white flex items-center justify-center text-[8px] font-bold text-accent">¥</span>
-                <span class="w-6 h-6 rounded-full bg-forest/15 border border-white flex items-center justify-center text-[8px] font-bold text-forest">$</span>
-              </div>
-              <span class="text-xs font-medium text-bark">USD/JPY</span>
-            </div>
-            <div class="text-right"><p class="text-sm font-bold text-bark font-mono">148,32</p><p class="text-[10px] text-accent">−0,15%</p></div>
-          </div>
+        <div class="koru-stitch-content">
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker">€</div><div class="koru-stitch-row-copy"><strong>EUR/USD</strong><small>en vivo</small></div><em>1,0854</em></div>
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker">£</div><div class="koru-stitch-row-copy"><strong>GBP/USD</strong><small>en vivo</small></div><em>1,2730</em></div>
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker">¥</div><div class="koru-stitch-row-copy"><strong>USD/JPY</strong><small>en vivo</small></div><em>148,32</em></div>
         </div>
+        <div class="koru-actions"><button class="koru-pill-button">Ver todos</button></div>
       </div>
     </div>
   </section>
 
   <!-- 4 INDICACIONES -->
-  <section class="mb-24">
-    <div class="flex items-end gap-4 mb-10">
-      <span class="font-serif text-6xl text-sand-dark/40 leading-none">4</span>
-      <div>
-        <h2 class="font-serif text-2xl text-bark">Indicaciones de cómo llegar</h2>
-        <div class="w-12 h-0.5 bg-gradient-to-r from-forest to-transparent mt-2"></div>
-      </div>
+  <section style="margin-bottom:48px;">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+      <span class="section-num">4</span>
+      <h2 class="section-title">Indicaciones de cómo llegar</h2>
     </div>
-    <div class="grid md:grid-cols-3 gap-8">
+    <div class="grid-3">
 
-      <!-- A: Mapa estilizado + ruta -->
-      <div class="card-premium rounded-2xl overflow-hidden">
-        <div class="relative h-48 bg-gradient-to-br from-sand/50 to-warm-white">
-          <img src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=600&q=80" class="img-cover w-full h-full opacity-60" alt="mapa">
-          <div class="absolute inset-0 flex items-center justify-center">
-            <div class="relative">
-              <svg width="200" height="120" viewBox="0 0 200 120">
-                <path d="M20,100 Q60,20 100,60 T180,30" fill="none" stroke="#5c7a5f" stroke-width="4" stroke-linecap="round" stroke-dasharray="6,4"/>
-                <circle cx="20" cy="100" r="6" fill="#c4736b" stroke="white" stroke-width="2"/>
-                <circle cx="180" cy="30" r="6" fill="#5c7a5f" stroke="white" stroke-width="2"/>
-              </svg>
-            </div>
-          </div>
-          <div class="absolute bottom-3 left-4 right-4 flex justify-between text-[10px] text-bark font-medium">
-            <span>Tu ubicación</span>
-            <span>Shopping Olivos</span>
-          </div>
+      <!-- A -->
+      <div class="koru-stitch-card">
+        <div class="koru-stitch-card-header">
+          <div class="koru-stitch-icon">📍</div>
+          <div class="koru-stitch-heading"><span class="koru-card-hint">Ruta más rápida</span><span class="koru-card-title">18 min · 8,2 km</span></div>
         </div>
-        <div class="p-5">
-          <div class="flex items-baseline gap-2 mb-1">
-            <span class="text-2xl font-bold text-bark font-mono">18 min</span>
-            <span class="text-xs text-stone">· 8,2 km · Auto</span>
-          </div>
-          <p class="text-[11px] text-earth">Ruta más rápida por Acceso Norte</p>
-          <button class="mt-3 w-full rounded-full bg-forest text-cream py-2.5 text-xs font-semibold hover:bg-forest-dark transition-colors">Iniciar navegación</button>
+        <div class="koru-stitch-content">
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker">1</div><div class="koru-stitch-row-copy"><strong>Girá a la izquierda</strong><small>Av. Libertador · 450 m</small></div></div>
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker">2</div><div class="koru-stitch-row-copy"><strong>Continuá recto</strong><small>Acceso Norte · 5,8 km</small></div></div>
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker is-muted">3</div><div class="koru-stitch-row-copy"><strong>Tomá la salida 12</strong><small>Olivos · 1,9 km</small></div></div>
         </div>
+        <div class="koru-actions"><button class="koru-pill-button is-primary">Iniciar GPS</button></div>
       </div>
 
-      <!-- B: Timeline vertical premium -->
-      <div class="card-premium rounded-2xl p-6">
-        <div class="flex items-center justify-between mb-5">
-          <h3 class="font-serif text-base text-bark">Recorrido paso a paso</h3>
-          <span class="text-[10px] text-stone font-mono">18 min</span>
+      <!-- B -->
+      <div class="koru-stitch-card">
+        <div class="koru-stitch-card-header">
+          <div class="koru-stitch-icon is-amber">🚗</div>
+          <div class="koru-stitch-heading"><span class="koru-card-hint">Auto</span><span class="koru-card-title">Destino: Shopping Olivos</span></div>
         </div>
-        <div class="relative pl-7 space-y-6">
-          <div class="absolute left-[11px] top-3 bottom-3 w-px bg-gradient-to-b from-forest via-gold to-forest"></div>
-          <div class="relative">
-            <span class="absolute -left-7 top-0 w-6 h-6 rounded-full bg-forest text-cream flex items-center justify-center shadow-md"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></span>
-            <p class="text-xs font-bold text-bark">Girá a la izquierda</p>
-            <p class="text-[10px] text-stone">Av. del Libertador · 450 m</p>
-          </div>
-          <div class="relative">
-            <span class="absolute -left-7 top-0 w-6 h-6 rounded-full bg-gold text-bark flex items-center justify-center shadow-md"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z"/></svg></span>
-            <p class="text-xs font-bold text-bark">Continuá recto</p>
-            <p class="text-[10px] text-stone">Acceso Norte · 5,8 km</p>
-          </div>
-          <div class="relative">
-            <span class="absolute -left-7 top-0 w-6 h-6 rounded-full bg-forest text-cream flex items-center justify-center shadow-md"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></span>
-            <p class="text-xs font-bold text-bark">Llegada</p>
-            <p class="text-[10px] text-stone">Shopping de Olivos</p>
+        <div class="koru-stitch-content">
+          <div class="koru-stitch-grid">
+            <div class="koru-stitch-tile"><small>Auto</small><strong>18 min</strong></div>
+            <div class="koru-stitch-tile"><small>Transporte</small><strong>42 min</strong></div>
+            <div class="koru-stitch-tile"><small>Caminando</small><strong>1h 50m</strong></div>
+            <div class="koru-stitch-tile"><small>Bici</small><strong>32 min</strong></div>
           </div>
         </div>
+        <div class="koru-actions"><button class="koru-pill-button">Copiar dirección</button></div>
       </div>
 
-      <!-- C: Card origen-destino minimal -->
-      <div class="card-premium rounded-2xl p-6">
-        <div class="flex items-center justify-between mb-6">
-          <span class="glass-badge text-forest text-[10px] font-bold px-3 py-1 rounded-full">Ruta sugerida</span>
-          <span class="text-[10px] text-stone font-mono">8,2 km</span>
+      <!-- C -->
+      <div class="koru-stitch-card">
+        <div class="koru-stitch-card-header">
+          <div class="koru-stitch-icon is-purple">🗺️</div>
+          <div class="koru-stitch-heading"><span class="koru-card-hint">Mapa</span><span class="koru-card-title">Origen → Destino</span></div>
         </div>
-        <div class="space-y-4">
-          <div class="flex items-start gap-3">
-            <div class="w-8 h-8 rounded-full bg-accent/10 text-accent flex items-center justify-center mt-0.5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></div>
-            <div>
-              <p class="text-sm font-semibold text-bark">Origen</p>
-              <p class="text-[11px] text-stone">Av. Corrientes 1234, CABA</p>
-            </div>
-          </div>
-          <div class="pl-4 border-l-2 border-dashed border-sand ml-4"></div>
-          <div class="flex items-start gap-3">
-            <div class="w-8 h-8 rounded-full bg-forest/10 text-forest flex items-center justify-center mt-0.5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></div>
-            <div>
-              <p class="text-sm font-semibold text-bark">Destino</p>
-              <p class="text-[11px] text-stone">Shopping de Olivos, Vicente López</p>
-            </div>
-          </div>
+        <div class="koru-stitch-content">
+          <div class="koru-stitch-note">Desde Av. Corrientes 1234, CABA hasta Shopping Olivos, Vicente López</div>
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker is-rose">●</div><div class="koru-stitch-row-copy"><strong>Origen</strong></div></div>
+          <div style="margin-left:24px; border-left:1px dashed var(--koru-border); height:16px;"></div>
+          <div class="koru-stitch-row is-highlighted"><div class="koru-stitch-row-marker is-amber">●</div><div class="koru-stitch-row-copy"><strong>Ruta rápida</strong><small>Acceso Norte</small></div></div>
+          <div style="margin-left:24px; border-left:1px dashed var(--koru-border); height:16px;"></div>
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker">●</div><div class="koru-stitch-row-copy"><strong>Destino</strong></div></div>
         </div>
-        <div class="divider-gradient my-4"></div>
-        <div class="flex gap-2">
-          <div class="flex-1 p-2.5 rounded-xl bg-warm-white border border-sand text-center">
-            <p class="text-[10px] text-stone uppercase">Auto</p>
-            <p class="text-sm font-bold text-bark font-mono">18 min</p>
-          </div>
-          <div class="flex-1 p-2.5 rounded-xl bg-warm-white border border-sand text-center">
-            <p class="text-[10px] text-stone uppercase">Transporte</p>
-            <p class="text-sm font-bold text-bark font-mono">42 min</p>
-          </div>
-          <div class="flex-1 p-2.5 rounded-xl bg-warm-white border border-sand text-center">
-            <p class="text-[10px] text-stone uppercase">Caminando</p>
-            <p class="text-sm font-bold text-bark font-mono">1h 50m</p>
-          </div>
-        </div>
+        <div class="koru-actions"><button class="koru-pill-button">Ver alternativas</button></div>
       </div>
     </div>
   </section>
 
   <!-- 5 CUMPLEAÑOS -->
-  <section class="mb-24">
-    <div class="flex items-end gap-4 mb-10">
-      <span class="font-serif text-6xl text-sand-dark/40 leading-none">5</span>
-      <div>
-        <h2 class="font-serif text-2xl text-bark">Cumpleaños de conocidos</h2>
-        <div class="w-12 h-0.5 bg-gradient-to-r from-forest to-transparent mt-2"></div>
-      </div>
+  <section style="margin-bottom:48px;">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+      <span class="section-num">5</span>
+      <h2 class="section-title">Cumpleaños de conocidos</h2>
     </div>
-    <div class="grid md:grid-cols-3 gap-8">
+    <div class="grid-3">
 
-      <!-- A: Héroe del próximo -->
-      <div class="card-premium rounded-2xl overflow-hidden bg-gradient-to-br from-blush/30 to-cream border-0">
-        <div class="p-6 text-center">
-          <div class="w-20 h-20 rounded-full mx-auto mb-4 overflow-hidden border-4 border-white shadow-lg">
-            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80" class="img-cover w-full h-full" alt="">
-          </div>
-          <h3 class="font-serif text-xl text-bark">Ana López</h3>
-          <p class="text-sm text-earth mt-1">Cierra los <span class="font-bold text-bark">35</span> mañana</p>
-          <div class="inline-block mt-3 px-4 py-1.5 rounded-full bg-white/60 border border-blush text-[11px] text-earth">
-            🎂 12 de julio
-          </div>
-          <div class="mt-5 flex gap-2 justify-center">
-            <button class="rounded-full bg-forest text-cream px-4 py-2 text-xs font-semibold shadow-sm">Recordar</button>
-            <button class="rounded-full bg-white text-bark border border-sand px-4 py-2 text-xs font-semibold">Enviar saludo</button>
-          </div>
+      <!-- A -->
+      <div class="koru-stitch-card">
+        <div class="koru-stitch-card-header">
+          <div class="koru-stitch-icon is-rose">🎂</div>
+          <div class="koru-stitch-heading"><span class="koru-card-hint">Próximo</span><span class="koru-card-title">Ana López · 12 jul</span></div>
         </div>
+        <div class="koru-stitch-content">
+          <div class="koru-stitch-note is-amber">Faltan 8 días · Cierra los 35 años</div>
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker is-amber">📅</div><div class="koru-stitch-row-copy"><strong>Fecha</strong><small>12 de julio de 2025</small></div></div>
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker is-amber">🎁</div><div class="koru-stitch-row-copy"><strong>Regalo</strong><small>Aún no definido</small></div></div>
+        </div>
+        <div class="koru-actions"><button class="koru-pill-button">Recordar</button><button class="koru-pill-button is-primary">Saludar</button></div>
       </div>
 
-      <!-- B:Feed elegante -->
-      <div class="card-premium rounded-2xl p-5">
-        <h3 class="font-serif text-base text-bark mb-4">Próximos</h3>
-        <div class="space-y-3">
-          <div class="flex items-center gap-3 p-3 rounded-xl bg-white/60 border border-sand/60 hover:shadow-sm transition-shadow">
-            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80" class="w-10 h-10 rounded-full object-cover border border-white shadow-sm" alt="">
-            <div class="flex-1">
-              <p class="text-xs font-bold text-bark">Ana López</p>
-              <p class="text-[10px] text-stone">12 de julio · 35 años</p>
-            </div>
-            <span class="badge bg-gold/10 text-gold border border-gold/20 text-[10px]">Mañana</span>
-          </div>
-          <div class="flex items-center gap-3 p-3 rounded-xl bg-white/60 border border-sand/60 hover:shadow-sm transition-shadow">
-            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80" class="w-10 h-10 rounded-full object-cover border border-white shadow-sm" alt="">
-            <div class="flex-1">
-              <p class="text-xs font-bold text-bark">Roberto Díaz</p>
-              <p class="text-[10px] text-stone">22 de julio · 42 años</p>
-            </div>
-            <span class="badge bg-stone/15 text-stone border border-stone/20 text-[10px]">10 días</span>
-          </div>
-          <div class="flex items-center gap-3 p-3 rounded-xl bg-white/60 border border-sand/60 hover:shadow-sm transition-shadow">
-            <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&q=80" class="w-10 h-10 rounded-full object-cover border border-white shadow-sm" alt="">
-            <div class="flex-1">
-              <p class="text-xs font-bold text-bark">María Sosa</p>
-              <p class="text-[10px] text-stone">3 de agosto · 29 años</p>
-            </div>
-            <span class="badge bg-forest/10 text-forest border border-forest/20 text-[10px]">22 días</span>
-          </div>
+      <!-- B -->
+      <div class="koru-stitch-card">
+        <div class="koru-stitch-card-header">
+          <div class="koru-stitch-icon">📅</div>
+          <div class="koru-stitch-heading"><span class="koru-card-hint">Julio 2025</span><span class="koru-card-title">2 cumpleaños</span></div>
         </div>
+        <div class="koru-stitch-content">
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker is-rose">A</div><div class="koru-stitch-row-copy"><strong>Ana López</strong><small>12 jul · 35 años</small></div><em>Mañana</em></div>
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker is-amber">R</div><div class="koru-stitch-row-copy"><strong>Roberto Díaz</strong><small>22 jul · 42 años</small></div><em>10 días</em></div>
+        </div>
+        <div class="koru-actions"><button class="koru-pill-button">Ver calendario</button></div>
       </div>
 
-      <!-- C: Calendario estilo editorial -->
-      <div class="card-premium rounded-2xl overflow-hidden">
-        <div class="relative h-32 bg-gradient-to-br from-gold/20 to-blush/20">
-          <div class="absolute inset-0 flex items-center justify-center">
-            <div class="text-center">
-              <p class="font-serif text-5xl text-bark">Julio</p>
-              <p class="text-[10px] text-stone uppercase tracking-widest mt-1">2025</p>
-            </div>
-          </div>
+      <!-- C -->
+      <div class="koru-stitch-card">
+        <div class="koru-stitch-card-header">
+          <div class="koru-stitch-icon is-purple">📆</div>
+          <div class="koru-stitch-heading"><span class="koru-card-hint">Calendario</span><span class="koru-card-title">Agosto 2025</span></div>
         </div>
-        <div class="p-5">
-          <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-medium text-stone mb-2">
-            <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
-          </div>
-          <div class="grid grid-cols-7 gap-1 text-center text-xs">
-            <span class="py-1.5 text-stone/30">30</span><span class="py-1.5 text-stone/30">1</span>
-            <span class="py-1.5">2</span><span class="py-1.5">3</span><span class="py-1.5">4</span><span class="py-1.5">5</span><span class="py-1.5">6</span>
-            <span class="py-1.5">7</span><span class="py-1.5">8</span><span class="py-1.5">9</span><span class="py-1.5">10</span><span class="py-1.5">11</span>
-            <span class="py-1.5 rounded-lg bg-gold text-white font-bold shadow-sm relative"><span class="absolute -top-1 -right-1 w-2 h-2 bg-accent rounded-full"></span>12</span>
-            <span class="py-1.5">13</span>
-            <span class="py-1.5">14</span><span class="py-1.5">15</span><span class="py-1.5">16</span><span class="py-1.5">17</span><span class="py-1.5">18</span><span class="py-1.5">19</span><span class="py-1.5">20</span>
-            <span class="py-1.5">21</span>
-            <span class="py-1.5 rounded-lg bg-forest text-white font-bold shadow-sm relative"><span class="absolute -top-1 -right-1 w-2 h-2 bg-accent rounded-full"></span>22</span>
-            <span class="py-1.5">23</span><span class="py-1.5">24</span><span class="py-1.5">25</span><span class="py-1.5">26</span><span class="py-1.5">27</span><span class="py-1.5">28</span>
-            <span class="py-1.5">29</span><span class="py-1.5">30</span><span class="py-1.5">31</span>
-          </div>
-          <div class="mt-4 space-y-1.5">
-            <div class="flex items-center gap-2 text-[11px]"><span class="w-2 h-2 rounded-full bg-gold"></span> Ana López · 12</div>
-            <div class="flex items-center gap-2 text-[11px]"><span class="w-2 h-2 rounded-full bg-forest"></span> Roberto Díaz · 22</div>
-          </div>
+        <div class="koru-stitch-content" style="gap:10px;">
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker is-rose">M</div><div class="koru-stitch-row-copy"><strong>María Sosa</strong><small>3 ago · 29 años</small></div><em>18 días</em></div>
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker is-muted">C</div><div class="koru-stitch-row-copy"><strong>Carlos Ruiz</strong><small>15 ago · 31 años</small></div><em>30 días</em></div>
         </div>
+        <div class="koru-actions"><button class="koru-pill-button">Ver todos</button></div>
       </div>
     </div>
   </section>
 
   <!-- 6 COMPARATIVA -->
-  <section class="mb-24">
-    <div class="flex items-end gap-4 mb-10">
-      <span class="font-serif text-6xl text-sand-dark/40 leading-none">6</span>
-      <div>
-        <h2 class="font-serif text-2xl text-bark">Comparativa de productos</h2>
-        <div class="w-12 h-0.5 bg-gradient-to-r from-forest to-transparent mt-2"></div>
-      </div>
+  <section style="margin-bottom:48px;">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+      <span class="section-num">6</span>
+      <h2 class="section-title">Comparativa de productos</h2>
     </div>
-    <div class="grid md:grid-cols-3 gap-8">
+    <div class="grid-3">
 
-      <!-- A: Fichas VS con fotos -->
-      <div class="card-premium rounded-2xl p-6">
-        <div class="text-center mb-5">
-          <span class="inline-block text-[10px] font-bold text-stone uppercase tracking-widest border border-sand rounded-full px-3 py-1">Cafeteras compactas</span>
+      <!-- A -->
+      <div class="koru-stitch-card">
+        <div class="koru-stitch-card-header">
+          <div class="koru-stitch-icon is-amber">☕</div>
+          <div class="koru-stitch-heading"><span class="koru-card-hint">Cafeteras</span><span class="koru-card-title">Nespresso A vs Dolce Gusto B</span></div>
         </div>
-        <div class="flex gap-3 mb-5">
-          <div class="flex-1 p-3 rounded-2xl bg-warm-white border border-sand text-center hover:shadow-sm transition-shadow">
-            <img src="https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=200&q=80" class="w-full h-20 rounded-xl object-cover mb-2" alt="">
-            <p class="text-xs font-bold text-bark">Nespresso A</p>
-            <p class="text-lg font-bold text-forest font-mono mt-1">$89</p>
-          </div>
-          <div class="flex-1 p-3 rounded-2xl bg-warm-white border border-sand text-center hover:shadow-sm transition-shadow">
-            <img src="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=200&q=80" class="w-full h-20 rounded-xl object-cover mb-2" alt="">
-            <p class="text-xs font-bold text-bark">Dolce Gusto B</p>
-            <p class="text-lg font-bold text-gold font-mono mt-1">$110</p>
-          </div>
+        <div class="koru-stitch-content">
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker">$</div><div class="koru-stitch-row-copy"><strong>Precio</strong></div><div class="koru-stitch-row-copy" style="text-align:right;"><strong style="color:var(--koru-accent)">$89</strong> <span style="color:var(--koru-muted);font-size:11px;">vs $110</span></div></div>
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker">⚡</div><div class="koru-stitch-row-copy"><strong>Presión</strong></div><div class="koru-stitch-row-copy" style="text-align:right;"><strong style="color:var(--koru-accent)">19 bar</strong> <span style="color:var(--koru-muted);font-size:11px;">vs 15 bar</span></div></div>
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker">💧</div><div class="koru-stitch-row-copy"><strong>Depósito</strong></div><div class="koru-stitch-row-copy" style="text-align:right;"><span style="color:var(--koru-muted);font-size:11px;">0,7 L vs</span> <strong style="color:var(--koru-accent)">0,8 L</strong></div></div>
+          <div class="koru-stitch-note">Ganador: Nespresso A — mejor relación calidad/precio</div>
         </div>
-        <div class="space-y-2">
-          <div class="flex items-center justify-between text-xs py-1.5 border-b border-sand/50"><span class="text-stone">Presión</span><div class="flex gap-3 font-mono"><span class="text-forest font-bold">19 bar</span><span class="text-stone">15 bar</span></div></div>
-          <div class="flex items-center justify-between text-xs py-1.5 border-b border-sand/50"><span class="text-stone">Depósito</span><div class="flex gap-3 font-mono"><span class="text-stone">0,7 L</span><span class="text-forest font-bold">0,8 L</span></div></div>
-          <div class="flex items-center justify-between text-xs py-1.5"><span class="text-stone">Comp.</span><div class="flex gap-3 font-mono"><span class="text-forest font-bold">Universal</span><span class="text-accent">Propia</span></div></div>
-        </div>
-        <div class="mt-4 p-3 rounded-xl bg-gradient-to-r from-forest/5 to-transparent border border-forest/10">
-          <p class="text-[11px] text-earth">Ganador: <span class="font-bold text-forest">Nespresso A</span> — mejor relación calidad/precio</p>
-        </div>
+        <div class="koru-actions"><button class="koru-pill-button is-primary">Elegir Nespresso</button><button class="koru-pill-button">Elegir Dolce</button></div>
       </div>
 
-      <!-- B: Layout editorial con barras -->
-      <div class="card-premium rounded-2xl overflow-hidden">
-        <div class="p-5 pb-0">
-          <h3 class="font-serif text-lg text-bark mb-1">Nespresso A</h3>
-          <p class="text-[10px] text-stone mb-4">vs Dolce Gusto B</p>
+      <!-- B -->
+      <div class="koru-stitch-card">
+        <div class="koru-stitch-card-header">
+          <div class="koru-stitch-icon is-blue">🏷️</div>
+          <div class="koru-stitch-heading"><span class="koru-card-hint">Criterios</span><span class="koru-card-title">Puntuación por aspecto</span></div>
         </div>
-        <div class="px-5 space-y-4 pb-5">
-          <div>
-            <div class="flex justify-between text-[10px] text-stone mb-1"><span>Precio</span><span class="text-moss font-bold">Nespresso gana</span></div>
-            <div class="flex gap-1 h-2"><div class="flex-[89] rounded-l-full bg-forest"></div><div class="flex-[110] rounded-r-full bg-sand"></div></div>
-          </div>
-          <div>
-            <div class="flex justify-between text-[10px] text-stone mb-1"><span>Potencia</span><span class="text-moss font-bold">Nespresso gana</span></div>
-            <div class="flex gap-1 h-2"><div class="flex-[19] rounded-l-full bg-forest"></div><div class="flex-[15] rounded-r-full bg-sand"></div></div>
-          </div>
-          <div>
-            <div class="flex justify-between text-[10px] text-stone mb-1"><span>Volumen</span><span class="text-gold font-bold">Dolce gana</span></div>
-            <div class="flex gap-1 h-2"><div class="flex-[7] rounded-l-full bg-sand"></div><div class="flex-[8] rounded-r-full bg-gold"></div></div>
-          </div>
-          <div>
-            <div class="flex justify-between text-[10px] text-stone mb-1"><span>Garantía</span><span class="text-gold font-bold">Dolce gana</span></div>
-            <div class="flex gap-1 h-2"><div class="flex-[2] rounded-l-full bg-sand"></div><div class="flex-[3] rounded-r-full bg-gold"></div></div>
-          </div>
+        <div class="koru-stitch-content">
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker">$</div><div class="koru-stitch-row-copy"><strong>Precio</strong></div><em>Nespresso</em></div>
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker">⚡</div><div class="koru-stitch-row-copy"><strong>Potencia</strong></div><em>Nespresso</em></div>
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker">💧</div><div class="koru-stitch-row-copy"><strong>Capacidad</strong></div><em style="background:var(--koru-amber-soft);color:var(--koru-amber)">Dolce</em></div>
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker">🔧</div><div class="koru-stitch-row-copy"><strong>Garantía</strong></div><em style="background:var(--koru-amber-soft);color:var(--koru-amber)">Dolce</em></div>
         </div>
-        <div class="p-4 bg-warm-white border-t border-sand">
-          <div class="flex items-center justify-between">
-            <div class="text-center flex-1"><p class="text-[10px] text-stone">Nespresso</p><p class="text-xl font-bold text-forest font-mono">4<span class="text-sm">/5</span></p></div>
-            <div class="w-px h-8 bg-sand"></div>
-            <div class="text-center flex-1"><p class="text-[10px] text-stone">Dolce</p><p class="text-xl font-bold text-gold font-mono">2<span class="text-sm">/5</span></p></div>
-          </div>
-        </div>
+        <div class="koru-actions"><button class="koru-pill-button is-primary">Nespresso A</button></div>
       </div>
 
-      <!-- C: Tabla editorial -->
-      <div class="card-premium rounded-2xl overflow-hidden">
-        <div class="relative h-28 overflow-hidden">
-          <img src="https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=400&q=80" class="img-cover w-full h-full" alt="">
-          <div class="absolute inset-0 bg-gradient-to-t from-bark/70 to-transparent"></div>
-          <div class="absolute bottom-3 left-5">
-            <p class="text-cream/60 text-[10px] uppercase tracking-wider">Comparativa</p>
-            <p class="text-cream font-serif text-lg">Cafeteras</p>
-          </div>
+      <!-- C -->
+      <div class="koru-stitch-card">
+        <div class="koru-stitch-card-header">
+          <div class="koru-stitch-icon is-purple">📊</div>
+          <div class="koru-stitch-heading"><span class="koru-card-hint">Specs</span><span class="koru-card-title">Ficha técnica</span></div>
         </div>
-        <div class="p-5">
-          <div class="grid grid-cols-[1fr_1fr_1fr] gap-y-3 text-xs">
-            <div class="text-stone uppercase text-[10px]">Característica</div>
-            <div class="text-forest font-bold text-center text-[10px]">Nespresso A</div>
-            <div class="text-gold font-bold text-center text-[10px]">Dolce Gusto B</div>
-
-            <div class="text-stone text-[11px]">Precio</div>
-            <div class="text-center text-[11px] font-bold text-forest font-mono">$89</div>
-            <div class="text-center text-[11px] font-bold text-bark font-mono">$110</div>
-
-            <div class="text-stone text-[11px]">Presión</div>
-            <div class="text-center text-[11px] font-bold text-forest font-mono">19 bar</div>
-            <div class="text-center text-[11px] text-stone font-mono">15 bar</div>
-
-            <div class="text-stone text-[11px]">Depósito</div>
-            <div class="text-center text-[11px] text-stone font-mono">0,7 L</div>
-            <div class="text-center text-[11px] font-bold text-forest font-mono">0,8 L</div>
-
-            <div class="text-stone text-[11px]">Cápsulas</div>
-            <div class="text-center text-[11px] font-bold text-forest font-mono">Universal</div>
-            <div class="text-center text-[11px] text-destructive font-mono">Propia</div>
-
-            <div class="text-stone text-[11px]">Garantía</div>
-            <div class="text-center text-[11px] text-stone font-mono">2 años</div>
-            <div class="text-center text-[11px] font-bold text-forest font-mono">3 años</div>
+        <div class="koru-stitch-content">
+          <div class="koru-stitch-grid">
+            <div class="koru-stitch-tile"><small>Precio</small><strong style="color:var(--koru-accent)">$89</strong></div>
+            <div class="koru-stitch-tile"><small>Presión</small><strong>19 bar</strong></div>
+            <div class="koru-stitch-tile"><small>Depósito</small><strong>0,7 L</strong></div>
+            <div class="koru-stitch-tile"><small>Garantía</small><strong>2 años</strong></div>
           </div>
-          <div class="mt-4 flex gap-2">
-            <button class="flex-1 rounded-full bg-forest text-cream py-2.5 text-xs font-semibold hover:bg-forest-dark transition-colors">Nespresso A</button>
-            <button class="flex-1 rounded-full bg-warm-white text-bark border border-sand py-2.5 text-xs font-semibold hover:bg-white transition-colors">Dolce Gusto B</button>
-          </div>
+          <div class="koru-stitch-note">Nespresso A: capsulas universales · mayor presión</div>
         </div>
+        <div class="koru-actions"><button class="koru-pill-button is-primary">Comprar</button></div>
       </div>
     </div>
   </section>
 
   <!-- 7 REVIEW -->
-  <section class="mb-24">
-    <div class="flex items-end gap-4 mb-10">
-      <span class="font-serif text-6xl text-sand-dark/40 leading-none">7</span>
-      <div>
-        <h2 class="font-serif text-2xl text-bark">Product review</h2>
-        <div class="w-12 h-0.5 bg-gradient-to-r from-forest to-transparent mt-2"></div>
-      </div>
+  <section style="margin-bottom:48px;">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+      <span class="section-num">7</span>
+      <h2 class="section-title">Product review</h2>
     </div>
-    <div class="grid md:grid-cols-3 gap-8">
+    <div class="grid-3">
 
-      <!-- A: Editorial con foto hero -->
-      <div class="card-premium rounded-2xl overflow-hidden">
-        <div class="relative h-40 overflow-hidden">
-          <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&q=80" class="img-cover w-full h-full" alt="">
-          <div class="absolute inset-0 bg-gradient-to-t from-bark via-bark/30 to-transparent"></div>
-          <div class="absolute bottom-4 left-5 right-5 flex items-end justify-between">
-            <div>
-              <p class="text-[10px] text-cream/60 uppercase tracking-wider">Review</p>
-              <h3 class="font-serif text-lg text-cream">Sony WH-1000XM5</h3>
-            </div>
-            <div class="text-right">
-              <p class="text-3xl font-bold text-cream font-mono">8,4</p>
-              <div class="text-gold text-sm">★★★★☆</div>
-            </div>
-          </div>
+      <!-- A -->
+      <div class="koru-stitch-card">
+        <div class="koru-stitch-card-header">
+          <div class="koru-stitch-icon">🎧</div>
+          <div class="koru-stitch-heading"><span class="koru-card-hint">Review</span><span class="koru-card-title">Sony WH-1000XM5</span></div>
         </div>
-        <div class="p-5">
-          <div class="space-y-3">
-            <div>
-              <div class="flex justify-between text-[10px] text-stone mb-1"><span>Cancelación</span><span class="text-forest font-bold">9,2</span></div>
-              <div class="h-1.5 bg-sand rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-forest to-moss rounded-full" style="width:92%"></div></div>
-            </div>
-            <div>
-              <div class="flex justify-between text-[10px] text-stone mb-1"><span>Batería</span><span class="text-forest font-bold">8,8</span></div>
-              <div class="h-1.5 bg-sand rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-forest to-moss rounded-full" style="width:88%"></div></div>
-            </div>
-            <div>
-              <div class="flex justify-between text-[10px] text-stone mb-1"><span>Comfort</span><span class="text-gold font-bold">7,5</span></div>
-              <div class="h-1.5 bg-sand rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-gold to-gold-light rounded-full" style="width:75%"></div></div>
-            </div>
-            <div>
-              <div class="flex justify-between text-[10px] text-stone mb-1"><span>Precio</span><span class="text-stone font-bold">5,5</span></div>
-              <div class="h-1.5 bg-sand rounded-full overflow-hidden"><div class="h-full bg-stone rounded-full" style="width:55%"></div></div>
-            </div>
-          </div>
-          <div class="mt-4 p-3 rounded-xl bg-warm-white border border-sand">
-            <p class="text-[11px] text-earth italic">“La mejor cancelación activa del mercado. La batería dura dos días enteros.”</p>
-          </div>
+        <div class="koru-stitch-content">
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker">⭐</div><div class="koru-stitch-row-copy"><strong>Calidad de sonido</strong><small>Cancelación top del mercado</small></div><em style="background:var(--koru-accent-soft);color:var(--koru-accent)">9,2</em></div>
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker is-amber">🔋</div><div class="koru-stitch-row-copy"><strong>Batería</strong><small>Dos días de uso continuo</small></div><em style="background:var(--koru-accent-soft);color:var(--koru-accent)">8,8</em></div>
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker is-amber">🪶</div><div class="koru-stitch-row-copy"><strong>Comfort</strong><small>Livianos para largas sesiones</small></div><em style="background:var(--koru-amber-soft);color:var(--koru-amber)">7,5</em></div>
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker is-muted">$</div><div class="koru-stitch-row-copy"><strong>Precio</strong><small>$349 · segmento premium</small></div><em style="background:var(--koru-border);color:var(--koru-muted)">5,5</em></div>
         </div>
+        <div class="koru-actions"><button class="koru-pill-button is-primary">Ver review</button></div>
       </div>
 
-      <!-- B: Minimal grid aspectos -->
-      <div class="card-premium rounded-2xl p-6">
-        <div class="flex items-center gap-3 mb-5">
-          <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=120&q=80" class="w-14 h-14 rounded-xl object-cover border border-sand" alt="">
-          <div>
-            <h3 class="font-serif text-base text-bark">Sony WH-1000XM5</h3>
-            <p class="text-[10px] text-stone">Auriculares con cancelación</p>
-          </div>
+      <!-- B -->
+      <div class="koru-stitch-card">
+        <div class="koru-stitch-card-header">
+          <div class="koru-stitch-icon is-rose">⭐</div>
+          <div class="koru-stitch-heading"><span class="koru-card-hint">Nota general</span><span class="koru-card-title">8,4 / 10</span></div>
         </div>
-        <div class="grid grid-cols-2 gap-2 mb-4">
-          <div class="p-3 rounded-xl bg-gradient-to-br from-forest/5 to-transparent border border-forest/10 text-center">
-            <p class="text-[10px] text-stone uppercase">Calidad</p>
-            <p class="text-xl font-bold text-forest font-mono">9,2</p>
+        <div class="koru-stitch-content">
+          <div class="koru-stitch-grid">
+            <div class="koru-stitch-tile"><small>Calidad</small><strong style="color:var(--koru-accent)">9,2</strong></div>
+            <div class="koru-stitch-tile"><small>Batería</small><strong style="color:var(--koru-accent)">8,8</strong></div>
+            <div class="koru-stitch-tile"><small>Comfort</small><strong style="color:var(--koru-amber)">7,5</strong></div>
+            <div class="koru-stitch-tile"><small>Precio</small><strong style="color:var(--koru-muted)">5,5</strong></div>
           </div>
-          <div class="p-3 rounded-xl bg-gradient-to-br from-forest/5 to-transparent border border-forest/10 text-center">
-            <p class="text-[10px] text-stone uppercase">Batería</p>
-            <p class="text-xl font-bold text-forest font-mono">8,8</p>
-          </div>
-          <div class="p-3 rounded-xl bg-gradient-to-br from-gold/5 to-transparent border border-gold/10 text-center">
-            <p class="text-[10px] text-stone uppercase">Comfort</p>
-            <p class="text-xl font-bold text-gold font-mono">7,5</p>
-          </div>
-          <div class="p-3 rounded-xl bg-gradient-to-br from-stone/5 to-transparent border border-stone/10 text-center">
-            <p class="text-[10px] text-stone uppercase">Precio</p>
-            <p class="text-xl font-bold text-stone font-mono">5,5</p>
-          </div>
+          <div class="koru-stitch-note">Veredicto: recomendado si priorizás silencio y batería.</div>
         </div>
-        <div class="divider-gradient mb-3"></div>
-        <div class="flex items-center justify-between">
-          <div class="text-gold text-sm">★★★★☆</div>
-          <span class="text-[10px] text-stone">349 reviews</span>
-        </div>
-        <div class="mt-3 flex gap-2">
-          <span class="text-[10px] bg-moss/10 text-moss px-2 py-0.5 rounded-full border border-moss/20">Recomendado</span>
-          <span class="text-[10px] bg-gold/10 text-gold px-2 py-0.5 rounded-full border border-gold/20">Premium</span>
-        </div>
+        <div class="koru-actions"><button class="koru-pill-button">Ver más</button></div>
       </div>
 
-      <!-- C: Card nota grande + quote -->
-      <div class="card-premium rounded-2xl p-6 text-center">
-        <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=180&q=80" class="w-16 h-16 rounded-2xl object-cover mx-auto mb-4 border-2 border-white shadow-md" alt="">
-        <h3 class="font-serif text-lg text-bark">Sony WH-1000XM5</h3>
-        <p class="text-[11px] text-stone mb-4">Review por TechKoru · 14 min de lectura</p>
-        <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-forest/10 to-moss/5 border-2 border-forest/20 mb-3">
-          <span class="text-2xl font-bold text-forest font-mono">8,4</span>
+      <!-- C -->
+      <div class="koru-stitch-card">
+        <div class="koru-stitch-card-header">
+          <div class="koru-stitch-icon is-blue">💬</div>
+          <div class="koru-stitch-heading"><span class="koru-card-hint">Opinión</span><span class="koru-card-title">Resumen del experto</span></div>
         </div>
-        <div class="text-gold text-base mb-3">★★★★☆</div>
-        <blockquote class="text-sm text-earth italic leading-relaxed mb-4">“El rey de la cancelación activa regresa con mejor batería y un diseño más liviano.”</blockquote>
-        <div class="flex justify-center gap-3 text-[10px] text-stone">
-          <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-forest"></span>Calidad top</span>
-          <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-gold"></span>Caro</span>
+        <div class="koru-stitch-content">
+          <div class="koru-stitch-note" style="background:var(--koru-blue-soft);color:var(--koru-blue);">“El rey de la cancelación activa regresa con mejor batería y diseño más liviano.”</div>
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker is-blue">✓</div><div class="koru-stitch-row-copy"><strong>Pros</strong><small>Cancelación, batería, app</small></div></div>
+          <div class="koru-stitch-row"><div class="koru-stitch-row-marker is-rose">✕</div><div class="koru-stitch-row-copy"><strong>Contras</strong><small>Precio alto, case grande</small></div></div>
         </div>
+        <div class="koru-actions"><button class="koru-pill-button is-primary">Leer completo</button></div>
       </div>
     </div>
   </section>
 
-  <footer class="text-center pb-16">
-    <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-forest/5 text-forest mb-3">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 9.536V7a4 4 0 0 1 4-4h1.5a.5.5 0 0 1 .5.5V5a4 4 0 0 1-4 4 4 4 0 0 0-4 4c0 2 1 3 1 5a5 5 0 0 1-1 3"/></svg>
-    </div>
-    <p class="text-xs text-stone">21 diseños de tarjetas · Estilo Koru Premium — Glassmorphism, gradients, fotos reales</p>
+  <footer style="text-align:center; padding:24px 0; color:var(--koru-muted); font-size:11px;">
+    21 diseños de tarjetas · Estilo Koru exacto · Variables y clases reales
   </footer>
 </div>
 
