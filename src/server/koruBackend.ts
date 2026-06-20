@@ -164,7 +164,7 @@ const TOOL_DEFINITIONS = [
         type: "object",
         additionalProperties: false,
         properties: {
-          city: { type: "string", description: "City or location to check." },
+          city: { type: "string", description: "City or location. Do NOT guess. If the user has not stated a location, ask for it first." },
           purpose: { type: "string", description: "Why the user needs this weather, e.g. outfit, meeting, umbrella." },
         },
         required: ["city"],
@@ -466,7 +466,7 @@ async function callNvidia(
       ...(toolsEnabled ? { tools: TOOL_DEFINITIONS, tool_choice: "auto" } : {}),
       temperature: 0.25,
       top_p: 0.95,
-      max_tokens: 4096,
+      max_tokens: 8192,
       stream: false,
     }),
   }, timeoutMs);
@@ -502,12 +502,14 @@ async function callOpenRouterCandidate(
       messages,
       ...(toolsEnabled ? { tools: TOOL_DEFINITIONS, tool_choice: "auto" } : {}),
       temperature: 0.25,
-      max_tokens: 4096,
+      max_tokens: 8192,
       stream: false,
     }),
   }, timeoutMs);
   const data = await response.json().catch(() => ({}));
   if (!response.ok || !hasUsableAssistantMessage(data)) {
+    // eslint-disable-next-line no-console
+    console.error(`[DEBUG] OpenRouter ${model} unusable. status=${response.status} body=`, JSON.stringify(data).slice(0, 500));
     throw new Error(`OpenRouter ${model} returned ${response.status}`);
   }
   const choice = asRecord(asArray(asRecord(data).choices)[0]);
@@ -1433,6 +1435,8 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
     `- El texto puede ser de 1 línea si es simple, o un párrafo corto si es emocional. No te cortés.`,
     `- Las cards (uiBlocks) son para los datos; el texto es para conectar con ${state.userName?.trim() || "mi amigo"}.`,
     `- Nunca inventes precios, clima, o datos que no tengas. Si no sabés, decilo con naturalidad y ofrecé el siguiente paso.`,
+    `- CRÍTICO: Si una tool externa (clima, búsqueda, ruta, precios) devuelve status "failed" o "not_configured", NO inventés los datos. Decile al usuario honestamente que no pudiste obtener esa información y preguntá si quiere que lo intente de otra forma.`,
+    `- CRÍTICO: Si necesitás una ciudad para el clima o una ruta y el usuario no la dijo, NO asumas. Preguntá antes de usar la tool.`,
     ``,
     `Memorias relevantes para esta conversación (usalas para personalizar tu respuesta):`,
     ...(relevantMemories.length
@@ -2262,7 +2266,14 @@ export async function runKoruBackendTurn(
   let fallbackReason: string | undefined;
 
   // Paso 1: una sola llamada al LLM con tools habilitadas
-  const firstResult = await callProvider(config, messages, 30_000, true);
+  let firstResult: ProviderResult;
+  try {
+    firstResult = await callProvider(config, messages, 30_000, true);
+  } catch {
+    // Fallback sin tools si el modelo no las soporta o devolvió respuesta vacía
+    firstResult = await callProvider(config, messages, 30_000, false);
+    fallbackReason = (fallbackReason ? fallbackReason + " + " : "") + "no-tools-fallback";
+  }
   provider = firstResult.provider;
   model = firstResult.model;
   fallbackReason = firstResult.fallbackReason;
