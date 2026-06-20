@@ -8,116 +8,114 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
 <style>
-  body { font-family: 'Plus Jakarta Sans', sans-serif; background: #FCFCFA; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; background: #FCFCFA; color: #333; -webkit-font-smoothing: antialiased; }
   .card-shadow { box-shadow: 0 4px 20px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.02); }
   .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
 </style>
 </head>
-<body class="min-h-screen bg-[#FCFCFA] text-[#333]">
+<body class="min-h-screen">
 
 <div class="max-w-[1180px] mx-auto px-6 py-10 pb-20">
 
-  <!-- Header -->
   <header class="mb-10">
     <h1 class="text-[28px] font-extrabold leading-tight text-gray-900">Diseño de tarjetas</h1>
-    <p class="text-[13px] text-gray-400 mt-1 font-medium">7 temas · 3 opciones · Cada una visualmente distinta</p>
+    <p class="text-[13px] text-gray-400 mt-1 font-semibold">7 temas · 3 opciones · Mismo universo visual</p>
   </header>
 
-  <!-- Helper: section head -->
-  <template id="sec-h">
-    <div class="flex items-center gap-2.5 mb-5">
-      <div class="w-7 h-7 rounded-full bg-[#E4EFE3] text-[#70B873] flex items-center justify-center text-[12px] font-extrabold">1</div>
-      <h2 class="text-[20px] font-extrabold text-gray-900">Title</h2>
-    </div>
-  </template>
-
   <!-- ===================== 1 FÚTBOL ===================== -->
-  <section class="mb-12">
-    <div class="flex items-center gap-2.5 mb-5">
-      <div class="w-7 h-7 rounded-full bg-[#E4EFE3] text-[#70B873] flex items-center justify-center text-[12px] font-extrabold">1</div>
+  <section class="mb-14">
+    <div class="flex items-center gap-3 mb-5">
+      <div class="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 text-[16px] font-bold">1</div>
       <h2 class="text-[20px] font-extrabold text-gray-900">Resultados de fútbol</h2>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
 
-      <!-- 1A — Live Scoreboard (3-col, como Champions de la muestra) -->
+      <!-- 1A — Live Scoreboard -->
       <div class="bg-white rounded-3xl p-5 card-shadow">
-        <!-- tag -->
         <div class="flex items-center justify-between mb-4">
-          <div class="flex items-center gap-2">
-            <span class="material-symbols-outlined text-[18px] text-emerald-500">sports_soccer</span>
-            <span class="text-[12px] font-bold text-gray-400 uppercase tracking-wide">Primera División</span>
-          </div>
-          <div class="bg-red-50 text-red-500 text-[10px] font-extrabold px-2 py-1 rounded-md animate-pulse">78'</div>
+          <span class="text-[10px] font-extrabold text-emerald-500 uppercase tracking-[0.15em]">En Vivo</span>
+          <div class="bg-red-50 text-red-500 text-[10px] font-extrabold px-2.5 py-1 rounded-lg animate-pulse">78'</div>
         </div>
-        <!-- scoreboard -->
         <div class="flex items-center justify-between px-1">
-          <div class="flex flex-col items-center gap-2 w-1/3">
-            <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-700 font-bold text-base border border-blue-100">BOC</div>
-            <span class="text-[12px] font-bold text-gray-900">Boca</span>
+          <div class="flex flex-col items-center gap-2 w-[28%]">
+            <div class="w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center text-blue-700 font-bold text-xl border border-blue-100/70">BOC</div>
+            <span class="text-[13px] font-bold text-gray-900">Boca</span>
           </div>
-          <div class="flex flex-col items-center w-1/3">
-            <span class="text-[32px] font-extrabold text-gray-900 leading-none">2 - 1</span>
-            <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1">La Bombonera</span>
+          <div class="flex flex-col items-center w-[40%]">
+            <span class="text-[40px] font-extrabold text-gray-900 leading-none tracking-tight">2-1</span>
+            <span class="text-[10px] text-gray-400 font-extrabold uppercase tracking-widest mt-1.5">La Bombonera</span>
           </div>
-          <div class="flex flex-col items-center gap-2 w-1/3">
-            <div class="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center text-red-600 font-bold text-base border border-red-100">RIV</div>
-            <span class="text-[12px] font-bold text-gray-900">River</span>
+          <div class="flex flex-col items-center gap-2 w-[28%]">
+            <div class="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center text-red-700 font-bold text-xl border border-red-100/70">RIV</div>
+            <span class="text-[13px] font-bold text-gray-900">River</span>
+          </div>
+        </div>
+        <div class="mt-5 pt-4 border-t border-gray-50">
+          <div class="flex justify-between text-center">
+            <div><div class="text-[11px] text-gray-400 font-bold uppercase tracking-wider">Posesión</div><div class="text-[13px] font-extrabold text-gray-900 mt-0.5">62%</div></div>
+            <div><div class="text-[11px] text-gray-400 font-bold uppercase tracking-wider">Tiros</div><div class="text-[13px] font-extrabold text-gray-900 mt-0.5">14</div></div>
+            <div><div class="text-[11px] text-gray-400 font-bold uppercase tracking-wider">Córners</div><div class="text-[13px] font-extrabold text-gray-900 mt-0.5">8</div></div>
           </div>
         </div>
       </div>
 
-      <!-- 1B — Match Timeline (timeline vertical, como shipping de la muestra) -->
-      <div class="flex flex-col w-full">
-        <div class="flex items-center justify-between mb-2 px-1">
-          <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Fixture · En vivo</span>
+      <!-- 1B — Match Timeline -->
+      <div class="bg-white rounded-3xl p-5 card-shadow">
+        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-[0.15em] block mb-4">Fixture · En vivo</span>
+        <div class="flex items-center gap-3 mb-5">
+          <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+            <span class="material-symbols-outlined text-[20px]">sports_soccer</span>
+          </div>
+          <div>
+            <p class="text-[15px] font-bold text-gray-900">Minuto a minuto</p>
+            <p class="text-[12px] text-gray-500 font-semibold">Boca vs River · Primera</p>
+          </div>
         </div>
-        <div class="bg-white rounded-3xl p-5 card-shadow">
-          <div class="flex gap-4 items-center mb-4">
-            <div class="w-10 h-10 rounded-2xl bg-[#E4EFE3] flex items-center justify-center text-[#70B873]">
-              <span class="material-symbols-outlined text-[20px]">sports_soccer</span>
-            </div>
+        <div class="relative pl-2">
+          <div class="absolute left-[17px] top-2 bottom-2 w-px bg-gray-100"></div>
+          <div class="relative flex items-start gap-3 mb-4">
+            <div class="w-3.5 h-3.5 rounded-full bg-emerald-500 border-[3px] border-white shadow-sm shrink-0 mt-1 relative z-10"></div>
             <div>
-              <h4 class="text-[14px] font-bold text-gray-900">Minuto a minuto</h4>
-              <p class="text-[12px] text-gray-500 font-medium">Boca vs River · Primera</p>
+              <p class="text-[13px] font-bold text-gray-900">Boca <span class="text-gray-500 font-semibold">1-0</span></p>
+              <p class="text-[11px] text-gray-400 font-semibold">Benedetto · 34'</p>
             </div>
           </div>
-          <div class="relative pt-1 pb-1">
-            <div class="absolute left-2 top-0 bottom-0 w-0.5 bg-gray-100"></div>
-            <div class="relative flex items-center gap-4 mb-3">
-              <div class="w-4 h-4 rounded-full bg-indigo-500 z-10 border-2 border-white shadow-sm"></div>
-              <p class="text-[12px] font-bold text-gray-900">Boca 1-0 <span class="text-gray-400 font-normal ml-2">Benedetto 34’</span></p>
+          <div class="relative flex items-start gap-3 mb-4">
+            <div class="w-3.5 h-3.5 rounded-full bg-gray-200 border-[3px] border-white shrink-0 mt-1 relative z-10"></div>
+            <div>
+              <p class="text-[13px] font-bold text-gray-900">River <span class="text-gray-500 font-semibold">1-1</span></p>
+              <p class="text-[11px] text-gray-400 font-semibold">Álvarez · 59'</p>
             </div>
-            <div class="relative flex items-center gap-4 mb-3">
-              <div class="w-4 h-4 rounded-full bg-gray-200 z-10 border-2 border-white"></div>
-              <p class="text-[12px] font-medium text-gray-400">PP <span class="font-normal ml-2">River 1-1 Álvarez 59’</span></p>
-            </div>
-            <div class="relative flex items-center gap-4">
-              <div class="w-4 h-4 rounded-full bg-[#70B873] z-10 border-2 border-white shadow-sm"></div>
-              <p class="text-[12px] font-bold text-gray-900">Boca 2-1 <span class="text-gray-400 font-normal ml-2">Benedetto 78’</span></p>
+          </div>
+          <div class="relative flex items-start gap-3">
+            <div class="w-3.5 h-3.5 rounded-full bg-emerald-500 border-[3px] border-white shadow-sm shrink-0 mt-1 relative z-10"></div>
+            <div>
+              <p class="text-[13px] font-bold text-gray-900">Boca <span class="text-gray-500 font-semibold">2-1</span></p>
+              <p class="text-[11px] text-gray-400 font-semibold">Benedetto · 78' — Ahora</p>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 1C — Stats Grid (grid sin card clásico, como dashboard) -->
-      <div class="flex flex-col w-full gap-3">
-        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest px-1">Estadísticas</span>
+      <!-- 1C — Stats -->
+      <div class="bg-white rounded-3xl p-5 card-shadow">
+        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-[0.15em] block mb-4">Estadísticas</span>
         <div class="grid grid-cols-2 gap-3">
-          <div class="bg-white rounded-3xl p-4 card-shadow">
-            <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Posesión</span>
-            <span class="text-[22px] font-extrabold text-gray-900 mt-2 block">62%</span>
+          <div class="bg-gray-50 rounded-2xl p-4 flex flex-col justify-between h-24">
+            <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Posesión</span>
+            <span class="text-[22px] font-extrabold text-gray-900">62%</span>
           </div>
-          <div class="bg-white rounded-3xl p-4 card-shadow">
-            <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Tiros</span>
-            <span class="text-[22px] font-extrabold text-gray-900 mt-2 block">14</span>
+          <div class="bg-gray-50 rounded-2xl p-4 flex flex-col justify-between h-24">
+            <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Tiros</span>
+            <span class="text-[22px] font-extrabold text-gray-900">14</span>
           </div>
-          <div class="bg-white rounded-3xl p-4 card-shadow">
-            <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Córners</span>
-            <span class="text-[22px] font-extrabold text-gray-900 mt-2 block">8</span>
+          <div class="bg-gray-50 rounded-2xl p-4 flex flex-col justify-between h-24">
+            <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Córners</span>
+            <span class="text-[22px] font-extrabold text-gray-900">8</span>
           </div>
-          <div class="bg-white rounded-3xl p-4 card-shadow">
-            <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Faltas</span>
-            <span class="text-[22px] font-extrabold text-gray-900 mt-2 block">3</span>
+          <div class="bg-gray-50 rounded-2xl p-4 flex flex-col justify-between h-24">
+            <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Faltas</span>
+            <span class="text-[22px] font-extrabold text-gray-900">3</span>
           </div>
         </div>
       </div>
@@ -125,152 +123,148 @@
   </section>
 
   <!-- ===================== 2 ELECCIONES ===================== -->
-  <section class="mb-12">
-    <div class="flex items-center gap-2.5 mb-5">
-      <div class="w-7 h-7 rounded-full bg-[#FFF4E5] text-[#D9A05B] flex items-center justify-center text-[12px] font-extrabold">2</div>
+  <section class="mb-14">
+    <div class="flex items-center gap-3 mb-5">
+      <div class="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 text-[16px] font-bold">2</div>
       <h2 class="text-[20px] font-extrabold text-gray-900">Resultados de elecciones</h2>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
 
-      <!-- 2A — Result Bars (horizontal bars con porcentaje) -->
-      <div class="flex flex-col w-full gap-2">
-        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest px-1">Escrutinio 87%</span>
-        <div class="bg-white rounded-3xl p-5 card-shadow">
-          <div class="flex items-center gap-3 mb-5">
-            <div class="w-10 h-10 rounded-2xl bg-[#FFF4E5] flex items-center justify-center text-amber-600">
-              <span class="material-symbols-outlined text-[20px]">how_to_vote</span>
-            </div>
-            <h4 class="text-[15px] font-bold text-gray-900">Elecciones 2025</h4>
+      <!-- 2A — Bars -->
+      <div class="bg-white rounded-3xl p-5 card-shadow">
+        <span class="text-[10px] font-extrabold text-amber-500 uppercase tracking-[0.15em] block mb-4">Escrutinio 87%</span>
+        <div class="flex items-center gap-3 mb-5">
+          <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
+            <span class="material-symbols-outlined text-[20px]">how_to_vote</span>
           </div>
-          <div class="space-y-4">
-            <div>
-              <div class="flex justify-between mb-1.5">
-                <span class="text-[13px] font-bold text-gray-900">Martínez</span>
-                <span class="text-[13px] font-extrabold text-gray-900">42,3%</span>
-              </div>
-              <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div class="h-full bg-[#70B873] rounded-full" style="width:42.3%"></div>
-              </div>
+          <h3 class="text-[15px] font-bold text-gray-900">Elecciones 2025</h3>
+        </div>
+        <div class="space-y-4">
+          <div>
+            <div class="flex justify-between mb-2">
+              <span class="text-[13px] font-bold text-gray-900">Martínez</span>
+              <span class="text-[13px] font-extrabold text-gray-900">42,3%</span>
             </div>
-            <div>
-              <div class="flex justify-between mb-1.5">
-                <span class="text-[13px] font-bold text-gray-900">Frente Amplio</span>
-                <span class="text-[13px] font-extrabold text-gray-900">35,1%</span>
-              </div>
-              <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div class="h-full bg-[#D9A05B] rounded-full" style="width:35.1%"></div>
-              </div>
+            <div class="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+              <div class="h-full bg-emerald-400 rounded-full" style="width:42.3%"></div>
             </div>
-            <div>
-              <div class="flex justify-between mb-1.5">
-                <span class="text-[13px] font-bold text-gray-900">Otros</span>
-                <span class="text-[13px] font-extrabold text-gray-900">22,6%</span>
-              </div>
-              <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div class="h-full bg-gray-300 rounded-full" style="width:22.6%"></div>
-              </div>
+          </div>
+          <div>
+            <div class="flex justify-between mb-2">
+              <span class="text-[13px] font-bold text-gray-900">Frente Amplio</span>
+              <span class="text-[13px] font-extrabold text-gray-900">35,1%</span>
+            </div>
+            <div class="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+              <div class="h-full bg-amber-400 rounded-full" style="width:35.1%"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between mb-2">
+              <span class="text-[13px] font-bold text-gray-900">Otros</span>
+              <span class="text-[13px] font-extrabold text-gray-900">22,6%</span>
+            </div>
+            <div class="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+              <div class="h-full bg-gray-300 rounded-full" style="width:22.6%"></div>
             </div>
           </div>
         </div>
+        <button class="mt-5 w-full py-3 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-2xl text-[13px] font-bold transition-colors">Ver detalle</button>
       </div>
 
-      <!-- 2B — Vote Card (estilo decision de la muestra) -->
-      <div class="flex flex-col w-full gap-2">
-        <span class="text-[10px] font-extrabold text-purple-500 uppercase tracking-widest px-1">Votar</span>
-        <div class="bg-white rounded-3xl p-5 card-shadow border border-purple-100/30">
-          <h4 class="text-[16px] font-bold text-gray-900 mb-1">¿Aprobás la reforma?</h4>
-          <p class="text-[13px] text-gray-500 font-medium mb-5">Reforma laboral · Vinculante</p>
-          <div class="space-y-3 mb-5">
-            <button class="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-colors text-left">
-              <div>
-                <p class="text-[14px] font-bold text-gray-900">Sí — Reforma</p>
-                <p class="text-[12px] text-gray-500 font-medium">Flexibilización de contratos</p>
-              </div>
-              <span class="material-symbols-outlined text-[20px] text-gray-400">radio_button_unchecked</span>
-            </button>
-            <button class="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-colors text-left">
-              <div>
-                <p class="text-[14px] font-bold text-gray-900">No — Mantener</p>
-                <p class="text-[12px] text-gray-500 font-medium">Legislación vigente</p>
-              </div>
-              <span class="material-symbols-outlined text-[20px] text-gray-400">radio_button_unchecked</span>
-            </button>
-          </div>
-          <button class="w-full py-3 bg-violet-600 text-white rounded-2xl text-[13px] font-bold hover:bg-violet-700 transition-colors">Confirmar voto</button>
+      <!-- 2B — Vote -->
+      <div class="bg-white rounded-3xl p-5 card-shadow">
+        <span class="text-[10px] font-extrabold text-violet-500 uppercase tracking-[0.15em] block mb-4">Votar</span>
+        <h3 class="text-[16px] font-bold text-gray-900 mb-1">¿Aprobás la reforma?</h3>
+        <p class="text-[13px] text-gray-500 font-semibold mb-5">Reforma laboral · Vinculante</p>
+        <div class="space-y-3 mb-5">
+          <button class="w-full group flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-colors text-left border border-transparent hover:border-gray-200">
+            <div>
+              <p class="text-[14px] font-bold text-gray-900">Sí — Reforma</p>
+              <p class="text-[12px] text-gray-500 font-semibold">Flexibilización de contratos</p>
+            </div>
+            <div class="w-5 h-5 rounded-full border-2 border-gray-300 group-hover:border-violet-400 shrink-0"></div>
+          </button>
+          <button class="w-full group flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-colors text-left border border-transparent hover:border-gray-200">
+            <div>
+              <p class="text-[14px] font-bold text-gray-900">No — Mantener</p>
+              <p class="text-[12px] text-gray-500 font-semibold">Legislación vigente</p>
+            </div>
+            <div class="w-5 h-5 rounded-full border-2 border-gray-300 group-hover:border-violet-400 shrink-0"></div>
+          </button>
         </div>
+        <button class="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-2xl text-[13px] font-bold transition-colors">Confirmar voto</button>
       </div>
 
-      <!-- 2C — Summary Tiles (4 tiles 2x2, como summary) -->
-      <div class="flex flex-col w-full gap-2">
-        <span class="text-[10px] font-extrabold text-sky-500 uppercase tracking-widest px-1">Resumen</span>
+      <!-- 2C — Summary -->
+      <div class="bg-white rounded-3xl p-5 card-shadow">
+        <span class="text-[10px] font-extrabold text-sky-500 uppercase tracking-[0.15em] block mb-4">Resumen</span>
         <div class="grid grid-cols-2 gap-3">
-          <div class="bg-gradient-to-br from-sky-50 to-white rounded-3xl p-5 card-shadow border border-sky-100/50 flex flex-col justify-center text-center h-24">
-            <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Votos</span>
-            <span class="text-[18px] font-extrabold text-gray-900">28,4M</span>
+          <div class="bg-sky-50 rounded-2xl p-4 flex flex-col justify-center items-center h-[90px]">
+            <span class="text-[10px] font-extrabold text-sky-400 uppercase tracking-wider">Votos</span>
+            <span class="text-[18px] font-extrabold text-gray-900 mt-1">28,4M</span>
           </div>
-          <div class="bg-gradient-to-br from-sky-50 to-white rounded-3xl p-5 card-shadow border border-sky-100/50 flex flex-col justify-center text-center h-24">
-            <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Mesas</span>
-            <span class="text-[18px] font-extrabold text-gray-900">12.847</span>
+          <div class="bg-sky-50 rounded-2xl p-4 flex flex-col justify-center items-center h-[90px]">
+            <span class="text-[10px] font-extrabold text-sky-400 uppercase tracking-wider">Mesas</span>
+            <span class="text-[18px] font-extrabold text-gray-900 mt-1">12.847</span>
           </div>
-          <div class="bg-gradient-to-br from-sky-50 to-white rounded-3xl p-5 card-shadow border border-sky-100/50 flex flex-col justify-center text-center h-24">
-            <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Participación</span>
-            <span class="text-[18px] font-extrabold text-gray-900">77%</span>
+          <div class="bg-sky-50 rounded-2xl p-4 flex flex-col justify-center items-center h-[90px]">
+            <span class="text-[10px] font-extrabold text-sky-400 uppercase tracking-wider">Participación</span>
+            <span class="text-[18px] font-extrabold text-gray-900 mt-1">77%</span>
           </div>
-          <div class="bg-gradient-to-br from-sky-50 to-white rounded-3xl p-5 card-shadow border border-sky-100/50 flex flex-col justify-center text-center h-24">
-            <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Abstención</span>
-            <span class="text-[18px] font-extrabold text-gray-900">23%</span>
+          <div class="bg-sky-50 rounded-2xl p-4 flex flex-col justify-center items-center h-[90px]">
+            <span class="text-[10px] font-extrabold text-sky-400 uppercase tracking-wider">Abstención</span>
+            <span class="text-[18px] font-extrabold text-gray-900 mt-1">23%</span>
           </div>
         </div>
+        <p class="mt-4 text-[12px] text-amber-600 font-bold bg-amber-50 rounded-xl p-3 text-center">Diferencia de 7,2 pp entre primero y segundo</p>
       </div>
     </div>
   </section>
 
   <!-- ===================== 3 CRYPTO ===================== -->
-  <section class="mb-12">
-    <div class="flex items-center gap-2.5 mb-5">
-      <div class="w-7 h-7 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center text-[12px] font-extrabold">3</div>
+  <section class="mb-14">
+    <div class="flex items-center gap-3 mb-5">
+      <div class="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center text-orange-500 text-[16px] font-bold">3</div>
       <h2 class="text-[20px] font-extrabold text-gray-900">Crypto y Forex</h2>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
 
-      <!-- 3A — Price Alert (número grande + sparkline mock) -->
+      <!-- 3A — Price Alert -->
       <div class="bg-white rounded-3xl p-5 card-shadow">
-        <div class="flex items-center justify-between mb-4">
-          <div class="flex items-center gap-2">
-            <span class="text-[10px] font-extrabold text-orange-400 uppercase tracking-widest">Bitcoin</span>
-          </div>
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-[10px] font-extrabold text-orange-400 uppercase tracking-[0.15em]">Bitcoin</span>
           <span class="material-symbols-outlined text-[18px] text-orange-400">trending_up</span>
         </div>
-        <span class="text-[40px] font-extrabold text-gray-900 leading-none block">$64.230</span>
+        <span class="text-[44px] font-extrabold text-gray-900 leading-none block tracking-tight">$64.230</span>
         <p class="text-[13px] text-emerald-500 font-bold mt-1">+2,4% en 24h</p>
-        <div class="flex items-end gap-1 h-10 mt-4">
-          <div class="w-2 bg-emerald-100 rounded-t" style="height:40%"></div>
-          <div class="w-2 bg-emerald-200 rounded-t" style="height:55%"></div>
-          <div class="w-2 bg-emerald-300 rounded-t" style="height:45%"></div>
-          <div class="w-2 bg-emerald-200 rounded-t" style="height:65%"></div>
-          <div class="w-2 bg-emerald-400 rounded-t" style="height:55%"></div>
-          <div class="w-2 bg-emerald-300 rounded-t" style="height:75%"></div>
-          <div class="w-2 bg-emerald-500 rounded-t" style="height:90%"></div>
-          <div class="w-2 bg-emerald-400 rounded-t" style="height:85%"></div>
-          <div class="w-2 bg-emerald-600 rounded-t" style="height:100%"></div>
-          <div class="w-2 bg-emerald-500 rounded-t" style="height:80%"></div>
+        <div class="flex items-end gap-[3px] h-10 mt-4">
+          <div class="flex-1 bg-emerald-100 rounded-t" style="height:40%"></div>
+          <div class="flex-1 bg-emerald-200 rounded-t" style="height:55%"></div>
+          <div class="flex-1 bg-emerald-300 rounded-t" style="height:45%"></div>
+          <div class="flex-1 bg-emerald-200 rounded-t" style="height:65%"></div>
+          <div class="flex-1 bg-emerald-400 rounded-t" style="height:55%"></div>
+          <div class="flex-1 bg-emerald-300 rounded-t" style="height:75%"></div>
+          <div class="flex-1 bg-emerald-500 rounded-t" style="height:90%"></div>
+          <div class="flex-1 bg-emerald-400 rounded-t" style="height:85%"></div>
+          <div class="flex-1 bg-emerald-600 rounded-t" style="height:100%"></div>
+          <div class="flex-1 bg-emerald-500 rounded-t" style="height:80%"></div>
         </div>
-        <div class="mt-4 flex gap-2">
-          <button class="flex-1 py-2.5 bg-orange-50 text-orange-600 rounded-2xl text-[12px] font-bold hover:bg-orange-100 transition-colors">Vender</button>
-          <button class="flex-1 py-2.5 bg-orange-500 text-white rounded-2xl text-[12px] font-bold hover:bg-orange-600 transition-colors">Comprar</button>
+        <div class="flex gap-2 mt-4">
+          <button class="flex-1 py-3 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-2xl text-[12px] font-bold transition-colors">Vender</button>
+          <button class="flex-1 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl text-[12px] font-bold transition-colors">Comprar</button>
         </div>
       </div>
 
-      <!-- 3B — Portfolio List (scroll list, como mercados de muestra) -->
-      <div class="flex flex-col w-full gap-2">
-        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest px-1">Cartera</span>
-        <div class="bg-white rounded-3xl p-5 card-shadow space-y-4">
-          <div class="flex items-center justify-between hover:bg-gray-50/50 rounded-2xl transition-colors -mx-2 px-2 py-1">
+      <!-- 3B — Portfolio -->
+      <div class="bg-white rounded-3xl p-5 card-shadow">
+        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-[0.15em] block mb-4">Cartera</span>
+        <div class="space-y-0">
+          <div class="flex items-center justify-between py-3 hover:bg-gray-50/50 rounded-2xl transition-colors -mx-2 px-2 cursor-pointer">
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 font-bold text-sm">₿</div>
               <div>
                 <p class="text-[14px] font-bold text-gray-900">Bitcoin</p>
-                <p class="text-[12px] text-gray-500 font-medium">0,45 BTC</p>
+                <p class="text-[12px] text-gray-500 font-semibold">0,45 BTC</p>
               </div>
             </div>
             <div class="text-right">
@@ -278,13 +272,13 @@
               <p class="text-[12px] text-emerald-500 font-bold">+2,4%</p>
             </div>
           </div>
-          <div class="h-px bg-gray-50 w-full"></div>
-          <div class="flex items-center justify-between hover:bg-gray-50/50 rounded-2xl transition-colors -mx-2 px-2 py-1">
+          <div class="h-px bg-gray-50 mx-2"></div>
+          <div class="flex items-center justify-between py-3 hover:bg-gray-50/50 rounded-2xl transition-colors -mx-2 px-2 cursor-pointer">
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 font-bold text-sm">Ξ</div>
               <div>
                 <p class="text-[14px] font-bold text-gray-900">Ethereum</p>
-                <p class="text-[12px] text-gray-500 font-medium">3,20 ETH</p>
+                <p class="text-[12px] text-gray-500 font-semibold">3,20 ETH</p>
               </div>
             </div>
             <div class="text-right">
@@ -292,13 +286,13 @@
               <p class="text-[12px] text-red-500 font-bold">-1,2%</p>
             </div>
           </div>
-          <div class="h-px bg-gray-50 w-full"></div>
-          <div class="flex items-center justify-between hover:bg-gray-50/50 rounded-2xl transition-colors -mx-2 px-2 py-1">
+          <div class="h-px bg-gray-50 mx-2"></div>
+          <div class="flex items-center justify-between py-3 hover:bg-gray-50/50 rounded-2xl transition-colors -mx-2 px-2 cursor-pointer">
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold text-sm">USDC</div>
               <div>
                 <p class="text-[14px] font-bold text-gray-900">USDC</p>
-                <p class="text-[12px] text-gray-500 font-medium">Stable</p>
+                <p class="text-[12px] text-gray-500 font-semibold">Stable</p>
               </div>
             </div>
             <div class="text-right">
@@ -309,28 +303,28 @@
         </div>
       </div>
 
-      <!-- 3C — Forex Chips (grid de chips coloridos) -->
-      <div class="flex flex-col w-full gap-2">
-        <span class="text-[10px] font-extrabold text-blue-500 uppercase tracking-widest px-1">Forex en vivo</span>
+      <!-- 3C — Forex Chips -->
+      <div class="bg-white rounded-3xl p-5 card-shadow">
+        <span class="text-[10px] font-extrabold text-blue-500 uppercase tracking-[0.15em] block mb-4">Forex en vivo</span>
         <div class="grid grid-cols-2 gap-3">
-          <div class="bg-blue-50 rounded-3xl p-4 card-shadow border border-blue-100/50">
+          <div class="bg-blue-50 rounded-2xl p-4">
             <span class="text-[10px] font-extrabold text-blue-400 uppercase tracking-wider block">EUR/USD</span>
-            <span class="text-[18px] font-extrabold text-gray-900 mt-2 block">1,0854</span>
+            <span class="text-[18px] font-extrabold text-gray-900 mt-1 block">1,0854</span>
             <span class="text-[11px] text-emerald-500 font-bold">+0,02%</span>
           </div>
-          <div class="bg-blue-50 rounded-3xl p-4 card-shadow border border-blue-100/50">
+          <div class="bg-blue-50 rounded-2xl p-4">
             <span class="text-[10px] font-extrabold text-blue-400 uppercase tracking-wider block">GBP/USD</span>
-            <span class="text-[18px] font-extrabold text-gray-900 mt-2 block">1,2730</span>
+            <span class="text-[18px] font-extrabold text-gray-900 mt-1 block">1,2730</span>
             <span class="text-[11px] text-emerald-500 font-bold">+0,08%</span>
           </div>
-          <div class="bg-rose-50 rounded-3xl p-4 card-shadow border border-rose-100/50">
-            <span class="text-[10px] font-extrabold text-rose-400 uppercase tracking-wider block">USD/JPY</span>
-            <span class="text-[18px] font-extrabold text-gray-900 mt-2 block">148,32</span>
+          <div class="bg-red-50 rounded-2xl p-4">
+            <span class="text-[10px] font-extrabold text-red-400 uppercase tracking-wider block">USD/JPY</span>
+            <span class="text-[18px] font-extrabold text-gray-900 mt-1 block">148,32</span>
             <span class="text-[11px] text-red-500 font-bold">-0,15%</span>
           </div>
-          <div class="bg-blue-50 rounded-3xl p-4 card-shadow border border-blue-100/50">
+          <div class="bg-blue-50 rounded-2xl p-4">
             <span class="text-[10px] font-extrabold text-blue-400 uppercase tracking-wider block">AUD/USD</span>
-            <span class="text-[18px] font-extrabold text-gray-900 mt-2 block">0,6645</span>
+            <span class="text-[18px] font-extrabold text-gray-900 mt-1 block">0,6645</span>
             <span class="text-[11px] text-emerald-500 font-bold">+0,04%</span>
           </div>
         </div>
@@ -339,95 +333,111 @@
   </section>
 
   <!-- ===================== 4 INDICACIONES ===================== -->
-  <section class="mb-12">
-    <div class="flex items-center gap-2.5 mb-5">
-      <div class="w-7 h-7 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center text-[12px] font-extrabold">4</div>
+  <section class="mb-14">
+    <div class="flex items-center gap-3 mb-5">
+      <div class="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-500 text-[16px] font-bold">4</div>
       <h2 class="text-[20px] font-extrabold text-gray-900">Indicaciones de cómo llegar</h2>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
 
-      <!-- 4A — Route Timeline (timeline vertical + mapa minimal) -->
-      <div class="flex flex-col w-full gap-2">
-        <span class="text-[10px] font-extrabold text-indigo-400 uppercase tracking-widest px-1">Ruta más rápida — 18 min</span>
-        <div class="bg-white rounded-3xl p-5 card-shadow">
-          <div class="relative pt-1 pb-1">
-            <div class="absolute left-[11px] top-2 bottom-2 w-0.5 bg-gray-100"></div>
-            <div class="relative flex items-start gap-4 mb-4">
-              <div class="w-6 h-6 rounded-full bg-[#70B873] z-10 border-2 border-white shadow-sm flex items-center justify-center text-white text-[10px] font-bold">1</div>
-              <div>
-                <p class="text-[14px] font-bold text-gray-900">Girá a la izquierda</p>
-                <p class="text-[12px] text-gray-400 font-medium">450 m · Av. Corrientes</p>
-              </div>
-            </div>
-            <div class="relative flex items-start gap-4 mb-4">
-              <div class="w-6 h-6 rounded-full bg-amber-400 z-10 border-2 border-white shadow-sm flex items-center justify-center text-white text-[10px] font-bold">2</div>
-              <div>
-                <p class="text-[14px] font-bold text-gray-900">Continuá por Acceso Norte</p>
-                <p class="text-[12px] text-gray-400 font-medium">5,8 km · Rápido</p>
-              </div>
-            </div>
-            <div class="relative flex items-start gap-4">
-              <div class="w-6 h-6 rounded-full bg-purple-500 z-10 border-2 border-white shadow-sm flex items-center justify-center text-white text-[10px] font-bold">3</div>
-              <div>
-                <p class="text-[14px] font-bold text-gray-900">Salida 12 hacia Olivos</p>
-                <p class="text-[12px] text-gray-400 font-medium">1,9 km · Destino</p>
-              </div>
+      <!-- 4A — Route Steps -->
+      <div class="bg-white rounded-3xl p-5 card-shadow">
+        <span class="text-[10px] font-extrabold text-indigo-400 uppercase tracking-[0.15em] block mb-4">Ruta más rápida — 18 min</span>
+        <div class="relative pl-1">
+          <div class="absolute left-[13px] top-2 bottom-2 w-px bg-gray-100"></div>
+          <div class="relative flex items-start gap-3 mb-4">
+            <div class="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[11px] font-extrabold shrink-0 border-2 border-white shadow-sm relative z-10">1</div>
+            <div>
+              <p class="text-[14px] font-bold text-gray-900">Girá a la izquierda</p>
+              <p class="text-[12px] text-gray-400 font-semibold">450 m · Av. Corrientes</p>
             </div>
           </div>
-          <button class="w-full mt-5 py-3 bg-indigo-600 text-white rounded-2xl text-[13px] font-bold hover:bg-indigo-700 transition-colors">Iniciar GPS</button>
+          <div class="relative flex items-start gap-3 mb-4">
+            <div class="w-7 h-7 rounded-full bg-amber-400 text-white flex items-center justify-center text-[11px] font-extrabold shrink-0 border-2 border-white shadow-sm relative z-10">2</div>
+            <div>
+              <p class="text-[14px] font-bold text-gray-900">Continuá por Acceso Norte</p>
+              <p class="text-[12px] text-gray-400 font-semibold">5,8 km · Rápido</p>
+            </div>
+          </div>
+          <div class="relative flex items-start gap-3">
+            <div class="w-7 h-7 rounded-full bg-violet-500 text-white flex items-center justify-center text-[11px] font-extrabold shrink-0 border-2 border-white shadow-sm relative z-10">3</div>
+            <div>
+              <p class="text-[14px] font-bold text-gray-900">Salida 12 hacia Olivos</p>
+              <p class="text-[12px] text-gray-400 font-semibold">1,9 km · Destino</p>
+            </div>
+          </div>
         </div>
+        <button class="w-full mt-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-[13px] font-bold transition-colors">Iniciar GPS</button>
       </div>
 
-      <!-- 4B — Transport Compare (lista horizontal comparativa) -->
-      <div class="flex flex-col w-full gap-2">
-        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest px-1">Comparativa de tiempos</span>
+      <!-- 4B — Transport Compare -->
+      <div class="bg-white rounded-3xl p-5 card-shadow">
+        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-[0.15em] block mb-4">Comparativa de tiempos</span>
         <div class="space-y-3">
-          <div class="bg-white rounded-3xl p-4 card-shadow flex items-center justify-between">
+          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-2xl">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-600"><span class="material-symbols-outlined text-[18px]">directions_car</span></div>
+              <div class="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600">
+                <span class="material-symbols-outlined text-[18px]">directions_car</span>
+              </div>
               <span class="text-[14px] font-bold text-gray-900">Auto</span>
             </div>
-            <span class="text-[16px] font-extrabold text-gray-900">18 min</span>
+            <span class="text-[15px] font-extrabold text-gray-900">18 min</span>
           </div>
-          <div class="bg-white rounded-3xl p-4 card-shadow flex items-center justify-between">
+          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-2xl">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-600"><span class="material-symbols-outlined text-[18px]">directions_bus</span></div>
+              <div class="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600">
+                <span class="material-symbols-outlined text-[18px]">directions_bus</span>
+              </div>
               <span class="text-[14px] font-bold text-gray-900">Transporte</span>
             </div>
-            <span class="text-[16px] font-extrabold text-amber-500">42 min</span>
+            <span class="text-[15px] font-extrabold text-amber-500">42 min</span>
           </div>
-          <div class="bg-white rounded-3xl p-4 card-shadow flex items-center justify-between">
+          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-2xl">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-600"><span class="material-symbols-outlined text-[18px]">directions_walk</span></div>
+              <div class="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600">
+                <span class="material-symbols-outlined text-[18px]">directions_walk</span>
+              </div>
               <span class="text-[14px] font-bold text-gray-900">Caminando</span>
             </div>
-            <span class="text-[16px] font-extrabold text-gray-400">1h 50m</span>
+            <span class="text-[15px] font-extrabold text-gray-400">1h 50m</span>
+          </div>
+          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-2xl">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600">
+                <span class="material-symbols-outlined text-[18px]">pedal_bike</span>
+              </div>
+              <span class="text-[14px] font-bold text-gray-900">Bicicleta</span>
+            </div>
+            <span class="text-[15px] font-extrabold text-gray-900">32 min</span>
           </div>
         </div>
       </div>
 
-      <!-- 4C — Map Route (card con ruta visual de puntos) -->
-      <div class="bg-gradient-to-br from-sky-50 to-white rounded-3xl p-5 card-shadow border border-sky-100/50">
+      <!-- 4C — Map Route -->
+      <div class="bg-white rounded-3xl p-5 card-shadow">
+        <span class="text-[10px] font-extrabold text-sky-500 uppercase tracking-[0.15em] block mb-4">Mapa</span>
         <div class="flex items-center gap-3 mb-5">
-          <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-sky-500 shadow-sm"><span class="material-symbols-outlined text-[20px]">map</span></div>
+          <div class="w-10 h-10 rounded-full bg-white border border-gray-100 flex items-center justify-center text-sky-500 shadow-sm">
+            <span class="material-symbols-outlined text-[20px]">map</span>
+          </div>
           <div>
-            <h4 class="text-[15px] font-bold text-gray-900">Olivos → CABA</h4>
-            <p class="text-[12px] text-gray-500 font-medium">Shopping de Olivos</p>
+            <h3 class="text-[15px] font-bold text-gray-900">Olivos → CABA</h3>
+            <p class="text-[12px] text-gray-500 font-semibold">Shopping de Olivos</p>
           </div>
         </div>
         <div class="flex flex-col gap-0 pl-1">
           <div class="flex items-center gap-3">
-            <span class="w-3 h-3 rounded-full bg-[#70B873] border-2 border-white shadow-sm"></span>
+            <span class="w-3 h-3 rounded-full bg-emerald-500 border-2 border-white shadow-sm shrink-0"></span>
             <span class="text-[13px] font-bold text-gray-900">Av. Corrientes 1234</span>
           </div>
           <div class="h-6 border-l-2 border-dashed border-gray-200 ml-[5px]"></div>
           <div class="flex items-center gap-3">
-            <span class="w-3 h-3 rounded-full bg-amber-400 border-2 border-white shadow-sm"></span>
+            <span class="w-3 h-3 rounded-full bg-amber-400 border-2 border-white shadow-sm shrink-0"></span>
             <span class="text-[13px] font-bold text-gray-900">Retiro</span>
           </div>
           <div class="h-6 border-l-2 border-dashed border-gray-200 ml-[5px]"></div>
           <div class="flex items-center gap-3">
-            <span class="w-3 h-3 rounded-sm bg-purple-500 border-2 border-white shadow-sm"></span>
+            <span class="w-3 h-3 rounded-sm bg-violet-500 border-2 border-white shadow-sm shrink-0"></span>
             <span class="text-[13px] font-bold text-gray-900">Shopping de Olivos</span>
           </div>
         </div>
@@ -436,122 +446,125 @@
   </section>
 
   <!-- ===================== 5 CUMPLEAÑOS ===================== -->
-  <section class="mb-12">
-    <div class="flex items-center gap-2.5 mb-5">
-      <div class="w-7 h-7 rounded-full bg-pink-50 text-pink-500 flex items-center justify-center text-[12px] font-extrabold">5</div>
+  <section class="mb-14">
+    <div class="flex items-center gap-3 mb-5">
+      <div class="w-9 h-9 rounded-xl bg-pink-50 flex items-center justify-center text-pink-500 text-[16px] font-bold">5</div>
       <h2 class="text-[20px] font-extrabold text-gray-900">Cumpleaños de conocidos</h2>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
 
-      <!-- 5A — Birthday Alert (gradiente rosa/morado, como la muestra) -->
-      <div class="bg-gradient-to-r from-pink-50 to-purple-50 rounded-3xl p-6 card-shadow border border-pink-100/50">
+      <!-- 5A — Birthday Alert -->
+      <div class="bg-white rounded-3xl p-6 card-shadow">
+        <span class="text-[10px] font-extrabold text-pink-500 uppercase tracking-[0.15em] block mb-4">Próximo · 8 días</span>
         <div class="flex items-start gap-4 mb-5">
-          <div class="w-12 h-12 rounded-full bg-white flex items-center justify-center text-pink-500 shadow-sm text-xl">🎂</div>
+          <div class="w-12 h-12 rounded-full bg-gradient-to-br from-pink-100 to-purple-100 flex items-center justify-center text-2xl shadow-sm">🎂</div>
           <div>
-            <h4 class="text-[17px] font-bold text-gray-900 mb-1">Ana López</h4>
-            <p class="text-[13px] text-gray-500 font-medium">12 de julio · Faltan 8 días</p>
+            <h3 class="text-[17px] font-bold text-gray-900">Ana López</h3>
+            <p class="text-[13px] text-gray-500 font-semibold">12 de julio de 2025</p>
           </div>
         </div>
-        <span class="text-[56px] font-extrabold text-gray-900 leading-none block">35</span>
-        <p class="text-[13px] text-pink-500 font-bold mt-1">años</p>
-        <div class="flex gap-2 mt-5">
-          <button class="flex-1 py-2.5 bg-white text-pink-600 rounded-2xl text-[12px] font-bold shadow-sm hover:bg-gray-50 transition-colors">Recordar</button>
-          <button class="flex-1 py-2.5 bg-pink-500 text-white rounded-2xl text-[12px] font-bold shadow-sm hover:bg-pink-600 transition-colors">Saludar</button>
+        <span class="text-[56px] font-extrabold text-gray-900 leading-none block tracking-tight">35</span>
+        <p class="text-[13px] text-pink-500 font-extrabold mt-1">años</p>
+        <div class="flex gap-2 mt-6">
+          <button class="flex-1 py-3 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-2xl text-[12px] font-bold transition-colors">Recordar</button>
+          <button class="flex-1 py-3 bg-pink-500 hover:bg-pink-600 text-white rounded-2xl text-[12px] font-bold transition-colors">Saludar</button>
         </div>
       </div>
 
-      <!-- 5B — Calendar Tiles (4 tiles con avatares) -->
-      <div class="flex flex-col w-full gap-2">
-        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest px-1">Próximos</span>
+      <!-- 5B — Calendar Tiles -->
+      <div class="bg-white rounded-3xl p-5 card-shadow">
+        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-[0.15em] block mb-4">Próximos este mes</span>
         <div class="grid grid-cols-2 gap-3">
-          <div class="bg-white rounded-3xl p-4 card-shadow flex flex-col gap-2">
-            <div class="w-9 h-9 rounded-full bg-pink-100 flex items-center justify-center text-pink-500 font-bold text-sm">A</div>
-            <span class="text-[14px] font-bold text-gray-900">Ana</span>
+          <div class="bg-gray-50 rounded-2xl p-3.5 flex flex-col gap-2">
+            <div class="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center text-pink-500 font-bold text-xs">A</div>
+            <span class="text-[13px] font-bold text-gray-900">Ana</span>
             <span class="text-[11px] text-gray-400 font-bold">12 jul · 35</span>
           </div>
-          <div class="bg-white rounded-3xl p-4 card-shadow flex flex-col gap-2">
-            <div class="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center text-amber-500 font-bold text-sm">R</div>
-            <span class="text-[14px] font-bold text-gray-900">Roberto</span>
+          <div class="bg-gray-50 rounded-2xl p-3.5 flex flex-col gap-2">
+            <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-500 font-bold text-xs">R</div>
+            <span class="text-[13px] font-bold text-gray-900">Roberto</span>
             <span class="text-[11px] text-gray-400 font-bold">22 jul · 42</span>
           </div>
-          <div class="bg-white rounded-3xl p-4 card-shadow flex flex-col gap-2">
-            <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 font-bold text-sm">M</div>
-            <span class="text-[14px] font-bold text-gray-900">María</span>
+          <div class="bg-gray-50 rounded-2xl p-3.5 flex flex-col gap-2">
+            <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 font-bold text-xs">M</div>
+            <span class="text-[13px] font-bold text-gray-900">María</span>
             <span class="text-[11px] text-gray-400 font-bold">3 ago · 29</span>
           </div>
-          <div class="bg-white rounded-3xl p-4 card-shadow flex flex-col gap-2">
-            <div class="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-500 font-bold text-sm">C</div>
-            <span class="text-[14px] font-bold text-gray-900">Carlos</span>
+          <div class="bg-gray-50 rounded-2xl p-3.5 flex flex-col gap-2">
+            <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-500 font-bold text-xs">C</div>
+            <span class="text-[13px] font-bold text-gray-900">Carlos</span>
             <span class="text-[11px] text-gray-400 font-bold">15 ago · 31</span>
           </div>
         </div>
       </div>
 
-      <!-- 5C — Compact Reminder (card compacta con botón, como medicación de muestra) -->
-      <div class="flex flex-col w-full gap-2">
-        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest px-1">Agosto 2025</span>
-        <div class="bg-white rounded-3xl p-5 card-shadow flex flex-col gap-4">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-2xl bg-pink-50 flex items-center justify-center text-pink-500"><span class="material-symbols-outlined text-[20px]">calendar_month</span></div>
-            <div>
-              <p class="text-[14px] font-bold text-gray-900">Resumen del mes</p>
-              <p class="text-[12px] text-gray-500 font-medium">Cumpleaños y recordatorios</p>
-            </div>
+      <!-- 5C — Compact Reminder -->
+      <div class="bg-white rounded-3xl p-5 card-shadow">
+        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-[0.15em] block mb-4">Agosto 2025</span>
+        <div class="flex items-center gap-3 mb-5">
+          <div class="w-10 h-10 rounded-xl bg-pink-50 flex items-center justify-center text-pink-500">
+            <span class="material-symbols-outlined text-[20px]">calendar_month</span>
           </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div class="bg-gray-50 rounded-2xl p-3 text-center">
-              <span class="text-[20px] font-extrabold text-gray-900">2</span>
-              <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Cumples</p>
-            </div>
-            <div class="bg-gray-50 rounded-2xl p-3 text-center">
-              <span class="text-[20px] font-extrabold text-gray-900">4</span>
-              <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Contactos</p>
-            </div>
+          <div>
+            <h3 class="text-[15px] font-bold text-gray-900">Resumen del mes</h3>
+            <p class="text-[12px] text-gray-500 font-semibold">Cumpleaños y recordatorios</p>
           </div>
-          <button class="w-full py-3 bg-pink-50 hover:bg-pink-100 text-pink-600 rounded-2xl text-[12px] font-bold transition-colors">Ver calendario</button>
         </div>
+        <div class="grid grid-cols-2 gap-3 mb-4">
+          <div class="bg-gray-50 rounded-2xl p-4 text-center">
+            <span class="text-[22px] font-extrabold text-gray-900">2</span>
+            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Cumples</p>
+          </div>
+          <div class="bg-gray-50 rounded-2xl p-4 text-center">
+            <span class="text-[22px] font-extrabold text-gray-900">4</span>
+            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Contactos</p>
+          </div>
+        </div>
+        <button class="w-full py-3 bg-pink-50 hover:bg-pink-100 text-pink-600 rounded-2xl text-[12px] font-bold transition-colors">Ver calendario</button>
       </div>
     </div>
   </section>
 
   <!-- ===================== 6 COMPARATIVA ===================== -->
-  <section class="mb-12">
-    <div class="flex items-center gap-2.5 mb-5">
-      <div class="w-7 h-7 rounded-full bg-[#FFF4E5] text-[#D9A05B] flex items-center justify-center text-[12px] font-extrabold">6</div>
+  <section class="mb-14">
+    <div class="flex items-center gap-3 mb-5">
+      <div class="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 text-[16px] font-bold">6</div>
       <h2 class="text-[20px] font-extrabold text-gray-900">Comparativa de productos</h2>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
 
-      <!-- 6A — Comparison (fila a fila con highlight) -->
+      <!-- 6A — Comparison -->
       <div class="bg-white rounded-3xl p-5 card-shadow">
+        <span class="text-[10px] font-extrabold text-amber-500 uppercase tracking-[0.15em] block mb-4">Cafeteras</span>
         <div class="flex items-center gap-3 mb-5">
-          <div class="w-10 h-10 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600"><span class="material-symbols-outlined text-[20px]">coffee</span></div>
-          <h4 class="text-[15px] font-bold text-gray-900">Nespresso A vs Dolce B</h4>
+          <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
+            <span class="material-symbols-outlined text-[20px]">coffee</span>
+          </div>
+          <h3 class="text-[15px] font-bold text-gray-900">Nespresso A vs Dolce B</h3>
         </div>
         <div class="space-y-3">
-          <div class="flex items-center justify-between p-3 bg-amber-50 rounded-2xl border border-amber-100/50">
-            <div>
+          <div class="p-4 bg-amber-50 rounded-2xl border border-amber-100/50">
+            <div class="flex items-center justify-between mb-1">
               <p class="text-[14px] font-bold text-gray-900">Nespresso A</p>
-              <p class="text-[12px] text-gray-500 font-medium">$89 · 19 bar · Universal</p>
+              <span class="bg-white text-amber-600 text-[10px] font-extrabold px-2 py-1 rounded-md shadow-sm uppercase">Mejor</span>
             </div>
-            <span class="bg-white text-amber-600 text-[10px] font-extrabold px-2 py-1 rounded-md shadow-sm uppercase">Mejor</span>
+            <p class="text-[12px] text-gray-500 font-semibold">$89 · 19 bar · Universal</p>
           </div>
-          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-2xl">
-            <div>
-              <p class="text-[14px] font-bold text-gray-900">Dolce Gusto B</p>
-              <p class="text-[12px] text-gray-500 font-medium">$110 · 15 bar · Propia</p>
-            </div>
+          <div class="p-4 bg-gray-50 rounded-2xl">
+            <p class="text-[14px] font-bold text-gray-900 mb-0.5">Dolce Gusto B</p>
+            <p class="text-[12px] text-gray-500 font-semibold">$110 · 15 bar · Propia</p>
           </div>
         </div>
-        <p class="text-[12px] text-amber-600 font-bold mt-4">Nespresso gana en precio y potencia</p>
+        <p class="mt-4 text-[12px] text-amber-600 font-bold">Nespresso gana en precio y potencia</p>
       </div>
 
-      <!-- 6B — VS Card (layout VS con botones) -->
-      <div class="bg-white rounded-3xl p-5 card-shadow border border-gray-100">
-        <h4 class="text-[16px] font-bold text-gray-900 mb-1">¿Cuál elegís?</h4>
-        <p class="text-[13px] text-gray-500 font-medium mb-5">Cafeteras · Segmento doméstico</p>
+      <!-- 6B — VS Card -->
+      <div class="bg-white rounded-3xl p-5 card-shadow">
+        <span class="text-[10px] font-extrabold text-amber-500 uppercase tracking-[0.15em] block mb-4">Votar</span>
+        <h3 class="text-[16px] font-bold text-gray-900 mb-1">¿Cuál elegís?</h3>
+        <p class="text-[13px] text-gray-500 font-semibold mb-5">Cafeteras · Segmento doméstico</p>
         <div class="space-y-3">
-          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-2xl">
+          <div class="flex items-center justify-between p-3.5 bg-gray-50 rounded-2xl">
             <div class="flex items-center gap-3">
               <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600 text-xs font-bold">A</div>
               <span class="text-[14px] font-bold text-gray-900">Nespresso A</span>
@@ -559,9 +572,9 @@
             <span class="text-[14px] font-extrabold text-gray-900">$89</span>
           </div>
           <div class="flex items-center justify-center">
-            <span class="text-[11px] font-extrabold text-gray-300 uppercase tracking-widest">VS</span>
+            <span class="text-[11px] font-extrabold text-gray-300 uppercase tracking-[0.2em]">VS</span>
           </div>
-          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-2xl">
+          <div class="flex items-center justify-between p-3.5 bg-gray-50 rounded-2xl">
             <div class="flex items-center gap-3">
               <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold">B</div>
               <span class="text-[14px] font-bold text-gray-900">Dolce Gusto B</span>
@@ -570,40 +583,48 @@
           </div>
         </div>
         <div class="flex gap-2 mt-5">
-          <button class="flex-1 py-2.5 bg-amber-500 text-white rounded-2xl text-[12px] font-bold hover:bg-amber-600 transition-colors">Nespresso A</button>
-          <button class="flex-1 py-2.5 bg-gray-100 text-gray-600 rounded-2xl text-[12px] font-bold hover:bg-gray-200 transition-colors">Dolce B</button>
+          <button class="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl text-[12px] font-bold transition-colors">Nespresso A</button>
+          <button class="flex-1 py-3 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-2xl text-[12px] font-bold transition-colors">Dolce B</button>
         </div>
       </div>
 
-      <!-- 6C — Specs Grid (grid semántico con iconos) -->
-      <div class="flex flex-col w-full gap-2">
-        <span class="text-[10px] font-extrabold text-purple-500 uppercase tracking-widest px-1">Ficha técnica</span>
+      <!-- 6C — Specs Grid -->
+      <div class="bg-white rounded-3xl p-5 card-shadow">
+        <span class="text-[10px] font-extrabold text-purple-500 uppercase tracking-[0.15em] block mb-4">Ficha técnica</span>
         <div class="grid grid-cols-2 gap-3">
-          <div class="bg-purple-50 rounded-3xl p-4 card-shadow border border-purple-100/50 flex flex-col justify-between h-full">
-            <div class="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-purple-500 shadow-sm"><span class="material-symbols-outlined text-[16px]">payments</span></div>
-            <div class="mt-3">
-              <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Precio</span>
+          <div class="bg-purple-50 rounded-2xl p-4 flex flex-col justify-between h-[110px]">
+            <div class="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-purple-500 shadow-sm">
+              <span class="material-symbols-outlined text-[16px]">payments</span>
+            </div>
+            <div>
+              <span class="text-[10px] font-extrabold text-purple-400 uppercase tracking-wider block">Precio</span>
               <span class="text-[16px] font-extrabold text-gray-900">$89</span>
             </div>
           </div>
-          <div class="bg-purple-50 rounded-3xl p-4 card-shadow border border-purple-100/50 flex flex-col justify-between h-full">
-            <div class="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-purple-500 shadow-sm"><span class="material-symbols-outlined text-[16px]">bolt</span></div>
-            <div class="mt-3">
-              <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Presión</span>
+          <div class="bg-purple-50 rounded-2xl p-4 flex flex-col justify-between h-[110px]">
+            <div class="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-purple-500 shadow-sm">
+              <span class="material-symbols-outlined text-[16px]">bolt</span>
+            </div>
+            <div>
+              <span class="text-[10px] font-extrabold text-purple-400 uppercase tracking-wider block">Presión</span>
               <span class="text-[16px] font-extrabold text-gray-900">19 bar</span>
             </div>
           </div>
-          <div class="bg-purple-50 rounded-3xl p-4 card-shadow border border-purple-100/50 flex flex-col justify-between h-full">
-            <div class="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-purple-500 shadow-sm"><span class="material-symbols-outlined text-[16px]">water_drop</span></div>
-            <div class="mt-3">
-              <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Depósito</span>
+          <div class="bg-purple-50 rounded-2xl p-4 flex flex-col justify-between h-[110px]">
+            <div class="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-purple-500 shadow-sm">
+              <span class="material-symbols-outlined text-[16px]">water_drop</span>
+            </div>
+            <div>
+              <span class="text-[10px] font-extrabold text-purple-400 uppercase tracking-wider block">Depósito</span>
               <span class="text-[16px] font-extrabold text-gray-900">0,7 L</span>
             </div>
           </div>
-          <div class="bg-purple-50 rounded-3xl p-4 card-shadow border border-purple-100/50 flex flex-col justify-between h-full">
-            <div class="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-purple-500 shadow-sm"><span class="material-symbols-outlined text-[16px]">verified</span></div>
-            <div class="mt-3">
-              <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Garantía</span>
+          <div class="bg-purple-50 rounded-2xl p-4 flex flex-col justify-between h-[110px]">
+            <div class="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-purple-500 shadow-sm">
+              <span class="material-symbols-outlined text-[16px]">verified</span>
+            </div>
+            <div>
+              <span class="text-[10px] font-extrabold text-purple-400 uppercase tracking-wider block">Garantía</span>
               <span class="text-[16px] font-extrabold text-gray-900">2 años</span>
             </div>
           </div>
@@ -613,82 +634,89 @@
   </section>
 
   <!-- ===================== 7 REVIEW ===================== -->
-  <section class="mb-12">
-    <div class="flex items-center gap-2.5 mb-5">
-      <div class="w-7 h-7 rounded-full bg-violet-50 text-violet-500 flex items-center justify-center text-[12px] font-extrabold">7</div>
+  <section class="mb-14">
+    <div class="flex items-center gap-3 mb-5">
+      <div class="w-9 h-9 rounded-xl bg-violet-50 flex items-center justify-center text-violet-500 text-[16px] font-bold">7</div>
       <h2 class="text-[20px] font-extrabold text-gray-900">Product review</h2>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
 
-      <!-- 7A — Score Radar (4 tiles con colores semánticos) -->
-      <div class="flex flex-col w-full gap-2">
-        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest px-1">Sony WH-1000XM5</span>
+      <!-- 7A — Score Radar -->
+      <div class="bg-white rounded-3xl p-5 card-shadow">
+        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-[0.15em] block mb-4">Sony WH-1000XM5</span>
         <div class="grid grid-cols-2 gap-3">
-          <div class="bg-emerald-50 rounded-3xl p-4 card-shadow border border-emerald-100/50">
+          <div class="bg-emerald-50 rounded-2xl p-4">
             <span class="text-[10px] font-extrabold text-emerald-400 uppercase tracking-wider block">Calidad</span>
             <span class="text-[22px] font-extrabold text-gray-900 mt-1 block">9,2</span>
             <span class="text-[11px] text-emerald-500 font-bold">Cancelación top</span>
           </div>
-          <div class="bg-amber-50 rounded-3xl p-4 card-shadow border border-amber-100/50">
+          <div class="bg-amber-50 rounded-2xl p-4">
             <span class="text-[10px] font-extrabold text-amber-400 uppercase tracking-wider block">Batería</span>
             <span class="text-[22px] font-extrabold text-gray-900 mt-1 block">8,8</span>
             <span class="text-[11px] text-amber-500 font-bold">Dos días</span>
           </div>
-          <div class="bg-blue-50 rounded-3xl p-4 card-shadow border border-blue-100/50">
+          <div class="bg-blue-50 rounded-2xl p-4">
             <span class="text-[10px] font-extrabold text-blue-400 uppercase tracking-wider block">Comfort</span>
             <span class="text-[22px] font-extrabold text-gray-900 mt-1 block">7,5</span>
             <span class="text-[11px] text-blue-500 font-bold">Livianos</span>
           </div>
-          <div class="bg-rose-50 rounded-3xl p-4 card-shadow border border-rose-100/50">
-            <span class="text-[10px] font-extrabold text-rose-400 uppercase tracking-wider block">Precio</span>
+          <div class="bg-red-50 rounded-2xl p-4">
+            <span class="text-[10px] font-extrabold text-red-400 uppercase tracking-wider block">Precio</span>
             <span class="text-[22px] font-extrabold text-gray-900 mt-1 block">5,5</span>
-            <span class="text-[11px] text-rose-500 font-bold">$349 · caro</span>
+            <span class="text-[11px] text-red-500 font-bold">$349 · caro</span>
           </div>
         </div>
+        <p class="mt-4 text-[12px] text-emerald-600 font-bold bg-emerald-50 rounded-xl p-3 text-center">Recomendado si priorizás silencio</p>
       </div>
 
-      <!-- 7B — Pros/Cons (lista con checks/cruces) -->
+      <!-- 7B — Pros/Cons -->
       <div class="bg-white rounded-3xl p-5 card-shadow">
+        <span class="text-[10px] font-extrabold text-violet-500 uppercase tracking-[0.15em] block mb-4">Opinión del experto</span>
         <div class="flex items-center gap-3 mb-4">
-          <div class="w-10 h-10 rounded-2xl bg-violet-50 flex items-center justify-center text-violet-500"><span class="material-symbols-outlined text-[20px]">reviews</span></div>
-          <h4 class="text-[15px] font-bold text-gray-900">Opinión del experto</h4>
+          <div class="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center text-violet-500">
+            <span class="material-symbols-outlined text-[20px]">reviews</span>
+          </div>
+          <h3 class="text-[15px] font-bold text-gray-900">Pros & Contras</h3>
         </div>
         <div class="space-y-2">
-          <div class="flex items-center gap-3 p-3 bg-emerald-50 rounded-2xl">
+          <div class="flex items-center gap-3 p-3.5 bg-emerald-50 rounded-2xl">
             <span class="material-symbols-outlined text-[18px] text-emerald-500">check_circle</span>
             <p class="text-[13px] font-semibold text-gray-800">Cancelación top, batería, app</p>
           </div>
-          <div class="flex items-center gap-3 p-3 bg-rose-50 rounded-2xl">
+          <div class="flex items-center gap-3 p-3.5 bg-rose-50 rounded-2xl">
             <span class="material-symbols-outlined text-[18px] text-rose-400">cancel</span>
             <p class="text-[13px] font-semibold text-gray-800">Precio alto, case grande</p>
           </div>
         </div>
-        <div class="mt-4 p-3 bg-amber-50 rounded-2xl text-center">
+        <div class="mt-4 p-3 bg-amber-50 rounded-xl text-center">
           <span class="text-[13px] font-extrabold text-amber-600">Nota general: 8,4 / 10</span>
         </div>
       </div>
 
-      <!-- 7C — Veredicto (estilo Deep Research de la muestra) -->
+      <!-- 7C — Veredicto -->
       <div class="bg-gradient-to-br from-[#F8F7FF] to-white rounded-3xl p-6 card-shadow border border-violet-100/30">
+        <span class="text-[10px] font-extrabold text-violet-500 uppercase tracking-[0.15em] block mb-4">Veredicto final</span>
         <div class="flex items-center gap-3 mb-4">
-          <div class="w-10 h-10 rounded-2xl bg-violet-100 text-violet-600 flex items-center justify-center"><span class="material-symbols-outlined text-[20px]">auto_awesome</span></div>
+          <div class="w-10 h-10 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center">
+            <span class="material-symbols-outlined text-[20px]">auto_awesome</span>
+          </div>
           <div>
-            <h4 class="text-[16px] font-bold text-gray-900">Veredicto final</h4>
-            <p class="text-[11px] text-gray-400 font-bold">Review por TechKoru</p>
+            <h3 class="text-[16px] font-bold text-gray-900">TechKoru</h3>
+            <p class="text-[11px] text-gray-400 font-bold">Review completa</p>
           </div>
         </div>
-        <p class="text-[14px] text-gray-600 font-medium leading-relaxed mb-5 italic">“El rey de la cancelación activa regresa con mejor batería y un diseño más liviano.”</p>
+        <p class="text-[15px] text-gray-700 font-semibold leading-relaxed mb-5 italic">“El rey de la cancelación activa regresa con mejor batería y un diseño más liviano.”</p>
         <div class="flex flex-wrap gap-2 mb-5">
-          <span class="bg-white px-3 py-1.5 rounded-lg text-[11px] font-bold text-violet-600 shadow-sm">Calidad top</span>
-          <span class="bg-white px-3 py-1.5 rounded-lg text-[11px] font-bold text-violet-600 shadow-sm">Premium</span>
-          <span class="bg-white px-3 py-1.5 rounded-lg text-[11px] font-bold text-violet-600 shadow-sm">Recomendado</span>
+          <span class="bg-white px-3 py-1.5 rounded-xl text-[11px] font-bold text-violet-600 shadow-sm border border-gray-50">Calidad top</span>
+          <span class="bg-white px-3 py-1.5 rounded-xl text-[11px] font-bold text-violet-600 shadow-sm border border-gray-50">Premium</span>
+          <span class="bg-white px-3 py-1.5 rounded-xl text-[11px] font-bold text-violet-600 shadow-sm border border-gray-50">Recomendado</span>
         </div>
-        <button class="w-full py-3 bg-violet-600 text-white rounded-2xl text-[13px] font-bold hover:bg-violet-700 transition-colors shadow-sm">Leer completo</button>
+        <button class="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-2xl text-[13px] font-bold transition-colors shadow-sm">Leer completo</button>
       </div>
     </div>
   </section>
 
-  <footer class="text-center py-6 text-[11px] text-gray-300 font-medium">21 diseños · Estética Koru Material · Cada uno distinto</footer>
+  <footer class="text-center py-6 text-[11px] text-gray-300 font-semibold">21 diseños · Universo visual Koru · Premium & Coherente</footer>
 </div>
 
 </body>
