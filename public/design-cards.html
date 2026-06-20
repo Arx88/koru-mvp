@@ -3,10 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Koru — Chat Mobile</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
+<title>Koru — Chat Component Library</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <script>
   tailwind.config = {
     theme: {
@@ -21,6 +19,8 @@
     }
   }
 </script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
 <style>
   body { font-family: 'Plus Jakarta Sans', sans-serif; background: #FCFCFA; color: #333; -webkit-font-smoothing: antialiased; }
   .font-mono { font-family: 'Fira Code', monospace; }
@@ -30,503 +30,443 @@
   .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-  @keyframes in { from {opacity:0; transform: translateY(12px);} to {opacity:1; transform:none;} }
-  .anim { animation:in .5s cubic-bezier(.4,0,.2,1) forwards; opacity:0; }
-  @keyframes barGo { from {width:0;} to {width:var(--w);} }
-  .bar-fill { animation: barGo 1s cubic-bezier(.4,0,.2,1) forwards; width:0; }
-  @keyframes cursorBlink { 0%,100%{opacity:1;} 50%{opacity:0;} }
-  .cursor-blink::after { content:'|'; animation: cursorBlink 1s step-end infinite; color: #4d6d44; }
   .custom-checkbox input:checked + div { background-color: #4d6d44; border-color: #4d6d44; }
   .custom-checkbox input:checked + div svg { display: block; }
 </style>
 </head>
-<body class="h-screen flex flex-col bg-[#FCFCFA]">
+<body class="bg-[#FCFCFA]">
 
-<header class="bg-white/80 backdrop-blur-md border-b border-gray-100 p-4 sticky top-0 z-50 flex items-center justify-between">
-  <div class="flex items-center gap-3">
-    <div class="w-10 h-10 bg-koru-100 rounded-full flex items-center justify-center text-koru-600 font-bold text-sm">K</div>
-    <div>
-      <h1 class="font-bold text-gray-900 leading-tight text-sm">Tarjetas Creativas</h1>
-      <p class="text-xs text-koru-600 font-medium flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-koru-500 animate-pulse"></span> 21 diseños · Chat Mobile</p>
-    </div>
-  </div>
-</header>
+<div class="max-w-[420px] mx-auto px-4 py-6 pb-20">
 
-<main class="flex-1 overflow-y-auto no-scrollbar flex flex-col gap-6 p-4 pb-24 relative">
-
-<!-- ======= 1. FÚTBOL ======= -->
-<div class="text-center"><span class="text-xs text-gray-400 font-bold uppercase tracking-widest">1. Fútbol</span></div>
-
-<!-- 1A: Live Match con tabs Stats/Lineups/Timeline -->
-<div class="anim">
-  <div class="flex items-center justify-between mb-2 px-1">
-    <span class="text-[10px] font-extrabold text-emerald-500 uppercase tracking-widest flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">sports_soccer</span> En Vivo</span>
-    <span class="bg-red-50 text-red-500 text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse">72'</span>
-  </div>
-  <div class="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
-    <div class="flex items-center justify-between px-2 mb-4">
-      <div class="flex flex-col items-center gap-2 w-1/3">
-        <img src="https://crests.football-data.org/86.png" class="w-14 h-14 object-contain" loading="lazy" />
-        <span class="text-[13px] font-bold text-gray-900">R. Madrid</span>
-      </div>
-      <div class="flex flex-col items-center w-1/3">
-        <span class="text-4xl font-black text-gray-900 tracking-tighter">2 <span class="text-gray-300 font-normal">-</span> 1</span>
-        <span class="text-[10px] text-gray-400 mt-1 font-bold uppercase tracking-wider bg-gray-50 px-2 py-0.5 rounded-full">Global 3-3</span>
-      </div>
-      <div class="flex flex-col items-center gap-2 w-1/3">
-        <img src="https://crests.football-data.org/65.png" class="w-14 h-14 object-contain" loading="lazy" />
-        <span class="text-[13px] font-bold text-gray-900">Man City</span>
-      </div>
-    </div>
-    <div class="bg-gray-50 p-1 rounded-xl flex mb-4">
-      <button class="flex-1 py-1.5 text-[12px] font-bold text-gray-800 bg-white shadow-sm rounded-lg">Stats</button>
-      <button class="flex-1 py-1.5 text-[12px] font-bold text-gray-500 hover:text-gray-800 rounded-lg">Lineups</button>
-      <button class="flex-1 py-1.5 text-[12px] font-bold text-gray-500 hover:text-gray-800 rounded-lg">Timeline</button>
-    </div>
-    <div class="space-y-3 px-2">
-      <div><div class="flex justify-between text-[11px] font-bold text-gray-600 mb-1"><span>62%</span><span class="uppercase tracking-wider">Posesión</span><span>38%</span></div><div class="h-1.5 w-full bg-gray-200 rounded-full flex overflow-hidden"><div class="bg-gray-800 h-full bar-fill" style="--w:62%"></div></div></div>
-      <div><div class="flex justify-between text-[11px] font-bold text-gray-600 mb-1"><span>14</span><span class="uppercase tracking-wider">Tiros</span><span>8</span></div><div class="h-1.5 w-full bg-gray-200 rounded-full flex overflow-hidden"><div class="bg-gray-800 h-full bar-fill" style="--w:64%"></div></div></div>
-    </div>
-  </div>
-</div>
-
-<!-- 1B: Timeline vertical con badges redondos -->
-<div class="anim" style="animation-delay:.06s">
-  <div class="flex items-center justify-between mb-2 px-1">
-    <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Fixture · En vivo</span>
-  </div>
-  <div class="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
-    <div class="space-y-4 relative before:absolute before:inset-0 before:ml-4 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-emerald-300 before:via-emerald-200 before:to-transparent">
-      <div class="relative flex items-start gap-4 group">
-        <div class="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white ring-4 ring-white z-10 shrink-0 text-[11px] font-bold">34'</div>
-        <div class="bg-gray-50 p-2.5 rounded-xl w-full"><p class="text-[13px] font-bold text-gray-900">Boca 1-0 <span class="text-gray-400 font-medium">Benedetto</span></p></div>
-      </div>
-      <div class="relative flex items-start gap-4 group">
-        <div class="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-white ring-4 ring-white z-10 shrink-0 text-[11px] font-bold">59'</div>
-        <div class="bg-gray-50 p-2.5 rounded-xl w-full"><p class="text-[13px] text-gray-500 font-medium">River 1-1 <span class="font-normal">Álvarez</span></p></div>
-      </div>
-      <div class="relative flex items-start gap-4 group">
-        <div class="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white ring-4 ring-white z-10 shrink-0 text-[11px] font-bold">78'</div>
-        <div class="bg-emerald-50 p-2.5 rounded-xl w-full border border-emerald-100"><p class="text-[13px] font-bold text-gray-900">Boca 2-1 <span class="text-emerald-600 font-medium">Benedetto — Ahora</span></p></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- 1C: Stats como product specs grid -->
-<div class="anim" style="animation-delay:.12s">
-  <div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Estadísticas</span></div>
-  <div class="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
-    <div class="grid grid-cols-2 gap-2 mb-4">
-      <div class="bg-gray-50 p-2 rounded-xl"><p class="text-[10px] text-gray-500 uppercase font-bold">Posesión</p><p class="text-[12px] font-semibold text-gray-900">62%</p></div>
-      <div class="bg-gray-50 p-2 rounded-xl"><p class="text-[10px] text-gray-500 uppercase font-bold">Tiros</p><p class="text-[12px] font-semibold text-gray-900">14</p></div>
-      <div class="bg-gray-50 p-2 rounded-xl"><p class="text-[10px] text-gray-500 uppercase font-bold">Córners</p><p class="text-[12px] font-semibold text-gray-900">8</p></div>
-      <div class="bg-gray-50 p-2 rounded-xl"><p class="text-[10px] text-gray-500 uppercase font-bold">Faltas</p><p class="text-[12px] font-semibold text-gray-900">3</p></div>
-    </div>
-    <div class="space-y-2">
-      <div class="flex justify-between text-[11px] font-bold text-gray-600"><span>Posesión</span><span>62%</span></div>
-      <div class="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-emerald-400 rounded-full bar-fill" style="--w:62%"></div></div>
-    </div>
-  </div>
-</div>
-
-<!-- ======= 2. ELECCIONES ======= -->
-<div class="text-center mt-4"><span class="text-xs text-gray-400 font-bold uppercase tracking-widest">2. Elecciones</span></div>
-
-<!-- 2A: Deep Research style con timeline -->
-<div class="anim">
-  <div class="flex items-center justify-between mb-2 px-1">
-    <span class="text-[10px] font-extrabold text-amber-500 uppercase tracking-widest flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">psychology</span> Escrutinio 87%</span>
-  </div>
-  <div class="bg-gradient-to-br from-amber-50 to-white rounded-3xl p-5 card-shadow border border-amber-100/50">
-    <h4 class="text-[15px] font-bold text-gray-900 mb-4">Elecciones 2025</h4>
-    <div class="space-y-4 relative before:absolute before:inset-0 before:ml-4 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-amber-300 before:via-amber-200 before:to-transparent">
-      <div class="relative flex items-start gap-4 group">
-        <div class="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white ring-4 ring-amber-50 z-10 shrink-0"><span class="material-symbols-outlined text-[16px]">check</span></div>
-        <div class="bg-white p-3 rounded-xl shadow-sm border border-amber-50/50 w-full"><p class="text-[13px] font-bold text-gray-800">Martínez</p><p class="text-[11px] text-gray-500">42.3% · 12.847 mesas procesadas</p></div>
-      </div>
-      <div class="relative flex items-start gap-4 group">
-        <div class="w-8 h-8 bg-amber-300 rounded-full flex items-center justify-center text-white ring-4 ring-amber-50 z-10 shrink-0"><span class="material-symbols-outlined text-[16px]">check</span></div>
-        <div class="bg-white p-3 rounded-xl shadow-sm border border-amber-50/50 w-full"><p class="text-[13px] font-bold text-gray-800">Frente Amplio</p><p class="text-[11px] text-gray-500">35.1%</p></div>
-      </div>
-      <div class="relative flex items-start gap-4 group opacity-50">
-        <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-400 ring-4 ring-amber-50 z-10 shrink-0"><span class="material-symbols-outlined text-[16px]">more_horiz</span></div>
-        <div class="bg-white p-3 rounded-xl border border-gray-100 w-full"><p class="text-[13px] font-bold text-gray-500">Diferencia 7.2 pp · En definición</p></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- 2B: Web Navigation type -->
-<div class="anim" style="animation-delay:.06s">
-  <div class="flex items-center justify-between mb-2 px-1">
-    <span class="text-[10px] font-extrabold text-violet-500 uppercase tracking-widest flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">how_to_vote</span> Votar</span>
-  </div>
-  <div class="bg-white rounded-3xl p-4 card-shadow border border-gray-50">
-    <div class="flex items-center gap-3 bg-gray-50 rounded-2xl p-3 mb-3 border border-gray-100">
-      <div class="w-8 h-8 bg-violet-100 rounded-full flex items-center justify-center text-violet-600 animate-spin" style="animation-duration:3s;"><span class="material-symbols-outlined text-[18px]">sync</span></div>
-      <div class="flex-1 overflow-hidden"><p class="text-[13px] font-mono text-gray-600 truncate">Consultando cédula electoral...</p></div>
-    </div>
-    <div class="space-y-2">
-      <button class="flex items-center justify-between p-2.5 hover:bg-violet-50 rounded-xl transition-colors cursor-pointer w-full text-left">
-        <div class="flex items-center gap-3"><span class="material-symbols-outlined text-emerald-500 text-[18px]">thumb_up</span><div><p class="text-[13px] font-semibold text-gray-800">Sí — Reforma laboral</p></div></div>
-        <span class="material-symbols-outlined text-gray-300 text-[18px]">chevron_right</span>
-      </button>
-      <button class="flex items-center justify-between p-2.5 hover:bg-red-50 rounded-xl transition-colors cursor-pointer w-full text-left">
-        <div class="flex items-center gap-3"><span class="material-symbols-outlined text-red-400 text-[18px]">thumb_down</span><div><p class="text-[13px] font-semibold text-gray-800">No — Mantener actual</p></div></div>
-        <span class="material-symbols-outlined text-gray-300 text-[18px]">chevron_right</span>
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- 2C: Smart List con checkboxes -->
-<div class="anim" style="animation-delay:.12s">
-  <div class="flex items-center justify-between mb-2 px-1">
-    <span class="text-[10px] font-extrabold text-sky-500 uppercase tracking-widest flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">list_alt</span> Smart List</span>
-  </div>
-  <div class="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
-    <div class="flex items-center justify-between mb-4">
-      <h4 class="text-[16px] font-bold text-gray-900">Datos del escrutinio</h4>
-      <div class="w-10 h-10 rounded-full relative flex items-center justify-center">
-        <svg class="w-full h-full -rotate-90 absolute" viewBox="0 0 36 36"><path class="text-gray-100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3"/><path class="text-sky-500" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="77, 100" stroke-width="3"/></svg>
-        <span class="text-[10px] font-bold text-sky-600">77%</span>
-      </div>
-    </div>
-    <div class="space-y-1">
-      <label class="flex items-center gap-3 p-2 hover:bg-sky-50 rounded-xl cursor-pointer transition-colors custom-checkbox group">
-        <input type="checkbox" checked class="peer hidden"/><div class="w-5 h-5 rounded-md border-2 border-gray-300 flex items-center justify-center transition-colors"><svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <span class="text-[14px] font-medium text-gray-400 line-through">28.4M votos válidos</span>
-      </label>
-      <label class="flex items-center gap-3 p-2 hover:bg-sky-50 rounded-xl cursor-pointer transition-colors custom-checkbox">
-        <input type="checkbox" checked class="peer hidden"/><div class="w-5 h-5 rounded-md border-2 border-gray-300 flex items-center justify-center transition-colors"><svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <span class="text-[14px] font-medium text-gray-400 line-through">12.847 mesas</span>
-      </label>
-      <label class="flex items-center gap-3 p-2 hover:bg-sky-50 rounded-xl cursor-pointer transition-colors custom-checkbox">
-        <input type="checkbox" class="peer hidden"/><div class="w-5 h-5 rounded-md border-2 border-gray-300 flex items-center justify-center transition-colors peer-checked:bg-sky-500 peer-checked:border-sky-500"><svg class="w-3 h-3 text-white hidden peer-checked:block" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <span class="text-[14px] font-medium text-gray-800">Participación al 77%</span>
-      </label>
-    </div>
-  </div>
-</div>
-
-<!-- ======= 3. CRYPTO ======= -->
-<div class="text-center mt-4"><span class="text-xs text-gray-400 font-bold uppercase tracking-widest">3. Crypto</span></div>
-
-<!-- 3A: Market Live con sparkline SVG -->
-<div class="anim">
-  <div class="flex items-center justify-between mb-2 px-1">
-    <span class="text-[10px] font-extrabold text-orange-500 uppercase tracking-widest flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">candlestick_chart</span> Market Live</span>
-    <span class="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">1D</span>
-  </div>
-  <div class="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
-    <div class="flex justify-between items-start mb-4">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 font-bold text-xl">₿</div>
-        <div><div class="flex items-baseline gap-2"><h4 class="text-[18px] font-bold text-gray-900">BTC/USD</h4></div><p class="text-[12px] text-gray-500 font-medium">Bitcoin</p></div>
-      </div>
-      <div class="text-right"><p class="text-[18px] font-extrabold text-gray-900 font-mono">$64,230.50</p><p class="text-[13px] font-bold text-emerald-500 flex items-center justify-end gap-0.5"><span class="material-symbols-outlined text-[14px]">arrow_upward</span> 2.45%</p></div>
-    </div>
-    <div class="h-20 w-full bg-gray-50 rounded-xl relative overflow-hidden flex items-end px-2 pb-2 pt-4">
-      <svg class="w-full h-full absolute inset-0" preserveAspectRatio="none" viewBox="0 0 100 40">
-        <defs><linearGradient id="btcGrad" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#10b981" stop-opacity="0.2"/><stop offset="100%" stop-color="#10b981" stop-opacity="0"/></linearGradient></defs>
-        <path d="M0 40 L0 30 Q 10 20, 20 25 T 40 15 T 60 20 T 80 5 T 100 10 L100 40 Z" fill="url(#btcGrad)"/>
-        <path d="M0 30 Q 10 20, 20 25 T 40 15 T 60 20 T 80 5 T 100 10" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
-        <circle cx="100" cy="10" fill="#10b981" r="3"><animate attributeName="r" dur="2s" repeatCount="indefinite" values="3;6;3"/><animate attributeName="opacity" dur="2s" repeatCount="indefinite" values="1;0.5;1"/></circle>
-      </svg>
-    </div>
-    <div class="flex gap-2 mt-4">
-      <button class="flex-1 py-2.5 bg-gray-900 text-white rounded-xl text-xs font-bold">Vender</button>
-      <button class="flex-1 py-2.5 bg-orange-500 text-white rounded-xl text-xs font-bold">Comprar</button>
-    </div>
-  </div>
-</div>
-
-<!-- 3B: Outfit card style con crypto -->
-<div class="anim" style="animation-delay:.06s">
-  <div class="flex items-center justify-between mb-2 px-1">
-    <span class="text-[10px] font-extrabold text-indigo-500 uppercase tracking-widest flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">account_balance_wallet</span> Cartera</span>
-    <span class="text-[10px] font-bold text-gray-400">3 activos</span>
-  </div>
-  <div class="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
-    <div class="flex justify-between items-start mb-4"><div><h4 class="text-[15px] font-bold text-gray-900">Mis activos</h4><p class="text-[12px] text-gray-500 font-medium">Portfolio diversificado</p></div></div>
-    <div class="grid grid-cols-3 gap-2 mb-4">
-      <div class="bg-gray-50 rounded-2xl p-2 flex flex-col items-center justify-center aspect-square relative border border-gray-100"><span class="text-2xl mb-1">₿</span><p class="text-[9px] font-bold text-gray-600 uppercase text-center">Bitcoin</p><p class="text-[10px] font-bold text-emerald-500">+2.4%</p></div>
-      <div class="bg-gray-50 rounded-2xl p-2 flex flex-col items-center justify-center aspect-square relative border border-gray-100"><span class="text-2xl mb-1">Ξ</span><p class="text-[9px] font-bold text-gray-600 uppercase text-center">Ethereum</p><p class="text-[10px] font-bold text-red-400">-1.2%</p></div>
-      <div class="bg-gray-50 rounded-2xl p-2 flex flex-col items-center justify-center aspect-square relative border border-gray-100"><span class="text-2xl mb-1">$</span><p class="text-[9px] font-bold text-gray-600 uppercase text-center">USDC</p><p class="text-[10px] font-bold text-gray-400">0.0%</p></div>
-    </div>
-    <button class="w-full py-2.5 bg-gray-900 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2"><span class="material-symbols-outlined text-[16px]">monitoring</span> Ver portafolio</button>
-  </div>
-</div>
-
-<!-- 3C: Forex como Product Review specs -->
-<div class="anim" style="animation-delay:.12s">
-  <div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-extrabold text-blue-500 uppercase tracking-widest">Forex en vivo</span></div>
-  <div class="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
-    <div class="grid grid-cols-2 gap-2 mb-4">
-      <div class="bg-gray-50 p-2 rounded-xl"><div class="flex items-center gap-2 mb-1"><img src="https://flagsapi.com/DE/flat/24.png" class="w-5 h-5 rounded-full"><p class="text-[10px] text-gray-500 uppercase font-bold">EUR/USD</p></div><p class="text-[13px] font-bold text-gray-900">1.0854</p><p class="text-xs text-emerald-500 font-bold">+0.02%</p></div>
-      <div class="bg-gray-50 p-2 rounded-xl"><div class="flex items-center gap-2 mb-1"><img src="https://flagsapi.com/GB/flat/24.png" class="w-5 h-5 rounded-full"><p class="text-[10px] text-gray-500 uppercase font-bold">GBP/USD</p></div><p class="text-[13px] font-bold text-gray-900">1.2730</p><p class="text-xs text-emerald-500 font-bold">+0.08%</p></div>
-      <div class="bg-red-50 p-2 rounded-xl"><div class="flex items-center gap-2 mb-1"><img src="https://flagsapi.com/JP/flat/24.png" class="w-5 h-5 rounded-full"><p class="text-[10px] text-red-400 uppercase font-bold">USD/JPY</p></div><p class="text-[13px] font-bold text-gray-900">148.32</p><p class="text-xs text-red-400 font-bold">-0.15%</p></div>
-      <div class="bg-gray-50 p-2 rounded-xl"><div class="flex items-center gap-2 mb-1"><img src="https://flagsapi.com/AU/flat/24.png" class="w-5 h-5 rounded-full"><p class="text-[10px] text-gray-500 uppercase font-bold">AUD/USD</p></div><p class="text-[13px] font-bold text-gray-900">0.6645</p><p class="text-xs text-emerald-500 font-bold">+0.04%</p></div>
-    </div>
-  </div>
-</div>
-
-<!-- ======= 4. INDICACIONES ======= -->
-<div class="text-center mt-4"><span class="text-xs text-gray-400 font-bold uppercase tracking-widest">4. Indicaciones</span></div>
-
-<!-- 4A: Deep Research timeline con pasos -->
-<div class="anim">
-  <div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-extrabold text-indigo-500 uppercase tracking-widest">Ruta · 18 min</span></div>
-  <div class="bg-gradient-to-br from-indigo-50 to-white rounded-3xl p-5 card-shadow border border-indigo-100/50">
-    <div class="space-y-4 relative before:absolute before:inset-0 before:ml-4 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-indigo-300 before:via-indigo-200 before:to-transparent">
-      <div class="relative flex items-start gap-4 group">
-        <div class="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white ring-4 ring-indigo-50 z-10 shrink-0 text-[11px] font-bold">1</div>
-        <div class="bg-white p-3 rounded-xl shadow-sm border border-indigo-50/50 w-full"><p class="text-[13px] font-bold text-gray-800">Girá a la izquierda</p><p class="text-[11px] text-gray-500">450 m · Av. Corrientes</p></div>
-      </div>
-      <div class="relative flex items-start gap-4 group">
-        <div class="w-8 h-8 bg-amber-400 rounded-full flex items-center justify-center text-white ring-4 ring-indigo-50 z-10 shrink-0 text-[11px] font-bold">2</div>
-        <div class="bg-white p-3 rounded-xl shadow-sm border border-indigo-50/50 w-full"><p class="text-[13px] font-bold text-gray-800">Continuá por Acceso Norte</p><p class="text-[11px] text-gray-500">5.8 km · Rápido</p></div>
-      </div>
-      <div class="relative flex items-start gap-4 group opacity-50">
-        <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-400 ring-4 ring-indigo-50 z-10 shrink-0 text-[11px] font-bold">3</div>
-        <div class="bg-white p-3 rounded-xl border border-gray-100 w-full"><p class="text-[13px] font-bold text-gray-500">Salida 12 Olivos · 1.9 km</p></div>
-      </div>
-    </div>
-    <button class="w-full mt-4 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-bold">Iniciar GPS</button>
-  </div>
-</div>
-
-<!-- 4B: Transporte como listas tipo Web Nav -->
-<div class="anim" style="animation-delay:.06s">
-  <div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Comparativa de tiempos</span></div>
-  <div class="bg-white rounded-3xl p-4 card-shadow border border-gray-50">
-    <div class="space-y-0">
-      <div class="flex items-center justify-between p-2.5 hover:bg-gray-50 rounded-xl cursor-pointer">
-        <div class="flex items-center gap-3"><span class="material-symbols-outlined text-gray-400 text-[18px]">directions_car</span><p class="text-[13px] font-semibold text-gray-800">Auto</p></div>
-        <span class="text-[13px] font-bold text-gray-900">18 min</span>
-      </div>
-      <div class="flex items-center justify-between p-2.5 bg-amber-50 rounded-xl cursor-pointer border border-amber-100">
-        <div class="flex items-center gap-3"><span class="material-symbols-outlined text-amber-500 text-[18px]">directions_bus</span><p class="text-[13px] font-semibold text-gray-800">Transporte</p></div>
-        <span class="text-[13px] font-bold text-amber-500">42 min</span>
-      </div>
-      <div class="flex items-center justify-between p-2.5 hover:bg-gray-50 rounded-xl cursor-pointer">
-        <div class="flex items-center gap-3"><span class="material-symbols-outlined text-gray-400 text-[18px]">directions_walk</span><p class="text-[13px] font-semibold text-gray-800">Caminando</p></div>
-        <span class="text-[13px] font-bold text-gray-400">1h 50m</span>
-      </div>
-      <div class="flex items-center justify-between p-2.5 hover:bg-gray-50 rounded-xl cursor-pointer">
-        <div class="flex items-center gap-3"><span class="material-symbols-outlined text-gray-400 text-[18px]">pedal_bike</span><p class="text-[13px] font-semibold text-gray-800">Bicicleta</p></div>
-        <span class="text-[13px] font-bold text-gray-900">32 min</span>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- 4C: Activity Tracker style -->
-<div class="anim" style="animation-delay:.12s">
-  <div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-extrabold text-sky-500 uppercase tracking-widest">Ruta visual</span></div>
-  <div class="bg-white rounded-3xl p-5 card-shadow border border-gray-50 flex items-center gap-5">
-    <div class="relative w-16 h-16 shrink-0">
-      <svg class="w-full h-full -rotate-90 absolute" viewBox="0 0 36 36">
-        <path class="text-gray-100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="2.5"/>
-        <path class="text-sky-500" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="75, 100" stroke-linecap="round" stroke-width="2.5"/>
-      </svg>
-      <div class="absolute inset-0 flex items-center justify-center flex-col"><span class="text-[16px] font-black text-gray-900 leading-none">75%</span></div>
-    </div>
-    <div>
-      <h4 class="text-[15px] font-bold text-gray-900 mb-1">Av. Corrientes → Shopping Olivos</h4>
-      <p class="text-[12px] text-gray-500 font-medium">3 km · Solo conductores rectos · Llegada estimada: 18 min</p>
-    </div>
-  </div>
-</div>
-
-<!-- ======= 5. CUMPLEAÑOS ======= -->
-<div class="text-center mt-4"><span class="text-xs text-gray-400 font-bold uppercase tracking-widest">5. Cumpleaños</span></div>
-
-<!-- 5A: Cumpleaños con gradiente y gift suggestions -->
-<div class="anim">
-  <div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-extrabold text-pink-500 uppercase tracking-widest">Social · Hoy</span></div>
-  <div class="bg-gradient-to-r from-pink-50 to-purple-50 rounded-3xl p-5 card-shadow border border-pink-100/50">
-    <div class="flex items-start gap-4 mb-4">
-      <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-pink-500 shadow-sm text-lg">🎂</div>
-      <div class="flex-1">
-        <h4 class="text-[15px] font-bold text-gray-900 mb-1">Cumpleaños de Ana</h4>
-        <p class="text-[13px] text-gray-600 font-medium">12 de julio · 35 años · Faltan 8 días</p>
-      </div>
-    </div>
-    <div class="flex gap-3 overflow-x-auto pb-2 no-scrollbar snap-x">
-      <div class="snap-start shrink-0 w-[140px] bg-white/80 backdrop-blur rounded-2xl p-2.5 border border-white/50 shadow-sm relative">
-        <div class="h-20 bg-pink-100/50 rounded-xl mb-2 flex items-center justify-center text-2xl">💐</div>
-        <p class="text-[12px] font-bold text-gray-900 truncate">Ramo primavera</p>
-        <p class="text-[10px] text-gray-500 mb-2">Llega en 2h</p>
-        <button class="w-full py-1.5 bg-pink-100 text-pink-600 rounded-lg text-[11px] font-bold hover:bg-pink-200 transition">Enviar</button>
-      </div>
-      <div class="snap-start shrink-0 w-[140px] bg-white/80 backdrop-blur rounded-2xl p-2.5 border border-white/50 shadow-sm relative">
-        <div class="h-20 bg-purple-100/50 rounded-xl mb-2 flex items-center justify-center text-2xl">🎁</div>
-        <p class="text-[12px] font-bold text-gray-900 truncate">Caja regalo</p>
-        <p class="text-[10px] text-gray-500 mb-2">Llega en 1h</p>
-        <button class="w-full py-1.5 bg-pink-100 text-pink-600 rounded-lg text-[11px] font-bold hover:bg-pink-200 transition">Enviar</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- 5B: Document builder type -->
-<div class="anim" style="animation-delay:.06s">
-  <div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-extrabold text-amber-500 uppercase tracking-widest">Calendario</span></div>
-  <div class="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
-    <div class="flex items-center gap-2 mb-3">
-      <span class="material-symbols-outlined text-amber-500">calendar_month</span>
-      <span class="text-sm font-bold text-gray-900">Julio 2025</span>
-    </div>
-    <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-gray-300 mb-1">
-      <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
-    </div>
-    <div class="grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-gray-600">
-      <span></span><span class="py-1">1</span><span class="py-1">2</span><span class="py-1">3</span><span class="py-1">4</span><span class="py-1">5</span><span class="py-1">6</span>
-      <span class="py-1">7</span><span class="py-1">8</span><span class="py-1">9</span><span class="py-1">10</span><span class="py-1">11</span><span class="py-1 rounded-lg bg-pink-500 text-white font-bold shadow-sm">12</span><span class="py-1">13</span>
-      <span class="py-1">14</span><span class="py-1">15</span><span class="py-1">16</span><span class="py-1">17</span><span class="py-1">18</span><span class="py-1">19</span><span class="py-1 rounded-lg bg-amber-400 text-white font-bold shadow-sm">20</span>
-      <span class="py-1">21</span><span class="py-1 rounded-lg bg-blue-400 text-white font-bold shadow-sm">22</span><span class="py-1">23</span><span class="py-1">24</span><span class="py-1">25</span><span class="py-1">26</span><span class="py-1">27</span>
-      <span class="py-1">28</span><span class="py-1">29</span><span class="py-1">30</span><span class="py-1">31</span>
-    </div>
-    <div class="mt-3 pt-3 border-t border-gray-50 space-y-1">
-      <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-pink-500"></span><span class="text-[11px] font-semibold text-gray-700">12 jul · Ana (35)</span></div>
-      <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-amber-400"></span><span class="text-[11px] font-semibold text-gray-700">20 jul · Roberto (42)</span></div>
-      <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-blue-400"></span><span class="text-[11px] font-semibold text-gray-700">22 jul · María (29)</span></div>
-    </div>
-  </div>
-</div>
-
-<!-- 5C: Countdown como outfit/progress -->
-<div class="anim" style="animation-delay:.12s">
-  <div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-extrabold text-amber-500 uppercase tracking-widest">Alarma · En 8 días</span></div>
-  <div class="bg-amber-50/50 rounded-3xl p-4 card-shadow flex items-center justify-between border border-amber-100/50">
+  <header class="bg-white/80 backdrop-blur-md border-b border-gray-100 p-4 sticky top-0 z-50 flex items-center justify-between rounded-t-3xl mb-2">
     <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-full bg-amber-100/80 flex items-center justify-center text-amber-600"><span class="material-symbols-outlined text-[20px]">alarm</span></div>
-      <div><p class="text-[14px] font-bold text-gray-900">Ana López</p><p class="text-[12px] text-amber-700 font-medium">12 de julio</p></div>
+      <div class="w-10 h-10 bg-koru-100 rounded-full flex items-center justify-center text-koru-600 font-bold">K</div>
+      <div><h1 class="font-bold text-gray-900 leading-tight text-sm">Component Library</h1><p class="text-xs text-koru-600 font-medium flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-koru-500 animate-pulse"></span> Dynamic Intelligence</p></div>
     </div>
-    <div class="text-right"><p class="text-[20px] font-extrabold text-gray-900">08</p><p class="text-[10px] text-gray-400 font-bold">días rest.</p></div>
-  </div>
-</div>
+  </header>
 
-<!-- ======= 6. COMPARATIVA ======= -->
-<div class="text-center mt-4"><span class="text-xs text-gray-400 font-bold uppercase tracking-widest">6. Comparativa</span></div>
+  <main class="flex flex-col gap-6">
 
-<!-- 6A: Product Review style -->
-<div class="anim">
-  <div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-extrabold text-amber-500 uppercase tracking-widest">Cafeteras</span></div>
-  <div class="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
-    <div class="flex items-center justify-between mb-4">
-      <div class="flex flex-col items-center gap-1 w-1/3">
-        <div class="w-14 h-14 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600 font-bold text-xl">A</div>
-        <span class="text-[13px] font-bold text-gray-900">Nespresso</span>
+    <div class="text-center mb-2"><p class="text-sm text-gray-500 font-medium">7 temas · 3 opciones · Chat real</p></div>
+
+    <!-- ============= 1 FUTBOL ============= -->
+    <div class="text-center"><span class="bg-white text-gray-400 text-[10px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-full" style="box-shadow:0 1px 3px rgba(0,0,0,.04);">1. Fútbol</span></div>
+
+    <!-- 1A Live Match con tabs toggle -->
+    <div class="flex flex-col w-full">
+      <div class="flex items-center justify-between mb-2 px-1">
+        <span class="text-[10px] font-extrabold text-emerald-500 uppercase tracking-widest flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">sports_soccer</span> Live Match</span>
+        <span class="bg-red-50 text-red-500 text-[10px] font-extrabold px-2 py-0.5 rounded-full animate-pulse">72'</span>
       </div>
-      <span class="text-[10px] font-black text-gray-300 uppercase tracking-widest">VS</span>
-      <div class="flex flex-col items-center gap-1 w-1/3">
-        <div class="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 font-bold text-xl">B</div>
-        <span class="text-[13px] font-bold text-gray-900">Dolce</span>
+      <div class="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
+        <div class="flex items-center justify-between px-2 mb-6">
+          <div class="flex flex-col items-center gap-2 w-1/3">
+            <div class="w-14 h-14 bg-gray-50 rounded-full flex items-center justify-center text-gray-900 font-bold border-2 border-gray-200 shadow-sm relative">
+              RMA
+              <div class="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full border-2 border-white flex items-center justify-center text-[8px] font-bold text-white">1</div>
+            </div>
+            <span class="text-[13px] font-bold text-gray-900">Real Madrid</span>
+          </div>
+          <div class="flex flex-col items-center justify-center w-1/3">
+            <span class="text-4xl font-black text-gray-900 tracking-tighter">2 <span class="text-gray-300 font-normal">-</span> 1</span>
+            <span class="text-[10px] text-gray-400 mt-1 font-bold uppercase tracking-wider bg-gray-50 px-2 py-0.5 rounded-full">Global 3-3</span>
+          </div>
+          <div class="flex flex-col items-center gap-2 w-1/3">
+            <div class="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center text-blue-700 font-bold border-2 border-blue-200 shadow-sm">MCI</div>
+            <span class="text-[13px] font-bold text-gray-900">Man City</span>
+          </div>
+        </div>
+        <div class="bg-gray-50 p-1 rounded-xl flex mb-4">
+          <button class="flex-1 py-1.5 text-[12px] font-bold text-gray-800 bg-white shadow-sm rounded-lg transition-all">Stats</button>
+          <button class="flex-1 py-1.5 text-[12px] font-bold text-gray-500 hover:text-gray-800 rounded-lg transition-all">Lineups</button>
+          <button class="flex-1 py-1.5 text-[12px] font-bold text-gray-500 hover:text-gray-800 rounded-lg transition-all">Timeline</button>
+        </div>
+        <div class="space-y-3 px-2">
+          <div>
+            <div class="flex justify-between text-[11px] font-bold text-gray-600 mb-1"><span>62%</span><span class="uppercase tracking-wider">Possession</span><span>38%</span></div>
+            <div class="h-1.5 w-full bg-gray-200 rounded-full flex overflow-hidden"><div class="bg-gray-800 h-full" style="width:62%"></div><div class="bg-blue-500 h-full" style="width:38%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-[11px] font-bold text-gray-600 mb-1"><span>14</span><span class="uppercase tracking-wider">Shots (On Target)</span><span>8</span></div>
+            <div class="h-1.5 w-full bg-gray-200 rounded-full flex overflow-hidden"><div class="bg-gray-800 h-full" style="width:64%"></div><div class="bg-blue-500 h-full" style="width:36%"></div></div>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="grid grid-cols-2 gap-2 mb-4">
-      <div class="bg-gray-50 p-2 rounded-xl"><p class="text-[10px] text-gray-500 uppercase font-bold">Precio</p><p class="text-[12px] font-semibold text-emerald-600">$89</p></div>
-      <div class="bg-gray-50 p-2 rounded-xl"><p class="text-[10px] text-gray-500 uppercase font-bold">Precio</p><p class="text-[12px] font-semibold text-gray-900">$110</p></div>
-      <div class="bg-gray-50 p-2 rounded-xl"><p class="text-[10px] text-gray-500 uppercase font-bold">Presión</p><p class="text-[12px] font-semibold text-emerald-600">19 bar</p></div>
-      <div class="bg-gray-50 p-2 rounded-xl"><p class="text-[10px] text-gray-500 uppercase font-bold">Presión</p><p class="text-[12px] font-semibold text-gray-900">15 bar</p></div>
+
+    <!-- 1B Timeline vertical -->
+    <div class="flex flex-col w-full">
+      <div class="flex items-center justify-between mb-2 px-1">
+        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Fixture · En vivo</span>
+      </div>
+      <div class="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
+        <div class="space-y-4 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-emerald-300 before:via-emerald-200 before:to-transparent">
+          <div class="relative flex items-start gap-4 group">
+            <div class="w-9 h-9 bg-emerald-500 rounded-full flex items-center justify-center text-white ring-4 ring-white z-10 shrink-0 text-[10px] font-bold">34'</div>
+            <div class="bg-gray-50 p-3 rounded-xl w-full"><p class="text-[13px] font-bold text-gray-900">Boca 1-0 <span class="text-gray-400 font-medium">Benedetto</span></p></div>
+          </div>
+          <div class="relative flex items-start gap-4 group">
+            <div class="w-9 h-9 bg-sky-400 rounded-full flex items-center justify-center text-white ring-4 ring-white z-10 shrink-0 text-[10px] font-bold">59'</div>
+            <div class="bg-gray-50 p-3 rounded-xl w-full"><p class="text-[13px] text-gray-500 font-medium">River 1-1</p></div>
+          </div>
+          <div class="relative flex items-start gap-4 group">
+            <div class="w-9 h-9 bg-emerald-500 rounded-full flex items-center justify-center text-white ring-4 ring-white z-10 shrink-0 text-[10px] font-bold">78'</div>
+            <div class="bg-emerald-50 p-3 rounded-xl w-full border border-emerald-100"><p class="text-[13px] font-bold text-gray-900">Boca 2-1 <span class="text-emerald-600 font-medium">Benedetto · Ahora</span></p></div>
+          </div>
+        </div>
+      </div>
     </div>
-    <button class="w-full py-2.5 bg-gray-900 text-white rounded-xl text-[13px] font-bold flex items-center justify-center gap-2"><span class="material-symbols-outlined text-[16px]">shopping_cart</span> Ver opciones</button>
-  </div>
+
+    <!-- 1C Match Stats -->
+    <div class="flex flex-col w-full">
+      <div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Estadísticas</span></div>
+      <div class="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
+        <div class="space-y-3 px-2">
+          <div>
+            <div class="flex justify-between text-[11px] font-bold text-gray-600 mb-1"><span>62%</span><span class="uppercase tracking-wider">Posesión</span><span>38%</span></div>
+            <div class="h-1.5 w-full bg-gray-100 rounded-full flex overflow-hidden"><div class="h-full bg-emerald-400 rounded-full" style="width:62%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-[11px] font-bold text-gray-600 mb-1"><span>14</span><span class="uppercase tracking-wider">Tiros</span><span>8</span></div>
+            <div class="h-1.5 w-full bg-gray-100 rounded-full flex overflow-hidden"><div class="h-full bg-emerald-400 rounded-full" style="width:64%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============= 2 ELECCIONES ============= -->
+    <div class="text-center mt-4"><span class="bg-white text-gray-400 text-[10px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-full" style="box-shadow:0 1px 3px rgba(0,0,0,.04);">2. Elecciones</span></div>
+
+    <!-- 2A Results -->
+    <div class="flex flex-col w-full">
+      <div class="flex items-center justify-between mb-2 px-1">
+        <span class="text-[10px] font-extrabold text-amber-500 uppercase tracking-widest flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">psychology</span> Escrutinio 87%</span>
+      </div>
+      <div class="bg-gradient-to-br from-amber-50 to-white rounded-3xl p-5 card-shadow border border-amber-100/50">
+        <h4 class="text-[15px] font-bold text-gray-900 mb-4">Elecciones 2025</h4>
+        <div class="space-y-4 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-amber-300 before:via-amber-200 before:to-transparent">
+          <div class="relative flex items-start gap-4 group">
+            <div class="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white ring-4 ring-amber-50 z-10 shrink-0"><span class="material-symbols-outlined text-[16px]">check</span></div>
+            <div class="bg-white p-3 rounded-xl shadow-sm border border-amber-50/50 w-full"><p class="text-[13px] font-bold text-gray-800">Martínez</p><p class="text-[11px] text-gray-500">42.3% · 12.847 mesas</p></div>
+          </div>
+          <div class="relative flex items-start gap-4 group">
+            <div class="w-8 h-8 bg-amber-400 rounded-full flex items-center justify-center text-white ring-4 ring-amber-50 z-10 shrink-0"><span class="material-symbols-outlined text-[16px]">check</span></div>
+            <div class="bg-white p-3 rounded-xl shadow-sm border border-amber-50/50 w-full"><p class="text-[13px] font-bold text-gray-800">Frente Amplio</p><p class="text-[11px] text-gray-500">35.1%</p></div>
+          </div>
+          <div class="relative flex items-start gap-4 group opacity-50">
+            <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-400 ring-4 ring-amber-50 z-10 shrink-0"><span class="material-symbols-outlined text-[16px]">more_horiz</span></div>
+            <div class="bg-white p-3 rounded-xl border border-gray-100 w-full"><p class="text-[13px] font-bold text-gray-500">Otros 22.6% · En definición</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2B Vote -->
+    <div class="flex flex-col w-full">
+      <div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-extrabold text-violet-500 uppercase tracking-widest flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">how_to_vote</span> Votar</span></div>
+      <div class="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
+        <h4 class="text-[16px] font-bold text-gray-900 mb-1">¿Aprobás la reforma?</h4>
+        <p class="text-[13px] text-gray-500 font-medium mb-4">Reforma laboral · Vinculante</p>
+        <div class="space-y-2 mb-4">
+          <button class="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-colors text-left"><div><p class="text-[14px] font-bold text-gray-900">Sí</p><p class="text-[12px] text-gray-500">Flexibilización</p></div><div class="w-5 h-5 rounded-full border-2 border-gray-300"></div></button>
+          <button class="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-colors text-left"><div><p class="text-[14px] font-bold text-gray-900">No</p><p class="text-[12px] text-gray-500">Legislación vigente</p></div><div class="w-5 h-5 rounded-full border-2 border-gray-300"></div></button>
+        </div>
+        <button class="w-full py-3 bg-violet-600 text-white rounded-2xl text-[13px] font-bold">Confirmar voto</button>
+      </div>
+    </div>
+
+    <!-- 2C Data Ticker -->
+    <div class="flex flex-col w-full">
+      <div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-extrabold text-sky-500 uppercase tracking-widest">Resumen</span></div>
+      <div class="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
+        <div class="space-y-2 mb-3">
+          <div class="flex items-center justify-between"><span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Votos válidos</span><span class="text-xl font-black">28.4M</span></div>
+          <div class="flex items-center justify-between"><span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Mesas</span><span class="text-xl font-black">12.847</span></div>
+          <div class="flex items-center justify-between"><span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Participación</span><span class="text-xl font-black text-emerald-600">77%</span></div>
+        </div>
+        <div class="bg-amber-50 rounded-xl p-3 text-center"><span class="text-xs font-bold text-amber-600">Diferencia 7.2 pp entre 1° y 2°</span></div>
+      </div>
+    </div>
+
+    <!-- ============= 3 CRYPTO ============= -->
+    <div class="text-center mt-4"><span class="bg-white text-gray-400 text-[10px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-full" style="box-shadow:0 1px 3px rgba(0,0,0,.04);">3. Crypto</span></div>
+
+    <!-- 3A BTC Price -->
+    <div class="flex flex-col w-full">
+      <div class="flex items-center justify-between mb-2 px-1">
+        <span class="text-[10px] font-extrabold text-orange-500 uppercase tracking-widest flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">candlestick_chart</span> Market Live</span>
+        <span class="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">1D</span>
+      </div>
+      <div class="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
+        <div class="flex justify-between items-start mb-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 font-bold text-xl">₿</div>
+            <div>
+              <div class="flex items-baseline gap-2"><h4 class="text-[18px] font-bold text-gray-900">BTC/USD</h4></div>
+              <p class="text-[12px] text-gray-500 font-medium">Bitcoin</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <p class="text-[18px] font-extrabold text-gray-900 font-mono">$64.230</p>
+            <p class="text-[13px] font-bold text-emerald-500 flex items-center justify-end gap-0.5"><span class="material-symbols-outlined text-[14px]">arrow_upward</span> 2.45%</p>
+          </div>
+        </div>
+        <div class="h-20 w-full bg-gray-50 rounded-xl relative overflow-hidden flex items-end px-2 pb-2 pt-4">
+          <svg class="w-full h-full absolute inset-0" preserveAspectRatio="none" viewBox="0 0 100 40">
+            <defs><linearGradient id="btcGrad" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#10b981" stop-opacity="0.2"/><stop offset="100%" stop-color="#10b981" stop-opacity="0"/></linearGradient></defs>
+            <path d="M0 40 L0 30 Q 10 20, 20 25 T 40 15 T 60 20 T 80 5 T 100 10 L100 40 Z" fill="url(#btcGrad)"/>
+            <path d="M0 30 Q 10 20, 20 25 T 40 15 T 60 20 T 80 5 T 100 10" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="100" cy="10" fill="#10b981" r="3"><animate attributeName="r" dur="2s" repeatCount="indefinite" values="3;6;3"/><animate attributeName="opacity" dur="2s" repeatCount="indefinite" values="1;0.5;1"/></circle>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3B Portfolio -->
+    <div class="flex flex-col w-full">
+      <div class="flex items-center justify-between mb-2 px-1">
+        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Mercados · Hace 15m</span>
+      </div>
+      <div class="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
+        <div class="space-y-0">
+          <div class="flex items-center justify-between p-2.5 hover:bg-gray-50 rounded-2xl transition-colors cursor-pointer"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 font-bold text-sm">₿</div><div><p class="text-[14px] font-bold text-gray-900">BTC</p><p class="text-[12px] text-gray-500">Bitcoin</p></div></div><div class="text-right"><p class="text-[14px] font-bold text-gray-900">$64.230</p><p class="text-[12px] text-emerald-500 font-bold">+2.4%</p></div></div>
+          <div class="h-px bg-gray-50 mx-2"></div>
+          <div class="flex items-center justify-between p-2.5 hover:bg-gray-50 rounded-2xl transition-colors cursor-pointer"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 font-bold text-sm">Ξ</div><div><p class="text-[14px] font-bold text-gray-900">ETH</p><p class="text-[12px] text-gray-500">Ethereum</p></div></div><div class="text-right"><p class="text-[14px] font-bold text-gray-900">$3.450</p><p class="text-[12px] text-red-500 font-bold">-0.8%</p></div></div>
+          <div class="h-px bg-gray-50 mx-2"></div>
+          <div class="flex items-center justify-between p-2.5 hover:bg-gray-50 rounded-2xl transition-colors cursor-pointer"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold text-sm">USDC</div><div><p class="text-[14px] font-bold text-gray-900">USDC</p><p class="text-[12px] text-gray-500">Stable</p></div></div><div class="text-right"><p class="text-[14px] font-bold text-gray-900">$1.000</p><p class="text-[12px] text-gray-400 font-bold">0.0%</p></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3C Forex -->
+    <div class="flex flex-col w-full">
+      <div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-extrabold text-indigo-500 uppercase tracking-widest">Forex</span></div>
+      <div class="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
+        <div class="grid grid-cols-2 gap-2 mb-4">
+          <div class="bg-gray-50 p-2 rounded-xl"><div class="flex items-center gap-2 mb-1"><img src="https://flagsapi.com/DE/flat/24.png" class="w-5 h-5 rounded-full"><p class="text-[10px] text-gray-500 uppercase font-bold">EUR/USD</p></div><p class="text-[13px] font-bold">1.0854</p><p class="text-xs text-emerald-500 font-bold">+0.02%</p></div>
+          <div class="bg-gray-50 p-2 rounded-xl"><div class="flex items-center gap-2 mb-1"><img src="https://flagsapi.com/GB/flat/24.png" class="w-5 h-5 rounded-full"><p class="text-[10px] text-gray-500 uppercase font-bold">GBP/USD</p></div><p class="text-[13px] font-bold">1.2730</p><p class="text-xs text-emerald-500 font-bold">+0.08%</p></div>
+          <div class="bg-red-50 p-2 rounded-xl"><div class="flex items-center gap-2 mb-1"><img src="https://flagsapi.com/JP/flat/24.png" class="w-5 h-5 rounded-full"><p class="text-[10px] text-red-400 uppercase font-bold">USD/JPY</p></div><p class="text-[13px] font-bold">148.32</p><p class="text-xs text-red-500 font-bold">-0.15%</p></div>
+          <div class="bg-gray-50 p-2 rounded-xl"><div class="flex items-center gap-2 mb-1"><img src="https://flagsapi.com/AU/flat/24.png" class="w-5 h-5 rounded-full"><p class="text-[10px] text-gray-500 uppercase font-bold">AUD/USD</p></div><p class="text-[13px] font-bold">0.6645</p><p class="text-xs text-emerald-500 font-bold">+0.04%</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============= 4 INDICACIONES ============= -->
+    <div class="text-center mt-4"><span class="bg-white text-gray-400 text-[10px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-full" style="box-shadow:0 1px 3px rgba(0,0,0,.04);">4. Indicaciones</span></div>
+
+    <!-- 4A Timeline -->
+    <div class="flex flex-col w-full">
+      <div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-extrabold text-indigo-500 uppercase tracking-widest">Ruta rápida · 18 min</span></div>
+      <div class="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
+        <div class="space-y-4 relative before:absolute before:inset-0 before:ml-4 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-emerald-300 before:via-emerald-200 before:to-transparent">
+          <div class="relative flex items-start gap-3"><div class="w-[10px] h-[10px] rounded-full bg-emerald-500 border-[2.5px] border-white shadow-sm shrink-0 z-10"></div><div><p class="text-sm font-bold text-gray-900">Girá a la izquierda</p><p class="text-xs text-gray-400">Av. Corrientes</p></div></div>
+          <div class="relative flex items-start gap-3"><div class="w-[10px] h-[10px] rounded-full bg-amber-400 border-[2.5px] border-white shadow-sm shrink-0 z-10"></div><div><p class="text-sm font-bold text-gray-900">Continuá por Acceso Norte</p><p class="text-xs text-gray-400">5.8 km</p></div></div>
+          <div class="relative flex items-start gap-3"><div class="w-[10px] h-[10px] rounded-full bg-violet-500 border-[2.5px] border-white shadow-sm shrink-0 z-10"></div><div><p class="text-sm font-bold text-gray-900">Salida 12 Olivos</p><p class="text-xs text-gray-400">1.9 km</p></div></div>
+        </div>
+        <button class="w-full mt-4 py-2.5 bg-indigo-600 text-white rounded-2xl text-xs font-bold">Iniciar GPS</button>
+      </div>
+    </div>
+
+    <!-- 4B Transporte -->
+    <div class="flex flex-col w-full">
+      <div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Comparativa</span></div>
+      <div class="bg-white rounded-3xl p-4 card-shadow border border-gray-50">
+        <div class="space-y-0">
+          <div class="flex items-center justify-between p-2.5 hover:bg-gray-50 rounded-xl cursor-pointer"><div class="flex items-center gap-3"><span class="material-symbols-outlined text-gray-400 text-lg">directions_car</span><span class="text-sm font-bold">Auto</span></div><span class="text-sm font-extrabold text-gray-900">18 min</span></div>
+          <div class="flex items-center justify-between p-2.5 bg-amber-50 rounded-xl"><div class="flex items-center gap-3"><span class="material-symbols-outlined text-amber-500 text-lg">directions_bus</span><span class="text-sm font-bold">Transporte</span></div><span class="text-sm font-extrabold text-amber-500">42 min</span></div>
+          <div class="flex items-center justify-between p-2.5 hover:bg-gray-50 rounded-xl cursor-pointer"><div class="flex items-center gap-3"><span class="material-symbols-outlined text-gray-400 text-lg">directions_walk</span><span class="text-sm font-bold">Caminando</span></div><span class="text-sm font-extrabold text-gray-400">1h 50m</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4C Mapa -->
+    <div class="flex flex-col w-full">
+      <div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-extrabold text-sky-500 uppercase tracking-widest">Mapa</span></div>
+      <div class="bg-white rounded-3xl p-5 card-shadow border border-gray-50 flex items-center gap-5">
+        <div class="relative w-16 h-16 shrink-0">
+          <svg class="w-full h-full -rotate-90" viewBox="0 0 36 36"><path class="text-gray-100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="2.5"/><path class="text-sky-500" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="75, 100" stroke-linecap="round" stroke-width="2.5"/></svg>
+          <div class="absolute inset-0 flex items-center justify-center"><span class="text-[16px] font-black text-gray-900 leading-none">75%</span></div>
+        </div>
+        <div><h4 class="text-[15px] font-bold text-gray-900">Olivos → Shopping</h4><p class="text-xs text-gray-500 font-medium">3 km · 18 min restantes</p></div>
+      </div>
+    </div>
+
+    <!-- ============= 5 CUMPLEAÑOS ============= -->
+    <div class="text-center mt-4"><span class="bg-white text-gray-400 text-[10px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-full" style="box-shadow:0 1px 3px rgba(0,0,0,.04);">5. Cumpleaños</span></div>
+
+    <!-- 5A Birthday Social -->
+    <div class="flex flex-col w-full">
+      <div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-extrabold text-pink-500 uppercase tracking-widest flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">cake</span> Social</span></div>
+      <div class="bg-gradient-to-r from-pink-50 to-purple-50 rounded-3xl p-5 card-shadow border border-pink-100/50">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-pink-500 shadow-sm text-lg">🎂</div>
+          <div class="flex-1">
+            <h4 class="text-[15px] font-bold text-gray-900 mb-1">Cumpleaños de Ana</h4>
+            <p class="text-[13px] text-gray-600 font-medium mb-3">12 jul · 35 años · Faltan 8 días</p>
+          </div>
+        </div>
+        <div class="flex gap-3 overflow-x-auto pb-2 no-scrollbar snap-x">
+          <div class="snap-start shrink-0 w-[140px] bg-white/80 backdrop-blur rounded-2xl p-2.5 border border-white/50 shadow-sm relative">
+            <div class="h-20 bg-pink-100/50 rounded-xl mb-2 flex items-center justify-center text-2xl">💐</div>
+            <p class="text-[12px] font-bold text-gray-900 truncate">Ramo Primaveral</p>
+            <p class="text-[10px] text-gray-500 mb-2">Llega en 2h</p>
+            <button class="w-full py-1.5 bg-pink-100 text-pink-600 rounded-lg text-[11px] font-bold">Enviar</button>
+          </div>
+          <div class="snap-start shrink-0 w-[140px] bg-white/80 backdrop-blur rounded-2xl p-2.5 border border-white/50 shadow-sm relative">
+            <div class="h-20 bg-purple-100/50 rounded-xl mb-2 flex items-center justify-center text-2xl">🎁</div>
+            <p class="text-[12px] font-bold text-gray-900 truncate">Caja regalo</p>
+            <p class="text-[10px] text-gray-500 mb-2">Llega en 1h</p>
+            <button class="w-full py-1.5 bg-pink-100 text-pink-600 rounded-lg text-[11px] font-bold">Enviar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5B Calendario -->
+    <div class="flex flex-col w-full">
+      <div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-extrabold text-amber-500 uppercase tracking-widest">Junio 2025</span></div>
+      <div class="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
+        <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-gray-300 mb-1"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+        <div class="grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-gray-600">
+          <span></span><span class="py-1">1</span><span class="py-1">2</span><span class="py-1">3</span><span class="py-1">4</span><span class="py-1">5</span><span class="py-1">6</span>
+          <span class="py-1">7</span><span class="py-1">8</span><span class="py-1">9</span><span class="py-1">10</span><span class="py-1">11</span><span class="py-1 rounded-md bg-pink-500 text-white font-bold shadow-sm">12</span><span class="py-1">13</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5C Alarma -->
+    <div class="flex flex-col w-full">
+      <div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-extrabold text-amber-500 uppercase tracking-widest">Alarma · En 30m</span></div>
+      <div class="bg-amber-50/50 rounded-3xl p-4 card-shadow flex items-center justify-between border border-amber-100/50">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-amber-100/80 flex items-center justify-center text-amber-600"><span class="material-symbols-outlined text-[20px]">alarm</span></div>
+          <div><p class="text-[14px] font-bold text-gray-900">Cumpleaños Ana</p><p class="text-[12px] text-amber-700 font-medium">12 jul</p></div>
+        </div>
+        <div class="text-right"><p class="text-[20px] font-extrabold text-gray-900">08</p><p class="text-[10px] text-gray-400 font-bold">días</p></div>
+      </div>
+    </div>
+
+    <!-- ============= 6 COMPARATIVA ============= -->
+    <div class="text-center mt-4"><span class="bg-white text-gray-400 text-[10px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-full" style="box-shadow:0 1px 3px rgba(0,0,0,.04);">6. Comparativa</span></div>
+
+    <!-- 6A Product Review -->
+    <div class="flex flex-col w-full">
+      <div class="flex items-center justify-between mb-2 px-1">
+        <span class="text-[10px] font-extrabold text-orange-500 uppercase tracking-widest flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">reviews</span> Product Analysis</span>
+      </div>
+      <div class="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
+        <div class="flex gap-4 mb-4">
+          <div class="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center text-gray-400"><span class="material-symbols-outlined text-[32px]">coffee</span></div>
+          <div class="flex-1">
+            <h4 class="text-[15px] font-bold text-gray-900">Nespresso A</h4>
+            <p class="text-[12px] text-gray-500 font-medium">Versus Dolce Gusto B</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2 mb-4">
+          <div class="bg-gray-50 p-2 rounded-xl"><p class="text-[10px] text-gray-500 uppercase font-bold">Precio</p><p class="text-[12px] font-semibold text-gray-900">$89</p></div>
+          <div class="bg-gray-50 p-2 rounded-xl"><p class="text-[10px] text-gray-500 uppercase font-bold">Presión</p><p class="text-[12px] font-semibold text-gray-900">19 bar</p></div>
+          <div class="bg-gray-50 p-2 rounded-xl"><p class="text-[10px] text-gray-500 uppercase font-bold">Depósito</p><p class="text-[12px] font-semibold text-gray-900">0.7 L</p></div>
+          <div class="bg-gray-50 p-2 rounded-xl"><p class="text-[10px] text-gray-500 uppercase font-bold">Garantía</p><p class="text-[12px] font-semibold text-emerald-600">2 años</p></div>
+        </div>
+        <button class="w-full py-2.5 bg-gray-900 text-white rounded-xl text-[13px] font-bold flex items-center justify-center gap-2"><span class="material-symbols-outlined text-[16px]">shopping_cart</span> Ver opciones</button>
+      </div>
+    </div>
+
+    <!-- 6B Smart Checklist con progress ring -->
+    <div class="flex flex-col w-full">
+      <div class="flex items-center justify-between mb-2 px-1">
+        <span class="text-[10px] font-extrabold text-koru-600 uppercase tracking-widest flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">list_alt</span> Smart List</span>
+      </div>
+      <div class="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
+        <div class="flex items-center justify-between mb-4">
+          <h4 class="text-[16px] font-bold text-gray-900">Benchmark</h4>
+          <div class="w-10 h-10 rounded-full relative flex items-center justify-center">
+            <svg class="w-full h-full -rotate-90 absolute" viewBox="0 0 36 36">
+              <path class="text-gray-100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="100, 100" stroke-width="3"/>
+              <path class="text-koru-500" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="50, 100" stroke-width="3"/>
+            </svg>
+            <span class="text-[10px] font-bold text-koru-600">50%</span>
+          </div>
+        </div>
+        <div class="space-y-1">
+          <label class="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-xl cursor-pointer custom-checkbox"><input checked type="checkbox" class="peer hidden"/><div class="w-5 h-5 rounded-md border-2 border-gray-300 flex items-center justify-center transition-colors"><svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="text-[14px] text-gray-400 font-medium line-through peer-checked:line-through">Nespresso: mejor precio</span></label>
+          <label class="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-xl cursor-pointer custom-checkbox"><input checked type="checkbox" class="peer hidden"/><div class="w-5 h-5 rounded-md border-2 border-gray-300 flex items-center justify-center transition-colors"><svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="text-[14px] text-gray-400 font-medium line-through peer-checked:line-through">Dolce: garantía 3 años</span></label>
+          <label class="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-xl cursor-pointer custom-checkbox"><input type="checkbox" class="peer hidden"/><div class="w-5 h-5 rounded-md border-2 border-gray-300 flex items-center justify-center transition-colors peer-checked:bg-koru-500 peer-checked:border-koru-500"><svg class="w-3 h-3 text-white hidden peer-checked:block" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="text-[14px] font-medium text-gray-800">Compatibilidad universal</span></label>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6C Outfit Card con emojis -->
+    <div class="flex flex-col w-full">
+      <div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-extrabold text-amber-600 uppercase tracking-widest">Specs</span></div>
+      <div class="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
+        <div class="grid grid-cols-3 gap-2 mb-4">
+          <div class="bg-gray-50 rounded-2xl p-2 flex flex-col items-center justify-center aspect-square relative border border-gray-100"><span class="text-2xl mb-1">☕</span><p class="text-[9px] font-bold text-gray-600 uppercase text-center">Precio</p><p class="text-[13px] font-extrabold">$89</p></div>
+          <div class="bg-gray-50 rounded-2xl p-2 flex flex-col items-center justify-center aspect-square relative border border-gray-100"><span class="text-2xl mb-1">⚡</span><p class="text-[9px] font-bold text-gray-600 uppercase text-center">Presión</p><p class="text-[13px] font-extrabold">19b</p></div>
+          <div class="bg-gray-50 rounded-2xl p-2 flex flex-col items-center justify-center aspect-square relative border border-gray-100"><span class="text-2xl mb-1">💧</span><p class="text-[9px] font-bold text-gray-600 uppercase text-center">Depósito</p><p class="text-[13px] font-extrabold">0.7L</p></div>
+        </div>
+        <button class="w-full py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl text-[13px] font-bold transition-colors flex items-center justify-center gap-2"><span class="material-symbols-outlined text-[16px]">check_circle</span> Verward ganador</button>
+      </div>
+    </div>
+
+    <!-- ============= 7 REVIEW ============= -->
+    <div class="text-center mt-4"><span class="bg-white text-gray-400 text-[10px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-full" style="box-shadow:0 1px 3px rgba(0,0,0,.04);">7. Review</span></div>
+
+    <!-- 7A Score tiles -->
+    <div class="flex flex-col w-full">
+      <div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Review</span></div>
+      <div class="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
+        <div class="grid grid-cols-2 gap-2 mb-4">
+          <div class="bg-emerald-50 rounded-2xl p-3 flex flex-col items-center justify-center aspect-square relative border border-emerald-100"><span class="text-2xl mb-1">🎧</span><p class="text-[22px] font-extrabold text-emerald-600">9.2</p><p class="text-[10px] font-bold text-gray-600 uppercase text-center">Calidad</p></div>
+          <div class="bg-amber-50 rounded-2xl p-3 flex flex-col items-center justify-center aspect-square relative border border-amber-100"><span class="text-2xl mb-1">🔋</span><p class="text-[22px] font-extrabold text-amber-600">8.8</p><p class="text-[10px] font-bold text-gray-600 uppercase text-center">Batería</p></div>
+          <div class="bg-blue-50 rounded-2xl p-3 flex flex-col items-center justify-center aspect-square relative border border-blue-100"><span class="text-2xl mb-1">☁️</span><p class="text-[22px] font-extrabold text-blue-600">7.5</p><p class="text-[10px] font-bold text-gray-600 uppercase text-center">Comfort</p></div>
+          <div class="bg-red-50 rounded-2xl p-3 flex flex-col items-center justify-center aspect-square relative border border-red-100"><span class="text-2xl mb-1">💰</span><p class="text-[22px] font-extrabold text-red-400">5.5</p><p class="text-[10px] font-bold text-gray-600 uppercase text-center">Precio</p></div>
+        </div>
+        <button class="w-full py-2.5 bg-gray-900 text-white rounded-xl text-[13px] font-bold">Ver reseñas</button>
+      </div>
+    </div>
+
+    <!-- 7B Document builder dark -->
+    <div class="flex flex-col w-full">
+      <div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Veredicto</span></div>
+      <div class="bg-[#1E1E1E] rounded-3xl p-5 card-shadow overflow-hidden relative">
+        <div class="flex gap-1.5 mb-4"><div class="w-3 h-3 rounded-full bg-[#FF5F56]"></div><div class="w-3 h-3 rounded-full bg-[#FFBD2E]"></div><div class="w-3 h-3 rounded-full bg-[#27C93F]"></div></div>
+        <div class="font-mono text-[12px] text-gray-300 leading-relaxed">
+          <p class="text-sky-400"># Sony WH-1000XM5</p><br/>
+          <p>Nuestra prueba concluyó que ofrece <span class="text-green-400">cancelación top</span> en el segmento.</p><br/>
+          <p class="text-sky-400">## Pros</p>
+          <ul class="list-none pl-2 mt-2 space-y-1">
+            <li><span class="text-yellow-400">-</span> Batería de 2 días</li>
+            <li><span class="text-yellow-400">-</span> App completa</li>
+            <li><span class="text-yellow-400">-</span> <span class="cursor-blink">Sonido limpio</span></li>
+          </ul>
+        </div>
+        <div class="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[#1E1E1E] to-transparent pointer-events-none"></div>
+      </div>
+    </div>
+
+    <!-- 7C Deep Research quote -->
+    <div class="flex flex-col w-full">
+      <div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-extrabold text-violet-500 uppercase tracking-widest">Veredicto final</span></div>
+      <div class="bg-gradient-to-br from-[#F8F7FF] to-white rounded-3xl p-6 card-shadow border border-violet-100/50">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-2xl bg-violet-100 text-violet-600 flex items-center justify-center"><span class="material-symbols-outlined text-[20px]">auto_awesome</span></div>
+          <div><h4 class="text-[16px] font-bold text-gray-900">TechKoru</h4><p class="text-[11px] text-gray-400 font-bold">Review</p></div>
+        </div>
+        <p class="text-[14px] text-gray-600 font-medium leading-relaxed mb-5 italic">“El rey de la cancelación activa regresa con mejor batería y un diseño más liviano.”</p>
+        <div class="flex flex-wrap gap-2 mb-5">
+          <span class="bg-white/80 backdrop-blur px-3 py-1.5 rounded-lg text-[11px] font-bold text-violet-600 shadow-sm border border-gray-50/80">Calidad top</span>
+          <span class="bg-white/80 backdrop-blur px-3 py-1.5 rounded-lg text-[11px] font-bold text-violet-600 shadow-sm border border-gray-50/80">Premium</span>
+          <span class="bg-white/80 backdrop-blur px-3 py-1.5 rounded-lg text-[11px] font-bold text-violet-600 shadow-sm border border-gray-50/80">Recomendado</span>
+        </div>
+        <button class="w-full py-3 bg-violet-600 text-white rounded-2xl text-[13px] font-bold">Leer completo</button>
+      </div>
+    </div>
+
+    <footer class="text-center py-8 text-[11px] text-gray-300 font-semibold">21 diseños · Chat real · Cada uno distinto</footer>
+
+  </main>
 </div>
 
-<!-- 6B: Smart checklist con progress -->
-<div class="anim" style="animation-delay:.06s">
-  <div class="flex items-center justify-between mb-2 px-1">
-    <span class="text-[10px] font-extrabold text-koru-600 uppercase tracking-widest flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">list_alt</span> Benchmark</span>
-    <span class="text-[10px] font-bold text-gray-500">4 specs</span>
-  </div>
-  <div class="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
-    <div class="flex items-center justify-between mb-4"><h4 class="text-[16px] font-bold text-gray-900">Comparativa detallada</h4></div>
-    <div class="space-y-1 mb-4">
-      <label class="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-xl cursor-pointer custom-checkbox"><input type="checkbox" class="peer hidden" checked/><div class="w-5 h-5 rounded-md border-2 border-gray-300 flex items-center justify-center transition-colors"><svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="text-[13px] font-medium text-gray-800 peer-checked:line-through">Nespresso: mejor precio y potencia</span></label>
-      <label class="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-xl cursor-pointer custom-checkbox"><input type="checkbox" class="peer hidden" checked/><div class="w-5 h-5 rounded-md border-2 border-gray-300 flex items-center justify-center transition-colors"><svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="text-[13px] font-medium text-gray-800 peer-checked:line-through">Dolce: mejor garantía 3 años</span></label>
-      <label class="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-xl cursor-pointer custom-checkbox"><input type="checkbox" class="peer hidden"/><div class="w-5 h-5 rounded-md border-2 border-gray-300 flex items-center justify-center transition-colors"><svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="text-[13px] font-medium text-gray-800">Compatibilidad universal</span></label>
-      <label class="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-xl cursor-pointer custom-checkbox"><input type="checkbox" class="peer hidden"/><div class="w-5 h-5 rounded-md border-2 border-gray-300 flex items-center justify-center transition-colors"><svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="text-[13px] font-medium text-gray-800">Depósito 0.7 L</span></label>
-    </div>
-    <button class="w-full py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl text-[13px] font-bold transition-colors">Verward ganador</button>
-  </div>
-</div>
-
-<!-- 6C: Feature list tipo doc builder -->
-<div class="anim" style="animation-delay:.12s">
-  <div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-extrabold text-purple-500 uppercase tracking-widest">Ficha técnica</span></div>
-  <div class="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
-    <div class="flex justify-between items-start mb-4"><div><h4 class="text-[15px] font-bold text-gray-900">Nespresso A</h4><p class="text-[12px] text-gray-500 font-medium">Mejor opción en precio</p></div></div>
-    <div class="divide-y divide-gray-50">
-      <div class="flex items-center justify-between py-2"><span class="text-[11px] text-gray-500 font-medium">Precio</span><span class="text-sm font-bold text-gray-900">$89</span></div>
-      <div class="flex items-center justify-between py-2"><span class="text-[11px] text-gray-500 font-medium">Presión</span><span class="text-sm font-bold text-emerald-600">19 bar</span></div>
-      <div class="flex items-center justify-between py-2"><span class="text-[11px] text-gray-500 font-medium">Depósito</span><span class="text-sm font-bold text-gray-900">0.7 L</span></div>
-      <div class="flex items-center justify-between py-2"><span class="text-[11px] text-gray-500 font-medium">Garantía</span><span class="text-sm font-bold text-gray-900">2 años</span></div>
-      <div class="flex items-center justify-between py-2"><span class="text-[11px] text-gray-500 font-medium">Compat.</span><span class="text-sm font-bold text-emerald-600">Universal</span></div>
-    </div>
-  </div>
-</div>
-
-<!-- ======= 7. REVIEW ======= -->
-<div class="text-center mt-4"><span class="text-xs text-gray-400 font-bold uppercase tracking-widest">7. Review</span></div>
-
-<!-- 7A: Outcome scores como outfit -->
-<div class="anim">
-  <div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-extrabold text-violet-500 uppercase tracking-widest">Review · Sony WH-1000XM5</span></div>
-  <div class="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
-    <div class="flex justify-between items-start mb-4"><div><h4 class="text-[15px] font-bold text-gray-900">Puntuaciones</h4><p class="text-[12px] text-gray-500 font-medium">Basado en 1.2k reviews</p></div></div>
-    <div class="grid grid-cols-2 gap-2 mb-4">
-      <div class="bg-emerald-50 rounded-2xl p-3 flex flex-col items-center justify-center aspect-square relative border border-emerald-100"><span class="text-2xl mb-1">🎧</span><p class="text-[22px] font-extrabold text-emerald-600">9.2</p><p class="text-[10px] font-bold text-gray-600 uppercase text-center">Calidad</p></div>
-      <div class="bg-amber-50 rounded-2xl p-3 flex flex-col items-center justify-center aspect-square relative border border-amber-100"><span class="text-2xl mb-1">🔋</span><p class="text-[22px] font-extrabold text-amber-600">8.8</p><p class="text-[10px] font-bold text-gray-600 uppercase text-center">Batería</p></div>
-      <div class="bg-blue-50 rounded-2xl p-3 flex flex-col items-center justify-center aspect-square relative border border-blue-100"><span class="text-2xl mb-1">☁️</span><p class="text-[22px] font-extrabold text-blue-600">7.5</p><p class="text-[10px] font-bold text-gray-600 uppercase text-center">Comfort</p></div>
-      <div class="bg-red-50 rounded-2xl p-3 flex flex-col items-center justify-center aspect-square relative border border-red-100"><span class="text-2xl mb-1">💰</span><p class="text-[22px] font-extrabold text-red-400">5.5</p><p class="text-[10px] font-bold text-gray-600 uppercase text-center">Precio</p></div>
-    </div>
-    <button class="w-full py-2.5 bg-gray-900 text-white rounded-xl text-[13px] font-bold">Ver reseñas</button>
-  </div>
-</div>
-
-<!-- 7B: Document builder dark -->
-<div class="anim" style="animation-delay:.06s">
-  <div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Opinión del experto</span></div>
-  <div class="bg-[#1E1E1E] rounded-3xl p-5 card-shadow overflow-hidden relative">
-    <div class="flex gap-1.5 mb-4"><div class="w-3 h-3 rounded-full bg-[#FF5F56]"></div><div class="w-3 h-3 rounded-full bg-[#FFBD2E]"></div><div class="w-3 h-3 rounded-full bg-[#27C93F]"></div></div>
-    <div class="font-mono text-[12px] text-gray-300 leading-relaxed">
-      <p class="text-sky-400"># Veredicto: Sony WH-1000XM5</p><br/>
-      <p>Nuestra prueba concluyó que ofrece <span class="text-green-400">cancelación top</span> en el segmento.</p><br/>
-      <p class="text-sky-400">## Pros</p>
-      <ul class="list-none pl-2 mt-2 space-y-1">
-        <li><span class="text-yellow-400">-</span> Batería de 2 días</li>
-        <li><span class="text-yellow-400">-</span> App completa</li>
-        <li><span class="text-yellow-400">-</span> <span class="cursor-blink">Sonido limpio</span></li>
-      </ul>
-    </div>
-    <div class="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[#1E1E1E] to-transparent pointer-events-none"></div>
-  </div>
-</div>
-
-<!-- 7C: Deep Research quote -->
-<div class="anim" style="animation-delay:.12s">
-  <div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-extrabold text-violet-500 uppercase tracking-widest">Veredicto final · TechKoru</span></div>
-  <div class="bg-gradient-to-br from-[#F8F7FF] to-white rounded-3xl p-6 card-shadow border border-violet-100/50">
-    <div class="flex items-center gap-3 mb-4">
-      <div class="w-10 h-10 rounded-2xl bg-violet-100 text-violet-600 flex items-center justify-center"><span class="material-symbols-outlined text-[20px]">auto_awesome</span></div>
-      <div><h4 class="text-[16px] font-bold text-gray-900">TechKoru</h4><p class="text-[11px] text-gray-400 font-bold">Review completa</p></div>
-    </div>
-    <p class="text-[14px] text-gray-600 font-medium leading-relaxed mb-5 italic">“El rey de la cancelación activa regresa con mejor batería y un diseño más liviano.”</p>
-    <div class="flex flex-wrap gap-2 mb-5">
-      <span class="bg-white/80 backdrop-blur px-3 py-1.5 rounded-lg text-[11px] font-bold text-violet-600 shadow-sm border border-gray-50/80">Calidad top</span>
-      <span class="bg-white/80 backdrop-blur px-3 py-1.5 rounded-lg text-[11px] font-bold text-violet-600 shadow-sm border border-gray-50/80">Premium</span>
-      <span class="bg-white/80 backdrop-blur px-3 py-1.5 rounded-lg text-[11px] font-bold text-violet-600 shadow-sm border border-gray-50/80">Recomendado</span>
-    </div>
-    <button class="w-full py-3 bg-violet-600 text-white rounded-2xl text-[13px] font-bold">Leer completo</button>
-  </div>
-</div>
-
-<footer class="text-center py-8 text-[11px] text-gray-300 font-semibold anim">21 diseños · Componentes reales de chat · Universo Koru</footer>
-
-</main>
 </body>
 </html>
