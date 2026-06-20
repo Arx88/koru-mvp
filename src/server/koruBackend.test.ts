@@ -28,6 +28,7 @@ describe("runKoruBackendTurn conversational flow", () => {
       const body = init?.body ? JSON.parse(String(init.body)) : {};
       const messages = body.messages as Array<{ role: string; content: string }> | undefined;
       const anyContent = messages?.map((m) => m.content).join(" ") ?? "";
+      const input = messages?.find(m => m.role === "user")?.content ?? "";
 
       // Si es el extractor (system prompt de extractor), devolver oportunidades
       if (anyContent.includes("detector de oportunidades")) {
@@ -37,9 +38,13 @@ describe("runKoruBackendTurn conversational flow", () => {
         }), { status: 200 });
       }
 
-      // Respuesta conversacional simple (sin tool calls)
+      // Respuesta conversacional simple (sin tool calls) como JSON
+      const suggestedActions = input.includes("quemado") || input.includes("estresado")
+        ? [{ id: "enh_1", label: "Preparar alarmas", kind: "alarm", requiresApproval: true }]
+        : [];
+
       return new Response(JSON.stringify({
-        choices: [{ message: { content: "Entendido, anotado el gasto." } }],
+        choices: [{ message: { content: JSON.stringify({ reply: "Entendido, anotado el gasto.", understanding: { literalRequest: input, userGoal: "anotar gasto", confidence: 0.8 }, mascotState: "idle", suggestedActions }) } }],
         model: "model",
       }), { status: 200 });
     });
@@ -56,7 +61,7 @@ describe("runKoruBackendTurn conversational flow", () => {
       config,
     );
     expect(result.reply).toBeTruthy();
-    expect(result.fallbackReason).toBe("conversational-fast-path");
+    expect(result.fallbackReason).toBe("first-call");
   });
 
   it("injects enhancement on conversational burnout turn", async () => {

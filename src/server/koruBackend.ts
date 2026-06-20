@@ -14,7 +14,6 @@ import type {
 } from "../domain/types";
 import { VALID_MASCOT_STATES } from "../domain/types";
 import { selectRelevantMemories } from "../domain/store";
-import { isConversationalTurn } from "../domain/pipeline";
 import { generateEnhancements, enhancementPrompt } from "../domain/enhancementEngine";
 import { extractOpportunities } from "../domain/enhancementExtractor";
 
@@ -1381,34 +1380,6 @@ async function executeTool(name: string, args: Record<string, unknown>, state: K
   return { type: "unknown", error: `Unknown tool ${name}` };
 }
 
-function routerContext(state: KoruState, input: string): string {
-  const relevant = selectRelevantMemories(
-    state.memories || [],
-    input,
-    5,
-  );
-  const relevantMemoriesText = relevant.length
-    ? relevant.map(m => `- [${m.kind}] ${m.text.replace(/[\n\r`]+/g, " ").trim()}`).join("\n")
-    : "- ninguna memoria directamente relevante";
-  const openCommitments = state.commitments
-    .filter(c => c.status === "open")
-    .slice(0, 6)
-    .map(c => `- ${c.title.replace(/[\n\r`]+/g, " ").trim()} (${(c.dueHint || "sin fecha").replace(/[\n\r`]+/g, " ").trim()})`)
-    .join("\n") || "- ninguno";
-
-  return [
-    `Usuario: ${state.userName?.trim() || "amigo"}`,
-    "",
-    "Memorias relevantes al pedido actual (usá solo estas para entender contexto):",
-    relevantMemoriesText,
-    "",
-    "Pendientes abiertos (solo si el usuario los menciona o pregunta por ellos):",
-    openCommitments,
-    "",
-    `Total de registros guardados: ${state.records.length}`,
-  ].join("\n");
-}
-
 function stateSummary(state: KoruState): string {
   const confirmedMemories = state.memories
     .filter((item) => item.status === "confirmed" && item.useForSuggestions !== false)
@@ -1498,94 +1469,12 @@ function buildMessages(request: KoruBackendTurnRequest): ChatMessage[] {
   ];
 }
 
-function buildJsonRouterMessages(request: KoruBackendTurnRequest, assistantText?: string): ChatMessage[] {
-  return [
-    {
-      role: "system",
-      content: [
-        "You are Koru's backend router. Return ONLY valid JSON, no markdown.",
-        "Schema: {\"toolCalls\":[{\"tool\":\"weather|web_search|shopping_compare|plan_day|query_personal_context|save_memory|save_personal_item|route_traffic|calendar_reminder|alarm\",\"args\":{}}],\"reply\":\"optional direct reply\",\"understanding\":{\"literalRequest\":\"...\",\"userGoal\":\"...\",\"unstatedNeeds\":[],\"assumptions\":[],\"confidence\":0.0}}",
-        "Use save_memory when the user states something Koru should know later about them or someone close to them: preference, identity, routine, relationship, team, topic to follow, boundary, goal.",
-        "Use save_personal_item whenever the user wants Koru to preserve or create operational personal state. Infer from meaning, not exact words. Extract arbitrary shopping items, links, dates, expenses, medication, ideas, home inventory, folders/collections, tags, and notes.",
-        "For folders like 'Mis enlaces' or 'ideas de IA', set collection and tags. For lists, set items with every item exactly, even if uncommon. For expenses, set amount/currency when present.",
-        "For available food/ingredients at home, pantry, fridge, freezer, or kitchen, use save_personal_item with recordKind meal_inventory and items.",
-        "Do not copy collection/tags/person from previous turns unless the current user message explicitly refers to them.",
-        "Use query_personal_context only when the user is asking to retrieve already-saved personal context: spending, food at home, shopping list, pending tasks, saved links, health notes, people, relationship follow-ups, collections, or memory.",
-        "If the user asks advice about a saved/known person (gift, message, follow-up, how someone is doing), use query_personal_context with topic relationships or memory before answering.",
-        "If the user states a new fact, expense, inventory, idea, preference, person detail, or thing to remember, use save_personal_item, not query_personal_context.",
-        "Shopping intent means things the user needs to buy; use shopping_list/shopping_item even if food. Inventory intent means things already at home; use meal_inventory.",
-        "For multiple expenses in one sentence, use expenses array with one record per expense.",
-        "Use weather for outfit/weather even if the user says 'what should I wear' without the word weather.",
-        "Use alarm for alarms/timers; use calendar_reminder for reminders; use route_traffic for traffic/routing.",
-        "Use plan_day for 'I don't know what to do', 'where do I start', or day organization.",
-        "Use shopping_compare for product comparisons/prices.",
-        "If no tool is needed, return toolCalls: [] and a natural reply.",
-      ].join("\n"),
-    },
-    {
-      role: "user",
-      content: [
-        "Context:",
-        routerContext(request.state, request.input),
-        "",
-        `User input: ${request.input}`,
-        assistantText ? `Previous assistant prose to repair: ${assistantText}` : "",
-      ].filter(Boolean).join("\n"),
-    },
-  ];
-}
-
 function toolObservationSummary(toolExecutions: ToolExecution[]): string {
   return JSON.stringify(toolExecutions.map((execution) => ({
     id: execution.id,
     tool: execution.name,
     result: execution.result,
   })), null, 2);
-}
-
-function buildJsonComposerMessages(
-  request: KoruBackendTurnRequest,
-  toolExecutions: ToolExecution[],
-  assistantText?: string,
-  enhancementInstruction?: string,
-): ChatMessage[] {
-  const boundaries = request.state.memories
-    .filter((m) => m.status === "confirmed" && m.kind === "boundary")
-    .map((m) => `- ${m.kind}: ${m.text.replace(/[\n\r`]+/g, " ").trim()}`)
-    .join("\n") || "- ninguno";
-
-  return [
-    {
-      role: "system",
-      content: [
-        "You are Koru's final response composer. Return ONLY valid JSON, no markdown.",
-        "Schema: {\"reply\":\"...\",\"uiBlocks\":[],\"mascotState\":\"...\",\"understanding\":{\"literalRequest\":\"...\",\"userGoal\":\"...\",\"unstatedNeeds\":[],\"assumptions\":[],\"confidence\":0.0},\"suggestedActions\":[],\"memoryCandidates\":[],\"commitments\":[],\"records\":[],\"skippedBecauseBoundary\":[]}",
-        "mascotState refleja la emoción dominante de tu reply.",
-        "You are not routing anymore. Read the tool observations and compose the final user experience.",
-        "Keep text short and human. Put data in semantic uiBlocks only when you improve or add structure; the backend already has raw tool blocks.",
-        "Add the +1: one useful next step, honest caveat, or one-tap suggestion the user probably needs.",
-        "Do not invent any weather, prices, sources, memories, totals, links, or commitments. Use only tool observations and provided context.",
-        "If a tool result saved or retrieved personal data, acknowledge exactly what was useful without sounding like a database.",
-        "If the user only greeted, reply naturally and offer a light useful direction. Do not manufacture emotion or a fake prior problem.",
-        "Rules for skipping enrich steps:",
-        "- If the user has explicit boundaries (e.g. 'dont ask me for summaries when I save links'), skip those enrich actions and list them in skippedBecauseBoundary.",
-        "- If a boundary is vague, ask clarification before skipping.",
-        "Current user boundaries:",
-        boundaries,
-        ...(enhancementInstruction ? ["", enhancementInstruction] : []),
-      ].join("\n"),
-    },
-    {
-      role: "user",
-      content: [
-        `User input: ${request.input}`,
-        assistantText ? `Provider draft to improve: ${assistantText}` : "",
-        "",
-        "Tool observations:",
-        toolObservationSummary(toolExecutions),
-      ].filter(Boolean).join("\n"),
-    },
-  ];
 }
 
 function buildMemoryExtractorMessages(
@@ -1628,58 +1517,6 @@ function buildMemoryExtractorMessages(
       ].filter(Boolean).join("\n"),
     },
   ];
-}
-
-function normalizeJsonToolCalls(raw: unknown): ProviderToolCall[] {
-  const record = asRecord(raw);
-  return asArray(record.toolCalls).map(asRecord).map((item, index): ProviderToolCall | null => {
-    const name = cleanText(item.tool);
-    const args = asRecord(item.args);
-    if (!["weather", "web_search", "shopping_compare", "plan_day", "query_personal_context", "save_memory", "save_personal_item", "route_traffic", "calendar_reminder", "alarm"].includes(name)) return null;
-    return {
-      id: cleanText(item.id, `json_tool_${index + 1}`),
-      type: "function",
-      function: {
-        name,
-        arguments: JSON.stringify(args),
-      },
-    };
-  }).filter((item): item is ProviderToolCall => Boolean(item)).slice(0, 4);
-}
-
-async function routeWithJsonPrompt(
-  request: KoruBackendTurnRequest,
-  config: ProviderConfig,
-  assistantText?: string,
-): Promise<{ toolCalls: ProviderToolCall[]; raw: Record<string, unknown>; provider: "nvidia" | "openrouter"; model?: string; fallbackReason?: string }> {
-  const result = await callProvider(config, buildJsonRouterMessages(request, assistantText), 18_000, false);
-  const content = cleanText(result.message.content);
-  const raw = safeJsonObjectFromContent(content);
-  return {
-    toolCalls: normalizeJsonToolCalls(raw),
-    raw,
-    provider: result.provider,
-    model: result.model,
-    fallbackReason: result.fallbackReason,
-  };
-}
-
-async function composeWithJsonPrompt(
-  request: KoruBackendTurnRequest,
-  config: ProviderConfig,
-  toolExecutions: ToolExecution[],
-  assistantText?: string,
-  enhancementInstruction?: string,
-): Promise<{ raw: Record<string, unknown>; provider: "nvidia" | "openrouter"; model?: string; fallbackReason?: string }> {
-  const result = await callProvider(config, buildJsonComposerMessages(request, toolExecutions, assistantText, enhancementInstruction), 22_000, false);
-  const content = cleanText(result.message.content);
-  const raw = safeJsonObjectFromContent(content);
-  return {
-    raw,
-    provider: result.provider,
-    model: result.model,
-    fallbackReason: result.fallbackReason,
-  };
 }
 
 async function extractMemoryWithJsonPrompt(
@@ -2297,24 +2134,6 @@ function contentFallback(content: string, input: string, toolExecutions: ToolExe
   }, input, toolExecutions);
 }
 
-function directToolResponse(input: string, toolExecutions: ToolExecution[]): KoruBackendTurnResponse {
-  return normalizeFinalPayload({
-    reply: "",
-    understanding: {
-      literalRequest: input,
-      userGoal: "Resolver el pedido con herramientas y dejar estado util.",
-      unstatedNeeds: [],
-      assumptions: [],
-      confidence: 0.72,
-    },
-    uiBlocks: [],
-    suggestedActions: [],
-    memoryCandidates: [],
-    commitments: [],
-    records: [],
-  }, input, toolExecutions);
-}
-
 async function finalizePayload(
   request: KoruBackendTurnRequest,
   config: ProviderConfig,
@@ -2442,127 +2261,90 @@ export async function runKoruBackendTurn(
   let model: string | undefined;
   let fallbackReason: string | undefined;
 
-  for (let step = 0; step < 5; step += 1) {
-    const result = await callProvider(config, messages, step === 0 ? 30_000 : 24_000);
-    provider = result.provider;
-    model = result.model;
-    fallbackReason = fallbackReason ?? result.fallbackReason;
-    const message = result.message;
-    const toolCalls = asArray(message.tool_calls) as ProviderToolCall[];
-    if (!toolCalls.length) {
-      const content = cleanText(message.content, "No pude componer una respuesta util.");
+  // Paso 1: una sola llamada al LLM con tools habilitadas
+  const firstResult = await callProvider(config, messages, 30_000, true);
+  provider = firstResult.provider;
+  model = firstResult.model;
+  fallbackReason = firstResult.fallbackReason;
+  const firstMessage = firstResult.message;
+  const toolCalls = asArray(firstMessage.tool_calls) as ProviderToolCall[];
 
-      // FAST PATH: turnos puramente conversacionales no necesitan Router JSON.
-      // El systemPrompt ya inyectó personalidad + memorias relevantes.
-      if (step === 0 && !toolExecutions.length && content && isConversationalTurn(request.input)) {
-        const { enhancementActions } = await buildEnhancementInstruction(request, config, toolExecutions);
-        const response = await finalizePayload(request, config, {
-          reply: content,
-          uiBlocks: [],
-          suggestedActions: enhancementActions,
-          memoryCandidates: [],
-          commitments: [],
-          records: [],
-        }, toolExecutions);
-        return {
-          ...response,
-          provider,
-          model,
-          fallbackReason: fallbackReason ?? "conversational-fast-path",
-        };
-      }
-
-      if (toolExecutions.length) {
-        try {
-          const { prompt: enhancementPromptText, enhancementBlocks, enhancementActions } = await buildEnhancementInstruction(request, config, toolExecutions);
-          const composed = await composeWithJsonPrompt(request, config, toolExecutions, content, enhancementPromptText);
-          composed.raw.uiBlocks = [...enhancementBlocks, ...asArray(composed.raw.uiBlocks)];
-          composed.raw.suggestedActions = [...enhancementActions, ...asArray(composed.raw.suggestedActions)];
-          const response = await finalizePayload(request, config, composed.raw, toolExecutions);
-          return {
-            ...response,
-            provider: composed.provider,
-            model: composed.model ?? model,
-            fallbackReason: fallbackReason ?? composed.fallbackReason ?? response.memoryFallbackReason,
-          };
-        } catch {
-          const response = contentFallback(content, request.input, toolExecutions);
-          return { ...response, provider, model, fallbackReason: fallbackReason ?? "content-after-tools" };
-        }
-      }
-      const jsonRoute = await routeWithJsonPrompt(request, config, content).catch(() => null);
-      if (jsonRoute) {
-        provider = jsonRoute.provider;
-        model = jsonRoute.model ?? model;
-        fallbackReason = fallbackReason ?? jsonRoute.fallbackReason;
-        if (jsonRoute.toolCalls.length) {
-          const delivered = await executeProviderToolCalls(jsonRoute.toolCalls, messages, request, toolExecutions);
-          if (delivered) {
-            const response = await finalizePayload(request, config, delivered, toolExecutions);
-            return { ...response, provider, model, fallbackReason: fallbackReason ?? response.memoryFallbackReason };
-          }
-          continue;
-        }
-        const response = await finalizePayload(request, config, {
-          reply: cleanText(jsonRoute.raw.reply, content),
-          understanding: jsonRoute.raw.understanding,
-          uiBlocks: [],
-          suggestedActions: [],
-          memoryCandidates: [],
-          commitments: [],
-          records: [],
-        }, toolExecutions);
-        return { ...response, provider, model, fallbackReason: fallbackReason ?? response.memoryFallbackReason };
-      }
-      const response = contentFallback(content, request.input, toolExecutions);
-      return { ...response, provider, model, fallbackReason };
-    }
-
+  // Si el LLM pidió tool calls, ejecutarlas
+  if (toolCalls.length > 0) {
     const delivered = await executeProviderToolCalls(toolCalls, messages, request, toolExecutions);
     if (delivered) {
       const response = await finalizePayload(request, config, delivered, toolExecutions);
       return { ...response, provider, model, fallbackReason: fallbackReason ?? response.memoryFallbackReason };
     }
-  }
 
-  if (toolExecutions.length) {
+    // Paso 2: segunda llamada (sin tools) para que el LLM síntetice la respuesta final
+    const secondResult = await callProvider(config, messages, 24_000, false);
+    provider = secondResult.provider;
+    model = secondResult.model ?? model;
+    const secondContent = cleanText(secondResult.message.content, "No pude componer una respuesta util.");
+
+    let parsed: any;
     try {
-      const { prompt: enhancementPromptText, enhancementBlocks, enhancementActions } = await buildEnhancementInstruction(request, config, toolExecutions);
-      const composed = await composeWithJsonPrompt(request, config, toolExecutions, undefined, enhancementPromptText);
-      composed.raw.uiBlocks = [...enhancementBlocks, ...asArray(composed.raw.uiBlocks)];
-      composed.raw.suggestedActions = [...enhancementActions, ...asArray(composed.raw.suggestedActions)];
-      const response = await finalizePayload(request, config, composed.raw, toolExecutions);
-      return {
-        ...response,
-        provider: composed.provider,
-        model: composed.model ?? model,
-        fallbackReason: fallbackReason ?? composed.fallbackReason ?? response.memoryFallbackReason ?? "json-composer-after-loop",
-      };
-    } catch (error) {
-      const response = directToolResponse(request.input, toolExecutions);
-      return {
-        ...response,
-        provider,
-        model,
-        fallbackReason: fallbackReason ?? (error instanceof Error ? `composer-degraded: ${error.message}` : "composer-degraded"),
-      };
+      parsed = JSON.parse(secondContent);
+    } catch {
+      const response = contentFallback(secondContent, request.input, toolExecutions);
+      return { ...response, provider, model, fallbackReason: fallbackReason ?? "second-call-invalid-json" };
     }
+
+    const raw = {
+      reply: cleanText(parsed.reply, secondContent),
+      understanding: parsed.understanding || {},
+      uiBlocks: asArray(parsed.uiBlocks || []),
+      suggestedActions: asArray(parsed.suggestedActions || []),
+      memoryCandidates: asArray(parsed.memoryCandidates || []),
+      commitments: asArray(parsed.commitments || []),
+      records: asArray(parsed.records || []),
+      mascotState: parsed.mascotState,
+    };
+
+    const response = await finalizePayload(request, config, raw, toolExecutions);
+    return {
+      ...response,
+      provider,
+      model,
+      fallbackReason: fallbackReason ?? response.memoryFallbackReason ?? "after-tools",
+    };
   }
 
-  const response = normalizeFinalPayload({
-    reply: "No pude cerrar el loop del agente a tiempo. Tengo herramientas ejecutadas, pero prefiero no inventar una conclusion.",
-    understanding: {
-      literalRequest: request.input,
-      userGoal: "Resolver el pedido sin inventar.",
-      unstatedNeeds: [],
-      assumptions: [],
-      confidence: 0.3,
-    },
-    uiBlocks: [],
-    suggestedActions: [],
-    memoryCandidates: [],
-    commitments: [],
-    records: [],
-  }, request.input, toolExecutions);
-  return { ...response, provider, model, fallbackReason: fallbackReason ?? "agent-loop-step-limit" };
+  // Sin tool calls: parsear la respuesta JSON directamente
+  const content = cleanText(firstMessage.content, "No pude componer una respuesta util.");
+  let parsed: any;
+  try {
+    parsed = JSON.parse(content);
+  } catch {
+    const response = contentFallback(content, request.input, toolExecutions);
+    return { ...response, provider, model, fallbackReason: fallbackReason ?? "first-call-invalid-json" };
+  }
+
+  const raw = {
+    reply: cleanText(parsed.reply, content),
+    understanding: parsed.understanding || {},
+    uiBlocks: asArray(parsed.uiBlocks || []),
+    suggestedActions: asArray(parsed.suggestedActions || []),
+    memoryCandidates: asArray(parsed.memoryCandidates || []),
+    commitments: asArray(parsed.commitments || []),
+    records: asArray(parsed.records || []),
+    mascotState: parsed.mascotState,
+  };
+
+  // Solo si el LLM principal no generó sugerencias, intentar enhancement como fallback
+  if (asArray(raw.suggestedActions).length === 0) {
+    try {
+      const { enhancementActions } = await buildEnhancementInstruction(request, config, toolExecutions);
+      raw.suggestedActions = [...asArray(raw.suggestedActions), ...enhancementActions];
+    } catch { /* ignorar */ }
+  }
+
+  const response = await finalizePayload(request, config, raw, toolExecutions);
+  return {
+    ...response,
+    provider,
+    model,
+    fallbackReason: fallbackReason ?? response.memoryFallbackReason ?? "first-call",
+  };
 }
