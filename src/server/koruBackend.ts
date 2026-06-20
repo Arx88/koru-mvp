@@ -443,7 +443,7 @@ function providerUrl(baseUrl: string, path: string): string {
 function hasUsableAssistantMessage(data: unknown): boolean {
   const choice = asRecord(asArray(asRecord(data).choices)[0]);
   const message = asRecord(choice.message);
-  return Boolean(asString(message.content) || asArray(message.tool_calls).length);
+  return Boolean(asString(message.content) || asString(message.reasoning) || asArray(message.tool_calls).length);
 }
 
 async function callNvidia(
@@ -1398,6 +1398,10 @@ function stateSummary(state: KoruState): string {
     .slice(0, 12)
     .map((item) => `- ${item.title.replace(/[\n\r`]+/g, " ").trim()} (${(item.dueHint || "sin fecha").replace(/[\n\r`]+/g, " ").trim()})`)
     .join("\n") || "- none";
+  const recordTitles = state.records
+    .slice(-8)
+    .map((item) => `- ${item.title.replace(/[\n\r`]+/g, " ").trim()}${item.value ? ` (${item.value.replace(/[\n\r`]+/g, " ").trim()})` : ""} ${item.notes ? `— ${item.notes.replace(/[\n\r`]+/g, " ").trim()}` : ""} [${item.kind}]`)
+    .join("\n") || "- nada guardado todavía";
   const recordKinds = Array.from(new Set(state.records.map((item) => item.kind))).slice(0, 12).join(", ") || "none";
   const collectionCount = new Set(state.records.map((item) => item.collection).filter(Boolean)).size;
   return [
@@ -1410,8 +1414,9 @@ function stateSummary(state: KoruState): string {
     commitments,
     `Saved record count: ${state.records.length}`,
     `Saved record kinds: ${recordKinds}`,
+    "Cosas que guardaste (últimas 8):",
+    recordTitles,
     `Saved collection count: ${collectionCount}`,
-    "Important: if the user asks about saved records, call query_personal_context instead of answering from this summary.",
   ].join("\n");
 }
 
