@@ -2406,6 +2406,7 @@ async function buildEnhancementInstruction(
 export async function runKoruBackendTurn(
   request: KoruBackendTurnRequest,
   config: ProviderConfig,
+  onChunk?: (chunk: KoruBackendTurnResponse) => void,
 ): Promise<KoruBackendTurnResponse> {
   const messages = buildMessages(request);
   const toolExecutions: ToolExecution[] = [];
@@ -2431,8 +2432,28 @@ export async function runKoruBackendTurn(
   const firstMessage = firstResult.message;
   const toolCalls = asArray(firstMessage.tool_calls) as ProviderToolCall[];
 
-  // Si el LLM pidió tool calls, ejecutarlas
+  // Si el LLM pidió tool calls, emitir loading chunk y ejecutarlas
   if (toolCalls.length > 0) {
+    const query = toolCalls.find((t) => t.function?.name === "web_search")?.function?.arguments
+      ? JSON.parse(toolCalls.find((t) => t.function?.name === "web_search")!.function.arguments).query
+      : undefined;
+    const loadingChunk: KoruBackendTurnResponse = {
+      reply: query ? `Buscando "${query}"...` : "Buscando en la web...",
+      uiBlocks: query ? [{ type: "web_nav" as const, title: "Navegación Web", status: "loading" as const, query: cleanText(query), results: [] }] : [],
+      suggestedActions: [],
+      understanding: { literalRequest: request.input, userGoal: "Búsqueda web", unstatedNeeds: [], assumptions: [], confidence: 0.8 },
+      memoryCandidates: [],
+      commitments: [],
+      records: [],
+      toolResults: [],
+      stateEvents: [{ kind: "searching" as const, label: query ? `Buscando "${query}"` : "Buscando en la web" }],
+      mascotState: "working",
+      provider,
+      model,
+      fallbackReason,
+    };
+    onChunk?.(loadingChunk);
+
     const delivered = await executeProviderToolCalls(toolCalls, messages, request, toolExecutions);
     if (delivered) {
       const response = await finalizePayload(request, config, delivered, toolExecutions);

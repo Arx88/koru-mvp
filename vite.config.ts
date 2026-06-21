@@ -781,19 +781,38 @@ function koruBackendAgent(env: Record<string, string>): Plugin {
           }
 
           const startMs = Date.now();
-          const result = await runKoruBackendTurn(request, config);
-          const durationMs = Date.now() - startMs;
-          // eslint-disable-next-line no-console
-          console.log("[KORU TURN]", new Date().toISOString(), "|", request.input.slice(0,40), "| provider:", result.provider, "| model:", result.model ?? "none", "| fallbackReason:", result.fallbackReason ?? "none", "| durationMs:", durationMs, "| replyPreview:", (result.reply ?? "").slice(0,60));
-          try {
-            const dir = join(process.cwd(), "logs");
-            mkdirSync(dir, { recursive: true });
-            const line = JSON.stringify({ ts: new Date().toISOString(), input: request.input, provider: result.provider, model: result.model, fallbackReason: result.fallbackReason, reply: result.reply, durationMs }) + "\n";
-            appendFileSync(join(dir, "koru-turns.jsonl"), line, "utf8");
-          } catch { /* silencioso */ }
-          res.statusCode = 200;
-          res.setHeader("Content-Type", "application/json");
-          res.end(JSON.stringify(result));
+          const request = JSON.parse(raw || "{}") as KoruBackendTurnRequest & { stream?: boolean };
+          const streamEnabled = request.stream === true;
+          if (streamEnabled) {
+            res.statusCode = 200;
+            res.setHeader("Content-Type", "application/x-ndjson");
+            res.setHeader("Cache-Control", "no-cache");
+            res.setHeader("Connection", "keep-alive");
+            const chunks: string[] = [];
+            const onChunk = (chunk: import("./src/server/koruBackend").KoruBackendTurnResponse) => {
+              const line = JSON.stringify(chunk) + "\n";
+              chunks.push(line);
+              res.write(line);
+            };
+            const result = await runKoruBackendTurn(request, config, onChunk);
+            const line = JSON.stringify(result) + "\n";
+            if (!chunks.includes(line)) res.write(line);
+            res.end();
+          } else {
+            const result = await runKoruBackendTurn(request, config);
+            const durationMs = Date.now() - startMs;
+            // eslint-disable-next-line no-console
+            console.log("[KORU TURN]", new Date().toISOString(), "|", request.input.slice(0,40), "| provider:", result.provider, "| model:", result.model ?? "none", "| fallbackReason:", result.fallbackReason ?? "none", "| durationMs:", durationMs, "| replyPreview:", (result.reply ?? "").slice(0,60));
+            try {
+              const dir = join(process.cwd(), "logs");
+              mkdirSync(dir, { recursive: true });
+              const line = JSON.stringify({ ts: new Date().toISOString(), input: request.input, provider: result.provider, model: result.model, fallbackReason: result.fallbackReason, reply: result.reply, durationMs }) + "\n";
+              appendFileSync(join(dir, "koru-turns.jsonl"), line, "utf8");
+            } catch { /* silencioso */ }
+            res.statusCode = 200;
+            res.setHeader("Content-Type", "application/json");
+            res.end(JSON.stringify(result));
+          }
         } catch (error) {
           res.statusCode = 502;
           res.setHeader("Content-Type", "application/json");

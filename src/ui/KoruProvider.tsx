@@ -1375,6 +1375,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     history: KoruChatTurn[] = chatTurnsRef.current,
   ) {
     setProcessing(true);
+    let koruTurnId: string | null = null;
     try {
       const previousState = domainStateRef.current;
       const domainHistory = history
@@ -1385,9 +1386,56 @@ export function KoruProvider({ children }: { children: ReactNode }) {
           content: turn.text,
           createdAt: turn.createdAt,
         }));
-      const agentResult = await runBackendAgentTurn(text, previousState, domainHistory);
+      const agentResult = await runBackendAgentTurn(text, previousState, domainHistory, (chunk) => {
+        const blocksToItems = (blocks: UiBlock[]): KoruTurnItem[] =>
+          blocks.map((block) => ({
+            id: createId("item"),
+            kind: "action" as const,
+            tag: block.type,
+            text: (block as any).title ?? (block as any).query ?? "",
+            status: "working" as const,
+            uiBlock: block,
+          }));
+        if (!koruTurnId) {
+          koruTurnId = createId("turn");
+          const koruTurn: KoruChatTurn = {
+            id: koruTurnId,
+            role: "koru",
+            text: chunk.reply,
+            createdAt: new Date().toISOString(),
+            items: blocksToItems(chunk.uiBlocks),
+            status: "working" as const,
+            mascotState: chunk.mascotState ?? "working",
+          };
+          commitChatTurns((prev) => [...prev, koruTurn].slice(-120));
+        } else {
+          const isDone = chunk.stateEvents?.some((e) => e.kind === "done");
+          commitChatTurns((prev) =>
+            prev.map((turn) =>
+              turn.id === koruTurnId
+                ? {
+                    ...turn,
+                    text: chunk.reply,
+                    items: blocksToItems(chunk.uiBlocks),
+                    mascotState: chunk.mascotState ?? turn.mascotState,
+                    status: isDone ? ("done" as const) : ("working" as const),
+                  }
+                : turn,
+            ),
+          );
+        }
+      });
       const result = applyBackendTurnToState(previousState, text, transcriptSource, agentResult);
       commitDomainState(result.state);
+      if (koruTurnId) {
+        commitChatTurns((prev) =>
+          prev.map((turn) =>
+            turn.id === koruTurnId
+              ? { ...turn, text: agentResult.reply, items: result.items, status: "done" as const, mascotState: agentResult.mascotState ?? "idle" }
+              : turn,
+          ),
+        );
+      }
       writeAuditEvent({
         type: "turn_analyzed",
         engine: "backend_agent_loop",

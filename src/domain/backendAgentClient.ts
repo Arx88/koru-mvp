@@ -51,17 +51,53 @@ export class KoruBackendAgentError extends Error {
   }
 }
 
-async function postAgentTurn(body: unknown, timeoutMs: number): Promise<KoruBackendTurnResponse> {
+async function postAgentTurn(
+  body: unknown,
+  timeoutMs: number,
+  onChunk?: (chunk: KoruBackendTurnResponse) => void,
+): Promise<KoruBackendTurnResponse> {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
   try {
+    const payload = onChunk ? { ...(body as Record<string, unknown>), stream: true } : body;
     const response = await fetch("/api/koru/turn", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify(payload),
       signal: controller.signal,
     });
-    const data = await response.json().catch(() => ({})) as KoruBackendTurnResponse & { error?: string };
+
+    const contentType = response.headers.get("content-type") || "";
+    if (contentType.includes("application/x-ndjson") && response.body) {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let lastChunk: KoruBackendTurnResponse | undefined;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const chunk = JSON.parse(line) as KoruBackendTurnResponse;
+            lastChunk = chunk;
+            onChunk?.(chunk);
+          } catch {
+            /* skip invalid line */
+          }
+        }
+      }
+      if (!lastChunk) {
+        throw new KoruBackendAgentError("No se recibio ningun chunk del stream.");
+      }
+      return lastChunk;
+    }
+
+    const data = (await response.json().catch(() => ({}))) as KoruBackendTurnResponse & { error?: string };
     if (!response.ok) {
       throw new KoruBackendAgentError(data.error ?? `Koru backend respondio ${response.status}`, response.status);
     }
@@ -84,6 +120,7 @@ export async function runBackendAgentTurn(
   input: string,
   state: KoruState,
   history: KoruConversationMessage[],
+  onChunk?: (chunk: KoruBackendTurnResponse) => void,
 ): Promise<KoruBackendTurnResponse> {
-  return postAgentTurn({ input, state, history }, 75_000);
+  return postAgentTurn({ input, state, history }, 75_000, onChunk);
 }
