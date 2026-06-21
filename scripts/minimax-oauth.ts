@@ -21,6 +21,15 @@ const OAUTH_BASE = "https://account.minimax.io";
 const PROJECT_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const TOKEN_FILE = join(PROJECT_ROOT, "minimax-oauth-token.json");
 
+const LOG_FILE = join(PROJECT_ROOT, "scripts", "minimax-oauth.trace.log");
+
+function trace(msg: string) {
+  const line = `[${new Date().toISOString()}] ${msg}`;
+  try {
+    writeFileSync(LOG_FILE, line + "\n", { flag: "a" });
+  } catch { /* ignore */ }
+}
+
 function base64url(buf: Buffer): string {
   return buf.toString("base64url").replace(/=+$/, "");
 }
@@ -73,10 +82,21 @@ async function requestDeviceCode(challenge: string, state: string) {
     throw new Error("State mismatch — possible CSRF");
   }
 
+  // MiniMax returns expired_in as relative seconds OR absolute ms.
+  const now = Date.now();
+  let expiresAtMs: number;
+  if (data.expired_in < 1_000_000_000) {
+    expiresAtMs = now + data.expired_in * 1000; // relative seconds → add to now
+  } else if (data.expired_in < 1_000_000_000_000) {
+    expiresAtMs = data.expired_in * 1000; // absolute seconds → convert to ms
+  } else {
+    expiresAtMs = data.expired_in; // already absolute ms
+  }
+
   return {
     userCode: data.user_code,
     verificationUrl: data.verification_uri,
-    expiresAtMs: data.expired_in,
+    expiresAtMs,
     intervalMs: (data.interval ?? 2) * 1000,
   };
 }
@@ -115,6 +135,7 @@ async function pollToken(
   }
 
   console.log(`[poll] HTTP ${res.status} — body: ${text.slice(0, 500)}`);
+  trace(`poll HTTP=${res.status} body=${text.slice(0, 500)}`);
 
   if (!res.ok) {
     const msg = payload?.base_resp?.status_msg ?? text;
@@ -156,7 +177,8 @@ async function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-async function main() {
+async function main(): Promise<number> {
+  trace("=== MiniMax OAuth Setup ===");
   console.log("=== MiniMax OAuth Setup ===\n");
 
   if (existsSync(TOKEN_FILE)) {
@@ -164,15 +186,17 @@ async function main() {
     if (existing.expiresAtMs > Date.now() + 60_000) {
       console.log("Token already valid until", new Date(existing.expiresAtMs).toISOString());
       console.log("Delete", TOKEN_FILE, "to re-authenticate.");
-      process.exit(0);
+      return 0;
     }
   }
 
   const { verifier, challenge, state } = generatePkce();
+  trace("requesting device code...");
   const { userCode, verificationUrl, expiresAtMs, intervalMs } = await requestDeviceCode(
     challenge,
     state,
   );
+  trace(`device code received, userCode=${userCode} expiresAt=${expiresAtMs}`);
 
   console.log("1. Open this URL in your browser:");
   console.log("   ", verificationUrl);
@@ -204,26 +228,36 @@ async function main() {
           obtainedAt: Date.now(),
         };
         writeFileSync(TOKEN_FILE, JSON.stringify(record, null, 2));
-        console.log("\n✅ OAuth successful! Token saved to:", TOKEN_FILE);
+        const msg = `✅ OAuth successful! Token saved to: ${TOKEN_FILE}`;
+        trace(msg);
+        console.log("\n" + msg);
         console.log("   Expires at:", new Date(token.expiresAtMs).toISOString());
-        process.exit(0);
+        return 0;
       }
       // pending — continue polling
     } catch (err: any) {
       process.stdout.write("\n");
-      console.error("\n❌ OAuth failed:", err.message);
-      process.exit(1);
+      const msg = `❌ OAuth failed: ${err.message}`;
+      trace(msg);
+      console.error("\n" + msg);
+      return 1;
     }
 
     interval = Math.max(interval, 2000);
   }
 
   process.stdout.write("\n");
-  console.error("\n⏰ OAuth timed out. Please run the script again.");
-  process.exit(1);
+  const msg = "⏰ OAuth timed out. Please run the script again.";
+  trace(msg);
+  console.error("\n" + msg);
+  return 1;
 }
 
-main().catch((e) => {
+main().then((code) => {
+  trace(`script ended with code ${code}`);
+  process.exit(code);
+}).catch((e) => {
+  trace(`Fatal error: ${e.message}`);
   console.error("Fatal error:", e.message);
   process.exit(1);
 });
