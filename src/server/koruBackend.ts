@@ -1442,6 +1442,7 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
     `- Nunca inventes precios, clima, o datos que no tengas. Si no sabés, decilo con naturalidad y ofrecé el siguiente paso.`,
     `- CRÍTICO: Si una tool externa (clima, búsqueda, ruta, precios) devuelve status "failed" o "not_configured", NO inventés los datos. Decile al usuario honestamente que no pudiste obtener esa información y preguntá si quiere que lo intente de otra forma.`,
     `- CRÍTICO: Si necesitás una ciudad para el clima o una ruta y el usuario no la dijo, NO asumas. Preguntá antes de usar la tool.`,
+    `- CRÍTICO: Si el usuario pregunta algo que YA aparece en "Cosas que guardaste" o "Memorias relevantes", NO uses query_personal_context. Respondé directamente desde ese contexto.`,
     ``,
     `Memorias relevantes para esta conversación (usalas para personalizar tu respuesta):`,
     ...(relevantMemories.length
@@ -1450,6 +1451,9 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
     ``,
     `Pendientes abiertos actuales del usuario:`,
     ...(state.commitments?.filter(c => c.status === "open").slice(0, 5).map(c => `- ${c.title.replace(/[\n\r`]+/g, " ").trim()} (${(c.dueHint || "sin fecha").replace(/[\n\r`]+/g, " ").trim()})`) || ["- Ninguno"]),
+    ``,
+    `Cosas que guardaste (últimas 8):`,
+    ...(state.records?.slice(-8).map(r => `- ${r.title.replace(/[\n\r`]+/g, " ").trim()}${r.value ? ` (${r.value.replace(/[\n\r`]+/g, " ").trim()})` : ""}${r.notes ? ` — ${r.notes.replace(/[\n\r`]+/g, " ").trim()}` : ""} [${r.kind}]`) || ["- Nada guardado aún"]),
     ``,
     `Instrucciones técnicas:`,
     `- Usá tools solo cuando necesites datos reales del mundo (clima, búsqueda, ruta, precios).`,
