@@ -609,10 +609,23 @@ async function callProvider(
       nvidiaValidated,
       callOpenRouter(config, messages, Math.min(14_000, timeoutMs), toolsEnabled).then((fallback) => ({ ...fallback, fallbackReason })),
     ]);
-  } catch {
+  } catch (error) {
+    if (isRateLimitError(error)) throw new RateLimitError("Se alcanzó el límite diario de consultas gratuitas. Probá de nuevo mañana o usá una API key de pago.");
     const fallback = await callOpenRouter(config, messages, Math.min(18_000, timeoutMs), toolsEnabled);
     return { ...fallback, fallbackReason };
   }
+}
+
+class RateLimitError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "RateLimitError";
+  }
+}
+
+function isRateLimitError(error: unknown): boolean {
+  const msg = String(error instanceof Error ? error.message : error).toLowerCase();
+  return msg.includes("429") || msg.includes("rate limit") || msg.includes("too many requests") || msg.includes("quota") || msg.includes("free-models-per-day");
 }
 
 function sourceFromUrl(title: string, url: string, snippet?: string): AssistantSource {
@@ -2404,7 +2417,10 @@ export async function runKoruBackendTurn(
   let firstResult: ProviderResult & { fallbackReason?: string };
   try {
     firstResult = await callProvider(config, messages, 30_000, true);
-  } catch {
+  } catch (err: any) {
+    if (err instanceof RateLimitError) {
+      return { reply: err.message, uiBlocks: [], suggestedActions: [], understanding: { literalRequest: request.input, userGoal: "Rate limit", unstatedNeeds: [], assumptions: [], confidence: 0 }, memoryCandidates: [], commitments: [], records: [], toolResults: [], stateEvents: [], mascotState: "tired", provider: "openrouter", model: "rate-limited", fallbackReason: "rate-limit" };
+    }
     // Fallback sin tools si el modelo no las soporta o devolvió respuesta vacía
     firstResult = await callProvider(config, messages, 30_000, false);
     fallbackReason = (fallbackReason ? fallbackReason + " + " : "") + "no-tools-fallback";
