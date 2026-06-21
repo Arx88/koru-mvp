@@ -915,50 +915,51 @@ export function WebNavCardA({ block }: { block: Extract<UiBlock, { type: "web_na
     <div className="flex relative" data-ui-block="web_nav">
       <div className="flex flex-col w-full">
         <div className="flex items-center justify-between mb-2 px-1">
-          <span className="text-[10px] font-extrabold text-blue-500 uppercase tracking-widest flex items-center gap-1">
-            <span className="material-symbols-outlined text-[14px]">public</span> Web Navigation
-          </span>
+          <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Navegación Web</span>
         </div>
-        <div className="bg-white rounded-3xl p-4 card-shadow border border-gray-50">
-          {block.status === "loading" && (
-            <div className="flex items-center gap-3 bg-gray-50 rounded-2xl p-3 mb-3 border border-gray-100">
-              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 animate-spin" style={{ animationDuration: "3s" }}>
-                <span className="material-symbols-outlined text-[18px]">sync</span>
+        <div className="glass-card rounded-3xl hover:scale-[1.01] transition-transform duration-300 p-3">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div className="relative w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shadow-sm shrink-0">
+                <span className="material-symbols-outlined text-[18px]">travel_explore</span>
               </div>
-              <div className="flex-1 overflow-hidden">
-                <p className="text-[13px] font-mono text-gray-600 truncate">
-                  {block.url
-                    ? `Extrayendo datos de ${block.url}...`
-                    : block.query
-                      ? `Buscando "${block.query}"...`
-                      : "Buscando en la web..."}
+              <div className="flex flex-col">
+                <p className="text-[13px] font-bold text-gray-900 leading-tight">
+                  {block.status === "loading" ? "Buscando en la web..." : (block.title ?? "Resultados")}
+                </p>
+                <p className="text-[11px] text-gray-500 font-medium truncate max-w-[180px]">
+                  {block.query ? `\"${block.query}\"` : (block.url ? `"${block.url}"` : "")}
                 </p>
               </div>
             </div>
+            {block.status === "loading" && (
+              <div className="typing-indicator flex items-center h-4">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            )}
+          </div>
+          {block.status === "loading" && (
+            <div className="w-full bg-gray-100/50 rounded-full h-1 mb-3 overflow-hidden">
+              <div className="bg-gradient-to-r from-blue-400 to-koru h-full rounded-full w-2/3 animate-pulse"></div>
+            </div>
           )}
           {block.results.length > 0 && (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {block.results.map((result, index) => (
                 <a
                   key={`${result.url}-${index}`}
                   href={result.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer"
+                  className="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors cursor-pointer"
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="material-symbols-outlined text-gray-400 text-[18px]">
-                      {result.type === "article" ? "article" : result.type === "pdf" ? "picture_as_pdf" : "description"}
-                    </span>
-                    <div>
-                      <p className="text-[13px] font-semibold text-gray-800">{result.title}</p>
-                      <p className="text-[11px] text-gray-500">
-                        {result.source}
-                        {result.readTime ? ` \u2022 ${result.readTime}` : null}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="material-symbols-outlined text-gray-300 text-[18px]">chevron_right</span>
+                  <span className="material-symbols-outlined text-[14px] text-gray-400">
+                    {result.type === "article" ? "article" : result.type === "pdf" ? "picture_as_pdf" : result.type === "description" ? "language" : "public"}
+                  </span>
+                  <span className="text-[11px] font-bold text-gray-600">{result.source}</span>
+                  <span className="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span>
                 </a>
               ))}
             </div>

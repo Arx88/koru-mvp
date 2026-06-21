@@ -3,23 +3,37 @@
 <head>
 <meta charset="UTF-8" />
 <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-<title>Web Navigation — Preview</title>
+<title>Web Navigation — Preview (Glassmorphism)</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
 <style>
-  body { font-family: 'Plus Jakarta Sans', sans-serif; background: #FCFCFA; }
-  .font-mono { font-family: 'Fira Code', monospace; }
-  .card-shadow { box-shadow: 0 4px 20px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.02); transition: all 0.3s ease; }
-  .card-shadow:hover { box-shadow: 0 8px 30px rgba(0,0,0,0.06), 0 2px 5px rgba(0,0,0,0.03); transform: translateY(-2px); }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .animate-spin-slow { animation: spin 3s linear infinite; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; background: #fbf9f5; }
   .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  .glass-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.01);
+  }
+  .text-koru { color: #a7c497; }
+  .bg-koru { background-color: #a7c497; }
+  .bg-koru-light { background-color: rgba(167, 196, 151, 0.15); }
+  .bg-blue-50 { background-color: #eff6ff; }
+  .text-blue-600 { color: #2563eb; }
+  .typing-indicator span {
+    display: inline-block; width: 4px; height: 4px; background-color: #a7c497; border-radius: 50%; margin: 0 2px;
+    animation: typing 1.4s infinite ease-in-out both;
+  }
+  .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+  .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+  @keyframes typing { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
 </style>
 </head>
 <body class="flex flex-col items-center gap-10 p-4 pt-12">
 
-<h1 class="text-lg font-bold text-gray-900">Preview — Web Navigation Card</h1>
+<h1 class="text-lg font-bold text-gray-900">Preview — Web Navigation (Glassmorphism)</h1>
 
 <!-- LOADING STATE -->
 <div class="w-full max-w-[420px]">
@@ -27,17 +41,46 @@
   <div class="flex relative">
     <div class="flex flex-col w-full">
       <div class="flex items-center justify-between mb-2 px-1">
-        <span class="text-[10px] font-extrabold text-blue-500 uppercase tracking-widest flex items-center gap-1">
-          <span class="material-symbols-outlined text-[14px]">public</span> Web Navigation
-        </span>
+        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Navegación Web</span>
       </div>
-      <div class="bg-white rounded-3xl p-4 card-shadow border border-gray-50">
-        <div class="flex items-center gap-3 bg-gray-50 rounded-2xl p-3 mb-3 border border-gray-100">
-          <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 animate-spin-slow">
-            <span class="material-symbols-outlined text-[18px]">sync</span>
+      <div class="glass-card rounded-3xl hover:scale-[1.01] transition-transform duration-300 p-3">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <div class="relative w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shadow-sm shrink-0">
+              <span class="material-symbols-outlined text-[18px]">travel_explore</span>
+            </div>
+            <div class="flex flex-col">
+              <p class="text-[13px] font-bold text-gray-900 leading-tight">Buscando en la web...</p>
+              <p class="text-[11px] text-gray-500 font-medium truncate max-w-[180px]">"Nuevas tendencias de diseño 2024"</p>
+            </div>
           </div>
-          <div class="flex-1 overflow-hidden">
-            <p class="text-[13px] font-mono text-gray-600 truncate">Extrayendo datos de wikipedia.org/wiki/Quantum_computing...</p>
+          <div class="typing-indicator flex items-center h-4">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+        <div class="w-full bg-gray-100/50 rounded-full h-1 mb-3 overflow-hidden">
+          <div class="bg-gradient-to-r from-blue-400 to-[#a7c497] h-full rounded-full w-2/3 animate-pulse"></div>
+        </div>
+        <div class="space-y-1.5">
+          <div class="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors cursor-pointer">
+            <span class="material-symbols-outlined text-[14px] text-gray-400">public</span>
+            <span class="text-[11px] font-bold text-gray-600">awwwards.com</span>
+            <span class="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span>
+          </div>
+          <div class="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors cursor-pointer">
+            <span class="material-symbols-outlined text-[14px] text-gray-400">article</span>
+            <span class="text-[11px] font-bold text-gray-600">The Verge</span>
+            <span class="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span>
+          </div>
+          <div class="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors cursor-pointer">
+            <span class="material-symbols-outlined text-[14px] text-gray-400">language</span>
+            <span class="text-[11px] font-bold text-gray-600">Wired</span>
+            <span class="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span>
+          </div>
+          <div class="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors cursor-pointer">
+            <span class="material-symbols-outlined text-[14px] text-gray-400">public</span>
+            <span class="text-[11px] font-bold text-gray-600">TechCrunch</span>
+            <span class="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span>
           </div>
         </div>
       </div>
@@ -51,42 +94,41 @@
   <div class="flex relative">
     <div class="flex flex-col w-full">
       <div class="flex items-center justify-between mb-2 px-1">
-        <span class="text-[10px] font-extrabold text-blue-500 uppercase tracking-widest flex items-center gap-1">
-          <span class="material-symbols-outlined text-[14px]">public</span> Web Navigation
-        </span>
+        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Navegación Web</span>
       </div>
-      <div class="bg-white rounded-3xl p-4 card-shadow border border-gray-50">
-        <div class="space-y-2">
-          <div class="flex items-center justify-between p-2 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer">
-            <div class="flex items-center gap-3">
-              <span class="material-symbols-outlined text-gray-400 text-[18px]">description</span>
-              <div>
-                <p class="text-[13px] font-semibold text-gray-800">Historia de la computación cuántica</p>
-                <p class="text-[11px] text-gray-500">Wikipedia • 2 min read</p>
-              </div>
+      <div class="glass-card rounded-3xl hover:scale-[1.01] transition-transform duration-300 p-3">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <div class="relative w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shadow-sm shrink-0">
+              <span class="material-symbols-outlined text-[18px]">travel_explore</span>
             </div>
-            <span class="material-symbols-outlined text-gray-300 text-[18px]">chevron_right</span>
-          </div>
-          <div class="flex items-center justify-between p-2 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer">
-            <div class="flex items-center gap-3">
-              <span class="material-symbols-outlined text-gray-400 text-[18px]">article</span>
-              <div>
-                <p class="text-[13px] font-semibold text-gray-800">Qubits y superposición</p>
-                <p class="text-[11px] text-gray-500">IBM Research • PDF</p>
-              </div>
+            <div class="flex flex-col">
+              <p class="text-[13px] font-bold text-gray-900 leading-tight">Resultados encontrados</p>
+              <p class="text-[11px] text-gray-500 font-medium truncate max-w-[180px]">"Nuevas tendencias de diseño 2024"</p>
             </div>
-            <span class="material-symbols-outlined text-gray-300 text-[18px]">chevron_right</span>
           </div>
-          <div class="flex items-center justify-between p-2 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer">
-            <div class="flex items-center gap-3">
-              <span class="material-symbols-outlined text-gray-400 text-[18px]">description</span>
-              <div>
-                <p class="text-[13px] font-semibold text-gray-800">Quantum Computing: The Next Frontier</p>
-                <p class="text-[11px] text-gray-500">Nature • 5 min read</p>
-              </div>
-            </div>
-            <span class="material-symbols-outlined text-gray-300 text-[18px]">chevron_right</span>
-          </div>
+        </div>
+        <div class="space-y-1.5">
+          <a href="https://awwwards.com" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors cursor-pointer">
+            <span class="material-symbols-outlined text-[14px] text-gray-400">public</span>
+            <span class="text-[11px] font-bold text-gray-600">awwwards.com — Best Web Design Trends</span>
+            <span class="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span>
+          </a>
+          <a href="https://theverge.com" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors cursor-pointer">
+            <span class="material-symbols-outlined text-[14px] text-gray-400">article</span>
+            <span class="text-[11px] font-bold text-gray-600">The Verge — AI in Design 2024</span>
+            <span class="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span>
+          </a>
+          <a href="https://wired.com" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors cursor-pointer">
+            <span class="material-symbols-outlined text-[14px] text-gray-400">language</span>
+            <span class="text-[11px] font-bold text-gray-600">Wired — Future of UX</span>
+            <span class="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span>
+          </a>
+          <a href="https://techcrunch.com" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors cursor-pointer">
+            <span class="material-symbols-outlined text-[14px] text-gray-400">public</span>
+            <span class="text-[11px] font-bold text-gray-600">TechCrunch — Startup Design</span>
+            <span class="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span>
+          </a>
         </div>
       </div>
     </div>
