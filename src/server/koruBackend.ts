@@ -446,25 +446,13 @@ function extractStringField(raw: string, field: string): string | undefined {
   return raw.slice(start, i);
 }
 
-function cleanReplyText(value: unknown, hasStructuredBlocks = false): string {
-  const text = cleanText(value)
+function cleanReplyText(value: unknown): string {
+  return cleanText(value)
     .replace(/\*?\s*uiBlock\s*:\s*[a-z_]+\s*\*?/gi, "")
     .replace(/\buiBlocks?\b\s*[:=]\s*\[[\s\S]*$/i, "")
-    .replace(/\b(reply|understanding|suggestedActions|memoryCandidates|commitments|records|mascotState)\b\s*[:=]\s*\{?[^,}]*}?/gi, "")
-    .replace(/\{[\s\S]*?\}/g, " ")
     .replace(/\b(Hola|Gracias|Perfecto|Listo)(?=[A-ZÁÉÍÓÚÑ])/g, "$1 ")
     .replace(/\s+/g, " ")
     .trim();
-  if (!hasStructuredBlocks || text.length <= 600) return text;
-  // Only aggressively truncate if there are still JSON-ish artifacts
-  const hasArtifacts = /["{}\[\]]/.test(text);
-  if (!hasArtifacts) return text;
-  const beforeList = text.split(/\s+\*\*|\s+-\s+/)[0]?.trim();
-  if (beforeList && beforeList.length >= 45 && beforeList.length <= 480) return beforeList;
-  const sentences = text.match(/[^.!?]+[.!?]+/g)?.map((item) => item.trim()).filter(Boolean) ?? [];
-  const concise = sentences.slice(0, 2).join(" ");
-  if (concise.length >= 45 && concise.length <= 480) return concise;
-  return `${text.slice(0, 420).trim()}...`;
 }
 
 async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
@@ -1879,9 +1867,8 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
         continue;
       }
       if (search.mode === "research" || search.mode === "news" || search.mode === "world") {
-        const blockedDomains = new Set(["webyansh.com", "studiomeyer.io", "victormisa.com", "idearium.es", "pinterest.com", "instagram.com", "facebook.com"]);
         const filtered = search.sources
-          .filter((s) => !blockedDomains.has(s.domain.toLowerCase()) && s.url?.startsWith("http"))
+          .filter((s) => s.url?.startsWith("http"))
           .slice(0, 5);
         if (filtered.length) {
           blocks.push({
@@ -2219,7 +2206,7 @@ function normalizeFinalPayload(
     data: execution.result,
     sources: normalizeSources((execution.result as Record<string, unknown>).sources),
   }));
-  const cleanedReply = cleanReplyText(raw.reply, uiBlocks.length > 0);
+  const cleanedReply = cleanReplyText(raw.reply);
   const blockReply = replyFromBlocks(uiBlocks, input);
   return {
     reply: !cleanedReply || isGenericAgentReply(cleanedReply) ? blockReply || "Tuve un problema para armar la respuesta. ¿Me lo repetís de otra forma para ayudarte bien?" : cleanedReply,
@@ -2265,26 +2252,7 @@ function normalizeFinalPayload(
 
 function contentFallback(content: string, input: string, toolExecutions: ToolExecution[]): KoruBackendTurnResponse {
   const toolBlocks = blocksFromToolResults(toolExecutions);
-  const extracted = safeJsonObjectFromContent(content);
-  if (extracted.reply && typeof extracted.reply === "string" && extracted.reply.length > 3) {
-    return normalizeFinalPayload({
-      reply: cleanReplyText(extracted.reply, toolBlocks.length > 0),
-      understanding: normalizeUnderstanding(extracted.understanding, input),
-      uiBlocks: asArray(extracted.uiBlocks || []),
-      suggestedActions: normalizeSuggestedActions(extracted.suggestedActions),
-      memoryCandidates: normalizeMemoryCandidates(extracted.memoryCandidates),
-      commitments: normalizeCommitments(extracted.commitments),
-      records: normalizeRecords(extracted.records),
-      mascotState: cleanText(extracted.mascotState),
-    }, input, toolExecutions);
-  }
-  let reply = cleanReplyText(content, toolBlocks.length > 0);
-  if ((!reply || reply.length < 5) && content && content.length > 5 && !content.trim().startsWith("{")) {
-    reply = cleanText(content);
-  }
-  if (!reply || reply.length < 5) {
-    reply = "No pude armar una respuesta clara. ¿Me lo repetís de otra forma?";
-  }
+  const reply = cleanReplyText(content) || "No pude armar una respuesta clara. ¿Me lo repetís de otra forma?";
   return normalizeFinalPayload({
     reply,
     understanding: {
