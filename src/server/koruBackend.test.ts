@@ -83,4 +83,33 @@ describe("runKoruBackendTurn conversational flow", () => {
     const types = new Set(result.suggestedActions?.map((a) => a.kind));
     expect(types.size).toBe(result.suggestedActions?.length ?? 0);
   });
+
+  it("blocksFromToolResults converts research search into web_nav", async () => {
+    const { blocksFromToolResults } = await import("./koruBackend");
+    const execution = {
+      tool: "web_search",
+      arguments: { query: "test" },
+      result: {
+        type: "search",
+        title: "Tendencias de diseño",
+        mode: "research",
+        summary: "Resumen",
+        sources: [
+          { title: "Art 1", url: "https://a.com/1", domain: "a.com", snippet: "snip" },
+          { title: "Art 2", url: "https://b.com/2", domain: "b.com" },
+        ],
+      },
+    };
+    const blocks = blocksFromToolResults([execution as any]);
+    expect(blocks.length).toBe(1);
+    expect(blocks[0]).toMatchObject({
+      type: "web_nav",
+      title: "Tendencias de diseño",
+      status: "complete",
+      results: [
+        { title: "Art 1", source: "a.com", url: "https://a.com/1", type: "page", snippet: "snip" },
+        { title: "Art 2", source: "b.com", url: "https://b.com/2", type: "page" },
+      ],
+    });
+  });
 });

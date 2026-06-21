@@ -1473,6 +1473,21 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
     `- Usá tools solo cuando necesites datos reales del mundo (clima, búsqueda, ruta, precios).`,
     `- Para datos personales ya guardados, no llames tools; respondé directamente usando el contexto.`,
     `- Agregá mascotState al JSON final Elijí SOLO de esta lista exacta: "celebrating", "worried", "affectionate", "curious", "happy", "thinking", "working", "tired", "sleeping", "mistake", "planning", "product-search", "building", "cooking", "thinking-2". Si nada aplica, usá "idle".`,
+    `- Tipos de uiBlocks válidos:`,
+    `  - "weather": clima por ciudad (city, now, range, rain, wind, advice, sources)`,
+    `  - "web_nav": resultado de búsqueda web. status: "loading" (spinner + lista de fuentes), "complete" (solo lista de fuentes), o "report" (SIEMPRE que hayas sintetizado varias fuentes en un análisis propio). Para "report" AGREGÁ "summary" (párrafo narrativo con tu análisis) y "findings" (array de 3-5 bullets clave). Las fuentes van en "results" (array de {title, source, url, type}).`,
+    `  - "alarm": alarma con time y repeat`,
+    `  - "reminder": recordatorio con dueText`,
+    `  - "plan": plan de pasos con items (time, title, priority, rationale)`,
+    `  - "comparison": comparativa de productos con criteria y recommendation`,
+    `  - "research_sources": fuentes verificadas con summary, sources, y mode`,
+    `  - "shopping_list": lista de compras con items y dueText`,
+    `  - "money_summary": resumen de gastos con summaryItems y recommendation`,
+    `  - "activity_group": grupo de actividad con tiles y rows`,
+    `  - "proactive_signal": señal del mundo con category, severity, title, body`,
+    `  - "clarifying_question": pregunta de clarificación con options`,
+    `  - "saved_record": registro guardado con records`,
+    `  - "resource_bundle": archivos descargables con files`,
     `- Formato de respuesta final: {"reply":"...","uiBlocks":[...],"mascotState":"...",...}`,
     `Hora actual: ${nowIso}`,
   ].join("\n");
@@ -1784,7 +1799,7 @@ function normalizeUiBlock(value: unknown): UiBlock | null {
   return null;
 }
 
-function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
+export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
   const blocks: UiBlock[] = [];
   for (const execution of results) {
     const result = execution.result;
