@@ -5,6 +5,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import { runKoruBackendTurn, type KoruBackendTurnRequest, type ProviderConfig } from "./src/server/koruBackend";
+import { logger } from "./src/server/logger";
 
 function collectOpenRouterKeys(env: Record<string, string>): string[] {
   const keys = [env.OPENROUTER_API_KEY, env.OPENROUTER_FALLBACK_API_KEYS]
@@ -786,6 +787,7 @@ function koruBackendAgent(env: Record<string, string>): Plugin {
           }
 
           const request = JSON.parse(raw || "{}") as KoruBackendTurnRequest & { stream?: boolean };
+          logger.info("koru-turn", "Request received", { input: request.input, historyLength: request.history.length });
           if (!request.input?.trim() || !request.state || !Array.isArray(request.history)) {
             res.statusCode = 400;
             res.setHeader("Content-Type", "application/json");
@@ -826,6 +828,7 @@ function koruBackendAgent(env: Record<string, string>): Plugin {
             res.end(JSON.stringify(result));
           }
         } catch (error) {
+          logger.error("koru-turn", "Backend error", { error: String(error), stack: error instanceof Error ? error.stack : undefined });
           res.statusCode = 502;
           res.setHeader("Content-Type", "application/json");
           res.end(JSON.stringify({

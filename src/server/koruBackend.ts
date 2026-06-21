@@ -16,6 +16,7 @@ import { VALID_MASCOT_STATES } from "../domain/types";
 import { selectRelevantMemories } from "../domain/store";
 import { generateEnhancements, enhancementPrompt } from "../domain/enhancementEngine";
 import { extractOpportunities } from "../domain/enhancementExtractor";
+import { logger } from "./logger";
 
 export type ProviderConfig = {
   nvidiaApiKey?: string;
@@ -490,6 +491,7 @@ async function callMinimax(
 ): Promise<ProviderResult> {
   const accessToken = config.minimaxAccessToken;
   if (!accessToken) throw new Error("MiniMax access token not configured");
+  logger.info("callMinimax", "Requesting MiniMax", { model: "MiniMax-M2.7", msgCount: messages.length, toolsEnabled });
   const response = await fetchWithTimeout("https://api.minimax.io/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -508,7 +510,9 @@ async function callMinimax(
     }),
   }, timeoutMs);
   const data = await response.json().catch(() => ({}));
+  logger.info("callMinimax", `Response HTTP ${response.status}`, { hasContent: !!asRecord(asRecord(asArray(asRecord(data).choices)[0]).message).content, hasTools: asArray(asRecord(asRecord(asArray(asRecord(data).choices)[0]).message).tool_calls).length > 0 });
   if (!response.ok || !hasUsableAssistantMessage(data)) {
+    logger.error("callMinimax", `MiniMax returned ${response.status}`, { body: JSON.stringify(data).slice(0, 500) });
     throw new Error(`MiniMax returned ${response.status}`);
   }
   const choice = asRecord(asArray(asRecord(data).choices)[0]);
@@ -633,7 +637,8 @@ async function callProvider(
         wait(6_000).then(() => ({ kind: "timeout" as const })),
       ]);
       if (firstMiniMax.kind === "result") return firstMiniMax.result;
-    } catch {
+    } catch (err: any) {
+      logger.warn("callProvider", "MiniMax failed/timed out, falling through", { reason: err?.message });
       /* fall through to standard flow */
     }
   }
@@ -664,12 +669,14 @@ async function callProvider(
   const fallbackReason = first.kind === "error"
     ? first.error instanceof Error ? first.error.message : "NVIDIA failed"
     : "NVIDIA exceeded preferred response window";
+  logger.info("callProvider", fallbackReason);
   try {
     return await Promise.any([
       nvidiaValidated,
       callOpenRouter(config, messages, Math.min(14_000, timeoutMs), toolsEnabled).then((fallback) => ({ ...fallback, fallbackReason })),
     ]);
   } catch (error) {
+    logger.error("callProvider", "Fallback to OpenRouter failed", { error: String(error) });
     if (isRateLimitError(error)) throw new RateLimitError("Se alcanzó el límite diario de consultas gratuitas. Probá de nuevo mañana o usá una API key de pago.");
     const fallback = await callOpenRouter(config, messages, Math.min(18_000, timeoutMs), toolsEnabled);
     return { ...fallback, fallbackReason };
@@ -1490,6 +1497,7 @@ function personalCaptureFromArgs(args: Record<string, unknown>, input = ""): Per
   };
 }
 async function executeTool(name: string, args: Record<string, unknown>, state: KoruState): Promise<Record<string, unknown>> {
+  logger.info("executeTool", `Executing tool: ${name}`, { argsKeys: Object.keys(args) });
   if (name === "weather") return getWeather(args) as Promise<unknown> as Promise<Record<string, unknown>>;
   if (name === "web_search") return runSearch(args) as Promise<unknown> as Promise<Record<string, unknown>>;
   if (name === "shopping_compare") return runSearch(args, true) as Promise<unknown> as Promise<Record<string, unknown>>;
@@ -1500,6 +1508,7 @@ async function executeTool(name: string, args: Record<string, unknown>, state: K
   if (name === "query_personal_context") return queryPersonalContextFromState(state, args) as unknown as Record<string, unknown>;
   if (name === "save_memory") return memoryCaptureFromArgs(args, cleanText(args.__userInput)) as unknown as Record<string, unknown>;
   if (name === "save_personal_item") return personalCaptureFromArgs(args, cleanText(args.__userInput)) as unknown as Record<string, unknown>;
+  logger.warn("executeTool", `Unknown tool: ${name}`);
   return { type: "unknown", error: `Unknown tool ${name}` };
 }
 
@@ -2476,6 +2485,7 @@ export async function runKoruBackendTurn(
   config: ProviderConfig,
   onChunk?: (chunk: KoruBackendTurnResponse) => void,
 ): Promise<KoruBackendTurnResponse> {
+  logger.info("runKoruBackendTurn", "=== START TURN ===", { input: request.input.slice(0, 200) });
   const messages = buildMessages(request);
   const toolExecutions: ToolExecution[] = [];
   let provider: "nvidia" | "openrouter" | "minimax" = "nvidia";
@@ -2487,6 +2497,7 @@ export async function runKoruBackendTurn(
   try {
     firstResult = await callProvider(config, messages, 30_000, true);
   } catch (err: any) {
+    logger.error("runKoruBackendTurn", "callProvider failed with tools", { error: err.message });
     if (err instanceof RateLimitError) {
       return { reply: err.message, uiBlocks: [], suggestedActions: [], understanding: { literalRequest: request.input, userGoal: "Rate limit", unstatedNeeds: [], assumptions: [], confidence: 0 }, memoryCandidates: [], commitments: [], records: [], toolResults: [], stateEvents: [], mascotState: "tired", provider: "openrouter", model: "rate-limited", fallbackReason: "rate-limit" };
     }
@@ -2496,6 +2507,7 @@ export async function runKoruBackendTurn(
   }
   provider = firstResult.provider;
   model = firstResult.model;
+  logger.info("runKoruBackendTurn", "Provider responded", { provider, model, hasTools: (firstResult.message?.tool_calls?.length ?? 0) > 0 });
   fallbackReason = firstResult.fallbackReason;
   const firstMessage = firstResult.message;
   const toolCalls = asArray(firstMessage.tool_calls) as ProviderToolCall[];
