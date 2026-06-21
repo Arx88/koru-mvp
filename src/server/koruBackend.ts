@@ -72,6 +72,7 @@ type ChatRole = "system" | "user" | "assistant" | "tool";
 type ChatMessage = {
   role: ChatRole;
   content?: string;
+  reasoning_content?: string;
   tool_call_id?: string;
   tool_calls?: ProviderToolCall[];
 };
@@ -87,6 +88,7 @@ type ProviderToolCall = {
 
 type ProviderMessage = {
   content?: string | null;
+  reasoning_content?: string;
   tool_calls?: ProviderToolCall[];
 };
 
@@ -507,6 +509,7 @@ async function callMinimax(
       top_p: 0.95,
       max_tokens: 8192,
       stream: false,
+      reasoning_split: true,
     }),
   }, timeoutMs);
   const data = await response.json().catch(() => ({}));
@@ -514,7 +517,9 @@ async function callMinimax(
   const assistantMsg = asRecord(choice.message);
   const content = asString(assistantMsg.content) ?? "";
   const toolCalls = asArray(assistantMsg.tool_calls);
-  logger.info("callMinimax", `Response HTTP ${response.status}`, { contentPreview: content.slice(0, 500), hasTools: toolCalls.length > 0, usage: dump(data.usage, 300) });
+  const reasoningContent = asString(assistantMsg.reasoning_content) ?? "";
+  if (reasoningContent) (assistantMsg as any).reasoning_content = reasoningContent;
+  logger.info("callMinimax", `Response HTTP ${response.status}`, { contentPreview: content.slice(0, 500), reasoningPreview: reasoningContent.slice(0, 200), hasTools: toolCalls.length > 0, usage: dump(data.usage, 300) });
   if (!response.ok || !hasUsableAssistantMessage(data)) {
     logger.error("callMinimax", `MiniMax returned ${response.status}`, { body: dump(data, 1000) });
     throw new Error(`MiniMax returned ${response.status}`);
@@ -2374,10 +2379,12 @@ async function executeProviderToolCalls(
   messages: ChatMessage[],
   request: KoruBackendTurnRequest,
   toolExecutions: ToolExecution[],
+  reasoningContent?: string,
 ): Promise<Record<string, unknown> | null> {
   messages.push({
     role: "assistant",
     content: "",
+    reasoning_content: reasoningContent,
     tool_calls: toolCalls,
   });
 
@@ -2518,7 +2525,7 @@ export async function runKoruBackendTurn(
     };
     onChunk?.(loadingChunk);
 
-    const delivered = await executeProviderToolCalls(toolCalls, messages, request, toolExecutions);
+    const delivered = await executeProviderToolCalls(toolCalls, messages, request, toolExecutions, firstMessage.reasoning_content);
     if (delivered) {
       const response = await finalizePayload(request, config, delivered, toolExecutions);
       return { ...response, provider, model, fallbackReason: fallbackReason ?? response.memoryFallbackReason };
