@@ -455,13 +455,16 @@ function cleanReplyText(value: unknown, hasStructuredBlocks = false): string {
     .replace(/\b(Hola|Gracias|Perfecto|Listo)(?=[A-ZÁÉÍÓÚÑ])/g, "$1 ")
     .replace(/\s+/g, " ")
     .trim();
-  if (!hasStructuredBlocks || text.length <= 260) return text;
+  if (!hasStructuredBlocks || text.length <= 600) return text;
+  // Only aggressively truncate if there are still JSON-ish artifacts
+  const hasArtifacts = /["{}\[\]]/.test(text);
+  if (!hasArtifacts) return text;
   const beforeList = text.split(/\s+\*\*|\s+-\s+/)[0]?.trim();
-  if (beforeList && beforeList.length >= 45 && beforeList.length <= 240) return beforeList;
+  if (beforeList && beforeList.length >= 45 && beforeList.length <= 480) return beforeList;
   const sentences = text.match(/[^.!?]+[.!?]+/g)?.map((item) => item.trim()).filter(Boolean) ?? [];
   const concise = sentences.slice(0, 2).join(" ");
-  if (concise.length >= 45 && concise.length <= 240) return concise;
-  return `${text.slice(0, 220).trim()}...`;
+  if (concise.length >= 45 && concise.length <= 480) return concise;
+  return `${text.slice(0, 420).trim()}...`;
 }
 
 async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
