@@ -1441,7 +1441,8 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
     `- Las cards (uiBlocks) son para los datos; el texto es para conectar con ${state.userName?.trim() || "mi amigo"}.`,
     `- Nunca inventes precios, clima, o datos que no tengas. Si no sabés, decilo con naturalidad y ofrecé el siguiente paso.`,
     `- CRÍTICO: Si una tool externa (clima, búsqueda, ruta, precios) devuelve status "failed" o "not_configured", NO inventés los datos. Decile al usuario honestamente que no pudiste obtener esa información y preguntá si quiere que lo intente de otra forma.`,
-    `- CRÍTICO: Si necesitás una ciudad para el clima o una ruta y el usuario no la dijo, NO asumas. Preguntá antes de usar la tool.`,
+    `- CRÍTICO: Si el usuario responde con una ciudad o ubicación directamente después de que preguntaste por clima o tráfico, interpretalo como su ubicación. Ejecutá la tool correspondiente con esa ciudad y guardá esa ciudad como memory de perfil.`,
+    `- CRÍTICO: Si el usuario te dice una ciudad, país o barrio y no lo tenés guardado como memoria, incluilo en memoryCandidates como kind: profile.`,
     `- CRÍTICO: Si el usuario pregunta algo que YA aparece en "Cosas que guardaste" o "Memorias relevantes", NO uses query_personal_context. Respondé directamente desde ese contexto.`,
     ``,
     `Memorias relevantes para esta conversación (usalas para personalizar tu respuesta):`,
@@ -1508,6 +1509,7 @@ function buildMemoryExtractorMessages(
         "Use Spanish wording when the user spoke Spanish. Preserve names and dates.",
         "Never inherit collection, person, tags, or domain from previous turns unless the current user explicitly refers to the same object.",
         "Capture behavior notes: if the user corrects Koru's behavior (e.g. 'do not ask me for summaries when I save links', 'I prefer you to be more direct'), extract it as behaviorNote so future turns are governed by it.",
+        "If the user provides a city, country, or neighborhood name (e.g. 'Madrid', 'Buenos Aires', 'Barcelona') especially after a weather or traffic question, extract it as a location/profile memory. Example: user input 'Madrid' after assistant asked \"what city?\" -> memory: {kind: 'profile', text: 'User location: Madrid (city)'}. Do not skip just because it looks like a tool argument.",
       ].join("\n"),
     },
     {
