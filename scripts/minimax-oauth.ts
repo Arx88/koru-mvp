@@ -114,6 +114,8 @@ async function pollToken(
     throw new Error(`Token endpoint returned non-JSON: ${text}`);
   }
 
+  console.log(`[poll] HTTP ${res.status} — body: ${text.slice(0, 500)}`);
+
   if (!res.ok) {
     const msg = payload?.base_resp?.status_msg ?? text;
     throw new Error(`Token request failed: ${msg}`);
@@ -124,6 +126,7 @@ async function pollToken(
   }
 
   if (payload.status !== "success") {
+    console.log(`[poll] status=${payload.status} → still pending`);
     return null as any; // pending
   }
 
