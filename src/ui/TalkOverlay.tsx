@@ -269,7 +269,14 @@ export function TalkOverlay({ onClose }: { onClose: () => void }) {
   const visibleTurns = useMemo(() => {
     const hasUserTurn = chatTurns.some((turn) => turn.role === "user");
     if (!hasUserTurn) return chatTurns;
-    return chatTurns.filter((turn, index) => !(index === 0 && turn.role === "koru" && !turn.items?.length));
+    const filtered = chatTurns.filter((turn, index) => !(index === 0 && turn.role === "koru" && !turn.items?.length));
+    // Guardar contra duplicados (mismo id)
+    const seen = new Set<string>();
+    return filtered.filter((turn) => {
+      if (seen.has(turn.id)) return false;
+      seen.add(turn.id);
+      return true;
+    });
   }, [chatTurns]);
 
   useEffect(() => {
