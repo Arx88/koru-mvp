@@ -504,6 +504,7 @@ async function callOpenRouterCandidate(
       temperature: 0.25,
       max_tokens: 8192,
       stream: false,
+      response_format: { type: "json_object" },
     }),
   }, timeoutMs);
   const data = await response.json().catch(() => ({}));
@@ -2149,8 +2150,16 @@ function normalizeFinalPayload(
 
 function contentFallback(content: string, input: string, toolExecutions: ToolExecution[]): KoruBackendTurnResponse {
   const toolBlocks = blocksFromToolResults(toolExecutions);
+  let reply = cleanReplyText(content, toolBlocks.length > 0);
+  // Si cleanReplyText filtró todo pero el contenido original parece una respuesta real, usalo directamente
+  if ((!reply || reply.length < 5) && content && content.length > 5 && !content.trim().startsWith("{")) {
+    reply = cleanText(content);
+  }
+  if (!reply || reply.length < 5) {
+    reply = "No pude armar una respuesta clara. ¿Me lo repetís de otra forma?";
+  }
   return normalizeFinalPayload({
-    reply: cleanReplyText(content, toolBlocks.length > 0) || "No pude armar una respuesta clara. ¿Me lo repetís de otra forma?",
+    reply,
     understanding: {
       literalRequest: input,
       userGoal: "Resolver el pedido con ayuda de Koru.",
