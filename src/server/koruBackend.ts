@@ -1775,7 +1775,7 @@ function normalizeUiBlock(value: unknown): UiBlock | null {
     return results.length ? {
       type: "web_nav" as const,
       title: cleanText(block.title, "Web Navigation"),
-      status: cleanText(block.status) === "loading" ? "loading" : "complete",
+      status: cleanText(block.status) === "loading" ? "loading" : cleanText(block.status) === "report" ? "report" : "complete",
       query: cleanText(block.query),
       url: cleanText(block.url),
       results,

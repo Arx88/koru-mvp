@@ -469,7 +469,7 @@ export type UiBlock =
   | {
       type: "web_nav";
       title?: string;
-      status: "loading" | "complete";
+      status: "loading" | "complete" | "report";
       query?: string;
       url?: string;
       results: Array<{
@@ -478,6 +478,7 @@ export type UiBlock =
         url: string;
         type: "article" | "pdf" | "description" | "page";
         readTime?: string;
+        snippet?: string;
       }>;
     };
 

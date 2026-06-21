@@ -10,125 +10,112 @@
 <style>
   body { font-family: 'Plus Jakarta Sans', sans-serif; background: #fbf9f5; }
   .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
-  .glass-card {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.8);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.01);
-  }
+  .glass-card { background: rgba(255,255,255,0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.8); box-shadow: 0 8px 32px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.01); }
   .text-koru { color: #a7c497; }
   .bg-koru { background-color: #a7c497; }
-  .bg-koru-light { background-color: rgba(167, 196, 151, 0.15); }
+  .bg-koru-light { background-color: rgba(167,196,151,0.15); }
   .bg-blue-50 { background-color: #eff6ff; }
   .text-blue-600 { color: #2563eb; }
-  .typing-indicator span {
-    display: inline-block; width: 4px; height: 4px; background-color: #a7c497; border-radius: 50%; margin: 0 2px;
-    animation: typing 1.4s infinite ease-in-out both;
-  }
+  .typing-indicator span { display: inline-block; width: 4px; height: 4px; background-color: #a7c497; border-radius: 50%; margin: 0 2px; animation: typing 1.4s infinite ease-in-out both; }
   .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
   .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
-  @keyframes typing { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+  @keyframes typing { 0%,80%,100% { transform: scale(0); } 40% { transform: scale(1); } }
 </style>
 </head>
 <body class="flex flex-col items-center gap-10 p-4 pt-12">
 
 <h1 class="text-lg font-bold text-gray-900">Preview — Web Navigation (Glassmorphism)</h1>
 
-<!-- LOADING STATE -->
+<!-- LOADING -->
 <div class="w-full max-w-[420px]">
   <p class="mb-2 text-center text-sm font-semibold text-gray-500">Estado: Loading</p>
   <div class="flex relative">
     <div class="flex flex-col w-full">
-      <div class="flex items-center justify-between mb-2 px-1">
-        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Navegación Web</span>
-      </div>
+      <div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Navegación Web</span></div>
       <div class="glass-card rounded-3xl hover:scale-[1.01] transition-transform duration-300 p-3">
         <div class="flex items-center justify-between mb-2">
           <div class="flex items-center gap-2">
-            <div class="relative w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shadow-sm shrink-0">
-              <span class="material-symbols-outlined text-[18px]">travel_explore</span>
-            </div>
+            <div class="relative w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shadow-sm shrink-0"><span class="material-symbols-outlined text-[18px]">travel_explore</span></div>
             <div class="flex flex-col">
               <p class="text-[13px] font-bold text-gray-900 leading-tight">Buscando en la web...</p>
               <p class="text-[11px] text-gray-500 font-medium truncate max-w-[180px]">"Nuevas tendencias de diseño 2024"</p>
             </div>
           </div>
-          <div class="typing-indicator flex items-center h-4">
-            <span></span><span></span><span></span>
-          </div>
+          <div class="typing-indicator flex items-center h-4"><span></span><span></span><span></span></div>
         </div>
-        <div class="w-full bg-gray-100/50 rounded-full h-1 mb-3 overflow-hidden">
-          <div class="bg-gradient-to-r from-blue-400 to-[#a7c497] h-full rounded-full w-2/3 animate-pulse"></div>
-        </div>
+        <div class="w-full bg-gray-100/50 rounded-full h-1 mb-3 overflow-hidden"><div class="bg-gradient-to-r from-blue-400 to-[#a7c497] h-full rounded-full w-2/3 animate-pulse"></div></div>
         <div class="space-y-1.5">
-          <div class="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors cursor-pointer">
-            <span class="material-symbols-outlined text-[14px] text-gray-400">public</span>
-            <span class="text-[11px] font-bold text-gray-600">awwwards.com</span>
-            <span class="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span>
-          </div>
-          <div class="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors cursor-pointer">
-            <span class="material-symbols-outlined text-[14px] text-gray-400">article</span>
-            <span class="text-[11px] font-bold text-gray-600">The Verge</span>
-            <span class="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span>
-          </div>
-          <div class="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors cursor-pointer">
-            <span class="material-symbols-outlined text-[14px] text-gray-400">language</span>
-            <span class="text-[11px] font-bold text-gray-600">Wired</span>
-            <span class="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span>
-          </div>
-          <div class="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors cursor-pointer">
-            <span class="material-symbols-outlined text-[14px] text-gray-400">public</span>
-            <span class="text-[11px] font-bold text-gray-600">TechCrunch</span>
-            <span class="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span>
-          </div>
+          <div class="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors"><span class="material-symbols-outlined text-[14px] text-gray-400">public</span><span class="text-[11px] font-bold text-gray-600">awwwards.com</span><span class="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span></div>
+          <div class="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors"><span class="material-symbols-outlined text-[14px] text-gray-400">article</span><span class="text-[11px] font-bold text-gray-600">The Verge</span><span class="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span></div>
+          <div class="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors"><span class="material-symbols-outlined text-[14px] text-gray-400">language</span><span class="text-[11px] font-bold text-gray-600">Wired</span><span class="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span></div>
+          <div class="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors"><span class="material-symbols-outlined text-[14px] text-gray-400">public</span><span class="text-[11px] font-bold text-gray-600">TechCrunch</span><span class="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span></div>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- COMPLETE STATE -->
+<!-- COMPLETE -->
 <div class="w-full max-w-[420px]">
   <p class="mb-2 text-center text-sm font-semibold text-gray-500">Estado: Complete</p>
   <div class="flex relative">
     <div class="flex flex-col w-full">
-      <div class="flex items-center justify-between mb-2 px-1">
-        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Navegación Web</span>
-      </div>
+      <div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Navegación Web</span></div>
       <div class="glass-card rounded-3xl hover:scale-[1.01] transition-transform duration-300 p-3">
-        <div class="flex items-center justify-between mb-2">
-          <div class="flex items-center gap-2">
-            <div class="relative w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shadow-sm shrink-0">
-              <span class="material-symbols-outlined text-[18px]">travel_explore</span>
-            </div>
-            <div class="flex flex-col">
-              <p class="text-[13px] font-bold text-gray-900 leading-tight">Resultados encontrados</p>
-              <p class="text-[11px] text-gray-500 font-medium truncate max-w-[180px]">"Nuevas tendencias de diseño 2024"</p>
-            </div>
+        <div class="flex items-center gap-2 mb-2">
+          <div class="relative w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shadow-sm shrink-0"><span class="material-symbols-outlined text-[18px]">travel_explore</span></div>
+          <div class="flex flex-col">
+            <p class="text-[13px] font-bold text-gray-900 leading-tight">Resultados encontrados</p>
+            <p class="text-[11px] text-gray-500 font-medium">"Nuevas tendencias de diseño 2024"</p>
           </div>
         </div>
         <div class="space-y-1.5">
-          <a href="https://awwwards.com" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors cursor-pointer">
-            <span class="material-symbols-outlined text-[14px] text-gray-400">public</span>
-            <span class="text-[11px] font-bold text-gray-600">awwwards.com — Best Web Design Trends</span>
-            <span class="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span>
-          </a>
-          <a href="https://theverge.com" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors cursor-pointer">
-            <span class="material-symbols-outlined text-[14px] text-gray-400">article</span>
-            <span class="text-[11px] font-bold text-gray-600">The Verge — AI in Design 2024</span>
-            <span class="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span>
-          </a>
-          <a href="https://wired.com" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors cursor-pointer">
-            <span class="material-symbols-outlined text-[14px] text-gray-400">language</span>
-            <span class="text-[11px] font-bold text-gray-600">Wired — Future of UX</span>
-            <span class="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span>
-          </a>
-          <a href="https://techcrunch.com" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors cursor-pointer">
-            <span class="material-symbols-outlined text-[14px] text-gray-400">public</span>
-            <span class="text-[11px] font-bold text-gray-600">TechCrunch — Startup Design</span>
-            <span class="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span>
-          </a>
+          <a href="#" class="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors"><span class="material-symbols-outlined text-[14px] text-gray-400">public</span><span class="text-[11px] font-bold text-gray-600">awwwards.com</span><span class="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span></a>
+          <a href="#" class="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors"><span class="material-symbols-outlined text-[14px] text-gray-400">article</span><span class="text-[11px] font-bold text-gray-600">The Verge</span><span class="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span></a>
+          <a href="#" class="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors"><span class="material-symbols-outlined text-[14px] text-gray-400">language</span><span class="text-[11px] font-bold text-gray-600">Wired</span><span class="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span></a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- REPORT -->
+<div class="w-full max-w-[420px]">
+  <p class="mb-2 text-center text-sm font-semibold text-gray-500">Estado: Report</p>
+  <div class="flex relative">
+    <div class="flex flex-col w-full">
+      <div class="flex items-center justify-between mb-2 px-1"><span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Navegación Web</span></div>
+      <div class="glass-card rounded-3xl hover:scale-[1.01] transition-transform duration-300 p-3">
+        <div class="flex items-center gap-2 mb-2">
+          <div class="relative w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shadow-sm shrink-0"><span class="material-symbols-outlined text-[18px]">travel_explore</span></div>
+          <div class="flex flex-col">
+            <p class="text-[13px] font-bold text-gray-900 leading-tight">Informe</p>
+            <p class="text-[11px] text-gray-500 font-medium">"Tendencias de diseño web 2024"</p>
+          </div>
+        </div>
+        <div class="space-y-3">
+          <div class="p-3 bg-white/40 border border-white/60 rounded-xl">
+            <div class="flex items-center justify-between mb-1">
+              <h4 class="text-[13px] font-bold text-gray-900">10 tendencias de diseño que dominan 2024</h4>
+              <span class="material-symbols-outlined text-[14px] text-koru opacity-70">verified</span>
+            </div>
+            <p class="text-[12px] text-gray-600 leading-snug mb-2">La IA generativa está transformando el diseño UX. El glassmorphism evoluciona hacia formas orgánicas y efectos de profundidad más sutiles.</p>
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-semibold text-gray-500">awwwards.com • 5 min read</span>
+              <a href="#" class="text-[11px] font-bold text-koru hover:underline">Ver artículo →</a>
+            </div>
+          </div>
+          <div class="p-3 bg-white/40 border border-white/60 rounded-xl">
+            <div class="flex items-center justify-between mb-1">
+              <h4 class="text-[13px] font-bold text-gray-900">Cómo la IA rediseña la creatividad</h4>
+              <span class="material-symbols-outlined text-[14px] text-koru opacity-70">verified</span>
+            </div>
+            <p class="text-[12px] text-gray-600 leading-snug mb-2">Las herramientas de diseño asistido por IA permiten iteraciones en segundos. Analizamos el impacto en flujos de trabajo profesionales.</p>
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-semibold text-gray-500">wired.com • 6 min read</span>
+              <a href="#" class="text-[11px] font-bold text-koru hover:underline">Ver artículo →</a>
+            </div>
+          </div>
         </div>
       </div>
     </div>

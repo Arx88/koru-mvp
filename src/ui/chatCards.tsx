@@ -925,7 +925,11 @@ export function WebNavCardA({ block }: { block: Extract<UiBlock, { type: "web_na
               </div>
               <div className="flex flex-col">
                 <p className="text-[13px] font-bold text-gray-900 leading-tight">
-                  {block.status === "loading" ? "Buscando en la web..." : (block.title ?? "Resultados")}
+                  {block.status === "loading"
+                    ? "Buscando en la web..."
+                    : block.status === "report"
+                      ? (block.title ?? "Informe")
+                      : (block.title ?? "Resultados")}
                 </p>
                 <p className="text-[11px] text-gray-500 font-medium truncate max-w-[180px]">
                   {block.query ? `\"${block.query}\"` : (block.url ? `"${block.url}"` : "")}
@@ -945,7 +949,26 @@ export function WebNavCardA({ block }: { block: Extract<UiBlock, { type: "web_na
               <div className="bg-gradient-to-r from-blue-400 to-koru h-full rounded-full w-2/3 animate-pulse"></div>
             </div>
           )}
-          {block.results.length > 0 && (
+          {block.status === "report" && block.results.length > 0 && (
+            <div className="space-y-3">
+              {block.results.map((result, index) => (
+                <div key={`${result.url}-${index}`} className="p-3 bg-white/40 border border-white/60 rounded-xl">
+                  <div className="flex items-center justify-between mb-1">
+                    <h4 className="text-[13px] font-bold text-gray-900">{result.title}</h4>
+                    <span className="material-symbols-outlined text-[14px] text-koru opacity-70">verified</span>
+                  </div>
+                  {result.snippet && <p className="text-[12px] text-gray-600 leading-snug mb-2">{result.snippet}</p>}
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-gray-500">
+                      {result.source}{result.readTime ? ` • ${result.readTime}` : ""}
+                    </span>
+                    <a href={result.url} target="_blank" rel="noopener noreferrer" className="text-[11px] font-bold text-koru hover:underline">Ver artículo →</a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {block.status !== "report" && block.results.length > 0 && (
             <div className="space-y-1.5">
               {block.results.map((result, index) => (
                 <a
