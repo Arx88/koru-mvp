@@ -1,6 +1,6 @@
 // @ts-nocheck
 /**
- * Simple file logger for backend diagnostics.
+ * File logger for backend diagnostics.
  * Writes append-only JSON lines to logs/koru-backend.log
  */
 import { appendFileSync, mkdirSync } from "node:fs";
@@ -26,9 +26,25 @@ function write(level: LogLevel, tag: string, message: string, extra?: Record<str
     // ignore logging failures
   }
   const prefix = `[${level}] ${tag}:`;
-  if (level === "ERROR") console.error(prefix, message, extra ? JSON.stringify(extra).slice(0, 300) : "");
-  else if (level === "WARN") console.warn(prefix, message);
-  else console.log(prefix, message);
+  const extraStr = extra ? JSON.stringify(extra).slice(0, 500) : "";
+  if (level === "ERROR") console.error(prefix, message, extraStr);
+  else if (level === "WARN") console.warn(prefix, message, extraStr);
+  else console.log(prefix, message, extraStr);
+}
+
+/** Serialize any value to string, truncating if too large. */
+export function dump(value: unknown, maxLen = 1500): string {
+  let s: string;
+  try {
+    if (typeof value === "string") s = value;
+    else if (value === undefined) s = "undefined";
+    else if (value === null) s = "null";
+    else s = JSON.stringify(value);
+  } catch {
+    s = String(value);
+  }
+  if (s.length > maxLen) return s.slice(0, maxLen) + " …[truncated]";
+  return s;
 }
 
 export const logger = {

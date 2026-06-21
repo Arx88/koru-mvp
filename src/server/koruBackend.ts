@@ -16,7 +16,7 @@ import { VALID_MASCOT_STATES } from "../domain/types";
 import { selectRelevantMemories } from "../domain/store";
 import { generateEnhancements, enhancementPrompt } from "../domain/enhancementEngine";
 import { extractOpportunities } from "../domain/enhancementExtractor";
-import { logger } from "./logger";
+import { logger, dump } from "./logger";
 
 export type ProviderConfig = {
   nvidiaApiKey?: string;
@@ -510,16 +510,19 @@ async function callMinimax(
     }),
   }, timeoutMs);
   const data = await response.json().catch(() => ({}));
-  logger.info("callMinimax", `Response HTTP ${response.status}`, { hasContent: !!choice.message?.content, hasTools: asArray(choice.message?.tool_calls).length > 0, contentPreview: (choice.message?.content ?? "").slice(0, 200) });
+  const choice = asRecord(asArray(asRecord(data).choices)[0]);
+  const assistantMsg = asRecord(choice.message);
+  const content = asString(assistantMsg.content) ?? "";
+  const toolCalls = asArray(assistantMsg.tool_calls);
+  logger.info("callMinimax", `Response HTTP ${response.status}`, { contentPreview: content.slice(0, 500), hasTools: toolCalls.length > 0, usage: dump(data.usage, 300) });
   if (!response.ok || !hasUsableAssistantMessage(data)) {
-    logger.error("callMinimax", `MiniMax returned ${response.status}`, { body: JSON.stringify(data).slice(0, 500) });
+    logger.error("callMinimax", `MiniMax returned ${response.status}`, { body: dump(data, 1000) });
     throw new Error(`MiniMax returned ${response.status}`);
   }
-  const choice = asRecord(asArray(asRecord(data).choices)[0]);
   return {
     provider: "minimax",
     model: asString(asRecord(data).model) ?? "MiniMax-M2.7",
-    message: asRecord(choice.message) as ProviderMessage,
+    message: assistantMsg as ProviderMessage,
   };
 }
 
@@ -1474,18 +1477,23 @@ function personalCaptureFromArgs(args: Record<string, unknown>, input = ""): Per
 }
 async function executeTool(name: string, args: Record<string, unknown>, state: KoruState): Promise<Record<string, unknown>> {
   logger.info("executeTool", `Executing tool: ${name}`, { argsKeys: Object.keys(args) });
-  if (name === "weather") return getWeather(args) as Promise<unknown> as Promise<Record<string, unknown>>;
-  if (name === "web_search") return runSearch(args) as Promise<unknown> as Promise<Record<string, unknown>>;
-  if (name === "shopping_compare") return runSearch(args, true) as Promise<unknown> as Promise<Record<string, unknown>>;
-  if (name === "route_traffic") return runSearch({ ...args, mode: "research", query: cleanText(args.query) || [cleanText(args.origin), cleanText(args.destination)].filter(Boolean).join(" a ") || cleanText(args.__userInput) }, false) as Promise<unknown> as Promise<Record<string, unknown>>;
-  if (name === "calendar_reminder") return localReminderFromArgs(args, cleanText(args.__userInput)) as unknown as Record<string, unknown>;
-  if (name === "alarm") return localAlarmFromArgs(args, cleanText(args.__userInput)) as unknown as Record<string, unknown>;
-  if (name === "plan_day") return planFromState(state, args) as unknown as Record<string, unknown>;
-  if (name === "query_personal_context") return queryPersonalContextFromState(state, args) as unknown as Record<string, unknown>;
-  if (name === "save_memory") return memoryCaptureFromArgs(args, cleanText(args.__userInput)) as unknown as Record<string, unknown>;
-  if (name === "save_personal_item") return personalCaptureFromArgs(args, cleanText(args.__userInput)) as unknown as Record<string, unknown>;
-  logger.warn("executeTool", `Unknown tool: ${name}`);
-  return { type: "unknown", error: `Unknown tool ${name}` };
+  let result: Record<string, unknown>;
+  if (name === "weather") result = await getWeather(args) as unknown as Record<string, unknown>;
+  else if (name === "web_search") result = await runSearch(args) as unknown as Record<string, unknown>;
+  else if (name === "shopping_compare") result = await runSearch(args, true) as unknown as Record<string, unknown>;
+  else if (name === "route_traffic") result = await runSearch({ ...args, mode: "research", query: cleanText(args.query) || [cleanText(args.origin), cleanText(args.destination)].filter(Boolean).join(" a ") || cleanText(args.__userInput) }, false) as unknown as Record<string, unknown>;
+  else if (name === "calendar_reminder") result = localReminderFromArgs(args, cleanText(args.__userInput)) as unknown as Record<string, unknown>;
+  else if (name === "alarm") result = localAlarmFromArgs(args, cleanText(args.__userInput)) as unknown as Record<string, unknown>;
+  else if (name === "plan_day") result = planFromState(state, args) as unknown as Record<string, unknown>;
+  else if (name === "query_personal_context") result = queryPersonalContextFromState(state, args) as unknown as Record<string, unknown>;
+  else if (name === "save_memory") result = memoryCaptureFromArgs(args, cleanText(args.__userInput)) as unknown as Record<string, unknown>;
+  else if (name === "save_personal_item") result = personalCaptureFromArgs(args, cleanText(args.__userInput)) as unknown as Record<string, unknown>;
+  else {
+    logger.warn("executeTool", `Unknown tool: ${name}`);
+    return { type: "unknown", error: `Unknown tool ${name}` };
+  }
+  logger.info("executeTool", `Tool ${name} result`, { result: dump(result, 500) });
+  return result;
 }
 
 function stateSummary(state: KoruState): string {
@@ -2522,12 +2530,15 @@ export async function runKoruBackendTurn(
     provider = secondResult.provider;
     model = secondResult.model ?? model;
     const secondContent = cleanText(secondResult.message.content, "No pude componer una respuesta util.");
+    logger.info("runKoruBackendTurn", "Parsing second response JSON", { secondContentPreview: secondContent.slice(0, 500) });
 
     let parsed: any;
     try {
       parsed = JSON.parse(extractJsonBlock(secondContent));
-    } catch {
+    } catch (err) {
+      logger.warn("runKoruBackendTurn", "Second response JSON parse failed", { error: String(err), secondContentPreview: secondContent.slice(0, 500) });
       const response = contentFallback(secondContent, request.input, toolExecutions);
+      logger.info("runKoruBackendTurn", "Return second-call-invalid-json", { replyPreview: (response.reply ?? "").slice(0, 300), provider, model, fallbackReason });
       return { ...response, provider, model, fallbackReason: fallbackReason ?? "second-call-invalid-json" };
     }
 
@@ -2555,11 +2566,14 @@ export async function runKoruBackendTurn(
 
   // Sin tool calls: parsear la respuesta JSON directamente
   const content = cleanText(firstMessage.content, "No pude componer una respuesta util.");
+  logger.info("runKoruBackendTurn", "Parsing first response JSON", { contentPreview: content.slice(0, 500) });
   let parsed: any;
   try {
     parsed = JSON.parse(extractJsonBlock(content));
-  } catch {
+  } catch (err) {
+    logger.warn("runKoruBackendTurn", "First response JSON parse failed", { error: String(err), contentPreview: content.slice(0, 500) });
     const response = contentFallback(content, request.input, toolExecutions);
+    logger.info("runKoruBackendTurn", "Return first-call-invalid-json", { replyPreview: (response.reply ?? "").slice(0, 300), provider, model, fallbackReason });
     return { ...response, provider, model, fallbackReason: fallbackReason ?? "first-call-invalid-json" };
   }
 
@@ -2585,6 +2599,7 @@ export async function runKoruBackendTurn(
   }
 
   const response = await finalizePayload(request, config, raw, toolExecutions);
+  logger.info("runKoruBackendTurn", "Return first-call", { replyPreview: (response.reply ?? "").slice(0, 300), provider, model, fallbackReason: fallbackReason ?? response.memoryFallbackReason ?? "first-call" });
   return {
     ...response,
     provider,
