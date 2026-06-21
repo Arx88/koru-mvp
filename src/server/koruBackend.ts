@@ -510,7 +510,7 @@ async function callMinimax(
     }),
   }, timeoutMs);
   const data = await response.json().catch(() => ({}));
-  logger.info("callMinimax", `Response HTTP ${response.status}`, { hasContent: !!asRecord(asRecord(asArray(asRecord(data).choices)[0]).message).content, hasTools: asArray(asRecord(asRecord(asArray(asRecord(data).choices)[0]).message).tool_calls).length > 0 });
+  logger.info("callMinimax", `Response HTTP ${response.status}`, { hasContent: !!choice.message?.content, hasTools: asArray(choice.message?.tool_calls).length > 0, contentPreview: (choice.message?.content ?? "").slice(0, 200) });
   if (!response.ok || !hasUsableAssistantMessage(data)) {
     logger.error("callMinimax", `MiniMax returned ${response.status}`, { body: JSON.stringify(data).slice(0, 500) });
     throw new Error(`MiniMax returned ${response.status}`);

@@ -826,6 +826,7 @@ function koruBackendAgent(env: Record<string, string>): Plugin {
             res.statusCode = 200;
             res.setHeader("Content-Type", "application/json");
             res.end(JSON.stringify(result));
+            logger.info("koru-turn", "Response sent", { replyPreview: (result.reply ?? "").slice(0, 200), provider: result.provider, model: result.model });
           }
         } catch (error) {
           logger.error("koru-turn", "Backend error", { error: String(error), stack: error instanceof Error ? error.stack : undefined });
