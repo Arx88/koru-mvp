@@ -1453,7 +1453,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
         state: auditStateSnapshot(result.state),
         delta: auditStateDelta(previousState, result.state),
       });
-      return { response: agentResult.reply, items: result.items, state: result.state, mascotState: agentResult.mascotState };
+      return { response: agentResult.reply, items: result.items, state: result.state, mascotState: agentResult.mascotState, koruTurnId };
     } finally {
       setProcessing(false);
       setActivity(null);
@@ -1490,28 +1490,50 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     setActivity(inferActivity(cleanText));
     try {
       const result = await submitEntry(cleanText, transcriptSource, historyBeforeUser);
-      const koruTurn: KoruChatTurn = {
-        id: createId("turn"),
-        role: "koru",
-        text: result.response,
-        createdAt: new Date().toISOString(),
-        items: result.items,
-        status: "done",
-        mascotState: result.mascotState ?? "idle",
-      };
-      commitChatTurns((prev) => [...prev, koruTurn].slice(-120));
-      writeAuditEvent({
-        type: "koru_message",
-        turn: {
-          id: koruTurn.id,
-          role: koruTurn.role,
-          text: koruTurn.text,
-          createdAt: koruTurn.createdAt,
-          status: koruTurn.status,
-          items: auditTurnItems(koruTurn.items),
-        },
-        stateAfter: auditStateSnapshot(result.state),
-      });
+      if (!result.koruTurnId) {
+        const koruTurn: KoruChatTurn = {
+          id: createId("turn"),
+          role: "koru",
+          text: result.response,
+          createdAt: new Date().toISOString(),
+          items: result.items,
+          status: "done",
+          mascotState: result.mascotState ?? "idle",
+        };
+        commitChatTurns((prev) => [...prev, koruTurn].slice(-120));
+        writeAuditEvent({
+          type: "koru_message",
+          turn: {
+            id: koruTurn.id,
+            role: koruTurn.role,
+            text: koruTurn.text,
+            createdAt: koruTurn.createdAt,
+            status: koruTurn.status,
+            items: auditTurnItems(koruTurn.items),
+          },
+          stateAfter: auditStateSnapshot(result.state),
+        });
+      } else {
+        commitChatTurns((prev) =>
+          prev.map((turn) =>
+            turn.id === result.koruTurnId
+              ? { ...turn, items: result.items, status: "done" as const, mascotState: result.mascotState ?? "idle" }
+              : turn,
+          ),
+        );
+        writeAuditEvent({
+          type: "koru_message",
+          turn: {
+            id: result.koruTurnId,
+            role: "koru",
+            text: result.response,
+            createdAt: new Date().toISOString(),
+            status: "done",
+            items: auditTurnItems(result.items),
+          },
+          stateAfter: auditStateSnapshot(result.state),
+        });
+      }
       const autoWebAction = result.state.actions
         .filter((action) => !previousState.actions.some((existing) => existing.id === action.id))
         .find(shouldAutoRunAction);
