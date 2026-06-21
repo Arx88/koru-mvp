@@ -380,6 +380,14 @@
 }
 
 .koru-action-content {
+  /* margin-top ya no es necesario cuando está dentro de .koru-cards-row */
+}
+
+.koru-cards-row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
   margin-top: 12px;
 }
 

@@ -176,18 +176,22 @@ function KoruTurnBubble({
     <div className="koru-message is-koru">
       <div className="koru-bubble ai-bubble">
         <p className="koru-message-text">{turn.text}</p>
-        {turn.items?.map((item) => (
-          <TurnItemCard
-            key={item.id}
-            item={item}
-            onReview={onReview}
-            onConfirmMemory={onConfirmMemory}
-            onPruneMemory={onPruneMemory}
-            onCompleteCommitment={onCompleteCommitment}
-            onSetWorldSignals={onSetWorldSignals}
-          />
-        ))}
       </div>
+      {turn.items && turn.items.length > 0 && (
+        <div className="koru-cards-row">
+          {turn.items.map((item) => (
+            <TurnItemCard
+              key={item.id}
+              item={item}
+              onReview={onReview}
+              onConfirmMemory={onConfirmMemory}
+              onPruneMemory={onPruneMemory}
+              onCompleteCommitment={onCompleteCommitment}
+              onSetWorldSignals={onSetWorldSignals}
+            />
+          ))}
+        </div>
+      )}
       <div className="koru-meta-row">
         {status && <span>{status}</span>}
         <span>{timeLabel(turn.createdAt)}</span>

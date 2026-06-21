@@ -938,13 +938,6 @@ export function WebNavCardA({ block }: { block: Extract<UiBlock, { type: "web_na
                 </p>
               </div>
             </div>
-            {block.status === "loading" && (
-              <div className="typing-indicator flex items-center h-4">
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
-            )}
           </div>
           {block.status === "loading" && (
             <div className="w-full bg-gray-100/50 rounded-full h-1 mb-3 overflow-hidden">
