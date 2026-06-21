@@ -1762,6 +1762,25 @@ function normalizeUiBlock(value: unknown): UiBlock | null {
       })).filter((item) => item.value).slice(0, 4),
     } : null;
   }
+  if (type === "web_nav") {
+    const results = asArray(block.results).map(asRecord).map((item) => ({
+      title: cleanText(item.title, "Resultado"),
+      source: cleanText(item.source, "Web"),
+      url: cleanText(item.url),
+      type: ["article", "pdf", "description", "page"].includes(cleanText(item.type))
+        ? cleanText(item.type) as Extract<UiBlock, { type: "web_nav" }>["results"][number]["type"]
+        : "page" as const,
+      readTime: cleanText(item.readTime ?? item.read_time),
+    })).filter((item) => item.title && item.url).slice(0, 6);
+    return results.length ? {
+      type: "web_nav" as const,
+      title: cleanText(block.title, "Web Navigation"),
+      status: cleanText(block.status) === "loading" ? "loading" : "complete",
+      query: cleanText(block.query),
+      url: cleanText(block.url),
+      results,
+    } : null;
+  }
   return null;
 }
 

@@ -465,6 +465,20 @@ export type UiBlock =
       title?: string;
       files: AssistantArtifact[];
       summary?: string;
+    }
+  | {
+      type: "web_nav";
+      title?: string;
+      status: "loading" | "complete";
+      query?: string;
+      url?: string;
+      results: Array<{
+        title: string;
+        source: string;
+        url: string;
+        type: "article" | "pdf" | "description" | "page";
+        readTime?: string;
+      }>;
     };
 
 export type AssistantActionStatus = "proposed" | "approved" | "executed" | "rejected";
