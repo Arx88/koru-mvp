@@ -1,7 +1,4 @@
 import {
-  ChevronRight,
-  Globe,
-  Loader2,
   BookOpen,
   CalendarDays,
   Check,
@@ -915,43 +912,57 @@ function ResourceBundleCardA({ block }: { block: Extract<UiBlock, { type: "resou
 
 export function WebNavCardA({ block }: { block: Extract<UiBlock, { type: "web_nav" }> }) {
   return (
-    <div className="koru-web-nav-card koru-stitch-card" data-ui-block="web_nav">
-      <StitchHeader icon={Globe} hint="Web Navigation" title={block.title ?? "Buscando en la web"} tone="blue" />
-      <div className="koru-stitch-content">
-        {block.status === "loading" && (
-          <div className="flex items-center gap-3 bg-gray-50 rounded-2xl p-3 mb-3 border border-gray-100">
-            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 shrink-0">
-              <Loader2 className="w-4 h-4 animate-spin" />
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <p className="text-[13px] font-mono text-gray-600 truncate">
-                {block.url ? `Extrayendo datos de ${block.url}...` : block.query ? `Buscando \"${block.query}\"...` : "Buscando en la web..."}
-              </p>
-            </div>
-          </div>
-        )}
-        <div className="space-y-1">
-          {block.results.map((result, index) => (
-            <a
-              key={`${result.url}-${index}`}
-              href={result.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer group"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <FileText className="text-gray-400 shrink-0" size={18} />
-                <div className="min-w-0">
-                  <p className="text-[13px] font-semibold text-gray-800 truncate">{result.title}</p>
-                  <p className="text-[11px] text-gray-500 truncate">
-                    {result.source}
-                    {result.readTime ? ` \u2022 ${result.readTime}` : null}
-                  </p>
-                </div>
+    <div className="flex relative" data-ui-block="web_nav">
+      <div className="flex flex-col w-full">
+        <div className="flex items-center justify-between mb-2 px-1">
+          <span className="text-[10px] font-extrabold text-blue-500 uppercase tracking-widest flex items-center gap-1">
+            <span className="material-symbols-outlined text-[14px]">public</span> Web Navigation
+          </span>
+        </div>
+        <div className="bg-white rounded-3xl p-4 card-shadow border border-gray-50">
+          {block.status === "loading" && (
+            <div className="flex items-center gap-3 bg-gray-50 rounded-2xl p-3 mb-3 border border-gray-100">
+              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 animate-spin" style={{ animationDuration: "3s" }}>
+                <span className="material-symbols-outlined text-[18px]">sync</span>
               </div>
-              <ChevronRight className="text-gray-300 group-hover:text-gray-500 transition-colors shrink-0" size={18} />
-            </a>
-          ))}
+              <div className="flex-1 overflow-hidden">
+                <p className="text-[13px] font-mono text-gray-600 truncate">
+                  {block.url
+                    ? `Extrayendo datos de ${block.url}...`
+                    : block.query
+                      ? `Buscando "${block.query}"...`
+                      : "Buscando en la web..."}
+                </p>
+              </div>
+            </div>
+          )}
+          {block.results.length > 0 && (
+            <div className="space-y-2">
+              {block.results.map((result, index) => (
+                <a
+                  key={`${result.url}-${index}`}
+                  href={result.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-gray-400 text-[18px]">
+                      {result.type === "article" ? "article" : result.type === "pdf" ? "picture_as_pdf" : "description"}
+                    </span>
+                    <div>
+                      <p className="text-[13px] font-semibold text-gray-800">{result.title}</p>
+                      <p className="text-[11px] text-gray-500">
+                        {result.source}
+                        {result.readTime ? ` \u2022 ${result.readTime}` : null}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="material-symbols-outlined text-gray-300 text-[18px]">chevron_right</span>
+                </a>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
