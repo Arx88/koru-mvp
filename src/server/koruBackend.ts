@@ -1816,6 +1816,22 @@ function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
         });
         continue;
       }
+      if (search.mode === "research" || search.mode === "news" || search.mode === "world") {
+        blocks.push({
+          type: "web_nav" as const,
+          title: search.title,
+          status: "complete" as const,
+          query: search.title,
+          results: search.sources.map((s) => ({
+            title: s.title,
+            source: s.domain,
+            url: s.url,
+            type: "page" as const,
+            snippet: s.snippet,
+          })),
+        });
+        continue;
+      }
       blocks.push({
         type: "research_sources" as const,
         title: search.title,
