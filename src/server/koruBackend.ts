@@ -611,9 +611,9 @@ async function callOpenRouter(config: ProviderConfig, messages: ChatMessage[], t
 function providerResultIsValid(result: ProviderResult): boolean {
   const content = result.message?.content ?? "";
   const trimmed = content.trim();
-  const hasJson = trimmed.startsWith("{") && trimmed.includes('"reply"');
   const hasTools = asArray(result.message?.tool_calls).length > 0;
-  return hasJson || hasTools;
+  const hasContent = trimmed.length > 0;
+  return hasContent || hasTools;
 }
 
 async function callProvider(
