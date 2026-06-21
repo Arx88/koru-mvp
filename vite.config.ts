@@ -1,7 +1,8 @@
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import { runKoruBackendTurn, type KoruBackendTurnRequest, type ProviderConfig } from "./src/server/koruBackend";
 
@@ -742,7 +743,7 @@ function koruAiProxy(env: Record<string, string>): Plugin {
 
 function readMiniMaxToken(): string | undefined {
   try {
-    const tokenPath = join(process.cwd(), "minimax-oauth-token.json");
+    const tokenPath = join(dirname(fileURLToPath(import.meta.url)), "minimax-oauth-token.json");
     if (!existsSync(tokenPath)) return undefined;
     const data = JSON.parse(readFileSync(tokenPath, "utf-8")) as { accessToken?: string };
     return data.accessToken;

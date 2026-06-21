@@ -11,13 +11,15 @@
 import { randomBytes, createHash } from "node:crypto";
 import { writeFileSync, existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const MINIMAX_CLIENT_ID = "78257093-7e40-4613-99e0-527b14b39113";
 const MINIMAX_OAUTH_SCOPE = "group_id profile model.completion";
-const MINIMAX_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:user_code";
+const MINIMAX_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:device_code";
 const OAUTH_BASE = "https://account.minimax.io";
-const TOKEN_FILE = join(process.cwd(), "minimax-oauth-token.json");
+const PROJECT_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
+const TOKEN_FILE = join(PROJECT_ROOT, "minimax-oauth-token.json");
 
 function base64url(buf: Buffer): string {
   return buf.toString("base64url").replace(/=+$/, "");
@@ -33,7 +35,6 @@ function generatePkce() {
 async function requestDeviceCode(challenge: string, state: string) {
   const url = `${OAUTH_BASE}/oauth2/device/code`;
   const body = new URLSearchParams({
-    response_type: "code",
     client_id: MINIMAX_CLIENT_ID,
     scope: MINIMAX_OAUTH_SCOPE,
     code_challenge: challenge,
@@ -187,10 +188,12 @@ async function main() {
 
   while (Date.now() < deadline) {
     await sleep(interval);
+    process.stdout.write(".");
 
     try {
       const token = await pollToken(userCode, verifier);
       if (token) {
+        process.stdout.write("\n");
         const record = {
           accessToken: token.access,
           refreshToken: token.refresh,
@@ -204,6 +207,7 @@ async function main() {
       }
       // pending — continue polling
     } catch (err: any) {
+      process.stdout.write("\n");
       console.error("\n❌ OAuth failed:", err.message);
       process.exit(1);
     }
@@ -211,6 +215,7 @@ async function main() {
     interval = Math.max(interval, 2000);
   }
 
+  process.stdout.write("\n");
   console.error("\n⏰ OAuth timed out. Please run the script again.");
   process.exit(1);
 }
