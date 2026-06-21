@@ -915,7 +915,9 @@ export function WebNavCardA({ block }: { block: Extract<UiBlock, { type: "web_na
     <div className="flex relative" data-ui-block="web_nav">
       <div className="flex flex-col w-full">
         <div className="flex items-center justify-between mb-2 px-1">
-          <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Navegación Web</span>
+          <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">
+            {block.status === "report" ? "Informe Web" : "Navegación Web"}
+          </span>
         </div>
         <div className="glass-card rounded-3xl hover:scale-[1.01] transition-transform duration-300 p-3">
           <div className="flex items-center justify-between mb-2">
@@ -949,23 +951,41 @@ export function WebNavCardA({ block }: { block: Extract<UiBlock, { type: "web_na
               <div className="bg-gradient-to-r from-blue-400 to-koru h-full rounded-full w-2/3 animate-pulse"></div>
             </div>
           )}
-          {block.status === "report" && block.results.length > 0 && (
+          {block.status === "report" && (
             <div className="space-y-3">
-              {block.results.map((result, index) => (
-                <div key={`${result.url}-${index}`} className="p-3 bg-white/40 border border-white/60 rounded-xl">
-                  <div className="flex items-center justify-between mb-1">
-                    <h4 className="text-[13px] font-bold text-gray-900">{result.title}</h4>
-                    <span className="material-symbols-outlined text-[14px] text-koru opacity-70">verified</span>
-                  </div>
-                  {result.snippet && <p className="text-[12px] text-gray-600 leading-snug mb-2">{result.snippet}</p>}
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-semibold text-gray-500">
-                      {result.source}{result.readTime ? ` • ${result.readTime}` : ""}
-                    </span>
-                    <a href={result.url} target="_blank" rel="noopener noreferrer" className="text-[11px] font-bold text-koru hover:underline">Ver artículo →</a>
+              {block.summary && (
+                <div className="text-[12px] text-gray-700 leading-relaxed whitespace-pre-line">
+                  {block.summary}
+                </div>
+              )}
+              {block.findings && block.findings.length > 0 && (
+                <ul className="list-none space-y-1.5">
+                  {block.findings.map((finding, i) => (
+                    <li key={i} className="flex items-start gap-2 text-[12px] text-gray-700">
+                      <span className="mt-1 w-1 h-1 rounded-full bg-koru shrink-0"></span>
+                      <span>{finding}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {block.results.length > 0 && (
+                <div className="pt-2 border-t border-gray-100/50">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Fuentes consultadas</p>
+                  <div className="flex flex-wrap gap-2">
+                    {block.results.map((result, i) => (
+                      <a
+                        key={i}
+                        href={result.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-2 py-1 bg-white/40 border border-white/50 rounded-md text-[10px] font-semibold text-gray-600 hover:bg-white/60 transition-colors"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-koru"></span> {result.source}
+                      </a>
+                    ))}
                   </div>
                 </div>
-              ))}
+              )}
             </div>
           )}
           {block.status !== "report" && block.results.length > 0 && (

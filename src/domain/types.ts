@@ -472,6 +472,8 @@ export type UiBlock =
       status: "loading" | "complete" | "report";
       query?: string;
       url?: string;
+      summary?: string;
+      findings?: string[];
       results: Array<{
         title: string;
         source: string;
