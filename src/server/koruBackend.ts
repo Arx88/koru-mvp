@@ -1416,7 +1416,19 @@ function personalCaptureFromArgs(args: Record<string, unknown>, input = ""): Per
     ],
   };
 }
+const toolResultCache = new Map<string, { result: Record<string, unknown>; expiresAt: number }>();
+
 async function executeTool(name: string, args: Record<string, unknown>, state: KoruState): Promise<Record<string, unknown>> {
+  const CACHE_TTL_MS = name === "weather" ? 600_000 : 300_000; // 10 min weather, 5 min search
+  const cacheKey = JSON.stringify({ name, args: Object.keys(args).sort().reduce((acc, k) => { if (k !== "__userInput") acc[k] = args[k]; return acc; }, {} as Record<string, unknown>) });
+  const cached = toolResultCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.result;
+  const result = await executeToolUncached(name, args, state);
+  toolResultCache.set(cacheKey, { result, expiresAt: Date.now() + CACHE_TTL_MS });
+  return result;
+}
+
+async function executeToolUncached(name: string, args: Record<string, unknown>, state: KoruState): Promise<Record<string, unknown>> {
   if (name === "weather") return getWeather(args) as Promise<unknown> as Promise<Record<string, unknown>>;
   if (name === "web_search") return runSearch(args) as Promise<unknown> as Promise<Record<string, unknown>>;
   if (name === "shopping_compare") return runSearch(args, true) as Promise<unknown> as Promise<Record<string, unknown>>;
