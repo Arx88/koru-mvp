@@ -395,12 +395,30 @@ function safeJsonParse(raw: string): Record<string, unknown> {
   }
 }
 
+function extractJsonBlock(text: string): string {
+  const start = text.indexOf("{");
+  if (start === -1) return text;
+  let depth = 0;
+  let inString = false;
+  let escapeNext = false;
+  for (let i = start; i < text.length; i++) {
+    const c = text[i];
+    if (escapeNext) { escapeNext = false; continue; }
+    if (c === "\\") { escapeNext = true; continue; }
+    if (c === '"' && !inString) { inString = true; continue; }
+    if (c === '"' && inString) { inString = false; continue; }
+    if (inString) continue;
+    if (c === "{") depth++;
+    if (c === "}") { depth--; if (depth === 0) return text.slice(start, i + 1); }
+  }
+  return text;
+}
+
 function safeJsonObjectFromContent(raw: string): Record<string, unknown> {
   const direct = safeJsonParse(raw);
-  if (Object.keys(direct).length) return direct;
-  const start = raw.indexOf("{");
-  const end = raw.lastIndexOf("}");
-  if (start >= 0 && end > start) return safeJsonParse(raw.slice(start, end + 1));
+  if (direct.reply !== undefined || direct.uiBlocks !== undefined) return direct;
+  const extracted = safeJsonParse(extractJsonBlock(raw));
+  if (extracted.reply !== undefined || extracted.uiBlocks !== undefined) return extracted;
   return {};
 }
 
@@ -408,6 +426,8 @@ function cleanReplyText(value: unknown, hasStructuredBlocks = false): string {
   const text = cleanText(value)
     .replace(/\*?\s*uiBlock\s*:\s*[a-z_]+\s*\*?/gi, "")
     .replace(/\buiBlocks?\b\s*[:=]\s*\[[\s\S]*$/i, "")
+    .replace(/\b(reply|understanding|suggestedActions|memoryCandidates|commitments|records|mascotState)\b\s*[:=]\s*\{?[^,}]*}?/gi, "")
+    .replace(/\{[\s\S]*?\}/g, " ")
     .replace(/\b(Hola|Gracias|Perfecto|Listo)(?=[A-ZÁÉÍÓÚÑ])/g, "$1 ")
     .replace(/\s+/g, " ")
     .trim();
@@ -1832,19 +1852,25 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
         continue;
       }
       if (search.mode === "research" || search.mode === "news" || search.mode === "world") {
-        blocks.push({
-          type: "web_nav" as const,
-          title: search.title,
-          status: "complete" as const,
-          query: search.title,
-          results: search.sources.map((s) => ({
-            title: s.title,
-            source: s.domain,
-            url: s.url,
-            type: "page" as const,
-            snippet: s.snippet,
-          })),
-        });
+        const blockedDomains = new Set(["webyansh.com", "studiomeyer.io", "victormisa.com", "idearium.es", "pinterest.com", "instagram.com", "facebook.com"]);
+        const filtered = search.sources
+          .filter((s) => !blockedDomains.has(s.domain.toLowerCase()) && s.url?.startsWith("http"))
+          .slice(0, 5);
+        if (filtered.length) {
+          blocks.push({
+            type: "web_nav" as const,
+            title: search.title,
+            status: "complete" as const,
+            query: search.title,
+            results: filtered.map((s) => ({
+              title: s.title,
+              source: s.domain,
+              url: s.url,
+              type: "page" as const,
+              snippet: s.snippet,
+            })),
+          });
+        }
         continue;
       }
       blocks.push({
@@ -2388,7 +2414,7 @@ export async function runKoruBackendTurn(
     }
 
     // Paso 2: segunda llamada (sin tools) para que el LLM síntetice la respuesta final
-    messages.push({ role: "user", content: "IMPORTANTE: Respondé con el JSON estricto pedido en system prompt. No agregues texto fuera del JSON." });
+    messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }." });
     const secondResult = await callProvider(config, messages, 24_000, false);
     provider = secondResult.provider;
     model = secondResult.model ?? model;
@@ -2396,7 +2422,7 @@ export async function runKoruBackendTurn(
 
     let parsed: any;
     try {
-      parsed = JSON.parse(secondContent);
+      parsed = JSON.parse(extractJsonBlock(secondContent));
     } catch {
       const response = contentFallback(secondContent, request.input, toolExecutions);
       return { ...response, provider, model, fallbackReason: fallbackReason ?? "second-call-invalid-json" };
@@ -2428,7 +2454,7 @@ export async function runKoruBackendTurn(
   const content = cleanText(firstMessage.content, "No pude componer una respuesta util.");
   let parsed: any;
   try {
-    parsed = JSON.parse(content);
+    parsed = JSON.parse(extractJsonBlock(content));
   } catch {
     const response = contentFallback(content, request.input, toolExecutions);
     return { ...response, provider, model, fallbackReason: fallbackReason ?? "first-call-invalid-json" };
