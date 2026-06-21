@@ -1581,7 +1581,7 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
     `  - query_personal_context: "¿Cuánto gasté?" / "¿Qué tenía para comer?" / "¿Recordás que me dijiste?" / Cualquier cosa que Koru ya haya guardado del usuario.`,
     `  - save_memory: Cuando el usuario revela algo importante sobre sí mismo (rutinas, metas, preferencias, relaciones).`,
     `  - save_personal_item: Cuando el usuario pide guardar algo (gasto, recordatorio, lista de compras, alarma).`,
-    `Usá tools solo cuando la intención del usuario REQUIERA datos reales del mundo (clima, búsqueda, ruta, precios).`,
+    `Usá tools SOLO cuando la intención del usuario REQUIERA datos reales del mundo (clima, búsqueda, ruta, precios). Por ejemplo: si el usuario dice 'hola', 'gracias', 'adiós', '¿cómo estás?' o cualquier frase de cortesía, NO uses tools. Respondé directamente con naturalidad.`,
     `- Para datos personales ya guardados, no llames tools; respondé directamente usando el contexto.`,
     `- Agregá mascotState al JSON final Elijí SOLO de esta lista exacta: "celebrating", "worried", "affectionate", "curious", "happy", "thinking", "working", "tired", "sleeping", "mistake", "planning", "product-search", "building", "cooking", "thinking-2". Si nada aplica, usá "idle".`,
     `- Tipos de uiBlocks válidos:`,
@@ -1605,6 +1605,19 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
     `  - mascotState: elegí de la lista exacta.`,
     `Hora actual: ${nowIso}`,
   ].join("\n");
+}
+
+function isTrivialInput(input: string): boolean {
+  const trimmed = input.trim().toLowerCase().replace(/[^a-záéíóúñ\s]/g, "");
+  const trivial = [
+    "hola", "buenos dias", "buen dia", "buenas", "buenas tardes", "buenas noches",
+    "hey", "hi", "hello", "que tal", "como estas", "como va", "todo bien", "que onda",
+    "che", "epa", "alo", "aló", "buen", "epa",
+    "adios", "adiós", "chau", "nos vemos", "hasta luego", "hasta pronto", "bye",
+    "gracias", "muchas gracias", "mil gracias", "genial gracias", "ok gracias", "perfecto gracias",
+    "ok", "vale", "si", "sí", "no", "bien", "todo bien", "genial", "perfecto", "listo",
+  ];
+  return trivial.some(t => trimmed === t || trimmed.startsWith(t + " "));
 }
 
 function cityMemorySuggestion(toolCalls: ProviderToolCall[], state: KoruState): KoruSuggestedAction | null {
@@ -2481,7 +2494,7 @@ export async function runKoruBackendTurn(
   // Paso 1: una sola llamada al LLM con tools habilitadas
   let firstResult: ProviderResult & { fallbackReason?: string };
   try {
-    firstResult = await callProvider(config, messages, 30_000, true);
+    firstResult = await callProvider(config, messages, 30_000, !isTrivialInput(request.input));
   } catch (err: any) {
     logger.error("runKoruBackendTurn", "callProvider failed with tools", { error: err.message });
     if (err instanceof RateLimitError) {
