@@ -1712,7 +1712,7 @@ async function extractMemoryWithJsonPrompt(
   toolExecutions: ToolExecution[],
   composedRaw?: Record<string, unknown>,
 ): Promise<{ raw: Record<string, unknown>; provider: "nvidia" | "openrouter" | "minimax"; model?: string; fallbackReason?: string }> {
-  const result = await callProvider(config, buildMemoryExtractorMessages(request, toolExecutions, composedRaw), 16_000, false);
+  const result = await callProvider(config, buildMemoryExtractorMessages(request, toolExecutions, composedRaw), 40_000, false);
   const content = cleanText(result.message.content);
   const raw = safeJsonObjectFromContent(content);
   return {
