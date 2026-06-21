@@ -159,7 +159,7 @@ const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "weather",
-      description: "Get current weather and daily range for a city. Use for weather, outfit, umbrella, jacket, and what-to-wear questions.",
+      description: "Obtén el clima actual de una ciudad cuando el usuario necesite información sobre condiciones meteorológicas para planificar actividades, vestimenta o desplazamientos. El usuario puede expresar esta necesidad en cualquiera de estas formas: clima, lluvia, nieve, calor, frío, sol, nublado, temporal, outfit, ropa, paraguas, campera, que me pongo, viste, layer, abrigo, o preguntas como '¿Qué tal está afuera?', '¿Necesito chaqueta?', '¿Hace frío?'.",
       parameters: {
         type: "object",
         additionalProperties: false,
@@ -175,7 +175,7 @@ const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "web_search",
-      description: "Search recent web information, news, trends, or general facts with sources.",
+      description: "Busca información actualizada en internet cuando el usuario pregunte sobre algo que ocurre en el mundo exterior y que no está en su contexto personal. Esto incluye: eventos recientes, noticias, figuras públicas, tendencias, avances científicos, datos de mercados, precios de activos, deportes, política, cultura, o cualquier tema que requiera consultar fuentes externas porque cambia con el tiempo. El usuario puede pedir esto de cualquier forma: '¿Qué pasó con...?', '¿Cómo va...?', '¿Quién ganó...?', '¿Cuáles son las últimas...?', o incluso solo mencionando el tema sin pedir explícitamente una búsqueda.",
       parameters: {
         type: "object",
         additionalProperties: false,
@@ -191,7 +191,7 @@ const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "shopping_compare",
-      description: "Compare products with sources, price evidence, constraints, pros and cons.",
+      description: "Compara productos con evidencia de precios, fuentes y pros/contras cuando el usuario esté considerando una compra o necesite evaluar opciones de productos. El usuario puede expresar esto de muchas formas: pidiendo recomendaciones de algo para comprar, mencionando que necesita un producto, comparando dos cosas, buscando la mejor opción, o preguntando dónde comprar algo. También activa cuando el usuario pide review o comparativa de productos técnicos.",
       parameters: {
         type: "object",
         additionalProperties: false,
@@ -208,7 +208,7 @@ const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "plan_day",
-      description: "Build a practical day plan from user context, open commitments, calendar, and energy.",
+      description: "Crea un plan práctico para el día considerando los compromisos abiertos, la energía y el contexto del usuario cuando necesite organizar su tiempo o priorizar tareas. El usuario puede pedir esto de cualquier forma: '¿Cómo organizo hoy?', '¿Qué hago primero?', 'Tengo muchas cosas', '¿Me ayudas a planificar?', '¿En qué orden?', 'Siento que no me da el tiempo', o mencionando múltiples tareas pendientes.",
       parameters: {
         type: "object",
         additionalProperties: false,
@@ -224,7 +224,7 @@ const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "query_personal_context",
-      description: "Read Koru's saved local context to answer questions about spending, food at home, pending tasks, saved links, medical notes, people, or what Koru remembers. Never use for external facts.",
+      description: "Consulta el contexto personal guardado de Koru para responder preguntas sobre gastos, comida en casa, tareas pendientes, links guardados, notas médicas, personas que conoce, o lo que Koru recuerda. Úsala SIEMPRE que la pregunta pueda resolverse con los datos personales del usuario. NO uses esta herramienta para hechos del mundo exterior.",
       parameters: {
         type: "object",
         additionalProperties: false,
@@ -1518,7 +1518,15 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
     ...(state.records?.slice(-8).map(r => `- ${r.title.replace(/[\n\r`]+/g, " ").trim()}${r.value ? ` (${r.value.replace(/[\n\r`]+/g, " ").trim()})` : ""}${r.notes ? ` — ${r.notes.replace(/[\n\r`]+/g, " ").trim()}` : ""} [${r.kind}]`) || ["- Nada guardado aún"]),
     ``,
     `Instrucciones técnicas:`,
-    `- Usá tools solo cuando necesites datos reales del mundo (clima, búsqueda, ruta, precios).`,
+    `Ejemplos de cuándo usar cada herramienta (la forma de preguntar no importa; lo que importa es la intención):`,
+    `  - weather: "¿Qué me pongo?" / "¿Hace frío?" / "¿Llevo paraguas?" / "¿Cómo está afuera?" / "¿Qué tal el día?" / "¿Necesito campera?"`,
+    `  - web_search: "¿Qué pasó en Argentina?" / "¿Cómo va el mundial?" / "¿Quién ganó?" / "¿Últimas noticias de...?" / Solo mencionar un tema actual del mundo exterior.`,
+    `  - shopping_compare: "¿Qué auriculares compro?" / "Necesito una batería externa" / "¿Dónde compro X más barato?" / "¿Cuál es mejor, A o B?"`,
+    `  - plan_day: "¿Cómo organizo hoy?" / "Tengo muchas cosas" / "¿Qué hago primero?" / "¿Me ayudas a planificar?"`,
+    `  - query_personal_context: "¿Cuánto gasté?" / "¿Qué tenía para comer?" / "¿Recordás que me dijiste?" / Cualquier cosa que Koru ya haya guardado del usuario.`,
+    `  - save_memory: Cuando el usuario revela algo importante sobre sí mismo (rutinas, metas, preferencias, relaciones).`,
+    `  - save_personal_item: Cuando el usuario pide guardar algo (gasto, recordatorio, lista de compras, alarma).`,
+    `Usá tools solo cuando la intención del usuario REQUIERA datos reales del mundo (clima, búsqueda, ruta, precios).`,
     `- Para datos personales ya guardados, no llames tools; respondé directamente usando el contexto.`,
     `- Agregá mascotState al JSON final Elijí SOLO de esta lista exacta: "celebrating", "worried", "affectionate", "curious", "happy", "thinking", "working", "tired", "sleeping", "mistake", "planning", "product-search", "building", "cooking", "thinking-2". Si nada aplica, usá "idle".`,
     `- Tipos de uiBlocks válidos:`,
