@@ -15,7 +15,7 @@ function collectOpenRouterKeys(env: Record<string, string>): string[] {
 }
 
 function collectOpenRouterModels(env: Record<string, string>): string[] {
-  const models = (env.OPENROUTER_FALLBACK_MODELS || "google/gemma-4-31b-it:free,openai/gpt-oss-20b:free,openrouter/free")
+  const models = (env.OPENROUTER_FALLBACK_MODELS || "nvidia/nemotron-3-ultra-550b-a55b:free,openai/gpt-oss-120b:free,google/gemma-4-31b-it:free")
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean);
