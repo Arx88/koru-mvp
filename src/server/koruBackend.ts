@@ -23,6 +23,7 @@ export type ProviderConfig = {
   nvidiaModel: string;
   openRouterKeys: string[];
   openRouterModels: string[];
+  minimaxAccessToken?: string;
 };
 
 export type KoruBackendTurnRequest = {
@@ -57,7 +58,7 @@ export type KoruBackendTurnResponse = {
   records: Omit<LifeRecord, "id" | "createdAt" | "sourceEntryId">[];
   toolResults: ToolResult[];
   stateEvents: Array<{ kind: "thinking" | "searching" | "comparing" | "planning" | "saving" | "done"; label: string }>;
-  provider: "nvidia" | "openrouter";
+  provider: "nvidia" | "openrouter" | "minimax";
   model?: string;
   fallbackReason?: string;
   mascotState?: MascotState;
@@ -89,7 +90,7 @@ type ProviderMessage = {
 };
 
 type ProviderResult = {
-  provider: "nvidia" | "openrouter";
+  provider: "nvidia" | "openrouter" | "minimax";
   model?: string;
   message: ProviderMessage;
 };
@@ -481,20 +482,59 @@ function hasUsableAssistantMessage(data: unknown): boolean {
   return Boolean(asString(message.content) || asString(message.reasoning) || asArray(message.tool_calls).length);
 }
 
+async function callMinimax(
+  config: ProviderConfig,
+  messages: ChatMessage[],
+  timeoutMs: number,
+  toolsEnabled = true,
+): Promise<ProviderResult> {
+  const accessToken = config.minimaxAccessToken;
+  if (!accessToken) throw new Error("MiniMax access token not configured");
+  const response = await fetchWithTimeout("https://api.minimax.io/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({
+      model: "MiniMax-M2.7",
+      messages,
+      ...(toolsEnabled ? { tools: TOOL_DEFINITIONS, tool_choice: "auto" } : {}),
+      temperature: 0.25,
+      top_p: 0.95,
+      max_tokens: 8192,
+      stream: false,
+    }),
+  }, timeoutMs);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !hasUsableAssistantMessage(data)) {
+    throw new Error(`MiniMax returned ${response.status}`);
+  }
+  const choice = asRecord(asArray(asRecord(data).choices)[0]);
+  return {
+    provider: "minimax",
+    model: asString(asRecord(data).model) ?? "MiniMax-M2.7",
+    message: asRecord(choice.message) as ProviderMessage,
+  };
+}
+
 async function callNvidia(
   config: ProviderConfig,
   messages: ChatMessage[],
   timeoutMs: number,
   toolsEnabled = true,
 ): Promise<ProviderResult> {
-  if (!config.nvidiaApiKey) throw new Error("NVIDIA API key is not configured.");
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
+  if (config.nvidiaApiKey && config.nvidiaApiKey !== "dummy") {
+    headers.Authorization = `Bearer ${config.nvidiaApiKey}`;
+  }
   const response = await fetchWithTimeout(providerUrl(config.nvidiaBaseUrl, "/v1/chat/completions"), {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${config.nvidiaApiKey}`,
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
+    headers,
     body: JSON.stringify({
       model: config.nvidiaModel,
       messages,
@@ -578,6 +618,26 @@ async function callProvider(
   timeoutMs: number,
   toolsEnabled = true,
 ): Promise<ProviderResult & { fallbackReason?: string }> {
+  if (config.minimaxAccessToken) {
+    try {
+      const minimax = callMinimax(config, messages, Math.min(12_000, timeoutMs), toolsEnabled);
+      const minimaxValidated = minimax.then((result) => {
+        if (providerResultIsValid(result)) return result;
+        throw new Error("minimax-non-structured");
+      });
+      const firstMiniMax = await Promise.race([
+        minimaxValidated.then(
+          (result) => ({ kind: "result" as const, result }),
+          (error) => ({ kind: "error" as const, error }),
+        ),
+        wait(6_000).then(() => ({ kind: "timeout" as const })),
+      ]);
+      if (firstMiniMax.kind === "result") return firstMiniMax.result;
+    } catch {
+      /* fall through to standard flow */
+    }
+  }
+
   if (!config.nvidiaApiKey) {
     return callOpenRouter(config, messages, Math.min(14_000, timeoutMs), toolsEnabled);
   }
@@ -1643,7 +1703,7 @@ async function extractMemoryWithJsonPrompt(
   config: ProviderConfig,
   toolExecutions: ToolExecution[],
   composedRaw?: Record<string, unknown>,
-): Promise<{ raw: Record<string, unknown>; provider: "nvidia" | "openrouter"; model?: string; fallbackReason?: string }> {
+): Promise<{ raw: Record<string, unknown>; provider: "nvidia" | "openrouter" | "minimax"; model?: string; fallbackReason?: string }> {
   const result = await callProvider(config, buildMemoryExtractorMessages(request, toolExecutions, composedRaw), 16_000, false);
   const content = cleanText(result.message.content);
   const raw = safeJsonObjectFromContent(content);
@@ -2299,7 +2359,7 @@ async function finalizePayload(
   config: ProviderConfig,
   raw: Record<string, unknown>,
   toolExecutions: ToolExecution[],
-): Promise<KoruBackendTurnResponse & { memoryFallbackReason?: string; memoryProvider?: "nvidia" | "openrouter"; memoryModel?: string }> {
+): Promise<KoruBackendTurnResponse & { memoryFallbackReason?: string; memoryProvider?: "nvidia" | "openrouter" | "minimax"; memoryModel?: string }> {
   try {
     const extracted = await extractMemoryWithJsonPrompt(request, config, toolExecutions, raw);
     return {
@@ -2418,7 +2478,7 @@ export async function runKoruBackendTurn(
 ): Promise<KoruBackendTurnResponse> {
   const messages = buildMessages(request);
   const toolExecutions: ToolExecution[] = [];
-  let provider: "nvidia" | "openrouter" = "nvidia";
+  let provider: "nvidia" | "openrouter" | "minimax" = "nvidia";
   let model: string | undefined;
   let fallbackReason: string | undefined;
 

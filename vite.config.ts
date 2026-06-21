@@ -1,6 +1,6 @@
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
-import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import { runKoruBackendTurn, type KoruBackendTurnRequest, type ProviderConfig } from "./src/server/koruBackend";
@@ -740,6 +740,17 @@ function koruAiProxy(env: Record<string, string>): Plugin {
   };
 }
 
+function readMiniMaxToken(): string | undefined {
+  try {
+    const tokenPath = join(process.cwd(), "minimax-oauth-token.json");
+    if (!existsSync(tokenPath)) return undefined;
+    const data = JSON.parse(readFileSync(tokenPath, "utf-8")) as { accessToken?: string };
+    return data.accessToken;
+  } catch {
+    return undefined;
+  }
+}
+
 function koruBackendAgent(env: Record<string, string>): Plugin {
   const config: ProviderConfig = {
     nvidiaApiKey: env.NVIDIA_API_KEY?.trim(),
@@ -747,6 +758,7 @@ function koruBackendAgent(env: Record<string, string>): Plugin {
     nvidiaModel: env.NVIDIA_MODEL?.trim() || "nvidia/nemotron-3-ultra-550b-a55b",
     openRouterKeys: collectOpenRouterKeys(env),
     openRouterModels: collectOpenRouterModels(env),
+    minimaxAccessToken: readMiniMaxToken(),
   };
 
   return {
