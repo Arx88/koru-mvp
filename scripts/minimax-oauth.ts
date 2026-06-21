@@ -41,6 +41,16 @@ function generatePkce() {
   return { verifier, challenge, state };
 }
 
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function requestDeviceCode(challenge: string, state: string) {
   const url = `${OAUTH_BASE}/oauth2/device/code`;
   const body = new URLSearchParams({
@@ -51,14 +61,14 @@ async function requestDeviceCode(challenge: string, state: string) {
     state,
   });
 
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
       Accept: "application/json",
     },
     body: body.toString(),
-  });
+  }, 15_000);
 
   if (!res.ok) {
     const text = await res.text();
@@ -117,14 +127,14 @@ async function pollToken(
     code_verifier: verifier,
   });
 
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
       Accept: "application/json",
     },
     body: body.toString(),
-  });
+  }, 15_000);
 
   const text = await res.text();
   let payload: any;
@@ -213,9 +223,12 @@ async function main(): Promise<number> {
   let interval = intervalMs;
   const deadline = expiresAtMs;
 
+  trace(`entering poll loop, deadline=${new Date(deadline).toISOString()} now=${new Date().toISOString()}`);
   while (Date.now() < deadline) {
+    trace(`poll loop iteration, sleeping ${interval}ms`);
     await sleep(interval);
     process.stdout.write(".");
+    trace("sleep done, about to call pollToken");
 
     try {
       const token = await pollToken(userCode, verifier);
