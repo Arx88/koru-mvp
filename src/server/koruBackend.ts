@@ -419,7 +419,31 @@ function safeJsonObjectFromContent(raw: string): Record<string, unknown> {
   if (direct.reply !== undefined || direct.uiBlocks !== undefined) return direct;
   const extracted = safeJsonParse(extractJsonBlock(raw));
   if (extracted.reply !== undefined || extracted.uiBlocks !== undefined) return extracted;
+  // Dirty extraction: fields individually with regex
+  const reply = extractStringField(raw, "reply");
+  const mascotState = extractStringField(raw, "mascotState") || extractStringField(raw, "mascot_state");
+  if (reply && reply.length > 3) {
+    return { reply, mascotState: mascotState || "idle", uiBlocks: [] };
+  }
   return {};
+}
+
+function extractStringField(raw: string, field: string): string | undefined {
+  const idx = raw.toLowerCase().indexOf(`"${field.toLowerCase()}"`);
+  if (idx === -1) return undefined;
+  let start = raw.indexOf('"', idx + field.length + 2);
+  if (start === -1) return undefined;
+  start++;
+  let i = start;
+  let escaped = false;
+  while (i < raw.length) {
+    const c = raw[i];
+    if (escaped) { escaped = false; i++; continue; }
+    if (c === '\\') { escaped = true; i++; continue; }
+    if (c === '"') break;
+    i++;
+  }
+  return raw.slice(start, i);
 }
 
 function cleanReplyText(value: unknown, hasStructuredBlocks = false): string {
@@ -2238,8 +2262,20 @@ function normalizeFinalPayload(
 
 function contentFallback(content: string, input: string, toolExecutions: ToolExecution[]): KoruBackendTurnResponse {
   const toolBlocks = blocksFromToolResults(toolExecutions);
+  const extracted = safeJsonObjectFromContent(content);
+  if (extracted.reply && typeof extracted.reply === "string" && extracted.reply.length > 3) {
+    return normalizeFinalPayload({
+      reply: cleanReplyText(extracted.reply, toolBlocks.length > 0),
+      understanding: normalizeUnderstanding(extracted.understanding, input),
+      uiBlocks: asArray(extracted.uiBlocks || []),
+      suggestedActions: normalizeSuggestedActions(extracted.suggestedActions),
+      memoryCandidates: normalizeMemoryCandidates(extracted.memoryCandidates),
+      commitments: normalizeCommitments(extracted.commitments),
+      records: normalizeRecords(extracted.records),
+      mascotState: cleanText(extracted.mascotState),
+    }, input, toolExecutions);
+  }
   let reply = cleanReplyText(content, toolBlocks.length > 0);
-  // Si cleanReplyText filtró todo pero el contenido original parece una respuesta real, usalo directamente
   if ((!reply || reply.length < 5) && content && content.length > 5 && !content.trim().startsWith("{")) {
     reply = cleanText(content);
   }
