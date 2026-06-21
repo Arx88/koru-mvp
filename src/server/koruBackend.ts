@@ -529,6 +529,14 @@ async function callOpenRouter(config: ProviderConfig, messages: ChatMessage[], t
   return Promise.any(candidates.map((candidate) => callOpenRouterCandidate(candidate.key, candidate.model, messages, timeoutMs, toolsEnabled)));
 }
 
+function providerResultIsValid(result: ProviderResult): boolean {
+  const content = result.message?.content ?? "";
+  const trimmed = content.trim();
+  const hasJson = trimmed.startsWith("{") && trimmed.includes('"reply"');
+  const hasTools = asArray(result.message?.tool_calls).length > 0;
+  return hasJson || hasTools;
+}
+
 async function callProvider(
   config: ProviderConfig,
   messages: ChatMessage[],
@@ -540,8 +548,12 @@ async function callProvider(
   }
 
   const nvidia = callNvidia(config, messages, timeoutMs, toolsEnabled);
+  const nvidiaValidated = nvidia.then((result) => {
+    if (providerResultIsValid(result)) return result;
+    throw new Error("nvidia-non-structured");
+  });
   const first = await Promise.race([
-    nvidia.then(
+    nvidiaValidated.then(
       (result) => ({ kind: "result" as const, result }),
       (error) => ({ kind: "error" as const, error }),
     ),
@@ -559,7 +571,7 @@ async function callProvider(
     : "NVIDIA exceeded preferred response window";
   try {
     return await Promise.any([
-      nvidia,
+      nvidiaValidated,
       callOpenRouter(config, messages, Math.min(14_000, timeoutMs), toolsEnabled).then((fallback) => ({ ...fallback, fallbackReason })),
     ]);
   } catch {
