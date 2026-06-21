@@ -622,65 +622,41 @@ async function callProvider(
   timeoutMs: number,
   toolsEnabled = true,
 ): Promise<ProviderResult & { fallbackReason?: string }> {
+  // 1) MiniMax primero si está disponible — esperamos completo, sin carrera
   if (config.minimaxAccessToken) {
     try {
-      const minimax = callMinimax(config, messages, Math.min(12_000, timeoutMs), toolsEnabled);
-      const minimaxValidated = minimax.then((result) => {
-        if (providerResultIsValid(result)) return result;
-        throw new Error("minimax-non-structured");
-      });
-      const firstMiniMax = await Promise.race([
-        minimaxValidated.then(
-          (result) => ({ kind: "result" as const, result }),
-          (error) => ({ kind: "error" as const, error }),
-        ),
-        wait(6_000).then(() => ({ kind: "timeout" as const })),
-      ]);
-      if (firstMiniMax.kind === "result") return firstMiniMax.result;
+      const result = await callMinimax(config, messages, Math.min(20_000, timeoutMs), toolsEnabled);
+      if (providerResultIsValid(result)) {
+        logger.info("callProvider", "MiniMax succeeded");
+        return result;
+      }
+      logger.warn("callProvider", "MiniMax responded but invalid, falling through");
     } catch (err: any) {
-      logger.warn("callProvider", "MiniMax failed/timed out, falling through", { reason: err?.message });
-      /* fall through to standard flow */
+      logger.warn("callProvider", "MiniMax failed, falling through", { reason: err?.message });
     }
   }
 
+  // 2) Si no hay NVIDIA, ir directo a OpenRouter
   if (!config.nvidiaApiKey) {
-    return callOpenRouter(config, messages, Math.min(14_000, timeoutMs), toolsEnabled);
+    return callOpenRouter(config, messages, Math.min(18_000, timeoutMs), toolsEnabled);
   }
 
-  const nvidia = callNvidia(config, messages, timeoutMs, toolsEnabled);
-  const nvidiaValidated = nvidia.then((result) => {
-    if (providerResultIsValid(result)) return result;
-    throw new Error("nvidia-non-structured");
-  });
-  const first = await Promise.race([
-    nvidiaValidated.then(
-      (result) => ({ kind: "result" as const, result }),
-      (error) => ({ kind: "error" as const, error }),
-    ),
-    wait(Math.min(5_000, Math.max(2_500, Math.floor(timeoutMs * 0.15)))).then(() => ({ kind: "timeout" as const })),
-  ]);
-
-  if (first.kind === "result") return first.result;
-  if (!config.openRouterKeys.length) {
-    if (first.kind === "error") throw first.error;
-    return nvidia;
-  }
-
-  const fallbackReason = first.kind === "error"
-    ? first.error instanceof Error ? first.error.message : "NVIDIA failed"
-    : "NVIDIA exceeded preferred response window";
-  logger.info("callProvider", fallbackReason);
+  // 3) Intentar NVIDIA
   try {
-    return await Promise.any([
-      nvidiaValidated,
-      callOpenRouter(config, messages, Math.min(14_000, timeoutMs), toolsEnabled).then((fallback) => ({ ...fallback, fallbackReason })),
-    ]);
-  } catch (error) {
-    logger.error("callProvider", "Fallback to OpenRouter failed", { error: String(error) });
-    if (isRateLimitError(error)) throw new RateLimitError("Se alcanzó el límite diario de consultas gratuitas. Probá de nuevo mañana o usá una API key de pago.");
-    const fallback = await callOpenRouter(config, messages, Math.min(18_000, timeoutMs), toolsEnabled);
-    return { ...fallback, fallbackReason };
+    const result = await callNvidia(config, messages, Math.min(20_000, timeoutMs), toolsEnabled);
+    if (providerResultIsValid(result)) return result;
+    logger.warn("callProvider", "NVIDIA responded but invalid, falling back");
+  } catch (err: any) {
+    if (isRateLimitError(err)) throw err;
+    logger.warn("callProvider", "NVIDIA failed, falling back to OpenRouter", { reason: err?.message });
   }
+
+  // 4) Fallback a OpenRouter si existe
+  if (config.openRouterKeys.length) {
+    return callOpenRouter(config, messages, Math.min(18_000, timeoutMs), toolsEnabled);
+  }
+
+  throw new Error("Ningún proveedor de IA respondió. Verificá la conexión o las credenciales.");
 }
 
 class RateLimitError extends Error {
