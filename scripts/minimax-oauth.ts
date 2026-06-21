@@ -92,6 +92,8 @@ async function requestDeviceCode(challenge: string, state: string) {
     throw new Error("State mismatch — possible CSRF");
   }
 
+  trace(`device code raw response: ${JSON.stringify(data)}`);
+
   // MiniMax returns expired_in as relative seconds OR absolute ms.
   const now = Date.now();
   let expiresAtMs: number;
@@ -103,11 +105,19 @@ async function requestDeviceCode(challenge: string, state: string) {
     expiresAtMs = data.expired_in; // already absolute ms
   }
 
+  // RFC 8628 says interval is in seconds, but MiniMax may return absurd values.
+  // Cap anything over 60 seconds to a safe 5-second poll interval.
+  const rawInterval = data.interval ?? 2;
+  const intervalMs = rawInterval > 60 ? 5_000 : rawInterval * 1000;
+  if (rawInterval > 60) {
+    trace(`warn: server returned interval=${rawInterval}capped to 5s`);
+  }
+
   return {
     userCode: data.user_code,
     verificationUrl: data.verification_uri,
     expiresAtMs,
-    intervalMs: (data.interval ?? 2) * 1000,
+    intervalMs,
   };
 }
 
