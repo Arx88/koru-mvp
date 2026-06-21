@@ -771,7 +771,7 @@ function typeToAssistantKind(type?: string): AssistantAction["kind"] {
   if (type === "health_followup" || type === "routine_reminder") return "reminder";
   if (type === "meeting_prep") return "meeting_brief";
   if (type === "subscription_tagging" || type === "transport_tagging") return "money_summary";
-  if (type === "metadata_extraction") return "structured_note";
+  if (type === "metadata_extraction" || type === "save_location") return "structured_note";
   if (type === "meal_suggestion") return "day_plan";
   if (type === "person_followup") return "structured_note";
   return "clarifying_question";

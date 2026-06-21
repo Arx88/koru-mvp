@@ -1465,6 +1465,23 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
   ].join("\n");
 }
 
+function cityMemorySuggestion(toolCalls: ProviderToolCall[], state: KoruState): KoruSuggestedAction | null {
+  const weatherCall = toolCalls.find((call) => call.function.name === "weather");
+  if (!weatherCall) return null;
+  const city = cleanText(JSON.parse(weatherCall.function.arguments ?? "{}").city);
+  if (!city) return null;
+  const cityLower = city.toLowerCase();
+  const alreadySaved = state.memories?.some((m) => m.kind === "profile" && m.text.toLowerCase().includes(cityLower));
+  if (alreadySaved) return null;
+  return {
+    id: `save_city_${cityLower.replace(/\s+/g, "_")}`,
+    label: `¿Agregar ${city} como mi ubicación?`,
+    kind: "save",
+    requiresApproval: false,
+    payload: { enhancementType: "save_location", city },
+  };
+}
+
 function buildMessages(request: KoruBackendTurnRequest): ChatMessage[] {
   const relevantMemories = selectRelevantMemories(
     request.state.memories || [],
@@ -2324,6 +2341,8 @@ export async function runKoruBackendTurn(
       records: asArray(parsed.records || []),
       mascotState: parsed.mascotState,
     };
+    const cityAction = cityMemorySuggestion(toolCalls, request.state);
+    if (cityAction) raw.suggestedActions = [...asArray(raw.suggestedActions), cityAction];
 
     const response = await finalizePayload(request, config, raw, toolExecutions);
     return {
@@ -2354,6 +2373,8 @@ export async function runKoruBackendTurn(
     records: asArray(parsed.records || []),
     mascotState: parsed.mascotState,
   };
+  const cityAction = cityMemorySuggestion(toolCalls, request.state);
+  if (cityAction) raw.suggestedActions = [...asArray(raw.suggestedActions), cityAction];
 
   // Solo si el LLM principal no generó sugerencias, intentar enhancement como fallback
   if (asArray(raw.suggestedActions).length === 0) {
