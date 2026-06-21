@@ -913,7 +913,7 @@ function ResourceBundleCardA({ block }: { block: Extract<UiBlock, { type: "resou
   );
 }
 
-function WebNavCardA({ block }: { block: Extract<UiBlock, { type: "web_nav" }> }) {
+export function WebNavCardA({ block }: { block: Extract<UiBlock, { type: "web_nav" }> }) {
   return (
     <div className="koru-web-nav-card koru-stitch-card" data-ui-block="web_nav">
       <StitchHeader icon={Globe} hint="Web Navigation" title={block.title ?? "Buscando en la web"} tone="blue" />
