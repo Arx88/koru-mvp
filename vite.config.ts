@@ -772,7 +772,7 @@ function koruBackendAgent(env: Record<string, string>): Plugin {
             return;
           }
 
-          const request = JSON.parse(raw || "{}") as KoruBackendTurnRequest;
+          const request = JSON.parse(raw || "{}") as KoruBackendTurnRequest & { stream?: boolean };
           if (!request.input?.trim() || !request.state || !Array.isArray(request.history)) {
             res.statusCode = 400;
             res.setHeader("Content-Type", "application/json");
@@ -781,7 +781,6 @@ function koruBackendAgent(env: Record<string, string>): Plugin {
           }
 
           const startMs = Date.now();
-          const request = JSON.parse(raw || "{}") as KoruBackendTurnRequest & { stream?: boolean };
           const streamEnabled = request.stream === true;
           if (streamEnabled) {
             res.statusCode = 200;
