@@ -494,10 +494,25 @@ async function callMinimax(
   logger.info("callMinimax", "Requesting MiniMax", { model: "MiniMax-M2.7", msgCount: messages.length, toolsEnabled });
   const minimaxMessages = messages.map((m) => {
     if (m.role === "tool") {
-      return {
-        role: "user" as const,
-        content: `Resultado de herramienta (${m.tool_call_id ?? "unknown"}):\n${m.content ?? ""}`,
-      };
+      let content = m.content ?? "";
+      try {
+        const data = JSON.parse(content);
+        if (data.type === "search" && Array.isArray(data.sources)) {
+          const formatted = data.sources
+            .map((s: any, i: number) => {
+              const text = s.content || s.snippet || "";
+              return `${i + 1}. ${s.title} (${s.domain})\n${text}`;
+            })
+            .filter((s: string) => s.trim().length > 3)
+            .join("\n\n");
+          content = formatted || `Búsqueda: ${data.title || ""}`;
+        } else if (data.type === "weather") {
+          content = `Clima - Ciudad: ${data.city || "?"}, Ahora: ${data.now || "?"}, Rango: ${data.range || "?"}, Lluvia: ${data.rain || "?"}, Viento: ${data.wind || "?"}`;
+        }
+      } catch {
+        // mantener contenido original si no es JSON
+      }
+      return { role: "user" as const, content: `Resultado de herramienta (${m.tool_call_id ?? "unknown"}):\n${content}` };
     }
     if (m.role === "assistant" && m.tool_calls) {
       return {
@@ -825,6 +840,22 @@ async function searchGdelt(query: string): Promise<AssistantSource[]> {
     .map((item) => sourceFromUrl(item.title!, item.url!, item.seendate));
 }
 
+async function fetchPageContent(url: string, maxChars = 1200): Promise<string> {
+  try {
+    const res = await fetchWithTimeout(url, { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" } }, 8_000);
+    const html = await res.text();
+    const text = html
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    return text.slice(0, maxChars);
+  } catch {
+    return "";
+  }
+}
+
 async function runSearch(args: Record<string, unknown>, shopping = false): Promise<SearchData> {
   const query = cleanText(args.query, "noticias importantes hoy");
   const mode = shopping ? "shopping" : cleanText(args.mode, "research") as SearchData["mode"];
@@ -837,7 +868,13 @@ async function runSearch(args: Record<string, unknown>, shopping = false): Promi
         : query;
   const gdelt = mode === "news" || mode === "world" ? await searchGdelt(expanded).catch(() => []) : [];
   const duck = gdelt.length ? [] : await searchDuckDuckGo(expanded).catch(() => []);
-  const sources = [...gdelt, ...duck].slice(0, 6);
+  let sources = [...gdelt, ...duck].slice(0, 6);
+  // Scrapear contenido real de las primeras 3 fuentes
+  for (const source of sources.slice(0, 3)) {
+    if (!source.content) {
+      source.content = await fetchPageContent(source.url, 1000);
+    }
+  }
   const comparisonItems = shopping
     ? sources.slice(0, 4).map((source, index) => ({
         title: source.title,
@@ -851,9 +888,7 @@ async function runSearch(args: Record<string, unknown>, shopping = false): Promi
     type: "search",
     mode,
     title: shopping ? "Comparativa" : mode === "news" ? "Noticias importantes" : mode === "world" ? "El mundo esta hablando de esto" : "Busqueda",
-    summary: sources.length
-      ? sources.slice(0, 3).map((s) => s.snippet).filter(Boolean).join(" · ").slice(0, 400) || "Fuentes encontradas."
-      : "No pude conseguir fuentes útiles con los conectores abiertos. No inventes resultados.",
+    summary: sources.length ? "" : "No pude conseguir fuentes útiles con los conectores abiertos. No inventes resultados.",
     sources,
     comparisonItems,
   };
@@ -1570,7 +1605,7 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
     `- Ofrecé un +1: un siguiente paso útil, una pregunta cariñosa, o una observación que se adelante a lo que necesita.`,
     `- El texto puede ser de 1 línea si es simple, o un párrafo corto si es emocional. No te cortés.`,
     `- Las cards (uiBlocks) son para los datos; el texto es para conectar con ${state.userName?.trim() || "mi amigo"}.`,
-    `- Nunca inventes precios, clima, o datos que no tengas. Si no sabés, decilo con naturalidad y ofrecé el siguiente paso.`,
+    `- Nunca inventes datos que no tengas. Si ejecutaste web_search, usá los snippets y contenidos proporcionados para dar un resumen honesto de lo que dicen las fuentes. No inventes detalles, pero SÍ contá lo que encontraste. Si no sabés, decilo con naturalidad y ofrecé el siguiente paso.`,
     `- CRÍTICO: Si una tool externa (clima, búsqueda, ruta, precios) devuelve status "failed" o "not_configured", NO inventés los datos. Decile al usuario honestamente que no pudiste obtener esa información y preguntá si quiere que lo intente de otra forma.`,
     `- CRÍTICO: Si el usuario responde con una ciudad o ubicación directamente después de que preguntaste por clima o tráfico, interpretalo como su ubicación. Ejecutá la tool correspondiente con esa ciudad y guardá esa ciudad como memory de perfil.`,
     `- CRÍTICO: Si el usuario te dice una ciudad, país o barrio y no lo tenés guardado como memoria, incluilo en memoryCandidates como kind: profile.`,
@@ -1983,7 +2018,7 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
             title: search.title,
             status: "complete" as const,
             query: search.title,
-            summary: search.summary,
+            ...(search.summary ? { summary: search.summary } : {}),
             results: filtered.map((s) => ({
               title: s.title,
               source: s.domain,

@@ -253,6 +253,7 @@ export type AssistantSource = {
   url: string;
   domain: string;
   snippet?: string;
+  content?: string;
 };
 
 export type AssistantPlanItem = {
