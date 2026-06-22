@@ -1490,8 +1490,9 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     setActivity(inferActivity(cleanText));
     try {
       const result = await submitEntry(cleanText, transcriptSource, historyBeforeUser);
+      let koruTurn: KoruChatTurn | undefined;
       if (!result.koruTurnId) {
-        const koruTurn: KoruChatTurn = {
+        koruTurn = {
           id: createId("turn"),
           role: "koru",
           text: result.response,
@@ -1500,7 +1501,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
           status: "done",
           mascotState: result.mascotState ?? "idle",
         };
-        commitChatTurns((prev) => [...prev, koruTurn].slice(-120));
+        commitChatTurns((prev) => [...prev, koruTurn!].slice(-120));
         writeAuditEvent({
           type: "koru_message",
           turn: {
@@ -1521,6 +1522,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
               : turn,
           ),
         );
+        koruTurn = chatTurnsRef.current.find((t) => t.id === result.koruTurnId);
         writeAuditEvent({
           type: "koru_message",
           turn: {
