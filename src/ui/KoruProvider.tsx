@@ -1531,11 +1531,18 @@ export function KoruProvider({ children }: { children: ReactNode }) {
         });
       } else {
         commitChatTurns((prev) =>
-          prev.map((turn) =>
-            turn.id === result.koruTurnId
-              ? { ...turn, items: result.items, status: "done" as const, mascotState: result.mascotState ?? "idle" }
-              : turn,
-          ),
+          prev.map((turn) => {
+            if (turn.id !== result.koruTurnId) return turn;
+            const existingItems = turn.items ?? [];
+            const mergedItems: KoruTurnItem[] = result.items.map((newItem, idx) => {
+              const existing = existingItems[idx];
+              if (existing && existing.uiBlock?.type === newItem.uiBlock?.type) {
+                return { ...newItem, id: existing.id };
+              }
+              return newItem;
+            });
+            return { ...turn, items: mergedItems, status: "done" as const, mascotState: result.mascotState ?? "idle" };
+          }),
         );
         koruTurn = chatTurnsRef.current.find((t) => t.id === result.koruTurnId);
         writeAuditEvent({
