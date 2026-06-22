@@ -900,12 +900,6 @@ async function runSearch(args: Record<string, unknown>, shopping = false): Promi
   const gdelt = mode === "news" || mode === "world" ? await searchGdelt(expanded).catch(() => []) : [];
   const duck = gdelt.length ? [] : await searchDuckDuckGo(expanded).catch(() => []);
   let sources = [...gdelt, ...duck].slice(0, 6);
-  // Scrapear contenido real de las primeras 3 fuentes
-  for (const source of sources.slice(0, 3)) {
-    if (!source.content) {
-      source.content = await fetchPageContent(source.url, 1000);
-    }
-  }
   const comparisonItems = shopping
     ? sources.slice(0, 4).map((source, index) => ({
         title: source.title,
@@ -2616,33 +2610,84 @@ export async function runKoruBackendTurn(
     };
     onChunk?.(loadingChunk);
 
-    const delivered = await executeProviderToolCalls(toolCalls, messages, request, toolExecutions);
+    messages.push({ role: "assistant", content: "", tool_calls: toolCalls });
+    let delivered: Record<string, unknown> | null = null;
+    for (const call of toolCalls) {
+      const name = call.function.name;
+      const args = { ...toolCallArgs(call), __userInput: request.input };
+      if (name === "deliver_response") {
+        delivered = args;
+        break;
+      }
+
+      let toolResult: Record<string, unknown>;
+      if (name === "web_search") {
+        toolResult = await runSearch(args);
+        const searchResult = toolResult as SearchData;
+        const sources = searchResult.sources;
+        const totalToScrape = Math.min(sources.length, 3);
+
+        if (onChunk && sources.length > 0) {
+          const emptyBlocks = blocksFromToolResults([{ id: call.id, name: "web_search", result: { ...searchResult, sources: sources.map((s) => ({ ...s, content: undefined })) } }]).map((b) => {
+            if (b.type === "web_nav") return { ...b, status: "loading" as const };
+            return b;
+          });
+          onChunk({
+            reply: `Encontré ${sources.length} fuentes. Empezando a leer...`,
+            uiBlocks: emptyBlocks,
+            suggestedActions: [],
+            understanding: { literalRequest: request.input, userGoal: "Búsqueda web", unstatedNeeds: [], assumptions: [], confidence: 0.8 },
+            memoryCandidates: [],
+            commitments: [],
+            records: [],
+            toolResults: [],
+            stateEvents: [{ kind: "searching" as const, label: `Buscando en ${sources.map((s) => s.domain).join(", ")}` }],
+            mascotState: "working",
+            provider,
+            model,
+            fallbackReason,
+          });
+        }
+
+        for (let i = 0; i < totalToScrape; i++) {
+          const source = sources[i];
+          source.content = await fetchPageContent(source.url, 1000);
+
+          const partialSources = sources.map((s, idx) => ({ ...s, content: idx <= i ? s.content : undefined }));
+          const partialResult = { ...searchResult, sources: partialSources };
+          const partialBlocks = blocksFromToolResults([{ id: call.id, name: "web_search", result: partialResult }]).map((b) => {
+            if (b.type === "web_nav") return { ...b, status: "loading" as const };
+            return b;
+          });
+
+          if (onChunk) {
+            onChunk({
+              reply: `Visitando ${source.domain}...`,
+              uiBlocks: partialBlocks,
+              suggestedActions: [],
+              understanding: { literalRequest: request.input, userGoal: "Búsqueda web", unstatedNeeds: [], assumptions: [], confidence: 0.8 },
+              memoryCandidates: [],
+              commitments: [],
+              records: [],
+              toolResults: [],
+              stateEvents: [{ kind: "searching" as const, label: `${source.domain} (${i + 1}/${totalToScrape})` }],
+              mascotState: "working",
+              provider,
+              model,
+              fallbackReason,
+            });
+          }
+        }
+      } else {
+        toolResult = await executeTool(name, args, request.state);
+      }
+
+      toolExecutions.push({ id: call.id, name, result: toolResult });
+      messages.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify(toolResult) });
+    }
     if (delivered) {
       const response = await finalizePayload(request, config, delivered, toolExecutions);
       return { ...response, provider, model, fallbackReason: fallbackReason ?? response.memoryFallbackReason };
-    }
-
-    // Emitir chunk intermedio con los resultados de tools para progreso en tiempo real
-    if (onChunk && toolExecutions.length > 0) {
-      const intermediateBlocks = blocksFromToolResults(toolExecutions).map((b) => {
-        if (b.type === "web_nav") return { ...b, status: "loading" as const };
-        return b;
-      });
-      onChunk({
-        reply: query ? `Encontré fuentes para "${query}"...` : "Encontré fuentes...",
-        uiBlocks: intermediateBlocks,
-        suggestedActions: [],
-        understanding: { literalRequest: request.input, userGoal: "Búsqueda web", unstatedNeeds: [], assumptions: [], confidence: 0.8 },
-        memoryCandidates: [],
-        commitments: [],
-        records: [],
-        toolResults: [],
-        stateEvents: [{ kind: "searching" as const, label: query ? `Analizando "${query}"` : "Analizando resultados" }],
-        mascotState: "working",
-        provider,
-        model,
-        fallbackReason,
-      });
     }
 
     // Paso 2: segunda llamada (sin tools) para que el LLM síntetice la respuesta final
