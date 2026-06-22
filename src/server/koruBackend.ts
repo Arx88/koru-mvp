@@ -660,7 +660,7 @@ async function callProvider(
   // 1) MiniMax primero si está disponible — esperamos completo, sin carrera
   if (config.minimaxAccessToken) {
     try {
-      const result = await callMinimax(config, messages, Math.min(20_000, timeoutMs), toolsEnabled);
+      const result = await callMinimax(config, messages, timeoutMs, toolsEnabled);
       if (providerResultIsValid(result)) {
         logger.info("callProvider", "MiniMax succeeded");
         return result;
