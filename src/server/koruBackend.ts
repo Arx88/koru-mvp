@@ -492,6 +492,21 @@ async function callMinimax(
   const accessToken = config.minimaxAccessToken;
   if (!accessToken) throw new Error("MiniMax access token not configured");
   logger.info("callMinimax", "Requesting MiniMax", { model: "MiniMax-M2.7", msgCount: messages.length, toolsEnabled });
+  const minimaxMessages = messages.map((m) => {
+    if (m.role === "tool") {
+      return {
+        role: "user" as const,
+        content: `Resultado de herramienta (${m.tool_call_id ?? "unknown"}):\n${m.content ?? ""}`,
+      };
+    }
+    if (m.role === "assistant" && m.tool_calls) {
+      return {
+        role: "assistant" as const,
+        content: m.content ?? `Voy a usar herramientas: ${m.tool_calls.map((t) => t.function.name).join(", ")}`,
+      };
+    }
+    return { role: m.role, content: m.content ?? "" };
+  });
   const response = await fetchWithTimeout("https://api.minimax.io/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -501,7 +516,7 @@ async function callMinimax(
     },
     body: JSON.stringify({
       model: "MiniMax-M2.7",
-      messages,
+      messages: minimaxMessages,
       ...(toolsEnabled ? { tools: TOOL_DEFINITIONS, tool_choice: "auto" } : {}),
       temperature: 0.25,
       top_p: 0.95,
@@ -837,8 +852,8 @@ async function runSearch(args: Record<string, unknown>, shopping = false): Promi
     mode,
     title: shopping ? "Comparativa" : mode === "news" ? "Noticias importantes" : mode === "world" ? "El mundo esta hablando de esto" : "Busqueda",
     summary: sources.length
-      ? "Fuentes abiertas encontradas. Koru debe sintetizar con cautela y ofrecer el siguiente paso."
-      : "No pude conseguir fuentes utiles con los conectores abiertos. No inventes resultados.",
+      ? sources.slice(0, 3).map((s) => s.snippet).filter(Boolean).join(" · ").slice(0, 400) || "Fuentes encontradas."
+      : "No pude conseguir fuentes útiles con los conectores abiertos. No inventes resultados.",
     sources,
     comparisonItems,
   };
