@@ -1411,17 +1411,32 @@ export function KoruProvider({ children }: { children: ReactNode }) {
         } else {
           const isDone = chunk.stateEvents?.some((e) => e.kind === "done");
           commitChatTurns((prev) =>
-            prev.map((turn) =>
-              turn.id === koruTurnId
-                ? {
-                    ...turn,
-                    text: chunk.reply,
-                    items: blocksToItems(chunk.uiBlocks),
-                    mascotState: chunk.mascotState ?? turn.mascotState,
-                    status: isDone ? ("done" as const) : ("working" as const),
-                  }
-                : turn,
-            ),
+            prev.map((turn) => {
+              if (turn.id !== koruTurnId) return turn;
+              const existingItems = turn.items ?? [];
+              const newBlocks = chunk.uiBlocks ?? [];
+              const mergedItems: KoruTurnItem[] = newBlocks.map((block, idx) => {
+                const existing = existingItems[idx];
+                if (existing && existing.uiBlock?.type === block.type) {
+                  return { ...existing, uiBlock: block, text: (block as any).title ?? (block as any).query ?? "" };
+                }
+                return {
+                  id: createId("item"),
+                  kind: "action" as const,
+                  tag: block.type,
+                  text: (block as any).title ?? (block as any).query ?? "",
+                  status: "working" as const,
+                  uiBlock: block,
+                };
+              });
+              return {
+                ...turn,
+                text: chunk.reply,
+                items: mergedItems,
+                mascotState: chunk.mascotState ?? turn.mascotState,
+                status: isDone ? ("done" as const) : ("working" as const),
+              };
+            }),
           );
         }
       });

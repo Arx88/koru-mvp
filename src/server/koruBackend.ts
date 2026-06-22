@@ -2632,6 +2632,7 @@ export async function runKoruBackendTurn(
             if (b.type === "web_nav") return { ...b, status: "loading" as const };
             return b;
           });
+          logger.info("runKoruBackendTurn", "Emit chunk: found sources", { sourceCount: sources.length, blockCount: emptyBlocks.length });
           onChunk({
             reply: `Encontré ${sources.length} fuentes. Empezando a leer...`,
             uiBlocks: emptyBlocks,
@@ -2651,6 +2652,7 @@ export async function runKoruBackendTurn(
 
         for (let i = 0; i < totalToScrape; i++) {
           const source = sources[i];
+          logger.info("runKoruBackendTurn", `Scraping ${i + 1}/${totalToScrape}`, { domain: source.domain, url: source.url });
           source.content = await fetchPageContent(source.url, 1000);
 
           const partialSources = sources.map((s, idx) => ({ ...s, content: idx <= i ? s.content : undefined }));
@@ -2659,7 +2661,7 @@ export async function runKoruBackendTurn(
             if (b.type === "web_nav") return { ...b, status: "loading" as const };
             return b;
           });
-
+          logger.info("runKoruBackendTurn", `Emit chunk: scraped ${source.domain}`, { blockCount: partialBlocks.length, contentLength: (source.content ?? "").length });
           if (onChunk) {
             onChunk({
               reply: `Visitando ${source.domain}...`,
