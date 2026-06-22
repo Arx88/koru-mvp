@@ -2556,6 +2556,29 @@ export async function runKoruBackendTurn(
       return { ...response, provider, model, fallbackReason: fallbackReason ?? response.memoryFallbackReason };
     }
 
+    // Emitir chunk intermedio con los resultados de tools para progreso en tiempo real
+    if (onChunk && toolExecutions.length > 0) {
+      const intermediateBlocks = blocksFromToolResults(toolExecutions).map((b) => {
+        if (b.type === "web_nav") return { ...b, status: "loading" as const };
+        return b;
+      });
+      onChunk({
+        reply: query ? `Encontré fuentes para "${query}"...` : "Encontré fuentes...",
+        uiBlocks: intermediateBlocks,
+        suggestedActions: [],
+        understanding: { literalRequest: request.input, userGoal: "Búsqueda web", unstatedNeeds: [], assumptions: [], confidence: 0.8 },
+        memoryCandidates: [],
+        commitments: [],
+        records: [],
+        toolResults: [],
+        stateEvents: [{ kind: "searching" as const, label: query ? `Analizando "${query}"` : "Analizando resultados" }],
+        mascotState: "working",
+        provider,
+        model,
+        fallbackReason,
+      });
+    }
+
     // Paso 2: segunda llamada (sin tools) para que el LLM síntetice la respuesta final
     messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }." });
     const secondResult = await callProvider(config, messages, 24_000, false);
