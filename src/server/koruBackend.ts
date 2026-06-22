@@ -844,7 +844,38 @@ async function fetchPageContent(url: string, maxChars = 1200): Promise<string> {
   try {
     const res = await fetchWithTimeout(url, { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" } }, 8_000);
     const html = await res.text();
-    const text = html
+
+    // Extraer contenido principal: intentar <article>, luego <main>, luego clases comunes
+    let contentHtml = html;
+    const articleMatch = html.match(/<article\b[^>]*>([\s\S]*?)<\/article>/i);
+    if (articleMatch) {
+      contentHtml = articleMatch[1];
+    } else {
+      const mainMatch = html.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i);
+      if (mainMatch) {
+        contentHtml = mainMatch[1];
+      } else {
+        const classMatch = html.match(/<(?:div|section)\b[^>]*\b(?:class|id)="(?:entry-content|article-body|post-content|story-body|content-body|texto-nota|nota-content|article__content|main-content|nota-texto|content-text)[^"]*"[^>]*>([\s\S]*?)<\/\1>/i);
+        if (classMatch) {
+          contentHtml = classMatch[2] ?? classMatch[1];
+        }
+      }
+    }
+
+    // Si no encontramos nada semántico, buscar la zona con más <p> consecutivos
+    if (contentHtml === html) {
+      const pMatches = html.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi);
+      const paragraphs: string[] = [];
+      for (const m of pMatches) {
+        const text = m[1].replace(/<[^>]+>/g, " ").trim();
+        if (text.length > 40) paragraphs.push(text);
+      }
+      if (paragraphs.length > 0) {
+        contentHtml = paragraphs.slice(0, 8).join(" ");
+      }
+    }
+
+    const text = contentHtml
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
       .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
       .replace(/<[^>]+>/g, " ")
