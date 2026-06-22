@@ -1968,6 +1968,7 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
             title: search.title,
             status: "complete" as const,
             query: search.title,
+            summary: search.summary,
             results: filtered.map((s) => ({
               title: s.title,
               source: s.domain,
@@ -2342,24 +2343,25 @@ function normalizeFinalPayload(
   };
 }
 
-function contentFallback(content: string, input: string, toolExecutions: ToolExecution[]): KoruBackendTurnResponse {
-  const toolBlocks = blocksFromToolResults(toolExecutions);
-  const reply = cleanReplyText(content) || "No pude armar una respuesta clara. ¿Me lo repetís de otra forma?";
-  return normalizeFinalPayload({
-    reply,
-    understanding: {
-      literalRequest: input,
-      userGoal: "Resolver el pedido con ayuda de Koru.",
-      unstatedNeeds: [],
-      assumptions: [],
-      confidence: 0.45,
-    },
-    uiBlocks: toolBlocks,
-    suggestedActions: [],
-    memoryCandidates: [],
-    commitments: [],
-    records: [],
-  }, input, toolExecutions);
+
+async function finalizeFromPlainText(
+  raw: Record<string, unknown>,
+  toolCalls: ProviderToolCall[],
+  request: KoruBackendTurnRequest,
+  config: ProviderConfig,
+  toolExecutions: ToolExecution[],
+): Promise<KoruBackendTurnResponse & { memoryFallbackReason?: string; memoryProvider?: "nvidia" | "openrouter" | "minimax"; memoryModel?: string }> {
+  const cityAction = cityMemorySuggestion(toolCalls, request.state);
+  if (cityAction) raw.suggestedActions = [...asArray(raw.suggestedActions || []), cityAction];
+
+  if (asArray(raw.suggestedActions || []).length === 0) {
+    try {
+      const { enhancementActions } = await buildEnhancementInstruction(request, config, toolExecutions);
+      raw.suggestedActions = [...asArray(raw.suggestedActions || []), ...enhancementActions];
+    } catch { /* ignorar */ }
+  }
+
+  return finalizePayload(request, config, raw, toolExecutions);
 }
 
 async function finalizePayload(
@@ -2552,7 +2554,23 @@ export async function runKoruBackendTurn(
       parsed = JSON.parse(extractJsonBlock(secondContent));
     } catch (err) {
       logger.warn("runKoruBackendTurn", "Second response JSON parse failed", { error: String(err), secondContentPreview: secondContent.slice(0, 500) });
-      const response = contentFallback(secondContent, request.input, toolExecutions);
+      const rawFallback: Record<string, unknown> = {
+        reply: cleanReplyText(secondContent) || "No pude armar una respuesta clara. ¿Me lo repetís de otra forma?",
+        understanding: {
+          literalRequest: request.input,
+          userGoal: "Resolver el pedido con ayuda de Koru.",
+          unstatedNeeds: [],
+          assumptions: [],
+          confidence: 0.45,
+        },
+        uiBlocks: blocksFromToolResults(toolExecutions),
+        suggestedActions: [],
+        memoryCandidates: [],
+        commitments: [],
+        records: [],
+        mascotState: "thinking",
+      };
+      const response = await finalizeFromPlainText(rawFallback, toolCalls, request, config, toolExecutions);
       logger.info("runKoruBackendTurn", "Return second-call-invalid-json", { replyPreview: (response.reply ?? "").slice(0, 300), provider, model, fallbackReason });
       return { ...response, provider, model, fallbackReason: fallbackReason ?? "second-call-invalid-json" };
     }
@@ -2587,7 +2605,23 @@ export async function runKoruBackendTurn(
     parsed = JSON.parse(extractJsonBlock(content));
   } catch (err) {
     logger.warn("runKoruBackendTurn", "First response JSON parse failed", { error: String(err), contentPreview: content.slice(0, 500) });
-    const response = contentFallback(content, request.input, toolExecutions);
+    const rawFallback: Record<string, unknown> = {
+      reply: cleanReplyText(content) || "No pude armar una respuesta clara. ¿Me lo repetís de otra forma?",
+      understanding: {
+        literalRequest: request.input,
+        userGoal: "Responder la consulta del usuario.",
+        unstatedNeeds: [],
+        assumptions: [],
+        confidence: 0.45,
+      },
+      uiBlocks: blocksFromToolResults(toolExecutions),
+      suggestedActions: [],
+      memoryCandidates: [],
+      commitments: [],
+      records: [],
+      mascotState: "thinking",
+    };
+    const response = await finalizeFromPlainText(rawFallback, toolCalls, request, config, toolExecutions);
     logger.info("runKoruBackendTurn", "Return first-call-invalid-json", { replyPreview: (response.reply ?? "").slice(0, 300), provider, model, fallbackReason });
     return { ...response, provider, model, fallbackReason: fallbackReason ?? "first-call-invalid-json" };
   }
