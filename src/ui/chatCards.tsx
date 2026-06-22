@@ -916,19 +916,28 @@ export function WebNavCardA({ block }: { block: Extract<UiBlock, { type: "web_na
   const [visibleCount, setVisibleCount] = useState(0);
   const [showSummary, setShowSummary] = useState(false);
 
+  const stableTotalRef = useRef(0);
   useEffect(() => {
-    setVisibleCount(0);
-    setShowSummary(false);
-    if (total === 0) return;
+    if (total === 0) {
+      stableTotalRef.current = 0;
+      setVisibleCount(0);
+      setShowSummary(false);
+      return;
+    }
+    if (total <= stableTotalRef.current) return;
     const timers: number[] = [];
-    for (let i = 1; i <= total; i++) {
-      timers.push(window.setTimeout(() => setVisibleCount(i), i * 500));
+    for (let i = stableTotalRef.current + 1; i <= total; i++) {
+      timers.push(window.setTimeout(() => setVisibleCount(i), (i - stableTotalRef.current) * 500));
     }
-    if (block.summary) {
-      timers.push(window.setTimeout(() => setShowSummary(true), total * 500 + 400));
-    }
+    stableTotalRef.current = total;
     return () => timers.forEach(clearTimeout);
-  }, [block.results, total, block.summary]);
+  }, [total]);
+
+  useEffect(() => {
+    if (!block.summary || stableTotalRef.current < total) return;
+    const timer = window.setTimeout(() => setShowSummary(true), 400);
+    return () => clearTimeout(timer);
+  }, [block.summary, total]);
 
   const progress = total > 0 ? (visibleCount / total) * 100 : 0;
   const currentSource = block.results[visibleCount - 1]?.source ?? "";
