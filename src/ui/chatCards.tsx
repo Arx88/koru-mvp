@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from "react";
 import {
   BookOpen,
   CalendarDays,
@@ -911,6 +912,27 @@ function ResourceBundleCardA({ block }: { block: Extract<UiBlock, { type: "resou
 }
 
 export function WebNavCardA({ block }: { block: Extract<UiBlock, { type: "web_nav" }> }) {
+  const total = block.results.length;
+  const [visibleCount, setVisibleCount] = useState(0);
+  const [showSummary, setShowSummary] = useState(false);
+
+  useEffect(() => {
+    setVisibleCount(0);
+    setShowSummary(false);
+    if (total === 0) return;
+    const timers: number[] = [];
+    for (let i = 1; i <= total; i++) {
+      timers.push(window.setTimeout(() => setVisibleCount(i), i * 500));
+    }
+    if (block.summary) {
+      timers.push(window.setTimeout(() => setShowSummary(true), total * 500 + 400));
+    }
+    return () => timers.forEach(clearTimeout);
+  }, [block.results, total, block.summary]);
+
+  const progress = total > 0 ? (visibleCount / total) * 100 : 0;
+  const currentSource = block.results[visibleCount - 1]?.source ?? "";
+
   return (
     <div className="flex relative" data-ui-block="web_nav">
       <div className="flex flex-col w-full">
@@ -927,63 +949,38 @@ export function WebNavCardA({ block }: { block: Extract<UiBlock, { type: "web_na
               </div>
               <div className="flex flex-col">
                 <p className="text-[13px] font-bold text-gray-900 leading-tight">
-                  {block.status === "loading"
-                    ? "Buscando en la web..."
-                    : block.status === "report"
-                      ? (block.title ?? "Informe")
-                      : (block.title ?? "Resultados")}
+                  {block.title ?? "Resultados"}
                 </p>
                 <p className="text-[11px] text-gray-500 font-medium truncate max-w-[180px]">
-                  {block.query ? `\"${block.query}\"` : (block.url ? `"${block.url}"` : "")}
+                  {block.query ? `\`${block.query}\`` : (block.url ? `"${block.url}"` : "")}
                 </p>
               </div>
             </div>
           </div>
-          {block.status === "loading" && (
-            <div className="w-full bg-gray-100/50 rounded-full h-1 mb-3 overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-400 to-koru h-full rounded-full w-2/3 animate-pulse"></div>
-            </div>
-          )}
-          {block.status === "report" && (
-            <div className="space-y-3">
-              {block.summary && (
-                <div className="text-[12px] text-gray-700 leading-relaxed whitespace-pre-line">
-                  {block.summary}
-                </div>
-              )}
-              {block.findings && block.findings.length > 0 && (
-                <ul className="list-none space-y-1.5">
-                  {block.findings.map((finding, i) => (
-                    <li key={i} className="flex items-start gap-2 text-[12px] text-gray-700">
-                      <span className="mt-1 w-1 h-1 rounded-full bg-koru shrink-0"></span>
-                      <span>{finding}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {block.results.length > 0 && (
-                <div className="pt-2 border-t border-gray-100/50">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Fuentes consultadas</p>
-                  <div className="flex flex-wrap gap-2">
-                    {block.results.map((result, i) => (
-                      <a
-                        key={i}
-                        href={result.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 px-2 py-1 bg-white/40 border border-white/50 rounded-md text-[10px] font-semibold text-gray-600 hover:bg-white/60 transition-colors"
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-koru"></span> {result.source}
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-          {block.status !== "report" && block.results.length > 0 && (
-            <div className="space-y-1.5">
-              {block.results.map((result, index) => (
+
+          {/* Barra de progreso */}
+          <div className="w-full bg-gray-100/50 rounded-full h-1 mb-2 overflow-hidden">
+            <div
+              className="bg-gradient-to-r from-blue-400 to-koru h-full rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+
+          {/* Estado de búsqueda */}
+          <p className="text-[10px] text-gray-500 font-medium mb-2 min-h-[14px]">
+            {visibleCount === 0 && total > 0
+              ? "Iniciando búsqueda..."
+              : visibleCount < total
+                ? `Visitando ${currentSource}...`
+                : total > 0
+                  ? "Búsqueda completa"
+                  : "Buscando..."}
+          </p>
+
+          {/* Resultados apareciendo de a 1 */}
+          {block.results.length > 0 && (
+            <div className="space-y-1.5 mb-2">
+              {block.results.slice(0, visibleCount).map((result, index) => (
                 <a
                   key={`${result.url}-${index}`}
                   href={result.url}
@@ -994,10 +991,20 @@ export function WebNavCardA({ block }: { block: Extract<UiBlock, { type: "web_na
                   <span className="material-symbols-outlined text-[14px] text-gray-400">
                     {result.type === "article" ? "article" : result.type === "pdf" ? "picture_as_pdf" : result.type === "description" ? "language" : "public"}
                   </span>
-                  <span className="text-[11px] font-bold text-gray-600">{result.source}</span>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[11px] font-bold text-gray-600 truncate">{result.source}</span>
+                    <span className="text-[10px] text-gray-500 truncate">{result.title}</span>
+                  </div>
                   <span className="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span>
                 </a>
               ))}
+            </div>
+          )}
+
+          {/* Summary al final */}
+          {showSummary && block.summary && (
+            <div className="text-[12px] text-gray-700 leading-relaxed whitespace-pre-line border-t border-gray-100/50 pt-2 transition-opacity duration-500 opacity-100">
+              {block.summary}
             </div>
           )}
         </div>
