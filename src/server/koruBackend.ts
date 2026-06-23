@@ -2867,10 +2867,13 @@ export async function runKoruBackendTurn(
     }
   }
 
-  // Paso 1: una sola llamada al LLM con tools habilitadas
+  const isOllama = config.nvidiaBaseUrl.includes(":11434") || config.nvidiaBaseUrl.includes("ollama");
+  const firstTimeout = isOllama ? 60_000 : 30_000;
+
+  // Paso 1: una sola llamada al LLM con tools habilitadas (excepto Ollama, que usa native JSON)
   let firstResult: ProviderResult & { fallbackReason?: string };
   try {
-    firstResult = await callProvider(config, messages, 30_000, !isTrivialInput(request.input));
+    firstResult = await callProvider(config, messages, firstTimeout, !isOllama && !isTrivialInput(request.input));
   } catch (err: any) {
     logger.error("runKoruBackendTurn", "callProvider failed with tools", { error: err.message });
     if (err instanceof RateLimitError) {
