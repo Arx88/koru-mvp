@@ -882,11 +882,27 @@ function koruBackendAgent(env: Record<string, string>): Plugin {
           }
         } catch (error) {
           logger.error("koru-turn", "Backend error", { error: String(error), stack: error instanceof Error ? error.stack : undefined });
-          res.statusCode = 502;
-          res.setHeader("Content-Type", "application/json");
-          res.end(JSON.stringify({
-            error: error instanceof Error ? error.message : "Fallo el loop de agente de Koru.",
-          }));
+          if (res.headersSent) {
+            res.write(JSON.stringify({
+              error: error instanceof Error ? error.message : "Fallo el loop de agente de Koru.",
+              reply: "No pude procesar tu mensaje. El modelo no respondió a tiempo.",
+              uiBlocks: [],
+              suggestedActions: [],
+              understanding: { literalRequest: "", userGoal: "error", unstatedNeeds: [], assumptions: [], confidence: 0 },
+              memoryCandidates: [], commitments: [], records: [], toolResults: [],
+              stateEvents: [{ kind: "done", label: "Error" }],
+              mascotState: "tired",
+              provider: "nvidia",
+              fallbackReason: "server-error",
+            }) + "\n");
+            res.end();
+          } else {
+            res.statusCode = 502;
+            res.setHeader("Content-Type", "application/json");
+            res.end(JSON.stringify({
+              error: error instanceof Error ? error.message : "Fallo el loop de agente de Koru.",
+            }));
+          }
         }
       });
     },

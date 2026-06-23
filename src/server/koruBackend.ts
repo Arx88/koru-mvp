@@ -1957,7 +1957,7 @@ async function extractMemoryWithJsonPrompt(
   composedRaw?: Record<string, unknown>,
 ): Promise<{ raw: Record<string, unknown>; provider: "nvidia" | "openrouter" | "minimax"; model?: string; fallbackReason?: string }> {
   const pp = inferProviderFromModel(request.model);
-  const result = await callProvider(config, buildMemoryExtractorMessages(request, toolExecutions, composedRaw), 40_000, false, pp);
+  const result = await callProvider(config, buildMemoryExtractorMessages(request, toolExecutions, composedRaw), extractorTimeout, false, pp);
   const content = cleanText(result.message.content);
   const raw = safeJsonObjectFromContent(content);
   return {
@@ -2715,7 +2715,8 @@ async function buildEnhancementInstruction(
 
     const chatFn = async (messages: { role: string; content: string }[], _options: { temperature: number; maxTokens: number }) => {
       const pp = inferProviderFromModel(request.model);
-      const result = await callProvider(config, messages.map((m) => ({ role: m.role as "system" | "user", content: m.content })), 8_000, false, pp);
+      const chatTimeout = isOllamaUrl(config.nvidiaBaseUrl) ? 60_000 : 8_000;
+      const result = await callProvider(config, messages.map((m) => ({ role: m.role as "system" | "user", content: m.content })), chatTimeout, false, pp);
       return { content: result.message.content ?? "" };
     };
 
@@ -2888,7 +2889,7 @@ export async function runKoruBackendTurn(
             return { ...response, provider, model, fallbackReason: "router-" + route.category };
           }
           messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }." });
-          const secondResult = await callProvider(config, messages, 30_000, false, preferredProvider);
+          const secondResult = await callProvider(config, messages, secondaryTimeout, false, preferredProvider);
           provider = secondResult.provider;
           model = secondResult.model ?? model;
           const secondContent = cleanText(secondResult.message.content, "No pude componer una respuesta util.");
@@ -2925,7 +2926,9 @@ export async function runKoruBackendTurn(
   }
 
   const isOllama = config.nvidiaBaseUrl.includes(":11434") || config.nvidiaBaseUrl.includes("ollama");
-  const firstTimeout = isOllama ? 60_000 : 30_000;
+  const firstTimeout = isOllama ? 90_000 : 30_000;
+  const secondaryTimeout = isOllama ? 120_000 : 30_000;
+  const extractorTimeout = isOllama ? 120_000 : 40_000;
 
   // Paso 1: una sola llamada al LLM con tools habilitadas (excepto Ollama, que usa native JSON)
   let firstResult: ProviderResult & { fallbackReason?: string };
@@ -2937,7 +2940,7 @@ export async function runKoruBackendTurn(
       return { reply: err.message, uiBlocks: [], suggestedActions: [], understanding: { literalRequest: request.input, userGoal: "Rate limit", unstatedNeeds: [], assumptions: [], confidence: 0 }, memoryCandidates: [], commitments: [], records: [], toolResults: [], stateEvents: [], mascotState: "tired", provider: "openrouter", model: "rate-limited", fallbackReason: "rate-limit" };
     }
     // Fallback sin tools si el modelo no las soporta o devolvió respuesta vacía
-    firstResult = await callProvider(config, messages, 30_000, false, preferredProvider);
+    firstResult = await callProvider(config, messages, secondaryTimeout, false, preferredProvider);
     fallbackReason = (fallbackReason ? fallbackReason + " + " : "") + "no-tools-fallback";
   }
   provider = firstResult.provider;
@@ -3007,7 +3010,7 @@ export async function runKoruBackendTurn(
     messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }." });
     const deferredCards = (toolExecutions as ToolExecution[] & { __deferredDataCards?: Array<Promise<UiBlock | null>> }).__deferredDataCards ?? [];
     const [secondResult, ...resolvedCards] = await Promise.all([
-      callProvider(config, messages, 30_000, false),
+      callProvider(config, messages, secondaryTimeout, false),
       ...deferredCards,
     ]);
     provider = secondResult.provider;
@@ -3109,7 +3112,7 @@ export async function runKoruBackendTurn(
     }
     // Paso 2: segunda llamada (sin tools) para que el LLM síntetice la respuesta final.
     messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }." });
-    const secondResult = await callProvider(config, messages, 30_000, false, preferredProvider);
+    const secondResult = await callProvider(config, messages, secondaryTimeout, false, preferredProvider);
     provider = secondResult.provider;
     model = secondResult.model ?? model;
     const secondContent = cleanText(secondResult.message.content, "No pude componer una respuesta util.");
