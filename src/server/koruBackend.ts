@@ -736,7 +736,8 @@ async function callProvider(
 
   // 3) Intentar NVIDIA
   try {
-    const result = await callNvidia(config, messages, Math.min(20_000, timeoutMs), toolsEnabled);
+    const isOllama = config.nvidiaBaseUrl.includes(":11434") || config.nvidiaBaseUrl.includes("ollama");
+    const result = await callNvidia(config, messages, Math.min(isOllama ? 90_000 : 20_000, timeoutMs), toolsEnabled);
     if (providerResultIsValid(result)) return result;
     logger.warn("callProvider", "NVIDIA responded but invalid, falling back");
   } catch (err: any) {
