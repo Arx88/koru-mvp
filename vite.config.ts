@@ -910,7 +910,7 @@ export default defineConfig(({ mode }) => {
     plugins: [koruBackendAgent(env), koruAiProxy(env), koruWebProxy(env), koruAuditLogger(), tailwindcss(), react()],
     server: {
       host: "0.0.0.0",
-      port: 5173,
+      port: 5200,
       watch: {
         ignored: ["**/manual-audits/**"],
       },
