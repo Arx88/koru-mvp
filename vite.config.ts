@@ -774,20 +774,45 @@ function koruBackendAgent(env: Record<string, string>): Plugin {
           res.end();
           return;
         }
-        try {
-          const ollamaUrl = config.nvidiaBaseUrl.replace("/v1", "").replace(/\/$/, "");
-          const response = await fetch(ollamaUrl + "/api/tags", { method: "GET" });
-          if (!response.ok) throw new Error("Ollama no respondió");
-          const data = await response.json();
-          const models = (data.models || []).map((m: any) => m.name).filter(Boolean);
-          res.statusCode = 200;
-          res.setHeader("Content-Type", "application/json");
-          res.end(JSON.stringify({ models }));
-        } catch {
-          res.statusCode = 200;
-          res.setHeader("Content-Type", "application/json");
-          res.end(JSON.stringify({ models: ["koru-qwen-32k", "qwen3.6:27b", "koru-gemma-16k", "llama3.1:8b", "deepseek-r1:32b"] }));
+        const predefined: Array<{ id: string; provider: string; label: string }> = [];
+        if (config.minimaxAccessToken) {
+          predefined.push({ id: "MiniMax-M2.7", provider: "minimax", label: "MiniMax M2.7" });
         }
+        if (config.nvidiaApiKey) {
+          predefined.push({ id: config.nvidiaModel, provider: "nvidia", label: "NVIDIA Nemotron 3 Ultra" });
+        }
+        for (const m of config.openRouterModels.slice(0, 3)) {
+          predefined.push({ id: m, provider: "openrouter", label: m });
+        }
+        try {
+          const isOllama = config.nvidiaBaseUrl.includes(":11434") || config.nvidiaBaseUrl.includes("ollama");
+          if (isOllama) {
+            const ollamaUrl = config.nvidiaBaseUrl.replace("/v1", "").replace(/\/$/, "");
+            const response = await fetch(ollamaUrl + "/api/tags", { method: "GET" });
+            if (response.ok) {
+              const data = await response.json();
+              const dynamic = (data.models || []).map((m: any) => ({
+                id: m.name,
+                provider: "ollama",
+                label: m.name,
+              })).filter((m: any) => m.id);
+              res.statusCode = 200;
+              res.setHeader("Content-Type", "application/json");
+              res.end(JSON.stringify({ models: [...predefined, ...dynamic] }));
+              return;
+            }
+          }
+        } catch { /* fallthrough */ }
+        const fallback = [
+          { id: "koru-qwen-32k:latest", provider: "ollama", label: "Koru Qwen 32k" },
+          { id: "qwen3.6:27b", provider: "ollama", label: "Qwen 3.6 27B" },
+          { id: "koru-gemma-16k:latest", provider: "ollama", label: "Koru Gemma 16k" },
+          { id: "llama3.1:8b", provider: "ollama", label: "Llama 3.1 8B" },
+          { id: "deepseek-r1:32b", provider: "ollama", label: "DeepSeek R1 32B" },
+        ];
+        res.statusCode = 200;
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify({ models: [...predefined, ...fallback] }));
       });
 
       server.middlewares.use("/api/koru/turn", async (req, res) => {

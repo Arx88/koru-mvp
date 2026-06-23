@@ -711,13 +711,60 @@ function providerResultIsValid(result: ProviderResult): boolean {
   return hasContent || hasTools;
 }
 
+function isOllamaUrl(baseUrl: string): boolean {
+  return baseUrl.includes(":11434") || baseUrl.includes("ollama");
+}
+
+function inferProviderFromModel(model: string | undefined): "minimax" | "nvidia" | "openrouter" | undefined {
+  if (!model) return undefined;
+  if (model === "MiniMax-M2.7") return "minimax";
+  if (model.includes(":" ) && !model.includes("/")) return "nvidia"; // Ollama models
+  if (model.includes("/") && model.includes(":")) return "openrouter"; // OpenRouter free models
+  if (model.startsWith("nvidia/")) return "nvidia";
+  if (model.startsWith("koru-") || model.startsWith("qwen") || model.startsWith("llama") || model.startsWith("deepseek") || model.startsWith("gemma")) return "nvidia";
+  return undefined;
+}
+
 async function callProvider(
   config: ProviderConfig,
   messages: ChatMessage[],
   timeoutMs: number,
   toolsEnabled = true,
+  preferredProvider?: "minimax" | "nvidia" | "openrouter",
 ): Promise<ProviderResult & { fallbackReason?: string }> {
-  // 1) MiniMax primero si está disponible — esperamos completo, sin carrera
+  const isOllama = isOllamaUrl(config.nvidiaBaseUrl);
+  const nvidiaAvailable = Boolean(config.nvidiaApiKey) || isOllama;
+
+  // SALTO DIRECTO si el usuario eligió un provider específico
+  if (preferredProvider === "minimax" && config.minimaxAccessToken) {
+    try {
+      const result = await callMinimax(config, messages, timeoutMs, toolsEnabled);
+      if (providerResultIsValid(result)) {
+        logger.info("callProvider", "Preferred MiniMax succeeded");
+        return result;
+      }
+      logger.warn("callProvider", "Preferred MiniMax responded but invalid, falling through");
+    } catch (err: any) {
+      logger.warn("callProvider", "Preferred MiniMax failed, falling through", { reason: err?.message });
+    }
+  }
+
+  if (preferredProvider === "nvidia" && nvidiaAvailable) {
+    try {
+      const result = await callNvidia(config, messages, Math.min(isOllama ? 90_000 : 20_000, timeoutMs), toolsEnabled);
+      if (providerResultIsValid(result)) return result;
+      logger.warn("callProvider", "Preferred NVIDIA responded but invalid, falling back");
+    } catch (err: any) {
+      if (isRateLimitError(err)) throw err;
+      logger.warn("callProvider", "Preferred NVIDIA failed, falling back", { reason: err?.message });
+    }
+  }
+
+  if (preferredProvider === "openrouter" && config.openRouterKeys.length) {
+    return callOpenRouter(config, messages, Math.min(18_000, timeoutMs), toolsEnabled);
+  }
+
+  // FLUJO NORMAL (sin preferencia o preferencia fallida)
   if (config.minimaxAccessToken) {
     try {
       const result = await callMinimax(config, messages, timeoutMs, toolsEnabled);
@@ -731,14 +778,11 @@ async function callProvider(
     }
   }
 
-  // 2) Si no hay NVIDIA, ir directo a OpenRouter
-  if (!config.nvidiaApiKey) {
+  if (!nvidiaAvailable) {
     return callOpenRouter(config, messages, Math.min(18_000, timeoutMs), toolsEnabled);
   }
 
-  // 3) Intentar NVIDIA
   try {
-    const isOllama = config.nvidiaBaseUrl.includes(":11434") || config.nvidiaBaseUrl.includes("ollama");
     const result = await callNvidia(config, messages, Math.min(isOllama ? 90_000 : 20_000, timeoutMs), toolsEnabled);
     if (providerResultIsValid(result)) return result;
     logger.warn("callProvider", "NVIDIA responded but invalid, falling back");
@@ -747,7 +791,6 @@ async function callProvider(
     logger.warn("callProvider", "NVIDIA failed, falling back to OpenRouter", { reason: err?.message });
   }
 
-  // 4) Fallback a OpenRouter si existe
   if (config.openRouterKeys.length) {
     return callOpenRouter(config, messages, Math.min(18_000, timeoutMs), toolsEnabled);
   }
@@ -2780,10 +2823,11 @@ export async function runKoruBackendTurn(
   onChunk?: (chunk: KoruBackendTurnResponse) => void,
 ): Promise<KoruBackendTurnResponse> {
   // Permitir override de modelo por turno desde el frontend
+  const preferredProvider = inferProviderFromModel(request.model);
   if (request.model) {
     config = { ...config, nvidiaModel: request.model };
   }
-  logger.info("runKoruBackendTurn", "=== START TURN ===", { input: request.input.slice(0, 200), model: config.nvidiaModel });
+  logger.info("runKoruBackendTurn", "=== START TURN ===", { input: request.input.slice(0, 200), model: config.nvidiaModel, preferredProvider });
   const messages = buildMessages(request);
   const toolExecutions: ToolExecution[] = [];
   let provider: "nvidia" | "openrouter" | "minimax" = "nvidia";
@@ -2838,7 +2882,7 @@ export async function runKoruBackendTurn(
             return { ...response, provider, model, fallbackReason: "router-" + route.category };
           }
           messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }." });
-          const secondResult = await callProvider(config, messages, 30_000, false);
+          const secondResult = await callProvider(config, messages, 30_000, false, preferredProvider);
           provider = secondResult.provider;
           model = secondResult.model ?? model;
           const secondContent = cleanText(secondResult.message.content, "No pude componer una respuesta util.");
@@ -2880,14 +2924,14 @@ export async function runKoruBackendTurn(
   // Paso 1: una sola llamada al LLM con tools habilitadas (excepto Ollama, que usa native JSON)
   let firstResult: ProviderResult & { fallbackReason?: string };
   try {
-    firstResult = await callProvider(config, messages, firstTimeout, !isTrivialInput(request.input));
+    firstResult = await callProvider(config, messages, firstTimeout, !isTrivialInput(request.input), preferredProvider);
   } catch (err: any) {
     logger.error("runKoruBackendTurn", "callProvider failed with tools", { error: err.message });
     if (err instanceof RateLimitError) {
       return { reply: err.message, uiBlocks: [], suggestedActions: [], understanding: { literalRequest: request.input, userGoal: "Rate limit", unstatedNeeds: [], assumptions: [], confidence: 0 }, memoryCandidates: [], commitments: [], records: [], toolResults: [], stateEvents: [], mascotState: "tired", provider: "openrouter", model: "rate-limited", fallbackReason: "rate-limit" };
     }
     // Fallback sin tools si el modelo no las soporta o devolvió respuesta vacía
-    firstResult = await callProvider(config, messages, 30_000, false);
+    firstResult = await callProvider(config, messages, 30_000, false, preferredProvider);
     fallbackReason = (fallbackReason ? fallbackReason + " + " : "") + "no-tools-fallback";
   }
   provider = firstResult.provider;
@@ -3059,7 +3103,7 @@ export async function runKoruBackendTurn(
     }
     // Paso 2: segunda llamada (sin tools) para que el LLM síntetice la respuesta final.
     messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }." });
-    const secondResult = await callProvider(config, messages, 30_000, false);
+    const secondResult = await callProvider(config, messages, 30_000, false, preferredProvider);
     provider = secondResult.provider;
     model = secondResult.model ?? model;
     const secondContent = cleanText(secondResult.message.content, "No pude componer una respuesta util.");
@@ -3103,7 +3147,7 @@ export async function runKoruBackendTurn(
         const retryResult = await callProvider(config, [
           ...messages,
           { role: "user", content: "Tu respuesta anterior no era JSON perfecto. Reescribí SOLO el JSON puro correcto, sin texto extra." },
-        ], 15_000, false);
+        ], 15_000, false, preferredProvider);
         parsed = JSON.parse(extractJsonBlock(cleanText(retryResult.message.content, "")));
         logger.info("runKoruBackendTurn", "Ollama JSON retry succeeded");
       } catch (retryErr) {

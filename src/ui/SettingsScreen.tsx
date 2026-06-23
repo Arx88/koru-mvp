@@ -1,11 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useKoru } from "./KoruProvider";
-import { cn } from "../lib/utils";
-import { Cpu, Check } from "lucide-react";
+import { Cpu, Check, ChevronDown } from "lucide-react";
+
+type ModelOption = {
+  id: string;
+  provider: string;
+  label: string;
+};
 
 export function SettingsScreen() {
   const { selectedModel, setSelectedModel } = useKoru();
-  const [models, setModels] = useState<string[]>([]);
+  const [models, setModels] = useState<ModelOption[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -16,15 +21,38 @@ export function SettingsScreen() {
         setLoading(false);
       })
       .catch(() => {
-        setModels(["koru-qwen-32k", "qwen3.6:27b", "koru-gemma-16k", "llama3.1:8b", "deepseek-r1:32b"]);
+        setModels([
+          { id: "koru-qwen-32k:latest", provider: "ollama", label: "Koru Qwen 32k" },
+          { id: "qwen3.6:27b", provider: "ollama", label: "Qwen 3.6 27B" },
+          { id: "koru-gemma-16k:latest", provider: "ollama", label: "Koru Gemma 16k" },
+        ]);
         setLoading(false);
       });
   }, []);
 
-  function handleChange(model: string) {
-    setSelectedModel(model);
-    localStorage.setItem("koru.selected-model", model);
+  function handleChange(modelId: string) {
+    setSelectedModel(modelId || null);
+    if (modelId) {
+      localStorage.setItem("koru.selected-model", modelId);
+    } else {
+      localStorage.removeItem("koru.selected-model");
+    }
   }
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, ModelOption[]>();
+    for (const m of models) {
+      const list = map.get(m.provider) || [];
+      list.push(m);
+      map.set(m.provider, list);
+    }
+    return Array.from(map.entries());
+  }, [models]);
+
+  const selectedLabel = useMemo(() => {
+    if (!selectedModel) return "Automático (predeterminado)";
+    return models.find((m) => m.id === selectedModel)?.label ?? selectedModel;
+  }, [selectedModel, models]);
 
   return (
     <div className="flex min-h-full flex-col gap-6 px-4 py-6">
@@ -40,26 +68,30 @@ export function SettingsScreen() {
       {loading ? (
         <div className="rounded-2xl border border-sand bg-cream p-4 text-sm text-stone">Cargando modelos...</div>
       ) : (
-        <div className="flex flex-col gap-2">
-          {models.map((model) => {
-            const active = selectedModel === model;
-            return (
-              <button
-                key={model}
-                type="button"
-                onClick={() => handleChange(model)}
-                className={cn(
-                  "flex items-center justify-between rounded-2xl border px-4 py-3 text-left text-sm font-medium transition-colors",
-                  active
-                    ? "border-forest bg-forest/5 text-forest"
-                    : "border-sand bg-cream text-earth hover:border-forest/40",
-                )}
-              >
-                <span>{model}</span>
-                {active && <Check className="h-4 w-4 text-forest" />}
-              </button>
-            );
-          })}
+        <div className="relative">
+          <select
+            value={selectedModel ?? ""}
+            onChange={(e) => handleChange(e.target.value)}
+            className="w-full appearance-none rounded-2xl border border-sand bg-cream px-4 py-3 pr-10 text-sm font-medium text-earth outline-none focus:border-forest transition-colors cursor-pointer"
+          >
+            <option value="">Automático (predeterminado)</option>
+            {grouped.map(([provider, items]) => (
+              <optgroup key={provider} label={provider.toUpperCase()}>
+                {items.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.label}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-earth" />
+          {selectedModel && (
+            <div className="mt-2 flex items-center gap-2 text-xs text-forest">
+              <Check className="h-3.5 w-3.5" />
+              <span>Seleccionado: {selectedLabel}</span>
+            </div>
+          )}
         </div>
       )}
 
