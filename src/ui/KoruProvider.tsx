@@ -697,6 +697,7 @@ function uiBlockBody(block: UiBlock): string {
   if (block.type === "proactive_signal") return block.body;
   if (block.type === "activity_group") return block.subtitle ?? block.note ?? block.title;
   if (block.type === "resource_bundle") return block.summary ?? `${block.files.length} archivo(s).`;
+  if (block.type === "data_card") return `${block.items.length} dato(s) verificado(s) de la web.`;
   return "Listo.";
 }
 
@@ -754,7 +755,13 @@ function uiBlockToAction(block: UiBlock, entryId: string, createdAt: string): As
       planItems: block.type === "plan" ? block.items : undefined,
       comparisonItems: block.type === "comparison" ? block.items : undefined,
       records: uiBlockRecords(block),
-      summaryItems: block.type === "money_summary" ? block.summaryItems : block.type === "proactive_signal" ? block.summaryItems : undefined,
+      summaryItems: block.type === "money_summary"
+        ? block.summaryItems
+        : block.type === "proactive_signal"
+          ? block.summaryItems
+          : block.type === "data_card"
+            ? block.items.map((it) => ({ label: it.label, value: it.value, detail: it.detail }))
+            : undefined,
       totalAmount: block.type === "money_summary" ? block.total : undefined,
       currency: block.type === "money_summary" ? block.currency : undefined,
       recommendation: block.type === "comparison" ? block.recommendation : block.type === "money_summary" ? block.recommendation : undefined,
@@ -960,6 +967,8 @@ type KoruContextValue = {
   processing: boolean;
   activity: AgentActivity | null;
   chatTurns: KoruChatTurn[];
+  selectedModel: string | null;
+  setSelectedModel: (model: string) => void;
   completeOnboarding: (name: string, facts?: string[]) => void;
   togglePriority: (id: string) => void;
   confirmMemory: (id: string) => void;
@@ -987,6 +996,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   const [processing, setProcessing] = useState(false);
   const [activity, setActivity] = useState<AgentActivity | null>(null);
   const [chatTurns, setChatTurns] = useState<KoruChatTurn[]>(() => readChatTurns(localStorage.getItem("koru.username") ?? ""));
+  const [selectedModel, setSelectedModel] = useState<string | null>(() => localStorage.getItem("koru.selected-model") ?? null);
   const domainStateRef = useRef(domainState);
   const chatTurnsRef = useRef(chatTurns);
 
@@ -1376,6 +1386,11 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   ) {
     setProcessing(true);
     let koruTurnId: string | null = null;
+    // Trackea los items creados durante el stream para preservar sus ids al
+    // reemplazar con el resultado final. Sin esto, el resultado final crea items
+    // con ids nuevos → el WebNavCardA se desmonta/remonta → pierde su estado
+    // (animación de progreso, visibleCount) → reinicia a "Iniciando búsqueda...".
+    const streamedItemsByType = new Map<string, KoruTurnItem>();
     try {
       const previousState = domainStateRef.current;
       const domainHistory = history
@@ -1386,7 +1401,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
           content: turn.text,
           createdAt: turn.createdAt,
         }));
-      const agentResult = await runBackendAgentTurn(text, previousState, domainHistory, (chunk) => {
+      const agentResult = await runBackendAgentTurn(text, previousState, domainHistory, selectedModel ?? undefined, (chunk) => {
         const blocksToItems = (blocks: UiBlock[]): KoruTurnItem[] =>
           blocks.map((block) => ({
             id: createId("item"),
@@ -1407,6 +1422,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
             status: "working" as const,
             mascotState: chunk.mascotState ?? "working",
           };
+          koruTurn.items.forEach((it) => { if (it.uiBlock?.type) streamedItemsByType.set(it.uiBlock.type, it); });
           commitChatTurns((prev) => [...prev, koruTurn].slice(-120));
         } else {
           const isDone = chunk.stateEvents?.some((e) => e.kind === "done");
@@ -1415,9 +1431,19 @@ export function KoruProvider({ children }: { children: ReactNode }) {
               if (turn.id !== koruTurnId) return turn;
               const existingItems = turn.items ?? [];
               const newBlocks = chunk.uiBlocks ?? [];
-              const mergedItems: KoruTurnItem[] = newBlocks.map((block, idx) => {
-                const existing = existingItems[idx];
-                if (existing && existing.uiBlock?.type === block.type) {
+              // Merge por TIPO de block (no por índice). Así, si el orden cambia
+              // entre chunks (ej: aparece un data_card antes que el web_nav),
+              // cada item mantiene su identidad y estado (animación de progreso,
+              // contadores internos). Antes se matcheaba por idx, lo que hacía
+              // que un cambio de orden desmontara el componente y reiniciara la
+              // animación ("Iniciando búsqueda..." colgado).
+              const consumedExisting = new Set<string>();
+              const mergedItems: KoruTurnItem[] = newBlocks.map((block) => {
+                const existing = existingItems.find(
+                  (it) => it.uiBlock?.type === block.type && !consumedExisting.has(it.uiBlock!.type),
+                );
+                if (existing) {
+                  consumedExisting.add(existing.uiBlock!.type);
                   return { ...existing, uiBlock: block, text: (block as any).title ?? (block as any).query ?? "" };
                 }
                 return {
@@ -1429,6 +1455,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
                   uiBlock: block,
                 };
               });
+              mergedItems.forEach((it) => { if (it.uiBlock?.type) streamedItemsByType.set(it.uiBlock.type, it); });
               return {
                 ...turn,
                 text: chunk.reply,
@@ -1443,10 +1470,26 @@ export function KoruProvider({ children }: { children: ReactNode }) {
       const result = applyBackendTurnToState(previousState, text, transcriptSource, agentResult);
       commitDomainState(result.state);
       if (koruTurnId) {
+        // Preservar ids de los items del stream: si el resultado final tiene un item
+        // del mismo tipo que uno ya renderizado en el stream, mantener su id (e
+        // identidad de React) para no desmontar/remontar el componente y perder su
+        // estado interno (animación de progreso del WebNavCardA, visibleCount, etc.).
+        const consumedTypes = new Set<string>();
+        const stableItems = result.items.map((item) => {
+          const type = item.uiBlock?.type ?? item.tag;
+          if (type && !consumedTypes.has(type)) {
+            const streamed = streamedItemsByType.get(type);
+            if (streamed) {
+              consumedTypes.add(type);
+              return { ...item, id: streamed.id };
+            }
+          }
+          return item;
+        });
         commitChatTurns((prev) =>
           prev.map((turn) =>
             turn.id === koruTurnId
-              ? { ...turn, text: agentResult.reply, items: result.items, status: "done" as const, mascotState: agentResult.mascotState ?? "idle" }
+              ? { ...turn, text: agentResult.reply, items: stableItems, status: "done" as const, mascotState: agentResult.mascotState ?? "idle" }
               : turn,
           ),
         );
@@ -1732,6 +1775,8 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     processing,
     activity,
     chatTurns,
+    selectedModel,
+    setSelectedModel,
     completeOnboarding,
     togglePriority,
     confirmMemory,
@@ -1748,7 +1793,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     toggleTurnLike,
     setWorldSignals,
     dismissNudge: (id: string) => commitDomainState((prev) => dismissNudge(prev, id)),
-  }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, permissions, processing, activity, chatTurns]);
+  }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, permissions, processing, activity, chatTurns, selectedModel]);
 
   return <KoruContext.Provider value={value}>{children}</KoruContext.Provider>;
 }

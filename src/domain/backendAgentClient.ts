@@ -120,7 +120,8 @@ export async function runBackendAgentTurn(
   input: string,
   state: KoruState,
   history: KoruConversationMessage[],
+  model?: string,
   onChunk?: (chunk: KoruBackendTurnResponse) => void,
 ): Promise<KoruBackendTurnResponse> {
-  return postAgentTurn({ input, state, history }, 75_000, onChunk);
+  return postAgentTurn({ input, state, history, model }, 75_000, onChunk);
 }

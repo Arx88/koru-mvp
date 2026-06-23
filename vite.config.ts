@@ -761,11 +761,35 @@ function koruBackendAgent(env: Record<string, string>): Plugin {
     openRouterKeys: collectOpenRouterKeys(env),
     openRouterModels: collectOpenRouterModels(env),
     minimaxAccessToken: readMiniMaxToken(),
+    ollamaEmbedBaseUrl: "http://localhost:11434",
   };
 
   return {
     name: "koru-backend-agent",
     configureServer(server) {
+      server.middlewares.use("/api/koru/models", async (req, res) => {
+        if (req.method !== "GET") {
+          res.statusCode = 405;
+          res.setHeader("Allow", "GET");
+          res.end();
+          return;
+        }
+        try {
+          const ollamaUrl = config.nvidiaBaseUrl.replace("/v1", "").replace(/\/$/, "");
+          const response = await fetch(ollamaUrl + "/api/tags", { method: "GET" });
+          if (!response.ok) throw new Error("Ollama no respondió");
+          const data = await response.json();
+          const models = (data.models || []).map((m: any) => m.name).filter(Boolean);
+          res.statusCode = 200;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ models }));
+        } catch {
+          res.statusCode = 200;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ models: ["koru-qwen-32k", "qwen3.6:27b", "koru-gemma-16k", "llama3.1:8b", "deepseek-r1:32b"] }));
+        }
+      });
+
       server.middlewares.use("/api/koru/turn", async (req, res) => {
         if (req.method !== "POST") {
           res.statusCode = 405;
@@ -786,8 +810,11 @@ function koruBackendAgent(env: Record<string, string>): Plugin {
             return;
           }
 
-          const request = JSON.parse(raw || "{}") as KoruBackendTurnRequest & { stream?: boolean };
-          logger.info("koru-turn", "Request received", { input: request.input, historyLength: request.history.length });
+          const request = JSON.parse(raw || "{}") as KoruBackendTurnRequest & { stream?: boolean; model?: string };
+          if (request.model) {
+            (request as KoruBackendTurnRequest).model = request.model;
+          }
+          logger.info("koru-turn", "Request received", { input: request.input, historyLength: request.history.length, model: request.model || config.nvidiaModel });
           if (!request.input?.trim() || !request.state || !Array.isArray(request.history)) {
             res.statusCode = 400;
             res.setHeader("Content-Type", "application/json");

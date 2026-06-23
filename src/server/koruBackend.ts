@@ -36,6 +36,8 @@ export type KoruBackendTurnRequest = {
   input: string;
   history: KoruConversationMessage[];
   state: KoruState;
+  model?: string;
+  
 };
 
 export type KoruUnderstanding = {
@@ -2777,7 +2779,11 @@ export async function runKoruBackendTurn(
   config: ProviderConfig,
   onChunk?: (chunk: KoruBackendTurnResponse) => void,
 ): Promise<KoruBackendTurnResponse> {
-  logger.info("runKoruBackendTurn", "=== START TURN ===", { input: request.input.slice(0, 200) });
+  // Permitir override de modelo por turno desde el frontend
+  if (request.model) {
+    config = { ...config, nvidiaModel: request.model };
+  }
+  logger.info("runKoruBackendTurn", "=== START TURN ===", { input: request.input.slice(0, 200), model: config.nvidiaModel });
   const messages = buildMessages(request);
   const toolExecutions: ToolExecution[] = [];
   let provider: "nvidia" | "openrouter" | "minimax" = "nvidia";

@@ -5,6 +5,7 @@ import { HomeScreen } from "./HomeScreen";
 import { MemoryScreen } from "./MemoryScreen";
 import { PermissionsScreen } from "./PermissionsScreen";
 import { HistoryScreen } from "./HistoryScreen";
+import { SettingsScreen } from "./SettingsScreen";
 import { TalkOverlay } from "./TalkOverlay";
 import { BottomNav, type Tab } from "./BottomNav";
 
@@ -32,6 +33,7 @@ function KoruApp() {
           {tab === "memoria" && <MemoryScreen />}
           {tab === "permisos" && <PermissionsScreen />}
           {tab === "historial" && <HistoryScreen />}
+          {tab === "configuracion" && <SettingsScreen />}
         </div>
         <BottomNav active={tab} onChange={setTab} />
       </div>
