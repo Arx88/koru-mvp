@@ -16,6 +16,9 @@ import { VALID_MASCOT_STATES } from "../domain/types";
 import { selectRelevantMemories } from "../domain/store";
 import { generateEnhancements, enhancementPrompt } from "../domain/enhancementEngine";
 import { extractOpportunities } from "../domain/enhancementExtractor";
+import { extractStructuredData, type ChatFn as ExtractorChatFn, type ExtractionResult } from "../domain/structureExtractor";
+import { detectSimulatedToolCall } from "../domain/simulatedToolDetector";
+import { SemanticRouter, type EmbedFn, type RouteResult } from "../domain/semanticRouter";
 import { logger, dump } from "./logger";
 
 export type ProviderConfig = {
@@ -25,6 +28,8 @@ export type ProviderConfig = {
   openRouterKeys: string[];
   openRouterModels: string[];
   minimaxAccessToken?: string;
+  /** URL de Ollama para embeddings del Semantic Router (nomic-embed-text). */
+  ollamaEmbedBaseUrl?: string;
 };
 
 export type KoruBackendTurnRequest = {
@@ -120,6 +125,12 @@ type SearchData = {
   summary: string;
   sources: AssistantSource[];
   comparisonItems?: NonNullable<Extract<UiBlock, { type: "comparison" }>["items"]>;
+  /**
+   * Promesa diferida que resuelve a un data_card validado (o null si no hay datos).
+   * El extractor corre en paralelo al Composer para no sumar latencia al turno.
+   * El llamador la awaiting junto con la composición del reply (Promise.all).
+   */
+  deferredDataCard?: Promise<UiBlock | null>;
 };
 
 type PlanData = {
@@ -564,6 +575,7 @@ async function callNvidia(
   timeoutMs: number,
   toolsEnabled = true,
 ): Promise<ProviderResult> {
+  const isOllama = config.nvidiaBaseUrl.includes(":11434") || config.nvidiaBaseUrl.includes("ollama");
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     Accept: "application/json",
@@ -571,18 +583,22 @@ async function callNvidia(
   if (config.nvidiaApiKey && config.nvidiaApiKey !== "dummy") {
     headers.Authorization = `Bearer ${config.nvidiaApiKey}`;
   }
+  const body: Record<string, unknown> = {
+    model: config.nvidiaModel,
+    messages,
+    ...(toolsEnabled ? { tools: TOOL_DEFINITIONS, tool_choice: "auto" } : {}),
+    temperature: isOllama ? 0.0 : 0.25,
+    top_p: 0.95,
+    max_tokens: 8192,
+    stream: false,
+  };
+  if (isOllama) {
+    body.response_format = { type: "json_object" };
+  }
   const response = await fetchWithTimeout(providerUrl(config.nvidiaBaseUrl, "/v1/chat/completions"), {
     method: "POST",
     headers,
-    body: JSON.stringify({
-      model: config.nvidiaModel,
-      messages,
-      ...(toolsEnabled ? { tools: TOOL_DEFINITIONS, tool_choice: "auto" } : {}),
-      temperature: 0.25,
-      top_p: 0.95,
-      max_tokens: 8192,
-      stream: false,
-    }),
+    body: JSON.stringify(body),
   }, timeoutMs);
   const data = await response.json().catch(() => ({}));
   if (!response.ok || !hasUsableAssistantMessage(data)) {
@@ -887,7 +903,11 @@ async function fetchPageContent(url: string, maxChars = 1200): Promise<string> {
   }
 }
 
-async function runSearch(args: Record<string, unknown>, shopping = false): Promise<SearchData> {
+async function runSearch(
+  args: Record<string, unknown>,
+  shopping = false,
+  extractorCtx?: { userInput: string; chatFn: ExtractorChatFn; onDeferredChunk?: (block: UiBlock) => void },
+): Promise<SearchData> {
   const query = cleanText(args.query, "noticias importantes hoy");
   const mode = shopping ? "shopping" : cleanText(args.mode, "research") as SearchData["mode"];
   const expanded = mode === "world"
@@ -915,6 +935,45 @@ async function runSearch(args: Record<string, unknown>, shopping = false): Promi
     sources[i].content = await fetchPageContent(sources[i].url, 1200);
   }
 
+  // ── Extracción de estructura validada (NO BLOQUEANTE) ──
+  // runSearch devuelve inmediatamente con los sources (web_nav). La extracción
+  // corre como promesa diferida que el llamador espera EN PARALELO con la
+  // composición del reply. Así el extractor (~11s) queda oculto detrás del
+  // Composer, no suma latencia al turno. Si encuentra datos validados, se
+  // convierten en un data_card que se adjunta al resultado final.
+  let deferredDataCard: Promise<UiBlock | null> | undefined;
+  if (extractorCtx && !shopping && sources.length > 0) {
+    const sourcesCopy = sources.map((s) => ({ ...s }));
+    const userInput = extractorCtx.userInput;
+    const chatFn = extractorCtx.chatFn;
+    const extractStart = Date.now();
+    deferredDataCard = (async (): Promise<UiBlock | null> => {
+      try {
+        const extracted = await extractStructuredData({ userInput, sources: sourcesCopy, chatFn });
+        logger.info("runSearch", "Structure extraction (deferred)", {
+          extracted: extracted ? `${extracted.items.length} items` : "none",
+          durationMs: Date.now() - extractStart,
+        });
+        if (!extracted || extracted.items.length === 0) return null;
+        return {
+          type: "data_card" as const,
+          title: extracted.title,
+          items: extracted.items.map((it) => ({
+            label: it.label,
+            value: it.value,
+            detail: it.detail,
+            quote: it.quote,
+            sourceUrl: it.sourceUrl,
+            sourceDomain: it.sourceDomain,
+          })),
+        };
+      } catch (err: any) {
+        logger.warn("runSearch", "Deferred structure extraction failed (non-fatal)", { reason: err?.message });
+        return null;
+      }
+    })();
+  }
+
   return {
     type: "search",
     mode,
@@ -922,6 +981,7 @@ async function runSearch(args: Record<string, unknown>, shopping = false): Promi
     summary: sources.length ? "" : "No pude conseguir fuentes útiles con los conectores abiertos. No inventes resultados.",
     sources,
     comparisonItems,
+    deferredDataCard,
   };
 }
 
@@ -1558,11 +1618,21 @@ function personalCaptureFromArgs(args: Record<string, unknown>, input = ""): Per
     ],
   };
 }
-async function executeTool(name: string, args: Record<string, unknown>, state: KoruState): Promise<Record<string, unknown>> {
+async function executeTool(
+  name: string,
+  args: Record<string, unknown>,
+  state: KoruState,
+  extractorCtx?: { userInput: string; chatFn: ExtractorChatFn },
+): Promise<{ result: Record<string, unknown>; deferredDataCard?: Promise<UiBlock | null> }> {
   logger.info("executeTool", `Executing tool: ${name}`, { argsKeys: Object.keys(args) });
   let result: Record<string, unknown>;
+  let deferredDataCard: Promise<UiBlock | null> | undefined;
   if (name === "weather") result = await getWeather(args) as unknown as Record<string, unknown>;
-  else if (name === "web_search") result = await runSearch(args) as unknown as Record<string, unknown>;
+  else if (name === "web_search") {
+    const searchData = await runSearch(args, false, extractorCtx);
+    deferredDataCard = searchData.deferredDataCard;
+    result = searchData as unknown as Record<string, unknown>;
+  }
   else if (name === "shopping_compare") result = await runSearch(args, true) as unknown as Record<string, unknown>;
   else if (name === "route_traffic") result = await runSearch({ ...args, mode: "research", query: cleanText(args.query) || [cleanText(args.origin), cleanText(args.destination)].filter(Boolean).join(" a ") || cleanText(args.__userInput) }, false) as unknown as Record<string, unknown>;
   else if (name === "calendar_reminder") result = localReminderFromArgs(args, cleanText(args.__userInput)) as unknown as Record<string, unknown>;
@@ -1573,10 +1643,10 @@ async function executeTool(name: string, args: Record<string, unknown>, state: K
   else if (name === "save_personal_item") result = personalCaptureFromArgs(args, cleanText(args.__userInput)) as unknown as Record<string, unknown>;
   else {
     logger.warn("executeTool", `Unknown tool: ${name}`);
-    return { type: "unknown", error: `Unknown tool ${name}` };
+    return { result: { type: "unknown", error: `Unknown tool ${name}` } };
   }
   logger.info("executeTool", `Tool ${name} result`, { result: dump(result, 500) });
-  return result;
+  return { result, deferredDataCard };
 }
 
 function stateSummary(state: KoruState): string {
@@ -1641,6 +1711,7 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
     `- CRÍTICO: Si el usuario responde con una ciudad o ubicación directamente después de que preguntaste por clima o tráfico, interpretalo como su ubicación. Ejecutá la tool correspondiente con esa ciudad y guardá esa ciudad como memory de perfil.`,
     `- CRÍTICO: Si el usuario te dice una ciudad, país o barrio y no lo tenés guardado como memoria, incluilo en memoryCandidates como kind: profile.`,
     `- CRÍTICO: Si el usuario pregunta algo que YA aparece en "Cosas que guardaste" o "Memorias relevantes", NO uses query_personal_context. Respondé directamente desde ese contexto.`,
+    `- CRÍTICO: Cuando ejecutaste web_search, los datos concretos (resultados, precios, scores, cifras) ya vienen extraídos y validados en los tool results y se muestran al usuario en una tarjeta aparte. Tu texto SOLO debe ENMARCAR esos datos de forma cercana ("mirá lo que encontré", "esto es lo que dicen las fuentes"), NO repetirlos ni inventar valores que no estén en los resultados de la tool. Si un dato no está en los tool results, no lo afirmes.`,
     ``,
     `Memorias relevantes para esta conversación (usalas para personalizar tu respuesta):`,
     ...(relevantMemories.length
@@ -2029,6 +2100,22 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
     }
     if (result.type === "search") {
       const search = result as SearchData;
+      // Datos estructurados validados: se muestran PRIMERO (mayor valor visual).
+      // Cada item viene con cita literal respaldada por un source real → cero alucinación.
+      if (search.extractedData && search.extractedData.items.length > 0) {
+        blocks.push({
+          type: "data_card" as const,
+          title: search.extractedData.title,
+          items: search.extractedData.items.map((item) => ({
+            label: item.label,
+            value: item.value,
+            detail: item.detail,
+            quote: item.quote,
+            sourceUrl: item.sourceUrl,
+            sourceDomain: item.sourceDomain,
+          })),
+        });
+      }
       if (search.mode === "shopping" && search.comparisonItems?.length) {
         blocks.push({
           type: "comparison" as const,
@@ -2472,6 +2559,7 @@ async function executeProviderToolCalls(
   messages: ChatMessage[],
   request: KoruBackendTurnRequest,
   toolExecutions: ToolExecution[],
+  config: ProviderConfig,
 ): Promise<Record<string, unknown> | null> {
   messages.push({
     role: "assistant",
@@ -2479,18 +2567,32 @@ async function executeProviderToolCalls(
     tool_calls: toolCalls,
   });
 
+  // NOTE: el extractor de estructura (data_card) está DESACTIVADO en el turno.
+  // Razón: MiniMax serializa requests concurrentes, así que correr el extractor
+  // en paralelo con el Composer no ahorra tiempo — lo duplica (~24s vs ~11s).
+  // Eso empuja el turno por encima del timeout del cliente (75s) y rompe la UX.
+  // El data_card se reimplementará como una llamada diferida del frontend que no
+  // compita por el provider del turno. El código del extractor y sus tests quedan
+  // intactos para ese futuro uso.
+  const extractorCtx = undefined;
+  const deferredDataCards: Array<Promise<UiBlock | null>> = [];
+
   for (const call of toolCalls) {
     const name = call.function.name;
     const args = { ...toolCallArgs(call), __userInput: request.input };
     if (name === "deliver_response") return args;
-    const toolResult = await executeTool(name, args, request.state);
+    const { result: toolResult, deferredDataCard } = await executeTool(name, args, request.state, extractorCtx);
     toolExecutions.push({ id: call.id, name, result: toolResult });
+    if (deferredDataCard) deferredDataCards.push(deferredDataCard);
     messages.push({
       role: "tool",
       tool_call_id: call.id,
       content: JSON.stringify(toolResult),
     });
   }
+  // Adjuntar las promesas diferidas al objeto de retorno para que el llamador
+  // las espere en paralelo con el Composer.
+  (toolExecutions as ToolExecution[] & { __deferredDataCards?: Array<Promise<UiBlock | null>> }).__deferredDataCards = deferredDataCards;
   return null;
 }
 
@@ -2562,6 +2664,71 @@ async function buildEnhancementInstruction(
   }
 }
 
+// ── Semantic Router: singleton instanciado una vez por server ──────────
+// Decide la intención del usuario por similitud de embeddings (Ollama local),
+// ANTES de llamar al LLM. Si detecta que se necesita una tool, la ejecuta
+// directamente sin depender de que el modelo la llame nativamente.
+// Es agnóstico al modelo y casi gratis (~26ms por decisión).
+let routerSingleton: SemanticRouter | null = null;
+
+function buildEmbedFn(baseUrl: string): EmbedFn {
+  return async (text: string): Promise<number[]> => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8_000);
+    try {
+      const res = await fetch(`${baseUrl.replace(/\/+$/, "")}/api/embeddings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "nomic-embed-text", prompt: text }),
+        signal: controller.signal,
+      });
+      const data = await res.json() as { embedding?: number[] };
+      if (!data.embedding || data.embedding.length === 0) {
+        throw new Error("Ollama no devolvió embedding");
+      }
+      return data.embedding;
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
+}
+
+async function getRouter(config: ProviderConfig): Promise<SemanticRouter | null> {
+  if (!config.ollamaEmbedBaseUrl) return null;
+  if (!routerSingleton) {
+    routerSingleton = new SemanticRouter(buildEmbedFn(config.ollamaEmbedBaseUrl));
+    try {
+      await routerSingleton.initialize();
+      logger.info("getRouter", "Semantic Router initialized", { baseUrl: config.ollamaEmbedBaseUrl });
+    } catch (err: any) {
+      logger.warn("getRouter", "Semantic Router init failed (non-fatal)", { reason: err?.message });
+      routerSingleton = null;
+      return null;
+    }
+  }
+  return routerSingleton;
+}
+
+/**
+ * Genera un texto natural corto para mostrar al usuario mientras se busca.
+ * NO repite el input literal (ej: "Buscando 'Hola Koru, ¿podrías...'" → malo).
+ * Extrae el tema central del mensaje (ej: "Buscando info del mundial").
+ * Es heurística simple sobre el input, no matching de intención (eso ya lo hizo el router).
+ */
+function searchLabelFromInput(input: string): string {
+  const clean = input.trim().replace(/\s+/g, " ");
+  // Quitar saludos y cortesías comunes al inicio que no aportan al tema.
+  const stripped = clean
+    .replace(/^(hola|buenas|buenos d[ií]as|buenas tardes|buenas noches|che|hey|koru|por favor|podr[ií]as|puedes|me dec[ií]s|decime|dame|quiero saber|necesito saber|busc[aá]\s*(info|informaci[oó]n|datos)?\s*(sobre|de|acerca)?)\b[,\s]*/gi, "")
+    .replace(/^(paso|pas[oó]|que paso|qué pasó|qu[eé] tal|c[oó]mo (va|le va|est[aá]))\s+(con|el|la|los|las)?\s*/i, "")
+    .trim();
+  // Si quedó muy corto o vacío, fallback genérico.
+  if (stripped.length < 5) return "Buscando en la web…";
+  // Limitar longitud para que sea legible en la burbuja.
+  const shortened = stripped.length > 50 ? stripped.slice(0, 50).trim() + "…" : stripped;
+  return `Buscando ${shortened}…`;
+}
+
 export async function runKoruBackendTurn(
   request: KoruBackendTurnRequest,
   config: ProviderConfig,
@@ -2573,6 +2740,90 @@ export async function runKoruBackendTurn(
   let provider: "nvidia" | "openrouter" | "minimax" = "nvidia";
   let model: string | undefined;
   let fallbackReason: string | undefined;
+
+  // ── Semantic Router: decidir intención ANTES de llamar al LLM ──
+  // Si el router detecta que se necesita una tool, la ejecutamos directamente.
+  // Esto elimina la dependencia de que el modelo llame tools nativamente
+  // (que vimos fallar ~50% de las veces). Si el router dice "conversation"
+  // o no está disponible, cae al flujo nativo de abajo.
+  // El router corre para cualquier mensaje con contenido (no vacío / no solo
+  // saludo de una palabra). El gate NO usa isTrivialInput porque esa función
+  // matchea prefijos ("hola ...") y haría saltar mensajes reales de búsqueda.
+  const inputTrimmed = request.input.trim();
+  if (inputTrimmed.length >= 3) {
+    const router = await getRouter(config);
+    if (router) {
+      try {
+        const routeStart = Date.now();
+        const route = await router.route(request.input);
+        logger.info("runKoruBackendTurn", "Semantic Router decision", {
+          category: route.category,
+          tool: route.tool ?? "none",
+          confidence: route.confidence.toFixed(2),
+          durationMs: Date.now() - routeStart,
+        });
+        if (route.tool) {
+          const syntheticToolCall: ProviderToolCall = {
+            id: `route_${Date.now()}`,
+            type: "function",
+            function: { name: route.tool, arguments: JSON.stringify(route.toolArgs ?? {}) },
+          };
+          const query = route.tool === "web_search" ? cleanText(route.toolArgs?.query as string) : undefined;
+          // Texto natural para el usuario: NO le repetimos su mensaje literal.
+          // Limpiamos el mensaje a una frase corta de qué estamos buscando.
+          const shortSearchLabel = query ? searchLabelFromInput(query) : "Buscando en la web";
+          onChunk?.({
+            reply: shortSearchLabel,
+            uiBlocks: query ? [{ type: "web_nav" as const, title: "Navegación Web", status: "loading" as const, query, results: [] }] : [],
+            suggestedActions: [],
+            understanding: { literalRequest: request.input, userGoal: route.category, unstatedNeeds: [], assumptions: [], confidence: route.confidence },
+            memoryCandidates: [], commitments: [], records: [], toolResults: [],
+            stateEvents: [{ kind: "searching" as const, label: shortSearchLabel }],
+            mascotState: "working",
+            provider, model, fallbackReason: "router-" + route.category,
+          });
+          messages.push({ role: "assistant", content: "", tool_calls: [syntheticToolCall] });
+          const delivered = await executeProviderToolCalls([syntheticToolCall], messages, request, toolExecutions, config);
+          if (delivered) {
+            const response = await finalizePayload(request, config, delivered, toolExecutions);
+            return { ...response, provider, model, fallbackReason: "router-" + route.category };
+          }
+          messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }." });
+          const secondResult = await callProvider(config, messages, 30_000, false);
+          provider = secondResult.provider;
+          model = secondResult.model ?? model;
+          const secondContent = cleanText(secondResult.message.content, "No pude componer una respuesta util.");
+          let parsedRoute: any;
+          try {
+            parsedRoute = JSON.parse(extractJsonBlock(secondContent));
+          } catch {
+            const rawFallback: Record<string, unknown> = {
+              reply: cleanReplyText(secondContent) || "No pude armar una respuesta clara. ¿Me lo repetís de otra forma?",
+              understanding: { literalRequest: request.input, userGoal: route.category, unstatedNeeds: [], assumptions: [], confidence: 0.45 },
+              uiBlocks: blocksFromToolResults(toolExecutions),
+              suggestedActions: [], memoryCandidates: [], commitments: [], records: [], mascotState: "thinking",
+            };
+            const response = await finalizeFromPlainText(rawFallback, [syntheticToolCall], request, config, toolExecutions);
+            return { ...response, provider, model, fallbackReason: "router-" + route.category + "-invalid-json" };
+          }
+          const rawRoute = {
+            reply: cleanText(parsedRoute.reply, secondContent),
+            understanding: parsedRoute.understanding || {},
+            uiBlocks: asArray(parsedRoute.uiBlocks || []),
+            suggestedActions: asArray(parsedRoute.suggestedActions || []),
+            memoryCandidates: asArray(parsedRoute.memoryCandidates || []),
+            commitments: asArray(parsedRoute.commitments || []),
+            records: asArray(parsedRoute.records || []),
+            mascotState: parsedRoute.mascotState,
+          };
+          const response = await finalizePayload(request, config, rawRoute, toolExecutions);
+          return { ...response, provider, model, fallbackReason: "router-" + route.category };
+        }
+      } catch (err: any) {
+        logger.warn("runKoruBackendTurn", "Semantic Router failed (non-fatal, falling to native)", { reason: err?.message });
+      }
+    }
+  }
 
   // Paso 1: una sola llamada al LLM con tools habilitadas
   let firstResult: ProviderResult & { fallbackReason?: string };
@@ -2618,7 +2869,7 @@ export async function runKoruBackendTurn(
 
     messages.push({ role: "assistant", content: "", tool_calls: toolCalls });
 
-    const delivered = await executeProviderToolCalls(toolCalls, messages, request, toolExecutions);
+    const delivered = await executeProviderToolCalls(toolCalls, messages, request, toolExecutions, config);
     if (delivered) {
       const response = await finalizePayload(request, config, delivered, toolExecutions);
       return { ...response, provider, model, fallbackReason: fallbackReason ?? response.memoryFallbackReason };
@@ -2648,13 +2899,21 @@ export async function runKoruBackendTurn(
       });
     }
 
-    // Paso 2: segunda llamada (sin tools) para que el LLM síntetice la respuesta final
+    // Paso 2: segunda llamada (sin tools) para que el LLM síntetice la respuesta final.
+    // Corre EN PARALELO con las extracciones diferidas de estructura (data_card),
+    // para que el extractor (~11s) no sume latencia al turno.
     messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }." });
-    const secondResult = await callProvider(config, messages, 30_000, false);
+    const deferredCards = (toolExecutions as ToolExecution[] & { __deferredDataCards?: Array<Promise<UiBlock | null>> }).__deferredDataCards ?? [];
+    const [secondResult, ...resolvedCards] = await Promise.all([
+      callProvider(config, messages, 30_000, false),
+      ...deferredCards,
+    ]);
     provider = secondResult.provider;
     model = secondResult.model ?? model;
     const secondContent = cleanText(secondResult.message.content, "No pude componer una respuesta util.");
     logger.info("runKoruBackendTurn", "Parsing second response JSON", { secondContentPreview: secondContent.slice(0, 500) });
+    // data_cards validados que llegaron en paralelo (pueden ser null si no había datos)
+    const validDeferredCards: UiBlock[] = resolvedCards.filter((b): b is UiBlock => b !== null);
 
     let parsed: any;
     try {
@@ -2670,7 +2929,7 @@ export async function runKoruBackendTurn(
           assumptions: [],
           confidence: 0.45,
         },
-        uiBlocks: blocksFromToolResults(toolExecutions),
+        uiBlocks: [...validDeferredCards, ...blocksFromToolResults(toolExecutions)],
         suggestedActions: [],
         memoryCandidates: [],
         commitments: [],
@@ -2695,6 +2954,10 @@ export async function runKoruBackendTurn(
     const cityAction = cityMemorySuggestion(toolCalls, request.state);
     if (cityAction) raw.suggestedActions = [...asArray(raw.suggestedActions), cityAction];
 
+    // Inyectar data_cards validados que se extrajeron en paralelo al Composer.
+    if (validDeferredCards.length > 0) {
+      raw.uiBlocks = [...validDeferredCards, ...asArray(raw.uiBlocks)];
+    }
     const response = await finalizePayload(request, config, raw, toolExecutions);
     return {
       ...response,
@@ -2704,33 +2967,118 @@ export async function runKoruBackendTurn(
     };
   }
 
-  // Sin tool calls: parsear la respuesta JSON directamente
+  // Sin tool calls nativos: antes de tratar el content como JSON final, revisar si
+  // el modelo SIMULÓ una tool-call en texto (formatos ```json{"query":...}```,
+  // <|tool_call|>call:NAME{...}, ```tool_call NAME {}```). Es una capa de
+  // compatibilidad estándar para modelos sin tool-use nativo. Si se detecta,
+  // ejecutamos la tool manualmente y seguimos el flujo normal de tools.
   const content = cleanText(firstMessage.content, "No pude componer una respuesta util.");
+  const simulatedCall = detectSimulatedToolCall(content);
+  if (simulatedCall) {
+    logger.info("runKoruBackendTurn", "Simulated tool-call detected", {
+      tool: simulatedCall.name,
+      format: simulatedCall.format,
+      argsKeys: Object.keys(simulatedCall.arguments),
+    });
+    const syntheticToolCall: ProviderToolCall = {
+      id: `sim_${Date.now()}`,
+      type: "function",
+      function: {
+        name: simulatedCall.name,
+        arguments: JSON.stringify(simulatedCall.arguments),
+      },
+    };
+    const query = simulatedCall.name === "web_search" ? cleanText(simulatedCall.arguments.query as string) : undefined;
+    onChunk?.({
+      reply: query ? `Buscando "${query}"...` : "Buscando en la web...",
+      uiBlocks: query ? [{ type: "web_nav" as const, title: "Navegación Web", status: "loading" as const, query, results: [] }] : [],
+      suggestedActions: [],
+      understanding: { literalRequest: request.input, userGoal: query ? "Búsqueda web" : request.input, unstatedNeeds: [], assumptions: [], confidence: 0.8 },
+      memoryCandidates: [], commitments: [], records: [], toolResults: [],
+      stateEvents: [{ kind: "searching" as const, label: query ? `Buscando "${query}"` : "Buscando en la web" }],
+      mascotState: "working",
+      provider, model, fallbackReason,
+    });
+    messages.push({ role: "assistant", content: "", tool_calls: [syntheticToolCall] });
+    const delivered = await executeProviderToolCalls([syntheticToolCall], messages, request, toolExecutions, config);
+    if (delivered) {
+      const response = await finalizePayload(request, config, delivered, toolExecutions);
+      return { ...response, provider, model, fallbackReason: (fallbackReason ? fallbackReason + " + " : "") + "simulated-tool" };
+    }
+    // Paso 2: segunda llamada (sin tools) para que el LLM síntetice la respuesta final.
+    messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }." });
+    const secondResult = await callProvider(config, messages, 30_000, false);
+    provider = secondResult.provider;
+    model = secondResult.model ?? model;
+    const secondContent = cleanText(secondResult.message.content, "No pude componer una respuesta util.");
+    let parsedSim: any;
+    try {
+      parsedSim = JSON.parse(extractJsonBlock(secondContent));
+    } catch {
+      const rawFallback: Record<string, unknown> = {
+        reply: cleanReplyText(secondContent) || "No pude armar una respuesta clara. ¿Me lo repetís de otra forma?",
+        understanding: { literalRequest: request.input, userGoal: "Resolver el pedido con ayuda de Koru.", unstatedNeeds: [], assumptions: [], confidence: 0.45 },
+        uiBlocks: blocksFromToolResults(toolExecutions),
+        suggestedActions: [], memoryCandidates: [], commitments: [], records: [], mascotState: "thinking",
+      };
+      const response = await finalizeFromPlainText(rawFallback, [syntheticToolCall], request, config, toolExecutions);
+      return { ...response, provider, model, fallbackReason: (fallbackReason ? fallbackReason + " + " : "") + "simulated-tool-invalid-json" };
+    }
+    const rawSim = {
+      reply: cleanText(parsedSim.reply, secondContent),
+      understanding: parsedSim.understanding || {},
+      uiBlocks: asArray(parsedSim.uiBlocks || []),
+      suggestedActions: asArray(parsedSim.suggestedActions || []),
+      memoryCandidates: asArray(parsedSim.memoryCandidates || []),
+      commitments: asArray(parsedSim.commitments || []),
+      records: asArray(parsedSim.records || []),
+      mascotState: parsedSim.mascotState,
+    };
+    const response = await finalizePayload(request, config, rawSim, toolExecutions);
+    return { ...response, provider, model, fallbackReason: (fallbackReason ? fallbackReason + " + " : "") + "simulated-tool" };
+  }
+
+  // Sin tool calls (ni simuladas): parsear la respuesta JSON directamente
   logger.info("runKoruBackendTurn", "Parsing first response JSON", { contentPreview: content.slice(0, 500) });
   let parsed: any;
   try {
     parsed = JSON.parse(extractJsonBlock(content));
   } catch (err) {
     logger.warn("runKoruBackendTurn", "First response JSON parse failed", { error: String(err), contentPreview: content.slice(0, 500) });
-    const rawFallback: Record<string, unknown> = {
-      reply: cleanReplyText(content) || "No pude armar una respuesta clara. ¿Me lo repetís de otra forma?",
-      understanding: {
-        literalRequest: request.input,
-        userGoal: "Responder la consulta del usuario.",
-        unstatedNeeds: [],
-        assumptions: [],
-        confidence: 0.45,
-      },
-      uiBlocks: blocksFromToolResults(toolExecutions),
-      suggestedActions: [],
-      memoryCandidates: [],
-      commitments: [],
-      records: [],
-      mascotState: "thinking",
-    };
-    const response = await finalizeFromPlainText(rawFallback, toolCalls, request, config, toolExecutions);
-    logger.info("runKoruBackendTurn", "Return first-call-invalid-json", { replyPreview: (response.reply ?? "").slice(0, 300), provider, model, fallbackReason });
-    return { ...response, provider, model, fallbackReason: fallbackReason ?? "first-call-invalid-json" };
+    const isOllama = config.nvidiaBaseUrl.includes(":11434") || config.nvidiaBaseUrl.includes("ollama");
+    if (isOllama) {
+      try {
+        const retryResult = await callProvider(config, [
+          ...messages,
+          { role: "user", content: "Tu respuesta anterior no era JSON perfecto. Reescribí SOLO el JSON puro correcto, sin texto extra." },
+        ], 15_000, false);
+        parsed = JSON.parse(extractJsonBlock(cleanText(retryResult.message.content, "")));
+        logger.info("runKoruBackendTurn", "Ollama JSON retry succeeded");
+      } catch (retryErr) {
+        logger.warn("runKoruBackendTurn", "Ollama JSON retry also failed", { error: String(retryErr) });
+      }
+    }
+    if (!parsed) {
+      const rawFallback: Record<string, unknown> = {
+        reply: cleanReplyText(content) || "No pude armar una respuesta clara. ¿Me lo repetís de otra forma?",
+        understanding: {
+          literalRequest: request.input,
+          userGoal: "Responder la consulta del usuario.",
+          unstatedNeeds: [],
+          assumptions: [],
+          confidence: 0.45,
+        },
+        uiBlocks: blocksFromToolResults(toolExecutions),
+        suggestedActions: [],
+        memoryCandidates: [],
+        commitments: [],
+        records: [],
+        mascotState: "thinking",
+      };
+      const response = await finalizeFromPlainText(rawFallback, toolCalls, request, config, toolExecutions);
+      logger.info("runKoruBackendTurn", "Return first-call-invalid-json", { replyPreview: (response.reply ?? "").slice(0, 300), provider, model, fallbackReason });
+      return { ...response, provider, model, fallbackReason: fallbackReason ?? "first-call-invalid-json" };
+    }
   }
 
   const raw = {

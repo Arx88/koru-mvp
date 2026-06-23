@@ -325,6 +325,7 @@ export type RouterResult = {
   toolCalls: ToolCall[];
   directReply?: string;
   directUiBlocks?: UiBlock[];
+  forceLocal?: boolean;
 };
 
 export type ComposerResult = {
@@ -482,6 +483,24 @@ export type UiBlock =
         type: "article" | "pdf" | "description" | "page";
         readTime?: string;
         snippet?: string;
+      }>;
+    }
+  | {
+      /**
+       * Datos concretos extraídos de la web y VALIDADOS (cada item respaldado por
+       * cita literal de un source). Genérico: sirve para cualquier tema (deportes,
+       * finanzas, clima, precios...) porque la detección es por forma del dato,
+       * no por vocabulario. La UI los renderiza como filas label/value.
+       */
+      type: "data_card";
+      title?: string;
+      items: Array<{
+        label: string;
+        value: string;
+        detail?: string;
+        quote?: string;
+        sourceUrl?: string;
+        sourceDomain?: string;
       }>;
     };
 
