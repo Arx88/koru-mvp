@@ -765,7 +765,8 @@ async function callProvider(
   }
 
   // FLUJO NORMAL (sin preferencia o preferencia fallida)
-  if (config.minimaxAccessToken) {
+  // Si el usuario eligió un provider específico que no es MiniMax, no lo intentamos.
+  if (config.minimaxAccessToken && (!preferredProvider || preferredProvider === "minimax")) {
     try {
       const result = await callMinimax(config, messages, timeoutMs, toolsEnabled);
       if (providerResultIsValid(result)) {
@@ -782,13 +783,16 @@ async function callProvider(
     return callOpenRouter(config, messages, Math.min(18_000, timeoutMs), toolsEnabled);
   }
 
-  try {
-    const result = await callNvidia(config, messages, Math.min(isOllama ? 90_000 : 20_000, timeoutMs), toolsEnabled);
-    if (providerResultIsValid(result)) return result;
-    logger.warn("callProvider", "NVIDIA responded but invalid, falling back");
-  } catch (err: any) {
-    if (isRateLimitError(err)) throw err;
-    logger.warn("callProvider", "NVIDIA failed, falling back to OpenRouter", { reason: err?.message });
+  // Si el usuario eligió OpenRouter, saltamos NVIDIA en el flujo normal
+  if (!preferredProvider || preferredProvider !== "openrouter") {
+    try {
+      const result = await callNvidia(config, messages, Math.min(isOllama ? 90_000 : 20_000, timeoutMs), toolsEnabled);
+      if (providerResultIsValid(result)) return result;
+      logger.warn("callProvider", "NVIDIA responded but invalid, falling back");
+    } catch (err: any) {
+      if (isRateLimitError(err)) throw err;
+      logger.warn("callProvider", "NVIDIA failed, falling back to OpenRouter", { reason: err?.message });
+    }
   }
 
   if (config.openRouterKeys.length) {
@@ -1952,7 +1956,8 @@ async function extractMemoryWithJsonPrompt(
   toolExecutions: ToolExecution[],
   composedRaw?: Record<string, unknown>,
 ): Promise<{ raw: Record<string, unknown>; provider: "nvidia" | "openrouter" | "minimax"; model?: string; fallbackReason?: string }> {
-  const result = await callProvider(config, buildMemoryExtractorMessages(request, toolExecutions, composedRaw), 40_000, false);
+  const pp = inferProviderFromModel(request.model);
+  const result = await callProvider(config, buildMemoryExtractorMessages(request, toolExecutions, composedRaw), 40_000, false, pp);
   const content = cleanText(result.message.content);
   const raw = safeJsonObjectFromContent(content);
   return {
@@ -2709,7 +2714,8 @@ async function buildEnhancementInstruction(
     });
 
     const chatFn = async (messages: { role: string; content: string }[], _options: { temperature: number; maxTokens: number }) => {
-      const result = await callProvider(config, messages.map((m) => ({ role: m.role as "system" | "user", content: m.content })), 8_000, false);
+      const pp = inferProviderFromModel(request.model);
+      const result = await callProvider(config, messages.map((m) => ({ role: m.role as "system" | "user", content: m.content })), 8_000, false, pp);
       return { content: result.message.content ?? "" };
     };
 
