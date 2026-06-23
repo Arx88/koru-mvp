@@ -718,10 +718,10 @@ function isOllamaUrl(baseUrl: string): boolean {
 function inferProviderFromModel(model: string | undefined): "minimax" | "nvidia" | "openrouter" | undefined {
   if (!model) return undefined;
   if (model === "MiniMax-M2.7") return "minimax";
-  if (model.includes(":" ) && !model.includes("/")) return "nvidia"; // Ollama models
-  if (model.includes("/") && model.includes(":")) return "openrouter"; // OpenRouter free models
-  if (model.startsWith("nvidia/")) return "nvidia";
-  if (model.startsWith("koru-") || model.startsWith("qwen") || model.startsWith("llama") || model.startsWith("deepseek") || model.startsWith("gemma")) return "nvidia";
+  if (model.startsWith("hf.co/")) return "nvidia"; // HuggingFace models served by Ollama
+  if (!model.includes("/")) return "nvidia"; // Ollama tags without namespace, e.g. qwen3.6:27b, llama3.1:8b
+  if (model.startsWith("nvidia/") && !model.includes(":")) return "nvidia"; // NVIDIA API models
+  if (model.includes("/") && model.includes(":")) return "openrouter"; // OpenRouter free models (e.g. openai/gpt-oss-120b:free)
   return undefined;
 }
 
@@ -2841,6 +2841,12 @@ export async function runKoruBackendTurn(
   let model: string | undefined;
   let fallbackReason: string | undefined;
 
+  // Timeouts: Ollama necesita mucho más tiempo porque los modelos locales son lentos
+  const isOllama = config.nvidiaBaseUrl.includes(":11434") || config.nvidiaBaseUrl.includes("ollama");
+  const firstTimeout = isOllama ? 90_000 : 30_000;
+  const secondaryTimeout = isOllama ? 120_000 : 30_000;
+  const extractorTimeout = isOllama ? 120_000 : 40_000;
+
   // ── Semantic Router: decidir intención ANTES de llamar al LLM ──
   // Si el router detecta que se necesita una tool, la ejecutamos directamente.
   // Esto elimina la dependencia de que el modelo llame tools nativamente
@@ -2924,11 +2930,6 @@ export async function runKoruBackendTurn(
       }
     }
   }
-
-  const isOllama = config.nvidiaBaseUrl.includes(":11434") || config.nvidiaBaseUrl.includes("ollama");
-  const firstTimeout = isOllama ? 90_000 : 30_000;
-  const secondaryTimeout = isOllama ? 120_000 : 30_000;
-  const extractorTimeout = isOllama ? 120_000 : 40_000;
 
   // Paso 1: una sola llamada al LLM con tools habilitadas (excepto Ollama, que usa native JSON)
   let firstResult: ProviderResult & { fallbackReason?: string };
