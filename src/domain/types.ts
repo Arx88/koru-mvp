@@ -636,6 +636,15 @@ export type UiBlock =
       dates?: string;
       steps?: Array<{ time: string; label: string; detail?: string; icon?: string }>;
       actionLabel?: string;
+    }
+  | {
+      type: "generation";
+      title?: string;
+      prompt?: string;
+      resultType?: "text" | "image" | "code" | "document";
+      preview?: string;
+      actionLabel?: string;
+      actionIcon?: string;
     };
 
 export type AssistantActionStatus = "proposed" | "approved" | "executed" | "rejected";

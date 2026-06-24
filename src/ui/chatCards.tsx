@@ -58,6 +58,7 @@ import { SocialInteractionCard } from "./cards/SocialInteractionCard";
 import { ActivityTrackerCard } from "./cards/ActivityTrackerCard";
 import { ProductAnalysisCard } from "./cards/ProductAnalysisCard";
 import { TravelPlannerCard } from "./cards/TravelPlannerCard";
+import { GenerationCard } from "./cards/GenerationCard";
 
 export type CardActionHandlers = {
   onReview: (id: string, approve: boolean) => void;
@@ -1234,6 +1235,10 @@ function UiBlockCardA({ item }: { item: KoruTurnItem }) {
 
   if (block.type === "travel_planner") {
     return <TravelPlannerCard block={block} />;
+  }
+
+  if (block.type === "generation") {
+    return <GenerationCard block={block} />;
   }
 
   return null;

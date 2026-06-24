@@ -29,3 +29,4 @@ export { SocialInteractionCard } from "./SocialInteractionCard";
 export { ActivityTrackerCard } from "./ActivityTrackerCard";
 export { ProductAnalysisCard } from "./ProductAnalysisCard";
 export { TravelPlannerCard } from "./TravelPlannerCard";
+export { GenerationCard } from "./GenerationCard";

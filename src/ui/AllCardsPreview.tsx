@@ -125,6 +125,10 @@ const CARDS: Array<{ label: string; items: KoruTurnItem[]; extra?: React.ReactNo
     items: [makeItem({ uiBlock: { type: "travel_planner", destination: "Madrid, España", dates: "15 - 22 Julio", steps: [{ time: "Vuelo IDA", label: "EZE → MAD", detail: "Iberia IB6845 · 12h 30m", icon: "flight_takeoff" }, { time: "Día 1", label: "Llegada y check-in", detail: "Hotel Gran Vía Central", icon: "hotel" }, { time: "Día 2", label: "Tour histórico", detail: "Palacio Real · Museo del Prado", icon: "museum" }, { time: "Vuelo VUELTA", label: "MAD → EZE", detail: "Iberia IB6846 · 13h 10m", icon: "flight_land" }], actionLabel: "Ver itinerario completo" } })],
   },
   {
+    label: "generation",
+    items: [makeItem({ uiBlock: { type: "generation", title: "Generación Visual", prompt: "Un astronauta en un caballo pintado estilo Van Gogh", resultType: "image", preview: "https://images.unsplash.com/photo-1614728263952-84ea256f9679?w=400&h=300&fit=crop", actionLabel: "Descargar imagen", actionIcon: "download" } }), makeItem({ uiBlock: { type: "generation", title: "Texto generado", prompt: "Resumen ejecutivo del proyecto Alpha", resultType: "text", preview: "El proyecto Alpha ha alcanzado un crecimiento del 34% en el último trimestre, superando todas las proyecciones iniciales. Los ingresos netos ascienden a $2.4M con un margen operativo del 18%...", actionLabel: "Copiar texto", actionIcon: "content_copy" } })],
+  },
+  {
     label: "plan",
     items: [makeItem({ uiBlock: { type: "plan", title: "Plan de viaje", items: [{ text: "Sacar pasaporte", status: "waiting" as const }, { text: "Reservar vuelo", status: "doing" as const }, { text: "Elegir hotel", status: "done" as const }], note: "3 pasos para el viaje a Madrid" } })],
   },
