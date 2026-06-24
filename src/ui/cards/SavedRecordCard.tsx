@@ -1,14 +1,12 @@
-import React from "react";
-import type { Extract } from "../domain/types";
+import type { UiBlock, LifeRecordKind } from "../../domain/types";
 
 export type SavedRecordBlock = Extract<UiBlock, { type: "saved_record" }>;
-import type { UiBlock } from "../domain/types";
 
 function Mat({ children, className = "" }: { children: string; className?: string }) {
   return <span className={`material-symbols-outlined ${className}`}>{children}</span>;
 }
 
-function recordIcon(kind: string): string {
+function recordIcon(kind: LifeRecordKind): string {
   const map: Record<string, string> = {
     expense: "receipt_long",
     shopping_item: "shopping_bag",
@@ -17,55 +15,66 @@ function recordIcon(kind: string): string {
     person_followup: "person",
     deadline: "event_busy",
     meal_inventory: "kitchen",
-    tool_link: "link",
+    tool_link: "magic_button",
     idea: "lightbulb",
     recommendation: "recommend",
+    gift: "card_giftcard",
+    birthday: "cake",
+    home_task: "home",
+    medical_info: "stethoscope",
+    sleep: "bedtime",
+    decision: "gavel",
   };
   return map[kind] ?? "bookmark";
 }
 
-export function SavedRecordCard({ block }: { block: SavedRecordBlock }) {
-  const records = block.records ?? [];
-  return (
-    <div className="flex w-full" data-ui-block="saved_record">
-      <div className="flex flex-col w-full">
-        <div className="bg-white rounded-[24px] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-gray-100" style={{ borderTopLeftRadius: "4px" }}>
-          {/* Header */}
-          <div className="flex items-center justify-between mb-5">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-lime-50 flex items-center justify-center shrink-0">
-                <Mat className="text-[20px] text-lime-500">bookmark_added</Mat>
-              </div>
-              <h2 className="text-[17px] font-bold text-gray-900 tracking-tight">{block.title ?? "Guardado"}</h2>
-            </div>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase text-lime-400 bg-lime-50">
-              {records.length} registro{records.length !== 1 ? "s" : ""}
-            </span>
-          </div>
+function recordCategory(kind: LifeRecordKind): string {
+  const map: Record<string, string> = {
+    expense: "Gasto",
+    shopping_item: "Compras",
+    medication: "Salud",
+    meeting_note: "Reunión",
+    person_followup: "Seguimiento",
+    deadline: "Deadline",
+    meal_inventory: "Comida",
+    tool_link: "Herramienta",
+    idea: "Idea",
+    recommendation: "Recomendación",
+    gift: "Regalo",
+    birthday: "Cumpleaños",
+    home_task: "Casa",
+    medical_info: "Salud",
+    sleep: "Descanso",
+    decision: "Decisión",
+  };
+  return map[kind] ?? "Guardado";
+}
 
-          {/* Records */}
-          {records.length > 0 && (
-            <div className="space-y-2 mb-5">
-              {records.map((record, idx) => (
-                <div key={`${record.id}-${idx}`} className="flex items-center gap-3 p-3 rounded-xl border border-gray-100">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${idx === 0 ? "bg-gradient-to-br from-lime-100 to-green-200" : "bg-gray-100"}`}>
-                    <Mat className={`text-[20px] ${idx === 0 ? "text-lime-500" : "text-gray-400"}`}>
-                      {recordIcon(record.kind)}
-                    </Mat>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-gray-800 truncate">{record.title}</p>
-                    {record.value && <p className="text-[11px] text-gray-500">{record.value}</p>}
-                    {record.amount !== undefined && (
-                      <p className="text-[11px] text-gray-500">{record.amount} {record.currency ?? ""}</p>
-                    )}
-                  </div>
-                </div>
-              ))}
+export function SavedRecordCard({ block }: { block: SavedRecordBlock }) {
+  const record = block.records?.[0];
+  return (
+    <div
+      className="bg-white rounded-2xl p-4 shadow-sm border border-[#EAE6DF]"
+      style={{ borderTopLeftRadius: "4px" }}
+      data-ui-block="saved_record"
+    >
+      <p className="text-[14px] text-gray-800 mb-3 font-medium">
+        {block.title ?? "¡Guardado!"}
+      </p>
+      {record && (
+        <div className="bg-[#FBF9F5] rounded-xl p-3 border border-[#EAE6DF] flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center border border-purple-100">
+              <Mat className="text-purple-500">{recordIcon(record.kind)}</Mat>
             </div>
-          )}
+            <div>
+              <p className="text-sm font-medium text-gray-800">{record.title}</p>
+              <p className="text-xs text-gray-500">{record.collection ?? recordCategory(record.kind)}</p>
+            </div>
+          </div>
+          <Mat className="text-[#A7C497]">check_circle</Mat>
         </div>
-      </div>
+      )}
     </div>
   );
 }
