@@ -27,3 +27,5 @@ export { HealthReminderCard } from "./HealthReminderCard";
 export { DeliveryCard } from "./DeliveryCard";
 export { SocialInteractionCard } from "./SocialInteractionCard";
 export { ActivityTrackerCard } from "./ActivityTrackerCard";
+export { ProductAnalysisCard } from "./ProductAnalysisCard";
+export { TravelPlannerCard } from "./TravelPlannerCard";

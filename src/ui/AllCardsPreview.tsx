@@ -117,6 +117,14 @@ const CARDS: Array<{ label: string; items: KoruTurnItem[]; extra?: React.ReactNo
     ] } })],
   },
   {
+    label: "product_analysis",
+    items: [makeItem({ uiBlock: { type: "product_analysis", product: { name: "Sony Alpha a7 IV", icon: "photo_camera", rating: 4.8, reviewCount: "4.8/5 de 1.2k reviews", description: "Cámara mirrorless híbrida excelente para video y fotografía profesional." }, specs: [{ label: "Sensor", value: "33MP Full-Frame" }, { label: "Video", value: "4K 60p 10-bit" }, { label: "Autofocus", value: "Real-time Eye AF" }, { label: "Precio Info", value: "Buen momento para comprar" }], actionLabel: "Ver opciones de compra", actionIcon: "shopping_cart" } })],
+  },
+  {
+    label: "travel_planner",
+    items: [makeItem({ uiBlock: { type: "travel_planner", destination: "Madrid, España", dates: "15 - 22 Julio", steps: [{ time: "Vuelo IDA", label: "EZE → MAD", detail: "Iberia IB6845 · 12h 30m", icon: "flight_takeoff" }, { time: "Día 1", label: "Llegada y check-in", detail: "Hotel Gran Vía Central", icon: "hotel" }, { time: "Día 2", label: "Tour histórico", detail: "Palacio Real · Museo del Prado", icon: "museum" }, { time: "Vuelo VUELTA", label: "MAD → EZE", detail: "Iberia IB6846 · 13h 10m", icon: "flight_land" }], actionLabel: "Ver itinerario completo" } })],
+  },
+  {
     label: "plan",
     items: [makeItem({ uiBlock: { type: "plan", title: "Plan de viaje", items: [{ text: "Sacar pasaporte", status: "waiting" as const }, { text: "Reservar vuelo", status: "doing" as const }, { text: "Elegir hotel", status: "done" as const }], note: "3 pasos para el viaje a Madrid" } })],
   },

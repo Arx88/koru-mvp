@@ -41,12 +41,10 @@ import { ShoppingListCard } from "./cards/ShoppingListCard";
 import { AlarmCard } from "./cards/AlarmCard";
 import { ReminderCard } from "./cards/ReminderCard";
 import { ProactiveSignalCard } from "./cards/ProactiveSignalCard";
-import { SavedRecordCard } from "./cards/SavedRecordCard";
 import { ActivityGroupCard } from "./cards/ActivityGroupCard";
 import { ResourceBundleCard } from "./cards/ResourceBundleCard";
 import { ClarifyingQuestionCard } from "./cards/ClarifyingQuestionCard";
 import { ComparisonCard } from "./cards/ComparisonCard";
-import { MemoryCard } from "./cards/MemoryCard";
 import { DecisionSupportCard } from "./cards/DecisionSupportCard";
 import { MorningBriefCard } from "./cards/MorningBriefCard";
 import { WellbeingCard } from "./cards/WellbeingCard";
@@ -58,6 +56,8 @@ import { HealthReminderCard } from "./cards/HealthReminderCard";
 import { DeliveryCard } from "./cards/DeliveryCard";
 import { SocialInteractionCard } from "./cards/SocialInteractionCard";
 import { ActivityTrackerCard } from "./cards/ActivityTrackerCard";
+import { ProductAnalysisCard } from "./cards/ProductAnalysisCard";
+import { TravelPlannerCard } from "./cards/TravelPlannerCard";
 
 export type CardActionHandlers = {
   onReview: (id: string, approve: boolean) => void;
@@ -1226,6 +1226,14 @@ function UiBlockCardA({ item }: { item: KoruTurnItem }) {
 
   if (block.type === "activity_tracker") {
     return <ActivityTrackerCard block={block} />;
+  }
+
+  if (block.type === "product_analysis") {
+    return <ProductAnalysisCard block={block} />;
+  }
+
+  if (block.type === "travel_planner") {
+    return <TravelPlannerCard block={block} />;
   }
 
   return null;

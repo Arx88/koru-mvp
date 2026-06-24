@@ -615,6 +615,27 @@ export type UiBlock =
         progress?: number;
         progressColor?: string;
       }>;
+    }
+  | {
+      type: "product_analysis";
+      product?: {
+        name?: string;
+        image?: string;
+        icon?: string;
+        rating?: number;
+        reviewCount?: string;
+        description?: string;
+      };
+      specs?: Array<{ label: string; value: string }>;
+      actionLabel?: string;
+      actionIcon?: string;
+    }
+  | {
+      type: "travel_planner";
+      destination?: string;
+      dates?: string;
+      steps?: Array<{ time: string; label: string; detail?: string; icon?: string }>;
+      actionLabel?: string;
     };
 
 export type AssistantActionStatus = "proposed" | "approved" | "executed" | "rejected";
