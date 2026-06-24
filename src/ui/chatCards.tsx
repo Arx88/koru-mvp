@@ -59,6 +59,7 @@ import { ActivityTrackerCard } from "./cards/ActivityTrackerCard";
 import { ProductAnalysisCard } from "./cards/ProductAnalysisCard";
 import { TravelPlannerCard } from "./cards/TravelPlannerCard";
 import { GenerationCard } from "./cards/GenerationCard";
+import { SavedRecordCard } from "./cards/SavedRecordCard";
 
 export type CardActionHandlers = {
   onReview: (id: string, approve: boolean) => void;
@@ -449,38 +450,6 @@ function primaryLine(item: KoruTurnItem): string {
   return item.payloadPreview ?? item.text;
 }
 
-function SavedRecordCard({ item, records, title }: { item: KoruTurnItem; records: NonNullable<KoruTurnItem["records"]>; title?: string }) {
-  const compactTitle = !title || /^(datos?(?:\s+guardados?)?|guardar\s+datos?(?:\s+util(?:es)?)?|guardado)$/i.test(title.trim())
-    ? savedRecordTitle(records)
-    : title;
-  const first = records[0];
-  const hint = first?.kind === "tool_link"
-    ? "Herramienta guardada"
-    : first?.kind === "expense"
-      ? "Gasto guardado"
-      : first?.kind === "shopping_item"
-        ? "Compra guardada"
-        : "Dato guardado";
-  const chips = uniqueLabels(records.flatMap((record) => [record.collection, record.domain, record.kind ? recordKindLabel(record.kind) : undefined]));
-  return (
-    <div className="koru-saved-record-card koru-stitch-card" data-ui-block="saved_record" data-card-kind={item.actionKind ?? item.kind}>
-      <StitchHeader icon={Check} hint={hint} title={compactTitle} />
-      <div className="koru-stitch-content">
-        {records.slice(0, 6).map((record) => (
-          <StitchRow
-            key={`${record.domain}-${record.kind}-${record.title}-${record.value ?? ""}`}
-            icon={Check}
-            title={recordDisplay(record)}
-            detail={recordDetail(record)}
-            chip={record.collection ?? record.domain}
-          />
-        ))}
-        <StitchPills labels={chips} />
-      </div>
-    </div>
-  );
-}
-
 function ActionTitle({ item, icon: Icon = Sparkles }: { item: KoruTurnItem; icon?: LucideIcon }) {
   return (
     <p className="koru-action-title">
@@ -635,7 +604,7 @@ function DecisionCard({ item }: { item: KoruTurnItem }) {
 function RecordsModule({ item }: { item: KoruTurnItem }) {
   if (!item.records?.length) return null;
   if (item.actionKind === "structured_note") {
-    return <SavedRecordCard item={item} records={item.records} />;
+    return <SavedRecordCard block={{ type: "saved_record", records: item.records as any, title: item.title }} />;
   }
   const listRecords = item.records.filter((record) =>
     ["shopping_item", "idea", "home_task", "person_followup", "deadline"].includes(record.kind),
@@ -1104,7 +1073,7 @@ function UiBlockCardA({ item }: { item: KoruTurnItem }) {
   }
 
   if (block.type === "comparison") {
-    return <ComparisonCardA item={{ ...item, comparisonItems: block.items, recommendation: block.recommendation, sources: block.sources }} title={block.title} recommendation={block.recommendation} />;
+    return <ComparisonCard block={block} />;
   }
 
   if (block.type === "research_sources") {
@@ -1116,69 +1085,19 @@ function UiBlockCardA({ item }: { item: KoruTurnItem }) {
   }
 
   if (block.type === "saved_record") {
-    return <SavedRecordCard item={item} records={block.records} title={block.title} />;
+    return <SavedRecordCard block={block} />;
   }
 
   if (block.type === "activity_group") {
-    const tileSummaries = block.sections.flatMap((section) =>
-      (section.tiles ?? []).map((tile) => ({
-        label: tile.label,
-        value: tile.value,
-        detail: joinParts([section.title, tile.detail]),
-      })),
-    );
-    const rows = block.sections.flatMap((section) =>
-      (section.rows ?? []).map((row) => ({
-        ...row,
-        sectionTitle: section.title,
-        tone: section.tone,
-      })),
-    );
-    return (
-      <div className="koru-activity-group koru-stitch-card" data-ui-block="activity_group">
-        <StitchHeader icon={Sun} hint={block.subtitle ?? "Actividad"} title={block.title} />
-        <StitchSummaryGrid items={tileSummaries} />
-        {rows.length > 0 && (
-          <div className="koru-stitch-content">
-            {rows.slice(0, 6).map((row, index) => (
-              <StitchRow
-                key={`${row.sectionTitle}-${row.title}-${row.meta ?? index}`}
-                icon={Check}
-                title={row.title}
-                detail={joinParts([row.sectionTitle, row.detail])}
-                chip={row.meta}
-                highlighted={row.urgent}
-                tone={row.urgent ? "amber" : row.tone === "purple" ? "purple" : "accent"}
-              />
-            ))}
-          </div>
-        )}
-        {block.energy && (
-          <StitchNote tone="blue">
-            {joinParts([block.energy.label ?? "Energia", `${Math.max(0, Math.min(100, block.energy.value))}%`])}
-          </StitchNote>
-        )}
-        <StitchNote>{block.note}</StitchNote>
-      </div>
-    );
+    return <ActivityGroupCard block={block} />;
   }
 
   if (block.type === "proactive_signal") {
-    const Icon = signalIcon(block.category);
-    const status = block.sourceStatus ?? item.externalStatus;
-    return (
-      <div className="koru-proactive-card koru-stitch-card" data-ui-block="proactive_signal" data-severity={block.severity ?? "info"}>
-        <StitchHeader icon={Icon} hint={statusLabel(status)} title={block.title} tone={block.severity === "important" || block.severity === "urgent" ? "amber" : "purple"} />
-        <StitchNote>{block.body}</StitchNote>
-        <StitchSummaryGrid items={block.summaryItems ?? []} />
-        <SourceRowsA sources={block.sources} />
-        <StitchNote tone="amber">{block.followUpQuestion}</StitchNote>
-      </div>
-    );
+    return <ProactiveSignalCard block={block} />;
   }
 
   if (block.type === "resource_bundle") {
-    return <ResourceBundleCardA block={block} />;
+    return <ResourceBundleCard block={block} />;
   }
 
   if (block.type === "data_card") {

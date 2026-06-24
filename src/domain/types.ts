@@ -359,9 +359,13 @@ export type UiBlock =
       title?: string;
       city?: string;
       now?: string;
+      feel?: string;
+      condition?: string;
       range?: string;
       rain?: string;
       wind?: string;
+      humidity?: string;
+      uv?: string;
       advice?: string;
       sourceStatus?: AssistantActionPayload["externalStatus"];
       sources?: AssistantSource[];

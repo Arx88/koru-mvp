@@ -45,7 +45,7 @@ const CARDS: Array<{ label: string; items: KoruTurnItem[]; extra?: React.ReactNo
   },
   {
     label: "weather",
-    items: [makeItem({ uiBlock: { type: "weather", city: "Buenos Aires", now: "22°C Soleado", range: "18° - 26°", rain: "0%", wind: "12 km/h", advice: "Perfecto para salir", sources } })],
+    items: [makeItem({ uiBlock: { type: "weather", title: "Reporte Ambiental", city: "Buenos Aires", now: "22°", feel: "19°", condition: "Parcialmente nublado", range: "18° - 26°", rain: "0%", wind: "12 km/h", humidity: "65%", uv: "Bajo (2)", advice: "Perfecto para salir", sources } })],
   },
   {
     label: "morning_brief",
