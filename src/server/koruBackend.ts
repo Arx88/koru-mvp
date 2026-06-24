@@ -109,7 +109,7 @@ type ToolExecution = {
   result: Record<string, unknown>;
 };
 
-type WeatherData = {
+export type WeatherData = {
   type: "weather";
   city: string;
   now?: string;
@@ -120,7 +120,7 @@ type WeatherData = {
   sources: AssistantSource[];
 };
 
-type SearchData = {
+export type SearchData = {
   type: "search";
   mode: "news" | "research" | "shopping" | "world";
   title: string;
@@ -142,7 +142,7 @@ type PlanData = {
   context: string[];
 };
 
-type LocalActionData = {
+export type LocalActionData = {
   type: "local_action";
   block: UiBlock;
   requiresApproval: boolean;
@@ -150,7 +150,7 @@ type LocalActionData = {
   commitments?: Omit<Commitment, "id" | "createdAt" | "sourceEntryId">[];
 };
 
-type PersonalCaptureData = {
+export type PersonalCaptureData = {
   type: "personal_capture";
   block: UiBlock;
   commitments?: Omit<Commitment, "id" | "createdAt" | "sourceEntryId">[];
@@ -158,7 +158,7 @@ type PersonalCaptureData = {
   memoryCandidates?: Omit<MemoryFact, "id" | "createdAt" | "sourceEntryId">[];
 };
 
-type PersonalQueryData = {
+export type PersonalQueryData = {
   type: "personal_query";
   block: UiBlock;
   reply?: string;
@@ -168,6 +168,11 @@ type MemoryCaptureData = {
   type: "memory_capture";
   memoryCandidates: Omit<MemoryFact, "id" | "createdAt" | "sourceEntryId">[];
 };
+
+// ── ToolBox externo (doc 09): las tools nuevas viven en src/tools/ ──
+// Se combinan con las builtin de abajo. El motor no cambia su lógica;
+// solo ahora "conoce" más tools. Añadir tools = añadirlas en src/tools/.
+import { ALL_TOOL_DEFINITIONS as EXTERNAL_TOOL_DEFINITIONS, TOOL_BOX } from "../tools/toolbox";
 
 const TOOL_DEFINITIONS = [
   {
@@ -367,6 +372,16 @@ const TOOL_DEFINITIONS = [
   },
 ] as const;
 
+/**
+ * Definiciones finales que el LLM ve = builtin (arriba) + externas (ToolBox).
+ * El motor referencia ALL_TOOL_DEFINITIONS en callProvider/callNvidia/etc.
+ * Así cualquier tool añadida en src/tools/ queda disponible sin tocar más nada.
+ */
+const ALL_TOOL_DEFINITIONS = [
+  ...TOOL_DEFINITIONS,
+  ...EXTERNAL_TOOL_DEFINITIONS,
+];
+
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
@@ -379,7 +394,7 @@ function asArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
 }
 
-function cleanText(value: unknown, fallback = ""): string {
+export function cleanText(value: unknown, fallback = ""): string {
   return asString(value)?.replace(/\s+/g, " ").trim() ?? fallback;
 }
 
@@ -545,7 +560,7 @@ async function callMinimax(
     body: JSON.stringify({
       model: "MiniMax-M2.7",
       messages: minimaxMessages,
-      ...(toolsEnabled ? { tools: TOOL_DEFINITIONS, tool_choice: "auto" } : {}),
+      ...(toolsEnabled ? { tools: ALL_TOOL_DEFINITIONS, tool_choice: "auto" } : {}),
       temperature: 0.25,
       top_p: 0.95,
       max_tokens: 8192,
@@ -587,7 +602,7 @@ async function callNvidia(
       stream: false,
     };
     if (toolsEnabled) {
-      body.tools = TOOL_DEFINITIONS;
+      body.tools = ALL_TOOL_DEFINITIONS;
     }
     const response = await fetchWithTimeout(providerUrl(config.nvidiaBaseUrl, "/api/chat"), {
       method: "POST",
@@ -674,7 +689,7 @@ async function callOpenRouterCandidate(
     body: JSON.stringify({
       model,
       messages,
-      ...(toolsEnabled ? { tools: TOOL_DEFINITIONS, tool_choice: "auto" } : {}),
+      ...(toolsEnabled ? { tools: ALL_TOOL_DEFINITIONS, tool_choice: "auto" } : {}),
       temperature: 0.25,
       max_tokens: 8192,
       stream: false,
@@ -841,7 +856,7 @@ async function geocodeCity(city: string): Promise<{ name: string; latitude: numb
   };
 }
 
-async function getWeather(args: Record<string, unknown>): Promise<WeatherData> {
+export async function getWeather(args: Record<string, unknown>): Promise<WeatherData> {
   const requestedCity = cleanText(args.city, "Madrid");
   const location = await geocodeCity(requestedCity);
   if (!location) {
@@ -995,7 +1010,7 @@ async function fetchPageContent(url: string, maxChars = 1200): Promise<string> {
   }
 }
 
-async function runSearch(
+export async function runSearch(
   args: Record<string, unknown>,
   shopping = false,
   extractorCtx?: { userInput: string; chatFn: ExtractorChatFn; onDeferredChunk?: (block: UiBlock) => void },
@@ -1077,7 +1092,7 @@ async function runSearch(
   };
 }
 
-function planFromState(state: KoruState, args: Record<string, unknown>): PlanData {
+export function planFromState(state: KoruState, args: Record<string, unknown>): PlanData {
   const openCommitments = state.commitments.filter((item) => item.status === "open").slice(0, 5);
   const recentRecords = state.records.slice(0, 5);
   const focus = cleanText(args.focus, "ordenar el dia");
@@ -1105,7 +1120,7 @@ function planFromState(state: KoruState, args: Record<string, unknown>): PlanDat
   };
 }
 
-function localReminderFromArgs(args: Record<string, unknown>, input = ""): LocalActionData {
+export function localReminderFromArgs(args: Record<string, unknown>, input = ""): LocalActionData {
   const title = cleanText(args.title, input || "Recordatorio");
   const dueText = cleanText(args.dueText ?? args.dueHint ?? args.startsAt, "sin fecha");
   const note = cleanText(args.note);
@@ -1130,7 +1145,7 @@ function localReminderFromArgs(args: Record<string, unknown>, input = ""): Local
   };
 }
 
-function localAlarmFromArgs(args: Record<string, unknown>, input = ""): LocalActionData {
+export function localAlarmFromArgs(args: Record<string, unknown>, input = ""): LocalActionData {
   const title = cleanText(args.title, input || "Alarma");
   const time = cleanText(args.time ?? args.startsAt ?? args.hour) || timeFromText(`${title} ${cleanText(args.note)} ${cleanText(args.dueText)}`) || "hora pendiente";
   const repeat = cleanText(args.repeat);
@@ -1242,7 +1257,7 @@ function uniqueLifeRecords(records: LifeRecord[]): LifeRecord[] {
   });
 }
 
-function queryPersonalContextFromState(state: KoruState, args: Record<string, unknown>): PersonalQueryData {
+export function queryPersonalContextFromState(state: KoruState, args: Record<string, unknown>): PersonalQueryData {
   const topic = cleanText(args.topic, "general");
   const query = cleanText(args.query, cleanText(args.__userInput));
   const period = cleanText(args.period);
@@ -1506,7 +1521,7 @@ function argsWithCaptureHygiene(args: Record<string, unknown>, input: string): R
   return next;
 }
 
-function memoryCaptureFromArgs(args: Record<string, unknown>, input = ""): MemoryCaptureData {
+export function memoryCaptureFromArgs(args: Record<string, unknown>, input = ""): MemoryCaptureData {
   const memories = asArray(args.memories).map(asRecord).map((item) => {
     const kind = ["profile", "routine", "preference", "goal", "relationship", "boundary", "retail", "wellbeing", "task"].includes(cleanText(item.kind))
       ? cleanText(item.kind) as MemoryFact["kind"]
@@ -1525,7 +1540,7 @@ function memoryCaptureFromArgs(args: Record<string, unknown>, input = ""): Memor
   return { type: "memory_capture", memoryCandidates: memories };
 }
 
-function personalCaptureFromArgs(args: Record<string, unknown>, input = ""): PersonalCaptureData {
+export function personalCaptureFromArgs(args: Record<string, unknown>, input = ""): PersonalCaptureData {
   const cleanArgs = argsWithCaptureHygiene(args, input);
   const requestedType = cleanText(cleanArgs.uiBlockType, "saved_record");
   const uiBlockType = ["reminder", "alarm", "shopping_list", "saved_record", "money_summary"].includes(requestedType)
@@ -1734,8 +1749,22 @@ async function executeTool(
   else if (name === "save_memory") result = memoryCaptureFromArgs(args, cleanText(args.__userInput)) as unknown as Record<string, unknown>;
   else if (name === "save_personal_item") result = personalCaptureFromArgs(args, cleanText(args.__userInput)) as unknown as Record<string, unknown>;
   else {
-    logger.warn("executeTool", `Unknown tool: ${name}`);
-    return { result: { type: "unknown", error: `Unknown tool ${name}` } };
+    // ── ToolBox externo (doc 09): tools nuevas viven en src/tools/ ──
+    // Si la tool no es builtin, la buscamos en el ToolBox. El motor no cambia
+    // su lógica; solo delega al handler externo si existe.
+    const handler = TOOL_BOX.get(name);
+    if (handler) {
+      const runResult = await handler.run({ ...args, __userInput: cleanText(args.__userInput) }, {
+        userInput: cleanText(args.__userInput),
+        state,
+        chatFn: extractorCtx?.chatFn as never,
+      });
+      result = runResult as Record<string, unknown>;
+      deferredDataCard = runResult.deferredDataCard;
+    } else {
+      logger.warn("executeTool", `Unknown tool: ${name}`);
+      return { result: { type: "unknown", error: `Unknown tool ${name}` } };
+    }
   }
   logger.info("executeTool", `Tool ${name} result`, { result: dump(result, 500) });
   return { result, deferredDataCard };
@@ -2660,14 +2689,25 @@ async function executeProviderToolCalls(
     tool_calls: toolCalls,
   });
 
-  // NOTE: el extractor de estructura (data_card) está DESACTIVADO en el turno.
-  // Razón: MiniMax serializa requests concurrentes, así que correr el extractor
-  // en paralelo con el Composer no ahorra tiempo — lo duplica (~24s vs ~11s).
-  // Eso empuja el turno por encima del timeout del cliente (75s) y rompe la UX.
-  // El data_card se reimplementará como una llamada diferida del frontend que no
-  // compita por el provider del turno. El código del extractor y sus tests quedan
-  // intactos para ese futuro uso.
-  const extractorCtx = undefined;
+  // Reactivar extractor: usar Ollama local (puerto distinto al proveedor principal
+  // para evitar serialización). El extractor corre en paralelo al Composer.
+  const ollamaConfig = getConfigOrThrow();
+  const extractorChatFn: ExtractorChatFn = async (msgs, opts) => {
+    const body: Record<string, unknown> = {
+      model: config.nvidiaModel || "llama3.1:8b",
+      messages: msgs.map(m => ({ role: m.role, content: m.content })),
+      format: opts.responseFormat?.type === "json_object" ? "json" : undefined,
+      stream: false,
+      options: { temperature: opts.temperature ?? 0.1, num_predict: opts.maxTokens ?? 900 },
+    };
+    if (!ollamaConfig.nvidiaBaseUrl) throw new Error("Ollama no configurado para extractor");
+    const r = await fetchWithTimeout(providerUrl(ollamaConfig.nvidiaBaseUrl, "/api/chat"), {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+    }, 30_000);
+    const d = await r.json().catch(() => ({}));
+    return { content: d.message?.content ?? "" };
+  };
+  const extractorCtx = { userInput: request.input, chatFn: extractorChatFn };
   const deferredDataCards: Array<Promise<UiBlock | null>> = [];
 
   for (const call of toolCalls) {
