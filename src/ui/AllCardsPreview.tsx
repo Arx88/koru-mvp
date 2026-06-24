@@ -48,6 +48,75 @@ const CARDS: Array<{ label: string; items: KoruTurnItem[]; extra?: React.ReactNo
     items: [makeItem({ uiBlock: { type: "weather", city: "Buenos Aires", now: "22°C Soleado", range: "18° - 26°", rain: "0%", wind: "12 km/h", advice: "Perfecto para salir", sources } })],
   },
   {
+    label: "morning_brief",
+    items: [makeItem({ uiBlock: { type: "morning_brief", greeting: "¡Hola! Aquí tienes tu resumen matutino 🌅", items: [
+      { icon: "light_mode", iconColor: "#F2C94C", label: "Clima", value: "22°C Soleado" },
+      { icon: "checkroom", iconColor: "#8676B1", label: "Ropa sugerida", value: "Blazer ligero" },
+      { icon: "directions_car", iconColor: "#70B873", label: "Tráfico", value: "Ruta despejada" },
+      { icon: "medication", iconColor: "#D9A05B", label: "Recordatorio", value: "Tomar vitamina", variant: "highlight" },
+    ] } })],
+  },
+  {
+    label: "wellbeing",
+    items: [makeItem({ uiBlock: { type: "wellbeing", title: "Tu bienestar", emoji: "🧘‍♀️", sections: [
+      { icon: "bedtime", iconColor: "#818cf8", bgColor: "#F8F9FA", value: "7h 20m", label: "Sueño óptimo" },
+      { icon: "directions_walk", iconColor: "#a855f7", bgColor: "#f3f0ff", borderColor: "#e9d5ff", value: "Salir a caminar", label: "Sugerencia tarde" },
+    ] } })],
+  },
+  {
+    label: "plan (timeline)",
+    items: [makeItem({ uiBlock: { type: "plan", title: "Logística de Actividad", id: "ID: PLAN-882", steps: [
+      { time: "09:15 AM", label: "Check-in Punto A", description: "Sincronización de sensores y calibración de ruta base.", status: "done" as const, tags: [{ label: "Geo-tagging: ON" }, { label: "Nivel 4" }] },
+      { time: "10:45 AM", label: "Intervención de Campo", description: "Muestreo sistemático (Intervalos de 15m). Precisión 98%.", status: "current" as const },
+      { time: "13:30 PM", label: "Consolidación de Datos", description: "Cierre de sesión técnica y reporte de contingencia.", status: "pending" as const },
+    ], actionLabel: "Ejecutar Protocolo", actionIcon: "verified" as const } })],
+  },
+  {
+    label: "live_match",
+    items: [makeItem({ uiBlock: { type: "live_match", league: "Champions League", time: "89 min", status: "Final", homeTeam: { name: "Real Madrid", abbrev: "RMA", score: 3 }, awayTeam: { name: "Man City", abbrev: "MCI", score: 2 }, stats: [
+      { label: "Possession", leftPercent: 42, rightPercent: 58 },
+      { label: "Shots", leftPercent: 60, rightPercent: 40, leftColor: "#f59e0b", rightColor: "#3b82f6" },
+    ] } })],
+  },
+  {
+    label: "urgent_now",
+    items: [makeItem({ uiBlock: { type: "urgent_now", headline: "Acuerdo histórico en la cumbre climática", description: "Líderes mundiales firman un tratado vinculante para reducir emisiones en un 50% para 2030. Mercados de energía renovable reaccionan positivamente.", icon: "breaking_news_alt_1", iconColor: "#ef4444", iconBg: "#fef2f2" } })],
+  },
+  {
+    label: "market",
+    items: [makeItem({ uiBlock: { type: "market", title: "Mercados", assets: [
+      { symbol: "₿", name: "Bitcoin", price: "$64,230", change: "+2.4%", changeUp: true, iconBg: "#fff7ed", iconColor: "#f97316" },
+      { symbol: "Ξ", name: "Ethereum", price: "$3,450", change: "-0.8%", changeUp: false, iconBg: "#eff6ff", iconColor: "#3b82f6" },
+      { symbol: "AAPL", name: "Apple Inc.", price: "$189.12", change: "+1.1%", changeUp: true, iconBg: "#111827", iconColor: "#ffffff", shape: "rounded" as const },
+    ] } })],
+  },
+  {
+    label: "health_reminder",
+    items: [makeItem({ uiBlock: { type: "health_reminder", title: "Recordatorio de salud", reminder: "Tomar vitamina D y hacer 10 minutos de estiramientos antes de dormir.", actionLabel: "Marcar como hecho", icon: "favorite", iconColor: "#e11d48", bgColor: "#fff1f2" } })],
+  },
+  {
+    label: "delivery",
+    items: [makeItem({ uiBlock: { type: "delivery", title: "Envío en curso", status: "En tránsito", carrier: "Correo Argentino", trackingId: "TRK-88213491", estimatedDate: "26 de mayo", steps: [
+      { label: "Paquete recibido", done: true },
+      { label: "En tránsito", done: true },
+      { label: "En distribución", done: false },
+      { label: "Entregado", done: false },
+    ] } })],
+  },
+  {
+    label: "social_interaction",
+    items: [makeItem({ uiBlock: { type: "social_interaction", title: "Cumpleaños de mamá", subtitle: "¡Es hoy! Llamar en la tarde", icon: "cake", iconColor: "#f97316", iconBg: "#fff7ed", actionLabel: "Recordar", actionIcon: "notifications_active" } })],
+  },
+  {
+    label: "activity_tracker",
+    items: [makeItem({ uiBlock: { type: "activity_tracker", title: "Actividad Física", subtitle: "Hoy", metrics: [
+      { icon: "steps", iconColor: "#14b8a6", label: "Pasos", value: "8,432", unit: "pasos", progress: 68, progressColor: "#14b8a6" },
+      { icon: "local_fire_department", iconColor: "#f97316", label: "Calorías", value: "342", unit: "kcal", progress: 45, progressColor: "#f97316" },
+      { icon: "schedule", iconColor: "#3b82f6", label: "Activo", value: "45", unit: "min", progress: 60, progressColor: "#3b82f6" },
+      { icon: "moving", iconColor: "#8b5cf6", label: "Distancia", value: "5.2", unit: "km", progress: 52, progressColor: "#8b5cf6" },
+    ] } })],
+  },
+  {
     label: "plan",
     items: [makeItem({ uiBlock: { type: "plan", title: "Plan de viaje", items: [{ text: "Sacar pasaporte", status: "waiting" as const }, { text: "Reservar vuelo", status: "doing" as const }, { text: "Elegir hotel", status: "done" as const }], note: "3 pasos para el viaje a Madrid" } })],
   },
