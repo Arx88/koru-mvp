@@ -17,60 +17,51 @@ export type ActivityTrackerBlock = {
   metrics: ActivityMetric[];
 };
 
-function Mat({ children, className = "" }: { children: string; className?: string }) {
-  return <span className={`material-symbols-outlined ${className}`}>{children}</span>;
-}
-
 export function ActivityTrackerCard({ block }: { block: ActivityTrackerBlock }) {
+  const firstMetric = block.metrics[0];
+  const progress = firstMetric?.progress ?? 75;
+  const value = firstMetric?.value ?? "8.5k";
+
   return (
     <div className="flex w-full" data-ui-block="activity_tracker">
       <div className="flex flex-col w-full">
-        <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-50">
-          <div className="flex items-center gap-2 mb-5">
-            <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center">
-              <Mat className="text-[20px] text-teal-500">fitness_center</Mat>
-            </div>
-            <div>
-              <h2 className="text-[15px] font-bold text-gray-900">
-                {block.title ?? "Actividad Física"}
-              </h2>
-              {block.subtitle && (
-                <p className="text-[11px] text-gray-400 font-medium">{block.subtitle}</p>
-              )}
+        <div className="bg-white rounded-3xl p-5 card-shadow border border-gray-50 flex items-center gap-5">
+          <div className="relative w-16 h-16 shrink-0">
+            <svg
+              className="w-full h-full -rotate-90"
+              viewBox="0 0 36 36"
+            >
+              <path
+                className="text-gray-100"
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              />
+              <path
+                className="text-teal-500"
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                fill="none"
+                stroke="currentColor"
+                strokeDasharray={`${progress}, 100`}
+                strokeLinecap="round"
+                strokeWidth="2.5"
+              />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center flex-col">
+              <span className="text-[16px] font-black text-gray-900 leading-none">
+                {value}
+              </span>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            {block.metrics.map((m, idx) => (
-              <div key={idx} className="bg-gray-50/60 rounded-xl p-3 flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <Mat className="text-[16px]" style={{ color: m.iconColor }}>
-                    {m.icon}
-                  </Mat>
-                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">
-                    {m.label}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-gray-900">
-                    {m.value}
-                    {m.unit && (
-                      <span className="text-xs font-medium text-gray-400 ml-0.5">{m.unit}</span>
-                    )}
-                  </p>
-                </div>
-                {typeof m.progress === "number" && (
-                  <div className="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${Math.min(100, Math.max(0, m.progress))}%`,
-                        backgroundColor: m.progressColor ?? "#14b8a6",
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-            ))}
+          <div>
+            <h4 className="text-[15px] font-bold text-gray-900 mb-1">
+              {block.title ?? "Casi logras tu meta"}
+            </h4>
+            <p className="text-[12px] text-gray-500 font-medium">
+              {block.subtitle ??
+                "Te faltan 1,500 pasos para tu objetivo diario. ¿Una caminata corta después de comer?"}
+            </p>
           </div>
         </div>
       </div>
