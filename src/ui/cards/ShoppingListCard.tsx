@@ -94,7 +94,7 @@ export function ShoppingListCard({ block }: { block: ShoppingListBlock }) {
           {block.note && (
             <p className="text-[10.5px] text-gray-400 leading-relaxed mt-3">{block.note}</p>
           )}
-          <button className="mt-3 flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-[#EAE6DF] rounded-xl text-gray-400 hover:text-[#A7C497] hover:border-[#A7C497] transition-all bg-transparent hover:bg-white">
+          <button className="mt-2 flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-[#EAE6DF] rounded-xl text-gray-400 hover:text-[#A7C497] hover:border-[#A7C497] transition-all bg-transparent hover:bg-white">
             <Mat className="text-[20px]">add_circle</Mat>
             <span className="text-xs font-bold uppercase tracking-widest">Añadir nuevo ítem</span>
           </button>

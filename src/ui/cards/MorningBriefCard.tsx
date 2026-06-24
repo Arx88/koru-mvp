@@ -40,7 +40,7 @@ export function MorningBriefCard({ block }: { block: MorningBriefBlock }) {
                     : "bg-[#F8F9FA]",
                 ].join(" ")}
               >
-                <Mat className="text-[20px]" style={{ color: item.iconColor }}>
+                <Mat style={{ color: item.iconColor }}>
                   {item.icon}
                 </Mat>
                 <div>
