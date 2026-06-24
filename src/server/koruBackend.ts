@@ -2303,6 +2303,39 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
     if (result.type === "local_action") {
       const action = result as LocalActionData;
       blocks.push(action.block);
+      continue;
+    }
+    if (result.type === "crypto_price") {
+      const crypto = result as Record<string, unknown>;
+      const items: Array<{ label: string; value: string; detail?: string }> = [];
+      const price = typeof crypto.price === "number" ? crypto.price : undefined;
+      const currency = String(crypto.currency ?? "USD");
+      if (price !== undefined) {
+        const parts = new Intl.NumberFormat("en-US", { style: "currency", currency }).format(price).split("");
+        const sep = parts.includes(",") ? "," : ".";
+        const intlFormatted = parts.join("");
+        const formatted = intlFormatted.replace(new RegExp(`\\${sep}(?=\\d{3}(?!\\d))`, "g"), "");
+        items.push({ label: "Precio", value: formatted });
+      }
+      if (typeof crypto.marketCap === "number") {
+        items.push({ label: "Market Cap", value: formatCompactNumber(crypto.marketCap, currency) });
+      }
+      if (typeof crypto.change24hPct === "number") {
+        const sign = crypto.change24hPct >= 0 ? "+" : "";
+        items.push({ label: "24h", value: `${sign}${crypto.change24hPct}%`, detail: crypto.change24hPct >= 0 ? "▲" : "▼" });
+      }
+      if (typeof crypto.change7dPct === "number") {
+        const sign = crypto.change7dPct >= 0 ? "+" : "";
+        items.push({ label: "7d", value: `${sign}${crypto.change7dPct}%`, detail: crypto.change7dPct >= 0 ? "▲" : "▼" });
+      }
+      if (items.length) {
+        blocks.push({
+          type: "data_card" as const,
+          title: `${String(crypto.coin ?? crypto.symbol ?? "Crypto")} · ${currency}`,
+          items,
+        });
+      }
+      continue;
     }
   }
   return blocks;
