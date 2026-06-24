@@ -2311,11 +2311,7 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
       const price = typeof crypto.price === "number" ? crypto.price : undefined;
       const currency = String(crypto.currency ?? "USD");
       if (price !== undefined) {
-        const parts = new Intl.NumberFormat("en-US", { style: "currency", currency }).format(price).split("");
-        const sep = parts.includes(",") ? "," : ".";
-        const intlFormatted = parts.join("");
-        const formatted = intlFormatted.replace(new RegExp(`\\${sep}(?=\\d{3}(?!\\d))`, "g"), "");
-        items.push({ label: "Precio", value: formatted });
+        items.push({ label: "Precio", value: new Intl.NumberFormat("en-US", { style: "currency", currency }).format(price) });
       }
       if (typeof crypto.marketCap === "number") {
         items.push({ label: "Market Cap", value: formatCompactNumber(crypto.marketCap, currency) });
@@ -2332,6 +2328,64 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
         blocks.push({
           type: "data_card" as const,
           title: `${String(crypto.coin ?? crypto.symbol ?? "Crypto")} · ${currency}`,
+          items,
+        });
+      }
+      continue;
+    }
+    if (result.type === "stock_quote") {
+      const stock = result as Record<string, unknown>;
+      const items: Array<{ label: string; value: string; detail?: string }> = [];
+      if (typeof stock.close === "number") {
+        items.push({ label: "Cierre", value: String(stock.close), detail: String(stock.symbol ?? "") });
+      }
+      if (typeof stock.open === "number") {
+        items.push({ label: "Apertura", value: String(stock.open) });
+      }
+      if (typeof stock.high === "number") {
+        items.push({ label: "Máx", value: String(stock.high) });
+      }
+      if (typeof stock.low === "number") {
+        items.push({ label: "Mín", value: String(stock.low) });
+      }
+      if (typeof stock.volume === "number") {
+        items.push({ label: "Volumen", value: formatCompactNumber(stock.volume, "USD") });
+      }
+      if (items.length) {
+        blocks.push({
+          type: "data_card" as const,
+          title: `${String(stock.symbol ?? "Acción")} · ${String(stock.date ?? "")}`,
+          items,
+        });
+      }
+      continue;
+    }
+    if (result.type === "exchange_history") {
+      const fx = result as Record<string, unknown>;
+      const items: Array<{ label: string; value: string; detail?: string }> = [];
+      if (typeof fx.lastRate === "number") {
+        items.push({ label: "Último", value: String(fx.lastRate), detail: `${String(fx.from ?? "")}→${String(fx.to ?? "")}` });
+      }
+      if (typeof fx.firstRate === "number") {
+        items.push({ label: "Inicio", value: String(fx.firstRate) });
+      }
+      if (typeof fx.minRate === "number") {
+        items.push({ label: "Mín", value: String(fx.minRate) });
+      }
+      if (typeof fx.maxRate === "number") {
+        items.push({ label: "Máx", value: String(fx.maxRate) });
+      }
+      if (typeof fx.changePct === "number") {
+        const sign = fx.changePct >= 0 ? "+" : "";
+        items.push({ label: "Cambio", value: `${sign}${fx.changePct}%`, detail: fx.changePct >= 0 ? "▲" : "▼" });
+      }
+      if (typeof fx.samples === "number") {
+        items.push({ label: "Días", value: String(fx.samples) });
+      }
+      if (items.length) {
+        blocks.push({
+          type: "data_card" as const,
+          title: `${String(fx.from ?? "")}/${String(fx.to ?? "")} · ${String(fx.startDate ?? "")} a ${String(fx.endDate ?? "")}`,
           items,
         });
       }
