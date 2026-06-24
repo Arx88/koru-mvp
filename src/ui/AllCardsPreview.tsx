@@ -134,7 +134,7 @@ const CARDS: Array<{ label: string; items: KoruTurnItem[]; extra?: React.ReactNo
   },
   {
     label: "shopping_list",
-    items: [makeItem({ uiBlock: { type: "shopping_list", title: "Lista del super", items: ["Leche", "Huevos", "Pan", "Yogur"], dueText: "Para hoy", note: "No olvidar el yogur griego" } })],
+    items: [makeItem({ uiBlock: { type: "shopping_list", title: "Por cierto, de camino a casa recuerda pasar por el súper. Tienes esto en tu lista: 🛒", items: ["Leche de almendras", "Aguacates", "Pan integral", "Café"], quantities: { "Leche de almendras": 1, "Aguacates": 3, "Pan integral": 1, "Café": 2 }, checked: ["Pan integral"], dueText: "Para hoy", note: "No olvidar el yogur griego" } })],
   },
   {
     label: "alarm",

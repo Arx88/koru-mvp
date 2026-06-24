@@ -385,6 +385,8 @@ export type UiBlock =
       items: string[];
       dueText?: string;
       note?: string;
+      quantities?: Record<string, number>;
+      checked?: string[];
     }
   | {
       type: "plan";
