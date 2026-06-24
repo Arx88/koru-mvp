@@ -502,6 +502,117 @@ export type UiBlock =
         sourceUrl?: string;
         sourceDomain?: string;
       }>;
+    }
+  | {
+      /**
+       * Síntesis de búsqueda de restaurante (restaurant_deep_search tool).
+       * Top coincidencias con score por fuente, pros/contras del #1, cita de síntesis.
+       * Renderizado por RestaurantSynthesisCard (estilo DeepHungry Síntesis Comparativa).
+       */
+      type: "restaurant_synthesis";
+      title?: string;
+      mood?: string;
+      status: "ok" | "partial" | "failed";
+      matches?: Array<{ name: string; sourcesMentioning: number; quote?: string }>;
+      topScore?: string;
+      pros?: string[];
+      cons?: string[];
+      synthesis?: string;
+      sources?: AssistantSource[];
+      note?: string;
+      type: "morning_brief";
+      greeting?: string;
+      items: Array<{
+        icon: string;
+        iconColor: string;
+        label: string;
+        value: string;
+        variant?: "default" | "highlight";
+      }>;
+    }
+  | {
+      type: "wellbeing";
+      title?: string;
+      emoji?: string;
+      sections: Array<{
+        icon: string;
+        iconColor: string;
+        bgColor: string;
+        borderColor?: string;
+        value: string;
+        label: string;
+      }>;
+    }
+  | {
+      type: "live_match";
+      league?: string;
+      time?: string;
+      status?: string;
+      homeTeam?: { name: string; abbrev: string; color?: string; score: number };
+      awayTeam?: { name: string; abbrev: string; color?: string; score: number };
+      stats?: Array<{
+        label: string;
+        leftPercent: number;
+        rightPercent: number;
+        leftColor?: string;
+        rightColor?: string;
+      }>;
+    }
+  | {
+      type: "urgent_now";
+      icon?: string;
+      iconColor?: string;
+      iconBg?: string;
+      headline: string;
+      description: string;
+    }
+  | {
+      type: "market";
+      title?: string;
+      assets: Array<{
+        symbol: string;
+        name: string;
+        category?: string;
+        price: string;
+        change: string;
+        changeUp: boolean;
+        icon?: string;
+        iconBg?: string;
+        iconColor?: string;
+        shape?: "circle" | "rounded";
+      }>;
+    }
+  | {
+      type: "delivery";
+      title?: string;
+      status: string;
+      carrier?: string;
+      trackingId?: string;
+      estimatedDate?: string;
+      steps?: Array<{ label: string; done: boolean }>;
+    }
+  | {
+      type: "health_reminder";
+      title?: string;
+      icon?: string;
+      iconColor?: string;
+      bgColor?: string;
+      reminder: string;
+      actionLabel?: string;
+    }
+  | {
+      type: "activity_tracker";
+      title?: string;
+      subtitle?: string;
+      metrics: Array<{
+        icon: string;
+        iconColor: string;
+        label: string;
+        value: string;
+        unit?: string;
+        progress?: number;
+        progressColor?: string;
+      }>;
     };
 
 export type AssistantActionStatus = "proposed" | "approved" | "executed" | "rejected";

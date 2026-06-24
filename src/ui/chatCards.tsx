@@ -31,6 +31,33 @@ import {
 import { cn } from "../lib/utils";
 import type { AssistantArtifact, AssistantPlanItem, AssistantSource, UiBlock } from "../domain/types";
 import type { KoruTurnItem } from "./KoruProvider";
+import { RestaurantSynthesisCard } from "./cards/RestaurantCard";
+import { WeatherCard } from "./cards/WeatherCard";
+import { DataCard } from "./cards/DataCard";
+import { MoneySummaryCard } from "./cards/MoneySummaryCard";
+import { ResearchSourcesCard } from "./cards/ResearchSourcesCard";
+import { PlanCard } from "./cards/PlanCard";
+import { ShoppingListCard } from "./cards/ShoppingListCard";
+import { AlarmCard } from "./cards/AlarmCard";
+import { ReminderCard } from "./cards/ReminderCard";
+import { ProactiveSignalCard } from "./cards/ProactiveSignalCard";
+import { SavedRecordCard } from "./cards/SavedRecordCard";
+import { ActivityGroupCard } from "./cards/ActivityGroupCard";
+import { ResourceBundleCard } from "./cards/ResourceBundleCard";
+import { ClarifyingQuestionCard } from "./cards/ClarifyingQuestionCard";
+import { ComparisonCard } from "./cards/ComparisonCard";
+import { MemoryCard } from "./cards/MemoryCard";
+import { DecisionSupportCard } from "./cards/DecisionSupportCard";
+import { MorningBriefCard } from "./cards/MorningBriefCard";
+import { WellbeingCard } from "./cards/WellbeingCard";
+import { PlanTimelineCard } from "./cards/PlanTimelineCard";
+import { LiveMatchCard } from "./cards/LiveMatchCard";
+import { UrgentNowCard } from "./cards/UrgentNowCard";
+import { MarketCard } from "./cards/MarketCard";
+import { HealthReminderCard } from "./cards/HealthReminderCard";
+import { DeliveryCard } from "./cards/DeliveryCard";
+import { SocialInteractionCard } from "./cards/SocialInteractionCard";
+import { ActivityTrackerCard } from "./cards/ActivityTrackerCard";
 
 export type CardActionHandlers = {
   onReview: (id: string, approve: boolean) => void;
@@ -915,6 +942,9 @@ export function WebNavCardA({ block }: { block: Extract<UiBlock, { type: "web_na
   const total = block.results.length;
   const [visibleCount, setVisibleCount] = useState(0);
   const [showSummary, setShowSummary] = useState(false);
+  // Segundos transcurridos en la fase de búsqueda (status loading sin results).
+  // Da al usuario noción de cuánto falta, en vez de un 0% estático sin info.
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   const stableTotalRef = useRef(0);
   useEffect(() => {
@@ -939,6 +969,15 @@ export function WebNavCardA({ block }: { block: Extract<UiBlock, { type: "web_na
     return () => clearTimeout(timer);
   }, [block.summary, total]);
 
+  // Cronómetro de búsqueda: solo corre mientras estamos cargando sin resultados.
+  const isSearching = block.status === "loading" && total === 0;
+  useEffect(() => {
+    if (!isSearching) return;
+    setElapsedSeconds(0);
+    const interval = window.setInterval(() => setElapsedSeconds((s) => s + 1), 1000);
+    return () => window.clearInterval(interval);
+  }, [isSearching]);
+
   const progress = total > 0 ? (visibleCount / total) * 100 : 0;
   const currentSource = block.results[visibleCount - 1]?.source ?? "";
 
@@ -954,7 +993,7 @@ export function WebNavCardA({ block }: { block: Extract<UiBlock, { type: "web_na
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <div className="relative w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shadow-sm shrink-0">
-                <span className="material-symbols-outlined text-[18px]">travel_explore</span>
+                <span className={`material-symbols-outlined text-[18px] ${isSearching ? "animate-pulse" : ""}`}>travel_explore</span>
               </div>
               <div className="flex flex-col">
                 <p className="text-[13px] font-bold text-gray-900 leading-tight">
@@ -967,23 +1006,36 @@ export function WebNavCardA({ block }: { block: Extract<UiBlock, { type: "web_na
             </div>
           </div>
 
-          {/* Barra de progreso */}
-          <div className="w-full bg-gray-100/50 rounded-full h-1 mb-2 overflow-hidden">
-            <div
-              className="bg-gradient-to-r from-blue-400 to-koru h-full rounded-full transition-all duration-500 ease-out"
-              style={{ width: `${progress}%` }}
-            />
+          {/* Barra de progreso.
+              - Buscando sin results: animación indeterminada (shimmer que viaja en loop)
+                para indicar "estoy trabajando" en vez de un 0% estático que parece colgado.
+              - Con results: progreso real basado en cuántos aparecieron. */}
+          <div className="w-full bg-gray-100/50 rounded-full h-1 mb-2 overflow-hidden relative">
+            {isSearching ? (
+              <div
+                className="absolute top-0 left-0 h-full w-1/3 rounded-full bg-gradient-to-r from-transparent via-blue-400 to-transparent"
+                style={{ animation: "koru-progress-indeterminate 1.4s ease-in-out infinite" }}
+              />
+            ) : (
+              <div
+                className="bg-gradient-to-r from-blue-400 to-koru h-full rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${progress}%` }}
+              />
+            )}
           </div>
 
-          {/* Estado de búsqueda */}
+          {/* Estado de búsqueda.
+              Muestra segundos transcurridos mientras busca, para dar noción de tiempo. */}
           <p className="text-[10px] text-gray-500 font-medium mb-2 min-h-[14px]">
-            {visibleCount === 0 && total > 0
-              ? "Iniciando búsqueda..."
-              : visibleCount < total
-                ? `Visitando ${currentSource}...`
-                : total > 0
-                  ? "Búsqueda completa"
-                  : "Buscando..."}
+            {isSearching
+              ? `Buscando en la web… ${elapsedSeconds}s`
+              : visibleCount === 0 && total > 0
+                ? "Iniciando búsqueda..."
+                : visibleCount < total
+                  ? `Visitando ${currentSource}… (${visibleCount}/${total})`
+                  : total > 0
+                    ? "Búsqueda completa"
+                    : "Listo"}
           </p>
 
           {/* Resultados apareciendo de a 1 */}
@@ -1027,69 +1079,27 @@ function UiBlockCardA({ item }: { item: KoruTurnItem }) {
   if (!block) return null;
 
   if (block.type === "clarifying_question") {
-    return (
-      <div className="koru-question-card koru-stitch-card" data-ui-block="clarifying_question">
-        <StitchHeader icon={Sparkles} hint={block.title ?? "Necesito un dato"} title={block.question} tone="purple" />
-        <StitchPills labels={block.options ?? []} />
-      </div>
-    );
+    return <ClarifyingQuestionCard block={block} />;
   }
 
   if (block.type === "weather") {
-    const sourceTitle = block.sources?.[0]?.title;
-    const metrics = [
-      block.range ? { label: "Hoy", value: block.range } : undefined,
-      block.rain ? { label: "Lluvia", value: block.rain } : undefined,
-      block.wind ? { label: "Viento", value: block.wind } : undefined,
-    ].filter((summary): summary is { label: string; value: string } => Boolean(summary));
-    return (
-      <div className="koru-weather-card koru-stitch-card" data-ui-block="weather">
-        <StitchHeader icon={CloudSun} hint={block.city ? `Clima - ${block.city}` : "Clima"} title={block.title ?? block.now ?? "Estado actualizado"} tone="blue" />
-        {sourceTitle && <p className="koru-source-status is-verified">{statusLabel(block.sourceStatus ?? "verified")} - {sourceTitle}</p>}
-        <StitchSummaryGrid items={metrics} />
-        <StitchNote tone="amber">{block.advice}</StitchNote>
-      </div>
-    );
+    return <WeatherCard block={block} />;
   }
 
   if (block.type === "alarm") {
-    return (
-      <div className="koru-alarm-card koru-stitch-card" data-ui-block="alarm">
-        <StitchHeader icon={Clock} hint="Alarma activada" title={joinParts([block.time, block.repeat]) || block.time} tone="rose" />
-        <div className="koru-stitch-content">
-          <StitchRow icon={Clock} title={block.title} detail={cleanLabel(block.note ?? block.repeat)} />
-        </div>
-      </div>
-    );
+    return <AlarmCard block={block} />;
   }
 
   if (block.type === "reminder") {
-    return (
-      <div className="koru-reminder-card koru-stitch-card" data-ui-block="reminder">
-        <StitchHeader icon={CalendarDays} hint="Recordatorio guardado" title={block.title} />
-        <div className="koru-stitch-content">
-          <StitchRow icon={Clock} title={block.title} detail={block.dueText} chip={block.dueText} />
-        </div>
-      </div>
-    );
+    return <ReminderCard block={block} />;
   }
 
   if (block.type === "shopping_list") {
-    return (
-      <div className="koru-list-module koru-stitch-card" data-ui-block="shopping_list">
-        <StitchHeader icon={ShoppingBasket} hint="Lista guardada" title={block.title ?? `${block.items.length} items`} tone="amber" />
-        <div className="koru-stitch-content">
-          {block.items.map((shoppingItem) => (
-            <StitchRow key={shoppingItem} icon={Check} title={shoppingItem} detail={block.dueText} />
-          ))}
-          <StitchNote>{block.note}</StitchNote>
-        </div>
-      </div>
-    );
+    return <ShoppingListCard block={block} />;
   }
 
   if (block.type === "plan") {
-    return <PlanCardA items={block.items} note={block.note} title={block.title} />;
+    return <PlanCard block={block} />;
   }
 
   if (block.type === "comparison") {
@@ -1097,22 +1107,11 @@ function UiBlockCardA({ item }: { item: KoruTurnItem }) {
   }
 
   if (block.type === "research_sources") {
-    return <ResearchSourcesCardA block={block} item={item} />;
+    return <ResearchSourcesCard block={block} />;
   }
 
   if (block.type === "money_summary") {
-    const summaryItems = [...(block.summaryItems ?? [])];
-    const total = moneyLabel(block.total, block.currency);
-    if (total && !summaryItems.some((summary) => /total|gast/i.test(summary.label))) {
-      summaryItems.unshift({ label: "Total", value: total });
-    }
-    return (
-      <div className="koru-stitch-card" data-ui-block="money_summary">
-        <StitchHeader icon={DollarSign} hint="Resumen" title={block.title ?? total ?? "Dinero"} tone="blue" />
-        <StitchSummaryGrid items={summaryItems} />
-        <StitchNote>{block.recommendation}</StitchNote>
-      </div>
-    );
+    return <MoneySummaryCard block={block} />;
   }
 
   if (block.type === "saved_record") {
@@ -1181,8 +1180,52 @@ function UiBlockCardA({ item }: { item: KoruTurnItem }) {
     return <ResourceBundleCardA block={block} />;
   }
 
+  if (block.type === "data_card") {
+    return <DataCard block={block} />;
+  }
+
   if (block.type === "web_nav") {
     return <WebNavCardA block={block} />;
+  }
+
+  if (block.type === "restaurant_synthesis") {
+    return <RestaurantSynthesisCard result={block} />;
+  }
+
+  if (block.type === "morning_brief") {
+    return <MorningBriefCard block={block} />;
+  }
+
+  if (block.type === "wellbeing") {
+    return <WellbeingCard block={block} />;
+  }
+
+  if (block.type === "live_match") {
+    return <LiveMatchCard block={block} />;
+  }
+
+  if (block.type === "urgent_now") {
+    return <UrgentNowCard block={block} />;
+  }
+
+  if (block.type === "market") {
+    return <MarketCard block={block} />;
+  }
+
+  if (block.type === "health_reminder") {
+    return <HealthReminderCard block={block} />;
+  }
+
+  if (block.type === "delivery") {
+    return <DeliveryCard block={block} />;
+  }
+
+  if (block.type === "social_interaction") {
+    return <SocialInteractionCard block={block} />;
+  }
+
+  if (block.type === "activity_tracker") {
+    return <ActivityTrackerCard block={block} />;
   }
 
   return null;
