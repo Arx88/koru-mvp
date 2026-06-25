@@ -1850,6 +1850,7 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
     `  - weather: "¿Qué me pongo?" / "¿Hace frío?" / "¿Llevo paraguas?" / "¿Cómo está afuera?" / "¿Qué tal el día?" / "¿Necesito campera?"`,
     `  - web_search: "¿Qué pasó en Argentina?" / "¿Cómo va el mundial?" / "¿Quién ganó?" / "¿Últimas noticias de...?" / Solo mencionar un tema actual del mundo exterior.`,
     `  - shopping_compare: "¿Qué auriculares compro?" / "Necesito una batería externa" / "¿Dónde compro X más barato?" / "¿Cuál es mejor, A o B?"`,
+    `  - restaurant_deep_search: "Dónde cenar en Madrid" / "Qué restaurante me recomendás" / "Dónde como sushi" / "Necesito una parrilla" / "Qué tal comer en Palermo"`,
     `  - plan_day: "¿Cómo organizo hoy?" / "Tengo muchas cosas" / "¿Qué hago primero?" / "¿Me ayudas a planificar?"`,
     `  - query_personal_context: "¿Cuánto gasté?" / "¿Qué tenía para comer?" / "¿Recordás que me dijiste?" / Cualquier cosa que Koru ya haya guardado del usuario.`,
     `  - save_memory: Cuando el usuario revela algo importante sobre sí mismo (rutinas, metas, preferencias, relaciones).`,
@@ -1872,6 +1873,7 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
     `  - "clarifying_question": pregunta de clarificación`,
     `  - "saved_record": registro guardado`,
     `  - "resource_bundle": archivos descargables`,
+    `  - "restaurant_synthesis": síntesis de búsqueda de restaurante`,
     `- Formato de respuesta final: {"reply":"...","uiBlocks":[],"mascotState":"..."}`,
     `  - reply: tu respuesta conversacional directa al usuario. Sin JSON, sin código, sin listas técnicas. Texto natural.`,
     `  - uiBlocks: DEJALO VACÍO ([]). El backend agrega los blocks automáticamente a partir de los tool results.`,
@@ -2217,6 +2219,21 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
         advice: weather.advice,
         sourceStatus: weather.sources.length ? "verified" as const : "failed" as const,
         sources: weather.sources,
+      });
+      continue;
+    }
+    if (result.type === "restaurant_deep_search") {
+      const search = result as unknown as { query: string; matches?: Array<{ name: string; sourcesMentioning: number; quote?: string }>; topScore?: string; pros?: string[]; cons?: string[]; synthesis?: string; sources?: AssistantSource[]; status?: string };
+      blocks.push({
+        type: "restaurant_synthesis" as const,
+        title: search.query || "Restaurantes encontrados",
+        status: search.status === "ok" ? "ok" as const : "partial" as const,
+        matches: search.matches || [],
+        topScore: search.topScore,
+        pros: search.pros,
+        cons: search.cons,
+        synthesis: search.synthesis,
+        sources: search.sources || [],
       });
       continue;
     }
