@@ -23,7 +23,7 @@ export function MarketCard({ block }: { block: MarketBlock }) {
   return (
     <div className="flex w-full" data-ui-block="market">
       <div className="flex flex-col w-full">
-        <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-50">
+        <div className="bg-white rounded-3xl p-5 card-shadow">
           <div className="space-y-4">
             {block.assets.map((asset, idx) => {
               const isUp = asset.changeUp;
@@ -46,7 +46,7 @@ export function MarketCard({ block }: { block: MarketBlock }) {
                     <div
                       className={[
                         "w-10 h-10 flex items-center justify-center font-bold text-sm",
-                        asset.shape === "rounded" ? "rounded-[14px]" : "rounded-full",
+                        asset.shape === "rounded" ? "rounded-full" : "rounded-full",
                       ].join(" ")}
                       style={{
                         backgroundColor: asset.iconBg ?? (isUp ? "#fff7ed" : "#eff6ff"),
