@@ -1,18 +1,11 @@
 import React from "react";
-
-type TimelineStep = {
-  time: string;
-  label: string;
-  description: string;
-  status: "done" | "current" | "pending";
-  tags?: Array<{ label: string; bg?: string; color?: string }>;
-};
+import type { AssistantPlanItem } from "../../domain/types";
 
 export type PlanTimelineBlock = {
   type: "plan";
   title?: string;
   id?: string;
-  steps: TimelineStep[];
+  items: AssistantPlanItem[];
   actionLabel?: string;
   actionIcon?: string;
 };
@@ -45,15 +38,20 @@ export function PlanTimelineCard({ block }: { block: PlanTimelineBlock }) {
             )}
           </div>
           <div className="space-y-6">
-            {block.steps.map((step, idx) => {
-              const isLast = idx === block.steps.length - 1;
-              const isCurrent = step.status === "current";
+            {block.items.map((item, idx) => {
+              const isLast = idx === block.items.length - 1;
+              const status: "done" | "current" | "pending" =
+                idx === 0 ? "done" : idx === 1 ? "current" : "pending";
+              const isCurrent = status === "current";
+              const tags: Array<{ label: string }> = [
+                ...(item.priority ? [{ label: item.priority }] : []),
+                ...(item.mode ? [{ label: item.mode }] : []),
+                ...(item.durationMinutes ? [{ label: `${item.durationMinutes} min` }] : []),
+              ];
               return (
-                <div key={idx} className="flex gap-4 relative">
+                <div key={idx} className="flex gap-4 relative plan-timeline-item">
                   {!isLast && (
-                    <div
-                      className="absolute left-[7px] top-[24px] bottom-[-8px] w-[1px] bg-gray-200"
-                    />
+                    <div className="absolute left-[7px] top-[24px] bottom-[-8px] w-[1px] bg-gray-200" />
                   )}
                   <div
                     className={[
@@ -64,21 +62,21 @@ export function PlanTimelineCard({ block }: { block: PlanTimelineBlock }) {
                   <div className="flex-1 pb-2">
                     <div className="flex justify-between items-start">
                       <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
-                        {step.time}
+                        {item.time ?? "--:--"}
                       </p>
-                      {step.status === "done" && (
+                      {status === "done" && (
                         <span className="text-[9px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">
                           INICIO
                         </span>
                       )}
                     </div>
-                    <p className="text-sm font-bold text-gray-800 mt-1">{step.label}</p>
+                    <p className="text-sm font-bold text-gray-800 mt-1 plan-timeline-title">{item.title}</p>
                     <p className="text-xs text-gray-500 leading-relaxed mt-0.5">
-                      {step.description}
+                      {item.rationale ?? ""}
                     </p>
-                    {step.tags && step.tags.length > 0 && (
+                    {tags.length > 0 && (
                       <div className="mt-2 flex gap-2">
-                        {step.tags.map((tag, tidx) => (
+                        {tags.map((tag, tidx) => (
                           <span
                             key={tidx}
                             className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600"

@@ -141,12 +141,12 @@ describe("Koru MVP UI", () => {
     await user.type(input, "Tengo que lanzar Koru, hablar con mi socio, preparar una demo y comparar proveedores{Enter}");
 
     await waitFor(() => {
-      expect(chat.querySelector('[data-ui-block="plan"] .koru-stitch-plan-copy strong')).toHaveTextContent(/lanzar koru/i);
+      expect(chat.querySelector('[data-ui-block="plan"] .plan-timeline-title')).toHaveTextContent(/lanzar koru/i);
     }, { timeout: 3000 });
     expect(chat).toHaveTextContent(/socio/i);
     expect(chat).toHaveTextContent(/demo/i);
-    expect(chat.querySelector('[data-ui-block="plan"] .koru-stitch-card')).toBeInTheDocument();
-    expect(chat.querySelectorAll('[data-ui-block="plan"] .koru-stitch-plan-row')).toHaveLength(4);
+    expect(chat.querySelector('[data-ui-block="plan"] > div')).toBeInTheDocument();
+    expect(chat.querySelectorAll('[data-ui-block="plan"] .plan-timeline-item')).toHaveLength(4);
     expect(chat).not.toHaveTextContent(/aplicar plan/i);
   });
 
