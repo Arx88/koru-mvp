@@ -27,16 +27,6 @@ export function MarketCard({ block }: { block: MarketBlock }) {
           <div className="space-y-4">
             {block.assets.map((asset, idx) => {
               const isUp = asset.changeUp;
-              const SparkLine = ({ up }: { up: boolean }) => (
-                <svg viewBox="0 0 48 24" className="w-12 h-6" fill="none">
-                  <path
-                    d={up ? "M0 24 Q 12 12, 24 18 T 48 4" : "M0 4 Q 12 16, 24 10 T 48 24"}
-                    stroke={up ? "#10b981" : "#ef4444"}
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              );
               return (
                 <div
                   key={idx}
@@ -65,7 +55,7 @@ export function MarketCard({ block }: { block: MarketBlock }) {
                     </div>
                   </div>
                   <div className="flex items-center gap-5">
-                    <SparkLine up={isUp} />
+                    <div className={isUp ? "spark-up" : "spark-down"} />
                     <div className="text-right">
                       <p className="text-[14px] font-bold text-gray-900">{asset.price}</p>
                       <p
