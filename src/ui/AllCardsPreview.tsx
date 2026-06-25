@@ -62,10 +62,10 @@ const CARDS: Array<{ label: string; items: KoruTurnItem[]; extra?: React.ReactNo
   },
   {
     label: "plan (timeline)",
-    items: [makeItem({ uiBlock: { type: "plan", title: "Logística de Actividad", id: "ID: PLAN-882", steps: [
-      { time: "09:15 AM", label: "Check-in Punto A", description: "Sincronización de sensores y calibración de ruta base.", status: "done" as const, tags: [{ label: "Geo-tagging: ON" }, { label: "Nivel 4" }] },
-      { time: "10:45 AM", label: "Intervención de Campo", description: "Muestreo sistemático (Intervalos de 15m). Precisión 98%.", status: "current" as const },
-      { time: "13:30 PM", label: "Consolidación de Datos", description: "Cierre de sesión técnica y reporte de contingencia.", status: "pending" as const },
+    items: [makeItem({ uiBlock: { type: "plan", title: "Logística de Actividad", id: "ID: PLAN-882", items: [
+      { time: "09:15 AM", title: "Check-in Punto A", rationale: "Sincronización de sensores y calibración de ruta base.", mode: "focus", durationMinutes: 15 },
+      { time: "10:45 AM", title: "Intervención de Campo", rationale: "Muestreo sistemático (Intervalos de 15m). Precisión 98%.", mode: "quick", priority: "Alta" },
+      { time: "13:30 PM", title: "Consolidación de Datos", rationale: "Cierre de sesión técnica y reporte de contingencia.", mode: "admin", priority: "Media" },
     ], actionLabel: "Ejecutar Protocolo", actionIcon: "verified" as const } })],
   },
   {

@@ -36,7 +36,6 @@ import { WeatherCard } from "./cards/WeatherCard";
 import { DataCard } from "./cards/DataCard";
 import { MoneySummaryCard } from "./cards/MoneySummaryCard";
 import { ResearchSourcesCard } from "./cards/ResearchSourcesCard";
-import { PlanCard } from "./cards/PlanCard";
 import { ShoppingListCard } from "./cards/ShoppingListCard";
 import { AlarmCard } from "./cards/AlarmCard";
 import { ReminderCard } from "./cards/ReminderCard";
@@ -852,7 +851,7 @@ function UiBlockCardA({ item }: { item: KoruTurnItem }) {
   }
 
   if (block.type === "plan") {
-    return block.steps ? <PlanTimelineCard block={block} /> : <PlanCard block={block} />;
+    return <PlanTimelineCard block={block} />;
   }
 
   if (block.type === "comparison") {
