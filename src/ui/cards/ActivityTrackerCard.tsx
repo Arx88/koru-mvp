@@ -1,5 +1,3 @@
-import React from "react";
-
 export type ActivityMetric = {
   icon: string;
   iconColor: string;

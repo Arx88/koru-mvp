@@ -526,6 +526,8 @@ export type UiBlock =
       synthesis?: string;
       sources?: AssistantSource[];
       note?: string;
+    }
+  | {
       type: "morning_brief";
       greeting?: string;
       items: Array<{
@@ -540,7 +542,7 @@ export type UiBlock =
       type: "wellbeing";
       title?: string;
       emoji?: string;
-      sections: Array<{
+      sections?: Array<{
         icon: string;
         iconColor: string;
         bgColor: string;
@@ -548,6 +550,8 @@ export type UiBlock =
         value: string;
         label: string;
       }>;
+      sleep?: { icon: string; value: string; label: string };
+      suggestion?: { icon: string; value: string; label: string };
     }
   | {
       type: "live_match";

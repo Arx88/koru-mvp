@@ -1,6 +1,4 @@
-import React from "react";
-import type { Extract } from "../domain/types";
-import type { UiBlock } from "../domain/types";
+import type { UiBlock } from "../../domain/types";
 
 function Mat({ children, className = "" }: { children: string; className?: string }) {
   return <span className={`material-symbols-outlined ${className}`}>{children}</span>;
@@ -52,17 +50,11 @@ export function ResourceBundleCard({ block }: { block: ResourceBundleBlock }) {
     <div className="flex w-full" data-ui-block="resource_bundle">
       <div className="flex flex-col w-full">
         <div
-          className="bg-white rounded-2xl p-4 shadow-sm border border-[#EAE6DF]"
+          className="bg-white rounded-3xl p-5 card-shadow"
           style={{ borderTopLeftRadius: "4px" }}
         >
-          {block.title && (
-            <p className="text-[14px] text-gray-800 mb-3 font-medium">{block.title}</p>
-          )}
-          {block.summary && (
-            <p className="text-[14px] text-gray-800 mb-3 font-medium">{block.summary}</p>
-          )}
           {files.length > 0 && (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1">
               {files.slice(0, 6).map((file, idx) => {
                 const colors = fileColor(file.kind);
                 return (
@@ -70,7 +62,7 @@ export function ResourceBundleCard({ block }: { block: ResourceBundleBlock }) {
                     key={`${file.name}-${idx}`}
                     type="button"
                     onClick={() => downloadArtifact(file)}
-                    className="bg-[#FBF9F5] rounded-xl p-3 border border-[#EAE6DF] flex items-center justify-between hover:border-[#A7C497] transition-colors text-left"
+                    className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition-colors text-left"
                     aria-label={`Descargar ${file.name}`}
                   >
                     <div className="flex items-center gap-3">
@@ -95,7 +87,9 @@ export function ResourceBundleCard({ block }: { block: ResourceBundleBlock }) {
                         </p>
                       </div>
                     </div>
-                    <Mat className="text-[#A7C497] text-[20px]">check_circle</Mat>
+                    <Mat className="text-gray-300 text-[18px] shrink-0">
+                      chevron_right
+                    </Mat>
                   </button>
                 );
               })}
