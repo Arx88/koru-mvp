@@ -52,7 +52,8 @@ export type RouteTool =
   | "weather"
   | "shopping_compare"
   | "plan_day"
-  | "query_personal_context";
+  | "query_personal_context"
+  | "restaurant_deep_search";
 
 // ── Ejemplos modelo por categoría ──────────────────────────────────
 // Pocas frases (5-8) por categoría, elegidas para cubrir las formas comunes
@@ -116,6 +117,14 @@ const ROUTE_EXAMPLES: Array<{ category: RouteCategory; tool?: RouteTool; text: s
   { category: "conversation", text: "te quiero contar algo" },
   { category: "conversation", text: "qué lindo día" },
   { category: "conversation", text: "me aburro" },
+
+  // world_info → restaurant_deep_search: buscar lugar para comer.
+  { category: "world_info", tool: "restaurant_deep_search", text: "dónde cenar en Madrid" },
+  { category: "world_info", tool: "restaurant_deep_search", text: "mejor parrilla de Palermo" },
+  { category: "world_info", tool: "restaurant_deep_search", text: "restaurante sushi en Barcelona" },
+  { category: "world_info", tool: "restaurant_deep_search", text: "qué restaurante me recomendás" },
+  { category: "world_info", tool: "restaurant_deep_search", text: "donde como paella en Valencia" },
+  { category: "world_info", tool: "restaurant_deep_search", text: "restaurantes románticos en París" },
 
   // action: crear alarma, recordatorio, guardar algo. Sin tool directa
   // (el Composer decide si guardar, crear compromiso, etc.).
@@ -267,6 +276,10 @@ function extractToolArgs(message: string, tool?: RouteTool): Record<string, unkn
       return { city: cityMatch[1].trim() };
     }
     return {};
+  }
+
+  if (tool === "restaurant_deep_search") {
+    return { query: clean };
   }
 
   if (tool === "plan_day") {

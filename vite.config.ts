@@ -949,6 +949,14 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [koruBackendAgent(env), koruAiProxy(env), koruWebProxy(env), koruAuditLogger(), tailwindcss(), react()],
+    build: {
+      rollupOptions: {
+        input: {
+          main: new URL("./index.html", import.meta.url).pathname,
+          preview: new URL("./all-cards-preview.html", import.meta.url).pathname,
+        },
+      },
+    },
     server: {
       host: "0.0.0.0",
       port: 5200,

@@ -174,9 +174,6 @@ function KoruTurnBubble({
   const status = statusText(turn.items);
   return (
     <div className="koru-message is-koru">
-      <div className="koru-bubble ai-bubble">
-        <p className="koru-message-text">{turn.text}</p>
-      </div>
       {turn.items && turn.items.length > 0 && (
         <div className="koru-cards-row">
           {turn.items.map((item) => (
@@ -192,6 +189,9 @@ function KoruTurnBubble({
           ))}
         </div>
       )}
+      <div className="koru-bubble ai-bubble">
+        <p className="koru-message-text">{turn.text}</p>
+      </div>
       <div className="koru-meta-row">
         {status && <span>{status}</span>}
         <span>{timeLabel(turn.createdAt)}</span>

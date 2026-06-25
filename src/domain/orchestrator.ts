@@ -174,7 +174,8 @@ async function callValidatedJson<T>(
 
 function looksLikeGreeting(input: string): boolean {
   const clean = foldAccents(input).toLowerCase().replace(/[^\p{L}0-9]+/gu, " ").trim();
-  return ["hola", "hola koru", "buenas", "buen dia", "buenos dias", "buenas tardes", "buenas noches"].includes(clean);
+  const greetings = ["hola", "hola koru", "buenas", "buen dia", "buenos dias", "buenas tardes", "buenas noches"];
+  return greetings.includes(clean) || greetings.some(g => clean.startsWith(g + " "));
 }
 
 function parseTime(input: string): string | undefined {

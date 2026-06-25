@@ -18,8 +18,9 @@ import { generateEnhancements, enhancementPrompt } from "../domain/enhancementEn
 import { extractOpportunities } from "../domain/enhancementExtractor";
 import { extractStructuredData, type ChatFn as ExtractorChatFn, type ExtractionResult } from "../domain/structureExtractor";
 import { detectSimulatedToolCall } from "../domain/simulatedToolDetector";
-import { SemanticRouter, type EmbedFn, type RouteResult } from "../domain/semanticRouter";
+import { SemanticRouter, type EmbedFn, type RouteResult, type RouteCategory } from "../domain/semanticRouter";
 import { logger, dump } from "./logger";
+import type { ToolDefinition } from "../tools/types";
 
 export type ProviderConfig = {
   nvidiaApiKey?: string;
@@ -382,6 +383,53 @@ const ALL_TOOL_DEFINITIONS = [
   ...EXTERNAL_TOOL_DEFINITIONS,
 ];
 
+/**
+ * Mapeo de categorías del Semantic Router a las tools relevantes.
+ * Solo estas tools se envían al LLM cuando el router detecta una categoría
+ * con alta confianza, reduciendo drásticamente el tamaño del prompt
+ * (especialmente crítico para Ollama local con modelos pequeños).
+ */
+const CATEGORY_TOOLS: Record<RouteCategory, string[]> = {
+  weather: ["weather", "weather_travel"],
+  world_info: [
+    "web_search",
+    "restaurant_deep_search",
+    "crypto_price",
+    "match_schedule",
+    "news_topic",
+    "flight_search",
+    "hotel_search",
+    "trending_twitter",
+    "person_info",
+    "world_signal",
+  ],
+  shopping: ["shopping_compare", "price_history", "product_review"],
+  planning: [
+    "plan_day",
+    "route_plan",
+    "reminder_set",
+    "alarm_set",
+    "calendar_add",
+    "travel_itinerary",
+  ],
+  personal_query: [
+    "query_personal_context",
+    "expense_track",
+    "budget_check",
+    "save_memory",
+    "save_personal_item",
+  ],
+  action: [
+    "save_memory",
+    "save_personal_item",
+    "expense_track",
+    "reminder_set",
+    "alarm_set",
+    "restaurant_deep_search",
+  ],
+  conversation: [],
+};
+
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
@@ -591,18 +639,19 @@ async function callNvidia(
   messages: ChatMessage[],
   timeoutMs: number,
   toolsEnabled = true,
+  availableTools?: ToolDefinition[],
 ): Promise<ProviderResult> {
   const isOllama = config.nvidiaBaseUrl.includes(":11434") || config.nvidiaBaseUrl.includes("ollama");
   if (isOllama) {
     const body: Record<string, unknown> = {
       model: config.nvidiaModel,
       messages: messages.map((m) => ({ role: m.role, content: m.content ?? "" })),
-      format: "json",
+      ...(toolsEnabled ? {} : { format: "json" }),
       options: { temperature: 0.0, top_p: 0.95, num_predict: 8192 },
       stream: false,
     };
     if (toolsEnabled) {
-      body.tools = ALL_TOOL_DEFINITIONS;
+      body.tools = availableTools ?? ALL_TOOL_DEFINITIONS;
     }
     const response = await fetchWithTimeout(providerUrl(config.nvidiaBaseUrl, "/api/chat"), {
       method: "POST",
@@ -648,7 +697,7 @@ async function callNvidia(
   const body: Record<string, unknown> = {
     model: config.nvidiaModel,
     messages,
-    ...(toolsEnabled ? { tools: TOOL_DEFINITIONS, tool_choice: "auto" } : {}),
+    ...(toolsEnabled ? { tools: availableTools ?? TOOL_DEFINITIONS, tool_choice: "auto" } : {}),
     temperature: 0.25,
     top_p: 0.95,
     max_tokens: 8192,
@@ -746,6 +795,7 @@ async function callProvider(
   timeoutMs: number,
   toolsEnabled = true,
   preferredProvider?: "minimax" | "nvidia" | "openrouter",
+  availableTools?: ToolDefinition[],
 ): Promise<ProviderResult & { fallbackReason?: string }> {
   const isOllama = isOllamaUrl(config.nvidiaBaseUrl);
   const nvidiaAvailable = Boolean(config.nvidiaApiKey) || isOllama;
@@ -766,7 +816,7 @@ async function callProvider(
 
   if (preferredProvider === "nvidia" && nvidiaAvailable) {
     try {
-      const result = await callNvidia(config, messages, Math.min(isOllama ? 90_000 : 20_000, timeoutMs), toolsEnabled);
+      const result = await callNvidia(config, messages, Math.min(isOllama ? 90_000 : 20_000, timeoutMs), toolsEnabled, availableTools);
       if (providerResultIsValid(result)) return result;
       logger.warn("callProvider", "Preferred NVIDIA responded but invalid, falling back");
     } catch (err: any) {
@@ -801,7 +851,7 @@ async function callProvider(
   // Si el usuario eligió OpenRouter, saltamos NVIDIA en el flujo normal
   if (!preferredProvider || preferredProvider !== "openrouter") {
     try {
-      const result = await callNvidia(config, messages, Math.min(isOllama ? 90_000 : 20_000, timeoutMs), toolsEnabled);
+      const result = await callNvidia(config, messages, Math.min(isOllama ? 90_000 : 20_000, timeoutMs), toolsEnabled, availableTools);
       if (providerResultIsValid(result)) return result;
       logger.warn("callProvider", "NVIDIA responded but invalid, falling back");
     } catch (err: any) {
@@ -1985,7 +2035,8 @@ async function extractMemoryWithJsonPrompt(
   request: KoruBackendTurnRequest,
   config: ProviderConfig,
   toolExecutions: ToolExecution[],
-  composedRaw?: Record<string, unknown>,
+  composedRaw: Record<string, unknown> | undefined,
+  extractorTimeout: number,
 ): Promise<{ raw: Record<string, unknown>; provider: "nvidia" | "openrouter" | "minimax"; model?: string; fallbackReason?: string }> {
   const pp = inferProviderFromModel(request.model);
   const result = await callProvider(config, buildMemoryExtractorMessages(request, toolExecutions, composedRaw), extractorTimeout, false, pp);
@@ -2744,6 +2795,7 @@ async function finalizeFromPlainText(
   request: KoruBackendTurnRequest,
   config: ProviderConfig,
   toolExecutions: ToolExecution[],
+  extractorTimeout: number,
 ): Promise<KoruBackendTurnResponse & { memoryFallbackReason?: string; memoryProvider?: "nvidia" | "openrouter" | "minimax"; memoryModel?: string }> {
   const cityAction = cityMemorySuggestion(toolCalls, request.state);
   if (cityAction) raw.suggestedActions = [...asArray(raw.suggestedActions || []), cityAction];
@@ -2755,7 +2807,7 @@ async function finalizeFromPlainText(
     } catch { /* ignorar */ }
   }
 
-  return finalizePayload(request, config, raw, toolExecutions);
+  return finalizePayload(request, config, raw, toolExecutions, extractorTimeout);
 }
 
 async function finalizePayload(
@@ -2763,9 +2815,10 @@ async function finalizePayload(
   config: ProviderConfig,
   raw: Record<string, unknown>,
   toolExecutions: ToolExecution[],
+  extractorTimeout: number,
 ): Promise<KoruBackendTurnResponse & { memoryFallbackReason?: string; memoryProvider?: "nvidia" | "openrouter" | "minimax"; memoryModel?: string }> {
   try {
-    const extracted = await extractMemoryWithJsonPrompt(request, config, toolExecutions, raw);
+    const extracted = await extractMemoryWithJsonPrompt(request, config, toolExecutions, raw, extractorTimeout);
     return {
       ...normalizeFinalPayload(raw, request.input, toolExecutions, extracted.raw),
       memoryProvider: extracted.provider,
@@ -2795,7 +2848,6 @@ async function executeProviderToolCalls(
 
   // Reactivar extractor: usar Ollama local (puerto distinto al proveedor principal
   // para evitar serialización). El extractor corre en paralelo al Composer.
-  const ollamaConfig = getConfigOrThrow();
   const extractorChatFn: ExtractorChatFn = async (msgs, opts) => {
     const body: Record<string, unknown> = {
       model: config.nvidiaModel || "llama3.1:8b",
@@ -2804,8 +2856,8 @@ async function executeProviderToolCalls(
       stream: false,
       options: { temperature: opts.temperature ?? 0.1, num_predict: opts.maxTokens ?? 900 },
     };
-    if (!ollamaConfig.nvidiaBaseUrl) throw new Error("Ollama no configurado para extractor");
-    const r = await fetchWithTimeout(providerUrl(ollamaConfig.nvidiaBaseUrl, "/api/chat"), {
+    if (!config.nvidiaBaseUrl) throw new Error("Ollama no configurado para extractor");
+    const r = await fetchWithTimeout(providerUrl(config.nvidiaBaseUrl, "/api/chat"), {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
     }, 30_000);
     const d = await r.json().catch(() => ({}));
@@ -2933,17 +2985,17 @@ function buildEmbedFn(baseUrl: string): EmbedFn {
 }
 
 async function getRouter(config: ProviderConfig): Promise<SemanticRouter | null> {
-  if (!config.ollamaEmbedBaseUrl) return null;
-  if (!routerSingleton) {
-    routerSingleton = new SemanticRouter(buildEmbedFn(config.ollamaEmbedBaseUrl));
-    try {
-      await routerSingleton.initialize();
-      logger.info("getRouter", "Semantic Router initialized", { baseUrl: config.ollamaEmbedBaseUrl });
-    } catch (err: any) {
-      logger.warn("getRouter", "Semantic Router init failed (non-fatal)", { reason: err?.message });
-      routerSingleton = null;
-      return null;
-    }
+  const embedBaseUrl = config.ollamaEmbedBaseUrl ?? config.nvidiaBaseUrl;
+  if (!embedBaseUrl) return null;
+  // Siempre reiniciar para capturar cambios en ROUTE_EXAMPLES y evitar stale state
+  routerSingleton = new SemanticRouter(buildEmbedFn(embedBaseUrl));
+  try {
+    await routerSingleton.initialize();
+    logger.info("getRouter", "Semantic Router initialized", { baseUrl: embedBaseUrl });
+  } catch (err: any) {
+    logger.warn("getRouter", "Semantic Router init failed (non-fatal)", { reason: err?.message });
+    routerSingleton = null;
+    return null;
   }
   return routerSingleton;
 }
@@ -2991,6 +3043,8 @@ export async function runKoruBackendTurn(
   const secondaryTimeout = isOllama ? 120_000 : 30_000;
   const extractorTimeout = isOllama ? 120_000 : 40_000;
 
+  let routeCategory: RouteCategory | undefined;
+
   // ── Semantic Router: decidir intención ANTES de llamar al LLM ──
   // Si el router detecta que se necesita una tool, la ejecutamos directamente.
   // Esto elimina la dependencia de que el modelo llame tools nativamente
@@ -3006,6 +3060,7 @@ export async function runKoruBackendTurn(
       try {
         const routeStart = Date.now();
         const route = await router.route(request.input);
+        routeCategory = route.category;
         logger.info("runKoruBackendTurn", "Semantic Router decision", {
           category: route.category,
           tool: route.tool ?? "none",
@@ -3035,7 +3090,7 @@ export async function runKoruBackendTurn(
           messages.push({ role: "assistant", content: "", tool_calls: [syntheticToolCall] });
           const delivered = await executeProviderToolCalls([syntheticToolCall], messages, request, toolExecutions, config);
           if (delivered) {
-            const response = await finalizePayload(request, config, delivered, toolExecutions);
+            const response = await finalizePayload(request, config, delivered, toolExecutions, extractorTimeout);
             return { ...response, provider, model, fallbackReason: "router-" + route.category };
           }
           messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }." });
@@ -3053,7 +3108,7 @@ export async function runKoruBackendTurn(
               uiBlocks: blocksFromToolResults(toolExecutions),
               suggestedActions: [], memoryCandidates: [], commitments: [], records: [], mascotState: "thinking",
             };
-            const response = await finalizeFromPlainText(rawFallback, [syntheticToolCall], request, config, toolExecutions);
+            const response = await finalizeFromPlainText(rawFallback, [syntheticToolCall], request, config, toolExecutions, extractorTimeout);
             return { ...response, provider, model, fallbackReason: "router-" + route.category + "-invalid-json" };
           }
           const rawRoute = {
@@ -3066,7 +3121,7 @@ export async function runKoruBackendTurn(
             records: asArray(parsedRoute.records || []),
             mascotState: parsedRoute.mascotState,
           };
-          const response = await finalizePayload(request, config, rawRoute, toolExecutions);
+          const response = await finalizePayload(request, config, rawRoute, toolExecutions, extractorTimeout);
           return { ...response, provider, model, fallbackReason: "router-" + route.category };
         }
       } catch (err: any) {
@@ -3075,10 +3130,16 @@ export async function runKoruBackendTurn(
     }
   }
 
+  // Filtrar tools según la categoría detectada por el Semantic Router
+  const categoryToolNames = routeCategory ? CATEGORY_TOOLS[routeCategory] : undefined;
+  const filteredTools = categoryToolNames && categoryToolNames.length > 0
+    ? ALL_TOOL_DEFINITIONS.filter((t) => categoryToolNames.includes(t.function.name))
+    : undefined;
+
   // Paso 1: una sola llamada al LLM con tools habilitadas (excepto Ollama, que usa native JSON)
   let firstResult: ProviderResult & { fallbackReason?: string };
   try {
-    firstResult = await callProvider(config, messages, firstTimeout, !isTrivialInput(request.input), preferredProvider);
+    firstResult = await callProvider(config, messages, firstTimeout, !isTrivialInput(request.input), preferredProvider, filteredTools);
   } catch (err: any) {
     logger.error("runKoruBackendTurn", "callProvider failed with tools", { error: err.message });
     if (err instanceof RateLimitError) {
@@ -3121,7 +3182,7 @@ export async function runKoruBackendTurn(
 
     const delivered = await executeProviderToolCalls(toolCalls, messages, request, toolExecutions, config);
     if (delivered) {
-      const response = await finalizePayload(request, config, delivered, toolExecutions);
+      const response = await finalizePayload(request, config, delivered, toolExecutions, extractorTimeout);
       return { ...response, provider, model, fallbackReason: fallbackReason ?? response.memoryFallbackReason };
     }
 
@@ -3186,7 +3247,7 @@ export async function runKoruBackendTurn(
         records: [],
         mascotState: "thinking",
       };
-      const response = await finalizeFromPlainText(rawFallback, toolCalls, request, config, toolExecutions);
+      const response = await finalizeFromPlainText(rawFallback, toolCalls, request, config, toolExecutions, extractorTimeout);
       logger.info("runKoruBackendTurn", "Return second-call-invalid-json", { replyPreview: (response.reply ?? "").slice(0, 300), provider, model, fallbackReason });
       return { ...response, provider, model, fallbackReason: fallbackReason ?? "second-call-invalid-json" };
     }
@@ -3208,7 +3269,7 @@ export async function runKoruBackendTurn(
     if (validDeferredCards.length > 0) {
       raw.uiBlocks = [...validDeferredCards, ...asArray(raw.uiBlocks)];
     }
-    const response = await finalizePayload(request, config, raw, toolExecutions);
+    const response = await finalizePayload(request, config, raw, toolExecutions, extractorTimeout);
     return {
       ...response,
       provider,
@@ -3252,7 +3313,7 @@ export async function runKoruBackendTurn(
     messages.push({ role: "assistant", content: "", tool_calls: [syntheticToolCall] });
     const delivered = await executeProviderToolCalls([syntheticToolCall], messages, request, toolExecutions, config);
     if (delivered) {
-      const response = await finalizePayload(request, config, delivered, toolExecutions);
+      const response = await finalizePayload(request, config, delivered, toolExecutions, extractorTimeout);
       return { ...response, provider, model, fallbackReason: (fallbackReason ? fallbackReason + " + " : "") + "simulated-tool" };
     }
     // Paso 2: segunda llamada (sin tools) para que el LLM síntetice la respuesta final.
@@ -3271,7 +3332,7 @@ export async function runKoruBackendTurn(
         uiBlocks: blocksFromToolResults(toolExecutions),
         suggestedActions: [], memoryCandidates: [], commitments: [], records: [], mascotState: "thinking",
       };
-      const response = await finalizeFromPlainText(rawFallback, [syntheticToolCall], request, config, toolExecutions);
+      const response = await finalizeFromPlainText(rawFallback, [syntheticToolCall], request, config, toolExecutions, extractorTimeout);
       return { ...response, provider, model, fallbackReason: (fallbackReason ? fallbackReason + " + " : "") + "simulated-tool-invalid-json" };
     }
     const rawSim = {
@@ -3284,7 +3345,7 @@ export async function runKoruBackendTurn(
       records: asArray(parsedSim.records || []),
       mascotState: parsedSim.mascotState,
     };
-    const response = await finalizePayload(request, config, rawSim, toolExecutions);
+    const response = await finalizePayload(request, config, rawSim, toolExecutions, extractorTimeout);
     return { ...response, provider, model, fallbackReason: (fallbackReason ? fallbackReason + " + " : "") + "simulated-tool" };
   }
 
@@ -3325,7 +3386,7 @@ export async function runKoruBackendTurn(
         records: [],
         mascotState: "thinking",
       };
-      const response = await finalizeFromPlainText(rawFallback, toolCalls, request, config, toolExecutions);
+      const response = await finalizeFromPlainText(rawFallback, toolCalls, request, config, toolExecutions, extractorTimeout);
       logger.info("runKoruBackendTurn", "Return first-call-invalid-json", { replyPreview: (response.reply ?? "").slice(0, 300), provider, model, fallbackReason });
       return { ...response, provider, model, fallbackReason: fallbackReason ?? "first-call-invalid-json" };
     }
@@ -3352,7 +3413,7 @@ export async function runKoruBackendTurn(
     } catch { /* ignorar */ }
   }
 
-  const response = await finalizePayload(request, config, raw, toolExecutions);
+  const response = await finalizePayload(request, config, raw, toolExecutions, extractorTimeout);
   logger.info("runKoruBackendTurn", "Return first-call", { replyPreview: (response.reply ?? "").slice(0, 300), provider, model, fallbackReason: fallbackReason ?? response.memoryFallbackReason ?? "first-call" });
   return {
     ...response,
