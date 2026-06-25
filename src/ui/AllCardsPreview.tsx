@@ -77,7 +77,7 @@ const CARDS: Array<{ label: string; items: KoruTurnItem[]; extra?: React.ReactNo
   },
   {
     label: "urgent_now",
-    items: [makeItem({ uiBlock: { type: "urgent_now", headline: "Acuerdo histórico en la cumbre climática", description: "Líderes mundiales firman un tratado vinculante para reducir emisiones en un 50% para 2030. Mercados de energía renovable reaccionan positivamente.", icon: "breaking_news_alt_1", iconColor: "#ef4444", iconBg: "#fef2f2" } })],
+    items: [makeItem({ uiBlock: { type: "urgent_now", eyebrow: "Urgente \u2022 Ahora", headline: "Acuerdo histórico en la cumbre climática", description: "Líderes mundiales firman un tratado vinculante para reducir emisiones en un 50% para 2030. Mercados de energía renovable reaccionan positivamente.", icon: "breaking_news_alt_1", iconColor: "#ef4444", iconBg: "#fef2f2" } })],
   },
   {
     label: "market",

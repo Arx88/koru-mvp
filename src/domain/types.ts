@@ -517,15 +517,33 @@ export type UiBlock =
        */
       type: "restaurant_synthesis";
       title?: string;
+      query?: string;
       mood?: string;
       status: "ok" | "partial" | "failed";
-      matches?: Array<{ name: string; sourcesMentioning: number; quote?: string }>;
+      matches?: Array<{
+        name: string;
+        sourcesMentioning: number;
+        quote?: string;
+        imageUrl?: string;
+        rating?: number;
+      }>;
       topScore?: string;
       pros?: string[];
       cons?: string[];
       synthesis?: string;
       sources?: AssistantSource[];
       note?: string;
+      labels?: {
+        cardTitle?: string;
+        badge?: string;
+        top3Label?: string;
+        topPickLabel?: string;
+        prosLabel?: string;
+        consLabel?: string;
+        chefLabel?: string;
+        reserveAction?: string;
+        menuAction?: string;
+      };
     }
   | {
       type: "morning_brief";
@@ -570,6 +588,7 @@ export type UiBlock =
     }
   | {
       type: "urgent_now";
+      eyebrow?: string;
       icon?: string;
       iconColor?: string;
       iconBg?: string;

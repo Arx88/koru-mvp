@@ -141,6 +141,17 @@ export const restaurantDeepSearch: ToolHandler = {
       synthesis,
       sources,
       note,
+      labels: {
+        cardTitle: "DeepHungry Synthesis",
+        badge: "Alta Precisión",
+        top3Label: "Top 3 Seleccionados",
+        topPickLabel: "RECOMENDACIÓN #1",
+        prosLabel: "Puntos a favor",
+        consLabel: "A considerar",
+        chefLabel: "Recomendación del Chef",
+        reserveAction: "Reservar",
+        menuAction: "Menú",
+      },
     } as UiBlock);
 
     return {
