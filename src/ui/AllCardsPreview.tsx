@@ -159,7 +159,7 @@ const CARDS: Array<{ label: string; items: KoruTurnItem[]; extra?: React.ReactNo
   },
   {
     label: "activity_group",
-    items: [makeItem({ uiBlock: { type: "activity_group", title: "Tu día", subtitle: "Miércoles 24 de junio", energy: { value: 72, label: "Energía" }, sleep: { icon: "bedtime", value: "7h 20m", label: "Sueño óptimo" }, suggestion: { icon: "directions_walk", value: "Salir a caminar", label: "Sugerencia tarde" } } })]{ title: "Mañana", tone: "green" as const, tiles: [{ kind: "weather" as const, label: "Clima", value: "22°C" }, { kind: "work" as const, label: "Trabajo", value: "2 reuniones" }] }, { title: "Tarde", tone: "amber" as const, rows: [{ title: "Dentista", detail: "15:30", urgent: true }] }], note: "Día movido pero manejable." } })],
+    items: [makeItem({ uiBlock: { type: "activity_group", title: "Tu día", subtitle: "Miércoles 24 de junio", energy: { value: 72, label: "Energía" }, sections: [{ title: "Mañana", tone: "green" as const, tiles: [{ kind: "weather" as const, label: "Clima", value: "22°C" }, { kind: "work" as const, label: "Trabajo", value: "2 reuniones" }] }, { title: "Tarde", tone: "amber" as const, rows: [{ title: "Dentista", detail: "15:30", urgent: true }] }], note: "Día movido pero manejable." } })],
   },
   {
     label: "proactive_signal",
