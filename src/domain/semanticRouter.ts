@@ -45,6 +45,13 @@ export type RouteCategory =
   | "weather"
   | "planning"
   | "action"
+  | "sports"
+  | "market"
+  | "elections"
+  | "directions"
+  | "travel"
+  | "review"
+  | "birthday"
   | "conversation";
 
 export type RouteTool =
@@ -53,7 +60,15 @@ export type RouteTool =
   | "shopping_compare"
   | "plan_day"
   | "query_personal_context"
-  | "restaurant_deep_search";
+  | "restaurant_deep_search"
+  | "match_schedule"
+  | "match_live"
+  | "crypto_price"
+  | "stock_quote"
+  | "currency_convert"
+  | "route_traffic"
+  | "travel_itinerary"
+  | "save_personal_item";
 
 // ── Ejemplos modelo por categoría ──────────────────────────────────
 // Pocas frases (5-8) por categoría, elegidas para cubrir las formas comunes
@@ -68,11 +83,17 @@ const ROUTE_EXAMPLES: Array<{ category: RouteCategory; tool?: RouteTool; text: s
   { category: "world_info", tool: "web_search", text: "¿cómo le fue a Boca?" },
   { category: "world_info", tool: "web_search", text: "¿qué pasó en Argentina hoy?" },
   { category: "world_info", tool: "web_search", text: "precio del dólar hoy" },
+  { category: "world_info", tool: "web_search", text: "cuánto está el bitcoin" },
+  { category: "world_info", tool: "web_search", text: "generame una imagen" },
+  { category: "world_info", tool: "web_search", text: "creame un poema" },
   { category: "world_info", tool: "web_search", text: "¿quién ganó el partido?" },
   { category: "world_info", tool: "web_search", text: "che, ¿qué onda lo de ayer?" },
   { category: "world_info", tool: "web_search", text: "buscar refuerzos del Madrid" },
   { category: "world_info", tool: "web_search", text: "fichajes del mercado de pases" },
   { category: "world_info", tool: "web_search", text: "buscá información sobre el tema" },
+  { category: "world_info", tool: "web_search", text: "noticias urgentes" },
+  { category: "world_info", tool: "web_search", text: "alerta mundial" },
+  { category: "world_info", tool: "web_search", text: "ultimo minuto" },
 
   // weather → weather: condiciones meteorológicas.
   { category: "weather", tool: "weather", text: "¿qué tiempo hace?" },
@@ -107,6 +128,9 @@ const ROUTE_EXAMPLES: Array<{ category: RouteCategory; tool?: RouteTool; text: s
   { category: "personal_query", tool: "query_personal_context", text: "¿qué pendientes tengo?" },
   { category: "personal_query", tool: "query_personal_context", text: "¿recordás lo que te dije?" },
   { category: "personal_query", tool: "query_personal_context", text: "¿qué links guardé?" },
+  { category: "personal_query", tool: "query_personal_context", text: "cumple de juan" },
+  { category: "personal_query", tool: "query_personal_context", text: "cuanto peso" },
+  { category: "personal_query", tool: "query_personal_context", text: "mi actividad fisica" },
 
   // conversation: saludos, charla, emociones, agradecimientos. Sin tool.
   { category: "conversation", text: "hola Koru" },
@@ -126,13 +150,67 @@ const ROUTE_EXAMPLES: Array<{ category: RouteCategory; tool?: RouteTool; text: s
   { category: "world_info", tool: "restaurant_deep_search", text: "donde como paella en Valencia" },
   { category: "world_info", tool: "restaurant_deep_search", text: "restaurantes románticos en París" },
 
-  // action: crear alarma, recordatorio, guardar algo. Sin tool directa
-  // (el Composer decide si guardar, crear compromiso, etc.).
+  // action: crear alarma, recordatorio, guardar algo, salud.
   { category: "action", text: "creame una alarma" },
   { category: "action", text: "recordame llamar al médico" },
+  { category: "action", text: "recordame tomar pastillas" },
   { category: "action", text: "guardá esto" },
   { category: "action", text: "anotá un gasto" },
   { category: "action", text: "tengo que comprar leche" },
+  { category: "action", text: "dame el resumen del dia" },
+
+  // sports → match_schedule / match_live
+  { category: "sports", tool: "match_schedule", text: "juega Boca hoy" },
+  { category: "sports", tool: "match_schedule", text: "¿a qué hora juega Real Madrid?" },
+  { category: "sports", tool: "match_schedule", text: "fixture de la champions" },
+  { category: "sports", tool: "match_live", text: "resultados de ayer" },
+  { category: "sports", tool: "match_live", text: "tabla de la liga" },
+  { category: "sports", tool: "match_live", text: "¿cómo va el partido?" },
+  { category: "sports", tool: "match_schedule", text: "cuándo juega Argentina" },
+
+  // market → crypto_price / stock_quote / currency_convert
+  { category: "market", tool: "crypto_price", text: "precio del bitcoin" },
+  { category: "market", tool: "crypto_price", text: "cómo está el ethereum" },
+  { category: "market", tool: "stock_quote", text: "cotización de Apple" },
+  { category: "market", tool: "stock_quote", text: "cierre del S&P 500" },
+  { category: "market", tool: "currency_convert", text: "precio del dólar" },
+  { category: "market", tool: "currency_convert", text: "cuánto vale el oro" },
+  { category: "market", tool: "stock_quote", text: "cómo cerró Tesla" },
+
+  // elections → web_search
+  { category: "elections", tool: "web_search", text: "resultados de las elecciones" },
+  { category: "elections", tool: "web_search", text: "escrutinio" },
+  { category: "elections", tool: "web_search", text: "a quién le conviene votar" },
+  { category: "elections", tool: "web_search", text: "qué dicen las encuestas" },
+  { category: "elections", tool: "web_search", text: "candidatos 2025" },
+
+  // directions → route_traffic
+  { category: "directions", tool: "route_traffic", text: "cómo llego a Palermo" },
+  { category: "directions", tool: "route_traffic", text: "tráfico en la autopista" },
+  { category: "directions", tool: "route_traffic", text: "cuánto tardo hasta el centro" },
+  { category: "directions", tool: "route_traffic", text: "ruta más rápida" },
+  { category: "directions", tool: "route_traffic", text: "cómo ir al aeropuerto" },
+
+  // travel → travel_itinerary
+  { category: "travel", tool: "travel_itinerary", text: "quiero viajar a Madrid" },
+  { category: "travel", tool: "travel_itinerary", text: "vuelos a Barcelona" },
+  { category: "travel", tool: "travel_itinerary", text: "hoteles en París" },
+  { category: "travel", tool: "travel_itinerary", text: "qué visitar en Roma" },
+  { category: "travel", tool: "travel_itinerary", text: "armame un itinerario" },
+
+  // review → shopping_compare / web_search
+  { category: "review", tool: "shopping_compare", text: "review de auriculares" },
+  { category: "review", tool: "shopping_compare", text: "mejor cafetera 2025" },
+  { category: "review", tool: "web_search", text: "opiniones del iPhone 16" },
+  { category: "review", tool: "shopping_compare", text: "comparativa de notebooks" },
+  { category: "review", tool: "web_search", text: "qué dicen las reseñas" },
+
+  // birthday → save_personal_item
+  { category: "birthday", tool: "save_personal_item", text: "cumpleaños de Ana" },
+  { category: "birthday", tool: "save_personal_item", text: "regalo para mi hermano" },
+  { category: "birthday", tool: "save_personal_item", text: "cuándo es el cumple de Juan" },
+  { category: "birthday", tool: "save_personal_item", text: "fecha de nacimiento de María" },
+  { category: "birthday", tool: "save_personal_item", text: "aniversario de bodas" },
 ];
 
 // ── Cache de embeddings de ejemplos ────────────────────────────────
@@ -288,6 +366,25 @@ function extractToolArgs(message: string, tool?: RouteTool): Record<string, unkn
 
   if (tool === "query_personal_context") {
     return { topic: "general", query: clean };
+  }
+
+  if (tool === "match_schedule" || tool === "match_live") {
+    return { query: clean };
+  }
+  if (tool === "crypto_price") {
+    return { coin: clean };
+  }
+  if (tool === "stock_quote") {
+    return { symbol: clean };
+  }
+  if (tool === "currency_convert") {
+    return { amount: 1, from: "USD", to: "ARS" };
+  }
+  if (tool === "route_traffic") {
+    return { query: clean };
+  }
+  if (tool === "travel_itinerary") {
+    return { destination: clean };
   }
 
   return undefined;

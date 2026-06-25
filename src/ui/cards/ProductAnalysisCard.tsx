@@ -1,87 +1,59 @@
 import React from "react";
 
-function Mat({ children, className = "" }: { children: string; className?: string }) {
-  return <span className={`material-symbols-outlined ${className}`}>{children}</span>;
-}
+export function ProductAnalysisCard({ block }: { block: any }) {
+  const specs = block.specs || [];
+  const badges = block.badges || [];
+  const emojis = block.emojis || ["🎧", "🎶", "🪧"];
 
-export type ProductAnalysisBlock = {
-  type: "product_analysis";
-  product?: {
-    name?: string;
-    image?: string;
-    icon?: string;
-    rating?: number;
-    reviewCount?: string;
-    description?: string;
-  };
-  specs?: Array<{ label: string; value: string }>;
-  actionLabel?: string;
-  actionIcon?: string;
-};
-
-export function ProductAnalysisCard({ block }: { block: ProductAnalysisBlock }) {
-  const p = block.product ?? {};
-  const specs = block.specs ?? [];
-  const fullStars = Math.floor(p.rating ?? 0);
-  const hasHalf = (p.rating ?? 0) - fullStars >= 0.5;
-  const stars = Array.from({ length: 5 }, (_, i) => {
-    if (i < fullStars) return "★";
-    if (i === fullStars && hasHalf) return "★";
-    return "★";
-  });
   return (
-    <div className="flex w-full" data-ui-block="product_analysis">
-      <div className="flex flex-col w-full">
-        <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-50">
-          <div className="flex gap-4 mb-4">
-            <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center text-gray-400 flex-shrink-0">
-              {p.image ? (
-                <img src={p.image} alt={p.name} className="w-full h-full object-cover rounded-2xl" />
-              ) : (
-                <Mat className="text-[32px]">{p.icon ?? "photo_camera"}</Mat>
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="text-[15px] font-bold text-gray-900 truncate">{p.name ?? "Producto"}</h4>
-              {p.rating !== undefined && (
-                <div className="flex items-center gap-1 mb-1">
-                  <span className="text-orange-400 text-[14px]">
-                    {stars.map((s, i) => (
-                      <span key={i} className={i < fullStars ? "text-orange-400" : i === fullStars && hasHalf ? "text-orange-400" : "text-gray-300"}>
-                        {s}
-                      </span>
-                    ))}
-                  </span>
-                  {p.reviewCount && (
-                    <span className="text-[11px] text-gray-500 ml-1">({p.reviewCount})</span>
-                  )}
-                </div>
-              )}
-              {p.description && (
-                <p className="text-[12px] text-gray-600 font-medium line-clamp-2">{p.description}</p>
-              )}
-            </div>
+    <article data-ui-block="product_analysis" className="ai-bubble relative overflow-hidden rounded-2xl w-72 bg-gradient-to-br from-white to-amber-50 border border-gray-100 shadow-sm">
+      <div className="p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <div className="flex -space-x-1">
+            {emojis.map((e, i) => (
+              <div key={i} className="w-6 h-6 rounded-full bg-white border border-gray-100 flex items-center justify-center text-sm z-10 relative" style={{ zIndex: emojis.length - i }}>
+                {e}
+              </div>
+            ))}
           </div>
-          {specs.length > 0 && (
-            <div className="grid grid-cols-2 gap-2 mb-4">
-              {specs.map((spec, idx) => (
-                <div key={idx} className="bg-gray-50 p-2 rounded-xl">
-                  <p className="text-[10px] text-gray-500 uppercase font-bold">{spec.label}</p>
-                  <p className="text-[12px] font-semibold text-gray-900">{spec.value}</p>
-                </div>
-              ))}
+          <span className="text-xs font-semibold text-slate-700">{block.title || "Review Express"}</span>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          {(specs.length ? specs : [
+            { emoji: "🔋", name: "Batería", value: "30h" },
+            { emoji: "💧", name: "Resistencia", value: "IPX4" },
+            { emoji: "🔵", name: "Bluetooth", value: "5.3" },
+            { emoji: "🎵", name: "Altavoz", value: "12mm" },
+            { emoji: "🎙", name: "Micrófono", value: "3" },
+            { emoji: "🔇", name: "Ruido", value: "ANC" },
+          ]).map((s, i) => (
+            <div key={i} className="bg-white rounded-xl p-2 border border-gray-100 flex flex-col items-center gap-1">
+              <span className="text-lg">{s.emoji}</span>
+              <span className="text-[9px] text-slate-400">{s.name}</span>
+              <span className="text-[10px] font-bold text-slate-700">{s.value}</span>
             </div>
-          )}
-          {block.actionLabel && (
-            <button className="w-full py-2.5 bg-gray-900 text-white rounded-xl text-[13px] font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform">
-              {block.actionIcon && <Mat className="text-[16px]">{block.actionIcon}</Mat>}
-              {block.actionLabel}
-            </button>
-          )}
+          ))}
+        </div>
+
+        {badges.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {badges.map((b, i) => (
+              <span key={i} className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-medium">{b}</span>
+            ))}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1">
+            <span className="material-symbols-outlined text-sm text-amber-500">star</span>
+            <span className="text-sm font-bold text-slate-800">{block.rating || "4,8"}</span>
+          </div>
+          <button className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-[11px] font-semibold hover:bg-emerald-700 transition">
+            {block.buttonLabel || "Comprar ahora"}
+          </button>
         </div>
       </div>
-    </div>
+    </article>
   );
 }
-
-export default ProductAnalysisCard;

@@ -47,6 +47,23 @@ import { ComparisonCard } from "./cards/ComparisonCard";
 import { DecisionSupportCard } from "./cards/DecisionSupportCard";
 import { MorningBriefCard } from "./cards/MorningBriefCard";
 import { WellbeingCard } from "./cards/WellbeingCard";
+import { MatchTimelineCard } from "./cards/MatchTimelineCard";
+import { MatchStatsCard } from "./cards/MatchStatsCard";
+import { CryptoPortfolioCard } from "./cards/CryptoPortfolioCard";
+import { ForexCard } from "./cards/ForexCard";
+import { RouteTimelineCard } from "./cards/RouteTimelineCard";
+import { TransportCompareCard } from "./cards/TransportCompareCard";
+import { RouteMapCard } from "./cards/RouteMapCard";
+import { BirthdayCalendarCard } from "./cards/BirthdayCalendarCard";
+import { BirthdayAlarmCard } from "./cards/BirthdayAlarmCard";
+import { ElectionResultsCard } from "./cards/ElectionResultsCard";
+import { ElectionVoteCard } from "./cards/ElectionVoteCard";
+import { DataTickerCard } from "./cards/DataTickerCard";
+import { SmartChecklistCard } from "./cards/SmartChecklistCard";
+import { OutfitCard } from "./cards/OutfitCard";
+import { ReviewScoreCard } from "./cards/ReviewScoreCard";
+import { ReviewDocumentCard } from "./cards/ReviewDocumentCard";
+import { ReviewQuoteCard } from "./cards/ReviewQuoteCard";
 import { PlanTimelineCard } from "./cards/PlanTimelineCard";
 import { LiveMatchCard } from "./cards/LiveMatchCard";
 import { UrgentNowCard } from "./cards/UrgentNowCard";
@@ -940,6 +957,57 @@ function UiBlockCardA({ item }: { item: KoruTurnItem }) {
 
   if (block.type === "generation") {
     return <GenerationCard block={block} />;
+  }
+  if (block.type === "match_timeline") {
+    return <MatchTimelineCard block={block} />;
+  }
+  if (block.type === "match_stats") {
+    return <MatchStatsCard block={block} />;
+  }
+  if (block.type === "crypto_portfolio") {
+    return <CryptoPortfolioCard block={block} />;
+  }
+  if (block.type === "forex") {
+    return <ForexCard block={block} />;
+  }
+  if (block.type === "route_timeline") {
+    return <RouteTimelineCard block={block} />;
+  }
+  if (block.type === "transport_compare") {
+    return <TransportCompareCard block={block} />;
+  }
+  if (block.type === "route_map") {
+    return <RouteMapCard block={block} />;
+  }
+  if (block.type === "birthday_calendar") {
+    return <BirthdayCalendarCard block={block} />;
+  }
+  if (block.type === "birthday_alarm") {
+    return <BirthdayAlarmCard block={block} />;
+  }
+  if (block.type === "election_results") {
+    return <ElectionResultsCard block={block} />;
+  }
+  if (block.type === "election_vote") {
+    return <ElectionVoteCard block={block} />;
+  }
+  if (block.type === "data_ticker") {
+    return <DataTickerCard block={block} />;
+  }
+  if (block.type === "smart_checklist") {
+    return <SmartChecklistCard block={block} />;
+  }
+  if (block.type === "outfit") {
+    return <OutfitCard block={block} />;
+  }
+  if (block.type === "review_score") {
+    return <ReviewScoreCard block={block} />;
+  }
+  if (block.type === "review_document") {
+    return <ReviewDocumentCard block={block} />;
+  }
+  if (block.type === "review_quote") {
+    return <ReviewQuoteCard block={block} />;
   }
 
   return null;

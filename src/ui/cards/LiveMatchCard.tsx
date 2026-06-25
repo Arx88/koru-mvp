@@ -1,146 +1,123 @@
-import { useState } from "react";
+import React from "react";
 
-export type MatchStatBar = {
-  label: string;
-  leftValue: string | number;
-  rightValue: string | number;
-  leftPercent: number;
-  rightPercent: number;
-};
+export function LiveMatchCard({ block }: { block: any }) {
+  const tabs = ["Goles", "Estadísticas", "Escudo"];
+  const [activeTab, setActiveTab] = React.useState("Goles");
 
-export type LiveMatchBlock = {
-  type: "live_match";
-  league?: string;
-  time?: string;
-  status?: string;
-  homeTeam?: { name: string; abbrev: string; badgeClass?: string; borderClass?: string; score: number; cardCount?: number };
-  awayTeam?: { name: string; abbrev: string; badgeClass?: string; borderClass?: string; score: number };
-  globalStatus?: string;
-  stats: MatchStatBar[];
-};
-
-export function LiveMatchCard({ block }: { block: LiveMatchBlock }) {
-  const home = block.homeTeam ?? { name: "Real Madrid", abbrev: "RMA", score: 0 };
-  const away = block.awayTeam ?? { name: "Man City", abbrev: "MCI", score: 0 };
-  const [activeTab, setActiveTab] = useState<"stats" | "lineups" | "timeline">("stats");
-
-  const homeBadge = home.badgeClass ?? "bg-gray-50";
-  const homeBorder = home.borderClass ?? "border-gray-200";
-  const awayBadge = away.badgeClass ?? "bg-blue-50";
-  const awayBorder = away.borderClass ?? "border-blue-200";
+  const home = block.homeTeam || block.home || "River Plate";
+  const away = block.awayTeam || block.away || "Mέxico";
+  const score = block.score || "3 - 0";
 
   return (
-    <div className="flex w-full" data-ui-block="live_match">
-      <div className="flex flex-col w-full">
-        <div className="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
-          <div className="flex items-center justify-between px-2 mb-6">
-            <div className="flex flex-col items-center gap-2 w-1/3">
-              <div
-                className={`w-14 h-14 ${homeBadge} rounded-full flex items-center justify-center text-gray-900 font-bold border-2 ${homeBorder} shadow-sm relative`}
-              >
-                {home.abbrev}
-                {home.cardCount !== undefined && home.cardCount > 0 && (
-                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full border-2 border-white flex items-center justify-center text-[8px] font-bold text-white">
-                    {home.cardCount}
-                  </div>
-                )}
-              </div>
-              <span className="text-[13px] font-bold text-gray-900">{home.name}</span>
-            </div>
-            <div className="flex flex-col items-center justify-center w-1/3">
-              <span className="text-4xl font-black text-gray-900 tracking-tighter">
-                {home.score} <span className="text-gray-300 font-normal">-</span> {away.score}
-              </span>
-              {block.globalStatus && (
-                <span className="text-[10px] text-gray-400 mt-1 font-bold uppercase tracking-wider bg-gray-50 px-2 py-0.5 rounded-full">
-                  {block.globalStatus}
-                </span>
-              )}
-            </div>
-            <div className="flex flex-col items-center gap-2 w-1/3">
-              <div
-                className={`w-14 h-14 ${awayBadge} rounded-full flex items-center justify-center text-blue-700 font-bold border-2 ${awayBorder} shadow-sm`}
-              >
-                {away.abbrev}
-              </div>
-              <span className="text-[13px] font-bold text-gray-900">{away.name}</span>
-            </div>
-          </div>
-
-          <div className="bg-gray-50 p-1 rounded-xl flex mb-4">
-            <button
-              className={`flex-1 py-1.5 text-[12px] font-bold rounded-lg transition-all ${
-                activeTab === "stats"
-                  ? "text-gray-800 bg-white shadow-sm"
-                  : "text-gray-500 hover:text-gray-800"
-              }`}
-              onClick={() => setActiveTab("stats")}
-            >
-              Stats
-            </button>
-            <button
-              className={`flex-1 py-1.5 text-[12px] font-bold rounded-lg transition-all ${
-                activeTab === "lineups"
-                  ? "text-gray-800 bg-white shadow-sm"
-                  : "text-gray-500 hover:text-gray-800"
-              }`}
-              onClick={() => setActiveTab("lineups")}
-            >
-              Lineups
-            </button>
-            <button
-              className={`flex-1 py-1.5 text-[12px] font-bold rounded-lg transition-all ${
-                activeTab === "timeline"
-                  ? "text-gray-800 bg-white shadow-sm"
-                  : "text-gray-500 hover:text-gray-800"
-              }`}
-              onClick={() => setActiveTab("timeline")}
-            >
-              Timeline
-            </button>
-          </div>
-
-          {activeTab === "stats" && block.stats && block.stats.length > 0 && (
-            <div className="space-y-3 px-2">
-              {block.stats.map((stat, idx) => (
-                <div key={idx}>
-                  <div className="flex justify-between text-[11px] font-bold text-gray-600 mb-1">
-                    <span>{stat.leftValue}</span>
-                    <span className="uppercase tracking-wider">{stat.label}</span>
-                    <span>{stat.rightValue}</span>
-                  </div>
-                  <div className="h-1.5 w-full bg-gray-200 rounded-full flex overflow-hidden">
-                    <div
-                      className="bg-gray-800 h-full"
-                      style={{ width: `${stat.leftPercent}%` }}
-                    />
-                    <div
-                      className="bg-blue-500 h-full"
-                      style={{ width: `${stat.rightPercent}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          {activeTab === "lineups" && (
-            <div className="space-y-3 px-2">
-              <p className="text-[12px] text-gray-500 font-medium text-center">
-                Alineaciones no disponibles
-              </p>
-            </div>
-          )}
-          {activeTab === "timeline" && (
-            <div className="space-y-3 px-2">
-              <p className="text-[12px] text-gray-500 font-medium text-center">
-                Timeline no disponible
-              </p>
-            </div>
-          )}
-        </div>
+    <article data-ui-block="live_match" className="ai-bubble relative overflow-hidden rounded-2xl w-72 bg-white border border-gray-100 shadow-sm">
+      {/* Header */}
+      <div className="flex items-center gap-2 px-4 pt-3 pb-2">
+        <span className="material-symbols-outlined text-base text-rose-600">sports_soccer</span>
+        <span className="text-xs font-semibold text-rose-600">Deportes</span>
+        <span className="text-xs text-slate-400 ml-auto">Estadísticas</span>
       </div>
-    </div>
+
+      {/* Tabs */}
+      <div className="flex border-b border-gray-100 px-4">
+        {tabs.map((t) => (
+          <button key={t}
+            onClick={() => setActiveTab(t)}
+            className={`px-3 py-2 text-[11px] font-semibold border-b-2 transition ${activeTab === t ? "border-rose-500 text-rose-600" : "border-transparent text-slate-400"}`}>
+            {t}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab: Goles */}
+      {activeTab === "Goles" && (
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-center flex-1">
+              <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center mx-auto mb-1">
+                <span className="material-symbols-outlined text-gray-600">shield</span>
+              </div>
+              <div className="text-[10px] font-semibold text-slate-600">{home}</div>
+            </div>
+            <div className="text-2xl font-black text-slate-800 px-2">{score}</div>
+            <div className="text-center flex-1">
+              <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center mx-auto mb-1">
+                <span className="material-symbols-outlined text-gray-600">shield</span>
+              </div>
+              <div className="text-[10px] font-semibold text-slate-600">{away}</div>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2">
+            {[{ minute: "17'", event: `Gol de ${home}`, highlight: true },
+              { minute: "42'", event: `Gol de ${home}`, highlight: true },
+              { minute: "68'", event: `Gol de ${home}`, highlight: true }].map((e, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <span className="text-xs font-bold w-6 text-right text-rose-600">{e.minute}</span>
+                <div className="h-2 w-2 rounded-full bg-rose-500" />
+                <span className="text-xs text-slate-700">{e.event}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Estadísticas */}
+      {activeTab === "Estadísticas" && (
+        <div className="p-4 space-y-3">
+          <div className="text-center">
+            <div className="flex justify-between text-xs font-bold text-slate-600 mb-2">
+              <span>{home}</span>
+              <span>{away}</span>
+            </div>
+            <div className="flex h-1.5 rounded-full overflow-hidden">
+              <div className="bg-rose-500 rounded-l-full" style={{ width: "73%" }} />
+              <div className="bg-blue-500 rounded-r-full" style={{ width: "27%" }} />
+            </div>
+            <div className="text-[10px] text-slate-400 mt-1">Posesión</div>
+          </div>
+          {[
+            { label: "Tiros", home: 9, away: 3 },
+            { label: "Paradas", home: 2, away: 8 },
+            { label: "Córner", home: 5, away: 3 },
+            { label: "Faltas", home: 1, away: 0 },
+          ].map((s, i) => {
+            const total = s.home + s.away;
+            const hp = total ? s.home / total * 100 : 50;
+            return (
+              <div key={i}>
+                <div className="flex justify-between text-[10px] text-slate-500 mb-1">
+                  <span>{s.home}</span>
+                  <span className="text-slate-400">{s.label}</span>
+                  <span>{s.away}</span>
+                </div>
+                <div className="flex h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-rose-500 rounded-l-full" style={{ width: `${hp}%` }} />
+                  <div className="bg-blue-500 rounded-r-full" style={{ width: `${100 - hp}%` }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Tab: Escudo */}
+      {activeTab === "Escudo" && (
+        <div className="p-4 flex items-center justify-center">
+          <svg width="160" height="80" viewBox="0 0 160 80">
+            {/* Home half */}
+            <rect x="0" y="0" width="80" height="65" rx="8" fill="#F1F5F9" />
+            <circle cx="40" cy="32" r="8" fill="none" stroke="#CBD5E1" strokeWidth="1" />
+            <circle cx="40" cy="32" r="3" fill="#CBD5E1" />
+            <path d="M0 32 Q20 32 30 20" stroke="#CBD5E1" fill="none" />
+            {/* Away half */}
+            <rect x="80" y="0" width="80" height="65" rx="8" fill="#F1F5F9" />
+            <circle cx="120" cy="32" r="8" fill="none" stroke="#CBD5E1" strokeWidth="1" />
+            <circle cx="120" cy="32" r="3" fill="#CBD5E1" />
+            <path d="M160 32 Q140 32 130 20" stroke="#CBD5E1" fill="none" />
+            {/* Center line */}
+            <line x1="80" y1="0" x2="80" y2="65" stroke="#E2E8F0" strokeWidth="1" />
+          </svg>
+        </div>
+      )}
+    </article>
   );
 }
-
-export default LiveMatchCard;

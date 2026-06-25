@@ -394,11 +394,7 @@ const CATEGORY_TOOLS: Record<RouteCategory, string[]> = {
   world_info: [
     "web_search",
     "restaurant_deep_search",
-    "crypto_price",
-    "match_schedule",
     "news_topic",
-    "flight_search",
-    "hotel_search",
     "trending_twitter",
     "person_info",
     "world_signal",
@@ -427,6 +423,13 @@ const CATEGORY_TOOLS: Record<RouteCategory, string[]> = {
     "alarm_set",
     "restaurant_deep_search",
   ],
+  sports: ["match_schedule", "match_live", "team_follow", "league_standings"],
+  market: ["crypto_price", "stock_quote", "exchange_history", "currency_convert"],
+  travel: ["travel_itinerary", "flight_search", "hotel_search"],
+  directions: ["route_traffic", "weather", "travel_itinerary"],
+  elections: ["web_search", "news_topic"],
+  review: ["shopping_compare", "web_search"],
+  birthday: ["save_personal_item", "query_personal_context"],
   conversation: [],
 };
 
@@ -2278,13 +2281,67 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
       blocks.push({
         type: "restaurant_synthesis" as const,
         title: search.query || "Restaurantes encontrados",
-        status: search.status === "ok" ? "ok" as const : "partial" as const,
+        status: search.status === "ok" ? "ok" as const : search.status === "failed" ? "failed" as const : "partial" as const,
         matches: search.matches || [],
         topScore: search.topScore,
         pros: search.pros,
         cons: search.cons,
         synthesis: search.synthesis,
         sources: search.sources || [],
+      });
+      continue;
+    }
+    if (result.type === "crypto_price") {
+      const r = result as any;
+      blocks.push({
+        type: "crypto_portfolio" as const,
+        title: `${r.coin} (${r.symbol})`,
+        coins: [{
+          symbol: r.symbol,
+          name: r.coin,
+          price: `${r.price} ${r.currency}`,
+          change: r.change24hPct ? `${r.change24hPct >= 0 ? "▲" : "▼"} ${Math.abs(r.change24hPct)}%` : "—",
+          changePositive: (r.change24hPct ?? 0) >= 0,
+        }],
+      });
+      continue;
+    }
+    if (result.type === "stock_quote") {
+      const r = result as any;
+      blocks.push({
+        type: "market" as const,
+        title: `${r.symbol}`,
+        subtitle: `Cierre: ${r.close}`,
+        change: r.change24hPct ? `${r.change24hPct >= 0 ? "▲" : "▼"} ${Math.abs(r.change24hPct)}%` : "—",
+      });
+      continue;
+    }
+    if (result.type === "currency_convert") {
+      const r = result as any;
+      blocks.push({
+        type: "forex" as const,
+        title: `${r.from} → ${r.to}`,
+        pairs: [{
+          pair: `${r.from}/${r.to}`,
+          rate: String(r.rate),
+          change: r.note || "—",
+          flag: "💱",
+        }],
+      });
+      continue;
+    }
+    if (result.type === "match_schedule") {
+      const r = result as any;
+      const matches = r.matches || [];
+      blocks.push({
+        type: "match_timeline" as const,
+        homeTeam: r.team || "Equipo",
+        awayTeam: matches.length > 0 ? matches[0].opponent : "Rival",
+        events: matches.slice(0, 5).map((m: any) => ({
+          minute: m.date ? new Date(m.date).getDate() + "'" : "—",
+          team: "home",
+          event: `${m.competition || ""}: ${m.opponent || ""} (${m.venue || ""})`,
+        })),
       });
       continue;
     }

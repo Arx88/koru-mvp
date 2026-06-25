@@ -543,6 +543,10 @@ export type UiBlock =
         chefLabel?: string;
         reserveAction?: string;
         menuAction?: string;
+        navigateLabel?: string;
+        callLabel?: string;
+        synthesisLabel?: string;
+        sourcesLabel?: string;
       };
     }
   | {
