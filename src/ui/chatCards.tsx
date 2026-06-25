@@ -852,7 +852,7 @@ function UiBlockCardA({ item }: { item: KoruTurnItem }) {
   }
 
   if (block.type === "plan") {
-    return <PlanCard block={block} />;
+    return block.steps ? <PlanTimelineCard block={block} /> : <PlanCard block={block} />;
   }
 
   if (block.type === "comparison") {
