@@ -41,7 +41,38 @@ function makeItem(overrides: Partial<KoruTurnItem> & { uiBlock?: UiBlock }): Kor
 const CARDS: Array<{ label: string; items: KoruTurnItem[]; extra?: React.ReactNode }> = [
   {
     label: "restaurant_synthesis",
-    items: [makeItem({ uiBlock: { type: "restaurant_synthesis", status: "ok", query: "parrilla en Palermo Buenos Aires", mood: "", topScore: "4/5", matches: [{ name: "Parrilla El Viejo Palermo", sourcesMentioning: 4, quote: "calificado 4.9 de 5 en Restaurant Guru" }], pros: ["Ofrecer una amplia variedad de opciones de parrilla", "Tener un ambiente acogedor"], cons: ["No hay cons mencionados"], synthesis: "Las parrillas en Palermo parecen ser un destino popular, con varias opciones disponibles.", sources, note: "Cruzadas 5 fuentes." } })],
+    items: [makeItem({ uiBlock: {
+      type: "restaurant_synthesis",
+      status: "ok",
+      query: "parrilla en Palermo Buenos Aires",
+      mood: "",
+      topScore: "4/5",
+      matches: [
+        { name: "Don Julio", sourcesMentioning: 4, quote: "La referencia de la parrilla en Palermo." },
+        { name: "La Cabrera", sourcesMentioning: 2, quote: "Alternativa sólida, más turística." },
+        { name: "El Pobre Luis", sourcesMentioning: 1, quote: "Mencionado por una sola fuente." },
+      ],
+      pros: ["Asado de tira excepcional", "Servicio atento y consistente", "Entradas de nivel"],
+      cons: ["Reservar 2 semanas antes", "Ambiente ruidoso", "Espera ~45 min sin reserva"],
+      synthesis: "La consistencia en carne y servicio lo posicionan como top indiscutido. El asado de tira es el plato más repetido en las reseñas.",
+      sources: [
+        { title: "La Nación", url: "https://example.com/ln", domain: "lanacion.com.ar", snippet: "" },
+        { title: "TripAdvisor", url: "https://example.com/ta", domain: "tripadvisor.com.ar", snippet: "" },
+        { title: "Yelp", url: "https://example.com/yelp", domain: "yelp.com", snippet: "" },
+        { title: "Guía Oleo", url: "https://example.com/oleo", domain: "guiaoleo.com.ar", snippet: "" },
+        { title: "Infobae", url: "https://example.com/infobae", domain: "infobae.com", snippet: "" },
+      ],
+      labels: {
+        cardTitle: "DeepHungry Synthesis",
+        top3Label: "Top coincidencias",
+        topPickLabel: "RECOMENDACIÓN #1",
+        prosLabel: "Puntos a favor",
+        consLabel: "A considerar",
+        synthesisLabel: "Síntesis de las fuentes",
+        navigateLabel: "Cómo llegar",
+        callLabel: "Reservar",
+      },
+    } })],
   },
   {
     label: "weather",
@@ -70,7 +101,7 @@ const CARDS: Array<{ label: string; items: KoruTurnItem[]; extra?: React.ReactNo
   },
   {
     label: "live_match",
-    items: [makeItem({ uiBlock: { type: "live_match", league: "Champions League", time: "89 min", status: "Final", homeTeam: { name: "Real Madrid", abbrev: "RMA", score: 3 }, awayTeam: { name: "Man City", abbrev: "MCI", score: 2 }, stats: [
+    items: [makeItem({ uiBlock: { type: "live_match", league: "Champions League", time: "89 min", status: "Final", homeTeam: "Real Madrid", awayTeam: "Man City", stats: [
       { label: "Possession", leftPercent: 42, rightPercent: 58 },
       { label: "Shots", leftPercent: 60, rightPercent: 40, leftColor: "#f59e0b", rightColor: "#3b82f6" },
     ] } })],
@@ -191,6 +222,131 @@ const CARDS: Array<{ label: string; items: KoruTurnItem[]; extra?: React.ReactNo
     extra: (
       <WebNavCardA block={{ type: "web_nav", status: "ok", query: "criptomonedas hoy", title: "Resultados web", url: "https://google.com", results: [{ title: "Bitcoin supera los 60k", url: "https://example.com/1", domain: "example.com", snippet: "BTC rompe resistencia" }, { title: "Ethereum 2.0", url: "https://example.com/2", domain: "example.com", snippet: "Shapella activado" }] }} />
     ),
+  },
+  {
+    label: "match_timeline",
+    items: [makeItem({ uiBlock: { type: "match_timeline", homeTeam: "River Plate", awayTeam: "Boca Juniors", events: [
+      { minute: "17'", team: "home", event: "Gol de Borja", highlight: true },
+      { minute: "42'", team: "away", event: "Gol de Cavani", highlight: true },
+      { minute: "68'", team: "home", event: "Gol de Borja (2)", highlight: true },
+    ]}})],
+  },
+  {
+    label: "match_stats",
+    items: [makeItem({ uiBlock: { type: "match_stats", homeTeam: "River", awayTeam: "Boca", stats: [
+      { label: "Posesión", homeValue: 73, awayValue: 27 },
+      { label: "Tiros", homeValue: 9, awayValue: 3 },
+      { label: "Paradas", homeValue: 2, awayValue: 8 },
+      { label: "Córner", homeValue: 5, awayValue: 3 },
+    ]}})],
+  },
+  {
+    label: "crypto_portfolio",
+    items: [makeItem({ uiBlock: { type: "crypto_portfolio", title: "Mi Portfolio", coins: [
+      { symbol: "BTC", name: "Bitcoin", price: "96.294,99 €", change: "▲ 0,25%", changePositive: true },
+      { symbol: "ETH", name: "Ethereum", price: "2.481,12 €", change: "▲ 1,12%", changePositive: true },
+      { symbol: "SOL", name: "Solana", price: "142,50 €", change: "▼ 2,30%", changePositive: false },
+    ]}})],
+  },
+  {
+    label: "forex",
+    items: [makeItem({ uiBlock: { type: "forex", title: "Forex", pairs: [
+      { pair: "EUR/USD", rate: "1,08", change: "+0,15%", flag: "🇪🇺" },
+      { pair: "GBP/USD", rate: "1,27", change: "-0,05%", flag: "🇬🇧" },
+      { pair: "USD/JPY", rate: "149,50", change: "+0,30%", flag: "🇯🇵" },
+      { pair: "USD/ARS", rate: "1.050", change: "+1,20%", flag: "🇦🇷" },
+    ]}})],
+  },
+  {
+    label: "route_timeline",
+    items: [makeItem({ uiBlock: { type: "route_timeline", title: "Cómo llegar", duration: "25 min", steps: [
+      { instruction: "Caminá 3 min hasta Av. Corrientes", detail: "200 m", color: "blue" },
+      { instruction: "Tomá la línea B del subte", detail: "Dirección Los Incas", color: "emerald" },
+      { instruction: "Bajate en Carlos Gardel", detail: "Estación 8", color: "amber" },
+      { instruction: "Caminá 5 min hasta destino", detail: "400 m", color: "blue" },
+    ]}})],
+  },
+  {
+    label: "transport_compare",
+    items: [makeItem({ uiBlock: { type: "transport_compare", title: "Comparativa", options: [
+      { mode: "Auto", icon: "directions_car", time: "25 min", highlighted: false },
+      { mode: "Subte", icon: "train", time: "18 min", highlighted: true },
+      { mode: "Caminando", icon: "directions_walk", time: "45 min", highlighted: false },
+    ]}})],
+  },
+  {
+    label: "route_map",
+    items: [makeItem({ uiBlock: { type: "route_map", title: "En ruta", progress: 65, subtitle: "Faltan 8 min - 1.2 km" }})],
+  },
+  {
+    label: "birthday_calendar",
+    items: [makeItem({ uiBlock: { type: "birthday_calendar", month: "Julio", year: 2025, highlightedDay: 12 }})],
+  },
+  {
+    label: "birthday_alarm",
+    items: [makeItem({ uiBlock: { type: "birthday_alarm", title: "Cumpleaños Ana", date: "12 jul", daysLeft: 8 }})],
+  },
+  {
+    label: "election_results",
+    items: [makeItem({ uiBlock: { type: "election_results", title: "Escrutinio 2025", candidates: [
+      { name: "Milei", percent: 55.7, status: "winner" },
+      { name: "Massa", percent: 44.3, status: "second" },
+    ], escrutinio: "Escrutinio: 98,5%" }})],
+  },
+  {
+    label: "election_vote",
+    items: [makeItem({ uiBlock: { type: "election_vote", question: "¿A quién votar?", subtitle: "Según datos de encuestas", options: [
+      { label: "Milei — Liberalismo", description: "Reducción del Estado" },
+      { label: "Massa — Peronismo", description: "Continuidad económica" },
+      { label: "Bullrich — Pro", description: "Orden y seguridad" },
+    ]}})],
+  },
+  {
+    label: "data_ticker",
+    items: [makeItem({ uiBlock: { type: "data_ticker", title: "Vacaciones 2024", items: [
+      { label: "Gasto", value: "$1.240", highlight: true },
+      { label: "Días", value: "7", highlight: false },
+      { label: "Vuelo", value: "IB 6841", highlight: false },
+      { label: "Hotel", value: "4★", highlight: false },
+    ], alert: "Doble chequéalo" }})],
+  },
+  {
+    label: "smart_checklist",
+    items: [makeItem({ uiBlock: { type: "smart_checklist", title: "Lista de viaje", progress: 60, items: [
+      { label: "Pasaporte", checked: true },
+      { label: "Pasajes", checked: true },
+      { label: "Hotel", checked: true },
+      { label: "Seguro", checked: false },
+      { label: "Maleta", checked: false },
+    ]}})],
+  },
+  {
+    label: "outfit",
+    items: [makeItem({ uiBlock: { type: "outfit", title: "Outfit Montaña", specs: [
+      { emoji: "🧥", label: "Chaqueta", value: "Impermeable" },
+      { emoji: "🥾", label: "Calzado", value: "Trekking" },
+      { emoji: "🧤", label: "Guantes", value: "Térmicos" },
+      { emoji: "🧦", label: "Medias", value: "Lana" },
+      { emoji: "🎒", label: "Mochila", value: "40L" },
+      { emoji: "🧢", label: "Gorro", value: "Lana" },
+    ]}})],
+  },
+  {
+    label: "review_score",
+    items: [makeItem({ uiBlock: { type: "review_score", title: "Review cargador inalámbrico", scores: [
+      { emoji: "🚀", label: "Velocidad", value: 9.2, color: "emerald" },
+      { emoji: "🔥", label: "Calentamiento", value: 7.5, color: "amber" },
+      { emoji: "📱", label: "Compatibilidad", value: 8.8, color: "blue" },
+      { emoji: "💰", label: "Precio", value: 6.0, color: "red" },
+    ]}})],
+  },
+  {
+    label: "review_document",
+    items: [makeItem({ uiBlock: { type: "review_document", title: "Análisis técnico", content: "El cargador Qi2 entrega 15W consistentes. Temperatura máxima 42°C. Compatible con MagSafe y Android." }})],
+  },
+  {
+    label: "review_quote",
+    items: [makeItem({ uiBlock: { type: "review_quote", source: "TechKoru", sourceLabel: "Review", quote: "El mejor cargador inalámbrico que he probado en 2024. Carga rápida sin calentar.", tags: ["#cargador", "#qi2", "#review"] }})],
   },
 ];
 
