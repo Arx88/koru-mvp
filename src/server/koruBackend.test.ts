@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { runKoruBackendTurn } from "./koruBackend";
+import { runKoruBackendTurn, personalCaptureFromArgs } from "./koruBackend";
 import { createInitialState } from "../domain/store";
 import type { ProviderConfig, KoruBackendTurnRequest } from "./koruBackend";
 
@@ -247,6 +247,35 @@ describe("runKoruBackendTurn conversational flow", () => {
     expect(blocks[0]).toMatchObject({
       type: "route_timeline",
       eta: "18 min",
+    });
+  });
+});
+
+describe("personalCaptureFromArgs new UiBlock types", () => {
+  it("creates birthday_calendar block", () => {
+    const capture = personalCaptureFromArgs({ uiBlockType: "birthday_calendar", title: "Ana", person: "Ana", highlightedDay: 15 }, "cumple de Ana");
+    expect(capture.block).toMatchObject({
+      type: "birthday_calendar",
+      highlightedDay: 15,
+    });
+    expect(capture.records[0].kind).toBe("birthday");
+  });
+
+  it("creates birthday_alarm block", () => {
+    const capture = personalCaptureFromArgs({ uiBlockType: "birthday_alarm", title: "Ana", person: "Ana", countdown: "5", unit: "días" }, "cumple de Ana");
+    expect(capture.block).toMatchObject({
+      type: "birthday_alarm",
+      name: "Cumpleaños Ana",
+      countdown: "5",
+    });
+  });
+
+  it("creates social_interaction block", () => {
+    const capture = personalCaptureFromArgs({ uiBlockType: "social_interaction", title: "Ana", person: "Ana", event: "Cumpleaños", remaining: "Faltan 5 días", gifts: ["Libro"] }, "cumple de Ana");
+    expect(capture.block).toMatchObject({
+      type: "social_interaction",
+      name: "Ana",
+      event: "Cumpleaños",
     });
   });
 });

@@ -296,7 +296,7 @@ const TOOL_DEFINITIONS = [
         type: "object",
         additionalProperties: false,
         properties: {
-          uiBlockType: { type: "string", enum: ["reminder", "alarm", "shopping_list", "saved_record", "money_summary"] },
+          uiBlockType: { type: "string", enum: ["reminder", "alarm", "shopping_list", "saved_record", "money_summary", "birthday_calendar", "birthday_alarm", "social_interaction"] },
           title: { type: "string" },
           dueText: { type: "string" },
           time: { type: "string" },
@@ -1600,7 +1600,7 @@ export function memoryCaptureFromArgs(args: Record<string, unknown>, input = "")
 export function personalCaptureFromArgs(args: Record<string, unknown>, input = ""): PersonalCaptureData {
   const cleanArgs = argsWithCaptureHygiene(args, input);
   const requestedType = cleanText(cleanArgs.uiBlockType, "saved_record");
-  const uiBlockType = ["reminder", "alarm", "shopping_list", "saved_record", "money_summary"].includes(requestedType)
+  const uiBlockType = ["reminder", "alarm", "shopping_list", "saved_record", "money_summary", "birthday_calendar", "birthday_alarm", "social_interaction"].includes(requestedType)
     ? requestedType
     : "saved_record";
   const title = cleanText(cleanArgs.title, input || "Dato guardado");
@@ -1685,6 +1685,56 @@ export function personalCaptureFromArgs(args: Record<string, unknown>, input = "
       block: { type: "reminder", title, dueText, note },
       commitments: [{ title, dueHint: dueText || "sin fecha", status: "open" }],
       records: [baseRecord],
+      memoryCandidates,
+    };
+  }
+
+  if (effectiveUiBlockType === "birthday_calendar") {
+    const personName = cleanText(cleanArgs.person) || title;
+    return {
+      type: "personal_capture",
+      block: {
+        type: "birthday_calendar",
+        month: dueText || "Junio 2025",
+        highlightedDay: typeof cleanArgs.highlightedDay === "number" ? cleanArgs.highlightedDay : 12,
+        startDay: typeof cleanArgs.startDay === "number" ? cleanArgs.startDay : 6,
+        daysInMonth: typeof cleanArgs.daysInMonth === "number" ? cleanArgs.daysInMonth : 13,
+      },
+      records: [{ ...baseRecord, title: `Cumpleaños de ${personName}`, kind: "birthday" }],
+      memoryCandidates,
+    };
+  }
+
+  if (effectiveUiBlockType === "birthday_alarm") {
+    const personName = cleanText(cleanArgs.person) || title;
+    return {
+      type: "personal_capture",
+      block: {
+        type: "birthday_alarm",
+        name: `Cumpleaños ${personName}`,
+        date: dueText || "12 jul",
+        countdown: cleanText(cleanArgs.countdown, "08"),
+        unit: cleanText(cleanArgs.unit, "días"),
+        eta: time || "En 30m",
+      },
+      records: [{ ...baseRecord, title: `Cumpleaños de ${personName}`, kind: "birthday" }],
+      memoryCandidates,
+    };
+  }
+
+  if (effectiveUiBlockType === "social_interaction") {
+    const personName = cleanText(cleanArgs.person) || title;
+    return {
+      type: "personal_capture",
+      block: {
+        type: "social_interaction",
+        name: personName,
+        event: cleanText(cleanArgs.event, "Cumpleaños"),
+        date: dueText || "12 jul",
+        remaining: cleanText(cleanArgs.remaining, "Faltan 8 días"),
+        gifts: asArray(cleanArgs.gifts).map((g) => cleanText(g)).filter(Boolean) || ["Regalo pendiente"],
+      },
+      records: [{ ...baseRecord, title: `Evento social: ${personName}`, kind: "person_followup" }],
       memoryCandidates,
     };
   }
