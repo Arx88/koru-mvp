@@ -2644,6 +2644,121 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
       });
       continue;
     }
+    if (result.type === "product_analysis") {
+      const r = result as any;
+      blocks.push({
+        type: "product_analysis" as const,
+        title: r.title,
+        subtitle: r.subtitle,
+        icon: r.icon,
+        specs: r.specs || [],
+      });
+      continue;
+    }
+    if (result.type === "smart_checklist") {
+      const r = result as any;
+      blocks.push({
+        type: "smart_checklist" as const,
+        title: r.title,
+        progress: r.progress,
+        items: r.items || [],
+      });
+      continue;
+    }
+    if (result.type === "outfit") {
+      const r = result as any;
+      blocks.push({
+        type: "outfit" as const,
+        specs: r.specs || [],
+        buttonLabel: r.buttonLabel,
+      });
+      continue;
+    }
+    if (result.type === "review_score") {
+      const r = result as any;
+      blocks.push({
+        type: "review_score" as const,
+        items: r.items || [],
+        buttonLabel: r.buttonLabel,
+      });
+      continue;
+    }
+    if (result.type === "review_document") {
+      const r = result as any;
+      blocks.push({
+        type: "review_document" as const,
+        title: r.title,
+        body: r.body,
+      });
+      continue;
+    }
+    if (result.type === "review_quote") {
+      const r = result as any;
+      blocks.push({
+        type: "review_quote" as const,
+        sourceName: r.sourceName,
+        sourceType: r.sourceType,
+        quote: r.quote,
+        tags: r.tags || [],
+        buttonLabel: r.buttonLabel,
+      });
+      continue;
+    }
+    if (result.type === "birthday_calendar") {
+      const r = result as any;
+      blocks.push({
+        type: "birthday_calendar" as const,
+        month: r.month,
+        highlightedDay: r.highlightedDay,
+        startDay: r.startDay,
+        daysInMonth: r.daysInMonth,
+      });
+      continue;
+    }
+    if (result.type === "birthday_alarm") {
+      const r = result as any;
+      blocks.push({
+        type: "birthday_alarm" as const,
+        name: r.name,
+        date: r.date,
+        countdown: r.countdown,
+        unit: r.unit,
+        eta: r.eta,
+      });
+      continue;
+    }
+    if (result.type === "social_interaction") {
+      const r = result as any;
+      blocks.push({
+        type: "social_interaction" as const,
+        name: r.name,
+        event: r.event,
+        date: r.date,
+        remaining: r.remaining,
+        gifts: r.gifts || [],
+      });
+      continue;
+    }
+    if (result.type === "transport_compare") {
+      const r = result as any;
+      blocks.push({
+        type: "transport_compare" as const,
+        items: r.items || [],
+      });
+      continue;
+    }
+    if (result.type === "route_map") {
+      const r = result as any;
+      blocks.push({
+        type: "route_map" as const,
+        progress: r.progress,
+        from: r.from,
+        to: r.to,
+        distance: r.distance,
+        remaining: r.remaining,
+      });
+      continue;
+    }
   }
   return blocks;
 }

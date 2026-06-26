@@ -249,6 +249,38 @@ describe("runKoruBackendTurn conversational flow", () => {
       eta: "18 min",
     });
   });
+
+  it("blocksFromToolResults passes through product_analysis, smart_checklist, outfit, review types", async () => {
+    const { blocksFromToolResults } = await import("./koruBackend");
+    const executions = [
+      { tool: "shopping_compare", arguments: {}, result: { type: "product_analysis", title: "Cafetera", specs: [{ label: "Precio", value: "$89" }] } },
+      { tool: "shopping_compare", arguments: {}, result: { type: "smart_checklist", title: "Benchmark", items: [{ label: "A", checked: true }] } },
+      { tool: "shopping_compare", arguments: {}, result: { type: "outfit", specs: [{ emoji: "☕", label: "Precio", value: "$89" }] } },
+      { tool: "shopping_compare", arguments: {}, result: { type: "review_score", items: [{ emoji: "🎧", score: "9.2", label: "Calidad", color: "emerald" }] } },
+      { tool: "web_search", arguments: {}, result: { type: "review_document", title: "Sony", body: "Cancelación top" } },
+      { tool: "web_search", arguments: {}, result: { type: "review_quote", sourceName: "TechKoru", quote: "Rey de la cancelación" } },
+    ];
+    const blocks = blocksFromToolResults(executions as any);
+    expect(blocks.map((b: any) => b.type)).toEqual([
+      "product_analysis",
+      "smart_checklist",
+      "outfit",
+      "review_score",
+      "review_document",
+      "review_quote",
+    ]);
+  });
+
+  it("blocksFromToolResults passes through birthday and social_interaction blocks", async () => {
+    const { blocksFromToolResults } = await import("./koruBackend");
+    const executions = [
+      { tool: "save_personal_item", arguments: {}, result: { type: "birthday_calendar", month: "Junio 2025", highlightedDay: 12 } },
+      { tool: "save_personal_item", arguments: {}, result: { type: "birthday_alarm", name: "Cumpleaños Ana", countdown: "08" } },
+      { tool: "save_personal_item", arguments: {}, result: { type: "social_interaction", name: "Ana", event: "Cumpleaños" } },
+    ];
+    const blocks = blocksFromToolResults(executions as any);
+    expect(blocks.map((b: any) => b.type)).toEqual(["birthday_calendar", "birthday_alarm", "social_interaction"]);
+  });
 });
 
 describe("personalCaptureFromArgs new UiBlock types", () => {
