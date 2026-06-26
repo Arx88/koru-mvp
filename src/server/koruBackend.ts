@@ -360,7 +360,11 @@ const TOOL_DEFINITIONS = [
             },
             required: ["literalRequest", "userGoal", "unstatedNeeds", "assumptions", "confidence"],
           },
-          uiBlocks: { type: "array", items: { type: "object" } },
+          uiBlocks: {
+            type: "array",
+            items: { type: "object" },
+            description: "Visual cards shown to the user. Each item MUST include a 'type' field. Available types: weather, restaurant_synthesis, comparison, product_analysis, smart_checklist, outfit, review_score, review_document, review_quote, plan, saved_record, personal_query, match_timeline, live_match, match_stats, crypto_portfolio, market, forex, election_results, election_vote, data_ticker, route_timeline, transport_compare, route_map, travel_planner, birthday_calendar, birthday_alarm, social_interaction, local_action, research_sources, data_card, web_nav, money_summary, morning_brief, generation.",
+          },
           suggestedActions: { type: "array", items: { type: "object" } },
           memoryCandidates: { type: "array", items: { type: "object" } },
           commitments: { type: "array", items: { type: "object" } },
