@@ -158,6 +158,10 @@ const ROUTE_EXAMPLES: Array<{ category: RouteCategory; tool?: RouteTool; text: s
   { category: "action", text: "anotá un gasto" },
   { category: "action", text: "tengo que comprar leche" },
   { category: "action", text: "dame el resumen del dia" },
+  { category: "action", text: "exportame el archivo" },
+  { category: "action", text: "descargar pdf" },
+  { category: "action", text: "guardar documento" },
+  { category: "action", text: "enviame el archivo" },
 
   // sports → match_schedule / match_live
   { category: "sports", tool: "match_schedule", text: "juega Boca hoy" },

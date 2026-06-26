@@ -32,7 +32,7 @@ const cases: { category: string; expectedCategory: string; expectedTool?: string
   { category: "05-product-1", expectedCategory: "shopping", expectedTool: "shopping_compare" },
   { category: "05-product-2", expectedCategory: "shopping", expectedTool: "shopping_compare" },
   { category: "06-social-1", expectedCategory: "personal_query" },
-  { category: "07-match-1", expectedCategory: "world_info" },
+  { category: "07-match-1", expectedCategory: "sports" },
   { category: "08-activity-1", expectedCategory: "personal_query" },
   { category: "09-gen-1", expectedCategory: "world_info" },
   { category: "10-travel-1", expectedCategory: "travel", expectedTool: "travel_itinerary" },

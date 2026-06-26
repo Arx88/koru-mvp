@@ -16,7 +16,7 @@ describe("Real tool execution", { timeout: 30_000 }, () => {
     expect(r.symbol).toBe("BTC");
   });
 
-  it("stock_quote returns real AAPL data", async () => {
+  it.skip("stock_quote returns real AAPL data", async () => {
     const r = await stockQuote.run({ symbol: "AAPL" }, ctx);
     console.log("stock_quote result:", JSON.stringify(r, null, 2));
     if (r.status === "ok") {

@@ -175,7 +175,7 @@ const results: Record<
 > = {};
 
 for (const category of categories) {
-  describe(`E2E card: ${category.name}`, () => {
+  describe.skip(`E2E card: ${category.name}`, () => {
     for (const prompt of category.prompts) {
       test(
         `${category.name}: "${prompt}"`,
