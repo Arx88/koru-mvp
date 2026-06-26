@@ -4,7 +4,7 @@ function Mat({ children, className = "" }: { children: string; className?: strin
   return <span className={`material-symbols-outlined ${className}`}>{children}</span>;
 }
 
-export type TravelPlannerBlock = {
+type TravelPlannerBlock = {
   type: "travel_planner";
   destination?: string;
   dates?: string;
@@ -74,4 +74,3 @@ export function TravelPlannerCard({ block }: { block: TravelPlannerBlock }) {
   );
 }
 
-export default TravelPlannerCard;

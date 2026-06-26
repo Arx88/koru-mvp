@@ -6,7 +6,7 @@ function Mat({ children, className = "" }: { children: string; className?: strin
   return <span className={`material-symbols-outlined ${className}`}>{children}</span>;
 }
 
-export type ShoppingListBlock = Extract<UiBlock, { type: "shopping_list" }>;
+type ShoppingListBlock = Extract<UiBlock, { type: "shopping_list" }>;
 
 export function ShoppingListCard({ block }: { block: ShoppingListBlock }) {
   const items = block.items ?? [];
@@ -104,4 +104,3 @@ export function ShoppingListCard({ block }: { block: ShoppingListBlock }) {
   );
 }
 
-export default ShoppingListCard;

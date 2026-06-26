@@ -1,7 +1,7 @@
 import React from "react";
 import type { Extract } from "../domain/types";
 
-export type PlanBlock = Extract<UiBlock, { type: "plan" }>;
+type PlanBlock = Extract<UiBlock, { type: "plan" }>;
 import type { UiBlock } from "../domain/types";
 
 function Mat({ children, className = "" }: { children: string; className?: string }) {
@@ -66,4 +66,3 @@ export function PlanCard({ block }: { block: PlanBlock }) {
   );
 }
 
-export default PlanCard;

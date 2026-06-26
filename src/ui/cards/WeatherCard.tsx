@@ -6,7 +6,7 @@ function Mat({ children, className = "" }: { children: string; className?: strin
   return <span className={`material-symbols-outlined ${className}`}>{children}</span>;
 }
 
-export type WeatherBlock = Extract<UiBlock, { type: "weather" }>;
+type WeatherBlock = Extract<UiBlock, { type: "weather" }>;
 
 export function WeatherCard({ block }: { block: WeatherBlock }) {
   const metrics = [
@@ -91,4 +91,3 @@ export function WeatherCard({ block }: { block: WeatherBlock }) {
   );
 }
 
-export default WeatherCard;

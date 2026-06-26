@@ -1,4 +1,4 @@
-export type ActivityMetric = {
+type ActivityMetric = {
   icon: string;
   iconColor: string;
   label: string;
@@ -8,7 +8,7 @@ export type ActivityMetric = {
   progressColor?: string;
 };
 
-export type ActivityTrackerBlock = {
+type ActivityTrackerBlock = {
   type: "activity_tracker";
   title?: string;
   subtitle?: string;
@@ -67,4 +67,3 @@ export function ActivityTrackerCard({ block }: { block: ActivityTrackerBlock }) 
   );
 }
 
-export default ActivityTrackerCard;

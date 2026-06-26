@@ -1,6 +1,6 @@
 
 
-export type DeliveryBlock = {
+type DeliveryBlock = {
   type: "delivery";
   title?: string;
   status?: string;
@@ -89,4 +89,3 @@ export function DeliveryCard({ block }: { block: DeliveryBlock }) {
   );
 }
 
-export default DeliveryCard;

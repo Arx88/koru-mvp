@@ -1,4 +1,4 @@
-export type GenerationBlock = {
+type GenerationBlock = {
   type: "generation";
   title?: string;
   prompt?: string;
@@ -87,4 +87,3 @@ export function GenerationCard({ block }: { block: GenerationBlock }) {
   );
 }
 
-export default GenerationCard;

@@ -1,6 +1,6 @@
 import type { UiBlock } from "../../domain/types";
 
-export type MoneySummaryBlock = Extract<UiBlock, { type: "money_summary" }>;
+type MoneySummaryBlock = Extract<UiBlock, { type: "money_summary" }>;
 
 function splitText(text?: string): [string, string] {
   if (!text) return ["", ""];
@@ -36,4 +36,3 @@ export function MoneySummaryCard({ block }: { block: MoneySummaryBlock }) {
   );
 }
 
-export default MoneySummaryCard;

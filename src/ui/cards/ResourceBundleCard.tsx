@@ -4,7 +4,7 @@ function Mat({ children, className = "" }: { children: string; className?: strin
   return <span className={`material-symbols-outlined ${className}`}>{children}</span>;
 }
 
-export type ResourceBundleBlock = Extract<UiBlock, { type: "resource_bundle" }>;
+type ResourceBundleBlock = Extract<UiBlock, { type: "resource_bundle" }>;
 
 function fileIcon(kind: string): string {
   const map: Record<string, string> = {
@@ -101,4 +101,3 @@ export function ResourceBundleCard({ block }: { block: ResourceBundleBlock }) {
   );
 }
 
-export default ResourceBundleCard;

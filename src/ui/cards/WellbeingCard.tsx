@@ -1,6 +1,6 @@
 
 
-export type WellbeingBlock = {
+type WellbeingBlock = {
   type: "wellbeing";
   title?: string;
   emoji?: string;
@@ -62,4 +62,3 @@ export function WellbeingCard({ block }: { block: WellbeingBlock }) {
   );
 }
 
-export default WellbeingCard;

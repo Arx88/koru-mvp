@@ -1,7 +1,7 @@
 import React from "react";
 import type { AssistantPlanItem } from "../../domain/types";
 
-export type PlanTimelineBlock = {
+type PlanTimelineBlock = {
   type: "plan";
   title?: string;
   id?: string;
@@ -103,4 +103,3 @@ export function PlanTimelineCard({ block }: { block: PlanTimelineBlock }) {
   );
 }
 
-export default PlanTimelineCard;

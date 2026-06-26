@@ -8,7 +8,7 @@ type MorningBriefItem = {
   variant?: "default" | "highlight";
 };
 
-export type MorningBriefBlock = {
+type MorningBriefBlock = {
   type: "morning_brief";
   greeting?: string;
   items: MorningBriefItem[];
@@ -65,4 +65,3 @@ export function MorningBriefCard({ block }: { block: MorningBriefBlock }) {
   );
 }
 
-export default MorningBriefCard;

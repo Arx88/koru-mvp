@@ -1,6 +1,6 @@
 import type { UiBlock, LifeRecordKind } from "../../domain/types";
 
-export type SavedRecordBlock = Extract<UiBlock, { type: "saved_record" }>;
+type SavedRecordBlock = Extract<UiBlock, { type: "saved_record" }>;
 
 function Mat({ children, className = "" }: { children: string; className?: string }) {
   return <span className={`material-symbols-outlined ${className}`}>{children}</span>;
@@ -79,4 +79,3 @@ export function SavedRecordCard({ block }: { block: SavedRecordBlock }) {
   );
 }
 
-export default SavedRecordCard;

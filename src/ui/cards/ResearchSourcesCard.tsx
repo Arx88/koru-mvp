@@ -4,7 +4,7 @@ function Mat({ children, className = "" }: { children: string; className?: strin
   return <span className={`material-symbols-outlined ${className}`}>{children}</span>;
 }
 
-export type ResearchSourcesBlock = Extract<UiBlock, { type: "research_sources" }>;
+type ResearchSourcesBlock = Extract<UiBlock, { type: "research_sources" }>;
 
 export function ResearchSourcesCard({ block }: { block: ResearchSourcesBlock }) {
   const sources = block.sources ?? [];
@@ -70,4 +70,3 @@ export function ResearchSourcesCard({ block }: { block: ResearchSourcesBlock }) 
   );
 }
 
-export default ResearchSourcesCard;

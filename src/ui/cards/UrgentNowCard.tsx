@@ -1,6 +1,6 @@
 import React from "react";
 
-export type UrgentNowBlock = {
+type UrgentNowBlock = {
   type: "urgent_now";
   eyebrow?: string;
   icon?: string;
@@ -60,4 +60,3 @@ export function UrgentNowCard({ block }: { block: UrgentNowBlock }) {
   );
 }
 
-export default UrgentNowCard;

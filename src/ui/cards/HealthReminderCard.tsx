@@ -1,6 +1,6 @@
 import type { UiBlock } from "../../domain/types";
 
-export type HealthReminderBlock = Extract<UiBlock, { type: "health_reminder" }>;
+type HealthReminderBlock = Extract<UiBlock, { type: "health_reminder" }>;
 
 function Mat({ children, className = "" }: { children: string; className?: string }) {
   return <span className={`material-symbols-outlined ${className}`}>{children}</span>;
@@ -33,4 +33,3 @@ export function HealthReminderCard({ block }: { block: HealthReminderBlock }) {
   );
 }
 
-export default HealthReminderCard;
