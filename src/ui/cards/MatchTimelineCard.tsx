@@ -1,27 +1,38 @@
-import React from "react";
+import type { UiBlock } from "../../domain/types";
 
-export function MatchTimelineCard({ block }: { block: any }) {
-  const events = block.events || [];
-  const home = block.homeTeam || "Local";
-  const away = block.awayTeam || "Visitante";
+export function MatchTimelineCard({ block }: { block: UiBlock }) {
+  const items = (block as any).items ?? [
+    { minute: "34'", text: "Boca 1-0", sub: "Benedetto", active: true },
+    { minute: "59'", text: "River 1-1", sub: "", active: false },
+    { minute: "78'", text: "Boca 2-1", sub: "Benedetto · Ahora", now: true },
+  ];
+
   return (
-    <article data-ui-block="match_timeline" className="ai-bubble relative overflow-hidden rounded-2xl p-4 w-72 bg-white border border-gray-100 shadow-sm">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="material-symbols-outlined text-base text-rose-500">sports_soccer</span>
-        <span className="text-xs font-semibold text-slate-700">{home} vs {away}</span>
+    <div className="flex flex-col w-full">
+      <div className="flex items-center justify-between mb-2 px-1">
+        <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Fixture · En vivo</span>
       </div>
-      <div className="flex flex-col gap-3">
-        {events.map((e, i) => (
-          <div key={i} className="flex items-center gap-3">
-            <span className={`text-xs font-bold w-8 text-right ${e.highlight ? "text-rose-600" : "text-slate-500"}`}>{e.minute}</span>
-            <div className={`h-2 w-2 rounded-full ${e.highlight ? "bg-rose-500" : "bg-slate-300"}`} />
-            <span className="text-xs text-slate-700 flex-1">{e.event}</span>
-          </div>
-        ))}
-        {events.length === 0 && (
-          <p className="text-xs text-slate-400 italic">Sin eventos registrados.</p>
-        )}
+      <div className="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
+        <div className="space-y-4 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-emerald-300 before:via-emerald-200 before:to-transparent">
+          {items.map((ev: any, i: number) => (
+            <button
+              key={i}
+              onClick={() => console.log("[MatchTimelineCard] event:", ev.minute, ev.text)}
+              className="relative flex items-start gap-4 group w-full text-left transition-transform hover:scale-[1.01]"
+            >
+              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white ring-4 ring-white z-10 shrink-0 text-[10px] font-bold ${ev.now ? "bg-emerald-500" : ev.active ? "bg-emerald-500" : "bg-sky-400"}`}>
+                {ev.minute}
+              </div>
+              <div className={`p-3 rounded-xl w-full ${ev.now ? "bg-emerald-50 border border-emerald-100" : "bg-gray-50"}`}>
+                <p className="text-[13px] font-bold text-gray-900">
+                  {ev.text}
+                  {ev.sub && <span className={`font-medium ${ev.now ? "text-emerald-600" : "text-gray-400"}`}> {ev.sub}</span>}
+                </p>
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
-    </article>
+    </div>
   );
 }

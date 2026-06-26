@@ -1,29 +1,57 @@
-import React from "react";
-export function SmartChecklistCard({ block }: { block: any }) {
-  const items = block.items || [];
-  const progress = block.progress ?? 0;
+import { useState } from "react";
+import type { UiBlock } from "../../domain/types";
+
+export function SmartChecklistCard({ block }: { block: UiBlock }) {
+  const title = (block as any).title ?? "Benchmark";
+  const initialProgress = (block as any).progress ?? 50;
+  const initialItems = (block as any).items ?? [
+    { label: "Nespresso: mejor precio", checked: true },
+    { label: "Dolce: garantía 3 años", checked: true },
+    { label: "Compatibilidad universal", checked: false },
+  ];
+  const [items, setItems] = useState(initialItems.map((it: any, i: number) => ({ ...it, id: i })));
+  const checkedCount = items.filter((it: any) => it.checked).length;
+  const progress = items.length ? Math.round((checkedCount / items.length) * 100) : 0;
+
   return (
-    <article data-ui-block="smart_checklist" className="ai-bubble relative overflow-hidden rounded-2xl p-4 w-72 bg-white border border-gray-100 shadow-sm">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="material-symbols-outlined text-base text-indigo-500">task_alt</span>
-        <span className="text-xs font-semibold text-slate-700">{block.title || "Checklist"}</span>
-        <div className="ml-auto w-6 h-6 rounded-full border-2 border-indigo-100 flex items-center justify-center">
-          <div className="w-3 h-3 rounded-full bg-indigo-500" style={{ transform: `scale(${progress / 100})` }} />
+    <div className="flex flex-col w-full">
+      <div className="flex items-center justify-between mb-2 px-1">
+        <span className="text-[10px] font-extrabold text-koru-600 uppercase tracking-widest flex items-center gap-1">
+          <span className="material-symbols-outlined text-[14px]">list_alt</span> Smart List
+        </span>
+      </div>
+      <div className="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="text-[16px] font-bold text-gray-900">{title}</h4>
+          <div className="w-10 h-10 rounded-full relative flex items-center justify-center">
+            <svg className="w-full h-full -rotate-90 absolute" viewBox="0 0 36 36">
+              <path className="text-gray-100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeDasharray="100, 100" strokeWidth="3" />
+              <path className="text-koru-500" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeDasharray={`${progress}, 100`} strokeWidth="3" />
+            </svg>
+            <span className="text-[10px] font-bold text-koru-600">{progress}%</span>
+          </div>
+        </div>
+        <div className="space-y-1">
+          {items.map((item: any, i: number) => (
+            <label key={item.id ?? i} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-xl cursor-pointer custom-checkbox">
+              <input
+                checked={item.checked}
+                onChange={() => setItems((prev: any[]) => prev.map((it: any) => it.id === item.id ? { ...it, checked: !it.checked } : it))}
+                type="checkbox"
+                className="peer hidden"
+              />
+              <div className="w-5 h-5 rounded-md border-2 border-gray-300 flex items-center justify-center transition-colors peer-checked:bg-[#4d6d44] peer-checked:border-[#4d6d44]">
+                <svg className="w-3 h-3 text-white hidden peer-checked:block" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                  <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+              <span className={`text-[14px] font-medium ${item.checked ? "text-gray-400 line-through" : "text-gray-800"}`}>
+                {item.label}
+              </span>
+            </label>
+          ))}
         </div>
       </div>
-      <div className="flex flex-col gap-2">
-        {items.map((item, i) => (
-          <div key={i} className={`flex items-center gap-2 p-2 rounded-lg border ${item.checked ? "bg-teal-50 border-teal-100" : "bg-white border-gray-100"}`}>
-            <div className={`w-4 h-4 rounded-md flex items-center justify-center text-[10px] ${item.checked ? "bg-teal-500 text-white" : "border border-gray-300 bg-white"}`}>
-              {item.checked && "✓"}
-            </div>
-            <span className={`text-xs ${item.checked ? "text-teal-700" : "text-slate-600"}`}>{item.label}</span>
-          </div>
-        ))}
-        {items.length === 0 && (
-          <p className="text-xs text-slate-400 italic">Sin items.</p>
-        )}
-      </div>
-    </article>
+    </div>
   );
 }

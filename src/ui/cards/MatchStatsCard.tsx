@@ -1,42 +1,36 @@
-import React from "react";
+import type { UiBlock } from "../../domain/types";
 
-export function MatchStatsCard({ block }: { block: any }) {
-  const stats = block.stats || [];
-  const home = block.homeTeam || "Local";
-  const away = block.awayTeam || "Visitante";
+export function MatchStatsCard({ block }: { block: UiBlock }) {
+  const stats = (block as any).stats ?? [
+    { label: "Posesión", home: "62%", away: "38%", width: "62%" },
+    { label: "Tiros", home: "14", away: "8", width: "64%" },
+  ];
+
   return (
-    <article data-ui-block="match_stats" className="ai-bubble relative overflow-hidden rounded-2xl p-4 w-72 bg-white border border-gray-100 shadow-sm">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="material-symbols-outlined text-base text-slate-800">tune</span>
-        <span className="text-xs font-semibold text-slate-700">Estadísticas</span>
+    <div className="flex flex-col w-full">
+      <div className="flex items-center justify-between mb-2 px-1">
+        <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Estadísticas</span>
       </div>
-      <div className="flex justify-between text-xs font-bold text-slate-600 mb-2">
-        <span>{home}</span>
-        <span>{away}</span>
-      </div>
-      <div className="flex flex-col gap-2.5">
-        {stats.map((s, i) => {
-          const total = s.homeValue + s.awayValue;
-          const homePct = total > 0 ? (s.homeValue / total) * 100 : 50;
-          const awayPct = total > 0 ? (s.awayValue / total) * 100 : 50;
-          return (
-            <div key={i}>
-              <div className="flex justify-between text-[10px] text-slate-500 mb-1">
-                <span>{s.homeValue}</span>
-                <span className="text-slate-400">{s.label}</span>
-                <span>{s.awayValue}</span>
+      <div className="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
+        <div className="space-y-3 px-2">
+          {stats.map((s: any, i: number) => (
+            <button
+              key={i}
+              onClick={() => console.log("[MatchStatsCard] stat:", s.label, s.home, s.away)}
+              className="w-full text-left group"
+            >
+              <div className="flex justify-between text-[11px] font-bold text-gray-600 mb-1">
+                <span>{s.home}</span>
+                <span className="uppercase tracking-wider">{s.label}</span>
+                <span>{s.away}</span>
               </div>
-              <div className="flex h-1.5 rounded-full overflow-hidden">
-                <div className="bg-indigo-500 rounded-l-full" style={{ width: `${homePct}%` }} />
-                <div className="bg-rose-500 rounded-r-full" style={{ width: `${awayPct}%` }} />
+              <div className="h-1.5 w-full bg-gray-100 rounded-full flex overflow-hidden">
+                <div className="h-full bg-emerald-400 rounded-full" style={{ width: s.width }}></div>
               </div>
-            </div>
-          );
-        })}
-        {stats.length === 0 && (
-          <p className="text-xs text-slate-400 italic">Sin estadísticas disponibles.</p>
-        )}
+            </button>
+          ))}
+        </div>
       </div>
-    </article>
+    </div>
   );
 }

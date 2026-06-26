@@ -1,24 +1,36 @@
-import React from "react";
-export function TransportCompareCard({ block }: { block: any }) {
-  const options = block.options || [];
+import type { UiBlock } from "../../domain/types";
+
+export function TransportCompareCard({ block }: { block: UiBlock }) {
+  const items = (block as any).items ?? [
+    { mode: "Auto", time: "18 min", icon: "directions_car", active: false },
+    { mode: "Transporte", time: "42 min", icon: "directions_bus", active: true },
+    { mode: "Caminando", time: "1h 50m", icon: "directions_walk", active: false },
+  ];
+
   return (
-    <article data-ui-block="transport_compare" className="ai-bubble relative overflow-hidden rounded-2xl p-4 w-72 bg-white border border-gray-100 shadow-sm">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="material-symbols-outlined text-base text-blue-500">route</span>
-        <span className="text-xs font-semibold text-slate-700">{block.title || "Comparativa"}</span>
+    <div className="flex flex-col w-full">
+      <div className="flex items-center justify-between mb-2 px-1">
+        <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Comparativa</span>
       </div>
-      <div className="flex flex-col gap-2">
-        {options.map((o, i) => (
-          <div key={i} className={`flex items-center gap-3 p-2.5 rounded-xl border transition ${o.highlighted ? "border-indigo-200 bg-indigo-50" : "border-gray-100 bg-white"}`}>
-            <span className="material-symbols-outlined text-lg text-slate-500 flex-shrink-0">{o.icon}</span>
-            <span className="text-xs font-semibold text-slate-700 uppercase flex-1">{o.mode}</span>
-            <span className={`text-xs font-bold ${o.highlighted ? "text-indigo-600" : "text-slate-500"}`}>{o.time}</span>
-          </div>
-        ))}
-        {options.length === 0 && (
-          <p className="text-xs text-slate-400 italic">Sin opciones.</p>
-        )}
+      <div className="bg-white rounded-3xl p-4 card-shadow border border-gray-50">
+        <div className="space-y-0">
+          {items.map((item: any, i: number) => (
+            <button
+              key={i}
+              onClick={() => console.log("[TransportCompareCard] selected:", item.mode)}
+              className={`w-full flex items-center justify-between p-2.5 rounded-xl text-left transition-transform active:scale-[0.98] ${item.active ? "bg-amber-50" : "hover:bg-gray-50"}`}
+            >
+              <div className="flex items-center gap-3">
+                <span className={`material-symbols-outlined ${item.active ? "text-amber-500" : "text-gray-400"} text-lg`}>{item.icon}</span>
+                <span className={`text-sm font-bold ${item.active ? "text-amber-500" : ""}`}>{item.mode}</span>
+              </div>
+              <span className={`text-sm font-extrabold ${item.active ? "text-amber-500" : item.mode === "Caminando" ? "text-gray-400" : "text-gray-900"}`}>
+                {item.time}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
-    </article>
+    </div>
   );
 }

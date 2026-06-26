@@ -1,34 +1,43 @@
-import React from "react";
-export function ElectionResultsCard({ block }: { block: any }) {
-  const candidates = block.candidates || [];
+import { useState } from "react";
+import type { UiBlock } from "../../domain/types";
+
+export function ElectionResultsCard({ block }: { block: UiBlock }) {
+  const data = block as any;
+  const items = data.items ?? [
+    { name: "Martínez", percent: "42.3%", detail: "12.847 mesas", done: true, color: "bg-emerald-500" },
+    { name: "Frente Amplio", percent: "35.1%", detail: "", done: true, color: "bg-amber-400" },
+    { name: "Otros", percent: "22.6%", detail: "En definición", done: false, color: "bg-gray-200" },
+  ];
+  const status = data.status ?? "Escrutinio 87%";
+  const [selected, setSelected] = useState<number | null>(null);
+
   return (
-    <article data-ui-block="election_results" className="ai-bubble relative overflow-hidden rounded-2xl p-4 w-72 bg-gradient-to-br from-slate-50 to-gray-50 border border-gray-100 shadow-sm">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="material-symbols-outlined text-base text-slate-700">how_to_vote</span>
-        <span className="text-xs font-semibold text-slate-800">{block.title || "Escrutinio"}</span>
+    <div className="flex flex-col w-full">
+      <div className="flex items-center justify-between mb-2 px-1">
+        <span className="text-[10px] font-extrabold text-amber-500 uppercase tracking-widest flex items-center gap-1">
+          <span className="material-symbols-outlined text-[14px]">psychology</span> {status}
+        </span>
       </div>
-      <div className="flex flex-col gap-2">
-        {candidates.map((c, i) => (
-          <div key={i} className="flex items-center gap-2">
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white ${c.status === "winner" ? "bg-emerald-500" : c.status === "second" ? "bg-blue-500" : "bg-slate-400"}`}>
-              {c.name.charAt(0)}
-            </div>
-            <div className="flex-1">
-              <div className="flex justify-between items-center">
-                <span className="text-xs font-semibold text-slate-700">{c.name}</span>
-                <span className="text-xs font-bold text-slate-800">{c.percent}%</span>
+      <div className="bg-gradient-to-br from-amber-50 to-white rounded-3xl p-5 card-shadow border border-amber-100/50">
+        <h4 className="text-[15px] font-bold text-gray-900 mb-4">{(data as any).title ?? "Elecciones 2025"}</h4>
+        <div className="space-y-4 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-amber-300 before:via-amber-200 before:to-transparent">
+          {items.map((item: any, i: number) => (
+            <button
+              key={i}
+              onClick={() => setSelected(i)}
+              className={`relative flex items-start gap-4 group w-full text-left transition-transform ${item.done ? "" : "opacity-50"} ${selected === i ? "scale-[1.02]" : "hover:scale-[1.01]"}`}
+            >
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white ring-4 ring-amber-50 z-10 shrink-0 ${item.color}`}>
+                <span className="material-symbols-outlined text-[16px]">{item.done ? "check" : "more_horiz"}</span>
               </div>
-              <div className="h-1.5 bg-gray-200 rounded-full mt-1 overflow-hidden">
-                <div className={`h-full rounded-full ${c.status === "winner" ? "bg-emerald-500" : c.status === "second" ? "bg-blue-500" : "bg-slate-400"}`} style={{ width: `${c.percent}%` }} />
+              <div className={`bg-white p-3 rounded-xl shadow-sm border w-full ${selected === i ? "border-amber-400 ring-1 ring-amber-200" : "border-amber-50/50"}`}>
+                <p className="text-[13px] font-bold text-gray-800">{item.name}</p>
+                <p className="text-[11px] text-gray-500">{item.percent}{item.detail ? ` · ${item.detail}` : ""}</p>
               </div>
-            </div>
-          </div>
-        ))}
-        {candidates.length === 0 && (
-          <p className="text-xs text-slate-400 italic">Sin datos de escrutinio.</p>
-        )}
+            </button>
+          ))}
+        </div>
       </div>
-      {block.escrutinio && <p className="text-[10px] text-slate-400 mt-2">{block.escrutinio}</p>}
-    </article>
+    </div>
   );
 }

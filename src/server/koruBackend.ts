@@ -2295,13 +2295,13 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
       const r = result as any;
       blocks.push({
         type: "crypto_portfolio" as const,
-        title: `${r.coin} (${r.symbol})`,
-        coins: [{
-          symbol: r.symbol,
-          name: r.coin,
-          price: `${r.price} ${r.currency}`,
-          change: r.change24hPct ? `${r.change24hPct >= 0 ? "▲" : "▼"} ${Math.abs(r.change24hPct)}%` : "—",
-          changePositive: (r.change24hPct ?? 0) >= 0,
+        items: [{
+          symbol: r.symbol || " BTC",
+          name: r.coin || "Bitcoin",
+          price: `${r.price || "?"} ${r.currency || "USD"}`,
+          change: r.change24hPct ?? 0,
+          color: "text-orange-500",
+          bg: "bg-orange-50",
         }],
       });
       continue;
@@ -2320,12 +2320,12 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
       const r = result as any;
       blocks.push({
         type: "forex" as const,
-        title: `${r.from} → ${r.to}`,
-        pairs: [{
+        items: [{
           pair: `${r.from}/${r.to}`,
           rate: String(r.rate),
-          change: r.note || "—",
-          flag: "💱",
+          change: 0,
+          flag: "US",
+          positive: true,
         }],
       });
       continue;
@@ -2335,12 +2335,11 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
       const matches = r.matches || [];
       blocks.push({
         type: "match_timeline" as const,
-        homeTeam: r.team || "Equipo",
-        awayTeam: matches.length > 0 ? matches[0].opponent : "Rival",
-        events: matches.slice(0, 5).map((m: any) => ({
+        items: matches.slice(0, 5).map((m: any) => ({
           minute: m.date ? new Date(m.date).getDate() + "'" : "—",
-          team: "home",
-          event: `${m.competition || ""}: ${m.opponent || ""} (${m.venue || ""})`,
+          text: `${r.team || "Equipo"} vs ${m.opponent || "Rival"}`,
+          sub: `${m.competition || ""} · ${m.venue || ""}`,
+          active: true,
         })),
       });
       continue;
@@ -2514,6 +2513,35 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
           items,
         });
       }
+      continue;
+    }
+    if (result.type === "election_data" || result.type === "election_results") {
+      const r = result as any;
+      blocks.push({
+        type: "election_results" as const,
+        title: r.title,
+        status: r.status,
+        items: r.items || [],
+      });
+      continue;
+    }
+    if (result.type === "election_vote") {
+      const r = result as any;
+      blocks.push({
+        type: "election_vote" as const,
+        question: r.question,
+        subtitle: r.subtitle,
+        options: r.options || [],
+      });
+      continue;
+    }
+    if (result.type === "data_ticker") {
+      const r = result as any;
+      blocks.push({
+        type: "data_ticker" as const,
+        items: r.items || [],
+        alert: r.alert,
+      });
       continue;
     }
   }

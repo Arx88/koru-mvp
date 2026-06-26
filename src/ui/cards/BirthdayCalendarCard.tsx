@@ -1,33 +1,43 @@
-import React from "react";
-export function BirthdayCalendarCard({ block }: { block: any }) {
-  const month = block.month || "Junio";
-  const year = block.year || 2025;
-  const days = ["D", "L", "M", "X", "J", "V", "S"];
-  const calendarDays = [
-    [null, null, 1, 2, 3, 4, 5],
-    [6, 7, 8, 9, 10, 11, 12],
-    [13, 14, 15, 16, 17, 18, 19],
-    [20, 21, 22, 23, 24, 25, 26],
-    [27, 28, 29, 30, null, null, null]
-  ];
+import type { UiBlock } from "../../domain/types";
+
+export function BirthdayCalendarCard({ block }: { block: UiBlock }) {
+  const data = block as any;
+  const month = data.month ?? "Junio 2025";
+  const highlightedDay = data.highlightedDay ?? 12;
+  const startDay = data.startDay ?? 6;
+  const daysInMonth = data.daysInMonth ?? 13;
+
+  const days: (number | null)[] = [];
+  for (let i = 0; i < startDay; i++) days.push(null);
+  for (let i = 1; i <= daysInMonth; i++) days.push(i);
+
   return (
-    <article data-ui-block="birthday_calendar" className="ai-bubble relative overflow-hidden rounded-2xl p-4 w-72 bg-white border border-gray-100 shadow-sm">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-sm font-bold text-amber-600">{month} {year}</span>
-        <span className="material-symbols-outlined text-amber-500">calendar_month</span>
+    <div className="flex flex-col w-full">
+      <div className="flex items-center justify-between mb-2 px-1">
+        <span className="text-[10px] font-extrabold text-amber-500 uppercase tracking-widest">{month}</span>
       </div>
-      <div className="grid grid-cols-7 gap-1 text-center mb-1">
-        {days.map((d) => <span key={d} className="text-[10px] font-semibold text-slate-400">{d}</span>)}
-      </div>
-      {calendarDays.map((week, wi) => (
-        <div key={wi} className="grid grid-cols-7 gap-1 text-center mb-1">
-          {week.map((day, di) => (
-            <div key={di} className={`text-xs font-medium py-1 rounded-full ${day === block.highlightedDay ? "bg-pink-500 text-white" : day ? "text-slate-700" : ""}`}>
-              {day || ""}
-            </div>
+      <div className="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
+        <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-gray-300 mb-1">
+          <span>L</span>
+          <span>M</span>
+          <span>M</span>
+          <span>J</span>
+          <span>V</span>
+          <span>S</span>
+          <span>D</span>
+        </div>
+        <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-gray-600">
+          {days.map((day, i) => (
+            <button
+              key={i}
+              onClick={() => day === highlightedDay && console.log("[BirthdayCalendarCard] highlighted:", day)}
+              className={`py-1 ${day === highlightedDay ? "rounded-md bg-pink-500 text-white font-bold shadow-sm cursor-pointer hover:bg-pink-600" : "cursor-default"}`}
+            >
+              {day ?? ""}
+            </button>
           ))}
         </div>
-      ))}
-    </article>
+      </div>
+    </div>
   );
 }

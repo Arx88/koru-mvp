@@ -1,26 +1,38 @@
-import React from "react";
-export function DataTickerCard({ block }: { block: any }) {
-  const items = block.items || [];
+import type { UiBlock } from "../../domain/types";
+
+export function DataTickerCard({ block }: { block: UiBlock }) {
+  const items = (block as any).items ?? [
+    { label: "Votos válidos", value: "28.4M" },
+    { label: "Mesas", value: "12.847" },
+    { label: "Participación", value: "77%", highlight: true },
+  ];
+  const alert = (block as any).alert ?? "Diferencia 7.2 pp entre 1° y 2°";
+
   return (
-    <article data-ui-block="data_ticker" className="ai-bubble relative overflow-hidden rounded-2xl p-4 w-72 bg-white border border-gray-100 shadow-sm">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="material-symbols-outlined text-base text-slate-700">emoji_events</span>
-        <span className="text-xs font-semibold text-slate-700">{block.title || "Datos"}</span>
+    <div className="flex flex-col w-full">
+      <div className="flex items-center justify-between mb-2 px-1">
+        <span className="text-[10px] font-extrabold text-sky-500 uppercase tracking-widest">Resumen</span>
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        {items.map((item, i) => (
-          <div key={i} className={`p-2.5 rounded-xl ${item.highlight ? "bg-emerald-50 border border-emerald-100" : "bg-slate-50 border border-gray-100"}`}>
-            <div className="text-[10px] text-slate-400 mb-1">{item.label}</div>
-            <div className={`text-sm font-bold ${item.highlight ? "text-emerald-600" : "text-slate-800"}`}>{item.value}</div>
-          </div>
-        ))}
-        {items.length === 0 && (
-          <p className="text-xs text-slate-400 italic col-span-2">Sin datos.</p>
-        )}
+      <div className="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
+        <div className="space-y-2 mb-3">
+          {items.map((item: any, i: number) => (
+            <button
+              key={i}
+              onClick={() => { navigator.clipboard?.writeText(item.value).catch(() => {}); console.log("[DataTickerCard] copied:", item.value); }}
+              className="w-full flex items-center justify-between py-2 hover:bg-gray-50 rounded-lg px-2 transition-colors text-left"
+            >
+              <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">{item.label}</span>
+              <span className={`text-xl font-black ${item.highlight ? "text-emerald-600" : ""}`}>{item.value}</span>
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => console.log("[DataTickerCard] alert:", alert)}
+          className="w-full bg-amber-50 rounded-xl p-3 text-center hover:bg-amber-100 transition-colors"
+        >
+          <span className="text-xs font-bold text-amber-600">{alert}</span>
+        </button>
       </div>
-      {block.alert && (
-        <div className="mt-3 text-[10px] font-semibold text-orange-500 bg-orange-50 rounded-lg px-2 py-1 border border-orange-100">{block.alert}</div>
-      )}
-    </article>
+    </div>
   );
 }

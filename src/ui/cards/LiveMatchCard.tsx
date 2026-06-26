@@ -1,123 +1,95 @@
-import React from "react";
+import { useState } from "react";
+import type { UiBlock } from "../../domain/types";
 
-export function LiveMatchCard({ block }: { block: any }) {
-  const tabs = ["Goles", "Estadísticas", "Escudo"];
-  const [activeTab, setActiveTab] = React.useState("Goles");
+export function LiveMatchCard({ block }: { block: UiBlock }) {
+  const data = block as any;
+  const [activeTab, setActiveTab] = useState<"stats" | "lineups" | "timeline">("stats");
+  const homeScore = data.homeScore ?? 2;
+  const awayScore = data.awayScore ?? 1;
+  const homeInitials = data.homeInitials ?? "RMA";
+  const awayInitials = data.awayInitials ?? "MCI";
+  const homeName = data.homeName ?? "Real Madrid";
+  const awayName = data.awayName ?? "Man City";
+  const globalAgg = data.globalAgg ?? "Global 3-3";
+  const minute = data.minute ?? "72'";
 
-  const home = block.homeTeam || block.home || "River Plate";
-  const away = block.awayTeam || block.away || "Mέxico";
-  const score = block.score || "3 - 0";
+  const tabBase = "flex-1 py-1.5 text-[12px] font-bold rounded-lg transition-all";
+  const tabActive = "bg-white shadow-sm text-gray-800";
+  const tabInactive = "text-gray-500 hover:text-gray-800";
 
   return (
-    <article data-ui-block="live_match" className="ai-bubble relative overflow-hidden rounded-2xl w-72 bg-white border border-gray-100 shadow-sm">
-      {/* Header */}
-      <div className="flex items-center gap-2 px-4 pt-3 pb-2">
-        <span className="material-symbols-outlined text-base text-rose-600">sports_soccer</span>
-        <span className="text-xs font-semibold text-rose-600">Deportes</span>
-        <span className="text-xs text-slate-400 ml-auto">Estadísticas</span>
+    <div className="flex flex-col w-full">
+      <div className="flex items-center justify-between mb-2 px-1">
+        <span className="text-[10px] font-extrabold text-emerald-500 uppercase tracking-widest flex items-center gap-1">
+          <span className="material-symbols-outlined text-[14px]">sports_soccer</span>
+          Live Match
+        </span>
+        <span className="bg-red-50 text-red-500 text-[10px] font-extrabold px-2 py-0.5 rounded-full animate-pulse">{minute}</span>
       </div>
-
-      {/* Tabs */}
-      <div className="flex border-b border-gray-100 px-4">
-        {tabs.map((t) => (
-          <button key={t}
-            onClick={() => setActiveTab(t)}
-            className={`px-3 py-2 text-[11px] font-semibold border-b-2 transition ${activeTab === t ? "border-rose-500 text-rose-600" : "border-transparent text-slate-400"}`}>
-            {t}
-          </button>
-        ))}
+      <div className="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
+        <div className="flex items-center justify-between px-2 mb-6">
+          <div className="flex flex-col items-center gap-2 w-1/3">
+            <div className="w-14 h-14 bg-gray-50 rounded-full flex items-center justify-center text-gray-900 font-bold border-2 border-gray-200 shadow-sm relative">
+              {homeInitials}
+              {data.homeYellow && (
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full border-2 border-white flex items-center justify-center text-[8px] font-bold text-white">1</div>
+              )}
+            </div>
+            <span className="text-[13px] font-bold text-gray-900">{homeName}</span>
+          </div>
+          <div className="flex flex-col items-center justify-center w-1/3">
+            <span className="text-4xl font-black text-gray-900 tracking-tighter">
+              {homeScore} <span className="text-gray-300 font-normal">-</span> {awayScore}
+            </span>
+            <span className="text-[10px] text-gray-400 mt-1 font-bold uppercase tracking-wider bg-gray-50 px-2 py-0.5 rounded-full">{globalAgg}</span>
+          </div>
+          <div className="flex flex-col items-center gap-2 w-1/3">
+            <div className="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center text-blue-700 font-bold border-2 border-blue-200 shadow-sm">{awayInitials}</div>
+            <span className="text-[13px] font-bold text-gray-900">{awayName}</span>
+          </div>
+        </div>
+        <div className="bg-gray-50 p-1 rounded-xl flex mb-4">
+          <button className={`${tabBase} ${activeTab === "stats" ? tabActive : tabInactive}`} onClick={() => setActiveTab("stats")}>Stats</button>
+          <button className={`${tabBase} ${activeTab === "lineups" ? tabActive : tabInactive}`} onClick={() => setActiveTab("lineups")}>Lineups</button>
+          <button className={`${tabBase} ${activeTab === "timeline" ? tabActive : tabInactive}`} onClick={() => setActiveTab("timeline")}>Timeline</button>
+        </div>
+        {activeTab === "stats" && (
+          <div className="space-y-3 px-2">
+            <div>
+              <div className="flex justify-between text-[11px] font-bold text-gray-600 mb-1">
+                <span>{data.homePossession ?? "62%"}</span>
+                <span className="uppercase tracking-wider">Possession</span>
+                <span>{data.awayPossession ?? "38%"}</span>
+              </div>
+              <div className="h-1.5 w-full bg-gray-200 rounded-full flex overflow-hidden">
+                <div className="bg-gray-800 h-full" style={{ width: data.homePossession ?? "62%" }}></div>
+                <div className="bg-blue-500 h-full" style={{ width: data.awayPossession ?? "38%" }}></div>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-[11px] font-bold text-gray-600 mb-1">
+                <span>{data.homeShots ?? "14"}</span>
+                <span className="uppercase tracking-wider">Shots (On Target)</span>
+                <span>{data.awayShots ?? "8"}</span>
+              </div>
+              <div className="h-1.5 w-full bg-gray-200 rounded-full flex overflow-hidden">
+                <div className="bg-gray-800 h-full" style={{ width: "64%" }}></div>
+                <div className="bg-blue-500 h-full" style={{ width: "36%" }}></div>
+              </div>
+            </div>
+          </div>
+        )}
+        {activeTab === "lineups" && (
+          <div className="px-2 text-center">
+            <p className="text-sm font-bold text-gray-400">Alineaciones no disponibles</p>
+          </div>
+        )}
+        {activeTab === "timeline" && (
+          <div className="px-2 text-center">
+            <p className="text-sm font-bold text-gray-400">Timeline no disponible</p>
+          </div>
+        )}
       </div>
-
-      {/* Tab: Goles */}
-      {activeTab === "Goles" && (
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-4">
-            <div className="text-center flex-1">
-              <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center mx-auto mb-1">
-                <span className="material-symbols-outlined text-gray-600">shield</span>
-              </div>
-              <div className="text-[10px] font-semibold text-slate-600">{home}</div>
-            </div>
-            <div className="text-2xl font-black text-slate-800 px-2">{score}</div>
-            <div className="text-center flex-1">
-              <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center mx-auto mb-1">
-                <span className="material-symbols-outlined text-gray-600">shield</span>
-              </div>
-              <div className="text-[10px] font-semibold text-slate-600">{away}</div>
-            </div>
-          </div>
-          <div className="flex flex-col gap-2">
-            {[{ minute: "17'", event: `Gol de ${home}`, highlight: true },
-              { minute: "42'", event: `Gol de ${home}`, highlight: true },
-              { minute: "68'", event: `Gol de ${home}`, highlight: true }].map((e, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <span className="text-xs font-bold w-6 text-right text-rose-600">{e.minute}</span>
-                <div className="h-2 w-2 rounded-full bg-rose-500" />
-                <span className="text-xs text-slate-700">{e.event}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Tab: Estadísticas */}
-      {activeTab === "Estadísticas" && (
-        <div className="p-4 space-y-3">
-          <div className="text-center">
-            <div className="flex justify-between text-xs font-bold text-slate-600 mb-2">
-              <span>{home}</span>
-              <span>{away}</span>
-            </div>
-            <div className="flex h-1.5 rounded-full overflow-hidden">
-              <div className="bg-rose-500 rounded-l-full" style={{ width: "73%" }} />
-              <div className="bg-blue-500 rounded-r-full" style={{ width: "27%" }} />
-            </div>
-            <div className="text-[10px] text-slate-400 mt-1">Posesión</div>
-          </div>
-          {[
-            { label: "Tiros", home: 9, away: 3 },
-            { label: "Paradas", home: 2, away: 8 },
-            { label: "Córner", home: 5, away: 3 },
-            { label: "Faltas", home: 1, away: 0 },
-          ].map((s, i) => {
-            const total = s.home + s.away;
-            const hp = total ? s.home / total * 100 : 50;
-            return (
-              <div key={i}>
-                <div className="flex justify-between text-[10px] text-slate-500 mb-1">
-                  <span>{s.home}</span>
-                  <span className="text-slate-400">{s.label}</span>
-                  <span>{s.away}</span>
-                </div>
-                <div className="flex h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-rose-500 rounded-l-full" style={{ width: `${hp}%` }} />
-                  <div className="bg-blue-500 rounded-r-full" style={{ width: `${100 - hp}%` }} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Tab: Escudo */}
-      {activeTab === "Escudo" && (
-        <div className="p-4 flex items-center justify-center">
-          <svg width="160" height="80" viewBox="0 0 160 80">
-            {/* Home half */}
-            <rect x="0" y="0" width="80" height="65" rx="8" fill="#F1F5F9" />
-            <circle cx="40" cy="32" r="8" fill="none" stroke="#CBD5E1" strokeWidth="1" />
-            <circle cx="40" cy="32" r="3" fill="#CBD5E1" />
-            <path d="M0 32 Q20 32 30 20" stroke="#CBD5E1" fill="none" />
-            {/* Away half */}
-            <rect x="80" y="0" width="80" height="65" rx="8" fill="#F1F5F9" />
-            <circle cx="120" cy="32" r="8" fill="none" stroke="#CBD5E1" strokeWidth="1" />
-            <circle cx="120" cy="32" r="3" fill="#CBD5E1" />
-            <path d="M160 32 Q140 32 130 20" stroke="#CBD5E1" fill="none" />
-            {/* Center line */}
-            <line x1="80" y1="0" x2="80" y2="65" stroke="#E2E8F0" strokeWidth="1" />
-          </svg>
-        </div>
-      )}
-    </article>
+    </div>
   );
 }

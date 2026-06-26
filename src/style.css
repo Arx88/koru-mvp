@@ -1910,3 +1910,30 @@ button.koru-stitch-row {
         background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 48 24" xmlns="http://www.w3.org/2000/svg"><path d="M0 4 Q 12 16, 24 10 T 48 24" fill="none" stroke="%23ef4444" stroke-width="2" stroke-linecap="round"/></svg>');
         background-size: 100% 100%;
     }
+
+/* Material Symbols Outlined font-variation-settings */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* No scrollbar utility */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Custom checkbox (matches design-cards.html) */
+.custom-checkbox input:checked + div {
+  background-color: #4d6d44;
+  border-color: #4d6d44;
+}
+.custom-checkbox input:checked + div svg {
+  display: block;
+}
+
+/* Cursor blink for code editor */
+.cursor-blink {
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}

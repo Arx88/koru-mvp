@@ -1,24 +1,53 @@
-import React from "react";
-export function ElectionVoteCard({ block }: { block: any }) {
-  const options = block.options || [];
+import { useState } from "react";
+import type { UiBlock } from "../../domain/types";
+
+export function ElectionVoteCard({ block }: { block: UiBlock }) {
+  const data = block as any;
+  const question = data.question ?? "¿Aprobás la reforma?";
+  const subtitle = data.subtitle ?? "Reforma laboral · Vinculante";
+  const options = data.options ?? [
+    { label: "Sí", sub: "Flexibilización" },
+    { label: "No", sub: "Legislación vigente" },
+  ];
+  const [selected, setSelected] = useState<number | null>(null);
+
   return (
-    <article data-ui-block="election_vote" className="ai-bubble relative overflow-hidden rounded-2xl p-4 w-72 bg-white border border-gray-100 shadow-sm">
-      <div className="flex items-center gap-2 mb-1">
-        <span className="material-symbols-outlined text-base text-slate-700">how_to_vote</span>
-        <span className="text-xs font-semibold text-slate-700">{block.question || "¿A quién votar?"}</span>
+    <div className="flex flex-col w-full">
+      <div className="flex items-center justify-between mb-2 px-1">
+        <span className="text-[10px] font-extrabold text-violet-500 uppercase tracking-widest flex items-center gap-1">
+          <span className="material-symbols-outlined text-[14px]">how_to_vote</span> Votar
+        </span>
       </div>
-      {block.subtitle && <p className="text-[10px] text-slate-400 mb-3">{block.subtitle}</p>}
-      <div className="flex flex-col gap-2">
-        {options.map((o, i) => (
-          <div key={i} className="p-3 rounded-xl border border-gray-100 bg-slate-50 hover:bg-white transition cursor-pointer">
-            <div className="text-xs font-semibold text-slate-800">{o.label}</div>
-            {o.description && <div className="text-[10px] text-slate-500 mt-1">{o.description}</div>}
-          </div>
-        ))}
-        {options.length === 0 && (
-          <p className="text-xs text-slate-400 italic">Sin opciones disponibles.</p>
-        )}
+      <div className="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
+        <h4 className="text-[16px] font-bold text-gray-900 mb-1">{question}</h4>
+        <p className="text-[13px] text-gray-500 font-medium mb-4">{subtitle}</p>
+        <div className="space-y-2 mb-4" role="radiogroup" aria-label={question}>
+          {options.map((opt: any, i: number) => (
+            <button
+              key={i}
+              role="radio"
+              aria-checked={selected === i}
+              onClick={() => setSelected(i)}
+              className={`w-full flex items-center justify-between p-3 rounded-2xl transition-colors text-left ${selected === i ? "bg-violet-50 border border-violet-200" : "bg-gray-50 hover:bg-gray-100"}`}
+            >
+              <div>
+                <p className="text-[14px] font-bold text-gray-900">{opt.label}</p>
+                <p className="text-[12px] text-gray-500">{opt.sub}</p>
+              </div>
+              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selected === i ? "border-violet-600" : "border-gray-300"}`}>
+                {selected === i && <div className="w-2.5 h-2.5 rounded-full bg-violet-600" />}
+              </div>
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => console.log("[ElectionVoteCard] confirmed:", selected !== null ? options[selected].label : null)}
+          className="w-full py-3 bg-violet-600 text-white rounded-2xl text-[13px] font-bold active:scale-[0.98] transition-transform disabled:opacity-50"
+          disabled={selected === null}
+        >
+          Confirmar voto
+        </button>
       </div>
-    </article>
+    </div>
   );
 }

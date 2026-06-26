@@ -676,7 +676,109 @@ export type UiBlock =
       preview?: string;
       actionLabel?: string;
       actionIcon?: string;
-    };
+    }
+  | {
+      type: "match_timeline";
+      items?: Array<{ minute: string; text: string; sub?: string; active?: boolean; now?: boolean }>;
+    }
+  | {
+      type: "match_stats";
+      stats?: Array<{ label: string; home: string; away: string; width: string }>;
+    }
+  | {
+      type: "election_results";
+      title?: string;
+      status?: string;
+      items?: Array<{ name: string; percent: string; detail?: string; done: boolean; color: string }>;
+    }
+  | {
+      type: "election_vote";
+      question?: string;
+      subtitle?: string;
+      options?: Array<{ label: string; sub?: string }>;
+    }
+  | {
+      type: "data_ticker";
+      items?: Array<{ label: string; value: string; highlight?: boolean }>;
+      alert?: string;
+    }
+  | {
+      type: "crypto_portfolio";
+      items?: Array<{ symbol: string; name: string; price: string; change: number; color: string; bg: string; char?: string }>;
+    }
+  | {
+      type: "forex";
+      items?: Array<{ pair: string; rate: string; change: number; flag: string; positive: boolean }>;
+    }
+  | {
+      type: "route_timeline";
+      eta?: string;
+      items?: Array<{ label: string; detail: string; color: string }>;
+    }
+  | {
+      type: "transport_compare";
+      items?: Array<{ mode: string; time: string; icon: string; active: boolean }>;
+    }
+  | {
+      type: "route_map";
+      progress?: number;
+      from?: string;
+      to?: string;
+      distance?: string;
+      remaining?: string;
+    }
+  | {
+      type: "birthday_calendar";
+      month?: string;
+      highlightedDay?: number;
+      startDay?: number;
+      daysInMonth?: number;
+    }
+  | {
+      type: "birthday_alarm";
+      name?: string;
+      date?: string;
+      countdown?: string;
+      unit?: string;
+      eta?: string;
+    }
+  | {
+      type: "social_interaction";
+      name?: string;
+      date?: string;
+      age?: string;
+      remaining?: string;
+      gifts?: Array<{ emoji: string; title: string; detail: string }>;
+    }
+  | {
+      type: "smart_checklist";
+      title?: string;
+      progress?: number;
+      items?: Array<{ label: string; checked: boolean }>;
+    }
+  | {
+      type: "outfit";
+      specs?: Array<{ emoji: string; label: string; value: string }>;
+      buttonLabel?: string;
+    }
+  | {
+      type: "review_score";
+      items?: Array<{ emoji: string; score: string; label: string; color: string }>;
+      buttonLabel?: string;
+    }
+  | {
+      type: "review_document";
+      title?: string;
+      body?: string;
+    }
+  | {
+      type: "review_quote";
+      sourceName?: string;
+      sourceType?: string;
+      quote?: string;
+      tags?: string[];
+      buttonLabel?: string;
+    }
 
 export type AssistantActionStatus = "proposed" | "approved" | "executed" | "rejected";
 

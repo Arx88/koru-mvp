@@ -1,65 +1,63 @@
-import React from "react";
+import type { UiBlock } from "../../domain/types";
 
-export function MarketCard({ block }: { block: any }) {
-  const prices = block.prices || [];
-  const coins = block.coins || [];
+export function MarketCard({ block }: { block: UiBlock }) {
+  const data = block as any;
+  const symbol = data.symbol ?? "BTC";
+  const name = data.name ?? "Bitcoin";
+  const pair = data.pair ?? `${symbol}/USD`;
+  const price = data.price ?? "$64.230";
+  const change = data.change ?? 2.45;
+  const isUp = change >= 0;
+  const time = data.time ?? "1D";
+
+  // SVG sparkline exact from design-cards.html
+  const sparkPath = "M0 40 L0 30 Q 10 20, 20 25 T 40 15 T 60 20 T 80 5 T 100 10 L100 40 Z";
+  const linePath = "M0 30 Q 10 20, 20 25 T 40 15 T 60 20 T 80 5 T 100 10";
 
   return (
-    <article data-ui-block="market" className="ai-bubble relative overflow-hidden rounded-2xl p-4 w-72 bg-gradient-to-br from-white to-slate-50 border border-gray-100 shadow-sm">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">🪙</span>
-          <span className="text-xs font-semibold text-slate-700">BTC</span>
-        </div>
-        <div className="text-right">
-          <span className="text-sm font-bold text-slate-800">{block.title || "96.294,99€"}</span>
-          <span className="block text-[10px] text-emerald-500 font-semibold">{block.subtitle || "▲ 0,25%"}</span>
-        </div>
+    <div className="flex flex-col w-full">
+      <div className="flex items-center justify-between mb-2 px-1">
+        <span className="text-[10px] font-extrabold text-orange-500 uppercase tracking-widest flex items-center gap-1">
+          <span className="material-symbols-outlined text-[14px]">candlestick_chart</span> Market Live
+        </span>
+        <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{time}</span>
       </div>
-
-      {/* Sparkline area */}
-      <div className="h-12 mb-3">
-        <svg width="240" height="48" viewBox="0 0 240 48">
-          <path d="M0,40 Q30,38 60,35 T120,28 T180,22 T240,18" fill="none" stroke="#10B981" strokeWidth="1.5" />
-          <path d="M0,40 Q30,38 60,35 T120,28 T180,22 T240,18 L240,48 L0,48 Z" fill="url(#greenGrad)" opacity="0.2" />
-          <defs>
-            <linearGradient id="greenGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#10B981" />
-              <stop offset="100%" stopColor="transparent" />
-            </linearGradient>
-          </defs>
-        </svg>
-      </div>
-
-      <div className="flex flex-col gap-2 mb-3">
-        {(prices.length ? prices : [
-          { label: "EUR", price: "96.294,99 €", change: "▲ 0,25%" },
-          { label: "USD", price: "104.523,32 $", change: "▲ 0,25%" },
-          { label: "GBP", price: "88.305,47 £", change: "▼ 0,05%" },
-        ]).map((p, i) => (
-          <div key={i} className="flex justify-between items-center">
-            <span className="text-xs font-medium text-slate-500">{p.label}</span>
-            <div className="text-right">
-              <span className="text-xs font-semibold text-slate-700">{p.price}</span>
-              <span className={`text-[10px] ml-2 ${p.change?.includes("▼") ? "text-rose-500" : "text-emerald-500"}`}>{p.change}</span>
+      <div className="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 font-bold text-xl">{symbol === "BTC" ? "₿" : symbol.slice(0, 1)}</div>
+            <div>
+              <div className="flex items-baseline gap-2">
+                <h4 className="text-[18px] font-bold text-gray-900">{pair}</h4>
+              </div>
+              <p className="text-[12px] text-gray-500 font-medium">{name}</p>
             </div>
           </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-3 gap-2">
-        {(coins.length ? coins : [
-          { name: "BTC", value: "96.295 €", change: "+0,25%", positive: true },
-          { name: "ETH", value: "2.481 €", change: "+1,12%", positive: true },
-          { name: "DOGE", value: "0,31 €", change: "-1,05%", positive: false },
-        ]).map((c, i) => (
-          <div key={i} className="bg-white rounded-xl p-2 border border-gray-100 text-center">
-            <div className="text-xs font-semibold text-slate-700">{c.name}</div>
-            <div className="text-[10px] font-semibold text-slate-500 mt-1">{c.value}</div>
-            <div className={`text-[10px] font-medium mt-0.5 ${c.positive ? "text-emerald-500" : "text-rose-500"}`}>{c.change}</div>
+          <div className="text-right">
+            <p className="text-[18px] font-extrabold text-gray-900 font-mono">{price}</p>
+            <p className={`text-[13px] font-bold flex items-center justify-end gap-0.5 ${isUp ? "text-emerald-500" : "text-red-500"}`}>
+              <span className="material-symbols-outlined text-[14px]">{isUp ? "arrow_upward" : "arrow_downward"}</span>
+              {isUp ? "" : ""}{Math.abs(change)}%
+            </p>
           </div>
-        ))}
+        </div>
+        <div className="h-20 w-full bg-gray-50 rounded-xl relative overflow-hidden flex items-end px-2 pb-2 pt-4">
+          <svg className="w-full h-full absolute inset-0" preserveAspectRatio="none" viewBox="0 0 100 40">
+            <defs>
+              <linearGradient id="btcGrad" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stopColor="#10b981" stopOpacity="0.2"/>
+                <stop offset="100%" stopColor="#10b981" stopOpacity="0"/>
+              </linearGradient>
+            </defs>
+            <path d={sparkPath} fill="url(#btcGrad)"/>
+            <path d={linePath} fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round"/>
+            <circle cx="100" cy="10" fill="#10b981" r="3">
+              <animate attributeName="r" dur="2s" repeatCount="indefinite" values="3;6;3"/>
+              <animate attributeName="opacity" dur="2s" repeatCount="indefinite" values="1;0.5;1"/>
+            </circle>
+          </svg>
+        </div>
       </div>
-    </article>
+    </div>
   );
 }

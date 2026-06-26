@@ -1,31 +1,49 @@
-import React from "react";
-export function ReviewScoreCard({ block }: { block: any }) {
-  const scores = block.scores || [];
-  const colorMap = {
-    emerald: "bg-emerald-100 text-emerald-700",
-    amber: "bg-amber-100 text-amber-700",
-    blue: "bg-blue-100 text-blue-700",
-    red: "bg-red-100 text-red-700",
-    slate: "bg-slate-100 text-slate-700",
+import type { UiBlock } from "../../domain/types";
+
+export function ReviewScoreCard({ block }: { block: UiBlock }) {
+  const items = (block as any).items ?? [
+    { emoji: "🎧", score: "9.2", label: "Calidad", color: "emerald" },
+    { emoji: "🔋", score: "8.8", label: "Batería", color: "amber" },
+    { emoji: "☁️", score: "7.5", label: "Comfort", color: "blue" },
+    { emoji: "💰", score: "5.5", label: "Precio", color: "red" },
+  ];
+  const buttonLabel = (block as any).buttonLabel ?? "Ver reseñas";
+
+  const bgMap: Record<string, string> = {
+    emerald: "bg-emerald-50 border-emerald-100",
+    amber: "bg-amber-50 border-amber-100",
+    blue: "bg-blue-50 border-blue-100",
+    red: "bg-red-50 border-red-100",
   };
+  const textMap: Record<string, string> = {
+    emerald: "text-emerald-600",
+    amber: "text-amber-600",
+    blue: "text-blue-600",
+    red: "text-red-400",
+  };
+
   return (
-    <article data-ui-block="review_score" className="ai-bubble relative overflow-hidden rounded-2xl p-4 w-72 bg-white border border-gray-100 shadow-sm">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="material-symbols-outlined text-base text-sky-500">headset_mic</span>
-        <span className="text-xs font-semibold text-slate-700">{block.title || "Review"}</span>
+    <div className="flex flex-col w-full">
+      <div className="flex items-center justify-between mb-2 px-1">
+        <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Review</span>
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        {scores.map((s, i) => (
-          <div key={i} className={`rounded-xl p-3 flex flex-col items-center gap-1 ${colorMap[s.color] || "bg-slate-100 text-slate-700"}`}>
-            <span className="text-xl">{s.emoji}</span>
-            <span className="text-[10px] font-semibold uppercase">{s.label}</span>
-            <span className="text-lg font-black">{s.value}</span>
-          </div>
-        ))}
-        {scores.length === 0 && (
-          <p className="text-xs text-slate-400 italic col-span-2 text-center">Sin scores.</p>
-        )}
+      <div className="bg-white rounded-3xl p-5 card-shadow border border-gray-50">
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          {items.map((item: any, i: number) => (
+            <div key={i} className={`rounded-2xl p-3 flex flex-col items-center justify-center aspect-square relative border ${bgMap[item.color] ?? bgMap.emerald}`}>
+              <span className="text-2xl mb-1">{item.emoji}</span>
+              <p className={`text-[22px] font-extrabold ${textMap[item.color] ?? textMap.emerald}`}>{item.score}</p>
+              <p className="text-[10px] font-bold text-gray-600 uppercase text-center">{item.label}</p>
+            </div>
+          ))}
+        </div>
+        <button
+          onClick={() => console.log("[ReviewScoreCard] action:", buttonLabel)}
+          className="w-full py-2.5 bg-gray-900 text-white rounded-xl text-[13px] font-bold active:scale-[0.98] transition-transform"
+        >
+          {buttonLabel}
+        </button>
       </div>
-    </article>
+    </div>
   );
 }

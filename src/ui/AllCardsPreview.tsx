@@ -133,7 +133,10 @@ const CARDS: Array<{ label: string; items: KoruTurnItem[]; extra?: React.ReactNo
   },
   {
     label: "social_interaction",
-    items: [makeItem({ uiBlock: { type: "social_interaction", title: "Cumpleaños de mamá", subtitle: "¡Es hoy! Llamar en la tarde", icon: "cake", iconColor: "#f97316", iconBg: "#fff7ed", actionLabel: "Recordar", actionIcon: "notifications_active" } })],
+    items: [makeItem({ uiBlock: { type: "social_interaction", name: "mamá", date: "Hoy", age: "62 años", remaining: "Faltan 0 días", gifts: [
+      { emoji: "🎂", title: "Pastel de chocolate", detail: "Llega en 1h" },
+      { emoji: "🎈", title: "Globos dorados", detail: "Llega en 30m" },
+    ] } })],
   },
   {
     label: "activity_tracker",
@@ -225,58 +228,58 @@ const CARDS: Array<{ label: string; items: KoruTurnItem[]; extra?: React.ReactNo
   },
   {
     label: "match_timeline",
-    items: [makeItem({ uiBlock: { type: "match_timeline", homeTeam: "River Plate", awayTeam: "Boca Juniors", events: [
-      { minute: "17'", team: "home", event: "Gol de Borja", highlight: true },
-      { minute: "42'", team: "away", event: "Gol de Cavani", highlight: true },
-      { minute: "68'", team: "home", event: "Gol de Borja (2)", highlight: true },
+    items: [makeItem({ uiBlock: { type: "match_timeline", items: [
+      { minute: "17'", text: "River Plate 1-0", sub: "Borja", active: true },
+      { minute: "42'", text: "Boca Juniors 1-1", sub: "Cavani", active: false },
+      { minute: "68'", text: "River Plate 2-1", sub: "Borja", now: true },
     ]}})],
   },
   {
     label: "match_stats",
-    items: [makeItem({ uiBlock: { type: "match_stats", homeTeam: "River", awayTeam: "Boca", stats: [
-      { label: "Posesión", homeValue: 73, awayValue: 27 },
-      { label: "Tiros", homeValue: 9, awayValue: 3 },
-      { label: "Paradas", homeValue: 2, awayValue: 8 },
-      { label: "Córner", homeValue: 5, awayValue: 3 },
+    items: [makeItem({ uiBlock: { type: "match_stats", stats: [
+      { label: "Posesión", home: "73%", away: "27%", width: "73%" },
+      { label: "Tiros", home: "9", away: "3", width: "75%" },
+      { label: "Paradas", home: "2", away: "8", width: "20%" },
+      { label: "Córner", home: "5", away: "3", width: "63%" },
     ]}})],
   },
   {
     label: "crypto_portfolio",
-    items: [makeItem({ uiBlock: { type: "crypto_portfolio", title: "Mi Portfolio", coins: [
-      { symbol: "BTC", name: "Bitcoin", price: "96.294,99 €", change: "▲ 0,25%", changePositive: true },
-      { symbol: "ETH", name: "Ethereum", price: "2.481,12 €", change: "▲ 1,12%", changePositive: true },
-      { symbol: "SOL", name: "Solana", price: "142,50 €", change: "▼ 2,30%", changePositive: false },
+    items: [makeItem({ uiBlock: { type: "crypto_portfolio", items: [
+      { symbol: "BTC", name: "Bitcoin", price: "$64.230", change: 2.4, color: "text-orange-500", bg: "bg-orange-50" },
+      { symbol: "ETH", name: "Ethereum", price: "$3.450", change: -0.8, color: "text-blue-500", bg: "bg-blue-50", char: "Ξ" },
+      { symbol: "USDC", name: "Stable", price: "$1.000", change: 0, color: "text-gray-600", bg: "bg-gray-100" },
     ]}})],
   },
   {
     label: "forex",
-    items: [makeItem({ uiBlock: { type: "forex", title: "Forex", pairs: [
-      { pair: "EUR/USD", rate: "1,08", change: "+0,15%", flag: "🇪🇺" },
-      { pair: "GBP/USD", rate: "1,27", change: "-0,05%", flag: "🇬🇧" },
-      { pair: "USD/JPY", rate: "149,50", change: "+0,30%", flag: "🇯🇵" },
-      { pair: "USD/ARS", rate: "1.050", change: "+1,20%", flag: "🇦🇷" },
+    items: [makeItem({ uiBlock: { type: "forex", items: [
+      { pair: "EUR/USD", rate: "1.0854", change: 0.02, flag: "DE", positive: true },
+      { pair: "GBP/USD", rate: "1.2730", change: 0.08, flag: "GB", positive: true },
+      { pair: "USD/JPY", rate: "148.32", change: -0.15, flag: "JP", positive: false },
+      { pair: "AUD/USD", rate: "0.6645", change: 0.04, flag: "AU", positive: true },
     ]}})],
   },
   {
     label: "route_timeline",
-    items: [makeItem({ uiBlock: { type: "route_timeline", title: "Cómo llegar", duration: "25 min", steps: [
-      { instruction: "Caminá 3 min hasta Av. Corrientes", detail: "200 m", color: "blue" },
-      { instruction: "Tomá la línea B del subte", detail: "Dirección Los Incas", color: "emerald" },
-      { instruction: "Bajate en Carlos Gardel", detail: "Estación 8", color: "amber" },
-      { instruction: "Caminá 5 min hasta destino", detail: "400 m", color: "blue" },
+    items: [makeItem({ uiBlock: { type: "route_timeline", eta: "25 min", items: [
+      { label: "Caminá 3 min hasta Av. Corrientes", detail: "200 m", color: "bg-emerald-500" },
+      { label: "Tomá la línea B del subte", detail: "Dirección Los Incas", color: "bg-amber-400" },
+      { label: "Bajate en Carlos Gardel", detail: "Estación 8", color: "bg-violet-500" },
+      { label: "Caminá 5 min hasta destino", detail: "400 m", color: "bg-emerald-500" },
     ]}})],
   },
   {
     label: "transport_compare",
-    items: [makeItem({ uiBlock: { type: "transport_compare", title: "Comparativa", options: [
-      { mode: "Auto", icon: "directions_car", time: "25 min", highlighted: false },
-      { mode: "Subte", icon: "train", time: "18 min", highlighted: true },
-      { mode: "Caminando", icon: "directions_walk", time: "45 min", highlighted: false },
+    items: [makeItem({ uiBlock: { type: "transport_compare", items: [
+      { mode: "Auto", icon: "directions_car", time: "25 min", active: false },
+      { mode: "Subte", icon: "directions_bus", time: "18 min", active: true },
+      { mode: "Caminando", icon: "directions_walk", time: "45 min", active: false },
     ]}})],
   },
   {
     label: "route_map",
-    items: [makeItem({ uiBlock: { type: "route_map", title: "En ruta", progress: 65, subtitle: "Faltan 8 min - 1.2 km" }})],
+    items: [makeItem({ uiBlock: { type: "route_map", progress: 65, from: "Olivos", to: "Shopping", distance: "3 km", remaining: "18 min restantes" }})],
   },
   {
     label: "birthday_calendar",
@@ -284,14 +287,15 @@ const CARDS: Array<{ label: string; items: KoruTurnItem[]; extra?: React.ReactNo
   },
   {
     label: "birthday_alarm",
-    items: [makeItem({ uiBlock: { type: "birthday_alarm", title: "Cumpleaños Ana", date: "12 jul", daysLeft: 8 }})],
+    items: [makeItem({ uiBlock: { type: "birthday_alarm", name: "Cumpleaños Ana", date: "12 jul", countdown: "08", unit: "días", eta: "En 30m" }})],
   },
   {
     label: "election_results",
-    items: [makeItem({ uiBlock: { type: "election_results", title: "Escrutinio 2025", candidates: [
-      { name: "Milei", percent: 55.7, status: "winner" },
-      { name: "Massa", percent: 44.3, status: "second" },
-    ], escrutinio: "Escrutinio: 98,5%" }})],
+    items: [makeItem({ uiBlock: { type: "election_results", title: "Elecciones 2025", status: "Escrutinio 87%", items: [
+      { name: "Martínez", percent: "42.3%", detail: "12.847 mesas", done: true, color: "bg-emerald-500" },
+      { name: "Frente Amplio", percent: "35.1%", detail: "", done: true, color: "bg-amber-400" },
+      { name: "Otros", percent: "22.6%", detail: "En definición", done: false, color: "bg-gray-200" },
+    ]}})],
   },
   {
     label: "election_vote",
@@ -303,7 +307,7 @@ const CARDS: Array<{ label: string; items: KoruTurnItem[]; extra?: React.ReactNo
   },
   {
     label: "data_ticker",
-    items: [makeItem({ uiBlock: { type: "data_ticker", title: "Vacaciones 2024", items: [
+    items: [makeItem({ uiBlock: { type: "data_ticker", items: [
       { label: "Gasto", value: "$1.240", highlight: true },
       { label: "Días", value: "7", highlight: false },
       { label: "Vuelo", value: "IB 6841", highlight: false },
@@ -333,20 +337,20 @@ const CARDS: Array<{ label: string; items: KoruTurnItem[]; extra?: React.ReactNo
   },
   {
     label: "review_score",
-    items: [makeItem({ uiBlock: { type: "review_score", title: "Review cargador inalámbrico", scores: [
-      { emoji: "🚀", label: "Velocidad", value: 9.2, color: "emerald" },
-      { emoji: "🔥", label: "Calentamiento", value: 7.5, color: "amber" },
-      { emoji: "📱", label: "Compatibilidad", value: 8.8, color: "blue" },
-      { emoji: "💰", label: "Precio", value: 6.0, color: "red" },
-    ]}})],
+    items: [makeItem({ uiBlock: { type: "review_score", items: [
+      { emoji: "🎧", score: "9.2", label: "Calidad", color: "emerald" },
+      { emoji: "🔋", score: "8.8", label: "Batería", color: "amber" },
+      { emoji: "☁️", score: "7.5", label: "Comfort", color: "blue" },
+      { emoji: "💰", score: "5.5", label: "Precio", color: "red" },
+    ], buttonLabel: "Ver reseñas" }})],
   },
   {
     label: "review_document",
-    items: [makeItem({ uiBlock: { type: "review_document", title: "Análisis técnico", content: "El cargador Qi2 entrega 15W consistentes. Temperatura máxima 42°C. Compatible con MagSafe y Android." }})],
+    items: [makeItem({ uiBlock: { type: "review_document", title: "Sony WH-1000XM5", body: "Nuestra prueba concluyó que ofrece cancelación top en el segmento." }})],
   },
   {
     label: "review_quote",
-    items: [makeItem({ uiBlock: { type: "review_quote", source: "TechKoru", sourceLabel: "Review", quote: "El mejor cargador inalámbrico que he probado en 2024. Carga rápida sin calentar.", tags: ["#cargador", "#qi2", "#review"] }})],
+    items: [makeItem({ uiBlock: { type: "review_quote", sourceName: "TechKoru", sourceType: "Review", quote: "El rey de la cancelación activa regresa con mejor batería y un diseño más liviano.", tags: ["Calidad top", "Premium", "Recomendado"], buttonLabel: "Leer completo" }})],
   },
 ];
 
