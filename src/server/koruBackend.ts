@@ -2348,6 +2348,52 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
       });
       continue;
     }
+    if (result.type === "match_live") {
+      const r = result as any;
+      blocks.push({
+        type: "live_match" as const,
+        homeName: r.homeName ?? r.homeTeam?.name ?? "Local",
+        awayName: r.awayName ?? r.awayTeam?.name ?? "Visitante",
+        homeScore: r.homeScore ?? r.homeTeam?.score ?? 0,
+        awayScore: r.awayScore ?? r.awayTeam?.score ?? 0,
+        homeInitials: r.homeInitials ?? r.homeTeam?.abbrev ?? "LOC",
+        awayInitials: r.awayInitials ?? r.awayTeam?.abbrev ?? "VIS",
+        minute: r.minute ?? "90'",
+        globalAgg: r.globalAgg ?? r.globalStatus ?? "",
+        homePossession: r.homePossession ?? "50%",
+        awayPossession: r.awayPossession ?? "50%",
+        homeShots: r.homeShots ?? "0",
+        awayShots: r.awayShots ?? "0",
+      });
+      continue;
+    }
+    if (result.type === "route_traffic") {
+      const r = result as any;
+      if (r.items && r.items.length > 0) {
+        blocks.push({
+          type: "route_timeline" as const,
+          eta: r.eta,
+          items: r.items,
+        });
+      }
+      if (r.alternatives && r.alternatives.length > 0) {
+        blocks.push({
+          type: "transport_compare" as const,
+          items: r.alternatives,
+        });
+      }
+      if (r.from && r.to) {
+        blocks.push({
+          type: "route_map" as const,
+          from: r.from,
+          to: r.to,
+          progress: r.progress ?? 75,
+          distance: r.distance,
+          remaining: r.remaining,
+        });
+      }
+      continue;
+    }
     if (result.type === "search") {
       const search = result as SearchData;
       // Datos estructurados validados: se muestran PRIMERO (mayor valor visual).

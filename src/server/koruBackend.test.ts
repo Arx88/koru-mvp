@@ -84,32 +84,169 @@ describe("runKoruBackendTurn conversational flow", () => {
     expect(types.size).toBe(result.suggestedActions?.length ?? 0);
   });
 
-  it("blocksFromToolResults converts research search into web_nav", async () => {
+  it("blocksFromToolResults converts election tool results into election_results", async () => {
     const { blocksFromToolResults } = await import("./koruBackend");
     const execution = {
       tool: "web_search",
-      arguments: { query: "test" },
+      arguments: { query: "elecciones argentina" },
       result: {
-        type: "search",
-        title: "Tendencias de diseño",
-        mode: "research",
-        summary: "Resumen",
-        sources: [
-          { title: "Art 1", url: "https://a.com/1", domain: "a.com", snippet: "snip" },
-          { title: "Art 2", url: "https://b.com/2", domain: "b.com" },
+        type: "election_data",
+        title: "Elecciones 2025",
+        status: "Escrutinio 92%",
+        items: [
+          { name: "Martínez", percent: "42.3%", detail: "12.847 mesas", done: true, color: "bg-emerald-500" },
         ],
       },
     };
     const blocks = blocksFromToolResults([execution as any]);
     expect(blocks.length).toBe(1);
     expect(blocks[0]).toMatchObject({
-      type: "web_nav",
-      title: "Tendencias de diseño",
-      status: "complete",
-      results: [
-        { title: "Art 1", source: "a.com", url: "https://a.com/1", type: "page", snippet: "snip" },
-        { title: "Art 2", source: "b.com", url: "https://b.com/2", type: "page" },
-      ],
+      type: "election_results",
+      title: "Elecciones 2025",
+      status: "Escrutinio 92%",
+      items: [{ name: "Martínez", percent: "42.3%" }],
+    });
+  });
+
+  it("blocksFromToolResults converts election_vote tool result", async () => {
+    const { blocksFromToolResults } = await import("./koruBackend");
+    const execution = {
+      tool: "election_vote",
+      arguments: { question: "¿Aprobás?" },
+      result: {
+        type: "election_vote",
+        question: "¿Aprobás?",
+        subtitle: "Reforma laboral",
+        options: [{ label: "Sí", sub: "Flex" }, { label: "No", sub: "Vigente" }],
+      },
+    };
+    const blocks = blocksFromToolResults([execution as any]);
+    expect(blocks.length).toBe(1);
+    expect(blocks[0]).toMatchObject({
+      type: "election_vote",
+      question: "¿Aprobás?",
+      subtitle: "Reforma laboral",
+    });
+  });
+
+  it("blocksFromToolResults converts data_ticker tool result", async () => {
+    const { blocksFromToolResults } = await import("./koruBackend");
+    const execution = {
+      tool: "web_search",
+      arguments: { query: "datos elecciones" },
+      result: {
+        type: "data_ticker",
+        items: [{ label: "Votos", value: "28.4M" }],
+        alert: "Diferencia 7.2 pp",
+      },
+    };
+    const blocks = blocksFromToolResults([execution as any]);
+    expect(blocks.length).toBe(1);
+    expect(blocks[0]).toMatchObject({
+      type: "data_ticker",
+      items: [{ label: "Votos", value: "28.4M" }],
+      alert: "Diferencia 7.2 pp",
+    });
+  });
+
+  it("blocksFromToolResults converts match_schedule into match_timeline", async () => {
+    const { blocksFromToolResults } = await import("./koruBackend");
+    const execution = {
+      tool: "match_schedule",
+      arguments: { team: "Boca" },
+      result: {
+        type: "match_schedule",
+        team: "Boca",
+        matches: [{ date: "2025-06-30", opponent: "River", competition: "Liga", venue: "La Bombonera" }],
+      },
+    };
+    const blocks = blocksFromToolResults([execution as any]);
+    expect(blocks.length).toBe(1);
+    expect(blocks[0]).toMatchObject({ type: "match_timeline" });
+  });
+
+  it("blocksFromToolResults converts match_live into live_match", async () => {
+    const { blocksFromToolResults } = await import("./koruBackend");
+    const execution = {
+      tool: "match_live",
+      arguments: { match: "Boca vs River" },
+      result: {
+        type: "match_live",
+        homeName: "Boca",
+        awayName: "River",
+        homeScore: 2,
+        awayScore: 1,
+      },
+    };
+    const blocks = blocksFromToolResults([execution as any]);
+    expect(blocks.length).toBe(1);
+    expect(blocks[0]).toMatchObject({
+      type: "live_match",
+      homeName: "Boca",
+      awayName: "River",
+      homeScore: 2,
+      awayScore: 1,
+    });
+  });
+
+  it("blocksFromToolResults converts crypto_price into crypto_portfolio", async () => {
+    const { blocksFromToolResults } = await import("./koruBackend");
+    const execution = {
+      tool: "crypto_price",
+      arguments: { coin: "Bitcoin" },
+      result: {
+        type: "crypto_price",
+        symbol: "BTC",
+        coin: "Bitcoin",
+        price: 64230,
+        currency: "USD",
+        change24hPct: 2.4,
+      },
+    };
+    const blocks = blocksFromToolResults([execution as any]);
+    expect(blocks.length).toBe(1);
+    expect(blocks[0]).toMatchObject({
+      type: "crypto_portfolio",
+      items: [{ symbol: "BTC", name: "Bitcoin" }],
+    });
+  });
+
+  it("blocksFromToolResults converts currency_convert into forex", async () => {
+    const { blocksFromToolResults } = await import("./koruBackend");
+    const execution = {
+      tool: "currency_convert",
+      arguments: { from: "EUR", to: "USD" },
+      result: {
+        type: "currency_convert",
+        from: "EUR",
+        to: "USD",
+        rate: 1.0854,
+      },
+    };
+    const blocks = blocksFromToolResults([execution as any]);
+    expect(blocks.length).toBe(1);
+    expect(blocks[0]).toMatchObject({
+      type: "forex",
+      items: [{ pair: "EUR/USD", rate: "1.0854" }],
+    });
+  });
+
+  it("blocksFromToolResults converts route_traffic into route_timeline", async () => {
+    const { blocksFromToolResults } = await import("./koruBackend");
+    const execution = {
+      tool: "route_traffic",
+      arguments: { from: "Olivos", to: "Centro" },
+      result: {
+        type: "route_traffic",
+        eta: "18 min",
+        items: [{ label: "Girá a la izquierda", detail: "Av. Corrientes", color: "bg-emerald-500" }],
+      },
+    };
+    const blocks = blocksFromToolResults([execution as any]);
+    expect(blocks.length).toBe(1);
+    expect(blocks[0]).toMatchObject({
+      type: "route_timeline",
+      eta: "18 min",
     });
   });
 });
