@@ -77,7 +77,6 @@ describe("router intent (batch)", { sequential: true, timeout: 120_000 }, () => 
         "16-urgent-1": "es urgente",
       };
       const result = await router.route(promptMap[c.category]);
-      console.log(`${c.category} => ${result.category} ${result.tool ?? ""} (${result.confidence.toFixed(3)})`);
       expect(result.category).toBe(c.expectedCategory);
       if (c.expectedTool) {
         expect(result.tool).toBe(c.expectedTool);

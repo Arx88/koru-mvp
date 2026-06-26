@@ -251,5 +251,3 @@ export function RestaurantSynthesisCard({ result }: { result: RestaurantSynthesi
     </div>
   );
 }
-
-export default RestaurantSynthesisCard;

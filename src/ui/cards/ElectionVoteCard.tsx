@@ -41,7 +41,7 @@ export function ElectionVoteCard({ block }: { block: UiBlock }) {
           ))}
         </div>
         <button
-          onClick={() => console.log("[ElectionVoteCard] confirmed:", selected !== null ? options[selected].label : null)}
+          onClick={() => {}}
           className="w-full py-3 bg-violet-600 text-white rounded-2xl text-[13px] font-bold active:scale-[0.98] transition-transform disabled:opacity-50"
           disabled={selected === null}
         >

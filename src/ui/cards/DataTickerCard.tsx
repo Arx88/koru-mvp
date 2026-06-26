@@ -18,7 +18,7 @@ export function DataTickerCard({ block }: { block: UiBlock }) {
           {items.map((item: any, i: number) => (
             <button
               key={i}
-              onClick={() => { navigator.clipboard?.writeText(item.value).catch(() => {}); console.log("[DataTickerCard] copied:", item.value); }}
+              onClick={() => { navigator.clipboard?.writeText(item.value).catch(() => {});  }}
               className="w-full flex items-center justify-between py-2 hover:bg-gray-50 rounded-lg px-2 transition-colors text-left"
             >
               <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">{item.label}</span>
@@ -27,7 +27,7 @@ export function DataTickerCard({ block }: { block: UiBlock }) {
           ))}
         </div>
         <button
-          onClick={() => console.log("[DataTickerCard] alert:", alert)}
+          onClick={() => {}}
           className="w-full bg-amber-50 rounded-xl p-3 text-center hover:bg-amber-100 transition-colors"
         >
           <span className="text-xs font-bold text-amber-600">{alert}</span>

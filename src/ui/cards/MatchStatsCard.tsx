@@ -16,7 +16,7 @@ export function MatchStatsCard({ block }: { block: UiBlock }) {
           {stats.map((s: any, i: number) => (
             <button
               key={i}
-              onClick={() => console.log("[MatchStatsCard] stat:", s.label, s.home, s.away)}
+              onClick={() => {}}
               className="w-full text-left group"
             >
               <div className="flex justify-between text-[11px] font-bold text-gray-600 mb-1">

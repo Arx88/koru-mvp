@@ -298,13 +298,4 @@ afterAll(async () => {
   const path = "/mnt/c/Users/juanp/.kimchi/docs/resultado-e2e-tools.json";
   fs.mkdirSync(path.slice(0, path.lastIndexOf("/")), { recursive: true });
   fs.writeFileSync(path, JSON.stringify(report, null, 2), "utf-8");
-  console.log("\n=== E2E Report written to", path, "===");
-  console.log(
-    "Total:",
-    report.summary.reduce((a, b) => a + b.total, 0),
-    "Passed:",
-    report.summary.reduce((a, b) => a + b.passed, 0),
-    "Failed:",
-    report.summary.reduce((a, b) => a + b.failed, 0),
-  );
 });

@@ -24,7 +24,7 @@ export function OutfitCard({ block }: { block: UiBlock }) {
           ))}
         </div>
         <button
-          onClick={() => console.log("[OutfitCard] action:", buttonLabel)}
+          onClick={() => {}}
           className="w-full py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl text-[13px] font-bold transition-colors flex items-center justify-center gap-2 active:scale-[0.98]"
         >
           <span className="material-symbols-outlined text-[16px]">check_circle</span> {buttonLabel}

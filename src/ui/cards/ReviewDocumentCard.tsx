@@ -42,7 +42,7 @@ export function ReviewDocumentCard({ block }: { block: UiBlock }) {
         <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Veredicto</span>
       </div>
       <button
-        onClick={() => console.log("[ReviewDocumentCard] document:", title)}
+        onClick={() => {}}
         className="w-full bg-[#1E1E1E] rounded-3xl p-5 card-shadow overflow-hidden relative text-left transition-transform active:scale-[0.98]"
       >
         <div className="flex gap-1.5 mb-4">

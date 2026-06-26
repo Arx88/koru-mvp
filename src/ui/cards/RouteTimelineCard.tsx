@@ -26,7 +26,7 @@ export function RouteTimelineCard({ block }: { block: UiBlock }) {
           ))}
         </div>
         <button
-          onClick={() => console.log("[RouteTimelineCard] iniciar GPS")}
+          onClick={() => {}}
           className="w-full mt-4 py-2.5 bg-indigo-600 text-white rounded-2xl text-xs font-bold active:scale-[0.98] transition-transform"
         >
           Iniciar GPS

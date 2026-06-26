@@ -7,10 +7,8 @@ import { matchSchedule } from "../tools/sports/football";
 import type { UiBlock } from "./types";
 
 function logResult(label: string, result: Record<string, unknown>) {
-  console.log(`\n[${label}] Tool result:`, JSON.stringify(result, null, 2));
 }
 function logBlock(label: string, block: UiBlock) {
-  console.log(`\n[${label}] UiBlock:`, JSON.stringify(block, null, 2));
 }
 
 type ToolCase = {
@@ -82,6 +80,5 @@ describe.skip("Backend tools end-to-end", () => {
     const block = blocks[0];
     logBlock(name, block);
     expect(block.type).toBe(expectedType);
-    console.log(`\nOK ${name}: type="${block.type}" matches expected "${expectedType}"`);
   });
 });

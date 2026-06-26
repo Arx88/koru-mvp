@@ -17,7 +17,7 @@ export function TransportCompareCard({ block }: { block: UiBlock }) {
           {items.map((item: any, i: number) => (
             <button
               key={i}
-              onClick={() => console.log("[TransportCompareCard] selected:", item.mode)}
+              onClick={() => {}}
               className={`w-full flex items-center justify-between p-2.5 rounded-xl text-left transition-transform active:scale-[0.98] ${item.active ? "bg-amber-50" : "hover:bg-gray-50"}`}
             >
               <div className="flex items-center gap-3">

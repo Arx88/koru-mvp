@@ -755,7 +755,6 @@ async function callOpenRouterCandidate(
   const data = await response.json().catch(() => ({}));
   if (!response.ok || !hasUsableAssistantMessage(data)) {
     // eslint-disable-next-line no-console
-    console.error(`[DEBUG] OpenRouter ${model} unusable. status=${response.status} body=`, JSON.stringify(data).slice(0, 500));
     throw new Error(`OpenRouter ${model} returned ${response.status}`);
   }
   const choice = asRecord(asArray(asRecord(data).choices)[0]);

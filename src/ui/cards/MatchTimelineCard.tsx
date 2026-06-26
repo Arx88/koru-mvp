@@ -17,7 +17,7 @@ export function MatchTimelineCard({ block }: { block: UiBlock }) {
           {items.map((ev: any, i: number) => (
             <button
               key={i}
-              onClick={() => console.log("[MatchTimelineCard] event:", ev.minute, ev.text)}
+              onClick={() => {}}
               className="relative flex items-start gap-4 group w-full text-left transition-transform hover:scale-[1.01]"
             >
               <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white ring-4 ring-white z-10 shrink-0 text-[10px] font-bold ${ev.now ? "bg-emerald-500" : ev.active ? "bg-emerald-500" : "bg-sky-400"}`}>

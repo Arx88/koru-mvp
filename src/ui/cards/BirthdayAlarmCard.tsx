@@ -14,7 +14,7 @@ export function BirthdayAlarmCard({ block }: { block: UiBlock }) {
         <span className="text-[10px] font-extrabold text-amber-500 uppercase tracking-widest">Alarma · {eta}</span>
       </div>
       <button
-        onClick={() => console.log("[BirthdayAlarmCard] alarm:", name, date)}
+        onClick={() => {}}
         className="w-full bg-amber-50/50 rounded-3xl p-4 card-shadow flex items-center justify-between border border-amber-100/50 text-left transition-transform active:scale-[0.98] hover:bg-amber-100/50"
       >
         <div className="flex items-center gap-3">

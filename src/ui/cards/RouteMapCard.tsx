@@ -14,7 +14,7 @@ export function RouteMapCard({ block }: { block: UiBlock }) {
         <span className="text-[10px] font-extrabold text-sky-500 uppercase tracking-widest">Mapa</span>
       </div>
       <button
-        onClick={() => console.log("[RouteMapCard] map:", from, to)}
+        onClick={() => {}}
         className="w-full bg-white rounded-3xl p-5 card-shadow border border-gray-50 flex items-center gap-5 text-left transition-transform active:scale-[0.98] hover:bg-gray-50"
       >
         <div className="relative w-16 h-16 shrink-0">

@@ -38,7 +38,7 @@ export function ReviewScoreCard({ block }: { block: UiBlock }) {
           ))}
         </div>
         <button
-          onClick={() => console.log("[ReviewScoreCard] action:", buttonLabel)}
+          onClick={() => {}}
           className="w-full py-2.5 bg-gray-900 text-white rounded-xl text-[13px] font-bold active:scale-[0.98] transition-transform"
         >
           {buttonLabel}

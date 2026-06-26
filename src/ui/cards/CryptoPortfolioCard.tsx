@@ -17,7 +17,7 @@ export function CryptoPortfolioCard({ block }: { block: UiBlock }) {
           {items.map((item: any, i: number) => (
             <div key={i}>
               <button
-                onClick={() => console.log("[CryptoPortfolioCard] selected:", item.symbol, item.price)}
+                onClick={() => {}}
                 className="w-full flex items-center justify-between p-2.5 hover:bg-gray-50 rounded-2xl transition-colors cursor-pointer text-left"
               >
                 <div className="flex items-center gap-3">

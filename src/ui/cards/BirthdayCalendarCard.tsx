@@ -30,7 +30,7 @@ export function BirthdayCalendarCard({ block }: { block: UiBlock }) {
           {days.map((day, i) => (
             <button
               key={i}
-              onClick={() => day === highlightedDay && console.log("[BirthdayCalendarCard] highlighted:", day)}
+              onClick={() => { if (day === highlightedDay ) {} }}
               className={`py-1 ${day === highlightedDay ? "rounded-md bg-pink-500 text-white font-bold shadow-sm cursor-pointer hover:bg-pink-600" : "cursor-default"}`}
             >
               {day ?? ""}

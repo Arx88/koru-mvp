@@ -32,7 +32,7 @@ export function ReviewQuoteCard({ block }: { block: UiBlock }) {
           ))}
         </div>
         <button
-          onClick={() => console.log("[ReviewQuoteCard] action:", buttonLabel)}
+          onClick={() => {}}
           className="w-full py-3 bg-violet-600 text-white rounded-2xl text-[13px] font-bold active:scale-[0.98] transition-transform"
         >
           {buttonLabel}
