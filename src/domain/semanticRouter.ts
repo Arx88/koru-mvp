@@ -167,6 +167,9 @@ const ROUTE_EXAMPLES: Array<{ category: RouteCategory; tool?: RouteTool; text: s
   { category: "sports", tool: "match_live", text: "tabla de la liga" },
   { category: "sports", tool: "match_live", text: "¿cómo va el partido?" },
   { category: "sports", tool: "match_schedule", text: "cuándo juega Argentina" },
+  { category: "sports", tool: "match_live", text: "estadísticas del partido" },
+  { category: "sports", tool: "match_schedule", text: "próximo partido de River" },
+  { category: "sports", tool: "match_live", text: "resultado en vivo" },
 
   // market → crypto_price / stock_quote / currency_convert
   { category: "market", tool: "crypto_price", text: "precio del bitcoin" },
@@ -176,6 +179,8 @@ const ROUTE_EXAMPLES: Array<{ category: RouteCategory; tool?: RouteTool; text: s
   { category: "market", tool: "currency_convert", text: "precio del dólar" },
   { category: "market", tool: "currency_convert", text: "cuánto vale el oro" },
   { category: "market", tool: "stock_quote", text: "cómo cerró Tesla" },
+  { category: "market", tool: "crypto_price", text: "cotización de criptomonedas" },
+  { category: "market", tool: "currency_convert", text: "tipo de cambio euro dólar" },
 
   // elections → web_search
   { category: "elections", tool: "web_search", text: "resultados de las elecciones" },
@@ -183,6 +188,10 @@ const ROUTE_EXAMPLES: Array<{ category: RouteCategory; tool?: RouteTool; text: s
   { category: "elections", tool: "web_search", text: "a quién le conviene votar" },
   { category: "elections", tool: "web_search", text: "qué dicen las encuestas" },
   { category: "elections", tool: "web_search", text: "candidatos 2025" },
+  { category: "elections", tool: "web_search", text: "quién va ganando" },
+  { category: "elections", tool: "web_search", text: "porcentaje de votos" },
+  { category: "elections", tool: "web_search", text: "ballotage" },
+  { category: "elections", tool: "web_search", text: "mesa electoral" },
 
   // directions → route_traffic
   { category: "directions", tool: "route_traffic", text: "cómo llego a Palermo" },
@@ -190,6 +199,9 @@ const ROUTE_EXAMPLES: Array<{ category: RouteCategory; tool?: RouteTool; text: s
   { category: "directions", tool: "route_traffic", text: "cuánto tardo hasta el centro" },
   { category: "directions", tool: "route_traffic", text: "ruta más rápida" },
   { category: "directions", tool: "route_traffic", text: "cómo ir al aeropuerto" },
+  { category: "directions", tool: "route_traffic", text: "mejor ruta en auto" },
+  { category: "directions", tool: "route_traffic", text: "comparar transporte" },
+  { category: "directions", tool: "route_traffic", text: "cuánto demora el bondi" },
 
   // travel → travel_itinerary
   { category: "travel", tool: "travel_itinerary", text: "quiero viajar a Madrid" },
@@ -204,6 +216,10 @@ const ROUTE_EXAMPLES: Array<{ category: RouteCategory; tool?: RouteTool; text: s
   { category: "review", tool: "web_search", text: "opiniones del iPhone 16" },
   { category: "review", tool: "shopping_compare", text: "comparativa de notebooks" },
   { category: "review", tool: "web_search", text: "qué dicen las reseñas" },
+  { category: "review", tool: "shopping_compare", text: "review de cafeteras" },
+  { category: "review", tool: "shopping_compare", text: "análisis de auriculares Sony" },
+  { category: "review", tool: "web_search", text: "puntuación de productos" },
+  { category: "review", tool: "web_search", text: "veredicto final" },
 
   // birthday → save_personal_item
   { category: "birthday", tool: "save_personal_item", text: "cumpleaños de Ana" },
@@ -211,6 +227,9 @@ const ROUTE_EXAMPLES: Array<{ category: RouteCategory; tool?: RouteTool; text: s
   { category: "birthday", tool: "save_personal_item", text: "cuándo es el cumple de Juan" },
   { category: "birthday", tool: "save_personal_item", text: "fecha de nacimiento de María" },
   { category: "birthday", tool: "save_personal_item", text: "aniversario de bodas" },
+  { category: "birthday", tool: "save_personal_item", text: "recordatorio de cumpleaños" },
+  { category: "birthday", tool: "save_personal_item", text: "calendario de cumpleaños" },
+  { category: "birthday", tool: "save_personal_item", text: "próximo cumpleaños" },
 ];
 
 // ── Cache de embeddings de ejemplos ────────────────────────────────
