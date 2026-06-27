@@ -1,0 +1,2951 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "currency_convert",
+      "description": "Convierte un monto entre dos monedas usando la tasa de cambio actual del Banco Central Europeo (vía Frankfurter, open source). Úsala cuando el usuario pregunte cuánto equivale una cantidad en otra moneda, ej: '¿cuánto son 100 dólares en pesos?', '50 euros a yen', 'conversión USD a ARS'. Monedas comunes: USD, EUR, ARS, MXN, COP, CLP, GBP, JPY, BRL.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "type": "number",
+            "description": "Monto a convertir."
+          },
+          "from": {
+            "type": "string",
+            "description": "Moneda origen (código ISO 4217, ej: USD, EUR, ARS)."
+          },
+          "to": {
+            "type": "string",
+            "description": "Moneda destino (código ISO 4217)."
+          }
+        },
+        "required": [
+          "amount",
+          "from",
+          "to"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "exchange_history",
+      "description": "Muestra la evolución histórica de una divisa contra otra en un período. Úsala para '¿cómo estaba el dólar hace un año?', 'evolución del euro vs peso en 2024', 'gráfico de USD/ARS último mes'. Datos del Banco Central Europeo desde 1999.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Moneda origen (ISO 4217, ej: USD)."
+          },
+          "to": {
+            "type": "string",
+            "description": "Moneda destino (ISO 4217)."
+          },
+          "startDate": {
+            "type": "string",
+            "description": "Fecha inicio YYYY-MM-DD."
+          },
+          "endDate": {
+            "type": "string",
+            "description": "Fecha fin YYYY-MM-DD. Por defecto hoy."
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "startDate"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "crypto_price",
+      "description": "Obtén el precio actual y métricas de mercado de una criptomoneda (BTC, ETH, SOL, etc.). Úsala cuando el usuario pregunte '¿a cuánto está BTC?', 'precio de ETH', 'cómo está Solana hoy'. Devuelve precio, market cap y variación 24h/7d.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "coin": {
+            "type": "string",
+            "description": "Ticker o nombre de la cripto (ej: bitcoin, ethereum, solana, BTC, ETH, SOL)."
+          },
+          "vsCurrency": {
+            "type": "string",
+            "description": "Moneda en que se cotiza. Default USD.",
+            "default": "usd"
+          }
+        },
+        "required": [
+          "coin"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "stock_quote",
+      "description": "Obtén la cotización actual (último cierre) de una acción o índice bursátil. Úsala cuando el usuario pregunte '¿cómo está Apple?', 'cierre del S&P 500', 'precio de Tesla', 'cómo cerró el Nasdaq'. Símbolos comunes: AAPL, MSFT, TSLA, GOOGL, ^SPX, ^NDX, ^DJI.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "description": "Símbolo bursátil (ej: AAPL, MSFT, TSLA, ^SPX, ^NDX)."
+          }
+        },
+        "required": [
+          "symbol"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "expense_track",
+      "description": "Registra un gasto del usuario con monto, moneda, categoría y nota. Úsala cuando el usuario diga 'gasté 25 en cena', 'anota 50 de gasolina', 'gaste 120 euros en super'. El gasto se guarda como record tipo 'expense'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Descripción del gasto (ej: 'Cena', 'Gasolina')."
+          },
+          "amount": {
+            "type": "number",
+            "description": "Monto."
+          },
+          "currency": {
+            "type": "string",
+            "description": "Moneda (ej: EUR, USD, ARS). Default EUR."
+          },
+          "note": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "title",
+          "amount"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "expense_summary",
+      "description": "Resume los gastos guardados del usuario por período (hoy, semana, mes) con totales, moneda y desglose. Úsala cuando el usuario pregunte '¿cuánto gasté esta semana?', 'gastos del mes', 'total de hoy'. Lee los records tipo 'expense' ya guardados.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "period": {
+            "type": "string",
+            "enum": [
+              "today",
+              "week",
+              "month"
+            ],
+            "description": "Período a resumir. Default week."
+          }
+        },
+        "required": []
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "expense_alert",
+      "description": "Detecta gastos atípicos del usuario comparando contra su promedio histórico. Úsala cuando el usuario pregunte '¿gasté algo raro?', 'hay algún gasto inusual?'. Devuelve los gastos que superan el promedio en más del doble.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "period": {
+            "type": "string",
+            "enum": [
+              "week",
+              "month"
+            ],
+            "description": "Ventana a analizar. Default month."
+          }
+        },
+        "required": []
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "budget_set",
+      "description": "Establece un presupuesto mensual para una categoría o gasto total. Úsala cuando el usuario diga 'poneme 400 de comida este mes', 'límite de 1000 de gastos'. Se guarda como memory para que Koru avise al acercarse al límite.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "Categoría o nombre del presupuesto (ej: 'comida', 'total', 'transporte')."
+          },
+          "limit": {
+            "type": "number",
+            "description": "Monto límite mensual."
+          },
+          "currency": {
+            "type": "string",
+            "default": "EUR"
+          }
+        },
+        "required": [
+          "category",
+          "limit"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "subscription_reminder",
+      "description": "Programa un recordatorio para una suscripción o cobro recurrente (Netflix, Spotify, gimnasio). Úsala cuando el usuario diga 'avisame antes de que cobren Spotify', 'recordame la cuota del gym cada mes'. Crea un commitment recurrente.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nombre de la suscripción (ej: 'Netflix')."
+          },
+          "amount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string",
+            "default": "EUR"
+          },
+          "dueText": {
+            "type": "string",
+            "description": "Fecha del próximo cobro (ej: 'el 15', 'cada 1ro')."
+          },
+          "recurrence": {
+            "type": "string",
+            "enum": [
+              "daily",
+              "weekly",
+              "monthly"
+            ],
+            "default": "monthly"
+          }
+        },
+        "required": [
+          "name",
+          "dueText"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "tax_estimate",
+      "description": "Estima el IVA o impuesto sobre un monto. Úsala cuando el usuario pregunte '¿cuánto IVA tiene este producto?', 'IVA de 100 euros', 'precio con impuesto'. Default IVA 21% (España).",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "type": "number",
+            "description": "Monto base."
+          },
+          "rate": {
+            "type": "number",
+            "description": "Tasa de impuesto en %. Default 21."
+          },
+          "currency": {
+            "type": "string",
+            "default": "EUR"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "add",
+              "extract"
+            ],
+            "description": "add: suma impuesto al base; extract: desglosa desde monto con impuesto incluido. Default add."
+          }
+        },
+        "required": [
+          "amount"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "inflation_data",
+      "description": "Obtiene el dato oficial de inflación (IPC) de un país. Úsala cuando el usuario pregunte '¿cómo está la inflación en Argentina?', 'IPC de España'. Datos de FRED (Federal Reserve Economic Data).",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "country": {
+            "type": "string",
+            "description": "País (ej: 'Argentina', 'España', 'United States')."
+          }
+        },
+        "required": [
+          "country"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "price_compare_product",
+      "description": "Compara precios de un producto en varias tiendas online y ordena por precio total (incluyendo envío cuando es visible). Úsala cuando el usuario diga '¿dónde compro más barato X?', 'mejor precio de Y'. Lee reseñas y destacados de cada tienda. Reusa la lógica de shopping_compare del motor con anti-alucinación.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Producto a comparar (ej: 'AirPods Pro 2', 'iPhone 15 128GB')."
+          },
+          "budget": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "price_history",
+      "description": "Muestra el histórico de precios que Koru registró para un producto (cuando el usuario lo anotó antes). Úsala cuando el usuario pregunte '¿cómo varió el precio de X?', 'historial de precios de Y'. Lee records tipo 'shopping_item' o 'expense' que coincidan.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Producto a buscar en el histórico."
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "product_review",
+      "description": "Lee reseñas de un producto en varias fuentes y sintetiza pros/contras reales. Úsala cuando el usuario diga '¿qué opinan de X?', 'reseñas de Y', 'vale la pena Z'. Cruza reseñas de tiendas y foros.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Producto (ej: 'DJI Mini 4 Pro', 'GoPro Hero 12')."
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "budget_check",
+      "description": "Verifica cuánto del presupuesto mensual de una categoría ya se gastó y avisa si se acerca al límite. Úsala cuando el usuario pregunte '¿cuánto me queda de presupuesto de comida?', 'cómo voy con el límite de transporte'. Compara gastos del mes contra memorias tipo 'goal' de presupuesto.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "Categoría a verificar (ej: 'comida', 'transporte')."
+          }
+        },
+        "required": [
+          "category"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "expense_by_category",
+      "description": "Desglosa los gastos del mes por categoría (comida, transporte, ocio, etc.) agrupando por tags o palabras del título. Úsala cuando el usuario pregunte 'en qué gasto más?', 'desglose de gastos por tipo', 'cómo se reparten mis gastos'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "period": {
+            "type": "string",
+            "enum": [
+              "week",
+              "month"
+            ],
+            "default": "month"
+          }
+        },
+        "required": []
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "match_live",
+      "description": "Obtén el marcador en vivo o resultado de un partido. Úsala cuando el usuario pregunte '¿cómo va Boca-River?', '¿va ganando el Madrid?', 'resultado de Barcelona', 'a qué hora juega Argentina'. Devuelve equipos, marcador, minuto/estado, liga.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Equipos, liga o partido (ej: 'Boca River', 'Real Madrid', 'Argentina', 'Champions')."
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "league_standings",
+      "description": "Muestra la tabla de posiciones de una liga o campeonato. Úsala cuando el usuario pregunte 'tabla de la Liga', 'posiciones de la Premier', ' standings NBA Este'. Devuelve equipos ordenados con PJ, PTS, GF, GC.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "league": {
+            "type": "string",
+            "description": "Liga (ej: 'Spanish La Liga', 'English Premier League', 'NBA')."
+          },
+          "season": {
+            "type": "string",
+            "description": "Temporada (ej: '2025-2026'). Default actual."
+          }
+        },
+        "required": [
+          "league"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "match_schedule",
+      "description": "Lista los próximos partidos (fixture) de un equipo o liga con fecha, rival y hora. Úsala cuando el usuario pregunte 'próximos partidos de Boca', 'cuándo juega Messi', 'fixture de la Champions'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "team": {
+            "type": "string",
+            "description": "Equipo (ej: 'Boca Juniors', 'Real Madrid')."
+          },
+          "league": {
+            "type": "string",
+            "description": "Liga (alternativa a team)."
+          },
+          "next": {
+            "type": "number",
+            "description": "Cantidad de próximos partidos. Default 5."
+          }
+        },
+        "required": []
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "team_follow",
+      "description": "Guarda un equipo como favorito para que Koru te avise cuando juegue o termine el partido. Úsala cuando el usuario diga 'seguí a Boca', 'ségal a Real Madrid', 'avisame cuando juegue Nadal'. Crea una memory tipo 'interest'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "team": {
+            "type": "string",
+            "description": "Equipo o deportista a seguir (ej: 'Boca Juniors', 'Nadal')."
+          },
+          "sport": {
+            "type": "string",
+            "description": "Deporte (ej: 'fútbol', 'tenis')."
+          }
+        },
+        "required": [
+          "team"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "player_stats",
+      "description": "Obtén estadísticas de un deportista (goles, edad, equipo, títulos). Úsala cuando el usuario pregunte 'cuántos goles tiene Mbappé', 'edad de LeBron', 'estadísticas de Messi'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nombre del deportista."
+          },
+          "sport": {
+            "type": "string",
+            "enum": [
+              "football",
+              "basketball",
+              "tennis",
+              "golf",
+              "f1"
+            ],
+            "default": "football"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "tournament_bracket",
+      "description": "Muestra la llave/eliminatoria de un torneo (Champions, Wimbledon, World Cup). Úsala cuando el usuario pregunte 'llave de la Champions', 'cuadro de Roland Garros'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "tournament": {
+            "type": "string",
+            "description": "Torneo (ej: 'Champions League', 'Wimbledon', 'World Cup')."
+          },
+          "sport": {
+            "type": "string",
+            "enum": [
+              "soccer",
+              "tennis",
+              "basketball"
+            ],
+            "default": "soccer"
+          }
+        },
+        "required": [
+          "tournament"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "sports_news",
+      "description": "Noticias deportivas filtradas por deporte o equipo. Úsala cuando el usuario pregunte 'noticias del Barça', 'qué pasó en la F1', 'titulares de tenis'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "topic": {
+            "type": "string",
+            "description": "Tema/equipo/deporte (ej: 'Barcelona', 'F1', 'tenis')."
+          }
+        },
+        "required": [
+          "topic"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "golf_leaderboard",
+      "description": "Tabla de posiciones de un torneo de golf en vivo con score par/under. Úsala cuando el usuario pregunte 'cómo va el Masters', 'posición de Tiger hoy', 'leaderboard del PGA'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "tournament": {
+            "type": "string",
+            "description": "Torneo (ej: 'Masters', 'PGA Championship', 'Open Championship')."
+          }
+        },
+        "required": [
+          "tournament"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "tennis_atp_wta",
+      "description": "Ranking ATP/WTA actual y resultados de la semana. Úsala cuando el usuario pregunte 'top 10 ATP', 'ranking WTA', 'quién ganó Alcaraz-Sinner'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "tour": {
+            "type": "string",
+            "enum": [
+              "atp",
+              "wta"
+            ],
+            "default": "atp"
+          }
+        },
+        "required": []
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "f1_results",
+      "description": "Resultado o clasificación de la última carrera de F1 (ganador, podio, pole). Úsala cuando el usuario pregunte 'resultado de Mónaco', 'pole de Verstappen', 'cómo terminó la carrera'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "season": {
+            "type": "string",
+            "default": "2025"
+          },
+          "round": {
+            "type": "string",
+            "description": "Número de carrera. Default última."
+          }
+        },
+        "required": []
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "restaurant_deep_search",
+      "description": "Busca un lugar para comer cruzando reseñas de varias fuentes (Google, Yelp, TripAdvisor, periódicos gastronómicos) y sintetiza un veredicto honesto destacando en qué coinciden las fuentes. Úsala cuando el usuario diga 'buena parrilla en Palermo', 'dónde como sushi en Madrid centro', 'mejor paella de Valencia', 'restaurante italiano romántico'. Esta es la killer feature de Koru: no busca en Google, LEE varias reseñas y dice dónde coinciden.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Tipo de comida y zona (ej: 'parrilla en Palermo', 'sushi en Madrid centro')."
+          },
+          "mood": {
+            "type": "string",
+            "description": "Contexto opcional (ej: 'romántico', 'familiar', 'barato')."
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "restaurant_review_aggregate",
+      "description": "Dado un restaurante concreto, lee sus reseñas en varias plataformas y resume pros/contras reales. Úsala cuando el usuario diga 'qué dicen de Don Julio', 'resumí las reseñas de El Cellercan', 'pros y contras de X'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "restaurant": {
+            "type": "string",
+            "description": "Nombre del restaurante."
+          },
+          "city": {
+            "type": "string",
+            "description": "Ciudad (para desambiguar)."
+          }
+        },
+        "required": [
+          "restaurant"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "menu_extract",
+      "description": "Extrae el menú de la web de un restaurante. Úsala cuando el usuario diga 'mostrame el menú de X', 'tienen opciones veganas?', 'qué platos tiene Y'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "restaurant": {
+            "type": "string",
+            "description": "Nombre del restaurante."
+          },
+          "city": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "restaurant"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "recipe_find",
+      "description": "Busca recetas por nombre, tipo de cocina o categoría. Úsala cuando el usuario diga 'receta de carbonara', 'algo con pollo', 'postre sin horno', 'plato italiano'. Devuelve ingredientes y pasos.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Nombre de plato o categoría (ej: 'carbonara', 'arrabiata', 'Seafood')."
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "recipe_by_ingredients",
+      "description": "Busca recetas que puedas hacer con los ingredientes que ya tienes. Úsala cuando el usuario diga 'tengo huevos, pan y queso', 'con zanahoria y arnés', 'qué cocino con lo que tengo en heladera'. Reduce desperdicio.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "ingredients": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Lista de ingredientes disponibles."
+          }
+        },
+        "required": [
+          "ingredients"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "recipe_save",
+      "description": "Guarda una receta para consultarl después. Úsala cuando el usuario diga 'guardá esa carbonara', 'esta de tortilla dejala', 'guardo esa receta'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "ingredients": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "steps": {
+            "type": "string",
+            "description": "Instrucciones."
+          },
+          "source": {
+            "type": "string",
+            "description": "Origen (URL o nombre)."
+          }
+        },
+        "required": [
+          "title"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "recipe_show",
+      "description": "Muestra una receta guardada anteriormente. Úsala cuando el usuario diga 'mostrame la receta del flan que guardé', 'cuál era esa de tortilla'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Parte del nombre de la receta guardada."
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "food_info",
+      "description": "Info nutricional y de ingredientes de un producto por código de barras. Úsala cuando el usuario diga 'qué tiene este yogurt del código 7622210449284', 'ingredientes de este producto', 'alérgenos del barcode X'. Datos abiertos de Open Food Facts.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "barcode": {
+            "type": "string",
+            "description": "Código de barras (EAN/UPC)."
+          }
+        },
+        "required": [
+          "barcode"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "wine_pairing",
+      "description": "Sugiere un vino para acompañar una comida. Úsala cuando el usuario diga 'qué vino va con cordero', 'tinto para pasta', 'maridaje para salmón'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "food": {
+            "type": "string",
+            "description": "Comida (ej: 'cordero', 'pasta', 'salmón')."
+          },
+          "color": {
+            "type": "string",
+            "enum": [
+              "red",
+              "white",
+              "rosé",
+              "any"
+            ],
+            "default": "any"
+          }
+        },
+        "required": [
+          "food"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "nutrition_calc",
+      "description": "Calcula calorías y macros aproximados de un alimento o comida. Úsala cuando el usuario diga 'cuántas calorías tiene esa carbonara', 'macros del pollo', 'cuánto aporta un huevo'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "food": {
+            "type": "string",
+            "description": "Alimento o comida (ej: 'huevo', '1 taza de arroz', 'porción de pizza')."
+          },
+          "quantity": {
+            "type": "string",
+            "description": "Cantidad opcional (ej: '100g', '2 unidades')."
+          }
+        },
+        "required": [
+          "food"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "flight_search",
+      "description": "Busca pasajes de avión con precio, escalas, aerolínea y duración. Úsala cuando el usuario diga 'vuelo Madrid-Buenos Aires en noviembre', 'pasajes a Tokyo marzo', 'el más barato a Roma'. Lee varias fuentes (Skyscanner, Google Flights, aerolíneas) y cruza resultados.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Ruta y fecha (ej: 'Madrid a Buenos Aires en noviembre 2025')."
+          },
+          "budget": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "flight_track",
+      "description": "Sigue el estado de un vuelo en vivo (en hora, demorado, cancelado, posición). Úsala cuando el usuario diga 'llegó el IB6862?', 'estado del vuelo de mamá', 'dónde está el AA1234'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "flight": {
+            "type": "string",
+            "description": "Número de vuelo (ej: 'IB6862', 'AA1234')."
+          }
+        },
+        "required": [
+          "flight"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "hotel_search",
+      "description": "Busca hoteles, hostels u hospedajes con precio, rating, ubicación y amenities. Úsala cuando el usuario diga 'hotel en Roma centro 3 noches', 'hostel barato en Lisboa', 'airbnb en Tokyo'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Destino, noches, preferencias."
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "route_plan",
+      "description": "Calcula ruta entre dos puntos con duración y distancia en auto. Úsala cuando el usuario diga 'cómo llego a Ezeiza', 'ruta a la playa', 'cuánto tardo en llegar a X'. Para transporte público o pie, deriva a web_search.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "origin": {
+            "type": "string",
+            "description": "Punto de origen (dirección o ciudad)."
+          },
+          "destination": {
+            "type": "string",
+            "description": "Destino."
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "driving",
+              "walking",
+              "transit"
+            ],
+            "default": "driving"
+          }
+        },
+        "required": [
+          "origin",
+          "destination"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "transport_nearby",
+      "description": "Encuentra estaciones de tren/subte/bici/bus cerca de un punto. Úsala cuando el usuario diga 'estación de Ecobici cerca', 'subte más cercano', 'dónde hay una parada de bus'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "location": {
+            "type": "string",
+            "description": "Zona o dirección (ej: 'Palermo, Buenos Aires')."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "subway",
+              "train",
+              "bus",
+              "bike",
+              "any"
+            ],
+            "default": "any"
+          }
+        },
+        "required": [
+          "location"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "currency_atm",
+      "description": "Localiza cajeros automáticos o casas de cambio cerca y trae la tasa del día. Úsala cuando el usuario diga 'dónde cambio dólares', 'cajero sin comisión cerca', 'casa de cambio'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "location": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "location"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "visa_check",
+      "description": "Verifica requisitos de visa y entrada a un país según tu pasaporte. Úsala cuando el usuario diga 'necesito visa para Japón?', 'requisitos para ingresar a USA con pasaporte argentino', 'visa Schengen'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "destination": {
+            "type": "string",
+            "description": "País destino (ej: 'Japón', 'USA')."
+          },
+          "passport": {
+            "type": "string",
+            "description": "País del pasaporte (ej: 'Argentina', 'España')."
+          }
+        },
+        "required": [
+          "destination",
+          "passport"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "travel_itinerary",
+      "description": "Arma un itinerario de viaje día a día combinando atracciones, comida y tiempo. Úsala cuando el usuario diga 'armate un itinerario de 3 días en Roma', 'plan para Tokyo 5 días'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "destination": {
+            "type": "string",
+            "description": "Destino."
+          },
+          "days": {
+            "type": "number",
+            "description": "Cantidad de días."
+          },
+          "interests": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Intereses (ej: 'arte', 'comida', 'historia')."
+          }
+        },
+        "required": [
+          "destination",
+          "days"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "weather_travel",
+      "description": "Predicción de clima para un viaje futuro (pronóstico extendido o promedio histórico). Úsala cuando el usuario diga 'qué clima va a hacer en Berlín en diciembre', 'pronóstico para mi viaje a Roma en marzo'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "destination": {
+            "type": "string",
+            "description": "Destino."
+          },
+          "date": {
+            "type": "string",
+            "description": "Fecha o mes (ej: '2025-12-15', 'diciembre')."
+          }
+        },
+        "required": [
+          "destination",
+          "date"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "language_phrase",
+      "description": "Frases útiles para viajar en un idioma (hola, gracias, ¿dónde está...?, números) con pronunciación. Úsala cuando el usuario diga 'frases útiles en japonés para viajar', 'cómo digo gracias en árabe', 'supervivencia en tailandés'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "language": {
+            "type": "string",
+            "description": "Idioma (ej: 'japonés', 'italiano', 'tailandés')."
+          },
+          "context": {
+            "type": "string",
+            "description": "Contexto opcional (ej: 'restaurante', 'aeropuerto', 'hotel')."
+          }
+        },
+        "required": [
+          "language"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "news_urgent",
+      "description": "Noticias urgentes y de última hora del mundo de agencias fiables. Úsala cuando el usuario pregunte 'qué pasó hoy importante?', 'noticias urgentes', 'última hora'. Ordena por fecha descendente.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "region": {
+            "type": "string",
+            "description": "Región o país opcional (ej: 'Argentina', 'España', 'mundo')."
+          }
+        },
+        "required": []
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "news_topic",
+      "description": "Noticias filtradas por tema (política, tech, ciencia, deporte, etc.). Úsala cuando el usuario pregunte 'noticias de IA', 'qué pasa en Medio Oriente', 'tech de hoy', 'avances científicos'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "topic": {
+            "type": "string",
+            "description": "Tema a buscar."
+          }
+        },
+        "required": [
+          "topic"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "trending_twitter",
+      "description": "Tendencias actuales de X/Twitter (topics más comentados con volumen). Úsala cuando el usuario diga 'de qué se habla en X?', 'trending global', 'tendencias en Argentina'. NOTA: X eliminó su API gratuita; uso scraper (puede fallar por bloqueos).",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "location": {
+            "type": "string",
+            "description": "País o 'global'. Default worldwide."
+          }
+        },
+        "required": []
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "trending_reddit",
+      "description": "Posts más votados de Reddit (un subreddit o front page). Úsala cuando el usuario diga 'top de r/worldnews', 'qué está furor en r/movies', 'mejor de Reddit hoy'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "subreddit": {
+            "type": "string",
+            "description": "Subreddit sin r/ (ej: 'worldnews'). Default 'popular'."
+          },
+          "timeframe": {
+            "type": "string",
+            "enum": [
+              "hour",
+              "day",
+              "week",
+              "month"
+            ],
+            "default": "day"
+          }
+        },
+        "required": []
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "trending_youtube",
+      "description": "Videos en tendencia de YouTube por país. Úsala cuando el usuario diga 'trending YouTube Argentina', 'qué es furor en YouTube España', 'top videos hoy'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "country": {
+            "type": "string",
+            "description": "Código ISO país (ej: 'AR', 'ES'). Default global."
+          }
+        },
+        "required": []
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "trending_github",
+      "description": "Repos más populares de GitHub del día/semana. Úsala cuando el usuario diga 'trending GitHub de la semana', 'repos que rompen hoy', 'proyectos populares'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "since": {
+            "type": "string",
+            "enum": [
+              "daily",
+              "weekly",
+              "monthly"
+            ],
+            "default": "weekly"
+          },
+          "language": {
+            "type": "string",
+            "description": "Lenguaje opcional (ej: 'python', 'typescript')."
+          }
+        },
+        "required": []
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "rss_subscribe",
+      "description": "Suscribe a un feed RSS como fuente para tu radar personal. Úsala cuando el usuario diga 'seguí el feed de The Verge', 'sumá El Chiringuito', 'agregá este RSS'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nombre amigable de la fuente."
+          },
+          "url": {
+            "type": "string",
+            "description": "URL del feed RSS."
+          }
+        },
+        "required": [
+          "name",
+          "url"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "rss_digest",
+      "description": "Lee tus feeds RSS suscritos y resume lo importante del día. Úsala cuando el usuario diga 'resumí mis feeds', 'qué hay de interesante en mis fuentes hoy'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "hours": {
+            "type": "number",
+            "description": "Ventana de horas. Default 24."
+          }
+        },
+        "required": []
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "news_radar_topic",
+      "description": "Configura un radar: monitorea un tema en fuentes múltiples y Koru te avisará cuando aparezca novedad. Úsala cuando el usuario diga 'avisame cuando salga algo sobre el nuevo Zelda', 'radar de IA generativa', 'vigilar tema X'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "topic": {
+            "type": "string",
+            "description": "Tema a vigilar."
+          }
+        },
+        "required": [
+          "topic"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "world_signal",
+      "description": "Síntesis de qué se habla en el mundo sobre un tema (cross-fuente, sin ruido viral). Úsala cuando el usuario diga 'de qué se habla en el mundo sobre Argentina?', 'el mundo habla de X?', 'radar global de Y'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "topic": {
+            "type": "string",
+            "description": "Tema a analizar."
+          }
+        },
+        "required": [
+          "topic"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "person_info",
+      "description": "Biografía, edad, profesión, obras y premios de una figura pública. Úsala cuando el usuario diga 'quién es Taylor Swift?', 'decime de Messi', 'info de Nolan', 'cuántos años tiene Spielberg'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nombre de la persona."
+          },
+          "lang": {
+            "type": "string",
+            "description": "Idioma (ej: 'es', 'en'). Default 'es'."
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "person_follow",
+      "description": "Guarda una persona como favorita para que Koru te avise cuando haya noticias suyas. Úsala cuando el usuario diga 'seguí a Tarantino', 'avisame cuando saque algo Elon Musk', 'vigilar a X'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nombre de la persona."
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "person_filmography",
+      "description": "Lista de películas/álbumes/libros/obras de un artista. Úsala cuando el usuario diga 'películas de Scorsese', 'discografía de Radiohead', 'libros de Murakami'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nombre del artista."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "film",
+              "music",
+              "books",
+              "any"
+            ],
+            "default": "any"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "movie_info",
+      "description": "Sinopsis, reparto, año, rating y dónde ver una película o serie. Úsala cuando el usuario diga 'de qué va Oppenheimer?', 'rating de The Bear', 'dónde ver Severance', 'reparto de Dune'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Título de la película o serie."
+          },
+          "year": {
+            "type": "string",
+            "description": "Año opcional para desambiguar."
+          }
+        },
+        "required": [
+          "title"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "book_info",
+      "description": "Sinopsis, autor, año, género y dónde comprar de un libro. Úsala cuando el usuario diga 'de qué trata 1984?', 'info del último Murakami', 'autor de El Nombre de la Rosa'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Título del libro."
+          },
+          "author": {
+            "type": "string",
+            "description": "Autor opcional."
+          }
+        },
+        "required": [
+          "title"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "app_recommend",
+      "description": "Recomienda apps móviles o de PC según la necesidad del usuario, con rating y por qué. Úsala cuando el usuario diga 'app para tomar notas en Android', 'mejor lector de RSS en iOS', 'app de meditación gratuita', 'editor de video gratis en PC'. Lee reseñas de varias fuentes.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Necesidad o categoría (ej: 'tomar notas', 'meditar')."
+          },
+          "platform": {
+            "type": "string",
+            "enum": [
+              "android",
+              "ios",
+              "pc",
+              "any"
+            ],
+            "default": "any"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "game_recommend",
+      "description": "Recomienda juegos según gusto/plataforma con rating y reseñas. Úsala cuando el usuario diga 'juegos parecidos a Stardew Valley', 'indies buenos en Steam', 'juego de Switch para jugar con amigos', 'RPG para PC'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Género, referencia o preferencia."
+          },
+          "platform": {
+            "type": "string",
+            "enum": [
+              "pc",
+              "playstation",
+              "xbox",
+              "switch",
+              "mobile",
+              "any"
+            ],
+            "default": "any"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "game_deals",
+      "description": "Ofertas y descuentos actuales en juegos de Steam, GOG, Epic y otras tiendas. Úsala cuando el usuario diga 'ofertas de Steam hoy', 'algo barato y bueno en GOG', 'descuentos en juegos', 'promos Epic'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Título opcional específico a buscar."
+          },
+          "minRating": {
+            "type": "number",
+            "description": "Rating mínimo (0-10). Default 7."
+          },
+          "maxPrice": {
+            "type": "number",
+            "description": "Precio máximo en USD. Default sin límite."
+          }
+        },
+        "required": []
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "app_deals",
+      "description": "Apps de pago gratis por tiempo limitado u ofertas en apps. Úsala cuando el usuario diga 'apps gratis hoy', 'promociones en Play Store', 'ofertas en apps de iOS'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "platform": {
+            "type": "string",
+            "enum": [
+              "android",
+              "ios",
+              "any"
+            ],
+            "default": "any"
+          }
+        },
+        "required": []
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "doc_create_md",
+      "description": "Genera un documento Markdown (.md) con estructura: encabezados, listas, código, tablas. Úsala cuando el usuario diga 'hacé un doc con la minuta', 'escribí un README', 'documentá esta idea'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string",
+            "description": "Contenido o instrucciones de qué debe llevar el doc."
+          }
+        },
+        "required": [
+          "title",
+          "content"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "doc_create_pdf",
+      "description": "Genera un PDF con formato (encabezados, párrafos, tablas). Úsala cuando el usuario diga 'pasá eso a PDF', 'hacé un informe en PDF del viaje', 'documento PDF con estos apuntes'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "content"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "doc_create_word",
+      "description": "Genera un documento Word (.doc) editable. Úsala cuando el usuario diga 'hacé un CV en Word', 'documento con estos apuntes', 'Word con la minuta'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "content"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "doc_create_excel",
+      "description": "Genera una planilla Excel (.csv) con datos o tabla. Úsala cuando el usuario diga 'Excel con mis gastos del mes', 'planilla de notas del curso', 'tabla en Excel'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "Filas de la tabla (cada fila es un array de celdas)."
+          }
+        },
+        "required": [
+          "title",
+          "rows"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "ocr_text",
+      "description": "Extrae texto de una imagen (ticket, cartel, documento, captura). Úsala cuando el usuario diga 'leé este ticket de compra', 'qué dice este cartel?', 'extraé el texto de esta imagen'. Usa visión local de Ollama (LLaVA / Llama 3.2 Vision).",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "imageUrl": {
+            "type": "string",
+            "description": "URL o data URL de la imagen."
+          },
+          "prompt": {
+            "type": "string",
+            "description": "Qué buscar (ej: 'total', 'fecha', 'productos')."
+          }
+        },
+        "required": [
+          "imageUrl"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "data_analyze",
+      "description": "Analiza datos pegados (CSV, tabla, lista de números) calculando media, mediana, suma, máx, mín, tendencias y top. Úsala cuando el usuario diga 'analizá estos gastos', 'tendencia de mis ventas', 'resumen estadístico de estos datos'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "type": "string",
+            "description": "Datos pegados (CSV, una fila por línea, o lista de números)."
+          },
+          "focus": {
+            "type": "string",
+            "description": "Qué analizar (ej: 'tendencia', 'top 5', 'promedio mensual')."
+          }
+        },
+        "required": [
+          "data"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "data_chart",
+      "description": "Genera un gráfico (líneas, barras, torta) a partir de datos. Úsala cuando el usuario diga 'gráfico de mis gastos por mes', 'barras de mis hábitos de sueño', 'visualizar esta serie'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "bar",
+              "line",
+              "pie"
+            ],
+            "default": "bar"
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "title",
+          "labels",
+          "values"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "note_write",
+      "description": "Crea una nota de texto rápida. Úsala cuando el usuario diga 'anota: comprar pan', 'nota: idea de regalo para Lu', 'poné en notas que debo llamar al médico'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Contenido de la nota."
+          },
+          "collection": {
+            "type": "string",
+            "description": "Carpeta/categoría opcional (ej: 'Ideas', 'Trabajo')."
+          }
+        },
+        "required": [
+          "text"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "note_show",
+      "description": "Muestra las notas guardadas. Úsala cuando el usuario diga 'mostrame mis notas', 'qué anoté ayer?', 'notas de esta semana'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "Filtrar por carpeta/categoría opcional."
+          }
+        },
+        "required": []
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "note_search",
+      "description": "Busca en tus notas por texto o palabra clave. Úsala cuando el usuario diga 'qué anoté sobre vacaciones?', 'buscá en mis notas X', 'tengo algo sobre contabilidad?'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Texto a buscar."
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "project_create",
+      "description": "Crea un proyecto con nombre que agrupa notas, recursos y tareas relacionadas. Úsala cuando el usuario diga 'creá el proyecto Viaje a Japón', 'proyecto Renovar cocina', 'nuevo proyecto Tesis'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nombre del proyecto."
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "project_add",
+      "description": "Agrega una nota, recurso o tarea a un proyecto existente. Úsala cuando el usuario diga 'sumá esto al proyecto Viaje a Japón', 'agregá este link al proyecto Renovar'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "project": {
+            "type": "string",
+            "description": "Nombre del proyecto."
+          },
+          "title": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project",
+          "title"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "project_show",
+      "description": "Muestra todo lo guardado de un proyecto. Úsala cuando el usuario diga 'mostrame el proyecto Viaje a Japón', 'qué tengo en Renovar cocina'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "project": {
+            "type": "string",
+            "description": "Nombre del proyecto."
+          }
+        },
+        "required": [
+          "project"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "task_create",
+      "description": "Crea una tarea con fecha y prioridad. Úsala cuando el usuario diga 'tarea: llamar al dentista mañana', 'para el viernes: enviar CV', 'agregá a pendientes comprar regalo'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "dueText": {
+            "type": "string",
+            "description": "Fecha natural (ej: 'mañana', 'el viernes', 'próxima semana')."
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "Alta",
+              "Media",
+              "Baja"
+            ],
+            "default": "Media"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "task_list",
+      "description": "Lista las tareas pendientes ordenadas por prioridad/fecha. Úsala cuando el usuario diga 'qué tengo pendiente?', 'tareas de esta semana', 'lista de pendientes'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "done",
+              "all"
+            ],
+            "default": "open"
+          }
+        },
+        "required": []
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "task_done",
+      "description": "Marca una tarea como completada. Úsala cuando el usuario diga 'listo la de dentista', 'completé el informe', 'ya hice X'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Texto para encontrar la tarea."
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "calendar_add",
+      "description": "Agrega una cita al calendario local con fecha, hora y ubicación. Úsala cuando el usuario diga 'cita con el médico el 15 a las 10', 'cumpleaños de Marta el 22', 'reunión el jueves 16hs'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "description": "Fecha (YYYY-MM-DD o natural)."
+          },
+          "time": {
+            "type": "string",
+            "description": "Hora (HH:MM o natural)."
+          },
+          "location": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "date"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "calendar_show",
+      "description": "Muestra los próximos eventos del calendario. Úsala cuando el usuario diga 'qué tengo esta semana?', 'agenda de hoy', 'próximos eventos'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "days": {
+            "type": "number",
+            "description": "Ventana en días. Default 7."
+          }
+        },
+        "required": []
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "calendar_export_ics",
+      "description": "Genera un archivo .ics con tus eventos para sincronizar con Google/Apple Calendar. Úsala cuando el usuario diga 'exportá mi agenda a ICS', 'quiero mi calendario en Google Calendar'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "days": {
+            "type": "number",
+            "description": "Ventana en días hacia adelante. Default 90."
+          }
+        },
+        "required": []
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "countdown",
+      "description": "Calcula cuánto falta (o cuánto pasó) para una fecha/evento. Úsala cuando el usuario diga 'cuánto falta para mi cumpleaños?', 'faltan para Navidad', 'cuántos días desde que empezó el año'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "Fecha (YYYY-MM-DD o natural)."
+          },
+          "label": {
+            "type": "string",
+            "description": "Nombre del evento opcional."
+          }
+        },
+        "required": [
+          "date"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "reminder_set",
+      "description": "Programa un recordatorio para una fecha/hora concreta. Úsala cuando el usuario diga 'recordame llamar a mamá a las 18', 'avisame el 20 del pago', 'no me dejes olvidar X mañana'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "dueText": {
+            "type": "string",
+            "description": "Fecha/hora natural (ej: 'mañana a las 9', 'el 20', 'en 3 horas')."
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "dueText"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "alarm_set",
+      "description": "Crea una alarma a una hora concreta con repetición opcional. Úsala cuando el usuario diga 'despertador 7am', 'alarma para recoger a los chicos a las 16', 'alarma diaria a las 6:30'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "time": {
+            "type": "string",
+            "description": "Hora (HH:MM o natural, ej: '07:00', '7 de la mañana')."
+          },
+          "repeat": {
+            "type": "string",
+            "description": "Repetición (ej: 'diario', 'semanal', 'lunes a viernes')."
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "time"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "summarize_url",
+      "description": "Resume un artículo o página web en 5 puntos clave. Úsala cuando el usuario diga 'resumí este artículo', 'de qué va este link', 'síntesis de esta URL'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "URL del artículo."
+          },
+          "focus": {
+            "type": "string",
+            "description": "Aspecto a destacar (opcional)."
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "summarize_text",
+      "description": "Resume cualquier texto pegado. Úsala cuando el usuario diga 'resumí estos apuntes', 'síntesis de este email', 'acuortar este texto'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "focus": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "translate",
+      "description": "Traduce texto entre idiomas. Úsala cuando el usuario diga 'traducí esto al japonés', 'cómo se dice gracias en árabe', 'pasá este texto a inglés'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string",
+            "description": "Idioma destino (ej: 'inglés', 'japonés')."
+          },
+          "from": {
+            "type": "string",
+            "description": "Idioma origen (opcional, autodetecta)."
+          }
+        },
+        "required": [
+          "text",
+          "to"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "lyrics_find",
+      "description": "Busca la letra de una canción. Úsala cuando el usuario diga 'letra de Bohemian Rhapsody', 'cómo sigue esa de Cerati', 'letra de la canción X de Y'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "artist": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "artist",
+          "title"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "deep_research",
+      "description": "Investigación profunda: abre múltiples fuentes, contrasta, valida con citas y sintetiza con referencias. Úsala cuando el usuario diga 'investigá si conviene alquilar o comprar', 'investigá tratamientos para el insomnio', 'estudiá este tema a fondo'. Esta es la killer feature de investigación de Koru.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Tema a investigar."
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "extract_action_items",
+      "description": "Extrae tareas/puntos de acción de notas, minuta de reunión o email. Úsala cuando el usuario diga 'qué tareas surgen de esta minuta?', 'extraé los action items de este email', 'puntos pendientes de esta nota'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "email_draft",
+      "description": "Redacta un email listo para revisar. Úsala cuando el usuario diga 'escribile a mi jefe pidiendo vacaciones', 'respuesta cortés a la queja', 'email formal para el cliente'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "purpose": {
+            "type": "string",
+            "description": "Qué debe decir el email."
+          },
+          "recipient": {
+            "type": "string",
+            "description": "A quién va (nombre/rol)."
+          },
+          "tone": {
+            "type": "string",
+            "enum": [
+              "formal",
+              "cordial",
+              "directo"
+            ],
+            "default": "cordial"
+          }
+        },
+        "required": [
+          "purpose"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "message_draft",
+      "description": "Redacta un mensaje corto (SMS, WhatsApp) listo para enviar. Úsala cuando el usuario diga 'mensaje para mi novia que llego tarde', 'confirmación al cliente', 'mensaje breve a mamá'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "purpose": {
+            "type": "string"
+          },
+          "recipient": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "purpose"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "copy_to_clipboard",
+      "description": "Copia texto al portapapeles del usuario. Úsala cuando el usuario diga 'copiá eso', 'al portapapeles', 'mandá eso al clipboard'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "qr_generate",
+      "description": "Genera un código QR para texto, URL o datos de WiFi. Úsala cuando el usuario diga 'QR para mi WiFi', 'código QR para este link', 'generá un QR'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Texto o URL a codificar."
+          },
+          "size": {
+            "type": "number",
+            "description": "Tamaño en px. Default 300."
+          }
+        },
+        "required": [
+          "text"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "sunrise_sunset",
+      "description": "Hora de salida y puesta del sol para una ubicación y fecha. Úsala cuando el usuario diga 'a qué hora sale el sol mañana?', 'atardecer hoy en Madrid', 'cuándo oscurece'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "lat": {
+            "type": "number",
+            "description": "Latitud."
+          },
+          "lng": {
+            "type": "number",
+            "description": "Longitud."
+          },
+          "date": {
+            "type": "string",
+            "description": "Fecha YYYY-MM-DD. Default hoy."
+          }
+        },
+        "required": [
+          "lat",
+          "lng"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "moon_phase",
+      "description": "Fase lunar actual y próxima luna llena/nueva. Úsala cuando el usuario diga 'qué luna hay hoy?', 'cuándo es la próxima luna llena', 'fase lunar'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "Fecha YYYY-MM-DD. Default hoy."
+          }
+        },
+        "required": []
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "holidays",
+      "description": "Feriados nacionales de un país. Úsala cuando el usuario diga 'cuándo es el próximo feriado?', 'feriados de España 2025', 'días no laborables en Argentina'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "countryCode": {
+            "type": "string",
+            "description": "Código ISO país (ej: 'ES', 'AR', 'US')."
+          },
+          "year": {
+            "type": "number",
+            "description": "Año. Default actual."
+          }
+        },
+        "required": [
+          "countryCode"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "time_zone",
+      "description": "Convierte o consulta la hora en otra zona horaria. Úsala cuando el usuario diga 'qué hora es en Tokyo?', 'si llamo a las 10am Madrid qué hora es allá?', 'zona horaria de San Francisco'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "city": {
+            "type": "string",
+            "description": "Ciudad o zona IANA (ej: 'Tokyo', 'America/Argentina/Buenos_Aires')."
+          }
+        },
+        "required": [
+          "city"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "memory_save",
+      "description": "Guarda algo que Koru debe recordar del usuario de forma duradera. Úsala cuando el usuario diga 'soy alérgico a la penicilina', 'mi mamá se llama Marta', 'trabajo como diseñador', 'vivo en Madrid'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Hecho a recordar."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "profile",
+              "routine",
+              "preference",
+              "goal",
+              "relationship",
+              "boundary",
+              "retail",
+              "wellbeing",
+              "task"
+            ],
+            "default": "profile"
+          },
+          "sensitivity": {
+            "type": "string",
+            "enum": [
+              "normal",
+              "sensitive"
+            ],
+            "default": "normal"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "memory_search",
+      "description": "Busca en lo que Koru sabe del usuario (memoria semántica). Úsala cuando el usuario diga 'qué te dije sobre mi familia?', 'recordás algo de mi dieta?', 'tengo algo guardado sobre X'. Búsqueda por significado, no por palabra exacta.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Qué buscar en la memoria."
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "memory_forget",
+      "description": "Elimina una memoria guardada. Úsala cuando el usuario diga 'olvidá lo de la alergia', 'borrá que vivía en Madrid', 'ya no quiero que recuerdes X'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Texto para encontrar la memoria a borrar."
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "memory_edit",
+      "description": "Corrige una memoria guardada. Úsala cuando el usuario diga 'mi dirección nueva es...', 'cambia mi número', 'corregí que mi hijo se llama X no Y'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Texto para encontrar la memoria a editar."
+          },
+          "newText": {
+            "type": "string",
+            "description": "Nuevo texto."
+          }
+        },
+        "required": [
+          "query",
+          "newText"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "memory_garden_show",
+      "description": "Muestra todas las memorias guardadas (el jardín de Koru). Úsala cuando el usuario diga 'mostrame mi jardín', 'qué sabés de mí', 'lista de memorias'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "candidate",
+              "all"
+            ],
+            "default": "all"
+          }
+        },
+        "required": []
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "wikipedia_lookup",
+      "description": "Resumen enciclopédico de cualquier tema, concepto o lugar. Úsala cuando el usuario diga 'qué es el efecto placebo?', 'quién era Borges', 'info sobre el Renacimiento', 'qué es la fotosíntesis'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Tema a buscar."
+          },
+          "lang": {
+            "type": "string",
+            "default": "es"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "dictionary_define",
+      "description": "Define una palabra y da sinónimos. Úsala cuando el usuario diga 'qué significa perenne?', 'sinónimos de efímero', 'definición de melancolía'. Inglés por defecto.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "word": {
+            "type": "string",
+            "description": "Palabra a definir."
+          }
+        },
+        "required": [
+          "word"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "slang_translate",
+      "description": "Explica modismos, jerga o expresiones de un país o región. Úsala cuando el usuario diga 'qué significa chévere?', 'cómo se dice genial en México?', 'es pibe argentino?', 'modismo X'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "term": {
+            "type": "string",
+            "description": "Modismo o expresión."
+          },
+          "region": {
+            "type": "string",
+            "description": "País/región (ej: 'Argentina', 'México')."
+          }
+        },
+        "required": [
+          "term"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "unit_convert",
+      "description": "Convierte unidades: metros/pies, kg/libras, litros/galones, temperatura (°C/°F/K). Úsala cuando el usuario diga '200 gramos en onzas', '30°C a Fahrenheit', '5 km en millas', '2 litros a galones'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "value": {
+            "type": "number"
+          },
+          "from": {
+            "type": "string",
+            "description": "Unidad origen."
+          },
+          "to": {
+            "type": "string",
+            "description": "Unidad destino."
+          }
+        },
+        "required": [
+          "value",
+          "from",
+          "to"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "math_calc",
+      "description": "Calcula operaciones matemáticas con explicación. Úsala cuando el usuario diga '15% de 230', 'cuánto es 234 × 18', 'raíz cuadrada de 144', 'porcentaje de cambio entre 100 y 150'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "expression": {
+            "type": "string",
+            "description": "Expresión matemática (ej: '15% of 230', '234*18', 'sqrt(144)', '(100+50)/2')."
+          }
+        },
+        "required": [
+          "expression"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "medication_reminder",
+      "description": "Organiza un esquema de medicación y programa recordatorios horarios. Úsala cuando el usuario diga 'recordame el ibuprofeno cada 8 horas por 5 días', 'necesito tomar amoxicilina cada 12 horas', 'avisame la pastilla de la presión'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nombre del medicamento."
+          },
+          "frequency": {
+            "type": "string",
+            "description": "Frecuencia (ej: 'cada 8 horas', 'cada 12 horas', 'diario')."
+          },
+          "duration": {
+            "type": "string",
+            "description": "Duración (ej: '5 días', '10 días', 'crónico')."
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "frequency"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "sleep_track",
+      "description": "Registra tus horas de sueño y calcula promedios. Úsala cuando el usuario diga 'dormí 6 horas anoche', 'anoche dormí 7.5h', 'cómo viene mi sueño esta semana'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "hours": {
+            "type": "number",
+            "description": "Horas dormidas."
+          },
+          "quality": {
+            "type": "string",
+            "enum": [
+              "buena",
+              "regular",
+              "mala"
+            ]
+          }
+        },
+        "required": [
+          "hours"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "hydration_remind",
+      "description": "Programa recordatorios para tomar agua según tu rutina. Úsala cuando el usuario diga 'avisame cada 2 horas que tome agua', 'recordame hidratación', 'necesito beber más agua'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "intervalHours": {
+            "type": "number",
+            "description": "Intervalo en horas entre recordatorios. Default 2."
+          },
+          "activeStart": {
+            "type": "string",
+            "description": "Hora inicio (HH:MM). Default 08:00."
+          },
+          "activeEnd": {
+            "type": "string",
+            "description": "Hora fin (HH:MM). Default 22:00."
+          }
+        },
+        "required": []
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "mood_track",
+      "description": "Registra tu ánimo para ver tendencias a lo largo del tiempo. Úsala cuando el usuario diga 'hoy me siento bien', 'vengo cansado esta semana', 'ánimo bajo', 'registro emocional'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mood": {
+            "type": "string",
+            "enum": [
+              "muy bien",
+              "bien",
+              "normal",
+              "cansado",
+              "bajo",
+              "mal"
+            ]
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "mood"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "habit_streak",
+      "description": "Cuenta la racha de días seguidos de un hábito y te alienta a mantenerla. Úsala cuando el usuario diga 'cuántos días seguidos gimnasio?', 'racha de meditación', 'mi racha de X'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "habit": {
+            "type": "string",
+            "description": "Nombre del hábito."
+          }
+        },
+        "required": [
+          "habit"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "air_quality_advice",
+      "description": "Consulta calidad del aire y aconseja actividad según PM2.5/PM10. Úsala cuando el usuario diga 'calidad del aire hoy', 'conviene correr afuera?', 'PM2.5 en mi zona', 'polución'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "lat": {
+            "type": "number"
+          },
+          "lng": {
+            "type": "number"
+          },
+          "city": {
+            "type": "string",
+            "description": "Nombre de ciudad (si no tenés coords)."
+          }
+        },
+        "required": []
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "url_shorten",
+      "description": "Acorta una URL larga. Úsala cuando el usuario diga 'acortá este link', 'URL corta para compartir', 'shorten esto'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "password_generate",
+      "description": "Genera una contraseña fuerte aleatoria. Úsala cuando el usuario diga 'generá una contraseña', 'pass de 16 caracteres', 'contraseña segura'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "length": {
+            "type": "number",
+            "description": "Longitud. Default 16."
+          },
+          "symbols": {
+            "type": "boolean",
+            "description": "Incluir símbolos. Default true."
+          }
+        },
+        "required": []
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "quote_of_day",
+      "description": "Frase inspiradora del día. Úsala cuando el usuario diga 'una cita para hoy', 'frase del día', 'algo inspirador'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "self_health_check",
+      "description": "Diagnóstico honesto del estado de Koru: providers disponibles, Ollama, latencia, número de tools activas. Úsala cuando el usuario diga 'Koru, estás bien?', 'estado de tus servicios', 'autodiagnóstico', 'funcionan tus herramientas?'.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      }
+    }
+  }
+]

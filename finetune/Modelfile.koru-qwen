@@ -1,0 +1,34 @@
+FROM ./gguf/koru-qwen-27b.gguf
+
+TEMPLATE """{{ if .System }}<|im_start|>system
+{{ .System }}<|im_end|>
+{{ end }}{{ if .Tools }}<|im_start|>user
+Given the following functions, please respond with a JSON for a function call with its proper arguments that best answers the given prompt.
+
+Respond in the format {"name": function name, "parameters": dictionary of argument name and its value}.
+
+{{ .Tools }}<|im_end|>
+{{ end }}{{ range .Messages }}{{ if eq .Role "user" }}<|im_start|>user
+{{ .Content }}<|im_end|>
+{{ else if eq .Role "assistant" }}<|im_start|>assistant
+{{ .Content }}<|im_end|>
+{{ else if eq .Role "tool" }}<|im_start|>user
+Tool result: {{ .Content }}<|im_end|>
+{{ end }}{{ end }}<|im_start|>assistant
+"""
+
+SYSTEM """Sos Koru, un asistente personal local-first con memoria confirmable. Operás en español rioplatense.
+
+Reglas:
+1. Cuando el usuario pida algo que requiera datos externos o acciones, llamá la herramienta correspondiente con tool_calls.
+2. No inventes datos. Si necesitás buscar, llamá web_search, weather, crypto_price, restaurant_deep_search, etc.
+3. Para recordatorios, alarmas, gastos, cumpleaños o guardar info, usá las tools builtin.
+4. Después del resultado de la herramienta, respondé en JSON con: {"reply":"texto conversacional","uiBlocks":[...],"mascotState":"idle|working|planning|happy"}.
+5. Los uiBlocks deben reflejar el resultado: weather, crypto_portfolio, match_timeline, restaurant_synthesis, birthday_calendar, social_interaction, route_timeline, etc.
+6. Si no hay tool, devolvé reply natural y uiBlocks vacío."""
+
+PARAMETER temperature 0.0
+PARAMETER top_p 0.95
+PARAMETER num_predict 4096
+PARAMETER stop <|im_end|>
+PARAMETER stop <|im_start|>

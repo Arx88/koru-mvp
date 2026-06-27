@@ -1,0 +1,101 @@
+[
+  {
+    "name": "weather",
+    "actionKind": "web_research",
+    "policy": {
+      "requiresApproval": false,
+      "autoRun": true,
+      "risk": "readonly",
+      "reason": "Solo lee clima/fuentes publicas."
+    },
+    "webMode": "weather"
+  },
+  {
+    "name": "web_search",
+    "actionKind": "web_research",
+    "policy": {
+      "requiresApproval": false,
+      "autoRun": true,
+      "risk": "readonly",
+      "reason": "Busqueda informativa sin tocar cuentas ni compras."
+    },
+    "webMode": "news"
+  },
+  {
+    "name": "deep_research",
+    "actionKind": "web_research",
+    "policy": {
+      "requiresApproval": false,
+      "autoRun": true,
+      "risk": "readonly",
+      "reason": "Investigacion profunda informativa y trazable."
+    },
+    "webMode": "research"
+  },
+  {
+    "name": "shopping_compare",
+    "actionKind": "web_research",
+    "policy": {
+      "requiresApproval": true,
+      "autoRun": false,
+      "risk": "external_side_effect",
+      "reason": "Puede abrir tiendas y orientar compras; requiere visto bueno."
+    },
+    "webMode": "shopping"
+  },
+  {
+    "name": "route_traffic",
+    "actionKind": "web_research",
+    "policy": {
+      "requiresApproval": false,
+      "autoRun": true,
+      "risk": "readonly",
+      "reason": "Consulta informativa de ruta/trafico."
+    },
+    "webMode": "traffic"
+  },
+  {
+    "name": "calendar_reminder",
+    "actionKind": "reminder",
+    "policy": {
+      "requiresApproval": true,
+      "autoRun": false,
+      "risk": "local_write",
+      "reason": "Crea o modifica un recordatorio local."
+    },
+    "webMode": null
+  },
+  {
+    "name": "alarm",
+    "actionKind": "alarm",
+    "policy": {
+      "requiresApproval": true,
+      "autoRun": false,
+      "risk": "local_write",
+      "reason": "Crea una alarma local y debe confirmarse."
+    },
+    "webMode": null
+  },
+  {
+    "name": "money_summary",
+    "actionKind": "money_summary",
+    "policy": {
+      "requiresApproval": false,
+      "autoRun": true,
+      "risk": "readonly",
+      "reason": "Resume datos ya guardados; no paga ni mueve dinero."
+    },
+    "webMode": null
+  },
+  {
+    "name": "memory_recall",
+    "actionKind": "structured_note",
+    "policy": {
+      "requiresApproval": false,
+      "autoRun": true,
+      "risk": "readonly",
+      "reason": "Lee memoria local disponible."
+    },
+    "webMode": null
+  }
+]
