@@ -1,8 +1,9 @@
 """
-Fine-tuning de Qwen3-27B / qwen3.6:27b para Koru con Unsloth + LoRA.
+Fine-tuning de Qwen3.6-27B para Koru con Unsloth + LoRA.
 
 Uso:
   cd /mnt/d/ZomboidServer/koru-mvp
+  source .venv/bin/activate
   python finetune/train-qwen-koru.py
 
 Requisitos:
@@ -10,41 +11,71 @@ Requisitos:
 """
 import os
 import json
+import sys
+import logging
+
+# ─────────────────────────────────────────────────────────────
+# Cache en disco D (no C)
+# ─────────────────────────────────────────────────────────────
+HF_CACHE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".hf-cache")
+os.environ["HF_HOME"] = HF_CACHE
+os.environ["HF_HUB_CACHE"] = HF_CACHE
+os.environ["TRANSFORMERS_CACHE"] = HF_CACHE
+os.makedirs(HF_CACHE, exist_ok=True)
+
 from unsloth import FastLanguageModel, is_bfloat16_supported
 from unsloth.chat_templates import get_chat_template
-from datasets import Dataset
 from trl import SFTTrainer, SFTConfig
 import torch
 
 # ─────────────────────────────────────────────────────────────
+# Logging a archivo en D
+# ─────────────────────────────────────────────────────────────
+LOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "train.log")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler(LOG_FILE),
+        logging.StreamHandler(sys.stdout),
+    ],
+)
+log = logging.getLogger(__name__)
+
+# ─────────────────────────────────────────────────────────────
 # Configuración
 # ─────────────────────────────────────────────────────────────
-MODEL_NAME = os.getenv("KORU_BASE_MODEL", "unsloth/Qwen3-27B")  # o "qwen3.6:27b" si está en HF
-MAX_SEQ_LENGTH = 8192
-DATASET_PATH = "finetune/koru-dataset-v1.jsonl"
-OUTPUT_DIR = "finetune/outputs/koru-qwen-27b"
+MODEL_NAME = os.getenv("KORU_BASE_MODEL", "unsloth/gemma-4-12b")
+MAX_SEQ_LENGTH = int(os.getenv("KORU_MAX_SEQ", "4096"))
+DATASET_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "koru-dataset-v1.jsonl")
+OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "outputs", "koru-qwen-27b")
+ADAPTER_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "adapters", "koru-qwen-27b")
+MERGED_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "merged", "koru-qwen-27b-f16")
+
 LORA_R = 64
 LORA_ALPHA = 128
 LORA_DROPOUT = 0.0
 BATCH_SIZE = 1
 GRAD_ACCUM = 4
-MAX_STEPS = 500
+MAX_STEPS = int(os.getenv("KORU_MAX_STEPS", "500"))
 LEARNING_RATE = 2e-4
 WARMUP_STEPS = 20
 
 # ─────────────────────────────────────────────────────────────
 # 1. Cargar modelo y tokenizer
 # ─────────────────────────────────────────────────────────────
-print(f"Cargando modelo base: {MODEL_NAME}")
+log.info(f"Cargando modelo base: {MODEL_NAME}")
+log.info(f"Cache HF: {HF_CACHE}")
+log.info(f"VRAM disponible: {torch.cuda.mem_get_info()[0] / 1e9:.1f} GB / {torch.cuda.mem_get_info()[1] / 1e9:.1f} GB")
+
 model, tokenizer = FastLanguageModel.from_pretrained(
     model_name=MODEL_NAME,
     max_seq_length=MAX_SEQ_LENGTH,
-    load_in_4bit=True,  # QLoRA para ahorrar VRAM; 27B Q4 ~ 18GB
+    load_in_4bit=True,
     dtype=None,
-    attn_implementation="flash_attention_2" if torch.cuda.is_available() else None,
 )
 
-# Configurar chat template de Qwen (Hermes-style tool use)
+# Configurar chat template de Qwen
 tokenizer = get_chat_template(
     tokenizer,
     chat_template="qwen-2.5",
@@ -68,31 +99,33 @@ model = FastLanguageModel.get_peft_model(
 # ─────────────────────────────────────────────────────────────
 # 2. Cargar dataset
 # ─────────────────────────────────────────────────────────────
-def load_dataset(path: str) -> Dataset:
-    messages = []
-    with open(path, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            data = json.loads(line)
-            messages.append({"messages": data["messages"]})
-    return Dataset.from_list(messages)
+# Cargar dataset
+import datasets
+datasets.disable_caching()
 
-raw_dataset = load_dataset(DATASET_PATH)
-print(f"Dataset cargado: {len(raw_dataset)} ejemplos")
+with open(DATASET_PATH, "r", encoding="utf-8") as f:
+    raw_messages = []
+    for line in f:
+        line = line.strip()
+        if not line:
+            continue
+        data = json.loads(line)
+        raw_messages.append(data["messages"])
 
-# Aplicar chat template
-# Unsloth requiere texto plano para SFT
-def format_messages(example):
+log.info(f"Dataset cargado: {len(raw_messages)} ejemplos")
+
+# Aplicar chat template manualmente
+texts = []
+for msgs in raw_messages:
     text = tokenizer.apply_chat_template(
-        example["messages"],
+        msgs,
         tokenize=False,
         add_generation_prompt=False,
     )
-    return {"text": text}
+    texts.append(text)
 
-dataset = raw_dataset.map(format_messages, remove_columns=raw_dataset.column_names)
+dataset = datasets.Dataset.from_dict({"text": texts})
+log.info(f"Dataset formateado. Ejemplo 0 longitud: {len(dataset[0]['text'])} chars")
 
 # ─────────────────────────────────────────────────────────────
 # 3. Entrenar
@@ -122,21 +155,23 @@ trainer = SFTTrainer(
     ),
 )
 
-print("Iniciando entrenamiento...")
+log.info("Iniciando entrenamiento...")
 trainer.train()
+log.info("Entrenamiento completado.")
 
 # ─────────────────────────────────────────────────────────────
 # 4. Guardar adapter
 # ─────────────────────────────────────────────────────────────
-ADAPTER_DIR = "finetune/adapters/koru-qwen-27b"
+os.makedirs(ADAPTER_DIR, exist_ok=True)
 model.save_pretrained(ADAPTER_DIR)
 tokenizer.save_pretrained(ADAPTER_DIR)
-print(f"✓ Adapter guardado en {ADAPTER_DIR}")
+log.info(f"Adapter guardado en {ADAPTER_DIR}")
 
 # ─────────────────────────────────────────────────────────────
-# 5. Mergear a fp16 (opcional, para GGUF)
+# 5. Mergear a fp16 (para GGUF)
 # ─────────────────────────────────────────────────────────────
-MERGED_DIR = "finetune/merged/koru-qwen-27b-f16"
-print(f"Mergeando adapter con base en {MERGED_DIR}...")
+os.makedirs(MERGED_DIR, exist_ok=True)
+log.info(f"Mergeando adapter con base en {MERGED_DIR}...")
 model.save_pretrained_merged(MERGED_DIR, tokenizer, save_method="merged_16bit")
-print(f"✓ Modelo mergeado guardado en {MERGED_DIR}")
+log.info(f"Modelo mergeado guardado en {MERGED_DIR}")
+log.info("Listo. Ejecutá finetune/export-to-ollama.sh para crear el modelo Ollama.")

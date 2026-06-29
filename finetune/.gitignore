@@ -1,0 +1,15 @@
+# Model artifacts (large files - excluded from git)
+.hf-cache/
+adapters/koru-qwen-27b/
+adapters/unsloth-gemma-4-12b/
+merged/
+outputs/
+gguf/koru-gemma-12b-f16.gguf
+gguf/koru-gemma-12b-bf16/
+gguf/*.gguf
+unsloth_compiled_cache/
+*.safetensors
+*.bin
+*.pkl
+*.pt
+*.pth
