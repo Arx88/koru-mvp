@@ -6,9 +6,9 @@ import { currencyConvert } from "../tools/money/currencyConvert";
 import { matchSchedule } from "../tools/sports/football";
 import type { UiBlock } from "./types";
 
-function logResult(label: string, result: Record<string, unknown>) {
+function logResult(_label: string, _result: Record<string, unknown>) {
 }
-function logBlock(label: string, block: UiBlock) {
+function logBlock(_label: string, _block: UiBlock) {
 }
 
 type ToolCase = {
@@ -18,10 +18,12 @@ type ToolCase = {
   resultChecks: (r: Record<string, unknown>) => void;
 };
 
+const defaultState = { memories: [], records: [], commitments: [], stage: "seed" as const, runtime: { freeLlmApiBaseUrl: "", freeLlmApiKey: "", freeLlmApiModel: "", freeLlmApiEnabled: false, embeddingsEnabled: false, openModelBaseUrl: "", openModelApiKey: "", openModelModel: "", openModelEnabled: false } } as any;
+
 const cases: ToolCase[] = [
   {
     name: "crypto_price",
-    run: async () => cryptoPrice.run({ coin: "bitcoin" }, { userInput: "bitcoin", state: { memories: [], records: [], commitments: [], stage: "greeting", runtime: {} } }),
+    run: async () => cryptoPrice.run({ coin: "bitcoin" }, { userInput: "bitcoin", state: defaultState }),
     expectedType: "crypto_portfolio",
     resultChecks: (r) => {
       expect(r.status).toBe("ok");
@@ -32,7 +34,7 @@ const cases: ToolCase[] = [
   },
   {
     name: "stock_quote",
-    run: async () => stockQuote.run({ symbol: "AAPL" }, { userInput: "AAPL", state: { memories: [], records: [], commitments: [], stage: "greeting", runtime: {} } }),
+    run: async () => stockQuote.run({ symbol: "AAPL" }, { userInput: "AAPL", state: defaultState }),
     expectedType: "market",
     resultChecks: (r) => {
       expect(r.status).toBe("ok");
@@ -43,7 +45,7 @@ const cases: ToolCase[] = [
   },
   {
     name: "currency_convert",
-    run: async () => currencyConvert.run({ amount: 100, from: "USD", to: "EUR" }, { userInput: "convert", state: { memories: [], records: [], commitments: [], stage: "greeting", runtime: {} } }),
+    run: async () => currencyConvert.run({ amount: 100, from: "USD", to: "EUR" }, { userInput: "convert", state: defaultState }),
     expectedType: "forex",
     resultChecks: (r) => {
       expect(r.status).toBe("ok");
@@ -55,7 +57,7 @@ const cases: ToolCase[] = [
   },
   {
     name: "match_schedule",
-    run: async () => matchSchedule.run({ team: "Real Madrid" }, { userInput: "Real Madrid", state: { memories: [], records: [], commitments: [], stage: "greeting", runtime: {} } }),
+    run: async () => matchSchedule.run({ team: "Real Madrid" }, { userInput: "Real Madrid", state: defaultState }),
     expectedType: "match_timeline",
     resultChecks: (r) => {
       expect(r.status).toBe("ok");

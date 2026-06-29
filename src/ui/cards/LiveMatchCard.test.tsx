@@ -13,7 +13,7 @@ describe("LiveMatchCard", () => {
           awayTeam: { name: "Man City", abbrev: "MCI", score: 1 },
           globalStatus: "Global 3-3",
           stats: [],
-        }}
+        } as any}
       />,
     );
     const scoreSpan = document.querySelector("span.text-4xl.font-black.tracking-tighter");
@@ -30,7 +30,7 @@ describe("LiveMatchCard", () => {
           type: "live_match",
           globalStatus: "Global 3-3",
           stats: [],
-        }}
+        } as any}
       />,
     );
     const status = screen.getByText("Global 3-3");
@@ -45,7 +45,7 @@ describe("LiveMatchCard", () => {
           homeTeam: { name: "Real Madrid", abbrev: "RMA", score: 2 },
           awayTeam: { name: "Man City", abbrev: "MCI", score: 1 },
           stats: [],
-        }}
+        } as any}
       />,
     );
     const rmaBadge = screen.getByText("RMA");
@@ -60,7 +60,7 @@ describe("LiveMatchCard", () => {
         block={{
           type: "live_match",
           stats: [],
-        }}
+        } as any}
       />,
     );
     expect(screen.getByRole("button", { name: "Stats" })).toBeInTheDocument();
@@ -78,7 +78,7 @@ describe("LiveMatchCard", () => {
         block={{
           type: "live_match",
           stats: [],
-        }}
+        } as any}
       />,
     );
     const lineupsBtn = screen.getByRole("button", { name: "Lineups" });
@@ -95,10 +95,10 @@ describe("LiveMatchCard", () => {
         block={{
           type: "live_match",
           stats: [
-            { label: "Possession", leftValue: "42%", rightValue: "58%", leftPercent: 42, rightPercent: 58 },
-            { label: "Shots (On Target)", leftValue: "12", rightValue: "8", leftPercent: 60, rightPercent: 40 },
+            { label: "Possession", leftPercent: 42, rightPercent: 58 },
+            { label: "Shots (On Target)", leftPercent: 60, rightPercent: 40 },
           ],
-        }}
+        } as any}
       />,
     );
     expect(screen.getByText("Possession")).toBeInTheDocument();

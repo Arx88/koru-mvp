@@ -190,6 +190,7 @@ describe("Koru MVP UI", () => {
     const buttons = await screen.findAllByRole("button", {}, { timeout: 3000 });
     const approveButton = buttons.find((b) => b.textContent?.toLowerCase().includes("dejar visible"));
     expect(approveButton).toBeDefined();
+    if (!approveButton) throw new Error("Approve button not found");
 
     await user.click(approveButton);
 

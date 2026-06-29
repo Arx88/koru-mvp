@@ -14,7 +14,7 @@ describe("MarketCard", () => {
   };
 
   it("renders symbol, name, price and change", () => {
-    render(<MarketCard block={baseBlock} />);
+    render(<MarketCard block={baseBlock as any} />);
     expect(screen.getByText("BTC/USD")).toBeInTheDocument();
     expect(screen.getByText("Bitcoin")).toBeInTheDocument();
     expect(screen.getByText("$64.230")).toBeInTheDocument();
@@ -22,12 +22,12 @@ describe("MarketCard", () => {
   });
 
   it("shows negative change in red", () => {
-    render(<MarketCard block={{ ...baseBlock, change: -1.2 }} />);
+    render(<MarketCard block={{ ...baseBlock, change: -1.2 } as any} />);
     expect(screen.getByText(/1\.2/)).toBeInTheDocument();
   });
 
   it("renders defaults without block data", () => {
-    render(<MarketCard block={{ type: "market" }} />);
+    render(<MarketCard block={{ type: "market" } as any} />);
     expect(screen.getByText("BTC/USD")).toBeInTheDocument();
   });
 });
