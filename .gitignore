@@ -29,3 +29,4 @@ dist-ssr
 # Temporary / generated artifacts
 .tmp/
 test-results/
+.worktrees/
