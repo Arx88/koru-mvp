@@ -1,5 +1,3 @@
-import React from "react";
-
 type MorningBriefItem = {
   icon: string;
   iconColor: string;
@@ -40,9 +38,11 @@ export function MorningBriefCard({ block }: { block: MorningBriefBlock }) {
                     : "bg-[#F8F9FA]",
                 ].join(" ")}
               >
-                <Mat style={{ color: item.iconColor }}>
-                  {item.icon}
-                </Mat>
+                <span style={{ color: item.iconColor }}>
+                  <Mat>
+                    {item.icon}
+                  </Mat>
+                </span>
                 <div>
                   <p
                     className={[

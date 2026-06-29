@@ -1,8 +1,5 @@
-import React from "react";
-import type { Extract } from "../domain/types";
-
 type ProactiveSignalBlock = Extract<UiBlock, { type: "proactive_signal" }>;
-import type { UiBlock } from "../domain/types";
+import type { UiBlock } from "../../domain/types";
 
 function Mat({ children, className = "" }: { children: string; className?: string }) {
   return <span className={`material-symbols-outlined ${className}`}>{children}</span>;
@@ -15,7 +12,6 @@ export function ProactiveSignalCard({ block }: { block: ProactiveSignalBlock }) 
   const borderColor = isUrgent ? "border-amber-100" : "border-purple-100";
   const accentColor = isUrgent ? "text-amber-500" : "text-purple-500";
   const accentBg = isUrgent ? "bg-amber-50" : "bg-purple-50";
-  const gradient = isUrgent ? "from-amber-100 to-orange-200" : "from-purple-100 to-violet-200";
 
   const categoryIcon: Record<string, string> = {
     weather: "partly_cloudy_day",

@@ -3,7 +3,6 @@ import type { UiBlock } from "../../domain/types";
 
 export function SmartChecklistCard({ block }: { block: UiBlock }) {
   const title = (block as any).title ?? "Benchmark";
-  const initialProgress = (block as any).progress ?? 50;
   const initialItems = (block as any).items ?? [
     { label: "Nespresso: mejor precio", checked: true },
     { label: "Dolce: garantía 3 años", checked: true },

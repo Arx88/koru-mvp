@@ -1,4 +1,3 @@
-import React from "react";
 import type { AssistantPlanItem } from "../../domain/types";
 
 type PlanTimelineBlock = {

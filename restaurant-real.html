@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Koru — Restaurant Real Data</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
+<style>
+body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #FCFCFA; color: #121411; }
+.ai-bubble { border-top-left-radius: 4px; }
+.mat { font-family: 'Material Symbols Outlined'; font-weight: normal; font-style: normal; display: inline-block; line-height: 1; text-transform: none; white-space: nowrap; direction: ltr; -webkit-font-feature-settings: 'liga'; -webkit-font-smoothing: antialiased; }
+</style>
+</head>
+<body class="min-h-screen bg-[#FCFCFA] py-8 px-4">
+<div class="max-w-md mx-auto">
+<div class="flex w-full">
+  <div class="flex flex-col w-full">
+    <div class="bg-white rounded-[24px] rounded-tl-sm p-5 shadow-sm border border-gray-100 ai-bubble">
+      <div class="flex items-center justify-between mb-5">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center shrink-0">
+            <span class="mat text-[20px] text-orange-500">restaurant_menu</span>
+          </div>
+          <h2 class="text-[17px] font-bold text-gray-900 tracking-tight">DeepHungry Synthesis</h2>
+        </div>
+        <span class="text-[10px] font-bold text-orange-400 bg-orange-50 px-2 py-0.5 rounded-full uppercase">8 fuentes</span>
+      </div>
+      <div class="mb-6">
+        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Top coincidencias</p>
+        <div class="space-y-2">
+          <div class="flex items-center gap-3 p-2 bg-gray-50 rounded-xl border border-gray-100">
+            <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-orange-100 to-amber-200 flex items-center justify-center shrink-0">
+              <span class="mat text-[24px] text-orange-400">restaurant</span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between">
+                <p class="text-sm font-bold text-gray-800 truncate">El Pichón</p>
+                <div class="flex items-center gap-0.5">
+                  <span class="mat text-[14px] text-emerald-500">check_circle</span>
+                  <span class="text-xs font-bold text-emerald-600">2/8</span>
+                </div>
+              </div>
+              <p class="text-[11px] text-gray-500 truncate italic">&ldquo;mejores opciones 2379, lee reseñas&rdquo;</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 p-2 rounded-xl border border-transparent opacity-80">
+            <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center shrink-0">
+              <span class="mat text-[24px] text-gray-300">restaurant</span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between">
+                <p class="text-sm font-bold text-gray-800 truncate">Los Caracoles</p>
+                <div class="flex items-center gap-0.5">
+                  <span class="text-xs font-bold text-gray-500">1/8</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 p-2 rounded-xl border border-transparent opacity-80">
+            <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center shrink-0">
+              <span class="mat text-[24px] text-gray-300">restaurant</span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between">
+                <p class="text-sm font-bold text-gray-800 truncate">Casa Mono</p>
+                <div class="flex items-center gap-0.5">
+                  <span class="text-xs font-bold text-gray-500">0/8</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bg-[#F8FAF8] rounded-2xl p-4 border border-[#E8F0E8] mb-4">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-xs font-bold text-[#70B873] bg-[#E4F2E4] px-2 py-0.5 rounded">RECOMENDACIÓN #1</span>
+          <span class="text-sm font-bold text-gray-800">El Pichón</span>
+        </div>
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Puntos a favor</p>
+            <ul class="space-y-1.5">
+              <li class="flex items-start gap-1.5 text-xs text-gray-700 font-medium leading-tight"><span class="mat text-[14px] text-emerald-500 mt-0.5">check_circle</span>ser servido con amabilidad</li>
+              <li class="flex items-start gap-1.5 text-xs text-gray-700 font-medium leading-tight"><span class="mat text-[14px] text-emerald-500 mt-0.5">check_circle</span>disfrutar de una decoración elegante</li>
+            </ul>
+          </div>
+          <div>
+            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">A considerar</p>
+            <ul class="space-y-1.5">
+              <li class="flex items-start gap-1.5 text-xs text-gray-600 leading-tight"><span class="mat text-[14px] text-orange-400 mt-0.5">info</span>poca variedad en la carta</li>
+              <li class="flex items-start gap-1.5 text-xs text-gray-600 leading-tight"><span class="mat text-[14px] text-orange-400 mt-0.5">info</span>precios un poco altos</li>
+            </ul>
+          </div>
+        </div>
+        <div class="border-t border-[#E8F0E8] pt-3 mt-2">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="mat text-[16px] text-[#70B873]">auto_awesome</span>
+            <p class="text-xs font-bold text-gray-800">Síntesis de las fuentes</p>
+          </div>
+          <p class="text-xs text-gray-600 leading-relaxed italic">&ldquo;El Pichón es un restaurante recomendado por varios fuentes, conocido por su buena comida y servicio. Sin embargo, también se menciona que puede tener precios un poco altos.&rdquo;</p>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-1.5 mb-4">
+        <span class="text-[10px] font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-md">tripadvisor.es</span>
+        <span class="text-[10px] font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-md">tripadvisor.es</span>
+        <span class="text-[10px] font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-md">opentable.es</span>
+        <span class="text-[10px] font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-md">conalmadeviaje.com</span>
+        <span class="text-[10px] font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-md">unbuendiaenmadrid.com</span>
+        <span class="text-[10px] font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-md">abc.es</span>
+        <span class="text-[10px] font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-md">elperiodico.com</span>
+        <span class="text-[10px] font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-md">elperiodico.com</span>
+      </div>
+      <div class="flex gap-2">
+        <button class="flex-1 bg-[#2C3E2D] text-white py-3 rounded-xl text-sm font-bold shadow-sm active:scale-95 transition-transform">Cómo llegar</button>
+        <button class="flex-1 bg-white border border-gray-200 text-gray-700 py-3 rounded-xl text-sm font-bold shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-1"><span class="mat text-[18px]">call</span>Reservar</button>
+        <button class="w-12 h-12 bg-white border border-gray-200 text-gray-400 rounded-xl flex items-center justify-center shadow-sm active:scale-95 transition-transform"><span class="mat text-[20px]">share</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

@@ -1,8 +1,5 @@
-import React from "react";
-import type { Extract } from "../domain/types";
-
 type DataCardBlock = Extract<UiBlock, { type: "data_card" }>;
-import type { UiBlock } from "../domain/types";
+import type { UiBlock } from "../../domain/types";
 
 function Mat({ children, className = "" }: { children: string; className?: string }) {
   return <span className={`material-symbols-outlined ${className}`}>{children}</span>;

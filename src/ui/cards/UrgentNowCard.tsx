@@ -1,5 +1,3 @@
-import React from "react";
-
 type UrgentNowBlock = {
   type: "urgent_now";
   eyebrow?: string;
