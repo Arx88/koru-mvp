@@ -1,4 +1,5 @@
 import { analyzeReflection } from "./brain";
+import { applyBackendTurnToState } from "./turn";
 // analyzeReflection/submitReflection are kept for tests and legacy callers.
 // New code should use the backend agent flow via KoruProvider/sendMessage.
 import { executeApprovedAction } from "./actions";
@@ -37,7 +38,7 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
-function createId(prefix: string): string {
+export function createId(prefix: string): string {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}_${Date.now().toString(36)}`;
 }
 
@@ -202,6 +203,15 @@ export function stageFor(state: Pick<KoruState, "trustedEnergy" | "memories" | "
   if (state.trustedEnergy >= 130 && confirmed >= 4) return "roots";
   if (state.trustedEnergy >= 45 || confirmed >= 2) return "sprout";
   return "seed";
+}
+
+export function applyTurnResultToState(
+  state: KoruState,
+  text: string,
+  transcriptSource: DailyEntry["transcriptSource"],
+  result: Parameters<typeof applyBackendTurnToState>[3],
+): ReturnType<typeof applyBackendTurnToState> {
+  return applyBackendTurnToState(state, text, transcriptSource, result);
 }
 
 /**
