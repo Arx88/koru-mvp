@@ -21,6 +21,16 @@ import { detectSimulatedToolCall } from "../domain/simulatedToolDetector";
 import { SemanticRouter, type EmbedFn, type RouteCategory } from "../domain/semanticRouter";
 import { logger, dump } from "./logger";
 import type { ToolDefinition } from "../tools/types";
+import {
+  asArray,
+  asRecord,
+  asString,
+  cleanReplyText,
+  cleanText,
+  extractJsonBlock,
+  safeJsonObjectFromContent,
+  safeJsonParse,
+} from "./json";
 
 export type ProviderConfig = {
   nvidiaApiKey?: string;
@@ -437,32 +447,8 @@ const CATEGORY_TOOLS: Record<RouteCategory, string[]> = {
   conversation: [],
 };
 
-function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
-}
-
-function asString(value: unknown): string | undefined {
-  return typeof value === "string" && value.trim() ? value.trim() : undefined;
-}
-
-function asArray(value: unknown): unknown[] {
-  return Array.isArray(value) ? value : [];
-}
-
-export function cleanText(value: unknown, fallback = ""): string {
-  return asString(value)?.replace(/\s+/g, " ").trim() ?? fallback;
-}
-
 function plainLower(value: string): string {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-}
-
-function timeFromText(value: string): string | undefined {
-  const match = /\b(?:a\s+las|las)\s+(\d{1,2})(?::(\d{2}))?\b/i.exec(plainLower(value));
-  if (!match) return undefined;
-  const hour = Math.max(0, Math.min(23, Number(match[1])));
-  const minute = match[2] ? Math.max(0, Math.min(59, Number(match[2]))) : 0;
-  return `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
 }
 
 function createId(prefix: string): string {
@@ -472,72 +458,12 @@ function createId(prefix: string): string {
   return `${prefix}_${Math.random().toString(36).slice(2, 12)}`;
 }
 
-function safeJsonParse(raw: string): Record<string, unknown> {
-  try {
-    return asRecord(JSON.parse(raw || "{}"));
-  } catch {
-    return {};
-  }
-}
-
-function extractJsonBlock(text: string): string {
-  const start = text.indexOf("{");
-  if (start === -1) return text;
-  let depth = 0;
-  let inString = false;
-  let escapeNext = false;
-  for (let i = start; i < text.length; i++) {
-    const c = text[i];
-    if (escapeNext) { escapeNext = false; continue; }
-    if (c === "\\") { escapeNext = true; continue; }
-    if (c === '"' && !inString) { inString = true; continue; }
-    if (c === '"' && inString) { inString = false; continue; }
-    if (inString) continue;
-    if (c === "{") depth++;
-    if (c === "}") { depth--; if (depth === 0) return text.slice(start, i + 1); }
-  }
-  return text;
-}
-
-function safeJsonObjectFromContent(raw: string): Record<string, unknown> {
-  const direct = safeJsonParse(raw);
-  if (direct.reply !== undefined || direct.uiBlocks !== undefined) return direct;
-  const extracted = safeJsonParse(extractJsonBlock(raw));
-  if (extracted.reply !== undefined || extracted.uiBlocks !== undefined) return extracted;
-  // Dirty extraction: fields individually with regex
-  const reply = extractStringField(raw, "reply");
-  const mascotState = extractStringField(raw, "mascotState") || extractStringField(raw, "mascot_state");
-  if (reply && reply.length > 3) {
-    return { reply, mascotState: mascotState || "idle", uiBlocks: [] };
-  }
-  return {};
-}
-
-function extractStringField(raw: string, field: string): string | undefined {
-  const idx = raw.toLowerCase().indexOf(`"${field.toLowerCase()}"`);
-  if (idx === -1) return undefined;
-  let start = raw.indexOf('"', idx + field.length + 2);
-  if (start === -1) return undefined;
-  start++;
-  let i = start;
-  let escaped = false;
-  while (i < raw.length) {
-    const c = raw[i];
-    if (escaped) { escaped = false; i++; continue; }
-    if (c === '\\') { escaped = true; i++; continue; }
-    if (c === '"') break;
-    i++;
-  }
-  return raw.slice(start, i);
-}
-
-function cleanReplyText(value: unknown): string {
-  return cleanText(value)
-    .replace(/\*?\s*uiBlock\s*:\s*[a-z_]+\s*\*?/gi, "")
-    .replace(/\buiBlocks?\b\s*[:=]\s*\[[\s\S]*$/i, "")
-    .replace(/\b(Hola|Gracias|Perfecto|Listo)(?=[A-ZÁÉÍÓÚÑ])/g, "$1 ")
-    .replace(/\s+/g, " ")
-    .trim();
+function timeFromText(value: string): string | undefined {
+  const match = /\b(?:a\s+las|las)\s+(\d{1,2})(?::(\d{2}))?\b/i.exec(plainLower(value));
+  if (!match) return undefined;
+  const hour = Math.max(0, Math.min(23, Number(match[1])));
+  const minute = match[2] ? Math.max(0, Math.min(59, Number(match[2]))) : 0;
+  return `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
 }
 
 async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
