@@ -1,4 +1,4 @@
-﻿import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type {
   AssistantAction,
   AssistantArtifact,
@@ -135,9 +135,9 @@ export type KoruChatTurn = {
 export const STAGE_META: Record<Stage, { label: string; meaning: string; capability: string; minEnergy: number }> = {
   semilla: { label: "Semilla", meaning: "Koru acaba de llegar", capability: "Escucha, resume y ordena", minEnergy: 0 },
   brote: { label: "Brote", meaning: "Ya te entiendo lo suficiente", capability: "Reconoce tu rutina y objetivos", minEnergy: 31 },
-  raices: { label: "RaÃ­ces", meaning: "Tengo contexto para ayudar mejor", capability: "Detecta patrones y hace follow-ups", minEnergy: 90 },
-  nacimiento: { label: "Nacimiento", meaning: "NacÃ­ para acompaÃ±arte", capability: "Proactividad fina, con tu permiso", minEnergy: 160 },
-  jardin: { label: "JardÃ­n vivo", meaning: "Tu jardÃ­n se cuida solo", capability: "Memoria editable, autonomÃ­a completa", minEnergy: 260 },
+  raices: { label: "Raíces", meaning: "Tengo contexto para ayudar mejor", capability: "Detecta patrones y hace follow-ups", minEnergy: 90 },
+  nacimiento: { label: "Nacimiento", meaning: "Nací para acompañarte", capability: "Proactividad fina, con tu permiso", minEnergy: 160 },
+  jardin: { label: "Jardín vivo", meaning: "Tu jardín se cuida solo", capability: "Memoria editable, autonomía completa", minEnergy: 260 },
 };
 
 const STAGE_ORDER: Stage[] = ["semilla", "brote", "raices", "nacimiento", "jardin"];
@@ -433,21 +433,21 @@ function domainKindToCategory(kind: string): MemoryCategory {
 
 function defaultActionSteps(kind: AssistantAction["kind"]): string[] {
   const map: Partial<Record<AssistantAction["kind"], string[]>> = {
-    day_plan: ["LeÃ­ tu pedido", "RevisÃ© pendientes", "AgrupÃ© por prioridad", "PreparÃ© una propuesta"],
-    structured_note: ["Guardado", "Clasificado", "Disponible para usar despuÃ©s"],
-    money_summary: ["RevisÃ© gastos", "CalculÃ© el total", "PreparÃ© criterio de decisiÃ³n"],
-    morning_brief: ["RevisÃ© agenda", "CrucÃ© pendientes", "SeparÃ© lo sabido de lo que falta"],
-    meeting_brief: ["RevisÃ© contexto", "AgrupÃ© temas", "PreparÃ© agenda"],
-    decision_support: ["LeÃ­ el costo", "ComparÃ© con contexto", "SeparÃ© recomendaciÃ³n de supuesto"],
-    file_bundle: ["AnalicÃ© requerimientos", "OrdenÃ© entregables", "GenerÃ© archivos", "DejÃ© revisiÃ³n lista"],
-    web_research: ["DefinÃ­ bÃºsqueda", "PreparÃ© fuentes", "OrdenÃ© opciones", "DejÃ© el siguiente paso"],
-    clarifying_question: ["RevisÃ© contexto", "DetectÃ© datos faltantes", "PreparÃ© preguntas Ãºtiles"],
-    draft_message: ["EntendÃ­ el contexto", "PreparÃ© borrador", "Lo dejÃ© para revisar"],
-    calendar_event: ["LeÃ­ horario", "PreparÃ© evento", "Espero tu visto bueno"],
-    alarm: ["LeÃ­ la hora", "PreparÃ© la alarma", "Espero tu visto bueno"],
+    day_plan: ["Leí tu pedido", "Revisé pendientes", "Agrupé por prioridad", "Preparé una propuesta"],
+    structured_note: ["Guardado", "Clasificado", "Disponible para usar después"],
+    money_summary: ["Revisé gastos", "Calculé el total", "Preparé criterio de decisión"],
+    morning_brief: ["Revisé agenda", "Crucé pendientes", "Separé lo sabido de lo que falta"],
+    meeting_brief: ["Revisé contexto", "Agrupé temas", "Preparé agenda"],
+    decision_support: ["Leí el costo", "Comparé con contexto", "Separé recomendación de supuesto"],
+    file_bundle: ["Analicé requerimientos", "Ordené entregables", "Generé archivos", "Dejé revisión lista"],
+    web_research: ["Definí búsqueda", "Preparé fuentes", "Ordené opciones", "Dejé el siguiente paso"],
+    clarifying_question: ["Revisé contexto", "Detecté datos faltantes", "Preparé preguntas útiles"],
+    draft_message: ["Entendí el contexto", "Preparé borrador", "Lo dejé para revisar"],
+    calendar_event: ["Leí horario", "Preparé evento", "Espero tu visto bueno"],
+    alarm: ["Leí la hora", "Preparé la alarma", "Espero tu visto bueno"],
     reminder: ["Detecte pendiente", "Lo deje visible", "Espero tu visto bueno"],
-    restock_note: ["RevisÃ© pedido", "PreparÃ© nota", "Espero tu visto bueno"],
-    daily_brief: ["OrdenÃ© lo importante", "Reduje el ruido", "PreparÃ© un cierre"],
+    restock_note: ["Revisé pedido", "Preparé nota", "Espero tu visto bueno"],
+    daily_brief: ["Ordené lo importante", "Reduje el ruido", "Preparé un cierre"],
   };
   return map[kind] ?? ["Entendi el pedido", "Prepare una respuesta concreta", "Deje el siguiente paso visible"];
 }
@@ -458,8 +458,8 @@ function actionLabels(kind: AssistantAction["kind"]): { tag: string; approve: st
     structured_note: { tag: "Guardado", approve: "Entendido", reject: "Soltar" },
     money_summary: { tag: "Dinero", approve: "Usar resumen", reject: "Soltar" },
     morning_brief: { tag: "Brief", approve: "Usar brief", reject: "Soltar" },
-    meeting_brief: { tag: "ReuniÃ³n", approve: "Usar brief", reject: "Soltar" },
-    decision_support: { tag: "DecisiÃ³n", approve: "Usar criterio", reject: "Soltar" },
+    meeting_brief: { tag: "Reunión", approve: "Usar brief", reject: "Soltar" },
+    decision_support: { tag: "Decisión", approve: "Usar criterio", reject: "Soltar" },
     file_bundle: { tag: "Archivos", approve: "Preparar archivos", reject: "Soltar" },
     web_research: { tag: "Fuentes", approve: "Preparar busqueda", reject: "Soltar" },
     clarifying_question: { tag: "Pregunta", approve: "Responder", reject: "Soltar" },
@@ -1126,13 +1126,13 @@ export function KoruProvider({ children }: { children: ReactNode }) {
         text: m.text,
         status: domainStatusToMemoryStatus(m),
         category: domainKindToCategory(m.kind),
-        origin: m.rootQuote || "ExtraÃ­do de tu conversaciÃ³n reciente.",
+        origin: m.rootQuote || "Extraído de tu conversación reciente.",
         useForSuggestions: m.useForSuggestions !== false,
         savedOn: m.status === "confirmed" && m.confirmedAt
-          ? `Confirmado Â· ${new Date(m.confirmedAt).toLocaleDateString("es", { day: "2-digit", month: "short" })}`
+          ? `Confirmado · ${new Date(m.confirmedAt).toLocaleDateString("es", { day: "2-digit", month: "short" })}`
           : m.status === "candidate"
-            ? "Por confirmar Â· pendiente"
-            : `Reciente Â· ${new Date(m.createdAt).toLocaleDateString("es", { day: "2-digit", month: "short" })}`,
+            ? "Por confirmar · pendiente"
+            : `Reciente · ${new Date(m.createdAt).toLocaleDateString("es", { day: "2-digit", month: "short" })}`,
       })),
   [domainState.memories]);
 
@@ -1171,9 +1171,9 @@ export function KoruProvider({ children }: { children: ReactNode }) {
       enabled: domainState.durableMemoryEnabled && !domainState.ephemeralMode,
     },
     { id: "perm2", title: "Check-ins suaves", description: "Recordatorios proactivos en horas activas.", enabled: domainState.heartbeat.enabled },
-    { id: "perm3", title: "Acciones autÃ³nomas", description: "Preparar borradores y eventos (requiere aprobaciÃ³n).", enabled: domainState.actionPreparationEnabled },
-    { id: "perm-world", title: "Radar del mundo", description: "Traer seÃ±ales recientes cuando puedan servirte.", enabled: domainState.worldSignalsEnabled },
-    { id: "perm4", title: "Modo efÃ­mero", description: "No guardar memoria de esta sesiÃ³n.", enabled: domainState.ephemeralMode },
+    { id: "perm3", title: "Acciones autónomas", description: "Preparar borradores y eventos (requiere aprobación).", enabled: domainState.actionPreparationEnabled },
+    { id: "perm-world", title: "Radar del mundo", description: "Traer señales recientes cuando puedan servirte.", enabled: domainState.worldSignalsEnabled },
+    { id: "perm4", title: "Modo efímero", description: "No guardar memoria de esta sesión.", enabled: domainState.ephemeralMode },
   ], [domainState.actionPreparationEnabled, domainState.durableMemoryEnabled, domainState.ephemeralMode, domainState.heartbeat.enabled, domainState.worldSignalsEnabled]);
 
   function completeOnboarding(name: string, facts: string[] = []) {
@@ -1422,7 +1422,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
             status: "working" as const,
             mascotState: chunk.mascotState ?? "working",
           };
-          koruTurn.items.forEach((it) => { if (it.uiBlock?.type) streamedItemsByType.set(it.uiBlock.type, it); });
+          (koruTurn.items ?? []).forEach((it) => { if (it.uiBlock?.type) streamedItemsByType.set(it.uiBlock.type, it); });
           commitChatTurns((prev) => [...prev, koruTurn].slice(-120));
         } else {
           const isDone = chunk.stateEvents?.some((e) => e.kind === "done");
@@ -1607,7 +1607,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
       if (autoWebAction) {
         window.setTimeout(() => runReadonlyWebAction(autoWebAction), 0);
       }
-      return koruTurn;
+      return koruTurn ?? null;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Fallo desconocido del agente.";
       const errorTurn: KoruChatTurn = {
