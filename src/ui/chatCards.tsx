@@ -1,12 +1,9 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   BookOpen,
   CalendarDays,
   Check,
-  CloudSun,
-  Clock,
   Circle,
-  DollarSign,
   ExternalLink,
   FileSpreadsheet,
   FileText,
@@ -16,15 +13,9 @@ import {
   Mail,
   MoveRight,
   PiggyBank,
-  Pill,
   SearchCheck,
-  ShoppingBasket,
   Sparkles,
   Stethoscope,
-  Sun,
-  Truck,
-  Users,
-  Waypoints,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -44,7 +35,6 @@ import { ActivityGroupCard } from "./cards/ActivityGroupCard";
 import { ResourceBundleCard } from "./cards/ResourceBundleCard";
 import { ClarifyingQuestionCard } from "./cards/ClarifyingQuestionCard";
 import { ComparisonCard } from "./cards/ComparisonCard";
-import { DecisionSupportCard } from "./cards/DecisionSupportCard";
 import { MorningBriefCard } from "./cards/MorningBriefCard";
 import { WellbeingCard } from "./cards/WellbeingCard";
 import { MatchTimelineCard } from "./cards/MatchTimelineCard";
@@ -113,36 +103,12 @@ function planIcon(icon: AssistantPlanItem["icon"], index: number): LucideIcon {
   return index === 1 ? BookOpen : index === 2 ? MoveRight : Flag;
 }
 
-function signalIcon(category: string): LucideIcon {
-  if (category === "weather") return CloudSun;
-  if (category === "traffic") return Waypoints;
-  if (category === "market") return DollarSign;
-  if (category === "health") return Pill;
-  if (category === "relationship") return Users;
-  if (category === "home" || category === "package") return Truck;
-  if (category === "news" || category === "world") return SearchCheck;
-  return Sparkles;
-}
-
 function recordDisplay(record: NonNullable<KoruTurnItem["records"]>[number]): string {
   if (record.kind === "expense" && record.amount) {
     return `${record.amount}${record.currency ? ` ${record.currency}` : ""}`;
   }
   if (record.value) return `${record.title}: ${record.value}`;
   return record.title;
-}
-
-function recordDetail(record: NonNullable<KoruTurnItem["records"]>[number]): string {
-  if (record.collection && record.kind !== "shopping_item") return record.collection;
-  if (record.kind === "expense") return record.title || record.value || "Gasto";
-  if (record.kind === "shopping_item") return record.dueHint ?? "Compras";
-  if (record.kind === "medication") return record.dueHint ?? "Salud";
-  if (record.kind === "meeting_note") return record.person ? `Reunion con ${record.person}` : "Reunion";
-  if (record.kind === "person_followup") return record.person ? `Seguimiento con ${record.person}` : "Seguimiento";
-  if (record.kind === "deadline") return record.dueHint ?? "Deadline";
-  if (record.kind === "meal_inventory") return "Comida en casa";
-  if (record.kind === "tool_link") return record.url ?? record.collection ?? "Herramienta";
-  return record.value && record.value !== record.title ? record.value : record.kind.replace(/_/g, " ");
 }
 
 function savedRecordTitle(records: NonNullable<KoruTurnItem["records"]>): string {
@@ -155,23 +121,6 @@ function savedRecordTitle(records: NonNullable<KoruTurnItem["records"]>): string
   if (record.kind === "person_followup") return "Seguimiento guardado";
   if (record.kind === "meal_inventory") return "Comida guardada";
   return "Dato guardado";
-}
-
-function cleanLabel(value?: string): string | undefined {
-  const trimmed = value?.trim();
-  return trimmed ? trimmed : undefined;
-}
-
-function joinParts(parts: Array<string | number | undefined | null>): string {
-  return parts
-    .map((part) => (part === undefined || part === null ? "" : String(part).trim()))
-    .filter(Boolean)
-    .join(" - ");
-}
-
-function moneyLabel(amount?: number, currency?: string): string | undefined {
-  if (amount === undefined) return undefined;
-  return `${amount}${currency ? ` ${currency}` : ""}`;
 }
 
 function firstClockText(...values: Array<string | undefined>): string | undefined {
@@ -328,33 +277,6 @@ function stitchBlockFromLegacyItem(item: KoruTurnItem): UiBlock | undefined {
 
   return undefined;
 }
-
-function statusLabel(status?: KoruTurnItem["externalStatus"]): string {
-  if (status === "verified") return "Fuentes verificadas";
-  if (status === "partial") return "Resultados parciales";
-  if (status === "failed") return "No se pudo navegar";
-  if (status === "not_configured") return "Sin conector completo";
-  return "Fuentes";
-}
-
-function recordKindLabel(kind: string): string {
-  return kind.replace(/_/g, " ");
-}
-
-function uniqueLabels(values: Array<string | undefined>): string[] {
-  const seen = new Set<string>();
-  return values
-    .map(cleanLabel)
-    .filter((value): value is string => Boolean(value))
-    .filter((value) => {
-      const key = value.toLowerCase();
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-}
-
-
 
 
 
@@ -527,7 +449,7 @@ function DecisionCard({ item }: { item: KoruTurnItem }) {
 function RecordsModule({ item }: { item: KoruTurnItem }) {
   if (!item.records?.length) return null;
   if (item.actionKind === "structured_note") {
-    return <SavedRecordCard block={{ type: "saved_record", records: item.records as any, title: item.title }} />;
+    return <SavedRecordCard block={{ type: "saved_record", records: item.records as any, title: item.text }} />;
   }
   const listRecords = item.records.filter((record) =>
     ["shopping_item", "idea", "home_task", "person_followup", "deadline"].includes(record.kind),
