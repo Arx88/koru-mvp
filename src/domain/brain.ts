@@ -1150,6 +1150,10 @@ function simpleRecordReply(record: Omit<LifeRecord, "id" | "createdAt" | "source
   return `Guardado: ${record.value ?? record.title}.`;
 }
 
+/**
+ * @deprecated Use the backend agent flow via KoruProvider/sendMessage instead.
+ * Kept for tests and legacy callers.
+ */
 export async function analyzeReflection(
   input: string,
   state: KoruState,

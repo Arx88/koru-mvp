@@ -1,4 +1,6 @@
 import { analyzeReflection } from "./brain";
+// analyzeReflection/submitReflection are kept for tests and legacy callers.
+// New code should use the backend agent flow via KoruProvider/sendMessage.
 import { executeApprovedAction } from "./actions";
 import { commitmentIdentityKey, mergeDueHint, uniqueCommitmentList } from "./commitments";
 import { createDefaultRuntimeSettings, runFreeLlmEmbedding } from "./freellmapi";
@@ -202,6 +204,10 @@ export function stageFor(state: Pick<KoruState, "trustedEnergy" | "memories" | "
   return "seed";
 }
 
+/**
+ * @deprecated Use the backend agent flow via KoruProvider.sendMessage instead.
+ * Kept for tests and legacy callers.
+ */
 export async function submitReflection(
   state: KoruState,
   text: string,
