@@ -491,7 +491,7 @@ async function callProvider(
 
   if (preferredProvider === "nvidia" && nvidiaAvailable) {
     try {
-      const result = await callNvidia(config, messages, Math.min(isOllama ? 90_000 : 20_000, timeoutMs), toolsEnabled, availableTools);
+      const result = await callNvidia(config, messages, Math.min(isOllama ? 90_000 : 45_000, timeoutMs), toolsEnabled, availableTools);
       if (providerResultIsValid(result)) return result;
       logger.warn("callProvider", "Preferred NVIDIA responded but invalid, falling back");
     } catch (err: any) {
@@ -526,7 +526,7 @@ async function callProvider(
   // Si el usuario eligió OpenRouter, saltamos NVIDIA en el flujo normal
   if (!preferredProvider || preferredProvider !== "openrouter") {
     try {
-      const result = await callNvidia(config, messages, Math.min(isOllama ? 90_000 : 20_000, timeoutMs), toolsEnabled, availableTools);
+      const result = await callNvidia(config, messages, Math.min(isOllama ? 90_000 : 45_000, timeoutMs), toolsEnabled, availableTools);
       if (providerResultIsValid(result)) return result;
       logger.warn("callProvider", "NVIDIA responded but invalid, falling back");
     } catch (err: any) {
