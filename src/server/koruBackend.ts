@@ -21,6 +21,8 @@ import { detectSimulatedToolCall } from "../domain/simulatedToolDetector";
 import { SemanticRouter, type EmbedFn, type RouteCategory } from "../domain/semanticRouter";
 import { logger, dump } from "./logger";
 import type { ToolDefinition } from "../tools/types";
+import type { ProviderConfig, ChatMessage, ProviderResult, ProviderToolCall } from "./providers/types";
+export type { ProviderConfig, ChatMessage, ProviderMessage, ProviderResult, ProviderToolCall } from "./providers/types";
 import {
   asArray,
   asRecord,
@@ -31,17 +33,18 @@ import {
   safeJsonObjectFromContent,
   safeJsonParse,
 } from "./json";
-
-export type ProviderConfig = {
-  nvidiaApiKey?: string;
-  nvidiaBaseUrl: string;
-  nvidiaModel: string;
-  openRouterKeys: string[];
-  openRouterModels: string[];
-  minimaxAccessToken?: string;
-  /** URL de Ollama para embeddings del Semantic Router (nomic-embed-text). */
-  ollamaEmbedBaseUrl?: string;
-};
+import {
+  callMinimax,
+  callNvidia,
+  callOpenRouter,
+  fetchWithTimeout,
+  inferProviderFromModel,
+  isOllamaUrl,
+  isRateLimitError,
+  providerResultIsValid,
+  providerUrl,
+  RateLimitError,
+} from "./providers";
 
 export type KoruBackendTurnRequest = {
   input: string;
@@ -83,35 +86,6 @@ export type KoruBackendTurnResponse = {
   mascotState?: MascotState;
   skippedBecauseBoundary?: string[];
   behaviorNotes?: string[];
-};
-
-type ChatRole = "system" | "user" | "assistant" | "tool";
-
-type ChatMessage = {
-  role: ChatRole;
-  content?: string;
-  tool_call_id?: string;
-  tool_calls?: ProviderToolCall[];
-};
-
-type ProviderToolCall = {
-  id: string;
-  type: "function";
-  function: {
-    name: string;
-    arguments: string;
-  };
-};
-
-type ProviderMessage = {
-  content?: string | null;
-  tool_calls?: ProviderToolCall[];
-};
-
-type ProviderResult = {
-  provider: "nvidia" | "openrouter" | "minimax";
-  model?: string;
-  message: ProviderMessage;
 };
 
 type ToolExecution = {
@@ -185,7 +159,7 @@ type MemoryCaptureData = {
 // solo ahora "conoce" más tools. Añadir tools = añadirlas en src/tools/.
 import { ALL_TOOL_DEFINITIONS as EXTERNAL_TOOL_DEFINITIONS, TOOL_BOX } from "../tools/toolbox";
 
-const TOOL_DEFINITIONS = [
+export const TOOL_DEFINITIONS = [
   {
     type: "function",
     function: {
@@ -392,7 +366,7 @@ const TOOL_DEFINITIONS = [
  * El motor referencia ALL_TOOL_DEFINITIONS en callProvider/callNvidia/etc.
  * Así cualquier tool añadida en src/tools/ queda disponible sin tocar más nada.
  */
-const ALL_TOOL_DEFINITIONS = [
+export const ALL_TOOL_DEFINITIONS = [
   ...TOOL_DEFINITIONS,
   ...EXTERNAL_TOOL_DEFINITIONS,
 ];
@@ -466,20 +440,6 @@ function timeFromText(value: string): string | undefined {
   return `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
 }
 
-async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url, { ...init, signal: controller.signal });
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-function providerUrl(baseUrl: string, path: string): string {
-  return `${baseUrl.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
-}
-
 function formatCompactNumber(value: unknown, currency = "USD"): string {
   const n = Number(value);
   if (!Number.isFinite(n)) return "—";
@@ -496,239 +456,10 @@ function formatCompactNumber(value: unknown, currency = "USD"): string {
   return `${sign}${formatted} ${suffixes[i]} ${currency}`;
 }
 
-function hasUsableAssistantMessage(data: unknown): boolean {
+export function hasUsableAssistantMessage(data: unknown): boolean {
   const choice = asRecord(asArray(asRecord(data).choices)[0]);
   const message = asRecord(choice.message);
   return Boolean(asString(message.content) || asString(message.reasoning) || asArray(message.tool_calls).length);
-}
-
-async function callMinimax(
-  config: ProviderConfig,
-  messages: ChatMessage[],
-  timeoutMs: number,
-  toolsEnabled = true,
-): Promise<ProviderResult> {
-  const accessToken = config.minimaxAccessToken;
-  if (!accessToken) throw new Error("MiniMax access token not configured");
-  logger.info("callMinimax", "Requesting MiniMax", { model: "MiniMax-M2.7", msgCount: messages.length, toolsEnabled });
-  const minimaxMessages = messages.map((m) => {
-    if (m.role === "tool") {
-      let content = m.content ?? "";
-      try {
-        const data = JSON.parse(content);
-        if (data.type === "search" && Array.isArray(data.sources)) {
-          const formatted = data.sources
-            .map((s: any, i: number) => {
-              const text = s.content || s.snippet || "";
-              return `${i + 1}. ${s.title} (${s.domain})\n${text}`;
-            })
-            .filter((s: string) => s.trim().length > 3)
-            .join("\n\n");
-          content = formatted || `Búsqueda: ${data.title || ""}`;
-        } else if (data.type === "weather") {
-          content = `Clima - Ciudad: ${data.city || "?"}, Ahora: ${data.now || "?"}, Rango: ${data.range || "?"}, Lluvia: ${data.rain || "?"}, Viento: ${data.wind || "?"}`;
-        }
-      } catch {
-        // mantener contenido original si no es JSON
-      }
-      return { role: "user" as const, content: `Resultado de herramienta (${m.tool_call_id ?? "unknown"}):\n${content}` };
-    }
-    if (m.role === "assistant" && m.tool_calls) {
-      return {
-        role: "assistant" as const,
-        content: m.content ?? `Voy a usar herramientas: ${m.tool_calls.map((t) => t.function.name).join(", ")}`,
-      };
-    }
-    return { role: m.role, content: m.content ?? "" };
-  });
-  const response = await fetchWithTimeout("https://api.minimax.io/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify({
-      model: "MiniMax-M2.7",
-      messages: minimaxMessages,
-      ...(toolsEnabled ? { tools: ALL_TOOL_DEFINITIONS, tool_choice: "auto" } : {}),
-      temperature: 0.25,
-      top_p: 0.95,
-      max_tokens: 8192,
-      stream: false,
-      reasoning_split: true,
-    }),
-  }, timeoutMs);
-  const data = await response.json().catch(() => ({}));
-  const choice = asRecord(asArray(asRecord(data).choices)[0]);
-  const assistantMsg = asRecord(choice.message);
-  const content = asString(assistantMsg.content) ?? "";
-  const toolCalls = asArray(assistantMsg.tool_calls);
-  const reasoningContent = asString(assistantMsg.reasoning_content) ?? "";
-  logger.info("callMinimax", `Response HTTP ${response.status}`, { contentPreview: content.slice(0, 500), reasoningPreview: reasoningContent.slice(0, 200), hasTools: toolCalls.length > 0, usage: dump(data.usage, 300) });
-  if (!response.ok || !hasUsableAssistantMessage(data)) {
-    logger.error("callMinimax", `MiniMax returned ${response.status}`, { body: dump(data, 1000) });
-    throw new Error(`MiniMax returned ${response.status}`);
-  }
-  return {
-    provider: "minimax",
-    model: asString(asRecord(data).model) ?? "MiniMax-M2.7",
-    message: assistantMsg as ProviderMessage,
-  };
-}
-
-async function callNvidia(
-  config: ProviderConfig,
-  messages: ChatMessage[],
-  timeoutMs: number,
-  toolsEnabled = true,
-  availableTools?: ToolDefinition[],
-): Promise<ProviderResult> {
-  const isOllama = config.nvidiaBaseUrl.includes(":11434") || config.nvidiaBaseUrl.includes("ollama");
-  if (isOllama) {
-    const body: Record<string, unknown> = {
-      model: config.nvidiaModel,
-      messages: messages.map((m) => ({ role: m.role, content: m.content ?? "" })),
-      ...(toolsEnabled ? {} : { format: "json" }),
-      options: { temperature: 0.0, top_p: 0.95, num_predict: 8192 },
-      stream: false,
-    };
-    if (toolsEnabled) {
-      body.tools = availableTools ?? ALL_TOOL_DEFINITIONS;
-    }
-    const response = await fetchWithTimeout(providerUrl(config.nvidiaBaseUrl, "/api/chat"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    }, timeoutMs);
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok || !data.message) {
-      throw new Error(`Ollama returned ${response.status}`);
-    }
-    const msg = asRecord(data.message);
-    const rawToolCalls = asArray(msg.tool_calls);
-    const toolCalls = rawToolCalls.map((tc, index) => {
-      const t = asRecord(tc);
-      const fn = asRecord(t.function);
-      return {
-        id: asString(t.id) || `call_${Date.now()}_${index}`,
-        type: asString(t.type) || "function",
-        function: {
-          name: cleanText(fn.name),
-          arguments: typeof fn.arguments === "string" ? fn.arguments : JSON.stringify(fn.arguments),
-        },
-      };
-    });
-    return {
-      provider: "nvidia",
-      model: asString(data.model) ?? config.nvidiaModel,
-      message: {
-        role: asString(msg.role) ?? "assistant",
-        content: asString(msg.content),
-        tool_calls: toolCalls,
-      } as ProviderMessage,
-    };
-  }
-
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    Accept: "application/json",
-  };
-  if (config.nvidiaApiKey && config.nvidiaApiKey !== "dummy") {
-    headers.Authorization = `Bearer ${config.nvidiaApiKey}`;
-  }
-  const body: Record<string, unknown> = {
-    model: config.nvidiaModel,
-    messages,
-    ...(toolsEnabled ? { tools: availableTools ?? TOOL_DEFINITIONS, tool_choice: "auto" } : {}),
-    temperature: 0.25,
-    top_p: 0.95,
-    max_tokens: 8192,
-    stream: false,
-  };
-  const response = await fetchWithTimeout(providerUrl(config.nvidiaBaseUrl, "/v1/chat/completions"), {
-    method: "POST",
-    headers,
-    body: JSON.stringify(body),
-  }, timeoutMs);
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok || !hasUsableAssistantMessage(data)) {
-    throw new Error(`NVIDIA returned ${response.status}`);
-  }
-  const choice = asRecord(asArray(asRecord(data).choices)[0]);
-  return {
-    provider: "nvidia",
-    model: asString(asRecord(data).model) ?? config.nvidiaModel,
-    message: asRecord(choice.message) as ProviderMessage,
-  };
-}
-
-async function callOpenRouterCandidate(
-  key: string,
-  model: string,
-  messages: ChatMessage[],
-  timeoutMs: number,
-  toolsEnabled = true,
-): Promise<ProviderResult> {
-  const response = await fetchWithTimeout("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-      "HTTP-Referer": "http://localhost:5173",
-      "X-OpenRouter-Title": "Koru Agent Loop",
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      ...(toolsEnabled ? { tools: ALL_TOOL_DEFINITIONS, tool_choice: "auto" } : {}),
-      temperature: 0.25,
-      max_tokens: 8192,
-      stream: false,
-      response_format: { type: "json_object" },
-    }),
-  }, timeoutMs);
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok || !hasUsableAssistantMessage(data)) {
-    // eslint-disable-next-line no-console
-    throw new Error(`OpenRouter ${model} returned ${response.status}`);
-  }
-  const choice = asRecord(asArray(asRecord(data).choices)[0]);
-  return {
-    provider: "openrouter",
-    model: asString(asRecord(data).model) ?? model,
-    message: asRecord(choice.message) as ProviderMessage,
-  };
-}
-
-async function callOpenRouter(config: ProviderConfig, messages: ChatMessage[], timeoutMs: number, toolsEnabled = true): Promise<ProviderResult> {
-  const candidates = config.openRouterKeys
-    .slice(0, 3)
-    .flatMap((key) => config.openRouterModels.slice(0, 3).map((model) => ({ key, model })));
-  if (!candidates.length) throw new Error("OpenRouter fallback is not configured.");
-  return Promise.any(candidates.map((candidate) => callOpenRouterCandidate(candidate.key, candidate.model, messages, timeoutMs, toolsEnabled)));
-}
-
-function providerResultIsValid(result: ProviderResult): boolean {
-  const content = result.message?.content ?? "";
-  const trimmed = content.trim();
-  const hasTools = asArray(result.message?.tool_calls).length > 0;
-  const hasContent = trimmed.length > 0;
-  return hasContent || hasTools;
-}
-
-function isOllamaUrl(baseUrl: string): boolean {
-  return baseUrl.includes(":11434") || baseUrl.includes("ollama");
-}
-
-function inferProviderFromModel(model: string | undefined): "minimax" | "nvidia" | "openrouter" | undefined {
-  if (!model) return undefined;
-  if (model === "MiniMax-M2.7") return "minimax";
-  if (model.startsWith("hf.co/")) return "nvidia"; // HuggingFace models served by Ollama
-  if (!model.includes("/")) return "nvidia"; // Ollama tags without namespace, e.g. qwen3.6:27b, llama3.1:8b
-  if (model.startsWith("nvidia/") && !model.includes(":")) return "nvidia"; // NVIDIA API models
-  if (model.includes("/") && model.includes(":")) return "openrouter"; // OpenRouter free models (e.g. openai/gpt-oss-120b:free)
-  return undefined;
 }
 
 async function callProvider(
@@ -809,17 +540,6 @@ async function callProvider(
   throw new Error("Ningún proveedor de IA respondió. Verificá la conexión o las credenciales.");
 }
 
-class RateLimitError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "RateLimitError";
-  }
-}
-
-function isRateLimitError(error: unknown): boolean {
-  const msg = String(error instanceof Error ? error.message : error).toLowerCase();
-  return msg.includes("429") || msg.includes("rate limit") || msg.includes("too many requests") || msg.includes("quota") || msg.includes("free-models-per-day");
-}
 
 function sourceFromUrl(title: string, url: string, snippet?: string): AssistantSource {
   let domain = "fuente externa";
