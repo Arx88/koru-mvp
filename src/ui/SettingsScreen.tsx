@@ -31,7 +31,7 @@ export function SettingsScreen() {
   }, []);
 
   function handleChange(modelId: string) {
-    setSelectedModel(modelId || null);
+    setSelectedModel(modelId ?? "");
     if (modelId) {
       localStorage.setItem("koru.selected-model", modelId);
     } else {
