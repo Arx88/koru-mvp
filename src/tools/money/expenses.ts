@@ -25,7 +25,7 @@ export const expenseTrack: ToolHandler = {
     },
   ),
   policy: policies.localWrite("Guarda gasto del usuario."),
-  async run(args, ctx: ToolRunContext) {
+  async run(args, _ctx: ToolRunContext) {
     const title = String(args.title ?? "").trim();
     const amount = Number(args.amount);
     const currency = String(args.currency ?? "EUR").toUpperCase().trim();

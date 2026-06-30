@@ -4,13 +4,11 @@
  * Sub-grupo de "Docs/Productividad".
  */
 
-import { defineTool, policies, type ToolHandler, type ToolRunContext } from "../types";
+import { defineTool, policies, type ToolHandler } from "../types";
 import { fetchJson } from "../shared/fetcher";
 import { cached, ttls } from "../shared/cache";
-import { limiters } from "../shared/rateLimiter";
 import { searchAndEnrich, usableSources } from "../shared/scrapers";
 import { validateWithCitations, extractionToDataCard } from "../shared/extractor";
-import type { AssistantArtifact } from "../../domain/types";
 
 // ─── summarize_url ───────────────────────────────────────────────────────────
 export const summarizeUrl: ToolHandler = {
@@ -36,7 +34,7 @@ export const summarizeUrl: ToolHandler = {
     }
     const sources = usableSources(await searchAndEnrich(url, 1));
     let dataCard = null;
-    try { dataCard = extractionToDataCard(await validateWithCitations(args.focus ?? "resumen", sources, ctx.chatFn)); } catch {}
+    try { dataCard = extractionToDataCard(await validateWithCitations(String(args.focus ?? "resumen"), sources, ctx.chatFn)); } catch {}
     return { type: "summarize_url", status: "ok", url, sources, dataCard };
   },
 };
@@ -369,7 +367,7 @@ export const sunriseSunset: ToolHandler = {
       if (date) params.set("date", date);
       const r = await fetchJson(`https://api.sunrise-sunset.org/json?${params.toString()}`, { timeoutMs: 8_000 });
       if (!r.ok) throw new Error(r.error);
-      return r.data;
+      return r.data as { results?: { sunrise?: string; sunset?: string; solar_noon?: string; day_length?: number } };
     });
     return { type: "sunrise_sunset", status: "ok", lat, lng, date: date || "hoy", sunrise: data.results?.sunrise, sunset: data.results?.sunset, solarNoon: data.results?.solar_noon, dayLengthSec: data.results?.day_length };
   },
@@ -393,7 +391,7 @@ export const moonPhase: ToolHandler = {
   async run(args) {
     // Cálculo simplificado (fórmula de Conway): días desde luna nueva de referencia 2000-01-06 18:14 UTC.
     const ref = new Date("2000-01-06T18:14:00Z").getTime();
-    const target = args.date ? new Date(args.date).getTime() : Date.now();
+    const target = args.date ? new Date(String(args.date)).getTime() : Date.now();
     if (Number.isNaN(target)) return { type: "moon_phase", status: "failed", error: "Fecha inválida." };
     const synodic = 29.530588853;
     const days = (target - ref) / (24 * 60 * 60 * 1000);

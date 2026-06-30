@@ -16,9 +16,9 @@ import { VALID_MASCOT_STATES } from "../domain/types";
 import { selectRelevantMemories } from "../domain/store";
 import { generateEnhancements, enhancementPrompt } from "../domain/enhancementEngine";
 import { extractOpportunities } from "../domain/enhancementExtractor";
-import { extractStructuredData, type ChatFn as ExtractorChatFn, type ExtractionResult } from "../domain/structureExtractor";
+import { extractStructuredData, type ChatFn as ExtractorChatFn } from "../domain/structureExtractor";
 import { detectSimulatedToolCall } from "../domain/simulatedToolDetector";
-import { SemanticRouter, type EmbedFn, type RouteResult, type RouteCategory } from "../domain/semanticRouter";
+import { SemanticRouter, type EmbedFn, type RouteCategory } from "../domain/semanticRouter";
 import { logger, dump } from "./logger";
 import type { ToolDefinition } from "../tools/types";
 
@@ -550,14 +550,24 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: numbe
   }
 }
 
-function wait(ms: number): Promise<"timeout"> {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve("timeout"), ms);
-  });
-}
-
 function providerUrl(baseUrl: string, path: string): string {
   return `${baseUrl.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
+}
+
+function formatCompactNumber(value: unknown, currency = "USD"): string {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "—";
+  const abs = Math.abs(n);
+  const suffixes = ["", "K", "M", "B", "T"];
+  const sign = n < 0 ? "-" : "";
+  let scaled = abs;
+  let i = 0;
+  while (scaled >= 1000 && i < suffixes.length - 1) {
+    scaled /= 1000;
+    i++;
+  }
+  const formatted = scaled < 10 ? scaled.toFixed(2) : scaled < 100 ? scaled.toFixed(1) : Math.round(scaled).toString();
+  return `${sign}${formatted} ${suffixes[i]} ${currency}`;
 }
 
 function hasUsableAssistantMessage(data: unknown): boolean {
@@ -1728,10 +1738,11 @@ export function personalCaptureFromArgs(args: Record<string, unknown>, input = "
       block: {
         type: "social_interaction",
         name: personName,
-        event: cleanText(cleanArgs.event, "Cumpleaños"),
         date: dueText || "12 jul",
         remaining: cleanText(cleanArgs.remaining, "Faltan 8 días"),
-        gifts: asArray(cleanArgs.gifts).map((g) => cleanText(g)).filter(Boolean) || ["Regalo pendiente"],
+        gifts: (asArray(cleanArgs.gifts).map((g) => cleanText(g)).filter(Boolean).length
+          ? asArray(cleanArgs.gifts).map((g) => ({ emoji: "🎁", title: cleanText(g), detail: "" }))
+          : [{ emoji: "🎁", title: "Regalo pendiente", detail: "" }]),
       },
       records: [{ ...baseRecord, title: `Evento social: ${personName}`, kind: "person_followup" }],
       memoryCandidates,
@@ -2364,8 +2375,13 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
       blocks.push({
         type: "market" as const,
         title: `${r.symbol}`,
-        subtitle: `Cierre: ${r.close}`,
-        change: r.change24hPct ? `${r.change24hPct >= 0 ? "▲" : "▼"} ${Math.abs(r.change24hPct)}%` : "—",
+        assets: [{
+          symbol: String(r.symbol ?? ""),
+          name: String(r.name ?? r.symbol ?? ""),
+          price: String(r.close ?? ""),
+          change: r.change24hPct ? `${r.change24hPct >= 0 ? "▲" : "▼"} ${Math.abs(r.change24hPct)}%` : "—",
+          changeUp: r.change24hPct >= 0,
+        }],
       });
       continue;
     }
@@ -2401,18 +2417,23 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
       const r = result as any;
       blocks.push({
         type: "live_match" as const,
-        homeName: r.homeName ?? r.homeTeam?.name ?? "Local",
-        awayName: r.awayName ?? r.awayTeam?.name ?? "Visitante",
-        homeScore: r.homeScore ?? r.homeTeam?.score ?? 0,
-        awayScore: r.awayScore ?? r.awayTeam?.score ?? 0,
-        homeInitials: r.homeInitials ?? r.homeTeam?.abbrev ?? "LOC",
-        awayInitials: r.awayInitials ?? r.awayTeam?.abbrev ?? "VIS",
-        minute: r.minute ?? "90'",
-        globalAgg: r.globalAgg ?? r.globalStatus ?? "",
-        homePossession: r.homePossession ?? "50%",
-        awayPossession: r.awayPossession ?? "50%",
-        homeShots: r.homeShots ?? "0",
-        awayShots: r.awayShots ?? "0",
+        league: r.league ?? "",
+        time: r.minute ?? "90'",
+        status: r.globalAgg ?? r.globalStatus ?? "",
+        homeTeam: {
+          name: r.homeName ?? r.homeTeam?.name ?? "Local",
+          abbrev: r.homeInitials ?? r.homeTeam?.abbrev ?? "LOC",
+          score: r.homeScore ?? r.homeTeam?.score ?? 0,
+        },
+        awayTeam: {
+          name: r.awayName ?? r.awayTeam?.name ?? "Visitante",
+          abbrev: r.awayInitials ?? r.awayTeam?.abbrev ?? "VIS",
+          score: r.awayScore ?? r.awayTeam?.score ?? 0,
+        },
+        stats: [
+          { label: "Posesión", leftPercent: Number(String(r.homePossession ?? "50").replace(/[^0-9.]/g, "")) || 50, rightPercent: Number(String(r.awayPossession ?? "50").replace(/[^0-9.]/g, "")) || 50 },
+          { label: "Tiros", leftPercent: Number(String(r.homeShots ?? "0").replace(/[^0-9.]/g, "")) || 0, rightPercent: Number(String(r.awayShots ?? "0").replace(/[^0-9.]/g, "")) || 0 },
+        ],
       });
       continue;
     }
@@ -2445,22 +2466,6 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
     }
     if (result.type === "search") {
       const search = result as SearchData;
-      // Datos estructurados validados: se muestran PRIMERO (mayor valor visual).
-      // Cada item viene con cita literal respaldada por un source real → cero alucinación.
-      if (search.extractedData && search.extractedData.items.length > 0) {
-        blocks.push({
-          type: "data_card" as const,
-          title: search.extractedData.title,
-          items: search.extractedData.items.map((item) => ({
-            label: item.label,
-            value: item.value,
-            detail: item.detail,
-            quote: item.quote,
-            sourceUrl: item.sourceUrl,
-            sourceDomain: item.sourceDomain,
-          })),
-        });
-      }
       if (search.mode === "shopping" && search.comparisonItems?.length) {
         blocks.push({
           type: "comparison" as const,
@@ -2647,9 +2652,11 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
       const r = result as any;
       blocks.push({
         type: "product_analysis" as const,
-        title: r.title,
-        subtitle: r.subtitle,
-        icon: r.icon,
+        product: {
+          name: r.title,
+          description: r.subtitle,
+          icon: r.icon,
+        },
         specs: r.specs || [],
       });
       continue;
@@ -2731,7 +2738,6 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
       blocks.push({
         type: "social_interaction" as const,
         name: r.name,
-        event: r.event,
         date: r.date,
         remaining: r.remaining,
         gifts: r.gifts || [],

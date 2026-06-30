@@ -182,10 +182,8 @@ describe("runKoruBackendTurn conversational flow", () => {
     expect(blocks.length).toBe(1);
     expect(blocks[0]).toMatchObject({
       type: "live_match",
-      homeName: "Boca",
-      awayName: "River",
-      homeScore: 2,
-      awayScore: 1,
+      homeTeam: { name: "Boca", score: 2 },
+      awayTeam: { name: "River", score: 1 },
     });
   });
 
@@ -290,7 +288,7 @@ describe("personalCaptureFromArgs new UiBlock types", () => {
       type: "birthday_calendar",
       highlightedDay: 15,
     });
-    expect(capture.records[0].kind).toBe("birthday");
+    expect(capture.records?.[0].kind).toBe("birthday");
   });
 
   it("creates birthday_alarm block", () => {
@@ -307,7 +305,8 @@ describe("personalCaptureFromArgs new UiBlock types", () => {
     expect(capture.block).toMatchObject({
       type: "social_interaction",
       name: "Ana",
-      event: "Cumpleaños",
+      date: "12 jul",
+      remaining: "Faltan 5 días",
     });
   });
 });

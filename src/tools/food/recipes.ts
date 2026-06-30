@@ -23,6 +23,18 @@ type MealDbMeal = {
   [k: string]: unknown; // strIngredient1..20, strMeasure1..20
 };
 
+type OpenFoodFactsProduct = {
+  product_name?: string;
+  brands?: string;
+  ingredients_text?: string;
+  allergens?: string;
+  nutriments?: Record<string, number>;
+  nutriscore_grade?: string;
+  image_url?: string;
+  status?: number;
+  status_verbose?: string;
+};
+
 function extractIngredients(meal: MealDbMeal): Array<{ ingredient: string; measure: string }> {
   const out: Array<{ ingredient: string; measure: string }> = [];
   for (let i = 1; i <= 20; i++) {
@@ -216,19 +228,9 @@ export const foodInfo: ToolHandler = {
     if (!barcode) return { type: "food_info", status: "failed", error: "Indicá el código de barras." };
 
     const cacheKey = `off:${barcode}`;
-    const product = await cached<{
-      product_name?: string;
-      brands?: string;
-      ingredients_text?: string;
-      allergens?: string;
-      nutriments?: Record<string, number>;
-      nutriscore_grade?: string;
-      image_url?: string;
-      status?: number;
-      status_verbose?: string;
-    }>(cacheKey, ttls.reference, async () => {
+    const product = await cached<OpenFoodFactsProduct>(cacheKey, ttls.reference, async () => {
       await limiters.openFoodFacts.acquire();
-      const r = await fetchJson<{ product?: typeof product; status?: number }>(
+      const r = await fetchJson<{ product?: OpenFoodFactsProduct; status?: number }>(
         `https://world.openfoodfacts.org/api/v2/product/${barcode}.json`,
         { timeoutMs: 9_000 },
       );

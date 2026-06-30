@@ -4,7 +4,7 @@
  */
 
 import { defineTool, policies, type ToolHandler, type ToolRunContext } from "../types";
-import type { LifeRecord, AssistantArtifact } from "../../domain/types";
+import type { AssistantArtifact } from "../../domain/types";
 
 // ─── doc_create_md ───────────────────────────────────────────────────────────
 export const docCreateMd: ToolHandler = {
@@ -295,7 +295,7 @@ export const dataChart: ToolHandler = {
   policy: policies.localWrite("Genera HTML con gráfico."),
   async run(args) {
     const title = String(args.title ?? "").trim();
-    const type = String(args.type ?? "bar");
+    const chartType = String(args.type ?? "bar");
     const labels = Array.isArray(args.labels) ? args.labels.map(String) : [];
     const values = Array.isArray(args.values) ? args.values.map(Number) : [];
     if (!title || labels.length === 0 || values.length === 0) {
@@ -304,16 +304,16 @@ export const dataChart: ToolHandler = {
     // SVG simple embebido en HTML (sin dependencias). Barras por defecto.
     const max = Math.max(...values, 1);
     const width = 480;
-    const barH = type === "bar" ? 28 : 0;
-    const chartH = type === "bar" ? labels.length * (barH + 6) + 30 : 200;
+    const barH = chartType === "bar" ? 28 : 0;
+    const chartH = chartType === "bar" ? labels.length * (barH + 6) + 30 : 200;
     let svgBody = "";
-    if (type === "bar") {
+    if (chartType === "bar") {
       labels.forEach((label, i) => {
         const w = (values[i] / max) * (width - 160);
         const y = i * (barH + 6) + 10;
         svgBody += `<rect x="150" y="${y}" width="${w}" height="${barH}" fill="#3b82f6" rx="3"/><text x="10" y="${y + barH / 2 + 5}" font-size="13">${label}</text><text x="${155 + w}" y="${y + barH / 2 + 5}" font-size="13">${values[i]}</text>`;
       });
-    } else if (type === "line") {
+    } else if (chartType === "line") {
       const stepX = (width - 60) / Math.max(values.length - 1, 1);
       const points = values.map((v, i) => `${30 + i * stepX},${chartH - 20 - (v / max) * (chartH - 40)}`).join(" ");
       svgBody = `<polyline points="${points}" fill="none" stroke="#3b82f6" stroke-width="2"/>${labels.map((l, i) => `<text x="${30 + i * stepX - 10}" y="${chartH - 5}" font-size="11">${l}</text>`).join("")}`;
@@ -343,6 +343,6 @@ export const dataChart: ToolHandler = {
       sizeLabel: `${labels.length} puntos`,
       content: svg,
     };
-    return { type: "data_chart", status: "ok", title, type, artifact, block: { type: "resource_bundle", title, files: [artifact] } };
+    return { type: "data_chart", status: "ok", title, chartType, artifact, block: { type: "resource_bundle", title, files: [artifact] } };
   },
 };

@@ -7,7 +7,6 @@ import { defineTool, policies, type ToolHandler } from "../types";
 import { fetchJson } from "../shared/fetcher";
 import { cached, ttls } from "../shared/cache";
 import { isOllamaAvailable } from "../shared/embeddings";
-import { fetchText } from "../shared/fetcher";
 
 // ─── url_shorten ────────────────────────────────────────────────────────────
 export const urlShorten: ToolHandler = {
@@ -98,7 +97,7 @@ export const quoteOfDay: ToolHandler = {
     },
   ),
   policy: policies.readonly("Lee cita de ZenQuotes."),
-  async run(args) {
+  async run(_args) {
     const cacheKey = `quote:${new Date().toISOString().slice(0, 10)}`;
     const data = await cached<{ q?: string; a?: string }[]>(cacheKey, ttls.reference, async () => {
       const r = await fetchJson<{ q?: string; a?: string }[]>("https://zenquotes.io/api/today", { timeoutMs: 8_000 });
@@ -124,7 +123,7 @@ export const selfHealthCheck: ToolHandler = {
     },
   ),
   policy: policies.readonly("Diagnóstico local."),
-  async run(args) {
+  async run(_args) {
     const checks: Array<{ service: string; status: string; detail?: string }> = [];
 
     // Ollama
