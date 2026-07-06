@@ -16,6 +16,14 @@ export function recurrenceFromText(text: string): RecurrenceRule | undefined {
   return undefined;
 }
 
+export function timeStringFromText(value: string): string | undefined {
+  const match = /\b(?:a\s+las|las)\s+(\d{1,2})(?::(\d{2}))?\b/i.exec(foldAccents(value));
+  if (!match) return undefined;
+  const hour = Math.max(0, Math.min(23, Number(match[1])));
+  const minute = match[2] ? Math.max(0, Math.min(59, Number(match[2]))) : 0;
+  return `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
+}
+
 function timeFromText(text: string): { hour: number; minute: number } | undefined {
   const lower = foldAccents(text);
   const explicit = /\b(?:a las|las)\s+(\d{1,2})(?::(\d{2}))?\b/i.exec(lower);

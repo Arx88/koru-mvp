@@ -1,4 +1,4 @@
-import type { KoruState, UiBlock, AssistantSource } from "../../domain/types";
+import type { KoruState, UiBlock, AssistantSource } from "../domain/types";
 
 /**
  * Contrato del ToolBox de Koru.

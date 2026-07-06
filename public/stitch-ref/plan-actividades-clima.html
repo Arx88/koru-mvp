@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+
+<html lang="es" style=""><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Koru - Synthesis View</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;family=Be+Vietnam+Pro:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style data-purpose="custom-styles">
+    body {
+      font-family: 'Be Vietnam Pro', sans-serif;
+      background-color: #FCFCFA;
+      color: #121411;
+    }
+    h1, h2, h3, h4 {
+      font-family: 'Manrope', sans-serif;
+    }
+
+    /* Scrollbar hiding for chat area */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .ai-bubble {
+      border-top-left-radius: 4px;
+    }
+    
+    .energy-bar-container {
+      height: 100px;
+      width: 6px;
+      background-color: #E4EFE3;
+      border-radius: 99px;
+      overflow: hidden;
+      position: relative;
+    }
+    .energy-bar-fill {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      height: 72%;
+      background-color: #70B873;
+      border-radius: 99px;
+    }
+
+    .timeline-line {
+      position: absolute;
+      left: 7px;
+      top: 24px;
+      bottom: -8px;
+      width: 1px;
+      background-color: #E5E7EB;
+    }
+    .timeline-dot {
+      position: relative;
+      z-index: 10;
+      width: 15px;
+      height: 15px;
+      background-color: white;
+      border: 2px solid #70B873;
+      border-radius: 50%;
+    }
+  </style>
+</head>
+<body class="h-screen flex flex-col bg-[#FCFCFA]">
+<!-- BEGIN: Fixed Header -->
+<header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFA]/95 backdrop-blur-sm pt-6 pb-2 px-4">
+<div class="flex justify-center items-center gap-8">
+<div class="flex flex-col items-center gap-2">
+<img alt="Koru Mascot Thinking" class="w-48 h-48 object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBJuhd91mhyWrZCTx6Inn2zouA_NJydu4R6vuWZFJ8E2LeLsRLNnflN6Gtkm7ueUEvAcp7Ecvrlk8mipal5pDogDJkgW1vv5w7d7hQx6_akYFilTfUySy20r4mnGLgUO83vyKsXGGCh9uCGgZNEFIisJ3tf_csajop6xXog9Sd-6TcWtac-lnZWR2FFw77oX5YYLfPnMah7Npbo3xfF7ZA-HbN3vHKhZKdRdkubRXZeFu3IlqkHL0d2_buY0zZ7GErPW0cy1bp5wrvz"/>
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 bg-[#70B873] rounded-full animate-pulse"></span>
+<span class="text-[11px] font-bold text-gray-500 tracking-wider uppercase">Sintetizando...</span>
+</div>
+</div>
+<div class="flex flex-col items-center gap-2">
+<div class="energy-bar-container">
+<div class="energy-bar-fill"></div>
+</div>
+<span class="text-[10px] font-bold text-gray-400 uppercase">Energía</span>
+</div>
+</div>
+<div class="px-10 mt-4">
+<div class="h-[1px] w-full bg-gray-100/80"></div>
+</div>
+</header>
+<!-- END: Fixed Header -->
+<!-- BEGIN: Chat Area -->
+<main class="flex-1 overflow-y-auto no-scrollbar flex flex-col gap-6 bg-[#FCFCFA] pt-[260px] px-4 pb-28">
+<!-- Date Separator -->
+<div class="flex justify-center">
+<span class="bg-gray-100 text-gray-500 text-[11px] font-semibold px-3 py-1 rounded-full uppercase tracking-tighter">Sábado, 25 de mayo</span>
+</div>
+<!-- Weather Card (Detailed/Minimal) -->
+<div class="flex">
+<div class="flex flex-col w-full">
+<div class="bg-white rounded-[24px] rounded-tl-sm p-5 border border-gray-100 ai-bubble">
+<div class="flex items-center justify-between mb-6">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px] text-blue-500">cloud_queue</span>
+</div>
+<h2 class="text-[17px] font-bold text-gray-900 tracking-tight">Reporte Ambiental</h2>
+</div>
+<span class="text-[10px] font-bold text-blue-400 bg-blue-50 px-2 py-0.5 rounded-full uppercase">Actualizado</span>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="flex flex-col gap-1">
+<span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Temperatura</span>
+<div class="flex items-baseline gap-1">
+<span class="text-3xl font-semibold text-gray-800">21°</span>
+<span class="text-xs text-gray-400 font-medium">Sensación 19°</span>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Estado</span>
+<span class="text-sm font-medium text-gray-700">Mayormente despejado</span>
+</div>
+</div>
+<div class="mt-6 pt-4 border-t border-gray-50 grid grid-cols-3 gap-2">
+<div class="text-center p-2 rounded-xl bg-gray-50/50">
+<span class="material-symbols-outlined text-[18px] text-gray-400 block mb-1">water_drop</span>
+<p class="text-[10px] text-gray-400 uppercase font-bold">Humedad</p>
+<p class="text-sm font-bold text-gray-800">42%</p>
+</div>
+<div class="text-center p-2 rounded-xl bg-gray-50/50">
+<span class="material-symbols-outlined text-[18px] text-gray-400 block mb-1">air</span>
+<p class="text-[10px] text-gray-400 uppercase font-bold">Viento</p>
+<p class="text-sm font-bold text-gray-800">12km/h</p>
+</div>
+<div class="text-center p-2 rounded-xl bg-gray-50/50">
+<span class="material-symbols-outlined text-[18px] text-gray-400 block mb-1">light_mode</span>
+<p class="text-[10px] text-gray-400 uppercase font-bold">Índice UV</p>
+<p class="text-sm font-bold text-gray-800">Bajo (2)</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Activity Plan Card (Technical/Precision) -->
+<div class="flex">
+<div class="flex flex-col w-full">
+<div class="bg-white rounded-[24px] rounded-tl-sm p-5 border border-gray-100 ai-bubble">
+<div class="flex items-center justify-between mb-6">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px] text-green-600">route</span>
+</div>
+<h2 class="text-[17px] font-bold text-gray-900 tracking-tight">Logística de Actividad</h2>
+</div>
+<span class="text-[10px] font-bold text-gray-400 border border-gray-100 px-2 py-0.5 rounded-full uppercase">ID: PLAN-882</span>
+</div>
+<div class="space-y-6">
+<!-- Timeline Step 1 -->
+<div class="flex gap-4 relative">
+<div class="timeline-line"></div>
+<div class="timeline-dot bg-[#70B873]"></div>
+<div class="flex-1 pb-2">
+<div class="flex justify-between items-start">
+<p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest">09:15 AM</p>
+<span class="text-[9px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">INICIO</span>
+</div>
+<p class="text-sm font-bold text-gray-800 mt-1">Check-in Punto A</p>
+<p class="text-xs text-gray-500 leading-relaxed mt-0.5">Sincronización de sensores y calibración de ruta base.</p>
+</div>
+</div>
+<!-- Timeline Step 2 -->
+<div class="flex gap-4 relative">
+<div class="timeline-line"></div>
+<div class="timeline-dot"></div>
+<div class="flex-1 pb-2">
+<div class="flex justify-between items-start">
+<p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest">10:45 AM</p>
+</div>
+<p class="text-sm font-bold text-gray-800 mt-1">Intervención de Campo</p>
+<p class="text-xs text-gray-500 leading-relaxed mt-0.5">Muestreo sistemático (Intervalos de 15m). Precisión 98%.</p>
+<div class="mt-2 flex gap-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">Geo-tagging: ON</span>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">Nivel 4</span>
+</div>
+</div>
+</div>
+<!-- Timeline Step 3 -->
+<div class="flex gap-4 relative">
+<div class="timeline-dot"></div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest">13:30 PM</p>
+</div>
+<p class="text-sm font-bold text-gray-800 mt-1">Consolidación de Datos</p>
+<p class="text-xs text-gray-500 leading-relaxed mt-0.5">Cierre de sesión técnica y reporte de contingencia.</p>
+</div>
+</div>
+</div>
+<div class="mt-8">
+<button class="w-full bg-[#121411] text-white py-3 rounded-xl text-sm font-bold active:scale-95 transition-transform flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">verified</span>
+Ejecutar Protocolo
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- END: Chat Area -->
+<!-- BEGIN: Bottom Input -->
+<footer class="p-4 bg-[#FCFCFA]/90 backdrop-blur-md border-t border-transparent fixed bottom-0 left-0 right-0 z-50">
+<div class="relative flex items-center max-w-md mx-auto">
+<input class="w-full bg-white border border-gray-100 rounded-full py-4 pl-6 pr-24 text-[15px] placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#70B873]/30 shadow-md shadow-gray-100/50" placeholder="Solicitar ajuste técnico..." type="text"/>
+<div class="absolute right-2 flex items-center gap-2">
+<!-- Magic Icon -->
+<button class="p-2 text-gray-300 hover:text-[#70B873] transition-colors">
+<span class="material-symbols-outlined text-[22px]">auto_awesome</span>
+</button>
+<!-- Mic Button -->
+<button class="w-10 h-10 rounded-full bg-[#70B873] text-white flex items-center justify-center shadow-lg shadow-[#70B873]/20 active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[20px]">mic</span>
+</button>
+</div>
+</div>
+</footer>
+<!-- END: Bottom Input -->
+</body></html>

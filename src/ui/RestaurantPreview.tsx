@@ -4,7 +4,6 @@
  * Abrí: http://localhost:5200/restaurant-preview.html
  */
 
-import React from "react";
 import { createRoot } from "react-dom/client";
 import { RestaurantSynthesisCard, type RestaurantSynthesisResult } from "./cards/RestaurantCard";
 import "../style.css";

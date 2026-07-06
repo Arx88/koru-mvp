@@ -3,10 +3,7 @@
  * APIs: OpenSky (sin key), OSRM (rutas), Overpass OSM (POIs), Open-Meteo.
  */
 
-import { defineTool, policies, type ToolHandler, type ToolRunContext } from "../types";
-import { fetchJson } from "../shared/fetcher";
-import { cached, ttls } from "../shared/cache";
-import { limiters } from "../shared/rateLimiter";
+import { defineTool, policies, type ToolHandler } from "../types";
 import { searchAndEnrich, usableSources } from "../shared/scrapers";
 import { validateWithCitations, extractionToDataCard } from "../shared/extractor";
 
@@ -99,7 +96,6 @@ export const hotelSearch: ToolHandler = {
 };
 
 // ─── route_plan ─────────────────────────────────────────────────────────────
-type OsrmRoute = { routes?: Array<{ duration?: number; distance?: number }> };
 export const routePlan: ToolHandler = {
   definition: defineTool(
     "route_plan",

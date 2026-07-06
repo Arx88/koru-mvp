@@ -5,7 +5,7 @@
  */
 
 import { defineTool, policies, type ToolHandler, type ToolRunContext } from "../types";
-import type { LifeRecord } from "../../domain/types";
+
 
 // ─── price_history ──────────────────────────────────────────────────────────
 export const priceHistory: ToolHandler = {
@@ -29,21 +29,23 @@ export const priceHistory: ToolHandler = {
       .filter((r) => (r.kind === "shopping_item" || r.kind === "expense") && r.title.toLowerCase().includes(q) && typeof r.amount === "number")
       .sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1))
       .slice(-15)
-      .map((r) => ({ date: r.createdAt.slice(0, 10), title: r.title, amount: r.amount, currency: r.currency ?? "EUR" }));
+      .map((r) => ({ date: r.createdAt.slice(0, 10), title: r.title, amount: r.amount as number, currency: r.currency ?? "EUR" }));
     if (matches.length === 0) {
       return { type: "price_history", status: "ok", query: args.query, samples: [], note: "Todavía no registraste precios de ese producto. Empezá a anotarlos cuando los veas." };
     }
     const amounts = matches.map((m) => m.amount);
+    const first = amounts[0] ?? 0;
+    const last = amounts[amounts.length - 1] ?? 0;
     return {
       type: "price_history",
       status: "ok",
       query: args.query,
       samples: matches,
-      first: amounts[0],
-      last: amounts[amounts.length - 1],
+      first,
+      last,
       min: Math.min(...amounts),
       max: Math.max(...amounts),
-      changePct: amounts[0] > 0 ? Number((((amounts[amounts.length - 1] - amounts[0]) / amounts[0]) * 100).toFixed(2)) : 0,
+      changePct: first > 0 ? Number((((last - first) / first) * 100).toFixed(2)) : 0,
     };
   },
 };

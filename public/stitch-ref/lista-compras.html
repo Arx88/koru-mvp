@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+
+<html lang="es" style=""><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Koru - Proactive Intelligence Flow</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<style data-purpose="custom-styles">
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0');
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #FBF9F5;
+      color: #333;
+    }
+
+    /* Custom shadow for action buttons */
+    .btn-shadow {
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    /* Scrollbar hiding for chat area */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .ai-bubble {
+      border-top-left-radius: 4px;
+    }
+    
+    .user-bubble {
+      border-top-right-radius: 4px;
+    }
+
+    @keyframes custom-pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+    @keyframes text-pulse {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+    .dot-anim {
+      animation: custom-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    .text-anim {
+      animation: text-pulse 2s ease-in-out infinite;
+    }
+    
+    .energy-bar-container {
+        height: 120px;
+        width: 6px;
+        background-color: #EAE6DF;
+        border-radius: 4px;
+        overflow: hidden;
+        position: relative;
+    }
+    .energy-bar-fill {
+        position: absolute;
+        bottom: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #A7C497;
+        border-radius: 4px;
+    }
+  </style>
+<link data-snapdom="injected-import" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/></head>
+<body class="h-screen flex flex-col bg-[#FBF9F5]">
+<!-- BEGIN: Header -->
+<!-- END: Header -->
+<!-- BEGIN: Chat Area -->
+<main class="flex-1 overflow-y-auto no-scrollbar flex flex-col gap-5 bg-[#FBF9F5] pt-1 px-4 pb-6 pt-[280px]">
+<!-- Mascot Avatar & Energy -->
+<div class="flex justify-center items-center gap-6 mt-0 mb-1 fixed top-0 left-0 right-0 z-50 bg-[#FBF9F5] pt-6 pb-2">
+<div class="absolute left-6 top-1/2 -translate-y-1/2 energy-bar-container mt-2">
+<div class="energy-bar-fill" style="height: 85%;"></div>
+</div>
+<div class="flex flex-col items-center gap-2">
+<img alt="Koru Mascot Thinking" class="w-52 h-52 object-contain drop-shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBJuhd91mhyWrZCTx6Inn2zouA_NJydu4R6vuWZFJ8E2LeLsRLNnflN6Gtkm7ueUEvAcp7Ecvrlk8mipal5pDogDJkgW1vv5w7d7hQx6_akYFilTfUySy20r4mnGLgUO83vyKsXGGCh9uCGgZNEFIisJ3tf_csajop6xXog9Sd-6TcWtac-lnZWR2FFw77oX5YYLfPnMah7Npbo3xfF7ZA-HbN3vHKhZKdRdkubRXZeFu3IlqkHL0d2_buY0zZ7GErPW0cy1bp5wrvz"/>
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 bg-[#A7C497] rounded-full"></span>
+<span class="text-[11px] font-medium text-gray-500 tracking-wide uppercase">Flujo Proactivo Activo</span>
+</div>
+</div>
+</div>
+<div class="px-10 mb-2 fixed top-[244px] left-0 right-0 z-50 bg-[#FBF9F5]">
+<div class="h-[1px] w-full bg-[#EAE6DF]"></div>
+</div>
+<!-- Date Separator -->
+<div class="flex justify-center mb-2 mt-2">
+<span class="bg-[#F5F3EF] text-gray-600 text-xs px-3 py-1 rounded-full font-medium border border-[#EAE6DF]">Buenos días, 25 de mayo</span>
+</div>
+<!-- 1. Koru: Mañana -->
+<div class="flex w-full">
+<div class="flex flex-col max-w-[90%]">
+<div class="bg-white rounded-2xl ai-bubble p-4 shadow-sm border border-[#EAE6DF]">
+<p class="text-[15px] text-gray-800 mb-3 font-medium">¡Hola! Aquí tienes tu resumen matutino 🌅</p>
+<div class="grid grid-cols-2 gap-2">
+<div class="bg-[#FBF9F5] rounded-xl p-3 flex items-center gap-3 border border-[#F5F3EF]">
+<span class="material-symbols-outlined text-[#F2C94C]">light_mode</span>
+<div>
+<p class="text-xs text-gray-500">Clima</p>
+<p class="text-sm font-medium text-gray-800">22°C Soleado</p>
+</div>
+</div>
+<div class="bg-[#FBF9F5] rounded-xl p-3 flex items-center gap-3 border border-[#F5F3EF]">
+<span class="material-symbols-outlined text-[#8676B1]">checkroom</span>
+<div>
+<p class="text-xs text-gray-500">Ropa</p>
+<p class="text-sm font-medium text-gray-800">Blazer ligero</p>
+</div>
+</div>
+<div class="bg-[#FBF9F5] rounded-xl p-3 flex items-center gap-3 border border-[#F5F3EF]">
+<span class="material-symbols-outlined text-[#A7C497]">directions_car</span>
+<div>
+<p class="text-xs text-gray-500">Tráfico</p>
+<p class="text-sm font-medium text-gray-800">Despejado</p>
+</div>
+</div>
+<div class="bg-[#FFF4E5] border border-[#FDE0B2] rounded-xl p-3 flex items-center gap-3">
+<span class="material-symbols-outlined text-[#D9A05B]">medication</span>
+<div>
+<p class="text-xs text-[#D9A05B] font-medium">Recordatorio</p>
+<p class="text-sm font-medium text-gray-800">Vitamina</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- 2. User: Noticia -->
+<div class="flex w-full justify-end mt-2">
+<div class="bg-[#E7EBE2] rounded-2xl user-bubble p-3 shadow-sm max-w-[85%] border border-[#D5DDD0]">
+<p class="text-[15px] text-gray-800 font-medium">Buen día Koru! ¿Alguna noticia importante hoy?</p>
+</div>
+</div>
+<!-- 3. Koru: Noticia Urgente -->
+<div class="flex w-full mt-2">
+<div class="flex flex-col max-w-[90%]">
+<div class="bg-white rounded-2xl ai-bubble p-4 shadow-sm border border-[#EAE6DF]"><p class="text-[14px] text-gray-800 mb-4 font-medium">Por cierto, de camino a casa recuerda pasar por el súper. Tienes esto en tu lista: 🛒</p><div class="flex flex-col gap-3"><div class="flex items-center gap-3 p-2 rounded-xl hover:bg-[#FBF9F5] transition-colors"><div class="relative flex items-center justify-center w-5 h-5"><input class="peer appearance-none w-5 h-5 border-2 border-[#EAE6DF] rounded-md checked:bg-[#A7C497] checked:border-[#A7C497] transition-all cursor-pointer" type="checkbox"/><span class="material-symbols-outlined absolute text-white text-[16px] opacity-0 peer-checked:opacity-100 pointer-events-none">check</span></div><span class="text-sm text-gray-700">Leche de almendras</span></div><div class="flex items-center gap-3 p-2 rounded-xl hover:bg-[#FBF9F5] transition-colors"><div class="relative flex items-center justify-center w-5 h-5"><input class="peer appearance-none w-5 h-5 border-2 border-[#EAE6DF] rounded-md checked:bg-[#A7C497] checked:border-[#A7C497] transition-all cursor-pointer" type="checkbox"/><span class="material-symbols-outlined absolute text-white text-[16px] opacity-0 peer-checked:opacity-100 pointer-events-none">check</span></div><span class="text-sm text-gray-700">Aguacates</span></div><div class="flex items-center gap-3 p-2 rounded-xl hover:bg-[#FBF9F5] transition-colors"><div class="relative flex items-center justify-center w-5 h-5"><input class="peer appearance-none w-5 h-5 border-2 border-[#EAE6DF] rounded-md checked:bg-[#A7C497] checked:border-[#A7C497] transition-all cursor-pointer" type="checkbox"/><span class="material-symbols-outlined absolute text-white text-[16px] opacity-0 peer-checked:opacity-100 pointer-events-none">check</span></div><span class="text-sm text-gray-700">Pan integral</span></div><div class="flex items-center gap-3 p-2 rounded-xl hover:bg-[#FBF9F5] transition-colors"><div class="relative flex items-center justify-center w-5 h-5"><input class="peer appearance-none w-5 h-5 border-2 border-[#EAE6DF] rounded-md checked:bg-[#A7C497] checked:border-[#A7C497] transition-all cursor-pointer" type="checkbox"/><span class="material-symbols-outlined absolute text-white text-[16px] opacity-0 peer-checked:opacity-100 pointer-events-none">check</span></div><span class="text-sm text-gray-700">Café</span></div><button class="mt-2 flex items-center justify-center gap-2 w-full py-2.5 bg-[#F5F3EF] border border-[#EAE6DF] rounded-xl text-gray-600 hover:bg-[#EAE6DF] transition-all"><span class="material-symbols-outlined text-[18px]">add</span><span class="text-xs font-semibold">Añadir nuevo ítem</span></button></div></div>
+</div>
+</div>
+<!-- 4. User: Trabajo -->
+<div class="flex w-full justify-end mt-2">
+<div class="bg-[#E7EBE2] rounded-2xl user-bubble p-3 shadow-sm max-w-[85%] border border-[#D5DDD0]">
+<p class="text-[15px] text-gray-800 font-medium">¿Qué tengo pendiente de trabajo hoy?</p>
+</div>
+</div>
+<!-- 5. Koru: Agenda/Tasks -->
+<div class="flex w-full mt-2">
+<div class="flex flex-col max-w-[90%]">
+<div class="bg-white rounded-2xl ai-bubble p-4 shadow-sm border border-[#EAE6DF]">
+<div class="flex items-center gap-2 mb-3">
+<div class="w-6 h-6 rounded bg-[#F5F3EF] flex items-center justify-center">
+<span class="material-symbols-outlined text-[16px] text-gray-600">calendar_today</span>
+</div>
+<span class="text-[15px] font-medium text-gray-800">Tu agenda para hoy</span>
+</div>
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-3 p-2 rounded-xl hover:bg-[#FBF9F5] transition-colors border border-transparent hover:border-[#EAE6DF]">
+<div class="flex flex-col items-center justify-center w-12 h-12 bg-blue-50 rounded-lg border border-blue-100">
+<span class="text-xs font-bold text-blue-600">10:00</span>
+<span class="text-[9px] text-blue-500 uppercase">AM</span>
+</div>
+<div>
+<p class="text-sm font-medium text-gray-800">Reunión de Diseño</p>
+<p class="text-xs text-gray-500">Google Meet • 45 min</p>
+</div>
+</div>
+<div class="flex items-center gap-3 p-2 rounded-xl hover:bg-[#FBF9F5] transition-colors border border-transparent hover:border-[#EAE6DF]">
+<div class="flex flex-col items-center justify-center w-12 h-12 bg-[#F5F3EF] rounded-lg border border-[#EAE6DF]">
+<span class="text-xs font-bold text-gray-600">14:30</span>
+<span class="text-[9px] text-gray-500 uppercase">PM</span>
+</div>
+<div>
+<p class="text-sm font-medium text-gray-800">Revisión de Presupuesto</p>
+<p class="text-xs text-red-500 font-medium">Entrega pendiente hoy</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- 6. Koru: Supermercado Proactivo -->
+<div class="flex w-full mt-2">
+<div class="flex flex-col max-w-[90%]">
+<div class="bg-white rounded-2xl ai-bubble p-4 shadow-sm border border-[#EAE6DF]"><p class="text-[14px] text-gray-800 mb-4 font-medium">Por cierto, de camino a casa recuerda pasar por el súper. Tienes esto en tu lista: 🛒</p><div class="flex flex-col gap-2"><div class="flex items-center justify-between p-3 bg-[#FBF9F5] border border-[#F5F3EF] rounded-xl hover:border-[#A7C497] transition-colors group"><div class="flex items-center gap-3"><div class="relative flex items-center justify-center w-5 h-5"><input class="peer appearance-none w-5 h-5 border-2 border-[#EAE6DF] rounded-md checked:bg-[#A7C497] checked:border-[#A7C497] transition-all cursor-pointer" type="checkbox"/><span class="material-symbols-outlined absolute text-white text-[16px] opacity-0 peer-checked:opacity-100 pointer-events-none">check</span></div><span class="text-sm text-gray-700 font-medium">Leche de almendras</span></div><div class="flex items-center gap-3 px-2 py-1 bg-white rounded-lg border border-[#EAE6DF]"><button class="text-gray-400 hover:text-red-500 transition-colors"><span class="material-symbols-outlined text-[18px]">remove</span></button><span class="text-xs font-bold w-4 text-center text-gray-700">1</span><button class="text-gray-400 hover:text-[#A7C497] transition-colors"><span class="material-symbols-outlined text-[18px]">add</span></button></div></div><div class="flex items-center justify-between p-3 bg-[#FBF9F5] border border-[#F5F3EF] rounded-xl hover:border-[#A7C497] transition-colors group"><div class="flex items-center gap-3"><div class="relative flex items-center justify-center w-5 h-5"><input class="peer appearance-none w-5 h-5 border-2 border-[#EAE6DF] rounded-md checked:bg-[#A7C497] checked:border-[#A7C497] transition-all cursor-pointer" type="checkbox"/><span class="material-symbols-outlined absolute text-white text-[16px] opacity-0 peer-checked:opacity-100 pointer-events-none">check</span></div><span class="text-sm text-gray-700 font-medium">Aguacates</span></div><div class="flex items-center gap-3 px-2 py-1 bg-white rounded-lg border border-[#EAE6DF]"><button class="text-gray-400 hover:text-red-500 transition-colors"><span class="material-symbols-outlined text-[18px]">remove</span></button><span class="text-xs font-bold w-4 text-center text-gray-700">3</span><button class="text-gray-400 hover:text-[#A7C497] transition-colors"><span class="material-symbols-outlined text-[18px]">add</span></button></div></div><div class="flex items-center justify-between p-3 bg-[#FBF9F5] border border-[#F5F3EF] rounded-xl hover:border-[#A7C497] transition-colors group"><div class="flex items-center gap-3"><div class="relative flex items-center justify-center w-5 h-5"><input class="peer appearance-none w-5 h-5 border-2 border-[#EAE6DF] rounded-md checked:bg-[#A7C497] checked:border-[#A7C497] transition-all cursor-pointer" type="checkbox"/><span class="material-symbols-outlined absolute text-white text-[16px] opacity-0 peer-checked:opacity-100 pointer-events-none">check</span></div><span class="text-sm text-gray-700 font-medium">Pan integral</span></div><div class="flex items-center gap-3 px-2 py-1 bg-white rounded-lg border border-[#EAE6DF]"><button class="text-gray-400 hover:text-red-500 transition-colors"><span class="material-symbols-outlined text-[18px]">remove</span></button><span class="text-xs font-bold w-4 text-center text-gray-700">1</span><button class="text-gray-400 hover:text-[#A7C497] transition-colors"><span class="material-symbols-outlined text-[18px]">add</span></button></div></div><div class="flex items-center justify-between p-3 bg-[#FBF9F5] border border-[#F5F3EF] rounded-xl hover:border-[#A7C497] transition-colors group"><div class="flex items-center gap-3"><div class="relative flex items-center justify-center w-5 h-5"><input class="peer appearance-none w-5 h-5 border-2 border-[#EAE6DF] rounded-md checked:bg-[#A7C497] checked:border-[#A7C497] transition-all cursor-pointer" type="checkbox"/><span class="material-symbols-outlined absolute text-white text-[16px] opacity-0 peer-checked:opacity-100 pointer-events-none">check</span></div><span class="text-sm text-gray-700 font-medium">Café</span></div><div class="flex items-center gap-3 px-2 py-1 bg-white rounded-lg border border-[#EAE6DF]"><button class="text-gray-400 hover:text-red-500 transition-colors"><span class="material-symbols-outlined text-[18px]">remove</span></button><span class="text-xs font-bold w-4 text-center text-gray-700">2</span><button class="text-gray-400 hover:text-[#A7C497] transition-colors"><span class="material-symbols-outlined text-[18px]">add</span></button></div></div><button class="mt-2 flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-[#EAE6DF] rounded-xl text-gray-400 hover:text-[#A7C497] hover:border-[#A7C497] transition-all bg-transparent hover:bg-white"><span class="material-symbols-outlined text-[20px]">add_circle</span><span class="text-xs font-bold uppercase tracking-widest">Añadir nuevo ítem</span></button></div></div>
+</div>
+</div>
+<!-- 7. Koru: Cumpleaños Proactivo -->
+<div class="flex w-full mt-2">
+<div class="flex flex-col max-w-[90%]">
+<div class="bg-white rounded-2xl ai-bubble p-4 shadow-sm border border-[#EAE6DF]">
+<p class="text-[14px] text-gray-800 mb-3 font-medium">También es el cumpleaños de tu madre 🎂. He recordado que mencionaste que le gusta la jardinería, ¿te gustaría este libro?</p>
+<div class="flex gap-3 bg-[#FBF9F5] rounded-xl p-3 border border-[#EAE6DF]">
+<div class="w-16 h-20 bg-gray-200 rounded flex-shrink-0 overflow-hidden relative">
+<img alt="Libro de Jardinería" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAnkqtWAt24QYRLWpUZtVQ_7-ejIASehz_ETEt2aod9PfB21OyEE259ZcEtavWeYxHSs7vsekuhqzPq55-gAoQsymG35aKwheTeTPcd_WbOSZfVvvuKZZKzaFcyNYpvDOD4hmI3A6TLoFFJB0YrGE4mm7KV55_QP0ryHspn2TyZ5dUR1B7NLnm-oxhZ4D3d7QzbPp6Lm0KqknC0EnJ1iFVoJPn9kIMzFrxvOx8DCWjs4STOy9Y5IaPpwBhg8qSrnUAfkAbG5zutB6bD"/>
+</div>
+<div class="flex flex-col justify-center">
+<p class="text-sm font-semibold text-gray-800 leading-tight">Guía Práctica de Botánica</p>
+<p class="text-xs text-gray-500 mt-1">Llega hoy con Prime</p>
+<div class="flex items-center gap-1 mt-2">
+<span class="text-xs font-bold text-[#A7C497]">$24.99</span>
+<button class="ml-auto text-[10px] bg-white border border-[#EAE6DF] px-2 py-1 rounded-md font-medium text-gray-600 hover:bg-gray-50">Comprar</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- 8. User: Herramienta -->
+<div class="flex w-full justify-end mt-2">
+<div class="bg-[#E7EBE2] rounded-2xl user-bubble p-3 shadow-sm max-w-[85%] border border-[#D5DDD0]">
+<p class="text-[15px] text-gray-800 font-medium">Me encanta. Por cierto, encontré esta herramienta de IA: figma.com/ai. Guárdala en mis herramientas.</p>
+</div>
+</div>
+<!-- 9. Koru: Guardado -->
+<div class="flex w-full mt-2 mb-4">
+<div class="flex flex-col max-w-[90%]">
+<div class="bg-white rounded-2xl ai-bubble p-4 shadow-sm border border-[#EAE6DF]">
+<p class="text-[14px] text-gray-800 mb-3 font-medium">¡Guardado! He añadido el enlace a tu sección de Herramientas IA en la Bóveda.</p>
+<div class="bg-[#FBF9F5] rounded-xl p-3 border border-[#EAE6DF] flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center border border-purple-100">
+<span class="material-symbols-outlined text-purple-500">magic_button</span>
+</div>
+<div>
+<p class="text-sm font-medium text-gray-800">Figma AI</p>
+<p class="text-xs text-gray-500">Herramientas IA</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-[#A7C497]">check_circle</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Padding for bottom input -->
+<div class="h-4"></div></main>
+<!-- END: Chat Area -->
+<!-- BEGIN: Bottom Input -->
+<footer class="p-4 bg-[#FBF9F5] border-t-0 z-10 sticky bottom-0">
+<div class="relative flex items-center">
+<input class="w-full bg-white border border-[#EAE6DF] rounded-full py-3.5 pl-5 pr-24 text-[15px] placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#A7C497] shadow-sm" placeholder="Escribe tu mensaje..." type="text"/>
+<div class="absolute right-2 flex items-center gap-2">
+<!-- Sparkles Icon -->
+<button class="p-1.5 text-gray-400 hover:text-[#A7C497] transition-colors">
+<svg fill="none" height="22" viewbox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6L12 2Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path>
+</svg>
+</button>
+<!-- Mic Button -->
+<button class="w-10 h-10 rounded-full bg-[#A7C497] text-[#1f3616] flex items-center justify-center shadow-md hover:bg-[#b2cfa1] transition-colors">
+<svg fill="none" height="18" viewbox="0 0 24 24" width="18" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 1L12 11" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+<path d="M9 4L9 8" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+<path d="M15 4L15 8" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+<path d="M19 12V13C19 16.866 15.866 20 12 20C8.13401 20 5 16.866 5 13V12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+<path d="M12 20V23" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+<path d="M8 23H16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</button>
+</div>
+</div>
+</footer>
+<!-- END: Bottom Input -->
+</body></html>

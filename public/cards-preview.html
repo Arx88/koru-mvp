@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Koru — 5 propuestas de card</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+<style>
+  :root {
+    --bg: #fcfcfa;
+    --surface: #ffffff;
+    --inner: #f8f9fa;
+    --text: #1f2933;
+    --soft: #4b5563;
+    --muted: #727d8a;
+    --border: #e5e7eb;
+    --border-soft: rgba(243, 244, 246, 0.92);
+    --accent: #70b873;
+    --accent-soft: #eaf2ea;
+    --accent-strong: #4a9e4f;
+    --amber: #d9a05b;
+    --amber-soft: #fff4e5;
+    --amber-strong: #b27a3a;
+    --purple: #8676b1;
+    --purple-soft: #eae6f4;
+    --rose: #c4736b;
+    --rose-soft: #fdf2f0;
+    --blue: #3b82f6;
+    --blue-soft: #eff6ff;
+    --emerald: #059669;
+    --emerald-soft: #ecfdf5;
+    --shadow: 0 10px 28px rgba(31, 41, 51, 0.06);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  .page { max-width: 480px; margin: 0 auto; padding: 24px 16px 60px; }
+
+  .page-title {
+    text-align: center;
+    font-size: 20px;
+    font-weight: 850;
+    margin: 0 0 4px;
+  }
+  .page-sub {
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+    margin: 0 0 32px;
+  }
+
+  .proposal-label {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin: 40px 0 14px;
+    padding: 0 4px;
+  }
+  .proposal-num {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--accent-strong);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .proposal-name { font-size: 15px; font-weight: 800; }
+  .proposal-desc { font-size: 11px; color: var(--muted); margin-left: auto; }
+
+  /* Primitivas compartidas estilo Koru */
+  .glass-card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,249,250,0.92) 100%);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.6);
+    border-radius: 24px;
+    box-shadow: var(--shadow);
+  }
+  .stitch {
+    border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
+    border-radius: 18px;
+    background: linear-gradient(180deg, var(--surface) 0%, color-mix(in srgb, var(--surface) 82%, var(--inner)) 100%);
+    padding: 16px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .eyebrow {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .icon-circle {
+    width: 36px; height: 36px;
+    border-radius: 12px;
+    display: grid; place-items: center;
+    flex: 0 0 auto;
+  }
+  .verdict-box {
+    padding: 14px 16px;
+    border-radius: 16px;
+    border: 1px solid;
+  }
+
+  /* Pills de consenso */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .pill-pro { background: var(--emerald-soft); color: var(--emerald); border: 1px solid rgba(5,150,105,0.2); }
+  .pill-con { background: var(--amber-soft); color: var(--amber-strong); border: 1px solid rgba(217,160,91,0.3); }
+  .pill-count {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 16px; height: 16px; padding: 0 4px;
+    border-radius: 999px;
+    background: var(--accent); color: #fff;
+    font-size: 9px; font-weight: 800;
+  }
+
+  .source-row {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.5);
+    border: 1px solid rgba(255,255,255,0.7);
+    border-radius: 14px;
+    text-decoration: none; color: inherit;
+    transition: all 0.2s;
+  }
+  .source-row:hover { background: rgba(255,255,255,0.85); border-color: var(--border); }
+  .source-title { font-size: 12px; font-weight: 700; color: var(--text); }
+  .source-domain { font-size: 10px; color: var(--muted); display: flex; align-items: center; gap: 3px; margin-top: 2px; }
+  .source-snippet { font-size: 11px; color: var(--soft); line-height: 1.4; margin-top: 4px; }
+
+  .mat { font-family: "Material Symbols Outlined"; font-weight: normal; font-style: normal; font-size: 16px; line-height: 1; letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap; word-wrap: normal; direction: ltr; -webkit-font-feature-settings: "liga"; -webkit-font-smoothing: antialiased; }
+
+  /* ===== PROPUESTA 1: El Veredicto ===== */
+  .p1-hero {
+    background: linear-gradient(135deg, var(--amber-soft) 0%, #fffcf5 100%);
+    border: 1px solid rgba(217,160,91,0.25);
+    border-radius: 20px;
+    padding: 22px 20px;
+    text-align: center;
+  }
+  .p1-hero-name { font-size: 24px; font-weight: 850; letter-spacing: -0.02em; margin: 8px 0 4px; }
+  .p1-hero-sub { font-size: 13px; color: var(--soft); }
+  .p1-hero-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: #fff; border: 1px solid var(--border);
+    padding: 4px 10px; border-radius: 999px;
+    font-size: 10px; font-weight: 700; color: var(--amber-strong);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* ===== PROPUESTA 2: Diario de Crítico ===== */
+  .p2 {
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+    border-radius: 20px;
+    padding: 22px 20px;
+    box-shadow: var(--shadow);
+  }
+  .p2-eyebrow { font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--amber-strong); margin-bottom: 10px; }
+  .p2-title { font-family: Georgia, "Times New Roman", serif; font-size: 22px; font-weight: 700; line-height: 1.25; letter-spacing: -0.01em; margin: 0 0 14px; }
+  .p2-divider { height: 1px; background: linear-gradient(90deg, var(--amber), transparent); margin: 14px 0; border: 0; }
+  .p2-body { font-size: 13px; line-height: 1.6; color: var(--soft); margin: 0 0 16px; }
+  .p2-section-label { font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 18px 0 10px; }
+  .p2-consensus-row { display: flex; align-items: center; gap: 10px; font-size: 12px; padding: 6px 0; border-bottom: 1px dashed var(--border-soft); }
+  .p2-consensus-row:last-child { border: 0; }
+  .p2-consensus-text { font-weight: 600; color: var(--text); }
+  .p2-consensus-bar { flex: 1; height: 5px; background: var(--inner); border-radius: 999px; overflow: hidden; max-width: 90px; }
+  .p2-consensus-fill { height: 100%; background: var(--amber); border-radius: 999px; }
+  .p2-consensus-count { font-size: 10px; color: var(--muted); font-weight: 700; min-width: 44px; text-align: right; }
+  .p2-sources { font-size: 11px; color: var(--muted); font-style: italic; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border-soft); }
+
+  /* ===== PROPUESTA 3: Scorecard ===== */
+  .p3-header { display: flex; align-items: center; gap: 12px; padding-bottom: 14px; border-bottom: 1px solid var(--border-soft); }
+  .p3-name { font-size: 17px; font-weight: 850; }
+  .p3-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .p3-score { margin-left: auto; text-align: center; }
+  .p3-score-num { font-size: 20px; font-weight: 850; color: var(--emerald); line-height: 1; }
+  .p3-score-label { font-size: 9px; color: var(--muted); font-weight: 700; text-transform: uppercase; }
+  .p3-metric { margin: 12px 0; }
+  .p3-metric-label { display: flex; justify-content: space-between; font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
+  .p3-metric-bar { height: 6px; background: var(--inner); border-radius: 999px; overflow: hidden; }
+  .p3-metric-fill { height: 100%; border-radius: 999px; }
+  .p3-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border-soft); border: 1px solid var(--border-soft); border-radius: 14px; overflow: hidden; margin-top: 14px; }
+  .p3-col { background: var(--surface); padding: 12px; }
+  .p3-col-title { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+  .p3-col-title.pro { color: var(--emerald); }
+  .p3-col-title.con { color: var(--amber-strong); }
+  .p3-col-item { font-size: 12px; color: var(--soft); padding: 3px 0; display: flex; gap: 6px; align-items: flex-start; }
+  .p3-col-item::before { content: ""; }
+
+  /* ===== PROPUESTA 4: Consenso Minimal ===== */
+  .p4 { background: var(--surface); border: 1px solid var(--border-soft); border-radius: 16px; padding: 24px 22px; box-shadow: var(--shadow); }
+  .p4-name { font-size: 21px; font-weight: 850; letter-spacing: -0.02em; }
+  .p4-sub { font-size: 13px; color: var(--muted); font-weight: 500; margin-top: 2px; padding-bottom: 14px; }
+  .p4-body { font-size: 13.5px; line-height: 1.65; color: var(--soft); padding: 14px 0; border-top: 1px solid var(--border-soft); border-bottom: 1px solid var(--border-soft); margin: 0; }
+  .p4-section-label { font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 16px 0 10px; }
+  .p4-row { display: flex; align-items: baseline; gap: 8px; font-size: 13px; padding: 7px 0; }
+  .p4-row-text { font-weight: 600; color: var(--text); white-space: nowrap; }
+  .p4-dots { flex: 1; border-bottom: 1px dotted var(--border); transform: translateY(-3px); }
+  .p4-row-count { font-size: 11px; color: var(--muted); font-weight: 600; white-space: nowrap; }
+  .p4-sources { font-size: 11px; color: var(--muted); margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border-soft); }
+  .p4-sources-label { font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; font-size: 9px; display: block; margin-bottom: 4px; }
+
+  /* ===== PROPUESTA 5: Tarjeta de Recomendación ===== */
+  .p5-recommend-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--accent-strong);
+  }
+  .p5-name { font-size: 22px; font-weight: 850; letter-spacing: -0.02em; margin: 8px 0 2px; }
+  .p5-meta { font-size: 12px; color: var(--muted); font-weight: 500; margin-bottom: 12px; }
+  .p5-why { font-size: 13px; line-height: 1.55; color: var(--soft); }
+  .p5-ctas { display: flex; gap: 8px; margin: 14px 0; }
+  .p5-cta {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 11px 14px; border-radius: 14px;
+    font-size: 12px; font-weight: 700; text-decoration: none;
+    border: 1px solid; transition: all 0.15s;
+  }
+  .p5-cta-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .p5-cta-primary:hover { background: var(--accent-strong); }
+  .p5-cta-secondary { background: var(--surface); color: var(--text); border-color: var(--border); }
+  .p5-cta-secondary:hover { border-color: var(--accent); color: var(--accent-strong); }
+  .p5-consensus-item { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 5px 0; color: var(--soft); }
+  .p5-mark { width: 18px; height: 18px; border-radius: 6px; display: grid; place-items: center; font-size: 11px; font-weight: 800; flex: 0 0 auto; }
+  .p5-mark-pro { background: var(--emerald-soft); color: var(--emerald); }
+  .p5-mark-con { background: var(--amber-soft); color: var(--amber-strong); }
+  .p5-based { font-size: 11px; color: var(--muted); margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-soft); }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1 class="page-title">Koru · 5 propuestas de card</h1>
+  <p class="page-sub">Misma data (Parrilla en Palermo), 5 enfoques de UX. Elegí uno.</p>
+
+  <!-- ============ PROPUESTA 1: EL VEREDICTO ============ -->
+  <div class="proposal-label">
+    <span class="proposal-num">01</span>
+    <span class="proposal-name">El Veredicto</span>
+    <span class="proposal-desc">respuesta directa</span>
+  </div>
+  <div class="glass-card" style="padding: 16px; border-radius: 24px;">
+    <div style="display:flex; justify-content:space-between; padding: 0 4px 12px;">
+      <span class="eyebrow">🍴 Dónde comer</span>
+      <span style="font-size:10px; font-weight:700; color: var(--amber-strong);">4 fuentes</span>
+    </div>
+
+    <div class="p1-hero">
+      <div class="p1-hero-badge">★ Top en 4 de 4 fuentes</div>
+      <div class="p1-hero-name">Don Julio</div>
+      <div class="p1-hero-sub">La mejor parrilla de Palermo</div>
+    </div>
+
+    <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:14px;">
+      <span class="pill pill-pro">★ Asado de tira <span class="pill-count" style="background:var(--emerald)">3</span></span>
+      <span class="pill pill-pro">★ Reservar antes <span class="pill-count" style="background:var(--emerald)">3</span></span>
+      <span class="pill pill-con">⚠ Ambiente ruidoso <span class="pill-count" style="background:var(--amber)">2</span></span>
+    </div>
+
+    <div style="font-size:11px; color:var(--muted); border-top:1px solid var(--border-soft); padding-top:12px; margin-top:12px; display:flex; justify-content:space-between; align-items:center;">
+      <span>La Nación · TripAdvisor · Yelp · Guía Oleo</span>
+      <span style="font-weight:700; color:var(--accent-strong); cursor:pointer;">Ver fuentes ▾</span>
+    </div>
+  </div>
+
+  <!-- ============ PROPUESTA 2: DIARIO DE CRÍTICO ============ -->
+  <div class="proposal-label">
+    <span class="proposal-num">02</span>
+    <span class="proposal-name">Diario de Crítico</span>
+    <span class="proposal-desc">jerarquía editorial</span>
+  </div>
+  <div class="p2">
+    <div class="p2-eyebrow">Crítica · Palermo · Parrilla</div>
+    <h3 class="p2-title">Don Julio sigue siendo la referencia del barrio</h3>
+    <hr class="p2-divider" />
+    <p class="p2-body">Crucé 5 fuentes independientes. La consistencia en carne y servicio lo posicionan como top indiscutido. El asado de tira es lo más elogiado; reservar es el consejo más repetido.</p>
+
+    <div class="p2-section-label">Lo destacado</div>
+    <div class="p2-consensus-row">
+      <span class="p2-consensus-text">Asado de tira</span>
+      <div class="p2-consensus-bar"><div class="p2-consensus-fill" style="width:60%"></div></div>
+      <span class="p2-consensus-count">3 / 5</span>
+    </div>
+    <div class="p2-consensus-row">
+      <span class="p2-consensus-text">Reservar antes</span>
+      <div class="p2-consensus-bar"><div class="p2-consensus-fill" style="width:60%"></div></div>
+      <span class="p2-consensus-count">3 / 5</span>
+    </div>
+    <div class="p2-consensus-row">
+      <span class="p2-consensus-text">Servicio atento</span>
+      <div class="p2-consensus-bar"><div class="p2-consensus-fill" style="width:40%"></div></div>
+      <span class="p2-consensus-count">2 / 5</span>
+    </div>
+
+    <div class="p2-sources">Fuentes: La Nación · TripAdvisor · Yelp · Guía Oleo · Infobae</div>
+  </div>
+
+  <!-- ============ PROPUESTA 3: SCORECARD ============ -->
+  <div class="proposal-label">
+    <span class="proposal-num">03</span>
+    <span class="proposal-name">Scorecard</span>
+    <span class="proposal-desc">comparabilidad</span>
+  </div>
+  <div class="stitch">
+    <div class="p3-header">
+      <div class="icon-circle" style="background:var(--amber-soft); color:var(--amber-strong);">
+        <span class="mat">restaurant</span>
+      </div>
+      <div>
+        <div class="p3-name">Don Julio</div>
+        <div class="p3-meta">Parrilla · Palermo</div>
+      </div>
+      <div class="p3-score">
+        <div class="p3-score-num">4/4</div>
+        <div class="p3-score-label">fuentes</div>
+      </div>
+    </div>
+
+    <div class="p3-metric">
+      <div class="p3-metric-label"><span>Consenso</span><span>4 / 4</span></div>
+      <div class="p3-metric-bar"><div class="p3-metric-fill" style="width:100%; background:var(--emerald);"></div></div>
+    </div>
+    <div class="p3-metric">
+      <div class="p3-metric-label"><span>Mención como top</span><span>4 / 4</span></div>
+      <div class="p3-metric-bar"><div class="p3-metric-fill" style="width:100%; background:var(--amber);"></div></div>
+    </div>
+
+    <div class="p3-cols">
+      <div class="p3-col">
+        <div class="p3-col-title pro">✓ Fortalezas</div>
+        <div class="p3-col-item">• Asado de tira</div>
+        <div class="p3-col-item">• Servicio atento</div>
+        <div class="p3-col-item">• Entradas de nivel</div>
+      </div>
+      <div class="p3-col">
+        <div class="p3-col-title con">! A tener en cuenta</div>
+        <div class="p3-col-item">• Reservar antes</div>
+        <div class="p3-col-item">• Ambiente ruidoso</div>
+        <div class="p3-col-item">• Espera ~45 min</div>
+      </div>
+    </div>
+
+    <div style="font-size:11px; color:var(--muted); display:flex; justify-content:space-between; padding-top:4px;">
+      <span>4 fuentes consultadas</span>
+      <span style="font-weight:700; color:var(--accent-strong); cursor:pointer;">Ver todas ▾</span>
+    </div>
+  </div>
+
+  <!-- ============ PROPUESTA 4: CONSENSO MINIMAL ============ -->
+  <div class="proposal-label">
+    <span class="proposal-num">04</span>
+    <span class="proposal-name">Consenso Minimal</span>
+    <span class="proposal-desc">limpieza absoluta</span>
+  </div>
+  <div class="p4">
+    <div class="p4-name">Don Julio</div>
+    <div class="p4-sub">— la mejor parrilla de Palermo</div>
+
+    <p class="p4-body">4 fuentes independientes coinciden en que es la referencia del barrio. El asado de tira es lo más elogiado; reservá con anticipación porque se llena semanas antes.</p>
+
+    <div class="p4-section-label">Coinciden</div>
+    <div class="p4-row">
+      <span class="p4-row-text">Asado de tira</span>
+      <span class="p4-dots"></span>
+      <span class="p4-row-count">3 fuentes</span>
+    </div>
+    <div class="p4-row">
+      <span class="p4-row-text">Reservar antes</span>
+      <span class="p4-dots"></span>
+      <span class="p4-row-count">3 fuentes</span>
+    </div>
+    <div class="p4-row">
+      <span class="p4-row-text">Ambiente ruidoso</span>
+      <span class="p4-dots"></span>
+      <span class="p4-row-count">2 fuentes</span>
+    </div>
+
+    <div class="p4-sources">
+      <span class="p4-sources-label">Basado en</span>
+      La Nación · TripAdvisor · Yelp · Guía Oleo
+    </div>
+  </div>
+
+  <!-- ============ PROPUESTA 5: TARJETA DE RECOMENDACIÓN ============ -->
+  <div class="proposal-label">
+    <span class="proposal-num">05</span>
+    <span class="proposal-name">Tarjeta de Recomendación</span>
+    <span class="proposal-desc">accionabilidad</span>
+  </div>
+  <div class="glass-card" style="padding:18px; border-radius:24px;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <span class="p5-recommend-badge"><span class="mat" style="font-size:14px;">recommend</span> Te recomiendo</span>
+      <span style="font-size:10px; color:var(--muted); font-weight:700;">4 fuentes</span>
+    </div>
+
+    <div class="p5-name">Don Julio</div>
+    <div class="p5-meta">Parrilla · Palermo, Buenos Aires</div>
+
+    <p class="p5-why">La mejor opción según 4 fuentes independientes. El asado de tira es lo más elogiado. Reservá antes: se llena semanas antes.</p>
+
+    <div class="p5-ctas">
+      <a class="p5-cta p5-cta-primary" href="#"><span class="mat" style="font-size:15px;">near_me</span>Cómo llegar</a>
+      <a class="p5-cta p5-cta-secondary" href="#"><span class="mat" style="font-size:15px;">call</span>Reservar</a>
+    </div>
+
+    <div class="p5-consensus-item">
+      <span class="p5-mark p5-mark-pro">✓</span>
+      <span>Asado de tira</span>
+      <span style="margin-left:auto; font-size:10px; color:var(--muted);">3 fuentes</span>
+    </div>
+    <div class="p5-consensus-item">
+      <span class="p5-mark p5-mark-pro">✓</span>
+      <span>Reservar antes</span>
+      <span style="margin-left:auto; font-size:10px; color:var(--muted);">3 fuentes</span>
+    </div>
+    <div class="p5-consensus-item">
+      <span class="p5-mark p5-mark-con">!</span>
+      <span>Ambiente ruidoso</span>
+      <span style="margin-left:auto; font-size:10px; color:var(--muted);">2 fuentes</span>
+    </div>
+
+    <div class="p5-based">Basado en: La Nación · TripAdvisor · Yelp · Guía Oleo</div>
+  </div>
+
+  <div style="text-align:center; margin-top:48px; padding:20px; background:var(--inner); border-radius:16px;">
+    <p style="font-size:13px; font-weight:700; margin:0 0 4px;">¿Cuál te gusta más?</p>
+    <p style="font-size:11px; color:var(--muted); margin:0;">Decime el número (o una mezcla) y lo implemento para las 120 tools.</p>
+  </div>
+</div>
+</body>
+</html>

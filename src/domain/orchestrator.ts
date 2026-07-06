@@ -575,7 +575,7 @@ function titleForBlock(block: UiBlock): string {
   if (block.type === "research_sources") return block.title ?? "Fuentes";
   if (block.type === "money_summary") return block.title ?? "Dinero";
   if (block.type === "web_nav") return block.title ?? "Web Navigation";
-  return block.title ?? "Guardado";
+  return ("title" in block ? block.title : undefined) ?? "Guardado";
 }
 
 function payloadForBlock(block: UiBlock, intent: SemanticIntent): AssistantActionPayload {

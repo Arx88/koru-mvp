@@ -30,3 +30,17 @@ dist-ssr
 .tmp/
 test-results/
 .worktrees/
+
+# Caches and compiled artifacts
+.hf-cache/
+unsloth_compiled_cache/
+
+# Manual audits, reports, and logs
+manual-audits/
+logs/
+
+# Secrets and local environment
+.env
+.env.*
+minimax-oauth-token.json
+.opencode.json

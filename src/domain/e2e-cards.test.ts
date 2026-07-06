@@ -231,7 +231,7 @@ for (const category of categories) {
               nonEmptyReply &&
               notRateLimited &&
               noException &&
-              (hasExpectedBlockType || acceptableForRouterMiss) &&
+              (hasExpectedBlockType || (acceptableForRouterMiss ?? false)) &&
               !timedOut;
 
             if (!log.success) {

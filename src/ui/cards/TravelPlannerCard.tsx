@@ -1,5 +1,3 @@
-import React from "react";
-
 function Mat({ children, className = "" }: { children: string; className?: string }) {
   return <span className={`material-symbols-outlined ${className}`}>{children}</span>;
 }

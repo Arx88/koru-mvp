@@ -279,8 +279,11 @@ export class SemanticRouter {
   private examples: EmbeddedExample[] = [];
   private initialized = false;
   private initPromise: Promise<void> | null = null;
+  private embedFn: EmbedFn;
 
-  constructor(private embedFn: EmbedFn) {}
+  constructor(embedFn: EmbedFn) {
+    this.embedFn = embedFn;
+  }
 
   /**
    * Embede todos los ejemplos modelo una sola vez. Idempotente.

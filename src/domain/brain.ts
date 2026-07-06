@@ -2,12 +2,12 @@ import { buildActionProposalsLocal, normalizeActionDrafts, type ActionDraft } fr
 import { foldAccents, uniqueCommitmentList } from "./commitments";
 import { preferredBrainProvider, runFreeLlmEmbedding } from "./freellmapi";
 import {
-  cleanupShoppingTaskTitle,
-  extractShoppingItems,
-  hasShoppingIntent,
-  hasTaskCue,
-  isAvailabilityStatement,
-} from "./intent";
+  extractCommitmentsFromText,
+  extractLifeRecordsFromText,
+  extractMemoryCandidatesFromText,
+  isDurableMemoryText,
+  recordKey,
+} from "./knowledge";
 import { sanitizeKoruVoice } from "./soul";
 import { dueAtFromText, recurrenceFromText } from "./time";
 import { orchestrateTurn, uiBlocksToActionProposals } from "./orchestrator";
@@ -123,359 +123,6 @@ function detectSentiment(input: string): KoruAnalysis["sentiment"] {
   return "calm";
 }
 
-function extractAmount(text: string): number | undefined {
-  const match = /(?:\$|€|usd|eur|ars)?\s*(\d+(?:[.,]\d{1,2})?)\s*(?:\$|€|usd|eur|ars)?/i.exec(text);
-  if (!match) return undefined;
-  const amount = Number(match[1].replace(",", "."));
-  return Number.isFinite(amount) ? amount : undefined;
-}
-
-function isRetrievalQuestion(text: string): boolean {
-  const lower = foldAccents(text);
-  if (/\b(recordame|recuerdame|acordame|anota|anotar|guardar|guarda|tengo que|debo|necesito|hay que)\b/i.test(lower)) {
-    return false;
-  }
-  return /[?¿]/.test(text) || /\b(que tengo|cuanto|cual|cuales|dime|decime|mostrame|muestrame|recuerdas|recordas)\b/i.test(lower);
-}
-
-function isExpenseCapture(text: string): boolean {
-  return /\b(anota(?:r)?\s+gasto|gaste|gast[eé]|pague|pagu[eé]|factura|alquiler|recibo|cuota)\b/i.test(foldAccents(text));
-}
-
-function inferCurrency(text: string): string | undefined {
-  const lower = foldAccents(text);
-  if (lower.includes("euro")) return "EUR";
-  if (text.includes("€") || lower.includes("eur")) return "EUR";
-  if (text.includes("$") || lower.includes("usd")) return "USD";
-  if (lower.includes("ars")) return "ARS";
-  return undefined;
-}
-
-function extractUrl(text: string): string | undefined {
-  return /(https?:\/\/[^\s]+|www\.[^\s]+)/i.exec(text)?.[1];
-}
-
-function personFromText(text: string): string | undefined {
-  const explicit = /\b(?:a|con|de|para)\s+([A-ZÁÉÍÓÚÑ][\wÁÉÍÓÚÑáéíóúñ]+)\b/.exec(text);
-  if (explicit?.[1]) return explicit[1];
-  const known = /\b(Ana|Lucia|Lucía|Juan|Martin|Martín|mama|mamá|papa|papá|socio|socia|cliente|proveedor)\b/i.exec(text);
-  return known?.[1];
-}
-
-function dueHintFromText(text: string): string | undefined {
-  const lower = foldAccents(text);
-  if (/\bhoy|ahora|urgente\b/.test(lower)) return "hoy";
-  if (/\bmanana\b/.test(lower)) return "mañana";
-  if (/\bsemana\b/.test(lower)) return "esta semana";
-  if (/\bmes\b/.test(lower)) return "este mes";
-  return undefined;
-}
-
-function recordKey(record: LifeRecordDraft): string {
-  const normalizedTitle = foldAccents(record.value ?? record.title)
-    .replace(/\b(anota|anotar|gaste|gasto|pague|pago|compre|compra|recordame|tengo|hay|en casa|hoy|manana|mañana|por la manana|por la mañana)\b/g, " ")
-    .replace(/\d+(?:[.,]\d{1,2})?/g, " ")
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim()
-    .split(/\s+/)
-    .slice(0, 6)
-    .join(" ");
-  return [
-    record.domain,
-    record.kind,
-    record.amount ?? "",
-    record.currency ?? "",
-    foldAccents(record.person ?? ""),
-    foldAccents(record.url ?? ""),
-    normalizedTitle,
-  ].join("|");
-}
-
-function extractLifeRecordsLocal(input: string, ideas: string[]): LifeRecordDraft[] {
-  const records: LifeRecordDraft[] = [];
-  if (isRetrievalQuestion(input)) return records;
-  const all = [input, ...ideas];
-
-  for (const idea of all) {
-    const lower = foldAccents(idea);
-    const amount = extractAmount(idea);
-    const url = extractUrl(idea);
-    const dueHint = dueHintFromText(idea);
-    const person = personFromText(idea);
-    const shoppingItems = extractShoppingItems(idea);
-
-    if (amount && /\b(gaste|gast[eé]|pague|pagu[eé]|compre|compr[eé]|factura|alquiler|super|supermercado)\b/i.test(lower)) {
-      records.push({
-        domain: "money",
-        kind: "expense",
-        title: sentenceCase(idea),
-        amount,
-        currency: inferCurrency(idea),
-        dueHint,
-        notes: idea,
-        tags: ["gasto"],
-      });
-    }
-
-    if (/\b(medicamento|medicacion|pastilla|tomar|dosis|ibuprofeno|sertralina|turno medico|m[eé]dico)\b/i.test(lower)) {
-      records.push({
-        domain: "health",
-        kind: lower.includes("turno") || lower.includes("medico") ? "medical_info" : "medication",
-        title: sentenceCase(idea),
-        value: amount ? String(amount) : undefined,
-        dueHint,
-        notes: idea,
-        tags: ["salud"],
-      });
-    }
-
-    if (/\b(dormi|dorm[ií]|sue[nñ]o|horas)\b/i.test(lower) && amount) {
-      records.push({
-        domain: "health",
-        kind: "sleep",
-        title: `Dormí ${amount} horas`,
-        amount,
-        notes: idea,
-        tags: ["sueño"],
-      });
-    }
-
-    if (shoppingItems.length > 0) {
-      records.push({
-        domain: "home",
-        kind: "shopping_item",
-        title: cleanupShoppingTaskTitle(idea),
-        value: shoppingItems.join(", "),
-        dueHint,
-        notes: idea,
-        tags: ["compras", "casa"],
-      });
-    }
-
-    if (
-      isAvailabilityStatement(idea) &&
-      /\b(tengo para comer|hay en casa|heladera|nevera|freezer|despensa|arroz|pollo|pasta|verduras|huevos|leche)\b/i.test(lower)
-    ) {
-      records.push({
-        domain: "home",
-        kind: "meal_inventory",
-        title: sentenceCase(idea),
-        value: cleanupInventoryValue(idea),
-        notes: idea,
-        tags: ["comida"],
-      });
-    }
-
-    if (url || /\b(herramienta|tool|link|enlace|me gusto|me gust[oó])\b/i.test(lower)) {
-      records.push({
-        domain: "work",
-        kind: "tool_link",
-        title: sentenceCase(idea.replace(url ?? "", "").trim() || url || idea),
-        url,
-        notes: idea,
-        tags: ["herramienta"],
-      });
-    }
-
-    if (/\b(reunion|reuni[oó]n|meeting|notas|minuta)\b/i.test(lower)) {
-      records.push({
-        domain: "work",
-        kind: "meeting_note",
-        title: sentenceCase(idea),
-        person,
-        dueHint,
-        notes: idea,
-        tags: ["reunion"],
-      });
-    }
-
-    if (/\b(deadline|vence|entrega|fecha limite|fecha l[ií]mite)\b/i.test(lower)) {
-      records.push({
-        domain: "work",
-        kind: "deadline",
-        title: sentenceCase(idea),
-        dueHint,
-        notes: idea,
-        tags: ["deadline"],
-      });
-    }
-
-    if (/\b(cumple|cumplea[nñ]os)\b/i.test(lower)) {
-      records.push({
-        domain: "relationship",
-        kind: "birthday",
-        title: sentenceCase(idea),
-        person,
-        dueHint,
-        notes: idea,
-        tags: ["cumpleaños"],
-      });
-    }
-
-    if (/\b(regalo|regale|regal[eé])\b/i.test(lower)) {
-      records.push({
-        domain: "relationship",
-        kind: "gift",
-        title: sentenceCase(idea),
-        person,
-        notes: idea,
-        tags: ["regalo"],
-      });
-    }
-
-    if (!isExpenseCapture(idea) && !hasShoppingIntent(idea) && /\b(plomero|fontanero|seguro|paquete|llega|lista del super|lista supermercado)\b/i.test(lower)) {
-      records.push({
-        domain: "home",
-        kind: "home_task",
-        title: sentenceCase(idea),
-        dueHint,
-        notes: idea,
-        tags: ["casa"],
-      });
-    }
-
-    if (/\b(idea|no quiero perder|guardar esto|anota esto|captura)\b/i.test(lower)) {
-      records.push({
-        domain: "capture",
-        kind: "idea",
-        title: cleanupTaskText(idea),
-        notes: idea,
-        tags: ["idea"],
-      });
-    }
-
-    if (/\b(serie|libro|restaurante|viaje|me recomendaron|quiero probar|empece|empec[eé])\b/i.test(lower)) {
-      records.push({
-        domain: "interest",
-        kind: "recommendation",
-        title: sentenceCase(idea),
-        person,
-        notes: idea,
-        tags: ["interes"],
-      });
-    }
-
-    if (/\b(decidir|decisi[oó]n|puedo permitirme|me conviene)\b/i.test(lower)) {
-      records.push({
-        domain: amount ? "money" : "capture",
-        kind: "decision",
-        title: sentenceCase(idea),
-        amount,
-        currency: inferCurrency(idea),
-        notes: idea,
-        tags: ["decision"],
-      });
-    }
-  }
-
-  const seen = new Set<string>();
-  return records.filter((record) => {
-    const key = recordKey(record);
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  }).slice(0, 10);
-}
-
-function cleanupInventoryValue(text: string): string {
-  return text
-    .replace(/^(tengo|hay|en casa|para comer|comida)\s+/i, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function cleanupTaskText(text: string): string {
-  return sentenceCase(text.replace(/^(idea|anota esto|guardar esto|no quiero perder)\s*:?\s*/i, "").trim() || text);
-}
-
-function extractCommitmentsLocal(ideas: string[]) {
-  return ideas
-    .filter((idea) => {
-      return hasTaskCue(idea);
-    })
-    .slice(0, 5)
-    .map((idea) => ({
-      title: sentenceCase(hasShoppingIntent(idea) ? cleanupShoppingTaskTitle(idea) : idea),
-      dueHint: /\bmanana\b/i.test(foldAccents(idea)) ? "mañana" : /\bhoy\b/i.test(foldAccents(idea)) ? "hoy" : "sin fecha",
-      dueAt: dueAtFromText(idea),
-      recurrence: recurrenceFromText(idea),
-      status: "open" as const,
-    }));
-}
-
-function isTaskLike(text: string): boolean {
-  return hasTaskCue(text);
-}
-
-function isPureAction(text: string): boolean {
-  return /^\s*(tengo que|debo|necesito|prometi|recordar|recordame|recuerdame|acordame|comprar|mandar|enviar|llamar|escribir|preparar|buscar|busca|buscame|investiga|investigar|comparar|compara|comparame|dame|decime|dime)\b/i.test(foldAccents(text));
-}
-
-function isDurableMemoryText(text: string): boolean {
-  const lower = foldAccents(text);
-  if (isPureAction(text)) return false;
-  if (/^(debo|tengo que|necesito|recordar|mandar|enviar|llamar|comprar)\b/i.test(text)) return false;
-  return includesAny(lower, [
-    "soy",
-    "trabajo",
-    "siempre",
-    "normalmente",
-    "prefiero",
-    "me gusta",
-    "no me gusta",
-    "quiero",
-    "objetivo",
-    "meta",
-    "me cuesta",
-    "me preocupa",
-    "mi rutina",
-    "cliente",
-    "stock",
-    "local",
-  ]);
-}
-
-function extractMemoryCandidatesLocal(input: string, ideas: string[]) {
-  return ideas
-    .filter((idea) => {
-      const lower = foldAccents(idea);
-      if (lower.length < 12) return false;
-      if (isPureAction(idea)) return false;
-      if (isTaskLike(idea) && !includesAny(lower, ["siempre", "prefiero", "cliente", "stock", "proveedor", "me preocupa"])) {
-        return false;
-      }
-      return (
-        includesAny(lower, [
-          "soy",
-          "trabajo",
-          "tengo",
-          "quiero",
-          "prefiero",
-          "me preocupa",
-          "me cuesta",
-          "mi rutina",
-          "cliente",
-          "stock",
-          "ana",
-          "mama",
-          "no quiero",
-        ]) || input.length > 120
-      );
-    })
-    .slice(0, 6)
-    .map((idea) => {
-      const sensitivity: MemorySensitivity = isSensitive(idea) ? "sensitive" : "normal";
-      return {
-        kind: classifyMemoryKind(idea),
-        text: sentenceCase(idea),
-        confidence: confidenceFor(idea, sensitivity),
-        sensitivity,
-        status: "candidate" as const,
-        rootQuote: sentenceCase(idea),
-        useForSuggestions: sensitivity === "normal",
-      };
-    });
-}
 
 function summarize(input: string, ideas: string[]): string {
   if (ideas.length === 0) return sentenceCase(input.slice(0, 180));
@@ -717,7 +364,7 @@ function normalizeDraft(
   model?: string,
 ): KoruAnalysis {
   const ideas = splitIdeas(input);
-  const localRecords = state.ephemeralMode ? [] : extractLifeRecordsLocal(input, ideas);
+  const localRecords = state.ephemeralMode ? [] : extractLifeRecordsFromText(input);
   const sentiment = normalizeSentiment(draft.sentiment, input);
   const rawMemories = state.ephemeralMode
     ? []
@@ -757,7 +404,7 @@ function normalizeDraft(
     ? []
     : uniqueCommitmentList([
         ...commitmentsFromModel,
-        ...extractCommitmentsLocal(ideas),
+        ...extractCommitmentsFromText(input),
       ]).slice(0, 6);
   const records = (() => {
     if (state.ephemeralMode) return [];
@@ -1104,8 +751,8 @@ function mergePhaseCActions(orchestratedActions: ActionProposalLocal[], legacyAc
 
 function analyzeReflectionLocal(input: string, state: KoruState, activeMemories: MemoryFact[]): KoruAnalysis {
   const ideas = splitIdeas(input);
-  const memoryCandidates = state.ephemeralMode ? [] : extractMemoryCandidatesLocal(input, ideas);
-  const commitments = extractCommitmentsLocal(ideas);
+  const memoryCandidates = state.ephemeralMode ? [] : extractMemoryCandidatesFromText(input);
+  const commitments = extractCommitmentsFromText(input);
   return normalizeDraft(
     {
       summary: summarize(input, ideas),
@@ -1123,7 +770,7 @@ function analyzeReflectionLocal(input: string, state: KoruState, activeMemories:
         commitments,
         detectSentiment(input),
         state,
-        state.ephemeralMode ? [] : extractLifeRecordsLocal(input, ideas),
+        state.ephemeralMode ? [] : extractLifeRecordsFromText(input),
       ),
       sentiment: detectSentiment(input),
     },
@@ -1150,6 +797,10 @@ function simpleRecordReply(record: Omit<LifeRecord, "id" | "createdAt" | "source
   return `Guardado: ${record.value ?? record.title}.`;
 }
 
+/**
+ * @deprecated Use the backend agent flow via KoruProvider/sendMessage instead.
+ * Kept for tests and legacy callers.
+ */
 export async function analyzeReflection(
   input: string,
   state: KoruState,

@@ -5,7 +5,7 @@
  */
 
 import { defineTool, policies, type ToolHandler, type ToolRunContext } from "../types";
-import { fetchJson, fetchText, normalize } from "../shared/fetcher";
+import { fetchJson, fetchText } from "../shared/fetcher";
 import { cached, ttls } from "../shared/cache";
 import { limiters } from "../shared/rateLimiter";
 import { searchAndEnrich, usableSources } from "../shared/scrapers";
@@ -352,7 +352,7 @@ export const rssDigest: ToolHandler = {
       }
     }
 
-    return { type: "rss_digest", status: "ok", hours, items: items.slice(0, 15), sources: feeds.map((f) => f.name) };
+    return { type: "rss_digest", status: "ok", hours, items: items.slice(0, 15), sources: feeds.map((f) => ({ title: f.name, url: f.name, domain: f.name })) };
   },
 };
 

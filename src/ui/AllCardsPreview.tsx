@@ -10,7 +10,6 @@ import { KoruSemanticCard, type CardActionHandlers } from "./chatCards";
 import type { KoruTurnItem } from "./KoruProvider";
 import type { UiBlock, AssistantSource } from "../domain/types";
 import { WebNavCardA } from "./chatCards";
-import { RestaurantSynthesisCard } from "./cards/RestaurantCard";
 import "../style.css";
 
 const sources: AssistantSource[] = [
@@ -93,15 +92,15 @@ const CARDS: Array<{ label: string; items: KoruTurnItem[]; extra?: React.ReactNo
   },
   {
     label: "plan (timeline)",
-    items: [makeItem({ uiBlock: { type: "plan", title: "Logística de Actividad", id: "ID: PLAN-882", items: [
+    items: [makeItem({ uiBlock: { type: "plan", title: "Logística de Actividad", items: [
       { time: "09:15 AM", title: "Check-in Punto A", rationale: "Sincronización de sensores y calibración de ruta base.", mode: "focus", durationMinutes: 15 },
       { time: "10:45 AM", title: "Intervención de Campo", rationale: "Muestreo sistemático (Intervalos de 15m). Precisión 98%.", mode: "quick", priority: "Alta" },
       { time: "13:30 PM", title: "Consolidación de Datos", rationale: "Cierre de sesión técnica y reporte de contingencia.", mode: "admin", priority: "Media" },
-    ], actionLabel: "Ejecutar Protocolo", actionIcon: "verified" as const } })],
+    ] } })],
   },
   {
     label: "live_match",
-    items: [makeItem({ uiBlock: { type: "live_match", league: "Champions League", time: "89 min", status: "Final", homeTeam: "Real Madrid", awayTeam: "Man City", stats: [
+    items: [makeItem({ uiBlock: { type: "live_match", league: "Champions League", time: "89 min", status: "Final", homeTeam: { name: "Real Madrid", abbrev: "RMA", score: 2 }, awayTeam: { name: "Man City", abbrev: "MCI", score: 1 }, stats: [
       { label: "Possession", leftPercent: 42, rightPercent: 58 },
       { label: "Shots", leftPercent: 60, rightPercent: 40, leftColor: "#f59e0b", rightColor: "#3b82f6" },
     ] } })],
@@ -161,7 +160,7 @@ const CARDS: Array<{ label: string; items: KoruTurnItem[]; extra?: React.ReactNo
   },
   {
     label: "plan",
-    items: [makeItem({ uiBlock: { type: "plan", title: "Plan de viaje", items: [{ text: "Sacar pasaporte", status: "waiting" as const }, { text: "Reservar vuelo", status: "doing" as const }, { text: "Elegir hotel", status: "done" as const }], note: "3 pasos para el viaje a Madrid" } })],
+    items: [makeItem({ uiBlock: { type: "plan", title: "Plan de viaje", items: [{ title: "Sacar pasaporte", done: false }, { title: "Reservar vuelo", done: false }, { title: "Elegir hotel", done: true }], note: "3 pasos para el viaje a Madrid" } })],
   },
   {
     label: "research_sources",
@@ -189,7 +188,10 @@ const CARDS: Array<{ label: string; items: KoruTurnItem[]; extra?: React.ReactNo
   },
   {
     label: "comparison",
-    items: [makeItem({ uiBlock: { type: "comparison", title: "Comparar notebooks", items: [{ name: "MacBook Air M3", price: "$1.200", features: "Chip M3, 16GB RAM", url: "https://apple.com" }, { name: "ThinkPad X1", price: "$1.150", features: "Intel Ultra 7, 32GB RAM", url: "https://lenovo.com" }], criteria: ["Precio", "RAM", "Portabilidad"], recommendation: "ThinkPad X1 ofrece más RAM por menos dinero.", sources } })],
+    items: [makeItem({ uiBlock: { type: "comparison", title: "Comparar notebooks", items: [
+      { title: "MacBook Air M3", price: "$1.200", url: "https://apple.com", details: [{ label: "Chip M3, 16GB RAM", positive: true }, { label: "Menor RAM base", positive: false }] },
+      { title: "ThinkPad X1", price: "$1.150", url: "https://lenovo.com", details: [{ label: "Intel Ultra 7, 32GB RAM", positive: true }, { label: "Más pesado", positive: false }] }
+    ], criteria: ["Precio", "RAM", "Portabilidad"], recommendation: "ThinkPad X1 ofrece más RAM por menos dinero.", sources } })],
   },
   {
     label: "activity_group",
@@ -201,7 +203,7 @@ const CARDS: Array<{ label: string; items: KoruTurnItem[]; extra?: React.ReactNo
   },
   {
     label: "saved_record",
-    items: [makeItem({ uiBlock: { type: "saved_record", title: "Guardado", records: [{ id: "r1", domain: "morning" as const, kind: "idea" as const, title: "Tomo café solo por la mañana", value: "Evito azúcar", collection: "rutina", createdAt: new Date().toISOString() }] } })],
+    items: [makeItem({ uiBlock: { type: "saved_record", title: "Guardado", records: [{ domain: "morning" as const, kind: "idea" as const, title: "Tomo café solo por la mañana", value: "Evito azúcar", collection: "rutina" }] } })],
   },
   {
     label: "resource_bundle",
@@ -223,7 +225,7 @@ const CARDS: Array<{ label: string; items: KoruTurnItem[]; extra?: React.ReactNo
     label: "web_nav (standalone)",
     items: [],
     extra: (
-      <WebNavCardA block={{ type: "web_nav", status: "ok", query: "criptomonedas hoy", title: "Resultados web", url: "https://google.com", results: [{ title: "Bitcoin supera los 60k", url: "https://example.com/1", domain: "example.com", snippet: "BTC rompe resistencia" }, { title: "Ethereum 2.0", url: "https://example.com/2", domain: "example.com", snippet: "Shapella activado" }] }} />
+      <WebNavCardA block={{ type: "web_nav", status: "complete", query: "criptomonedas hoy", title: "Resultados web", url: "https://google.com", results: [{ title: "Bitcoin supera los 60k", source: "example.com", url: "https://example.com/1", type: "article" as const, snippet: "BTC rompe resistencia" }, { title: "Ethereum 2.0", source: "example.com", url: "https://example.com/2", type: "article" as const, snippet: "Shapella activado" }] }} />
     ),
   },
   {
@@ -283,7 +285,7 @@ const CARDS: Array<{ label: string; items: KoruTurnItem[]; extra?: React.ReactNo
   },
   {
     label: "birthday_calendar",
-    items: [makeItem({ uiBlock: { type: "birthday_calendar", month: "Julio", year: 2025, highlightedDay: 12 }})],
+    items: [makeItem({ uiBlock: { type: "birthday_calendar", month: "Julio", highlightedDay: 12 }})],
   },
   {
     label: "birthday_alarm",
@@ -300,9 +302,9 @@ const CARDS: Array<{ label: string; items: KoruTurnItem[]; extra?: React.ReactNo
   {
     label: "election_vote",
     items: [makeItem({ uiBlock: { type: "election_vote", question: "¿A quién votar?", subtitle: "Según datos de encuestas", options: [
-      { label: "Milei — Liberalismo", description: "Reducción del Estado" },
-      { label: "Massa — Peronismo", description: "Continuidad económica" },
-      { label: "Bullrich — Pro", description: "Orden y seguridad" },
+      { label: "Milei", sub: "Liberalismo — Reducción del Estado" },
+      { label: "Massa", sub: "Peronismo — Continuidad económica" },
+      { label: "Bullrich", sub: "Pro — Orden y seguridad" },
     ]}})],
   },
   {
@@ -326,14 +328,14 @@ const CARDS: Array<{ label: string; items: KoruTurnItem[]; extra?: React.ReactNo
   },
   {
     label: "outfit",
-    items: [makeItem({ uiBlock: { type: "outfit", title: "Outfit Montaña", specs: [
+    items: [makeItem({ uiBlock: { type: "outfit", specs: [
       { emoji: "🧥", label: "Chaqueta", value: "Impermeable" },
       { emoji: "🥾", label: "Calzado", value: "Trekking" },
       { emoji: "🧤", label: "Guantes", value: "Térmicos" },
       { emoji: "🧦", label: "Medias", value: "Lana" },
       { emoji: "🎒", label: "Mochila", value: "40L" },
       { emoji: "🧢", label: "Gorro", value: "Lana" },
-    ]}})],
+    ], buttonLabel: "Ver detalle" }})],
   },
   {
     label: "review_score",

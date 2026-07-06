@@ -5,7 +5,7 @@
  */
 
 import { defineTool, policies, type ToolHandler } from "../types";
-import { searchAndEnrich, usableSources, mentions } from "../shared/scrapers";
+import { searchAndEnrich, usableSources } from "../shared/scrapers";
 import { validateWithCitations, extractionToDataCard } from "../shared/extractor";
 import type { UiBlock } from "../../domain/types";
 

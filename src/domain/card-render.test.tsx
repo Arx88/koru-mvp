@@ -142,7 +142,7 @@ describe("ProductAnalysisCard", () => {
             { label: "Bluetooth", value: "5.2" },
             { label: "Carga rápida", value: "3 min = 3h" },
           ],
-        }}
+        } as any}
       />,
     );
     expect(screen.getByText("Sony WH-1000XM5")).toBeInTheDocument();
@@ -199,13 +199,13 @@ describe("LiveMatchCard", () => {
           awayPossession: "42%",
           homeShots: "12",
           awayShots: "8",
-        }}
+        } as any}
       />,
     );
     expect(screen.getByText("Real Madrid")).toBeInTheDocument();
     expect(screen.getByText("Barcelona")).toBeInTheDocument();
     // Score text "2 - 1" is in a single parent span; check both teams and stats
-    const scoreEl = screen.getByText((content, element) => element?.textContent === "2 - 1");
+    const scoreEl = screen.getByText((_content, element) => element?.textContent === "2 - 1");
     expect(scoreEl).toBeInTheDocument();
     expect(screen.getByText("Possession")).toBeInTheDocument();
     expect(screen.getByText("Shots (On Target)")).toBeInTheDocument();
@@ -354,7 +354,7 @@ describe("MarketCard", () => {
           price: "$189.50",
           change: 1.23,
           time: "1D",
-        }}
+        } as any}
       />,
     );
     expect(screen.getByText("AAPL/USD")).toBeInTheDocument();

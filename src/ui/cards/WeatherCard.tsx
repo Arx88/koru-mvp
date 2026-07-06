@@ -1,5 +1,3 @@
-import React from "react";
-import type { Extract } from "../../domain/types";
 import type { UiBlock } from "../../domain/types";
 
 function Mat({ children, className = "" }: { children: string; className?: string }) {

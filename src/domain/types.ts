@@ -264,6 +264,9 @@ export type AssistantPlanItem = {
   durationMinutes?: number;
   mode?: "focus" | "quick" | "admin" | "recovery";
   rationale?: string;
+  done?: boolean;
+  detail?: string;
+  timeEstimate?: string;
 };
 
 export type SemanticIntent = {
@@ -500,6 +503,7 @@ export type UiBlock =
        */
       type: "data_card";
       title?: string;
+      sourceStatus?: AssistantActionPayload["externalStatus"];
       items: Array<{
         label: string;
         value: string;
@@ -698,6 +702,24 @@ export type UiBlock =
       options?: Array<{ label: string; sub?: string }>;
     }
   | {
+      type: "decision_support";
+      title?: string;
+      options?: Array<{ label: string; probability?: number }>;
+      factors?: string[];
+      recommendation?: string;
+    }
+  | {
+      type: "memory";
+      title?: string;
+      items?: Array<{
+        domain?: string;
+        title: string;
+        detail?: string;
+        confidence?: number;
+      }>;
+      note?: string;
+    }
+  | {
       type: "data_ticker";
       items?: Array<{ label: string; value: string; highlight?: boolean }>;
       alert?: string;
@@ -805,6 +827,7 @@ export type AssistantActionPayload = {
     url?: string;
     evidence?: string;
     score?: number;
+    details?: Array<{ label: string; positive?: boolean }>;
   }>;
   planItems?: AssistantPlanItem[];
   steps?: string[];

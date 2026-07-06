@@ -14,7 +14,7 @@ export { ClarifyingQuestionCard } from "./ClarifyingQuestionCard";
 export { ComparisonCard } from "./ComparisonCard";
 export { MemoryCard } from "./MemoryCard";
 export { DecisionSupportCard } from "./DecisionSupportCard";
-export { default as RestaurantSynthesisCard } from "./RestaurantCard";
+export { RestaurantSynthesisCard } from "./RestaurantCard";
 
 // Nuevas cards basadas en diseños Stitch
 export { MorningBriefCard } from "./MorningBriefCard";

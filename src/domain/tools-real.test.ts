@@ -35,8 +35,9 @@ describe("Real tool execution", { timeout: 30_000 }, () => {
   it("exchange_history returns real data", async () => {
     const r = await exchangeHistory.run({ base: "USD", target: "EUR", days: 7 }, ctx);
     if (r.status === "ok") {
-      expect(r.rates).toBeDefined();
-      expect(r.rates.length).toBeGreaterThan(0);
+      const rates = r.rates as Array<{ date: string; rate: number }>;
+      expect(rates).toBeDefined();
+      expect(rates.length).toBeGreaterThan(0);
     } else {
     }
   });
