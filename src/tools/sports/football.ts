@@ -9,6 +9,82 @@ import { cached, ttls } from "../shared/cache";
 
 const TSDB_KEY = "3"; // Key pública gratuita de TheSportsDB.
 const TSDB_BASE = `https://www.thesportsdb.com/api/v1/json/${TSDB_KEY}`;
+const ESPN_BASE = "https://site.api.espn.com/apis/site/v2/sports/soccer";
+
+// Ligas ESPN con IDs conocidos para buscar resultados
+const ESPN_LEAGUES = [
+  { id: "arg.1", name: "Argentine Primera División" },
+  { id: "eng.1", name: "Premier League" },
+  { id: "esp.1", name: "La Liga" },
+  { id: "ita.1", name: "Serie A" },
+  { id: "ger.1", name: "Bundesliga" },
+  { id: "fra.1", name: "Ligue 1" },
+  { id: "uefa.champions", name: "Champions League" },
+  { id: "uefa.europa", name: "Europa League" },
+  { id: "bra.1", name: "Brasileirão" },
+  { id: "mex.1", name: "Liga MX" },
+  { id: "usa.1", name: "MLS" },
+];
+
+type EspnEvent = {
+  name?: string;
+  date?: string;
+  status?: { type?: { description?: string; detail?: string } };
+  competitions?: Array<{
+    date?: string;
+    competitors?: Array<{
+      homeAway?: string;
+      score?: string;
+      team?: { displayName?: string; shortDisplayName?: string; logo?: string };
+    }>;
+  }>;
+};
+
+async function searchEspnScoreboards(query: string): Promise<EspnEvent[]> {
+  const queryLower = query.toLowerCase();
+  const results: EspnEvent[] = [];
+  // Buscar en paralelo en todas las ligas
+  const promises = ESPN_LEAGUES.map(async (league) => {
+    try {
+      const res = await fetch(`${ESPN_BASE}/${league.id}/scoreboard`, {
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!res.ok) return;
+      const data = await res.json() as { events?: EspnEvent[] };
+      const events = data.events ?? [];
+      // Filtrar por query (nombre del equipo en el evento)
+      const matching = events.filter(e => {
+        const eventName = (e.name ?? "").toLowerCase();
+        const comps = e.competitions ?? [];
+        const teams = comps.flatMap(c => (c.competitors ?? []).map(comp => comp.team?.displayName?.toLowerCase() ?? ""));
+        return eventName.includes(queryLower) || teams.some(t => t.includes(queryLower));
+      });
+      results.push(...matching);
+    } catch { /* league timeout — skip */ }
+  });
+  await Promise.all(promises);
+  return results;
+}
+
+function normalizeEspnEvent(e: EspnEvent) {
+  const comps = e.competitions ?? [];
+  const comp = comps[0];
+  const competitors = comp?.competitors ?? [];
+  const home = competitors.find(c => c.homeAway === "home");
+  const away = competitors.find(c => c.homeAway === "away");
+  const status = e.status?.type?.description ?? e.status?.type?.detail ?? "?";
+  return {
+    id: `${home?.team?.displayName ?? "?"}-${away?.team?.displayName ?? "?"}-${comp?.date ?? ""}`,
+    match: `${home?.team?.displayName ?? "?"} vs ${away?.team?.displayName ?? "?"}`,
+    homeTeam: home?.team?.displayName,
+    awayTeam: away?.team?.displayName,
+    homeScore: home?.score != null ? Number(home.score) : undefined,
+    awayScore: away?.score != null ? Number(away.score) : undefined,
+    status,
+    date: comp?.date ?? e.date,
+    live: /in progress|live|halftime/i.test(status),
+  };
+}
 
 type TsdbEvent = {
   idEvent?: string;
@@ -59,11 +135,29 @@ export const matchLive: ToolHandler = {
       required: ["query"],
     },
   ),
-  policy: policies.readonly("Lee resultados deportivos públicos."),
+  policy: policies.readonly("Lee resultados deportivos de ESPN y TheSportsDB."),
   async run(args) {
     const query = String(args.query ?? "").trim();
     if (!query) return { type: "match_live", status: "failed", error: "Indicá el partido." };
 
+    // FIX: usar ESPN como fuente principal (TheSportsDB free no tiene datos recientes)
+    // ESPN busca en 11 ligas en paralelo y filtra por nombre de equipo
+    const espnEvents = await searchEspnScoreboards(query);
+
+    if (espnEvents.length > 0) {
+      const matches = espnEvents.slice(0, 5).map(normalizeEspnEvent);
+      return {
+        type: "match_live",
+        status: "ok",
+        query,
+        matches,
+        source: "ESPN",
+        sourceUrl: "https://www.espn.com/soccer/",
+        text: matches.map(m => `${m.homeTeam} ${m.homeScore ?? "?"} - ${m.awayScore ?? "?"} ${m.awayTeam} (${m.status})`).join("; "),
+      };
+    }
+
+    // Fallback: TheSportsDB
     const cacheKey = `match_live:${query.toLowerCase()}`;
     const events = await cached<TsdbEvent[]>(cacheKey, ttls.sportsLive, async () => {
       const result = await fetchJson<{ events?: TsdbEvent[] }>(
@@ -74,18 +168,39 @@ export const matchLive: ToolHandler = {
       return result.data!.events ?? [];
     });
 
-    if (events.length === 0) {
-      return { type: "match_live", status: "ok", query, matches: [], note: `No encontré "${query}". Probá con nombres más específicos o la liga.` };
+    if (events.length > 0) {
+      return {
+        type: "match_live",
+        status: "ok",
+        query,
+        matches: events.slice(0, 5).map(normalizeEvent),
+        source: "TheSportsDB",
+        sourceUrl: "https://www.thesportsdb.com/",
+      };
     }
 
-    return {
-      type: "match_live",
-      status: "ok",
-      query,
-      matches: events.slice(0, 5).map(normalizeEvent),
-      source: "TheSportsDB",
-      sourceUrl: "https://www.thesportsdb.com/",
-    };
+    // Último fallback: buscar noticias del equipo en ESPN + Wikipedia
+    try {
+      const wikiRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(`${query} football team`)}&format=json&origin=*&srlimit=1`, { signal: AbortSignal.timeout(9000) });
+      const wikiData = await wikiRes.json() as { query?: { search?: Array<{ title: string; snippet: string }> } };
+      const results = wikiData.query?.search ?? [];
+      if (results.length > 0) {
+        const title = results[0].title;
+        const summaryRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`, { signal: AbortSignal.timeout(9000) });
+        const summary = await summaryRes.json() as { extract?: string; content_urls?: { desktop?: { page: string } } };
+        return {
+          type: "match_live",
+          status: "ok",
+          query,
+          matches: [],
+          text: summary.extract ?? `Encontré información sobre ${title} pero no hay partidos recientes en las fuentes.`,
+          sources: [{ title, url: summary.content_urls?.desktop?.page ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`, domain: "wikipedia.org", snippet: results[0].snippet?.replace(/<[^>]+>/g, "") }],
+          source: "Wikipedia",
+        };
+      }
+    } catch { /* ignore */ }
+
+    return { type: "match_live", status: "ok", query, matches: [], note: `No encontré partidos de "${query}" en este momento. La temporada puede estar en receso.` };
   },
 };
 
