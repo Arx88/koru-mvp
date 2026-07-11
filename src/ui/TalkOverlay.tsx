@@ -76,6 +76,15 @@ function KoruTurnBubble({
   const { heading, body } = splitKoruText(turn.text);
   return (
     <div className="koru-message is-koru">
+      <div className="koru-row">
+        <div className="koru-avatar">
+          <img src={KORU_AVATAR} alt="Koru" />
+        </div>
+        <div className="koru-bubble ai-bubble">
+          {heading && <h3 className="koru-bubble-heading">{heading}</h3>}
+          <p className="koru-message-text">{body}</p>
+        </div>
+      </div>
       {turn.items && turn.items.length > 0 && (
         <div className="koru-cards-row">
           {turn.items.map((item) => (
@@ -91,15 +100,6 @@ function KoruTurnBubble({
           ))}
         </div>
       )}
-      <div className="koru-row">
-        <div className="koru-avatar">
-          <img src={KORU_AVATAR} alt="Koru" />
-        </div>
-        <div className="koru-bubble ai-bubble">
-          {heading && <h3 className="koru-bubble-heading">{heading}</h3>}
-          <p className="koru-message-text">{body}</p>
-        </div>
-      </div>
     </div>
   );
 }

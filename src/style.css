@@ -300,8 +300,13 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  width: 100%;
-  margin-top: 12px;
+  /* Fase 1 (fix solapamiento): la card va DESPUÉS de la burbuja, alineada
+     a la derecha del avatar (mismo ancho que la burbuja). Sin margin-top
+     negativo ni margin-inline negativo — eso causaba que la card se metiera
+     debajo del avatar de la burbuja anterior. */
+  width: calc(100% - 100px); /* 88px avatar + 12px gap */
+  margin-left: 100px;
+  margin-top: 4px;
 }
 
 .koru-message.is-koru .koru-action-content {
@@ -309,9 +314,9 @@
 }
 
 .koru-message.is-koru .koru-action-content[data-ui-block] {
-  width: calc(100% + 12px);
-  margin-top: 14px;
-  margin-inline: -6px;
+  width: 100%;
+  margin-top: 0;
+  margin-inline: 0;
 }
 
 .koru-action-title {
