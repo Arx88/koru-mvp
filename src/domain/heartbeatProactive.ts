@@ -54,9 +54,11 @@ function lastEntriesEnergy(state: KoruState): "low" | "medium" | "high" {
 function weatherWakeUpNudge(state: KoruState, now: Date): NudgeDraft | null {
   const wakeHour = wakeUpHour(state);
   if (wakeHour === null) return null;
-  // Solo entre la hora de despertar y wakeHour + 30 min
-  const currentHour = now.getUTCHours();
-  const currentMin = now.getUTCMinutes();
+  // Fase 1.10 (auditoría A7): usaba getUTCHours/getUTCMinutes pero el resto
+  // del código usa getHours/getMinutes local. Unificar a local para evitar
+  // desfase horario según zona.
+  const currentHour = now.getHours();
+  const currentMin = now.getMinutes();
   if (currentHour !== wakeHour || currentMin > 30) return null;
   if (wasRecentlyNudged(state, "weather-wakeup", now)) return null;
 
@@ -124,7 +126,10 @@ function sportsResultNudge(state: KoruState, now: Date): NudgeDraft | null {
     title: `¿Cómo le fue a ${team}?`,
     body: "Si jugó hoy, puedo buscar el resultado y dejártelo listo.",
     reason: `Interés detectado: seguís a ${team}`,
-    priority: "low",
+    // Fase 1.9 (auditoría A6): era "low" pero buildProactiveNudges filtra
+    // priority === "low", así que nunca se mostraba. "medium" para que aparezca
+    // sin competir con urgencias "high".
+    priority: "medium",
     source: "heartbeat",
     sourceId: `sports-${team}`,
   };

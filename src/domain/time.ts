@@ -26,6 +26,39 @@ export function timeStringFromText(value: string): string | undefined {
 
 function timeFromText(text: string): { hour: number; minute: number } | undefined {
   const lower = foldAccents(text);
+
+  // Fase 1.12 (auditoría A11): soporte para AM/PM y formatos "16hs", "a las 3 de la tarde"
+  // Patrón AM/PM explícito: "3 pm", "3pm", "3:30 pm", "3 de la tarde", "11 de la noche"
+  const ampmMatch = /\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i.exec(lower);
+  if (ampmMatch) {
+    let hour = Number(ampmMatch[1]);
+    const minute = ampmMatch[2] ? Number(ampmMatch[2]) : 0;
+    const meridiem = ampmMatch[3].toLowerCase();
+    if (meridiem === "pm" && hour < 12) hour += 12;
+    if (meridiem === "am" && hour === 12) hour = 0;
+    if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) return { hour, minute };
+  }
+
+  // Formato "Xhs" o "X hs" (común en Argentina): "16hs", "16 hs", "3hs"
+  const hsMatch = /\b(\d{1,2})(?::(\d{2}))?\s*hs\b/i.exec(lower);
+  if (hsMatch) {
+    const hour = Number(hsMatch[1]);
+    const minute = hsMatch[2] ? Number(hsMatch[2]) : 0;
+    if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) return { hour, minute };
+  }
+
+  // "X de la tarde/noche/manana" — mapeo cultural rioplatense
+  const culturalMatch = /\b(\d{1,2})(?::(\d{2}))?\s*de\s+la\s+(manana|tarde|noche)\b/i.exec(lower);
+  if (culturalMatch) {
+    let hour = Number(culturalMatch[1]);
+    const minute = culturalMatch[2] ? Number(culturalMatch[2]) : 0;
+    const part = culturalMatch[3];
+    if (part === "tarde" && hour < 12) hour += 12; // "3 de la tarde" → 15
+    if (part === "noche" && hour < 12) hour += 12; // "9 de la noche" → 21
+    // "de la manana" se deja igual (hour ya está en 24h implícito si dijo "8 de la manana")
+    if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) return { hour, minute };
+  }
+
   const explicit = /\b(?:a las|las)\s+(\d{1,2})(?::(\d{2}))?\b/i.exec(lower);
   if (explicit) {
     const hour = Number(explicit[1]);

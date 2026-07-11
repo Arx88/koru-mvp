@@ -127,12 +127,16 @@ export function filterEnhancements(
     );
     if (rejectedBoundaries.some((b) => foldAccents(b.text).includes(foldAccents(candidate.title)))) continue;
 
-    // Si el usuario ya ignoró este tipo de enhancement 2+ veces, bajar prioridad
+    // Fase 1.13 (auditoría A15): umbral era 2, demasiado reactivo — 2 turnos
+    // puramente conversacionales bloqueaban TODOS los ask mode. Subir a 4
+    // para requerir un patrón claro de "el usuario no está aceptando nada"
+    // antes de silenciar enhancements. DailyEntry no expone si el enhancement
+    // fue propuesto vs aceptado, así que solo subimos el umbral.
     const recentIgnored = state.entries
       .slice(0, 10)
       .filter((e) => e.actionIds.length === 0 && e.memoryIds.length === 0)
       .length;
-    if (recentIgnored >= 2 && candidate.action.mode === "ask") continue;
+    if (recentIgnored >= 4 && candidate.action.mode === "ask") continue;
 
     kept.push(candidate);
   }
