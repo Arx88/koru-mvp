@@ -836,6 +836,50 @@ function koruBackendAgent(env: Record<string, string>): Plugin {
         res.end(JSON.stringify({ models: [...predefined, ...fallback] }));
       });
 
+      // Fase 2.1 — ASR para notas de voz.
+      // El cliente graba audio (MediaRecorder) o sube un archivo .wav/.mp3,
+      // lo manda como base64, este endpoint lo transcribe con z-ai-web-dev-sdk
+      // y devuelve el texto. El cliente lo manda como mensaje normal a /api/koru/turn.
+      server.middlewares.use("/api/koru/asr", async (req, res) => {
+        if (req.method !== "POST") {
+          res.statusCode = 405;
+          res.setHeader("Allow", "POST");
+          res.end();
+          return;
+        }
+
+        const chunks: Buffer[] = [];
+        for await (const chunk of req) chunks.push(Buffer.from(chunk));
+        const raw = Buffer.concat(chunks).toString("utf8");
+
+        try {
+          const body = JSON.parse(raw || "{}") as { audio_base64?: string };
+          if (!body.audio_base64) {
+            res.statusCode = 400;
+            res.setHeader("Content-Type", "application/json");
+            res.end(JSON.stringify({ error: "Falta audio_base64" }));
+            return;
+          }
+
+          // z-ai-web-dev-sdk es server-side only. Import dinámico para no
+          // romper el bundle del cliente.
+          const { default: ZAI } = await import("z-ai-web-dev-sdk");
+          const zai = await ZAI.create();
+          const response = await zai.audio.asr.create({
+            file_base64: body.audio_base64,
+          });
+          logger.info("koru-asr", "Audio transcrito", { textLength: response.text?.length ?? 0 });
+          res.statusCode = 200;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ text: response.text ?? "" }));
+        } catch (err: any) {
+          logger.error("koru-asr", "Error transcribiendo audio", { error: err?.message });
+          res.statusCode = 500;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ error: err?.message ?? "Error de ASR" }));
+        }
+      });
+
       server.middlewares.use("/api/koru/turn", async (req, res) => {
         if (req.method !== "POST") {
           res.statusCode = 405;

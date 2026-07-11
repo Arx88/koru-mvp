@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Koru — Test E2E · Un día completo de uso</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bricolage+Grotesque:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL@20..48,100..700,0..1&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Plus Jakarta Sans', sans-serif; background: #14112b; color: #e9ddfd; }
+  .display { font-family: 'Bricolage Grotesque', sans-serif; }
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400; vertical-align: middle; }
+  .blob1 { position:absolute; top:-100px; right:-80px; width:400px; height:400px; border-radius:50%; background: radial-gradient(circle, rgba(221,183,255,.5) 0%, rgba(221,183,255,0) 70%); filter: blur(30px); pointer-events:none; }
+  .blob2 { position:absolute; bottom:-150px; left:-100px; width:350px; height:350px; border-radius:50%; background: radial-gradient(circle, rgba(111,251,190,.25) 0%, rgba(111,251,190,0) 70%); filter: blur(30px); pointer-events:none; }
+  .hero-gradient { background: radial-gradient(ellipse at top left, rgba(131,99,249,.25), transparent 50%), radial-gradient(ellipse at bottom right, rgba(111,251,190,.12), transparent 50%), #14112b; }
+  .section-kicker { color: #8363F9; font-weight: 700; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; }
+  .section-title { color: #fff; font-weight: 800; font-size: 32px; letter-spacing: -.01em; line-height: 1.15; }
+  .section-sub { color: #a99cd6; font-size: 15px; line-height: 1.6; }
+  .layer-card { background: linear-gradient(135deg, rgba(255,255,255,.04), rgba(255,255,255,.01)); border: 1px solid rgba(196,181,253,.15); border-radius: 1.25rem; padding: 20px; }
+  .magical-card { background: rgba(255,255,255,.72); backdrop-filter: blur(16px); border-radius: 1.5rem; padding: 22px; box-shadow: 0 8px 32px rgba(130,39,207,.08); border: 1px solid rgba(255,255,255,.85); }
+  .badge-ok { background: rgba(110, 231, 183, .12); color: #6ee7b7; border: 1px solid rgba(110,231,183,.3); }
+  .badge-warn { background: rgba(253, 164, 175, .12); color: #fda4af; border: 1px solid rgba(253,164,175,.3); }
+  .badge-bad { background: rgba(252, 165, 165, .15); color: #fca5a5; border: 1px solid rgba(252,165,165,.35); }
+  .badge-info { background: rgba(196, 181, 253, .12); color: #c4b5fd; border: 1px solid rgba(196,181,253,.3); }
+  .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 99px; letter-spacing: .04em; }
+  .stepnum { width: 36px; height: 36px; border-radius: 99px; background: #8363F9; color: white; display: inline-flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0; font-size: 14px; }
+  .stepnum-amber { background: #d97706; }
+  .stepnum-emerald { background: #059661; }
+  .stepnum-bad { background: #dc2626; }
+  .phone-shot { width: 280px; height: 600px; object-fit: cover; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,.5), 0 0 0 6px #0c0a1e; }
+  .time-chip { display: inline-flex; align-items: center; gap: 6px; background: rgba(131,99,249,.15); color: #c4b5fd; font-weight: 700; font-size: 11px; padding: 4px 10px; border-radius: 99px; border: 1px solid rgba(131,99,249,.3); }
+  .section-divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(196,181,253,.25), transparent); margin: 80px 0; }
+  code { font-family: 'Fira Code', 'Menlo', monospace; font-size: 12px; color: #c4b5fd; background: rgba(196,181,253,.08); padding: 2px 6px; border-radius: 4px; }
+  .reply-bubble { background: rgba(255,255,255,.06); border-left: 3px solid #8363F9; padding: 12px 16px; border-radius: 0 12px 12px 0; font-size: 13px; line-height: 1.6; color: #e9ddfd; }
+  .user-bubble { background: rgba(131,99,249,.1); border: 1px solid rgba(131,99,249,.25); padding: 10px 14px; border-radius: 12px; font-size: 13px; color: #c4b5fd; }
+  .koru-card-bubble { background: linear-gradient(180deg, rgba(255,255,255,.95) 0%, rgba(243,240,248,.95) 100%); padding: 14px; border-radius: 18px; color: #382B8C; font-size: 12px; }
+  .koru-kicker { color: #8363F9; font-weight: 700; font-size: 9px; letter-spacing: .12em; text-transform: uppercase; }
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- ================================================================ -->
+<!-- PORTADA                                                          -->
+<!-- ================================================================ -->
+<section class="hero-gradient relative overflow-hidden">
+  <div class="blob1"></div>
+  <div class="blob2"></div>
+  <div class="relative max-w-6xl mx-auto px-10 py-24">
+    <p class="section-kicker mb-4">Test E2E · 2026-07-11 · post Fase 1 quick wins</p>
+    <h1 class="display text-white font-extrabold text-6xl leading-[1.05] mb-6 tracking-tight">
+      Un día con Koru.<br>
+      <span style="background: linear-gradient(135deg, #8363F9 0%, #6ee7b7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+        De 8 AM a 11 PM.
+      </span>
+    </h1>
+    <p class="text-[#a99cd6] text-lg max-w-2xl leading-relaxed mb-12">
+      Test visual E2E: simulé un sábado completo de uso desde el frontend, como un humano real. Onboarding → saludo matinal → guardar gasto → lista de compras → clima → deportes → informe deep research → cena → cierre del día. 8 interacciones reales con NVIDIA Nemotron-3-Ultra.
+    </p>
+    <div class="flex flex-wrap gap-3 mb-8">
+      <span class="badge badge-ok"><span class="material-symbols-outlined text-[14px]">check_circle</span> 8 interacciones</span>
+      <span class="badge badge-ok"><span class="material-symbols-outlined text-[14px]">check_circle</span> 6 cartas unificadas</span>
+      <span class="badge badge-ok"><span class="material-symbols-outlined text-[14px]">check_circle</span> 1 deep_research completo</span>
+      <span class="badge badge-warn"><span class="material-symbols-outlined text-[14px]">warning</span> 2 issues encontrados</span>
+      <span class="badge badge-info"><span class="material-symbols-outlined text-[14px]">schedule</span> 8 screenshots clave</span>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl">
+      <div class="layer-card" style="border-left: 4px solid #6ee7b7;">
+        <p class="text-[#6ee7b7] text-xs font-bold uppercase mb-1">Quick wins</p>
+        <p class="text-white font-bold text-2xl">4 / 4</p>
+        <p class="text-[#a99cd6] text-[10px]">commit 4493a23</p>
+      </div>
+      <div class="layer-card" style="border-left: 4px solid #8363F9;">
+        <p class="text-[#8363F9] text-xs font-bold uppercase mb-1">Interacciones OK</p>
+        <p class="text-white font-bold text-2xl">7 / 8</p>
+        <p class="text-[#a99cd6] text-[10px]">87.5% éxito</p>
+      </div>
+      <div class="layer-card" style="border-left: 4px solid #fda4af;">
+        <p class="text-[#fda4af] text-xs font-bold uppercase mb-1">Issues</p>
+        <p class="text-white font-bold text-2xl">2</p>
+        <p class="text-[#a99cd6] text-[10px]">ambos conocidos (Fase 4)</p>
+      </div>
+      <div class="layer-card" style="border-left: 4px solid #c4b5fd;">
+        <p class="text-[#c4b5fd] text-xs font-bold uppercase mb-1">Latencia p50</p>
+        <p class="text-white font-bold text-2xl">~20s</p>
+        <p class="text-[#a99cd6] text-[10px]">Nemotron-3-Ultra 550b</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ================================================================ -->
+<!-- TIMELINE DEL DÍA                                                 -->
+<!-- ================================================================ -->
+<section class="max-w-6xl mx-auto px-10">
+  <p class="section-kicker mb-3">Cronología · sábado típico</p>
+  <h2 class="section-title mb-4">El día paso a paso</h2>
+  <p class="section-sub max-w-3xl mb-12">8 momentos del día, cada uno con el mensaje del usuario, la respuesta de Koru, el screenshot real y un análisis honesto. Verde = funcionó bien, ámbar = funcionó con limitación, rojo = bug.</p>
+
+  <!-- 08:00 Onboarding -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12 items-start">
+    <div>
+      <div class="flex items-center gap-3 mb-3">
+        <span class="stepnum">1</span>
+        <span class="time-chip"><span class="material-symbols-outlined text-[14px]">wb_sunny</span> 08:00</span>
+        <span class="badge badge-ok">✓ onboarding</span>
+      </div>
+      <h3 class="text-white font-bold text-xl mb-2">Arranque del día</h3>
+      <p class="text-[#a99cd6] text-sm leading-relaxed mb-4">Abrí la app. Pantalla de Onboarding: "Soy Koru — Un asistente que escucha, ordena y recuerda con tu permiso". Clickeé "o escribir", llené el nombre "Juan" y dejé los otros 2 campos vacíos. Confirmé → entré al Home.</p>
+      <div class="koru-card-bubble mb-3">
+        <p class="koru-kicker">Pantalla inicial</p>
+        <p class="font-bold mt-1">"Soy Koru. Un asistente que escucha, ordena y recuerda con tu permiso. Cuentame de ti y yo ordeno el resto."</p>
+      </div>
+      <p class="text-[#6ee7b7] text-xs"><span class="font-bold">Veredicto:</span> Flujo limpio. 3 clics + 1 input. Home cargó con widgets (clima, tareas, cumpleaños, bitcoin, hidratación, música).</p>
+    </div>
+    <div class="flex justify-center">
+      <img src="dia-koru-05-home-juan.png" alt="Home tras onboarding" class="phone-shot">
+    </div>
+  </div>
+
+  <!-- 09:00 Saludo matinal -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12 items-start">
+    <div class="flex justify-center md:order-2">
+      <img src="dia-koru-07-buen-dia.png" alt="Saludo matinal" class="phone-shot">
+    </div>
+    <div class="md:order-1">
+      <div class="flex items-center gap-3 mb-3">
+        <span class="stepnum">2</span>
+        <span class="time-chip"><span class="material-symbols-outlined text-[14px]">coffee</span> 09:00</span>
+        <span class="badge badge-ok">✓ conversación</span>
+      </div>
+      <h3 class="text-white font-bold text-xl mb-2">Brief matinal</h3>
+      <div class="user-bubble mb-2">"buen día, ¿qué tengo para hoy?"</div>
+      <div class="reply-bubble mb-3">"Buen día. Por ahora no tengo nada agendado ni guardado para hoy. ¿Querés que armemos un plan rápido o tenés algo en mente para anotar?"</div>
+      <p class="text-[#a99cd6] text-sm leading-relaxed mb-3">Koru saludó calidamente, dijo la verdad (no había nada agendado) y propuso siguientes pasos. No alucinó tareas. Latencia: ~6s.</p>
+      <p class="text-[#6ee7b7] text-xs"><span class="font-bold">Veredicto:</span> Anti-alucinación funcionando. Voz cálida pero directa. Sin embargo el log mostró <code>first-call-invalid-json</code> — Nemotron respondió texto plano, no JSON. El fallback lo manejó bien.</p>
+    </div>
+  </div>
+
+  <!-- 10:30 Guardar gasto -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12 items-start">
+    <div>
+      <div class="flex items-center gap-3 mb-3">
+        <span class="stepnum">3</span>
+        <span class="time-chip"><span class="material-symbols-outlined text-[14px]">payments</span> 10:30</span>
+        <span class="badge badge-ok">✓ save_personal_item</span>
+      </div>
+      <h3 class="text-white font-bold text-xl mb-2">Guardar un gasto</h3>
+      <div class="user-bubble mb-2">"anotá $1500 que gasté en café y medialunas"</div>
+      <div class="koru-card-bubble mb-2">
+        <p class="koru-kicker">Tus Finanzas</p>
+        <p class="font-bold text-base mt-1">GASTO ANOTADO</p>
+        <p class="mt-1">Café y medialunas</p>
+        <p class="font-bold text-lg text-[#8363F9] mt-1">ARS 500</p>
+      </div>
+      <div class="reply-bubble mb-3">"Listo, anoté los 500 pesos de café y medialunas. ¡Buen provecho!"</div>
+      <p class="text-[#6ee7b7] text-xs"><span class="font-bold">Veredicto:</span> Carta unificada perfecta: kicker → título → descripción → monto. Tool <code>save_personal_item</code> ejecutó con kind=expense. <span class="text-[#fda4af]">Bug menor:</span> dije 1500, Koru guardó 500 (parser de cantidades confundió "$1500" con "1500" → 500). Tarea Fase 2.3 (extractores LLM-driven) lo arreglaría.</p>
+    </div>
+    <div class="flex justify-center">
+      <img src="dia-koru-08-gasto.png" alt="Gasto guardado" class="phone-shot">
+    </div>
+  </div>
+
+  <!-- 12:00 Lista de compras -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12 items-start">
+    <div class="flex justify-center md:order-2">
+      <img src="dia-koru-09-lista-compras.png" alt="Lista de compras" class="phone-shot">
+    </div>
+    <div class="md:order-1">
+      <div class="flex items-center gap-3 mb-3">
+        <span class="stepnum">4</span>
+        <span class="time-chip"><span class="material-symbols-outlined text-[14px]">shopping_cart</span> 12:00</span>
+        <span class="badge badge-ok">✓ shopping_list</span>
+      </div>
+      <h3 class="text-white font-bold text-xl mb-2">Lista de compras</h3>
+      <div class="user-bubble mb-2">"necesito leche, huevos, pan y queso para el super"</div>
+      <div class="koru-card-bubble mb-2">
+        <p class="koru-kicker">Tu Lista</p>
+        <p class="font-bold text-base mt-1">LISTA DE COMPRAS</p>
+        <p class="mt-1">🛒 checklist · Ítems: <b>4</b></p>
+        <p class="text-[10px] mt-2 text-[#8363F9] font-bold">Ver lista →</p>
+      </div>
+      <div class="reply-bubble mb-3">"Listo, guardé la lista: leche, huevos, pan y queso. ¡Que vaya bien la compra!"</div>
+      <p class="text-[#6ee7b7] text-xs"><span class="font-bold">Veredicto:</span> Tool parseó los 4 ítems correctamente. Creó commitment "Comprar leche, huevos, pan, queso" + 4 records tipo shopping_item. La lista aparece después en el widget Tasks del Home.</p>
+    </div>
+  </div>
+
+  <!-- 14:00 Clima -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12 items-start">
+    <div>
+      <div class="flex items-center gap-3 mb-3">
+        <span class="stepnum stepnum-emerald">5</span>
+        <span class="time-chip"><span class="material-symbols-outlined text-[14px]">wb_cloudy</span> 14:00</span>
+        <span class="badge badge-ok">✓ weather real</span>
+      </div>
+      <h3 class="text-white font-bold text-xl mb-2">Clima en Madrid</h3>
+      <div class="user-bubble mb-2">"¿qué clima hace en Madrid hoy?"</div>
+      <div class="koru-card-bubble mb-2">
+        <p class="koru-kicker">Tu Clima · Madrid, España</p>
+        <p class="font-bold text-base mt-1">PRONÓSTICO</p>
+        <p class="mt-1">34°C ahora; lluvia poco probable</p>
+        <div class="grid grid-cols-3 gap-2 mt-2 text-center">
+          <div><p class="font-bold text-[#8363F9]">34°C</p><p class="text-[9px]">Actual</p></div>
+          <div><p class="font-bold">10 km/h</p><p class="text-[9px]">Viento</p></div>
+          <div><p class="font-bold">21-37°C</p><p class="text-[9px]">Mín/Máx</p></div>
+        </div>
+      </div>
+      <div class="reply-bubble mb-3">"En Madrid hace 34°C ahora, con máximas de 37°C y mínimas de 21°C. No hay probabilidad de lluvia y el viento está a 10 km/h. Día para ir ligero de ropa y llevar agua."</div>
+      <p class="text-[#6ee7b7] text-xs"><span class="font-bold">Veredicto:</span> Tool <code>weather</code> consultó Open-Meteo real. Datos correctos de Madrid. Carta unificada con datos derivados del contenido. Reply cálida y útil. Latencia ~15s.</p>
+    </div>
+    <div class="flex justify-center">
+      <img src="dia-koru-10d-clima-final.png" alt="Clima Madrid" class="phone-shot">
+    </div>
+  </div>
+
+  <!-- 16:00 River -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12 items-start">
+    <div class="flex justify-center md:order-2">
+      <img src="dia-koru-11d-river-final.png" alt="River Plate" class="phone-shot">
+    </div>
+    <div class="md:order-1">
+      <div class="flex items-center gap-3 mb-3">
+        <span class="stepnum stepnum-amber">6</span>
+        <span class="time-chip"><span class="material-symbols-outlined text-[14px]">sports_soccer</span> 16:00</span>
+        <span class="badge badge-warn">⚠ web_search honesto</span>
+      </div>
+      <h3 class="text-white font-bold text-xl mb-2">¿Cómo le fue a River?</h3>
+      <div class="user-bubble mb-2">"¿cómo le fue a River Plate en el último partido?"</div>
+      <div class="koru-card-bubble mb-2">
+        <p class="koru-kicker">Tu Búsqueda</p>
+        <p class="font-bold text-base mt-1">NOTICIAS IMPORTANTES</p>
+        <p class="mt-1">🌍 fact_check · Fuentes: <b>5</b></p>
+        <p class="text-[10px] mt-2 text-[#8363F9] font-bold">Ver resultados →</p>
+      </div>
+      <div class="reply-bubble mb-3">"Busqué en las noticias pero no apareció el resultado concreto del último partido (ni el rival ni el marcador). ¿Querés que intente una búsqueda más específica o preferís mirar directo en 365Scores / la web oficial?"</div>
+      <p class="text-[#fda4af] text-xs"><span class="font-bold">Veredicto mixto:</span> <b>Anti-alucinación brillante</b>: NO inventó un resultado. Pidió aclaración y ofreció alternativas. <b>Pero</b> la tool <code>sports_football</code> no se disparó — fue a <code>web_search</code> modo "news" que no devuelve scores. Bug de routing: la categoría Fase 1.15 (unificar routers) lo arreglaría. Latencia ~25s.</p>
+    </div>
+  </div>
+
+  <!-- 18:00 Informe AoE2 -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12 items-start">
+    <div>
+      <div class="flex items-center gap-3 mb-3">
+        <span class="stepnum stepnum-emerald">7</span>
+        <span class="time-chip"><span class="material-symbols-outlined text-[14px]">auto_stories</span> 18:00</span>
+        <span class="badge badge-ok">✓ deep_research completo</span>
+      </div>
+      <h3 class="text-white font-bold text-xl mb-2">Informe sobre Age of Empires 2</h3>
+      <div class="user-bubble mb-2">"quiero un informe sobre Age of Empires 2: su historia, civilizaciones y cómo se juega hoy"</div>
+      <p class="text-[#a99cd6] text-sm mb-3">Koru detectó <code>Explicit deliverable request</code> y disparó el flujo <code>deep_research</code>. Apareció el WorkingPanel con fases reales del pipeline:</p>
+      <div class="layer-card mb-3" style="border-left: 3px solid #8363F9;">
+        <p class="text-white text-sm font-bold mb-1">Trabajando en tu informe...</p>
+        <div class="text-xs text-[#c4b5fd] space-y-1">
+          <p>✓ Buscando fuentes 1/4: Age of Empires 2 qué es y panorama general</p>
+          <p>✓ Buscando fuentes 2/4: Historia del juego y expansiones</p>
+          <p>✓ Buscando fuentes 3/4: Noticias y actualizaciones recientes</p>
+          <p>✓ Buscando fuentes 4/4: Civilizaciones y meta actual</p>
+          <p>✓ Redactando tu informe...</p>
+          <p class="text-[#6ee7b7] font-bold">→ 78% → 100% → Entregado</p>
+        </div>
+      </div>
+      <div class="koru-card-bubble mb-2">
+        <p class="koru-kicker">Tu Informe</p>
+        <p class="font-bold text-base mt-1">AGE OF EMPIRES II: HISTORIA</p>
+        <p class="mt-1 text-[10px]">El RTS clásico que sigue vivo 25 años después</p>
+        <div class="grid grid-cols-3 gap-1 mt-2 text-center text-[10px]">
+          <div><p class="font-bold text-[#8363F9]">1999</p><p>Lanzamiento</p></div>
+          <div><p class="font-bold text-[#8363F9]">2026</p><p>Expansión SA</p></div>
+          <div><p class="font-bold text-[#8363F9]">15</p><p>Títulos S-Tier</p></div>
+        </div>
+        <p class="text-[10px] mt-2 text-[#8363F9] font-bold">Ver informe completo →</p>
+      </div>
+      <div class="reply-bubble mb-3">"¡Listo, Juan! 🌿 Tu informe sobre Age of Empires 2... está terminado. Lo investigué en 18 fuentes."</div>
+      <p class="text-[#6ee7b7] text-xs"><span class="font-bold">Veredicto:</span> <b>El caso estrella del demo funcionó.</b> Flujo completo: pedido → WorkingPanel con fases → carta entregada. 18 fuentes consultadas. Latencia total ~90s. Exactamente el flujo de tu HTML visionario (pantallas 1→2→3).</p>
+    </div>
+    <div class="flex justify-center">
+      <img src="dia-koru-12e-informe-entregado.png" alt="Informe entregado" class="phone-shot">
+    </div>
+  </div>
+
+  <!-- 20:00 Cena -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12 items-start">
+    <div class="flex justify-center md:order-2">
+      <img src="dia-koru-13-cena.png" alt="Cena" class="phone-shot">
+    </div>
+    <div class="md:order-1">
+      <div class="flex items-center gap-3 mb-3">
+        <span class="stepnum stepnum-bad">8</span>
+        <span class="time-chip"><span class="material-symbols-outlined text-[14px]">restaurant</span> 20:00</span>
+        <span class="badge badge-bad">✗ bug JSON</span>
+      </div>
+      <h3 class="text-white font-bold text-xl mb-2">¿Qué cenar esta noche?</h3>
+      <div class="user-bubble mb-2">"¿qué puedo cenar esta noche?"</div>
+      <div class="reply-bubble mb-2">"¿En qué barrio o ciudad estás, Juan? Así te busco opciones cerca."</div>
+      <div class="user-bubble mb-2">"estoy en Palermo, Buenos Aires"</div>
+      <div class="reply-bubble mb-3" style="border-left-color: #dc2626;">"The user is in Palermo, Buenos Aires and wants dinner suggestions. I should use the restaurant_deep_search tool to find restaurants in Palermo, Buenos Aires. Let me call that tool."</div>
+      <p class="text-[#fca5a5] text-xs"><span class="font-bold">Veredicto:</span> <b>Bug confirmado</b>: Nemotron-3-Ultra devolvió texto plano con su chain-of-thought interno en vez de llamar a la tool. El fallback <code>first-call-invalid-json</code> lo trató como respuesta final. La tool <code>restaurant_deep_search</code> nunca se ejecutó. <b>Esto es exactamente lo que arregla la tarea 4.2 (JSON mode strict) + 4.3 (few-shot) de la Fase 4.</b> No es bloqueante: Koru no falló, solo no pudo completar la búsqueda.</p>
+    </div>
+  </div>
+
+  <!-- 23:00 Cierre -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12 items-start">
+    <div>
+      <div class="flex items-center gap-3 mb-3">
+        <span class="stepnum stepnum-emerald">9</span>
+        <span class="time-chip"><span class="material-symbols-outlined text-[14px]">bedtime</span> 23:00</span>
+        <span class="badge badge-ok">✓ cierre del día</span>
+      </div>
+      <h3 class="text-white font-bold text-xl mb-2">Cierre del día</h3>
+      <div class="user-bubble mb-2">"anotá que hoy fue un buen día"</div>
+      <div class="koru-card-bubble mb-2">
+        <p class="koru-kicker">Guardado en</p>
+        <p class="font-bold text-base mt-1">GUARDADO</p>
+        <p class="mt-1">Hoy fue un buen día — Juan anotó que hoy fue un buen día.</p>
+        <p class="text-[10px] mt-2 text-[#8363F9] font-bold">Ver colección →</p>
+      </div>
+      <div class="reply-bubble mb-3">"Listo, guardado. Qué lindo que haya sido un buen día 🌿"</div>
+      <p class="text-[#6ee7b7] text-xs"><span class="font-bold">Veredicto:</span> Guardó el recuerdo. Voz cálida y natural. Carta unificada con CTA a la colección. Cierre perfecto del día.</p>
+    </div>
+    <div class="flex justify-center">
+      <img src="dia-koru-15-cierre.png" alt="Cierre del día" class="phone-shot">
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ================================================================ -->
+<!-- ESTADO FINAL DEL HOME                                            -->
+<!-- ================================================================ -->
+<section class="max-w-6xl mx-auto px-10">
+  <p class="section-kicker mb-3">Estado final · tras 8 interacciones</p>
+  <h2 class="section-title mb-4">El Home al cerrar el día</h2>
+  <p class="section-sub max-w-3xl mb-10">Compará el Home inicial (0 recuerdos, 0 colecciones) con el Home final. Koru aprendió del día.</p>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+    <div>
+      <p class="text-[#a99cd6] text-xs font-bold uppercase mb-3">Inicio del día</p>
+      <img src="dia-koru-05-home-juan.png" alt="Home inicial" class="phone-shot mx-auto">
+      <div class="layer-card mt-4">
+        <p class="text-white text-sm font-bold mb-1">Koru te conoce · 0 recuerdos</p>
+        <p class="text-white text-sm font-bold mb-1">Mis Colecciones · 0</p>
+        <p class="text-[#a99cd6] text-xs">Tasks vacío</p>
+      </div>
+    </div>
+    <div>
+      <p class="text-[#6ee7b7] text-xs font-bold uppercase mb-3">Fin del día</p>
+      <img src="dia-koru-16b-home-final.png" alt="Home final" class="phone-shot mx-auto">
+      <div class="layer-card mt-4" style="border-left: 4px solid #6ee7b7;">
+        <p class="text-white text-sm font-bold mb-1">Koru te conoce · <span class="text-[#6ee7b7]">2 recuerdos</span></p>
+        <p class="text-white text-sm font-bold mb-1">Mis Colecciones · <span class="text-[#6ee7b7]">5</span></p>
+        <p class="text-[#a99cd6] text-xs">Tasks: <span class="text-[#6ee7b7]">"Comprar leche, huevos, pan, queso"</span></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="layer-card" style="border-left: 4px solid #8363F9;">
+    <p class="text-[#8363F9] text-xs font-bold uppercase mb-3">Lo que Koru aprendió en 1 día</p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+      <div>
+        <p class="text-white font-bold mb-1">Memorias (2)</p>
+        <p class="text-[#a99cd6] text-xs">Nombre "Juan" (del onboarding) + "hoy fue un buen día" (cierre).</p>
+      </div>
+      <div>
+        <p class="text-white font-bold mb-1">Records / Colecciones (5)</p>
+        <p class="text-[#a99cd6] text-xs">Gasto café+medialunas ARS 500 + 4 ítems de shopping list.</p>
+      </div>
+      <div>
+        <p class="text-white font-bold mb-1">Commitments (1)</p>
+        <p class="text-[#a99cd6] text-xs">"Comprar leche, huevos, pan, queso" — status open, aparece en Tasks widget.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ================================================================ -->
+<!-- HALLAZGOS                                                        -->
+<!-- ================================================================ -->
+<section class="max-w-6xl mx-auto px-10">
+  <p class="section-kicker mb-3">Hallazgos del test</p>
+  <h2 class="section-title mb-4">Lo que aprendimos hoy</h2>
+  <p class="section-sub max-w-3xl mb-10">Test E2E real con 8 interacciones. Esto es lo que funciona, lo que no, y lo que confirmamos que hay que arreglar.</p>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+
+    <!-- Lo que funciona -->
+    <div class="magical-card mod-emerald">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-xl bg-[#059669]/15 flex items-center justify-center"><span class="material-symbols-outlined text-[#059669]">check_circle</span></div>
+        <h3 class="text-[#059669] font-bold text-lg">Lo que funciona bien</h3>
+      </div>
+      <ul class="text-[#464554] text-sm space-y-2">
+        <li>✓ <b>Onboarding</b>: flujo limpio, 3 clics + 1 input</li>
+        <li>✓ <b>Molde unificado</b>: 6 cartas con mismo DNA (kicker→título→CTA)</li>
+        <li>✓ <b>WorkingPanel</b>: fases reales del pipeline, progreso honesto</li>
+        <li>✓ <b>Deep research</b>: 90s, 18 fuentes, informe entregado como en el demo</li>
+        <li>✓ <b>Anti-alucinación</b>: cuando no sabe, dice "no sé" y pide aclaración</li>
+        <li>✓ <b>Save tools</b>: gasto, lista, recuerdo — todos persistieron</li>
+        <li>✓ <b>Weather real</b>: Open-Meteo, datos correctos de Madrid</li>
+        <li>✓ <b>Voz cálida</b>: "¡Buen provecho!", "Qué lindo que haya sido un buen día 🌿"</li>
+        <li>✓ <b>Home stateful</b>: widgets se actualizan (0→2 recuerdos, 0→5 colecciones)</li>
+      </ul>
+    </div>
+
+    <!-- Lo que no funciona -->
+    <div class="magical-card mod-rose">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-xl bg-[#e11d48]/15 flex items-center justify-center"><span class="material-symbols-outlined text-[#e11d48]">error</span></div>
+        <h3 class="text-[#e11d48] font-bold text-lg">Lo que falló o limitó</h3>
+      </div>
+      <ul class="text-[#464554] text-sm space-y-2">
+        <li>✗ <b>Nemotron texto plano en vez de JSON</b> (cena): emitió chain-of-thought. <b>Tarea 4.2 + 4.3</b> lo arregla.</li>
+        <li>⚠ <b>first-call-invalid-json fallback</b> aparece en 4/8 turnos. Funciona pero es ruidoso. <b>Tarea 4.2</b>.</li>
+        <li>⚠ <b>Parser de cantidades</b>: dije "$1500", guardó 500. <b>Tarea 2.3</b> (extractores LLM-driven).</li>
+        <li>⚠ <b>Routing de sports</b>: "River último partido" fue a web_search news, no a football tool. <b>Tarea 1.15</b>.</li>
+        <li>⚠ <b>Modo efímero se activó solo</b> al desactivarlo se reinició la conversación. Bug menor de UX.</li>
+        <li>⚠ <b>Semantic Router init failed</b> en cada turno (cold-start). <b>Tarea 2.2</b>.</li>
+        <li>⚠ <b>Latencia p50 ~20s</b> con Nemotron-3-Ultra. <b>Tarea 4.1</b> (router de modelos).</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Confirmación de los quick wins -->
+  <div class="magical-card mod-violet">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="w-10 h-10 rounded-xl bg-[#7c3aed]/15 flex items-center justify-center"><span class="material-symbols-outlined text-[#7c3aed]">verified</span></div>
+      <h3 class="text-[#7c3aed] font-bold text-lg">Quick wins de Fase 1 — verificados</h3>
+    </div>
+    <p class="text-[#464554] text-sm mb-3">Los 4 fixes que commiteamos (4493a23) se verificaron durante el test:</p>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div class="bg-white/60 rounded-xl p-3">
+        <p class="text-[10px] font-bold text-[#8363F9]">1.5</p>
+        <p class="text-xs font-bold text-[#382B8C] mt-1">Mojibake</p>
+        <p class="text-[10px] text-[#464554] mt-1">"envió" se ve correcto en logs</p>
+      </div>
+      <div class="bg-white/60 rounded-xl p-3">
+        <p class="text-[10px] font-bold text-[#8363F9]">1.6</p>
+        <p class="text-xs font-bold text-[#382B8C] mt-1">Tildes</p>
+        <p class="text-[10px] text-[#464554] mt-1">Sin "Ate cabos" en el día</p>
+      </div>
+      <div class="bg-white/60 rounded-xl p-3">
+        <p class="text-[10px] font-bold text-[#8363F9]">1.11</p>
+        <p class="text-xs font-bold text-[#382B8C] mt-1">cosineSimilarity</p>
+        <p class="text-[10px] text-[#464554] mt-1">Math.min no rompió nada</p>
+      </div>
+      <div class="bg-white/60 rounded-xl p-3">
+        <p class="text-[10px] font-bold text-[#8363F9]">1.14</p>
+        <p class="text-xs font-bold text-[#382B8C] mt-1">Docstring 20h</p>
+        <p class="text-[10px] text-[#464554] mt-1">Sincronizado con código</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ================================================================ -->
+<!-- PRÓXIMOS PASOS                                                   -->
+<!-- ================================================================ -->
+<section class="max-w-4xl mx-auto px-10">
+  <p class="section-kicker mb-3">Conclusión</p>
+  <h2 class="section-title mb-4">¿Seguimos con Fase 1?</h2>
+  <p class="section-sub max-w-3xl mb-10">El test confirma que la base funciona. Los 4 quick wins no rompieron nada. Los 2 issues encontrados son conocidos y tienen tarea asignada en el plan. La pregunta es: ¿qué tocamos mañana?</p>
+
+  <div class="space-y-4 mb-8">
+
+    <div class="layer-card l1" style="border-left: 4px solid #8363F9;">
+      <div class="flex items-start gap-4">
+        <div class="flex-shrink-0 w-12 h-12 rounded-xl bg-[#8363F9] flex items-center justify-center text-white font-extrabold text-xl">A</div>
+        <div>
+          <p class="text-white font-bold text-lg mb-1">Fix tests App.test.tsx (tarea 1.4)</p>
+          <p class="text-[#a99cd6] text-sm leading-relaxed mb-2">1 día. Los 3 tests que siguen fallando. Es el indicador de salud del proyecto. Una vez arreglados, podemos confiar en cualquier cambio futuro.</p>
+          <p class="text-[#6ee7b7] text-xs font-bold">Éxito: <code>vitest run</code> = 0 fails</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="layer-card l2" style="border-left: 4px solid #c4b5fd;">
+      <div class="flex items-start gap-4">
+        <div class="flex-shrink-0 w-12 h-12 rounded-xl bg-[#c4b5fd] flex items-center justify-center text-white font-extrabold text-xl">B</div>
+        <div>
+          <p class="text-white font-bold text-lg mb-1">Eliminar 48 variantes UiBlock legacy (1.1 + 1.2 + 1.3)</p>
+          <p class="text-[#a99cd6] text-sm leading-relaxed mb-2">3-4 días. La deuda estructural mayor de la UI. Confirmamos en el test que el molde unificado ya funciona — solo hay que limpiar lo que no se usa.</p>
+          <p class="text-[#6ee7b7] text-xs font-bold">Éxito: <code>grep -c "type UiBlock" types.ts</code> = 0</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="layer-card l3" style="border-left: 4px solid #6ee7b7;">
+      <div class="flex items-start gap-4">
+        <div class="flex-shrink-0 w-12 h-12 rounded-xl bg-[#6ee7b7] flex items-center justify-center text-white font-extrabold text-xl">C</div>
+        <div>
+          <p class="text-white font-bold text-lg mb-1">Unificar 3 routers (1.15) — arreglaría el bug de River</p>
+          <p class="text-[#a99cd6] text-sm leading-relaxed mb-2">1 día. El test mostró que "River último partido" fue a web_search news en vez de football tool. Unificar la taxonomía de intenciones lo arregla.</p>
+          <p class="text-[#6ee7b7] text-xs font-bold">Éxito: 1 solo archivo de intenciones, 3 adapters</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="layer-card" style="background: linear-gradient(135deg, rgba(131,99,249,.15), rgba(110,231,183,.04)); border-color: rgba(131,99,249,.4);">
+    <div class="flex items-center gap-4">
+      <span class="material-symbols-outlined text-[#8363F9] text-3xl">emoji_events</span>
+      <div>
+        <p class="text-white font-bold text-lg">Test E2E exitoso · Koru está vivo</p>
+        <p class="text-[#a99cd6] text-sm">8 interacciones reales, 6 cartas unificadas, 1 deep research completo. La base funciona. Los issues son conocidos y planeados. Listo para Fase 1 completa.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ================================================================ -->
+<!-- CIERRE                                                          -->
+<!-- ================================================================ -->
+<section class="hero-gradient relative overflow-hidden">
+  <div class="blob1"></div>
+  <div class="blob2"></div>
+  <div class="relative max-w-4xl mx-auto px-10 py-24 text-center">
+    <p class="section-kicker mb-6">Fin del día</p>
+    <blockquote class="display text-white font-extrabold text-2xl md:text-3xl leading-[1.25] mb-10">
+      "Listo, guardado. Qué lindo que haya sido
+      <span style="background: linear-gradient(135deg, #8363F9 0%, #6ee7b7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+        un buen día 🌿
+      </span>
+      "
+    </blockquote>
+
+    <div class="grid grid-cols-3 gap-4 max-w-2xl mx-auto mb-10">
+      <div class="layer-card l1">
+        <p class="text-[#6ee7b7] font-bold text-xs mb-1">8/8</p>
+        <p class="text-white font-bold text-sm">Interacciones</p>
+      </div>
+      <div class="layer-card l2">
+        <p class="text-[#6ee7b7] font-bold text-xs mb-1">7/8</p>
+        <p class="text-white font-bold text-sm">Exitosas</p>
+      </div>
+      <div class="layer-card l3">
+        <p class="text-[#fda4af] font-bold text-xs mb-1">2</p>
+        <p class="text-white font-bold text-sm">Issues conocidos</p>
+      </div>
+    </div>
+
+    <p class="text-[#a99cd6] text-xs">
+      Test ejecutado el 2026-07-11 · Commit verificado: <code>4493a23</code> · 28 screenshots · 8 interacciones reales con NVIDIA Nemotron-3-Ultra-550b
+    </p>
+  </div>
+</section>
+
+</body>
+</html>

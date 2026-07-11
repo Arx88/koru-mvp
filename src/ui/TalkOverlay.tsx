@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp, ChevronLeft, Leaf, Mic, MicOff } from "lucide-react";
+import { ArrowUp, ChevronLeft, Leaf, Mic, MicOff, Paperclip } from "lucide-react";
 import { createSpeechSession, getSpeechSupport } from "../domain/speech";
 import { cn } from "../lib/utils";
 import { useKoru, PHASE_ORDER, type KoruChatTurn, type KoruTurnItem } from "./KoruProvider";
@@ -214,7 +214,9 @@ export function TalkOverlay({ onClose }: { onClose: () => void }) {
   const [interimText, setInterimText] = useState("");
   const [speechStatus] = useState(() => getSpeechSupport());
   const [micError, setMicError] = useState("");
+  const [transcribing, setTranscribing] = useState(false);
   const micErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<ReturnType<typeof createSpeechSession> | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -354,6 +356,48 @@ export function TalkOverlay({ onClose }: { onClose: () => void }) {
     }
   }
 
+  // Fase 2.1 — Subir nota de voz: transcribe audio via /api/koru/asr y lo
+  // manda como mensaje normal. Permite grabar audios largos sin SpeechRecognition
+  // en vivo (que tiene timeout ~60s y no funciona en todos los navegadores).
+  const handleAudioUpload = useCallback(async (file: File) => {
+    if (!file) return;
+    if (transcribing || processing) return;
+    setTranscribing(true);
+    showMicError("Transcribiendo audio...");
+    try {
+      const buf = await file.arrayBuffer();
+      const base64 = btoa(
+        String.fromCharCode(...new Uint8Array(buf)),
+      );
+      const res = await fetch("/api/koru/asr", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ audio_base64: base64 }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
+      const data = (await res.json()) as { text?: string };
+      const text = (data.text ?? "").trim();
+      if (!text) {
+        showMicError("No pude transcribir el audio.");
+        return;
+      }
+      await submitText(text, "typed");
+    } catch (err) {
+      showMicError(`Error de transcripción: ${err instanceof Error ? err.message : "desconocido"}`);
+    } finally {
+      setTranscribing(false);
+    }
+  }, [transcribing, processing, showMicError, submitText]);
+
+  const onFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) void handleAudioUpload(file);
+    e.target.value = "";
+  }, [handleAudioUpload]);
+
   return (
     <div className="koru-chat-shell">
       <section className="koru-chat-screen" aria-label="Conversacion con Koru">
@@ -406,6 +450,23 @@ export function TalkOverlay({ onClose }: { onClose: () => void }) {
               >
                 <Leaf size={24} />
               </button>
+              {/* Fase 2.1 — Subir nota de voz */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={transcribing || processing}
+                aria-label="Subir nota de voz"
+                className={cn("koru-composer-icon", transcribing && "is-active")}
+              >
+                <Paperclip size={22} />
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="audio/*"
+                onChange={onFileChange}
+                className="hidden"
+              />
               <div className="koru-composer-field">
                 <input
                   ref={inputRef}
