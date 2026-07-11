@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUp, ChevronLeft, Leaf, Mic, MicOff, Paperclip } from "lucide-react";
 import { createSpeechSession, getSpeechSupport } from "../domain/speech";
 import { cn } from "../lib/utils";
@@ -29,7 +29,9 @@ function splitKoruText(text: string): { heading: string | null; body: string } {
   return { heading: null, body: text };
 }
 
-function TurnItemCard({
+// Fase 2.8: memo para evitar re-renders globales durante streaming.
+// Comparación por id + items length (suficiente para turnos de chat).
+const TurnItemCard = memo(function TurnItemCard({
   item,
   onReview,
   onConfirmMemory,
@@ -56,7 +58,7 @@ function TurnItemCard({
       }}
     />
   );
-}
+});
 
 function KoruTurnBubble({
   turn,
