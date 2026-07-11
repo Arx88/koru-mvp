@@ -192,7 +192,22 @@ export type ExtractorContext = {
   runtime: RuntimeSettings;
 };
 
+// Fase 4.6: caché por hash de input+intent. Evita re-llamar al LLM
+// para el mismo input (ej: "hola" dicho 3 veces en la sesión).
+const enhancementCache = new Map<string, RawOpportunity[]>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+
+function hashKey(ctx: ExtractorContext): string {
+  // Hash simple: input + intent + toolResults length
+  const toolCount = ctx.toolResults?.length ?? 0;
+  return `${ctx.input.slice(0, 200)}|${ctx.intent}|${toolCount}`;
+}
+
 export async function extractOpportunities(ctx: ExtractorContext, chatFn?: ChatFn): Promise<RawOpportunity[]> {
+  // Fase 4.6: check caché
+  const key = hashKey(ctx);
+  const cached = enhancementCache.get(key);
+  if (cached) return cached;
   // Si hay chatFn externo, usarlo (por ejemplo, el mismo provider que el backend principal)
   if (chatFn) {
     try {
@@ -200,12 +215,14 @@ export async function extractOpportunities(ctx: ExtractorContext, chatFn?: ChatF
         { role: "system" as const, content: systemPrompt() },
         { role: "user" as const, content: userPrompt(ctx.input, ctx.intent, ctx.uiBlocks, ctx.toolResults, ctx.state) },
       ];
-      const result = await chatFn(messages, { temperature: 0.15, maxTokens: 600 });
-      const parsed = parseJsonObjectStrict(result.content) as Record<string, unknown>;
+      const llmResult = await chatFn(messages, { temperature: 0.15, maxTokens: 600 });
+      const parsed = parseJsonObjectStrict(llmResult.content) as Record<string, unknown>;
       const opportunities = Array.isArray(parsed.opportunities) ? parsed.opportunities : [];
-      return (opportunities as unknown[])
+      const result = (opportunities as unknown[])
         .map(normalizeOpportunity)
         .filter((o): o is RawOpportunity => o !== null && o.confidence >= 0.65);
+      enhancementCache.set(key, result);
+      return result;
     } catch (err) {
       console.warn("[Koru] extractOpportunities (chatFn) failed:", err instanceof Error ? err.message : err);
       return [];
@@ -218,7 +235,9 @@ export async function extractOpportunities(ctx: ExtractorContext, chatFn?: ChatF
   }
 
   try {
-    return await callExtractorLlm(ctx.runtime, ctx.input, ctx.intent, ctx.uiBlocks, ctx.toolResults, ctx.state);
+    const result = await callExtractorLlm(ctx.runtime, ctx.input, ctx.intent, ctx.uiBlocks, ctx.toolResults, ctx.state);
+    enhancementCache.set(key, result);
+    return result;
   } catch (err) {
     console.warn("[Koru] extractOpportunities (fallback LLM) failed:", err instanceof Error ? err.message : err);
     return [];
