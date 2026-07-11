@@ -117,19 +117,37 @@ export const personFilmography: ToolHandler = {
       required: ["name"],
     },
   ),
-  policy: policies.readonly("Deriva a web_search para obras."),
+  policy: policies.readonly("Busca obras en Wikipedia."),
   async run(args) {
     const name = String(args.name ?? "").trim();
     const kind = String(args.kind ?? "any");
     if (!name) return { type: "person_filmography", status: "failed", error: "Indicá el nombre." };
     const kindQuery = kind === "film" ? "filmografía películas" : kind === "music" ? "discografía álbumes" : kind === "books" ? "libros obra" : "filmografía discografía libros";
-    return {
-      type: "person_filmography",
-      status: "delegate",
-      delegateTo: "web_search",
-      query: `${name} ${kindQuery} lista completa`,
-      mode: "research",
-    };
+    // Fase 3.1: usar Wikipedia API directamente en lugar de delegar a web_search.
+    try {
+      const searchUrl = `https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(`${name} ${kindQuery}`)}&format=json&origin=*&srlimit=3`;
+      const res = await fetch(searchUrl, { signal: AbortSignal.timeout(9000) });
+      const data = await res.json() as { query?: { search?: Array<{ title: string; snippet: string }> } };
+      const results = data.query?.search ?? [];
+      if (results.length === 0) {
+        return { type: "person_filmography", status: "ok", name, kind, note: `No encontré información sobre ${name} en Wikipedia.` };
+      }
+      // Fetch summary del primer resultado
+      const firstTitle = results[0].title;
+      const summaryRes = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(firstTitle)}`, { signal: AbortSignal.timeout(9000) });
+      const summary = await summaryRes.json() as { extract?: string; content_urls?: { desktop?: { page: string } } };
+      return {
+        type: "person_filmography",
+        status: "ok",
+        name,
+        kind,
+        text: summary.extract ?? `Encontré información sobre ${firstTitle}.`,
+        sources: [{ title: firstTitle, url: summary.content_urls?.desktop?.page ?? `https://es.wikipedia.org/wiki/${encodeURIComponent(firstTitle)}`, domain: "wikipedia.org", snippet: results[0].snippet?.replace(/<[^>]+>/g, "") }],
+      };
+    } catch (err) {
+      console.warn("[Koru] person_filmography Wikipedia fetch failed:", err instanceof Error ? err.message : err);
+      return { type: "person_filmography", status: "failed", error: `No pude buscar información sobre ${name}.` };
+    }
   },
 };
 
@@ -148,20 +166,38 @@ export const movieInfo: ToolHandler = {
       required: ["title"],
     },
   ),
-  policy: policies.readonly("Deriva a web_search para info de película."),
+  policy: policies.readonly("Busca info de película en Wikipedia."),
   async run(args) {
     const title = String(args.title ?? "").trim();
     const year = String(args.year ?? "").trim();
     if (!title) return { type: "movie_info", status: "failed", error: "Indicá el título." };
-    return {
-      type: "movie_info",
-      status: "delegate",
-      delegateTo: "web_search",
-      query: `${title} ${year} película serie sinopsis reparto rating dónde ver`,
-      mode: "research",
-    };
+    // Fase 3.1: usar Wikipedia API directamente en lugar de delegar a web_search.
+    try {
+      const searchQuery = year ? `${title} ${year} película` : `${title} película`;
+      const searchUrl = `https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(searchQuery)}&format=json&origin=*&srlimit=3`;
+      const res = await fetch(searchUrl, { signal: AbortSignal.timeout(9000) });
+      const data = await res.json() as { query?: { search?: Array<{ title: string; snippet: string }> } };
+      const results = data.query?.search ?? [];
+      if (results.length === 0) {
+        return { type: "movie_info", status: "ok", title, note: `No encontré "${title}" en Wikipedia.` };
+      }
+      const firstTitle = results[0].title;
+      const summaryRes = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(firstTitle)}`, { signal: AbortSignal.timeout(9000) });
+      const summary = await summaryRes.json() as { extract?: string; content_urls?: { desktop?: { page: string } } };
+      return {
+        type: "movie_info",
+        status: "ok",
+        title,
+        text: summary.extract ?? `Encontré información sobre ${firstTitle}.`,
+        sources: [{ title: firstTitle, url: summary.content_urls?.desktop?.page ?? `https://es.wikipedia.org/wiki/${encodeURIComponent(firstTitle)}`, domain: "wikipedia.org", snippet: results[0].snippet?.replace(/<[^>]+>/g, "") }],
+      };
+    } catch (err) {
+      console.warn("[Koru] movie_info Wikipedia fetch failed:", err instanceof Error ? err.message : err);
+      return { type: "movie_info", status: "failed", error: `No pude buscar información sobre ${title}.` };
+    }
   },
 };
+
 
 // ─── book_info ──────────────────────────────────────────────────────────────
 type OlBook = {

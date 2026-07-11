@@ -172,7 +172,7 @@ export const docCreateExcel: ToolHandler = {
 export const ocrText: ToolHandler = {
   definition: defineTool(
     "ocr_text",
-    "Extrae texto de una imagen (ticket, cartel, documento, captura). Úsala cuando el usuario diga 'leé este ticket de compra', 'qué dice este cartel?', 'extraé el texto de esta imagen'. Usa visión local de Ollama (LLaVA / Llama 3.2 Vision).",
+    "Extrae texto de una imagen (ticket, cartel, documento, captura). Úsala cuando el usuario diga 'leé este ticket de compra', 'qué dice este cartel?', 'extraé el texto de esta imagen'. Usa VLM cloud (z-ai-web-dev-sdk).",
     {
       type: "object",
       additionalProperties: false,
@@ -183,24 +183,38 @@ export const ocrText: ToolHandler = {
       required: ["imageUrl"],
     },
   ),
-  policy: policies.readonly("Procesa imagen con modelo local."),
-  async run(args, ctx: ToolRunContext) {
+  policy: policies.readonly("Procesa imagen con VLM cloud."),
+  async run(args, _ctx: ToolRunContext) {
     const imageUrl = String(args.imageUrl ?? "").trim();
     const prompt = String(args.prompt ?? "Extraé todo el texto visible en la imagen, preservando estructura.").trim();
     if (!imageUrl) return { type: "ocr_text", status: "failed", error: "Indicá la imagen." };
-    if (!ctx.chatFn) {
-      return { type: "ocr_text", status: "not_configured", note: "OCR requiere modelo de visión local (Ollama LLaVA). Configuralo en Settings." };
+
+    // Fase 3.8: usar VLM cloud (z-ai-web-dev-sdk) en lugar de delegar a web_search.
+    // El endpoint /api/koru/vlm está disponible en el servidor Vite.
+    try {
+      // Si es una URL remota, fetchar la imagen y convertir a base64.
+      let base64: string;
+      if (imageUrl.startsWith("data:")) {
+        base64 = imageUrl.split(",")[1] ?? "";
+      } else {
+        const imgRes = await fetch(imageUrl);
+        const buf = await imgRes.arrayBuffer();
+        base64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+      }
+      const vlmRes = await fetch("/api/koru/vlm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image_base64: base64, prompt }),
+      });
+      if (!vlmRes.ok) throw new Error(`VLM HTTP ${vlmRes.status}`);
+      const data = (await vlmRes.json()) as { text?: string };
+      const text = (data.text ?? "").trim();
+      if (!text) return { type: "ocr_text", status: "failed", error: "No pude extraer texto de la imagen." };
+      return { type: "ocr_text", status: "ok", text, prompt };
+    } catch (err) {
+      console.warn("[Koru] ocr_text VLM failed:", err instanceof Error ? err.message : err);
+      return { type: "ocr_text", status: "failed", error: "No pude procesar la imagen. Intentá subirla directamente por el chat." };
     }
-    // ctx.chatFn es de texto; la integración con Ollama Vision requiere endpoint /api/generate con imágenes.
-    // Delegamos a web_search del motor para OCR en la nube como fallback, o pedimos al usuario subir la imagen vía chat.
-    return {
-      type: "ocr_text",
-      status: "delegate",
-      delegateTo: "web_search",
-      query: `extraer texto OCR imagen ${prompt}`,
-      mode: "research",
-      note: "OCR local con Ollama Vision requiere integración específica (no soportada por chatFn). Subí la imagen por el chat y Koru la procesará.",
-    };
   },
 };
 
