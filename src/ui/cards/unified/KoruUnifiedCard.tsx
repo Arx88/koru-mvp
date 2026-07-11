@@ -24,6 +24,11 @@ export function KoruUnifiedCard({ block }: { block: UiBlock }) {
   const { hero, detail, cta } = toPresentation(block);
   const hasMetricValues = hero.metrics?.some((m) => m.value != null);
 
+  // Truncar título a 40 chars para que no rompa el layout
+  const displayTitle = hero.title.length > 40
+    ? hero.title.slice(0, 37).trimEnd() + "…"
+    : hero.title;
+
   return (
     <div className="koru-plan-hero" data-ui-block={block.type}>
       <div className="koru-plan-hero-top">
@@ -31,7 +36,7 @@ export function KoruUnifiedCard({ block }: { block: UiBlock }) {
           <p className="koru-plan-hero-kicker" style={{ color: hero.accent.color }}>
             {hero.kicker}
           </p>
-          <h2 className="koru-plan-hero-title">{hero.title}</h2>
+          <h2 className="koru-plan-hero-title">{displayTitle}</h2>
           {hero.desc && <p className="koru-plan-hero-desc">{hero.desc}</p>}
         </div>
 
@@ -50,22 +55,29 @@ export function KoruUnifiedCard({ block }: { block: UiBlock }) {
 
       {hero.metrics && hero.metrics.length > 0 && (
         <div className={hasMetricValues ? "koru-unified-metrics" : "koru-plan-hero-cats"}>
-          {hero.metrics.map((m, i) =>
-            hasMetricValues ? (
+          {hero.metrics.map((m, i) => {
+            // Truncar valores largos
+            const displayValue = m.value && m.value.length > 15
+              ? m.value.slice(0, 12).trimEnd() + "…"
+              : m.value;
+            const displayLabel = m.label && m.label.length > 20
+              ? m.label.slice(0, 17).trimEnd() + "…"
+              : m.label;
+            return hasMetricValues ? (
               <div key={i} className="koru-unified-metric">
                 <Mat className="koru-unified-metric-icon" style={{ color: m.color ?? hero.accent.color }}>
                   {m.icon}
                 </Mat>
-                <span className="koru-unified-metric-label">{m.label}</span>
-                <span className="koru-unified-metric-value">{m.value}</span>
+                <span className="koru-unified-metric-label">{displayLabel}</span>
+                <span className="koru-unified-metric-value">{displayValue}</span>
               </div>
             ) : (
               <div key={i} className="koru-plan-hero-cat">
                 <Mat style={{ color: m.color ?? hero.accent.color }}>{m.icon}</Mat>
-                <span>{m.label}</span>
+                <span>{displayLabel}</span>
               </div>
-            ),
-          )}
+            );
+          })}
         </div>
       )}
 
