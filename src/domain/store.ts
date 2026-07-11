@@ -2,7 +2,7 @@ import { analyzeReflection } from "./brain";
 import { applyBackendTurnToState } from "./turn";
 // analyzeReflection/submitReflection are kept for tests and legacy callers.
 // New code should use the backend agent flow via KoruProvider/sendMessage.
-import { executeApprovedAction } from "./actions";
+import { executeApprovedAction } from "./executor";
 import { commitmentIdentityKey, mergeDueHint, uniqueCommitmentList } from "./commitments";
 import { createDefaultRuntimeSettings, runFreeLlmEmbedding } from "./freellmapi";
 import {
