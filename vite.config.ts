@@ -771,9 +771,12 @@ function koruBackendAgent(env: Record<string, string>): Plugin {
     nvidiaApiKey: env.NVIDIA_API_KEY?.trim(),
     nvidiaBaseUrl: env.NVIDIA_BASE_URL?.trim() || "https://integrate.api.nvidia.com",
     nvidiaModel: env.NVIDIA_MODEL?.trim() || "nvidia/nemotron-3-ultra-550b-a55b",
-    // Fase 4.1: router de modelos NVIDIA. 3 tiers según complejidad.
+    // Fase 4.1: router de modelos NVIDIA. 2 tiers.
+    // Trivial (hola, gracias): flash model (~20s, más barato)
+    // Todo lo demás: ultra model (~40s, máxima calidad)
+    // Nota: se probó nemotron-3-nano-30b-a3b como medium pero no seguía
+    // el system prompt (devolvía chain-of-thought) y era más lento que ultra.
     nvidiaFastModel: env.NVIDIA_FAST_MODEL?.trim() || "stepfun-ai/step-3.5-flash",
-    nvidiaMediumModel: env.NVIDIA_MEDIUM_MODEL?.trim() || "nvidia/nemotron-3-nano-30b-a3b",
     openRouterKeys: collectOpenRouterKeys(env),
     openRouterModels: collectOpenRouterModels(env),
     minimaxAccessToken: readMiniMaxToken(),

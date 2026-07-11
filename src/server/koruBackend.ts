@@ -4041,6 +4041,10 @@ export async function runKoruBackendTurn(
   // saludo de una palabra). El gate NO usa isTrivialInput porque esa función
   // matchea prefijos ("hola ...") y haría saltar mensajes reales de búsqueda.
   const inputTrimmed = request.input.trim();
+  // Fase 4.1: declarar modelOverride temprano para que esté disponible en
+  // todas las callProvider calls (incluida la del router autofire ~4108).
+  const trivial = isTrivialInput(inputTrimmed);
+  const modelOverride = selectModelForInput(inputTrimmed, config, trivial, false);
   const deliverableTopic = explicitDeliverableTopic(inputTrimmed);
   if (deliverableTopic) {
     logger.info("runKoruBackendTurn", "Explicit deliverable request detected", { topic: deliverableTopic });
@@ -4105,7 +4109,7 @@ export async function runKoruBackendTurn(
             return { ...response, provider, model, fallbackReason: "router-" + route.category };
           }
           messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }." });
-          const secondResult = await callProvider(config, messages, secondaryTimeout, false, preferredProvider);
+          const secondResult = await callProvider(config, messages, secondaryTimeout, false, preferredProvider, undefined, modelOverride);
           provider = secondResult.provider;
           model = secondResult.model ?? model;
           const secondContent = cleanText(secondResult.message.content, "No pude componer una respuesta util.");
@@ -4147,9 +4151,7 @@ export async function runKoruBackendTurn(
     ? ALL_TOOL_DEFINITIONS.filter((t) => categoryToolNames.includes(t.function.name))
     : undefined;
 
-  // Fase 4.1: seleccionar modelo según complejidad del input
-  const trivial = isTrivialInput(request.input);
-  const modelOverride = selectModelForInput(request.input, config, trivial, Boolean(explicitDeliverableTopic));
+  // Fase 4.1: modelOverride ya declarado arriba (antes del router autofire)
 
   // Paso 1: una sola llamada al LLM con tools habilitadas (excepto Ollama, que usa native JSON)
   let firstResult: ProviderResult & { fallbackReason?: string };
@@ -4161,7 +4163,7 @@ export async function runKoruBackendTurn(
       return { reply: err.message, uiBlocks: [], suggestedActions: [], understanding: { literalRequest: request.input, userGoal: "Rate limit", unstatedNeeds: [], assumptions: [], confidence: 0 }, memoryCandidates: [], commitments: [], records: [], toolResults: [], stateEvents: [], mascotState: "tired", provider: "openrouter", model: "rate-limited", fallbackReason: "rate-limit" };
     }
     // Fallback sin tools si el modelo no las soporta o devolvió respuesta vacía
-    firstResult = await callProvider(config, messages, secondaryTimeout, false, preferredProvider);
+    firstResult = await callProvider(config, messages, secondaryTimeout, false, preferredProvider, undefined, modelOverride);
     fallbackReason = (fallbackReason ? fallbackReason + " + " : "") + "no-tools-fallback";
   }
   provider = firstResult.provider;
@@ -4231,7 +4233,7 @@ export async function runKoruBackendTurn(
     messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }." });
     const deferredCards = (toolExecutions as ToolExecution[] & { __deferredDataCards?: Array<Promise<UiBlock | null>> }).__deferredDataCards ?? [];
     const [secondResult, ...resolvedCards] = await Promise.all([
-      callProvider(config, messages, secondaryTimeout, false, preferredProvider),
+      callProvider(config, messages, secondaryTimeout, false, preferredProvider, undefined, modelOverride),
       ...deferredCards,
     ]);
     provider = secondResult.provider;
@@ -4333,7 +4335,7 @@ export async function runKoruBackendTurn(
     }
     // Paso 2: segunda llamada (sin tools) para que el LLM síntetice la respuesta final.
     messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }." });
-    const secondResult = await callProvider(config, messages, secondaryTimeout, false, preferredProvider);
+    const secondResult = await callProvider(config, messages, secondaryTimeout, false, preferredProvider, undefined, modelOverride);
     provider = secondResult.provider;
     model = secondResult.model ?? model;
     const secondContent = cleanText(secondResult.message.content, "No pude componer una respuesta util.");
