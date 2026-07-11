@@ -317,6 +317,11 @@ export class SemanticRouter {
   private initialized = false;
   private initPromise: Promise<void> | null = null;
   private embedFn: EmbedFn;
+  // Fase 2.5: caché LRU simple para embeddings de mensajes del usuario.
+  // Evita re-embedir el mismo mensaje (ej: "hola", "gracias") en cada turno.
+  // Tamaño máximo 100 entradas (suficiente para conversación típica).
+  private messageCache = new Map<string, number[]>();
+  private static readonly CACHE_MAX = 100;
 
   constructor(embedFn: EmbedFn) {
     this.embedFn = embedFn;
@@ -353,6 +358,28 @@ export class SemanticRouter {
   }
 
   /**
+   * Embede un mensaje del usuario con caché LRU.
+   * Si el mismo mensaje se pide de nuevo, devuelve el vector cacheado.
+   */
+  private async embedMessage(text: string): Promise<number[]> {
+    const cached = this.messageCache.get(text);
+    if (cached) {
+      // Mover al final (LRU: más reciente)
+      this.messageCache.delete(text);
+      this.messageCache.set(text, cached);
+      return cached;
+    }
+    const vector = await this.embedFn(text);
+    // Si la caché está llena, eliminar la entrada más vieja (primera insertada)
+    if (this.messageCache.size >= SemanticRouter.CACHE_MAX) {
+      const firstKey = this.messageCache.keys().next().value;
+      if (firstKey) this.messageCache.delete(firstKey);
+    }
+    this.messageCache.set(text, vector);
+    return vector;
+  }
+
+  /**
    * Clasifica la intención de un mensaje.
    * Devuelve la categoría más probable con su confianza.
    * Si la confianza es baja, cae a "conversation" (deja al modelo responder libre).
@@ -360,7 +387,7 @@ export class SemanticRouter {
   async route(message: string): Promise<RouteResult> {
     await this.initialize();
 
-    const messageVector = await this.embedFn(message);
+    const messageVector = await this.embedMessage(message);
 
     // Comparar contra todos los ejemplos, quedarse con el más parecido.
     let bestSim = -1;
