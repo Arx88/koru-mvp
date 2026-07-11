@@ -5,6 +5,10 @@ export type ProviderConfig = {
   nvidiaApiKey?: string;
   nvidiaBaseUrl: string;
   nvidiaModel: string;
+  /** Modelo rápido para inputs triviales (saludos, cortesía). */
+  nvidiaFastModel?: string;
+  /** Modelo mediano para inputs normales (clima, gasto, lista). */
+  nvidiaMediumModel?: string;
   openRouterKeys: string[];
   openRouterModels: string[];
   minimaxAccessToken?: string;

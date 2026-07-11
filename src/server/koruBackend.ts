@@ -26,6 +26,8 @@ export type ProviderConfig = {
   nvidiaApiKey?: string;
   nvidiaBaseUrl: string;
   nvidiaModel: string;
+  nvidiaFastModel?: string;
+  nvidiaMediumModel?: string;
   openRouterKeys: string[];
   openRouterModels: string[];
   minimaxAccessToken?: string;
@@ -664,11 +666,12 @@ async function callNvidia(
   timeoutMs: number,
   toolsEnabled = true,
   availableTools?: ToolDefinition[],
+  modelOverride?: string,
 ): Promise<ProviderResult> {
   const isOllama = isOllamaUrl(config.nvidiaBaseUrl);
   if (isOllama) {
     const body: Record<string, unknown> = {
-      model: config.nvidiaModel,
+      model: modelOverride ?? config.nvidiaModel,
       messages: messages.map((m) => ({ role: m.role, content: m.content ?? "" })),
       ...(toolsEnabled ? {} : { format: "json" }),
       options: { temperature: 0.0, top_p: 0.95, num_predict: 8192 },
@@ -719,7 +722,7 @@ async function callNvidia(
     headers.Authorization = `Bearer ${config.nvidiaApiKey}`;
   }
   const body: Record<string, unknown> = {
-    model: config.nvidiaModel,
+    model: modelOverride ?? config.nvidiaModel,
     messages,
     ...(toolsEnabled ? { tools: availableTools ?? TOOL_DEFINITIONS, tool_choice: "auto" } : {}),
     temperature: 0.25,
@@ -871,6 +874,47 @@ function nvidiaTimeoutMs(config: ProviderConfig, isOllama: boolean, timeoutMs: n
   return Math.min(isLargeNemotron ? 120_000 : 45_000, timeoutMs);
 }
 
+/**
+ * Fase 4.1 — Router de modelos NVIDIA.
+ *
+ * Selecciona el modelo óptimo según la complejidad del input del usuario:
+ * - Trivial (hola, gracias, adios): modelo flash (~1-2s)
+ * - Normal (clima, gasto, lista): modelo mediano (~5-8s)
+ * - Complejo (informe, deep research): modelo ultra (~15s)
+ *
+ * Esto reduce la latencia percibida para interacciones simples sin
+ * sacrificar calidad en tareas complejas.
+ */
+function selectModelForInput(
+  input: string,
+  config: ProviderConfig,
+  isTrivial: boolean,
+  isDeliverable: boolean,
+): string | undefined {
+  // Si no hay fast/medium model configurado, usar el default
+  if (!config.nvidiaFastModel && !config.nvidiaMediumModel) return undefined;
+
+  // Trivial → flash (sin tools, respuesta rápida)
+  if (isTrivial && config.nvidiaFastModel) {
+    logger.info("modelRouter", "Using fast model", { model: config.nvidiaFastModel, reason: "trivial input" });
+    return config.nvidiaFastModel;
+  }
+
+  // Deliverable (informe/investigación) → ultra (máxima calidad)
+  if (isDeliverable) {
+    logger.info("modelRouter", "Using ultra model", { model: config.nvidiaModel, reason: "deliverable" });
+    return config.nvidiaModel; // nvidiaModel = ultra por default
+  }
+
+  // Normal → medium si está disponible, sino ultra
+  if (config.nvidiaMediumModel) {
+    logger.info("modelRouter", "Using medium model", { model: config.nvidiaMediumModel, reason: "normal input" });
+    return config.nvidiaMediumModel;
+  }
+
+  return undefined;
+}
+
 async function callProvider(
   config: ProviderConfig,
   messages: ChatMessage[],
@@ -878,6 +922,7 @@ async function callProvider(
   toolsEnabled = true,
   preferredProvider?: "minimax" | "nvidia" | "openrouter" | "bluesminds",
   availableTools?: ToolDefinition[],
+  modelOverride?: string,
 ): Promise<ProviderResult & { fallbackReason?: string }> {
   const isOllama = isOllamaUrl(config.nvidiaBaseUrl);
   const nvidiaAvailable = Boolean(config.nvidiaApiKey) || isOllama;
@@ -910,7 +955,7 @@ async function callProvider(
 
   if (preferredProvider === "nvidia" && nvidiaAvailable) {
     try {
-      const result = await callNvidia(config, messages, nvidiaTimeoutMs(config, isOllama, timeoutMs), toolsEnabled, availableTools);
+      const result = await callNvidia(config, messages, nvidiaTimeoutMs(config, isOllama, timeoutMs), toolsEnabled, availableTools, modelOverride);
       if (providerResultIsValid(result)) return result;
       logger.warn("callProvider", "Preferred NVIDIA responded but invalid, falling back");
     } catch (err: any) {
@@ -960,7 +1005,7 @@ async function callProvider(
   // Si el usuario eligió OpenRouter, saltamos NVIDIA en el flujo normal
   if (!preferredProvider || preferredProvider !== "openrouter") {
     try {
-      const result = await callNvidia(config, messages, nvidiaTimeoutMs(config, isOllama, timeoutMs), toolsEnabled, availableTools);
+      const result = await callNvidia(config, messages, nvidiaTimeoutMs(config, isOllama, timeoutMs), toolsEnabled, availableTools, modelOverride);
       if (providerResultIsValid(result)) return result;
       logger.warn("callProvider", "NVIDIA responded but invalid, falling back");
     } catch (err: any) {
@@ -4102,10 +4147,14 @@ export async function runKoruBackendTurn(
     ? ALL_TOOL_DEFINITIONS.filter((t) => categoryToolNames.includes(t.function.name))
     : undefined;
 
+  // Fase 4.1: seleccionar modelo según complejidad del input
+  const trivial = isTrivialInput(request.input);
+  const modelOverride = selectModelForInput(request.input, config, trivial, Boolean(explicitDeliverableTopic));
+
   // Paso 1: una sola llamada al LLM con tools habilitadas (excepto Ollama, que usa native JSON)
   let firstResult: ProviderResult & { fallbackReason?: string };
   try {
-    firstResult = await callProvider(config, messages, firstTimeout, !isTrivialInput(request.input), preferredProvider, filteredTools);
+    firstResult = await callProvider(config, messages, firstTimeout, !trivial, preferredProvider, filteredTools, modelOverride);
   } catch (err: any) {
     logger.error("runKoruBackendTurn", "callProvider failed with tools", { error: err.message });
     if (err instanceof RateLimitError) {

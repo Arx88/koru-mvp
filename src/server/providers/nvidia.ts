@@ -11,11 +11,13 @@ export async function callNvidia(
   timeoutMs: number,
   toolsEnabled = true,
   availableTools?: ToolDefinition[],
+  modelOverride?: string,
 ): Promise<ProviderResult> {
+  const useModel = modelOverride ?? config.nvidiaModel;
   const isOllama = isOllamaUrl(config.nvidiaBaseUrl);
   if (isOllama) {
     const body: Record<string, unknown> = {
-      model: config.nvidiaModel,
+      model: useModel,
       messages: messages.map((m) => ({ role: m.role, content: m.content ?? "" })),
       ...(toolsEnabled ? {} : { format: "json" }),
       options: { temperature: 0.0, top_p: 0.95, num_predict: 8192 },
@@ -66,7 +68,7 @@ export async function callNvidia(
     headers.Authorization = `Bearer ${config.nvidiaApiKey}`;
   }
   const body: Record<string, unknown> = {
-    model: config.nvidiaModel,
+    model: useModel,
     messages,
     ...(toolsEnabled ? { tools: availableTools ?? TOOL_DEFINITIONS, tool_choice: "auto" } : {}),
     // Fase 4.2: JSON mode strict. Cuando no hay tools (síntesis final),

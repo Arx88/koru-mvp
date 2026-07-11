@@ -771,14 +771,14 @@ function koruBackendAgent(env: Record<string, string>): Plugin {
     nvidiaApiKey: env.NVIDIA_API_KEY?.trim(),
     nvidiaBaseUrl: env.NVIDIA_BASE_URL?.trim() || "https://integrate.api.nvidia.com",
     nvidiaModel: env.NVIDIA_MODEL?.trim() || "nvidia/nemotron-3-ultra-550b-a55b",
+    // Fase 4.1: router de modelos NVIDIA. 3 tiers según complejidad.
+    nvidiaFastModel: env.NVIDIA_FAST_MODEL?.trim() || "stepfun-ai/step-3.5-flash",
+    nvidiaMediumModel: env.NVIDIA_MEDIUM_MODEL?.trim() || "nvidia/nemotron-3-nano-30b-a3b",
     openRouterKeys: collectOpenRouterKeys(env),
     openRouterModels: collectOpenRouterModels(env),
     minimaxAccessToken: readMiniMaxToken(),
     bluesmindsKeys: collectBlueSmindsKeys(env),
     bluesmindsModel: collectBlueSmindsModel(env),
-    // Fase 2.2: antes hardcoded a localhost:11434 (Ollama casi nunca corría).
-    // Ahora undefined por default → getRouter cae a NVIDIA embeddings cloud.
-    // Setear OLLAMA_EMBED_BASE_URL en .env si querés usar Ollama local.
     ollamaEmbedBaseUrl: env.OLLAMA_EMBED_BASE_URL?.trim() || undefined,
   };
 
