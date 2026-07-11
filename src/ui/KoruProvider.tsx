@@ -5,6 +5,7 @@ import type {
   DailyEntry,
   KoruState,
   KoruStage,
+  LifeRecord,
   MascotState,
   MemoryFact,
 } from "../domain/types";
@@ -454,6 +455,17 @@ function actionConfirmationText(item: KoruTurnItem): string {
   return "";
 }
 
+// Koru 2.0: fases reales del pipeline (emitidas por el backend en stateEvents).
+// Se usan para la píldora de estado ("Creando rutina…") y la barra de progreso.
+export const PHASE_ORDER = ["thinking", "searching", "comparing", "planning", "saving", "done"] as const;
+export const PHASE_LABEL: Record<string, string> = {
+  thinking: "Pensando…",
+  searching: "Buscando…",
+  comparing: "Comparando…",
+  planning: "Creando rutina…",
+  saving: "Guardando…",
+};
+
 type KoruContextValue = {
   energy: number;
   roots: number;
@@ -464,9 +476,11 @@ type KoruContextValue = {
   priorities: Priority[];
   memories: Memory[];
   history: HistoryEntry[];
+  records: LifeRecord[];
   permissions: Permission[];
   processing: boolean;
   activity: AgentActivity | null;
+  phase: string | null;
   chatTurns: KoruChatTurn[];
   selectedModel: string | null;
   setSelectedModel: (model: string) => void;
@@ -496,8 +510,16 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   const [userName, setUserName] = useState(() => localStorage.getItem("koru.username") ?? "");
   const [processing, setProcessing] = useState(false);
   const [activity, setActivity] = useState<AgentActivity | null>(null);
+  const [phase, setPhase] = useState<string | null>(null);
   const [chatTurns, setChatTurns] = useState<KoruChatTurn[]>(() => readChatTurns(localStorage.getItem("koru.username") ?? ""));
-  const [selectedModel, setSelectedModel] = useState<string | null>(() => localStorage.getItem("koru.selected-model") ?? null);
+  // Clave versionada (v2): la clave vieja "koru.selected-model" quedaba pegada con
+  // modelos de prueba (ej. llama3.1:8b) y pisaba silenciosamente al proveedor
+  // principal (BlueSminds) en CADA turno. v2 arranca en Automático para todos;
+  // elegir un modelo vuelve a ser una decisión explícita del usuario.
+  const [selectedModel, setSelectedModel] = useState<string | null>(() => {
+    localStorage.removeItem("koru.selected-model");
+    return localStorage.getItem("koru.selected-model.v2") ?? null;
+  });
   const domainStateRef = useRef(domainState);
   const chatTurnsRef = useRef(chatTurns);
 
@@ -903,6 +925,11 @@ export function KoruProvider({ children }: { children: ReactNode }) {
           createdAt: turn.createdAt,
         }));
       const agentResult = await runBackendAgentTurn(text, previousState, domainHistory, selectedModel ?? undefined, (chunk) => {
+        // Fase real del pipeline: tomamos el último stateEvent para la píldora/barra.
+        if (chunk.stateEvents?.length) {
+          const last = chunk.stateEvents[chunk.stateEvents.length - 1];
+          setPhase(last.kind === "done" ? null : last.kind);
+        }
         const blocksToItems = (blocks: UiBlock[]): KoruTurnItem[] =>
           blocks.map((block) => ({
             id: createId("item"),
@@ -1016,6 +1043,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     } finally {
       setProcessing(false);
       setActivity(null);
+      setPhase(null);
     }
   }
 
@@ -1157,9 +1185,21 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   }
 
   function runReadonlyWebAction(original: AssistantAction): KoruTurnItem {
+    // Dato en vivo (clima/trafico/mercado) = quick, sin panel largo. Un
+    // informe/investigacion real (webMode "research", o web_research sin
+    // modo puntual) = deep, se gana el panel "Trabajando...". Ver
+    // flujo-informe-aoe2.html pasos 3 (informe) vs 7 (clima).
+    const webMode = original.payload.webMode;
+    const isQuickSignal = webMode === "weather" || webMode === "traffic" || webMode === "market";
+    const isDeepResearch = webMode === "research" || (original.kind === "web_research" && !webMode);
     setActivity({
       kind: "searching",
-      label: original.kind === "world_signal" ? "Busco senales reales." : "Consulto fuentes reales.",
+      depth: isQuickSignal ? "quick" : isDeepResearch ? "deep" : "quick",
+      label: isDeepResearch
+        ? "Es un tema para investigar a fondo. Dame unos segundos."
+        : original.kind === "world_signal"
+          ? "Busco senales reales."
+          : "Consulto fuentes reales.",
     });
     const now = new Date().toISOString();
     const approvedAction: AssistantAction = {
@@ -1272,9 +1312,11 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     priorities,
     memories,
     history,
+    records: domainState.records,
     permissions,
     processing,
     activity,
+    phase,
     chatTurns,
     selectedModel,
     setSelectedModel,
@@ -1294,7 +1336,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     toggleTurnLike,
     setWorldSignals,
     dismissNudge: (id: string) => commitDomainState((prev) => dismissNudge(prev, id)),
-  }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, permissions, processing, activity, chatTurns, selectedModel]);
+  }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, domainState.records, permissions, processing, activity, phase, chatTurns, selectedModel]);
 
   return <KoruContext.Provider value={value}>{children}</KoruContext.Provider>;
 }

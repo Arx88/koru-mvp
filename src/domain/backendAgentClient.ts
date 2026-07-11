@@ -36,7 +36,7 @@ export type KoruBackendTurnResponse = {
   toolResults: ToolResult[];
   stateEvents: Array<{ kind: "thinking" | "searching" | "comparing" | "planning" | "saving" | "done"; label: string }>;
   mascotState?: MascotState;
-  provider: "nvidia" | "openrouter";
+  provider: "nvidia" | "openrouter" | "minimax" | "bluesminds";
   model?: string;
   fallbackReason?: string;
 };
@@ -57,7 +57,15 @@ async function postAgentTurn(
   onChunk?: (chunk: KoruBackendTurnResponse) => void,
 ): Promise<KoruBackendTurnResponse> {
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+  // Con streaming, timeoutMs es una ventana de INACTIVIDAD, no un tope total:
+  // cada chunk recibido la resetea. Un informe (deep_research) puede tardar
+  // 3-4 min legítimos bajo rate-limits, pero mientras streamee progreso el
+  // turno sigue vivo. Abortamos solo si el server se queda mudo.
+  let timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+  const resetIdleTimeout = () => {
+    window.clearTimeout(timeout);
+    timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+  };
   try {
     const payload = onChunk ? { ...(body as Record<string, unknown>), stream: true } : body;
     const response = await fetch("/api/koru/turn", {
@@ -77,6 +85,7 @@ async function postAgentTurn(
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+        resetIdleTimeout();
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n");
         buffer = lines.pop() || "";
@@ -123,5 +132,5 @@ export async function runBackendAgentTurn(
   model?: string,
   onChunk?: (chunk: KoruBackendTurnResponse) => void,
 ): Promise<KoruBackendTurnResponse> {
-  return postAgentTurn({ input, state, history, model }, 75_000, onChunk);
+  return postAgentTurn({ input, state, history, model }, 180_000, onChunk);
 }

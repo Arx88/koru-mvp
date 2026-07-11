@@ -36,7 +36,7 @@ export const medicationReminder: ToolHandler = {
       title: name,
       value: frequency,
       dueHint: frequency,
-      notes: args.duration ? `${args.duration}${args.note ? ` — ${String(args.note)}` : ""}` : (args.note ? String(args.note) : undefined),
+      notes: args.duration || args.note ? `${args.duration ?? ""}${args.duration && args.note ? ` - ${args.note}` : args.note ?? ""}` : undefined,
     };
     return {
       type: "medication_reminder",
@@ -239,7 +239,7 @@ export const airQualityAdvice: ToolHandler = {
       url.searchParams.set("current", "pm2_5,pm10,european_aqi,us_aqi");
       const r = await fetchJson(url.toString(), { timeoutMs: 8_000 });
       if (!r.ok) throw new Error(r.error);
-      return r.data as { current?: { pm2_5?: number; pm10?: number; european_aqi?: number; us_aqi?: number } };
+      return r.data;
     });
     const c = data.current;
     if (!c) return { type: "air_quality_advice", status: "failed", error: "Sin datos de calidad del aire." };

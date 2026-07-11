@@ -24,6 +24,19 @@ function collectOpenRouterModels(env: Record<string, string>): string[] {
   return Array.from(new Set(models));
 }
 
+function collectBlueSmindsKeys(env: Record<string, string>): string[] {
+  const keys = [env.BLUESMINDS_API_KEY, env.BLUESMINDS_FALLBACK_API_KEYS]
+    .filter(Boolean)
+    .flatMap((value) => value.split(","))
+    .map((value) => value.trim())
+    .filter(Boolean);
+  return Array.from(new Set(keys));
+}
+
+function collectBlueSmindsModel(env: Record<string, string>): string {
+  return (env.BLUESMINDS_MODEL || "mimo-v2.5").trim();
+}
+
 function bodyHasAssistantContent(raw: string): boolean {
   try {
     const parsed = JSON.parse(raw) as {
@@ -761,6 +774,8 @@ function koruBackendAgent(env: Record<string, string>): Plugin {
     openRouterKeys: collectOpenRouterKeys(env),
     openRouterModels: collectOpenRouterModels(env),
     minimaxAccessToken: readMiniMaxToken(),
+    bluesmindsKeys: collectBlueSmindsKeys(env),
+    bluesmindsModel: collectBlueSmindsModel(env),
     ollamaEmbedBaseUrl: "http://localhost:11434",
   };
 
@@ -775,6 +790,9 @@ function koruBackendAgent(env: Record<string, string>): Plugin {
           return;
         }
         const predefined: Array<{ id: string; provider: string; label: string }> = [];
+        if (config.bluesmindsKeys.length) {
+          predefined.push({ id: config.bluesmindsModel, provider: "bluesminds", label: `BlueSminds ${config.bluesmindsModel}` });
+        }
         if (config.minimaxAccessToken) {
           predefined.push({ id: "MiniMax-M2.7", provider: "minimax", label: "MiniMax M2.7" });
         }
@@ -953,7 +971,6 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         input: {
           main: new URL("./index.html", import.meta.url).pathname,
-          preview: new URL("./all-cards-preview.html", import.meta.url).pathname,
         },
       },
     },

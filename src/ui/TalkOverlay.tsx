@@ -1,128 +1,32 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Check,
-  ChevronLeft,
-  Heart,
-  Mic,
-  MicOff,
-  Send,
-  Sparkles,
-} from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowUp, ChevronLeft, Leaf, Mic, MicOff } from "lucide-react";
 import { createSpeechSession, getSpeechSupport } from "../domain/speech";
 import { cn } from "../lib/utils";
-import { useKoru, type KoruChatTurn, type KoruTurnItem } from "./KoruProvider";
+import { useKoru, PHASE_ORDER, type KoruChatTurn, type KoruTurnItem } from "./KoruProvider";
+import type { AgentActivityKind } from "../domain/agentKernel";
 import { KoruSemanticCard } from "./chatCards";
-import type { MascotState } from "./KoruMascot";
-import type { AgentActivity } from "../domain/agentKernel";
 
-type KoruTheme = "light" | "dark";
+// TalkOverlay = réplica Stitch "Chat con Koru": paisaje nocturno ilustrado a
+// pantalla completa, conversación anclada abajo con burbujas claras (usuario
+// #F0F4FF / Koru #F8F4FA + avatar circular) y composer blanco con hoja (eco),
+// campo "Habla con Koru..." y botón #7C5FF6. El estado "trabajando" es el
+// panel claro de Stitch con la barra REAL sincronizada a las fases del
+// pipeline, y el plan entregado se renderiza como la hoja "Tu Plan" (cards).
 
-const THEME_STORAGE_KEY = "koru.chat.theme.v1";
+const KORU_AVATAR = "/stitch/avatar-chat.png";
 
-function timeLabel(iso: string): string {
-  return new Date(iso).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" });
-}
-
-function readTheme(): KoruTheme {
-  try {
-    const forced = document.documentElement.dataset.koruTheme;
-    if (forced === "dark" || forced === "light") return forced;
-    return localStorage.getItem(THEME_STORAGE_KEY) === "dark" ? "dark" : "light";
-  } catch {
-    return "light";
+// El diseño Stitch muestra las respuestas de Koru con un saludo corto en
+// negrita violeta y el cuerpo debajo. El texto del backend es libre: si la
+// primera línea/oración es corta y exclamativa la tratamos como encabezado.
+function splitKoruText(text: string): { heading: string | null; body: string } {
+  const newline = text.indexOf("\n");
+  if (newline > 0 && newline <= 48) {
+    const body = text.slice(newline + 1).trim();
+    if (body) return { heading: text.slice(0, newline).trim(), body };
   }
-}
-
-function statusText(items?: KoruTurnItem[]): string {
-  const actions = items?.filter((item) => item.kind === "action") ?? [];
-  const hasMemory = items?.some((item) => item.kind === "memory");
-  const hasQuestion = actions.some((item) => item.actionKind === "clarifying_question");
-  const hasReviewable = actions.some((item) => item.status === "proposed" && ![
-    "clarifying_question",
-    "structured_note",
-    "money_summary",
-    "morning_brief",
-    "decision_support",
-  ].includes(item.actionKind ?? ""));
-  const hasVerifiedSources = actions.some((item) => item.sources?.length || item.externalStatus === "verified");
-  const hasSavedRecord = actions.some((item) => item.actionKind === "structured_note" || item.uiBlock?.type === "saved_record");
-  if (hasQuestion) return "Pidiendo contexto";
-  if (hasReviewable) return "Listo para revisar";
-  if (hasVerifiedSources) return "Fuentes verificadas";
-  if (hasSavedRecord) return "Guardado";
-  if (actions.length) return "Listo";
-  if (hasMemory) return "Guardando contexto";
-  return "";
-}
-
-function headerStatus(processing: boolean, listening: boolean, items: KoruChatTurn[], activity?: AgentActivity | null): string {
-  if (listening) return "Koru esta escuchando...";
-  if (processing) return activity?.label ?? "Koru esta trabajando...";
-  const hasOpenAction = items.some((turn) =>
-    turn.items?.some((item) =>
-      item.kind === "action" &&
-      item.status === "proposed" &&
-      ![
-        "clarifying_question",
-        "structured_note",
-        "money_summary",
-        "morning_brief",
-        "decision_support",
-      ].includes(item.actionKind ?? ""),
-    ),
-  );
-  if (hasOpenAction) return "Listo para revisar";
-  return "Koru esta contigo";
-}
-
-function mascotForState(
-  processing: boolean,
-  listening: boolean,
-  items: KoruChatTurn[],
-  mascotState?: MascotState,
-): string {
-  if (items.some((turn) => turn.status === "error")) return "/images/koru-states/mistake.png";
-  if (listening) return "/images/koru-states/thinking.png";
-  if (processing) return "/images/koru-states/working.png";
-
-  const lastTurn = items[items.length - 1];
-  const emotionalState = mascotState || lastTurn?.mascotState;
-  if (emotionalState) {
-    const stateMap: Record<string, string> = {
-      idle: "/images/koru-states/idle.png",
-      thinking: "/images/koru-states/thinking.png",
-      working: "/images/koru-states/working.png",
-      happy: "/images/koru-states/happy.png",
-      tired: "/images/koru-states/tired.png",
-      sleeping: "/images/koru-states/sleeping.png",
-      mistake: "/images/koru-states/mistake.png",
-      planning: "/images/koru-states/planning.png",
-      "product-search": "/images/koru-states/product-search.png",
-      building: "/images/koru-states/building.png",
-      cooking: "/images/koru-states/cooking.png",
-      "thinking-2": "/images/koru-states/thinking-2.png",
-      celebrating: "/images/koru-states/happy.png",
-      worried: "/images/koru-states/thinking-2.png",
-      affectionate: "/images/koru-states/happy.png",
-      curious: "/images/koru-states/thinking.png",
-    };
-    if (stateMap[emotionalState]) return stateMap[emotionalState];
-  }
-
-  const lastAction = [...items].reverse().flatMap((turn) => turn.items ?? []).find((item) => item.kind === "action");
-  if (lastAction?.actionKind === "web_research") return "/images/koru-states/product-search.png";
-  if (lastAction?.actionKind === "file_bundle") return "/images/koru-states/building.png";
-  if (lastAction?.actionKind === "structured_note") return "/images/koru-states/happy.png";
-  if (lastAction?.actionKind === "money_summary" || lastAction?.actionKind === "decision_support") return "/images/koru-states/thinking-2.png";
-  if (lastAction?.actionKind === "morning_brief" || lastAction?.actionKind === "meeting_brief") return "/images/koru-states/planning.png";
-  if (lastAction?.actionKind === "day_plan" || lastAction?.actionKind === "daily_brief") return "/images/koru-states/planning.png";
-  if (lastAction?.actionKind === "clarifying_question") return "/images/koru-states/thinking-2.png";
-  if (lastAction?.actionKind === "draft_message") return "/images/koru-states/cooking.png";
-  if (lastAction?.actionKind === "calendar_event" || lastAction?.actionKind === "reminder" || lastAction?.actionKind === "restock_note") {
-    return "/images/koru-states/working.png";
-  }
-  if (lastAction?.status === "executed") return "/images/koru-states/happy.png";
-  return "/images/koru-states/idle.png";
+  const match = text.match(/^(.{2,44}?[!¡?¿])\s+([\s\S]+)$/);
+  if (match) return { heading: match[1].trim(), body: match[2].trim() };
+  return { heading: null, body: text };
 }
 
 function TurnItemCard({
@@ -157,7 +61,6 @@ function TurnItemCard({
 function KoruTurnBubble({
   turn,
   onReview,
-  onLike,
   onConfirmMemory,
   onPruneMemory,
   onCompleteCommitment,
@@ -165,13 +68,12 @@ function KoruTurnBubble({
 }: {
   turn: KoruChatTurn;
   onReview: (id: string, approve: boolean) => void;
-  onLike: (id: string) => void;
   onConfirmMemory: (id: string) => void;
   onPruneMemory: (id: string) => void;
   onCompleteCommitment: (id: string) => void;
   onSetWorldSignals: (enabled: boolean) => void;
 }) {
-  const status = statusText(turn.items);
+  const { heading, body } = splitKoruText(turn.text);
   return (
     <div className="koru-message is-koru">
       {turn.items && turn.items.length > 0 && (
@@ -189,22 +91,14 @@ function KoruTurnBubble({
           ))}
         </div>
       )}
-      <div className="koru-bubble ai-bubble">
-        <p className="koru-message-text">{turn.text}</p>
-      </div>
-      <div className="koru-meta-row">
-        {status && <span>{status}</span>}
-        <span>{timeLabel(turn.createdAt)}</span>
-        {turn.liked && (
-          <button
-            type="button"
-            onClick={() => onLike(turn.id)}
-            aria-label="Quitar me gusta"
-            className="koru-like is-liked"
-          >
-            <Heart size={14} className="fill-current" />
-          </button>
-        )}
+      <div className="koru-row">
+        <div className="koru-avatar">
+          <img src={KORU_AVATAR} alt="Koru" />
+        </div>
+        <div className="koru-bubble ai-bubble">
+          {heading && <h3 className="koru-bubble-heading">{heading}</h3>}
+          <p className="koru-message-text">{body}</p>
+        </div>
       </div>
     </div>
   );
@@ -216,24 +110,88 @@ function UserTurnBubble({ turn }: { turn: KoruChatTurn }) {
       <div className="koru-bubble user-bubble">
         <p className="koru-message-text">{turn.text}</p>
       </div>
-      <div className="koru-user-meta">
-        <span>{timeLabel(turn.createdAt)}</span>
-        <Check size={13} />
+    </div>
+  );
+}
+
+function ListeningBubble({ interimText }: { interimText: string }) {
+  return (
+    <div className="koru-message is-koru">
+      <div className="koru-row">
+        <div className="koru-avatar">
+          <img src={KORU_AVATAR} alt="Koru" />
+        </div>
+        <div className="koru-bubble ai-bubble">
+          <p className="koru-message-text">{interimText || "Te escucho..."}</p>
+        </div>
       </div>
     </div>
   );
 }
 
-function ProcessingBubble({ listening, interimText, activity }: { listening: boolean; interimText: string; activity?: AgentActivity | null }) {
+// Panel "Trabajando..." (réplica Stitch, paso 3 de flujo-informe-aoe2.html):
+// reemplaza al composer SOLO cuando la actividad es "deep" (investigacion o
+// plan reales, no un dato en vivo). El % es REAL: sale de la fase emitida
+// por el backend (thinking → searching → comparing → planning → saving →
+// done). El titulo se adapta a que esta armando Koru.
+const WORKING_COPY: Partial<Record<AgentActivityKind, { title: string; subtitle: string }>> = {
+  planning: { title: "Trabajando en tu plan...", subtitle: "Esto tomara solo unos segundos ✨" },
+  searching: { title: "Armando tu informe...", subtitle: "Esto toma solo unos segundos ✨" },
+  writing: { title: "Preparando tu documento...", subtitle: "Esto tomara solo unos segundos ✨" },
+  comparing: { title: "Comparando opciones...", subtitle: "Esto tomara solo unos segundos ✨" },
+};
+
+type WorkingDeliverable = { kicker: string; progress?: number; phaseLabel?: string };
+
+function WorkingPanel({ phase, kind, deliverable }: { phase: string | null; kind?: AgentActivityKind; deliverable?: WorkingDeliverable | null }) {
+  const idx = phase ? (PHASE_ORDER as readonly string[]).indexOf(phase) : -1;
+  const doneIdx = PHASE_ORDER.length - 1;
+  // El entregable trae el % REAL del pipeline (deep_research); si no, se
+  // aproxima por la fase emitida por el backend.
+  const pct = deliverable?.progress != null
+    ? Math.min(100, Math.max(0, Math.round(deliverable.progress)))
+    : idx >= 0 ? Math.round(((idx + 1) / doneIdx) * 100) : null;
+  const copy = deliverable
+    ? {
+        title: `Trabajando en ${deliverable.kicker.toLowerCase().startsWith("tu") ? deliverable.kicker.toLowerCase() : `tu ${deliverable.kicker.toLowerCase()}`}...`,
+        subtitle: deliverable.phaseLabel ?? "Esto tomara solo unos segundos ✨",
+      }
+    : (kind && WORKING_COPY[kind]) ?? { title: "Trabajando...", subtitle: "Esto tomara solo unos segundos ✨" };
+
   return (
-    <div className="koru-message is-koru">
-      <div className="koru-bubble ai-bubble">
-        <p className="koru-action-title">
-          <Sparkles size={16} />
-          <span>{listening ? interimText || "Te escucho..." : activity?.label ?? "Lo miro."}</span>
-        </p>
+    <section className="koru-working-panel" role="status" aria-live="polite">
+      <img src="/stitch/working-illustration.png" alt="" className="koru-working-illustration" />
+      <div className="koru-working-copy">
+        <h2>{copy.title}</h2>
+        <p>{copy.subtitle}</p>
       </div>
-    </div>
+      <div className="koru-working-progress">
+        <div
+          className="koru-progress"
+          role="progressbar"
+          aria-label="Progreso del plan"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={pct ?? undefined}
+        >
+          {pct === null ? (
+            <span className="koru-progress-bar is-indeterminate" />
+          ) : (
+            <span className="koru-progress-bar" style={{ width: `${pct}%` }} />
+          )}
+        </div>
+        {pct !== null && <span className="koru-working-pct">{pct}%</span>}
+      </div>
+      <p className="koru-working-motto">
+        <svg fill="none" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L15 9L22 12L15 15L12 22L9 15L2 12L9 9L12 2Z" fill="currentColor" />
+        </svg>
+        Cada paso cuenta, sigue asi
+        <svg fill="currentColor" height="18" viewBox="0 0 24 24" width="18" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 21.35L10.55 20.03C5.4 15.36 2 12.28 2 8.5C2 5.42 4.42 3 7.5 3C9.24 3 10.91 3.81 12 5.09C13.09 3.81 14.76 3 16.5 3C19.58 3 22 5.42 22 8.5C22 12.28 18.6 15.36 13.45 20.04L12 21.35Z" />
+        </svg>
+      </p>
+    </section>
   );
 }
 export function TalkOverlay({ onClose }: { onClose: () => void }) {
@@ -241,17 +199,16 @@ export function TalkOverlay({ onClose }: { onClose: () => void }) {
     chatTurns,
     sendMessage,
     reviewAction,
-    toggleTurnLike,
     confirmMemory,
     pruneMemory,
     completeCommitment,
     setWorldSignals,
     processing,
     activity,
+    phase,
     ephemeral,
     setEphemeral,
   } = useKoru();
-  const [theme, setTheme] = useState<KoruTheme>(() => readTheme());
   const [inputText, setInputText] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [interimText, setInterimText] = useState("");
@@ -262,34 +219,47 @@ export function TalkOverlay({ onClose }: { onClose: () => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const turnCountRef = useRef(chatTurns.length);
 
-  const todayLabel = useMemo(
-    () => new Date().toLocaleDateString("es", { day: "numeric", month: "long" }),
-    [],
-  );
+  // UX Stitch: NO es un chat con historial. Es interaccion inmediata de un solo
+  // turno: en pantalla solo vive el intercambio ACTUAL (ultimo mensaje del
+  // usuario + la respuesta de Koru a ese mensaje). Al decir algo nuevo, lo
+  // anterior desaparece. El registro completo queda en Historial.
   const visibleTurns = useMemo(() => {
-    const hasUserTurn = chatTurns.some((turn) => turn.role === "user");
-    if (!hasUserTurn) return chatTurns;
-    return chatTurns.filter((turn, index) => !(index === 0 && turn.role === "koru" && !turn.items?.length));
+    let lastUserIdx = -1;
+    for (let i = chatTurns.length - 1; i >= 0; i--) {
+      if (chatTurns[i].role === "user") {
+        lastUserIdx = i;
+        break;
+      }
+    }
+    if (lastUserIdx === -1) return chatTurns; // aun sin interaccion: saludo inicial
+    return chatTurns.slice(lastUserIdx);
+  }, [chatTurns]);
+
+  // Entregable en curso (informe/investigación): su bloque "working" trae el
+  // progreso REAL del pipeline. Mientras exista, el composer cede el lugar al
+  // panel "Trabajando en tu informe".
+  const workingDeliverable = useMemo(() => {
+    for (let i = chatTurns.length - 1; i >= 0; i--) {
+      const turn = chatTurns[i];
+      if (turn.role !== "koru") continue;
+      for (const item of turn.items ?? []) {
+        const block = item.uiBlock;
+        if (block?.type === "deliverable" && block.status === "working") {
+          return { kicker: block.kicker, progress: block.progress, phaseLabel: block.phaseLabel };
+        }
+      }
+      break; // solo el último turno de Koru cuenta
+    }
+    return null;
   }, [chatTurns]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
-      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "d") {
-        setTheme((current) => (current === "light" ? "dark" : "light"));
-      }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(THEME_STORAGE_KEY, theme);
-    } catch {
-      // Theme persistence is best-effort.
-    }
-  }, [theme]);
 
   useEffect(() => {
     const node = scrollRef.current;
@@ -374,27 +344,14 @@ export function TalkOverlay({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="koru-chat-shell" data-koru-theme={theme}>
+    <div className="koru-chat-shell">
       <section className="koru-chat-screen" aria-label="Conversacion con Koru">
-        <header className="koru-chat-header">
-          <button type="button" onClick={onClose} aria-label="Volver" className="koru-back-button">
-            <ChevronLeft size={22} />
-          </button>
-          <div className="koru-header-center">
-            <img src={mascotForState(processing, isListening, visibleTurns, visibleTurns[visibleTurns.length - 1]?.mascotState)} alt="Koru" className="koru-header-mascot-image" />
-            <h1 className="koru-sr-heading">Koru</h1>
-            <div className="koru-status">
-              <span className="koru-status-dot" />
-              <span>{headerStatus(processing, isListening, visibleTurns, activity)}</span>
-            </div>
-          </div>
-          <div className="koru-header-divider" />
-        </header>
+        <button type="button" onClick={onClose} aria-label="Volver" className="koru-back-button">
+          <ChevronLeft size={22} />
+        </button>
+        <h1 className="koru-sr-heading">Koru</h1>
 
         <main ref={scrollRef} className="koru-chat-scroll">
-          <div className="koru-top-fade" />
-          <div className="koru-date-pill">Hoy, {todayLabel}</div>
-
           <div className="koru-thread">
             {visibleTurns.map((turn) =>
               turn.role === "user" ? (
@@ -404,7 +361,6 @@ export function TalkOverlay({ onClose }: { onClose: () => void }) {
                   key={turn.id}
                   turn={turn}
                   onReview={handleReview}
-                  onLike={toggleTurnLike}
                   onConfirmMemory={confirmMemory}
                   onPruneMemory={pruneMemory}
                   onCompleteCommitment={completeCommitment}
@@ -413,38 +369,48 @@ export function TalkOverlay({ onClose }: { onClose: () => void }) {
               ),
             )}
 
-            {(processing || isListening) && <ProcessingBubble listening={isListening} interimText={interimText} activity={activity} />}
+            {isListening && <ListeningBubble interimText={interimText} />}
           </div>
         </main>
 
-        <footer className="koru-chat-footer">
-          {ephemeral && <p className="koru-footer-note">Modo efimero activo - esta charla no guardara memoria nueva</p>}
-          {micError && <p className="koru-footer-error">{micError}</p>}
+        {processing && !isListening && (workingDeliverable || activity?.depth === "deep") ? (
+          <WorkingPanel phase={phase} kind={activity?.kind} deliverable={workingDeliverable} />
+        ) : (
+          <footer className="koru-chat-footer">
+            {processing && !isListening && activity && (
+              <div className="koru-activity-hint" role="status" aria-live="polite">
+                <span className="koru-activity-dot" />
+                {activity.label}
+              </div>
+            )}
+            {ephemeral && <p className="koru-footer-note">Modo efimero activo - esta charla no guardara memoria nueva</p>}
+            {micError && <p className="koru-footer-error">{micError}</p>}
 
-          <div className="koru-composer">
-            <input
-              ref={inputRef}
-              value={inputText}
-              onChange={(event) => setInputText(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  void handleTextSubmit();
-                }
-              }}
-              placeholder="Escribe tu mensaje..."
-              disabled={processing}
-              className="koru-composer-input"
-            />
-            <div className="koru-composer-actions">
+            <div className="koru-composer">
               <button
                 type="button"
                 onClick={() => setEphemeral(!ephemeral)}
                 aria-label={ephemeral ? "Desactivar modo efimero" : "Activar modo efimero"}
                 className={cn("koru-composer-icon", ephemeral && "is-active")}
               >
-                <Sparkles size={21} />
+                <Leaf size={24} />
               </button>
+              <div className="koru-composer-field">
+                <input
+                  ref={inputRef}
+                  value={inputText}
+                  onChange={(event) => setInputText(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      void handleTextSubmit();
+                    }
+                  }}
+                  placeholder="Habla con Koru..."
+                  disabled={processing}
+                  className="koru-composer-input"
+                />
+              </div>
               {speechStatus.supported ? (
                 <button
                   type="button"
@@ -453,7 +419,7 @@ export function TalkOverlay({ onClose }: { onClose: () => void }) {
                   aria-label={inputText.trim() ? "Enviar" : isListening ? "Terminar voz" : "Hablar"}
                   className={cn("koru-mic-button", isListening && "is-listening")}
                 >
-                  {inputText.trim() ? <Send size={18} /> : isListening ? <MicOff size={18} /> : <Mic size={18} />}
+                  {inputText.trim() ? <ArrowUp size={24} /> : isListening ? <MicOff size={22} /> : <Mic size={22} />}
                 </button>
               ) : (
                 <button
@@ -463,12 +429,12 @@ export function TalkOverlay({ onClose }: { onClose: () => void }) {
                   aria-label="Enviar"
                   className="koru-mic-button"
                 >
-                  <Send size={18} />
+                  <ArrowUp size={24} />
                 </button>
               )}
             </div>
-          </div>
-        </footer>
+          </footer>
+        )}
       </section>
     </div>
   );

@@ -1,4 +1,3 @@
-import { useState, useEffect, useRef } from "react";
 import {
   BookOpen,
   CalendarDays,
@@ -22,50 +21,8 @@ import {
 import { cn } from "../lib/utils";
 import type { AssistantArtifact, AssistantPlanItem, AssistantSource, UiBlock } from "../domain/types";
 import type { KoruTurnItem } from "./KoruProvider";
-import { RestaurantSynthesisCard } from "./cards/RestaurantCard";
-import { WeatherCard } from "./cards/WeatherCard";
-import { DataCard } from "./cards/DataCard";
-import { MoneySummaryCard } from "./cards/MoneySummaryCard";
-import { ResearchSourcesCard } from "./cards/ResearchSourcesCard";
-import { ShoppingListCard } from "./cards/ShoppingListCard";
-import { AlarmCard } from "./cards/AlarmCard";
-import { ReminderCard } from "./cards/ReminderCard";
-import { ProactiveSignalCard } from "./cards/ProactiveSignalCard";
-import { ActivityGroupCard } from "./cards/ActivityGroupCard";
-import { ResourceBundleCard } from "./cards/ResourceBundleCard";
-import { ClarifyingQuestionCard } from "./cards/ClarifyingQuestionCard";
-import { ComparisonCard } from "./cards/ComparisonCard";
-import { MorningBriefCard } from "./cards/MorningBriefCard";
-import { WellbeingCard } from "./cards/WellbeingCard";
-import { MatchTimelineCard } from "./cards/MatchTimelineCard";
-import { MatchStatsCard } from "./cards/MatchStatsCard";
-import { CryptoPortfolioCard } from "./cards/CryptoPortfolioCard";
-import { ForexCard } from "./cards/ForexCard";
-import { RouteTimelineCard } from "./cards/RouteTimelineCard";
-import { TransportCompareCard } from "./cards/TransportCompareCard";
-import { RouteMapCard } from "./cards/RouteMapCard";
-import { BirthdayCalendarCard } from "./cards/BirthdayCalendarCard";
-import { BirthdayAlarmCard } from "./cards/BirthdayAlarmCard";
-import { ElectionResultsCard } from "./cards/ElectionResultsCard";
-import { ElectionVoteCard } from "./cards/ElectionVoteCard";
-import { DataTickerCard } from "./cards/DataTickerCard";
-import { SmartChecklistCard } from "./cards/SmartChecklistCard";
-import { OutfitCard } from "./cards/OutfitCard";
-import { ReviewScoreCard } from "./cards/ReviewScoreCard";
-import { ReviewDocumentCard } from "./cards/ReviewDocumentCard";
-import { ReviewQuoteCard } from "./cards/ReviewQuoteCard";
-import { PlanTimelineCard } from "./cards/PlanTimelineCard";
-import { LiveMatchCard } from "./cards/LiveMatchCard";
-import { UrgentNowCard } from "./cards/UrgentNowCard";
-import { MarketCard } from "./cards/MarketCard";
-import { HealthReminderCard } from "./cards/HealthReminderCard";
-import { DeliveryCard } from "./cards/DeliveryCard";
-import { SocialInteractionCard } from "./cards/SocialInteractionCard";
-import { ActivityTrackerCard } from "./cards/ActivityTrackerCard";
-import { ProductAnalysisCard } from "./cards/ProductAnalysisCard";
-import { TravelPlannerCard } from "./cards/TravelPlannerCard";
-import { GenerationCard } from "./cards/GenerationCard";
-import { SavedRecordCard } from "./cards/SavedRecordCard";
+import { PlanHeroCard } from "./cards/PlanHeroCard";
+import { KoruUnifiedCard } from "./cards/unified/KoruUnifiedCard";
 
 export type CardActionHandlers = {
   onReview: (id: string, approve: boolean) => void;
@@ -280,7 +237,6 @@ function stitchBlockFromLegacyItem(item: KoruTurnItem): UiBlock | undefined {
 
 
 
-
 function primaryLine(item: KoruTurnItem): string {
   if (item.actionKind === "day_plan") return "Te lo ordene para que puedas empezar sin reconstruir todo.";
   if (item.actionKind === "structured_note") return item.records?.length ? savedRecordTitle(item.records) : "Dato guardado.";
@@ -449,7 +405,7 @@ function DecisionCard({ item }: { item: KoruTurnItem }) {
 function RecordsModule({ item }: { item: KoruTurnItem }) {
   if (!item.records?.length) return null;
   if (item.actionKind === "structured_note") {
-    return <SavedRecordCard block={{ type: "saved_record", records: item.records as any, title: item.text }} />;
+    return <KoruUnifiedCard block={{ type: "saved_record", records: item.records as any, title: item.text }} />;
   }
   const listRecords = item.records.filter((record) =>
     ["shopping_item", "idea", "home_task", "person_followup", "deadline"].includes(record.kind),
@@ -629,311 +585,35 @@ function ComparisonPreview({ item }: { item: KoruTurnItem }) {
 
 
 
-export function WebNavCardA({ block }: { block: Extract<UiBlock, { type: "web_nav" }> }) {
-  const total = block.results.length;
-  const [visibleCount, setVisibleCount] = useState(0);
-  const [showSummary, setShowSummary] = useState(false);
-  // Segundos transcurridos en la fase de búsqueda (status loading sin results).
-  // Da al usuario noción de cuánto falta, en vez de un 0% estático sin info.
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-
-  const stableTotalRef = useRef(0);
-  useEffect(() => {
-    if (total === 0) {
-      stableTotalRef.current = 0;
-      setVisibleCount(0);
-      setShowSummary(false);
-      return;
-    }
-    if (total <= stableTotalRef.current) return;
-    const timers: number[] = [];
-    for (let i = stableTotalRef.current + 1; i <= total; i++) {
-      timers.push(window.setTimeout(() => setVisibleCount(i), (i - stableTotalRef.current) * 500));
-    }
-    stableTotalRef.current = total;
-    return () => timers.forEach(clearTimeout);
-  }, [total]);
-
-  useEffect(() => {
-    if (!block.summary || stableTotalRef.current < total) return;
-    const timer = window.setTimeout(() => setShowSummary(true), 400);
-    return () => clearTimeout(timer);
-  }, [block.summary, total]);
-
-  // Cronómetro de búsqueda: solo corre mientras estamos cargando sin resultados.
-  const isSearching = block.status === "loading" && total === 0;
-  useEffect(() => {
-    if (!isSearching) return;
-    setElapsedSeconds(0);
-    const interval = window.setInterval(() => setElapsedSeconds((s) => s + 1), 1000);
-    return () => window.clearInterval(interval);
-  }, [isSearching]);
-
-  const progress = total > 0 ? (visibleCount / total) * 100 : 0;
-  const currentSource = block.results[visibleCount - 1]?.source ?? "";
-
-  return (
-    <div className="flex relative" data-ui-block="web_nav">
-      <div className="flex flex-col w-full">
-        <div className="flex items-center justify-between mb-2 px-1">
-          <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">
-            {block.status === "report" ? "Informe Web" : "Navegación Web"}
-          </span>
-        </div>
-        <div className="glass-card rounded-3xl hover:scale-[1.01] transition-transform duration-300 p-3">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <div className="relative w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shadow-sm shrink-0">
-                <span className={`material-symbols-outlined text-[18px] ${isSearching ? "animate-pulse" : ""}`}>travel_explore</span>
-              </div>
-              <div className="flex flex-col">
-                <p className="text-[13px] font-bold text-gray-900 leading-tight">
-                  {block.title ?? "Resultados"}
-                </p>
-                <p className="text-[11px] text-gray-500 font-medium truncate max-w-[180px]">
-                  {block.query ? `\`${block.query}\`` : (block.url ? `"${block.url}"` : "")}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Barra de progreso.
-              - Buscando sin results: animación indeterminada (shimmer que viaja en loop)
-                para indicar "estoy trabajando" en vez de un 0% estático que parece colgado.
-              - Con results: progreso real basado en cuántos aparecieron. */}
-          <div className="w-full bg-gray-100/50 rounded-full h-1 mb-2 overflow-hidden relative">
-            {isSearching ? (
-              <div
-                className="absolute top-0 left-0 h-full w-1/3 rounded-full bg-gradient-to-r from-transparent via-blue-400 to-transparent"
-                style={{ animation: "koru-progress-indeterminate 1.4s ease-in-out infinite" }}
-              />
-            ) : (
-              <div
-                className="bg-gradient-to-r from-blue-400 to-koru h-full rounded-full transition-all duration-500 ease-out"
-                style={{ width: `${progress}%` }}
-              />
-            )}
-          </div>
-
-          {/* Estado de búsqueda.
-              Muestra segundos transcurridos mientras busca, para dar noción de tiempo. */}
-          <p className="text-[10px] text-gray-500 font-medium mb-2 min-h-[14px]">
-            {isSearching
-              ? `Buscando en la web… ${elapsedSeconds}s`
-              : visibleCount === 0 && total > 0
-                ? "Iniciando búsqueda..."
-                : visibleCount < total
-                  ? `Visitando ${currentSource}… (${visibleCount}/${total})`
-                  : total > 0
-                    ? "Búsqueda completa"
-                    : "Listo"}
-          </p>
-
-          {/* Resultados apareciendo de a 1 */}
-          {block.results.length > 0 && (
-            <div className="space-y-1.5 mb-2">
-              {block.results.slice(0, visibleCount).map((result, index) => (
-                <a
-                  key={`${result.url}-${index}`}
-                  href={result.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-[14px] text-gray-400">
-                    {result.type === "article" ? "article" : result.type === "pdf" ? "picture_as_pdf" : result.type === "description" ? "language" : "public"}
-                  </span>
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-[11px] font-bold text-gray-600 truncate">{result.source}</span>
-                    <span className="text-[10px] text-gray-500 truncate">{result.title}</span>
-                  </div>
-                  <span className="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span>
-                </a>
-              ))}
-            </div>
-          )}
-
-          {/* Summary al final */}
-          {showSummary && block.summary && (
-            <div className="text-[12px] text-gray-700 leading-relaxed whitespace-pre-line border-t border-gray-100/50 pt-2 transition-opacity duration-500 opacity-100">
-              {block.summary}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function UiBlockCardA({ item }: { item: KoruTurnItem }) {
   const block = item.uiBlock;
   if (!block) return null;
 
-  if (block.type === "clarifying_question") {
-    return <ClarifyingQuestionCard block={block} />;
-  }
-
-  if (block.type === "weather") {
-    return <WeatherCard block={block} />;
-  }
-
-  if (block.type === "alarm") {
-    return <AlarmCard block={block} />;
-  }
-
-  if (block.type === "reminder") {
-    return <ReminderCard block={block} />;
-  }
-
-  if (block.type === "shopping_list") {
-    return <ShoppingListCard block={block} />;
-  }
-
+  // El plan conserva su render canónico (hero + roadmap funcional con
+  // checkboxes persistidos): es la referencia de la que sale todo el molde.
   if (block.type === "plan") {
-    return <PlanTimelineCard block={block} />;
+    return <PlanHeroCard block={block} />;
   }
 
-  if (block.type === "comparison") {
-    return <ComparisonCard block={block} />;
+  // web_nav en estado "loading" no es una card: ese momento lo cubre el
+  // WorkingPanel / hint de actividad del overlay. Solo materializamos la
+  // respuesta cuando ya hay resultado (complete/report).
+  if (block.type === "web_nav" && block.status === "loading") {
+    return null;
   }
 
-  if (block.type === "research_sources") {
-    return <ResearchSourcesCard block={block} />;
+  // El entregable en curso tampoco: su progreso REAL lo muestra el panel
+  // "Trabajando en tu informe" del overlay. La hoja aparece cuando está listo.
+  if (block.type === "deliverable" && block.status === "working") {
+    return null;
   }
 
-  if (block.type === "money_summary") {
-    return <MoneySummaryCard block={block} />;
-  }
-
-  if (block.type === "saved_record") {
-    return <SavedRecordCard block={block} />;
-  }
-
-  if (block.type === "activity_group") {
-    return <ActivityGroupCard block={block} />;
-  }
-
-  if (block.type === "proactive_signal") {
-    return <ProactiveSignalCard block={block} />;
-  }
-
-  if (block.type === "resource_bundle") {
-    return <ResourceBundleCard block={block} />;
-  }
-
-  if (block.type === "data_card") {
-    return <DataCard block={block} />;
-  }
-
-  if (block.type === "web_nav") {
-    return <WebNavCardA block={block} />;
-  }
-
-  if (block.type === "restaurant_synthesis") {
-    return <RestaurantSynthesisCard result={block} />;
-  }
-
-  if (block.type === "morning_brief") {
-    return <MorningBriefCard block={block} />;
-  }
-
-  if (block.type === "wellbeing") {
-    return <WellbeingCard block={block} />;
-  }
-
-  if (block.type === "live_match") {
-    return <LiveMatchCard block={block} />;
-  }
-
-  if (block.type === "urgent_now") {
-    return <UrgentNowCard block={block} />;
-  }
-
-  if (block.type === "market") {
-    return <MarketCard block={block} />;
-  }
-
-  if (block.type === "health_reminder") {
-    return <HealthReminderCard block={block} />;
-  }
-
-  if (block.type === "delivery") {
-    return <DeliveryCard block={block} />;
-  }
-
-  if (block.type === "social_interaction") {
-    return <SocialInteractionCard block={block} />;
-  }
-
-  if (block.type === "activity_tracker") {
-    return <ActivityTrackerCard block={block} />;
-  }
-
-  if (block.type === "product_analysis") {
-    return <ProductAnalysisCard block={block} />;
-  }
-
-  if (block.type === "travel_planner") {
-    return <TravelPlannerCard block={block} />;
-  }
-
-  if (block.type === "generation") {
-    return <GenerationCard block={block} />;
-  }
-  if (block.type === "match_timeline") {
-    return <MatchTimelineCard block={block} />;
-  }
-  if (block.type === "match_stats") {
-    return <MatchStatsCard block={block} />;
-  }
-  if (block.type === "crypto_portfolio") {
-    return <CryptoPortfolioCard block={block} />;
-  }
-  if (block.type === "forex") {
-    return <ForexCard block={block} />;
-  }
-  if (block.type === "route_timeline") {
-    return <RouteTimelineCard block={block} />;
-  }
-  if (block.type === "transport_compare") {
-    return <TransportCompareCard block={block} />;
-  }
-  if (block.type === "route_map") {
-    return <RouteMapCard block={block} />;
-  }
-  if (block.type === "birthday_calendar") {
-    return <BirthdayCalendarCard block={block} />;
-  }
-  if (block.type === "birthday_alarm") {
-    return <BirthdayAlarmCard block={block} />;
-  }
-  if (block.type === "election_results") {
-    return <ElectionResultsCard block={block} />;
-  }
-  if (block.type === "election_vote") {
-    return <ElectionVoteCard block={block} />;
-  }
-  if (block.type === "data_ticker") {
-    return <DataTickerCard block={block} />;
-  }
-  if (block.type === "smart_checklist") {
-    return <SmartChecklistCard block={block} />;
-  }
-  if (block.type === "outfit") {
-    return <OutfitCard block={block} />;
-  }
-  if (block.type === "review_score") {
-    return <ReviewScoreCard block={block} />;
-  }
-  if (block.type === "review_document") {
-    return <ReviewDocumentCard block={block} />;
-  }
-  if (block.type === "review_quote") {
-    return <ReviewQuoteCard block={block} />;
-  }
-
-  return null;
+  // TODO lo demás (los otros 44 tipos) se renderiza con el molde unificado
+  // Stitch "Plan Entregado": hoja lila + detalle con magical-cards. Las
+  // estéticas de card sueltas dejan de existir como lenguajes separados.
+  return <KoruUnifiedCard block={block} />;
 }
+
 
 function secondaryActions(item: KoruTurnItem): Array<{ label: string; icon: LucideIcon; onClick?: () => void }> {
   if (item.actionKind === "web_research" || item.actionKind === "world_signal") {

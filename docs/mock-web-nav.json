@@ -1,0 +1,38 @@
+{
+  "reply": "Estoy buscando información sobre computación cuántica...",
+  "uiBlocks": [
+    {
+      "type": "web_nav",
+      "status": "complete",
+      "title": "Web Navigation",
+      "query": "computación cuántica",
+      "results": [
+        {
+          "title": "Historia de la computación cuántica",
+          "source": "Wikipedia",
+          "url": "https://es.wikipedia.org/wiki/Computaci%C3%B3n_cu%C3%A1ntica",
+          "type": "article",
+          "readTime": "2 min read"
+        },
+        {
+          "title": "Qubits y superposición",
+          "source": "IBM Research",
+          "url": "https://research.ibm.com/quantum",
+          "type": "description",
+          "readTime": "PDF"
+        },
+        {
+          "title": "Quantum Computing: The Next Frontier",
+          "source": "Nature",
+          "url": "https://nature.com/articles/quantum",
+          "type": "article"
+        }
+      ]
+    }
+  ],
+  "suggestedActions": [],
+  "memoryCandidates": [],
+  "commitments": [],
+  "records": [],
+  "mascotState": "working"
+}

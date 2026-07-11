@@ -15,8 +15,22 @@ export type FetchOptions = {
   retries?: number;
 };
 
+export type FetchJsonResult<T> = {
+  ok: boolean;
+  status: number;
+  data?: T;
+  error?: string;
+};
+
+export type FetchTextResult = {
+  ok: boolean;
+  status: number;
+  text?: string;
+  error?: string;
+};
+
 /** fetch con AbortController y reintentos en fallo de red. */
-export async function fetchJson<T>(url: string, options: FetchOptions = {}): Promise<{ ok: true; status: number; data: T } | { ok: false; status: number; error: string }> {
+export async function fetchJson<T>(url: string, options: FetchOptions = {}): Promise<FetchJsonResult<T>> {
   const { method = "GET", headers = {}, body, timeoutMs = 10_000, retries = 1 } = options;
   const finalHeaders: Record<string, string> = {
     "User-Agent": KORU_USER_AGENT,
@@ -63,7 +77,7 @@ export async function fetchJson<T>(url: string, options: FetchOptions = {}): Pro
 }
 
 /** fetch de texto plano (HTML/XML), con timeout. */
-export async function fetchText(url: string, options: FetchOptions = {}): Promise<{ ok: true; status: number; text: string } | { ok: false; status: number; error: string }> {
+export async function fetchText(url: string, options: FetchOptions = {}): Promise<FetchTextResult> {
   const { method = "GET", headers = {}, body, timeoutMs = 10_000 } = options;
   const finalHeaders: Record<string, string> = {
     "User-Agent": KORU_USER_AGENT,

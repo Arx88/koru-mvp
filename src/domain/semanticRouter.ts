@@ -45,6 +45,7 @@ export type RouteCategory =
   | "weather"
   | "planning"
   | "action"
+  | "research"
   | "sports"
   | "market"
   | "elections"
@@ -56,6 +57,7 @@ export type RouteCategory =
 
 export type RouteTool =
   | "web_search"
+  | "deep_research"
   | "weather"
   | "shopping_compare"
   | "plan_day"
@@ -84,16 +86,10 @@ const ROUTE_EXAMPLES: Array<{ category: RouteCategory; tool?: RouteTool; text: s
   { category: "world_info", tool: "web_search", text: "¿qué pasó en Argentina hoy?" },
   { category: "world_info", tool: "web_search", text: "precio del dólar hoy" },
   { category: "world_info", tool: "web_search", text: "cuánto está el bitcoin" },
-  { category: "world_info", tool: "web_search", text: "generame una imagen" },
-  { category: "world_info", tool: "web_search", text: "creame un poema" },
   { category: "world_info", tool: "web_search", text: "¿quién ganó el partido?" },
-  { category: "world_info", tool: "web_search", text: "che, ¿qué onda lo de ayer?" },
   { category: "world_info", tool: "web_search", text: "buscar refuerzos del Madrid" },
   { category: "world_info", tool: "web_search", text: "fichajes del mercado de pases" },
-  { category: "world_info", tool: "web_search", text: "buscá información sobre el tema" },
   { category: "world_info", tool: "web_search", text: "noticias urgentes" },
-  { category: "world_info", tool: "web_search", text: "alerta mundial" },
-  { category: "world_info", tool: "web_search", text: "ultimo minuto" },
 
   // weather → weather: condiciones meteorológicas.
   { category: "weather", tool: "weather", text: "¿qué tiempo hace?" },
@@ -141,6 +137,34 @@ const ROUTE_EXAMPLES: Array<{ category: RouteCategory; tool?: RouteTool; text: s
   { category: "conversation", text: "te quiero contar algo" },
   { category: "conversation", text: "qué lindo día" },
   { category: "conversation", text: "me aburro" },
+  { category: "conversation", text: "che, ¿qué onda lo de ayer?" },
+  { category: "conversation", text: "contame algo" },
+  { category: "conversation", text: "dale, jaja" },
+  { category: "conversation", text: "todo bien por ahí?" },
+
+  // conversation: pedidos creativos/generativos. Los responde el modelo
+  // directo (imaginacion, no un dato del mundo real) — NO son web_search.
+  { category: "conversation", text: "generame una imagen" },
+  { category: "conversation", text: "creame un poema" },
+  { category: "conversation", text: "escribime una carta" },
+  { category: "conversation", text: "contame un chiste" },
+  { category: "conversation", text: "inventame un cuento corto" },
+
+  // research → deep_research: el usuario pide un ENTREGABLE de conocimiento
+  // (informe, investigación, análisis completo). No es un dato suelto: es el
+  // flujo pedido → trabajando → informe entregado. Distinto de world_info
+  // (dato puntual de actualidad) y de review (comparativa de producto).
+  { category: "research", tool: "deep_research", text: "quiero un informe sobre Age of Empires 2" },
+  { category: "research", tool: "deep_research", text: "haceme un informe de River Plate" },
+  { category: "research", tool: "deep_research", text: "investigá todo sobre la dieta keto" },
+  { category: "research", tool: "deep_research", text: "contame todo sobre la inteligencia artificial" },
+  { category: "research", tool: "deep_research", text: "armame un análisis completo del mercado inmobiliario" },
+  { category: "research", tool: "deep_research", text: "hacé un reporte sobre energías renovables" },
+  { category: "research", tool: "deep_research", text: "quiero saber todo acerca de los agujeros negros" },
+  { category: "research", tool: "deep_research", text: "explicame en profundidad cómo funciona bitcoin" },
+  { category: "research", tool: "deep_research", text: "investigación profunda sobre el sueño" },
+  { category: "research", tool: "deep_research", text: "necesito un dossier de la empresa Tesla" },
+  { category: "research", tool: "deep_research", text: "hazme un resumen completo de la segunda guerra mundial" },
 
   // world_info → restaurant_deep_search: buscar lugar para comer.
   { category: "world_info", tool: "restaurant_deep_search", text: "dónde cenar en Madrid" },
@@ -270,8 +294,18 @@ export function cosineSimilarity(a: number[], b: number[]): number {
 
 // ── Umbral de confianza ────────────────────────────────────────────
 // Si la similitud coseno más alta no supera esto, caemos a "conversation".
-// Lo calibraremos con tests reales. Empezamos conservador.
-const CONFIDENCE_THRESHOLD = 0.55;
+// Subido de 0.55 → 0.70 porque con 0.55 disparaba tools (sobre todo
+// web_search) para mensajes ambiguos que en realidad eran charla. Falso
+// negativo (cae a conversation) es barato: el modelo responde libre.
+// Falso positivo (dispara tool sola) es caro: "buscando en la web" por
+// cualquier cosa. Se ajustará con tests reales.
+const CONFIDENCE_THRESHOLD = 0.7;
+
+// Margen mínimo entre la mejor categoría y la segunda mejor. Si dos
+// categorías están casi empatadas, el mensaje es ambiguo entre dos
+// intenciones distintas (o es charla genérica que roza varias) — no forzamos
+// una tool con esa incertidumbre.
+const MIN_CATEGORY_MARGIN = 0.03;
 
 // ── Clase del Router ───────────────────────────────────────────────
 
@@ -345,6 +379,18 @@ export class SemanticRouter {
       return { category: "conversation", confidence: bestSim < 0 ? 0 : bestSim };
     }
 
+    // Ambigüedad entre categorías → tampoco forzar. Comparamos la mejor
+    // similitud de la categoría ganadora contra la mejor de la segunda
+    // categoría más cercana (no contra el segundo ejemplo, que podría ser
+    // de la misma categoría y no dice nada sobre ambigüedad real).
+    if (bestExample.category !== "conversation") {
+      const sortedCategories = [...bestByCategory.entries()].sort((a, b) => b[1] - a[1]);
+      const secondBestSim = sortedCategories[1]?.[1] ?? -1;
+      if (bestSim - secondBestSim < MIN_CATEGORY_MARGIN) {
+        return { category: "conversation", confidence: bestSim };
+      }
+    }
+
     const result: RouteResult = {
       category: bestExample.category,
       tool: bestExample.tool,
@@ -371,6 +417,19 @@ function extractToolArgs(message: string, tool?: RouteTool): Record<string, unkn
   if (tool === "web_search" || tool === "shopping_compare") {
     // Para búsquedas, usamos el mensaje limpio como query. Simple y robusto.
     return { query: clean, mode: tool === "shopping_compare" ? "shopping" : "world" };
+  }
+
+  if (tool === "deep_research") {
+    // Extraer el TEMA sacando el envoltorio del pedido ("quiero un informe
+    // sobre", "investigá", "contame todo de", ...). Si no matchea, va el
+    // mensaje entero: el pipeline lo refina igual al generar sub-búsquedas.
+    const topicMatch = clean.match(
+      /(?:informe|reporte|dossier|an[aá]lisis|investigaci[oó]n|resumen)\s+(?:completo\s+|profundo\s+|detallado\s+)?(?:sobre|de|del|acerca de)\s+(.{3,120})/i,
+    ) ?? clean.match(
+      /(?:investig[aá](?:me)?|contame todo (?:sobre|de)|quiero saber todo (?:sobre|de|acerca de)|explicame en profundidad)\s+(.{3,120})/i,
+    );
+    const topic = (topicMatch?.[1] ?? clean).trim().replace(/[.?!]+$/, "");
+    return { topic, query: clean };
   }
 
   if (tool === "weather") {

@@ -213,7 +213,7 @@ export type RuntimeSettings = {
   openModelEnabled: boolean;
 };
 
-export type BrainProvider = "local" | "freellmapi" | "open-model" | "nvidia" | "openrouter";
+export type BrainProvider = "local" | "freellmapi" | "open-model" | "nvidia" | "openrouter" | "minimax" | "bluesminds";
 
 export type ContextReviewItem = {
   title: string;
@@ -350,6 +350,46 @@ export type KoruTurnResult = {
 };
 
 export type UiBlock =
+  | {
+      /**
+       * ENTREGABLE — el bloque estrella de Koru. Todo resultado de peso
+       * (informe, investigación, análisis) llega en esta forma única:
+       * hoja Stitch (kicker → título → descripción → categorías → CTA) que
+       * abre la pantalla de detalle con módulos. Mientras status = "working"
+       * la UI muestra el panel "Trabajando en tu {kicker}" con progreso REAL.
+       */
+      type: "deliverable";
+      status: "working" | "ready";
+      /** "Tu Informe", "Tu Plan", "Tu Análisis"... */
+      kicker: string;
+      /** Título corto en mayúsculas de la hoja (ej: "AGE OF EMPIRES II"). */
+      title: string;
+      /** Bajada de 1-2 líneas con lo esencial. */
+      description?: string;
+      /** Tema pedido por el usuario (para historial y re-búsquedas). */
+      topic?: string;
+      /** Progreso real del pipeline 0..100 (solo con status working). */
+      progress?: number;
+      /** Etiqueta de la fase actual ("Buscando fuentes 2/4…"). */
+      phaseLabel?: string;
+      /** Hasta 3 categorías del contenido (icono Material Symbols + label). */
+      categories?: Array<{ icon: string; label: string; color?: string }>;
+      /** Hasta 3 métricas destacadas (valor grande + label chico). */
+      metrics?: Array<{ value: string; label: string }>;
+      /** Síntesis narrativa (párrafo de apertura del detalle). */
+      summary?: string;
+      /** Módulos del detalle, en orden. */
+      sections?: Array<{
+        icon?: string;
+        title: string;
+        kicker?: string;
+        kind: "text" | "bullets" | "timeline" | "grid" | "rows";
+        paragraphs?: string[];
+        bullets?: string[];
+        items?: Array<{ title: string; subtitle?: string; badge?: string; icon?: string }>;
+      }>;
+      sources?: AssistantSource[];
+    }
   | {
       type: "clarifying_question";
       title?: string;
@@ -584,6 +624,18 @@ export type UiBlock =
       league?: string;
       time?: string;
       status?: string;
+      homeName?: string;
+      awayName?: string;
+      homeScore?: number;
+      awayScore?: number;
+      homeInitials?: string;
+      awayInitials?: string;
+      minute?: string;
+      globalAgg?: string;
+      homePossession?: string;
+      awayPossession?: string;
+      homeShots?: string;
+      awayShots?: string;
       homeTeam?: { name: string; abbrev: string; color?: string; score: number };
       awayTeam?: { name: string; abbrev: string; color?: string; score: number };
       stats?: Array<{
@@ -767,6 +819,7 @@ export type UiBlock =
   | {
       type: "social_interaction";
       name?: string;
+      event?: string;
       date?: string;
       age?: string;
       remaining?: string;

@@ -1,109 +1,97 @@
-import { Check, Mic } from "lucide-react";
-import { KoruMascot } from "./KoruMascot";
-import { STAGE_META, useKoru } from "./KoruProvider";
-import { cn } from "../lib/utils";
+import { useMemo, useState } from "react";
+import { useKoru } from "./KoruProvider";
+import { useHomeWidgets } from "./home/homeWidgets";
+import { HomeWidgetCard } from "./home/WidgetCards";
+import { CollectionsScreen } from "./CollectionsScreen";
 
-function greeting() {
-  const h = new Date().getHours();
-  if (h < 12) return "Buenos días";
-  if (h < 19) return "Buenas tardes";
-  return "Buenas noches";
-}
+// Koru Home — port PIXEL-PERFECT del diseño Stitch "Koru's Home".
+// La cáscara (fondo difuminado, hoja redondeada, avatar flotante, header con
+// botones guardar/compartir y el grid de widgets) replica 1:1 el HTML de Stitch.
+// El avatar y el botón de volver abren el chat (onTalk) para mantenerlo funcional.
 
-export function HomeScreen({ onTalk }: { onTalk: () => void }) {
-  const { userName, stage, priorities, togglePriority, ephemeral, memories, history } = useKoru();
-  const meta = STAGE_META[stage];
-  const allDone = priorities.every((p) => p.done);
-  const hasContext = memories.length > 0 || history.length > 0 || priorities.length > 0;
-  const openCount = priorities.filter((p) => !p.done).length;
+// Fondo "nebulosa" del diseño Stitch.
+const HOME_BG =
+  "https://lh3.googleusercontent.com/aida-public/AB6AXuA8V8xIagFzEoU_VdYjGvvJVn89ARgzNWSJMDO9ESjsI7KOE7o0OHEFaBpTB5bOxu6w_migKYGKnq05m6nbndB4iXKii8jJmARhLSYr53SWVpcKNP4-MCMCsUv_vVb6Nsyu9YP1MV8cDEwBlLWYoBtwDdkpKvX0ZHbdEmGWOjA-ct43ux_Sol7VNFRrDe3dt_XS905PV8LVO4OIT-PQWt6kTmneZh0l5xoofKJJZL___n7JKTFb94mw4M8H3W4I5MhoIInnc5cXDuI";
+
+export function HomeScreen({ onTalk, onOpenMemory }: { onTalk: () => void; onOpenMemory?: () => void }) {
+  const widgets = useHomeWidgets();
+  const { memories, records } = useKoru();
+  const [collectionsOpen, setCollectionsOpen] = useState(false);
+
+  // Barra de conocimiento (no bloqueante): cuánto conoce Koru al usuario.
+  // Nunca llega al 100% — conocer a alguien no "se termina". El gancho real
+  // es VER lo que sabe (tap → pestaña Memoria), no el número.
+  const knowledge = useMemo(() => {
+    const facts = memories.length;
+    const saved = records.length;
+    const pct = Math.min(88, Math.round(18 + facts * 6 + Math.min(saved, 10) * 2));
+    return { facts, saved, pct };
+  }, [memories, records]);
 
   return (
-    <div className="flex h-full flex-col px-6 pb-4 pt-8">
-      <header className="flex flex-col items-center text-center animate-rise">
-        <KoruMascot state={allDone ? "happy" : hasContext ? "thinking" : "idle"} size="lg" />
-        <p className="mt-2 text-sm font-light text-stone">
-          {greeting()}, {userName || "amigo"}
-        </p>
-        <div className="mt-1 inline-flex items-center gap-2 rounded-full bg-warm-white px-3 py-1">
-          <span className="h-1.5 w-1.5 rounded-full bg-moss" />
-          <span className="text-xs font-medium text-earth">
-            {meta.label} · {meta.meaning}
-          </span>
+    <div className="relative bg-[#f8f9ff]">
+      <div className="khome-bg-area" style={{ backgroundImage: `url('${HOME_BG}')` }} />
+
+      <button aria-label="Volver" className="khome-back-btn" onClick={onTalk}>
+        <svg className="w-6 h-6" fill="none" stroke="#4648d4" strokeWidth={3} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19.5 8.25l-7.5 7.5-7.5-7.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
+      <div className="khome-content-card">
+        <div className="khome-avatar" role="button" tabIndex={0} onClick={onTalk} aria-label="Hablar con Koru">
+          <img alt="Koru" src="/images/koru-mascot.png" />
         </div>
-      </header>
 
-      <section className="mt-8 flex-1">
-        <h1 className="font-serif text-2xl leading-tight text-bark text-balance">
-          {priorities.length === 0
-            ? "Todavía no tengo pendientes"
-            : allDone
-              ? "Cuidaste todo lo de hoy"
-            : hasContext
-              ? "Hoy veo contexto suficiente para ayudarte"
-              : "Empezamos por una charla simple"}
-        </h1>
-        <p className="mt-1 text-sm text-earth">
-          {priorities.length === 0
-            ? "Contame algo, guardá una idea o pedime que ordene el día."
-            : allDone
-              ? "Descansa. Mañana seguimos a tu ritmo."
-            : hasContext
-              ? `Tengo ${openCount} pendiente(s), ${memories.length} memoria(s) y tu historial reciente para ordenar el próximo paso.`
-              : "Cuentalo como te salga. Yo busco estructura, prioridades y siguientes pasos."}
-        </p>
+        <div className="px-6 relative flex justify-between items-start mb-8">
+          <button aria-label="Guardar" className="mt-2 text-[#4648d4] bg-white p-3 rounded-full shadow-sm border border-[#4648d4]/10">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          <div className="text-center pt-8 flex-1">
+            <h1 className="text-3xl font-extrabold text-[#4648d4] tracking-tight mb-1">Koru`s Home</h1>
+            <p className="text-sm text-[#464554] font-medium">Todo lo que Koru te preparo para hoy</p>
+          </div>
+          <button aria-label="Compartir" className="mt-2 text-[#4648d4] bg-white p-3 rounded-full shadow-sm border border-[#4648d4]/10">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
 
-        <ul className="mt-5 flex flex-col gap-3">
-          {priorities.map((p) => (
-            <li key={p.id}>
-              <button
-                type="button"
-                onClick={() => togglePriority(p.id)}
-                className={cn(
-                  "flex w-full items-center gap-3 rounded-xl border bg-card px-4 py-4 text-left transition-all cursor-pointer",
-                  p.done
-                    ? "border-sand opacity-60"
-                    : "border-sand shadow-[0_2px_10px_rgba(92,122,95,0.06)] hover:border-sage active:scale-[0.99]",
-                )}
-              >
-                <span
-                  className={cn(
-                    "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
-                    p.done ? "border-moss bg-moss text-cream" : "border-sage text-transparent",
-                  )}
-                >
-                  <Check className="h-3.5 w-3.5" strokeWidth={3} />
-                </span>
-                <span className="min-w-0">
-                  <span className={cn("block text-[15px] leading-snug text-bark", p.done && "line-through text-stone")}>
-                    {p.label}
-                  </span>
-                  {p.detail && (
-                    <span className="mt-1 block text-[12px] leading-snug text-earth line-clamp-2">
-                      {p.detail}
-                    </span>
-                  )}
-                </span>
-              </button>
-            </li>
+        {/* Vínculo diario: cuánto te conoce Koru + tus colecciones, sin bloquear nada */}
+        <div className="khome-bond-row">
+          <button type="button" className="khome-bond-chip" onClick={onOpenMemory}>
+            <span className="khome-bond-label">
+              <span className="material-symbols-outlined">psychology</span>
+              Koru te conoce
+            </span>
+            <span className="khome-bond-bar">
+              <span className="khome-bond-fill" style={{ width: `${knowledge.pct}%` }} />
+            </span>
+            <span className="khome-bond-hint">
+              {knowledge.facts > 0 ? `${knowledge.facts} ${knowledge.facts === 1 ? "recuerdo" : "recuerdos"} · ver qué sabe` : "contale algo tuyo hoy"}
+            </span>
+          </button>
+          <button type="button" className="khome-bond-chip" onClick={() => setCollectionsOpen(true)}>
+            <span className="khome-bond-label">
+              <span className="material-symbols-outlined">bookmarks</span>
+              Mis Colecciones
+            </span>
+            <span className="khome-bond-count">{knowledge.saved}</span>
+            <span className="khome-bond-hint">{knowledge.saved > 0 ? "todo lo guardado, a mano" : "guardá tu primer enlace"}</span>
+          </button>
+        </div>
+
+        <div className="khome-grid pb-8">
+          {widgets.map((w, i) => (
+            <HomeWidgetCard key={`${w.kind}-${i}`} widget={w} />
           ))}
-        </ul>
-      </section>
-
-      <div className="mt-6">
-        {ephemeral && (
-          <p className="mb-3 text-center text-xs text-earth">
-            Modo efímero activo · esta charla no se guardará
-          </p>
-        )}
-        <button
-          type="button"
-          onClick={onTalk}
-          className="flex w-full items-center justify-center gap-2.5 rounded-full bg-forest py-4 text-base font-semibold text-cream shadow-[0_4px_16px_rgba(92,122,95,0.3)] transition-transform active:scale-[0.97] cursor-pointer"
-        >
-          <Mic className="h-5 w-5" />
-          Hablar con Koru
-        </button>
+        </div>
       </div>
+
+      {collectionsOpen && <CollectionsScreen onClose={() => setCollectionsOpen(false)} />}
     </div>
   );
 }

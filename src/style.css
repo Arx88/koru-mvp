@@ -1,44 +1,51 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
 @import "tw-animate-css";
 
+@source "../index.html";
+@source "../all-cards-preview.html";
+@source "./**/*.{ts,tsx}";
+
 @theme inline {
-  --font-sans: ui-sans-serif, system-ui, sans-serif;
-  --font-serif: Georgia, serif;
-  --font-heading: Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Bricolage Grotesque", Georgia, serif;
+  --font-heading: "Bricolage Grotesque", Georgia, serif;
   --font-mono: ui-monospace, monospace;
 
-  --color-forest: #5c7a5f;
-  --color-sage: #8b9d83;
-  --color-moss: #6b8f71;
-  --color-leaf: #a8c5a0;
-  --color-cream: #faf8f5;
-  --color-warm-white: #f5f3ee;
-  --color-sand: #e8e4dc;
-  --color-gold: #c9a96e;
-  --color-bark: #3d3632;
-  --color-earth: #6b5b4f;
-  --color-stone: #b8a99a;
-  --color-blush: #e8d5d0;
+  /* Koru 2.0: los nombres de token son legado-verde, pero los valores son la
+     paleta violeta/lavanda mágica. Remapeamos valores (no nombres) para que las
+     ~219 referencias existentes (text-forest, bg-cream, ...) recoloreen solas. */
+  --color-forest: #7c5cdb;      /* primary violeta */
+  --color-sage: #a99be0;        /* acento muted */
+  --color-moss: #8b6ff0;        /* acento activo */
+  --color-leaf: #c9bdf5;        /* acento suave */
+  --color-cream: #f6f3fe;       /* fondo lavanda claro */
+  --color-warm-white: #efeafb;  /* superficie suave */
+  --color-sand: #e4ddf7;        /* borde */
+  --color-gold: #e0a3d6;        /* acento magenta/rosa */
+  --color-bark: #2e2650;        /* texto tinta violeta */
+  --color-earth: #6b5f8c;       /* texto muted */
+  --color-stone: #a99bbe;       /* texto tenue */
+  --color-blush: #f0d9ee;       /* aviso suave */
 
-  --color-background: #faf8f5;
-  --color-foreground: #3d3632;
+  --color-background: #f6f3fe;
+  --color-foreground: #2e2650;
   --color-card: #ffffff;
-  --color-card-foreground: #3d3632;
+  --color-card-foreground: #2e2650;
   --color-popover: #ffffff;
-  --color-popover-foreground: #3d3632;
-  --color-primary: #5c7a5f;
-  --color-primary-foreground: #faf8f5;
-  --color-secondary: #f5f3ee;
-  --color-secondary-foreground: #3d3632;
-  --color-muted: #f5f3ee;
-  --color-muted-foreground: #6b5b4f;
-  --color-accent: #c9a96e;
-  --color-accent-foreground: #3d3632;
-  --color-destructive: #c4736b;
-  --color-border: #e8e4dc;
-  --color-input: #e8e4dc;
-  --color-ring: #8b9d83;
-  --radius: 0.75rem;
+  --color-popover-foreground: #2e2650;
+  --color-primary: #7c5cdb;
+  --color-primary-foreground: #f6f3fe;
+  --color-secondary: #efeafb;
+  --color-secondary-foreground: #2e2650;
+  --color-muted: #efeafb;
+  --color-muted-foreground: #6b5f8c;
+  --color-accent: #e0a3d6;
+  --color-accent-foreground: #2e2650;
+  --color-destructive: #e5657a;
+  --color-border: #e4ddf7;
+  --color-input: #e4ddf7;
+  --color-ring: #a99be0;
+  --radius: 1rem;
 }
 
 @layer base {
@@ -105,58 +112,39 @@
   animation: koru-shimmer 3.5s ease-in-out infinite;
 }
 
+/* --- Chat Koru = réplica Stitch "Chat con Koru": paisaje nocturno ilustrado a
+   pantalla completa, burbujas claras (#F0F4FF / #F8F4FA) con texto #301C70 y
+   composer blanco con botón #7C5FF6. Tipografía Plus Jakarta Sans. --- */
 .koru-chat-shell {
-  --koru-bg: #fcfcfa;
+  --koru-bg: #453f6a;
   --koru-surface: #ffffff;
-  --koru-surface-soft: #f8f9fa;
-  --koru-inner: #f8f9fa;
-  --koru-user: #e4efe3;
-  --koru-border: rgba(243, 244, 246, 0.92);
-  --koru-border-strong: #e5e7eb;
-  --koru-text: #1f2933;
-  --koru-text-soft: #4b5563;
-  --koru-muted: #727d8a;
-  --koru-pill: #f3f4f6;
-  --koru-accent: #70b873;
-  --koru-accent-soft: #eaf2ea;
-  --koru-accent-strong: #4a9e4f;
+  --koru-surface-soft: #f8f4fa;
+  --koru-inner: #f6f2fb;
+  --koru-user: #f0f4ff;
+  --koru-border: rgba(240, 235, 248, 0.9);
+  --koru-border-strong: #f0ebf8;
+  --koru-text: #301c70;
+  --koru-text-soft: #523a9e;
+  --koru-muted: #a89ad7;
+  --koru-pill: rgba(255, 255, 255, 0.7);
+  --koru-accent: #7c5ff6;
+  --koru-accent-soft: #e2d4fa;
+  --koru-accent-strong: #523a9e;
   --koru-amber: #d9a05b;
   --koru-amber-soft: #fff4e5;
-  --koru-purple: #8676b1;
+  --koru-purple: #8363f9;
   --koru-purple-soft: #eae6f4;
-  --koru-mic: #8a9a86;
+  --koru-mic: #7c5ff6;
   --koru-heart: #e67e60;
-  --koru-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --koru-shadow: 0 1px 3px rgba(18, 10, 50, 0.08);
   position: fixed;
   inset: 0;
   z-index: 50;
   display: flex;
   justify-content: center;
-  background: var(--koru-bg);
+  background: #14102a;
   color: var(--koru-text);
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-}
-
-.koru-chat-shell[data-koru-theme="dark"] {
-  --koru-bg: #1a1a17;
-  --koru-surface: #2a2a27;
-  --koru-surface-soft: rgba(42, 42, 39, 0.9);
-  --koru-inner: #22221f;
-  --koru-user: #2e362e;
-  --koru-border: #363632;
-  --koru-border-strong: #3d3d39;
-  --koru-text: #eae6df;
-  --koru-text-soft: #d4d0c8;
-  --koru-muted: #aaa39a;
-  --koru-pill: #2a2a27;
-  --koru-accent: #86c989;
-  --koru-accent-soft: #2d3a2c;
-  --koru-accent-strong: #86c989;
-  --koru-amber: #e3b273;
-  --koru-amber-soft: #403322;
-  --koru-purple: #9d8dc8;
-  --koru-purple-soft: #332e40;
-  --koru-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  font-family: "Plus Jakarta Sans", Inter, ui-sans-serif, system-ui, sans-serif;
 }
 
 .koru-chat-screen {
@@ -167,56 +155,30 @@
   height: 100dvh;
   flex-direction: column;
   overflow: hidden;
-  background: var(--koru-bg);
-}
-
-.koru-chat-header {
-  position: fixed;
-  top: 0;
-  left: 50%;
-  z-index: 50;
-  width: min(100%, 430px);
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 14px 0 16px;
-  background: var(--koru-bg);
+  background: #453f6a url("/stitch/chat-bg.png") center top / cover no-repeat;
 }
 
 .koru-back-button {
   position: absolute;
   top: 18px;
   left: 16px;
+  z-index: 30;
   display: grid;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   place-items: center;
-  border: 1px solid var(--koru-border);
+  border: 1px solid rgba(255, 255, 255, 0.35);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--koru-surface) 82%, transparent);
-  color: var(--koru-text-soft);
-  box-shadow: var(--koru-shadow);
+  background: rgba(255, 255, 255, 0.22);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(18, 10, 50, 0.18);
   transition: transform 160ms ease, border-color 160ms ease;
 }
 
 .koru-back-button:active {
   transform: scale(0.96);
-}
-
-.koru-header-center {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.koru-header-mascot-image {
-  width: 208px;
-  height: 208px;
-  object-fit: contain;
-  user-select: none;
-  -webkit-user-drag: none;
 }
 
 .koru-sr-heading {
@@ -230,34 +192,6 @@
   border: 0;
 }
 
-.koru-status {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--koru-muted);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  line-height: 1;
-  text-transform: uppercase;
-  animation: koru-text-pulse 2s ease-in-out infinite;
-}
-
-.koru-status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--koru-accent);
-  animation: koru-dot-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-.koru-header-divider {
-  width: calc(100% - 80px);
-  height: 1px;
-  margin-top: 16px;
-  background: var(--koru-border);
-}
-
 .koru-chat-scroll {
   flex: 1;
   overflow-y: auto;
@@ -265,45 +199,19 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 280px 16px 18px;
-  background: var(--koru-bg);
+  padding: 80px 20px 12px;
 }
 
 .koru-chat-scroll::-webkit-scrollbar {
   display: none;
 }
 
-.koru-top-fade {
-  position: fixed;
-  top: 280px;
-  left: 50%;
-  z-index: 10;
-  width: min(100%, 430px);
-  height: 40px;
-  transform: translateX(-50%);
-  pointer-events: none;
-  background: linear-gradient(to bottom, var(--koru-bg), rgba(252, 252, 250, 0));
-}
-
-.koru-chat-shell[data-koru-theme="dark"] .koru-top-fade {
-  background: linear-gradient(to bottom, var(--koru-bg), rgba(26, 26, 23, 0));
-}
-
-.koru-date-pill {
-  align-self: center;
-  margin-bottom: 4px;
-  border-radius: 999px;
-  background: var(--koru-pill);
-  color: var(--koru-text-soft);
-  padding: 4px 12px;
-  font-size: 12px;
-  line-height: 1.2;
-}
-
+/* La conversación vive anclada abajo, sobre el paisaje (réplica Stitch). */
 .koru-thread {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 20px;
+  margin-top: auto;
 }
 
 .koru-message {
@@ -318,71 +226,70 @@
 
 .koru-bubble {
   max-width: 100%;
-  border-radius: 16px;
-  box-shadow: var(--koru-shadow);
+  box-shadow: 0 10px 28px rgba(18, 10, 50, 0.18);
 }
 
 .koru-message.is-user .koru-bubble {
-  max-width: 85%;
-  border-top-right-radius: 4px;
+  margin-left: 24px;
+  border-radius: 36px;
+  border-bottom-right-radius: 0;
   background: var(--koru-user);
-  padding: 12px 16px;
+  padding: 24px 24px 28px;
+}
+
+/* Fila koru: avatar circular 88px + burbuja clara, alineados abajo. */
+.koru-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  width: 100%;
+}
+
+.koru-avatar {
+  flex: 0 0 auto;
+  width: 88px;
+  height: 88px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #ffffff;
+}
+
+.koru-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .koru-message.is-koru .koru-bubble {
-  width: 100%;
-  border: 1px solid var(--koru-border);
-  border-top-left-radius: 4px;
+  flex: 1;
+  min-width: 0;
+  border-radius: 36px;
+  border-bottom-left-radius: 0;
   background: var(--koru-surface-soft);
-  padding: 14px;
+  padding: 20px 24px 28px;
+}
+
+.koru-bubble-heading {
+  margin-bottom: 8px;
+  color: #523a9e;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.3;
 }
 
 .koru-message-text {
-  color: var(--koru-text);
-  font-size: 15px;
-  line-height: 1.55;
+  color: #301c70;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.4;
   text-wrap: pretty;
   overflow-wrap: anywhere;
 }
 
-.koru-message.is-koru .koru-message-text {
-  padding: 0 2px;
-}
-
-.koru-meta-row,
-.koru-user-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 4px;
-  color: var(--koru-muted);
-  font-size: 11px;
-}
-
-.koru-user-meta {
-  justify-content: flex-end;
-  margin-right: 4px;
-  color: var(--koru-accent);
-}
-
-.koru-user-meta span {
-  color: var(--koru-muted);
-}
-
-.koru-like {
-  display: grid;
-  width: 28px;
-  height: 28px;
-  place-items: center;
-  border: 1px solid var(--koru-border);
-  border-radius: 999px;
-  background: var(--koru-surface);
-  color: var(--koru-muted);
-  transition: transform 160ms ease, color 160ms ease;
-}
-
-.koru-like.is-liked {
-  color: var(--koru-heart);
+.koru-message.is-user .koru-message-text {
+  font-size: 17px;
 }
 
 .koru-action-content {
@@ -420,6 +327,94 @@
 .koru-action-title svg {
   flex: 0 0 auto;
   color: var(--koru-accent);
+}
+
+/* Panel "Trabajando en tu plan" = réplica Stitch: hoja clara con radio 40px
+   arriba, ilustración de Koru con tablet, barra #E2D4FA/#8363F9 con el % REAL
+   sincronizado a las fases del pipeline (KoruProvider emite `phase`). */
+.koru-working-panel {
+  position: relative;
+  z-index: 20;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 40px 40px 0 0;
+  background: linear-gradient(180deg, #ffffff 0%, #f3f0f8 100%);
+  padding: 24px 40px max(24px, env(safe-area-inset-bottom));
+  box-shadow: 0 -12px 40px rgba(18, 10, 50, 0.25);
+  animation: koru-rise 0.45s ease-out both;
+}
+.koru-working-illustration {
+  width: 100%;
+  max-width: 180px;
+  height: auto;
+  margin: 0 auto 4px;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.koru-working-copy {
+  margin: 16px 0;
+  text-align: center;
+}
+.koru-working-copy h2 {
+  margin-bottom: 2px;
+  color: #382b8c;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.koru-working-copy p {
+  color: #382b8c;
+  font-size: 14px;
+  font-weight: 500;
+}
+.koru-working-progress {
+  display: flex;
+  width: 100%;
+  max-width: 384px;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.koru-working-pct {
+  color: #382b8c;
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.koru-working-motto {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #382b8c;
+  font-size: 14px;
+  font-weight: 600;
+}
+.koru-working-motto svg {
+  color: #8363f9;
+}
+.koru-progress {
+  position: relative;
+  height: 16px;
+  flex: 1;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e2d4fa;
+}
+.koru-progress-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: 999px;
+  background: #8363f9;
+  transition: width 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.koru-progress-bar.is-indeterminate {
+  width: 33%;
+  animation: koru-progress-indeterminate 1.15s ease-in-out infinite;
 }
 
 .koru-process-card,
@@ -1734,12 +1729,10 @@ button.koru-stitch-row {
 }
 
 .koru-chat-footer {
-  position: sticky;
-  bottom: 0;
+  position: relative;
   z-index: 20;
   flex: 0 0 auto;
-  background: var(--koru-bg);
-  padding: 12px 16px max(16px, env(safe-area-inset-bottom));
+  padding: 8px 20px max(40px, env(safe-area-inset-bottom));
 }
 
 .koru-footer-note,
@@ -1747,76 +1740,84 @@ button.koru-stitch-row {
   margin-bottom: 8px;
   text-align: center;
   font-size: 12px;
-}
-
-.koru-footer-note {
-  color: var(--koru-muted);
+  font-weight: 600;
+  color: #ffffff;
+  text-shadow: 0 1px 6px rgba(18, 10, 50, 0.5);
 }
 
 .koru-footer-error {
-  color: #c4736b;
+  color: #ffc9c2;
 }
 
+/* Composer réplica Stitch: píldora blanca 64px, hoja (eco) a la izquierda,
+   campo con borde #f0ebf8 y botón circular #7C5FF6 a la derecha. */
 .koru-composer {
-  position: relative;
   display: flex;
   align-items: center;
+  width: 100%;
+  height: 64px;
+  border-radius: 999px;
+  background: #ffffff;
+  padding: 8px;
+  box-shadow: 0 12px 32px rgba(18, 10, 50, 0.22);
+}
+
+.koru-composer-icon {
+  display: flex;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+  border-radius: 999px;
+  color: #a89ad7;
+  transition: transform 160ms ease, color 160ms ease;
+}
+
+.koru-composer-icon.is-active {
+  color: #523a9e;
+}
+
+.koru-composer-field {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  height: 100%;
+  margin: 0 8px;
+  border: 1px solid #f0ebf8;
+  border-radius: 999px;
+  padding: 0 16px;
 }
 
 .koru-composer-input {
   width: 100%;
-  min-height: 50px;
-  border: 1px solid var(--koru-border-strong);
-  border-radius: 999px;
-  background: var(--koru-surface);
-  color: var(--koru-text);
-  padding: 14px 96px 14px 20px;
-  box-shadow: var(--koru-shadow);
+  border: none;
+  background: transparent;
+  color: #523a9e;
+  font-family: inherit;
   font-size: 15px;
+  font-weight: 500;
   line-height: 1.3;
   outline: none;
 }
 
 .koru-composer-input::placeholder {
-  color: var(--koru-muted);
-}
-
-.koru-composer-input:focus {
-  border-color: color-mix(in srgb, var(--koru-accent) 55%, var(--koru-border-strong));
-}
-
-.koru-composer-actions {
-  position: absolute;
-  right: 8px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.koru-composer-icon {
-  display: grid;
-  width: 32px;
-  height: 32px;
-  place-items: center;
-  border-radius: 999px;
-  color: var(--koru-muted);
-  transition: transform 160ms ease, color 160ms ease;
-}
-
-.koru-composer-icon.is-active {
-  color: var(--koru-accent);
+  color: #a89ad7;
 }
 
 .koru-mic-button {
   display: grid;
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
   place-items: center;
+  margin-right: 2px;
   border-radius: 999px;
-  background: var(--koru-mic);
+  background: #7c5ff6;
   color: #fff;
-  box-shadow: 0 6px 16px rgba(92, 122, 95, 0.25);
-  transition: transform 160ms ease, opacity 160ms ease;
+  transition: transform 160ms ease, opacity 160ms ease, background-color 160ms ease;
 }
 
 .koru-mic-button:disabled {
@@ -1829,12 +1830,8 @@ button.koru-stitch-row {
 }
 
 @media (min-width: 640px) {
-  .koru-chat-shell {
-    background: color-mix(in srgb, var(--koru-bg) 88%, #000 12%);
-  }
-
   .koru-chat-screen {
-    box-shadow: 0 18px 70px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 18px 70px rgba(0, 0, 0, 0.35);
   }
 }
 
@@ -1913,8 +1910,97 @@ button.koru-stitch-row {
 
 /* Material Symbols Outlined font-variation-settings */
 .material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
+
+/* ===== Koru Home — port pixel-perfect del diseño Stitch "Koru's Home".
+   Estilos custom tomados 1:1 del HTML generado por Stitch (prefijo khome-). ===== */
+.khome-bg-area {
+  height: 250px;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  filter: blur(8px) brightness(1.2) opacity(0.8);
+  transform: scale(1.1);
+}
+.khome-back-btn {
+  position: absolute;
+  top: 50px;
+  left: 24px;
+  width: 48px;
+  height: 48px;
+  background-color: rgba(255, 255, 255, 0.8);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px -1px rgba(70, 72, 212, 0.1);
+  z-index: 20;
+  border: 1px solid rgba(70, 72, 212, 0.1);
+  cursor: pointer;
+}
+.khome-content-card {
+  background-color: #f8f9ff;
+  border-top-left-radius: 2.5rem;
+  border-top-right-radius: 2.5rem;
+  margin-top: -100px;
+  position: relative;
+  padding-top: 60px;
+  padding-bottom: 40px;
+  min-height: calc(100% - 190px);
+}
+.khome-avatar {
+  position: absolute;
+  top: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 4px solid #f8f9ff;
+  background-color: #ffffff;
+  overflow: hidden;
+  z-index: 10;
+  box-shadow: 0 10px 25px rgba(70, 72, 212, 0.15);
+  cursor: pointer;
+}
+.khome-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.khome-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  padding: 0 24px;
+}
+.khome-col2 { grid-column: span 2 / span 2; }
+.khome-card {
+  border-radius: 2rem;
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 20px -2px rgba(70, 72, 212, 0.1), 0 2px 10px -2px rgba(70, 72, 212, 0.05);
+  transition: transform 0.3s;
+  cursor: pointer;
+}
+.khome-card:hover { transform: scale(1.02); }
+.khome-blob { position: absolute; filter: blur(20px); opacity: 0.15; z-index: 0; }
+.khome-glow-secondary { box-shadow: 0 0 15px rgba(129, 39, 207, 0.3); }
+.khome-glow-primary { box-shadow: 0 0 15px rgba(70, 72, 212, 0.3); }
 
 /* No scrollbar utility */
 .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -1936,4 +2022,1002 @@ button.koru-stitch-row {
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
+}
+
+/* ============================================================
+   Plan Entregado (réplica Stitch): hoja clara con "Tu Plan /
+   INTEGRAL", ilustración 3D, 3 categorías y CTA #8363F9.
+   ============================================================ */
+.koru-plan-hero {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border-radius: 40px;
+  background: linear-gradient(180deg, #ffffff 0%, #f3f0f8 100%);
+  padding: 32px 32px 28px;
+  box-shadow: 0 -12px 40px rgba(18, 10, 50, 0.25);
+  font-family: "Plus Jakarta Sans", Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.koru-plan-hero-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.koru-plan-hero-copy {
+  flex: 1;
+  max-width: 65%;
+}
+
+.koru-plan-hero-kicker {
+  color: #8363f9;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.koru-plan-hero-title {
+  margin-bottom: 8px;
+  color: #382b8c;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.koru-plan-hero-desc {
+  margin-top: 8px;
+  padding-right: 8px;
+  color: #382b8c;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.375;
+}
+
+.koru-plan-hero-desc b {
+  font-weight: 700;
+}
+
+.koru-plan-hero-art {
+  width: 160px;
+  height: 160px;
+  flex: 0 0 auto;
+  object-fit: contain;
+  filter: drop-shadow(0 20px 13px rgba(0, 0, 0, 0.03)) drop-shadow(0 8px 5px rgba(0, 0, 0, 0.08));
+}
+
+.koru-plan-hero-cats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 24px 0 16px;
+}
+
+.koru-plan-hero-cat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.koru-plan-hero-cat .material-symbols-outlined {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  margin-bottom: 4px;
+  font-size: 20px;
+}
+
+.koru-plan-hero-cat span:last-child {
+  color: #382b8c;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.koru-plan-hero-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 16px;
+  border-radius: 16px;
+  background: #8363f9;
+  color: #ffffff;
+  padding: 14px 0;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 10px 15px -3px rgba(139, 92, 246, 0.3), 0 4px 6px -4px rgba(139, 92, 246, 0.3);
+  transition: transform 160ms ease, background-color 160ms ease;
+}
+
+.koru-plan-hero-cta:active {
+  transform: scale(0.97);
+}
+
+.koru-plan-hero-cta .material-symbols-outlined {
+  font-size: 16px;
+}
+
+/* ============================================================
+   Tu Plan Integral (roadmap, réplica Stitch): fondo degradado
+   #f0dbff→#f8f9ff con blobs, hero flotante y magical-cards.
+   ============================================================ */
+.koru-roadmap {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  justify-content: center;
+  background: #cbdbf5;
+  font-family: "Plus Jakarta Sans", Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.koru-roadmap-screen {
+  position: relative;
+  width: 100%;
+  max-width: 430px;
+  height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  background: linear-gradient(180deg, #f0dbff 0%, #f8f9ff 100%);
+  color: #0b1c30;
+}
+
+.koru-roadmap-screen::-webkit-scrollbar {
+  display: none;
+}
+
+.koru-roadmap-blob-1,
+.koru-roadmap-blob-2 {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(20px);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.koru-roadmap-blob-1 {
+  top: -50px;
+  right: -50px;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(221, 183, 255, 0.8) 0%, rgba(221, 183, 255, 0) 70%);
+}
+
+.koru-roadmap-blob-2 {
+  top: 200px;
+  left: -100px;
+  width: 250px;
+  height: 250px;
+  background: radial-gradient(circle, rgba(111, 251, 190, 0.4) 0%, rgba(111, 251, 190, 0) 70%);
+}
+
+.koru-roadmap-back {
+  position: absolute;
+  top: 50px;
+  left: 24px;
+  z-index: 50;
+  display: flex;
+  width: 48px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.4);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 12px rgba(130, 39, 207, 0.1);
+  color: #8127cf;
+}
+
+.koru-roadmap-header {
+  position: relative;
+  z-index: 10;
+  padding: 80px 24px 32px;
+  text-align: center;
+}
+
+.koru-roadmap-hero {
+  width: 280px;
+  height: auto;
+  margin: 0 auto 24px;
+  filter: drop-shadow(0 20px 30px rgba(70, 72, 212, 0.2));
+  animation: koru-roadmap-float 6s ease-in-out infinite;
+}
+
+@keyframes koru-roadmap-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+
+.koru-roadmap-title {
+  margin-bottom: 8px;
+  color: #8127cf;
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.koru-roadmap-subtitle {
+  color: #464554;
+  font-size: 16px;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.koru-roadmap-modules {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 0 24px 48px;
+}
+
+.koru-magical-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 2rem;
+  background: rgba(255, 255, 255, 0.7);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(130, 39, 207, 0.08);
+}
+
+.koru-magical-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+  z-index: 1;
+}
+
+.koru-module-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.koru-module-id {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.koru-module-icon {
+  display: flex;
+  width: 48px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  background: var(--module-bg);
+  color: var(--module-color);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.koru-module-title {
+  color: var(--module-color);
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.koru-module-kicker {
+  color: #464554;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.koru-progress-ring {
+  position: relative;
+  display: flex;
+  width: 48px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: var(--module-color);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.koru-progress-ring::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  padding: 3px;
+  background: conic-gradient(currentColor calc(var(--ring-pct, 0) * 1%), transparent 0);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.8;
+}
+
+.koru-timeline {
+  position: relative;
+  margin-top: 24px;
+}
+
+.koru-timeline-line {
+  position: absolute;
+  left: 23px;
+  top: 40px;
+  bottom: 0;
+  width: 2px;
+  background: var(--module-bg);
+  z-index: 0;
+}
+
+.koru-timeline-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.koru-timeline-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.koru-timeline-dot {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--module-color);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--module-color);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+}
+
+.koru-timeline-dot .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.koru-timeline-step.is-pending .koru-timeline-dot {
+  border-color: #e5e7eb;
+  color: #9ca3af;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.koru-timeline-body {
+  flex: 1;
+  margin-top: 4px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.5);
+  padding: 16px;
+  text-align: left;
+}
+
+.koru-timeline-step.is-pending .koru-timeline-body {
+  background: rgba(255, 255, 255, 0.3);
+  opacity: 0.7;
+}
+
+.koru-timeline-name {
+  color: #0b1c30;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.koru-timeline-meta {
+  margin-top: 4px;
+  color: #464554;
+  font-size: 12px;
+}
+
+.koru-step-chip {
+  display: inline-block;
+  margin-top: 8px;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.koru-step-chip.is-done { background: #dcfce7; color: #15803d; }
+.koru-step-chip.is-current { background: #dbeafe; color: #1d4ed8; }
+.koru-step-chip.is-pending { background: #e5e7eb; color: #4b5563; }
+
+.koru-habit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.koru-habit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.6);
+  padding: 12px;
+  cursor: pointer;
+  transition: background-color 160ms ease;
+}
+
+.koru-habit-row:hover {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.koru-habit-id {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.koru-habit-icon {
+  display: flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+}
+
+.koru-habit-icon .material-symbols-outlined {
+  font-size: 14px;
+}
+
+.koru-habit-name {
+  color: #0b1c30;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.koru-habit-checkbox {
+  appearance: none;
+  position: relative;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--module-color);
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.koru-habit-checkbox:checked {
+  background: var(--module-color);
+}
+
+.koru-habit-checkbox:checked::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 7px;
+  width: 6px;
+  height: 12px;
+  border: solid #ffffff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.koru-module-count {
+  display: flex;
+  width: 48px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  color: var(--module-color);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.koru-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.koru-metric-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.5);
+  padding: 16px;
+  text-align: center;
+}
+
+.koru-metric-label {
+  color: #464554;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.koru-metric-value {
+  color: #0b1c30;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.koru-metric-value small {
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.koru-metric-foot {
+  margin-top: 4px;
+  color: #16a34a;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.koru-challenge-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.koru-challenge-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.4);
+  padding: 12px;
+  opacity: 0.7;
+  filter: grayscale(50%);
+}
+
+.koru-challenge-lock {
+  display: flex;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #6b7280;
+}
+
+.koru-challenge-name {
+  color: #374151;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.koru-challenge-desc {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.module-morning { --module-color: #f59e0b; --module-bg: rgba(245, 158, 11, 0.1); }
+.module-core { --module-color: #4648d4; --module-bg: rgba(70, 72, 212, 0.1); }
+.module-nutrition { --module-color: #10b981; --module-bg: rgba(16, 185, 129, 0.1); }
+.module-habits { --module-color: #ec4899; --module-bg: rgba(236, 72, 153, 0.1); }
+.module-challenges { --module-color: #8b5cf6; --module-bg: rgba(139, 92, 246, 0.1); }
+
+
+/* Indicador liviano de actividad sobre el composer (thinking/searching/etc.).
+   NO es el panel de plan: Koru contesta al toque; esto solo avisa que procesa
+   la interaccion actual. El panel grande queda reservado para planificar. */
+.koru-activity-hint {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-bottom: 10px; font-size: 13px; font-weight: 600; color: #ffffff;
+  text-shadow: 0 1px 6px rgba(18, 10, 50, 0.5);
+}
+.koru-activity-dot {
+  width: 8px; height: 8px; border-radius: 999px; background: #c9b8ff;
+  animation: koru-activity-pulse 1.2s ease-in-out infinite;
+}
+@keyframes koru-activity-pulse {
+  0%   { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(201,184,255,0.7); }
+  70%  { transform: scale(1);   box-shadow: 0 0 0 8px rgba(201,184,255,0); }
+  100% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(201,184,255,0); }
+}
+
+/* ============================================================
+   Card unificada (KoruUnifiedCard / KoruDetailScreen) — molde
+   único réplica Stitch para las ~45 estéticas de card previas.
+   Ver flujo-informe-aoe2.html: hero .koru-plan-hero + arte/
+   métricas propias, detalle .koru-roadmap + .koru-magical-card
+   con secciones normalizadas (.koru-dsec-*).
+   ============================================================ */
+
+/* Arte del hero cuando no hay ilustración (icono + valor grande,
+   ej. temperatura). Reemplaza a .koru-plan-hero-art (img) cuando
+   el bloque no trae asset gráfico propio. */
+.koru-unified-art {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 120px;
+  height: 120px;
+  flex: 0 0 auto;
+  border-radius: 26px;
+  box-shadow: 0 16px 30px rgba(70, 72, 212, 0.18);
+}
+
+.koru-unified-art-icon {
+  font-size: 48px;
+}
+
+.koru-unified-art-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: #382b8c;
+}
+
+/* Fila de 3 métricas con valor (clima: humedad/viento/min-max).
+   Reemplaza a .koru-plan-hero-cats cuando las métricas traen dato
+   real, no solo una etiqueta/ícono de categoría. */
+.koru-unified-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 20px 0 16px;
+}
+
+.koru-unified-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 12px 6px;
+  text-align: center;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+}
+
+.koru-unified-metric-icon {
+  font-size: 22px;
+}
+
+.koru-unified-metric-label {
+  margin-top: 5px;
+  color: #464554;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.koru-unified-metric-value {
+  margin-top: 1px;
+  color: #382b8c;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+/* Ícono grande del header de detalle (reemplaza a la ilustración
+   3D .koru-roadmap-hero para bloques sin arte propio). */
+.koru-detail-hero-icon {
+  display: flex;
+  width: 120px;
+  height: 120px;
+  margin: 6px auto 12px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 30px;
+  background: radial-gradient(circle at 50% 35%, #efe7ff, #c9b3ff);
+  box-shadow: 0 20px 30px rgba(70, 72, 212, 0.2);
+  color: #4648d4;
+}
+
+.koru-detail-hero-icon .material-symbols-outlined {
+  font-size: 60px;
+}
+
+/* Secciones de detalle normalizadas — cada .koru-magical-card
+   renderiza uno de estos "kind" según el contenido del bloque. */
+.koru-dsec-text {
+  color: #464554;
+  font-size: 13.5px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.koru-dsec-text b { font-weight: 700; color: #0b1c30; }
+.koru-dsec-text i { font-style: italic; }
+
+.koru-dsec-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.koru-dsec-tile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.6);
+  padding: 14px;
+}
+
+.koru-dsec-tile-icon {
+  font-size: 24px;
+  flex: 0 0 auto;
+}
+
+.koru-dsec-tile-label {
+  display: block;
+  color: #464554;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.koru-dsec-tile-value {
+  display: block;
+  margin-top: 1px;
+  color: #382b8c;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.koru-dsec-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.koru-dsec-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.6);
+  padding: 12px;
+}
+
+.koru-dsec-row-icon {
+  flex: 0 0 auto;
+  font-size: 22px;
+  color: var(--module-color);
+}
+
+.koru-dsec-row-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.koru-dsec-row-title {
+  margin: 0;
+  color: #0b1c30;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.koru-dsec-row-detail {
+  margin: 2px 0 0;
+  color: #464554;
+  font-size: 11.5px;
+}
+
+.koru-dsec-row-meta {
+  flex: 0 0 auto;
+  color: #464554;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.koru-dsec-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.koru-dsec-chip {
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.6);
+  padding: 8px 12px;
+}
+
+.koru-dsec-chip-label {
+  color: #0b1c30;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.koru-dsec-chip-sub {
+  margin-top: 1px;
+  color: #464554;
+  font-size: 10.5px;
+  font-weight: 500;
+}
+
+.koru-dsec-scroller {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scrollbar-width: none;
+}
+
+.koru-dsec-scroller::-webkit-scrollbar {
+  display: none;
+}
+
+.koru-dsec-scard {
+  flex: 0 0 auto;
+  width: 150px;
+  border: 1px solid #ffffff;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.6);
+  padding: 14px;
+}
+
+.koru-dsec-scard-badge {
+  display: inline-block;
+  border-radius: 8px;
+  background: var(--module-bg);
+  color: var(--module-color);
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.koru-dsec-scard-title {
+  margin: 10px 0 4px;
+  color: #0b1c30;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.koru-dsec-scard-detail {
+  margin: 0;
+  color: #464554;
+  font-size: 11.5px;
+}
+
+.koru-dsec-scard-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.koru-dsec-scard-metric {
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 2px 6px;
+  color: #382b8c;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.koru-dsec-sources {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.koru-dsec-source {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 12px;
+  padding: 8px;
+  color: inherit;
+  text-decoration: none;
+  transition: background-color 160ms ease;
+}
+
+a.koru-dsec-source:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.koru-dsec-source-icon {
+  flex: 0 0 auto;
+  font-size: 18px;
+  color: #767586;
+}
+
+.koru-dsec-source-title {
+  color: #464554;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.koru-dsec-source-domain {
+  color: #8f88b5;
+}
+
+/* ── Mis Colecciones (pantalla de guardados) ── */
+.koru-collections-empty {
+  color: #464554;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.55;
+}
+.koru-collection-link { text-decoration: none; }
+.koru-collection-body { flex: 1; min-width: 0; }
+.koru-collection-body .koru-challenge-desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.koru-collection-open {
+  font-size: 16px;
+  color: #8f88b5;
+  flex-shrink: 0;
+}
+
+/* ── Home: fila de vínculo (conocimiento + colecciones) ── */
+.khome-bond-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 0 24px;
+  margin-bottom: 20px;
+}
+.khome-bond-chip {
+  background: #fff;
+  border: 1px solid rgba(70, 72, 212, 0.1);
+  border-radius: 20px;
+  padding: 12px 14px;
+  text-align: left;
+  box-shadow: 0 2px 10px rgba(70, 72, 212, 0.06);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.khome-bond-chip:active { transform: scale(0.98); }
+.khome-bond-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #4648d4;
+  font-size: 12px;
+  font-weight: 800;
+}
+.khome-bond-label .material-symbols-outlined { font-size: 17px; }
+.khome-bond-bar {
+  display: block;
+  height: 7px;
+  background: #ece9fb;
+  border-radius: 99px;
+  overflow: hidden;
+}
+.khome-bond-fill {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #8363f9, #4648d4);
+  transition: width 0.6s ease;
+}
+.khome-bond-count {
+  color: #382b8c;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+}
+.khome-bond-hint {
+  color: #8f88b5;
+  font-size: 10.5px;
+  font-weight: 600;
 }

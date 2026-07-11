@@ -138,7 +138,7 @@ async function callValidatedJson<T>(
     parsed = parseJsonObjectStrict(first.content);
     const validated = validate(parsed);
     if (validated.ok) return { value: validated.value, model: first.model };
-    errors = validated.errors;
+    errors = "errors" in validated ? validated.errors : [];
   } catch (error) {
     errors = [error instanceof Error ? error.message : "invalid_json"];
   }
@@ -167,7 +167,7 @@ async function callValidatedJson<T>(
   const repairedParsed = parseJsonObjectStrict(repaired.content);
   const repairedValidation = validate(repairedParsed);
   if (!repairedValidation.ok) {
-    throw new Error(`Invalid ${schemaName}: ${repairedValidation.errors.join("; ")}`);
+    throw new Error(`Invalid ${schemaName}: ${("errors" in repairedValidation ? repairedValidation.errors : []).join("; ")}`);
   }
   return { value: repairedValidation.value, model: repaired.model ?? first.model };
 }
@@ -575,7 +575,7 @@ function titleForBlock(block: UiBlock): string {
   if (block.type === "research_sources") return block.title ?? "Fuentes";
   if (block.type === "money_summary") return block.title ?? "Dinero";
   if (block.type === "web_nav") return block.title ?? "Web Navigation";
-  return ("title" in block ? block.title : undefined) ?? "Guardado";
+  return "title" in block && typeof block.title === "string" ? block.title : "Guardado";
 }
 
 function payloadForBlock(block: UiBlock, intent: SemanticIntent): AssistantActionPayload {

@@ -62,7 +62,8 @@ export const passwordGenerate: ToolHandler = {
     const symbols = "!@#$%^&*()-_=+[]{}";
     const charset = lower + upper + digits + (includeSymbols ? symbols : "");
     const randomValues = new Uint32Array(length);
-    (globalThis.crypto ?? (await import("node:crypto")).webcrypto).getRandomValues(randomValues);
+    const cryptoSource = (globalThis.crypto ?? (await import("node:crypto")).webcrypto) as Crypto;
+    cryptoSource.getRandomValues(randomValues);
     let password = "";
     for (let i = 0; i < length; i++) password += charset[randomValues[i] % charset.length];
     // Garantizar al menos un char de cada tipo.

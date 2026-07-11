@@ -29,7 +29,7 @@ function KoruApp() {
         className={`flex min-h-dvh w-full max-w-md flex-col bg-background ${talking ? "pointer-events-none invisible" : ""}`}
       >
         <div className="flex-1 overflow-y-auto">
-          {tab === "hoy" && <HomeScreen onTalk={() => setTalking(true)} />}
+          {tab === "hoy" && <HomeScreen onTalk={() => setTalking(true)} onOpenMemory={() => setTab("memoria")} />}
           {tab === "memoria" && <MemoryScreen />}
           {tab === "permisos" && <PermissionsScreen />}
           {tab === "historial" && <HistoryScreen />}
@@ -43,12 +43,9 @@ function KoruApp() {
   );
 }
 
-import { CardPreview } from "./CardPreview";
-
 export function App() {
   return (
     <KoruProvider>
-      <CardPreview />
       <KoruApp />
     </KoruProvider>
   );

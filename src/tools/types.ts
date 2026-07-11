@@ -41,7 +41,7 @@ export type ToolRunResult = Record<string, unknown> & {
    */
   deferredDataCard?: Promise<UiBlock | null>;
   /** Fuentes respaldatorias (para anti-alucinación y trazabilidad). */
-  sources?: AssistantSource[];
+  sources?: AssistantSource[] | string[];
 };
 
 /** Política de seguridad. Sigue el sistema de `toolRegistry.ts`. */

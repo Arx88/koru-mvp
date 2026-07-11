@@ -28,8 +28,38 @@ dist-ssr
 
 # Temporary / generated artifacts
 .tmp/
+.hermes/
+.kimchi/docs/
+.stitch-ref/
+stitch-ref/
+.tmp-shots/
 test-results/
 .worktrees/
+*.png
+.debug-*
+.demo-*
+.dom-check.mjs
+.final-*
+.merge-check-*
+.shot-*
+.stitch-shot-*
+.stitch-shot.mjs
+.style-check.mjs
+.t*.json
+.test-research.json
+.test-suite.sh
+.tmp-*
+chat-*
+home-*
+judge-*
+restaurant-chat-test.png
+stitch-*-real.html
+stitch-ref-home.png
+demo-flujo-informe-aoe2.html
+flujo-informe-aoe2.html
+Koru character/
+prototipos/
+*.zip
 
 # Caches and compiled artifacts
 .hf-cache/
@@ -38,9 +68,11 @@ unsloth_compiled_cache/
 # Manual audits, reports, and logs
 manual-audits/
 logs/
+tests/agents/reports/
 
 # Secrets and local environment
 .env
 .env.*
 minimax-oauth-token.json
 .opencode.json
+opencode.json

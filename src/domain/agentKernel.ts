@@ -10,10 +10,29 @@ export type AgentActivityKind =
   | "writing"
   | "asking";
 
+// "deep" = tarea real de investigacion/sintesis (informe, plan del dia): se
+// gana el panel largo "Trabajando...". "quick" = dato en vivo o accion
+// instantanea (clima, alarma, nota): responde al toque, sin panel largo. Ver
+// flujo aprobado en flujo-informe-aoe2.html (pasos 3 vs 7).
+export type ActivityDepth = "quick" | "deep";
+
 export type AgentActivity = {
   kind: AgentActivityKind;
   label: string;
+  depth: ActivityDepth;
 };
+
+const DEEP_INTENT_RE =
+  /\b(informe|informes|investiga a fondo|investigacion a fondo|deep research|resumen completo|documento completo|propuesta completa|analisis completo|reporte completo|dossier)\b/i;
+
+function withDepth(lower: string, kind: AgentActivityKind, label: string): AgentActivity {
+  const deep = DEEP_INTENT_RE.test(lower) || kind === "planning";
+  return {
+    kind,
+    depth: deep ? "deep" : "quick",
+    label: deep && kind === "searching" ? "Es un tema para investigar a fondo. Dame unos segundos." : label,
+  };
+}
 
 const ACTION_INTENT_RE =
   /\b(recordame|recuerdame|acordame|anota|guarda|comprar|gaste|pague|preparar|mandar|enviar|llamar|buscar|busca|buscame|investiga|compara|comparar|clima|temperatura|trafico|noticias|deep research|reunion|plan|que hago|que hacer|pendiente|permitirme)\b/i;
@@ -34,21 +53,21 @@ function looksLikeLocation(text: string): boolean {
 export function inferActivity(input: string): AgentActivity {
   const lower = foldAccents(input);
   if (/\b(clima|temperatura|lluvia|trafico|noticias|buscar|busca|buscame|investiga|internet|web|deep research)\b/i.test(lower)) {
-    return { kind: "searching", label: "Claro. Lo miro." };
+    return withDepth(lower, "searching", "Claro. Lo miro.");
   }
   if (/\b(comparar|compara|precio|comprar|producto|entrega|devoluciones)\b/i.test(lower)) {
-    return { kind: "comparing", label: "Dale. Comparo lo importante." };
+    return withDepth(lower, "comparing", "Dale. Comparo lo importante.");
   }
   if (/\b(recordame|recuerdame|acordame|anota|guarda|captura|idea|gaste|pague|tengo .*en casa)\b/i.test(lower)) {
-    return { kind: "saving", label: "Lo guardo bien." };
+    return withDepth(lower, "saving", "Lo guardo bien.");
   }
   if (/\b(no se que hacer|que hago|por donde empiezo|plan|organiza|ordena|pendiente|pendientes)\b/i.test(lower)) {
-    return { kind: "planning", label: "Voy a buscar el primer paso real." };
+    return withDepth(lower, "planning", "Voy a buscar el primer paso real.");
   }
   if (/\b(mail|correo|mensaje|borrador|documento|informe|resumen|presentacion|propuesta)\b/i.test(lower)) {
-    return { kind: "writing", label: "Lo preparo con calma." };
+    return withDepth(lower, "writing", "Lo preparo con calma.");
   }
-  return { kind: "thinking", label: "Pensando el siguiente paso." };
+  return withDepth(lower, "thinking", "Pensando el siguiente paso.");
 }
 
 export function rewritePendingFollowUp(text: string, pendingQuestionText: string): string {
