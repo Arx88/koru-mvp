@@ -214,10 +214,21 @@ export function TalkOverlay({ onClose }: { onClose: () => void }) {
   const [interimText, setInterimText] = useState("");
   const [speechStatus] = useState(() => getSpeechSupport());
   const [micError, setMicError] = useState("");
+  const micErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recognitionRef = useRef<ReturnType<typeof createSpeechSession> | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const turnCountRef = useRef(chatTurns.length);
+
+  // Fase 1 (audit visual): auto-dismiss del error de micrófono tras 4s.
+  // Antes el error "No pude transcribir: not-allowed" se quedaba pegado en
+  // el footer compitiendo con el composer. Ahora se limpia solo.
+  const showMicError = useCallback((message: string) => {
+    if (micErrorTimerRef.current) clearTimeout(micErrorTimerRef.current);
+    setMicError(message);
+    micErrorTimerRef.current = setTimeout(() => setMicError(""), 4000);
+  }, []);
+  useEffect(() => () => { if (micErrorTimerRef.current) clearTimeout(micErrorTimerRef.current); }, []);
 
   // UX Stitch: NO es un chat con historial. Es interaccion inmediata de un solo
   // turno: en pantalla solo vive el intercambio ACTUAL (ultimo mensaje del
@@ -304,7 +315,7 @@ export function TalkOverlay({ onClose }: { onClose: () => void }) {
       return;
     }
 
-    setMicError("");
+    showMicError("");
     let finalAccumulated = "";
 
     const recognition = createSpeechSession({
@@ -314,7 +325,7 @@ export function TalkOverlay({ onClose }: { onClose: () => void }) {
       },
       onInterimText: setInterimText,
       onError: (message) => {
-        setMicError(message);
+        showMicError(message);
         setIsListening(false);
         recognitionRef.current = null;
       },
@@ -329,7 +340,7 @@ export function TalkOverlay({ onClose }: { onClose: () => void }) {
     });
 
     if (!recognition) {
-      setMicError("Voz no disponible en este navegador.");
+      showMicError("Voz no disponible en este navegador.");
       return;
     }
 
@@ -338,7 +349,7 @@ export function TalkOverlay({ onClose }: { onClose: () => void }) {
       recognition.start();
       setIsListening(true);
     } catch (err) {
-      setMicError(`No pude iniciar el microfono: ${err instanceof Error ? err.message : "error desconocido"}`);
+      showMicError(`No pude iniciar el microfono: ${err instanceof Error ? err.message : "error desconocido"}`);
       setIsListening(false);
     }
   }
