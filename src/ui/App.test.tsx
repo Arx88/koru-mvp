@@ -116,7 +116,9 @@ describe("Koru MVP UI", () => {
 
     await completeOnboarding(user);
 
-    expect(screen.getByText(/buenos d[ií]as|buenas tardes|buenas noches/i)).toBeInTheDocument();
+    // Home shows "Koru`s Home" + tagline (no time-based greeting in current UI)
+    expect(screen.getByText(/Koru`s Home/i)).toBeInTheDocument();
+    expect(screen.getByText(/todo lo que koru te preparo para hoy/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /hablar con koru/i })).toBeInTheDocument();
   });
 
@@ -131,22 +133,27 @@ describe("Koru MVP UI", () => {
     const chat = screen.getByRole("region", { name: /conversacion con koru/i });
     expect(chat).toHaveTextContent(/hola, alex.*cu[eé]ntame c[oó]mo est[aá]s/i);
 
-    const input = screen.getByPlaceholderText(/escribe tu mensaje/i);
+    const input = screen.getByPlaceholderText(/habla con koru/i);
     await user.type(input, "Tengo muchas cosas en la cabeza y no se por donde empezar{Enter}");
 
     expect((await screen.findAllByText(/encontrar el primer paso real/i, {}, { timeout: 3000 })).length).toBeGreaterThan(0);
-    expect(chat).toHaveTextContent(/bloque corto|energ/i);
+    // Unified card: options live behind the CTA "Responder" in the detail screen,
+    // not inline. Verificamos que el CTA esté presente en lugar de las opciones.
+    expect(chat).toHaveTextContent(/responder/i);
     expect(chat).not.toHaveTextContent(/aplicar plan/i);
 
     await user.type(input, "Tengo que lanzar Koru, hablar con mi socio, preparar una demo y comparar proveedores{Enter}");
 
+    // Unified card: el plan se renderiza como hero con título "Plan de hoy"
+    // + CTA "Ver plan completo". Los 4 ítems viven en la pantalla de detalle
+    // detrás del CTA, no inline en el chat.
     await waitFor(() => {
-      expect(chat.querySelector('[data-ui-block="plan"] .plan-timeline-title')).toHaveTextContent(/lanzar koru/i);
+      const planCard = chat.querySelector('[data-ui-block="plan"]');
+      expect(planCard).toBeInTheDocument();
+      // heroTitleFrom transforma "Plan de hoy" → "DE HOY" en el hero
+      expect(planCard).toHaveTextContent(/de hoy|plan de hoy/i);
     }, { timeout: 3000 });
-    expect(chat).toHaveTextContent(/socio/i);
-    expect(chat).toHaveTextContent(/demo/i);
-    expect(chat.querySelector('[data-ui-block="plan"] > div')).toBeInTheDocument();
-    expect(chat.querySelectorAll('[data-ui-block="plan"] .plan-timeline-item')).toHaveLength(4);
+    expect(chat).toHaveTextContent(/ver plan completo/i);
     expect(chat).not.toHaveTextContent(/aplicar plan/i);
   });
 
@@ -179,7 +186,7 @@ describe("Koru MVP UI", () => {
     await completeOnboarding(user);
     await user.click(screen.getByRole("button", { name: /hablar con koru/i }));
 
-    const input = screen.getByPlaceholderText(/escribe tu mensaje/i);
+    const input = screen.getByPlaceholderText(/habla con koru/i);
     await user.type(input, "estoy quemado{Enter}");
 
     await waitFor(() => expect(screen.getByText(/estoy quemado/i)).toBeInTheDocument(), { timeout: 3000 });

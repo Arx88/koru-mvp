@@ -130,7 +130,8 @@ describe("Koru Brain", () => {
     const analysis = await analyzeReflection("Hoy otra vez falto cafe y tengo que llamar al proveedor.", confirmed);
 
     expect(analysis.activeMemoryIds).toContain(candidate!.id);
-    expect(analysis.response.toLowerCase()).toContain("ate cabos");
+    // "Até cabos" (con tilde, corrección Fase 1.6) — toLowerCase no quita tildes
+    expect(analysis.response.toLowerCase()).toContain("até cabos");
   });
 
   it("plans from accumulated open commitments when the user asks what to do today", async () => {
