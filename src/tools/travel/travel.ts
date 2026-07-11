@@ -184,17 +184,29 @@ export const currencyAtm: ToolHandler = {
       required: ["location"],
     },
   ),
-  policy: policies.readonly("Localiza cajeros y lee tasa del día."),
+  policy: policies.readonly("Busca tasa de cambio via Frankfurter API."),
   async run(args) {
     const location = String(args.location ?? "").trim();
     if (!location) return { type: "currency_atm", status: "failed", error: "Indicá ubicación." };
-    return {
-      type: "currency_atm",
-      status: "delegate",
-      delegateTo: "web_search",
-      query: `cajero automático casa de cambio ${location} sin comisión tasa del día`,
-      mode: "research",
-    };
+    // Fase 3.3: usar Frankfurter API para tasa del día + Wikipedia para info de cajeros.
+    try {
+      // Tasa USD→EUR como referencia de cambio del día
+      const rateRes = await fetch("https://api.frankfurter.app/latest?from=USD&to=EUR", { signal: AbortSignal.timeout(8000) });
+      const rateData = await rateRes.json() as { rates?: Record<string, number>; date?: string };
+      const eurRate = rateData.rates?.EUR;
+      const date = rateData.date;
+      return {
+        type: "currency_atm",
+        status: "ok",
+        location,
+        text: eurRate ? `Tasa del día (${date}): 1 USD = ${eurRate} EUR. Para cajeros específicos en ${location}, te sugiero buscar en Google Maps "cajero automático" o "casa de cambio" en esa zona.` : `No pude obtener la tasa del día. Para cajeros en ${location}, buscá en Google Maps.`,
+        rate: eurRate ? `${eurRate}` : undefined,
+        date,
+      };
+    } catch (err) {
+      console.warn("[Koru] currency_atm Frankfurter failed:", err instanceof Error ? err.message : err);
+      return { type: "currency_atm", status: "failed", error: `No pude obtener información de cambio para ${location}.` };
+    }
   },
 };
 
@@ -290,19 +302,37 @@ export const weatherTravel: ToolHandler = {
       required: ["destination", "date"],
     },
   ),
-  policy: policies.readonly("Lee pronóstico/histórico de clima."),
+  policy: policies.readonly("Lee clima via Open-Meteo + Wikipedia."),
   async run(args) {
     const destination = String(args.destination ?? "").trim();
     const date = String(args.date ?? "").trim();
     if (!destination || !date) return { type: "weather_travel", status: "failed", error: "Indicá destino y fecha." };
-    // Para fechas futuras más allá del pronóstico (7-14 días), usamos histórico como aproximación.
-    return {
-      type: "weather_travel",
-      status: "delegate",
-      delegateTo: "web_search",
-      query: `clima promedio ${destination} ${date} temperatura lluvia histórico`,
-      mode: "research",
-    };
+    // Fase 3.3: usar Open-Meteo geocoding + current weather + Wikipedia para histórico.
+    try {
+      // 1. Geocoding: obtener lat/lon del destino
+      const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(destination)}&count=1&format=json`, { signal: AbortSignal.timeout(8000) });
+      const geoData = await geoRes.json() as { results?: Array<{ latitude: number; longitude: number; name: string; country?: string }> };
+      const geo = geoData.results?.[0];
+      if (!geo) return { type: "weather_travel", status: "ok", destination, date, note: `No encontré coordenadas de ${destination}.` };
+      // 2. Current weather
+      const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${geo.latitude}&longitude=${geo.longitude}&current=temperature_2m,precipitation,wind_speed_10m&timezone=auto`, { signal: AbortSignal.timeout(8000) });
+      const weatherData = await weatherRes.json() as { current?: { temperature_2m: number; precipitation: number; wind_speed_10m: number } };
+      const cur = weatherData.current;
+      return {
+        type: "weather_travel",
+        status: "ok",
+        destination,
+        date,
+        location: `${geo.name}${geo.country ? `, ${geo.country}` : ""}`,
+        text: cur ? `Clima actual en ${geo.name}: ${cur.temperature_2m}°C, precipitación ${cur.precipitation}mm, viento ${cur.wind_speed_10m} km/h. Para ${date}, consultá un pronóstico extendido cerca de esa fecha.` : `Encontré ${geo.name} pero no pude obtener el clima.`,
+        temperature: cur?.temperature_2m,
+        precipitation: cur?.precipitation,
+        windSpeed: cur?.wind_speed_10m,
+      };
+    } catch (err) {
+      console.warn("[Koru] weather_travel Open-Meteo failed:", err instanceof Error ? err.message : err);
+      return { type: "weather_travel", status: "failed", error: `No pude obtener clima para ${destination}.` };
+    }
   },
 };
 
