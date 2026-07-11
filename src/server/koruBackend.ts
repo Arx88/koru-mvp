@@ -3444,6 +3444,7 @@ async function buildEnhancementInstruction(
 // directamente sin depender de que el modelo la llame nativamente.
 // Es agnóstico al modelo y casi gratis (~26ms por decisión).
 let routerSingleton: SemanticRouter | null = null;
+let routerNullWarned = false;
 
 function buildEmbedFn(baseUrl: string): EmbedFn {
   return async (text: string): Promise<number[]> => {
@@ -3467,16 +3468,83 @@ function buildEmbedFn(baseUrl: string): EmbedFn {
   };
 }
 
+/**
+ * Fase 2.2 — Embedding fallback vía NVIDIA API.
+ *
+ * Antes: si no había Ollama local, getRouter devolvía null y loggeaba
+ * "Semantic Router init failed (non-fatal)" en CADA turno. El router es
+ * no-crítico pero útil para elegir la tool correcta sin llamar al LLM.
+ *
+ * Ahora: si hay NVIDIA_API_KEY (que siempre hay en producción), usamos
+ * el endpoint de embeddings de NVIDIA (model nvidia/nemotron-340b-embedding
+ * o nvolve-embed-v1). Si no, caemos al fallback léxico del SemanticRouter.
+ */
+function buildNvidiaEmbedFn(apiKey: string, baseUrl: string): EmbedFn {
+  const url = `${baseUrl.replace(/\/+$/, "")}/v1/embeddings`;
+  return async (text: string): Promise<number[]> => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "nvidia/nv-embedqa-e5-v5",
+          input: [text],
+          input_type: "query",
+        }),
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        throw new Error(`NVIDIA embeddings ${res.status}: ${await res.text()}`);
+      }
+      const data = (await res.json()) as {
+        data?: Array<{ embedding?: number[] }>;
+      };
+      const vec = data.data?.[0]?.embedding;
+      if (!vec || vec.length === 0) {
+        throw new Error("NVIDIA no devolvió embedding");
+      }
+      return vec;
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
+}
+
 async function getRouter(config: ProviderConfig): Promise<SemanticRouter | null> {
+  // Fase 2.2: preferir Ollama local (más rápido), fallback a NVIDIA cloud.
   const embedBaseUrl = config.ollamaEmbedBaseUrl ?? (isOllamaUrl(config.nvidiaBaseUrl) ? config.nvidiaBaseUrl : undefined);
-  if (!embedBaseUrl) return null;
+  let embedFn: EmbedFn | null = null;
+  let embedSource = "none";
+
+  if (embedBaseUrl) {
+    embedFn = buildEmbedFn(embedBaseUrl);
+    embedSource = `ollama:${embedBaseUrl}`;
+  } else if (config.nvidiaApiKey && config.nvidiaApiKey !== "dummy") {
+    embedFn = buildNvidiaEmbedFn(config.nvidiaApiKey, config.nvidiaBaseUrl);
+    embedSource = `nvidia:${config.nvidiaBaseUrl}`;
+  }
+
+  if (!embedFn) {
+    // Sin embeddings disponibles — el router queda null y se loggea una vez.
+    if (!routerNullWarned) {
+      logger.warn("getRouter", "Sin embeddings disponibles (ni Ollama ni NVIDIA key). Semantic Router desactivado.");
+      routerNullWarned = true;
+    }
+    return null;
+  }
+
   // Siempre reiniciar para capturar cambios en ROUTE_EXAMPLES y evitar stale state
-  routerSingleton = new SemanticRouter(buildEmbedFn(embedBaseUrl));
+  routerSingleton = new SemanticRouter(embedFn);
   try {
     await routerSingleton.initialize();
-    logger.info("getRouter", "Semantic Router initialized", { baseUrl: embedBaseUrl });
+    logger.info("getRouter", "Semantic Router initialized", { source: embedSource });
   } catch (err: any) {
-    logger.warn("getRouter", "Semantic Router init failed (non-fatal)", { reason: err?.message });
+    logger.warn("getRouter", "Semantic Router init failed (non-fatal)", { reason: err?.message, source: embedSource });
     routerSingleton = null;
     return null;
   }

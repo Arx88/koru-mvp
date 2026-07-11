@@ -776,7 +776,10 @@ function koruBackendAgent(env: Record<string, string>): Plugin {
     minimaxAccessToken: readMiniMaxToken(),
     bluesmindsKeys: collectBlueSmindsKeys(env),
     bluesmindsModel: collectBlueSmindsModel(env),
-    ollamaEmbedBaseUrl: "http://localhost:11434",
+    // Fase 2.2: antes hardcoded a localhost:11434 (Ollama casi nunca corría).
+    // Ahora undefined por default → getRouter cae a NVIDIA embeddings cloud.
+    // Setear OLLAMA_EMBED_BASE_URL en .env si querés usar Ollama local.
+    ollamaEmbedBaseUrl: env.OLLAMA_EMBED_BASE_URL?.trim() || undefined,
   };
 
   return {
