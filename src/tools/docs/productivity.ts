@@ -34,7 +34,7 @@ export const summarizeUrl: ToolHandler = {
     }
     const sources = usableSources(await searchAndEnrich(url, 1));
     let dataCard = null;
-    try { dataCard = extractionToDataCard(await validateWithCitations(String(args.focus ?? "resumen"), sources, ctx.chatFn)); } catch {}
+    try { dataCard = extractionToDataCard(await validateWithCitations(String(args.focus ?? "resumen"), sources, ctx.chatFn)); } catch (err) { console.warn("[Koru] productivity dataCard extraction failed:", err instanceof Error ? err.message : err); }
     return { type: "summarize_url", status: "ok", url, sources, dataCard };
   },
 };
@@ -171,7 +171,7 @@ export const deepResearch: ToolHandler = {
     const sources = usableSources(all.flat()).slice(0, 8);
     let dataCard = null;
     if (ctx.chatFn && sources.length > 0) {
-      try { dataCard = extractionToDataCard(await validateWithCitations(query, sources, ctx.chatFn)); } catch {}
+      try { dataCard = extractionToDataCard(await validateWithCitations(query, sources, ctx.chatFn)); } catch (err) { console.warn("[Koru] productivity dataCard extraction failed:", err instanceof Error ? err.message : err); }
     }
     return {
       type: "deep_research",

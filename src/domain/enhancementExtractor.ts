@@ -147,7 +147,9 @@ async function callExtractorLlm(
     return (opportunities as unknown[])
       .map(normalizeOpportunity)
       .filter((o): o is RawOpportunity => o !== null && o.confidence >= 0.65);
-  } catch {
+  } catch (err) {
+    // Fase 2.13: log para debug. Antes era catch silencioso.
+    console.warn("[Koru] extractOpportunities parse failed:", err instanceof Error ? err.message : err);
     return [];
   }
 }
@@ -204,7 +206,8 @@ export async function extractOpportunities(ctx: ExtractorContext, chatFn?: ChatF
       return (opportunities as unknown[])
         .map(normalizeOpportunity)
         .filter((o): o is RawOpportunity => o !== null && o.confidence >= 0.65);
-    } catch {
+    } catch (err) {
+      console.warn("[Koru] extractOpportunities (chatFn) failed:", err instanceof Error ? err.message : err);
       return [];
     }
   }
@@ -216,7 +219,8 @@ export async function extractOpportunities(ctx: ExtractorContext, chatFn?: ChatF
 
   try {
     return await callExtractorLlm(ctx.runtime, ctx.input, ctx.intent, ctx.uiBlocks, ctx.toolResults, ctx.state);
-  } catch {
+  } catch (err) {
+    console.warn("[Koru] extractOpportunities (fallback LLM) failed:", err instanceof Error ? err.message : err);
     return [];
   }
 }

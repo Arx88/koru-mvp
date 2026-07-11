@@ -89,7 +89,7 @@ export const hotelSearch: ToolHandler = {
     const sources = usableSources(await searchAndEnrich(`${query} hotel hostel precio rating`, 5));
     let dataCard = null;
     if (ctx.chatFn && sources.length > 0) {
-      try { dataCard = extractionToDataCard(await validateWithCitations(query, sources, ctx.chatFn)); } catch {}
+      try { dataCard = extractionToDataCard(await validateWithCitations(query, sources, ctx.chatFn)); } catch (err) { console.warn("[Koru] travel dataCard extraction failed:", err instanceof Error ? err.message : err); }
     }
     return { type: "hotel_search", status: "ok", query, sources, dataCard };
   },
@@ -221,7 +221,7 @@ export const visaCheck: ToolHandler = {
     const sources = usableSources(await searchAndEnrich(`requisitos visa ${destination} pasaporte ${passport} 2025 oficial`, 5));
     let dataCard = null;
     if (ctx.chatFn && sources.length > 0) {
-      try { dataCard = extractionToDataCard(await validateWithCitations(`visa para ${destination} con pasaporte ${passport}`, sources, ctx.chatFn)); } catch {}
+      try { dataCard = extractionToDataCard(await validateWithCitations(`visa para ${destination} con pasaporte ${passport}`, sources, ctx.chatFn)); } catch (err) { console.warn("[Koru] travel visa dataCard failed:", err instanceof Error ? err.message : err); }
     }
     return {
       type: "visa_check",
@@ -260,7 +260,7 @@ export const travelItinerary: ToolHandler = {
     const sources = usableSources(await searchAndEnrich(`itinerario ${days} días en ${destination} ${interests.join(" ")} qué ver`, 5));
     let dataCard = null;
     if (ctx.chatFn && sources.length > 0) {
-      try { dataCard = extractionToDataCard(await validateWithCitations(`itinerario ${days} días ${destination}`, sources, ctx.chatFn)); } catch {}
+      try { dataCard = extractionToDataCard(await validateWithCitations(`itinerario ${days} días ${destination}`, sources, ctx.chatFn)); } catch (err) { console.warn("[Koru] travel itinerary dataCard failed:", err instanceof Error ? err.message : err); }
     }
     return {
       type: "travel_itinerary",
