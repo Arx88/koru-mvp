@@ -12,38 +12,38 @@ import { z } from "zod";
 // ── Composer result (respuesta final del LLM) ───────────────────────
 export const ComposerResultSchema = z.object({
   reply: z.string().min(1, "reply es requerido"),
-  mascotState: z.string().catch("idle"),
+  mascotState: z.string().optional().transform(v => v ?? "idle"),
   understanding: z.object({
-    literalRequest: z.string().catch(""),
-    userGoal: z.string().catch(""),
-    confidence: z.number().min(0).max(1).catch(0.5),
+    literalRequest: z.string().optional().transform(v => v ?? ""),
+    userGoal: z.string().optional().transform(v => v ?? ""),
+    confidence: z.number().min(0).max(1).optional().transform(v => v ?? 0.5),
   }).partial().optional(),
   suggestedActions: z.array(z.object({
     id: z.string(),
     label: z.string(),
     kind: z.string(),
     requiresApproval: z.boolean().optional(),
-    payload: z.record(z.unknown()).optional(),
-  })).catch([]),
+    payload: z.record(z.string(), z.unknown()).optional(),
+  })).optional().transform(v => v ?? []),
   memoryCandidates: z.array(z.object({
     kind: z.string(),
     text: z.string(),
-    confidence: z.number().min(0).max(1).catch(0.5),
-  }).passthrough()).catch([]),
+    confidence: z.number().min(0).max(1).optional().transform(v => v ?? 0.5),
+  }).passthrough()).optional().transform(v => v ?? []),
   commitments: z.array(z.object({
     title: z.string(),
     dueHint: z.string().optional(),
-    status: z.string().catch("open"),
-  }).passthrough()).catch([]),
-  records: z.array(z.record(z.unknown())).catch([]),
-  uiBlocks: z.array(z.record(z.unknown())).catch([]),
+    status: z.string().optional().transform(v => v ?? "open"),
+  }).passthrough()).optional().transform(v => v ?? []),
+  records: z.array(z.record(z.string(), z.unknown())).optional().transform(v => v ?? []),
+  uiBlocks: z.array(z.record(z.string(), z.unknown())).optional().transform(v => v ?? []),
 }).passthrough();
 
 export type ZodComposerResult = z.infer<typeof ComposerResultSchema>;
 
 // ── Tool call (lo que el LLM devuelve cuando quiere ejecutar una tool) ──
 export const ToolCallSchema = z.object({
-  id: z.string().catch("call_unknown"),
+  id: z.string().optional().transform(v => v ?? "call_unknown"),
   type: z.literal("function"),
   function: z.object({
     name: z.string().min(1),
@@ -62,7 +62,7 @@ export const EnhancementOpportunitySchema = z.object({
   action: z.object({
     mode: z.enum(["suggest", "ask", "auto"]),
     kind: z.string().optional(),
-    payload: z.record(z.unknown()).optional(),
+    payload: z.record(z.string(), z.unknown()).optional(),
   }).partial().optional(),
 }).passthrough();
 
