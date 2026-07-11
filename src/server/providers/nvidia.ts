@@ -69,6 +69,10 @@ export async function callNvidia(
     model: config.nvidiaModel,
     messages,
     ...(toolsEnabled ? { tools: availableTools ?? TOOL_DEFINITIONS, tool_choice: "auto" } : {}),
+    // Fase 4.2: JSON mode strict. Cuando no hay tools (síntesis final),
+    // pedir response_format json_object para que Nemotron devuelva JSON válido.
+    // Esto elimina el fallback first-call-invalid-json.
+    ...(!toolsEnabled ? { response_format: { type: "json_object" } } : {}),
     temperature: 0.25,
     top_p: 0.95,
     max_tokens: 8192,

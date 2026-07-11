@@ -144,20 +144,8 @@ function tokenize(text: string): string[] {
     .filter((token) => token.length > 3);
 }
 
-function cosineSimilarity(a: number[], b: number[]): number {
-  const length = Math.min(a.length, b.length);
-  if (length === 0) return 0;
-  let dot = 0;
-  let aNorm = 0;
-  let bNorm = 0;
-  for (let index = 0; index < length; index += 1) {
-    dot += a[index] * b[index];
-    aNorm += a[index] * a[index];
-    bNorm += b[index] * b[index];
-  }
-  if (aNorm === 0 || bNorm === 0) return 0;
-  return dot / (Math.sqrt(aNorm) * Math.sqrt(bNorm));
-}
+// Fase 4.9: cosineSimilarity movida a domain/vector.ts
+import { cosineSimilarity } from "./vector";
 
 export function selectActiveMemories(input: string, state: KoruState, limit = 5, queryEmbedding?: number[]): MemoryFact[] {
   if (queryEmbedding?.length) {

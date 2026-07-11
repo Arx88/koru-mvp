@@ -278,22 +278,8 @@ type EmbeddedExample = {
  * Devuelve 0..1 donde 1 = idéntico, 0 = sin relación.
  * Asume vectores ya normalizados (los modelos de embeddings los entregan así).
  */
-export function cosineSimilarity(a: number[], b: number[]): number {
-  let dot = 0;
-  let normA = 0;
-  let normB = 0;
-  // Math.min para soportar vectores de distinta dimensión (cambio de modelo
-  // de embeddings, cold-start con caché vieja, etc.) sin devolver NaN.
-  const len = Math.min(a.length, b.length);
-  for (let i = 0; i < len; i++) {
-    dot += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-  const denom = Math.sqrt(normA) * Math.sqrt(normB);
-  if (denom === 0) return 0;
-  return dot / denom;
-}
+// Fase 4.9: cosineSimilarity movida a domain/vector.ts. Re-export para compat.
+export { cosineSimilarity } from "./vector";
 
 // ── Umbral de confianza ────────────────────────────────────────────
 // Si la similitud coseno más alta no supera esto, caemos a "conversation".
