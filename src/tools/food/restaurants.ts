@@ -196,7 +196,7 @@ export const restaurantReviewAggregate: ToolHandler = {
     const sources = await searchAndEnrich(query, 5);
     const usable = usableSources(sources);
 
-    let dataCard = null;
+    let dataCard: UiBlock | null = null;
     if (ctx.chatFn && usable.length > 0) {
       try {
         const extraction = await validateWithCitations(`reseñas de ${restaurant} ${city}`, usable, ctx.chatFn);

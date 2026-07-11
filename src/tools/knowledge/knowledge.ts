@@ -222,7 +222,7 @@ export const wikipediaLookup: ToolHandler = {
       await limiters.wikipedia.acquire();
       const r = await fetchJson<WikiSummary>(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`, { timeoutMs: 9_000 });
       if (!r.ok) throw new Error(r.error);
-      return r.data;
+      return r.data!;
     });
     if (data.type === "not_found" || !data.extract) {
       return { type: "wikipedia_lookup", status: "ok", query, note: `No encontré "${query}" en Wikipedia (${lang}).` };
@@ -265,7 +265,7 @@ export const dictionaryDefine: ToolHandler = {
     const entries = await cached<DictEntry[]>(cacheKey, ttls.reference, async () => {
       const r = await fetchJson<DictEntry[]>(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`, { timeoutMs: 9_000 });
       if (!r.ok) throw new Error(r.error);
-      return r.data;
+      return r.data!;
     });
     if (!entries.length) {
       return { type: "dictionary_define", status: "ok", word, note: `No encontré "${word}" en el diccionario (inglés).` };

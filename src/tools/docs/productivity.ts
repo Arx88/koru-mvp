@@ -1,3 +1,4 @@
+import type { UiBlock } from "../../domain/types";
 /**
  * Bloque Productivity — Resumir, traducir, letras, deep research, tareas de texto,
  * borradores, clipboard, QR, tiempo/sol/luna/feriados/zona horaria.
@@ -33,7 +34,7 @@ export const summarizeUrl: ToolHandler = {
       return { type: "summarize_url", status: "not_configured", url, note: "Para resumir necesito el LLM local (Ollama). Configuralo en Settings." };
     }
     const sources = usableSources(await searchAndEnrich(url, 1));
-    let dataCard = null;
+    let dataCard: UiBlock | null = null;
     try { dataCard = extractionToDataCard(await validateWithCitations(String(args.focus ?? "resumen"), sources, ctx.chatFn)); } catch (err) { console.warn("[Koru] productivity dataCard extraction failed:", err instanceof Error ? err.message : err); }
     return { type: "summarize_url", status: "ok", url, sources, dataCard };
   },
@@ -139,7 +140,7 @@ export const lyricsFind: ToolHandler = {
         { timeoutMs: 9_000 },
       );
       if (!r.ok) throw new Error(r.error);
-      return r.data.lyrics?.trim() ?? "";
+      return r.data!.lyrics?.trim() ?? "";
     });
     if (!lyrics) {
       return { type: "lyrics_find", status: "ok", artist, title, lyrics: "", note: "No encontré esa letra. Probá con otro nombre." };
@@ -169,7 +170,7 @@ export const deepResearch: ToolHandler = {
     const queries = [query, `${query} análisis pros contras`, `${query} fuentes confiables 2025`];
     const all = await Promise.all(queries.map((q) => searchAndEnrich(q, 4)));
     const sources = usableSources(all.flat()).slice(0, 8);
-    let dataCard = null;
+    let dataCard: UiBlock | null = null;
     if (ctx.chatFn && sources.length > 0) {
       try { dataCard = extractionToDataCard(await validateWithCitations(query, sources, ctx.chatFn)); } catch (err) { console.warn("[Koru] productivity dataCard extraction failed:", err instanceof Error ? err.message : err); }
     }

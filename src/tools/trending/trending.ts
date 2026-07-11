@@ -118,7 +118,7 @@ export const trendingTwitter: ToolHandler = {
     const trends = await cached<Array<{ title: string; url: string }>>(cacheKey, ttls.trending, async () => {
       const r = await fetchText(`https://trends24.in/${slug}/`, { timeoutMs: 9_000 });
       if (!r.ok) return [];
-      const text = r.text;
+      const text = r.text!;
       const items: Array<{ title: string; url: string }> = [];
       const matches = Array.from(text.matchAll(/href="https:\/\/twitter\.com\/search\?q=([^"]+)" class=trend-link>([^<]+)/g));
       for (const m of matches.slice(0, 15)) {
@@ -169,7 +169,7 @@ export const trendingReddit: ToolHandler = {
           `https://${host}/r/${encodeURIComponent(sub)}/top.json?t=${timeframe}&limit=10`,
           { timeoutMs: 9_000, headers: { "User-Agent": ua, Accept: "application/json" } },
         );
-        if (!r.ok) { lastErr = r.error; continue; }
+        if (!r.ok) { lastErr = r.error ?? "Error desconocido"; continue; }
         const children = r.data?.data?.children;
         if (Array.isArray(children)) {
           return children.map((c) => {

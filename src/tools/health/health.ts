@@ -239,7 +239,7 @@ export const airQualityAdvice: ToolHandler = {
       url.searchParams.set("current", "pm2_5,pm10,european_aqi,us_aqi");
       const r = await fetchJson(url.toString(), { timeoutMs: 8_000 });
       if (!r.ok) throw new Error(r.error);
-      return r.data;
+      return r.data as any;
     });
     const c = data.current;
     if (!c) return { type: "air_quality_advice", status: "failed", error: "Sin datos de calidad del aire." };

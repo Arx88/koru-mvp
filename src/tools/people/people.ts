@@ -47,7 +47,7 @@ export const personInfo: ToolHandler = {
         { timeoutMs: 9_000, headers: { Accept: "application/json" } },
       );
       if (!r.ok) throw new Error(r.error);
-      return r.data;
+      return r.data!;
     });
 
     if (summary.type === "not_found" || !summary.extract) {

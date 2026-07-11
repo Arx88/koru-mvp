@@ -14,8 +14,8 @@
     "moduleDetection": "force",
     "noEmit": true,
 
-    /* Linting — Fase 2.10: strict mode pendiente (76 errores a fixear) */
-    "strict": false,
+    /* Linting — Fase 2.10: strict mode ACTIVADO */
+    "strict": true,
     "noImplicitAny": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,

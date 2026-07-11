@@ -36,7 +36,7 @@ export async function searchDuckDuckGo(query: string, max = 6): Promise<Assistan
   const sources: AssistantSource[] = [];
   const resultRe = /<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a[^>]+class="result__snippet"[^>]*>([\s\S]*?)<\/a>/gi;
   let match: RegExpExecArray | null;
-  while ((match = resultRe.exec(result.text)) && sources.length < max) {
+  while ((match = resultRe.exec(result.text!)) && sources.length < max) {
     let linkUrl = match[1];
     try {
       const parsed = new URL(linkUrl, "https://duckduckgo.com");
@@ -80,7 +80,7 @@ export async function fetchPageContent(url: string, maxChars = 1500): Promise<st
       .filter((t) => t.length > 60);
     if (paragraphs.length) body = paragraphs.slice(0, 6).join(" ");
   }
-  return truncate(htmlToText(body), maxChars);
+  return truncate(htmlToText(body ?? ""), maxChars);
 }
 
 /** Filtra fuentes no usables (buscadores, sin https, vacías). */

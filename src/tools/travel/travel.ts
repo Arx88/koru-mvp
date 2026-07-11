@@ -1,3 +1,4 @@
+import type { UiBlock } from "../../domain/types";
 /**
  * Bloque Travel — Vuelos, hoteles, rutas, transporte, cajeros, visa, itinerario.
  * APIs: OpenSky (sin key), OSRM (rutas), Overpass OSM (POIs), Open-Meteo.
@@ -28,7 +29,7 @@ export const flightSearch: ToolHandler = {
     const budget = String(args.budget ?? "").trim();
     if (!query) return { type: "flight_search", status: "failed", error: "Indicá ruta y fecha." };
     const sources = usableSources(await searchAndEnrich(`${query} pasaje vuelo precio ${budget}`, 5));
-    let dataCard = null;
+    let dataCard: UiBlock | null = null;
     if (ctx.chatFn && sources.length > 0) {
       try {
         dataCard = extractionToDataCard(await validateWithCitations(query, sources, ctx.chatFn));
@@ -87,7 +88,7 @@ export const hotelSearch: ToolHandler = {
     const query = String(args.query ?? "").trim();
     if (!query) return { type: "hotel_search", status: "failed", error: "Indicá destino y noches." };
     const sources = usableSources(await searchAndEnrich(`${query} hotel hostel precio rating`, 5));
-    let dataCard = null;
+    let dataCard: UiBlock | null = null;
     if (ctx.chatFn && sources.length > 0) {
       try { dataCard = extractionToDataCard(await validateWithCitations(query, sources, ctx.chatFn)); } catch (err) { console.warn("[Koru] travel dataCard extraction failed:", err instanceof Error ? err.message : err); }
     }
@@ -250,7 +251,7 @@ export const visaCheck: ToolHandler = {
     const passport = String(args.passport ?? "").trim();
     if (!destination || !passport) return { type: "visa_check", status: "failed", error: "Indicá destino y pasaporte." };
     const sources = usableSources(await searchAndEnrich(`requisitos visa ${destination} pasaporte ${passport} 2025 oficial`, 5));
-    let dataCard = null;
+    let dataCard: UiBlock | null = null;
     if (ctx.chatFn && sources.length > 0) {
       try { dataCard = extractionToDataCard(await validateWithCitations(`visa para ${destination} con pasaporte ${passport}`, sources, ctx.chatFn)); } catch (err) { console.warn("[Koru] travel visa dataCard failed:", err instanceof Error ? err.message : err); }
     }
@@ -289,7 +290,7 @@ export const travelItinerary: ToolHandler = {
     const interests = Array.isArray(args.interests) ? args.interests.map(String) : [];
     if (!destination || days <= 0) return { type: "travel_itinerary", status: "failed", error: "Indicá destino y días." };
     const sources = usableSources(await searchAndEnrich(`itinerario ${days} días en ${destination} ${interests.join(" ")} qué ver`, 5));
-    let dataCard = null;
+    let dataCard: UiBlock | null = null;
     if (ctx.chatFn && sources.length > 0) {
       try { dataCard = extractionToDataCard(await validateWithCitations(`itinerario ${days} días ${destination}`, sources, ctx.chatFn)); } catch (err) { console.warn("[Koru] travel itinerary dataCard failed:", err instanceof Error ? err.message : err); }
     }

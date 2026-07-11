@@ -59,7 +59,7 @@ export const cryptoPrice: ToolHandler = {
         { timeoutMs: 10_000 },
       );
       if (!result.ok) throw new Error(result.error);
-      return result.data;
+      return result.data as CoinGeckoResponse;
     });
 
     const md = data.market_data;
