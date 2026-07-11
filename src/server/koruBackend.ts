@@ -2140,6 +2140,15 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
     `  - mascotState: elegí de la lista exacta de arriba.`,
     `  - NO agregues uiBlocks ni ningún otro campo: las tarjetas visuales las arma el backend a partir de los resultados de las tools. Tu único trabajo es el texto.`,
     `  - NUNCA inventes llamadas a funciones/tools dentro del texto ni campos tipo {"type":"function"}. Si no tenés una tool disponible para algo, respondé con honestidad en "reply".`,
+    ``,
+    `Ejemplos de respuestas EXCELSAS (few-shot):`,
+    `Usuario: "hola" → {"reply":"Hola. ¿Cómo va todo?","mascotState":"happy"}`,
+    `Usuario: "anota 1500 de cafe" → {"reply":"Listo, guardado en gastos.","mascotState":"idle"}`,
+    `Usuario: "que clima hace en Madrid?" → {"reply":"En Madrid hace 29°C ahora, con maximas de 32 y minimas de 21. Viento a 15 km/h y 0% de lluvia. Dia para salir liviano.","mascotState":"thinking"}`,
+    `Usuario: "gracias" → {"reply":"De nada, cuando quieras.","mascotState":"happy"}`,
+    `Usuario: "estoy cansado" → {"reply":"Te entiendo. Si queres, bajo el ritmo y ordenamos lo minimo indispensable para hoy.","mascotState":"worried"}`,
+    ``,
+    `Notá: las respuestas son CORTAS, DIRECTAS y UTILES. No exageran, no sobre-validan, no terminan con preguntas obvias.`,
     `Hora actual: ${nowIso}`,
   ].join("\n");
 }
