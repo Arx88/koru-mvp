@@ -1631,7 +1631,8 @@ button.koru-stitch-row {
 }
 
 .koru-card-note {
-  margin-top: 8px;
+  margin-top: 10px;
+  margin-bottom: 14px; /* Fase 1 (audit visual): respiro inferior para que no se pegue al globo Koru siguiente */
   color: var(--koru-muted);
   font-size: 12px;
   line-height: 1.35;
@@ -1732,7 +1733,10 @@ button.koru-stitch-row {
   position: relative;
   z-index: 20;
   flex: 0 0 auto;
-  padding: 8px 20px max(40px, env(safe-area-inset-bottom));
+  /* Fase 1 (audit visual): padding-top generoso para que el activity hint
+     no se pegue al último globo de la conversación. padding-bottom con
+     safe-area para dispositivos con notch. */
+  padding: 14px 20px max(28px, env(safe-area-inset-bottom));
 }
 
 .koru-footer-note,
@@ -2622,7 +2626,9 @@ button.koru-stitch-row {
    la interaccion actual. El panel grande queda reservado para planificar. */
 .koru-activity-hint {
   display: flex; align-items: center; justify-content: center; gap: 8px;
-  margin-bottom: 10px; font-size: 13px; font-weight: 600; color: #ffffff;
+  /* Fase 1 (audit visual): más respiro inferior para separar del composer */
+  margin-bottom: 14px;
+  font-size: 13px; font-weight: 600; color: #ffffff;
   text-shadow: 0 1px 6px rgba(18, 10, 50, 0.5);
 }
 .koru-activity-dot {
