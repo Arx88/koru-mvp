@@ -447,7 +447,7 @@ export function TalkOverlay({ onClose }: { onClose: () => void }) {
                 aria-label={ephemeral ? "Desactivar modo efimero" : "Activar modo efimero"}
                 className={cn("koru-composer-icon", ephemeral && "is-active")}
               >
-                <Leaf size={24} />
+                <Leaf size={22} />
               </button>
               {/* Fase 2.1 — Subir nota de voz */}
               <button
