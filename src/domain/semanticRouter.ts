@@ -278,8 +278,9 @@ type EmbeddedExample = {
  * Devuelve 0..1 donde 1 = idéntico, 0 = sin relación.
  * Asume vectores ya normalizados (los modelos de embeddings los entregan así).
  */
-// Fase 4.9: cosineSimilarity movida a domain/vector.ts. Re-export para compat.
-export { cosineSimilarity } from "./vector";
+// Fase 4.9: cosineSimilarity movida a domain/vector.ts. Import + re-export.
+import { cosineSimilarity } from "./vector";
+export { cosineSimilarity };
 
 // ── Umbral de confianza ────────────────────────────────────────────
 // Si la similitud coseno más alta no supera esto, caemos a "conversation".
