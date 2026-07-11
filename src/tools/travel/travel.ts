@@ -111,32 +111,40 @@ export const routePlan: ToolHandler = {
       required: ["origin", "destination"],
     },
   ),
-  policy: policies.readonly("Calcula ruta pública."),
+  policy: policies.readonly("Calcula ruta via OSRM + geocoding."),
   async run(args) {
     const origin = String(args.origin ?? "").trim();
     const destination = String(args.destination ?? "").trim();
     const mode = String(args.mode ?? "driving");
     if (!origin || !destination) return { type: "route_plan", status: "failed", error: "Indicá origen y destino." };
-    if (mode !== "driving") {
-      // OSRM solo soporta driving. Para otros modos, delegamos.
+    // Fase 3.4: usar Open-Meteo geocoding + OSRM para rutas reales.
+    try {
+      // Geocoding de origen y destino
+      const [origGeo, destGeo] = await Promise.all([
+        fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(origin)}&count=1&format=json`, { signal: AbortSignal.timeout(8000) }).then(r => r.json()),
+        fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(destination)}&count=1&format=json`, { signal: AbortSignal.timeout(8000) }).then(r => r.json()),
+      ]) as [{ results?: Array<{ latitude: number; longitude: number; name: string }> }, { results?: Array<{ latitude: number; longitude: number; name: string }> }];
+      const orig = origGeo.results?.[0];
+      const dest = destGeo.results?.[0];
+      if (!orig || !dest) return { type: "route_plan", status: "ok", origin, destination, mode, note: "No pude geolocalizar origen o destino. Probá con nombres de ciudad más específicos." };
+      // OSRM driving route
+      const profile = mode === "walking" ? "foot" : "driving";
+      const osrmUrl = `https://router.project-osrm.org/route/v1/${profile}/${orig.longitude},${orig.latitude};${dest.longitude},${dest.latitude}?overview=false`;
+      const osrmRes = await fetch(osrmUrl, { signal: AbortSignal.timeout(8000) });
+      const osrmData = await osrmRes.json() as { routes?: Array<{ distance?: number; duration?: number }> };
+      const route = osrmData.routes?.[0];
+      if (!route) return { type: "route_plan", status: "ok", origin, destination, mode, note: "No encontré ruta entre esos puntos." };
+      const km = route.distance ? (route.distance / 1000).toFixed(1) : "?";
+      const mins = route.duration ? Math.round(route.duration / 60) : "?";
       return {
-        type: "route_plan",
-        status: "delegate",
-        delegateTo: "web_search",
-        query: `ruta ${origin} a ${destination} en ${mode === "walking" ? "a pie" : "transporte público"} tiempo`,
-        mode: "research",
-        note: `Modo ${mode}: se enruta a web_search.`,
+        type: "route_plan", status: "ok", origin, destination, mode,
+        text: `De ${orig.name} a ${dest.name}: ${km} km, ${mins} min en ${mode === "walking" ? "a pie" : "auto"}.`,
+        distanceKm: km, durationMin: mins,
       };
+    } catch (err) {
+      console.warn("[Koru] route_plan OSRM failed:", err instanceof Error ? err.message : err);
+      return { type: "route_plan", status: "failed", error: "No pude calcular la ruta. Verificá los nombres de las ciudades." };
     }
-    // Para driving sin coordenadas precisas, derivamos a web_search (OSRM necesita lat/lng).
-    return {
-      type: "route_plan",
-      status: "delegate",
-      delegateTo: "web_search",
-      query: `distancia tiempo de viaje en auto de ${origin} a ${destination}`,
-      mode: "research",
-      note: "Estimación de ruta. Para precisión GPS, integrar geocoding.",
-    };
   },
 };
 
@@ -155,18 +163,29 @@ export const transportNearby: ToolHandler = {
       required: ["location"],
     },
   ),
-  policy: policies.readonly("Lee POIs de transporte de OSM."),
+  policy: policies.readonly("Busca POIs de transporte via OpenStreetMap Overpass."),
   async run(args) {
     const location = String(args.location ?? "").trim();
-    const type = String(args.type ?? "any");
+    const transportType = String(args.type ?? "any");
     if (!location) return { type: "transport_nearby", status: "failed", error: "Indicá ubicación." };
-    return {
-      type: "transport_nearby",
-      status: "delegate",
-      delegateTo: "web_search",
-      query: `estación ${type === "any" ? "transporte público" : type} más cercana ${location}`,
-      mode: "research",
-    };
+    // Fase 3.4: usar Open-Meteo geocoding + Overpass API para transporte real.
+    try {
+      const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&format=json`, { signal: AbortSignal.timeout(8000) });
+      const geoData = await geoRes.json() as { results?: Array<{ latitude: number; longitude: number; name: string }> };
+      const geo = geoData.results?.[0];
+      if (!geo) return { type: "transport_nearby", status: "ok", location, transportType, note: `No encontré coordenadas de ${location}.` };
+      // Overpass API: buscar estaciones de transporte en radio de 2km
+      const transportFilter = transportType === "subway" ? "railway=subway" : transportType === "train" ? "railway=station" : transportType === "bus" ? "highway=bus_stop" : transportType === "bike" ? "amenity=bicycle_rental" : "(railway=subway|railway=station|highway=bus_stop|amenity=bicycle_rental)";
+      const overpassQuery = `[out:json][timeout:8];(node["${transportFilter}"](around:2000,${geo.latitude},${geo.longitude}););out 10;`;
+      const opRes = await fetch("https://overpass-api.de/api/interpreter", { method: "POST", body: overpassQuery, signal: AbortSignal.timeout(9000) });
+      const opData = await opRes.json() as { elements?: Array<{ tags?: { name?: string; railway?: string; highway?: string } }> };
+      const stations = (opData.elements ?? []).map(e => ({ name: e.tags?.name ?? "Estación", kind: e.tags?.railway ?? e.tags?.highway ?? "transporte" })).slice(0, 5);
+      if (stations.length === 0) return { type: "transport_nearby", status: "ok", location, transportType, note: `No encontré estaciones de transporte cerca de ${geo.name}.` };
+      return { type: "transport_nearby", status: "ok", location, transportType, stations, text: `Encontré ${stations.length} estaciones cerca de ${geo.name}: ${stations.map(s => s.name).join(", ")}.` };
+    } catch (err) {
+      console.warn("[Koru] transport_nearby Overpass failed:", err instanceof Error ? err.message : err);
+      return { type: "transport_nearby", status: "failed", error: `No pude buscar transporte cerca de ${location}.` };
+    }
   },
 };
 

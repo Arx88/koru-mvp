@@ -187,19 +187,29 @@ export const tennisAtpWta: ToolHandler = {
       required: [],
     },
   ),
-  policy: policies.readonly("Lee ranking de tenis."),
+  policy: policies.readonly("Busca ranking de tenis en Wikipedia."),
   async run(args) {
     const tour = String(args.tour ?? "atp").toLowerCase();
-    // ESPN no expone ranking limpio sin scraping; delegamos a web_search.
-    return {
-      type: "tennis_atp_wta",
-      status: "delegate",
-      delegateTo: "web_search",
-      query: `ranking ${tour.toUpperCase()} top 10 2025`,
-      mode: "research",
-      tour,
-      note: "Se enruta a web_search para ranking verificado.",
-    };
+    // Fase 3.4: usar Wikipedia API para ranking de tenis.
+    try {
+      const searchQuery = tour === "wta" ? "WTA Tour rankings tennis" : "ATP Tour rankings tennis";
+      const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(searchQuery)}&format=json&origin=*&srlimit=3`;
+      const res = await fetch(searchUrl, { signal: AbortSignal.timeout(9000) });
+      const data = await res.json() as { query?: { search?: Array<{ title: string; snippet: string }> } };
+      const results = data.query?.search ?? [];
+      if (results.length === 0) return { type: "tennis_atp_wta", status: "ok", tour, note: `No encontré ranking ${tour.toUpperCase()}.` };
+      const firstTitle = results[0].title;
+      const summaryRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(firstTitle)}`, { signal: AbortSignal.timeout(9000) });
+      const summary = await summaryRes.json() as { extract?: string; content_urls?: { desktop?: { page: string } } };
+      return {
+        type: "tennis_atp_wta", status: "ok", tour,
+        text: summary.extract ?? `Encontré información sobre ${firstTitle}.`,
+        sources: [{ title: firstTitle, url: summary.content_urls?.desktop?.page ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(firstTitle)}`, domain: "wikipedia.org", snippet: results[0].snippet?.replace(/<[^>]+>/g, "") }],
+      };
+    } catch (err) {
+      console.warn("[Koru] tennis_atp_wta Wikipedia failed:", err instanceof Error ? err.message : err);
+      return { type: "tennis_atp_wta", status: "failed", error: `No pude buscar ranking ${tour.toUpperCase()}.` };
+    }
   },
 };
 
