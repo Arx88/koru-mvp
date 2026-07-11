@@ -25,19 +25,29 @@ export const playerStats: ToolHandler = {
       required: ["name"],
     },
   ),
-  policy: policies.readonly("Lee stats deportivas públicas."),
+  policy: policies.readonly("Busca stats en Wikipedia."),
   async run(args) {
     const name = String(args.name ?? "").trim();
     if (!name) return { type: "player_stats", status: "failed", error: "Indicá el nombre." };
-    // Delegamos a web_search del motor para búsqueda multi-fuente con anti-alucinación.
-    return {
-      type: "player_stats",
-      status: "delegate",
-      delegateTo: "web_search",
-      query: `${name} estadísticas equipo edad goles 2025`,
-      mode: "research",
-      note: "Se enruta a web_search del motor para datos verificados multi-fuente.",
-    };
+    // Fase 3.2: usar Wikipedia API directamente.
+    try {
+      const searchUrl = `https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(`${name} deportista`)}&format=json&origin=*&srlimit=3`;
+      const res = await fetch(searchUrl, { signal: AbortSignal.timeout(9000) });
+      const data = await res.json() as { query?: { search?: Array<{ title: string; snippet: string }> } };
+      const results = data.query?.search ?? [];
+      if (results.length === 0) return { type: "player_stats", status: "ok", name, note: `No encontré stats de ${name}.` };
+      const firstTitle = results[0].title;
+      const summaryRes = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(firstTitle)}`, { signal: AbortSignal.timeout(9000) });
+      const summary = await summaryRes.json() as { extract?: string; content_urls?: { desktop?: { page: string } } };
+      return {
+        type: "player_stats", status: "ok", name,
+        text: summary.extract ?? `Encontré información sobre ${firstTitle}.`,
+        sources: [{ title: firstTitle, url: summary.content_urls?.desktop?.page ?? `https://es.wikipedia.org/wiki/${encodeURIComponent(firstTitle)}`, domain: "wikipedia.org", snippet: results[0].snippet?.replace(/<[^>]+>/g, "") }],
+      };
+    } catch (err) {
+      console.warn("[Koru] player_stats Wikipedia failed:", err instanceof Error ? err.message : err);
+      return { type: "player_stats", status: "failed", error: `No pude buscar stats de ${name}.` };
+    }
   },
 };
 
@@ -56,18 +66,28 @@ export const tournamentBracket: ToolHandler = {
       required: ["tournament"],
     },
   ),
-  policy: policies.readonly("Lee llave de torneo pública."),
+  policy: policies.readonly("Busca llave de torneo en Wikipedia."),
   async run(args) {
     const tournament = String(args.tournament ?? "").trim();
     if (!tournament) return { type: "tournament_bracket", status: "failed", error: "Indicá el torneo." };
-    return {
-      type: "tournament_bracket",
-      status: "delegate",
-      delegateTo: "web_search",
-      query: `${tournament} llave bracket cuadro 2025 resultado`,
-      mode: "research",
-      note: "Se enruta a web_search para datos verificados.",
-    };
+    try {
+      const searchUrl = `https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(`${tournament} torneo 2025`)}&format=json&origin=*&srlimit=3`;
+      const res = await fetch(searchUrl, { signal: AbortSignal.timeout(9000) });
+      const data = await res.json() as { query?: { search?: Array<{ title: string; snippet: string }> } };
+      const results = data.query?.search ?? [];
+      if (results.length === 0) return { type: "tournament_bracket", status: "ok", tournament, note: `No encontré la llave de ${tournament}.` };
+      const firstTitle = results[0].title;
+      const summaryRes = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(firstTitle)}`, { signal: AbortSignal.timeout(9000) });
+      const summary = await summaryRes.json() as { extract?: string; content_urls?: { desktop?: { page: string } } };
+      return {
+        type: "tournament_bracket", status: "ok", tournament,
+        text: summary.extract ?? `Encontré información sobre ${firstTitle}.`,
+        sources: [{ title: firstTitle, url: summary.content_urls?.desktop?.page ?? `https://es.wikipedia.org/wiki/${encodeURIComponent(firstTitle)}`, domain: "wikipedia.org", snippet: results[0].snippet?.replace(/<[^>]+>/g, "") }],
+      };
+    } catch (err) {
+      console.warn("[Koru] tournament_bracket Wikipedia failed:", err instanceof Error ? err.message : err);
+      return { type: "tournament_bracket", status: "failed", error: `No pude buscar la llave de ${tournament}.` };
+    }
   },
 };
 
@@ -85,18 +105,27 @@ export const sportsNews: ToolHandler = {
       required: ["topic"],
     },
   ),
-  policy: policies.readonly("Lee noticias deportivas."),
+  policy: policies.readonly("Lee noticias deportivas de GDELT."),
   async run(args) {
     const topic = String(args.topic ?? "").trim();
     if (!topic) return { type: "sports_news", status: "failed", error: "Indicá tema." };
-    return {
-      type: "sports_news",
-      status: "delegate",
-      delegateTo: "web_search",
-      query: `${topic} noticias deportivas recientes`,
-      mode: "news",
-      note: "Se enruta a web_search con modo news.",
-    };
+    // Fase 3.2: usar GDELT API directamente en lugar de delegar.
+    try {
+      const url = new URL("https://api.gdeltproject.org/api/v2/doc/doc");
+      url.searchParams.set("query", `${topic} sport`);
+      url.searchParams.set("mode", "ArtList");
+      url.searchParams.set("maxrecords", "10");
+      url.searchParams.set("sort", "DateDesc");
+      url.searchParams.set("format", "json");
+      const res = await fetch(url.toString(), { signal: AbortSignal.timeout(9000) });
+      const data = await res.json() as { articles?: Array<{ title?: string; url?: string; domain?: string; seendate?: string }> };
+      const articles = (data.articles ?? []).slice(0, 5).map(a => ({ title: a.title ?? "Sin título", url: a.url ?? "", domain: a.domain ?? "", snippet: a.seendate ?? "" }));
+      if (articles.length === 0) return { type: "sports_news", status: "ok", topic, note: `No encontré noticias deportivas sobre ${topic}.` };
+      return { type: "sports_news", status: "ok", topic, articles, source: "GDELT" };
+    } catch (err) {
+      console.warn("[Koru] sports_news GDELT failed:", err instanceof Error ? err.message : err);
+      return { type: "sports_news", status: "failed", error: `No pude buscar noticias de ${topic}.` };
+    }
   },
 };
 
