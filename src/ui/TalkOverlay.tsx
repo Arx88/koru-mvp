@@ -230,7 +230,6 @@ export function TalkOverlay({ onClose }: { onClose: () => void }) {
     setMicError(message);
     micErrorTimerRef.current = setTimeout(() => setMicError(""), 4000);
   }, []);
-  useEffect(() => () => { if (micErrorTimerRef.current) clearTimeout(micErrorTimerRef.current); }, []);
 
   // UX Stitch: NO es un chat con historial. Es interaccion inmediata de un solo
   // turno: en pantalla solo vive el intercambio ACTUAL (ultimo mensaje del
