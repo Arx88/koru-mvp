@@ -60,8 +60,8 @@ export function KoruUnifiedCard({ block }: { block: UiBlock }) {
             const displayValue = m.value && m.value.length > 15
               ? m.value.slice(0, 12).trimEnd() + "…"
               : m.value;
-            const displayLabel = m.label && m.label.length > 20
-              ? m.label.slice(0, 17).trimEnd() + "…"
+            const displayLabel = m.label && m.label.length > 25
+              ? m.label.slice(0, 22).trimEnd() + "…"
               : m.label;
             return hasMetricValues ? (
               <div key={i} className="koru-unified-metric">
