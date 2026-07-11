@@ -71,7 +71,7 @@ export const matchLive: ToolHandler = {
         { timeoutMs: 9_000 },
       );
       if (!result.ok) throw new Error(result.error);
-      return result.data.events ?? [];
+      return result.data!.events ?? [];
     });
 
     if (events.length === 0) {
@@ -117,7 +117,7 @@ export const leagueStandings: ToolHandler = {
         { timeoutMs: 9_000 },
       );
       if (!r.ok) throw new Error(r.error);
-      return r.data.leagues ?? [];
+      return r.data!.leagues ?? [];
     });
 
     if (leagues.length === 0) {
@@ -133,7 +133,7 @@ export const leagueStandings: ToolHandler = {
         { timeoutMs: 9_000 },
       );
       if (!r.ok) throw new Error(r.error);
-      return (r.data.table ?? []) as never;
+      return (r.data!.table ?? []) as never;
     });
 
     if (table.length === 0) {
@@ -191,7 +191,7 @@ export const matchSchedule: ToolHandler = {
           { timeoutMs: 9_000 },
         );
         if (!r.ok) throw new Error(r.error);
-        return r.data.events ?? [];
+        return r.data!.events ?? [];
       });
     }
     if (events.length === 0 && league) {
@@ -202,7 +202,7 @@ export const matchSchedule: ToolHandler = {
           { timeoutMs: 9_000 },
         );
         if (!r.ok) throw new Error(r.error);
-        return r.data.leagues ?? [];
+        return r.data!.leagues ?? [];
       });
       const leagueId = leagues[0]?.idLeague;
       if (leagueId) {
@@ -213,7 +213,7 @@ export const matchSchedule: ToolHandler = {
             { timeoutMs: 9_000 },
           );
           if (!r.ok) throw new Error(r.error);
-          return r.data.events ?? [];
+          return r.data!.events ?? [];
         });
       }
     }
@@ -241,7 +241,7 @@ export const matchSchedule: ToolHandler = {
           { timeoutMs: 8_000 },
         );
         if (r.ok && r.data?.events) {
-          const evs = r.data.events
+          const evs = r.data!.events
             .filter((e) => e.strTimestamp && new Date(e.strTimestamp).getTime() >= now - 3 * 60 * 60 * 1000)
             .sort((a, b) => (a.strTimestamp ?? "") > (b.strTimestamp ?? "") ? 1 : -1)
             .slice(0, 3);

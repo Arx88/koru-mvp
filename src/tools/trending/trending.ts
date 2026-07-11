@@ -23,7 +23,7 @@ async function queryGdelt(query: string, maxrecords = 8): Promise<GdeltArticle[]
   url.searchParams.set("sort", "DateDesc");
   const r = await fetchJson<{ articles?: GdeltArticle[] }>(url.toString(), { timeoutMs: 10_000 });
   if (!r.ok) return [];
-  return (r.data.articles ?? []).filter((a) => a.title && a.url);
+  return (r.data!.articles ?? []).filter((a) => a.title && a.url);
 }
 
 export const newsUrgent: ToolHandler = {
@@ -217,7 +217,7 @@ export const trendingYoutube: ToolHandler = {
       if (!r.ok) return [];
       // YouTube embeds JSON en la página; extraemos títulos+IDs.
       const out: Array<{ title: string; url: string; channel?: string }> = [];
-      const matches = Array.from(r.text.matchAll(/"videoId":"([\w-]{11})"[^}]*?"title":\{"runs":\[\{"text":"([^"]+)"/g)).slice(0, 10);
+      const matches = Array.from(r.text!.matchAll(/"videoId":"([\w-]{11})"[^}]*?"title":\{"runs":\[\{"text":"([^"]+)"/g)).slice(0, 10);
       for (const m of matches) {
         out.push({ url: `https://www.youtube.com/watch?v=${m[1]}`, title: m[2] });
       }
@@ -254,7 +254,7 @@ export const trendingGithub: ToolHandler = {
       const r = await fetchText(url.toString(), { timeoutMs: 10_000, headers: { Accept: "text/html" } });
       if (!r.ok) return [];
       const out: Array<{ name: string; url: string; description?: string; stars?: string }> = [];
-      const matches = Array.from(r.text.matchAll(/<h2 class="h3 lh-condensed">[\s\S]*?<a href="\/([^"]+)"[\s\S]*?<\/a>[\s\S]*?<p class="col-9[^"]*">([\s\S]*?)<\/p>[\s\S]*?(?:<a[^>]*>([\d,]+)\s*stars<\/a>)?/g)).slice(0, 15);
+      const matches = Array.from(r.text!.matchAll(/<h2 class="h3 lh-condensed">[\s\S]*?<a href="\/([^"]+)"[\s\S]*?<\/a>[\s\S]*?<p class="col-9[^"]*">([\s\S]*?)<\/p>[\s\S]*?(?:<a[^>]*>([\d,]+)\s*stars<\/a>)?/g)).slice(0, 15);
       for (const m of matches) {
         out.push({
           name: m[1],
@@ -343,7 +343,7 @@ export const rssDigest: ToolHandler = {
       const r = await fetchText(feed.url, { timeoutMs: 8_000 });
       if (!r.ok) continue;
       // Parser XML simple para <item><title>...<link>...<pubDate>...
-      const itemMatches = Array.from(r.text.matchAll(/<item>[\s\S]*?<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>[\s\S]*?<link>([\s\S]*?)<\/link>(?:[\s\S]*?<pubDate>([\s\S]*?)<\/pubDate>)?/gi)).slice(0, 5);
+      const itemMatches = Array.from(r.text!.matchAll(/<item>[\s\S]*?<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>[\s\S]*?<link>([\s\S]*?)<\/link>(?:[\s\S]*?<pubDate>([\s\S]*?)<\/pubDate>)?/gi)).slice(0, 5);
       for (const m of itemMatches) {
         const pubDate = m[3]?.trim();
         const ts = pubDate ? new Date(pubDate).getTime() : 0;

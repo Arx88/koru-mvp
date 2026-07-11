@@ -73,7 +73,7 @@ export const recipeFind: ToolHandler = {
         { timeoutMs: 9_000 },
       );
       if (!r.ok) throw new Error(r.error);
-      return r.data.meals ?? [];
+      return r.data!.meals ?? [];
     });
 
     if (meals.length === 0) {
@@ -126,7 +126,7 @@ export const recipeByIngredients: ToolHandler = {
         { timeoutMs: 9_000 },
       );
       if (!r.ok) throw new Error(r.error);
-      return r.data.meals ?? [];
+      return r.data!.meals ?? [];
     });
     return {
       type: "recipe_by_ingredients",
@@ -235,7 +235,7 @@ export const foodInfo: ToolHandler = {
         { timeoutMs: 9_000 },
       );
       if (!r.ok) throw new Error(r.error);
-      return r.data.product ?? {};
+      return r.data!.product ?? {};
     });
 
     if (!product.product_name) {

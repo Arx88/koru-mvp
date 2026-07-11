@@ -67,15 +67,15 @@ export async function fetchPageContent(url: string, maxChars = 1500): Promise<st
   const html = result.text;
   // Intentar article, luego main, luego párrafos largos.
   let body = html;
-  const article = html.match(/<article\b[^>]*>([\s\S]*?)<\/article>/i);
+  const article = html!.match(/<article\b[^>]*>([\s\S]*?)<\/article>/i);
   if (article) {
     body = article[1];
   } else {
-    const main = html.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i);
+    const main = html!.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i);
     if (main) body = main[1];
   }
   if (body === html) {
-    const paragraphs = Array.from(html.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi))
+    const paragraphs = Array.from(html!.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi))
       .map((m) => m[1].replace(/<[^>]+>/g, " ").trim())
       .filter((t) => t.length > 60);
     if (paragraphs.length) body = paragraphs.slice(0, 6).join(" ");

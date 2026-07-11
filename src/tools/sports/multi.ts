@@ -157,7 +157,7 @@ export const golfLeaderboard: ToolHandler = {
         { timeoutMs: 8_000 },
       );
       if (!r.ok) throw new Error(r.error);
-      return r.data;
+      return r.data!;
     });
 
     const leaders = (data.leaders ?? []).slice(0, 10).map((l) => ({
@@ -238,7 +238,7 @@ export const f1Results: ToolHandler = {
         { timeoutMs: 9_000 },
       );
       if (!r.ok) throw new Error(r.error);
-      return r.data;
+      return r.data!;
     });
 
     const races = data.MRData?.RaceTable?.Races ?? [];

@@ -55,7 +55,7 @@ export const exchangeHistory: ToolHandler = {
       );
       if (!result.ok) throw new Error(result.error);
       // Frankfurter devuelve {rates: {YYYY-MM-DD: {TO: rate}}}
-      const raw = result.data.rates as Record<string, Record<string, number>>;
+      const raw = result.data!.rates as Record<string, Record<string, number>>;
       const out: Record<string, number> = {};
       for (const [date, entry] of Object.entries(raw)) {
         if (entry && typeof entry[to] === "number") out[date] = entry[to];

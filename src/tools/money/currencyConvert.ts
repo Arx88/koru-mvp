@@ -52,7 +52,7 @@ export const currencyConvert: ToolHandler = {
         { timeoutMs: 8_000 },
       );
       if (!result.ok) throw new Error(result.error);
-      const rateValue = result.data.rates?.[to];
+      const rateValue = result.data!.rates?.[to];
       if (typeof rateValue !== "number") throw new Error(`No tengo tasa para ${from}→${to}.`);
       return rateValue;
     });

@@ -62,7 +62,7 @@ export const stockQuote: ToolHandler = {
         { headers: { Accept: "text/csv" }, timeoutMs: 8_000 },
       );
       if (!result.ok) throw new Error(result.error);
-      const parsed = parseStooqCsv(result.text);
+      const parsed = parseStooqCsv(result.text!);
       if (!parsed) throw new Error("Respuesta Stooq inválida.");
       return parsed;
     });

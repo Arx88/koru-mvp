@@ -237,8 +237,8 @@ export const bookInfo: ToolHandler = {
         `https://openlibrary.org/search.json?${params.toString()}&limit=1`,
         { timeoutMs: 9_000 },
       );
-      if (!r.ok || !r.data.docs?.length) return null;
-      return r.data.docs[0];
+      if (!r.ok || !r.data!.docs?.length) return null;
+      return r.data!.docs[0];
     });
 
     if (!book) {

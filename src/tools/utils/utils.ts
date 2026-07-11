@@ -30,7 +30,7 @@ export const urlShorten: ToolHandler = {
     const short = await cached<string>(cacheKey, ttls.reference, async () => {
       const r = await fetchJson<{ shorturl?: string }>(`https://is.gd/create.php?format=json&url=${encodeURIComponent(url)}`, { timeoutMs: 8_000 });
       if (!r.ok) throw new Error(r.error);
-      return r.data.shorturl ?? "";
+      return r.data!.shorturl ?? "";
     });
     if (!short) return { type: "url_shorten", status: "failed", error: "No pude acortar la URL." };
     return { type: "url_shorten", status: "ok", original: url, short, source: "is.gd" };
@@ -103,7 +103,7 @@ export const quoteOfDay: ToolHandler = {
     const data = await cached<{ q?: string; a?: string }[]>(cacheKey, ttls.reference, async () => {
       const r = await fetchJson<{ q?: string; a?: string }[]>("https://zenquotes.io/api/today", { timeoutMs: 8_000 });
       if (!r.ok) throw new Error(r.error);
-      return r.data;
+      return r.data!;
     });
     const q = Array.isArray(data) ? data[0] : null;
     if (!q?.q) return { type: "quote_of_day", status: "ok", note: "No pude conseguir una cita hoy." };
