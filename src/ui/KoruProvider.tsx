@@ -493,7 +493,7 @@ type KoruContextValue = {
   completeCommitment: (id: string) => void;
   togglePermission: (id: string) => void;
   setEphemeral: (v: boolean) => void;
-  logRitual: (count: number) => void;
+  // Fase 1 (C6): logRitual era un no-op — eliminado del contexto y de la API.
   submitEntry: (text: string, transcriptSource?: DailyEntry["transcriptSource"], history?: KoruChatTurn[]) => Promise<{ response: string; items: KoruTurnItem[]; state: KoruState; mascotState?: MascotState }>;
   sendMessage: (text: string, transcriptSource?: DailyEntry["transcriptSource"]) => Promise<KoruChatTurn | null>;
   reviewAction: (id: string, approve: boolean) => KoruTurnItem | null;
@@ -898,9 +898,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  function logRitual(_count: number) {
-    // Energy is already awarded via submitReflection
-  }
+  // Fase 1 (C6): logRitual eliminado — era un no-op.
 
   async function submitEntry(
     text: string,
@@ -1329,7 +1327,6 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     completeCommitment: completeCommitmentInChat,
     togglePermission,
     setEphemeral,
-    logRitual,
     submitEntry,
     sendMessage,
     reviewAction,
