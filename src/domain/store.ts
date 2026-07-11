@@ -1,7 +1,7 @@
-import { analyzeReflection } from "./brain";
 import { applyBackendTurnToState } from "./turn";
-// analyzeReflection/submitReflection are kept for tests and legacy callers.
-// New code should use the backend agent flow via KoruProvider/sendMessage.
+// Fase 2.14: brain.ts eliminado (motor client-side legacy).
+// submitReflection se mantiene como stub que lanza error — el flujo
+// activo usa runBackendAgentTurn via KoruProvider.submitEntry.
 import { executeApprovedAction } from "./executor";
 import { commitmentIdentityKey, mergeDueHint, uniqueCommitmentList } from "./commitments";
 import { createDefaultRuntimeSettings, runFreeLlmEmbedding } from "./freellmapi";
@@ -214,159 +214,15 @@ export function applyTurnResultToState(
   return applyBackendTurnToState(state, text, transcriptSource, result);
 }
 
-/**
- * @deprecated Use the backend agent flow via KoruProvider.sendMessage instead.
- * Kept for tests and legacy callers.
- */
+// Fase 2.14: submitReflection eliminado (usaba brain.ts que fue removido).
+// El flujo activo usa runBackendAgentTurn via KoruProvider.submitEntry.
 export async function submitReflection(
-  state: KoruState,
-  text: string,
-  transcriptSource: DailyEntry["transcriptSource"] = "typed",
-  history: KoruConversationMessage[] = [],
+  _state: KoruState,
+  _text: string,
+  _transcriptSource: DailyEntry["transcriptSource"] = "typed",
+  _history: KoruConversationMessage[] = [],
 ): Promise<{ state: KoruState; entry: DailyEntry; response: string }> {
-  const cleanText = text.trim();
-  if (!cleanText) {
-    throw new Error("Koru necesita que le cuentes algo para poder ordenarlo.");
-  }
-
-  const analysisState = state.ephemeralMode || !state.durableMemoryEnabled
-    ? { ...state, ephemeralMode: true }
-    : state;
-  const startedAt = performance.now();
-  const analysis = await analyzeReflection(cleanText, analysisState, history);
-  const latencyMs = Math.round(performance.now() - startedAt);
-  const createdAt = nowIso();
-  const entryId = createId("entry");
-  const memories: MemoryFact[] = analysis.memoryCandidates.map((candidate) => ({
-    ...candidate,
-    useForSuggestions: candidate.useForSuggestions ?? candidate.sensitivity === "normal",
-    id: createId("mem"),
-    createdAt,
-    sourceEntryId: entryId,
-  }));
-  const existingCommitmentsByKey = new Map(
-    state.commitments
-      .filter((commitment) => commitment.status === "open")
-      .map((commitment) => [commitmentIdentityKey(commitment), commitment]),
-  );
-  const incomingCommitments = uniqueCommitmentList(analysis.commitments);
-  const dueHintUpdates = new Map<string, string>();
-  const dueAtUpdates = new Map<string, string>();
-  const recurrenceUpdates = new Map<string, Commitment["recurrence"]>();
-  const commitments: Commitment[] = incomingCommitments
-    .filter((commitment) => {
-      const key = commitmentIdentityKey(commitment);
-      const existing = existingCommitmentsByKey.get(key);
-      if (existing) {
-        const mergedDueHint = mergeDueHint(existing.dueHint, commitment.dueHint);
-        if (mergedDueHint !== existing.dueHint) dueHintUpdates.set(existing.id, mergedDueHint);
-        if (!existing.dueAt && commitment.dueAt) dueAtUpdates.set(existing.id, commitment.dueAt);
-        if (!existing.recurrence && commitment.recurrence) recurrenceUpdates.set(existing.id, commitment.recurrence);
-        return false;
-      }
-      existingCommitmentsByKey.set(key, {
-        ...commitment,
-        id: key,
-        createdAt,
-        sourceEntryId: entryId,
-      });
-      return true;
-    })
-    .map((commitment) => ({
-      ...commitment,
-      id: createId("commit"),
-      createdAt,
-      sourceEntryId: entryId,
-    }));
-  const actions: AssistantAction[] = state.actionPreparationEnabled
-    ? analysis.actionProposals.map((action) => ({
-        ...action,
-        id: createId("act"),
-        createdAt,
-        sourceEntryId: entryId,
-      }))
-    : [];
-  const records: LifeRecord[] = analysis.records.map((record) => ({
-    ...record,
-    id: createId("rec"),
-    createdAt,
-    sourceEntryId: entryId,
-  }));
-  const nudges: ProactiveNudge[] = analysis.nudges.map((nudge) => ({
-    ...nudge,
-    id: createId("nudge"),
-    createdAt,
-  }));
-  const shouldPersistEntry = !state.ephemeralMode;
-  const energyEvent: EnergyEvent = {
-    id: createId("energy"),
-    createdAt,
-    source: state.ephemeralMode ? "ephemeral_reflection" : "daily_reflection",
-    points: analysis.energyAwarded,
-    explanation: state.ephemeralMode
-      ? "Entrada sin memoria permanente."
-      : "Entrada ordenada con cosas utiles para volver a mirar.",
-  };
-  const providerFellBack = analysis.model?.startsWith("fallback-after-") ?? false;
-  const modelCall: ModelCall = {
-    id: createId("call"),
-    createdAt,
-    taskType: "reflection_analysis",
-    provider: analysis.provider,
-    model: analysis.model,
-    success: !providerFellBack,
-    latencyMs,
-    summary: providerFellBack
-      ? `Proveedor no disponible; use fallback local. ${analysis.memoryCandidates.length} memoria(s), ${incomingCommitments.length} pendiente(s), ${analysis.actionProposals.length} accion(es)`
-      : `${analysis.memoryCandidates.length} memoria(s), ${incomingCommitments.length} pendiente(s), ${analysis.actionProposals.length} accion(es)`,
-  };
-  const entry: DailyEntry = {
-    id: entryId,
-    text: cleanText,
-    createdAt,
-    summary: analysis.summary,
-    transcriptSource,
-    energyAwarded: analysis.energyAwarded,
-    sentiment: analysis.sentiment,
-    memoryIds: memories.map((memory) => memory.id),
-    commitmentIds: commitments.map((commitment) => commitment.id),
-    actionIds: actions.map((action) => action.id),
-    recordIds: records.map((record) => record.id),
-    activeMemoryIds: analysis.activeMemoryIds,
-    brainProvider: analysis.provider,
-    brainModel: analysis.model,
-  };
-  const next: KoruState = {
-    ...state,
-    totalEnergy: state.totalEnergy + analysis.energyAwarded,
-    trustedEnergy: state.trustedEnergy + Math.round(analysis.energyAwarded * (state.ephemeralMode ? 0.35 : 0.6)),
-    entries: shouldPersistEntry ? [entry, ...state.entries] : state.entries,
-    memories: [...memories, ...state.memories],
-    commitments: [
-      ...commitments,
-      ...state.commitments.map((commitment) =>
-        ({
-          ...commitment,
-          dueHint: dueHintUpdates.get(commitment.id) ?? commitment.dueHint,
-          dueAt: dueAtUpdates.get(commitment.id) ?? commitment.dueAt,
-          recurrence: recurrenceUpdates.get(commitment.id) ?? commitment.recurrence,
-        }),
-      ),
-    ],
-    actions: [...actions, ...state.actions],
-    records: [...records, ...state.records].slice(0, 500),
-    nudges: [...nudges, ...state.nudges],
-    energyEvents: shouldPersistEntry ? [energyEvent, ...state.energyEvents] : state.energyEvents,
-    modelCalls: shouldPersistEntry ? [modelCall, ...state.modelCalls].slice(0, 120) : state.modelCalls,
-    updatedAt: createdAt,
-  };
-  next.stage = stageFor(next);
-  if (state.ephemeralMode) {
-    saveEphemeralSessionSnapshot(state, next);
-  } else {
-    saveState(next);
-  }
-  return { state: next, entry, response: analysis.response };
+  throw new Error("submitReflection is deprecated. Use runBackendAgentTurn via KoruProvider.submitEntry instead.");
 }
 
 export function confirmMemory(state: KoruState, id: string): KoruState {
