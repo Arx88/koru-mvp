@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp, ChevronLeft, Leaf, Mic, MicOff, Paperclip } from "lucide-react";
+import { ArrowUp, ChevronLeft, Image as ImageIcon, Leaf, Mic, MicOff, Paperclip } from "lucide-react";
 import { createSpeechSession, getSpeechSupport } from "../domain/speech";
 import { cn } from "../lib/utils";
 import { useKoru, PHASE_ORDER, type KoruChatTurn, type KoruTurnItem } from "./KoruProvider";
@@ -217,8 +217,10 @@ export function TalkOverlay({ onClose }: { onClose: () => void }) {
   const [speechStatus] = useState(() => getSpeechSupport());
   const [micError, setMicError] = useState("");
   const [transcribing, setTranscribing] = useState(false);
+  const [analyzingImage, setAnalyzingImage] = useState(false);
   const micErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<ReturnType<typeof createSpeechSession> | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -399,6 +401,45 @@ export function TalkOverlay({ onClose }: { onClose: () => void }) {
     e.target.value = "";
   }, [handleAudioUpload]);
 
+  // Fase 3.8 — Subir imagen: analiza con VLM (OCR, descripción, etc.)
+  // y manda el resultado como mensaje normal.
+  const handleImageUpload = useCallback(async (file: File) => {
+    if (!file) return;
+    if (analyzingImage || processing) return;
+    setAnalyzingImage(true);
+    showMicError("Analizando imagen...");
+    try {
+      const buf = await file.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+      const res = await fetch("/api/koru/vlm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image_base64: base64 }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
+      const data = (await res.json()) as { text?: string };
+      const text = (data.text ?? "").trim();
+      if (!text) {
+        showMicError("No pude analizar la imagen.");
+        return;
+      }
+      await submitText(text, "typed");
+    } catch (err) {
+      showMicError(`Error de análisis: ${err instanceof Error ? err.message : "desconocido"}`);
+    } finally {
+      setAnalyzingImage(false);
+    }
+  }, [analyzingImage, processing, showMicError, submitText]);
+
+  const onImageChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) void handleImageUpload(file);
+    e.target.value = "";
+  }, [handleImageUpload]);
+
   return (
     <div className="koru-chat-shell">
       <section className="koru-chat-screen" aria-label="Conversacion con Koru">
@@ -466,6 +507,23 @@ export function TalkOverlay({ onClose }: { onClose: () => void }) {
                 type="file"
                 accept="audio/*"
                 onChange={onFileChange}
+                className="hidden"
+              />
+              {/* Fase 3.8 — Subir imagen (OCR/análisis) */}
+              <button
+                type="button"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={analyzingImage || processing}
+                aria-label="Subir imagen"
+                className={cn("koru-composer-icon", analyzingImage && "is-active")}
+              >
+                <ImageIcon size={22} />
+              </button>
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                onChange={onImageChange}
                 className="hidden"
               />
               <div className="koru-composer-field">

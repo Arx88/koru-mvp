@@ -836,6 +836,56 @@ function koruBackendAgent(env: Record<string, string>): Plugin {
         res.end(JSON.stringify({ models: [...predefined, ...fallback] }));
       });
 
+      // Fase 3.8 — VLM para análisis de imágenes (OCR, descripción, etc.).
+      // El cliente sube una imagen (base64), este endpoint la analiza con
+      // z-ai-web-dev-sdk VLM y devuelve el texto/análisis.
+      server.middlewares.use("/api/koru/vlm", async (req, res) => {
+        if (req.method !== "POST") {
+          res.statusCode = 405;
+          res.setHeader("Allow", "POST");
+          res.end();
+          return;
+        }
+
+        const chunks: Buffer[] = [];
+        for await (const chunk of req) chunks.push(Buffer.from(chunk));
+        const raw = Buffer.concat(chunks).toString("utf8");
+
+        try {
+          const body = JSON.parse(raw || "{}") as { image_base64?: string; prompt?: string };
+          if (!body.image_base64) {
+            res.statusCode = 400;
+            res.setHeader("Content-Type", "application/json");
+            res.end(JSON.stringify({ error: "Falta image_base64" }));
+            return;
+          }
+
+          const { default: ZAI } = await import("z-ai-web-dev-sdk");
+          const zai = await ZAI.create();
+          const prompt = body.prompt || "Extraé todo el texto visible en la imagen, preservando estructura. Si no hay texto, describí qué se ve.";
+          const response = await zai.chat.completions.createVision({
+            messages: [{
+              role: "user",
+              content: [
+                { type: "text", text: prompt },
+                { type: "image_url", image_url: { url: `data:image/jpeg;base64,${body.image_base64}` } },
+              ],
+            }],
+            thinking: { type: "disabled" },
+          });
+          const text = response.choices?.[0]?.message?.content ?? "";
+          logger.info("koru-vlm", "Imagen analizada", { textLength: text.length });
+          res.statusCode = 200;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ text }));
+        } catch (err: any) {
+          logger.error("koru-vlm", "Error analizando imagen", { error: err?.message });
+          res.statusCode = 500;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ error: err?.message ?? "Error de VLM" }));
+        }
+      });
+
       // Fase 2.1 — ASR para notas de voz.
       // El cliente graba audio (MediaRecorder) o sube un archivo .wav/.mp3,
       // lo manda como base64, este endpoint lo transcribe con z-ai-web-dev-sdk
