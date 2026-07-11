@@ -594,8 +594,24 @@ export function KoruProvider({ children }: { children: ReactNode }) {
         return nudges.length > 0 ? applyHeartbeatNudges(prev, nudges) : prev;
       });
     };
-    const timer = window.setInterval(runHeartbeat, 60_000);
-    return () => window.clearInterval(timer);
+    // Fase 2.12: pausar heartbeat cuando el tab no está visible.
+    // Antes corría cada 60s sin importar si el usuario estaba mirando.
+    // Ahora se pausa al ocultar el tab y reanuda al volver, ahorrando CPU.
+    let timer = window.setInterval(runHeartbeat, 60_000);
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        window.clearInterval(timer);
+      } else {
+        // Al volver, ejecutar inmediatamente y reiniciar el intervalo
+        runHeartbeat();
+        timer = window.setInterval(runHeartbeat, 60_000);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
   }, []);
 
   useEffect(() => {
