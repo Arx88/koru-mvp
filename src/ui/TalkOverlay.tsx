@@ -441,7 +441,7 @@ export function TalkOverlay({ onClose }: { onClose: () => void }) {
   }, [handleImageUpload]);
 
   return (
-    <div className="koru-chat-shell">
+    <div className="koru-chat-shell" role="dialog" aria-modal="true" aria-label="Conversacion con Koru">
       <section className="koru-chat-screen" aria-label="Conversacion con Koru">
         <button type="button" onClick={onClose} aria-label="Volver" className="koru-back-button">
           <ChevronLeft size={22} />
