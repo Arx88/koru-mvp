@@ -2226,7 +2226,7 @@ function buildMemoryExtractorMessages(
         `Current user input: ${request.input}`,
         "",
         composedRaw
-          ? `Respuesta final que Koru enviÃ³ al usuario: "${cleanText(composedRaw.reply)}"`
+          ? `Respuesta final que Koru envió al usuario: "${cleanText(composedRaw.reply)}"`
           : "",
         composedRaw && composedRaw.understanding
           ? `Entendimiento del Composer: ${JSON.stringify(composedRaw.understanding)}`

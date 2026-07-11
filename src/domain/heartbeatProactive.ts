@@ -3,7 +3,7 @@
  *
  * Reglas:
  * - Solo 1 nudge proactivo por ciclo.
- * - No repetir el mismo nudge en 24h.
+ * - No repetir el mismo nudge en 20h.
  * - Solo dentro de horas activas y con capacidad diaria.
  * - Prioridad: alta = evita problemas reales; media = mejora día; baja = no se muestra.
  */

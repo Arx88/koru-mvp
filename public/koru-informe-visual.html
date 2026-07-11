@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Koru — Informe Visual · Estado actual y visión</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bricolage+Grotesque:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL@20..48,100..700,0..1&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Plus Jakarta Sans', sans-serif; background: #14112b; color: #e9ddfd; }
+  .display { font-family: 'Bricolage Grotesque', sans-serif; }
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; vertical-align: middle; }
+  .ms-fill { font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24; vertical-align: middle; }
+
+  /* === DNA del demo del usuario === */
+  .koru-sheet { background: linear-gradient(180deg, #ffffff 0%, #F3F0F8 100%); }
+  .koru-kicker { color: #8363F9; font-weight: 700; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+  .koru-title  { color: #382B8C; font-weight: 800; letter-spacing: -.01em; }
+  .koru-desc   { color: #464554; }
+  .koru-cta {
+    background: #8363F9; color: #fff; padding: 12px 20px; border-radius: 14px;
+    font-weight: 700; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;
+    box-shadow: 0 8px 22px rgba(131, 99, 249, .35);
+  }
+
+  .magical-card {
+    background: rgba(255,255,255,.72); backdrop-filter: blur(16px); border-radius: 1.5rem; padding: 22px;
+    box-shadow: 0 8px 32px rgba(130,39,207,.08); border: 1px solid rgba(255,255,255,.85);
+    position: relative; overflow: hidden;
+  }
+  .magical-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.8), transparent);
+  }
+  .mod-violet  { --mc:#7c3aed; --mb:rgba(124,58,237,.10); }
+  .mod-amber   { --mc:#d97706; --mb:rgba(217,119,6,.10); }
+  .mod-emerald { --mc:#059669; --mb:rgba(5,150,105,.10); }
+  .mod-indigo  { --mc:#4648d4; --mb:rgba(70,72,212,.10); }
+  .mod-rose    { --mc:#e11d48; --mb:rgba(225,29,72,.10); }
+  .mod-slate   { --mc:#475569; --mb:rgba(71,85,105,.10); }
+  .mod-icon { width: 44px; height: 44px; border-radius: 12px; background: var(--mb); color: var(--mc);
+              display:flex; align-items:center; justify-content:center; box-shadow: inset 0 2px 6px rgba(0,0,0,.04); }
+  .mod-title { color: var(--mc); font-weight: 800; font-size: 17px; }
+  .mod-sub { color:#6b6b7a; font-size: 10px; font-weight: 700; letter-spacing:.08em; text-transform: uppercase; }
+
+  .blob1 { position:absolute; top:-100px; right:-80px; width:400px; height:400px; border-radius:50%;
+           background: radial-gradient(circle, rgba(221,183,255,.5) 0%, rgba(221,183,255,0) 70%); filter: blur(30px); pointer-events:none; }
+  .blob2 { position:absolute; bottom:-150px; left:-100px; width:350px; height:350px; border-radius:50%;
+           background: radial-gradient(circle, rgba(111,251,190,.25) 0%, rgba(111,251,190,0) 70%); filter: blur(30px); pointer-events:none; }
+
+  .stepnum { width: 32px; height: 32px; border-radius: 99px; background: #8363F9; color: white;
+             display: inline-flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0; font-size: 14px; }
+  .stepnum-amber { background: #d97706; }
+  .stepnum-emerald { background: #059669; }
+
+  .badge-ok { background: rgba(110, 231, 183, .12); color: #6ee7b7; border: 1px solid rgba(110,231,183,.3); }
+  .badge-warn { background: rgba(253, 164, 175, .12); color: #fda4af; border: 1px solid rgba(253,164,175,.3); }
+  .badge-bad { background: rgba(252, 165, 165, .15); color: #fca5a5; border: 1px solid rgba(252,165,165,.35); }
+  .badge-info { background: rgba(196, 181, 253, .12); color: #c4b5fd; border: 1px solid rgba(196,181,253,.3); }
+  .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 99px; letter-spacing: .04em; }
+
+  /* === Diagrama de capas === */
+  .layer-card {
+    background: linear-gradient(135deg, rgba(255,255,255,.04), rgba(255,255,255,.01));
+    border: 1px solid rgba(196,181,253,.15);
+    border-radius: 1.25rem; padding: 20px;
+  }
+  .layer-card.l1 { border-left: 4px solid #8363F9; }
+  .layer-card.l2 { border-left: 4px solid #c4b5fd; }
+  .layer-card.l3 { border-left: 4px solid #6ee7b7; }
+  .layer-card.l4 { border-left: 4px solid #fda4af; }
+  .layer-card.dead { border-left: 4px solid #71717a; opacity: .55; }
+
+  /* === Flujo horizontal === */
+  .flow-step {
+    background: rgba(255,255,255,.04); border: 1px solid rgba(196,181,253,.18);
+    border-radius: 1rem; padding: 16px; min-width: 200px; flex-shrink: 0;
+    position: relative;
+  }
+  .flow-step.highlight {
+    background: linear-gradient(135deg, rgba(131,99,249,.18), rgba(131,99,249,.06));
+    border-color: rgba(131,99,249,.4);
+  }
+  .flow-arrow { color: #8363F9; font-size: 28px; flex-shrink: 0; align-self: center; }
+
+  /* === Phone mockup === */
+  .phone {
+    width: 320px; height: 660px; border-radius: 36px; overflow: hidden;
+    position: relative; flex-shrink: 0;
+    box-shadow: 0 24px 60px rgba(0,0,0,.55), 0 0 0 8px #0c0a1e;
+  }
+  .chat-bubble-radius { border-radius: 22px 22px 22px 0; }
+  .user-bubble-radius { border-radius: 26px 26px 0 26px; }
+  .panel-radius { border-radius: 32px 32px 0 0; }
+  .bg-cover-top { background-size: cover; background-position: center top; background-repeat: no-repeat; }
+
+  /* === Tabla editorial === */
+  .editorial-table th {
+    background: rgba(131,99,249,.08); color: #c4b5fd; font-weight: 700; font-size: 11px;
+    text-transform: uppercase; letter-spacing: .1em; padding: 14px 16px; text-align: left;
+    border-bottom: 1px solid rgba(196,181,253,.15);
+  }
+  .editorial-table td {
+    padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,.04); vertical-align: top;
+    font-size: 13px; line-height: 1.55;
+  }
+  .editorial-table tr:hover td { background: rgba(131,99,249,.04); }
+
+  /* === Roadmap timeline === */
+  .roadmap-phase {
+    background: linear-gradient(135deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+    border: 1px solid rgba(196,181,253,.15);
+    border-radius: 1.25rem; padding: 22px;
+    position: relative; min-height: 280px;
+  }
+  .roadmap-phase.done { border-color: rgba(110,231,183,.35); background: linear-gradient(135deg, rgba(110,231,183,.06), rgba(110,231,183,.02)); }
+  .roadmap-phase.next { border-color: rgba(131,99,249,.45); background: linear-gradient(135deg, rgba(131,99,249,.1), rgba(131,99,249,.03)); }
+
+  /* === Hero === */
+  .hero-gradient {
+    background:
+      radial-gradient(ellipse at top left, rgba(131,99,249,.25), transparent 50%),
+      radial-gradient(ellipse at bottom right, rgba(111,251,190,.12), transparent 50%),
+      #14112b;
+  }
+
+  /* === Scroll horizontal === */
+  .scrollcol { overflow-x: auto; scrollbar-width: thin; }
+  .scrollcol::-webkit-scrollbar { height: 8px; }
+  .scrollcol::-webkit-scrollbar-thumb { background: rgba(196,181,253,.3); border-radius: 99px; }
+
+  /* === Divider === */
+  .section-divider {
+    height: 1px; background: linear-gradient(90deg, transparent, rgba(196,181,253,.25), transparent);
+    margin: 80px 0;
+  }
+
+  /* === Section header === */
+  .section-kicker { color: #8363F9; font-weight: 700; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; }
+  .section-title { color: #fff; font-weight: 800; font-size: 32px; letter-spacing: -.01em; line-height: 1.15; }
+  .section-sub { color: #a99cd6; font-size: 15px; line-height: 1.6; }
+
+  /* === Code inline === */
+  code, .code { font-family: 'Fira Code', 'Menlo', monospace; font-size: 12px; color: #c4b5fd; background: rgba(196,181,253,.08); padding: 2px 6px; border-radius: 4px; }
+
+  /* === Print === */
+  @media print {
+    body { background: white; color: #1a1a2e; }
+    .hero-gradient { background: white; }
+    .section-title { color: #382B8C; }
+    .section-sub { color: #464554; }
+  }
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- ================================================================ -->
+<!-- SECCIÓN 1 — PORTADA                                              -->
+<!-- ================================================================ -->
+<section class="hero-gradient relative overflow-hidden">
+  <div class="blob1"></div>
+  <div class="blob2"></div>
+  <div class="relative max-w-6xl mx-auto px-10 py-24">
+    <p class="koru-kicker mb-4">Informe Visual · Estado actual y visión</p>
+    <h1 class="display text-white font-extrabold text-6xl leading-[1.05] mb-6 tracking-tight">
+      Koru.<br>
+      <span style="background: linear-gradient(135deg, #8363F9 0%, #6ee7b7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+        El agente secretario/amigo.
+      </span>
+    </h1>
+    <p class="text-[#a99cd6] text-lg max-w-2xl leading-relaxed mb-12">
+      Un agente que debe poder hacer <b class="text-white">TODO de forma exelsa</b>, superando siempre lo que se espera de él — tanto en contenido y calidad como en presentación UX/UI. Este informe mapea dónde está hoy y hacia dónde debe ir.
+    </p>
+    <div class="flex flex-wrap gap-3 mb-8">
+      <span class="badge badge-info"><span class="material-symbols-outlined text-[14px]">build</span> 128 tools</span>
+      <span class="badge badge-info"><span class="material-symbols-outlined text-[14px]">dashboard_customize</span> 48 UI blocks</span>
+      <span class="badge badge-info"><span class="material-symbols-outlined text-[14px]">psychology</span> 3 entidades de memoria</span>
+      <span class="badge badge-info"><span class="material-symbols-outlined text-[14px]">smart_toy</span> 4 providers LLM</span>
+      <span class="badge badge-ok"><span class="material-symbols-outlined text-[14px]">check_circle</span> Fase 0 completada</span>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 max-w-4xl">
+      <div class="layer-card l4">
+        <p class="text-[#fda4af] text-xs font-bold uppercase tracking-wider mb-1">Stack</p>
+        <p class="text-white font-bold text-sm">Vite 8 · React 19 · TS 6 · Tailwind 4</p>
+      </div>
+      <div class="layer-card l1">
+        <p class="text-[#8363F9] text-xs font-bold uppercase tracking-wider mb-1">LLM default</p>
+        <p class="text-white font-bold text-sm">NVIDIA Nemotron-3-Ultra-550b</p>
+      </div>
+      <div class="layer-card l3">
+        <p class="text-[#6ee7b7] text-xs font-bold uppercase tracking-wider mb-1">Persistencia</p>
+        <p class="text-white font-bold text-sm">IndexedDB client-side</p>
+      </div>
+      <div class="layer-card l2">
+        <p class="text-[#c4b5fd] text-xs font-bold uppercase tracking-wider mb-1">Madurez</p>
+        <p class="text-white font-bold text-sm">3.5 / 5 (auditoría jun-2026)</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ================================================================ -->
+<!-- SECCIÓN 2 — QUÉ ES KORU                                          -->
+<!-- ================================================================ -->
+<section class="max-w-6xl mx-auto px-10">
+  <p class="section-kicker mb-3">Identidad y tesis</p>
+  <h2 class="section-title mb-4">¿Qué es Koru?</h2>
+  <p class="section-sub max-w-3xl mb-12">Tres ideas centrales en el código — no marketing, sino implementadas. Cada una con su módulo y su restricción explícita.</p>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+    <!-- Metáfora del jardín -->
+    <div class="magical-card mod-violet">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="mod-icon"><span class="material-symbols-outlined">spa</span></div>
+        <div>
+          <h3 class="mod-title">Metáfora del jardín</h3>
+          <p class="mod-sub">Semilla que crece con confianza confirmada</p>
+        </div>
+      </div>
+      <p class="koru-desc text-sm leading-relaxed mb-3">
+        Koru NO busca retención artificial. Las <code>forbiddenPhrases</code> en <code>soul.ts</code> prohíben explícitamente "te extrane", "no me abandones", "siempre estare aqui para ti" — el comportamiento pegajoso que diseñan otros asistentes para capturar usuarios.
+      </p>
+      <p class="koru-desc text-sm leading-relaxed">
+        El usuario es el jardinero: <b>rega</b> (confirma), <b>poda</b> (descarta). Koru crece solo con lo que el usuario decide confiarle.
+      </p>
+    </div>
+
+    <!-- Memoria confirmable -->
+    <div class="magical-card mod-emerald">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="mod-icon"><span class="material-symbols-outlined">verified_user</span></div>
+        <div>
+          <h3 class="mod-title">Memoria confirmable</h3>
+          <p class="mod-sub">Candidate → confirmed → rejected</p>
+        </div>
+      </div>
+      <p class="koru-desc text-sm leading-relaxed mb-3">
+        Cuando Koru aprende algo, lo guarda como <b>candidate</b>. Solo se promueve a <b>confirmed</b> cuando el usuario lo confirma. Las memorias confirmed se usan para personalizar; las candidate se usan con cautela y NUNCA se presentan como ciertas.
+      </p>
+      <p class="koru-desc text-sm leading-relaxed">
+        Esto es lo que lo distingue de un RAG ingenuo: el usuario controla qué se queda.
+      </p>
+    </div>
+
+    <!-- Anti-alucinación -->
+    <div class="magical-card mod-amber">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="mod-icon"><span class="material-symbols-outlined">fact_check</span></div>
+        <div>
+          <h3 class="mod-title">Anti-alucinación por diseño</h3>
+          <p class="mod-sub">Cada dato con cita literal</p>
+        </div>
+      </div>
+      <p class="koru-desc text-sm leading-relaxed mb-3">
+        <code>structureExtractor</code> valida cada dato contra una cita literal del source. Si la tool devuelve <code>status: failed</code> o <code>not_configured</code>, el system prompt dice explícitamente "NO inventes los datos".
+      </p>
+      <p class="koru-desc text-sm leading-relaxed">
+        Es el módulo mejor diseñado del proyecto según la auditoría — referencia de calidad profesional.
+      </p>
+    </div>
+  </div>
+
+  <!-- Cita del system prompt actual + nueva visión -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="layer-card l2">
+      <p class="text-[#c4b5fd] text-xs font-bold uppercase tracking-wider mb-3">System prompt actual</p>
+      <p class="text-white text-base italic leading-relaxed">
+        "Sos Koru. Sos el asistente personal de <span class="text-[#8363F9]">{userName}</span>. No sos un chatbot genérico. Sos alguien que lo conoce y se preocupa por ayudarle."
+      </p>
+      <p class="text-[#a99cd6] text-xs mt-3"><code>koruBackend.ts:2089</code></p>
+    </div>
+    <div class="layer-card l1" style="background: linear-gradient(135deg, rgba(131,99,249,.15), rgba(131,99,249,.04));">
+      <p class="text-[#8363F9] text-xs font-bold uppercase tracking-wider mb-3">Nueva visión (usuario)</p>
+      <p class="text-white text-base font-bold leading-relaxed">
+        "Koru es un agente secretario/amigo que debe poder hacer <span class="text-[#6ee7b7]">TODO de forma exelsa</span>, superando siempre lo que se espera de él, tanto en contenido y calidad como en presentación UX/UI."
+      </p>
+      <p class="text-[#a99cd6] text-xs mt-3">Debe poder guardar enlaces, cosas, notas, audios, aprender de nosotros, mejorar su memoria sobre nosotros.</p>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ================================================================ -->
+<!-- SECCIÓN 3 — ARQUITECTURA ACTUAL                                  -->
+<!-- ================================================================ -->
+<section class="max-w-6xl mx-auto px-10">
+  <p class="section-kicker mb-3">Diagrama de capas</p>
+  <h2 class="section-title mb-4">Arquitectura actual</h2>
+  <p class="section-sub max-w-3xl mb-12">Cuatro capas, una de ellas marcada como muerta por la auditoría. El backend vive embebido en Vite — bloquea despliegue a producción pero funciona para MVP.</p>
+
+  <div class="grid grid-cols-1 gap-4 mb-8">
+    <!-- Capa 1: Infra -->
+    <div class="layer-card l1">
+      <div class="flex items-start gap-4">
+        <div class="flex-shrink-0 w-12 h-12 rounded-xl bg-[#8363F9]/15 flex items-center justify-center">
+          <span class="material-symbols-outlined text-[#8363F9]">dns</span>
+        </div>
+        <div class="flex-grow">
+          <div class="flex items-center gap-3 mb-2">
+            <h3 class="text-white font-bold text-lg">Capa 1 · Infraestructura</h3>
+            <span class="badge badge-ok">vivo</span>
+          </div>
+          <p class="text-[#a99cd6] text-sm mb-3">Vite 8 dev server en :3000 · Caddy proxy en :81 (del gateway Z.ai) · <code>allowedHosts: true</code> · NDJSON streaming · IndexedDB <code>koru-local-first</code> + localStorage legacy</p>
+          <div class="flex flex-wrap gap-2 text-xs text-[#c4b5fd]">
+            <span class="px-2 py-1 rounded bg-white/5">Vite 8.1.0</span>
+            <span class="px-2 py-1 rounded bg-white/5">React 19.2</span>
+            <span class="px-2 py-1 rounded bg-white/5">TS 6.0</span>
+            <span class="px-2 py-1 rounded bg-white/5">Tailwind 4.3</span>
+            <span class="px-2 py-1 rounded bg-white/5">Vitest 4.1</span>
+            <span class="px-2 py-1 rounded bg-white/5">Playwright 1.61</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Capa 2: Server -->
+    <div class="layer-card l2">
+      <div class="flex items-start gap-4">
+        <div class="flex-shrink-0 w-12 h-12 rounded-xl bg-[#c4b5fd]/15 flex items-center justify-center">
+          <span class="material-symbols-outlined text-[#c4b5fd]">cloud_sync</span>
+        </div>
+        <div class="flex-grow">
+          <div class="flex items-center gap-3 mb-2">
+            <h3 class="text-white font-bold text-lg">Capa 2 · Server (embebido en Vite)</h3>
+            <span class="badge badge-ok">vivo</span>
+            <span class="badge badge-warn">deuda: bloquea deploy</span>
+          </div>
+          <p class="text-[#a99cd6] text-sm mb-3"><code>koruBackend.ts</code> (4.314 líneas) como middleware de Vite. Stateless. 4 providers LLM con fallback <code>Promise.any</code>:</p>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <div class="bg-white/5 rounded-lg p-3">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="material-symbols-outlined text-[#6ee7b7] text-base">star</span>
+                <p class="text-white text-xs font-bold">NVIDIA</p>
+                <span class="badge badge-ok text-[9px] px-1.5 py-0.5">default</span>
+              </div>
+              <p class="text-[#a99cd6] text-[10px]">Nemotron-3-Ultra-550b</p>
+            </div>
+            <div class="bg-white/5 rounded-lg p-3">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="material-symbols-outlined text-[#c4b5fd] text-base">hub</span>
+                <p class="text-white text-xs font-bold">OpenRouter</p>
+              </div>
+              <p class="text-[#a99cd6] text-[10px]">gpt-oss-120b:free, gemma-4-31b</p>
+            </div>
+            <div class="bg-white/5 rounded-lg p-3">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="material-symbols-outlined text-[#fda4af] text-base">chat</span>
+                <p class="text-white text-xs font-bold">MiniMax</p>
+              </div>
+              <p class="text-[#a99cd6] text-[10px]">MiniMax-M2.7 (oauth)</p>
+            </div>
+            <div class="bg-white/5 rounded-lg p-3">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="material-symbols-outlined text-[#a99cd6] text-base">memory</span>
+                <p class="text-white text-xs font-bold">Ollama</p>
+              </div>
+              <p class="text-[#a99cd6] text-[10px]">local (qwen3.6, llama3.1)</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Capa 3: Domain -->
+    <div class="layer-card l3">
+      <div class="flex items-start gap-4">
+        <div class="flex-shrink-0 w-12 h-12 rounded-xl bg-[#6ee7b7]/15 flex items-center justify-center">
+          <span class="material-symbols-outlined text-[#6ee7b7]">schema</span>
+        </div>
+        <div class="flex-grow">
+          <div class="flex items-center gap-3 mb-2">
+            <h3 class="text-white font-bold text-lg">Capa 3 · Domain</h3>
+            <span class="badge badge-ok">vivo</span>
+          </div>
+          <p class="text-[#a99cd6] text-sm mb-3">128 tools en 11 categorías · pipeline de 7 pasos · knowledge extractors (regex) · memoria semántica con embeddings Ollama · anti-alucinación · enhancement engine (LLM propone + motor determinista filtra)</p>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px]">
+            <div class="bg-white/5 rounded-lg p-2"><span class="text-[#6ee7b7] font-bold">Tools:</span> <span class="text-white">128</span></div>
+            <div class="bg-white/5 rounded-lg p-2"><span class="text-[#6ee7b7] font-bold">UI Blocks:</span> <span class="text-white">48 variantes</span></div>
+            <div class="bg-white/5 rounded-lg p-2"><span class="text-[#6ee7b7] font-bold">Memoria:</span> <span class="text-white">9 kinds</span></div>
+            <div class="bg-white/5 rounded-lg p-2"><span class="text-[#6ee7b7] font-bold">Records:</span> <span class="text-white">15 kinds</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Capa 4: UI -->
+    <div class="layer-card l4">
+      <div class="flex items-start gap-4">
+        <div class="flex-shrink-0 w-12 h-12 rounded-xl bg-[#fda4af]/15 flex items-center justify-center">
+          <span class="material-symbols-outlined text-[#fda4af]">phone_iphone</span>
+        </div>
+        <div class="flex-grow">
+          <div class="flex items-center gap-3 mb-2">
+            <h3 class="text-white font-bold text-lg">Capa 4 · UI (React 19)</h3>
+            <span class="badge badge-ok">vivo</span>
+            <span class="badge badge-warn">God-component 1.806 líneas</span>
+          </div>
+          <p class="text-[#a99cd6] text-sm mb-3"><code>KoruProvider.tsx</code> (orquestador) · <code>KoruUnifiedCard</code> (molde único) · <code>KoruDetailScreen</code> (pantalla de detalle) · <code>WorkingPanel</code> (estado "Trabajando") · <code>TalkOverlay</code> (chat) · <code>HomeScreen</code> · <code>Onboarding</code></p>
+          <div class="flex flex-wrap gap-2 text-[11px]">
+            <span class="px-2 py-1 rounded bg-white/5 text-[#c4b5fd]">Mobile-first 420px</span>
+            <span class="px-2 py-1 rounded bg-white/5 text-[#c4b5fd]">HMR streaming</span>
+            <span class="px-2 py-1 rounded bg-white/5 text-[#c4b5fd]">Audit mode ?koruAudit=1</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Motor client-side legacy -->
+    <div class="layer-card dead">
+      <div class="flex items-start gap-4">
+        <div class="flex-shrink-0 w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center">
+          <span class="material-symbols-outlined text-[#71717a]">cancel</span>
+        </div>
+        <div class="flex-grow">
+          <div class="flex items-center gap-3 mb-2">
+            <h3 class="text-white/60 font-bold text-lg">Motor client-side legacy</h3>
+            <span class="badge badge-bad">muerto · ~3.700 líneas</span>
+          </div>
+          <p class="text-[#a99cd6]/60 text-sm"><code>orchestrator.ts</code> + <code>brain.ts</code> + <code>actions.ts</code> + <code>pipeline.ts</code> + <code>agentKernel.ts</code> — efectivamente desconectados del producto. La UI solo llama a <code>runBackendAgentTurn</code>. Genera falsa cobertura de tests y duplicación semántica. Auditoría recomienda eliminar o reactivar como fallback offline.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ================================================================ -->
+<!-- SECCIÓN 4 — FLUJO DE UN TURNO                                    -->
+<!-- ================================================================ -->
+<section class="max-w-7xl mx-auto px-10">
+  <p class="section-kicker mb-3">7 pasos reales del pipeline</p>
+  <h2 class="section-title mb-4">Flujo de un turno hoy</h2>
+  <p class="section-sub max-w-3xl mb-12">Desde que el usuario habla hasta que la respuesta se renderiza y persiste. Marca dónde aparece "Trabajando..." y dónde la carta unificada.</p>
+
+  <div class="scrollcol">
+    <div class="flex gap-3 items-stretch pb-4" style="min-width: max-content;">
+
+      <div class="flow-step">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="stepnum">1</span>
+          <p class="text-[#c4b5fd] text-xs font-bold">UI</p>
+        </div>
+        <p class="text-white font-bold text-sm mb-1">TalkOverlay</p>
+        <p class="text-[#a99cd6] text-xs leading-relaxed">Captura input (texto o voz) → <code>sendMessage</code> → <code>submitEntry</code></p>
+      </div>
+
+      <span class="flow-arrow material-symbols-outlined">chevron_right</span>
+
+      <div class="flow-step">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="stepnum">2</span>
+          <p class="text-[#c4b5fd] text-xs font-bold">UI</p>
+        </div>
+        <p class="text-white font-bold text-sm mb-1">KoruProvider.submitEntry</p>
+        <p class="text-[#a99cd6] text-xs leading-relaxed">Prepara payload + <code>domainHistory</code> + estado actual</p>
+      </div>
+
+      <span class="flow-arrow material-symbols-outlined">chevron_right</span>
+
+      <div class="flow-step">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="stepnum">3</span>
+          <p class="text-[#c4b5fd] text-xs font-bold">RED</p>
+        </div>
+        <p class="text-white font-bold text-sm mb-1">POST /api/koru/turn</p>
+        <p class="text-[#a99cd6] text-xs leading-relaxed"><code>?stream=true</code> · NDJSON con timeout de inactividad</p>
+      </div>
+
+      <span class="flow-arrow material-symbols-outlined">chevron_right</span>
+
+      <div class="flow-step highlight">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="stepnum">4</span>
+          <p class="text-[#8363F9] text-xs font-bold">SERVER</p>
+          <span class="badge badge-info text-[9px] px-1.5 py-0.5">decisión</span>
+        </div>
+        <p class="text-white font-bold text-sm mb-1">runKoruBackendTurn</p>
+        <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">Decide ruta:</p>
+        <ul class="text-[#c4b5fd] text-[10px] space-y-1">
+          <li>• Deliverable explícito → <code>deep_research</code> (6 fases con progreso real)</li>
+          <li>• Router autofire → flujo nativo LLM con tools</li>
+          <li>• Trivial → conversacional directo</li>
+        </ul>
+      </div>
+
+      <span class="flow-arrow material-symbols-outlined">chevron_right</span>
+
+      <div class="flow-step">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="stepnum">5</span>
+          <p class="text-[#c4b5fd] text-xs font-bold">SERVER</p>
+        </div>
+        <p class="text-white font-bold text-sm mb-1">callProvider + tools</p>
+        <p class="text-[#a99cd6] text-xs leading-relaxed">NVIDIA con tools filtradas por categoría → <code>executeProviderToolCalls</code> → segundo call sin tools para síntesis JSON</p>
+      </div>
+
+      <span class="flow-arrow material-symbols-outlined">chevron_right</span>
+
+      <div class="flow-step highlight">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="stepnum stepnum-emerald">6</span>
+          <p class="text-[#6ee7b7] text-xs font-bold">STREAM</p>
+          <span class="badge badge-ok text-[9px] px-1.5 py-0.5">carta unificada</span>
+        </div>
+        <p class="text-white font-bold text-sm mb-1">NDJSON chunks → UI</p>
+        <p class="text-[#a99cd6] text-xs leading-relaxed">Cada chunk = <code>KoruBackendTurnResponse</code> completo · <code>KoruProvider.onChunk</code> merge por tipo preservando ids · <code>setPhase</code> para WorkingPanel</p>
+      </div>
+
+      <span class="flow-arrow material-symbols-outlined">chevron_right</span>
+
+      <div class="flow-step">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="stepnum">7</span>
+          <p class="text-[#c4b5fd] text-xs font-bold">PERSIST</p>
+        </div>
+        <p class="text-white font-bold text-sm mb-1">applyBackendTurnToState</p>
+        <p class="text-[#a99cd6] text-xs leading-relaxed">Persiste memories / commitments / records + <code>saveState</code> (IndexedDB + localStorage)</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="layer-card l1">
+      <p class="text-[#8363F9] text-xs font-bold uppercase tracking-wider mb-2">Dónde aparece "Trabajando..."</p>
+      <p class="text-white text-sm">En el paso <b>4</b> cuando el pedido requiere investigación (deliverable). El WorkingPanel muestra fases reales del pipeline: <span class="text-[#c4b5fd]">entendí → busqué → comparando → redactando</span>. NO aparece para saludos ni pedidos triviales.</p>
+    </div>
+    <div class="layer-card l3">
+      <p class="text-[#6ee7b7] text-xs font-bold uppercase tracking-wider mb-2">Dónde aparece la carta unificada</p>
+      <p class="text-white text-sm">En el paso <b>6</b> cuando llega un chunk con <code>deliverable status:ready</code>. Se renderiza con <code>KoruUnifiedCard</code> (kicker → título → contenido → CTA). El CTA abre <code>KoruDetailScreen</code> con módulos <code>magical-card</code>.</p>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ================================================================ -->
+<!-- SECCIÓN 5 — CAPACIDADES (128 TOOLS)                              -->
+<!-- ================================================================ -->
+<section class="max-w-6xl mx-auto px-10">
+  <p class="section-kicker mb-3">11 categorías · 128 tools</p>
+  <h2 class="section-title mb-4">Capacidades funcionales hoy</h2>
+  <p class="section-sub max-w-3xl mb-12">8 builtins + 120 externas. Algunas son robustas (scraper real + anti-alucinación), otras son placeholders o delegates que devuelven datos simulados. Esto es lo que hay que cerrar para que "pueda hacer TODO".</p>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+
+    <div class="magical-card mod-violet">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-3">
+          <div class="mod-icon"><span class="material-symbols-outlined">payments</span></div>
+          <div>
+            <h3 class="mod-title">Money</h3>
+            <p class="mod-sub">15 tools</p>
+          </div>
+        </div>
+        <span class="badge badge-ok">robusta</span>
+      </div>
+      <p class="koru-desc text-xs leading-relaxed">crypto_price (CoinGecko), stock_quote (Stooq), currency_convert (Frankfurter), expenses, exchange_history, advanced, inflation_data (placeholder)</p>
+    </div>
+
+    <div class="magical-card mod-emerald">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-3">
+          <div class="mod-icon"><span class="material-symbols-outlined">sports_soccer</span></div>
+          <div>
+            <h3 class="mod-title">Sports</h3>
+            <p class="mod-sub">10 tools</p>
+          </div>
+        </div>
+        <span class="badge badge-ok">robusta</span>
+      </div>
+      <p class="koru-desc text-xs leading-relaxed">football (TheSportsDB), F1 (Ergast), golf (ESPN), tennis (delegate), tournament_bracket (delegate), sports_news (delegate)</p>
+    </div>
+
+    <div class="magical-card mod-amber">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-3">
+          <div class="mod-icon"><span class="material-symbols-outlined">restaurant</span></div>
+          <div>
+            <h3 class="mod-title">Food</h3>
+            <p class="mod-sub">10 tools</p>
+          </div>
+        </div>
+        <span class="badge badge-ok">robusta</span>
+      </div>
+      <p class="koru-desc text-xs leading-relaxed">restaurant_deep_search (scraper + Ollama), recipes (TheMealDB), reviews aggregate, nutrition (Open Food Facts)</p>
+    </div>
+
+    <div class="magical-card mod-indigo">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-3">
+          <div class="mod-icon"><span class="material-symbols-outlined">flight</span></div>
+          <div>
+            <h3 class="mod-title">Travel</h3>
+            <p class="mod-sub">10 tools</p>
+          </div>
+        </div>
+        <span class="badge badge-ok">robusta</span>
+      </div>
+      <p class="koru-desc text-xs leading-relaxed">flight_search, hotel_search, visa_check, travel_itinerary, route_plan (delegate), transport_nearby (delegate), currency_atm (delegate)</p>
+    </div>
+
+    <div class="magical-card mod-violet">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-3">
+          <div class="mod-icon"><span class="material-symbols-outlined">description</span></div>
+          <div>
+            <h3 class="mod-title">Docs / Productividad</h3>
+            <p class="mod-sub">36 tools</p>
+          </div>
+        </div>
+        <span class="badge badge-info">mixto</span>
+      </div>
+      <p class="koru-desc text-xs leading-relaxed">Categoría más grande. Incluye plan_day, save_personal_item, query_personal_context, OCR (delegate), summaries, drafters. Muchos delegates a confirmar.</p>
+    </div>
+
+    <div class="magical-card mod-emerald">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-3">
+          <div class="mod-icon"><span class="material-symbols-outlined">groups</span></div>
+          <div>
+            <h3 class="mod-title">People</h3>
+            <p class="mod-sub">5 tools</p>
+          </div>
+        </div>
+        <span class="badge badge-warn">delegates</span>
+      </div>
+      <p class="koru-desc text-xs leading-relaxed">person_filmography (delegate), movie_info (delegate), biographies (Wikipedia), contacts (local)</p>
+    </div>
+
+    <div class="magical-card mod-slate">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-3">
+          <div class="mod-icon"><span class="material-symbols-outlined">build</span></div>
+          <div>
+            <h3 class="mod-title">Utils</h3>
+            <p class="mod-sub">4 tools</p>
+          </div>
+        </div>
+        <span class="badge badge-ok">robusta</span>
+      </div>
+      <p class="koru-desc text-xs leading-relaxed">qr_code (GoQR), short_url (is.gd), random_quote (ZenQuotes), dictionary (Free Dictionary API)</p>
+    </div>
+
+    <div class="magical-card mod-amber">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-3">
+          <div class="mod-icon"><span class="material-symbols-outlined">trending_up</span></div>
+          <div>
+            <h3 class="mod-title">Trending</h3>
+            <p class="mod-sub">10 tools</p>
+          </div>
+        </div>
+        <span class="badge badge-ok">robusta</span>
+      </div>
+      <p class="koru-desc text-xs leading-relaxed">deep_research (scraper + Ollama, el más potente), news (GDELT), reddit (JSON), wikipedia, open_library</p>
+    </div>
+
+    <div class="magical-card mod-indigo">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-3">
+          <div class="mod-icon"><span class="material-symbols-outlined">apps</span></div>
+          <div>
+            <h3 class="mod-title">Apps</h3>
+            <p class="mod-sub">4 tools</p>
+          </div>
+        </div>
+        <span class="badge badge-ok">robusta</span>
+      </div>
+      <p class="koru-desc text-xs leading-relaxed">app_search, app_reviews, app_deals (CheapShark), app_release_dates</p>
+    </div>
+
+    <div class="magical-card mod-rose">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-3">
+          <div class="mod-icon"><span class="material-symbols-outlined">favorite</span></div>
+          <div>
+            <h3 class="mod-title">Health</h3>
+            <p class="mod-sub">6 tools</p>
+          </div>
+        </div>
+        <span class="badge badge-warn">mixto</span>
+      </div>
+      <p class="koru-desc text-xs leading-relaxed">medication_reminder, symptom_check, workout_log, health_metric, sleep_track, nutrition_log</p>
+    </div>
+
+    <div class="magical-card mod-violet">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-3">
+          <div class="mod-icon"><span class="material-symbols-outlined">school</span></div>
+          <div>
+            <h3 class="mod-title">Knowledge</h3>
+            <p class="mod-sub">10 tools</p>
+          </div>
+        </div>
+        <span class="badge badge-ok">robusta</span>
+      </div>
+      <p class="koru-desc text-xs leading-relaxed">wikipedia, open_library, quotes, lyrics (lyrics.ovh), holidays (Nager.Date), sunrise (sunrise-sunset.org)</p>
+    </div>
+
+    <div class="magical-card mod-slate" style="background: linear-gradient(135deg, rgba(131,99,249,.12), rgba(255,255,255,.04));">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-3">
+          <div class="mod-icon"><span class="material-symbols-outlined">memory</span></div>
+          <div>
+            <h3 class="mod-title">Builtins</h3>
+            <p class="mod-sub">8 tools core</p>
+          </div>
+        </div>
+        <span class="badge badge-ok">vivo</span>
+      </div>
+      <p class="koru-desc text-xs leading-relaxed"><b>weather, web_search, shopping_compare, plan_day, query_personal_context, save_memory, save_personal_item, deliver_response</b> (esta última es la tool final obligatoria)</p>
+    </div>
+  </div>
+
+  <!-- Builtins callout -->
+  <div class="layer-card l1">
+    <p class="text-[#8363F9] text-xs font-bold uppercase tracking-wider mb-3">Políticas de tools — dos sistemas paralelos</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+      <div>
+        <p class="text-white font-bold mb-1">Legacy (<code>toolRegistry.ts</code>)</p>
+        <p class="text-[#a99cd6]">8 tools con <code>requiresApproval</code>, <code>autoRun</code>, <code>risk: readonly|destructive</code> explícitos.</p>
+      </div>
+      <div>
+        <p class="text-white font-bold mb-1">Nuevo (<code>types.ts:89-108</code>)</p>
+        <p class="text-[#a99cd6]">120 externas con <code>policies: readonly|localWrite|externalSideEffect|destructive</code>. <code>shopping_compare</code>, <code>calendar_reminder</code>, <code>alarm</code> requieren aprobación.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ================================================================ -->
+<!-- SECCIÓN 6 — MEMORIA Y CONOCIMIENTO                               -->
+<!-- ================================================================ -->
+<section class="max-w-6xl mx-auto px-10">
+  <p class="section-kicker mb-3">3 entidades · client-side only</p>
+  <h2 class="section-title mb-4">Memoria y conocimiento</h2>
+  <p class="section-sub max-w-3xl mb-12">Todo persiste en IndexedDB. No hay sync cloud. No sobrevive entre dispositivos. Esto es lo que hay que resolver para que "aprenda de nosotros" de verdad.</p>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+
+    <!-- MemoryFact -->
+    <div class="magical-card mod-violet">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="mod-icon"><span class="material-symbols-outlined">psychology</span></div>
+        <div>
+          <h3 class="mod-title">MemoryFact</h3>
+          <p class="mod-sub">9 kinds · candidate→confirmed→rejected</p>
+        </div>
+      </div>
+      <p class="koru-desc text-sm leading-relaxed mb-3">
+        Hechos que Koru aprende del usuario: <b>profile, routine, goal, preference, relationship, skill, context, sensitive, health</b>.
+      </p>
+      <div class="bg-white/60 rounded-xl p-3 mb-3">
+        <p class="text-xs font-bold text-[#382B8C] mb-1">Lifecycle</p>
+        <p class="text-xs text-[#464554]">candidate (confidence 0.5) → <span class="text-[#059669] font-bold">confirmed</span> (user confirma, +18 trustedEnergy, confidence 0.9) → usado para personalizar</p>
+      </div>
+      <p class="koru-desc text-xs leading-relaxed">
+        <b>Embeddings:</b> Ollama <code>nomic-embed-text</code> local · similarity ≥0.55 · fallback léxico si Ollama no está
+      </p>
+    </div>
+
+    <!-- Commitment -->
+    <div class="magical-card mod-amber">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="mod-icon"><span class="material-symbols-outlined">task_alt</span></div>
+        <div>
+          <h3 class="mod-title">Commitment</h3>
+          <p class="mod-sub">open → done | dismissed</p>
+        </div>
+      </div>
+      <p class="koru-desc text-sm leading-relaxed mb-3">
+        Pendientes y recordatorios con recurrencia. <b>daily, weekly, monthly</b>. Con <code>dueHint</code> textual.
+      </p>
+      <div class="bg-white/60 rounded-xl p-3 mb-3">
+        <p class="text-xs font-bold text-[#382B8C] mb-1">Ejemplo</p>
+        <p class="text-xs text-[#464554]">"Pagar Spotify" · monthly · dueHint "5 de cada mes" → dispara nudge en heartbeat</p>
+      </div>
+      <p class="koru-desc text-xs leading-relaxed">
+        <b>Extracción:</b> <code>extractCommitmentsFromText</code> (regex, no LLM)
+      </p>
+    </div>
+
+    <!-- LifeRecord -->
+    <div class="magical-card mod-emerald">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="mod-icon"><span class="material-symbols-outlined">inventory_2</span></div>
+        <div>
+          <h3 class="mod-title">LifeRecord</h3>
+          <p class="mod-sub">15 kinds · guardado explícito</p>
+        </div>
+      </div>
+      <p class="koru-desc text-sm leading-relaxed mb-3">
+        Cosas que el usuario pide guardar: <b>expense, shopping_item, note, contact, alarm, list, recipe, restaurant, bookmark, reminder, event, health_metric, workout, medication, subscription</b>.
+      </p>
+      <div class="bg-white/60 rounded-xl p-3 mb-3">
+        <p class="text-xs font-bold text-[#382B8C] mb-1">Collections</p>
+        <p class="text-xs text-[#464554]">Los records se agrupan en colecciones temáticas. <code>save_personal_item</code> siempre confirma al usuario en qué colección quedó.</p>
+      </div>
+      <p class="koru-desc text-xs leading-relaxed">
+        <b>Extracción:</b> <code>extractLifeRecordsFromText</code> (regex, no LLM)
+      </p>
+    </div>
+  </div>
+
+  <!-- Persistencia -->
+  <div class="layer-card l1">
+    <div class="flex items-start gap-4">
+      <span class="material-symbols-outlined text-[#8363F9] text-3xl">storage</span>
+      <div>
+        <p class="text-white font-bold mb-1">Persistencia — 100% client-side</p>
+        <p class="text-[#a99cd6] text-sm leading-relaxed">
+          IndexedDB <code>koru-local-first</code> (store <code>state</code>, key <code>current</code>) + localStorage legacy <code>koru.mvp.state.v1</code>. El server (Vite middleware) es stateless, solo mantiene providers en memoria. <b>Sobrevive entre sesiones del mismo navegador, NO entre dispositivos.</b> El modo efímero guarda snapshot sin memories/commitments/records del turno actual.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ================================================================ -->
+<!-- SECCIÓN 7 — UI HOY                                               -->
+<!-- ================================================================ -->
+<section class="max-w-6xl mx-auto px-10">
+  <p class="section-kicker mb-3">Molde único vs 48 variantes legacy</p>
+  <h2 class="section-title mb-4">UI hoy — la migración está al 80%</h2>
+  <p class="section-sub max-w-3xl mb-12">El molde unificado <code>KoruUnifiedCard</code> ya existe y es el que usa el flujo principal. Pero quedan 48 variantes de <code>UiBlock</code> en <code>types.ts</code> y 6 visualizadores legacy en <code>catalog.ts</code> sin usar. Hay que limpiar.</p>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+
+    <!-- Molde único -->
+    <div class="magical-card mod-violet">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <div class="mod-icon"><span class="material-symbols-outlined">dashboard</span></div>
+          <div>
+            <h3 class="mod-title">Molde unificado</h3>
+            <p class="mod-sub">KoruUnifiedCard</p>
+          </div>
+        </div>
+        <span class="badge badge-ok">80% migrado</span>
+      </div>
+
+      <div class="bg-white/60 rounded-2xl p-4 mb-3">
+        <p class="koru-kicker mb-1">Tu Informe</p>
+        <h4 class="text-[#382B8C] font-extrabold text-lg mb-1">AGE OF EMPIRES II</h4>
+        <p class="text-[#464554] text-xs mb-3">La historia, las civilizaciones y el meta actual del RTS más longevo.</p>
+        <div class="grid grid-cols-3 gap-2 mb-3">
+          <div class="bg-white rounded-xl p-2 text-center"><span class="material-symbols-outlined text-[#d97706] text-base">castle</span><p class="text-[9px] text-[#382B8C] font-bold mt-1">Historia</p></div>
+          <div class="bg-white rounded-xl p-2 text-center"><span class="material-symbols-outlined text-[#059669] text-base">groups</span><p class="text-[9px] text-[#382B8C] font-bold mt-1">Civs</p></div>
+          <div class="bg-white rounded-xl p-2 text-center"><span class="material-symbols-outlined text-[#4648d4] text-base">strategy</span><p class="text-[9px] text-[#382B8C] font-bold mt-1">Estrategia</p></div>
+        </div>
+        <button class="koru-cta w-full justify-center" style="padding:10px 0;font-size:12px">Ver completo <span class="material-symbols-outlined text-sm">arrow_forward</span></button>
+      </div>
+
+      <p class="koru-desc text-xs leading-relaxed">
+        Estructura fija: <b>kicker → título → descripción → categorías derivadas del contenido → CTA</b>. 3 excepciones: <code>PlanHeroCard</code>, <code>web_nav</code> en working, <code>deliverable</code> en working (absorbidos por WorkingPanel).
+      </p>
+    </div>
+
+    <!-- 48 variantes legacy -->
+    <div class="magical-card mod-slate">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <div class="mod-icon"><span class="material-symbols-outlined">layers</span></div>
+          <div>
+            <h3 class="mod-title">48 variantes legacy</h3>
+            <p class="mod-sub">types.ts:352-856 · sin usar</p>
+          </div>
+        </div>
+        <span class="badge badge-bad">deuda</span>
+      </div>
+
+      <p class="koru-desc text-sm leading-relaxed mb-3">
+        Las 48 variantes de <code>UiBlock</code> aún viven en <code>types.ts</code> por compatibilidad con tests y código legacy, pero el flujo principal ya no las crea.
+      </p>
+
+      <div class="bg-white/60 rounded-xl p-3 mb-3">
+        <p class="text-xs font-bold text-[#382B8C] mb-2">6 visualizadores en catalog.ts (también legacy, no usados):</p>
+        <div class="flex flex-wrap gap-1">
+          <span class="text-[10px] bg-white px-2 py-1 rounded">weather</span>
+          <span class="text-[10px] bg-white px-2 py-1 rounded">sports_scores</span>
+          <span class="text-[10px] bg-white px-2 py-1 rounded">money_summary</span>
+          <span class="text-[10px] bg-white px-2 py-1 rounded">news_list</span>
+          <span class="text-[10px] bg-white px-2 py-1 rounded">comparison_table</span>
+          <span class="text-[10px] bg-white px-2 py-1 rounded">generic_list</span>
+        </div>
+      </div>
+
+      <p class="koru-desc text-xs leading-relaxed">
+        <b>Acción:</b> eliminar las 48 variantes y los 6 visualizadores. Migrar todo a <code>KoruUnifiedCard</code> + <code>KoruDetailScreen</code> con 7 kinds de sección: text / tiles / rows / chips / scroller / timeline / sources.
+      </p>
+    </div>
+  </div>
+
+  <!-- KoruDetailScreen -->
+  <div class="layer-card l3">
+    <div class="flex items-start gap-4">
+      <div class="flex-shrink-0 w-12 h-12 rounded-xl bg-[#6ee7b7]/15 flex items-center justify-center">
+        <span class="material-symbols-outlined text-[#6ee7b7]">open_in_full</span>
+      </div>
+      <div>
+        <p class="text-white font-bold mb-1">KoruDetailScreen — la pantalla del detalle</p>
+        <p class="text-[#a99cd6] text-sm leading-relaxed">
+          Modal full-screen con módulos <code>koru-magical-card</code>. Reutiliza los estilos de <code>PlanRoadmapScreen</code>. 7 kinds de sección: <b>text</b> (síntesis), <b>tiles</b> (grid de números), <b>rows</b> (lista de items), <b>chips</b> (tags), <b>scroller</b> (carrusel), <b>timeline</b> (eventos), <b>sources</b> (fuentes con links). Es la "pantalla 4" del flujo ideal del usuario.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ================================================================ -->
+<!-- SECCIÓN 8 — BRECHAS VS VISIÓN                                    -->
+<!-- ================================================================ -->
+<section class="max-w-6xl mx-auto px-10">
+  <p class="section-kicker mb-3">Dónde está hoy vs dónde debe estar</p>
+  <h2 class="section-title mb-4">Brechas vs visión secretario/amigo</h2>
+  <p class="section-sub max-w-3xl mb-12">"Debe poder hacer TODO de forma exelsa". Esto es lo que falta para que la frase sea cierta.</p>
+
+  <div class="magical-card mod-violet overflow-hidden p-0">
+    <table class="editorial-table w-full">
+      <thead>
+        <tr>
+          <th style="width: 28%">Visión del usuario</th>
+          <th style="width: 32%">Estado actual</th>
+          <th style="width: 28%">Brecha</th>
+          <th style="width: 12%">Severidad</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b class="text-white">Guardar enlaces</b><br><span class="text-[#a99cd6] text-xs">Cualquier URL que el usuario quiera conservar</span></td>
+          <td><span class="badge badge-ok">✓</span> <code>save_personal_item</code> con <code>kind=bookmark</code></td>
+          <td class="text-[#a99cd6]">UX no optimizada para captura rápida. Falta "share to Koru" desde móvil.</td>
+          <td><span class="badge badge-warn">media</span></td>
+        </tr>
+        <tr>
+          <td><b class="text-white">Cosas que quiero</b><br><span class="text-[#a99cd6] text-xs">Listas de deseos, compras futuras</span></td>
+          <td><span class="badge badge-ok">✓</span> LifeRecords <code>kind=shopping_item</code> + collections</td>
+          <td class="text-[#a99cd6]">Falta captura desde cualquier fuente (compartir URL, screenshot, etc.)</td>
+          <td><span class="badge badge-warn">media</span></td>
+        </tr>
+        <tr>
+          <td><b class="text-white">Notas</b><br><span class="text-[#a99cd6] text-xs">Texto libre, ideas, recordatorios</span></td>
+          <td><span class="badge badge-ok">✓</span> <code>kind=note</code> + <code>structured_note</code></td>
+          <td class="text-[#a99cd6]">Falta editor rico. Hoy solo texto plano guardado en records.</td>
+          <td><span class="badge badge-warn">media</span></td>
+        </tr>
+        <tr>
+          <td><b class="text-white">Audios</b><br><span class="text-[#a99cd6] text-xs">Transcribir y guardar notas de voz</span></td>
+          <td><span class="badge badge-bad">✗</span> No existe transcripción de audio en el loop principal</td>
+          <td class="text-[#a99cd6]"><b>Integrar ASR</b> (skill <code>ASR</code> con z-ai-web-dev-sdk disponible). Captura desde TalkOverlay y desde archivo subido.</td>
+          <td><span class="badge badge-bad">alta</span></td>
+        </tr>
+        <tr>
+          <td><b class="text-white">Aprender de nosotros</b><br><span class="text-[#a99cd6] text-xs">Memoria que se enriquece con el uso</span></td>
+          <td><span class="badge badge-warn">⚠</span> Memory extraction existe pero es <b>regex-based</b> (frágil)</td>
+          <td class="text-[#a99cd6]">Migrar extractores a LLM-driven (como <code>enhancementExtractor</code> ya hace). Las regex no escalan.</td>
+          <td><span class="badge badge-bad">alta</span></td>
+        </tr>
+        <tr>
+          <td><b class="text-white">Mejorar memoria sobre nosotros</b><br><span class="text-[#a99cd6] text-xs">Búsqueda semántica que funciona siempre</span></td>
+          <td><span class="badge badge-warn">⚠</span> <code>semanticSearch.ts</code> con embeddings Ollama</td>
+          <td class="text-[#a99cd6]"><b>Cold-start falla</b> ("Semantic Router init failed" en logs). Embeddings en la nube o caché en IndexedDB.</td>
+          <td><span class="badge badge-bad">alta</span></td>
+        </tr>
+        <tr>
+          <td><b class="text-white">Cualquier tarea</b><br><span class="text-[#a99cd6] text-xs">"TODO" literal</span></td>
+          <td><span class="badge badge-warn">⚠</span> 128 tools pero muchas son <b>placeholders/delegates</b></td>
+          <td class="text-[#a99cd6]">Reemplazar 30+ delegates con scrapers reales. Calendario, mail, WhatsApp faltan.</td>
+          <td><span class="badge badge-warn">media</span></td>
+        </tr>
+        <tr>
+          <td><b class="text-white">Presentación exelsa</b><br><span class="text-[#a99cd6] text-xs">UX/UI impecable</span></td>
+          <td><span class="badge badge-ok">✓</span> Molde unificado + magical-cards</td>
+          <td class="text-[#a99cd6]">Quedan 48 variantes UiBlock legacy + 6 visualizadores sin usar. Limpiar.</td>
+          <td><span class="badge badge-warn">media</span></td>
+        </tr>
+        <tr>
+          <td><b class="text-white">Calidad de respuesta</b><br><span class="text-[#a99cd6] text-xs">Sin errores, sin hallucinar</span></td>
+          <td><span class="badge badge-warn">⚠</span> Nemotron-3-Ultra a veces devuelve texto plano</td>
+          <td class="text-[#a99cd6]"><code>first-call-invalid-json</code> fallback funciona pero es ruidoso. JSON mode strict + few-shot examples en system prompt.</td>
+          <td><span class="badge badge-warn">media</span></td>
+        </tr>
+        <tr>
+          <td><b class="text-white">Proactividad</b><br><span class="text-[#a99cd6] text-xs">Que se adelante a lo que necesito</span></td>
+          <td><span class="badge badge-warn">⚠</span> Heartbeat proactive existe con bugs</td>
+          <td class="text-[#a99cd6]"><code>sportsResultNudge</code> siempre filtrado, TZ mezclado en <code>weatherWakeUpNudge</code>. Faltan integraciones reales (calendario, ubicación).</td>
+          <td><span class="badge badge-warn">media</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ================================================================ -->
+<!-- SECCIÓN 9 — FLUJO IDEAL (5 PANTALLAS)                            -->
+<!-- ================================================================ -->
+<section class="max-w-7xl mx-auto px-10">
+  <p class="section-kicker mb-3">El DNA visual que ya existe</p>
+  <h2 class="section-title mb-4">El flujo ideal — 5 pantallas</h2>
+  <p class="section-sub max-w-3xl mb-12">Las 5 pantallas del demo ya están implementadas en Koru hoy. Lo que falta no es el molde, es la consistencia: que <b>TODO</b> use este molde y no las 48 variantes legacy.</p>
+
+  <div class="scrollcol">
+    <div class="flex gap-8 items-start pb-6" style="min-width: max-content;">
+
+      <!-- Pantalla 1 -->
+      <div class="flex flex-col gap-4" style="width: 320px;">
+        <div class="flex gap-3 items-start">
+          <span class="stepnum">1</span>
+          <div>
+            <h3 class="text-white font-bold text-base mb-1">Pedido + susurro</h3>
+            <p class="text-[#a99cd6] text-xs leading-relaxed">Koru responde al instante. Si requiere investigación, aparece un <b class="text-[#6ee7b7]">susurro de actividad</b> bajo la burbuja — NO una card azul. "Hola" jamás dispara esto.</p>
+          </div>
+        </div>
+        <div class="phone" style="background-color:#453f6a;">
+          <div class="absolute inset-0 flex flex-col justify-end pb-8 z-10 px-4">
+            <div class="bg-[#F0F4FF] user-bubble-radius p-4 text-[#301C70] mb-3 ml-8">
+              <p class="text-xs font-medium leading-snug">Quiero un informe sobre Age of Empires 2</p>
+            </div>
+            <div class="flex items-end gap-2 mb-4">
+              <div class="w-12 h-12 rounded-full bg-white flex-shrink-0 flex items-center justify-center text-2xl">🌱</div>
+              <div class="bg-[#F8F4FA] chat-bubble-radius p-3 text-[#301C70] flex-1">
+                <p class="text-xs font-bold mb-1 text-[#523A9E]">¡Buenísimo, Juan! 🏰</p>
+                <p class="text-xs font-medium leading-snug">Me pongo a investigar y te armo el informe.</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 justify-center mb-3">
+              <span class="w-2 h-2 rounded-full bg-[#c9b8ff] animate-pulse"></span>
+              <span class="text-white/85 text-[10px] font-medium">Buscando fuentes…</span>
+            </div>
+            <div class="bg-white rounded-full flex items-center px-3 py-2 h-10">
+              <span class="material-symbols-outlined text-[#A89AD7] text-base mr-2">eco</span>
+              <span class="text-[#A89AD7] text-[10px] flex-1">Habla con Koru...</span>
+              <div class="w-7 h-7 rounded-full bg-[#7C5FF6] flex items-center justify-center"><span class="material-symbols-outlined text-white text-base">arrow_upward</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pantalla 2 -->
+      <div class="flex flex-col gap-4" style="width: 320px;">
+        <div class="flex gap-3 items-start">
+          <span class="stepnum stepnum-amber">2</span>
+          <div>
+            <h3 class="text-white font-bold text-base mb-1">Trabajando con fases reales</h3>
+            <p class="text-[#a99cd6] text-xs leading-relaxed">Solo aparece para entregables (plan/informe). Las fases salen del pipeline real: <b class="text-[#6ee7b7]">entendí → busqué → comparando → redactando</b>.</p>
+          </div>
+        </div>
+        <div class="phone" style="background-color:#413868;">
+          <div class="absolute inset-0 flex flex-col justify-end z-10">
+            <div class="flex items-end gap-2 px-4 mb-4">
+              <div class="w-12 h-12 rounded-full bg-white flex-shrink-0 flex items-center justify-center text-2xl">🌱</div>
+              <div class="bg-white px-3 py-2 chat-bubble-radius max-w-[200px]">
+                <p class="text-[#382B8C] font-bold text-xs mb-0.5">¡Ya casi, Juan! 🏰</p>
+                <p class="text-[#382B8C] text-[10px] leading-snug">Estoy armando tu <b>INFORME de AoE II</b>: comparo fuentes y redacto.</p>
+              </div>
+            </div>
+            <div class="koru-sheet panel-radius w-full px-5 py-4 relative z-20">
+              <div class="text-center mb-3">
+                <h2 class="text-[#382B8C] font-bold text-sm mb-0.5">Trabajando en tu informe...</h2>
+                <p class="text-[#382B8C] text-[10px]">Esto tomará solo unos segundos ✨</p>
+              </div>
+              <div class="flex items-center gap-2 mb-3">
+                <div class="flex-grow h-2 bg-[#E2D4FA] rounded-full overflow-hidden"><div class="h-full bg-[#8363F9] rounded-full" style="width:58%"></div></div>
+                <span class="text-[#382B8C] font-bold text-xs">58%</span>
+              </div>
+              <div class="flex flex-wrap justify-center gap-1">
+                <span class="flex items-center gap-1 bg-[#EDE7FB] text-[#382B8C] text-[8px] font-bold px-2 py-1 rounded-full"><span class="material-symbols-outlined text-[10px] text-[#059669]">check_circle</span> Entendí</span>
+                <span class="flex items-center gap-1 bg-[#EDE7FB] text-[#382B8C] text-[8px] font-bold px-2 py-1 rounded-full"><span class="material-symbols-outlined text-[10px] text-[#059669]">check_circle</span> Busqué 4 fuentes</span>
+                <span class="flex items-center gap-1 bg-[#8363F9] text-white text-[8px] font-bold px-2 py-1 rounded-full"><span class="w-1.5 h-1.5 rounded-full bg-white"></span> Comparando</span>
+                <span class="flex items-center gap-1 bg-white text-[#a99cd6] text-[8px] font-bold px-2 py-1 rounded-full border border-[#EDE7FB]"><span class="material-symbols-outlined text-[10px]">edit_note</span> Redactar</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pantalla 3 -->
+      <div class="flex flex-col gap-4" style="width: 320px;">
+        <div class="flex gap-3 items-start">
+          <span class="stepnum stepnum-emerald">3</span>
+          <div>
+            <h3 class="text-white font-bold text-base mb-1">Carta unificada entregada</h3>
+            <p class="text-[#a99cd6] text-xs leading-relaxed">Siempre el mismo molde: <b class="text-[#6ee7b7]">kicker → título → descripción → categorías derivadas → CTA</b>. Nunca una "card financiera" con otra estética.</p>
+          </div>
+        </div>
+        <div class="phone" style="background-color:#413868;">
+          <div class="absolute inset-0 flex flex-col justify-end z-10">
+            <div class="flex items-end gap-2 px-4 mb-4">
+              <div class="w-12 h-12 rounded-full bg-white flex-shrink-0 flex items-center justify-center text-2xl">🌱</div>
+              <div class="bg-white px-3 py-2 chat-bubble-radius max-w-[200px]">
+                <p class="text-[#382B8C] font-bold text-xs mb-0.5">¡Listo, Juan! 🌿</p>
+                <p class="text-[#382B8C] text-[10px] leading-snug">Tu informe sobre <b>AoE II</b> está terminado. 4 fuentes.</p>
+              </div>
+            </div>
+            <div class="koru-sheet panel-radius w-full px-5 py-5 relative z-20">
+              <div class="flex justify-between items-start gap-2 mb-3">
+                <div class="flex-grow">
+                  <p class="koru-kicker mb-0">Tu Informe</p>
+                  <h2 class="koru-title text-base mb-1">AGE OF EMPIRES II</h2>
+                  <p class="koru-desc text-[10px]">La historia, las 45 civs y el meta actual del RTS más longevo.</p>
+                </div>
+                <div class="text-3xl">🏰</div>
+              </div>
+              <div class="grid grid-cols-3 gap-1 mb-3">
+                <div class="text-center"><span class="material-symbols-outlined text-[#d97706] text-base">castle</span><p class="text-[8px] text-[#382B8C] font-bold">Historia</p></div>
+                <div class="text-center"><span class="material-symbols-outlined text-[#059669] text-base">groups</span><p class="text-[8px] text-[#382B8C] font-bold">Civs</p></div>
+                <div class="text-center"><span class="material-symbols-outlined text-[#4648d4] text-base">strategy</span><p class="text-[8px] text-[#382B8C] font-bold">Estrategia</p></div>
+              </div>
+              <button class="koru-cta w-full justify-center" style="padding:10px 0;font-size:11px">Ver informe completo <span class="material-symbols-outlined text-xs">arrow_forward</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pantalla 4 -->
+      <div class="flex flex-col gap-4" style="width: 320px;">
+        <div class="flex gap-3 items-start">
+          <span class="stepnum">4</span>
+          <div>
+            <h3 class="text-white font-bold text-base mb-1">Detalle con magical-cards</h3>
+            <p class="text-[#a99cd6] text-xs leading-relaxed">El CTA abre esta pantalla: módulos <b class="text-[#6ee7b7]">magical-card</b> con el contenido real. Síntesis, timeline, datos, fuentes — el mismo lenguaje.</p>
+          </div>
+        </div>
+        <div class="phone">
+          <div class="absolute inset-0 overflow-y-auto" style="background: linear-gradient(180deg, #f0dbff 0%, #f8f9ff 100%);">
+            <div class="relative pt-10 pb-4 px-4 text-center z-10">
+              <h1 class="text-base font-extrabold text-[#8127cf]">Age of Empires II</h1>
+              <p class="text-[9px] text-[#464554]">Tu informe · 4 fuentes</p>
+            </div>
+            <div class="px-3 space-y-2 pb-6 relative z-10">
+              <div class="magical-card mod-resumen p-3">
+                <div class="flex items-center gap-2 mb-2"><div class="mod-icon" style="width:28px;height:28px"><span class="material-symbols-outlined text-sm">auto_awesome</span></div><h3 class="mod-title text-xs">Síntesis</h3></div>
+                <p class="text-[9px] text-[#464554] leading-relaxed mb-2">Lanzado en 1999 por Ensemble. La Definitive Edition (2019) lo revivió.</p>
+                <div class="grid grid-cols-3 gap-1">
+                  <div class="bg-white/70 rounded p-1 text-center"><p class="text-[10px] font-bold text-[#7c3aed]">1999</p><p class="text-[7px] text-[#464554]">LANZ</p></div>
+                  <div class="bg-white/70 rounded p-1 text-center"><p class="text-[10px] font-bold text-[#7c3aed]">45</p><p class="text-[7px] text-[#464554]">CIVS</p></div>
+                  <div class="bg-white/70 rounded p-1 text-center"><p class="text-[10px] font-bold text-[#7c3aed]">~30k</p><p class="text-[7px] text-[#464554]">JUG</p></div>
+                </div>
+              </div>
+              <div class="magical-card mod-historia p-3">
+                <div class="flex items-center gap-2 mb-2"><div class="mod-icon" style="width:28px;height:28px"><span class="material-symbols-outlined text-sm">castle</span></div><h3 class="mod-title text-xs">Historia</h3></div>
+                <div class="space-y-1">
+                  <div class="flex items-center gap-2"><div class="w-6 h-6 rounded-full bg-white border border-[#d97706] flex items-center justify-center text-[7px] font-bold text-[#d97706]">'99</div><p class="text-[8px] text-[#464554]">The Age of Kings</p></div>
+                  <div class="flex items-center gap-2"><div class="w-6 h-6 rounded-full bg-white border border-[#d97706] flex items-center justify-center text-[7px] font-bold text-[#d97706]">'19</div><p class="text-[8px] text-[#464554]">Definitive Edition</p></div>
+                  <div class="flex items-center gap-2"><div class="w-6 h-6 rounded-full bg-white border border-[#d97706] flex items-center justify-center text-[7px] font-bold text-[#d97706]">'24</div><p class="text-[8px] text-[#464554]">Victors and Vanquished</p></div>
+                </div>
+              </div>
+              <div class="magical-card mod-fuentes p-3">
+                <div class="flex items-center gap-2 mb-2"><div class="mod-icon" style="width:28px;height:28px"><span class="material-symbols-outlined text-sm">fact_check</span></div><h3 class="mod-title text-xs">Fuentes</h3></div>
+                <div class="space-y-1">
+                  <div class="flex items-center gap-2 bg-white/60 rounded p-1.5"><span class="material-symbols-outlined text-[10px] text-[#464554]">language</span><p class="text-[8px] text-[#0b1c30] font-bold">ageofempires.com</p></div>
+                  <div class="flex items-center gap-2 bg-white/60 rounded p-1.5"><span class="material-symbols-outlined text-[10px] text-[#464554]">menu_book</span><p class="text-[8px] text-[#0b1c30] font-bold">Wikipedia</p></div>
+                  <div class="flex items-center gap-2 bg-white/60 rounded p-1.5"><span class="material-symbols-outlined text-[10px] text-[#464554]">emoji_events</span><p class="text-[8px] text-[#0b1c30] font-bold">Liquipedia AoE</p></div>
+                </div>
+              </div>
+              <button class="koru-cta w-full justify-center" style="padding:8px 0;font-size:10px">Guardar en Historial <span class="material-symbols-outlined text-xs">bookmark_added</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pantalla 5 -->
+      <div class="flex flex-col gap-4" style="width: 320px;">
+        <div class="flex gap-3 items-start">
+          <span class="stepnum stepnum-emerald">5</span>
+          <div>
+            <h3 class="text-white font-bold text-base mb-1">Nueva pregunta → limpia</h3>
+            <p class="text-[#a99cd6] text-xs leading-relaxed">El informe ya no está en pantalla (vive en <b class="text-[#6ee7b7]">Historial</b>). El dólar usa el <b>MISMO molde</b> — no una "card financiera" distinta.</p>
+          </div>
+        </div>
+        <div class="phone" style="background-color:#453f6a;">
+          <div class="absolute inset-0 flex flex-col justify-end pb-8 z-10 px-4">
+            <div class="bg-[#F0F4FF] user-bubble-radius p-3 text-[#301C70] mb-3 ml-12">
+              <p class="text-xs font-medium">¿A cuánto está el dólar hoy?</p>
+            </div>
+            <div class="flex items-end gap-2 mb-3">
+              <div class="w-12 h-12 rounded-full bg-white flex-shrink-0 flex items-center justify-center text-2xl">🌱</div>
+              <div class="bg-[#F8F4FA] chat-bubble-radius p-3 text-[#301C70] flex-1">
+                <p class="text-xs font-medium">Acá lo tenés, recién consultado 👇</p>
+              </div>
+            </div>
+            <div class="mb-3">
+              <div class="koru-sheet rounded-2xl px-4 py-4 shadow-xl">
+                <p class="koru-kicker mb-0">Dato de Hoy</p>
+                <h2 class="koru-title text-sm mb-1">DÓLAR EN ARGENTINA</h2>
+                <p class="koru-desc text-[9px] mb-2">Cotizaciones de este momento. Blue subió 1,2%.</p>
+                <div class="grid grid-cols-3 gap-1 mb-2">
+                  <div class="bg-white rounded p-1.5 text-center"><p class="text-[7px] font-bold text-[#8363F9]">OFICIAL</p><p class="text-xs font-bold text-[#382B8C]">$1.185</p></div>
+                  <div class="bg-white rounded p-1.5 text-center"><p class="text-[7px] font-bold text-[#8363F9]">BLUE</p><p class="text-xs font-bold text-[#382B8C]">$1.320</p></div>
+                  <div class="bg-white rounded p-1.5 text-center"><p class="text-[7px] font-bold text-[#8363F9]">MEP</p><p class="text-xs font-bold text-[#382B8C]">$1.292</p></div>
+                </div>
+                <button class="koru-cta w-full justify-center" style="padding:7px 0;font-size:10px">Ver evolución <span class="material-symbols-outlined text-xs">arrow_forward</span></button>
+              </div>
+            </div>
+            <div class="bg-white rounded-full flex items-center px-3 py-2 h-10">
+              <span class="material-symbols-outlined text-[#A89AD7] text-base mr-2">eco</span>
+              <span class="text-[#A89AD7] text-[10px] flex-1">Habla con Koru...</span>
+              <div class="w-7 h-7 rounded-full bg-[#7C5FF6] flex items-center justify-center"><span class="material-symbols-outlined text-white text-base">arrow_upward</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Las 4 reglas -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mt-8">
+    <div class="layer-card l1">
+      <p class="text-[#6ee7b7] font-bold text-xs mb-1">Regla 1</p>
+      <p class="text-white font-bold text-sm mb-1">Un solo molde</p>
+      <p class="text-[#a99cd6] text-xs">Todo entregable usa la hoja kicker → título → CTA. Los 45 tipos son variaciones de contenido, no estéticas propias.</p>
+    </div>
+    <div class="layer-card l2">
+      <p class="text-[#6ee7b7] font-bold text-xs mb-1">Regla 2</p>
+      <p class="text-white font-bold text-sm mb-1">Detalle es pantalla</p>
+      <p class="text-[#a99cd6] text-xs">El contenido profundo vive detrás del CTA, en módulos magical-card — no en cards gigantes scrolleables.</p>
+    </div>
+    <div class="layer-card l3">
+      <p class="text-[#fda4af] font-bold text-xs mb-1">Regla 3</p>
+      <p class="text-white font-bold text-sm mb-1">Búsqueda es estado</p>
+      <p class="text-[#a99cd6] text-xs">Buscar es un susurro con punto pulsante o una fase en "Trabajando", no una card. Solo cuando el pedido lo requiere.</p>
+    </div>
+    <div class="layer-card l4">
+      <p class="text-[#fda4af] font-bold text-xs mb-1">Regla 4</p>
+      <p class="text-white font-bold text-sm mb-1">Interacción inmediata</p>
+      <p class="text-[#a99cd6] text-xs">Cada nueva pregunta limpia la anterior. Lo anterior vive en Historial. La mascota nunca queda tapada.</p>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ================================================================ -->
+<!-- SECCIÓN 10 — ROADMAP                                             -->
+<!-- ================================================================ -->
+<section class="max-w-7xl mx-auto px-10">
+  <p class="section-kicker mb-3">De MVP a agente exelsa</p>
+  <h2 class="section-title mb-4">Roadmap visual — 4 fases</h2>
+  <p class="section-sub max-w-3xl mb-12">Cada fase con su objetivo, los archivos a tocar y la métrica de éxito. Fase 0 ya está; Fase 1 es la próxima.</p>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
+    <!-- FASE 0 -->
+    <div class="roadmap-phase done">
+      <div class="flex items-center justify-between mb-3">
+        <span class="badge badge-ok"><span class="material-symbols-outlined text-[12px]">check_circle</span> hecho</span>
+        <span class="text-[#6ee7b7] text-xs font-bold">FASE 0</span>
+      </div>
+      <h3 class="text-white font-bold text-base mb-2">Estabilizar</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-3">Esta sesión. Vite en :3000, <code>allowedHosts</code>, NVIDIA Nemotron-3-Ultra como default, .env con API key.</p>
+      <div class="space-y-1 text-[10px] text-[#c4b5fd]">
+        <p>✓ <code>vite.config.ts</code></p>
+        <p>✓ <code>.env</code> (NVIDIA_API_KEY)</p>
+        <p>✓ Preview funcionando</p>
+      </div>
+      <div class="mt-3 pt-3 border-t border-white/10">
+        <p class="text-[#6ee7b7] text-[10px] font-bold">Métrica: preview live + turnos responden</p>
+      </div>
+    </div>
+
+    <!-- FASE 1 -->
+    <div class="roadmap-phase next">
+      <div class="flex items-center justify-between mb-3">
+        <span class="badge badge-info"><span class="material-symbols-outlined text-[12px]">arrow_forward</span> próxima</span>
+        <span class="text-[#8363F9] text-xs font-bold">FASE 1 · 2 sem</span>
+      </div>
+      <h3 class="text-white font-bold text-base mb-2">Consolidar el molde</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-3">Eliminar las 48 variantes UiBlock legacy + 6 visualizadores sin usar. Migrar todo a <code>KoruUnifiedCard</code>. Fix tests, mojibake, "Ate cabos".</p>
+      <div class="space-y-1 text-[10px] text-[#c4b5fd]">
+        <p>• <code>types.ts</code> (limpiar UiBlock)</p>
+        <p>• <code>catalog.ts</code> (eliminar)</p>
+        <p>• <code>App.test.tsx</code> (3 tests rotos)</p>
+        <p>• <code>koruBackend.ts:2229</code> (mojibake)</p>
+        <p>• <code>brain.ts</code> + <code>soul.ts</code> ("Até cabos")</p>
+      </div>
+      <div class="mt-3 pt-3 border-t border-white/10">
+        <p class="text-[#8363F9] text-[10px] font-bold">Métrica: 0 variantes legacy · 0 tests rotos · 1 solo molde</p>
+      </div>
+    </div>
+
+    <!-- FASE 2 -->
+    <div class="roadmap-phase">
+      <div class="flex items-center justify-between mb-3">
+        <span class="badge badge-warn"><span class="material-symbols-outlined text-[12px]">schedule</span> 1 mes</span>
+        <span class="text-[#fda4af] text-xs font-bold">FASE 2</span>
+      </div>
+      <h3 class="text-white font-bold text-base mb-2">Memoria viva</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-3">Lo que falta para "aprender de nosotros" de verdad. ASR para audios, embeddings en la nube (fix cold-start), extractores LLM-driven, captura desde móvil.</p>
+      <div class="space-y-1 text-[10px] text-[#c4b5fd]">
+        <p>• Integrar skill <code>ASR</code> (z-ai-web-dev-sdk)</p>
+        <p>• Embeddings cloud (no Ollama local)</p>
+        <p>• <code>knowledge/extract*</code> → LLM-driven</p>
+        <p>• Web Share API para captura móvil</p>
+        <p>• Sync IndexedDB → cloud (opcional)</p>
+      </div>
+      <div class="mt-3 pt-3 border-t border-white/10">
+        <p class="text-[#fda4af] text-[10px] font-bold">Métrica: grabar nota de voz → transcribe + guarda + recuerda</p>
+      </div>
+    </div>
+
+    <!-- FASE 3 -->
+    <div class="roadmap-phase">
+      <div class="flex items-center justify-between mb-3">
+        <span class="badge badge-warn"><span class="material-symbols-outlined text-[12px]">schedule</span> 2 meses</span>
+        <span class="text-[#fda4af] text-xs font-bold">FASE 3</span>
+      </div>
+      <h3 class="text-white font-bold text-base mb-2">Tools reales</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-3">Reemplazar 30+ placeholders/delegates con scrapers reales. Integrar calendario, mail, WhatsApp. Para que "pueda hacer TODO" sea cierto.</p>
+      <div class="space-y-1 text-[10px] text-[#c4b5fd]">
+        <p>• Reemplazar delegates (people, sports, route)</p>
+        <p>• Calendario nativo (CalDAV / Google Cal)</p>
+        <p>• Mail (IMAP / Gmail API)</p>
+        <p>• WhatsApp Business API</p>
+        <p>• OCR real con Ollama Vision</p>
+      </div>
+      <div class="mt-3 pt-3 border-t border-white/10">
+        <p class="text-[#fda4af] text-[10px] font-bold">Métrica: 0 placeholders · 5 integraciones reales</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- FASE 4 (full width) -->
+  <div class="roadmap-phase mt-4" style="background: linear-gradient(135deg, rgba(131,99,249,.1), rgba(110,231,183,.04)); border-color: rgba(131,99,249,.3);">
+    <div class="flex items-start gap-6">
+      <div class="flex-shrink-0">
+        <span class="badge badge-info"><span class="material-symbols-outlined text-[12px]">auto_awesome</span> 3 meses</span>
+        <p class="text-[#8363F9] text-xs font-bold mt-2">FASE 4</p>
+      </div>
+      <div class="flex-grow">
+        <h3 class="text-white font-bold text-lg mb-2">Calidad exelsa — el objetivo final</h3>
+        <p class="text-[#a99cd6] text-sm leading-relaxed mb-4">"Superar siempre lo que se espera de él, tanto en contenido y calidad como en presentación UX/UI." Esto es lo que cierra la visión del usuario.</p>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div>
+            <p class="text-[#8363F9] text-xs font-bold mb-1">Router de modelos</p>
+            <p class="text-[#a99cd6] text-xs">Trivial → modelo chico (4s), complejo → Nemotron (15s). Reducir latencia percibida.</p>
+          </div>
+          <div>
+            <p class="text-[#8363F9] text-xs font-bold mb-1">JSON mode strict</p>
+            <p class="text-[#a99cd6] text-xs">Eliminar <code>first-call-invalid-json</code>. Nemotron debe respetar el contrato siempre.</p>
+          </div>
+          <div>
+            <p class="text-[#8363F9] text-xs font-bold mb-1">Few-shot examples</p>
+            <p class="text-[#a99cd6] text-xs">System prompt con 3-5 ejemplos de respuestas exelsas. Calibra la voz.</p>
+          </div>
+          <div>
+            <p class="text-[#8363F9] text-xs font-bold mb-1">Eval automática</p>
+            <p class="text-[#a99cd6] text-xs">Tests E2E que evalúen calidad de respuesta, no solo que no crashee.</p>
+          </div>
+        </div>
+        <div class="mt-4 pt-3 border-t border-white/10">
+          <p class="text-[#6ee7b7] text-xs font-bold">Métrica final: usuario siente que Koru "supera lo esperado" en cada interacción</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ================================================================ -->
+<!-- SECCIÓN 11 — CIERRE                                              -->
+<!-- ================================================================ -->
+<section class="hero-gradient relative overflow-hidden">
+  <div class="blob1"></div>
+  <div class="blob2"></div>
+  <div class="relative max-w-4xl mx-auto px-10 py-24 text-center">
+    <p class="koru-kicker mb-6">La regla de oro</p>
+    <blockquote class="display text-white font-extrabold text-3xl md:text-4xl leading-[1.2] mb-12">
+      "Koru no es un chatbot. Es un agente secretario/amigo que debe poder hacer
+      <span style="background: linear-gradient(135deg, #8363F9 0%, #6ee7b7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">TODO de forma exelsa</span>,
+      superando siempre lo que se espera de él, tanto en contenido y calidad como en presentación UX/UI."
+    </blockquote>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto mb-12 text-left">
+      <div class="layer-card l1">
+        <p class="text-[#6ee7b7] font-bold text-xs mb-2">LO QUE YA ESTÁ</p>
+        <ul class="text-[#a99cd6] text-sm space-y-1.5">
+          <li>✓ Molde unificado (KoruUnifiedCard)</li>
+          <li>✓ Pantalla de detalle (KoruDetailScreen)</li>
+          <li>✓ WorkingPanel con fases reales</li>
+          <li>✓ 128 tools en 11 categorías</li>
+          <li>✓ Memoria confirmable + semántica</li>
+          <li>✓ Anti-alucinación por diseño</li>
+          <li>✓ NVIDIA Nemotron-3-Ultra default</li>
+        </ul>
+      </div>
+      <div class="layer-card l4">
+        <p class="text-[#fda4af] font-bold text-xs mb-2">LO QUE FALTA</p>
+        <ul class="text-[#a99cd6] text-sm space-y-1.5">
+          <li>• Limpiar 48 variantes UiBlock legacy</li>
+          <li>• ASR para audios (notas de voz)</li>
+          <li>• Embeddings en la nube (fix cold-start)</li>
+          <li>• Extractores LLM-driven (no regex)</li>
+          <li>• Reemplazar 30+ placeholders</li>
+          <li>• Integraciones: calendario, mail, WA</li>
+          <li>• Router de modelos + JSON strict</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="inline-flex items-center gap-3 px-6 py-4 rounded-2xl" style="background: linear-gradient(135deg, rgba(131,99,249,.2), rgba(131,99,249,.05)); border: 1px solid rgba(131,99,249,.4);">
+      <span class="material-symbols-outlined text-[#8363F9]">arrow_forward</span>
+      <p class="text-white font-bold text-sm">Próximo paso: comenzar Fase 1 — consolidar el molde único</p>
+    </div>
+
+    <p class="text-[#a99cd6] text-xs mt-12">
+      Informe generado el 2026-07-11 · Basado en código de <code>koru-mvp</code> commit <code>6517d1d</code> · Auditoría jun-2026 · Visión del usuario
+    </p>
+  </div>
+</section>
+
+</body>
+</html>

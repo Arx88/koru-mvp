@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Koru — Plan de Mejora · De MVP a agente exelsa</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bricolage+Grotesque:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL@20..48,100..700,0..1&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Plus Jakarta Sans', sans-serif; background: #14112b; color: #e9ddfd; }
+  .display { font-family: 'Bricolage Grotesque', sans-serif; }
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; vertical-align: middle; }
+
+  .koru-sheet { background: linear-gradient(180deg, #ffffff 0%, #F3F0F8 100%); }
+  .koru-kicker { color: #8363F9; font-weight: 700; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+  .koru-cta {
+    background: #8363F9; color: #fff; padding: 12px 20px; border-radius: 14px;
+    font-weight: 700; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;
+    box-shadow: 0 8px 22px rgba(131, 99, 249, .35);
+  }
+
+  .magical-card {
+    background: rgba(255,255,255,.72); backdrop-filter: blur(16px); border-radius: 1.5rem; padding: 22px;
+    box-shadow: 0 8px 32px rgba(130,39,207,.08); border: 1px solid rgba(255,255,255,.85);
+    position: relative; overflow: hidden;
+  }
+  .magical-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.8), transparent);
+  }
+  .mod-violet  { --mc:#7c3aed; --mb:rgba(124,58,237,.10); }
+  .mod-amber   { --mc:#d97706; --mb:rgba(217,119,6,.10); }
+  .mod-emerald { --mc:#059669; --mb:rgba(5,150,105,.10); }
+  .mod-indigo  { --mc:#4648d4; --mb:rgba(70,72,212,.10); }
+  .mod-rose    { --mc:#e11d48; --mb:rgba(225,29,72,.10); }
+  .mod-slate   { --mc:#475569; --mb:rgba(71,85,105,.10); }
+  .mod-icon { width: 44px; height: 44px; border-radius: 12px; background: var(--mb); color: var(--mc);
+              display:flex; align-items:center; justify-content:center; }
+  .mod-title { color: var(--mc); font-weight: 800; font-size: 17px; }
+  .mod-sub { color:#6b6b7a; font-size: 10px; font-weight: 700; letter-spacing:.08em; text-transform: uppercase; }
+
+  .blob1 { position:absolute; top:-100px; right:-80px; width:400px; height:400px; border-radius:50%;
+           background: radial-gradient(circle, rgba(221,183,255,.5) 0%, rgba(221,183,255,0) 70%); filter: blur(30px); pointer-events:none; }
+  .blob2 { position:absolute; bottom:-150px; left:-100px; width:350px; height:350px; border-radius:50%;
+           background: radial-gradient(circle, rgba(111,251,190,.25) 0%, rgba(111,251,190,0) 70%); filter: blur(30px); pointer-events:none; }
+
+  .badge-ok { background: rgba(110, 231, 183, .12); color: #6ee7b7; border: 1px solid rgba(110,231,183,.3); }
+  .badge-warn { background: rgba(253, 164, 175, .12); color: #fda4af; border: 1px solid rgba(253,164,175,.3); }
+  .badge-bad { background: rgba(252, 165, 165, .15); color: #fca5a5; border: 1px solid rgba(252,165,165,.35); }
+  .badge-info { background: rgba(196, 181, 253, .12); color: #c4b5fd; border: 1px solid rgba(196,181,253,.3); }
+  .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 99px; letter-spacing: .04em; }
+
+  .layer-card {
+    background: linear-gradient(135deg, rgba(255,255,255,.04), rgba(255,255,255,.01));
+    border: 1px solid rgba(196,181,253,.15);
+    border-radius: 1.25rem; padding: 20px;
+  }
+
+  .hero-gradient {
+    background:
+      radial-gradient(ellipse at top left, rgba(131,99,249,.25), transparent 50%),
+      radial-gradient(ellipse at bottom right, rgba(111,251,190,.12), transparent 50%),
+      #14112b;
+  }
+
+  .section-divider {
+    height: 1px; background: linear-gradient(90deg, transparent, rgba(196,181,253,.25), transparent);
+    margin: 80px 0;
+  }
+
+  .section-kicker { color: #8363F9; font-weight: 700; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; }
+  .section-title { color: #fff; font-weight: 800; font-size: 32px; letter-spacing: -.01em; line-height: 1.15; }
+  .section-sub { color: #a99cd6; font-size: 15px; line-height: 1.6; }
+
+  code, .code { font-family: 'Fira Code', 'Menlo', monospace; font-size: 12px; color: #c4b5fd; background: rgba(196,181,253,.08); padding: 2px 6px; border-radius: 4px; }
+
+  /* Task card */
+  .task-card {
+    background: linear-gradient(135deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+    border: 1px solid rgba(196,181,253,.12);
+    border-radius: 1rem; padding: 16px;
+    transition: border-color .2s;
+  }
+  .task-card:hover { border-color: rgba(131,99,249,.35); }
+  .task-card.done { border-left: 3px solid #6ee7b7; }
+  .task-card.next { border-left: 3px solid #8363F9; }
+  .task-card.future { border-left: 3px solid rgba(196,181,253,.25); }
+  .task-id { font-family: 'Fira Code', monospace; font-size: 10px; color: #8363F9; font-weight: 700; }
+
+  /* Priority matrix */
+  .matrix-cell {
+    border: 1px solid rgba(196,181,253,.12);
+    padding: 14px; min-height: 100px;
+  }
+  .matrix-quick { background: rgba(110, 231, 183, .05); }
+  .matrix-major { background: rgba(131, 99, 249, .06); }
+  .matrix-fill { background: rgba(253, 164, 175, .04); }
+  .matrix-drop { background: rgba(113, 113, 122, .04); }
+
+  /* Editorial table */
+  .editorial-table th {
+    background: rgba(131,99,249,.08); color: #c4b5fd; font-weight: 700; font-size: 11px;
+    text-transform: uppercase; letter-spacing: .1em; padding: 12px 14px; text-align: left;
+    border-bottom: 1px solid rgba(196,181,253,.15);
+  }
+  .editorial-table td {
+    padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,.04); vertical-align: top;
+    font-size: 12px; line-height: 1.5;
+  }
+  .editorial-table tr:hover td { background: rgba(131,99,249,.04); }
+
+  @media print {
+    body { background: white; color: #1a1a2e; }
+    .hero-gradient { background: white; }
+    .section-title { color: #382B8C; }
+    .section-sub { color: #464554; }
+  }
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- ================================================================ -->
+<!-- PORTADA                                                          -->
+<!-- ================================================================ -->
+<section class="hero-gradient relative overflow-hidden">
+  <div class="blob1"></div>
+  <div class="blob2"></div>
+  <div class="relative max-w-6xl mx-auto px-10 py-24">
+    <p class="koru-kicker mb-4">Plan de Mejora · De MVP a agente exelsa</p>
+    <h1 class="display text-white font-extrabold text-6xl leading-[1.05] mb-6 tracking-tight">
+      Plan Koru.<br>
+      <span style="background: linear-gradient(135deg, #8363F9 0%, #6ee7b7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+        51 tareas · 4 fases · 8 meses.
+      </span>
+    </h1>
+    <p class="text-[#a99cd6] text-lg max-w-2xl leading-relaxed mb-12">
+      Plan completo y accionable para llevar a Koru de "prototipo ambicioso" a "agente secretario/amigo que hace TODO de forma exelsa". Cada tarea con archivos a tocar, esfuerzo estimado y métrica de éxito.
+    </p>
+    <div class="flex flex-wrap gap-3 mb-8">
+      <span class="badge badge-ok"><span class="material-symbols-outlined text-[14px]">check_circle</span> Fase 0 · 5 tareas · HECHA</span>
+      <span class="badge badge-info"><span class="material-symbols-outlined text-[14px]">arrow_forward</span> Fase 1 · 15 tareas · 2 sem</span>
+      <span class="badge badge-warn"><span class="material-symbols-outlined text-[14px]">schedule</span> Fase 2 · 14 tareas · 1 mes</span>
+      <span class="badge badge-warn"><span class="material-symbols-outlined text-[14px]">schedule</span> Fase 3 · 12 tareas · 2 meses</span>
+      <span class="badge badge-warn"><span class="material-symbols-outlined text-[14px]">auto_awesome</span> Fase 4 · 10 tareas · 3 meses</span>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl">
+      <div class="layer-card" style="border-left: 4px solid #6ee7b7;">
+        <p class="text-[#6ee7b7] text-xs font-bold uppercase tracking-wider mb-1">Bugs resueltos</p>
+        <p class="text-white font-bold text-2xl">3 / 16</p>
+        <p class="text-[#a99cd6] text-[10px]">A2, A3, A5 ya arreglados</p>
+      </div>
+      <div class="layer-card" style="border-left: 4px solid #fda4af;">
+        <p class="text-[#fda4af] text-xs font-bold uppercase tracking-wider mb-1">Bugs pendientes</p>
+        <p class="text-white font-bold text-2xl">13</p>
+        <p class="text-[#a99cd6] text-[10px]">A1, A4, A6-A16</p>
+      </div>
+      <div class="layer-card" style="border-left: 4px solid #8363F9;">
+        <p class="text-[#8363F9] text-xs font-bold uppercase tracking-wider mb-1">Deuda estructural</p>
+        <p class="text-white font-bold text-2xl">11</p>
+        <p class="text-[#a99cd6] text-[10px]">B1-B11 · motor legacy, God-components</p>
+      </div>
+      <div class="layer-card" style="border-left: 4px solid #c4b5fd;">
+        <p class="text-[#c4b5fd] text-xs font-bold uppercase tracking-wider mb-1">Mejoras calidad</p>
+        <p class="text-white font-bold text-2xl">10</p>
+        <p class="text-[#a99cd6] text-[10px]">C1-C10 · eslint, strict, a11y</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ================================================================ -->
+<!-- VISIÓN NORTE Y PRINCIPIOS                                        -->
+<!-- ================================================================ -->
+<section class="max-w-6xl mx-auto px-10">
+  <p class="section-kicker mb-3">Visión norte</p>
+  <h2 class="section-title mb-4">La estrella que guía todo</h2>
+  <p class="section-sub max-w-3xl mb-10">Antes de cualquier tarea, los principios. Toda decisión técnica se mide contra estos 7 principios. Si una mejora no sirve a uno de ellos, no se hace.</p>
+
+  <div class="layer-card l1 mb-10" style="background: linear-gradient(135deg, rgba(131,99,249,.15), rgba(131,99,249,.04)); border-color: rgba(131,99,249,.4);">
+    <p class="text-white font-bold text-xl leading-relaxed">
+      "Koru es un agente secretario/amigo que debe poder hacer <span class="text-[#6ee7b7]">TODO de forma exelsa</span>, superando siempre lo que se espera de él, tanto en contenido y calidad como en presentación UX/UI."
+    </p>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="magical-card mod-violet">
+      <div class="mod-icon mb-3"><span class="material-symbols-outlined">spa</span></div>
+      <h3 class="mod-title text-base mb-2">1 · Confianza confirmada</h3>
+      <p class="text-[#464554] text-xs leading-relaxed">Koru no retiene artificialmente. Crece solo con lo que el usuario confirma. Las forbiddenPhrases son ley.</p>
+    </div>
+    <div class="magical-card mod-emerald">
+      <div class="mod-icon mb-3"><span class="material-symbols-outlined">fact_check</span></div>
+      <h3 class="mod-title text-base mb-2">2 · Anti-alucinación</h3>
+      <p class="text-[#464554] text-xs leading-relaxed">Cada dato con cita literal. Si la tool falla, se dice. Nunca se inventa. structureExtractor es referencia.</p>
+    </div>
+    <div class="magical-card mod-amber">
+      <div class="mod-icon mb-3"><span class="material-symbols-outlined">dashboard</span></div>
+      <h3 class="mod-title text-base mb-2">3 · Un solo molde</h3>
+      <p class="text-[#464554] text-xs leading-relaxed">KoruUnifiedCard para todo. Kicker → título → CTA. El detalle es pantalla, no card gigante. Búsqueda es estado.</p>
+    </div>
+    <div class="magical-card mod-indigo">
+      <div class="mod-icon mb-3"><span class="material-symbols-outlined">bolt</span></div>
+      <h3 class="mod-title text-base mb-2">4 · Interacción inmediata</h3>
+      <p class="text-[#464554] text-xs leading-relaxed">Cada nueva pregunta limpia la anterior. La mascota nunca se tapa. Lo anterior vive en Historial.</p>
+    </div>
+    <div class="magical-card mod-rose">
+      <div class="mod-icon mb-3"><span class="material-symbols-outlined">memory</span></div>
+      <h3 class="mod-title text-base mb-2">5 · Memoria viva</h3>
+      <p class="text-[#464554] text-xs leading-relaxed">Aprende de cada interacción. Extrae con LLM, no regex. Recuerda con embeddings que siempre funcionan.</p>
+    </div>
+    <div class="magical-card mod-violet">
+      <div class="mod-icon mb-3"><span class="material-symbols-outlined">extension</span></div>
+      <h3 class="mod-title text-base mb-2">6 · Tools reales</h3>
+      <p class="text-[#464554] text-xs leading-relaxed">Cero placeholders. Calendario, mail, WhatsApp integrados. Si está en el catálogo, funciona.</p>
+    </div>
+    <div class="magical-card mod-emerald">
+      <div class="mod-icon mb-3"><span class="material-symbols-outlined">speed</span></div>
+      <h3 class="mod-title text-base mb-2">7 · Calidad exelsa</h3>
+      <p class="text-[#464554] text-xs leading-relaxed">Router de modelos. JSON strict. Few-shot. Eval automática. El usuario siente que supera lo esperado.</p>
+    </div>
+    <div class="magical-card mod-slate" style="background: linear-gradient(135deg, rgba(110,231,183,.08), rgba(255,255,255,.04));">
+      <div class="mod-icon mb-3"><span class="material-symbols-outlined">verified</span></div>
+      <h3 class="mod-title text-base mb-2">Meta-principio</h3>
+      <p class="text-[#464554] text-xs leading-relaxed">Si una mejora no sirve a uno de los 6 principios anteriores, NO se hace. Mantener foco.</p>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider" data-marker="end-of-principios"></div>
+
+<!-- ================================================================ -->
+<!-- FASE 1 — CONSOLIDAR EL MOLDE                                     -->
+<!-- ================================================================ -->
+<section class="max-w-6xl mx-auto px-10">
+  <div class="flex items-center gap-3 mb-3">
+    <span class="badge badge-info"><span class="material-symbols-outlined text-[14px]">arrow_forward</span> próxima</span>
+    <p class="section-kicker">Fase 1 · 2 semanas · 15 tareas</p>
+  </div>
+  <h2 class="section-title mb-4">Consolidar el molde único</h2>
+  <p class="section-sub max-w-3xl mb-10">Objetivo: dejar la UI con UN solo molde de respuesta (KoruUnifiedCard) y cero deuda heredada. Bug-free, test-friendly, listo para escalar. Es la fase más mecánica pero desbloquea todo lo demás.</p>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+
+    <div class="task-card next">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">1.1</span>
+        <span class="badge badge-warn">2 días</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Eliminar 48 variantes UiBlock legacy</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">Borrar las 48 variantes de <code>UiBlock</code> en <code>types.ts:352-856</code>. Migrar las que aún se usen a <code>KoruUnifiedCard</code>.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> <code>grep -c "type UiBlock" types.ts</code> = 0</p>
+    </div>
+
+    <div class="task-card next">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">1.2</span>
+        <span class="badge badge-warn">medio día</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Eliminar 6 visualizadores legacy</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">Borrar <code>catalog.ts</code> completo (weather, sports_scores, money_summary, news_list, comparison_table, generic_list). Ya no se usan.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> <code>catalog.ts</code> no existe</p>
+    </div>
+
+    <div class="task-card next">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">1.3</span>
+        <span class="badge badge-warn">1 día</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Migrar 3 excepciones de chatCards.tsx</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">Migrar <code>PlanHeroCard</code>, <code>web_nav</code> en working, <code>deliverable</code> en working al molde unificado. WorkingPanel absorbe lo necesario.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> chatCards.tsx solo tiene KoruUnifiedCard</p>
+    </div>
+
+    <div class="task-card next">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">1.4</span>
+        <span class="badge badge-warn">1 día</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Fix 3 tests App.test.tsx</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">Tests buscan <code>/buenos d[ií]as/</code> y <code>/escribe tu mensaje/</code> que ya no existen. Alinear tests a UI actual o restaurar saludo/placeholder si conviene.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> <code>vitest run</code> = 0 fails</p>
+    </div>
+
+    <div class="task-card next">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">1.5</span>
+        <span class="badge badge-ok">10 min</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Fix mojibake koruBackend.ts:2229</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2"><code>enviÃ³</code> → <code>envió</code>. Re-guardar como UTF-8 sin BOM.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> <code>grep "Ã" src/</code> = 0 resultados</p>
+    </div>
+
+    <div class="task-card next">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">1.6</span>
+        <span class="badge badge-ok">10 min</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Fix "Ate cabos" → "Até cabos"</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">3 ubicaciones: <code>brain.ts:829</code>, <code>soul.ts:116</code>, <code>soul.ts:141</code> (esta última también <code>habias</code> → <code>habías</code>).</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> <code>grep "Ate cabos" src/</code> = 0</p>
+    </div>
+
+    <div class="task-card next">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">1.7</span>
+        <span class="badge badge-ok">20 min</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Crear .env.example</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">Documentar las 4 familias: <code>NVIDIA_*</code>, <code>OPENROUTER_*</code>, <code>MINIMAX_*</code>, <code>VITE_FREELLMAPI_*</code> (marcar esta última como DEPRECATED).</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> <code>.env.example</code> commiteado</p>
+    </div>
+
+    <div class="task-card next">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">1.8</span>
+        <span class="badge badge-ok">20 min</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Runtime warning API key expuesta</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">En <code>freellmapi.ts</code> añadir <code>console.warn</code> si <code>VITE_FREELLMAPI_API_KEY</code> está seteada — expone al bundle del cliente.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> warning visible en consola si se setea</p>
+    </div>
+
+    <div class="task-card next">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">1.9</span>
+        <span class="badge badge-warn">medio día</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Fix sportsResultNudge siempre filtrado (A6)</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">El generador produce prioridad "low" pero <code>buildProactiveNudges</code> filtra <code>priority !== "low"</code>. Cambiar a "medium" o ajustar filtro.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> nudge de deportes aparece cuando hay partido</p>
+    </div>
+
+    <div class="task-card next">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">1.10</span>
+        <span class="badge badge-ok">20 min</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Fix TZ mezclado en weatherWakeUpNudge (A7)</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">Usa <code>getUTCHours()</code>/<code>getUTCMinutes()</code> pero el resto usa <code>getHours()</code> local. Unificar a local.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> nudge de clima respeta hora local</p>
+    </div>
+
+    <div class="task-card next">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">1.11</span>
+        <span class="badge badge-ok">10 min</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Fix cosineSimilarity sin Math.min (A8)</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">En <code>semanticRouter.ts:145-153</code>. Itera hasta <code>a.length</code> no <code>Math.min(a.length, b.length)</code>. Si cambian dimensiones de embeddings, daría NaN.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> test con vectores de distinta longitud no rompe</p>
+    </div>
+
+    <div class="task-card next">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">1.12</span>
+        <span class="badge badge-warn">medio día</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Fix timeFromText no maneja AM/PM (A11)</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">Solo "a las X" en 24h. "3 de la tarde", "16hs" fallan. Añadir patrones PM/AM y "Xhs".</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> "a las 3 de la tarde" → hour=15</p>
+    </div>
+
+    <div class="task-card next">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">1.13</span>
+        <span class="badge badge-ok">20 min</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Fix enhancementEngine umbral reactivo (A15)</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2"><code>recentIgnored >= 2</code> bloquea todos los <code>ask</code> mode. Subir umbral o distinguir "ignorar" de "conversar".</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> enhancements no se silencian tras 2 turnos conversacionales</p>
+    </div>
+
+    <div class="task-card next">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">1.14</span>
+        <span class="badge badge-ok">5 min</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Fix docstring heartbeatProactive 24h vs 20h (A16)</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">Docstring dice 24h, código 20h. Sincronizar.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> docstring y código coinciden</p>
+    </div>
+
+    <div class="task-card next">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">1.15</span>
+        <span class="badge badge-warn">1 día</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Unificar 3 routers a 1 taxonomía (B4)</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2"><code>localRoute</code> (heurístico), <code>SemanticRouter</code> (embeddings), router nativo LLM. Definir UNA taxonomía de intenciones y mapear los tres a ella. Empezar por inventariar las 3.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> 1 solo archivo de intenciones, 3 adapters</p>
+    </div>
+  </div>
+
+  <div class="layer-card" style="border-left: 4px solid #8363F9;">
+    <p class="text-[#8363F9] text-xs font-bold uppercase tracking-wider mb-3">Métricas de éxito · Fase 1</p>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+      <div><span class="text-[#6ee7b7] font-bold">0</span> <span class="text-[#a99cd6]">variantes UiBlock legacy</span></div>
+      <div><span class="text-[#6ee7b7] font-bold">0</span> <span class="text-[#a99cd6]">tests rotos</span></div>
+      <div><span class="text-[#6ee7b7] font-bold">0</span> <span class="text-[#a99cd6]">instancias de mojibake</span></div>
+      <div><span class="text-[#6ee7b7] font-bold">1</span> <span class="text-[#a99cd6]">solo molde de respuesta</span></div>
+      <div><span class="text-[#6ee7b7] font-bold">13</span> <span class="text-[#a99cd6]">/ 16 bugs auditoría resueltos</span></div>
+      <div><span class="text-[#6ee7b7] font-bold">1</span> <span class="text-[#a99cd6]">router unificado</span></div>
+      <div><span class="text-[#6ee7b7] font-bold">.env.example</span> <span class="text-[#a99cd6]">commiteado</span></div>
+      <div><span class="text-[#6ee7b7] font-bold">0</span> <span class="text-[#a99cd6]">warnings de API key expuesta</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider" data-marker="end-of-fase-1"></div>
+
+<!-- ================================================================ -->
+<!-- FASE 2 — MEMORIA VIVA                                            -->
+<!-- ================================================================ -->
+<section class="max-w-6xl mx-auto px-10">
+  <div class="flex items-center gap-3 mb-3">
+    <span class="badge badge-warn"><span class="material-symbols-outlined text-[14px]">schedule</span> 1 mes</span>
+    <p class="section-kicker">Fase 2 · 14 tareas · refactor estructural</p>
+  </div>
+  <h2 class="section-title mb-4">Memoria viva</h2>
+  <p class="section-sub max-w-3xl mb-10">Objetivo: que "aprenda de nosotros" sea cierto. ASR para audios, embeddings que siempre funcionan, extractores LLM-driven, captura desde móvil. Y de paso: particionar God-components, añadir zod, eslint, accesibilidad.</p>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">2.1</span>
+        <span class="badge badge-warn">3 días</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Integrar ASR para notas de voz</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">Usar skill <code>ASR</code> con <code>z-ai-web-dev-sdk</code>. Captura desde <code>TalkOverlay</code> (botón micrófono) y desde archivo subido. Transcripción → guarda como <code>LifeRecord kind=note</code>.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> grabar nota de voz → transcribe + guarda + busca</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">2.2</span>
+        <span class="badge badge-warn">2 días</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Embeddings en la nube (fix cold-start)</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">Reemplazar Ollama <code>nomic-embed-text</code> local por servicio cloud (NVIDIA embeddings API o z-ai-web-dev-sdk). El "Semantic Router init failed" del log debe desaparecer.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> 0 errores "fetch failed" en semanticSearch al arrancar</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">2.3</span>
+        <span class="badge badge-warn">1 semana</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Migrar extractores regex → LLM-driven</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2"><code>extractMemoryCandidatesFromText</code>, <code>extractCommitmentsFromText</code>, <code>extractLifeRecordsFromText</code> son regex. Migrar a LLM (como <code>enhancementExtractor</code> ya hace). Más preciso, menos frágil.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> extractores manejan "3 de la tarde", jerga, typos</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">2.4</span>
+        <span class="badge badge-warn">3 días</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Captura desde móvil (Web Share API)</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">Registrar Koru como share target (<code>manifest.json</code> + <code>share_target</code>). Desde móvil, compartir URL → Koru la guarda como <code>kind=bookmark</code>.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> "Compartir → Koru" guarda el enlace en records</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">2.5</span>
+        <span class="badge badge-warn">2 días</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Cachear embeddings en IndexedDB</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">Persistir embeddings en IndexedDB para cold-start instantáneo. Hash del texto como key. Evita re-calcular en cada arranque.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> segunda carga de la app es 5x más rápida</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">2.6</span>
+        <span class="badge badge-warn">1 semana</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Particionar KoruProvider.tsx (B2)</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">1.806 líneas → 4 archivos: <code>selectors.ts</code> (memos derivadas), <code>adapters.ts</code> (mappings), <code>agentOrchestrator.ts</code> (<code>submitEntry</code>/<code>sendMessage</code>), <code>audit.ts</code>.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> ningún archivo &gt; 500 líneas</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">2.7</span>
+        <span class="badge badge-warn">1 semana</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Particionar actions.ts (B3)</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">1.667 líneas → 4 archivos: <code>actions/intents.ts</code>, <code>actions/builders.ts</code>, <code>actions/planner.ts</code>, <code>actions/executor.ts</code>. Solo si se mantiene el motor legacy (ver 2.14).</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> actions/ es un directorio, no un archivo</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">2.8</span>
+        <span class="badge badge-warn">2 días</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Añadir React.memo + comparación por id+items</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">A <code>KoruTurnBubble</code>, <code>TurnItemCard</code>, <code>WebNavCardA</code>. Evita re-render global en streaming largo.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> React DevTools no muestra re-renders globales</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">2.9</span>
+        <span class="badge badge-warn">1 semana</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Adoptar zod para validación LLM (B7)</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2"><code>schemas.ts</code> reimplementa validación a mano. Migrar a <code>zod</code> (ya en dependencies). Tipos + validación en un solo source of truth.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> <code>schemas.ts</code> usa zod, no validación manual</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">2.10</span>
+        <span class="badge badge-warn">1 día</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">eslint + prettier + strict:true (C1, C2)</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">Añadir al <code>package.json</code>. <code>strict: true</code> en <code>tsconfig.json</code>. Eliminar <code>@ts-nocheck</code> de <code>logger.ts</code> (C4).</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> <code>npm run lint</code> = 0 errores</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">2.11</span>
+        <span class="badge badge-warn">2 días</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Accesibilidad: focus trap + ARIA (C8)</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2"><code>role="dialog"</code>, <code>aria-modal</code>, focus trap en <code>TalkOverlay</code> y <code>MemoryDetail</code>. Navegación por teclado completa.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> axe DevTools = 0 violations</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">2.12</span>
+        <span class="badge badge-ok">2 horas</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Pausa del heartbeat con visibilitychange</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">Cuando el tab no está visible, pausar <code>heartbeat</code>. Reanudar al volver. Ahorra CPU y llamadas innecesarias.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> 0 heartbeat events cuando tab en background</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">2.13</span>
+        <span class="badge badge-warn">1 día</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Logger en cada catch silencioso (B11)</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">Múltiples <code>catch { return []; }</code> sin log. Añadir <code>logger.warn</code> en cada uno. Visibilidad para debug.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> <code>grep -c "catch {" src/</code> = 0</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">2.14</span>
+        <span class="badge badge-warn">1 día</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Decidir destino del motor legacy (B1)</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">~3.700 líneas de <code>orchestrator+brain+actions+pipeline+agentKernel</code> muertas. Decisión: (a) eliminar vía <code>git rm</code>, (b) reactivar como fallback offline, (c) unificar con server. Recomendación: (a) archivar en rama <code>archive/legacy-engine</code>.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> decisión documentada + ejecutada</p>
+    </div>
+  </div>
+
+  <div class="layer-card" style="border-left: 4px solid #fda4af;">
+    <p class="text-[#fda4af] text-xs font-bold uppercase tracking-wider mb-3">Métricas de éxito · Fase 2</p>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+      <div><span class="text-[#6ee7b7] font-bold">0</span> <span class="text-[#a99cd6]">errores cold-start Semantic Router</span></div>
+      <div><span class="text-[#6ee7b7] font-bold">1</span> <span class="text-[#a99cd6]">nota de voz → texto → memoria</span></div>
+      <div><span class="text-[#6ee7b7] font-bold">3</span> <span class="text-[#a99cd6]">extractores LLM-driven</span></div>
+      <div><span class="text-[#6ee7b7] font-bold">0</span> <span class="text-[#a99cd6]">archivos &gt; 500 líneas</span></div>
+      <div><span class="text-[#6ee7b7] font-bold">0</span> <span class="text-[#a99cd6]">violaciones axe DevTools</span></div>
+      <div><span class="text-[#6ee7b7] font-bold">0</span> <span class="text-[#a99cd6]">catches silenciosos</span></div>
+      <div><span class="text-[#6ee7b7] font-bold">0</span> <span class="text-[#a99cd6]">líneas de motor legacy muerto</span></div>
+      <div><span class="text-[#6ee7b7] font-bold">5x</span> <span class="text-[#a99cd6]">cold-start más rápido</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider" data-marker="end-of-fase-2"></div>
+
+<!-- ================================================================ -->
+<!-- FASE 3 — TOOLS REALES                                            -->
+<!-- ================================================================ -->
+<section class="max-w-6xl mx-auto px-10">
+  <div class="flex items-center gap-3 mb-3">
+    <span class="badge badge-warn"><span class="material-symbols-outlined text-[14px]">schedule</span> 2 meses</span>
+    <p class="section-kicker">Fase 3 · 12 tareas · cerrar el catálogo</p>
+  </div>
+  <h2 class="section-title mb-4">Tools reales</h2>
+  <p class="section-sub max-w-3xl mb-10">Objetivo: cero placeholders. Reemplazar 30+ delegates con scrapers reales. Integrar calendario, mail, WhatsApp. Para que "pueda hacer TODO" sea cierto. Y extraer el backend de Vite para poder desplegar.</p>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">3.1</span>
+        <span class="badge badge-warn">3 días</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Reemplazar delegates People</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2"><code>person_filmography</code>, <code>movie_info</code> hoy devuelven simulados. Implementar con Wikipedia + TMDB (API gratuita). 5 tools en la categoría.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> 0 delegates en People</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">3.2</span>
+        <span class="badge badge-warn">3 días</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Reemplazar delegates Sports</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2"><code>tennis_atp_wta</code>, <code>tournament_bracket</code>, <code>sports_news</code>, <code>player_stats</code>. Implementar con APIs reales (ATP, ESPN, sportsmate).</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> 0 delegates en Sports</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">3.3</span>
+        <span class="badge badge-warn">1 semana</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Reemplazar delegates Travel</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2"><code>route_plan</code>, <code>transport_nearby</code>, <code>currency_atm</code>, <code>weather_travel</code>. OSRM, OpenStreetMap, Google Places. 4 tools.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> 0 delegates en Travel</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">3.4</span>
+        <span class="badge badge-warn">3 días</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Reemplazar placeholders</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2"><code>inflation_data</code> (placeholder), <code>ocr_text</code> (delegate). Inflation con APIs de bancos centrales. OCR con Ollama Vision.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> 0 placeholders en toolbox</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">3.5</span>
+        <span class="badge badge-warn">2 semanas</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Integrar calendario (CalDAV / Google Calendar)</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">Nuevo tool <code>calendar_list</code>, <code>calendar_create</code>, <code>calendar_remind</code>. OAuth2 para Google. CalDAV para Apple. Sincroniza con <code>commitments</code>.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> "agendame reunión mañana 3pm" crea evento real</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">3.6</span>
+        <span class="badge badge-warn">2 semanas</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Integrar mail (IMAP / Gmail API)</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">Nuevo tool <code>email_search</code>, <code>email_send</code>, <code>email_draft</code>. IMAP para proveedores estándar. Gmail API para Google. <code>requiresApproval</code> en send.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> "mandale a X el adjunto" → draft listo</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">3.7</span>
+        <span class="badge badge-warn">2 semanas</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Integrar WhatsApp Business API</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">Nuevo tool <code>whatsapp_send</code>. Requiere WhatsApp Business Account + Meta API. <code>requiresApproval</code> siempre.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> enviar mensaje WA desde Koru (con aprobación)</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">3.8</span>
+        <span class="badge badge-warn">3 días</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">OCR real con Ollama Vision</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2"><code>ocr_text</code> hoy delegate. Implementar con Ollama Vision (llava / bakllava) o z-ai-web-dev-sdk VLM. Subir imagen → texto + estructura.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> subir foto de factura → datos extraídos</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">3.9</span>
+        <span class="badge badge-warn">1 semana</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Centralizar constantes mágicas (B10)</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">Confianza 0.55/0.58/0.65/0.75/0.85/0.95; ventanas 20h/25min/75s; límites 120/200/500. Mover a <code>domain/config.ts</code> con comentarios de calibración.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> <code>domain/config.ts</code> existe y es el único source</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">3.10</span>
+        <span class="badge badge-warn">1 semana</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Tests del camino activo (B11)</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2"><code>runKoruBackendTurn</code> con <code>callProvider</code> mockeado, cubriendo los 3 fallbacks de proveedor. Hoy los tests prueban código muerto.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> cobertura &gt; 70% en koruBackend.ts</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">3.11</span>
+        <span class="badge badge-warn">2 semanas</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Extraer backend a Express/Hono (B5)</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">Mover <code>koruBackend.ts</code> + middlewares a proceso Express/Hono independiente. Desacoplar de Vite. Habilita deploy a Vercel/Netlify/self-hosted.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> <code>npm run server</code> arranca sin Vite</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">3.12</span>
+        <span class="badge badge-warn">3 días</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Doble renderizado → solo UiBlock (B6)</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">Eliminar <code>stitchBlockFromLegacyItem</code> (puente costoso). Backend siempre emite <code>UiBlock</code> unificado.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> <code>grep stitchBlockFromLegacyItem</code> = 0</p>
+    </div>
+  </div>
+
+  <div class="layer-card" style="border-left: 4px solid #fda4af;">
+    <p class="text-[#fda4af] text-xs font-bold uppercase tracking-wider mb-3">Métricas de éxito · Fase 3</p>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+      <div><span class="text-[#6ee7b7] font-bold">0</span> <span class="text-[#a99cd6]">delegates en toolbox</span></div>
+      <div><span class="text-[#6ee7b7] font-bold">0</span> <span class="text-[#a99cd6]">placeholders</span></div>
+      <div><span class="text-[#6ee7b7] font-bold">3</span> <span class="text-[#a99cd6]">integraciones reales (cal/mail/WA)</span></div>
+      <div><span class="text-[#6ee7b7] font-bold">1</span> <span class="text-[#a99cd6]">backend desacoplado de Vite</span></div>
+      <div><span class="text-[#6ee7b7] font-bold">70%+</span> <span class="text-[#a99cd6]">cobertura en koruBackend.ts</span></div>
+      <div><span class="text-[#6ee7b7] font-bold">1</span> <span class="text-[#a99cd6]">config.ts centralizado</span></div>
+      <div><span class="text-[#6ee7b7] font-bold">0</span> <span class="text-[#a99cd6]">stitchBlockFromLegacyItem</span></div>
+      <div><span class="text-[#6ee7b7] font-bold">128</span> <span class="text-[#a99cd6]">/ 128 tools funcionan de verdad</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider" data-marker="end-of-fase-3"></div>
+
+<!-- ================================================================ -->
+<!-- FASE 4 — CALIDAD EXELSA                                          -->
+<!-- ================================================================ -->
+<section class="max-w-6xl mx-auto px-10">
+  <div class="flex items-center gap-3 mb-3">
+    <span class="badge badge-warn"><span class="material-symbols-outlined text-[14px]">auto_awesome</span> 3 meses · meta</span>
+    <p class="section-kicker">Fase 4 · 10 tareas · la visión</p>
+  </div>
+  <h2 class="section-title mb-4">Calidad exelsa</h2>
+  <p class="section-sub max-w-3xl mb-10">Objetivo: "superar siempre lo que se espera de él". Router de modelos, JSON strict, few-shot, eval automática. El usuario siente que cada interacción lo supera.</p>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">4.1</span>
+        <span class="badge badge-warn">2 semanas</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Router de modelos (trivial→chico, complejo→grande)</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">"hola"/"gracias" → modelo chico (Nemotron Nano o qwen3.6:8b, 1-2s). Pedidos complejos → Nemotron-3-Ultra (15s). Reducir latencia percibida.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> saludos responden en &lt;3s</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">4.2</span>
+        <span class="badge badge-warn">1 semana</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">JSON mode strict para Nemotron</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">Habilitar <code>response_format: { type: "json_object" }</code> en el provider. Eliminar <code>first-call-invalid-json</code> fallback. Más confiable.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> 0 fallbacks <code>first-call-invalid-json</code></p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">4.3</span>
+        <span class="badge badge-warn">1 semana</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Few-shot examples en system prompt</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">3-5 ejemplos de respuestas exelsas en <code>systemPrompt()</code>. Calibra la voz. Especialmente para: saludos, fallback de tool, save_memory, web_search.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> respuestas no dicen "Soy Sos Koru"</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">4.4</span>
+        <span class="badge badge-warn">2 semanas</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Eval automática de respuestas</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">Tests E2E que evalúen calidad (no solo que no crashee). Dataset de 30 prompts + criterios. CI gate.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> CI bloquea PRs que bajan score &lt; 0.8</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">4.5</span>
+        <span class="badge badge-warn">2 días</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Snapshot tests del systemPrompt</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">Detectar regresiones de personalidad. Cualquier cambio en <code>systemPrompt()</code> rompe el snapshot y fuerza revisión.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> <code>vitest -u</code> solo cuando se aprueba cambio de voz</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">4.6</span>
+        <span class="badge badge-warn">3 días</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Cache de enhancementExtractor por hash</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">Cache por hash de <code>input+memorias</code>. Mismo input → misma propuesta, sin llamar al LLM. Ahorra tokens y latencia.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> 2da vez mismo input = respuesta instantánea</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">4.7</span>
+        <span class="badge badge-warn">2 semanas</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Migrar detección léxica a embeddings (B8)</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2"><code>actions.ts</code>, <code>brain.ts</code>, <code>intent.ts</code>, <code>orchestrator.ts</code>, <code>heartbeatProactive.ts</code> plagados de regex. Extender <code>semanticRouter</code> a todos.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> 0 regex léxicas en español rioplatense</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">4.8</span>
+        <span class="badge badge-warn">1 semana</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Caché persistente del Semantic Router</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">Persistir embeddings de intents en IndexedDB. Cold-start instantáneo. Cubre Fase 2.5 para el router.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> router init = 0ms en 2da carga</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">4.9</span>
+        <span class="badge badge-warn">1 semana</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">cosineSimilarity a domain/vector.ts (B9)</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">Duplicada en <code>brain.ts</code> y <code>semanticRouter.ts</code> con implementaciones distintas. Extraer a <code>domain/vector.ts</code>.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> 1 sola implementación compartida</p>
+    </div>
+
+    <div class="task-card future">
+      <div class="flex items-center justify-between mb-2">
+        <span class="task-id">4.10</span>
+        <span class="badge badge-warn">2 semanas</span>
+      </div>
+      <h3 class="text-white font-bold text-sm mb-2">Plan de despliegue + monitoring</h3>
+      <p class="text-[#a99cd6] text-xs leading-relaxed mb-2">Vercel/Netlify para frontend, Railway/Fly.io para backend Express. Sentry para errores. Plausible para analytics. .env.production.</p>
+      <p class="text-[#c4b5fd] text-[10px]"><span class="text-[#6ee7b7] font-bold">Éxito:</span> Koru accesible desde URL pública sin dev server</p>
+    </div>
+  </div>
+
+  <div class="layer-card" style="border-left: 4px solid #8363F9; background: linear-gradient(135deg, rgba(131,99,249,.1), rgba(110,231,183,.04));">
+    <p class="text-[#8363F9] text-xs font-bold uppercase tracking-wider mb-3">Métricas de éxito · Fase 4 · LA META</p>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+      <div><span class="text-[#6ee7b7] font-bold">&lt;3s</span> <span class="text-[#a99cd6]">latencia turnos triviales</span></div>
+      <div><span class="text-[#6ee7b7] font-bold">0</span> <span class="text-[#a99cd6]">fallbacks JSON</span></div>
+      <div><span class="text-[#6ee7b7] font-bold">0</span> <span class="text-[#a99cd6]">regex léxicas</span></div>
+      <div><span class="text-[#6ee7b7] font-bold">0.8+</span> <span class="text-[#a99cd6]">score eval automática</span></div>
+      <div><span class="text-[#6ee7b7] font-bold">1</span> <span class="text-[#a99cd6]">URL pública en producción</span></div>
+      <div><span class="text-[#6ee7b7] font-bold">Sentry</span> <span class="text-[#a99cd6]">activado</span></div>
+      <div><span class="text-[#6ee7b7] font-bold">5x</span> <span class="text-[#a99cd6]">cold-start más rápido</span></div>
+      <div><span class="text-[#6ee7b7] font-bold">100%</span> <span class="text-[#a99cd6]">tools reales (0 placeholders)</span></div>
+    </div>
+    <div class="mt-4 pt-3 border-t border-white/10">
+      <p class="text-[#6ee7b7] text-sm font-bold text-center">Meta final: usuario siente que Koru "supera lo esperado" en cada interacción</p>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider" data-marker="end-of-fase-4"></div>
+
+<!-- ================================================================ -->
+<!-- MATRIZ DE PRIORIDADES                                            -->
+<!-- ================================================================ -->
+<section class="max-w-6xl mx-auto px-10">
+  <p class="section-kicker mb-3">Impacto × Esfuerzo</p>
+  <h2 class="section-title mb-4">Matriz de prioridades</h2>
+  <p class="section-sub max-w-3xl mb-10">Todas las 51 tareas ubicadas en la matriz. Empezar por "Quick wins" (alto impacto, bajo esfuerzo), luego "Major projects", luego "Fill-ins". Evitar "Time sinks".</p>
+
+  <div class="layer-card mb-8 p-0 overflow-hidden">
+    <div class="grid grid-cols-5 text-xs">
+      <!-- Header -->
+      <div class="p-3"></div>
+      <div class="p-3 text-center text-[#a99cd6] font-bold uppercase tracking-wider border-b border-white/10">Bajo esfuerzo</div>
+      <div class="p-3 text-center text-[#a99cd6] font-bold uppercase tracking-wider border-b border-white/10">Medio</div>
+      <div class="p-3 text-center text-[#a99cd6] font-bold uppercase tracking-wider border-b border-white/10">Alto</div>
+      <div class="p-3"></div>
+
+      <!-- Alto impacto -->
+      <div class="p-3 text-right text-[#6ee7b7] font-bold uppercase tracking-wider border-r border-white/10">Alto impacto</div>
+      <div class="matrix-cell matrix-quick">
+        <p class="text-[#6ee7b7] text-[10px] font-bold mb-2">QUICK WINS · empezar ya</p>
+        <div class="space-y-1 text-[10px] text-white">
+          <p>1.5 mojibake (10min)</p>
+          <p>1.6 "Ate cabos" (10min)</p>
+          <p>1.11 cosineSimilarity (10min)</p>
+          <p>1.14 docstring 20h (5min)</p>
+          <p>2.12 pausa heartbeat (2h)</p>
+        </div>
+      </div>
+      <div class="matrix-cell matrix-major">
+        <p class="text-[#8363F9] text-[10px] font-bold mb-2">MAJOR · planificar</p>
+        <div class="space-y-1 text-[10px] text-white">
+          <p>1.1 eliminar UiBlock (2d)</p>
+          <p>1.4 fix tests (1d)</p>
+          <p>1.15 unificar routers (1d)</p>
+          <p>2.1 ASR (3d)</p>
+          <p>2.6 partir KoruProvider (1sem)</p>
+          <p>3.5 calendario (2sem)</p>
+        </div>
+      </div>
+      <div class="matrix-cell matrix-fill">
+        <p class="text-[#fda4af] text-[10px] font-bold mb-2">STRATEGIC · sólo si hay tiempo</p>
+        <div class="space-y-1 text-[10px] text-white">
+          <p>2.3 extractores LLM (1sem)</p>
+          <p>3.11 backend Express (2sem)</p>
+          <p>4.1 router modelos (2sem)</p>
+          <p>4.4 eval automática (2sem)</p>
+          <p>4.7 migrar regex→embeddings (2sem)</p>
+        </div>
+      </div>
+      <div class="p-3"></div>
+
+      <!-- Medio impacto -->
+      <div class="p-3 text-right text-[#a99cd6] font-bold uppercase tracking-wider border-r border-white/10">Medio impacto</div>
+      <div class="matrix-cell matrix-quick">
+        <p class="text-[#6ee7b7] text-[10px] font-bold mb-2">QUICK WINS</p>
+        <div class="space-y-1 text-[10px] text-white">
+          <p>1.7 .env.example (20min)</p>
+          <p>1.8 warning API key (20min)</p>
+          <p>1.10 TZ nudge (20min)</p>
+          <p>1.13 enhancement umbral (20min)</p>
+          <p>2.13 logger en catches (1d)</p>
+        </div>
+      </div>
+      <div class="matrix-cell matrix-major">
+        <p class="text-[#8363F9] text-[10px] font-bold mb-2">MAJOR</p>
+        <div class="space-y-1 text-[10px] text-white">
+          <p>1.2 eliminar catalog (medio día)</p>
+          <p>1.3 migrar 3 excepciones (1d)</p>
+          <p>2.2 embeddings cloud (2d)</p>
+          <p>2.4 Web Share API (3d)</p>
+          <p>2.9 adoptar zod (1sem)</p>
+          <p>3.1-3.4 reemplazar delegates</p>
+        </div>
+      </div>
+      <div class="matrix-cell matrix-fill">
+        <p class="text-[#fda4af] text-[10px] font-bold mb-2">STRATEGIC</p>
+        <div class="space-y-1 text-[10px] text-white">
+          <p>2.7 partir actions.ts (1sem)</p>
+          <p>3.6 mail (2sem)</p>
+          <p>3.7 WhatsApp (2sem)</p>
+          <p>4.3 few-shot (1sem)</p>
+          <p>4.10 deploy (2sem)</p>
+        </div>
+      </div>
+      <div class="p-3"></div>
+
+      <!-- Bajo impacto -->
+      <div class="p-3 text-right text-[#71717a] font-bold uppercase tracking-wider border-r border-white/10">Bajo impacto</div>
+      <div class="matrix-cell matrix-drop">
+        <p class="text-[#71717a] text-[10px] font-bold mb-2">NICE TO HAVE</p>
+        <div class="space-y-1 text-[10px] text-white/60">
+          <p>2.14 decidir motor legacy (1d)</p>
+          <p>4.5 snapshot tests (2d)</p>
+          <p>4.9 cosineSimilarity → vector.ts (1sem)</p>
+        </div>
+      </div>
+      <div class="matrix-cell matrix-drop">
+        <p class="text-[#71717a] text-[10px] font-bold mb-2">FILL-INS</p>
+        <div class="space-y-1 text-[10px] text-white/60">
+          <p>1.9 sportsResultNudge (medio día)</p>
+          <p>1.12 timeFromText AM/PM (medio día)</p>
+          <p>2.10 eslint+strict (1d)</p>
+          <p>2.11 a11y focus trap (2d)</p>
+          <p>4.6 cache enhancement (3d)</p>
+        </div>
+      </div>
+      <div class="matrix-cell matrix-drop">
+        <p class="text-[#71717a] text-[10px] font-bold mb-2">TIME SINKS · evitar</p>
+        <div class="space-y-1 text-[10px] text-white/60">
+          <p>(nada aquí — todo el plan está bien calibrado)</p>
+        </div>
+      </div>
+      <div class="p-3"></div>
+    </div>
+  </div>
+
+  <p class="text-[#a99cd6] text-xs text-center">Regla: <b class="text-white">Quick wins first</b>. Suma momentum. Major projects después. Strategic solo cuando las 2 primeras categorías estén cerradas.</p>
+</section>
+
+<div class="section-divider" data-marker="end-of-matriz"></div>
+
+<!-- ================================================================ -->
+<!-- BUGS AUDITORÍA MAPEADOS                                          -->
+<!-- ================================================================ -->
+<section class="max-w-6xl mx-auto px-10">
+  <p class="section-kicker mb-3">Catálogo auditoría → fase</p>
+  <h2 class="section-title mb-4">Bugs y deuda · mapeados a fases</h2>
+  <p class="section-sub max-w-3xl mb-10">Los 16 bugs (A1-A16), 11 deudas estructurales (B1-B11) y 10 mejoras de calidad (C1-C10) de la auditoría jun-2026, cada uno con su fase y estado.</p>
+
+  <div class="magical-card mod-violet overflow-hidden p-0 mb-8">
+    <div class="overflow-x-auto">
+      <table class="editorial-table w-full">
+        <thead>
+          <tr>
+            <th style="width: 8%">ID</th>
+            <th style="width: 35%">Problema</th>
+            <th style="width: 12%">Severidad</th>
+            <th style="width: 8%">Fase</th>
+            <th style="width: 12%">Estado</th>
+            <th style="width: 25%">Task</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><b class="text-white">A1</b></td><td>API key expuesta en .env</td><td><span class="badge badge-bad">crítico</span></td><td>0</td><td><span class="badge badge-warn">parcial</span></td><td>1.7 + 1.8</td></tr>
+          <tr><td><b class="text-white">A2</b></td><td>stateSummary/systemPrompt duplicados</td><td><span class="badge badge-warn">alto</span></td><td>—</td><td><span class="badge badge-ok">resuelto</span></td><td>—</td></tr>
+          <tr><td><b class="text-white">A3</b></td><td>Mojibake KoruProvider/chatCards</td><td><span class="badge badge-warn">alto</span></td><td>—</td><td><span class="badge badge-ok">resuelto</span></td><td>1.5 (residual en koruBackend)</td></tr>
+          <tr><td><b class="text-white">A4</b></td><td>"Ate cabos" sin tilde</td><td><span class="badge badge-info">medio</span></td><td>1</td><td><span class="badge badge-info">pendiente</span></td><td>1.6</td></tr>
+          <tr><td><b class="text-white">A5</b></td><td>Puerto Vite vs Playwright</td><td><span class="badge badge-info">medio</span></td><td>0</td><td><span class="badge badge-ok">resuelto</span></td><td>—</td></tr>
+          <tr><td><b class="text-white">A6</b></td><td>sportsResultNudge siempre filtrado</td><td><span class="badge badge-info">medio</span></td><td>1</td><td><span class="badge badge-info">pendiente</span></td><td>1.9</td></tr>
+          <tr><td><b class="text-white">A7</b></td><td>TZ mezclado en weatherWakeUpNudge</td><td><span class="badge badge-info">medio</span></td><td>1</td><td><span class="badge badge-info">pendiente</span></td><td>1.10</td></tr>
+          <tr><td><b class="text-white">A8</b></td><td>cosineSimilarity sin Math.min</td><td><span class="badge badge-info">medio</span></td><td>1</td><td><span class="badge badge-info">pendiente</span></td><td>1.11</td></tr>
+          <tr><td><b class="text-white">A9</b></td><td>buildRestockNote muta const array</td><td><span class="badge badge-ok">bajo</span></td><td>1</td><td><span class="badge badge-info">pendiente</span></td><td>(en 1.15 al refactor)</td></tr>
+          <tr><td><b class="text-white">A10</b></td><td>provider cliente no incluye minimax</td><td><span class="badge badge-ok">bajo</span></td><td>1</td><td><span class="badge badge-info">pendiente</span></td><td>(en 1.15 al refactor)</td></tr>
+          <tr><td><b class="text-white">A11</b></td><td>timeFromText no maneja AM/PM</td><td><span class="badge badge-ok">bajo</span></td><td>1</td><td><span class="badge badge-info">pendiente</span></td><td>1.12</td></tr>
+          <tr><td><b class="text-white">A12</b></td><td>extractStringField asume comilla simple</td><td><span class="badge badge-ok">bajo</span></td><td>2</td><td><span class="badge badge-info">pendiente</span></td><td>(en 2.9 zod)</td></tr>
+          <tr><td><b class="text-white">A13</b></td><td>extractMemoryCandidatesLocal umbral 120</td><td><span class="badge badge-ok">bajo</span></td><td>2</td><td><span class="badge badge-info">pendiente</span></td><td>(en 2.3 LLM-driven)</td></tr>
+          <tr><td><b class="text-white">A14</b></td><td>relationshipNames regex /g con resets</td><td><span class="badge badge-ok">bajo</span></td><td>2</td><td><span class="badge badge-info">pendiente</span></td><td>(en 2.3 LLM-driven)</td></tr>
+          <tr><td><b class="text-white">A15</b></td><td>enhancementEngine umbral reactivo</td><td><span class="badge badge-ok">bajo</span></td><td>1</td><td><span class="badge badge-info">pendiente</span></td><td>1.13</td></tr>
+          <tr><td><b class="text-white">A16</b></td><td>docstring 24h vs código 20h</td><td><span class="badge badge-ok">bajo</span></td><td>1</td><td><span class="badge badge-info">pendiente</span></td><td>1.14</td></tr>
+          <tr><td><b class="text-white">B1</b></td><td>Dos motores paralelos (~3.700 líneas muertas)</td><td><span class="badge badge-bad">mayor</span></td><td>2</td><td><span class="badge badge-info">pendiente</span></td><td>2.14</td></tr>
+          <tr><td><b class="text-white">B2</b></td><td>KoruProvider.tsx God-component 1.806 líneas</td><td><span class="badge badge-bad">mayor</span></td><td>2</td><td><span class="badge badge-info">pendiente</span></td><td>2.6</td></tr>
+          <tr><td><b class="text-white">B3</b></td><td>actions.ts God-module 1.667 líneas</td><td><span class="badge badge-bad">mayor</span></td><td>2</td><td><span class="badge badge-info">pendiente</span></td><td>2.7</td></tr>
+          <tr><td><b class="text-white">B4</b></td><td>Tres routers solapados</td><td><span class="badge badge-warn">mayor</span></td><td>1</td><td><span class="badge badge-info">pendiente</span></td><td>1.15</td></tr>
+          <tr><td><b class="text-white">B5</b></td><td>Backend acoplado a Vite</td><td><span class="badge badge-warn">mayor</span></td><td>3</td><td><span class="badge badge-info">pendiente</span></td><td>3.11</td></tr>
+          <tr><td><b class="text-white">B6</b></td><td>Doble vía renderizado tarjetas</td><td><span class="badge badge-warn">mayor</span></td><td>3</td><td><span class="badge badge-info">pendiente</span></td><td>3.12</td></tr>
+          <tr><td><b class="text-white">B7</b></td><td>Validación sin zod</td><td><span class="badge badge-warn">medio</span></td><td>2</td><td><span class="badge badge-info">pendiente</span></td><td>2.9</td></tr>
+          <tr><td><b class="text-white">B8</b></td><td>Anti-patrón regex léxicas</td><td><span class="badge badge-warn">medio</span></td><td>4</td><td><span class="badge badge-info">pendiente</span></td><td>4.7</td></tr>
+          <tr><td><b class="text-white">B9</b></td><td>cosineSimilarity duplicada</td><td><span class="badge badge-ok">bajo</span></td><td>4</td><td><span class="badge badge-info">pendiente</span></td><td>4.9</td></tr>
+          <tr><td><b class="text-white">B10</b></td><td>Constantes mágicas sin calibrar</td><td><span class="badge badge-warn">medio</span></td><td>3</td><td><span class="badge badge-info">pendiente</span></td><td>3.9</td></tr>
+          <tr><td><b class="text-white">B11</b></td><td>Errores silenciados</td><td><span class="badge badge-warn">medio</span></td><td>2</td><td><span class="badge badge-info">pendiente</span></td><td>2.13</td></tr>
+          <tr><td><b class="text-white">C1-C2</b></td><td>eslint + strict:true</td><td><span class="badge badge-ok">calidad</span></td><td>2</td><td><span class="badge badge-info">pendiente</span></td><td>2.10</td></tr>
+          <tr><td><b class="text-white">C3</b></td><td>Tipar parsed: any</td><td><span class="badge badge-ok">calidad</span></td><td>2</td><td><span class="badge badge-info">pendiente</span></td><td>(en 2.9 zod)</td></tr>
+          <tr><td><b class="text-white">C4</b></td><td>logger.ts @ts-nocheck</td><td><span class="badge badge-ok">calidad</span></td><td>2</td><td><span class="badge badge-info">pendiente</span></td><td>2.10</td></tr>
+          <tr><td><b class="text-white">C5</b></td><td>CardPreview en producción</td><td><span class="badge badge-ok">calidad</span></td><td>2</td><td><span class="badge badge-info">pendiente</span></td><td>(env-based exclusion)</td></tr>
+          <tr><td><b class="text-white">C6</b></td><td>logRitual no-op</td><td><span class="badge badge-ok">calidad</span></td><td>1</td><td><span class="badge badge-info">pendiente</span></td><td>(cleanup)</td></tr>
+          <tr><td><b class="text-white">C7</b></td><td>Imports intercalados en App.tsx</td><td><span class="badge badge-ok">calidad</span></td><td>1</td><td><span class="badge badge-info">pendiente</span></td><td>(cleanup)</td></tr>
+          <tr><td><b class="text-white">C8</b></td><td>Accesibilidad modal TalkOverlay</td><td><span class="badge badge-warn">calidad</span></td><td>2</td><td><span class="badge badge-info">pendiente</span></td><td>2.11</td></tr>
+          <tr><td><b class="text-white">C9-C10</b></td><td>SettingsScreen fetch directo + fallback silencioso</td><td><span class="badge badge-ok">calidad</span></td><td>2</td><td><span class="badge badge-info">pendiente</span></td><td>(refactor)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="layer-card" style="border-left: 4px solid #6ee7b7;">
+      <p class="text-[#6ee7b7] text-xs font-bold uppercase mb-1">Resueltos</p>
+      <p class="text-white font-bold text-2xl">3</p>
+      <p class="text-[#a99cd6] text-[10px]">A2, A3, A5</p>
+    </div>
+    <div class="layer-card" style="border-left: 4px solid #fda4af;">
+      <p class="text-[#fda4af] text-xs font-bold uppercase mb-1">En Fase 1</p>
+      <p class="text-white font-bold text-2xl">11</p>
+      <p class="text-[#a99cd6] text-[10px]">A4, A6-A11, A15, A16, B4 + C6, C7</p>
+    </div>
+    <div class="layer-card" style="border-left: 4px solid #c4b5fd;">
+      <p class="text-[#c4b5fd] text-xs font-bold uppercase mb-1">En Fase 2-3</p>
+      <p class="text-white font-bold text-2xl">14</p>
+      <p class="text-[#a99cd6] text-[10px]">B1-B3, B5-B7, B10-B11 + C1-C5, C8-C10</p>
+    </div>
+    <div class="layer-card" style="border-left: 4px solid #8363F9;">
+      <p class="text-[#8363F9] text-xs font-bold uppercase mb-1">En Fase 4</p>
+      <p class="text-white font-bold text-2xl">3</p>
+      <p class="text-[#a99cd6] text-[10px]">B8, B9 + optimizaciones finales</p>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider" data-marker="end-of-bugs"></div>
+
+<!-- ================================================================ -->
+<!-- DEPENDENCIAS Y ORDEN                                             -->
+<!-- ================================================================ -->
+<section class="max-w-6xl mx-auto px-10">
+  <p class="section-kicker mb-3">Orden de ejecución</p>
+  <h2 class="section-title mb-4">Dependencias críticas</h2>
+  <p class="section-sub max-w-3xl mb-10">Algunas tareas bloquean otras. Respetar este orden evita rework.</p>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+
+    <div class="magical-card mod-violet">
+      <div class="flex items-center gap-3 mb-3">
+        <span class="material-symbols-outlined text-[#7c3aed]">arrow_chain</span>
+        <h3 class="mod-title">Cadena crítica Fase 1</h3>
+      </div>
+      <div class="space-y-2 text-xs text-[#464554]">
+        <p><span class="text-[#7c3aed] font-bold">1.5 + 1.6</span> (mojibake + tildes) → <span class="text-[#7c3aed] font-bold">1.4</span> (tests) → <span class="text-[#7c3aed] font-bold">1.1 + 1.2 + 1.3</span> (limpieza UiBlock) → <span class="text-[#7c3aed] font-bold">1.15</span> (unificar routers)</p>
+        <p class="text-[10px] text-[#8363F9] mt-2">Razón: los tests se arreglan después de saber qué texto busca la UI. La limpieza UiBlock se hace después de que los tests pasan. El unificar routers al final porque toca todo.</p>
+      </div>
+    </div>
+
+    <div class="magical-card mod-emerald">
+      <div class="flex items-center gap-3 mb-3">
+        <span class="material-symbols-outlined text-[#059669]">arrow_chain</span>
+        <h3 class="mod-title">Cadena crítica Fase 2</h3>
+      </div>
+      <div class="space-y-2 text-xs text-[#464554]">
+        <p><span class="text-[#059669] font-bold">2.14</span> (decidir motor legacy) → <span class="text-[#059669] font-bold">2.6 + 2.7</span> (particionar God-components) → <span class="text-[#059669] font-bold">2.9</span> (zod) → <span class="text-[#059669] font-bold">2.3</span> (extractores LLM-driven)</p>
+        <p class="text-[10px] text-[#059669] mt-2">Razón: si se elimina el legacy, no se particiona actions.ts. zod se adopta después de particionar. Los extractores se migran al final porque necesitan zod para validar.</p>
+      </div>
+    </div>
+
+    <div class="magical-card mod-amber">
+      <div class="flex items-center gap-3 mb-3">
+        <span class="material-symbols-outlined text-[#d97706]">arrow_chain</span>
+        <h3 class="mod-title">Cadena crítica Fase 3</h3>
+      </div>
+      <div class="space-y-2 text-xs text-[#464554]">
+        <p><span class="text-[#d97706] font-bold">3.11</span> (backend Express) → <span class="text-[#d97706] font-bold">3.5-3.7</span> (calendario, mail, WA) → <span class="text-[#d97706] font-bold">3.10</span> (tests camino activo)</p>
+        <p class="text-[10px] text-[#d97706] mt-2">Razón: las integraciones OAuth2 necesitan un backend real (no Vite middleware). Los tests del camino activo se hacen sobre el backend extraído.</p>
+      </div>
+    </div>
+
+    <div class="magical-card mod-indigo">
+      <div class="flex items-center gap-3 mb-3">
+        <span class="material-symbols-outlined text-[#4648d4]">arrow_chain</span>
+        <h3 class="mod-title">Cadena crítica Fase 4</h3>
+      </div>
+      <div class="space-y-2 text-xs text-[#464554]">
+        <p><span class="text-[#4648d4] font-bold">4.2</span> (JSON strict) → <span class="text-[#4648d4] font-bold">4.3</span> (few-shot) → <span class="text-[#4648d4] font-bold">4.1</span> (router modelos) → <span class="text-[#4648d4] font-bold">4.4</span> (eval automática)</p>
+        <p class="text-[10px] text-[#4648d4] mt-2">Razón: JSON strict da estabilidad. Few-shot calibra voz. Router de modelos necesita ambos estables para evaluar. Eval al final mide todo.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider" data-marker="end-of-deps"></div>
+
+<!-- ================================================================ -->
+<!-- PRÓXIMOS 3 PASOS                                                 -->
+<!-- ================================================================ -->
+<section class="max-w-4xl mx-auto px-10">
+  <p class="section-kicker mb-3">Empezar mañana</p>
+  <h2 class="section-title mb-4">Próximos 3 pasos concretos</h2>
+  <p class="section-sub max-w-3xl mb-10">Si tuvieras que arrancar ahora mismo y solo pudieras hacer 3 cosas, estas son.</p>
+
+  <div class="space-y-4 mb-8">
+
+    <div class="layer-card l1" style="border-left: 4px solid #8363F9;">
+      <div class="flex items-start gap-4">
+        <div class="flex-shrink-0 w-12 h-12 rounded-xl bg-[#8363F9] flex items-center justify-center text-white font-extrabold text-xl">1</div>
+        <div>
+          <p class="text-white font-bold text-lg mb-1">Quick wins de Fase 1 (1.5 + 1.6 + 1.11 + 1.14)</p>
+          <p class="text-[#a99cd6] text-sm leading-relaxed mb-2">45 minutos total. Arregla mojibake, tildes, cosineSimilarity, docstring. Commit único: <code>fix(fase-0-residual): mojibake, accents, cosine, docstring</code>. Suma momentum sin tocar arquitectura.</p>
+          <p class="text-[#6ee7b7] text-xs font-bold">Éxito inmediato: <code>grep "Ate cabos" src/</code> = 0 · <code>grep "Ã" src/</code> = 0</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="layer-card l2" style="border-left: 4px solid #c4b5fd;">
+      <div class="flex items-start gap-4">
+        <div class="flex-shrink-0 w-12 h-12 rounded-xl bg-[#c4b5fd] flex items-center justify-center text-white font-extrabold text-xl">2</div>
+        <div>
+          <p class="text-white font-bold text-lg mb-1">Fix tests App.test.tsx (1.4)</p>
+          <p class="text-[#a99cd6] text-sm leading-relaxed mb-2">1 día. Investigar HomeScreen + placeholder del chat. Alinear tests a UI actual o restaurar saludo "buenos días/tardes/noches". Es el primer indicador de salud del proyecto.</p>
+          <p class="text-[#6ee7b7] text-xs font-bold">Éxito: <code>vitest run</code> = 0 fails · CI verde</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="layer-card l3" style="border-left: 4px solid #6ee7b7;">
+      <div class="flex items-start gap-4">
+        <div class="flex-shrink-0 w-12 h-12 rounded-xl bg-[#6ee7b7] flex items-center justify-center text-white font-extrabold text-xl">3</div>
+        <div>
+          <p class="text-white font-bold text-lg mb-1">Eliminar variantes UiBlock legacy (1.1 + 1.2 + 1.3)</p>
+          <p class="text-[#a99cd6] text-sm leading-relaxed mb-2">3-4 días. La deuda estructural mayor de la UI. Deja un solo molde (KoruUnifiedCard) y limpia catalog.ts. Desbloquea todo lo demás.</p>
+          <p class="text-[#6ee7b7] text-xs font-bold">Éxito: <code>grep -c "type UiBlock" types.ts</code> = 0 · catalog.ts no existe</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="layer-card" style="background: linear-gradient(135deg, rgba(131,99,249,.15), rgba(110,231,183,.04)); border-color: rgba(131,99,249,.4);">
+    <div class="flex items-center gap-4">
+      <span class="material-symbols-outlined text-[#8363F9] text-3xl">rocket_launch</span>
+      <div>
+        <p class="text-white font-bold text-lg">Total: ~5 días para cerrar Fase 1 completa</p>
+        <p class="text-[#a99cd6] text-sm">Una vez hecho esto, Koru está limpia y lista para Fase 2 (memoria viva con ASR + embeddings cloud).</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider" data-marker="end-of-pasos"></div>
+
+<!-- ================================================================ -->
+<!-- CIERRE                                                          -->
+<!-- ================================================================ -->
+<section class="hero-gradient relative overflow-hidden">
+  <div class="blob1"></div>
+  <div class="blob2"></div>
+  <div class="relative max-w-4xl mx-auto px-10 py-24 text-center">
+    <p class="koru-kicker mb-6">Resumen</p>
+    <blockquote class="display text-white font-extrabold text-2xl md:text-3xl leading-[1.25] mb-10">
+      51 tareas. 4 fases. 8 meses. Un solo objetivo:
+      <span style="background: linear-gradient(135deg, #8363F9 0%, #6ee7b7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+        que Koru supere siempre lo que se espera de él.
+      </span>
+    </blockquote>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto mb-10 text-left">
+      <div class="layer-card l1">
+        <p class="text-[#6ee7b7] font-bold text-xs mb-1">FASE 0 ✓</p>
+        <p class="text-white font-bold text-sm mb-1">Estabilizar</p>
+        <p class="text-[#a99cd6] text-[10px]">5 tareas · HECHA</p>
+      </div>
+      <div class="layer-card l1" style="border-color: rgba(131,99,249,.45);">
+        <p class="text-[#8363F9] font-bold text-xs mb-1">FASE 1 →</p>
+        <p class="text-white font-bold text-sm mb-1">Consolidar</p>
+        <p class="text-[#a99cd6] text-[10px]">15 tareas · 2 semanas</p>
+      </div>
+      <div class="layer-card l2">
+        <p class="text-[#fda4af] font-bold text-xs mb-1">FASE 2</p>
+        <p class="text-white font-bold text-sm mb-1">Memoria viva</p>
+        <p class="text-[#a99cd6] text-[10px]">14 tareas · 1 mes</p>
+      </div>
+      <div class="layer-card l3">
+        <p class="text-[#fda4af] font-bold text-xs mb-1">FASE 3-4</p>
+        <p class="text-white font-bold text-sm mb-1">Tools + exelsa</p>
+        <p class="text-[#a99cd6] text-[10px]">22 tareas · 5 meses</p>
+      </div>
+    </div>
+
+    <div class="inline-flex items-center gap-3 px-6 py-4 rounded-2xl" style="background: linear-gradient(135deg, rgba(131,99,249,.2), rgba(131,99,249,.05)); border: 1px solid rgba(131,99,249,.4);">
+      <span class="material-symbols-outlined text-[#8363F9]">arrow_forward</span>
+      <p class="text-white font-bold text-sm">¿Empezamos Fase 1 ahora?</p>
+    </div>
+
+    <p class="text-[#a99cd6] text-xs mt-12">
+      Plan generado el 2026-07-11 · Basado en auditoría jun-2026 + brechas vs visión usuario · 51 tareas mapeadas a bugs A1-A16, deudas B1-B11, calidad C1-C10
+    </p>
+  </div>
+</section>
+
+</body>
+</html>

@@ -826,7 +826,7 @@ export async function analyzeReflection(
       ? simpleRecordReply(simpleRecord)
       : turn.reply;
     const response = activeMemories.length > 0 && provider === "local" && !/ate cabos/i.test(baseReply)
-      ? `Ate cabos con lo que ya me contaste. ${baseReply}`
+      ? `Até cabos con lo que ya me contaste. ${baseReply}`
       : baseReply;
     return {
       ...extraction,

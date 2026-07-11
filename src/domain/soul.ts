@@ -113,7 +113,7 @@ export function renderKoruResponse(params: {
     ]);
     return sanitizeKoruVoice(
       params.activeMemoryCount > 0 && memoryAwareActions.has(params.primaryActionKind)
-        ? `Ate cabos con lo que ya me contaste. ${copy}`
+        ? `Até cabos con lo que ya me contaste. ${copy}`
         : copy,
     );
   }
@@ -138,7 +138,7 @@ export function renderKoruResponse(params: {
   }
 
   if (params.activeMemoryCount > 0) {
-    pieces.push("Ate cabos con algo que ya me habias contado.");
+    pieces.push("Até cabos con algo que ya me habías contado.");
   }
 
   if (total > 0 && params.actionCount === 0 && params.memoryCount === 0) {
