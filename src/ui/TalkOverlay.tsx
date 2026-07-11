@@ -218,9 +218,12 @@ export function TalkOverlay({ onClose }: { onClose: () => void }) {
   const [micError, setMicError] = useState("");
   const [transcribing, setTranscribing] = useState(false);
   const [analyzingImage, setAnalyzingImage] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const micErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   const recognitionRef = useRef<ReturnType<typeof createSpeechSession> | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -314,50 +317,70 @@ export function TalkOverlay({ onClose }: { onClose: () => void }) {
     reviewAction(id, approve);
   }, [reviewAction]);
 
-  function toggleMic() {
-    if (isListening) {
-      recognitionRef.current?.stop();
+  // Fase FIX: grabar audio con MediaRecorder API (funciona en todos los navegadores)
+  // en lugar de SpeechRecognition que solo funciona en Chrome/Edge.
+  // Graba → convierte a base64 → manda a /api/koru/asr → transcribe → envía como mensaje.
+  const toggleMediaRecorder = useCallback(async () => {
+    if (isRecording) {
+      // Detener grabación
+      mediaRecorderRef.current?.stop();
+      setIsRecording(false);
       return;
     }
 
+    // Iniciar grabación
     showMicError("");
-    let finalAccumulated = "";
-
-    const recognition = createSpeechSession({
-      onFinalText: (text) => {
-        finalAccumulated += (finalAccumulated ? " " : "") + text;
-        setInterimText("");
-      },
-      onInterimText: setInterimText,
-      onError: (message) => {
-        showMicError(message);
-        setIsListening(false);
-        recognitionRef.current = null;
-      },
-      onEnd: () => {
-        setIsListening(false);
-        recognitionRef.current = null;
-        const text = finalAccumulated.trim();
-        if (text) {
-          void submitText(text, "speech");
-        }
-      },
-    });
-
-    if (!recognition) {
-      showMicError("Voz no disponible en este navegador.");
-      return;
-    }
-
-    recognitionRef.current = recognition;
     try {
-      recognition.start();
-      setIsListening(true);
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const base64 = (reader.result as string).split(",")[1];
+          if (!base64) {
+            showMicError("No pude procesar el audio grabado.");
+            return;
+          }
+          setTranscribing(true);
+          showMicError("Transcribiendo audio...");
+          try {
+            const res = await fetch("/api/koru/asr", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ audio_base64: base64 }),
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json() as { text?: string };
+            const text = (data.text ?? "").trim();
+            if (!text) {
+              showMicError("No pude transcribir el audio.");
+              return;
+            }
+            await submitText(text, "typed");
+          } catch (err) {
+            showMicError(`Error: ${err instanceof Error ? err.message : "desconocido"}`);
+          } finally {
+            setTranscribing(false);
+          }
+        };
+        reader.readAsDataURL(audioBlob);
+      };
+
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setIsRecording(true);
     } catch (err) {
-      showMicError(`No pude iniciar el microfono: ${err instanceof Error ? err.message : "error desconocido"}`);
-      setIsListening(false);
+      showMicError(`No pude acceder al micrófono: ${err instanceof Error ? err.message : "permiso denegado"}`);
     }
-  }
+  }, [isRecording, showMicError, submitText]);
 
   // Fase 2.1 — Subir nota de voz: transcribe audio via /api/koru/asr y lo
   // manda como mensaje normal. Permite grabar audios largos sin SpeechRecognition
@@ -542,15 +565,15 @@ export function TalkOverlay({ onClose }: { onClose: () => void }) {
                   className="koru-composer-input"
                 />
               </div>
-              {speechStatus.supported ? (
+              {speechStatus.supported || true ? (
                 <button
                   type="button"
-                  onClick={inputText.trim() ? () => void handleTextSubmit() : toggleMic}
+                  onClick={inputText.trim() ? () => void handleTextSubmit() : toggleMediaRecorder}
                   disabled={processing && !inputText.trim()}
-                  aria-label={inputText.trim() ? "Enviar" : isListening ? "Terminar voz" : "Hablar"}
-                  className={cn("koru-mic-button", isListening && "is-listening")}
+                  aria-label={inputText.trim() ? "Enviar" : isRecording ? "Detener grabación" : "Hablar"}
+                  className={cn("koru-mic-button", isRecording && "is-listening")}
                 >
-                  {inputText.trim() ? <ArrowUp size={24} /> : isListening ? <MicOff size={22} /> : <Mic size={22} />}
+                  {inputText.trim() ? <ArrowUp size={22} /> : isRecording ? <MicOff size={22} /> : <Mic size={22} />}
                 </button>
               ) : (
                 <button

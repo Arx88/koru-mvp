@@ -730,11 +730,24 @@ async function callNvidia(
     max_tokens: 8192,
     stream: false,
   };
-  const response = await fetchWithTimeout(providerUrl(config.nvidiaBaseUrl, "/v1/chat/completions"), {
-    method: "POST",
-    headers,
-    body: JSON.stringify(body),
-  }, timeoutMs);
+  // FIX: retry automático para NVIDIA (1 retry con backoff de 2s).
+  // ~20% de las requests dan timeout transient.
+  let response: Response;
+  try {
+    response = await fetchWithTimeout(providerUrl(config.nvidiaBaseUrl, "/v1/chat/completions"), {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+    }, timeoutMs);
+  } catch (firstErr) {
+    logger.warn("callNvidia", "First attempt failed, retrying in 2s", { error: firstErr instanceof Error ? firstErr.message : "unknown" });
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    response = await fetchWithTimeout(providerUrl(config.nvidiaBaseUrl, "/v1/chat/completions"), {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+    }, timeoutMs);
+  }
   const data = await response.json().catch(() => ({}));
   if (!response.ok || !hasUsableAssistantMessage(data)) {
     throw new Error(`NVIDIA returned ${response.status}`);
@@ -3634,7 +3647,9 @@ function searchLabelFromInput(input: string): string {
 function explicitDeliverableTopic(input: string): string | null {
   const clean = input.trim().replace(/\s+/g, " ");
   if (!clean) return null;
-  const hasDeliverableCue = /\b(?:informe|reporte|dossier|investigaci[oó]n|investig[aá](?:me)?|resumen completo|contame todo|quiero saber todo|explicame en profundidad|estudi[aá](?:me)?)\b|an[aá]lisis\s+(?:completo|profundo|detallado|serio)/i.test(clean);
+  // FIX: regex más estricta. Antes matcheaba "investigación" suelto y disparaba
+  // deep research para "como le fue a River". Ahora requiere combinaciones explícitas.
+  const hasDeliverableCue = /\b(?:informe\s+(?:sobre|de|del|acerca)|reporte\s+(?:sobre|de|del|acerca)|dossier|investigaci[oó]n\s+(?:sobre|de|del|acerca)|investig[aá]me|resumen completo|contame todo sobre|quiero saber todo sobre|explicame en profundidad|estudi[aá]me)\b|an[aá]lisis\s+(?:completo|profundo|detallado|serio)/i.test(clean);
   if (!hasDeliverableCue) return null;
 
   const topicPatterns = [
@@ -4281,6 +4296,20 @@ export async function runKoruBackendTurn(
     };
     const cityAction = cityMemorySuggestion(toolCalls, request.state);
     if (cityAction) raw.suggestedActions = [...asArray(raw.suggestedActions), cityAction];
+
+    // FIX: también añadir la ciudad como memoryCandidate automática.
+    // Antes dependía del LLM de incluirla en memoryCandidates, pero no lo hacía.
+    if (cityAction?.payload?.city) {
+      const cityName = String(cityAction.payload.city);
+      raw.memoryCandidates = [...asArray(raw.memoryCandidates), {
+        kind: "profile",
+        text: `User location: ${cityName} (city)`,
+        confidence: 0.8,
+        sensitivity: "normal",
+        status: "candidate",
+        useForSuggestions: true,
+      }];
+    }
 
     // Inyectar data_cards validados que se extrajeron en paralelo al Composer.
     if (validDeferredCards.length > 0) {
