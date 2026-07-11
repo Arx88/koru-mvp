@@ -44,11 +44,30 @@ function envString(key: string): string {
   return value?.trim() ?? "";
 }
 
+// Fase 1.8 — Anti-footgun: si VITE_FREELLMAPI_API_KEY está seteada, la key
+// se bakea al bundle del cliente y es visible para cualquier usuario que
+// inspeccione la web. Avisamos en consola para que el developer se entere
+// en dev. En producción esto es un riesgo de seguridad real (auditoría A1).
+let freellmapiKeyWarningShown = false;
+function warnIfFreellmapiKeyExposed(): void {
+  if (freellmapiKeyWarningShown) return;
+  if (typeof console !== "undefined" && envString("VITE_FREELLMAPI_API_KEY")) {
+    freellmapiKeyWarningShown = true;
+    console.warn(
+      "[Koru] VITE_FREELLMAPI_API_KEY está seteada y se incrusta en el bundle del cliente. " +
+        "Cualquier usuario puede leerla inspeccionando la web. " +
+        "En producción, rotá la key y enruta FreeLLMAPI por el proxy server-side (/koru-ai/*). " +
+        "Ver .env.example y auditoría A1.",
+    );
+  }
+}
+
 function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.trim().replace(/\/+$/, "");
 }
 
 export function createDefaultRuntimeSettings(): RuntimeSettings {
+  warnIfFreellmapiKeyExposed();
   const baseUrl = envString("VITE_FREELLMAPI_BASE_URL") || "http://127.0.0.1:3001";
   const apiKey = envString("VITE_FREELLMAPI_API_KEY");
   const openModelBaseUrl = envString("VITE_OPEN_MODEL_BASE_URL") || "/ollama/v1";
