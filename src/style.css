@@ -199,7 +199,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 80px 20px 12px;
+  padding: 120px 20px 12px;
 }
 
 .koru-chat-scroll::-webkit-scrollbar {
@@ -3097,4 +3097,187 @@ a.koru-dsec-source:hover {
   color: #8f88b5;
   font-size: 10.5px;
   font-weight: 600;
+}
+
+/* ============================================================
+   Suggestion Pills — temas de conversaciones anteriores.
+   Aparecen arriba del chat (debajo del back button) cuando hay
+   charla previa. Glassmorphism semi-transparente con blur.
+   ============================================================ */
+.koru-suggestion-bar {
+  position: absolute;
+  top: 70px;
+  left: 16px;
+  right: 16px;
+  z-index: 20;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+.koru-suggestion-bar::-webkit-scrollbar { display: none; }
+
+.koru-suggestion-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(131, 99, 249, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(201, 184, 255, 0.4);
+  color: #f0eaff;
+  font-family: "Plus Jakarta Sans", Inter, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: transform 160ms ease, background-color 160ms ease;
+}
+
+.koru-suggestion-pill:active {
+  transform: scale(0.95);
+}
+
+.koru-suggestion-pill .material-symbols-outlined {
+  font-size: 14px;
+  color: #c9b8ff;
+}
+
+.koru-suggestion-pill .topic {
+  color: #6ee7b7;
+  font-weight: 700;
+}
+
+/* ============================================================
+   Wheel Overlay — long-press navigation radial.
+   Aparece al mantener presionado en el chat. 4 opciones radiales.
+   ============================================================ */
+.koru-wheel-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  background: rgba(20, 16, 42, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: koru-wheel-fade-in 0.2s ease-out;
+}
+
+@keyframes koru-wheel-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.koru-wheel-container {
+  position: relative;
+  width: 300px;
+  height: 300px;
+}
+
+.koru-wheel-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 72px;
+  height: 72px;
+  border-radius: 999px;
+  background: rgba(131, 99, 249, 0.3);
+  border: 2px solid #8363F9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  z-index: 10;
+}
+
+.koru-wheel-center .material-symbols-outlined {
+  font-size: 26px;
+  color: #c9b8ff;
+}
+
+.koru-wheel-center span:last-child {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 2px;
+  color: #c9b8ff;
+}
+
+.koru-wheel-option {
+  position: absolute;
+  width: 84px;
+  height: 84px;
+  border-radius: 999px;
+  background: rgba(34, 28, 74, 0.95);
+  border: 2px solid rgba(131, 99, 249, 0.4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #f0eaff;
+  font-family: "Plus Jakarta Sans", Inter, sans-serif;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.koru-wheel-option .material-symbols-outlined {
+  font-size: 26px;
+  color: #8363F9;
+  margin-bottom: 2px;
+}
+
+.koru-wheel-option .wheel-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.koru-wheel-option.active {
+  background: #8363F9;
+  border-color: #c9b8ff;
+  box-shadow: 0 0 30px rgba(131, 99, 249, 0.6);
+}
+
+.koru-wheel-option.active .material-symbols-outlined {
+  color: #fff;
+}
+
+/* Positions: 4 options at 12, 3, 6, 9 o'clock */
+.koru-wheel-option.top    { top: 0; left: 50%; transform: translateX(-50%); }
+.koru-wheel-option.right  { top: 50%; right: 0; transform: translateY(-50%); }
+.koru-wheel-option.bottom { bottom: 0; left: 50%; transform: translateX(-50%); }
+.koru-wheel-option.left   { top: 50%; left: 0; transform: translateY(-50%); }
+
+.koru-wheel-option.top.active    { transform: translateX(-50%) scale(1.15); }
+.koru-wheel-option.right.active  { transform: translateY(-50%) scale(1.15); }
+.koru-wheel-option.bottom.active { transform: translateX(-50%) scale(1.15); }
+.koru-wheel-option.left.active   { transform: translateY(-50%) scale(1.15); }
+
+.koru-wheel-hint {
+  position: absolute;
+  top: -50px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #c9b8ff;
+  font-family: "Plus Jakarta Sans", Inter, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.koru-wheel-hint .material-symbols-outlined {
+  font-size: 16px;
+  vertical-align: middle;
+  margin-right: 4px;
 }

@@ -38,7 +38,7 @@ function KoruApp() {
         <BottomNav active={tab} onChange={setTab} />
       </div>
 
-      {talking && <TalkOverlay onClose={() => setTalking(false)} />}
+      {talking && <TalkOverlay onClose={() => setTalking(false)} onNavigate={(tab) => { setTab(tab); setTalking(false); }} />}
     </main>
   );
 }

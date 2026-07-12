@@ -55,7 +55,7 @@ export function Onboarding() {
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-6">
-      {talking && <TalkOverlay onClose={() => setTalking(false)} />}
+      {talking && <TalkOverlay onClose={() => setTalking(false)} onNavigate={() => {}} />}
 
       {step === "settings" && (
         <div className="flex flex-1 flex-col pt-8 animate-rise">

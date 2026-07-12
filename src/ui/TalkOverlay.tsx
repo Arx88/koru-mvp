@@ -232,7 +232,7 @@ function WorkingPanel({ phase, kind, deliverable }: { phase: string | null; kind
     </section>
   );
 }
-export function TalkOverlay({ onClose }: { onClose: () => void }) {
+export function TalkOverlay({ onClose, onNavigate }: { onClose: () => void; onNavigate?: (tab: "hoy" | "memoria" | "historial" | "configuracion") => void }) {
   const {
     chatTurns,
     sendMessage,
@@ -255,6 +255,8 @@ export function TalkOverlay({ onClose }: { onClose: () => void }) {
   const [transcribing, setTranscribing] = useState(false);
   const [analyzingImage, setAnalyzingImage] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [wheelOpen, setWheelOpen] = useState(false);
+  const [wheelActive, setWheelActive] = useState<string | null>(null);
   const micErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -262,6 +264,8 @@ export function TalkOverlay({ onClose }: { onClose: () => void }) {
   const audioChunksRef = useRef<Blob[]>([]);
   const recognitionRef = useRef<ReturnType<typeof createSpeechSession> | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wheelOverlayRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const turnCountRef = useRef(chatTurns.length);
 
@@ -307,6 +311,124 @@ export function TalkOverlay({ onClose }: { onClose: () => void }) {
     }
     return null;
   }, [chatTurns]);
+
+  // ── Sugerencias de temas: extrae topics de los user turns anteriores ──
+  // Solo aparecen si hay charla previa (más de 1 user turn en el historial completo).
+  // Cada pill muestra un icono según la categoría detectada + el topic recortado.
+  type SuggestionPill = { id: string; icon: string; topic: string; turnId: string };
+
+  const suggestionPills = useMemo<SuggestionPill[]>(() => {
+    // Recorrer TODOS los chatTurns (no solo visibleTurns) para encontrar temas anteriores
+    const userTurns = chatTurns.filter(t => t.role === "user");
+    if (userTurns.length < 1) return [];
+
+    // Tomar los últimos 5 user turns (incluyendo el más reciente)
+    const recentUserTurns = userTurns.slice(-5);
+    if (recentUserTurns.length === 0) return [];
+
+    return recentUserTurns
+      .map(turn => {
+        const text = turn.text.trim();
+        if (text.length < 3) return null;
+
+        // Detectar categoría por palabras clave
+        const lower = text.toLowerCase();
+        let icon = "chat";
+        let topic = text.length > 30 ? text.slice(0, 28).trimEnd() + "…" : text;
+
+        if (/clima|tiempo|lluvia|temperatura|fr[ií]o|calor/.test(lower)) {
+          icon = "cloud";
+          // Extraer ciudad si existe
+          const cityMatch = text.match(/en\s+([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)/);
+          topic = cityMatch ? `Clima en ${cityMatch[1]}` : "Clima";
+        } else if (/espa[ñn]a|argentina|brasil|francia|madrid|boca|river|partido|gano|salio|como (le fue|salio|va)/i.test(lower)) {
+          icon = "sports_soccer";
+          topic = text.length > 25 ? text.slice(0, 23).trimEnd() + "…" : text;
+        } else if (/gasto|gast[ée]|anota|compr[ée]|caf[ée]|almuerzo|cena|pesos|dolares|\$\d/.test(lower)) {
+          icon = "savings";
+          topic = text.length > 25 ? text.slice(0, 23).trimEnd() + "…" : text;
+        } else if (/informe|investig|busc[áa]|noticias|qui[ée]n|qu[eé] pas|cu[áa]l es/.test(lower)) {
+          icon = "search";
+          topic = text.length > 25 ? text.slice(0, 23).trimEnd() + "…" : text;
+        } else if (/record[áa]|pendiente|tarea|alarm|despert/.test(lower)) {
+          icon = "task_alt";
+          topic = text.length > 25 ? text.slice(0, 23).trimEnd() + "…" : text;
+        }
+
+        return { id: turn.id, icon, topic, turnId: turn.id };
+      })
+      .filter((p): p is SuggestionPill => p !== null)
+      .reverse(); // más reciente primero
+  }, [chatTurns]);
+
+  // ── Wheel: long-press detection ──
+  // Mantener presionado 500ms en cualquier parte del chat (no en composer/buttons)
+  // abre el wheel radial. Soltar fuera del wheel = cancelar.
+  const handleLongPressStart = useCallback((e: React.TouchEvent | React.MouseEvent) => {
+    // No activar si se está procesando o grabando
+    if (processing || isRecording || wheelOpen) return;
+    // No activar si el touch empieza en un botón o input
+    const target = e.target as HTMLElement;
+    if (target.closest("button, input, textarea, .koru-composer, .koru-back-button, .koru-suggestion-pill")) return;
+
+    longPressTimerRef.current = setTimeout(() => {
+      setWheelOpen(true);
+      setWheelActive(null);
+      // Haptic feedback si está disponible
+      if ("vibrate" in navigator) navigator.vibrate(30);
+    }, 500);
+  }, [processing, isRecording, wheelOpen]);
+
+  const handleLongPressCancel = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
+
+  const handleWheelSelect = useCallback((option: string) => {
+    setWheelOpen(false);
+    setWheelActive(null);
+    handleLongPressCancel();
+
+    // Navegar a la pantalla correspondiente
+    if (option === "memory" && onNavigate) {
+      onNavigate("memoria");
+    } else if (option === "history" && onNavigate) {
+      onNavigate("historial");
+    } else if (option === "home" && onNavigate) {
+      onNavigate("hoy");
+    } else if (option === "settings" && onNavigate) {
+      onNavigate("configuracion");
+    }
+    // "close" = solo cierra el wheel (ya hecho arriba)
+  }, [onNavigate, handleLongPressCancel]);
+
+  // Touch move dentro del wheel: detectar qué opción está bajo el dedo
+  const handleWheelTouchMove = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    if (!touch) return;
+    const overlay = wheelOverlayRef.current;
+    if (!overlay) return;
+
+    // Encontrar qué opción está bajo el dedo
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    const option = el?.closest("[data-wheel-option]") as HTMLElement | null;
+    if (option) {
+      setWheelActive(option.dataset.wheelOption ?? null);
+    } else {
+      setWheelActive(null);
+    }
+  }, []);
+
+  const handleWheelTouchEnd = useCallback(() => {
+    if (wheelActive) {
+      handleWheelSelect(wheelActive);
+    } else {
+      setWheelOpen(false);
+      setWheelActive(null);
+    }
+  }, [wheelActive, handleWheelSelect]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -501,11 +623,45 @@ export function TalkOverlay({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="koru-chat-shell" role="dialog" aria-modal="true" aria-label="Conversacion con Koru">
-      <section className="koru-chat-screen" aria-label="Conversacion con Koru">
+      <section
+        className="koru-chat-screen"
+        aria-label="Conversacion con Koru"
+        onTouchStart={handleLongPressStart}
+        onTouchEnd={handleLongPressCancel}
+        onTouchMove={handleLongPressCancel}
+        onMouseDown={handleLongPressStart}
+        onMouseUp={handleLongPressCancel}
+        onMouseLeave={handleLongPressCancel}
+      >
         <button type="button" onClick={onClose} aria-label="Volver" className="koru-back-button">
           <ChevronLeft size={22} />
         </button>
         <h1 className="koru-sr-heading">Koru</h1>
+
+        {/* Suggestion Pills — temas de conversaciones anteriores */}
+        {suggestionPills.length > 0 && !processing && (
+          <div className="koru-suggestion-bar">
+            {suggestionPills.map((pill) => (
+              <button
+                key={pill.id}
+                type="button"
+                className="koru-suggestion-pill"
+                onClick={() => {
+                  // Tap en pill = reenviar ese mensaje como nuevo turno
+                  // (alternativa más simple: scroll al turno, pero como solo
+                  // mostramos el último intercambio, reenviar es más útil)
+                  const originalTurn = chatTurns.find(t => t.id === pill.turnId);
+                  if (originalTurn) {
+                    submitText(originalTurn.text, "typed");
+                  }
+                }}
+              >
+                <span className="material-symbols-outlined">{pill.icon}</span>
+                {pill.topic}
+              </button>
+            ))}
+          </div>
+        )}
 
         <main ref={scrollRef} className="koru-chat-scroll">
           <div className="koru-thread">
@@ -624,6 +780,75 @@ export function TalkOverlay({ onClose }: { onClose: () => void }) {
               )}
             </div>
           </footer>
+        )}
+
+        {/* Wheel Overlay — long-press navigation */}
+        {wheelOpen && (
+          <div
+            ref={wheelOverlayRef}
+            className="koru-wheel-overlay"
+            onTouchMove={handleWheelTouchMove}
+            onTouchEnd={handleWheelTouchEnd}
+            onMouseDown={(e) => {
+              // Click fuera del wheel = cancelar
+              if (e.target === e.currentTarget) {
+                setWheelOpen(false);
+                setWheelActive(null);
+              }
+            }}
+          >
+            <div className="koru-wheel-container">
+              <div className="koru-wheel-hint">
+                <span className="material-symbols-outlined">touch_app</span>
+                Deslizá y soltá sobre una opción
+              </div>
+
+              <div className="koru-wheel-center">
+                <span className="material-symbols-outlined">radar</span>
+                <span>Wheel</span>
+              </div>
+
+              <div
+                className={`koru-wheel-option top ${wheelActive === "memory" ? "active" : ""}`}
+                data-wheel-option="memory"
+                onMouseEnter={() => setWheelActive("memory")}
+                onClick={() => handleWheelSelect("memory")}
+              >
+                <span className="material-symbols-outlined">neurology</span>
+                <span className="wheel-label">Memoria</span>
+              </div>
+
+              <div
+                className={`koru-wheel-option right ${wheelActive === "history" ? "active" : ""}`}
+                data-wheel-option="history"
+                onMouseEnter={() => setWheelActive("history")}
+                onClick={() => handleWheelSelect("history")}
+              >
+                <span className="material-symbols-outlined">history</span>
+                <span className="wheel-label">Historial</span>
+              </div>
+
+              <div
+                className={`koru-wheel-option bottom ${wheelActive === "home" ? "active" : ""}`}
+                data-wheel-option="home"
+                onMouseEnter={() => setWheelActive("home")}
+                onClick={() => handleWheelSelect("home")}
+              >
+                <span className="material-symbols-outlined">home</span>
+                <span className="wheel-label">Home</span>
+              </div>
+
+              <div
+                className={`koru-wheel-option left ${wheelActive === "settings" ? "active" : ""}`}
+                data-wheel-option="settings"
+                onMouseEnter={() => setWheelActive("settings")}
+                onClick={() => handleWheelSelect("settings")}
+              >
+                <span className="material-symbols-outlined">settings</span>
+                <span className="wheel-label">Ajustes</span>
+              </div>
+            </div>
+          </div>
         )}
       </section>
     </div>
