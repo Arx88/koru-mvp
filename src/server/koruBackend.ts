@@ -3472,9 +3472,9 @@ async function finalizePayload(
 
 /**
  * Versión optimizada de finalizePayload que:
- * 1. Usa Flash model para la síntesis (segunda llamada LLM)
- * 2. NO corre el memory extractor aquí (se corre en paralelo fuera)
- * 3. Hace la segunda llamada LLM para sintetizar la respuesta final
+ * 1. Usa Flash model para TODO (síntesis + memory extractor)
+ * 2. Si ya hay reply (del tool result), NO hace segunda llamada LLM
+ * 3. Memory extractor SECUENCIAL (no paralelo) para evitar OOM
  */
 async function finalizePayloadWithFastModel(
   request: KoruBackendTurnRequest,
@@ -3483,9 +3483,18 @@ async function finalizePayloadWithFastModel(
   toolExecutions: ToolExecution[],
   timeout: number,
 ): Promise<KoruBackendTurnResponse> {
-  // Si el raw ya tiene reply (el LLM ya respondió), no hacer segunda llamada
+  // Si el raw ya tiene reply (el tool devolvió respuesta directa), no hacer segunda llamada
   const existingReply = cleanText((raw as any).reply);
   if (existingReply && existingReply.length > 5) {
+    // Memory extractor con Flash (secuencial, no paralelo)
+    if (!isTrivialInput(request.input) && toolExecutions.length > 0) {
+      try {
+        const extracted = await extractMemoryWithJsonPrompt(request, config, toolExecutions, raw, timeout);
+        return normalizeFinalPayload(raw, request.input, toolExecutions, extracted.raw);
+      } catch {
+        // si falla el extractor, igual devolver la respuesta
+      }
+    }
     return normalizeFinalPayload(raw, request.input, toolExecutions);
   }
 
@@ -3501,6 +3510,15 @@ async function finalizePayloadWithFastModel(
       parsed = JSON.parse(extractJsonBlock(content));
     } catch {
       parsed = { reply: cleanReplyText(content) || "No pude armar una respuesta clara." };
+    }
+    // Memory extractor con Flash (secuencial)
+    if (!isTrivialInput(request.input) && toolExecutions.length > 0) {
+      try {
+        const extracted = await extractMemoryWithJsonPrompt(request, config, toolExecutions, parsed, timeout);
+        return normalizeFinalPayload(parsed, request.input, toolExecutions, extracted.raw);
+      } catch {
+        // si falla el extractor, igual devolver la respuesta
+      }
     }
     return normalizeFinalPayload(parsed, request.input, toolExecutions);
   } catch {
@@ -4279,29 +4297,16 @@ export async function runKoruBackendTurn(
           messages.push({ role: "assistant", content: "", tool_calls: [syntheticToolCall] });
           const delivered = await executeProviderToolCalls([syntheticToolCall], messages, request, toolExecutions, config);
           if (delivered) {
-            // OPTIMIZACIÓN: usar Flash model para la síntesis (segunda llamada).
-            // La síntesis solo toma los tool results y escribe una frase natural.
-            // Flash es 5-10x más rápido que Ultra y lo hace igual de bien.
+            // OPTIMIZACIÓN: usar Flash model para la síntesis + memory extractor.
+            // SECUENCIAL (no paralelo) para evitar OOM — 2 llamadas LLM simultáneas
+            // exceden la memoria del entorno.
             const fastConfig = { ...config, nvidiaModel: config.nvidiaFastModel || "stepfun-ai/step-3.5-flash" };
-            // Memory extractor en paralelo con la síntesis (no secuencial)
-            const _extractorStart = Date.now();
-            const extractorPromise = isTrivialInput(request.input)
-              ? Promise.resolve(null)
-              : extractMemoryWithJsonPrompt(request, fastConfig, toolExecutions, delivered, 20_000).catch(() => null);
-            const response = await finalizePayloadWithFastModel(request, fastConfig, delivered, toolExecutions, 20_000);
-            const extracted = await extractorPromise;
-            logger.info("runKoruBackendTurn", "Timing", { extractorMs: Date.now() - _extractorStart, hasExtracted: !!extracted });
-            if (extracted?.raw) {
-              response.memoryCandidates = (extracted.raw as any)?.memoryCandidates || response.memoryCandidates;
-            }
+            const response = await finalizePayloadWithFastModel(request, fastConfig, delivered, toolExecutions, 30_000);
             return { ...response, provider, model, fallbackReason: "router-" + route.category };
           }
           messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }." });
           // OPTIMIZACIÓN: usar Flash para la segunda llamada (síntesis de respuesta)
           const fastConfig2 = { ...config, nvidiaModel: config.nvidiaFastModel || "stepfun-ai/step-3.5-flash" };
-          const extractorPromise2 = isTrivialInput(request.input)
-            ? Promise.resolve(null)
-            : extractMemoryWithJsonPrompt(request, fastConfig2, toolExecutions, undefined, 20_000).catch(() => null);
           const secondResult = await callProvider(fastConfig2, messages, 30_000, false, "nvidia", undefined, fastConfig2.nvidiaModel);
           provider = secondResult.provider;
           model = secondResult.model ?? model;
@@ -4329,11 +4334,6 @@ export async function runKoruBackendTurn(
             records: asArray(parsedRoute.records || []),
             mascotState: parsedRoute.mascotState,
           };
-          // OPTIMIZACIÓN: usar resultado del extractor paralelo (ya iniciado arriba)
-          const extracted2 = await extractorPromise2;
-          if (extracted2?.raw) {
-            (rawRoute as any).memoryCandidates = [...asArray((rawRoute as any).memoryCandidates), ...asArray((extracted2.raw as any)?.memoryCandidates || [])];
-          }
           const response2 = normalizeFinalPayload(rawRoute, request.input, toolExecutions);
           return { ...response2, provider, model, fallbackReason: "router-" + route.category };
         }
