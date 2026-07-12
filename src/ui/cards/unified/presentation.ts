@@ -411,14 +411,27 @@ function reminder(b: Of<"reminder">): KoruPresentation {
 
 function shoppingList(b: Of<"shopping_list">): KoruPresentation {
   const items = b.items ?? [];
+  // Mostrar los primeros 3 items como métricas (chips) en el hero,
+  // así el usuario ve QUÉ comprar sin abrir la card.
+  // El conteo total va en el desc.
+  const previewItems = items.slice(0, 3);
+  const hasMore = items.length > 3;
+  const metrics: HeroMetric[] = previewItems.map((it, i) => ({
+    icon: "check_box_outline_blank",
+    label: typeof it === "string" ? it : String(it),
+    color: A.amber.color,
+  }));
+  if (hasMore) {
+    metrics.push({ icon: "more_horiz", label: `+${items.length - 3} más`, color: A.amber.color });
+  }
   return {
     hero: {
       kicker: "Tu Lista",
       title: heroTitleFrom(b.title, "Compras"),
-      desc: b.dueText ?? b.note ?? `${items.length} ítems para llevar`,
+      desc: b.dueText ?? `${items.length} ítems para llevar`,
       icon: "shopping_cart",
       accent: A.amber,
-      metrics: [{ icon: "checklist", label: "Ítems", value: String(items.length), color: A.amber.color }],
+      metrics: metrics.length > 0 ? metrics : undefined,
     },
     detail: items.length
       ? {
@@ -483,15 +496,21 @@ function comparison(b: Of<"comparison">): KoruPresentation {
 
 function research(b: Of<"research_sources">): KoruPresentation {
   const isReport = b.mode === "research";
+  // Truncar summary a ~140 chars para que el hero no se alarge demasiado.
+  // El summary completo va en el detalle (Síntesis).
+  const fullSummary = clean(b.summary);
+  const heroDesc = fullSummary && fullSummary.length > 140
+    ? fullSummary.slice(0, 137).trimEnd() + "…"
+    : fullSummary;
   return {
     hero: {
       kicker: isReport ? "Tu Informe" : "Tu Búsqueda",
       title: heroTitleFrom(b.title, isReport ? "Investigación" : "Resultados"),
-      desc: b.summary,
+      desc: heroDesc,
       icon: isReport ? "menu_book" : "travel_explore",
       accent: A.purple,
       metrics: b.sources?.length
-        ? [{ icon: "fact_check", label: "Fuentes", value: String(b.sources.length), color: A.purple.color }]
+        ? [{ icon: "fact_check", label: "Fuentes verificadas", value: String(b.sources.length), color: A.purple.color }]
         : undefined,
     },
     detail: {
@@ -507,15 +526,38 @@ function research(b: Of<"research_sources">): KoruPresentation {
 }
 
 function money(b: Of<"money_summary">): KoruPresentation {
-  const total = b.total != null ? `${b.currency ?? "$"}${b.total}` : undefined;
+  // Formato: "$2.000" o "ARS 2.000" con separador de miles.
+  // Antes: "ARS2000" (sin espacio, sin separador) — ilegible.
+  const fmtAmount = (amt: number, cur?: string) => {
+    const formatted = new Intl.NumberFormat("es-AR").format(amt);
+    return cur ? `${cur} ${formatted}` : `$${formatted}`;
+  };
+  const total = b.total != null ? fmtAmount(b.total, b.currency) : undefined;
+  // Hero desc: si recommendation parece un string corto (categoria), lo usamos como
+  // categoria visual. Si es más largo, lo usamos como descripción.
+  // En cualquier caso, NO usamos el monto como desc (ya está en artValue).
+  const recommendation = clean(b.recommendation);
+  const summaryCount = b.summaryItems?.length ?? 0;
+  const desc = summaryCount > 0
+    ? `${summaryCount} movimiento${summaryCount > 1 ? "s" : ""} registrado${summaryCount > 1 ? "s" : ""}`
+    : recommendation && recommendation.length > 30 ? recommendation : undefined;
+  const metrics: HeroMetric[] = [];
+  if (summaryCount > 0) {
+    metrics.push({ icon: "receipt_long", label: "Movimientos", value: String(summaryCount), color: A.emerald.color });
+  }
+  // Mostrar categoría si la recommendation es corta (probablemente categoría)
+  if (recommendation && recommendation.length <= 30) {
+    metrics.push({ icon: "category", label: "Categoría", value: recommendation, color: A.amber.color });
+  }
   return {
     hero: {
       kicker: "Tus Finanzas",
       title: heroTitleFrom(b.title, "Resumen"),
-      desc: b.recommendation,
+      desc,
       icon: "payments",
       accent: A.emerald,
       artValue: total,
+      metrics: metrics.length > 0 ? metrics.slice(0, 3) : undefined,
     },
     detail: b.summaryItems?.length
       ? {
@@ -541,17 +583,45 @@ function savedRecord(b: Of<"saved_record">): KoruPresentation {
   const first = records[0];
   // La colección donde quedó lo guardado: es el corazón de la promesa
   // "Listo, guardado en Sitios de IA" → CTA "Ver colección" abre Mis Colecciones.
-  const collection = clean(first?.collection) || clean(b.title);
+  // Solo usar collection si first.collection existe; NO usar b.title como fallback
+  // porque b.title suele ser "Guardado" (genérico) y produce "Guardado en Guardado".
+  const collection = clean(first?.collection);
   const isLink = Boolean(first?.url);
+  // desc: construir de forma robusta sin duplicados (case-insensitive + accent-insensitive).
+  // Para "Café" + "cafe" + "2000 ARS": solo mostrar "Café · 2000 ARS".
+  let desc: string | undefined;
+  if (records.length > 1) {
+    desc = `${records.length} registros guardados`;
+  } else if (first) {
+    const parts: string[] = [];
+    const seen = new Set<string>();
+    const title = clean(first.title);
+    const notes = clean(first.notes);
+    const value = clean(first.value);
+    // Normaliza: lowercase + sin acentos para comparar
+    const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const tryAdd = (s: string | undefined) => {
+      if (!s) return;
+      const key = norm(s);
+      if (seen.has(key)) return;
+      if (key === norm(collection ?? "")) return;
+      seen.add(key);
+      parts.push(s);
+    };
+    tryAdd(title);
+    tryAdd(notes);
+    tryAdd(value);
+    desc = parts.length > 0 ? parts.join(" · ") : undefined;
+  }
+  // Kicker: solo "Guardado en <colección>" si hay collection real; si no, "Guardado"
+  const kicker = collection ? `Guardado en ${collection}` : "Guardado";
+  // Title: si hay collection, mostrarlo. Si no, mostrar el title del primer record.
+  const heroTitle = collection || clean(first?.title) || "Registro";
   return {
     hero: {
-      kicker: collection ? "Guardado en" : "Guardado",
-      title: heroTitleFrom(collection || first?.title, "Registro"),
-      desc: records.length > 1
-        ? `${records.length} registros guardados`
-        : first
-          ? [first.title !== collection ? first.title : undefined, first.notes].filter(Boolean).join(" — ") || first.value
-          : undefined,
+      kicker,
+      title: heroTitleFrom(heroTitle, "Registro"),
+      desc,
       icon: isLink ? "link" : "bookmark",
       accent: A.violet,
     },
@@ -706,11 +776,17 @@ function webNav(b: Of<"web_nav">): KoruPresentation {
 function dataCard(b: Of<"data_card">): KoruPresentation {
   const items = b.items ?? [];
   const first = items[0];
+  // Hero desc: resumen del dato principal, pero NO repetirlo en metrics.
+  // Antes: desc = "España: 2-1 a Bélgica" y metrics[0] = "2-1 a Bélgica" (duplicado).
+  // Ahora: desc = `${items.length} datos verificados` y metrics muestra label + value.
+  const desc = items.length > 1
+    ? `${items.length} datos verificados de fuentes reales`
+    : first ? `${first.label}: ${first.value}` : undefined;
   return {
     hero: {
       kicker: "Tus Datos",
       title: heroTitleFrom(b.title, "Datos"),
-      desc: first ? `${first.label}: ${first.value}` : undefined,
+      desc,
       icon: "verified",
       accent: A.emerald,
       metrics: items.slice(0, 3).map((it) => ({ icon: "database", label: it.label, value: it.value, color: A.emerald.color })),
@@ -828,21 +904,55 @@ function wellbeing(b: Of<"wellbeing">): KoruPresentation {
 }
 
 function liveMatch(b: Of<"live_match">): KoruPresentation {
-  const score = b.homeTeam && b.awayTeam ? `${b.homeTeam.score} - ${b.awayTeam.score}` : undefined;
-  const title = b.homeTeam && b.awayTeam ? `${b.homeTeam.abbrev} vs ${b.awayTeam.abbrev}` : "Partido";
+  // Preferir nombres completos (homeName/awayName) sobre abreviaturas.
+  // Las abreviaturas (SPA, BEL) son útiles solo en scoreboards compactos;
+  // en una card hero, el usuario necesita saber quiénes juegan.
+  const homeName = clean(b.homeName) ?? clean(b.homeTeam?.name) ?? "Local";
+  const awayName = clean(b.awayName) ?? clean(b.awayTeam?.name) ?? "Visitante";
+  const homeScore = b.homeScore ?? b.homeTeam?.score ?? 0;
+  const awayScore = b.awayScore ?? b.awayTeam?.score ?? 0;
+  const score = `${homeScore} - ${awayScore}`;
+  // Título: "Spain vs Belgium" (nombres completos, no abreviaturas)
+  const title = `${homeName} vs ${awayName}`;
+  // Kicker: liga + estado. Si no hay liga, solo estado.
+  const league = clean(b.league);
+  const status = clean(b.status);
+  const live = /in progress|live|halftime|en vivo/i.test(status);
+  const kickerParts: string[] = [];
+  if (live) kickerParts.push("En vivo");
+  if (league) kickerParts.push(league);
+  if (!live && status && status.toLowerCase() !== "scheduled") kickerParts.push(status);
+  const kicker = kickerParts.length > 0 ? kickerParts.join(" · ") : "Partido";
+  // Desc: si está scheduled, mostrar fecha/hora. Si está final, mostrar "Final".
+  // Si está en vivo, mostrar minuto.
+  const desc = live ? (b.minute ? `Minuto ${b.minute}` : "En juego")
+    : status && /scheduled|programado/i.test(status) ? "Próximamente"
+    : status ?? "Final";
+  // Metrics: stats del partido (posesión, tiros) si existen.
+  const metrics: HeroMetric[] = [];
+  if (b.stats && b.stats.length > 0) {
+    for (const s of b.stats.slice(0, 2)) {
+      const left = s.leftPercent ?? 0;
+      const right = s.rightPercent ?? 0;
+      const total = left + right;
+      const value = total > 0 ? `${left}% - ${right}%` : "—";
+      metrics.push({ icon: s.label === "Posesion" ? "sports_soccer" : "crisis_alert", label: s.label, value, color: A.emerald.color });
+    }
+  }
   return {
     hero: {
-      kicker: b.league ? `En vivo · ${b.league}` : "En vivo",
+      kicker,
       title: up(title),
-      desc: b.status ?? b.time,
+      desc,
       icon: "sports_soccer",
-      accent: A.emerald,
+      accent: live ? A.red : A.emerald,
       artValue: score,
+      metrics: metrics.length > 0 ? metrics : undefined,
     },
     detail: b.stats?.length
       ? {
           title: title,
-          subtitle: b.league,
+          subtitle: league ?? kicker,
           sections: [
             {
               kind: "rows",
@@ -1643,14 +1753,36 @@ function reviewQuote(b: Of<"review_quote">): KoruPresentation {
 
 function planFallback(b: Of<"plan">): KoruPresentation {
   const items = b.items ?? [];
+  // Mostrar los primeros 3 items del plan como métricas (chips con icono de hora)
+  // así el usuario ve QUÉ va a hacer sin abrir la card.
+  // El conteo total va en el desc.
+  const previewItems = items.slice(0, 3);
+  const hasMore = items.length > 3;
+  const metrics: HeroMetric[] = previewItems.map((it) => ({
+    icon: "schedule",
+    label: clean(it.time) ?? "Paso",
+    color: A.violet.color,
+  }));
+  if (hasMore) {
+    metrics.push({ icon: "more_horiz", label: `+${items.length - 3} más`, color: A.violet.color });
+  }
+  // Title: NO usar heroTitleFrom acá porque uppercasea todo ("Tu Día" → "DÍA").
+  // El plan es un caso especial: el título se muestra en title case natural.
+  const rawTitle = clean(b.title) ?? "";
+  const heroTitle = rawTitle && rawTitle.length > 1
+    ? rawTitle
+    : "Tu día";
   return {
     hero: {
       kicker: "Tu Plan",
-      title: heroTitleFrom(b.title, "Integral"),
-      desc: b.note,
+      title: heroTitle,
+      desc: items.length > 0
+        ? `${items.length} paso${items.length > 1 ? "s" : ""} para hoy`
+        : b.note,
       icon: "checklist_rtl",
       accent: A.violet,
       art: "/stitch/plan-illustration.png",
+      metrics: metrics.length > 0 ? metrics : undefined,
     },
     detail: items.length
       ? {

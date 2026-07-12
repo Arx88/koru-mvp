@@ -482,6 +482,42 @@ function createId(prefix: string): string {
   return `${prefix}_${Math.random().toString(36).slice(2, 12)}`;
 }
 
+/**
+ * Genera iniciales de un nombre de equipo (máx 3 letras).
+ * "Spain" → "SPA", "Real Madrid" → "MAD", "Boca Juniors" → "BJU", "PSG" → "PSG".
+ */
+function initialsFromName(name: string): string {
+  const clean = String(name ?? "").trim().toUpperCase();
+  if (!clean) return "???";
+  // Si ya es sigla (PSG, MLS, etc), devolverla
+  if (/^[A-Z]{2,4}$/.test(clean) && clean.length <= 4) return clean;
+  const words = clean.split(/\s+/).filter(w => w.length > 0);
+  if (words.length === 1) return words[0].slice(0, 3);
+  // Tomar primera letra de las primeras 3 palabras, saltando artículos
+  const filtered = words.filter(w => !["DE", "DEL", "LA", "LAS", "EL", "LOS", "Y", "FC", "CF"].includes(w));
+  return (filtered.slice(0, 3).map(w => w[0]).join("") || words[0].slice(0, 3)).padEnd(3, "X");
+}
+
+/**
+ * Formatea una fecha ISO a "DD/MM YYYY" o "Hoy" / "Ayer" según corresponda.
+ */
+function formatMatchDate(iso: string): string {
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "";
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const dStart = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const diffDays = Math.round((todayStart.getTime() - dStart.getTime()) / (24 * 60 * 60 * 1000));
+    if (diffDays === 0) return "Hoy";
+    if (diffDays === 1) return "Ayer";
+    if (diffDays === -1) return "Mañana";
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    return `${day}/${month}`;
+  } catch { return ""; }
+}
+
 function safeJsonParse(raw: string): Record<string, unknown> {
   try {
     return asRecord(JSON.parse(raw || "{}"));
@@ -1322,8 +1358,8 @@ export async function runSearch(
 }
 
 export function planFromState(state: KoruState, args: Record<string, unknown>): PlanData {
-  const openCommitments = state.commitments.filter((item) => item.status === "open").slice(0, 5);
-  const recentRecords = state.records.slice(0, 5);
+  const openCommitments = (Array.isArray(state.commitments) ? state.commitments : []).filter((item) => item && item.status === "open").slice(0, 5);
+  const recentRecords = (Array.isArray(state.records) ? state.records : []).slice(0, 5);
   const focus = cleanText(args.focus, "ordenar el dia");
   const candidates = openCommitments.length
     ? openCommitments.map((item) => item.title)
@@ -1490,7 +1526,7 @@ export function queryPersonalContextFromState(state: KoruState, args: Record<str
   const topic = cleanText(args.topic, "general");
   const query = cleanText(args.query, cleanText(args.__userInput));
   const period = cleanText(args.period);
-  const records = state.records.filter((record) => isRecordInPeriod(record, period));
+  const records = (Array.isArray(state.records) ? state.records : []).filter((record) => isRecordInPeriod(record, period));
 
   if (topic === "expenses") {
     const expenses = records.filter((record) => record.kind === "expense");
@@ -1572,7 +1608,7 @@ export function queryPersonalContextFromState(state: KoruState, args: Record<str
   }
 
   if (topic === "pending_tasks") {
-    const open = state.commitments.filter((item) => item.status === "open").slice(0, 8);
+    const open = (Array.isArray(state.commitments) ? state.commitments : []).filter((item) => item && item.status === "open").slice(0, 8);
     if (!open.length) return { type: "personal_query", block: emptyContextBlock("Pendientes", "No veo pendientes abiertos. Si queres, tirame una descarga de cosas y las ordeno.") };
     return {
       type: "personal_query",
@@ -1601,8 +1637,8 @@ export function queryPersonalContextFromState(state: KoruState, args: Record<str
   };
 
   if (topic === "memory") {
-    const useful = state.memories
-      .filter((memory) => memory.status !== "rejected" && memory.useForSuggestions !== false)
+    const useful = (Array.isArray(state.memories) ? state.memories : [])
+      .filter((memory) => memory && memory.status !== "rejected" && memory.useForSuggestions !== false)
       .slice(0, 8);
     if (!useful.length) return { type: "personal_query", block: { type: "saved_record", title: "Memoria", records: [] } };
     return {
@@ -1628,8 +1664,8 @@ export function queryPersonalContextFromState(state: KoruState, args: Record<str
 
   if (topic === "relationships") {
     const relationshipRecords = records.filter((record) => ["person_followup", "gift", "birthday"].includes(record.kind));
-    const relationshipMemories = state.memories
-      .filter((memory) => memory.status !== "rejected" && memory.useForSuggestions !== false)
+    const relationshipMemories = (Array.isArray(state.memories) ? state.memories : [])
+      .filter((memory) => memory && memory.status !== "rejected" && memory.useForSuggestions !== false)
       .filter((memory) => memory.kind === "relationship" || semanticRecordMatches([{
         id: memory.id,
         domain: "relationship",
@@ -2101,27 +2137,35 @@ async function executeTool(
 }
 
 function stateSummary(state: KoruState): string {
-  const confirmedMemories = state.memories
-    .filter((item) => item.status === "confirmed" && item.useForSuggestions !== false)
+  // Defensive: el frontend a veces envia state sin memories/commitments/records
+  // (cuando IndexedDB aun no hydrateó o el state viene de localStorage legacy).
+  // Sin estos guards, .filter() crash con "Cannot read properties of undefined"
+  // y el catch lo convierte en 502.
+  const memories = Array.isArray(state.memories) ? state.memories : [];
+  const commitmentsArr = Array.isArray(state.commitments) ? state.commitments : [];
+  const recordsArr = Array.isArray(state.records) ? state.records : [];
+
+  const confirmedMemories = memories
+    .filter((item) => item && item.status === "confirmed" && item.useForSuggestions !== false)
     .slice(0, 12)
-    .map((item) => `- ${item.kind}: ${item.text.replace(/[\n\r`]+/g, " ").trim()}`)
+    .map((item) => `- ${item.kind}: ${String(item.text ?? "").replace(/[\n\r`]+/g, " ").trim()}`)
     .join("\n") || "- none";
-  const candidateMemories = state.memories
-    .filter((item) => item.status === "candidate" && item.useForSuggestions !== false)
+  const candidateMemories = memories
+    .filter((item) => item && item.status === "candidate" && item.useForSuggestions !== false)
     .slice(0, 8)
-    .map((item) => `- ${item.kind}: ${item.text.replace(/[\n\r`]+/g, " ").trim()}`)
+    .map((item) => `- ${item.kind}: ${String(item.text ?? "").replace(/[\n\r`]+/g, " ").trim()}`)
     .join("\n") || "- none";
-  const commitments = state.commitments
-    .filter((item) => item.status === "open")
+  const commitments = commitmentsArr
+    .filter((item) => item && item.status === "open")
     .slice(0, 12)
-    .map((item) => `- ${item.title.replace(/[\n\r`]+/g, " ").trim()} (${(item.dueHint || "sin fecha").replace(/[\n\r`]+/g, " ").trim()})`)
+    .map((item) => `- ${String(item.title ?? "").replace(/[\n\r`]+/g, " ").trim()} (${(item.dueHint || "sin fecha").replace(/[\n\r`]+/g, " ").trim()})`)
     .join("\n") || "- none";
-  const recordTitles = state.records
+  const recordTitles = recordsArr
     .slice(-8)
-    .map((item) => `- ${item.title.replace(/[\n\r`]+/g, " ").trim()}${item.value ? ` (${item.value.replace(/[\n\r`]+/g, " ").trim()})` : ""} ${item.notes ? `— ${item.notes.replace(/[\n\r`]+/g, " ").trim()}` : ""} [${item.kind}]`)
+    .map((item) => `- ${String(item.title ?? "").replace(/[\n\r`]+/g, " ").trim()}${item.value ? ` (${String(item.value).replace(/[\n\r`]+/g, " ").trim()})` : ""} ${item.notes ? `— ${String(item.notes).replace(/[\n\r`]+/g, " ").trim()}` : ""} [${item.kind}]`)
     .join("\n") || "- nada guardado todavía";
-  const recordKinds = Array.from(new Set(state.records.map((item) => item.kind))).slice(0, 12).join(", ") || "none";
-  const collectionCount = new Set(state.records.map((item) => item.collection).filter(Boolean)).size;
+  const recordKinds = Array.from(new Set(recordsArr.map((item) => item.kind))).slice(0, 12).join(", ") || "none";
+  const collectionCount = new Set(recordsArr.map((item) => item.collection).filter(Boolean)).size;
   return [
     `User name: ${state.userName ?? "unknown"}`,
     "Confirmed memories:",
@@ -2130,7 +2174,7 @@ function stateSummary(state: KoruState): string {
     candidateMemories,
     "Open commitments:",
     commitments,
-    `Saved record count: ${state.records.length}`,
+    `Saved record count: ${(Array.isArray(state.records) ? state.records : []).length}`,
     `Saved record kinds: ${recordKinds}`,
     "Cosas que guardaste (últimas 8):",
     recordTitles,
@@ -2175,22 +2219,25 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
       : ["- No hay memorias relevantes aún."]),
     ``,
     `Pendientes abiertos actuales del usuario:`,
-    ...(state.commitments?.filter(c => c.status === "open").slice(0, 5).map(c => `- ${c.title.replace(/[\n\r`]+/g, " ").trim()} (${(c.dueHint || "sin fecha").replace(/[\n\r`]+/g, " ").trim()})`) || ["- Ninguno"]),
+    ...((Array.isArray(state.commitments) ? state.commitments : []).filter(c => c && c.status === "open").slice(0, 5).map(c => `- ${String(c.title ?? "").replace(/[\n\r`]+/g, " ").trim()} (${(c.dueHint || "sin fecha").replace(/[\n\r`]+/g, " ").trim()})`) || ["- Ninguno"]),
     ``,
     `Cosas que guardaste (últimas 8):`,
-    ...(state.records?.slice(-8).map(r => `- ${r.title.replace(/[\n\r`]+/g, " ").trim()}${r.value ? ` (${r.value.replace(/[\n\r`]+/g, " ").trim()})` : ""}${r.notes ? ` — ${r.notes.replace(/[\n\r`]+/g, " ").trim()}` : ""} [${r.kind}]`) || ["- Nada guardado aún"]),
+    ...((Array.isArray(state.records) ? state.records : []).slice(-8).map(r => `- ${String(r.title ?? "").replace(/[\n\r`]+/g, " ").trim()}${r.value ? ` (${String(r.value).replace(/[\n\r`]+/g, " ").trim()})` : ""}${r.notes ? ` — ${String(r.notes).replace(/[\n\r`]+/g, " ").trim()}` : ""} [${r.kind}]`) || ["- Nada guardado aún"]),
     ``,
     `Instrucciones técnicas:`,
     `Ejemplos de cuándo usar cada herramienta (la forma de preguntar no importa; lo que importa es la intención):`,
     `  - weather: "¿Qué me pongo?" / "¿Hace frío?" / "¿Llevo paraguas?" / "¿Cómo está afuera?" / "¿Qué tal el día?" / "¿Necesito campera?"`,
-    `  - web_search: "¿Qué pasó en Argentina?" / "¿Cómo va el mundial?" / "¿Quién ganó?" / "¿Últimas noticias de...?" / Solo mencionar un tema actual del mundo exterior.`,
+    `  - match_live: RESULTADOS DE FÚTBOL. "¿Cómo salió España ayer?" / "¿Cómo le fue a Boca?" / "¿Va ganando el Madrid?" / "Resultado de Argentina" / "Quién ganó el partido". INCLUYE selecciones nacionales (España, Argentina, Francia, Brasil, etc). NUNCA uses web_search para esto — match_live tiene datos exactos desde ESPN en tiempo real.`,
+    `  - match_schedule: PRÓXIMOS partidos. "Cuándo juega Boca" / "A qué hora juega Real Madrid" / "Fixture de la champions".`,
+    `  - web_search: Noticias generales (NO deportivas). "¿Qué pasó en Argentina?" / "¿Últimas noticias de tecnología?" / "¿Qué hay del clima político?". NUNCA para resultados de partidos — para eso está match_live.`,
     `  - shopping_compare: "¿Qué auriculares compro?" / "Necesito una batería externa" / "¿Dónde compro X más barato?" / "¿Cuál es mejor, A o B?"`,
     `  - restaurant_deep_search: "Dónde cenar en Madrid" / "Qué restaurante me recomendás" / "Dónde como sushi" / "Necesito una parrilla" / "Qué tal comer en Palermo"`,
     `  - plan_day: "¿Cómo organizo hoy?" / "Tengo muchas cosas" / "¿Qué hago primero?" / "¿Me ayudas a planificar?"`,
     `  - query_personal_context: "¿Cuánto gasté?" / "¿Qué tenía para comer?" / "¿Recordás que me dijiste?" / Cualquier cosa que Koru ya haya guardado del usuario.`,
     `  - save_memory: Cuando el usuario revela algo importante sobre sí mismo (rutinas, metas, preferencias, relaciones).`,
     `  - save_personal_item: Cuando el usuario pide guardar algo (gasto, recordatorio, lista de compras, alarma).`,
-    `Usá tools SOLO cuando la intención del usuario REQUIERA datos reales del mundo (clima, búsqueda, ruta, precios). Por ejemplo: si el usuario dice 'hola', 'gracias', 'adiós', '¿cómo estás?' o cualquier frase de cortesía, NO uses tools. Respondé directamente con naturalidad.`,
+    `REGLA CRÍTICA DE ROUTING: si el usuario pregunta por un resultado o partido de fútbol (cualquier equipo o selección), USÁ match_live, NO web_search. web_search devuelve noticias genéricas sin el marcador exacto; match_live te da el score real en tiempo real.`,
+    `Usá tools SOLO cuando la intención del usuario REQUIERA datos reales del mundo (clima, búsqueda, ruta, precios, resultados deportivos). Por ejemplo: si el usuario dice 'hola', 'gracias', 'adiós', '¿cómo estás?' o cualquier frase de cortesía, NO uses tools. Respondé directamente con naturalidad.`,
     `- Para datos personales ya guardados, no llames tools; respondé directamente usando el contexto.`,
     `- Agregá mascotState al JSON final Elijí SOLO de esta lista exacta: "celebrating", "worried", "affectionate", "curious", "happy", "thinking", "working", "tired", "sleeping", "mistake", "planning", "product-search", "building", "cooking", "thinking-2". Si nada aplica, usá "idle".`,
     `- Formato de respuesta final (contrato MÍNIMO y OBLIGATORIO): {"reply":"...","mascotState":"..."}`,
@@ -2205,6 +2252,8 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
     `Usuario: "que clima hace en Madrid?" → {"reply":"En Madrid hace 29°C ahora, con maximas de 32 y minimas de 21. Viento a 15 km/h y 0% de lluvia. Dia para salir liviano.","mascotState":"thinking"}`,
     `Usuario: "gracias" → {"reply":"De nada, cuando quieras.","mascotState":"happy"}`,
     `Usuario: "estoy cansado" → {"reply":"Te entiendo. Si queres, bajo el ritmo y ordenamos lo minimo indispensable para hoy.","mascotState":"worried"}`,
+    `Usuario: "como salio España ayer" → TOOL: match_live(query="España ayer"). Reply: "España le ganó 2-1 a Bélgica ayer, cuartos del Mundial. Se adelantaron y aguantaron. Ahora les toca Francia en semis."`,
+    `Usuario: "como le fue a Boca" → TOOL: match_live(query="Boca"). Reply con el score exacto que devuelva la tool.`,
     ``,
     `Notá: las respuestas son CORTAS, DIRECTAS y UTILES. No exageran, no sobre-validan, no terminan con preguntas obvias.`,
     `Hora actual: ${nowIso}`,
@@ -2630,37 +2679,68 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
     }
     if (result.type === "match_live") {
       const r = result as any;
-      blocks.push({
-        type: "live_match" as const,
-        homeName: r.homeName ?? r.homeTeam?.name ?? "Local",
-        awayName: r.awayName ?? r.awayTeam?.name ?? "Visitante",
-        homeScore: Number(r.homeScore ?? r.homeTeam?.score ?? 0),
-        awayScore: Number(r.awayScore ?? r.awayTeam?.score ?? 0),
-        homeInitials: r.homeInitials ?? r.homeTeam?.abbrev ?? "LOC",
-        awayInitials: r.awayInitials ?? r.awayTeam?.abbrev ?? "VIS",
-        minute: r.minute ?? r.time,
-        globalAgg: r.globalAgg ?? r.globalStatus ?? r.status,
-        homePossession: r.homePossession,
-        awayPossession: r.awayPossession,
-        homeShots: r.homeShots,
-        awayShots: r.awayShots,
-        time: r.minute ?? r.time,
-        status: r.globalAgg ?? r.globalStatus ?? r.status,
-        homeTeam: {
-          name: r.homeName ?? r.homeTeam?.name ?? "Local",
-          abbrev: r.homeInitials ?? r.homeTeam?.abbrev ?? "LOC",
-          score: Number(r.homeScore ?? r.homeTeam?.score ?? 0),
-        },
-        awayTeam: {
-          name: r.awayName ?? r.awayTeam?.name ?? "Visitante",
-          abbrev: r.awayInitials ?? r.awayTeam?.abbrev ?? "VIS",
-          score: Number(r.awayScore ?? r.awayTeam?.score ?? 0),
-        },
-        stats: [
-          { label: "Posesion", leftPercent: Number.parseInt(r.homePossession ?? "50", 10) || 50, rightPercent: Number.parseInt(r.awayPossession ?? "50", 10) || 50 },
-          { label: "Tiros", leftPercent: Number(r.homeShots ?? 0), rightPercent: Number(r.awayShots ?? 0) },
-        ],
-      });
+      // El tool match_live devuelve { matches: [{homeTeam:"Spain", awayTeam:"Belgium", homeScore:2, awayScore:1, status:"Full Time", date:..., live:false}] }
+      // (strings, no objetos). Soportamos también la forma legacy (r.homeTeam como objeto).
+      const matches = Array.isArray(r.matches) ? r.matches : [];
+      if (matches.length === 0 && (r.homeName || r.homeTeam)) {
+        // Forma legacy: un solo partido en la raíz
+        matches.push({
+          homeTeam: typeof r.homeTeam === "string" ? r.homeTeam : r.homeTeam?.name,
+          awayTeam: typeof r.awayTeam === "string" ? r.awayTeam : r.awayTeam?.name,
+          homeScore: r.homeScore ?? r.homeTeam?.score,
+          awayScore: r.awayScore ?? r.awayTeam?.score,
+          status: r.status,
+          date: r.date,
+          live: r.live,
+        });
+      }
+      // Si hay UN partido, mostramos la card hero live_match con los datos reales.
+      if (matches.length >= 1) {
+        const m = matches[0];
+        const homeName = String(m.homeTeam ?? "Local");
+        const awayName = String(m.awayTeam ?? "Visitante");
+        const homeScore = Number(m.homeScore ?? 0);
+        const awayScore = Number(m.awayScore ?? 0);
+        const status = String(m.status ?? (m.live ? "En vivo" : "Final"));
+        const homeInitials = initialsFromName(homeName);
+        const awayInitials = initialsFromName(awayName);
+        const dateStr = m.date ? formatMatchDate(m.date) : "";
+        blocks.push({
+          type: "live_match" as const,
+          homeName,
+          awayName,
+          homeScore,
+          awayScore,
+          homeInitials,
+          awayInitials,
+          minute: m.minute ?? m.time,
+          globalAgg: status + (dateStr ? ` · ${dateStr}` : ""),
+          homePossession: m.homePossession,
+          awayPossession: m.awayPossession,
+          homeShots: m.homeShots,
+          awayShots: m.awayShots,
+          time: m.minute ?? m.time,
+          status,
+          homeTeam: { name: homeName, abbrev: homeInitials, score: homeScore },
+          awayTeam: { name: awayName, abbrev: awayInitials, score: awayScore },
+          stats: [
+            { label: "Posesion", leftPercent: Number.parseInt(m.homePossession ?? "50", 10) || 50, rightPercent: Number.parseInt(m.awayPossession ?? "50", 10) || 50 },
+            { label: "Tiros", leftPercent: Number(m.homeShots ?? 0), rightPercent: Number(m.awayShots ?? 0) },
+          ],
+        });
+        // Si hay múltiples partidos, agregamos un match_timeline con el resto.
+        if (matches.length > 1) {
+          blocks.push({
+            type: "match_timeline" as const,
+            items: matches.slice(1, 5).map((mm: any) => ({
+              minute: mm.date ? new Date(mm.date).getDate() + "'" : "—",
+              text: `${mm.homeTeam ?? "?"} ${mm.homeScore ?? "?"} - ${mm.awayScore ?? "?"} ${mm.awayTeam ?? "?"}`,
+              sub: mm.status ?? (mm.live ? "En vivo" : "Final"),
+              active: !!mm.live,
+            })),
+          });
+        }
+      }
       continue;
     }
     if (result.type === "route_traffic") {
@@ -3286,7 +3366,9 @@ function normalizeFinalPayload(
                 ? "alarm"
                 : execution.name === "calendar_reminder"
                   ? "calendar_reminder"
-                  : execution.name === "plan_day" || execution.name === "save_memory" || execution.name === "save_personal_item" || execution.name === "query_personal_context"
+                  : execution.name === "match_live" || execution.name === "match_schedule" || execution.name === "league_standings" || execution.name === "team_follow"
+                ? "match_live"
+                : execution.name === "plan_day" || execution.name === "save_memory" || execution.name === "save_personal_item" || execution.name === "query_personal_context"
                 ? "memory_recall"
                 : "web_search",
     status: "ok",

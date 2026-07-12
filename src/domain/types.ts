@@ -299,7 +299,8 @@ export type ToolCall = {
     | "calendar_reminder"
     | "alarm"
     | "money_summary"
-    | "memory_recall";
+    | "memory_recall"
+    | "match_live";
   args: Record<string, unknown>;
   reason?: string;
 };

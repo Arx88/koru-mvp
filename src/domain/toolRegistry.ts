@@ -356,6 +356,21 @@ export const TOOL_REGISTRY: Record<ToolCall["tool"], ToolDefinition> = {
     pendingUiBlock: () => null,
     resultToUiBlocks: () => [],
   },
+  match_live: {
+    name: "match_live",
+    actionKind: "web_research",
+    webMode: "research",
+    policy: { requiresApproval: false, autoRun: true, risk: "readonly", reason: "Lee resultados deportivos públicos (ESPN)." },
+    buildPayload: (call) => ({ title: "Partido", query: asString(call.args.query) }),
+    execute: async (call, index) => ({
+      id: toolId(call, index),
+      tool: call.tool,
+      status: "ok",
+      summary: "Resultado deportivo en vivo o final.",
+    }),
+    pendingUiBlock: () => null,
+    resultToUiBlocks: () => [],
+  },
 };
 
 export function getToolDefinition(tool: ToolCall["tool"]): ToolDefinition {

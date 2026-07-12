@@ -11,8 +11,17 @@ const TSDB_KEY = "3"; // Key pública gratuita de TheSportsDB.
 const TSDB_BASE = `https://www.thesportsdb.com/api/v1/json/${TSDB_KEY}`;
 const ESPN_BASE = "https://site.api.espn.com/apis/site/v2/sports/soccer";
 
-// Ligas ESPN con IDs conocidos para buscar resultados
+// Ligas ESPN con IDs conocidos para buscar resultados.
+// INCLUYE selecciones nacionales (fifa.world, uefa.euro, etc) — sin esto,
+// "cómo salió España ayer" no encuentra nada porque España no juega en ligas de clubes.
 const ESPN_LEAGUES = [
+  // Selecciones nacionales (sin esto, "cómo salió España/Argentina/etc" falla)
+  { id: "fifa.world", name: "FIFA World Cup / International Friendlies" },
+  { id: "uefa.euro", name: "UEFA Euro" },
+  { id: "uefa.nations", name: "UEFA Nations League" },
+  { id: "conmebol.libertadores", name: "Copa Libertadores" },
+  { id: "conmebol.sudamericana", name: "Copa Sudamericana" },
+  // Ligas de clubes top
   { id: "arg.1", name: "Argentine Primera División" },
   { id: "eng.1", name: "Premier League" },
   { id: "esp.1", name: "La Liga" },
@@ -25,6 +34,77 @@ const ESPN_LEAGUES = [
   { id: "mex.1", name: "Liga MX" },
   { id: "usa.1", name: "MLS" },
 ];
+
+// Sinónimos de selecciones nacionales → mapeo a nombres ESPN.
+// "España" puede aparecer como "Spain" en ESPN. Esto dispara el match.
+const NATIONAL_TEAM_SYNONYMS: Array<{ canonical: string; aliases: string[] }> = [
+  { canonical: "Spain", aliases: ["españa", "espana", "seleccion espanola", "la roja", "spain"] },
+  { canonical: "Argentina", aliases: ["argentina", "la albiceleste", "seleccion argentina"] },
+  { canonical: "France", aliases: ["francia", "france", "les bleus", "seleccion francesa"] },
+  { canonical: "Brazil", aliases: ["brasil", "brazil", "selecao", "verdeamarela", "seleccion brasilena"] },
+  { canonical: "Germany", aliases: ["alemania", "germany", "mannschaft", "seleccion alemana"] },
+  { canonical: "Italy", aliases: ["italia", "italy", "azzurri", "seleccion italiana"] },
+  { canonical: "England", aliases: ["inglaterra", "england", "three lions", "seleccion inglesa"] },
+  { canonical: "Netherlands", aliases: ["paises bajos", "holanda", "netherlands", "dutch", "oranje"] },
+  { canonical: "Portugal", aliases: ["portugal", "selecao portuguesa", "seleccion portuguesa"] },
+  { canonical: "Belgium", aliases: ["belgica", "belgium", "red devils", "seleccion belga"] },
+  { canonical: "Uruguay", aliases: ["uruguay", "charruas", "celeste", "seleccion uruguaya"] },
+  { canonical: "Colombia", aliases: ["colombia", "cafeteros", "seleccion colombiana"] },
+  { canonical: "Chile", aliases: ["chile", "la roja chilena", "seleccion chilena"] },
+  { canonical: "Mexico", aliases: ["mexico", "méxico", "el tri", "seleccion mexicana"] },
+  { canonical: "Switzerland", aliases: ["suiza", "switzerland", "swiss", "nati"] },
+  { canonical: "Croatia", aliases: ["croacia", "croatia", "vatreni"] },
+  { canonical: "Norway", aliases: ["noruega", "norway"] },
+];
+
+/**
+ * Detecta si el query menciona una selección nacional y devuelve el canonical name.
+ * Esto permite que "como salio España" → match exacto con "Spain" en ESPN.
+ */
+function detectNationalTeam(queryLower: string): string | null {
+  for (const team of NATIONAL_TEAM_SYNONYMS) {
+    for (const alias of team.aliases) {
+      // Match exacto de palabra (para no confundir "España" con "español")
+      const re = new RegExp(`\\b${alias.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")}\\b`, "i");
+      if (re.test(queryLower)) return team.canonical;
+    }
+  }
+  return null;
+}
+
+/**
+ * Calcula fechas a buscar basado en el query del usuario.
+ * "ayer" → fecha de ayer.
+ * "hoy" / "en vivo" → fecha de hoy.
+ * "mañana" → fecha de mañana.
+ * Sin indicador → busca hoy + ayer (3 días de ventana) para captar últimos resultados.
+ */
+function detectDatesToQuery(queryLower: string): string[] {
+  const dates: string[] = [];
+  const now = new Date();
+  const fmt = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, "");
+
+  if (/\bayer\b|\bd'?ayer\b|last match|último partido|ultimo partido/.test(queryLower)) {
+    const y = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    dates.push(fmt(y));
+    // También 2 días atrás por si el partido fue de madrugada
+    const y2 = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+    dates.push(fmt(y2));
+  } else if (/\bhoy\b|\btoday\b|\ben vivo\b|\blive\b/.test(queryLower)) {
+    dates.push(fmt(now));
+  } else if (/\bmañana\b|\bmanana\b|\btomorrow\b/.test(queryLower)) {
+    const t = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    dates.push(fmt(t));
+  } else {
+    // Sin indicador: ventana de 3 días (ayer + hoy + anteayer) para captar último resultado
+    dates.push(fmt(now));
+    const y = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    dates.push(fmt(y));
+    const y2 = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+    dates.push(fmt(y2));
+  }
+  return [...new Set(dates)];
+}
 
 type EspnEvent = {
   name?: string;
@@ -43,27 +123,51 @@ type EspnEvent = {
 async function searchEspnScoreboards(query: string): Promise<EspnEvent[]> {
   const queryLower = query.toLowerCase();
   const results: EspnEvent[] = [];
-  // Buscar en paralelo en todas las ligas
-  const promises = ESPN_LEAGUES.map(async (league) => {
-    try {
-      const res = await fetch(`${ESPN_BASE}/${league.id}/scoreboard`, {
-        signal: AbortSignal.timeout(8000),
-      });
-      if (!res.ok) return;
-      const data = await res.json() as { events?: EspnEvent[] };
-      const events = data.events ?? [];
-      // Filtrar por query (nombre del equipo en el evento)
-      const matching = events.filter(e => {
-        const eventName = (e.name ?? "").toLowerCase();
-        const comps = e.competitions ?? [];
-        const teams = comps.flatMap(c => (c.competitors ?? []).map(comp => comp.team?.displayName?.toLowerCase() ?? ""));
-        return eventName.includes(queryLower) || teams.some(t => t.includes(queryLower));
-      });
-      results.push(...matching);
-    } catch { /* league timeout — skip */ }
-  });
+  const datesToQuery = detectDatesToQuery(queryLower);
+  const nationalTeam = detectNationalTeam(queryLower);
+
+  // Si detectamos selección nacional, agregamos el canonical name al query
+  // para que el filtro por nombre funcione (España → "Spain" en ESPN)
+  const matchTerms = [queryLower];
+  if (nationalTeam) matchTerms.push(nationalTeam.toLowerCase());
+
+  // Buscar en paralelo en todas las ligas × todas las fechas relevantes
+  const promises: Promise<void>[] = [];
+  for (const league of ESPN_LEAGUES) {
+    for (const date of datesToQuery) {
+      promises.push((async () => {
+        try {
+          const url = `${ESPN_BASE}/${league.id}/scoreboard?dates=${date}`;
+          const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+          if (!res.ok) return;
+          const data = await res.json() as { events?: EspnEvent[] };
+          const events = data.events ?? [];
+          const matching = events.filter(e => {
+            const eventName = (e.name ?? "").toLowerCase();
+            const comps = e.competitions ?? [];
+            const teams = comps.flatMap(c => (c.competitors ?? []).map(comp => comp.team?.displayName?.toLowerCase() ?? ""));
+            return matchTerms.some(term =>
+              eventName.includes(term) || teams.some(t => t.includes(term))
+            );
+          });
+          results.push(...matching);
+        } catch { /* league/date timeout — skip */ }
+      })());
+    }
+  }
   await Promise.all(promises);
-  return results;
+
+  // Dedupe por id (mismo evento puede aparecer en múltiples fechas)
+  const seen = new Set<string>();
+  const deduped = results.filter(e => {
+    const comps = e.competitions ?? [];
+    const comp = comps[0];
+    const id = `${e.name ?? ""}-${comp?.date ?? e.date ?? ""}`;
+    if (seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+  return deduped;
 }
 
 function normalizeEspnEvent(e: EspnEvent) {
@@ -125,19 +229,20 @@ function normalizeEvent(e: TsdbEvent) {
 export const matchLive: ToolHandler = {
   definition: defineTool(
     "match_live",
-    "Obtén el marcador en vivo o resultado de un partido. Úsala cuando el usuario pregunte '¿cómo va Boca-River?', '¿va ganando el Madrid?', 'resultado de Barcelona', 'a qué hora juega Argentina'. Devuelve equipos, marcador, minuto/estado, liga.",
+    "Obtén el marcador en vivo o resultado FINAL de un partido. Úsala SIEMPRE que el usuario pregunte por un resultado deportivo (fútbol): '¿cómo salió España ayer?', '¿cómo le fue a Boca?', '¿va ganando el Madrid?', 'resultado de Barcelona', 'quién ganó Argentina'. Devuelve equipos, marcador, minuto/estado, liga, fecha. Cubre selecciones nacionales (España, Argentina, Francia, etc) y clubes de las principales ligas. NUNCA uses web_search para resultados de partidos — esta tool tiene datos exactos en tiempo real desde ESPN.",
     {
       type: "object",
       additionalProperties: false,
       properties: {
-        query: { type: "string", description: "Equipos, liga o partido (ej: 'Boca River', 'Real Madrid', 'Argentina', 'Champions')." },
+        query: { type: "string", description: "Equipo, selección o partido (ej: 'España', 'Argentina', 'Boca River', 'Real Madrid', 'Champions'). Si el usuario menciona 'ayer', 'hoy' o 'mañana', incluí esa palabra." },
       },
       required: ["query"],
     },
   ),
   policy: policies.readonly("Lee resultados deportivos de ESPN y TheSportsDB."),
   async run(args) {
-    const query = String(args.query ?? "").trim();
+    // Fallback a __userInput si el LLM no pasa query (caso: "Como salió España ayer" sin args)
+    const query = String(args.query ?? args.__userInput ?? "").trim();
     if (!query) return { type: "match_live", status: "failed", error: "Indicá el partido." };
 
     // FIX: usar ESPN como fuente principal (TheSportsDB free no tiene datos recientes)
