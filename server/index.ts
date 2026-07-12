@@ -19,7 +19,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3001;
+const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
 // Load .env manually (no dotenv dependency)
 function loadEnv() {
@@ -226,6 +226,43 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, 200, { ok: true }); // Best-effort
     }
     return;
+  }
+
+  // ── Static files (serve dist/) ────────────────────────────────
+  if (req.method === "GET") {
+    const distDir = join(__dirname, "..", "dist");
+    let filePath = join(distDir, url === "/" ? "index.html" : url);
+    // Security: prevent path traversal
+    if (!filePath.startsWith(distDir)) {
+      sendJson(res, 403, { error: "Forbidden" });
+      return;
+    }
+    try {
+      const { stat: statAsync } = await import("node:fs");
+      const s = await statAsync(filePath);
+      if (s.isDirectory()) filePath = join(filePath, "index.html");
+    } catch {
+      // File not found → SPA fallback to index.html
+      filePath = join(distDir, "index.html");
+    }
+    try {
+      const data = readFileSync(filePath);
+      const ext = filePath.endsWith(".html") ? "text/html"
+        : filePath.endsWith(".js") ? "application/javascript"
+        : filePath.endsWith(".css") ? "text/css"
+        : filePath.endsWith(".png") ? "image/png"
+        : filePath.endsWith(".jpg") || filePath.endsWith(".jpeg") ? "image/jpeg"
+        : filePath.endsWith(".svg") ? "image/svg+xml"
+        : filePath.endsWith(".json") ? "application/json"
+        : filePath.endsWith(".woff") ? "font/woff"
+        : filePath.endsWith(".woff2") ? "font/woff2"
+        : "application/octet-stream";
+      res.writeHead(200, { "Content-Type": ext, "Cache-Control": "no-cache" });
+      res.end(data);
+      return;
+    } catch {
+      // dist/ doesn't exist or file missing → 404
+    }
   }
 
   // ── 404 ───────────────────────────────────────────────────────
