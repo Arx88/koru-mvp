@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { KoruProvider, useKoru } from "./KoruProvider";
-import { Onboarding } from "./Onboarding";
 import { HomeScreen } from "./HomeScreen";
 import { MemoryScreen } from "./MemoryScreen";
 import { PermissionsScreen } from "./PermissionsScreen";
@@ -10,17 +9,11 @@ import { TalkOverlay } from "./TalkOverlay";
 import { BottomNav, type Tab } from "./BottomNav";
 
 function KoruApp() {
-  const { onboarded } = useKoru();
+  const { onboarded, completeOnboarding } = useKoru();
   const [tab, setTab] = useState<Tab>("hoy");
-  const [talking, setTalking] = useState(false);
-
-  if (!onboarded) {
-    return (
-      <main className="min-h-dvh bg-background">
-        <Onboarding />
-      </main>
-    );
-  }
+  // La app SIEMPRE abre en el chat (talking = true).
+  // El home screen queda como destino del wheel, no como pantalla de inicio.
+  const [talking, setTalking] = useState(true);
 
   return (
     <main className="flex min-h-dvh justify-center bg-background">
@@ -38,7 +31,14 @@ function KoruApp() {
         <BottomNav active={tab} onChange={setTab} />
       </div>
 
-      {talking && <TalkOverlay onClose={() => setTalking(false)} onNavigate={(tab) => { setTab(tab); setTalking(false); }} />}
+      {talking && (
+        <TalkOverlay
+          onClose={() => setTalking(false)}
+          onNavigate={(t) => { setTab(t); setTalking(false); }}
+          onboarding={!onboarded}
+          onOnboardingComplete={completeOnboarding}
+        />
+      )}
     </main>
   );
 }

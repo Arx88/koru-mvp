@@ -232,7 +232,7 @@ function WorkingPanel({ phase, kind, deliverable }: { phase: string | null; kind
     </section>
   );
 }
-export function TalkOverlay({ onClose, onNavigate }: { onClose: () => void; onNavigate?: (tab: "hoy" | "memoria" | "historial" | "configuracion") => void }) {
+export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingComplete }: { onClose: () => void; onNavigate?: (tab: "hoy" | "memoria" | "historial" | "configuracion") => void; onboarding?: boolean; onOnboardingComplete?: (name: string, facts?: string[]) => void }) {
   const {
     chatTurns,
     sendMessage,
@@ -257,6 +257,12 @@ export function TalkOverlay({ onClose, onNavigate }: { onClose: () => void; onNa
   const [isRecording, setIsRecording] = useState(false);
   const [wheelOpen, setWheelOpen] = useState(false);
   const [wheelActive, setWheelActive] = useState<string | null>(null);
+  // Onboarding conversacional: "greeting" → "waiting_for_name" → "done"
+  const [onboardingPhase, setOnboardingPhase] = useState<"greeting" | "waiting_for_name" | "done">(
+    onboarding ? "greeting" : "done"
+  );
+  const onboardingPhaseRef = useRef(onboardingPhase);
+  onboardingPhaseRef.current = onboardingPhase;
   const micErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -461,8 +467,29 @@ export function TalkOverlay({ onClose, onNavigate }: { onClose: () => void; onNa
   const submitText = useCallback(async (text: string, source: "typed" | "speech") => {
     const clean = text.trim();
     if (!clean) return;
+
+    // Onboarding conversacional: interceptar el nombre
+    if (onboardingPhaseRef.current === "waiting_for_name") {
+      // El usuario respondió su nombre. Guardarlo y completar onboarding.
+      const name = clean.length > 30 ? clean.slice(0, 30).trim() : clean;
+      // Capitalizar primera letra
+      const capitalizedName = name.charAt(0).toUpperCase() + name.slice(1);
+      setOnboardingPhase("done");
+      onOnboardingComplete?.(capitalizedName);
+      return; // NO enviar al backend — es el nombre, no un mensaje normal
+    }
+
     await sendMessage(clean, source);
-  }, [sendMessage]);
+
+    // Después del primer mensaje del usuario en modo onboarding, pasar a "waiting_for_name"
+    if (onboarding && onboardingPhaseRef.current === "greeting") {
+      // Esperar a que Koru responda, entonces preguntar el nombre
+      // Usamos un timeout para dar tiempo a que llegue la respuesta del backend
+      setTimeout(() => {
+        setOnboardingPhase("waiting_for_name");
+      }, 3000);
+    }
+  }, [sendMessage, onboarding, onOnboardingComplete]);
 
   const handleTextSubmit = useCallback(async () => {
     const text = inputText.trim();
@@ -679,6 +706,68 @@ export function TalkOverlay({ onClose, onNavigate }: { onClose: () => void; onNa
                   onSetWorldSignals={setWorldSignals}
                 />
               ),
+            )}
+
+            {/* Onboarding conversacional — greeting con chips */}
+            {onboarding && onboardingPhase === "greeting" && !processing && (
+              <div className="koru-message is-koru">
+                <div className="koru-row">
+                  <div className="koru-avatar">
+                    <img src={KORU_AVATAR} alt="Koru" />
+                  </div>
+                  <div className="koru-bubble ai-bubble">
+                    <h3 className="koru-bubble-heading">Hola, soy Koru 🌿</h3>
+                    <p className="koru-message-text">Tu asistente personal. Puedo ayudarte con clima, gastos, recordatorios, búsquedas y mucho más.</p>
+                    <p className="koru-message-text" style={{ marginTop: 8, fontWeight: 600 }}>¿Qué necesitás hoy?</p>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 12 }}>
+                      {[
+                        { icon: "cloud", text: "¿Qué tiempo hace?" },
+                        { icon: "savings", text: "Anota un gasto" },
+                        { icon: "search", text: "Buscá algo" },
+                        { icon: "sports_soccer", text: "¿Cómo salió España?" },
+                      ].map((chip) => (
+                        <button
+                          key={chip.text}
+                          type="button"
+                          onClick={() => submitText(chip.text, "typed")}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            padding: "6px 12px",
+                            borderRadius: 999,
+                            background: "rgba(131, 99, 249, 0.12)",
+                            color: "#523A9E",
+                            fontSize: 12,
+                            fontWeight: 600,
+                            border: "none",
+                            cursor: "pointer",
+                            fontFamily: "inherit",
+                          }}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: 14, color: "#8363F9" }}>{chip.icon}</span>
+                          {chip.text}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Onboarding conversacional — pregunta del nombre */}
+            {onboarding && onboardingPhase === "waiting_for_name" && !processing && (
+              <div className="koru-message is-koru">
+                <div className="koru-row">
+                  <div className="koru-avatar">
+                    <img src={KORU_AVATAR} alt="Koru" />
+                  </div>
+                  <div className="koru-bubble ai-bubble">
+                    <h3 className="koru-bubble-heading">Por cierto, ¿cómo te llamo? 😊</h3>
+                    <p className="koru-message-text">Así puedo personalizar mis respuestas y recordarte cosas más fácil.</p>
+                  </div>
+                </div>
+              </div>
             )}
 
             {isListening && <ListeningBubble interimText={interimText} />}
