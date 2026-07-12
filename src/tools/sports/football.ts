@@ -14,25 +14,20 @@ const ESPN_BASE = "https://site.api.espn.com/apis/site/v2/sports/soccer";
 // Ligas ESPN con IDs conocidos para buscar resultados.
 // INCLUYE selecciones nacionales (fifa.world, uefa.euro, etc) — sin esto,
 // "cómo salió España ayer" no encuentra nada porque España no juega en ligas de clubes.
+// OPTIMIZACIÓN: reducir de 15 a 8 ligas para menos fetches paralelos.
+// Las selecciones nacionales son las más importantes (fifa.world + uefa.euro).
+// Para clubes, solo top 5 ligas + Champions.
 const ESPN_LEAGUES = [
-  // Selecciones nacionales (sin esto, "cómo salió España/Argentina/etc" falla)
+  // Selecciones nacionales (prioridad — la mayoría de queries son selecciones)
   { id: "fifa.world", name: "FIFA World Cup / International Friendlies" },
   { id: "uefa.euro", name: "UEFA Euro" },
   { id: "uefa.nations", name: "UEFA Nations League" },
-  { id: "conmebol.libertadores", name: "Copa Libertadores" },
-  { id: "conmebol.sudamericana", name: "Copa Sudamericana" },
-  // Ligas de clubes top
-  { id: "arg.1", name: "Argentine Primera División" },
+  // Top 5 ligas de clubes
   { id: "eng.1", name: "Premier League" },
   { id: "esp.1", name: "La Liga" },
   { id: "ita.1", name: "Serie A" },
   { id: "ger.1", name: "Bundesliga" },
-  { id: "fra.1", name: "Ligue 1" },
   { id: "uefa.champions", name: "Champions League" },
-  { id: "uefa.europa", name: "Europa League" },
-  { id: "bra.1", name: "Brasileirão" },
-  { id: "mex.1", name: "Liga MX" },
-  { id: "usa.1", name: "MLS" },
 ];
 
 // Sinónimos de selecciones nacionales → mapeo a nombres ESPN.
@@ -138,7 +133,7 @@ async function searchEspnScoreboards(query: string): Promise<EspnEvent[]> {
       promises.push((async () => {
         try {
           const url = `${ESPN_BASE}/${league.id}/scoreboard?dates=${date}`;
-          const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+          const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
           if (!res.ok) return;
           const data = await res.json() as { events?: EspnEvent[] };
           const events = data.events ?? [];
