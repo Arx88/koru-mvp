@@ -3449,12 +3449,11 @@ async function finalizePayload(
   toolExecutions: ToolExecution[],
   extractorTimeout: number,
 ): Promise<KoruBackendTurnResponse & { memoryFallbackReason?: string; memoryProvider?: "nvidia" | "openrouter" | "minimax" | "bluesminds"; memoryModel?: string }> {
-  // OPTIMIZACIÓN: si no hay tool executions, saltar el memory extractor.
-  // El memory extractor es una llamada extra al LLM que solo vale la pena
-  // cuando hay observaciones de tools (clima, búsqueda, etc) de donde
-  // extraer memorias. Sin tools, el LLM ya pudo haber puesto
-  // memoryCandidates en su respuesta JSON.
-  if (toolExecutions.length === 0) {
+  // OPTIMIZACIÓN: solo saltar el memory extractor para inputs triviales
+  // (hola, gracias, etc). Para conversación normal ("me gusta el café",
+  // "trabajo en Madrid"), SIEMPRE correr el extractor para que Koru
+  // recuerde lo que el usuario le cuenta.
+  if (isTrivialInput(request.input)) {
     return normalizeFinalPayload(raw, request.input, toolExecutions);
   }
   try {
