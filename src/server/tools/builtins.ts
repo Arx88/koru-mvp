@@ -3,19 +3,26 @@ import { extractStructuredData, type ChatFn as ExtractorChatFn } from "../../dom
 import { timeStringFromText as timeFromText } from "../../domain/time";
 import { plainLower } from "../../domain/text";
 import { asArray, asRecord, cleanText } from "../json";
-// FIX: Vite dev server patchea global.fetch y rompe fetch a URLs externas.
-// Importar fetch nativo de Node.js (undici) para evitar el parcheo de Vite.
-// undici fetch — bypass Vite fetch patch
+// FIX: Vite patchea global.fetch. Usar require() dinámico para obtener
+// el fetch nativo de Node.js sin que Vite lo intercepte.
+const _nativeFetch: typeof fetch = (() => {
+  try {
+    // @ts-ignore - eval bypass Vite static analysis
+    const m = eval('require')('undici');
+    return m.fetch as typeof fetch;
+  } catch {
+    return globalThis.fetch;
+  }
+})();
 
 /**
- * Wrapper que usa fetch nativo de Node.js (no el parcheado por Vite).
- * Esto fixea el "TypeError: fetch failed" en dev mode.
+ * Wrapper que usa fetch nativo (no el parcheado por Vite).
  */
 async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, { ...init, signal: controller.signal }) as unknown as Response;
+    return await _nativeFetch(url, { ...init, signal: controller.signal as any }) as unknown as Response;
   } finally {
     clearTimeout(timeout);
   }

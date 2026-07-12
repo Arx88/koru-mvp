@@ -2263,6 +2263,10 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
 
 function isTrivialInput(input: string): boolean {
   const trimmed = input.trim().toLowerCase().replace(/[^a-záéíóúñ\s]/g, "");
+  // Si después de quitar símbolos no queda nada, es trivial (solo puntuación/emojis)
+  if (trimmed.length === 0) return true;
+  // Si tiene menos de 3 letras, es trivial
+  if (trimmed.length < 3) return true;
   const trivial = [
     "hola", "buenos dias", "buen dia", "buenas", "buenas tardes", "buenas noches",
     "hey", "hi", "hello", "que tal", "como estas", "como va", "todo bien", "que onda",
