@@ -4140,8 +4140,15 @@ export async function runKoruBackendTurn(
   const inputTrimmed = request.input.trim();
   // Fase 4.1: declarar modelOverride temprano para que esté disponible en
   // todas las callProvider calls (incluida la del router autofire ~4108).
+  // CRÍTICO: si el usuario seleccionó un modelo explícito (request.model),
+  // respetarlo SIEMPRE. El model router (flash/medium/ultra) solo aplica
+  // cuando el usuario dejó "Automático". Antes, selectModelForInput pisaba
+  // la selección del usuario silenciosamente (ej. elegía Nemotron Ultra pero
+  // "hola" iba a step-3.5-flash igual).
   const trivial = isTrivialInput(inputTrimmed);
-  const modelOverride = selectModelForInput(inputTrimmed, config, trivial, false);
+  const modelOverride = request.model
+    ? request.model  // usuario eligió explícitamente — respetar
+    : selectModelForInput(inputTrimmed, config, trivial, false);  // Automático — router decide
   const deliverableTopic = explicitDeliverableTopic(inputTrimmed);
   if (deliverableTopic) {
     logger.info("runKoruBackendTurn", "Explicit deliverable request detected", { topic: deliverableTopic });
