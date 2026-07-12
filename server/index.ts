@@ -17,13 +17,17 @@ import http from "node:http";
 import { readFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { runKoruBackendTurn, type KoruBackendTurnRequest, type ProviderConfig } from "../src/server/koruBackend.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+// Si estamos corriendo desde server-bundle.mjs, __dirname es la raíz del proyecto.
+// Si desde server/index.ts, es server/. En ambos casos, dist/ está en la raíz.
+const PROJECT_ROOT = existsSync(join(__dirname, "dist")) ? __dirname : join(__dirname, "..");
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
 // Load .env manually (no dotenv dependency)
 function loadEnv() {
-  const envPath = join(__dirname, "..", ".env");
+  const envPath = join(PROJECT_ROOT, ".env");
   if (!existsSync(envPath)) return;
   const content = readFileSync(envPath, "utf8");
   for (const line of content.split("\n")) {
@@ -181,8 +185,6 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      // Import dinámico del backend (evita cargar todo al startup)
-      const koruBackend = await import("../src/server/koruBackend.ts");
       const streamEnabled = request.stream === true;
 
       if (streamEnabled) {
@@ -195,10 +197,10 @@ const server = http.createServer(async (req, res) => {
         const onChunk = (chunk: any) => {
           res.write(JSON.stringify(chunk) + "\n");
         };
-        const result = await koruBackend.runKoruBackendTurn(request, config as any, onChunk);
+        const result = await runKoruBackendTurn(request, config as any, onChunk);
         res.end();
       } else {
-        const result = await koruBackend.runKoruBackendTurn(request, config as any);
+        const result = await runKoruBackendTurn(request, config as any);
         sendJson(res, 200, result);
       }
     } catch (err: any) {
@@ -214,7 +216,7 @@ const server = http.createServer(async (req, res) => {
       const raw = await readBody(req);
       const event = JSON.parse(raw || "{}");
       // Best-effort: append to log file
-      const logDir = join(__dirname, "..", "manual-audits");
+      const logDir = join(PROJECT_ROOT, "manual-audits");
       if (!existsSync(logDir)) {
         const { mkdirSync } = await import("node:fs");
         mkdirSync(logDir, { recursive: true });
@@ -230,7 +232,7 @@ const server = http.createServer(async (req, res) => {
 
   // ── Static files (serve dist/) ────────────────────────────────
   if (req.method === "GET") {
-    const distDir = join(__dirname, "..", "dist");
+    const distDir = join(PROJECT_ROOT, "dist");
     let filePath = join(distDir, url === "/" ? "index.html" : url);
     // Security: prevent path traversal
     if (!filePath.startsWith(distDir)) {
