@@ -182,7 +182,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       // Import dinámico del backend (evita cargar todo al startup)
-      const koruBackend = await import("./src/server/koruBackend.js");
+      const koruBackend = await import("../src/server/koruBackend.ts");
       const streamEnabled = request.stream === true;
 
       if (streamEnabled) {
