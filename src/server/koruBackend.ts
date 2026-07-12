@@ -3449,6 +3449,14 @@ async function finalizePayload(
   toolExecutions: ToolExecution[],
   extractorTimeout: number,
 ): Promise<KoruBackendTurnResponse & { memoryFallbackReason?: string; memoryProvider?: "nvidia" | "openrouter" | "minimax" | "bluesminds"; memoryModel?: string }> {
+  // OPTIMIZACIÓN: si no hay tool executions, saltar el memory extractor.
+  // El memory extractor es una llamada extra al LLM que solo vale la pena
+  // cuando hay observaciones de tools (clima, búsqueda, etc) de donde
+  // extraer memorias. Sin tools, el LLM ya pudo haber puesto
+  // memoryCandidates en su respuesta JSON.
+  if (toolExecutions.length === 0) {
+    return normalizeFinalPayload(raw, request.input, toolExecutions);
+  }
   try {
     const extracted = await extractMemoryWithJsonPrompt(request, config, toolExecutions, raw, extractorTimeout);
     return {
@@ -4154,6 +4162,33 @@ export async function runKoruBackendTurn(
     logger.info("runKoruBackendTurn", "Explicit deliverable request detected", { topic: deliverableTopic });
     return await runDeepResearchFlow(deliverableTopic, request, config, preferredProvider, onChunk);
   }
+  // OPTIMIZACIÓN: para inputs triviales (hola, gracias, etc), saltar el
+  // Semantic Router y el memory extractor. Solo hacer 1 llamada al LLM
+  // sin tools, parsear el JSON y responder. Esto reduce el tiempo de
+  // 30-40s a 5-10s para saludos y despedidas.
+  if (trivial) {
+    logger.info("runKoruBackendTurn", "Trivial input — fast path (skip router + memory extractor)");
+    const fastResult = await callProvider(config, messages, 30_000, false, preferredProvider, undefined, modelOverride);
+    provider = fastResult.provider;
+    model = fastResult.model;
+    const fastContent = cleanText(fastResult.message.content, "");
+    let fastParsed: any;
+    try {
+      fastParsed = JSON.parse(extractJsonBlock(fastContent));
+    } catch {
+      fastParsed = { reply: cleanReplyText(fastContent) || "Hola. ¿Cómo va todo?", mascotState: "happy" };
+    }
+    const fastResponse = normalizeFinalPayload(fastParsed, request.input, []);
+    logger.info("runKoruBackendTurn", "Return fast-path", { replyPreview: (fastResponse.reply ?? "").slice(0, 60), provider, model });
+    return {
+      ...fastResponse,
+      provider,
+      model,
+      fallbackReason: "trivial-fast-path",
+      mascotState: fastParsed.mascotState ?? "happy",
+    };
+  }
+
   if (inputTrimmed.length >= 3) {
     const router = await getRouter(config);
     if (router) {
