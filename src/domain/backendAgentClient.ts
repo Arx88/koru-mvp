@@ -132,7 +132,5 @@ export async function runBackendAgentTurn(
   model?: string,
   onChunk?: (chunk: KoruBackendTurnResponse) => void,
 ): Promise<KoruBackendTurnResponse> {
-  // Sin streaming: evita OOM en el server dev. El onChunk se llama
-  // una sola vez con el resultado final.
-  return postAgentTurn({ input, state, history, model }, 180_000, undefined);
+  return postAgentTurn({ input, state, history, model }, 180_000, onChunk);
 }

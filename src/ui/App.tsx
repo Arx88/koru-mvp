@@ -6,39 +6,50 @@ import { PermissionsScreen } from "./PermissionsScreen";
 import { HistoryScreen } from "./HistoryScreen";
 import { SettingsScreen } from "./SettingsScreen";
 import { TalkOverlay } from "./TalkOverlay";
-import { BottomNav, type Tab } from "./BottomNav";
+
+type Screen = "chat" | "hoy" | "memoria" | "permisos" | "historial" | "configuracion";
 
 function KoruApp() {
   const { onboarded, completeOnboarding } = useKoru();
-  const [tab, setTab] = useState<Tab>("hoy");
-  // La app SIEMPRE abre en el chat (talking = true).
-  // El home screen queda como destino del wheel, no como pantalla de inicio.
-  const [talking, setTalking] = useState(true);
+  const [screen, setScreen] = useState<Screen>("chat");
 
+  // Si estamos en el chat, mostrar TalkOverlay
+  if (screen === "chat") {
+    return (
+      <TalkOverlay
+        onClose={() => setScreen("hoy")}
+        onNavigate={(tab) => setScreen(tab as Screen)}
+        onboarding={!onboarded}
+        onOnboardingComplete={completeOnboarding}
+      />
+    );
+  }
+
+  // Pantallas del wheel — con back button para volver al chat
   return (
     <main className="flex min-h-dvh justify-center bg-background">
-      <div
-        aria-hidden={talking ? "true" : undefined}
-        className={`flex min-h-dvh w-full max-w-md flex-col bg-background ${talking ? "pointer-events-none invisible" : ""}`}
-      >
+      <div className="flex min-h-dvh w-full max-w-md flex-col bg-background">
         <div className="flex-1 overflow-y-auto">
-          {tab === "hoy" && <HomeScreen onTalk={() => setTalking(true)} onOpenMemory={() => setTab("memoria")} />}
-          {tab === "memoria" && <MemoryScreen />}
-          {tab === "permisos" && <PermissionsScreen />}
-          {tab === "historial" && <HistoryScreen />}
-          {tab === "configuracion" && <SettingsScreen />}
-        </div>
-        <BottomNav active={tab} onChange={setTab} />
-      </div>
+          {/* Back button flotante para volver al chat */}
+          <button
+            type="button"
+            onClick={() => setScreen("chat")}
+            aria-label="Volver al chat"
+            className="fixed top-4 left-4 z-50 flex h-11 w-11 items-center justify-center rounded-full border border-white/35 bg-white/22 backdrop-blur-md text-white shadow-lg transition-transform active:scale-95"
+            style={{ background: "rgba(131, 99, 249, 0.9)" }}
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+              <path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
 
-      {talking && (
-        <TalkOverlay
-          onClose={() => setTalking(false)}
-          onNavigate={(t) => { setTab(t); setTalking(false); }}
-          onboarding={!onboarded}
-          onOnboardingComplete={completeOnboarding}
-        />
-      )}
+          {screen === "hoy" && <HomeScreen onTalk={() => setScreen("chat")} onOpenMemory={() => setScreen("memoria")} />}
+          {screen === "memoria" && <MemoryScreen />}
+          {screen === "permisos" && <PermissionsScreen />}
+          {screen === "historial" && <HistoryScreen />}
+          {screen === "configuracion" && <SettingsScreen />}
+        </div>
+      </div>
     </main>
   );
 }
