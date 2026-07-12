@@ -90,8 +90,85 @@ const planBlock: UiBlock = {
   ],
 } as UiBlock;
 
+// Deliverable block — el resultado de deep research (informe completo).
+// Este bloque abre el KoruDetailScreen con magical-cards al hacer click en CTA.
+const deliverableBlock: UiBlock = {
+  type: "deliverable",
+  status: "ready",
+  kicker: "Tu Informe",
+  topic: "Age of Empires 2",
+  progress: 100,
+  title: "AGE OF EMPIRES II: 25 AÑOS",
+  description: "El clásico RTS que no envejece: 25 años, millones de jugadores y expansiones que llegan hasta Sudamérica.",
+  summary: "Lanzado en 1999 por Ensemble Studios, AoE II es el RTS histórico más longevo. La Definitive Edition (2019) lo revivió con 4K, nuevas civs y soporte moderno. Hoy tiene más jugadores que en su estreno, torneos con premios récord y expansiones nuevas 25 años después.",
+  categories: [
+    { label: "Estrategia RTS", icon: "videogame_asset" },
+    { label: "Edad Media", icon: "history_edu" },
+    { label: "Comunidad viva", icon: "public" },
+  ],
+  metrics: [
+    { label: "Lanzamiento", value: "1999" },
+    { label: "Definitive Ed.", value: "2019" },
+    { label: "Jugadores", value: "50.000+" },
+  ],
+  sections: [
+    {
+      kind: "text",
+      title: "Síntesis",
+      kicker: "Lo esencial en 20 segundos",
+      icon: "auto_awesome",
+      paragraphs: [
+        "Lanzado en 1999 por Ensemble Studios y Microsoft, Age of Empires II es el RTS más longevo en actividad. La Definitive Edition (2019) lo revivió: hoy tiene más jugadores que en su estreno, torneos con premios récord y expansiones nuevas 25 años después.",
+      ],
+    },
+    {
+      kind: "timeline",
+      title: "Historia",
+      kicker: "De 1999 a hoy",
+      icon: "castle",
+      items: [
+        { badge: "'99", title: "The Age of Kings", subtitle: "Ensemble Studios · 2M copias en 3 meses" },
+        { badge: "'00", title: "The Conquerors", subtitle: "La expansión que definió el multijugador clásico" },
+        { badge: "'13", title: "HD Edition", subtitle: "Relanzamiento en Steam con soporte moderno" },
+        { badge: "'19", title: "Definitive Edition", subtitle: "4K, nuevas civs y el renacer competitivo" },
+        { badge: "'24", title: "Victors and Vanquished", subtitle: "Sigue recibiendo expansiones 25 años después" },
+      ],
+    },
+    {
+      kind: "grid",
+      title: "Civilizaciones",
+      kicker: "45 en total · 4 estilos",
+      icon: "groups",
+      items: [
+        { title: "Arquería", subtitle: "Britanos, Etíopes, Mayas" },
+        { title: "Caballería", subtitle: "Francos, Lituanos, Persas" },
+        { title: "Infantería", subtitle: "Godos, Aztecas, Japoneses" },
+        { title: "Navales / eco", subtitle: "Vikingos, Italianos, Portugueses" },
+      ],
+    },
+    {
+      kind: "rows",
+      title: "Cómo se juega hoy",
+      kicker: "El meta competitivo 2026",
+      icon: "strategy",
+      items: [
+        { title: "Scout Rush", subtitle: "Presión temprana en Feudal", badge: "AGRESIVO" },
+        { title: "Fast Castle → Boom", subtitle: "Economía primero, ejército después", badge: "ECONÓMICO" },
+        { title: "Escena pro", subtitle: "Red Bull Wololo, premios +US$100k", badge: "ESPORTS" },
+      ],
+    },
+  ],
+  sources: [
+    { title: "Wikipedia — Age of Empires II", domain: "wikipedia.org", url: "https://en.wikipedia.org/wiki/Age_of_Empires_II" },
+    { title: "aoe2.net — estadísticas competitivas", domain: "aoe2.net", url: "https://aoe2.net" },
+    { title: "Steam — Definitive Edition", domain: "store.steampowered.com", url: "https://store.steampowered.com" },
+    { title: "aoestats.io — win rates", domain: "aoestats.io", url: "https://aoestats.io" },
+  ],
+} as UiBlock;
+
 export function DevCardPreview() {
   const cards: Array<{ id: string; label: string; block: UiBlock }> = [
+    { id: "preview-deliverable", label: "Informe entregado (deliverable) — click CTA abre detail", block: deliverableBlock },
     { id: "preview-informe", label: "Informe (research_sources)", block: informeBlock },
     { id: "preview-weather", label: "Clima (weather)", block: weatherBlock },
     { id: "preview-gasto", label: "Gasto (money_summary)", block: gastoBlock },

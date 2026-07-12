@@ -136,12 +136,23 @@ function ListeningBubble({ interimText }: { interimText: string }) {
 // plan reales, no un dato en vivo). El % es REAL: sale de la fase emitida
 // por el backend (thinking → searching → comparing → planning → saving →
 // done). El titulo se adapta a que esta armando Koru.
+// Incluye chips de fases visuales (como en el demo pantalla 2):
+// ✓ Entendí el pedido | ✓ Busqué 4 fuentes | ● Comparando datos | Redactar informe
 const WORKING_COPY: Partial<Record<AgentActivityKind, { title: string; subtitle: string }>> = {
   planning: { title: "Trabajando en tu plan...", subtitle: "Esto tomara solo unos segundos ✨" },
   searching: { title: "Armando tu informe...", subtitle: "Esto toma solo unos segundos ✨" },
   writing: { title: "Preparando tu documento...", subtitle: "Esto tomara solo unos segundos ✨" },
   comparing: { title: "Comparando opciones...", subtitle: "Esto tomara solo unos segundos ✨" },
 };
+
+// Mapeo de fase interna → label visible + icono Material Symbols.
+// El demo muestra 4 chips: Entendí, Busqué, Comparando, Redactar.
+const PHASE_CHIPS: Array<{ phase: string; label: string; icon: string }> = [
+  { phase: "thinking", label: "Entendí el pedido", icon: "check_circle" },
+  { phase: "searching", label: "Busqué fuentes", icon: "check_circle" },
+  { phase: "comparing", label: "Comparando datos", icon: "compare_arrows" },
+  { phase: "planning", label: "Redactar informe", icon: "edit_note" },
+];
 
 type WorkingDeliverable = { kicker: string; progress?: number; phaseLabel?: string };
 
@@ -159,6 +170,16 @@ function WorkingPanel({ phase, kind, deliverable }: { phase: string | null; kind
         subtitle: deliverable.phaseLabel ?? "Esto tomara solo unos segundos ✨",
       }
     : (kind && WORKING_COPY[kind]) ?? { title: "Trabajando...", subtitle: "Esto tomara solo unos segundos ✨" };
+
+  // Calcular estado de cada chip: done / active / pending
+  // El idx de la fase actual en PHASE_ORDER determina cuáles están done.
+  const phaseIdx = phase ? (PHASE_ORDER as readonly string[]).indexOf(phase) : -1;
+  const chips = PHASE_CHIPS.map((chip, i) => {
+    if (phaseIdx < 0) return { ...chip, status: "pending" as const };
+    if (i < phaseIdx) return { ...chip, status: "done" as const };
+    if (i === phaseIdx) return { ...chip, status: "active" as const };
+    return { ...chip, status: "pending" as const };
+  });
 
   return (
     <section className="koru-working-panel" role="status" aria-live="polite">
@@ -183,6 +204,21 @@ function WorkingPanel({ phase, kind, deliverable }: { phase: string | null; kind
           )}
         </div>
         {pct !== null && <span className="koru-working-pct">{pct}%</span>}
+      </div>
+      {/* Chips de fases — réplica exacta del demo pantalla 2 */}
+      <div className="koru-working-chips">
+        {chips.map((chip, i) => (
+          <span key={i} className={`koru-working-chip is-${chip.status}`}>
+            {chip.status === "done" ? (
+              <span className="material-symbols-outlined koru-working-chip-icon is-done">check_circle</span>
+            ) : chip.status === "active" ? (
+              <span className="koru-working-chip-dot" />
+            ) : (
+              <span className="material-symbols-outlined koru-working-chip-icon is-pending">{chip.icon}</span>
+            )}
+            {chip.label}
+          </span>
+        ))}
       </div>
       <p className="koru-working-motto">
         <svg fill="none" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
