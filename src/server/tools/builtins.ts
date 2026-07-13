@@ -43,8 +43,9 @@ async function geocodeCity(city: string): Promise<{ name: string; latitude: numb
   url.searchParams.set("count", "1");
   url.searchParams.set("language", "es");
   url.searchParams.set("format", "json");
-  const response = await fetchWithTimeout(url.toString(), { headers: { Accept: "application/json" } }, 8_000);
-  const data = await response.json().catch(() => ({})) as { results?: Array<{ name?: string; latitude?: number; longitude?: number; country?: string }> };
+  const response = await fetchWithTimeout(url.toString(), { headers: { Accept: "application/json" } }, 15_000);
+  if (!response.ok) { console.error("[weather] geocode HTTP", response.status); return null; }
+  const data = await response.json().catch((e: any) => { console.error("[weather] geocode parse error:", e?.message); return {}; }) as { results?: Array<{ name?: string; latitude?: number; longitude?: number; country?: string }> };
   const result = data.results?.[0];
   if (!result || typeof result.latitude !== "number" || typeof result.longitude !== "number") return null;
   return {
@@ -73,12 +74,14 @@ export async function getWeather(args: Record<string, unknown>): Promise<Weather
   url.searchParams.set("hourly", "precipitation_probability,temperature_2m");
   url.searchParams.set("daily", "temperature_2m_max,temperature_2m_min,precipitation_probability_max");
   url.searchParams.set("timezone", "auto");
-  const response = await fetchWithTimeout(url.toString(), { headers: { Accept: "application/json" } }, 8_000);
-  const data = await response.json().catch(() => ({})) as {
+  const response = await fetchWithTimeout(url.toString(), { headers: { Accept: "application/json" } }, 15_000);
+  if (!response.ok) { console.error("[weather] forecast HTTP", response.status); }
+  const data = await response.json().catch((e: any) => { console.error("[weather] forecast parse error:", e?.message); return {}; }) as {
     current?: { temperature_2m?: number; precipitation?: number; wind_speed_10m?: number };
     daily?: { temperature_2m_max?: number[]; temperature_2m_min?: number[]; precipitation_probability_max?: number[] };
   };
   const current = data.current;
+  if (!current) { console.error("[weather] No current data in response:", JSON.stringify(data).slice(0, 200)); }
   const max = data.daily?.temperature_2m_max?.[0];
   const min = data.daily?.temperature_2m_min?.[0];
   const rain = data.daily?.precipitation_probability_max?.[0];
