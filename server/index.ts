@@ -103,7 +103,7 @@ const server = http.createServer(async (req, res) => {
   const url = req.url ?? "";
 
   // ── Health check ──────────────────────────────────────────────
-  if (url === "/api/health" && req.method === "GET") {
+  if (url.startsWith("/api/health") && req.method === "GET") {
     sendJson(res, 200, {
       status: "ok",
       service: "koru-backend",
@@ -115,7 +115,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   // ── /api/koru/models ──────────────────────────────────────────
-  if (url === "/api/koru/models" && req.method === "GET") {
+  if (url.startsWith("/api/koru/models") && req.method === "GET") {
     const predefined: Array<{ id: string; provider: string; label: string }> = [];
     if (config.nvidiaApiKey) {
       predefined.push({ id: config.nvidiaModel, provider: "nvidia", label: "NVIDIA Nemotron 3 Ultra" });
@@ -236,7 +236,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   // ── /api/debug/weather — debug weather fetch ────────────────
-  if (url === "/api/debug/weather" && req.method === "GET") {
+  if (url.startsWith("/api/debug/weather") && req.method === "GET") {
     try {
       const city = new URL(req.url ?? "", "http://localhost").searchParams.get("city") || "Valencia";
       console.log("[debug/weather] Testing city:", city);

@@ -11150,7 +11150,7 @@ var server = http.createServer(async (req, res) => {
     return;
   }
   const url = req.url ?? "";
-  if (url === "/api/health" && req.method === "GET") {
+  if (url.startsWith("/api/health") && req.method === "GET") {
     sendJson(res, 200, {
       status: "ok",
       service: "koru-backend",
@@ -11160,7 +11160,7 @@ var server = http.createServer(async (req, res) => {
     });
     return;
   }
-  if (url === "/api/koru/models" && req.method === "GET") {
+  if (url.startsWith("/api/koru/models") && req.method === "GET") {
     const predefined = [];
     if (config.nvidiaApiKey) {
       predefined.push({ id: config.nvidiaModel, provider: "nvidia", label: "NVIDIA Nemotron 3 Ultra" });
@@ -11282,7 +11282,7 @@ var server = http.createServer(async (req, res) => {
     }
     return;
   }
-  if (url === "/api/debug/weather" && req.method === "GET") {
+  if (url.startsWith("/api/debug/weather") && req.method === "GET") {
     try {
       const city = new URL(req.url ?? "", "http://localhost").searchParams.get("city") || "Valencia";
       console.log("[debug/weather] Testing city:", city);
