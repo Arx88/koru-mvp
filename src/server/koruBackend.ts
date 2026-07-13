@@ -5105,7 +5105,12 @@ export async function runKoruBackendTurn(
         toolCount: toolExecutions.length,
       });
       const fastConfig = { ...config, nvidiaModel: config.nvidiaFastModel || "meta/llama-3.1-8b-instruct" };
-      const response = await finalizePayloadWithFastModel(request, fastConfig, {} as Record<string, unknown>, toolExecutions, 30_000);
+      const response = await finalizePayloadWithFastModel(request, fastConfig, { reply: "" } as Record<string, unknown>, toolExecutions, 30_000);
+      // Si el reply quedó como fallback de blockReply, darle un reply más natural
+      const taskKicker = fastPathKickerForCategory(routeCategory ?? "conversation");
+      if (!response.reply || response.reply.length < 10) {
+        response.reply = `Te dejé ${taskKicker.toLowerCase()} en la tarjeta.`;
+      }
       return { ...response, provider, model, fallbackReason: "fastpath-skip-router" };
     }
 
