@@ -5224,7 +5224,21 @@ export async function runKoruBackendTurn(
       try {
         const synthResult = await callProvider(synthConfig, synthMessages, 45_000, false, undefined, undefined, synthConfig.nvidiaModel);
         const synthContent = cleanText(synthResult.message.content, "");
+        logger.info("runKoruBackendTurn", "Fast-path synth LLM response", {
+          contentLength: synthContent.length,
+          contentPreview: synthContent.slice(0, 500),
+          hasReply: synthContent.includes('"reply"'),
+          hasSummary: synthContent.includes('"summary"'),
+          hasSections: synthContent.includes('"sections"'),
+        });
         const synthParsed = safeJsonObjectFromContent(synthContent);
+        logger.info("runKoruBackendTurn", "Fast-path synth parsed", {
+          parsedKeys: Object.keys(synthParsed),
+          hasReply: !!synthParsed.reply,
+          hasSummary: !!synthParsed.summary,
+          hasSections: !!synthParsed.sections,
+          sectionsLength: Array.isArray(synthParsed.sections) ? synthParsed.sections.length : -1,
+        });
         synthReply = cleanReplyText(synthParsed.reply || "");
         synthMascot = cleanText(synthParsed.mascotState) || "happy";
         synthSummary = cleanText(synthParsed.summary || "");
