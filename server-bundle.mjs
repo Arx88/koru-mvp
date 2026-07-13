@@ -11297,23 +11297,64 @@ var server = http.createServer(async (req, res) => {
         return;
       }
       console.log("[debug/weather] Geo result:", geo.name, geo.latitude, geo.longitude);
-      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${geo.latitude}&longitude=${geo.longitude}&current=temperature_2m,precipitation,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=1`;
-      console.log("[debug/weather] Weather:", weatherUrl);
-      const weatherRes = await globalThis.fetch(weatherUrl, { signal: AbortSignal.timeout(15e3) });
-      console.log("[debug/weather] Weather status:", weatherRes.status);
-      const weatherData = await weatherRes.json();
-      console.log("[debug/weather] Weather data:", JSON.stringify(weatherData).slice(0, 300));
+      let temp;
+      let wind;
+      let max;
+      let min;
+      let rain;
+      let desc;
+      let source = "unknown";
+      try {
+        const wttrUrl = `https://wttr.in/${encodeURIComponent(geo.name)}?format=j1`;
+        console.log("[debug/weather] wttr.in:", wttrUrl);
+        const wttrRes = await globalThis.fetch(wttrUrl, { signal: AbortSignal.timeout(15e3), headers: { "Accept": "application/json" } });
+        if (wttrRes.ok) {
+          const wttrData = await wttrRes.json();
+          const cur = wttrData.current_condition?.[0];
+          const today = wttrData.weather?.[0];
+          temp = cur ? Number(cur.temp_C) : void 0;
+          wind = cur ? Number(cur.windspeedKmph) : void 0;
+          desc = cur?.weatherDesc?.[0]?.value;
+          max = today ? Number(today.maxtempC) : void 0;
+          min = today ? Number(today.mintempC) : void 0;
+          rain = today?.hourly?.[0]?.chanceofrain ? Number(today.hourly[0].chanceofrain) : void 0;
+          source = "wttr.in";
+          console.log("[debug/weather] wttr.in OK:", temp, "\xB0C");
+        }
+      } catch (e) {
+        console.error("[debug/weather] wttr.in failed:", e?.message);
+      }
+      if (temp === void 0) {
+        try {
+          const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${geo.latitude}&longitude=${geo.longitude}&current=temperature_2m,precipitation,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=1`;
+          console.log("[debug/weather] open-meteo:", weatherUrl);
+          const weatherRes = await globalThis.fetch(weatherUrl, { signal: AbortSignal.timeout(15e3) });
+          if (weatherRes.ok) {
+            const weatherData = await weatherRes.json();
+            temp = weatherData.current?.temperature_2m;
+            wind = weatherData.current?.wind_speed_10m;
+            max = weatherData.daily?.temperature_2m_max?.[0];
+            min = weatherData.daily?.temperature_2m_min?.[0];
+            rain = weatherData.daily?.precipitation_probability_max?.[0];
+            source = "open-meteo";
+            console.log("[debug/weather] open-meteo OK:", temp, "\xB0C");
+          } else {
+            console.error("[debug/weather] open-meteo HTTP:", weatherRes.status);
+          }
+        } catch (e) {
+          console.error("[debug/weather] open-meteo failed:", e?.message);
+        }
+      }
       sendJson(res, 200, {
         city: geo.name,
         country: geo.country,
-        lat: geo.latitude,
-        lon: geo.longitude,
-        temp: weatherData.current?.temperature_2m,
-        wind: weatherData.current?.wind_speed_10m,
-        max: weatherData.daily?.temperature_2m_max?.[0],
-        min: weatherData.daily?.temperature_2m_min?.[0],
-        rain: weatherData.daily?.precipitation_probability_max?.[0],
-        raw: JSON.stringify(weatherData).slice(0, 500)
+        temp,
+        wind,
+        max,
+        min,
+        rain,
+        desc,
+        source
       });
     } catch (err) {
       sendJson(res, 200, { error: err?.message, stack: err?.stack?.slice(0, 200) });

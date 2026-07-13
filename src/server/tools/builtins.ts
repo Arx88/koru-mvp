@@ -63,30 +63,60 @@ export async function getWeather(args: Record<string, unknown>): Promise<Weather
     return {
       type: "weather",
       city: requestedCity,
-      advice: "No pude ubicar esa ciudad con Open-Meteo. No invento clima.",
+      advice: "No pude ubicar esa ciudad. No invento clima.",
       sources: [],
     };
   }
-  const url = new URL("https://api.open-meteo.com/v1/forecast");
-  url.searchParams.set("latitude", String(location.latitude));
-  url.searchParams.set("longitude", String(location.longitude));
-  url.searchParams.set("current", "temperature_2m,precipitation,wind_speed_10m");
-  url.searchParams.set("hourly", "precipitation_probability,temperature_2m");
-  url.searchParams.set("daily", "temperature_2m_max,temperature_2m_min,precipitation_probability_max");
-  url.searchParams.set("timezone", "auto");
-  const response = await fetchWithTimeout(url.toString(), { headers: { Accept: "application/json" } }, 15_000);
-  if (!response.ok) { console.error("[weather] forecast HTTP", response.status); }
-  const data = await response.json().catch((e: any) => { console.error("[weather] forecast parse error:", e?.message); return {}; }) as {
-    current?: { temperature_2m?: number; precipitation?: number; wind_speed_10m?: number };
-    daily?: { temperature_2m_max?: number[]; temperature_2m_min?: number[]; precipitation_probability_max?: number[] };
-  };
-  const current = data.current;
-  if (!current) { console.error("[weather] No current data in response:", JSON.stringify(data).slice(0, 200)); }
-  const max = data.daily?.temperature_2m_max?.[0];
-  const min = data.daily?.temperature_2m_min?.[0];
-  const rain = data.daily?.precipitation_probability_max?.[0];
-  const wind = current?.wind_speed_10m;
-  const temp = current?.temperature_2m;
+
+  let temp: number | undefined;
+  let wind: number | undefined;
+  let max: number | undefined;
+  let min: number | undefined;
+  let rain: number | undefined;
+  let weatherSource = "Open-Meteo";
+
+  // FUENTE 1: wttr.in (sin límite de requests, sin API key)
+  try {
+    const wttrUrl = `https://wttr.in/${encodeURIComponent(location.name)}?format=j1`;
+    const wttrRes = await fetchWithTimeout(wttrUrl, { headers: { Accept: "application/json" } }, 15_000);
+    if (wttrRes.ok) {
+      const wttrData = await wttrRes.json().catch(() => ({})) as any;
+      const cur = wttrData.current_condition?.[0];
+      const today = wttrData.weather?.[0];
+      if (cur) {
+        temp = Number(cur.temp_C);
+        wind = Number(cur.windspeedKmph);
+        max = today ? Number(today.maxtempC) : undefined;
+        min = today ? Number(today.mintempC) : undefined;
+        rain = today?.hourly?.[0]?.chanceofrain ? Number(today.hourly[0].chanceofrain) : undefined;
+        weatherSource = "wttr.in";
+      }
+    }
+  } catch { /* fallthrough a open-meteo */ }
+
+  // FUENTE 2 (fallback): open-meteo
+  if (temp === undefined) {
+    try {
+      const url = new URL("https://api.open-meteo.com/v1/forecast");
+      url.searchParams.set("latitude", String(location.latitude));
+      url.searchParams.set("longitude", String(location.longitude));
+      url.searchParams.set("current", "temperature_2m,precipitation,wind_speed_10m");
+      url.searchParams.set("daily", "temperature_2m_max,temperature_2m_min,precipitation_probability_max");
+      url.searchParams.set("timezone", "auto");
+      url.searchParams.set("forecast_days", "1");
+      const response = await fetchWithTimeout(url.toString(), { headers: { Accept: "application/json" } }, 15_000);
+      if (response.ok) {
+        const data = await response.json().catch(() => ({})) as any;
+        temp = data.current?.temperature_2m;
+        wind = data.current?.wind_speed_10m;
+        max = data.daily?.temperature_2m_max?.[0];
+        min = data.daily?.temperature_2m_min?.[0];
+        rain = data.daily?.precipitation_probability_max?.[0];
+        weatherSource = "Open-Meteo";
+      }
+    } catch { /* ambas fuentes fallaron */ }
+  }
+
   const advice = [
     temp !== undefined ? `${Math.round(temp)} C ahora` : undefined,
     rain !== undefined && rain >= 50 ? "conviene paraguas" : rain !== undefined ? "lluvia poco probable" : undefined,
@@ -99,7 +129,7 @@ export async function getWeather(args: Record<string, unknown>): Promise<Weather
     range: min !== undefined && max !== undefined ? `${Math.round(min)}-${Math.round(max)} C` : undefined,
     rain: rain !== undefined ? `${rain}%` : undefined,
     wind: wind !== undefined ? `${Math.round(wind)} km/h` : undefined,
-    advice: advice || "Clima consultado con fuente abierta.",
+    advice: advice || "Clima consultado pero sin datos concretos.",
     sources: [sourceFromUrl("Open-Meteo", "https://open-meteo.com/", "Datos abiertos de clima y pronostico.")],
   };
 }
