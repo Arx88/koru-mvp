@@ -5240,25 +5240,25 @@ export async function runKoruBackendTurn(
       }
 
       // 🔴 FIX: enriquecer los toolBlocks con la síntesis del LLM
-      // Si el LLM generó sections, reemplazar las sections del deliverable que
-      // viene de blocksFromToolResults con las sections sintetizadas.
       const toolBlocks = blocksFromToolResults(toolExecutions);
-      if (synthSections.length > 0) {
-        for (const block of toolBlocks) {
-          if (block.type === "deliverable") {
+      // Aplicar síntesis del LLM a los deliverables (summary SIEMPRE, sections si hay)
+      for (const block of toolBlocks) {
+        if (block.type === "deliverable") {
+          if (synthSummary && synthSummary.length > 20) {
+            block.summary = synthSummary;
+            // También actualizar la section "Síntesis" si existe
+            const synthSection = (block.sections ?? []).find((s: any) => s.title === "Síntesis");
+            if (synthSection && synthSection.kind === "text") {
+              synthSection.paragraphs = [synthSummary];
+            }
+          }
+          if (synthSections.length > 0) {
             // Reemplazar sections con las del LLM + agregar fuentes al final
             const sourceSection = (block.sections ?? []).find((s: any) => s.title === "Fuentes");
             block.sections = synthSections;
             if (sourceSection) {
               block.sections.push(sourceSection);
             }
-            if (synthSummary) block.summary = synthSummary;
-            if (synthDescription) block.description = synthDescription;
-            if (synthTitle) {
-              block.title = synthTitle.toUpperCase().slice(0, 40);
-              block.topic = synthTitle;
-            }
-            // Actualizar metrics
             block.metrics = [
               { value: String((block.sources ?? []).length), label: "Fuentes" },
               { value: String(synthSections.length), label: "Secciones" },
@@ -5275,23 +5275,26 @@ export async function runKoruBackendTurn(
         30_000,
       );
 
-      // 🔴 FIX: si el LLM generó sections, reemplazar en los uiBlocks finales también
-      if (synthSections.length > 0 && response.uiBlocks) {
+      // 🔴 FIX: aplicar síntesis del LLM a los uiBlocks finales también
+      if (response.uiBlocks) {
         for (const block of response.uiBlocks) {
           if (block.type === "deliverable") {
-            const sourceSection = (block.sections ?? []).find((s: any) => s.title === "Fuentes");
-            block.sections = synthSections;
-            if (sourceSection) block.sections.push(sourceSection);
-            if (synthSummary) block.summary = synthSummary;
-            if (synthDescription) block.description = synthDescription;
-            if (synthTitle) {
-              block.title = synthTitle.toUpperCase().slice(0, 40);
-              block.topic = synthTitle;
+            if (synthSummary && synthSummary.length > 20) {
+              block.summary = synthSummary;
+              const synthSection = (block.sections ?? []).find((s: any) => s.title === "Síntesis");
+              if (synthSection && synthSection.kind === "text") {
+                synthSection.paragraphs = [synthSummary];
+              }
             }
-            block.metrics = [
-              { value: String((block.sources ?? []).length), label: "Fuentes" },
-              { value: String(synthSections.length), label: "Secciones" },
-            ];
+            if (synthSections.length > 0) {
+              const sourceSection = (block.sections ?? []).find((s: any) => s.title === "Fuentes");
+              block.sections = synthSections;
+              if (sourceSection) block.sections.push(sourceSection);
+              block.metrics = [
+                { value: String((block.sources ?? []).length), label: "Fuentes" },
+                { value: String(synthSections.length), label: "Secciones" },
+              ];
+            }
           }
         }
       }
