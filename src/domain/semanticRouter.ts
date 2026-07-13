@@ -400,6 +400,14 @@ type EmbeddedExample = {
 import { cosineSimilarity } from "./vector";
 export { cosineSimilarity };
 
+// 🔴 FIX ESTRUCTURAL: normalización de tildes.
+// El router semántico compara por similitud de embeddings, que es sensible
+// a tildes ("cómo salió" vs "como salio" tienen baja similitud de coseno).
+// Normalizamos AMBOS lados (mensaje + ejemplos) con foldAccents antes de
+// comparar. Así "como salio hoy Argentina" matchea con "cómo salió España ayer"
+// porque ambos se normalizan a "como salio hoy argentina" / "como salio espana ayer".
+import { foldAccents } from "./commitments";
+
 // ── Umbral de confianza ────────────────────────────────────────────
 // Si la similitud coseno más alta no supera esto, caemos a "conversation".
 // Subido de 0.55 → 0.70 porque con 0.55 disparaba tools (sobre todo
@@ -447,6 +455,9 @@ export class SemanticRouter {
 
   private async _doInitialize(): Promise<void> {
     // Embedir en lotes chicos para no saturar Ollama.
+    // 🔴 FIX ESTRUCTURAL: normalizar tildes en los ejemplos antes de embedear.
+    // Así "cómo salió España ayer" y "como salio espana ayer" producen el mismo
+    // vector, y el router matchea sin importar si el usuario usa tildes o no.
     const batchSize = 5;
     for (let i = 0; i < ROUTE_EXAMPLES.length; i += batchSize) {
       const batch = ROUTE_EXAMPLES.slice(i, i + batchSize);
@@ -455,7 +466,8 @@ export class SemanticRouter {
           category: ex.category,
           tool: ex.tool,
           text: ex.text,
-          vector: await this.embedFn(ex.text),
+          // Normalizar tildes antes de embedear — ambos lados usan foldAccents
+          vector: await this.embedFn(foldAccents(ex.text)),
         })),
       );
       this.examples.push(...embedded);
@@ -465,22 +477,28 @@ export class SemanticRouter {
   /**
    * Embede un mensaje del usuario con caché LRU.
    * Si el mismo mensaje se pide de nuevo, devuelve el vector cacheado.
+   *
+   * 🔴 FIX ESTRUCTURAL: normaliza tildes antes de embedear.
+   * Así "cómo salió hoy Argentina?" y "como salio hoy Argentina?" producen
+   * el mismo vector y matchean contra los mismos ejemplos.
    */
   private async embedMessage(text: string): Promise<number[]> {
-    const cached = this.messageCache.get(text);
+    // Normalizar tildes para que el match sea insensible a acentos
+    const normalized = foldAccents(text);
+    const cached = this.messageCache.get(normalized);
     if (cached) {
       // Mover al final (LRU: más reciente)
-      this.messageCache.delete(text);
-      this.messageCache.set(text, cached);
+      this.messageCache.delete(normalized);
+      this.messageCache.set(normalized, cached);
       return cached;
     }
-    const vector = await this.embedFn(text);
+    const vector = await this.embedFn(normalized);
     // Si la caché está llena, eliminar la entrada más vieja (primera insertada)
     if (this.messageCache.size >= SemanticRouter.CACHE_MAX) {
       const firstKey = this.messageCache.keys().next().value;
       if (firstKey) this.messageCache.delete(firstKey);
     }
-    this.messageCache.set(text, vector);
+    this.messageCache.set(normalized, vector);
     return vector;
   }
 
@@ -488,9 +506,23 @@ export class SemanticRouter {
    * Clasifica la intención de un mensaje.
    * Devuelve la categoría más probable con su confianza.
    * Si la confianza es baja, cae a "conversation" (deja al modelo responder libre).
+   *
+   * 🔴 FIX ESTRUCTURAL: keyword-based fast-path ANTES del router semántico.
+   * Para intents de alta confianza (resultados deportivos, clima, recetas),
+   * usamos regex determinístico en vez de depender de similitud de embeddings.
+   * El router semántico sigue siendo el fallback para casos ambiguos.
    */
   async route(message: string): Promise<RouteResult> {
     await this.initialize();
+
+    // 🔴 FAST-PATH DETERMINÍSTICO: regex insensible a tildes para intents claros.
+    // Esto NO reemplaza al router semántico — lo complementa para casos donde
+    // el matching por keyword es 100% confiable. Evita que el router falle por
+    // variaciones de tildes, sinónimos, o orden de palabras.
+    const fastPath = keywordFastPath(message);
+    if (fastPath) {
+      return fastPath;
+    }
 
     const messageVector = await this.embedMessage(message);
 
@@ -608,4 +640,150 @@ function extractToolArgs(message: string, tool?: RouteTool): Record<string, unkn
   }
 
   return undefined;
+}
+
+// ============================================================================
+// 🔴 FIX ESTRUCTURAL: Keyword-based fast-path determinístico
+// ============================================================================
+// El router semántico es frágil: depende de similitud de embeddings, que se
+// rompe con tildes, sinónimos, orden de palabras, regionalismos. Para intents
+// de ALTA CONFIANZA donde el matching por keyword es 100% confiable, usamos
+// regex determinístico ANTES del router semántico.
+//
+// Esto NO reemplaza al router — lo complementa. El router sigue siendo el
+// fallback para casos ambiguos donde no hay match de keyword.
+//
+// Ventajas del fast-path:
+// - 0ms de latencia (no necesita embeddings)
+// - 100% determinístico (no depende de umbral de similitud)
+// - Insensible a tildes (usa foldAccents)
+// - Fácil de debuggear (regex explícito)
+// ============================================================================
+
+/**
+ * Equipos de fútbol conocidos para el fast-path de sports.
+ * Incluye selecciones nacionales y clubes principales.
+ */
+const KNOWN_TEAMS = [
+  // Selecciones nacionales
+  "argentina", "espana", "brasil", "francia", "alemania", "inglaterra",
+  "italia", "portugal", "holanda", "belgica", "uruguay", "chile",
+  "colombia", "mexico", "peru", "ecuador", "paraguay", "estados unidos",
+  "usa", "japon", "corea", "china", "arabia", "qatar", "marruecos",
+  "senegal", "nigeria", "ghana", "camerun", "australia",
+  // Clubes argentinos
+  "boca", "river", "independiente", "racing", "san lorenzo", "estudiantes",
+  "lanus", "banfield", "velez", "huracan", "rosario central", "newells",
+  "talleres", "belgrano", "colon", "gimnasia",
+  // Clubes europeos principales
+  "real madrid", "barcelona", "barca", "atletico madrid", "atletico",
+  "sevilla", "valencia", "villarreal", "real sociedad", "betis",
+  "athletic bilbao", "athletic", "celta", "real betis",
+  "liverpool", "manchester city", "manchester united", "man city", "man united",
+  "chelsea", "arsenal", "tottenham", "spurs", "leicester", "everton",
+  "newcastle", "west ham", "aston villa", "brighton",
+  "juventus", "inter", "milan", "ac milan", "roma", "lazio", "napoli",
+  "fiorentina", "atalanta", "torino", "sampdoria", "genoa",
+  "bayern munich", "bayern", "dortmund", "borussia dortmund",
+  "leverkusen", "leipzig", "frankfurt", "wolfsburg", "stuttgart",
+  "psg", "paris saint germain", "marseille", "lyon", "monaco", "lille",
+  "benfica", "porto", "sporting lisboa", "sporting",
+  "ajax", "psv", "feyenoord",
+  "celtic", "rangers",
+];
+
+/**
+ * Detecta si el mensaje es una consulta de resultado deportivo.
+ * Patrones cubiertos (insensibles a tildes):
+ * - "como salio [equipo]"
+ * - "como le fue a [equipo]"
+ * - "resultado de [equipo]"
+ * - "quien gano [equipo]"
+ * - "como va [equipo]"
+ * - "[equipo] hoy/ayer/mañana"
+ */
+function keywordFastPath(message: string): RouteResult | null {
+  const normalized = foldAccents(message);
+
+  // ── SPORTS: resultado deportivo ──
+  // Patrones de intención deportiva
+  const sportsIntentPatterns = [
+    /\b(como salio|como salieron|como le fue|como les fue|como va|como van|quien gano|quien ganaron|resultado de|resultados de|marcador de|score de)\b/,
+  ];
+  const mentionsTeam = KNOWN_TEAMS.some(team => normalized.includes(foldAccents(team)));
+  const hasSportsWord = /\b(partido|partidos|futbol|football|soccer|copa|mundial|champions|europa|libertadores|liga|premier|serie a|bundesliga)\b/.test(normalized);
+
+  if (sportsIntentPatterns.some(p => p.test(normalized)) && (mentionsTeam || hasSportsWord)) {
+    // Extraer el equipo del mensaje
+    const teamMatch = KNOWN_TEAMS.find(team => normalized.includes(foldAccents(team)));
+    const temporalMatch = normalized.match(/\b(hoy|ayer|manana|anteayer|pasado manana|el sabado|el domingo|el lunes|el martes|el miercoles|el jueves|el viernes)\b/);
+    const query = teamMatch
+      ? `${teamMatch} ${temporalMatch?.[0] ?? ""}`.trim()
+      : message;
+    return {
+      category: "sports",
+      tool: "match_live",
+      confidence: 0.99, // confianza máxima — match de keyword determinístico
+      toolArgs: { query },
+    };
+  }
+
+  // ── WEATHER: clima ──
+  if (/\b(clima|tiempo|temperatura|lluvia|llueve|calor|frio|que tal el dia|que onda el dia|que pongo|campera|paraguas|abrigo)\b/.test(normalized)) {
+    return {
+      category: "weather",
+      tool: "weather",
+      confidence: 0.99,
+      toolArgs: {},
+    };
+  }
+
+  // ── FOOD: recetas ──
+  if (/\b(receta|recetas|como hago|como preparo|como cocino|que cocino|que preparo|plato|comida|postre|almuerzo|cena|desayuno|merienda)\b/.test(normalized)) {
+    // Extraer el tema de la receta
+    const recetaMatch = normalized.match(/(?:receta de|como hago|como preparo|como cocino|que cocino|que preparo)\s+(.*)/);
+    const query = recetaMatch?.[1]?.replace(/[?!.].*$/, "").trim() ?? message;
+    return {
+      category: "food",
+      tool: "recipe_find",
+      confidence: 0.99,
+      toolArgs: { query },
+    };
+  }
+
+  // ── MEDIA: película / libro ──
+  if (/\b(pelicula|peliculas|serie|series|documental|peli)\b/.test(normalized)) {
+    // Extraer el título de la película
+    const movieMatch = normalized.match(/(?:pelicula|peli|serie|documental)\s+(?:["']([^"']+)["']|([a-z0-9\s]+))/);
+    const title = movieMatch?.[1] ?? movieMatch?.[2] ?? message.replace(/.*pelicula\s+/i, "").replace(/[?!.].*$/, "").trim();
+    return {
+      category: "media",
+      tool: "movie_info",
+      confidence: 0.99,
+      toolArgs: { title },
+    };
+  }
+  if (/\b(libro|libros|novela|novelas)\b/.test(normalized)) {
+    const bookMatch = normalized.match(/(?:libro|novela)\s+(?:["']([^"']+)["']|([a-z0-9\s]+))/);
+    const title = bookMatch?.[1] ?? bookMatch?.[2] ?? message.replace(/.*libro\s+/i, "").replace(/[?!.].*$/, "").trim();
+    return {
+      category: "media",
+      tool: "book_info",
+      confidence: 0.99,
+      toolArgs: { title },
+    };
+  }
+
+  // ── KNOWLEDGE: wikipedia ──
+  if (/\b(que es|que fue|quien es|quien fue|quienes son|contame sobre|explicame|como funciona|definicion de|definición de)\b/.test(normalized)) {
+    return {
+      category: "knowledge",
+      tool: "wikipedia_lookup",
+      confidence: 0.95,
+      toolArgs: { query: message },
+    };
+  }
+
+  // No hubo match de keyword — caer al router semántico
+  return null;
 }
