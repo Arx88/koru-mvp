@@ -5381,11 +5381,93 @@ export async function runKoruBackendTurn(
           messages.push({ role: "assistant", content: "", tool_calls: [syntheticToolCall] });
           const delivered = await executeProviderToolCalls([syntheticToolCall], messages, request, toolExecutions, config);
           if (delivered) {
-            // OPTIMIZACIÓN: usar Flash model para la síntesis + memory extractor.
-            // SECUENCIAL (no paralelo) para evitar OOM — 2 llamadas LLM simultáneas
-            // exceden la memoria del entorno.
-            const fastConfig = { ...config, nvidiaModel: config.nvidiaFastModel || "meta/llama-3.1-8b-instruct" };
-            const response = await finalizePayloadWithFastModel(request, fastConfig, delivered, toolExecutions, 30_000);
+            // 🔴 FIX: hacer síntesis LLM con el modelo principal (no flash) para generar
+            // summary redactado + sections estructuradas en el deliverable.
+            const synthConfig2 = { ...config, nvidiaModel: config.nvidiaModel };
+            const synthMessages2 = buildMessages(request);
+            for (const exec of toolExecutions) {
+              synthMessages2.push({
+                role: "assistant",
+                content: "",
+                tool_calls: [{
+                  id: exec.id || `call_${Date.now()}`,
+                  type: "function",
+                  function: { name: exec.name, arguments: "{}" },
+                }],
+              });
+              synthMessages2.push({
+                role: "tool",
+                content: JSON.stringify(exec.result).slice(0, 3000),
+                tool_call_id: exec.id || `call_${Date.now()}`,
+              });
+            }
+            synthMessages2.push({
+              role: "user",
+              content: [
+                "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks.",
+                "Respondé SOLO con este JSON:",
+                '{"reply":"1-2 lineas cortas","mascotState":"happy","summary":"sintesis de 60-120 palabras con datos concretos","sections":[{"title":"Sintesis","kind":"text","paragraphs":["texto redactado"]},{"title":"Datos clave","kind":"bullets","bullets":["dato 1","dato 2"]}]}',
+                "Reglas:",
+                "- reply: SOLO enmarca. Ej: 'Te dejé el detalle en la tarjeta.'",
+                "- summary: REDACTA una sintesis con datos concretos (nombres, cifras, fechas). NO copies snippets.",
+                "- sections: arma 2-3 secciones. kind puede ser 'text' (con paragraphs) o 'bullets' (con bullets).",
+                "- NO inventes datos que no esten en las tools.",
+              ].join("\n"),
+            });
+
+            let routerSynthReply = "";
+            let routerSynthMascot = "happy";
+            let routerSynthSummary = "";
+            let routerSynthSections: any[] = [];
+            try {
+              const synthResult2 = await callProvider(synthConfig2, synthMessages2, 45_000, false, undefined, undefined, synthConfig2.nvidiaModel);
+              const synthContent2 = cleanText(synthResult2.message.content, "");
+              const synthParsed2 = safeJsonObjectFromContent(synthContent2);
+              routerSynthReply = cleanReplyText(synthParsed2.reply || "");
+              routerSynthMascot = cleanText(synthParsed2.mascotState) || "happy";
+              routerSynthSummary = cleanText(synthParsed2.summary || "");
+              const rawSections2 = Array.isArray(synthParsed2.sections) ? synthParsed2.sections : [];
+              routerSynthSections = rawSections2.map((s: any, i: number) => ({
+                icon: i === 0 ? "auto_awesome" : i === 1 ? "fact_check" : "insights",
+                title: cleanText(s.title) || `Sección ${i + 1}`,
+                kicker: i === 0 ? "LO ESENCIAL" : i === 1 ? "DATOS" : "CONTEXTO",
+                kind: s.kind === "bullets" ? "bullets" : "text",
+                paragraphs: Array.isArray(s.paragraphs) ? s.paragraphs.map((p: any) => String(p)) : undefined,
+                bullets: Array.isArray(s.bullets) ? s.bullets.map((b: any) => String(b)) : undefined,
+              })).filter((s: any) => s.paragraphs?.length || s.bullets?.length);
+            } catch (err: any) {
+              logger.warn("runKoruBackendTurn", "Router synth LLM call failed", { error: err?.message });
+            }
+
+            // Enriquecer toolBlocks con la síntesis
+            const routerToolBlocks = blocksFromToolResults(toolExecutions);
+            const effectiveSummary2 = routerSynthSummary || (routerSynthReply.length > 30 ? routerSynthReply : "");
+            for (const block of routerToolBlocks) {
+              if (block.type === "deliverable") {
+                if (effectiveSummary2 && effectiveSummary2.length > 20) {
+                  block.summary = effectiveSummary2;
+                  const synthSection = (block.sections ?? []).find((s: any) => s.title === "Síntesis");
+                  if (synthSection && synthSection.kind === "text") {
+                    synthSection.paragraphs = [effectiveSummary2];
+                  }
+                }
+                if (routerSynthSections.length > 0) {
+                  const sourceSection = (block.sections ?? []).find((s: any) => s.title === "Fuentes");
+                  block.sections = routerSynthSections;
+                  if (sourceSection) block.sections.push(sourceSection);
+                  block.metrics = [
+                    { value: String((block.sources ?? []).length), label: "Fuentes" },
+                    { value: String(routerSynthSections.length), label: "Secciones" },
+                  ];
+                }
+              }
+            }
+
+            const response = await finalizePayloadWithFastModel(
+              request, synthConfig2,
+              { reply: routerSynthReply, mascotState: routerSynthMascot, uiBlocks: [] } as Record<string, unknown>,
+              toolExecutions, 30_000, routerToolBlocks,
+            );
             return { ...response, provider, model, fallbackReason: "router-" + route.category };
           }
           messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }." });
