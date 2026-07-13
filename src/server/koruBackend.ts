@@ -5525,6 +5525,21 @@ export async function runKoruBackendTurn(
               suggestedActions: [], memoryCandidates: [], commitments: [], records: [], mascotState: "thinking",
             };
             const response = await finalizeFromPlainText(rawFallback, [syntheticToolCall], request, config, toolExecutions, extractorTimeout);
+            // 🔴 Aplicar enriquecimiento también aquí (camino 2: delivered=false, JSON inválido)
+            if (response.uiBlocks) {
+              for (const block of response.uiBlocks) {
+                if (block.type === "deliverable") {
+                  const replyForSummary = cleanText(rawFallback.reply) || response.reply || "";
+                  if (replyForSummary && replyForSummary.length > 20) {
+                    block.summary = replyForSummary;
+                    const synthSection = (block.sections ?? []).find((s: any) => s.title === "Síntesis");
+                    if (synthSection && synthSection.kind === "text") {
+                      synthSection.paragraphs = [replyForSummary];
+                    }
+                  }
+                }
+              }
+            }
             return { ...response, provider, model, fallbackReason: "router-" + route.category + "-invalid-json" };
           }
           const rawRoute = {
@@ -5538,6 +5553,21 @@ export async function runKoruBackendTurn(
             mascotState: parsedRoute.mascotState,
           };
           const response2 = normalizeFinalPayload(rawRoute, request.input, toolExecutions);
+          // 🔴 Aplicar enriquecimiento también aquí (camino 3: delivered=false, JSON válido)
+          if (response2.uiBlocks) {
+            for (const block of response2.uiBlocks) {
+              if (block.type === "deliverable") {
+                const replyForSummary = cleanText(rawRoute.reply) || response2.reply || "";
+                if (replyForSummary && replyForSummary.length > 20) {
+                  block.summary = replyForSummary;
+                  const synthSection = (block.sections ?? []).find((s: any) => s.title === "Síntesis");
+                  if (synthSection && synthSection.kind === "text") {
+                    synthSection.paragraphs = [replyForSummary];
+                  }
+                }
+              }
+            }
+          }
           return { ...response2, provider, model, fallbackReason: "router-" + route.category };
         }
       } catch (err: any) {
