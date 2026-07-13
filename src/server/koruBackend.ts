@@ -3089,7 +3089,7 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
       }
 
       // Crear el deliverable
-      const query = cleanText(search.title) || input;
+      const query = cleanText(search.title) || "Resultado";
       const metrics: any[] = [];
       metrics.push({ value: String(sources.length), label: "Fuentes" });
       if (search.extractedData?.items.length) {
