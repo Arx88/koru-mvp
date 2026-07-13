@@ -3827,6 +3827,7 @@ function normalizeFinalPayload(
   input: string,
   toolExecutions: ToolExecution[],
   extractedRaw?: Record<string, unknown>,
+  prebuiltToolBlocks?: UiBlock[],
 ): KoruBackendTurnResponse {
   const modelBlocks = asArray(raw.uiBlocks).map(normalizeUiBlock).filter((block): block is UiBlock => Boolean(block));
   const mascotState = cleanText(raw.mascotState) || "idle";
@@ -3836,7 +3837,8 @@ function normalizeFinalPayload(
   if (mascotState !== "idle" && !VALID_MASCOT_STATES.includes(mascotState as MascotState)) {
     console.warn(`[Koru] LLM returned invalid mascotState: "${mascotState}". Falling back to "idle".`);
   }
-  const toolBlocks = blocksFromToolResults(toolExecutions);
+  // 🔴 FIX: usar toolBlocks pre-construidos si se pasan (ya enriquecidos con síntesis LLM)
+  const toolBlocks = prebuiltToolBlocks ?? blocksFromToolResults(toolExecutions);
   // 🔴 FIX CRÍTICO: si hay toolBlocks (datos reales de tools), NO mezclar con modelBlocks
   // del LLM. Los modelBlocks pueden contener pensamiento del LLM en vez de datos reales.
   // Los toolBlocks son la fuente de verdad — los modelBlocks del LLM solo introducen ruido.
@@ -4025,6 +4027,7 @@ async function finalizePayloadWithFastModel(
   raw: Record<string, unknown>,
   toolExecutions: ToolExecution[],
   timeout: number,
+  prebuiltToolBlocks?: UiBlock[],
 ): Promise<KoruBackendTurnResponse> {
   // Si el raw ya tiene reply (el tool devolvió respuesta directa), no hacer segunda llamada
   const existingReply = cleanText((raw as any).reply);
@@ -4033,12 +4036,12 @@ async function finalizePayloadWithFastModel(
     if (!isTrivialInput(request.input) && toolExecutions.length > 0) {
       try {
         const extracted = await extractMemoryWithJsonPrompt(request, config, toolExecutions, raw, timeout);
-        return normalizeFinalPayload(raw, request.input, toolExecutions, extracted.raw);
+        return normalizeFinalPayload(raw, request.input, toolExecutions, extracted.raw, prebuiltToolBlocks);
       } catch {
         // si falla el extractor, igual devolver la respuesta
       }
     }
-    return normalizeFinalPayload(raw, request.input, toolExecutions);
+    return normalizeFinalPayload(raw, request.input, toolExecutions, undefined, prebuiltToolBlocks);
   }
 
   // Segunda llamada con Flash model para síntesis
@@ -4058,12 +4061,12 @@ async function finalizePayloadWithFastModel(
     if (!isTrivialInput(request.input) && toolExecutions.length > 0) {
       try {
         const extracted = await extractMemoryWithJsonPrompt(request, config, toolExecutions, parsed, timeout);
-        return normalizeFinalPayload(parsed, request.input, toolExecutions, extracted.raw);
+        return normalizeFinalPayload(parsed, request.input, toolExecutions, extracted.raw, prebuiltToolBlocks);
       } catch {
         // si falla el extractor, igual devolver la respuesta
       }
     }
-    return normalizeFinalPayload(parsed, request.input, toolExecutions);
+    return normalizeFinalPayload(parsed, request.input, toolExecutions, undefined, prebuiltToolBlocks);
   } catch {
     return normalizeFinalPayload(raw, request.input, toolExecutions);
   }
@@ -5275,6 +5278,7 @@ export async function runKoruBackendTurn(
         { reply: synthReply, mascotState: synthMascot, uiBlocks: [] } as Record<string, unknown>,
         toolExecutions,
         30_000,
+        toolBlocks, // 🔴 pasar los toolBlocks ya enriquecidos con síntesis LLM
       );
 
       // 🔴 FIX: aplicar síntesis del LLM a los uiBlocks finales también
