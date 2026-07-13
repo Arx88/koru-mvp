@@ -3043,9 +3043,9 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
       const sections: any[] = [];
 
       // 1. Síntesis: usar summary si hay, sino concatenar snippets
+      // 🔴 FIX: NO usar snippets crudos como síntesis. Generar una frase legible.
       const synthesisText = search.summary
-        || sources.slice(0, 3).map(s => s.snippet).filter(Boolean).join(" ")
-        || sources.slice(0, 3).map(s => s.content?.slice(0, 300)).filter(Boolean).join(" ")
+        || `Encontré ${sources.length} fuentes sobre "${query}". ${sources.slice(0, 2).map(s => s.title).filter(Boolean).join(" y ")}.`
         || "";
 
       if (synthesisText) {
