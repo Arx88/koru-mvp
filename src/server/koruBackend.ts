@@ -1310,10 +1310,72 @@ async function searchGdelt(query: string): Promise<AssistantSource[]> {
     .map((item) => sourceFromUrl(item.title!, item.url!, item.seendate));
 }
 
-async function fetchPageContent(url: string, maxChars = 1200): Promise<string> {
+/**
+ * 🔴 FIX P2.2 — Extrae la imagen principal de una página HTML.
+ * Reutiliza la misma lógica que builtins.ts pero en este archivo.
+ */
+function extractMainImage(html: string, pageUrl: string): string | undefined {
+  const ogMatch = html.match(/<meta\s+(?:property|name)=["']og:image["']\s+content=["']([^"']+)["']/i)
+    ?? html.match(/<meta\s+content=["']([^"']+)["']\s+(?:property|name)=["']og:image["']/i);
+  if (ogMatch?.[1]) return resolveImageUrl(ogMatch[1], pageUrl);
+
+  const twMatch = html.match(/<meta\s+(?:property|name)=["']twitter:image["']\s+content=["']([^"']+)["']/i)
+    ?? html.match(/<meta\s+content=["']([^"']+)["']\s+(?:property|name)=["']twitter:image["']/i);
+  if (twMatch?.[1]) return resolveImageUrl(twMatch[1], pageUrl);
+
+  const linkMatch = html.match(/<link\s+rel=["']image_src["']\s+href=["']([^"']+)["']/i);
+  if (linkMatch?.[1]) return resolveImageUrl(linkMatch[1], pageUrl);
+
+  const contentBlock = html.match(/<(?:article|main)\b[^>]*>([\s\S]*?)<\/(?:article|main)>/i)?.[1] ?? html;
+  const imgMatches = contentBlock.matchAll(/<img\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi);
+  for (const m of imgMatches) {
+    const src = m[1];
+    if (isValidContentImage(src)) {
+      return resolveImageUrl(src, pageUrl);
+    }
+  }
+  return undefined;
+}
+
+function isValidContentImage(src: string): boolean {
+  if (!src) return false;
+  const lower = src.toLowerCase();
+  if (lower.startsWith("data:")) return false;
+  if (/\b(logo|icon|avatar|sprite|placeholder|blank|spacer|pixel|favicon|tracking|beacon|1x1)\b/i.test(lower)) return false;
+  if (lower.endsWith(".svg") || lower.endsWith(".gif")) return false;
+  if (/(google-analytics|doubleclick|facebook\.com\/tr|pixel\.)/i.test(lower)) return false;
+  if (/[?&](w|h|width|height)=(\d{1,2})\b/i.test(lower)) {
+    const sizeMatch = lower.match(/[?&](w|h|width|height)=(\d{1,2})\b/i);
+    if (sizeMatch && parseInt(sizeMatch[2]) < 100) return false;
+  }
+  return true;
+}
+
+function resolveImageUrl(src: string, baseUrl: string): string {
+  try {
+    if (/^https?:\/\//i.test(src)) return src;
+    if (src.startsWith("//")) {
+      const proto = baseUrl.match(/^(https?)/i)?.[1] ?? "https";
+      return `${proto}:${src}`;
+    }
+    if (src.startsWith("/")) {
+      const origin = baseUrl.match(/^(https?:\/\/[^/]+)/i)?.[1];
+      if (origin) return `${origin}${src}`;
+    }
+    const base = baseUrl.replace(/[^/]*$/, "");
+    return `${base}${src}`;
+  } catch {
+    return src;
+  }
+}
+
+async function fetchPageContent(url: string, maxChars = 1200): Promise<{ text: string; imageUrl?: string }> {
   try {
     const res = await fetchWithTimeout(url, { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" } }, 15_000);
     const html = await res.text();
+
+    // 🔴 FIX P2.2: extraer imagen principal
+    const imageUrl = extractMainImage(html, url);
 
     // Extraer contenido principal: intentar <article>, luego <main>, luego clases comunes
     let contentHtml = html;
@@ -1351,9 +1413,9 @@ async function fetchPageContent(url: string, maxChars = 1200): Promise<string> {
       .replace(/<[^>]+>/g, " ")
       .replace(/\s+/g, " ")
       .trim();
-    return text.slice(0, maxChars);
+    return { text: text.slice(0, maxChars), imageUrl };
   } catch {
-    return "";
+    return { text: "" };
   }
 }
 
@@ -1385,8 +1447,13 @@ export async function runSearch(
     : undefined;
 
   // Scrape content from first 3 sources for synthesis
+  // 🔴 FIX P2.2: ahora también extrae la imagen principal de cada página
   for (let i = 0; i < Math.min(sources.length, 3); i++) {
-    sources[i].content = await fetchPageContent(sources[i].url, 1200);
+    const pageData = await fetchPageContent(sources[i].url, 1200);
+    sources[i].content = pageData.text;
+    if (pageData.imageUrl) {
+      sources[i].imageUrl = pageData.imageUrl;
+    }
   }
 
   // ── Extracción de estructura validada (NO BLOQUEANTE) ──
@@ -2294,6 +2361,9 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
     `- CRÍTICO: Si el usuario pregunta algo que YA aparece en "Cosas que guardaste" o "Memorias relevantes", NO uses query_personal_context. Respondé directamente desde ese contexto.`,
     `- CRÍTICO: Cuando guardás algo (save_personal_item) y el resultado tiene colección, tu reply empieza EXACTAMENTE con: "Listo, guardado en {colección}." y podés agregar UNA frase corta después. El usuario debe saber SIEMPRE dónde quedó lo suyo.`,
     `- CRÍTICO: Cuando ejecutaste web_search, los datos concretos (resultados, precios, scores, cifras) ya vienen extraídos y validados en los tool results y se muestran al usuario en una tarjeta aparte. Tu texto SOLO debe ENMARCAR esos datos de forma cercana ("mirá lo que encontré", "esto es lo que dicen las fuentes"), NO repetirlos ni inventar valores que no estén en los resultados de la tool. Si un dato no está en los tool results, no lo afirmes.`,
+    `- 🔴 CRÍTICO — CONTINUIDAD DE CONVERSACIÓN (Bug "y ayer?"): Cuando el usuario hace una pregunta de seguimiento corta como "y ayer?", "y mañana?", "y el otro?", "y el sábado?", "cómo le fue ayer?", debés MANTENER EL CONTEXTO de la conversación reciente. Si en los últimos mensajes se habló de un equipo/partido (ej: Argentina, Boca, España), el seguimiento se refiere a ESE MISMO equipo. Ejecutá match_live con query "<equipo> ayer" o "<equipo> <fecha>" sin pedir aclaración. NO respondas "no entiendo" ni "¿a qué te referís?". El contexto SIEMPRE está en el historial.`,
+    `- 🔴 CRÍTICO — PRONOMBRES Y REFERENCIAS: Si el usuario dice "esa película", "ese libro", "esa receta", "ese equipo", "esos resultados", asumí que se refiere al último tema mencionado en la conversación. NO pidas aclaración. Si el tema fue "obsesión", "y esa película?" significa "información sobre la película obsesión". Mantener contexto es tu trabajo principal.`,
+    `- 🔴 CRÍTICO — FOLLOW-UPS TEMPORALES: combiná el contexto del tema (equipo, película, etc.) con el contexto temporal (ayer, hoy, mañana, la semana pasada). "y ayer?" después de hablar de Argentina = match_live(query="Argentina ayer"). "y la anterior?" después de una película = movie_info(title="<película anterior>").`,
     ``,
     `Memorias relevantes para esta conversación (usalas para personalizar tu respuesta):`,
     ...(relevantMemories.length

@@ -61,7 +61,7 @@ export type DetailStep = {
   detail?: string;
   status?: "done" | "current" | "pending";
 };
-export type DetailSourceRef = { title: string; domain?: string; url?: string };
+export type DetailSourceRef = { title: string; domain?: string; url?: string; imageUrl?: string };
 
 export type DetailSection =
   | { kind: "text"; icon: string; accent: Accent; title: string; subtitle?: string; body: string }
@@ -112,7 +112,12 @@ const up = (s: string) => s.toUpperCase();
 const clean = (s?: string) => (s ?? "").trim();
 
 function sourcesToRefs(sources?: AssistantSource[]): DetailSourceRef[] {
-  return (sources ?? []).slice(0, 8).map((s) => ({ title: s.title, domain: s.domain, url: s.url }));
+  return (sources ?? []).slice(0, 8).map((s) => ({
+    title: s.title,
+    domain: s.domain,
+    url: s.url,
+    imageUrl: s.imageUrl,
+  }));
 }
 
 /** Título del hero sin prefijos redundantes ("Tu plan X" → "X"). */

@@ -195,10 +195,102 @@ async function searchGdelt(query: string): Promise<AssistantSource[]> {
     .map((item) => sourceFromUrl(item.title!, item.url!, item.seendate));
 }
 
-async function fetchPageContent(url: string, maxChars = 1200): Promise<string> {
+/**
+ * 🔴 FIX P2.2 — Extrae la imagen principal de una página HTML.
+ *
+ * Estrategia (en orden de prioridad):
+ *  1. <meta property="og:image"> — estándar Open Graph, la más confiable
+ *  2. <meta name="twitter:image"> — fallback para sitios sin og:image
+ *  3. <link rel="image_src"> — fallback legacy
+ *  4. Primer <img> dentro de <article> o <main> con width/height implícitos
+ *  5. Primer <img> con src que no sea logo/icon/avatar/data-uri
+ *
+ * Filtra imágenes triviales: logos, íconos, avatares, data-uris, imágenes
+ * demasiado pequeñas (por class/alt heurístico).
+ *
+ * Resuelve URLs relativas contra la URL base de la página.
+ */
+function extractMainImage(html: string, pageUrl: string): string | undefined {
+  // 1. og:image
+  const ogMatch = html.match(/<meta\s+(?:property|name)=["']og:image["']\s+content=["']([^"']+)["']/i)
+    ?? html.match(/<meta\s+content=["']([^"']+)["']\s+(?:property|name)=["']og:image["']/i);
+  if (ogMatch?.[1]) return resolveUrl(ogMatch[1], pageUrl);
+
+  // 2. twitter:image
+  const twMatch = html.match(/<meta\s+(?:property|name)=["']twitter:image["']\s+content=["']([^"']+)["']/i)
+    ?? html.match(/<meta\s+content=["']([^"']+)["']\s+(?:property|name)=["']twitter:image["']/i);
+  if (twMatch?.[1]) return resolveUrl(twMatch[1], pageUrl);
+
+  // 3. link rel="image_src"
+  const linkMatch = html.match(/<link\s+rel=["']image_src["']\s+href=["']([^"']+)["']/i);
+  if (linkMatch?.[1]) return resolveUrl(linkMatch[1], pageUrl);
+
+  // 4. Primer <img> dentro de article/main con clase plausible de hero
+  const contentBlock = html.match(/<(?:article|main)\b[^>]*>([\s\S]*?)<\/(?:article|main)>/i)?.[1] ?? html;
+  const imgMatches = contentBlock.matchAll(/<img\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi);
+  for (const m of imgMatches) {
+    const src = m[1];
+    if (isValidContentImage(src)) {
+      return resolveUrl(src, pageUrl);
+    }
+  }
+
+  return undefined;
+}
+
+/** Filtra imágenes triviales: logos, íconos, avatares, data-uris, placeholders */
+function isValidContentImage(src: string): boolean {
+  if (!src) return false;
+  const lower = src.toLowerCase();
+  // Rechazar data URIs (suelen ser placeholders/logos inline)
+  if (lower.startsWith("data:")) return false;
+  // Rechazar imágenes que parecen logos/iconos por nombre
+  if (/\b(logo|icon|avatar|sprite|placeholder|blank|spacer|pixel|favicon|tracking|beacon|1x1|spacer)\b/i.test(lower)) return false;
+  // Rechazar extensiones no image
+  if (/\.(css|js|svg|gif|webp)$/i.test(lower)) {
+    // SVG suele ser logo/icon, gif puede ser tracking, webp puede ser válido
+    if (lower.endsWith(".svg") || lower.endsWith(".gif")) return false;
+  }
+  // Rechazar URLs de tracking conocidos
+  if (/(google-analytics|doubleclick|facebook\.com\/tr|pixel\.)/i.test(lower)) return false;
+  // Rechazar imágenes muy pequeñas por query param
+  if (/[?&](w|h|width|height)=(\d{1,2})\b/i.test(lower)) {
+    const sizeMatch = lower.match(/[?&](w|h|width|height)=(\d{1,2})\b/i);
+    if (sizeMatch && parseInt(sizeMatch[2]) < 100) return false;
+  }
+  return true;
+}
+
+/** Resuelve URLs relativas contra una base */
+function resolveUrl(src: string, baseUrl: string): string {
+  try {
+    // Si ya es absoluta, devolverla tal cual
+    if (/^https?:\/\//i.test(src)) return src;
+    // Si es protocol-relative (//domain/path)
+    if (src.startsWith("//")) {
+      const proto = baseUrl.match(/^(https?)/i)?.[1] ?? "https";
+      return `${proto}:${src}`;
+    }
+    // Si es relativa a la raíz (/path)
+    if (src.startsWith("/")) {
+      const origin = baseUrl.match(/^(https?:\/\/[^/]+)/i)?.[1];
+      if (origin) return `${origin}${src}`;
+    }
+    // Relativa al path actual
+    const base = baseUrl.replace(/[^/]*$/, "");
+    return `${base}${src}`;
+  } catch {
+    return src;
+  }
+}
+
+async function fetchPageContent(url: string, maxChars = 1200): Promise<{ text: string; imageUrl?: string }> {
   try {
     const res = await fetchWithTimeout(url, { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" } }, 15_000);
     const html = await res.text();
+
+    // 🔴 FIX P2.2: extraer imagen principal de la página
+    const imageUrl = extractMainImage(html, url);
 
     // Extraer contenido principal: intentar <article>, luego <main>, luego clases comunes
     let contentHtml = html;
@@ -236,9 +328,9 @@ async function fetchPageContent(url: string, maxChars = 1200): Promise<string> {
       .replace(/<[^>]+>/g, " ")
       .replace(/\s+/g, " ")
       .trim();
-    return text.slice(0, maxChars);
+    return { text: text.slice(0, maxChars), imageUrl };
   } catch {
-    return "";
+    return { text: "" };
   }
 }
 
@@ -270,8 +362,13 @@ export async function runSearch(
     : undefined;
 
   // Scrape content from first 3 sources for synthesis
+  // 🔴 FIX P2.2: ahora también extrae la imagen principal de cada página
   for (let i = 0; i < Math.min(sources.length, 3); i++) {
-    sources[i].content = await fetchPageContent(sources[i].url, 1200);
+    const pageData = await fetchPageContent(sources[i].url, 1200);
+    sources[i].content = pageData.text;
+    if (pageData.imageUrl) {
+      sources[i].imageUrl = pageData.imageUrl;
+    }
   }
 
   // ── Extracción de estructura validada (NO BLOQUEANTE) ──

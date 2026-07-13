@@ -254,6 +254,8 @@ export type AssistantSource = {
   domain: string;
   snippet?: string;
   content?: string;
+  /** 🔴 P2.2: URL de imagen principal extraída de la página (og:image, hero img, etc.) */
+  imageUrl?: string;
 };
 
 export type AssistantPlanItem = {
