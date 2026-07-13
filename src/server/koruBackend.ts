@@ -4882,10 +4882,29 @@ function resolveFollowUpInput(input: string, history: KoruConversationMessage[])
   }
 
   // "y con X?" / "y de X?" — variaciones
+  // Si el contexto es película, buscar info de esa película
+  // Si el contexto es receta, variar la receta
+  // Si el contexto es libro, buscar info de ese libro
   if (/^y\s+(con|de|para|sin)\s+/i.test(trimmed)) {
+    const variation = input.trim().replace(/^y\s+/i, "").replace(/[?!.]$/, "");
+    // Extraer el término después de "de/con/para/sin"
+    const termMatch = variation.match(/(?:de|con|para|sin)\s+(.+)/i);
+    const term = termMatch?.[1]?.trim() ?? variation;
+
+    if (movie) {
+      // "y de odyssey?" después de hablar de obsesion → buscar película odyssey
+      return `que se dice de la pelicula ${term}?`;
+    }
+    if (book) {
+      return `informacion del libro ${term}`;
+    }
     if (recipe) {
-      const variation = input.trim().replace(/^y\s+/i, "");
       return `receta de ${recipe} ${variation}`;
+    }
+    // Si no hay contexto previo pero el término parece una película/título,
+    // asumir que es una nueva consulta de película
+    if (term.length >= 2) {
+      return `que se dice de la pelicula ${term}?`;
     }
   }
 
