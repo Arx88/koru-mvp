@@ -5448,7 +5448,8 @@ export async function runKoruBackendTurn(
 
             // 🔴 FIX: calcular effectiveSummary2 ANTES de finalizePayloadWithFastModel
             // pero aplicar SOLO DESPUÉS a response.uiBlocks
-            const effectiveSummary2 = routerSynthSummary || (routerSynthReply.length > 20 ? routerSynthReply : "");
+            // Fallback: si ni summary ni reply del LLM funcionan, usar el reply final de response
+            let effectiveSummary2 = routerSynthSummary || (routerSynthReply.length > 20 ? routerSynthReply : "");
 
             const response = await finalizePayloadWithFastModel(
               request, synthConfig2,
@@ -5458,6 +5459,10 @@ export async function runKoruBackendTurn(
 
             // 🔴 APLICAR SÍNTESIS AQUÍ — directamente sobre response.uiBlocks
             // Esto es lo ÚNICO que funciona porque normalizeFinalPayload regenera los toolBlocks
+            // Fallback final: si no hay effectiveSummary2, usar el reply de response
+            if (!effectiveSummary2 || effectiveSummary2.length < 20) {
+              effectiveSummary2 = response.reply || "";
+            }
             if (response.uiBlocks) {
               for (const block of response.uiBlocks) {
                 if (block.type === "deliverable") {
