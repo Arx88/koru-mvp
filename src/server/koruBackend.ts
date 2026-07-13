@@ -3475,21 +3475,20 @@ function replyFromBlocks(blocks: UiBlock[], input: string): string {
     if (desc) parts.push(desc.slice(0, 300));
     return parts.length > 0 ? `${name}. ${parts.join(" ")}` : `Te deje la info de ${name} en la tarjeta.`;
   }
-  // 🔴 FIX: research_sources sin sources (wikipedia_lookup con texto)
-  if (first.type === "research_sources" && first.summary && !first.sources?.length) {
-    return first.summary.slice(0, 400);
-  }
   // 🔴 FIX: data_card (usado por varios tools)
   if (first.type === "data_card") {
     return first.title ?? "Te deje los datos en la tarjeta.";
   }
   // 🔴 FIX: live_match (usado por match_live)
   if (first.type === "live_match") {
-    return first.title ?? "Te deje el resultado del partido en la tarjeta.";
-  }
-  // 🔴 FIX: comparison con items (recipe_find segundas recetas)
-  if (first.type === "comparison" && first.items?.length) {
-    return `Te deje ${first.items.length} opciones en la tarjeta${first.title ? `: ${first.title}` : ""}.`;
+    const home = first.homeName ?? first.homeTeam?.name ?? "";
+    const away = first.awayName ?? first.awayTeam?.name ?? "";
+    const hs = first.homeScore ?? first.homeTeam?.score;
+    const as = first.awayScore ?? first.awayTeam?.score;
+    if (home && away && hs !== undefined && as !== undefined) {
+      return `${home} ${hs} - ${as} ${away}. Te deje el detalle en la tarjeta.`;
+    }
+    return "Te deje el resultado del partido en la tarjeta.";
   }
   return "";
 }
