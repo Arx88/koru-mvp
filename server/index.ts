@@ -235,6 +235,51 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ── /api/debug/weather — debug weather fetch ────────────────
+  if (url === "/api/debug/weather" && req.method === "GET") {
+    try {
+      const city = new URL(req.url ?? "", "http://localhost").searchParams.get("city") || "Valencia";
+      console.log("[debug/weather] Testing city:", city);
+
+      // Step 1: Geocode
+      const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&format=json`;
+      console.log("[debug/weather] Geocoding:", geoUrl);
+      const geoRes = await globalThis.fetch(geoUrl, { signal: AbortSignal.timeout(15000) });
+      console.log("[debug/weather] Geo status:", geoRes.status);
+      const geoData = await geoRes.json() as any;
+      const geo = geoData.results?.[0];
+      if (!geo) {
+        sendJson(res, 200, { error: "Geocode failed", geoStatus: geoRes.status, geoData: JSON.stringify(geoData).slice(0, 200) });
+        return;
+      }
+      console.log("[debug/weather] Geo result:", geo.name, geo.latitude, geo.longitude);
+
+      // Step 2: Weather
+      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${geo.latitude}&longitude=${geo.longitude}&current=temperature_2m,precipitation,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=1`;
+      console.log("[debug/weather] Weather:", weatherUrl);
+      const weatherRes = await globalThis.fetch(weatherUrl, { signal: AbortSignal.timeout(15000) });
+      console.log("[debug/weather] Weather status:", weatherRes.status);
+      const weatherData = await weatherRes.json() as any;
+      console.log("[debug/weather] Weather data:", JSON.stringify(weatherData).slice(0, 300));
+
+      sendJson(res, 200, {
+        city: geo.name,
+        country: geo.country,
+        lat: geo.latitude,
+        lon: geo.longitude,
+        temp: weatherData.current?.temperature_2m,
+        wind: weatherData.current?.wind_speed_10m,
+        max: weatherData.daily?.temperature_2m_max?.[0],
+        min: weatherData.daily?.temperature_2m_min?.[0],
+        rain: weatherData.daily?.precipitation_probability_max?.[0],
+        raw: JSON.stringify(weatherData).slice(0, 500),
+      });
+    } catch (err: any) {
+      sendJson(res, 200, { error: err?.message, stack: err?.stack?.slice(0, 200) });
+    }
+    return;
+  }
+
   // ── /api/koru/proactive — proactive engine ───────────────────
   if (url === "/api/koru/proactive" && req.method === "POST") {
     try {
