@@ -5459,10 +5459,15 @@ export async function runKoruBackendTurn(
 
             // 🔴 APLICAR SÍNTESIS AQUÍ — directamente sobre response.uiBlocks
             // Esto es lo ÚNICO que funciona porque normalizeFinalPayload regenera los toolBlocks
-            // Fallback final: si no hay effectiveSummary2, usar el reply de response
+            // Fallback final: si no hay effectiveSummary2, usar routerSynthReply (reply original
+            // del LLM ANTES del trimming de normalizeFinalPayload)
             if (!effectiveSummary2 || effectiveSummary2.length < 20) {
-              effectiveSummary2 = response.reply || "";
+              effectiveSummary2 = routerSynthReply || response.reply || "";
             }
+            logger.info("runKoruBackendTurn", "Router effectiveSummary2 final", {
+              len: effectiveSummary2.length,
+              preview: effectiveSummary2.slice(0, 100),
+            });
             if (response.uiBlocks) {
               for (const block of response.uiBlocks) {
                 if (block.type === "deliverable") {
