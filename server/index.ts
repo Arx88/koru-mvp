@@ -52,7 +52,7 @@ function buildConfig() {
     nvidiaApiKey: env.NVIDIA_API_KEY?.trim(),
     nvidiaBaseUrl: env.NVIDIA_BASE_URL?.trim() || "https://integrate.api.nvidia.com",
     nvidiaModel: env.NVIDIA_MODEL?.trim() || "nvidia/nemotron-3-ultra-550b-a55b",
-    nvidiaFastModel: env.NVIDIA_FAST_MODEL?.trim() || "stepfun-ai/step-3.5-flash",
+    nvidiaFastModel: env.NVIDIA_FAST_MODEL?.trim() || "nvidia/nemotron-3-nano-30b-a3b",
     nvidiaMediumModel: env.NVIDIA_MEDIUM_MODEL?.trim(),
     openRouterKeys: [env.OPENROUTER_API_KEY, env.OPENROUTER_FALLBACK_API_KEYS]
       .filter(Boolean)
