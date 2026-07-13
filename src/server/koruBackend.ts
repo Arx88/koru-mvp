@@ -3339,15 +3339,15 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
     // movie_info: usar el nuevo tipo movie_review con todos los campos ricos
     if (result.type === "movie_info") {
       const r = result as any;
-      // 🔴 FIX CRÍTICO: si movie_info devuelve status "failed" (no encontró la película),
+      // 🔴 FIX: si movie_info devuelve status "failed" (no encontró la película),
       // NO generar block (evita card vacía "TU PELÍCULA / PELÍCULA").
-      // Forzar reply honesto pidiendo más info o sugiriendo web_search.
+      // NO forzar honestReply aquí — el fallback a web_search se maneja en
+      // runKoruBackendTurn. Si el fallback no se ejecuta, el LLM debe poder
+      // decir "no la encontré" naturalmente.
       if (r.status === "failed" || r.status === "no_data") {
-        (result as any).__forceHonestReply = true;
-        const movieName = r.query || r.title || r.__title || "";
-        (result as any).__honestReplyText = movieName
-          ? `No encontré la película "${movieName}" en mis fuentes. ¿Te referís a una película específica? Si me das el año o el director, lo intento de nuevo. También puedo buscar info general en la web si querés.`
-          : `No encontré esa película en mis fuentes. ¿Me decís el título exacto o el año? También puedo buscar info en la web si preferís.`;
+        // Marcar para que el LLM sepa que movie_info falló, pero NO forzar reply
+        // — el fallback a web_search puede haber traído resultados.
+        (result as any).__movieInfoFailed = true;
         continue; // NO generar block — sin card vacía
       }
       const title = r.title ?? "Película";
@@ -4988,6 +4988,48 @@ export async function runKoruBackendTurn(
           provider, model, fallbackReason: "fastpath-" + route.category,
         });
         const delivered = await executeProviderToolCalls([syntheticToolCall], messages, request, toolExecutions, config);
+
+        // 🔴 FIX CRÍTICO: si la tool del fast-path falló (ej: movie_info sin TMDB
+        // no encuentra la película), hacer fallback automático a web_search.
+        // Antes devolvía "no la encontré" — pero el usuario espera que Koru
+        // busque en la web como último recurso.
+        if (delivered && toolExecutions.length > 0) {
+          const lastTool = toolExecutions[toolExecutions.length - 1];
+          const lastResult = lastTool?.result as any;
+          const toolFailed = lastResult?.status === "failed" || lastResult?.status === "no_data";
+
+          if (toolFailed && route.tool !== "web_search") {
+            logger.info("runKoruBackendTurn", "Fast-path tool failed, falling back to web_search", {
+              failedTool: route.tool,
+              error: lastResult?.error ?? lastResult?.note,
+            });
+            // Ejecutar web_search como fallback
+            const fallbackQuery = route.toolArgs?.title || route.toolArgs?.query || request.input;
+            const fallbackToolCall: ProviderToolCall = {
+              id: `fallback_search_${Date.now()}`,
+              type: "function",
+              function: { name: "web_search", arguments: JSON.stringify({ query: fallbackQuery, mode: "research" }) },
+            };
+            const searchLabel = searchLabelFromInput(String(fallbackQuery));
+            onChunk?.({
+              reply: searchLabel,
+              uiBlocks: [{ type: "web_nav" as const, title: "Navegación Web", status: "loading" as const, query: String(fallbackQuery), results: [] }],
+              suggestedActions: [],
+              understanding: { literalRequest: request.input, userGoal: "web_search fallback", unstatedNeeds: [], assumptions: [], confidence: 0.9 },
+              memoryCandidates: [], commitments: [], records: [], toolResults: [],
+              stateEvents: [{ kind: "searching" as const, label: searchLabel }],
+              mascotState: "working",
+              provider, model, fallbackReason: "fastpath-fallback-search",
+            });
+            const fallbackDelivered = await executeProviderToolCalls([fallbackToolCall], messages, request, toolExecutions, config);
+            if (fallbackDelivered) {
+              const fastConfig = { ...config, nvidiaModel: config.nvidiaFastModel || "meta/llama-3.1-8b-instruct" };
+              const response = await finalizePayloadWithFastModel(request, fastConfig, fallbackDelivered, toolExecutions, 30_000);
+              return { ...response, provider, model, fallbackReason: "fastpath-fallback-search" };
+            }
+          }
+        }
+
         if (delivered) {
           const fastConfig = { ...config, nvidiaModel: config.nvidiaFastModel || "meta/llama-3.1-8b-instruct" };
           const response = await finalizePayloadWithFastModel(request, fastConfig, delivered, toolExecutions, 30_000);
