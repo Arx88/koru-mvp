@@ -3044,7 +3044,12 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
 
       // 1. Síntesis: usar summary si hay, sino concatenar snippets
       // 🔴 FIX: NO usar snippets crudos como síntesis. Generar una frase legible.
-      const synthesisText = search.summary
+      // Ignorar search.summary si parece snippets pegados (contiene fragmentos de sitios)
+      const rawSummary = cleanText(search.summary);
+      const looksLikeSnippets = rawSummary.length > 100 && 
+        (rawSummary.includes('. ') && rawSummary.split('. ').length > 4 && 
+         !/[¡!]/.test(rawSummary.slice(0, 20))); // no empieza con signo de exclamación = probablemente snippets
+      const synthesisText = (!looksLikeSnippets && rawSummary)
         || `Encontré ${sources.length} fuentes sobre "${cleanText(search.title) || "este tema"}". ${sources.slice(0, 2).map(s => s.title).filter(Boolean).join(" y ")}.`
         || "";
 
