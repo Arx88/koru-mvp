@@ -3244,6 +3244,10 @@ a.koru-dsec-source:hover {
   align-items: center;
   justify-content: center;
   animation: koru-wheel-fade-in 0.2s ease-out;
+  /* Mobile: permitir que touchmove funcione para drag detection */
+  touch-action: none;  /* el overlay maneja el gesto, no el browser */
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 @keyframes koru-wheel-fade-in {
@@ -3304,6 +3308,14 @@ a.koru-dsec-source:hover {
   font-family: "Plus Jakarta Sans", Inter, sans-serif;
   cursor: pointer;
   transition: all 0.15s ease;
+  /* Mobile: asegurar que el botón reciba taps directamente */
+  touch-action: manipulation;  /* sin delay de 300ms, sin double-tap zoom */
+  -webkit-tap-highlight-color: transparent;  /* sin highlight gris en mobile */
+  -webkit-user-select: none;
+  user-select: none;
+  /* Asegurar que esté encima del overlay para recibir el tap */
+  z-index: 20;
+  pointer-events: auto;
 }
 
 .koru-wheel-option .material-symbols-outlined {

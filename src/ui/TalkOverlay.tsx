@@ -479,6 +479,11 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
     }
   }, []);
 
+  // Touch end en el OVERLAY (no en una opción): 
+  // - Si wheelActive tiene valor → seleccionar (el dedo estaba sobre una opción al soltar)
+  // - Si no → cerrar sin seleccionar (el dedo estaba fuera del wheel)
+  // IMPORTANTE: este handler NO debe interferir con taps directos en los botones,
+  // por eso los botones tienen su propio onTouchEnd que llama a stopPropagation.
   const handleWheelTouchEnd = useCallback(() => {
     if (wheelActive) {
       handleWheelSelect(wheelActive);
@@ -487,6 +492,21 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
       setWheelActive(null);
     }
   }, [wheelActive, handleWheelSelect]);
+
+  // Handler para tap directo en una opción (mobile + desktop):
+  // - onTouchEnd: dispara en mobile cuando levantás el dedo sobre el botón
+  //   Llamamos a handleWheelSelect directamente. stopPropagation evita que
+  //   el handleWheelTouchEnd del overlay cancele la selección.
+  // - onClick: dispara en desktop.
+  const handleOptionTap = useCallback((option: string) => {
+    handleWheelSelect(option);
+  }, [handleWheelSelect]);
+
+  const handleOptionTouchEnd = useCallback((e: React.TouchEvent, option: string) => {
+    e.preventDefault();  // evitar que disparó también el click sintético del browser
+    e.stopPropagation(); // evitar que el overlay cierre sin seleccionar
+    handleWheelSelect(option);
+  }, [handleWheelSelect]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -1001,7 +1021,8 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
                 className={`koru-wheel-option top ${wheelActive === "memory" ? "active" : ""}`}
                 data-wheel-option="memory"
                 onMouseEnter={() => setWheelActive("memory")}
-                onClick={() => handleWheelSelect("memory")}
+                onClick={() => handleOptionTap("memory")}
+                onTouchEnd={(e) => handleOptionTouchEnd(e, "memory")}
               >
                 <span className="material-symbols-outlined">neurology</span>
                 <span className="wheel-label">Memoria</span>
@@ -1011,7 +1032,8 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
                 className={`koru-wheel-option right ${wheelActive === "history" ? "active" : ""}`}
                 data-wheel-option="history"
                 onMouseEnter={() => setWheelActive("history")}
-                onClick={() => handleWheelSelect("history")}
+                onClick={() => handleOptionTap("history")}
+                onTouchEnd={(e) => handleOptionTouchEnd(e, "history")}
               >
                 <span className="material-symbols-outlined">history</span>
                 <span className="wheel-label">Historial</span>
@@ -1021,7 +1043,8 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
                 className={`koru-wheel-option bottom ${wheelActive === "home" ? "active" : ""}`}
                 data-wheel-option="home"
                 onMouseEnter={() => setWheelActive("home")}
-                onClick={() => handleWheelSelect("home")}
+                onClick={() => handleOptionTap("home")}
+                onTouchEnd={(e) => handleOptionTouchEnd(e, "home")}
               >
                 <span className="material-symbols-outlined">home</span>
                 <span className="wheel-label">Home</span>
@@ -1031,7 +1054,8 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
                 className={`koru-wheel-option left ${wheelActive === "settings" ? "active" : ""}`}
                 data-wheel-option="settings"
                 onMouseEnter={() => setWheelActive("settings")}
-                onClick={() => handleWheelSelect("settings")}
+                onClick={() => handleOptionTap("settings")}
+                onTouchEnd={(e) => handleOptionTouchEnd(e, "settings")}
               >
                 <span className="material-symbols-outlined">settings</span>
                 <span className="wheel-label">Ajustes</span>
