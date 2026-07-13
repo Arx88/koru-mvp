@@ -409,10 +409,15 @@ function getStaticFile(filePath: string): { data: Buffer; contentType: string } 
       : filePath.endsWith(".json") ? "application/json"
       : filePath.endsWith(".woff") ? "font/woff"
       : filePath.endsWith(".woff2") ? "font/woff2"
+      : filePath.endsWith(".mp4") ? "video/mp4"
+      : filePath.endsWith(".webm") ? "video/webm"
+      : filePath.endsWith(".webp") ? "image/webp"
+      : filePath.endsWith(".gif") ? "image/gif"
+      : filePath.endsWith(".ico") ? "image/x-icon"
       : "application/octet-stream";
     const entry = { data, contentType: ext };
-    // Limit cache to 50 files to avoid memory bloat
-    if (staticCache.size < 50) staticCache.set(filePath, entry);
+    // Limit cache to 50 files to avoid memory bloat — but NOT for videos (too big)
+    if (staticCache.size < 50 && data.length < 5_000_000) staticCache.set(filePath, entry);
     return entry;
   } catch {
     return null;
