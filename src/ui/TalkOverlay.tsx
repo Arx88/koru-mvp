@@ -256,18 +256,44 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
 
   // ===== Estado del fondo dinámico =====
   // Detecta el estado actual (trabajando, buscando, memoria, etc.) y lo pasa al KoruBackground.
-  // También trackea idle para activar "durmiendo" a los 2 min de inactividad.
+  // Trackea idle para activar "durmiendo" solo tras 5 min de inactividad real.
+  //
+  // BUG FIX: El idle timer NO arranca desde el montaje del componente.
+  // Arranca desde la ÚLTIMA interacción real del usuario (mensaje enviado,
+  // typing en el input, o procesando una respuesta).
+  // Mientras el usuario no haya interactuado, no se considera "idle" —
+  // está en "escuchando" (esperando input), no "durmiendo".
   const [idleMs, setIdleMs] = useState(0);
-  const lastInteractionRef = useRef(Date.now());
+  const lastInteractionRef = useRef<number | null>(null); // null = sin interacción aún
+  const hasChatStarted = chatTurns.length > 0;
+
+  // Reset del idle timer cuando hay actividad real del usuario
   useEffect(() => {
-    lastInteractionRef.current = Date.now();
-  }, [chatTurns.length, processing, isListening, inputText]);
+    // Solo marcamos interacción si hay chat, o está procesando, o está escuchando voz
+    if (chatTurns.length > 0 || processing || isListening) {
+      lastInteractionRef.current = Date.now();
+    }
+  }, [chatTurns.length, processing, isListening]);
+
+  // Reset también cuando el usuario escribe (input cambia de vacío a algo)
+  useEffect(() => {
+    if (inputText.trim().length > 0) {
+      lastInteractionRef.current = Date.now();
+    }
+  }, [inputText]);
+
+  // Tick cada 5s para recalcular idle (no cada 1s — menos renders)
   useEffect(() => {
     const interval = setInterval(() => {
-      setIdleMs(Date.now() - lastInteractionRef.current);
-    }, 1000);
+      if (lastInteractionRef.current === null) {
+        setIdleMs(0);
+      } else {
+        setIdleMs(Date.now() - lastInteractionRef.current);
+      }
+    }, 5000);
     return () => clearInterval(interval);
   }, []);
+
   const lastUserText = useMemo(() => {
     for (let i = chatTurns.length - 1; i >= 0; i--) {
       if (chatTurns[i].role === "user") return chatTurns[i].text;
@@ -275,8 +301,8 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
     return undefined;
   }, [chatTurns]);
   const bgState: KoruBgState = useMemo(
-    () => activityToBgState(activity?.kind, processing, isListening, lastUserText, idleMs),
-    [activity?.kind, processing, isListening, lastUserText, idleMs],
+    () => activityToBgState(activity?.kind, processing, isListening, lastUserText, idleMs, hasChatStarted),
+    [activity?.kind, processing, isListening, lastUserText, idleMs, hasChatStarted],
   );
   const [transcribing, setTranscribing] = useState(false);
   const [analyzingImage, setAnalyzingImage] = useState(false);

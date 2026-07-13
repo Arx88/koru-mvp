@@ -168,6 +168,11 @@
   overflow: hidden;
   background: #14102a;
   pointer-events: none;
+  /* Sharper rendering: evitar blurry scaling en HiDPI */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .koru-bg-layer {
@@ -179,6 +184,12 @@
   object-position: center top; /* anclar arriba — el personaje está en la parte superior del video */
   opacity: 0;
   transition: opacity 800ms ease-in-out;
+  /* Backface visibility hidden = sharper text rendering on transforms */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  /* TranslateZ para forzar GPU layer (mejor calidad + perf) */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
 .koru-bg-layer.is-active {
@@ -192,6 +203,17 @@
   object-fit: cover;
   object-position: center top;
   display: block;
+  /* Mejor calidad de escalado en browsers modernos */
+  image-rendering: auto; /* auto = bilinear/cubic depending on browser */
+  -ms-interpolation-mode: bicubic;
+  /* Sin poster por defecto — los videos cargan directo */
+}
+
+/* Los videos específicamente: forzar alta calidad en mobile */
+.koru-bg-layer video {
+  /* En iOS Safari esto mejora la calidad de video en backgrounds */
+  -webkit-filter: contrast(1.02) saturate(1.05);
+  filter: contrast(1.02) saturate(1.05);
 }
 
 /* Overlay oscuro SOLO en el bottom (donde están los mensajes + composer).
