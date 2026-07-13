@@ -5220,8 +5220,22 @@ export async function runKoruBackendTurn(
             });
             const fallbackDelivered = await executeProviderToolCalls([fallbackToolCall], messages, request, toolExecutions, config);
             if (fallbackDelivered) {
-              const fastConfig = { ...config, nvidiaModel: config.nvidiaFastModel || "meta/llama-3.1-8b-instruct" };
-              const response = await finalizePayloadWithFastModel(request, fastConfig, fallbackDelivered, toolExecutions, 30_000);
+              // 🔴 FIX: limpiar el tool fallido de toolExecutions para que el LLM
+              // no vea "No encontré recetas" y responda con eso.
+              // El LLM solo debe ver los resultados de web_search (que SÍ tiene datos).
+              const cleanedExecutions = toolExecutions.filter((exec) => {
+                const r = exec.result as any;
+                const failed = r?.status === "failed" || r?.status === "no_data"
+                  || r?.status === "need_city" || r?.status === "not_configured"
+                  || (r?.status === "ok" && !r?.text && !r?.matches?.length
+                      && !r?.recipes?.length && !r?.now && !r?.price
+                      && !r?.overview && !r?.extract);
+                return !failed;
+              });
+              // Si después de limpiar no queda nada, usar los originales
+              const effectiveExecutions = cleanedExecutions.length > 0 ? cleanedExecutions : toolExecutions;
+              const fastConfig2 = { ...config, nvidiaModel: config.nvidiaModel };
+              const response = await finalizePayloadWithFastModel(request, fastConfig2, fallbackDelivered, effectiveExecutions, 30_000);
               return { ...response, provider, model, fallbackReason: "fastpath-fallback-search" };
             }
           }
@@ -5235,155 +5249,48 @@ export async function runKoruBackendTurn(
       }
     }
 
-    // 🔴 FIX DUPLICACIÓN: si el fast-path ya ejecutó tools (toolExecutions no vacío),
-    // NO caer al router semántico — eso causaría que la misma tool se ejecute 2 veces
-    // y genere 2 blocks duplicados. Sintetizar la respuesta con lo que ya tenemos.
+    // 🔴 FIX DUPLICACIÓN: si el fast-path ya ejecutó tools, NO caer al router.
+    // Sintetizar directamente con UN SOLO LLM call (no dos).
     if (toolExecutions.length > 0) {
-      logger.info("runKoruBackendTurn", "Fast-path executed tools, skipping semantic router to avoid duplication", {
+      logger.info("runKoruBackendTurn", "Fast-path executed tools, skipping semantic router", {
         toolCount: toolExecutions.length,
       });
-      const synthMessages = buildMessages(request);
-      for (const exec of toolExecutions) {
-        synthMessages.push({
-          role: "assistant",
-          content: "",
-          tool_calls: [{
-            id: exec.id || `call_${Date.now()}`,
-            type: "function",
-            function: { name: exec.name, arguments: "{}" },
-          }],
-        });
-        synthMessages.push({
-          role: "tool",
-          content: JSON.stringify(exec.result).slice(0, 3000),
-          tool_call_id: exec.id || `call_${Date.now()}`,
-        });
-      }
 
-      // 🔴 FIX: pedir al LLM reply corto + deliverableSections con síntesis redactada
-      // y datos estructurados. Esto reemplaza los snippets crudos por contenido
-      // real sintetizado por el LLM, como muestra el demo.
-      synthMessages.push({
-        role: "user",
-        content: [
-          "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks.",
-          "Respondé SOLO con este JSON:",
-          '{"reply":"1-2 lineas cortas","mascotState":"happy","summary":"sintesis de 60-120 palabras con datos concretos","sections":[{"title":"Sintesis","kind":"text","paragraphs":["texto redactado"]},{"title":"Datos clave","kind":"bullets","bullets":["dato 1","dato 2"]}]}',
-          "Reglas:",
-          "- reply: SOLO enmarca. Ej: 'Te dejé el detalle en la tarjeta.'",
-          "- summary: REDACTA una sintesis con datos concretos (nombres, cifras, fechas). NO copies snippets.",
-          "- sections: arma 2-3 secciones. kind puede ser 'text' (con paragraphs) o 'bullets' (con bullets).",
-          "- NO inventes datos que no esten en las tools.",
-        ].join("\n"),
-      });
-
-      const synthConfig = { ...config, nvidiaModel: config.nvidiaModel };
-      let synthReply = "";
-      let synthMascot = "happy";
-      let synthTitle = "";
-      let synthDescription = "";
-      let synthSummary = "";
-      let synthSections: any[] = [];
-      try {
-        const synthResult = await callProvider(synthConfig, synthMessages, 30_000, false, undefined, undefined, synthConfig.nvidiaModel);
-        const synthContent = cleanText(synthResult.message.content, "");
-        logger.info("runKoruBackendTurn", "Fast-path synth LLM response", {
-          contentLength: synthContent.length,
-          contentPreview: synthContent.slice(0, 500),
-          hasReply: synthContent.includes('"reply"'),
-          hasSummary: synthContent.includes('"summary"'),
-          hasSections: synthContent.includes('"sections"'),
-        });
-        const synthParsed = safeJsonObjectFromContent(synthContent);
-        logger.info("runKoruBackendTurn", "Fast-path synth parsed", {
-          parsedKeys: Object.keys(synthParsed),
-          hasReply: !!synthParsed.reply,
-          hasSummary: !!synthParsed.summary,
-          hasSections: !!synthParsed.sections,
-          sectionsLength: Array.isArray(synthParsed.sections) ? synthParsed.sections.length : -1,
-        });
-        synthReply = cleanReplyText(synthParsed.reply || "");
-        synthMascot = cleanText(synthParsed.mascotState) || "happy";
-        synthSummary = cleanText(synthParsed.summary || "");
-        // Normalizar sections del LLM al formato que espera el deliverable
-        const rawSections = Array.isArray(synthParsed.sections) ? synthParsed.sections : [];
-        synthSections = rawSections.map((s: any, i: number) => ({
-          icon: i === 0 ? "auto_awesome" : i === 1 ? "fact_check" : "insights",
-          title: cleanText(s.title) || `Sección ${i + 1}`,
-          kicker: i === 0 ? "LO ESENCIAL" : i === 1 ? "DATOS" : "CONTEXTO",
-          kind: s.kind === "bullets" ? "bullets" : "text",
-          paragraphs: Array.isArray(s.paragraphs) ? s.paragraphs.map((p: any) => String(p)) : undefined,
-          bullets: Array.isArray(s.bullets) ? s.bullets.map((b: any) => String(b)) : undefined,
-        })).filter((s: any) => s.paragraphs?.length || s.bullets?.length);
-      } catch (err: any) {
-        logger.warn("runKoruBackendTurn", "Fast-path synth LLM call failed", { error: err?.message });
-      }
-
-      // 🔴 FIX: enriquecer los toolBlocks con la síntesis del LLM
-      const toolBlocks = blocksFromToolResults(toolExecutions);
-      // Si el LLM no generó summary, usar el reply como summary (al menos es redactado)
-      const effectiveSummary = synthSummary || (synthReply.length > 30 ? synthReply : "");
-      // Aplicar síntesis del LLM a los deliverables (summary SIEMPRE, sections si hay)
-      for (const block of toolBlocks) {
-        if (block.type === "deliverable") {
-          if (effectiveSummary && effectiveSummary.length > 20) {
-            block.summary = effectiveSummary;
-            // También actualizar la section "Síntesis" si existe
-            const synthSection = (block.sections ?? []).find((s: any) => s.title === "Síntesis");
-            if (synthSection && synthSection.kind === "text") {
-              synthSection.paragraphs = [effectiveSummary];
-            }
-          }
-          if (synthSections.length > 0) {
-            // Reemplazar sections con las del LLM + agregar fuentes al final
-            const sourceSection = (block.sections ?? []).find((s: any) => s.title === "Fuentes");
-            block.sections = synthSections;
-            if (sourceSection) {
-              block.sections.push(sourceSection);
-            }
-            block.metrics = [
-              { value: String((block.sources ?? []).length), label: "Fuentes" },
-              { value: String(synthSections.length), label: "Secciones" },
-            ];
-          }
-        }
-      }
-
+      // 🔴 FIX MACRO: UN SOLO LLM call. El system prompt ya le dice al LLM
+      // que reply debe ser corto y que los datos van en la card.
+      // finalizePayloadWithFastModel hace la llamada con tools en contexto.
+      const fastConfig = { ...config, nvidiaModel: config.nvidiaModel };
       const response = await finalizePayloadWithFastModel(
         request,
-        synthConfig,
-        { reply: synthReply, mascotState: synthMascot, uiBlocks: [] } as Record<string, unknown>,
+        fastConfig,
+        { reply: "", mascotState: "happy", uiBlocks: [] } as Record<string, unknown>,
         toolExecutions,
         30_000,
       );
 
-      // 🔴 APLICAR SÍNTESIS AQUÍ — directamente sobre response.uiBlocks
-      if (response.uiBlocks) {
+      // 🔴 Aplicar enriquecimiento: usar el reply del LLM como summary del deliverable
+      if (response.uiBlocks && response.reply && response.reply.length > 20) {
         for (const block of response.uiBlocks) {
           if (block.type === "deliverable") {
-            if (effectiveSummary && effectiveSummary.length > 20) {
-              block.summary = effectiveSummary;
+            // Solo reemplazar si el summary actual son snippets crudos
+            const currentSummary = block.summary ?? "";
+            const looksLikeSnippets = currentSummary.length > 100 &&
+              currentSummary.split('. ').length > 4 &&
+              !/[¡!]/.test(currentSummary.slice(0, 20));
+            if (looksLikeSnippets || !currentSummary) {
+              block.summary = response.reply;
               const synthSection = (block.sections ?? []).find((s: any) => s.title === "Síntesis");
               if (synthSection && synthSection.kind === "text") {
-                synthSection.paragraphs = [effectiveSummary];
+                synthSection.paragraphs = [response.reply];
               }
-            }
-            if (synthSections.length > 0) {
-              const sourceSection = (block.sections ?? []).find((s: any) => s.title === "Fuentes");
-              block.sections = synthSections;
-              if (sourceSection) block.sections.push(sourceSection);
-              block.metrics = [
-                { value: String((block.sources ?? []).length), label: "Fuentes" },
-                { value: String(synthSections.length), label: "Secciones" },
-              ];
             }
           }
         }
       }
 
       const taskKicker = fastPathKickerForCategory(routeCategory ?? "conversation");
-      if (!response.reply || response.reply.length < 10 || response.reply.includes("Rating:") || response.reply.includes("· Dir:")) {
-        response.reply = synthReply || `Te dejé ${taskKicker.toLowerCase()} en la tarjeta.`;
+      if (!response.reply || response.reply.length < 10) {
+        response.reply = `Te dejé ${taskKicker.toLowerCase()} en la tarjeta.`;
       }
       return { ...response, provider, model, fallbackReason: "fastpath-skip-router" };
     }
