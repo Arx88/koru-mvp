@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import type { CSSProperties } from "react";
 import type { Detail, DetailSection, Accent } from "./presentation";
 
@@ -178,7 +179,7 @@ export function KoruDetailScreen({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
-  return (
+  return createPortal(
     <div className="koru-roadmap" role="dialog" aria-label={detail.title}>
       <div className="koru-roadmap-screen">
         <div className="koru-roadmap-blob-1" />
@@ -217,6 +218,7 @@ export function KoruDetailScreen({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
