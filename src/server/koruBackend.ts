@@ -1192,9 +1192,6 @@ async function geocodeCity(city: string): Promise<{ name: string; latitude: numb
 }
 
 export async function getWeather(args: Record<string, unknown>): Promise<WeatherData> {
-  // NUNCA inventar la ubicación (antes caía a "Madrid" y le daba el clima de
-  // otra ciudad al usuario). Sin ciudad → status need_city: el composer
-  // pregunta una sola vez y la ciudad queda guardada como memoria de perfil.
   const requestedCity = cleanText(args.city);
   if (!requestedCity) {
     return {
@@ -1205,47 +1202,105 @@ export async function getWeather(args: Record<string, unknown>): Promise<Weather
       sources: [],
     };
   }
+
+  // 🔴 FIX MACRO: usar wttr.in como fuente PRINCIPAL (sin rate limits, sin API key).
+  // open-meteo como fallback si wttr.in falla.
+  try {
+    const wttrUrl = `https://wttr.in/${encodeURIComponent(requestedCity)}?format=j1`;
+    const wttrRes = await fetchWithTimeout(wttrUrl, { headers: { "User-Agent": "Koru/1.0" } }, 10_000);
+    if (wttrRes.ok) {
+      const wttr = await wttrRes.json() as {
+        current_condition?: Array<{ temp_C?: string; humidity?: string; windspeedKmph?: string; weatherDesc?: Array<{ value?: string }> }>;
+        weather?: Array<{ mintempC?: string[]; maxtempC?: string[]; hourly?: Array<{ chanceofrain?: string[] }> }>;
+        nearest_area?: Array<{ areaName?: Array<{ value?: string }>; country?: Array<{ value?: string }> }>;
+      };
+      const cur = wttr.current_condition?.[0];
+      const area = wttr.nearest_area?.[0];
+      const cityName = area?.areaName?.[0]?.value ?? requestedCity;
+      const country = area?.country?.[0]?.value ?? "";
+      const temp = cur?.temp_C ? parseInt(cur.temp_C) : undefined;
+      const wind = cur?.windspeedKmph ? parseInt(cur.windspeedKmph) : undefined;
+      const desc = cur?.weatherDesc?.[0]?.value?.trim() ?? "";
+      const max = wttr.weather?.[0]?.maxtempC?.[0] ? parseInt(wttr.weather[0].maxtempC[0]) : undefined;
+      const min = wttr.weather?.[0]?.mintempC?.[0] ? parseInt(wttr.weather[0].mintempC[0]) : undefined;
+      const rain = wttr.weather?.[0]?.hourly?.[0]?.chanceofrain?.[0] ? parseInt(wttr.weather[0].hourly[0].chanceofrain[0]) : undefined;
+
+      if (temp !== undefined) {
+        const advice = [
+          `${Math.round(temp)} C ahora`,
+          rain !== undefined && rain >= 50 ? "conviene paraguas" : rain !== undefined ? "lluvia poco probable" : undefined,
+          min !== undefined && min <= 10 ? "lleva abrigo si sales tarde" : undefined,
+        ].filter(Boolean).join("; ");
+        return {
+          type: "weather",
+          city: country ? `${cityName}, ${country}` : cityName,
+          now: `${Math.round(temp)} C`,
+          range: min !== undefined && max !== undefined ? `${Math.round(min)}-${Math.round(max)} C` : undefined,
+          rain: rain !== undefined ? `${rain}%` : undefined,
+          wind: wind !== undefined ? `${Math.round(wind)} km/h` : undefined,
+          advice: advice || "Clima consultado.",
+          sources: [sourceFromUrl("wttr.in", "https://wttr.in/", "Datos de clima en tiempo real.")],
+        };
+      }
+    }
+  } catch {
+    // wttr.in falló, intentar open-meteo
+  }
+
+  // Fallback: open-meteo
   const location = await geocodeCity(requestedCity);
   if (!location) {
     return {
       type: "weather",
       city: requestedCity,
-      advice: "No pude ubicar esa ciudad con Open-Meteo. No invento clima.",
+      advice: "No pude ubicar esa ciudad. No invento clima.",
       sources: [],
     };
   }
-  const url = new URL("https://api.open-meteo.com/v1/forecast");
-  url.searchParams.set("latitude", String(location.latitude));
-  url.searchParams.set("longitude", String(location.longitude));
-  url.searchParams.set("current", "temperature_2m,precipitation,wind_speed_10m");
-  url.searchParams.set("hourly", "precipitation_probability,temperature_2m");
-  url.searchParams.set("daily", "temperature_2m_max,temperature_2m_min,precipitation_probability_max");
-  url.searchParams.set("timezone", "auto");
-  const response = await fetchWithTimeout(url.toString(), { headers: { Accept: "application/json" } }, 15_000);
-  const data = await response.json().catch(() => ({})) as {
-    current?: { temperature_2m?: number; precipitation?: number; wind_speed_10m?: number };
-    daily?: { temperature_2m_max?: number[]; temperature_2m_min?: number[]; precipitation_probability_max?: number[] };
-  };
-  const current = data.current;
-  const max = data.daily?.temperature_2m_max?.[0];
-  const min = data.daily?.temperature_2m_min?.[0];
-  const rain = data.daily?.precipitation_probability_max?.[0];
-  const wind = current?.wind_speed_10m;
-  const temp = current?.temperature_2m;
-  const advice = [
-    temp !== undefined ? `${Math.round(temp)} C ahora` : undefined,
-    rain !== undefined && rain >= 50 ? "conviene paraguas" : rain !== undefined ? "lluvia poco probable" : undefined,
-    min !== undefined && min <= 10 ? "lleva abrigo si sales tarde" : undefined,
-  ].filter(Boolean).join("; ");
+  try {
+    const url = new URL("https://api.open-meteo.com/v1/forecast");
+    url.searchParams.set("latitude", String(location.latitude));
+    url.searchParams.set("longitude", String(location.longitude));
+    url.searchParams.set("current", "temperature_2m,precipitation,wind_speed_10m");
+    url.searchParams.set("daily", "temperature_2m_max,temperature_2m_min,precipitation_probability_max");
+    url.searchParams.set("timezone", "auto");
+    const response = await fetchWithTimeout(url.toString(), { headers: { Accept: "application/json" } }, 10_000);
+    const data = await response.json().catch(() => ({})) as {
+      current?: { temperature_2m?: number; wind_speed_10m?: number };
+      daily?: { temperature_2m_max?: number[]; temperature_2m_min?: number[]; precipitation_probability_max?: number[] };
+    };
+    const temp = data.current?.temperature_2m;
+    const max = data.daily?.temperature_2m_max?.[0];
+    const min = data.daily?.temperature_2m_min?.[0];
+    const rain = data.daily?.precipitation_probability_max?.[0];
+    const wind = data.current?.wind_speed_10m;
+    if (temp !== undefined) {
+      const advice = [
+        `${Math.round(temp)} C ahora`,
+        rain !== undefined && rain >= 50 ? "conviene paraguas" : rain !== undefined ? "lluvia poco probable" : undefined,
+        min !== undefined && min <= 10 ? "lleva abrigo si sales tarde" : undefined,
+      ].filter(Boolean).join("; ");
+      return {
+        type: "weather",
+        city: location.name,
+        now: `${Math.round(temp)} C`,
+        range: min !== undefined && max !== undefined ? `${Math.round(min)}-${Math.round(max)} C` : undefined,
+        rain: rain !== undefined ? `${rain}%` : undefined,
+        wind: wind !== undefined ? `${Math.round(wind)} km/h` : undefined,
+        advice: advice || "Clima consultado.",
+        sources: [sourceFromUrl("Open-Meteo", "https://open-meteo.com/", "Datos abiertos de clima.")],
+      };
+    }
+  } catch {
+    // open-meteo también falló
+  }
+
+  // Si ambas fuentes fallan, devolver sin datos (el fallback universal lo maneja)
   return {
     type: "weather",
-    city: location.name,
-    now: temp !== undefined ? `${Math.round(temp)} C` : undefined,
-    range: min !== undefined && max !== undefined ? `${Math.round(min)}-${Math.round(max)} C` : undefined,
-    rain: rain !== undefined ? `${rain}%` : undefined,
-    wind: wind !== undefined ? `${Math.round(wind)} km/h` : undefined,
-    advice: advice || "Clima consultado con fuente abierta.",
-    sources: [sourceFromUrl("Open-Meteo", "https://open-meteo.com/", "Datos abiertos de clima y pronostico.")],
+    city: requestedCity,
+    advice: "No pude obtener el clima en este momento.",
+    sources: [],
   };
 }
 
