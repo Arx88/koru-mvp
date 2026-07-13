@@ -5256,42 +5256,25 @@ export async function runKoruBackendTurn(
         toolCount: toolExecutions.length,
       });
 
-      // 🔴 FIX MACRO: UN SOLO LLM call. El system prompt ya le dice al LLM
-      // que reply debe ser corto y que los datos van en la card.
-      // finalizePayloadWithFastModel hace la llamada con tools en contexto.
+      // 🔴 FIX MACRO: CERO LLM calls para el fast-path skip-router.
+      // Armar el deliverable directamente desde los tool results.
+      // El reply se genera con replyFromBlocks (mecánico pero rápido).
+      // Esto elimina los timeouts causados por múltiples LLM calls.
       const fastConfig = { ...config, nvidiaModel: config.nvidiaModel };
-      const response = await finalizePayloadWithFastModel(
-        request,
-        fastConfig,
-        { reply: "", mascotState: "happy", uiBlocks: [] } as Record<string, unknown>,
-        toolExecutions,
-        30_000,
-      );
-
-      // 🔴 Aplicar enriquecimiento: usar el reply del LLM como summary del deliverable
-      if (response.uiBlocks && response.reply && response.reply.length > 20) {
-        for (const block of response.uiBlocks) {
-          if (block.type === "deliverable") {
-            // Solo reemplazar si el summary actual son snippets crudos
-            const currentSummary = block.summary ?? "";
-            const looksLikeSnippets = currentSummary.length > 100 &&
-              currentSummary.split('. ').length > 4 &&
-              !/[¡!]/.test(currentSummary.slice(0, 20));
-            if (looksLikeSnippets || !currentSummary) {
-              block.summary = response.reply;
-              const synthSection = (block.sections ?? []).find((s: any) => s.title === "Síntesis");
-              if (synthSection && synthSection.kind === "text") {
-                synthSection.paragraphs = [response.reply];
-              }
-            }
-          }
-        }
-      }
-
+      const toolBlocks = blocksFromToolResults(toolExecutions);
+      const blockReply = replyFromBlocks(toolBlocks, request.input);
       const taskKicker = fastPathKickerForCategory(routeCategory ?? "conversation");
-      if (!response.reply || response.reply.length < 10) {
-        response.reply = `Te dejé ${taskKicker.toLowerCase()} en la tarjeta.`;
+      const effectiveReply = blockReply || `Te dejé ${taskKicker.toLowerCase()} en la tarjeta.`;
+
+      // Memory extractor (no bloqueante — corre en paralelo si hay tiempo)
+      let response: KoruBackendTurnResponse;
+      try {
+        const extracted = await extractMemoryWithJsonPrompt(request, fastConfig, toolExecutions, { reply: effectiveReply, uiBlocks: [] }, 15_000);
+        response = normalizeFinalPayload({ reply: effectiveReply, mascotState: "happy", uiBlocks: [] }, request.input, toolExecutions, extracted.raw);
+      } catch {
+        response = normalizeFinalPayload({ reply: effectiveReply, mascotState: "happy", uiBlocks: [] }, request.input, toolExecutions);
       }
+
       return { ...response, provider, model, fallbackReason: "fastpath-skip-router" };
     }
 
