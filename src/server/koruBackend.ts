@@ -5441,7 +5441,9 @@ export async function runKoruBackendTurn(
 
             // Enriquecer toolBlocks con la síntesis
             const routerToolBlocks = blocksFromToolResults(toolExecutions);
-            const effectiveSummary2 = routerSynthSummary || (routerSynthReply.length > 30 ? routerSynthReply : "");
+            // 🔴 Si el LLM no generó summary, usar el reply como summary
+            // El reply del LLM es texto redactado, no snippets crudos
+            const effectiveSummary2 = routerSynthSummary || (routerSynthReply.length > 20 ? routerSynthReply : "");
             for (const block of routerToolBlocks) {
               if (block.type === "deliverable") {
                 if (effectiveSummary2 && effectiveSummary2.length > 20) {
@@ -5468,6 +5470,29 @@ export async function runKoruBackendTurn(
               { reply: routerSynthReply, mascotState: routerSynthMascot, uiBlocks: [] } as Record<string, unknown>,
               toolExecutions, 30_000, routerToolBlocks,
             );
+            // 🔴 Aplicar effectiveSummary2 también a los uiBlocks finales (que se regeneran en normalizeFinalPayload)
+            if (response.uiBlocks) {
+              for (const block of response.uiBlocks) {
+                if (block.type === "deliverable") {
+                  if (effectiveSummary2 && effectiveSummary2.length > 20) {
+                    block.summary = effectiveSummary2;
+                    const synthSection = (block.sections ?? []).find((s: any) => s.title === "Síntesis");
+                    if (synthSection && synthSection.kind === "text") {
+                      synthSection.paragraphs = [effectiveSummary2];
+                    }
+                  }
+                  if (routerSynthSections.length > 0) {
+                    const sourceSection = (block.sections ?? []).find((s: any) => s.title === "Fuentes");
+                    block.sections = routerSynthSections;
+                    if (sourceSection) block.sections.push(sourceSection);
+                    block.metrics = [
+                      { value: String((block.sources ?? []).length), label: "Fuentes" },
+                      { value: String(routerSynthSections.length), label: "Secciones" },
+                    ];
+                  }
+                }
+              }
+            }
             return { ...response, provider, model, fallbackReason: "router-" + route.category };
           }
           messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }." });
