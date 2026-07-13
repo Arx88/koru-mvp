@@ -5241,15 +5241,17 @@ export async function runKoruBackendTurn(
 
       // 🔴 FIX: enriquecer los toolBlocks con la síntesis del LLM
       const toolBlocks = blocksFromToolResults(toolExecutions);
+      // Si el LLM no generó summary, usar el reply como summary (al menos es redactado)
+      const effectiveSummary = synthSummary || (synthReply.length > 30 ? synthReply : "");
       // Aplicar síntesis del LLM a los deliverables (summary SIEMPRE, sections si hay)
       for (const block of toolBlocks) {
         if (block.type === "deliverable") {
-          if (synthSummary && synthSummary.length > 20) {
-            block.summary = synthSummary;
+          if (effectiveSummary && effectiveSummary.length > 20) {
+            block.summary = effectiveSummary;
             // También actualizar la section "Síntesis" si existe
             const synthSection = (block.sections ?? []).find((s: any) => s.title === "Síntesis");
             if (synthSection && synthSection.kind === "text") {
-              synthSection.paragraphs = [synthSummary];
+              synthSection.paragraphs = [effectiveSummary];
             }
           }
           if (synthSections.length > 0) {
@@ -5279,11 +5281,11 @@ export async function runKoruBackendTurn(
       if (response.uiBlocks) {
         for (const block of response.uiBlocks) {
           if (block.type === "deliverable") {
-            if (synthSummary && synthSummary.length > 20) {
-              block.summary = synthSummary;
+            if (effectiveSummary && effectiveSummary.length > 20) {
+              block.summary = effectiveSummary;
               const synthSection = (block.sections ?? []).find((s: any) => s.title === "Síntesis");
               if (synthSection && synthSection.kind === "text") {
-                synthSection.paragraphs = [synthSummary];
+                synthSection.paragraphs = [effectiveSummary];
               }
             }
             if (synthSections.length > 0) {
