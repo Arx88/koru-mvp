@@ -255,6 +255,23 @@ const ROUTE_EXAMPLES: Array<{ category: RouteCategory; tool?: RouteTool; text: s
   { category: "sports", tool: "match_schedule", text: "próximo partido de Argentina" },
   { category: "sports", tool: "match_schedule", text: "cuándo juega España" },
   { category: "sports", tool: "match_schedule", text: "cuándo juega Francia" },
+  // 🔴 FIX: ejemplos SIN tildes (los usuarios escriben sin tildes)
+  { category: "sports", tool: "match_live", text: "como salio hoy Argentina" },
+  { category: "sports", tool: "match_live", text: "como salio España" },
+  { category: "sports", tool: "match_live", text: "como salio Boca" },
+  { category: "sports", tool: "match_live", text: "como salio River" },
+  { category: "sports", tool: "match_live", text: "como salio el Madrid" },
+  { category: "sports", tool: "match_live", text: "como salio Barcelona" },
+  { category: "sports", tool: "match_live", text: "como le fue a Argentina" },
+  { category: "sports", tool: "match_live", text: "como le fue a Boca hoy" },
+  { category: "sports", tool: "match_live", text: "como le fue a España ayer" },
+  { category: "sports", tool: "match_live", text: "resultado de Argentina" },
+  { category: "sports", tool: "match_live", text: "resultado de Boca" },
+  { category: "sports", tool: "match_live", text: "resultado de España" },
+  { category: "sports", tool: "match_live", text: "quien gano Argentina" },
+  { category: "sports", tool: "match_live", text: "quien gano el partido" },
+  { category: "sports", tool: "match_live", text: "como va Argentina" },
+  { category: "sports", tool: "match_live", text: "como va Boca" },
 
   // market → crypto_price / stock_quote / currency_convert
   { category: "market", tool: "crypto_price", text: "precio del bitcoin" },
