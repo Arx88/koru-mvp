@@ -18,7 +18,7 @@ import { generateEnhancements, enhancementPrompt } from "../domain/enhancementEn
 import { extractOpportunities } from "../domain/enhancementExtractor";
 import { extractStructuredData, type ChatFn as ExtractorChatFn, type ExtractionResult } from "../domain/structureExtractor";
 import { detectSimulatedToolCall } from "../domain/simulatedToolDetector";
-import { SemanticRouter, type EmbedFn, type RouteResult, type RouteCategory } from "../domain/semanticRouter";
+import { SemanticRouter, type EmbedFn, type RouteResult, type RouteCategory, keywordFastPath } from "../domain/semanticRouter";
 import { logger, dump } from "./logger";
 import type { ToolDefinition } from "../tools/types";
 
@@ -4950,6 +4950,53 @@ export async function runKoruBackendTurn(
   }
 
   if (inputTrimmed.length >= 3) {
+    // 🔴 FIX ESTRUCTURAL: keyword fast-path determinístico ANTES del router semántico.
+    // Esto funciona SIN necesidad de embeddings (Ollama/NVIDIA), asegurando que
+    // los intents de alta confianza (sports, weather, food, media) se detecten
+    // correctamente incluso si el router semántico no está disponible.
+    const fastPathResult = keywordFastPath(request.input);
+    if (fastPathResult) {
+      logger.info("runKoruBackendTurn", "Keyword fast-path match", {
+        category: fastPathResult.category,
+        tool: fastPathResult.tool ?? "none",
+        confidence: fastPathResult.confidence.toFixed(2),
+      });
+      routeCategory = fastPathResult.category;
+      // Simular el resultado del router para reutilizar el flujo existente
+      const route = fastPathResult;
+      // deep_research tiene su propio pipeline
+      if (route.tool === "deep_research") {
+        const topic = cleanText(route.toolArgs?.topic) || cleanText(route.toolArgs?.query) || inputTrimmed;
+        return await runDeepResearchFlow(topic, request, config, preferredProvider, onChunk);
+      }
+      if (route.tool) {
+        const syntheticToolCall: ProviderToolCall = {
+          id: `fastpath_${Date.now()}`,
+          type: "function",
+          function: { name: route.tool, arguments: JSON.stringify(route.toolArgs ?? {}) },
+        };
+        const query = route.tool === "web_search" ? cleanText(route.toolArgs?.query as string) : undefined;
+        const shortSearchLabel = query ? searchLabelFromInput(query) : "Buscando en la web";
+        onChunk?.({
+          reply: shortSearchLabel,
+          uiBlocks: query ? [{ type: "web_nav" as const, title: "Navegación Web", status: "loading" as const, query, results: [] }] : [],
+          suggestedActions: [],
+          understanding: { literalRequest: request.input, userGoal: route.category, unstatedNeeds: [], assumptions: [], confidence: route.confidence },
+          memoryCandidates: [], commitments: [], records: [], toolResults: [],
+          stateEvents: [{ kind: "searching" as const, label: shortSearchLabel }],
+          mascotState: "working",
+          provider, model, fallbackReason: "fastpath-" + route.category,
+        });
+        const delivered = await executeProviderToolCalls([syntheticToolCall], messages, request, toolExecutions, config);
+        if (delivered) {
+          const fastConfig = { ...config, nvidiaModel: config.nvidiaFastModel || "meta/llama-3.1-8b-instruct" };
+          const response = await finalizePayloadWithFastModel(request, fastConfig, delivered, toolExecutions, 30_000);
+          return { ...response, provider, model, fallbackReason: "fastpath-" + route.category };
+        }
+      }
+    }
+
+    // Si el fast-path no matcheó, caer al router semántico (que requiere embeddings)
     const router = await getRouter(config);
     if (router) {
       try {

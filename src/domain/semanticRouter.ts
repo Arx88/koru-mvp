@@ -661,6 +661,16 @@ function extractToolArgs(message: string, tool?: RouteTool): Record<string, unkn
 // ============================================================================
 
 /**
+ * 🔴 FIX ESTRUCTURAL: Keyword-based fast-path determinístico.
+ * Exportada para que pueda llamarse directamente desde koruBackend.ts
+ * SIN necesidad de inicializar el router semántico (que requiere embeddings).
+ *
+ * Esto asegura que los intents de alta confianza (sports, weather, food, media)
+ * se detecten correctamente incluso si el router semántico no está disponible
+ * (ej: sin Ollama, sin NVIDIA API key para embeddings).
+ */
+
+/**
  * Equipos de fútbol conocidos para el fast-path de sports.
  * Incluye selecciones nacionales y clubes principales.
  */
@@ -692,21 +702,10 @@ const KNOWN_TEAMS = [
   "celtic", "rangers",
 ];
 
-/**
- * Detecta si el mensaje es una consulta de resultado deportivo.
- * Patrones cubiertos (insensibles a tildes):
- * - "como salio [equipo]"
- * - "como le fue a [equipo]"
- * - "resultado de [equipo]"
- * - "quien gano [equipo]"
- * - "como va [equipo]"
- * - "[equipo] hoy/ayer/mañana"
- */
-function keywordFastPath(message: string): RouteResult | null {
+export function keywordFastPath(message: string): RouteResult | null {
   const normalized = foldAccents(message);
 
   // ── SPORTS: resultado deportivo ──
-  // Patrones de intención deportiva
   const sportsIntentPatterns = [
     /\b(como salio|como salieron|como le fue|como les fue|como va|como van|quien gano|quien ganaron|resultado de|resultados de|marcador de|score de)\b/,
   ];
@@ -714,7 +713,6 @@ function keywordFastPath(message: string): RouteResult | null {
   const hasSportsWord = /\b(partido|partidos|futbol|football|soccer|copa|mundial|champions|europa|libertadores|liga|premier|serie a|bundesliga)\b/.test(normalized);
 
   if (sportsIntentPatterns.some(p => p.test(normalized)) && (mentionsTeam || hasSportsWord)) {
-    // Extraer el equipo del mensaje
     const teamMatch = KNOWN_TEAMS.find(team => normalized.includes(foldAccents(team)));
     const temporalMatch = normalized.match(/\b(hoy|ayer|manana|anteayer|pasado manana|el sabado|el domingo|el lunes|el martes|el miercoles|el jueves|el viernes)\b/);
     const query = teamMatch
@@ -723,7 +721,7 @@ function keywordFastPath(message: string): RouteResult | null {
     return {
       category: "sports",
       tool: "match_live",
-      confidence: 0.99, // confianza máxima — match de keyword determinístico
+      confidence: 0.99,
       toolArgs: { query },
     };
   }
@@ -740,7 +738,6 @@ function keywordFastPath(message: string): RouteResult | null {
 
   // ── FOOD: recetas ──
   if (/\b(receta|recetas|como hago|como preparo|como cocino|que cocino|que preparo|plato|comida|postre|almuerzo|cena|desayuno|merienda)\b/.test(normalized)) {
-    // Extraer el tema de la receta
     const recetaMatch = normalized.match(/(?:receta de|como hago|como preparo|como cocino|que cocino|que preparo)\s+(.*)/);
     const query = recetaMatch?.[1]?.replace(/[?!.].*$/, "").trim() ?? message;
     return {
@@ -753,7 +750,6 @@ function keywordFastPath(message: string): RouteResult | null {
 
   // ── MEDIA: película / libro ──
   if (/\b(pelicula|peliculas|serie|series|documental|peli)\b/.test(normalized)) {
-    // Extraer el título de la película
     const movieMatch = normalized.match(/(?:pelicula|peli|serie|documental)\s+(?:["']([^"']+)["']|([a-z0-9\s]+))/);
     const title = movieMatch?.[1] ?? movieMatch?.[2] ?? message.replace(/.*pelicula\s+/i, "").replace(/[?!.].*$/, "").trim();
     return {
@@ -784,6 +780,5 @@ function keywordFastPath(message: string): RouteResult | null {
     };
   }
 
-  // No hubo match de keyword — caer al router semántico
   return null;
 }
