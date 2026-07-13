@@ -5292,10 +5292,9 @@ export async function runKoruBackendTurn(
         { reply: synthReply, mascotState: synthMascot, uiBlocks: [] } as Record<string, unknown>,
         toolExecutions,
         30_000,
-        toolBlocks, // 🔴 pasar los toolBlocks ya enriquecidos con síntesis LLM
       );
 
-      // 🔴 FIX: aplicar síntesis del LLM a los uiBlocks finales también
+      // 🔴 APLICAR SÍNTESIS AQUÍ — directamente sobre response.uiBlocks
       if (response.uiBlocks) {
         for (const block of response.uiBlocks) {
           if (block.type === "deliverable") {
@@ -5439,38 +5438,18 @@ export async function runKoruBackendTurn(
               logger.warn("runKoruBackendTurn", "Router synth LLM call failed", { error: err?.message });
             }
 
-            // Enriquecer toolBlocks con la síntesis
-            const routerToolBlocks = blocksFromToolResults(toolExecutions);
-            // 🔴 Si el LLM no generó summary, usar el reply como summary
-            // El reply del LLM es texto redactado, no snippets crudos
+            // 🔴 FIX: calcular effectiveSummary2 ANTES de finalizePayloadWithFastModel
+            // pero aplicar SOLO DESPUÉS a response.uiBlocks
             const effectiveSummary2 = routerSynthSummary || (routerSynthReply.length > 20 ? routerSynthReply : "");
-            for (const block of routerToolBlocks) {
-              if (block.type === "deliverable") {
-                if (effectiveSummary2 && effectiveSummary2.length > 20) {
-                  block.summary = effectiveSummary2;
-                  const synthSection = (block.sections ?? []).find((s: any) => s.title === "Síntesis");
-                  if (synthSection && synthSection.kind === "text") {
-                    synthSection.paragraphs = [effectiveSummary2];
-                  }
-                }
-                if (routerSynthSections.length > 0) {
-                  const sourceSection = (block.sections ?? []).find((s: any) => s.title === "Fuentes");
-                  block.sections = routerSynthSections;
-                  if (sourceSection) block.sections.push(sourceSection);
-                  block.metrics = [
-                    { value: String((block.sources ?? []).length), label: "Fuentes" },
-                    { value: String(routerSynthSections.length), label: "Secciones" },
-                  ];
-                }
-              }
-            }
 
             const response = await finalizePayloadWithFastModel(
               request, synthConfig2,
               { reply: routerSynthReply, mascotState: routerSynthMascot, uiBlocks: [] } as Record<string, unknown>,
-              toolExecutions, 30_000, routerToolBlocks,
+              toolExecutions, 30_000,
             );
-            // 🔴 Aplicar effectiveSummary2 también a los uiBlocks finales (que se regeneran en normalizeFinalPayload)
+
+            // 🔴 APLICAR SÍNTESIS AQUÍ — directamente sobre response.uiBlocks
+            // Esto es lo ÚNICO que funciona porque normalizeFinalPayload regenera los toolBlocks
             if (response.uiBlocks) {
               for (const block of response.uiBlocks) {
                 if (block.type === "deliverable") {
