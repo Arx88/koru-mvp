@@ -319,7 +319,22 @@ function deliverable(b: Of<"deliverable">): KoruPresentation {
       desc: b.description,
       icon: "auto_awesome",
       accent: A.violet,
-      art: "/stitch/plan-illustration.png",
+      // 🔴 FIX UX: icono según el kicker del deliverable
+      art: (() => {
+        const k = (b.kicker ?? "").toLowerCase();
+        if (k.includes("pel") || k.includes("movie")) return "/stitch/icons/search-web.png";
+        if (k.includes("receta") || k.includes("comida")) return "/stitch/icons/wellness.png";
+        if (k.includes("clima") || k.includes("weather")) return "/stitch/icons/search-web.png";
+        if (k.includes("partido") || k.includes("deport")) return "/stitch/icons/sports.png";
+        if (k.includes("libro") || k.includes("book")) return "/stitch/icons/search-knowledge.png";
+        if (k.includes("búsqueda") || k.includes("search")) return "/stitch/icons/search-web.png";
+        if (k.includes("informe") || k.includes("reporte") || k.includes("investigaci")) return "/stitch/icons/tech-analysis.png";
+        if (k.includes("plan")) return "/stitch/icons/tasks.png";
+        if (k.includes("cotiz") || k.includes("dolar") || k.includes("crypto") || k.includes("finanz")) return "/stitch/icons/finance.png";
+        if (k.includes("compar") || k.includes("compr")) return "/stitch/icons/shopping.png";
+        if (k.includes("viaje") || k.includes("travel")) return "/stitch/icons/travel.png";
+        return "/stitch/plan-illustration.png";
+      })(),
       metrics,
     },
     detail: {

@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp, ChevronLeft, Image as ImageIcon, Leaf, Mic, MicOff, Paperclip } from "lucide-react";
+import { ArrowUp, Image as ImageIcon, Leaf, Mic, MicOff, Paperclip } from "lucide-react";
 import { createSpeechSession, getSpeechSupport } from "../domain/speech";
 import { cn } from "../lib/utils";
 import { useKoru, PHASE_ORDER, type KoruChatTurn, type KoruTurnItem } from "./KoruProvider";
@@ -148,6 +148,23 @@ const WORKING_COPY: Partial<Record<AgentActivityKind, { title: string; subtitle:
 
 // Mapeo de fase interna → label visible + icono Material Symbols.
 // El demo muestra 4 chips: Entendí, Busqué, Comparando, Redactar.
+/** 🔴 FIX UX: Icono ilustrado según el tipo de tarea para el WorkingPanel */
+function getTaskIllustration(kicker?: string, kind?: string): string {
+  const k = (kicker ?? "").toLowerCase();
+  if (k.includes("pel") || k.includes("movie")) return "/stitch/icons/search-web.png";
+  if (k.includes("receta") || k.includes("recipe") || k.includes("comida")) return "/stitch/icons/wellness.png";
+  if (k.includes("clima") || k.includes("weather")) return "/stitch/icons/search-web.png";
+  if (k.includes("partido") || k.includes("match") || k.includes("deport")) return "/stitch/icons/sports.png";
+  if (k.includes("libro") || k.includes("book")) return "/stitch/icons/search-knowledge.png";
+  if (k.includes("búsqueda") || k.includes("search") || k.includes("web")) return "/stitch/icons/search-web.png";
+  if (k.includes("informe") || k.includes("reporte") || k.includes("investigaci")) return "/stitch/icons/tech-analysis.png";
+  if (k.includes("plan")) return "/stitch/icons/tasks.png";
+  if (k.includes("cotiz") || k.includes("dolar") || k.includes("crypto") || k.includes("finanz")) return "/stitch/icons/finance.png";
+  if (k.includes("compar") || k.includes("compr") || k.includes("shop")) return "/stitch/icons/shopping.png";
+  if (k.includes("viaje") || k.includes("travel") || k.includes("ruta")) return "/stitch/icons/travel.png";
+  return "/stitch/working-illustration.png";
+}
+
 // 🔴 FIX UX: chips de progreso DINÁMICOS según el tipo de tarea.
 // Cada tipo de tool tiene sus propios pasos específicos, no genéricos.
 // Esto sigue la idea de la imagen del usuario: "Leí tus mensajes" → "Detecté 12 tareas" → etc.
@@ -251,7 +268,7 @@ function WorkingPanel({ phase, kind, deliverable }: { phase: string | null; kind
 
   return (
     <section className="koru-working-panel" role="status" aria-live="polite">
-      <img src="/stitch/working-illustration.png" alt="" className="koru-working-illustration" />
+      <img src={getTaskIllustration(deliverable?.kicker, kind)} alt="" className="koru-working-illustration" />
       <div className="koru-working-copy">
         <h2>{copy.title}</h2>
         <p>{copy.subtitle}</p>
@@ -859,9 +876,7 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
         {/* Fondo dinámico — cambia según el estado de Koru */}
         <KoruBackground state={bgState} />
 
-        <button type="button" onClick={onClose} aria-label="Volver" className="koru-back-button">
-          <ChevronLeft size={22} />
-        </button>
+        {/* 🔴 FIX: back-button eliminado — el wheel (long-press) es la única navegación */}
         <h1 className="koru-sr-heading">Koru</h1>
 
         {/* Suggestion Pills — temas de conversaciones anteriores */}
