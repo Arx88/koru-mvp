@@ -5212,7 +5212,7 @@ export async function runKoruBackendTurn(
         ].join("\n"),
       });
 
-      const fastConfig = { ...config, nvidiaModel: config.nvidiaFastModel || "meta/llama-3.1-8b-instruct" };
+      const synthConfig = { ...config, nvidiaModel: config.nvidiaModel };
       let synthReply = "";
       let synthMascot = "happy";
       let synthTitle = "";
@@ -5220,7 +5220,7 @@ export async function runKoruBackendTurn(
       let synthSummary = "";
       let synthSections: any[] = [];
       try {
-        const synthResult = await callProvider(fastConfig, synthMessages, 45_000, false, undefined, undefined, fastConfig.nvidiaModel);
+        const synthResult = await callProvider(synthConfig, synthMessages, 45_000, false, undefined, undefined, synthConfig.nvidiaModel);
         const synthContent = cleanText(synthResult.message.content, "");
         const synthParsed = safeJsonObjectFromContent(synthContent);
         synthReply = cleanReplyText(synthParsed.reply || "");
@@ -5263,7 +5263,7 @@ export async function runKoruBackendTurn(
 
       const response = await finalizePayloadWithFastModel(
         request,
-        fastConfig,
+        synthConfig,
         { reply: synthReply, mascotState: synthMascot, uiBlocks: [] } as Record<string, unknown>,
         toolExecutions,
         30_000,
