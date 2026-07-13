@@ -3465,6 +3465,32 @@ function replyFromBlocks(blocks: UiBlock[], input: string): string {
   }
   if (first.type === "money_summary") return first.recommendation ?? "Te deje el resumen de dinero.";
   if (first.type === "proactive_signal") return first.body;
+  // 🔴 FIX: product_analysis (usado por movie_info, recipe_find, book_info, food_info)
+  if (first.type === "product_analysis") {
+    const name = first.product?.name ?? "Lo que pediste";
+    const desc = first.product?.description;
+    const rating = first.product?.rating;
+    const parts: string[] = [];
+    if (rating) parts.push(`Rating: ${rating}/10.`);
+    if (desc) parts.push(desc.slice(0, 300));
+    return parts.length > 0 ? `${name}. ${parts.join(" ")}` : `Te deje la info de ${name} en la tarjeta.`;
+  }
+  // 🔴 FIX: research_sources sin sources (wikipedia_lookup con texto)
+  if (first.type === "research_sources" && first.summary && !first.sources?.length) {
+    return first.summary.slice(0, 400);
+  }
+  // 🔴 FIX: data_card (usado por varios tools)
+  if (first.type === "data_card") {
+    return first.title ?? "Te deje los datos en la tarjeta.";
+  }
+  // 🔴 FIX: live_match (usado por match_live)
+  if (first.type === "live_match") {
+    return first.title ?? "Te deje el resultado del partido en la tarjeta.";
+  }
+  // 🔴 FIX: comparison con items (recipe_find segundas recetas)
+  if (first.type === "comparison" && first.items?.length) {
+    return `Te deje ${first.items.length} opciones en la tarjeta${first.title ? `: ${first.title}` : ""}.`;
+  }
   return "";
 }
 
