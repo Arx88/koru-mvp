@@ -5115,7 +5115,7 @@ export async function runKoruBackendTurn(
           tool_calls: [{
             id: exec.id || `call_${Date.now()}`,
             type: "function",
-            function: { name: exec.name, arguments: JSON.stringify(exec.args ?? {}) },
+            function: { name: exec.name, arguments: "{}" },
           }],
         });
         synthMessages.push({
