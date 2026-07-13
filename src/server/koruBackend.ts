@@ -2356,6 +2356,8 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
     `- Cuando guardás algo, confirmá brevemente qué guardaste y dónde. Una frase, no dos.`,
     `- Nunca inventes datos que no tengas. Si ejecutaste web_search, usá los snippets y contenidos proporcionados para dar un resumen honesto de lo que dicen las fuentes. No inventes detalles, pero SÍ contá lo que encontraste. Si no sabés, decilo con naturalidad.`,
     `- CRÍTICO: Si una tool externa (clima, búsqueda, ruta, precios) devuelve status "failed" o "not_configured", NO inventés los datos. Decile al usuario honestamente que no pudiste obtener esa información.`,
+    `- 🔴 CRÍTICO ANTI-ALUCINACIÓN DEPORTIVA: Si match_live devuelve status "no_data" o matches vacío, NO INVENTES RESULTADOS. NO digas "le ganaron 3-1 a Suiza" si la tool no devolvió ese partido. Decí honestamente: "No encontré partidos recientes de [equipo]. La temporada puede estar en receso." Es PEOR inventar un resultado falso que admitir que no hay datos.`,
+    `- 🔴 CRÍTICO ANTI-ALUCINACIÓN GENERAL: Si una tool devuelve status "no_data", "failed", o arrays vacíos (matches:[], recipes:[], sources:[]), NO inventes datos para llenar el vacío. Decí "no encontré" y pedí más contexto si hace falta. Un usuario que recibe "no encontré" puede refinar su pregunta; un usuario que recibe datos inventados pierde la confianza para siempre.`,
     `- CRÍTICO: Si el usuario responde con una ciudad o ubicación directamente después de que preguntaste por clima o tráfico, interpretalo como su ubicación. Ejecutá la tool correspondiente con esa ciudad y guardá esa ciudad como memory de perfil.`,
     `- CRÍTICO: Si el usuario te dice una ciudad, país o barrio y no lo tenés guardado como memoria, incluilo en memoryCandidates como kind: profile.`,
     `- CRÍTICO: Si el usuario pregunta algo que YA aparece en "Cosas que guardaste" o "Memorias relevantes", NO uses query_personal_context. Respondé directamente desde ese contexto.`,
@@ -2911,6 +2913,16 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
     }
     if (result.type === "match_live") {
       const r = result as any;
+      // 🔴 FIX CRÍTICO Anti-alucinación: si match_live devuelve status "no_data",
+      // NO generar block (evita card vacía o con datos inventados).
+      // El reply se forzará a ser honesto en normalizeFinalPayload.
+      if (r.status === "no_data" || r.status === "failed") {
+        // Marcar este tool execution para que normalizeFinalPayload sepa que no hay datos
+        // y fuerce un reply honesto en vez de dejar al LLM inventar.
+        (result as any).__forceHonestReply = true;
+        (result as any).__honestReplyText = r.note || r.error || `No encontré partidos recientes para "${r.query ?? ''}". La temporada puede estar en receso.`;
+        continue; // NO generar block — sin card, sin alucinación
+      }
       // El tool match_live devuelve { matches: [{homeTeam:"Spain", awayTeam:"Belgium", homeScore:2, awayScore:1, status:"Full Time", date:..., live:false}] }
       // (strings, no objetos). Soportamos también la forma legacy (r.homeTeam como objeto).
       const matches = Array.isArray(r.matches) ? r.matches : [];
@@ -3327,6 +3339,14 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
     // movie_info: usar el nuevo tipo movie_review con todos los campos ricos
     if (result.type === "movie_info") {
       const r = result as any;
+      // 🔴 FIX CRÍTICO: si movie_info devuelve status "failed" (no encontró la película),
+      // NO generar block (evita card vacía "TU PELÍCULA / PELÍCULA").
+      // Forzar reply honesto pidiendo más info o sugiriendo web_search.
+      if (r.status === "failed" || r.status === "no_data") {
+        (result as any).__forceHonestReply = true;
+        (result as any).__honestReplyText = `No encontré la película "${r.query ?? r.title ?? ''}" en mis fuentes. ¿Te referís a una película específica? Si me das el año o el director, lo intento de nuevo. También puedo buscar info general en la web si querés.`;
+        continue; // NO generar block — sin card vacía
+      }
       const title = r.title ?? "Película";
       const poster = r.poster ?? r.thumbnail;
       const rating = typeof r.rating === "number" ? r.rating : undefined;
@@ -3800,13 +3820,28 @@ function normalizeFinalPayload(
   }));
   const cleanedReply = cleanReplyText(raw.reply);
   const blockReply = replyFromBlocks(uiBlocks, input);
+
+  // 🔴 FIX CRÍTICO Anti-alucinación: si algún tool marcó __forceHonestReply
+  // (ej: match_live no encontró partidos), FORZAR el reply honesto.
+  // El LLM tiende a inventar resultados cuando la tool devuelve "no_data".
+  const honestForcedReply = toolExecutions
+    .map(e => e.result as any)
+    .find(r => r && r.__forceHonestReply);
+
   // 🔴 SAFETY NET FINAL: si después de toda la cadena de strippado el reply todavía
   // parece thinking del LLM (empieza con "The user", "I need to", etc.), reemplazar
   // con blockReply o mensaje de fallback. Esto es la última línea de defensa.
   const looksLikeThinking = /^(the user|i need to|let me|i should|i will|i'll|i am going to|i'm going to|step by step|first,?\s*i|okay,?\s*(so|i|let)|alright,?\s*(so|i|let))\b/i.test(cleanedReply);
-  const finalReply = !cleanedReply || isGenericAgentReply(cleanedReply) || looksLikeThinking
-    ? blockReply || "Tuve un problema para armar la respuesta. ¿Me lo repetís de otra forma para ayudarte bien?"
-    : cleanedReply;
+
+  let finalReply: string;
+  if (honestForcedReply) {
+    // Si hay un honestReply forzado, usarlo SIEMPRE (prioridad máxima)
+    finalReply = honestForcedReply.__honestReplyText || "No encontré datos sobre eso en este momento.";
+  } else if (!cleanedReply || isGenericAgentReply(cleanedReply) || looksLikeThinking) {
+    finalReply = blockReply || "Tuve un problema para armar la respuesta. ¿Me lo repetís de otra forma para ayudarte bien?";
+  } else {
+    finalReply = cleanedReply;
+  }
   return {
     reply: finalReply,
     uiBlocks,

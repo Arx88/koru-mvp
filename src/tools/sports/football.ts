@@ -290,17 +290,27 @@ export const matchLive: ToolHandler = {
         const summary = await summaryRes.json() as { extract?: string; content_urls?: { desktop?: { page: string } } };
         return {
           type: "match_live",
-          status: "ok",
+          // 🔴 FIX: status "no_data" (no "ok") cuando no hay partidos reales.
+          // El backend usa esto para bloquear alucinaciones del LLM.
+          status: "no_data",
           query,
           matches: [],
-          text: summary.extract ?? `Encontré información sobre ${title} pero no hay partidos recientes en las fuentes.`,
+          text: `No encontré partidos recientes de "${query}" en ESPN ni TheSportsDB. La temporada puede estar en receso. Acá va info general de Wikipedia sobre el equipo.`,
+          wikipediaExtract: summary.extract,
           sources: [{ title, url: summary.content_urls?.desktop?.page ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`, domain: "wikipedia.org", snippet: results[0].snippet?.replace(/<[^>]+>/g, "") }],
           source: "Wikipedia",
         };
       }
     } catch { /* ignore */ }
 
-    return { type: "match_live", status: "ok", query, matches: [], note: `No encontré partidos de "${query}" en este momento. La temporada puede estar en receso.` };
+    // 🔴 FIX: status "no_data" explícito — NO inventar resultados
+    return {
+      type: "match_live",
+      status: "no_data",
+      query,
+      matches: [],
+      note: `No encontré partidos de "${query}" en este momento. La temporada puede estar en receso.`,
+    };
   },
 };
 

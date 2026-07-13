@@ -259,6 +259,24 @@ export const movieInfo: ToolHandler = {
           })()
         : null;
 
+      // 🔴 FIX CRÍTICO: Si NO tenemos TMDB y Wikipedia no encontró la película específica,
+      // devolver status "failed" para que el backend haga fallback a web_search.
+      // Antes devolvía status "ok" con datos vacíos → card inaccesible sin info.
+      const hasTmdbData = Boolean(tmdbData.poster || tmdbData.overview || tmdbData.rating);
+      const wikiFoundMovie = wikiExtract && wikiExtract.text &&
+        // Verificar que el extracto de Wikipedia realmente trata sobre una película
+        // (no sobre el sentimiento "obsesión" u otros significados)
+        /\b(pel[ií]cula|film|movie|director|estren|cinematogr|actriz|actor|drama|thriller|comedia|terror|acci[oó]n)\b/i.test(wikiExtract.text);
+
+      if (!hasTmdbData && !wikiFoundMovie) {
+        return {
+          type: "movie_info",
+          status: "failed",
+          error: `No pude encontrar la película "${title}" en mis fuentes. Probá con web_search.`,
+          query: title,
+        };
+      }
+
       // Componer texto final: preferir overview de TMDB (más preciso), fallback a Wikipedia extract
       const text = tmdbData.overview || wikiExtract?.text || `Encontré información sobre ${title}.`;
       return {
