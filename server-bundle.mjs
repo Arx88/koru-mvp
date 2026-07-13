@@ -11116,7 +11116,7 @@ function buildConfig() {
     nvidiaApiKey: env.NVIDIA_API_KEY?.trim(),
     nvidiaBaseUrl: env.NVIDIA_BASE_URL?.trim() || "https://integrate.api.nvidia.com",
     nvidiaModel: env.NVIDIA_MODEL?.trim() || "nvidia/nemotron-3-ultra-550b-a55b",
-    nvidiaFastModel: env.NVIDIA_FAST_MODEL && !env.NVIDIA_FAST_MODEL.includes("stepfun") && !env.NVIDIA_FAST_MODEL.includes("nemotron-3-nano") ? env.NVIDIA_FAST_MODEL.trim() : "meta/llama-3.1-8b-instruct",
+    nvidiaFastModel: env.NVIDIA_FAST_MODEL && !env.NVIDIA_FAST_MODEL.includes("stepfun") && !env.NVIDIA_FAST_MODEL.includes("nemotron-3-nano") && !env.NVIDIA_FAST_MODEL.includes("llama-3.1-8b") ? env.NVIDIA_FAST_MODEL.trim() : "nvidia/nemotron-3-ultra-550b-a55b",
     nvidiaMediumModel: env.NVIDIA_MEDIUM_MODEL?.trim(),
     openRouterKeys: [env.OPENROUTER_API_KEY, env.OPENROUTER_FALLBACK_API_KEYS].filter(Boolean).flatMap((v) => v.split(",")).map((v) => v.trim()).filter(Boolean),
     openRouterModels: (env.OPENROUTER_FALLBACK_MODELS || "").split(",").map((v) => v.trim()).filter(Boolean),
