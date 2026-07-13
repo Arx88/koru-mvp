@@ -163,10 +163,12 @@ export function KoruDetailScreen({
   detail,
   headerIcon,
   onClose,
+  onSave,
 }: {
   detail: Detail;
   headerIcon: string;
   onClose: () => void;
+  onSave?: (title: string, subtitle?: string) => void;
 }) {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -201,6 +203,18 @@ export function KoruDetailScreen({
               <SectionBody section={section} />
             </div>
           ))}
+        </div>
+
+        {/* 🔴 Botón Guardar informe — permite guardarlo para ver después */}
+        <div className="koru-dsec-save-section">
+          <button
+            type="button"
+            className="koru-dsec-save-btn"
+            onClick={() => onSave?.(detail.title, detail.subtitle)}
+          >
+            <span className="material-symbols-outlined">bookmark_added</span>
+            Guardar informe
+          </button>
         </div>
       </div>
     </div>

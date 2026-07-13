@@ -104,7 +104,18 @@ export function KoruUnifiedCard({ block }: { block: UiBlock }) {
       {open && cta?.screen === "collections" ? (
         <CollectionsScreen focusCollection={cta.collection} onClose={() => setOpen(false)} />
       ) : open && detail ? (
-        <KoruDetailScreen detail={detail} headerIcon={hero.icon} onClose={() => setOpen(false)} />
+        <KoruDetailScreen
+          detail={detail}
+          headerIcon={hero.icon}
+          onClose={() => setOpen(false)}
+          onSave={(title, subtitle) => {
+            // 🔴 Guardar: disparar evento personalizado que TalkOverlay escucha
+            window.dispatchEvent(new CustomEvent("koru-save-deliverable", {
+              detail: { title, subtitle, blockType: block.type, blockData: block }
+            }));
+            setOpen(false);
+          }}
+        />
       ) : null}
     </div>
   );

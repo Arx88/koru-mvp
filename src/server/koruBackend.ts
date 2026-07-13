@@ -5176,10 +5176,7 @@ export async function runKoruBackendTurn(
       logger.info("runKoruBackendTurn", "Fast-path executed tools, skipping semantic router to avoid duplication", {
         toolCount: toolExecutions.length,
       });
-      // 🔴 FIX: construir mensajes con tool results para que el LLM pueda sintetizar
-      // un reply corto natural. Sin esto, el reply cae a blockReply mecánico.
       const synthMessages = buildMessages(request);
-      // Agregar tool calls + tool results al contexto
       for (const exec of toolExecutions) {
         synthMessages.push({
           role: "assistant",
@@ -5196,36 +5193,103 @@ export async function runKoruBackendTurn(
           tool_call_id: exec.id || `call_${Date.now()}`,
         });
       }
+
+      // 🔴 FIX: pedir al LLM reply corto + deliverableSections con síntesis redactada
+      // y datos estructurados. Esto reemplaza los snippets crudos por contenido
+      // real sintetizado por el LLM, como muestra el demo.
       synthMessages.push({
         role: "user",
-        content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks. El JSON debe empezar con { y terminar con }. Respondé SOLO con {\"reply\":\"...\",\"mascotState\":\"...\"} donde reply es 1-2 líneas cortas que enmarcan el resultado (NO repitas los datos de la tarjeta).",
+        content: [
+          "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks.",
+          "Respondé SOLO con este JSON:",
+          '{"reply":"1-2 líneas cortas que enmarcan el resultado (NO repitas datos de la tarjeta)","mascotState":"happy|thinking|celebrating","deliverableTitle":"título corto del tema (max 40 chars)","deliverableDescription":"1 línea que enganche (max 160 chars)","deliverableSummary":"síntesis de 60-120 palabras redactada con datos concretos de las tools","deliverableSections":[{"icon":"auto_awesome","title":"Síntesis","kicker":"LO ESENCIAL","kind":"text","paragraphs":["texto redactado con datos reales"]},{"icon":"fact_check","title":"Datos clave","kicker":"ENCONTRADOS","kind":"rows","items":[{"title":"dato","subtitle":"valor","badge":"fuente"}]},{"icon":"timeline","title":"Contexto","kicker":"HISTORIA","kind":"bullets","bullets":["punto 1","punto 2"]}]}',
+          "Reglas:",
+          "- reply: SOLO enmarca, NO repitas datos. Ej: 'Mirá, te dejé el detalle en la tarjeta.'",
+          "- deliverableSummary: REDACTÁ una síntesis con datos concretos de las tools (nombres, cifras, fechas). No copies snippets crudos.",
+          "- deliverableSections: armá 2-4 secciones con contenido real extraído de las tools.",
+          "- kind puede ser: 'text' (paragraphs), 'rows' (items con title/subtitle/badge), 'bullets' (bullets array), 'timeline' (items con title/subtitle).",
+          "- Si NO hay datos suficientes para secciones, devolvé deliverableSections: [].",
+        ].join("\n"),
       });
 
       const fastConfig = { ...config, nvidiaModel: config.nvidiaFastModel || "meta/llama-3.1-8b-instruct" };
       let synthReply = "";
       let synthMascot = "happy";
+      let synthTitle = "";
+      let synthDescription = "";
+      let synthSummary = "";
+      let synthSections: any[] = [];
       try {
-        const synthResult = await callProvider(fastConfig, synthMessages, 30_000, false, undefined, undefined, fastConfig.nvidiaModel);
+        const synthResult = await callProvider(fastConfig, synthMessages, 45_000, false, undefined, undefined, fastConfig.nvidiaModel);
         const synthContent = cleanText(synthResult.message.content, "");
         const synthParsed = safeJsonObjectFromContent(synthContent);
         synthReply = cleanReplyText(synthParsed.reply || "");
         synthMascot = cleanText(synthParsed.mascotState) || "happy";
+        synthTitle = cleanText(synthParsed.deliverableTitle || "");
+        synthDescription = cleanText(synthParsed.deliverableDescription || "");
+        synthSummary = cleanText(synthParsed.deliverableSummary || "");
+        synthSections = Array.isArray(synthParsed.deliverableSections) ? synthParsed.deliverableSections : [];
       } catch (err: any) {
         logger.warn("runKoruBackendTurn", "Fast-path synth LLM call failed", { error: err?.message });
+      }
+
+      // 🔴 FIX: enriquecer los toolBlocks con la síntesis del LLM
+      // Si el LLM generó sections, reemplazar las sections del deliverable que
+      // viene de blocksFromToolResults con las sections sintetizadas.
+      const toolBlocks = blocksFromToolResults(toolExecutions);
+      if (synthSections.length > 0) {
+        for (const block of toolBlocks) {
+          if (block.type === "deliverable") {
+            // Reemplazar sections con las del LLM + agregar fuentes al final
+            const sourceSection = (block.sections ?? []).find((s: any) => s.title === "Fuentes");
+            block.sections = synthSections;
+            if (sourceSection) {
+              block.sections.push(sourceSection);
+            }
+            if (synthSummary) block.summary = synthSummary;
+            if (synthDescription) block.description = synthDescription;
+            if (synthTitle) {
+              block.title = synthTitle.toUpperCase().slice(0, 40);
+              block.topic = synthTitle;
+            }
+            // Actualizar metrics
+            block.metrics = [
+              { value: String((block.sources ?? []).length), label: "Fuentes" },
+              { value: String(synthSections.length), label: "Secciones" },
+            ];
+          }
+        }
       }
 
       const response = await finalizePayloadWithFastModel(
         request,
         fastConfig,
-        // 🔴 FIX CRÍTICO: NO pasar uiBlocks del LLM — solo reply y mascotState.
-        // Si pasamos uiBlocks del LLM, se mezclan con los toolBlocks y pueden
-        // contener pensamiento del LLM en vez de datos reales.
-        // Los únicos blocks válidos vienen de blocksFromToolResults(toolExecutions).
         { reply: synthReply, mascotState: synthMascot, uiBlocks: [] } as Record<string, unknown>,
         toolExecutions,
         30_000,
       );
-      // Si el reply sigue siendo fallback mecánico, darle uno natural
+
+      // 🔴 FIX: si el LLM generó sections, reemplazar en los uiBlocks finales también
+      if (synthSections.length > 0 && response.uiBlocks) {
+        for (const block of response.uiBlocks) {
+          if (block.type === "deliverable") {
+            const sourceSection = (block.sections ?? []).find((s: any) => s.title === "Fuentes");
+            block.sections = synthSections;
+            if (sourceSection) block.sections.push(sourceSection);
+            if (synthSummary) block.summary = synthSummary;
+            if (synthDescription) block.description = synthDescription;
+            if (synthTitle) {
+              block.title = synthTitle.toUpperCase().slice(0, 40);
+              block.topic = synthTitle;
+            }
+            block.metrics = [
+              { value: String((block.sources ?? []).length), label: "Fuentes" },
+              { value: String(synthSections.length), label: "Secciones" },
+            ];
+          }
+        }
+      }
+
       const taskKicker = fastPathKickerForCategory(routeCategory ?? "conversation");
       if (!response.reply || response.reply.length < 10 || response.reply.includes("Rating:") || response.reply.includes("· Dir:")) {
         response.reply = synthReply || `Te dejé ${taskKicker.toLowerCase()} en la tarjeta.`;

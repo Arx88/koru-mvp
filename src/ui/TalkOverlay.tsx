@@ -376,6 +376,8 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
   const [isRecording, setIsRecording] = useState(false);
   const [wheelOpen, setWheelOpen] = useState(false);
   const [wheelActive, setWheelActive] = useState<string | null>(null);
+  // 🔴 Estado para el modal de guardar informe
+  const [saveModal, setSaveModal] = useState<{ title: string; subtitle?: string; blockData: any } | null>(null);
   // Onboarding conversacional: "greeting" → "waiting_for_name" → "done"
   const [onboardingPhase, setOnboardingPhase] = useState<"greeting" | "waiting_for_name" | "done">(
     onboarding ? "greeting" : "done"
@@ -582,6 +584,16 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
+
+  // 🔴 Listener para guardar informe desde el detail screen
+  useEffect(() => {
+    const onSaveDeliverable = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      setSaveModal({ title: detail.title, subtitle: detail.subtitle, blockData: detail.blockData });
+    };
+    window.addEventListener("koru-save-deliverable", onSaveDeliverable as EventListener);
+    return () => window.removeEventListener("koru-save-deliverable", onSaveDeliverable as EventListener);
+  }, []);
 
   useEffect(() => {
     const node = scrollRef.current;
@@ -1131,6 +1143,74 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
           </div>
         )}
       </section>
+
+      {/* 🔴 Modal de Guardar Informe — elegir carpeta o "Que Koru se encargue" */}
+      {saveModal && (
+        <div
+          className="koru-save-overlay"
+          onClick={(e) => { if (e.target === e.currentTarget) setSaveModal(null); }}
+        >
+          <div className="koru-save-modal">
+            <h2 className="koru-save-title">Guardar informe</h2>
+            <p className="koru-save-subtitle">{saveModal.title}</p>
+
+            <div className="koru-save-options">
+              <button
+                className="koru-save-option koru-save-option-koru"
+                onClick={() => {
+                  // "Que Koru se encargue" — guardar con colección automática
+                  const block = saveModal.blockData;
+                  const collection = block?.topic || block?.kicker || "Informes";
+                  // Disparar save como record
+                  window.dispatchEvent(new CustomEvent("koru-save-record", {
+                    detail: {
+                      title: saveModal.title,
+                      collection: `Koru · ${collection}`,
+                      kind: "idea",
+                      notes: saveModal.subtitle,
+                    }
+                  }));
+                  setSaveModal(null);
+                }}
+              >
+                <span className="material-symbols-outlined">eco</span>
+                <div>
+                  <strong>Que Koru se encargue</strong>
+                  <small>Koru agrupa por tema automáticamente</small>
+                </div>
+              </button>
+
+              <button
+                className="koru-save-option"
+                onClick={() => {
+                  const folder = prompt("Nombre de la carpeta:", "Informes");
+                  if (folder && folder.trim()) {
+                    window.dispatchEvent(new CustomEvent("koru-save-record", {
+                      detail: {
+                        title: saveModal.title,
+                        collection: folder.trim(),
+                        kind: "idea",
+                        notes: saveModal.subtitle,
+                      }
+                    }));
+                    setSaveModal(null);
+                  }
+                }}
+              >
+                <span className="material-symbols-outlined">create_new_folder</span>
+                <div>
+                  <strong>Crear carpeta nueva</strong>
+                  <small>Elegí el nombre de la carpeta</small>
+                </div>
+              </button>
+            </div>
+
+            <button className="koru-save-cancel" onClick={() => setSaveModal(null)}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

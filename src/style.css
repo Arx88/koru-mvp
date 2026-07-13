@@ -3387,3 +3387,164 @@ a.koru-dsec-source:hover {
   vertical-align: middle;
   margin-right: 4px;
 }
+
+/* ============================================================
+   🔴 Modal de Guardar Informe
+   ============================================================ */
+.koru-save-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(20, 16, 42, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.koru-save-modal {
+  width: 100%;
+  max-width: 430px;
+  background: linear-gradient(180deg, #ffffff 0%, #f3f0f8 100%);
+  border-radius: 32px 32px 0 0;
+  padding: 28px 24px max(28px, env(safe-area-inset-bottom));
+  box-shadow: 0 -12px 40px rgba(18, 10, 50, 0.25);
+  animation: koru-save-rise 0.35s ease-out;
+}
+
+@keyframes koru-save-rise {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.koru-save-title {
+  color: #382b8c;
+  font-weight: 800;
+  font-size: 22px;
+  margin-bottom: 4px;
+}
+
+.koru-save-subtitle {
+  color: #7a6ba8;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 20px;
+}
+
+.koru-save-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.koru-save-option {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(131, 99, 249, 0.15);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  text-align: left;
+  width: 100%;
+}
+
+.koru-save-option:hover {
+  background: rgba(131, 99, 249, 0.08);
+  border-color: rgba(131, 99, 249, 0.4);
+  transform: translateY(-1px);
+}
+
+.koru-save-option:active {
+  transform: scale(0.98);
+}
+
+.koru-save-option .material-symbols-outlined {
+  font-size: 28px;
+  color: #8363f9;
+  flex-shrink: 0;
+}
+
+.koru-save-option-koru {
+  background: linear-gradient(135deg, rgba(131, 99, 249, 0.12), rgba(110, 231, 183, 0.08));
+  border-color: rgba(131, 99, 249, 0.35);
+}
+
+.koru-save-option-koru .material-symbols-outlined {
+  color: #6ee7b7;
+}
+
+.koru-save-option strong {
+  display: block;
+  color: #382b8c;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.koru-save-option small {
+  display: block;
+  color: #7a6ba8;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.koru-save-cancel {
+  width: 100%;
+  padding: 14px;
+  border-radius: 16px;
+  background: transparent;
+  border: 1px solid rgba(131, 99, 249, 0.2);
+  color: #7a6ba8;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.koru-save-cancel:hover {
+  background: rgba(131, 99, 249, 0.06);
+  color: #382b8c;
+}
+
+/* Botón Guardar en detail screen */
+.koru-dsec-save-section {
+  padding: 16px 24px 32px;
+}
+
+.koru-dsec-save-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 16px;
+  background: #8363f9;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: 0 10px 25px rgba(131, 99, 249, 0.35);
+  transition: all 0.2s;
+}
+
+.koru-dsec-save-btn:hover {
+  background: #7c3aed;
+  transform: translateY(-1px);
+}
+
+.koru-dsec-save-btn:active {
+  transform: scale(0.98);
+}
+
+.koru-dsec-save-btn .material-symbols-outlined {
+  font-size: 20px;
+}

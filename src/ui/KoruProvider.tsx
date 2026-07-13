@@ -1011,6 +1011,22 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     dismissNudge: (id: string) => commitDomainState((prev) => dismissNudge(prev, id)),
   }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, domainState.records, permissions, processing, activity, phase, chatTurns, selectedModel]);
 
+  // 🔴 Listener para guardar record desde el detail screen (botón Guardar informe)
+  useEffect(() => {
+    const onSaveRecord = async (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      // Usar submitEntry para guardar como record via el backend
+      const saveMsg = `Guardá "${detail.title}" en la carpeta "${detail.collection}"${detail.notes ? ` — ${detail.notes}` : ""}`;
+      try {
+        await submitEntry(saveMsg, "typed", chatTurns);
+      } catch (err) {
+        console.error("[Koru] Error guardando record:", err);
+      }
+    };
+    window.addEventListener("koru-save-record", onSaveRecord as EventListener);
+    return () => window.removeEventListener("koru-save-record", onSaveRecord as EventListener);
+  }, [submitEntry, chatTurns]);
+
   return <KoruContext.Provider value={value}>{children}</KoruContext.Provider>;
 }
 
