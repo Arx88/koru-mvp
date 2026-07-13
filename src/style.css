@@ -2316,7 +2316,7 @@ button.koru-stitch-row {
 .koru-roadmap {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  z-index: 200;
   display: flex;
   justify-content: center;
   background: #cbdbf5;

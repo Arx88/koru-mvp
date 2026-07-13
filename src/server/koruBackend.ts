@@ -3022,22 +3022,12 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
     }
     if (result.type === "search") {
       const search = result as SearchData;
-      // Datos estructurados validados: se muestran PRIMERO (mayor valor visual).
-      // Cada item viene con cita literal respaldada por un source real → cero alucinación.
-      if (search.extractedData && search.extractedData.items.length > 0) {
-        blocks.push({
-          type: "data_card" as const,
-          title: search.extractedData.title,
-          items: search.extractedData.items.map((item) => ({
-            label: item.label,
-            value: item.value,
-            detail: item.detail,
-            quote: item.quote,
-            sourceUrl: item.sourceUrl,
-            sourceDomain: item.sourceDomain,
-          })),
-        });
-      }
+      // 🔴 FIX UX SISTÉMICO: en vez de generar web_nav/research_sources (solo links),
+      // generar un DELIVERABLE con contenido estructurado como muestra el demo.
+      // El deliverable tiene: summary (síntesis), metrics, sections (datos + fuentes).
+      // El detail screen muestra módulos ricos, no solo una lista de enlaces.
+      const sources = (search.sources ?? []).filter((s) => s.url?.startsWith("http")).slice(0, 6);
+
       if (search.mode === "shopping" && search.comparisonItems?.length) {
         blocks.push({
           type: "comparison" as const,
@@ -3048,35 +3038,81 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
         });
         continue;
       }
-      if (search.mode === "research" || search.mode === "news" || search.mode === "world") {
-        const filtered = search.sources
-          .filter((s) => s.url?.startsWith("http"))
-          .slice(0, 5);
-        if (filtered.length) {
-          blocks.push({
-            type: "web_nav" as const,
-            title: search.title,
-            status: "complete" as const,
-            query: search.title,
-            ...(search.summary ? { summary: search.summary } : {}),
-            results: filtered.map((s) => ({
-              title: s.title,
-              source: s.domain,
-              url: s.url,
-              type: "page" as const,
-              snippet: s.snippet,
-            })),
-          });
-        }
-        continue;
+
+      // Construir sections del deliverable
+      const sections: any[] = [];
+
+      // 1. Síntesis: usar summary si hay, sino concatenar snippets
+      const synthesisText = search.summary
+        || sources.slice(0, 3).map(s => s.snippet).filter(Boolean).join(" ")
+        || sources.slice(0, 3).map(s => s.content?.slice(0, 300)).filter(Boolean).join(" ")
+        || "";
+
+      if (synthesisText) {
+        sections.push({
+          icon: "auto_awesome",
+          title: "Síntesis",
+          kicker: "LO ESENCIAL",
+          kind: "text",
+          paragraphs: [synthesisText.slice(0, 800)],
+        });
       }
+
+      // 2. Datos estructurados: usar extractedData si hay
+      if (search.extractedData && search.extractedData.items.length > 0) {
+        sections.push({
+          icon: "fact_check",
+          title: "Datos verificados",
+          kicker: "ENCONTRADOS",
+          kind: "rows",
+          items: search.extractedData.items.map((item) => ({
+            title: item.label,
+            subtitle: item.value,
+            badge: item.sourceDomain,
+          })),
+        });
+      }
+
+      // 3. Fuentes: los links reales (al final, como en el demo)
+      if (sources.length > 0) {
+        sections.push({
+          icon: "fact_check",
+          title: "Fuentes",
+          kicker: "DE DÓNDE SALIÓ",
+          kind: "rows",
+          items: sources.map(s => ({
+            title: s.title,
+            subtitle: s.snippet?.slice(0, 120) || s.domain,
+            badge: s.domain,
+          })),
+        });
+      }
+
+      // Crear el deliverable
+      const query = cleanText(search.title) || input;
+      const metrics: any[] = [];
+      metrics.push({ value: String(sources.length), label: "Fuentes" });
+      if (search.extractedData?.items.length) {
+        metrics.push({ value: String(search.extractedData.items.length), label: "Datos" });
+      }
+      metrics.push({ value: String(sections.length), label: "Secciones" });
+
       blocks.push({
-        type: "research_sources" as const,
-        title: search.title,
-        summary: search.summary,
-        mode: search.mode,
-        sources: search.sources,
-        sourceStatus: search.sources.length ? "verified" as const : "failed" as const,
+        type: "deliverable" as const,
+        status: "ready" as const,
+        kicker: "Tu Búsqueda",
+        topic: query,
+        title: query.toUpperCase().slice(0, 40),
+        description: synthesisText.slice(0, 160) || `Resultados sobre ${query}`,
+        summary: synthesisText.slice(0, 500),
+        categories: [
+          { icon: "travel_explore", label: "Búsqueda" },
+          { icon: "fact_check", label: "Fuentes" },
+          { icon: "insights", label: "Datos" },
+        ],
+        metrics,
+        sections,
+        sources: sources,
       });
       continue;
     }
