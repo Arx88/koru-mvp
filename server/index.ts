@@ -230,7 +230,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // ── Static files (serve dist/) ────────────────────────────────
+  // ── Static files (serve dist/ with in-memory cache) ──────────
   if (req.method === "GET") {
     const distDir = join(PROJECT_ROOT, "dist");
     let filePath = join(distDir, url === "/" ? "index.html" : url);
@@ -239,41 +239,90 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, 403, { error: "Forbidden" });
       return;
     }
+    // Check if file exists and is directory
     try {
-      const { stat: statAsync } = await import("node:fs");
-      const s = await statAsync(filePath);
+      const { statSync } = await import("node:fs");
+      const s = statSync(filePath);
       if (s.isDirectory()) filePath = join(filePath, "index.html");
     } catch {
       // File not found → SPA fallback to index.html
       filePath = join(distDir, "index.html");
     }
-    try {
-      const data = readFileSync(filePath);
-      const ext = filePath.endsWith(".html") ? "text/html"
-        : filePath.endsWith(".js") ? "application/javascript"
-        : filePath.endsWith(".css") ? "text/css"
-        : filePath.endsWith(".png") ? "image/png"
-        : filePath.endsWith(".jpg") || filePath.endsWith(".jpeg") ? "image/jpeg"
-        : filePath.endsWith(".svg") ? "image/svg+xml"
-        : filePath.endsWith(".json") ? "application/json"
-        : filePath.endsWith(".woff") ? "font/woff"
-        : filePath.endsWith(".woff2") ? "font/woff2"
-        : "application/octet-stream";
-      res.writeHead(200, { "Content-Type": ext, "Cache-Control": "no-cache" });
-      res.end(data);
+    // Use cache
+    const cached = getStaticFile(filePath);
+    if (cached) {
+      res.writeHead(200, { "Content-Type": cached.contentType, "Cache-Control": "no-cache" });
+      res.end(cached.data);
       return;
-    } catch {
-      // dist/ doesn't exist or file missing → 404
     }
+    // File doesn't exist
+    sendJson(res, 404, { error: "Not found" });
+    return;
   }
 
   // ── 404 ───────────────────────────────────────────────────────
   sendJson(res, 404, { error: "Not found", url });
 });
 
-server.listen(PORT, () => {
-  console.log(`[Koru Backend] Running on http://localhost:${PORT}`);
-  console.log(`[Koru Backend] Health check: http://localhost:${PORT}/api/health`);
-  console.log(`[Koru Backend] Provider: ${config.nvidiaApiKey ? "nvidia" : "none"}`);
-  console.log(`[Koru Backend] Model: ${config.nvidiaModel}`);
+// ── Cache static files in memory (avoid disk I/O on every request) ──
+const staticCache = new Map<string, { data: Buffer; contentType: string }>();
+const STATIC_DIR = join(PROJECT_ROOT, "dist");
+
+function getStaticFile(filePath: string): { data: Buffer; contentType: string } | null {
+  if (staticCache.has(filePath)) return staticCache.get(filePath)!;
+  try {
+    const data = readFileSync(filePath);
+    const ext = filePath.endsWith(".html") ? "text/html"
+      : filePath.endsWith(".js") ? "application/javascript"
+      : filePath.endsWith(".css") ? "text/css"
+      : filePath.endsWith(".png") ? "image/png"
+      : filePath.endsWith(".jpg") || filePath.endsWith(".jpeg") ? "image/jpeg"
+      : filePath.endsWith(".svg") ? "image/svg+xml"
+      : filePath.endsWith(".json") ? "application/json"
+      : filePath.endsWith(".woff") ? "font/woff"
+      : filePath.endsWith(".woff2") ? "font/woff2"
+      : "application/octet-stream";
+    const entry = { data, contentType: ext };
+    // Limit cache to 50 files to avoid memory bloat
+    if (staticCache.size < 50) staticCache.set(filePath, entry);
+    return entry;
+  } catch {
+    return null;
+  }
+}
+
+// ── Graceful shutdown ──
+function shutdown(signal: string) {
+  console.log(`[Koru] ${signal} received, shutting down...`);
+  server.close(() => {
+    console.log("[Koru] Server closed.");
+    process.exit(0);
+  });
+  // Force exit after 5s if connections don't close
+  setTimeout(() => process.exit(1), 5000).unref();
+}
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
+
+// ── Catch uncaught errors (don't crash) ──
+process.on("uncaughtException", (err) => {
+  console.error("[Koru] Uncaught exception:", err.message);
+});
+process.on("unhandledRejection", (err) => {
+  console.error("[Koru] Unhandled rejection:", err);
+});
+
+// ── Memory monitoring (log if getting close to limit) ──
+setInterval(() => {
+  const used = process.memoryUsage().heapUsed / 1024 / 1024;
+  if (used > 400) {
+    console.warn(`[Koru] Memory warning: ${Math.round(used)}MB heap used`);
+  }
+}, 60000);
+
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`[Koru] Running on http://localhost:${PORT}`);
+  console.log(`[Koru] Provider: ${config.nvidiaApiKey ? "nvidia" : "none"}`);
+  console.log(`[Koru] Model: ${config.nvidiaModel}`);
+  console.log(`[Koru] Memory limit: ${Math.round(process.memoryUsage().heapTotal / 1024 / 1024)}MB`);
 });

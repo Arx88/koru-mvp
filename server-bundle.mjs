@@ -2081,24 +2081,16 @@ var TSDB_KEY = "3";
 var TSDB_BASE = `https://www.thesportsdb.com/api/v1/json/${TSDB_KEY}`;
 var ESPN_BASE = "https://site.api.espn.com/apis/site/v2/sports/soccer";
 var ESPN_LEAGUES = [
-  // Selecciones nacionales (sin esto, "cómo salió España/Argentina/etc" falla)
+  // Selecciones nacionales (prioridad — la mayoría de queries son selecciones)
   { id: "fifa.world", name: "FIFA World Cup / International Friendlies" },
   { id: "uefa.euro", name: "UEFA Euro" },
   { id: "uefa.nations", name: "UEFA Nations League" },
-  { id: "conmebol.libertadores", name: "Copa Libertadores" },
-  { id: "conmebol.sudamericana", name: "Copa Sudamericana" },
-  // Ligas de clubes top
-  { id: "arg.1", name: "Argentine Primera Divisi\xF3n" },
+  // Top 5 ligas de clubes
   { id: "eng.1", name: "Premier League" },
   { id: "esp.1", name: "La Liga" },
   { id: "ita.1", name: "Serie A" },
   { id: "ger.1", name: "Bundesliga" },
-  { id: "fra.1", name: "Ligue 1" },
-  { id: "uefa.champions", name: "Champions League" },
-  { id: "uefa.europa", name: "Europa League" },
-  { id: "bra.1", name: "Brasileir\xE3o" },
-  { id: "mex.1", name: "Liga MX" },
-  { id: "usa.1", name: "MLS" }
+  { id: "uefa.champions", name: "Champions League" }
 ];
 var NATIONAL_TEAM_SYNONYMS = [
   { canonical: "Spain", aliases: ["espa\xF1a", "espana", "seleccion espanola", "la roja", "spain"] },
@@ -2164,7 +2156,7 @@ async function searchEspnScoreboards(query) {
       promises.push((async () => {
         try {
           const url = `${ESPN_BASE}/${league.id}/scoreboard?dates=${date}`;
-          const res = await fetch(url, { signal: AbortSignal.timeout(8e3) });
+          const res = await fetch(url, { signal: AbortSignal.timeout(6e3) });
           if (!res.ok) return;
           const data = await res.json();
           const events = data.events ?? [];
@@ -7539,6 +7531,7 @@ function inferProviderFromModel(model) {
   if (model.startsWith("hf.co/")) return "nvidia";
   if (!model.includes("/")) return "nvidia";
   if (model.startsWith("nvidia/") && !model.includes(":")) return "nvidia";
+  if (model.startsWith("stepfun-ai/")) return "nvidia";
   if (model.includes("/") && model.includes(":")) return "openrouter";
   return void 0;
 }
@@ -8634,6 +8627,8 @@ function systemPrompt2(nowIso, state, relevantMemories) {
 }
 function isTrivialInput(input) {
   const trimmed = input.trim().toLowerCase().replace(/[^a-záéíóúñ\s]/g, "");
+  if (trimmed.length === 0) return true;
+  if (trimmed.length < 3) return true;
   const trivial = [
     "hola",
     "buenos dias",
@@ -9730,6 +9725,9 @@ async function finalizeFromPlainText(raw, toolCalls, request, config2, toolExecu
   return finalizePayload(request, config2, raw, toolExecutions, extractorTimeout);
 }
 async function finalizePayload(request, config2, raw, toolExecutions, extractorTimeout) {
+  if (isTrivialInput(request.input)) {
+    return normalizeFinalPayload(raw, request.input, toolExecutions);
+  }
   try {
     const extracted = await extractMemoryWithJsonPrompt(request, config2, toolExecutions, raw, extractorTimeout);
     return {
@@ -9743,6 +9741,41 @@ async function finalizePayload(request, config2, raw, toolExecutions, extractorT
       ...normalizeFinalPayload(raw, request.input, toolExecutions),
       memoryFallbackReason: error instanceof Error ? error.message : "memory-extractor-failed"
     };
+  }
+}
+async function finalizePayloadWithFastModel(request, config2, raw, toolExecutions, timeout) {
+  const existingReply = cleanText(raw.reply);
+  if (existingReply && existingReply.length > 5) {
+    if (!isTrivialInput(request.input) && toolExecutions.length > 0) {
+      try {
+        const extracted = await extractMemoryWithJsonPrompt(request, config2, toolExecutions, raw, timeout);
+        return normalizeFinalPayload(raw, request.input, toolExecutions, extracted.raw);
+      } catch {
+      }
+    }
+    return normalizeFinalPayload(raw, request.input, toolExecutions);
+  }
+  const messages = buildMessages(request);
+  messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respond\xE9 con JSON puro v\xE1lido. Sin markdown, sin backticks. El JSON debe empezar con { y terminar con }." });
+  try {
+    const result = await callProvider(config2, messages, timeout, false, void 0, void 0, config2.nvidiaModel);
+    const content = cleanText(result.message.content, "");
+    let parsed;
+    try {
+      parsed = JSON.parse(extractJsonBlock(content));
+    } catch {
+      parsed = { reply: cleanReplyText(content) || "No pude armar una respuesta clara." };
+    }
+    if (!isTrivialInput(request.input) && toolExecutions.length > 0) {
+      try {
+        const extracted = await extractMemoryWithJsonPrompt(request, config2, toolExecutions, parsed, timeout);
+        return normalizeFinalPayload(parsed, request.input, toolExecutions, extracted.raw);
+      } catch {
+      }
+    }
+    return normalizeFinalPayload(parsed, request.input, toolExecutions);
+  } catch {
+    return normalizeFinalPayload(raw, request.input, toolExecutions);
   }
 }
 async function executeProviderToolCalls(toolCalls, messages, request, toolExecutions, config2) {
@@ -10289,6 +10322,28 @@ async function runKoruBackendTurn(request, config2, onChunk) {
     logger.info("runKoruBackendTurn", "Explicit deliverable request detected", { topic: deliverableTopic });
     return await runDeepResearchFlow(deliverableTopic, request, config2, preferredProvider, onChunk);
   }
+  if (trivial) {
+    logger.info("runKoruBackendTurn", "Trivial input \u2014 fast path (skip router + memory extractor)");
+    const fastResult = await callProvider(config2, messages, 3e4, false, preferredProvider, void 0, modelOverride);
+    provider = fastResult.provider;
+    model = fastResult.model;
+    const fastContent = cleanText(fastResult.message.content, "");
+    let fastParsed;
+    try {
+      fastParsed = JSON.parse(extractJsonBlock(fastContent));
+    } catch {
+      fastParsed = { reply: cleanReplyText(fastContent) || "Hola. \xBFC\xF3mo va todo?", mascotState: "happy" };
+    }
+    const fastResponse = normalizeFinalPayload(fastParsed, request.input, []);
+    logger.info("runKoruBackendTurn", "Return fast-path", { replyPreview: (fastResponse.reply ?? "").slice(0, 60), provider, model });
+    return {
+      ...fastResponse,
+      provider,
+      model,
+      fallbackReason: "trivial-fast-path",
+      mascotState: fastParsed.mascotState ?? "happy"
+    };
+  }
   if (inputTrimmed.length >= 3) {
     const router = await getRouter(config2);
     if (router) {
@@ -10340,11 +10395,13 @@ async function runKoruBackendTurn(request, config2, onChunk) {
           messages.push({ role: "assistant", content: "", tool_calls: [syntheticToolCall] });
           const delivered = await executeProviderToolCalls([syntheticToolCall], messages, request, toolExecutions, config2);
           if (delivered) {
-            const response3 = await finalizePayload(request, config2, delivered, toolExecutions, extractorTimeout);
+            const fastConfig = { ...config2, nvidiaModel: config2.nvidiaFastModel || "stepfun-ai/step-3.5-flash" };
+            const response3 = await finalizePayloadWithFastModel(request, fastConfig, delivered, toolExecutions, 3e4);
             return { ...response3, provider, model, fallbackReason: "router-" + route.category };
           }
           messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respond\xE9 con JSON puro v\xE1lido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }." });
-          const secondResult = await callProvider(config2, messages, secondaryTimeout, false, preferredProvider, void 0, modelOverride);
+          const fastConfig2 = { ...config2, nvidiaModel: config2.nvidiaFastModel || "stepfun-ai/step-3.5-flash" };
+          const secondResult = await callProvider(fastConfig2, messages, 3e4, false, "nvidia", void 0, fastConfig2.nvidiaModel);
           provider = secondResult.provider;
           model = secondResult.model ?? model;
           const secondContent = cleanText(secondResult.message.content, "No pude componer una respuesta util.");
@@ -10375,7 +10432,7 @@ async function runKoruBackendTurn(request, config2, onChunk) {
             records: asArray(parsedRoute.records || []),
             mascotState: parsedRoute.mascotState
           };
-          const response2 = await finalizePayload(request, config2, rawRoute, toolExecutions, extractorTimeout);
+          const response2 = normalizeFinalPayload(rawRoute, request.input, toolExecutions);
           return { ...response2, provider, model, fallbackReason: "router-" + route.category };
         }
       } catch (err) {
@@ -10844,26 +10901,62 @@ var server = http.createServer(async (req, res) => {
       return;
     }
     try {
-      const { stat: statAsync } = await import("node:fs");
-      const s = await statAsync(filePath);
+      const { statSync } = await import("node:fs");
+      const s = statSync(filePath);
       if (s.isDirectory()) filePath = join(filePath, "index.html");
     } catch {
       filePath = join(distDir, "index.html");
     }
-    try {
-      const data = readFileSync(filePath);
-      const ext = filePath.endsWith(".html") ? "text/html" : filePath.endsWith(".js") ? "application/javascript" : filePath.endsWith(".css") ? "text/css" : filePath.endsWith(".png") ? "image/png" : filePath.endsWith(".jpg") || filePath.endsWith(".jpeg") ? "image/jpeg" : filePath.endsWith(".svg") ? "image/svg+xml" : filePath.endsWith(".json") ? "application/json" : filePath.endsWith(".woff") ? "font/woff" : filePath.endsWith(".woff2") ? "font/woff2" : "application/octet-stream";
-      res.writeHead(200, { "Content-Type": ext, "Cache-Control": "no-cache" });
-      res.end(data);
+    const cached2 = getStaticFile(filePath);
+    if (cached2) {
+      res.writeHead(200, { "Content-Type": cached2.contentType, "Cache-Control": "no-cache" });
+      res.end(cached2.data);
       return;
-    } catch {
     }
+    sendJson(res, 404, { error: "Not found" });
+    return;
   }
   sendJson(res, 404, { error: "Not found", url });
 });
-server.listen(PORT, () => {
-  console.log(`[Koru Backend] Running on http://localhost:${PORT}`);
-  console.log(`[Koru Backend] Health check: http://localhost:${PORT}/api/health`);
-  console.log(`[Koru Backend] Provider: ${config.nvidiaApiKey ? "nvidia" : "none"}`);
-  console.log(`[Koru Backend] Model: ${config.nvidiaModel}`);
+var staticCache = /* @__PURE__ */ new Map();
+var STATIC_DIR = join(PROJECT_ROOT, "dist");
+function getStaticFile(filePath) {
+  if (staticCache.has(filePath)) return staticCache.get(filePath);
+  try {
+    const data = readFileSync(filePath);
+    const ext = filePath.endsWith(".html") ? "text/html" : filePath.endsWith(".js") ? "application/javascript" : filePath.endsWith(".css") ? "text/css" : filePath.endsWith(".png") ? "image/png" : filePath.endsWith(".jpg") || filePath.endsWith(".jpeg") ? "image/jpeg" : filePath.endsWith(".svg") ? "image/svg+xml" : filePath.endsWith(".json") ? "application/json" : filePath.endsWith(".woff") ? "font/woff" : filePath.endsWith(".woff2") ? "font/woff2" : "application/octet-stream";
+    const entry = { data, contentType: ext };
+    if (staticCache.size < 50) staticCache.set(filePath, entry);
+    return entry;
+  } catch {
+    return null;
+  }
+}
+function shutdown(signal) {
+  console.log(`[Koru] ${signal} received, shutting down...`);
+  server.close(() => {
+    console.log("[Koru] Server closed.");
+    process.exit(0);
+  });
+  setTimeout(() => process.exit(1), 5e3).unref();
+}
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("uncaughtException", (err) => {
+  console.error("[Koru] Uncaught exception:", err.message);
+});
+process.on("unhandledRejection", (err) => {
+  console.error("[Koru] Unhandled rejection:", err);
+});
+setInterval(() => {
+  const used = process.memoryUsage().heapUsed / 1024 / 1024;
+  if (used > 400) {
+    console.warn(`[Koru] Memory warning: ${Math.round(used)}MB heap used`);
+  }
+}, 6e4);
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`[Koru] Running on http://localhost:${PORT}`);
+  console.log(`[Koru] Provider: ${config.nvidiaApiKey ? "nvidia" : "none"}`);
+  console.log(`[Koru] Model: ${config.nvidiaModel}`);
+  console.log(`[Koru] Memory limit: ${Math.round(process.memoryUsage().heapTotal / 1024 / 1024)}MB`);
 });

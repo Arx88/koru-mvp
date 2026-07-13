@@ -1,0 +1,16 @@
+node_modules
+.git
+*.md
+docs
+tests
+scripts
+manual-audits
+logs
+*.log
+.env.local
+.env.example
+.deprecated
+.kimchi
+finetune
+playwright.config.ts
+vitest.config.ts
