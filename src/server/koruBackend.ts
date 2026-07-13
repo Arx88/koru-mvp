@@ -3801,7 +3801,12 @@ function normalizeFinalPayload(
     console.warn(`[Koru] LLM returned invalid mascotState: "${mascotState}". Falling back to "idle".`);
   }
   const toolBlocks = blocksFromToolResults(toolExecutions);
-  const uiBlocks = mergeModelAndToolBlocks(modelBlocks, toolBlocks);
+  // 🔴 FIX CRÍTICO: si hay toolBlocks (datos reales de tools), NO mezclar con modelBlocks
+  // del LLM. Los modelBlocks pueden contener pensamiento del LLM en vez de datos reales.
+  // Los toolBlocks son la fuente de verdad — los modelBlocks del LLM solo introducen ruido.
+  const uiBlocks = toolBlocks.length > 0
+    ? toolBlocks
+    : mergeModelAndToolBlocks(modelBlocks, toolBlocks);
   const captures = personalCapturesFromTools(toolExecutions);
   const localActions = localActionsFromTools(toolExecutions);
   const memoryCaptures = memoryCapturesFromTools(toolExecutions);
@@ -5157,7 +5162,11 @@ export async function runKoruBackendTurn(
       const response = await finalizePayloadWithFastModel(
         request,
         fastConfig,
-        { reply: synthReply, mascotState: synthMascot } as Record<string, unknown>,
+        // 🔴 FIX CRÍTICO: NO pasar uiBlocks del LLM — solo reply y mascotState.
+        // Si pasamos uiBlocks del LLM, se mezclan con los toolBlocks y pueden
+        // contener pensamiento del LLM en vez de datos reales.
+        // Los únicos blocks válidos vienen de blocksFromToolResults(toolExecutions).
+        { reply: synthReply, mascotState: synthMascot, uiBlocks: [] } as Record<string, unknown>,
         toolExecutions,
         30_000,
       );
