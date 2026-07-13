@@ -41,7 +41,15 @@ export function KoruUnifiedCard({ block }: { block: UiBlock }) {
         </div>
 
         {hero.art ? (
-          <img alt="" src={hero.art} className="koru-plan-hero-art" />
+          <img
+            alt=""
+            src={hero.art}
+            className={
+              hero.artAspect === "poster" ? "koru-plan-hero-art is-poster"
+              : hero.artAspect === "cover" ? "koru-plan-hero-art is-cover"
+              : "koru-plan-hero-art"
+            }
+          />
         ) : (
           <div
             className="koru-unified-art"

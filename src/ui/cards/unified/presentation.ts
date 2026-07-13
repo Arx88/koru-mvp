@@ -31,6 +31,8 @@ export type Hero = {
   accent: Accent;
   /** ilustración opcional (reemplaza al icono) */
   art?: string;
+  /** 🔴 FIX UX: aspect ratio de la imagen — "square" (default), "poster" (2:3 vertical), "cover" (wide banner) */
+  artAspect?: "square" | "poster" | "cover";
   /** valor grande sobre el arte (ej. "23°") */
   artValue?: string;
   metrics?: HeroMetric[];
@@ -1897,6 +1899,7 @@ function recipeBlock(b: Of<"recipe">): KoruPresentation {
       title: heroTitleFrom(b.name ?? b.title, "Receta"),
       desc: b.description ?? subtitle,
       art: b.image,
+      artAspect: "poster" as const,
       icon: "restaurant",
       accent: A.emerald,
       metrics: [
@@ -1913,7 +1916,7 @@ function recipeBlock(b: Of<"recipe">): KoruPresentation {
           sections,
         }
       : undefined,
-    cta: b.videoUrl ? { label: "Ver video" } : undefined,
+    cta: { label: b.videoUrl ? "Ver video y receta completa" : "Ver receta completa" },
   };
 }
 
@@ -1980,6 +1983,7 @@ function movieReviewBlock(b: Of<"movie_review">): KoruPresentation {
       title: heroTitleFrom(b.title, "Película"),
       desc: b.overview ? b.overview.slice(0, 200) : undefined,
       art: b.poster,
+      artAspect: "poster" as const,
       icon: "movie",
       accent: A.primary,
       metrics: heroMetrics,
@@ -1991,7 +1995,7 @@ function movieReviewBlock(b: Of<"movie_review">): KoruPresentation {
           sections,
         }
       : undefined,
-    cta: b.trailerUrl ? { label: "Ver trailer" } : undefined,
+    cta: { label: b.trailerUrl ? "Ver trailer y ficha completa" : "Ver ficha completa" },
   };
 }
 
@@ -2047,6 +2051,7 @@ function bookReviewBlock(b: Of<"book_review">): KoruPresentation {
       title: heroTitleFrom(b.title, "Libro"),
       desc: b.synopsis ? b.synopsis.slice(0, 200) : undefined,
       art: b.cover,
+      artAspect: "poster" as const,
       icon: "menu_book",
       accent: A.amber,
       metrics: heroMetrics,
@@ -2058,6 +2063,6 @@ function bookReviewBlock(b: Of<"book_review">): KoruPresentation {
           sections,
         }
       : undefined,
-    cta: b.sources?.[0]?.url ? { label: "Ver más" } : undefined,
+    cta: { label: "Ver ficha completa" },
   };
 }

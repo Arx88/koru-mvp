@@ -2398,7 +2398,13 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
     `Usá tools SOLO cuando la intención del usuario REQUIERA datos reales del mundo (clima, búsqueda, ruta, precios, resultados deportivos, recetas, películas, libros). Por ejemplo: si el usuario dice 'hola', 'gracias', 'adiós', '¿cómo estás?' o cualquier frase de cortesía, NO uses tools. Respondé directamente con naturalidad.`,
     `- Para datos personales ya guardados, no llames tools; respondé directamente usando el contexto.`,
     `- 🔴 CRÍTICO — PROHIBIDO RAZONAMIENTO EN "reply": NUNCA incluyas tu razonamiento interno, análisis de qué tool llamar, ni texto en inglés tipo "The user is asking...", "I should use...", "Let me think..." en "reply". El campo "reply" debe contener SOLO la respuesta final al usuario, en español, cálido y directo. Si necesitás decidir una tool, EMITE tool_calls directamente en el JSON sin escribir tu razonamiento en el texto. Si estás pensando, NO escribas "thinking..." — simplemente devolvé el JSON final con la respuesta.`,
-    `- 🔴 CRÍTICO — CALIDAD SUPERLATIVA: cuando el usuario pida algo (receta, película, reseña, info), tu reply debe ser SUSTANCIAL y ÚTIL. No esboces resúmenes vagos. Traé datos concretos de las tools: nombre exacto, ingredientes con cantidades, rating, reparto, géneros, pasos numerados. Dejá al usuario con la sensación de "no necesito buscar nada más". Conectá los datos con cercanía, pero no los reemplaces con generalidades.`,
+    `- 🔴 CRÍTICO — DIVISIÓN DE TRABAJO TEXTO ↔ CARD: Cuando ejecutaste CUALQUIER tool que devuelve datos (weather, match_live, movie_info, recipe_find, book_info, crypto_price, web_search, wikipedia_lookup, etc.), los datos concretos (títulos, ratings, reparto, ingredientes, pasos, scores, precios, sinopsis) ya están estructurados y se muestran en la card. Tu reply SOLO debe ENMARCAR: 1-2 líneas cálidas que conecten con el usuario y eventualmente destaquen UN dato insignia. NUNCA repitas la lista de datos que ya está en la card.`,
+    `- Ejemplos de reply CORRECTO (corto, enmarca, NO repite datos de la card):`,
+    `  ✅ "Mirá, la encontré. Te la dejo en la tarjeta con todo el detalle."`,
+    `  ✅ "Te dejé la receta en la tarjeta. Mirá el video al final, vale la pena."`,
+    `  ✅ "España le ganó 2-1. Te dejé las estadísticas en la tarjeta."`,
+    `- Ejemplos de reply INCORRECTO (largo, repite datos que ya están en la card):`,
+    `  ❌ "Inception (2010). Director: Christopher Nolan. Reparto: Leonardo DiCaprio... Duración: 148 min. Rating: 8.8/10. Sinopsis: Dom Cobb..." (esto ya está en la card)`,
     `- Agregá mascotState al JSON final Elijí SOLO de esta lista exacta: "celebrating", "worried", "affectionate", "curious", "happy", "thinking", "working", "tired", "sleeping", "mistake", "planning", "product-search", "building", "cooking", "thinking-2". Si nada aplica, usá "idle".`,
     `- Formato de respuesta final (contrato MÍNIMO y OBLIGATORIO): {"reply":"...","mascotState":"..."}`,
     `  - reply: tu respuesta conversacional directa al usuario, respondiendo EXACTAMENTE a su último mensaje. Sin JSON anidado, sin código, sin listas técnicas. Texto natural y cálido.`,
@@ -2409,10 +2415,10 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
     `Ejemplos de respuestas EXCELSAS (few-shot):`,
     `Usuario: "hola" → {"reply":"Hola. ¿Cómo va todo?","mascotState":"happy"}`,
     `Usuario: "anota 1500 de cafe" → {"reply":"Listo, guardado en gastos.","mascotState":"idle"}`,
-    `Usuario: "que clima hace en Madrid?" → {"reply":"En Madrid hace 29°C ahora, con maximas de 32 y minimas de 21. Viento a 15 km/h y 0% de lluvia. Dia para salir liviano.","mascotState":"thinking"}`,
+    `Usuario: "que clima hace en Madrid?" → {"reply":"Mirá, te dejé el clima de Madrid en la tarjeta. Día para salir liviano.","mascotState":"thinking"}`,
     `Usuario: "gracias" → {"reply":"De nada, cuando quieras.","mascotState":"happy"}`,
     `Usuario: "estoy cansado" → {"reply":"Te entiendo. Si queres, bajo el ritmo y ordenamos lo minimo indispensable para hoy.","mascotState":"worried"}`,
-    `Usuario: "como salio España ayer" → TOOL: match_live(query="España ayer"). Reply: "España le ganó 2-1 a Bélgica ayer, cuartos del Mundial. Se adelantaron y aguantaron. Ahora les toca Francia en semis."`,
+    `Usuario: "como salio España ayer" → TOOL: match_live(query="España ayer"). Reply: "España le ganó 2-1. Te dejé el detalle en la tarjeta."`,
     `Usuario: "como le fue a Boca" → TOOL: match_live(query="Boca"). Reply con el score exacto que devuelva la tool.`,
     ``,
     `Notá: las respuestas son CORTAS, DIRECTAS y UTILES. No exageran, no sobre-validan, no terminan con preguntas obvias.`,
@@ -3844,6 +3850,24 @@ function normalizeFinalPayload(
     finalReply = blockReply || "Tuve un problema para armar la respuesta. ¿Me lo repetís de otra forma para ayudarte bien?";
   } else {
     finalReply = cleanedReply;
+  }
+
+  // 🔴 FIX UX: Si el reply es demasiado largo (>200 chars) Y hay un block informativo
+  // (movie_review, recipe, book_review, weather, live_match, deliverable, etc.),
+  // recortarlo al primer enunciado + indicación de card. Los datos van en la card,
+  // no en el texto — eso es lo que el usuario espera.
+  const informativeBlockTypes = new Set([
+    "movie_review", "recipe", "book_review", "weather", "live_match",
+    "deliverable", "market", "forex", "data_card", "web_nav",
+    "restaurant_synthesis", "research_sources", "comparison",
+    "crypto_portfolio", "data_ticker", "product_analysis",
+  ]);
+  const hasInformativeBlock = uiBlocks.some(b => informativeBlockTypes.has(b.type));
+  if (finalReply.length > 200 && hasInformativeBlock) {
+    const firstSentence = finalReply.match(/^.{1,140}?[.!?](\s|$)/)?.[0];
+    if (firstSentence && firstSentence.length < finalReply.length) {
+      finalReply = firstSentence.trim() + " Te dejé el detalle en la tarjeta.";
+    }
   }
   return {
     reply: finalReply,
