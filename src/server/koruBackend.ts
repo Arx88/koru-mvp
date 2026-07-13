@@ -4702,6 +4702,118 @@ async function runDeepResearchFlow(
   };
 }
 
+/**
+ * 🔴 FIX P2 — Resuelve follow-ups cortos reescribiendo el input.
+ *
+ * Cuando el usuario hace preguntas de seguimiento muy cortas como:
+ *   - "y ayer?"
+ *   - "y mañana?"
+ *   - "y la anterior?"
+ *   - "y el otro?"
+ *   - "y el sábado?"
+ *
+ * Y hay contexto reciente en el historial sobre un tema específico (equipo de
+ * fútbol, película, libro, etc.), reescribe el input para que el LLM y el router
+ * tengan toda la info necesaria para ejecutar la tool correcta.
+ *
+ * Ejemplos:
+ *  - Historial: "como salio hoy Argentina?" + "y ayer?"
+ *    → "como salio Argentina ayer?"
+ *  - Historial: "que se dice de la pelicula obsesion?" + "y la anterior?"
+ *    → "que se dice de la pelicula anterior a obsesion?"
+ *  - Historial: "receta de carbonara" + "y con pollo?"
+ *    → "receta de carbonara con pollo"
+ *
+ * Si no puede resolver, devuelve el input original sin cambios.
+ */
+function resolveFollowUpInput(input: string, history: KoruConversationMessage[]): string {
+  const trimmed = input.trim().toLowerCase();
+
+  // Patrones de follow-up que necesitan contexto
+  const followUpPatterns = [
+    /^y\s+(ayer|mañana|manana|anteayer|pasado mañana|pasado manana|el otro|el sabado|el sabado pasado|el domingo|el lunes|el martes|el miercoles|el jueves|el viernes)\??$/i,
+    /^y\s+(la anterior|el anterior|la proxima|el proximo|el ultimo|la ultima)\??$/i,
+    /^y\s+(con|de|para|sin)\s+(.{1,40})\??$/i,
+    /^(como le fue|como le va|como salio|como salio|que tal)\s+(ayer|anteayer|el sabado|el domingo)\??$/i,
+  ];
+
+  const isFollowUp = followUpPatterns.some(p => p.test(trimmed));
+  if (!isFollowUp) return input;
+
+  // Buscar en los últimos 6 mensajes el tema principal
+  const recent = history.slice(-6).reverse();
+  let team: string | null = null;
+  let movie: string | null = null;
+  let recipe: string | null = null;
+  let book: string | null = null;
+  let lastUserMessage: string | null = null;
+
+  for (const msg of recent) {
+    if (msg.role !== "user") continue;
+    const content = (msg.content ?? "").trim();
+    if (!content) continue;
+    if (!lastUserMessage) lastUserMessage = content;
+
+    // Detectar equipo de fútbol / selección
+    if (!team) {
+      // Buscar menciones de equipos/selecciones conocidas
+      const teamMatch = content.match(/\b(argentina|espana|españa|brasil|francia|alemania|inglaterra|italia|portugal|holanda|belgica|bélgica|uruguay|chile|colombia|mexico|méxico|peru|perú|ecuador|paraguay|boca|river|real madrid|barcelona|barca|atletico madrid|atlético madrid|liverpool|manchester city|manchester united|chelsea|arsenal|tottenham|juventus|inter|milan|ac milan|bayern munich|dortmund|psg|napoli|roma|lazio|sevilla|valencia|villarreal|real sociedad|betis|athletic bilbao)\b/i);
+      if (teamMatch) team = teamMatch[1];
+    }
+
+    // Detectar película
+    if (!movie) {
+      const movieMatch = content.match(/(?:pelicula|película|serie|documental)\s+(?:["""']([^"""']+?)["""']|([A-ZÁÉÍÓÚÑ][\wáéíóúñ\s]{2,40}))/i);
+      if (movieMatch) movie = movieMatch[1] ?? movieMatch[2];
+    }
+
+    // Detectar receta
+    if (!recipe) {
+      const recipeMatch = content.match(/(?:receta|comida|plato|preparar|hacer|cocinar)\s+(?:de\s+|un\s+|una\s+)?([^?.,]{3,40})/i);
+      if (recipeMatch) recipe = recipeMatch[1].trim();
+    }
+
+    // Detectar libro
+    if (!book) {
+      const bookMatch = content.match(/(?:libro|novela)\s+(?:["""']([^"""']+?)["""']|([A-ZÁÉÍÓÚÑ][\wáéíóúñ\s]{2,40}))/i);
+      if (bookMatch) book = bookMatch[1] ?? bookMatch[2];
+    }
+  }
+
+  // Reescribir el input según el tema detectado
+  // Si el follow-up es temporal ("y ayer?", "y mañana?") y hay un equipo
+  if (/^(y\s+)?(ayer|mañana|manana|anteayer|pasado)/i.test(trimmed)) {
+    if (team) {
+      // Extraer la palabra temporal
+      const temporalMatch = trimmed.match(/(ayer|mañana|manana|anteayer|pasado mañana|pasado manana)/i);
+      const temporal = temporalMatch?.[1] ?? "ayer";
+      return `como salio ${team} ${temporal}?`;
+    }
+    if (movie) {
+      // "y ayer?" después de película → no tiene sentido temporal, pero quizás quiere info adicional
+      return `informacion sobre la pelicula ${movie}`;
+    }
+  }
+
+  // "y la anterior?" / "y el anterior?"
+  if (/^(y\s+)?(la|el)\s+(anterior|ultimo|ultima|proxima|proximo)/i.test(trimmed)) {
+    if (movie) return `pelicula anterior a ${movie}`;
+    if (book) return `libro anterior a ${book}`;
+    if (team) return `partido anterior de ${team}`;
+  }
+
+  // "y con X?" / "y de X?" — variaciones
+  if (/^y\s+(con|de|para|sin)\s+/i.test(trimmed)) {
+    if (recipe) {
+      const variation = input.trim().replace(/^y\s+/i, "");
+      return `receta de ${recipe} ${variation}`;
+    }
+  }
+
+  // No pudimos resolver — devolver original
+  return input;
+}
+
 export async function runKoruBackendTurn(
   request: KoruBackendTurnRequest,
   config: ProviderConfig,
@@ -4741,6 +4853,20 @@ export async function runKoruBackendTurn(
   // El router corre para cualquier mensaje con contenido (no vacío / no solo
   // saludo de una palabra). El gate NO usa isTrivialInput porque esa función
   // matchea prefijos ("hola ...") y haría saltar mensajes reales de búsqueda.
+
+  // 🔴 FIX P2 — Pre-resolución de follow-ups cortos (Bug "y ayer?"):
+  // Si el input es un follow-up muy corto ("y ayer?", "y mañana?", "y la anterior?")
+  // Y hay contexto reciente en el historial, reescribir el input para que el LLM
+  // y el router tengan toda la info necesaria. Esto es determinístico, no depende
+  // de que el LLM "interprete" el contexto.
+  const resolvedInput = resolveFollowUpInput(request.input, request.history);
+  if (resolvedInput !== request.input) {
+    logger.info("runKoruBackendTurn", "Follow-up resolved", {
+      original: request.input,
+      resolved: resolvedInput,
+    });
+    request = { ...request, input: resolvedInput };
+  }
   const inputTrimmed = request.input.trim();
   // Fase 4.1: declarar modelOverride temprano para que esté disponible en
   // todas las callProvider calls (incluida la del router autofire ~4108).
