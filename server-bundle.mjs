@@ -11226,23 +11226,56 @@ var server = http.createServer(async (req, res) => {
         sendJson(res, 400, { error: "Payload incompleto para /api/koru/turn." });
         return;
       }
-      const streamEnabled = request.stream === true;
-      if (streamEnabled) {
-        res.writeHead(200, {
-          "Content-Type": "application/x-ndjson",
-          "Cache-Control": "no-cache",
-          "Connection": "keep-alive",
-          "Access-Control-Allow-Origin": "*"
-        });
-        const onChunk = (chunk) => {
+      res.writeHead(200, {
+        "Content-Type": "application/x-ndjson",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "Access-Control-Allow-Origin": "*",
+        "X-Accel-Buffering": "no"
+        // Render/nginx: no buffer
+      });
+      const heartbeat = setInterval(() => {
+        try {
+          res.write("\n");
+        } catch {
+        }
+      }, 5e3);
+      const onChunk = (chunk) => {
+        try {
           res.write(JSON.stringify(chunk) + "\n");
-        };
+        } catch {
+        }
+      };
+      try {
         const result = await runKoruBackendTurn(request, config, onChunk);
-        res.end();
-      } else {
-        const result = await runKoruBackendTurn(request, config);
-        sendJson(res, 200, result);
+        clearInterval(heartbeat);
+        try {
+          res.write(JSON.stringify(result) + "\n");
+        } catch {
+        }
+      } catch (err) {
+        clearInterval(heartbeat);
+        const errorResponse = {
+          error: err?.message ?? "Error interno",
+          reply: "No pude procesar tu mensaje. El modelo no respondi\xF3 a tiempo.",
+          uiBlocks: [],
+          suggestedActions: [],
+          understanding: { literalRequest: "", userGoal: "error", unstatedNeeds: [], assumptions: [], confidence: 0 },
+          memoryCandidates: [],
+          commitments: [],
+          records: [],
+          toolResults: [],
+          stateEvents: [{ kind: "done", label: "Error" }],
+          mascotState: "tired",
+          provider: "nvidia",
+          fallbackReason: "server-error"
+        };
+        try {
+          res.write(JSON.stringify(errorResponse) + "\n");
+        } catch {
+        }
       }
+      res.end();
     } catch (err) {
       console.error("[koru-turn]", err?.message);
       sendJson(res, 500, { error: err?.message ?? "Error interno" });

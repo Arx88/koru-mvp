@@ -188,24 +188,46 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      const streamEnabled = request.stream === true;
+      // SIEMPRE usar streaming con heartbeat para evitar timeout de Render (30s)
+      // El heartbeat envía un chunk vacío cada 5s para mantener viva la conexión
+      res.writeHead(200, {
+        "Content-Type": "application/x-ndjson",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "Access-Control-Allow-Origin": "*",
+        "X-Accel-Buffering": "no", // Render/nginx: no buffer
+      });
 
-      if (streamEnabled) {
-        res.writeHead(200, {
-          "Content-Type": "application/x-ndjson",
-          "Cache-Control": "no-cache",
-          "Connection": "keep-alive",
-          "Access-Control-Allow-Origin": "*",
-        });
-        const onChunk = (chunk: any) => {
-          res.write(JSON.stringify(chunk) + "\n");
-        };
+      // Heartbeat: cada 5s enviar un comentario para mantener la conexión
+      const heartbeat = setInterval(() => {
+        try { res.write("\n"); } catch {}
+      }, 5000);
+
+      const onChunk = (chunk: any) => {
+        try { res.write(JSON.stringify(chunk) + "\n"); } catch {}
+      };
+
+      try {
         const result = await runKoruBackendTurn(request, config as any, onChunk);
-        res.end();
-      } else {
-        const result = await runKoruBackendTurn(request, config as any);
-        sendJson(res, 200, result);
+        clearInterval(heartbeat);
+        try { res.write(JSON.stringify(result) + "\n"); } catch {}
+      } catch (err: any) {
+        clearInterval(heartbeat);
+        const errorResponse = {
+          error: err?.message ?? "Error interno",
+          reply: "No pude procesar tu mensaje. El modelo no respondió a tiempo.",
+          uiBlocks: [],
+          suggestedActions: [],
+          understanding: { literalRequest: "", userGoal: "error", unstatedNeeds: [], assumptions: [], confidence: 0 },
+          memoryCandidates: [], commitments: [], records: [], toolResults: [],
+          stateEvents: [{ kind: "done" as const, label: "Error" }],
+          mascotState: "tired",
+          provider: "nvidia",
+          fallbackReason: "server-error",
+        };
+        try { res.write(JSON.stringify(errorResponse) + "\n"); } catch {}
       }
+      res.end();
     } catch (err: any) {
       console.error("[koru-turn]", err?.message);
       sendJson(res, 500, { error: err?.message ?? "Error interno" });
