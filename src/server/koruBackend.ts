@@ -5144,7 +5144,7 @@ export async function runKoruBackendTurn(
             const searchLabel = searchLabelFromInput(String(fallbackQuery));
             onChunk?.({
               reply: searchLabel,
-              uiBlocks: [{ type: "deliverable" as const, status: "working" as const, kicker: "Tu Búsqueda", title: "Buscando", topic: query || request.input, progress: 15, phaseLabel: shortSearchLabel }],
+              uiBlocks: [{ type: "deliverable" as const, status: "working" as const, kicker: "Tu Búsqueda", title: "Buscando", topic: query || request.input, progress: 15, phaseLabel: "Buscando..." }],
               suggestedActions: [],
               understanding: { literalRequest: request.input, userGoal: "web_search fallback", unstatedNeeds: [], assumptions: [], confidence: 0.9 },
               memoryCandidates: [], commitments: [], records: [], toolResults: [],
@@ -5277,7 +5277,7 @@ export async function runKoruBackendTurn(
           const shortSearchLabel = query ? searchLabelFromInput(query) : "Buscando en la web";
           onChunk?.({
             reply: shortSearchLabel,
-            uiBlocks: [{ type: "deliverable" as const, status: "working" as const, kicker: "Tu Búsqueda", title: "Buscando", topic: query || request.input, progress: 15, phaseLabel: shortSearchLabel }],
+            uiBlocks: [{ type: "deliverable" as const, status: "working" as const, kicker: "Tu Búsqueda", title: "Buscando", topic: query || request.input, progress: 15, phaseLabel: "Buscando..." }],
             suggestedActions: [],
             understanding: { literalRequest: request.input, userGoal: route.category, unstatedNeeds: [], assumptions: [], confidence: route.confidence },
             memoryCandidates: [], commitments: [], records: [], toolResults: [],
@@ -5369,7 +5369,7 @@ export async function runKoruBackendTurn(
       : undefined;
     const loadingChunk: KoruBackendTurnResponse = {
       reply: query ? `Buscando "${query}"...` : "Buscando en la web...",
-      uiBlocks: [{ type: "deliverable" as const, status: "working" as const, kicker: "Tu Búsqueda", title: "Buscando", topic: query || request.input, progress: 15, phaseLabel: shortSearchLabel }],
+      uiBlocks: [{ type: "deliverable" as const, status: "working" as const, kicker: "Tu Búsqueda", title: "Buscando", topic: query || request.input, progress: 15, phaseLabel: "Buscando..." }],
       suggestedActions: [],
       understanding: { literalRequest: request.input, userGoal: "Búsqueda web", unstatedNeeds: [], assumptions: [], confidence: 0.8 },
       memoryCandidates: [],
@@ -5395,7 +5395,7 @@ export async function runKoruBackendTurn(
     // Emitir chunk intermedio con los resultados de tools para progreso en tiempo real
     if (onChunk && toolExecutions.length > 0) {
       const intermediateBlocks = blocksFromToolResults(toolExecutions).map((b) => {
-        if (b.type === "web_nav") return null; // 🔴 FIX: no more web_nav loading — use deliverable working
+        if (b.type === "web_nav") return null as any; // 🔴 FIX: no more web_nav loading
         return b;
       });
       logger.info("runKoruBackendTurn", "Emit intermediate chunk", { blockCount: intermediateBlocks.length });
@@ -5522,7 +5522,7 @@ export async function runKoruBackendTurn(
     const query = simulatedCall.name === "web_search" ? cleanText(simulatedCall.arguments.query as string) : undefined;
     onChunk?.({
       reply: query ? `Buscando "${query}"...` : "Buscando en la web...",
-      uiBlocks: [{ type: "deliverable" as const, status: "working" as const, kicker: "Tu Búsqueda", title: "Buscando", topic: query || request.input, progress: 15, phaseLabel: shortSearchLabel }],
+      uiBlocks: [{ type: "deliverable" as const, status: "working" as const, kicker: "Tu Búsqueda", title: "Buscando", topic: query || request.input, progress: 15, phaseLabel: "Buscando..." }],
       suggestedActions: [],
       understanding: { literalRequest: request.input, userGoal: query ? "Búsqueda web" : request.input, unstatedNeeds: [], assumptions: [], confidence: 0.8 },
       memoryCandidates: [], commitments: [], records: [], toolResults: [],
