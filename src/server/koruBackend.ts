@@ -5463,11 +5463,17 @@ export async function runKoruBackendTurn(
             );
 
             // 🔴 APLICAR SÍNTESIS AQUÍ — directamente sobre response.uiBlocks
-            // Esto es lo ÚNICO que funciona porque normalizeFinalPayload regenera los toolBlocks
-            // Fallback final: si no hay effectiveSummary2, usar routerSynthReply (reply original
-            // del LLM ANTES del trimming de normalizeFinalPayload)
+            // Fallback: usar response.reply (que viene de finalizePayloadWithFastModel's LLM call)
+            // como summary si el synth call falló. Pero usar el reply ANTES del trimming.
+            // Como no tenemos acceso al reply pre-trimming aquí, usar response.reply si es >60 chars.
             if (!effectiveSummary2 || effectiveSummary2.length < 20) {
-              effectiveSummary2 = routerSynthReply || response.reply || "";
+              // response.reply ya fue trimmed, pero si tiene >60 chars es útil
+              if (response.reply && response.reply.length > 60) {
+                effectiveSummary2 = response.reply;
+              } else {
+                // Último recurso: no aplicar enriquecimiento, dejar el synthesisText legible
+                effectiveSummary2 = "";
+              }
             }
             logger.info("runKoruBackendTurn", "Router effectiveSummary2 final", {
               len: effectiveSummary2.length,
