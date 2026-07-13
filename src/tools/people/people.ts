@@ -173,9 +173,17 @@ export const movieInfo: ToolHandler = {
     if (!title) return { type: "movie_info", status: "failed", error: "Indicá el título." };
 
     // 🔴 FIX P2: enriquecer con TMDB (poster, rating, géneros, estreno, runtime, sinopsis original)
-    // TMDB requiere API key — usamos el endpoint público con el access token de solo lectura
-    // si está configurado. Si no, solo Wikipedia.
-    const TMDB_API_KEY = process.env.TMDB_API_KEY || process.env.TMDB_BEARER_TOKEN || "";
+    // TMDB soporta 2 métodos de auth:
+    //  - Bearer token (v4, preferido): Authorization: Bearer XXX header
+    //  - API key (v3, fallback): ?api_key=XXX query param
+    const TMDB_BEARER = process.env.TMDB_BEARER_TOKEN || "";
+    const TMDB_API_KEY = process.env.TMDB_API_KEY || "";
+    const tmdbHeaders: Record<string, string> = TMDB_BEARER
+      ? { "Authorization": `Bearer ${TMDB_BEARER}`, "Content-Type": "application/json" }
+      : {};
+    const tmdbAuthParam = TMDB_BEARER ? "" : (TMDB_API_KEY ? `&api_key=${TMDB_API_KEY}` : "");
+    const tmdbEnabled = Boolean(TMDB_BEARER || TMDB_API_KEY);
+
     let tmdbData: {
       poster?: string;
       rating?: number;
@@ -187,11 +195,14 @@ export const movieInfo: ToolHandler = {
       director?: string;
     } = {};
 
-    if (TMDB_API_KEY) {
+    if (tmdbEnabled) {
       try {
         // Search movie by title
-        const searchUrl = `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(title)}${year ? `&year=${year}` : ""}&language=es-ES&api_key=${TMDB_API_KEY}`;
-        const searchRes = await fetch(searchUrl, { signal: AbortSignal.timeout(9000) });
+        const searchUrl = `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(title)}${year ? `&year=${year}` : ""}&language=es-ES${tmdbAuthParam}`;
+        const searchRes = await fetch(searchUrl, {
+          headers: tmdbHeaders,
+          signal: AbortSignal.timeout(9000),
+        });
         const searchData = await searchRes.json() as { results?: Array<{ id: number; poster_path?: string; vote_average?: number; release_date?: string; genre_ids?: number[]; overview?: string }> };
         const first = searchData.results?.[0];
         if (first) {
@@ -200,8 +211,11 @@ export const movieInfo: ToolHandler = {
           tmdbData.releaseDate = first.release_date;
           tmdbData.overview = first.overview;
           // Get details (runtime, genres, director, cast)
-          const detailsUrl = `https://api.themoviedb.org/3/movie/${first.id}?language=es-ES&api_key=${TMDB_API_KEY}&append_to_response=credits`;
-          const detailsRes = await fetch(detailsUrl, { signal: AbortSignal.timeout(9000) });
+          const detailsUrl = `https://api.themoviedb.org/3/movie/${first.id}?language=es-ES${tmdbAuthParam}&append_to_response=credits`;
+          const detailsRes = await fetch(detailsUrl, {
+            headers: tmdbHeaders,
+            signal: AbortSignal.timeout(9000),
+          });
           const details = await detailsRes.json() as {
             runtime?: number;
             genres?: Array<{ id: number; name: string }>;

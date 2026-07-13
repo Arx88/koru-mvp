@@ -562,10 +562,20 @@ function extractJsonBlock(text: string): string {
  *     <reflection>...</reflection>, <output>...</output> (conservar solo el contenido de <output>).
  *  2. CoT en inglés antes del JSON: si el texto contiene `{"reply"` más adelante,
  *     tirar todo lo anterior al primer `{`.
- *  3. Patrones típicos de thinking que sabemos que NO son respuestas al usuario:
- *     "The user is asking...", "I should use...", "Let me...", "I need to...",
- *     "Let's think step by step...". Si el texto STARTS con uno de estos y mide
- *     más de 200 chars, lo consideramos thinking y devolvemos "".
+ *  3. AGRESIVO: si el texto EMPIEZA con un patrón de thinking en inglés
+ *     ("The user is asking...", "I need to...", "Let me...", "I should..."),
+ *     y NO contiene JSON reply, devolver "" — es thinking puro.
+ *     Sin threshold de length: cualquier thinking al inicio = strip.
+ *  4. AGRESIVO: si el texto contiene 2+ indicadores de thinking
+ *     ("I need to", "Let me", "I should", "I will", "The user..."),
+ *     y NO contiene JSON reply, devolver "".
+ *
+ * Tests verificados:
+ *  - "The user is asking about Argentina's match yesterday..." (148 chars) → ""
+ *  - "The user is asking about Argentina's football match... Let me use match_live..." (280 chars) → ""
+ *  - "¡Hola Juan! ¿Cómo va todo?" → preservado
+ *  - "En Madrid hace 29°C ahora..." → preservado
+ *  - "Listo, guardado en gastos." → preservado
  */
 function stripReasoning(text: string): string {
   if (!text) return "";
@@ -588,17 +598,25 @@ function stripReasoning(text: string): string {
   if (jsonStart > 0) {
     out = out.slice(jsonStart);
   }
-  // 3. Patrones de thinking típicos al inicio del texto
-  const thinkingPatterns = [
-    /^(the user|the user is|i should|i need to|let me|let's think|i'll|i will|i am going to|first,? i|now i|the question|looking at|analyzing|to answer this|based on the|so,? i|this is a|this is an|let's consider|step by step)\b/i,
+  // Si ya encontramos JSON reply, no seguir strippando
+  const hasJsonReply = /\{\s*["']reply["']\s*:/.test(out);
+  if (hasJsonReply) {
+    return out;
+  }
+  // 3. AGRESIVO: si empieza con patrón de thinking en inglés, strip total
+  //    Patrones ampliados para cubrir más variantes del CoT de Nemotron.
+  const thinkingStartPatterns = [
+    /^(the user|the user is|the user wants|the user is asking|i should|i need to|let me|let's think|i'll|i will|i am going to|first,?\s*i|now i|the question|looking at|analyzing|to answer this|based on the|so,?\s*i|this is a|this is an|let's consider|step by step|i have to|i must|i'm going to|the request|the input|the message|i want to|i can|i could|i'm thinking|okay,?\s*(so|i|let|the)|alright,?\s*(so|i|let|the))\b/i,
   ];
   const trimmed = out.trim();
-  if (trimmed.length > 200 && thinkingPatterns.some(re => re.test(trimmed))) {
-    // Si EL TEXTO COMPLETO es thinking (no hay JSON), descartar.
-    // Si hay JSON más adelante, ya se preservó en paso 2.
-    if (!/\{\s*["']reply["']\s*:/.test(out)) {
-      return "";
-    }
+  if (trimmed.length > 20 && thinkingStartPatterns.some(re => re.test(trimmed))) {
+    return "";
+  }
+  // 4. AGRESIVO: si contiene múltiples indicadores de thinking, es thinking
+  //    aunque no empiece exactamente con un patrón.
+  const thinkingIndicators = (out.match(/\b(i need to|let me|i should|i will|i'll|i am going to|i'm going to|i have to|i must|the user|i want to|i can|step by step|let's think|i think|i believe|first i|then i|next i|finally i)\b/gi) || []).length;
+  if (thinkingIndicators >= 2 && trimmed.length > 30) {
+    return "";
   }
   return out;
 }
@@ -3596,8 +3614,15 @@ function normalizeFinalPayload(
   }));
   const cleanedReply = cleanReplyText(raw.reply);
   const blockReply = replyFromBlocks(uiBlocks, input);
+  // 🔴 SAFETY NET FINAL: si después de toda la cadena de strippado el reply todavía
+  // parece thinking del LLM (empieza con "The user", "I need to", etc.), reemplazar
+  // con blockReply o mensaje de fallback. Esto es la última línea de defensa.
+  const looksLikeThinking = /^(the user|i need to|let me|i should|i will|i'll|i am going to|i'm going to|step by step|first,?\s*i|okay,?\s*(so|i|let)|alright,?\s*(so|i|let))\b/i.test(cleanedReply);
+  const finalReply = !cleanedReply || isGenericAgentReply(cleanedReply) || looksLikeThinking
+    ? blockReply || "Tuve un problema para armar la respuesta. ¿Me lo repetís de otra forma para ayudarte bien?"
+    : cleanedReply;
   return {
-    reply: !cleanedReply || isGenericAgentReply(cleanedReply) ? blockReply || "Tuve un problema para armar la respuesta. ¿Me lo repetís de otra forma para ayudarte bien?" : cleanedReply,
+    reply: finalReply,
     uiBlocks,
     suggestedActions: normalizeSuggestedActions(raw.suggestedActions),
     understanding: normalizeUnderstanding(raw.understanding, input),
