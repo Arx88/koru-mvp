@@ -3344,7 +3344,10 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
       // Forzar reply honesto pidiendo más info o sugiriendo web_search.
       if (r.status === "failed" || r.status === "no_data") {
         (result as any).__forceHonestReply = true;
-        (result as any).__honestReplyText = `No encontré la película "${r.query ?? r.title ?? ''}" en mis fuentes. ¿Te referís a una película específica? Si me das el año o el director, lo intento de nuevo. También puedo buscar info general en la web si querés.`;
+        const movieName = r.query || r.title || r.__title || "";
+        (result as any).__honestReplyText = movieName
+          ? `No encontré la película "${movieName}" en mis fuentes. ¿Te referís a una película específica? Si me das el año o el director, lo intento de nuevo. También puedo buscar info general en la web si querés.`
+          : `No encontré esa película en mis fuentes. ¿Me decís el título exacto o el año? También puedo buscar info en la web si preferís.`;
         continue; // NO generar block — sin card vacía
       }
       const title = r.title ?? "Película";
