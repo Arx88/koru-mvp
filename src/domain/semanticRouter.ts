@@ -53,6 +53,9 @@ export type RouteCategory =
   | "travel"
   | "review"
   | "birthday"
+  | "food"
+  | "knowledge"
+  | "media"
   | "conversation";
 
 export type RouteTool =
@@ -70,7 +73,19 @@ export type RouteTool =
   | "currency_convert"
   | "route_traffic"
   | "travel_itinerary"
-  | "save_personal_item";
+  | "save_personal_item"
+  // 🔴 FIX P1: nuevas tools reconocidas por el router
+  | "recipe_find"
+  | "food_info"
+  | "movie_info"
+  | "book_info"
+  | "person_info"
+  | "wikipedia_lookup"
+  | "dictionary_define"
+  | "math_calc"
+  | "unit_convert"
+  | "team_follow"
+  | "league_standings";
 
 // ── Ejemplos modelo por categoría ──────────────────────────────────
 // Pocas frases (5-8) por categoría, elegidas para cubrir las formas comunes
@@ -290,6 +305,39 @@ const ROUTE_EXAMPLES: Array<{ category: RouteCategory; tool?: RouteTool; text: s
   { category: "review", tool: "shopping_compare", text: "análisis de auriculares Sony" },
   { category: "review", tool: "web_search", text: "puntuación de productos" },
   { category: "review", tool: "web_search", text: "veredicto final" },
+
+  // 🔴 FIX P1: food → recipe_find / food_info / restaurant_deep_search
+  { category: "food", tool: "recipe_find", text: "receta de carbonara" },
+  { category: "food", tool: "recipe_find", text: "cómo hago panqueques" },
+  { category: "food", tool: "recipe_find", text: "postre sin horno" },
+  { category: "food", tool: "recipe_find", text: "algo con pollo y arroz" },
+  { category: "food", tool: "recipe_find", text: "qué cocino hoy" },
+  { category: "food", tool: "recipe_find", text: "receta fácil de pasta" },
+  { category: "food", tool: "recipe_find", text: "receta de tortilla" },
+  { category: "food", tool: "food_info", text: "información nutricional del yogurt" },
+  { category: "food", tool: "food_info", text: "qué ingredientes tiene la coca cola" },
+
+  // 🔴 FIX P1: media → movie_info / book_info / person_info
+  { category: "media", tool: "movie_info", text: "qué se dice de la película obsesión" },
+  { category: "media", tool: "movie_info", text: "información sobre la película duna" },
+  { category: "media", tool: "movie_info", text: "resenha de la pelicula avatar" },
+  { category: "media", tool: "movie_info", text: "quién actúa en el padrino" },
+  { category: "media", tool: "movie_info", text: "de qué trata la película interestelar" },
+  { category: "media", tool: "movie_info", text: "crítica de la película joker" },
+  { category: "media", tool: "book_info", text: "info del libro cien anos de soledad" },
+  { category: "media", tool: "book_info", text: "quién escribió rayuela" },
+  { category: "media", tool: "book_info", text: "de qué trata el libro 1984" },
+  { category: "media", tool: "person_info", text: "quién es borges" },
+  { category: "media", tool: "person_info", text: "biografía de stephen hawking" },
+
+  // 🔴 FIX P1: knowledge → wikipedia_lookup / dictionary_define / math_calc
+  { category: "knowledge", tool: "wikipedia_lookup", text: "qué es la teoría de la relatividad" },
+  { category: "knowledge", tool: "wikipedia_lookup", text: "contame sobre el renacimiento" },
+  { category: "knowledge", tool: "wikipedia_lookup", text: "quién fue napoleón" },
+  { category: "knowledge", tool: "wikipedia_lookup", text: "qué es el efecto invernadero" },
+  { category: "knowledge", tool: "dictionary_define", text: "qué significa efímero" },
+  { category: "knowledge", tool: "math_calc", text: "cuánto es 15 por ciento de 230" },
+  { category: "knowledge", tool: "unit_convert", text: "cuántos km son 5 millas" },
 
   // birthday → save_personal_item
   { category: "birthday", tool: "save_personal_item", text: "cumpleaños de Ana" },

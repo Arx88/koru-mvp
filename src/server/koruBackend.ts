@@ -442,8 +442,12 @@ const CATEGORY_TOOLS: Record<RouteCategory, string[]> = {
   travel: ["travel_itinerary", "flight_search", "hotel_search"],
   directions: ["route_traffic", "weather", "travel_itinerary"],
   elections: ["web_search", "news_topic"],
-  review: ["shopping_compare", "web_search"],
+  review: ["shopping_compare", "web_search", "movie_info", "book_info", "product_review"],
   birthday: ["save_personal_item", "query_personal_context"],
+  // 🔴 FIX P1: nuevas categorías para tools que ya existían pero no se rutaban
+  food: ["recipe_find", "recipe_by_ingredients", "food_info", "wine_pairing", "nutrition_calc", "restaurant_deep_search"],
+  media: ["movie_info", "book_info", "person_info", "person_filmography", "web_search"],
+  knowledge: ["wikipedia_lookup", "dictionary_define", "math_calc", "unit_convert", "web_search"],
   conversation: [],
 };
 
@@ -545,14 +549,70 @@ function extractJsonBlock(text: string): string {
   return text;
 }
 
+/**
+ * 🔴 FIX P0 — stripReasoning: elimina razonamiento interno del LLM antes de
+ * exponerlo como reply al usuario.
+ *
+ * Causa raíz del Bug 1: Nemotron Ultra (y otros modelos con modo "thinking")
+ * a veces emiten su CoT en el campo `content` en lugar de `reasoning_content`.
+ * Esto se ve como: "The user is asking about Argentina's football match...".
+ *
+ * Estrategias de strippado (en orden):
+ *  1. Tags XML-style explícitos: <think>...</think>, <reasoning>...</reasoning>,
+ *     <reflection>...</reflection>, <output>...</output> (conservar solo el contenido de <output>).
+ *  2. CoT en inglés antes del JSON: si el texto contiene `{"reply"` más adelante,
+ *     tirar todo lo anterior al primer `{`.
+ *  3. Patrones típicos de thinking que sabemos que NO son respuestas al usuario:
+ *     "The user is asking...", "I should use...", "Let me...", "I need to...",
+ *     "Let's think step by step...". Si el texto STARTS con uno de estos y mide
+ *     más de 200 chars, lo consideramos thinking y devolvemos "".
+ */
+function stripReasoning(text: string): string {
+  if (!text) return "";
+  let out = text;
+  // 1. Tags XML-style
+  out = out
+    .replace(/<think>[\s\S]*?<\/think>/gi, "")
+    .replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, "")
+    .replace(/<reflection>[\s\S]*?<\/reflection>/gi, "")
+    .replace(/<reflection>[\s\S]*$/gi, "") // reflection sin cerrar (truncado)
+    .replace(/<\/?think>/gi, "")
+    .replace(/<\/?reasoning>/gi, "");
+  // Si hay tag <output>, conservar SOLO su contenido
+  const outputMatch = out.match(/<output>([\s\S]*?)<\/output>/i);
+  if (outputMatch) {
+    out = outputMatch[1];
+  }
+  // 2. Si hay `{"reply"` o `{"reply":` más adelante, tirar todo lo anterior (CoT en inglés)
+  const jsonStart = out.search(/\{\s*["']reply["']\s*:/);
+  if (jsonStart > 0) {
+    out = out.slice(jsonStart);
+  }
+  // 3. Patrones de thinking típicos al inicio del texto
+  const thinkingPatterns = [
+    /^(the user|the user is|i should|i need to|let me|let's think|i'll|i will|i am going to|first,? i|now i|the question|looking at|analyzing|to answer this|based on the|so,? i|this is a|this is an|let's consider|step by step)\b/i,
+  ];
+  const trimmed = out.trim();
+  if (trimmed.length > 200 && thinkingPatterns.some(re => re.test(trimmed))) {
+    // Si EL TEXTO COMPLETO es thinking (no hay JSON), descartar.
+    // Si hay JSON más adelante, ya se preservó en paso 2.
+    if (!/\{\s*["']reply["']\s*:/.test(out)) {
+      return "";
+    }
+  }
+  return out;
+}
+
 function safeJsonObjectFromContent(raw: string): Record<string, unknown> {
-  const direct = safeJsonParse(raw);
+  // 🔴 FIX P0: stripar reasoning ANTES de intentar parsear JSON
+  const cleaned = stripReasoning(raw);
+  const direct = safeJsonParse(cleaned);
   if (direct.reply !== undefined || direct.uiBlocks !== undefined) return direct;
-  const extracted = safeJsonParse(extractJsonBlock(raw));
+  const extracted = safeJsonParse(extractJsonBlock(cleaned));
   if (extracted.reply !== undefined || extracted.uiBlocks !== undefined) return extracted;
   // Dirty extraction: fields individually with regex
-  const reply = extractStringField(raw, "reply");
-  const mascotState = extractStringField(raw, "mascotState") || extractStringField(raw, "mascot_state");
+  const reply = extractStringField(cleaned, "reply");
+  const mascotState = extractStringField(cleaned, "mascotState") || extractStringField(cleaned, "mascot_state");
   if (reply && reply.length > 3) {
     return { reply, mascotState: mascotState || "idle", uiBlocks: [] };
   }
@@ -578,7 +638,8 @@ function extractStringField(raw: string, field: string): string | undefined {
 }
 
 function cleanReplyText(value: unknown): string {
-  return cleanText(value)
+  // 🔴 FIX P0: stripar reasoning PRIMERO, antes de cualquier otra limpieza
+  return stripReasoning(cleanText(value))
     .replace(/\*?\s*uiBlock\s*:\s*[a-z_]+\s*\*?/gi, "")
     .replace(/\buiBlocks?\b\s*[:=]\s*\[[\s\S]*$/i, "")
     .replace(/\b(Hola|Gracias|Perfecto|Listo)(?=[A-ZÁÉÍÓÚÑ])/g, "$1 ")
@@ -2233,13 +2294,19 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
     `  - web_search: Noticias generales (NO deportivas). "¿Qué pasó en Argentina?" / "¿Últimas noticias de tecnología?" / "¿Qué hay del clima político?". NUNCA para resultados de partidos — para eso está match_live.`,
     `  - shopping_compare: "¿Qué auriculares compro?" / "Necesito una batería externa" / "¿Dónde compro X más barato?" / "¿Cuál es mejor, A o B?"`,
     `  - restaurant_deep_search: "Dónde cenar en Madrid" / "Qué restaurante me recomendás" / "Dónde como sushi" / "Necesito una parrilla" / "Qué tal comer en Palermo"`,
+    `  - recipe_find: "Receta de X" / "Cómo hago X" / "Algo con Y" / "Postre sin horno" / "¿Qué cocino con...?". Devuelve ingredientes estructurados, pasos, imagen y video. NUNCA des una receta de memoria — usá la tool para traer recetas reales con foto.`,
+    `  - movie_info: "¿Qué se dice de la película X?" / "Reseña de X" / "Información sobre la película X" / "Quién actúa en X". Devuelve sinopsis, reparto, rating, géneros. NUNCA uses web_search para una película específica — movie_info trae datos estructurados.`,
+    `  - book_info: "Info del libro X" / "Quién escribió X" / "De qué trata X". Devuelve cover, autor, año, sinopsis.`,
+    `  - wikipedia_lookup: "¿Qué es X?" / "Contame sobre X" / "Quién fue X". Para temas enciclopédicos puntuales.`,
     `  - plan_day: "¿Cómo organizo hoy?" / "Tengo muchas cosas" / "¿Qué hago primero?" / "¿Me ayudas a planificar?"`,
     `  - query_personal_context: "¿Cuánto gasté?" / "¿Qué tenía para comer?" / "¿Recordás que me dijiste?" / Cualquier cosa que Koru ya haya guardado del usuario.`,
     `  - save_memory: Cuando el usuario revela algo importante sobre sí mismo (rutinas, metas, preferencias, relaciones).`,
     `  - save_personal_item: Cuando el usuario pide guardar algo (gasto, recordatorio, lista de compras, alarma).`,
     `REGLA CRÍTICA DE ROUTING: si el usuario pregunta por un resultado o partido de fútbol (cualquier equipo o selección), USÁ match_live, NO web_search. web_search devuelve noticias genéricas sin el marcador exacto; match_live te da el score real en tiempo real.`,
-    `Usá tools SOLO cuando la intención del usuario REQUIERA datos reales del mundo (clima, búsqueda, ruta, precios, resultados deportivos). Por ejemplo: si el usuario dice 'hola', 'gracias', 'adiós', '¿cómo estás?' o cualquier frase de cortesía, NO uses tools. Respondé directamente con naturalidad.`,
+    `Usá tools SOLO cuando la intención del usuario REQUIERA datos reales del mundo (clima, búsqueda, ruta, precios, resultados deportivos, recetas, películas, libros). Por ejemplo: si el usuario dice 'hola', 'gracias', 'adiós', '¿cómo estás?' o cualquier frase de cortesía, NO uses tools. Respondé directamente con naturalidad.`,
     `- Para datos personales ya guardados, no llames tools; respondé directamente usando el contexto.`,
+    `- 🔴 CRÍTICO — PROHIBIDO RAZONAMIENTO EN "reply": NUNCA incluyas tu razonamiento interno, análisis de qué tool llamar, ni texto en inglés tipo "The user is asking...", "I should use...", "Let me think..." en "reply". El campo "reply" debe contener SOLO la respuesta final al usuario, en español, cálido y directo. Si necesitás decidir una tool, EMITE tool_calls directamente en el JSON sin escribir tu razonamiento en el texto. Si estás pensando, NO escribas "thinking..." — simplemente devolvé el JSON final con la respuesta.`,
+    `- 🔴 CRÍTICO — CALIDAD SUPERLATIVA: cuando el usuario pida algo (receta, película, reseña, info), tu reply debe ser SUSTANCIAL y ÚTIL. No esboces resúmenes vagos. Traé datos concretos de las tools: nombre exacto, ingredientes con cantidades, rating, reparto, géneros, pasos numerados. Dejá al usuario con la sensación de "no necesito buscar nada más". Conectá los datos con cercanía, pero no los reemplaces con generalidades.`,
     `- Agregá mascotState al JSON final Elijí SOLO de esta lista exacta: "celebrating", "worried", "affectionate", "curious", "happy", "thinking", "working", "tired", "sleeping", "mistake", "planning", "product-search", "building", "cooking", "thinking-2". Si nada aplica, usá "idle".`,
     `- Formato de respuesta final (contrato MÍNIMO y OBLIGATORIO): {"reply":"...","mascotState":"..."}`,
     `  - reply: tu respuesta conversacional directa al usuario, respondiendo EXACTAMENTE a su último mensaje. Sin JSON anidado, sin código, sin listas técnicas. Texto natural y cálido.`,
@@ -3094,6 +3161,152 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
       });
       continue;
     }
+
+    // 🔴 FIX P1 — Casos nuevos para tools que ya existían pero se descartaban
+
+    // movie_info: usar product_analysis con poster como imagen + specs (reparto, géneros, estreno)
+    if (result.type === "movie_info") {
+      const r = result as any;
+      const title = r.title ?? "Película";
+      const poster = r.poster ?? r.thumbnail;
+      const rating = typeof r.rating === "number" ? r.rating : undefined;
+      const description = r.text ?? r.summary ?? r.synopsis ?? "";
+      const specs: Array<{ label: string; value: string }> = [];
+      if (r.cast && Array.isArray(r.cast) && r.cast.length > 0) {
+        specs.push({ label: "Reparto", value: r.cast.slice(0, 5).join(", ") });
+      }
+      if (r.genres && Array.isArray(r.genres) && r.genres.length > 0) {
+        const genreNames = r.genres.map((g: any) => typeof g === "string" ? g : (g?.name ?? "")).filter(Boolean);
+        if (genreNames.length > 0) specs.push({ label: "Género", value: genreNames.join(", ") });
+      }
+      if (r.releaseDate) specs.push({ label: "Estreno", value: String(r.releaseDate) });
+      if (r.director) specs.push({ label: "Director", value: String(r.director) });
+      if (r.runtime) specs.push({ label: "Duración", value: String(r.runtime) });
+      blocks.push({
+        type: "product_analysis" as const,
+        product: {
+          name: title,
+          image: poster,
+          rating,
+          description: description.slice(0, 600),
+        },
+        specs,
+        actionLabel: r.sources?.[0]?.url ? "Ver más" : undefined,
+      });
+      continue;
+    }
+
+    // recipe_find: usar product_analysis con thumbnail + ingredientes como specs
+    if (result.type === "recipe_find") {
+      const r = result as any;
+      const recipes = Array.isArray(r.recipes) ? r.recipes : [];
+      if (recipes.length === 0) continue;
+      const first = recipes[0];
+      const specs: Array<{ label: string; value: string }> = [];
+      if (first.category) specs.push({ label: "Categoría", value: String(first.category) });
+      if (first.area) specs.push({ label: "Origen", value: String(first.area) });
+      if (Array.isArray(first.ingredients)) {
+        const ings = first.ingredients.slice(0, 10);
+        for (const ing of ings) {
+          const label = ing?.ingredient ?? String(ing ?? "");
+          const value = ing?.measure ?? "";
+          if (label) specs.push({ label, value: String(value || "") });
+        }
+      }
+      blocks.push({
+        type: "product_analysis" as const,
+        product: {
+          name: first.name ?? "Receta",
+          image: first.thumbnail,
+          description: first.instructions ? String(first.instructions).slice(0, 500) : undefined,
+        },
+        specs,
+        actionLabel: first.videoUrl ? "Ver video" : undefined,
+      });
+      // Si hay más recetas, agregar segunda card con lista
+      if (recipes.length > 1) {
+        blocks.push({
+          type: "comparison" as const,
+          title: "Otras recetas",
+          items: recipes.slice(1, 5).map((rec: any) => ({
+            title: rec.name ?? "Receta",
+            subtitle: [rec.category, rec.area].filter(Boolean).join(" · "),
+            image: rec.thumbnail,
+          })),
+        });
+      }
+      continue;
+    }
+
+    // book_info: usar product_analysis con cover + specs (autor, año, páginas)
+    if (result.type === "book_info") {
+      const r = result as any;
+      const title = r.title ?? "Libro";
+      const cover = r.coverUrl ?? r.cover ?? r.thumbnail;
+      const description = r.text ?? r.summary ?? r.synopsis ?? r.description ?? "";
+      const specs: Array<{ label: string; value: string }> = [];
+      if (r.author) specs.push({ label: "Autor", value: String(r.author) });
+      if (r.year || r.firstPublished) specs.push({ label: "Año", value: String(r.year ?? r.firstPublished) });
+      if (r.pages) specs.push({ label: "Páginas", value: String(r.pages) });
+      if (r.genre) specs.push({ label: "Género", value: String(r.genre) });
+      if (r.publisher) specs.push({ label: "Editorial", value: String(r.publisher) });
+      blocks.push({
+        type: "product_analysis" as const,
+        product: {
+          name: title,
+          image: cover,
+          description: description.slice(0, 600),
+        },
+        specs,
+        actionLabel: r.sources?.[0]?.url ? "Ver más" : undefined,
+      });
+      continue;
+    }
+
+    // wikipedia_lookup: usar data_card con texto + source
+    if (result.type === "wikipedia_lookup" || result.type === "person_info") {
+      const r = result as any;
+      const title = r.title ?? r.query ?? "Información";
+      const text = r.text ?? r.extract ?? r.summary ?? "";
+      if (!text) continue;
+      const sources = Array.isArray(r.sources) ? r.sources : [];
+      blocks.push({
+        type: "research_sources" as const,
+        title,
+        summary: text.slice(0, 1200),
+        sources: sources.map((s: any) => ({
+          title: s.title ?? title,
+          url: s.url ?? "",
+          domain: s.domain ?? "wikipedia.org",
+          snippet: s.snippet ?? "",
+        })),
+      });
+      continue;
+    }
+
+    // food_info: nutrition info con imagen
+    if (result.type === "food_info") {
+      const r = result as any;
+      const specs: Array<{ label: string; value: string }> = [];
+      if (r.nutriscore) specs.push({ label: "Nutri-Score", value: String(r.nutriscore).toUpperCase() });
+      if (r.calories) specs.push({ label: "Calorías", value: `${r.calories} kcal/100g` });
+      if (r.fat) specs.push({ label: "Grasas", value: `${r.fat} g/100g` });
+      if (r.carbs) specs.push({ label: "Carbohidratos", value: `${r.carbs} g/100g` });
+      if (r.proteins) specs.push({ label: "Proteínas", value: `${r.proteins} g/100g` });
+      if (r.ingredients && Array.isArray(r.ingredients)) {
+        specs.push({ label: "Ingredientes", value: r.ingredients.slice(0, 5).join(", ") });
+      }
+      blocks.push({
+        type: "product_analysis" as const,
+        product: {
+          name: r.productName ?? r.title ?? "Producto",
+          image: r.imageUrl ?? r.thumbnail,
+          description: r.summary ?? "",
+        },
+        specs,
+      });
+      continue;
+    }
   }
   return blocks;
 }
@@ -3899,11 +4112,11 @@ function fallbackDeliverable(topic: string, sources: AssistantSource[]): Pick<De
       { icon: "fact_check", label: "Fuentes" },
       { icon: "insights", label: "Contexto" },
     ],
-    metrics: [
-      { value: String(usable.length || sources.length), label: "Fuentes" },
-      { value: String(domains.length || 1), label: "Dominios" },
+    metrics: usable.length > 0 ? [
+      { value: String(usable.length), label: "Fuentes" },
+      { value: String(domains.length), label: "Dominios" },
       { value: "4", label: "Secciones" },
-    ],
+    ] : [],
     sections: [
       {
         icon: "auto_awesome",
@@ -4059,6 +4272,26 @@ async function runDeepResearchFlow(
     }
   }
   logger.info("runDeepResearchFlow", "Sources collected", { count: allSources.length, queries: queries.length });
+
+  // 🔴 FIX P0 — Bug 2: Si no encontramos NINGUNA fuente, no finjamos éxito.
+  // Caer a clarifying question pidiendo más contexto al usuario.
+  if (allSources.length === 0) {
+    logger.warn("runDeepResearchFlow", "0 sources found — aborting with clarifying question", { topic });
+    return {
+      reply: `No pude encontrar información sobre "${topic}". ¿Te referís a una película, libro, persona o tema específico? Si me das el nombre exacto o más contexto, lo intento de nuevo.`,
+      uiBlocks: [{
+        type: "clarifying_question" as const,
+        question: `No encontré nada sobre "${topic}". ¿Podés darme el nombre exacto o más contexto?`,
+        options: [],
+      }],
+      toolCalls: [],
+      toolResults: [],
+      turnItems: [],
+      mascotState: "worried",
+      energyAwarded: 0,
+      provider: "bluesminds",
+    } as Partial<KoruBackendTurnResponse> as KoruBackendTurnResponse;
+  }
 
   // ── 3. Síntesis: el LLM redacta el informe estructurado ──
   emit(62, "Comparando y cruzando fuentes…", "comparing", `Encontré ${allSources.length} fuentes. Estoy cruzando los datos…`);

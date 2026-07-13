@@ -37,6 +37,9 @@ export type ProviderToolCall = {
 export type ProviderMessage = {
   content?: string | null;
   tool_calls?: ProviderToolCall[];
+  /** Nemotron Ultra / DeepSeek-R1 / Qwen3 emiten razonamiento interno acá.
+   *  Lo capturamos solo para logging/descarte — NUNCA debe llegar al usuario. */
+  reasoning_content?: string | null;
 };
 
 export type ProviderResult = {

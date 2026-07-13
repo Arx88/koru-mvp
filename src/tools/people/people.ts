@@ -166,33 +166,122 @@ export const movieInfo: ToolHandler = {
       required: ["title"],
     },
   ),
-  policy: policies.readonly("Busca info de película en Wikipedia."),
+  policy: policies.readonly("Busca info de película en Wikipedia + TMDB."),
   async run(args) {
     const title = String(args.title ?? "").trim();
     const year = String(args.year ?? "").trim();
     if (!title) return { type: "movie_info", status: "failed", error: "Indicá el título." };
-    // Fase 3.1: usar Wikipedia API directamente en lugar de delegar a web_search.
+
+    // 🔴 FIX P2: enriquecer con TMDB (poster, rating, géneros, estreno, runtime, sinopsis original)
+    // TMDB requiere API key — usamos el endpoint público con el access token de solo lectura
+    // si está configurado. Si no, solo Wikipedia.
+    const TMDB_API_KEY = process.env.TMDB_API_KEY || process.env.TMDB_BEARER_TOKEN || "";
+    let tmdbData: {
+      poster?: string;
+      rating?: number;
+      releaseDate?: string;
+      genres?: string[];
+      runtime?: string;
+      overview?: string;
+      cast?: string[];
+      director?: string;
+    } = {};
+
+    if (TMDB_API_KEY) {
+      try {
+        // Search movie by title
+        const searchUrl = `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(title)}${year ? `&year=${year}` : ""}&language=es-ES&api_key=${TMDB_API_KEY}`;
+        const searchRes = await fetch(searchUrl, { signal: AbortSignal.timeout(9000) });
+        const searchData = await searchRes.json() as { results?: Array<{ id: number; poster_path?: string; vote_average?: number; release_date?: string; genre_ids?: number[]; overview?: string }> };
+        const first = searchData.results?.[0];
+        if (first) {
+          tmdbData.poster = first.poster_path ? `https://image.tmdb.org/t/p/w500${first.poster_path}` : undefined;
+          tmdbData.rating = typeof first.vote_average === "number" ? Math.round(first.vote_average * 10) / 10 : undefined;
+          tmdbData.releaseDate = first.release_date;
+          tmdbData.overview = first.overview;
+          // Get details (runtime, genres, director, cast)
+          const detailsUrl = `https://api.themoviedb.org/3/movie/${first.id}?language=es-ES&api_key=${TMDB_API_KEY}&append_to_response=credits`;
+          const detailsRes = await fetch(detailsUrl, { signal: AbortSignal.timeout(9000) });
+          const details = await detailsRes.json() as {
+            runtime?: number;
+            genres?: Array<{ id: number; name: string }>;
+            credits?: { crew?: Array<{ job: string; name: string }>; cast?: Array<{ name: string }> };
+          };
+          if (details.runtime) tmdbData.runtime = `${details.runtime} min`;
+          if (details.genres) tmdbData.genres = details.genres.map(g => g.name);
+          if (details.credits?.crew) {
+            const dir = details.credits.crew.find(c => c.job === "Director");
+            if (dir) tmdbData.director = dir.name;
+          }
+          if (details.credits?.cast) {
+            tmdbData.cast = details.credits.cast.slice(0, 5).map(c => c.name);
+          }
+        }
+      } catch (err) {
+        console.warn("[Koru] movie_info TMDB fetch failed (continuing with Wikipedia only):", err instanceof Error ? err.message : err);
+      }
+    }
+
+    // Wikipedia para contexto adicional en español
     try {
       const searchQuery = year ? `${title} ${year} película` : `${title} película`;
       const searchUrl = `https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(searchQuery)}&format=json&origin=*&srlimit=3`;
       const res = await fetch(searchUrl, { signal: AbortSignal.timeout(9000) });
       const data = await res.json() as { query?: { search?: Array<{ title: string; snippet: string }> } };
       const results = data.query?.search ?? [];
-      if (results.length === 0) {
-        return { type: "movie_info", status: "ok", title, note: `No encontré "${title}" en Wikipedia.` };
-      }
-      const firstTitle = results[0].title;
-      const summaryRes = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(firstTitle)}`, { signal: AbortSignal.timeout(9000) });
-      const summary = await summaryRes.json() as { extract?: string; content_urls?: { desktop?: { page: string } } };
+      const wikiExtract = results.length > 0
+        ? await (async () => {
+            try {
+              const firstTitle = results[0].title;
+              const summaryRes = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(firstTitle)}`, { signal: AbortSignal.timeout(9000) });
+              const summary = await summaryRes.json() as { extract?: string; content_urls?: { desktop?: { page: string } } };
+              return {
+                text: summary.extract,
+                sourceUrl: summary.content_urls?.desktop?.page ?? `https://es.wikipedia.org/wiki/${encodeURIComponent(firstTitle)}`,
+                snippet: results[0].snippet?.replace(/<[^>]+>/g, ""),
+                sourceTitle: firstTitle,
+              };
+            } catch { return null; }
+          })()
+        : null;
+
+      // Componer texto final: preferir overview de TMDB (más preciso), fallback a Wikipedia extract
+      const text = tmdbData.overview || wikiExtract?.text || `Encontré información sobre ${title}.`;
       return {
         type: "movie_info",
         status: "ok",
         title,
-        text: summary.extract ?? `Encontré información sobre ${firstTitle}.`,
-        sources: [{ title: firstTitle, url: summary.content_urls?.desktop?.page ?? `https://es.wikipedia.org/wiki/${encodeURIComponent(firstTitle)}`, domain: "wikipedia.org", snippet: results[0].snippet?.replace(/<[^>]+>/g, "") }],
+        text,
+        poster: tmdbData.poster,
+        rating: tmdbData.rating,
+        releaseDate: tmdbData.releaseDate,
+        genres: tmdbData.genres,
+        runtime: tmdbData.runtime,
+        director: tmdbData.director,
+        cast: tmdbData.cast,
+        sources: wikiExtract?.sourceUrl
+          ? [{ title: wikiExtract.sourceTitle ?? title, url: wikiExtract.sourceUrl, domain: "wikipedia.org", snippet: wikiExtract.snippet ?? "" }]
+          : [],
       };
     } catch (err) {
       console.warn("[Koru] movie_info Wikipedia fetch failed:", err instanceof Error ? err.message : err);
+      // Si TMDB funcionó, devolver igual con lo que tengamos
+      if (tmdbData.poster || tmdbData.overview) {
+        return {
+          type: "movie_info",
+          status: "ok",
+          title,
+          text: tmdbData.overview ?? `Encontré información sobre ${title}.`,
+          poster: tmdbData.poster,
+          rating: tmdbData.rating,
+          releaseDate: tmdbData.releaseDate,
+          genres: tmdbData.genres,
+          runtime: tmdbData.runtime,
+          director: tmdbData.director,
+          cast: tmdbData.cast,
+          sources: [],
+        };
+      }
       return { type: "movie_info", status: "failed", error: `No pude buscar información sobre ${title}.` };
     }
   },
