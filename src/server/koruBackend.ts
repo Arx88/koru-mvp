@@ -5136,7 +5136,8 @@ export async function runKoruBackendTurn(
           const toolFailed = lastResult?.status === "failed" || lastResult?.status === "no_data"
             || lastResult?.status === "need_city" || lastResult?.status === "not_configured"
             || (lastResult?.status === "ok" && !lastResult?.text && !lastResult?.matches?.length
-                && !lastResult?.recipes?.length && !lastResult?.city && !lastResult?.price);
+                && !lastResult?.recipes?.length && !lastResult?.now && !lastResult?.price
+                && !lastResult?.overview && !lastResult?.extract);
 
           if (toolFailed && route.tool !== "web_search") {
             logger.info("runKoruBackendTurn", "Fast-path tool failed or empty, falling back to web_search", {
