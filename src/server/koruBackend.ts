@@ -3852,7 +3852,7 @@ function normalizeFinalPayload(
     finalReply = cleanedReply;
   }
 
-  // 🔴 FIX UX: Si el reply es demasiado largo (>200 chars) Y hay un block informativo
+  // 🔴 FIX UX: Si el reply es demasiado largo (>100 chars) Y hay un block informativo
   // (movie_review, recipe, book_review, weather, live_match, deliverable, etc.),
   // recortarlo al primer enunciado + indicación de card. Los datos van en la card,
   // no en el texto — eso es lo que el usuario espera.
@@ -3863,8 +3863,8 @@ function normalizeFinalPayload(
     "crypto_portfolio", "data_ticker", "product_analysis",
   ]);
   const hasInformativeBlock = uiBlocks.some(b => informativeBlockTypes.has(b.type));
-  if (finalReply.length > 200 && hasInformativeBlock) {
-    const firstSentence = finalReply.match(/^.{1,140}?[.!?](\s|$)/)?.[0];
+  if (finalReply.length > 100 && hasInformativeBlock) {
+    const firstSentence = finalReply.match(/^.{1,80}?[.!?](\s|$)/)?.[0];
     if (firstSentence && firstSentence.length < finalReply.length) {
       finalReply = firstSentence.trim() + " Te dejé el detalle en la tarjeta.";
     }
