@@ -5437,6 +5437,14 @@ export async function runKoruBackendTurn(
             } catch (err: any) {
               logger.warn("runKoruBackendTurn", "Router synth LLM call failed", { error: err?.message });
             }
+            logger.info("runKoruBackendTurn", "Router synth result", {
+              hasReply: !!routerSynthReply,
+              replyLen: routerSynthReply.length,
+              hasSummary: !!routerSynthSummary,
+              summaryLen: routerSynthSummary.length,
+              sectionsCount: routerSynthSections.length,
+              effectiveSummaryLen: (routerSynthSummary || (routerSynthReply.length > 20 ? routerSynthReply : "")).length,
+            });
 
             // 🔴 FIX: calcular effectiveSummary2 ANTES de finalizePayloadWithFastModel
             // pero aplicar SOLO DESPUÉS a response.uiBlocks
