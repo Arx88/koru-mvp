@@ -3910,8 +3910,8 @@ function normalizeFinalPayload(
     "crypto_portfolio", "data_ticker", "product_analysis",
   ]);
   const hasInformativeBlock = uiBlocks.some(b => informativeBlockTypes.has(b.type));
-  if (finalReply.length > 100 && hasInformativeBlock) {
-    const firstSentence = finalReply.match(/^.{1,80}?[.!?](\s|$)/)?.[0];
+  if (finalReply.length > 250 && hasInformativeBlock) {
+    const firstSentence = finalReply.match(/^.{1,200}?[.!?](\s|$)/)?.[0];
     if (firstSentence && firstSentence.length < finalReply.length) {
       // Solo agregar "Te dejé el detalle en la tarjeta" si no lo dice ya
       const trimmed = firstSentence.trim();
