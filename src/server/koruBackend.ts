@@ -5202,13 +5202,12 @@ export async function runKoruBackendTurn(
         content: [
           "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks.",
           "Respondé SOLO con este JSON:",
-          '{"reply":"1-2 líneas cortas que enmarcan el resultado (NO repitas datos de la tarjeta)","mascotState":"happy|thinking|celebrating","deliverableTitle":"título corto del tema (max 40 chars)","deliverableDescription":"1 línea que enganche (max 160 chars)","deliverableSummary":"síntesis de 60-120 palabras redactada con datos concretos de las tools","deliverableSections":[{"icon":"auto_awesome","title":"Síntesis","kicker":"LO ESENCIAL","kind":"text","paragraphs":["texto redactado con datos reales"]},{"icon":"fact_check","title":"Datos clave","kicker":"ENCONTRADOS","kind":"rows","items":[{"title":"dato","subtitle":"valor","badge":"fuente"}]},{"icon":"timeline","title":"Contexto","kicker":"HISTORIA","kind":"bullets","bullets":["punto 1","punto 2"]}]}',
+          '{"reply":"1-2 lineas cortas","mascotState":"happy","summary":"sintesis de 60-120 palabras con datos concretos","sections":[{"title":"Sintesis","kind":"text","paragraphs":["texto redactado"]},{"title":"Datos clave","kind":"bullets","bullets":["dato 1","dato 2"]}]}',
           "Reglas:",
-          "- reply: SOLO enmarca, NO repitas datos. Ej: 'Mirá, te dejé el detalle en la tarjeta.'",
-          "- deliverableSummary: REDACTÁ una síntesis con datos concretos de las tools (nombres, cifras, fechas). No copies snippets crudos.",
-          "- deliverableSections: armá 2-4 secciones con contenido real extraído de las tools.",
-          "- kind puede ser: 'text' (paragraphs), 'rows' (items con title/subtitle/badge), 'bullets' (bullets array), 'timeline' (items con title/subtitle).",
-          "- Si NO hay datos suficientes para secciones, devolvé deliverableSections: [].",
+          "- reply: SOLO enmarca. Ej: 'Te dejé el detalle en la tarjeta.'",
+          "- summary: REDACTA una sintesis con datos concretos (nombres, cifras, fechas). NO copies snippets.",
+          "- sections: arma 2-3 secciones. kind puede ser 'text' (con paragraphs) o 'bullets' (con bullets).",
+          "- NO inventes datos que no esten en las tools.",
         ].join("\n"),
       });
 
@@ -5225,10 +5224,17 @@ export async function runKoruBackendTurn(
         const synthParsed = safeJsonObjectFromContent(synthContent);
         synthReply = cleanReplyText(synthParsed.reply || "");
         synthMascot = cleanText(synthParsed.mascotState) || "happy";
-        synthTitle = cleanText(synthParsed.deliverableTitle || "");
-        synthDescription = cleanText(synthParsed.deliverableDescription || "");
-        synthSummary = cleanText(synthParsed.deliverableSummary || "");
-        synthSections = Array.isArray(synthParsed.deliverableSections) ? synthParsed.deliverableSections : [];
+        synthSummary = cleanText(synthParsed.summary || "");
+        // Normalizar sections del LLM al formato que espera el deliverable
+        const rawSections = Array.isArray(synthParsed.sections) ? synthParsed.sections : [];
+        synthSections = rawSections.map((s: any, i: number) => ({
+          icon: i === 0 ? "auto_awesome" : i === 1 ? "fact_check" : "insights",
+          title: cleanText(s.title) || `Sección ${i + 1}`,
+          kicker: i === 0 ? "LO ESENCIAL" : i === 1 ? "DATOS" : "CONTEXTO",
+          kind: s.kind === "bullets" ? "bullets" : "text",
+          paragraphs: Array.isArray(s.paragraphs) ? s.paragraphs.map((p: any) => String(p)) : undefined,
+          bullets: Array.isArray(s.bullets) ? s.bullets.map((b: any) => String(b)) : undefined,
+        })).filter((s: any) => s.paragraphs?.length || s.bullets?.length);
       } catch (err: any) {
         logger.warn("runKoruBackendTurn", "Fast-path synth LLM call failed", { error: err?.message });
       }
