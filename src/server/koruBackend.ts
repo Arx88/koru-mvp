@@ -5105,7 +5105,7 @@ export async function runKoruBackendTurn(
         toolCount: toolExecutions.length,
       });
       const fastConfig = { ...config, nvidiaModel: config.nvidiaFastModel || "meta/llama-3.1-8b-instruct" };
-      const response = await finalizePayloadWithFastModel(request, fastConfig, true, toolExecutions, 30_000);
+      const response = await finalizePayloadWithFastModel(request, fastConfig, {} as Record<string, unknown>, toolExecutions, 30_000);
       return { ...response, provider, model, fallbackReason: "fastpath-skip-router" };
     }
 
