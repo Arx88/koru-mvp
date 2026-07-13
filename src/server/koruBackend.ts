@@ -4304,13 +4304,13 @@ export async function runKoruBackendTurn(
             // OPTIMIZACIÓN: usar Flash model para la síntesis + memory extractor.
             // SECUENCIAL (no paralelo) para evitar OOM — 2 llamadas LLM simultáneas
             // exceden la memoria del entorno.
-            const fastConfig = { ...config, nvidiaModel: config.nvidiaFastModel || "nvidia/nemotron-3-nano-30b-a3b" };
+            const fastConfig = { ...config, nvidiaModel: config.nvidiaFastModel || "meta/llama-3.1-8b-instruct" };
             const response = await finalizePayloadWithFastModel(request, fastConfig, delivered, toolExecutions, 30_000);
             return { ...response, provider, model, fallbackReason: "router-" + route.category };
           }
           messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }." });
           // OPTIMIZACIÓN: usar Flash para la segunda llamada (síntesis de respuesta)
-          const fastConfig2 = { ...config, nvidiaModel: config.nvidiaFastModel || "nvidia/nemotron-3-nano-30b-a3b" };
+          const fastConfig2 = { ...config, nvidiaModel: config.nvidiaFastModel || "meta/llama-3.1-8b-instruct" };
           const secondResult = await callProvider(fastConfig2, messages, 30_000, false, "nvidia", undefined, fastConfig2.nvidiaModel);
           provider = secondResult.provider;
           model = secondResult.model ?? model;

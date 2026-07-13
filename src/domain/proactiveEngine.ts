@@ -383,7 +383,7 @@ async function generateProactiveMessageWithLLM(
   ];
 
   try {
-    const fastConfig = { ...config, nvidiaModel: config.nvidiaFastModel || "nvidia/nemotron-3-nano-30b-a3b" };
+    const fastConfig = { ...config, nvidiaModel: config.nvidiaFastModel || "meta/llama-3.1-8b-instruct" };
     const result = await callProviderSimple(fastConfig, messages, 30_000);
     const content = (result.message as any)?.content ?? "";
     const parsed = JSON.parse(extractJson(content));
@@ -419,7 +419,7 @@ async function callProviderSimple(
 ): Promise<{ message: { role: string; content: string } }> {
   const apiKey = config.nvidiaApiKey;
   const baseUrl = config.nvidiaBaseUrl || "https://integrate.api.nvidia.com";
-  const model = config.nvidiaModel || "nvidia/nemotron-3-nano-30b-a3b";
+  const model = config.nvidiaModel || "meta/llama-3.1-8b-instruct";
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);

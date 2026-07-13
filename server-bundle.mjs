@@ -10763,12 +10763,12 @@ async function runKoruBackendTurn(request, config2, onChunk) {
           messages.push({ role: "assistant", content: "", tool_calls: [syntheticToolCall] });
           const delivered = await executeProviderToolCalls([syntheticToolCall], messages, request, toolExecutions, config2);
           if (delivered) {
-            const fastConfig = { ...config2, nvidiaModel: config2.nvidiaFastModel || "nvidia/nemotron-3-nano-30b-a3b" };
+            const fastConfig = { ...config2, nvidiaModel: config2.nvidiaFastModel || "meta/llama-3.1-8b-instruct" };
             const response3 = await finalizePayloadWithFastModel(request, fastConfig, delivered, toolExecutions, 3e4);
             return { ...response3, provider, model, fallbackReason: "router-" + route.category };
           }
           messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respond\xE9 con JSON puro v\xE1lido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }." });
-          const fastConfig2 = { ...config2, nvidiaModel: config2.nvidiaFastModel || "nvidia/nemotron-3-nano-30b-a3b" };
+          const fastConfig2 = { ...config2, nvidiaModel: config2.nvidiaFastModel || "meta/llama-3.1-8b-instruct" };
           const secondResult = await callProvider(fastConfig2, messages, 3e4, false, "nvidia", void 0, fastConfig2.nvidiaModel);
           provider = secondResult.provider;
           model = secondResult.model ?? model;
@@ -11116,7 +11116,7 @@ function buildConfig() {
     nvidiaApiKey: env.NVIDIA_API_KEY?.trim(),
     nvidiaBaseUrl: env.NVIDIA_BASE_URL?.trim() || "https://integrate.api.nvidia.com",
     nvidiaModel: env.NVIDIA_MODEL?.trim() || "nvidia/nemotron-3-ultra-550b-a55b",
-    nvidiaFastModel: env.NVIDIA_FAST_MODEL?.trim() || "nvidia/nemotron-3-nano-30b-a3b",
+    nvidiaFastModel: env.NVIDIA_FAST_MODEL && !env.NVIDIA_FAST_MODEL.includes("stepfun") && !env.NVIDIA_FAST_MODEL.includes("nemotron-3-nano") ? env.NVIDIA_FAST_MODEL.trim() : "meta/llama-3.1-8b-instruct",
     nvidiaMediumModel: env.NVIDIA_MEDIUM_MODEL?.trim(),
     openRouterKeys: [env.OPENROUTER_API_KEY, env.OPENROUTER_FALLBACK_API_KEYS].filter(Boolean).flatMap((v) => v.split(",")).map((v) => v.trim()).filter(Boolean),
     openRouterModels: (env.OPENROUTER_FALLBACK_MODELS || "").split(",").map((v) => v.trim()).filter(Boolean),
