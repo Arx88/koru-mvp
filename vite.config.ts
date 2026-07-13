@@ -776,7 +776,7 @@ function koruBackendAgent(env: Record<string, string>): Plugin {
     // Todo lo demás: ultra model (~40s, máxima calidad)
     // Nota: se probó nemotron-3-nano-30b-a3b como medium pero no seguía
     // el system prompt (devolvía chain-of-thought) y era más lento que ultra.
-    nvidiaFastModel: env.NVIDIA_FAST_MODEL?.trim() || "stepfun-ai/step-3.5-flash",
+    nvidiaFastModel: env.NVIDIA_FAST_MODEL?.trim() || "nvidia/nemotron-3-nano-30b-a3b",
     openRouterKeys: collectOpenRouterKeys(env),
     openRouterModels: collectOpenRouterModels(env),
     minimaxAccessToken: readMiniMaxToken(),
