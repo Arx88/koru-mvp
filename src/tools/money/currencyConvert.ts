@@ -49,7 +49,7 @@ export const currencyConvert: ToolHandler = {
       await limiters.frankfurter.acquire();
       const result = await fetchJson<FrankfurterResponse>(
         `https://api.frankfurter.app/latest?amount=${encodeURIComponent(amount)}&from=${from}&to=${to}`,
-        { timeoutMs: 8_000 },
+        { timeoutMs: 15_000 },
       );
       if (!result.ok) throw new Error(result.error);
       const rateValue = result.data!.rates?.[to];

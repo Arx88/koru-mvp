@@ -28,7 +28,7 @@ export const urlShorten: ToolHandler = {
     if (!url || !/^https?:\/\//i.test(url)) return { type: "url_shorten", status: "failed", error: "Indicá una URL válida (con http/https)." };
     const cacheKey = `short:${url}`;
     const short = await cached<string>(cacheKey, ttls.reference, async () => {
-      const r = await fetchJson<{ shorturl?: string }>(`https://is.gd/create.php?format=json&url=${encodeURIComponent(url)}`, { timeoutMs: 8_000 });
+      const r = await fetchJson<{ shorturl?: string }>(`https://is.gd/create.php?format=json&url=${encodeURIComponent(url)}`, { timeoutMs: 15_000 });
       if (!r.ok) throw new Error(r.error);
       return r.data!.shorturl ?? "";
     });
@@ -101,7 +101,7 @@ export const quoteOfDay: ToolHandler = {
   async run(_args) {
     const cacheKey = `quote:${new Date().toISOString().slice(0, 10)}`;
     const data = await cached<{ q?: string; a?: string }[]>(cacheKey, ttls.reference, async () => {
-      const r = await fetchJson<{ q?: string; a?: string }[]>("https://zenquotes.io/api/today", { timeoutMs: 8_000 });
+      const r = await fetchJson<{ q?: string; a?: string }[]>("https://zenquotes.io/api/today", { timeoutMs: 15_000 });
       if (!r.ok) throw new Error(r.error);
       return r.data!;
     });

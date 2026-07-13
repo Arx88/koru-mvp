@@ -340,7 +340,7 @@ export const rssDigest: ToolHandler = {
     const since = Date.now() - hours * 60 * 60 * 1000;
     const items: Array<{ title: string; link: string; source: string; pubDate?: string }> = [];
     for (const feed of feeds.slice(0, 5)) {
-      const r = await fetchText(feed.url, { timeoutMs: 8_000 });
+      const r = await fetchText(feed.url, { timeoutMs: 15_000 });
       if (!r.ok) continue;
       // Parser XML simple para <item><title>...<link>...<pubDate>...
       const itemMatches = Array.from(r.text!.matchAll(/<item>[\s\S]*?<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>[\s\S]*?<link>([\s\S]*?)<\/link>(?:[\s\S]*?<pubDate>([\s\S]*?)<\/pubDate>)?/gi)).slice(0, 5);

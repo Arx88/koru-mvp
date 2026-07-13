@@ -2,8 +2,8 @@
  * Fase 3.9 — Constantes centrales de Koru.
  *
  * Antes estas constantes estaban dispersas como "magic numbers" por todo
- * el código (0.55, 0.58, 0.65, 0.75, 0.85, 0.95, 120, 200, 500, 8_000,
- * 18_000, 45_000, 120_000, etc.). Ahora viven acá con nombre y contexto.
+ * el código (0.55, 0.58, 0.65, 0.75, 0.85, 0.95, 120, 200, 500, 15_000,
+ * 115_000, 45_000, 120_000, etc.). Ahora viven acá con nombre y contexto.
  *
  * Calibración:
  * - Los thresholds de confianza se calibraron empiricamente durante
@@ -48,7 +48,7 @@ export const TIMEOUTS = {
   /** NVIDIA estándar. */
   NVIDIA_STANDARD: 45_000,
   /** OpenRouter (modelos gratuitos, menos confiables). */
-  OPENROUTER: 18_000,
+  OPENROUTER: 115_000,
   /** MiniMax. */
   MINIMAX: 60_000,
   /** BlueSminds. */
@@ -56,7 +56,7 @@ export const TIMEOUTS = {
   /** Ollama local. */
   OLLAMA: 90_000,
   /** Fetch a APIs públicas gratuitas (Frankfurter, TheSportsDB, etc.). */
-  API_FETCH: 8_000,
+  API_FETCH: 15_000,
   /** Embeddings (Ollama o NVIDIA cloud). */
   EMBEDDING: 10_000,
   /** ASR (transcripción de audio). */

@@ -200,7 +200,7 @@ export async function runOpenModelChat(
     `${baseUrl}/chat/completions`,
     runtime.openModelApiKey.trim() || "ollama",
     body,
-    openRouter ? 18_000 : 45_000,
+    openRouter ? 115_000 : 45_000,
   );
   const content = data.choices?.[0]?.message?.content?.trim();
   if (!content) throw new FreeLlmApiError("El modelo abierto devolvio una respuesta vacia.");
@@ -226,7 +226,7 @@ export async function runFreeLlmEmbedding(runtime: RuntimeSettings, input: strin
       model: "auto",
       input,
     },
-    18_000,
+    115_000,
   );
   const embedding = data.data?.[0]?.embedding;
   if (!embedding || embedding.length === 0) throw new FreeLlmApiError("FreeLLMAPI no devolvió embedding.");

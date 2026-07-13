@@ -167,7 +167,7 @@ async function searchGdelt(query: string): Promise<AssistantSource[]> {
 
 async function fetchPageContent(url: string, maxChars = 1200): Promise<string> {
   try {
-    const res = await fetchWithTimeout(url, { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" } }, 8_000);
+    const res = await fetchWithTimeout(url, { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" } }, 15_000);
     const html = await res.text();
 
     // Extraer contenido principal: intentar <article>, luego <main>, luego clases comunes

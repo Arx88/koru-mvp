@@ -1015,7 +1015,7 @@ async function callProvider(
   }
 
   if (preferredProvider === "openrouter" && config.openRouterKeys.length) {
-    return callOpenRouter(config, messages, Math.min(18_000, timeoutMs), toolsEnabled);
+    return callOpenRouter(config, messages, Math.min(115_000, timeoutMs), toolsEnabled);
   }
 
   // FLUJO NORMAL (sin preferencia o preferencia fallida)
@@ -1049,7 +1049,7 @@ async function callProvider(
   }
 
   if (!nvidiaAvailable) {
-    return callOpenRouter(config, messages, Math.min(18_000, timeoutMs), toolsEnabled);
+    return callOpenRouter(config, messages, Math.min(115_000, timeoutMs), toolsEnabled);
   }
 
   // Si el usuario eligió OpenRouter, saltamos NVIDIA en el flujo normal
@@ -1065,7 +1065,7 @@ async function callProvider(
   }
 
   if (config.openRouterKeys.length) {
-    return callOpenRouter(config, messages, Math.min(18_000, timeoutMs), toolsEnabled);
+    return callOpenRouter(config, messages, Math.min(115_000, timeoutMs), toolsEnabled);
   }
 
   throw new Error("Ningún proveedor de IA respondió. Verificá la conexión o las credenciales.");
@@ -1099,7 +1099,7 @@ async function geocodeCity(city: string): Promise<{ name: string; latitude: numb
   url.searchParams.set("count", "1");
   url.searchParams.set("language", "es");
   url.searchParams.set("format", "json");
-  const response = await fetchWithTimeout(url.toString(), { headers: { Accept: "application/json" } }, 8_000);
+  const response = await fetchWithTimeout(url.toString(), { headers: { Accept: "application/json" } }, 15_000);
   const data = await response.json().catch(() => ({})) as { results?: Array<{ name?: string; latitude?: number; longitude?: number; country?: string }> };
   const result = data.results?.[0];
   if (!result || typeof result.latitude !== "number" || typeof result.longitude !== "number") return null;
@@ -1140,7 +1140,7 @@ export async function getWeather(args: Record<string, unknown>): Promise<Weather
   url.searchParams.set("hourly", "precipitation_probability,temperature_2m");
   url.searchParams.set("daily", "temperature_2m_max,temperature_2m_min,precipitation_probability_max");
   url.searchParams.set("timezone", "auto");
-  const response = await fetchWithTimeout(url.toString(), { headers: { Accept: "application/json" } }, 8_000);
+  const response = await fetchWithTimeout(url.toString(), { headers: { Accept: "application/json" } }, 15_000);
   const data = await response.json().catch(() => ({})) as {
     current?: { temperature_2m?: number; precipitation?: number; wind_speed_10m?: number };
     daily?: { temperature_2m_max?: number[]; temperature_2m_min?: number[]; precipitation_probability_max?: number[] };
@@ -1231,7 +1231,7 @@ async function searchGdelt(query: string): Promise<AssistantSource[]> {
 
 async function fetchPageContent(url: string, maxChars = 1200): Promise<string> {
   try {
-    const res = await fetchWithTimeout(url, { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" } }, 8_000);
+    const res = await fetchWithTimeout(url, { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" } }, 15_000);
     const html = await res.text();
 
     // Extraer contenido principal: intentar <article>, luego <main>, luego clases comunes
@@ -3608,7 +3608,7 @@ async function buildEnhancementInstruction(
 
     const chatFn = async (messages: { role: string; content: string }[], _options: { temperature: number; maxTokens: number }) => {
       const pp = inferProviderFromModel(request.model);
-      const chatTimeout = isOllamaUrl(config.nvidiaBaseUrl) ? 60_000 : 8_000;
+      const chatTimeout = isOllamaUrl(config.nvidiaBaseUrl) ? 60_000 : 15_000;
       const result = await callProvider(config, messages.map((m) => ({ role: m.role as "system" | "user", content: m.content })), chatTimeout, false, pp);
       return { content: result.message.content ?? "" };
     };
@@ -3663,7 +3663,7 @@ let routerNullWarned = false;
 function buildEmbedFn(baseUrl: string): EmbedFn {
   return async (text: string): Promise<number[]> => {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8_000);
+    const timeout = setTimeout(() => controller.abort(), 15_000);
     try {
       const res = await fetch(`${baseUrl.replace(/\/+$/, "")}/api/embeddings`, {
         method: "POST",

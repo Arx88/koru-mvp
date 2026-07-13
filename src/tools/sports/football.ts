@@ -453,7 +453,7 @@ export const matchSchedule: ToolHandler = {
       for (const pop of popularLeagues) {
         const r = await fetchJson<{ events?: TsdbEvent[] }>(
           `${TSDB_BASE}/eventsnextleague.php?id=${pop.id}`,
-          { timeoutMs: 8_000 },
+          { timeoutMs: 15_000 },
         );
         if (r.ok && r.data?.events) {
           const evs = r.data!.events

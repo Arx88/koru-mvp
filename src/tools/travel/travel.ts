@@ -122,8 +122,8 @@ export const routePlan: ToolHandler = {
     try {
       // Geocoding de origen y destino
       const [origGeo, destGeo] = await Promise.all([
-        fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(origin)}&count=1&format=json`, { signal: AbortSignal.timeout(8000) }).then(r => r.json()),
-        fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(destination)}&count=1&format=json`, { signal: AbortSignal.timeout(8000) }).then(r => r.json()),
+        fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(origin)}&count=1&format=json`, { signal: AbortSignal.timeout(15000) }).then(r => r.json()),
+        fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(destination)}&count=1&format=json`, { signal: AbortSignal.timeout(15000) }).then(r => r.json()),
       ]) as [{ results?: Array<{ latitude: number; longitude: number; name: string }> }, { results?: Array<{ latitude: number; longitude: number; name: string }> }];
       const orig = origGeo.results?.[0];
       const dest = destGeo.results?.[0];
@@ -131,7 +131,7 @@ export const routePlan: ToolHandler = {
       // OSRM driving route
       const profile = mode === "walking" ? "foot" : "driving";
       const osrmUrl = `https://router.project-osrm.org/route/v1/${profile}/${orig.longitude},${orig.latitude};${dest.longitude},${dest.latitude}?overview=false`;
-      const osrmRes = await fetch(osrmUrl, { signal: AbortSignal.timeout(8000) });
+      const osrmRes = await fetch(osrmUrl, { signal: AbortSignal.timeout(15000) });
       const osrmData = await osrmRes.json() as { routes?: Array<{ distance?: number; duration?: number }> };
       const route = osrmData.routes?.[0];
       if (!route) return { type: "route_plan", status: "ok", origin, destination, mode, note: "No encontré ruta entre esos puntos." };
@@ -171,7 +171,7 @@ export const transportNearby: ToolHandler = {
     if (!location) return { type: "transport_nearby", status: "failed", error: "Indicá ubicación." };
     // Fase 3.4: usar Open-Meteo geocoding + Overpass API para transporte real.
     try {
-      const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&format=json`, { signal: AbortSignal.timeout(8000) });
+      const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&format=json`, { signal: AbortSignal.timeout(15000) });
       const geoData = await geoRes.json() as { results?: Array<{ latitude: number; longitude: number; name: string }> };
       const geo = geoData.results?.[0];
       if (!geo) return { type: "transport_nearby", status: "ok", location, transportType, note: `No encontré coordenadas de ${location}.` };
@@ -211,7 +211,7 @@ export const currencyAtm: ToolHandler = {
     // Fase 3.3: usar Frankfurter API para tasa del día + Wikipedia para info de cajeros.
     try {
       // Tasa USD→EUR como referencia de cambio del día
-      const rateRes = await fetch("https://api.frankfurter.app/latest?from=USD&to=EUR", { signal: AbortSignal.timeout(8000) });
+      const rateRes = await fetch("https://api.frankfurter.app/latest?from=USD&to=EUR", { signal: AbortSignal.timeout(15000) });
       const rateData = await rateRes.json() as { rates?: Record<string, number>; date?: string };
       const eurRate = rateData.rates?.EUR;
       const date = rateData.date;
@@ -330,12 +330,12 @@ export const weatherTravel: ToolHandler = {
     // Fase 3.3: usar Open-Meteo geocoding + current weather + Wikipedia para histórico.
     try {
       // 1. Geocoding: obtener lat/lon del destino
-      const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(destination)}&count=1&format=json`, { signal: AbortSignal.timeout(8000) });
+      const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(destination)}&count=1&format=json`, { signal: AbortSignal.timeout(15000) });
       const geoData = await geoRes.json() as { results?: Array<{ latitude: number; longitude: number; name: string; country?: string }> };
       const geo = geoData.results?.[0];
       if (!geo) return { type: "weather_travel", status: "ok", destination, date, note: `No encontré coordenadas de ${destination}.` };
       // 2. Current weather
-      const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${geo.latitude}&longitude=${geo.longitude}&current=temperature_2m,precipitation,wind_speed_10m&timezone=auto`, { signal: AbortSignal.timeout(8000) });
+      const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${geo.latitude}&longitude=${geo.longitude}&current=temperature_2m,precipitation,wind_speed_10m&timezone=auto`, { signal: AbortSignal.timeout(15000) });
       const weatherData = await weatherRes.json() as { current?: { temperature_2m: number; precipitation: number; wind_speed_10m: number } };
       const cur = weatherData.current;
       return {

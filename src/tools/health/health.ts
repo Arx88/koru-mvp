@@ -237,7 +237,7 @@ export const airQualityAdvice: ToolHandler = {
       url.searchParams.set("latitude", String(lat));
       url.searchParams.set("longitude", String(lng));
       url.searchParams.set("current", "pm2_5,pm10,european_aqi,us_aqi");
-      const r = await fetchJson(url.toString(), { timeoutMs: 8_000 });
+      const r = await fetchJson(url.toString(), { timeoutMs: 15_000 });
       if (!r.ok) throw new Error(r.error);
       return r.data as any;
     });

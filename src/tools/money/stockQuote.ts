@@ -59,7 +59,7 @@ export const stockQuote: ToolHandler = {
       const stooqSym = symbol.replace(/^\^/, "");
       const result = await fetchText(
         `https://stooq.com/q/l/?s=${encodeURIComponent(stooqSym)}&f=sd2t2ohlcv&h&e=csv`,
-        { headers: { Accept: "text/csv" }, timeoutMs: 8_000 },
+        { headers: { Accept: "text/csv" }, timeoutMs: 15_000 },
       );
       if (!result.ok) throw new Error(result.error);
       const parsed = parseStooqCsv(result.text!);

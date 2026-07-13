@@ -487,7 +487,7 @@ async function runOpenModelChat(runtime, messages, options) {
     `${baseUrl}/chat/completions`,
     runtime.openModelApiKey.trim() || "ollama",
     body,
-    openRouter ? 18e3 : 45e3
+    openRouter ? 115e3 : 45e3
   );
   const content = data.choices?.[0]?.message?.content?.trim();
   if (!content) throw new FreeLlmApiError("El modelo abierto devolvio una respuesta vacia.");
@@ -1693,7 +1693,7 @@ var currencyConvert = {
       await limiters.frankfurter.acquire();
       const result = await fetchJson(
         `https://api.frankfurter.app/latest?amount=${encodeURIComponent(amount)}&from=${from}&to=${to}`,
-        { timeoutMs: 8e3 }
+        { timeoutMs: 15e3 }
       );
       if (!result.ok) throw new Error(result.error);
       const rateValue = result.data.rates?.[to];
@@ -1900,7 +1900,7 @@ var stockQuote = {
       const stooqSym = symbol.replace(/^\^/, "");
       const result = await fetchText(
         `https://stooq.com/q/l/?s=${encodeURIComponent(stooqSym)}&f=sd2t2ohlcv&h&e=csv`,
-        { headers: { Accept: "text/csv" }, timeoutMs: 8e3 }
+        { headers: { Accept: "text/csv" }, timeoutMs: 15e3 }
       );
       if (!result.ok) throw new Error(result.error);
       const parsed = parseStooqCsv(result.text);
@@ -2797,7 +2797,7 @@ var matchSchedule = {
       for (const pop of popularLeagues) {
         const r = await fetchJson(
           `${TSDB_BASE}/eventsnextleague.php?id=${pop.id}`,
-          { timeoutMs: 8e3 }
+          { timeoutMs: 15e3 }
         );
         if (r.ok && r.data?.events) {
           const evs = r.data.events.filter((e) => e.strTimestamp && new Date(e.strTimestamp).getTime() >= now - 3 * 60 * 60 * 1e3).sort((a, b) => (a.strTimestamp ?? "") > (b.strTimestamp ?? "") ? 1 : -1).slice(0, 3);
@@ -3002,7 +3002,7 @@ var golfLeaderboard = {
       await limiters.gdelt.acquire();
       const r = await fetchJson(
         `${ESPN_BASE2}/golf/pga/scoreboard`,
-        { timeoutMs: 8e3 }
+        { timeoutMs: 15e3 }
       );
       if (!r.ok) throw new Error(r.error);
       return r.data;
@@ -3965,15 +3965,15 @@ var routePlan = {
     if (!origin || !destination) return { type: "route_plan", status: "failed", error: "Indic\xE1 origen y destino." };
     try {
       const [origGeo, destGeo] = await Promise.all([
-        fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(origin)}&count=1&format=json`, { signal: AbortSignal.timeout(8e3) }).then((r) => r.json()),
-        fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(destination)}&count=1&format=json`, { signal: AbortSignal.timeout(8e3) }).then((r) => r.json())
+        fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(origin)}&count=1&format=json`, { signal: AbortSignal.timeout(15e3) }).then((r) => r.json()),
+        fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(destination)}&count=1&format=json`, { signal: AbortSignal.timeout(15e3) }).then((r) => r.json())
       ]);
       const orig = origGeo.results?.[0];
       const dest = destGeo.results?.[0];
       if (!orig || !dest) return { type: "route_plan", status: "ok", origin, destination, mode, note: "No pude geolocalizar origen o destino. Prob\xE1 con nombres de ciudad m\xE1s espec\xEDficos." };
       const profile = mode === "walking" ? "foot" : "driving";
       const osrmUrl = `https://router.project-osrm.org/route/v1/${profile}/${orig.longitude},${orig.latitude};${dest.longitude},${dest.latitude}?overview=false`;
-      const osrmRes = await fetch(osrmUrl, { signal: AbortSignal.timeout(8e3) });
+      const osrmRes = await fetch(osrmUrl, { signal: AbortSignal.timeout(15e3) });
       const osrmData = await osrmRes.json();
       const route = osrmData.routes?.[0];
       if (!route) return { type: "route_plan", status: "ok", origin, destination, mode, note: "No encontr\xE9 ruta entre esos puntos." };
@@ -4015,7 +4015,7 @@ var transportNearby = {
     const transportType = String(args.type ?? "any");
     if (!location) return { type: "transport_nearby", status: "failed", error: "Indic\xE1 ubicaci\xF3n." };
     try {
-      const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&format=json`, { signal: AbortSignal.timeout(8e3) });
+      const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&format=json`, { signal: AbortSignal.timeout(15e3) });
       const geoData = await geoRes.json();
       const geo = geoData.results?.[0];
       if (!geo) return { type: "transport_nearby", status: "ok", location, transportType, note: `No encontr\xE9 coordenadas de ${location}.` };
@@ -4050,7 +4050,7 @@ var currencyAtm = {
     const location = String(args.location ?? "").trim();
     if (!location) return { type: "currency_atm", status: "failed", error: "Indic\xE1 ubicaci\xF3n." };
     try {
-      const rateRes = await fetch("https://api.frankfurter.app/latest?from=USD&to=EUR", { signal: AbortSignal.timeout(8e3) });
+      const rateRes = await fetch("https://api.frankfurter.app/latest?from=USD&to=EUR", { signal: AbortSignal.timeout(15e3) });
       const rateData = await rateRes.json();
       const eurRate = rateData.rates?.EUR;
       const date = rateData.date;
@@ -4169,11 +4169,11 @@ var weatherTravel = {
     const date = String(args.date ?? "").trim();
     if (!destination || !date) return { type: "weather_travel", status: "failed", error: "Indic\xE1 destino y fecha." };
     try {
-      const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(destination)}&count=1&format=json`, { signal: AbortSignal.timeout(8e3) });
+      const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(destination)}&count=1&format=json`, { signal: AbortSignal.timeout(15e3) });
       const geoData = await geoRes.json();
       const geo = geoData.results?.[0];
       if (!geo) return { type: "weather_travel", status: "ok", destination, date, note: `No encontr\xE9 coordenadas de ${destination}.` };
-      const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${geo.latitude}&longitude=${geo.longitude}&current=temperature_2m,precipitation,wind_speed_10m&timezone=auto`, { signal: AbortSignal.timeout(8e3) });
+      const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${geo.latitude}&longitude=${geo.longitude}&current=temperature_2m,precipitation,wind_speed_10m&timezone=auto`, { signal: AbortSignal.timeout(15e3) });
       const weatherData = await weatherRes.json();
       const cur = weatherData.current;
       return {
@@ -4585,7 +4585,7 @@ var rssDigest = {
     const since = Date.now() - hours * 60 * 60 * 1e3;
     const items = [];
     for (const feed of feeds.slice(0, 5)) {
-      const r = await fetchText(feed.url, { timeoutMs: 8e3 });
+      const r = await fetchText(feed.url, { timeoutMs: 15e3 });
       if (!r.ok) continue;
       const itemMatches = Array.from(r.text.matchAll(/<item>[\s\S]*?<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>[\s\S]*?<link>([\s\S]*?)<\/link>(?:[\s\S]*?<pubDate>([\s\S]*?)<\/pubDate>)?/gi)).slice(0, 5);
       for (const m of itemMatches) {
@@ -6183,7 +6183,7 @@ var sunriseSunset = {
     const data = await cached(cacheKey, ttls.weatherNow, async () => {
       const params = new URLSearchParams({ lat: String(lat), lng: String(lng), formatted: "0" });
       if (date) params.set("date", date);
-      const r = await fetchJson(`https://api.sunrise-sunset.org/json?${params.toString()}`, { timeoutMs: 8e3 });
+      const r = await fetchJson(`https://api.sunrise-sunset.org/json?${params.toString()}`, { timeoutMs: 15e3 });
       if (!r.ok) throw new Error(r.error);
       return r.data;
     });
@@ -7016,7 +7016,7 @@ var airQualityAdvice = {
       url.searchParams.set("latitude", String(lat));
       url.searchParams.set("longitude", String(lng));
       url.searchParams.set("current", "pm2_5,pm10,european_aqi,us_aqi");
-      const r = await fetchJson(url.toString(), { timeoutMs: 8e3 });
+      const r = await fetchJson(url.toString(), { timeoutMs: 15e3 });
       if (!r.ok) throw new Error(r.error);
       return r.data;
     });
@@ -7087,7 +7087,7 @@ var urlShorten = {
     if (!url || !/^https?:\/\//i.test(url)) return { type: "url_shorten", status: "failed", error: "Indic\xE1 una URL v\xE1lida (con http/https)." };
     const cacheKey = `short:${url}`;
     const short = await cached(cacheKey, ttls.reference, async () => {
-      const r = await fetchJson(`https://is.gd/create.php?format=json&url=${encodeURIComponent(url)}`, { timeoutMs: 8e3 });
+      const r = await fetchJson(`https://is.gd/create.php?format=json&url=${encodeURIComponent(url)}`, { timeoutMs: 15e3 });
       if (!r.ok) throw new Error(r.error);
       return r.data.shorturl ?? "";
     });
@@ -7158,7 +7158,7 @@ var quoteOfDay = {
   async run(_args) {
     const cacheKey = `quote:${(/* @__PURE__ */ new Date()).toISOString().slice(0, 10)}`;
     const data = await cached(cacheKey, ttls.reference, async () => {
-      const r = await fetchJson("https://zenquotes.io/api/today", { timeoutMs: 8e3 });
+      const r = await fetchJson("https://zenquotes.io/api/today", { timeoutMs: 15e3 });
       if (!r.ok) throw new Error(r.error);
       return r.data;
     });
@@ -7961,7 +7961,7 @@ async function callProvider(config2, messages, timeoutMs, toolsEnabled = true, p
     }
   }
   if (preferredProvider === "openrouter" && config2.openRouterKeys.length) {
-    return callOpenRouter(config2, messages, Math.min(18e3, timeoutMs), toolsEnabled);
+    return callOpenRouter(config2, messages, Math.min(115e3, timeoutMs), toolsEnabled);
   }
   if (bluesmindsAvailable && (!preferredProvider || preferredProvider === "bluesminds")) {
     try {
@@ -7989,7 +7989,7 @@ async function callProvider(config2, messages, timeoutMs, toolsEnabled = true, p
     }
   }
   if (!nvidiaAvailable) {
-    return callOpenRouter(config2, messages, Math.min(18e3, timeoutMs), toolsEnabled);
+    return callOpenRouter(config2, messages, Math.min(115e3, timeoutMs), toolsEnabled);
   }
   if (!preferredProvider || preferredProvider !== "openrouter") {
     try {
@@ -8002,7 +8002,7 @@ async function callProvider(config2, messages, timeoutMs, toolsEnabled = true, p
     }
   }
   if (config2.openRouterKeys.length) {
-    return callOpenRouter(config2, messages, Math.min(18e3, timeoutMs), toolsEnabled);
+    return callOpenRouter(config2, messages, Math.min(115e3, timeoutMs), toolsEnabled);
   }
   throw new Error("Ning\xFAn proveedor de IA respondi\xF3. Verific\xE1 la conexi\xF3n o las credenciales.");
 }
@@ -8031,7 +8031,7 @@ async function geocodeCity(city) {
   url.searchParams.set("count", "1");
   url.searchParams.set("language", "es");
   url.searchParams.set("format", "json");
-  const response = await fetchWithTimeout(url.toString(), { headers: { Accept: "application/json" } }, 8e3);
+  const response = await fetchWithTimeout(url.toString(), { headers: { Accept: "application/json" } }, 15e3);
   const data = await response.json().catch(() => ({}));
   const result = data.results?.[0];
   if (!result || typeof result.latitude !== "number" || typeof result.longitude !== "number") return null;
@@ -8068,7 +8068,7 @@ async function getWeather(args) {
   url.searchParams.set("hourly", "precipitation_probability,temperature_2m");
   url.searchParams.set("daily", "temperature_2m_max,temperature_2m_min,precipitation_probability_max");
   url.searchParams.set("timezone", "auto");
-  const response = await fetchWithTimeout(url.toString(), { headers: { Accept: "application/json" } }, 8e3);
+  const response = await fetchWithTimeout(url.toString(), { headers: { Accept: "application/json" } }, 15e3);
   const data = await response.json().catch(() => ({}));
   const current = data.current;
   const max = data.daily?.temperature_2m_max?.[0];
@@ -8141,7 +8141,7 @@ async function searchGdelt(query) {
 }
 async function fetchPageContent2(url, maxChars = 1200) {
   try {
-    const res = await fetchWithTimeout(url, { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" } }, 8e3);
+    const res = await fetchWithTimeout(url, { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" } }, 15e3);
     const html = await res.text();
     let contentHtml = html;
     const articleMatch = html.match(/<article\b[^>]*>([\s\S]*?)<\/article>/i);
@@ -10203,7 +10203,7 @@ async function buildEnhancementInstruction(request, config2, toolExecutions) {
     });
     const chatFn = async (messages, _options) => {
       const pp = inferProviderFromModel(request.model);
-      const chatTimeout = isOllamaUrl(config2.nvidiaBaseUrl) ? 6e4 : 8e3;
+      const chatTimeout = isOllamaUrl(config2.nvidiaBaseUrl) ? 6e4 : 15e3;
       const result = await callProvider(config2, messages.map((m) => ({ role: m.role, content: m.content })), chatTimeout, false, pp);
       return { content: result.message.content ?? "" };
     };
@@ -10242,7 +10242,7 @@ var routerNullWarned = false;
 function buildEmbedFn(baseUrl) {
   return async (text) => {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8e3);
+    const timeout = setTimeout(() => controller.abort(), 15e3);
     try {
       const res = await fetch(`${baseUrl.replace(/\/+$/, "")}/api/embeddings`, {
         method: "POST",

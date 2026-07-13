@@ -366,7 +366,7 @@ export const sunriseSunset: ToolHandler = {
     const data = await cached<{ results?: { sunrise?: string; sunset?: string; solar_noon?: string; day_length?: number } }>(cacheKey, ttls.weatherNow, async () => {
       const params = new URLSearchParams({ lat: String(lat), lng: String(lng), formatted: "0" });
       if (date) params.set("date", date);
-      const r = await fetchJson(`https://api.sunrise-sunset.org/json?${params.toString()}`, { timeoutMs: 8_000 });
+      const r = await fetchJson(`https://api.sunrise-sunset.org/json?${params.toString()}`, { timeoutMs: 15_000 });
       if (!r.ok) throw new Error(r.error);
       return r.data as { results?: { sunrise?: string; sunset?: string; solar_noon?: string; day_length?: number } };
     });

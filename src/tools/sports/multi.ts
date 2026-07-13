@@ -154,7 +154,7 @@ export const golfLeaderboard: ToolHandler = {
       // ESPN golf leaderboard endpoint (no oficial, formato JSON).
       const r = await fetchJson<{ leaders?: Array<{ name?: string; score?: string; thru?: string }> }>(
         `${ESPN_BASE}/golf/pga/scoreboard`,
-        { timeoutMs: 8_000 },
+        { timeoutMs: 15_000 },
       );
       if (!r.ok) throw new Error(r.error);
       return r.data!;
