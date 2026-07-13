@@ -5483,6 +5483,10 @@ export async function runKoruBackendTurn(
               for (const block of response.uiBlocks) {
                 if (block.type === "deliverable") {
                   if (effectiveSummary2 && effectiveSummary2.length > 20) {
+                    logger.info("runKoruBackendTurn", "APPLYING effectiveSummary2 to deliverable", {
+                      summaryLen: effectiveSummary2.length,
+                      summaryPreview: effectiveSummary2.slice(0, 80),
+                    });
                     block.summary = effectiveSummary2;
                     const synthSection = (block.sections ?? []).find((s: any) => s.title === "Síntesis");
                     if (synthSection && synthSection.kind === "text") {
