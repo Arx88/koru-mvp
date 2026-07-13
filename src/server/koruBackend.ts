@@ -3854,8 +3854,7 @@ function normalizeFinalPayload(
 
   // 🔴 FIX UX: Si el reply es demasiado largo (>100 chars) Y hay un block informativo
   // (movie_review, recipe, book_review, weather, live_match, deliverable, etc.),
-  // recortarlo al primer enunciado + indicación de card. Los datos van en la card,
-  // no en el texto — eso es lo que el usuario espera.
+  // recortarlo al primer enunciado. Los datos van en la card, no en el texto.
   const informativeBlockTypes = new Set([
     "movie_review", "recipe", "book_review", "weather", "live_match",
     "deliverable", "market", "forex", "data_card", "web_nav",
@@ -3866,7 +3865,20 @@ function normalizeFinalPayload(
   if (finalReply.length > 100 && hasInformativeBlock) {
     const firstSentence = finalReply.match(/^.{1,80}?[.!?](\s|$)/)?.[0];
     if (firstSentence && firstSentence.length < finalReply.length) {
-      finalReply = firstSentence.trim() + " Te dejé el detalle en la tarjeta.";
+      // Solo agregar "Te dejé el detalle en la tarjeta" si no lo dice ya
+      const trimmed = firstSentence.trim();
+      if (/tarjeta/i.test(trimmed)) {
+        finalReply = trimmed;
+      } else {
+        finalReply = trimmed + " Te dejé el detalle en la tarjeta.";
+      }
+    }
+  }
+  // Si el reply menciona "tarjeta" dos veces, limpiar
+  if (hasInformativeBlock) {
+    finalReply = finalReply.replace(/Te dejé el detalle en la tarjeta\.?\s*$/i, "").trim();
+    if (!/tarjeta/i.test(finalReply)) {
+      finalReply += " Te dejé el detalle en la tarjeta.";
     }
   }
   return {
