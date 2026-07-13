@@ -5,6 +5,7 @@ import { cn } from "../lib/utils";
 import { useKoru, PHASE_ORDER, type KoruChatTurn, type KoruTurnItem } from "./KoruProvider";
 import type { AgentActivityKind } from "../domain/agentKernel";
 import { KoruSemanticCard } from "./chatCards";
+import { KoruBackground, activityToBgState, type KoruBgState } from "./KoruBackground";
 
 // TalkOverlay = réplica Stitch "Chat con Koru": paisaje nocturno ilustrado a
 // pantalla completa, conversación anclada abajo con burbujas claras (usuario
@@ -252,6 +253,31 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
   const [interimText, setInterimText] = useState("");
   const [speechStatus] = useState(() => getSpeechSupport());
   const [micError, setMicError] = useState("");
+
+  // ===== Estado del fondo dinámico =====
+  // Detecta el estado actual (trabajando, buscando, memoria, etc.) y lo pasa al KoruBackground.
+  // También trackea idle para activar "durmiendo" a los 2 min de inactividad.
+  const [idleMs, setIdleMs] = useState(0);
+  const lastInteractionRef = useRef(Date.now());
+  useEffect(() => {
+    lastInteractionRef.current = Date.now();
+  }, [chatTurns.length, processing, isListening, inputText]);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIdleMs(Date.now() - lastInteractionRef.current);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+  const lastUserText = useMemo(() => {
+    for (let i = chatTurns.length - 1; i >= 0; i--) {
+      if (chatTurns[i].role === "user") return chatTurns[i].text;
+    }
+    return undefined;
+  }, [chatTurns]);
+  const bgState: KoruBgState = useMemo(
+    () => activityToBgState(activity?.kind, processing, isListening, lastUserText, idleMs),
+    [activity?.kind, processing, isListening, lastUserText, idleMs],
+  );
   const [transcribing, setTranscribing] = useState(false);
   const [analyzingImage, setAnalyzingImage] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -705,6 +731,9 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
         onMouseUp={handleLongPressCancel}
         onMouseLeave={handleLongPressCancel}
       >
+        {/* Fondo dinámico — cambia según el estado de Koru */}
+        <KoruBackground state={bgState} />
+
         <button type="button" onClick={onClose} aria-label="Volver" className="koru-back-button">
           <ChevronLeft size={22} />
         </button>
