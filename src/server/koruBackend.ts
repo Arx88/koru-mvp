@@ -5104,12 +5104,55 @@ export async function runKoruBackendTurn(
       logger.info("runKoruBackendTurn", "Fast-path executed tools, skipping semantic router to avoid duplication", {
         toolCount: toolExecutions.length,
       });
+      // 🔴 FIX: construir mensajes con tool results para que el LLM pueda sintetizar
+      // un reply corto natural. Sin esto, el reply cae a blockReply mecánico.
+      const synthMessages = buildMessages(request);
+      // Agregar tool calls + tool results al contexto
+      for (const exec of toolExecutions) {
+        synthMessages.push({
+          role: "assistant",
+          content: "",
+          tool_calls: [{
+            id: exec.id || `call_${Date.now()}`,
+            type: "function",
+            function: { name: exec.name, arguments: JSON.stringify(exec.args ?? {}) },
+          }],
+        });
+        synthMessages.push({
+          role: "tool",
+          content: JSON.stringify(exec.result).slice(0, 3000),
+          tool_call_id: exec.id || `call_${Date.now()}`,
+        });
+      }
+      synthMessages.push({
+        role: "user",
+        content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks. El JSON debe empezar con { y terminar con }. Respondé SOLO con {\"reply\":\"...\",\"mascotState\":\"...\"} donde reply es 1-2 líneas cortas que enmarcan el resultado (NO repitas los datos de la tarjeta).",
+      });
+
       const fastConfig = { ...config, nvidiaModel: config.nvidiaFastModel || "meta/llama-3.1-8b-instruct" };
-      const response = await finalizePayloadWithFastModel(request, fastConfig, { reply: "" } as Record<string, unknown>, toolExecutions, 30_000);
-      // Si el reply quedó como fallback de blockReply, darle un reply más natural
+      let synthReply = "";
+      let synthMascot = "happy";
+      try {
+        const synthResult = await callProvider(fastConfig, synthMessages, 30_000, false, undefined, undefined, fastConfig.nvidiaModel);
+        const synthContent = cleanText(synthResult.message.content, "");
+        const synthParsed = safeJsonObjectFromContent(synthContent);
+        synthReply = cleanReplyText(synthParsed.reply || "");
+        synthMascot = cleanText(synthParsed.mascotState) || "happy";
+      } catch (err: any) {
+        logger.warn("runKoruBackendTurn", "Fast-path synth LLM call failed", { error: err?.message });
+      }
+
+      const response = await finalizePayloadWithFastModel(
+        request,
+        fastConfig,
+        { reply: synthReply, mascotState: synthMascot } as Record<string, unknown>,
+        toolExecutions,
+        30_000,
+      );
+      // Si el reply sigue siendo fallback mecánico, darle uno natural
       const taskKicker = fastPathKickerForCategory(routeCategory ?? "conversation");
-      if (!response.reply || response.reply.length < 10) {
-        response.reply = `Te dejé ${taskKicker.toLowerCase()} en la tarjeta.`;
+      if (!response.reply || response.reply.length < 10 || response.reply.includes("Rating:") || response.reply.includes("· Dir:")) {
+        response.reply = synthReply || `Te dejé ${taskKicker.toLowerCase()} en la tarjeta.`;
       }
       return { ...response, provider, model, fallbackReason: "fastpath-skip-router" };
     }
