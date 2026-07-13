@@ -622,9 +622,13 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
     const previousCount = turnCountRef.current;
     turnCountRef.current = chatTurns.length;
     if (chatTurns.length > previousCount) {
-      const userTurns = node.querySelectorAll<HTMLElement>(".koru-message.is-user");
-      const lastUserTurn = userTurns[userTurns.length - 1];
-      node.scrollTop = Math.max(0, (lastUserTurn?.offsetTop ?? node.scrollHeight) - 72);
+      // 🔴 FIX: scrollear al final para mostrar la card completa + CTA
+      // Delay para esperar a que las cards se rendericen
+      setTimeout(() => {
+        if (node) {
+          node.scrollTop = node.scrollHeight;
+        }
+      }, 300);
     }
   }, [chatTurns, processing, isListening, interimText]);
 

@@ -2238,8 +2238,8 @@ button.koru-stitch-row {
 
 /* 🔴 FIX UX: imágenes grandes para posters de películas, covers de libros, fotos de recetas */
 .koru-plan-hero-art.is-poster {
-  width: 140px;
-  height: 210px;
+  width: 100px;
+  height: 150px;
   object-fit: cover;
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
