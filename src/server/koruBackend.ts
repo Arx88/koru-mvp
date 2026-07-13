@@ -4876,6 +4876,29 @@ function resolveFollowUpInput(input: string, history: KoruConversationMessage[])
   return input;
 }
 
+/**
+ * 🔴 FIX UX: Devuelve el kicker específico para cada categoría del fast-path.
+ * El kicker se usa en el WorkingPanel para mostrar chips de progreso dinámicos
+ * que tienen relación con la tarea (ej: "Identificando la película" vs "Buscando fuentes").
+ */
+function fastPathKickerForCategory(category: RouteCategory): string {
+  const kickerMap: Record<string, string> = {
+    sports: "Tu Partido",
+    weather: "Tu Clima",
+    food: "Tu Receta",
+    media: "Tu Película",
+    knowledge: "Tu Consulta",
+    world_info: "Tu Búsqueda",
+    review: "Tu Análisis",
+    shopping: "Tu Comparativa",
+    market: "Tu Cotización",
+    travel: "Tu Viaje",
+    research: "Tu Informe",
+    planning: "Tu Plan",
+  };
+  return kickerMap[category] ?? "Tu Consulta";
+}
+
 export async function runKoruBackendTurn(
   request: KoruBackendTurnRequest,
   config: ProviderConfig,
@@ -5000,14 +5023,26 @@ export async function runKoruBackendTurn(
           function: { name: route.tool, arguments: JSON.stringify(route.toolArgs ?? {}) },
         };
         const query = route.tool === "web_search" ? cleanText(route.toolArgs?.query as string) : undefined;
-        const shortSearchLabel = query ? searchLabelFromInput(query) : "Buscando en la web";
+        const shortSearchLabel = query ? searchLabelFromInput(query) : "Buscando...";
+
+        // 🔴 FIX UX: emitir deliverable "working" con kicker específico para que
+        // el WorkingPanel muestre chips dinámicos según el tipo de tarea.
+        const taskKicker = fastPathKickerForCategory(route.category);
         onChunk?.({
           reply: shortSearchLabel,
-          uiBlocks: query ? [{ type: "web_nav" as const, title: "Navegación Web", status: "loading" as const, query, results: [] }] : [],
+          uiBlocks: [{
+            type: "deliverable" as const,
+            status: "working" as const,
+            kicker: taskKicker,
+            title: taskKicker,
+            topic: request.input,
+            progress: 15,
+            phaseLabel: shortSearchLabel,
+          }],
           suggestedActions: [],
           understanding: { literalRequest: request.input, userGoal: route.category, unstatedNeeds: [], assumptions: [], confidence: route.confidence },
           memoryCandidates: [], commitments: [], records: [], toolResults: [],
-          stateEvents: [{ kind: "searching" as const, label: shortSearchLabel }],
+          stateEvents: [{ kind: "thinking" as const, label: shortSearchLabel }],
           mascotState: "working",
           provider, model, fallbackReason: "fastpath-" + route.category,
         });
@@ -5060,6 +5095,18 @@ export async function runKoruBackendTurn(
           return { ...response, provider, model, fallbackReason: "fastpath-" + route.category };
         }
       }
+    }
+
+    // 🔴 FIX DUPLICACIÓN: si el fast-path ya ejecutó tools (toolExecutions no vacío),
+    // NO caer al router semántico — eso causaría que la misma tool se ejecute 2 veces
+    // y genere 2 blocks duplicados. Sintetizar la respuesta con lo que ya tenemos.
+    if (toolExecutions.length > 0) {
+      logger.info("runKoruBackendTurn", "Fast-path executed tools, skipping semantic router to avoid duplication", {
+        toolCount: toolExecutions.length,
+      });
+      const fastConfig = { ...config, nvidiaModel: config.nvidiaFastModel || "meta/llama-3.1-8b-instruct" };
+      const response = await finalizePayloadWithFastModel(request, fastConfig, true, toolExecutions, 30_000);
+      return { ...response, provider, model, fallbackReason: "fastpath-skip-router" };
     }
 
     // Si el fast-path no matcheó, caer al router semántico (que requiere embeddings)

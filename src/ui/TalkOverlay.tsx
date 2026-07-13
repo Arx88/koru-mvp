@@ -148,23 +148,92 @@ const WORKING_COPY: Partial<Record<AgentActivityKind, { title: string; subtitle:
 
 // Mapeo de fase interna → label visible + icono Material Symbols.
 // El demo muestra 4 chips: Entendí, Busqué, Comparando, Redactar.
-const PHASE_CHIPS: Array<{ phase: string; label: string; icon: string }> = [
-  { phase: "thinking", label: "Entendí el pedido", icon: "check_circle" },
-  { phase: "searching", label: "Busqué fuentes", icon: "check_circle" },
-  { phase: "comparing", label: "Comparando datos", icon: "compare_arrows" },
-  { phase: "planning", label: "Redactar informe", icon: "edit_note" },
-];
+// 🔴 FIX UX: chips de progreso DINÁMICOS según el tipo de tarea.
+// Cada tipo de tool tiene sus propios pasos específicos, no genéricos.
+// Esto sigue la idea de la imagen del usuario: "Leí tus mensajes" → "Detecté 12 tareas" → etc.
+const TASK_PHASES: Record<string, Array<{ phase: string; label: string; icon: string }>> = {
+  // Informes / deep research
+  informe: [
+    { phase: "thinking", label: "Entendí el pedido", icon: "check_circle" },
+    { phase: "searching", label: "Buscando fuentes", icon: "travel_explore" },
+    { phase: "comparing", label: "Cruzando datos", icon: "compare_arrows" },
+    { phase: "planning", label: "Redactando informe", icon: "edit_note" },
+  ],
+  // Películas
+  pelicula: [
+    { phase: "thinking", label: "Identificando la película", icon: "movie" },
+    { phase: "searching", label: "Buscando en TMDB y Wikipedia", icon: "travel_explore" },
+    { phase: "comparing", label: "Cruzando datos", icon: "compare_arrows" },
+    { phase: "planning", label: "Armando la ficha", icon: "edit_note" },
+  ],
+  // Recetas
+  receta: [
+    { phase: "thinking", label: "Buscando la receta", icon: "restaurant" },
+    { phase: "searching", label: "Consultando fuentes", icon: "travel_explore" },
+    { phase: "comparing", label: "Organizando ingredientes", icon: "kitchen" },
+    { phase: "planning", label: "Armando la receta", icon: "edit_note" },
+  ],
+  // Clima
+  clima: [
+    { phase: "thinking", label: "Detectando tu ciudad", icon: "location_on" },
+    { phase: "searching", label: "Consultando el clima", icon: "cloud" },
+    { phase: "planning", label: "Preparando el reporte", icon: "wb_sunny" },
+  ],
+  // Deportes
+  deportes: [
+    { phase: "thinking", label: "Identificando el equipo", icon: "sports_soccer" },
+    { phase: "searching", label: "Buscando el resultado", icon: "travel_explore" },
+    { phase: "planning", label: "Armando el resumen", icon: "sports_score" },
+  ],
+  // Búsqueda web
+  web: [
+    { phase: "thinking", label: "Entendiendo tu búsqueda", icon: "check_circle" },
+    { phase: "searching", label: "Buscando en la web", icon: "travel_explore" },
+    { phase: "comparing", label: "Filtrando resultados", icon: "filter_list" },
+    { phase: "planning", label: "Preparando respuesta", icon: "edit_note" },
+  ],
+  // Libros
+  libro: [
+    { phase: "thinking", label: "Identificando el libro", icon: "menu_book" },
+    { phase: "searching", label: "Buscando en fuentes", icon: "travel_explore" },
+    { phase: "planning", label: "Armando la ficha", icon: "edit_note" },
+  ],
+  // Default (genérico)
+  default: [
+    { phase: "thinking", label: "Entendí el pedido", icon: "check_circle" },
+    { phase: "searching", label: "Buscando información", icon: "travel_explore" },
+    { phase: "comparing", label: "Procesando datos", icon: "compare_arrows" },
+    { phase: "planning", label: "Preparando respuesta", icon: "edit_note" },
+  ],
+};
+
+/** Determina qué set de chips usar según el kicker del deliverable o el activity kind */
+function getTaskPhases(kicker?: string, kind?: string): Array<{ phase: string; label: string; icon: string }> {
+  const k = (kicker ?? "").toLowerCase();
+  if (k.includes("informe") || k.includes("reporte") || k.includes("investigaci")) return TASK_PHASES.informe;
+  if (k.includes("pel") || k.includes("movie") || k.includes("film")) return TASK_PHASES.pelicula;
+  if (k.includes("receta") || k.includes("recipe") || k.includes("comida")) return TASK_PHASES.receta;
+  if (k.includes("clima") || k.includes("weather") || k.includes("tiempo")) return TASK_PHASES.clima;
+  if (k.includes("partido") || k.includes("match") || k.includes("deport")) return TASK_PHASES.deportes;
+  if (k.includes("libro") || k.includes("book")) return TASK_PHASES.libro;
+  if (k.includes("búsqueda") || k.includes("search") || k.includes("web")) return TASK_PHASES.web;
+  if (kind === "searching") return TASK_PHASES.web;
+  if (kind === "saving") return TASK_PHASES.default;
+  return TASK_PHASES.default;
+}
 
 type WorkingDeliverable = { kicker: string; progress?: number; phaseLabel?: string };
 
 function WorkingPanel({ phase, kind, deliverable }: { phase: string | null; kind?: AgentActivityKind; deliverable?: WorkingDeliverable | null }) {
   const idx = phase ? (PHASE_ORDER as readonly string[]).indexOf(phase) : -1;
   const doneIdx = PHASE_ORDER.length - 1;
-  // El entregable trae el % REAL del pipeline (deep_research); si no, se
-  // aproxima por la fase emitida por el backend.
   const pct = deliverable?.progress != null
     ? Math.min(100, Math.max(0, Math.round(deliverable.progress)))
     : idx >= 0 ? Math.round(((idx + 1) / doneIdx) * 100) : null;
+
+  // 🔴 FIX UX: usar chips dinámicos según el tipo de tarea
+  const taskChips = getTaskPhases(deliverable?.kicker, kind);
+
   const copy = deliverable
     ? {
         title: `Trabajando en ${deliverable.kicker.toLowerCase().startsWith("tu") ? deliverable.kicker.toLowerCase() : `tu ${deliverable.kicker.toLowerCase()}`}...`,
@@ -172,10 +241,8 @@ function WorkingPanel({ phase, kind, deliverable }: { phase: string | null; kind
       }
     : (kind && WORKING_COPY[kind]) ?? { title: "Trabajando...", subtitle: "Esto tomara solo unos segundos ✨" };
 
-  // Calcular estado de cada chip: done / active / pending
-  // El idx de la fase actual en PHASE_ORDER determina cuáles están done.
   const phaseIdx = phase ? (PHASE_ORDER as readonly string[]).indexOf(phase) : -1;
-  const chips = PHASE_CHIPS.map((chip, i) => {
+  const chips = taskChips.map((chip, i) => {
     if (phaseIdx < 0) return { ...chip, status: "pending" as const };
     if (i < phaseIdx) return { ...chip, status: "done" as const };
     if (i === phaseIdx) return { ...chip, status: "active" as const };
