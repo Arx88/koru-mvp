@@ -998,9 +998,11 @@ function inferProviderFromModel(model: string | undefined): "minimax" | "nvidia"
 }
 
 function nvidiaTimeoutMs(config: ProviderConfig, isOllama: boolean, timeoutMs: number): number {
-  if (isOllama) return Math.min(90_000, timeoutMs);
+  if (isOllama) return Math.min(150_000, timeoutMs);
   const isLargeNemotron = config.nvidiaModel.toLowerCase().includes("nemotron-3-ultra");
-  return Math.min(isLargeNemotron ? 120_000 : 45_000, timeoutMs);
+  // 🔴 FIX P2.4: bumped Nemotron Ultra from 120s → 180s
+  // Algunas síntesis con muchos tool results tardan más de 120s.
+  return Math.min(isLargeNemotron ? 180_000 : 60_000, timeoutMs);
 }
 
 /**
@@ -2342,8 +2344,78 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
     `Usuario: "como le fue a Boca" → TOOL: match_live(query="Boca"). Reply con el score exacto que devuelva la tool.`,
     ``,
     `Notá: las respuestas son CORTAS, DIRECTAS y UTILES. No exageran, no sobre-validan, no terminan con preguntas obvias.`,
-    `Hora actual: ${nowIso}`,
+    ``,
+    `=== CONTEXTO TEMPORAL (CRÍTICO — siempre lo sabés) ===`,
+    ...formatTemporalContext(nowIso),
+    ``,
+    `Reglas temporales CRÍTICAS:`,
+    `- "Hoy" = ${formatDateLong(nowIso)}. "Ayer" = ${formatDateLong(new Date(Date.now() - 86400000).toISOString())}. "Mañana" = ${formatDateLong(new Date(Date.now() + 86400000).toISOString())}.`,
+    `- Cuando el usuario dice "hoy", "ayer", "mañana", "esta semana", "este fin de semana", ya sabés a qué fecha se refiere — NO preguntes "¿qué día?" ni "¿cuándo?". Calculá la fecha concreta.`,
+    `- Si el usuario pregunta "como salió X ayer", asumí que se refiere al partido/ evento de ${formatDateLong(new Date(Date.now() - 86400000).toISOString())}.`,
+    `- Si pregunta "qué hago hoy", sabés exactamente qué día es y qué día de la semana.`,
+    `- NUNCA digas "no sé qué día es hoy" ni "no tengo acceso a la fecha". Siempre la sabés.`,
   ].join("\n");
+}
+
+/**
+ * Formatea fecha ISO en formato largo legible en español.
+ * Ej: "lunes 13 de julio de 2026"
+ */
+function formatDateLong(iso: string): string {
+  const d = new Date(iso);
+  const dias = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+  const meses = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+  return `${dias[d.getDay()]} ${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}`;
+}
+
+/**
+ * Formatea la hora en formato 24hs legible.
+ * Ej: "14:35"
+ */
+function formatTimeShort(iso: string): string {
+  const d = new Date(iso);
+  const h = String(d.getHours()).padStart(2, "0");
+  const m = String(d.getMinutes()).padStart(2, "0");
+  return `${h}:${m}`;
+}
+
+/**
+ * Genera el contexto temporal completo para el system prompt.
+ * Incluye fecha, día de la semana, hora, zona horaria, y referencias relativas
+ * (hace cuánto amaneció, cuánto falta para medianoche, etc.) para que el LLM
+ * tenga orientación temporal completa.
+ */
+function formatTemporalContext(nowIso: string): string[] {
+  const now = new Date(nowIso);
+  const fecha = formatDateLong(nowIso);
+  const hora = formatTimeShort(nowIso);
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  const diaSemana = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"][now.getDay()];
+  const horaNum = now.getHours();
+
+  // Determinar momento del día
+  let momentoDelDia: string;
+  if (horaNum < 6) momentoDelDia = "madrugada";
+  else if (horaNum < 12) momentoDelDia = "mañana";
+  else if (horaNum < 14) momentoDelDia = "mediodía";
+  else if (horaNum < 19) momentoDelDia = "tarde";
+  else if (horaNum < 22) momentoDelDia = "noche";
+  else momentoDelDia = "noche tardía";
+
+  //AYER, HOY, MAÑANA en formato largo
+  const ayer = formatDateLong(new Date(now.getTime() - 86400000).toISOString());
+  const manana = formatDateLong(new Date(now.getTime() + 86400000).toISOString());
+
+  return [
+    `- Fecha completa: ${fecha}`,
+    `- Día de la semana: ${diaSemana}`,
+    `- Hora actual: ${hora} (formato 24hs)`,
+    `- Zona horaria: ${tz}`,
+    `- Momento del día: ${momentoDelDia}`,
+    `- Ayer fue: ${ayer}`,
+    `- Mañana será: ${manana}`,
+    `- ISO timestamp: ${nowIso}`,
+  ];
 }
 
 function isTrivialInput(input: string): boolean {
@@ -3182,64 +3254,55 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
 
     // 🔴 FIX P1 — Casos nuevos para tools que ya existían pero se descartaban
 
-    // movie_info: usar product_analysis con poster como imagen + specs (reparto, géneros, estreno)
+    // movie_info: usar el nuevo tipo movie_review con todos los campos ricos
     if (result.type === "movie_info") {
       const r = result as any;
       const title = r.title ?? "Película";
       const poster = r.poster ?? r.thumbnail;
       const rating = typeof r.rating === "number" ? r.rating : undefined;
-      const description = r.text ?? r.summary ?? r.synopsis ?? "";
-      const specs: Array<{ label: string; value: string }> = [];
-      if (r.cast && Array.isArray(r.cast) && r.cast.length > 0) {
-        specs.push({ label: "Reparto", value: r.cast.slice(0, 5).join(", ") });
-      }
-      if (r.genres && Array.isArray(r.genres) && r.genres.length > 0) {
-        const genreNames = r.genres.map((g: any) => typeof g === "string" ? g : (g?.name ?? "")).filter(Boolean);
-        if (genreNames.length > 0) specs.push({ label: "Género", value: genreNames.join(", ") });
-      }
-      if (r.releaseDate) specs.push({ label: "Estreno", value: String(r.releaseDate) });
-      if (r.director) specs.push({ label: "Director", value: String(r.director) });
-      if (r.runtime) specs.push({ label: "Duración", value: String(r.runtime) });
+      const overview = r.text ?? r.summary ?? r.synopsis ?? r.overview ?? "";
       blocks.push({
-        type: "product_analysis" as const,
-        product: {
-          name: title,
-          image: poster,
-          rating,
-          description: description.slice(0, 600),
-        },
-        specs,
-        actionLabel: r.sources?.[0]?.url ? "Ver más" : undefined,
+        type: "movie_review" as const,
+        title,
+        poster,
+        rating,
+        releaseDate: r.releaseDate,
+        runtime: r.runtime,
+        director: r.director,
+        cast: Array.isArray(r.cast) ? r.cast : undefined,
+        genres: Array.isArray(r.genres) ? r.genres : undefined,
+        overview: overview.slice(0, 800),
+        sources: Array.isArray(r.sources) ? r.sources : undefined,
       });
       continue;
     }
 
-    // recipe_find: usar product_analysis con thumbnail + ingredientes como specs
+    // recipe_find: usar el nuevo tipo recipe con ingredientes estructurados + video
     if (result.type === "recipe_find") {
       const r = result as any;
       const recipes = Array.isArray(r.recipes) ? r.recipes : [];
       if (recipes.length === 0) continue;
       const first = recipes[0];
-      const specs: Array<{ label: string; value: string }> = [];
-      if (first.category) specs.push({ label: "Categoría", value: String(first.category) });
-      if (first.area) specs.push({ label: "Origen", value: String(first.area) });
-      if (Array.isArray(first.ingredients)) {
-        const ings = first.ingredients.slice(0, 10);
-        for (const ing of ings) {
-          const label = ing?.ingredient ?? String(ing ?? "");
-          const value = ing?.measure ?? "";
-          if (label) specs.push({ label, value: String(value || "") });
-        }
-      }
+      // Parsear instrucciones en pasos numerados (suelen venir como string con \r\n)
+      const instructions = String(first.instructions ?? "");
+      const steps = instructions
+        .split(/\r?\n/)
+        .map((s: string) => s.trim())
+        .filter((s: string) => s && /^(STEP\s*\d+|PASO\s*\d+|\d+[).])/.test(s.toUpperCase()))
+        .map((text: string, i: number) => ({ step: i + 1, text: text.replace(/^(STEP\s*\d+|PASO\s*\d+|\d+[).])\s*/i, "") }));
       blocks.push({
-        type: "product_analysis" as const,
-        product: {
-          name: first.name ?? "Receta",
-          image: first.thumbnail,
-          description: first.instructions ? String(first.instructions).slice(0, 500) : undefined,
-        },
-        specs,
-        actionLabel: first.videoUrl ? "Ver video" : undefined,
+        type: "recipe" as const,
+        name: first.name ?? "Receta",
+        title: first.name ?? "Receta",
+        image: first.thumbnail,
+        category: first.category,
+        area: first.area,
+        description: instructions.slice(0, 200),
+        instructions: instructions.slice(0, 1500),
+        videoUrl: first.videoUrl,
+        ingredients: Array.isArray(first.ingredients) ? first.ingredients : undefined,
+        steps: steps.length > 0 ? steps : undefined,
+        source: { title: "TheMealDB", url: "https://www.themealdb.com/", domain: "themealdb.com" },
       });
       // Si hay más recetas, agregar segunda card con lista
       if (recipes.length > 1) {
@@ -3256,27 +3319,25 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
       continue;
     }
 
-    // book_info: usar product_analysis con cover + specs (autor, año, páginas)
+    // book_info: usar el nuevo tipo book_review con cover + todos los metadatos
     if (result.type === "book_info") {
       const r = result as any;
       const title = r.title ?? "Libro";
       const cover = r.coverUrl ?? r.cover ?? r.thumbnail;
-      const description = r.text ?? r.summary ?? r.synopsis ?? r.description ?? "";
-      const specs: Array<{ label: string; value: string }> = [];
-      if (r.author) specs.push({ label: "Autor", value: String(r.author) });
-      if (r.year || r.firstPublished) specs.push({ label: "Año", value: String(r.year ?? r.firstPublished) });
-      if (r.pages) specs.push({ label: "Páginas", value: String(r.pages) });
-      if (r.genre) specs.push({ label: "Género", value: String(r.genre) });
-      if (r.publisher) specs.push({ label: "Editorial", value: String(r.publisher) });
+      const synopsis = r.text ?? r.summary ?? r.synopsis ?? r.description ?? "";
       blocks.push({
-        type: "product_analysis" as const,
-        product: {
-          name: title,
-          image: cover,
-          description: description.slice(0, 600),
-        },
-        specs,
-        actionLabel: r.sources?.[0]?.url ? "Ver más" : undefined,
+        type: "book_review" as const,
+        title,
+        cover,
+        author: r.author,
+        year: r.year ?? r.firstPublished,
+        pages: r.pages ?? r.number_of_pages_median,
+        publisher: r.publisher,
+        genre: r.genre,
+        rating: typeof r.rating === "number" ? r.rating : undefined,
+        synopsis: synopsis.slice(0, 800),
+        isbn: r.isbn,
+        sources: Array.isArray(r.sources) ? r.sources : undefined,
       });
       continue;
     }
@@ -3338,6 +3399,10 @@ function hasUsefulBlockContent(block: UiBlock): boolean {
   if (block.type === "plan") return block.items.length > 0;
   if (block.type === "saved_record") return block.records.length > 0;
   if (block.type === "money_summary") return Boolean(block.total || block.summaryItems?.length || block.recommendation);
+  // 🔴 FIX P2.3: nuevos tipos
+  if (block.type === "recipe") return Boolean(block.name || block.title || block.instructions || block.ingredients?.length);
+  if (block.type === "movie_review") return Boolean(block.title || block.poster || block.overview || block.rating);
+  if (block.type === "book_review") return Boolean(block.title || block.cover || block.synopsis || block.author);
   return true;
 }
 
@@ -3465,7 +3530,7 @@ function replyFromBlocks(blocks: UiBlock[], input: string): string {
   }
   if (first.type === "money_summary") return first.recommendation ?? "Te deje el resumen de dinero.";
   if (first.type === "proactive_signal") return first.body;
-  // 🔴 FIX: product_analysis (usado por movie_info, recipe_find, book_info, food_info)
+  // 🔴 FIX: product_analysis (usado por food_info y otros)
   if (first.type === "product_analysis") {
     const name = first.product?.name ?? "Lo que pediste";
     const desc = first.product?.description;
@@ -3474,6 +3539,32 @@ function replyFromBlocks(blocks: UiBlock[], input: string): string {
     if (rating) parts.push(`Rating: ${rating}/10.`);
     if (desc) parts.push(desc.slice(0, 300));
     return parts.length > 0 ? `${name}. ${parts.join(" ")}` : `Te deje la info de ${name} en la tarjeta.`;
+  }
+  // 🔴 FIX P2.3: recipe (recipe_find)
+  if (first.type === "recipe") {
+    const name = first.name ?? first.title ?? "Receta";
+    const parts: string[] = [name];
+    if (first.category) parts.push(first.category);
+    if (first.area) parts.push(first.area);
+    if (first.ingredients?.length) parts.push(`${first.ingredients.length} ingredientes`);
+    return `Te deje la receta de ${parts.join(" · ")} en la tarjeta.${first.videoUrl ? " Incluye video." : ""}`;
+  }
+  // 🔴 FIX P2.3: movie_review (movie_info)
+  if (first.type === "movie_review") {
+    const title = first.title ?? "Película";
+    const parts: string[] = [];
+    if (first.rating) parts.push(`Rating: ${first.rating}/10`);
+    if (first.director) parts.push(`Dir: ${first.director}`);
+    if (first.runtime) parts.push(first.runtime);
+    return parts.length > 0 ? `${title}. ${parts.join(" · ")}.` : `Te deje la info de ${title} en la tarjeta.`;
+  }
+  // 🔴 FIX P2.3: book_review (book_info)
+  if (first.type === "book_review") {
+    const title = first.title ?? "Libro";
+    const parts: string[] = [];
+    if (first.author) parts.push(first.author);
+    if (first.year) parts.push(first.year);
+    return parts.length > 0 ? `${title} — ${parts.join(", ")}.` : `Te deje la info de ${title} en la tarjeta.`;
   }
   // 🔴 FIX: data_card (usado por varios tools)
   if (first.type === "data_card") {
@@ -4054,12 +4145,12 @@ function searchLabelFromInput(input: string): string {
 // (hoja Stitch) con módulos, métricas y fuentes reales. El progreso que ve el
 // usuario es el del pipeline REAL, no una animación.
 
-function explicitDeliverableTopic(input: string): string | null {
+function explicitDeliverableTopic(input: string, history?: KoruConversationMessage[]): string | null {
   const clean = input.trim().replace(/\s+/g, " ");
   if (!clean) return null;
   // FIX: regex más estricta. Antes matcheaba "investigación" suelto y disparaba
   // deep research para "como le fue a River". Ahora requiere combinaciones explícitas.
-  const hasDeliverableCue = /\b(?:informe\s+(?:sobre|de|del|acerca)|reporte\s+(?:sobre|de|del|acerca)|dossier|investigaci[oó]n\s+(?:sobre|de|del|acerca)|investig[aá]me|resumen completo|contame todo sobre|quiero saber todo sobre|explicame en profundidad|estudi[aá]me)\b|an[aá]lisis\s+(?:completo|profundo|detallado|serio)/i.test(clean);
+  const hasDeliverableCue = /\b(?:informe\s+(?:sobre|de|del|acerca)|reporte\s+(?:sobre|de|del|acerca)|dossier|investigaci[oó]n\s+(?:sobre|de|del|acerca)|investig[aá]me|resumen completo|contame todo sobre|quiero saber todo sobre|explicame en profundidad|estudi[aá]me|hac[eé]\s+(?:un\s+)?informe|hac[eé]\s+(?:un\s+)?reporte)\b|an[aá]lisis\s+(?:completo|profundo|detallado|serio)/i.test(clean);
   if (!hasDeliverableCue) return null;
 
   const topicPatterns = [
@@ -4067,14 +4158,100 @@ function explicitDeliverableTopic(input: string): string | null {
     /(?:investig[aá](?:me)?|estudi[aá](?:me)?)\s+(?:todo\s+)?(?:(?:sobre|acerca de|del|de)\s+)?(.{3,180})/i,
     /(?:contame todo|quiero saber todo)\s+(?:sobre|acerca de|del|de)\s+(.{3,180})/i,
     /explicame en profundidad\s+(.{3,180})/i,
+    /(?:hac[eé]\s+(?:un\s+)?(?:informe|reporte))\s+(?:sobre|acerca de|del|de)\s+(.{3,180})/i,
+    /(?:hac[eé]\s+(?:un\s+)?(?:informe|reporte))\s+(?:sobre\s+)?(?:esa|ese|eso|este|esta|esto|la|el|lo|aquell[ao])\s+(.{3,180})/i,
   ];
 
+  let topic: string | null = null;
   for (const pattern of topicPatterns) {
     const match = clean.match(pattern);
-    const topic = match?.[1]?.trim().replace(/[.?!]+$/g, "");
-    if (topic && topic.length >= 3) return topic;
+    const t = match?.[1]?.trim().replace(/[.?!]+$/g, "");
+    if (t && t.length >= 3) {
+      topic = t;
+      break;
+    }
   }
-  return clean.replace(/[.?!]+$/g, "");
+  if (!topic) {
+    topic = clean.replace(/[.?!]+$/g, "");
+  }
+
+  // 🔴 FIX P2.1 — Resolución de coreferencias
+  // Si el tópico tiene pronombres/demostrativos ("esa película", "ese libro", "eso"),
+  // buscar en el historial reciente el sustantivo al que se refiere.
+  if (history && history.length > 0 && /\b(esa|ese|eso|este|esta|esto|la|el|lo|aquell[ao])\b/i.test(topic)) {
+    const resolved = resolveCoreference(topic, history);
+    if (resolved) {
+      topic = resolved;
+    } else {
+      // Si no pudimos resolver, devolver null para que caiga a clarifying_question
+      // en vez de armar un informe sobre "esa película" literal.
+      logger.info("explicitDeliverableTopic", "Coreference unresolved, returning null", { topic, historyLength: history.length });
+      return null;
+    }
+  }
+
+  return topic;
+}
+
+/**
+ * 🔴 FIX P2.1 — Resuelve coreferencias como "esa película" buscando en el historial.
+ *
+ * Estrategia:
+ * 1. Detectar el tipo de entidad (película, libro, persona, tema) por la palabra que acompaña al demostrativo.
+ * 2. Buscar en los últimos 6 mensajes del historial (de atrás para adelante) la entidad concreta.
+ * 3. Si se encuentra, devolver el nombre resuelto. Si no, devolver null.
+ *
+ * Ejemplos:
+ *  - "esa película" + historial con "obsesión" → "película obsesión"
+ *  - "ese libro" + historial con "cien años de soledad" → "libro cien años de soledad"
+ *  - "eso" + historial con "la teoría de la relatividad" → "la teoría de la relatividad"
+ */
+function resolveCoreference(topic: string, history: KoruConversationMessage[]): string | null {
+  // Detectar tipo de entidad
+  const entityMatch = topic.match(/\b(pel[ií]cula|pel[ií]c|serie|libro|documental|juego|canci[oó]n|tema|persona|actor|actriz|autor|artista|equipo|partido|lugar|ciudad|pa[ií]s|empresa|app|producto)\b/i);
+  const entityType = entityMatch?.[1]?.toLowerCase() ?? "";
+
+  // Buscar en los últimos 6 mensajes (de atrás para adelante, omitiendo el último que es el input actual)
+  const recent = history.slice(-6, -1).reverse();
+  for (const msg of recent) {
+    if (msg.role !== "assistant" && msg.role !== "user") continue;
+    const content = (msg.content ?? "").trim();
+    if (!content) continue;
+
+    // Si detectamos tipo de entidad, buscar nombres propios o títulos relacionados
+    if (entityType) {
+      // Patrones para extraer nombres según el tipo de entidad
+      let pattern: RegExp;
+      if (/(pel[ií]cula|pel[ií]c|serie|documental)/.test(entityType)) {
+        // Buscar "película X", "serie X", "X (película)", o títulos entre comillas
+        pattern = /(?:pel[ií]cula|serie|documental)\s+(?:[""']([^""']+?)[""']|([A-ZÁÉÍÓÚÑ][\wáéíóúñ\s]{2,60}))/;
+      } else if (/libro/.test(entityType)) {
+        pattern = /(?:libro)\s+(?:[""']([^""']+?)[""']|([A-ZÁÉÍÓÚÑ][\wáéíóúñ\s]{2,60}))/;
+      } else if (/(persona|actor|actriz|autor|artista)/.test(entityType)) {
+        pattern = /([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+){0,2})/;
+      } else {
+        pattern = /([A-ZÁÉÍÓÚÑ][\wáéíóúñ\s]{2,40})/;
+      }
+      const m = content.match(pattern);
+      if (m) {
+        const name = (m[1] ?? m[2] ?? "").trim();
+        if (name && name.length >= 3) {
+          return `${entityType} ${name}`;
+        }
+      }
+    } else {
+      // Sin tipo de entidad claro ("eso", "esto"), tomar el último mensaje del asistente
+      // como referencia y extraer el sujeto principal
+      if (msg.role === "assistant") {
+        // Buscar nombres propios o frases largas
+        const m = content.match(/([A-ZÁÉÍÓÚÑ][\wáéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ\w][\wáéíóúñ]+){0,4})/);
+        if (m && m[1].length >= 4) {
+          return m[1].trim();
+        }
+      }
+    }
+  }
+  return null;
 }
 
 type DeliverableBlock = Extract<UiBlock, { type: "deliverable" }>;
@@ -4287,10 +4464,15 @@ async function runDeepResearchFlow(
   emit(6, "Entendiendo el pedido…", "thinking", `¡Buenísimo${userName ? `, ${userName}` : ""}! Me pongo a investigar ${topic} a fondo y te armo el informe.`);
 
   // ── 1. Sub-búsquedas: qué hay que averiguar para que el informe EXCEDA lo pedido ──
+  const researchNowIso = new Date().toISOString();
+  const researchTemporal = [
+    `Contexto temporal: ${formatDateLong(researchNowIso)}, ${formatTimeShort(researchNowIso)} (${Intl.DateTimeFormat().resolvedOptions().timeZone}).`,
+    `Para "actualidad reciente" priorizá resultados del último mes. Para "datos" priorizá los más recientes verificables.`,
+  ].join(" ");
   let queries: string[] = [];
   try {
     const subqResult = await callProvider(config, [
-      { role: "system", content: "Sos un planificador de investigación. Respondés SOLO con JSON válido, sin texto extra." },
+      { role: "system", content: `Sos un planificador de investigación. Respondés SOLO con JSON válido, sin texto extra. ${researchTemporal}` },
       { role: "user", content: `Tema de investigación: "${topic}". Devolvé SOLO este JSON: {"queries":["q1","q2","q3","q4"]} con 4 búsquedas web en español, cortas y distintas entre sí, que cubran: 1) qué es / panorama general, 2) historia o contexto, 3) noticias y actualidad reciente, 4) datos, cifras o análisis experto.` },
     ], planningTimeout, false, preferredProvider);
     const parsed = asRecord(JSON.parse(extractJsonBlock(cleanText(subqResult.message.content, ""))));
@@ -4359,6 +4541,7 @@ async function runDeepResearchFlow(
           "Tu informe debe EXCEDER lo que el usuario espera: completo, con datos concretos, bien organizado.",
           "Usá EXCLUSIVAMENTE la información de las fuentes provistas más conocimiento general verificable. NUNCA inventes cifras que no puedas respaldar.",
           "Respondés SOLO con JSON válido, sin markdown ni texto extra.",
+          researchTemporal,
         ].join("\n"),
       },
       {
@@ -4467,13 +4650,16 @@ export async function runKoruBackendTurn(
   let fallbackReason: string | undefined;
 
   // Timeouts: Ollama necesita mucho más tiempo porque los modelos locales son lentos
+  // 🔴 FIX P2.4: bumped Nemotron Ultra secondary timeout from 120s → 180s
+  // El segundo LLM call (síntesis con JSON) puede tardar más cuando hay muchos
+  // tool results que procesar. 120s causaba timeouts intermitentes en matches sports.
   const isOllama = isOllamaUrl(config.nvidiaBaseUrl);
   const isLargeRemoteNemotron = preferredProvider === "nvidia"
     && !isOllama
     && config.nvidiaModel.toLowerCase().includes("nemotron-3-ultra");
-  const firstTimeout = isOllama ? 90_000 : isLargeRemoteNemotron ? 90_000 : 30_000;
-  const secondaryTimeout = isOllama ? 120_000 : isLargeRemoteNemotron ? 120_000 : 30_000;
-  const extractorTimeout = isOllama ? 120_000 : isLargeRemoteNemotron ? 120_000 : 40_000;
+  const firstTimeout = isOllama ? 90_000 : isLargeRemoteNemotron ? 120_000 : 30_000;
+  const secondaryTimeout = isOllama ? 150_000 : isLargeRemoteNemotron ? 180_000 : 45_000;
+  const extractorTimeout = isOllama ? 120_000 : isLargeRemoteNemotron ? 150_000 : 40_000;
 
   let routeCategory: RouteCategory | undefined;
 
@@ -4497,7 +4683,7 @@ export async function runKoruBackendTurn(
   const modelOverride = request.model
     ? request.model  // usuario eligió explícitamente — respetar
     : selectModelForInput(inputTrimmed, config, trivial, false);  // Automático — router decide
-  const deliverableTopic = explicitDeliverableTopic(inputTrimmed);
+  const deliverableTopic = explicitDeliverableTopic(inputTrimmed, request.history);
   if (deliverableTopic) {
     logger.info("runKoruBackendTurn", "Explicit deliverable request detected", { topic: deliverableTopic });
     return await runDeepResearchFlow(deliverableTopic, request, config, preferredProvider, onChunk);

@@ -227,6 +227,12 @@ export function toPresentation(block: UiBlock): KoruPresentation {
       return reviewDocument(block);
     case "review_quote":
       return reviewQuote(block);
+    case "recipe":
+      return recipeBlock(block);
+    case "movie_review":
+      return movieReviewBlock(block);
+    case "book_review":
+      return bookReviewBlock(block);
     case "plan":
       // El plan conserva su render canónico (PlanHeroCard); si llegara acá,
       // damos un hero equivalente por robustez.
@@ -1812,5 +1818,241 @@ function sourcesSection(sources: AssistantSource[]): DetailSection {
     title: "Fuentes",
     subtitle: "CONTRASTADAS",
     sources: sourcesToRefs(sources),
+  };
+}
+
+// ---- 🔴 FIX P2.3: Nuevos renderers para recipe, movie_review, book_review ----
+
+function recipeBlock(b: Of<"recipe">): KoruPresentation {
+  const ingredients = b.ingredients ?? [];
+  const steps = b.steps ?? [];
+  const subtitle = [b.category, b.area].filter(Boolean).join(" · ") || undefined;
+  const sections: DetailSection[] = [];
+
+  if (ingredients.length > 0) {
+    sections.push({
+      kind: "tiles",
+      icon: "kitchen",
+      accent: A.emerald,
+      title: "Ingredientes",
+      subtitle: `${ingredients.length} items`,
+      tiles: ingredients.map((ing) => ({
+        label: ing.ingredient,
+        value: ing.measure || "",
+        color: A.emerald.color,
+      })),
+    });
+  }
+
+  if (steps.length > 0) {
+    sections.push({
+      kind: "timeline",
+      icon: "format_list_numbered",
+      accent: A.primary,
+      title: "Pasos",
+      subtitle: `${steps.length} pasos`,
+      steps: steps.map((s) => ({
+        title: `Paso ${s.step}`,
+        detail: s.text,
+      })),
+    });
+  } else if (b.instructions) {
+    sections.push({
+      kind: "text",
+      icon: "description",
+      accent: A.primary,
+      title: "Preparación",
+      body: b.instructions,
+    });
+  }
+
+  if (b.tips && b.tips.length > 0) {
+    sections.push({
+      kind: "chips",
+      icon: "lightbulb",
+      accent: A.amber,
+      title: "Tips",
+      chips: b.tips.map((t) => ({ label: t })),
+    });
+  }
+
+  if (b.source) {
+    sections.push({
+      kind: "sources",
+      icon: "link",
+      accent: A.purple,
+      title: "Fuente",
+      sources: [{ title: b.source.title, url: b.source.url, domain: b.source.domain }],
+    });
+  }
+
+  return {
+    hero: {
+      kicker: "Tu Receta",
+      title: heroTitleFrom(b.name ?? b.title, "Receta"),
+      desc: b.description ?? subtitle,
+      art: b.image,
+      icon: "restaurant",
+      accent: A.emerald,
+      metrics: [
+        ...(ingredients.length ? [{ icon: "kitchen", label: "Ingredientes", value: String(ingredients.length), color: A.emerald.color }] : []),
+        ...(b.prepTime ? [{ icon: "schedule", label: "Preparación", value: b.prepTime, color: A.primary.color }] : []),
+        ...(b.cookTime ? [{ icon: "local_fire_department", label: "Cocción", value: b.cookTime, color: A.amber.color }] : []),
+        ...(b.servings ? [{ icon: "groups", label: "Porciones", value: String(b.servings), color: A.purple.color }] : []),
+      ],
+    },
+    detail: sections.length
+      ? {
+          title: b.name ?? b.title ?? "Receta",
+          subtitle,
+          sections,
+        }
+      : undefined,
+    cta: b.videoUrl ? { label: "Ver video" } : undefined,
+  };
+}
+
+function movieReviewBlock(b: Of<"movie_review">): KoruPresentation {
+  const cast = b.cast ?? [];
+  const genres = b.genres ?? [];
+  const sections: DetailSection[] = [];
+
+  if (b.overview) {
+    sections.push({
+      kind: "text",
+      icon: "description",
+      accent: A.primary,
+      title: "Sinopsis",
+      body: b.overview,
+    });
+  }
+
+  const tiles: DetailTile[] = [];
+  if (b.director) tiles.push({ label: "Director", value: b.director, color: A.primary.color });
+  if (b.runtime) tiles.push({ label: "Duración", value: b.runtime, color: A.primary.color });
+  if (b.releaseDate) tiles.push({ label: "Estreno", value: b.releaseDate, color: A.primary.color });
+  if (genres.length > 0) tiles.push({ label: "Géneros", value: genres.join(", "), color: A.emerald.color });
+  if (cast.length > 0) tiles.push({ label: "Reparto", value: cast.join(", "), color: A.purple.color });
+  if (tiles.length > 0) {
+    sections.push({
+      kind: "tiles",
+      icon: "movie",
+      accent: A.primary,
+      title: "Detalles",
+      tiles,
+    });
+  }
+
+  if (b.sources && b.sources.length > 0) {
+    sections.push({
+      kind: "sources",
+      icon: "menu_book",
+      accent: A.purple,
+      title: "Fuentes",
+      subtitle: "CONTRASTADAS",
+      sources: sourcesToRefs(b.sources),
+    });
+  }
+
+  if (b.whereToWatch && b.whereToWatch.length > 0) {
+    sections.push({
+      kind: "chips",
+      icon: "play_circle",
+      accent: A.emerald,
+      title: "Dónde verla",
+      chips: b.whereToWatch.map((w) => ({ label: w })),
+    });
+  }
+
+  const heroMetrics: HeroMetric[] = [];
+  if (b.rating) heroMetrics.push({ icon: "star", label: "Rating", value: `${b.rating}/10`, color: A.amber.color });
+  if (b.ratingCount) heroMetrics.push({ icon: "people", label: "Votos", value: String(b.ratingCount), color: A.primary.color });
+  if (b.runtime) heroMetrics.push({ icon: "schedule", label: "Duración", value: b.runtime, color: A.purple.color });
+
+  return {
+    hero: {
+      kicker: "Tu Película",
+      title: heroTitleFrom(b.title, "Película"),
+      desc: b.overview ? b.overview.slice(0, 200) : undefined,
+      art: b.poster,
+      icon: "movie",
+      accent: A.primary,
+      metrics: heroMetrics,
+    },
+    detail: sections.length
+      ? {
+          title: b.title ?? "Película",
+          subtitle: [b.releaseDate, b.runtime].filter(Boolean).join(" · ") || undefined,
+          sections,
+        }
+      : undefined,
+    cta: b.trailerUrl ? { label: "Ver trailer" } : undefined,
+  };
+}
+
+function bookReviewBlock(b: Of<"book_review">): KoruPresentation {
+  const sections: DetailSection[] = [];
+
+  if (b.synopsis) {
+    sections.push({
+      kind: "text",
+      icon: "description",
+      accent: A.primary,
+      title: "Sinopsis",
+      body: b.synopsis,
+    });
+  }
+
+  const tiles: DetailTile[] = [];
+  if (b.author) tiles.push({ label: "Autor", value: b.author, color: A.primary.color });
+  if (b.year) tiles.push({ label: "Año", value: String(b.year), color: A.primary.color });
+  if (b.pages) tiles.push({ label: "Páginas", value: String(b.pages), color: A.primary.color });
+  if (b.publisher) tiles.push({ label: "Editorial", value: b.publisher, color: A.primary.color });
+  if (b.genre) tiles.push({ label: "Género", value: b.genre, color: A.emerald.color });
+  if (b.isbn) tiles.push({ label: "ISBN", value: b.isbn, color: A.purple.color });
+  if (tiles.length > 0) {
+    sections.push({
+      kind: "tiles",
+      icon: "menu_book",
+      accent: A.primary,
+      title: "Detalles",
+      tiles,
+    });
+  }
+
+  if (b.sources && b.sources.length > 0) {
+    sections.push({
+      kind: "sources",
+      icon: "menu_book",
+      accent: A.purple,
+      title: "Fuentes",
+      subtitle: "CONTRASTADAS",
+      sources: sourcesToRefs(b.sources),
+    });
+  }
+
+  const heroMetrics: HeroMetric[] = [];
+  if (b.rating) heroMetrics.push({ icon: "star", label: "Rating", value: `${b.rating}/10`, color: A.amber.color });
+  if (b.year) heroMetrics.push({ icon: "calendar_today", label: "Año", value: String(b.year), color: A.primary.color });
+  if (b.pages) heroMetrics.push({ icon: "auto_stories", label: "Páginas", value: String(b.pages), color: A.purple.color });
+
+  return {
+    hero: {
+      kicker: "Tu Libro",
+      title: heroTitleFrom(b.title, "Libro"),
+      desc: b.synopsis ? b.synopsis.slice(0, 200) : undefined,
+      art: b.cover,
+      icon: "menu_book",
+      accent: A.amber,
+      metrics: heroMetrics,
+    },
+    detail: sections.length
+      ? {
+          title: b.title ?? "Libro",
+          subtitle: [b.author, b.year ? String(b.year) : undefined].filter(Boolean).join(", ") || undefined,
+          sections,
+        }
+      : undefined,
+    cta: b.sources?.[0]?.url ? { label: "Ver más" } : undefined,
   };
 }

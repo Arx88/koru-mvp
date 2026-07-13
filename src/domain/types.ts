@@ -855,6 +855,55 @@ export type UiBlock =
       tags?: string[];
       buttonLabel?: string;
     }
+  // 🔴 FIX P2.3 — Nuevos UiBlock types para dominios específicos
+  | {
+      type: "recipe";
+      title?: string;
+      name?: string;
+      image?: string;
+      category?: string;
+      area?: string;
+      description?: string;
+      instructions?: string;
+      videoUrl?: string;
+      ingredients?: Array<{ ingredient: string; measure: string }>;
+      steps?: Array<{ step: number; text: string }>;
+      tips?: string[];
+      servings?: number;
+      prepTime?: string;
+      cookTime?: string;
+      source?: { title: string; url: string; domain: string };
+    }
+  | {
+      type: "movie_review";
+      title?: string;
+      poster?: string;
+      rating?: number;
+      ratingCount?: number;
+      releaseDate?: string;
+      runtime?: string;
+      director?: string;
+      cast?: string[];
+      genres?: string[];
+      overview?: string;
+      trailerUrl?: string;
+      whereToWatch?: string[];
+      sources?: AssistantSource[];
+    }
+  | {
+      type: "book_review";
+      title?: string;
+      cover?: string;
+      author?: string;
+      year?: string;
+      pages?: number;
+      publisher?: string;
+      genre?: string;
+      rating?: number;
+      synopsis?: string;
+      isbn?: string;
+      sources?: AssistantSource[];
+    }
 
 export type AssistantActionStatus = "proposed" | "approved" | "executed" | "rejected";
 
