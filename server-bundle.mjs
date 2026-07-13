@@ -1,3 +1,371 @@
+var __defProp = Object.defineProperty;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __esm = (fn, res, err) => function __init() {
+  if (err) throw err[0];
+  try {
+    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+  } catch (e) {
+    throw err = [e], e;
+  }
+};
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+
+// src/domain/proactiveEngine.ts
+var proactiveEngine_exports = {};
+__export(proactiveEngine_exports, {
+  collectEvents: () => collectEvents,
+  detectTriggers: () => detectTriggers,
+  generateProactiveMessage: () => generateProactiveMessage,
+  runProactiveCheck: () => runProactiveCheck
+});
+async function detectTriggers(memories, _config) {
+  const triggers = [];
+  const relevantMemories = memories.filter((m) => m.status !== "rejected");
+  for (const mem of relevantMemories) {
+    const text = (mem.text ?? "").toLowerCase();
+    const sportsMatch = text.match(/(?:sigue|fan|hinch|segui|equipo|del|es).{0,20}(espa[ñn]a|argentina|brasil|brazil|francia|italia|alemania|inglaterra|portugal|belgica|uruguay|colombia|chile|mexico|real madrid|barcelona|boca|river|psg|arsenal|liverpool|manchester|juventus|inter|bayern)/i);
+    if (sportsMatch) {
+      triggers.push({ toolName: "match_live", toolArgs: { query: sportsMatch[1] }, reason: "memory: " + mem.text });
+    }
+    const cityMatch = text.match(/(?:vive|ciudad|location|ubicado|de|en).{0,15}(madrid|barcelona|buenos aires|sevilla|valencia|bilbao|mexico|bogota|lima|santiago)/i);
+    if (cityMatch) {
+      triggers.push({ toolName: "weather", toolArgs: { city: cityMatch[1] }, reason: "memory: " + mem.text });
+    }
+  }
+  triggers.push({ toolName: "inactivity_check", toolArgs: {}, reason: "check" });
+  console.log("[proactive] Triggers:", triggers.length, triggers.map((t) => t.toolName).join(","));
+  return triggers;
+}
+async function collectEvents(triggers, state, lastSeen) {
+  const events = [];
+  for (const trigger of triggers) {
+    try {
+      switch (trigger.toolName) {
+        case "match_live": {
+          const query = String(trigger.toolArgs.query ?? trigger.toolArgs.__userInput ?? "");
+          if (!query) break;
+          const matches = await fetchEspnResults(query);
+          if (matches.length > 0) {
+            const m = matches[0];
+            const status = String(m.status ?? "");
+            const isFinished = /full time|ft|final/i.test(status);
+            const isLive = /in progress|live|halftime/i.test(status);
+            if (isFinished || isLive) {
+              events.push({
+                type: "sports_result",
+                data: {
+                  homeTeam: m.homeTeam,
+                  awayTeam: m.awayTeam,
+                  homeScore: m.homeScore,
+                  awayScore: m.awayScore,
+                  status: m.status,
+                  date: m.date,
+                  live: isLive
+                },
+                priority: "high",
+                summary: `${m.homeTeam} ${m.homeScore ?? "?"} - ${m.awayScore ?? "?"} ${m.awayTeam} (${m.status})`
+              });
+            }
+          }
+          break;
+        }
+        case "weather": {
+          const city = String(trigger.toolArgs.city ?? trigger.toolArgs.location ?? "");
+          if (!city) break;
+          const weather = await fetchWeather(city);
+          if (weather) {
+            const rainProb = parseInt(weather.rain ?? "0", 10);
+            const temp = parseInt(weather.now ?? "0", 10);
+            if (rainProb > 60 || temp > 35 || temp < 0) {
+              events.push({
+                type: "weather_alert",
+                data: weather,
+                priority: rainProb > 80 ? "high" : "medium",
+                summary: `${city}: ${weather.now}, lluvia ${weather.rain}`
+              });
+            }
+          }
+          break;
+        }
+        case "commitment_check": {
+          const commitments = Array.isArray(state.commitments) ? state.commitments : [];
+          const overdue = commitments.filter((c) => {
+            if (c.status !== "open") return false;
+            if (c.dueHint) {
+              const due = new Date(c.dueHint);
+              if (!isNaN(due.getTime()) && due.getTime() < Date.now() - 3 * 24 * 60 * 60 * 1e3) {
+                return true;
+              }
+            }
+            return false;
+          });
+          if (overdue.length > 0) {
+            events.push({
+              type: "overdue_commitment",
+              data: { commitments: overdue.map((c) => ({ title: c.title, dueHint: c.dueHint })) },
+              priority: "medium",
+              summary: `${overdue.length} pendiente(s) vencido(s): ${overdue.map((c) => c.title).join(", ")}`
+            });
+          }
+          break;
+        }
+        case "birthday_check": {
+          const memories = Array.isArray(state.memories) ? state.memories : [];
+          const now = /* @__PURE__ */ new Date();
+          const inThreeDays = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1e3);
+          for (const mem of memories) {
+            const text = (mem.text ?? "").toLowerCase();
+            if (/cumple|birthday|nacimiento/.test(text)) {
+              const dateMatch = text.match(/(\d{1,2})\s*(?:de\s*)?(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i);
+              if (dateMatch) {
+                events.push({
+                  type: "upcoming_birthday",
+                  data: { text: mem.text, dateHint: dateMatch[0] },
+                  priority: "medium",
+                  summary: `Cumplea\xF1os pr\xF3ximo: ${mem.text}`
+                });
+              }
+            }
+          }
+          break;
+        }
+        case "inactivity_check": {
+          const daysSinceLastSeen = Math.floor((Date.now() - lastSeen) / (24 * 60 * 60 * 1e3));
+          if (daysSinceLastSeen >= 3) {
+            events.push({
+              type: "inactivity",
+              data: { days: daysSinceLastSeen },
+              priority: daysSinceLastSeen >= 7 ? "high" : "low",
+              summary: `Usuario inactivo por ${daysSinceLastSeen} d\xEDas`
+            });
+          }
+          break;
+        }
+      }
+    } catch (err) {
+      console.error(`[proactive] Error collecting event for ${trigger.toolName}:`, err);
+    }
+  }
+  console.log("[proactive] Events collected:", events.length, events.map((e) => e.type).join(", "));
+  return events;
+}
+async function generateProactiveMessage(events, memories, config2, userName) {
+  if (events.length === 0) return null;
+  const relevant = events.filter((e) => e.priority !== "low");
+  if (relevant.length === 0) return null;
+  const event = relevant.sort((a, b) => {
+    const order = { high: 0, medium: 1, low: 2 };
+    return order[a.priority] - order[b.priority];
+  })[0];
+  let reply = "";
+  let mascotState = "happy";
+  if (event.type === "sports_result") {
+    const d = event.data;
+    const homeScore = d.homeScore ?? 0;
+    const awayScore = d.awayScore ?? 0;
+    const homeTeam = d.homeTeam ?? "?";
+    const awayTeam = d.awayTeam ?? "?";
+    const status = d.status ?? "FT";
+    const isLive = d.live;
+    const TEAM_NORM = { "espa\xF1a": "spain", "espana": "spain", "brasil": "brazil", "alemania": "germany", "inglaterra": "england" };
+    const userMemory = memories.find((m) => {
+      let text = (m.text ?? "").toLowerCase();
+      for (const [es, en] of Object.entries(TEAM_NORM)) {
+        text = text.replace(es, en);
+      }
+      const home = homeTeam.toLowerCase();
+      const away = awayTeam.toLowerCase();
+      return text.includes(home) || text.includes(away);
+    });
+    let userTeam = userMemory ? (userMemory.text ?? "").toLowerCase() : "";
+    for (const [es, en] of Object.entries(TEAM_NORM)) {
+      userTeam = userTeam.replace(es, en);
+    }
+    const userIsHome = userTeam.includes(homeTeam.toLowerCase());
+    const userIsAway = userTeam.includes(awayTeam.toLowerCase());
+    const userWon = userIsHome ? homeScore > awayScore : userIsAway ? awayScore > homeScore : false;
+    const isDraw = homeScore === awayScore;
+    if (isLive) {
+      reply = `Est\xE1n jugando, Juan! ${homeTeam} ${homeScore} - ${awayScore} ${awayTeam} (${status}). Entr\xE1 que te paso el detalle.`;
+      mascotState = "thinking";
+    } else if (userWon) {
+      reply = `GANAMOS, Juan! ${homeTeam} ${homeScore} - ${awayScore} ${awayTeam}. Te dejo el resultado por si no lo viste.`;
+      mascotState = "celebrating";
+    } else if (isDraw) {
+      reply = `Empatamos, Juan. ${homeTeam} ${homeScore} - ${awayScore} ${awayTeam}. No estuvo mal, pero podr\xEDa haber sido mejor.`;
+      mascotState = "thinking";
+    } else {
+      const lostTeam = userIsHome ? homeTeam : userIsAway ? awayTeam : homeTeam;
+      const wonTeam = userIsHome ? awayTeam : userIsAway ? homeTeam : awayTeam;
+      reply = `Uf, Juan... cay\xF3 ${lostTeam} ${homeScore}-${awayScore} contra ${wonTeam}. Duele, pero hay que seguir.`;
+      mascotState = "worried";
+    }
+  } else if (event.type === "weather_alert") {
+    const d = event.data;
+    const rain = parseInt(d.rain ?? "0", 10);
+    const temp = d.now ?? "?";
+    const city = d.city ?? "";
+    if (rain > 60) {
+      reply = `Juan, llueve en ${city} (${rain}% probabilidad). Llev\xE1 paraguas si sal\xEDs.`;
+      mascotState = "worried";
+    } else {
+      reply = `Juan, ${temp} en ${city}. ${rain > 30 ? "Hay chance de lluvia, ojo." : "D\xEDa lindo por ahora."}`;
+      mascotState = "happy";
+    }
+  } else if (event.type === "overdue_commitment") {
+    const d = event.data;
+    const items = d.commitments ?? [];
+    if (items.length === 1) {
+      reply = `Juan, hace tiempo que ten\xE9s pendiente: ${items[0].title}. \xBFLo hac\xE9s hoy?`;
+    } else {
+      reply = `Juan, ten\xE9s ${items.length} pendientes atrasados. \xBFLos ordenamos?`;
+    }
+    mascotState = "thinking";
+  } else if (event.type === "upcoming_birthday") {
+    const d = event.data;
+    reply = `Juan, se acerca un cumplea\xF1os: ${d.text}. \xBFTen\xE9s regalo?`;
+    mascotState = "happy";
+  } else if (event.type === "inactivity") {
+    const d = event.data;
+    const days = d.days ?? 0;
+    if (days >= 7) {
+      reply = `Juan, te extra\xE9 estos ${days} d\xEDas. \xBFTodo bien?`;
+      mascotState = "worried";
+    } else {
+      return null;
+    }
+  }
+  if (!reply) return null;
+  const dedupKey = `${event.type}:${event.summary.slice(0, 50)}`;
+  return { reply, mascotState, shouldShow: true, dedupKey };
+}
+async function fetchEspnResults(query) {
+  try {
+    const ESPN_BASE3 = "https://site.api.espn.com/apis/site/v2/sports/soccer";
+    const leagues = ["fifa.world", "uefa.euro", "esp.1"];
+    const now = /* @__PURE__ */ new Date();
+    const fmt = (d) => d.toISOString().slice(0, 10).replace(/-/g, "");
+    const dates = [
+      fmt(new Date(now.getTime() - 72 * 60 * 60 * 1e3)),
+      // 3 días atrás
+      fmt(new Date(now.getTime() - 48 * 60 * 60 * 1e3)),
+      // 2 días atrás
+      fmt(new Date(now.getTime() - 24 * 60 * 60 * 1e3)),
+      // ayer
+      fmt(now)
+      // hoy
+    ];
+    let queryLower = query.toLowerCase();
+    for (const [alias, canonical] of Object.entries(TEAM_SYNONYMS)) {
+      if (queryLower.includes(alias)) {
+        queryLower = canonical.toLowerCase();
+        break;
+      }
+    }
+    const results = [];
+    const promises = leagues.map(async (league) => {
+      for (const date of dates) {
+        try {
+          const res = await fetch(`${ESPN_BASE3}/${league}/scoreboard?dates=${date}`, {
+            signal: AbortSignal.timeout(2e3)
+          });
+          if (!res.ok) return;
+          const data = await res.json();
+          const events = data.events ?? [];
+          const matching = events.filter((e) => {
+            const eventName = (e.name ?? "").toLowerCase();
+            const comps = e.competitions ?? [];
+            const teams = comps.flatMap((c) => (c.competitors ?? []).map((comp) => comp.team?.displayName?.toLowerCase() ?? ""));
+            return eventName.includes(queryLower) || teams.some((t) => t.includes(queryLower));
+          });
+          results.push(...matching);
+        } catch {
+        }
+      }
+    });
+    await Promise.all(promises);
+    return results.map((e) => {
+      const comps = e.competitions ?? [];
+      const comp = comps[0];
+      const competitors = comp?.competitors ?? [];
+      const home = competitors.find((c) => c.homeAway === "home") ?? {};
+      const away = competitors.find((c) => c.homeAway === "away") ?? {};
+      return {
+        homeTeam: home.team?.displayName,
+        awayTeam: away.team?.displayName,
+        homeScore: home.score != null ? Number(home.score) : void 0,
+        awayScore: away.score != null ? Number(away.score) : void 0,
+        status: e.status?.type?.detail ?? e.status?.type?.description,
+        date: comp?.date ?? e.date
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+async function fetchWeather(city) {
+  try {
+    const geoRes = await fetch(
+      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&format=json`,
+      { signal: AbortSignal.timeout(5e3) }
+    );
+    const geoData = await geoRes.json();
+    const result = geoData.results?.[0];
+    if (!result) return null;
+    const weatherRes = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${result.latitude}&longitude=${result.longitude}&current=temperature_2m,precipitation,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=1`,
+      { signal: AbortSignal.timeout(5e3) }
+    );
+    const weatherData = await weatherRes.json();
+    return {
+      city: [result.name, result.country].filter(Boolean).join(", "),
+      now: `${Math.round(weatherData.current?.temperature_2m ?? 0)}\xB0C`,
+      range: `${Math.round(weatherData.daily?.temperature_2m_min?.[0] ?? 0)}\xB0 - ${Math.round(weatherData.daily?.temperature_2m_max?.[0] ?? 0)}\xB0`,
+      rain: `${weatherData.daily?.precipitation_probability_max?.[0] ?? 0}%`,
+      wind: `${Math.round(weatherData.current?.wind_speed_10m ?? 0)} km/h`
+    };
+  } catch {
+    return null;
+  }
+}
+async function runProactiveCheck(state, config2, lastSeen) {
+  const memories = Array.isArray(state.memories) ? state.memories : [];
+  const userName = state.userName ?? "amigo";
+  const triggers = await detectTriggers(memories, config2);
+  if (triggers.length === 0) return null;
+  const events = await collectEvents(triggers, state, lastSeen);
+  if (events.length === 0) return null;
+  const message = await generateProactiveMessage(events, memories, config2, userName);
+  return message;
+}
+var TEAM_SYNONYMS;
+var init_proactiveEngine = __esm({
+  "src/domain/proactiveEngine.ts"() {
+    "use strict";
+    TEAM_SYNONYMS = {
+      "espa\xF1a": "Spain",
+      "espana": "Spain",
+      "argentina": "Argentina",
+      "brasil": "Brazil",
+      "brazil": "Brazil",
+      "francia": "France",
+      "italia": "Italy",
+      "alemania": "Germany",
+      "inglaterra": "England",
+      "portugal": "Portugal",
+      "belgica": "Belgium",
+      "uruguay": "Uruguay",
+      "colombia": "Colombia",
+      "chile": "Chile",
+      "mexico": "Mexico",
+      "m\xE9xico": "Mexico"
+    };
+  }
+});
+
 // server/index.ts
 import http from "node:http";
 import { readFileSync, existsSync } from "node:fs";
@@ -10719,6 +11087,11 @@ async function runKoruBackendTurn(request, config2, onChunk) {
 }
 
 // server/index.ts
+try {
+  const undici = eval("require")("undici");
+  globalThis.fetch = undici.fetch;
+} catch {
+}
 var __dirname = dirname(fileURLToPath(import.meta.url));
 var PROJECT_ROOT = existsSync(join(__dirname, "dist")) ? __dirname : join(__dirname, "..");
 var PORT = process.env.PORT ? parseInt(process.env.PORT) : 3e3;
@@ -10873,6 +11246,22 @@ var server = http.createServer(async (req, res) => {
     } catch (err) {
       console.error("[koru-turn]", err?.message);
       sendJson(res, 500, { error: err?.message ?? "Error interno" });
+    }
+    return;
+  }
+  if (url === "/api/koru/proactive" && req.method === "POST") {
+    try {
+      const raw = await readBody(req);
+      const body = JSON.parse(raw || "{}");
+      const { state, lastSeen } = body;
+      console.log("[proactive] Request received, memories:", state?.memories?.length ?? 0);
+      const { runProactiveCheck: runProactiveCheck2 } = await Promise.resolve().then(() => (init_proactiveEngine(), proactiveEngine_exports));
+      const message = await runProactiveCheck2(state, config, lastSeen || Date.now());
+      console.log("[proactive] Result:", message?.shouldShow ?? false, message?.reply?.slice(0, 60) ?? "");
+      sendJson(res, 200, message || { shouldShow: false });
+    } catch (err) {
+      console.error("[proactive] Error:", err?.message);
+      sendJson(res, 200, { shouldShow: false, error: err?.message });
     }
     return;
   }

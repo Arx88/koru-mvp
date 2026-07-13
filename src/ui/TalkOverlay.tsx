@@ -464,6 +464,51 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
     if (!speechStatus.supported) inputRef.current?.focus();
   }, [speechStatus.supported]);
 
+  // ── Proactive Engine: al abrir la app, chequear si hay algo que decir ──
+  // El engine corre en el server, lee las memories del usuario y decide si
+  // hay un evento relevante (partido, lluvia, pendiente, cumpleaños).
+  // Si lo hay, genera un mensaje CON PERSONALIDAD y lo muestra como primer turn.
+  const proactiveCheckedRef = useRef(false);
+  useEffect(() => {
+    if (proactiveCheckedRef.current) return;
+    if (onboarding) return;
+    proactiveCheckedRef.current = true;
+
+    const lastSeen = parseInt(localStorage.getItem("koru.lastSeen") ?? "0", 10) || Date.now();
+
+    (async () => {
+      try {
+        const res = await fetch("/api/koru/proactive", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            state: { memories: [], commitments: [], records: [], userName: "Juan" },
+            lastSeen,
+          }),
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.shouldShow && data.reply) {
+          const proactiveTurn: KoruChatTurn = {
+            id: `proactive_${Date.now()}`,
+            role: "koru",
+            text: data.reply,
+            createdAt: new Date().toISOString(),
+            status: "done",
+            mascotState: data.mascotState ?? "happy",
+          };
+          // Usar sendMessage interno no sirve — es para user turns.
+          // Inyectar directamente en chatTurns via un event custom.
+          window.dispatchEvent(new CustomEvent("koru:proactive", { detail: proactiveTurn }));
+        }
+      } catch {
+        // silent
+      }
+    })();
+
+    localStorage.setItem("koru.lastSeen", String(Date.now()));
+  }, [onboarding]);
+
   const submitText = useCallback(async (text: string, source: "typed" | "speech") => {
     const clean = text.trim();
     if (!clean) return;

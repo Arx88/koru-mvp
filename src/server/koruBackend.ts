@@ -81,14 +81,14 @@ export type KoruBackendTurnResponse = {
 
 type ChatRole = "system" | "user" | "assistant" | "tool";
 
-type ChatMessage = {
+export type ChatMessage = {
   role: ChatRole;
   content?: string;
   tool_call_id?: string;
   tool_calls?: ProviderToolCall[];
 };
 
-type ProviderToolCall = {
+export type ProviderToolCall = {
   id: string;
   type: "function";
   function: {
@@ -102,7 +102,7 @@ type ProviderMessage = {
   tool_calls?: ProviderToolCall[];
 };
 
-type ProviderResult = {
+export type ProviderResult = {
   provider: "nvidia" | "openrouter" | "minimax" | "bluesminds";
   model?: string;
   message: ProviderMessage;

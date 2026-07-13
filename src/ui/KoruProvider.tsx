@@ -266,6 +266,18 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     saveChatTurns(chatTurns, !domainState.ephemeralMode);
   }, [chatTurns, domainState.ephemeralMode]);
 
+  // ── Escuchar mensajes proactivos del engine ──
+  useEffect(() => {
+    const onProactive = (e: Event) => {
+      const turn = (e as CustomEvent).detail as KoruChatTurn;
+      if (turn && turn.text) {
+        commitChatTurns((prev) => [...prev, turn].slice(-120));
+      }
+    };
+    window.addEventListener("koru:proactive", onProactive);
+    return () => window.removeEventListener("koru:proactive", onProactive);
+  }, []);
+
   const energy = domainState.trustedEnergy;
   const roots = domainState.memories.filter((m) => m.status === "confirmed").length;
   const stage = domainStageToNew(domainState.stage);

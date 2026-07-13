@@ -1,3 +1,6 @@
+// FIX: Vite patchea global.fetch. Restaurar fetch nativo de Node.js antes de cualquier otra cosa.
+try { const undici = eval("require")("undici"); globalThis.fetch = undici.fetch; } catch {}
+
 /**
  * Fase 3.11 — Backend Express independiente de Vite.
  *
@@ -206,6 +209,29 @@ const server = http.createServer(async (req, res) => {
     } catch (err: any) {
       console.error("[koru-turn]", err?.message);
       sendJson(res, 500, { error: err?.message ?? "Error interno" });
+    }
+    return;
+  }
+
+  // ── /api/koru/proactive — proactive engine ───────────────────
+  if (url === "/api/koru/proactive" && req.method === "POST") {
+    try {
+      const raw = await readBody(req);
+      const body = JSON.parse(raw || "{}");
+      const { state, lastSeen } = body;
+
+      console.log("[proactive] Request received, memories:", state?.memories?.length ?? 0);
+
+      // Import proactive engine
+      const { runProactiveCheck } = await import("../src/domain/proactiveEngine.ts");
+      const message = await runProactiveCheck(state, config, lastSeen || Date.now());
+
+      console.log("[proactive] Result:", message?.shouldShow ?? false, message?.reply?.slice(0, 60) ?? "");
+
+      sendJson(res, 200, message || { shouldShow: false });
+    } catch (err: any) {
+      console.error("[proactive] Error:", err?.message);
+      sendJson(res, 200, { shouldShow: false, error: err?.message });
     }
     return;
   }
