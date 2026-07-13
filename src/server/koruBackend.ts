@@ -4996,17 +4996,16 @@ export async function runKoruBackendTurn(
   let model: string | undefined;
   let fallbackReason: string | undefined;
 
-  // Timeouts: Ollama necesita mucho más tiempo porque los modelos locales son lentos
-  // 🔴 FIX P2.4: bumped Nemotron Ultra secondary timeout from 120s → 180s
-  // El segundo LLM call (síntesis con JSON) puede tardar más cuando hay muchos
-  // tool results que procesar. 120s causaba timeouts intermitentes en matches sports.
+  // 🔴 FIX MACRO: timeouts reducidos para evitar que el usuario espere demasiado.
+  // Si la tool falla, el fallback a web_search es rápido.
+  // Si el LLM tarda más de 60s, algo está mal — mejor fallback.
   const isOllama = isOllamaUrl(config.nvidiaBaseUrl);
   const isLargeRemoteNemotron = preferredProvider === "nvidia"
     && !isOllama
     && config.nvidiaModel.toLowerCase().includes("nemotron-3-ultra");
-  const firstTimeout = isOllama ? 90_000 : isLargeRemoteNemotron ? 120_000 : 30_000;
-  const secondaryTimeout = isOllama ? 150_000 : isLargeRemoteNemotron ? 180_000 : 45_000;
-  const extractorTimeout = isOllama ? 120_000 : isLargeRemoteNemotron ? 150_000 : 40_000;
+  const firstTimeout = isOllama ? 90_000 : isLargeRemoteNemotron ? 45_000 : 30_000;
+  const secondaryTimeout = isOllama ? 120_000 : isLargeRemoteNemotron ? 60_000 : 30_000;
+  const extractorTimeout = isOllama ? 90_000 : isLargeRemoteNemotron ? 45_000 : 30_000;
 
   let routeCategory: RouteCategory | undefined;
 
@@ -5128,22 +5127,25 @@ export async function runKoruBackendTurn(
         });
         const delivered = await executeProviderToolCalls([syntheticToolCall], messages, request, toolExecutions, config);
 
-        // 🔴 FIX CRÍTICO: si la tool del fast-path falló (ej: movie_info sin TMDB
-        // no encuentra la película), hacer fallback automático a web_search.
-        // Antes devolvía "no la encontré" — pero el usuario espera que Koru
-        // busque en la web como último recurso.
+        // 🔴 FIX MACRO: si CUALQUIER tool del fast-path falla (status failed, no_data,
+        // need_city, o no produce datos útiles), hacer fallback automático a web_search.
+        // Esto aplica a TODAS las tools: weather, movie_info, recipe_find, book_info, etc.
         if (delivered && toolExecutions.length > 0) {
           const lastTool = toolExecutions[toolExecutions.length - 1];
           const lastResult = lastTool?.result as any;
-          const toolFailed = lastResult?.status === "failed" || lastResult?.status === "no_data";
+          const toolFailed = lastResult?.status === "failed" || lastResult?.status === "no_data"
+            || lastResult?.status === "need_city" || lastResult?.status === "not_configured"
+            || (lastResult?.status === "ok" && !lastResult?.text && !lastResult?.matches?.length
+                && !lastResult?.recipes?.length && !lastResult?.city && !lastResult?.price);
 
           if (toolFailed && route.tool !== "web_search") {
-            logger.info("runKoruBackendTurn", "Fast-path tool failed, falling back to web_search", {
+            logger.info("runKoruBackendTurn", "Fast-path tool failed or empty, falling back to web_search", {
               failedTool: route.tool,
-              error: lastResult?.error ?? lastResult?.note,
+              status: lastResult?.status,
+              error: lastResult?.error ?? lastResult?.note ?? "no data",
             });
             // Ejecutar web_search como fallback
-            const fallbackQuery = route.toolArgs?.title || route.toolArgs?.query || request.input;
+            const fallbackQuery = route.toolArgs?.title || route.toolArgs?.query || route.toolArgs?.city || request.input;
             const fallbackToolCall: ProviderToolCall = {
               id: `fallback_search_${Date.now()}`,
               type: "function",
@@ -5227,7 +5229,7 @@ export async function runKoruBackendTurn(
       let synthSummary = "";
       let synthSections: any[] = [];
       try {
-        const synthResult = await callProvider(synthConfig, synthMessages, 45_000, false, undefined, undefined, synthConfig.nvidiaModel);
+        const synthResult = await callProvider(synthConfig, synthMessages, 30_000, false, undefined, undefined, synthConfig.nvidiaModel);
         const synthContent = cleanText(synthResult.message.content, "");
         logger.info("runKoruBackendTurn", "Fast-path synth LLM response", {
           contentLength: synthContent.length,
@@ -5424,7 +5426,7 @@ export async function runKoruBackendTurn(
             let routerSynthSummary = "";
             let routerSynthSections: any[] = [];
             try {
-              const synthResult2 = await callProvider(synthConfig2, synthMessages2, 45_000, false, undefined, undefined, synthConfig2.nvidiaModel);
+              const synthResult2 = await callProvider(synthConfig2, synthMessages2, 30_000, false, undefined, undefined, synthConfig2.nvidiaModel);
               const synthContent2 = cleanText(synthResult2.message.content, "");
               const synthParsed2 = safeJsonObjectFromContent(synthContent2);
               routerSynthReply = cleanReplyText(synthParsed2.reply || "");

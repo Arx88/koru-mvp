@@ -3548,3 +3548,38 @@ a.koru-dsec-source:hover {
 .koru-dsec-save-btn .material-symbols-outlined {
   font-size: 20px;
 }
+
+/* 🔴 Icono de guardar arriba a la derecha en detail screen */
+.koru-dsec-save-top {
+  position: absolute;
+  top: 46px;
+  right: 24px;
+  z-index: 50;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 12px rgba(130, 39, 207, 0.1);
+  color: #8127cf;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.koru-dsec-save-top:hover {
+  background: rgba(131, 99, 249, 0.15);
+  transform: scale(1.05);
+}
+
+.koru-dsec-save-top:active {
+  transform: scale(0.95);
+}
+
+.koru-dsec-save-top .material-symbols-outlined {
+  font-size: 22px;
+}

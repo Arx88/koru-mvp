@@ -189,6 +189,16 @@ export function KoruDetailScreen({
           <Mat>arrow_back_ios_new</Mat>
         </button>
 
+        {/* 🔴 Icono de guardar arriba a la derecha */}
+        <button
+          type="button"
+          aria-label="Guardar"
+          className="koru-dsec-save-top"
+          onClick={() => onSave?.(detail.title, detail.subtitle)}
+        >
+          <Mat>bookmark_border</Mat>
+        </button>
+
         <div className="koru-roadmap-header">
           <div className="koru-detail-hero-icon">
             <Mat>{headerIcon}</Mat>

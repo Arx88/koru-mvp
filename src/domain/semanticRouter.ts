@@ -728,11 +728,16 @@ export function keywordFastPath(message: string): RouteResult | null {
 
   // ── WEATHER: clima ──
   if (/\b(clima|tiempo|temperatura|lluvia|llueve|calor|frio|que tal el dia|que onda el dia|que pongo|campera|paraguas|abrigo)\b/.test(normalized)) {
+    // 🔴 FIX MACRO: extraer la ciudad del mensaje
+    // Patrones: "clima en X", "clima de X", "que tiempo hace en X", "temperatura en X"
+    const cityMatch = normalized.match(/(?:clima|tiempo|temperatura)\s+(?:en|de|del)\s+([a-záéíóúñ\s]{2,30})/i)
+      ?? normalized.match(/(?:en|de)\s+([a-záéíóúñ\s]{2,30})\s+(?:clima|tiempo|temperatura)/i);
+    const city = cityMatch?.[1]?.trim()?.replace(/[?!.].*$/, "").trim() ?? "";
     return {
       category: "weather",
       tool: "weather",
       confidence: 0.99,
-      toolArgs: {},
+      toolArgs: city ? { city } : {},
     };
   }
 
