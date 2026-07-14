@@ -4227,17 +4227,17 @@ function normalizeFinalPayload(
   // ningún commitment ni record, el LLM está mintiendo (dijo que guardó pero no lo hizo).
   // Crear un commitment sintético a partir del input para que al menos quede registrado.
   const saysSaved = /\b(guardado|anotado|recordatorio|avis[oé]|no me olvides|no te olvides|acordate|recuerda)\b/i.test(finalReply);
-  const hasCommitments = (raw.commitments as any[])?.length > 0 || commitments.length > 0;
-  const hasRecords = (raw.records as any[])?.length > 0 || records.length > 0;
+  const rawCommitments = asArray(raw.commitments);
+  const rawRecords = asArray(raw.records);
+  const hasCommitments = rawCommitments.length > 0 || captures.some(c => c.commitments?.length) || localActions.some(a => a.commitments?.length) || toolExecutions.some(e => Array.isArray((e.result as any)?.commitments));
+  const hasRecords = rawRecords.length > 0 || captures.some(c => c.records?.length) || localActions.some(a => a.records?.length) || toolExecutions.some(e => Array.isArray((e.result as any)?.records));
+  const synthCommitments: Omit<Commitment, "id" | "createdAt" | "sourceEntryId">[] = [];
   if (saysSaved && !hasCommitments && !hasRecords && toolExecutions.length === 0) {
-    // El LLM dijo que guardó pero no ejecutó ninguna tool. Crear commitment sintético.
-    const synthCommitment = {
+    synthCommitments.push({
       title: input.slice(0, 100),
       dueHint: "pendiente",
       status: "open" as const,
-    };
-    commitments.push(synthCommitment);
-    // Agregar un block de reminder si no hay blocks
+    });
     if (uiBlocks.length === 0) {
       uiBlocks.push({
         type: "reminder" as const,
@@ -4297,11 +4297,11 @@ function normalizeFinalPayload(
       ...normalizeCommitments(extractedRaw?.commitments),
       ...captures.flatMap((capture) => capture.commitments ?? []),
       ...localActions.flatMap((action) => action.commitments ?? []),
-      // 🔴 FIX: extract commitments from any tool result that has them
       ...toolExecutions.flatMap((exec) => {
         const r = exec.result as any;
         return Array.isArray(r?.commitments) ? r.commitments : [];
       }),
+      ...synthCommitments,
     ]).slice(0, 8),
     records: uniqueRecords([
       ...normalizeRecords(raw.records),
