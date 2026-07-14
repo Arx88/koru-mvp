@@ -1,5 +1,5 @@
 import { memo } from "react";
-import type { UiBlock } from "../../domain/types";
+import type { UiBlock } from "../../../domain/types";
 
 /**
  * DeliverableCard — el componente universal para renderizar CUALQUIER entrega de Koru.
