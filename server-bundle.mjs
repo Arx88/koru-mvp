@@ -9712,31 +9712,6 @@ async function executeTool(name, args, state, extractorCtx) {
   logger.info("executeTool", `Tool ${name} result`, { result: dump(result, 500) });
   return { result, deferredDataCard };
 }
-function stateSummary(state) {
-  const memories = Array.isArray(state.memories) ? state.memories : [];
-  const commitmentsArr = Array.isArray(state.commitments) ? state.commitments : [];
-  const recordsArr = Array.isArray(state.records) ? state.records : [];
-  const confirmedMemories = memories.filter((item) => item && item.status === "confirmed" && item.useForSuggestions !== false).slice(0, 12).map((item) => `- ${item.kind}: ${String(item.text ?? "").replace(/[\n\r`]+/g, " ").trim()}`).join("\n") || "- none";
-  const candidateMemories = memories.filter((item) => item && item.status === "candidate" && item.useForSuggestions !== false).slice(0, 8).map((item) => `- ${item.kind}: ${String(item.text ?? "").replace(/[\n\r`]+/g, " ").trim()}`).join("\n") || "- none";
-  const commitments = commitmentsArr.filter((item) => item && item.status === "open").slice(0, 12).map((item) => `- ${String(item.title ?? "").replace(/[\n\r`]+/g, " ").trim()} (${(item.dueHint || "sin fecha").replace(/[\n\r`]+/g, " ").trim()})`).join("\n") || "- none";
-  const recordTitles = recordsArr.slice(-8).map((item) => `- ${String(item.title ?? "").replace(/[\n\r`]+/g, " ").trim()}${item.value ? ` (${String(item.value).replace(/[\n\r`]+/g, " ").trim()})` : ""} ${item.notes ? `\u2014 ${String(item.notes).replace(/[\n\r`]+/g, " ").trim()}` : ""} [${item.kind}]`).join("\n") || "- nada guardado todav\xEDa";
-  const recordKinds = Array.from(new Set(recordsArr.map((item) => item.kind))).slice(0, 12).join(", ") || "none";
-  const collectionCount = new Set(recordsArr.map((item) => item.collection).filter(Boolean)).size;
-  return [
-    `User name: ${state.userName ?? "unknown"}`,
-    "Confirmed memories:",
-    confirmedMemories,
-    "Candidate memories awaiting user confirmation; use cautiously for continuity, do not present as certain:",
-    candidateMemories,
-    "Open commitments:",
-    commitments,
-    `Saved record count: ${(Array.isArray(state.records) ? state.records : []).length}`,
-    `Saved record kinds: ${recordKinds}`,
-    "Cosas que guardaste (\xFAltimas 8):",
-    recordTitles,
-    `Saved collection count: ${collectionCount}`
-  ].join("\n");
-}
 function systemPrompt2(nowIso, state, relevantMemories) {
   const prefs = state.voicePreference ?? { warmth: 7, directness: 6, humor: 3, detail: 5, proactivity: 3 };
   const warmthLabel = prefs.warmth >= 7 ? "muy c\xE1lido" : prefs.warmth >= 5 ? "c\xE1lido" : "neutral";
@@ -9974,32 +9949,54 @@ function toolObservationSummary(toolExecutions) {
   })), null, 2);
 }
 function buildMemoryExtractorMessages(request, toolExecutions, composedRaw) {
+  const existingMemories = (request.state.memories ?? []).filter((m) => m.status === "confirmed" || m.status === "candidate").slice(0, 20).map((m) => ({ id: m.id, kind: m.kind, text: m.text, status: m.status }));
   return [
     {
       role: "system",
       content: [
-        "You are Koru's asynchronous memory extractor. Return ONLY valid JSON, no markdown.",
-        'Schema: {"memoryCandidates":[],"commitments":[],"records":[],"behaviorNotes":[]}',
-        "Extract only durable, reusable user-owned context from the current user turn and tool observations.",
-        "If the user says 'prefiero...', 'soy de...', 'mi mama...', 'avisame si...', 'todos los dias...', or equivalent meaning, extract it as memory. Do not skip just because another tool was used.",
-        "Capture preferences, identity, routines, goals, relationships, medication/health facts, important dates, interests to follow, folders/collections, saved links, inventory, expenses, tasks and decisions.",
-        "Do not answer the user. Do not infer from generic chit-chat. Do not duplicate records already present in tool observations.",
-        "Use Spanish wording when the user spoke Spanish. Preserve names and dates.",
-        "Never inherit collection, person, tags, or domain from previous turns unless the current user explicitly refers to the same object.",
-        "Capture behavior notes: if the user corrects Koru's behavior (e.g. 'do not ask me for summaries when I save links', 'I prefer you to be more direct'), extract it as behaviorNote so future turns are governed by it.",
-        `If the user provides a city, country, or neighborhood name (e.g. 'Madrid', 'Buenos Aires', 'Barcelona') especially after a weather or traffic question, extract it as a location/profile memory. Example: user input 'Madrid' after assistant asked "what city?" -> memory: {kind: 'profile', text: 'User location: Madrid (city)'}. Do not skip just because it looks like a tool argument.`
+        "Sos el extractor de memoria de Koru. Devolv\xE9 SOLO JSON v\xE1lido, sin markdown.",
+        'Schema: {"memoryCandidates":[],"archiveMemoryIds":[],"behaviorNotes":[]}',
+        "",
+        "Tu trabajo: analizar lo que el usuario dijo y compararlo con sus memorias existentes.",
+        "",
+        "REGLAS PARA AGREGAR (memoryCandidates):",
+        "- Extra\xE9 SOLO informaci\xF3n duradera y reutilizable sobre el usuario.",
+        "- Preferencias, identidad, rutinas, objetivos, relaciones, salud, fechas importantes, intereses.",
+        "- NO extraigas chit-chat gen\xE9rico, saludos, o informaci\xF3n temporal.",
+        "- Si el usuario revela algo personal (gustos, h\xE1bitos, metas, relaciones), extraelo SIEMPRE.",
+        "- NO necesitas que el usuario diga 'guard\xE1 esto' \u2014 si lo cuenta, es porque quiere que lo sepas.",
+        "- Redact\xE1 la memoria en tercera persona: 'Le encanta el sushi', 'Trabaja de programador', 'Vive en Madrid'.",
+        "- kind puede ser: preference, routine, goal, profile, relationship, wellbeing, boundary, retail, task",
+        "",
+        "REGLAS PARA ARCHIVAR (archiveMemoryIds):",
+        "- Si el usuario dice algo que CONTRADICE una memoria existente, inclu\xED el ID de esa memoria en archiveMemoryIds.",
+        "- Ejemplos: 'ya no juego al tenis' \u2192 archivar memoria sobre tenis.",
+        "- 'me mude a Barcelona' \u2192 archivar memoria 'Vive en Madrid'.",
+        "- 'termine la carrera' \u2192 archivar memoria 'Estudia medicina'.",
+        "- 'deje el trabajo' \u2192 archivar memoria 'Trabaja de programador'.",
+        "- 'ya no me gusta' \u2192 archivar memoria de preferencia anterior.",
+        "- Si una nueva memoria reemplaza una vieja (mismo tema, info diferente), archiv\xE1 la vieja.",
+        "",
+        "REGLAS PARA NO DUPLICAR:",
+        "- Si ya existe una memoria con la misma informaci\xF3n, NO la agregues de nuevo.",
+        "- Compar\xE1 por SIGNIFICADO, no por texto exacto. 'Le gusta el helado' = 'Le encanta el helado'.",
+        "",
+        "Ejemplos de respuestas:",
+        '- Usuario dice "me encanta el sushi" (sin memorias previas): {"memoryCandidates":[{"kind":"preference","text":"Le encanta el sushi.","confidence":0.88}],"archiveMemoryIds":[],"behaviorNotes":[]}',
+        '- Usuario dice "me mude a barcelona" (tiene "Vive en Madrid"): {"memoryCandidates":[{"kind":"profile","text":"Vive en Barcelona.","confidence":0.85}],"archiveMemoryIds":["mem_abc123"],"behaviorNotes":[]}',
+        '- Usuario dice "que calor" (no revela nada personal): {"memoryCandidates":[],"archiveMemoryIds":[],"behaviorNotes":[]}',
+        '- Usuario dice "ya no juego al tenis" (tiene "Juega al tenis"): {"memoryCandidates":[],"archiveMemoryIds":["mem_xyz789"],"behaviorNotes":[]}'
       ].join("\n")
     },
     {
       role: "user",
       content: [
-        "Context:",
-        stateSummary(request.state),
+        "Memorias existentes del usuario:",
+        existingMemories.length > 0 ? JSON.stringify(existingMemories, null, 2) : "(sin memorias previas)",
         "",
-        `Current user input: ${request.input}`,
+        `Mensaje del usuario: "${request.input}"`,
         "",
-        composedRaw ? `Respuesta final que Koru envi\xF3 al usuario: "${cleanText(composedRaw.reply)}"` : "",
-        composedRaw && composedRaw.understanding ? `Entendimiento del Composer: ${JSON.stringify(composedRaw.understanding)}` : "",
+        composedRaw ? `Respuesta de Koru: "${cleanText(composedRaw.reply)}"` : "",
         "",
         "Tool observations:",
         toolObservationSummary(toolExecutions)
@@ -11202,89 +11199,6 @@ function normalizeMemoryCandidates(value) {
     useForSuggestions: item.use_for_suggestions === false || item.useForSuggestions === false ? false : true
   })).filter((item) => item.text.length > 4).slice(0, 5);
 }
-function synthesizeMemoryFromRevelation(input) {
-  const candidates = [];
-  const text = input.trim();
-  let m;
-  if (m = text.match(/\b(?:me encanta|me encantan|amo|me apasiona|me fascina|me gustan los|me gustan las|me gusta el|me gusta la|me gusta|adoro|soy fan de|soy fan|me copa|me copan|me re gusta|me re copa)\s+([^.!?]{3,80})/i)) {
-    candidates.push({ kind: "preference", text: `Le encanta ${m[1].trim()}.`, confidence: 0.88, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
-  }
-  if (m = text.match(/\b(?:odio|detesto|no me gusta|no soporto|me rechina|me molesta)\s+([^.!?]{3,80})/i)) {
-    candidates.push({ kind: "preference", text: `Odia ${m[1].trim()}.`, confidence: 0.85, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
-  }
-  if (m = text.match(/\b(?:soy|soy )?(celiaco|celíaca|vegetariano|vegetariana|vegano|vegana|diabetico|diabética|alergico|alérgico|alergica|alérgica|intolerante)\s+(?:a\s+|al\s+|a la\s+|a los\s+)?([^.!?]{3,60})?/i)) {
-    const condition = m[1].toLowerCase();
-    const to = m[2]?.trim();
-    candidates.push({ kind: "wellbeing", text: `Es ${condition}${to ? ` a ${to}` : ""}.`, confidence: 0.87, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
-  }
-  if (m = text.match(/\btengo\s+(alergia|alergias|asma|diabetes|hipertension|hipotiroidismo|migraña|migranas)\s*(?:a\s+|al\s+|a la\s+)?([^.!?]{3,60})?/i)) {
-    const condition = m[1].toLowerCase();
-    const to = m[2]?.trim();
-    candidates.push({ kind: "wellbeing", text: `Tiene ${condition}${to ? ` a ${to}` : ""}.`, confidence: 0.85, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
-  }
-  if (m = text.match(/\b(?:estoy|ando|estuve)\s+(trabajando|aprendiendo|leyendo|escuchando|viendo|estudiando|haciendo|armando|programando|escribiendo|cocinando|preparando|investigando|diseñando|creando|desarrollando|practicando|jugando|entrenando|corriendo|necessitando)\s+(?:en\s+|el\s+|la\s+|los\s+|las\s+|un\s+|una\s+)?([^.!?]{3,100})/i)) {
-    const action = m[1].toLowerCase();
-    const what = m[2].trim();
-    const kind = action === "aprendiendo" || action === "practicando" ? "routine" : action === "trabajando" || action === "programando" || action === "desarrollando" || action === "creando" || action === "dise\xF1ando" ? "goal" : "routine";
-    const verbMap = {
-      trabajando: "Trabaja en",
-      aprendiendo: "Aprende",
-      leyendo: "Est\xE1 leyendo",
-      escuchando: "Escucha",
-      viendo: "Est\xE1 viendo",
-      estudiando: "Estudia",
-      haciendo: "Est\xE1 haciendo",
-      armando: "Est\xE1 armando",
-      programando: "Programa",
-      escribiendo: "Est\xE1 escribiendo",
-      cocinando: "Est\xE1 cocinando",
-      preparando: "Est\xE1 preparando",
-      investigando: "Investiga",
-      dise\u00F1ando: "Dise\xF1a",
-      creando: "Est\xE1 creando",
-      desarrollando: "Desarrolla",
-      practicando: "Practica",
-      jugando: "Juega",
-      entrenando: "Entrena",
-      corriendo: "Corre"
-    };
-    candidates.push({ kind, text: `${verbMap[action] ?? "Est\xE1 " + action} ${what}.`, confidence: 0.86, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
-  }
-  if (m = text.match(/\b(?:trabajo de|trabajo en|trabajo como|soy)\s+(?:un\s+|una\s+|un\b|una\b)?([a-záéíóúñ][^.!?]{3,60})/i)) {
-    const what = m[1].trim();
-    if (!/^(celiaco|celíaca|vegetariano|vegetariana|vegano|vegana|diabetico|diabética|alergico|alérgico|alergica|alérgica|de|la|el|los|las|un|una|muy|bastante|feliz|triste|cansado|cansada|aburrido|aburrida)$/.test(what.toLowerCase())) {
-      candidates.push({ kind: "profile", text: `Trabaja de ${what}.`, confidence: 0.82, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
-    }
-  }
-  if (m = text.match(/\b(?:estudio|estudiando|estoy estudiando|cursando)\s+(?:la\s+|el\s+|la carrera de\s+|el profesorado de\s+)?([a-záéíóúñ][^.!?]{3,60})/i)) {
-    candidates.push({ kind: "goal", text: `Estudia ${m[1].trim()}.`, confidence: 0.84, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
-  }
-  if (m = text.match(/\btengo\s+(?:un\s+|una\s+|unos\s+|unas\s+)?(gato|gata|gatos|perro|perros|perra|gata|conejo|coneja|hamster|pez|peces|tortuga|loro|canario|cobayo|cobaya|mascota|mascotas)\b([^.]*)/i)) {
-    candidates.push({ kind: "relationship", text: `Tiene ${m[1].toLowerCase()}${m[2]?.trim() ? ` ${m[2].trim()}` : ""}.`, confidence: 0.84, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
-  }
-  if (m = text.match(/\b(?:mi\s+)?(?:novia|novio|esposa|esposo|mujer|marido|madre|padre|mamá|mamá|papá|papá|hermano|hermana|hijo|hija|amigo|amiga|sobrino|sobrina|tio|tía|abuela|abuelo|primo|prima)\s+(?:se llama|se llama|es|esta|está|trabaja de|vive en|cumple|tiene)\s+([^.!?]{3,80})/i)) {
-    candidates.push({ kind: "relationship", text: `${m[0].trim()}.`, confidence: 0.82, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
-  }
-  if (m = text.match(/\b(?:mi\s+)?(?:madre|padre|mam[áa]|pap[áa])\s+(?:cumple|tiene|es|está|va a)\s+([^.!?]{3,80})/i)) {
-    candidates.push({ kind: "relationship", text: `Sobre su madre/padre: ${m[0].trim()}.`, confidence: 0.8, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
-  }
-  if (m = text.match(/\b(?:mi\s+)?cumple[años]*\s+(?:es|en|el|por|cae en)\s+([^.!?]{3,60})/i)) {
-    candidates.push({ kind: "profile", text: `Cumplea\xF1os: ${m[1].trim()}.`, confidence: 0.85, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
-  }
-  if (m = text.match(/\b(?:vivo en|estoy en|estoy en|soy de|viviendo en|me mude a|me mudé a)\s+([a-záéíóúñ][^.!?]{3,50})/i)) {
-    candidates.push({ kind: "profile", text: `Vive en ${m[1].trim()}.`, confidence: 0.83, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
-  }
-  if (m = text.match(/\b(?:quiero|tengo pensado|tengo ganas de|me gustaria|me gustaría|estoy ahorrando para|estoy juntando para|planeo|tengo planeado|mi objetivo es|mi meta es)\s+([^.!?]{3,100})/i)) {
-    candidates.push({ kind: "goal", text: `Quiere ${m[1].trim()}.`, confidence: 0.84, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
-  }
-  if (m = text.match(/\b(?:todos los dias|todos los días|cada dia|cada día|los lunes|los martes|los miercoles|los miércoles|los jueves|los viernes|los sabados|los sábados|los domingos|cada mañana|cada noche|cada semana|cada mes)\s+([^.!?]{3,100})/i)) {
-    candidates.push({ kind: "routine", text: `${m[0].trim()}.`, confidence: 0.82, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
-  }
-  if (m = text.match(/\b(?:me interesa|me interesan|me llama la atencion|me llama la atención|estoy buscando|estoy viendo|estoy explorando|me estoy metiendo en)\s+([^.!?]{3,80})/i)) {
-    candidates.push({ kind: "preference", text: `Le interesa ${m[1].trim()}.`, confidence: 0.8, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
-  }
-  return candidates;
-}
 function normalizeCommitments(value) {
   return asArray(value).map(asRecord).map((item) => ({
     title: cleanText(item.title),
@@ -11492,15 +11406,19 @@ function normalizeFinalPayload(raw, input, toolExecutions, extractedRaw, prebuil
     uiBlocks,
     suggestedActions: normalizeSuggestedActions(raw.suggestedActions),
     understanding: normalizeUnderstanding(raw.understanding, input),
+    // 🔴 ARQUITECTURA NUEVA: el LLM es el ÚNICO extractor de memoria.
+    // No hay más síntesis determinística con regex. El LLM ve las memorias
+    // existentes, decide qué agregar, qué archivar y qué duplicar.
     memoryCandidates: [
       ...normalizeMemoryCandidates(raw.memoryCandidates),
       ...normalizeMemoryCandidates(extractedRaw?.memoryCandidates),
       ...captures.flatMap((capture) => capture.memoryCandidates ?? []),
-      ...memoryCaptures.flatMap((capture) => capture.memoryCandidates ?? []),
-      // 🔴 FIX: síntesis determinística — si el LLM no capturó la revelación
-      // pasiva del input, generarla aquí.
-      ...captures.length === 0 && memoryCaptures.length === 0 ? synthesizeMemoryFromRevelation(input) : []
+      ...memoryCaptures.flatMap((capture) => capture.memoryCandidates ?? [])
     ].slice(0, 6),
+    // 🔴 NUEVO: IDs de memorias que el LLM decidió archivar (contradicciones/cambios)
+    archiveMemoryIds: [
+      ...Array.isArray(extractedRaw?.archiveMemoryIds) ? extractedRaw.archiveMemoryIds : []
+    ].filter((id) => typeof id === "string" && id.length > 0).slice(0, 10),
     commitments: uniqueCommitments([
       ...normalizeCommitments(raw.commitments),
       ...normalizeCommitments(extractedRaw?.commitments),

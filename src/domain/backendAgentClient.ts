@@ -31,6 +31,7 @@ export type KoruBackendTurnResponse = {
   suggestedActions: KoruSuggestedAction[];
   understanding: KoruUnderstanding;
   memoryCandidates: Omit<MemoryFact, "id" | "createdAt" | "sourceEntryId">[];
+  archiveMemoryIds?: string[];
   commitments: Omit<Commitment, "id" | "createdAt" | "sourceEntryId">[];
   records: Omit<LifeRecord, "id" | "createdAt" | "sourceEntryId">[];
   toolResults: ToolResult[];

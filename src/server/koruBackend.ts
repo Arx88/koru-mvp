@@ -67,6 +67,7 @@ export type KoruBackendTurnResponse = {
   suggestedActions: KoruSuggestedAction[];
   understanding: KoruUnderstanding;
   memoryCandidates: Omit<MemoryFact, "id" | "createdAt" | "sourceEntryId">[];
+  archiveMemoryIds?: string[];
   commitments: Omit<Commitment, "id" | "createdAt" | "sourceEntryId">[];
   records: Omit<LifeRecord, "id" | "createdAt" | "sourceEntryId">[];
   toolResults: ToolResult[];
@@ -2628,35 +2629,64 @@ function buildMemoryExtractorMessages(
   toolExecutions: ToolExecution[],
   composedRaw?: Record<string, unknown>,
 ): ChatMessage[] {
+  // 🔴 ARQUITECTURA NUEVA: el extractor recibe las memorias EXISTENTES del usuario
+  // para poder detectar contradicciones, actualizaciones y duplicados.
+  // El LLM decide qué AGREGAR, qué ARCHIVAR y qué ACTUALIZAR — sin regex, sin frases rígidas.
+  const existingMemories = (request.state.memories ?? [])
+    .filter(m => m.status === "confirmed" || m.status === "candidate")
+    .slice(0, 20)
+    .map(m => ({ id: m.id, kind: m.kind, text: m.text, status: m.status }));
+
   return [
     {
       role: "system",
       content: [
-        "You are Koru's asynchronous memory extractor. Return ONLY valid JSON, no markdown.",
-        "Schema: {\"memoryCandidates\":[],\"commitments\":[],\"records\":[],\"behaviorNotes\":[]}",
-        "Extract only durable, reusable user-owned context from the current user turn and tool observations.",
-        "If the user says 'prefiero...', 'soy de...', 'mi mama...', 'avisame si...', 'todos los dias...', or equivalent meaning, extract it as memory. Do not skip just because another tool was used.",
-        "Capture preferences, identity, routines, goals, relationships, medication/health facts, important dates, interests to follow, folders/collections, saved links, inventory, expenses, tasks and decisions.",
-        "Do not answer the user. Do not infer from generic chit-chat. Do not duplicate records already present in tool observations.",
-        "Use Spanish wording when the user spoke Spanish. Preserve names and dates.",
-        "Never inherit collection, person, tags, or domain from previous turns unless the current user explicitly refers to the same object.",
-        "Capture behavior notes: if the user corrects Koru's behavior (e.g. 'do not ask me for summaries when I save links', 'I prefer you to be more direct'), extract it as behaviorNote so future turns are governed by it.",
-        "If the user provides a city, country, or neighborhood name (e.g. 'Madrid', 'Buenos Aires', 'Barcelona') especially after a weather or traffic question, extract it as a location/profile memory. Example: user input 'Madrid' after assistant asked \"what city?\" -> memory: {kind: 'profile', text: 'User location: Madrid (city)'}. Do not skip just because it looks like a tool argument.",
+        "Sos el extractor de memoria de Koru. Devolvé SOLO JSON válido, sin markdown.",
+        'Schema: {"memoryCandidates":[],"archiveMemoryIds":[],"behaviorNotes":[]}',
+        "",
+        "Tu trabajo: analizar lo que el usuario dijo y compararlo con sus memorias existentes.",
+        "",
+        "REGLAS PARA AGREGAR (memoryCandidates):",
+        "- Extraé SOLO información duradera y reutilizable sobre el usuario.",
+        "- Preferencias, identidad, rutinas, objetivos, relaciones, salud, fechas importantes, intereses.",
+        "- NO extraigas chit-chat genérico, saludos, o información temporal.",
+        "- Si el usuario revela algo personal (gustos, hábitos, metas, relaciones), extraelo SIEMPRE.",
+        "- NO necesitas que el usuario diga 'guardá esto' — si lo cuenta, es porque quiere que lo sepas.",
+        "- Redactá la memoria en tercera persona: 'Le encanta el sushi', 'Trabaja de programador', 'Vive en Madrid'.",
+        "- kind puede ser: preference, routine, goal, profile, relationship, wellbeing, boundary, retail, task",
+        "",
+        "REGLAS PARA ARCHIVAR (archiveMemoryIds):",
+        "- Si el usuario dice algo que CONTRADICE una memoria existente, incluí el ID de esa memoria en archiveMemoryIds.",
+        "- Ejemplos: 'ya no juego al tenis' → archivar memoria sobre tenis.",
+        "- 'me mude a Barcelona' → archivar memoria 'Vive en Madrid'.",
+        "- 'termine la carrera' → archivar memoria 'Estudia medicina'.",
+        "- 'deje el trabajo' → archivar memoria 'Trabaja de programador'.",
+        "- 'ya no me gusta' → archivar memoria de preferencia anterior.",
+        "- Si una nueva memoria reemplaza una vieja (mismo tema, info diferente), archivá la vieja.",
+        "",
+        "REGLAS PARA NO DUPLICAR:",
+        "- Si ya existe una memoria con la misma información, NO la agregues de nuevo.",
+        "- Compará por SIGNIFICADO, no por texto exacto. 'Le gusta el helado' = 'Le encanta el helado'.",
+        "",
+        "Ejemplos de respuestas:",
+        '- Usuario dice "me encanta el sushi" (sin memorias previas): {"memoryCandidates":[{"kind":"preference","text":"Le encanta el sushi.","confidence":0.88}],"archiveMemoryIds":[],"behaviorNotes":[]}',
+        '- Usuario dice "me mude a barcelona" (tiene "Vive en Madrid"): {"memoryCandidates":[{"kind":"profile","text":"Vive en Barcelona.","confidence":0.85}],"archiveMemoryIds":["mem_abc123"],"behaviorNotes":[]}',
+        '- Usuario dice "que calor" (no revela nada personal): {"memoryCandidates":[],"archiveMemoryIds":[],"behaviorNotes":[]}',
+        '- Usuario dice "ya no juego al tenis" (tiene "Juega al tenis"): {"memoryCandidates":[],"archiveMemoryIds":["mem_xyz789"],"behaviorNotes":[]}',
       ].join("\n"),
     },
     {
       role: "user",
       content: [
-        "Context:",
-        stateSummary(request.state),
+        "Memorias existentes del usuario:",
+        existingMemories.length > 0
+          ? JSON.stringify(existingMemories, null, 2)
+          : "(sin memorias previas)",
         "",
-        `Current user input: ${request.input}`,
+        `Mensaje del usuario: "${request.input}"`,
         "",
         composedRaw
-          ? `Respuesta final que Koru envió al usuario: "${cleanText(composedRaw.reply)}"`
-          : "",
-        composedRaw && composedRaw.understanding
-          ? `Entendimiento del Composer: ${JSON.stringify(composedRaw.understanding)}`
+          ? `Respuesta de Koru: "${cleanText(composedRaw.reply)}"`
           : "",
         "",
         "Tool observations:",
@@ -4344,17 +4374,19 @@ function normalizeFinalPayload(
     uiBlocks,
     suggestedActions: normalizeSuggestedActions(raw.suggestedActions),
     understanding: normalizeUnderstanding(raw.understanding, input),
+    // 🔴 ARQUITECTURA NUEVA: el LLM es el ÚNICO extractor de memoria.
+    // No hay más síntesis determinística con regex. El LLM ve las memorias
+    // existentes, decide qué agregar, qué archivar y qué duplicar.
     memoryCandidates: [
       ...normalizeMemoryCandidates(raw.memoryCandidates),
       ...normalizeMemoryCandidates(extractedRaw?.memoryCandidates),
       ...captures.flatMap((capture) => capture.memoryCandidates ?? []),
       ...memoryCaptures.flatMap((capture) => capture.memoryCandidates ?? []),
-      // 🔴 FIX: síntesis determinística — si el LLM no capturó la revelación
-      // pasiva del input, generarla aquí.
-      ...(captures.length === 0 && memoryCaptures.length === 0
-        ? synthesizeMemoryFromRevelation(input)
-        : []),
     ].slice(0, 6),
+    // 🔴 NUEVO: IDs de memorias que el LLM decidió archivar (contradicciones/cambios)
+    archiveMemoryIds: [
+      ...(Array.isArray(extractedRaw?.archiveMemoryIds) ? extractedRaw.archiveMemoryIds : []),
+    ].filter((id: any) => typeof id === "string" && id.length > 0).slice(0, 10),
     commitments: uniqueCommitments([
       ...normalizeCommitments(raw.commitments),
       ...normalizeCommitments(extractedRaw?.commitments),
