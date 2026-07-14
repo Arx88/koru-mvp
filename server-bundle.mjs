@@ -1475,7 +1475,7 @@ function extractToolArgs(message, tool) {
   if (tool === "restaurant_deep_search") {
     return { query: clean };
   }
-  if (tool === "recipe_find" || tool === "recipe_by_ingredients") {
+  if (tool === "recipe_find") {
     return { query: clean };
   }
   if (tool === "movie_info" || tool === "book_info" || tool === "game_info") {

@@ -617,7 +617,7 @@ function extractToolArgs(message: string, tool?: RouteTool): Record<string, unkn
     return { query: clean };
   }
 
-  if (tool === "recipe_find" || tool === "recipe_by_ingredients") {
+  if (tool === "recipe_find") {
     return { query: clean };
   }
 
