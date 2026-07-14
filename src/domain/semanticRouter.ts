@@ -742,7 +742,27 @@ const KNOWN_TEAMS = [
 export function keywordFastPath(message: string): RouteResult | null {
   const normalized = foldAccents(message);
 
-  // ── SPORTS: resultado deportivo ──
+  // ═══════════════════════════════════════════════════════════════════════
+  // ARQUITECTURA NUEVA: el fast-path de regex se redujo al MÍNIMO.
+  //
+  // El LLM con tool-calling nativo es MUCHO más flexible que cualquier regex:
+  // - Entiende "que pelicula puedo ver" → recomendación (web_search), no movie_info
+  // - Entiende "que es eso?" → follow-up, no wikipedia
+  // - Entiende "dame una receta" → genérico, pide aclaración
+  // - Entiende cualquier idioma y forma de hablar
+  //
+  // El fast-path se mantiene SOLO para casos donde el LLM falla consistentemente:
+  // 1. Sports results: el LLM usa web_search en vez de match_live (que tiene datos exactos)
+  // 2. Reminders/alarms con sintaxis EXPLÍCITA ("recordame X a las Y", "alarma para las Z")
+  //    porque son acciones locales que el LLM a veces no reconoce como tool-calls
+  // 3. Countdown con sintaxis explícita ("cuántos días faltan para X")
+  //
+  // TODO LO DEMÁS pasa al LLM con tools habilitadas. El LLM decide.
+  // ═══════════════════════════════════════════════════════════════════════
+
+  // ── 1. SPORTS: resultado deportivo ──
+  // El LLM consistentemente usa web_search para resultados deportivos, pero match_live
+  // tiene datos exactos en tiempo real desde ESPN. Por eso interceptamos aquí.
   const sportsIntentPatterns = [
     /\b(como salio|como salieron|como le fue|como les fue|como va|como van|quien gano|quien ganaron|resultado de|resultados de|marcador de|score de)\b/,
   ];
@@ -763,90 +783,71 @@ export function keywordFastPath(message: string): RouteResult | null {
     };
   }
 
-  // ── WEATHER: clima ──
-  if (/\b(clima|tiempo|temperatura|lluvia|llueve|calor|frio|que tal el dia|que onda el dia|que pongo|campera|paraguas|abrigo)\b/.test(normalized)) {
-    // 🔴 FIX MACRO: extraer la ciudad del mensaje con patrones flexibles
-    // "clima en Madrid", "clima de Madrid", "que clima hace en Madrid", "temperatura en Madrid"
-    const cityMatch = normalized.match(/(?:en|de|del)\s+([a-záéíóúñ]{2,30}(?:\s+[a-záéíóúñ]{2,15}){0,2})/i);
-    const city = cityMatch?.[1]?.trim()?.replace(/[?!.].*$/, "").trim() ?? "";
-    return {
-      category: "weather",
-      tool: "weather",
-      confidence: 0.99,
-      toolArgs: city ? { city } : {},
-    };
-  }
-
-  // ── FOOD: recetas ──
-  // 🔴 FIX: solo disparar recipe_find si hay un plato/ingrediente ESPECÍFICO.
-  // Si el usuario pide genéricamente ("dame una receta", "que cocino"), NO disparamos
-  // recipe_find porque TheMealDB no encuentra nada y el LLM termina diciendo "ya te la doy".
-  // En esos casos, dejamos que el LLM/router decida (puede ir a web_search).
-  if (/\b(receta de|recetas de|como hago|como preparo|como cocino|receta para|recetas para)\b/.test(normalized)) {
-    let query: string | undefined;
-    let m: RegExpMatchArray | null;
-    if ((m = normalized.match(/(?:receta de|como hago|como preparo|como cocino|receta para|recetas para|recetas de)\s+([a-záéíóúñ\s]+)/))) {
-      query = m[1];
-    }
-    const cleanedQuery = query?.replace(/[?!.].*$/, "").trim();
-    // Solo disparar si tenemos un query específico de al menos 3 letras
-    if (cleanedQuery && cleanedQuery.length >= 3 && !/(dame|una|alguna|quiero|necesito|paso)/i.test(cleanedQuery)) {
+  // ── 2. REMINDER: "recordame X a las Y" ──
+  // Solo si hay una hora/fecha explícita. Si no, el LLM decide.
+  if (/\b(recordame|recuerdame|no me dejes olvidar|avisame)\b/.test(normalized)) {
+    const timeMatch = normalized.match(/\b(a las\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?|al\s+\d{1,2}(?::\d{2})?|el\s+\d{1,2}|manana|pasado manana|en\s+\d+\s*(?:horas?|minutos?|dias?))\b/i);
+    if (timeMatch) {
+      const titleMatch = normalized.match(/(?:recordame|recuerdame|no me dejes olvidar|avisame)\s+(.+?)(?:\s+(?:a las|al|el|en|para|manana|pasado)\b|$)/);
+      const title = titleMatch?.[1]?.trim() ?? message.replace(/.*(?:recordame|recuerdame|no me dejes olvidar|avisame)\s+/i, "").trim();
       return {
-        category: "food",
-        tool: "recipe_find",
+        category: "action",
+        tool: "reminder_set",
         confidence: 0.99,
-        toolArgs: { query: cleanedQuery },
+        toolArgs: {
+          title: title.slice(0, 100) || "Recordatorio",
+          dueText: timeMatch[0],
+        },
       };
     }
-    // Si no hay plato específico, caer a web_search
-    return {
-      category: "food",
-      tool: "web_search",
-      confidence: 0.9,
-      toolArgs: { query: message, mode: "research" },
-    };
+    // Si no hay hora explícita, NO interceptar — el LLM decide
   }
-  // "recetas con X" / "dame 3 recetas con X" — extraer ingrediente
-  if (/\b(recetas?\s+(?:con|de)\s+|dame\s+\d*\s*recetas?\s+(?:con|de))\b/.test(normalized)) {
-    const m = normalized.match(/(?:recetas?\s+(?:con|de)\s+|dame\s+\d*\s*recetas?\s+(?:con|de)\s+)([a-záéíóúñ\s]+)/);
-    const query = m?.[1]?.replace(/[?!.].*$/, "").trim();
-    if (query && query.length >= 3) {
+
+  // ── 3. ALARM: "alarma para las X" / "despertador a las Y" ──
+  if (/\b(alarma|despertador)\b/.test(normalized)) {
+    const timeMatch = normalized.match(/\b(?:a las\s+|al\s+|para las\s+)?(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\b/i);
+    if (timeMatch) {
+      const repeatMatch = normalized.match(/\b(diario|diaria|todos los dias|semanal|lunes a viernes|cada dia)\b/i);
       return {
-        category: "food",
-        tool: "recipe_find",
+        category: "action",
+        tool: "alarm_set",
         confidence: 0.99,
-        toolArgs: { query },
+        toolArgs: {
+          title: message.replace(/.*(?:alarma|despertador)\s+para\s+/i, "").replace(/[?!.].*$/, "").trim() || "Alarma",
+          time: timeMatch[1].replace(/\s+/g, " ").trim(),
+          repeat: repeatMatch?.[0],
+        },
       };
     }
+    // Si no hay hora explícita, NO interceptar — el LLM decide
   }
 
-  // 🔴 FIX: restaurant deep search — "donde como X" / "restaurantes X"
-  if (/\b(donde como|donde comemos|donde cenar|donde cenamos|donde almorzar|donde almorzamos|restaurantes?|resto|bar|bistr[oó]|parrilla|trattoria|sushi|tacos|taco|hamburguesas|pizza|pasta|ramen|donde puedo comer|donde puedo cenar|donde puedo almorzar|buen lugar para comer|buen lugar para cenar)\b/.test(normalized)) {
-    const cityMatch = normalized.match(/(?:en|de|del)\s+([a-záéíóúñ]{2,30}(?:\s+[a-záéíóúñ]{2,15}){0,2})/i);
-    const city = cityMatch?.[1]?.trim()?.replace(/[?!.].*$/, "").trim();
-    const foodTypeMatch = normalized.match(/\b(tacos?|sushi|pizza|pasta|ramen|hamburguesas?|parrilla|asado|pescado|mariscos?|paella|tapas?|empanadas?|milanesa|choripan|helado|postre|comida [a-záéíóúñ]+|italiana|japonesa|china|mexicana|española|argentina|peruana|tailandesa|india|francesa)\b/i);
-    const foodType = foodTypeMatch?.[1];
-    const query = [foodType, city].filter(Boolean).join(" en ") || message;
+  // ── 4. COUNTDOWN: "cuántos días faltan para X" ──
+  if (/\b(cuantos? dias? faltan|cuanto falta para|faltan para)\b/.test(normalized)) {
+    const dateMatch = normalized.match(/(?:para|desde)\s+(.+?)(?:\?|$)/);
+    const date = dateMatch?.[1]?.trim() ?? message;
     return {
-      category: "world_info",
-      tool: "restaurant_deep_search",
+      category: "action",
+      tool: "countdown",
       confidence: 0.99,
-      toolArgs: { query },
+      toolArgs: {
+        date,
+        label: date.slice(0, 60),
+      },
     };
   }
 
-  // 🔴 FIX: SAVE — "guardame este informe", "guardá esto en carpeta X"
-  if (/\b(guardame|guardar|guarda|guardá|salvá|salvame|guardalo|guardala|guardar inform|guardar este|guardar este informe|salvar este|salvar informe)\b/.test(normalized)) {
+  // ── 5. SAVE: "guardame este informe en coleccion X" ──
+  // Solo si menciona explícitamente "coleccion" o "carpeta"
+  if (/\b(guardame|guardar|guarda|guarda|salva|salvame)\b/.test(normalized) && /\b(coleccion|carpeta|tablero)\b/.test(normalized)) {
     const collMatch = normalized.match(/(?:en\s+(?:la\s+|el\s+)?)?(?:coleccion|carpeta|tablero)\s+([a-záéíóúñ0-9\s·]+?)(?:\.|$)/i);
     const collection = collMatch?.[1]?.trim();
-    const titleMatch = normalized.match(/(?:informe|reporte|estudio|análisis|analisis)\s+(?:sobre|de|del)\s+([^.!?]+)/i);
-    const title = titleMatch?.[1]?.trim() || "Informe guardado";
     return {
       category: "action",
       tool: "save_personal_item",
       confidence: 0.99,
       toolArgs: {
-        title: title.slice(0, 100),
+        title: "Informe guardado",
         collection: collection || "Koru · Informes",
         uiBlockType: "saved_record",
         recordKind: "idea",
@@ -855,173 +856,10 @@ export function keywordFastPath(message: string): RouteResult | null {
     };
   }
 
-  // ── MEDIA: película / libro / juego ──
-  // 🔴 FIX CRÍTICO: NO interceptar recomendaciones ("que pelicula puedo ver", "sugerime una peli").
-  // Solo interceptar cuando hay un TÍTULO ESPECÍFICO después de la palabra clave.
-  // Antes: "que pelicula puedo ver" → extraía "puedo ver" como título → buscaba un álbum de Charly García.
-  // Ahora: detecta que es una recomendación y cae a web_search.
-
-  // Detectar pedidos de recomendación → web_search (NO movie_info)
-  const isRecommendation = /\b(que pelicula|que peli|que serie|que juego|que libro|que puedo ver|que puedo jugar|que puedo leer|sugerime|sugerí|recomenda|recomendame|recomienda|alguna pelicula|alguna serie|algún juego|algún libro|una pelicula buena|una serie buena|un juego bueno|un libro bueno)\b/.test(normalized);
-  if (isRecommendation) {
-    return {
-      category: "review",
-      tool: "web_search",
-      confidence: 0.9,
-      toolArgs: { query: message, mode: "research" },
-    };
-  }
-
-  // Película: solo si hay título específico entre comillas o después de "pelicula X"
-  // "pelicula Inception", "peli Avatar", "la pelicula Joker"
-  if (/\b(pelicula|peli)\b/.test(normalized)) {
-    // Buscar título entre comillas: pelicula "Inception"
-    const quotedMatch = normalized.match(/(?:pelicula|peli)\s+["']([^"']{2,80})["']/i);
-    if (quotedMatch) {
-      return { category: "media", tool: "movie_info", confidence: 0.99, toolArgs: { title: quotedMatch[1].trim() } };
-    }
-    // Buscar título después de "pelicula/peli LA/EL/DEL": "pelicula de Inception", "peli el padrino"
-    const deMatch = normalized.match(/(?:pelicula|peli)\s+(?:de|del|la|el|los|las)\s+([a-záéíóúñ][a-záéíóúñ\s]{2,60})/i);
-    if (deMatch) {
-      const title = deMatch[1].replace(/[?!.].*$/, "").trim();
-      // Filtrar palabras genéricas que NO son títulos
-      if (title.length >= 3 && !/\b(puedo|ver|ver hoy|ver hoy|jugar|leer|buena|bueno|nueva|nuevo)\b/i.test(title)) {
-        return { category: "media", tool: "movie_info", confidence: 0.95, toolArgs: { title } };
-      }
-    }
-    // "información sobre la pelicula X" / "reseña de la pelicula X"
-    const infoMatch = normalized.match(/(?:informacion sobre|info de|resena de|reseña de|critica de|crítica de|de que trata|que se dice de)\s+(?:la\s+)?(?:pelicula|peli)\s+([a-záéíóúñ][a-záéíóúñ\s]{2,60})/i);
-    if (infoMatch) {
-      return { category: "media", tool: "movie_info", confidence: 0.95, toolArgs: { title: infoMatch[1].replace(/[?!.].*$/, "").trim() } };
-    }
-    // Si no matcheó ningún patrón con título, NO interceptar — dejar al LLM decidir
-  }
-
-  // Libro: misma lógica
-  if (/\b(libro|novela)\b/.test(normalized)) {
-    const quotedMatch = normalized.match(/(?:libro|novela)\s+["']([^"']{2,80})["']/i);
-    if (quotedMatch) {
-      return { category: "media", tool: "book_info", confidence: 0.99, toolArgs: { title: quotedMatch[1].trim() } };
-    }
-    const deMatch = normalized.match(/(?:libro|novela)\s+(?:de|del|la|el|los|las)\s+([a-záéíóúñ][a-záéíóúñ\s]{2,60})/i);
-    if (deMatch) {
-      const title = deMatch[1].replace(/[?!.].*$/, "").trim();
-      if (title.length >= 3 && !/\b(puedo|ver|leer|buena|bueno|nueva|nuevo)\b/i.test(title)) {
-        return { category: "media", tool: "book_info", confidence: 0.95, toolArgs: { title } };
-      }
-    }
-    const infoMatch = normalized.match(/(?:informacion sobre|info de|resena de|reseña de|de que trata|que se dice de)\s+(?:el\s+)?(?:libro|novela)\s+([a-záéíóúñ][a-záéíóúñ\s]{2,60})/i);
-    if (infoMatch) {
-      return { category: "media", tool: "book_info", confidence: 0.95, toolArgs: { title: infoMatch[1].replace(/[?!.].*$/, "").trim() } };
-    }
-  }
-
-  // Juego: misma lógica
-  if (/\b(juego|videojuego)\b/.test(normalized)) {
-    const quotedMatch = normalized.match(/(?:juego|videojuego)\s+["']([^"']{2,80})["']/i);
-    if (quotedMatch) {
-      return { category: "media", tool: "game_info", confidence: 0.99, toolArgs: { title: quotedMatch[1].trim() } };
-    }
-    const deMatch = normalized.match(/(?:juego|videojuego)\s+(?:de|del|la|el|los|las)\s+([a-záéíóúñ][a-záéíóúñ\s:]{2,60})/i);
-    if (deMatch) {
-      const title = deMatch[1].replace(/[?!.].*$/, "").trim();
-      if (title.length >= 3 && !/\b(puedo|ver|jugar|buena|bueno|nueva|nuevo)\b/i.test(title)) {
-        return { category: "media", tool: "game_info", confidence: 0.95, toolArgs: { title } };
-      }
-    }
-    const infoMatch = normalized.match(/(?:informacion sobre|info de|resena de|reseña de|critica de|crítica de|como es|analisis de|análisis de)\s+(?:el\s+)?(?:juego|videojuego)\s+([a-záéíóúñ][a-záéíóúñ\s:]{2,60})/i);
-    if (infoMatch) {
-      return { category: "media", tool: "game_info", confidence: 0.95, toolArgs: { title: infoMatch[1].replace(/[?!.].*$/, "").trim() } };
-    }
-    // "reseña del juego X" / "info del juego X" — sin la palabra "de" entre medio
-    const directMatch = normalized.match(/(?:resena|reseña|info|informacion|critica|crítica|analisis|análisis)\s+(?:del|de la|de)\s+(?:juego|videojuego)\s+([a-záéíóúñ][a-záéíóúñ\s:]{2,60})/i);
-    if (directMatch) {
-      return { category: "media", tool: "game_info", confidence: 0.95, toolArgs: { title: directMatch[1].replace(/[?!.].*$/, "").trim() } };
-    }
-  }
-
-  // 🔴 FIX: ACTIONS — recordatorio / alarma / cuenta regresiva
-  if (/\b(recordame|recordar|no me dejes olvidar|no me olvides|avisame|avisa|recuerdame|recuerda)\b/.test(normalized)) {
-    const titleMatch = normalized.match(/(?:recordame|recordar|recuerdame|recuerda|no me dejes olvidar|no me olvides|avisame|avisa)\s+(.+?)(?:\s+(?:a las|al|el|en|para|mañana|pasado)\b|$)/);
-    const title = titleMatch?.[1]?.trim() ?? message.replace(/.*(?:recordame|recordar|recuerdame|recuerda|no me dejes olvidar|no me olvides|avisame|avisa)\s+/i, "").trim();
-    const timeMatch = normalized.match(/\b(a las\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?|al\s+\d{1,2}(?::\d{2})?|el\s+\d{1,2}|mañana|pasado mañana|en\s+\d+\s*(?:horas?|minutos?|días?))\b/i);
-    const dueText = timeMatch?.[0] ?? "";
-    return {
-      category: "action",
-      tool: "reminder_set",
-      confidence: 0.99,
-      toolArgs: {
-        title: title.slice(0, 100) || "Recordatorio",
-        dueText: dueText || "próximamente",
-      },
-    };
-  }
-  if (/\b(alarma|despertador)\b/.test(normalized)) {
-    const timeMatch = normalized.match(/\b(?:a las\s+|al\s+|para las\s+)?(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\b/i);
-    const time = timeMatch?.[1]?.replace(/\s+/g, " ").trim() ?? "";
-    const repeatMatch = normalized.match(/\b(diario|diaria|todos los días|semanal|lunes a viernes|cada día)\b/i);
-    return {
-      category: "action",
-      tool: "alarm_set",
-      confidence: 0.99,
-      toolArgs: {
-        title: message.replace(/.*(?:alarma|despertador)\s+para\s+/i, "").replace(/[?!.].*$/, "").trim() || "Alarma",
-        time: time || "07:00",
-        repeat: repeatMatch?.[0],
-      },
-    };
-  }
-  if (/\b(cuanto falta|cuanta falta|cuantos dias faltan|cuantas dias faltan|cuantos dias pasaron|cuanto tiempo paso|faltan para|cuanto falta para)\b/.test(normalized)) {
-    const dateMatch = normalized.match(/(?:para|desde)\s+(.+?)(?:\?|$)/);
-    const date = dateMatch?.[1]?.trim() ?? message;
-    const labelMatch = normalized.match(/(?:para|desde)\s+(.+)/);
-    return {
-      category: "action",
-      tool: "countdown",
-      confidence: 0.99,
-      toolArgs: {
-        date,
-        label: labelMatch?.[1]?.trim().slice(0, 60),
-      },
-    };
-  }
-
-  // ── KNOWLEDGE: wikipedia ──
-  // 🔴 FIX CRÍTICO: NO interceptar si la pregunta termina en pronombre ("que es eso?", "que es esto?").
-  // Esos son follow-ups que refieren al contexto anterior, no búsquedas enciclopédicas.
-  // Tampoco interceptar "que es eso" o "que son esos" — dejan al LLM usar el contexto.
-  const hasKnowledgeIntent = /\b(que es|que fue|que son|que era|quien es|quien fue|quien era|quienes son|quienes fueron|contame sobre|explicame|como funciona|definicion de|definición de|hablemos de|cuentame de)\b/.test(normalized);
-  if (hasKnowledgeIntent) {
-    // Extraer lo que viene después de "que es" / "que son" / "quien es" etc.
-    const afterMatch = normalized.match(/(?:que es|que fue|que son|que era|quien es|quien fue|quien era|quienes son|quienes fueron|que significan|que significa)\s+(.+)/i);
-    const afterText = afterMatch?.[1]?.trim()?.replace(/[?!.].*$/, "").trim() ?? "";
-    // Pronombres y referencias vagas → NO es búsqueda enciclopédica, es follow-up
-    const isPronoun = /^\s*(eso|este|esta|estos|estas|esto|aquel|aquella|aquello|aquellos|aquellas|el|ella|ellos|ellas|un|una|eso mismo|a|e|o|u|y|de|del|la|los|las)\b/i.test(afterText);
-    // Palabras genéricas → NO es búsqueda
-    const isGeneric = /^(eso|esto|aquel|aquello|eso mismo|eso es todo|esto es todo|nada|todo|algo)\b/i.test(afterText);
-    if (isPronoun || isGeneric) {
-      // Es un follow-up, NO interceptar — dejar al LLM usar el contexto
-      return null;
-    }
-    // Si después de "que es" hay un sustantivo real (3+ letras), disparar wikipedia
-    if (afterText.length >= 3) {
-      return {
-        category: "knowledge",
-        tool: "wikipedia_lookup",
-        confidence: 0.95,
-        toolArgs: { query: message },
-      };
-    }
-    // "contame sobre X" / "explicame X" / "como funciona X" — estos siempre van a wiki
-    if (/\b(contame sobre|explicame|como funciona|definicion de|definición de|hablemos de|cuentame de)\b/.test(normalized)) {
-      return {
-        category: "knowledge",
-        tool: "wikipedia_lookup",
-        confidence: 0.95,
-        toolArgs: { query: message },
-      };
-    }
-  }
-
+  // TODO LO DEMÁS: return null → el LLM con tools habilitadas decide qué hacer.
+  // El LLM ve las tool definitions y el system prompt, y decide:
+  // - Si necesita una tool (weather, movie_info, recipe_find, restaurant_deep_search, etc.)
+  // - Si no necesita tool (follow-ups, opiniones, charla, aclaraciones)
+  // - Qué argumentos pasar (entiende cualquier forma de hablar, cualquier idioma)
   return null;
 }

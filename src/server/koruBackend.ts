@@ -5425,13 +5425,16 @@ export async function runKoruBackendTurn(
   }
 
   if (inputTrimmed.length >= 3) {
-    // 🔴 FIX ESTRUCTURAL: keyword fast-path determinístico ANTES del router semántico.
-    // Esto funciona SIN necesidad de embeddings (Ollama/NVIDIA), asegurando que
-    // los intents de alta confianza (sports, weather, food, media) se detecten
-    // correctamente incluso si el router semántico no está disponible.
+    // 🔴 ARQUITECTURA NUEVA: el fast-path de regex se eliminó casi por completo.
+    // El LLM con tool-calling nativo es mucho más flexible que cualquier regex:
+    // entiende "que pelicula puedo ver" (recomendación → web_search), "que es eso?"
+    // (follow-up → no tool), "dame una receta" (genérico → pedir aclaración).
+    //
+    // El fast-path se mantiene SOLO para casos donde el LLM falla consistentemente:
+    // - Sports results: el LLM tiende a usar web_search en vez de match_live
+    // - Reminders/alarms con sintaxis explícita: "recordame X a las Y", "alarma para las Z"
+    // Todo lo demás pasa directamente al LLM con tools habilitadas.
     const fastPathResult = keywordFastPath(request.input);
-    // 🔴 FIX SAVE: si el fast-path detectó save_personal_item, usar el último mensaje
-    // del historial como título del informe (en vez de "Informe guardado").
     if (fastPathResult?.tool === "save_personal_item") {
       const lastUserMessage = [...(request.history ?? [])].reverse().find(m => m.role === "user");
       const inferredTitle = lastUserMessage?.content || cleanText(fastPathResult.toolArgs?.title);
@@ -5443,7 +5446,7 @@ export async function runKoruBackendTurn(
       }
     }
     if (fastPathResult) {
-      logger.info("runKoruBackendTurn", "Keyword fast-path match", {
+      logger.info("runKoruBackendTurn", "Keyword fast-path match (minimal)", {
         category: fastPathResult.category,
         tool: fastPathResult.tool ?? "none",
         confidence: fastPathResult.confidence.toFixed(2),
@@ -5490,10 +5493,6 @@ export async function runKoruBackendTurn(
 
         // 🔴 FIX MACRO: si CUALQUIER tool del fast-path falla (status failed, no_data,
         // need_city, o no produce datos útiles), hacer fallback automático a web_search.
-        // Esto aplica a TODAS las tools: weather, movie_info, recipe_find, book_info, etc.
-        // 🔴 FIX: tools de acción local (reminder_set, alarm_set, countdown, save_personal_item,
-        // save_memory, plan_day, query_personal_context) NO deben caer a web_search cuando
-        // "no tienen datos externos" — su éxito se mide por el compromiso/bloque que generan.
         const LOCAL_ACTION_TOOLS = new Set([
           "reminder_set", "alarm_set", "countdown",
           "save_personal_item", "save_memory", "plan_day",
@@ -5540,9 +5539,6 @@ export async function runKoruBackendTurn(
             });
             const fallbackDelivered = await executeProviderToolCalls([fallbackToolCall], messages, request, toolExecutions, config);
             if (fallbackDelivered) {
-              // 🔴 FIX: limpiar el tool fallido de toolExecutions para que el LLM
-              // no vea "No encontré recetas" y responda con eso.
-              // El LLM solo debe ver los resultados de web_search (que SÍ tiene datos).
               const cleanedExecutions = toolExecutions.filter((exec) => {
                 const r = exec.result as any;
                 const isLocalAction = LOCAL_ACTION_TOOLS.has(exec.name);
@@ -5558,7 +5554,6 @@ export async function runKoruBackendTurn(
                 );
                 return !failed;
               });
-              // Si después de limpiar no queda nada, usar los originales
               const effectiveExecutions = cleanedExecutions.length > 0 ? cleanedExecutions : toolExecutions;
               const fastConfig2 = { ...config, nvidiaModel: config.nvidiaModel };
               const response = await finalizePayloadWithFastModel(request, fastConfig2, fallbackDelivered, effectiveExecutions, 30_000);
@@ -5570,7 +5565,6 @@ export async function runKoruBackendTurn(
         if (delivered) {
           // 🔴 FIX CRÍTICO: NO usar el reply del LLM (que puede decir "ya te la doy" sin entregar).
           // Generar reply mecánicamente desde los tool blocks + memory extractor.
-          // Esto garantiza que el reply SIEMPRE sea "Te dejé X en la tarjeta" cuando hay datos.
           const fastConfig = { ...config, nvidiaModel: config.nvidiaModel };
           const toolBlocks = blocksFromToolResults(toolExecutions);
           const blockReply = replyFromBlocks(toolBlocks, request.input);

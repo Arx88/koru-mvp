@@ -1682,214 +1682,66 @@ function keywordFastPath(message) {
       toolArgs: { query }
     };
   }
-  if (/\b(clima|tiempo|temperatura|lluvia|llueve|calor|frio|que tal el dia|que onda el dia|que pongo|campera|paraguas|abrigo)\b/.test(normalized)) {
-    const cityMatch = normalized.match(/(?:en|de|del)\s+([a-záéíóúñ]{2,30}(?:\s+[a-záéíóúñ]{2,15}){0,2})/i);
-    const city = cityMatch?.[1]?.trim()?.replace(/[?!.].*$/, "").trim() ?? "";
-    return {
-      category: "weather",
-      tool: "weather",
-      confidence: 0.99,
-      toolArgs: city ? { city } : {}
-    };
-  }
-  if (/\b(receta de|recetas de|como hago|como preparo|como cocino|receta para|recetas para)\b/.test(normalized)) {
-    let query;
-    let m;
-    if (m = normalized.match(/(?:receta de|como hago|como preparo|como cocino|receta para|recetas para|recetas de)\s+([a-záéíóúñ\s]+)/)) {
-      query = m[1];
-    }
-    const cleanedQuery = query?.replace(/[?!.].*$/, "").trim();
-    if (cleanedQuery && cleanedQuery.length >= 3 && !/(dame|una|alguna|quiero|necesito|paso)/i.test(cleanedQuery)) {
+  if (/\b(recordame|recuerdame|no me dejes olvidar|avisame)\b/.test(normalized)) {
+    const timeMatch = normalized.match(/\b(a las\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?|al\s+\d{1,2}(?::\d{2})?|el\s+\d{1,2}|manana|pasado manana|en\s+\d+\s*(?:horas?|minutos?|dias?))\b/i);
+    if (timeMatch) {
+      const titleMatch = normalized.match(/(?:recordame|recuerdame|no me dejes olvidar|avisame)\s+(.+?)(?:\s+(?:a las|al|el|en|para|manana|pasado)\b|$)/);
+      const title = titleMatch?.[1]?.trim() ?? message.replace(/.*(?:recordame|recuerdame|no me dejes olvidar|avisame)\s+/i, "").trim();
       return {
-        category: "food",
-        tool: "recipe_find",
+        category: "action",
+        tool: "reminder_set",
         confidence: 0.99,
-        toolArgs: { query: cleanedQuery }
+        toolArgs: {
+          title: title.slice(0, 100) || "Recordatorio",
+          dueText: timeMatch[0]
+        }
       };
     }
-    return {
-      category: "food",
-      tool: "web_search",
-      confidence: 0.9,
-      toolArgs: { query: message, mode: "research" }
-    };
-  }
-  if (/\b(recetas?\s+(?:con|de)\s+|dame\s+\d*\s*recetas?\s+(?:con|de))\b/.test(normalized)) {
-    const m = normalized.match(/(?:recetas?\s+(?:con|de)\s+|dame\s+\d*\s*recetas?\s+(?:con|de)\s+)([a-záéíóúñ\s]+)/);
-    const query = m?.[1]?.replace(/[?!.].*$/, "").trim();
-    if (query && query.length >= 3) {
-      return {
-        category: "food",
-        tool: "recipe_find",
-        confidence: 0.99,
-        toolArgs: { query }
-      };
-    }
-  }
-  if (/\b(donde como|donde comemos|donde cenar|donde cenamos|donde almorzar|donde almorzamos|restaurantes?|resto|bar|bistr[oó]|parrilla|trattoria|sushi|tacos|taco|hamburguesas|pizza|pasta|ramen|donde puedo comer|donde puedo cenar|donde puedo almorzar|buen lugar para comer|buen lugar para cenar)\b/.test(normalized)) {
-    const cityMatch = normalized.match(/(?:en|de|del)\s+([a-záéíóúñ]{2,30}(?:\s+[a-záéíóúñ]{2,15}){0,2})/i);
-    const city = cityMatch?.[1]?.trim()?.replace(/[?!.].*$/, "").trim();
-    const foodTypeMatch = normalized.match(/\b(tacos?|sushi|pizza|pasta|ramen|hamburguesas?|parrilla|asado|pescado|mariscos?|paella|tapas?|empanadas?|milanesa|choripan|helado|postre|comida [a-záéíóúñ]+|italiana|japonesa|china|mexicana|española|argentina|peruana|tailandesa|india|francesa)\b/i);
-    const foodType = foodTypeMatch?.[1];
-    const query = [foodType, city].filter(Boolean).join(" en ") || message;
-    return {
-      category: "world_info",
-      tool: "restaurant_deep_search",
-      confidence: 0.99,
-      toolArgs: { query }
-    };
-  }
-  if (/\b(guardame|guardar|guarda|guardá|salvá|salvame|guardalo|guardala|guardar inform|guardar este|guardar este informe|salvar este|salvar informe)\b/.test(normalized)) {
-    const collMatch = normalized.match(/(?:en\s+(?:la\s+|el\s+)?)?(?:coleccion|carpeta|tablero)\s+([a-záéíóúñ0-9\s·]+?)(?:\.|$)/i);
-    const collection = collMatch?.[1]?.trim();
-    const titleMatch = normalized.match(/(?:informe|reporte|estudio|análisis|analisis)\s+(?:sobre|de|del)\s+([^.!?]+)/i);
-    const title = titleMatch?.[1]?.trim() || "Informe guardado";
-    return {
-      category: "action",
-      tool: "save_personal_item",
-      confidence: 0.99,
-      toolArgs: {
-        title: title.slice(0, 100),
-        collection: collection || "Koru \xB7 Informes",
-        uiBlockType: "saved_record",
-        recordKind: "idea",
-        note: "Guardado desde chat"
-      }
-    };
-  }
-  const isRecommendation = /\b(que pelicula|que peli|que serie|que juego|que libro|que puedo ver|que puedo jugar|que puedo leer|sugerime|sugerí|recomenda|recomendame|recomienda|alguna pelicula|alguna serie|algún juego|algún libro|una pelicula buena|una serie buena|un juego bueno|un libro bueno)\b/.test(normalized);
-  if (isRecommendation) {
-    return {
-      category: "review",
-      tool: "web_search",
-      confidence: 0.9,
-      toolArgs: { query: message, mode: "research" }
-    };
-  }
-  if (/\b(pelicula|peli)\b/.test(normalized)) {
-    const quotedMatch = normalized.match(/(?:pelicula|peli)\s+["']([^"']{2,80})["']/i);
-    if (quotedMatch) {
-      return { category: "media", tool: "movie_info", confidence: 0.99, toolArgs: { title: quotedMatch[1].trim() } };
-    }
-    const deMatch = normalized.match(/(?:pelicula|peli)\s+(?:de|del|la|el|los|las)\s+([a-záéíóúñ][a-záéíóúñ\s]{2,60})/i);
-    if (deMatch) {
-      const title = deMatch[1].replace(/[?!.].*$/, "").trim();
-      if (title.length >= 3 && !/\b(puedo|ver|ver hoy|ver hoy|jugar|leer|buena|bueno|nueva|nuevo)\b/i.test(title)) {
-        return { category: "media", tool: "movie_info", confidence: 0.95, toolArgs: { title } };
-      }
-    }
-    const infoMatch = normalized.match(/(?:informacion sobre|info de|resena de|reseña de|critica de|crítica de|de que trata|que se dice de)\s+(?:la\s+)?(?:pelicula|peli)\s+([a-záéíóúñ][a-záéíóúñ\s]{2,60})/i);
-    if (infoMatch) {
-      return { category: "media", tool: "movie_info", confidence: 0.95, toolArgs: { title: infoMatch[1].replace(/[?!.].*$/, "").trim() } };
-    }
-  }
-  if (/\b(libro|novela)\b/.test(normalized)) {
-    const quotedMatch = normalized.match(/(?:libro|novela)\s+["']([^"']{2,80})["']/i);
-    if (quotedMatch) {
-      return { category: "media", tool: "book_info", confidence: 0.99, toolArgs: { title: quotedMatch[1].trim() } };
-    }
-    const deMatch = normalized.match(/(?:libro|novela)\s+(?:de|del|la|el|los|las)\s+([a-záéíóúñ][a-záéíóúñ\s]{2,60})/i);
-    if (deMatch) {
-      const title = deMatch[1].replace(/[?!.].*$/, "").trim();
-      if (title.length >= 3 && !/\b(puedo|ver|leer|buena|bueno|nueva|nuevo)\b/i.test(title)) {
-        return { category: "media", tool: "book_info", confidence: 0.95, toolArgs: { title } };
-      }
-    }
-    const infoMatch = normalized.match(/(?:informacion sobre|info de|resena de|reseña de|de que trata|que se dice de)\s+(?:el\s+)?(?:libro|novela)\s+([a-záéíóúñ][a-záéíóúñ\s]{2,60})/i);
-    if (infoMatch) {
-      return { category: "media", tool: "book_info", confidence: 0.95, toolArgs: { title: infoMatch[1].replace(/[?!.].*$/, "").trim() } };
-    }
-  }
-  if (/\b(juego|videojuego)\b/.test(normalized)) {
-    const quotedMatch = normalized.match(/(?:juego|videojuego)\s+["']([^"']{2,80})["']/i);
-    if (quotedMatch) {
-      return { category: "media", tool: "game_info", confidence: 0.99, toolArgs: { title: quotedMatch[1].trim() } };
-    }
-    const deMatch = normalized.match(/(?:juego|videojuego)\s+(?:de|del|la|el|los|las)\s+([a-záéíóúñ][a-záéíóúñ\s:]{2,60})/i);
-    if (deMatch) {
-      const title = deMatch[1].replace(/[?!.].*$/, "").trim();
-      if (title.length >= 3 && !/\b(puedo|ver|jugar|buena|bueno|nueva|nuevo)\b/i.test(title)) {
-        return { category: "media", tool: "game_info", confidence: 0.95, toolArgs: { title } };
-      }
-    }
-    const infoMatch = normalized.match(/(?:informacion sobre|info de|resena de|reseña de|critica de|crítica de|como es|analisis de|análisis de)\s+(?:el\s+)?(?:juego|videojuego)\s+([a-záéíóúñ][a-záéíóúñ\s:]{2,60})/i);
-    if (infoMatch) {
-      return { category: "media", tool: "game_info", confidence: 0.95, toolArgs: { title: infoMatch[1].replace(/[?!.].*$/, "").trim() } };
-    }
-    const directMatch = normalized.match(/(?:resena|reseña|info|informacion|critica|crítica|analisis|análisis)\s+(?:del|de la|de)\s+(?:juego|videojuego)\s+([a-záéíóúñ][a-záéíóúñ\s:]{2,60})/i);
-    if (directMatch) {
-      return { category: "media", tool: "game_info", confidence: 0.95, toolArgs: { title: directMatch[1].replace(/[?!.].*$/, "").trim() } };
-    }
-  }
-  if (/\b(recordame|recordar|no me dejes olvidar|no me olvides|avisame|avisa|recuerdame|recuerda)\b/.test(normalized)) {
-    const titleMatch = normalized.match(/(?:recordame|recordar|recuerdame|recuerda|no me dejes olvidar|no me olvides|avisame|avisa)\s+(.+?)(?:\s+(?:a las|al|el|en|para|mañana|pasado)\b|$)/);
-    const title = titleMatch?.[1]?.trim() ?? message.replace(/.*(?:recordame|recordar|recuerdame|recuerda|no me dejes olvidar|no me olvides|avisame|avisa)\s+/i, "").trim();
-    const timeMatch = normalized.match(/\b(a las\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?|al\s+\d{1,2}(?::\d{2})?|el\s+\d{1,2}|mañana|pasado mañana|en\s+\d+\s*(?:horas?|minutos?|días?))\b/i);
-    const dueText = timeMatch?.[0] ?? "";
-    return {
-      category: "action",
-      tool: "reminder_set",
-      confidence: 0.99,
-      toolArgs: {
-        title: title.slice(0, 100) || "Recordatorio",
-        dueText: dueText || "pr\xF3ximamente"
-      }
-    };
   }
   if (/\b(alarma|despertador)\b/.test(normalized)) {
     const timeMatch = normalized.match(/\b(?:a las\s+|al\s+|para las\s+)?(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\b/i);
-    const time = timeMatch?.[1]?.replace(/\s+/g, " ").trim() ?? "";
-    const repeatMatch = normalized.match(/\b(diario|diaria|todos los días|semanal|lunes a viernes|cada día)\b/i);
-    return {
-      category: "action",
-      tool: "alarm_set",
-      confidence: 0.99,
-      toolArgs: {
-        title: message.replace(/.*(?:alarma|despertador)\s+para\s+/i, "").replace(/[?!.].*$/, "").trim() || "Alarma",
-        time: time || "07:00",
-        repeat: repeatMatch?.[0]
-      }
-    };
+    if (timeMatch) {
+      const repeatMatch = normalized.match(/\b(diario|diaria|todos los dias|semanal|lunes a viernes|cada dia)\b/i);
+      return {
+        category: "action",
+        tool: "alarm_set",
+        confidence: 0.99,
+        toolArgs: {
+          title: message.replace(/.*(?:alarma|despertador)\s+para\s+/i, "").replace(/[?!.].*$/, "").trim() || "Alarma",
+          time: timeMatch[1].replace(/\s+/g, " ").trim(),
+          repeat: repeatMatch?.[0]
+        }
+      };
+    }
   }
-  if (/\b(cuanto falta|cuanta falta|cuantos dias faltan|cuantas dias faltan|cuantos dias pasaron|cuanto tiempo paso|faltan para|cuanto falta para)\b/.test(normalized)) {
+  if (/\b(cuantos? dias? faltan|cuanto falta para|faltan para)\b/.test(normalized)) {
     const dateMatch = normalized.match(/(?:para|desde)\s+(.+?)(?:\?|$)/);
     const date = dateMatch?.[1]?.trim() ?? message;
-    const labelMatch = normalized.match(/(?:para|desde)\s+(.+)/);
     return {
       category: "action",
       tool: "countdown",
       confidence: 0.99,
       toolArgs: {
         date,
-        label: labelMatch?.[1]?.trim().slice(0, 60)
+        label: date.slice(0, 60)
       }
     };
   }
-  const hasKnowledgeIntent = /\b(que es|que fue|que son|que era|quien es|quien fue|quien era|quienes son|quienes fueron|contame sobre|explicame|como funciona|definicion de|definición de|hablemos de|cuentame de)\b/.test(normalized);
-  if (hasKnowledgeIntent) {
-    const afterMatch = normalized.match(/(?:que es|que fue|que son|que era|quien es|quien fue|quien era|quienes son|quienes fueron|que significan|que significa)\s+(.+)/i);
-    const afterText = afterMatch?.[1]?.trim()?.replace(/[?!.].*$/, "").trim() ?? "";
-    const isPronoun = /^\s*(eso|este|esta|estos|estas|esto|aquel|aquella|aquello|aquellos|aquellas|el|ella|ellos|ellas|un|una|eso mismo|a|e|o|u|y|de|del|la|los|las)\b/i.test(afterText);
-    const isGeneric = /^(eso|esto|aquel|aquello|eso mismo|eso es todo|esto es todo|nada|todo|algo)\b/i.test(afterText);
-    if (isPronoun || isGeneric) {
-      return null;
-    }
-    if (afterText.length >= 3) {
-      return {
-        category: "knowledge",
-        tool: "wikipedia_lookup",
-        confidence: 0.95,
-        toolArgs: { query: message }
-      };
-    }
-    if (/\b(contame sobre|explicame|como funciona|definicion de|definición de|hablemos de|cuentame de)\b/.test(normalized)) {
-      return {
-        category: "knowledge",
-        tool: "wikipedia_lookup",
-        confidence: 0.95,
-        toolArgs: { query: message }
-      };
-    }
+  if (/\b(guardame|guardar|guarda|guarda|salva|salvame)\b/.test(normalized) && /\b(coleccion|carpeta|tablero)\b/.test(normalized)) {
+    const collMatch = normalized.match(/(?:en\s+(?:la\s+|el\s+)?)?(?:coleccion|carpeta|tablero)\s+([a-záéíóúñ0-9\s·]+?)(?:\.|$)/i);
+    const collection = collMatch?.[1]?.trim();
+    return {
+      category: "action",
+      tool: "save_personal_item",
+      confidence: 0.99,
+      toolArgs: {
+        title: "Informe guardado",
+        collection: collection || "Koru \xB7 Informes",
+        uiBlockType: "saved_record",
+        recordKind: "idea",
+        note: "Guardado desde chat"
+      }
+    };
   }
   return null;
 }
@@ -12400,7 +12252,7 @@ async function runKoruBackendTurn(request, config2, onChunk) {
       }
     }
     if (fastPathResult) {
-      logger.info("runKoruBackendTurn", "Keyword fast-path match", {
+      logger.info("runKoruBackendTurn", "Keyword fast-path match (minimal)", {
         category: fastPathResult.category,
         tool: fastPathResult.tool ?? "none",
         confidence: fastPathResult.confidence.toFixed(2)
