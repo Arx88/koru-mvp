@@ -961,6 +961,24 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
               ),
             )}
 
+            {/* 🔴 Typing indicator — tres puntos animados cuando Koru está procesando */}
+            {processing && !isListening && !workingDeliverable && (
+              <div className="koru-message is-koru">
+                <div className="koru-row">
+                  <div className="koru-avatar">
+                    <img src={KORU_AVATAR} alt="Koru" />
+                  </div>
+                  <div className="koru-bubble ai-bubble">
+                    <div className="koru-typing-indicator">
+                      <span className="koru-typing-dot" />
+                      <span className="koru-typing-dot" />
+                      <span className="koru-typing-dot" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Onboarding conversacional — greeting con chips */}
             {onboarding && onboardingPhase === "greeting" && !processing && (
               <div className="koru-message is-koru">
