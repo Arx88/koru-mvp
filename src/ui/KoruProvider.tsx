@@ -700,22 +700,31 @@ export function KoruProvider({ children }: { children: ReactNode }) {
               : turn,
           ),
         );
-        // 🔴 Memory toast: si se capturaron memorias nuevas, mostrar toast animado.
-        // Tomamos la primera memoria del resultado (la más relevante).
-        const newMemories = result.state.memories.filter(
-          (m: any) => !previousState.memories.find((existing: any) => existing.text === m.text),
+        // 🔴 Memory toast: si hay memoryCandidates en la respuesta, mostrar toast.
+        // Usamos agentResult.memoryCandidates directamente (no comparamos estados,
+        // porque la deduplicación ya se hizo en applyBackendTurnToState).
+        const candidates = (agentResult.memoryCandidates ?? []).filter(
+          (m: any) => m && typeof m.text === "string" && m.text.length > 4,
         );
-        if (newMemories.length > 0 && !previousState.ephemeralMode && previousState.durableMemoryEnabled) {
-          const first = newMemories[0];
-          setMemoryToast({
-            id: first.id,
-            kind: first.kind,
-            text: first.text,
+        if (candidates.length > 0 && !previousState.ephemeralMode && previousState.durableMemoryEnabled) {
+          const first = candidates[0];
+          // Solo mostrar si NO existe ya una memoria con el mismo texto (deduplicación visual)
+          const normalizedNew = first.text.toLowerCase().replace(/[áéíóú]/g, (m: string) => ({ á: "a", é: "e", í: "i", ó: "o", ú: "u" }[m]!)).replace(/[^a-z0-9\s]/g, "").trim();
+          const alreadyExists = previousState.memories.some((existing: any) => {
+            const norm = existing.text.toLowerCase().replace(/[áéíóú]/g, (m: string) => ({ á: "a", é: "e", í: "i", ó: "o", ú: "u" }[m]!)).replace(/[^a-z0-9\s]/g, "").trim();
+            return norm === normalizedNew;
           });
-          // Auto-dismiss después de 6 segundos
-          setTimeout(() => {
-            setMemoryToast((current) => (current?.id === first.id ? null : current));
-          }, 6000);
+          if (!alreadyExists) {
+            setMemoryToast({
+              id: `toast_${Date.now()}`,
+              kind: first.kind,
+              text: first.text,
+            });
+            // Auto-dismiss después de 6 segundos
+            setTimeout(() => {
+              setMemoryToast((current) => (current?.text === first.text ? null : current));
+            }, 6000);
+          }
         }
       }
       writeAuditEvent({

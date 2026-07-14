@@ -410,6 +410,17 @@ export function applyBackendTurnToState(
     ? []
     : result.memoryCandidates
         .filter((candidate) => isReadableFact(candidate.text))
+        // 🔴 FIX DEDUPLICACIÓN: si ya existe una memoria con el mismo texto (o casi igual),
+        // NO agregarla de nuevo. Comparamos por texto normalizado (sin mayúsculas, sin
+        // puntuación, sin acentos) para que "Le encanta el helado de pistacho." y
+        // "le encanta el helado de pistacho" cuenten como la misma.
+        .filter((candidate) => {
+          const candidateNorm = candidate.text.toLowerCase().replace(/[áéíóú]/g, (m) => ({ á: "a", é: "e", í: "i", ó: "o", ú: "u" }[m]!)).replace(/[^a-z0-9\s]/g, "").trim();
+          return !state.memories.some((existing) => {
+            const existingNorm = existing.text.toLowerCase().replace(/[áéíóú]/g, (m) => ({ á: "a", é: "e", í: "i", ó: "o", ú: "u" }[m]!)).replace(/[^a-z0-9\s]/g, "").trim();
+            return candidateNorm === existingNorm;
+          });
+        })
         .map((candidate) => ({
           ...candidate,
           id: createId("mem"),
