@@ -3942,6 +3942,27 @@ function replyFromBlocks(blocks: UiBlock[], input: string): string {
     }
     return "Te deje el resultado del partido en la tarjeta.";
   }
+  // 🔴 FIX: restaurant_synthesis (usado por restaurant_deep_search)
+  if (first.type === "restaurant_synthesis") {
+    const topMatch = first.matches?.[0];
+    if (topMatch) {
+      return `Te deje el cruce de reseñas en la tarjeta. El más mencionado: ${topMatch.name}.`;
+    }
+    return "Te deje el cruce de reseñas en la tarjeta.";
+  }
+  // 🔴 FIX: crypto_portfolio (usado por crypto_price)
+  if (first.type === "crypto_portfolio") {
+    const item = first.items?.[0];
+    if (item) {
+      const change = item.change !== undefined ? (item.change >= 0 ? ` Subió ${item.change}%` : ` Bajó ${Math.abs(item.change)}%`) : "";
+      return `${item.name} está en ${item.price}.${change} Te dejé el detalle en la tarjeta.`;
+    }
+    return "Te deje la cotización en la tarjeta.";
+  }
+  // 🔴 FIX: deliverable (usado por web_search y deep_research)
+  if (first.type === "deliverable") {
+    return first.summary ? `${first.summary.slice(0, 200)}` : "Te dejé el resultado en la tarjeta.";
+  }
   return "";
 }
 
@@ -5547,8 +5568,22 @@ export async function runKoruBackendTurn(
         }
 
         if (delivered) {
-          const fastConfig = { ...config, nvidiaModel: config.nvidiaFastModel || "meta/llama-3.1-8b-instruct" };
-          const response = await finalizePayloadWithFastModel(request, fastConfig, delivered, toolExecutions, 30_000);
+          // 🔴 FIX CRÍTICO: NO usar el reply del LLM (que puede decir "ya te la doy" sin entregar).
+          // Generar reply mecánicamente desde los tool blocks + memory extractor.
+          // Esto garantiza que el reply SIEMPRE sea "Te dejé X en la tarjeta" cuando hay datos.
+          const fastConfig = { ...config, nvidiaModel: config.nvidiaModel };
+          const toolBlocks = blocksFromToolResults(toolExecutions);
+          const blockReply = replyFromBlocks(toolBlocks, request.input);
+          const taskKicker = fastPathKickerForCategory(route.category);
+          const effectiveReply = blockReply || (toolBlocks.length > 0 ? `Te dejé ${taskKicker.toLowerCase()} en la tarjeta.` : cleanText((delivered as any).reply) || "Listo.");
+          const overridden = { ...delivered, reply: effectiveReply, uiBlocks: [] as any[] };
+          let response: KoruBackendTurnResponse;
+          try {
+            const extracted = await extractMemoryWithJsonPrompt(request, fastConfig, toolExecutions, overridden, 15_000);
+            response = normalizeFinalPayload(overridden, request.input, toolExecutions, extracted.raw);
+          } catch {
+            response = normalizeFinalPayload(overridden, request.input, toolExecutions);
+          }
           return { ...response, provider, model, fallbackReason: "fastpath-" + route.category };
         }
       }

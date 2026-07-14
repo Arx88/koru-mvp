@@ -778,28 +778,46 @@ export function keywordFastPath(message: string): RouteResult | null {
   }
 
   // ── FOOD: recetas ──
-  if (/\b(receta|recetas|como hago|como preparo|como cocino|que cocino|que preparo|plato|comida|postre|almuerzo|cena|desayuno|merienda)\b/.test(normalized)) {
-    // 🔴 FIX: extraer el ingrediente/plato de varias formas comunes
+  // 🔴 FIX: solo disparar recipe_find si hay un plato/ingrediente ESPECÍFICO.
+  // Si el usuario pide genéricamente ("dame una receta", "que cocino"), NO disparamos
+  // recipe_find porque TheMealDB no encuentra nada y el LLM termina diciendo "ya te la doy".
+  // En esos casos, dejamos que el LLM/router decida (puede ir a web_search).
+  if (/\b(receta de|recetas de|como hago|como preparo|como cocino|receta para|recetas para)\b/.test(normalized)) {
     let query: string | undefined;
     let m: RegExpMatchArray | null;
-    if ((m = normalized.match(/(?:receta de|como hago|como preparo|como cocino|como preparo|que preparo)\s+([a-záéíóúñ\s]+)/))) {
+    if ((m = normalized.match(/(?:receta de|como hago|como preparo|como cocino|receta para|recetas para|recetas de)\s+([a-záéíóúñ\s]+)/))) {
       query = m[1];
-    } else if ((m = normalized.match(/(?:dame|pasame|quiero|necesito|buscame|encontrame)\s+(?:\d+\s+)?recetas?\s+(?:de|con|para)\s+([a-záéíóúñ\s]+)/))) {
-      query = m[1];
-    } else if ((m = normalized.match(/recetas?\s+(?:con|de|para)\s+([a-záéíóúñ\s]+)/))) {
-      query = m[1];
-    } else if ((m = normalized.match(/que cocino\s+(?:con|de|para)\s+([a-záéíóúñ\s]+)/))) {
-      query = m[1];
-    } else if ((m = normalized.match(/tengo\s+([a-záéíóúñ\s,]+)/))) {
-      query = m[1].split(",")[0].trim();
     }
-    const cleanedQuery = query?.replace(/[?!.].*$/, "").trim() || message;
+    const cleanedQuery = query?.replace(/[?!.].*$/, "").trim();
+    // Solo disparar si tenemos un query específico de al menos 3 letras
+    if (cleanedQuery && cleanedQuery.length >= 3 && !/(dame|una|alguna|quiero|necesito|paso)/i.test(cleanedQuery)) {
+      return {
+        category: "food",
+        tool: "recipe_find",
+        confidence: 0.99,
+        toolArgs: { query: cleanedQuery },
+      };
+    }
+    // Si no hay plato específico, caer a web_search
     return {
       category: "food",
-      tool: "recipe_find",
-      confidence: 0.99,
-      toolArgs: { query: cleanedQuery },
+      tool: "web_search",
+      confidence: 0.9,
+      toolArgs: { query: message, mode: "research" },
     };
+  }
+  // "recetas con X" / "dame 3 recetas con X" — extraer ingrediente
+  if (/\b(recetas?\s+(?:con|de)\s+|dame\s+\d*\s*recetas?\s+(?:con|de))\b/.test(normalized)) {
+    const m = normalized.match(/(?:recetas?\s+(?:con|de)\s+|dame\s+\d*\s*recetas?\s+(?:con|de)\s+)([a-záéíóúñ\s]+)/);
+    const query = m?.[1]?.replace(/[?!.].*$/, "").trim();
+    if (query && query.length >= 3) {
+      return {
+        category: "food",
+        tool: "recipe_find",
+        confidence: 0.99,
+        toolArgs: { query },
+      };
+    }
   }
 
   // 🔴 FIX: restaurant deep search — "donde como X" / "restaurantes X"
@@ -837,37 +855,89 @@ export function keywordFastPath(message: string): RouteResult | null {
     };
   }
 
-  // ── MEDIA: película / libro ──
-  if (/\b(pelicula|peliculas|serie|series|documental|peli)\b/.test(normalized)) {
-    const movieMatch = normalized.match(/(?:pelicula|peli|serie|documental)\s+(?:["']([^"']+)["']|([a-z0-9\s]+))/);
-    const title = movieMatch?.[1] ?? movieMatch?.[2] ?? message.replace(/.*pelicula\s+/i, "").replace(/[?!.].*$/, "").trim();
+  // ── MEDIA: película / libro / juego ──
+  // 🔴 FIX CRÍTICO: NO interceptar recomendaciones ("que pelicula puedo ver", "sugerime una peli").
+  // Solo interceptar cuando hay un TÍTULO ESPECÍFICO después de la palabra clave.
+  // Antes: "que pelicula puedo ver" → extraía "puedo ver" como título → buscaba un álbum de Charly García.
+  // Ahora: detecta que es una recomendación y cae a web_search.
+
+  // Detectar pedidos de recomendación → web_search (NO movie_info)
+  const isRecommendation = /\b(que pelicula|que peli|que serie|que juego|que libro|que puedo ver|que puedo jugar|que puedo leer|sugerime|sugerí|recomenda|recomendame|recomienda|alguna pelicula|alguna serie|algún juego|algún libro|una pelicula buena|una serie buena|un juego bueno|un libro bueno)\b/.test(normalized);
+  if (isRecommendation) {
     return {
-      category: "media",
-      tool: "movie_info",
-      confidence: 0.99,
-      toolArgs: { title },
+      category: "review",
+      tool: "web_search",
+      confidence: 0.9,
+      toolArgs: { query: message, mode: "research" },
     };
   }
-  if (/\b(libro|libros|novela|novelas)\b/.test(normalized)) {
-    const bookMatch = normalized.match(/(?:libro|novela)\s+(?:["']([^"']+)["']|([a-z0-9\s]+))/);
-    const title = bookMatch?.[1] ?? bookMatch?.[2] ?? message.replace(/.*libro\s+/i, "").replace(/[?!.].*$/, "").trim();
-    return {
-      category: "media",
-      tool: "book_info",
-      confidence: 0.99,
-      toolArgs: { title },
-    };
+
+  // Película: solo si hay título específico entre comillas o después de "pelicula X"
+  // "pelicula Inception", "peli Avatar", "la pelicula Joker"
+  if (/\b(pelicula|peli)\b/.test(normalized)) {
+    // Buscar título entre comillas: pelicula "Inception"
+    const quotedMatch = normalized.match(/(?:pelicula|peli)\s+["']([^"']{2,80})["']/i);
+    if (quotedMatch) {
+      return { category: "media", tool: "movie_info", confidence: 0.99, toolArgs: { title: quotedMatch[1].trim() } };
+    }
+    // Buscar título después de "pelicula/peli LA/EL/DEL": "pelicula de Inception", "peli el padrino"
+    const deMatch = normalized.match(/(?:pelicula|peli)\s+(?:de|del|la|el|los|las)\s+([a-záéíóúñ][a-záéíóúñ\s]{2,60})/i);
+    if (deMatch) {
+      const title = deMatch[1].replace(/[?!.].*$/, "").trim();
+      // Filtrar palabras genéricas que NO son títulos
+      if (title.length >= 3 && !/\b(puedo|ver|ver hoy|ver hoy|jugar|leer|buena|bueno|nueva|nuevo)\b/i.test(title)) {
+        return { category: "media", tool: "movie_info", confidence: 0.95, toolArgs: { title } };
+      }
+    }
+    // "información sobre la pelicula X" / "reseña de la pelicula X"
+    const infoMatch = normalized.match(/(?:informacion sobre|info de|resena de|reseña de|critica de|crítica de|de que trata|que se dice de)\s+(?:la\s+)?(?:pelicula|peli)\s+([a-záéíóúñ][a-záéíóúñ\s]{2,60})/i);
+    if (infoMatch) {
+      return { category: "media", tool: "movie_info", confidence: 0.95, toolArgs: { title: infoMatch[1].replace(/[?!.].*$/, "").trim() } };
+    }
+    // Si no matcheó ningún patrón con título, NO interceptar — dejar al LLM decidir
   }
-  // 🔴 FIX: MEDIA — videojuegos (game_info)
-  if (/\b(juego|videojuego|juegos|videojuegos|game|games)\b/.test(normalized)) {
-    const gameMatch = normalized.match(/(?:juego|videojuego|game)\s+(?:["']([^"']+)["']|([a-z0-9\s:]+))/i);
-    const title = gameMatch?.[1] ?? gameMatch?.[2] ?? message.replace(/.*(?:juego|videojuego|game)\s+/i, "").replace(/[?!.].*$/, "").trim();
-    return {
-      category: "media",
-      tool: "game_info",
-      confidence: 0.99,
-      toolArgs: { title },
-    };
+
+  // Libro: misma lógica
+  if (/\b(libro|novela)\b/.test(normalized)) {
+    const quotedMatch = normalized.match(/(?:libro|novela)\s+["']([^"']{2,80})["']/i);
+    if (quotedMatch) {
+      return { category: "media", tool: "book_info", confidence: 0.99, toolArgs: { title: quotedMatch[1].trim() } };
+    }
+    const deMatch = normalized.match(/(?:libro|novela)\s+(?:de|del|la|el|los|las)\s+([a-záéíóúñ][a-záéíóúñ\s]{2,60})/i);
+    if (deMatch) {
+      const title = deMatch[1].replace(/[?!.].*$/, "").trim();
+      if (title.length >= 3 && !/\b(puedo|ver|leer|buena|bueno|nueva|nuevo)\b/i.test(title)) {
+        return { category: "media", tool: "book_info", confidence: 0.95, toolArgs: { title } };
+      }
+    }
+    const infoMatch = normalized.match(/(?:informacion sobre|info de|resena de|reseña de|de que trata|que se dice de)\s+(?:el\s+)?(?:libro|novela)\s+([a-záéíóúñ][a-záéíóúñ\s]{2,60})/i);
+    if (infoMatch) {
+      return { category: "media", tool: "book_info", confidence: 0.95, toolArgs: { title: infoMatch[1].replace(/[?!.].*$/, "").trim() } };
+    }
+  }
+
+  // Juego: misma lógica
+  if (/\b(juego|videojuego)\b/.test(normalized)) {
+    const quotedMatch = normalized.match(/(?:juego|videojuego)\s+["']([^"']{2,80})["']/i);
+    if (quotedMatch) {
+      return { category: "media", tool: "game_info", confidence: 0.99, toolArgs: { title: quotedMatch[1].trim() } };
+    }
+    const deMatch = normalized.match(/(?:juego|videojuego)\s+(?:de|del|la|el|los|las)\s+([a-záéíóúñ][a-záéíóúñ\s:]{2,60})/i);
+    if (deMatch) {
+      const title = deMatch[1].replace(/[?!.].*$/, "").trim();
+      if (title.length >= 3 && !/\b(puedo|ver|jugar|buena|bueno|nueva|nuevo)\b/i.test(title)) {
+        return { category: "media", tool: "game_info", confidence: 0.95, toolArgs: { title } };
+      }
+    }
+    const infoMatch = normalized.match(/(?:informacion sobre|info de|resena de|reseña de|critica de|crítica de|como es|analisis de|análisis de)\s+(?:el\s+)?(?:juego|videojuego)\s+([a-záéíóúñ][a-záéíóúñ\s:]{2,60})/i);
+    if (infoMatch) {
+      return { category: "media", tool: "game_info", confidence: 0.95, toolArgs: { title: infoMatch[1].replace(/[?!.].*$/, "").trim() } };
+    }
+    // "reseña del juego X" / "info del juego X" — sin la palabra "de" entre medio
+    const directMatch = normalized.match(/(?:resena|reseña|info|informacion|critica|crítica|analisis|análisis)\s+(?:del|de la|de)\s+(?:juego|videojuego)\s+([a-záéíóúñ][a-záéíóúñ\s:]{2,60})/i);
+    if (directMatch) {
+      return { category: "media", tool: "game_info", confidence: 0.95, toolArgs: { title: directMatch[1].replace(/[?!.].*$/, "").trim() } };
+    }
   }
 
   // 🔴 FIX: ACTIONS — recordatorio / alarma / cuenta regresiva
@@ -917,13 +987,40 @@ export function keywordFastPath(message: string): RouteResult | null {
   }
 
   // ── KNOWLEDGE: wikipedia ──
-  if (/\b(que es|que fue|que son|que era|quien es|quien fue|quien era|quienes son|quienes fueron|contame sobre|explicame|como funciona|definicion de|definición de|hablemos de|cuentame de)\b/.test(normalized)) {
-    return {
-      category: "knowledge",
-      tool: "wikipedia_lookup",
-      confidence: 0.95,
-      toolArgs: { query: message },
-    };
+  // 🔴 FIX CRÍTICO: NO interceptar si la pregunta termina en pronombre ("que es eso?", "que es esto?").
+  // Esos son follow-ups que refieren al contexto anterior, no búsquedas enciclopédicas.
+  // Tampoco interceptar "que es eso" o "que son esos" — dejan al LLM usar el contexto.
+  const hasKnowledgeIntent = /\b(que es|que fue|que son|que era|quien es|quien fue|quien era|quienes son|quienes fueron|contame sobre|explicame|como funciona|definicion de|definición de|hablemos de|cuentame de)\b/.test(normalized);
+  if (hasKnowledgeIntent) {
+    // Extraer lo que viene después de "que es" / "que son" / "quien es" etc.
+    const afterMatch = normalized.match(/(?:que es|que fue|que son|que era|quien es|quien fue|quien era|quienes son|quienes fueron|que significan|que significa)\s+(.+)/i);
+    const afterText = afterMatch?.[1]?.trim()?.replace(/[?!.].*$/, "").trim() ?? "";
+    // Pronombres y referencias vagas → NO es búsqueda enciclopédica, es follow-up
+    const isPronoun = /^\s*(eso|este|esta|estos|estas|esto|aquel|aquella|aquello|aquellos|aquellas|el|ella|ellos|ellas|un|una|eso mismo|a|e|o|u|y|de|del|la|los|las)\b/i.test(afterText);
+    // Palabras genéricas → NO es búsqueda
+    const isGeneric = /^(eso|esto|aquel|aquello|eso mismo|eso es todo|esto es todo|nada|todo|algo)\b/i.test(afterText);
+    if (isPronoun || isGeneric) {
+      // Es un follow-up, NO interceptar — dejar al LLM usar el contexto
+      return null;
+    }
+    // Si después de "que es" hay un sustantivo real (3+ letras), disparar wikipedia
+    if (afterText.length >= 3) {
+      return {
+        category: "knowledge",
+        tool: "wikipedia_lookup",
+        confidence: 0.95,
+        toolArgs: { query: message },
+      };
+    }
+    // "contame sobre X" / "explicame X" / "como funciona X" — estos siempre van a wiki
+    if (/\b(contame sobre|explicame|como funciona|definicion de|definición de|hablemos de|cuentame de)\b/.test(normalized)) {
+      return {
+        category: "knowledge",
+        tool: "wikipedia_lookup",
+        confidence: 0.95,
+        toolArgs: { query: message },
+      };
+    }
   }
 
   return null;
