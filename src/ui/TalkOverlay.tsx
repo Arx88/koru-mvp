@@ -342,6 +342,8 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
     showInstallPrompt,
     installApp,
     dismissInstallPrompt,
+    voiceEnabled,
+    toggleVoice,
   } = useKoru();
   const [inputText, setInputText] = useState("");
   const [isListening, setIsListening] = useState(false);
@@ -1107,6 +1109,16 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
             )}
 
             <div className="koru-composer">
+              {/* 🔴 Voice toggle — activar/desactivar TTS de Koru */}
+              <button
+                type="button"
+                onClick={toggleVoice}
+                aria-label={voiceEnabled ? "Desactivar voz de Koru" : "Activar voz de Koru"}
+                className={cn("koru-composer-icon", voiceEnabled && "is-active")}
+                title={voiceEnabled ? "Koru te va a hablar" : "Activar voz"}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>{voiceEnabled ? "volume_up" : "volume_off"}</span>
+              </button>
               <button
                 type="button"
                 onClick={() => setEphemeral(!ephemeral)}

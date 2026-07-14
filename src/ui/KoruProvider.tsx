@@ -38,6 +38,7 @@ import { dueLabel } from "../domain/time";
 import { inferActivity, type AgentActivity } from "../domain/agentKernel";
 import { shouldAutoRunAction } from "../domain/toolRegistry";
 import { checkDueReminders, syncScheduledReminders, scheduleReminderNotification, schedulePreciseTimeout, requestNotificationPermission } from "./NotificationManager";
+import { speak, isVoiceEnabled, setVoiceEnabled, stopSpeaking } from "../domain/koruVoice";
 import { actionToTurnItem, applyBackendTurnToState, type KoruTurnItem, type KoruChatTurn } from "../domain/turn";
 // Fase 2.6: audit extraído a módulo propio
 import { auditEnabled, auditSessionId, writeAuditEvent, auditStateSnapshot, auditTurnItems, auditStateDelta } from "./audit";
@@ -159,6 +160,11 @@ type KoruContextValue = {
   showInstallPrompt: boolean;
   installApp: () => Promise<void>;
   dismissInstallPrompt: () => void;
+  // 🔴 Voice (TTS)
+  voiceEnabled: boolean;
+  toggleVoice: () => void;
+  speakReply: (text: string) => void;
+  stopVoice: () => void;
 };
 
 const KoruContext = createContext<KoruContextValue | null>(null);
@@ -176,6 +182,8 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   // 🔴 PWA install prompt
   const [installPromptEvent, setInstallPromptEvent] = useState<any>(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  // 🔴 Voice (TTS)
+  const [voiceEnabled, setVoiceEnabledState] = useState(() => localStorage.getItem("koru.voiceEnabled") === "true");
   const [phase, setPhase] = useState<string | null>(null);
   const [chatTurns, setChatTurns] = useState<KoruChatTurn[]>(() => readChatTurns(localStorage.getItem("koru.username") ?? ""));
   // Clave versionada (v2): la clave vieja "koru.selected-model" quedaba pegada con
@@ -816,6 +824,10 @@ export function KoruProvider({ children }: { children: ReactNode }) {
               : turn,
           ),
         );
+        // 🔴 Voice: si voice está activado, Koru habla la respuesta
+        if (voiceEnabled && agentResult.reply) {
+          speak(agentResult.reply);
+        }
         // 🔴 Memory toast: si hay memoryCandidates en la respuesta, mostrar toast.
         // Buscar en memoryCandidates top-level Y dentro de toolResults (save_memory tool).
         const topCandidates = (agentResult.memoryCandidates ?? []);
@@ -1179,7 +1191,19 @@ export function KoruProvider({ children }: { children: ReactNode }) {
       setShowInstallPrompt(false);
       localStorage.setItem("koru.installDismissed", "1");
     },
-  }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, domainState.records, permissions, processing, activity, phase, chatTurns, selectedModel, memoryToast, morningBrief, showInstallPrompt, installPromptEvent]);
+    voiceEnabled,
+    toggleVoice: () => {
+      const next = !voiceEnabled;
+      setVoiceEnabledState(next);
+      setVoiceEnabled(next);
+      localStorage.setItem("koru.voiceEnabled", String(next));
+      if (!next) stopSpeaking();
+    },
+    speakReply: (text: string) => {
+      if (voiceEnabled) speak(text);
+    },
+    stopVoice: () => stopSpeaking(),
+  }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, domainState.records, permissions, processing, activity, phase, chatTurns, selectedModel, memoryToast, morningBrief, showInstallPrompt, installPromptEvent, voiceEnabled]);
 
   // 🔴 Listener para guardar record desde el detail screen (botón Guardar informe)
   useEffect(() => {
