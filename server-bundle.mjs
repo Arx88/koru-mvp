@@ -1819,7 +1819,7 @@ function keywordFastPath(message) {
       }
     };
   }
-  if (/\b(que es|que fue|quien es|quien fue|quienes son|contame sobre|explicame|como funciona|definicion de|definición de)\b/.test(normalized)) {
+  if (/\b(que es|que fue|que son|que era|quien es|quien fue|quien era|quienes son|quienes fueron|contame sobre|explicame|como funciona|definicion de|definición de|hablemos de|cuentame de)\b/.test(normalized)) {
     return {
       category: "knowledge",
       tool: "wikipedia_lookup",
