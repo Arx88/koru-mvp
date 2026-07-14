@@ -152,6 +152,9 @@ type KoruContextValue = {
   // 🔴 Memory toast: aparece cuando Koru aprende algo del usuario
   memoryToast: { id: string; kind: string; text: string } | null;
   dismissMemoryToast: () => void;
+  // 🔴 Morning brief
+  morningBrief: any | null;
+  dismissMorningBrief: () => void;
 };
 
 const KoruContext = createContext<KoruContextValue | null>(null);
@@ -164,6 +167,8 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   const [activity, setActivity] = useState<AgentActivity | null>(null);
   // 🔴 Memory toast: se setea cuando llegan memoryCandidates nuevos y se limpia con dismissMemoryToast
   const [memoryToast, setMemoryToast] = useState<{ id: string; kind: string; text: string } | null>(null);
+  // 🔴 Morning brief state
+  const [morningBrief, setMorningBrief] = useState<any | null>(null);
   const [phase, setPhase] = useState<string | null>(null);
   const [chatTurns, setChatTurns] = useState<KoruChatTurn[]>(() => readChatTurns(localStorage.getItem("koru.username") ?? ""));
   // Clave versionada (v2): la clave vieja "koru.selected-model" quedaba pegada con
@@ -232,7 +237,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    void loadPersistedState().then((persisted) => {
+    void loadPersistedState().then(async (persisted) => {
       if (!cancelled) {
         const nudges = buildHeartbeatNudges(persisted);
         commitDomainState(nudges.length > 0 ? applyHeartbeatNudges(persisted, nudges) : persisted);
@@ -241,6 +246,36 @@ export function KoruProvider({ children }: { children: ReactNode }) {
         syncScheduledReminders(persisted.commitments ?? [], userId);
         // Check overdue reminders on app load
         checkDueReminders(userId);
+
+        // 🔴 Morning Brief: si es mañana y no se mostró hoy, generar
+        const now = new Date();
+        const hour = now.getHours();
+        const today = now.toISOString().slice(0, 10);
+        const lastBriefDate = localStorage.getItem("koru.lastBriefDate");
+        if (hour >= 5 && hour <= 11 && lastBriefDate !== today) {
+          try {
+            const stateForBrief = {
+              memories: (persisted.memories ?? []).filter((m: any) => m.status === "confirmed" || m.status === "candidate").slice(0, 10).map((m: any) => ({ kind: m.kind, text: m.text })),
+              commitments: (persisted.commitments ?? []).filter((c: any) => c.status === "open").slice(0, 5).map((c: any) => ({ title: c.title, dueHint: c.dueHint, dueAt: c.dueAt })),
+              userName: persisted.userName ?? "",
+              lastBriefDate,
+            };
+            const res = await fetch("/api/koru/morning-brief", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ state: stateForBrief }),
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data.shouldShow && data.brief) {
+                setMorningBrief(data.brief);
+                localStorage.setItem("koru.lastBriefDate", data.date ?? today);
+              }
+            }
+          } catch {
+            // silent — brief is optional
+          }
+        }
       }
     });
     return () => { cancelled = true; };
@@ -1078,7 +1113,9 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     dismissNudge: (id: string) => commitDomainState((prev) => dismissNudge(prev, id)),
     memoryToast,
     dismissMemoryToast: () => setMemoryToast(null),
-  }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, domainState.records, permissions, processing, activity, phase, chatTurns, selectedModel, memoryToast]);
+    morningBrief,
+    dismissMorningBrief: () => setMorningBrief(null),
+  }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, domainState.records, permissions, processing, activity, phase, chatTurns, selectedModel, memoryToast, morningBrief]);
 
   // 🔴 Listener para guardar record desde el detail screen (botón Guardar informe)
   useEffect(() => {

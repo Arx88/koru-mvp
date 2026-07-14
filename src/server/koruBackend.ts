@@ -986,7 +986,7 @@ function isOllamaUrl(baseUrl: string | undefined): boolean {
   return value.includes(":11434") || value.includes("ollama");
 }
 
-function inferProviderFromModel(model: string | undefined): "minimax" | "nvidia" | "openrouter" | "bluesminds" | undefined {
+export function inferProviderFromModel(model: string | undefined): "minimax" | "nvidia" | "openrouter" | "bluesminds" | undefined {
   if (!model) return undefined;
   if (model === "MiniMax-M2.7") return "minimax";
   if (model === "mimo-v2.5") return "bluesminds";
@@ -1047,7 +1047,7 @@ function selectModelForInput(
   return undefined;
 }
 
-async function callProvider(
+export async function callProvider(
   config: ProviderConfig,
   messages: ChatMessage[],
   timeoutMs: number,

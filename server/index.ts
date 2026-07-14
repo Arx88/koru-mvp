@@ -338,6 +338,88 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ── /api/koru/morning-brief — brief matutino automático ──────
+  if (url === "/api/koru/morning-brief" && req.method === "POST") {
+    try {
+      const raw = await readBody(req);
+      const body = JSON.parse(raw || "{}");
+      const { state } = body;
+
+      const now = new Date();
+      const hour = now.getHours();
+      const isMorning = hour >= 5 && hour <= 11;
+
+      if (!isMorning) {
+        sendJson(res, 200, { shouldShow: false, reason: "not_morning" });
+        return;
+      }
+
+      // Verificar si ya se mostró hoy
+      const today = now.toISOString().slice(0, 10);
+      if (state?.lastBriefDate === today) {
+        sendJson(res, 200, { shouldShow: false, reason: "already_shown" });
+        return;
+      }
+
+      // Generar brief con LLM
+      const memories = (state?.memories ?? []).filter((m: any) => m.status === "confirmed" || m.status === "candidate").slice(0, 10);
+      const commitments = (state?.commitments ?? []).filter((c: any) => c.status === "open").slice(0, 5);
+      const userName = state?.userName ?? "";
+
+      const briefMessages = [
+        {
+          role: "system" as const,
+          content: [
+            "Sos Koru. Generá un brief matutino personalizado para el usuario.",
+            "Devolvé SOLO JSON válido: {\"greeting\":\"...\",\"weather\":\"...\",\"tasks\":[],\"memoryHighlight\":\"...\",\"suggestion\":\"...\"}",
+            "Reglas:",
+            "- greeting: saludo cálido personalizado con el nombre del usuario y la fecha.",
+            "- weather: si hay ciudad guardada, mencionar el clima. Si no, omitir.",
+            "- tasks: lista de pendientes del día (commitments con dueHint que incluya hoy/mañana/fecha de hoy).",
+            "- memoryHighlight: referenciar UNA memoria del usuario de forma natural (no como recital).",
+            "- suggestion: UNA sugerencia basada en rutinas o preferencias del usuario.",
+            "- Tono: cercano, cálido, como un amigo que te conoce. No corporativo.",
+            "- Máximo 2-3 oraciones por campo. Conciso pero con personalidad.",
+          ].join("\n"),
+        },
+        {
+          role: "user" as const,
+          content: [
+            `Hora actual: ${now.toISOString()}`,
+            `Nombre: ${userName}`,
+            `Memorias: ${JSON.stringify(memories.map((m: any) => `[${m.kind}] ${m.text}`))}`,
+            `Pendientes: ${JSON.stringify(commitments.map((c: any) => `${c.title} (${c.dueHint ?? "sin fecha"})`))}`,
+          ].join("\n"),
+        },
+      ];
+
+      const { callProvider, inferProviderFromModel } = await import("../src/server/koruBackend.ts");
+      const pp = inferProviderFromModel(config.nvidiaModel);
+      const result = await callProvider(config, briefMessages, 30_000, false, pp);
+      const content = (result.message as any).content?.trim() ?? "";
+
+      let brief: any = null;
+      try {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        brief = JSON.parse(jsonMatch ? jsonMatch[0] : content);
+      } catch {
+        brief = {
+          greeting: `¡Buenos días${userName ? `, ${userName}` : ""}!`,
+          weather: "",
+          tasks: commitments.map((c: any) => c.title),
+          memoryHighlight: "",
+          suggestion: "",
+        };
+      }
+
+      sendJson(res, 200, { shouldShow: true, brief, date: today });
+    } catch (err: any) {
+      console.error("[morning-brief] Error:", err?.message);
+      sendJson(res, 200, { shouldShow: false, error: err?.message });
+    }
+    return;
+  }
+
   // ── /koru-audit/log (auditoría QA) ───────────────────────────
   if (url === "/koru-audit/log" && req.method === "POST") {
     try {

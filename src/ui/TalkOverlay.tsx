@@ -7,6 +7,7 @@ import type { AgentActivityKind } from "../domain/agentKernel";
 import { KoruSemanticCard } from "./chatCards";
 import { KoruBackground, activityToBgState, type KoruBgState } from "./KoruBackground";
 import { MemoryToast } from "./MemoryToast";
+import { MorningBriefCard } from "./MorningBriefCard";
 
 // TalkOverlay = réplica Stitch "Chat con Koru": paisaje nocturno ilustrado a
 // pantalla completa, conversación anclada abajo con burbujas claras (usuario
@@ -334,6 +335,10 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
     setEphemeral,
     memoryToast,
     dismissMemoryToast,
+    morningBrief,
+    dismissMorningBrief,
+    memories,
+    history,
   } = useKoru();
   const [inputText, setInputText] = useState("");
   const [isListening, setIsListening] = useState(false);
@@ -653,11 +658,20 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
 
     (async () => {
       try {
+        // 🔴 FIX CRÍTICO: enviar el state REAL del usuario, no hardcoded vacío.
+        // Esto desbloquea todos los triggers del proactive engine.
+        const stateToSend = {
+          memories: (memories ?? []).filter((m: any) => m.status === "confirmed" || m.status === "candidate").slice(0, 20).map((m: any) => ({ kind: m.kind, text: m.text })),
+          commitments: [],
+          records: [],
+          userName: (history?.[0] as any)?.userName ?? "",
+        };
+
         const res = await fetch("/api/koru/proactive", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            state: { memories: [], commitments: [], records: [], userName: "Juan" },
+            state: stateToSend,
             lastSeen,
           }),
         });
@@ -672,8 +686,6 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
             status: "done",
             mascotState: data.mascotState ?? "happy",
           };
-          // Usar sendMessage interno no sirve — es para user turns.
-          // Inyectar directamente en chatTurns via un event custom.
           window.dispatchEvent(new CustomEvent("koru:proactive", { detail: proactiveTurn }));
         }
       } catch {
@@ -890,6 +902,16 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
             kind={memoryToast.kind}
             text={memoryToast.text}
             onDismiss={dismissMemoryToast}
+          />
+        )}
+
+        {/* 🔴 Morning brief: aparece al abrir la app por la mañana */}
+        {morningBrief && (
+          <MorningBriefCard
+            brief={morningBrief}
+            onStart={() => {
+              dismissMorningBrief();
+            }}
           />
         )}
 
