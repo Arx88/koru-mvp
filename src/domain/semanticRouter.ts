@@ -620,11 +620,44 @@ function extractToolArgs(message: string, tool?: RouteTool): Record<string, unkn
   if (tool === "recipe_find") {
     // Limpiar el query: sacar "receta de", "como hago", "como preparo", etc.
     // TheMealDB busca por nombre de plato, no por frase completa.
-    const recipeQuery = clean
-      .replace(/^(receta de|recetas de|como hago|como preparo|como cocino|receta para|recetas para|receta|recetas)\s+/i, "")
-      .replace(/^(dame|pasame|quiero|necesito|buscame|encontrame)\s+(?:una|dos|tres|algunas?)?\s*(?:receta|recetas)\s+(?:de|con|para)\s+/i, "")
+    let recipeQuery = clean;
+
+    // "tengo pollo y arroz" → "pollo" (primer ingrediente)
+    const tengoMatch = clean.match(/tengo\s+([a-záéíóúñ\s,]+)/i);
+    if (tengoMatch) {
+      recipeQuery = tengoMatch[1].split(/[,y]/)[0].trim();
+    }
+    // "receta de X" → "X"
+    else if (/\breceta de\s+/i.test(clean)) {
+      recipeQuery = clean.replace(/^.*\breceta de\s+/i, "").replace(/[?!.].*$/, "").trim();
+    }
+    // "como hago X" → "X"
+    else if (/\bcomo hago\s+/i.test(clean)) {
+      recipeQuery = clean.replace(/^.*\bcomo hago\s+/i, "").replace(/[?!.].*$/, "").trim();
+    }
+    // "como preparo X" → "X"
+    else if (/\bcomo preparo\s+/i.test(clean)) {
+      recipeQuery = clean.replace(/^.*\bcomo preparo\s+/i, "").replace(/[?!.].*$/, "").trim();
+    }
+    // "algo con X" → "X"
+    else if (/\balgo con\s+/i.test(clean)) {
+      recipeQuery = clean.replace(/^.*\balgo con\s+/i, "").replace(/[?!.].*$/, "").trim();
+    }
+    // "X ingredientes" o "recetas con X" → "X"
+    else if (/\brecetas?\s+con\s+/i.test(clean)) {
+      recipeQuery = clean.replace(/^.*\brecetas?\s+con\s+/i, "").replace(/[?!.].*$/, "").trim();
+    }
+    // "tengo ganas de X" → "X"
+    else if (/\btengo ganas de\s+/i.test(clean)) {
+      recipeQuery = clean.replace(/^.*\btengo ganas de\s+/i, "").replace(/[?!.].*$/, "").trim();
+    }
+
+    // Limpiar palabras genéricas
+    recipeQuery = recipeQuery
+      .replace(/^(dame|una|dos|tres|algunas?|quiero|necesito|buscame|encontrame|tirame|pasame)\s+/i, "")
       .replace(/[?!.]+/g, "")
       .trim();
+
     return { query: recipeQuery || clean };
   }
 

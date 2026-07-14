@@ -1476,7 +1476,24 @@ function extractToolArgs(message, tool) {
     return { query: clean };
   }
   if (tool === "recipe_find") {
-    const recipeQuery = clean.replace(/^(receta de|recetas de|como hago|como preparo|como cocino|receta para|recetas para|receta|recetas)\s+/i, "").replace(/^(dame|pasame|quiero|necesito|buscame|encontrame)\s+(?:una|dos|tres|algunas?)?\s*(?:receta|recetas)\s+(?:de|con|para)\s+/i, "").replace(/[?!.]+/g, "").trim();
+    let recipeQuery = clean;
+    const tengoMatch = clean.match(/tengo\s+([a-záéíóúñ\s,]+)/i);
+    if (tengoMatch) {
+      recipeQuery = tengoMatch[1].split(/[,y]/)[0].trim();
+    } else if (/\breceta de\s+/i.test(clean)) {
+      recipeQuery = clean.replace(/^.*\breceta de\s+/i, "").replace(/[?!.].*$/, "").trim();
+    } else if (/\bcomo hago\s+/i.test(clean)) {
+      recipeQuery = clean.replace(/^.*\bcomo hago\s+/i, "").replace(/[?!.].*$/, "").trim();
+    } else if (/\bcomo preparo\s+/i.test(clean)) {
+      recipeQuery = clean.replace(/^.*\bcomo preparo\s+/i, "").replace(/[?!.].*$/, "").trim();
+    } else if (/\balgo con\s+/i.test(clean)) {
+      recipeQuery = clean.replace(/^.*\balgo con\s+/i, "").replace(/[?!.].*$/, "").trim();
+    } else if (/\brecetas?\s+con\s+/i.test(clean)) {
+      recipeQuery = clean.replace(/^.*\brecetas?\s+con\s+/i, "").replace(/[?!.].*$/, "").trim();
+    } else if (/\btengo ganas de\s+/i.test(clean)) {
+      recipeQuery = clean.replace(/^.*\btengo ganas de\s+/i, "").replace(/[?!.].*$/, "").trim();
+    }
+    recipeQuery = recipeQuery.replace(/^(dame|una|dos|tres|algunas?|quiero|necesito|buscame|encontrame|tirame|pasame)\s+/i, "").replace(/[?!.]+/g, "").trim();
     return { query: recipeQuery || clean };
   }
   if (tool === "movie_info" || tool === "book_info" || tool === "game_info") {
@@ -12476,6 +12493,27 @@ async function runKoruBackendTurn(request, config2, onChunk) {
           });
           messages.push({ role: "assistant", content: "", tool_calls: [syntheticToolCall] });
           const delivered = await executeProviderToolCalls([syntheticToolCall], messages, request, toolExecutions, config2);
+          if (delivered && toolExecutions.length > 0) {
+            const lastResult = toolExecutions[toolExecutions.length - 1]?.result;
+            const toolFailed = lastResult?.status === "no_data" || lastResult?.status === "failed";
+            const isLocalAction = ["reminder_set", "alarm_set", "countdown", "save_personal_item", "save_memory", "plan_day", "query_personal_context"].includes(route.tool ?? "");
+            if (toolFailed && !isLocalAction && route.tool !== "web_search") {
+              logger.info("runKoruBackendTurn", "Router tool failed, falling back to web_search", {
+                failedTool: route.tool,
+                status: lastResult?.status
+              });
+              const fallbackQuery = route.toolArgs?.query || route.toolArgs?.title || request.input;
+              const fallbackToolCall = {
+                id: `router_fallback_${Date.now()}`,
+                type: "function",
+                function: { name: "web_search", arguments: JSON.stringify({ query: fallbackQuery, mode: "research" }) }
+              };
+              messages.push({ role: "assistant", content: "", tool_calls: [fallbackToolCall] });
+              await executeProviderToolCalls([fallbackToolCall], messages, request, toolExecutions, config2);
+              const failedIdx = toolExecutions.findIndex((e) => e.result?.status === "no_data" || e.result?.status === "failed");
+              if (failedIdx >= 0) toolExecutions.splice(failedIdx, 1);
+            }
+          }
           if (delivered) {
             const synthConfig2 = { ...config2, nvidiaModel: config2.nvidiaModel };
             const synthMessages2 = buildMessages(request);

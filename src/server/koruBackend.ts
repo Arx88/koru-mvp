@@ -5666,6 +5666,32 @@ export async function runKoruBackendTurn(
           });
           messages.push({ role: "assistant", content: "", tool_calls: [syntheticToolCall] });
           const delivered = await executeProviderToolCalls([syntheticToolCall], messages, request, toolExecutions, config);
+
+          // 🔴 FIX CRÍTICO: si la tool del router devolvió no_data/failed (ej: recipe_find
+          // no encontró recetas), hacer fallback automático a web_search ANTES de intentar
+          // sintetizar. Sin esto, el usuario ve "Tuve un problema para armar la respuesta".
+          if (delivered && toolExecutions.length > 0) {
+            const lastResult = toolExecutions[toolExecutions.length - 1]?.result as any;
+            const toolFailed = lastResult?.status === "no_data" || lastResult?.status === "failed";
+            const isLocalAction = ["reminder_set", "alarm_set", "countdown", "save_personal_item", "save_memory", "plan_day", "query_personal_context"].includes(route.tool ?? "");
+            if (toolFailed && !isLocalAction && route.tool !== "web_search") {
+              logger.info("runKoruBackendTurn", "Router tool failed, falling back to web_search", {
+                failedTool: route.tool, status: lastResult?.status,
+              });
+              const fallbackQuery = route.toolArgs?.query || route.toolArgs?.title || request.input;
+              const fallbackToolCall: ProviderToolCall = {
+                id: `router_fallback_${Date.now()}`,
+                type: "function",
+                function: { name: "web_search", arguments: JSON.stringify({ query: fallbackQuery, mode: "research" }) },
+              };
+              messages.push({ role: "assistant", content: "", tool_calls: [fallbackToolCall] });
+              await executeProviderToolCalls([fallbackToolCall], messages, request, toolExecutions, config);
+              // Limpiar la tool fallida de toolExecutions
+              const failedIdx = toolExecutions.findIndex(e => (e.result as any)?.status === "no_data" || (e.result as any)?.status === "failed");
+              if (failedIdx >= 0) toolExecutions.splice(failedIdx, 1);
+            }
+          }
+
           if (delivered) {
             // 🔴 FIX: hacer síntesis LLM con el modelo principal (no flash) para generar
             // summary redactado + sections estructuradas en el deliverable.
