@@ -1107,8 +1107,15 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
             )}
 
             <div className="koru-composer">
-              {/* 🔴 Composer limpio: solo adjuntar (paperclip unificado) + input + mic/send.
-                  Voice y ephemeral están en Settings, no aquí. */}
+              {/* 🔴 Composer: ephemeral (toggle rápido) + adjuntar + input + mic/send */}
+              <button
+                type="button"
+                onClick={() => setEphemeral(!ephemeral)}
+                aria-label={ephemeral ? "Desactivar modo efimero" : "Activar modo efimero"}
+                className={cn("koru-composer-icon", ephemeral && "is-active")}
+              >
+                <Leaf size={20} />
+              </button>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
@@ -1116,7 +1123,7 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
                 aria-label="Adjuntar archivo"
                 className={cn("koru-composer-icon", (transcribing || analyzingImage) && "is-active")}
               >
-                <Paperclip size={22} />
+                <Paperclip size={20} />
               </button>
               <input
                 ref={fileInputRef}
