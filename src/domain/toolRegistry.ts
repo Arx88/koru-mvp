@@ -371,6 +371,21 @@ export const TOOL_REGISTRY: Record<ToolCall["tool"], ToolDefinition> = {
     pendingUiBlock: () => null,
     resultToUiBlocks: () => [],
   },
+  crypto_price: {
+    name: "crypto_price",
+    actionKind: "web_research",
+    webMode: "market",
+    policy: { requiresApproval: false, autoRun: true, risk: "readonly", reason: "Lee precios públicos de cripto." },
+    buildPayload: (call) => ({ title: "Crypto", query: asString(call.args.coin) ?? asString(call.args.symbol) ?? asString(call.args.query) }),
+    execute: async (call, index) => ({
+      id: toolId(call, index),
+      tool: call.tool,
+      status: "ok",
+      summary: "Precio de criptomoneda.",
+    }),
+    pendingUiBlock: () => null,
+    resultToUiBlocks: () => [],
+  },
 };
 
 export function getToolDefinition(tool: ToolCall["tool"]): ToolDefinition {

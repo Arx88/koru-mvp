@@ -442,11 +442,11 @@ const CATEGORY_TOOLS: Record<RouteCategory, string[]> = {
   travel: ["travel_itinerary", "flight_search", "hotel_search"],
   directions: ["route_traffic", "weather", "travel_itinerary"],
   elections: ["web_search", "news_topic"],
-  review: ["shopping_compare", "web_search", "movie_info", "book_info", "product_review"],
+  review: ["shopping_compare", "web_search", "movie_info", "book_info", "game_info", "product_review"],
   birthday: ["save_personal_item", "query_personal_context"],
   // 🔴 FIX P1: nuevas categorías para tools que ya existían pero no se rutaban
   food: ["recipe_find", "recipe_by_ingredients", "food_info", "wine_pairing", "nutrition_calc", "restaurant_deep_search"],
-  media: ["movie_info", "book_info", "person_info", "person_filmography", "web_search"],
+  media: ["movie_info", "book_info", "game_info", "person_info", "person_filmography", "web_search"],
   knowledge: ["wikipedia_lookup", "dictionary_define", "math_calc", "unit_convert", "web_search"],
   conversation: [],
 };
@@ -2553,9 +2553,7 @@ function formatTemporalContext(nowIso: string): string[] {
 
 function isTrivialInput(input: string): boolean {
   const trimmed = input.trim().toLowerCase().replace(/[^a-záéíóúñ\s]/g, "");
-  // Si después de quitar símbolos no queda nada, es trivial (solo puntuación/emojis)
   if (trimmed.length === 0) return true;
-  // Si tiene menos de 3 letras, es trivial
   if (trimmed.length < 3) return true;
   const trivial = [
     "hola", "buenos dias", "buen dia", "buenas", "buenas tardes", "buenas noches",
@@ -2565,6 +2563,9 @@ function isTrivialInput(input: string): boolean {
     "gracias", "muchas gracias", "mil gracias", "genial gracias", "ok gracias", "perfecto gracias",
     "ok", "vale", "si", "sí", "no", "bien", "todo bien", "genial", "perfecto", "listo",
   ];
+  // 🔴 FIX: si el input revela información personal, NO es trivial.
+  const hasPersonalReveal = /\b(me encanta|me gusta|me encantan|me gustan|amo|odio|prefiero|soy de|estoy trabajando|estoy aprendiendo|estoy leyendo|estoy escuchando|estoy viendo|estoy estudiando|estoy haciendo|estoy armando|estoy programando|estoy escribiendo|estoy cocinando|tengo que|mi madre|mi padre|mi mama|mi papa|mi hermano|mi hermana|mi hijo|mi hija|mi novio|mi novia|mi mujer|mi marido|mi esposa|mi esposo|mi amigo|mi amiga|juego al|juego a|practico|todos los dias|todas las semanas|cada semana|en una semana|en dos semanas|la semana que viene|el mes que viene|mañana cumplo|cumple años|mi cumple|aniversario)\b/i.test(input);
+  if (hasPersonalReveal) return false;
   return trivial.some(t => trimmed === t || trimmed.startsWith(t + " "));
 }
 
@@ -3581,6 +3582,165 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
       });
       continue;
     }
+
+    // 🔴 FIX: reminder_set devuelve block directo {type: "reminder", title, dueText, note}
+    if (result.type === "reminder_set") {
+      const r = result as any;
+      if (r.block) {
+        blocks.push(r.block as UiBlock);
+      } else {
+        blocks.push({
+          type: "saved_record" as const,
+          title: "Recordatorio guardado",
+          records: [{
+            kind: "deadline" as const,
+            domain: "capture" as const,
+            title: r.title ?? "Recordatorio",
+            value: r.title ?? "Recordatorio",
+            dueHint: r.dueText ?? "",
+            notes: r.note ?? "",
+          }],
+        } as UiBlock);
+      }
+      continue;
+    }
+
+    // 🔴 FIX: alarm_set devuelve block directo {type: "alarm", title, time, repeat, note}
+    if (result.type === "alarm_set") {
+      const r = result as any;
+      if (r.block) {
+        blocks.push(r.block as UiBlock);
+      } else {
+        blocks.push({
+          type: "saved_record" as const,
+          title: "Alarma guardada",
+          records: [{
+            kind: "deadline" as const,
+            domain: "capture" as const,
+            title: r.title ?? "Alarma",
+            value: r.title ?? "Alarma",
+            dueHint: r.time ?? "",
+            notes: [r.repeat, r.note].filter(Boolean).join(" · "),
+          }],
+        } as UiBlock);
+      }
+      continue;
+    }
+
+    // 🔴 FIX: countdown — generar un data_card atractivo con días/horas/dirección
+    if (result.type === "countdown") {
+      const r = result as any;
+      const items: Array<{ label: string; value: string; detail?: string }> = [];
+      const days = Number(r.days ?? 0);
+      const hours = Number(r.hours ?? 0);
+      items.push({ label: "Días", value: String(days), detail: r.direction === "faltan" ? "faltan" : "pasaron" });
+      items.push({ label: "Horas", value: String(hours) });
+      if (r.targetDate) {
+        const d = new Date(r.targetDate);
+        if (!Number.isNaN(d.getTime())) {
+          items.push({ label: "Fecha", value: d.toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" }) });
+        }
+      }
+      blocks.push({
+        type: "data_card" as const,
+        title: r.label ? `Cuenta regresiva · ${r.label}` : "Cuenta regresiva",
+        items,
+      } as UiBlock);
+      continue;
+    }
+
+    // 🔴 FIX: game_info — usar movie_review con rating + metacritic + géneros
+    if (result.type === "game_info") {
+      const r = result as any;
+      if (r.status === "failed" || r.status === "no_data") {
+        (result as any).__gameInfoFailed = true;
+        continue;
+      }
+      blocks.push({
+        type: "movie_review" as const,
+        title: r.title ?? "Juego",
+        poster: r.backgroundImage ?? r.image,
+        rating: typeof r.rating === "number" ? r.rating : undefined,
+        releaseDate: r.released,
+        runtime: r.playtime ? `${r.playtime}h+` : undefined,
+        director: r.developer,
+        cast: Array.isArray(r.publishers) ? r.publishers : undefined,
+        genres: Array.isArray(r.genres) ? r.genres : undefined,
+        overview: (r.description ?? r.summary ?? "").slice(0, 800),
+        sources: Array.isArray(r.sources) ? r.sources : (r.website ? [{ title: r.title, url: r.website, domain: "rawg.io" }] : undefined),
+      } as UiBlock);
+      continue;
+    }
+
+    // 🔴 FIX: dictionary_define — data_card con definición
+    if (result.type === "dictionary_define") {
+      const r = result as any;
+      const items: Array<{ label: string; value: string }> = [];
+      if (r.word) items.push({ label: "Palabra", value: r.word });
+      if (r.phonetic) items.push({ label: "Fonética", value: r.phonetic });
+      if (Array.isArray(r.definitions) && r.definitions.length) {
+        for (const d of r.definitions.slice(0, 3)) {
+          items.push({ label: d.partOfSpeech ?? "Def", value: d.definition ?? "" });
+        }
+      } else if (r.definition) {
+        items.push({ label: "Definición", value: r.definition });
+      }
+      if (items.length) {
+        blocks.push({
+          type: "data_card" as const,
+          title: r.word ?? "Definición",
+          items,
+        } as UiBlock);
+      }
+      continue;
+    }
+
+    // 🔴 FIX: math_calc — data_card con resultado
+    if (result.type === "math_calc") {
+      const r = result as any;
+      blocks.push({
+        type: "data_card" as const,
+        title: "Cálculo",
+        items: [
+          { label: "Expresión", value: r.expression ?? "" },
+          { label: "Resultado", value: String(r.result ?? "?") },
+        ],
+      } as UiBlock);
+      continue;
+    }
+
+    // 🔴 FIX: unit_convert — data_card
+    if (result.type === "unit_convert") {
+      const r = result as any;
+      blocks.push({
+        type: "data_card" as const,
+        title: "Conversión",
+        items: [
+          { label: "De", value: `${r.value ?? ""} ${r.from ?? ""}` },
+          { label: "A", value: `${r.result ?? "?"} ${r.to ?? ""}` },
+        ],
+      } as UiBlock);
+      continue;
+    }
+
+    // 🔴 FIX: news_topic — research_sources con noticias
+    if (result.type === "news_topic" || result.type === "trending_topic") {
+      const r = result as any;
+      const items = Array.isArray(r.articles) ? r.articles : Array.isArray(r.items) ? r.items : [];
+      if (items.length === 0) continue;
+      blocks.push({
+        type: "research_sources" as const,
+        title: r.topic ?? r.query ?? "Noticias",
+        summary: (r.summary ?? "").slice(0, 800),
+        sources: items.slice(0, 6).map((a: any) => ({
+          title: a.title ?? a.headline ?? "",
+          url: a.url ?? "",
+          domain: a.source ?? a.domain ?? "",
+          snippet: (a.summary ?? a.snippet ?? "").slice(0, 200),
+        })),
+      } as UiBlock);
+      continue;
+    }
   }
   return blocks;
 }
@@ -3802,6 +3962,40 @@ function normalizeMemoryCandidates(value: unknown): Omit<MemoryFact, "id" | "cre
   })).filter((item) => item.text.length > 4).slice(0, 5);
 }
 
+// 🔴 FIX: síntesis determinística de memorias a partir de revelaciones pasivas.
+function synthesizeMemoryFromRevelation(input: string): Omit<MemoryFact, "id" | "createdAt" | "sourceEntryId">[] {
+  const candidates: Omit<MemoryFact, "id" | "createdAt" | "sourceEntryId">[] = [];
+  const text = input.trim();
+  let m: RegExpMatchArray | null;
+  // "me encanta X" → preference
+  if ((m = text.match(/\b(?:me encanta|me encantan|amo|me apasiona|me fascina|me gustan los|me gustan las|me gusta el|me gusta la|adoro)\s+([^.!?]{3,80})/i))) {
+    candidates.push({ kind: "preference", text: `Le encanta ${m[1].trim()}.`, confidence: 0.88, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
+  }
+  // "estoy X" (trabajando, aprendiendo, etc.) → routine/goal
+  if ((m = text.match(/\b(?:estoy|ando|estuve)\s+(trabajando|aprendiendo|leyendo|escuchando|viendo|estudiando|haciendo|armando|programando|escribiendo|cocinando|preparando|investigando|diseñando|creando|desarrollando)\s+(?:en\s+|el\s+|la\s+|los\s+|las\s+|un\s+|una\s+)?([^.!?]{3,100})/i))) {
+    const action = m[1].toLowerCase();
+    const what = m[2].trim();
+    const kind = action === "aprendiendo" ? "routine" : action === "trabajando" || action === "programando" || action === "desarrollando" || action === "creando" || action === "diseñando" ? "goal" : "routine";
+    const verbMap: Record<string, string> = {
+      trabajando: "Trabaja en", aprendiendo: "Aprende", leyendo: "Está leyendo",
+      escuchando: "Escucha", viendo: "Está viendo", estudiando: "Estudia",
+      haciendo: "Está haciendo", armando: "Está armando", programando: "Programa",
+      escribiendo: "Está escribiendo", cocinando: "Está cocinando", preparando: "Está preparando",
+      investigando: "Investiga", diseñando: "Diseña", creando: "Está creando", desarrollando: "Desarrolla",
+    };
+    candidates.push({ kind, text: `${verbMap[action] ?? "Está " + action} ${what}.`, confidence: 0.86, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
+  }
+  // "mi madre/padre cumple X" → relationship
+  if ((m = text.match(/\b(?:mi\s+)?(?:madre|padre|mam[áa]|pap[áa])\s+(?:cumple|tiene|es|está|va a)\s+([^.!?]{3,80})/i))) {
+    candidates.push({ kind: "relationship", text: `Sobre su madre/padre: ${m[0].trim()}.`, confidence: 0.8, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
+  }
+  // "cumple años en X" → profile
+  if ((m = text.match(/\b(?:mi\s+)?cumple[años]*\s+(?:es|en|el|por)\s+([^.!?]{3,60})/i))) {
+    candidates.push({ kind: "profile", text: `Cumpleaños: ${m[1].trim()}.`, confidence: 0.85, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
+  }
+  return candidates;
+}
+
 function normalizeCommitments(value: unknown): Omit<Commitment, "id" | "createdAt" | "sourceEntryId">[] {
   return asArray(value).map(asRecord).map((item) => ({
     title: cleanText(item.title),
@@ -3908,28 +4102,70 @@ function normalizeFinalPayload(
   const captures = personalCapturesFromTools(toolExecutions);
   const localActions = localActionsFromTools(toolExecutions);
   const memoryCaptures = memoryCapturesFromTools(toolExecutions);
-  const toolResults: ToolResult[] = toolExecutions.map((execution, index) => ({
-    id: execution.id || `tool_${index + 1}`,
-    tool: execution.name === "shopping_compare"
-      ? "shopping_compare"
-      : execution.name === "weather"
-        ? "weather"
-        : execution.name === "route_traffic"
-          ? "route_traffic"
-              : execution.name === "alarm"
-                ? "alarm"
-                : execution.name === "calendar_reminder"
-                  ? "calendar_reminder"
-                  : execution.name === "match_live" || execution.name === "match_schedule" || execution.name === "league_standings" || execution.name === "team_follow"
-                ? "match_live"
-                : execution.name === "plan_day" || execution.name === "save_memory" || execution.name === "save_personal_item" || execution.name === "query_personal_context"
-                ? "memory_recall"
-                : "web_search",
-    status: "ok",
-    summary: JSON.stringify(execution.result).slice(0, 500),
-    data: execution.result,
-    sources: normalizeSources((execution.result as Record<string, unknown>).sources),
-  }));
+  const toolResults: ToolResult[] = toolExecutions.map((execution, index) => {
+    const resultAny = execution.result as Record<string, unknown>;
+    const rawStatus = typeof resultAny?.status === "string" ? resultAny.status : "ok";
+    const status: ToolResult["status"] = rawStatus === "failed" || rawStatus === "error"
+      ? "failed"
+      : rawStatus === "partial" || rawStatus === "no_data" || rawStatus === "need_city" || rawStatus === "needs_context"
+        ? "needs_context"
+        : "ok";
+    const toolMap: Record<string, ToolCall["tool"]> = {
+      weather: "weather",
+      web_search: "web_search",
+      shopping_compare: "shopping_compare",
+      route_traffic: "route_traffic",
+      calendar_reminder: "calendar_reminder",
+      alarm: "alarm",
+      alarm_set: "alarm",
+      reminder_set: "calendar_reminder",
+      countdown: "calendar_reminder",
+      match_live: "match_live",
+      match_schedule: "match_live",
+      league_standings: "match_live",
+      team_follow: "match_live",
+      plan_day: "memory_recall",
+      save_memory: "memory_recall",
+      save_personal_item: "memory_recall",
+      query_personal_context: "memory_recall",
+      movie_info: "web_search",
+      book_info: "web_search",
+      game_info: "web_search",
+      person_info: "web_search",
+      person_filmography: "web_search",
+      wikipedia_lookup: "web_search",
+      dictionary_define: "web_search",
+      math_calc: "web_search",
+      unit_convert: "web_search",
+      recipe_find: "web_search",
+      recipe_by_ingredients: "web_search",
+      food_info: "web_search",
+      wine_pairing: "web_search",
+      nutrition_calc: "web_search",
+      restaurant_deep_search: "shopping_compare",
+      restaurant_review_aggregate: "shopping_compare",
+      crypto_price: "crypto_price",
+      stock_quote: "crypto_price",
+      exchange_history: "crypto_price",
+      currency_convert: "crypto_price",
+      news_topic: "web_search",
+      trending_topic: "web_search",
+      travel_itinerary: "route_traffic",
+      flight_search: "route_traffic",
+      hotel_search: "route_traffic",
+      deep_research: "web_search",
+      price_history: "shopping_compare",
+      product_review: "shopping_compare",
+    };
+    return {
+      id: execution.id || `tool_${index + 1}`,
+      tool: toolMap[execution.name] ?? "web_search",
+      status,
+      summary: JSON.stringify(execution.result).slice(0, 500),
+      data: execution.result,
+      sources: normalizeSources(resultAny?.sources),
+    };
+  });
   const cleanedReply = cleanReplyText(raw.reply);
   const blockReply = replyFromBlocks(uiBlocks, input);
 
@@ -3994,18 +4230,33 @@ function normalizeFinalPayload(
       ...normalizeMemoryCandidates(extractedRaw?.memoryCandidates),
       ...captures.flatMap((capture) => capture.memoryCandidates ?? []),
       ...memoryCaptures.flatMap((capture) => capture.memoryCandidates ?? []),
+      // 🔴 FIX: síntesis determinística — si el LLM no capturó la revelación
+      // pasiva del input, generarla aquí.
+      ...(captures.length === 0 && memoryCaptures.length === 0
+        ? synthesizeMemoryFromRevelation(input)
+        : []),
     ].slice(0, 6),
     commitments: uniqueCommitments([
       ...normalizeCommitments(raw.commitments),
       ...normalizeCommitments(extractedRaw?.commitments),
       ...captures.flatMap((capture) => capture.commitments ?? []),
       ...localActions.flatMap((action) => action.commitments ?? []),
+      // 🔴 FIX: extract commitments from any tool result that has them
+      ...toolExecutions.flatMap((exec) => {
+        const r = exec.result as any;
+        return Array.isArray(r?.commitments) ? r.commitments : [];
+      }),
     ]).slice(0, 8),
     records: uniqueRecords([
       ...normalizeRecords(raw.records),
       ...normalizeRecords(extractedRaw?.records),
       ...captures.flatMap((capture) => capture.records ?? []),
       ...localActions.flatMap((action) => action.records ?? []),
+      // 🔴 FIX: extract records from any tool result that has them
+      ...toolExecutions.flatMap((exec) => {
+        const r = exec.result as any;
+        return Array.isArray(r?.records) ? r.records : [];
+      }),
     ]).slice(0, 12),
     toolResults,
     stateEvents: [
@@ -4093,7 +4344,9 @@ async function finalizePayloadWithFastModel(
   const existingReply = cleanText((raw as any).reply);
   if (existingReply && existingReply.length > 5) {
     // Memory extractor con Flash (secuencial, no paralelo)
-    if (!isTrivialInput(request.input) && toolExecutions.length > 0) {
+    // 🔴 FIX: ejecutar el extractor incluso si NO hay tools, siempre que el input
+    // no sea trivial. Esto captura revelaciones pasivas ("me encanta X", "estoy trabajando en Y").
+    if (!isTrivialInput(request.input)) {
       try {
         const extracted = await extractMemoryWithJsonPrompt(request, config, toolExecutions, raw, timeout);
         return normalizeFinalPayload(raw, request.input, toolExecutions, extracted.raw, prebuiltToolBlocks);
@@ -4118,7 +4371,9 @@ async function finalizePayloadWithFastModel(
       parsed = { reply: cleanReplyText(content) || "No pude armar una respuesta clara." };
     }
     // Memory extractor con Flash (secuencial)
-    if (!isTrivialInput(request.input) && toolExecutions.length > 0) {
+    // 🔴 FIX: ejecutar el extractor incluso si NO hay tools, siempre que el input
+    // no sea trivial. Esto captura revelaciones pasivas ("me encanta X", "estoy trabajando en Y").
+    if (!isTrivialInput(request.input)) {
       try {
         const extracted = await extractMemoryWithJsonPrompt(request, config, toolExecutions, parsed, timeout);
         return normalizeFinalPayload(parsed, request.input, toolExecutions, extracted.raw, prebuiltToolBlocks);
@@ -4375,14 +4630,25 @@ async function getRouter(config: ProviderConfig): Promise<SemanticRouter | null>
  */
 function searchLabelFromInput(input: string): string {
   const clean = input.trim().replace(/\s+/g, " ");
+  // 🔴 FIX: para recordatorios y alarmas, no usar "Buscando X" — usar "Anotando X"
+  if (/\b(recordame|recordar|recuerdame|recuerda|no me dejes olvidar|avisame|avisa|anot[aá])\b/i.test(clean)) {
+    const m = clean.match(/(?:recordame|recordar|recuerdame|recuerda|no me dejes olvidar|avisame|avisa|anot[aá])\s+(.+?)(?:\s+(?:a las|al|el|en|para|mañana|pasado)\b|$)/i);
+    const what = m?.[1]?.trim() ?? clean.replace(/.*(?:recordame|recordar|recuerdame|recuerda|no me dejes olvidar|avisame|avisa|anot[aá])\s+/i, "").trim();
+    return `Anotando ${what.slice(0, 40)}…`;
+  }
+  if (/\b(alarma|despertador)\b/i.test(clean)) {
+    const t = clean.match(/\d{1,2}(?::\d{2})?\s*(?:am|pm)?/i)?.[0];
+    return t ? `Programando alarma para las ${t}…` : "Programando alarma…";
+  }
+  if (/\b(cu[aá]ntos? d[ií]as? faltan|cu[aá]nto falta|faltan para)\b/i.test(clean)) {
+    return "Calculando cuenta regresiva…";
+  }
   // Quitar saludos y cortesías comunes al inicio que no aportan al tema.
   const stripped = clean
     .replace(/^(hola|buenas|buenos d[ií]as|buenas tardes|buenas noches|che|hey|koru|por favor|podr[ií]as|puedes|me dec[ií]s|decime|dame|quiero saber|necesito saber|busc[aá]\s*(info|informaci[oó]n|datos)?\s*(sobre|de|acerca)?)\b[,\s]*/gi, "")
     .replace(/^(paso|pas[oó]|que paso|qué pasó|qu[eé] tal|c[oó]mo (va|le va|est[aá]))\s+(con|el|la|los|las)?\s*/i, "")
     .trim();
-  // Si quedó muy corto o vacío, fallback genérico.
   if (stripped.length < 5) return "Buscando en la web…";
-  // Limitar longitud para que sea legible en la burbuja.
   const shortened = stripped.length > 50 ? stripped.slice(0, 50).trim() + "…" : stripped;
   return `Buscando ${shortened}…`;
 }
@@ -5021,7 +5287,7 @@ function fastPathKickerForCategory(category: RouteCategory): string {
     sports: "Tu Partido",
     weather: "Tu Clima",
     food: "Tu Receta",
-    media: "Tu Película",
+    media: "Tu Reseña",
     knowledge: "Tu Consulta",
     world_info: "Tu Búsqueda",
     review: "Tu Análisis",
@@ -5030,6 +5296,7 @@ function fastPathKickerForCategory(category: RouteCategory): string {
     travel: "Tu Viaje",
     research: "Tu Informe",
     planning: "Tu Plan",
+    action: "Tu Recordatorio",
   };
   return kickerMap[category] ?? "Tu Consulta";
 }
@@ -5185,14 +5452,28 @@ export async function runKoruBackendTurn(
         // 🔴 FIX MACRO: si CUALQUIER tool del fast-path falla (status failed, no_data,
         // need_city, o no produce datos útiles), hacer fallback automático a web_search.
         // Esto aplica a TODAS las tools: weather, movie_info, recipe_find, book_info, etc.
+        // 🔴 FIX: tools de acción local (reminder_set, alarm_set, countdown, save_personal_item,
+        // save_memory, plan_day, query_personal_context) NO deben caer a web_search cuando
+        // "no tienen datos externos" — su éxito se mide por el compromiso/bloque que generan.
+        const LOCAL_ACTION_TOOLS = new Set([
+          "reminder_set", "alarm_set", "countdown",
+          "save_personal_item", "save_memory", "plan_day",
+          "query_personal_context", "note_write", "calendar_add",
+        ]);
         if (delivered && toolExecutions.length > 0) {
           const lastTool = toolExecutions[toolExecutions.length - 1];
           const lastResult = lastTool?.result as any;
-          const toolFailed = lastResult?.status === "failed" || lastResult?.status === "no_data"
+          const isLocalAction = LOCAL_ACTION_TOOLS.has(route.tool ?? "");
+          const toolFailed = !isLocalAction && (
+            lastResult?.status === "failed" || lastResult?.status === "no_data"
             || lastResult?.status === "need_city" || lastResult?.status === "not_configured"
             || (lastResult?.status === "ok" && !lastResult?.text && !lastResult?.matches?.length
                 && !lastResult?.recipes?.length && !lastResult?.now && !lastResult?.price
-                && !lastResult?.overview && !lastResult?.extract);
+                && !lastResult?.overview && !lastResult?.extract
+                && !lastResult?.block && !lastResult?.commitments?.length
+                && !lastResult?.records?.length && !lastResult?.items?.length
+                && !lastResult?.note && !lastResult?.result)
+          );
 
           if (toolFailed && route.tool !== "web_search") {
             logger.info("runKoruBackendTurn", "Fast-path tool failed or empty, falling back to web_search", {
@@ -5225,11 +5506,17 @@ export async function runKoruBackendTurn(
               // El LLM solo debe ver los resultados de web_search (que SÍ tiene datos).
               const cleanedExecutions = toolExecutions.filter((exec) => {
                 const r = exec.result as any;
-                const failed = r?.status === "failed" || r?.status === "no_data"
+                const isLocalAction = LOCAL_ACTION_TOOLS.has(exec.name);
+                const failed = !isLocalAction && (
+                  r?.status === "failed" || r?.status === "no_data"
                   || r?.status === "need_city" || r?.status === "not_configured"
                   || (r?.status === "ok" && !r?.text && !r?.matches?.length
                       && !r?.recipes?.length && !r?.now && !r?.price
-                      && !r?.overview && !r?.extract);
+                      && !r?.overview && !r?.extract
+                      && !r?.block && !r?.commitments?.length
+                      && !r?.records?.length && !r?.items?.length
+                      && !r?.note && !r?.result)
+                );
                 return !failed;
               });
               // Si después de limpiar no queda nada, usar los originales

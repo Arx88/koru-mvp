@@ -302,7 +302,8 @@ export type ToolCall = {
     | "alarm"
     | "money_summary"
     | "memory_recall"
-    | "match_live";
+    | "match_live"
+    | "crypto_price";
   args: Record<string, unknown>;
   reason?: string;
 };

@@ -1,12 +1,15 @@
 /**
- * Bloque People — Personajes famosos, películas, libros.
- * APIs: Wikipedia REST (sin key), Open Library (sin key).
+ * Bloque People — Personajes famosos, películas, libros, videojuegos.
+ * APIs: Wikipedia REST (sin key), Open Library (sin key), RAWG (key gratuita).
  */
 
 import { defineTool, policies, type ToolHandler } from "../types";
 import { fetchJson } from "../shared/fetcher";
 import { cached, ttls } from "../shared/cache";
 import { limiters } from "../shared/rateLimiter";
+
+// Wikipedia API requiere User-Agent válido (sino devuelve 403).
+const WIKI_HEADERS = { "User-Agent": "KoruBot/1.0 (personal assistant; contact: dev@koru.app)" };
 
 // ─── person_info ────────────────────────────────────────────────────────────
 type WikiSummary = {
@@ -126,7 +129,7 @@ export const personFilmography: ToolHandler = {
     // Fase 3.1: usar Wikipedia API directamente en lugar de delegar a web_search.
     try {
       const searchUrl = `https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(`${name} ${kindQuery}`)}&format=json&origin=*&srlimit=3`;
-      const res = await fetch(searchUrl, { signal: AbortSignal.timeout(9000) });
+      const res = await fetch(searchUrl, { signal: AbortSignal.timeout(9000), headers: WIKI_HEADERS });
       const data = await res.json() as { query?: { search?: Array<{ title: string; snippet: string }> } };
       const results = data.query?.search ?? [];
       if (results.length === 0) {
@@ -134,7 +137,7 @@ export const personFilmography: ToolHandler = {
       }
       // Fetch summary del primer resultado
       const firstTitle = results[0].title;
-      const summaryRes = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(firstTitle)}`, { signal: AbortSignal.timeout(9000) });
+      const summaryRes = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(firstTitle)}`, { signal: AbortSignal.timeout(9000), headers: WIKI_HEADERS });
       const summary = await summaryRes.json() as { extract?: string; content_urls?: { desktop?: { page: string } } };
       return {
         type: "person_filmography",
@@ -240,14 +243,14 @@ export const movieInfo: ToolHandler = {
     try {
       const searchQuery = year ? `${title} ${year} película` : `${title} película`;
       const searchUrl = `https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(searchQuery)}&format=json&origin=*&srlimit=3`;
-      const res = await fetch(searchUrl, { signal: AbortSignal.timeout(9000) });
+      const res = await fetch(searchUrl, { signal: AbortSignal.timeout(9000), headers: WIKI_HEADERS });
       const data = await res.json() as { query?: { search?: Array<{ title: string; snippet: string }> } };
       const results = data.query?.search ?? [];
       const wikiExtract = results.length > 0
         ? await (async () => {
             try {
               const firstTitle = results[0].title;
-              const summaryRes = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(firstTitle)}`, { signal: AbortSignal.timeout(9000) });
+              const summaryRes = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(firstTitle)}`, { signal: AbortSignal.timeout(9000), headers: WIKI_HEADERS });
               const summary = await summaryRes.json() as { extract?: string; content_urls?: { desktop?: { page: string } } };
               return {
                 text: summary.extract,
@@ -376,6 +379,154 @@ export const bookInfo: ToolHandler = {
       coverUrl: book.cover?.medium,
       openLibraryUrl: book.key ? `https://openlibrary.org${book.key}` : undefined,
       source: "Open Library",
+    };
+  },
+};
+
+// ─── game_info ──────────────────────────────────────────────────────────────
+// RAWG API (https://rawg.io/api) — clave pública gratuita, 20k req/mes.
+// Sin clave funciona pero con rate-limit estricto.
+const RAWG_KEY = process.env.RAWG_API_KEY || "1";
+const RAWG_BASE = "https://api.rawg.io/api";
+
+type RawgGame = {
+  id?: number;
+  name?: string;
+  released?: string;
+  background_image?: string;
+  description_raw?: string;
+  description?: string;
+  metacritic?: number;
+  rating?: number;
+  rating_top?: number;
+  ratings_count?: number;
+  playtime?: number;
+  genres?: Array<{ name?: string }>;
+  platforms?: Array<{ platform?: { name?: string } }>;
+  developers?: Array<{ name?: string }>;
+  publishers?: Array<{ name?: string }>;
+  esrb_rating?: { name?: string };
+  website?: string;
+  stores?: Array<{ store?: { name?: string; url?: string } }>;
+};
+
+export const gameInfo: ToolHandler = {
+  definition: defineTool(
+    "game_info",
+    "Información y reseña de un videojuego: rating, metacritic, géneros, plataformas, desarrollador, fecha de lanzamiento, sinopsis. Úsala cuando el usuario diga 'reseña del juego X', 'información de Y', 'cómo es Z', 'análisis de W'. Devuelve datos estructurados desde RAWG con sinopsis de Wikipedia.",
+    {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        title: { type: "string", description: "Título del videojuego." },
+      },
+      required: ["title"],
+    },
+  ),
+  policy: policies.readonly("Lee info de RAWG y Wikipedia."),
+  async run(args) {
+    const title = String(args.title ?? "").trim();
+    if (!title) return { type: "game_info", status: "failed", error: "Indicá el título del juego." };
+
+    // 1. Buscar en RAWG
+    let game: RawgGame | null = null;
+    try {
+      const searchRes = await fetchJson<{ results?: RawgGame[] }>(
+        `${RAWG_BASE}/games?key=${RAWG_KEY}&search=${encodeURIComponent(title)}&page_size=1`,
+        { timeoutMs: 9_000 },
+      );
+      if (searchRes.ok && searchRes.data!.results?.length) {
+        const id = searchRes.data!.results[0].id;
+        if (id) {
+          const detailRes = await fetchJson<RawgGame>(
+            `${RAWG_BASE}/games/${id}?key=${RAWG_KEY}`,
+            { timeoutMs: 9_000 },
+          );
+          if (detailRes.ok) game = detailRes.data!;
+        }
+      }
+    } catch (err) {
+      console.warn("[Koru] game_info RAWG fetch failed:", err instanceof Error ? err.message : err);
+    }
+
+    if (!game) {
+      // 2. Fallback: Wikipedia search + summary (más robusto que adivinar el título exacto)
+      try {
+        const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(`${title} video game`)}&format=json&origin=*&srlimit=1`;
+        const searchRes = await fetch(searchUrl, { signal: AbortSignal.timeout(9000), headers: WIKI_HEADERS });
+        if (searchRes.ok) {
+          const searchData = await searchRes.json() as { query?: { search?: Array<{ title: string; snippet: string }> } };
+          const wikiTitle = searchData.query?.search?.[0]?.title;
+          if (wikiTitle) {
+            const summaryRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(wikiTitle)}`, { signal: AbortSignal.timeout(9000), headers: WIKI_HEADERS });
+            if (summaryRes.ok) {
+              const summary = await summaryRes.json() as WikiSummary;
+              if (summary.extract) {
+                return {
+                  type: "game_info",
+                  status: "ok",
+                  title: summary.title ?? title,
+                  description: summary.extract.slice(0, 1500),
+                  backgroundImage: summary.thumbnail?.source,
+                  sources: [{ title: summary.title ?? title, url: summary.content_urls?.desktop?.page ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(wikiTitle)}`, domain: "wikipedia.org", snippet: summary.extract.slice(0, 200) }],
+                  source: "Wikipedia",
+                };
+              }
+            }
+          }
+        }
+      } catch { /* ignore */ }
+
+      return { type: "game_info", status: "failed", error: `No encontré el juego "${title}".` };
+    }
+
+    // 3. Enriquecer con sinopsis de Wikipedia si la de RAWG es muy corta
+    let description = game.description_raw ?? game.description ?? "";
+    let wikiUrl: string | undefined;
+    description = description.replace(/<[^>]+>/g, "");
+    if (description.length < 200) {
+      try {
+        const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(`${title} video game`)}&format=json&origin=*&srlimit=1`;
+        const searchRes = await fetch(searchUrl, { signal: AbortSignal.timeout(9000), headers: WIKI_HEADERS });
+        if (searchRes.ok) {
+          const searchData = await searchRes.json() as { query?: { search?: Array<{ title: string }> } };
+          const wikiTitle = searchData.query?.search?.[0]?.title;
+          if (wikiTitle) {
+            const summaryRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(wikiTitle)}`, { signal: AbortSignal.timeout(9000), headers: WIKI_HEADERS });
+            if (summaryRes.ok) {
+              const summary = await summaryRes.json() as WikiSummary;
+              if (summary.extract && summary.extract.length > description.length) {
+                description = summary.extract;
+                wikiUrl = summary.content_urls?.desktop?.page;
+              }
+            }
+          }
+        }
+      } catch { /* ignore */ }
+    }
+
+    return {
+      type: "game_info",
+      status: "ok",
+      title: game.name ?? title,
+      released: game.released,
+      backgroundImage: game.background_image,
+      description: description.slice(0, 1500),
+      rating: typeof game.rating === "number" ? game.rating : undefined,
+      metacritic: game.metacritic,
+      playtime: game.playtime,
+      genres: Array.isArray(game.genres) ? game.genres.map(g => g.name).filter(Boolean) : undefined,
+      platforms: Array.isArray(game.platforms) ? game.platforms.map(p => p.platform?.name).filter(Boolean) : undefined,
+      developer: Array.isArray(game.developers) ? game.developers.map(d => d.name).filter(Boolean).join(", ") : undefined,
+      publisher: Array.isArray(game.publishers) ? game.publishers.map(p => p.name).filter(Boolean).join(", ") : undefined,
+      publishers: Array.isArray(game.publishers) ? game.publishers.map(p => p.name).filter(Boolean) : undefined,
+      website: game.website,
+      esrb: game.esrb_rating?.name,
+      sources: [
+        { title: game.name ?? title, url: `https://rawg.io/games/${game.id ?? ""}`, domain: "rawg.io", snippet: description.slice(0, 200) },
+        ...(wikiUrl ? [{ title: `${title} (Wikipedia)`, url: wikiUrl, domain: "wikipedia.org", snippet: description.slice(0, 200) }] : []),
+      ],
+      source: "RAWG + Wikipedia",
     };
   },
 };

@@ -77,7 +77,10 @@ export const recipeFind: ToolHandler = {
     });
 
     if (meals.length === 0) {
-      return { type: "recipe_find", status: "ok", query, recipes: [], note: `No encontré recetas para "${query}".` };
+      // 🔴 FIX: marcar como "no_data" para que el backend haga fallback a web_search.
+      // Antes devolvía status "ok" con recipes vacío, lo que hacía que el usuario
+      // viera "No encontré recetas" sin intentar buscar en la web.
+      return { type: "recipe_find", status: "no_data", query, recipes: [], note: `No encontré recetas para "${query}" en TheMealDB.` };
     }
 
     return {

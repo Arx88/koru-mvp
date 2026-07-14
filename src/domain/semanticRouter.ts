@@ -85,7 +85,12 @@ export type RouteTool =
   | "math_calc"
   | "unit_convert"
   | "team_follow"
-  | "league_standings";
+  | "league_standings"
+  // 🔴 FIX: actions locales y game_info
+  | "reminder_set"
+  | "alarm_set"
+  | "countdown"
+  | "game_info";
 
 // ── Ejemplos modelo por categoría ──────────────────────────────────
 // Pocas frases (5-8) por categoría, elegidas para cubrir las formas comunes
@@ -624,7 +629,39 @@ function extractToolArgs(message: string, tool?: RouteTool): Record<string, unkn
     return { query: clean };
   }
   if (tool === "crypto_price") {
-    return { coin: clean };
+    // 🔴 FIX: extraer el nombre/ticker de la cripto del input completo.
+    const lower = clean.toLowerCase();
+    const coinMap: Record<string, string> = {
+      btc: "bitcoin", bitcoin: "bitcoin",
+      eth: "ethereum", ethereum: "ethereum", ether: "ethereum",
+      sol: "solana", solana: "solana",
+      ada: "cardano", cardano: "cardano",
+      dot: "polkadot", polkadot: "polkadot",
+      link: "chainlink", chainlink: "chainlink",
+      matic: "matic-network", polygon: "matic-network",
+      avax: "avalanche-2", avalanche: "avalanche-2",
+      doge: "dogecoin", dogecoin: "dogecoin",
+      xrp: "ripple", ripple: "ripple",
+      ltc: "litecoin", litecoin: "litecoin",
+      bnb: "binancecoin",
+      usdt: "tether", tether: "tether",
+      usdc: "usd-coin",
+      shib: "shiba-inu", shiba: "shiba-inu",
+      uni: "uniswap", uniswap: "uniswap",
+      atom: "cosmos", cosmos: "cosmos",
+      near: "near", "near protocol": "near",
+      apt: "aptos", aptos: "aptos",
+      fil: "filecoin", filecoin: "filecoin",
+    };
+    for (const [ticker, id] of Object.entries(coinMap)) {
+      const re = new RegExp(`\\b${ticker}\\b`, "i");
+      if (re.test(lower)) return { coin: id };
+    }
+    const stripped = clean
+      .replace(/\b(?:precio|cotizacion|cotización|valor|cuanto esta|cómo esta|como esta|cuanto vale|a cuanto|a cuánto|del|de|la|el)\b/gi, "")
+      .replace(/[?!.]+/g, "")
+      .trim();
+    return { coin: stripped || "bitcoin" };
   }
   if (tool === "stock_quote") {
     return { symbol: clean };
@@ -742,13 +779,61 @@ export function keywordFastPath(message: string): RouteResult | null {
 
   // ── FOOD: recetas ──
   if (/\b(receta|recetas|como hago|como preparo|como cocino|que cocino|que preparo|plato|comida|postre|almuerzo|cena|desayuno|merienda)\b/.test(normalized)) {
-    const recetaMatch = normalized.match(/(?:receta de|como hago|como preparo|como cocino|que cocino|que preparo)\s+(.*)/);
-    const query = recetaMatch?.[1]?.replace(/[?!.].*$/, "").trim() ?? message;
+    // 🔴 FIX: extraer el ingrediente/plato de varias formas comunes
+    let query: string | undefined;
+    let m: RegExpMatchArray | null;
+    if ((m = normalized.match(/(?:receta de|como hago|como preparo|como cocino|como preparo|que preparo)\s+([a-záéíóúñ\s]+)/))) {
+      query = m[1];
+    } else if ((m = normalized.match(/(?:dame|pasame|quiero|necesito|buscame|encontrame)\s+(?:\d+\s+)?recetas?\s+(?:de|con|para)\s+([a-záéíóúñ\s]+)/))) {
+      query = m[1];
+    } else if ((m = normalized.match(/recetas?\s+(?:con|de|para)\s+([a-záéíóúñ\s]+)/))) {
+      query = m[1];
+    } else if ((m = normalized.match(/que cocino\s+(?:con|de|para)\s+([a-záéíóúñ\s]+)/))) {
+      query = m[1];
+    } else if ((m = normalized.match(/tengo\s+([a-záéíóúñ\s,]+)/))) {
+      query = m[1].split(",")[0].trim();
+    }
+    const cleanedQuery = query?.replace(/[?!.].*$/, "").trim() || message;
     return {
       category: "food",
       tool: "recipe_find",
       confidence: 0.99,
+      toolArgs: { query: cleanedQuery },
+    };
+  }
+
+  // 🔴 FIX: restaurant deep search — "donde como X" / "restaurantes X"
+  if (/\b(donde como|donde comemos|donde cenar|donde cenamos|donde almorzar|donde almorzamos|restaurantes?|resto|bar|bistr[oó]|parrilla|trattoria|sushi|tacos|taco|hamburguesas|pizza|pasta|ramen|donde puedo comer|donde puedo cenar|donde puedo almorzar|buen lugar para comer|buen lugar para cenar)\b/.test(normalized)) {
+    const cityMatch = normalized.match(/(?:en|de|del)\s+([a-záéíóúñ]{2,30}(?:\s+[a-záéíóúñ]{2,15}){0,2})/i);
+    const city = cityMatch?.[1]?.trim()?.replace(/[?!.].*$/, "").trim();
+    const foodTypeMatch = normalized.match(/\b(tacos?|sushi|pizza|pasta|ramen|hamburguesas?|parrilla|asado|pescado|mariscos?|paella|tapas?|empanadas?|milanesa|choripan|helado|postre|comida [a-záéíóúñ]+|italiana|japonesa|china|mexicana|española|argentina|peruana|tailandesa|india|francesa)\b/i);
+    const foodType = foodTypeMatch?.[1];
+    const query = [foodType, city].filter(Boolean).join(" en ") || message;
+    return {
+      category: "world_info",
+      tool: "restaurant_deep_search",
+      confidence: 0.99,
       toolArgs: { query },
+    };
+  }
+
+  // 🔴 FIX: SAVE — "guardame este informe", "guardá esto en carpeta X"
+  if (/\b(guardame|guardar|guarda|guardá|salvá|salvame|guardalo|guardala|guardar inform|guardar este|guardar este informe|salvar este|salvar informe)\b/.test(normalized)) {
+    const collMatch = normalized.match(/(?:en\s+(?:la\s+|el\s+)?)?(?:coleccion|carpeta|tablero)\s+([a-záéíóúñ0-9\s·]+?)(?:\.|$)/i);
+    const collection = collMatch?.[1]?.trim();
+    const titleMatch = normalized.match(/(?:informe|reporte|estudio|análisis|analisis)\s+(?:sobre|de|del)\s+([^.!?]+)/i);
+    const title = titleMatch?.[1]?.trim() || "Informe guardado";
+    return {
+      category: "action",
+      tool: "save_personal_item",
+      confidence: 0.99,
+      toolArgs: {
+        title: title.slice(0, 100),
+        collection: collection || "Koru · Informes",
+        uiBlockType: "saved_record",
+        recordKind: "idea",
+        note: "Guardado desde chat",
+      },
     };
   }
 
@@ -771,6 +856,63 @@ export function keywordFastPath(message: string): RouteResult | null {
       tool: "book_info",
       confidence: 0.99,
       toolArgs: { title },
+    };
+  }
+  // 🔴 FIX: MEDIA — videojuegos (game_info)
+  if (/\b(juego|videojuego|juegos|videojuegos|game|games)\b/.test(normalized)) {
+    const gameMatch = normalized.match(/(?:juego|videojuego|game)\s+(?:["']([^"']+)["']|([a-z0-9\s:]+))/i);
+    const title = gameMatch?.[1] ?? gameMatch?.[2] ?? message.replace(/.*(?:juego|videojuego|game)\s+/i, "").replace(/[?!.].*$/, "").trim();
+    return {
+      category: "media",
+      tool: "game_info",
+      confidence: 0.99,
+      toolArgs: { title },
+    };
+  }
+
+  // 🔴 FIX: ACTIONS — recordatorio / alarma / cuenta regresiva
+  if (/\b(recordame|recordar|no me dejes olvidar|no me olvides|avisame|avisa|recuerdame|recuerda)\b/.test(normalized)) {
+    const titleMatch = normalized.match(/(?:recordame|recordar|recuerdame|recuerda|no me dejes olvidar|no me olvides|avisame|avisa)\s+(.+?)(?:\s+(?:a las|al|el|en|para|mañana|pasado)\b|$)/);
+    const title = titleMatch?.[1]?.trim() ?? message.replace(/.*(?:recordame|recordar|recuerdame|recuerda|no me dejes olvidar|no me olvides|avisame|avisa)\s+/i, "").trim();
+    const timeMatch = normalized.match(/\b(a las\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?|al\s+\d{1,2}(?::\d{2})?|el\s+\d{1,2}|mañana|pasado mañana|en\s+\d+\s*(?:horas?|minutos?|días?))\b/i);
+    const dueText = timeMatch?.[0] ?? "";
+    return {
+      category: "action",
+      tool: "reminder_set",
+      confidence: 0.99,
+      toolArgs: {
+        title: title.slice(0, 100) || "Recordatorio",
+        dueText: dueText || "próximamente",
+      },
+    };
+  }
+  if (/\b(alarma|despertador)\b/.test(normalized)) {
+    const timeMatch = normalized.match(/\b(?:a las\s+|al\s+|para las\s+)?(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\b/i);
+    const time = timeMatch?.[1]?.replace(/\s+/g, " ").trim() ?? "";
+    const repeatMatch = normalized.match(/\b(diario|diaria|todos los días|semanal|lunes a viernes|cada día)\b/i);
+    return {
+      category: "action",
+      tool: "alarm_set",
+      confidence: 0.99,
+      toolArgs: {
+        title: message.replace(/.*(?:alarma|despertador)\s+para\s+/i, "").replace(/[?!.].*$/, "").trim() || "Alarma",
+        time: time || "07:00",
+        repeat: repeatMatch?.[0],
+      },
+    };
+  }
+  if (/\b(cuanto falta|cuanta falta|cuantos dias faltan|cuantas dias faltan|cuantos dias pasaron|cuanto tiempo paso|faltan para|cuanto falta para)\b/.test(normalized)) {
+    const dateMatch = normalized.match(/(?:para|desde)\s+(.+?)(?:\?|$)/);
+    const date = dateMatch?.[1]?.trim() ?? message;
+    const labelMatch = normalized.match(/(?:para|desde)\s+(.+)/);
+    return {
+      category: "action",
+      tool: "countdown",
+      confidence: 0.99,
+      toolArgs: {
+        date,
+        label: labelMatch?.[1]?.trim().slice(0, 60),
+      },
     };
   }
 

@@ -13,7 +13,7 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// src/domain/proactiveEngine.ts
+// koru-mvp/src/domain/proactiveEngine.ts
 var proactiveEngine_exports = {};
 __export(proactiveEngine_exports, {
   collectEvents: () => collectEvents,
@@ -343,7 +343,7 @@ async function runProactiveCheck(state, config2, lastSeen) {
 }
 var TEAM_SYNONYMS;
 var init_proactiveEngine = __esm({
-  "src/domain/proactiveEngine.ts"() {
+  "koru-mvp/src/domain/proactiveEngine.ts"() {
     "use strict";
     TEAM_SYNONYMS = {
       "espa\xF1a": "Spain",
@@ -366,13 +366,13 @@ var init_proactiveEngine = __esm({
   }
 });
 
-// server/index.ts
+// koru-mvp/server/index.ts
 import http from "node:http";
 import { readFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-// src/domain/types.ts
+// koru-mvp/src/domain/types.ts
 var VALID_MASCOT_STATES = [
   "idle",
   "thinking",
@@ -392,12 +392,12 @@ var VALID_MASCOT_STATES = [
   "curious"
 ];
 
-// src/domain/commitments.ts
+// koru-mvp/src/domain/commitments.ts
 function foldAccents(text) {
   return text.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
 }
 
-// src/domain/freellmapi.ts
+// koru-mvp/src/domain/freellmapi.ts
 var FreeLlmApiError = class extends Error {
   status;
   constructor(message, status) {
@@ -497,7 +497,7 @@ async function runOpenModelChat(runtime, messages, options) {
   };
 }
 
-// src/domain/store.ts
+// koru-mvp/src/domain/store.ts
 function selectRelevantMemories(memories, input, maxResults = 5) {
   const inputWords = new Set(
     input.toLowerCase().split(/\W+/).filter((w) => w.length > 3)
@@ -518,7 +518,7 @@ function selectRelevantMemories(memories, input, maxResults = 5) {
   return scored;
 }
 
-// src/domain/enhancementEngine.ts
+// koru-mvp/src/domain/enhancementEngine.ts
 function scoreCandidate(candidate, state) {
   const valueMap = { low: 0.6, medium: 1, high: 1.4 };
   const value = valueMap[candidate.userValue];
@@ -638,7 +638,7 @@ function enhancementPrompt(candidates) {
   ].join("\n");
 }
 
-// src/domain/schemas.ts
+// koru-mvp/src/domain/schemas.ts
 var SchemaValidationError = class extends Error {
   errors;
   constructor(message, errors) {
@@ -659,7 +659,7 @@ function parseJsonObjectStrict(text) {
   }
 }
 
-// src/domain/enhancementExtractor.ts
+// koru-mvp/src/domain/enhancementExtractor.ts
 function systemPrompt() {
   return [
     "Sos el detector de oportunidades de Koru, un asistente personal con memoria.",
@@ -808,7 +808,7 @@ async function extractOpportunities(ctx, chatFn) {
   }
 }
 
-// src/domain/structureExtractor.ts
+// koru-mvp/src/domain/structureExtractor.ts
 function normalizeForMatch(text) {
   return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/["'`«»""'']/g, "").replace(/\s+/g, " ").trim();
 }
@@ -920,7 +920,7 @@ async function extractStructuredData(input) {
   return { title, items: validatedItems.slice(0, 8) };
 }
 
-// src/domain/simulatedToolDetector.ts
+// koru-mvp/src/domain/simulatedToolDetector.ts
 var VALID_TOOL_NAMES = /* @__PURE__ */ new Set([
   "web_search",
   "shopping_compare",
@@ -932,9 +932,33 @@ var VALID_TOOL_NAMES = /* @__PURE__ */ new Set([
   "crypto_price",
   "stock_quote",
   "match_schedule",
+  "match_live",
   "nutrition_calc",
   "trending_twitter",
-  "exchange_history"
+  "exchange_history",
+  // 🔴 FIX P1: tools que existían pero no estaban reconocidas
+  "recipe_find",
+  "recipe_by_ingredients",
+  "food_info",
+  "wine_pairing",
+  "movie_info",
+  "book_info",
+  "wikipedia_lookup",
+  "dictionary_define",
+  "news_topic",
+  "news_urgent",
+  "person_info",
+  "flight_search",
+  "hotel_search",
+  "route_plan",
+  "summarize_url",
+  "translate",
+  "math_calc",
+  "unit_convert",
+  "currency_convert",
+  "team_follow",
+  "league_standings",
+  "player_stats"
 ]);
 function tryParseArgs(jsonStr) {
   const trimmed = jsonStr.trim();
@@ -1029,7 +1053,7 @@ function detectSimulatedToolCall(content) {
   return null;
 }
 
-// src/domain/vector.ts
+// koru-mvp/src/domain/vector.ts
 function cosineSimilarity(a, b) {
   const length = Math.min(a.length, b.length);
   if (length === 0) return 0;
@@ -1045,7 +1069,7 @@ function cosineSimilarity(a, b) {
   return dot / (Math.sqrt(aNorm) * Math.sqrt(bNorm));
 }
 
-// src/domain/semanticRouter.ts
+// koru-mvp/src/domain/semanticRouter.ts
 var ROUTE_EXAMPLES = [
   // world_info → web_search: información del mundo exterior que cambia con el tiempo.
   // (NO incluye resultados deportivos — esos van a sports/match_live)
@@ -1199,6 +1223,23 @@ var ROUTE_EXAMPLES = [
   { category: "sports", tool: "match_schedule", text: "pr\xF3ximo partido de Argentina" },
   { category: "sports", tool: "match_schedule", text: "cu\xE1ndo juega Espa\xF1a" },
   { category: "sports", tool: "match_schedule", text: "cu\xE1ndo juega Francia" },
+  // 🔴 FIX: ejemplos SIN tildes (los usuarios escriben sin tildes)
+  { category: "sports", tool: "match_live", text: "como salio hoy Argentina" },
+  { category: "sports", tool: "match_live", text: "como salio Espa\xF1a" },
+  { category: "sports", tool: "match_live", text: "como salio Boca" },
+  { category: "sports", tool: "match_live", text: "como salio River" },
+  { category: "sports", tool: "match_live", text: "como salio el Madrid" },
+  { category: "sports", tool: "match_live", text: "como salio Barcelona" },
+  { category: "sports", tool: "match_live", text: "como le fue a Argentina" },
+  { category: "sports", tool: "match_live", text: "como le fue a Boca hoy" },
+  { category: "sports", tool: "match_live", text: "como le fue a Espa\xF1a ayer" },
+  { category: "sports", tool: "match_live", text: "resultado de Argentina" },
+  { category: "sports", tool: "match_live", text: "resultado de Boca" },
+  { category: "sports", tool: "match_live", text: "resultado de Espa\xF1a" },
+  { category: "sports", tool: "match_live", text: "quien gano Argentina" },
+  { category: "sports", tool: "match_live", text: "quien gano el partido" },
+  { category: "sports", tool: "match_live", text: "como va Argentina" },
+  { category: "sports", tool: "match_live", text: "como va Boca" },
   // market → crypto_price / stock_quote / currency_convert
   { category: "market", tool: "crypto_price", text: "precio del bitcoin" },
   { category: "market", tool: "crypto_price", text: "c\xF3mo est\xE1 el ethereum" },
@@ -1244,6 +1285,47 @@ var ROUTE_EXAMPLES = [
   { category: "review", tool: "shopping_compare", text: "an\xE1lisis de auriculares Sony" },
   { category: "review", tool: "web_search", text: "puntuaci\xF3n de productos" },
   { category: "review", tool: "web_search", text: "veredicto final" },
+  // 🔴 FIX P1: food → recipe_find / food_info / restaurant_deep_search
+  { category: "food", tool: "recipe_find", text: "receta de carbonara" },
+  { category: "food", tool: "recipe_find", text: "c\xF3mo hago panqueques" },
+  { category: "food", tool: "recipe_find", text: "postre sin horno" },
+  { category: "food", tool: "recipe_find", text: "algo con pollo y arroz" },
+  { category: "food", tool: "recipe_find", text: "qu\xE9 cocino hoy" },
+  { category: "food", tool: "recipe_find", text: "receta f\xE1cil de pasta" },
+  { category: "food", tool: "recipe_find", text: "receta de tortilla" },
+  { category: "food", tool: "food_info", text: "informaci\xF3n nutricional del yogurt" },
+  { category: "food", tool: "food_info", text: "qu\xE9 ingredientes tiene la coca cola" },
+  // 🔴 FIX P1: media → movie_info / book_info / person_info
+  { category: "media", tool: "movie_info", text: "qu\xE9 se dice de la pel\xEDcula obsesi\xF3n" },
+  { category: "media", tool: "movie_info", text: "informaci\xF3n sobre la pel\xEDcula duna" },
+  { category: "media", tool: "movie_info", text: "resenha de la pelicula avatar" },
+  { category: "media", tool: "movie_info", text: "qui\xE9n act\xFAa en el padrino" },
+  { category: "media", tool: "movie_info", text: "de qu\xE9 trata la pel\xEDcula interestelar" },
+  // 🔴 FIX: ejemplos SIN tildes (los usuarios escriben sin tildes)
+  { category: "media", tool: "movie_info", text: "que se dice de la pelicula obsesion" },
+  { category: "media", tool: "movie_info", text: "que se dice de la pelicula dune" },
+  { category: "media", tool: "movie_info", text: "que se dice de la pelicula avatar" },
+  { category: "media", tool: "movie_info", text: "informacion sobre la pelicula" },
+  { category: "media", tool: "movie_info", text: "informacion de la pelicula" },
+  { category: "media", tool: "movie_info", text: "quien actua en la pelicula" },
+  { category: "media", tool: "movie_info", text: "de que trata la pelicula" },
+  { category: "media", tool: "movie_info", text: "resena de la pelicula" },
+  { category: "media", tool: "movie_info", text: "critica de la pelicula" },
+  { category: "media", tool: "movie_info", text: "rating de la pelicula" },
+  { category: "media", tool: "movie_info", text: "cr\xEDtica de la pel\xEDcula joker" },
+  { category: "media", tool: "book_info", text: "info del libro cien anos de soledad" },
+  { category: "media", tool: "book_info", text: "qui\xE9n escribi\xF3 rayuela" },
+  { category: "media", tool: "book_info", text: "de qu\xE9 trata el libro 1984" },
+  { category: "media", tool: "person_info", text: "qui\xE9n es borges" },
+  { category: "media", tool: "person_info", text: "biograf\xEDa de stephen hawking" },
+  // 🔴 FIX P1: knowledge → wikipedia_lookup / dictionary_define / math_calc
+  { category: "knowledge", tool: "wikipedia_lookup", text: "qu\xE9 es la teor\xEDa de la relatividad" },
+  { category: "knowledge", tool: "wikipedia_lookup", text: "contame sobre el renacimiento" },
+  { category: "knowledge", tool: "wikipedia_lookup", text: "qui\xE9n fue napole\xF3n" },
+  { category: "knowledge", tool: "wikipedia_lookup", text: "qu\xE9 es el efecto invernadero" },
+  { category: "knowledge", tool: "dictionary_define", text: "qu\xE9 significa ef\xEDmero" },
+  { category: "knowledge", tool: "math_calc", text: "cu\xE1nto es 15 por ciento de 230" },
+  { category: "knowledge", tool: "unit_convert", text: "cu\xE1ntos km son 5 millas" },
   // birthday → save_personal_item
   { category: "birthday", tool: "save_personal_item", text: "cumplea\xF1os de Ana" },
   { category: "birthday", tool: "save_personal_item", text: "regalo para mi hermano" },
@@ -1289,7 +1371,8 @@ var SemanticRouter = class _SemanticRouter {
           category: ex.category,
           tool: ex.tool,
           text: ex.text,
-          vector: await this.embedFn(ex.text)
+          // Normalizar tildes antes de embedear — ambos lados usan foldAccents
+          vector: await this.embedFn(foldAccents(ex.text))
         }))
       );
       this.examples.push(...embedded);
@@ -1298,29 +1381,43 @@ var SemanticRouter = class _SemanticRouter {
   /**
    * Embede un mensaje del usuario con caché LRU.
    * Si el mismo mensaje se pide de nuevo, devuelve el vector cacheado.
+   *
+   * 🔴 FIX ESTRUCTURAL: normaliza tildes antes de embedear.
+   * Así "cómo salió hoy Argentina?" y "como salio hoy Argentina?" producen
+   * el mismo vector y matchean contra los mismos ejemplos.
    */
   async embedMessage(text) {
-    const cached2 = this.messageCache.get(text);
+    const normalized = foldAccents(text);
+    const cached2 = this.messageCache.get(normalized);
     if (cached2) {
-      this.messageCache.delete(text);
-      this.messageCache.set(text, cached2);
+      this.messageCache.delete(normalized);
+      this.messageCache.set(normalized, cached2);
       return cached2;
     }
-    const vector = await this.embedFn(text);
+    const vector = await this.embedFn(normalized);
     if (this.messageCache.size >= _SemanticRouter.CACHE_MAX) {
       const firstKey = this.messageCache.keys().next().value;
       if (firstKey) this.messageCache.delete(firstKey);
     }
-    this.messageCache.set(text, vector);
+    this.messageCache.set(normalized, vector);
     return vector;
   }
   /**
    * Clasifica la intención de un mensaje.
    * Devuelve la categoría más probable con su confianza.
    * Si la confianza es baja, cae a "conversation" (deja al modelo responder libre).
+   *
+   * 🔴 FIX ESTRUCTURAL: keyword-based fast-path ANTES del router semántico.
+   * Para intents de alta confianza (resultados deportivos, clima, recetas),
+   * usamos regex determinístico en vez de depender de similitud de embeddings.
+   * El router semántico sigue siendo el fallback para casos ambiguos.
    */
   async route(message) {
     await this.initialize();
+    const fastPath = keywordFastPath(message);
+    if (fastPath) {
+      return fastPath;
+    }
     const messageVector = await this.embedMessage(message);
     let bestSim = -1;
     let bestExample = null;
@@ -1388,7 +1485,54 @@ function extractToolArgs(message, tool) {
     return { query: clean };
   }
   if (tool === "crypto_price") {
-    return { coin: clean };
+    const lower = clean.toLowerCase();
+    const coinMap = {
+      btc: "bitcoin",
+      bitcoin: "bitcoin",
+      eth: "ethereum",
+      ethereum: "ethereum",
+      ether: "ethereum",
+      sol: "solana",
+      solana: "solana",
+      ada: "cardano",
+      cardano: "cardano",
+      dot: "polkadot",
+      polkadot: "polkadot",
+      link: "chainlink",
+      chainlink: "chainlink",
+      matic: "matic-network",
+      polygon: "matic-network",
+      avax: "avalanche-2",
+      avalanche: "avalanche-2",
+      doge: "dogecoin",
+      dogecoin: "dogecoin",
+      xrp: "ripple",
+      ripple: "ripple",
+      ltc: "litecoin",
+      litecoin: "litecoin",
+      bnb: "binancecoin",
+      usdt: "tether",
+      tether: "tether",
+      usdc: "usd-coin",
+      shib: "shiba-inu",
+      shiba: "shiba-inu",
+      uni: "uniswap",
+      uniswap: "uniswap",
+      atom: "cosmos",
+      cosmos: "cosmos",
+      near: "near",
+      "near protocol": "near",
+      apt: "aptos",
+      aptos: "aptos",
+      fil: "filecoin",
+      filecoin: "filecoin"
+    };
+    for (const [ticker, id] of Object.entries(coinMap)) {
+      const re = new RegExp(`\\b${ticker}\\b`, "i");
+      if (re.test(lower)) return { coin: id };
+    }
+    const stripped = clean.replace(/\b(?:precio|cotizacion|cotización|valor|cuanto esta|cómo esta|como esta|cuanto vale|a cuanto|a cuánto|del|de|la|el)\b/gi, "").replace(/[?!.]+/g, "").trim();
+    return { coin: stripped || "bitcoin" };
   }
   if (tool === "stock_quote") {
     return { symbol: clean };
@@ -1404,8 +1548,289 @@ function extractToolArgs(message, tool) {
   }
   return void 0;
 }
+var KNOWN_TEAMS = [
+  // Selecciones nacionales
+  "argentina",
+  "espana",
+  "brasil",
+  "francia",
+  "alemania",
+  "inglaterra",
+  "italia",
+  "portugal",
+  "holanda",
+  "belgica",
+  "uruguay",
+  "chile",
+  "colombia",
+  "mexico",
+  "peru",
+  "ecuador",
+  "paraguay",
+  "estados unidos",
+  "usa",
+  "japon",
+  "corea",
+  "china",
+  "arabia",
+  "qatar",
+  "marruecos",
+  "senegal",
+  "nigeria",
+  "ghana",
+  "camerun",
+  "australia",
+  // Clubes argentinos
+  "boca",
+  "river",
+  "independiente",
+  "racing",
+  "san lorenzo",
+  "estudiantes",
+  "lanus",
+  "banfield",
+  "velez",
+  "huracan",
+  "rosario central",
+  "newells",
+  "talleres",
+  "belgrano",
+  "colon",
+  "gimnasia",
+  // Clubes europeos principales
+  "real madrid",
+  "barcelona",
+  "barca",
+  "atletico madrid",
+  "atletico",
+  "sevilla",
+  "valencia",
+  "villarreal",
+  "real sociedad",
+  "betis",
+  "athletic bilbao",
+  "athletic",
+  "celta",
+  "real betis",
+  "liverpool",
+  "manchester city",
+  "manchester united",
+  "man city",
+  "man united",
+  "chelsea",
+  "arsenal",
+  "tottenham",
+  "spurs",
+  "leicester",
+  "everton",
+  "newcastle",
+  "west ham",
+  "aston villa",
+  "brighton",
+  "juventus",
+  "inter",
+  "milan",
+  "ac milan",
+  "roma",
+  "lazio",
+  "napoli",
+  "fiorentina",
+  "atalanta",
+  "torino",
+  "sampdoria",
+  "genoa",
+  "bayern munich",
+  "bayern",
+  "dortmund",
+  "borussia dortmund",
+  "leverkusen",
+  "leipzig",
+  "frankfurt",
+  "wolfsburg",
+  "stuttgart",
+  "psg",
+  "paris saint germain",
+  "marseille",
+  "lyon",
+  "monaco",
+  "lille",
+  "benfica",
+  "porto",
+  "sporting lisboa",
+  "sporting",
+  "ajax",
+  "psv",
+  "feyenoord",
+  "celtic",
+  "rangers"
+];
+function keywordFastPath(message) {
+  const normalized = foldAccents(message);
+  const sportsIntentPatterns = [
+    /\b(como salio|como salieron|como le fue|como les fue|como va|como van|quien gano|quien ganaron|resultado de|resultados de|marcador de|score de)\b/
+  ];
+  const mentionsTeam = KNOWN_TEAMS.some((team) => normalized.includes(foldAccents(team)));
+  const hasSportsWord = /\b(partido|partidos|futbol|football|soccer|copa|mundial|champions|europa|libertadores|liga|premier|serie a|bundesliga)\b/.test(normalized);
+  if (sportsIntentPatterns.some((p) => p.test(normalized)) && (mentionsTeam || hasSportsWord)) {
+    const teamMatch = KNOWN_TEAMS.find((team) => normalized.includes(foldAccents(team)));
+    const temporalMatch = normalized.match(/\b(hoy|ayer|manana|anteayer|pasado manana|el sabado|el domingo|el lunes|el martes|el miercoles|el jueves|el viernes)\b/);
+    const query = teamMatch ? `${teamMatch} ${temporalMatch?.[0] ?? ""}`.trim() : message;
+    return {
+      category: "sports",
+      tool: "match_live",
+      confidence: 0.99,
+      toolArgs: { query }
+    };
+  }
+  if (/\b(clima|tiempo|temperatura|lluvia|llueve|calor|frio|que tal el dia|que onda el dia|que pongo|campera|paraguas|abrigo)\b/.test(normalized)) {
+    const cityMatch = normalized.match(/(?:en|de|del)\s+([a-záéíóúñ]{2,30}(?:\s+[a-záéíóúñ]{2,15}){0,2})/i);
+    const city = cityMatch?.[1]?.trim()?.replace(/[?!.].*$/, "").trim() ?? "";
+    return {
+      category: "weather",
+      tool: "weather",
+      confidence: 0.99,
+      toolArgs: city ? { city } : {}
+    };
+  }
+  if (/\b(receta|recetas|como hago|como preparo|como cocino|que cocino|que preparo|plato|comida|postre|almuerzo|cena|desayuno|merienda)\b/.test(normalized)) {
+    let query;
+    let m;
+    if (m = normalized.match(/(?:receta de|como hago|como preparo|como cocino|como preparo|que preparo)\s+([a-záéíóúñ\s]+)/)) {
+      query = m[1];
+    } else if (m = normalized.match(/(?:dame|pasame|quiero|necesito|buscame|encontrame)\s+(?:\d+\s+)?recetas?\s+(?:de|con|para)\s+([a-záéíóúñ\s]+)/)) {
+      query = m[1];
+    } else if (m = normalized.match(/recetas?\s+(?:con|de|para)\s+([a-záéíóúñ\s]+)/)) {
+      query = m[1];
+    } else if (m = normalized.match(/que cocino\s+(?:con|de|para)\s+([a-záéíóúñ\s]+)/)) {
+      query = m[1];
+    } else if (m = normalized.match(/tengo\s+([a-záéíóúñ\s,]+)/)) {
+      query = m[1].split(",")[0].trim();
+    }
+    const cleanedQuery = query?.replace(/[?!.].*$/, "").trim() || message;
+    return {
+      category: "food",
+      tool: "recipe_find",
+      confidence: 0.99,
+      toolArgs: { query: cleanedQuery }
+    };
+  }
+  if (/\b(donde como|donde comemos|donde cenar|donde cenamos|donde almorzar|donde almorzamos|restaurantes?|resto|bar|bistr[oó]|parrilla|trattoria|sushi|tacos|taco|hamburguesas|pizza|pasta|ramen|donde puedo comer|donde puedo cenar|donde puedo almorzar|buen lugar para comer|buen lugar para cenar)\b/.test(normalized)) {
+    const cityMatch = normalized.match(/(?:en|de|del)\s+([a-záéíóúñ]{2,30}(?:\s+[a-záéíóúñ]{2,15}){0,2})/i);
+    const city = cityMatch?.[1]?.trim()?.replace(/[?!.].*$/, "").trim();
+    const foodTypeMatch = normalized.match(/\b(tacos?|sushi|pizza|pasta|ramen|hamburguesas?|parrilla|asado|pescado|mariscos?|paella|tapas?|empanadas?|milanesa|choripan|helado|postre|comida [a-záéíóúñ]+|italiana|japonesa|china|mexicana|española|argentina|peruana|tailandesa|india|francesa)\b/i);
+    const foodType = foodTypeMatch?.[1];
+    const query = [foodType, city].filter(Boolean).join(" en ") || message;
+    return {
+      category: "world_info",
+      tool: "restaurant_deep_search",
+      confidence: 0.99,
+      toolArgs: { query }
+    };
+  }
+  if (/\b(guardame|guardar|guarda|guardá|salvá|salvame|guardalo|guardala|guardar inform|guardar este|guardar este informe|salvar este|salvar informe)\b/.test(normalized)) {
+    const collMatch = normalized.match(/(?:en\s+(?:la\s+|el\s+)?)?(?:coleccion|carpeta|tablero)\s+([a-záéíóúñ0-9\s·]+?)(?:\.|$)/i);
+    const collection = collMatch?.[1]?.trim();
+    const titleMatch = normalized.match(/(?:informe|reporte|estudio|análisis|analisis)\s+(?:sobre|de|del)\s+([^.!?]+)/i);
+    const title = titleMatch?.[1]?.trim() || "Informe guardado";
+    return {
+      category: "action",
+      tool: "save_personal_item",
+      confidence: 0.99,
+      toolArgs: {
+        title: title.slice(0, 100),
+        collection: collection || "Koru \xB7 Informes",
+        uiBlockType: "saved_record",
+        recordKind: "idea",
+        note: "Guardado desde chat"
+      }
+    };
+  }
+  if (/\b(pelicula|peliculas|serie|series|documental|peli)\b/.test(normalized)) {
+    const movieMatch = normalized.match(/(?:pelicula|peli|serie|documental)\s+(?:["']([^"']+)["']|([a-z0-9\s]+))/);
+    const title = movieMatch?.[1] ?? movieMatch?.[2] ?? message.replace(/.*pelicula\s+/i, "").replace(/[?!.].*$/, "").trim();
+    return {
+      category: "media",
+      tool: "movie_info",
+      confidence: 0.99,
+      toolArgs: { title }
+    };
+  }
+  if (/\b(libro|libros|novela|novelas)\b/.test(normalized)) {
+    const bookMatch = normalized.match(/(?:libro|novela)\s+(?:["']([^"']+)["']|([a-z0-9\s]+))/);
+    const title = bookMatch?.[1] ?? bookMatch?.[2] ?? message.replace(/.*libro\s+/i, "").replace(/[?!.].*$/, "").trim();
+    return {
+      category: "media",
+      tool: "book_info",
+      confidence: 0.99,
+      toolArgs: { title }
+    };
+  }
+  if (/\b(juego|videojuego|juegos|videojuegos|game|games)\b/.test(normalized)) {
+    const gameMatch = normalized.match(/(?:juego|videojuego|game)\s+(?:["']([^"']+)["']|([a-z0-9\s:]+))/i);
+    const title = gameMatch?.[1] ?? gameMatch?.[2] ?? message.replace(/.*(?:juego|videojuego|game)\s+/i, "").replace(/[?!.].*$/, "").trim();
+    return {
+      category: "media",
+      tool: "game_info",
+      confidence: 0.99,
+      toolArgs: { title }
+    };
+  }
+  if (/\b(recordame|recordar|no me dejes olvidar|no me olvides|avisame|avisa|recuerdame|recuerda)\b/.test(normalized)) {
+    const titleMatch = normalized.match(/(?:recordame|recordar|recuerdame|recuerda|no me dejes olvidar|no me olvides|avisame|avisa)\s+(.+?)(?:\s+(?:a las|al|el|en|para|mañana|pasado)\b|$)/);
+    const title = titleMatch?.[1]?.trim() ?? message.replace(/.*(?:recordame|recordar|recuerdame|recuerda|no me dejes olvidar|no me olvides|avisame|avisa)\s+/i, "").trim();
+    const timeMatch = normalized.match(/\b(a las\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?|al\s+\d{1,2}(?::\d{2})?|el\s+\d{1,2}|mañana|pasado mañana|en\s+\d+\s*(?:horas?|minutos?|días?))\b/i);
+    const dueText = timeMatch?.[0] ?? "";
+    return {
+      category: "action",
+      tool: "reminder_set",
+      confidence: 0.99,
+      toolArgs: {
+        title: title.slice(0, 100) || "Recordatorio",
+        dueText: dueText || "pr\xF3ximamente"
+      }
+    };
+  }
+  if (/\b(alarma|despertador)\b/.test(normalized)) {
+    const timeMatch = normalized.match(/\b(?:a las\s+|al\s+|para las\s+)?(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\b/i);
+    const time = timeMatch?.[1]?.replace(/\s+/g, " ").trim() ?? "";
+    const repeatMatch = normalized.match(/\b(diario|diaria|todos los días|semanal|lunes a viernes|cada día)\b/i);
+    return {
+      category: "action",
+      tool: "alarm_set",
+      confidence: 0.99,
+      toolArgs: {
+        title: message.replace(/.*(?:alarma|despertador)\s+para\s+/i, "").replace(/[?!.].*$/, "").trim() || "Alarma",
+        time: time || "07:00",
+        repeat: repeatMatch?.[0]
+      }
+    };
+  }
+  if (/\b(cuanto falta|cuanta falta|cuantos dias faltan|cuantas dias faltan|cuantos dias pasaron|cuanto tiempo paso|faltan para|cuanto falta para)\b/.test(normalized)) {
+    const dateMatch = normalized.match(/(?:para|desde)\s+(.+?)(?:\?|$)/);
+    const date = dateMatch?.[1]?.trim() ?? message;
+    const labelMatch = normalized.match(/(?:para|desde)\s+(.+)/);
+    return {
+      category: "action",
+      tool: "countdown",
+      confidence: 0.99,
+      toolArgs: {
+        date,
+        label: labelMatch?.[1]?.trim().slice(0, 60)
+      }
+    };
+  }
+  if (/\b(que es|que fue|quien es|quien fue|quienes son|contame sobre|explicame|como funciona|definicion de|definición de)\b/.test(normalized)) {
+    return {
+      category: "knowledge",
+      tool: "wikipedia_lookup",
+      confidence: 0.95,
+      toolArgs: { query: message }
+    };
+  }
+  return null;
+}
 
-// src/server/logger.ts
+// koru-mvp/src/server/logger.ts
 import { appendFileSync, mkdirSync } from "node:fs";
 var LOG_DIR = "./logs";
 var LOG_FILE = "./logs/koru-backend.log";
@@ -1449,7 +1874,7 @@ var logger = {
   error: (tag, message, extra) => write("ERROR", tag, message, extra)
 };
 
-// src/tools/types.ts
+// koru-mvp/src/tools/types.ts
 function defineTool(name, description, parameters) {
   return { type: "function", function: { name, description, parameters } };
 }
@@ -1474,7 +1899,7 @@ var policies = {
   destructive: (reason) => ({ risk: "destructive", requiresApproval: true, autoRun: false, reason })
 };
 
-// src/tools/shared/fetcher.ts
+// koru-mvp/src/tools/shared/fetcher.ts
 var KORU_USER_AGENT = "KoruLocal/1.0 (+local-first assistant)";
 async function fetchJson(url, options = {}) {
   const { method = "GET", headers = {}, body, timeoutMs = 1e4, retries = 1 } = options;
@@ -1549,7 +1974,7 @@ function domainFromUrl(url) {
   }
 }
 
-// src/tools/shared/cache.ts
+// koru-mvp/src/tools/shared/cache.ts
 var store = /* @__PURE__ */ new Map();
 function getCached(key) {
   const entry = store.get(key);
@@ -1600,7 +2025,7 @@ var ttls = {
 };
 setInterval(pruneCache, 5 * 60 * 1e3).unref?.();
 
-// src/tools/shared/rateLimiter.ts
+// koru-mvp/src/tools/shared/rateLimiter.ts
 function rateLimiter(maxPerSec) {
   if (maxPerSec <= 0) return { acquire: async () => void 0 };
   const intervalMs = 1e3 / maxPerSec;
@@ -1661,7 +2086,7 @@ var limiters = {
   stooq: rateLimiter(1)
 };
 
-// src/tools/money/currencyConvert.ts
+// koru-mvp/src/tools/money/currencyConvert.ts
 var currencyConvert = {
   definition: defineTool(
     "currency_convert",
@@ -1717,7 +2142,7 @@ var currencyConvert = {
   }
 };
 
-// src/tools/money/exchangeHistory.ts
+// koru-mvp/src/tools/money/exchangeHistory.ts
 var exchangeHistory = {
   definition: defineTool(
     "exchange_history",
@@ -1790,7 +2215,7 @@ var exchangeHistory = {
   }
 };
 
-// src/tools/money/cryptoPrice.ts
+// koru-mvp/src/tools/money/cryptoPrice.ts
 var cryptoPrice = {
   definition: defineTool(
     "crypto_price",
@@ -1861,7 +2286,7 @@ var cryptoPrice = {
   }
 };
 
-// src/tools/money/stockQuote.ts
+// koru-mvp/src/tools/money/stockQuote.ts
 function parseStooqCsv(csv) {
   const lines = csv.trim().split(/\r?\n/);
   if (lines.length < 2) return null;
@@ -1927,7 +2352,7 @@ var stockQuote = {
   }
 };
 
-// src/tools/money/expenses.ts
+// koru-mvp/src/tools/money/expenses.ts
 var expenseTrack = {
   definition: defineTool(
     "expense_track",
@@ -2249,7 +2674,7 @@ var priceCompareProduct = {
   }
 };
 
-// src/tools/money/advanced.ts
+// koru-mvp/src/tools/money/advanced.ts
 var priceHistory = {
   definition: defineTool(
     "price_history",
@@ -2424,7 +2849,7 @@ var expenseByCategory = {
   }
 };
 
-// src/tools/money/index.ts
+// koru-mvp/src/tools/money/index.ts
 var moneyTools = [
   currencyConvert,
   exchangeHistory,
@@ -2444,7 +2869,7 @@ var moneyTools = [
   expenseByCategory
 ];
 
-// src/tools/sports/football.ts
+// koru-mvp/src/tools/sports/football.ts
 var TSDB_KEY = "3";
 var TSDB_BASE = `https://www.thesportsdb.com/api/v1/json/${TSDB_KEY}`;
 var ESPN_BASE = "https://site.api.espn.com/apis/site/v2/sports/soccer";
@@ -2651,17 +3076,26 @@ var matchLive = {
         const summary = await summaryRes.json();
         return {
           type: "match_live",
-          status: "ok",
+          // 🔴 FIX: status "no_data" (no "ok") cuando no hay partidos reales.
+          // El backend usa esto para bloquear alucinaciones del LLM.
+          status: "no_data",
           query,
           matches: [],
-          text: summary.extract ?? `Encontr\xE9 informaci\xF3n sobre ${title} pero no hay partidos recientes en las fuentes.`,
+          text: `No encontr\xE9 partidos recientes de "${query}" en ESPN ni TheSportsDB. La temporada puede estar en receso. Ac\xE1 va info general de Wikipedia sobre el equipo.`,
+          wikipediaExtract: summary.extract,
           sources: [{ title, url: summary.content_urls?.desktop?.page ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`, domain: "wikipedia.org", snippet: results[0].snippet?.replace(/<[^>]+>/g, "") }],
           source: "Wikipedia"
         };
       }
     } catch {
     }
-    return { type: "match_live", status: "ok", query, matches: [], note: `No encontr\xE9 partidos de "${query}" en este momento. La temporada puede estar en receso.` };
+    return {
+      type: "match_live",
+      status: "no_data",
+      query,
+      matches: [],
+      note: `No encontr\xE9 partidos de "${query}" en este momento. La temporada puede estar en receso.`
+    };
   }
 };
 var leagueStandings = {
@@ -2863,7 +3297,7 @@ var teamFollow = {
   }
 };
 
-// src/tools/sports/multi.ts
+// koru-mvp/src/tools/sports/multi.ts
 var ESPN_BASE2 = "https://site.api.espn.com/apis/site/v2/sports";
 var playerStats = {
   definition: defineTool(
@@ -3109,7 +3543,7 @@ var f1Results = {
   }
 };
 
-// src/tools/sports/index.ts
+// koru-mvp/src/tools/sports/index.ts
 var sportsTools = [
   matchLive,
   leagueStandings,
@@ -3123,7 +3557,7 @@ var sportsTools = [
   f1Results
 ];
 
-// src/tools/shared/scrapers.ts
+// koru-mvp/src/tools/shared/scrapers.ts
 function htmlToText(html) {
   return html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
 }
@@ -3200,7 +3634,7 @@ async function searchAndEnrich(query, max = 5) {
   return usableSources(enriched);
 }
 
-// src/tools/shared/extractor.ts
+// koru-mvp/src/tools/shared/extractor.ts
 async function validateWithCitations(userInput, sources, chatFn) {
   return extractStructuredData({ userInput, sources, chatFn });
 }
@@ -3220,7 +3654,7 @@ function extractionToDataCard(extracted) {
   };
 }
 
-// src/tools/food/restaurants.ts
+// koru-mvp/src/tools/food/restaurants.ts
 var restaurantDeepSearch = {
   definition: defineTool(
     "restaurant_deep_search",
@@ -3429,7 +3863,7 @@ var menuExtract = {
   }
 };
 
-// src/tools/food/recipes.ts
+// koru-mvp/src/tools/food/recipes.ts
 var MEALDB_KEY = "1";
 var MEALDB_BASE = `https://www.themealdb.com/api/json/v1/${MEALDB_KEY}`;
 function extractIngredients(meal) {
@@ -3470,7 +3904,7 @@ var recipeFind = {
       return r.data.meals ?? [];
     });
     if (meals.length === 0) {
-      return { type: "recipe_find", status: "ok", query, recipes: [], note: `No encontr\xE9 recetas para "${query}".` };
+      return { type: "recipe_find", status: "no_data", query, recipes: [], note: `No encontr\xE9 recetas para "${query}" en TheMealDB.` };
     }
     return {
       type: "recipe_find",
@@ -3841,7 +4275,7 @@ var nutritionCalc = {
   }
 };
 
-// src/tools/food/index.ts
+// koru-mvp/src/tools/food/index.ts
 var foodTools = [
   restaurantDeepSearch,
   restaurantReviewAggregate,
@@ -3855,7 +4289,7 @@ var foodTools = [
   nutritionCalc
 ];
 
-// src/tools/travel/travel.ts
+// koru-mvp/src/tools/travel/travel.ts
 var flightSearch = {
   definition: defineTool(
     "flight_search",
@@ -4240,7 +4674,7 @@ var languagePhrase = {
   }
 };
 
-// src/tools/travel/index.ts
+// koru-mvp/src/tools/travel/index.ts
 var travelTools = [
   flightSearch,
   flightTrack,
@@ -4254,7 +4688,7 @@ var travelTools = [
   languagePhrase
 ];
 
-// src/tools/trending/trending.ts
+// koru-mvp/src/tools/trending/trending.ts
 async function queryGdelt(query, maxrecords = 8) {
   await limiters.gdelt.acquire();
   const url = new URL("https://api.gdeltproject.org/api/v2/doc/doc");
@@ -4659,7 +5093,7 @@ var worldSignal = {
   }
 };
 
-// src/tools/trending/index.ts
+// koru-mvp/src/tools/trending/index.ts
 var trendingTools = [
   newsUrgent,
   newsTopic,
@@ -4673,7 +5107,8 @@ var trendingTools = [
   worldSignal
 ];
 
-// src/tools/people/people.ts
+// koru-mvp/src/tools/people/people.ts
+var WIKI_HEADERS = { "User-Agent": "KoruBot/1.0 (personal assistant; contact: dev@koru.app)" };
 var personInfo = {
   definition: defineTool(
     "person_info",
@@ -4773,14 +5208,14 @@ var personFilmography = {
     const kindQuery = kind === "film" ? "filmograf\xEDa pel\xEDculas" : kind === "music" ? "discograf\xEDa \xE1lbumes" : kind === "books" ? "libros obra" : "filmograf\xEDa discograf\xEDa libros";
     try {
       const searchUrl = `https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(`${name} ${kindQuery}`)}&format=json&origin=*&srlimit=3`;
-      const res = await fetch(searchUrl, { signal: AbortSignal.timeout(9e3) });
+      const res = await fetch(searchUrl, { signal: AbortSignal.timeout(9e3), headers: WIKI_HEADERS });
       const data = await res.json();
       const results = data.query?.search ?? [];
       if (results.length === 0) {
         return { type: "person_filmography", status: "ok", name, kind, note: `No encontr\xE9 informaci\xF3n sobre ${name} en Wikipedia.` };
       }
       const firstTitle = results[0].title;
-      const summaryRes = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(firstTitle)}`, { signal: AbortSignal.timeout(9e3) });
+      const summaryRes = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(firstTitle)}`, { signal: AbortSignal.timeout(9e3), headers: WIKI_HEADERS });
       const summary = await summaryRes.json();
       return {
         type: "person_filmography",
@@ -4810,32 +5245,117 @@ var movieInfo = {
       required: ["title"]
     }
   ),
-  policy: policies.readonly("Busca info de pel\xEDcula en Wikipedia."),
+  policy: policies.readonly("Busca info de pel\xEDcula en Wikipedia + TMDB."),
   async run(args) {
     const title = String(args.title ?? "").trim();
     const year = String(args.year ?? "").trim();
     if (!title) return { type: "movie_info", status: "failed", error: "Indic\xE1 el t\xEDtulo." };
+    const TMDB_BEARER = process.env.TMDB_BEARER_TOKEN || "";
+    const TMDB_API_KEY = process.env.TMDB_API_KEY || "";
+    const tmdbHeaders = TMDB_BEARER ? { "Authorization": `Bearer ${TMDB_BEARER}`, "Content-Type": "application/json" } : {};
+    const tmdbAuthParam = TMDB_BEARER ? "" : TMDB_API_KEY ? `&api_key=${TMDB_API_KEY}` : "";
+    const tmdbEnabled = Boolean(TMDB_BEARER || TMDB_API_KEY);
+    let tmdbData = {};
+    if (tmdbEnabled) {
+      try {
+        const searchUrl = `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(title)}${year ? `&year=${year}` : ""}&language=es-ES${tmdbAuthParam}`;
+        const searchRes = await fetch(searchUrl, {
+          headers: tmdbHeaders,
+          signal: AbortSignal.timeout(9e3)
+        });
+        const searchData = await searchRes.json();
+        const first = searchData.results?.[0];
+        if (first) {
+          tmdbData.poster = first.poster_path ? `https://image.tmdb.org/t/p/w500${first.poster_path}` : void 0;
+          tmdbData.rating = typeof first.vote_average === "number" ? Math.round(first.vote_average * 10) / 10 : void 0;
+          tmdbData.releaseDate = first.release_date;
+          tmdbData.overview = first.overview;
+          const detailsUrl = `https://api.themoviedb.org/3/movie/${first.id}?language=es-ES${tmdbAuthParam}&append_to_response=credits`;
+          const detailsRes = await fetch(detailsUrl, {
+            headers: tmdbHeaders,
+            signal: AbortSignal.timeout(9e3)
+          });
+          const details = await detailsRes.json();
+          if (details.runtime) tmdbData.runtime = `${details.runtime} min`;
+          if (details.genres) tmdbData.genres = details.genres.map((g) => g.name);
+          if (details.credits?.crew) {
+            const dir = details.credits.crew.find((c) => c.job === "Director");
+            if (dir) tmdbData.director = dir.name;
+          }
+          if (details.credits?.cast) {
+            tmdbData.cast = details.credits.cast.slice(0, 5).map((c) => c.name);
+          }
+        }
+      } catch (err) {
+        console.warn("[Koru] movie_info TMDB fetch failed (continuing with Wikipedia only):", err instanceof Error ? err.message : err);
+      }
+    }
     try {
       const searchQuery = year ? `${title} ${year} pel\xEDcula` : `${title} pel\xEDcula`;
       const searchUrl = `https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(searchQuery)}&format=json&origin=*&srlimit=3`;
-      const res = await fetch(searchUrl, { signal: AbortSignal.timeout(9e3) });
+      const res = await fetch(searchUrl, { signal: AbortSignal.timeout(9e3), headers: WIKI_HEADERS });
       const data = await res.json();
       const results = data.query?.search ?? [];
-      if (results.length === 0) {
-        return { type: "movie_info", status: "ok", title, note: `No encontr\xE9 "${title}" en Wikipedia.` };
+      const wikiExtract = results.length > 0 ? await (async () => {
+        try {
+          const firstTitle = results[0].title;
+          const summaryRes = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(firstTitle)}`, { signal: AbortSignal.timeout(9e3), headers: WIKI_HEADERS });
+          const summary = await summaryRes.json();
+          return {
+            text: summary.extract,
+            sourceUrl: summary.content_urls?.desktop?.page ?? `https://es.wikipedia.org/wiki/${encodeURIComponent(firstTitle)}`,
+            snippet: results[0].snippet?.replace(/<[^>]+>/g, ""),
+            sourceTitle: firstTitle
+          };
+        } catch {
+          return null;
+        }
+      })() : null;
+      const hasTmdbData = Boolean(tmdbData.poster || tmdbData.overview || tmdbData.rating);
+      const wikiFoundMovie = wikiExtract && wikiExtract.text && // Verificar que el extracto de Wikipedia realmente trata sobre una película
+      // (no sobre el sentimiento "obsesión" u otros significados)
+      /\b(pel[ií]cula|film|movie|director|estren|cinematogr|actriz|actor|drama|thriller|comedia|terror|acci[oó]n)\b/i.test(wikiExtract.text);
+      if (!hasTmdbData && !wikiFoundMovie) {
+        return {
+          type: "movie_info",
+          status: "failed",
+          error: `No pude encontrar la pel\xEDcula "${title}" en mis fuentes. Prob\xE1 con web_search.`,
+          query: title
+        };
       }
-      const firstTitle = results[0].title;
-      const summaryRes = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(firstTitle)}`, { signal: AbortSignal.timeout(9e3) });
-      const summary = await summaryRes.json();
+      const text = tmdbData.overview || wikiExtract?.text || `Encontr\xE9 informaci\xF3n sobre ${title}.`;
       return {
         type: "movie_info",
         status: "ok",
         title,
-        text: summary.extract ?? `Encontr\xE9 informaci\xF3n sobre ${firstTitle}.`,
-        sources: [{ title: firstTitle, url: summary.content_urls?.desktop?.page ?? `https://es.wikipedia.org/wiki/${encodeURIComponent(firstTitle)}`, domain: "wikipedia.org", snippet: results[0].snippet?.replace(/<[^>]+>/g, "") }]
+        text,
+        poster: tmdbData.poster,
+        rating: tmdbData.rating,
+        releaseDate: tmdbData.releaseDate,
+        genres: tmdbData.genres,
+        runtime: tmdbData.runtime,
+        director: tmdbData.director,
+        cast: tmdbData.cast,
+        sources: wikiExtract?.sourceUrl ? [{ title: wikiExtract.sourceTitle ?? title, url: wikiExtract.sourceUrl, domain: "wikipedia.org", snippet: wikiExtract.snippet ?? "" }] : []
       };
     } catch (err) {
       console.warn("[Koru] movie_info Wikipedia fetch failed:", err instanceof Error ? err.message : err);
+      if (tmdbData.poster || tmdbData.overview) {
+        return {
+          type: "movie_info",
+          status: "ok",
+          title,
+          text: tmdbData.overview ?? `Encontr\xE9 informaci\xF3n sobre ${title}.`,
+          poster: tmdbData.poster,
+          rating: tmdbData.rating,
+          releaseDate: tmdbData.releaseDate,
+          genres: tmdbData.genres,
+          runtime: tmdbData.runtime,
+          director: tmdbData.director,
+          cast: tmdbData.cast,
+          sources: []
+        };
+      }
       return { type: "movie_info", status: "failed", error: `No pude buscar informaci\xF3n sobre ${title}.` };
     }
   }
@@ -4886,11 +5406,127 @@ var bookInfo = {
     };
   }
 };
+var RAWG_KEY = process.env.RAWG_API_KEY || "1";
+var RAWG_BASE = "https://api.rawg.io/api";
+var gameInfo = {
+  definition: defineTool(
+    "game_info",
+    "Informaci\xF3n y rese\xF1a de un videojuego: rating, metacritic, g\xE9neros, plataformas, desarrollador, fecha de lanzamiento, sinopsis. \xDAsala cuando el usuario diga 'rese\xF1a del juego X', 'informaci\xF3n de Y', 'c\xF3mo es Z', 'an\xE1lisis de W'. Devuelve datos estructurados desde RAWG con sinopsis de Wikipedia.",
+    {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        title: { type: "string", description: "T\xEDtulo del videojuego." }
+      },
+      required: ["title"]
+    }
+  ),
+  policy: policies.readonly("Lee info de RAWG y Wikipedia."),
+  async run(args) {
+    const title = String(args.title ?? "").trim();
+    if (!title) return { type: "game_info", status: "failed", error: "Indic\xE1 el t\xEDtulo del juego." };
+    let game = null;
+    try {
+      const searchRes = await fetchJson(
+        `${RAWG_BASE}/games?key=${RAWG_KEY}&search=${encodeURIComponent(title)}&page_size=1`,
+        { timeoutMs: 9e3 }
+      );
+      if (searchRes.ok && searchRes.data.results?.length) {
+        const id = searchRes.data.results[0].id;
+        if (id) {
+          const detailRes = await fetchJson(
+            `${RAWG_BASE}/games/${id}?key=${RAWG_KEY}`,
+            { timeoutMs: 9e3 }
+          );
+          if (detailRes.ok) game = detailRes.data;
+        }
+      }
+    } catch (err) {
+      console.warn("[Koru] game_info RAWG fetch failed:", err instanceof Error ? err.message : err);
+    }
+    if (!game) {
+      try {
+        const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(`${title} video game`)}&format=json&origin=*&srlimit=1`;
+        const searchRes = await fetch(searchUrl, { signal: AbortSignal.timeout(9e3), headers: WIKI_HEADERS });
+        if (searchRes.ok) {
+          const searchData = await searchRes.json();
+          const wikiTitle = searchData.query?.search?.[0]?.title;
+          if (wikiTitle) {
+            const summaryRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(wikiTitle)}`, { signal: AbortSignal.timeout(9e3), headers: WIKI_HEADERS });
+            if (summaryRes.ok) {
+              const summary = await summaryRes.json();
+              if (summary.extract) {
+                return {
+                  type: "game_info",
+                  status: "ok",
+                  title: summary.title ?? title,
+                  description: summary.extract.slice(0, 1500),
+                  backgroundImage: summary.thumbnail?.source,
+                  sources: [{ title: summary.title ?? title, url: summary.content_urls?.desktop?.page ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(wikiTitle)}`, domain: "wikipedia.org", snippet: summary.extract.slice(0, 200) }],
+                  source: "Wikipedia"
+                };
+              }
+            }
+          }
+        }
+      } catch {
+      }
+      return { type: "game_info", status: "failed", error: `No encontr\xE9 el juego "${title}".` };
+    }
+    let description = game.description_raw ?? game.description ?? "";
+    let wikiUrl;
+    description = description.replace(/<[^>]+>/g, "");
+    if (description.length < 200) {
+      try {
+        const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(`${title} video game`)}&format=json&origin=*&srlimit=1`;
+        const searchRes = await fetch(searchUrl, { signal: AbortSignal.timeout(9e3), headers: WIKI_HEADERS });
+        if (searchRes.ok) {
+          const searchData = await searchRes.json();
+          const wikiTitle = searchData.query?.search?.[0]?.title;
+          if (wikiTitle) {
+            const summaryRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(wikiTitle)}`, { signal: AbortSignal.timeout(9e3), headers: WIKI_HEADERS });
+            if (summaryRes.ok) {
+              const summary = await summaryRes.json();
+              if (summary.extract && summary.extract.length > description.length) {
+                description = summary.extract;
+                wikiUrl = summary.content_urls?.desktop?.page;
+              }
+            }
+          }
+        }
+      } catch {
+      }
+    }
+    return {
+      type: "game_info",
+      status: "ok",
+      title: game.name ?? title,
+      released: game.released,
+      backgroundImage: game.background_image,
+      description: description.slice(0, 1500),
+      rating: typeof game.rating === "number" ? game.rating : void 0,
+      metacritic: game.metacritic,
+      playtime: game.playtime,
+      genres: Array.isArray(game.genres) ? game.genres.map((g) => g.name).filter(Boolean) : void 0,
+      platforms: Array.isArray(game.platforms) ? game.platforms.map((p) => p.platform?.name).filter(Boolean) : void 0,
+      developer: Array.isArray(game.developers) ? game.developers.map((d) => d.name).filter(Boolean).join(", ") : void 0,
+      publisher: Array.isArray(game.publishers) ? game.publishers.map((p) => p.name).filter(Boolean).join(", ") : void 0,
+      publishers: Array.isArray(game.publishers) ? game.publishers.map((p) => p.name).filter(Boolean) : void 0,
+      website: game.website,
+      esrb: game.esrb_rating?.name,
+      sources: [
+        { title: game.name ?? title, url: `https://rawg.io/games/${game.id ?? ""}`, domain: "rawg.io", snippet: description.slice(0, 200) },
+        ...wikiUrl ? [{ title: `${title} (Wikipedia)`, url: wikiUrl, domain: "wikipedia.org", snippet: description.slice(0, 200) }] : []
+      ],
+      source: "RAWG + Wikipedia"
+    };
+  }
+};
 
-// src/tools/people/index.ts
-var peopleTools = [personInfo, personFollow, personFilmography, movieInfo, bookInfo];
+// koru-mvp/src/tools/people/index.ts
+var peopleTools = [personInfo, personFollow, personFilmography, movieInfo, bookInfo, gameInfo];
 
-// src/tools/apps/apps.ts
+// koru-mvp/src/tools/apps/apps.ts
 var appRecommend = {
   definition: defineTool(
     "app_recommend",
@@ -5031,10 +5667,10 @@ var appDeals = {
   }
 };
 
-// src/tools/apps/index.ts
+// koru-mvp/src/tools/apps/index.ts
 var appsTools = [appRecommend, gameRecommend, gameDeals, appDeals];
 
-// src/tools/docs/documents.ts
+// koru-mvp/src/tools/docs/documents.ts
 var docCreateMd = {
   definition: defineTool(
     "doc_create_md",
@@ -5373,7 +6009,7 @@ var dataChart = {
   }
 };
 
-// src/tools/docs/tasks.ts
+// koru-mvp/src/tools/docs/tasks.ts
 var noteWrite = {
   definition: defineTool(
     "note_write",
@@ -5750,6 +6386,74 @@ var countdown = {
     if (!dateStr) return { type: "countdown", status: "failed", error: "Indic\xE1 la fecha." };
     const date = new Date(dateStr);
     if (Number.isNaN(date.getTime())) {
+      const lower = dateStr.toLowerCase().trim();
+      const year = (/* @__PURE__ */ new Date()).getFullYear();
+      const holidays2 = {
+        navidad: () => {
+          const d = new Date(year, 11, 25);
+          if (d.getTime() < Date.now()) d.setFullYear(year + 1);
+          return d;
+        },
+        "nochebuena": () => {
+          const d = new Date(year, 11, 24);
+          if (d.getTime() < Date.now()) d.setFullYear(year + 1);
+          return d;
+        },
+        "fin de a\xF1o": () => {
+          const d = new Date(year, 11, 31);
+          if (d.getTime() < Date.now()) d.setFullYear(year + 1);
+          return d;
+        },
+        "a\xF1o nuevo": () => {
+          const d = new Date(year + 1, 0, 1);
+          return d;
+        },
+        "anio nuevo": () => {
+          const d = new Date(year + 1, 0, 1);
+          return d;
+        },
+        "reyes magos": () => {
+          const d = new Date(year, 0, 6);
+          if (d.getTime() < Date.now()) d.setFullYear(year + 1);
+          return d;
+        },
+        "dia del padre": () => {
+          const d = new Date(year, 5, 15);
+          if (d.getTime() < Date.now()) d.setFullYear(year + 1);
+          return d;
+        },
+        "dia de la madre": () => {
+          const d = new Date(year, 9, 15);
+          if (d.getTime() < Date.now()) d.setFullYear(year + 1);
+          return d;
+        },
+        "san valentin": () => {
+          const d = new Date(year, 1, 14);
+          if (d.getTime() < Date.now()) d.setFullYear(year + 1);
+          return d;
+        },
+        "dia del trabajo": () => {
+          const d = new Date(year, 4, 1);
+          if (d.getTime() < Date.now()) d.setFullYear(year + 1);
+          return d;
+        },
+        "halloween": () => {
+          const d = new Date(year, 9, 31);
+          if (d.getTime() < Date.now()) d.setFullYear(year + 1);
+          return d;
+        },
+        "pascua": () => {
+          const d = new Date(year, 3, 20);
+          if (d.getTime() < Date.now()) d.setFullYear(year + 1);
+          return d;
+        }
+      };
+      const matched = Object.keys(holidays2).find((k) => lower.includes(k));
+      if (matched) {
+        date.setTime(holidays2[matched]().getTime());
+      }
+    }
+    if (Number.isNaN(date.getTime())) {
       const m = dateStr.match(/(\d{1,2})\s+de\s+([a-záéíóúñ]+)/i);
       if (m) {
         const months = { enero: 0, febrero: 1, marzo: 2, abril: 3, mayo: 4, junio: 5, julio: 6, agosto: 7, septiembre: 8, octubre: 9, noviembre: 10, diciembre: 11 };
@@ -5763,7 +6467,7 @@ var countdown = {
         }
       }
     }
-    if (Number.isNaN(date.getTime())) return { type: "countdown", status: "failed", error: "No pude leer la fecha." };
+    if (Number.isNaN(date.getTime())) return { type: "countdown", status: "no_data", date: dateStr, error: `No pude interpretar "${dateStr}" como fecha. Prob\xE1 con "25 de diciembre" o "2025-12-25".` };
     const now = /* @__PURE__ */ new Date();
     const diffMs = date.getTime() - now.getTime();
     const days = Math.floor(Math.abs(diffMs) / (24 * 60 * 60 * 1e3));
@@ -5837,7 +6541,7 @@ var alarmSet = {
   }
 };
 
-// src/tools/docs/productivity.ts
+// koru-mvp/src/tools/docs/productivity.ts
 var summarizeUrl = {
   definition: defineTool(
     "summarize_url",
@@ -6305,7 +7009,7 @@ var timeZone = {
   }
 };
 
-// src/tools/docs/index.ts
+// koru-mvp/src/tools/docs/index.ts
 var docsTools = [
   // Documents (7)
   docCreateMd,
@@ -6349,7 +7053,7 @@ var docsTools = [
   timeZone
 ];
 
-// src/tools/shared/embeddings.ts
+// koru-mvp/src/tools/shared/embeddings.ts
 var OLLAMA_BASE = "http://127.0.0.1:11434";
 var EMBED_MODEL = "nomic-embed-text";
 function makeEmbedFn(baseUrl = OLLAMA_BASE, model = EMBED_MODEL) {
@@ -6397,7 +7101,7 @@ async function isOllamaAvailable(baseUrl = OLLAMA_BASE) {
   }
 }
 
-// src/tools/knowledge/knowledge.ts
+// koru-mvp/src/tools/knowledge/knowledge.ts
 var memorySave = {
   definition: defineTool(
     "memory_save",
@@ -6784,7 +7488,7 @@ var mathCalc = {
   }
 };
 
-// src/tools/knowledge/index.ts
+// koru-mvp/src/tools/knowledge/index.ts
 var knowledgeTools = [
   memorySave,
   memorySearch,
@@ -6798,7 +7502,7 @@ var knowledgeTools = [
   mathCalc
 ];
 
-// src/tools/health/health.ts
+// koru-mvp/src/tools/health/health.ts
 var medicationReminder = {
   definition: defineTool(
     "medication_reminder",
@@ -7057,7 +7761,7 @@ var airQualityAdvice = {
   }
 };
 
-// src/tools/health/index.ts
+// koru-mvp/src/tools/health/index.ts
 var healthTools = [
   medicationReminder,
   sleepTrack,
@@ -7067,7 +7771,7 @@ var healthTools = [
   airQualityAdvice
 ];
 
-// src/tools/utils/utils.ts
+// koru-mvp/src/tools/utils/utils.ts
 var urlShorten = {
   definition: defineTool(
     "url_shorten",
@@ -7213,10 +7917,10 @@ var selfHealthCheck = {
   }
 };
 
-// src/tools/utils/index.ts
+// koru-mvp/src/tools/utils/index.ts
 var utilsTools = [urlShorten, passwordGenerate, quoteOfDay, selfHealthCheck];
 
-// src/tools/toolbox.ts
+// koru-mvp/src/tools/toolbox.ts
 var allHandlers = [
   ...moneyTools,
   ...sportsTools,
@@ -7235,7 +7939,7 @@ var TOOL_BOX = new Map(
 );
 var ALL_TOOL_DEFINITIONS = allHandlers.map((h) => h.definition);
 
-// src/server/koruBackend.ts
+// koru-mvp/src/server/koruBackend.ts
 var TOOL_DEFINITIONS = [
   {
     type: "function",
@@ -7483,8 +8187,12 @@ var CATEGORY_TOOLS = {
   travel: ["travel_itinerary", "flight_search", "hotel_search"],
   directions: ["route_traffic", "weather", "travel_itinerary"],
   elections: ["web_search", "news_topic"],
-  review: ["shopping_compare", "web_search"],
+  review: ["shopping_compare", "web_search", "movie_info", "book_info", "game_info", "product_review"],
   birthday: ["save_personal_item", "query_personal_context"],
+  // 🔴 FIX P1: nuevas categorías para tools que ya existían pero no se rutaban
+  food: ["recipe_find", "recipe_by_ingredients", "food_info", "wine_pairing", "nutrition_calc", "restaurant_deep_search"],
+  media: ["movie_info", "book_info", "game_info", "person_info", "person_filmography", "web_search"],
+  knowledge: ["wikipedia_lookup", "dictionary_define", "math_calc", "unit_convert", "web_search"],
   conversation: []
 };
 function asRecord(value) {
@@ -7582,13 +8290,43 @@ function extractJsonBlock(text) {
   }
   return text;
 }
+function stripReasoning2(text) {
+  if (!text) return "";
+  let out = text;
+  out = out.replace(/<think>[\s\S]*?<\/think>/gi, "").replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, "").replace(/<reflection>[\s\S]*?<\/reflection>/gi, "").replace(/<reflection>[\s\S]*$/gi, "").replace(/<\/?think>/gi, "").replace(/<\/?reasoning>/gi, "");
+  const outputMatch = out.match(/<output>([\s\S]*?)<\/output>/i);
+  if (outputMatch) {
+    out = outputMatch[1];
+  }
+  const jsonStart = out.search(/\{\s*["']reply["']\s*:/);
+  if (jsonStart > 0) {
+    out = out.slice(jsonStart);
+  }
+  const hasJsonReply = /\{\s*["']reply["']\s*:/.test(out);
+  if (hasJsonReply) {
+    return out;
+  }
+  const thinkingStartPatterns = [
+    /^(the user|the user is|the user wants|the user is asking|i should|i need to|let me|let's think|i'll|i will|i am going to|first,?\s*i|now i|the question|looking at|analyzing|to answer this|based on the|so,?\s*i|this is a|this is an|let's consider|step by step|i have to|i must|i'm going to|the request|the input|the message|i want to|i can|i could|i'm thinking|okay,?\s*(so|i|let|the)|alright,?\s*(so|i|let|the))\b/i
+  ];
+  const trimmed = out.trim();
+  if (trimmed.length > 20 && thinkingStartPatterns.some((re) => re.test(trimmed))) {
+    return "";
+  }
+  const thinkingIndicators = (out.match(/\b(i need to|let me|i should|i will|i'll|i am going to|i'm going to|i have to|i must|the user|i want to|i can|step by step|let's think|i think|i believe|first i|then i|next i|finally i)\b/gi) || []).length;
+  if (thinkingIndicators >= 2 && trimmed.length > 30) {
+    return "";
+  }
+  return out;
+}
 function safeJsonObjectFromContent(raw) {
-  const direct = safeJsonParse(raw);
+  const cleaned = stripReasoning2(raw);
+  const direct = safeJsonParse(cleaned);
   if (direct.reply !== void 0 || direct.uiBlocks !== void 0) return direct;
-  const extracted = safeJsonParse(extractJsonBlock(raw));
+  const extracted = safeJsonParse(extractJsonBlock(cleaned));
   if (extracted.reply !== void 0 || extracted.uiBlocks !== void 0) return extracted;
-  const reply = extractStringField(raw, "reply");
-  const mascotState = extractStringField(raw, "mascotState") || extractStringField(raw, "mascot_state");
+  const reply = extractStringField(cleaned, "reply");
+  const mascotState = extractStringField(cleaned, "mascotState") || extractStringField(cleaned, "mascot_state");
   if (reply && reply.length > 3) {
     return { reply, mascotState: mascotState || "idle", uiBlocks: [] };
   }
@@ -7620,7 +8358,7 @@ function extractStringField(raw, field) {
   return raw.slice(start, i);
 }
 function cleanReplyText(value) {
-  return cleanText(value).replace(/\*?\s*uiBlock\s*:\s*[a-z_]+\s*\*?/gi, "").replace(/\buiBlocks?\b\s*[:=]\s*\[[\s\S]*$/i, "").replace(/\b(Hola|Gracias|Perfecto|Listo)(?=[A-ZÁÉÍÓÚÑ])/g, "$1 ").replace(/\s+/g, " ").trim();
+  return stripReasoning2(cleanText(value)).replace(/\*?\s*uiBlock\s*:\s*[a-z_]+\s*\*?/gi, "").replace(/\buiBlocks?\b\s*[:=]\s*\[[\s\S]*$/i, "").replace(/\b(Hola|Gracias|Perfecto|Listo)(?=[A-ZÁÉÍÓÚÑ])/g, "$1 ").replace(/\s+/g, " ").trim();
 }
 function formatCompactNumber(value, currency) {
   const formatter = new Intl.NumberFormat("en-US", {
@@ -7904,9 +8642,9 @@ function inferProviderFromModel(model) {
   return void 0;
 }
 function nvidiaTimeoutMs(config2, isOllama, timeoutMs) {
-  if (isOllama) return Math.min(9e4, timeoutMs);
+  if (isOllama) return Math.min(15e4, timeoutMs);
   const isLargeNemotron = config2.nvidiaModel.toLowerCase().includes("nemotron-3-ultra");
-  return Math.min(isLargeNemotron ? 12e4 : 45e3, timeoutMs);
+  return Math.min(isLargeNemotron ? 18e4 : 6e4, timeoutMs);
 }
 function selectModelForInput(input, config2, isTrivial, isDeliverable) {
   if (!config2.nvidiaFastModel && !config2.nvidiaMediumModel) return void 0;
@@ -8052,44 +8790,88 @@ async function getWeather(args) {
       sources: []
     };
   }
+  try {
+    const wttrUrl = `https://wttr.in/${encodeURIComponent(requestedCity)}?format=j1`;
+    const wttrRes = await fetchWithTimeout(wttrUrl, { headers: { "User-Agent": "Koru/1.0" } }, 1e4);
+    if (wttrRes.ok) {
+      const wttr = await wttrRes.json();
+      const cur = wttr.current_condition?.[0];
+      const area = wttr.nearest_area?.[0];
+      const cityName = area?.areaName?.[0]?.value ?? requestedCity;
+      const country = area?.country?.[0]?.value ?? "";
+      const temp = cur?.temp_C ? parseInt(cur.temp_C) : void 0;
+      const wind = cur?.windspeedKmph ? parseInt(cur.windspeedKmph) : void 0;
+      const desc = cur?.weatherDesc?.[0]?.value?.trim() ?? "";
+      const max = wttr.weather?.[0]?.maxtempC?.[0] ? parseInt(wttr.weather[0].maxtempC[0]) : void 0;
+      const min = wttr.weather?.[0]?.mintempC?.[0] ? parseInt(wttr.weather[0].mintempC[0]) : void 0;
+      const rain = wttr.weather?.[0]?.hourly?.[0]?.chanceofrain?.[0] ? parseInt(wttr.weather[0].hourly[0].chanceofrain[0]) : void 0;
+      if (temp !== void 0) {
+        const advice = [
+          `${Math.round(temp)} C ahora`,
+          rain !== void 0 && rain >= 50 ? "conviene paraguas" : rain !== void 0 ? "lluvia poco probable" : void 0,
+          min !== void 0 && min <= 10 ? "lleva abrigo si sales tarde" : void 0
+        ].filter(Boolean).join("; ");
+        return {
+          type: "weather",
+          city: country ? `${cityName}, ${country}` : cityName,
+          now: `${Math.round(temp)} C`,
+          range: min !== void 0 && max !== void 0 ? `${Math.round(min)}-${Math.round(max)} C` : void 0,
+          rain: rain !== void 0 ? `${rain}%` : void 0,
+          wind: wind !== void 0 ? `${Math.round(wind)} km/h` : void 0,
+          advice: advice || "Clima consultado.",
+          sources: [sourceFromUrl("wttr.in", "https://wttr.in/", "Datos de clima en tiempo real.")]
+        };
+      }
+    }
+  } catch {
+  }
   const location = await geocodeCity(requestedCity);
   if (!location) {
     return {
       type: "weather",
       city: requestedCity,
-      advice: "No pude ubicar esa ciudad con Open-Meteo. No invento clima.",
+      advice: "No pude ubicar esa ciudad. No invento clima.",
       sources: []
     };
   }
-  const url = new URL("https://api.open-meteo.com/v1/forecast");
-  url.searchParams.set("latitude", String(location.latitude));
-  url.searchParams.set("longitude", String(location.longitude));
-  url.searchParams.set("current", "temperature_2m,precipitation,wind_speed_10m");
-  url.searchParams.set("hourly", "precipitation_probability,temperature_2m");
-  url.searchParams.set("daily", "temperature_2m_max,temperature_2m_min,precipitation_probability_max");
-  url.searchParams.set("timezone", "auto");
-  const response = await fetchWithTimeout(url.toString(), { headers: { Accept: "application/json" } }, 15e3);
-  const data = await response.json().catch(() => ({}));
-  const current = data.current;
-  const max = data.daily?.temperature_2m_max?.[0];
-  const min = data.daily?.temperature_2m_min?.[0];
-  const rain = data.daily?.precipitation_probability_max?.[0];
-  const wind = current?.wind_speed_10m;
-  const temp = current?.temperature_2m;
-  const advice = [
-    temp !== void 0 ? `${Math.round(temp)} C ahora` : void 0,
-    rain !== void 0 && rain >= 50 ? "conviene paraguas" : rain !== void 0 ? "lluvia poco probable" : void 0,
-    min !== void 0 && min <= 10 ? "lleva abrigo si sales tarde" : void 0
-  ].filter(Boolean).join("; ");
+  try {
+    const url = new URL("https://api.open-meteo.com/v1/forecast");
+    url.searchParams.set("latitude", String(location.latitude));
+    url.searchParams.set("longitude", String(location.longitude));
+    url.searchParams.set("current", "temperature_2m,precipitation,wind_speed_10m");
+    url.searchParams.set("daily", "temperature_2m_max,temperature_2m_min,precipitation_probability_max");
+    url.searchParams.set("timezone", "auto");
+    const response = await fetchWithTimeout(url.toString(), { headers: { Accept: "application/json" } }, 1e4);
+    const data = await response.json().catch(() => ({}));
+    const temp = data.current?.temperature_2m;
+    const max = data.daily?.temperature_2m_max?.[0];
+    const min = data.daily?.temperature_2m_min?.[0];
+    const rain = data.daily?.precipitation_probability_max?.[0];
+    const wind = data.current?.wind_speed_10m;
+    if (temp !== void 0) {
+      const advice = [
+        `${Math.round(temp)} C ahora`,
+        rain !== void 0 && rain >= 50 ? "conviene paraguas" : rain !== void 0 ? "lluvia poco probable" : void 0,
+        min !== void 0 && min <= 10 ? "lleva abrigo si sales tarde" : void 0
+      ].filter(Boolean).join("; ");
+      return {
+        type: "weather",
+        city: location.name,
+        now: `${Math.round(temp)} C`,
+        range: min !== void 0 && max !== void 0 ? `${Math.round(min)}-${Math.round(max)} C` : void 0,
+        rain: rain !== void 0 ? `${rain}%` : void 0,
+        wind: wind !== void 0 ? `${Math.round(wind)} km/h` : void 0,
+        advice: advice || "Clima consultado.",
+        sources: [sourceFromUrl("Open-Meteo", "https://open-meteo.com/", "Datos abiertos de clima.")]
+      };
+    }
+  } catch {
+  }
   return {
     type: "weather",
-    city: location.name,
-    now: temp !== void 0 ? `${Math.round(temp)} C` : void 0,
-    range: min !== void 0 && max !== void 0 ? `${Math.round(min)}-${Math.round(max)} C` : void 0,
-    rain: rain !== void 0 ? `${rain}%` : void 0,
-    wind: wind !== void 0 ? `${Math.round(wind)} km/h` : void 0,
-    advice: advice || "Clima consultado con fuente abierta.",
-    sources: [sourceFromUrl("Open-Meteo", "https://open-meteo.com/", "Datos abiertos de clima y pronostico.")]
+    city: requestedCity,
+    advice: "No pude obtener el clima en este momento.",
+    sources: []
   };
 }
 function htmlText(raw) {
@@ -8139,10 +8921,58 @@ async function searchGdelt(query) {
   const data = await response.json().catch(() => ({}));
   return (data.articles ?? []).filter((item) => item.title && item.url).slice(0, 6).map((item) => sourceFromUrl(item.title, item.url, item.seendate));
 }
+function extractMainImage(html, pageUrl) {
+  const ogMatch = html.match(/<meta\s+(?:property|name)=["']og:image["']\s+content=["']([^"']+)["']/i) ?? html.match(/<meta\s+content=["']([^"']+)["']\s+(?:property|name)=["']og:image["']/i);
+  if (ogMatch?.[1]) return resolveImageUrl(ogMatch[1], pageUrl);
+  const twMatch = html.match(/<meta\s+(?:property|name)=["']twitter:image["']\s+content=["']([^"']+)["']/i) ?? html.match(/<meta\s+content=["']([^"']+)["']\s+(?:property|name)=["']twitter:image["']/i);
+  if (twMatch?.[1]) return resolveImageUrl(twMatch[1], pageUrl);
+  const linkMatch = html.match(/<link\s+rel=["']image_src["']\s+href=["']([^"']+)["']/i);
+  if (linkMatch?.[1]) return resolveImageUrl(linkMatch[1], pageUrl);
+  const contentBlock = html.match(/<(?:article|main)\b[^>]*>([\s\S]*?)<\/(?:article|main)>/i)?.[1] ?? html;
+  const imgMatches = contentBlock.matchAll(/<img\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi);
+  for (const m of imgMatches) {
+    const src = m[1];
+    if (isValidContentImage(src)) {
+      return resolveImageUrl(src, pageUrl);
+    }
+  }
+  return void 0;
+}
+function isValidContentImage(src) {
+  if (!src) return false;
+  const lower = src.toLowerCase();
+  if (lower.startsWith("data:")) return false;
+  if (/\b(logo|icon|avatar|sprite|placeholder|blank|spacer|pixel|favicon|tracking|beacon|1x1)\b/i.test(lower)) return false;
+  if (lower.endsWith(".svg") || lower.endsWith(".gif")) return false;
+  if (/(google-analytics|doubleclick|facebook\.com\/tr|pixel\.)/i.test(lower)) return false;
+  if (/[?&](w|h|width|height)=(\d{1,2})\b/i.test(lower)) {
+    const sizeMatch = lower.match(/[?&](w|h|width|height)=(\d{1,2})\b/i);
+    if (sizeMatch && parseInt(sizeMatch[2]) < 100) return false;
+  }
+  return true;
+}
+function resolveImageUrl(src, baseUrl) {
+  try {
+    if (/^https?:\/\//i.test(src)) return src;
+    if (src.startsWith("//")) {
+      const proto = baseUrl.match(/^(https?)/i)?.[1] ?? "https";
+      return `${proto}:${src}`;
+    }
+    if (src.startsWith("/")) {
+      const origin = baseUrl.match(/^(https?:\/\/[^/]+)/i)?.[1];
+      if (origin) return `${origin}${src}`;
+    }
+    const base = baseUrl.replace(/[^/]*$/, "");
+    return `${base}${src}`;
+  } catch {
+    return src;
+  }
+}
 async function fetchPageContent2(url, maxChars = 1200) {
   try {
     const res = await fetchWithTimeout(url, { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" } }, 15e3);
     const html = await res.text();
+    const imageUrl = extractMainImage(html, url);
     let contentHtml = html;
     const articleMatch = html.match(/<article\b[^>]*>([\s\S]*?)<\/article>/i);
     if (articleMatch) {
@@ -8170,9 +9000,9 @@ async function fetchPageContent2(url, maxChars = 1200) {
       }
     }
     const text = contentHtml.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "").replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-    return text.slice(0, maxChars);
+    return { text: text.slice(0, maxChars), imageUrl };
   } catch {
-    return "";
+    return { text: "" };
   }
 }
 async function runSearch(args, shopping = false, extractorCtx) {
@@ -8190,7 +9020,11 @@ async function runSearch(args, shopping = false, extractorCtx) {
     score: Math.max(55, 88 - index * 8)
   })) : void 0;
   for (let i = 0; i < Math.min(sources.length, 3); i++) {
-    sources[i].content = await fetchPageContent2(sources[i].url, 1200);
+    const pageData = await fetchPageContent2(sources[i].url, 1200);
+    sources[i].content = pageData.text;
+    if (pageData.imageUrl) {
+      sources[i].imageUrl = pageData.imageUrl;
+    }
   }
   let deferredDataCard;
   if (extractorCtx && !shopping && sources.length > 0) {
@@ -8943,11 +9777,16 @@ function systemPrompt2(nowIso, state, relevantMemories) {
     `- Cuando guard\xE1s algo, confirm\xE1 brevemente qu\xE9 guardaste y d\xF3nde. Una frase, no dos.`,
     `- Nunca inventes datos que no tengas. Si ejecutaste web_search, us\xE1 los snippets y contenidos proporcionados para dar un resumen honesto de lo que dicen las fuentes. No inventes detalles, pero S\xCD cont\xE1 lo que encontraste. Si no sab\xE9s, decilo con naturalidad.`,
     `- CR\xCDTICO: Si una tool externa (clima, b\xFAsqueda, ruta, precios) devuelve status "failed" o "not_configured", NO invent\xE9s los datos. Decile al usuario honestamente que no pudiste obtener esa informaci\xF3n.`,
+    `- \u{1F534} CR\xCDTICO ANTI-ALUCINACI\xD3N DEPORTIVA: Si match_live devuelve status "no_data" o matches vac\xEDo, NO INVENTES RESULTADOS. NO digas "le ganaron 3-1 a Suiza" si la tool no devolvi\xF3 ese partido. Dec\xED honestamente: "No encontr\xE9 partidos recientes de [equipo]. La temporada puede estar en receso." Es PEOR inventar un resultado falso que admitir que no hay datos.`,
+    `- \u{1F534} CR\xCDTICO ANTI-ALUCINACI\xD3N GENERAL: Si una tool devuelve status "no_data", "failed", o arrays vac\xEDos (matches:[], recipes:[], sources:[]), NO inventes datos para llenar el vac\xEDo. Dec\xED "no encontr\xE9" y ped\xED m\xE1s contexto si hace falta. Un usuario que recibe "no encontr\xE9" puede refinar su pregunta; un usuario que recibe datos inventados pierde la confianza para siempre.`,
     `- CR\xCDTICO: Si el usuario responde con una ciudad o ubicaci\xF3n directamente despu\xE9s de que preguntaste por clima o tr\xE1fico, interpretalo como su ubicaci\xF3n. Ejecut\xE1 la tool correspondiente con esa ciudad y guard\xE1 esa ciudad como memory de perfil.`,
     `- CR\xCDTICO: Si el usuario te dice una ciudad, pa\xEDs o barrio y no lo ten\xE9s guardado como memoria, incluilo en memoryCandidates como kind: profile.`,
     `- CR\xCDTICO: Si el usuario pregunta algo que YA aparece en "Cosas que guardaste" o "Memorias relevantes", NO uses query_personal_context. Respond\xE9 directamente desde ese contexto.`,
     `- CR\xCDTICO: Cuando guard\xE1s algo (save_personal_item) y el resultado tiene colecci\xF3n, tu reply empieza EXACTAMENTE con: "Listo, guardado en {colecci\xF3n}." y pod\xE9s agregar UNA frase corta despu\xE9s. El usuario debe saber SIEMPRE d\xF3nde qued\xF3 lo suyo.`,
     `- CR\xCDTICO: Cuando ejecutaste web_search, los datos concretos (resultados, precios, scores, cifras) ya vienen extra\xEDdos y validados en los tool results y se muestran al usuario en una tarjeta aparte. Tu texto SOLO debe ENMARCAR esos datos de forma cercana ("mir\xE1 lo que encontr\xE9", "esto es lo que dicen las fuentes"), NO repetirlos ni inventar valores que no est\xE9n en los resultados de la tool. Si un dato no est\xE1 en los tool results, no lo afirmes.`,
+    `- \u{1F534} CR\xCDTICO \u2014 CONTINUIDAD DE CONVERSACI\xD3N (Bug "y ayer?"): Cuando el usuario hace una pregunta de seguimiento corta como "y ayer?", "y ma\xF1ana?", "y el otro?", "y el s\xE1bado?", "c\xF3mo le fue ayer?", deb\xE9s MANTENER EL CONTEXTO de la conversaci\xF3n reciente. Si en los \xFAltimos mensajes se habl\xF3 de un equipo/partido (ej: Argentina, Boca, Espa\xF1a), el seguimiento se refiere a ESE MISMO equipo. Ejecut\xE1 match_live con query "<equipo> ayer" o "<equipo> <fecha>" sin pedir aclaraci\xF3n. NO respondas "no entiendo" ni "\xBFa qu\xE9 te refer\xEDs?". El contexto SIEMPRE est\xE1 en el historial.`,
+    `- \u{1F534} CR\xCDTICO \u2014 PRONOMBRES Y REFERENCIAS: Si el usuario dice "esa pel\xEDcula", "ese libro", "esa receta", "ese equipo", "esos resultados", asum\xED que se refiere al \xFAltimo tema mencionado en la conversaci\xF3n. NO pidas aclaraci\xF3n. Si el tema fue "obsesi\xF3n", "y esa pel\xEDcula?" significa "informaci\xF3n sobre la pel\xEDcula obsesi\xF3n". Mantener contexto es tu trabajo principal.`,
+    `- \u{1F534} CR\xCDTICO \u2014 FOLLOW-UPS TEMPORALES: combin\xE1 el contexto del tema (equipo, pel\xEDcula, etc.) con el contexto temporal (ayer, hoy, ma\xF1ana, la semana pasada). "y ayer?" despu\xE9s de hablar de Argentina = match_live(query="Argentina ayer"). "y la anterior?" despu\xE9s de una pel\xEDcula = movie_info(title="<pel\xEDcula anterior>").`,
     ``,
     `Memorias relevantes para esta conversaci\xF3n (usalas para personalizar tu respuesta):`,
     ...relevantMemories.length ? relevantMemories.map((m) => `- [${m.kind}] ${m.text.replace(/[\n\r`]+/g, " ").trim()}`) : ["- No hay memorias relevantes a\xFAn."],
@@ -8966,13 +9805,25 @@ function systemPrompt2(nowIso, state, relevantMemories) {
     `  - web_search: Noticias generales (NO deportivas). "\xBFQu\xE9 pas\xF3 en Argentina?" / "\xBF\xDAltimas noticias de tecnolog\xEDa?" / "\xBFQu\xE9 hay del clima pol\xEDtico?". NUNCA para resultados de partidos \u2014 para eso est\xE1 match_live.`,
     `  - shopping_compare: "\xBFQu\xE9 auriculares compro?" / "Necesito una bater\xEDa externa" / "\xBFD\xF3nde compro X m\xE1s barato?" / "\xBFCu\xE1l es mejor, A o B?"`,
     `  - restaurant_deep_search: "D\xF3nde cenar en Madrid" / "Qu\xE9 restaurante me recomend\xE1s" / "D\xF3nde como sushi" / "Necesito una parrilla" / "Qu\xE9 tal comer en Palermo"`,
+    `  - recipe_find: "Receta de X" / "C\xF3mo hago X" / "Algo con Y" / "Postre sin horno" / "\xBFQu\xE9 cocino con...?". Devuelve ingredientes estructurados, pasos, imagen y video. NUNCA des una receta de memoria \u2014 us\xE1 la tool para traer recetas reales con foto.`,
+    `  - movie_info: "\xBFQu\xE9 se dice de la pel\xEDcula X?" / "Rese\xF1a de X" / "Informaci\xF3n sobre la pel\xEDcula X" / "Qui\xE9n act\xFAa en X". Devuelve sinopsis, reparto, rating, g\xE9neros. NUNCA uses web_search para una pel\xEDcula espec\xEDfica \u2014 movie_info trae datos estructurados.`,
+    `  - book_info: "Info del libro X" / "Qui\xE9n escribi\xF3 X" / "De qu\xE9 trata X". Devuelve cover, autor, a\xF1o, sinopsis.`,
+    `  - wikipedia_lookup: "\xBFQu\xE9 es X?" / "Contame sobre X" / "Qui\xE9n fue X". Para temas enciclop\xE9dicos puntuales.`,
     `  - plan_day: "\xBFC\xF3mo organizo hoy?" / "Tengo muchas cosas" / "\xBFQu\xE9 hago primero?" / "\xBFMe ayudas a planificar?"`,
     `  - query_personal_context: "\xBFCu\xE1nto gast\xE9?" / "\xBFQu\xE9 ten\xEDa para comer?" / "\xBFRecord\xE1s que me dijiste?" / Cualquier cosa que Koru ya haya guardado del usuario.`,
     `  - save_memory: Cuando el usuario revela algo importante sobre s\xED mismo (rutinas, metas, preferencias, relaciones).`,
     `  - save_personal_item: Cuando el usuario pide guardar algo (gasto, recordatorio, lista de compras, alarma).`,
     `REGLA CR\xCDTICA DE ROUTING: si el usuario pregunta por un resultado o partido de f\xFAtbol (cualquier equipo o selecci\xF3n), US\xC1 match_live, NO web_search. web_search devuelve noticias gen\xE9ricas sin el marcador exacto; match_live te da el score real en tiempo real.`,
-    `Us\xE1 tools SOLO cuando la intenci\xF3n del usuario REQUIERA datos reales del mundo (clima, b\xFAsqueda, ruta, precios, resultados deportivos). Por ejemplo: si el usuario dice 'hola', 'gracias', 'adi\xF3s', '\xBFc\xF3mo est\xE1s?' o cualquier frase de cortes\xEDa, NO uses tools. Respond\xE9 directamente con naturalidad.`,
+    `Us\xE1 tools SOLO cuando la intenci\xF3n del usuario REQUIERA datos reales del mundo (clima, b\xFAsqueda, ruta, precios, resultados deportivos, recetas, pel\xEDculas, libros). Por ejemplo: si el usuario dice 'hola', 'gracias', 'adi\xF3s', '\xBFc\xF3mo est\xE1s?' o cualquier frase de cortes\xEDa, NO uses tools. Respond\xE9 directamente con naturalidad.`,
     `- Para datos personales ya guardados, no llames tools; respond\xE9 directamente usando el contexto.`,
+    `- \u{1F534} CR\xCDTICO \u2014 PROHIBIDO RAZONAMIENTO EN "reply": NUNCA incluyas tu razonamiento interno, an\xE1lisis de qu\xE9 tool llamar, ni texto en ingl\xE9s tipo "The user is asking...", "I should use...", "Let me think..." en "reply". El campo "reply" debe contener SOLO la respuesta final al usuario, en espa\xF1ol, c\xE1lido y directo. Si necesit\xE1s decidir una tool, EMITE tool_calls directamente en el JSON sin escribir tu razonamiento en el texto. Si est\xE1s pensando, NO escribas "thinking..." \u2014 simplemente devolv\xE9 el JSON final con la respuesta.`,
+    `- \u{1F534} CR\xCDTICO \u2014 DIVISI\xD3N DE TRABAJO TEXTO \u2194 CARD: Cuando ejecutaste CUALQUIER tool que devuelve datos (weather, match_live, movie_info, recipe_find, book_info, crypto_price, web_search, wikipedia_lookup, etc.), los datos concretos (t\xEDtulos, ratings, reparto, ingredientes, pasos, scores, precios, sinopsis) ya est\xE1n estructurados y se muestran en la card. Tu reply SOLO debe ENMARCAR: 1-2 l\xEDneas c\xE1lidas que conecten con el usuario y eventualmente destaquen UN dato insignia. NUNCA repitas la lista de datos que ya est\xE1 en la card.`,
+    `- Ejemplos de reply CORRECTO (corto, enmarca, NO repite datos de la card):`,
+    `  \u2705 "Mir\xE1, la encontr\xE9. Te la dejo en la tarjeta con todo el detalle."`,
+    `  \u2705 "Te dej\xE9 la receta en la tarjeta. Mir\xE1 el video al final, vale la pena."`,
+    `  \u2705 "Espa\xF1a le gan\xF3 2-1. Te dej\xE9 las estad\xEDsticas en la tarjeta."`,
+    `- Ejemplos de reply INCORRECTO (largo, repite datos que ya est\xE1n en la card):`,
+    `  \u274C "Inception (2010). Director: Christopher Nolan. Reparto: Leonardo DiCaprio... Duraci\xF3n: 148 min. Rating: 8.8/10. Sinopsis: Dom Cobb..." (esto ya est\xE1 en la card)`,
     `- Agreg\xE1 mascotState al JSON final Elij\xED SOLO de esta lista exacta: "celebrating", "worried", "affectionate", "curious", "happy", "thinking", "working", "tired", "sleeping", "mistake", "planning", "product-search", "building", "cooking", "thinking-2". Si nada aplica, us\xE1 "idle".`,
     `- Formato de respuesta final (contrato M\xCDNIMO y OBLIGATORIO): {"reply":"...","mascotState":"..."}`,
     `  - reply: tu respuesta conversacional directa al usuario, respondiendo EXACTAMENTE a su \xFAltimo mensaje. Sin JSON anidado, sin c\xF3digo, sin listas t\xE9cnicas. Texto natural y c\xE1lido.`,
@@ -8983,15 +9834,63 @@ function systemPrompt2(nowIso, state, relevantMemories) {
     `Ejemplos de respuestas EXCELSAS (few-shot):`,
     `Usuario: "hola" \u2192 {"reply":"Hola. \xBFC\xF3mo va todo?","mascotState":"happy"}`,
     `Usuario: "anota 1500 de cafe" \u2192 {"reply":"Listo, guardado en gastos.","mascotState":"idle"}`,
-    `Usuario: "que clima hace en Madrid?" \u2192 {"reply":"En Madrid hace 29\xB0C ahora, con maximas de 32 y minimas de 21. Viento a 15 km/h y 0% de lluvia. Dia para salir liviano.","mascotState":"thinking"}`,
+    `Usuario: "que clima hace en Madrid?" \u2192 {"reply":"Mir\xE1, te dej\xE9 el clima de Madrid en la tarjeta. D\xEDa para salir liviano.","mascotState":"thinking"}`,
     `Usuario: "gracias" \u2192 {"reply":"De nada, cuando quieras.","mascotState":"happy"}`,
     `Usuario: "estoy cansado" \u2192 {"reply":"Te entiendo. Si queres, bajo el ritmo y ordenamos lo minimo indispensable para hoy.","mascotState":"worried"}`,
-    `Usuario: "como salio Espa\xF1a ayer" \u2192 TOOL: match_live(query="Espa\xF1a ayer"). Reply: "Espa\xF1a le gan\xF3 2-1 a B\xE9lgica ayer, cuartos del Mundial. Se adelantaron y aguantaron. Ahora les toca Francia en semis."`,
+    `Usuario: "como salio Espa\xF1a ayer" \u2192 TOOL: match_live(query="Espa\xF1a ayer"). Reply: "Espa\xF1a le gan\xF3 2-1. Te dej\xE9 el detalle en la tarjeta."`,
     `Usuario: "como le fue a Boca" \u2192 TOOL: match_live(query="Boca"). Reply con el score exacto que devuelva la tool.`,
     ``,
     `Not\xE1: las respuestas son CORTAS, DIRECTAS y UTILES. No exageran, no sobre-validan, no terminan con preguntas obvias.`,
-    `Hora actual: ${nowIso}`
+    ``,
+    `=== CONTEXTO TEMPORAL (CR\xCDTICO \u2014 siempre lo sab\xE9s) ===`,
+    ...formatTemporalContext(nowIso),
+    ``,
+    `Reglas temporales CR\xCDTICAS:`,
+    `- "Hoy" = ${formatDateLong(nowIso)}. "Ayer" = ${formatDateLong(new Date(Date.now() - 864e5).toISOString())}. "Ma\xF1ana" = ${formatDateLong(new Date(Date.now() + 864e5).toISOString())}.`,
+    `- Cuando el usuario dice "hoy", "ayer", "ma\xF1ana", "esta semana", "este fin de semana", ya sab\xE9s a qu\xE9 fecha se refiere \u2014 NO preguntes "\xBFqu\xE9 d\xEDa?" ni "\xBFcu\xE1ndo?". Calcul\xE1 la fecha concreta.`,
+    `- Si el usuario pregunta "como sali\xF3 X ayer", asum\xED que se refiere al partido/ evento de ${formatDateLong(new Date(Date.now() - 864e5).toISOString())}.`,
+    `- Si pregunta "qu\xE9 hago hoy", sab\xE9s exactamente qu\xE9 d\xEDa es y qu\xE9 d\xEDa de la semana.`,
+    `- NUNCA digas "no s\xE9 qu\xE9 d\xEDa es hoy" ni "no tengo acceso a la fecha". Siempre la sab\xE9s.`
   ].join("\n");
+}
+function formatDateLong(iso) {
+  const d = new Date(iso);
+  const dias = ["domingo", "lunes", "martes", "mi\xE9rcoles", "jueves", "viernes", "s\xE1bado"];
+  const meses = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+  return `${dias[d.getDay()]} ${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}`;
+}
+function formatTimeShort(iso) {
+  const d = new Date(iso);
+  const h = String(d.getHours()).padStart(2, "0");
+  const m = String(d.getMinutes()).padStart(2, "0");
+  return `${h}:${m}`;
+}
+function formatTemporalContext(nowIso) {
+  const now = new Date(nowIso);
+  const fecha = formatDateLong(nowIso);
+  const hora = formatTimeShort(nowIso);
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  const diaSemana = ["domingo", "lunes", "martes", "mi\xE9rcoles", "jueves", "viernes", "s\xE1bado"][now.getDay()];
+  const horaNum = now.getHours();
+  let momentoDelDia;
+  if (horaNum < 6) momentoDelDia = "madrugada";
+  else if (horaNum < 12) momentoDelDia = "ma\xF1ana";
+  else if (horaNum < 14) momentoDelDia = "mediod\xEDa";
+  else if (horaNum < 19) momentoDelDia = "tarde";
+  else if (horaNum < 22) momentoDelDia = "noche";
+  else momentoDelDia = "noche tard\xEDa";
+  const ayer = formatDateLong(new Date(now.getTime() - 864e5).toISOString());
+  const manana = formatDateLong(new Date(now.getTime() + 864e5).toISOString());
+  return [
+    `- Fecha completa: ${fecha}`,
+    `- D\xEDa de la semana: ${diaSemana}`,
+    `- Hora actual: ${hora} (formato 24hs)`,
+    `- Zona horaria: ${tz}`,
+    `- Momento del d\xEDa: ${momentoDelDia}`,
+    `- Ayer fue: ${ayer}`,
+    `- Ma\xF1ana ser\xE1: ${manana}`,
+    `- ISO timestamp: ${nowIso}`
+  ];
 }
 function isTrivialInput(input) {
   const trimmed = input.trim().toLowerCase().replace(/[^a-záéíóúñ\s]/g, "");
@@ -9042,6 +9941,8 @@ function isTrivialInput(input) {
     "perfecto",
     "listo"
   ];
+  const hasPersonalReveal = /\b(me encanta|me gusta|me encantan|me gustan|amo|odio|prefiero|soy de|estoy trabajando|estoy aprendiendo|estoy leyendo|estoy escuchando|estoy viendo|estoy estudiando|estoy haciendo|estoy armando|estoy programando|estoy escribiendo|estoy cocinando|tengo que|mi madre|mi padre|mi mama|mi papa|mi hermano|mi hermana|mi hijo|mi hija|mi novio|mi novia|mi mujer|mi marido|mi esposa|mi esposo|mi amigo|mi amiga|juego al|juego a|practico|todos los dias|todas las semanas|cada semana|en una semana|en dos semanas|la semana que viene|el mes que viene|mañana cumplo|cumple años|mi cumple|aniversario)\b/i.test(input);
+  if (hasPersonalReveal) return false;
   return trivial.some((t) => trimmed === t || trimmed.startsWith(t + " "));
 }
 function cityMemorySuggestion(toolCalls, state) {
@@ -9406,6 +10307,11 @@ function blocksFromToolResults(results) {
     }
     if (result.type === "match_live") {
       const r = result;
+      if (r.status === "no_data" || r.status === "failed") {
+        result.__forceHonestReply = true;
+        result.__honestReplyText = r.note || r.error || `No encontr\xE9 partidos recientes para "${r.query ?? ""}". La temporada puede estar en receso.`;
+        continue;
+      }
       const matches = Array.isArray(r.matches) ? r.matches : [];
       if (matches.length === 0 && (r.homeName || r.homeTeam)) {
         matches.push({
@@ -9494,20 +10400,7 @@ function blocksFromToolResults(results) {
     }
     if (result.type === "search") {
       const search = result;
-      if (search.extractedData && search.extractedData.items.length > 0) {
-        blocks.push({
-          type: "data_card",
-          title: search.extractedData.title,
-          items: search.extractedData.items.map((item) => ({
-            label: item.label,
-            value: item.value,
-            detail: item.detail,
-            quote: item.quote,
-            sourceUrl: item.sourceUrl,
-            sourceDomain: item.sourceDomain
-          }))
-        });
-      }
+      const sources = (search.sources ?? []).filter((s) => s.url?.startsWith("http")).slice(0, 6);
       if (search.mode === "shopping" && search.comparisonItems?.length) {
         blocks.push({
           type: "comparison",
@@ -9518,33 +10411,68 @@ function blocksFromToolResults(results) {
         });
         continue;
       }
-      if (search.mode === "research" || search.mode === "news" || search.mode === "world") {
-        const filtered = search.sources.filter((s) => s.url?.startsWith("http")).slice(0, 5);
-        if (filtered.length) {
-          blocks.push({
-            type: "web_nav",
-            title: search.title,
-            status: "complete",
-            query: search.title,
-            ...search.summary ? { summary: search.summary } : {},
-            results: filtered.map((s) => ({
-              title: s.title,
-              source: s.domain,
-              url: s.url,
-              type: "page",
-              snippet: s.snippet
-            }))
-          });
-        }
-        continue;
+      const sections = [];
+      const rawSummary = cleanText(search.summary);
+      const looksLikeSnippets = rawSummary.length > 100 && (rawSummary.includes(". ") && rawSummary.split(". ").length > 4 && !/[¡!]/.test(rawSummary.slice(0, 20)));
+      const synthesisText = !looksLikeSnippets && rawSummary || `Encontr\xE9 ${sources.length} fuentes sobre "${cleanText(search.title) || "este tema"}". ${sources.slice(0, 2).map((s) => s.title).filter(Boolean).join(" y ")}.` || "";
+      if (synthesisText) {
+        sections.push({
+          icon: "auto_awesome",
+          title: "S\xEDntesis",
+          kicker: "LO ESENCIAL",
+          kind: "text",
+          paragraphs: [synthesisText.slice(0, 800)]
+        });
       }
+      if (search.extractedData && search.extractedData.items.length > 0) {
+        sections.push({
+          icon: "fact_check",
+          title: "Datos verificados",
+          kicker: "ENCONTRADOS",
+          kind: "rows",
+          items: search.extractedData.items.map((item) => ({
+            title: item.label,
+            subtitle: item.value,
+            badge: item.sourceDomain
+          }))
+        });
+      }
+      if (sources.length > 0) {
+        sections.push({
+          icon: "fact_check",
+          title: "Fuentes",
+          kicker: "DE D\xD3NDE SALI\xD3",
+          kind: "rows",
+          items: sources.map((s) => ({
+            title: s.title,
+            subtitle: s.snippet?.slice(0, 120) || s.domain,
+            badge: s.domain
+          }))
+        });
+      }
+      const query = cleanText(search.title) || "Resultado";
+      const metrics = [];
+      metrics.push({ value: String(sources.length), label: "Fuentes" });
+      if (search.extractedData?.items.length) {
+        metrics.push({ value: String(search.extractedData.items.length), label: "Datos" });
+      }
+      metrics.push({ value: String(sections.length), label: "Secciones" });
       blocks.push({
-        type: "research_sources",
-        title: search.title,
-        summary: search.summary,
-        mode: search.mode,
-        sources: search.sources,
-        sourceStatus: search.sources.length ? "verified" : "failed"
+        type: "deliverable",
+        status: "ready",
+        kicker: "Tu B\xFAsqueda",
+        topic: query,
+        title: query.toUpperCase().slice(0, 40),
+        description: synthesisText.slice(0, 160) || `Resultados sobre ${query}`,
+        summary: synthesisText.slice(0, 500),
+        categories: [
+          { icon: "travel_explore", label: "B\xFAsqueda" },
+          { icon: "fact_check", label: "Fuentes" },
+          { icon: "insights", label: "Datos" }
+        ],
+        metrics,
+        sections,
+        sources
       });
       continue;
     }
@@ -9805,6 +10733,270 @@ function blocksFromToolResults(results) {
       });
       continue;
     }
+    if (result.type === "movie_info") {
+      const r = result;
+      if (r.status === "failed" || r.status === "no_data") {
+        result.__movieInfoFailed = true;
+        continue;
+      }
+      const title = r.title ?? "Pel\xEDcula";
+      const poster = r.poster ?? r.thumbnail;
+      const rating = typeof r.rating === "number" ? r.rating : void 0;
+      const overview = r.text ?? r.summary ?? r.synopsis ?? r.overview ?? "";
+      blocks.push({
+        type: "movie_review",
+        title,
+        poster,
+        rating,
+        releaseDate: r.releaseDate,
+        runtime: r.runtime,
+        director: r.director,
+        cast: Array.isArray(r.cast) ? r.cast : void 0,
+        genres: Array.isArray(r.genres) ? r.genres : void 0,
+        overview: overview.slice(0, 800),
+        sources: Array.isArray(r.sources) ? r.sources : void 0
+      });
+      continue;
+    }
+    if (result.type === "recipe_find") {
+      const r = result;
+      const recipes = Array.isArray(r.recipes) ? r.recipes : [];
+      if (recipes.length === 0) continue;
+      const first = recipes[0];
+      const instructions = String(first.instructions ?? "");
+      const steps = instructions.split(/\r?\n/).map((s) => s.trim()).filter((s) => s && /^(STEP\s*\d+|PASO\s*\d+|\d+[).])/.test(s.toUpperCase())).map((text, i) => ({ step: i + 1, text: text.replace(/^(STEP\s*\d+|PASO\s*\d+|\d+[).])\s*/i, "") }));
+      blocks.push({
+        type: "recipe",
+        name: first.name ?? "Receta",
+        title: first.name ?? "Receta",
+        image: first.thumbnail,
+        category: first.category,
+        area: first.area,
+        description: instructions.slice(0, 200),
+        instructions: instructions.slice(0, 1500),
+        videoUrl: first.videoUrl,
+        ingredients: Array.isArray(first.ingredients) ? first.ingredients : void 0,
+        steps: steps.length > 0 ? steps : void 0,
+        source: { title: "TheMealDB", url: "https://www.themealdb.com/", domain: "themealdb.com" }
+      });
+      if (recipes.length > 1) {
+        blocks.push({
+          type: "comparison",
+          title: "Otras recetas",
+          items: recipes.slice(1, 5).map((rec) => ({
+            title: rec.name ?? "Receta",
+            subtitle: [rec.category, rec.area].filter(Boolean).join(" \xB7 "),
+            image: rec.thumbnail
+          }))
+        });
+      }
+      continue;
+    }
+    if (result.type === "book_info") {
+      const r = result;
+      const title = r.title ?? "Libro";
+      const cover = r.coverUrl ?? r.cover ?? r.thumbnail;
+      const synopsis = r.text ?? r.summary ?? r.synopsis ?? r.description ?? "";
+      blocks.push({
+        type: "book_review",
+        title,
+        cover,
+        author: r.author,
+        year: r.year ?? r.firstPublished,
+        pages: r.pages ?? r.number_of_pages_median,
+        publisher: r.publisher,
+        genre: r.genre,
+        rating: typeof r.rating === "number" ? r.rating : void 0,
+        synopsis: synopsis.slice(0, 800),
+        isbn: r.isbn,
+        sources: Array.isArray(r.sources) ? r.sources : void 0
+      });
+      continue;
+    }
+    if (result.type === "wikipedia_lookup" || result.type === "person_info") {
+      const r = result;
+      const title = r.title ?? r.query ?? "Informaci\xF3n";
+      const text = r.text ?? r.extract ?? r.summary ?? "";
+      if (!text) continue;
+      const sources = Array.isArray(r.sources) ? r.sources : [];
+      blocks.push({
+        type: "research_sources",
+        title,
+        summary: text.slice(0, 1200),
+        sources: sources.map((s) => ({
+          title: s.title ?? title,
+          url: s.url ?? "",
+          domain: s.domain ?? "wikipedia.org",
+          snippet: s.snippet ?? ""
+        }))
+      });
+      continue;
+    }
+    if (result.type === "food_info") {
+      const r = result;
+      const specs = [];
+      if (r.nutriscore) specs.push({ label: "Nutri-Score", value: String(r.nutriscore).toUpperCase() });
+      if (r.calories) specs.push({ label: "Calor\xEDas", value: `${r.calories} kcal/100g` });
+      if (r.fat) specs.push({ label: "Grasas", value: `${r.fat} g/100g` });
+      if (r.carbs) specs.push({ label: "Carbohidratos", value: `${r.carbs} g/100g` });
+      if (r.proteins) specs.push({ label: "Prote\xEDnas", value: `${r.proteins} g/100g` });
+      if (r.ingredients && Array.isArray(r.ingredients)) {
+        specs.push({ label: "Ingredientes", value: r.ingredients.slice(0, 5).join(", ") });
+      }
+      blocks.push({
+        type: "product_analysis",
+        product: {
+          name: r.productName ?? r.title ?? "Producto",
+          image: r.imageUrl ?? r.thumbnail,
+          description: r.summary ?? ""
+        },
+        specs
+      });
+      continue;
+    }
+    if (result.type === "reminder_set") {
+      const r = result;
+      if (r.block) {
+        blocks.push(r.block);
+      } else {
+        blocks.push({
+          type: "saved_record",
+          title: "Recordatorio guardado",
+          records: [{
+            kind: "deadline",
+            domain: "capture",
+            title: r.title ?? "Recordatorio",
+            value: r.title ?? "Recordatorio",
+            dueHint: r.dueText ?? "",
+            notes: r.note ?? ""
+          }]
+        });
+      }
+      continue;
+    }
+    if (result.type === "alarm_set") {
+      const r = result;
+      if (r.block) {
+        blocks.push(r.block);
+      } else {
+        blocks.push({
+          type: "saved_record",
+          title: "Alarma guardada",
+          records: [{
+            kind: "deadline",
+            domain: "capture",
+            title: r.title ?? "Alarma",
+            value: r.title ?? "Alarma",
+            dueHint: r.time ?? "",
+            notes: [r.repeat, r.note].filter(Boolean).join(" \xB7 ")
+          }]
+        });
+      }
+      continue;
+    }
+    if (result.type === "countdown") {
+      const r = result;
+      const items = [];
+      const days = Number(r.days ?? 0);
+      const hours = Number(r.hours ?? 0);
+      items.push({ label: "D\xEDas", value: String(days), detail: r.direction === "faltan" ? "faltan" : "pasaron" });
+      items.push({ label: "Horas", value: String(hours) });
+      if (r.targetDate) {
+        const d = new Date(r.targetDate);
+        if (!Number.isNaN(d.getTime())) {
+          items.push({ label: "Fecha", value: d.toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" }) });
+        }
+      }
+      blocks.push({
+        type: "data_card",
+        title: r.label ? `Cuenta regresiva \xB7 ${r.label}` : "Cuenta regresiva",
+        items
+      });
+      continue;
+    }
+    if (result.type === "game_info") {
+      const r = result;
+      if (r.status === "failed" || r.status === "no_data") {
+        result.__gameInfoFailed = true;
+        continue;
+      }
+      blocks.push({
+        type: "movie_review",
+        title: r.title ?? "Juego",
+        poster: r.backgroundImage ?? r.image,
+        rating: typeof r.rating === "number" ? r.rating : void 0,
+        releaseDate: r.released,
+        runtime: r.playtime ? `${r.playtime}h+` : void 0,
+        director: r.developer,
+        cast: Array.isArray(r.publishers) ? r.publishers : void 0,
+        genres: Array.isArray(r.genres) ? r.genres : void 0,
+        overview: (r.description ?? r.summary ?? "").slice(0, 800),
+        sources: Array.isArray(r.sources) ? r.sources : r.website ? [{ title: r.title, url: r.website, domain: "rawg.io" }] : void 0
+      });
+      continue;
+    }
+    if (result.type === "dictionary_define") {
+      const r = result;
+      const items = [];
+      if (r.word) items.push({ label: "Palabra", value: r.word });
+      if (r.phonetic) items.push({ label: "Fon\xE9tica", value: r.phonetic });
+      if (Array.isArray(r.definitions) && r.definitions.length) {
+        for (const d of r.definitions.slice(0, 3)) {
+          items.push({ label: d.partOfSpeech ?? "Def", value: d.definition ?? "" });
+        }
+      } else if (r.definition) {
+        items.push({ label: "Definici\xF3n", value: r.definition });
+      }
+      if (items.length) {
+        blocks.push({
+          type: "data_card",
+          title: r.word ?? "Definici\xF3n",
+          items
+        });
+      }
+      continue;
+    }
+    if (result.type === "math_calc") {
+      const r = result;
+      blocks.push({
+        type: "data_card",
+        title: "C\xE1lculo",
+        items: [
+          { label: "Expresi\xF3n", value: r.expression ?? "" },
+          { label: "Resultado", value: String(r.result ?? "?") }
+        ]
+      });
+      continue;
+    }
+    if (result.type === "unit_convert") {
+      const r = result;
+      blocks.push({
+        type: "data_card",
+        title: "Conversi\xF3n",
+        items: [
+          { label: "De", value: `${r.value ?? ""} ${r.from ?? ""}` },
+          { label: "A", value: `${r.result ?? "?"} ${r.to ?? ""}` }
+        ]
+      });
+      continue;
+    }
+    if (result.type === "news_topic" || result.type === "trending_topic") {
+      const r = result;
+      const items = Array.isArray(r.articles) ? r.articles : Array.isArray(r.items) ? r.items : [];
+      if (items.length === 0) continue;
+      blocks.push({
+        type: "research_sources",
+        title: r.topic ?? r.query ?? "Noticias",
+        summary: (r.summary ?? "").slice(0, 800),
+        sources: items.slice(0, 6).map((a) => ({
+          title: a.title ?? a.headline ?? "",
+          url: a.url ?? "",
+          domain: a.source ?? a.domain ?? "",
+          snippet: (a.summary ?? a.snippet ?? "").slice(0, 200)
+        }))
+      });
+      continue;
+    }
   }
   return blocks;
 }
@@ -9817,6 +11009,9 @@ function hasUsefulBlockContent(block) {
   if (block.type === "plan") return block.items.length > 0;
   if (block.type === "saved_record") return block.records.length > 0;
   if (block.type === "money_summary") return Boolean(block.total || block.summaryItems?.length || block.recommendation);
+  if (block.type === "recipe") return Boolean(block.name || block.title || block.instructions || block.ingredients?.length);
+  if (block.type === "movie_review") return Boolean(block.title || block.poster || block.overview || block.rating);
+  if (block.type === "book_review") return Boolean(block.title || block.cover || block.synopsis || block.author);
   return true;
 }
 function mergeModelAndToolBlocks(modelBlocks, toolBlocks) {
@@ -9934,6 +11129,51 @@ function replyFromBlocks(blocks, input) {
   }
   if (first.type === "money_summary") return first.recommendation ?? "Te deje el resumen de dinero.";
   if (first.type === "proactive_signal") return first.body;
+  if (first.type === "product_analysis") {
+    const name = first.product?.name ?? "Lo que pediste";
+    const desc = first.product?.description;
+    const rating = first.product?.rating;
+    const parts = [];
+    if (rating) parts.push(`Rating: ${rating}/10.`);
+    if (desc) parts.push(desc.slice(0, 300));
+    return parts.length > 0 ? `${name}. ${parts.join(" ")}` : `Te deje la info de ${name} en la tarjeta.`;
+  }
+  if (first.type === "recipe") {
+    const name = first.name ?? first.title ?? "Receta";
+    const parts = [name];
+    if (first.category) parts.push(first.category);
+    if (first.area) parts.push(first.area);
+    if (first.ingredients?.length) parts.push(`${first.ingredients.length} ingredientes`);
+    return `Te deje la receta de ${parts.join(" \xB7 ")} en la tarjeta.${first.videoUrl ? " Incluye video." : ""}`;
+  }
+  if (first.type === "movie_review") {
+    const title = first.title ?? "Pel\xEDcula";
+    const parts = [];
+    if (first.rating) parts.push(`Rating: ${first.rating}/10`);
+    if (first.director) parts.push(`Dir: ${first.director}`);
+    if (first.runtime) parts.push(first.runtime);
+    return parts.length > 0 ? `${title}. ${parts.join(" \xB7 ")}.` : `Te deje la info de ${title} en la tarjeta.`;
+  }
+  if (first.type === "book_review") {
+    const title = first.title ?? "Libro";
+    const parts = [];
+    if (first.author) parts.push(first.author);
+    if (first.year) parts.push(first.year);
+    return parts.length > 0 ? `${title} \u2014 ${parts.join(", ")}.` : `Te deje la info de ${title} en la tarjeta.`;
+  }
+  if (first.type === "data_card") {
+    return first.title ?? "Te deje los datos en la tarjeta.";
+  }
+  if (first.type === "live_match") {
+    const home = first.homeName ?? first.homeTeam?.name ?? "";
+    const away = first.awayName ?? first.awayTeam?.name ?? "";
+    const hs = first.homeScore ?? first.homeTeam?.score;
+    const as = first.awayScore ?? first.awayTeam?.score;
+    if (home && away && hs !== void 0 && as !== void 0) {
+      return `${home} ${hs} - ${as} ${away}. Te deje el detalle en la tarjeta.`;
+    }
+    return "Te deje el resultado del partido en la tarjeta.";
+  }
   return "";
 }
 function isGenericAgentReply(reply) {
@@ -9954,6 +11194,45 @@ function normalizeMemoryCandidates(value) {
     rootQuote: cleanText(item.root_quote ?? item.rootQuote),
     useForSuggestions: item.use_for_suggestions === false || item.useForSuggestions === false ? false : true
   })).filter((item) => item.text.length > 4).slice(0, 5);
+}
+function synthesizeMemoryFromRevelation(input) {
+  const candidates = [];
+  const text = input.trim();
+  let m;
+  if (m = text.match(/\b(?:me encanta|me encantan|amo|me apasiona|me fascina|me gustan los|me gustan las|me gusta el|me gusta la|adoro)\s+([^.!?]{3,80})/i)) {
+    candidates.push({ kind: "preference", text: `Le encanta ${m[1].trim()}.`, confidence: 0.88, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
+  }
+  if (m = text.match(/\b(?:estoy|ando|estuve)\s+(trabajando|aprendiendo|leyendo|escuchando|viendo|estudiando|haciendo|armando|programando|escribiendo|cocinando|preparando|investigando|diseñando|creando|desarrollando)\s+(?:en\s+|el\s+|la\s+|los\s+|las\s+|un\s+|una\s+)?([^.!?]{3,100})/i)) {
+    const action = m[1].toLowerCase();
+    const what = m[2].trim();
+    const kind = action === "aprendiendo" ? "routine" : action === "trabajando" || action === "programando" || action === "desarrollando" || action === "creando" || action === "dise\xF1ando" ? "goal" : "routine";
+    const verbMap = {
+      trabajando: "Trabaja en",
+      aprendiendo: "Aprende",
+      leyendo: "Est\xE1 leyendo",
+      escuchando: "Escucha",
+      viendo: "Est\xE1 viendo",
+      estudiando: "Estudia",
+      haciendo: "Est\xE1 haciendo",
+      armando: "Est\xE1 armando",
+      programando: "Programa",
+      escribiendo: "Est\xE1 escribiendo",
+      cocinando: "Est\xE1 cocinando",
+      preparando: "Est\xE1 preparando",
+      investigando: "Investiga",
+      dise\u00F1ando: "Dise\xF1a",
+      creando: "Est\xE1 creando",
+      desarrollando: "Desarrolla"
+    };
+    candidates.push({ kind, text: `${verbMap[action] ?? "Est\xE1 " + action} ${what}.`, confidence: 0.86, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
+  }
+  if (m = text.match(/\b(?:mi\s+)?(?:madre|padre|mam[áa]|pap[áa])\s+(?:cumple|tiene|es|está|va a)\s+([^.!?]{3,80})/i)) {
+    candidates.push({ kind: "relationship", text: `Sobre su madre/padre: ${m[0].trim()}.`, confidence: 0.8, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
+  }
+  if (m = text.match(/\b(?:mi\s+)?cumple[años]*\s+(?:es|en|el|por)\s+([^.!?]{3,60})/i)) {
+    candidates.push({ kind: "profile", text: `Cumplea\xF1os: ${m[1].trim()}.`, confidence: 0.85, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
+  }
+  return candidates;
 }
 function normalizeCommitments(value) {
   return asArray(value).map(asRecord).map((item) => ({
@@ -10017,30 +11296,128 @@ function uniqueCommitments(commitments) {
     return true;
   });
 }
-function normalizeFinalPayload(raw, input, toolExecutions, extractedRaw) {
+function normalizeFinalPayload(raw, input, toolExecutions, extractedRaw, prebuiltToolBlocks) {
   const modelBlocks = asArray(raw.uiBlocks).map(normalizeUiBlock).filter((block) => Boolean(block));
   const mascotState = cleanText(raw.mascotState) || "idle";
   const validatedMascotState = VALID_MASCOT_STATES.includes(mascotState) ? mascotState : "idle";
   if (mascotState !== "idle" && !VALID_MASCOT_STATES.includes(mascotState)) {
     console.warn(`[Koru] LLM returned invalid mascotState: "${mascotState}". Falling back to "idle".`);
   }
-  const toolBlocks = blocksFromToolResults(toolExecutions);
-  const uiBlocks = mergeModelAndToolBlocks(modelBlocks, toolBlocks);
+  const toolBlocks = prebuiltToolBlocks ?? blocksFromToolResults(toolExecutions);
+  const uiBlocks = toolBlocks.length > 0 ? toolBlocks : mergeModelAndToolBlocks(modelBlocks, toolBlocks);
   const captures = personalCapturesFromTools(toolExecutions);
   const localActions = localActionsFromTools(toolExecutions);
   const memoryCaptures = memoryCapturesFromTools(toolExecutions);
-  const toolResults = toolExecutions.map((execution, index) => ({
-    id: execution.id || `tool_${index + 1}`,
-    tool: execution.name === "shopping_compare" ? "shopping_compare" : execution.name === "weather" ? "weather" : execution.name === "route_traffic" ? "route_traffic" : execution.name === "alarm" ? "alarm" : execution.name === "calendar_reminder" ? "calendar_reminder" : execution.name === "match_live" || execution.name === "match_schedule" || execution.name === "league_standings" || execution.name === "team_follow" ? "match_live" : execution.name === "plan_day" || execution.name === "save_memory" || execution.name === "save_personal_item" || execution.name === "query_personal_context" ? "memory_recall" : "web_search",
-    status: "ok",
-    summary: JSON.stringify(execution.result).slice(0, 500),
-    data: execution.result,
-    sources: normalizeSources(execution.result.sources)
-  }));
+  const toolResults = toolExecutions.map((execution, index) => {
+    const resultAny = execution.result;
+    const rawStatus = typeof resultAny?.status === "string" ? resultAny.status : "ok";
+    const status = rawStatus === "failed" || rawStatus === "error" ? "failed" : rawStatus === "partial" || rawStatus === "no_data" || rawStatus === "need_city" || rawStatus === "needs_context" ? "needs_context" : "ok";
+    const toolMap = {
+      weather: "weather",
+      web_search: "web_search",
+      shopping_compare: "shopping_compare",
+      route_traffic: "route_traffic",
+      calendar_reminder: "calendar_reminder",
+      alarm: "alarm",
+      alarm_set: "alarm",
+      reminder_set: "calendar_reminder",
+      countdown: "calendar_reminder",
+      match_live: "match_live",
+      match_schedule: "match_live",
+      league_standings: "match_live",
+      team_follow: "match_live",
+      plan_day: "memory_recall",
+      save_memory: "memory_recall",
+      save_personal_item: "memory_recall",
+      query_personal_context: "memory_recall",
+      movie_info: "web_search",
+      book_info: "web_search",
+      game_info: "web_search",
+      person_info: "web_search",
+      person_filmography: "web_search",
+      wikipedia_lookup: "web_search",
+      dictionary_define: "web_search",
+      math_calc: "web_search",
+      unit_convert: "web_search",
+      recipe_find: "web_search",
+      recipe_by_ingredients: "web_search",
+      food_info: "web_search",
+      wine_pairing: "web_search",
+      nutrition_calc: "web_search",
+      restaurant_deep_search: "shopping_compare",
+      restaurant_review_aggregate: "shopping_compare",
+      crypto_price: "crypto_price",
+      stock_quote: "crypto_price",
+      exchange_history: "crypto_price",
+      currency_convert: "crypto_price",
+      news_topic: "web_search",
+      trending_topic: "web_search",
+      travel_itinerary: "route_traffic",
+      flight_search: "route_traffic",
+      hotel_search: "route_traffic",
+      deep_research: "web_search",
+      price_history: "shopping_compare",
+      product_review: "shopping_compare"
+    };
+    return {
+      id: execution.id || `tool_${index + 1}`,
+      tool: toolMap[execution.name] ?? "web_search",
+      status,
+      summary: JSON.stringify(execution.result).slice(0, 500),
+      data: execution.result,
+      sources: normalizeSources(resultAny?.sources)
+    };
+  });
   const cleanedReply = cleanReplyText(raw.reply);
   const blockReply = replyFromBlocks(uiBlocks, input);
+  const honestForcedReply = toolExecutions.map((e) => e.result).find((r) => r && r.__forceHonestReply);
+  const looksLikeThinking = /^(the user|i need to|let me|i should|i will|i'll|i am going to|i'm going to|step by step|first,?\s*i|okay,?\s*(so|i|let)|alright,?\s*(so|i|let))\b/i.test(cleanedReply);
+  let finalReply;
+  if (honestForcedReply) {
+    finalReply = honestForcedReply.__honestReplyText || "No encontr\xE9 datos sobre eso en este momento.";
+  } else if (!cleanedReply || isGenericAgentReply(cleanedReply) || looksLikeThinking) {
+    finalReply = blockReply || "Tuve un problema para armar la respuesta. \xBFMe lo repet\xEDs de otra forma para ayudarte bien?";
+  } else {
+    finalReply = cleanedReply;
+  }
+  const informativeBlockTypes = /* @__PURE__ */ new Set([
+    "movie_review",
+    "recipe",
+    "book_review",
+    "weather",
+    "live_match",
+    "deliverable",
+    "market",
+    "forex",
+    "data_card",
+    "web_nav",
+    "restaurant_synthesis",
+    "research_sources",
+    "comparison",
+    "crypto_portfolio",
+    "data_ticker",
+    "product_analysis"
+  ]);
+  const hasInformativeBlock = uiBlocks.some((b) => informativeBlockTypes.has(b.type));
+  if (finalReply.length > 250 && hasInformativeBlock) {
+    const firstSentence = finalReply.match(/^.{1,200}?[.!?](\s|$)/)?.[0];
+    if (firstSentence && firstSentence.length < finalReply.length) {
+      const trimmed = firstSentence.trim();
+      if (/tarjeta/i.test(trimmed)) {
+        finalReply = trimmed;
+      } else {
+        finalReply = trimmed + " Te dej\xE9 el detalle en la tarjeta.";
+      }
+    }
+  }
+  if (hasInformativeBlock) {
+    finalReply = finalReply.replace(/Te dejé el detalle en la tarjeta\.?\s*$/i, "").trim();
+    if (!/tarjeta/i.test(finalReply)) {
+      finalReply += " Te dej\xE9 el detalle en la tarjeta.";
+    }
+  }
   return {
-    reply: !cleanedReply || isGenericAgentReply(cleanedReply) ? blockReply || "Tuve un problema para armar la respuesta. \xBFMe lo repet\xEDs de otra forma para ayudarte bien?" : cleanedReply,
+    reply: finalReply,
     uiBlocks,
     suggestedActions: normalizeSuggestedActions(raw.suggestedActions),
     understanding: normalizeUnderstanding(raw.understanding, input),
@@ -10048,19 +11425,32 @@ function normalizeFinalPayload(raw, input, toolExecutions, extractedRaw) {
       ...normalizeMemoryCandidates(raw.memoryCandidates),
       ...normalizeMemoryCandidates(extractedRaw?.memoryCandidates),
       ...captures.flatMap((capture) => capture.memoryCandidates ?? []),
-      ...memoryCaptures.flatMap((capture) => capture.memoryCandidates ?? [])
+      ...memoryCaptures.flatMap((capture) => capture.memoryCandidates ?? []),
+      // 🔴 FIX: síntesis determinística — si el LLM no capturó la revelación
+      // pasiva del input, generarla aquí.
+      ...captures.length === 0 && memoryCaptures.length === 0 ? synthesizeMemoryFromRevelation(input) : []
     ].slice(0, 6),
     commitments: uniqueCommitments([
       ...normalizeCommitments(raw.commitments),
       ...normalizeCommitments(extractedRaw?.commitments),
       ...captures.flatMap((capture) => capture.commitments ?? []),
-      ...localActions.flatMap((action) => action.commitments ?? [])
+      ...localActions.flatMap((action) => action.commitments ?? []),
+      // 🔴 FIX: extract commitments from any tool result that has them
+      ...toolExecutions.flatMap((exec) => {
+        const r = exec.result;
+        return Array.isArray(r?.commitments) ? r.commitments : [];
+      })
     ]).slice(0, 8),
     records: uniqueRecords([
       ...normalizeRecords(raw.records),
       ...normalizeRecords(extractedRaw?.records),
       ...captures.flatMap((capture) => capture.records ?? []),
-      ...localActions.flatMap((action) => action.records ?? [])
+      ...localActions.flatMap((action) => action.records ?? []),
+      // 🔴 FIX: extract records from any tool result that has them
+      ...toolExecutions.flatMap((exec) => {
+        const r = exec.result;
+        return Array.isArray(r?.records) ? r.records : [];
+      })
     ]).slice(0, 12),
     toolResults,
     stateEvents: [
@@ -10111,17 +11501,17 @@ async function finalizePayload(request, config2, raw, toolExecutions, extractorT
     };
   }
 }
-async function finalizePayloadWithFastModel(request, config2, raw, toolExecutions, timeout) {
+async function finalizePayloadWithFastModel(request, config2, raw, toolExecutions, timeout, prebuiltToolBlocks) {
   const existingReply = cleanText(raw.reply);
   if (existingReply && existingReply.length > 5) {
-    if (!isTrivialInput(request.input) && toolExecutions.length > 0) {
+    if (!isTrivialInput(request.input)) {
       try {
         const extracted = await extractMemoryWithJsonPrompt(request, config2, toolExecutions, raw, timeout);
-        return normalizeFinalPayload(raw, request.input, toolExecutions, extracted.raw);
+        return normalizeFinalPayload(raw, request.input, toolExecutions, extracted.raw, prebuiltToolBlocks);
       } catch {
       }
     }
-    return normalizeFinalPayload(raw, request.input, toolExecutions);
+    return normalizeFinalPayload(raw, request.input, toolExecutions, void 0, prebuiltToolBlocks);
   }
   const messages = buildMessages(request);
   messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respond\xE9 con JSON puro v\xE1lido. Sin markdown, sin backticks. El JSON debe empezar con { y terminar con }." });
@@ -10134,14 +11524,14 @@ async function finalizePayloadWithFastModel(request, config2, raw, toolExecution
     } catch {
       parsed = { reply: cleanReplyText(content) || "No pude armar una respuesta clara." };
     }
-    if (!isTrivialInput(request.input) && toolExecutions.length > 0) {
+    if (!isTrivialInput(request.input)) {
       try {
         const extracted = await extractMemoryWithJsonPrompt(request, config2, toolExecutions, parsed, timeout);
-        return normalizeFinalPayload(parsed, request.input, toolExecutions, extracted.raw);
+        return normalizeFinalPayload(parsed, request.input, toolExecutions, extracted.raw, prebuiltToolBlocks);
       } catch {
       }
     }
-    return normalizeFinalPayload(parsed, request.input, toolExecutions);
+    return normalizeFinalPayload(parsed, request.input, toolExecutions, void 0, prebuiltToolBlocks);
   } catch {
     return normalizeFinalPayload(raw, request.input, toolExecutions);
   }
@@ -10324,28 +11714,95 @@ async function getRouter(config2) {
 }
 function searchLabelFromInput(input) {
   const clean = input.trim().replace(/\s+/g, " ");
+  if (/\b(recordame|recordar|recuerdame|recuerda|no me dejes olvidar|avisame|avisa|anot[aá])\b/i.test(clean)) {
+    const m = clean.match(/(?:recordame|recordar|recuerdame|recuerda|no me dejes olvidar|avisame|avisa|anot[aá])\s+(.+?)(?:\s+(?:a las|al|el|en|para|mañana|pasado)\b|$)/i);
+    const what = m?.[1]?.trim() ?? clean.replace(/.*(?:recordame|recordar|recuerdame|recuerda|no me dejes olvidar|avisame|avisa|anot[aá])\s+/i, "").trim();
+    return `Anotando ${what.slice(0, 40)}\u2026`;
+  }
+  if (/\b(alarma|despertador)\b/i.test(clean)) {
+    const t = clean.match(/\d{1,2}(?::\d{2})?\s*(?:am|pm)?/i)?.[0];
+    return t ? `Programando alarma para las ${t}\u2026` : "Programando alarma\u2026";
+  }
+  if (/\b(cu[aá]ntos? d[ií]as? faltan|cu[aá]nto falta|faltan para)\b/i.test(clean)) {
+    return "Calculando cuenta regresiva\u2026";
+  }
   const stripped = clean.replace(/^(hola|buenas|buenos d[ií]as|buenas tardes|buenas noches|che|hey|koru|por favor|podr[ií]as|puedes|me dec[ií]s|decime|dame|quiero saber|necesito saber|busc[aá]\s*(info|informaci[oó]n|datos)?\s*(sobre|de|acerca)?)\b[,\s]*/gi, "").replace(/^(paso|pas[oó]|que paso|qué pasó|qu[eé] tal|c[oó]mo (va|le va|est[aá]))\s+(con|el|la|los|las)?\s*/i, "").trim();
   if (stripped.length < 5) return "Buscando en la web\u2026";
   const shortened = stripped.length > 50 ? stripped.slice(0, 50).trim() + "\u2026" : stripped;
   return `Buscando ${shortened}\u2026`;
 }
-function explicitDeliverableTopic(input) {
+function explicitDeliverableTopic(input, history) {
   const clean = input.trim().replace(/\s+/g, " ");
   if (!clean) return null;
-  const hasDeliverableCue = /\b(?:informe\s+(?:sobre|de|del|acerca)|reporte\s+(?:sobre|de|del|acerca)|dossier|investigaci[oó]n\s+(?:sobre|de|del|acerca)|investig[aá]me|resumen completo|contame todo sobre|quiero saber todo sobre|explicame en profundidad|estudi[aá]me)\b|an[aá]lisis\s+(?:completo|profundo|detallado|serio)/i.test(clean);
+  const hasDeliverableCue = /\b(?:informe\s+(?:sobre|de|del|acerca)|reporte\s+(?:sobre|de|del|acerca)|dossier|investigaci[oó]n\s+(?:sobre|de|del|acerca)|investig[aá]me|resumen completo|contame todo sobre|quiero saber todo sobre|explicame en profundidad|estudi[aá]me|hac[eé]\s+(?:un\s+)?informe|hac[eé]\s+(?:un\s+)?reporte)\b|an[aá]lisis\s+(?:completo|profundo|detallado|serio)/i.test(clean);
   if (!hasDeliverableCue) return null;
   const topicPatterns = [
     /(?:informe|reporte|dossier|investigaci[oó]n|an[aá]lisis)\s+(?:serio\s+|completo\s+|profundo\s+|detallado\s+)?(?:sobre|acerca de|del|de)\s+(.{3,180})/i,
     /(?:investig[aá](?:me)?|estudi[aá](?:me)?)\s+(?:todo\s+)?(?:(?:sobre|acerca de|del|de)\s+)?(.{3,180})/i,
     /(?:contame todo|quiero saber todo)\s+(?:sobre|acerca de|del|de)\s+(.{3,180})/i,
-    /explicame en profundidad\s+(.{3,180})/i
+    /explicame en profundidad\s+(.{3,180})/i,
+    /(?:hac[eé]\s+(?:un\s+)?(?:informe|reporte))\s+(?:sobre|acerca de|del|de)\s+(.{3,180})/i,
+    /(?:hac[eé]\s+(?:un\s+)?(?:informe|reporte))\s+(?:sobre\s+)?(?:esa|ese|eso|este|esta|esto|la|el|lo|aquell[ao])\s+(.{3,180})/i
   ];
+  let topic = null;
   for (const pattern of topicPatterns) {
     const match = clean.match(pattern);
-    const topic = match?.[1]?.trim().replace(/[.?!]+$/g, "");
-    if (topic && topic.length >= 3) return topic;
+    const t = match?.[1]?.trim().replace(/[.?!]+$/g, "");
+    if (t && t.length >= 3) {
+      topic = t;
+      break;
+    }
   }
-  return clean.replace(/[.?!]+$/g, "");
+  if (!topic) {
+    topic = clean.replace(/[.?!]+$/g, "");
+  }
+  if (history && history.length > 0 && /\b(esa|ese|eso|este|esta|esto|la|el|lo|aquell[ao])\b/i.test(topic)) {
+    const resolved = resolveCoreference(topic, history);
+    if (resolved) {
+      topic = resolved;
+    } else {
+      logger.info("explicitDeliverableTopic", "Coreference unresolved, returning null", { topic, historyLength: history.length });
+      return null;
+    }
+  }
+  return topic;
+}
+function resolveCoreference(topic, history) {
+  const entityMatch = topic.match(/\b(pel[ií]cula|pel[ií]c|serie|libro|documental|juego|canci[oó]n|tema|persona|actor|actriz|autor|artista|equipo|partido|lugar|ciudad|pa[ií]s|empresa|app|producto)\b/i);
+  const entityType = entityMatch?.[1]?.toLowerCase() ?? "";
+  const recent = history.slice(-6, -1).reverse();
+  for (const msg of recent) {
+    if (msg.role !== "assistant" && msg.role !== "user") continue;
+    const content = (msg.content ?? "").trim();
+    if (!content) continue;
+    if (entityType) {
+      let pattern;
+      if (/(pel[ií]cula|pel[ií]c|serie|documental)/.test(entityType)) {
+        pattern = /(?:pel[ií]cula|serie|documental)\s+(?:[""']([^""']+?)[""']|([A-ZÁÉÍÓÚÑ][\wáéíóúñ\s]{2,60}))/;
+      } else if (/libro/.test(entityType)) {
+        pattern = /(?:libro)\s+(?:[""']([^""']+?)[""']|([A-ZÁÉÍÓÚÑ][\wáéíóúñ\s]{2,60}))/;
+      } else if (/(persona|actor|actriz|autor|artista)/.test(entityType)) {
+        pattern = /([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+){0,2})/;
+      } else {
+        pattern = /([A-ZÁÉÍÓÚÑ][\wáéíóúñ\s]{2,40})/;
+      }
+      const m = content.match(pattern);
+      if (m) {
+        const name = (m[1] ?? m[2] ?? "").trim();
+        if (name && name.length >= 3) {
+          return `${entityType} ${name}`;
+        }
+      }
+    } else {
+      if (msg.role === "assistant") {
+        const m = content.match(/([A-ZÁÉÍÓÚÑ][\wáéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ\w][\wáéíóúñ]+){0,4})/);
+        if (m && m[1].length >= 4) {
+          return m[1].trim();
+        }
+      }
+    }
+  }
+  return null;
 }
 var DELIVERABLE_ICONS = /* @__PURE__ */ new Set([
   "auto_awesome",
@@ -10439,11 +11896,11 @@ function fallbackDeliverable(topic, sources) {
       { icon: "fact_check", label: "Fuentes" },
       { icon: "insights", label: "Contexto" }
     ],
-    metrics: [
-      { value: String(usable.length || sources.length), label: "Fuentes" },
-      { value: String(domains.length || 1), label: "Dominios" },
+    metrics: usable.length > 0 ? [
+      { value: String(usable.length), label: "Fuentes" },
+      { value: String(domains.length), label: "Dominios" },
       { value: "4", label: "Secciones" }
-    ],
+    ] : [],
     sections: [
       {
         icon: "auto_awesome",
@@ -10540,10 +11997,15 @@ async function runDeepResearchFlow(topic, request, config2, preferredProvider, o
     });
   };
   emit(6, "Entendiendo el pedido\u2026", "thinking", `\xA1Buen\xEDsimo${userName ? `, ${userName}` : ""}! Me pongo a investigar ${topic} a fondo y te armo el informe.`);
+  const researchNowIso = (/* @__PURE__ */ new Date()).toISOString();
+  const researchTemporal = [
+    `Contexto temporal: ${formatDateLong(researchNowIso)}, ${formatTimeShort(researchNowIso)} (${Intl.DateTimeFormat().resolvedOptions().timeZone}).`,
+    `Para "actualidad reciente" prioriz\xE1 resultados del \xFAltimo mes. Para "datos" prioriz\xE1 los m\xE1s recientes verificables.`
+  ].join(" ");
   let queries = [];
   try {
     const subqResult = await callProvider(config2, [
-      { role: "system", content: "Sos un planificador de investigaci\xF3n. Respond\xE9s SOLO con JSON v\xE1lido, sin texto extra." },
+      { role: "system", content: `Sos un planificador de investigaci\xF3n. Respond\xE9s SOLO con JSON v\xE1lido, sin texto extra. ${researchTemporal}` },
       { role: "user", content: `Tema de investigaci\xF3n: "${topic}". Devolv\xE9 SOLO este JSON: {"queries":["q1","q2","q3","q4"]} con 4 b\xFAsquedas web en espa\xF1ol, cortas y distintas entre s\xED, que cubran: 1) qu\xE9 es / panorama general, 2) historia o contexto, 3) noticias y actualidad reciente, 4) datos, cifras o an\xE1lisis experto.` }
     ], planningTimeout, false, preferredProvider);
     const parsed = asRecord(JSON.parse(extractJsonBlock(cleanText(subqResult.message.content, ""))));
@@ -10574,6 +12036,23 @@ ${search.summary}`);
     }
   }
   logger.info("runDeepResearchFlow", "Sources collected", { count: allSources.length, queries: queries.length });
+  if (allSources.length === 0) {
+    logger.warn("runDeepResearchFlow", "0 sources found \u2014 aborting with clarifying question", { topic });
+    return {
+      reply: `No pude encontrar informaci\xF3n sobre "${topic}". \xBFTe refer\xEDs a una pel\xEDcula, libro, persona o tema espec\xEDfico? Si me das el nombre exacto o m\xE1s contexto, lo intento de nuevo.`,
+      uiBlocks: [{
+        type: "clarifying_question",
+        question: `No encontr\xE9 nada sobre "${topic}". \xBFPod\xE9s darme el nombre exacto o m\xE1s contexto?`,
+        options: []
+      }],
+      toolCalls: [],
+      toolResults: [],
+      turnItems: [],
+      mascotState: "worried",
+      energyAwarded: 0,
+      provider: "bluesminds"
+    };
+  }
   emit(62, "Comparando y cruzando fuentes\u2026", "comparing", `Encontr\xE9 ${allSources.length} fuentes. Estoy cruzando los datos\u2026`);
   let informe = fallbackDeliverable(topic, allSources);
   let provider = "bluesminds";
@@ -10587,7 +12066,8 @@ ${search.summary}`);
           "Sos Koru, redactor de informes personales. Escrib\xEDs en espa\xF1ol rioplatense, c\xE1lido pero preciso.",
           "Tu informe debe EXCEDER lo que el usuario espera: completo, con datos concretos, bien organizado.",
           "Us\xE1 EXCLUSIVAMENTE la informaci\xF3n de las fuentes provistas m\xE1s conocimiento general verificable. NUNCA inventes cifras que no puedas respaldar.",
-          "Respond\xE9s SOLO con JSON v\xE1lido, sin markdown ni texto extra."
+          "Respond\xE9s SOLO con JSON v\xE1lido, sin markdown ni texto extra.",
+          researchTemporal
         ].join("\n")
       },
       {
@@ -10665,6 +12145,96 @@ ${search.summary}`);
     fallbackReason: "deep-research"
   };
 }
+function resolveFollowUpInput(input, history) {
+  const trimmed = input.trim().toLowerCase();
+  const followUpPatterns = [
+    /^y\s+(ayer|mañana|manana|anteayer|pasado mañana|pasado manana|el otro|el sabado|el sabado pasado|el domingo|el lunes|el martes|el miercoles|el jueves|el viernes)\??$/i,
+    /^y\s+(la anterior|el anterior|la proxima|el proximo|el ultimo|la ultima)\??$/i,
+    /^y\s+(con|de|para|sin)\s+(.{1,40})\??$/i,
+    /^(como le fue|como le va|como salio|como salio|que tal)\s+(ayer|anteayer|el sabado|el domingo)\??$/i
+  ];
+  const isFollowUp = followUpPatterns.some((p) => p.test(trimmed));
+  if (!isFollowUp) return input;
+  const recent = history.slice(-6).reverse();
+  let team = null;
+  let movie = null;
+  let recipe = null;
+  let book = null;
+  let lastUserMessage = null;
+  for (const msg of recent) {
+    if (msg.role !== "user") continue;
+    const content = (msg.content ?? "").trim();
+    if (!content) continue;
+    if (!lastUserMessage) lastUserMessage = content;
+    if (!team) {
+      const teamMatch = content.match(/\b(argentina|espana|españa|brasil|francia|alemania|inglaterra|italia|portugal|holanda|belgica|bélgica|uruguay|chile|colombia|mexico|méxico|peru|perú|ecuador|paraguay|boca|river|real madrid|barcelona|barca|atletico madrid|atlético madrid|liverpool|manchester city|manchester united|chelsea|arsenal|tottenham|juventus|inter|milan|ac milan|bayern munich|dortmund|psg|napoli|roma|lazio|sevilla|valencia|villarreal|real sociedad|betis|athletic bilbao)\b/i);
+      if (teamMatch) team = teamMatch[1];
+    }
+    if (!movie) {
+      const movieMatch = content.match(/(?:pelicula|película|serie|documental)\s+(?:["""']([^"""']+?)["""']|([A-ZÁÉÍÓÚÑ][\wáéíóúñ\s]{2,40}))/i);
+      if (movieMatch) movie = movieMatch[1] ?? movieMatch[2];
+    }
+    if (!recipe) {
+      const recipeMatch = content.match(/(?:receta|comida|plato|preparar|hacer|cocinar)\s+(?:de\s+|un\s+|una\s+)?([^?.,]{3,40})/i);
+      if (recipeMatch) recipe = recipeMatch[1].trim();
+    }
+    if (!book) {
+      const bookMatch = content.match(/(?:libro|novela)\s+(?:["""']([^"""']+?)["""']|([A-ZÁÉÍÓÚÑ][\wáéíóúñ\s]{2,40}))/i);
+      if (bookMatch) book = bookMatch[1] ?? bookMatch[2];
+    }
+  }
+  if (/^(y\s+)?(ayer|mañana|manana|anteayer|pasado)/i.test(trimmed)) {
+    if (team) {
+      const temporalMatch = trimmed.match(/(ayer|mañana|manana|anteayer|pasado mañana|pasado manana)/i);
+      const temporal = temporalMatch?.[1] ?? "ayer";
+      return `como salio ${team} ${temporal}?`;
+    }
+    if (movie) {
+      return `informacion sobre la pelicula ${movie}`;
+    }
+  }
+  if (/^(y\s+)?(la|el)\s+(anterior|ultimo|ultima|proxima|proximo)/i.test(trimmed)) {
+    if (movie) return `pelicula anterior a ${movie}`;
+    if (book) return `libro anterior a ${book}`;
+    if (team) return `partido anterior de ${team}`;
+  }
+  if (/^y\s+(con|de|para|sin)\s+/i.test(trimmed)) {
+    const variation = input.trim().replace(/^y\s+/i, "").replace(/[?!.]$/, "");
+    const termMatch = variation.match(/(?:de|con|para|sin)\s+(.+)/i);
+    const term = termMatch?.[1]?.trim() ?? variation;
+    if (movie) {
+      return `que se dice de la pelicula ${term}?`;
+    }
+    if (book) {
+      return `informacion del libro ${term}`;
+    }
+    if (recipe) {
+      return `receta de ${recipe} ${variation}`;
+    }
+    if (term.length >= 2) {
+      return `que se dice de la pelicula ${term}?`;
+    }
+  }
+  return input;
+}
+function fastPathKickerForCategory(category) {
+  const kickerMap = {
+    sports: "Tu Partido",
+    weather: "Tu Clima",
+    food: "Tu Receta",
+    media: "Tu Rese\xF1a",
+    knowledge: "Tu Consulta",
+    world_info: "Tu B\xFAsqueda",
+    review: "Tu An\xE1lisis",
+    shopping: "Tu Comparativa",
+    market: "Tu Cotizaci\xF3n",
+    travel: "Tu Viaje",
+    research: "Tu Informe",
+    planning: "Tu Plan",
+    action: "Tu Recordatorio"
+  };
+  return kickerMap[category] ?? "Tu Consulta";
+}
 async function runKoruBackendTurn(request, config2, onChunk) {
   const preferredProvider = inferProviderFromModel(request.model);
   if (request.model) {
@@ -10678,14 +12248,22 @@ async function runKoruBackendTurn(request, config2, onChunk) {
   let fallbackReason;
   const isOllama = isOllamaUrl(config2.nvidiaBaseUrl);
   const isLargeRemoteNemotron = preferredProvider === "nvidia" && !isOllama && config2.nvidiaModel.toLowerCase().includes("nemotron-3-ultra");
-  const firstTimeout = isOllama ? 9e4 : isLargeRemoteNemotron ? 9e4 : 3e4;
-  const secondaryTimeout = isOllama ? 12e4 : isLargeRemoteNemotron ? 12e4 : 3e4;
-  const extractorTimeout = isOllama ? 12e4 : isLargeRemoteNemotron ? 12e4 : 4e4;
+  const firstTimeout = isOllama ? 9e4 : isLargeRemoteNemotron ? 45e3 : 3e4;
+  const secondaryTimeout = isOllama ? 12e4 : isLargeRemoteNemotron ? 6e4 : 3e4;
+  const extractorTimeout = isOllama ? 9e4 : isLargeRemoteNemotron ? 45e3 : 3e4;
   let routeCategory;
+  const resolvedInput = resolveFollowUpInput(request.input, request.history);
+  if (resolvedInput !== request.input) {
+    logger.info("runKoruBackendTurn", "Follow-up resolved", {
+      original: request.input,
+      resolved: resolvedInput
+    });
+    request = { ...request, input: resolvedInput };
+  }
   const inputTrimmed = request.input.trim();
   const trivial = isTrivialInput(inputTrimmed);
   const modelOverride = request.model ? request.model : selectModelForInput(inputTrimmed, config2, trivial, false);
-  const deliverableTopic = explicitDeliverableTopic(inputTrimmed);
+  const deliverableTopic = explicitDeliverableTopic(inputTrimmed, request.history);
   if (deliverableTopic) {
     logger.info("runKoruBackendTurn", "Explicit deliverable request detected", { topic: deliverableTopic });
     return await runDeepResearchFlow(deliverableTopic, request, config2, preferredProvider, onChunk);
@@ -10713,6 +12291,136 @@ async function runKoruBackendTurn(request, config2, onChunk) {
     };
   }
   if (inputTrimmed.length >= 3) {
+    const fastPathResult = keywordFastPath(request.input);
+    if (fastPathResult) {
+      logger.info("runKoruBackendTurn", "Keyword fast-path match", {
+        category: fastPathResult.category,
+        tool: fastPathResult.tool ?? "none",
+        confidence: fastPathResult.confidence.toFixed(2)
+      });
+      routeCategory = fastPathResult.category;
+      const route = fastPathResult;
+      if (route.tool === "deep_research") {
+        const topic = cleanText(route.toolArgs?.topic) || cleanText(route.toolArgs?.query) || inputTrimmed;
+        return await runDeepResearchFlow(topic, request, config2, preferredProvider, onChunk);
+      }
+      if (route.tool) {
+        const syntheticToolCall = {
+          id: `fastpath_${Date.now()}`,
+          type: "function",
+          function: { name: route.tool, arguments: JSON.stringify(route.toolArgs ?? {}) }
+        };
+        const query = route.tool === "web_search" ? cleanText(route.toolArgs?.query) : void 0;
+        const shortSearchLabel = query ? searchLabelFromInput(query) : "Buscando...";
+        const taskKicker = fastPathKickerForCategory(route.category);
+        onChunk?.({
+          reply: shortSearchLabel,
+          uiBlocks: [{
+            type: "deliverable",
+            status: "working",
+            kicker: taskKicker,
+            title: taskKicker,
+            topic: request.input,
+            progress: 15,
+            phaseLabel: shortSearchLabel
+          }],
+          suggestedActions: [],
+          understanding: { literalRequest: request.input, userGoal: route.category, unstatedNeeds: [], assumptions: [], confidence: route.confidence },
+          memoryCandidates: [],
+          commitments: [],
+          records: [],
+          toolResults: [],
+          stateEvents: [{ kind: "thinking", label: shortSearchLabel }],
+          mascotState: "working",
+          provider,
+          model,
+          fallbackReason: "fastpath-" + route.category
+        });
+        const delivered = await executeProviderToolCalls([syntheticToolCall], messages, request, toolExecutions, config2);
+        const LOCAL_ACTION_TOOLS = /* @__PURE__ */ new Set([
+          "reminder_set",
+          "alarm_set",
+          "countdown",
+          "save_personal_item",
+          "save_memory",
+          "plan_day",
+          "query_personal_context",
+          "note_write",
+          "calendar_add"
+        ]);
+        if (delivered && toolExecutions.length > 0) {
+          const lastTool = toolExecutions[toolExecutions.length - 1];
+          const lastResult = lastTool?.result;
+          const isLocalAction = LOCAL_ACTION_TOOLS.has(route.tool ?? "");
+          const toolFailed = !isLocalAction && (lastResult?.status === "failed" || lastResult?.status === "no_data" || lastResult?.status === "need_city" || lastResult?.status === "not_configured" || lastResult?.status === "ok" && !lastResult?.text && !lastResult?.matches?.length && !lastResult?.recipes?.length && !lastResult?.now && !lastResult?.price && !lastResult?.overview && !lastResult?.extract && !lastResult?.block && !lastResult?.commitments?.length && !lastResult?.records?.length && !lastResult?.items?.length && !lastResult?.note && !lastResult?.result);
+          if (toolFailed && route.tool !== "web_search") {
+            logger.info("runKoruBackendTurn", "Fast-path tool failed or empty, falling back to web_search", {
+              failedTool: route.tool,
+              status: lastResult?.status,
+              error: lastResult?.error ?? lastResult?.note ?? "no data"
+            });
+            const fallbackQuery = route.toolArgs?.title || route.toolArgs?.query || route.toolArgs?.city || request.input;
+            const fallbackToolCall = {
+              id: `fallback_search_${Date.now()}`,
+              type: "function",
+              function: { name: "web_search", arguments: JSON.stringify({ query: fallbackQuery, mode: "research" }) }
+            };
+            const searchLabel = searchLabelFromInput(String(fallbackQuery));
+            onChunk?.({
+              reply: searchLabel,
+              uiBlocks: [{ type: "deliverable", status: "working", kicker: "Tu B\xFAsqueda", title: "Buscando", topic: query || request.input, progress: 15, phaseLabel: "Buscando..." }],
+              suggestedActions: [],
+              understanding: { literalRequest: request.input, userGoal: "web_search fallback", unstatedNeeds: [], assumptions: [], confidence: 0.9 },
+              memoryCandidates: [],
+              commitments: [],
+              records: [],
+              toolResults: [],
+              stateEvents: [{ kind: "searching", label: searchLabel }],
+              mascotState: "working",
+              provider,
+              model,
+              fallbackReason: "fastpath-fallback-search"
+            });
+            const fallbackDelivered = await executeProviderToolCalls([fallbackToolCall], messages, request, toolExecutions, config2);
+            if (fallbackDelivered) {
+              const cleanedExecutions = toolExecutions.filter((exec) => {
+                const r = exec.result;
+                const isLocalAction2 = LOCAL_ACTION_TOOLS.has(exec.name);
+                const failed = !isLocalAction2 && (r?.status === "failed" || r?.status === "no_data" || r?.status === "need_city" || r?.status === "not_configured" || r?.status === "ok" && !r?.text && !r?.matches?.length && !r?.recipes?.length && !r?.now && !r?.price && !r?.overview && !r?.extract && !r?.block && !r?.commitments?.length && !r?.records?.length && !r?.items?.length && !r?.note && !r?.result);
+                return !failed;
+              });
+              const effectiveExecutions = cleanedExecutions.length > 0 ? cleanedExecutions : toolExecutions;
+              const fastConfig2 = { ...config2, nvidiaModel: config2.nvidiaModel };
+              const response2 = await finalizePayloadWithFastModel(request, fastConfig2, fallbackDelivered, effectiveExecutions, 3e4);
+              return { ...response2, provider, model, fallbackReason: "fastpath-fallback-search" };
+            }
+          }
+        }
+        if (delivered) {
+          const fastConfig = { ...config2, nvidiaModel: config2.nvidiaFastModel || "meta/llama-3.1-8b-instruct" };
+          const response2 = await finalizePayloadWithFastModel(request, fastConfig, delivered, toolExecutions, 3e4);
+          return { ...response2, provider, model, fallbackReason: "fastpath-" + route.category };
+        }
+      }
+    }
+    if (toolExecutions.length > 0) {
+      logger.info("runKoruBackendTurn", "Fast-path executed tools, skipping semantic router", {
+        toolCount: toolExecutions.length
+      });
+      const fastConfig = { ...config2, nvidiaModel: config2.nvidiaModel };
+      const toolBlocks = blocksFromToolResults(toolExecutions);
+      const blockReply = replyFromBlocks(toolBlocks, request.input);
+      const taskKicker = fastPathKickerForCategory(routeCategory ?? "conversation");
+      const effectiveReply = blockReply || `Te dej\xE9 ${taskKicker.toLowerCase()} en la tarjeta.`;
+      let response2;
+      try {
+        const extracted = await extractMemoryWithJsonPrompt(request, fastConfig, toolExecutions, { reply: effectiveReply, uiBlocks: [] }, 15e3);
+        response2 = normalizeFinalPayload({ reply: effectiveReply, mascotState: "happy", uiBlocks: [] }, request.input, toolExecutions, extracted.raw);
+      } catch {
+        response2 = normalizeFinalPayload({ reply: effectiveReply, mascotState: "happy", uiBlocks: [] }, request.input, toolExecutions);
+      }
+      return { ...response2, provider, model, fallbackReason: "fastpath-skip-router" };
+    }
     const router = await getRouter(config2);
     if (router) {
       try {
@@ -10747,7 +12455,7 @@ async function runKoruBackendTurn(request, config2, onChunk) {
           const shortSearchLabel = query ? searchLabelFromInput(query) : "Buscando en la web";
           onChunk?.({
             reply: shortSearchLabel,
-            uiBlocks: query ? [{ type: "web_nav", title: "Navegaci\xF3n Web", status: "loading", query, results: [] }] : [],
+            uiBlocks: [{ type: "deliverable", status: "working", kicker: "Tu B\xFAsqueda", title: "Buscando", topic: query || request.input, progress: 15, phaseLabel: "Buscando..." }],
             suggestedActions: [],
             understanding: { literalRequest: request.input, userGoal: route.category, unstatedNeeds: [], assumptions: [], confidence: route.confidence },
             memoryCandidates: [],
@@ -10763,8 +12471,113 @@ async function runKoruBackendTurn(request, config2, onChunk) {
           messages.push({ role: "assistant", content: "", tool_calls: [syntheticToolCall] });
           const delivered = await executeProviderToolCalls([syntheticToolCall], messages, request, toolExecutions, config2);
           if (delivered) {
-            const fastConfig = { ...config2, nvidiaModel: config2.nvidiaFastModel || "meta/llama-3.1-8b-instruct" };
-            const response3 = await finalizePayloadWithFastModel(request, fastConfig, delivered, toolExecutions, 3e4);
+            const synthConfig2 = { ...config2, nvidiaModel: config2.nvidiaModel };
+            const synthMessages2 = buildMessages(request);
+            for (const exec of toolExecutions) {
+              synthMessages2.push({
+                role: "assistant",
+                content: "",
+                tool_calls: [{
+                  id: exec.id || `call_${Date.now()}`,
+                  type: "function",
+                  function: { name: exec.name, arguments: "{}" }
+                }]
+              });
+              synthMessages2.push({
+                role: "tool",
+                content: JSON.stringify(exec.result).slice(0, 3e3),
+                tool_call_id: exec.id || `call_${Date.now()}`
+              });
+            }
+            synthMessages2.push({
+              role: "user",
+              content: [
+                "REGLA ABSOLUTA: Solo respond\xE9 con JSON puro v\xE1lido. Sin markdown, sin backticks.",
+                "Respond\xE9 SOLO con este JSON:",
+                '{"reply":"1-2 lineas cortas","mascotState":"happy","summary":"sintesis de 60-120 palabras con datos concretos","sections":[{"title":"Sintesis","kind":"text","paragraphs":["texto redactado"]},{"title":"Datos clave","kind":"bullets","bullets":["dato 1","dato 2"]}]}',
+                "Reglas:",
+                "- reply: SOLO enmarca. Ej: 'Te dej\xE9 el detalle en la tarjeta.'",
+                "- summary: REDACTA una sintesis con datos concretos (nombres, cifras, fechas). NO copies snippets.",
+                "- sections: arma 2-3 secciones. kind puede ser 'text' (con paragraphs) o 'bullets' (con bullets).",
+                "- NO inventes datos que no esten en las tools."
+              ].join("\n")
+            });
+            let routerSynthReply = "";
+            let routerSynthMascot = "happy";
+            let routerSynthSummary = "";
+            let routerSynthSections = [];
+            try {
+              const synthResult2 = await callProvider(synthConfig2, synthMessages2, 3e4, false, void 0, void 0, synthConfig2.nvidiaModel);
+              const synthContent2 = cleanText(synthResult2.message.content, "");
+              const synthParsed2 = safeJsonObjectFromContent(synthContent2);
+              routerSynthReply = cleanReplyText(synthParsed2.reply || "");
+              routerSynthMascot = cleanText(synthParsed2.mascotState) || "happy";
+              routerSynthSummary = cleanText(synthParsed2.summary || "");
+              const rawSections2 = Array.isArray(synthParsed2.sections) ? synthParsed2.sections : [];
+              routerSynthSections = rawSections2.map((s, i) => ({
+                icon: i === 0 ? "auto_awesome" : i === 1 ? "fact_check" : "insights",
+                title: cleanText(s.title) || `Secci\xF3n ${i + 1}`,
+                kicker: i === 0 ? "LO ESENCIAL" : i === 1 ? "DATOS" : "CONTEXTO",
+                kind: s.kind === "bullets" ? "bullets" : "text",
+                paragraphs: Array.isArray(s.paragraphs) ? s.paragraphs.map((p) => String(p)) : void 0,
+                bullets: Array.isArray(s.bullets) ? s.bullets.map((b) => String(b)) : void 0
+              })).filter((s) => s.paragraphs?.length || s.bullets?.length);
+            } catch (err) {
+              logger.warn("runKoruBackendTurn", "Router synth LLM call failed", { error: err?.message });
+            }
+            logger.info("runKoruBackendTurn", "Router synth result", {
+              hasReply: !!routerSynthReply,
+              replyLen: routerSynthReply.length,
+              hasSummary: !!routerSynthSummary,
+              summaryLen: routerSynthSummary.length,
+              sectionsCount: routerSynthSections.length,
+              effectiveSummaryLen: (routerSynthSummary || (routerSynthReply.length > 20 ? routerSynthReply : "")).length
+            });
+            let effectiveSummary2 = routerSynthSummary || (routerSynthReply.length > 20 ? routerSynthReply : "");
+            const response3 = await finalizePayloadWithFastModel(
+              request,
+              synthConfig2,
+              { reply: routerSynthReply, mascotState: routerSynthMascot, uiBlocks: [] },
+              toolExecutions,
+              3e4
+            );
+            if (!effectiveSummary2 || effectiveSummary2.length < 20) {
+              if (response3.reply && response3.reply.length > 60) {
+                effectiveSummary2 = response3.reply;
+              } else {
+                effectiveSummary2 = "";
+              }
+            }
+            logger.info("runKoruBackendTurn", "Router effectiveSummary2 final", {
+              len: effectiveSummary2.length,
+              preview: effectiveSummary2.slice(0, 100)
+            });
+            if (response3.uiBlocks) {
+              for (const block of response3.uiBlocks) {
+                if (block.type === "deliverable") {
+                  if (effectiveSummary2 && effectiveSummary2.length > 20) {
+                    logger.info("runKoruBackendTurn", "APPLYING effectiveSummary2 to deliverable", {
+                      summaryLen: effectiveSummary2.length,
+                      summaryPreview: effectiveSummary2.slice(0, 80)
+                    });
+                    block.summary = effectiveSummary2;
+                    const synthSection = (block.sections ?? []).find((s) => s.title === "S\xEDntesis");
+                    if (synthSection && synthSection.kind === "text") {
+                      synthSection.paragraphs = [effectiveSummary2];
+                    }
+                  }
+                  if (routerSynthSections.length > 0) {
+                    const sourceSection = (block.sections ?? []).find((s) => s.title === "Fuentes");
+                    block.sections = routerSynthSections;
+                    if (sourceSection) block.sections.push(sourceSection);
+                    block.metrics = [
+                      { value: String((block.sources ?? []).length), label: "Fuentes" },
+                      { value: String(routerSynthSections.length), label: "Secciones" }
+                    ];
+                  }
+                }
+              }
+            }
             return { ...response3, provider, model, fallbackReason: "router-" + route.category };
           }
           messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respond\xE9 con JSON puro v\xE1lido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }." });
@@ -10788,6 +12601,20 @@ async function runKoruBackendTurn(request, config2, onChunk) {
               mascotState: "thinking"
             };
             const response3 = await finalizeFromPlainText(rawFallback, [syntheticToolCall], request, config2, toolExecutions, extractorTimeout);
+            if (response3.uiBlocks) {
+              for (const block of response3.uiBlocks) {
+                if (block.type === "deliverable") {
+                  const replyForSummary = cleanText(rawFallback.reply) || response3.reply || "";
+                  if (replyForSummary && replyForSummary.length > 20) {
+                    block.summary = replyForSummary;
+                    const synthSection = (block.sections ?? []).find((s) => s.title === "S\xEDntesis");
+                    if (synthSection && synthSection.kind === "text") {
+                      synthSection.paragraphs = [replyForSummary];
+                    }
+                  }
+                }
+              }
+            }
             return { ...response3, provider, model, fallbackReason: "router-" + route.category + "-invalid-json" };
           }
           const rawRoute = {
@@ -10801,6 +12628,20 @@ async function runKoruBackendTurn(request, config2, onChunk) {
             mascotState: parsedRoute.mascotState
           };
           const response2 = normalizeFinalPayload(rawRoute, request.input, toolExecutions);
+          if (response2.uiBlocks) {
+            for (const block of response2.uiBlocks) {
+              if (block.type === "deliverable") {
+                const replyForSummary = cleanText(rawRoute.reply) || response2.reply || "";
+                if (replyForSummary && replyForSummary.length > 20) {
+                  block.summary = replyForSummary;
+                  const synthSection = (block.sections ?? []).find((s) => s.title === "S\xEDntesis");
+                  if (synthSection && synthSection.kind === "text") {
+                    synthSection.paragraphs = [replyForSummary];
+                  }
+                }
+              }
+            }
+          }
           return { ...response2, provider, model, fallbackReason: "router-" + route.category };
         }
       } catch (err) {
@@ -10831,7 +12672,7 @@ async function runKoruBackendTurn(request, config2, onChunk) {
     const query = toolCalls.find((t) => t.function?.name === "web_search")?.function?.arguments ? JSON.parse(toolCalls.find((t) => t.function?.name === "web_search").function.arguments).query : void 0;
     const loadingChunk = {
       reply: query ? `Buscando "${query}"...` : "Buscando en la web...",
-      uiBlocks: query ? [{ type: "web_nav", title: "Navegaci\xF3n Web", status: "loading", query: cleanText(query), results: [] }] : [],
+      uiBlocks: [{ type: "deliverable", status: "working", kicker: "Tu B\xFAsqueda", title: "Buscando", topic: query || request.input, progress: 15, phaseLabel: "Buscando..." }],
       suggestedActions: [],
       understanding: { literalRequest: request.input, userGoal: "B\xFAsqueda web", unstatedNeeds: [], assumptions: [], confidence: 0.8 },
       memoryCandidates: [],
@@ -10853,7 +12694,7 @@ async function runKoruBackendTurn(request, config2, onChunk) {
     }
     if (onChunk && toolExecutions.length > 0) {
       const intermediateBlocks = blocksFromToolResults(toolExecutions).map((b) => {
-        if (b.type === "web_nav") return { ...b, status: "loading" };
+        if (b.type === "web_nav") return null;
         return b;
       });
       logger.info("runKoruBackendTurn", "Emit intermediate chunk", { blockCount: intermediateBlocks.length });
@@ -10962,7 +12803,7 @@ async function runKoruBackendTurn(request, config2, onChunk) {
     const query = simulatedCall.name === "web_search" ? cleanText(simulatedCall.arguments.query) : void 0;
     onChunk?.({
       reply: query ? `Buscando "${query}"...` : "Buscando en la web...",
-      uiBlocks: query ? [{ type: "web_nav", title: "Navegaci\xF3n Web", status: "loading", query, results: [] }] : [],
+      uiBlocks: [{ type: "deliverable", status: "working", kicker: "Tu B\xFAsqueda", title: "Buscando", topic: query || request.input, progress: 15, phaseLabel: "Buscando..." }],
       suggestedActions: [],
       understanding: { literalRequest: request.input, userGoal: query ? "B\xFAsqueda web" : request.input, unstatedNeeds: [], assumptions: [], confidence: 0.8 },
       memoryCandidates: [],
@@ -11086,7 +12927,7 @@ async function runKoruBackendTurn(request, config2, onChunk) {
   };
 }
 
-// server/index.ts
+// koru-mvp/server/index.ts
 try {
   const undici = eval("require")("undici");
   globalThis.fetch = undici.fetch;
@@ -11425,9 +13266,9 @@ function getStaticFile(filePath) {
   if (staticCache.has(filePath)) return staticCache.get(filePath);
   try {
     const data = readFileSync(filePath);
-    const ext = filePath.endsWith(".html") ? "text/html" : filePath.endsWith(".js") ? "application/javascript" : filePath.endsWith(".css") ? "text/css" : filePath.endsWith(".png") ? "image/png" : filePath.endsWith(".jpg") || filePath.endsWith(".jpeg") ? "image/jpeg" : filePath.endsWith(".svg") ? "image/svg+xml" : filePath.endsWith(".json") ? "application/json" : filePath.endsWith(".woff") ? "font/woff" : filePath.endsWith(".woff2") ? "font/woff2" : "application/octet-stream";
+    const ext = filePath.endsWith(".html") ? "text/html" : filePath.endsWith(".js") ? "application/javascript" : filePath.endsWith(".css") ? "text/css" : filePath.endsWith(".png") ? "image/png" : filePath.endsWith(".jpg") || filePath.endsWith(".jpeg") ? "image/jpeg" : filePath.endsWith(".svg") ? "image/svg+xml" : filePath.endsWith(".json") ? "application/json" : filePath.endsWith(".woff") ? "font/woff" : filePath.endsWith(".woff2") ? "font/woff2" : filePath.endsWith(".mp4") ? "video/mp4" : filePath.endsWith(".webm") ? "video/webm" : filePath.endsWith(".webp") ? "image/webp" : filePath.endsWith(".gif") ? "image/gif" : filePath.endsWith(".ico") ? "image/x-icon" : "application/octet-stream";
     const entry = { data, contentType: ext };
-    if (staticCache.size < 50) staticCache.set(filePath, entry);
+    if (staticCache.size < 50 && data.length < 5e6) staticCache.set(filePath, entry);
     return entry;
   } catch {
     return null;

@@ -427,6 +427,29 @@ export const countdown: ToolHandler = {
     if (!dateStr) return { type: "countdown", status: "failed", error: "Indicá la fecha." };
     const date = new Date(dateStr);
     if (Number.isNaN(date.getTime())) {
+      // 🔴 FIX: mapear festividades comunes a fechas concretas
+      const lower = dateStr.toLowerCase().trim();
+      const year = new Date().getFullYear();
+      const holidays: Record<string, () => Date> = {
+        navidad: () => { const d = new Date(year, 11, 25); if (d.getTime() < Date.now()) d.setFullYear(year + 1); return d; },
+        "nochebuena": () => { const d = new Date(year, 11, 24); if (d.getTime() < Date.now()) d.setFullYear(year + 1); return d; },
+        "fin de año": () => { const d = new Date(year, 11, 31); if (d.getTime() < Date.now()) d.setFullYear(year + 1); return d; },
+        "año nuevo": () => { const d = new Date(year + 1, 0, 1); return d; },
+        "anio nuevo": () => { const d = new Date(year + 1, 0, 1); return d; },
+        "reyes magos": () => { const d = new Date(year, 0, 6); if (d.getTime() < Date.now()) d.setFullYear(year + 1); return d; },
+        "dia del padre": () => { const d = new Date(year, 5, 15); if (d.getTime() < Date.now()) d.setFullYear(year + 1); return d; },
+        "dia de la madre": () => { const d = new Date(year, 9, 15); if (d.getTime() < Date.now()) d.setFullYear(year + 1); return d; },
+        "san valentin": () => { const d = new Date(year, 1, 14); if (d.getTime() < Date.now()) d.setFullYear(year + 1); return d; },
+        "dia del trabajo": () => { const d = new Date(year, 4, 1); if (d.getTime() < Date.now()) d.setFullYear(year + 1); return d; },
+        "halloween": () => { const d = new Date(year, 9, 31); if (d.getTime() < Date.now()) d.setFullYear(year + 1); return d; },
+        "pascua": () => { const d = new Date(year, 3, 20); if (d.getTime() < Date.now()) d.setFullYear(year + 1); return d; },
+      };
+      const matched = Object.keys(holidays).find(k => lower.includes(k));
+      if (matched) {
+        date.setTime(holidays[matched]().getTime());
+      }
+    }
+    if (Number.isNaN(date.getTime())) {
       // Intentar parse natural simple (ej: "25 de diciembre").
       const m = dateStr.match(/(\d{1,2})\s+de\s+([a-záéíóúñ]+)/i);
       if (m) {
@@ -441,7 +464,7 @@ export const countdown: ToolHandler = {
         }
       }
     }
-    if (Number.isNaN(date.getTime())) return { type: "countdown", status: "failed", error: "No pude leer la fecha." };
+    if (Number.isNaN(date.getTime())) return { type: "countdown", status: "no_data", date: dateStr, error: `No pude interpretar "${dateStr}" como fecha. Probá con "25 de diciembre" o "2025-12-25".` };
     const now = new Date();
     const diffMs = date.getTime() - now.getTime();
     const days = Math.floor(Math.abs(diffMs) / (24 * 60 * 60 * 1000));
