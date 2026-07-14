@@ -12084,8 +12084,8 @@ async function runKoruBackendTurn(request, config2, onChunk) {
   let fallbackReason;
   const isOllama = isOllamaUrl(config2.nvidiaBaseUrl);
   const isLargeRemoteNemotron = preferredProvider === "nvidia" && !isOllama && config2.nvidiaModel.toLowerCase().includes("nemotron-3-ultra");
-  const firstTimeout = isOllama ? 9e4 : isLargeRemoteNemotron ? 45e3 : 3e4;
-  const secondaryTimeout = isOllama ? 12e4 : isLargeRemoteNemotron ? 6e4 : 3e4;
+  const firstTimeout = isOllama ? 9e4 : isLargeRemoteNemotron ? 6e4 : 45e3;
+  const secondaryTimeout = isOllama ? 12e4 : isLargeRemoteNemotron ? 9e4 : 6e4;
   const extractorTimeout = isOllama ? 9e4 : isLargeRemoteNemotron ? 45e3 : 3e4;
   let routeCategory;
   const resolvedInput = resolveFollowUpInput(request.input, request.history);

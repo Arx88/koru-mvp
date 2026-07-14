@@ -5476,8 +5476,10 @@ export async function runKoruBackendTurn(
   const isLargeRemoteNemotron = preferredProvider === "nvidia"
     && !isOllama
     && config.nvidiaModel.toLowerCase().includes("nemotron-3-ultra");
-  const firstTimeout = isOllama ? 90_000 : isLargeRemoteNemotron ? 45_000 : 30_000;
-  const secondaryTimeout = isOllama ? 120_000 : isLargeRemoteNemotron ? 60_000 : 30_000;
+  // 🔴 KORU 2.0: timeouts aumentados — el LLM ahora maneja TODO (sin fast-path)
+  // Necesita mas tiempo porque decide que tool llamar, calcula dueAt, etc.
+  const firstTimeout = isOllama ? 90_000 : isLargeRemoteNemotron ? 60_000 : 45_000;
+  const secondaryTimeout = isOllama ? 120_000 : isLargeRemoteNemotron ? 90_000 : 60_000;
   const extractorTimeout = isOllama ? 90_000 : isLargeRemoteNemotron ? 45_000 : 30_000;
 
   let routeCategory: RouteCategory | undefined;
