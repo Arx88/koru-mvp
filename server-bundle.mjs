@@ -11206,13 +11206,26 @@ function synthesizeMemoryFromRevelation(input) {
   const candidates = [];
   const text = input.trim();
   let m;
-  if (m = text.match(/\b(?:me encanta|me encantan|amo|me apasiona|me fascina|me gustan los|me gustan las|me gusta el|me gusta la|adoro)\s+([^.!?]{3,80})/i)) {
+  if (m = text.match(/\b(?:me encanta|me encantan|amo|me apasiona|me fascina|me gustan los|me gustan las|me gusta el|me gusta la|me gusta|adoro|soy fan de|soy fan|me copa|me copan|me re gusta|me re copa)\s+([^.!?]{3,80})/i)) {
     candidates.push({ kind: "preference", text: `Le encanta ${m[1].trim()}.`, confidence: 0.88, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
   }
-  if (m = text.match(/\b(?:estoy|ando|estuve)\s+(trabajando|aprendiendo|leyendo|escuchando|viendo|estudiando|haciendo|armando|programando|escribiendo|cocinando|preparando|investigando|diseñando|creando|desarrollando)\s+(?:en\s+|el\s+|la\s+|los\s+|las\s+|un\s+|una\s+)?([^.!?]{3,100})/i)) {
+  if (m = text.match(/\b(?:odio|detesto|no me gusta|no soporto|me rechina|me molesta)\s+([^.!?]{3,80})/i)) {
+    candidates.push({ kind: "preference", text: `Odia ${m[1].trim()}.`, confidence: 0.85, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
+  }
+  if (m = text.match(/\b(?:soy|soy )?(celiaco|celíaca|vegetariano|vegetariana|vegano|vegana|diabetico|diabética|alergico|alérgico|alergica|alérgica|intolerante)\s+(?:a\s+|al\s+|a la\s+|a los\s+)?([^.!?]{3,60})?/i)) {
+    const condition = m[1].toLowerCase();
+    const to = m[2]?.trim();
+    candidates.push({ kind: "wellbeing", text: `Es ${condition}${to ? ` a ${to}` : ""}.`, confidence: 0.87, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
+  }
+  if (m = text.match(/\btengo\s+(alergia|alergias|asma|diabetes|hipertension|hipotiroidismo|migraña|migranas)\s*(?:a\s+|al\s+|a la\s+)?([^.!?]{3,60})?/i)) {
+    const condition = m[1].toLowerCase();
+    const to = m[2]?.trim();
+    candidates.push({ kind: "wellbeing", text: `Tiene ${condition}${to ? ` a ${to}` : ""}.`, confidence: 0.85, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
+  }
+  if (m = text.match(/\b(?:estoy|ando|estuve)\s+(trabajando|aprendiendo|leyendo|escuchando|viendo|estudiando|haciendo|armando|programando|escribiendo|cocinando|preparando|investigando|diseñando|creando|desarrollando|practicando|jugando|entrenando|corriendo|necessitando)\s+(?:en\s+|el\s+|la\s+|los\s+|las\s+|un\s+|una\s+)?([^.!?]{3,100})/i)) {
     const action = m[1].toLowerCase();
     const what = m[2].trim();
-    const kind = action === "aprendiendo" ? "routine" : action === "trabajando" || action === "programando" || action === "desarrollando" || action === "creando" || action === "dise\xF1ando" ? "goal" : "routine";
+    const kind = action === "aprendiendo" || action === "practicando" ? "routine" : action === "trabajando" || action === "programando" || action === "desarrollando" || action === "creando" || action === "dise\xF1ando" ? "goal" : "routine";
     const verbMap = {
       trabajando: "Trabaja en",
       aprendiendo: "Aprende",
@@ -11229,15 +11242,46 @@ function synthesizeMemoryFromRevelation(input) {
       investigando: "Investiga",
       dise\u00F1ando: "Dise\xF1a",
       creando: "Est\xE1 creando",
-      desarrollando: "Desarrolla"
+      desarrollando: "Desarrolla",
+      practicando: "Practica",
+      jugando: "Juega",
+      entrenando: "Entrena",
+      corriendo: "Corre"
     };
     candidates.push({ kind, text: `${verbMap[action] ?? "Est\xE1 " + action} ${what}.`, confidence: 0.86, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
+  }
+  if (m = text.match(/\b(?:trabajo de|trabajo en|trabajo como|soy)\s+(?:un\s+|una\s+|un\b|una\b)?([a-záéíóúñ][^.!?]{3,60})/i)) {
+    const what = m[1].trim();
+    if (!/^(celiaco|celíaca|vegetariano|vegetariana|vegano|vegana|diabetico|diabética|alergico|alérgico|alergica|alérgica|de|la|el|los|las|un|una|muy|bastante|feliz|triste|cansado|cansada|aburrido|aburrida)$/.test(what.toLowerCase())) {
+      candidates.push({ kind: "profile", text: `Trabaja de ${what}.`, confidence: 0.82, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
+    }
+  }
+  if (m = text.match(/\b(?:estudio|estudiando|estoy estudiando|cursando)\s+(?:la\s+|el\s+|la carrera de\s+|el profesorado de\s+)?([a-záéíóúñ][^.!?]{3,60})/i)) {
+    candidates.push({ kind: "goal", text: `Estudia ${m[1].trim()}.`, confidence: 0.84, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
+  }
+  if (m = text.match(/\btengo\s+(?:un\s+|una\s+|unos\s+|unas\s+)?(gato|gata|gatos|perro|perros|perra|gata|conejo|coneja|hamster|pez|peces|tortuga|loro|canario|cobayo|cobaya|mascota|mascotas)\b([^.]*)/i)) {
+    candidates.push({ kind: "relationship", text: `Tiene ${m[1].toLowerCase()}${m[2]?.trim() ? ` ${m[2].trim()}` : ""}.`, confidence: 0.84, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
+  }
+  if (m = text.match(/\b(?:mi\s+)?(?:novia|novio|esposa|esposo|mujer|marido|madre|padre|mamá|mamá|papá|papá|hermano|hermana|hijo|hija|amigo|amiga|sobrino|sobrina|tio|tía|abuela|abuelo|primo|prima)\s+(?:se llama|se llama|es|esta|está|trabaja de|vive en|cumple|tiene)\s+([^.!?]{3,80})/i)) {
+    candidates.push({ kind: "relationship", text: `${m[0].trim()}.`, confidence: 0.82, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
   }
   if (m = text.match(/\b(?:mi\s+)?(?:madre|padre|mam[áa]|pap[áa])\s+(?:cumple|tiene|es|está|va a)\s+([^.!?]{3,80})/i)) {
     candidates.push({ kind: "relationship", text: `Sobre su madre/padre: ${m[0].trim()}.`, confidence: 0.8, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
   }
-  if (m = text.match(/\b(?:mi\s+)?cumple[años]*\s+(?:es|en|el|por)\s+([^.!?]{3,60})/i)) {
+  if (m = text.match(/\b(?:mi\s+)?cumple[años]*\s+(?:es|en|el|por|cae en)\s+([^.!?]{3,60})/i)) {
     candidates.push({ kind: "profile", text: `Cumplea\xF1os: ${m[1].trim()}.`, confidence: 0.85, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
+  }
+  if (m = text.match(/\b(?:vivo en|estoy en|estoy en|soy de|viviendo en|me mude a|me mudé a)\s+([a-záéíóúñ][^.!?]{3,50})/i)) {
+    candidates.push({ kind: "profile", text: `Vive en ${m[1].trim()}.`, confidence: 0.83, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
+  }
+  if (m = text.match(/\b(?:quiero|tengo pensado|tengo ganas de|me gustaria|me gustaría|estoy ahorrando para|estoy juntando para|planeo|tengo planeado|mi objetivo es|mi meta es)\s+([^.!?]{3,100})/i)) {
+    candidates.push({ kind: "goal", text: `Quiere ${m[1].trim()}.`, confidence: 0.84, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
+  }
+  if (m = text.match(/\b(?:todos los dias|todos los días|cada dia|cada día|los lunes|los martes|los miercoles|los miércoles|los jueves|los viernes|los sabados|los sábados|los domingos|cada mañana|cada noche|cada semana|cada mes)\s+([^.!?]{3,100})/i)) {
+    candidates.push({ kind: "routine", text: `${m[0].trim()}.`, confidence: 0.82, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
+  }
+  if (m = text.match(/\b(?:me interesa|me interesan|me llama la atencion|me llama la atención|estoy buscando|estoy viendo|estoy explorando|me estoy metiendo en)\s+([^.!?]{3,80})/i)) {
+    candidates.push({ kind: "preference", text: `Le interesa ${m[1].trim()}.`, confidence: 0.8, sensitivity: "normal", status: "candidate", rootQuote: text, useForSuggestions: true });
   }
   return candidates;
 }
