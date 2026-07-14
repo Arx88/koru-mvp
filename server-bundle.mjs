@@ -1476,7 +1476,8 @@ function extractToolArgs(message, tool) {
     return { query: clean };
   }
   if (tool === "recipe_find") {
-    return { query: clean };
+    const recipeQuery = clean.replace(/^(receta de|recetas de|como hago|como preparo|como cocino|receta para|recetas para|receta|recetas)\s+/i, "").replace(/^(dame|pasame|quiero|necesito|buscame|encontrame)\s+(?:una|dos|tres|algunas?)?\s*(?:receta|recetas)\s+(?:de|con|para)\s+/i, "").replace(/[?!.]+/g, "").trim();
+    return { query: recipeQuery || clean };
   }
   if (tool === "movie_info" || tool === "book_info" || tool === "game_info") {
     return { title: clean };
