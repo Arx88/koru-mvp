@@ -198,6 +198,9 @@ export const memoryGardenShow: ToolHandler = {
 // ─── wikipedia_lookup ───────────────────────────────────────────────────────
 type WikiSummary = { type?: string; title?: string; description?: string; extract?: string; content_urls?: { desktop?: { page?: string } }; thumbnail?: { source?: string } };
 
+// Wikipedia API requiere User-Agent válido (sino devuelve 403).
+const WIKI_HEADERS = { "User-Agent": "KoruBot/1.0 (personal assistant; contact: dev@koru.app)" };
+
 export const wikipediaLookup: ToolHandler = {
   definition: defineTool(
     "wikipedia_lookup",
@@ -217,15 +220,33 @@ export const wikipediaLookup: ToolHandler = {
     const query = String(args.query ?? "").trim();
     const lang = String(args.lang ?? "es").trim();
     if (!query) return { type: "wikipedia_lookup", status: "failed", error: "Indicá el tema." };
+
+    // 🔴 FIX: hacer search primero para encontrar el título correcto.
+    // Antes se iba directo a /page/summary/{query} y fallaba con "AOE2", "btc",
+    // acrónimos, o títulos con mayúsculas/minúsculas distintas.
     const cacheKey = `wiki:${lang}:${query.toLowerCase()}`;
     const data = await cached<WikiSummary>(cacheKey, ttls.reference, async () => {
       await limiters.wikipedia.acquire();
-      const r = await fetchJson<WikiSummary>(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`, { timeoutMs: 9_000 });
+      // 1. Buscar el título correcto
+      const searchUrl = `https://${lang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*&srlimit=1`;
+      const searchRes = await fetch(searchUrl, { signal: AbortSignal.timeout(9_000), headers: WIKI_HEADERS });
+      if (!searchRes.ok) throw new Error(`Wikipedia search HTTP ${searchRes.status}`);
+      const searchData = await searchRes.json() as { query?: { search?: Array<{ title: string }> } };
+      const wikiTitle = searchData.query?.search?.[0]?.title;
+      if (!wikiTitle) throw new Error("not_found");
+
+      // 2. Fetch del summary con el título correcto
+      const r = await fetchJson<WikiSummary>(
+        `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(wikiTitle)}`,
+        { timeoutMs: 9_000, headers: WIKI_HEADERS },
+      );
       if (!r.ok) throw new Error(r.error);
       return r.data!;
-    });
-    if (data.type === "not_found" || !data.extract) {
-      return { type: "wikipedia_lookup", status: "ok", query, note: `No encontré "${query}" en Wikipedia (${lang}).` };
+    }).catch(() => null);
+
+    if (!data || data.type === "not_found" || !data.extract) {
+      // 🔴 FIX: devolver no_data (no ok con note) para que el backend haga fallback a web_search.
+      return { type: "wikipedia_lookup", status: "no_data", query, note: `No encontré "${query}" en Wikipedia (${lang}).` };
     }
     return {
       type: "wikipedia_lookup",

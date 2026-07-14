@@ -7268,6 +7268,7 @@ var memoryGardenShow = {
     return { type: "memory_garden_show", status: "ok", filter: status, count: memories.length, memories };
   }
 };
+var WIKI_HEADERS2 = { "User-Agent": "KoruBot/1.0 (personal assistant; contact: dev@koru.app)" };
 var wikipediaLookup = {
   definition: defineTool(
     "wikipedia_lookup",
@@ -7290,12 +7291,21 @@ var wikipediaLookup = {
     const cacheKey = `wiki:${lang}:${query.toLowerCase()}`;
     const data = await cached(cacheKey, ttls.reference, async () => {
       await limiters.wikipedia.acquire();
-      const r = await fetchJson(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`, { timeoutMs: 9e3 });
+      const searchUrl = `https://${lang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*&srlimit=1`;
+      const searchRes = await fetch(searchUrl, { signal: AbortSignal.timeout(9e3), headers: WIKI_HEADERS2 });
+      if (!searchRes.ok) throw new Error(`Wikipedia search HTTP ${searchRes.status}`);
+      const searchData = await searchRes.json();
+      const wikiTitle = searchData.query?.search?.[0]?.title;
+      if (!wikiTitle) throw new Error("not_found");
+      const r = await fetchJson(
+        `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(wikiTitle)}`,
+        { timeoutMs: 9e3, headers: WIKI_HEADERS2 }
+      );
       if (!r.ok) throw new Error(r.error);
       return r.data;
-    });
-    if (data.type === "not_found" || !data.extract) {
-      return { type: "wikipedia_lookup", status: "ok", query, note: `No encontr\xE9 "${query}" en Wikipedia (${lang}).` };
+    }).catch(() => null);
+    if (!data || data.type === "not_found" || !data.extract) {
+      return { type: "wikipedia_lookup", status: "no_data", query, note: `No encontr\xE9 "${query}" en Wikipedia (${lang}).` };
     }
     return {
       type: "wikipedia_lookup",
@@ -9695,35 +9705,40 @@ async function executeTool(name, args, state, extractorCtx) {
   logger.info("executeTool", `Executing tool: ${name}`, { argsKeys: Object.keys(args) });
   let result;
   let deferredDataCard;
-  if (name === "weather") {
-    const argsWithCity = cleanText(args.city) ? args : { ...args, city: profileCityFromState(state) ?? "" };
-    result = await getWeather(argsWithCity);
-  } else if (name === "web_search") {
-    const searchData = await runSearch(args, false, extractorCtx);
-    deferredDataCard = searchData.deferredDataCard;
-    result = searchData;
-  } else if (name === "shopping_compare") result = await runSearch(args, true);
-  else if (name === "route_traffic") result = await runSearch({ ...args, mode: "research", query: cleanText(args.query) || [cleanText(args.origin), cleanText(args.destination)].filter(Boolean).join(" a ") || cleanText(args.__userInput) }, false);
-  else if (name === "calendar_reminder") result = localReminderFromArgs(args, cleanText(args.__userInput));
-  else if (name === "alarm") result = localAlarmFromArgs(args, cleanText(args.__userInput));
-  else if (name === "plan_day") result = planFromState(state, args);
-  else if (name === "query_personal_context") result = queryPersonalContextFromState(state, args);
-  else if (name === "save_memory") result = memoryCaptureFromArgs(args, cleanText(args.__userInput));
-  else if (name === "save_personal_item") result = personalCaptureFromArgs(args, cleanText(args.__userInput));
-  else {
-    const handler = TOOL_BOX.get(name);
-    if (handler) {
-      const runResult = await handler.run({ ...args, __userInput: cleanText(args.__userInput) }, {
-        userInput: cleanText(args.__userInput),
-        state,
-        chatFn: extractorCtx?.chatFn
-      });
-      result = runResult;
-      deferredDataCard = runResult.deferredDataCard;
-    } else {
-      logger.warn("executeTool", `Unknown tool: ${name}`);
-      return { result: { type: "unknown", error: `Unknown tool ${name}` } };
+  try {
+    if (name === "weather") {
+      const argsWithCity = cleanText(args.city) ? args : { ...args, city: profileCityFromState(state) ?? "" };
+      result = await getWeather(argsWithCity);
+    } else if (name === "web_search") {
+      const searchData = await runSearch(args, false, extractorCtx);
+      deferredDataCard = searchData.deferredDataCard;
+      result = searchData;
+    } else if (name === "shopping_compare") result = await runSearch(args, true);
+    else if (name === "route_traffic") result = await runSearch({ ...args, mode: "research", query: cleanText(args.query) || [cleanText(args.origin), cleanText(args.destination)].filter(Boolean).join(" a ") || cleanText(args.__userInput) }, false);
+    else if (name === "calendar_reminder") result = localReminderFromArgs(args, cleanText(args.__userInput));
+    else if (name === "alarm") result = localAlarmFromArgs(args, cleanText(args.__userInput));
+    else if (name === "plan_day") result = planFromState(state, args);
+    else if (name === "query_personal_context") result = queryPersonalContextFromState(state, args);
+    else if (name === "save_memory") result = memoryCaptureFromArgs(args, cleanText(args.__userInput));
+    else if (name === "save_personal_item") result = personalCaptureFromArgs(args, cleanText(args.__userInput));
+    else {
+      const handler = TOOL_BOX.get(name);
+      if (handler) {
+        const runResult = await handler.run({ ...args, __userInput: cleanText(args.__userInput) }, {
+          userInput: cleanText(args.__userInput),
+          state,
+          chatFn: extractorCtx?.chatFn
+        });
+        result = runResult;
+        deferredDataCard = runResult.deferredDataCard;
+      } else {
+        logger.warn("executeTool", `Unknown tool: ${name}`);
+        return { result: { type: "unknown", status: "failed", error: `Unknown tool ${name}` } };
+      }
     }
+  } catch (err) {
+    logger.warn("executeTool", `Tool ${name} threw error`, { error: err?.message });
+    result = { type: name, status: "no_data", error: err?.message ?? "Tool failed" };
   }
   logger.info("executeTool", `Tool ${name} result`, { result: dump(result, 500) });
   return { result, deferredDataCard };
