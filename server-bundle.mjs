@@ -1480,6 +1480,10 @@ function extractToolArgs(message, tool) {
     return { query: recipeQuery || clean };
   }
   if (tool === "movie_info" || tool === "book_info" || tool === "game_info") {
+    const isRecommendation = /\b(que pelicula|que peli|que serie|que juego|que libro|que puedo ver|que puedo jugar|que puedo leer|sugerime|sugeri|recomenda|recomendame|recomienda|alguna pelicula|alguna serie|algun juego|algun libro|una pelicula buena|una serie buena|un juego bueno|un libro bueno|dame una pelicula|dame una serie|dame un juego|dame un libro)\b/i.test(clean);
+    if (isRecommendation) {
+      return { query: clean, mode: "research" };
+    }
     return { title: clean };
   }
   if (tool === "wikipedia_lookup") {
