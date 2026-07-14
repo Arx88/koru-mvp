@@ -5858,11 +5858,15 @@ export async function runKoruBackendTurn(
     }
   }
 
-  // Filtrar tools según la categoría detectada por el Semantic Router
+  // Filtrar tools según la categoría detectada por el Semantic Router.
+  // 🔴 FIX CRÍTICO: si la categoría es "conversation" o no tiene tools, pasar TODAS
+  // las tools al LLM. Antes, "conversation" tenía CATEGORY_TOOLS["conversation"] = []
+  // lo que hacía que filteredTools = [] y el LLM no veía NINGUNA tool → no podía
+  // llamar wikipedia_lookup, movie_info, etc. cuando el router se equivocaba de categoría.
   const categoryToolNames = routeCategory ? CATEGORY_TOOLS[routeCategory] : undefined;
   const filteredTools = categoryToolNames && categoryToolNames.length > 0
     ? ALL_TOOL_DEFINITIONS.filter((t) => categoryToolNames.includes(t.function.name))
-    : undefined;
+    : undefined; // undefined = pasar todas las tools
 
   // Fase 4.1: modelOverride ya declarado arriba (antes del router autofire)
 
