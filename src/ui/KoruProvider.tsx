@@ -700,10 +700,8 @@ export function KoruProvider({ children }: { children: ReactNode }) {
         for (const c of newCommitments) {
           scheduleReminderNotification(c as any, userId);
         }
-        // Request notification permission on first reminder
-        if (newCommitments.length > 0) {
-          requestNotificationPermission().catch(() => {});
-        }
+        // 🔴 Request notification permission — best effort, may be blocked if not user gesture
+        requestNotificationPermission().catch(() => {});
       }
       if (koruTurnId) {
         // Preservar ids de los items del stream: si el resultado final tiene un item
