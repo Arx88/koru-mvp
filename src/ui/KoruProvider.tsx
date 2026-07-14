@@ -701,13 +701,19 @@ export function KoruProvider({ children }: { children: ReactNode }) {
           ),
         );
         // 🔴 Memory toast: si hay memoryCandidates en la respuesta, mostrar toast.
-        // Usamos agentResult.memoryCandidates directamente (no comparamos estados,
-        // porque la deduplicación ya se hizo en applyBackendTurnToState).
-        const candidates = (agentResult.memoryCandidates ?? []).filter(
+        // Buscar en memoryCandidates top-level Y dentro de toolResults (save_memory tool).
+        const topCandidates = (agentResult.memoryCandidates ?? []);
+        const toolCandidates = (agentResult.toolResults ?? []).flatMap((tr: any) => {
+          const data = tr.data;
+          if (data?.type === "memory_capture" && Array.isArray(data.memoryCandidates)) return data.memoryCandidates;
+          if (data?.type === "personal_capture" && Array.isArray(data.memoryCandidates)) return data.memoryCandidates;
+          return [];
+        });
+        const allCandidates = [...topCandidates, ...toolCandidates].filter(
           (m: any) => m && typeof m.text === "string" && m.text.length > 4,
         );
-        if (candidates.length > 0 && !previousState.ephemeralMode && previousState.durableMemoryEnabled) {
-          const first = candidates[0];
+        if (allCandidates.length > 0 && !previousState.ephemeralMode && previousState.durableMemoryEnabled) {
+          const first = allCandidates[0];
           // Solo mostrar si NO existe ya una memoria con el mismo texto (deduplicación visual)
           const normalizedNew = first.text.toLowerCase().replace(/[áéíóú]/g, (m: string) => ({ á: "a", é: "e", í: "i", ó: "o", ú: "u" }[m]!)).replace(/[^a-z0-9\s]/g, "").trim();
           const alreadyExists = previousState.memories.some((existing: any) => {
