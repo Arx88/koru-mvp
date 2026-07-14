@@ -8,6 +8,7 @@ import { createDefaultRuntimeSettings, runFreeLlmEmbedding } from "./freellmapi"
 import {
   clearLegacyState,
   clearPersistedState,
+  getActiveUserId,
   readLegacyState,
   readPersistedState,
   writeLegacyState,
@@ -78,9 +79,10 @@ function dedupeCommitments(commitments: Commitment[]): Commitment[] {
   return [...openByKey.values(), ...resolved];
 }
 
-export function createInitialState(): KoruState {
+export function createInitialState(userId: string = "default"): KoruState {
   const now = nowIso();
   return {
+    userId,
     stage: "seed",
     trustedEnergy: 0,
     totalEnergy: 0,
@@ -127,6 +129,7 @@ function normalizeState(parsed?: Partial<KoruState> | null): KoruState {
   return {
     ...initial,
     ...parsed,
+    userId: parsed.userId ?? initial.userId, // 🔴 Multi-cuenta: preservar userId
     runtime,
     heartbeat: { ...initial.heartbeat, ...parsed.heartbeat },
     voicePreference: { ...initial.voicePreference, ...parsed.voicePreference },
@@ -154,9 +157,10 @@ export function loadState(): KoruState {
 
 export async function loadPersistedState(): Promise<KoruState> {
   try {
-    const persisted = await readPersistedState();
-    if (persisted) return normalizeState(persisted);
-    const legacy = normalizeState(readLegacyState());
+    const userId = getActiveUserId();
+    const persisted = await readPersistedState(userId);
+    if (persisted) return normalizeState({ ...persisted, userId });
+    const legacy = normalizeState({ ...readLegacyState(), userId });
     await writePersistedState(legacy);
     return legacy;
   } catch {

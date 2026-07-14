@@ -975,6 +975,7 @@ export type LearningPreference = {
 };
 
 export type KoruState = {
+  userId: string; // 🔴 Multi-cuenta: ID del usuario propietario de este state
   userName?: string;
   stage: KoruStage;
   trustedEnergy: number;

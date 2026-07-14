@@ -1,0 +1,20 @@
+{
+  "name": "Koru",
+  "short_name": "Koru",
+  "description": "Tu asistente personal inteligente",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#14102a",
+  "theme_color": "#7c5cdb",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "permissions": ["notifications"],
+  "categories": ["productivity", "lifestyle"]
+}

@@ -37,6 +37,7 @@ import { runWebNavigation, webResultToPayload } from "../domain/web";
 import { dueLabel } from "../domain/time";
 import { inferActivity, type AgentActivity } from "../domain/agentKernel";
 import { shouldAutoRunAction } from "../domain/toolRegistry";
+import { checkDueReminders, syncScheduledReminders, scheduleReminderNotification, requestNotificationPermission } from "./NotificationManager";
 import { actionToTurnItem, applyBackendTurnToState, type KoruTurnItem, type KoruChatTurn } from "../domain/turn";
 // Fase 2.6: audit extraído a módulo propio
 import { auditEnabled, auditSessionId, writeAuditEvent, auditStateSnapshot, auditTurnItems, auditStateDelta } from "./audit";
@@ -235,6 +236,11 @@ export function KoruProvider({ children }: { children: ReactNode }) {
       if (!cancelled) {
         const nudges = buildHeartbeatNudges(persisted);
         commitDomainState(nudges.length > 0 ? applyHeartbeatNudges(persisted, nudges) : persisted);
+        // 🔴 Sincronizar reminders con notificaciones del navegador
+        const userId = persisted.userId ?? "default";
+        syncScheduledReminders(persisted.commitments ?? [], userId);
+        // Check overdue reminders on app load
+        checkDueReminders(userId);
       }
     });
     return () => { cancelled = true; };
@@ -242,6 +248,14 @@ export function KoruProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const runHeartbeat = () => {
+      // 🔴 Proactividad: check due reminders y disparar notificaciones
+      const userId = domainStateRef.current?.userId ?? "default";
+      const { fired, overdue } = checkDueReminders(userId);
+      if (fired.length > 0 || overdue.length > 0) {
+        // Log for debugging
+        console.log("[Koru] Reminders fired:", fired.length, "overdue:", overdue.length);
+      }
+
       commitDomainState((prev) => {
         const nudges = buildHeartbeatNudges(prev);
         return nudges.length > 0 ? applyHeartbeatNudges(prev, nudges) : prev;
@@ -676,6 +690,21 @@ export function KoruProvider({ children }: { children: ReactNode }) {
       });
       const result = applyBackendTurnToState(previousState, text, transcriptSource, agentResult);
       commitDomainState(result.state);
+
+      // 🔴 Programar notificaciones para nuevos commitments con dueAt
+      const newCommitments = (result.state.commitments ?? []).filter(
+        (c) => c.dueAt && !previousState.commitments?.find((pc) => pc.id === c.id)
+      );
+      if (newCommitments.length > 0) {
+        const userId = result.state.userId ?? "default";
+        for (const c of newCommitments) {
+          scheduleReminderNotification(c as any, userId);
+        }
+        // Request notification permission on first reminder
+        if (newCommitments.length > 0) {
+          requestNotificationPermission().catch(() => {});
+        }
+      }
       if (koruTurnId) {
         // Preservar ids de los items del stream: si el resultado final tiene un item
         // del mismo tipo que uno ya renderizado en el stream, mantener su id (e
