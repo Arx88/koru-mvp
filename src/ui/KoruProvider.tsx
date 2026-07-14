@@ -148,6 +148,9 @@ type KoruContextValue = {
   toggleTurnLike: (id: string) => void;
   dismissNudge: (id: string) => void;
   setWorldSignals: (enabled: boolean) => void;
+  // 🔴 Memory toast: aparece cuando Koru aprende algo del usuario
+  memoryToast: { id: string; kind: string; text: string } | null;
+  dismissMemoryToast: () => void;
 };
 
 const KoruContext = createContext<KoruContextValue | null>(null);
@@ -158,6 +161,8 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   const [userName, setUserName] = useState(() => localStorage.getItem("koru.username") ?? "");
   const [processing, setProcessing] = useState(false);
   const [activity, setActivity] = useState<AgentActivity | null>(null);
+  // 🔴 Memory toast: se setea cuando llegan memoryCandidates nuevos y se limpia con dismissMemoryToast
+  const [memoryToast, setMemoryToast] = useState<{ id: string; kind: string; text: string } | null>(null);
   const [phase, setPhase] = useState<string | null>(null);
   const [chatTurns, setChatTurns] = useState<KoruChatTurn[]>(() => readChatTurns(localStorage.getItem("koru.username") ?? ""));
   // Clave versionada (v2): la clave vieja "koru.selected-model" quedaba pegada con
@@ -695,6 +700,23 @@ export function KoruProvider({ children }: { children: ReactNode }) {
               : turn,
           ),
         );
+        // 🔴 Memory toast: si se capturaron memorias nuevas, mostrar toast animado.
+        // Tomamos la primera memoria del resultado (la más relevante).
+        const newMemories = result.state.memories.filter(
+          (m: any) => !previousState.memories.find((existing: any) => existing.text === m.text),
+        );
+        if (newMemories.length > 0 && !previousState.ephemeralMode && previousState.durableMemoryEnabled) {
+          const first = newMemories[0];
+          setMemoryToast({
+            id: first.id,
+            kind: first.kind,
+            text: first.text,
+          });
+          // Auto-dismiss después de 6 segundos
+          setTimeout(() => {
+            setMemoryToast((current) => (current?.id === first.id ? null : current));
+          }, 6000);
+        }
       }
       writeAuditEvent({
         type: "turn_analyzed",
@@ -1009,7 +1031,9 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     toggleTurnLike,
     setWorldSignals,
     dismissNudge: (id: string) => commitDomainState((prev) => dismissNudge(prev, id)),
-  }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, domainState.records, permissions, processing, activity, phase, chatTurns, selectedModel]);
+    memoryToast,
+    dismissMemoryToast: () => setMemoryToast(null),
+  }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, domainState.records, permissions, processing, activity, phase, chatTurns, selectedModel, memoryToast]);
 
   // 🔴 Listener para guardar record desde el detail screen (botón Guardar informe)
   useEffect(() => {

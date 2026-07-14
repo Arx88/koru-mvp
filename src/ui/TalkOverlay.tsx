@@ -6,6 +6,7 @@ import { useKoru, PHASE_ORDER, type KoruChatTurn, type KoruTurnItem } from "./Ko
 import type { AgentActivityKind } from "../domain/agentKernel";
 import { KoruSemanticCard } from "./chatCards";
 import { KoruBackground, activityToBgState, type KoruBgState } from "./KoruBackground";
+import { MemoryToast } from "./MemoryToast";
 
 // TalkOverlay = réplica Stitch "Chat con Koru": paisaje nocturno ilustrado a
 // pantalla completa, conversación anclada abajo con burbujas claras (usuario
@@ -331,6 +332,8 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
     phase,
     ephemeral,
     setEphemeral,
+    memoryToast,
+    dismissMemoryToast,
   } = useKoru();
   const [inputText, setInputText] = useState("");
   const [isListening, setIsListening] = useState(false);
@@ -879,6 +882,16 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
       >
         {/* Fondo dinámico — cambia según el estado de Koru */}
         <KoruBackground state={bgState} />
+
+        {/* 🔴 Memory toast: aparece cuando Koru aprende algo del usuario */}
+        {memoryToast && (
+          <MemoryToast
+            key={memoryToast.id}
+            kind={memoryToast.kind}
+            text={memoryToast.text}
+            onDismiss={dismissMemoryToast}
+          />
+        )}
 
         {/* 🔴 FIX: back-button eliminado — el wheel (long-press) es la única navegación */}
         <h1 className="koru-sr-heading">Koru</h1>
