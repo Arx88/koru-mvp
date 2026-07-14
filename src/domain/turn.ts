@@ -1,5 +1,6 @@
 import { createId, saveState, stageFor } from "./store";
 import { actionKindForUiBlock } from "./toolRegistry";
+import { dueAtFromText } from "./time";
 import type {
   AssistantAction,
   AssistantArtifact,
@@ -448,14 +449,21 @@ export function applyBackendTurnToState(
     ? []
     : result.commitments
         .filter((candidate) => isReadableFact(candidate.title))
-        .map((candidate) => ({
-          ...candidate,
-          id: createId("commit"),
-          createdAt,
-          sourceEntryId: entryId,
-          dueHint: candidate.dueHint || "sin fecha",
-          status: "open",
-        }));
+        .map((candidate) => {
+          const dueHint = candidate.dueHint || "sin fecha";
+          // 🔴 FIX CRÍTICO: calcular dueAt inmediatamente para que el reminder
+          // se programe al crear el commitment, no solo al reabrir la app.
+          const dueAt = candidate.dueAt ?? dueAtFromText(`${candidate.title} ${dueHint}`, new Date(createdAt));
+          return {
+            ...candidate,
+            id: createId("commit"),
+            createdAt,
+            sourceEntryId: entryId,
+            dueHint,
+            dueAt,
+            status: "open" as const,
+          };
+        });
   const blockRecords = result.uiBlocks.flatMap((block) => uiBlockRecords(block) ?? []);
   const uniqueRecordCandidates = [...result.records, ...blockRecords].filter((record, index, list) =>
     list.findIndex((candidate) => recordKey(candidate) === recordKey(record)) === index,

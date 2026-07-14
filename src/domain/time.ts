@@ -77,6 +77,37 @@ export function dueAtFromText(text: string, now = new Date()): string | undefine
   const time = timeFromText(text) ?? { hour: 9, minute: 0 };
   const due = new Date(now);
 
+  // 🔴 FIX: tiempos relativos cortos — "en 60 segundos", "en 5 minutos", "en 2 horas", "en 3 dias"
+  const inSeconds = /\ben\s+(\d{1,4})\s+segundos?\b/i.exec(lower);
+  if (inSeconds) {
+    due.setSeconds(due.getSeconds() + Number(inSeconds[1]));
+    return due.toISOString();
+  }
+
+  const inMinutes = /\ben\s+(\d{1,4})\s+minutos?\b/i.exec(lower);
+  if (inMinutes) {
+    due.setMinutes(due.getMinutes() + Number(inMinutes[1]));
+    return due.toISOString();
+  }
+
+  const inHours = /\ben\s+(\d{1,4})\s+horas?\b/i.exec(lower);
+  if (inHours) {
+    due.setHours(due.getHours() + Number(inHours[1]));
+    return due.toISOString();
+  }
+
+  const inDays = /\ben\s+(\d{1,4})\s+dias?\b/i.exec(lower);
+  if (inDays) {
+    due.setDate(due.getDate() + Number(inDays[1]));
+    return due.toISOString();
+  }
+
+  const inWeeks = /\ben\s+(\d{1,4})\s+semanas?\b/i.exec(lower);
+  if (inWeeks) {
+    due.setDate(due.getDate() + Number(inWeeks[1]) * 7);
+    return due.toISOString();
+  }
+
   if (/\bmanana\b/i.test(lower)) {
     due.setDate(due.getDate() + 1);
     return setTime(due, time.hour, time.minute).toISOString();
@@ -90,16 +121,32 @@ export function dueAtFromText(text: string, now = new Date()): string | undefine
     return today.toISOString();
   }
 
-  const inHours = /\ben\s+(\d{1,2})\s+horas?\b/i.exec(lower);
-  if (inHours) {
-    due.setHours(due.getHours() + Number(inHours[1]));
-    return due.toISOString();
-  }
-
   if (recurrenceFromText(text)) {
     const recurring = setTime(due, time.hour, time.minute);
     if (recurring.getTime() <= now.getTime()) recurring.setDate(recurring.getDate() + 1);
     return recurring.toISOString();
+  }
+
+  // 🔴 FIX: si hay una hora explícita (ej: "a las 18") pero no fecha, asumir hoy/manaña
+  if (time.hour !== 9 || time.minute !== 0) {
+    const withTime = setTime(due, time.hour, time.minute);
+    if (withTime.getTime() <= now.getTime()) {
+      withTime.setDate(withTime.getDate() + 1);
+    }
+    return withTime.toISOString();
+  }
+
+  // 🔴 FIX: si hay un día del mes (ej: "el 20", "el 15 del mes que viene")
+  const dayMatch = /\bel\s+(\d{1,2})\b/.exec(lower);
+  if (dayMatch) {
+    const day = Number(dayMatch[1]);
+    const targetDate = new Date(now);
+    targetDate.setDate(day);
+    targetDate.setHours(time.hour, time.minute, 0, 0);
+    if (targetDate.getTime() <= now.getTime()) {
+      targetDate.setMonth(targetDate.getMonth() + 1);
+    }
+    return targetDate.toISOString();
   }
 
   return undefined;
