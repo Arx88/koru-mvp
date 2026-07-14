@@ -342,8 +342,6 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
     showInstallPrompt,
     installApp,
     dismissInstallPrompt,
-    voiceEnabled,
-    toggleVoice,
   } = useKoru();
   const [inputText, setInputText] = useState("");
   const [isListening, setIsListening] = useState(false);
@@ -1109,56 +1107,30 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
             )}
 
             <div className="koru-composer">
-              {/* 🔴 Voice toggle — activar/desactivar TTS de Koru */}
-              <button
-                type="button"
-                onClick={toggleVoice}
-                aria-label={voiceEnabled ? "Desactivar voz de Koru" : "Activar voz de Koru"}
-                className={cn("koru-composer-icon", voiceEnabled && "is-active")}
-                title={voiceEnabled ? "Koru te va a hablar" : "Activar voz"}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>{voiceEnabled ? "volume_up" : "volume_off"}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setEphemeral(!ephemeral)}
-                aria-label={ephemeral ? "Desactivar modo efimero" : "Activar modo efimero"}
-                className={cn("koru-composer-icon", ephemeral && "is-active")}
-              >
-                <Leaf size={22} />
-              </button>
-              {/* Fase 2.1 — Subir nota de voz */}
+              {/* 🔴 Composer limpio: solo adjuntar (paperclip unificado) + input + mic/send.
+                  Voice y ephemeral están en Settings, no aquí. */}
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={transcribing || processing}
-                aria-label="Subir nota de voz"
-                className={cn("koru-composer-icon", transcribing && "is-active")}
+                disabled={transcribing || processing || analyzingImage}
+                aria-label="Adjuntar archivo"
+                className={cn("koru-composer-icon", (transcribing || analyzingImage) && "is-active")}
               >
                 <Paperclip size={22} />
               </button>
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="audio/*"
-                onChange={onFileChange}
-                className="hidden"
-              />
-              {/* Fase 3.8 — Subir imagen (OCR/análisis) */}
-              <button
-                type="button"
-                onClick={() => imageInputRef.current?.click()}
-                disabled={analyzingImage || processing}
-                aria-label="Subir imagen"
-                className={cn("koru-composer-icon", analyzingImage && "is-active")}
-              >
-                <ImageIcon size={22} />
-              </button>
-              <input
-                ref={imageInputRef}
-                type="file"
-                accept="image/*"
-                onChange={onImageChange}
+                accept="audio/*,image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (file.type.startsWith("image/")) {
+                    onImageChange(e);
+                  } else {
+                    onFileChange(e);
+                  }
+                }}
                 className="hidden"
               />
               <div className="koru-composer-field">

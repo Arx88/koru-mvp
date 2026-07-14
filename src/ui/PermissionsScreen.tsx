@@ -1,9 +1,9 @@
-import { Moon } from "lucide-react";
+import { Moon, Volume2 } from "lucide-react";
 import { useKoru } from "./KoruProvider";
 import { cn } from "../lib/utils";
 
 export function PermissionsScreen() {
-  const { permissions, togglePermission, ephemeral, setEphemeral } = useKoru();
+  const { permissions, togglePermission, ephemeral, setEphemeral, voiceEnabled, toggleVoice } = useKoru();
 
   return (
     <div className="flex h-full flex-col px-6 pb-4 pt-8">
@@ -41,6 +41,20 @@ export function PermissionsScreen() {
           </p>
         </div>
         <Toggle checked={ephemeral} onChange={() => setEphemeral(!ephemeral)} label="Modo efímero" />
+      </div>
+
+      {/* 🔴 Voice toggle — Koru habla sus respuestas */}
+      <div className="mt-3 flex items-center gap-4 rounded-xl border border-leaf bg-warm-white/60 p-4">
+        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-leaf/40 text-forest">
+          <Volume2 className="h-5 w-5" />
+        </span>
+        <div className="flex-1">
+          <p className="text-[15px] font-medium text-bark">Voz de Koru</p>
+          <p className="mt-0.5 text-sm leading-snug text-earth">
+            Koru habla sus respuestas en voz alta.
+          </p>
+        </div>
+        <Toggle checked={voiceEnabled} onChange={toggleVoice} label="Voz de Koru" />
       </div>
 
       <p className="mt-auto pt-6 text-center text-xs leading-relaxed text-stone">
