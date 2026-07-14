@@ -37,7 +37,7 @@ import { runWebNavigation, webResultToPayload } from "../domain/web";
 import { dueLabel } from "../domain/time";
 import { inferActivity, type AgentActivity } from "../domain/agentKernel";
 import { shouldAutoRunAction } from "../domain/toolRegistry";
-import { checkDueReminders, syncScheduledReminders, scheduleReminderNotification, requestNotificationPermission } from "./NotificationManager";
+import { checkDueReminders, syncScheduledReminders, scheduleReminderNotification, schedulePreciseTimeout, requestNotificationPermission } from "./NotificationManager";
 import { actionToTurnItem, applyBackendTurnToState, type KoruTurnItem, type KoruChatTurn } from "../domain/turn";
 // Fase 2.6: audit extraído a módulo propio
 import { auditEnabled, auditSessionId, writeAuditEvent, auditStateSnapshot, auditTurnItems, auditStateDelta } from "./audit";
@@ -699,8 +699,11 @@ export function KoruProvider({ children }: { children: ReactNode }) {
         const userId = result.state.userId ?? "default";
         for (const c of newCommitments) {
           scheduleReminderNotification(c as any, userId);
+          // 🔴 NUEVO: programar setTimeout preciso para que la notificación
+          // dispare EXACTO cuando llega la hora, no en el próximo heartbeat tick.
+          schedulePreciseTimeout(c.id, c.dueAt!, c.title, userId);
         }
-        // 🔴 Request notification permission — best effort, may be blocked if not user gesture
+        // 🔴 Request notification permission — best effort
         requestNotificationPermission().catch(() => {});
       }
       if (koruTurnId) {

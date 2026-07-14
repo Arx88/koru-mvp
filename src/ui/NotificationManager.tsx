@@ -99,8 +99,10 @@ export function checkDueReminders(userId: string): { fired: ScheduledReminder[];
     if (isNaN(dueTime)) continue;
 
     const diffMs = dueTime - now;
-    // Fire if due within next 2 minutes or already overdue
-    if (diffMs <= 2 * 60 * 1000) {
+    // 🔴 FIX CRÍTICO: solo disparar si YA venció (diffMs <= 0).
+    // NO disparar si está "por vencer en 2 min" — eso causaba que se disparara
+    // inmediatamente al crear el reminder.
+    if (diffMs <= 0) {
       const isOverdue = diffMs < -60 * 1000; // more than 1 min overdue
       showNotification(
         isOverdue ? "Se te pasó" : "Recordatorio",
@@ -116,6 +118,42 @@ export function checkDueReminders(userId: string): { fired: ScheduledReminder[];
   // Update notified state
   saveScheduled(reminders);
   return { fired, overdue };
+}
+
+// 🔴 NUEVO: programar setTimeout preciso para que la notificación dispare EXACTO
+// cuando llega la hora, no esperar al próximo heartbeat tick (que puede tardar 60s).
+const activeTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+
+export function schedulePreciseTimeout(commitmentId: string, dueAt: string, title: string, userId: string): void {
+  // Cancelar timeout existente para este reminder
+  const existing = activeTimeouts.get(commitmentId);
+  if (existing) clearTimeout(existing);
+
+  const dueTime = new Date(dueAt).getTime();
+  const now = Date.now();
+  const delay = dueTime - now;
+
+  if (delay <= 0) {
+    // Ya venció — disparar inmediatamente
+    showNotification("Recordatorio", title, { tag: commitmentId });
+    // Marcar como notificado
+    const reminders = loadScheduled();
+    const r = reminders.find(r => r.commitmentId === commitmentId);
+    if (r) { r.notified = true; saveScheduled(reminders); }
+    return;
+  }
+
+  // Programar notificación precisa
+  const timeout = setTimeout(() => {
+    showNotification("Recordatorio", title, { tag: commitmentId });
+    // Marcar como notificado
+    const reminders = loadScheduled();
+    const r = reminders.find(r => r.commitmentId === commitmentId);
+    if (r) { r.notified = true; saveScheduled(reminders); }
+    activeTimeouts.delete(commitmentId);
+  }, delay);
+
+  activeTimeouts.set(commitmentId, timeout);
 }
 
 // Re-sync scheduled reminders with current commitments (on app load)
@@ -141,6 +179,13 @@ export function syncScheduledReminders(commitments: Commitment[], userId: string
   }
 
   saveScheduled(filtered);
+
+  // 🔴 Programar timeouts precisos para todos los reminders no notificados
+  for (const r of filtered) {
+    if (!r.notified) {
+      schedulePreciseTimeout(r.commitmentId, r.dueAt, r.title, userId);
+    }
+  }
 }
 
 // Hook for React components
