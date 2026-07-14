@@ -1753,6 +1753,28 @@ function keywordFastPath(message) {
       }
     };
   }
+  const knowledgeMatch = normalized.match(/\b(que es|que fue|que son|que era|quien es|quien fue|quien era|quienes son|quienes fueron|que significa|que significan)\s+(.+)/i);
+  if (knowledgeMatch) {
+    const afterText = knowledgeMatch[2].trim().replace(/[?!.].*$/, "").trim();
+    const isPronoun = /^\s*(eso|este|esta|estos|estas|esto|aquel|aquella|aquello|aquellos|aquellas|el|ella|ellos|ellas|un|una|eso mismo|a|e|o|u|y|de|del|la|los|las)\b/i.test(afterText);
+    const isGeneric = /^(eso|esto|aquel|aquello|eso mismo|nada|todo|algo)\b/i.test(afterText);
+    if (!isPronoun && !isGeneric && afterText.length >= 3) {
+      return {
+        category: "knowledge",
+        tool: "wikipedia_lookup",
+        confidence: 0.95,
+        toolArgs: { query: message }
+      };
+    }
+  }
+  if (/\b(contame sobre|explicame|como funciona|definicion de|definicion de|hablemos de|cuentame de)\b/.test(normalized)) {
+    return {
+      category: "knowledge",
+      tool: "wikipedia_lookup",
+      confidence: 0.95,
+      toolArgs: { query: message }
+    };
+  }
   return null;
 }
 

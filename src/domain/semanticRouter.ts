@@ -875,10 +875,36 @@ export function keywordFastPath(message: string): RouteResult | null {
     };
   }
 
+  // ── 6. KNOWLEDGE: "que es X" / "quien es X" / "que son X" ──
+  // El LLM a veces responde con texto plano (no JSON) cuando debería llamar wikipedia_lookup.
+  // Por eso interceptamos aquí: si después de "que es" hay un sustantivo real (3+ letras),
+  // disparamos wikipedia_lookup. Si hay pronombre (eso, esto, aquel), NO interceptamos.
+  const knowledgeMatch = normalized.match(/\b(que es|que fue|que son|que era|quien es|quien fue|quien era|quienes son|quienes fueron|que significa|que significan)\s+(.+)/i);
+  if (knowledgeMatch) {
+    const afterText = knowledgeMatch[2].trim().replace(/[?!.].*$/, "").trim();
+    // Pronombres → follow-up, NO interceptar
+    const isPronoun = /^\s*(eso|este|esta|estos|estas|esto|aquel|aquella|aquello|aquellos|aquellas|el|ella|ellos|ellas|un|una|eso mismo|a|e|o|u|y|de|del|la|los|las)\b/i.test(afterText);
+    // Palabras genéricas → follow-up
+    const isGeneric = /^(eso|esto|aquel|aquello|eso mismo|nada|todo|algo)\b/i.test(afterText);
+    if (!isPronoun && !isGeneric && afterText.length >= 3) {
+      return {
+        category: "knowledge",
+        tool: "wikipedia_lookup",
+        confidence: 0.95,
+        toolArgs: { query: message },
+      };
+    }
+  }
+  // "contame sobre X" / "explicame X" / "como funciona X" → wikipedia
+  if (/\b(contame sobre|explicame|como funciona|definicion de|definicion de|hablemos de|cuentame de)\b/.test(normalized)) {
+    return {
+      category: "knowledge",
+      tool: "wikipedia_lookup",
+      confidence: 0.95,
+      toolArgs: { query: message },
+    };
+  }
+
   // TODO LO DEMÁS: return null → el LLM con tools habilitadas decide qué hacer.
-  // El LLM ve las tool definitions y el system prompt, y decide:
-  // - Si necesita una tool (weather, movie_info, recipe_find, restaurant_deep_search, etc.)
-  // - Si no necesita tool (follow-ups, opiniones, charla, aclaraciones)
-  // - Qué argumentos pasar (entiende cualquier forma de hablar, cualquier idioma)
   return null;
 }
