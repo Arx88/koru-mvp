@@ -155,6 +155,10 @@ type KoruContextValue = {
   // 🔴 Morning brief
   morningBrief: any | null;
   dismissMorningBrief: () => void;
+  // 🔴 PWA install
+  showInstallPrompt: boolean;
+  installApp: () => Promise<void>;
+  dismissInstallPrompt: () => void;
 };
 
 const KoruContext = createContext<KoruContextValue | null>(null);
@@ -169,6 +173,9 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   const [memoryToast, setMemoryToast] = useState<{ id: string; kind: string; text: string } | null>(null);
   // 🔴 Morning brief state
   const [morningBrief, setMorningBrief] = useState<any | null>(null);
+  // 🔴 PWA install prompt
+  const [installPromptEvent, setInstallPromptEvent] = useState<any>(null);
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [phase, setPhase] = useState<string | null>(null);
   const [chatTurns, setChatTurns] = useState<KoruChatTurn[]>(() => readChatTurns(localStorage.getItem("koru.username") ?? ""));
   // Clave versionada (v2): la clave vieja "koru.selected-model" quedaba pegada con
@@ -201,6 +208,21 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     domainStateRef.current = domainState;
   }, [domainState]);
+
+  // 🔴 PWA install prompt listener
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setInstallPromptEvent(e);
+      // Show after 30s if not dismissed
+      const dismissed = localStorage.getItem("koru.installDismissed");
+      if (!dismissed) {
+        setTimeout(() => setShowInstallPrompt(true), 30_000);
+      }
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
 
   useEffect(() => {
     chatTurnsRef.current = chatTurns;
@@ -1144,7 +1166,20 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     dismissMemoryToast: () => setMemoryToast(null),
     morningBrief,
     dismissMorningBrief: () => setMorningBrief(null),
-  }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, domainState.records, permissions, processing, activity, phase, chatTurns, selectedModel, memoryToast, morningBrief]);
+    showInstallPrompt,
+    installApp: async () => {
+      if (installPromptEvent) {
+        installPromptEvent.prompt();
+        await installPromptEvent.userChoice;
+        setInstallPromptEvent(null);
+        setShowInstallPrompt(false);
+      }
+    },
+    dismissInstallPrompt: () => {
+      setShowInstallPrompt(false);
+      localStorage.setItem("koru.installDismissed", "1");
+    },
+  }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, domainState.records, permissions, processing, activity, phase, chatTurns, selectedModel, memoryToast, morningBrief, showInstallPrompt, installPromptEvent]);
 
   // 🔴 Listener para guardar record desde el detail screen (botón Guardar informe)
   useEffect(() => {

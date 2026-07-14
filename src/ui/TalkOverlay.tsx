@@ -339,6 +339,9 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
     dismissMorningBrief,
     memories,
     history,
+    showInstallPrompt,
+    installApp,
+    dismissInstallPrompt,
   } = useKoru();
   const [inputText, setInputText] = useState("");
   const [isListening, setIsListening] = useState(false);
@@ -915,6 +918,25 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
           />
         )}
 
+        {/* 🔴 PWA install prompt */}
+        {showInstallPrompt && (
+          <div className="koru-install-prompt" role="dialog" aria-label="Instalar Koru">
+            <div className="koru-install-prompt-content">
+              <div className="koru-install-prompt-icon">
+                <span className="material-symbols-outlined">install_mobile</span>
+              </div>
+              <div className="koru-install-prompt-text">
+                <strong>Instalá Koru</strong>
+                <p>Acceso rápido desde tu pantalla de inicio</p>
+              </div>
+              <div className="koru-install-prompt-actions">
+                <button type="button" onClick={() => void installApp()} className="koru-install-prompt-accept">Instalar</button>
+                <button type="button" onClick={dismissInstallPrompt} className="koru-install-prompt-dismiss">Ahora no</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* 🔴 FIX: back-button eliminado — el wheel (long-press) es la única navegación */}
         <h1 className="koru-sr-heading">Koru</h1>
 
@@ -1057,6 +1079,32 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
             )}
             {ephemeral && <p className="koru-footer-note">Modo efimero activo - esta charla no guardara memoria nueva</p>}
             {micError && <p className="koru-footer-error">{micError}</p>}
+
+            {/* 🔴 Quick actions — chips de sugerencias rápidas cuando el input está vacío */}
+            {!inputText.trim() && !processing && !isListening && !isRecording && (
+              <div className="koru-quick-actions">
+                {[
+                  { icon: "wb_sunny", text: "¿Qué tal el día?" },
+                  { icon: "sports_soccer", text: "¿Cómo salió España?" },
+                  { icon: "restaurant", text: "Receta de pasta" },
+                  { icon: "savings", text: "Precio del bitcoin" },
+                  { icon: "calendar_today", text: "Planifica mi día" },
+                ].map((chip) => (
+                  <button
+                    key={chip.text}
+                    type="button"
+                    className="koru-quick-action"
+                    onClick={() => {
+                      setInputText(chip.text);
+                      inputRef.current?.focus();
+                    }}
+                  >
+                    <span className="material-symbols-outlined">{chip.icon}</span>
+                    {chip.text}
+                  </button>
+                ))}
+              </div>
+            )}
 
             <div className="koru-composer">
               <button
