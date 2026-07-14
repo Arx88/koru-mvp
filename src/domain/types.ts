@@ -2,7 +2,7 @@ export type KoruStage = "seed" | "sprout" | "roots" | "born" | "garden";
 
 export type MemorySensitivity = "normal" | "sensitive";
 
-export type MemoryStatus = "candidate" | "confirmed" | "rejected";
+export type MemoryStatus = "candidate" | "confirmed" | "rejected" | "archived" | "superseded";
 
 export type MemoryKind =
   | "profile"

@@ -46,7 +46,7 @@ export type { KoruTurnItem, KoruChatTurn };
 
 export type Stage = "semilla" | "brote" | "raices" | "nacimiento" | "jardin";
 
-export type MemoryStatus = "reciente" | "confirmada" | "dudosa" | "importante" | "sensible";
+export type MemoryStatus = "reciente" | "confirmada" | "dudosa" | "importante" | "sensible" | "archived" | "superseded" | "rejected";
 
 export type MemoryCategory =
   | "rutina" | "trabajo" | "relacion" | "preferencia" | "objetivo" | "salud";

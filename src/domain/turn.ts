@@ -12,6 +12,7 @@ import type {
   LifeRecord,
   MascotState,
   MemoryFact,
+  MemoryStatus,
   ModelCall,
   UiBlock,
 } from "./types";
@@ -406,17 +407,84 @@ export function applyBackendTurnToState(
 ): { state: KoruState; items: KoruTurnItem[]; entry: DailyEntry } {
   const createdAt = new Date().toISOString();
   const entryId = createId("entry");
+  // 🔴 FIX CONTRADICCIÓN DE MEMORIAS: detectar si el usuario dijo algo que
+  // contradice o reemplaza una memoria existente. Ejemplos:
+  // - "ya no juego al tenis" → archivar "Juega al tenis"
+  // - "me mude a Barcelona" → reemplazar "Vive en Madrid" con "Vive en Barcelona"
+  // - "termine la carrera" → archivar "Estudia medicina"
+  // - "deje el trabajo" → archivar "Trabaja de programador"
+  const userText = text.toLowerCase().trim();
+  const isNegation = /\b(ya no|deje de|deje de hacer|termine|terminé|logre|logré|abandone|abandoné|cambie|cambié|me mude|me mudé|ahora vivo|ya no vivo|deje el|dejé el|deje de|me cambie|me cambié|ya no como|deje de comer)\b/i.test(userText);
+
+  // Detectar qué memorias existentes deben ser archivadas/superadas
+  const supersededIds = new Set<string>();
+  if (isNegation) {
+    for (const existing of state.memories) {
+      if (existing.status === "archived" || existing.status === "superseded" || existing.status === "rejected") continue;
+      // Comprobar si la memoria existente aparece en el texto del usuario
+      // Ej: "ya no juego al tenis" contiene "juega al tenis" (normalizado)
+      const existingNorm = existing.text.toLowerCase()
+        .replace(/[áéíóú]/g, (m) => ({ á: "a", é: "e", í: "i", ó: "o", ú: "u" }[m]!))
+        .replace(/[^a-z0-9\s]/g, "").trim();
+      const userNorm = userText
+        .replace(/[áéíóú]/g, (m) => ({ á: "a", é: "e", í: "i", ó: "o", ú: "u" }[m]!))
+        .replace(/[^a-z0-9\s]/g, "").trim();
+      // Si el texto del usuario contiene palabras clave de la memoria existente
+      const existingWords = existingNorm.split(/\s+/).filter(w => w.length > 3);
+      const overlap = existingWords.filter(w => userNorm.includes(w));
+      if (overlap.length >= 2 || (overlap.length >= 1 && existing.kind === "profile")) {
+        supersededIds.add(existing.id);
+      }
+    }
+  }
+
+  // También detectar contradicción directa: nueva memoria del mismo kind que
+  // reemplaza la anterior (ej: "Vive en Barcelona" reemplaza "Vive en Madrid")
+  const newMemoryTexts = result.memoryCandidates
+    .filter((c) => isReadableFact(c.text))
+    .map((c) => c.text.toLowerCase()
+      .replace(/[áéíóú]/g, (m) => ({ á: "a", é: "e", í: "i", ó: "o", ú: "u" }[m]!))
+      .replace(/[^a-z0-9\s]/g, "").trim());
+
+  for (const existing of state.memories) {
+    if (existing.status === "archived" || existing.status === "superseded" || existing.status === "rejected") continue;
+    if (supersededIds.has(existing.id)) continue;
+    // Si una nueva memoria empieza con el mismo prefijo ("vive en", "trabaja de", "estudia")
+    // pero tiene contenido diferente, la vieja queda superada
+    for (const newText of newMemoryTexts) {
+      const existingNorm = existing.text.toLowerCase()
+        .replace(/[áéíóú]/g, (m) => ({ á: "a", é: "e", í: "i", ó: "o", ú: "u" }[m]!))
+        .replace(/[^a-z0-9\s]/g, "").trim();
+      // Mismo kind + mismo verbo inicial + diferente contenido = reemplazo
+      if (existing.kind === "profile" || existing.kind === "routine" || existing.kind === "goal") {
+        const existingPrefix = existingNorm.split(/\s+/).slice(0, 2).join(" ");
+        const newPrefix = newText.split(/\s+/).slice(0, 2).join(" ");
+        if (existingPrefix === newPrefix && existingNorm !== newText) {
+          // Verificar que el prefijo sea un verbo de identidad (vive, trabaja, estudia, etc.)
+          if (/^(vive en|trabaja de|trabaja en|trabaja como|estudia|aprende|quiere|le encanta|le gusta|odia|es |tiene )/.test(existingPrefix)) {
+            supersededIds.add(existing.id);
+          }
+        }
+      }
+    }
+  }
+
+  // Marcar memorias superadas en el estado
+  const updatedExistingMemories = state.memories.map((m) =>
+    supersededIds.has(m.id)
+      ? { ...m, status: "superseded" as MemoryStatus, updatedAt: createdAt }
+      : m
+  );
+
   const memories: MemoryFact[] = state.ephemeralMode || !state.durableMemoryEnabled
     ? []
     : result.memoryCandidates
         .filter((candidate) => isReadableFact(candidate.text))
-        // 🔴 FIX DEDUPLICACIÓN: si ya existe una memoria con el mismo texto (o casi igual),
-        // NO agregarla de nuevo. Comparamos por texto normalizado (sin mayúsculas, sin
-        // puntuación, sin acentos) para que "Le encanta el helado de pistacho." y
-        // "le encanta el helado de pistacho" cuenten como la misma.
+        // Deduplicación: no agregar si ya existe (misma memoria activa)
         .filter((candidate) => {
           const candidateNorm = candidate.text.toLowerCase().replace(/[áéíóú]/g, (m) => ({ á: "a", é: "e", í: "i", ó: "o", ú: "u" }[m]!)).replace(/[^a-z0-9\s]/g, "").trim();
-          return !state.memories.some((existing) => {
+          return !updatedExistingMemories.some((existing) => {
+            if (existing.status === "archived" || existing.status === "superseded" || existing.status === "rejected") return false;
             const existingNorm = existing.text.toLowerCase().replace(/[áéíóú]/g, (m) => ({ á: "a", é: "e", í: "i", ó: "o", ú: "u" }[m]!)).replace(/[^a-z0-9\s]/g, "").trim();
             return candidateNorm === existingNorm;
           });
@@ -507,7 +575,7 @@ export function applyBackendTurnToState(
     totalEnergy: state.totalEnergy + entry.energyAwarded,
     trustedEnergy: state.trustedEnergy + Math.round(entry.energyAwarded * (state.ephemeralMode ? 0.35 : 0.6)),
     entries: state.ephemeralMode ? state.entries : [entry, ...state.entries],
-    memories: [...memories, ...state.memories],
+    memories: [...memories, ...updatedExistingMemories],
     commitments: [...commitments, ...state.commitments],
     actions: [...allActions, ...state.actions],
     records: [...records, ...state.records].slice(0, 500),

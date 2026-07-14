@@ -44,6 +44,30 @@ const STATUS_META: Record<MemoryStatus, { label: string; icon: typeof Leaf; tint
     glow: "rgba(240, 217, 238, 0.18)",
     gradient: "linear-gradient(135deg, rgba(240, 217, 238, 0.12), rgba(228, 221, 247, 0.06))",
   },
+  archived: {
+    label: "Archivada",
+    icon: Scissors,
+    tint: "text-stone/60",
+    ring: "border-sand/40",
+    glow: "rgba(169, 155, 190, 0.05)",
+    gradient: "linear-gradient(135deg, rgba(169, 155, 190, 0.04), rgba(228, 221, 247, 0.02))",
+  },
+  superseded: {
+    label: "Actualizada",
+    icon: Sprout,
+    tint: "text-stone/50",
+    ring: "border-sand/30",
+    glow: "rgba(169, 155, 190, 0.04)",
+    gradient: "linear-gradient(135deg, rgba(169, 155, 190, 0.03), rgba(228, 221, 247, 0.01))",
+  },
+  rejected: {
+    label: "Descartada",
+    icon: X,
+    tint: "text-stone/40",
+    ring: "border-sand/30",
+    glow: "rgba(169, 155, 190, 0.03)",
+    gradient: "linear-gradient(135deg, rgba(169, 155, 190, 0.02), transparent)",
+  },
 };
 
 export function MemoryScreen() {
