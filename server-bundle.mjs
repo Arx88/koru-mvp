@@ -91,8 +91,8 @@ async function collectEvents(triggers, state, lastSeen) {
           break;
         }
         case "commitment_check": {
-          const commitments = Array.isArray(state.commitments) ? state.commitments : [];
-          const overdue = commitments.filter((c) => {
+          const commitments2 = Array.isArray(state.commitments) ? state.commitments : [];
+          const overdue = commitments2.filter((c) => {
             if (c.status !== "open") return false;
             if (c.dueHint) {
               const due = new Date(c.dueHint);
@@ -2364,10 +2364,10 @@ var expenseTrack = {
     };
   }
 };
-function expensesByPeriod(records, periodDays) {
+function expensesByPeriod(records2, periodDays) {
   const now = Date.now();
   const since = now - periodDays * 24 * 60 * 60 * 1e3;
-  return records.filter((r) => {
+  return records2.filter((r) => {
     if (r.kind !== "expense" || typeof r.amount !== "number") return false;
     const created = new Date(r.createdAt).getTime();
     return Number.isFinite(created) && created >= since;
@@ -6712,8 +6712,8 @@ var extractActionItems = {
         { temperature: 0.1, maxTokens: 400 }
       );
       const items = r.content.split(/\r?\n/).map((l) => l.trim().replace(/^[-*\d.]+\s*/, "")).filter((l) => l.length > 3).slice(0, 12);
-      const commitments = items.map((title) => ({ title, dueHint: "sin fecha", status: "open" }));
-      return { type: "extract_action_items", status: "ok", actionItems: items, commitments };
+      const commitments2 = items.map((title) => ({ title, dueHint: "sin fecha", status: "open" }));
+      return { type: "extract_action_items", status: "ok", actionItems: items, commitments: commitments2 };
     } catch (e) {
       return { type: "extract_action_items", status: "failed", error: e instanceof Error ? e.message : String(e) };
     }
@@ -9132,8 +9132,8 @@ function isRecordInPeriod(record, period) {
   if (/\bmes|month\b/.test(normalized)) return ageMs >= 0 && ageMs <= 32 * 24 * 60 * 60 * 1e3;
   return true;
 }
-function rowsFromRecords(records) {
-  return records.slice(0, 8).map((record) => ({
+function rowsFromRecords(records2) {
+  return records2.slice(0, 8).map((record) => ({
     title: record.title,
     detail: [record.value && record.value !== record.title ? record.value : void 0, record.notes].filter(Boolean).join(" - "),
     meta: [record.person, record.dueHint, record.amount !== void 0 ? `${record.amount} ${record.currency || ""}`.trim() : void 0].filter(Boolean).join(" \xB7 "),
@@ -9171,18 +9171,18 @@ function recordSearchText(record) {
 function queryTokens(query) {
   return plainLower(query).replace(/[^\p{L}\p{N}\s:/._-]+/gu, " ").split(/\s+/).map((token) => token.trim()).filter((token) => token.length > 1 && !["que", "con", "por", "sin", "mas", "los", "las", "del", "una", "uno", "mis", "tengo", "sobre", "guarde", "guardado", "guardaste"].includes(token));
 }
-function semanticRecordMatches(records, query, limit = 8) {
+function semanticRecordMatches(records2, query, limit = 8) {
   const tokens = queryTokens(query);
   if (!tokens.length) return [];
-  return records.map((record) => {
+  return records2.map((record) => {
     const haystack = plainLower(recordSearchText(record));
     const score = tokens.reduce((sum, token) => sum + (haystack.includes(token) ? 1 : 0), 0);
     return { record, score };
   }).filter((item) => item.score > 0).sort((a, b) => b.score - a.score).map((item) => item.record).slice(0, limit);
 }
-function uniqueLifeRecords(records) {
+function uniqueLifeRecords(records2) {
   const seen = /* @__PURE__ */ new Set();
-  return records.filter((record) => {
+  return records2.filter((record) => {
     const key = `${record.id}|${record.domain}|${record.kind}|${plainLower(record.title)}|${plainLower(record.value ?? "")}|${plainLower(record.url ?? "")}`;
     if (seen.has(key)) return false;
     seen.add(key);
@@ -9193,9 +9193,9 @@ function queryPersonalContextFromState(state, args) {
   const topic = cleanText(args.topic, "general");
   const query = cleanText(args.query, cleanText(args.__userInput));
   const period = cleanText(args.period);
-  const records = (Array.isArray(state.records) ? state.records : []).filter((record) => isRecordInPeriod(record, period));
+  const records2 = (Array.isArray(state.records) ? state.records : []).filter((record) => isRecordInPeriod(record, period));
   if (topic === "expenses") {
-    const expenses = records.filter((record) => record.kind === "expense");
+    const expenses = records2.filter((record) => record.kind === "expense");
     if (!expenses.length) {
       return {
         type: "personal_query",
@@ -9226,7 +9226,7 @@ function queryPersonalContextFromState(state, args) {
     };
   }
   if (topic === "food_inventory") {
-    const food = records.filter((record) => record.kind === "meal_inventory");
+    const food = records2.filter((record) => record.kind === "meal_inventory");
     if (!food.length) return { type: "personal_query", block: { type: "saved_record", title: "Comida en casa", records: [] } };
     return {
       type: "personal_query",
@@ -9255,7 +9255,7 @@ function queryPersonalContextFromState(state, args) {
     };
   }
   if (topic === "shopping_list") {
-    const shopping = records.filter((record) => record.kind === "shopping_item");
+    const shopping = records2.filter((record) => record.kind === "shopping_item");
     if (!shopping.length) return { type: "personal_query", block: emptyContextBlock("Compras", "No tengo una lista de compras activa guardada.") };
     const items = shopping.map((record) => record.title).filter(Boolean).slice(0, 30);
     return {
@@ -9319,7 +9319,7 @@ function queryPersonalContextFromState(state, args) {
     };
   }
   if (topic === "relationships") {
-    const relationshipRecords = records.filter((record) => ["person_followup", "gift", "birthday"].includes(record.kind));
+    const relationshipRecords = records2.filter((record) => ["person_followup", "gift", "birthday"].includes(record.kind));
     const relationshipMemories = (Array.isArray(state.memories) ? state.memories : []).filter((memory) => memory && memory.status !== "rejected" && memory.useForSuggestions !== false).filter((memory) => memory.kind === "relationship" || semanticRecordMatches([{
       id: memory.id,
       domain: "relationship",
@@ -9329,7 +9329,7 @@ function queryPersonalContextFromState(state, args) {
       createdAt: memory.createdAt,
       sourceEntryId: memory.sourceEntryId
     }], query, 1).length > 0).slice(0, 8);
-    const semanticRelationships = semanticRecordMatches(records, query).filter((record) => record.domain === "relationship" || ["person_followup", "gift", "birthday"].includes(record.kind));
+    const semanticRelationships = semanticRecordMatches(records2, query).filter((record) => record.domain === "relationship" || ["person_followup", "gift", "birthday"].includes(record.kind));
     const finalRecords = uniqueLifeRecords([...relationshipRecords, ...semanticRelationships]).slice(0, 8);
     if (!finalRecords.length && !relationshipMemories.length) {
       return { type: "personal_query", block: emptyContextBlock("Relaciones", "No encontre datos guardados sobre esa persona todavia.") };
@@ -9361,10 +9361,10 @@ function queryPersonalContextFromState(state, args) {
   }
   const acceptedKinds = kindByTopic[topic] ?? kindByTopic.general;
   const queryLower = plainLower(query);
-  const semanticMatches = semanticRecordMatches(records, query);
-  const matching = topic === "saved_links" ? records.filter(
+  const semanticMatches = semanticRecordMatches(records2, query);
+  const matching = topic === "saved_links" ? records2.filter(
     (record) => record.kind === "tool_link" || Boolean(record.url) || Boolean(record.collection && queryLower.includes(plainLower(record.collection))) || Boolean(record.tags?.some((tag) => queryLower.includes(plainLower(tag))))
-  ) : topic === "general" ? query ? [] : records : acceptedKinds.length ? records.filter((record) => acceptedKinds.includes(record.kind)) : records;
+  ) : topic === "general" ? query ? [] : records2 : acceptedKinds.length ? records2.filter((record) => acceptedKinds.includes(record.kind)) : records2;
   const finalMatches = uniqueLifeRecords([...matching, ...semanticMatches]).slice(0, 8);
   if (!finalMatches.length) return { type: "personal_query", block: { type: "saved_record", title: "Contexto guardado", records: [] } };
   return {
@@ -9594,7 +9594,7 @@ function personalCaptureFromArgs(args, input = "") {
   }
   if (recordKind === "meal_inventory") {
     const inventoryItems = items.length ? items : [title];
-    const records = inventoryItems.map((item) => ({
+    const records2 = inventoryItems.map((item) => ({
       domain: "home",
       kind: "meal_inventory",
       title: item,
@@ -9605,8 +9605,8 @@ function personalCaptureFromArgs(args, input = "") {
     }));
     return {
       type: "personal_capture",
-      block: { type: "saved_record", title: collection || "Comida en casa", records },
-      records,
+      block: { type: "saved_record", title: collection || "Comida en casa", records: records2 },
+      records: records2,
       memoryCandidates
     };
   }
@@ -9718,7 +9718,7 @@ function stateSummary(state) {
   const recordsArr = Array.isArray(state.records) ? state.records : [];
   const confirmedMemories = memories.filter((item) => item && item.status === "confirmed" && item.useForSuggestions !== false).slice(0, 12).map((item) => `- ${item.kind}: ${String(item.text ?? "").replace(/[\n\r`]+/g, " ").trim()}`).join("\n") || "- none";
   const candidateMemories = memories.filter((item) => item && item.status === "candidate" && item.useForSuggestions !== false).slice(0, 8).map((item) => `- ${item.kind}: ${String(item.text ?? "").replace(/[\n\r`]+/g, " ").trim()}`).join("\n") || "- none";
-  const commitments = commitmentsArr.filter((item) => item && item.status === "open").slice(0, 12).map((item) => `- ${String(item.title ?? "").replace(/[\n\r`]+/g, " ").trim()} (${(item.dueHint || "sin fecha").replace(/[\n\r`]+/g, " ").trim()})`).join("\n") || "- none";
+  const commitments2 = commitmentsArr.filter((item) => item && item.status === "open").slice(0, 12).map((item) => `- ${String(item.title ?? "").replace(/[\n\r`]+/g, " ").trim()} (${(item.dueHint || "sin fecha").replace(/[\n\r`]+/g, " ").trim()})`).join("\n") || "- none";
   const recordTitles = recordsArr.slice(-8).map((item) => `- ${String(item.title ?? "").replace(/[\n\r`]+/g, " ").trim()}${item.value ? ` (${String(item.value).replace(/[\n\r`]+/g, " ").trim()})` : ""} ${item.notes ? `\u2014 ${String(item.notes).replace(/[\n\r`]+/g, " ").trim()}` : ""} [${item.kind}]`).join("\n") || "- nada guardado todav\xEDa";
   const recordKinds = Array.from(new Set(recordsArr.map((item) => item.kind))).slice(0, 12).join(", ") || "none";
   const collectionCount = new Set(recordsArr.map((item) => item.collection).filter(Boolean)).size;
@@ -9729,7 +9729,7 @@ function stateSummary(state) {
     "Candidate memories awaiting user confirmation; use cautiously for continuity, do not present as certain:",
     candidateMemories,
     "Open commitments:",
-    commitments,
+    commitments2,
     `Saved record count: ${(Array.isArray(state.records) ? state.records : []).length}`,
     `Saved record kinds: ${recordKinds}`,
     "Cosas que guardaste (\xFAltimas 8):",
@@ -10074,11 +10074,11 @@ function normalizeUiBlock(value) {
     } : null;
   }
   if (type === "saved_record") {
-    const records = normalizeRecords(block.records);
-    return records.length ? {
+    const records2 = normalizeRecords(block.records);
+    return records2.length ? {
       type: "saved_record",
       title: cleanText(block.title, "Guardado"),
-      records
+      records: records2
     } : null;
   }
   if (type === "money_summary") {
@@ -11284,9 +11284,9 @@ function localActionsFromTools(toolExecutions) {
 function memoryCapturesFromTools(toolExecutions) {
   return toolExecutions.map((execution) => execution.result).filter((result) => result.type === "memory_capture");
 }
-function uniqueRecords(records) {
+function uniqueRecords(records2) {
   const seen = /* @__PURE__ */ new Set();
-  return records.filter((record) => {
+  return records2.filter((record) => {
     if (/^dato guardado$/i.test(record.title.trim())) return false;
     const key = `${record.domain}|${record.kind}|${plainLower(record.title)}|${plainLower(record.value ?? "")}`;
     if (seen.has(key)) return false;
@@ -11294,9 +11294,9 @@ function uniqueRecords(records) {
     return true;
   });
 }
-function uniqueCommitments(commitments) {
+function uniqueCommitments(commitments2) {
   const seen = /* @__PURE__ */ new Set();
-  return commitments.filter((commitment) => {
+  return commitments2.filter((commitment) => {
     const key = `${plainLower(commitment.title)}|${plainLower(commitment.dueHint)}`;
     if (seen.has(key)) return false;
     seen.add(key);
@@ -11386,6 +11386,24 @@ function normalizeFinalPayload(raw, input, toolExecutions, extractedRaw, prebuil
     finalReply = blockReply || "Tuve un problema para armar la respuesta. \xBFMe lo repet\xEDs de otra forma para ayudarte bien?";
   } else {
     finalReply = cleanedReply;
+  }
+  const saysSaved = /\b(guardado|anotado|recordatorio|avis[oé]|no me olvides|no te olvides|acordate|recuerda)\b/i.test(finalReply);
+  const hasCommitments = raw.commitments?.length > 0 || commitments.length > 0;
+  const hasRecords = raw.records?.length > 0 || records.length > 0;
+  if (saysSaved && !hasCommitments && !hasRecords && toolExecutions.length === 0) {
+    const synthCommitment = {
+      title: input.slice(0, 100),
+      dueHint: "pendiente",
+      status: "open"
+    };
+    commitments.push(synthCommitment);
+    if (uiBlocks.length === 0) {
+      uiBlocks.push({
+        type: "reminder",
+        title: input.slice(0, 80),
+        dueText: "pendiente"
+      });
+    }
   }
   const informativeBlockTypes = /* @__PURE__ */ new Set([
     "movie_review",
@@ -12926,8 +12944,10 @@ async function runKoruBackendTurn(request, config2, onChunk) {
       }
     }
     if (!parsed) {
+      const plainReply = cleanReplyText(content);
+      const effectiveReply = plainReply && plainReply.trim().length > 10 ? plainReply.trim() : content && content.trim().length > 10 && !content.includes("The user") && !content.includes("I should") ? content.trim().slice(0, 500) : "No pude procesar tu mensaje. \xBFMe lo repet\xEDs de otra forma?";
       const rawFallback = {
-        reply: cleanReplyText(content) || "No pude armar una respuesta clara. \xBFMe lo repet\xEDs de otra forma?",
+        reply: effectiveReply,
         understanding: {
           literalRequest: request.input,
           userGoal: "Responder la consulta del usuario.",
@@ -12943,7 +12963,7 @@ async function runKoruBackendTurn(request, config2, onChunk) {
         mascotState: "thinking"
       };
       const response2 = await finalizeFromPlainText(rawFallback, toolCalls, request, config2, toolExecutions, extractorTimeout);
-      logger.info("runKoruBackendTurn", "Return first-call-invalid-json", { replyPreview: (response2.reply ?? "").slice(0, 300), provider, model, fallbackReason });
+      logger.info("runKoruBackendTurn", "Return first-call-invalid-json (plain text recovered)", { replyPreview: (response2.reply ?? "").slice(0, 300), provider, model, fallbackReason });
       return { ...response2, provider, model, fallbackReason: fallbackReason ?? "first-call-invalid-json" };
     }
   }

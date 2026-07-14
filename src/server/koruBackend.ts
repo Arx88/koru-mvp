@@ -4223,6 +4223,30 @@ function normalizeFinalPayload(
     finalReply = cleanedReply;
   }
 
+  // 🔴 FIX CALIDAD: si el LLM dice "guardado/anotado/recordatorio" pero NO se creó
+  // ningún commitment ni record, el LLM está mintiendo (dijo que guardó pero no lo hizo).
+  // Crear un commitment sintético a partir del input para que al menos quede registrado.
+  const saysSaved = /\b(guardado|anotado|recordatorio|avis[oé]|no me olvides|no te olvides|acordate|recuerda)\b/i.test(finalReply);
+  const hasCommitments = (raw.commitments as any[])?.length > 0 || commitments.length > 0;
+  const hasRecords = (raw.records as any[])?.length > 0 || records.length > 0;
+  if (saysSaved && !hasCommitments && !hasRecords && toolExecutions.length === 0) {
+    // El LLM dijo que guardó pero no ejecutó ninguna tool. Crear commitment sintético.
+    const synthCommitment = {
+      title: input.slice(0, 100),
+      dueHint: "pendiente",
+      status: "open" as const,
+    };
+    commitments.push(synthCommitment);
+    // Agregar un block de reminder si no hay blocks
+    if (uiBlocks.length === 0) {
+      uiBlocks.push({
+        type: "reminder" as const,
+        title: input.slice(0, 80),
+        dueText: "pendiente",
+      } as UiBlock);
+    }
+  }
+
   // 🔴 FIX UX: Si el reply es demasiado largo (>100 chars) Y hay un block informativo
   // (movie_review, recipe, book_review, weather, live_match, deliverable, etc.),
   // recortarlo al primer enunciado. Los datos van en la card, no en el texto.
@@ -6153,8 +6177,18 @@ export async function runKoruBackendTurn(
       }
     }
     if (!parsed) {
+      // 🔴 FIX CRÍTICO: el LLM respondió con texto plano (no JSON). En lugar de mostrar
+      // "No pude armar una respuesta clara", USAR el texto plano del LLM como reply.
+      // El LLM suele dar respuestas conversacionales válidas en texto plano cuando
+      // no necesita tools (follow-ups, opiniones, charla). Descartar eso es un error.
+      const plainReply = cleanReplyText(content);
+      const effectiveReply = (plainReply && plainReply.trim().length > 10)
+        ? plainReply.trim()
+        : (content && content.trim().length > 10 && !content.includes("The user") && !content.includes("I should"))
+          ? content.trim().slice(0, 500)
+          : "No pude procesar tu mensaje. ¿Me lo repetís de otra forma?";
       const rawFallback: Record<string, unknown> = {
-        reply: cleanReplyText(content) || "No pude armar una respuesta clara. ¿Me lo repetís de otra forma?",
+        reply: effectiveReply,
         understanding: {
           literalRequest: request.input,
           userGoal: "Responder la consulta del usuario.",
@@ -6170,7 +6204,7 @@ export async function runKoruBackendTurn(
         mascotState: "thinking",
       };
       const response = await finalizeFromPlainText(rawFallback, toolCalls, request, config, toolExecutions, extractorTimeout);
-      logger.info("runKoruBackendTurn", "Return first-call-invalid-json", { replyPreview: (response.reply ?? "").slice(0, 300), provider, model, fallbackReason });
+      logger.info("runKoruBackendTurn", "Return first-call-invalid-json (plain text recovered)", { replyPreview: (response.reply ?? "").slice(0, 300), provider, model, fallbackReason });
       return { ...response, provider, model, fallbackReason: fallbackReason ?? "first-call-invalid-json" };
     }
   }
