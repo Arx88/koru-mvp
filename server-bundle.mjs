@@ -6457,24 +6457,29 @@ var countdown = {
 var reminderSet = {
   definition: defineTool(
     "reminder_set",
-    "Programa un recordatorio para una fecha/hora concreta. \xDAsala cuando el usuario diga 'recordame llamar a mam\xE1 a las 18', 'avisame el 20 del pago', 'no me dejes olvidar X ma\xF1ana'.",
+    "Programa un recordatorio. \xDAsala cuando el usuario te pida que le recuerdes algo. DEBES calcular el dueAt (timestamp ISO 8601) a partir de la fecha/hora actual y lo que el usuario dijo. El usuario puede decirlo de cualquier forma: 'en 60 segundos', 'ma\xF1ana a las 9', 'el 20 del mes que viene', 'cuando llegue la noche', 'en un rato'. Vos calcul\xE1s el timestamp exacto.",
     {
       type: "object",
       additionalProperties: false,
       properties: {
-        title: { type: "string" },
-        dueText: { type: "string", description: "Fecha/hora natural (ej: 'ma\xF1ana a las 9', 'el 20', 'en 3 horas')." },
+        title: { type: "string", description: "Qu\xE9 recordar (ej: 'Llamar a mi t\xEDa', 'Pagar el alquiler')." },
+        dueText: { type: "string", description: "Texto legible del cu\xE1ndo (ej: 'en 60 segundos', 'ma\xF1ana a las 9', 'el 20')." },
+        dueAt: { type: "string", description: "Timestamp ISO 8601 exacto calculado por vos. Ej: '2026-07-15T18:00:00.000Z'. Us\xE1 la fecha/hora actual del sistema para calcular. Este campo es OBLIGATORIO \u2014 sin \xE9l el recordatorio no puede disparar." },
         note: { type: "string" }
       },
-      required: ["title", "dueText"]
+      required: ["title", "dueText", "dueAt"]
     }
   ),
   policy: policies.localWrite("Crea recordatorio."),
   async run(args) {
     const title = String(args.title ?? "").trim();
     const dueText = String(args.dueText ?? "").trim();
+    const dueAt = String(args.dueAt ?? "").trim();
     if (!title || !dueText) return { type: "reminder_set", status: "failed", error: "Indic\xE1 qu\xE9 y cu\xE1ndo." };
-    const commitment = { title, dueHint: dueText, status: "open" };
+    if (!dueAt) return { type: "reminder_set", status: "failed", error: "dueAt es obligatorio. Calcul\xE1 el timestamp ISO 8601." };
+    const dueDate = new Date(dueAt);
+    if (isNaN(dueDate.getTime())) return { type: "reminder_set", status: "failed", error: `dueAt inv\xE1lido: ${dueAt}` };
+    const commitment = { title, dueHint: dueText, dueAt, status: "open" };
     return {
       type: "reminder_set",
       status: "ok",
@@ -6486,26 +6491,31 @@ var reminderSet = {
 var alarmSet = {
   definition: defineTool(
     "alarm_set",
-    "Crea una alarma a una hora concreta con repetici\xF3n opcional. \xDAsala cuando el usuario diga 'despertador 7am', 'alarma para recoger a los chicos a las 16', 'alarma diaria a las 6:30'.",
+    "Crea una alarma. \xDAsala cuando el usuario te pida una alarma o despertador. DEBES calcular el dueAt (timestamp ISO 8601) a partir de la hora actual y lo que el usuario dijo.",
     {
       type: "object",
       additionalProperties: false,
       properties: {
         title: { type: "string" },
-        time: { type: "string", description: "Hora (HH:MM o natural, ej: '07:00', '7 de la ma\xF1ana')." },
+        time: { type: "string", description: "Hora legible (ej: '7am', '16:30', '6 de la ma\xF1ana')." },
+        dueAt: { type: "string", description: "Timestamp ISO 8601 exacto calculado por vos. OBLIGATORIO." },
         repeat: { type: "string", description: "Repetici\xF3n (ej: 'diario', 'semanal', 'lunes a viernes')." },
         note: { type: "string" }
       },
-      required: ["title", "time"]
+      required: ["title", "time", "dueAt"]
     }
   ),
   policy: policies.localWrite("Crea alarma."),
   async run(args) {
     const title = String(args.title ?? "").trim();
     const time = String(args.time ?? "").trim();
+    const dueAt = String(args.dueAt ?? "").trim();
     if (!title || !time) return { type: "alarm_set", status: "failed", error: "Indic\xE1 t\xEDtulo y hora." };
+    if (!dueAt) return { type: "alarm_set", status: "failed", error: "dueAt es obligatorio." };
+    const dueDate = new Date(dueAt);
+    if (isNaN(dueDate.getTime())) return { type: "alarm_set", status: "failed", error: `dueAt inv\xE1lido: ${dueAt}` };
     const block = { type: "alarm", title, time, repeat: args.repeat ? String(args.repeat) : void 0, note: args.note ? String(args.note) : void 0 };
-    const commitment = { title, dueHint: time, status: "open" };
+    const commitment = { title, dueHint: time, dueAt, status: "open" };
     return { type: "alarm_set", status: "ok", block, commitments: [commitment] };
   }
 };
