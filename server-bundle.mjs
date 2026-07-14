@@ -12307,6 +12307,16 @@ async function runKoruBackendTurn(request, config2, onChunk) {
   }
   if (inputTrimmed.length >= 3) {
     const fastPathResult = keywordFastPath(request.input);
+    if (fastPathResult?.tool === "save_personal_item") {
+      const lastUserMessage = [...request.history ?? []].reverse().find((m) => m.role === "user");
+      const inferredTitle = lastUserMessage?.content || cleanText(fastPathResult.toolArgs?.title);
+      if (inferredTitle && inferredTitle.length > 3 && inferredTitle !== "Informe guardado") {
+        fastPathResult.toolArgs = {
+          ...fastPathResult.toolArgs,
+          title: inferredTitle.slice(0, 100)
+        };
+      }
+    }
     if (fastPathResult) {
       logger.info("runKoruBackendTurn", "Keyword fast-path match", {
         category: fastPathResult.category,

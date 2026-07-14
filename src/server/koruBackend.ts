@@ -5409,6 +5409,18 @@ export async function runKoruBackendTurn(
     // los intents de alta confianza (sports, weather, food, media) se detecten
     // correctamente incluso si el router semántico no está disponible.
     const fastPathResult = keywordFastPath(request.input);
+    // 🔴 FIX SAVE: si el fast-path detectó save_personal_item, usar el último mensaje
+    // del historial como título del informe (en vez de "Informe guardado").
+    if (fastPathResult?.tool === "save_personal_item") {
+      const lastUserMessage = [...(request.history ?? [])].reverse().find(m => m.role === "user");
+      const inferredTitle = lastUserMessage?.content || cleanText(fastPathResult.toolArgs?.title);
+      if (inferredTitle && inferredTitle.length > 3 && inferredTitle !== "Informe guardado") {
+        fastPathResult.toolArgs = {
+          ...fastPathResult.toolArgs,
+          title: inferredTitle.slice(0, 100),
+        };
+      }
+    }
     if (fastPathResult) {
       logger.info("runKoruBackendTurn", "Keyword fast-path match", {
         category: fastPathResult.category,
