@@ -617,6 +617,18 @@ function extractToolArgs(message: string, tool?: RouteTool): Record<string, unkn
     return { query: clean };
   }
 
+  if (tool === "recipe_find" || tool === "recipe_by_ingredients") {
+    return { query: clean };
+  }
+
+  if (tool === "movie_info" || tool === "book_info" || tool === "game_info") {
+    return { title: clean };
+  }
+
+  if (tool === "wikipedia_lookup") {
+    return { query: clean };
+  }
+
   if (tool === "plan_day") {
     return { focus: clean };
   }
