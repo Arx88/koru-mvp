@@ -287,7 +287,6 @@ export function KoruProvider({ children }: { children: ReactNode }) {
       const userId = domainStateRef.current?.userId ?? "default";
       const { fired, overdue } = checkDueReminders(userId);
       if (fired.length > 0 || overdue.length > 0) {
-        // Log for debugging
         console.log("[Koru] Reminders fired:", fired.length, "overdue:", overdue.length);
       }
 
@@ -295,6 +294,36 @@ export function KoruProvider({ children }: { children: ReactNode }) {
         const nudges = buildHeartbeatNudges(prev);
         return nudges.length > 0 ? applyHeartbeatNudges(prev, nudges) : prev;
       });
+
+      // 🔴 MENSAJES PROACTIVOS EN EL CHAT
+      // Si hay nudges nuevos, inyectarlos como mensajes de Koru en el chat.
+      // Esto hace que Koru "hable" proactivamente, no solo muestre items invisibles.
+      const state = domainStateRef.current;
+      if (state && !state.ephemeralMode) {
+        const activeNudges = (state.nudges ?? []).filter(n =>
+          !n.dismissed && !n.title.startsWith("[proactive_shown]")
+        );
+        if (activeNudges.length > 0) {
+          // Solo inyectar 1 mensaje proactivo por heartbeat tick (no spamear)
+          const nudge = activeNudges[0];
+          const proactiveTurn: KoruChatTurn = {
+            id: `proactive_hb_${Date.now()}`,
+            role: "koru",
+            text: nudge.title + (nudge.body ? `\n${nudge.body}` : ""),
+            createdAt: new Date().toISOString(),
+            status: "done" as const,
+            mascotState: "happy" as const,
+          };
+          // Marcar como mostrado para no repetir
+          commitDomainState((prev) => ({
+            ...prev,
+            nudges: (prev.nudges ?? []).map(n =>
+              n.id === nudge.id ? { ...n, title: `[proactive_shown] ${n.title}` } : n
+            ),
+          }));
+          commitChatTurns((prev) => [...prev, proactiveTurn].slice(-120));
+        }
+      }
     };
     // Fase 2.12: pausar heartbeat cuando el tab no está visible.
     // Antes corría cada 60s sin importar si el usuario estaba mirando.
