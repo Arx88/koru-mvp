@@ -5549,164 +5549,19 @@ export async function runKoruBackendTurn(
   }
 
   if (inputTrimmed.length >= 3) {
-    // 🔴 ARQUITECTURA NUEVA: el fast-path de regex se eliminó casi por completo.
-    // El LLM con tool-calling nativo es mucho más flexible que cualquier regex:
-    // entiende "que pelicula puedo ver" (recomendación → web_search), "que es eso?"
-    // (follow-up → no tool), "dame una receta" (genérico → pedir aclaración).
+    // 🔴 KORU 2.0: el fast-path de regex se ELIMINÓ COMPLETAMENTE.
+    // El LLM con tool-calling nativo es infinitamente más flexible que cualquier regex.
+    // Entiende cualquier idioma, cualquier forma de hablar, cualquier phrasing.
+    // El LLM recibe TODAS las tools y decide qué hacer.
     //
-    // El fast-path se mantiene SOLO para casos donde el LLM falla consistentemente:
-    // - Sports results: el LLM tiende a usar web_search en vez de match_live
-    // - Reminders/alarms con sintaxis explícita: "recordame X a las Y", "alarma para las Z"
-    // Todo lo demás pasa directamente al LLM con tools habilitadas.
-    const fastPathResult = keywordFastPath(request.input);
-    if (fastPathResult?.tool === "save_personal_item") {
-      const lastUserMessage = [...(request.history ?? [])].reverse().find(m => m.role === "user");
-      const inferredTitle = lastUserMessage?.content || cleanText(fastPathResult.toolArgs?.title);
-      if (inferredTitle && inferredTitle.length > 3 && inferredTitle !== "Informe guardado") {
-        fastPathResult.toolArgs = {
-          ...fastPathResult.toolArgs,
-          title: inferredTitle.slice(0, 100),
-        };
-      }
-    }
-    if (fastPathResult) {
-      logger.info("runKoruBackendTurn", "Keyword fast-path match (minimal)", {
-        category: fastPathResult.category,
-        tool: fastPathResult.tool ?? "none",
-        confidence: fastPathResult.confidence.toFixed(2),
-      });
-      routeCategory = fastPathResult.category;
-      // Simular el resultado del router para reutilizar el flujo existente
-      const route = fastPathResult;
-      // deep_research tiene su propio pipeline
-      if (route.tool === "deep_research") {
-        const topic = cleanText(route.toolArgs?.topic) || cleanText(route.toolArgs?.query) || inputTrimmed;
-        return await runDeepResearchFlow(topic, request, config, preferredProvider, onChunk);
-      }
-      if (route.tool) {
-        const syntheticToolCall: ProviderToolCall = {
-          id: `fastpath_${Date.now()}`,
-          type: "function",
-          function: { name: route.tool, arguments: JSON.stringify(route.toolArgs ?? {}) },
-        };
-        const query = route.tool === "web_search" ? cleanText(route.toolArgs?.query as string) : undefined;
-        const shortSearchLabel = query ? searchLabelFromInput(query) : "Buscando...";
-
-        // 🔴 FIX UX: emitir deliverable "working" con kicker específico para que
-        // el WorkingPanel muestre chips dinámicos según el tipo de tarea.
-        const taskKicker = fastPathKickerForCategory(route.category);
-        onChunk?.({
-          reply: shortSearchLabel,
-          uiBlocks: [{
-            type: "deliverable" as const,
-            status: "working" as const,
-            kicker: taskKicker,
-            title: taskKicker,
-            topic: request.input,
-            progress: 15,
-            phaseLabel: shortSearchLabel,
-          }],
-          suggestedActions: [],
-          understanding: { literalRequest: request.input, userGoal: route.category, unstatedNeeds: [], assumptions: [], confidence: route.confidence },
-          memoryCandidates: [], commitments: [], records: [], toolResults: [],
-          stateEvents: [{ kind: "thinking" as const, label: shortSearchLabel }],
-          mascotState: "working",
-          provider, model, fallbackReason: "fastpath-" + route.category,
-        });
-        const delivered = await executeProviderToolCalls([syntheticToolCall], messages, request, toolExecutions, config);
-
-        // 🔴 FIX MACRO: si CUALQUIER tool del fast-path falla (status failed, no_data,
-        // need_city, o no produce datos útiles), hacer fallback automático a web_search.
-        const LOCAL_ACTION_TOOLS = new Set([
-          "reminder_set", "alarm_set", "countdown",
-          "save_personal_item", "save_memory", "plan_day",
-          "query_personal_context", "note_write", "calendar_add",
-        ]);
-        if (delivered && toolExecutions.length > 0) {
-          const lastTool = toolExecutions[toolExecutions.length - 1];
-          const lastResult = lastTool?.result as any;
-          const isLocalAction = LOCAL_ACTION_TOOLS.has(route.tool ?? "");
-          const toolFailed = !isLocalAction && (
-            lastResult?.status === "failed" || lastResult?.status === "no_data"
-            || lastResult?.status === "need_city" || lastResult?.status === "not_configured"
-            || (lastResult?.status === "ok" && !lastResult?.text && !lastResult?.matches?.length
-                && !lastResult?.recipes?.length && !lastResult?.now && !lastResult?.price
-                && !lastResult?.overview && !lastResult?.extract
-                && !lastResult?.block && !lastResult?.commitments?.length
-                && !lastResult?.records?.length && !lastResult?.items?.length
-                && !lastResult?.note && !lastResult?.result)
-          );
-
-          if (toolFailed && route.tool !== "web_search") {
-            logger.info("runKoruBackendTurn", "Fast-path tool failed or empty, falling back to web_search", {
-              failedTool: route.tool,
-              status: lastResult?.status,
-              error: lastResult?.error ?? lastResult?.note ?? "no data",
-            });
-            // Ejecutar web_search como fallback
-            const fallbackQuery = route.toolArgs?.title || route.toolArgs?.query || route.toolArgs?.city || request.input;
-            const fallbackToolCall: ProviderToolCall = {
-              id: `fallback_search_${Date.now()}`,
-              type: "function",
-              function: { name: "web_search", arguments: JSON.stringify({ query: fallbackQuery, mode: "research" }) },
-            };
-            const searchLabel = searchLabelFromInput(String(fallbackQuery));
-            onChunk?.({
-              reply: searchLabel,
-              uiBlocks: [{ type: "deliverable" as const, status: "working" as const, kicker: "Tu Búsqueda", title: "Buscando", topic: query || request.input, progress: 15, phaseLabel: "Buscando..." }],
-              suggestedActions: [],
-              understanding: { literalRequest: request.input, userGoal: "web_search fallback", unstatedNeeds: [], assumptions: [], confidence: 0.9 },
-              memoryCandidates: [], commitments: [], records: [], toolResults: [],
-              stateEvents: [{ kind: "searching" as const, label: searchLabel }],
-              mascotState: "working",
-              provider, model, fallbackReason: "fastpath-fallback-search",
-            });
-            const fallbackDelivered = await executeProviderToolCalls([fallbackToolCall], messages, request, toolExecutions, config);
-            if (fallbackDelivered) {
-              const cleanedExecutions = toolExecutions.filter((exec) => {
-                const r = exec.result as any;
-                const isLocalAction = LOCAL_ACTION_TOOLS.has(exec.name);
-                const failed = !isLocalAction && (
-                  r?.status === "failed" || r?.status === "no_data"
-                  || r?.status === "need_city" || r?.status === "not_configured"
-                  || (r?.status === "ok" && !r?.text && !r?.matches?.length
-                      && !r?.recipes?.length && !r?.now && !r?.price
-                      && !r?.overview && !r?.extract
-                      && !r?.block && !r?.commitments?.length
-                      && !r?.records?.length && !r?.items?.length
-                      && !r?.note && !r?.result)
-                );
-                return !failed;
-              });
-              const effectiveExecutions = cleanedExecutions.length > 0 ? cleanedExecutions : toolExecutions;
-              const fastConfig2 = { ...config, nvidiaModel: config.nvidiaModel };
-              const response = await finalizePayloadWithFastModel(request, fastConfig2, fallbackDelivered, effectiveExecutions, 30_000);
-              return { ...response, provider, model, fallbackReason: "fastpath-fallback-search" };
-            }
-          }
-        }
-
-        if (delivered) {
-          // 🔴 FIX CRÍTICO: NO usar el reply del LLM (que puede decir "ya te la doy" sin entregar).
-          // Generar reply mecánicamente desde los tool blocks + memory extractor.
-          const fastConfig = { ...config, nvidiaModel: config.nvidiaModel };
-          const toolBlocks = blocksFromToolResults(toolExecutions);
-          const blockReply = replyFromBlocks(toolBlocks, request.input);
-          const taskKicker = fastPathKickerForCategory(route.category);
-          const effectiveReply = blockReply || (toolBlocks.length > 0 ? `Te dejé ${taskKicker.toLowerCase()} en la tarjeta.` : cleanText((delivered as any).reply) || "Listo.");
-          const overridden = { ...delivered, reply: effectiveReply, uiBlocks: [] as any[] };
-          let response: KoruBackendTurnResponse;
-          try {
-            const extracted = await extractMemoryWithJsonPrompt(request, fastConfig, toolExecutions, overridden, 15_000);
-            response = normalizeFinalPayload(overridden, request.input, toolExecutions, extracted.raw);
-          } catch {
-            response = normalizeFinalPayload(overridden, request.input, toolExecutions);
-          }
-          return { ...response, provider, model, fallbackReason: "fastpath-" + route.category };
-        }
-      }
-    }
-
+    // Si el LLM falla (timeout, texto plano), el sistema tiene fallbacks:
+    // - Plain text recovery (usa el texto del LLM como reply)
+    // - replyFromBlocks (genera reply desde los tool blocks)
+    // - Synth commitment (si el LLM dice "guardado" sin crear commitment)
+    //
+    // El único caso donde se mantiene routing específico es deep_research (informes)
+    // porque tiene su propio pipeline multi-step.
+    // El fast-path está completamente eliminado. Todo pasa al LLM con tool-calling nativo.
     // 🔴 FIX DUPLICACIÓN: si el fast-path ya ejecutó tools, NO caer al router.
     // Sintetizar directamente con UN SOLO LLM call (no dos).
     if (toolExecutions.length > 0) {
@@ -6008,15 +5863,10 @@ export async function runKoruBackendTurn(
     }
   }
 
-  // Filtrar tools según la categoría detectada por el Semantic Router.
-  // 🔴 FIX CRÍTICO: si la categoría es "conversation" o no tiene tools, pasar TODAS
-  // las tools al LLM. Antes, "conversation" tenía CATEGORY_TOOLS["conversation"] = []
-  // lo que hacía que filteredTools = [] y el LLM no veía NINGUNA tool → no podía
-  // llamar wikipedia_lookup, movie_info, etc. cuando el router se equivocaba de categoría.
-  const categoryToolNames = routeCategory ? CATEGORY_TOOLS[routeCategory] : undefined;
-  const filteredTools = categoryToolNames && categoryToolNames.length > 0
-    ? ALL_TOOL_DEFINITIONS.filter((t) => categoryToolNames.includes(t.function.name))
-    : undefined; // undefined = pasar todas las tools
+  // 🔴 KORU 2.0: pasar TODAS las tools al LLM siempre.
+  // El LLM decide qué tool llamar. No filtramos por categoría.
+  // Esto elimina el problema de "el router clasificó mal y el LLM no vio la tool correcta".
+  const filteredTools = undefined; // undefined = pasar todas las tools
 
   // Fase 4.1: modelOverride ya declarado arriba (antes del router autofire)
 

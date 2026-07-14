@@ -12127,139 +12127,6 @@ async function runKoruBackendTurn(request, config2, onChunk) {
     };
   }
   if (inputTrimmed.length >= 3) {
-    const fastPathResult = keywordFastPath(request.input);
-    if (fastPathResult?.tool === "save_personal_item") {
-      const lastUserMessage = [...request.history ?? []].reverse().find((m) => m.role === "user");
-      const inferredTitle = lastUserMessage?.content || cleanText(fastPathResult.toolArgs?.title);
-      if (inferredTitle && inferredTitle.length > 3 && inferredTitle !== "Informe guardado") {
-        fastPathResult.toolArgs = {
-          ...fastPathResult.toolArgs,
-          title: inferredTitle.slice(0, 100)
-        };
-      }
-    }
-    if (fastPathResult) {
-      logger.info("runKoruBackendTurn", "Keyword fast-path match (minimal)", {
-        category: fastPathResult.category,
-        tool: fastPathResult.tool ?? "none",
-        confidence: fastPathResult.confidence.toFixed(2)
-      });
-      routeCategory = fastPathResult.category;
-      const route = fastPathResult;
-      if (route.tool === "deep_research") {
-        const topic = cleanText(route.toolArgs?.topic) || cleanText(route.toolArgs?.query) || inputTrimmed;
-        return await runDeepResearchFlow(topic, request, config2, preferredProvider, onChunk);
-      }
-      if (route.tool) {
-        const syntheticToolCall = {
-          id: `fastpath_${Date.now()}`,
-          type: "function",
-          function: { name: route.tool, arguments: JSON.stringify(route.toolArgs ?? {}) }
-        };
-        const query = route.tool === "web_search" ? cleanText(route.toolArgs?.query) : void 0;
-        const shortSearchLabel = query ? searchLabelFromInput(query) : "Buscando...";
-        const taskKicker = fastPathKickerForCategory(route.category);
-        onChunk?.({
-          reply: shortSearchLabel,
-          uiBlocks: [{
-            type: "deliverable",
-            status: "working",
-            kicker: taskKicker,
-            title: taskKicker,
-            topic: request.input,
-            progress: 15,
-            phaseLabel: shortSearchLabel
-          }],
-          suggestedActions: [],
-          understanding: { literalRequest: request.input, userGoal: route.category, unstatedNeeds: [], assumptions: [], confidence: route.confidence },
-          memoryCandidates: [],
-          commitments: [],
-          records: [],
-          toolResults: [],
-          stateEvents: [{ kind: "thinking", label: shortSearchLabel }],
-          mascotState: "working",
-          provider,
-          model,
-          fallbackReason: "fastpath-" + route.category
-        });
-        const delivered = await executeProviderToolCalls([syntheticToolCall], messages, request, toolExecutions, config2);
-        const LOCAL_ACTION_TOOLS = /* @__PURE__ */ new Set([
-          "reminder_set",
-          "alarm_set",
-          "countdown",
-          "save_personal_item",
-          "save_memory",
-          "plan_day",
-          "query_personal_context",
-          "note_write",
-          "calendar_add"
-        ]);
-        if (delivered && toolExecutions.length > 0) {
-          const lastTool = toolExecutions[toolExecutions.length - 1];
-          const lastResult = lastTool?.result;
-          const isLocalAction = LOCAL_ACTION_TOOLS.has(route.tool ?? "");
-          const toolFailed = !isLocalAction && (lastResult?.status === "failed" || lastResult?.status === "no_data" || lastResult?.status === "need_city" || lastResult?.status === "not_configured" || lastResult?.status === "ok" && !lastResult?.text && !lastResult?.matches?.length && !lastResult?.recipes?.length && !lastResult?.now && !lastResult?.price && !lastResult?.overview && !lastResult?.extract && !lastResult?.block && !lastResult?.commitments?.length && !lastResult?.records?.length && !lastResult?.items?.length && !lastResult?.note && !lastResult?.result);
-          if (toolFailed && route.tool !== "web_search") {
-            logger.info("runKoruBackendTurn", "Fast-path tool failed or empty, falling back to web_search", {
-              failedTool: route.tool,
-              status: lastResult?.status,
-              error: lastResult?.error ?? lastResult?.note ?? "no data"
-            });
-            const fallbackQuery = route.toolArgs?.title || route.toolArgs?.query || route.toolArgs?.city || request.input;
-            const fallbackToolCall = {
-              id: `fallback_search_${Date.now()}`,
-              type: "function",
-              function: { name: "web_search", arguments: JSON.stringify({ query: fallbackQuery, mode: "research" }) }
-            };
-            const searchLabel = searchLabelFromInput(String(fallbackQuery));
-            onChunk?.({
-              reply: searchLabel,
-              uiBlocks: [{ type: "deliverable", status: "working", kicker: "Tu B\xFAsqueda", title: "Buscando", topic: query || request.input, progress: 15, phaseLabel: "Buscando..." }],
-              suggestedActions: [],
-              understanding: { literalRequest: request.input, userGoal: "web_search fallback", unstatedNeeds: [], assumptions: [], confidence: 0.9 },
-              memoryCandidates: [],
-              commitments: [],
-              records: [],
-              toolResults: [],
-              stateEvents: [{ kind: "searching", label: searchLabel }],
-              mascotState: "working",
-              provider,
-              model,
-              fallbackReason: "fastpath-fallback-search"
-            });
-            const fallbackDelivered = await executeProviderToolCalls([fallbackToolCall], messages, request, toolExecutions, config2);
-            if (fallbackDelivered) {
-              const cleanedExecutions = toolExecutions.filter((exec) => {
-                const r = exec.result;
-                const isLocalAction2 = LOCAL_ACTION_TOOLS.has(exec.name);
-                const failed = !isLocalAction2 && (r?.status === "failed" || r?.status === "no_data" || r?.status === "need_city" || r?.status === "not_configured" || r?.status === "ok" && !r?.text && !r?.matches?.length && !r?.recipes?.length && !r?.now && !r?.price && !r?.overview && !r?.extract && !r?.block && !r?.commitments?.length && !r?.records?.length && !r?.items?.length && !r?.note && !r?.result);
-                return !failed;
-              });
-              const effectiveExecutions = cleanedExecutions.length > 0 ? cleanedExecutions : toolExecutions;
-              const fastConfig2 = { ...config2, nvidiaModel: config2.nvidiaModel };
-              const response2 = await finalizePayloadWithFastModel(request, fastConfig2, fallbackDelivered, effectiveExecutions, 3e4);
-              return { ...response2, provider, model, fallbackReason: "fastpath-fallback-search" };
-            }
-          }
-        }
-        if (delivered) {
-          const fastConfig = { ...config2, nvidiaModel: config2.nvidiaModel };
-          const toolBlocks = blocksFromToolResults(toolExecutions);
-          const blockReply = replyFromBlocks(toolBlocks, request.input);
-          const taskKicker2 = fastPathKickerForCategory(route.category);
-          const effectiveReply = blockReply || (toolBlocks.length > 0 ? `Te dej\xE9 ${taskKicker2.toLowerCase()} en la tarjeta.` : cleanText(delivered.reply) || "Listo.");
-          const overridden = { ...delivered, reply: effectiveReply, uiBlocks: [] };
-          let response2;
-          try {
-            const extracted = await extractMemoryWithJsonPrompt(request, fastConfig, toolExecutions, overridden, 15e3);
-            response2 = normalizeFinalPayload(overridden, request.input, toolExecutions, extracted.raw);
-          } catch {
-            response2 = normalizeFinalPayload(overridden, request.input, toolExecutions);
-          }
-          return { ...response2, provider, model, fallbackReason: "fastpath-" + route.category };
-        }
-      }
-    }
     if (toolExecutions.length > 0) {
       logger.info("runKoruBackendTurn", "Fast-path executed tools, skipping semantic router", {
         toolCount: toolExecutions.length
@@ -12527,8 +12394,7 @@ async function runKoruBackendTurn(request, config2, onChunk) {
       }
     }
   }
-  const categoryToolNames = routeCategory ? CATEGORY_TOOLS[routeCategory] : void 0;
-  const filteredTools = categoryToolNames && categoryToolNames.length > 0 ? ALL_TOOL_DEFINITIONS2.filter((t) => categoryToolNames.includes(t.function.name)) : void 0;
+  const filteredTools = void 0;
   let firstResult;
   try {
     firstResult = await callProvider(config2, messages, firstTimeout, !trivial, preferredProvider, filteredTools, modelOverride);
@@ -12806,7 +12672,7 @@ async function runKoruBackendTurn(request, config2, onChunk) {
     fallbackReason: fallbackReason ?? response.memoryFallbackReason ?? "first-call"
   };
 }
-var TOOL_DEFINITIONS, ALL_TOOL_DEFINITIONS2, CATEGORY_TOOLS, RateLimitError, routerSingleton, routerNullWarned, DELIVERABLE_ICONS, DELIVERABLE_ICON_FALLBACKS;
+var TOOL_DEFINITIONS, ALL_TOOL_DEFINITIONS2, RateLimitError, routerSingleton, routerNullWarned, DELIVERABLE_ICONS, DELIVERABLE_ICON_FALLBACKS;
 var init_koruBackend = __esm({
   "koru-mvp/src/server/koruBackend.ts"() {
     "use strict";
@@ -13024,56 +12890,6 @@ var init_koruBackend = __esm({
       ...TOOL_DEFINITIONS,
       ...ALL_TOOL_DEFINITIONS
     ];
-    CATEGORY_TOOLS = {
-      weather: ["weather", "weather_travel"],
-      world_info: [
-        "web_search",
-        "restaurant_deep_search",
-        "news_topic",
-        "trending_twitter",
-        "person_info",
-        "world_signal"
-      ],
-      shopping: ["shopping_compare", "price_history", "product_review"],
-      planning: [
-        "plan_day",
-        "route_plan",
-        "reminder_set",
-        "alarm_set",
-        "calendar_add",
-        "travel_itinerary"
-      ],
-      personal_query: [
-        "query_personal_context",
-        "expense_track",
-        "budget_check",
-        "save_memory",
-        "save_personal_item"
-      ],
-      action: [
-        "save_memory",
-        "save_personal_item",
-        "expense_track",
-        "reminder_set",
-        "alarm_set",
-        "restaurant_deep_search"
-      ],
-      // research se maneja con su propio pipeline (runDeepResearchFlow); si algo
-      // cae al flujo nativo, web_search es el único apoyo razonable.
-      research: ["web_search"],
-      sports: ["match_schedule", "match_live", "team_follow", "league_standings"],
-      market: ["crypto_price", "stock_quote", "exchange_history", "currency_convert"],
-      travel: ["travel_itinerary", "flight_search", "hotel_search"],
-      directions: ["route_traffic", "weather", "travel_itinerary"],
-      elections: ["web_search", "news_topic"],
-      review: ["shopping_compare", "web_search", "movie_info", "book_info", "game_info", "product_review"],
-      birthday: ["save_personal_item", "query_personal_context"],
-      // 🔴 FIX P1: nuevas categorías para tools que ya existían pero no se rutaban
-      food: ["recipe_find", "recipe_by_ingredients", "food_info", "wine_pairing", "nutrition_calc", "restaurant_deep_search"],
-      media: ["movie_info", "book_info", "game_info", "person_info", "person_filmography", "web_search"],
-      knowledge: ["wikipedia_lookup", "dictionary_define", "math_calc", "unit_convert", "web_search"],
-      conversation: []
-    };
     RateLimitError = class extends Error {
       constructor(message) {
         super(message);
