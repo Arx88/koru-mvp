@@ -413,11 +413,14 @@ function weather(b: Of<"weather">): KoruPresentation {
 }
 
 function alarm(b: Of<"alarm">): KoruPresentation {
+  const repeat = b.repeat?.trim() || "";
+  const note = b.note?.trim() || "";
+  const desc = [repeat ? `Se repite: ${repeat}` : null, note].filter(Boolean).join(" · ") || undefined;
   return {
     hero: {
-      kicker: "Tu Alarma",
+      kicker: "Alarma",
       title: heroTitleFrom(b.title, "Alarma"),
-      desc: b.repeat ? `Se repite: ${b.repeat}${b.note ? ` · ${b.note}` : ""}` : b.note,
+      desc,
       icon: "alarm",
       accent: A.rose,
       artValue: b.time,
@@ -426,13 +429,19 @@ function alarm(b: Of<"alarm">): KoruPresentation {
 }
 
 function reminder(b: Of<"reminder">): KoruPresentation {
+  // 🔴 UX: card más limpia y atractiva para recordatorios
+  const dueText = b.dueText?.trim() || "";
+  const note = b.note?.trim() || "";
+  const desc = [dueText, note].filter(Boolean).join(" · ") || undefined;
+
   return {
     hero: {
-      kicker: "Tu Recordatorio",
+      kicker: "Recordatorio",
       title: heroTitleFrom(b.title, "Recordatorio"),
-      desc: b.dueText ? `${b.dueText}${b.note ? ` · ${b.note}` : ""}` : b.note,
+      desc,
       icon: "notifications",
       accent: A.emerald,
+      artValue: dueText || undefined,
     },
   };
 }

@@ -481,17 +481,27 @@ export function applyBackendTurnToState(
   const actions = result.uiBlocks.map((block) => uiBlockToAction(block, entryId, createdAt));
   const suggestedActions = result.suggestedActions.map((sa) => suggestedActionToAssistantAction(sa, entryId, createdAt));
   const allActions = [...actions, ...suggestedActions];
+
+  // 🔴 FIX UX: si ya hay un block de reminder/alarm, NO agregar el commitment como
+  // item separado — sería redundante (la card de reminder ya muestra la info).
+  const hasReminderBlock = result.uiBlocks.some(
+    (b) => b.type === "reminder" || b.type === "alarm"
+  );
+  const commitmentItems: KoruTurnItem[] = hasReminderBlock
+    ? []
+    : commitments.slice(0, 3).map((commitment): KoruTurnItem => ({
+        id: commitment.id,
+        kind: "commitment",
+        tag: "Pendiente",
+        text: commitment.title,
+        status: "open",
+        payloadPreview: commitment.dueHint,
+        sourceId: commitment.id,
+      }));
+
   const items = compactTurnItems([
     ...allActions.map(actionToTurnItem),
-    ...commitments.slice(0, 3).map((commitment): KoruTurnItem => ({
-      id: commitment.id,
-      kind: "commitment",
-      tag: "Pendiente",
-      text: commitment.title,
-      status: "open",
-      payloadPreview: commitment.dueHint,
-      sourceId: commitment.id,
-    })),
+    ...commitmentItems,
     ...memories.slice(0, 2).map(memoryToTurnItem),
   ]);
   const entry = createBackendEntry(
