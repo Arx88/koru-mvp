@@ -280,7 +280,9 @@ function WorkingPanel({ phase, kind, deliverable, onCancel }: { phase: string | 
         title: friendlyTitle ?? "Trabajando…",
         subtitle: deliverable.phaseLabel ?? "Me llevo esto en serio 🌿",
       }
-    : (kind && WORKING_COPY[kind]) ?? { title: "Trabajando…", subtitle: "Me llevo esto en serio 🌿" };
+    : kind === "searching"
+      ? { title: "Sumergiéndome en tu búsqueda…", subtitle: "Buscando… 🌎" }
+      : (kind && WORKING_COPY[kind]) ?? { title: "Trabajando…", subtitle: "Me llevo esto en serio 🌿" };
 
   const phaseIdx = phase ? (PHASE_ORDER as readonly string[]).indexOf(phase) : -1;
   const chips = taskChips.map((chip, i) => {
@@ -1253,18 +1255,19 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
           </div>
         </main>
 
-        {/* 🔴 v2: WorkingPanel se renderiza ARRIBA del composer (no lo reemplaza)
-            así el usuario puede seguir escribiendo o cancelar la tarea */}
-        {processing && !isListening && (workingDeliverable || activity?.depth === "deep") && (
+        {/* 🔴 WorkingPanel — se renderiza ARRIBA del composer.
+            Para búsquedas web (kind=searching): muestra "Sumergiéndome en tu búsqueda…"
+            con 4 pasos (Entendiendo → Buscando → Filtrando → Preparando).
+            Para plans (kind=planning): muestra "Tejiendo tu plan…"
+            Para deliverables: muestra "Sumergiéndome en tu [kicker]…" */}
+        {processing && !isListening && (workingDeliverable || activity?.depth === "deep" || activity?.kind === "searching") && (
           <WorkingPanel phase={phase} kind={activity?.kind} deliverable={workingDeliverable} onCancel={() => {
-            // 🔴 v2: cancelar la tarea actual — simula fin de procesamiento
-            // TODO: en el futuro, abortar el fetch real via AbortController
             if ("vibrate" in navigator) navigator.vibrate(20);
           }} />
         )}
 
         <footer className="koru-chat-footer">
-          {processing && !isListening && activity && !(workingDeliverable || activity?.depth === "deep") && (
+          {processing && !isListening && activity && !(workingDeliverable || activity?.depth === "deep" || activity?.kind === "searching") && (
             <div className="koru-activity-hint" role="status" aria-live="polite">
               <span className="koru-activity-dot" />
               {activity.label}
