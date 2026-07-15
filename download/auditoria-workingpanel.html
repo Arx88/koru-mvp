@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auditoría Visual — Koru WorkingPanel</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f0f1a; color: #e0e0e0; line-height: 1.6; }
+  .container { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
+  h1 { font-size: 28px; color: #8363f9; margin-bottom: 8px; }
+  h2 { font-size: 22px; color: #c9b8ff; margin: 30px 0 15px; border-bottom: 1px solid #333; padding-bottom: 8px; }
+  h3 { font-size: 16px; color: #f0eaff; margin: 20px 0 10px; }
+  .subtitle { color: #8a8a9a; font-size: 14px; margin-bottom: 30px; }
+  .screenshot-row { display: flex; gap: 16px; flex-wrap: wrap; margin: 15px 0; }
+  .screenshot-card { background: #1a1a2e; border-radius: 12px; padding: 12px; border: 1px solid #333; flex: 1; min-width: 200px; }
+  .screenshot-card img { width: 100%; border-radius: 8px; display: block; }
+  .screenshot-label { font-size: 13px; color: #8363f9; font-weight: 600; margin-top: 8px; text-align: center; }
+  .problem { background: #1a1a2e; border-left: 4px solid #ef4444; border-radius: 0 8px 8px 0; padding: 16px 20px; margin: 12px 0; }
+  .problem-ok { border-left-color: #10b981; }
+  .problem-title { font-weight: 700; color: #ef4444; font-size: 15px; margin-bottom: 6px; }
+  .problem-ok .problem-title { color: #10b981; }
+  .problem-desc { font-size: 14px; color: #b0b0c0; }
+  .problem-code { background: #0d0d1a; border-radius: 6px; padding: 10px 14px; margin-top: 8px; font-family: "Fira Code", monospace; font-size: 12px; color: #a0a0b0; overflow-x: auto; }
+  .annotation { position: relative; display: inline-block; }
+  .annotation .badge { position: absolute; top: 8px; left: 8px; background: #ef4444; color: white; font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; z-index: 10; }
+  .annotation .badge-green { background: #10b981; }
+  .annotation .badge-yellow { background: #f59e0b; }
+  .table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+  .table th { background: #1a1a2e; color: #c9b8ff; font-size: 13px; padding: 10px 12px; text-align: left; border-bottom: 2px solid #333; }
+  .table td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid #222; color: #b0b0c0; }
+  .table td:first-child { color: #ef4444; font-weight: 600; }
+  .summary-box { background: #1a1a2e; border-radius: 12px; padding: 20px; margin: 20px 0; border: 1px solid #333; }
+  .summary-box h3 { color: #8363f9; }
+  .ref-img { border: 3px solid #10b981; border-radius: 8px; }
+  .current-img { border: 3px solid #ef4444; border-radius: 8px; }
+  .vs-label { text-align: center; font-size: 20px; color: #8a8a9a; margin: 20px 0; font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>🔬 Auditoría Visual — WorkingPanel de Koru</h1>
+<p class="subtitle">Informe con capturas reales de producción comparadas contra la imagen de referencia</p>
+
+<!-- REFERENCIA -->
+<h2>📋 Imagen de Referencia (cómo DEBERÍA verse)</h2>
+<div class="screenshot-row">
+  <div class="screenshot-card">
+    <div class="annotation">
+      <span class="badge badge-green">REFERENCIA</span>
+      <img src="pasted_image_1784151610784.png" class="ref-img" alt="Referencia">
+    </div>
+    <div class="screenshot-label">Estado ideal durante búsqueda</div>
+  </div>
+</div>
+
+<h3>En la referencia se ve:</h3>
+<ul style="font-size:14px; color:#b0b0c0; margin-left:20px; margin-bottom:15px;">
+  <li>✅ Mascota de Koru con laptop y taza de café (UNA sola vez)</li>
+  <li>✅ Panel blanco con "Sumergiéndome en tu búsqueda…" + progreso 15%</li>
+  <li>✅ 4 chips de estado (Entendiendo ✓ → Buscando ● → Filtrando ○ → Preparando ○)</li>
+  <li>✅ Motto fijo: "Lo que vale no se apura."</li>
+  <li>✅ Input bar visible abajo</li>
+</ul>
+
+<!-- CURRENT STATE -->
+<div class="vs-label">VS</div>
+
+<h2>🔴 Estado Actual (cómo se ve AHORA en producción)</h2>
+
+<div class="screenshot-row">
+  <div class="screenshot-card">
+    <div class="annotation">
+      <span class="badge">2 SEGUNDOS</span>
+      <img src="audit-01-2s.png" class="current-img" alt="2s">
+    </div>
+    <div class="screenshot-label">2s después de enviar</div>
+  </div>
+  <div class="screenshot-card">
+    <div class="annotation">
+      <span class="badge">5 SEGUNDOS</span>
+      <img src="audit-02-5s.png" class="current-img" alt="5s">
+    </div>
+    <div class="screenshot-label">5s después de enviar</div>
+  </div>
+</div>
+
+<div class="screenshot-row">
+  <div class="screenshot-card">
+    <div class="annotation">
+      <span class="badge">10 SEGUNDOS</span>
+      <img src="audit-03-10s.png" class="current-img" alt="10s">
+    </div>
+    <div class="screenshot-label">10s después de enviar</div>
+  </div>
+  <div class="screenshot-card">
+    <div class="annotation">
+      <span class="badge badge-yellow">20 SEGUNDOS</span>
+      <img src="audit-04-20s.png" class="current-img" alt="20s">
+    </div>
+    <div class="screenshot-label">20s — después de responder</div>
+  </div>
+</div>
+
+<!-- PROBLEMAS -->
+<h2>🐛 Problemas Encontrados</h2>
+
+<div class="problem">
+  <div class="problem-title">PROBLEMA #1: Koru aparece 3 VECES en la misma pantalla</div>
+  <div class="problem-desc">
+    Durante la búsqueda (screenshots 1, 2, 3) se ven simultáneamente:
+    <br><br>
+    ① <strong>Mascota del fondo</strong> (background del chat) — Koru sentado con un libro/estante<br>
+    ② <strong>Avatar circular</strong> que yo agregué arriba del panel (.koru-working-avatar) — círculo de 48px<br>
+    ③ <strong>Ilustración grande</strong> dentro del WorkingPanel (koru-working-illustration) — Koru con estrella/libro<br>
+    <br>
+    <strong>En la referencia:</strong> La mascota aparece UNA sola vez (laptop + taza de café).
+  </div>
+  <div class="problem-code">
+// TalkOverlay.tsx línea 300-304 — YO agregué el avatar innecesario:
+&lt;section className="koru-working-panel"&gt;
+  &lt;div className="koru-working-avatar"&gt;  ← ❌ ELIMINAR
+    &lt;img src={KORU_AVATAR} /&gt;
+  &lt;/div&gt;
+  &lt;img className="koru-working-illustration" /&gt;  ← esta SÍ va
+  </div>
+</div>
+</div>
+
+<div class="problem">
+  <div class="problem-title">PROBLEMA #2: Los 4 chips de estado se ven TODOS iguales</div>
+  <div class="problem-desc">
+    En los screenshots 1, 2 y 3 los 4 chips (Entendiendo, Buscando, Filtrando, Preparando) aparecen renderizados al mismo tiempo sin distinguir claramente cuál está activo vs cuál está done/pending.
+    <br><br>
+    <strong>En la referencia:</strong> El chip activo tiene fondo púrpura, el done tiene check verde, los pending están en gris.
+  </div>
+</div>
+
+<div class="problem">
+  <div class="problem-title">PROBLEMA #3: Barra de progreso NO monótona</div>
+  <div class="problem-desc">
+    A los 5s la barra marca ~80%, pero a los 10s baja a ~40%. El progreso debería subir siempre, nunca bajar.
+  </div>
+</div>
+
+<div class="problem">
+  <div class="problem-title">PROBLEMA #4: Motto cambia aleatoriamente cada pocos segundos</div>
+  <div class="problem-desc">
+    2s: "El camino se hace caminando."<br>
+    5s: "Acá estamos, dale que sale."<br>
+    10s: "Tu paciencia se nota. Gracias."<br>
+    <br>
+    El motto rota con <code>Math.random()</code> en cada render de React, lo que hace que cambie cada vez que el componente se re-renderiza.
+    <br><br>
+    <strong>En la referencia:</strong> El motto es fijo: "Lo que vale no se apura."
+  </div>
+  <div class="problem-code">
+// TalkOverlay.tsx línea 297 — rota en CADA render:
+const motto = MAGIC_MOTTOS[Math.floor(Math.random() * MAGIC_MOTTOS.length)];
+// ❌ Debería usar useState o useRef para fijarlo una vez por sesión
+  </div>
+</div>
+
+<div class="problem">
+  <div class="problem-title">PROBLEMA #5: La ilustración es DISTINTA a la referencia</div>
+  <div class="problem-desc">
+    <strong>Referencia:</strong> Koru con laptop plateada + taza de café amarilla + ojos cerrados.<br>
+    <strong>Actual:</strong> Koru con libro morado + estante/cabinet + ojos abiertos.<br>
+    <br>
+    La función <code>getTaskIllustration()</code> retorna <code>/stitch/working-illustration.png</code> (default) porque el kicker está vacío durante searching.
+  </div>
+</div>
+
+<div class="problem">
+  <div class="problem-title">PROBLEMA #6: El input bar desaparece durante la búsqueda</div>
+  <div class="problem-desc">
+    En los screenshots 1, 2, 3 no se ve el input bar (composer). El WorkingPanel reemplaza el footer completo.
+    <br><br>
+    <strong>En la referencia:</strong> El input bar SÍ está visible abajo del panel.
+  </div>
+  <div class="problem-code">
+// TalkOverlay.tsx línea 1263 — WorkingPanel REPLAZA el footer:
+{processing && ... ? (
+  &lt;WorkingPanel /&gt;        ← reemplaza
+) : (
+  &lt;footer&gt;...&lt;/footer&gt;   ← oculto durante searching
+)}
+  </div>
+</div>
+
+<div class="problem">
+  <div class="problem-title">PROBLEMA #7: Cambio brusco de tema al terminar</div>
+  <div class="problem-desc">
+    Durante la búsqueda: fondo ilustrado (claro, con islas flotantes).<br>
+    Después de responder: fondo navy oscuro sin ilustración.<br>
+    <br>
+    No hay transición — el cambio es instantáneo y abrupto.
+  </div>
+</div>
+
+<!-- RESUMEN -->
+<h2>📊 Resumen</h2>
+
+<div class="summary-box">
+<table class="table">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Problema</th>
+      <th>Severidad</th>
+      <th>Estado en Referencia</th>
+      <th>Estado Actual</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>Koru aparece 3 veces</td><td>CRÍTICO</td><td>1 sola vez</td><td>3 veces (fondo + avatar + ilustración)</td></tr>
+    <tr><td>2</td><td>4 chips sin distinguir estado</td><td>ALTO</td><td>Check verde / púrpura / gris</td><td>Todos iguales</td></tr>
+    <tr><td>3</td><td>Progreso no monótono</td><td>ALTO</td><td>Sube siempre</td><td>Sube y baja</td></tr>
+    <tr><td>4</td><td>Motto rota aleatoriamente</td><td>MEDIO</td><td>Fijo</td><td>Cambia cada render</td></tr>
+    <tr><td>5</td><td>Ilustración distinta</td><td>MEDIO</td><td>Laptop + café</td><td>Libro + estante</td></tr>
+    <tr><td>6</td><td>Input bar desaparece</td><td>ALTO</td><td>Visible</td><td>Oculto</td></tr>
+    <tr><td>7</td><td>Cambio brusco de tema</td><td>BAJO</td><td>Consistente</td><td>Abrupto</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2>🔧 Acciones Propuestas</h2>
+
+<div class="problem problem-ok">
+  <div class="problem-title">FIX #1: Eliminar .koru-working-avatar</div>
+  <div class="problem-desc">
+    Quitar el div del avatar circular que yo agregué. La ilustración del panel ya tiene a Koru. Solo debe verse UNA mascota.
+  </div>
+</div>
+
+<div class="problem problem-ok">
+  <div class="problem-title">FIX #2: Fijar motto con useState</div>
+  <div class="problem-desc">
+    En vez de <code>Math.random()</code> en cada render, usar <code>useState</code> para que se elija UNA vez al montar el componente.
+  </div>
+</div>
+
+<div class="problem problem-ok">
+  <div class="problem-title">FIX #3: Eliminar botón Cancelar muerto</div>
+  <div class="problem-desc">
+    El botón Cancelar nunca funciona porque <code>onCancel</code> no se pasa. Eliminar el código muerto.
+  </div>
+</div>
+
+</div>
+</body>
+</html>
