@@ -1174,9 +1174,14 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
           </div>
         )}
 
-        {/* 🔴 v2: botón FUERA del scroll — es un sibling separado arriba.
-            Los mensajes scrollean en su propio contenedor que termina donde empieza el botón.
-            NINGÚN texto puede pasar por arriba ni por atrás del botón. */}
+        {/* 🔴 ARQUITECTURA CORRECTA:
+            1. Spacer de 38vh — muestra la mascota a través (transparente)
+            2. Botón — flex item, NUNCA se mueve, NUNCA está en el scroll
+            3. Fade — transición suave
+            4. Scroll area — empieza DEBAJO del botón, mensajes NUNCA pasan arriba
+            5. Footer */}
+        {hasOlderTurns && <div className="koru-mascot-spacer" />}
+
         {hasOlderTurns && (
           <div className="koru-thread-toggle-bar">
             <button type="button" className="koru-thread-toggle-pill" onClick={toggleOlderTurns}>
@@ -1195,10 +1200,9 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
           </div>
         )}
 
-        {/* 🔴 v2: fade gradient — transición suave entre el botón y los mensajes */}
         {hasOlderTurns && <div className="koru-thread-fade-bar" />}
 
-        <main ref={scrollRef} className="koru-chat-scroll">
+        <main ref={scrollRef} className={"koru-chat-scroll" + (hasOlderTurns ? " has-toggle" : "")}>
           <div className="koru-thread">
             {visibleTurns.map((turn) =>
               turn.role === "user" ? (

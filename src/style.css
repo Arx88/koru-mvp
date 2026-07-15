@@ -326,17 +326,31 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  /* Sin padding-top excesivo — el botón ya está fuera del scroll */
-  padding: 12px 20px 12px;
+  /* Cuando NO hay toggle: padding-top 100px para que mensajes no tapen mascota */
+  padding: 100px 20px 12px;
 }
 
-/* 🔴 v2: Botón FUERA del scroll — sibling separado, NO sticky, NO absolute.
-   Es un flex item normal arriba del scroll. Los mensajes NUNCA pueden pasar por encima. */
+/* Cuando SÍ hay toggle: el spacer + botón ya empujan el contenido,
+   padding-top mínimo para que mensajes empiecen justo debajo del fade */
+.koru-chat-scroll.has-toggle {
+  padding: 8px 20px 12px;
+}
+
+/* 🔴 Spacer — ocupa 38vh, transparente, muestra la mascota detrás.
+   Empuja el botón a ~40% de la pantalla como en la imagen ideal. */
+.koru-mascot-spacer {
+  flex-shrink: 0;
+  height: 38vh;
+  pointer-events: none;
+}
+
+/* 🔴 Botón — flex item normal, NO sticky, NO absolute, NO scroll.
+   Está en el flujo flex del chat-screen, entre el spacer y el scroll. */
 .koru-thread-toggle-bar {
   flex-shrink: 0;
   display: flex;
   justify-content: center;
-  padding: 6px 20px 2px;
+  padding: 4px 20px 2px;
   z-index: 5;
   position: relative;
 }
