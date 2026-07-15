@@ -1171,26 +1171,32 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
           </div>
         )}
 
+        {/* 🔴 v2: botón FIJO — position:absolute, NUNCA se mueve al expandir/colapsar/scroll */}
+        {hasOlderTurns && (
+          <div className="koru-thread-toggle-fixed">
+            <button type="button" className="koru-thread-more-btn" onClick={toggleOlderTurns}>
+              {showAllTurns ? (
+                <>
+                  <span className="material-symbols-outlined">expand_less</span>
+                  Re-colapsar mensajes
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined">expand_less</span>
+                  Ver {olderCount} mensajes anteriores
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* 🔴 v2: fade out — los mensajes se desvanecen al acercarse al botón */}
+        {hasOlderTurns && (
+          <div className="koru-thread-fade" />
+        )}
+
         <main ref={scrollRef} className="koru-chat-scroll">
           <div className="koru-thread">
-            {/* 🔴 v2: botón "Ver N mensajes anteriores" que togglea a "Re-colapsar" */}
-            {hasOlderTurns && (
-              <div className="koru-thread-more">
-                <button type="button" className="koru-thread-more-btn" onClick={toggleOlderTurns}>
-                  {showAllTurns ? (
-                    <>
-                      <span className="material-symbols-outlined">expand_less</span>
-                      Re-colapsar mensajes
-                    </>
-                  ) : (
-                    <>
-                      <span className="material-symbols-outlined">expand_less</span>
-                      Ver {olderCount} mensajes anteriores
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
             {visibleTurns.map((turn) =>
               turn.role === "user" ? (
                 <UserTurnBubble key={turn.id} turn={turn} />

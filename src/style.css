@@ -5642,12 +5642,31 @@ a.koru-dsec-source:hover {
   border-radius: 2px;
 }
 
-/* 🔴 v2: Chat thread — botón "Ver mensajes anteriores" */
-.koru-thread-more {
+/* 🔴 v2: Botón FIJO — position:absolute, NUNCA se mueve */
+.koru-thread-toggle-fixed {
+  position: absolute;
+  top: 38vh;
+  left: 0;
+  right: 0;
   display: flex;
   justify-content: center;
-  padding: 4px 0 8px;
-  flex-shrink: 0;
+  z-index: 15;
+  pointer-events: none;
+}
+.koru-thread-toggle-fixed .koru-thread-more-btn {
+  pointer-events: auto;
+}
+
+/* 🔴 v2: Fade out — mensajes se desvanecen al acercarse al botón */
+.koru-thread-fade {
+  position: absolute;
+  top: 38vh;
+  left: 0;
+  right: 0;
+  height: 50px;
+  background: linear-gradient(to bottom, #453f6a 0%, rgba(69, 63, 106, 0.8) 30%, transparent 100%);
+  z-index: 14;
+  pointer-events: none;
 }
 .koru-thread-more-btn {
   display: inline-flex;
