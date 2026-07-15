@@ -649,6 +649,26 @@ export type UiBlock =
         leftColor?: string;
         rightColor?: string;
       }>;
+      // 🔴 v2: datos ricos desde ESPN /summary
+      homeColor?: string;
+      awayColor?: string;
+      homeLogo?: string;
+      awayLogo?: string;
+      homeAbbrev?: string;
+      awayAbbrev?: string;
+      venue?: string;
+      venueCity?: string;
+      attendance?: number;
+      goals?: Array<{ minute: string; team?: string; scorer?: string; text?: string }>;
+      yellowCards?: Array<{ minute: string; team?: string; player?: string }>;
+      redCards?: Array<{ minute: string; team?: string; player?: string }>;
+      substitutions?: Array<{ minute: string; team?: string; playerIn?: string; playerOut?: string }>;
+      lineups?: Record<string, {
+        formation?: string;
+        starters: Array<{ number?: string; name: string; position?: string }>;
+        subs: Array<{ number?: string; name: string; position?: string }>;
+      }>;
+      detailedStats?: Array<{ label: string; home: number; away: number; isPercent: boolean }>;
     }
   | {
       type: "urgent_now";

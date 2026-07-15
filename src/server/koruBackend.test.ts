@@ -172,10 +172,14 @@ describe("runKoruBackendTurn conversational flow", () => {
       arguments: { match: "Boca vs River" },
       result: {
         type: "match_live",
-        homeName: "Boca",
-        awayName: "River",
-        homeScore: 2,
-        awayScore: 1,
+        status: "ok",
+        matches: [{
+          homeTeam: "Boca",
+          awayTeam: "River",
+          homeScore: 2,
+          awayScore: 1,
+          status: "Final",
+        }],
       },
     };
     const blocks = blocksFromToolResults([execution as any]);

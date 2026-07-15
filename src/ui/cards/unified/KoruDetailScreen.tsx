@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import type { CSSProperties } from "react";
-import type { Detail, DetailSection, Accent } from "./presentation";
+import type { Detail, DetailSection, Accent, DetailRow } from "./presentation";
 
 // Pantalla de detalle unificada — misma estética Stitch que PlanRoadmapScreen
 // (koru-roadmap + magical-cards + blobs), pero genérica: renderiza cualquier
@@ -10,6 +10,38 @@ import type { Detail, DetailSection, Accent } from "./presentation";
 
 function Mat({ children, className = "" }: { children: string; className?: string }) {
   return <span className={`material-symbols-outlined ${className}`}>{children}</span>;
+}
+
+// 🔴 v2: ComparisonBar — barra comparativa para stats de fútbol (o cualquier
+// matchup home/away). Dibuja dos segmentos coloreados con team colors,
+// mostrando visualmente quién domina esa stat.
+function ComparisonBar({ bar }: { bar: NonNullable<DetailRow["bar"]> }) {
+  const { homeValue, awayValue, isPercent, homeColor, awayColor } = bar;
+  const total = (homeValue ?? 0) + (awayValue ?? 0);
+  const homePct = total > 0 ? Math.max(2, Math.min(98, (homeValue / total) * 100)) : 50;
+  const awayPct = 100 - homePct;
+  const hc = homeColor || "#2d6a4f";
+  const ac = awayColor || "#8363f9";
+  return (
+    <div className="koru-comparison-bar" role="presentation">
+      <span className="koru-comparison-value home" style={{ color: hc }}>
+        {isPercent ? `${Math.round(homeValue)}%` : homeValue}
+      </span>
+      <div className="koru-comparison-track">
+        <div
+          className="koru-comparison-fill home"
+          style={{ width: `${homePct}%`, background: hc }}
+        />
+        <div
+          className="koru-comparison-fill away"
+          style={{ width: `${awayPct}%`, background: ac }}
+        />
+      </div>
+      <span className="koru-comparison-value away" style={{ color: ac }}>
+        {isPercent ? `${Math.round(awayValue)}%` : awayValue}
+      </span>
+    </div>
+  );
 }
 
 /** Aplica el accent de la sección a las CSS custom props del módulo. */
@@ -55,11 +87,13 @@ function SectionBody({ section }: { section: DetailSection }) {
       return (
         <div className="koru-dsec-rows">
           {section.rows.map((r, i) => (
-            <div key={i} className="koru-dsec-row">
+            <div key={i} className={"koru-dsec-row" + (r.bar ? " koru-dsec-row-with-bar" : "")}>
               {r.icon && <Mat className="koru-dsec-row-icon">{r.icon}</Mat>}
               <div className="koru-dsec-row-body">
                 <p className="koru-dsec-row-title">{r.title}</p>
                 {r.detail && <p className="koru-dsec-row-detail">{r.detail}</p>}
+                {/* 🔴 v2: barra comparativa para stats de fútbol (posesión, tiros, etc.) */}
+                {r.bar && <ComparisonBar bar={r.bar} />}
               </div>
               {r.meta && <span className="koru-dsec-row-meta">{r.meta}</span>}
               {r.badge && <span className={`koru-step-chip is-${r.badgeTone ?? "pending"}`}>{r.badge}</span>}

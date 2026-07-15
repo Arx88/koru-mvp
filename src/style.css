@@ -4597,3 +4597,68 @@ a.koru-dsec-source:hover {
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   🔴 ComparisonBar — barra comparativa para stats de fútbol (y otros matchups)
+   Diseño: dos valores a los lados + barra central con team colors.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.koru-comparison-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  width: 100%;
+}
+
+.koru-comparison-value {
+  font-size: 13px;
+  font-weight: 700;
+  min-width: 36px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.koru-comparison-value.home { text-align: right; }
+.koru-comparison-value.away { text-align: left; }
+
+.koru-comparison-track {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  display: flex;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.koru-comparison-fill {
+  height: 100%;
+  transition: width 0.4s ease;
+  min-width: 4px;
+}
+
+.koru-comparison-fill.home { border-radius: 999px 0 0 999px; }
+.koru-comparison-fill.away { border-radius: 0 999px 999px 0; }
+
+/* Row con barra: ajustar layout para que la barra tenga espacio completo */
+.koru-dsec-row-with-bar {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.koru-dsec-row-with-bar .koru-dsec-row-body {
+  width: 100%;
+}
+
+.koru-dsec-row-with-bar .koru-dsec-row-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #5a6b62;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 2px;
+}
+
+.koru-dsec-row-with-bar .koru-dsec-row-detail {
+  display: none; /* la barra ya muestra los valores, no hace falta el detail "65% - 35%" */
+}
+

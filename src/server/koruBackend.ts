@@ -3056,9 +3056,19 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
         const homeScore = Number(m.homeScore ?? 0);
         const awayScore = Number(m.awayScore ?? 0);
         const status = String(m.status ?? (m.live ? "En vivo" : "Final"));
-        const homeInitials = initialsFromName(homeName);
-        const awayInitials = initialsFromName(awayName);
+        const homeInitials = m.homeAbbrev ?? initialsFromName(homeName);
+        const awayInitials = m.awayAbbrev ?? initialsFromName(awayName);
         const dateStr = m.date ? formatMatchDate(m.date) : "";
+        // 🔴 FIX TYPO: "Posesion" → "Posesión" (con s y acento)
+        const homePossessionNum = Number.parseFloat(m.homePossession ?? m.detailedStats?.find(s => s.label === "Posesión")?.home?.toString() ?? "50") || 50;
+        const awayPossessionNum = Number.parseFloat(m.awayPossession ?? m.detailedStats?.find(s => s.label === "Posesión")?.away?.toString() ?? "50") || 50;
+        // 🔴 FIX BUG: "Tiros" era "0% - 0%" (porcentaje). Ahora es número absoluto.
+        const homeShotsNum = Number(m.homeShots ?? m.detailedStats?.find(s => s.label === "Tiros")?.home ?? 0);
+        const awayShotsNum = Number(m.awayShots ?? m.detailedStats?.find(s => s.label === "Tiros")?.away ?? 0);
+        // Para que la barrita funcione, calculamos porcentaje relativo
+        const totalShots = homeShotsNum + awayShotsNum;
+        const homeShotsPct = totalShots > 0 ? Math.round((homeShotsNum / totalShots) * 100) : 50;
+        const awayShotsPct = totalShots > 0 ? 100 - homeShotsPct : 50;
         blocks.push({
           type: "live_match" as const,
           homeName,
@@ -3075,12 +3085,30 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
           awayShots: m.awayShots,
           time: m.minute ?? m.time,
           status,
-          homeTeam: { name: homeName, abbrev: homeInitials, score: homeScore },
-          awayTeam: { name: awayName, abbrev: awayInitials, score: awayScore },
+          homeTeam: { name: homeName, abbrev: homeInitials, color: m.homeColor, score: homeScore },
+          awayTeam: { name: awayName, abbrev: awayInitials, color: m.awayColor, score: awayScore },
+          // 🔴 FIX TYPO: "Posesion" → "Posesión"
           stats: [
-            { label: "Posesion", leftPercent: Number.parseInt(m.homePossession ?? "50", 10) || 50, rightPercent: Number.parseInt(m.awayPossession ?? "50", 10) || 50 },
-            { label: "Tiros", leftPercent: Number(m.homeShots ?? 0), rightPercent: Number(m.awayShots ?? 0) },
+            { label: "Posesión", leftPercent: homePossessionNum, rightPercent: awayPossessionNum, leftColor: m.homeColor, rightColor: m.awayColor },
+            { label: "Tiros", leftPercent: homeShotsPct, rightPercent: awayShotsPct, leftColor: m.homeColor, rightColor: m.awayColor },
           ],
+          // 🔴 v2: datos ricos del /summary
+          homeColor: m.homeColor,
+          awayColor: m.awayColor,
+          homeLogo: m.homeLogo,
+          awayLogo: m.awayLogo,
+          homeAbbrev: m.homeAbbrev,
+          awayAbbrev: m.awayAbbrev,
+          league: m.league,
+          venue: m.venue,
+          venueCity: m.venueCity,
+          attendance: m.attendance,
+          goals: m.goals,
+          yellowCards: m.yellowCards,
+          redCards: m.redCards,
+          substitutions: m.substitutions,
+          lineups: m.lineups,
+          detailedStats: m.detailedStats,
         });
         // Si hay múltiples partidos, agregamos un match_timeline con el resto.
         if (matches.length > 1) {

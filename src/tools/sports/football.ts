@@ -102,22 +102,68 @@ function detectDatesToQuery(queryLower: string): string[] {
 }
 
 type EspnEvent = {
+  id?: string;
   name?: string;
   date?: string;
-  status?: { type?: { description?: string; detail?: string } };
+  status?: { type?: { description?: string; detail?: string; state?: string } };
   competitions?: Array<{
     date?: string;
+    venue?: { fullName?: string; address?: { city?: string; country?: string } };
     competitors?: Array<{
       homeAway?: string;
       score?: string;
-      team?: { displayName?: string; shortDisplayName?: string; logo?: string };
+      team?: {
+        displayName?: string;
+        shortDisplayName?: string;
+        logo?: string;
+        color?: string;
+        alternateColor?: string;
+        abbreviation?: string;
+      };
+      records?: Array<{ summary?: string }>;
+    }>;
+    details?: Array<{
+      type?: { id?: string; text?: string };
+      clock?: { displayValue?: string };
+      teamId?: string;
+      athlete?: { displayName?: string };
+      text?: string;
     }>;
   }>;
 };
 
-async function searchEspnScoreboards(query: string): Promise<EspnEvent[]> {
+// 🔴 ESPN /summary — datos ricos: goles con scorer, tarjetas con player,
+// sustituciones, alineaciones (formation + roster), 25+ estadísticas.
+type EspnSummary = {
+  boxscore?: {
+    teams?: Array<{
+      team?: { displayName?: string };
+      statistics?: Array<{ name?: string; label?: string; abbreviation?: string; displayValue?: string }>;
+    }>;
+  };
+  rosters?: Array<{
+    team?: { displayName?: string };
+    formation?: string;
+    roster?: Array<{
+      jerseyNumber?: string | number;
+      starter?: boolean;
+      athlete?: { displayName?: string };
+      position?: { abbreviation?: string };
+    }>;
+  }>;
+  keyEvents?: Array<{
+    type?: { text?: string };
+    clock?: { displayValue?: string };
+    team?: { displayName?: string };
+    athlete?: { displayName?: string };
+    text?: string;
+  }>;
+  gameInfo?: { venue?: { fullName?: string; address?: { city?: string; country?: string } }; attendance?: number };
+};
+
+async function searchEspnScoreboards(query: string): Promise<Array<{ event: EspnEvent; leagueId: string; leagueName: string }>> {
   const queryLower = query.toLowerCase();
-  const results: EspnEvent[] = [];
+  const results: Array<{ event: EspnEvent; leagueId: string; leagueName: string }> = [];
   const datesToQuery = detectDatesToQuery(queryLower);
   const nationalTeam = detectNationalTeam(queryLower);
 
@@ -145,7 +191,9 @@ async function searchEspnScoreboards(query: string): Promise<EspnEvent[]> {
               eventName.includes(term) || teams.some(t => t.includes(term))
             );
           });
-          results.push(...matching);
+          for (const m of matching) {
+            results.push({ event: m, leagueId: league.id, leagueName: league.name });
+          }
         } catch { /* league/date timeout — skip */ }
       })());
     }
@@ -154,10 +202,8 @@ async function searchEspnScoreboards(query: string): Promise<EspnEvent[]> {
 
   // Dedupe por id (mismo evento puede aparecer en múltiples fechas)
   const seen = new Set<string>();
-  const deduped = results.filter(e => {
-    const comps = e.competitions ?? [];
-    const comp = comps[0];
-    const id = `${e.name ?? ""}-${comp?.date ?? e.date ?? ""}`;
+  const deduped = results.filter(({ event: e }) => {
+    const id = e.id ?? `${e.name ?? ""}-${e.date ?? ""}`;
     if (seen.has(id)) return false;
     seen.add(id);
     return true;
@@ -165,24 +211,181 @@ async function searchEspnScoreboards(query: string): Promise<EspnEvent[]> {
   return deduped;
 }
 
-function normalizeEspnEvent(e: EspnEvent) {
+function normalizeEspnEvent(e: EspnEvent, leagueName?: string) {
   const comps = e.competitions ?? [];
   const comp = comps[0];
   const competitors = comp?.competitors ?? [];
   const home = competitors.find(c => c.homeAway === "home");
   const away = competitors.find(c => c.homeAway === "away");
   const status = e.status?.type?.description ?? e.status?.type?.detail ?? "?";
+  const venue = comp?.venue;
   return {
-    id: `${home?.team?.displayName ?? "?"}-${away?.team?.displayName ?? "?"}-${comp?.date ?? ""}`,
+    id: e.id,
+    eventId: e.id,
     match: `${home?.team?.displayName ?? "?"} vs ${away?.team?.displayName ?? "?"}`,
     homeTeam: home?.team?.displayName,
     awayTeam: away?.team?.displayName,
+    homeShortName: home?.team?.shortDisplayName,
+    awayShortName: away?.team?.shortDisplayName,
+    homeLogo: home?.team?.logo,
+    awayLogo: away?.team?.logo,
+    homeColor: home?.team?.color ? `#${home.team.color}` : undefined,
+    awayColor: away?.team?.color ? `#${away.team.color}` : undefined,
+    homeAbbrev: home?.team?.abbreviation,
+    awayAbbrev: away?.team?.abbreviation,
     homeScore: home?.score != null ? Number(home.score) : undefined,
     awayScore: away?.score != null ? Number(away.score) : undefined,
     status,
+    state: e.status?.type?.state, // "pre" | "in" | "post"
     date: comp?.date ?? e.date,
     live: /in progress|live|halftime/i.test(status),
+    league: leagueName,
+    venue: venue?.fullName,
+    venueCity: venue?.address?.city,
+    venueCountry: venue?.address?.country,
   };
+}
+
+// 🔴 ESPN /summary — extrae goles, tarjetas, sustituciones, alineaciones, stats.
+// Se llama DESPUÉS de identificar el match en /scoreboard. Si falla, se sigue
+// usando solo el scoreboard (compatible hacia atrás).
+async function fetchEspnSummary(leagueId: string, eventId: string): Promise<EspnSummary | null> {
+  try {
+    const url = `${ESPN_BASE}/${leagueId}/summary?event=${eventId}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) return null;
+    return await res.json() as EspnSummary;
+  } catch {
+    return null;
+  }
+}
+
+// 🔴 Extrae goles, tarjetas y sustituciones de keyEvents, agrupados por tipo.
+// ESPN pone el texto del evento en `text`, con el nombre del jugador entre paréntesis.
+// Ej: "Goal! Spain 1, England 0. Nico Williams (Spain) left footed shot..."
+function parseKeyEvents(summary: EspnSummary | null) {
+  const events = summary?.keyEvents ?? [];
+  const goals: Array<{ minute: string; team?: string; scorer?: string; text?: string }> = [];
+  const yellowCards: Array<{ minute: string; team?: string; player?: string }> = [];
+  const redCards: Array<{ minute: string; team?: string; player?: string }> = [];
+  const substitutions: Array<{ minute: string; team?: string; playerIn?: string; playerOut?: string }> = [];
+
+  for (const ev of events) {
+    const minute = ev.clock?.displayValue ?? "";
+    const team = ev.team?.displayName;
+    const text = ev.text ?? "";
+    const athlete = ev.athlete?.displayName;
+    const typeText = ev.type?.text ?? "";
+
+    if (typeText === "Goal") {
+      // Texto: "Goal! Spain 1, England 0. Nico Williams (Spain) left footed shot..."
+      // El scorer suele estar justo después de "Goal! TeamA X, TeamB Y."
+      let scorer = athlete;
+      if (!scorer) {
+        // Buscar patrón "FirstName LastName (Team)" en el texto
+        const m = text.match(/(?:Goal!.*?\.\s+)?([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)*)\s*\(/);
+        if (m) scorer = m[1];
+      }
+      goals.push({ minute, team, scorer, text });
+    } else if (typeText === "Yellow Card") {
+      let player = athlete;
+      if (!player) {
+        const m = text.match(/^([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)*)\s*\(/);
+        if (m) player = m[1];
+      }
+      yellowCards.push({ minute, team, player });
+    } else if (typeText === "Red Card") {
+      let player = athlete;
+      if (!player) {
+        const m = text.match(/^([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)*)\s*\(/);
+        if (m) player = m[1];
+      }
+      redCards.push({ minute, team, player });
+    } else if (typeText === "Substitution") {
+      // Texto: "Substitution, Spain. Martín Zubimendi replaces Rodri because of an injury."
+      const m = text.match(/([A-ZÁÉÍÓÚÑa-záéíóúñ][\wáéíóúñ]+)\s+replaces\s+([A-ZÁÉÍÓÚÑa-záéíóúñ][\wáéíóúñ]+)/);
+      substitutions.push({
+        minute,
+        team,
+        playerIn: m?.[1],
+        playerOut: m?.[2],
+      });
+    }
+  }
+
+  return { goals, yellowCards, redCards, substitutions };
+}
+
+// 🔴 Extrae alineaciones (formation + titulares + suplentes) por equipo.
+function parseRosters(summary: EspnSummary | null) {
+  const rosters = summary?.rosters ?? [];
+  const byTeam: Record<string, { formation?: string; starters: Array<{ number?: string; name: string; position?: string }>; subs: Array<{ number?: string; name: string; position?: string }> }> = {};
+
+  for (const r of rosters) {
+    const teamName = r.team?.displayName ?? "?";
+    const formation = r.formation;
+    const starters: Array<{ number?: string; name: string; position?: string }> = [];
+    const subs: Array<{ number?: string; name: string; position?: string }> = [];
+    for (const p of r.roster ?? []) {
+      const entry = {
+        number: p.jerseyNumber != null ? String(p.jerseyNumber) : undefined,
+        name: p.athlete?.displayName ?? "?",
+        position: p.position?.abbreviation,
+      };
+      if (p.starter) starters.push(entry);
+      else subs.push(entry);
+    }
+    byTeam[teamName] = { formation, starters, subs };
+  }
+  return byTeam;
+}
+
+// 🔴 Extrae estadísticas detalladas (posesión, tiros, faltas, córners, etc.)
+// y las normaliza a pares home/away con valores numéricos.
+function parseBoxscore(summary: EspnSummary | null, homeTeam?: string, awayTeam?: string) {
+  const teams = summary?.boxscore?.teams ?? [];
+  if (teams.length < 2) return [];
+  const homeStats = teams.find(t => t.team?.displayName === homeTeam) ?? teams[0];
+  const awayStats = teams.find(t => t.team?.displayName === awayTeam) ?? teams[1];
+  if (!homeStats?.statistics || !awayStats?.statistics) return [];
+
+  // Map de stats de cada team por nombre
+  const homeMap = new Map<string, string>();
+  for (const s of homeStats.statistics) {
+    if (s.name) homeMap.set(s.name, s.displayValue ?? "");
+  }
+  const awayMap = new Map<string, string>();
+  for (const s of awayStats.statistics) {
+    if (s.name) awayMap.set(s.name, s.displayValue ?? "");
+  }
+
+  // Stats que nos interesan con su label en español. Para % usamos leftPercent/rightPercent.
+  // Para conteos (tiros, faltas, córners) usamos los valores absolutos.
+  const STAT_DEFS: Array<{ name: string; label: string; isPercent: boolean }> = [
+    { name: "possessionPct", label: "Posesión", isPercent: true },
+    { name: "totalShots", label: "Tiros", isPercent: false },
+    { name: "shotsOnTarget", label: "Tiros al arco", isPercent: false },
+    { name: "foulsCommitted", label: "Faltas", isPercent: false },
+    { name: "cornerKicks", label: "Córners", isPercent: false },
+    { name: "offsides", label: "Offsides", isPercent: false },
+    { name: "saves", label: "Atajadas", isPercent: false },
+    { name: "yellowCards", label: "Amarillas", isPercent: false },
+    { name: "redCards", label: "Rojas", isPercent: false },
+    { name: "accuratePasses", label: "Pases buenos", isPercent: false },
+    { name: "totalPasses", label: "Pases totales", isPercent: false },
+    { name: "passPct", label: "Precisión pases", isPercent: true },
+  ];
+
+  const result: Array<{ label: string; home: number; away: number; isPercent: boolean }> = [];
+  for (const def of STAT_DEFS) {
+    const hv = homeMap.get(def.name);
+    const av = awayMap.get(def.name);
+    if (hv == null && av == null) continue;
+    const hNum = parseFloat(hv ?? "0") || 0;
+    const aNum = parseFloat(av ?? "0") || 0;
+    result.push({ label: def.label, home: hNum, away: aNum, isPercent: def.isPercent });
+  }
+  return result;
 }
 
 type TsdbEvent = {
@@ -242,10 +445,36 @@ export const matchLive: ToolHandler = {
 
     // FIX: usar ESPN como fuente principal (TheSportsDB free no tiene datos recientes)
     // ESPN busca en 11 ligas en paralelo y filtra por nombre de equipo
-    const espnEvents = await searchEspnScoreboards(query);
+    const espnResults = await searchEspnScoreboards(query);
 
-    if (espnEvents.length > 0) {
-      const matches = espnEvents.slice(0, 5).map(normalizeEspnEvent);
+    if (espnResults.length > 0) {
+      // 🔴 Tomar el primer match y enriquecerlo con /summary (goles, tarjetas, alineaciones, stats)
+      const first = espnResults[0];
+      const matches = espnResults.slice(0, 5).map(({ event }) => normalizeEspnEvent(event, first.leagueName));
+
+      // Enriquecer el primer match con datos del /summary
+      let enriched: { goals?: any[]; yellowCards?: any[]; redCards?: any[]; substitutions?: any[]; lineups?: any; detailedStats?: any[]; venue?: string; venueCity?: string; attendance?: number } = {};
+      if (first.event.id) {
+        const summary = await fetchEspnSummary(first.leagueId, first.event.id);
+        const events = parseKeyEvents(summary);
+        const lineups = parseRosters(summary);
+        const detailedStats = parseBoxscore(summary, matches[0]?.homeTeam, matches[0]?.awayTeam);
+        enriched = {
+          goals: events.goals.length > 0 ? events.goals : undefined,
+          yellowCards: events.yellowCards.length > 0 ? events.yellowCards : undefined,
+          redCards: events.redCards.length > 0 ? events.redCards : undefined,
+          substitutions: events.substitutions.length > 0 ? events.substitutions : undefined,
+          lineups: Object.keys(lineups).length > 0 ? lineups : undefined,
+          detailedStats: detailedStats.length > 0 ? detailedStats : undefined,
+          venue: summary?.gameInfo?.venue?.fullName,
+          venueCity: summary?.gameInfo?.venue?.address?.city,
+          attendance: summary?.gameInfo?.attendance,
+        };
+        if (enriched.goals || enriched.yellowCards || enriched.lineups || enriched.detailedStats) {
+          matches[0] = { ...matches[0], ...enriched };
+        }
+      }
+
       return {
         type: "match_live",
         status: "ok",

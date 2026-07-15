@@ -48,6 +48,8 @@ export type DetailRow = {
   meta?: string;
   badge?: string;
   badgeTone?: "done" | "current" | "pending" | "urgent";
+  // 🔴 v2: para stats comparativas con barras de equipo
+  bar?: { homeValue: number; awayValue: number; isPercent: boolean; homeColor?: string; awayColor?: string };
 };
 export type DetailChip = { label: string; sub?: string; color?: string };
 export type DetailScrollCard = {
@@ -941,17 +943,12 @@ function wellbeing(b: Of<"wellbeing">): KoruPresentation {
 }
 
 function liveMatch(b: Of<"live_match">): KoruPresentation {
-  // Preferir nombres completos (homeName/awayName) sobre abreviaturas.
-  // Las abreviaturas (SPA, BEL) son útiles solo en scoreboards compactos;
-  // en una card hero, el usuario necesita saber quiénes juegan.
   const homeName = clean(b.homeName) ?? clean(b.homeTeam?.name) ?? "Local";
   const awayName = clean(b.awayName) ?? clean(b.awayTeam?.name) ?? "Visitante";
   const homeScore = b.homeScore ?? b.homeTeam?.score ?? 0;
   const awayScore = b.awayScore ?? b.awayTeam?.score ?? 0;
   const score = `${homeScore} - ${awayScore}`;
-  // Título: "Spain vs Belgium" (nombres completos, no abreviaturas)
   const title = `${homeName} vs ${awayName}`;
-  // Kicker: liga + estado. Si no hay liga, solo estado.
   const league = clean(b.league);
   const status = clean(b.status);
   const live = /in progress|live|halftime|en vivo/i.test(status);
@@ -960,22 +957,56 @@ function liveMatch(b: Of<"live_match">): KoruPresentation {
   if (league) kickerParts.push(league);
   if (!live && status && status.toLowerCase() !== "scheduled") kickerParts.push(status);
   const kicker = kickerParts.length > 0 ? kickerParts.join(" · ") : "Partido";
-  // Desc: si está scheduled, mostrar fecha/hora. Si está final, mostrar "Final".
-  // Si está en vivo, mostrar minuto.
   const desc = live ? (b.minute ? `Minuto ${b.minute}` : "En juego")
     : status && /scheduled|programado/i.test(status) ? "Próximamente"
     : status ?? "Final";
-  // Metrics: stats del partido (posesión, tiros) si existen.
+
+  // 🔴 Metrics: usar detailedStats si hay (más rico), si no caer a stats básico.
+  // Mostrar hasta 3 stats clave: Posesión, Tiros, Tiros al arco.
   const metrics: HeroMetric[] = [];
-  if (b.stats && b.stats.length > 0) {
+  if (b.detailedStats && b.detailedStats.length > 0) {
+    const showStats = b.detailedStats.filter(s =>
+      ["Posesión", "Tiros", "Tiros al arco", "Córners", "Faltas"].includes(s.label)
+    ).slice(0, 3);
+    for (const s of showStats) {
+      const value = s.isPercent
+        ? `${s.home.toFixed(0)}% - ${s.away.toFixed(0)}%`
+        : `${s.home} - ${s.away}`;
+      const icon = s.label === "Posesión" ? "sports_soccer"
+        : s.label === "Tiros" || s.label === "Tiros al arco" ? "crisis_alert"
+        : s.label === "Córners" ? "sports_score"
+        : s.label === "Faltas" ? "report"
+        : "monitoring";
+      metrics.push({ icon, label: s.label, value, color: A.emerald.color });
+    }
+  } else if (b.stats && b.stats.length > 0) {
     for (const s of b.stats.slice(0, 2)) {
       const left = s.leftPercent ?? 0;
       const right = s.rightPercent ?? 0;
       const total = left + right;
       const value = total > 0 ? `${left}% - ${right}%` : "—";
-      metrics.push({ icon: s.label === "Posesion" ? "sports_soccer" : "crisis_alert", label: s.label, value, color: A.emerald.color });
+      metrics.push({ icon: s.label === "Posesión" ? "sports_soccer" : "crisis_alert", label: s.label, value, color: A.emerald.color });
     }
   }
+
+  // 🔴 v2: detail screen con secciones ricas — hero, goles, tarjetas, stats con barras, alineaciones
+  const hasRichData = !!(b.goals?.length || b.yellowCards?.length || b.detailedStats?.length || b.lineups);
+  const detail = hasRichData ? {
+    title,
+    subtitle: [league, b.venue ? `${b.venue}` : null, b.venueCity ? b.venueCity : null].filter(Boolean).join(" · ") || kicker,
+    sections: buildMatchDetailSections(b, homeName, awayName),
+  } : b.stats?.length ? {
+    title,
+    subtitle: league ?? kicker,
+    sections: [{
+      kind: "rows" as const,
+      icon: "monitoring",
+      accent: A.emerald,
+      title: "Estadísticas",
+      rows: b.stats.map((s) => ({ title: s.label, detail: `${s.leftPercent}% — ${s.rightPercent}%` })),
+    }],
+  } : undefined;
+
   return {
     hero: {
       kicker,
@@ -986,23 +1017,141 @@ function liveMatch(b: Of<"live_match">): KoruPresentation {
       artValue: score,
       metrics: metrics.length > 0 ? metrics : undefined,
     },
-    detail: b.stats?.length
-      ? {
-          title: title,
-          subtitle: league ?? kicker,
-          sections: [
-            {
-              kind: "rows",
-              icon: "monitoring",
-              accent: A.emerald,
-              title: "Estadísticas",
-              rows: b.stats.map((s) => ({ title: s.label, detail: `${s.leftPercent}% — ${s.rightPercent}%` })),
-            },
-          ],
-        }
-      : undefined,
-    cta: b.stats?.length ? { label: "Ver estadísticas" } : undefined,
+    detail,
+    cta: hasRichData || b.stats?.length ? { label: hasRichData ? "Ver partido completo" : "Ver estadísticas" } : undefined,
   };
+}
+
+// 🔴 v2: construye secciones ricas para el detail screen del partido.
+// Secciones: Goles · Tarjetas · Estadísticas (con barras) · Alineaciones · Cambios
+function buildMatchDetailSections(
+  b: Of<"live_match">,
+  homeName: string,
+  awayName: string,
+): NonNullable<KoruPresentation["detail"]>["sections"] {
+  const sections: NonNullable<KoruPresentation["detail"]>["sections"] = [];
+  const homeColor = b.homeColor ?? A.emerald.color;
+  const awayColor = b.awayColor ?? A.purple.color;
+
+  // 1. Goles
+  if (b.goals && b.goals.length > 0) {
+    sections.push({
+      kind: "rows",
+      icon: "sports_soccer",
+      accent: { ...A.emerald, color: homeColor },
+      title: "Goles",
+      rows: b.goals.map(g => {
+        const scorer = g.scorer ?? "Gol";
+        const minute = g.minute ?? "?";
+        const teamLabel = g.team === homeName ? homeName : g.team === awayName ? awayName : (g.team ?? "");
+        return {
+          title: `${scorer} · ${minute}`,
+          detail: teamLabel,
+        };
+      }),
+    });
+  }
+
+  // 2. Tarjetas (amarillas + rojas)
+  const cardRows: Array<{ title: string; detail: string; icon?: string }> = [];
+  for (const y of b.yellowCards ?? []) {
+    cardRows.push({
+      title: `${y.player ?? "Amarilla"} · ${y.minute}`,
+      detail: y.team === homeName ? homeName : y.team === awayName ? awayName : (y.team ?? ""),
+    });
+  }
+  for (const r of b.redCards ?? []) {
+    cardRows.push({
+      title: `${r.player ?? "Roja"} · ${r.minute}`,
+      detail: (r.team ?? "") + " · 🟥",
+    });
+  }
+  if (cardRows.length > 0) {
+    sections.push({
+      kind: "rows",
+      icon: "style",
+      accent: A.amber,
+      title: "Tarjetas",
+      rows: cardRows,
+    });
+  }
+
+  // 3. Estadísticas con barras comparativas (usando detailedStats)
+  if (b.detailedStats && b.detailedStats.length > 0) {
+    sections.push({
+      kind: "rows",
+      icon: "monitoring",
+      accent: A.emerald,
+      title: "Estadísticas",
+      rows: b.detailedStats.map(s => ({
+        title: s.label,
+        // Para %: mostrar "65% - 35%". Para conteos: "16 - 9"
+        detail: s.isPercent
+          ? `${s.home.toFixed(0)}% — ${s.away.toFixed(0)}%`
+          : `${s.home} — ${s.away}`,
+        // 🔴 Pasamos los valores para que el renderer dibuje la barra
+        bar: {
+          homeValue: s.home,
+          awayValue: s.away,
+          isPercent: s.isPercent,
+          homeColor,
+          awayColor,
+        },
+      })),
+    });
+  }
+
+  // 4. Cambios / sustituciones
+  if (b.substitutions && b.substitutions.length > 0) {
+    sections.push({
+      kind: "rows",
+      icon: "swap_horiz",
+      accent: A.purple,
+      title: "Cambios",
+      rows: b.substitutions.map(s => ({
+        title: `${s.playerIn ?? "?"} ⇄ ${s.playerOut ?? "?"} · ${s.minute}`,
+        detail: s.team === homeName ? homeName : s.team === awayName ? awayName : (s.team ?? ""),
+      })),
+    });
+  }
+
+  // 5. Alineaciones (si hay)
+  if (b.lineups) {
+    const homeLineup = b.lineups[homeName];
+    const awayLineup = b.lineups[awayName];
+    if (homeLineup || awayLineup) {
+      const rows: Array<{ title: string; detail: string }> = [];
+      if (homeLineup?.formation) rows.push({ title: `${homeName} (${homeLineup.formation})`, detail: "" });
+      if (homeLineup?.starters) {
+        for (const p of homeLineup.starters) {
+          rows.push({
+            title: `#${p.number ?? "?"} ${p.name}`,
+            detail: p.position ?? "",
+          });
+        }
+      }
+      if (awayLineup?.formation) rows.push({ title: `${awayName} (${awayLineup.formation})`, detail: "" });
+      if (awayLineup?.starters) {
+        for (const p of awayLineup.starters) {
+          rows.push({
+            title: `#${p.number ?? "?"} ${p.name}`,
+            detail: p.position ?? "",
+          });
+        }
+      }
+      if (rows.length > 0) {
+        sections.push({
+          kind: "rows",
+          icon: "groups",
+          accent: A.emerald,
+          title: "Alineaciones",
+          rows,
+        });
+      }
+    }
+  }
+
+  return sections;
 }
 
 function urgentNow(b: Of<"urgent_now">): KoruPresentation {

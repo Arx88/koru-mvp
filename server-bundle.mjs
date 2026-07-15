@@ -2764,7 +2764,9 @@ async function searchEspnScoreboards(query) {
               (term) => eventName.includes(term) || teams.some((t) => t.includes(term))
             );
           });
-          results.push(...matching);
+          for (const m of matching) {
+            results.push({ event: m, leagueId: league.id, leagueName: league.name });
+          }
         } catch {
         }
       })());
@@ -2772,34 +2774,163 @@ async function searchEspnScoreboards(query) {
   }
   await Promise.all(promises);
   const seen = /* @__PURE__ */ new Set();
-  const deduped = results.filter((e) => {
-    const comps = e.competitions ?? [];
-    const comp = comps[0];
-    const id = `${e.name ?? ""}-${comp?.date ?? e.date ?? ""}`;
+  const deduped = results.filter(({ event: e }) => {
+    const id = e.id ?? `${e.name ?? ""}-${e.date ?? ""}`;
     if (seen.has(id)) return false;
     seen.add(id);
     return true;
   });
   return deduped;
 }
-function normalizeEspnEvent(e) {
+function normalizeEspnEvent(e, leagueName) {
   const comps = e.competitions ?? [];
   const comp = comps[0];
   const competitors = comp?.competitors ?? [];
   const home = competitors.find((c) => c.homeAway === "home");
   const away = competitors.find((c) => c.homeAway === "away");
   const status = e.status?.type?.description ?? e.status?.type?.detail ?? "?";
+  const venue = comp?.venue;
   return {
-    id: `${home?.team?.displayName ?? "?"}-${away?.team?.displayName ?? "?"}-${comp?.date ?? ""}`,
+    id: e.id,
+    eventId: e.id,
     match: `${home?.team?.displayName ?? "?"} vs ${away?.team?.displayName ?? "?"}`,
     homeTeam: home?.team?.displayName,
     awayTeam: away?.team?.displayName,
+    homeShortName: home?.team?.shortDisplayName,
+    awayShortName: away?.team?.shortDisplayName,
+    homeLogo: home?.team?.logo,
+    awayLogo: away?.team?.logo,
+    homeColor: home?.team?.color ? `#${home.team.color}` : void 0,
+    awayColor: away?.team?.color ? `#${away.team.color}` : void 0,
+    homeAbbrev: home?.team?.abbreviation,
+    awayAbbrev: away?.team?.abbreviation,
     homeScore: home?.score != null ? Number(home.score) : void 0,
     awayScore: away?.score != null ? Number(away.score) : void 0,
     status,
+    state: e.status?.type?.state,
+    // "pre" | "in" | "post"
     date: comp?.date ?? e.date,
-    live: /in progress|live|halftime/i.test(status)
+    live: /in progress|live|halftime/i.test(status),
+    league: leagueName,
+    venue: venue?.fullName,
+    venueCity: venue?.address?.city,
+    venueCountry: venue?.address?.country
   };
+}
+async function fetchEspnSummary(leagueId, eventId) {
+  try {
+    const url = `${ESPN_BASE}/${leagueId}/summary?event=${eventId}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(8e3) });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+function parseKeyEvents(summary) {
+  const events = summary?.keyEvents ?? [];
+  const goals = [];
+  const yellowCards = [];
+  const redCards = [];
+  const substitutions = [];
+  for (const ev of events) {
+    const minute = ev.clock?.displayValue ?? "";
+    const team = ev.team?.displayName;
+    const text = ev.text ?? "";
+    const athlete = ev.athlete?.displayName;
+    const typeText = ev.type?.text ?? "";
+    if (typeText === "Goal") {
+      let scorer = athlete;
+      if (!scorer) {
+        const m = text.match(/(?:Goal!.*?\.\s+)?([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)*)\s*\(/);
+        if (m) scorer = m[1];
+      }
+      goals.push({ minute, team, scorer, text });
+    } else if (typeText === "Yellow Card") {
+      let player = athlete;
+      if (!player) {
+        const m = text.match(/^([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)*)\s*\(/);
+        if (m) player = m[1];
+      }
+      yellowCards.push({ minute, team, player });
+    } else if (typeText === "Red Card") {
+      let player = athlete;
+      if (!player) {
+        const m = text.match(/^([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)*)\s*\(/);
+        if (m) player = m[1];
+      }
+      redCards.push({ minute, team, player });
+    } else if (typeText === "Substitution") {
+      const m = text.match(/([A-ZÁÉÍÓÚÑa-záéíóúñ][\wáéíóúñ]+)\s+replaces\s+([A-ZÁÉÍÓÚÑa-záéíóúñ][\wáéíóúñ]+)/);
+      substitutions.push({
+        minute,
+        team,
+        playerIn: m?.[1],
+        playerOut: m?.[2]
+      });
+    }
+  }
+  return { goals, yellowCards, redCards, substitutions };
+}
+function parseRosters(summary) {
+  const rosters = summary?.rosters ?? [];
+  const byTeam = {};
+  for (const r of rosters) {
+    const teamName = r.team?.displayName ?? "?";
+    const formation = r.formation;
+    const starters = [];
+    const subs = [];
+    for (const p of r.roster ?? []) {
+      const entry = {
+        number: p.jerseyNumber != null ? String(p.jerseyNumber) : void 0,
+        name: p.athlete?.displayName ?? "?",
+        position: p.position?.abbreviation
+      };
+      if (p.starter) starters.push(entry);
+      else subs.push(entry);
+    }
+    byTeam[teamName] = { formation, starters, subs };
+  }
+  return byTeam;
+}
+function parseBoxscore(summary, homeTeam, awayTeam) {
+  const teams = summary?.boxscore?.teams ?? [];
+  if (teams.length < 2) return [];
+  const homeStats = teams.find((t) => t.team?.displayName === homeTeam) ?? teams[0];
+  const awayStats = teams.find((t) => t.team?.displayName === awayTeam) ?? teams[1];
+  if (!homeStats?.statistics || !awayStats?.statistics) return [];
+  const homeMap = /* @__PURE__ */ new Map();
+  for (const s of homeStats.statistics) {
+    if (s.name) homeMap.set(s.name, s.displayValue ?? "");
+  }
+  const awayMap = /* @__PURE__ */ new Map();
+  for (const s of awayStats.statistics) {
+    if (s.name) awayMap.set(s.name, s.displayValue ?? "");
+  }
+  const STAT_DEFS = [
+    { name: "possessionPct", label: "Posesi\xF3n", isPercent: true },
+    { name: "totalShots", label: "Tiros", isPercent: false },
+    { name: "shotsOnTarget", label: "Tiros al arco", isPercent: false },
+    { name: "foulsCommitted", label: "Faltas", isPercent: false },
+    { name: "cornerKicks", label: "C\xF3rners", isPercent: false },
+    { name: "offsides", label: "Offsides", isPercent: false },
+    { name: "saves", label: "Atajadas", isPercent: false },
+    { name: "yellowCards", label: "Amarillas", isPercent: false },
+    { name: "redCards", label: "Rojas", isPercent: false },
+    { name: "accuratePasses", label: "Pases buenos", isPercent: false },
+    { name: "totalPasses", label: "Pases totales", isPercent: false },
+    { name: "passPct", label: "Precisi\xF3n pases", isPercent: true }
+  ];
+  const result = [];
+  for (const def of STAT_DEFS) {
+    const hv = homeMap.get(def.name);
+    const av = awayMap.get(def.name);
+    if (hv == null && av == null) continue;
+    const hNum = parseFloat(hv ?? "0") || 0;
+    const aNum = parseFloat(av ?? "0") || 0;
+    result.push({ label: def.label, home: hNum, away: aNum, isPercent: def.isPercent });
+  }
+  return result;
 }
 function normalizeEvent(e) {
   const homeScore = e.intHomeScore != null && e.intHomeScore !== "" ? Number(e.intHomeScore) : void 0;
@@ -2878,9 +3009,31 @@ var init_football = __esm({
       async run(args) {
         const query = String(args.query ?? args.__userInput ?? "").trim();
         if (!query) return { type: "match_live", status: "failed", error: "Indic\xE1 el partido." };
-        const espnEvents = await searchEspnScoreboards(query);
-        if (espnEvents.length > 0) {
-          const matches = espnEvents.slice(0, 5).map(normalizeEspnEvent);
+        const espnResults = await searchEspnScoreboards(query);
+        if (espnResults.length > 0) {
+          const first = espnResults[0];
+          const matches = espnResults.slice(0, 5).map(({ event }) => normalizeEspnEvent(event, first.leagueName));
+          let enriched = {};
+          if (first.event.id) {
+            const summary = await fetchEspnSummary(first.leagueId, first.event.id);
+            const events2 = parseKeyEvents(summary);
+            const lineups = parseRosters(summary);
+            const detailedStats = parseBoxscore(summary, matches[0]?.homeTeam, matches[0]?.awayTeam);
+            enriched = {
+              goals: events2.goals.length > 0 ? events2.goals : void 0,
+              yellowCards: events2.yellowCards.length > 0 ? events2.yellowCards : void 0,
+              redCards: events2.redCards.length > 0 ? events2.redCards : void 0,
+              substitutions: events2.substitutions.length > 0 ? events2.substitutions : void 0,
+              lineups: Object.keys(lineups).length > 0 ? lineups : void 0,
+              detailedStats: detailedStats.length > 0 ? detailedStats : void 0,
+              venue: summary?.gameInfo?.venue?.fullName,
+              venueCity: summary?.gameInfo?.venue?.address?.city,
+              attendance: summary?.gameInfo?.attendance
+            };
+            if (enriched.goals || enriched.yellowCards || enriched.lineups || enriched.detailedStats) {
+              matches[0] = { ...matches[0], ...enriched };
+            }
+          }
           return {
             type: "match_live",
             status: "ok",
@@ -10202,9 +10355,16 @@ function blocksFromToolResults(results) {
         const homeScore = Number(m.homeScore ?? 0);
         const awayScore = Number(m.awayScore ?? 0);
         const status = String(m.status ?? (m.live ? "En vivo" : "Final"));
-        const homeInitials = initialsFromName(homeName);
-        const awayInitials = initialsFromName(awayName);
+        const homeInitials = m.homeAbbrev ?? initialsFromName(homeName);
+        const awayInitials = m.awayAbbrev ?? initialsFromName(awayName);
         const dateStr = m.date ? formatMatchDate(m.date) : "";
+        const homePossessionNum = Number.parseFloat(m.homePossession ?? m.detailedStats?.find((s) => s.label === "Posesi\xF3n")?.home?.toString() ?? "50") || 50;
+        const awayPossessionNum = Number.parseFloat(m.awayPossession ?? m.detailedStats?.find((s) => s.label === "Posesi\xF3n")?.away?.toString() ?? "50") || 50;
+        const homeShotsNum = Number(m.homeShots ?? m.detailedStats?.find((s) => s.label === "Tiros")?.home ?? 0);
+        const awayShotsNum = Number(m.awayShots ?? m.detailedStats?.find((s) => s.label === "Tiros")?.away ?? 0);
+        const totalShots = homeShotsNum + awayShotsNum;
+        const homeShotsPct = totalShots > 0 ? Math.round(homeShotsNum / totalShots * 100) : 50;
+        const awayShotsPct = totalShots > 0 ? 100 - homeShotsPct : 50;
         blocks.push({
           type: "live_match",
           homeName,
@@ -10221,12 +10381,30 @@ function blocksFromToolResults(results) {
           awayShots: m.awayShots,
           time: m.minute ?? m.time,
           status,
-          homeTeam: { name: homeName, abbrev: homeInitials, score: homeScore },
-          awayTeam: { name: awayName, abbrev: awayInitials, score: awayScore },
+          homeTeam: { name: homeName, abbrev: homeInitials, color: m.homeColor, score: homeScore },
+          awayTeam: { name: awayName, abbrev: awayInitials, color: m.awayColor, score: awayScore },
+          // 🔴 FIX TYPO: "Posesion" → "Posesión"
           stats: [
-            { label: "Posesion", leftPercent: Number.parseInt(m.homePossession ?? "50", 10) || 50, rightPercent: Number.parseInt(m.awayPossession ?? "50", 10) || 50 },
-            { label: "Tiros", leftPercent: Number(m.homeShots ?? 0), rightPercent: Number(m.awayShots ?? 0) }
-          ]
+            { label: "Posesi\xF3n", leftPercent: homePossessionNum, rightPercent: awayPossessionNum, leftColor: m.homeColor, rightColor: m.awayColor },
+            { label: "Tiros", leftPercent: homeShotsPct, rightPercent: awayShotsPct, leftColor: m.homeColor, rightColor: m.awayColor }
+          ],
+          // 🔴 v2: datos ricos del /summary
+          homeColor: m.homeColor,
+          awayColor: m.awayColor,
+          homeLogo: m.homeLogo,
+          awayLogo: m.awayLogo,
+          homeAbbrev: m.homeAbbrev,
+          awayAbbrev: m.awayAbbrev,
+          league: m.league,
+          venue: m.venue,
+          venueCity: m.venueCity,
+          attendance: m.attendance,
+          goals: m.goals,
+          yellowCards: m.yellowCards,
+          redCards: m.redCards,
+          substitutions: m.substitutions,
+          lineups: m.lineups,
+          detailedStats: m.detailedStats
         });
         if (matches.length > 1) {
           blocks.push({
