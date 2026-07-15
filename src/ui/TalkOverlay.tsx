@@ -509,26 +509,23 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
   }, [chatTurns, hasOlderTurns, showAllTurns]);
 
   function toggleOlderTurns() {
-    const next = !showAllTurns;
-    setShowAllTurns(next);
-    // 🔴 FIX: al expandir, scroll al inicio (mensajes viejos).
-    // Al colapsar, scroll al fondo (último mensaje visible).
-    // Usar scrollTop directo (no smooth) para evitar drift.
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const node = scrollRef.current;
-        if (node) {
-          if (next) {
-            // Expandir: ir al inicio
-            node.scrollTop = 0;
-          } else {
-            // Colapsar: ir al fondo
-            node.scrollTop = node.scrollHeight;
-          }
-        }
-      });
-    });
+    setShowAllTurns(!showAllTurns);
+    // El scroll se hace en useEffect abajo, DESPUÉS de que React pinte.
   }
+
+  // 🔴 FIX: scroll DESPUÉS del render via useEffect, no en el click handler.
+  // Esto elimina el drift porque React ya terminó de pintar los turnos nuevos.
+  useEffect(() => {
+    const node = scrollRef.current;
+    if (!node) return;
+    if (showAllTurns) {
+      // Expandir: ir al inicio (mensajes viejos)
+      node.scrollTop = 0;
+    } else {
+      // Colapsar: ir al fondo (último mensaje)
+      node.scrollTop = node.scrollHeight;
+    }
+  }, [showAllTurns, visibleTurns]);
 
   // Entregable en curso (informe/investigación): su bloque "working" trae el
   // progreso REAL del pipeline. Mientras exista, el composer cede el lugar al
