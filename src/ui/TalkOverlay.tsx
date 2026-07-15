@@ -1174,31 +1174,25 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
           </div>
         )}
 
-        {/* 🔴 v2: botón FIJO — position:absolute, NUNCA se mueve al expandir/colapsar/scroll */}
-        {hasOlderTurns && (
-          <div className="koru-thread-toggle-fixed">
-            <button type="button" className="koru-thread-more-btn" onClick={toggleOlderTurns}>
-              {showAllTurns ? (
-                <>
-                  <span className="material-symbols-outlined">expand_less</span>
-                  Re-colapsar mensajes
-                </>
-              ) : (
-                <>
-                  <span className="material-symbols-outlined">expand_less</span>
-                  Ver {olderCount} mensajes anteriores
-                </>
-              )}
-            </button>
-          </div>
-        )}
-
-        {/* 🔴 v2: fade out — los mensajes se desvanecen al acercarse al botón */}
-        {hasOlderTurns && (
-          <div className="koru-thread-fade" />
-        )}
-
         <main ref={scrollRef} className="koru-chat-scroll">
+          {/* 🔴 v2: botón STICKY dentro del scroll — se queda pegado arriba del viewport */}
+          {hasOlderTurns && (
+            <div className="koru-thread-toggle-sticky">
+              <button type="button" className="koru-thread-more-btn" onClick={toggleOlderTurns}>
+                {showAllTurns ? (
+                  <>
+                    <span className="material-symbols-outlined">expand_less</span>
+                    Re-colapsar mensajes
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined">expand_more</span>
+                    Ver {olderCount} mensajes anteriores
+                  </>
+                )}
+              </button>
+            </div>
+          )}
           <div className="koru-thread">
             {visibleTurns.map((turn) =>
               turn.role === "user" ? (
