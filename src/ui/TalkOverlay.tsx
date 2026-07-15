@@ -1174,25 +1174,31 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
           </div>
         )}
 
+        {/* 🔴 v2: botón FUERA del scroll — es un sibling separado arriba.
+            Los mensajes scrollean en su propio contenedor que termina donde empieza el botón.
+            NINGÚN texto puede pasar por arriba ni por atrás del botón. */}
+        {hasOlderTurns && (
+          <div className="koru-thread-toggle-bar">
+            <button type="button" className="koru-thread-toggle-pill" onClick={toggleOlderTurns}>
+              {showAllTurns ? (
+                <>
+                  <span className="material-symbols-outlined">expand_less</span>
+                  Re-colapsar mensajes
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined">expand_more</span>
+                  Ver {olderCount} mensajes anteriores
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* 🔴 v2: fade gradient — transición suave entre el botón y los mensajes */}
+        {hasOlderTurns && <div className="koru-thread-fade-bar" />}
+
         <main ref={scrollRef} className="koru-chat-scroll">
-          {/* 🔴 v2: botón STICKY dentro del scroll — se queda pegado arriba del viewport */}
-          {hasOlderTurns && (
-            <div className="koru-thread-toggle-sticky">
-              <button type="button" className="koru-thread-more-btn" onClick={toggleOlderTurns}>
-                {showAllTurns ? (
-                  <>
-                    <span className="material-symbols-outlined">expand_less</span>
-                    Re-colapsar mensajes
-                  </>
-                ) : (
-                  <>
-                    <span className="material-symbols-outlined">expand_more</span>
-                    Ver {olderCount} mensajes anteriores
-                  </>
-                )}
-              </button>
-            </div>
-          )}
           <div className="koru-thread">
             {visibleTurns.map((turn) =>
               turn.role === "user" ? (
