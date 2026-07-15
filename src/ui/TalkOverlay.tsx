@@ -1172,7 +1172,7 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
             )}
 
             {/* 🔴 Typing indicator — tres puntos animados cuando Koru está procesando */}
-            {processing && !isListening && !workingDeliverable && (
+            {processing && !isListening && !workingDeliverable && activity?.kind !== "searching" && activity?.depth !== "deep" && (
               <div className="koru-message is-koru">
                 <div className="koru-row">
                   <div className="koru-avatar">
