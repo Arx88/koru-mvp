@@ -2309,6 +2309,41 @@ button.koru-stitch-row {
   font-size: 16px;
 }
 
+/* 🔴 v2: hero card totalmente tappable */
+.koru-plan-hero.is-tappable {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.koru-plan-hero.is-tappable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(131, 99, 249, 0.18);
+}
+.koru-plan-hero.is-tappable:active {
+  transform: scale(0.985);
+}
+
+/* 🔴 v2: CTA hint — indicador visual sutil (no botón, la card entera es el tap target) */
+.koru-plan-hero-cta-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 10px 0 4px;
+  border-top: 1px solid rgba(131, 99, 249, 0.12);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  opacity: 0.85;
+}
+.koru-plan-hero-cta-hint .material-symbols-outlined {
+  font-size: 16px;
+}
+
 /* ============================================================
    Tu Plan Integral (roadmap, réplica Stitch): fondo degradado
    #f0dbff→#f8f9ff con blobs, hero flotante y magical-cards.
@@ -5301,4 +5336,256 @@ a.koru-dsec-source:hover {
 .koru-dsec-chip[style*="color"] .koru-dsec-chip-label,
 .koru-dsec-chip[style*="color"] .koru-dsec-chip-sub {
   color: white !important;
+}
+
+/* 🔴 v2: WorkingPanel cancel button */
+.koru-working-cancel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #f0eaff;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  margin-top: 12px;
+  transition: all 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.koru-working-cancel:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+.koru-working-cancel:active {
+  transform: scale(0.96);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   🔴 v2: ConfirmDialog + save folder input — reemplazan confirm()/prompt()
+   ═══════════════════════════════════════════════════════════════════════════ */
+.koru-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(20, 16, 42, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: koru-fade-in 0.15s ease-out;
+}
+
+.koru-confirm-dialog {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  max-width: 340px;
+  width: 100%;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  animation: koru-sheet-up 0.2s ease-out;
+}
+
+.koru-confirm-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a2a20;
+  margin: 0 0 8px;
+  font-family: "Bricolage Grotesque", "Plus Jakarta Sans", sans-serif;
+}
+
+.koru-confirm-message {
+  font-size: 14px;
+  color: #5a6b62;
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+
+.koru-confirm-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.koru-confirm-btn {
+  padding: 10px 20px;
+  border-radius: 12px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.koru-confirm-btn:active { transform: scale(0.96); }
+
+.koru-confirm-cancel {
+  background: #f3f7f4;
+  color: #5a6b62;
+}
+.koru-confirm-cancel:hover { background: #e3e8e5; }
+
+.koru-confirm-accept {
+  background: #8363f9;
+  color: white;
+  box-shadow: 0 4px 12px rgba(131, 99, 249, 0.3);
+}
+.koru-confirm-accept:hover { background: #7c3aed; }
+
+.koru-confirm-accept.is-destructive {
+  background: #ef4444;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+.koru-confirm-accept.is-destructive:hover { background: #dc2626; }
+
+/* 🔴 Save folder input inline */
+.koru-save-folder-input {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(131, 99, 249, 0.06);
+  border-radius: 12px;
+  align-items: center;
+}
+.koru-save-folder-input input {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(131, 99, 249, 0.25);
+  background: white;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+}
+.koru-save-folder-input input:focus { border-color: #8363f9; }
+.koru-save-folder-confirm {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  border: none;
+  background: #8363f9;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+.koru-save-folder-confirm:active { transform: scale(0.92); }
+.koru-save-folder-confirm .material-symbols-outlined { font-size: 20px; }
+
+/* 🔴 v2: hero card inline actions (alarm/reminder CTAs) */
+.koru-plan-hero-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+.koru-plan-hero-action {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 8px;
+  border-radius: 14px;
+  border: none;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.koru-plan-hero-action:active { transform: scale(0.96); }
+.koru-plan-hero-action .material-symbols-outlined { font-size: 18px; }
+.koru-plan-hero-action.is-primary {
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+.koru-plan-hero-action.is-secondary {
+  background: rgba(131, 99, 249, 0.08);
+  color: #523a9e;
+  border: 1.5px solid rgba(131, 99, 249, 0.2);
+}
+.koru-plan-hero-action.is-danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1.5px solid rgba(239, 68, 68, 0.25);
+}
+
+/* 🔴 v2: Create coachmark — tooltip que aparece después del 2do mensaje */
+.koru-create-coachmark {
+  position: absolute;
+  bottom: 100%;
+  left: 12px;
+  margin-bottom: 8px;
+  z-index: 30;
+  animation: koru-coachmark-in 0.3s ease-out;
+}
+@keyframes koru-coachmark-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.koru-create-coachmark-bubble {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, #523a9e 0%, #382b8c 100%);
+  color: white;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(82, 58, 158, 0.4);
+  max-width: 280px;
+}
+.koru-create-coachmark-bubble .material-symbols-outlined:first-child {
+  font-size: 22px;
+  color: #c9b8ff;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.koru-create-coachmark-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.koru-create-coachmark-text strong {
+  font-size: 14px;
+  font-weight: 700;
+}
+.koru-create-coachmark-text span {
+  font-size: 12px;
+  opacity: 0.9;
+}
+.koru-create-coachmark-close {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.7);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 6px;
+  display: flex;
+  flex-shrink: 0;
+}
+.koru-create-coachmark-close:hover { color: white; background: rgba(255,255,255,0.1); }
+.koru-create-coachmark-close .material-symbols-outlined { font-size: 18px; }
+.koru-create-coachmark-arrow {
+  position: absolute;
+  bottom: -6px;
+  left: 24px;
+  width: 12px;
+  height: 12px;
+  background: #382b8c;
+  transform: rotate(45deg);
+  border-radius: 2px;
 }

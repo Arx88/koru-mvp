@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import type { LifeRecord } from "../domain/types";
 import { useKoru } from "./KoruProvider";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 // Mis Colecciones — la promesa "Listo, guardado en Sitios de IA" cierra acá:
 // TODO lo guardado, agrupado por colección, navegable en un tap. Misma
@@ -61,6 +62,7 @@ export function CollectionsScreen({
   const { records, deleteRecord, reopenRecord, updateRecord } = useKoru();
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [editing, setEditing] = useState<LifeRecord | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<LifeRecord | null>(null);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -216,9 +218,7 @@ export function CollectionsScreen({
                             onClick={(e) => {
                               e.stopPropagation();
                               setMenuFor(null);
-                              if (confirm(`¿Eliminar "${record.title}"?`)) {
-                                deleteRecord(record.id);
-                              }
+                              setConfirmDelete(record);
                             }}
                           >
                             <Mat>delete</Mat> Eliminar
@@ -288,12 +288,7 @@ export function CollectionsScreen({
               <button
                 type="button"
                 className="koru-collection-editor-btn koru-collection-editor-delete"
-                onClick={() => {
-                  if (confirm(`¿Eliminar "${editing.title}"?`)) {
-                    deleteRecord(editing.id);
-                    setEditing(null);
-                  }
-                }}
+                onClick={() => setConfirmDelete(editing)}
               >
                 <Mat>delete</Mat> Eliminar
               </button>
@@ -301,6 +296,24 @@ export function CollectionsScreen({
           </div>
         </div>
       )}
+
+      {/* 🔴 v2: ConfirmDialog custom para eliminar (reemplaza window.confirm) */}
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="¿Eliminar?"
+        message={confirmDelete ? `"${confirmDelete.title}" se va a borrar permanentemente.` : ""}
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        destructive
+        onConfirm={() => {
+          if (confirmDelete) {
+            deleteRecord(confirmDelete.id);
+            if (editing?.id === confirmDelete.id) setEditing(null);
+            setConfirmDelete(null);
+          }
+        }}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>,
     document.body,
   );

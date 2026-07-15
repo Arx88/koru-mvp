@@ -10,6 +10,7 @@ import type {
   LifeRecordKind,
   MascotState,
   MemoryFact,
+  CommitmentStatus,
 } from "../domain/types";
 import {
   applyHeartbeatNudges,
@@ -48,6 +49,8 @@ import { auditEnabled, auditSessionId, writeAuditEvent, auditStateSnapshot, audi
 import { stageForEnergy as stageForEnergyImpl, domainStageToNew, domainStatusToMemoryStatus, domainKindToCategory, greetingTurn, readChatTurns, saveChatTurns, patchUiBlockWithWebResult, actionConfirmationText, CHAT_STORAGE_KEY } from "./adapters";
 // 🔴 Offline cache — IndexedDB-backed 24h rolling window + offline message queue
 import { cacheTurn, isOnline, onOnlineStatusChange, enqueueOfflineMessage, readOfflineQueue, dequeueOfflineMessage, type CachedTurn } from "../domain/offlineCache";
+// 🔴 v2: Analytics — tracking de Create adoption + reopen rate
+import { track as analyticsTrack } from "../domain/analytics";
 export type { KoruTurnItem, KoruChatTurn };
 
 export type Stage = "semilla" | "brote" | "raices" | "nacimiento" | "jardin";
@@ -820,6 +823,8 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     });
     setMemoryToast({ id: newRecord.id, kind: "saved", text: `Creado en ${newRecord.collection}` });
     setTimeout(() => setMemoryToast(null), 2500);
+    // 🔴 v2: analytics — track Create adoption
+    analyticsTrack("create_record", { kind: input.kind, collection: newRecord.collection });
     return newRecord;
   }
 
@@ -844,6 +849,8 @@ export function KoruProvider({ children }: { children: ReactNode }) {
 
   function reopenRecord(record: LifeRecord) {
     setReopenedRecord(record);
+    // 🔴 v2: analytics — track reopen rate
+    analyticsTrack("reopen_record", { hasSourceBlock: !!record.sourceBlock, collection: record.collection });
   }
 
   async function submitEntry(
@@ -1406,9 +1413,41 @@ export function KoruProvider({ children }: { children: ReactNode }) {
       // 🔴 Toast de confirmación (usa el mismo mecanismo que memory toast)
       setMemoryToast({ id: newRecord.id, kind: "saved", text: `Guardado en ${collection}` });
       setTimeout(() => setMemoryToast(null), 2500);
+      // 🔴 v2: analytics — track chat save (vs Create save)
+      analyticsTrack("save_record_via_chat", { collection, hasSourceBlock: !!detail?.blockData });
     };
     window.addEventListener("koru-save-record", onSaveRecord as EventListener);
     return () => window.removeEventListener("koru-save-record", onSaveRecord as EventListener);
+  }, []);
+
+  // 🔴 v2: listener para acciones inline de cards (alarm/reminder complete/snooze/dismiss)
+  useEffect(() => {
+    const onCardAction = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      const action = detail?.action as string;
+      const blockData = detail?.blockData;
+      // 🔴 Para alarm/reminder, marcar el commitment como completo si hay action=complete
+      if (action === "complete" || action === "dismiss") {
+        // Buscar el commitment que matchea el título del block
+        const title = blockData?.title ?? blockData?.hero?.title;
+        if (title) {
+          commitDomainState((prev) => {
+            const next = { ...prev, commitments: prev.commitments.map(c =>
+              c.title === title ? { ...c, status: (action === "complete" ? "done" : "dismissed") as CommitmentStatus } : c
+            ) };
+            saveState(next);
+            return next;
+          });
+        }
+        setMemoryToast({ id: `action_${Date.now()}`, kind: "saved", text: action === "complete" ? "Listo ✓" : "Apagado" });
+        setTimeout(() => setMemoryToast(null), 2000);
+      } else if (action === "snooze") {
+        setMemoryToast({ id: `action_${Date.now()}`, kind: "saved", text: "Postergado 10 min" });
+        setTimeout(() => setMemoryToast(null), 2000);
+      }
+    };
+    window.addEventListener("koru-card-action", onCardAction as EventListener);
+    return () => window.removeEventListener("koru-card-action", onCardAction as EventListener);
   }, []);
 
   return <KoruContext.Provider value={value}>{children}</KoruContext.Provider>;

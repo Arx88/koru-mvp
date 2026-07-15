@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import type { CSSProperties } from "react";
 import type { UiBlock } from "../../../domain/types";
 import { toPresentation } from "./presentation";
@@ -21,16 +21,39 @@ function Mat({ children, style, className = "" }: { children: string; style?: CS
 
 export function KoruUnifiedCard({ block }: { block: UiBlock }) {
   const [open, setOpen] = useState(false);
-  const { hero, detail, cta } = toPresentation(block);
+  const { hero, detail, cta, actions } = toPresentation(block);
   const hasMetricValues = hero.metrics?.some((m) => m.value != null);
+
+  // 🔴 v2: la card entera es tappable si hay detail o collections screen
+  const isTappable = !!(cta && (detail || cta.screen === "collections"));
 
   // Truncar título a 40 chars para que no rompa el layout
   const displayTitle = hero.title.length > 40
     ? hero.title.slice(0, 37).trimEnd() + "…"
     : hero.title;
 
+  // 🔴 v2: handler unificado para abrir (click + keyboard)
+  const handleOpen = useCallback(() => {
+    if (isTappable) setOpen(true);
+  }, [isTappable]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (isTappable && (e.key === "Enter" || e.key === " ")) {
+      e.preventDefault();
+      setOpen(true);
+    }
+  }, [isTappable]);
+
   return (
-    <div className="koru-plan-hero" data-ui-block={block.type}>
+    <div
+      className={"koru-plan-hero" + (isTappable ? " is-tappable" : "")}
+      data-ui-block={block.type}
+      role={isTappable ? "button" : undefined}
+      tabIndex={isTappable ? 0 : undefined}
+      aria-label={isTappable ? `Abrir ${hero.title}` : undefined}
+      onClick={isTappable ? handleOpen : undefined}
+      onKeyDown={handleKeyDown}
+    >
       <div className="koru-plan-hero-top">
         <div className="koru-plan-hero-copy">
           <p className="koru-plan-hero-kicker" style={{ color: hero.accent.color }}>
@@ -89,16 +112,37 @@ export function KoruUnifiedCard({ block }: { block: UiBlock }) {
         </div>
       )}
 
+      {/* 🔴 v2: CTA sigue visible pero es un hint visual, no el único tap target */}
       {cta && (detail || cta.screen === "collections") && (
-        <button
-          type="button"
-          className="koru-plan-hero-cta"
-          style={{ background: hero.accent.color }}
-          onClick={() => setOpen(true)}
-        >
-          {cta.label}
+        <div className="koru-plan-hero-cta-hint" style={{ color: hero.accent.color }}>
+          <span>{cta.label}</span>
           <Mat>arrow_forward</Mat>
-        </button>
+        </div>
+      )}
+
+      {/* 🔴 v2: acciones inline para cards sin detail (alarm, reminder) */}
+      {actions && actions.length > 0 && (
+        <div className="koru-plan-hero-actions">
+          {actions.map((act, i) => (
+            <button
+              key={i}
+              type="button"
+              className={`koru-plan-hero-action is-${act.kind ?? "primary"}`}
+              style={act.kind === "primary" ? { background: hero.accent.color } : undefined}
+              onClick={(e) => {
+                e.stopPropagation();
+                // 🔴 Disparar evento para que TalkOverlay/KoruProvider lo maneje
+                window.dispatchEvent(new CustomEvent("koru-card-action", {
+                  detail: { action: act.action, blockType: block.type, blockData: block }
+                }));
+                if ("vibrate" in navigator) navigator.vibrate(15);
+              }}
+            >
+              {act.icon && <Mat>{act.icon}</Mat>}
+              <span>{act.label}</span>
+            </button>
+          ))}
+        </div>
       )}
 
       {open && cta?.screen === "collections" ? (
@@ -109,20 +153,17 @@ export function KoruUnifiedCard({ block }: { block: UiBlock }) {
           headerIcon={hero.icon}
           onClose={() => setOpen(false)}
           onSave={(title, subtitle) => {
-            // 🔴 Guardar: disparar evento personalizado que TalkOverlay escucha
             window.dispatchEvent(new CustomEvent("koru-save-deliverable", {
               detail: { title, subtitle, blockType: block.type, blockData: block }
             }));
             setOpen(false);
           }}
           onExportPdf={() => {
-            // 🔴 PDF export v2 — disparar evento con blockData para que TalkOverlay
-            // sepa que debe exportar SOLO este deliverable (no toda la conversación).
             window.dispatchEvent(new CustomEvent("koru-export-pdf", {
               detail: {
                 blockType: block.type,
                 blockTitle: hero.title,
-                blockData: block, // ← el bloque completo para export-deliverable
+                blockData: block,
               }
             }));
           }}

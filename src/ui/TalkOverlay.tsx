@@ -258,7 +258,7 @@ function getTaskPhases(kicker?: string, kind?: string): Array<{ phase: string; l
 
 type WorkingDeliverable = { kicker: string; progress?: number; phaseLabel?: string };
 
-function WorkingPanel({ phase, kind, deliverable }: { phase: string | null; kind?: AgentActivityKind; deliverable?: WorkingDeliverable | null }) {
+function WorkingPanel({ phase, kind, deliverable, onCancel }: { phase: string | null; kind?: AgentActivityKind; deliverable?: WorkingDeliverable | null; onCancel?: () => void }) {
   const idx = phase ? (PHASE_ORDER as readonly string[]).indexOf(phase) : -1;
   const doneIdx = PHASE_ORDER.length - 1;
   const pct = deliverable?.progress != null
@@ -342,6 +342,12 @@ function WorkingPanel({ phase, kind, deliverable }: { phase: string | null; kind
           <path d="M12 21.35L10.55 20.03C5.4 15.36 2 12.28 2 8.5C2 5.42 4.42 3 7.5 3C9.24 3 10.91 3.81 12 5.09C13.09 3.81 14.76 3 16.5 3C19.58 3 22 5.42 22 8.5C22 12.28 18.6 15.36 13.45 20.04L12 21.35Z" />
         </svg>
       </p>
+      {/* 🔴 v2: botón Cancelar para que el usuario pueda interrumpir tareas deep */}
+      {onCancel && (
+        <button type="button" className="koru-working-cancel" onClick={onCancel}>
+          Cancelar
+        </button>
+      )}
     </section>
   );
 }
@@ -378,6 +384,25 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
   const [inputText, setInputText] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
+  // 🔴 v2: coachmark para Create — se muestra después del 2do mensaje del usuario
+  const [showCreateCoachmark, setShowCreateCoachmark] = useState(() => {
+    return localStorage.getItem("koru.createCoachmarkSeen") !== "true";
+  });
+  const [wheelOpen, setWheelOpen] = useState(false);
+
+  // 🔴 v2: disparar coachmark después del 2do mensaje del usuario
+  useEffect(() => {
+    const userMessageCount = chatTurns.filter(t => t.role === "user").length;
+    if (userMessageCount >= 2 && showCreateCoachmark && !processing && !wheelOpen) {
+      const timer = setTimeout(() => setShowCreateCoachmark(true), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [chatTurns, showCreateCoachmark, processing, wheelOpen]);
+
+  function dismissCreateCoachmark() {
+    setShowCreateCoachmark(false);
+    localStorage.setItem("koru.createCoachmarkSeen", "true");
+  }
   const [interimText, setInterimText] = useState("");
   const [speechStatus] = useState(() => getSpeechSupport());
   const [micError, setMicError] = useState("");
@@ -435,10 +460,10 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
   const [transcribing, setTranscribing] = useState(false);
   const [analyzingImage, setAnalyzingImage] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [wheelOpen, setWheelOpen] = useState(false);
   const [wheelActive, setWheelActive] = useState<string | null>(null);
   // 🔴 Estado para el modal de guardar informe
   const [saveModal, setSaveModal] = useState<{ title: string; subtitle?: string; blockData: any } | null>(null);
+  const [saveFolderMode, setSaveFolderMode] = useState(false);
   // Onboarding conversacional: "greeting" → "waiting_for_name" → "done"
   const [onboardingPhase, setOnboardingPhase] = useState<"greeting" | "waiting_for_name" | "done">(
     onboarding ? "greeting" : "done"
@@ -1228,16 +1253,23 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
           </div>
         </main>
 
-        {processing && !isListening && (workingDeliverable || activity?.depth === "deep") ? (
-          <WorkingPanel phase={phase} kind={activity?.kind} deliverable={workingDeliverable} />
-        ) : (
-          <footer className="koru-chat-footer">
-            {processing && !isListening && activity && (
-              <div className="koru-activity-hint" role="status" aria-live="polite">
-                <span className="koru-activity-dot" />
-                {activity.label}
-              </div>
-            )}
+        {/* 🔴 v2: WorkingPanel se renderiza ARRIBA del composer (no lo reemplaza)
+            así el usuario puede seguir escribiendo o cancelar la tarea */}
+        {processing && !isListening && (workingDeliverable || activity?.depth === "deep") && (
+          <WorkingPanel phase={phase} kind={activity?.kind} deliverable={workingDeliverable} onCancel={() => {
+            // 🔴 v2: cancelar la tarea actual — simula fin de procesamiento
+            // TODO: en el futuro, abortar el fetch real via AbortController
+            if ("vibrate" in navigator) navigator.vibrate(20);
+          }} />
+        )}
+
+        <footer className="koru-chat-footer">
+          {processing && !isListening && activity && !(workingDeliverable || activity?.depth === "deep") && (
+            <div className="koru-activity-hint" role="status" aria-live="polite">
+              <span className="koru-activity-dot" />
+              {activity.label}
+            </div>
+          )}
             {/* 🔴 Offline cache — banner shown when browser loses connectivity */}
             {!online && (
               <p className="koru-footer-error" role="status" aria-live="polite">
@@ -1253,9 +1285,9 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
                 {[
                   { icon: "wb_sunny", text: "¿Qué tal el día?" },
                   { icon: "sports_soccer", text: "¿Cómo salió España?" },
-                  { icon: "restaurant", text: "Receta de pasta" },
-                  { icon: "savings", text: "Precio del bitcoin" },
-                  { icon: "calendar_today", text: "Planifica mi día" },
+                  { icon: "restaurant", text: "Receta" },
+                  { icon: "savings", text: "Bitcoin" },
+                  { icon: "calendar_today", text: "Mi día" },
                 ].map((chip) => (
                   <button
                     key={chip.text}
@@ -1274,6 +1306,27 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
             )}
 
             <div className="koru-composer">
+              {/* 🔴 v2: coachmark para Create — aparece después del 2do mensaje */}
+              {showCreateCoachmark && (
+                <div className="koru-create-coachmark" role="dialog" aria-label="Tip: Crear">
+                  <div className="koru-create-coachmark-bubble">
+                    <span className="material-symbols-outlined">tips_and_updates</span>
+                    <div className="koru-create-coachmark-text">
+                      <strong>¿Querés anotar algo rápido?</strong>
+                      <span>Tocá el <strong>+</strong> abajo para crear notas, listas, gastos y más.</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="koru-create-coachmark-close"
+                      aria-label="Cerrar"
+                      onClick={dismissCreateCoachmark}
+                    >
+                      <span className="material-symbols-outlined">close</span>
+                    </button>
+                  </div>
+                  <div className="koru-create-coachmark-arrow" />
+                </div>
+              )}
               {/* 🔴 Composer: ephemeral (toggle rápido) + crear + adjuntar + input + mic/send */}
               <button
                 type="button"
@@ -1355,7 +1408,6 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
               )}
             </div>
           </footer>
-        )}
 
         {/* Wheel Overlay — long-press navigation */}
         {wheelOpen && (
@@ -1488,30 +1540,70 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
 
               <button
                 className="koru-save-option"
-                onClick={() => {
-                  const folder = prompt("Nombre de la carpeta:", "Informes");
-                  if (folder && folder.trim()) {
-                    window.dispatchEvent(new CustomEvent("koru-save-record", {
-                      detail: {
-                        title: saveModal.title,
-                        collection: folder.trim(),
-                        kind: "idea",
-                        notes: saveModal.subtitle,
-                      }
-                    }));
-                    setSaveModal(null);
-                  }
-                }}
+                onClick={() => setSaveFolderMode(true)}
               >
                 <span className="material-symbols-outlined">create_new_folder</span>
                 <div>
-                  <strong>Crear carpeta nueva</strong>
-                  <small>Elegí el nombre de la carpeta</small>
+                  <strong>Elegir carpeta</strong>
+                  <small>Poné el nombre que quieras</small>
                 </div>
               </button>
+
+              {/* 🔴 v2: input inline para nombre de carpeta (reemplaza prompt()) */}
+              {saveFolderMode && (
+                <div className="koru-save-folder-input">
+                  <input
+                    type="text"
+                    placeholder="Nombre de la carpeta"
+                    defaultValue="Informes"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        const val = (e.target as HTMLInputElement).value.trim();
+                        if (val) {
+                          window.dispatchEvent(new CustomEvent("koru-save-record", {
+                            detail: {
+                              title: saveModal.title,
+                              collection: val,
+                              kind: "idea",
+                              notes: saveModal.subtitle,
+                            }
+                          }));
+                          setSaveModal(null);
+                          setSaveFolderMode(false);
+                        }
+                      } else if (e.key === "Escape") {
+                        setSaveFolderMode(false);
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="koru-save-folder-confirm"
+                    onClick={(e) => {
+                      const input = (e.currentTarget.parentElement?.querySelector("input") as HTMLInputElement);
+                      const val = input?.value.trim();
+                      if (val) {
+                        window.dispatchEvent(new CustomEvent("koru-save-record", {
+                          detail: {
+                            title: saveModal.title,
+                            collection: val,
+                            kind: "idea",
+                            notes: saveModal.subtitle,
+                          }
+                        }));
+                        setSaveModal(null);
+                        setSaveFolderMode(false);
+                      }
+                    }}
+                  >
+                    <span className="material-symbols-outlined">check</span>
+                  </button>
+                </div>
+              )}
             </div>
 
-            <button className="koru-save-cancel" onClick={() => setSaveModal(null)}>
+            <button className="koru-save-cancel" onClick={() => { setSaveModal(null); setSaveFolderMode(false); }}>
               Cancelar
             </button>
           </div>

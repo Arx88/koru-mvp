@@ -93,6 +93,16 @@ export type KoruPresentation = {
    * con screen "collections" abre Mis Colecciones enfocada en `collection`.
    */
   cta?: { label: string; screen?: "collections"; collection?: string };
+  /**
+   * 🔴 v2: acciones inline para cards sin detail screen (alarm, reminder, etc.)
+   * Se renderizan como botones dentro del hero, sin necesidad de abrir detail.
+   */
+  actions?: Array<{
+    label: string;
+    icon?: string;
+    kind?: "primary" | "secondary" | "danger";
+    action: string; // identificador que el renderer interpreta (ej: "complete", "snooze", "dismiss")
+  }>;
 };
 
 // ---- Paleta Stitch ----------------------------------------------------------
@@ -466,11 +476,15 @@ function alarm(b: Of<"alarm">): KoruPresentation {
       accent: A.rose,
       artValue: b.time,
     },
+    // 🔴 v2: acciones inline para alarm (sin detail screen)
+    actions: [
+      { label: "Apagar", icon: "alarm_off", kind: "primary", action: "dismiss" },
+      { label: "Postergar 10 min", icon: "snooze", kind: "secondary", action: "snooze" },
+    ],
   };
 }
 
 function reminder(b: Of<"reminder">): KoruPresentation {
-  // 🔴 UX: card más limpia y atractiva para recordatorios
   const dueText = b.dueText?.trim() || "";
   const note = b.note?.trim() || "";
   const desc = [dueText, note].filter(Boolean).join(" · ") || undefined;
@@ -484,6 +498,11 @@ function reminder(b: Of<"reminder">): KoruPresentation {
       accent: A.emerald,
       artValue: dueText || undefined,
     },
+    // 🔴 v2: acciones inline para reminder
+    actions: [
+      { label: "Listo", icon: "check", kind: "primary", action: "complete" },
+      { label: "Posponer", icon: "snooze", kind: "secondary", action: "snooze" },
+    ],
   };
 }
 
@@ -2380,6 +2399,18 @@ function recipeBlock(b: Of<"recipe">): KoruPresentation {
     });
   }
 
+  // 🔴 v2: video como source clicable (antes solo cambiaba el CTA label)
+  if (b.videoUrl) {
+    sections.push({
+      kind: "sources",
+      icon: "smart_display",
+      accent: A.red,
+      title: "Video de la receta",
+      subtitle: "MIRÁ CÓMO SE HACE",
+      sources: [{ title: "Ver receta en video", url: b.videoUrl, domain: "YouTube" }],
+    });
+  }
+
   return {
     hero: {
       kicker: "Tu Receta",
@@ -2427,7 +2458,6 @@ function movieReviewBlock(b: Of<"movie_review">): KoruPresentation {
   if (b.runtime) tiles.push({ label: "Duración", value: b.runtime, color: A.primary.color });
   if (b.releaseDate) tiles.push({ label: "Estreno", value: b.releaseDate, color: A.primary.color });
   if (genres.length > 0) tiles.push({ label: "Géneros", value: genres.join(", "), color: A.emerald.color });
-  if (cast.length > 0) tiles.push({ label: "Reparto", value: cast.join(", "), color: A.purple.color });
   if (tiles.length > 0) {
     sections.push({
       kind: "tiles",
@@ -2435,6 +2465,18 @@ function movieReviewBlock(b: Of<"movie_review">): KoruPresentation {
       accent: A.primary,
       title: "Detalles",
       tiles,
+    });
+  }
+
+  // 🔴 v2: cast como chips (antes era comma string en un tile — poco visual)
+  if (cast.length > 0) {
+    sections.push({
+      kind: "chips",
+      icon: "groups",
+      accent: A.purple,
+      title: "Reparto",
+      subtitle: `${cast.length} ACTORES`,
+      chips: cast.map((c) => ({ label: c })),
     });
   }
 

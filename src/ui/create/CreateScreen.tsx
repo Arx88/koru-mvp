@@ -147,9 +147,14 @@ export function CreateScreen({ onClose }: { onClose: () => void }) {
     <div className="koru-create-overlay" role="dialog" aria-label="Crear">
       <div className="koru-create-screen">
         <div className="koru-create-header">
-          <button type="button" aria-label="Volver" className="koru-create-back" onClick={() => selected ? setSelected(null) : onClose()}>
-            <Mat>arrow_back_ios_new</Mat>
-          </button>
+          {/* 🔴 v2: solo mostrar "Volver" cuando hay template seleccionado, sino solo "Cerrar" */}
+          {selected ? (
+            <button type="button" aria-label="Volver" className="koru-create-back" onClick={() => setSelected(null)}>
+              <Mat>arrow_back_ios_new</Mat>
+            </button>
+          ) : (
+            <div style={{ width: 40 }} /> // spacer para centrar el título
+          )}
           <h1 className="koru-create-title">
             {selected ? TEMPLATES.find(t => t.id === selected)!.label : "¿Qué querés crear?"}
           </h1>
