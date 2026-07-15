@@ -5644,20 +5644,30 @@ a.koru-dsec-source:hover {
   border-radius: 2px;
 }
 
-/* 🔴 v2: Botón STICKY — se queda pegado arriba del scroll viewport */
+/* 🔴 v2: Botón STICKY — se queda pegado arriba del scroll viewport.
+   FIX bug "text appears above the toggle button":
+   - top subido a 132px para salir de la zona de fade del mask-image (0-130px)
+     del scroll container, que antes estaba transparentando el propio botón.
+   - fondo del wrapper ahora 100% OPACO (ya no gradient → transparent) para
+     que los mensajes que scrollean por debajo NO se vean a través del botón.
+   - z-index: 15 ya era correcto (pinta por encima de las burbujas); el bug
+     era de translucidez, no de z-index. */
 .koru-thread-toggle-sticky {
   position: sticky;
-  top: 80px;
+  top: 132px;
   z-index: 15;
   display: flex;
   justify-content: center;
   flex-shrink: 0;
-  padding: 8px 0;
-  /* fondo con blur para que los mensajes que pasan por debajo se vean difuminados */
-  background: linear-gradient(to bottom, #453f6a 0%, #453f6a 60%, transparent 100%);
-  margin: -8px -20px 0;
+  padding: 10px 0;
+  /* fondo OPACO sólido: oculta completamente los mensajes que pasan por debajo */
+  background: #3d3866;
+  /* suave sombra inferior para separar visualmente el header pegado de los mensajes */
+  box-shadow: 0 6px 12px -6px rgba(18, 10, 50, 0.55);
+  margin: -10px -20px 0;
   padding-left: 20px;
   padding-right: 20px;
+  isolation: isolate; /* stacking context limpio: garantiza z-index:15 sobre burbujas */
 }
 .koru-thread-more-btn {
   display: inline-flex;
@@ -5665,9 +5675,11 @@ a.koru-dsec-source:hover {
   gap: 6px;
   padding: 8px 18px;
   border-radius: 999px;
-  background: rgba(131, 99, 249, 0.15);
-  border: 1px solid rgba(131, 99, 249, 0.3);
-  color: #c9b8ff;
+  /* FIX: antes rgba(131,99,249,0.15) = 85% transparente → el texto de las
+     burbujas se veía A TRAVÉS del botón. Ahora 95% opaco para tapar el texto. */
+  background: rgba(124, 92, 219, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #ffffff;
   font-size: 13px;
   font-weight: 600;
   font-family: inherit;
@@ -5675,12 +5687,11 @@ a.koru-dsec-source:hover {
   transition: all 0.15s;
   -webkit-tap-highlight-color: transparent;
   white-space: nowrap;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(18, 10, 50, 0.35);
 }
 .koru-thread-more-btn:hover {
-  background: rgba(131, 99, 249, 0.25);
-  border-color: rgba(131, 99, 249, 0.45);
+  background: #7c5ff6;
+  border-color: rgba(255, 255, 255, 0.3);
   color: #fff;
 }
 .koru-thread-more-btn:active { transform: scale(0.96); }
