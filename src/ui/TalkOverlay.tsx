@@ -344,6 +344,8 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
     dismissInstallPrompt,
     online,
     queueOfflineMessage,
+    userName,
+    language,
   } = useKoru();
   const [inputText, setInputText] = useState("");
   const [isListening, setIsListening] = useState(false);
@@ -624,6 +626,62 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
     window.addEventListener("koru-save-deliverable", onSaveDeliverable as EventListener);
     return () => window.removeEventListener("koru-save-deliverable", onSaveDeliverable as EventListener);
   }, []);
+
+  // 🔴 PDF export — escucha el evento disparado por el detail screen,
+  // envía los turnos actuales al backend y abre el HTML imprimible en una nueva pestaña.
+  useEffect(() => {
+    const onExportPdf = async (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      const title = detail?.blockTitle || "Conversación con Koru";
+      // Convertir chatTurns al formato PdfTurn esperado por el backend.
+      const turns = chatTurns
+        .filter((t) => t.text && t.text.trim().length > 0)
+        .slice(-50) // último 50 turnos para no saturar el PDF
+        .map((t) => ({
+          role: t.role === "koru" ? "koru" : "user",
+          text: t.text,
+          createdAt: t.createdAt,
+          items: t.items?.map((it) => ({
+            type: it.uiBlock?.type,
+            title: (it.uiBlock as any)?.title,
+            subtitle: (it.uiBlock as any)?.subtitle,
+            note: (it.uiBlock as any)?.note,
+            items: (it.uiBlock as any)?.items,
+            sources: (it.uiBlock as any)?.sources,
+            summaryItems: (it.uiBlock as any)?.summaryItems,
+          })),
+        }));
+      try {
+        const resp = await fetch("/api/koru/export-pdf", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title,
+            userName,
+            language,
+            turns,
+            generatedAt: new Date().toISOString(),
+          }),
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const html = await resp.text();
+        const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const w = window.open(url, "_blank");
+        if (!w) {
+          // Pop-up blocked — fallback: redirect current tab (less ideal but works)
+          window.location.href = url;
+        }
+        // Revoke after 60s (enough for the print dialog)
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      } catch (err) {
+        console.error("[export-pdf]", err);
+        alert("No se pudo generar el PDF. Intentá de nuevo.");
+      }
+    };
+    window.addEventListener("koru-export-pdf", onExportPdf as EventListener);
+    return () => window.removeEventListener("koru-export-pdf", onExportPdf as EventListener);
+  }, [chatTurns, userName, language]);
 
   useEffect(() => {
     const node = scrollRef.current;

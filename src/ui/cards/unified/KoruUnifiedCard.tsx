@@ -115,6 +115,13 @@ export function KoruUnifiedCard({ block }: { block: UiBlock }) {
             }));
             setOpen(false);
           }}
+          onExportPdf={() => {
+            // 🔴 PDF export — disparar evento que TalkOverlay escucha para enviar
+            // los turnos actuales al endpoint /api/koru/export-pdf
+            window.dispatchEvent(new CustomEvent("koru-export-pdf", {
+              detail: { blockType: block.type, blockTitle: hero.title }
+            }));
+          }}
         />
       ) : null}
     </div>

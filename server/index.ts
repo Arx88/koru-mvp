@@ -440,6 +440,35 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ── /api/koru/export-pdf — export chat session to printable HTML/PDF ──
+  if (url === "/api/koru/export-pdf" && req.method === "POST") {
+    try {
+      const raw = await readBody(req);
+      const body = JSON.parse(raw || "{}");
+      if (!body.turns || !Array.isArray(body.turns)) {
+        sendJson(res, 400, { error: "Falta 'turns' en el payload" });
+        return;
+      }
+      const { buildPdfHtml } = await import("../src/server/pdfExport.ts");
+      const html = buildPdfHtml({
+        title: body.title || "Conversación con Koru",
+        userName: body.userName || "",
+        language: body.language === "en" ? "en" : "es",
+        turns: body.turns,
+        generatedAt: body.generatedAt || new Date().toISOString(),
+      });
+      res.writeHead(200, {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-store",
+      });
+      res.end(html);
+    } catch (err: any) {
+      console.error("[export-pdf]", err?.message);
+      sendJson(res, 500, { error: err?.message ?? "Error generando PDF" });
+    }
+    return;
+  }
+
   // ── Static files (serve dist/ with in-memory cache) ──────────
   if (req.method === "GET") {
     const distDir = join(PROJECT_ROOT, "dist");

@@ -165,11 +165,13 @@ export function KoruDetailScreen({
   headerIcon,
   onClose,
   onSave,
+  onExportPdf,
 }: {
   detail: Detail;
   headerIcon: string;
   onClose: () => void;
   onSave?: (title: string, subtitle?: string) => void;
+  onExportPdf?: () => void;
 }) {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -226,6 +228,18 @@ export function KoruDetailScreen({
             <span className="material-symbols-outlined">bookmark_added</span>
             Guardar informe
           </button>
+          {/* 🔴 PDF export — opens a printable view in a new tab */}
+          {onExportPdf && (
+            <button
+              type="button"
+              className="koru-dsec-save-btn"
+              onClick={onExportPdf}
+              style={{ marginLeft: 8, background: "rgba(45, 106, 79, 0.12)", color: "#2d6a4f" }}
+            >
+              <span className="material-symbols-outlined">picture_as_pdf</span>
+              Exportar PDF
+            </button>
+          )}
         </div>
       </div>
     </div>,
