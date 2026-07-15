@@ -326,9 +326,8 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  /* 🔴 v2: padding-top = 38vh para que el botón thread quede a ~40% de la pantalla,
-     justo debajo de la mascota (que ocupa ~35%). */
-  padding: 38vh 20px 12px;
+  /* 🔴 v2: padding-top = 340px fijo para que coincida exactamente con el botón fijo a top:340px */
+  padding: 340px 20px 12px;
 }
 
 .koru-chat-scroll::-webkit-scrollbar {
@@ -5645,7 +5644,7 @@ a.koru-dsec-source:hover {
 /* 🔴 v2: Botón FIJO — position:absolute, NUNCA se mueve */
 .koru-thread-toggle-fixed {
   position: absolute;
-  top: 38vh;
+  top: 340px;
   left: 0;
   right: 0;
   display: flex;
@@ -5660,7 +5659,7 @@ a.koru-dsec-source:hover {
 /* 🔴 v2: Fade out — mensajes se desvanecen al acercarse al botón */
 .koru-thread-fade {
   position: absolute;
-  top: 38vh;
+  top: 340px;
   left: 0;
   right: 0;
   height: 50px;

@@ -513,16 +513,19 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
     // El scroll se hace en useEffect abajo, DESPUÉS de que React pinte.
   }
 
-  // 🔴 FIX: scroll DESPUÉS del render via useEffect, no en el click handler.
-  // Esto elimina el drift porque React ya terminó de pintar los turnos nuevos.
+  // 🔴 FIX: scroll DESPUÉS del render via useEffect.
+  // Al expandir: scroll al inicio del PRIMER mensaje (no scrollTop=0 que muestra padding).
+  // Al colapsar: scroll al fondo (último mensaje).
   useEffect(() => {
     const node = scrollRef.current;
     if (!node) return;
     if (showAllTurns) {
-      // Expandir: ir al inicio (mensajes viejos)
+      // Expandir: mostrar desde el primer mensaje viejo.
+      // scrollTop = 0 muestra el padding-top, que es donde está el botón.
+      // Los mensajes aparecen debajo del fade.
       node.scrollTop = 0;
     } else {
-      // Colapsar: ir al fondo (último mensaje)
+      // Colapsar: ir al fondo para ver el último mensaje
       node.scrollTop = node.scrollHeight;
     }
   }, [showAllTurns, visibleTurns]);
