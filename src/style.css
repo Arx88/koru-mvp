@@ -326,72 +326,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  /* Cuando NO hay toggle: padding-top 100px para que mensajes no tapen mascota */
-  padding: 100px 20px 12px;
-}
-
-/* Cuando SÍ hay toggle: el spacer + botón ya empujan el contenido,
-   padding-top mínimo para que mensajes empiecen justo debajo del fade */
-.koru-chat-scroll.has-toggle {
-  padding: 8px 20px 12px;
-}
-
-/* 🔴 Spacer — ocupa 38vh, transparente, muestra la mascota detrás.
-   Empuja el botón a ~40% de la pantalla como en la imagen ideal. */
-.koru-mascot-spacer {
-  flex-shrink: 0;
-  height: 38vh;
-  pointer-events: none;
-}
-
-/* 🔴 Botón — flex item normal, NO sticky, NO absolute, NO scroll.
-   Está en el flujo flex del chat-screen, entre el spacer y el scroll. */
-.koru-thread-toggle-bar {
-  flex-shrink: 0;
-  display: flex;
-  justify-content: center;
-  padding: 4px 20px 2px;
-  z-index: 5;
-  position: relative;
-}
-
-/* 🔴 Pill semi-transparente como en la imagen ideal */
-.koru-thread-toggle-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 16px;
-  border-radius: 999px;
-  background: rgba(131, 99, 249, 0.18);
-  border: 1px solid rgba(131, 99, 249, 0.35);
-  color: #c9b8ff;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  transition: all 0.15s;
-  -webkit-tap-highlight-color: transparent;
-  white-space: nowrap;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-.koru-thread-toggle-pill:hover {
-  background: rgba(131, 99, 249, 0.28);
-  border-color: rgba(131, 99, 249, 0.5);
-  color: #fff;
-}
-.koru-thread-toggle-pill:active { transform: scale(0.96); }
-.koru-thread-toggle-pill .material-symbols-outlined { font-size: 18px; }
-
-/* 🔴 Fade gradient entre el botón y los mensajes */
-.koru-thread-fade-bar {
-  flex-shrink: 0;
-  height: 30px;
-  background: linear-gradient(to bottom, #453f6a 0%, rgba(69, 63, 106, 0.6) 40%, transparent 100%);
-  pointer-events: none;
-  z-index: 4;
-  position: relative;
-  margin-top: -8px;
+  padding: 80px 20px 12px;
 }
 
 .koru-chat-scroll::-webkit-scrollbar {

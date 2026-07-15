@@ -495,40 +495,17 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
   // turno: en pantalla solo vive el intercambio ACTUAL (ultimo mensaje del
   // usuario + la respuesta de Koru a ese mensaje). Al decir algo nuevo, lo
   // anterior desaparece. El registro completo queda en Historial.
-  // 🔴 v2: Chat thread visibility — cuando está colapsado, SOLO se ve la última
-  // interacción (último mensaje del user + respuesta de Koru = 2 turnos).
-  // Si hay más, botón "Ver N mensajes anteriores" que togglea a "Re-colapsar".
-  // El botón va a ~40% de la pantalla (debajo de la mascota, arriba de los mensajes).
-  const VISIBLE_TURN_COUNT = 2;
-  const hasOlderTurns = chatTurns.length > VISIBLE_TURN_COUNT;
-  const olderCount = chatTurns.length - VISIBLE_TURN_COUNT;
-  const [showAllTurns, setShowAllTurns] = useState(false);
   const visibleTurns = useMemo(() => {
-    if (showAllTurns || !hasOlderTurns) return chatTurns;
-    return chatTurns.slice(-VISIBLE_TURN_COUNT);
-  }, [chatTurns, hasOlderTurns, showAllTurns]);
-
-  function toggleOlderTurns() {
-    setShowAllTurns(!showAllTurns);
-    // El scroll se hace en useEffect abajo, DESPUÉS de que React pinte.
-  }
-
-  // 🔴 FIX: scroll DESPUÉS del render via useEffect.
-  // Al expandir: scroll al inicio del PRIMER mensaje (no scrollTop=0 que muestra padding).
-  // Al colapsar: scroll al fondo (último mensaje).
-  useEffect(() => {
-    const node = scrollRef.current;
-    if (!node) return;
-    if (showAllTurns) {
-      // Expandir: mostrar desde el primer mensaje viejo.
-      // scrollTop = 0 muestra el padding-top, que es donde está el botón.
-      // Los mensajes aparecen debajo del fade.
-      node.scrollTop = 0;
-    } else {
-      // Colapsar: ir al fondo para ver el último mensaje
-      node.scrollTop = node.scrollHeight;
+    let lastUserIdx = -1;
+    for (let i = chatTurns.length - 1; i >= 0; i--) {
+      if (chatTurns[i].role === "user") {
+        lastUserIdx = i;
+        break;
+      }
     }
-  }, [showAllTurns, visibleTurns]);
+    if (lastUserIdx === -1) return chatTurns;
+    return chatTurns.slice(lastUserIdx);
+  }, [chatTurns]);
 
   // Entregable en curso (informe/investigación): su bloque "working" trae el
   // progreso REAL del pipeline. Mientras exista, el composer cede el lugar al
@@ -1149,9 +1126,8 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
         {/* 🔴 FIX: back-button eliminado — el wheel (long-press) es la única navegación */}
         <h1 className="koru-sr-heading">Koru</h1>
 
-        {/* Suggestion Pills — temas de conversaciones anteriores.
-            OCULTAS cuando hay toggle button (hasOlderTurns) para no tapar la mascota. */}
-        {suggestionPills.length > 0 && !processing && !hasOlderTurns && (
+        {/* Suggestion Pills — temas de conversaciones anteriores */}
+        {suggestionPills.length > 0 && !processing && (
           <div className="koru-suggestion-bar">
             {suggestionPills.map((pill) => (
               <button
@@ -1175,35 +1151,7 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
           </div>
         )}
 
-        {/* 🔴 ARQUITECTURA CORRECTA:
-            1. Spacer de 38vh — muestra la mascota a través (transparente)
-            2. Botón — flex item, NUNCA se mueve, NUNCA está en el scroll
-            3. Fade — transición suave
-            4. Scroll area — empieza DEBAJO del botón, mensajes NUNCA pasan arriba
-            5. Footer */}
-        {hasOlderTurns && <div className="koru-mascot-spacer" />}
-
-        {hasOlderTurns && (
-          <div className="koru-thread-toggle-bar">
-            <button type="button" className="koru-thread-toggle-pill" onClick={toggleOlderTurns}>
-              {showAllTurns ? (
-                <>
-                  <span className="material-symbols-outlined">expand_less</span>
-                  Re-colapsar mensajes
-                </>
-              ) : (
-                <>
-                  <span className="material-symbols-outlined">expand_more</span>
-                  Ver {olderCount} mensajes anteriores
-                </>
-              )}
-            </button>
-          </div>
-        )}
-
-        {hasOlderTurns && <div className="koru-thread-fade-bar" />}
-
-        <main ref={scrollRef} className={"koru-chat-scroll" + (hasOlderTurns ? " has-toggle" : "")}>
+        <main ref={scrollRef} className="koru-chat-scroll">
           <div className="koru-thread">
             {visibleTurns.map((turn) =>
               turn.role === "user" ? (
