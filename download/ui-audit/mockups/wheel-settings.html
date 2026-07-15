@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=430, initial-scale=1.0">
+<title>Koru — Wheel → Ajustes</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; width: 430px; height: 932px; overflow: hidden; }
+  .screen { position: relative; width: 430px; height: 932px; overflow: hidden; background: linear-gradient(180deg, #f0dbff 0%, #f8f9ff 100%); }
+  .blob1 { position: absolute; top: -50px; right: -50px; width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(circle, rgba(221,183,255,0.8) 0%, rgba(221,183,255,0) 70%); filter: blur(20px); }
+  .blob2 { position: absolute; top: 200px; left: -100px; width: 250px; height: 250px; border-radius: 50%; background: radial-gradient(circle, rgba(111,251,190,0.4) 0%, rgba(111,251,190,0) 70%); filter: blur(20px); }
+  .back-btn { position: absolute; top: 50px; left: 24px; z-index: 50; width: 48px; height: 48px; border-radius: 999px; background: rgba(255,255,255,0.4); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.6); display: flex; align-items: center; justify-content: center; color: #8127cf; box-shadow: 0 4px 12px rgba(130,39,207,0.1); }
+  .header { position: relative; z-index: 10; padding: 80px 24px 20px; text-align: center; }
+  .header h1 { font-size: 32px; font-weight: 800; color: #8127cf; letter-spacing: -0.025em; margin-bottom: 4px; }
+  .header p { font-size: 14px; color: #464554; font-weight: 500; opacity: 0.8; }
+  /* Settings sections */
+  .sections { padding: 0 24px 48px; position: relative; z-index: 10; display: flex; flex-direction: column; gap: 14px; }
+  .section { background: rgba(255,255,255,0.72); backdrop-filter: blur(16px); border-radius: 1.5rem; padding: 18px; box-shadow: 0 8px 32px rgba(130,39,207,0.08); border: 1px solid rgba(255,255,255,0.85); position: relative; overflow: hidden; }
+  .section::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent); }
+  .sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .sec-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+  .sec-icon .material-symbols-outlined { font-size: 20px; }
+  .sec-title { font-size: 15px; font-weight: 800; color: #382B8C; }
+  .sec-sub { font-size: 10px; font-weight: 700; color: #464554; text-transform: uppercase; letter-spacing: 0.05em; }
+  .sec-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; font-size: 13px; color: #382B8C; border-top: 1px solid rgba(131,99,249,0.1); }
+  .sec-row:first-of-type { border-top: none; }
+  .sec-row .label { font-weight: 600; }
+  .sec-row .value { font-weight: 700; color: #8363F9; }
+  .sec-row .material-symbols-outlined { font-size: 18px; color: #a89ad7; }
+  /* Accents */
+  .a-violet { --mc: #8363F9; --mb: rgba(131,99,249,0.1); }
+  .a-amber { --mc: #d97706; --mb: rgba(217,119,6,0.1); }
+  .a-emerald { --mc: #059669; --mb: rgba(5,150,105,0.1); }
+  .a-rose { --mc: #e11d48; --mb: rgba(225,29,72,0.1); }
+  .a-indigo { --mc: #4648d4; --mb: rgba(70,72,212,0.1); }
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="blob1"></div>
+  <div class="blob2"></div>
+  <button class="back-btn"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+  <div class="header">
+    <h1>Ajustes</h1>
+    <p>Configurá tu Koru</p>
+  </div>
+  <div class="sections">
+    <!-- Perfil -->
+    <div class="section a-violet">
+      <div class="sec-head">
+        <div class="sec-icon" style="background: var(--mb); color: var(--mc);"><span class="material-symbols-outlined">person</span></div>
+        <div><div class="sec-title">Perfil</div><div class="sec-sub">Quién sos</div></div>
+      </div>
+      <div class="sec-row"><span class="label">Nombre</span><span class="value">Juan</span></div>
+      <div class="sec-row"><span class="label">Cómo te hablo</span><span class="value">Cálido</span></div>
+    </div>
+    <!-- Modelo IA -->
+    <div class="section a-amber">
+      <div class="sec-head">
+        <div class="sec-icon" style="background: var(--mb); color: var(--mc);"><span class="material-symbols-outlined">cpu</span></div>
+        <div><div class="sec-title">Modelo de IA</div><div class="sec-sub">Motor de Koru</div></div>
+      </div>
+      <div class="sec-row"><span class="label">Modelo activo</span><span class="value">Nemotron Ultra</span></div>
+      <div class="sec-row"><span class="label">Modo</span><span class="value">Automático</span></div>
+    </div>
+    <!-- Permisos -->
+    <div class="section a-emerald">
+      <div class="sec-head">
+        <div class="sec-icon" style="background: var(--mb); color: var(--mc);"><span class="material-symbols-outlined">mic</span></div>
+        <div><div class="sec-title">Permisos</div><div class="sec-sub">Dispositivo</div></div>
+      </div>
+      <div class="sec-row"><span class="label">Micrófono</span><span class="material-symbols-outlined" style="color: #059669;">check_circle</span></div>
+      <div class="sec-row"><span class="label">Notificaciones</span><span class="material-symbols-outlined" style="color: #059669;">check_circle</span></div>
+      <div class="sec-row"><span class="label">Cámara</span><span class="material-symbols-outlined" style="color: #d97706;">cancel</span></div>
+    </div>
+    <!-- Privacidad -->
+    <div class="section a-rose">
+      <div class="sec-head">
+        <div class="sec-icon" style="background: var(--mb); color: var(--mc);"><span class="material-symbols-outlined">shield</span></div>
+        <div><div class="sec-title">Privacidad</div><div class="sec-sub">Tus datos</div></div>
+      </div>
+      <div class="sec-row"><span class="label">Exportar memoria</span><span class="material-symbols-outlined">chevron_right</span></div>
+      <div class="sec-row"><span class="label">Borrar todo</span><span class="material-symbols-outlined">chevron_right</span></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

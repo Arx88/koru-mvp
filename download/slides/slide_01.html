@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Koru — UX Profundo · Cover</title>
+  <link rel="stylesheet" href="global.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet">
+  <style>
+    .glow-top-right {
+      position: absolute;
+      top: -260px;
+      right: -260px;
+      width: 760px;
+      height: 760px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(131, 99, 249, 0.30) 0%, rgba(131, 99, 249, 0) 70%);
+      filter: blur(40px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .glow-bottom-left {
+      position: absolute;
+      bottom: -200px;
+      left: -180px;
+      width: 520px;
+      height: 520px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(110, 231, 183, 0.10) 0%, rgba(110, 231, 183, 0) 70%);
+      filter: blur(60px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .kicker-bar {
+      width: 28px;
+      height: 2px;
+      background: var(--primary);
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 14px;
+    }
+    .title-underline {
+      width: 120px;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+      border-radius: 4px;
+      margin-top: 28px;
+    }
+    .grid-decor {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(131, 99, 249, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(131, 99, 249, 0.05) 1px, transparent 1px);
+      background-size: 64px 64px;
+      pointer-events: none;
+      z-index: 0;
+      mask-image: radial-gradient(ellipse at center, black 0%, transparent 80%);
+      -webkit-mask-image: radial-gradient(ellipse at center, black 0%, transparent 80%);
+    }
+  </style>
+</head>
+<body>
+  <div class="slide" style="padding: 64px 80px;">
+    <div class="glow-top-right" data-decor aria-hidden="true"></div>
+    <div class="glow-bottom-left" data-decor aria-hidden="true"></div>
+    <div class="grid-decor" data-decor aria-hidden="true"></div>
+
+    <!-- Top brand row -->
+    <div class="relative z-10 flex items-center justify-between" style="margin-bottom: 96px;">
+      <div class="flex items-center" style="gap: 10px;">
+        <span class="material-symbols-outlined" style="color: var(--accent); font-size: 22px;">eco</span>
+        <span style="color: var(--text-soft); font-size: 14px; font-weight: 700; letter-spacing: 0.12em;">KORU</span>
+      </div>
+      <div style="color: var(--text-muted); font-size: 12px; font-weight: 600; letter-spacing: 0.06em;">DECK · 15 / 15</div>
+    </div>
+
+    <!-- Hero block -->
+    <div class="relative z-10 flex flex-col" style="max-width: 880px;">
+      <div style="color: var(--primary); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.2em; margin-bottom: 28px;">
+        <span class="kicker-bar" data-decor aria-hidden="true"></span>AUDIT UX v3 · JULIO 2026
+      </div>
+      <h1 style="color: var(--text); font-size: 56px; font-weight: 800; line-height: 1.1; letter-spacing: -0.01em;">
+        Koru — UX Profundo
+      </h1>
+      <div class="title-underline" data-decor aria-hidden="true"></div>
+      <p style="color: var(--text-soft); font-size: 20px; font-weight: 500; max-width: 700px; line-height: 1.5; margin-top: 28px;">
+        Onboarding conversacional, Wheel con 4 destinos, Home con widgets diarios. Mockups con assets reales en cada pantalla.
+      </p>
+    </div>
+
+    <!-- Bottom row -->
+    <div class="relative z-10 flex items-end justify-between" style="position: absolute; bottom: 56px; left: 80px; right: 80px;">
+      <div style="color: var(--text-muted); font-size: 13px; line-height: 1.6;">
+        Para: equipo producto · 15 slides · 10 mockups reales
+      </div>
+      <div class="flex items-center" style="gap: 8px;">
+        <span style="color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.15em;">Hecho con</span>
+        <span class="material-symbols-outlined" style="color: var(--accent); font-size: 32px;">eco</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Koru — Por qué conversacional vs form</title>
+  <link rel="stylesheet" href="global.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet">
+  <style>
+    .compare-card {
+      background: var(--bg-card);
+      border: 1px solid rgba(131, 99, 249, 0.18);
+      border-radius: 20px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      position: relative;
+      overflow: hidden;
+    }
+    .compare-card.bad-side {
+      border-color: rgba(253, 164, 175, 0.22);
+      background: linear-gradient(180deg, rgba(253, 164, 175, 0.05) 0%, var(--bg-card) 100%);
+    }
+    .compare-card.good-side {
+      border-color: rgba(110, 231, 183, 0.25);
+      background: linear-gradient(180deg, rgba(110, 231, 183, 0.05) 0%, var(--bg-card) 100%);
+    }
+    .compare-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      color: var(--text-soft);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .compare-row .material-symbols-outlined {
+      font-size: 18px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .glow {
+      position: absolute;
+      width: 540px;
+      height: 540px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(131, 99, 249, 0.15) 0%, rgba(131, 99, 249, 0) 70%);
+      filter: blur(60px);
+      top: -260px;
+      left: 50%;
+      transform: translateX(-50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="slide" style="padding: 48px 64px;">
+    <div class="glow" data-decor aria-hidden="true"></div>
+
+    <!-- Header -->
+    <div class="relative z-10 flex items-end justify-between" style="margin-bottom: 24px;">
+      <div>
+        <div style="color: var(--primary); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.18em; margin-bottom: 8px;">ONBOARDING · ARGUMENTACIÓN</div>
+        <h1 style="color: var(--text); font-size: 26px; font-weight: 700; line-height: 1.15; letter-spacing: -0.01em;">Por qué conversacional, no form estático</h1>
+      </div>
+      <div class="flex items-center" style="gap: 10px; color: var(--text-muted); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;">
+        <span class="material-symbols-outlined" style="font-size: 16px; color: var(--accent);">compare_arrows</span>
+        Comparativa
+      </div>
+    </div>
+
+    <!-- Comparison columns -->
+    <div class="relative z-10 grid grid-cols-2" style="gap: 32px;">
+
+      <!-- LEFT: form estático -->
+      <div class="compare-card bad-side" style="height: 380px;">
+        <div class="flex items-center justify-between">
+          <div style="color: var(--danger); font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">
+            FORM ESTÁTICO
+          </div>
+          <span class="material-symbols-outlined" style="color: var(--danger); font-size: 32px;">description</span>
+        </div>
+        <div style="color: var(--text-muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em;">VIEJO</div>
+
+        <div style="height: 1px; background: rgba(253, 164, 175, 0.18);"></div>
+
+        <div class="flex flex-col" style="gap: 12px;">
+          <div class="compare-row">
+            <span class="material-symbols-outlined" style="color: var(--danger);">close</span>
+            <span>3 campos obligatorios antes de empezar</span>
+          </div>
+          <div class="compare-row">
+            <span class="material-symbols-outlined" style="color: var(--danger);">close</span>
+            <span>Friction: el usuario abandona</span>
+          </div>
+          <div class="compare-row">
+            <span class="material-symbols-outlined" style="color: var(--danger);">close</span>
+            <span>No aprende del contexto de la charla</span>
+          </div>
+          <div class="compare-row">
+            <span class="material-symbols-outlined" style="color: var(--danger);">close</span>
+            <span>Se siente como trámite, no como ayuda</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: conversacional -->
+      <div class="compare-card good-side" style="height: 380px;">
+        <div class="flex items-center justify-between">
+          <div style="color: var(--accent); font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">
+            CONVERSACIONAL
+          </div>
+          <span class="material-symbols-outlined" style="color: var(--accent); font-size: 32px;">chat</span>
+        </div>
+        <div style="color: var(--text-muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em;">NUEVO</div>
+
+        <div style="height: 1px; background: rgba(110, 231, 183, 0.22);"></div>
+
+        <div class="flex flex-col" style="gap: 12px;">
+          <div class="compare-row">
+            <span class="material-symbols-outlined" style="color: var(--accent);">check_circle</span>
+            <span>Empezás a usar Koru al instante</span>
+          </div>
+          <div class="compare-row">
+            <span class="material-symbols-outlined" style="color: var(--accent);">check_circle</span>
+            <span>Koru pregunta tu nombre cuando tiene contexto</span>
+          </div>
+          <div class="compare-row">
+            <span class="material-symbols-outlined" style="color: var(--accent);">check_circle</span>
+            <span>Aprende de lo que pedís (clima, deportes)</span>
+          </div>
+          <div class="compare-row">
+            <span class="material-symbols-outlined" style="color: var(--accent);">check_circle</span>
+            <span>Se siente como hablar con un amigo</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom callout -->
+    <div class="relative z-10 flex items-center justify-center" style="margin-top: 22px; background: rgba(131, 99, 249, 0.10); border: 1px solid rgba(131, 99, 249, 0.22); border-radius: 12px; padding: 14px 24px; gap: 12px;">
+      <span class="material-symbols-outlined" style="color: var(--warning); font-size: 22px;">lightbulb</span>
+      <span style="color: var(--text-soft); font-size: 12px; text-align: center; line-height: 1.5;">
+        El onboarding no es un paso previo — ES la primera charla. Koru aprende haciendo.
+      </span>
+    </div>
+  </div>
+</body>
+</html>

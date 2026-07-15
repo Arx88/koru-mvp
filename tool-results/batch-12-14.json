@@ -1,0 +1,59 @@
+[
+  {
+    "id": "recipe-multi",
+    "ok": true,
+    "status": 200,
+    "elapsed": 64,
+    "chunks": 2,
+    "input": "dame 3 recetas con pollo",
+    "wantTool": "recipe_find",
+    "reply": "Te dejé tu receta en la tarjeta.",
+    "mascot": "happy",
+    "tools": [
+      "web_search:needs_context"
+    ],
+    "toolMatches": 1,
+    "blocks": [],
+    "memories": [],
+    "commitments": 0,
+    "records": 0
+  },
+  {
+    "id": "tacos-madrid",
+    "ok": true,
+    "status": 200,
+    "elapsed": 5006,
+    "chunks": 1,
+    "input": "estoy en Madrid, donde puedo comer buenos tacos?",
+    "wantTool": "restaurant_deep_search",
+    "reply": "No pude armar una respuesta clara. ¿Me lo repetís de otra forma?",
+    "mascot": "thinking",
+    "tools": [],
+    "toolMatches": 0,
+    "blocks": [],
+    "memories": [],
+    "commitments": 0,
+    "records": 0
+  },
+  {
+    "id": "plan-day",
+    "ok": true,
+    "status": 200,
+    "elapsed": 5012,
+    "chunks": 2,
+    "input": "planifica mi dia",
+    "wantTool": "plan_day",
+    "reply": "Te armé un plan simple para hoy. Te lo dejo en la tarjeta con los bloques y prioridades.",
+    "mascot": "planning",
+    "tools": [
+      "memory_recall:ok"
+    ],
+    "toolMatches": 0,
+    "blocks": [
+      "plan"
+    ],
+    "memories": [],
+    "commitments": 0,
+    "records": 0
+  }
+]

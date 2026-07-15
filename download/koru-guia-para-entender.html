@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Koru — Lo que hicimos y cómo funciona</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bricolage+Grotesque:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL@20..48,100..700,0..1&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Plus Jakarta Sans', sans-serif; background: #FCFCFA; color: #1a1a2e; }
+  .display { font-family: 'Bricolage Grotesque', sans-serif; }
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400; vertical-align: middle; }
+
+  .hero-bg {
+    background:
+      radial-gradient(ellipse at top left, rgba(131,99,249,.15), transparent 60%),
+      radial-gradient(ellipse at bottom right, rgba(5,150,105,.08), transparent 60%),
+      #FCFCFA;
+  }
+
+  .step-num {
+    width: 40px; height: 40px; border-radius: 99px; background: #8363F9; color: white;
+    display: inline-flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .chat-bubble {
+    background: #F8F4FA; border-radius: 18px; padding: 14px 18px;
+    box-shadow: 0 4px 16px rgba(56,43,140,.06);
+    border: 1px solid rgba(131,99,249,.08);
+  }
+  .user-bubble {
+    background: #F0F4FF; border-radius: 18px 18px 0 18px; padding: 12px 16px;
+    border: 1px solid rgba(131,99,249,.12);
+  }
+  .koru-bubble {
+    background: #F8F4FA; border-radius: 18px 18px 18px 0; padding: 12px 16px;
+    border: 1px solid rgba(131,99,249,.08);
+  }
+
+  .phase-card {
+    background: white; border-radius: 1.5rem; padding: 24px;
+    box-shadow: 0 8px 32px rgba(56,43,140,.06);
+    border: 1px solid rgba(131,99,249,.08);
+  }
+
+  .icon-circle {
+    width: 56px; height: 56px; border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .divider {
+    height: 1px; background: linear-gradient(90deg, transparent, rgba(131,99,249,.15), transparent);
+    margin: 64px 0;
+  }
+
+  .highlight-box {
+    background: linear-gradient(135deg, rgba(131,99,249,.06), rgba(5,150,105,.03));
+    border-radius: 1rem; padding: 20px 24px;
+    border-left: 4px solid #8363F9;
+  }
+
+  .time-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(131,99,249,.1); color: #6d28d9;
+    font-weight: 700; font-size: 13px; padding: 4px 12px;
+    border-radius: 99px;
+  }
+
+  .tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 700; padding: 4px 10px;
+    border-radius: 99px;
+  }
+  .tag-ok { background: rgba(5,150,105,.1); color: #059669; }
+  .tag-new { background: rgba(131,99,249,.1); color: #7c3aed; }
+</style>
+</head>
+<body>
+
+<!-- ================================================================ -->
+<!-- PORTADA                                                          -->
+<!-- ================================================================ -->
+<section class="hero-bg relative overflow-hidden min-h-screen flex items-center">
+  <div class="max-w-4xl mx-auto px-8 py-20 text-center">
+    <p class="text-[#8363F9] font-bold text-sm uppercase tracking-[.2em] mb-4">Guía para entender Koru</p>
+    <h1 class="display text-5xl md:text-7xl font-extrabold text-[#382B8C] leading-[1.05] mb-6 tracking-tight">
+      Lo que hicimos<br>y cómo funciona.
+    </h1>
+    <p class="text-xl text-[#464554] max-w-2xl mx-auto leading-relaxed mb-10">
+      Una guía simple para entender qué puede hacer Koru hoy, qué mejoramos en estas semanas, y qué viene. Sin términos técnicos, sin código, sin detenerse en lo complicado.
+    </p>
+    <div class="flex flex-wrap gap-3 justify-center">
+      <span class="tag tag-ok"><span class="material-symbols-outlined text-[14px]">check_circle</span> 38 mejoras aplicadas</span>
+      <span class="tag tag-new"><span class="material-symbols-outlined text-[14px]">auto_awesome</span> 3 formas de hablarle</span>
+      <span class="tag tag-new"><span class="material-symbols-outlined text-[14px]">bolt</span> Respuestas más rápidas</span>
+    </div>
+    <p class="text-[#9ca3af] text-sm mt-16">Julio 2026 · Koru MVP</p>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<!-- 1. ¿QUÉ ES KORU?                                                 -->
+<!-- ================================================================ -->
+<section class="max-w-3xl mx-auto px-8 py-20">
+  <p class="text-[#8363F9] font-bold text-xs uppercase tracking-[.18em] mb-3">Empecemos por lo básico</p>
+  <h2 class="display text-4xl font-extrabold text-[#382B8C] mb-6">¿Qué es Koru?</h2>
+
+  <div class="space-y-6 text-lg text-[#464554] leading-relaxed">
+    <p>
+      Koru es tu asistente personal. No es un chatbot de esos que te responden con frases genéricas de empresa. Es alguien que te conoce, que aprende de vos, y que está para ayudarte con las cosas de todos los días.
+    </p>
+    <p>
+      Le podés hablar como hablarías con un amigo. Le contás algo, te lo guarda. Le preguntás algo, te lo busca. Le pedís que arme algo, te lo prepara. Y todo lo que le decís queda registrado para que la próxima vez ya sepa quién sos y qué necesitás.
+    </p>
+  </div>
+
+  <div class="mt-10 chat-bubble">
+    <p class="text-sm font-bold text-[#8363F9] mb-2">EJEMPLO REAL</p>
+    <div class="space-y-3">
+      <div class="flex justify-end">
+        <div class="user-bubble max-w-md">
+          <p class="text-[#382B8C]">Anotá 1500 de café</p>
+        </div>
+      </div>
+      <div class="flex justify-start">
+        <div class="koru-bubble max-w-md">
+          <p class="text-[#382B8C] font-medium">Listo, guardado en gastos.</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 mt-3">
+        <span class="material-symbols-outlined text-[#8363F9] text-xl">payments</span>
+        <span class="text-sm text-[#9ca3af]">Y te muestra una tarjeta prolija con el monto y la categoría</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider max-w-3xl mx-auto"></div>
+
+<!-- ================================================================ -->
+<!-- 2. ¿QUÉ PUEDE HACER HOY?                                         -->
+<!-- ================================================================ -->
+<section class="max-w-3xl mx-auto px-8 py-20">
+  <p class="text-[#8363F9] font-bold text-xs uppercase tracking-[.18em] mb-3">Las 3 cosas que hace</p>
+  <h2 class="display text-4xl font-extrabold text-[#382B8C] mb-6">¿Qué puede hacer Koru hoy?</h2>
+
+  <div class="space-y-8">
+    <!-- 1. Conversar -->
+    <div class="phase-card">
+      <div class="flex items-start gap-4">
+        <div class="icon-circle" style="background: rgba(131,99,249,.1); color: #8363F9;">
+          <span class="material-symbols-outlined text-2xl">chat</span>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold text-[#382B8C] mb-2">1. Conversar</h3>
+          <p class="text-[#464554] leading-relaxed mb-3">
+            Lo más simple y lo más importante. Le decís "hola" y te saluda. Le preguntás "¿qué hora es?" y te responde. Le contás que estás cansado y te responde con empatía real, no con una frase de manual.
+          </p>
+          <div class="chat-bubble">
+            <div class="flex justify-end mb-2">
+              <div class="user-bubble"><p class="text-sm text-[#382B8C]">estoy cansado</p></div>
+            </div>
+            <div class="flex justify-start">
+              <div class="koru-bubble"><p class="text-sm text-[#382B8C]">Te entiendo. Si querés, bajo el ritmo y ordenamos lo mínimo indispensable para hoy.</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Guardar cosas -->
+    <div class="phase-card">
+      <div class="flex items-start gap-4">
+        <div class="icon-circle" style="background: rgba(5,150,105,.1); color: #059669;">
+          <span class="material-symbols-outlined text-2xl">inventory_2</span>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold text-[#382B8C] mb-2">2. Guardar cosas</h3>
+          <p class="text-[#464554] leading-relaxed mb-3">
+            Gastos, listas de compras, recordatorios, enlaces, notas, y ahora también <b>audios</b> e <b>imágenes</b>. Le pasás información y Koru la organiza y la guarda para que la encuentres después.
+          </p>
+          <div class="chat-bubble">
+            <div class="flex justify-end mb-2">
+              <div class="user-bubble"><p class="text-sm text-[#382B8C]">necesito leche, huevos y pan</p></div>
+            </div>
+            <div class="flex justify-start">
+              <div class="koru-bubble"><p class="text-sm text-[#382B8C]">Listo, guardado en compras. Leche, huevos y pan anotados.</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Buscar información -->
+    <div class="phase-card">
+      <div class="flex items-start gap-4">
+        <div class="icon-circle" style="background: rgba(217,119,6,.1); color: #d97706;">
+          <span class="material-symbols-outlined text-2xl">travel_explore</span>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold text-[#382B8C] mb-2">3. Buscar información real</h3>
+          <p class="text-[#464554] leading-relaxed mb-3">
+            Clima de tu ciudad, noticias del día, resultados deportivos, rutas entre dos puntos, cotización del dólar. Koru consulta fuentes reales y te trae datos verificados, no inventados.
+          </p>
+          <div class="chat-bubble">
+            <div class="flex justify-end mb-2">
+              <div class="user-bubble"><p class="text-sm text-[#382B8C]">¿qué clima hace en Barcelona?</p></div>
+            </div>
+            <div class="flex justify-start">
+              <div class="koru-bubble"><p class="text-sm text-[#382B8C]">En Barcelona hace 26°C ahora, con máximas de 29 y mínimas de 23. Viento a 7 km/h y 0% de lluvia.</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider max-w-3xl mx-auto"></div>
+
+<!-- ================================================================ -->
+<!-- 3. LO QUE MEJORAMOS                                              -->
+<!-- ================================================================ -->
+<section class="max-w-3xl mx-auto px-8 py-20">
+  <p class="text-[#8363F9] font-bold text-xs uppercase tracking-[.18em] mb-3">Las 4 etapas</p>
+  <h2 class="display text-4xl font-extrabold text-[#382B8C] mb-6">Lo que mejoramos</h2>
+  <p class="text-lg text-[#464554] leading-relaxed mb-10">
+    Trabajamos en 4 etapas. Cada una resolvió problemas reales y agregó capacidades nuevas. Así fue, en orden:
+  </p>
+
+  <div class="space-y-8">
+    <!-- Etapa 1 -->
+    <div class="flex gap-5">
+      <span class="step-num">1</span>
+      <div class="flex-1">
+        <h3 class="text-xl font-bold text-[#382B8C] mb-2">Arreglamos lo que estaba roto</h3>
+        <p class="text-[#464554] leading-relaxed mb-3">
+          Había errores de texto (palabras mal escritas, tildes faltantes), tarjetas que se veían mal (unas pegadas a otras), y tests que no pasaban. Arreglamos 13 problemas confirmados y eliminamos código viejo que no se usaba pero generaba confusión.
+        </p>
+        <p class="text-sm text-[#059669] font-bold">Resultado: la app se ve más prolija y no tiene errores de texto visibles.</p>
+      </div>
+    </div>
+
+    <!-- Etapa 2 -->
+    <div class="flex gap-5">
+      <span class="step-num">2</span>
+      <div class="flex-1">
+        <h3 class="text-xl font-bold text-[#382B8C] mb-2">Le dimos memoria más viva</h3>
+        <p class="text-[#464554] leading-relaxed mb-3">
+          Antes, Koru intentaba recordar cosas usando un sistema local que casi nunca funcionaba. Lo conectamos a un servicio en la nube (NVIDIA) que siempre está disponible. También le agregamos la capacidad de transcribir audios y analizar imágenes.
+        </p>
+        <p class="text-sm text-[#059669] font-bold">Resultado: Koru recuerda mejor, transcribe audios y lee imágenes.</p>
+      </div>
+    </div>
+
+    <!-- Etapa 3 -->
+    <div class="flex gap-5">
+      <span class="step-num">3</span>
+      <div class="flex-1">
+        <h3 class="text-xl font-bold text-[#382B8C] mb-2">Conectamos herramientas reales</h3>
+        <p class="text-[#464554] leading-relaxed mb-3">
+          Muchas de las cosas que Koru podía hacer eran simulaciones: decía "voy a buscar" pero en realidad no buscaba nada. Reemplazamos 11 simulaciones con conexiones reales a servicios gratuitos: clima real de Open-Meteo, rutas reales de OSRM, noticias reales de GDELT, información de Wikipedia, y más.
+        </p>
+        <p class="text-sm text-[#059669] font-bold">Resultado: cuando Koru busca algo, encuentra datos reales. Cero simulaciones.</p>
+      </div>
+    </div>
+
+    <!-- Etapa 4 -->
+    <div class="flex gap-5">
+      <span class="step-num">4</span>
+      <div class="flex-1">
+        <h3 class="text-xl font-bold text-[#382B8C] mb-2">Mejoramos la calidad de las respuestas</h3>
+        <p class="text-[#464554] leading-relaxed mb-3">
+          Implementamos un "router de modelos": si le decís "hola", Koru usa un modelo rápido que responde en segundos. Si le pedís un informe completo, usa el modelo más inteligente. También le enseñamos con ejemplos cómo responder de forma útil y directa, sin exagerar ni preguntar cosas obvias.
+        </p>
+        <p class="text-sm text-[#059669] font-bold">Resultado: respuestas más rápidas para cosas simples, más inteligentes para cosas complejas.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-10 highlight-box">
+    <p class="text-[#382B8C] font-bold text-lg mb-1">38 mejoras en total</p>
+    <p class="text-[#464554] text-sm">Cada una probada y verificada. 28 tests automáticos pasan sin errores. La app funciona de punta a punta.</p>
+  </div>
+</section>
+
+<div class="divider max-w-3xl mx-auto"></div>
+
+<!-- ================================================================ -->
+<!-- 4. UN DÍA CON KORU                                               -->
+<!-- ================================================================ -->
+<section class="max-w-3xl mx-auto px-8 py-20">
+  <p class="text-[#8363F9] font-bold text-xs uppercase tracking-[.18em] mb-3">Un sábado típico</p>
+  <h2 class="display text-4xl font-extrabold text-[#382B8C] mb-6">Un día con Koru</h2>
+  <p class="text-lg text-[#464554] leading-relaxed mb-10">
+    Así se ve un día real usando Koru, desde la mañana hasta la noche:
+  </p>
+
+  <div class="space-y-6">
+    <!-- 8am -->
+    <div class="flex gap-4 items-start">
+      <span class="time-chip"><span class="material-symbols-outlined text-[14px]">wb_sunny</span> 8 AM</span>
+      <div class="flex-1 chat-bubble">
+        <div class="flex justify-end mb-2"><div class="user-bubble"><p class="text-sm text-[#382B8C]">buen día</p></div></div>
+        <div class="flex justify-start"><div class="koru-bubble"><p class="text-sm text-[#382B8C]">Hola. ¿Cómo va todo?</p></div></div>
+      </div>
+    </div>
+
+    <!-- 10am -->
+    <div class="flex gap-4 items-start">
+      <span class="time-chip"><span class="material-symbols-outlined text-[14px]">coffee</span> 10 AM</span>
+      <div class="flex-1 chat-bubble">
+        <div class="flex justify-end mb-2"><div class="user-bubble"><p class="text-sm text-[#382B8C]">anota 2500 de almuerzo</p></div></div>
+        <div class="flex justify-start"><div class="koru-bubble"><p class="text-sm text-[#382B8C]">Listo, guardado en gastos.</p></div></div>
+      </div>
+    </div>
+
+    <!-- 12pm -->
+    <div class="flex gap-4 items-start">
+      <span class="time-chip"><span class="material-symbols-outlined text-[14px]">shopping_cart</span> 12 PM</span>
+      <div class="flex-1 chat-bubble">
+        <div class="flex justify-end mb-2"><div class="user-bubble"><p class="text-sm text-[#382B8C]">necesito leche, huevos y pan</p></div></div>
+        <div class="flex justify-start"><div class="koru-bubble"><p class="text-sm text-[#382B8C]">Listo, guardado en compras. Leche, huevos y pan anotados.</p></div></div>
+      </div>
+    </div>
+
+    <!-- 2pm -->
+    <div class="flex gap-4 items-start">
+      <span class="time-chip"><span class="material-symbols-outlined text-[14px]">wb_cloudy</span> 2 PM</span>
+      <div class="flex-1 chat-bubble">
+        <div class="flex justify-end mb-2"><div class="user-bubble"><p class="text-sm text-[#382B8C]">¿qué clima hace en Barcelona?</p></div></div>
+        <div class="flex justify-start"><div class="koru-bubble"><p class="text-sm text-[#382B8C]">En Barcelona hace 26°C ahora, con máximas de 29 y mínimas de 23. Día para salir liviano.</p></div></div>
+      </div>
+    </div>
+
+    <!-- 6pm -->
+    <div class="flex gap-4 items-start">
+      <span class="time-chip"><span class="material-symbols-outlined text-[14px]">auto_stories</span> 6 PM</span>
+      <div class="flex-1 chat-bubble">
+        <div class="flex justify-end mb-2"><div class="user-bubble"><p class="text-sm text-[#382B8C]">quiero un informe sobre Age of Empires 2</p></div></div>
+        <div class="flex justify-start"><div class="koru-bubble"><p class="text-sm text-[#382B8C]">¡Listo! Tu informe sobre Age of Empires II está terminado. Lo investigué en 18 fuentes.</p></div></div>
+        <p class="text-xs text-[#9ca3af] mt-2">Koru muestra un panel de "Trabajando en tu informe..." con progreso real mientras investiga.</p>
+      </div>
+    </div>
+
+    <!-- 11pm -->
+    <div class="flex gap-4 items-start">
+      <span class="time-chip"><span class="material-symbols-outlined text-[14px]">bedtime</span> 11 PM</span>
+      <div class="flex-1 chat-bubble">
+        <div class="flex justify-end mb-2"><div class="user-bubble"><p class="text-sm text-[#382B8C]">anota que hoy fue un buen día</p></div></div>
+        <div class="flex justify-start"><div class="koru-bubble"><p class="text-sm text-[#382B8C]">Listo, guardado. Qué lindo que haya sido un buen día.</p></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-10 highlight-box">
+    <p class="text-[#382B8C] font-bold text-lg mb-1">Al final del día</p>
+    <p class="text-[#464554] text-sm">Koru pasó de 0 recuerdos a 2 recuerdos. De 0 colecciones a 5 colecciones guardadas. Todo quedó registrado para la próxima vez.</p>
+  </div>
+</section>
+
+<div class="divider max-w-3xl mx-auto"></div>
+
+<!-- ================================================================ -->
+<!-- 5. 3 FORMAS DE HABLARLE                                          -->
+<!-- ================================================================ -->
+<section class="max-w-3xl mx-auto px-8 py-20">
+  <p class="text-[#8363F9] font-bold text-xs uppercase tracking-[.18em] mb-3">Novedad</p>
+  <h2 class="display text-4xl font-extrabold text-[#382B8C] mb-6">3 formas de hablarle a Koru</h2>
+  <p class="text-lg text-[#464554] leading-relaxed mb-10">
+    Antes solo podías escribirle. Ahora tenés 3 opciones, todas desde la misma pantalla de chat:
+  </p>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+    <!-- Escribir -->
+    <div class="phase-card text-center">
+      <div class="icon-circle mx-auto mb-4" style="background: rgba(131,99,249,.1); color: #8363F9;">
+        <span class="material-symbols-outlined text-2xl">keyboard</span>
+      </div>
+      <h3 class="font-bold text-[#382B8C] mb-2">Escribir</h3>
+      <p class="text-sm text-[#464554]">Como WhatsApp. Escribís tu mensaje, Koru responde.</p>
+      <span class="tag tag-ok mt-3">Siempre disponible</span>
+    </div>
+
+    <!-- Audio -->
+    <div class="phase-card text-center">
+      <div class="icon-circle mx-auto mb-4" style="background: rgba(5,150,105,.1); color: #059669;">
+        <span class="material-symbols-outlined text-2xl">mic</span>
+      </div>
+      <h3 class="font-bold text-[#382B8C] mb-2">Subir audio</h3>
+      <p class="text-sm text-[#464554]">Grabás una nota de voz en tu celu, la subís, y Koru la transcribe y procesa.</p>
+      <span class="tag tag-new mt-3">Nuevo</span>
+    </div>
+
+    <!-- Imagen -->
+    <div class="phase-card text-center">
+      <div class="icon-circle mx-auto mb-4" style="background: rgba(217,119,6,.1); color: #d97706;">
+        <span class="material-symbols-outlined text-2xl">image</span>
+      </div>
+      <h3 class="font-bold text-[#382B8C] mb-2">Subir imagen</h3>
+      <p class="text-sm text-[#464554]">Subís una foto de un ticket, cartel o documento, y Koru extrae el texto.</p>
+      <span class="tag tag-new mt-3">Nuevo</span>
+    </div>
+  </div>
+
+  <div class="chat-bubble">
+    <p class="text-sm font-bold text-[#8363F9] mb-3">EJEMPLO: SUBIR UN TICKET</p>
+    <div class="space-y-2 text-sm text-[#464554]">
+      <p>1. Le sacás una foto al ticket de compra</p>
+      <p>2. En el chat de Koru, tocás el ícono de imagen (arriba a la derecha del teclado)</p>
+      <p>3. Seleccionás la foto</p>
+      <p>4. Koru la analiza y extrae: "Total: $1.500 — Fecha: 11/07/2026 — Producto: Café"</p>
+      <p>5. Koru guarda la información y te confirma</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider max-w-3xl mx-auto"></div>
+
+<!-- ================================================================ -->
+<!-- 6. POR QUÉ A VECES TARDA                                         -->
+<!-- ================================================================ -->
+<section class="max-w-3xl mx-auto px-8 py-20">
+  <p class="text-[#8363F9] font-bold text-xs uppercase tracking-[.18em] mb-3">Sobre la velocidad</p>
+  <h2 class="display text-4xl font-extrabold text-[#382B8C] mb-6">Por qué a veces tarda</h2>
+
+  <div class="space-y-6 text-lg text-[#464554] leading-relaxed mb-8">
+    <p>
+      Koru usa modelos de inteligencia artificial de NVIDIA para pensar las respuestas. Algunos modelos son más rápidos pero menos inteligentes; otros son más inteligentes pero tardan más.
+    </p>
+    <p>
+      Lo que hicimos es enseñarle a Koru a elegir el modelo correcto según lo que le pedís:
+    </p>
+  </div>
+
+  <div class="space-y-4 mb-8">
+    <div class="phase-card flex items-center gap-4">
+      <span class="material-symbols-outlined text-2xl text-[#059669]">bolt</span>
+      <div>
+        <p class="font-bold text-[#382B8C]">Si le decís "hola" o "gracias"</p>
+        <p class="text-sm text-[#464554]">Usa un modelo rápido. Responde en ~20 segundos.</p>
+      </div>
+    </div>
+    <div class="phase-card flex items-center gap-4">
+      <span class="material-symbols-outlined text-2xl text-[#8363F9]">psychology</span>
+      <div>
+        <p class="font-bold text-[#382B8C]">Si le pedís un gasto, clima, o lista</p>
+        <p class="text-sm text-[#464554]">Usa el modelo más inteligente. Responde en ~25-35 segundos. Vale la pena espera.</p>
+      </div>
+    </div>
+    <div class="phase-card flex items-center gap-4">
+      <span class="material-symbols-outlined text-2xl text-[#d97706]">auto_stories</span>
+      <div>
+        <p class="font-bold text-[#382B8C]">Si le pedís un informe completo</p>
+        <p class="text-sm text-[#464554]">Usa el modelo más potente y busca en múltiples fuentes. Tarda 60-90 segundos. Te muestra el progreso mientras trabaja.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="highlight-box">
+    <p class="text-[#382B8C] text-sm">
+      <b>¿Por qué no es instantáneo?</b> Porque Koru no copia y pega respuestas de un catálogo. Piensa cada respuesta desde cero, consultando tus recuerdos, las herramientas disponibles, y el contexto de la conversación. Es como pedirle a un amigo que te responda algo: necesita un momento para pensar.
+    </p>
+  </div>
+</section>
+
+<div class="divider max-w-3xl mx-auto"></div>
+
+<!-- ================================================================ -->
+<!-- 7. KORU NO INVENTA                                               -->
+<!-- ================================================================ -->
+<section class="max-w-3xl mx-auto px-8 py-20">
+  <p class="text-[#8363F9] font-bold text-xs uppercase tracking-[.18em] mb-3">Honestidad por diseño</p>
+  <h2 class="display text-4xl font-extrabold text-[#382B8C] mb-6">Koru no inventa</h2>
+
+  <div class="space-y-6 text-lg text-[#464554] leading-relaxed mb-8">
+    <p>
+      Uno de los problemas más comunes con los asistentes de IA es que inventan datos cuando no los saben. Te dicen "el partido terminó 2-1" cuando en realidad no tienen idea del resultado.
+    </p>
+    <p>
+      Koru no hace eso. Si no sabe algo, lo dice. Si busca algo y no lo encuentra, te avisa. Si una fuente falla, te ofrece alternativas en vez de improvisar.
+    </p>
+  </div>
+
+  <div class="space-y-4 mb-8">
+    <div class="chat-bubble">
+      <p class="text-xs font-bold text-[#d97706] mb-2">CUANDO NO ENCUENTRA DATOS</p>
+      <div class="flex justify-end mb-2"><div class="user-bubble"><p class="text-sm text-[#382B8C]">¿cómo le fue a River?</p></div></div>
+      <div class="flex justify-start"><div class="koru-bubble"><p class="text-sm text-[#382B8C]">Busqué en las noticias pero no apareció el resultado concreto del último partido. ¿Querés que intente con una búsqueda más específica?</p></div></div>
+    </div>
+
+    <div class="chat-bubble">
+      <p class="text-xs font-bold text-[#d97706] mb-2">CUANDO UNA FUENTE FALLA</p>
+      <div class="flex justify-end mb-2"><div class="user-bubble"><p class="text-sm text-[#382B8C]">¿qué paso en el mundo hoy?</p></div></div>
+      <div class="flex justify-start"><div class="koru-bubble"><p class="text-sm text-[#382B8C]">No pude conseguir noticias frescas con las fuentes abiertas ahora mismo. ¿Querés que lo intente más tarde?</p></div></div>
+    </div>
+  </div>
+
+  <div class="highlight-box">
+    <p class="text-[#382B8C] text-sm">
+      <b>Esto no es un accidente.</b> Koru tiene reglas internas que le prohíben inventar datos. Si una herramienta externa falla, el sistema le dice "NO inventes los datos, decile al usuario honestamente que no pudiste obtener esa información".
+    </p>
+  </div>
+</section>
+
+<div class="divider max-w-3xl mx-auto"></div>
+
+<!-- ================================================================ -->
+<!-- 8. CÓMO KORU TE RECUERDA                                         -->
+<!-- ================================================================ -->
+<section class="max-w-3xl mx-auto px-8 py-20">
+  <p class="text-[#8363F9] font-bold text-xs uppercase tracking-[.18em] mb-3">La memoria de Koru</p>
+  <h2 class="display text-4xl font-extrabold text-[#382B8C] mb-6">Cómo Koru te recuerda</h2>
+
+  <div class="space-y-6 text-lg text-[#464554] leading-relaxed mb-8">
+    <p>
+      Cuando le contás algo a Koru —tu nombre, dónde vivís, qué te gusta, qué rutina tenés—, él lo guarda como un "recuerdo". Pero no todos los recuerdos son iguales:
+    </p>
+    <p>
+      Algunos los confirma automáticamente (como tu nombre). Otros los guarda como "candidatos" y te pregunta si son correctos antes de usarlos. Vos decidís qué se queda y qué se va.
+    </p>
+  </div>
+
+  <div class="space-y-4 mb-8">
+    <div class="phase-card">
+      <div class="flex items-center gap-3 mb-2">
+        <span class="material-symbols-outlined text-[#059669]">verified</span>
+        <p class="font-bold text-[#382B8C]">Recuerdos confirmados</p>
+      </div>
+      <p class="text-sm text-[#464554]">Cosas que le dijiste directamente o que confirmaste. Koru las usa para personalizar respuestas. Ejemplo: si le dijiste "vivo en Palermo", te va a buscar el clima de Palermo automáticamente.</p>
+    </div>
+    <div class="phase-card">
+      <div class="flex items-center gap-3 mb-2">
+        <span class="material-symbols-outlined text-[#d97706]">help</span>
+        <p class="font-bold text-[#382B8C]">Recuerdos candidatos</p>
+      </div>
+      <p class="text-sm text-[#464554]">Cosas que Koru notó pero no está seguro. Te pregunta antes de usarlos. Ejemplo: si mencionás "mañana tengo reunión", Koru lo anota pero te pregunta si querés que te recuerde.</p>
+    </div>
+  </div>
+
+  <div class="chat-bubble">
+    <p class="text-xs font-bold text-[#8363F9] mb-2">EJEMPLO: KORU APRENDE DE VOS</p>
+    <div class="space-y-3">
+      <div class="flex justify-end mb-2"><div class="user-bubble"><p class="text-sm text-[#382B8C]">estoy en Palermo, Buenos Aires</p></div></div>
+      <div class="flex justify-start"><div class="koru-bubble"><p class="text-sm text-[#382B8C]">Anotado. ¿Querés que use Palermo como tu ubicación para clima y rutas?</p></div></div>
+      <div class="flex justify-end mb-2"><div class="user-bubble"><p class="text-sm text-[#382B8C]">sí</p></div></div>
+      <div class="flex justify-start"><div class="koru-bubble"><p class="text-sm text-[#382B8C]">Listo. La próxima vez que me preguntes por el clima, te lo busco para Palermo.</p></div></div>
+    </div>
+  </div>
+
+  <div class="mt-6 highlight-box">
+    <p class="text-[#382B8C] text-sm">
+      <b>Podés ver y editar tus recuerdos cuando quieras.</b> En la pantalla principal, tocá "Koru te conoce" para ver todos los recuerdos guardados. Desde ahí podés confirmar los candidatos, editar los existentes, o eliminar los que ya no querés.
+    </p>
+  </div>
+</section>
+
+<div class="divider max-w-3xl mx-auto"></div>
+
+<!-- ================================================================ -->
+<!-- 9. LO QUE VIENE                                                  -->
+<!-- ================================================================ -->
+<section class="max-w-3xl mx-auto px-8 py-20">
+  <p class="text-[#8363F9] font-bold text-xs uppercase tracking-[.18em] mb-3">El futuro cercano</p>
+  <h2 class="display text-4xl font-extrabold text-[#382B8C] mb-6">Lo que viene</h2>
+  <p class="text-lg text-[#464554] leading-relaxed mb-10">
+    Koru ya hace mucho, pero el objetivo es que pueda hacer TODO. Estas son las próximas mejoras:
+  </p>
+
+  <div class="space-y-6">
+    <div class="flex gap-4 items-start">
+      <span class="material-symbols-outlined text-2xl text-[#8363F9] mt-1">calendar_month</span>
+      <div>
+        <h3 class="font-bold text-[#382B8C]">Conectarse a tu calendario</h3>
+        <p class="text-sm text-[#464554]">Que Koru pueda ver tu Google Calendar y recordarte reuniones, crear eventos, y sincronizar con tus pendientes.</p>
+      </div>
+    </div>
+
+    <div class="flex gap-4 items-start">
+      <span class="material-symbols-outlined text-2xl text-[#8363F9] mt-1">mail</span>
+      <div>
+        <h3 class="font-bold text-[#382B8C]">Mandar mails y mensajes</h3>
+        <p class="text-sm text-[#464554]">Que pueda redactar y enviar mails por vos, o mandar mensajes de WhatsApp con tu aprobación.</p>
+      </div>
+    </div>
+
+    <div class="flex gap-4 items-start">
+      <span class="material-symbols-outlined text-2xl text-[#8363F9] mt-1">cloud_sync</span>
+      <div>
+        <h3 class="font-bold text-[#382B8C]">Recordar entre dispositivos</h3>
+        <p class="text-sm text-[#464554]">Hoy Koru solo recuerda en el navegador que usás. La idea es que tus recuerdos te sigan sin importar desde dónde entres.</p>
+      </div>
+    </div>
+
+    <div class="flex gap-4 items-start">
+      <span class="material-symbols-outlined text-2xl text-[#8363F9] mt-1">speed</span>
+      <div>
+        <h3 class="font-bold text-[#382B8C]">Responder más rápido</h3>
+        <p class="text-sm text-[#464554]">Estamos probando modelos más eficientes para que las respuestas simples lleguen en menos de 10 segundos.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-12 text-center">
+    <p class="display text-2xl font-extrabold text-[#382B8C] leading-relaxed max-w-xl mx-auto">
+      Koru va a seguir creciendo. Lo importante es que cada paso lo acerca a ser el secretario/amigo que siempre quiso ser.
+    </p>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<!-- FOOTER                                                           -->
+<!-- ================================================================ -->
+<footer class="hero-bg py-16 text-center">
+  <div class="max-w-2xl mx-auto px-8">
+    <p class="text-[#8363F9] font-bold text-sm uppercase tracking-[.2em] mb-4">Koru MVP</p>
+    <p class="text-[#464554] text-sm leading-relaxed">
+      38 mejoras aplicadas · 28 tests automáticos · 3 formas de interacción · 0 datos inventados
+    </p>
+    <p class="text-[#9ca3af] text-xs mt-6">Julio 2026</p>
+  </div>
+</footer>
+
+</body>
+</html>

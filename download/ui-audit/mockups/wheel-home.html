@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=430, initial-scale=1.0">
+<title>Koru — Wheel → Home con widgets diarios</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; width: 430px; height: 932px; overflow: hidden; }
+  .screen { position: relative; width: 430px; height: 932px; overflow: hidden; background: linear-gradient(180deg, #f0dbff 0%, #f8f9ff 100%); }
+  .blob1 { position: absolute; top: -50px; right: -50px; width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(circle, rgba(221,183,255,0.8) 0%, rgba(221,183,255,0) 70%); filter: blur(20px); }
+  .blob2 { position: absolute; top: 200px; left: -100px; width: 250px; height: 250px; border-radius: 50%; background: radial-gradient(circle, rgba(111,251,190,0.4) 0%, rgba(111,251,190,0) 70%); filter: blur(20px); }
+  .back-btn { position: absolute; top: 50px; left: 24px; z-index: 50; width: 48px; height: 48px; border-radius: 999px; background: rgba(255,255,255,0.4); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.6); display: flex; align-items: center; justify-content: center; color: #8127cf; box-shadow: 0 4px 12px rgba(130,39,207,0.1); }
+  .header { position: relative; z-index: 10; padding: 80px 24px 16px; text-align: center; }
+  .header h1 { font-size: 28px; font-weight: 800; color: #8127cf; letter-spacing: -0.025em; margin-bottom: 4px; }
+  .header p { font-size: 14px; color: #464554; font-weight: 500; opacity: 0.8; }
+  /* Widgets grid */
+  .widgets { padding: 0 20px 48px; position: relative; z-index: 10; display: flex; flex-direction: column; gap: 14px; }
+  .widget { background: rgba(255,255,255,0.72); backdrop-filter: blur(16px); border-radius: 1.5rem; padding: 18px; box-shadow: 0 8px 32px rgba(130,39,207,0.08); border: 1px solid rgba(255,255,255,0.85); position: relative; overflow: hidden; }
+  .widget::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent); }
+  .w-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .w-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+  .w-icon .material-symbols-outlined { font-size: 20px; }
+  .w-title { font-size: 13px; font-weight: 700; color: #382B8C; text-transform: uppercase; letter-spacing: 0.05em; }
+  .w-sub { font-size: 10px; font-weight: 600; color: #464554; }
+  /* Weather widget */
+  .w-weather { --mc: #f59e0b; --mb: rgba(245,158,11,0.1); }
+  .weather-main { display: flex; align-items: center; gap: 16px; }
+  .weather-temp { font-size: 42px; font-weight: 800; color: #382B8C; }
+  .weather-info { flex: 1; }
+  .weather-cond { font-size: 15px; font-weight: 700; color: #382B8C; }
+  .weather-detail { font-size: 12px; color: #464554; }
+  /* Expenses widget */
+  .w-expenses { --mc: #059669; --mb: rgba(5,150,105,0.1); }
+  .expense-total { font-size: 32px; font-weight: 800; color: #382B8C; margin-bottom: 8px; }
+  .expense-list { display: flex; flex-direction: column; gap: 4px; }
+  .expense-row { display: flex; justify-content: space-between; font-size: 12px; }
+  .expense-row .label { color: #464554; }
+  .expense-row .value { color: #382B8C; font-weight: 700; }
+  /* Tasks widget */
+  .w-tasks { --mc: #8363F9; --mb: rgba(131,99,249,0.1); }
+  .task-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 13px; color: #382B8C; }
+  .task-row .material-symbols-outlined { font-size: 18px; color: #8363F9; }
+  /* Memory widget */
+  .w-memory { --mc: #d97706; --mb: rgba(217,119,6,0.1); }
+  .memory-chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; background: rgba(217,119,6,0.1); color: #d97706; font-size: 11px; font-weight: 600; margin: 2px; }
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="blob1"></div>
+  <div class="blob2"></div>
+  <button class="back-btn"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+  <div class="header">
+    <h1>Tu día, Juan</h1>
+    <p>Lo que Koru preparó para hoy</p>
+  </div>
+  <div class="widgets">
+    <!-- Weather widget -->
+    <div class="widget w-weather">
+      <div class="w-head">
+        <div class="w-icon" style="background: var(--mb); color: var(--mc);"><span class="material-symbols-outlined">partly_cloudy_day</span></div>
+        <div><div class="w-title">Clima · Madrid</div><div class="w-sub">Actualizado hace 2h</div></div>
+      </div>
+      <div class="weather-main">
+        <div class="weather-temp">29°</div>
+        <div class="weather-info">
+          <div class="weather-cond">Parcial nublado</div>
+          <div class="weather-detail">Máx 32° · Mín 21° · Viento 15 km/h</div>
+        </div>
+      </div>
+    </div>
+    <!-- Expenses widget -->
+    <div class="widget w-expenses">
+      <div class="w-head">
+        <div class="w-icon" style="background: var(--mb); color: var(--mc);"><span class="material-symbols-outlined">savings</span></div>
+        <div><div class="w-title">Gastos de hoy</div><div class="w-sub">3 movimientos</div></div>
+      </div>
+      <div class="expense-total">$4.500</div>
+      <div class="expense-list">
+        <div class="expense-row"><span class="label">☕ Café</span><span class="value">$2.000</span></div>
+        <div class="expense-row"><span class="label">🍔 Almuerzo</span><span class="value">$1.800</span></div>
+        <div class="expense-row"><span class="label">🚌 Transporte</span><span class="value">$700</span></div>
+      </div>
+    </div>
+    <!-- Tasks widget -->
+    <div class="widget w-tasks">
+      <div class="w-head">
+        <div class="w-icon" style="background: var(--mb); color: var(--mc);"><span class="material-symbols-outlined">task_alt</span></div>
+        <div><div class="w-title">Pendientes</div><div class="w-sub">2 abiertos</div></div>
+      </div>
+      <div class="task-row"><span class="material-symbols-outlined">radio_button_unchecked</span> Llamar al médico</div>
+      <div class="task-row"><span class="material-symbols-outlined">radio_button_unchecked</span> Preparar reunión 15h</div>
+    </div>
+    <!-- Memory widget -->
+    <div class="widget w-memory">
+      <div class="w-head">
+        <div class="w-icon" style="background: var(--mb); color: var(--mc);"><span class="material-symbols-outlined">neurology</span></div>
+        <div><div class="w-title">Lo que sé de vos</div><div class="w-sub">8 memorias</div></div>
+      </div>
+      <div>
+        <span class="memory-chip">📍 Madrid</span>
+        <span class="memory-chip">☕ Café matutino</span>
+        <span class="memory-chip">⚽ España</span>
+        <span class="memory-chip">💰 Ahorrando</span>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

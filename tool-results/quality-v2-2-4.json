@@ -1,0 +1,53 @@
+[
+  {
+    "id": "r03",
+    "ok": true,
+    "elapsed": 5617,
+    "input": "la semana q viene tengo q pagar el alquiler",
+    "reply": "Listo, guardado en recordatorios.",
+    "quality": 10,
+    "issues": [],
+    "tools": [
+      "memory_recall"
+    ],
+    "blocks": [
+      "reminder"
+    ],
+    "memories": 0,
+    "commitments": 1
+  },
+  {
+    "id": "r04",
+    "ok": true,
+    "elapsed": 5186,
+    "input": "acordate q el 20 vence la tarjeta",
+    "reply": "Listo, guardado en recordatorios. Te aviso cuando se acerque el 20.",
+    "quality": 10,
+    "issues": [],
+    "tools": [
+      "memory_recall"
+    ],
+    "blocks": [
+      "reminder"
+    ],
+    "memories": 0,
+    "commitments": 1
+  },
+  {
+    "id": "r05",
+    "ok": true,
+    "elapsed": 5184,
+    "input": "mañana x la mañana tengo q llevar el auto al taller",
+    "reply": "Listo, guardado en recordatorios. Te aviso mañana temprano.",
+    "quality": 10,
+    "issues": [],
+    "tools": [
+      "memory_recall"
+    ],
+    "blocks": [
+      "reminder"
+    ],
+    "memories": 0,
+    "commitments": 1
+  }
+]

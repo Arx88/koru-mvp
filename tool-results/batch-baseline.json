@@ -1,0 +1,134 @@
+[
+  {
+    "id": "reminder-pill",
+    "ok": false,
+    "status": 0,
+    "elapsed": 45897,
+    "error": "Unexpected non-whitespace character after JSON at position 619 (line 4 column 1)"
+  },
+  {
+    "id": "alarm-wake",
+    "ok": false,
+    "status": 0,
+    "elapsed": 16328,
+    "error": "Unexpected non-whitespace character after JSON at position 607 (line 4 column 1)"
+  },
+  {
+    "id": "countdown",
+    "ok": true,
+    "status": 200,
+    "elapsed": 5528,
+    "input": "cuantos dias faltan para navidad?",
+    "wantTool": "countdown",
+    "reply": "Faltan **164 días** para Navidad (25 de diciembre de 2026).",
+    "mascot": "thinking",
+    "tools": [],
+    "toolMatches": 0,
+    "blocks": [],
+    "memories": [],
+    "commitments": 0,
+    "records": 0
+  },
+  {
+    "id": "match-world",
+    "ok": false,
+    "status": 0,
+    "elapsed": 13589,
+    "error": "Unexpected non-whitespace character after JSON at position 586 (line 4 column 1)"
+  },
+  {
+    "id": "movie",
+    "ok": false,
+    "status": 0,
+    "elapsed": 6936,
+    "error": "Unexpected non-whitespace character after JSON at position 577 (line 3 column 1)"
+  },
+  {
+    "id": "game",
+    "ok": false,
+    "status": 0,
+    "elapsed": 23342,
+    "error": "Unexpected non-whitespace character after JSON at position 756 (line 4 column 1)"
+  },
+  {
+    "id": "compare",
+    "ok": false,
+    "status": 0,
+    "elapsed": 25082,
+    "error": "Unexpected non-whitespace character after JSON at position 655 (line 6 column 1)"
+  },
+  {
+    "id": "mem-1",
+    "ok": false,
+    "status": 0,
+    "elapsed": 16413,
+    "error": "Unexpected non-whitespace character after JSON at position 611 (line 4 column 1)"
+  },
+  {
+    "id": "mem-2",
+    "ok": true,
+    "status": 200,
+    "elapsed": 5181,
+    "input": "estoy trabajando en un proyecto de programacion con python",
+    "wantTool": null,
+    "reply": "Qué bueno. ¿En qué andás? ¿Algo para laburo, un side project, o estás aprendiendo algo nuevo?",
+    "mascot": "thinking",
+    "tools": [],
+    "toolMatches": 0,
+    "blocks": [],
+    "memories": [],
+    "commitments": 0,
+    "records": 0
+  },
+  {
+    "id": "mem-3",
+    "ok": true,
+    "status": 200,
+    "elapsed": 5509,
+    "input": "estoy aprendiendo japonés",
+    "wantTool": null,
+    "reply": "¡Qué bueno! ¿Empezaste hace poco o ya tenés algo de base?",
+    "mascot": "thinking",
+    "tools": [],
+    "toolMatches": 0,
+    "blocks": [],
+    "memories": [],
+    "commitments": 0,
+    "records": 0
+  },
+  {
+    "id": "btc",
+    "ok": false,
+    "status": 0,
+    "elapsed": 12817,
+    "error": "Unexpected non-whitespace character after JSON at position 561 (line 4 column 1)"
+  },
+  {
+    "id": "recipe-1",
+    "ok": false,
+    "status": 0,
+    "elapsed": 2273,
+    "error": "Unexpected non-whitespace character after JSON at position 546 (line 2 column 1)"
+  },
+  {
+    "id": "recipe-multi",
+    "ok": false,
+    "status": 0,
+    "elapsed": 19192,
+    "error": "Unexpected non-whitespace character after JSON at position 559 (line 5 column 1)"
+  },
+  {
+    "id": "tacos",
+    "ok": false,
+    "status": 0,
+    "elapsed": 81329,
+    "error": "Unexpected non-whitespace character after JSON at position 726 (line 7 column 1)"
+  },
+  {
+    "id": "plan-day",
+    "ok": false,
+    "status": 0,
+    "elapsed": 12902,
+    "error": "Unexpected non-whitespace character after JSON at position 578 (line 4 column 1)"
+  }
+]

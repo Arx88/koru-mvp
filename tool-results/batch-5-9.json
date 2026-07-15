@@ -1,0 +1,91 @@
+[
+  {
+    "id": "game-zelda",
+    "ok": true,
+    "status": 200,
+    "elapsed": 56,
+    "chunks": 2,
+    "input": "reseña del juego The Legend of Zelda Tears of the Kingdom",
+    "wantTool": "game_info",
+    "reply": "Te deje la info de The Legend of Zelda: Tears of the Kingdom en la tarjeta.",
+    "mascot": "happy",
+    "tools": [
+      "web_search:ok"
+    ],
+    "toolMatches": 1,
+    "blocks": [
+      "movie_review"
+    ],
+    "memories": [],
+    "commitments": 0,
+    "records": 0
+  },
+  {
+    "id": "compare-headphones",
+    "ok": false,
+    "status": 0,
+    "elapsed": 120005,
+    "error": "The operation was aborted due to timeout"
+  },
+  {
+    "id": "mem-1",
+    "ok": true,
+    "status": 200,
+    "elapsed": 5012,
+    "chunks": 3,
+    "input": "me encanta el helado de pistacho",
+    "wantTool": null,
+    "reply": "Buena elección. El pistacho es de los que valen la pena.",
+    "mascot": "happy",
+    "tools": [
+      "memory_recall:ok"
+    ],
+    "toolMatches": 0,
+    "blocks": [],
+    "memories": [
+      "[preference] Le encanta el helado de pistacho."
+    ],
+    "commitments": 0,
+    "records": 0
+  },
+  {
+    "id": "mem-2",
+    "ok": true,
+    "status": 200,
+    "elapsed": 5004,
+    "chunks": 1,
+    "input": "estoy trabajando en un proyecto de programacion con python",
+    "wantTool": null,
+    "reply": "¿Y qué estás armando? ¿Algo para trabajo, un side project, o estás aprendiendo algo nuevo?",
+    "mascot": "thinking",
+    "tools": [],
+    "toolMatches": 0,
+    "blocks": [],
+    "memories": [
+      "[goal] Trabaja en un proyecto de programacion con python."
+    ],
+    "commitments": 0,
+    "records": 0
+  },
+  {
+    "id": "mem-3",
+    "ok": true,
+    "status": 200,
+    "elapsed": 5005,
+    "chunks": 3,
+    "input": "estoy aprendiendo japonés los martes",
+    "wantTool": null,
+    "reply": "Qué bueno. Los martes tienen su ritmo entonces. ¿Cómo vas con el japonés?",
+    "mascot": "curious",
+    "tools": [
+      "memory_recall:ok"
+    ],
+    "toolMatches": 0,
+    "blocks": [],
+    "memories": [
+      "[routine] Aprende japonés los martes."
+    ],
+    "commitments": 0,
+    "records": 0
+  }
+]

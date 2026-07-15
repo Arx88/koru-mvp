@@ -1,0 +1,793 @@
+     1→import {
+     2→  BookOpen,
+     3→  CalendarDays,
+     4→  Check,
+     5→  Circle,
+     6→  ExternalLink,
+     7→  FileSpreadsheet,
+     8→  FileText,
+     9→  Flag,
+    10→  HeartPulse,
+    11→  Home,
+    12→  Mail,
+    13→  MoveRight,
+    14→  PiggyBank,
+    15→  SearchCheck,
+    16→  Sparkles,
+    17→  Stethoscope,
+    18→  X,
+    19→  type LucideIcon,
+    20→} from "lucide-react";
+    21→import { cn } from "../lib/utils";
+    22→import type { AssistantArtifact, AssistantPlanItem, AssistantSource, UiBlock } from "../domain/types";
+    23→import type { KoruTurnItem } from "./KoruProvider";
+    24→import { PlanHeroCard } from "./cards/PlanHeroCard";
+    25→import { KoruUnifiedCard } from "./cards/unified/KoruUnifiedCard";
+    26→
+    27→export type CardActionHandlers = {
+    28→  onReview: (id: string, approve: boolean) => void;
+    29→  onConfirmMemory: (id: string) => void;
+    30→  onPruneMemory: (id: string) => void;
+    31→  onCompleteCommitment: (id: string) => void;
+    32→  onSetWorldSignals: (enabled: boolean) => void;
+    33→};
+    34→
+    35→function downloadArtifact(file: AssistantArtifact) {
+    36→  const blob = new Blob([file.content ?? file.name], { type: file.mimeType });
+    37→  const url = URL.createObjectURL(blob);
+    38→  const link = document.createElement("a");
+    39→  link.href = url;
+    40→  link.download = file.name;
+    41→  document.body.appendChild(link);
+    42→  link.click();
+    43→  link.remove();
+    44→  URL.revokeObjectURL(url);
+    45→}
+    46→
+    47→function fileIcon(kind: AssistantArtifact["kind"]): LucideIcon {
+    48→  if (kind === "spreadsheet" || kind === "csv") return FileSpreadsheet;
+    49→  return FileText;
+    50→}
+    51→
+    52→function planIcon(icon: AssistantPlanItem["icon"], index: number): LucideIcon {
+    53→  if (icon === "book") return BookOpen;
+    54→  if (icon === "move") return MoveRight;
+    55→  if (icon === "message") return Mail;
+    56→  if (icon === "calendar") return CalendarDays;
+    57→  if (icon === "money") return PiggyBank;
+    58→  if (icon === "heart") return Stethoscope;
+    59→  if (icon === "home") return Home;
+    60→  return index === 1 ? BookOpen : index === 2 ? MoveRight : Flag;
+    61→}
+    62→
+    63→function recordDisplay(record: NonNullable<KoruTurnItem["records"]>[number]): string {
+    64→  if (record.kind === "expense" && record.amount) {
+    65→    return `${record.amount}${record.currency ? ` ${record.currency}` : ""}`;
+    66→  }
+    67→  if (record.value) return `${record.title}: ${record.value}`;
+    68→  return record.title;
+    69→}
+    70→
+    71→function savedRecordTitle(records: NonNullable<KoruTurnItem["records"]>): string {
+    72→  if (records.length > 1) return `${records.length} datos guardados`;
+    73→  const record = records[0];
+    74→  if (record.kind === "expense") return "Gasto anotado";
+    75→  if (record.kind === "shopping_item") return "Compra guardada";
+    76→  if (record.kind === "medication") return "Salud guardada";
+    77→  if (record.kind === "deadline") return "Deadline guardado";
+    78→  if (record.kind === "person_followup") return "Seguimiento guardado";
+    79→  if (record.kind === "meal_inventory") return "Comida guardada";
+    80→  return "Dato guardado";
+    81→}
+    82→
+    83→function firstClockText(...values: Array<string | undefined>): string | undefined {
+    84→  for (const value of values) {
+    85→    const match = value?.match(/\b(?:[01]?\d|2[0-3]):[0-5]\d\b/);
+    86→    if (match) return match[0];
+    87→  }
+    88→  return undefined;
+    89→}
+    90→
+    91→function stitchBlockFromLegacyItem(item: KoruTurnItem): UiBlock | undefined {
+    92→  if (item.uiBlock) return item.uiBlock;
+    93→
+    94→  if (item.actionKind === "day_plan" && item.planItems?.length) {
+    95→    return {
+    96→      type: "plan",
+    97→      title: item.text,
+    98→      items: item.planItems,
+    99→      note: item.recommendation ?? item.payloadPreview ?? item.result,
+   100→    };
+   101→  }
+   102→
+   103→  if ((item.actionKind === "web_research" || item.actionKind === "world_signal") && item.comparisonItems?.length) {
+   104→    return {
+   105→      type: "comparison",
+   106→      title: item.text,
+   107→      items: item.comparisonItems,
+   108→      recommendation: item.recommendation ?? item.result ?? item.payloadPreview,
+   109→      sources: item.sources,
+   110→    };
+   111→  }
+   112→
+   113→  if (
+   114→    (item.actionKind === "web_research" || item.actionKind === "world_signal") &&
+   115→    (item.sources?.length || item.searchQueries?.length || item.recommendation || item.externalStatus)
+   116→  ) {
+   117→    return {
+   118→      type: "research_sources",
+   119→      title: item.text,
+   120→      summary: item.recommendation ?? item.payloadPreview ?? item.result ?? item.text,
+   121→      mode: item.webMode,
+   122→      sources: item.sources ?? [],
+   123→      sourceStatus: item.externalStatus ?? (item.sources?.length ? "verified" : "pending"),
+   124→      followUpQuestion: item.questions?.[0],
+   125→    };
+   126→  }
+   127→
+   128→  if (item.actionKind === "money_summary" && (item.summaryItems?.length || item.totalAmount !== undefined || item.recommendation)) {
+   129→    return {
+   130→      type: "money_summary",
+   131→      title: item.text,
+   132→      total: item.totalAmount,
+   133→      currency: item.currency,
+   134→      summaryItems: item.summaryItems,
+   135→      recommendation: item.recommendation ?? item.result ?? item.payloadPreview,
+   136→    };
+   137→  }
+   138→
+   139→  if ((item.actionKind === "reminder" || item.actionKind === "calendar_event") && (item.text || item.payloadPreview)) {
+   140→    return {
+   141→      type: "reminder",
+   142→      title: item.text,
+   143→      dueText: item.payloadPreview,
+   144→      note: item.recommendation ?? item.result,
+   145→    };
+   146→  }
+   147→
+   148→  if (item.actionKind === "alarm") {
+   149→    return {
+   150→      type: "alarm",
+   151→      title: item.text,
+   152→      time: firstClockText(item.payloadPreview, item.text) ?? "Alarma",
+   153→      note: item.payloadPreview,
+   154→    };
+   155→  }
+   156→
+   157→  const shoppingItems = item.records
+   158→    ?.filter((record) => record.kind === "shopping_item")
+   159→    .map((record) => record.value ?? record.title)
+   160→    .filter(Boolean)
+   161→    .slice(0, 8) as string[] | undefined;
+   162→
+   163→  if ((item.actionKind === "restock_note" || item.actionKind === "structured_note") && shoppingItems?.length) {
+   164→    return {
+   165→      type: "shopping_list",
+   166→      title: item.text || "Lista de compras",
+   167→      items: shoppingItems,
+   168→      dueText: item.payloadPreview,
+   169→      note: item.recommendation ?? item.result,
+   170→    };
+   171→  }
+   172→
+   173→  if (item.actionKind === "structured_note" && item.records?.length) {
+   174→    return {
+   175→      type: "saved_record",
+   176→      title: item.text,
+   177→      records: item.records.slice(0, 6),
+   178→    };
+   179→  }
+   180→
+   181→  if (item.actionKind === "file_bundle" && item.files?.length) {
+   182→    return {
+   183→      type: "resource_bundle",
+   184→      title: item.text,
+   185→      files: item.files,
+   186→      summary: item.payloadPreview ?? item.result,
+   187→    };
+   188→  }
+   189→
+   190→  if (
+   191→    ["morning_brief", "meeting_brief", "daily_brief", "decision_support"].includes(item.actionKind ?? "") &&
+   192→    (item.summaryItems?.length || item.contextReview?.length || item.recommendation || item.decisionVote)
+   193→  ) {
+   194→    const sectionTitle = item.actionKind === "decision_support"
+   195→      ? "Criterio"
+   196→      : item.actionKind === "meeting_brief"
+   197→        ? "Reunion"
+   198→        : "Actividad";
+   199→    return {
+   200→      type: "activity_group",
+   201→      title: item.text || (item.actionKind === "decision_support" ? "Decision" : "Actividad"),
+   202→      subtitle: item.recommendation ?? item.payloadPreview,
+   203→      sections: [
+   204→        {
+   205→          title: sectionTitle,
+   206→          tone: item.actionKind === "decision_support" ? "amber" : "green",
+   207→          tiles: item.summaryItems?.map((summary) => ({
+   208→            kind: item.actionKind === "decision_support" || item.actionKind === "morning_brief" ? "money" : "work",
+   209→            label: summary.label,
+   210→            value: summary.value,
+   211→            detail: summary.detail,
+   212→          })),
+   213→          rows: [
+   214→            ...(item.decisionVote
+   215→              ? [{
+   216→                  title: item.decisionVote === "wait" ? "Yo esperaria" : item.decisionVote === "go" ? "Yo avanzaria con cuidado" : "Me falta un dato",
+   217→                  detail: item.decisionAssumption,
+   218→                  meta: "Mi voto",
+   219→                  urgent: item.decisionVote === "wait",
+   220→                }]
+   221→              : []),
+   222→            ...(item.contextReview ?? []).map((review) => ({
+   223→              title: review.title,
+   224→              detail: review.detail,
+   225→              meta: review.priority,
+   226→              urgent: review.priority === "Alta",
+   227→            })),
+   228→          ],
+   229→        },
+   230→      ],
+   231→      note: item.recommendation ?? item.result,
+   232→    };
+   233→  }
+   234→
+   235→  return undefined;
+   236→}
+   237→
+   238→
+   239→
+   240→function primaryLine(item: KoruTurnItem): string {
+   241→  if (item.actionKind === "day_plan") return "Te lo ordene para que puedas empezar sin reconstruir todo.";
+   242→  if (item.actionKind === "structured_note") return item.records?.length ? savedRecordTitle(item.records) : "Dato guardado.";
+   243→  if (item.actionKind === "money_summary") return item.recommendation ?? "Te dejo el resumen con el criterio visible.";
+   244→  if (item.actionKind === "morning_brief") return item.recommendation ?? "Junte lo que ya se y marco lo que falta verificar.";
+   245→  if (item.actionKind === "meeting_brief") return item.recommendation ?? "Te dejo una agenda usable y los pendientes cerca.";
+   246→  if (item.actionKind === "decision_support") return item.recommendation ?? "Te doy criterio, supuesto y siguiente paso.";
+   247→  if (item.actionKind === "file_bundle") return "Prepare archivos editables con lo que ya tengo.";
+   248→  if (item.actionKind === "web_research") return item.recommendation ?? "Abro fuentes reales y separo evidencia de suposicion.";
+   249→  if (item.actionKind === "world_signal") return item.recommendation ?? "Traigo senales recientes sin convertirlo en ruido.";
+   250→  if (item.actionKind === "clarifying_question") return item.text;
+   251→  return item.payloadPreview ?? item.text;
+   252→}
+   253→
+   254→function ActionTitle({ item, icon: Icon = Sparkles }: { item: KoruTurnItem; icon?: LucideIcon }) {
+   255→  return (
+   256→    <p className="koru-action-title">
+   257→      <Icon size={16} />
+   258→      <span>{primaryLine(item)}</span>
+   259→    </p>
+   260→  );
+   261→}
+   262→
+   263→function WorkSteps({ item }: { item: KoruTurnItem }) {
+   264→  if (item.uiBlock || item.actionKind === "structured_note") return null;
+   265→  if (
+   266→    item.actionKind === "web_research" ||
+   267→    item.actionKind === "world_signal" ||
+   268→    item.actionKind === "morning_brief" ||
+   269→    item.actionKind === "clarifying_question"
+   270→  ) return null;
+   271→  if (!item.steps?.length) return null;
+   272→  const visible = item.steps
+   273→    .filter((step) => !/leyendo tu mensaje|buscando memoria relevante|agrupando por prioridad/i.test(step.text))
+   274→    .slice(0, 4);
+   275→  if (!visible.length) return null;
+   276→  return (
+   277→    <div className="koru-process-card">
+   278→      <ul className="koru-step-list">
+   279→        {visible.map((step) => (
+   280→          <li key={step.text} className={cn("koru-step", step.status === "waiting" && "is-waiting")}>
+   281→            <span className="koru-step-icon">
+   282→              {step.status === "done" ? <Check size={14} strokeWidth={2.4} /> : <Circle size={10} />}
+   283→            </span>
+   284→            <span>{step.text}</span>
+   285→          </li>
+   286→        ))}
+   287→      </ul>
+   288→    </div>
+   289→  );
+   290→}
+   291→
+   292→function PlanPreview({ items }: { items?: AssistantPlanItem[] }) {
+   293→  if (!items?.length) return null;
+   294→  return (
+   295→    <div className="koru-plan">
+   296→      {items.map((plan, index) => {
+   297→        const Icon = planIcon(plan.icon, index);
+   298→        return (
+   299→          <div key={`${plan.time ?? index}-${plan.title}`} className="koru-plan-row">
+   300→            <span className={cn("koru-plan-icon", index === 1 && "is-amber", index >= 2 && "is-purple")}>
+   301→              <Icon size={16} />
+   302→            </span>
+   303→            <span className="koru-plan-time">{plan.time ?? "--:--"}</span>
+   304→            <span className="koru-plan-title">{plan.title}</span>
+   305→            {plan.durationMinutes && <span className="koru-plan-duration">{plan.durationMinutes} min</span>}
+   306→            {plan.priority && <span className={cn("koru-priority", plan.priority !== "Alta" && "is-medium")}>{plan.priority}</span>}
+   307→            {plan.rationale && <small className="koru-plan-rationale">{plan.rationale}</small>}
+   308→          </div>
+   309→        );
+   310→      })}
+   311→    </div>
+   312→  );
+   313→}
+   314→
+   315→function ContextReview({ item }: { item: KoruTurnItem }) {
+   316→  if (!item.contextReview?.length) return null;
+   317→  if (
+   318→    item.actionKind === "structured_note" ||
+   319→    item.actionKind === "morning_brief" ||
+   320→    item.actionKind === "web_research" ||
+   321→    item.actionKind === "world_signal" ||
+   322→    item.actionKind === "decision_support"
+   323→  ) return null;
+   324→  const sourceLabel = {
+   325→    commitment: "Pendiente",
+   326→    memory: "Memoria",
+   327→    calendar: "Agenda",
+   328→    recent: "Reciente",
+   329→    nudge: "Aviso",
+   330→    record: "Dato",
+   331→  } as const;
+   332→  return (
+   333→    <div className="koru-context-review">
+   334→      <p className="koru-context-title">Mire esto antes de responderte</p>
+   335→      {item.contextReview.slice(0, 4).map((review) => (
+   336→        <div key={`${review.source}-${review.title}`} className="koru-context-row">
+   337→          <span className="koru-context-source">{sourceLabel[review.source]}</span>
+   338→          <span className="koru-context-copy">
+   339→            <span>{review.title}</span>
+   340→            <small>{review.detail}</small>
+   341→          </span>
+   342→          <span className={cn("koru-priority", review.priority !== "Alta" && "is-medium")}>{review.priority}</span>
+   343→        </div>
+   344→      ))}
+   345→    </div>
+   346→  );
+   347→}
+   348→
+   349→function SummaryModule({ item }: { item: KoruTurnItem }) {
+   350→  if (!item.summaryItems?.length && !item.recommendation && item.totalAmount === undefined) return null;
+   351→  if ((item.actionKind === "web_research" || item.actionKind === "world_signal") && !item.summaryItems?.length) return null;
+   352→  if (item.actionKind === "structured_note") return null;
+   353→  const title = item.actionKind === "money_summary"
+   354→    ? "Dinero"
+   355→    : item.actionKind === "morning_brief"
+   356→      ? item.webMode === "weather" ? "Clima" : "Actividad"
+   357→      : item.actionKind === "meeting_brief"
+   358→        ? "Reunion"
+   359→        : item.actionKind === "decision_support"
+   360→          ? "Decision"
+   361→          : "Resumen";
+   362→  return (
+   363→    <div className="koru-activity-module">
+   364→      <div className="koru-activity-header">
+   365→        <span className="koru-activity-icon">{title.slice(0, 1)}</span>
+   366→        <span>{title}</span>
+   367→      </div>
+   368→      {item.recommendation && item.actionKind !== "world_signal" && item.actionKind !== "web_research" && <p className="koru-activity-lead">{item.recommendation}</p>}
+   369→      {item.summaryItems?.length ? (
+   370→        <div className={cn("koru-summary-grid", item.summaryItems.length === 1 && "is-single")}>
+   371→          {item.summaryItems.slice(0, 6).map((summary) => (
+   372→            <div key={`${summary.label}-${summary.value}`} className="koru-summary-tile">
+   373→              <span className="koru-summary-label">{summary.label}</span>
+   374→              <strong>{summary.value}</strong>
+   375→              {summary.detail && <small>{summary.detail}</small>}
+   376→            </div>
+   377→          ))}
+   378→        </div>
+   379→      ) : null}
+   380→      {item.totalAmount !== undefined && !item.summaryItems?.some((summary) => /total|costo/i.test(summary.label)) && (
+   381→        <div className="koru-summary-tile is-single">
+   382→          <span className="koru-summary-label">Total</span>
+   383→          <strong>{item.totalAmount} {item.currency ?? ""}</strong>
+   384→        </div>
+   385→      )}
+   386→    </div>
+   387→  );
+   388→}
+   389→
+   390→function DecisionCard({ item }: { item: KoruTurnItem }) {
+   391→  if (item.actionKind !== "decision_support") return null;
+   392→  const vote = item.decisionVote === "wait" ? "Yo esperaria" : item.decisionVote === "go" ? "Yo avanzaria con cuidado" : "Me falta un dato";
+   393→  return (
+   394→    <div className="koru-decision-card">
+   395→      <div>
+   396→        <span className="koru-card-kicker">Mi voto</span>
+   397→        <strong>{vote}</strong>
+   398→      </div>
+   399→      {item.recommendation && <p>{item.recommendation}</p>}
+   400→      {item.decisionAssumption && <small>{item.decisionAssumption}</small>}
+   401→    </div>
+   402→  );
+   403→}
+   404→
+   405→function RecordsModule({ item }: { item: KoruTurnItem }) {
+   406→  if (!item.records?.length) return null;
+   407→  if (item.actionKind === "structured_note") {
+   408→    return <KoruUnifiedCard block={{ type: "saved_record", records: item.records as any, title: item.text }} />;
+   409→  }
+   410→  const listRecords = item.records.filter((record) =>
+   411→    ["shopping_item", "idea", "home_task", "person_followup", "deadline"].includes(record.kind),
+   412→  );
+   413→  if (listRecords.length) {
+   414→    return (
+   415→      <div className="koru-list-module">
+   416→        <div className="koru-activity-header">
+   417→          <span className="koru-activity-icon">L</span>
+   418→          <span>{listRecords.some((record) => record.kind === "shopping_item") ? "Lista de compras" : "Lista guardada"}</span>
+   419→        </div>
+   420→        {listRecords.slice(0, 6).map((record) => (
+   421→          <div key={`${record.domain}-${record.kind}-${record.title}`} className="koru-list-row">
+   422→            <span className="koru-record-check" />
+   423→            <span>
+   424→              <strong>{record.value ?? record.title}</strong>
+   425→              <small>{record.kind.replace(/_/g, " ")}</small>
+   426→            </span>
+   427→          </div>
+   428→        ))}
+   429→      </div>
+   430→    );
+   431→  }
+   432→  return (
+   433→    <div className="koru-activity-module">
+   434→      <div className="koru-activity-header">
+   435→        <span className="koru-activity-icon">G</span>
+   436→        <span>Guardado</span>
+   437→      </div>
+   438→      <div className="koru-record-grid">
+   439→        {item.records.slice(0, 6).map((record) => (
+   440→          <div key={`${record.domain}-${record.kind}-${record.title}`} className="koru-record-chip">
+   441→            <span className="koru-record-check" />
+   442→            <span>
+   443→              <strong>{recordDisplay(record)}</strong>
+   444→              <small>{record.domain} - {record.kind.replace(/_/g, " ")}</small>
+   445→            </span>
+   446→          </div>
+   447→        ))}
+   448→      </div>
+   449→    </div>
+   450→  );
+   451→}
+   452→
+   453→function FileBundle({ files }: { files?: AssistantArtifact[] }) {
+   454→  if (!files?.length) return null;
+   455→  return (
+   456→    <div className="koru-resource-list">
+   457→      {files.map((file) => {
+   458→        const Icon = fileIcon(file.kind);
+   459→        return (
+   460→          <div key={file.name} className="koru-resource-row">
+   461→            <span className="koru-resource-icon">
+   462→              <Icon size={16} />
+   463→            </span>
+   464→            <span className="koru-resource-copy">
+   465→              <span className="koru-resource-title">{file.name}</span>
+   466→              <span className="koru-resource-meta">{file.kind.toUpperCase()} - {file.sizeLabel}</span>
+   467→            </span>
+   468→            <button type="button" onClick={() => downloadArtifact(file)} aria-label={`Descargar ${file.name}`} className="koru-icon-button">
+   469→              <FileText size={16} />
+   470→            </button>
+   471→          </div>
+   472→        );
+   473→      })}
+   474→    </div>
+   475→  );
+   476→}
+   477→
+   478→function SourcePreview({ sources }: { sources?: AssistantSource[] }) {
+   479→  if (!sources?.length) return null;
+   480→  return (
+   481→    <div className="koru-source-wrap">
+   482→      {sources.slice(0, 5).map((source) => (
+   483→        <a key={source.url} href={source.url} target="_blank" rel="noreferrer" className="koru-source">
+   484→          <span className="koru-source-copy">
+   485→            <span className="koru-source-title">{source.title}</span>
+   486→            <span className="koru-source-domain">{source.domain}</span>
+   487→            {source.snippet && <span className="koru-source-snippet">{source.snippet}</span>}
+   488→          </span>
+   489→          <span className="koru-source-open"><ExternalLink size={18} /></span>
+   490→        </a>
+   491→      ))}
+   492→    </div>
+   493→  );
+   494→}
+   495→
+   496→function QuestionList({ item }: { item: KoruTurnItem }) {
+   497→  if (!item.questions?.length) return null;
+   498→  const first = item.questions[0];
+   499→  const rest = item.questions.slice(1);
+   500→  return (
+   501→    <div className="koru-question-card">
+   502→      <span className="koru-card-kicker">Solo necesito esto</span>
+   503→      <strong>{first}</strong>
+   504→      {rest.length > 0 && (
+   505→        <div className="koru-question-followups">
+   506→          {rest.map((question) => <span key={question}>{question}</span>)}
+   507→        </div>
+   508→      )}
+   509→    </div>
+   510→  );
+   511→}
+   512→
+   513→function ResearchBrief({ item }: { item: KoruTurnItem }) {
+   514→  if (!item.searchQueries?.length && !item.researchCriteria?.length && !item.externalStatus) return null;
+   515→  const modeLabel = item.webMode === "news"
+   516→    ? "Noticias"
+   517→    : item.webMode === "world"
+   518→      ? "El mundo"
+   519→    : item.webMode === "shopping"
+   520→      ? "Comparativa"
+   521→      : item.webMode === "weather"
+   522→        ? "Clima"
+   523→        : item.webMode === "traffic"
+   524→          ? "Ruta"
+   525→          : item.webMode === "market"
+   526→            ? "Mercados"
+   527→            : "Research";
+   528→  const statusCopy = {
+   529→    pending: "Listo para abrir fuentes reales",
+   530→    verified: item.verifiedAt
+   531→      ? `Verificado ${new Date(item.verifiedAt).toLocaleString("es", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}`
+   532→      : "Fuentes verificadas",
+   533→    partial: "Resultados parciales",
+   534→    failed: "No se pudo navegar",
+   535→    not_configured: "Sin conector completo",
+   536→  } as const;
+   537→  return (
+   538→    <div className="koru-web-module">
+   539→      <div className="koru-activity-header">
+   540→        <span className="koru-activity-icon"><SearchCheck size={16} /></span>
+   541→        <span>{modeLabel}</span>
+   542→      </div>
+   543→      {item.externalStatus && (
+   544→        <p className="koru-activity-lead">
+   545→          {statusCopy[item.externalStatus]}. {item.externalStatus === "verified" ? "Uso esto como evidencia." : "No voy a inventar una conclusion cerrada."}
+   546→        </p>
+   547→      )}
+   548→      {item.searchQueries?.map((query) => (
+   549→        <div key={query} className="koru-web-query">
+   550→          <span>Consulta</span>
+   551→          <strong>{query}</strong>
+   552→        </div>
+   553→      ))}
+   554→      {item.researchCriteria?.length ? <small className="koru-web-criteria">{item.researchCriteria.join(" · ")}</small> : null}
+   555→    </div>
+   556→  );
+   557→}
+   558→
+   559→function ComparisonPreview({ item }: { item: KoruTurnItem }) {
+   560→  if (!item.comparisonItems?.length) return null;
+   561→  return (
+   562→    <div className="koru-activity-module">
+   563→      <div className="koru-activity-header">
+   564→        <span className="koru-activity-icon">C</span>
+   565→        <span>Comparativa</span>
+   566→      </div>
+   567→      <div className="koru-record-grid">
+   568→        {item.comparisonItems.slice(0, 5).map((offer) => (
+   569→          <a key={`${offer.title}-${offer.url ?? offer.vendor ?? ""}`} href={offer.url} target="_blank" rel="noreferrer" className="koru-record-chip">
+   570→            <span className="koru-record-check" />
+   571→            <span>
+   572→              <strong>{offer.title}</strong>
+   573→              <small>{[offer.price, offer.vendor, offer.score ? `${offer.score}/100` : undefined].filter(Boolean).join(" - ")}</small>
+   574→              {offer.evidence && <small>{offer.evidence}</small>}
+   575→            </span>
+   576→          </a>
+   577→        ))}
+   578→      </div>
+   579→    </div>
+   580→  );
+   581→}
+   582→
+   583→
+   584→
+   585→
+   586→
+   587→
+   588→function UiBlockCardA({ item }: { item: KoruTurnItem }) {
+   589→  const block = item.uiBlock;
+   590→  if (!block) return null;
+   591→
+   592→  // El plan conserva su render canónico (hero + roadmap funcional con
+   593→  // checkboxes persistidos): es la referencia de la que sale todo el molde.
+   594→  if (block.type === "plan") {
+   595→    return <PlanHeroCard block={block} />;
+   596→  }
+   597→
+   598→  // web_nav en estado "loading" no es una card: ese momento lo cubre el
+   599→  // WorkingPanel / hint de actividad del overlay. Solo materializamos la
+   600→  // respuesta cuando ya hay resultado (complete/report).
+   601→  if (block.type === "web_nav" && block.status === "loading") {
+   602→    return null;
+   603→  }
+   604→
+   605→  // El entregable en curso tampoco: su progreso REAL lo muestra el panel
+   606→  // "Trabajando en tu informe" del overlay. La hoja aparece cuando está listo.
+   607→  if (block.type === "deliverable" && block.status === "working") {
+   608→    return null;
+   609→  }
+   610→
+   611→  // TODO lo demás (los otros 44 tipos) se renderiza con el molde unificado
+   612→  // Stitch "Plan Entregado": hoja lila + detalle con magical-cards. Las
+   613→  // estéticas de card sueltas dejan de existir como lenguajes separados.
+   614→  return <KoruUnifiedCard block={block} />;
+   615→}
+   616→
+   617→
+   618→function secondaryActions(item: KoruTurnItem): Array<{ label: string; icon: LucideIcon; onClick?: () => void }> {
+   619→  if (item.actionKind === "web_research" || item.actionKind === "world_signal") {
+   620→    const firstUrl = item.sources?.[0]?.url;
+   621→    return firstUrl
+   622→      ? [{ label: "Abrir fuente", icon: ExternalLink, onClick: () => window.open(firstUrl, "_blank", "noopener,noreferrer") }]
+   623→      : [];
+   624→  }
+   625→  return [];
+   626→}
+   627→
+   628→function ActionButtons({ item, handlers }: { item: KoruTurnItem; handlers: CardActionHandlers }) {
+   629→  if (item.kind !== "action") return null;
+   630→  if (
+   631→    item.actionKind === "clarifying_question" ||
+   632→    item.actionKind === "structured_note" ||
+   633→    item.actionKind === "money_summary" ||
+   634→    item.actionKind === "morning_brief" ||
+   635→    item.actionKind === "decision_support"
+   636→  ) return null;
+   637→  const extras = secondaryActions(item);
+   638→  if (item.status === "rejected") return <p className="koru-card-note">Lo suelto. No hice nada con eso.</p>;
+   639→  if (item.status === "working") {
+   640→    const label = item.webMode === "shopping"
+   641→      ? "Comparando fuentes ahora..."
+   642→      : item.webMode === "world"
+   643→        ? "Buscando senales reales ahora..."
+   644→        : item.webMode === "weather"
+   645→          ? "Buscando clima ahora..."
+   646→          : "Consultando fuentes ahora...";
+   647→    return <p className="koru-card-note">{label}</p>;
+   648→  }
+   649→  if (item.status === "executed") {
+   650→    return (
+   651→      <>
+   652→        {item.result && item.actionKind !== "web_research" && item.actionKind !== "world_signal" && <p className="koru-card-result">{item.result}</p>}
+   653→        {extras.length > 0 && (
+   654→          <div className="koru-actions">
+   655→            {extras.map(({ label, icon: Icon, onClick }) => (
+   656→              <button key={label} type="button" onClick={onClick} className="koru-pill-button">
+   657→                <Icon size={14} />
+   658→                {label}
+   659→              </button>
+   660→            ))}
+   661→          </div>
+   662→        )}
+   663→        {item.actionKind === "world_signal" && (
+   664→          <div className="koru-actions">
+   665→            <button type="button" onClick={() => handlers.onSetWorldSignals(true)} className="koru-pill-button is-primary">
+   666→              <Check size={14} />
+   667→              Seguir radar
+   668→            </button>
+   669→            <button type="button" onClick={() => handlers.onSetWorldSignals(false)} className="koru-pill-button">
+   670→              <X size={14} />
+   671→              No por ahora
+   672→            </button>
+   673→          </div>
+   674→        )}
+   675→      </>
+   676→    );
+   677→  }
+   678→  return (
+   679→    <div className="koru-actions">
+   680→      <button type="button" onClick={() => handlers.onReview(item.id, true)} className="koru-pill-button is-primary">
+   681→        <Check size={14} />
+   682→        {item.approvalLabel ?? "Aprobar"}
+   683→      </button>
+   684→      <button type="button" onClick={() => handlers.onReview(item.id, false)} className="koru-pill-button">
+   685→        <X size={14} />
+   686→        {item.rejectLabel ?? "Soltar"}
+   687→      </button>
+   688→      {extras.map(({ label, icon: Icon, onClick }) => (
+   689→        <button key={label} type="button" onClick={onClick} className="koru-pill-button">
+   690→          <Icon size={14} />
+   691→          {label}
+   692→        </button>
+   693→      ))}
+   694→    </div>
+   695→  );
+   696→}
+   697→
+   698→function MemoryCard({ item, handlers }: { item: KoruTurnItem; handlers: CardActionHandlers }) {
+   699→  return (
+   700→    <div className="koru-inline-card">
+   701→      <p className="koru-inline-tag">{item.tag}</p>
+   702→      <p className="koru-inline-text">{item.text}</p>
+   703→      {item.payloadPreview && <p className="koru-card-note">{item.payloadPreview}</p>}
+   704→      {item.kind === "memory" && item.status === "confirmed" && <p className="koru-card-result">Guardado. Lo voy a usar cuando ayude de verdad.</p>}
+   705→      {item.kind === "memory" && item.status === "rejected" && <p className="koru-card-note">Soltado. No lo uso como memoria.</p>}
+   706→      {item.kind === "memory" && item.status !== "confirmed" && item.status !== "rejected" && (
+   707→        <div className="koru-actions">
+   708→          <button type="button" onClick={() => handlers.onConfirmMemory(item.id)} className="koru-pill-button is-primary">
+   709→            <Check size={14} />
+   710→            Guardar
+   711→          </button>
+   712→          <button type="button" onClick={() => handlers.onPruneMemory(item.id)} className="koru-pill-button">
+   713→            <X size={14} />
+   714→            Soltar
+   715→          </button>
+   716→        </div>
+   717→      )}
+   718→      {item.kind === "commitment" && item.status === "executed" && <p className="koru-card-result">Marcado como hecho. Lo saco de tu carga mental.</p>}
+   719→      {item.kind === "commitment" && item.status !== "executed" && (
+   720→        <div className="koru-actions">
+   721→          <button type="button" onClick={() => handlers.onCompleteCommitment(item.id)} className="koru-pill-button is-primary">
+   722→            <Check size={14} />
+   723→            Marcar hecho
+   724→          </button>
+   725→        </div>
+   726→      )}
+   727→    </div>
+   728→  );
+   729→}
+   730→
+   731→function ReminderMeta({ item }: { item: KoruTurnItem }) {
+   732→  if (item.actionKind !== "reminder" && item.actionKind !== "calendar_event") return null;
+   733→  return (
+   734→    <div className="koru-reminder-card">
+   735→      <span className="koru-card-kicker">{item.actionKind === "calendar_event" ? "Calendario local" : "Recordatorio"}</span>
+   736→      <strong>{item.text}</strong>
+   737→      {item.payloadPreview && <small>{item.payloadPreview}</small>}
+   738→    </div>
+   739→  );
+   740→}
+   741→
+   742→const actionIcons: Partial<Record<NonNullable<KoruTurnItem["actionKind"]>, LucideIcon>> = {
+   743→  web_research: SearchCheck,
+   744→  world_signal: SearchCheck,
+   745→  decision_support: PiggyBank,
+   746→  money_summary: PiggyBank,
+   747→  meeting_brief: CalendarDays,
+   748→  morning_brief: Sparkles,
+   749→  reminder: CalendarDays,
+   750→  calendar_event: CalendarDays,
+   751→  structured_note: Check,
+   752→  day_plan: Flag,
+   753→  draft_message: Mail,
+   754→  restock_note: Home,
+   755→  daily_brief: HeartPulse,
+   756→};
+   757→
+   758→export function KoruSemanticCard({ item, handlers }: { item: KoruTurnItem; handlers: CardActionHandlers }) {
+   759→  if (item.kind === "memory" || item.kind === "commitment") {
+   760→    return <MemoryCard item={item} handlers={handlers} />;
+   761→  }
+   762→  const stitchBlock = stitchBlockFromLegacyItem(item);
+   763→  if (stitchBlock) {
+   764→    const stitchItem = item.uiBlock === stitchBlock ? item : { ...item, uiBlock: stitchBlock };
+   765→    return (
+   766→      <div className="koru-action-content" data-card-kind={stitchItem.actionKind ?? stitchItem.kind} data-ui-block={stitchBlock.type} data-web-mode={stitchItem.webMode ?? undefined}>
+   767→        <UiBlockCardA item={stitchItem} />
+   768→        <ActionButtons item={stitchItem} handlers={handlers} />
+   769→      </div>
+   770→    );
+   771→  }
+   772→  const Icon = item.actionKind ? actionIcons[item.actionKind] : undefined;
+   773→  const compact = item.actionKind === "structured_note" || item.actionKind === "reminder" || item.actionKind === "restock_note";
+   774→  return (
+   775→    <div className="koru-action-content" data-card-kind={item.actionKind ?? item.kind} data-web-mode={item.webMode ?? undefined} data-compact={compact ? "true" : undefined}>
+   776→      <ActionTitle item={item} icon={Icon} />
+   777→      <QuestionList item={item} />
+   778→      <ReminderMeta item={item} />
+   779→      <DecisionCard item={item} />
+   780→      <SummaryModule item={item} />
+   781→      <RecordsModule item={item} />
+   782→      <PlanPreview items={item.planItems} />
+   783→      <ResearchBrief item={item} />
+   784→      <ComparisonPreview item={item} />
+   785→      <SourcePreview sources={item.sources} />
+   786→      <ContextReview item={item} />
+   787→      <FileBundle files={item.files} />
+   788→      <WorkSteps item={item} />
+   789→      <ActionButtons item={item} handlers={handlers} />
+   790→    </div>
+   791→  );
+   792→}
+   793→

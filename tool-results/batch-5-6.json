@@ -1,0 +1,44 @@
+[
+  {
+    "id": "game-zelda",
+    "ok": true,
+    "status": 200,
+    "elapsed": 56,
+    "chunks": 2,
+    "input": "reseña del juego The Legend of Zelda Tears of the Kingdom",
+    "wantTool": "game_info",
+    "reply": "Te deje la info de The Legend of Zelda: Tears of the Kingdom en la tarjeta.",
+    "mascot": "happy",
+    "tools": [
+      "web_search:ok"
+    ],
+    "toolMatches": 1,
+    "blocks": [
+      "movie_review"
+    ],
+    "memories": [],
+    "commitments": 0,
+    "records": 0
+  },
+  {
+    "id": "compare-headphones",
+    "ok": true,
+    "status": 200,
+    "elapsed": 3838,
+    "chunks": 3,
+    "input": "comparar auriculares Sony WH-1000XM5 vs Bose QC Ultra",
+    "wantTool": "shopping_compare",
+    "reply": "Te dejé la comparativa en la tarjeta.",
+    "mascot": "product-search",
+    "tools": [
+      "shopping_compare:ok"
+    ],
+    "toolMatches": 1,
+    "blocks": [
+      "comparison"
+    ],
+    "memories": [],
+    "commitments": 0,
+    "records": 0
+  }
+]

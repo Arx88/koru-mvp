@@ -1,0 +1,972 @@
+     1→export type KoruStage = "seed" | "sprout" | "roots" | "born" | "garden";
+     2→
+     3→export type MemorySensitivity = "normal" | "sensitive";
+     4→
+     5→export type MemoryStatus = "candidate" | "confirmed" | "rejected";
+     6→
+     7→export type MemoryKind =
+     8→  | "profile"
+     9→  | "routine"
+    10→  | "preference"
+    11→  | "goal"
+    12→  | "relationship"
+    13→  | "boundary"
+    14→  | "retail"
+    15→  | "wellbeing"
+    16→  | "task";
+    17→
+    18→export type MascotState =
+    19→  | "idle"
+    20→  | "thinking"
+    21→  | "working"
+    22→  | "happy"
+    23→  | "tired"
+    24→  | "sleeping"
+    25→  | "mistake"
+    26→  | "planning"
+    27→  | "product-search"
+    28→  | "building"
+    29→  | "cooking"
+    30→  | "thinking-2"
+    31→  | "celebrating"
+    32→  | "worried"
+    33→  | "affectionate"
+    34→  | "curious";
+    35→
+    36→export const VALID_MASCOT_STATES: MascotState[] = [
+    37→  "idle", "thinking", "working", "happy", "tired", "sleeping",
+    38→  "mistake", "planning", "product-search", "building", "cooking",
+    39→  "thinking-2", "celebrating", "worried", "affectionate", "curious",
+    40→];
+    41→
+    42→export type RelevantMemory = {
+    43→  text: string;
+    44→  kind: MemoryKind;
+    45→  confidence: number;
+    46→};
+    47→
+    48→export type LifeDomain =
+    49→  | "morning"
+    50→  | "work"
+    51→  | "money"
+    52→  | "health"
+    53→  | "relationship"
+    54→  | "home"
+    55→  | "interest"
+    56→  | "capture";
+    57→
+    58→export type LifeRecordKind =
+    59→  | "expense"
+    60→  | "medication"
+    61→  | "meal_inventory"
+    62→  | "tool_link"
+    63→  | "meeting_note"
+    64→  | "deadline"
+    65→  | "person_followup"
+    66→  | "gift"
+    67→  | "birthday"
+    68→  | "home_task"
+    69→  | "shopping_item"
+    70→  | "idea"
+    71→  | "recommendation"
+    72→  | "medical_info"
+    73→  | "sleep"
+    74→  | "decision";
+    75→
+    76→export type LifeRecord = {
+    77→  id: string;
+    78→  domain: LifeDomain;
+    79→  kind: LifeRecordKind;
+    80→  title: string;
+    81→  value?: string;
+    82→  amount?: number;
+    83→  currency?: string;
+    84→  person?: string;
+    85→  url?: string;
+    86→  collection?: string;
+    87→  dueHint?: string;
+    88→  happenedAt?: string;
+    89→  notes?: string;
+    90→  tags?: string[];
+    91→  createdAt: string;
+    92→  sourceEntryId: string;
+    93→};
+    94→
+    95→export type MemoryFact = {
+    96→  id: string;
+    97→  kind: MemoryKind;
+    98→  text: string;
+    99→  confidence: number;
+   100→  sensitivity: MemorySensitivity;
+   101→  status: MemoryStatus;
+   102→  createdAt: string;
+   103→  updatedAt?: string;
+   104→  confirmedAt?: string;
+   105→  rootQuote?: string;
+   106→  useForSuggestions?: boolean;
+   107→  embedding?: number[];
+   108→  embeddingModel?: string;
+   109→  sourceEntryId: string;
+   110→};
+   111→
+   112→export type CommitmentStatus = "open" | "done" | "dismissed";
+   113→
+   114→export type Commitment = {
+   115→  id: string;
+   116→  title: string;
+   117→  dueHint: string;
+   118→  dueAt?: string;
+   119→  recurrence?: "daily" | "weekly" | "monthly";
+   120→  remindedAt?: string;
+   121→  status: CommitmentStatus;
+   122→  createdAt: string;
+   123→  sourceEntryId: string;
+   124→};
+   125→
+   126→export type DailyEntry = {
+   127→  id: string;
+   128→  text: string;
+   129→  createdAt: string;
+   130→  summary: string;
+   131→  transcriptSource: "typed" | "speech";
+   132→  energyAwarded: number;
+   133→  sentiment: "calm" | "heavy" | "busy" | "good";
+   134→  memoryIds: string[];
+   135→  commitmentIds: string[];
+   136→  actionIds: string[];
+   137→  recordIds: string[];
+   138→  activeMemoryIds: string[];
+   139→  brainProvider: BrainProvider;
+   140→  brainModel?: string;
+   141→};
+   142→
+   143→export type EnergyEvent = {
+   144→  id: string;
+   145→  createdAt: string;
+   146→  source: string;
+   147→  points: number;
+   148→  explanation: string;
+   149→};
+   150→
+   151→export type ProactiveNudge = {
+   152→  id: string;
+   153→  title: string;
+   154→  body: string;
+   155→  reason: string;
+   156→  priority: "low" | "medium" | "high";
+   157→  createdAt: string;
+   158→  source?: "brain" | "heartbeat" | "calendar" | "commitment";
+   159→  sourceId?: string;
+   160→  dismissed?: boolean;
+   161→};
+   162→
+   163→export type CalendarEvent = {
+   164→  id: string;
+   165→  title: string;
+   166→  startsAt: string;
+   167→  endsAt?: string;
+   168→  location?: string;
+   169→  source: "manual" | "ics";
+   170→  sourceRef?: string;
+   171→  createdAt: string;
+   172→};
+   173→
+   174→export type HeartbeatSettings = {
+   175→  enabled: boolean;
+   176→  activeStartHour: number;
+   177→  activeEndHour: number;
+   178→  maxNudgesPerDay: number;
+   179→  lastRunAt?: string;
+   180→  dailyNudgeDate?: string;
+   181→  dailyNudgeCount: number;
+   182→};
+   183→
+   184→export type ModelCall = {
+   185→  id: string;
+   186→  createdAt: string;
+   187→  taskType: "reflection_analysis" | "embedding" | "connection_test";
+   188→  provider: BrainProvider;
+   189→  model?: string;
+   190→  success: boolean;
+   191→  latencyMs: number;
+   192→  summary: string;
+   193→  error?: string;
+   194→};
+   195→
+   196→export type VoicePreference = {
+   197→  warmth: number;
+   198→  directness: number;
+   199→  humor: number;
+   200→  detail: number;
+   201→  proactivity: number;
+   202→};
+   203→
+   204→export type RuntimeSettings = {
+   205→  freeLlmApiBaseUrl: string;
+   206→  freeLlmApiKey: string;
+   207→  freeLlmApiModel: string;
+   208→  freeLlmApiEnabled: boolean;
+   209→  embeddingsEnabled: boolean;
+   210→  openModelBaseUrl: string;
+   211→  openModelApiKey: string;
+   212→  openModelModel: string;
+   213→  openModelEnabled: boolean;
+   214→};
+   215→
+   216→export type BrainProvider = "local" | "freellmapi" | "open-model" | "nvidia" | "openrouter" | "minimax" | "bluesminds";
+   217→
+   218→export type ContextReviewItem = {
+   219→  title: string;
+   220→  detail: string;
+   221→  source: "commitment" | "memory" | "calendar" | "recent" | "nudge" | "record";
+   222→  priority: "Alta" | "Media" | "Baja";
+   223→};
+   224→
+   225→export type AssistantActionKind =
+   226→  | "draft_message"
+   227→  | "calendar_event"
+   228→  | "alarm"
+   229→  | "reminder"
+   230→  | "restock_note"
+   231→  | "daily_brief"
+   232→  | "day_plan"
+   233→  | "file_bundle"
+   234→  | "web_research"
+   235→  | "world_signal"
+   236→  | "clarifying_question"
+   237→  | "structured_note"
+   238→  | "money_summary"
+   239→  | "morning_brief"
+   240→  | "meeting_brief"
+   241→  | "decision_support";
+   242→
+   243→export type AssistantArtifact = {
+   244→  name: string;
+   245→  kind: "document" | "spreadsheet" | "presentation" | "text" | "markdown" | "csv";
+   246→  mimeType: string;
+   247→  sizeLabel: string;
+   248→  content?: string;
+   249→};
+   250→
+   251→export type AssistantSource = {
+   252→  title: string;
+   253→  url: string;
+   254→  domain: string;
+   255→  snippet?: string;
+   256→  content?: string;
+   257→};
+   258→
+   259→export type AssistantPlanItem = {
+   260→  time?: string;
+   261→  title: string;
+   262→  priority?: "Alta" | "Media" | "Baja";
+   263→  icon?: "flag" | "book" | "move" | "message" | "calendar" | "money" | "heart" | "home";
+   264→  durationMinutes?: number;
+   265→  mode?: "focus" | "quick" | "admin" | "recovery";
+   266→  rationale?: string;
+   267→  done?: boolean;
+   268→  detail?: string;
+   269→  timeEstimate?: string;
+   270→};
+   271→
+   272→export type SemanticIntent = {
+   273→  domain:
+   274→    | "chat"
+   275→    | "morning"
+   276→    | "work"
+   277→    | "money"
+   278→    | "health"
+   279→    | "home"
+   280→    | "relationship"
+   281→    | "interest"
+   282→    | "research"
+   283→    | "planning"
+   284→    | "calendar";
+   285→  kind: string;
+   286→  confidence: number;
+   287→  slots?: Record<string, unknown>;
+   288→  needsTool?: boolean;
+   289→};
+   290→
+   291→export type ToolCall = {
+   292→  id?: string;
+   293→  tool:
+   294→    | "weather"
+   295→    | "web_search"
+   296→    | "deep_research"
+   297→    | "shopping_compare"
+   298→    | "route_traffic"
+   299→    | "calendar_reminder"
+   300→    | "alarm"
+   301→    | "money_summary"
+   302→    | "memory_recall"
+   303→    | "match_live";
+   304→  args: Record<string, unknown>;
+   305→  reason?: string;
+   306→};
+   307→
+   308→export type ToolResult = {
+   309→  id: string;
+   310→  tool: ToolCall["tool"];
+   311→  status: "ok" | "partial" | "failed" | "needs_context";
+   312→  summary: string;
+   313→  data?: Record<string, unknown>;
+   314→  sources?: AssistantSource[];
+   315→};
+   316→
+   317→export type ToolRisk = "readonly" | "local_write" | "external_side_effect" | "financial" | "destructive";
+   318→
+   319→export type ToolPolicy = {
+   320→  requiresApproval: boolean;
+   321→  autoRun: boolean;
+   322→  risk: ToolRisk;
+   323→  reason: string;
+   324→};
+   325→
+   326→export type RouterResult = {
+   327→  intent: SemanticIntent;
+   328→  missingContext?: Array<{ slot: string; question: string }>;
+   329→  toolCalls: ToolCall[];
+   330→  directReply?: string;
+   331→  directUiBlocks?: UiBlock[];
+   332→  forceLocal?: boolean;
+   333→};
+   334→
+   335→export type ComposerResult = {
+   336→  reply: string;
+   337→  uiBlocks: UiBlock[];
+   338→};
+   339→
+   340→export type KoruTurnResult = {
+   341→  reply: string;
+   342→  intent: SemanticIntent;
+   343→  uiBlocks: UiBlock[];
+   344→  toolCalls: ToolCall[];
+   345→  executedToolCalls: ToolCall[];
+   346→  pendingToolCalls: ToolCall[];
+   347→  toolResults: ToolResult[];
+   348→  model?: string;
+   349→  fallbackReason?: string;
+   350→  mascotState?: MascotState;
+   351→};
+   352→
+   353→export type UiBlock =
+   354→  | {
+   355→      /**
+   356→       * ENTREGABLE — el bloque estrella de Koru. Todo resultado de peso
+   357→       * (informe, investigación, análisis) llega en esta forma única:
+   358→       * hoja Stitch (kicker → título → descripción → categorías → CTA) que
+   359→       * abre la pantalla de detalle con módulos. Mientras status = "working"
+   360→       * la UI muestra el panel "Trabajando en tu {kicker}" con progreso REAL.
+   361→       */
+   362→      type: "deliverable";
+   363→      status: "working" | "ready";
+   364→      /** "Tu Informe", "Tu Plan", "Tu Análisis"... */
+   365→      kicker: string;
+   366→      /** Título corto en mayúsculas de la hoja (ej: "AGE OF EMPIRES II"). */
+   367→      title: string;
+   368→      /** Bajada de 1-2 líneas con lo esencial. */
+   369→      description?: string;
+   370→      /** Tema pedido por el usuario (para historial y re-búsquedas). */
+   371→      topic?: string;
+   372→      /** Progreso real del pipeline 0..100 (solo con status working). */
+   373→      progress?: number;
+   374→      /** Etiqueta de la fase actual ("Buscando fuentes 2/4…"). */
+   375→      phaseLabel?: string;
+   376→      /** Hasta 3 categorías del contenido (icono Material Symbols + label). */
+   377→      categories?: Array<{ icon: string; label: string; color?: string }>;
+   378→      /** Hasta 3 métricas destacadas (valor grande + label chico). */
+   379→      metrics?: Array<{ value: string; label: string }>;
+   380→      /** Síntesis narrativa (párrafo de apertura del detalle). */
+   381→      summary?: string;
+   382→      /** Módulos del detalle, en orden. */
+   383→      sections?: Array<{
+   384→        icon?: string;
+   385→        title: string;
+   386→        kicker?: string;
+   387→        kind: "text" | "bullets" | "timeline" | "grid" | "rows";
+   388→        paragraphs?: string[];
+   389→        bullets?: string[];
+   390→        items?: Array<{ title: string; subtitle?: string; badge?: string; icon?: string }>;
+   391→      }>;
+   392→      sources?: AssistantSource[];
+   393→    }
+   394→  | {
+   395→      type: "clarifying_question";
+   396→      title?: string;
+   397→      question: string;
+   398→      expectedSlot?: string;
+   399→      options?: string[];
+   400→    }
+   401→  | {
+   402→      type: "weather";
+   403→      title?: string;
+   404→      city?: string;
+   405→      now?: string;
+   406→      feel?: string;
+   407→      condition?: string;
+   408→      range?: string;
+   409→      rain?: string;
+   410→      wind?: string;
+   411→      humidity?: string;
+   412→      uv?: string;
+   413→      advice?: string;
+   414→      sourceStatus?: AssistantActionPayload["externalStatus"];
+   415→      sources?: AssistantSource[];
+   416→    }
+   417→  | {
+   418→      type: "alarm";
+   419→      title: string;
+   420→      time: string;
+   421→      repeat?: string;
+   422→      note?: string;
+   423→    }
+   424→  | {
+   425→      type: "reminder";
+   426→      title: string;
+   427→      dueText?: string;
+   428→      note?: string;
+   429→    }
+   430→  | {
+   431→      type: "shopping_list";
+   432→      title?: string;
+   433→      items: string[];
+   434→      dueText?: string;
+   435→      note?: string;
+   436→      quantities?: Record<string, number>;
+   437→      checked?: string[];
+   438→    }
+   439→  | {
+   440→      type: "plan";
+   441→      title?: string;
+   442→      items: AssistantPlanItem[];
+   443→      note?: string;
+   444→    }
+   445→  | {
+   446→      type: "comparison";
+   447→      title?: string;
+   448→      items: NonNullable<AssistantActionPayload["comparisonItems"]>;
+   449→      criteria?: string[];
+   450→      recommendation?: string;
+   451→      sources?: AssistantSource[];
+   452→    }
+   453→  | {
+   454→      type: "research_sources";
+   455→      title?: string;
+   456→      summary: string;
+   457→      mode?: AssistantActionPayload["webMode"];
+   458→      sources: AssistantSource[];
+   459→      sourceStatus?: AssistantActionPayload["externalStatus"];
+   460→      followUpQuestion?: string;
+   461→    }
+   462→  | {
+   463→      type: "money_summary";
+   464→      title?: string;
+   465→      total?: number;
+   466→      currency?: string;
+   467→      summaryItems?: Array<{ label: string; value: string; detail?: string }>;
+   468→      recommendation?: string;
+   469→    }
+   470→  | {
+   471→      type: "saved_record";
+   472→      title?: string;
+   473→      records: Array<Omit<LifeRecord, "id" | "createdAt" | "sourceEntryId">>;
+   474→    }
+   475→  | {
+   476→      type: "activity_group";
+   477→      title: string;
+   478→      subtitle?: string;
+   479→      energy?: { value: number; label?: string };
+   480→      sections: Array<{
+   481→        id?: string;
+   482→        title: string;
+   483→        tone?: "green" | "blue" | "amber" | "purple" | "red" | "neutral";
+   484→        tiles?: Array<{
+   485→          kind: "weather" | "outfit" | "traffic" | "calendar" | "health" | "food" | "work" | "money" | "wellbeing" | "home" | "relationship" | "research";
+   486→          label: string;
+   487→          value: string;
+   488→          detail?: string;
+   489→          actionLabel?: string;
+   490→          urgent?: boolean;
+   491→        }>;
+   492→        rows?: Array<{
+   493→          title: string;
+   494→          detail?: string;
+   495→          meta?: string;
+   496→          actionLabel?: string;
+   497→          urgent?: boolean;
+   498→        }>;
+   499→      }>;
+   500→      note?: string;
+   501→    }
+   502→  | {
+   503→      type: "proactive_signal";
+   504→      category: "world" | "news" | "market" | "weather" | "traffic" | "health" | "relationship" | "home" | "package" | "sports" | "general";
+   505→      severity?: "info" | "useful" | "important" | "urgent";
+   506→      title: string;
+   507→      body: string;
+   508→      timestampLabel?: string;
+   509→      sourceStatus?: AssistantActionPayload["externalStatus"];
+   510→      actionLabel?: string;
+   511→      followUpQuestion?: string;
+   512→      sources?: AssistantSource[];
+   513→      summaryItems?: Array<{ label: string; value: string; detail?: string }>;
+   514→    }
+   515→  | {
+   516→      type: "resource_bundle";
+   517→      title?: string;
+   518→      files: AssistantArtifact[];
+   519→      summary?: string;
+   520→    }
+   521→  | {
+   522→      type: "web_nav";
+   523→      title?: string;
+   524→      status: "loading" | "complete" | "report";
+   525→      query?: string;
+   526→      url?: string;
+   527→      summary?: string;
+   528→      findings?: string[];
+   529→      results: Array<{
+   530→        title: string;
+   531→        source: string;
+   532→        url: string;
+   533→        type: "article" | "pdf" | "description" | "page";
+   534→        readTime?: string;
+   535→        snippet?: string;
+   536→      }>;
+   537→    }
+   538→  | {
+   539→      /**
+   540→       * Datos concretos extraídos de la web y VALIDADOS (cada item respaldado por
+   541→       * cita literal de un source). Genérico: sirve para cualquier tema (deportes,
+   542→       * finanzas, clima, precios...) porque la detección es por forma del dato,
+   543→       * no por vocabulario. La UI los renderiza como filas label/value.
+   544→       */
+   545→      type: "data_card";
+   546→      title?: string;
+   547→      sourceStatus?: AssistantActionPayload["externalStatus"];
+   548→      items: Array<{
+   549→        label: string;
+   550→        value: string;
+   551→        detail?: string;
+   552→        quote?: string;
+   553→        sourceUrl?: string;
+   554→        sourceDomain?: string;
+   555→      }>;
+   556→    }
+   557→  | {
+   558→      /**
+   559→       * Síntesis de búsqueda de restaurante (restaurant_deep_search tool).
+   560→       * Top coincidencias con score por fuente, pros/contras del #1, cita de síntesis.
+   561→       * Renderizado por RestaurantSynthesisCard (estilo DeepHungry Síntesis Comparativa).
+   562→       */
+   563→      type: "restaurant_synthesis";
+   564→      title?: string;
+   565→      query?: string;
+   566→      mood?: string;
+   567→      status: "ok" | "partial" | "failed";
+   568→      matches?: Array<{
+   569→        name: string;
+   570→        sourcesMentioning: number;
+   571→        quote?: string;
+   572→        imageUrl?: string;
+   573→        rating?: number;
+   574→      }>;
+   575→      topScore?: string;
+   576→      pros?: string[];
+   577→      cons?: string[];
+   578→      synthesis?: string;
+   579→      sources?: AssistantSource[];
+   580→      note?: string;
+   581→      labels?: {
+   582→        cardTitle?: string;
+   583→        badge?: string;
+   584→        top3Label?: string;
+   585→        topPickLabel?: string;
+   586→        prosLabel?: string;
+   587→        consLabel?: string;
+   588→        chefLabel?: string;
+   589→        reserveAction?: string;
+   590→        menuAction?: string;
+   591→        navigateLabel?: string;
+   592→        callLabel?: string;
+   593→        synthesisLabel?: string;
+   594→        sourcesLabel?: string;
+   595→      };
+   596→    }
+   597→  | {
+   598→      type: "morning_brief";
+   599→      greeting?: string;
+   600→      items: Array<{
+   601→        icon: string;
+   602→        iconColor: string;
+   603→        label: string;
+   604→        value: string;
+   605→        variant?: "default" | "highlight";
+   606→      }>;
+   607→    }
+   608→  | {
+   609→      type: "wellbeing";
+   610→      title?: string;
+   611→      emoji?: string;
+   612→      sections?: Array<{
+   613→        icon: string;
+   614→        iconColor: string;
+   615→        bgColor: string;
+   616→        borderColor?: string;
+   617→        value: string;
+   618→        label: string;
+   619→      }>;
+   620→      sleep?: { icon: string; value: string; label: string };
+   621→      suggestion?: { icon: string; value: string; label: string };
+   622→    }
+   623→  | {
+   624→      type: "live_match";
+   625→      league?: string;
+   626→      time?: string;
+   627→      status?: string;
+   628→      homeName?: string;
+   629→      awayName?: string;
+   630→      homeScore?: number;
+   631→      awayScore?: number;
+   632→      homeInitials?: string;
+   633→      awayInitials?: string;
+   634→      minute?: string;
+   635→      globalAgg?: string;
+   636→      homePossession?: string;
+   637→      awayPossession?: string;
+   638→      homeShots?: string;
+   639→      awayShots?: string;
+   640→      homeTeam?: { name: string; abbrev: string; color?: string; score: number };
+   641→      awayTeam?: { name: string; abbrev: string; color?: string; score: number };
+   642→      stats?: Array<{
+   643→        label: string;
+   644→        leftPercent: number;
+   645→        rightPercent: number;
+   646→        leftColor?: string;
+   647→        rightColor?: string;
+   648→      }>;
+   649→    }
+   650→  | {
+   651→      type: "urgent_now";
+   652→      eyebrow?: string;
+   653→      icon?: string;
+   654→      iconColor?: string;
+   655→      iconBg?: string;
+   656→      headline: string;
+   657→      description: string;
+   658→    }
+   659→  | {
+   660→      type: "market";
+   661→      title?: string;
+   662→      assets: Array<{
+   663→        symbol: string;
+   664→        name: string;
+   665→        category?: string;
+   666→        price: string;
+   667→        change: string;
+   668→        changeUp: boolean;
+   669→        icon?: string;
+   670→        iconBg?: string;
+   671→        iconColor?: string;
+   672→        shape?: "circle" | "rounded";
+   673→      }>;
+   674→    }
+   675→  | {
+   676→      type: "delivery";
+   677→      title?: string;
+   678→      status: string;
+   679→      carrier?: string;
+   680→      trackingId?: string;
+   681→      estimatedDate?: string;
+   682→      steps?: Array<{ label: string; done: boolean }>;
+   683→    }
+   684→  | {
+   685→      type: "health_reminder";
+   686→      title?: string;
+   687→      icon?: string;
+   688→      iconColor?: string;
+   689→      bgColor?: string;
+   690→      reminder: string;
+   691→      actionLabel?: string;
+   692→    }
+   693→  | {
+   694→      type: "activity_tracker";
+   695→      title?: string;
+   696→      subtitle?: string;
+   697→      metrics: Array<{
+   698→        icon: string;
+   699→        iconColor: string;
+   700→        label: string;
+   701→        value: string;
+   702→        unit?: string;
+   703→        progress?: number;
+   704→        progressColor?: string;
+   705→      }>;
+   706→    }
+   707→  | {
+   708→      type: "product_analysis";
+   709→      product?: {
+   710→        name?: string;
+   711→        image?: string;
+   712→        icon?: string;
+   713→        rating?: number;
+   714→        reviewCount?: string;
+   715→        description?: string;
+   716→      };
+   717→      specs?: Array<{ label: string; value: string }>;
+   718→      actionLabel?: string;
+   719→      actionIcon?: string;
+   720→    }
+   721→  | {
+   722→      type: "travel_planner";
+   723→      destination?: string;
+   724→      dates?: string;
+   725→      steps?: Array<{ time: string; label: string; detail?: string; icon?: string }>;
+   726→      actionLabel?: string;
+   727→    }
+   728→  | {
+   729→      type: "generation";
+   730→      title?: string;
+   731→      prompt?: string;
+   732→      resultType?: "text" | "image" | "code" | "document";
+   733→      preview?: string;
+   734→      actionLabel?: string;
+   735→      actionIcon?: string;
+   736→    }
+   737→  | {
+   738→      type: "match_timeline";
+   739→      items?: Array<{ minute: string; text: string; sub?: string; active?: boolean; now?: boolean }>;
+   740→    }
+   741→  | {
+   742→      type: "match_stats";
+   743→      stats?: Array<{ label: string; home: string; away: string; width: string }>;
+   744→    }
+   745→  | {
+   746→      type: "election_results";
+   747→      title?: string;
+   748→      status?: string;
+   749→      items?: Array<{ name: string; percent: string; detail?: string; done: boolean; color: string }>;
+   750→    }
+   751→  | {
+   752→      type: "election_vote";
+   753→      question?: string;
+   754→      subtitle?: string;
+   755→      options?: Array<{ label: string; sub?: string }>;
+   756→    }
+   757→  | {
+   758→      type: "decision_support";
+   759→      title?: string;
+   760→      options?: Array<{ label: string; probability?: number }>;
+   761→      factors?: string[];
+   762→      recommendation?: string;
+   763→    }
+   764→  | {
+   765→      type: "memory";
+   766→      title?: string;
+   767→      items?: Array<{
+   768→        domain?: string;
+   769→        title: string;
+   770→        detail?: string;
+   771→        confidence?: number;
+   772→      }>;
+   773→      note?: string;
+   774→    }
+   775→  | {
+   776→      type: "data_ticker";
+   777→      items?: Array<{ label: string; value: string; highlight?: boolean }>;
+   778→      alert?: string;
+   779→    }
+   780→  | {
+   781→      type: "crypto_portfolio";
+   782→      items?: Array<{ symbol: string; name: string; price: string; change: number; color: string; bg: string; char?: string }>;
+   783→    }
+   784→  | {
+   785→      type: "forex";
+   786→      items?: Array<{ pair: string; rate: string; change: number; flag: string; positive: boolean }>;
+   787→    }
+   788→  | {
+   789→      type: "route_timeline";
+   790→      eta?: string;
+   791→      items?: Array<{ label: string; detail: string; color: string }>;
+   792→    }
+   793→  | {
+   794→      type: "transport_compare";
+   795→      items?: Array<{ mode: string; time: string; icon: string; active: boolean }>;
+   796→    }
+   797→  | {
+   798→      type: "route_map";
+   799→      progress?: number;
+   800→      from?: string;
+   801→      to?: string;
+   802→      distance?: string;
+   803→      remaining?: string;
+   804→    }
+   805→  | {
+   806→      type: "birthday_calendar";
+   807→      month?: string;
+   808→      highlightedDay?: number;
+   809→      startDay?: number;
+   810→      daysInMonth?: number;
+   811→    }
+   812→  | {
+   813→      type: "birthday_alarm";
+   814→      name?: string;
+   815→      date?: string;
+   816→      countdown?: string;
+   817→      unit?: string;
+   818→      eta?: string;
+   819→    }
+   820→  | {
+   821→      type: "social_interaction";
+   822→      name?: string;
+   823→      event?: string;
+   824→      date?: string;
+   825→      age?: string;
+   826→      remaining?: string;
+   827→      gifts?: Array<{ emoji: string; title: string; detail: string }>;
+   828→    }
+   829→  | {
+   830→      type: "smart_checklist";
+   831→      title?: string;
+   832→      progress?: number;
+   833→      items?: Array<{ label: string; checked: boolean }>;
+   834→    }
+   835→  | {
+   836→      type: "outfit";
+   837→      specs?: Array<{ emoji: string; label: string; value: string }>;
+   838→      buttonLabel?: string;
+   839→    }
+   840→  | {
+   841→      type: "review_score";
+   842→      items?: Array<{ emoji: string; score: string; label: string; color: string }>;
+   843→      buttonLabel?: string;
+   844→    }
+   845→  | {
+   846→      type: "review_document";
+   847→      title?: string;
+   848→      body?: string;
+   849→    }
+   850→  | {
+   851→      type: "review_quote";
+   852→      sourceName?: string;
+   853→      sourceType?: string;
+   854→      quote?: string;
+   855→      tags?: string[];
+   856→      buttonLabel?: string;
+   857→    }
+   858→
+   859→export type AssistantActionStatus = "proposed" | "approved" | "executed" | "rejected";
+   860→
+   861→export type AssistantActionPayload = {
+   862→  title?: string;
+   863→  body?: string;
+   864→  uiBlock?: UiBlock;
+   865→  semanticIntent?: SemanticIntent;
+   866→  draft?: string;
+   867→  recipient?: string;
+   868→  dueHint?: string;
+   869→  startsAt?: string;
+   870→  location?: string;
+   871→  note?: string;
+   872→  webMode?: "news" | "shopping" | "research" | "weather" | "traffic" | "market" | "world";
+   873→  files?: AssistantArtifact[];
+   874→  sources?: AssistantSource[];
+   875→  verifiedAt?: string;
+   876→  externalStatus?: "not_configured" | "pending" | "verified" | "partial" | "failed";
+   877→  comparisonItems?: Array<{
+   878→    title: string;
+   879→    price?: string;
+   880→    vendor?: string;
+   881→    url?: string;
+   882→    evidence?: string;
+   883→    score?: number;
+   884→    details?: Array<{ label: string; positive?: boolean }>;
+   885→  }>;
+   886→  planItems?: AssistantPlanItem[];
+   887→  steps?: string[];
+   888→  contextReview?: ContextReviewItem[];
+   889→  questions?: string[];
+   890→  missingContext?: string[];
+   891→  searchQueries?: string[];
+   892→  researchCriteria?: string[];
+   893→  records?: Array<Omit<LifeRecord, "id" | "createdAt" | "sourceEntryId">>;
+   894→  summaryItems?: Array<{ label: string; value: string; detail?: string }>;
+   895→  totalAmount?: number;
+   896→  currency?: string;
+   897→  recommendation?: string;
+   898→  decisionVote?: "go" | "wait" | "missing";
+   899→  decisionAssumption?: string;
+   900→};
+   901→
+   902→export type AssistantAction = {
+   903→  id: string;
+   904→  kind: AssistantActionKind;
+   905→  title: string;
+   906→  body: string;
+   907→  status: AssistantActionStatus;
+   908→  approvalRequired: boolean;
+   909→  createdAt: string;
+   910→  updatedAt?: string;
+   911→  executedAt?: string;
+   912→  sourceEntryId: string;
+   913→  sourceCommitmentId?: string;
+   914→  payload: AssistantActionPayload;
+   915→  result?: string;
+   916→};
+   917→
+   918→export type LearningPreference = {
+   919→  type: string;
+   920→  acceptedCount: number;
+   921→  rejectedCount: number;
+   922→  lastInteractionAt: string;
+   923→};
+   924→
+   925→export type KoruState = {
+   926→  userName?: string;
+   927→  stage: KoruStage;
+   928→  trustedEnergy: number;
+   929→  totalEnergy: number;
+   930→  createdAt: string;
+   931→  updatedAt: string;
+   932→  voicePreference: VoicePreference;
+   933→  runtime: RuntimeSettings;
+   934→  heartbeat: HeartbeatSettings;
+   935→  memories: MemoryFact[];
+   936→  commitments: Commitment[];
+   937→  actions: AssistantAction[];
+   938→  calendarEvents: CalendarEvent[];
+   939→  records: LifeRecord[];
+   940→  entries: DailyEntry[];
+   941→  energyEvents: EnergyEvent[];
+   942→  nudges: ProactiveNudge[];
+   943→  modelCalls: ModelCall[];
+   944→  ephemeralMode: boolean;
+   945→  durableMemoryEnabled: boolean;
+   946→  actionPreparationEnabled: boolean;
+   947→  worldSignalsEnabled: boolean;
+   948→  learningPreferences: LearningPreference[];
+   949→};
+   950→
+   951→export type KoruAnalysis = {
+   952→  summary: string;
+   953→  response: string;
+   954→  energyAwarded: number;
+   955→  memoryCandidates: Omit<MemoryFact, "id" | "createdAt" | "sourceEntryId">[];
+   956→  commitments: Omit<Commitment, "id" | "createdAt" | "sourceEntryId">[];
+   957→  actionProposals: Omit<AssistantAction, "id" | "createdAt" | "sourceEntryId">[];
+   958→  nudges: Omit<ProactiveNudge, "id" | "createdAt">[];
+   959→  records: Omit<LifeRecord, "id" | "createdAt" | "sourceEntryId">[];
+   960→  sentiment: DailyEntry["sentiment"];
+   961→  activeMemoryIds: string[];
+   962→  activeMemorySummary?: string;
+   963→  provider: BrainProvider;
+   964→  model?: string;
+   965→};
+   966→
+   967→export type KoruConversationMessage = {
+   968→  role: "user" | "assistant";
+   969→  content: string;
+   970→  createdAt?: string;
+   971→};
+   972→

@@ -1,0 +1,43 @@
+[
+  {
+    "id": "rem-07",
+    "ok": true,
+    "elapsed": 5279,
+    "input": "no me dejes olvidar comprar el regalo de ana",
+    "reply": "Tuve un problema para armar la respuesta. ¿Me lo repetís de otra forma para ayudarte bien?",
+    "blocks": [],
+    "tools": [],
+    "memories": 0,
+    "commitments": 0,
+    "intentOk": false,
+    "qualityScore": 5,
+    "issues": [
+      "GENERIC_ERROR",
+      "NO_BLOCK"
+    ]
+  },
+  {
+    "id": "rem-08",
+    "ok": false,
+    "error": "The operation was aborted due to timeout",
+    "input": "necesito q me avises el viernes x la tarde q tengo q retirar el traje"
+  },
+  {
+    "id": "rem-09",
+    "ok": true,
+    "elapsed": 5597,
+    "input": "el 15 del mes q viene se vence el seguro",
+    "reply": "Listo, guardado en money. Te aviso cuando se acerque la fecha.",
+    "blocks": [
+      "reminder"
+    ],
+    "tools": [
+      "memory_recall"
+    ],
+    "memories": 0,
+    "commitments": 1,
+    "intentOk": true,
+    "qualityScore": 10,
+    "issues": []
+  }
+]

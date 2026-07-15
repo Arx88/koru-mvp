@@ -76,7 +76,8 @@ export type DetailSection =
   | { kind: "chips"; icon: string; accent: Accent; title: string; subtitle?: string; chips: DetailChip[] }
   | { kind: "scroller"; icon: string; accent: Accent; title: string; subtitle?: string; cards: DetailScrollCard[] }
   | { kind: "timeline"; icon: string; accent: Accent; title: string; subtitle?: string; steps: DetailStep[] }
-  | { kind: "sources"; icon: string; accent: Accent; title: string; subtitle?: string; sources: DetailSourceRef[] };
+  | { kind: "sources"; icon: string; accent: Accent; title: string; subtitle?: string; sources: DetailSourceRef[] }
+  | { kind: "pitch"; icon: string; accent: Accent; title: string; subtitle?: string; pitch: { homeFormation: string; awayFormation: string; homePlayers: Array<{ number?: string; name: string; position?: string }>; awayPlayers: Array<{ number?: string; name: string; position?: string }>; homeColor?: string; awayColor?: string; homeName: string; awayName: string } };
 
 export type Detail = {
   title: string;
@@ -1213,70 +1214,29 @@ function buildMatchDetailSections(
     }
   }
 
-  // 🔴 v2: Alineaciones — compactar a formation chips + starter count (no 22 rows)
+  // 🔴 v2: Alineaciones — visualización de CANCHA con dots posicionados por formation
   if (b.lineups) {
     const homeLineup = b.lineups[homeName];
     const awayLineup = b.lineups[awayName];
-    if (homeLineup || awayLineup) {
-      const rows: Array<{ title: string; detail: string; icon?: string; badge?: string; badgeTone?: "done" | "current" | "pending" | "urgent" }> = [];
-      // Fila 1: formations lado a lado
-      if (homeLineup?.formation && awayLineup?.formation) {
-        rows.push({
-          icon: "grid_view",
-          title: `${homeLineup.formation} vs ${awayLineup.formation}`,
-          detail: "FORMACIONES",
-          badge: homeName.slice(0, 3).toUpperCase() + " / " + awayName.slice(0, 3).toUpperCase(),
-          badgeTone: "current",
-        });
-      }
-      // Fila 2: arqueros
-      if (homeLineup?.starters?.[0] || awayLineup?.starters?.[0]) {
-        const homeGK = homeLineup?.starters?.find(p => p.position === "G") ?? homeLineup?.starters?.[0];
-        const awayGK = awayLineup?.starters?.find(p => p.position === "G") ?? awayLineup?.starters?.[0];
-        if (homeGK && awayGK) {
-          rows.push({
-            icon: "sports_soccer",
-            title: `${homeGK.name} vs ${awayGK.name}`,
-            detail: "ARQUEROS",
-          });
-        }
-      }
-      // Fila 3: capitanes/star players (primeros 3 de cada equipo)
-      if (homeLineup?.starters && awayLineup?.starters) {
-        const homeTop = homeLineup.starters.slice(1, 4).map(p => p.name).join(", ");
-        const awayTop = awayLineup.starters.slice(1, 4).map(p => p.name).join(", ");
-        if (homeTop && awayTop) {
-          rows.push({
-            icon: "groups",
-            title: homeTop,
-            detail: `${homeName.slice(0, 12)} · DESTACADOS`,
-          });
-          rows.push({
-            icon: "groups",
-            title: awayTop,
-            detail: `${awayName.slice(0, 12)} · DESTACADOS`,
-          });
-        }
-      }
-      // Fila final: total de jugadores
-      const totalStarters = (homeLineup?.starters?.length ?? 0) + (awayLineup?.starters?.length ?? 0);
-      if (totalStarters > 0) {
-        rows.push({
-          icon: "info",
-          title: `${totalStarters} titulares en cancha`,
-          detail: "ALINEACIONES COMPLETAS",
-        });
-      }
-      if (rows.length > 0) {
-        sections.push({
-          kind: "rows",
-          icon: "groups",
-          accent: A.purple,
-          title: "Alineaciones",
-          subtitle: "FORMACIONES Y DESTACADOS",
-          rows,
-        });
-      }
+    if (homeLineup?.starters?.length || awayLineup?.starters?.length) {
+      // 🔴 Sección pitch con cancha visual + dots por formation
+      sections.push({
+        kind: "pitch",
+        icon: "stadium",
+        accent: A.emerald,
+        title: "Alineaciones",
+        subtitle: `${homeLineup?.formation ?? "—"} vs ${awayLineup?.formation ?? "—"}`,
+        pitch: {
+          homeFormation: homeLineup?.formation ?? "4-3-3",
+          awayFormation: awayLineup?.formation ?? "4-3-3",
+          homePlayers: homeLineup?.starters ?? [],
+          awayPlayers: awayLineup?.starters ?? [],
+          homeColor,
+          awayColor,
+          homeName,
+          awayName,
+        },
+      });
     }
   }
 

@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>El hogar vivo de Koru · Propuesta de diseño</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=Bricolage+Grotesque:wght@400;600;700;800&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+@page {
+  size: 720px 1020px;
+  margin: 0;
+}
+:root {
+  --c-bg-dark: #14102a;
+  --c-bg-deep: #0e0a1f;
+  --c-bg-cream: #f8f4ee;
+  --c-bg-cream-2: #f1ebe1;
+  --c-text-light: #f0eaff;
+  --c-text-dark: #1a1228;
+  --c-text-dim: #6b5e8a;
+  --c-text-dim-dark: #5a4d3a;
+  --c-text-mute: #a89cc4;
+  --c-text-mute-dark: #8a7d6e;
+  --c-accent: #8363f9;
+  --c-accent-bright: #a78bfa;
+  --c-accent-soft: #c4b5fd;
+  --c-mint: #6ee7b7;
+  --c-mint-soft: #a7f3d0;
+  --c-pink: #f9a8d4;
+  --c-warn: #fcd34d;
+  --c-line: rgba(167, 139, 250, 0.18);
+  --c-line-dark: rgba(26, 18, 40, 0.10);
+}
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 720px;
+  background: var(--c-bg-deep);
+  color: var(--c-text-light);
+  font-family: 'Inter', 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+@media screen {
+  html { display: flex; justify-content: center; background: #222; height: auto; }
+  body { margin: 20px auto; box-shadow: 0 4px 40px rgba(0,0,0,0.4); }
+}
+
+/* ============ COVER ============ */
+.cover {
+  width: 720px;
+  height: 1020px;
+  box-sizing: border-box;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(131, 99, 249, 0.28), transparent 50%),
+    radial-gradient(circle at 82% 78%, rgba(110, 231, 183, 0.14), transparent 45%),
+    linear-gradient(180deg, #1a1235 0%, #0e0a1f 100%);
+  position: relative;
+  overflow: hidden;
+  break-after: page;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 70px 64px 60px;
+}
+.cover .stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 22%, rgba(255,255,255,0.6), transparent),
+    radial-gradient(1px 1px at 28% 65%, rgba(255,255,255,0.4), transparent),
+    radial-gradient(1.2px 1.2px at 45% 18%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1px 1px at 62% 75%, rgba(255,255,255,0.35), transparent),
+    radial-gradient(1.5px 1.5px at 78% 30%, rgba(255,255,255,0.55), transparent),
+    radial-gradient(1px 1px at 88% 60%, rgba(255,255,255,0.4), transparent),
+    radial-gradient(1.2px 1.2px at 35% 88%, rgba(255,255,255,0.3), transparent),
+    radial-gradient(1px 1px at 18% 48%, rgba(255,255,255,0.25), transparent),
+    radial-gradient(1.5px 1.5px at 70% 12%, rgba(255,255,255,0.5), transparent);
+}
+.cover .island {
+  position: absolute;
+  width: 90px;
+  height: 60px;
+  background: linear-gradient(135deg, #2a1f4a 0%, #1a1235 100%);
+  border-radius: 50% 50% 30% 30% / 60% 60% 40% 40%;
+  box-shadow: 0 0 30px rgba(131, 99, 249, 0.2);
+}
+.cover .island.i1 { top: 12%; right: -10px; transform: rotate(-15deg); }
+.cover .island.i2 { top: 38%; left: -25px; transform: rotate(20deg); width: 70px; height: 45px; }
+.cover .island.i3 { bottom: 22%; right: 18px; width: 60px; height: 40px; }
+
+.cover .top {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.cover .brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+  color: var(--c-text-light);
+}
+.cover .brand .leaf {
+  width: 22px; height: 22px;
+  background: var(--c-mint);
+  border-radius: 50% 0 50% 0;
+  transform: rotate(-45deg);
+  box-shadow: 0 0 12px rgba(110, 231, 183, 0.5);
+}
+.cover .tags {
+  display: flex; gap: 8px;
+}
+.cover .tag {
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(131, 99, 249, 0.15);
+  border: 1px solid rgba(131, 99, 249, 0.35);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--c-accent-soft);
+  text-transform: uppercase;
+}
+
+.cover .middle {
+  position: relative;
+  z-index: 2;
+}
+.cover .kicker {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-mint);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 28px;
+}
+.cover h1 {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-weight: 800;
+  font-size: 76px;
+  line-height: 0.95;
+  letter-spacing: -0.035em;
+  margin: 0 0 24px;
+  color: var(--c-text-light);
+}
+.cover h1 .accent {
+  background: linear-gradient(135deg, var(--c-accent-bright) 0%, var(--c-mint) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-style: italic;
+  font-weight: 700;
+}
+.cover .subtitle {
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--c-text-mute);
+  max-width: 520px;
+  margin: 0;
+}
+.cover .subtitle strong {
+  color: var(--c-text-light);
+  font-weight: 500;
+}
+
+.cover .bottom {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-top: 32px;
+  border-top: 1px solid rgba(167, 139, 250, 0.2);
+}
+.cover .author {
+  font-size: 11px;
+  color: var(--c-text-mute);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.cover .author strong {
+  color: var(--c-text-light);
+  display: block;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 4px;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+.cover .edition {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 11px;
+  color: var(--c-text-mute);
+  letter-spacing: 0.15em;
+}
+
+/* ============ CONTENT PAGES ============ */
+.main-content {
+  padding: 70px 64px 60px;
+  background: var(--c-bg-dark);
+  color: var(--c-text-light);
+}
+.main-content.cream {
+  background: var(--c-bg-cream);
+  color: var(--c-text-dark);
+}
+.section-tag {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-accent-bright);
+  margin-bottom: 12px;
+}
+.cream .section-tag { color: var(--c-accent); }
+.section-title {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+  margin: 0 0 18px;
+}
+.cream .section-title { color: var(--c-text-dark); }
+.divider {
+  width: 56px;
+  height: 3px;
+  background: var(--c-accent);
+  margin: 0 0 44px;
+  border-radius: 2px;
+}
+.body-text {
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--c-text-mute);
+  margin: 0 0 14px;
+  font-weight: 400;
+}
+.cream .body-text { color: #4a3f2e; }
+.body-text strong { color: var(--c-text-light); font-weight: 500; }
+.cream .body-text strong { color: var(--c-text-dark); }
+
+.chapter-header {
+  break-after: avoid;
+  break-inside: avoid;
+  margin-top: 24px;
+}
+.chapter-header:first-child { margin-top: 0; }
+
+.pullquote {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.18;
+  letter-spacing: -0.02em;
+  color: var(--c-text-light);
+  margin: 0 0 32px;
+  padding-left: 24px;
+  border-left: 3px solid var(--c-accent);
+}
+.cream .pullquote { color: var(--c-text-dark); border-left-color: var(--c-accent); }
+
+.card {
+  break-inside: avoid;
+  margin-bottom: 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(167, 139, 250, 0.18);
+  border-radius: 16px;
+  padding: 16px 18px;
+}
+.cream .card {
+  background: #fff;
+  border-color: rgba(26, 18, 40, 0.08);
+  box-shadow: 0 1px 3px rgba(26, 18, 40, 0.05);
+}
+.card .card-title {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--c-text-light);
+  margin-bottom: 6px;
+}
+.cream .card .card-title { color: var(--c-text-dark); }
+.card .card-meta {
+  font-size: 10.5px;
+  color: var(--c-text-mute);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.cream .card .card-meta { color: var(--c-text-dim-dark); }
+.card .card-body {
+  font-size: 13px;
+  color: var(--c-text-mute);
+  line-height: 1.55;
+  margin: 0;
+}
+.cream .card .card-body { color: #4a3f2e; }
+
+/* Two-column layout */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin: 24px 0;
+}
+.two-col .col h3 {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--c-text-light);
+  margin: 0 0 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--c-line);
+}
+.cream .two-col .col h3 { color: var(--c-text-dark); border-bottom-color: var(--c-line-dark); }
+.two-col .col p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--c-text-mute);
+  margin: 0 0 8px;
+}
+.cream .two-col .col p { color: #4a3f2e; }
+
+/* Table */
+.t-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 18px 0;
+  font-size: 12.5px;
+  break-inside: avoid;
+}
+.t-table th {
+  text-align: left;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--c-accent-bright);
+  padding: 10px 12px;
+  border-bottom: 1.5px solid var(--c-accent);
+}
+.cream .t-table th { color: var(--c-accent); }
+.t-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(167, 139, 250, 0.12);
+  color: var(--c-text-mute);
+  vertical-align: top;
+}
+.cream .t-table td { color: #4a3f2e; border-bottom-color: rgba(26, 18, 40, 0.06); }
+.t-table tr:last-child td { border-bottom: none; }
+.t-table .badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.badge.real { background: rgba(110, 231, 183, 0.15); color: var(--c-mint); }
+.badge.mock { background: rgba(252, 211, 77, 0.15); color: var(--c-warn); }
+.badge.partial { background: rgba(249, 168, 212, 0.15); color: var(--c-pink); }
+.cream .badge.real { background: rgba(16, 122, 87, 0.12); color: #107a57; }
+.cream .badge.mock { background: rgba(180, 130, 30, 0.12); color: #8a5a10; }
+.cream .badge.partial { background: rgba(180, 80, 130, 0.12); color: #8a4068; }
+
+/* Bento grid */
+.bento {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin: 22px 0;
+}
+.bento .bento-card {
+  break-inside: avoid;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(167, 139, 250, 0.18);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+.cream .bento .bento-card {
+  background: #fff;
+  border-color: rgba(26, 18, 40, 0.06);
+  box-shadow: 0 1px 2px rgba(26, 18, 40, 0.04);
+}
+.bento .bento-num {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--c-accent);
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.bento .bento-title {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--c-text-light);
+  margin-bottom: 4px;
+}
+.cream .bento .bento-title { color: var(--c-text-dark); }
+.bento .bento-desc {
+  font-size: 11.5px;
+  color: var(--c-text-mute);
+  line-height: 1.45;
+  margin: 0;
+}
+.cream .bento .bento-desc { color: #6b5e4a; }
+.bento .bento-src {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 9.5px;
+  color: var(--c-accent-bright);
+  margin-top: 6px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.cream .bento .bento-src { color: var(--c-accent); }
+
+/* Stat row */
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin: 24px 0;
+}
+.stat-row .stat {
+  text-align: left;
+}
+.stat-row .stat .num {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 38px;
+  font-weight: 800;
+  color: var(--c-accent-bright);
+  line-height: 1;
+  margin-bottom: 6px;
+  letter-spacing: -0.02em;
+}
+.cream .stat-row .stat .num { color: var(--c-accent); }
+.stat-row .stat .lbl {
+  font-size: 11px;
+  color: var(--c-text-mute);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.cream .stat-row .stat .lbl { color: var(--c-text-dim-dark); }
+
+/* Anatomy diagram */
+.anatomy {
+  position: relative;
+  width: 100%;
+  height: 540px;
+  margin: 20px 0;
+  background: linear-gradient(180deg, #1a1235 0%, #14102a 100%);
+  border-radius: 28px;
+  border: 1px solid rgba(167, 139, 250, 0.2);
+  overflow: hidden;
+  break-inside: avoid;
+}
+.anatomy .zone {
+  position: absolute;
+  border-radius: 12px;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 10px 12px;
+}
+.anatomy .zone .z-num {
+  font-size: 10px;
+  color: var(--c-mint);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  margin-bottom: 3px;
+}
+.anatomy .zone .z-name {
+  font-size: 12px;
+  color: var(--c-text-light);
+  font-weight: 700;
+  margin-bottom: 3px;
+}
+.anatomy .zone .z-desc {
+  font-size: 9.5px;
+  color: var(--c-text-mute);
+  line-height: 1.3;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+}
+.anatomy .zone.header { top: 14px; left: 14px; right: 14px; height: 50px; background: rgba(131, 99, 249, 0.18); border: 1px solid rgba(131, 99, 249, 0.45); }
+.anatomy .zone.energy { top: 72px; left: 14px; right: 14px; height: 32px; background: rgba(110, 231, 183, 0.12); border: 1px solid rgba(110, 231, 183, 0.35); }
+.anatomy .zone.proactive { top: 112px; left: 14px; right: 14px; height: 60px; background: rgba(249, 168, 212, 0.12); border: 1px solid rgba(249, 168, 212, 0.35); }
+.anatomy .zone.widget-1 { top: 180px; left: 14px; width: 47%; height: 100px; background: rgba(167, 139, 250, 0.10); border: 1px solid rgba(167, 139, 250, 0.30); }
+.anatomy .zone.widget-2 { top: 180px; right: 14px; width: 47%; height: 100px; background: rgba(167, 139, 250, 0.10); border: 1px solid rgba(167, 139, 250, 0.30); }
+.anatomy .zone.widget-3 { top: 288px; left: 14px; width: 47%; height: 100px; background: rgba(167, 139, 250, 0.10); border: 1px solid rgba(167, 139, 250, 0.30); }
+.anatomy .zone.widget-4 { top: 288px; right: 14px; width: 47%; height: 100px; background: rgba(167, 139, 250, 0.10); border: 1px solid rgba(167, 139, 250, 0.30); }
+.anatomy .zone.collections { top: 396px; left: 14px; right: 14px; height: 50px; background: rgba(252, 211, 77, 0.10); border: 1px solid rgba(252, 211, 77, 0.30); }
+.anatomy .zone.composer { top: 454px; left: 14px; right: 14px; height: 72px; background: rgba(131, 99, 249, 0.22); border: 1px solid rgba(131, 99, 249, 0.50); }
+
+/* Timeline */
+.timeline {
+  margin: 22px 0;
+}
+.timeline .moment {
+  break-inside: avoid;
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 20px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--c-line);
+}
+.cream .timeline .moment { border-bottom-color: var(--c-line-dark); }
+.timeline .moment:last-child { border-bottom: none; }
+.timeline .moment .time {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--c-accent-bright);
+  letter-spacing: -0.02em;
+}
+.cream .timeline .moment .time { color: var(--c-accent); }
+.timeline .moment .time .ampm {
+  display: block;
+  font-size: 10px;
+  color: var(--c-text-mute);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+.timeline .moment .moment-body .moment-title {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--c-text-light);
+  margin-bottom: 4px;
+}
+.cream .timeline .moment .moment-body .moment-title { color: var(--c-text-dark); }
+.timeline .moment .moment-body .moment-desc {
+  font-size: 12px;
+  color: var(--c-text-mute);
+  line-height: 1.55;
+  margin: 0 0 6px;
+}
+.cream .timeline .moment .moment-body .moment-desc { color: #4a3f2e; }
+.timeline .moment .moment-body .widgets-active {
+  display: flex; flex-wrap: wrap; gap: 4px;
+}
+.timeline .moment .widgets-active .pill {
+  font-size: 9.5px;
+  padding: 2px 8px;
+  background: rgba(131, 99, 249, 0.18);
+  color: var(--c-accent-soft);
+  border-radius: 999px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.cream .timeline .moment .widgets-active .pill {
+  background: rgba(131, 99, 249, 0.12);
+  color: var(--c-accent);
+}
+
+/* Ending page */
+.ending {
+  width: 720px;
+  height: 1020px;
+  box-sizing: border-box;
+  background:
+    radial-gradient(circle at 50% 30%, rgba(131, 99, 249, 0.25), transparent 55%),
+    radial-gradient(circle at 50% 80%, rgba(110, 231, 183, 0.12), transparent 45%),
+    linear-gradient(180deg, #1a1235 0%, #0e0a1f 100%);
+  position: relative;
+  overflow: hidden;
+  break-before: page;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 80px 80px;
+  text-align: center;
+}
+.ending .stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1.2px 1.2px at 22% 18%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1px 1px at 78% 22%, rgba(255,255,255,0.4), transparent),
+    radial-gradient(1.5px 1.5px at 35% 78%, rgba(255,255,255,0.55), transparent),
+    radial-gradient(1px 1px at 62% 85%, rgba(255,255,255,0.35), transparent),
+    radial-gradient(1px 1px at 88% 55%, rgba(255,255,255,0.3), transparent),
+    radial-gradient(1.2px 1.2px at 12% 60%, rgba(255,255,255,0.4), transparent);
+}
+.ending .leaf-big {
+  width: 64px; height: 64px;
+  background: var(--c-mint);
+  border-radius: 50% 0 50% 0;
+  transform: rotate(-45deg);
+  margin-bottom: 40px;
+  box-shadow: 0 0 40px rgba(110, 231, 183, 0.6);
+  position: relative;
+  z-index: 2;
+}
+.ending .closing-quote {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 38px;
+  font-weight: 700;
+  line-height: 1.18;
+  letter-spacing: -0.025em;
+  color: var(--c-text-light);
+  margin: 0 0 32px;
+  max-width: 560px;
+  position: relative;
+  z-index: 2;
+}
+.ending .closing-quote .accent {
+  background: linear-gradient(135deg, var(--c-accent-bright) 0%, var(--c-mint) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.ending .closing-body {
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--c-text-mute);
+  max-width: 480px;
+  margin: 0 0 24px;
+  position: relative;
+  z-index: 2;
+}
+.ending .pillars {
+  display: flex;
+  gap: 14px;
+  margin: 32px 0 50px;
+  position: relative;
+  z-index: 2;
+}
+.ending .pillars .pillar {
+  padding: 8px 16px;
+  border: 1px solid rgba(167, 139, 250, 0.35);
+  border-radius: 999px;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--c-accent-soft);
+  letter-spacing: 0.06em;
+}
+.ending .signoff {
+  position: relative;
+  z-index: 2;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 14px;
+  color: var(--c-text-mute);
+  letter-spacing: 0.08em;
+  font-style: italic;
+  padding-top: 32px;
+  border-top: 1px solid rgba(167, 139, 250, 0.2);
+  width: 280px;
+}
+.ending .signoff .leaf-small {
+  display: inline-block;
+  width: 12px; height: 12px;
+  background: var(--c-mint);
+  border-radius: 50% 0 50% 0;
+  transform: rotate(-45deg);
+  vertical-align: middle;
+  margin: 0 6px;
+}
+
+/* Numbered list */
+.num-list {
+  margin: 16px 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: nl;
+}
+.num-list li {
+  counter-increment: nl;
+  padding-left: 36px;
+  position: relative;
+  margin-bottom: 12px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--c-text-mute);
+  break-inside: avoid;
+}
+.cream .num-list li { color: #4a3f2e; }
+.num-list li::before {
+  content: counter(nl, decimal-leading-zero);
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--c-accent-bright);
+  letter-spacing: -0.02em;
+}
+.cream .num-list li::before { color: var(--c-accent); }
+.num-list li strong {
+  color: var(--c-text-light);
+  font-weight: 600;
+}
+.cream .num-list li strong { color: var(--c-text-dark); }
+
+/* Callout */
+.callout {
+  background: rgba(131, 99, 249, 0.10);
+  border-left: 3px solid var(--c-accent);
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin: 18px 0;
+  break-inside: avoid;
+}
+.cream .callout {
+  background: rgba(131, 99, 249, 0.06);
+}
+.callout .callout-title {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--c-accent-bright);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.cream .callout .callout-title { color: var(--c-accent); }
+.callout .callout-body {
+  font-size: 13px;
+  color: var(--c-text-mute);
+  line-height: 1.55;
+  margin: 0;
+}
+.cream .callout .callout-body { color: #4a3f2e; }
+.callout .callout-body em {
+  color: var(--c-mint);
+  font-style: normal;
+  font-weight: 600;
+}
+
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     PAGE 1 — COVER
+     ============================================================ -->
+<div class="cover">
+  <div class="stars"></div>
+  <div class="island i1"></div>
+  <div class="island i2"></div>
+  <div class="island i3"></div>
+
+  <div class="top">
+    <div class="brand">
+      <span class="leaf"></span>
+      <span>Koru</span>
+    </div>
+    <div class="tags">
+      <span class="tag">Diseño</span>
+      <span class="tag">Producto</span>
+      <span class="tag">Visión</span>
+    </div>
+  </div>
+
+  <div class="middle">
+    <div class="kicker">Propuesta de diseño · v1</div>
+    <h1>El hogar <span class="accent">vivo</span><br>de Koru</h1>
+    <p class="subtitle">Una propuesta para sustituir el mockup del Home por una <strong>experiencia viva, cálida y personal</strong> — donde cada widget respira con datos reales del usuario y Koru cuida el espacio como un anfitrión que te conoce de verdad.</p>
+  </div>
+
+  <div class="bottom">
+    <div class="author">
+      <strong>Koru Design Studio</strong>
+      Documento interno · 2026
+    </div>
+    <div class="edition">VOL. 01 / HOME</div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE 2 — MANIFIESTO
+     ============================================================ -->
+<div class="main-content">
+  <div class="chapter-header">
+    <div class="section-tag">01 · Manifiesto</div>
+    <div class="section-title">Por qué el<br>Home importa</div>
+    <div class="divider"></div>
+  </div>
+
+  <div class="pullquote">"El home no es una pantalla.<br>Es el primer abrazo del día<br>entre Koru y vos."</div>
+
+  <p class="body-text">Cuando abrís la app, lo primero que ves no debería ser un dashboard frío con widgets decorativos. Debería ser un espacio que te reciba —que reconozca que ya viviste un día entero antes de abrir Koru, que sepa qué te dijiste ayer, que tenga preparado algo para vos sin que lo pidas. El home actual es un mockup brillante desde el punto de vista visual, pero desconectado de toda la memoria que el sistema ya guarda: ocho tipos de datos reales que duermen en IndexedDB mientras la pantalla muestra un clima de Buenos Aires hardcodeado y un Bitcoin que nunca se actualizó.</p>
+
+  <p class="body-text">Esta propuesta no es un rediseño estético. Es un rediseño <strong>ontológico</strong>: cambiar qué cosa es el Home. Hoy es una vidriera. Mañana será un ser vivo que se arma solo con lo que Koru sabe de vos, se reorganiza según el momento del día, te propone cosas sin pedirlas, y se deja habitar —no configurar—. Cada widget deja de ser una tarjeta decorativa y pasa a ser una pequeña criatura que reacciona a tu estado, tus compromisos, tu energía, tus cumleaños, tu clima real, tu último check-in. Todo lo que ya existe en el dominio. Todo lo que ya está persistido. Solo había que darle luz.</p>
+
+  <p class="body-text">Koru es local-first, tiene una mascota con estados emocionales, un proactive engine que sabe detectar partidos y lluvia, una memoria confirmable, y un sistema de energía que mide cuánto se conocen. El Home debería ser la síntesis visible de todo eso. No un panel más. <strong>El living room de un ser que te cuida.</strong></p>
+
+  <div class="stat-row">
+    <div class="stat"><div class="num">8</div><div class="lbl">Tipos de dato<br>real disponibles</div></div>
+    <div class="stat"><div class="num">5/8</div><div class="lbl">Widgets actuales<br>que son mockup</div></div>
+    <div class="stat"><div class="num">0</div><div class="lbl">Cambios en<br>types.ts necesarios</div></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE 3 — DIAGNÓSTICO (cream)
+     ============================================================ -->
+<div class="main-content cream">
+  <div class="chapter-header">
+    <div class="section-tag">02 · Diagnóstico</div>
+    <div class="section-title">Lo que tenemos<br>hoy</div>
+    <div class="divider"></div>
+  </div>
+
+  <p class="body-text">Honestidad primero: el Home actual tiene partes que funcionan y partes que son pura puesta en escena. No es un problema —es el punto de partida natural de un MVP que priorizó el chat y el onboarding. Ahora que esos andan, le toca al Home dejar de fingir.</p>
+
+  <table class="t-table">
+    <thead>
+      <tr>
+        <th style="width:38%">Widget</th>
+        <th style="width:42%">Estado actual</th>
+        <th style="width:20%">Verdad</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Weather</strong></td><td>"Buenos Aires · 24° · Sunny" hardcodeado en DEMO_WIDGET_SEED</td><td><span class="badge mock">mock</span></td></tr>
+      <tr><td><strong>Next Dose</strong></td><td>Lee records.kind=medication si existe; si no, "Vitamin D & Iron"</td><td><span class="badge partial">parcial</span></td></tr>
+      <tr><td><strong>Screen Time</strong></td><td>"4h 12m" hardcodeado — no existe tracking en el dominio</td><td><span class="badge mock">mock</span></td></tr>
+      <tr><td><strong>Now Playing</strong></td><td>"Midnight City · M83" — no hay integración con Spotify/media</td><td><span class="badge mock">mock</span></td></tr>
+      <tr><td><strong>Birthday</strong></td><td>Lee records.kind=birthday si existe; si no, "Mia · 24th"</td><td><span class="badge partial">parcial</span></td></tr>
+      <tr><td><strong>Crypto</strong></td><td>"Bitcoin · $64,230 · 2.4%" — el tool cryptoPrice.ts existe pero no se invoca</td><td><span class="badge mock">mock</span></td></tr>
+      <tr><td><strong>Tasks</strong></td><td>Lee priorities.slice(0,3) — real, pero los checkboxes no llaman a togglePriority</td><td><span class="badge partial">parcial</span></td></tr>
+      <tr><td><strong>Hydration</strong></td><td>"1.5L / 2.5L" — no existe tracking de hidratación</td><td><span class="badge mock">mock</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="two-col">
+    <div class="col">
+      <h3>Lo que ya está bien</h3>
+      <p><strong>Barra "Koru te conoce":</strong> cálculo real <code>18 + facts*6 + min(saved,10)*2</code>, capped 88%. Mide progreso real.</p>
+      <p><strong>Colecciones:</strong> abre CollectionsScreen que agrupa records por collection. Funcional.</p>
+      <p><strong>Navegación:</strong> avatar y back-button disparan onTalk. Wheel accesible.</p>
+    </div>
+    <div class="col">
+      <h3>Lo que es pura puesta</h3>
+      <p><strong>Botones Guardar / Compartir:</strong> sin onClick, decorativos.</p>
+      <p><strong>Botón "Wish" del birthday:</strong> sin handler.</p>
+      <p><strong>Botón "+" del hydration:</strong> sin handler.</p>
+      <p><strong>Avatar estático:</strong> usa <code>&lt;img&gt;</code>, no el componente <code>KoruMascot</code> reactivo que ya existe.</p>
+    </div>
+  </div>
+
+  <p class="body-text">La buena noticia: <strong>ninguno de estos problemas requiere tocar types.ts, persistence.ts ni store.ts</strong>. Toda la infraestructura ya existe. Solo hay que cablearla.</p>
+</div>
+
+<!-- ============================================================
+     PAGE 4 — INVENTARIO (dark)
+     ============================================================ -->
+<div class="main-content">
+  <div class="chapter-header">
+    <div class="section-tag">03 · Inventario</div>
+    <div class="section-title">Los 8 tesoros<br>que ya posees</div>
+    <div class="divider"></div>
+  </div>
+
+  <p class="body-text">El dominio de Koru guarda ocho tipos de datos reales sobre el usuario. Hoy la mayoría no se muestra en Home. Mañana, cada uno puede convertirse en un widget vivo. Acá el inventario completo, con el archivo concreto donde vive cada uno.</p>
+
+  <div class="bento">
+    <div class="bento-card">
+      <div class="bento-num">01</div>
+      <div class="bento-title">Memories</div>
+      <p class="bento-desc">8 kinds (profile, routine, preference, goal, relationship, boundary, retail, wellbeing). Status candidate/confirmed. Con embeddings para búsqueda semántica.</p>
+      <div class="bento-src">types.ts · MemoryFact</div>
+    </div>
+    <div class="bento-card">
+      <div class="bento-num">02</div>
+      <div class="bento-title">LifeRecords</div>
+      <p class="bento-desc">16 kinds: expense, medication, birthday, deadline, shopping_item, idea, gift, sleep, decision. Con amount, currency, dueHint, person, location.</p>
+      <div class="bento-src">types.ts · LifeRecord</div>
+    </div>
+    <div class="bento-card">
+      <div class="bento-num">03</div>
+      <div class="bento-title">Commitments</div>
+      <p class="bento-desc">Pendientes/promesas con dueHint (hoy/mañana/evento/sin fecha), recurrence (daily/weekly/monthly), status open/done/dismissed.</p>
+      <div class="bento-src">commitments.ts</div>
+    </div>
+    <div class="bento-card">
+      <div class="bento-num">04</div>
+      <div class="bento-title">CalendarEvents</div>
+      <p class="bento-desc">Eventos ICS importados + manuales. parseIcsEvents y upcomingCalendarEvents(events, now, 36h) ya implementados.</p>
+      <div class="bento-src">calendar.ts</div>
+    </div>
+    <div class="bento-card">
+      <div class="bento-num">05</div>
+      <div class="bento-title">Energy &amp; Stage</div>
+      <p class="bento-desc">trustedEnergy acumulada por confirmar memoria (+18), completar compromiso (+12). 5 stages: semilla → brote → raíces → nacimiento → jardín.</p>
+      <div class="bento-src">store.ts · stageFor()</div>
+    </div>
+    <div class="bento-card">
+      <div class="bento-num">06</div>
+      <div class="bento-title">History</div>
+      <p class="bento-desc">Timeline de check-ins (entries con sentiment calm/heavy/busy/good) + actions ejecutadas, hasta 30 items. Con energyAwarded.</p>
+      <div class="bento-src">KoruProvider.tsx</div>
+    </div>
+    <div class="bento-card">
+      <div class="bento-num">07</div>
+      <div class="bento-title">VoicePreference</div>
+      <p class="bento-desc">5 ejes 0-10: warmth(7), directness(6), humor(3), detail(5), proactivity(3). Cómo te habla Koru — totalmente configurable.</p>
+      <div class="bento-src">types.ts · VoicePreference</div>
+    </div>
+    <div class="bento-card">
+      <div class="bento-num">08</div>
+      <div class="bento-title">Heartbeat Nudges</div>
+      <p class="bento-desc">5 tipos: weatherWakeUp, meetingTraffic, energyPause, sportsResult, routineReminder. Generados cada 60s en base a memories + calendar.</p>
+      <div class="bento-src">heartbeatProactive.ts</div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <div class="callout-title">Insight clave</div>
+    <p class="callout-body">De los 8 widgets actuales, solo <em>2 leen datos reales</em>. De los 8 tesoros disponibles, solo <em>3 se muestran hoy</em> (memories vía barra de conocimiento, records vía colecciones, priorities vía tasks). Hay 5 tesoros dormidos. El nuevo Home los despierta a todos.</p>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE 5 — VISIÓN (dark)
+     ============================================================ -->
+<div class="main-content">
+  <div class="chapter-header">
+    <div class="section-tag">04 · Visión</div>
+    <div class="section-title">El Home como<br>ser vivo</div>
+    <div class="divider"></div>
+  </div>
+
+  <p class="body-text">El nuevo Home se compone de <strong>cuatro capas vivas</strong>, cada una reaccionando a una dimensión distinta del estado del usuario. No es una grilla estática: es un campo de fuerzas donde cada capa respira según el momento del día, la energía de la relación, y los compromisos pendientes.</p>
+
+  <ol class="num-list">
+    <li><strong>Capa Fondo —</strong> Koru mascota animada según el estado del día. Reusando los 8 videos de estado del chat (trabajando, buscando, memoria, durmiendo, etc.), el Home muestra un Koru despierto por la mañana, working cuando hay actividad, durmiendo de noche. La misma mascota que te acompaña en el chat te recibe en la puerta.</li>
+    <li><strong>Capa Contexto —</strong> Saludo personalizado que cambia según hora + energía + último check-in. "Buen día Juan" a las 7am, "¿Todo bien?" a las 4pm si hubo un energyPause, "Buenas noches" a las 11pm. La voz de Koru usa tus VoicePreference reales (warmth, directness, humor).</li>
+    <li><strong>Capa Widgets —</strong> 6 cards reactivas con datos reales, en orden algorítmico por urgencia y relevancia. No son 8 fijos — son 6 de un pool de 12, puestos donde más sentido hacen hoy. El algoritmo decide, el usuario puede overrides.</li>
+    <li><strong>Capa Acción —</strong> Composer flotante abajo. Hablar con Koru sin abrir el chat full. Para cosas rápidas: "anotá $1200 de lunch", "recordame llamar a mamá a las 6". El Home como lugar de charla rápida, no solo de lectura.</li>
+  </ol>
+
+  <div class="callout">
+    <div class="callout-title">Los 3 principios del nuevo Home</div>
+    <p class="callout-body"><em>Nada muerto</em> — todo reacciona. <em>Nada falso</em> — nada hardcodeado, todo viene de datos reales o no se muestra. <em>Nada oculto</em> — todo editable con long-press, todo transparente. Koru cuida el home. Vos lo habitás.</p>
+  </div>
+
+  <p class="body-text">La diferencia con iOS widgets o Google At a Glance no es funcional —es filosófica. Apple te da piezas para que armes tu panel. Koru te da un espacio que ya está armado, porque te conoce. Vos no configurás el Home de Koru. Vos lo habitás, y él se va ajustando a cómo lo habitás.</p>
+</div>
+
+<!-- ============================================================
+     PAGE 6 — ANATOMÍA (dark, full diagram)
+     ============================================================ -->
+<div class="main-content">
+  <div class="chapter-header">
+    <div class="section-tag">05 · Anatomía</div>
+    <div class="section-title">Las 6 zonas<br>del Home</div>
+    <div class="divider"></div>
+  </div>
+
+  <p class="body-text">El Home se organiza en 6 zonas verticales, cada una con un propósito claro. No es una grilla libre — es una arquitectura de atención, donde lo urgente vive arriba y la acción vive abajo.</p>
+
+  <div class="anatomy">
+    <div class="zone header">
+      <div class="z-num">ZONA 01</div>
+      <div class="z-name">Header · Koru mascota animada + nombre + greeting temporal</div>
+      <div class="z-desc">Avatar reactivo con KoruMascot. Saludo que cambia por hora y energía.</div>
+    </div>
+    <div class="zone energy">
+      <div class="z-num">ZONA 02</div>
+      <div class="z-name">Energy Ribbon · stage actual + barra de energía real</div>
+    </div>
+    <div class="zone proactive">
+      <div class="z-num">ZONA 03</div>
+      <div class="z-name">Proactive Card · solo cuando hay nudge activo (expandible)</div>
+      <div class="z-desc">Weather wake-up, meeting traffic, sports result. Aparece y desaparece.</div>
+    </div>
+    <div class="zone widget-1">
+      <div class="z-num">ZONA 04 · A</div>
+      <div class="z-name">Widget 1 (top-izq)</div>
+      <div class="z-desc">Scoring más alto. Ej: Clima si es de mañana, Compromisos vencidos si los hay.</div>
+    </div>
+    <div class="zone widget-2">
+      <div class="z-num">ZONA 04 · B</div>
+      <div class="z-name">Widget 2 (top-der)</div>
+      <div class="z-desc">Segundo en scoring. Ej: Próximo evento del calendario.</div>
+    </div>
+    <div class="zone widget-3">
+      <div class="z-num">ZONA 04 · C</div>
+      <div class="z-name">Widget 3 (bot-izq)</div>
+      <div class="z-desc">Tercero. Ej: Última memory creada con CTA regar/podar.</div>
+    </div>
+    <div class="zone widget-4">
+      <div class="z-num">ZONA 04 · D</div>
+      <div class="z-name">Widget 4 (bot-der)</div>
+      <div class="z-desc">Cuarto. Ej: Streak / Energy ganada hoy.</div>
+    </div>
+    <div class="zone collections">
+      <div class="z-num">ZONA 05</div>
+      <div class="z-name">Collections Rail · scroll horizontal de colecciones (comidas, gastos, recordatorios)</div>
+    </div>
+    <div class="zone composer">
+      <div class="z-num">ZONA 06</div>
+      <div class="z-name">Composer Bar · hablar con Koru sin salir del Home</div>
+      <div class="z-desc">"Anotá $1200 de lunch" → se ejecuta sin abrir chat full.</div>
+    </div>
+  </div>
+
+  <p class="body-text" style="font-size:12.5px; color: var(--c-text-mute); margin-top: 12px;"><strong>Interacciones:</strong> tap en widget → detalle. Long-press → menú radial (ocultar/mover/editar/reemplazar/fijar). Drag → reordenar. Doble-tap → acción primaria. Swipe horizontal → siguiente widget del mismo tipo.</p>
+</div>
+
+<!-- ============================================================
+     PAGE 7 — LOS 6 WIDGETS (cream)
+     ============================================================ -->
+<div class="main-content cream">
+  <div class="chapter-header">
+    <div class="section-tag">06 · Widgets reales</div>
+    <div class="section-title">Los 6 widgets<br>que reemplazan<br>los 8 mockups</div>
+    <div class="divider"></div>
+  </div>
+
+  <p class="body-text">Menos widgets, más verdad. En vez de 8 con 5 mockup, propongo 6 todos reales. Cada uno consume datos del dominio, tiene acción real, estado vacío definido y estado lleno considerado.</p>
+
+  <div class="card">
+    <div class="card-meta">WIDGET 01 · CLIMA</div>
+    <div class="card-title">El cielo de hoy, donde vivís</div>
+    <p class="card-body"><strong>Dato:</strong> proactiveEngine.fetchWeather + ciudad inferida de memories (kind=profile, "vive en...") o pedida en onboarding. <strong>Acción:</strong> tap → detalle con 3 horas siguientes. <strong>Vacío:</strong> "¿En qué ciudad estás?" → input conversacional. <strong>Lleno:</strong> 23° · soleado · sensación 21° · viento 12km/h, fondo con gradiente que matchea el cielo real.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-meta">WIDGET 02 · HOY</div>
+    <div class="card-title">Lo que tenés pendiente, sin abrumar</div>
+    <p class="card-body"><strong>Dato:</strong> próximos 3 commitments abiertos + calendarEvents siguientes 36h. <strong>Acción:</strong> tap en checkbox → completeCommitment real. <strong>Vacío:</strong> "Día libre. ¿Planeamos algo?" <strong>Lleno:</strong> lista con 3 items, cada uno con dueHint (hoy 6pm, mañana, evento), checkable.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-meta">WIDGET 03 · GASTOS</div>
+    <div class="card-title">Cuánto llevás hoy, sin culpa</div>
+    <p class="card-body"><strong>Dato:</strong> records.filter(kind=expense && happenedAt=today) + total + último gasto. <strong>Acción:</strong> tap → CollectionsScreen con filter money. <strong>Vacío:</strong> "Hoy sin gastos todavía." <strong>Lleno:</strong> "$3.450 hoy · último: Café $1.200 hace 2h" con barra de progreso vs. promedio diario.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-meta">WIDGET 04 · MEMORIA</div>
+    <div class="card-title">Lo último que Koru aprendió de vos</div>
+    <p class="card-body"><strong>Dato:</strong> memories[0] con status candidate o confirmed reciente. <strong>Acción:</strong> tap → MemoryScreen. CTA "Regar" → confirmMemory (suma +18 energía). CTA "Podar" → pruneMemory. <strong>Vacío:</strong> "Aún no me contaste nada — charlemos." <strong>Lleno:</strong> "Anotaste que hacés gym los lunes, miércoles y viernes · hace 2h" con dos botones.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-meta">WIDGET 05 · PRÓXIMO EVENTO</div>
+    <div class="card-title">Lo que viene, con countdown</div>
+    <p class="card-body"><strong>Dato:</strong> upcomingCalendarEvents(events, now, 36h)[0]. <strong>Acción:</strong> tap → detalle con location y "cómo llegar". <strong>Vacío:</strong> "Sin eventos próximos. ¿Cargamos tu calendario?" <strong>Lleno:</strong> "Reunión con equipo · en 1h 23min · Sala B" con countdown en vivo.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-meta">WIDGET 06 · STREAK / ENERGY</div>
+    <div class="card-title">Cómo está creciendo tu vínculo con Koru</div>
+    <p class="card-body"><strong>Dato:</strong> stage actual (semilla → jardín) + trustedEnergy + racha de check-ins (entries consecutivos en días). <strong>Acción:</strong> tap → detalle con timeline de energyEvents. <strong>Vacío:</strong> "Empecemos a conocernos" con CTA al onboarding. <strong>Lleno:</strong> "Brote · 130 energía · 4 días de racha" con barra visual y próxima stage a desbloquear.</p>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE 8 — CÓMO SE EDITA (dark)
+     ============================================================ -->
+<div class="main-content">
+  <div class="chapter-header">
+    <div class="section-tag">07 · Edición</div>
+    <div class="section-title">Long-press como<br>lenguaje único</div>
+    <div class="divider"></div>
+  </div>
+
+  <p class="body-text">No hay modo edición tipo iOS donde todo tiembla. No hay tachitas en las esquinas. No hay un botón "editar" escondido en ajustes. El Home se edita con un solo gesto: <strong>long-press</strong>. El mismo gesto que abre el wheel del chat. Lenguaje consistente, aprendizaje cero.</p>
+
+  <ol class="num-list">
+    <li><strong>Long-press en cualquier widget</strong> → menú radial (estilo wheel del chat) con 5 opciones: <em>Ocultar</em> (saca del Home, sigue existiendo en Collections), <em>Mover</em> (entra en modo drag), <em>Editar</em> (configuración específica del widget — ej: ciudad para weather), <em>Reemplazar</em> (abre picker de widgets disponibles), <em>Fijar arriba</em> (override del algoritmo, siempre arriba).</li>
+    <li><strong>Long-press en zona vacía</strong> → menú radial con "Agregar widget" → picker con los 12 widgets disponibles, mostrando cuál sería su estado actual ("Clima · Buenos Aires · 23°" vs "Crypto · cargando...").</li>
+    <li><strong>Drag para reordenar</strong> → manteniendo presionado, los demás widgets hacen espacio. Haptics suaves en mobile. El orden se persiste en <code>localStorage.koru.home.layout.v1</code>.</li>
+    <li><strong>Tap en widget</strong> → abre pantalla de detalle del widget (ej: gastos del día desglose por categoría, memory con texto completo + ediciones).</li>
+    <li><strong>Doble-tap en widget</strong> → acción primaria. En Tasks: marcar como done. En Memory: confirmar. En Birthday: ver detalle de la persona. En Gastos: agregar gasto rápido.</li>
+    <li><strong>Swipe horizontal en widget</strong> → siguiente widget del mismo tipo. Ej: si hay 3 birthdays próximos, swipe cambia de uno al otro. Si hay varios gastos, swipe los recorre.</li>
+  </ol>
+
+  <div class="callout">
+    <div class="callout-title">Koru puede sugerir reordenamientos</div>
+    <p class="callout-body">Si siempre abrís Gastos a las 9am, Koru puede decir un día: <em>"¿Movemos Gastos arriba? Lo abrís todas las mañanas."</em> Aceptás o no. Aprende de tu uso sin imponerse.</p>
+  </div>
+
+  <p class="body-text">La filosofía: el usuario no <em>configura</em> el Home — lo <em>habita</em>. Los cambios no son una tarea, son una conversación. Si algo molesta, lo sacás. Si algo falta, lo pedís. Koru propone, vos decidís, el Home se ajusta.</p>
+</div>
+
+<!-- ============================================================
+     PAGE 9 — KORU ARMA EL HOME (dark)
+     ============================================================ -->
+<div class="main-content">
+  <div class="chapter-header">
+    <div class="section-tag">08 · Curaduría</div>
+    <div class="section-title">Cómo Koru arma<br>el Home</div>
+    <div class="divider"></div>
+  </div>
+
+  <p class="body-text">El Home no es estático. Koru lo reorganiza solo, sin preguntar — pero respetando siempre lo que el usuario eligió explícitamente. Tres modos que conviven en el mismo espacio.</p>
+
+  <div class="card">
+    <div class="card-meta">MODO 01 · MANUAL</div>
+    <div class="card-title">El usuario manda, Koru respeta</div>
+    <p class="card-body">Si el usuario reordenó widgets con drag o "Fijar arriba", Koru no toca nada. El orden del usuario es sagrado. Este es el modo de quienes prefieren controlar. Koru solo sugiere, no impone.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-meta">MODO 02 · CURADO (default)</div>
+    <div class="card-title">Scoring algorithm — Koru decide</div>
+    <p class="card-body">Cada widget tiene un score que se recalcula cada minuto: <code>score = urgencia(0-3) + relevancia_temporal(0-2) + frecuencia_de_uso(0-2) + nudge_activo(0-3)</code>. Top 6 widgets por score se muestran, en orden descendente. Ejemplos: si hay un compromiso vencido, sube a top. Si llueve hoy, weather sube. Si es de mañana, morning_brief sube. Si hay un sports result nudge high-priority, ese widget ocupa full-width arriba. Koru avisa sutilmente: <em>"Te armé una pantalla especial para hoy"</em>.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-meta">MODO 03 · CELEBRACIÓN</div>
+    <div class="card-title">Cuando algo importa de verdad</div>
+    <p class="card-body">Si hay un nudge proactive high-priority (ganamos partido, cumpleaños importante, evento crítico), el Home se transforma temporalmente por 1 hora. El widget del evento ocupa full-width arriba, con animación. El resto se acomoda abajo. Koru avisa: <em>"Hoy es cumple de Mia — le armé un espacio especial"</em>. Pasada la hora, vuelve al modo curado.</p>
+  </div>
+
+  <div class="callout">
+    <div class="callout-title">Transparencia total</div>
+    <p class="callout-body">En la esquina inferior derecha del Home, un pequeño indicador muestra el modo activo: <em>Manual</em>, <em>Curado</em>, o <em>Celebración</em>. Tap → explica por qué cada widget está donde está. Nada de magia opaca. El usuario siempre puede cambiar a Manual si Koru se equivoca.</p>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE 10 — PERSONALIZACIÓN (cream)
+     ============================================================ -->
+<div class="main-content cream">
+  <div class="chapter-header">
+    <div class="section-tag">09 · Personalización</div>
+    <div class="section-title">Vos y Koru,<br>en equipo</div>
+    <div class="divider"></div>
+  </div>
+
+  <p class="body-text">La personalización del Home no es una pantalla de ajustes. Son tres niveles que conviven, del más silencioso al más explícito. Koru no te hace configurar — te hace conversar.</p>
+
+  <table class="t-table">
+    <thead>
+      <tr>
+        <th style="width:18%">Nivel</th>
+        <th style="width:42%">Cómo funciona</th>
+        <th style="width:40%">Ejemplo</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>1. Automático</strong><br><span style="font-size:10px;color:#5a4d3a">Sin esfuerzo</span></td>
+        <td>Koru detecta patrones de uso. Siempre abrís Gastos a las 9am → lo sube. Siempre ignorás Birthday → lo baja. Aprende de tus taps, swipes y dismisses.</td>
+        <td>"Noté que siempre mirás Gastos a la mañana — lo dejé arriba. ¿Bien así?"</td>
+      </tr>
+      <tr>
+        <td><strong>2. Conversacional</strong><br><span style="font-size:10px;color:#5a4d3a">Charlando</span></td>
+        <td>Le decís a Koru en el chat lo que querés. Ajusta el layout según lenguaje natural. Sin forms, sin toggles.</td>
+        <td>"Mostrame solo gastos y clima" → esos 2 quedan, los demás se ocultan.<br>"Sacá el widget de crypto" → se oculta.</td>
+      </tr>
+      <tr>
+        <td><strong>3. Manual</strong><br><span style="font-size:10px;color:#5a4d3a">Explícito</span></td>
+        <td>Long-press en widget → menú radial con mover/ocultar/editar/reemplazar/fijar. Drag para reordenar. Modo edición visual directo.</td>
+        <td>Long-press en Clima → "Fijar arriba" → queda siempre primera, sin importar el scoring.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="pullquote" style="font-size:28px; margin-top: 30px;">"Koru no te hace configurar.<br>Te hace conversar."</div>
+
+  <p class="body-text">Cualquier cambio que hagas —en cualquier nivel— se persiste. Si revertís algo, Koru lo respeta. Si preguntás "¿por qué está este widget acá?", te lo explica. Si decís "volvé a como estaba", restaura. La memoria del Home es tan sagrada como la memoria de la conversación.</p>
+
+  <p class="body-text">VoicePreference también entra acá: si le decís a Koru "hablame más directo", baja el warmth y sube el directness en VoicePreference, y todos los greetings del Home cambian de tono al instante. No es un ajuste enterrado en Settings — es parte de la conversación.</p>
+</div>
+
+<!-- ============================================================
+     PAGE 11 — UN DÍA CON KORU HOME (dark, timeline)
+     ============================================================ -->
+<div class="main-content">
+  <div class="chapter-header">
+    <div class="section-tag">10 · Narrativa</div>
+    <div class="section-title">Un día con Koru<br>Home</div>
+    <div class="divider"></div>
+  </div>
+
+  <p class="body-text">El Home cambia 5 veces en un día típico. Cada transformación responde a un momento, no a un horario fijo. Koru lee el contexto y reordena. Acá, los 5 momentos de un martes cualquiera en la vida de Juan.</p>
+
+  <div class="timeline">
+    <div class="moment">
+      <div class="time">07:00<span class="ampm">AM</span></div>
+      <div class="moment-body">
+        <div class="moment-title">Koru despierta — "Buen día Juan"</div>
+        <p class="moment-desc">Fondo con Koru mascota en estado "trabajando" suave (despierto, atento). Greeting temporal. Weather arriba (es de mañana, matter). Energy ribbon muestra la racha. Memory candidata del día anterior visible con CTA "regar".</p>
+        <div class="widgets-active">
+          <span class="pill">Weather</span><span class="pill">Hoy</span><span class="pill">Memory</span><span class="pill">Streak</span>
+        </div>
+      </div>
+    </div>
+    <div class="moment">
+      <div class="time">12:00<span class="ampm">PM</span></div>
+      <div class="moment-body">
+        <div class="moment-title">Mediodía — recordatorio de lunch</div>
+        <p class="moment-desc">Proactive card arriba: "¿Almorzaste? Anotá el gasto cuando puedas". Koru working. Gastos widget actualizado con el café de la mañana. Próximo evento widget muestra la reunión de las 14hs con countdown.</p>
+        <div class="widgets-active">
+          <span class="pill">Proactive</span><span class="pill">Gastos</span><span class="pill">Próximo evento</span><span class="pill">Hoy</span>
+        </div>
+      </div>
+    </div>
+    <div class="moment">
+      <div class="time">16:00<span class="ampm">PM</span></div>
+      <div class="moment-body">
+        <div class="moment-title">Tarde — energy pause</div>
+        <p class="moment-desc">Koru state "tired". Energy pause nudge aparece: "Llevás 3 horas seguidas. ¿Pausa de 5 minutos?". El widget de Streak recuerda que llevás 4 días de racha. El composer bar te invita a charlar rápido sin abrir el chat full.</p>
+        <div class="widgets-active">
+          <span class="pill">Proactive · Energy</span><span class="pill">Streak</span><span class="pill">Hoy</span>
+        </div>
+      </div>
+    </div>
+    <div class="moment">
+      <div class="time">20:00<span class="ampm">PM</span></div>
+      <div class="moment-body">
+        <div class="moment-title">Noche — ¡GANAMOS!</div>
+        <p class="moment-desc">Sports result nudge high-priority. Modo celebración activado: widget de resultado ocupa full-width arriba con animación. "GANAMOS, Juan · Boca 2-1". Koru celebrando. Pasados 30 min, vuelve al modo curado con memory del evento guardada.</p>
+        <div class="widgets-active">
+          <span class="pill" style="background:rgba(249,168,212,0.25);color:#f9a8d4">CELEBRACIÓN · Sports</span><span class="pill">Gastos</span><span class="pill">Hoy</span>
+        </div>
+      </div>
+    </div>
+    <div class="moment">
+      <div class="time">23:00<span class="ampm">PM</span></div>
+      <div class="moment-body">
+        <div class="moment-title">Noche — Koru se duerme</div>
+        <p class="moment-desc">Koru state "sleeping". Modo noche: menos widgets, solo los esenciales (Hoy para mañana, Streak del día, Memory para confirmar antes de dormir). Greeting: "Buenas noches Juan. ¿Algo más antes de dormir?" Fondo con video de durmiendo en loop.</p>
+        <div class="widgets-active">
+          <span class="pill">Hoy · mañana</span><span class="pill">Streak</span><span class="pill">Memory</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE 12 — ONBOARDING EXTENDIDO (cream)
+     ============================================================ -->
+<div class="main-content cream">
+  <div class="chapter-header">
+    <div class="section-tag">11 · Onboarding</div>
+    <div class="section-title">Las preguntas<br>que importan</div>
+    <div class="divider"></div>
+  </div>
+
+  <p class="body-text">El onboarding actual es mínimo: solo pregunta nombre + 3 facts. Esto deja al Home con datos insuficientes para mostrar widgets reales. La solución no es un form más largo — es una conversación inicial más rica con Koru, donde cada respuesta se convierte en una memory con kind=profile.</p>
+
+  <p class="body-text"><strong>Las 5 preguntas que activan el Home:</strong></p>
+
+  <ol class="num-list">
+    <li><strong>"¿En qué ciudad vivís?"</strong> → memory kind=profile, habilita weather real. Sin esto, weather widget muestra estado vacío "¿En qué ciudad estás?".</li>
+    <li><strong>"¿A qué hora te despertás habitualmente?"</strong> → memory kind=routine, habilita morning_brief y ajusta el greeting temporal. Sin esto, saludo genérico.</li>
+    <li><strong>"¿Tenés cumpleaños importantes en la familia?"</strong> → records kind=birthday, habilita birthday widget con datos reales. Sin esto, no aparece.</li>
+    <li><strong>"¿Hacés gym o algún deporte?"</strong> → memory kind=routine, habilita habitos widget y sportsResult nudge. Sin esto, no aparece.</li>
+    <li><strong>"¿Cómo preferís que te hable — directo o cariñoso?"</strong> → setea VoicePreference.warmth y directness. Afecta el tono de todos los greetings del Home.</li>
+  </ol>
+
+  <div class="callout">
+    <div class="callout-title">Fix de bug crítico: proactiveEngine</div>
+    <p class="callout-body">Hoy <code>proactiveEngine.ts</code> hardcodea "Juan" en los templates de mensajes (líneas 289, 292, 295, 300, 309, 319, 327, 332). Con este onboarding extendido, Koru usa <code>state.userName</code> real en todos los greetings. El nombre correcto se propaga al Home, al chat y al proactive engine. Un solo fix, tres efectos.</p>
+  </div>
+
+  <p class="body-text">El onboarding NO es un wizard de 5 pantallas. Es una conversación natural en el chat: Koru pregunta una cosa, vos respondés, ella sigue con la siguiente. Las respuestas se guardan como memories con kind=profile y confidence=0.9. El Home se va armando a medida que el usuario contesta — cada respuesta enciende un widget. Cuando termina el onboarding, el Home ya tiene 3-4 widgets reales visibles, no una grilla vacía.</p>
+
+  <p class="body-text">Si el usuario saltea una pregunta ("no quiero decir eso"), Koru lo respeta y ese widget queda en estado vacío o no aparece. <strong>Nada forzado, todo conversacional.</strong></p>
+</div>
+
+<!-- ============================================================
+     PAGE 13 — IMPLEMENTACIÓN (dark)
+     ============================================================ -->
+<div class="main-content">
+  <div class="chapter-header">
+    <div class="section-tag">12 · Implementación</div>
+    <div class="section-title">Plan técnico<br>de 3 sprints</div>
+    <div class="divider"></div>
+  </div>
+
+  <p class="body-text">Toda la infraestructura ya existe. Este plan solo cablea lo que hay. Cero cambios en types.ts, cero en persistence.ts, cero en store.ts. Solo extiende KoruProvider, reemplaza homeWidgets.ts, reescribe WidgetCards.tsx, y agrega el long-press menu.</p>
+
+  <div class="card">
+    <div class="card-meta">SPRINT 01 · 3-5 días · Cimientos reales</div>
+    <div class="card-title">Exponer datos + reemplazar widgets mockup</div>
+    <p class="card-body">
+    <strong>Extender KoruProvider.tsx</strong> (líneas 979-1012): exponer <code>commitments, calendarEvents, nudges, entries, energyEvents, voicePreference, heartbeat</code> en el <code>useMemo</code> del context value.<br>
+    <strong>Reescribir homeWidgets.ts</strong>: 6 widgets reales (clima, hoy, gastos, memoria, próximo evento, streak) usando los datos nuevos. Sin DEMO_WIDGET_SEED.<br>
+    <strong>Reescribir WidgetCards.tsx</strong>: onClick handlers reales — <code>togglePriority</code>, <code>confirmMemory</code>, <code>completeCommitment</code>, <code>dismissNudge</code>.<br>
+    <strong>Reemplazar avatar estático</strong> por <code>&lt;KoruMascot state={mascotStateForHome} size="lg" /&gt;</code>.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-meta">SPRINT 02 · 3-5 días · Curaduría y edición</div>
+    <div class="card-title">Scoring algorithm + long-press + drag</div>
+    <p class="card-body">
+    <strong>Nuevo archivo: homeScoring.ts</strong> — función <code>scoreWidget(widget, state, now) → number</code> con la fórmula <code>urgencia + relevancia + frecuencia + nudge</code>. <code>selectTop6Widgets(state)</code> devuelve los 6 a mostrar.<br>
+    <strong>Nuevo archivo: homeLayout.ts</strong> — persistencia en <code>localStorage.koru.home.layout.v1</code> del orden, fixed-top, ocultos. Merge con resultado del scoring.<br>
+    <strong>Long-press menu radial</strong> — reusar el patrón del wheel del TalkOverlay. 5 opciones (ocultar, mover, editar, reemplazar, fijar arriba).<br>
+    <strong>Drag &amp; drop</strong> con haptics. CSS <code>touch-action: none</code> en widgets durante drag.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-meta">SPRINT 03 · 3-5 días · Personalidad y celebración</div>
+    <div class="card-title">Onboarding extendido + modo celebración</div>
+    <p class="card-body">
+    <strong>Onboarding conversacional extendido</strong> en Onboarding.tsx: agregar las 5 preguntas. Cada respuesta → memory kind=profile.<br>
+    <strong>Fix proactiveEngine.ts</strong>: reemplazar hardcoded "Juan" por <code>state.userName</code> (8 ocurrencias). Cablear <code>runProactiveCheck</code> al KoruProvider (hoy está huérfano).<br>
+    <strong>Modo celebración</strong>: cuando <code>nudge.priority === "high"</code>, el Home entra en modo especial por 1h. Widget del nudge ocupa full-width arriba.<br>
+    <strong>SettingsScreen extendido</strong>: agregar UI para VoicePreference (5 sliders), Heartbeat (horas activas, max nudges), UserName edit. Las acciones <code>updateVoicePreference</code>, <code>updateHeartbeatSettings</code>, <code>updateUserName</code> ya existen en store.ts — solo falta UI.</p>
+    <p class="card-body" style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed rgba(167, 139, 250, 0.25); font-style: italic; color: var(--c-accent-soft);">
+    <strong style="color: var(--c-mint);">Sin tocar la base:</strong> este plan no requiere modificar types.ts, persistence.ts, store.ts, commitments.ts, calendar.ts ni heartbeat.ts. Solo extiende la capa de UI y la capa de provider. El riesgo es mínimo — toda la lógica de dominio ya está testeada. <strong style="color: var(--c-text-light);">Dos semanas. Un Home que respira.</strong>
+    </p>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE 14 — CIERRE (ending)
+     ============================================================ -->
+<div class="ending">
+  <div class="stars"></div>
+  <div class="leaf-big"></div>
+
+  <p class="closing-quote">No estamos armando un dashboard. Estamos armando el primer <span class="accent">hogar digital</span> que te conoce de verdad.</p>
+
+  <p class="closing-body">El Home de Koru no compite con iOS widgets o Google At a Glance. Compite con la sensación de entrar a tu casa y que alguien te reciba. Con saber que si algo cambió en tu día, eso va a estar visible sin que lo pidas. Con sentir que el espacio digital donde vivís también te conoce.</p>
+
+  <p class="closing-body">Toda la infraestructura ya existe. Ocho tipos de datos reales, persistidos, esperando luz. Tres sprints. Dos semanas. Un Home que respira.</p>
+
+  <div class="pillars">
+    <span class="pillar">Nada muerto</span>
+    <span class="pillar">Nada falso</span>
+    <span class="pillar">Nada oculto</span>
+  </div>
+
+  <div class="signoff">
+    Koru <span class="leaf-small"></span> Tu hogar, en sus hojas.
+  </div>
+</div>
+
+</body>
+</html>

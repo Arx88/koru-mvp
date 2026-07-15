@@ -1,0 +1,38 @@
+[
+  {
+    "id": "shp-02",
+    "ok": true,
+    "elapsed": 5285,
+    "input": "que notebook compro",
+    "reply": "Te dejé una comparativa con las mejores opciones actuales en la tarjeta. Xataka y La Vanguardia coinciden en que la clave es definir para qué lo vas a usar antes de elegir.",
+    "blocks": [
+      "comparison"
+    ],
+    "tools": [
+      "shopping_compare"
+    ],
+    "memories": 0,
+    "commitments": 0,
+    "intentOk": true,
+    "qualityScore": 10,
+    "issues": []
+  },
+  {
+    "id": "shp-03",
+    "ok": true,
+    "elapsed": 5566,
+    "input": "iphone vs samsung",
+    "reply": "Te dejé una comparativa actualizada en la tarjeta. En resumen: iPhone gana en fluidez, video y ecosistema; Samsung en personalización, zoom y variedad de modelos. ¿Tenés algún uso principal en mente (fotos, gaming, trabajo)?",
+    "blocks": [
+      "comparison"
+    ],
+    "tools": [
+      "shopping_compare"
+    ],
+    "memories": 0,
+    "commitments": 0,
+    "intentOk": true,
+    "qualityScore": 10,
+    "issues": []
+  }
+]

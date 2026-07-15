@@ -588,6 +588,9 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
       onNavigate("hoy");
     } else if (option === "settings" && onNavigate) {
       onNavigate("configuracion");
+    } else if (option === "create") {
+      // 🔴 v2: opción Crear en el Wheel — abre CreateScreen
+      setShowCreate(true);
     }
     // "close" = solo cierra el wheel (ya hecho arriba)
   }, [onNavigate, handleLongPressCancel]);
@@ -1365,6 +1368,17 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
               >
                 <span className="material-symbols-outlined">neurology</span>
                 <span className="wheel-label">Memoria</span>
+              </div>
+
+              <div
+                className={`koru-wheel-option top-right ${wheelActive === "create" ? "active" : ""}`}
+                data-wheel-option="create"
+                onMouseEnter={() => setWheelActive("create")}
+                onClick={() => handleOptionTap("create")}
+                onTouchEnd={(e) => handleOptionTouchEnd(e, "create")}
+              >
+                <span className="material-symbols-outlined">add_circle</span>
+                <span className="wheel-label">Crear</span>
               </div>
 
               <div

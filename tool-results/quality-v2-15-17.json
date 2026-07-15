@@ -1,0 +1,49 @@
+[
+  {
+    "id": "a01",
+    "ok": true,
+    "elapsed": 5265,
+    "input": "despertame temprano mañana",
+    "reply": "Listo, guardado en alarmas. Te despertaré mañana a las 7:00.",
+    "quality": 10,
+    "issues": [],
+    "tools": [
+      "memory_recall"
+    ],
+    "blocks": [
+      "alarm"
+    ],
+    "memories": 0,
+    "commitments": 1
+  },
+  {
+    "id": "a02",
+    "ok": true,
+    "elapsed": 5186,
+    "input": "necesito levantarme a las 6 el sabado",
+    "reply": "Listo, guardado como alarma para el sábado 18 a las 6:00.",
+    "quality": 10,
+    "issues": [],
+    "tools": [
+      "memory_recall"
+    ],
+    "blocks": [
+      "alarm"
+    ],
+    "memories": 0,
+    "commitments": 1
+  },
+  {
+    "id": "a03",
+    "ok": true,
+    "elapsed": 5181,
+    "input": "mañana tengo q estar en el laburo a las 7",
+    "reply": "Entendido. Mañana temprano arranca el día. ¿Querés que te ayude a organizar la noche para que descanses bien? (hora de dormir, alarmas, qué dejar listo)",
+    "quality": 10,
+    "issues": [],
+    "tools": [],
+    "blocks": [],
+    "memories": 0,
+    "commitments": 0
+  }
+]

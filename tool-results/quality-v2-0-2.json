@@ -1,0 +1,51 @@
+[
+  {
+    "id": "r01",
+    "ok": true,
+    "elapsed": 5256,
+    "input": "el martes q viene tengo q ir al dentista a las 18",
+    "reply": "Listo, guardado en recordatorios. Te aviso el martes para que no se te pase.",
+    "quality": 10,
+    "issues": [],
+    "tools": [
+      "memory_recall"
+    ],
+    "blocks": [
+      "reminder"
+    ],
+    "memories": 0,
+    "commitments": 1
+  },
+  {
+    "id": "r02",
+    "ok": true,
+    "elapsed": 5511,
+    "input": "no me olvides llamar a mi vieja mañana",
+    "reply": "Listo, guardado en recordatorios. Te aviso mañana para que no se te pase.",
+    "quality": 10,
+    "issues": [],
+    "tools": [],
+    "blocks": [
+      "reminder"
+    ],
+    "memories": 0,
+    "commitments": 1
+  },
+  {
+    "id": "r03",
+    "ok": true,
+    "elapsed": 5186,
+    "input": "la semana q viene tengo q pagar el alquiler",
+    "reply": "Listo, guardado en recordatorios. Te avisaré cuando se acerque la fecha.",
+    "quality": 10,
+    "issues": [],
+    "tools": [
+      "memory_recall"
+    ],
+    "blocks": [
+      "reminder"
+    ],
+    "memories": 0,
+    "commitments": 1
+  }
+]

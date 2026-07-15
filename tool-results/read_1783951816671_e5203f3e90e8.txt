@@ -1,0 +1,2002 @@
+     1→import type { UiBlock, AssistantSource } from "../../../domain/types";
+     2→
+     3→// ============================================================================
+     4→// Modelo de presentación unificado (una sola fuente de verdad para TODAS las
+     5→// cards). Cada UiBlock se normaliza a esta forma y se renderiza con el mismo
+     6→// molde Stitch "Creando Plan / Plan Entregado": hoja lila (hero) + pantalla de
+     7→// detalle con magical-cards. Ningún componente de card conserva estética propia.
+     8→// ============================================================================
+     9→
+    10→export type Accent = {
+    11→  /** color principal (icono, kicker, CTA) */
+    12→  color: string;
+    13→  /** fondo suave del chip de icono */
+    14→  soft: string;
+    15→};
+    16→
+    17→/** Métrica de la fila 3-up del hero. Con `value` = tile; sin `value` = chip. */
+    18→export type HeroMetric = {
+    19→  icon: string;
+    20→  label: string;
+    21→  value?: string;
+    22→  color?: string;
+    23→};
+    24→
+    25→export type Hero = {
+    26→  kicker: string;
+    27→  title: string;
+    28→  desc?: string;
+    29→  /** icono Material Symbols para el arte del hero (si no hay ilustración) */
+    30→  icon: string;
+    31→  accent: Accent;
+    32→  /** ilustración opcional (reemplaza al icono) */
+    33→  art?: string;
+    34→  /** valor grande sobre el arte (ej. "23°") */
+    35→  artValue?: string;
+    36→  metrics?: HeroMetric[];
+    37→};
+    38→
+    39→// ---- Secciones de la pantalla de detalle (magical-cards) --------------------
+    40→
+    41→export type DetailTile = { icon?: string; label: string; value: string; color?: string };
+    42→export type DetailRow = {
+    43→  icon?: string;
+    44→  title: string;
+    45→  detail?: string;
+    46→  meta?: string;
+    47→  badge?: string;
+    48→  badgeTone?: "done" | "current" | "pending" | "urgent";
+    49→};
+    50→export type DetailChip = { label: string; sub?: string; color?: string };
+    51→export type DetailScrollCard = {
+    52→  badge?: string;
+    53→  badgeColor?: string;
+    54→  title: string;
+    55→  detail?: string;
+    56→  metrics?: string[];
+    57→};
+    58→export type DetailStep = {
+    59→  icon?: string;
+    60→  title: string;
+    61→  detail?: string;
+    62→  status?: "done" | "current" | "pending";
+    63→};
+    64→export type DetailSourceRef = { title: string; domain?: string; url?: string; imageUrl?: string };
+    65→
+    66→export type DetailSection =
+    67→  | { kind: "text"; icon: string; accent: Accent; title: string; subtitle?: string; body: string }
+    68→  | { kind: "tiles"; icon: string; accent: Accent; title: string; subtitle?: string; tiles: DetailTile[] }
+    69→  | { kind: "rows"; icon: string; accent: Accent; title: string; subtitle?: string; rows: DetailRow[] }
+    70→  | { kind: "chips"; icon: string; accent: Accent; title: string; subtitle?: string; chips: DetailChip[] }
+    71→  | { kind: "scroller"; icon: string; accent: Accent; title: string; subtitle?: string; cards: DetailScrollCard[] }
+    72→  | { kind: "timeline"; icon: string; accent: Accent; title: string; subtitle?: string; steps: DetailStep[] }
+    73→  | { kind: "sources"; icon: string; accent: Accent; title: string; subtitle?: string; sources: DetailSourceRef[] };
+    74→
+    75→export type Detail = {
+    76→  title: string;
+    77→  subtitle?: string;
+    78→  sections: DetailSection[];
+    79→};
+    80→
+    81→export type KoruPresentation = {
+    82→  hero: Hero;
+    83→  detail?: Detail;
+    84→  /**
+    85→   * CTA de la hoja. Sin `screen` abre el detalle genérico (KoruDetailScreen);
+    86→   * con screen "collections" abre Mis Colecciones enfocada en `collection`.
+    87→   */
+    88→  cta?: { label: string; screen?: "collections"; collection?: string };
+    89→};
+    90→
+    91→// ---- Paleta Stitch ----------------------------------------------------------
+    92→
+    93→const A = {
+    94→  violet: { color: "#8363f9", soft: "rgba(131,99,249,0.12)" },
+    95→  primary: { color: "#4648d4", soft: "rgba(70,72,212,0.10)" },
+    96→  purple: { color: "#8127cf", soft: "rgba(129,39,207,0.12)" },
+    97→  emerald: { color: "#059669", soft: "rgba(16,185,129,0.12)" },
+    98→  amber: { color: "#d97706", soft: "rgba(217,119,6,0.12)" },
+    99→  blue: { color: "#2563eb", soft: "rgba(37,99,235,0.12)" },
+   100→  sky: { color: "#0284c7", soft: "rgba(2,132,199,0.12)" },
+   101→  rose: { color: "#e11d48", soft: "rgba(225,29,72,0.12)" },
+   102→  pink: { color: "#ec4899", soft: "rgba(236,72,153,0.12)" },
+   103→  indigo: { color: "#4f46e5", soft: "rgba(79,70,229,0.10)" },
+   104→  red: { color: "#dc2626", soft: "rgba(220,38,38,0.12)" },
+   105→} satisfies Record<string, Accent>;
+   106→
+   107→// ---- helpers ----------------------------------------------------------------
+   108→
+   109→type Of<T extends UiBlock["type"]> = Extract<UiBlock, { type: T }>;
+   110→
+   111→const up = (s: string) => s.toUpperCase();
+   112→const clean = (s?: string) => (s ?? "").trim();
+   113→
+   114→function sourcesToRefs(sources?: AssistantSource[]): DetailSourceRef[] {
+   115→  return (sources ?? []).slice(0, 8).map((s) => ({
+   116→    title: s.title,
+   117→    domain: s.domain,
+   118→    url: s.url,
+   119→    imageUrl: s.imageUrl,
+   120→  }));
+   121→}
+   122→
+   123→/** Título del hero sin prefijos redundantes ("Tu plan X" → "X"). */
+   124→function heroTitleFrom(raw: string | undefined, fallback: string): string {
+   125→  const c = clean(raw).replace(/^\s*(tu|mi)\s+/i, "");
+   126→  return up(c || fallback);
+   127→}
+   128→
+   129→function asPercent(value?: number): string | undefined {
+   130→  if (value == null || !Number.isFinite(value)) return undefined;
+   131→  const normalized = Math.abs(value) <= 1 ? value * 100 : value;
+   132→  return `${Math.round(normalized)}%`;
+   133→}
+   134→
+   135→// ============================================================================
+   136→// Normalizador principal
+   137→// ============================================================================
+   138→
+   139→export function toPresentation(block: UiBlock): KoruPresentation {
+   140→  switch (block.type) {
+   141→    case "deliverable":
+   142→      return deliverable(block);
+   143→    case "clarifying_question":
+   144→      return clarifying(block);
+   145→    case "weather":
+   146→      return weather(block);
+   147→    case "alarm":
+   148→      return alarm(block);
+   149→    case "reminder":
+   150→      return reminder(block);
+   151→    case "shopping_list":
+   152→      return shoppingList(block);
+   153→    case "comparison":
+   154→      return comparison(block);
+   155→    case "research_sources":
+   156→      return research(block);
+   157→    case "money_summary":
+   158→      return money(block);
+   159→    case "saved_record":
+   160→      return savedRecord(block);
+   161→    case "activity_group":
+   162→      return activityGroup(block);
+   163→    case "proactive_signal":
+   164→      return proactiveSignal(block);
+   165→    case "resource_bundle":
+   166→      return resourceBundle(block);
+   167→    case "web_nav":
+   168→      return webNav(block);
+   169→    case "data_card":
+   170→      return dataCard(block);
+   171→    case "restaurant_synthesis":
+   172→      return restaurant(block);
+   173→    case "morning_brief":
+   174→      return morningBrief(block);
+   175→    case "wellbeing":
+   176→      return wellbeing(block);
+   177→    case "live_match":
+   178→      return liveMatch(block);
+   179→    case "urgent_now":
+   180→      return urgentNow(block);
+   181→    case "market":
+   182→      return market(block);
+   183→    case "delivery":
+   184→      return delivery(block);
+   185→    case "health_reminder":
+   186→      return healthReminder(block);
+   187→    case "activity_tracker":
+   188→      return activityTracker(block);
+   189→    case "product_analysis":
+   190→      return productAnalysis(block);
+   191→    case "travel_planner":
+   192→      return travelPlanner(block);
+   193→    case "generation":
+   194→      return generation(block);
+   195→    case "match_timeline":
+   196→      return matchTimeline(block);
+   197→    case "match_stats":
+   198→      return matchStats(block);
+   199→    case "election_results":
+   200→      return electionResults(block);
+   201→    case "election_vote":
+   202→      return electionVote(block);
+   203→    case "decision_support":
+   204→      return decisionSupport(block);
+   205→    case "memory":
+   206→      return memoryBlock(block);
+   207→    case "data_ticker":
+   208→      return dataTicker(block);
+   209→    case "crypto_portfolio":
+   210→      return cryptoPortfolio(block);
+   211→    case "forex":
+   212→      return forex(block);
+   213→    case "route_timeline":
+   214→      return routeTimeline(block);
+   215→    case "transport_compare":
+   216→      return transportCompare(block);
+   217→    case "route_map":
+   218→      return routeMap(block);
+   219→    case "birthday_calendar":
+   220→      return birthdayCalendar(block);
+   221→    case "birthday_alarm":
+   222→      return birthdayAlarm(block);
+   223→    case "social_interaction":
+   224→      return socialInteraction(block);
+   225→    case "smart_checklist":
+   226→      return smartChecklist(block);
+   227→    case "outfit":
+   228→      return outfit(block);
+   229→    case "review_score":
+   230→      return reviewScore(block);
+   231→    case "review_document":
+   232→      return reviewDocument(block);
+   233→    case "review_quote":
+   234→      return reviewQuote(block);
+   235→    case "recipe":
+   236→      return recipeBlock(block);
+   237→    case "movie_review":
+   238→      return movieReviewBlock(block);
+   239→    case "book_review":
+   240→      return bookReviewBlock(block);
+   241→    case "plan":
+   242→      // El plan conserva su render canónico (PlanHeroCard); si llegara acá,
+   243→      // damos un hero equivalente por robustez.
+   244→      return planFallback(block);
+   245→    default: {
+   246→      const _exhaustive: never = block;
+   247→      return _exhaustive;
+   248→    }
+   249→  }
+   250→}
+   251→
+   252→// ============================================================================
+   253→// Mappers por tipo
+   254→// ============================================================================
+   255→
+   256→/** Acentos que rotan entre los módulos del detalle de un entregable. */
+   257→const DELIVERABLE_SECTION_ACCENTS: Accent[] = [A.amber, A.primary, A.emerald, A.pink, A.purple];
+   258→
+   259→/**
+   260→ * ENTREGABLE (deep_research) — el bloque ya llega con la forma del molde:
+   261→ * kicker/título/descripción/categorías/métricas + secciones tipadas. Acá solo
+   262→ * se traduce cada sección a su DetailSection y se anexan las fuentes.
+   263→ */
+   264→function deliverable(b: Of<"deliverable">): KoruPresentation {
+   265→  const kicker = clean(b.kicker) || "Tu Informe";
+   266→  const sections: DetailSection[] = [];
+   267→
+   268→  if (b.summary) {
+   269→    sections.push({ kind: "text", icon: "auto_awesome", accent: A.violet, title: "Síntesis", subtitle: "Lo esencial", body: b.summary });
+   270→  }
+   271→
+   272→  (b.sections ?? []).forEach((section, idx) => {
+   273→    const accent = DELIVERABLE_SECTION_ACCENTS[idx % DELIVERABLE_SECTION_ACCENTS.length];
+   274→    const base = { icon: section.icon ?? "menu_book", accent, title: section.title, subtitle: section.kicker };
+   275→    const items = section.items ?? [];
+   276→    if (section.kind === "timeline" && items.length) {
+   277→      sections.push({
+   278→        ...base,
+   279→        kind: "timeline",
+   280→        steps: items.map((it) => ({ icon: it.icon, title: it.badge ? `${it.badge} — ${it.title}` : it.title, detail: it.subtitle, status: "done" as const })),
+   281→      });
+   282→    } else if (section.kind === "grid" && items.length) {
+   283→      sections.push({ ...base, kind: "chips", chips: items.map((it) => ({ label: it.title, sub: it.subtitle })) });
+   284→    } else if (items.length) {
+   285→      sections.push({
+   286→        ...base,
+   287→        kind: "rows",
+   288→        rows: items.map((it) => ({ icon: it.icon, title: it.title, detail: it.subtitle, badge: it.badge })),
+   289→      });
+   290→    } else if (section.bullets?.length) {
+   291→      sections.push({ ...base, kind: "rows", rows: section.bullets.map((text) => ({ icon: "check_circle", title: text })) });
+   292→    } else if (section.paragraphs?.length) {
+   293→      sections.push({ ...base, kind: "text", body: section.paragraphs.join("\n\n") });
+   294→    }
+   295→  });
+   296→
+   297→  if (b.sources?.length) {
+   298→    sections.push({
+   299→      kind: "sources",
+   300→      icon: "fact_check",
+   301→      accent: A.indigo,
+   302→      title: "Fuentes",
+   303→      subtitle: "De dónde salió todo",
+   304→      sources: sourcesToRefs(b.sources),
+   305→    });
+   306→  }
+   307→
+   308→  // Hero: métricas reales si el informe las trae; si no, las categorías como chips.
+   309→  const metrics: HeroMetric[] = b.metrics?.length
+   310→    ? b.metrics.slice(0, 3).map((m, i) => ({ icon: b.categories?.[i]?.icon ?? "insights", label: m.label, value: m.value }))
+   311→    : (b.categories ?? []).slice(0, 3).map((c) => ({ icon: c.icon, label: c.label, color: c.color }));
+   312→
+   313→  return {
+   314→    hero: {
+   315→      kicker,
+   316→      title: up(clean(b.title) || "Informe"),
+   317→      desc: b.description,
+   318→      icon: "auto_awesome",
+   319→      accent: A.violet,
+   320→      art: "/stitch/plan-illustration.png",
+   321→      metrics,
+   322→    },
+   323→    detail: {
+   324→      title: clean(b.title) || "Tu Informe",
+   325→      subtitle: `${kicker}${b.sources?.length ? ` · ${b.sources.length} fuentes` : ""}`,
+   326→      sections,
+   327→    },
+   328→    cta: sections.length ? { label: `Ver ${kicker.replace(/^tu\s+/i, "").toLowerCase()} completo` } : undefined,
+   329→  };
+   330→}
+   331→
+   332→function clarifying(b: Of<"clarifying_question">): KoruPresentation {
+   333→  return {
+   334→    hero: {
+   335→      kicker: "Una pregunta",
+   336→      title: heroTitleFrom(b.title, "Necesito un dato"),
+   337→      desc: b.question,
+   338→      icon: "help",
+   339→      accent: A.violet,
+   340→    },
+   341→    detail: b.options?.length
+   342→      ? {
+   343→          title: b.title || "Elegí una opción",
+   344→          subtitle: b.question,
+   345→          sections: [
+   346→            {
+   347→              kind: "chips",
+   348→              icon: "help",
+   349→              accent: A.violet,
+   350→              title: "Opciones",
+   351→              chips: b.options.map((o) => ({ label: o })),
+   352→            },
+   353→          ],
+   354→        }
+   355→      : undefined,
+   356→    cta: b.options?.length ? { label: "Responder" } : undefined,
+   357→  };
+   358→}
+   359→
+   360→function weather(b: Of<"weather">): KoruPresentation {
+   361→  const metrics: HeroMetric[] = [];
+   362→  if (b.humidity) metrics.push({ icon: "water_drop", label: "Humedad", value: b.humidity, color: A.primary.color });
+   363→  if (b.wind) metrics.push({ icon: "air", label: "Viento", value: b.wind, color: A.emerald.color });
+   364→  if (b.range) metrics.push({ icon: "device_thermostat", label: "Mín / Máx", value: b.range, color: A.amber.color });
+   365→  else if (b.rain) metrics.push({ icon: "rainy", label: "Lluvia", value: b.rain, color: A.blue.color });
+   366→
+   367→  const detailTiles: DetailTile[] = [];
+   368→  if (b.rain) detailTiles.push({ icon: "rainy", label: "Prob. lluvia", value: b.rain, color: A.primary.color });
+   369→  if (b.uv) detailTiles.push({ icon: "light_mode", label: "Índice UV", value: b.uv, color: A.amber.color });
+   370→  if (b.wind) detailTiles.push({ icon: "air", label: "Viento", value: b.wind, color: A.emerald.color });
+   371→  if (b.humidity) detailTiles.push({ icon: "water_drop", label: "Humedad", value: b.humidity, color: A.blue.color });
+   372→  if (b.feel) detailTiles.push({ icon: "thermostat", label: "Sensación", value: b.feel, color: A.rose.color });
+   373→
+   374→  return {
+   375→    hero: {
+   376→      kicker: b.city ? `Tu Clima · ${b.city}` : "Tu Clima",
+   377→      title: heroTitleFrom(b.condition, "Pronóstico"),
+   378→      desc: b.advice,
+   379→      icon: "partly_cloudy_day",
+   380→      accent: A.primary,
+   381→      artValue: b.now,
+   382→      metrics: metrics.length ? metrics : undefined,
+   383→    },
+   384→    detail: detailTiles.length
+   385→      ? {
+   386→          title: b.city ? `Clima · ${b.city}` : "Clima",
+   387→          subtitle: b.condition,
+   388→          sections: [
+   389→            { kind: "tiles", icon: "monitoring", accent: A.emerald, title: "Detalles", subtitle: "CONDICIONES", tiles: detailTiles },
+   390→            ...(b.sources?.length ? [sourcesSection(b.sources)] : []),
+   391→          ],
+   392→        }
+   393→      : undefined,
+   394→    cta: detailTiles.length ? { label: "Ver detalle" } : undefined,
+   395→  };
+   396→}
+   397→
+   398→function alarm(b: Of<"alarm">): KoruPresentation {
+   399→  return {
+   400→    hero: {
+   401→      kicker: "Tu Alarma",
+   402→      title: heroTitleFrom(b.title, "Alarma"),
+   403→      desc: b.repeat ? `Se repite: ${b.repeat}${b.note ? ` · ${b.note}` : ""}` : b.note,
+   404→      icon: "alarm",
+   405→      accent: A.rose,
+   406→      artValue: b.time,
+   407→    },
+   408→  };
+   409→}
+   410→
+   411→function reminder(b: Of<"reminder">): KoruPresentation {
+   412→  return {
+   413→    hero: {
+   414→      kicker: "Tu Recordatorio",
+   415→      title: heroTitleFrom(b.title, "Recordatorio"),
+   416→      desc: b.dueText ? `${b.dueText}${b.note ? ` · ${b.note}` : ""}` : b.note,
+   417→      icon: "notifications",
+   418→      accent: A.emerald,
+   419→    },
+   420→  };
+   421→}
+   422→
+   423→function shoppingList(b: Of<"shopping_list">): KoruPresentation {
+   424→  const items = b.items ?? [];
+   425→  // Mostrar los primeros 3 items como métricas (chips) en el hero,
+   426→  // así el usuario ve QUÉ comprar sin abrir la card.
+   427→  // El conteo total va en el desc.
+   428→  const previewItems = items.slice(0, 3);
+   429→  const hasMore = items.length > 3;
+   430→  const metrics: HeroMetric[] = previewItems.map((it, i) => ({
+   431→    icon: "check_box_outline_blank",
+   432→    label: typeof it === "string" ? it : String(it),
+   433→    color: A.amber.color,
+   434→  }));
+   435→  if (hasMore) {
+   436→    metrics.push({ icon: "more_horiz", label: `+${items.length - 3} más`, color: A.amber.color });
+   437→  }
+   438→  return {
+   439→    hero: {
+   440→      kicker: "Tu Lista",
+   441→      title: heroTitleFrom(b.title, "Compras"),
+   442→      desc: b.dueText ?? `${items.length} ítems para llevar`,
+   443→      icon: "shopping_cart",
+   444→      accent: A.amber,
+   445→      metrics: metrics.length > 0 ? metrics : undefined,
+   446→    },
+   447→    detail: items.length
+   448→      ? {
+   449→          title: b.title || "Lista de compras",
+   450→          subtitle: b.dueText,
+   451→          sections: [
+   452→            {
+   453→              kind: "rows",
+   454→              icon: "shopping_cart",
+   455→              accent: A.amber,
+   456→              title: "Ítems",
+   457→              rows: items.map((it) => ({
+   458→                icon: "check_box_outline_blank",
+   459→                title: it,
+   460→                meta: b.quantities?.[it] ? `x${b.quantities[it]}` : undefined,
+   461→                badgeTone: b.checked?.includes(it) ? "done" : undefined,
+   462→                badge: b.checked?.includes(it) ? "Listo" : undefined,
+   463→              })),
+   464→            },
+   465→          ],
+   466→        }
+   467→      : undefined,
+   468→    cta: items.length ? { label: "Ver lista" } : undefined,
+   469→  };
+   470→}
+   471→
+   472→function comparison(b: Of<"comparison">): KoruPresentation {
+   473→  const items = b.items ?? [];
+   474→  return {
+   475→    hero: {
+   476→      kicker: "Tu Comparación",
+   477→      title: heroTitleFrom(b.title, "Opciones"),
+   478→      desc: b.recommendation ?? `${items.length} opciones analizadas`,
+   479→      icon: "balance",
+   480→      accent: A.pink,
+   481→      metrics: [{ icon: "format_list_numbered", label: "Opciones", value: String(items.length), color: A.pink.color }],
+   482→    },
+   483→    detail: {
+   484→      title: b.title || "Comparación",
+   485→      subtitle: b.recommendation,
+   486→      sections: [
+   487→        {
+   488→          kind: "scroller",
+   489→          icon: "balance",
+   490→          accent: A.pink,
+   491→          title: "Opciones",
+   492→          subtitle: items.length ? `${items.length} ANALIZADAS` : undefined,
+   493→          cards: items.map((it, i) => ({
+   494→            badge: i === 0 ? "Recomendado" : undefined,
+   495→            badgeColor: i === 0 ? A.emerald.color : undefined,
+   496→            title: it.title,
+   497→            detail: [it.price, it.vendor].filter(Boolean).join(" · ") || undefined,
+   498→            metrics: [it.evidence].filter((x): x is string => Boolean(x)),
+   499→          })),
+   500→        },
+   501→        ...(b.sources?.length ? [sourcesSection(b.sources)] : []),
+   502→      ],
+   503→    },
+   504→    cta: { label: "Ver comparación" },
+   505→  };
+   506→}
+   507→
+   508→function research(b: Of<"research_sources">): KoruPresentation {
+   509→  const isReport = b.mode === "research";
+   510→  // Truncar summary a ~140 chars para que el hero no se alarge demasiado.
+   511→  // El summary completo va en el detalle (Síntesis).
+   512→  const fullSummary = clean(b.summary);
+   513→  const heroDesc = fullSummary && fullSummary.length > 140
+   514→    ? fullSummary.slice(0, 137).trimEnd() + "…"
+   515→    : fullSummary;
+   516→  return {
+   517→    hero: {
+   518→      kicker: isReport ? "Tu Informe" : "Tu Búsqueda",
+   519→      title: heroTitleFrom(b.title, isReport ? "Investigación" : "Resultados"),
+   520→      desc: heroDesc,
+   521→      icon: isReport ? "menu_book" : "travel_explore",
+   522→      accent: A.purple,
+   523→      metrics: b.sources?.length
+   524→        ? [{ icon: "fact_check", label: "Fuentes verificadas", value: String(b.sources.length), color: A.purple.color }]
+   525→        : undefined,
+   526→    },
+   527→    detail: {
+   528→      title: b.title || (isReport ? "Informe" : "Búsqueda"),
+   529→      subtitle: b.followUpQuestion,
+   530→      sections: [
+   531→        { kind: "text", icon: "summarize", accent: A.purple, title: "Síntesis", subtitle: "LO ESENCIAL", body: b.summary },
+   532→        ...(b.sources?.length ? [sourcesSection(b.sources)] : []),
+   533→      ],
+   534→    },
+   535→    cta: { label: isReport ? "Ver informe completo" : "Ver resultados" },
+   536→  };
+   537→}
+   538→
+   539→function money(b: Of<"money_summary">): KoruPresentation {
+   540→  // Formato: "$2.000" o "ARS 2.000" con separador de miles.
+   541→  // Antes: "ARS2000" (sin espacio, sin separador) — ilegible.
+   542→  const fmtAmount = (amt: number, cur?: string) => {
+   543→    const formatted = new Intl.NumberFormat("es-AR").format(amt);
+   544→    return cur ? `${cur} ${formatted}` : `$${formatted}`;
+   545→  };
+   546→  const total = b.total != null ? fmtAmount(b.total, b.currency) : undefined;
+   547→  // Hero desc: si recommendation parece un string corto (categoria), lo usamos como
+   548→  // categoria visual. Si es más largo, lo usamos como descripción.
+   549→  // En cualquier caso, NO usamos el monto como desc (ya está en artValue).
+   550→  const recommendation = clean(b.recommendation);
+   551→  const summaryCount = b.summaryItems?.length ?? 0;
+   552→  const desc = summaryCount > 0
+   553→    ? `${summaryCount} movimiento${summaryCount > 1 ? "s" : ""} registrado${summaryCount > 1 ? "s" : ""}`
+   554→    : recommendation && recommendation.length > 30 ? recommendation : undefined;
+   555→  const metrics: HeroMetric[] = [];
+   556→  if (summaryCount > 0) {
+   557→    metrics.push({ icon: "receipt_long", label: "Movimientos", value: String(summaryCount), color: A.emerald.color });
+   558→  }
+   559→  // Mostrar categoría si la recommendation es corta (probablemente categoría)
+   560→  if (recommendation && recommendation.length <= 30) {
+   561→    metrics.push({ icon: "category", label: "Categoría", value: recommendation, color: A.amber.color });
+   562→  }
+   563→  return {
+   564→    hero: {
+   565→      kicker: "Tus Finanzas",
+   566→      title: heroTitleFrom(b.title, "Resumen"),
+   567→      desc,
+   568→      icon: "payments",
+   569→      accent: A.emerald,
+   570→      artValue: total,
+   571→      metrics: metrics.length > 0 ? metrics.slice(0, 3) : undefined,
+   572→    },
+   573→    detail: b.summaryItems?.length
+   574→      ? {
+   575→          title: b.title || "Resumen financiero",
+   576→          subtitle: b.recommendation,
+   577→          sections: [
+   578→            {
+   579→              kind: "tiles",
+   580→              icon: "payments",
+   581→              accent: A.emerald,
+   582→              title: "Detalle",
+   583→              tiles: b.summaryItems.map((s) => ({ label: s.label, value: s.value, color: A.emerald.color })),
+   584→            },
+   585→          ],
+   586→        }
+   587→      : undefined,
+   588→    cta: b.summaryItems?.length ? { label: "Ver detalle" } : undefined,
+   589→  };
+   590→}
+   591→
+   592→function savedRecord(b: Of<"saved_record">): KoruPresentation {
+   593→  const records = b.records ?? [];
+   594→  const first = records[0];
+   595→  // La colección donde quedó lo guardado: es el corazón de la promesa
+   596→  // "Listo, guardado en Sitios de IA" → CTA "Ver colección" abre Mis Colecciones.
+   597→  // Solo usar collection si first.collection existe; NO usar b.title como fallback
+   598→  // porque b.title suele ser "Guardado" (genérico) y produce "Guardado en Guardado".
+   599→  const collection = clean(first?.collection);
+   600→  const isLink = Boolean(first?.url);
+   601→  // desc: construir de forma robusta sin duplicados (case-insensitive + accent-insensitive).
+   602→  // Para "Café" + "cafe" + "2000 ARS": solo mostrar "Café · 2000 ARS".
+   603→  let desc: string | undefined;
+   604→  if (records.length > 1) {
+   605→    desc = `${records.length} registros guardados`;
+   606→  } else if (first) {
+   607→    const parts: string[] = [];
+   608→    const seen = new Set<string>();
+   609→    const title = clean(first.title);
+   610→    const notes = clean(first.notes);
+   611→    const value = clean(first.value);
+   612→    // Normaliza: lowercase + sin acentos para comparar
+   613→    const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+   614→    const tryAdd = (s: string | undefined) => {
+   615→      if (!s) return;
+   616→      const key = norm(s);
+   617→      if (seen.has(key)) return;
+   618→      if (key === norm(collection ?? "")) return;
+   619→      seen.add(key);
+   620→      parts.push(s);
+   621→    };
+   622→    tryAdd(title);
+   623→    tryAdd(notes);
+   624→    tryAdd(value);
+   625→    desc = parts.length > 0 ? parts.join(" · ") : undefined;
+   626→  }
+   627→  // Kicker: solo "Guardado en <colección>" si hay collection real; si no, "Guardado"
+   628→  const kicker = collection ? `Guardado en ${collection}` : "Guardado";
+   629→  // Title: si hay collection, mostrarlo. Si no, mostrar el title del primer record.
+   630→  const heroTitle = collection || clean(first?.title) || "Registro";
+   631→  return {
+   632→    hero: {
+   633→      kicker,
+   634→      title: heroTitleFrom(heroTitle, "Registro"),
+   635→      desc,
+   636→      icon: isLink ? "link" : "bookmark",
+   637→      accent: A.violet,
+   638→    },
+   639→    cta: {
+   640→      label: collection ? "Ver colección" : "Ver mis guardados",
+   641→      screen: "collections",
+   642→      collection: collection || undefined,
+   643→    },
+   644→  };
+   645→}
+   646→
+   647→function activityGroup(b: Of<"activity_group">): KoruPresentation {
+   648→  const toneAccent: Record<string, Accent> = {
+   649→    green: A.emerald,
+   650→    blue: A.blue,
+   651→    amber: A.amber,
+   652→    purple: A.purple,
+   653→    red: A.red,
+   654→    neutral: A.primary,
+   655→  };
+   656→  const sections: DetailSection[] = (b.sections ?? []).map((s) => {
+   657→    const accent = toneAccent[s.tone ?? "neutral"] ?? A.primary;
+   658→    if (s.tiles?.length) {
+   659→      return {
+   660→        kind: "tiles",
+   661→        icon: "widgets",
+   662→        accent,
+   663→        title: s.title,
+   664→        tiles: s.tiles.map((t) => ({ label: t.label, value: t.value, color: accent.color })),
+   665→      };
+   666→    }
+   667→    return {
+   668→      kind: "rows",
+   669→      icon: "list",
+   670→      accent,
+   671→      title: s.title,
+   672→      rows: (s.rows ?? []).map((r) => ({
+   673→        title: r.title,
+   674→        detail: r.detail,
+   675→        meta: r.meta,
+   676→        badge: r.urgent ? "Urgente" : undefined,
+   677→        badgeTone: r.urgent ? "urgent" : undefined,
+   678→      })),
+   679→    };
+   680→  });
+   681→  return {
+   682→    hero: {
+   683→      kicker: b.subtitle ?? "Tu Resumen",
+   684→      title: heroTitleFrom(b.title, "Actividad"),
+   685→      desc: b.note,
+   686→      icon: "dashboard",
+   687→      accent: A.primary,
+   688→      metrics: b.energy ? [{ icon: "bolt", label: b.energy.label ?? "Energía", value: `${b.energy.value}%`, color: A.emerald.color }] : undefined,
+   689→    },
+   690→    detail: sections.length ? { title: b.title, subtitle: b.subtitle, sections } : undefined,
+   691→    cta: sections.length ? { label: "Ver resumen" } : undefined,
+   692→  };
+   693→}
+   694→
+   695→function proactiveSignal(b: Of<"proactive_signal">): KoruPresentation {
+   696→  const urgent = b.severity === "urgent" || b.severity === "important";
+   697→  const accent = urgent ? A.amber : A.purple;
+   698→  return {
+   699→    hero: {
+   700→      kicker: b.timestampLabel ?? "Señal",
+   701→      title: heroTitleFrom(b.title, "Aviso"),
+   702→      desc: b.body,
+   703→      icon: urgent ? "priority_high" : "lightbulb",
+   704→      accent,
+   705→      metrics: b.summaryItems?.slice(0, 3).map((s) => ({ icon: "insights", label: s.label, value: s.value, color: accent.color })),
+   706→    },
+   707→    detail:
+   708→      b.sources?.length || b.summaryItems?.length
+   709→        ? {
+   710→            title: b.title,
+   711→            subtitle: b.followUpQuestion,
+   712→            sections: [
+   713→              { kind: "text", icon: "lightbulb", accent, title: "Detalle", body: b.body },
+   714→              ...(b.sources?.length ? [sourcesSection(b.sources)] : []),
+   715→            ],
+   716→          }
+   717→        : undefined,
+   718→    cta: b.sources?.length || b.summaryItems?.length ? { label: b.actionLabel ?? "Ver más" } : undefined,
+   719→  };
+   720→}
+   721→
+   722→function resourceBundle(b: Of<"resource_bundle">): KoruPresentation {
+   723→  const files = b.files ?? [];
+   724→  return {
+   725→    hero: {
+   726→      kicker: "Tus Archivos",
+   727→      title: heroTitleFrom(b.title, "Recursos"),
+   728→      desc: b.summary ?? `${files.length} archivos listos`,
+   729→      icon: "folder",
+   730→      accent: A.indigo,
+   731→      metrics: [{ icon: "attach_file", label: "Archivos", value: String(files.length), color: A.indigo.color }],
+   732→    },
+   733→    detail: files.length
+   734→      ? {
+   735→          title: b.title || "Archivos",
+   736→          sections: [
+   737→            {
+   738→              kind: "rows",
+   739→              icon: "folder",
+   740→              accent: A.indigo,
+   741→              title: "Descargas",
+   742→              rows: files.map((f) => ({ icon: "description", title: f.name, detail: `${f.kind} · ${f.sizeLabel}` })),
+   743→            },
+   744→          ],
+   745→        }
+   746→      : undefined,
+   747→    cta: files.length ? { label: "Ver archivos" } : undefined,
+   748→  };
+   749→}
+   750→
+   751→function webNav(b: Of<"web_nav">): KoruPresentation {
+   752→  const isReport = b.status === "report";
+   753→  const results = b.results ?? [];
+   754→  const sections: DetailSection[] = [];
+   755→  if (b.summary) sections.push({ kind: "text", icon: "summarize", accent: A.purple, title: "Síntesis", subtitle: "LO ESENCIAL", body: b.summary });
+   756→  if (b.findings?.length)
+   757→    sections.push({
+   758→      kind: "rows",
+   759→      icon: "check_circle",
+   760→      accent: A.purple,
+   761→      title: "Hallazgos clave",
+   762→      rows: b.findings.map((f) => ({ icon: "check_circle", title: f })),
+   763→    });
+   764→  if (results.length)
+   765→    sections.push({
+   766→      kind: "sources",
+   767→      icon: "menu_book",
+   768→      accent: A.purple,
+   769→      title: "Fuentes",
+   770→      subtitle: "CONTRASTADAS",
+   771→      sources: results.map((r) => ({ title: r.title, domain: r.source, url: r.url })),
+   772→    });
+   773→  return {
+   774→    hero: {
+   775→      kicker: isReport ? "Tu Informe" : "Tu Búsqueda",
+   776→      title: heroTitleFrom(b.title ?? b.query, isReport ? "Investigación" : "Resultados"),
+   777→      desc: b.summary ?? (b.query ? `Resultados sobre ${b.query}` : undefined),
+   778→      icon: isReport ? "menu_book" : "travel_explore",
+   779→      accent: A.purple,
+   780→      metrics: results.length ? [{ icon: "fact_check", label: "Fuentes", value: String(results.length), color: A.purple.color }] : undefined,
+   781→    },
+   782→    detail: sections.length ? { title: b.title || (isReport ? "Informe" : "Búsqueda"), sections } : undefined,
+   783→    cta: sections.length ? { label: isReport ? "Ver informe completo" : "Ver resultados" } : undefined,
+   784→  };
+   785→}
+   786→
+   787→function dataCard(b: Of<"data_card">): KoruPresentation {
+   788→  const items = b.items ?? [];
+   789→  const first = items[0];
+   790→  // Hero desc: resumen del dato principal, pero NO repetirlo en metrics.
+   791→  // Antes: desc = "España: 2-1 a Bélgica" y metrics[0] = "2-1 a Bélgica" (duplicado).
+   792→  // Ahora: desc = `${items.length} datos verificados` y metrics muestra label + value.
+   793→  const desc = items.length > 1
+   794→    ? `${items.length} datos verificados de fuentes reales`
+   795→    : first ? `${first.label}: ${first.value}` : undefined;
+   796→  return {
+   797→    hero: {
+   798→      kicker: "Tus Datos",
+   799→      title: heroTitleFrom(b.title, "Datos"),
+   800→      desc,
+   801→      icon: "verified",
+   802→      accent: A.emerald,
+   803→      metrics: items.slice(0, 3).map((it) => ({ icon: "database", label: it.label, value: it.value, color: A.emerald.color })),
+   804→    },
+   805→    detail: items.length
+   806→      ? {
+   807→          title: b.title || "Datos",
+   808→          sections: [
+   809→            {
+   810→              kind: "rows",
+   811→              icon: "verified",
+   812→              accent: A.emerald,
+   813→              title: "Datos verificados",
+   814→              rows: items.map((it) => ({ title: it.label, detail: it.value, meta: it.sourceDomain })),
+   815→            },
+   816→          ],
+   817→        }
+   818→      : undefined,
+   819→    cta: items.length > 3 ? { label: "Ver todos" } : undefined,
+   820→  };
+   821→}
+   822→
+   823→function restaurant(b: Of<"restaurant_synthesis">): KoruPresentation {
+   824→  const matches = b.matches ?? [];
+   825→  const sections: DetailSection[] = [];
+   826→  if (matches.length)
+   827→    sections.push({
+   828→      kind: "scroller",
+   829→      icon: "restaurant_menu",
+   830→      accent: A.amber,
+   831→      title: "Top coincidencias",
+   832→      cards: matches.map((m, i) => ({
+   833→        badge: i === 0 ? b.topScore ?? "Top" : undefined,
+   834→        badgeColor: i === 0 ? A.emerald.color : undefined,
+   835→        title: m.name,
+   836→        detail: m.quote,
+   837→        metrics: [`${m.sourcesMentioning} fuentes`, m.rating ? `★ ${m.rating}` : ""].filter(Boolean),
+   838→      })),
+   839→    });
+   840→  if (b.pros?.length || b.cons?.length)
+   841→    sections.push({
+   842→      kind: "rows",
+   843→      icon: "thumbs_up_down",
+   844→      accent: A.amber,
+   845→      title: "Pros y contras",
+   846→      rows: [
+   847→        ...(b.pros ?? []).map((p) => ({ icon: "add_circle", title: p, badgeTone: "done" as const })),
+   848→        ...(b.cons ?? []).map((c) => ({ icon: "remove_circle", title: c, badgeTone: "urgent" as const })),
+   849→      ],
+   850→    });
+   851→  if (b.synthesis) sections.push({ kind: "text", icon: "auto_awesome", accent: A.amber, title: "Síntesis", body: b.synthesis });
+   852→  if (b.sources?.length) sections.push(sourcesSection(b.sources));
+   853→  return {
+   854→    hero: {
+   855→      kicker: "Tu Recomendación",
+   856→      title: heroTitleFrom(b.title ?? b.query, "Restaurantes"),
+   857→      desc: b.synthesis ?? b.note,
+   858→      icon: "restaurant",
+   859→      accent: A.amber,
+   860→      metrics: matches.length ? [{ icon: "storefront", label: "Opciones", value: String(matches.length), color: A.amber.color }] : undefined,
+   861→    },
+   862→    detail: sections.length ? { title: b.title || "Restaurantes", sections } : undefined,
+   863→    cta: sections.length ? { label: "Ver recomendación" } : undefined,
+   864→  };
+   865→}
+   866→
+   867→function morningBrief(b: Of<"morning_brief">): KoruPresentation {
+   868→  const items = b.items ?? [];
+   869→  return {
+   870→    hero: {
+   871→      kicker: "Buenos días",
+   872→      title: heroTitleFrom(b.greeting, "Tu Resumen"),
+   873→      desc: items[0] ? `${items[0].label}: ${items[0].value}` : undefined,
+   874→      icon: "wb_sunny",
+   875→      accent: A.amber,
+   876→      metrics: items.slice(0, 3).map((it) => ({ icon: it.icon, label: it.label, value: it.value, color: it.iconColor })),
+   877→    },
+   878→    detail: items.length
+   879→      ? {
+   880→          title: "Resumen matutino",
+   881→          sections: [
+   882→            {
+   883→              kind: "tiles",
+   884→              icon: "wb_sunny",
+   885→              accent: A.amber,
+   886→              title: "Tu día",
+   887→              tiles: items.map((it) => ({ icon: it.icon, label: it.label, value: it.value, color: it.iconColor })),
+   888→            },
+   889→          ],
+   890→        }
+   891→      : undefined,
+   892→    cta: items.length > 3 ? { label: "Ver todo" } : undefined,
+   893→  };
+   894→}
+   895→
+   896→function wellbeing(b: Of<"wellbeing">): KoruPresentation {
+   897→  const tiles: DetailTile[] = [];
+   898→  if (b.sleep) tiles.push({ icon: b.sleep.icon, label: b.sleep.label, value: b.sleep.value, color: A.indigo.color });
+   899→  if (b.suggestion) tiles.push({ icon: b.suggestion.icon, label: b.suggestion.label, value: b.suggestion.value, color: A.purple.color });
+   900→  (b.sections ?? []).forEach((s) => tiles.push({ icon: s.icon, label: s.label, value: s.value, color: s.iconColor }));
+   901→  return {
+   902→    hero: {
+   903→      kicker: "Tu Bienestar",
+   904→      title: heroTitleFrom(b.title, "Bienestar"),
+   905→      desc: b.suggestion?.label,
+   906→      icon: "favorite",
+   907→      accent: A.purple,
+   908→      metrics: tiles.slice(0, 3).map((t) => ({ icon: t.icon ?? "favorite", label: t.label, value: t.value, color: t.color })),
+   909→    },
+   910→    detail: tiles.length
+   911→      ? { title: b.title || "Bienestar", sections: [{ kind: "tiles", icon: "favorite", accent: A.purple, title: "Detalle", tiles }] }
+   912→      : undefined,
+   913→    cta: tiles.length ? { label: "Ver detalle" } : undefined,
+   914→  };
+   915→}
+   916→
+   917→function liveMatch(b: Of<"live_match">): KoruPresentation {
+   918→  // Preferir nombres completos (homeName/awayName) sobre abreviaturas.
+   919→  // Las abreviaturas (SPA, BEL) son útiles solo en scoreboards compactos;
+   920→  // en una card hero, el usuario necesita saber quiénes juegan.
+   921→  const homeName = clean(b.homeName) ?? clean(b.homeTeam?.name) ?? "Local";
+   922→  const awayName = clean(b.awayName) ?? clean(b.awayTeam?.name) ?? "Visitante";
+   923→  const homeScore = b.homeScore ?? b.homeTeam?.score ?? 0;
+   924→  const awayScore = b.awayScore ?? b.awayTeam?.score ?? 0;
+   925→  const score = `${homeScore} - ${awayScore}`;
+   926→  // Título: "Spain vs Belgium" (nombres completos, no abreviaturas)
+   927→  const title = `${homeName} vs ${awayName}`;
+   928→  // Kicker: liga + estado. Si no hay liga, solo estado.
+   929→  const league = clean(b.league);
+   930→  const status = clean(b.status);
+   931→  const live = /in progress|live|halftime|en vivo/i.test(status);
+   932→  const kickerParts: string[] = [];
+   933→  if (live) kickerParts.push("En vivo");
+   934→  if (league) kickerParts.push(league);
+   935→  if (!live && status && status.toLowerCase() !== "scheduled") kickerParts.push(status);
+   936→  const kicker = kickerParts.length > 0 ? kickerParts.join(" · ") : "Partido";
+   937→  // Desc: si está scheduled, mostrar fecha/hora. Si está final, mostrar "Final".
+   938→  // Si está en vivo, mostrar minuto.
+   939→  const desc = live ? (b.minute ? `Minuto ${b.minute}` : "En juego")
+   940→    : status && /scheduled|programado/i.test(status) ? "Próximamente"
+   941→    : status ?? "Final";
+   942→  // Metrics: stats del partido (posesión, tiros) si existen.
+   943→  const metrics: HeroMetric[] = [];
+   944→  if (b.stats && b.stats.length > 0) {
+   945→    for (const s of b.stats.slice(0, 2)) {
+   946→      const left = s.leftPercent ?? 0;
+   947→      const right = s.rightPercent ?? 0;
+   948→      const total = left + right;
+   949→      const value = total > 0 ? `${left}% - ${right}%` : "—";
+   950→      metrics.push({ icon: s.label === "Posesion" ? "sports_soccer" : "crisis_alert", label: s.label, value, color: A.emerald.color });
+   951→    }
+   952→  }
+   953→  return {
+   954→    hero: {
+   955→      kicker,
+   956→      title: up(title),
+   957→      desc,
+   958→      icon: "sports_soccer",
+   959→      accent: live ? A.red : A.emerald,
+   960→      artValue: score,
+   961→      metrics: metrics.length > 0 ? metrics : undefined,
+   962→    },
+   963→    detail: b.stats?.length
+   964→      ? {
+   965→          title: title,
+   966→          subtitle: league ?? kicker,
+   967→          sections: [
+   968→            {
+   969→              kind: "rows",
+   970→              icon: "monitoring",
+   971→              accent: A.emerald,
+   972→              title: "Estadísticas",
+   973→              rows: b.stats.map((s) => ({ title: s.label, detail: `${s.leftPercent}% — ${s.rightPercent}%` })),
+   974→            },
+   975→          ],
+   976→        }
+   977→      : undefined,
+   978→    cta: b.stats?.length ? { label: "Ver estadísticas" } : undefined,
+   979→  };
+   980→}
+   981→
+   982→function urgentNow(b: Of<"urgent_now">): KoruPresentation {
+   983→  return {
+   984→    hero: {
+   985→      kicker: b.eyebrow ?? "Urgente · Ahora",
+   986→      title: heroTitleFrom(b.headline, "Aviso"),
+   987→      desc: b.description,
+   988→      icon: b.icon || "priority_high",
+   989→      accent: A.red,
+   990→    },
+   991→  };
+   992→}
+   993→
+   994→function market(b: Of<"market">): KoruPresentation {
+   995→  const assets = b.assets ?? [];
+   996→  const first = assets[0];
+   997→  return {
+   998→    hero: {
+   999→      kicker: "Mercados",
+  1000→      title: heroTitleFrom(b.title ?? first?.symbol, "Mercado"),
+  1001→      desc: first ? `${first.name} · ${first.change}` : undefined,
+  1002→      icon: "trending_up",
+  1003→      accent: A.emerald,
+  1004→      artValue: first?.price,
+  1005→      metrics: assets.slice(0, 3).map((a) => ({
+  1006→        icon: a.changeUp ? "trending_up" : "trending_down",
+  1007→        label: a.symbol,
+  1008→        value: a.change,
+  1009→        color: a.changeUp ? A.emerald.color : A.red.color,
+  1010→      })),
+  1011→    },
+  1012→    detail: assets.length
+  1013→      ? {
+  1014→          title: b.title || "Mercados",
+  1015→          sections: [
+  1016→            {
+  1017→              kind: "rows",
+  1018→              icon: "trending_up",
+  1019→              accent: A.emerald,
+  1020→              title: "Activos",
+  1021→              rows: assets.map((a) => ({ title: a.name, detail: a.price, meta: a.change, badgeTone: a.changeUp ? "done" : "urgent" })),
+  1022→            },
+  1023→          ],
+  1024→        }
+  1025→      : undefined,
+  1026→    cta: assets.length ? { label: "Ver mercados" } : undefined,
+  1027→  };
+  1028→}
+  1029→
+  1030→function delivery(b: Of<"delivery">): KoruPresentation {
+  1031→  const steps = b.steps ?? [];
+  1032→  return {
+  1033→    hero: {
+  1034→      kicker: "Tu Envío",
+  1035→      title: heroTitleFrom(b.title, "Paquete"),
+  1036→      desc: [b.status, b.estimatedDate].filter(Boolean).join(" · "),
+  1037→      icon: "local_shipping",
+  1038→      accent: A.indigo,
+  1039→    },
+  1040→    detail: steps.length
+  1041→      ? {
+  1042→          title: b.title || "Envío",
+  1043→          subtitle: [b.carrier, b.trackingId].filter(Boolean).join(" · "),
+  1044→          sections: [
+  1045→            {
+  1046→              kind: "timeline",
+  1047→              icon: "local_shipping",
+  1048→              accent: A.indigo,
+  1049→              title: "Seguimiento",
+  1050→              steps: steps.map((s) => ({ title: s.label, status: s.done ? "done" : "pending" })),
+  1051→            },
+  1052→          ],
+  1053→        }
+  1054→      : undefined,
+  1055→    cta: steps.length ? { label: "Ver seguimiento" } : undefined,
+  1056→  };
+  1057→}
+  1058→
+  1059→function healthReminder(b: Of<"health_reminder">): KoruPresentation {
+  1060→  return {
+  1061→    hero: {
+  1062→      kicker: "Salud · Recordatorio",
+  1063→      title: heroTitleFrom(b.title, "Recordatorio"),
+  1064→      desc: b.reminder,
+  1065→      icon: b.icon || "medication",
+  1066→      accent: A.rose,
+  1067→    },
+  1068→  };
+  1069→}
+  1070→
+  1071→function activityTracker(b: Of<"activity_tracker">): KoruPresentation {
+  1072→  const metrics = b.metrics ?? [];
+  1073→  return {
+  1074→    hero: {
+  1075→      kicker: "Tu Actividad",
+  1076→      title: heroTitleFrom(b.title, "Progreso"),
+  1077→      desc: b.subtitle,
+  1078→      icon: "monitoring",
+  1079→      accent: A.emerald,
+  1080→      metrics: metrics.slice(0, 3).map((m) => ({ icon: m.icon, label: m.label, value: `${m.value}${m.unit ?? ""}`, color: m.iconColor })),
+  1081→    },
+  1082→    detail: metrics.length
+  1083→      ? {
+  1084→          title: b.title || "Actividad",
+  1085→          subtitle: b.subtitle,
+  1086→          sections: [
+  1087→            {
+  1088→              kind: "tiles",
+  1089→              icon: "monitoring",
+  1090→              accent: A.emerald,
+  1091→              title: "Métricas",
+  1092→              tiles: metrics.map((m) => ({ icon: m.icon, label: m.label, value: `${m.value}${m.unit ?? ""}`, color: m.iconColor })),
+  1093→            },
+  1094→          ],
+  1095→        }
+  1096→      : undefined,
+  1097→    cta: metrics.length ? { label: "Ver métricas" } : undefined,
+  1098→  };
+  1099→}
+  1100→
+  1101→function productAnalysis(b: Of<"product_analysis">): KoruPresentation {
+  1102→  const specs = b.specs ?? [];
+  1103→  return {
+  1104→    hero: {
+  1105→      kicker: "Tu Análisis",
+  1106→      title: heroTitleFrom(b.product?.name, "Producto"),
+  1107→      desc: b.product?.description,
+  1108→      icon: b.product?.icon || "inventory_2",
+  1109→      accent: A.primary,
+  1110→      metrics: b.product?.rating
+  1111→        ? [{ icon: "star", label: "Rating", value: `${b.product.rating}`, color: A.amber.color }]
+  1112→        : undefined,
+  1113→    },
+  1114→    detail: specs.length
+  1115→      ? {
+  1116→          title: b.product?.name || "Producto",
+  1117→          subtitle: b.product?.reviewCount ? `${b.product.reviewCount} opiniones` : undefined,
+  1118→          sections: [
+  1119→            {
+  1120→              kind: "tiles",
+  1121→              icon: "inventory_2",
+  1122→              accent: A.primary,
+  1123→              title: "Especificaciones",
+  1124→              tiles: specs.map((s) => ({ label: s.label, value: s.value, color: A.primary.color })),
+  1125→            },
+  1126→          ],
+  1127→        }
+  1128→      : undefined,
+  1129→    cta: specs.length ? { label: b.actionLabel || "Ver opciones" } : undefined,
+  1130→  };
+  1131→}
+  1132→
+  1133→function travelPlanner(b: Of<"travel_planner">): KoruPresentation {
+  1134→  const steps = b.steps ?? [];
+  1135→  return {
+  1136→    hero: {
+  1137→      kicker: "Tu Viaje",
+  1138→      title: heroTitleFrom(b.destination, "Itinerario"),
+  1139→      desc: b.dates,
+  1140→      icon: "flight_takeoff",
+  1141→      accent: A.sky,
+  1142→      metrics: steps.length ? [{ icon: "route", label: "Paradas", value: String(steps.length), color: A.sky.color }] : undefined,
+  1143→    },
+  1144→    detail: steps.length
+  1145→      ? {
+  1146→          title: b.destination || "Itinerario",
+  1147→          subtitle: b.dates,
+  1148→          sections: [
+  1149→            {
+  1150→              kind: "timeline",
+  1151→              icon: "flight_takeoff",
+  1152→              accent: A.sky,
+  1153→              title: "Itinerario",
+  1154→              steps: steps.map((s) => ({ icon: s.icon, title: s.label, detail: [s.time, s.detail].filter(Boolean).join(" · ") })),
+  1155→            },
+  1156→          ],
+  1157→        }
+  1158→      : undefined,
+  1159→    cta: steps.length ? { label: b.actionLabel || "Ver itinerario" } : undefined,
+  1160→  };
+  1161→}
+  1162→
+  1163→function generation(b: Of<"generation">): KoruPresentation {
+  1164→  const kickerByType: Record<string, string> = { text: "Tu Texto", image: "Tu Imagen", code: "Tu Código", document: "Tu Documento" };
+  1165→  return {
+  1166→    hero: {
+  1167→      kicker: kickerByType[b.resultType ?? "text"] ?? "Generado",
+  1168→      title: heroTitleFrom(b.title, "Resultado"),
+  1169→      desc: b.prompt,
+  1170→      icon: b.resultType === "code" ? "code" : b.resultType === "image" ? "image" : "auto_awesome",
+  1171→      accent: A.violet,
+  1172→    },
+  1173→    detail: b.preview
+  1174→      ? {
+  1175→          title: b.title || "Resultado",
+  1176→          sections: [{ kind: "text", icon: "auto_awesome", accent: A.violet, title: "Vista previa", body: b.preview }],
+  1177→        }
+  1178→      : undefined,
+  1179→    cta: b.preview ? { label: b.actionLabel || "Ver resultado" } : undefined,
+  1180→  };
+  1181→}
+  1182→
+  1183→function matchTimeline(b: Of<"match_timeline">): KoruPresentation {
+  1184→  const items = b.items ?? [];
+  1185→  const now = items.find((i) => i.now) ?? items[0];
+  1186→  return {
+  1187→    hero: {
+  1188→      kicker: "Fixture · En vivo",
+  1189→      title: "PARTIDO",
+  1190→      desc: now ? `${now.minute}' ${now.text}` : undefined,
+  1191→      icon: "sports",
+  1192→      accent: A.emerald,
+  1193→    },
+  1194→    detail: items.length
+  1195→      ? {
+  1196→          title: "Timeline",
+  1197→          sections: [
+  1198→            {
+  1199→              kind: "timeline",
+  1200→              icon: "sports",
+  1201→              accent: A.emerald,
+  1202→              title: "Eventos",
+  1203→              steps: items.map((i) => ({ title: `${i.minute}' ${i.text}`, detail: i.sub, status: i.now ? "current" : "done" })),
+  1204→            },
+  1205→          ],
+  1206→        }
+  1207→      : undefined,
+  1208→    cta: items.length ? { label: "Ver timeline" } : undefined,
+  1209→  };
+  1210→}
+  1211→
+  1212→function matchStats(b: Of<"match_stats">): KoruPresentation {
+  1213→  const stats = b.stats ?? [];
+  1214→  return {
+  1215→    hero: {
+  1216→      kicker: "Estadísticas",
+  1217→      title: "PARTIDO",
+  1218→      desc: stats[0] ? `${stats[0].label}: ${stats[0].home} — ${stats[0].away}` : undefined,
+  1219→      icon: "monitoring",
+  1220→      accent: A.primary,
+  1221→    },
+  1222→    detail: stats.length
+  1223→      ? {
+  1224→          title: "Estadísticas",
+  1225→          sections: [
+  1226→            {
+  1227→              kind: "rows",
+  1228→              icon: "monitoring",
+  1229→              accent: A.primary,
+  1230→              title: "Comparativa",
+  1231→              rows: stats.map((s) => ({ title: s.label, detail: `${s.home} — ${s.away}` })),
+  1232→            },
+  1233→          ],
+  1234→        }
+  1235→      : undefined,
+  1236→    cta: stats.length ? { label: "Ver estadísticas" } : undefined,
+  1237→  };
+  1238→}
+  1239→
+  1240→function electionResults(b: Of<"election_results">): KoruPresentation {
+  1241→  const items = b.items ?? [];
+  1242→  const leader = items[0];
+  1243→  return {
+  1244→    hero: {
+  1245→      kicker: "Escrutinio",
+  1246→      title: heroTitleFrom(b.title, "Elecciones"),
+  1247→      desc: b.status ?? (leader ? `${leader.name}: ${leader.percent}` : undefined),
+  1248→      icon: "how_to_vote",
+  1249→      accent: A.amber,
+  1250→    },
+  1251→    detail: items.length
+  1252→      ? {
+  1253→          title: b.title || "Resultados",
+  1254→          subtitle: b.status,
+  1255→          sections: [
+  1256→            {
+  1257→              kind: "rows",
+  1258→              icon: "how_to_vote",
+  1259→              accent: A.amber,
+  1260→              title: "Candidatos",
+  1261→              rows: items.map((it) => ({ title: it.name, detail: it.detail, meta: it.percent, badgeTone: it.done ? "done" : "pending" })),
+  1262→            },
+  1263→          ],
+  1264→        }
+  1265→      : undefined,
+  1266→    cta: items.length ? { label: "Ver escrutinio" } : undefined,
+  1267→  };
+  1268→}
+  1269→
+  1270→function electionVote(b: Of<"election_vote">): KoruPresentation {
+  1271→  const options = b.options ?? [];
+  1272→  return {
+  1273→    hero: {
+  1274→      kicker: "Tu Voto",
+  1275→      title: heroTitleFrom(b.question, "Votación"),
+  1276→      desc: b.subtitle,
+  1277→      icon: "ballot",
+  1278→      accent: A.violet,
+  1279→    },
+  1280→    detail: options.length
+  1281→      ? {
+  1282→          title: b.question || "Votación",
+  1283→          subtitle: b.subtitle,
+  1284→          sections: [
+  1285→            { kind: "chips", icon: "ballot", accent: A.violet, title: "Opciones", chips: options.map((o) => ({ label: o.label, sub: o.sub })) },
+  1286→          ],
+  1287→        }
+  1288→      : undefined,
+  1289→    cta: options.length ? { label: "Confirmar voto" } : undefined,
+  1290→  };
+  1291→}
+  1292→
+  1293→function decisionSupport(b: Of<"decision_support">): KoruPresentation {
+  1294→  const options = b.options ?? [];
+  1295→  const factors = b.factors ?? [];
+  1296→  const top = options[0];
+  1297→  const sections: DetailSection[] = [];
+  1298→
+  1299→  if (options.length) {
+  1300→    sections.push({
+  1301→      kind: "rows",
+  1302→      icon: "balance",
+  1303→      accent: A.indigo,
+  1304→      title: "Opciones",
+  1305→      subtitle: "ESCENARIOS",
+  1306→      rows: options.map((option, index) => ({
+  1307→        icon: index === 0 ? "recommend" : "radio_button_unchecked",
+  1308→        title: option.label,
+  1309→        meta: asPercent(option.probability),
+  1310→        badge: index === 0 ? "Principal" : undefined,
+  1311→        badgeTone: index === 0 ? "current" : undefined,
+  1312→      })),
+  1313→    });
+  1314→  }
+  1315→
+  1316→  if (factors.length) {
+  1317→    sections.push({
+  1318→      kind: "chips",
+  1319→      icon: "psychology_alt",
+  1320→      accent: A.violet,
+  1321→      title: "Factores",
+  1322→      subtitle: "LO QUE PESA",
+  1323→      chips: factors.map((factor) => ({ label: factor })),
+  1324→    });
+  1325→  }
+  1326→
+  1327→  return {
+  1328→    hero: {
+  1329→      kicker: "Tu Decisión",
+  1330→      title: heroTitleFrom(b.title, "Recomendación"),
+  1331→      desc: b.recommendation ?? (top ? `${top.label}${asPercent(top.probability) ? ` · ${asPercent(top.probability)}` : ""}` : undefined),
+  1332→      icon: "balance",
+  1333→      accent: A.indigo,
+  1334→      metrics: [
+  1335→        ...(options.length ? [{ icon: "format_list_numbered", label: "Opciones", value: String(options.length), color: A.indigo.color }] : []),
+  1336→        ...(factors.length ? [{ icon: "psychology_alt", label: "Factores", value: String(factors.length), color: A.violet.color }] : []),
+  1337→      ].slice(0, 3),
+  1338→    },
+  1339→    detail: sections.length
+  1340→      ? {
+  1341→          title: b.title || "Decisión",
+  1342→          subtitle: b.recommendation,
+  1343→          sections,
+  1344→        }
+  1345→      : undefined,
+  1346→    cta: sections.length ? { label: "Ver análisis" } : undefined,
+  1347→  };
+  1348→}
+  1349→
+  1350→function memoryBlock(b: Of<"memory">): KoruPresentation {
+  1351→  const items = b.items ?? [];
+  1352→  const sections: DetailSection[] = [];
+  1353→
+  1354→  if (items.length) {
+  1355→    sections.push({
+  1356→      kind: "rows",
+  1357→      icon: "psychology",
+  1358→      accent: A.violet,
+  1359→      title: "Recuerdos",
+  1360→      subtitle: "CONTEXTO GUARDADO",
+  1361→      rows: items.map((item) => ({
+  1362→        icon: "memory",
+  1363→        title: item.title,
+  1364→        detail: item.detail,
+  1365→        meta: asPercent(item.confidence),
+  1366→        badge: item.domain,
+  1367→        badgeTone: "done",
+  1368→      })),
+  1369→    });
+  1370→  }
+  1371→
+  1372→  if (b.note) {
+  1373→    sections.push({
+  1374→      kind: "text",
+  1375→      icon: "sticky_note_2",
+  1376→      accent: A.primary,
+  1377→      title: "Nota",
+  1378→      subtitle: "POR QUÉ IMPORTA",
+  1379→      body: b.note,
+  1380→    });
+  1381→  }
+  1382→
+  1383→  return {
+  1384→    hero: {
+  1385→      kicker: "Memoria",
+  1386→      title: heroTitleFrom(b.title, items[0]?.title ?? "Contexto"),
+  1387→      desc: b.note ?? items[0]?.detail,
+  1388→      icon: "psychology",
+  1389→      accent: A.violet,
+  1390→      metrics: items.length
+  1391→        ? [
+  1392→            { icon: "memory", label: "Ítems", value: String(items.length), color: A.violet.color },
+  1393→            ...(items[0]?.domain ? [{ icon: "label", label: "Dominio", value: items[0].domain, color: A.primary.color }] : []),
+  1394→          ].slice(0, 3)
+  1395→        : undefined,
+  1396→    },
+  1397→    detail: sections.length
+  1398→      ? {
+  1399→          title: b.title || "Memoria",
+  1400→          subtitle: items.length ? `${items.length} recuerdos activos` : undefined,
+  1401→          sections,
+  1402→        }
+  1403→      : undefined,
+  1404→    cta: sections.length ? { label: "Ver memoria" } : undefined,
+  1405→  };
+  1406→}
+  1407→
+  1408→function dataTicker(b: Of<"data_ticker">): KoruPresentation {
+  1409→  const items = b.items ?? [];
+  1410→  return {
+  1411→    hero: {
+  1412→      kicker: "Resumen",
+  1413→      title: "DATOS",
+  1414→      desc: b.alert ?? (items[0] ? `${items[0].label}: ${items[0].value}` : undefined),
+  1415→      icon: "insights",
+  1416→      accent: A.primary,
+  1417→      metrics: items.slice(0, 3).map((it) => ({ icon: "insights", label: it.label, value: it.value, color: A.primary.color })),
+  1418→    },
+  1419→    detail: items.length
+  1420→      ? {
+  1421→          title: "Resumen",
+  1422→          sections: [
+  1423→            {
+  1424→              kind: "rows",
+  1425→              icon: "insights",
+  1426→              accent: A.primary,
+  1427→              title: "Datos",
+  1428→              rows: items.map((it) => ({ title: it.label, detail: it.value, badgeTone: it.highlight ? "done" : undefined })),
+  1429→            },
+  1430→          ],
+  1431→        }
+  1432→      : undefined,
+  1433→    cta: items.length ? { label: "Ver datos" } : undefined,
+  1434→  };
+  1435→}
+  1436→
+  1437→function cryptoPortfolio(b: Of<"crypto_portfolio">): KoruPresentation {
+  1438→  const items = b.items ?? [];
+  1439→  return {
+  1440→    hero: {
+  1441→      kicker: "Mercados",
+  1442→      title: "CRIPTO",
+  1443→      desc: items[0] ? `${items[0].name} · ${items[0].price}` : undefined,
+  1444→      icon: "currency_bitcoin",
+  1445→      accent: A.amber,
+  1446→      metrics: items.slice(0, 3).map((it) => ({
+  1447→        icon: it.change >= 0 ? "trending_up" : "trending_down",
+  1448→        label: it.symbol,
+  1449→        value: `${it.change >= 0 ? "+" : ""}${it.change}%`,
+  1450→        color: it.change >= 0 ? A.emerald.color : A.red.color,
+  1451→      })),
+  1452→    },
+  1453→    detail: items.length
+  1454→      ? {
+  1455→          title: "Portafolio",
+  1456→          sections: [
+  1457→            {
+  1458→              kind: "rows",
+  1459→              icon: "currency_bitcoin",
+  1460→              accent: A.amber,
+  1461→              title: "Activos",
+  1462→              rows: items.map((it) => ({ title: it.name, detail: it.price, meta: `${it.change >= 0 ? "+" : ""}${it.change}%`, badgeTone: it.change >= 0 ? "done" : "urgent" })),
+  1463→            },
+  1464→          ],
+  1465→        }
+  1466→      : undefined,
+  1467→    cta: items.length ? { label: "Ver portafolio" } : undefined,
+  1468→  };
+  1469→}
+  1470→
+  1471→function forex(b: Of<"forex">): KoruPresentation {
+  1472→  const items = b.items ?? [];
+  1473→  return {
+  1474→    hero: {
+  1475→      kicker: "Forex",
+  1476→      title: "DIVISAS",
+  1477→      desc: items[0] ? `${items[0].pair} · ${items[0].rate}` : undefined,
+  1478→      icon: "currency_exchange",
+  1479→      accent: A.primary,
+  1480→      metrics: items.slice(0, 3).map((it) => ({
+  1481→        icon: it.positive ? "trending_up" : "trending_down",
+  1482→        label: it.pair,
+  1483→        value: it.rate,
+  1484→        color: it.positive ? A.emerald.color : A.red.color,
+  1485→      })),
+  1486→    },
+  1487→    detail: items.length
+  1488→      ? {
+  1489→          title: "Divisas",
+  1490→          sections: [
+  1491→            {
+  1492→              kind: "rows",
+  1493→              icon: "currency_exchange",
+  1494→              accent: A.primary,
+  1495→              title: "Pares",
+  1496→              rows: items.map((it) => ({ title: it.pair, detail: it.rate, meta: `${it.change >= 0 ? "+" : ""}${it.change}%`, badgeTone: it.positive ? "done" : "urgent" })),
+  1497→            },
+  1498→          ],
+  1499→        }
+  1500→      : undefined,
+  1501→    cta: items.length ? { label: "Ver divisas" } : undefined,
+  1502→  };
+  1503→}
+  1504→
+  1505→function routeTimeline(b: Of<"route_timeline">): KoruPresentation {
+  1506→  const items = b.items ?? [];
+  1507→  return {
+  1508→    hero: {
+  1509→      kicker: b.eta ? `Ruta · ETA ${b.eta}` : "Tu Ruta",
+  1510→      title: "RUTA",
+  1511→      desc: items[0]?.label,
+  1512→      icon: "route",
+  1513→      accent: A.indigo,
+  1514→    },
+  1515→    detail: items.length
+  1516→      ? {
+  1517→          title: "Ruta",
+  1518→          subtitle: b.eta ? `ETA ${b.eta}` : undefined,
+  1519→          sections: [
+  1520→            {
+  1521→              kind: "timeline",
+  1522→              icon: "route",
+  1523→              accent: A.indigo,
+  1524→              title: "Recorrido",
+  1525→              steps: items.map((it) => ({ title: it.label, detail: it.detail })),
+  1526→            },
+  1527→          ],
+  1528→        }
+  1529→      : undefined,
+  1530→    cta: items.length ? { label: "Iniciar GPS" } : undefined,
+  1531→  };
+  1532→}
+  1533→
+  1534→function transportCompare(b: Of<"transport_compare">): KoruPresentation {
+  1535→  const items = b.items ?? [];
+  1536→  const active = items.find((i) => i.active) ?? items[0];
+  1537→  return {
+  1538→    hero: {
+  1539→      kicker: "Comparativa",
+  1540→      title: "TRANSPORTE",
+  1541→      desc: active ? `${active.mode} · ${active.time}` : undefined,
+  1542→      icon: "commute",
+  1543→      accent: A.amber,
+  1544→      metrics: items.slice(0, 3).map((it) => ({ icon: it.icon, label: it.mode, value: it.time, color: A.amber.color })),
+  1545→    },
+  1546→    detail: items.length
+  1547→      ? {
+  1548→          title: "Transporte",
+  1549→          sections: [
+  1550→            {
+  1551→              kind: "rows",
+  1552→              icon: "commute",
+  1553→              accent: A.amber,
+  1554→              title: "Opciones",
+  1555→              rows: items.map((it) => ({ icon: it.icon, title: it.mode, meta: it.time, badgeTone: it.active ? "current" : undefined })),
+  1556→            },
+  1557→          ],
+  1558→        }
+  1559→      : undefined,
+  1560→    cta: items.length ? { label: "Ver opciones" } : undefined,
+  1561→  };
+  1562→}
+  1563→
+  1564→function routeMap(b: Of<"route_map">): KoruPresentation {
+  1565→  return {
+  1566→    hero: {
+  1567→      kicker: "Tu Mapa",
+  1568→      title: b.to ? up(b.to) : "RUTA",
+  1569→      desc: [b.from && `Desde ${b.from}`, b.distance, b.remaining && `${b.remaining} restante`].filter(Boolean).join(" · "),
+  1570→      icon: "map",
+  1571→      accent: A.indigo,
+  1572→      metrics: b.progress != null ? [{ icon: "near_me", label: "Progreso", value: `${b.progress}%`, color: A.indigo.color }] : undefined,
+  1573→    },
+  1574→  };
+  1575→}
+  1576→
+  1577→function birthdayCalendar(b: Of<"birthday_calendar">): KoruPresentation {
+  1578→  return {
+  1579→    hero: {
+  1580→      kicker: "Calendario",
+  1581→      title: b.month ? up(b.month) : "CALENDARIO",
+  1582→      desc: b.highlightedDay ? `Día destacado: ${b.highlightedDay}` : undefined,
+  1583→      icon: "calendar_month",
+  1584→      accent: A.pink,
+  1585→    },
+  1586→  };
+  1587→}
+  1588→
+  1589→function birthdayAlarm(b: Of<"birthday_alarm">): KoruPresentation {
+  1590→  return {
+  1591→    hero: {
+  1592→      kicker: b.eta ? `Alarma · ${b.eta}` : "Cumpleaños",
+  1593→      title: heroTitleFrom(b.name, "Cumpleaños"),
+  1594→      desc: b.date,
+  1595→      icon: "cake",
+  1596→      accent: A.amber,
+  1597→      artValue: b.countdown ? `${b.countdown}${b.unit ? ` ${b.unit}` : ""}` : undefined,
+  1598→    },
+  1599→  };
+  1600→}
+  1601→
+  1602→function socialInteraction(b: Of<"social_interaction">): KoruPresentation {
+  1603→  const gifts = b.gifts ?? [];
+  1604→  return {
+  1605→    hero: {
+  1606→      kicker: "Social · Hoy",
+  1607→      title: heroTitleFrom(b.name, "Cumpleaños"),
+  1608→      desc: [b.date, b.age && `Cumple ${b.age}`, b.remaining].filter(Boolean).join(" · "),
+  1609→      icon: "celebration",
+  1610→      accent: A.pink,
+  1611→    },
+  1612→    detail: gifts.length
+  1613→      ? {
+  1614→          title: b.name || "Ideas de regalo",
+  1615→          subtitle: b.date,
+  1616→          sections: [
+  1617→            {
+  1618→              kind: "scroller",
+  1619→              icon: "featured_seasonal_and_gifts",
+  1620→              accent: A.pink,
+  1621→              title: "Ideas de regalo",
+  1622→              cards: gifts.map((g) => ({ title: `${g.emoji} ${g.title}`, detail: g.detail })),
+  1623→            },
+  1624→          ],
+  1625→        }
+  1626→      : undefined,
+  1627→    cta: gifts.length ? { label: "Ver ideas" } : undefined,
+  1628→  };
+  1629→}
+  1630→
+  1631→function smartChecklist(b: Of<"smart_checklist">): KoruPresentation {
+  1632→  const items = b.items ?? [];
+  1633→  const done = items.filter((i) => i.checked).length;
+  1634→  return {
+  1635→    hero: {
+  1636→      kicker: "Tu Checklist",
+  1637→      title: heroTitleFrom(b.title, "Lista"),
+  1638→      desc: items.length ? `${done} de ${items.length} completados` : undefined,
+  1639→      icon: "checklist",
+  1640→      accent: A.violet,
+  1641→      metrics: b.progress != null ? [{ icon: "task_alt", label: "Progreso", value: `${b.progress}%`, color: A.violet.color }] : undefined,
+  1642→    },
+  1643→    detail: items.length
+  1644→      ? {
+  1645→          title: b.title || "Checklist",
+  1646→          sections: [
+  1647→            {
+  1648→              kind: "rows",
+  1649→              icon: "checklist",
+  1650→              accent: A.violet,
+  1651→              title: "Tareas",
+  1652→              rows: items.map((it) => ({
+  1653→                icon: it.checked ? "check_box" : "check_box_outline_blank",
+  1654→                title: it.label,
+  1655→                badge: it.checked ? "Listo" : undefined,
+  1656→                badgeTone: it.checked ? "done" : undefined,
+  1657→              })),
+  1658→            },
+  1659→          ],
+  1660→        }
+  1661→      : undefined,
+  1662→    cta: items.length ? { label: "Ver checklist" } : undefined,
+  1663→  };
+  1664→}
+  1665→
+  1666→function outfit(b: Of<"outfit">): KoruPresentation {
+  1667→  const specs = b.specs ?? [];
+  1668→  return {
+  1669→    hero: {
+  1670→      kicker: "Tu Outfit",
+  1671→      title: "LOOK DEL DÍA",
+  1672→      desc: specs[0] ? `${specs[0].label}: ${specs[0].value}` : undefined,
+  1673→      icon: "checkroom",
+  1674→      accent: A.amber,
+  1675→      metrics: specs.slice(0, 3).map((s) => ({ icon: "styler", label: s.label, value: s.value, color: A.amber.color })),
+  1676→    },
+  1677→    detail: specs.length
+  1678→      ? {
+  1679→          title: "Outfit",
+  1680→          sections: [
+  1681→            {
+  1682→              kind: "tiles",
+  1683→              icon: "checkroom",
+  1684→              accent: A.amber,
+  1685→              title: "Detalles",
+  1686→              tiles: specs.map((s) => ({ label: `${s.emoji} ${s.label}`, value: s.value, color: A.amber.color })),
+  1687→            },
+  1688→          ],
+  1689→        }
+  1690→      : undefined,
+  1691→    cta: specs.length ? { label: b.buttonLabel || "Ver outfit" } : undefined,
+  1692→  };
+  1693→}
+  1694→
+  1695→function reviewScore(b: Of<"review_score">): KoruPresentation {
+  1696→  const items = b.items ?? [];
+  1697→  return {
+  1698→    hero: {
+  1699→      kicker: "Tu Review",
+  1700→      title: "PUNTAJES",
+  1701→      desc: items[0] ? `${items[0].label}: ${items[0].score}` : undefined,
+  1702→      icon: "reviews",
+  1703→      accent: A.violet,
+  1704→      metrics: items.slice(0, 3).map((it) => ({ icon: "star", label: it.label, value: it.score, color: it.color })),
+  1705→    },
+  1706→    detail: items.length
+  1707→      ? {
+  1708→          title: "Review",
+  1709→          sections: [
+  1710→            {
+  1711→              kind: "tiles",
+  1712→              icon: "reviews",
+  1713→              accent: A.violet,
+  1714→              title: "Puntajes",
+  1715→              tiles: items.map((it) => ({ label: `${it.emoji} ${it.label}`, value: it.score, color: it.color })),
+  1716→            },
+  1717→          ],
+  1718→        }
+  1719→      : undefined,
+  1720→    cta: items.length ? { label: b.buttonLabel || "Ver review" } : undefined,
+  1721→  };
+  1722→}
+  1723→
+  1724→function reviewDocument(b: Of<"review_document">): KoruPresentation {
+  1725→  return {
+  1726→    hero: {
+  1727→      kicker: "Veredicto",
+  1728→      title: heroTitleFrom(b.title, "Análisis"),
+  1729→      desc: b.body ? b.body.slice(0, 140) : undefined,
+  1730→      icon: "description",
+  1731→      accent: A.primary,
+  1732→    },
+  1733→    detail: b.body
+  1734→      ? { title: b.title || "Veredicto", sections: [{ kind: "text", icon: "description", accent: A.primary, title: "Análisis", body: b.body }] }
+  1735→      : undefined,
+  1736→    cta: b.body ? { label: "Leer veredicto" } : undefined,
+  1737→  };
+  1738→}
+  1739→
+  1740→function reviewQuote(b: Of<"review_quote">): KoruPresentation {
+  1741→  return {
+  1742→    hero: {
+  1743→      kicker: "Veredicto final",
+  1744→      title: heroTitleFrom(b.sourceName, "Opinión"),
+  1745→      desc: b.quote,
+  1746→      icon: "format_quote",
+  1747→      accent: A.purple,
+  1748→    },
+  1749→    detail: b.quote
+  1750→      ? {
+  1751→          title: b.sourceName || "Opinión",
+  1752→          subtitle: b.sourceType,
+  1753→          sections: [
+  1754→            { kind: "text", icon: "format_quote", accent: A.purple, title: "Cita", body: b.quote },
+  1755→            ...(b.tags?.length
+  1756→              ? [{ kind: "chips" as const, icon: "sell", accent: A.purple, title: "Etiquetas", chips: b.tags.map((t) => ({ label: t })) }]
+  1757→              : []),
+  1758→          ],
+  1759→        }
+  1760→      : undefined,
+  1761→    cta: b.quote ? { label: b.buttonLabel || "Ver opinión" } : undefined,
+  1762→  };
+  1763→}
+  1764→
+  1765→function planFallback(b: Of<"plan">): KoruPresentation {
+  1766→  const items = b.items ?? [];
+  1767→  // Mostrar los primeros 3 items del plan como métricas (chips con icono de hora)
+  1768→  // así el usuario ve QUÉ va a hacer sin abrir la card.
+  1769→  // El conteo total va en el desc.
+  1770→  const previewItems = items.slice(0, 3);
+  1771→  const hasMore = items.length > 3;
+  1772→  const metrics: HeroMetric[] = previewItems.map((it) => ({
+  1773→    icon: "schedule",
+  1774→    label: clean(it.time) ?? "Paso",
+  1775→    color: A.violet.color,
+  1776→  }));
+  1777→  if (hasMore) {
+  1778→    metrics.push({ icon: "more_horiz", label: `+${items.length - 3} más`, color: A.violet.color });
+  1779→  }
+  1780→  // Title: NO usar heroTitleFrom acá porque uppercasea todo ("Tu Día" → "DÍA").
+  1781→  // El plan es un caso especial: el título se muestra en title case natural.
+  1782→  const rawTitle = clean(b.title) ?? "";
+  1783→  const heroTitle = rawTitle && rawTitle.length > 1
+  1784→    ? rawTitle
+  1785→    : "Tu día";
+  1786→  return {
+  1787→    hero: {
+  1788→      kicker: "Tu Plan",
+  1789→      title: heroTitle,
+  1790→      desc: items.length > 0
+  1791→        ? `${items.length} paso${items.length > 1 ? "s" : ""} para hoy`
+  1792→        : b.note,
+  1793→      icon: "checklist_rtl",
+  1794→      accent: A.violet,
+  1795→      art: "/stitch/plan-illustration.png",
+  1796→      metrics: metrics.length > 0 ? metrics : undefined,
+  1797→    },
+  1798→    detail: items.length
+  1799→      ? {
+  1800→          title: b.title || "Tu Plan",
+  1801→          sections: [
+  1802→            {
+  1803→              kind: "timeline",
+  1804→              icon: "route",
+  1805→              accent: A.violet,
+  1806→              title: "Pasos",
+  1807→              steps: items.map((it) => ({ title: it.title, detail: [it.time, it.rationale].filter(Boolean).join(" · ") })),
+  1808→            },
+  1809→          ],
+  1810→        }
+  1811→      : undefined,
+  1812→    cta: items.length ? { label: "Ver plan completo" } : undefined,
+  1813→  };
+  1814→}
+  1815→
+  1816→// ---- sección de fuentes reutilizable ----------------------------------------
+  1817→
+  1818→function sourcesSection(sources: AssistantSource[]): DetailSection {
+  1819→  return {
+  1820→    kind: "sources",
+  1821→    icon: "menu_book",
+  1822→    accent: A.purple,
+  1823→    title: "Fuentes",
+  1824→    subtitle: "CONTRASTADAS",
+  1825→    sources: sourcesToRefs(sources),
+  1826→  };
+  1827→}
+  1828→
+  1829→// ---- 🔴 FIX P2.3: Nuevos renderers para recipe, movie_review, book_review ----
+  1830→
+  1831→function recipeBlock(b: Of<"recipe">): KoruPresentation {
+  1832→  const ingredients = b.ingredients ?? [];
+  1833→  const steps = b.steps ?? [];
+  1834→  const subtitle = [b.category, b.area].filter(Boolean).join(" · ") || undefined;
+  1835→  const sections: DetailSection[] = [];
+  1836→
+  1837→  if (ingredients.length > 0) {
+  1838→    sections.push({
+  1839→      kind: "tiles",
+  1840→      icon: "kitchen",
+  1841→      accent: A.emerald,
+  1842→      title: "Ingredientes",
+  1843→      subtitle: `${ingredients.length} items`,
+  1844→      tiles: ingredients.map((ing) => ({
+  1845→        label: ing.ingredient,
+  1846→        value: ing.measure || "",
+  1847→        color: A.emerald.color,
+  1848→      })),
+  1849→    });
+  1850→  }
+  1851→
+  1852→  if (steps.length > 0) {
+  1853→    sections.push({
+  1854→      kind: "timeline",
+  1855→      icon: "format_list_numbered",
+  1856→      accent: A.primary,
+  1857→      title: "Pasos",
+  1858→      subtitle: `${steps.length} pasos`,
+  1859→      steps: steps.map((s) => ({
+  1860→        title: `Paso ${s.step}`,
+  1861→        detail: s.text,
+  1862→      })),
+  1863→    });
+  1864→  } else if (b.instructions) {
+  1865→    sections.push({
+  1866→      kind: "text",
+  1867→      icon: "description",
+  1868→      accent: A.primary,
+  1869→      title: "Preparación",
+  1870→      body: b.instructions,
+  1871→    });
+  1872→  }
+  1873→
+  1874→  if (b.tips && b.tips.length > 0) {
+  1875→    sections.push({
+  1876→      kind: "chips",
+  1877→      icon: "lightbulb",
+  1878→      accent: A.amber,
+  1879→      title: "Tips",
+  1880→      chips: b.tips.map((t) => ({ label: t })),
+  1881→    });
+  1882→  }
+  1883→
+  1884→  if (b.source) {
+  1885→    sections.push({
+  1886→      kind: "sources",
+  1887→      icon: "link",
+  1888→      accent: A.purple,
+  1889→      title: "Fuente",
+  1890→      sources: [{ title: b.source.title, url: b.source.url, domain: b.source.domain }],
+  1891→    });
+  1892→  }
+  1893→
+  1894→  return {
+  1895→    hero: {
+  1896→      kicker: "Tu Receta",
+  1897→      title: heroTitleFrom(b.name ?? b.title, "Receta"),
+  1898→      desc: b.description ?? subtitle,
+  1899→      art: b.image,
+  1900→      icon: "restaurant",
+  1901→      accent: A.emerald,
+  1902→      metrics: [
+  1903→        ...(ingredients.length ? [{ icon: "kitchen", label: "Ingredientes", value: String(ingredients.length), color: A.emerald.color }] : []),
+  1904→        ...(b.prepTime ? [{ icon: "schedule", label: "Preparación", value: b.prepTime, color: A.primary.color }] : []),
+  1905→        ...(b.cookTime ? [{ icon: "local_fire_department", label: "Cocción", value: b.cookTime, color: A.amber.color }] : []),
+  1906→        ...(b.servings ? [{ icon: "groups", label: "Porciones", value: String(b.servings), color: A.purple.color }] : []),
+  1907→      ],
+  1908→    },
+  1909→    detail: sections.length
+  1910→      ? {
+  1911→          title: b.name ?? b.title ?? "Receta",
+  1912→          subtitle,
+  1913→          sections,
+  1914→        }
+  1915→      : undefined,
+  1916→    cta: b.videoUrl ? { label: "Ver video" } : undefined,
+  1917→  };
+  1918→}
+  1919→
+  1920→function movieReviewBlock(b: Of<"movie_review">): KoruPresentation {
+  1921→  const cast = b.cast ?? [];
+  1922→  const genres = b.genres ?? [];
+  1923→  const sections: DetailSection[] = [];
+  1924→
+  1925→  if (b.overview) {
+  1926→    sections.push({
+  1927→      kind: "text",
+  1928→      icon: "description",
+  1929→      accent: A.primary,
+  1930→      title: "Sinopsis",
+  1931→      body: b.overview,
+  1932→    });
+  1933→  }
+  1934→
+  1935→  const tiles: DetailTile[] = [];
+  1936→  if (b.director) tiles.push({ label: "Director", value: b.director, color: A.primary.color });
+  1937→  if (b.runtime) tiles.push({ label: "Duración", value: b.runtime, color: A.primary.color });
+  1938→  if (b.releaseDate) tiles.push({ label: "Estreno", value: b.releaseDate, color: A.primary.color });
+  1939→  if (genres.length > 0) tiles.push({ label: "Géneros", value: genres.join(", "), color: A.emerald.color });
+  1940→  if (cast.length > 0) tiles.push({ label: "Reparto", value: cast.join(", "), color: A.purple.color });
+  1941→  if (tiles.length > 0) {
+  1942→    sections.push({
+  1943→      kind: "tiles",
+  1944→      icon: "movie",
+  1945→      accent: A.primary,
+  1946→      title: "Detalles",
+  1947→      tiles,
+  1948→    });
+  1949→  }
+  1950→
+  1951→  if (b.sources && b.sources.length > 0) {
+  1952→    sections.push({
+  1953→      kind: "sources",
+  1954→      icon: "menu_book",
+  1955→      accent: A.purple,
+  1956→      title: "Fuentes",
+  1957→      subtitle: "CONTRASTADAS",
+  1958→      sources: sourcesToRefs(b.sources),
+  1959→    });
+  1960→  }
+  1961→
+  1962→  if (b.whereToWatch && b.whereToWatch.length > 0) {
+  1963→    sections.push({
+  1964→      kind: "chips",
+  1965→      icon: "play_circle",
+  1966→      accent: A.emerald,
+  1967→      title: "Dónde verla",
+  1968→      chips: b.whereToWatch.map((w) => ({ label: w })),
+  1969→    });
+  1970→  }
+  1971→
+  1972→  const heroMetrics: HeroMetric[] = [];
+  1973→  if (b.rating) heroMetrics.push({ icon: "star", label: "Rating", value: `${b.rating}/10`, color: A.amber.color });
+  1974→  if (b.ratingCount) heroMetrics.push({ icon: "people", label: "Votos", value: String(b.ratingCount), color: A.primary.color });
+  1975→  if (b.runtime) heroMetrics.push({ icon: "schedule", label: "Duración", value: b.runtime, color: A.purple.color });
+  1976→
+  1977→  return {
+  1978→    hero: {
+  1979→      kicker: "Tu Película",
+  1980→      title: heroTitleFrom(b.title, "Película"),
+  1981→      desc: b.overview ? b.overview.slice(0, 200) : undefined,
+  1982→      art: b.poster,
+  1983→      icon: "movie",
+  1984→      accent: A.primary,
+  1985→      metrics: heroMetrics,
+  1986→    },
+  1987→    detail: sections.length
+  1988→      ? {
+  1989→          title: b.title ?? "Película",
+  1990→          subtitle: [b.releaseDate, b.runtime].filter(Boolean).join(" · ") || undefined,
+  1991→          sections,
+  1992→        }
+  1993→      : undefined,
+  1994→    cta: b.trailerUrl ? { label: "Ver trailer" } : undefined,
+  1995→  };
+  1996→}
+  1997→
+  1998→function bookReviewBlock(b: Of<"book_review">): KoruPresentation {
+  1999→  const sections: DetailSection[] = [];
+  2000→
+
+[showing lines 1-2000 of 2063; use offset=2001 with limit to continue reading]

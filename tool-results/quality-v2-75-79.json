@@ -1,0 +1,74 @@
+[
+  {
+    "id": "s08",
+    "ok": true,
+    "elapsed": 5251,
+    "input": "el barsa cuanto gano",
+    "reply": "No pude procesar tu mensaje. ¿Me lo repetís de otra forma?",
+    "quality": 6,
+    "issues": [
+      "GENERIC_ERROR"
+    ],
+    "tools": [],
+    "blocks": [],
+    "memories": 0,
+    "commitments": 0
+  },
+  {
+    "id": "k01",
+    "ok": true,
+    "elapsed": 5575,
+    "input": "q es la relatividad",
+    "reply": "La relatividad es la teoría de Einstein que cambió cómo entendemos el espacio, el tiempo y la gravedad. Te dejé el resumen en la tarjeta.",
+    "quality": 10,
+    "issues": [],
+    "tools": [
+      "web_search"
+    ],
+    "blocks": [
+      "research_sources"
+    ],
+    "memories": 0,
+    "commitments": 0
+  },
+  {
+    "id": "k02",
+    "ok": true,
+    "elapsed": 183,
+    "input": "quien era tesla",
+    "reply": "Nikola Tesla fue un inventor, ingeniero y futurólogo serbio-croata nacionalizado estadounidense, cuya visión y descubrimientos sentaron las bases de la civilización tecnológica moderna. Te dejé el detalle en la tarjeta.",
+    "quality": 10,
+    "issues": [],
+    "tools": [
+      "web_search"
+    ],
+    "blocks": [
+      "research_sources"
+    ],
+    "memories": 0,
+    "commitments": 0
+  },
+  {
+    "id": "k03",
+    "ok": false,
+    "error": "The operation was aborted due to timeout",
+    "input": "como funcionan los agujeros negros"
+  },
+  {
+    "id": "k04",
+    "ok": true,
+    "elapsed": 5204,
+    "input": "q es el blockchain",
+    "reply": "Bitcoin está en ? USD. Subió 0% Te dejé el detalle en la tarjeta.",
+    "quality": 10,
+    "issues": [],
+    "tools": [
+      "crypto_price"
+    ],
+    "blocks": [
+      "crypto_portfolio"
+    ],
+    "memories": 0,
+    "commitments": 0
+  }
+]

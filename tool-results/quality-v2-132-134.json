@@ -1,0 +1,43 @@
+[
+  {
+    "id": "f09",
+    "ok": true,
+    "elapsed": 5265,
+    "input": "q groso",
+    "reply": "¡Gracias! 😊 ¿En qué te ayudo ahora?",
+    "quality": 10,
+    "issues": [],
+    "tools": [],
+    "blocks": [],
+    "memories": 0,
+    "commitments": 0
+  },
+  {
+    "id": "f10",
+    "ok": true,
+    "elapsed": 4268,
+    "input": "no entendi",
+    "reply": "Imaginá un cuaderno que **todos** pueden ver y escribir, pero **nadie puede borrar ni cambiar lo que ya está escrito**. Cada página es un \"bloque\". Cuando se llena, se cierra con llave (criptografía) y se engancha a la anterior. Así se forma la \"cadena\" (chain). **Claves:** - **Descentralizado**: no hay un dueño ni un servidor central. El cuaderno lo tienen miles de computadoras a la vez. - **Inmutable**: si alguien intenta cambiar una página vieja, la llave no cierra y todos se dan cuenta. - **Transparente**: cualquiera puede auditar el historial completo. **Para qué se usa hoy:** criptomonedas (Bitcoin, Ethereum), contratos que se ejecutan solos (smart contracts), trazabilidad de suministros, identidad digital, votaciones, etc. ¿Querés que profundice en algún caso de uso o en cómo funciona la \"llave\" (hash/consenso)?",
+    "quality": 10,
+    "issues": [],
+    "tools": [],
+    "blocks": [],
+    "memories": 0,
+    "commitments": 0
+  },
+  {
+    "id": "f11",
+    "ok": true,
+    "elapsed": 5181,
+    "input": "decime otra",
+    "reply": "No pude procesar tu mensaje. ¿Me lo repetís de otra forma?",
+    "quality": 6,
+    "issues": [
+      "GENERIC_ERROR"
+    ],
+    "tools": [],
+    "blocks": [],
+    "memories": 0,
+    "commitments": 0
+  }
+]

@@ -1,0 +1,49 @@
+[
+  {
+    "id": "rt01",
+    "ok": true,
+    "elapsed": 5276,
+    "input": "donde como bien cerca",
+    "reply": "Te dejé en la tarjeta una selección de sitios que marcan tendencia en el centro de Madrid: Desborre (cocina creativa junto a Ópera), Chuka Ramen Bar (Echegaray), y los nuevos que destacan en Michelin como Bascoat. También hay lista de Time Out y El País con filtros anti-trampa turística.",
+    "quality": 10,
+    "issues": [],
+    "tools": [
+      "web_search"
+    ],
+    "blocks": [
+      "deliverable"
+    ],
+    "memories": 0,
+    "commitments": 0
+  },
+  {
+    "id": "rt02",
+    "ok": true,
+    "elapsed": 5187,
+    "input": "tengo ganas de mexicano",
+    "reply": "¿En qué ciudad o barrio estás? Así te busco opciones mexicanas cerca.",
+    "quality": 10,
+    "issues": [],
+    "tools": [],
+    "blocks": [],
+    "memories": 0,
+    "commitments": 0
+  },
+  {
+    "id": "rt03",
+    "ok": true,
+    "elapsed": 5185,
+    "input": "un buen lugar para cenar",
+    "reply": "Te dejé unas opciones en la tarjeta, pero son todas de Nueva York. ¿En qué ciudad estás? Así te busco algo cerca.",
+    "quality": 10,
+    "issues": [],
+    "tools": [
+      "shopping_compare"
+    ],
+    "blocks": [
+      "restaurant_synthesis"
+    ],
+    "memories": 0,
+    "commitments": 0
+  }
+]

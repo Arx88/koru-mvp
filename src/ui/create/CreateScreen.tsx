@@ -10,7 +10,7 @@ function Mat({ children, className = "" }: { children: string; className?: strin
   return <span className={`material-symbols-outlined ${className}`}>{children}</span>;
 }
 
-type Template = "nota" | "lista" | "gasto" | "enlace";
+type Template = "nota" | "lista" | "gasto" | "enlace" | "receta";
 
 type TemplateDef = {
   id: Template;
@@ -26,6 +26,7 @@ const TEMPLATES: TemplateDef[] = [
   { id: "lista", label: "Lista", icon: "checklist", desc: "Lista de tareas o compras", collection: "Listas", accent: "#2d6a4f" },
   { id: "gasto", label: "Gasto", icon: "payments", desc: "Registrá un gasto", collection: "Gastos", accent: "#f59e0b" },
   { id: "enlace", label: "Enlace", icon: "link", desc: "Guardá un link para después", collection: "Enlaces", accent: "#06b6d4" },
+  { id: "receta", label: "Receta", icon: "restaurant", desc: "Creá tu propia receta", collection: "Recetas", accent: "#ec4899" },
 ];
 
 export function CreateScreen({ onClose }: { onClose: () => void }) {
@@ -41,9 +42,16 @@ export function CreateScreen({ onClose }: { onClose: () => void }) {
   const [listItems, setListItems] = useState<string[]>([""]);
   const [collection, setCollection] = useState("");
   const [saving, setSaving] = useState(false);
+  // 🔴 Receta: ingredientes + pasos + tiempo
+  const [ingredients, setIngredients] = useState<string[]>([""]);
+  const [steps, setSteps] = useState<string[]>([""]);
+  const [prepTime, setPrepTime] = useState("");
+  const [cookTime, setCookTime] = useState("");
+  const [servings, setServings] = useState("");
 
   function reset() {
     setTitle(""); setNotes(""); setAmount(""); setUrl(""); setListItems([""]); setCollection("");
+    setIngredients([""]); setSteps([""]); setPrepTime(""); setCookTime(""); setServings("");
   }
 
   async function handleSave() {
@@ -104,6 +112,31 @@ export function CreateScreen({ onClose }: { onClose: () => void }) {
       collection: finalCollection,
       notes: notes.trim() || undefined,
       kind: "nota",
+    });
+    setSaving(false);
+    reset();
+    setSelected(null);
+    return;
+  }
+
+  // 🔴 Receta handler separado por la complejidad del form
+  async function handleSaveReceta() {
+    if (!selected || selected !== "receta") return;
+    const tpl = TEMPLATES.find(t => t.id === selected)!;
+    const finalCollection = collection.trim() || tpl.collection;
+    const ing = ingredients.filter(i => i.trim());
+    const stp = steps.filter(s => s.trim());
+    const recetaText = [
+      prepTime || cookTime || servings ? `⏱ ${[prepTime && `Prep: ${prepTime}min`, cookTime && `Cocción: ${cookTime}min`, servings && `Porciones: ${servings}`].filter(Boolean).join(" · ")}` : null,
+      ing.length > 0 ? `Ingredientes:\n${ing.map(i => `• ${i}`).join("\n")}` : null,
+      stp.length > 0 ? `Pasos:\n${stp.map((s, i) => `${i + 1}. ${s}`).join("\n")}` : null,
+    ].filter(Boolean).join("\n\n");
+    setSaving(true);
+    await createRecord({
+      title: title.trim() || "Receta sin nombre",
+      collection: finalCollection,
+      notes: recetaText,
+      kind: "receta",
     });
     setSaving(false);
     reset();
@@ -252,6 +285,76 @@ export function CreateScreen({ onClose }: { onClose: () => void }) {
               </label>
             )}
 
+            {/* 🔴 Receta: ingredientes + pasos + tiempos */}
+            {selected === "receta" && (
+              <>
+                <label className="koru-create-field koru-create-field-row">
+                  <div>
+                    <span className="koru-create-field-label">Prep (min)</span>
+                    <input type="number" inputMode="numeric" value={prepTime} onChange={(e) => setPrepTime(e.target.value)} placeholder="15" />
+                  </div>
+                  <div>
+                    <span className="koru-create-field-label">Cocción (min)</span>
+                    <input type="number" inputMode="numeric" value={cookTime} onChange={(e) => setCookTime(e.target.value)} placeholder="30" />
+                  </div>
+                  <div>
+                    <span className="koru-create-field-label">Porciones</span>
+                    <input type="number" inputMode="numeric" value={servings} onChange={(e) => setServings(e.target.value)} placeholder="4" />
+                  </div>
+                </label>
+                <div className="koru-create-field">
+                  <span className="koru-create-field-label">Ingredientes</span>
+                  <div className="koru-create-list-items">
+                    {ingredients.map((item, i) => (
+                      <div key={i} className="koru-create-list-item">
+                        <span className="koru-create-list-bullet">•</span>
+                        <input
+                          type="text"
+                          value={item}
+                          onChange={(e) => { const next = [...ingredients]; next[i] = e.target.value; setIngredients(next); }}
+                          onKeyDown={(e) => { if (e.key === "Enter" && i === ingredients.length - 1 && item.trim()) setIngredients([...ingredients, ""]); }}
+                          placeholder={`Ingrediente ${i + 1}`}
+                        />
+                        {ingredients.length > 1 && (
+                          <button type="button" aria-label="Quitar" className="koru-create-list-remove" onClick={() => setIngredients(ingredients.filter((_, idx) => idx !== i))}>
+                            <Mat>remove_circle</Mat>
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <button type="button" className="koru-create-list-add" onClick={() => setIngredients([...ingredients, ""])}>
+                      <Mat>add</Mat> Agregar ingrediente
+                    </button>
+                  </div>
+                </div>
+                <div className="koru-create-field">
+                  <span className="koru-create-field-label">Pasos</span>
+                  <div className="koru-create-list-items">
+                    {steps.map((step, i) => (
+                      <div key={i} className="koru-create-list-item">
+                        <span className="koru-create-list-bullet">{i + 1}.</span>
+                        <input
+                          type="text"
+                          value={step}
+                          onChange={(e) => { const next = [...steps]; next[i] = e.target.value; setSteps(next); }}
+                          onKeyDown={(e) => { if (e.key === "Enter" && i === steps.length - 1 && step.trim()) setSteps([...steps, ""]); }}
+                          placeholder={`Paso ${i + 1}`}
+                        />
+                        {steps.length > 1 && (
+                          <button type="button" aria-label="Quitar" className="koru-create-list-remove" onClick={() => setSteps(steps.filter((_, idx) => idx !== i))}>
+                            <Mat>remove_circle</Mat>
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <button type="button" className="koru-create-list-add" onClick={() => setSteps([...steps, ""])}>
+                      <Mat>add</Mat> Agregar paso
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+
             <label className="koru-create-field">
               <span className="koru-create-field-label">Carpeta</span>
               <input
@@ -273,7 +376,7 @@ export function CreateScreen({ onClose }: { onClose: () => void }) {
               <button
                 type="button"
                 className="koru-create-action-save"
-                onClick={handleSave}
+                onClick={selected === "receta" ? handleSaveReceta : handleSave}
                 disabled={saving || (!title.trim() && selected !== "gasto")}
                 style={{ background: TEMPLATES.find(t => t.id === selected)?.accent }}
               >

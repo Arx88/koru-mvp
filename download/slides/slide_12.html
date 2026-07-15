@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Sugerencias de temas en el chat — Koru UX Audit v3</title>
+  <link rel="stylesheet" href="global.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet">
+  <style>
+    .slide { font-family: var(--font-body); }
+    .bullet-row { display: flex; align-items: flex-start; gap: 10px; }
+    .bullet-row .material-symbols-outlined { color: var(--accent); font-size: 18px; line-height: 1.4; flex-shrink: 0; }
+    .pill-glass {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 12px; border-radius: 999px;
+      font-size: 12px; font-weight: 600;
+      color: var(--text);
+      background: rgba(131,99,249,0.18);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(131,99,249,0.30);
+    }
+    .pill-glass .material-symbols-outlined { font-size: 13px; color: var(--accent); }
+    .page-tag {
+      position: absolute; bottom: 28px; right: 36px;
+      font-size: 11px; color: var(--text-muted); letter-spacing: 0.12em;
+      text-transform: uppercase; font-weight: 600;
+    }
+    .corner-mark {
+      position: absolute; top: 28px; right: 36px;
+      font-size: 11px; color: var(--text-muted); letter-spacing: 0.12em;
+      text-transform: uppercase; font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="slide" style="padding: 56px 72px;">
+    <!-- decorative glows -->
+    <div class="glow-blob" data-decor aria-hidden="true" style="width: 360px; height: 360px; background: rgba(110,231,183,0.14); top: -120px; right: -80px;"></div>
+    <div class="glow-blob" data-decor aria-hidden="true" style="width: 280px; height: 280px; background: rgba(131,99,249,0.18); bottom: -100px; left: -80px;"></div>
+
+    <!-- corner mark -->
+    <div class="corner-mark">Koru · UX Audit v3</div>
+
+    <!-- Header -->
+    <header class="relative z-10 flex flex-col gap-3">
+      <span class="badge-ok" style="align-self: flex-start;">
+        <span class="material-symbols-outlined" style="font-size: 13px;">history</span>
+        Decisión 03
+      </span>
+      <h1 style="color: var(--text); font-size: 32px; font-weight: 800; line-height: 1.1; letter-spacing: -0.015em;">
+        Sugerencias de temas relacionados
+      </h1>
+      <p style="color: var(--text-soft); font-size: 14px; line-height: 1.55; max-width: 580px;">
+        Pills glassmorphism arriba del chat muestran temas de los que ya hablaron. No son intrusivas — son semi-transparentes con blur. Tap en una pill = vuelve a ese contexto en el historial. Solo aparecen si hay charla previa. Si es la 1ra vez, se ven los chips de sugerencias (onboarding).
+      </p>
+    </header>
+
+    <!-- Body split -->
+    <div class="relative z-10 flex gap-10 mt-6" style="height: 470px;">
+      <!-- Left: bullets + visual pills demo -->
+      <div class="flex flex-col justify-between" style="width: 52%;">
+        <div class="flex flex-col gap-3">
+          <div class="bullet-row">
+            <span class="material-symbols-outlined">check_circle</span>
+            <div>
+              <div style="color: var(--text); font-size: 13.5px; font-weight: 600;">Pills glassmorphism (blur + semi-transparente)</div>
+              <div style="color: var(--text-muted); font-size: 11px; margin-top: 2px;">Mismo lenguaje visual del back button del chat</div>
+            </div>
+          </div>
+          <div class="bullet-row">
+            <span class="material-symbols-outlined">check_circle</span>
+            <div>
+              <div style="color: var(--text); font-size: 13.5px; font-weight: 600;">Muestran temas: España, Madrid, Café $2.000</div>
+              <div style="color: var(--text-muted); font-size: 11px; margin-top: 2px;">Extraídos de los turnos anteriores de la charla</div>
+            </div>
+          </div>
+          <div class="bullet-row">
+            <span class="material-symbols-outlined">check_circle</span>
+            <div>
+              <div style="color: var(--text); font-size: 13.5px; font-weight: 600;">Tap = abre ese turno en Historial</div>
+              <div style="color: var(--text-muted); font-size: 11px; margin-top: 2px;">Vuelve al contexto sin tener que buscarlo</div>
+            </div>
+          </div>
+          <div class="bullet-row">
+            <span class="material-symbols-outlined">check_circle</span>
+            <div>
+              <div style="color: var(--text); font-size: 13.5px; font-weight: 600;">Solo aparecen si hay charla previa</div>
+              <div style="color: var(--text-muted); font-size: 11px; margin-top: 2px;">1ra vez: chips de sugerencias (onboarding)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- visual pill demo -->
+        <div class="mt-5 p-4 rounded-2xl" style="background: rgba(131,99,249,0.06); border: 1px dashed rgba(131,99,249,0.25);">
+          <div style="color: var(--text-muted); font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 10px;">Vista previa · pills</div>
+          <div class="flex flex-wrap gap-2">
+            <span class="pill-glass"><span class="material-symbols-outlined">place</span>España</span>
+            <span class="pill-glass"><span class="material-symbols-outlined">location_city</span>Madrid</span>
+            <span class="pill-glass"><span class="material-symbols-outlined">local_cafe</span>Café $2.000</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: phone -->
+      <div class="flex flex-col items-center justify-start" style="width: 48%;">
+        <div class="phone-frame" style="height: 460px;">
+          <img src="MOCKUP-suggestions.png" alt="Sugerencias de temas mockup">
+        </div>
+        <p style="color: var(--text-muted); font-size: 11px; text-align: center; margin-top: 12px;">
+          Pills de temas anteriores arriba del chat
+        </p>
+      </div>
+    </div>
+
+    <!-- page tag -->
+    <div class="page-tag">12 / 15</div>
+  </div>
+</body>
+</html>

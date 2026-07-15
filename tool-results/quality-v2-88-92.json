@@ -1,0 +1,75 @@
+[
+  {
+    "id": "rt01",
+    "ok": true,
+    "elapsed": 5271,
+    "input": "donde como bien cerca",
+    "reply": "Te dejé una selección de sitios para comer bien en el centro de Madrid en la tarjeta. Hay desde clásicos de confianza como Casa Ciriaco hasta novedades que marcan tendencia como Bascoat o Chuka Ramen Bar.",
+    "quality": 10,
+    "issues": [],
+    "tools": [
+      "web_search"
+    ],
+    "blocks": [
+      "deliverable"
+    ],
+    "memories": 0,
+    "commitments": 0
+  },
+  {
+    "id": "rt02",
+    "ok": true,
+    "elapsed": 5181,
+    "input": "tengo ganas de mexicano",
+    "reply": "¿En qué ciudad o zona estás? Así te busco opciones mexicanas cerca.",
+    "quality": 10,
+    "issues": [],
+    "tools": [],
+    "blocks": [],
+    "memories": 0,
+    "commitments": 0
+  },
+  {
+    "id": "rt03",
+    "ok": true,
+    "elapsed": 5534,
+    "input": "un buen lugar para cenar",
+    "reply": "¿En qué ciudad o barrio estás? Así te paso opciones que valgan la pena.",
+    "quality": 10,
+    "issues": [],
+    "tools": [],
+    "blocks": [],
+    "memories": 0,
+    "commitments": 0
+  },
+  {
+    "id": "rt04",
+    "ok": true,
+    "elapsed": 5194,
+    "input": "sushi en madrid",
+    "reply": "Madrid tiene una escena de sushi brutal. Te dejé el detalle en la tarjeta.",
+    "quality": 10,
+    "issues": [],
+    "tools": [
+      "shopping_compare"
+    ],
+    "blocks": [
+      "restaurant_synthesis"
+    ],
+    "memories": 0,
+    "commitments": 0
+  },
+  {
+    "id": "rt05",
+    "ok": true,
+    "elapsed": 5190,
+    "input": "donde puedo comer tacos",
+    "reply": "Para recomendarte lugares de tacos necesito saber en qué ciudad o barrio estás. ¿Dónde estás ahora?",
+    "quality": 10,
+    "issues": [],
+    "tools": [],
+    "blocks": [],
+    "memories": 0,
+    "commitments": 0
+  }
+]

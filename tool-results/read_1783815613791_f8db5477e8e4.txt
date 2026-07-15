@@ -1,0 +1,645 @@
+     1→<!DOCTYPE html>
+     2→<html lang="es">
+     3→<head>
+     4→<meta charset="utf-8">
+     5→<meta name="viewport" content="width=device-width, initial-scale=1.0">
+     6→<title>Koru — Flujo completo: "Quiero un informe sobre Age of Empires 2"</title>
+     7→<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+     8→<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+     9→<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    10→<style>
+    11→  body { font-family: 'Plus Jakarta Sans', sans-serif; background: #14112b; }
+    12→  .phone {
+    13→    width: 430px; height: 932px; border-radius: 44px; overflow: hidden;
+    14→    position: relative; flex-shrink: 0;
+    15→    box-shadow: 0 30px 80px rgba(0,0,0,.55), 0 0 0 10px #0c0a1e;
+    16→  }
+    17→  .chat-bubble-radius { border-radius: 24px 24px 24px 0; }
+    18→  .user-bubble-radius { border-radius: 28px 28px 0 28px; }
+    19→  .panel-radius { border-radius: 40px 40px 0 0; }
+    20→  .bg-cover-top { background-size: cover; background-position: center top; background-repeat: no-repeat; }
+    21→
+    22→  /* Hint de actividad: la busqueda web YA NO es una card, es un susurro */
+    23→  .activity-dot { width: 8px; height: 8px; border-radius: 99px; background: #c9b8ff; animation: pulse 1.4s ease-in-out infinite; }
+    24→  @keyframes pulse { 0%,100% { opacity: .35; transform: scale(.85);} 50% { opacity: 1; transform: scale(1);} }
+    25→
+    26→  /* DNA de la carta unificada (identico a Plan Entregado de Stitch) */
+    27→  .koru-sheet { background: linear-gradient(180deg, #ffffff 0%, #F3F0F8 100%); }
+    28→  .koru-kicker { color: #8363F9; font-weight: 600; font-size: 12px; }
+    29→  .koru-title  { color: #382B8C; font-weight: 800; font-size: 24px; letter-spacing: -.01em; }
+    30→  .koru-desc   { color: #382B8C; font-size: 14px; line-height: 1.45; }
+    31→  .koru-cta {
+    32→    width: 100%; background: #8363F9; color: #fff; padding: 14px 0; border-radius: 16px;
+    33→    font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;
+    34→    box-shadow: 0 10px 25px rgba(131, 99, 249, .35);
+    35→  }
+    36→
+    37→  /* Modulos del informe (mismo lenguaje que plan-roadmap: magical-card) */
+    38→  .magical-card {
+    39→    background: rgba(255,255,255,.72); backdrop-filter: blur(16px); border-radius: 2rem; padding: 22px;
+    40→    box-shadow: 0 8px 32px rgba(130,39,207,.08); border: 1px solid rgba(255,255,255,.85);
+    41→    position: relative; overflow: hidden;
+    42→  }
+    43→  .magical-card::before {
+    44→    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    45→    background: linear-gradient(90deg, transparent, rgba(255,255,255,.8), transparent);
+    46→  }
+    47→  .mod-resumen  { --mc:#7c3aed; --mb:rgba(124,58,237,.10); }
+    48→  .mod-historia { --mc:#d97706; --mb:rgba(217,119,6,.10); }
+    49→  .mod-civs     { --mc:#059669; --mb:rgba(5,150,105,.10); }
+    50→  .mod-meta     { --mc:#4648d4; --mb:rgba(70,72,212,.10); }
+    51→  .mod-fuentes  { --mc:#312e81; --mb:rgba(49,46,129,.10); }
+    52→  .mod-icon { width: 48px; height: 48px; border-radius: 16px; background: var(--mb); color: var(--mc);
+    53→              display:flex; align-items:center; justify-content:center; box-shadow: inset 0 2px 6px rgba(0,0,0,.04); }
+    54→  .mod-title { color: var(--mc); font-weight: 800; font-size: 19px; }
+    55→  .mod-sub { color:#464554; font-size: 11px; font-weight: 700; letter-spacing:.08em; text-transform: uppercase; }
+    56→
+    57→  .blob1 { position:absolute; top:-50px; right:-50px; width:300px; height:300px; border-radius:50%;
+    58→           background: radial-gradient(circle, rgba(221,183,255,.8) 0%, rgba(221,183,255,0) 70%); filter: blur(20px); }
+    59→  .blob2 { position:absolute; top:220px; left:-100px; width:250px; height:250px; border-radius:50%;
+    60→           background: radial-gradient(circle, rgba(111,251,190,.4) 0%, rgba(111,251,190,0) 70%); filter: blur(20px); }
+    61→
+    62→  .caption { max-width: 430px; }
+    63→  .caption h3 { color: #e9ddfd; font-weight: 800; font-size: 17px; }
+    64→  .caption p  { color: #a99cd6; font-size: 13px; line-height: 1.55; }
+    65→  .caption .ok  { color: #6ee7b7; font-weight: 700; }
+    66→  .caption .no  { color: #fda4af; font-weight: 700; }
+    67→  .stepnum { width: 34px; height: 34px; border-radius: 99px; background: #8363F9; color: white;
+    68→             display: inline-flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0; }
+    69→  .scrollcol { overflow-y: auto; scrollbar-width: none; }
+    70→  .scrollcol::-webkit-scrollbar { display: none; }
+    71→</style>
+    72→</head>
+    73→<body class="min-h-screen">
+    74→
+    75→<!-- Encabezado explicativo -->
+    76→<header class="px-10 pt-10 pb-6 max-w-[1400px]">
+    77→  <p class="text-[#8363F9] font-bold text-xs uppercase tracking-[.2em] mb-2">Demo de flujo — sin código de la app, solo la visión</p>
+    78→  <h1 class="text-white font-extrabold text-3xl mb-3">"Quiero un informe sobre Age of Empires 2" — de principio a fin</h1>
+    79→  <p class="text-[#a99cd6] text-[15px] max-w-[900px] leading-relaxed">
+    80→    Cinco pantallas, <b class="text-white">un solo lenguaje visual</b> (el de "Creando Plan / Plan Entregado" de Stitch).
+    81→    La búsqueda web ya no es una card azul: es un susurro de actividad. El resultado no son 45 cards distintas:
+    82→    es siempre <b class="text-white">la misma hoja</b> (kicker → título → contenido real → CTA) y un detalle con módulos "magical-card".
+    83→    Desplazate horizontalmente →
+    84→  </p>
+    85→</header>
+    86→
+    87→<main class="flex gap-14 items-start px-10 pb-16 overflow-x-auto">
+    88→
+    89→<!-- ============================================================= -->
+    90→<!-- PANTALLA 1 — Interacción inmediata: el pedido                 -->
+    91→<!-- ============================================================= -->
+    92→<section class="flex flex-col gap-5">
+    93→  <div class="caption flex gap-3 items-start">
+    94→    <span class="stepnum">1</span>
+    95→    <div>
+    96→      <h3>El pedido (interacción inmediata)</h3>
+    97→      <p>Koru responde al instante. Como es un pedido de investigación real, se activa la búsqueda —
+    98→      pero <span class="no">NO como card</span>: solo un <span class="ok">susurro de actividad</span> bajo la burbuja.
+    99→      "Hola" o "gracias" jamás dispararían esto.</p>
+   100→    </div>
+   101→  </div>
+   102→  <div class="phone" style="background-color:#453f6a;">
+   103→    <img class="absolute inset-0 w-full h-full object-cover" alt=""
+   104→         src="https://lh3.googleusercontent.com/aida-public/AB6AXuCpdttfAKHlG2GKeCPr8YPU0uR47dzlvdioHw4HYmBUOLTbhEDjgtEpBanqizbPwsOcCy1P4WrJSnY0Sc0idKTSIpTKh5AOt_OOPpbCSPl6MC7LaboBkcSWpn4osJJAI0z9iZh4GGlRxcUErO6G0lG0weG-p6eC1ElboZr2h-P5ROaAkDx8gb9VUDuyxBSwkwx3SiUz4pVb_N5uor6syfSfOAEjy2z6FfJFjZ0g2jEc2oz40XP2XlAqQ5u4DkGm1Iihw9rOc88sYR0">
+   105→    <div class="absolute inset-0 flex flex-col justify-end pb-10 z-10">
+   106→      <!-- Burbuja del usuario -->
+   107→      <div class="px-5 mb-5 flex justify-end w-full">
+   108→        <div class="bg-[#F0F4FF] user-bubble-radius p-6 pb-7 text-[#301C70] w-full ml-10">
+   109→          <p class="text-[17px] font-medium leading-[1.4]">Quiero un informe completo sobre Age of Empires 2: su historia, las civilizaciones y cómo se juega hoy.</p>
+   110→        </div>
+   111→      </div>
+   112→      <!-- Burbuja de Koru + mascota (nunca tapada) -->
+   113→      <div class="flex flex-row items-end justify-start px-5 mb-3 w-full">
+   114→        <div class="w-[88px] h-[88px] rounded-full overflow-hidden flex-shrink-0 bg-white relative z-10">
+   115→          <img class="w-full h-full object-cover" alt="Koru"
+   116→               src="https://lh3.googleusercontent.com/aida-public/AB6AXuAu1sln71-Wsil7VVM7qegc7tG5L8bQ_5R1-JvEfpx76DzBnNwy-7OPlhaPuTBrbsiy8Lz1fMAdt_A0WFkBMkPha2Gy4xz0pDi26NvkpokXUlNnoCvBqC4Cvvq72rKfajGzPoZwtYLBi1bmMW_3jQGcQDadtRz85S3Wr9sK3Ps4TUPZdzvnEwNDREQ3JD2tZt_Q1CQnu3W68KhmGHLAeNZbz7LzYexomIybmVMZCo1bCmldOYHUQjrXXZDyKCS6GJgTiafaV9pd2Y0">
+   117→        </div>
+   118→        <div class="bg-[#F8F4FA] chat-bubble-radius rounded-[36px] rounded-bl-none p-6 pt-5 pb-6 text-[#301C70] flex-1 ml-2">
+   119→          <h3 class="font-bold text-[18px] mb-2 text-[#523A9E]">¡Buenísimo, Juan! 🏰</h3>
+   120→          <p class="text-[16px] font-medium leading-[1.4]">Me pongo a investigar Age of Empires II a fondo y te armo el informe.</p>
+   121→        </div>
+   122→      </div>
+   123→      <!-- Susurro de actividad (reemplaza a la vieja card azul "Buscando en la web") -->
+   124→      <div class="flex items-center gap-2 justify-center mb-5" role="status">
+   125→        <span class="activity-dot"></span>
+   126→        <span class="text-white/85 text-[13px] font-medium" style="text-shadow:0 1px 6px rgba(0,0,0,.4)">Buscando fuentes sobre Age of Empires II…</span>
+   127→      </div>
+   128→      <!-- Barra de input -->
+   129→      <div class="px-5 w-full">
+   130→        <div class="bg-white rounded-full flex items-center px-2 py-2 w-full h-[64px]">
+   131→          <button class="text-[#A89AD7] flex items-center justify-center w-12 ml-2">
+   132→            <span class="material-symbols-outlined text-[24px]">eco</span>
+   133→          </button>
+   134→          <div class="flex-1 border border-[#f0ebf8] rounded-full h-full flex items-center px-4 ml-2 mr-2">
+   135→            <span class="text-[#A89AD7] text-[15px] font-medium">Habla con Koru...</span>
+   136→          </div>
+   137→          <button class="w-[48px] h-[48px] rounded-full bg-[#7C5FF6] flex items-center justify-center text-white mr-1 flex-shrink-0">
+   138→            <span class="material-symbols-outlined text-[24px]">arrow_upward</span>
+   139→          </button>
+   140→        </div>
+   141→      </div>
+   142→    </div>
+   143→  </div>
+   144→</section>
+   145→
+   146→<!-- ============================================================= -->
+   147→<!-- PANTALLA 2 — Trabajando (working de Stitch, con fases reales) -->
+   148→<!-- ============================================================= -->
+   149→<section class="flex flex-col gap-5">
+   150→  <div class="caption flex gap-3 items-start">
+   151→    <span class="stepnum">2</span>
+   152→    <div>
+   153→      <h3>Trabajando en tu informe</h3>
+   154→      <p>La misma pantalla "Working" de Stitch, pero honesta: el texto y las fases salen del pipeline real
+   155→      (pensé → busqué → comparo → redacto). Solo aparece para entregables (plan/informe), <span class="no">no para saludos</span>.</p>
+   156→    </div>
+   157→  </div>
+   158→  <div class="phone" style="background-color:#413868;">
+   159→    <div class="absolute inset-0 bg-cover-top"
+   160→         style="background-image:url('https://lh3.googleusercontent.com/aida-public/AB6AXuByLSSwmzQIYUOMmDwA_ML23g5eUL9JObrHJsczXhmNVE1icXG65985RWV7OpOFwldS7sxLotKFUtp1Uct2Fmb2h-26XlzSe3ymelJNM1mmF7mEwx_JgLyUqph8lPiV-6DC96E0d-fCzk5qyfwmajxfrSZgPaKqk8AjLm5rXOzVwJvLo36nIdVo_JEs_GIt-LbSfHAJzuyLb2l3hkiUg3UcvSV2xJ-8n-dTJxaSwZTb4YA6UhDZJoEyl77pE1kBTqm7y7OHL7nEQqw')"></div>
+   161→    <main class="relative z-10 flex flex-col h-full justify-end">
+   162→      <section class="w-full px-6 flex items-end gap-3 mb-6">
+   163→        <div class="flex-shrink-0">
+   164→          <img class="w-[84px] h-[84px] rounded-full border bg-white" alt="Koru"
+   165→               src="https://lh3.googleusercontent.com/aida-public/AB6AXuC5uD3IKTB6Ce_N0AorE92ezbWS5Lt8N8-YyNOR4o4Pf_TCQZnZ5bXJApJFMva5l5ZGsQ4MlEkJAaVvMfTY9wWliHmVtQCiSy72Abr7DesylyXUUYqVQTJxRPBWe5iVgyhmbYTzUl9skDydy-ZMIORHGpDnd6ScGpdnXD_CGpU92S4YuzHjnchFkODuCIZI1YRKN7Yhqx-ORQMXZqsgzxIH_MzusGXONc1qIka-TWmPKeEFymvOUsnTxPBDIyQ_PV_b6Hlc_r5O3Xc">
+   166→        </div>
+   167→        <div class="bg-white px-5 py-4 chat-bubble-radius max-w-[280px]">
+   168→          <p class="text-[#382B8C] font-bold text-lg mb-1">¡Ya casi, Juan! 🏰</p>
+   169→          <p class="text-[#382B8C] text-sm leading-snug">Estoy armando tu <b>INFORME de Age of Empires II</b>: comparo las fuentes que encontré y redacto.</p>
+   170→        </div>
+   171→      </section>
+   172→      <section class="koru-sheet panel-radius w-full px-10 flex flex-col items-center relative z-20 py-6">
+   173→        <div class="w-full max-w-[180px] mx-auto mb-1">
+   174→          <img class="w-full h-auto mx-auto" alt=""
+   175→               src="https://lh3.googleusercontent.com/aida-public/AB6AXuBqIfGczIu1H-FYguJn89NkwrjSAShrc7T9mer9WTmGthcP7nfY7sCAH632LZSyuGSUH4s1Kcj5aF_jMxDrN0kChPTVjVMX3WsrX06p8N9fclFJx1gTzw_QgCvWNmfJCwi8U8xzX3SrAlb7fcR_55I4e6sFt7Rd5uBfeE_H1Y7ljF-wm6K1NyfLdH5wWXhQ-JcM4vZ-naebZKqMDkJZR1hJDzEXWi8iNTLL8L0E1bTIZBArdfhfpx3z6NI5NC9IBSZxz9J9d7CN4QA">
+   176→        </div>
+   177→        <div class="text-center mt-4 mb-4">
+   178→          <h2 class="text-[#382B8C] font-bold text-xl mb-0.5">Trabajando en tu informe...</h2>
+   179→          <p class="text-[#382B8C] text-sm font-medium">Esto tomará solo unos segundos ✨</p>
+   180→        </div>
+   181→        <div class="w-full flex items-center gap-4 max-w-sm mb-5">
+   182→          <div class="flex-grow h-4 bg-[#E2D4FA] rounded-full overflow-hidden">
+   183→            <div class="h-full bg-[#8363F9] rounded-full" style="width:58%"></div>
+   184→          </div>
+   185→          <span class="text-[#382B8C] font-bold text-lg">58%</span>
+   186→        </div>
+   187→        <!-- Fases reales del pipeline -->
+   188→        <div class="flex flex-wrap justify-center gap-2 mb-2">
+   189→          <span class="flex items-center gap-1 bg-[#EDE7FB] text-[#382B8C] text-[11px] font-bold px-3 py-1.5 rounded-full">
+   190→            <span class="material-symbols-outlined text-[14px] text-[#059669]">check_circle</span> Entendí el pedido
+   191→          </span>
+   192→          <span class="flex items-center gap-1 bg-[#EDE7FB] text-[#382B8C] text-[11px] font-bold px-3 py-1.5 rounded-full">
+   193→            <span class="material-symbols-outlined text-[14px] text-[#059669]">check_circle</span> Busqué 4 fuentes
+   194→          </span>
+   195→          <span class="flex items-center gap-1 bg-[#8363F9] text-white text-[11px] font-bold px-3 py-1.5 rounded-full">
+   196→            <span class="activity-dot" style="background:#fff"></span> Comparando datos
+   197→          </span>
+   198→          <span class="flex items-center gap-1 bg-white text-[#a99cd6] text-[11px] font-bold px-3 py-1.5 rounded-full border border-[#EDE7FB]">
+   199→            <span class="material-symbols-outlined text-[14px]">edit_note</span> Redactar informe
+   200→          </span>
+   201→        </div>
+   202→      </section>
+   203→    </main>
+   204→  </div>
+   205→</section>
+   206→
+   207→<!-- ============================================================= -->
+   208→<!-- PANTALLA 3 — Entregado: LA carta unificada                    -->
+   209→<!-- ============================================================= -->
+   210→<section class="flex flex-col gap-5">
+   211→  <div class="caption flex gap-3 items-start">
+   212→    <span class="stepnum">3</span>
+   213→    <div>
+   214→      <h3>Entregado — la carta única</h3>
+   215→      <p>El mismo molde exacto de "Plan Entregado": kicker <b>"Tu Informe"</b> → título → descripción →
+   216→      3 categorías <span class="ok">derivadas del contenido real</span> → CTA. Antes esto hubiera sido una
+   217→      "ResearchSourcesCard" con estética propia. <span class="no">Eso deja de existir.</span></p>
+   218→    </div>
+   219→  </div>
+   220→  <div class="phone" style="background-color:#413868;">
+   221→    <div class="absolute inset-0 bg-cover-top"
+   222→         style="background-image:url('https://lh3.googleusercontent.com/aida-public/AB6AXuDFhsD0Haw4uwrP7crZTEK3cvsleqUbbipARx3b28TRBEWSA7pYwLi7fr4dXoSb4gP5VKSMvf6WJycK9r2hh_M3BVY1CPMjC8HG4433ohNsmfBe_0xBt2ocTwdM6WhZwhr9m8-rlBBmd7aDSmWz8xrFYoBGaEdDBxAP5twrZefLLlBuKaHEah9KyqJwNSHPzT9dy7QZ-q1BfKYOmfcjE7Ga8i-PkMK5P5P4HwDYyNwOqdvnPe9EB7e2jeWASi2yolPD6YhQhgN0LNY')"></div>
+   223→    <main class="relative z-10 flex flex-col h-full justify-end">
+   224→      <section class="w-full px-6 flex items-end gap-3 mb-6">
+   225→        <div class="flex-shrink-0">
+   226→          <img class="w-[84px] h-[84px] rounded-full border bg-white" alt="Koru"
+   227→               src="https://lh3.googleusercontent.com/aida-public/AB6AXuC5uD3IKTB6Ce_N0AorE92ezbWS5Lt8N8-YyNOR4o4Pf_TCQZnZ5bXJApJFMva5l5ZGsQ4MlEkJAaVvMfTY9wWliHmVtQCiSy72Abr7DesylyXUUYqVQTJxRPBWe5iVgyhmbYTzUl9skDydy-ZMIORHGpDnd6ScGpdnXD_CGpU92S4YuzHjnchFkODuCIZI1YRKN7Yhqx-ORQMXZqsgzxIH_MzusGXONc1qIka-TWmPKeEFymvOUsnTxPBDIyQ_PV_b6Hlc_r5O3Xc">
+   228→        </div>
+   229→        <div class="bg-white px-5 py-4 chat-bubble-radius max-w-[280px]">
+   230→          <p class="text-[#382B8C] font-bold text-lg mb-1">¡Listo, Juan! 🌿</p>
+   231→          <p class="text-[#382B8C] text-sm leading-snug">Tu informe sobre <b>Age of Empires II</b> está terminado. Lo investigué en 4 fuentes.</p>
+   232→        </div>
+   233→      </section>
+   234→      <section class="koru-sheet panel-radius w-full px-10 flex flex-col relative z-20 py-8 h-[380px]">
+   235→        <div class="w-full relative flex flex-col h-full justify-between">
+   236→          <div class="flex justify-between items-center gap-4">
+   237→            <div class="flex-grow max-w-[65%] relative z-10">
+   238→              <p class="koru-kicker mb-0">Tu Informe</p>
+   239→              <h2 class="koru-title mb-2">AGE OF EMPIRES II</h2>
+   240→              <p class="koru-desc pr-2 mt-2">La historia, las 45 civilizaciones y el meta actual del RTS más longevo, con <b>fuentes reales.</b></p>
+   241→            </div>
+   242→            <div class="relative w-[150px] h-[150px] z-20 drop-shadow-xl flex-shrink-0">
+   243→              <img class="w-full h-full object-contain" alt=""
+   244→                   src="https://lh3.googleusercontent.com/aida-public/AB6AXuBpY6h7mbZkb3k_DWdAhUuk6L2P1m9eCcwnG8CSZNUu0YjnS9dPed5PrXDSz-CTeXqPhVg9iDeQ_9kTJwL_VyydeI_0PpOQTN5cZ2wzlO5aLoC4oSyPqDeFQgSEyIGMExB4CPbgjBnKtNlSEV-5mcDrTkNQA5D9EdlxUi6rPbeTfAkk6Hn9m57ZYmSrjbV5VEZ89O0PFa6z9Kz98ZHH0tfI_ndwO0-6Tfu4W3Hlypus_JeXDCRpdKECI3H-PbzY7w3MU1FeDFPXEzI">
+   245→            </div>
+   246→          </div>
+   247→          <div class="grid grid-cols-3 gap-2 mb-4 mt-auto">
+   248→            <div class="flex flex-col items-center text-center">
+   249→              <div class="w-10 h-10 rounded-full flex items-center justify-center mb-1">
+   250→                <span class="material-symbols-outlined text-[#D97706] text-xl">castle</span>
+   251→              </div>
+   252→              <span class="text-[#382B8C] text-[10px] font-medium leading-tight">Historia</span>
+   253→            </div>
+   254→            <div class="flex flex-col items-center text-center">
+   255→              <div class="w-10 h-10 rounded-full flex items-center justify-center mb-1">
+   256→                <span class="material-symbols-outlined text-[#059669] text-xl">groups</span>
+   257→              </div>
+   258→              <span class="text-[#382B8C] text-[10px] font-medium leading-tight">Civilizaciones</span>
+   259→            </div>
+   260→            <div class="flex flex-col items-center text-center">
+   261→              <div class="w-10 h-10 rounded-full flex items-center justify-center mb-1">
+   262→                <span class="material-symbols-outlined text-[#4648d4] text-xl">strategy</span>
+   263→              </div>
+   264→              <span class="text-[#382B8C] text-[10px] font-medium leading-tight">Estrategia</span>
+   265→            </div>
+   266→          </div>
+   267→          <button class="koru-cta">
+   268→            Ver informe completo
+   269→            <span class="material-symbols-outlined text-base">arrow_forward</span>
+   270→          </button>
+   271→        </div>
+   272→      </section>
+   273→    </main>
+   274→  </div>
+   275→</section>
+   276→
+   277→<!-- ============================================================= -->
+   278→<!-- PANTALLA 4 — El informe completo (detalle funcional)          -->
+   279→<!-- ============================================================= -->
+   280→<section class="flex flex-col gap-5">
+   281→  <div class="caption flex gap-3 items-start">
+   282→    <span class="stepnum">4</span>
+   283→    <div>
+   284→      <h3>El informe completo (detalle)</h3>
+   285→      <p>El CTA abre esta pantalla, hermana del "Plan Roadmap": módulos "magical-card" con el contenido real.
+   286→      Fijate: síntesis, línea de tiempo, datos, comparativa y <b>fuentes</b> — lo que antes eran 5 cards de
+   287→      familias distintas, ahora son <span class="ok">módulos del mismo lenguaje</span>.</p>
+   288→    </div>
+   289→  </div>
+   290→  <div class="phone">
+   291→    <div class="scrollcol absolute inset-0" style="background: linear-gradient(180deg, #f0dbff 0%, #f8f9ff 100%);">
+   292→      <div class="blob1"></div>
+   293→      <div class="blob2"></div>
+   294→      <!-- Volver -->
+   295→      <button class="absolute top-[46px] left-6 w-12 h-12 rounded-full z-50 flex items-center justify-center"
+   296→              style="background:rgba(255,255,255,.4); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,.6); box-shadow:0 4px 12px rgba(130,39,207,.1);">
+   297→        <span class="material-symbols-outlined text-[#8127cf]">arrow_back_ios_new</span>
+   298→      </button>
+   299→      <!-- Hero -->
+   300→      <div class="relative pt-24 pb-6 px-6 text-center z-10">
+   301→        <h1 class="text-4xl font-extrabold text-[#8127cf] tracking-tight mb-2 drop-shadow-sm">Age of Empires II</h1>
+   302→        <p class="text-base text-[#464554] font-medium opacity-80">Tu informe · 4 fuentes verificadas</p>
+   303→      </div>
+   304→      <div class="px-6 space-y-6 relative z-10 pb-14">
+   305→
+   306→        <!-- Módulo: Síntesis -->
+   307→        <div class="magical-card mod-resumen">
+   308→          <div class="flex items-center gap-4 mb-4">
+   309→            <div class="mod-icon"><span class="material-symbols-outlined text-2xl">auto_awesome</span></div>
+   310→            <div>
+   311→              <h3 class="mod-title">Síntesis</h3>
+   312→              <p class="mod-sub">Lo esencial en 20 segundos</p>
+   313→            </div>
+   314→          </div>
+   315→          <p class="text-[14px] text-[#464554] font-medium leading-relaxed mb-4">
+   316→            Lanzado en 1999 por Ensemble Studios y Microsoft, <b>Age of Empires II</b> es el RTS más longevo en actividad.
+   317→            La <b>Definitive Edition (2019)</b> lo revivió: hoy tiene más jugadores que en su estreno, torneos con premios
+   318→            récord y expansiones nuevas 25 años después.
+   319→          </p>
+   320→          <div class="grid grid-cols-3 gap-2">
+   321→            <div class="bg-white/70 rounded-2xl p-3 text-center">
+   322→              <p class="text-xl font-extrabold text-[#7c3aed]">1999</p>
+   323→              <p class="text-[10px] font-bold text-[#464554] uppercase">Lanzamiento</p>
+   324→            </div>
+   325→            <div class="bg-white/70 rounded-2xl p-3 text-center">
+   326→              <p class="text-xl font-extrabold text-[#7c3aed]">45</p>
+   327→              <p class="text-[10px] font-bold text-[#464554] uppercase">Civilizaciones</p>
+   328→            </div>
+   329→            <div class="bg-white/70 rounded-2xl p-3 text-center">
+   330→              <p class="text-xl font-extrabold text-[#7c3aed]">~30k</p>
+   331→              <p class="text-[10px] font-bold text-[#464554] uppercase">Jug. diarios</p>
+   332→            </div>
+   333→          </div>
+   334→        </div>
+   335→
+   336→        <!-- Módulo: Historia (timeline) -->
+   337→        <div class="magical-card mod-historia">
+   338→          <div class="flex items-center gap-4 mb-5">
+   339→            <div class="mod-icon"><span class="material-symbols-outlined text-2xl">castle</span></div>
+   340→            <div>
+   341→              <h3 class="mod-title">Historia</h3>
+   342→              <p class="mod-sub">De 1999 a hoy</p>
+   343→            </div>
+   344→          </div>
+   345→          <div class="relative">
+   346→            <div class="absolute left-[23px] top-8 bottom-4 w-[2px]" style="background:var(--mb)"></div>
+   347→            <div class="space-y-4">
+   348→              <div class="flex items-start gap-4 relative z-10">
+   349→                <div class="w-12 h-12 rounded-full bg-white shadow-md flex items-center justify-center border-2 flex-shrink-0" style="border-color:var(--mc); color:var(--mc)">
+   350→                  <span class="text-[11px] font-extrabold">'99</span>
+   351→                </div>
+   352→                <div class="flex-1 bg-white/60 p-3.5 rounded-xl">
+   353→                  <h4 class="text-sm font-bold text-[#0b1c30]">The Age of Kings</h4>
+   354→                  <p class="text-xs text-[#464554] mt-0.5">Ensemble Studios · 2M de copias en 3 meses</p>
+   355→                </div>
+   356→              </div>
+   357→              <div class="flex items-start gap-4 relative z-10">
+   358→                <div class="w-12 h-12 rounded-full bg-white shadow-md flex items-center justify-center border-2 flex-shrink-0" style="border-color:var(--mc); color:var(--mc)">
+   359→                  <span class="text-[11px] font-extrabold">'00</span>
+   360→                </div>
+   361→                <div class="flex-1 bg-white/60 p-3.5 rounded-xl">
+   362→                  <h4 class="text-sm font-bold text-[#0b1c30]">The Conquerors</h4>
+   363→                  <p class="text-xs text-[#464554] mt-0.5">La expansión que definió el multijugador clásico</p>
+   364→                </div>
+   365→              </div>
+   366→              <div class="flex items-start gap-4 relative z-10">
+   367→                <div class="w-12 h-12 rounded-full bg-white shadow-md flex items-center justify-center border-2 flex-shrink-0" style="border-color:var(--mc); color:var(--mc)">
+   368→                  <span class="text-[11px] font-extrabold">'19</span>
+   369→                </div>
+   370→                <div class="flex-1 bg-white/60 p-3.5 rounded-xl">
+   371→                  <h4 class="text-sm font-bold text-[#0b1c30]">Definitive Edition</h4>
+   372→                  <p class="text-xs text-[#464554] mt-0.5">4K, nuevas civs y el renacer competitivo</p>
+   373→                </div>
+   374→              </div>
+   375→              <div class="flex items-start gap-4 relative z-10">
+   376→                <div class="w-12 h-12 rounded-full bg-white shadow-md flex items-center justify-center border-2 flex-shrink-0" style="border-color:var(--mc); color:var(--mc)">
+   377→                  <span class="text-[11px] font-extrabold">'24</span>
+   378→                </div>
+   379→                <div class="flex-1 bg-white/60 p-3.5 rounded-xl">
+   380→                  <h4 class="text-sm font-bold text-[#0b1c30]">Victors and Vanquished</h4>
+   381→                  <p class="text-xs text-[#464554] mt-0.5">Sigue recibiendo expansiones 25 años después</p>
+   382→                </div>
+   383→              </div>
+   384→            </div>
+   385→          </div>
+   386→        </div>
+   387→
+   388→        <!-- Módulo: Civilizaciones -->
+   389→        <div class="magical-card mod-civs">
+   390→          <div class="flex items-center justify-between mb-4">
+   391→            <div class="flex items-center gap-4">
+   392→              <div class="mod-icon"><span class="material-symbols-outlined text-2xl">groups</span></div>
+   393→              <div>
+   394→                <h3 class="mod-title">Civilizaciones</h3>
+   395→                <p class="mod-sub">45 en total · 4 estilos</p>
+   396→              </div>
+   397→            </div>
+   398→          </div>
+   399→          <div class="grid grid-cols-2 gap-3">
+   400→            <div class="bg-white/60 p-3.5 rounded-2xl">
+   401→              <div class="flex items-center gap-2 mb-1">
+   402→                <span class="material-symbols-outlined text-[16px]" style="color:var(--mc)">arrow_selector_tool</span>
+   403→                <p class="text-[13px] font-bold text-[#0b1c30]">Arquería</p>
+   404→              </div>
+   405→              <p class="text-[11px] text-[#464554] font-medium">Britanos, Etíopes, Mayas</p>
+   406→            </div>
+   407→            <div class="bg-white/60 p-3.5 rounded-2xl">
+   408→              <div class="flex items-center gap-2 mb-1">
+   409→                <span class="material-symbols-outlined text-[16px]" style="color:var(--mc)">swords</span>
+   410→                <p class="text-[13px] font-bold text-[#0b1c30]">Caballería</p>
+   411→              </div>
+   412→              <p class="text-[11px] text-[#464554] font-medium">Francos, Lituanos, Persas</p>
+   413→            </div>
+   414→            <div class="bg-white/60 p-3.5 rounded-2xl">
+   415→              <div class="flex items-center gap-2 mb-1">
+   416→                <span class="material-symbols-outlined text-[16px]" style="color:var(--mc)">shield</span>
+   417→                <p class="text-[13px] font-bold text-[#0b1c30]">Infantería</p>
+   418→              </div>
+   419→              <p class="text-[11px] text-[#464554] font-medium">Godos, Aztecas, Japoneses</p>
+   420→            </div>
+   421→            <div class="bg-white/60 p-3.5 rounded-2xl">
+   422→              <div class="flex items-center gap-2 mb-1">
+   423→                <span class="material-symbols-outlined text-[16px]" style="color:var(--mc)">sailing</span>
+   424→                <p class="text-[13px] font-bold text-[#0b1c30]">Navales / eco</p>
+   425→              </div>
+   426→              <p class="text-[11px] text-[#464554] font-medium">Vikingos, Italianos, Portugueses</p>
+   427→            </div>
+   428→          </div>
+   429→          <div class="mt-3 bg-white/60 p-3 rounded-2xl flex items-center gap-3">
+   430→            <span class="material-symbols-outlined" style="color:var(--mc)">tips_and_updates</span>
+   431→            <p class="text-[12px] text-[#464554] font-medium">Para empezar: <b>Francos</b> — caballería fuerte, economía simple y perdonan errores.</p>
+   432→          </div>
+   433→        </div>
+   434→
+   435→        <!-- Módulo: Cómo se juega hoy -->
+   436→        <div class="magical-card mod-meta">
+   437→          <div class="flex items-center gap-4 mb-4">
+   438→            <div class="mod-icon"><span class="material-symbols-outlined text-2xl">strategy</span></div>
+   439→            <div>
+   440→              <h3 class="mod-title">Cómo se juega hoy</h3>
+   441→              <p class="mod-sub">El meta competitivo 2026</p>
+   442→            </div>
+   443→          </div>
+   444→          <div class="space-y-3">
+   445→            <div class="flex items-center justify-between bg-white/60 p-3 rounded-xl">
+   446→              <div class="flex items-center gap-3">
+   447→                <div class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--mb); color:var(--mc)">
+   448→                  <span class="material-symbols-outlined text-sm">sprint</span>
+   449→                </div>
+   450→                <div>
+   451→                  <p class="text-[13px] font-bold text-[#0b1c30]">Scout Rush</p>
+   452→                  <p class="text-[11px] text-[#464554]">Presión temprana en Feudal</p>
+   453→                </div>
+   454→              </div>
+   455→              <span class="text-[10px] font-bold px-2 py-1 rounded-md bg-blue-100 text-blue-700">AGRESIVO</span>
+   456→            </div>
+   457→            <div class="flex items-center justify-between bg-white/60 p-3 rounded-xl">
+   458→              <div class="flex items-center gap-3">
+   459→                <div class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--mb); color:var(--mc)">
+   460→                  <span class="material-symbols-outlined text-sm">castle</span>
+   461→                </div>
+   462→                <div>
+   463→                  <p class="text-[13px] font-bold text-[#0b1c30]">Fast Castle → Boom</p>
+   464→                  <p class="text-[11px] text-[#464554]">Economía primero, ejército después</p>
+   465→                </div>
+   466→              </div>
+   467→              <span class="text-[10px] font-bold px-2 py-1 rounded-md bg-emerald-100 text-emerald-700">ECONÓMICO</span>
+   468→            </div>
+   469→            <div class="flex items-center justify-between bg-white/60 p-3 rounded-xl">
+   470→              <div class="flex items-center gap-3">
+   471→                <div class="w-8 h-8 rounded-full flex items-center justify-center" style="background:var(--mb); color:var(--mc)">
+   472→                  <span class="material-symbols-outlined text-sm">emoji_events</span>
+   473→                </div>
+   474→                <div>
+   475→                  <p class="text-[13px] font-bold text-[#0b1c30]">Escena pro</p>
+   476→                  <p class="text-[11px] text-[#464554]">Red Bull Wololo, premios de +US$100k</p>
+   477→                </div>
+   478→              </div>
+   479→              <span class="text-[10px] font-bold px-2 py-1 rounded-md bg-purple-100 text-purple-700">ESPORTS</span>
+   480→            </div>
+   481→          </div>
+   482→        </div>
+   483→
+   484→        <!-- Módulo: Fuentes -->
+   485→        <div class="magical-card mod-fuentes">
+   486→          <div class="flex items-center gap-4 mb-4">
+   487→            <div class="mod-icon"><span class="material-symbols-outlined text-2xl">fact_check</span></div>
+   488→            <div>
+   489→              <h3 class="mod-title">Fuentes</h3>
+   490→              <p class="mod-sub">De dónde salió todo</p>
+   491→            </div>
+   492→          </div>
+   493→          <div class="space-y-2">
+   494→            <a class="flex items-center gap-3 bg-white/60 p-3 rounded-xl" href="#">
+   495→              <div class="w-8 h-8 rounded-lg bg-white flex items-center justify-center flex-shrink-0 shadow-sm">
+   496→                <span class="material-symbols-outlined text-[16px] text-[#464554]">language</span>
+   497→              </div>
+   498→              <div class="min-w-0">
+   499→                <p class="text-[13px] font-bold text-[#0b1c30] truncate">ageofempires.com — sitio oficial</p>
+   500→                <p class="text-[11px] text-[#464554] truncate">Historia del juego y expansiones</p>
+   501→              </div>
+   502→            </a>
+   503→            <a class="flex items-center gap-3 bg-white/60 p-3 rounded-xl" href="#">
+   504→              <div class="w-8 h-8 rounded-lg bg-white flex items-center justify-center flex-shrink-0 shadow-sm">
+   505→                <span class="material-symbols-outlined text-[16px] text-[#464554]">menu_book</span>
+   506→              </div>
+   507→              <div class="min-w-0">
+   508→                <p class="text-[13px] font-bold text-[#0b1c30] truncate">Wikipedia — Age of Empires II</p>
+   509→                <p class="text-[11px] text-[#464554] truncate">Desarrollo, recepción y ventas</p>
+   510→              </div>
+   511→            </a>
+   512→            <a class="flex items-center gap-3 bg-white/60 p-3 rounded-xl" href="#">
+   513→              <div class="w-8 h-8 rounded-lg bg-white flex items-center justify-center flex-shrink-0 shadow-sm">
+   514→                <span class="material-symbols-outlined text-[16px] text-[#464554]">emoji_events</span>
+   515→              </div>
+   516→              <div class="min-w-0">
+   517→                <p class="text-[13px] font-bold text-[#0b1c30] truncate">Liquipedia AoE — escena competitiva</p>
+   518→                <p class="text-[11px] text-[#464554] truncate">Torneos y jugadores top</p>
+   519→              </div>
+   520→            </a>
+   521→            <a class="flex items-center gap-3 bg-white/60 p-3 rounded-xl" href="#">
+   522→              <div class="w-8 h-8 rounded-lg bg-white flex items-center justify-center flex-shrink-0 shadow-sm">
+   523→                <span class="material-symbols-outlined text-[16px] text-[#464554]">monitoring</span>
+   524→              </div>
+   525→              <div class="min-w-0">
+   526→                <p class="text-[13px] font-bold text-[#0b1c30] truncate">aoestats.io — estadísticas del meta</p>
+   527→                <p class="text-[11px] text-[#464554] truncate">Win-rates de civilizaciones (ranked)</p>
+   528→              </div>
+   529→            </a>
+   530→          </div>
+   531→        </div>
+   532→
+   533→        <!-- Acción final -->
+   534→        <button class="koru-cta">
+   535→          Guardar en mi Historial
+   536→          <span class="material-symbols-outlined text-base">bookmark_added</span>
+   537→        </button>
+   538→      </div>
+   539→    </div>
+   540→  </div>
+   541→</section>
+   542→
+   543→<!-- ============================================================= -->
+   544→<!-- PANTALLA 5 — Siguiente interacción: lo anterior desaparece    -->
+   545→<!-- ============================================================= -->
+   546→<section class="flex flex-col gap-5">
+   547→  <div class="caption flex gap-3 items-start">
+   548→    <span class="stepnum">5</span>
+   549→    <div>
+   550→      <h3>Nueva pregunta → lo anterior desaparece</h3>
+   551→      <p>El informe ya no está en pantalla (vive en <b>Historial</b>). Y mirá la respuesta del dólar:
+   552→      <span class="ok">es LA MISMA hoja</span> (kicker → título → datos reales → CTA), no una "card financiera"
+   553→      con otra estética. Ese es el punto: un solo molde para los 45 tipos.</p>
+   554→    </div>
+   555→  </div>
+   556→  <div class="phone" style="background-color:#453f6a;">
+   557→    <img class="absolute inset-0 w-full h-full object-cover" alt=""
+   558→         src="https://lh3.googleusercontent.com/aida-public/AB6AXuCpdttfAKHlG2GKeCPr8YPU0uR47dzlvdioHw4HYmBUOLTbhEDjgtEpBanqizbPwsOcCy1P4WrJSnY0Sc0idKTSIpTKh5AOt_OOPpbCSPl6MC7LaboBkcSWpn4osJJAI0z9iZh4GGlRxcUErO6G0lG0weG-p6eC1ElboZr2h-P5ROaAkDx8gb9VUDuyxBSwkwx3SiUz4pVb_N5uor6syfSfOAEjy2z6FfJFjZ0g2jEc2oz40XP2XlAqQ5u4DkGm1Iihw9rOc88sYR0">
+   559→    <div class="absolute inset-0 flex flex-col justify-end pb-10 z-10">
+   560→      <div class="px-5 mb-4 flex justify-end w-full">
+   561→        <div class="bg-[#F0F4FF] user-bubble-radius p-5 pb-6 text-[#301C70] ml-24">
+   562→          <p class="text-[17px] font-medium leading-[1.4]">¿A cuánto está el dólar hoy?</p>
+   563→        </div>
+   564→      </div>
+   565→      <div class="flex flex-row items-end justify-start px-5 mb-4 w-full">
+   566→        <div class="w-[88px] h-[88px] rounded-full overflow-hidden flex-shrink-0 bg-white relative z-10">
+   567→          <img class="w-full h-full object-cover" alt="Koru"
+   568→               src="https://lh3.googleusercontent.com/aida-public/AB6AXuAu1sln71-Wsil7VVM7qegc7tG5L8bQ_5R1-JvEfpx76DzBnNwy-7OPlhaPuTBrbsiy8Lz1fMAdt_A0WFkBMkPha2Gy4xz0pDi26NvkpokXUlNnoCvBqC4Cvvq72rKfajGzPoZwtYLBi1bmMW_3jQGcQDadtRz85S3Wr9sK3Ps4TUPZdzvnEwNDREQ3JD2tZt_Q1CQnu3W68KhmGHLAeNZbz7LzYexomIybmVMZCo1bCmldOYHUQjrXXZDyKCS6GJgTiafaV9pd2Y0">
+   569→        </div>
+   570→        <div class="bg-[#F8F4FA] chat-bubble-radius rounded-[36px] rounded-bl-none p-5 text-[#301C70] flex-1 ml-2">
+   571→          <p class="text-[16px] font-medium leading-[1.4]">Acá lo tenés, recién consultado 👇</p>
+   572→        </div>
+   573→      </div>
+   574→      <!-- La MISMA carta unificada, ahora con un dato de mercado -->
+   575→      <div class="px-5 mb-5">
+   576→        <div class="koru-sheet rounded-[32px] px-7 py-6 shadow-2xl">
+   577→          <p class="koru-kicker mb-0">Dato de Hoy</p>
+   578→          <h2 class="koru-title mb-1" style="font-size:22px">DÓLAR EN ARGENTINA</h2>
+   579→          <p class="koru-desc mb-4">Cotizaciones de este momento. El blue subió <b>1,2%</b> desde ayer.</p>
+   580→          <div class="grid grid-cols-3 gap-2 mb-4">
+   581→            <div class="bg-white rounded-2xl p-3 text-center shadow-sm">
+   582→              <p class="text-[10px] font-bold text-[#8363F9] uppercase mb-0.5">Oficial</p>
+   583→              <p class="text-lg font-extrabold text-[#382B8C]">$1.185</p>
+   584→            </div>
+   585→            <div class="bg-white rounded-2xl p-3 text-center shadow-sm">
+   586→              <p class="text-[10px] font-bold text-[#8363F9] uppercase mb-0.5">Blue</p>
+   587→              <p class="text-lg font-extrabold text-[#382B8C]">$1.320</p>
+   588→            </div>
+   589→            <div class="bg-white rounded-2xl p-3 text-center shadow-sm">
+   590→              <p class="text-[10px] font-bold text-[#8363F9] uppercase mb-0.5">MEP</p>
+   591→              <p class="text-lg font-extrabold text-[#382B8C]">$1.292</p>
+   592→            </div>
+   593→          </div>
+   594→          <button class="koru-cta" style="padding:11px 0">
+   595→            Ver evolución completa
+   596→            <span class="material-symbols-outlined text-base">arrow_forward</span>
+   597→          </button>
+   598→        </div>
+   599→      </div>
+   600→      <!-- Barra de input -->
+   601→      <div class="px-5 w-full">
+   602→        <div class="bg-white rounded-full flex items-center px-2 py-2 w-full h-[64px]">
+   603→          <button class="text-[#A89AD7] flex items-center justify-center w-12 ml-2">
+   604→            <span class="material-symbols-outlined text-[24px]">eco</span>
+   605→          </button>
+   606→          <div class="flex-1 border border-[#f0ebf8] rounded-full h-full flex items-center px-4 ml-2 mr-2">
+   607→            <span class="text-[#A89AD7] text-[15px] font-medium">Habla con Koru...</span>
+   608→          </div>
+   609→          <button class="w-[48px] h-[48px] rounded-full bg-[#7C5FF6] flex items-center justify-center text-white mr-1 flex-shrink-0">
+   610→            <span class="material-symbols-outlined text-[24px]">arrow_upward</span>
+   611→          </button>
+   612→        </div>
+   613→      </div>
+   614→    </div>
+   615→  </div>
+   616→</section>
+   617→
+   618→</main>
+   619→
+   620→<!-- Resumen de reglas del sistema -->
+   621→<footer class="px-10 pb-14 max-w-[1200px]">
+   622→  <h2 class="text-white font-extrabold text-xl mb-4">Las reglas que este flujo demuestra</h2>
+   623→  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+   624→    <div class="bg-white/5 border border-white/10 rounded-2xl p-5">
+   625→      <p class="text-[#6ee7b7] font-bold text-sm mb-1">1 · Un solo molde de respuesta</p>
+   626→      <p class="text-[#a99cd6] text-[13px] leading-relaxed">Todo entregable usa la hoja "kicker → título → contenido → CTA" (pantallas 3 y 5). Los 45 tipos de card se convierten en variaciones de contenido dentro de este molde, nunca en estéticas propias.</p>
+   627→    </div>
+   628→    <div class="bg-white/5 border border-white/10 rounded-2xl p-5">
+   629→      <p class="text-[#6ee7b7] font-bold text-sm mb-1">2 · El detalle es una pantalla, no una card gigante</p>
+   630→      <p class="text-[#a99cd6] text-[13px] leading-relaxed">El contenido profundo (pantalla 4) vive detrás del CTA, en módulos "magical-card" (síntesis, timeline, grillas, fuentes) — el mismo lenguaje del Plan Roadmap.</p>
+   631→    </div>
+   632→    <div class="bg-white/5 border border-white/10 rounded-2xl p-5">
+   633→      <p class="text-[#fda4af] font-bold text-sm mb-1">3 · La búsqueda web deja de ser una card</p>
+   634→      <p class="text-[#a99cd6] text-[13px] leading-relaxed">Buscar es un estado, no un resultado: un susurro con punto pulsante (pantalla 1) o una fase en "Trabajando" (pantalla 2). Y solo se activa cuando el pedido realmente lo requiere.</p>
+   635→    </div>
+   636→    <div class="bg-white/5 border border-white/10 rounded-2xl p-5">
+   637→      <p class="text-[#fda4af] font-bold text-sm mb-1">4 · Interacción inmediata, no chat</p>
+   638→      <p class="text-[#a99cd6] text-[13px] leading-relaxed">Cada nueva pregunta limpia la anterior (pantalla 5). El informe de AoE2 no quedó "scrolleable": vive en Historial. La mascota nunca queda tapada.</p>
+   639→    </div>
+   640→  </div>
+   641→</footer>
+   642→
+   643→</body>
+   644→</html>
+   645→

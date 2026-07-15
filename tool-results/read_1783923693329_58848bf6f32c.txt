@@ -1,0 +1,1011 @@
+     1→import type { AssistantPlanItem, AssistantSource, KoruState, LifeRecord, MemoryFact, UiBlock } from "../../domain/types";
+     2→import { extractStructuredData, type ChatFn as ExtractorChatFn } from "../../domain/structureExtractor";
+     3→import { timeStringFromText as timeFromText } from "../../domain/time";
+     4→import { plainLower } from "../../domain/text";
+     5→import { asArray, asRecord, cleanText } from "../json";
+     6→// FIX: usar globalThis.fetch que ya fue parcheado en el entry point
+     7→// (server/index.ts setea globalThis.fetch = undici.fetch).
+     8→// No necesitamos eval('require') acá — el entry point ya lo hizo.
+     9→async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+    10→  const controller = new AbortController();
+    11→  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    12→  try {
+    13→    return await globalThis.fetch(url, { ...init, signal: controller.signal as any }) as unknown as Response;
+    14→  } finally {
+    15→    clearTimeout(timeout);
+    16→  }
+    17→}
+    18→
+    19→import { logger } from "../logger";
+    20→import type {
+    21→  LocalActionData,
+    22→  MemoryCaptureData,
+    23→  PersonalCaptureData,
+    24→  PersonalQueryData,
+    25→  PlanData,
+    26→  SearchData,
+    27→  WeatherData,
+    28→} from "./types";
+    29→
+    30→export function sourceFromUrl(title: string, url: string, snippet?: string): AssistantSource {
+    31→  let domain = "fuente externa";
+    32→  try {
+    33→    domain = new URL(url).hostname.replace(/^www\./, "");
+    34→  } catch {
+    35→    domain = "fuente externa";
+    36→  }
+    37→  return { title, url, domain, snippet };
+    38→}
+    39→
+    40→async function geocodeCity(city: string): Promise<{ name: string; latitude: number; longitude: number } | null> {
+    41→  const url = new URL("https://geocoding-api.open-meteo.com/v1/search");
+    42→  url.searchParams.set("name", city);
+    43→  url.searchParams.set("count", "1");
+    44→  url.searchParams.set("language", "es");
+    45→  url.searchParams.set("format", "json");
+    46→  const response = await fetchWithTimeout(url.toString(), { headers: { Accept: "application/json" } }, 15_000);
+    47→  if (!response.ok) { console.error("[weather] geocode HTTP", response.status); return null; }
+    48→  const data = await response.json().catch((e: any) => { console.error("[weather] geocode parse error:", e?.message); return {}; }) as { results?: Array<{ name?: string; latitude?: number; longitude?: number; country?: string }> };
+    49→  const result = data.results?.[0];
+    50→  if (!result || typeof result.latitude !== "number" || typeof result.longitude !== "number") return null;
+    51→  return {
+    52→    name: [result.name, result.country].filter(Boolean).join(", "),
+    53→    latitude: result.latitude,
+    54→    longitude: result.longitude,
+    55→  };
+    56→}
+    57→
+    58→
+    59→export async function getWeather(args: Record<string, unknown>): Promise<WeatherData> {
+    60→  const requestedCity = cleanText(args.city, "Madrid");
+    61→  const location = await geocodeCity(requestedCity);
+    62→  if (!location) {
+    63→    return {
+    64→      type: "weather",
+    65→      city: requestedCity,
+    66→      advice: "No pude ubicar esa ciudad. No invento clima.",
+    67→      sources: [],
+    68→    };
+    69→  }
+    70→
+    71→  let temp: number | undefined;
+    72→  let wind: number | undefined;
+    73→  let max: number | undefined;
+    74→  let min: number | undefined;
+    75→  let rain: number | undefined;
+    76→  let weatherSource = "Open-Meteo";
+    77→
+    78→  // FUENTE 1: wttr.in (sin límite de requests, sin API key)
+    79→  try {
+    80→    const wttrUrl = `https://wttr.in/${encodeURIComponent(location.name)}?format=j1`;
+    81→    const wttrRes = await fetchWithTimeout(wttrUrl, { headers: { Accept: "application/json" } }, 15_000);
+    82→    if (wttrRes.ok) {
+    83→      const wttrData = await wttrRes.json().catch(() => ({})) as any;
+    84→      const cur = wttrData.current_condition?.[0];
+    85→      const today = wttrData.weather?.[0];
+    86→      if (cur) {
+    87→        temp = Number(cur.temp_C);
+    88→        wind = Number(cur.windspeedKmph);
+    89→        max = today ? Number(today.maxtempC) : undefined;
+    90→        min = today ? Number(today.mintempC) : undefined;
+    91→        rain = today?.hourly?.[0]?.chanceofrain ? Number(today.hourly[0].chanceofrain) : undefined;
+    92→        weatherSource = "wttr.in";
+    93→      }
+    94→    }
+    95→  } catch { /* fallthrough a open-meteo */ }
+    96→
+    97→  // FUENTE 2 (fallback): open-meteo
+    98→  if (temp === undefined) {
+    99→    try {
+   100→      const url = new URL("https://api.open-meteo.com/v1/forecast");
+   101→      url.searchParams.set("latitude", String(location.latitude));
+   102→      url.searchParams.set("longitude", String(location.longitude));
+   103→      url.searchParams.set("current", "temperature_2m,precipitation,wind_speed_10m");
+   104→      url.searchParams.set("daily", "temperature_2m_max,temperature_2m_min,precipitation_probability_max");
+   105→      url.searchParams.set("timezone", "auto");
+   106→      url.searchParams.set("forecast_days", "1");
+   107→      const response = await fetchWithTimeout(url.toString(), { headers: { Accept: "application/json" } }, 15_000);
+   108→      if (response.ok) {
+   109→        const data = await response.json().catch(() => ({})) as any;
+   110→        temp = data.current?.temperature_2m;
+   111→        wind = data.current?.wind_speed_10m;
+   112→        max = data.daily?.temperature_2m_max?.[0];
+   113→        min = data.daily?.temperature_2m_min?.[0];
+   114→        rain = data.daily?.precipitation_probability_max?.[0];
+   115→        weatherSource = "Open-Meteo";
+   116→      }
+   117→    } catch { /* ambas fuentes fallaron */ }
+   118→  }
+   119→
+   120→  const advice = [
+   121→    temp !== undefined ? `${Math.round(temp)} C ahora` : undefined,
+   122→    rain !== undefined && rain >= 50 ? "conviene paraguas" : rain !== undefined ? "lluvia poco probable" : undefined,
+   123→    min !== undefined && min <= 10 ? "lleva abrigo si sales tarde" : undefined,
+   124→  ].filter(Boolean).join("; ");
+   125→  return {
+   126→    type: "weather",
+   127→    city: location.name,
+   128→    now: temp !== undefined ? `${Math.round(temp)} C` : undefined,
+   129→    range: min !== undefined && max !== undefined ? `${Math.round(min)}-${Math.round(max)} C` : undefined,
+   130→    rain: rain !== undefined ? `${rain}%` : undefined,
+   131→    wind: wind !== undefined ? `${Math.round(wind)} km/h` : undefined,
+   132→    advice: advice || "Clima consultado pero sin datos concretos.",
+   133→    sources: [sourceFromUrl("Open-Meteo", "https://open-meteo.com/", "Datos abiertos de clima y pronostico.")],
+   134→  };
+   135→}
+   136→
+   137→function htmlText(raw: string): string {
+   138→  return raw
+   139→    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+   140→    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+   141→    .replace(/<[^>]+>/g, " ")
+   142→    .replace(/&amp;/g, "&")
+   143→    .replace(/&quot;/g, '"')
+   144→    .replace(/&#39;/g, "'")
+   145→    .replace(/\s+/g, " ")
+   146→    .trim();
+   147→}
+   148→
+   149→async function searchDuckDuckGo(query: string): Promise<AssistantSource[]> {
+   150→  const response = await fetchWithTimeout(`https://duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
+   151→    headers: {
+   152→      "User-Agent": "Mozilla/5.0 KoruAgent/1.0",
+   153→      Accept: "text/html",
+   154→    },
+   155→  }, 10_000);
+   156→  const html = await response.text();
+   157→  const sources: AssistantSource[] = [];
+   158→  const resultRe = /<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a[^>]+class="result__snippet"[^>]*>([\s\S]*?)<\/a>/gi;
+   159→  let match: RegExpExecArray | null;
+   160→  while ((match = resultRe.exec(html)) && sources.length < 6) {
+   161→    const rawUrl = match[1];
+   162→    let url = rawUrl;
+   163→    try {
+   164→      const parsed = new URL(rawUrl, "https://duckduckgo.com");
+   165→      url = parsed.searchParams.get("uddg") ?? parsed.href;
+   166→    } catch {
+   167→      url = rawUrl;
+   168→    }
+   169→    if (!/^https?:\/\//i.test(url)) continue;
+   170→    const domain = (() => {
+   171→      try {
+   172→        return new URL(url).hostname;
+   173→      } catch {
+   174→        return "";
+   175→      }
+   176→    })();
+   177→    if (/duckduckgo\.com|google\.com|bing\.com/i.test(domain)) continue;
+   178→    sources.push(sourceFromUrl(htmlText(match[2]), url, htmlText(match[3]).slice(0, 260)));
+   179→  }
+   180→  return sources;
+   181→}
+   182→
+   183→async function searchGdelt(query: string): Promise<AssistantSource[]> {
+   184→  const url = new URL("https://api.gdeltproject.org/api/v2/doc/doc");
+   185→  url.searchParams.set("query", query);
+   186→  url.searchParams.set("mode", "ArtList");
+   187→  url.searchParams.set("format", "json");
+   188→  url.searchParams.set("maxrecords", "6");
+   189→  url.searchParams.set("sort", "HybridRel");
+   190→  const response = await fetchWithTimeout(url.toString(), { headers: { Accept: "application/json" } }, 10_000);
+   191→  const data = await response.json().catch(() => ({})) as { articles?: Array<{ title?: string; url?: string; domain?: string; seendate?: string }> };
+   192→  return (data.articles ?? [])
+   193→    .filter((item) => item.title && item.url)
+   194→    .slice(0, 6)
+   195→    .map((item) => sourceFromUrl(item.title!, item.url!, item.seendate));
+   196→}
+   197→
+   198→async function fetchPageContent(url: string, maxChars = 1200): Promise<string> {
+   199→  try {
+   200→    const res = await fetchWithTimeout(url, { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" } }, 15_000);
+   201→    const html = await res.text();
+   202→
+   203→    // Extraer contenido principal: intentar <article>, luego <main>, luego clases comunes
+   204→    let contentHtml = html;
+   205→    const articleMatch = html.match(/<article\b[^>]*>([\s\S]*?)<\/article>/i);
+   206→    if (articleMatch) {
+   207→      contentHtml = articleMatch[1];
+   208→    } else {
+   209→      const mainMatch = html.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i);
+   210→      if (mainMatch) {
+   211→        contentHtml = mainMatch[1];
+   212→      } else {
+   213→        const classMatch = html.match(/<(?:div|section)\b[^>]*\b(?:class|id)="(?:entry-content|article-body|post-content|story-body|content-body|texto-nota|nota-content|article__content|main-content|nota-texto|content-text)[^"]*"[^>]*>([\s\S]*?)<\/\1>/i);
+   214→        if (classMatch) {
+   215→          contentHtml = classMatch[2] ?? classMatch[1];
+   216→        }
+   217→      }
+   218→    }
+   219→
+   220→    // Si no encontramos nada semántico, buscar la zona con más <p> consecutivos
+   221→    if (contentHtml === html) {
+   222→      const pMatches = html.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi);
+   223→      const paragraphs: string[] = [];
+   224→      for (const m of pMatches) {
+   225→        const text = m[1].replace(/<[^>]+>/g, " ").trim();
+   226→        if (text.length > 40) paragraphs.push(text);
+   227→      }
+   228→      if (paragraphs.length > 0) {
+   229→        contentHtml = paragraphs.slice(0, 8).join(" ");
+   230→      }
+   231→    }
+   232→
+   233→    const text = contentHtml
+   234→      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+   235→      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
+   236→      .replace(/<[^>]+>/g, " ")
+   237→      .replace(/\s+/g, " ")
+   238→      .trim();
+   239→    return text.slice(0, maxChars);
+   240→  } catch {
+   241→    return "";
+   242→  }
+   243→}
+   244→
+   245→export async function runSearch(
+   246→  args: Record<string, unknown>,
+   247→  shopping = false,
+   248→  extractorCtx?: { userInput: string; chatFn: ExtractorChatFn; onDeferredChunk?: (block: UiBlock) => void },
+   249→): Promise<SearchData> {
+   250→  const query = cleanText(args.query, "noticias importantes hoy");
+   251→  const mode = shopping ? "shopping" : cleanText(args.mode, "research") as SearchData["mode"];
+   252→  const expanded = mode === "world"
+   253→    ? `${query} ultimos 30 dias tendencias`
+   254→    : mode === "news"
+   255→      ? `${query} noticias recientes`
+   256→      : shopping
+   257→        ? `${query} precio opiniones entrega`
+   258→        : query;
+   259→  const gdelt = mode === "news" || mode === "world" ? await searchGdelt(expanded).catch(() => []) : [];
+   260→  const duck = gdelt.length ? [] : await searchDuckDuckGo(expanded).catch(() => []);
+   261→  let sources = [...gdelt, ...duck].slice(0, 6);
+   262→  const comparisonItems = shopping
+   263→    ? sources.slice(0, 4).map((source, index) => ({
+   264→        title: source.title,
+   265→        vendor: source.domain,
+   266→        url: source.url,
+   267→        evidence: source.snippet,
+   268→        score: Math.max(55, 88 - index * 8),
+   269→      }))
+   270→    : undefined;
+   271→
+   272→  // Scrape content from first 3 sources for synthesis
+   273→  for (let i = 0; i < Math.min(sources.length, 3); i++) {
+   274→    sources[i].content = await fetchPageContent(sources[i].url, 1200);
+   275→  }
+   276→
+   277→  // ── Extracción de estructura validada (NO BLOQUEANTE) ──
+   278→  // runSearch devuelve inmediatamente con los sources (web_nav). La extracción
+   279→  // corre como promesa diferida que el llamador espera EN PARALELO con la
+   280→  // composición del reply. Así el extractor (~11s) queda oculto detrás del
+   281→  // Composer, no suma latencia al turno. Si encuentra datos validados, se
+   282→  // convierten en un data_card que se adjunta al resultado final.
+   283→  let deferredDataCard: Promise<UiBlock | null> | undefined;
+   284→  if (extractorCtx && !shopping && sources.length > 0) {
+   285→    const sourcesCopy = sources.map((s) => ({ ...s }));
+   286→    const userInput = extractorCtx.userInput;
+   287→    const chatFn = extractorCtx.chatFn;
+   288→    const extractStart = Date.now();
+   289→    deferredDataCard = (async (): Promise<UiBlock | null> => {
+   290→      try {
+   291→        const extracted = await extractStructuredData({ userInput, sources: sourcesCopy, chatFn });
+   292→        logger.info("runSearch", "Structure extraction (deferred)", {
+   293→          extracted: extracted ? `${extracted.items.length} items` : "none",
+   294→          durationMs: Date.now() - extractStart,
+   295→        });
+   296→        if (!extracted || extracted.items.length === 0) return null;
+   297→        return {
+   298→          type: "data_card" as const,
+   299→          title: extracted.title,
+   300→          items: extracted.items.map((it) => ({
+   301→            label: it.label,
+   302→            value: it.value,
+   303→            detail: it.detail,
+   304→            quote: it.quote,
+   305→            sourceUrl: it.sourceUrl,
+   306→            sourceDomain: it.sourceDomain,
+   307→          })),
+   308→        };
+   309→      } catch (err: any) {
+   310→        logger.warn("runSearch", "Deferred structure extraction failed (non-fatal)", { reason: err?.message });
+   311→        return null;
+   312→      }
+   313→    })();
+   314→  }
+   315→
+   316→  return {
+   317→    type: "search",
+   318→    mode,
+   319→    title: shopping ? "Comparativa" : mode === "news" ? "Noticias importantes" : mode === "world" ? "El mundo esta hablando de esto" : "Busqueda",
+   320→    summary: sources.length ? "" : "No pude conseguir fuentes útiles con los conectores abiertos. No inventes resultados.",
+   321→    sources,
+   322→    comparisonItems,
+   323→    deferredDataCard,
+   324→  };
+   325→}
+   326→
+   327→export function planFromState(state: KoruState, args: Record<string, unknown>): PlanData {
+   328→  const openCommitments = state.commitments.filter((item) => item.status === "open").slice(0, 5);
+   329→  const recentRecords = state.records.slice(0, 5);
+   330→  const focus = cleanText(args.focus, "ordenar el dia");
+   331→  const candidates = openCommitments.length
+   332→    ? openCommitments.map((item) => item.title)
+   333→    : recentRecords.length
+   334→      ? recentRecords.map((item) => item.title)
+   335→      : [focus, "Elegir el primer paso", "Cerrar con una accion chica"];
+   336→  const items: AssistantPlanItem[] = candidates.slice(0, 4).map((title, index) => ({
+   337→    time: index === 0 ? "Ahora" : index === 1 ? "+25m" : index === 2 ? "+50m" : "+75m",
+   338→    title: index === 0 ? `Primer paso: ${title}` : title,
+   339→    priority: index === 0 ? "Alta" : index === 1 ? "Media" : "Baja",
+   340→    durationMinutes: index === 0 ? 25 : 15,
+   341→    mode: index === 0 ? "focus" : "quick",
+   342→    rationale: index === 0 ? "Empieza por lo que mas reduce carga mental." : "Lo dejo chico para que no bloquee.",
+   343→  }));
+   344→  return {
+   345→    type: "plan",
+   346→    title: "Plan accionable",
+   347→    items,
+   348→    context: [
+   349→      ...openCommitments.map((item) => `Pendiente: ${item.title} (${item.dueHint})`),
+   350→      ...recentRecords.map((item) => `Dato: ${item.title}`),
+   351→    ].slice(0, 8),
+   352→  };
+   353→}
+   354→
+   355→export function localReminderFromArgs(args: Record<string, unknown>, input = ""): LocalActionData {
+   356→  const title = cleanText(args.title, input || "Recordatorio");
+   357→  const dueText = cleanText(args.dueText ?? args.dueHint ?? args.startsAt, "sin fecha");
+   358→  const note = cleanText(args.note);
+   359→  return {
+   360→    type: "local_action",
+   361→    requiresApproval: true,
+   362→    block: {
+   363→      type: "reminder",
+   364→      title,
+   365→      dueText,
+   366→      note,
+   367→    },
+   368→    commitments: [{ title, dueHint: dueText, status: "open" }],
+   369→    records: [{
+   370→      domain: "capture",
+   371→      kind: "deadline",
+   372→      title,
+   373→      value: title,
+   374→      dueHint: dueText,
+   375→      notes: note,
+   376→    }],
+   377→  };
+   378→}
+   379→
+   380→export function localAlarmFromArgs(args: Record<string, unknown>, input = ""): LocalActionData {
+   381→  const title = cleanText(args.title, input || "Alarma");
+   382→  const time = cleanText(args.time ?? args.startsAt ?? args.hour) || timeFromText(`${title} ${cleanText(args.note)} ${cleanText(args.dueText)}`) || "hora pendiente";
+   383→  const repeat = cleanText(args.repeat);
+   384→  const note = cleanText(args.note);
+   385→  return {
+   386→    type: "local_action",
+   387→    requiresApproval: true,
+   388→    block: {
+   389→      type: "alarm",
+   390→      title,
+   391→      time,
+   392→      repeat,
+   393→      note,
+   394→    },
+   395→    commitments: [{ title, dueHint: time, status: "open" }],
+   396→    records: [{
+   397→      domain: "capture",
+   398→      kind: "deadline",
+   399→      title,
+   400→      value: title,
+   401→      dueHint: time,
+   402→      notes: note,
+   403→    }],
+   404→  };
+   405→}
+   406→
+   407→function isRecordInPeriod(record: LifeRecord, period: string): boolean {
+   408→  const normalized = plainLower(period);
+   409→  if (!normalized || !record.createdAt) return true;
+   410→  const created = new Date(record.createdAt);
+   411→  if (Number.isNaN(created.getTime())) return true;
+   412→  const now = new Date();
+   413→  const ageMs = now.getTime() - created.getTime();
+   414→  if (/\bhoy|today\b/.test(normalized)) return ageMs >= 0 && ageMs <= 36 * 60 * 60 * 1000;
+   415→  if (/\bsemana|week\b/.test(normalized)) return ageMs >= 0 && ageMs <= 8 * 24 * 60 * 60 * 1000;
+   416→  if (/\bmes|month\b/.test(normalized)) return ageMs >= 0 && ageMs <= 32 * 24 * 60 * 60 * 1000;
+   417→  return true;
+   418→}
+   419→
+   420→function rowsFromRecords(records: LifeRecord[]): NonNullable<Extract<UiBlock, { type: "activity_group" }>["sections"][number]["rows"]> {
+   421→  return records.slice(0, 8).map((record) => ({
+   422→    title: record.title,
+   423→    detail: [record.value && record.value !== record.title ? record.value : undefined, record.notes].filter(Boolean).join(" - "),
+   424→    meta: [record.person, record.dueHint, record.amount !== undefined ? `${record.amount} ${record.currency || ""}`.trim() : undefined].filter(Boolean).join(" · "),
+   425→    actionLabel: record.url ? "Abrir" : undefined,
+   426→  }));
+   427→}
+   428→
+   429→function emptyContextBlock(title: string, _note: string): Extract<UiBlock, { type: "activity_group" }> {
+   430→  return {
+   431→    type: "activity_group",
+   432→    title,
+   433→    subtitle: "No tengo datos guardados para eso todavia.",
+   434→    sections: [
+   435→      {
+   436→        title: "Siguiente paso",
+   437→        tone: "neutral",
+   438→        rows: [{ title: _note }],
+   439→      },
+   440→    ],
+   441→    note: _note,
+   442→  };
+   443→}
+   444→
+   445→function recordSearchText(record: LifeRecord): string {
+   446→  return [
+   447→    record.kind,
+   448→    record.domain,
+   449→    record.title,
+   450→    record.value,
+   451→    record.notes,
+   452→    record.url,
+   453→    record.collection,
+   454→    record.person,
+   455→    ...(record.tags ?? []),
+   456→  ].filter(Boolean).join(" ");
+   457→}
+   458→
+   459→function queryTokens(query: string): string[] {
+   460→  return plainLower(query)
+   461→    .replace(/[^\p{L}\p{N}\s:/._-]+/gu, " ")
+   462→    .split(/\s+/)
+   463→    .map((token) => token.trim())
+   464→    .filter((token) => token.length > 1 && !["que", "con", "por", "sin", "mas", "los", "las", "del", "una", "uno", "mis", "tengo", "sobre", "guarde", "guardado", "guardaste"].includes(token));
+   465→}
+   466→
+   467→function semanticRecordMatches(records: LifeRecord[], query: string, limit = 8): LifeRecord[] {
+   468→  const tokens = queryTokens(query);
+   469→  if (!tokens.length) return [];
+   470→  return records
+   471→    .map((record) => {
+   472→      const haystack = plainLower(recordSearchText(record));
+   473→      const score = tokens.reduce((sum, token) => sum + (haystack.includes(token) ? 1 : 0), 0);
+   474→      return { record, score };
+   475→    })
+   476→    .filter((item) => item.score > 0)
+   477→    .sort((a, b) => b.score - a.score)
+   478→    .map((item) => item.record)
+   479→    .slice(0, limit);
+   480→}
+   481→
+   482→function uniqueLifeRecords(records: LifeRecord[]): LifeRecord[] {
+   483→  const seen = new Set<string>();
+   484→  return records.filter((record) => {
+   485→    const key = `${record.id}|${record.domain}|${record.kind}|${plainLower(record.title)}|${plainLower(record.value ?? "")}|${plainLower(record.url ?? "")}`;
+   486→    if (seen.has(key)) return false;
+   487→    seen.add(key);
+   488→    return true;
+   489→  });
+   490→}
+   491→
+   492→export function queryPersonalContextFromState(state: KoruState, args: Record<string, unknown>): PersonalQueryData {
+   493→  const topic = cleanText(args.topic, "general");
+   494→  const query = cleanText(args.query, cleanText(args.__userInput));
+   495→  const period = cleanText(args.period);
+   496→  const records = state.records.filter((record) => isRecordInPeriod(record, period));
+   497→
+   498→  if (topic === "expenses") {
+   499→    const expenses = records.filter((record) => record.kind === "expense");
+   500→    if (!expenses.length) {
+   501→      return {
+   502→        type: "personal_query",
+   503→        block: {
+   504→          type: "money_summary",
+   505→          title: "Gastos",
+   506→          summaryItems: [{ label: "Registros", value: "0" }],
+   507→          recommendation: "No tengo gastos guardados para ese periodo. Si me decis uno, lo anoto y despues puedo sumarlo.",
+   508→        },
+   509→      };
+   510→    }
+   511→    const currency = expenses.find((record) => record.currency)?.currency || "EUR";
+   512→    const withAmount = expenses.filter((record) => typeof record.amount === "number");
+   513→    const total = withAmount.reduce((sum, record) => sum + (record.amount ?? 0), 0);
+   514→    return {
+   515→      type: "personal_query",
+   516→      block: {
+   517→        type: "money_summary",
+   518→        title: "Gastos registrados",
+   519→        total: withAmount.length ? Number(total.toFixed(2)) : undefined,
+   520→        currency,
+   521→        summaryItems: [
+   522→          { label: "Con monto", value: String(withAmount.length), detail: `${expenses.length} registro(s) en total` },
+   523→          ...(expenses.length - withAmount.length > 0 ? [{ label: "Sin monto", value: String(expenses.length - withAmount.length), detail: "Los cuento, pero no los sumo." }] : []),
+   524→        ],
+   525→        recommendation: withAmount.length
+   526→          ? `Tengo registrado ${Number(total.toFixed(2))} ${currency} en ${withAmount.length} gasto(s).`
+   527→          : "Tengo gastos guardados, pero sin monto. No invento el total.",
+   528→      },
+   529→    };
+   530→  }
+   531→
+   532→  if (topic === "food_inventory") {
+   533→    const food = records.filter((record) => record.kind === "meal_inventory");
+   534→    if (!food.length) return { type: "personal_query", block: { type: "saved_record", title: "Comida en casa", records: [] } };
+   535→    return {
+   536→      type: "personal_query",
+   537→      block: {
+   538→        type: "activity_group",
+   539→        title: "Comida en casa",
+   540→        subtitle: `Tengo ${food.length} cosa(s) guardadas.`,
+   541→        sections: [
+   542→          {
+   543→            title: "Disponible",
+   544→            tone: "green",
+   545→            tiles: food.slice(0, 6).map((record) => ({
+   546→              kind: "food" as const,
+   547→              label: "En casa",
+   548→              value: record.title,
+   549→              detail: record.notes || record.value,
+   550→            })),
+   551→          },
+   552→          {
+   553→            title: "Ideas rapidas",
+   554→            tone: "amber",
+   555→            rows: [{ title: `Con ${food.slice(0, 3).map((record) => record.title).join(", ")} podes armar algo simple sin comprar primero.` }],
+   556→          },
+   557→        ],
+   558→      },
+   559→    };
+   560→  }
+   561→
+   562→  if (topic === "shopping_list") {
+   563→    const shopping = records.filter((record) => record.kind === "shopping_item");
+   564→    if (!shopping.length) return { type: "personal_query", block: emptyContextBlock("Compras", "No tengo una lista de compras activa guardada.") };
+   565→    const items = shopping.map((record) => record.title).filter(Boolean).slice(0, 30);
+   566→    return {
+   567→      type: "personal_query",
+   568→      block: {
+   569→        type: "shopping_list",
+   570→        title: "Lista del super",
+   571→        items,
+   572→        note: "La arme desde tus pendientes guardados.",
+   573→      },
+   574→    };
+   575→  }
+   576→
+   577→  if (topic === "pending_tasks") {
+   578→    const open = state.commitments.filter((item) => item.status === "open").slice(0, 8);
+   579→    if (!open.length) return { type: "personal_query", block: emptyContextBlock("Pendientes", "No veo pendientes abiertos. Si queres, tirame una descarga de cosas y las ordeno.") };
+   580→    return {
+   581→      type: "personal_query",
+   582→      block: {
+   583→        type: "plan",
+   584→        title: "Pendientes abiertos",
+   585→        items: open.map((item, index) => ({
+   586→          time: index === 0 ? "Ahora" : undefined,
+   587→          title: item.title,
+   588→          priority: index === 0 ? "Alta" : index < 3 ? "Media" : "Baja",
+   589→          durationMinutes: index === 0 ? 25 : 10,
+   590→          mode: index === 0 ? "focus" : "quick",
+   591→          rationale: item.dueHint,
+   592→        })),
+   593→        note: "Los ordene desde lo que Koru tiene guardado.",
+   594→      },
+   595→    };
+   596→  }
+   597→
+   598→  const kindByTopic: Record<string, LifeRecord["kind"][]> = {
+   599→    saved_links: ["tool_link"],
+   600→    health: ["medication", "medical_info", "sleep"],
+   601→    relationships: ["person_followup", "gift", "birthday"],
+   602→    memory: [],
+   603→    general: ["idea", "recommendation", "deadline", "home_task", "meeting_note", "decision"],
+   604→  };
+   605→
+   606→  if (topic === "memory") {
+   607→    const useful = state.memories
+   608→      .filter((memory) => memory.status !== "rejected" && memory.useForSuggestions !== false)
+   609→      .slice(0, 8);
+   610→    if (!useful.length) return { type: "personal_query", block: { type: "saved_record", title: "Memoria", records: [] } };
+   611→    return {
+   612→      type: "personal_query",
+   613→      block: {
+   614→        type: "activity_group",
+   615→        title: "Lo que tengo presente",
+   616→        subtitle: `${useful.length} recuerdo(s) utiles.`,
+   617→        sections: [
+   618→          {
+   619→            title: "Memoria",
+   620→            tone: "purple",
+   621→            rows: useful.map((memory) => ({
+   622→              title: memory.text,
+   623→              meta: memory.kind,
+   624→              detail: memory.rootQuote,
+   625→            })),
+   626→          },
+   627→        ],
+   628→      },
+   629→    };
+   630→  }
+   631→
+   632→  if (topic === "relationships") {
+   633→    const relationshipRecords = records.filter((record) => ["person_followup", "gift", "birthday"].includes(record.kind));
+   634→    const relationshipMemories = state.memories
+   635→      .filter((memory) => memory.status !== "rejected" && memory.useForSuggestions !== false)
+   636→      .filter((memory) => memory.kind === "relationship" || semanticRecordMatches([{
+   637→        id: memory.id,
+   638→        domain: "relationship",
+   639→        kind: "person_followup",
+   640→        title: memory.text,
+   641→        value: memory.rootQuote,
+   642→        createdAt: memory.createdAt,
+   643→        sourceEntryId: memory.sourceEntryId,
+   644→      }], query, 1).length > 0)
+   645→      .slice(0, 8);
+   646→    const semanticRelationships = semanticRecordMatches(records, query).filter((record) => record.domain === "relationship" || ["person_followup", "gift", "birthday"].includes(record.kind));
+   647→    const finalRecords = uniqueLifeRecords([...relationshipRecords, ...semanticRelationships]).slice(0, 8);
+   648→    if (!finalRecords.length && !relationshipMemories.length) {
+   649→      return { type: "personal_query", block: emptyContextBlock("Relaciones", "No encontre datos guardados sobre esa persona todavia.") };
+   650→    }
+   651→    return {
+   652→      type: "personal_query",
+   653→      block: {
+   654→        type: "activity_group",
+   655→        title: "Relaciones",
+   656→        subtitle: `${finalRecords.length + relationshipMemories.length} dato(s) para tener en cuenta.`,
+   657→        sections: [
+   658→          ...(finalRecords.length ? [{
+   659→            title: "Guardado",
+   660→            tone: "purple" as const,
+   661→            rows: rowsFromRecords(finalRecords),
+   662→          }] : []),
+   663→          ...(relationshipMemories.length ? [{
+   664→            title: "Memoria",
+   665→            tone: "purple" as const,
+   666→            rows: relationshipMemories.map((memory) => ({
+   667→              title: memory.text,
+   668→              detail: memory.rootQuote,
+   669→              meta: memory.kind,
+   670→            })),
+   671→          }] : []),
+   672→        ],
+   673→      },
+   674→    };
+   675→  }
+   676→
+   677→  const acceptedKinds = kindByTopic[topic] ?? kindByTopic.general;
+   678→  const queryLower = plainLower(query);
+   679→  const semanticMatches = semanticRecordMatches(records, query);
+   680→  const matching = topic === "saved_links"
+   681→    ? records.filter((record) =>
+   682→        record.kind === "tool_link" ||
+   683→        Boolean(record.url) ||
+   684→        Boolean(record.collection && queryLower.includes(plainLower(record.collection))) ||
+   685→        Boolean(record.tags?.some((tag) => queryLower.includes(plainLower(tag))))
+   686→      )
+   687→    : topic === "general"
+   688→      ? (query ? [] : records)
+   689→      : acceptedKinds.length ? records.filter((record) => acceptedKinds.includes(record.kind)) : records;
+   690→  const finalMatches = uniqueLifeRecords([...matching, ...semanticMatches]).slice(0, 8);
+   691→  if (!finalMatches.length) return { type: "personal_query", block: { type: "saved_record", title: "Contexto guardado", records: [] } };
+   692→  return {
+   693→    type: "personal_query",
+   694→    block: {
+   695→      type: "activity_group",
+   696→      title: topic === "saved_links" ? "Enlaces guardados" : topic === "health" ? "Salud" : topic === "relationships" ? "Relaciones" : "Contexto guardado",
+   697→      subtitle: `${finalMatches.length} dato(s) encontrados.`,
+   698→      sections: [
+   699→        {
+   700→          title: "Guardado",
+   701→          tone: topic === "health" ? "blue" : topic === "relationships" ? "purple" : "neutral",
+   702→          rows: rowsFromRecords(finalMatches),
+   703→        },
+   704→      ],
+   705→    },
+   706→  };
+   707→}
+   708→
+   709→function inputMentionsValue(input: string, value: string): boolean {
+   710→  if (!value) return false;
+   711→  return plainLower(input).includes(plainLower(value));
+   712→}
+   713→
+   714→function argsWithCaptureHygiene(args: Record<string, unknown>, input: string): Record<string, unknown> {
+   715→  const next = { ...args };
+   716→  let uiBlockType = cleanText(next.uiBlockType);
+   717→  let recordKind = cleanText(next.recordKind);
+   718→  const collection = cleanText(next.collection);
+   719→  const title = cleanText(next.title);
+   720→  const items = asArray(next.items).map((item) => cleanText(item)).filter(Boolean);
+   721→  const inputLower = plainLower(input);
+   722→
+   723→  if (collection && !inputMentionsValue(input, collection) && !/\b(esa|ahi|alli|misma|mismo|carpeta|coleccion)\b/i.test(inputLower)) {
+   724→    delete next.collection;
+   725→  }
+   726→
+   727→  if (uiBlockType === "shopping_list" || recordKind === "shopping_item") {
+   728→    next.uiBlockType = "shopping_list";
+   729→    next.recordKind = "shopping_item";
+   730→    next.domain = "home";
+   731→    uiBlockType = "shopping_list";
+   732→    recordKind = "shopping_item";
+   733→    if (!items.length && title) next.items = [title];
+   734→    if (!inputMentionsValue(input, cleanText(next.collection))) delete next.collection;
+   735→  }
+   736→
+   737→  if (recordKind === "meal_inventory") {
+   738→    next.uiBlockType = "saved_record";
+   739→    next.recordKind = "meal_inventory";
+   740→    next.domain = "home";
+   741→    uiBlockType = "saved_record";
+   742→    recordKind = "meal_inventory";
+   743→  }
+   744→
+   745→  if ((uiBlockType === "money_summary" || recordKind === "expense") && asArray(next.expenses).length) {
+   746→    next.uiBlockType = "money_summary";
+   747→    next.recordKind = "expense";
+   748→    next.domain = "money";
+   749→    uiBlockType = "money_summary";
+   750→    recordKind = "expense";
+   751→  }
+   752→
+   753→  return next;
+   754→}
+   755→
+   756→export function memoryCaptureFromArgs(args: Record<string, unknown>, input = ""): MemoryCaptureData {
+   757→  const memories = asArray(args.memories).map(asRecord).map((item) => {
+   758→    const kind = ["profile", "routine", "preference", "goal", "relationship", "boundary", "retail", "wellbeing", "task"].includes(cleanText(item.kind))
+   759→      ? cleanText(item.kind) as MemoryFact["kind"]
+   760→      : "profile";
+   761→    const sensitivity = cleanText(item.sensitivity) === "sensitive" ? "sensitive" as const : "normal" as const;
+   762→    return {
+   763→      kind,
+   764→      text: cleanText(item.text),
+   765→      confidence: 0.84,
+   766→      sensitivity,
+   767→      status: "candidate" as const,
+   768→      rootQuote: cleanText(item.rootQuote ?? item.root_quote, input),
+   769→      useForSuggestions: item.useForSuggestions === false || item.use_for_suggestions === false ? false : sensitivity !== "sensitive",
+   770→    };
+   771→  }).filter((memory) => memory.text.length > 4).slice(0, 8);
+   772→  return { type: "memory_capture", memoryCandidates: memories };
+   773→}
+   774→
+   775→export function personalCaptureFromArgs(args: Record<string, unknown>, input = ""): PersonalCaptureData {
+   776→  const cleanArgs = argsWithCaptureHygiene(args, input);
+   777→  const requestedType = cleanText(cleanArgs.uiBlockType, "saved_record");
+   778→  const uiBlockType = ["reminder", "alarm", "shopping_list", "saved_record", "money_summary", "birthday_calendar", "birthday_alarm", "social_interaction"].includes(requestedType)
+   779→    ? requestedType
+   780→    : "saved_record";
+   781→  const title = cleanText(cleanArgs.title, input || "Dato guardado");
+   782→  const dueText = cleanText(cleanArgs.dueText);
+   783→  const note = cleanText(cleanArgs.note);
+   784→  const time = cleanText(cleanArgs.time) || timeFromText(`${cleanText(cleanArgs.time)} ${cleanText(cleanArgs.dueText)}`) || "";
+   785→  const repeat = cleanText(cleanArgs.repeat);
+   786→  const domain = ["morning", "work", "money", "health", "relationship", "home", "interest", "capture"].includes(cleanText(cleanArgs.domain))
+   787→    ? cleanText(cleanArgs.domain) as LifeRecord["domain"]
+   788→    : "capture";
+   789→  const url = cleanText(cleanArgs.url);
+   790→  const collection = cleanText(cleanArgs.collection);
+   791→  const tags = [
+   792→    ...asArray(cleanArgs.tags).map((tag) => cleanText(tag)).filter(Boolean),
+   793→    ...(collection ? [collection] : []),
+   794→  ];
+   795→  const remembered = cleanText(cleanArgs.rememberAs);
+   796→  const requestedMemoryKind = cleanText(cleanArgs.memoryKind);
+   797→  const memoryKind = ["profile", "routine", "preference", "goal", "relationship", "boundary", "retail", "wellbeing", "task"].includes(requestedMemoryKind)
+   798→    ? requestedMemoryKind as MemoryFact["kind"]
+   799→    : "profile";
+   800→  const memorySensitivity = cleanText(cleanArgs.sensitivity) === "sensitive" ? "sensitive" as const : "normal" as const;
+   801→  const memoryCandidates: Omit<MemoryFact, "id" | "createdAt" | "sourceEntryId">[] = remembered
+   802→    ? [{
+   803→        kind: memoryKind,
+   804→        text: remembered,
+   805→        confidence: 0.82,
+   806→        sensitivity: memorySensitivity,
+   807→        status: "candidate",
+   808→        rootQuote: input || remembered,
+   809→        useForSuggestions: cleanArgs.useForSuggestions === false ? false : memorySensitivity !== "sensitive",
+   810→      }]
+   811→    : [];
+   812→  const recordKind = url
+   813→    ? "tool_link"
+   814→    : ["expense", "medication", "meal_inventory", "tool_link", "meeting_note", "deadline", "person_followup", "gift", "birthday", "home_task", "shopping_item", "idea", "recommendation", "medical_info", "sleep", "decision"].includes(cleanText(cleanArgs.recordKind))
+   815→    ? cleanText(cleanArgs.recordKind) as LifeRecord["kind"]
+   816→    : uiBlockType === "shopping_list"
+   817→      ? "shopping_item"
+   818→      : uiBlockType === "money_summary"
+   819→        ? "expense"
+   820→        : "idea";
+   821→  const items = asArray(cleanArgs.items).map((item) => cleanText(item)).filter(Boolean);
+   822→  const amount = typeof cleanArgs.amount === "number" ? cleanArgs.amount : undefined;
+   823→  const currency = cleanText(cleanArgs.currency) || (amount !== undefined ? "EUR" : "");
+   824→  const expenses = asArray(cleanArgs.expenses).map(asRecord).map((expense) => ({
+   825→    title: cleanText(expense.title),
+   826→    amount: typeof expense.amount === "number" ? expense.amount : undefined,
+   827→    currency: cleanText(expense.currency, currency || "EUR"),
+   828→    notes: cleanText(expense.notes),
+   829→    tags: asArray(expense.tags).map((tag) => cleanText(tag)).filter(Boolean),
+   830→  })).filter((expense): expense is { title: string; amount: number; currency: string; notes: string; tags: string[] } => Boolean(expense.title && expense.amount !== undefined));
+   831→  const effectiveUiBlockType = recordKind === "expense" && amount !== undefined ? "money_summary" : uiBlockType;
+   832→  const baseRecord: Omit<LifeRecord, "id" | "createdAt" | "sourceEntryId"> = {
+   833→    domain,
+   834→    kind: recordKind,
+   835→    title,
+   836→    value: items.length ? items.join(", ") : title,
+   837→    amount,
+   838→    currency,
+   839→    person: cleanText(cleanArgs.person),
+   840→    url,
+   841→    collection,
+   842→    dueHint: dueText,
+   843→    notes: note,
+   844→    tags,
+   845→  };
+   846→
+   847→  if (effectiveUiBlockType === "alarm") {
+   848→    return {
+   849→      type: "personal_capture",
+   850→      block: { type: "alarm", title, time: time || dueText || "hora pendiente", repeat, note },
+   851→      commitments: [{ title, dueHint: time || dueText || "hora pendiente", status: "open" }],
+   852→      records: [baseRecord],
+   853→      memoryCandidates,
+   854→    };
+   855→  }
+   856→
+   857→  if (effectiveUiBlockType === "reminder") {
+   858→    return {
+   859→      type: "personal_capture",
+   860→      block: { type: "reminder", title, dueText, note },
+   861→      commitments: [{ title, dueHint: dueText || "sin fecha", status: "open" }],
+   862→      records: [baseRecord],
+   863→      memoryCandidates,
+   864→    };
+   865→  }
+   866→
+   867→  if (effectiveUiBlockType === "birthday_calendar") {
+   868→    const personName = cleanText(cleanArgs.person) || title;
+   869→    return {
+   870→      type: "personal_capture",
+   871→      block: {
+   872→        type: "birthday_calendar",
+   873→        month: dueText || "Junio 2025",
+   874→        highlightedDay: typeof cleanArgs.highlightedDay === "number" ? cleanArgs.highlightedDay : 12,
+   875→        startDay: typeof cleanArgs.startDay === "number" ? cleanArgs.startDay : 6,
+   876→        daysInMonth: typeof cleanArgs.daysInMonth === "number" ? cleanArgs.daysInMonth : 13,
+   877→      },
+   878→      records: [{ ...baseRecord, title: `Cumpleaños de ${personName}`, kind: "birthday" }],
+   879→      memoryCandidates,
+   880→    };
+   881→  }
+   882→
+   883→  if (effectiveUiBlockType === "birthday_alarm") {
+   884→    const personName = cleanText(cleanArgs.person) || title;
+   885→    return {
+   886→      type: "personal_capture",
+   887→      block: {
+   888→        type: "birthday_alarm",
+   889→        name: `Cumpleaños ${personName}`,
+   890→        date: dueText || "12 jul",
+   891→        countdown: cleanText(cleanArgs.countdown, "08"),
+   892→        unit: cleanText(cleanArgs.unit, "días"),
+   893→        eta: time || "En 30m",
+   894→      },
+   895→      records: [{ ...baseRecord, title: `Cumpleaños de ${personName}`, kind: "birthday" }],
+   896→      memoryCandidates,
+   897→    };
+   898→  }
+   899→
+   900→  if (effectiveUiBlockType === "social_interaction") {
+   901→    const personName = cleanText(cleanArgs.person) || title;
+   902→    return {
+   903→      type: "personal_capture",
+   904→      block: {
+   905→        type: "social_interaction",
+   906→        name: personName,
+   907→        date: dueText || "12 jul",
+   908→        remaining: cleanText(cleanArgs.remaining, "Faltan 8 días"),
+   909→        gifts: (asArray(cleanArgs.gifts).map((g) => cleanText(g)).filter(Boolean).length
+   910→          ? asArray(cleanArgs.gifts).map((g) => ({ emoji: "🎁", title: cleanText(g), detail: "" }))
+   911→          : [{ emoji: "🎁", title: "Regalo pendiente", detail: "" }]),
+   912→      },
+   913→      records: [{ ...baseRecord, title: `Evento social: ${personName}`, kind: "person_followup" }],
+   914→      memoryCandidates,
+   915→    };
+   916→  }
+   917→
+   918→  if (effectiveUiBlockType === "shopping_list") {
+   919→    const shoppingItems = items.length ? items : [title];
+   920→    return {
+   921→      type: "personal_capture",
+   922→      block: { type: "shopping_list", title: cleanText(cleanArgs.listTitle, "Lista de compras"), items: shoppingItems, dueText, note },
+   923→      commitments: [{ title: `Comprar ${shoppingItems.join(", ")}`, dueHint: dueText || "proxima compra", status: "open" }],
+   924→      records: shoppingItems.map((item) => ({
+   925→      domain: "home",
+   926→      kind: "shopping_item",
+   927→      title: item,
+   928→      value: item,
+   929→      collection,
+   930→      dueHint: dueText,
+   931→      notes: note,
+   932→      tags,
+   933→      })),
+   934→      memoryCandidates,
+   935→    };
+   936→  }
+   937→
+   938→  if (recordKind === "meal_inventory") {
+   939→    const inventoryItems = items.length ? items : [title];
+   940→    const records = inventoryItems.map((item) => ({
+   941→      domain: "home" as const,
+   942→      kind: "meal_inventory" as const,
+   943→      title: item,
+   944→      value: item,
+   945→      collection,
+   946→      notes: note,
+   947→      tags,
+   948→    }));
+   949→    return {
+   950→      type: "personal_capture",
+   951→      block: { type: "saved_record", title: collection || "Comida en casa", records },
+   952→      records,
+   953→      memoryCandidates,
+   954→    };
+   955→  }
+   956→
+   957→  if (expenses.length) {
+   958→    const total = Number(expenses.reduce((sum, expense) => sum + expense.amount, 0).toFixed(2));
+   959→    const expenseRecords = expenses.map((expense) => ({
+   960→      domain: "money" as const,
+   961→      kind: "expense" as const,
+   962→      title: expense.title,
+   963→      value: expense.title,
+   964→      amount: expense.amount,
+   965→      currency: expense.currency,
+   966→      notes: expense.notes,
+   967→      tags: expense.tags,
+   968→    }));
+   969→    return {
+   970→      type: "personal_capture",
+   971→      block: {
+   972→        type: "money_summary",
+   973→        title: cleanText(cleanArgs.summaryTitle, "Gastos anotados"),
+   974→        total,
+   975→        currency: expenses[0]?.currency || "EUR",
+   976→        summaryItems: expenses.map((expense) => ({ label: expense.title, value: `${expense.amount} ${expense.currency}`, detail: expense.notes })),
+   977→        recommendation: note || `${expenses.length} gasto(s) registrados.`,
+   978→      },
+   979→      records: expenseRecords,
+   980→      memoryCandidates,
+   981→    };
+   982→  }
+   983→
+   984→  if (effectiveUiBlockType === "money_summary") {
+   985→    return {
+   986→      type: "personal_capture",
+   987→      block: {
+   988→        type: "money_summary",
+   989→        title: cleanText(cleanArgs.summaryTitle, "Gasto anotado"),
+   990→        total: amount,
+   991→        currency: currency || "EUR",
+   992→        recommendation: note || title,
+   993→      },
+   994→      records: [{ ...baseRecord, domain: "money", kind: "expense" }],
+   995→      memoryCandidates,
+   996→    };
+   997→  }
+   998→
+   999→  return {
+  1000→    type: "personal_capture",
+  1001→    block: { type: "saved_record", title: collection || "Guardado", records: [baseRecord] },
+  1002→    records: [baseRecord],
+  1003→    memoryCandidates: [
+  1004→      ...memoryCandidates,
+  1005→      ...(recordKind === "idea" || recordKind === "recommendation"
+  1006→        ? [{ kind: "preference" as const, text: title, confidence: 0.65, sensitivity: "normal" as const, status: "candidate" as const, rootQuote: title, useForSuggestions: true }]
+  1007→        : []),
+  1008→    ],
+  1009→  };
+  1010→}
+  1011→

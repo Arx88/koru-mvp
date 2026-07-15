@@ -1,0 +1,62 @@
+[
+  {
+    "id": "f01",
+    "ok": true,
+    "elapsed": 5260,
+    "input": "y de eso?",
+    "reply": "No tengo el contexto de qué películas te recomendé antes. ¿Querés que te busque info de alguna en particular o te doy opciones nuevas? Te dejé el detalle en la tarjeta.",
+    "quality": 10,
+    "issues": [],
+    "tools": [
+      "web_search"
+    ],
+    "blocks": [
+      "movie_review"
+    ],
+    "memories": 0,
+    "commitments": 0
+  },
+  {
+    "id": "f02",
+    "ok": true,
+    "elapsed": 5170,
+    "input": "de suspenso nada mas",
+    "reply": "Te dejé en la tarjeta las mejores de suspenso de 2024-2025. Destaco *Civil War* (Garland, tensión pura), *Conclave* (thriller papal con Fiennes), y *Sinners* (Coogler, vampiros en los 30).",
+    "quality": 10,
+    "issues": [],
+    "tools": [
+      "web_search"
+    ],
+    "blocks": [
+      "deliverable"
+    ],
+    "memories": 0,
+    "commitments": 0
+  },
+  {
+    "id": "f03",
+    "ok": true,
+    "elapsed": 5196,
+    "input": "otra",
+    "reply": "Te recomiendo **Parásitos** (2019). Thriller coreano brillante, ganó el Oscar a mejor película. Tensa, con giros y una crítica social afilada.",
+    "quality": 10,
+    "issues": [],
+    "tools": [],
+    "blocks": [],
+    "memories": 0,
+    "commitments": 0
+  },
+  {
+    "id": "f04",
+    "ok": true,
+    "elapsed": 5191,
+    "input": "q es eso",
+    "reply": "No te recomendé nada todavía, fue un mensaje automático. ¿Qué estás buscando? ¿Una película, serie, receta, restaurante, algo para leer?",
+    "quality": 10,
+    "issues": [],
+    "tools": [],
+    "blocks": [],
+    "memories": 0,
+    "commitments": 0
+  }
+]

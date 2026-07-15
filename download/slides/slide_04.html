@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Koru — Onboarding paso 3 · Confirmación y memoria</title>
+  <link rel="stylesheet" href="global.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet">
+  <style>
+    .phone-tall {
+      width: 280px;
+      height: 540px;
+      border-radius: 32px;
+      overflow: hidden;
+      background: #453f6a;
+      box-shadow: 0 22px 60px rgba(0,0,0,.55), 0 0 0 6px #0c0a1e;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .phone-tall img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .bullet-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      color: var(--text-soft);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    .bullet-row .material-symbols-outlined {
+      color: var(--accent);
+      font-size: 20px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .glow {
+      position: absolute;
+      width: 540px;
+      height: 540px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(110, 231, 183, 0.12) 0%, rgba(110, 231, 183, 0) 70%);
+      filter: blur(60px);
+      top: -260px;
+      right: -160px;
+      pointer-events: none;
+      z-index: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="slide" style="padding: 56px 72px;">
+    <div class="glow" data-decor aria-hidden="true"></div>
+
+    <div class="relative z-10 flex" style="gap: 48px; align-items: stretch;">
+
+      <!-- LEFT: text column -->
+      <div class="flex flex-col" style="width: 45%; padding-top: 6px;">
+        <div class="badge-ok" style="align-self: flex-start; margin-bottom: 18px;">
+          <span class="material-symbols-outlined" style="font-size: 14px;">verified</span>
+          PASO 03
+        </div>
+
+        <h1 style="color: var(--text); font-size: 26px; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em;">
+          Confirmación y memoria
+        </h1>
+
+        <p style="color: var(--text-soft); font-size: 14px; line-height: 1.6; margin-top: 16px; margin-bottom: 24px;">
+          Cuando respondés tu nombre, Koru lo confirma con calidez y te muestra qué guardó en memoria. Una card verde dentro de la burbuja dice exactamente qué aprendió. Así el usuario sabe que Koru no inventa — solo guarda lo que él le dijo.
+        </p>
+
+        <div class="flex flex-col" style="gap: 14px;">
+          <div class="bullet-row">
+            <span class="material-symbols-outlined">check_circle</span>
+            <span>Card verde confirma qué se guardó en memoria</span>
+          </div>
+          <div class="bullet-row">
+            <span class="material-symbols-outlined">check_circle</span>
+            <span>Transparencia total: el usuario ve qué sabe Koru</span>
+          </div>
+          <div class="bullet-row">
+            <span class="material-symbols-outlined">check_circle</span>
+            <span>No hay form estático — todo es conversación</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: phone column -->
+      <div class="flex flex-col items-center justify-center" style="width: 55%;">
+        <div class="phone-tall">
+          <img src="MOCKUP-onboarding-3-confirm.png" alt="Onboarding paso 3: confirmación y card de memoria">
+        </div>
+        <div style="color: var(--text-muted); font-size: 11px; text-align: center; margin-top: 14px; letter-spacing: 0.04em;">
+          Paso 3: Koru confirma + card de memoria visible
+        </div>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>

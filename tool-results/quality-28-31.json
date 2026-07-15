@@ -1,0 +1,75 @@
+[
+  {
+    "id": "rcp-01",
+    "ok": true,
+    "elapsed": 5257,
+    "input": "tengo pollo y arroz q hago",
+    "reply": "Tuve un problema para armar la respuesta. ¿Me lo repetís de otra forma para ayudarte bien?",
+    "blocks": [],
+    "tools": [
+      "web_search"
+    ],
+    "memories": 0,
+    "commitments": 0,
+    "intentOk": false,
+    "qualityScore": 5,
+    "issues": [
+      "GENERIC_ERROR",
+      "NO_BLOCK"
+    ]
+  },
+  {
+    "id": "rcp-02",
+    "ok": true,
+    "elapsed": 5186,
+    "input": "algo rapido de cenar",
+    "reply": "No pude armar una respuesta clara. ¿Me lo repetís de otra forma?",
+    "blocks": [],
+    "tools": [],
+    "memories": 0,
+    "commitments": 0,
+    "intentOk": true,
+    "qualityScore": 5,
+    "issues": [
+      "GENERIC_ERROR",
+      "NO_BLOCK"
+    ]
+  },
+  {
+    "id": "rcp-03",
+    "ok": true,
+    "elapsed": 5187,
+    "input": "tengo ganas de pasta",
+    "reply": "Tuve un problema para armar la respuesta. ¿Me lo repetís de otra forma para ayudarte bien?",
+    "blocks": [],
+    "tools": [
+      "web_search"
+    ],
+    "memories": 0,
+    "commitments": 0,
+    "intentOk": false,
+    "qualityScore": 5,
+    "issues": [
+      "GENERIC_ERROR",
+      "NO_BLOCK"
+    ]
+  },
+  {
+    "id": "rcp-04",
+    "ok": true,
+    "elapsed": 5181,
+    "input": "tirame algo con lo q tengo en la heladera",
+    "reply": "No tengo nada guardado de lo que tenés en la heladera. Decime qué ingredientes tenés a mano y te busco algo rico para hacer.",
+    "blocks": [
+      "saved_record"
+    ],
+    "tools": [
+      "memory_recall"
+    ],
+    "memories": 0,
+    "commitments": 0,
+    "intentOk": true,
+    "qualityScore": 10,
+    "issues": []
+  }
+]

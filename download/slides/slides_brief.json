@@ -1,0 +1,105 @@
+{
+  "design": {
+    "title": "Koru — UX Audit & Mejoras v3 (Deep)",
+    "style_name": "Koru DNA (noche violeta + lila + menta)",
+    "palette": {"background": "#14102a", "primary": "#8363F9", "accent": "#6ee7b7"},
+    "typography": {"heading": "Plus Jakarta Sans", "body": "Plus Jakarta Sans", "numeric": "Plus Jakarta Sans"},
+    "reference": "Koru app chat screen DNA — noche #14102a con lila #8363F9 y acentos menta #6ee7b7"
+  },
+  "global_css_path": "/home/z/my-project/download/slides/global.css",
+  "slides_dir": "/home/z/my-project/download/slides",
+  "language": "es",
+  "speaker_notes": "none",
+  "slides": [
+    {
+      "title": "Cover — Koru UX Audit v3",
+      "layout": "cover",
+      "output_path": "/home/z/my-project/download/slides/slide_01.html",
+      "task_brief": "Cover slide. Background: --bg (#14102a) with a large soft glow blob (radial gradient #8363F9 at 30% opacity) in the top-right corner. Layout: centered-left content block.\n\nContent (verbatim):\n- Kicker (top, --primary, 12px, uppercase, letter-spacing 0.2em): 'AUDIT UX v3 · JULIO 2026'\n- Title (--text, 56px, font-weight 800, line-height 1.1): 'Koru — UX Profundo'\n- Subtitle (--text-soft, 20px, font-weight 500, max-width 700px): 'Onboarding conversacional, Wheel con 4 destinos, Home con widgets diarios. Mockups con assets reales en cada pantalla.'\n- Bottom-left tag (--text-muted, 13px): 'Para: equipo producto · 15 slides · 10 mockups reales'\n- Bottom-right: a small Material Symbols icon 'eco' in --accent at 32px\n\nNo images. Pure typography + glow."
+    },
+    {
+      "title": "Visión general — 3 decisiones",
+      "layout": "key_message",
+      "output_path": "/home/z/my-project/download/slides/slide_02.html",
+      "task_brief": "Executive summary. Title: '3 decisiones de diseño' (--text, 36px, 800). Subtitle: 'No tabs. No home fijo. Chat primero. Navegación creativa.' (--text-soft, 16px).\n\nBelow, 3 large cards side by side (each 33%, --bg-card, rounded 20px, padding 24px). Each card: big number (--primary, 48px, 800), title (--text, 18px, 700), description (--text-soft, 13px, line-height 1.5), Material Symbols icon (--accent, 28px) bottom-right.\n\nCard 1: '01' — 'Onboarding conversacional' — 'Sin forms. Koru saluda en el chat, te pregunta el nombre conversando, y guarda lo que aprende. Aprendé haciendo, no llenando campos.' Icon: 'chat'\n\nCard 2: '02' — 'Wheel por long-press' — 'Mantener presionado abre un wheel radial con 4 destinos: Memoria, Historial, Home (widgets), Ajustes. Sin tabs, sin alterar el chat.' Icon: 'radio_button_checked'\n\nCard 3: '03' — 'Sugerencias de temas' — 'Pills glassmorphism arriba del chat muestran temas anteriores. Tap = vuelve a ese contexto. La memoria de Koru se hace visible.' Icon: 'history'\n\nBottom: thin --accent divider, then (--text-muted, 12px, centered): 'Sin alterar el diseño del chat · Sin tabs · 10 mockups reales mostrando cada pantalla'"
+    },
+    {
+      "title": "Onboarding — Bienvenida conversacional (paso 1-2)",
+      "layout": "bento_grid",
+      "output_path": "/home/z/my-project/download/slides/slide_03.html",
+      "task_brief": "Onboarding flow slide. Title: 'Onboarding conversacional — Paso 1 y 2' (--text, 26px, 700). Subtitle: 'Koru saluda, sugerís algo, te pregunta el nombre' (--text-soft, 14px).\n\nBelow, 2 phone mockups side by side (each 260px wide, 540px tall, rounded 32px, box-shadow, overflow hidden). Each has a label above (--primary, 11px, 700, uppercase) and caption below (--text-soft, 10px).\n\nPhone 1 — 'PASO 1 · Bienvenida':\n- Contains local image: src='MOCKUP-onboarding-1-welcome.png'\n- Caption: 'Koru saluda + 4 chips de sugerencias accionables'\n\nPhone 2 — 'PASO 2 · Pregunta tu nombre':\n- Contains local image: src='MOCKUP-onboarding-2-ask-name.png'\n- Caption: 'Después de responder, Koru pregunta quién sos'\n\nBetween phones, arrow (→) in --primary-soft, 28px.\n\nRight side or below: 3 bullet points with icon 'check_circle' in --accent (--text-soft, 12px):\n• 'App abre = chat directo, sin home screen'\n• 'Chips accionables: clima, gasto, búsqueda, deportes'\n• 'Onboarding se hace conversando, no con forms'"
+    },
+    {
+      "title": "Onboarding — Confirmación y memoria (paso 3)",
+      "layout": "split_text_image",
+      "output_path": "/home/z/my-project/download/slides/slide_04.html",
+      "task_brief": "Onboarding step 3 slide. Left column (45%): text. Right column (55%): phone mockup.\n\nLeft column:\n- Badge: 'PASO 03' (badge-ok)\n- Title (--text, 26px, 700): 'Confirmación y memoria'\n- Body (--text-soft, 14px, line-height 1.6): 'Cuando respondés tu nombre, Koru lo confirma con calidez y te muestra qué guardó en memoria. Una card verde dentro de la burbuja dice exactamente qué aprendió. Así el usuario sabe que Koru no inventa — solo guarda lo que él le dijo.'\n- 3 bullet points with icon 'check_circle' in --accent:\n  • 'Card verde confirma qué se guardó en memoria'\n  • 'Transparencia total: el usuario ve qué sabe Koru'\n  • 'No hay form estático — todo es conversación'\n\nRight column: phone-frame (280px wide, 580px tall, rounded 32px, box-shadow, overflow hidden) containing local image: src='MOCKUP-onboarding-3-confirm.png'\nCaption below (--text-muted, 11px, centered): 'Paso 3: Koru confirma + card de memoria visible'"
+    },
+    {
+      "title": "Onboarding — Por qué conversacional vs form",
+      "layout": "comparison",
+      "output_path": "/home/z/my-project/download/slides/slide_05.html",
+      "task_brief": "Comparison slide. Title: 'Por qué conversacional, no form estático' (--text, 26px, 700).\n\nBelow, 2 columns side by side (each 48%, --bg-card, rounded 20px, padding 24px):\n\nLeft column — 'FORM ESTÁTICO (viejo)':\n- Header (--danger, 14px, 700, uppercase): 'FORM ESTÁTICO'\n- Icon 'description' in --danger, 32px\n- 4 bullets (--text-soft, 13px) with icon 'close' in --danger:\n  • '3 campos obligatorios antes de empezar'\n  • 'Friction: el usuario abandona'\n  • 'No aprende del contexto de la charla'\n  • 'Se siente como trámite, no como ayuda'\n\nRight column — 'CONVERSACIONAL (nuevo)':\n- Header (--accent, 14px, 700, uppercase): 'CONVERSACIONAL'\n- Icon 'chat' in --accent, 32px\n- 4 bullets (--text-soft, 13px) with icon 'check_circle' in --accent:\n  • 'Empezás a usar Koru al instante'\n  • 'Koru pregunta tu nombre cuando tiene contexto'\n  • 'Aprende de lo que pedís (clima, deportes)'\n  • 'Se siente como hablar con un amigo'\n\nBottom callout (--bg-card-soft, rounded 12px, padding 12px): 'El onboarding no es un paso previo — ES la primera charla. Koru aprende haciendo.' (--text-soft, 12px, centered) with icon 'lightbulb' in --warning."
+    },
+    {
+      "title": "Wheel — Cómo funciona (3 estados)",
+      "layout": "timeline",
+      "output_path": "/home/z/my-project/download/slides/slide_06.html",
+      "task_brief": "Wheel interaction slide. Title: 'Wheel — 3 estados del gesto' (--text, 26px, 700). Subtitle: 'Long-press → Drag → Release' (--text-soft, 14px).\n\nBelow, 3 cards side by side (each 33%, --bg-card, rounded 16px, padding 20px). Each card: step number badge (circle, 36px, --primary bg, white, bold), Material Symbols icon (--accent, 28px), title (--text, 16px, 700), description (--text-soft, 12px, line-height 1.5).\n\nCard 1: '01' — icon 'touch_app' — 'Long-press (500ms)' — 'Mantenés presionado en cualquier parte del chat. Aparece overlay oscuro con blur + wheel radial centrado con 4 opciones.'\n\nCard 2: '02' — icon 'swipe' — 'Drag (sin levantar)' — 'Deslizás el dedo hacia una opción. La opción bajo tu dedo se ilumina (escala 1.15x + glow violeta). Las demás quedan en gris.'\n\nCard 3: '03' — icon 'check_circle' — 'Release (soltar)' — 'Soltás sobre la opción iluminada = se ejecuta. Soltás fuera del wheel = se cancela y vuelve al chat sin cambios.'\n\nBelow the 3 cards, a horizontal flow: 'Touch → Drag → Release' with arrows in --primary-soft (--text-soft, 13px).\n\nBottom callout (--bg-card-soft, rounded 12px, padding 12px): 'Las 4 opciones del wheel: Memoria (neurology), Historial (history), Home/widgets (home), Ajustes (settings). Mismo blur y colores del back button — se siente parte del chat.' (--text-soft, 12px)"
+    },
+    {
+      "title": "Wheel → las 4 pantallas destino",
+      "layout": "bento_grid",
+      "output_path": "/home/z/my-project/download/slides/slide_07.html",
+      "task_brief": "Overview of 4 wheel destinations. Title: 'Wheel → 4 destinos' (--text, 26px, 700). Subtitle: 'Cada opción abre una pantalla con su propia función' (--text-soft, 14px).\n\nBelow, 2x2 grid of 4 small phone mockups (each 220px wide, 300px tall, rounded 24px, box-shadow, overflow hidden). Each has a label above (--primary, 11px, 700, uppercase) and a one-line caption below (--text-soft, 10px).\n\nPhone 1 (top-left) — 'MEMORIA':\n- Contains: src='MOCKUP-wheel-memory.png'\n- Caption: 'Lo que Koru sabe de vos'\n\nPhone 2 (top-right) — 'HISTORIAL':\n- Contains: src='MOCKUP-wheel-history.png'\n- Caption: 'Conversaciones anteriores'\n\nPhone 3 (bottom-left) — 'HOME (WIDGETS)':\n- Contains: src='MOCKUP-wheel-home.png'\n- Caption: 'Clima, gastos, pendientes del día'\n\nPhone 4 (bottom-right) — 'AJUSTES':\n- Contains: src='MOCKUP-wheel-settings.png'\n- Caption: 'Perfil, modelo, permisos, privacidad'"
+    },
+    {
+      "title": "Wheel → Memoria (detalle)",
+      "layout": "split_text_image",
+      "output_path": "/home/z/my-project/download/slides/slide_08.html",
+      "task_brief": "Memory screen detail. Left column (45%): text. Right column (55%): phone mockup.\n\nLeft column:\n- Badge: 'WHEEL → MEMORIA' (badge-ok)\n- Title (--text, 26px, 700): 'Lo que Koru sabe de vos'\n- Body (--text-soft, 14px, line-height 1.6): 'Pantalla full con magical-cards (mismo lenguaje que el detalle de informes). 3 secciones: Perfil (quién sos), Preferencias (lo que te gusta), Objetivos (lo que querés lograr). Cada memoria tiene un badge: Confirmada (verde) o Pendiente (ámbar). Podés editar o borrar cualquier memoria.'\n- 3 bullet points with icon 'check_circle' in --accent:\n  • 'Stats bar: 8 memorias · 6 confirmadas · 2 pendientes'\n  • 'Badges visuales: confirmada vs pendiente de approval'\n  • 'Tap en memoria = editarla o borrarla'\n\nRight column: phone-frame (280px wide, 580px tall, rounded 32px, box-shadow, overflow hidden) containing: src='MOCKUP-wheel-memory.png'\nCaption below (--text-muted, 11px, centered): 'Memoria: 3 secciones con magical-cards'"
+    },
+    {
+      "title": "Wheel → Historial (detalle)",
+      "layout": "split_text_image",
+      "output_path": "/home/z/my-project/download/slides/slide_09.html",
+      "task_brief": "History screen detail. Left column (45%): text. Right column (55%): phone mockup.\n\nLeft column:\n- Badge: 'WHEEL → HISTORIAL' (badge-ok)\n- Title (--text, 26px, 700): 'Tus conversaciones anteriores'\n- Body (--text-soft, 14px, line-height 1.6): 'Timeline cronológico de cada charla que tuviste con Koru. Cada item muestra: icono del tema, hora, título corto, y preview del pedido + respuesta. Separadores por día (Hoy, Ayer, etc). Tap en un item = vuelve a abrir esa conversación completa en el chat.'\n- 3 bullet points with icon 'check_circle' in --accent:\n  • 'Timeline con iconos por categoría (deportes, clima, gastos)'\n  • 'Preview de qué pediste y qué respondió Koru'\n  • 'Tap = reabre esa conversación en el chat'\n\nRight column: phone-frame (280px wide, 580px tall, rounded 32px, box-shadow, overflow hidden) containing: src='MOCKUP-wheel-history.png'\nCaption below (--text-muted, 11px, centered): 'Historial: timeline con previews de cada charla'"
+    },
+    {
+      "title": "Wheel → Home con widgets (detalle)",
+      "layout": "split_text_image",
+      "output_path": "/home/z/my-project/download/slides/slide_10.html",
+      "task_brief": "Home/widgets screen detail. Left column (45%): text. Right column (55%): phone mockup.\n\nLeft column:\n- Badge: 'WHEEL → HOME' (badge-ok)\n- Title (--text, 26px, 700): 'Tu día en un vistazo'\n- Body (--text-soft, 14px, line-height 1.6): 'El home no es una pantalla de inicio — es un dashboard al que llegás desde el wheel. 4 widgets mágicos con datos reales del día: Clima (tu ciudad), Gastos (total de hoy + detalle), Pendientes (tareas abiertas), Memoria (chips de lo que Koru sabe). Todo en magical-cards con el mismo lenguaje visual.'\n- 4 bullet points with icon 'check_circle' in --accent:\n  • 'Clima: temperatura grande + condición + rango'\n  • 'Gastos: total del día + lista de movimientos'\n  • 'Pendientes: tareas abiertas con checkbox'\n  • 'Memoria: chips de lo que Koru sabe de vos'\n\nRight column: phone-frame (280px wide, 580px tall, rounded 32px, box-shadow, overflow hidden) containing: src='MOCKUP-wheel-home.png'\nCaption below (--text-muted, 11px, centered): 'Home: 4 widgets diarios con datos reales'"
+    },
+    {
+      "title": "Wheel → Ajustes (detalle)",
+      "layout": "split_text_image",
+      "output_path": "/home/z/my-project/download/slides/slide_11.html",
+      "task_brief": "Settings screen detail. Left column (45%): text. Right column (55%): phone mockup.\n\nLeft column:\n- Badge: 'WHEEL → AJUSTES' (badge-ok)\n- Title (--text, 26px, 700): 'Configurá tu Koru'\n- Body (--text-soft, 14px, line-height 1.6): 'Settings expandido con 4 secciones en magical-cards: Perfil (nombre + cómo te hablo), Modelo de IA (Nemotron Ultra + modo), Permisos (mic, notificaciones, cámara con estado visual), Privacidad (exportar/borrar memoria). Cada sección tiene su accent de color y iconos claros.'\n- 4 bullet points with icon 'check_circle' in --accent:\n  • 'Perfil: nombre + tono de voz (cálido/directo)'\n  • 'Modelo: Nemotron Ultra + modo Automático'\n  • 'Permisos: estado visual (✓ verde / ✗ ámbar)'\n  • 'Privacidad: exportar y borrar memoria con 1 tap'\n\nRight column: phone-frame (280px wide, 580px tall, rounded 32px, box-shadow, overflow hidden) containing: src='MOCKUP-wheel-settings.png'\nCaption below (--text-muted, 11px, centered): 'Ajustes: 4 secciones con accents de color'"
+    },
+    {
+      "title": "Sugerencias de temas en el chat",
+      "layout": "split_text_image",
+      "output_path": "/home/z/my-project/download/slides/slide_12.html",
+      "task_brief": "Suggestions slide. Left column (45%): text. Right column (55%): phone mockup.\n\nLeft column:\n- Badge: 'DECISIÓN 03' (badge-ok)\n- Title (--text, 26px, 700): 'Sugerencias de temas relacionados'\n- Body (--text-soft, 14px, line-height 1.6): 'Pills glassmorphism arriba del chat muestran temas de los que ya hablaron. No son intrusivas — son semi-transparentes con blur. Tap en una pill = vuelve a ese contexto en el historial. Solo aparecen si hay charla previa. Si es la 1ra vez, se ven los chips de sugerencias (onboarding).'\n- 4 bullet points with icon 'check_circle' in --accent:\n  • 'Pills glassmorphism (blur + semi-transparente)'\n  • 'Muestran temas: España, Madrid, Café $2.000'\n  • 'Tap = abre ese turno en Historial'\n  • 'Solo aparecen si hay charla previa'\n\nRight column: phone-frame (280px wide, 580px tall, rounded 32px, box-shadow, overflow hidden) containing: src='MOCKUP-suggestions.png'\nCaption below (--text-muted, 11px, centered): 'Pills de temas anteriores arriba del chat'"
+    },
+    {
+      "title": "Flujo recurrente — Usuario que ya usó la app",
+      "layout": "bento_grid",
+      "output_path": "/home/z/my-project/download/slides/slide_13.html",
+      "task_brief": "Returning user flow. Title: 'Flujo recurrente — Usuario que ya usó la app' (--text, 26px, 700). Subtitle: 'Abrir → ver sugerencias → continuar charla o pedir algo nuevo' (--text-soft, 14px).\n\nBelow, 2 phone mockups side by side (each 280px wide, 560px tall, rounded 32px, box-shadow, overflow hidden). Each has a label above (--primary, 11px, 700, uppercase) and caption below (--text-soft, 10px).\n\nPhone 1 — 'PASO 1 · Abrir app':\n- Contains: src='MOCKUP-suggestions.png'\n- Caption: 'Chat con pills de temas anteriores (España, Madrid, Café)'\n\nPhone 2 — 'PASO 2 · Long-press → Wheel':\n- Contains: src='MOCKUP-wheel.png'\n- Caption: 'Long-press → wheel → elegir destino'\n\nBetween phones, arrow (→) in --primary-soft, 32px.\n\nBelow, 3 bullet points with icon 'check_circle' in --accent (--text-soft, 12px, centered):\n• '1ra vez: chips de sugerencias (onboarding conversacional)'\n• '2da vez+: pills de temas anteriores (memoria visible)'\n• 'Siempre: long-press → wheel → 4 destinos'"
+    },
+    {
+      "title": "Roadmap priorizado",
+      "layout": "timeline",
+      "output_path": "/home/z/my-project/download/slides/slide_14.html",
+      "task_brief": "Roadmap slide. Title: 'Roadmap priorizado' (--text, 32px, 700). Subtitle: '3 decisiones · ordenadas por impacto × esfuerzo' (--text-soft, 15px).\n\nBelow, 3 vertical columns (cards) side by side, each --bg-card, rounded 20px, padding 24px:\n\nColumn 1 — 'QUICK WIN' (badge-ok at top):\n- Header (--accent, 14px, 700, uppercase): 'QUICK WIN · 1-2 días'\n- Title (--text, 16px, 700): 'Sugerencias de temas'\n- 3 sub-items (--text-soft, 12px):\n  • 'Pills glassmorphism arriba del chat'\n  • 'Lee historial de chatTurns'\n  • 'Tap = scroll a ese turno'\n- Effort tag (--text-muted, 11px): 'Esfuerzo: bajo · Impacto: medio'\n\nColumn 2 — 'MEDIUM' (badge-warning at top):\n- Header (--warning, 14px, 700, uppercase): 'MEDIUM · 3-5 días'\n- Title (--text, 16px, 700): 'Onboarding conversacional'\n- 3 sub-items (--text-soft, 12px):\n  • 'Quitar home screen de App.tsx'\n  • 'Chat greeting con chips accionables'\n  • 'Koru pregunta nombre conversando'\n- Effort tag: 'Esfuerzo: medio · Impacto: alto'\n\nColumn 3 — 'LARGE BET' (badge-critical at top):\n- Header (--danger, 14px, 700, uppercase): 'LARGE BET · 5-8 días'\n- Title (--text, 16px, 700): 'Wheel + 4 pantallas'\n- 3 sub-items (--text-soft, 12px):\n  • 'Long-press detection + wheel radial'\n  • '4 destinos: Memoria, Historial, Home, Ajustes'\n  • 'Animación drag + release + screens'\n- Effort tag: 'Esfuerzo: alto · Impacto: alto'\n\nBottom note (--text-muted, 12px, centered): 'Total: 3 mejoras · 9-15 días · Sin alterar el diseño del chat · Sin tabs'"
+    },
+    {
+      "title": "Cierre — Próximos pasos",
+      "layout": "closing",
+      "output_path": "/home/z/my-project/download/slides/slide_15.html",
+      "task_brief": "Closing slide. Background: --bg with large glow blob (--primary at 20% opacity) center-right.\n\nLayout: centered content.\n\n- Kicker (--primary, 12px, uppercase, letter-spacing 0.2em, centered): 'PRÓXIMOS PASOS'\n- Title (--text, 44px, 800, centered, max-width 800px): 'Empecemos por las sugerencias'\n- Subtitle (--text-soft, 18px, 500, centered, max-width 600px): 'Pills de temas relacionados. 1-2 días. Mejora inmediata sin tocar el chat. Después onboarding conversacional y wheel.'\n\nBelow, 3 action items in a row (each a small card --bg-card, rounded 16px, padding 16px, centered text):\n1. Icon 'history' (--accent, 24px) + 'Día 1-2' (--text-muted, 11px) + 'Sugerencias de temas' (--text, 14px, 600)\n2. Icon 'chat' (--accent, 24px) + 'Día 3-5' (--text-muted, 11px) + 'Onboarding conversacional' (--text, 14px, 600)\n3. Icon 'radio_button_checked' (--accent, 24px) + 'Día 6-15' (--text-muted, 11px) + 'Wheel + 4 pantallas' (--text, 14px, 600)\n\nBottom-right: small Material Symbols 'eco' icon in --accent, 28px."
+    }
+  ]
+}

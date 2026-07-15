@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Flujo recurrente — Usuario que ya usó la app — Koru UX Audit v3</title>
+  <link rel="stylesheet" href="global.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet">
+  <style>
+    .slide { font-family: var(--font-body); }
+    .step-label {
+      color: var(--primary); font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.14em;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .step-label .step-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: var(--primary); color: white;
+      font-size: 10px; font-weight: 800;
+    }
+    .arrow-flow {
+      display: flex; align-items: center; justify-content: center;
+      color: var(--primary-soft); font-size: 36px;
+      width: 50px;
+    }
+    .bullet-row {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 14px; border-radius: 999px;
+      background: rgba(131,99,249,0.08);
+      border: 1px solid rgba(131,99,249,0.18);
+      color: var(--text-soft); font-size: 12px; font-weight: 500;
+    }
+    .bullet-row .material-symbols-outlined { color: var(--accent); font-size: 16px; }
+    .page-tag {
+      position: absolute; bottom: 28px; right: 36px;
+      font-size: 11px; color: var(--text-muted); letter-spacing: 0.12em;
+      text-transform: uppercase; font-weight: 600;
+    }
+    .corner-mark {
+      position: absolute; top: 28px; right: 36px;
+      font-size: 11px; color: var(--text-muted); letter-spacing: 0.12em;
+      text-transform: uppercase; font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="slide" style="padding: 48px 72px;">
+    <!-- decorative glows -->
+    <div class="glow-blob" data-decor aria-hidden="true" style="width: 320px; height: 320px; background: rgba(131,99,249,0.20); top: -100px; left: 30%;"></div>
+    <div class="glow-blob" data-decor aria-hidden="true" style="width: 260px; height: 260px; background: rgba(110,231,183,0.10); bottom: -80px; right: -60px;"></div>
+
+    <!-- corner mark -->
+    <div class="corner-mark">Koru · UX Audit v3</div>
+
+    <!-- Header -->
+    <header class="relative z-10 flex flex-col gap-2 items-center text-center">
+      <span class="badge-ok" style="align-self: center;">
+        <span class="material-symbols-outlined" style="font-size: 13px;">replay</span>
+        Flujo recurrente
+      </span>
+      <h1 style="color: var(--text); font-size: 30px; font-weight: 800; line-height: 1.1; letter-spacing: -0.015em;">
+        Flujo recurrente — Usuario que ya usó la app
+      </h1>
+      <p style="color: var(--text-soft); font-size: 14px;">
+        Abrir → ver sugerencias → continuar charla o pedir algo nuevo
+      </p>
+    </header>
+
+    <!-- Phones row -->
+    <div class="relative z-10 flex items-start justify-center gap-6 mt-6" style="height: 440px;">
+      <!-- Phone 1 -->
+      <div class="flex flex-col items-center" style="width: 280px;">
+        <div class="step-label mb-2">
+          <span class="step-num">1</span>
+          PASO 1 · Abrir app
+        </div>
+        <div class="phone-frame" style="height: 380px;">
+          <img src="MOCKUP-suggestions.png" alt="Paso 1 - Abrir app con pills">
+        </div>
+        <p style="color: var(--text-soft); font-size: 10.5px; text-align: center; margin-top: 10px; line-height: 1.4;">
+          Chat con pills de temas anteriores (España, Madrid, Café)
+        </p>
+      </div>
+
+      <!-- Arrow -->
+      <div class="arrow-flow" style="margin-top: 200px;">
+        <span class="material-symbols-outlined" style="font-size: 36px;">arrow_forward</span>
+      </div>
+
+      <!-- Phone 2 -->
+      <div class="flex flex-col items-center" style="width: 280px;">
+        <div class="step-label mb-2">
+          <span class="step-num">2</span>
+          PASO 2 · Long-press → Wheel
+        </div>
+        <div class="phone-frame" style="height: 380px;">
+          <img src="MOCKUP-wheel.png" alt="Paso 2 - Long-press wheel">
+        </div>
+        <p style="color: var(--text-soft); font-size: 10.5px; text-align: center; margin-top: 10px; line-height: 1.4;">
+          Long-press → wheel → elegir destino
+        </p>
+      </div>
+    </div>
+
+    <!-- Bottom bullets -->
+    <div class="relative z-10 flex flex-wrap items-center justify-center gap-3 mt-2">
+      <span class="bullet-row">
+        <span class="material-symbols-outlined">check_circle</span>
+        1ra vez: chips de sugerencias (onboarding conversacional)
+      </span>
+      <span class="bullet-row">
+        <span class="material-symbols-outlined">check_circle</span>
+        2da vez+: pills de temas anteriores (memoria visible)
+      </span>
+      <span class="bullet-row">
+        <span class="material-symbols-outlined">check_circle</span>
+        Siempre: long-press → wheel → 4 destinos
+      </span>
+    </div>
+
+    <!-- page tag -->
+    <div class="page-tag">13 / 15</div>
+  </div>
+</body>
+</html>

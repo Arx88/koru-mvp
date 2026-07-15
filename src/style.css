@@ -3363,11 +3363,18 @@ a.koru-dsec-source:hover {
 .koru-wheel-option.right  { top: 50%; right: 0; transform: translateY(-50%); }
 .koru-wheel-option.bottom { bottom: 0; left: 50%; transform: translateX(-50%); }
 .koru-wheel-option.left   { top: 50%; left: 0; transform: translateY(-50%); }
+/* 🔴 v2: 5ta opción Crear en diagonal top-right (pentágono parcial) */
+.koru-wheel-option.top-right {
+  top: 12%;
+  right: 12%;
+  /* posicionar en el cuadrante superior derecho del círculo */
+}
 
 .koru-wheel-option.top.active    { transform: translateX(-50%) scale(1.15); }
 .koru-wheel-option.right.active  { transform: translateY(-50%) scale(1.15); }
 .koru-wheel-option.bottom.active { transform: translateX(-50%) scale(1.15); }
 .koru-wheel-option.left.active   { transform: translateY(-50%) scale(1.15); }
+.koru-wheel-option.top-right.active { transform: scale(1.15); }
 
 .koru-wheel-hint {
   position: absolute;
@@ -4622,18 +4629,48 @@ a.koru-dsec-source:hover {
 
 .koru-comparison-track {
   flex: 1;
-  height: 6px;
+  height: 10px;
   border-radius: 999px;
   display: flex;
   overflow: hidden;
   background: rgba(0, 0, 0, 0.06);
+  position: relative;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+/* 🔴 v2: center tick — marca visual del 50/50 */
+.koru-comparison-track::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 1.5px;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.18);
+  z-index: 1;
 }
 
 .koru-comparison-fill {
   height: 100%;
-  transition: width 0.4s ease;
+  transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
   min-width: 4px;
+  position: relative;
 }
+
+/* 🔴 v2: leader dot — punto brillante en el extremo del líder */
+.koru-comparison-fill.home::after,
+.koru-comparison-fill.away::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  transform: translateY(-50%);
+}
+.koru-comparison-fill.home::after { right: 2px; }
+.koru-comparison-fill.away::after { left: 2px; }
 
 .koru-comparison-fill.home { border-radius: 999px 0 0 999px; }
 .koru-comparison-fill.away { border-radius: 0 999px 999px 0; }
@@ -5076,3 +5113,129 @@ a.koru-dsec-source:hover {
 .koru-collection-editor-btn .material-symbols-outlined { font-size: 18px; }
 .koru-collection-editor-save { background: #8363f9; color: white; }
 .koru-collection-editor-delete { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   🔴 v2: FormationPitch — cancha de fútbol con dots posicionados por formation
+   ═══════════════════════════════════════════════════════════════════════════ */
+.koru-pitch-container {
+  background: linear-gradient(180deg, #1a3d2e 0%, #2d6a4f 50%, #1a3d2e 100%);
+  border-radius: 16px;
+  padding: 16px;
+  margin: 8px 0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.koru-pitch-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: white;
+  margin-bottom: 12px;
+  opacity: 0.95;
+}
+
+.koru-pitch {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Línea de mediocampo */
+.koru-pitch-line.halfway {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1.5px;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Círculo central */
+.koru-pitch-circle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 60px;
+  height: 60px;
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+.koru-pitch-circle::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Áreas (penalty boxes) */
+.koru-pitch-box {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70%;
+  height: 18%;
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+}
+.koru-pitch-box.top {
+  top: 0;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+}
+.koru-pitch-box.bottom {
+  bottom: 0;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+}
+
+/* Jugadores — dots con número + apellido */
+.koru-pitch-player {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  transition: transform 0.15s, box-shadow 0.15s;
+  cursor: pointer;
+  z-index: 2;
+}
+.koru-pitch-player:hover {
+  transform: translate(-50%, -50%) scale(1.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  z-index: 3;
+}
+.koru-pitch-player-num {
+  font-size: 11px;
+  line-height: 1;
+}
+.koru-pitch-player-name {
+  font-size: 7px;
+  line-height: 1;
+  margin-top: 1px;
+  max-width: 28px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.95;
+}

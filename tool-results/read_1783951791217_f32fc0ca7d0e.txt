@@ -1,0 +1,1071 @@
+     1→import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+     2→import { ArrowUp, ChevronLeft, Image as ImageIcon, Leaf, Mic, MicOff, Paperclip } from "lucide-react";
+     3→import { createSpeechSession, getSpeechSupport } from "../domain/speech";
+     4→import { cn } from "../lib/utils";
+     5→import { useKoru, PHASE_ORDER, type KoruChatTurn, type KoruTurnItem } from "./KoruProvider";
+     6→import type { AgentActivityKind } from "../domain/agentKernel";
+     7→import { KoruSemanticCard } from "./chatCards";
+     8→import { KoruBackground, activityToBgState, type KoruBgState } from "./KoruBackground";
+     9→
+    10→// TalkOverlay = réplica Stitch "Chat con Koru": paisaje nocturno ilustrado a
+    11→// pantalla completa, conversación anclada abajo con burbujas claras (usuario
+    12→// #F0F4FF / Koru #F8F4FA + avatar circular) y composer blanco con hoja (eco),
+    13→// campo "Habla con Koru..." y botón #7C5FF6. El estado "trabajando" es el
+    14→// panel claro de Stitch con la barra REAL sincronizada a las fases del
+    15→// pipeline, y el plan entregado se renderiza como la hoja "Tu Plan" (cards).
+    16→
+    17→const KORU_AVATAR = "/stitch/avatar-chat.png";
+    18→
+    19→// El diseño Stitch muestra las respuestas de Koru con un saludo corto en
+    20→// negrita violeta y el cuerpo debajo. El texto del backend es libre: si la
+    21→// primera línea/oración es corta y exclamativa la tratamos como encabezado.
+    22→function splitKoruText(text: string): { heading: string | null; body: string } {
+    23→  const newline = text.indexOf("\n");
+    24→  if (newline > 0 && newline <= 48) {
+    25→    const body = text.slice(newline + 1).trim();
+    26→    if (body) return { heading: text.slice(0, newline).trim(), body };
+    27→  }
+    28→  const match = text.match(/^(.{2,44}?[!¡?¿])\s+([\s\S]+)$/);
+    29→  if (match) return { heading: match[1].trim(), body: match[2].trim() };
+    30→  return { heading: null, body: text };
+    31→}
+    32→
+    33→// Fase 2.8: memo para evitar re-renders globales durante streaming.
+    34→// Comparación por id + items length (suficiente para turnos de chat).
+    35→const TurnItemCard = memo(function TurnItemCard({
+    36→  item,
+    37→  onReview,
+    38→  onConfirmMemory,
+    39→  onPruneMemory,
+    40→  onCompleteCommitment,
+    41→  onSetWorldSignals,
+    42→}: {
+    43→  item: KoruTurnItem;
+    44→  onReview: (id: string, approve: boolean) => void;
+    45→  onConfirmMemory: (id: string) => void;
+    46→  onPruneMemory: (id: string) => void;
+    47→  onCompleteCommitment: (id: string) => void;
+    48→  onSetWorldSignals: (enabled: boolean) => void;
+    49→}) {
+    50→  return (
+    51→    <KoruSemanticCard
+    52→      item={item}
+    53→      handlers={{
+    54→        onReview,
+    55→        onConfirmMemory,
+    56→        onPruneMemory,
+    57→        onCompleteCommitment,
+    58→        onSetWorldSignals,
+    59→      }}
+    60→    />
+    61→  );
+    62→});
+    63→
+    64→function KoruTurnBubble({
+    65→  turn,
+    66→  onReview,
+    67→  onConfirmMemory,
+    68→  onPruneMemory,
+    69→  onCompleteCommitment,
+    70→  onSetWorldSignals,
+    71→}: {
+    72→  turn: KoruChatTurn;
+    73→  onReview: (id: string, approve: boolean) => void;
+    74→  onConfirmMemory: (id: string) => void;
+    75→  onPruneMemory: (id: string) => void;
+    76→  onCompleteCommitment: (id: string) => void;
+    77→  onSetWorldSignals: (enabled: boolean) => void;
+    78→}) {
+    79→  const { heading, body } = splitKoruText(turn.text);
+    80→  return (
+    81→    <div className="koru-message is-koru">
+    82→      <div className="koru-row">
+    83→        <div className="koru-avatar">
+    84→          <img src={KORU_AVATAR} alt="Koru" />
+    85→        </div>
+    86→        <div className="koru-bubble ai-bubble">
+    87→          {heading && <h3 className="koru-bubble-heading">{heading}</h3>}
+    88→          <p className="koru-message-text">{body}</p>
+    89→        </div>
+    90→      </div>
+    91→      {turn.items && turn.items.length > 0 && (
+    92→        <div className="koru-cards-row">
+    93→          {turn.items.map((item) => (
+    94→            <TurnItemCard
+    95→              key={item.id}
+    96→              item={item}
+    97→              onReview={onReview}
+    98→              onConfirmMemory={onConfirmMemory}
+    99→              onPruneMemory={onPruneMemory}
+   100→              onCompleteCommitment={onCompleteCommitment}
+   101→              onSetWorldSignals={onSetWorldSignals}
+   102→            />
+   103→          ))}
+   104→        </div>
+   105→      )}
+   106→    </div>
+   107→  );
+   108→}
+   109→
+   110→function UserTurnBubble({ turn }: { turn: KoruChatTurn }) {
+   111→  return (
+   112→    <div className="koru-message is-user">
+   113→      <div className="koru-bubble user-bubble">
+   114→        <p className="koru-message-text">{turn.text}</p>
+   115→      </div>
+   116→    </div>
+   117→  );
+   118→}
+   119→
+   120→function ListeningBubble({ interimText }: { interimText: string }) {
+   121→  return (
+   122→    <div className="koru-message is-koru">
+   123→      <div className="koru-row">
+   124→        <div className="koru-avatar">
+   125→          <img src={KORU_AVATAR} alt="Koru" />
+   126→        </div>
+   127→        <div className="koru-bubble ai-bubble">
+   128→          <p className="koru-message-text">{interimText || "Te escucho..."}</p>
+   129→        </div>
+   130→      </div>
+   131→    </div>
+   132→  );
+   133→}
+   134→
+   135→// Panel "Trabajando..." (réplica Stitch, paso 3 de flujo-informe-aoe2.html):
+   136→// reemplaza al composer SOLO cuando la actividad es "deep" (investigacion o
+   137→// plan reales, no un dato en vivo). El % es REAL: sale de la fase emitida
+   138→// por el backend (thinking → searching → comparing → planning → saving →
+   139→// done). El titulo se adapta a que esta armando Koru.
+   140→// Incluye chips de fases visuales (como en el demo pantalla 2):
+   141→// ✓ Entendí el pedido | ✓ Busqué 4 fuentes | ● Comparando datos | Redactar informe
+   142→const WORKING_COPY: Partial<Record<AgentActivityKind, { title: string; subtitle: string }>> = {
+   143→  planning: { title: "Trabajando en tu plan...", subtitle: "Esto tomara solo unos segundos ✨" },
+   144→  searching: { title: "Armando tu informe...", subtitle: "Esto toma solo unos segundos ✨" },
+   145→  writing: { title: "Preparando tu documento...", subtitle: "Esto tomara solo unos segundos ✨" },
+   146→  comparing: { title: "Comparando opciones...", subtitle: "Esto tomara solo unos segundos ✨" },
+   147→};
+   148→
+   149→// Mapeo de fase interna → label visible + icono Material Symbols.
+   150→// El demo muestra 4 chips: Entendí, Busqué, Comparando, Redactar.
+   151→const PHASE_CHIPS: Array<{ phase: string; label: string; icon: string }> = [
+   152→  { phase: "thinking", label: "Entendí el pedido", icon: "check_circle" },
+   153→  { phase: "searching", label: "Busqué fuentes", icon: "check_circle" },
+   154→  { phase: "comparing", label: "Comparando datos", icon: "compare_arrows" },
+   155→  { phase: "planning", label: "Redactar informe", icon: "edit_note" },
+   156→];
+   157→
+   158→type WorkingDeliverable = { kicker: string; progress?: number; phaseLabel?: string };
+   159→
+   160→function WorkingPanel({ phase, kind, deliverable }: { phase: string | null; kind?: AgentActivityKind; deliverable?: WorkingDeliverable | null }) {
+   161→  const idx = phase ? (PHASE_ORDER as readonly string[]).indexOf(phase) : -1;
+   162→  const doneIdx = PHASE_ORDER.length - 1;
+   163→  // El entregable trae el % REAL del pipeline (deep_research); si no, se
+   164→  // aproxima por la fase emitida por el backend.
+   165→  const pct = deliverable?.progress != null
+   166→    ? Math.min(100, Math.max(0, Math.round(deliverable.progress)))
+   167→    : idx >= 0 ? Math.round(((idx + 1) / doneIdx) * 100) : null;
+   168→  const copy = deliverable
+   169→    ? {
+   170→        title: `Trabajando en ${deliverable.kicker.toLowerCase().startsWith("tu") ? deliverable.kicker.toLowerCase() : `tu ${deliverable.kicker.toLowerCase()}`}...`,
+   171→        subtitle: deliverable.phaseLabel ?? "Esto tomara solo unos segundos ✨",
+   172→      }
+   173→    : (kind && WORKING_COPY[kind]) ?? { title: "Trabajando...", subtitle: "Esto tomara solo unos segundos ✨" };
+   174→
+   175→  // Calcular estado de cada chip: done / active / pending
+   176→  // El idx de la fase actual en PHASE_ORDER determina cuáles están done.
+   177→  const phaseIdx = phase ? (PHASE_ORDER as readonly string[]).indexOf(phase) : -1;
+   178→  const chips = PHASE_CHIPS.map((chip, i) => {
+   179→    if (phaseIdx < 0) return { ...chip, status: "pending" as const };
+   180→    if (i < phaseIdx) return { ...chip, status: "done" as const };
+   181→    if (i === phaseIdx) return { ...chip, status: "active" as const };
+   182→    return { ...chip, status: "pending" as const };
+   183→  });
+   184→
+   185→  return (
+   186→    <section className="koru-working-panel" role="status" aria-live="polite">
+   187→      <img src="/stitch/working-illustration.png" alt="" className="koru-working-illustration" />
+   188→      <div className="koru-working-copy">
+   189→        <h2>{copy.title}</h2>
+   190→        <p>{copy.subtitle}</p>
+   191→      </div>
+   192→      <div className="koru-working-progress">
+   193→        <div
+   194→          className="koru-progress"
+   195→          role="progressbar"
+   196→          aria-label="Progreso del plan"
+   197→          aria-valuemin={0}
+   198→          aria-valuemax={100}
+   199→          aria-valuenow={pct ?? undefined}
+   200→        >
+   201→          {pct === null ? (
+   202→            <span className="koru-progress-bar is-indeterminate" />
+   203→          ) : (
+   204→            <span className="koru-progress-bar" style={{ width: `${pct}%` }} />
+   205→          )}
+   206→        </div>
+   207→        {pct !== null && <span className="koru-working-pct">{pct}%</span>}
+   208→      </div>
+   209→      {/* Chips de fases — réplica exacta del demo pantalla 2 */}
+   210→      <div className="koru-working-chips">
+   211→        {chips.map((chip, i) => (
+   212→          <span key={i} className={`koru-working-chip is-${chip.status}`}>
+   213→            {chip.status === "done" ? (
+   214→              <span className="material-symbols-outlined koru-working-chip-icon is-done">check_circle</span>
+   215→            ) : chip.status === "active" ? (
+   216→              <span className="koru-working-chip-dot" />
+   217→            ) : (
+   218→              <span className="material-symbols-outlined koru-working-chip-icon is-pending">{chip.icon}</span>
+   219→            )}
+   220→            {chip.label}
+   221→          </span>
+   222→        ))}
+   223→      </div>
+   224→      <p className="koru-working-motto">
+   225→        <svg fill="none" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
+   226→          <path d="M12 2L15 9L22 12L15 15L12 22L9 15L2 12L9 9L12 2Z" fill="currentColor" />
+   227→        </svg>
+   228→        Cada paso cuenta, sigue asi
+   229→        <svg fill="currentColor" height="18" viewBox="0 0 24 24" width="18" xmlns="http://www.w3.org/2000/svg">
+   230→          <path d="M12 21.35L10.55 20.03C5.4 15.36 2 12.28 2 8.5C2 5.42 4.42 3 7.5 3C9.24 3 10.91 3.81 12 5.09C13.09 3.81 14.76 3 16.5 3C19.58 3 22 5.42 22 8.5C22 12.28 18.6 15.36 13.45 20.04L12 21.35Z" />
+   231→        </svg>
+   232→      </p>
+   233→    </section>
+   234→  );
+   235→}
+   236→export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingComplete }: { onClose: () => void; onNavigate?: (tab: "hoy" | "memoria" | "historial" | "configuracion") => void; onboarding?: boolean; onOnboardingComplete?: (name: string, facts?: string[]) => void }) {
+   237→  const {
+   238→    chatTurns,
+   239→    sendMessage,
+   240→    reviewAction,
+   241→    confirmMemory,
+   242→    pruneMemory,
+   243→    completeCommitment,
+   244→    setWorldSignals,
+   245→    processing,
+   246→    activity,
+   247→    phase,
+   248→    ephemeral,
+   249→    setEphemeral,
+   250→  } = useKoru();
+   251→  const [inputText, setInputText] = useState("");
+   252→  const [isListening, setIsListening] = useState(false);
+   253→  const [interimText, setInterimText] = useState("");
+   254→  const [speechStatus] = useState(() => getSpeechSupport());
+   255→  const [micError, setMicError] = useState("");
+   256→
+   257→  // ===== Estado del fondo dinámico =====
+   258→  // Detecta el estado actual (trabajando, buscando, memoria, etc.) y lo pasa al KoruBackground.
+   259→  // Trackea idle para activar "durmiendo" solo tras 5 min de inactividad real.
+   260→  //
+   261→  // BUG FIX: El idle timer NO arranca desde el montaje del componente.
+   262→  // Arranca desde la ÚLTIMA interacción real del usuario (mensaje enviado,
+   263→  // typing en el input, o procesando una respuesta).
+   264→  // Mientras el usuario no haya interactuado, no se considera "idle" —
+   265→  // está en "escuchando" (esperando input), no "durmiendo".
+   266→  const [idleMs, setIdleMs] = useState(0);
+   267→  const lastInteractionRef = useRef<number | null>(null); // null = sin interacción aún
+   268→  const hasChatStarted = chatTurns.length > 0;
+   269→
+   270→  // Reset del idle timer cuando hay actividad real del usuario
+   271→  useEffect(() => {
+   272→    // Solo marcamos interacción si hay chat, o está procesando, o está escuchando voz
+   273→    if (chatTurns.length > 0 || processing || isListening) {
+   274→      lastInteractionRef.current = Date.now();
+   275→    }
+   276→  }, [chatTurns.length, processing, isListening]);
+   277→
+   278→  // Reset también cuando el usuario escribe (input cambia de vacío a algo)
+   279→  useEffect(() => {
+   280→    if (inputText.trim().length > 0) {
+   281→      lastInteractionRef.current = Date.now();
+   282→    }
+   283→  }, [inputText]);
+   284→
+   285→  // Tick cada 5s para recalcular idle (no cada 1s — menos renders)
+   286→  useEffect(() => {
+   287→    const interval = setInterval(() => {
+   288→      if (lastInteractionRef.current === null) {
+   289→        setIdleMs(0);
+   290→      } else {
+   291→        setIdleMs(Date.now() - lastInteractionRef.current);
+   292→      }
+   293→    }, 5000);
+   294→    return () => clearInterval(interval);
+   295→  }, []);
+   296→
+   297→  const lastUserText = useMemo(() => {
+   298→    for (let i = chatTurns.length - 1; i >= 0; i--) {
+   299→      if (chatTurns[i].role === "user") return chatTurns[i].text;
+   300→    }
+   301→    return undefined;
+   302→  }, [chatTurns]);
+   303→  const bgState: KoruBgState = useMemo(
+   304→    () => activityToBgState(activity?.kind, processing, isListening, lastUserText, idleMs, hasChatStarted),
+   305→    [activity?.kind, processing, isListening, lastUserText, idleMs, hasChatStarted],
+   306→  );
+   307→  const [transcribing, setTranscribing] = useState(false);
+   308→  const [analyzingImage, setAnalyzingImage] = useState(false);
+   309→  const [isRecording, setIsRecording] = useState(false);
+   310→  const [wheelOpen, setWheelOpen] = useState(false);
+   311→  const [wheelActive, setWheelActive] = useState<string | null>(null);
+   312→  // Onboarding conversacional: "greeting" → "waiting_for_name" → "done"
+   313→  const [onboardingPhase, setOnboardingPhase] = useState<"greeting" | "waiting_for_name" | "done">(
+   314→    onboarding ? "greeting" : "done"
+   315→  );
+   316→  const onboardingPhaseRef = useRef(onboardingPhase);
+   317→  onboardingPhaseRef.current = onboardingPhase;
+   318→  const micErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+   319→  const fileInputRef = useRef<HTMLInputElement>(null);
+   320→  const imageInputRef = useRef<HTMLInputElement>(null);
+   321→  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+   322→  const audioChunksRef = useRef<Blob[]>([]);
+   323→  const recognitionRef = useRef<ReturnType<typeof createSpeechSession> | null>(null);
+   324→  const scrollRef = useRef<HTMLDivElement>(null);
+   325→  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+   326→  const wheelOverlayRef = useRef<HTMLDivElement>(null);
+   327→  const inputRef = useRef<HTMLInputElement>(null);
+   328→  const turnCountRef = useRef(chatTurns.length);
+   329→
+   330→  // Fase 1 (audit visual): auto-dismiss del error de micrófono tras 4s.
+   331→  // Antes el error "No pude transcribir: not-allowed" se quedaba pegado en
+   332→  // el footer compitiendo con el composer. Ahora se limpia solo.
+   333→  const showMicError = useCallback((message: string) => {
+   334→    if (micErrorTimerRef.current) clearTimeout(micErrorTimerRef.current);
+   335→    setMicError(message);
+   336→    micErrorTimerRef.current = setTimeout(() => setMicError(""), 4000);
+   337→  }, []);
+   338→
+   339→  // UX Stitch: NO es un chat con historial. Es interaccion inmediata de un solo
+   340→  // turno: en pantalla solo vive el intercambio ACTUAL (ultimo mensaje del
+   341→  // usuario + la respuesta de Koru a ese mensaje). Al decir algo nuevo, lo
+   342→  // anterior desaparece. El registro completo queda en Historial.
+   343→  const visibleTurns = useMemo(() => {
+   344→    let lastUserIdx = -1;
+   345→    for (let i = chatTurns.length - 1; i >= 0; i--) {
+   346→      if (chatTurns[i].role === "user") {
+   347→        lastUserIdx = i;
+   348→        break;
+   349→      }
+   350→    }
+   351→    if (lastUserIdx === -1) return chatTurns; // aun sin interaccion: saludo inicial
+   352→    return chatTurns.slice(lastUserIdx);
+   353→  }, [chatTurns]);
+   354→
+   355→  // Entregable en curso (informe/investigación): su bloque "working" trae el
+   356→  // progreso REAL del pipeline. Mientras exista, el composer cede el lugar al
+   357→  // panel "Trabajando en tu informe".
+   358→  const workingDeliverable = useMemo(() => {
+   359→    for (let i = chatTurns.length - 1; i >= 0; i--) {
+   360→      const turn = chatTurns[i];
+   361→      if (turn.role !== "koru") continue;
+   362→      for (const item of turn.items ?? []) {
+   363→        const block = item.uiBlock;
+   364→        if (block?.type === "deliverable" && block.status === "working") {
+   365→          return { kicker: block.kicker, progress: block.progress, phaseLabel: block.phaseLabel };
+   366→        }
+   367→      }
+   368→      break; // solo el último turno de Koru cuenta
+   369→    }
+   370→    return null;
+   371→  }, [chatTurns]);
+   372→
+   373→  // ── Sugerencias de temas: extrae topics de los user turns anteriores ──
+   374→  // Solo aparecen si hay charla previa (más de 1 user turn en el historial completo).
+   375→  // Cada pill muestra un icono según la categoría detectada + el topic recortado.
+   376→  type SuggestionPill = { id: string; icon: string; topic: string; turnId: string };
+   377→
+   378→  const suggestionPills = useMemo<SuggestionPill[]>(() => {
+   379→    // Recorrer TODOS los chatTurns (no solo visibleTurns) para encontrar temas anteriores
+   380→    const userTurns = chatTurns.filter(t => t.role === "user");
+   381→    if (userTurns.length < 1) return [];
+   382→
+   383→    // Tomar los últimos 5 user turns (incluyendo el más reciente)
+   384→    const recentUserTurns = userTurns.slice(-5);
+   385→    if (recentUserTurns.length === 0) return [];
+   386→
+   387→    return recentUserTurns
+   388→      .map(turn => {
+   389→        const text = turn.text.trim();
+   390→        if (text.length < 3) return null;
+   391→
+   392→        // Detectar categoría por palabras clave
+   393→        const lower = text.toLowerCase();
+   394→        let icon = "chat";
+   395→        let topic = text.length > 30 ? text.slice(0, 28).trimEnd() + "…" : text;
+   396→
+   397→        if (/clima|tiempo|lluvia|temperatura|fr[ií]o|calor/.test(lower)) {
+   398→          icon = "cloud";
+   399→          // Extraer ciudad si existe
+   400→          const cityMatch = text.match(/en\s+([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)/);
+   401→          topic = cityMatch ? `Clima en ${cityMatch[1]}` : "Clima";
+   402→        } else if (/espa[ñn]a|argentina|brasil|francia|madrid|boca|river|partido|gano|salio|como (le fue|salio|va)/i.test(lower)) {
+   403→          icon = "sports_soccer";
+   404→          topic = text.length > 25 ? text.slice(0, 23).trimEnd() + "…" : text;
+   405→        } else if (/gasto|gast[ée]|anota|compr[ée]|caf[ée]|almuerzo|cena|pesos|dolares|\$\d/.test(lower)) {
+   406→          icon = "savings";
+   407→          topic = text.length > 25 ? text.slice(0, 23).trimEnd() + "…" : text;
+   408→        } else if (/informe|investig|busc[áa]|noticias|qui[ée]n|qu[eé] pas|cu[áa]l es/.test(lower)) {
+   409→          icon = "search";
+   410→          topic = text.length > 25 ? text.slice(0, 23).trimEnd() + "…" : text;
+   411→        } else if (/record[áa]|pendiente|tarea|alarm|despert/.test(lower)) {
+   412→          icon = "task_alt";
+   413→          topic = text.length > 25 ? text.slice(0, 23).trimEnd() + "…" : text;
+   414→        }
+   415→
+   416→        return { id: turn.id, icon, topic, turnId: turn.id };
+   417→      })
+   418→      .filter((p): p is SuggestionPill => p !== null)
+   419→      .reverse(); // más reciente primero
+   420→  }, [chatTurns]);
+   421→
+   422→  // ── Wheel: long-press detection ──
+   423→  // Mantener presionado 500ms en cualquier parte del chat (no en composer/buttons)
+   424→  // abre el wheel radial. Soltar fuera del wheel = cancelar.
+   425→  const handleLongPressStart = useCallback((e: React.TouchEvent | React.MouseEvent) => {
+   426→    // No activar si se está procesando o grabando
+   427→    if (processing || isRecording || wheelOpen) return;
+   428→    // No activar si el touch empieza en un botón o input
+   429→    const target = e.target as HTMLElement;
+   430→    if (target.closest("button, input, textarea, .koru-composer, .koru-back-button, .koru-suggestion-pill")) return;
+   431→
+   432→    longPressTimerRef.current = setTimeout(() => {
+   433→      setWheelOpen(true);
+   434→      setWheelActive(null);
+   435→      // Haptic feedback si está disponible
+   436→      if ("vibrate" in navigator) navigator.vibrate(30);
+   437→    }, 500);
+   438→  }, [processing, isRecording, wheelOpen]);
+   439→
+   440→  const handleLongPressCancel = useCallback(() => {
+   441→    if (longPressTimerRef.current) {
+   442→      clearTimeout(longPressTimerRef.current);
+   443→      longPressTimerRef.current = null;
+   444→    }
+   445→  }, []);
+   446→
+   447→  const handleWheelSelect = useCallback((option: string) => {
+   448→    setWheelOpen(false);
+   449→    setWheelActive(null);
+   450→    handleLongPressCancel();
+   451→
+   452→    // Navegar a la pantalla correspondiente
+   453→    if (option === "memory" && onNavigate) {
+   454→      onNavigate("memoria");
+   455→    } else if (option === "history" && onNavigate) {
+   456→      onNavigate("historial");
+   457→    } else if (option === "home" && onNavigate) {
+   458→      onNavigate("hoy");
+   459→    } else if (option === "settings" && onNavigate) {
+   460→      onNavigate("configuracion");
+   461→    }
+   462→    // "close" = solo cierra el wheel (ya hecho arriba)
+   463→  }, [onNavigate, handleLongPressCancel]);
+   464→
+   465→  // Touch move dentro del wheel: detectar qué opción está bajo el dedo
+   466→  const handleWheelTouchMove = useCallback((e: React.TouchEvent) => {
+   467→    const touch = e.touches[0];
+   468→    if (!touch) return;
+   469→    const overlay = wheelOverlayRef.current;
+   470→    if (!overlay) return;
+   471→
+   472→    // Encontrar qué opción está bajo el dedo
+   473→    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+   474→    const option = el?.closest("[data-wheel-option]") as HTMLElement | null;
+   475→    if (option) {
+   476→      setWheelActive(option.dataset.wheelOption ?? null);
+   477→    } else {
+   478→      setWheelActive(null);
+   479→    }
+   480→  }, []);
+   481→
+   482→  // Touch end en el OVERLAY (no en una opción): 
+   483→  // - Si wheelActive tiene valor → seleccionar (el dedo estaba sobre una opción al soltar)
+   484→  // - Si no → cerrar sin seleccionar (el dedo estaba fuera del wheel)
+   485→  // IMPORTANTE: este handler NO debe interferir con taps directos en los botones,
+   486→  // por eso los botones tienen su propio onTouchEnd que llama a stopPropagation.
+   487→  const handleWheelTouchEnd = useCallback(() => {
+   488→    if (wheelActive) {
+   489→      handleWheelSelect(wheelActive);
+   490→    } else {
+   491→      setWheelOpen(false);
+   492→      setWheelActive(null);
+   493→    }
+   494→  }, [wheelActive, handleWheelSelect]);
+   495→
+   496→  // Handler para tap directo en una opción (mobile + desktop):
+   497→  // - onTouchEnd: dispara en mobile cuando levantás el dedo sobre el botón
+   498→  //   Llamamos a handleWheelSelect directamente. stopPropagation evita que
+   499→  //   el handleWheelTouchEnd del overlay cancele la selección.
+   500→  // - onClick: dispara en desktop.
+   501→  const handleOptionTap = useCallback((option: string) => {
+   502→    handleWheelSelect(option);
+   503→  }, [handleWheelSelect]);
+   504→
+   505→  const handleOptionTouchEnd = useCallback((e: React.TouchEvent, option: string) => {
+   506→    e.preventDefault();  // evitar que disparó también el click sintético del browser
+   507→    e.stopPropagation(); // evitar que el overlay cierre sin seleccionar
+   508→    handleWheelSelect(option);
+   509→  }, [handleWheelSelect]);
+   510→
+   511→  useEffect(() => {
+   512→    const onKeyDown = (event: KeyboardEvent) => {
+   513→      if (event.key === "Escape") onClose();
+   514→    };
+   515→    window.addEventListener("keydown", onKeyDown);
+   516→    return () => window.removeEventListener("keydown", onKeyDown);
+   517→  }, [onClose]);
+   518→
+   519→  useEffect(() => {
+   520→    const node = scrollRef.current;
+   521→    if (!node) return;
+   522→    if (processing || isListening) {
+   523→      node.scrollTop = node.scrollHeight;
+   524→      return;
+   525→    }
+   526→    const previousCount = turnCountRef.current;
+   527→    turnCountRef.current = chatTurns.length;
+   528→    if (chatTurns.length > previousCount) {
+   529→      const userTurns = node.querySelectorAll<HTMLElement>(".koru-message.is-user");
+   530→      const lastUserTurn = userTurns[userTurns.length - 1];
+   531→      node.scrollTop = Math.max(0, (lastUserTurn?.offsetTop ?? node.scrollHeight) - 72);
+   532→    }
+   533→  }, [chatTurns, processing, isListening, interimText]);
+   534→
+   535→  useEffect(() => {
+   536→    if (!speechStatus.supported) inputRef.current?.focus();
+   537→  }, [speechStatus.supported]);
+   538→
+   539→  // ── Proactive Engine: al abrir la app, chequear si hay algo que decir ──
+   540→  // El engine corre en el server, lee las memories del usuario y decide si
+   541→  // hay un evento relevante (partido, lluvia, pendiente, cumpleaños).
+   542→  // Si lo hay, genera un mensaje CON PERSONALIDAD y lo muestra como primer turn.
+   543→  const proactiveCheckedRef = useRef(false);
+   544→  useEffect(() => {
+   545→    if (proactiveCheckedRef.current) return;
+   546→    if (onboarding) return;
+   547→    proactiveCheckedRef.current = true;
+   548→
+   549→    const lastSeen = parseInt(localStorage.getItem("koru.lastSeen") ?? "0", 10) || Date.now();
+   550→
+   551→    (async () => {
+   552→      try {
+   553→        const res = await fetch("/api/koru/proactive", {
+   554→          method: "POST",
+   555→          headers: { "Content-Type": "application/json" },
+   556→          body: JSON.stringify({
+   557→            state: { memories: [], commitments: [], records: [], userName: "Juan" },
+   558→            lastSeen,
+   559→          }),
+   560→        });
+   561→        if (!res.ok) return;
+   562→        const data = await res.json();
+   563→        if (data.shouldShow && data.reply) {
+   564→          const proactiveTurn: KoruChatTurn = {
+   565→            id: `proactive_${Date.now()}`,
+   566→            role: "koru",
+   567→            text: data.reply,
+   568→            createdAt: new Date().toISOString(),
+   569→            status: "done",
+   570→            mascotState: data.mascotState ?? "happy",
+   571→          };
+   572→          // Usar sendMessage interno no sirve — es para user turns.
+   573→          // Inyectar directamente en chatTurns via un event custom.
+   574→          window.dispatchEvent(new CustomEvent("koru:proactive", { detail: proactiveTurn }));
+   575→        }
+   576→      } catch {
+   577→        // silent
+   578→      }
+   579→    })();
+   580→
+   581→    localStorage.setItem("koru.lastSeen", String(Date.now()));
+   582→  }, [onboarding]);
+   583→
+   584→  const submitText = useCallback(async (text: string, source: "typed" | "speech") => {
+   585→    const clean = text.trim();
+   586→    if (!clean) return;
+   587→
+   588→    // Onboarding conversacional: interceptar el nombre
+   589→    if (onboardingPhaseRef.current === "waiting_for_name") {
+   590→      // El usuario respondió su nombre. Guardarlo y completar onboarding.
+   591→      const name = clean.length > 30 ? clean.slice(0, 30).trim() : clean;
+   592→      // Capitalizar primera letra
+   593→      const capitalizedName = name.charAt(0).toUpperCase() + name.slice(1);
+   594→      setOnboardingPhase("done");
+   595→      onOnboardingComplete?.(capitalizedName);
+   596→      return; // NO enviar al backend — es el nombre, no un mensaje normal
+   597→    }
+   598→
+   599→    await sendMessage(clean, source);
+   600→
+   601→    // Después del primer mensaje del usuario en modo onboarding, pasar a "waiting_for_name"
+   602→    if (onboarding && onboardingPhaseRef.current === "greeting") {
+   603→      // Esperar a que Koru responda, entonces preguntar el nombre
+   604→      // Usamos un timeout para dar tiempo a que llegue la respuesta del backend
+   605→      setTimeout(() => {
+   606→        setOnboardingPhase("waiting_for_name");
+   607→      }, 3000);
+   608→    }
+   609→  }, [sendMessage, onboarding, onOnboardingComplete]);
+   610→
+   611→  const handleTextSubmit = useCallback(async () => {
+   612→    const text = inputText.trim();
+   613→    if (!text) return;
+   614→    setInputText("");
+   615→    await submitText(text, "typed");
+   616→  }, [inputText, submitText]);
+   617→
+   618→  const handleReview = useCallback((id: string, approve: boolean) => {
+   619→    reviewAction(id, approve);
+   620→  }, [reviewAction]);
+   621→
+   622→  // Fase FIX: grabar audio con MediaRecorder API (funciona en todos los navegadores)
+   623→  // en lugar de SpeechRecognition que solo funciona en Chrome/Edge.
+   624→  // Graba → convierte a base64 → manda a /api/koru/asr → transcribe → envía como mensaje.
+   625→  const toggleMediaRecorder = useCallback(async () => {
+   626→    if (isRecording) {
+   627→      // Detener grabación
+   628→      mediaRecorderRef.current?.stop();
+   629→      setIsRecording(false);
+   630→      return;
+   631→    }
+   632→
+   633→    // Iniciar grabación
+   634→    showMicError("");
+   635→    try {
+   636→      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+   637→      const recorder = new MediaRecorder(stream);
+   638→      audioChunksRef.current = [];
+   639→
+   640→      recorder.ondataavailable = (e) => {
+   641→        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+   642→      };
+   643→
+   644→      recorder.onstop = async () => {
+   645→        stream.getTracks().forEach(t => t.stop());
+   646→        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+   647→        const reader = new FileReader();
+   648→        reader.onloadend = async () => {
+   649→          const base64 = (reader.result as string).split(",")[1];
+   650→          if (!base64) {
+   651→            showMicError("No pude procesar el audio grabado.");
+   652→            return;
+   653→          }
+   654→          setTranscribing(true);
+   655→          showMicError("Transcribiendo audio...");
+   656→          try {
+   657→            const res = await fetch("/api/koru/asr", {
+   658→              method: "POST",
+   659→              headers: { "Content-Type": "application/json" },
+   660→              body: JSON.stringify({ audio_base64: base64 }),
+   661→            });
+   662→            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+   663→            const data = await res.json() as { text?: string };
+   664→            const text = (data.text ?? "").trim();
+   665→            if (!text) {
+   666→              showMicError("No pude transcribir el audio.");
+   667→              return;
+   668→            }
+   669→            await submitText(text, "typed");
+   670→          } catch (err) {
+   671→            showMicError(`Error: ${err instanceof Error ? err.message : "desconocido"}`);
+   672→          } finally {
+   673→            setTranscribing(false);
+   674→          }
+   675→        };
+   676→        reader.readAsDataURL(audioBlob);
+   677→      };
+   678→
+   679→      mediaRecorderRef.current = recorder;
+   680→      recorder.start();
+   681→      setIsRecording(true);
+   682→    } catch (err) {
+   683→      showMicError(`No pude acceder al micrófono: ${err instanceof Error ? err.message : "permiso denegado"}`);
+   684→    }
+   685→  }, [isRecording, showMicError, submitText]);
+   686→
+   687→  // Fase 2.1 — Subir nota de voz: transcribe audio via /api/koru/asr y lo
+   688→  // manda como mensaje normal. Permite grabar audios largos sin SpeechRecognition
+   689→  // en vivo (que tiene timeout ~60s y no funciona en todos los navegadores).
+   690→  const handleAudioUpload = useCallback(async (file: File) => {
+   691→    if (!file) return;
+   692→    if (transcribing || processing) return;
+   693→    setTranscribing(true);
+   694→    showMicError("Transcribiendo audio...");
+   695→    try {
+   696→      const buf = await file.arrayBuffer();
+   697→      const base64 = btoa(
+   698→        String.fromCharCode(...new Uint8Array(buf)),
+   699→      );
+   700→      const res = await fetch("/api/koru/asr", {
+   701→        method: "POST",
+   702→        headers: { "Content-Type": "application/json" },
+   703→        body: JSON.stringify({ audio_base64: base64 }),
+   704→      });
+   705→      if (!res.ok) {
+   706→        const err = await res.json().catch(() => ({}));
+   707→        throw new Error(err.error || `HTTP ${res.status}`);
+   708→      }
+   709→      const data = (await res.json()) as { text?: string };
+   710→      const text = (data.text ?? "").trim();
+   711→      if (!text) {
+   712→        showMicError("No pude transcribir el audio.");
+   713→        return;
+   714→      }
+   715→      await submitText(text, "typed");
+   716→    } catch (err) {
+   717→      showMicError(`Error de transcripción: ${err instanceof Error ? err.message : "desconocido"}`);
+   718→    } finally {
+   719→      setTranscribing(false);
+   720→    }
+   721→  }, [transcribing, processing, showMicError, submitText]);
+   722→
+   723→  const onFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+   724→    const file = e.target.files?.[0];
+   725→    if (file) void handleAudioUpload(file);
+   726→    e.target.value = "";
+   727→  }, [handleAudioUpload]);
+   728→
+   729→  // Fase 3.8 — Subir imagen: analiza con VLM (OCR, descripción, etc.)
+   730→  // y manda el resultado como mensaje normal.
+   731→  const handleImageUpload = useCallback(async (file: File) => {
+   732→    if (!file) return;
+   733→    if (analyzingImage || processing) return;
+   734→    setAnalyzingImage(true);
+   735→    showMicError("Analizando imagen...");
+   736→    try {
+   737→      const buf = await file.arrayBuffer();
+   738→      const base64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+   739→      const res = await fetch("/api/koru/vlm", {
+   740→        method: "POST",
+   741→        headers: { "Content-Type": "application/json" },
+   742→        body: JSON.stringify({ image_base64: base64 }),
+   743→      });
+   744→      if (!res.ok) {
+   745→        const err = await res.json().catch(() => ({}));
+   746→        throw new Error(err.error || `HTTP ${res.status}`);
+   747→      }
+   748→      const data = (await res.json()) as { text?: string };
+   749→      const text = (data.text ?? "").trim();
+   750→      if (!text) {
+   751→        showMicError("No pude analizar la imagen.");
+   752→        return;
+   753→      }
+   754→      await submitText(text, "typed");
+   755→    } catch (err) {
+   756→      showMicError(`Error de análisis: ${err instanceof Error ? err.message : "desconocido"}`);
+   757→    } finally {
+   758→      setAnalyzingImage(false);
+   759→    }
+   760→  }, [analyzingImage, processing, showMicError, submitText]);
+   761→
+   762→  const onImageChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+   763→    const file = e.target.files?.[0];
+   764→    if (file) void handleImageUpload(file);
+   765→    e.target.value = "";
+   766→  }, [handleImageUpload]);
+   767→
+   768→  return (
+   769→    <div className="koru-chat-shell" role="dialog" aria-modal="true" aria-label="Conversacion con Koru">
+   770→      <section
+   771→        className="koru-chat-screen"
+   772→        aria-label="Conversacion con Koru"
+   773→        onTouchStart={handleLongPressStart}
+   774→        onTouchEnd={handleLongPressCancel}
+   775→        onTouchMove={handleLongPressCancel}
+   776→        onMouseDown={handleLongPressStart}
+   777→        onMouseUp={handleLongPressCancel}
+   778→        onMouseLeave={handleLongPressCancel}
+   779→      >
+   780→        {/* Fondo dinámico — cambia según el estado de Koru */}
+   781→        <KoruBackground state={bgState} />
+   782→
+   783→        <button type="button" onClick={onClose} aria-label="Volver" className="koru-back-button">
+   784→          <ChevronLeft size={22} />
+   785→        </button>
+   786→        <h1 className="koru-sr-heading">Koru</h1>
+   787→
+   788→        {/* Suggestion Pills — temas de conversaciones anteriores */}
+   789→        {suggestionPills.length > 0 && !processing && (
+   790→          <div className="koru-suggestion-bar">
+   791→            {suggestionPills.map((pill) => (
+   792→              <button
+   793→                key={pill.id}
+   794→                type="button"
+   795→                className="koru-suggestion-pill"
+   796→                onClick={() => {
+   797→                  // Tap en pill = reenviar ese mensaje como nuevo turno
+   798→                  // (alternativa más simple: scroll al turno, pero como solo
+   799→                  // mostramos el último intercambio, reenviar es más útil)
+   800→                  const originalTurn = chatTurns.find(t => t.id === pill.turnId);
+   801→                  if (originalTurn) {
+   802→                    submitText(originalTurn.text, "typed");
+   803→                  }
+   804→                }}
+   805→              >
+   806→                <span className="material-symbols-outlined">{pill.icon}</span>
+   807→                {pill.topic}
+   808→              </button>
+   809→            ))}
+   810→          </div>
+   811→        )}
+   812→
+   813→        <main ref={scrollRef} className="koru-chat-scroll">
+   814→          <div className="koru-thread">
+   815→            {visibleTurns.map((turn) =>
+   816→              turn.role === "user" ? (
+   817→                <UserTurnBubble key={turn.id} turn={turn} />
+   818→              ) : (
+   819→                <KoruTurnBubble
+   820→                  key={turn.id}
+   821→                  turn={turn}
+   822→                  onReview={handleReview}
+   823→                  onConfirmMemory={confirmMemory}
+   824→                  onPruneMemory={pruneMemory}
+   825→                  onCompleteCommitment={completeCommitment}
+   826→                  onSetWorldSignals={setWorldSignals}
+   827→                />
+   828→              ),
+   829→            )}
+   830→
+   831→            {/* Onboarding conversacional — greeting con chips */}
+   832→            {onboarding && onboardingPhase === "greeting" && !processing && (
+   833→              <div className="koru-message is-koru">
+   834→                <div className="koru-row">
+   835→                  <div className="koru-avatar">
+   836→                    <img src={KORU_AVATAR} alt="Koru" />
+   837→                  </div>
+   838→                  <div className="koru-bubble ai-bubble">
+   839→                    <h3 className="koru-bubble-heading">Hola, soy Koru 🌿</h3>
+   840→                    <p className="koru-message-text">Tu asistente personal. Puedo ayudarte con clima, gastos, recordatorios, búsquedas y mucho más.</p>
+   841→                    <p className="koru-message-text" style={{ marginTop: 8, fontWeight: 600 }}>¿Qué necesitás hoy?</p>
+   842→                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 12 }}>
+   843→                      {[
+   844→                        { icon: "cloud", text: "¿Qué tiempo hace?" },
+   845→                        { icon: "savings", text: "Anota un gasto" },
+   846→                        { icon: "search", text: "Buscá algo" },
+   847→                        { icon: "sports_soccer", text: "¿Cómo salió España?" },
+   848→                      ].map((chip) => (
+   849→                        <button
+   850→                          key={chip.text}
+   851→                          type="button"
+   852→                          onClick={() => submitText(chip.text, "typed")}
+   853→                          style={{
+   854→                            display: "inline-flex",
+   855→                            alignItems: "center",
+   856→                            gap: 4,
+   857→                            padding: "6px 12px",
+   858→                            borderRadius: 999,
+   859→                            background: "rgba(131, 99, 249, 0.12)",
+   860→                            color: "#523A9E",
+   861→                            fontSize: 12,
+   862→                            fontWeight: 600,
+   863→                            border: "none",
+   864→                            cursor: "pointer",
+   865→                            fontFamily: "inherit",
+   866→                          }}
+   867→                        >
+   868→                          <span className="material-symbols-outlined" style={{ fontSize: 14, color: "#8363F9" }}>{chip.icon}</span>
+   869→                          {chip.text}
+   870→                        </button>
+   871→                      ))}
+   872→                    </div>
+   873→                  </div>
+   874→                </div>
+   875→              </div>
+   876→            )}
+   877→
+   878→            {/* Onboarding conversacional — pregunta del nombre */}
+   879→            {onboarding && onboardingPhase === "waiting_for_name" && !processing && (
+   880→              <div className="koru-message is-koru">
+   881→                <div className="koru-row">
+   882→                  <div className="koru-avatar">
+   883→                    <img src={KORU_AVATAR} alt="Koru" />
+   884→                  </div>
+   885→                  <div className="koru-bubble ai-bubble">
+   886→                    <h3 className="koru-bubble-heading">Por cierto, ¿cómo te llamo? 😊</h3>
+   887→                    <p className="koru-message-text">Así puedo personalizar mis respuestas y recordarte cosas más fácil.</p>
+   888→                  </div>
+   889→                </div>
+   890→              </div>
+   891→            )}
+   892→
+   893→            {isListening && <ListeningBubble interimText={interimText} />}
+   894→          </div>
+   895→        </main>
+   896→
+   897→        {processing && !isListening && (workingDeliverable || activity?.depth === "deep") ? (
+   898→          <WorkingPanel phase={phase} kind={activity?.kind} deliverable={workingDeliverable} />
+   899→        ) : (
+   900→          <footer className="koru-chat-footer">
+   901→            {processing && !isListening && activity && (
+   902→              <div className="koru-activity-hint" role="status" aria-live="polite">
+   903→                <span className="koru-activity-dot" />
+   904→                {activity.label}
+   905→              </div>
+   906→            )}
+   907→            {ephemeral && <p className="koru-footer-note">Modo efimero activo - esta charla no guardara memoria nueva</p>}
+   908→            {micError && <p className="koru-footer-error">{micError}</p>}
+   909→
+   910→            <div className="koru-composer">
+   911→              <button
+   912→                type="button"
+   913→                onClick={() => setEphemeral(!ephemeral)}
+   914→                aria-label={ephemeral ? "Desactivar modo efimero" : "Activar modo efimero"}
+   915→                className={cn("koru-composer-icon", ephemeral && "is-active")}
+   916→              >
+   917→                <Leaf size={22} />
+   918→              </button>
+   919→              {/* Fase 2.1 — Subir nota de voz */}
+   920→              <button
+   921→                type="button"
+   922→                onClick={() => fileInputRef.current?.click()}
+   923→                disabled={transcribing || processing}
+   924→                aria-label="Subir nota de voz"
+   925→                className={cn("koru-composer-icon", transcribing && "is-active")}
+   926→              >
+   927→                <Paperclip size={22} />
+   928→              </button>
+   929→              <input
+   930→                ref={fileInputRef}
+   931→                type="file"
+   932→                accept="audio/*"
+   933→                onChange={onFileChange}
+   934→                className="hidden"
+   935→              />
+   936→              {/* Fase 3.8 — Subir imagen (OCR/análisis) */}
+   937→              <button
+   938→                type="button"
+   939→                onClick={() => imageInputRef.current?.click()}
+   940→                disabled={analyzingImage || processing}
+   941→                aria-label="Subir imagen"
+   942→                className={cn("koru-composer-icon", analyzingImage && "is-active")}
+   943→              >
+   944→                <ImageIcon size={22} />
+   945→              </button>
+   946→              <input
+   947→                ref={imageInputRef}
+   948→                type="file"
+   949→                accept="image/*"
+   950→                onChange={onImageChange}
+   951→                className="hidden"
+   952→              />
+   953→              <div className="koru-composer-field">
+   954→                <input
+   955→                  ref={inputRef}
+   956→                  value={inputText}
+   957→                  onChange={(event) => setInputText(event.target.value)}
+   958→                  onKeyDown={(event) => {
+   959→                    if (event.key === "Enter") {
+   960→                      event.preventDefault();
+   961→                      void handleTextSubmit();
+   962→                    }
+   963→                  }}
+   964→                  placeholder="Habla con Koru..."
+   965→                  disabled={processing}
+   966→                  className="koru-composer-input"
+   967→                />
+   968→              </div>
+   969→              {speechStatus.supported || true ? (
+   970→                <button
+   971→                  type="button"
+   972→                  onClick={inputText.trim() ? () => void handleTextSubmit() : toggleMediaRecorder}
+   973→                  disabled={processing && !inputText.trim()}
+   974→                  aria-label={inputText.trim() ? "Enviar" : isRecording ? "Detener grabación" : "Hablar"}
+   975→                  className={cn("koru-mic-button", isRecording && "is-listening")}
+   976→                >
+   977→                  {inputText.trim() ? <ArrowUp size={22} /> : isRecording ? <MicOff size={22} /> : <Mic size={22} />}
+   978→                </button>
+   979→              ) : (
+   980→                <button
+   981→                  type="button"
+   982→                  onClick={() => void handleTextSubmit()}
+   983→                  disabled={!inputText.trim() || processing}
+   984→                  aria-label="Enviar"
+   985→                  className="koru-mic-button"
+   986→                >
+   987→                  <ArrowUp size={24} />
+   988→                </button>
+   989→              )}
+   990→            </div>
+   991→          </footer>
+   992→        )}
+   993→
+   994→        {/* Wheel Overlay — long-press navigation */}
+   995→        {wheelOpen && (
+   996→          <div
+   997→            ref={wheelOverlayRef}
+   998→            className="koru-wheel-overlay"
+   999→            onTouchMove={handleWheelTouchMove}
+  1000→            onTouchEnd={handleWheelTouchEnd}
+  1001→            onMouseDown={(e) => {
+  1002→              // Click fuera del wheel = cancelar
+  1003→              if (e.target === e.currentTarget) {
+  1004→                setWheelOpen(false);
+  1005→                setWheelActive(null);
+  1006→              }
+  1007→            }}
+  1008→          >
+  1009→            <div className="koru-wheel-container">
+  1010→              <div className="koru-wheel-hint">
+  1011→                <span className="material-symbols-outlined">touch_app</span>
+  1012→                Deslizá y soltá sobre una opción
+  1013→              </div>
+  1014→
+  1015→              <div className="koru-wheel-center">
+  1016→                <span className="material-symbols-outlined">radar</span>
+  1017→                <span>Wheel</span>
+  1018→              </div>
+  1019→
+  1020→              <div
+  1021→                className={`koru-wheel-option top ${wheelActive === "memory" ? "active" : ""}`}
+  1022→                data-wheel-option="memory"
+  1023→                onMouseEnter={() => setWheelActive("memory")}
+  1024→                onClick={() => handleOptionTap("memory")}
+  1025→                onTouchEnd={(e) => handleOptionTouchEnd(e, "memory")}
+  1026→              >
+  1027→                <span className="material-symbols-outlined">neurology</span>
+  1028→                <span className="wheel-label">Memoria</span>
+  1029→              </div>
+  1030→
+  1031→              <div
+  1032→                className={`koru-wheel-option right ${wheelActive === "history" ? "active" : ""}`}
+  1033→                data-wheel-option="history"
+  1034→                onMouseEnter={() => setWheelActive("history")}
+  1035→                onClick={() => handleOptionTap("history")}
+  1036→                onTouchEnd={(e) => handleOptionTouchEnd(e, "history")}
+  1037→              >
+  1038→                <span className="material-symbols-outlined">history</span>
+  1039→                <span className="wheel-label">Historial</span>
+  1040→              </div>
+  1041→
+  1042→              <div
+  1043→                className={`koru-wheel-option bottom ${wheelActive === "home" ? "active" : ""}`}
+  1044→                data-wheel-option="home"
+  1045→                onMouseEnter={() => setWheelActive("home")}
+  1046→                onClick={() => handleOptionTap("home")}
+  1047→                onTouchEnd={(e) => handleOptionTouchEnd(e, "home")}
+  1048→              >
+  1049→                <span className="material-symbols-outlined">home</span>
+  1050→                <span className="wheel-label">Home</span>
+  1051→              </div>
+  1052→
+  1053→              <div
+  1054→                className={`koru-wheel-option left ${wheelActive === "settings" ? "active" : ""}`}
+  1055→                data-wheel-option="settings"
+  1056→                onMouseEnter={() => setWheelActive("settings")}
+  1057→                onClick={() => handleOptionTap("settings")}
+  1058→                onTouchEnd={(e) => handleOptionTouchEnd(e, "settings")}
+  1059→              >
+  1060→                <span className="material-symbols-outlined">settings</span>
+  1061→                <span className="wheel-label">Ajustes</span>
+  1062→              </div>
+  1063→            </div>
+  1064→          </div>
+  1065→        )}
+  1066→      </section>
+  1067→    </div>
+  1068→  );
+  1069→}
+  1070→
+  1071→

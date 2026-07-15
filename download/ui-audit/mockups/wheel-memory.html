@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=430, initial-scale=1.0">
+<title>Koru — Wheel → Memoria</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; width: 430px; height: 932px; overflow: hidden; }
+  .screen { position: relative; width: 430px; height: 932px; overflow: hidden; background: linear-gradient(180deg, #f0dbff 0%, #f8f9ff 100%); }
+  /* Blobs */
+  .blob1 { position: absolute; top: -50px; right: -50px; width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(circle, rgba(221,183,255,0.8) 0%, rgba(221,183,255,0) 70%); filter: blur(20px); }
+  .blob2 { position: absolute; top: 200px; left: -100px; width: 250px; height: 250px; border-radius: 50%; background: radial-gradient(circle, rgba(111,251,190,0.4) 0%, rgba(111,251,190,0) 70%); filter: blur(20px); }
+  /* Back button */
+  .back-btn { position: absolute; top: 50px; left: 24px; z-index: 50; width: 48px; height: 48px; border-radius: 999px; background: rgba(255,255,255,0.4); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.6); display: flex; align-items: center; justify-content: center; color: #8127cf; box-shadow: 0 4px 12px rgba(130,39,207,0.1); }
+  /* Header */
+  .header { position: relative; z-index: 10; padding: 80px 24px 24px; text-align: center; }
+  .header h1 { font-size: 32px; font-weight: 800; color: #8127cf; letter-spacing: -0.025em; margin-bottom: 4px; }
+  .header p { font-size: 14px; color: #464554; font-weight: 500; opacity: 0.8; }
+  /* Stats bar */
+  .stats-bar { display: flex; justify-content: center; gap: 24px; padding: 0 24px 16px; position: relative; z-index: 10; }
+  .stat { text-align: center; }
+  .stat .num { font-size: 24px; font-weight: 800; color: #8363F9; }
+  .stat .label { font-size: 10px; font-weight: 700; color: #464554; text-transform: uppercase; letter-spacing: 0.05em; }
+  /* Memory cards */
+  .cards { padding: 0 24px 48px; position: relative; z-index: 10; display: flex; flex-direction: column; gap: 16px; }
+  .magical-card { background: rgba(255,255,255,0.72); backdrop-filter: blur(16px); border-radius: 2rem; padding: 20px; box-shadow: 0 8px 32px rgba(130,39,207,0.08); border: 1px solid rgba(255,255,255,0.85); position: relative; overflow: hidden; }
+  .magical-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent); }
+  .mod-resumen { --mc: #7c3aed; --mb: rgba(124,58,237,0.10); }
+  .mod-historia { --mc: #d97706; --mb: rgba(217,119,6,0.10); }
+  .mod-civs { --mc: #059669; --mb: rgba(5,150,105,0.10); }
+  .mod-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .mod-icon { width: 44px; height: 44px; border-radius: 14px; background: var(--mb); color: var(--mc); display: flex; align-items: center; justify-content: center; }
+  .mod-icon .material-symbols-outlined { font-size: 22px; }
+  .mod-title { color: var(--mc); font-weight: 800; font-size: 17px; }
+  .mod-sub { color: #464554; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+  /* Memory rows */
+  .mem-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,0.6); margin-bottom: 8px; }
+  .mem-row .material-symbols-outlined { color: var(--mc); font-size: 18px; }
+  .mem-row .mem-text { font-size: 13px; color: #0b1c30; font-weight: 600; flex: 1; }
+  .mem-row .mem-meta { font-size: 10px; color: #464554; font-weight: 500; }
+  .mem-row .badge { font-size: 9px; font-weight: 700; padding: 3px 8px; border-radius: 999px; text-transform: uppercase; }
+  .badge-confirmed { background: rgba(110,231,183,0.2); color: #059669; }
+  .badge-candidate { background: rgba(251,191,36,0.2); color: #d97706; }
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="blob1"></div>
+  <div class="blob2"></div>
+  <button class="back-btn"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+  <div class="header">
+    <h1>Mi Memoria</h1>
+    <p>Lo que Koru sabe de vos</p>
+  </div>
+  <div class="stats-bar">
+    <div class="stat"><div class="num">8</div><div class="label">Memorias</div></div>
+    <div class="stat"><div class="num">6</div><div class="label">Confirmadas</div></div>
+    <div class="stat"><div class="num">2</div><div class="label">Pendientes</div></div>
+  </div>
+  <div class="cards">
+    <div class="magical-card mod-resumen">
+      <div class="mod-head">
+        <div class="mod-icon"><span class="material-symbols-outlined">person</span></div>
+        <div><div class="mod-title">Perfil</div><div class="mod-sub">Quién sos</div></div>
+      </div>
+      <div class="mem-row"><span class="material-symbols-outlined">badge</span><span class="mem-text">Te llamas Juan</span><span class="badge badge-confirmed">Confirmada</span></div>
+      <div class="mem-row"><span class="material-symbols-outlined">location_on</span><span class="mem-text">Te interesa el clima de Madrid</span><span class="badge badge-confirmed">Confirmada</span></div>
+    </div>
+    <div class="magical-card mod-historia">
+      <div class="mod-head">
+        <div class="mod-icon"><span class="material-symbols-outlined">favorite</span></div>
+        <div><div class="mod-title">Preferencias</div><div class="mod-sub">Lo que te gusta</div></div>
+      </div>
+      <div class="mem-row"><span class="material-symbols-outlined">sports_soccer</span><span class="mem-text">Seguís a España en el Mundial</span><span class="badge badge-candidate">Pendiente</span></div>
+      <div class="mem-row"><span class="material-symbols-outlined">coffee</span><span class="mem-text">Tomás café a la mañana</span><span class="badge badge-confirmed">Confirmada</span></div>
+    </div>
+    <div class="magical-card mod-civs">
+      <div class="mod-head">
+        <div class="mod-icon"><span class="material-symbols-outlined">target</span></div>
+        <div><div class="mod-title">Objetivos</div><div class="mod-sub">Lo que querés lograr</div></div>
+      </div>
+      <div class="mem-row"><span class="material-symbols-outlined">savings</span><span class="mem-text">Estás ahorrando para un viaje</span><span class="badge badge-candidate">Pendiente</span></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

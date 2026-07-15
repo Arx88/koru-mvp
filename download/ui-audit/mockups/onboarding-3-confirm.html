@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=430, initial-scale=1.0">
+<title>Koru — Onboarding paso 3: Confirmación y memoria</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; width: 430px; height: 932px; overflow: hidden; }
+  .chat-screen { position: relative; width: 430px; height: 932px; background: #453f6a url("chat-bg.png") center top / cover no-repeat; overflow: hidden; }
+  .back-btn { position: absolute; top: 18px; left: 16px; z-index: 30; width: 44px; height: 44px; border-radius: 999px; background: rgba(255,255,255,0.22); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.35); display: flex; align-items: center; justify-content: center; color: #fff; }
+  .chat-content { position: absolute; bottom: 120px; left: 0; right: 0; padding: 0 20px; display: flex; flex-direction: column; gap: 12px; }
+  .user-bubble { align-self: flex-end; max-width: 85%; background: #F0F4FF; color: #301C70; padding: 12px 16px 14px; border-radius: 22px; border-bottom-right-radius: 0; font-size: 16px; font-weight: 500; line-height: 1.4; box-shadow: 0 10px 28px rgba(18,10,50,0.18); }
+  .koru-row { display: flex; align-items: flex-end; gap: 10px; }
+  .koru-avatar { width: 56px; height: 56px; border-radius: 999px; overflow: hidden; background: #fff; box-shadow: 0 4px 12px rgba(18,10,50,0.15); flex-shrink: 0; }
+  .koru-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .koru-bubble { flex: 1; background: #F8F4FA; color: #301C70; padding: 14px 16px; border-radius: 22px; border-bottom-left-radius: 0; font-size: 16px; font-weight: 500; line-height: 1.4; box-shadow: 0 10px 28px rgba(18,10,50,0.18); }
+  .koru-bubble h3 { font-size: 18px; font-weight: 700; color: #523A9E; margin-bottom: 6px; }
+  /* Memory confirmation card inside bubble */
+  .mem-card { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: rgba(110, 231, 183, 0.15); border: 1px solid rgba(110, 231, 183, 0.4); display: flex; align-items: center; gap: 8px; }
+  .mem-card .material-symbols-outlined { color: #059669; font-size: 18px; }
+  .mem-card .mem-text { font-size: 12px; color: #065f46; font-weight: 600; }
+  .mem-card .mem-text b { color: #064e3b; }
+  .composer { position: absolute; bottom: 24px; left: 20px; right: 20px; height: 64px; border-radius: 999px; background: #fff; padding: 8px; display: flex; align-items: center; box-shadow: 0 12px 32px rgba(18,10,50,0.22); }
+  .composer-icon { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; color: #a89ad7; }
+  .composer-field { flex: 1; height: 100%; margin: 0 8px; border: 1px solid #f0ebf8; border-radius: 999px; padding: 0 16px; display: flex; align-items: center; color: #a89ad7; font-size: 15px; font-weight: 500; }
+  .mic-btn { width: 48px; height: 48px; border-radius: 999px; background: #7c5ff6; color: #fff; display: flex; align-items: center; justify-content: center; }
+</style>
+</head>
+<body>
+<div class="chat-screen">
+  <button class="back-btn"><span class="material-symbols-outlined">chevron_left</span></button>
+  <div class="chat-content">
+    <!-- User respondió su nombre -->
+    <div class="user-bubble">Me llamo Juan</div>
+    <!-- Koru confirma + guarda en memoria -->
+    <div class="koru-row">
+      <div class="koru-avatar"><img src="avatar-chat.png" alt="Koru"></div>
+      <div class="koru-bubble">
+        <h3>¡Encantado, Juan! 🎉</h3>
+        <p>Voy a recordar tu nombre y que te interesa el clima de Madrid. Así la próxima vez ya lo sé.</p>
+        <div class="mem-card">
+          <span class="material-symbols-outlined">check_circle</span>
+          <span class="mem-text"><b>Guardado en memoria:</b> "Te llamas Juan" · "Te interesa el clima de Madrid"</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="composer">
+    <div class="composer-icon"><span class="material-symbols-outlined">eco</span></div>
+    <div class="composer-field">Habla con Koru...</div>
+    <div class="mic-btn"><span class="material-symbols-outlined">arrow_upward</span></div>
+  </div>
+</div>
+</body>
+</html>

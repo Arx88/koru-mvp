@@ -1,0 +1,1481 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Koru · Sistema de Fondos Dinámicos por Estado</title>
+<style>
+  :root {
+    --bg-deep: #0a0612;
+    --bg-card: #1a1228;
+    --bg-elevated: #251a3a;
+    --border: #3a2a55;
+    --accent: #a78bfa;
+    --accent-bright: #c4b5fd;
+    --accent-glow: rgba(167, 139, 250, 0.35);
+    --text: #f5f0ff;
+    --text-dim: #a89cc4;
+    --text-mute: #6b5e8a;
+    --success: #86efac;
+    --warn: #fcd34d;
+    --pink: #f9a8d4;
+    --teal: #5eead4;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg-deep);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    line-height: 1.55;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(167, 139, 250, 0.12), transparent 40%),
+      radial-gradient(circle at 80% 90%, rgba(94, 234, 212, 0.08), transparent 40%);
+  }
+  .container { max-width: 1280px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  /* ===== HEADER ===== */
+  .hero {
+    text-align: center;
+    margin-bottom: 56px;
+    padding: 24px 0;
+  }
+  .hero .eyebrow {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: rgba(167, 139, 250, 0.12);
+    border: 1px solid rgba(167, 139, 250, 0.3);
+    color: var(--accent-bright);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .hero h1 {
+    font-size: clamp(32px, 5vw, 52px);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin-bottom: 18px;
+    background: linear-gradient(135deg, #fff 0%, var(--accent-bright) 60%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .hero p {
+    color: var(--text-dim);
+    max-width: 680px;
+    margin: 0 auto;
+    font-size: 16px;
+  }
+  .hero .stats {
+    display: flex;
+    gap: 32px;
+    justify-content: center;
+    margin-top: 28px;
+    flex-wrap: wrap;
+  }
+  .hero .stat { text-align: center; }
+  .hero .stat .num {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--accent-bright);
+  }
+  .hero .stat .lbl {
+    font-size: 11px;
+    color: var(--text-mute);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  /* ===== SECTION ===== */
+  section { margin-bottom: 64px; }
+  .section-title {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .section-title .num {
+    font-size: 14px;
+    color: var(--accent);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .section-title h2 {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .section-sub {
+    color: var(--text-dim);
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+
+  /* ===== PHONE MOCKUP ===== */
+  .demo-wrap {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 40px;
+    align-items: start;
+  }
+  @media (max-width: 920px) {
+    .demo-wrap { grid-template-columns: 1fr; }
+  }
+  .phone-frame {
+    /* Aspect ratio 9:16 — matches all video assets exactly. No black bars possible. */
+    width: 360px;
+    height: 640px;  /* 360 * 16/9 = 640 */
+    border-radius: 44px;
+    background: linear-gradient(180deg, #2a1f3d, #1a1228);
+    padding: 12px;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.06) inset,
+      0 0 80px rgba(167, 139, 250, 0.25),
+      0 30px 60px rgba(0,0,0,0.5);
+    position: relative;
+    margin: 0 auto;
+  }
+  .phone-screen {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 32px;
+    overflow: hidden;
+    background: #0a0612;
+  }
+  /* Background layer — fills the entire screen, no black bars */
+  .bg-layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;       /* always fills, crops overflow — never letterboxes */
+    object-position: center top;  /* anchor to top so character is never cut off the top */
+    opacity: 0;
+    transition: opacity 800ms ease-in-out;
+  }
+  .bg-layer.active { opacity: 1; }
+  .bg-layer.video { object-fit: cover; object-position: center top; }
+  /* Dark overlay for readability — ONLY at the bottom where chat sits. Top stays clear for character. */
+  .phone-screen::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(180deg,
+        transparent 0%,
+        transparent 45%,
+        rgba(10,6,18,0.35) 60%,
+        rgba(10,6,18,0.7) 100%);
+    pointer-events: none;
+    z-index: 2;
+  }
+  /* Chat UI overlay */
+  .chat-ui {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    color: #fff;
+    pointer-events: none;  /* let clicks pass through to video controls if needed */
+  }
+  /* Status pill — floats at top-right, doesn't cover character */
+  .status-pill-float {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(10, 6, 18, 0.55);
+    border: 1px solid rgba(167, 139, 250, 0.5);
+    font-size: 9px;
+    color: var(--accent-bright);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    backdrop-filter: blur(8px);
+    z-index: 4;
+    white-space: nowrap;
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* Chat body — pushed to lower-middle so character (top of video) is fully visible */
+  .chat-body {
+    margin-top: auto;  /* push to bottom */
+    padding: 8px 12px 4px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    scrollbar-width: none;
+    background: transparent;
+    max-height: 55%;  /* limit so character area at top stays clear */
+    pointer-events: auto;
+  }
+  .chat-body::-webkit-scrollbar { display: none; }
+  .msg {
+    max-width: 78%;
+    padding: 7px 11px;
+    border-radius: 16px;
+    font-size: 12px;
+    line-height: 1.35;
+    animation: msgIn 350ms ease-out;
+    /* Strong backdrop so messages are readable over character */
+    backdrop-filter: blur(8px);
+  }
+  @keyframes msgIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .msg.user {
+    align-self: flex-end;
+    background: rgba(124, 58, 237, 0.85);
+    color: #fff;
+    border-bottom-right-radius: 6px;
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+  }
+  .msg.koru {
+    align-self: flex-start;
+    background: rgba(255,255,255,0.9);
+    color: #1a1228;
+    border-bottom-left-radius: 6px;
+    backdrop-filter: blur(10px);
+  }
+  .msg.koru.tool {
+    background: rgba(167, 139, 250, 0.95);
+    color: #fff;
+    font-style: italic;
+  }
+  .typing {
+    align-self: flex-start;
+    padding: 9px 13px;
+    background: rgba(255,255,255,0.92);
+    border-radius: 16px;
+    border-bottom-left-radius: 6px;
+    display: flex;
+    gap: 4px;
+  }
+  .typing span {
+    width: 5px; height: 5px;
+    background: #7c3aed;
+    border-radius: 50%;
+    animation: bounce 1.4s infinite;
+  }
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-6px); opacity: 1; }
+  }
+  .chat-input {
+    pointer-events: auto;
+    padding: 8px 12px 16px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    background: linear-gradient(0deg, rgba(10,6,18,0.85) 0%, rgba(10,6,18,0.5) 70%, transparent 100%);
+  }
+  .chat-input .field {
+    flex: 1;
+    padding: 8px 13px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.22);
+    color: #fff;
+    font-size: 12px;
+    backdrop-filter: blur(10px);
+  }
+  .chat-input .send {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #7c3aed, #a78bfa);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+    font-size: 14px;
+  }
+
+  /* ===== STATE RAIL ===== */
+  .state-rail {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 20px;
+  }
+  .state-rail h3 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-mute);
+    margin-bottom: 14px;
+  }
+  .state-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .state-btn {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 200ms;
+    color: var(--text);
+    font-family: inherit;
+  }
+  .state-btn:hover {
+    border-color: var(--accent);
+    background: rgba(167, 139, 250, 0.1);
+    transform: translateY(-1px);
+  }
+  .state-btn.active {
+    border-color: var(--accent);
+    background: rgba(167, 139, 250, 0.18);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+  .state-btn .icon { font-size: 18px; margin-bottom: 4px; display: block; }
+  .state-btn .name { font-size: 13px; font-weight: 600; }
+  .state-btn .desc {
+    font-size: 10px;
+    color: var(--text-mute);
+    margin-top: 2px;
+    line-height: 1.3;
+  }
+  .state-btn .tag {
+    display: inline-block;
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-top: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+  }
+  .tag.video { background: rgba(94, 234, 212, 0.15); color: var(--teal); }
+  .tag.static { background: rgba(252, 211, 77, 0.15); color: var(--warn); }
+  .tag.fallback { background: rgba(249, 168, 212, 0.15); color: var(--pink); }
+
+  /* ===== SCENARIO ===== */
+  .scenario {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px 18px;
+    margin-top: 16px;
+  }
+  .scenario h3 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-mute);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .scenario .step-indicator {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+  }
+  .scenario .play-btn {
+    margin-left: auto;
+    padding: 6px 14px;
+    border-radius: 8px;
+    background: var(--accent);
+    color: #0a0612;
+    border: none;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-family: inherit;
+  }
+  .scenario .play-btn:hover { background: var(--accent-bright); }
+  .scenario .play-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .scenario .desc {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+  .scenario .timeline {
+    display: flex;
+    gap: 4px;
+    height: 6px;
+    background: var(--bg-elevated);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .scenario .timeline .seg {
+    flex: 1;
+    background: var(--bg-elevated);
+    transition: background 300ms;
+  }
+  .scenario .timeline .seg.done { background: var(--accent); }
+  .scenario .timeline .seg.active { background: var(--accent-bright); box-shadow: 0 0 8px var(--accent-glow); }
+  .scenario .step-text {
+    font-size: 12px;
+    color: var(--text);
+    margin-top: 10px;
+    min-height: 32px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    background: var(--bg-elevated);
+    padding: 8px 10px;
+    border-radius: 8px;
+    border-left: 2px solid var(--accent);
+  }
+
+  /* ===== STATE LIBRARY ===== */
+  .library {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 18px;
+  }
+  .lib-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 250ms;
+  }
+  .lib-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+  .lib-card .preview {
+    width: 100%;
+    aspect-ratio: 9/16;
+    background: #0a0612;
+    display: block;
+    object-fit: cover;
+    object-position: center top;
+  }
+  .lib-card .info {
+    padding: 12px 14px;
+  }
+  .lib-card .info .name {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .lib-card .info .trigger {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+  .lib-card .info .meta {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  /* ===== DIAGRAM ===== */
+  .diagram {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px;
+    overflow-x: auto;
+  }
+  .flow {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    gap: 20px;
+    align-items: stretch;
+    min-width: 800px;
+  }
+  .flow-col {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    justify-content: center;
+  }
+  .flow-col h4 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    margin-bottom: 4px;
+    text-align: center;
+  }
+  .flow-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 12px;
+    text-align: center;
+  }
+  .flow-card .lbl { color: var(--text); font-weight: 600; }
+  .flow-card .sub { color: var(--text-mute); font-size: 10px; margin-top: 2px; }
+  .flow-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    font-size: 24px;
+    font-weight: 700;
+  }
+  .flow-card.trigger { border-color: var(--accent); }
+  .flow-card.state { background: rgba(167, 139, 250, 0.12); border-color: var(--accent); }
+  .flow-card.asset { background: rgba(94, 234, 212, 0.08); border-color: var(--teal); }
+
+  /* ===== CODE BLOCK ===== */
+  .code-block {
+    background: #0d0820;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    overflow-x: auto;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: #e0d4f7;
+  }
+  .code-block .kw { color: #c4b5fd; }
+  .code-block .str { color: #86efac; }
+  .code-block .com { color: #6b5e8a; font-style: italic; }
+  .code-block .fn { color: #fcd34d; }
+  .code-block .num { color: #f9a8d4; }
+  .code-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .code-tab {
+    padding: 8px 14px;
+    background: transparent;
+    border: none;
+    color: var(--text-mute);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    border-bottom: 2px solid transparent;
+    transition: all 200ms;
+  }
+  .code-tab:hover { color: var(--text); }
+  .code-tab.active { color: var(--accent-bright); border-bottom-color: var(--accent); }
+  .code-panel { display: none; }
+  .code-panel.active { display: block; }
+
+  /* ===== STRUCTURE ===== */
+  .structure {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    font-family: ui-monospace, monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text-dim);
+  }
+  .structure .dir { color: var(--accent-bright); font-weight: 600; }
+  .structure .file { color: var(--text); }
+  .structure .com { color: var(--text-mute); font-style: italic; }
+  .structure .indent { padding-left: 20px; }
+  .structure .indent2 { padding-left: 40px; }
+
+  /* ===== NOTES ===== */
+  .notes {
+    background: linear-gradient(135deg, rgba(167, 139, 250, 0.08), rgba(94, 234, 212, 0.04));
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin-top: 20px;
+  }
+  .notes h4 {
+    color: var(--accent-bright);
+    font-size: 13px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .notes ul { padding-left: 18px; }
+  .notes li { font-size: 13px; color: var(--text-dim); margin-bottom: 4px; line-height: 1.5; }
+  .notes li strong { color: var(--text); }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    font-size: 11px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; color: var(--text-dim); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- HERO -->
+  <div class="hero">
+    <span class="eyebrow">Plan de Integración · Fondos Dinámicos</span>
+    <h1>Koru cambia de fondo según lo que está haciendo</h1>
+    <p>En vez de un solo fondo estático con Koru escribiendo, ahora Koru tiene <strong>8 estados visuales</strong> que se activan según el contexto de la conversación: si está buscando info, guardando memoria, cocinando, durmiendo, y más. Esto le da vida y personalidad real a la app.</p>
+    <div class="stats">
+      <div class="stat"><div class="num">8</div><div class="lbl">Estados visuales</div></div>
+      <div class="stat"><div class="num">4</div><div class="lbl">Animados (MP4)</div></div>
+      <div class="stat"><div class="num">4</div><div class="lbl">Estáticos (PNG)</div></div>
+      <div class="stat"><div class="num">9:16</div><div class="lbl">Formato portrait</div></div>
+    </div>
+  </div>
+
+  <!-- SECTION 1: LIVE DEMO -->
+  <section>
+    <div class="section-title">
+      <span class="num">01</span>
+      <h2>Demo en vivo · Phone mockup</h2>
+    </div>
+    <p class="section-sub">Tocá cualquier estado del panel derecho y mirá cómo el fondo del teléfono cambia con crossfade suave. El video se reproduce en loop automático.</p>
+
+    <div class="demo-wrap">
+      <!-- PHONE — 9:16 aspect ratio, no padding/black bars possible -->
+      <div class="phone-frame">
+        <div class="phone-screen" id="phone">
+          <!-- Background layers (one per state, crossfaded) -->
+          <img class="bg-layer" data-state="construyendo" src="assets/estado-construyendo.png" alt="">
+          <img class="bg-layer" data-state="habitos" src="assets/estado-habitos.png" alt="">
+          <img class="bg-layer" data-state="productos" src="assets/estado-productos.png" alt="">
+          <img class="bg-layer" data-state="recetas" src="assets/estado-recetas.png" alt="">
+          <video class="bg-layer video" data-state="buscando" src="assets/estado-buscando.mp4" muted loop playsinline preload="auto"></video>
+          <video class="bg-layer video" data-state="memoria" src="assets/estado-memoria.mp4" muted loop playsinline preload="auto"></video>
+          <video class="bg-layer video" data-state="trabajando" src="assets/estado-trabajando.mp4" muted loop playsinline preload="auto"></video>
+          <video class="bg-layer video" data-state="durmiendo" src="assets/estado-durmiendo.mp4" muted loop playsinline preload="auto"></video>
+
+          <!-- Chat UI — NO header bar, character at top of video stays fully visible -->
+          <div class="chat-ui">
+            <div class="status-pill-float" id="statusPill">escuchando</div>
+            <div class="chat-body" id="chatBody">
+              <div class="msg user">¡Hola Koru!</div>
+              <div class="msg koru">¡Hola Juan! ¿Qué hacemos hoy?</div>
+            </div>
+            <div class="chat-input">
+              <div class="field">Escribí un mensaje...</div>
+              <div class="send">↑</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATE RAIL -->
+      <div class="state-rail">
+        <h3>Activar estado manualmente</h3>
+        <div class="state-grid" id="stateGrid">
+          <button class="state-btn" data-state="trabajando">
+            <span class="icon">⚙️</span>
+            <div class="name">Trabajando</div>
+            <div class="desc">Generando respuesta simple</div>
+            <span class="tag video">video</span>
+          </button>
+          <button class="state-btn" data-state="buscando">
+            <span class="icon">🔍</span>
+            <div class="name">Buscando</div>
+            <div class="desc">Usando tools: clima, sports</div>
+            <span class="tag video">video</span>
+          </button>
+          <button class="state-btn" data-state="memoria">
+            <span class="icon">📝</span>
+            <div class="name">Memoria</div>
+            <div class="desc">Guardando gastos, recordatorios</div>
+            <span class="tag video">video</span>
+          </button>
+          <button class="state-btn" data-state="construyendo">
+            <span class="icon">🧱</span>
+            <div class="name">Construyendo</div>
+            <div class="desc">Armando resumen, plan, lista</div>
+            <span class="tag static">static</span>
+          </button>
+          <button class="state-btn" data-state="habitos">
+            <span class="icon">💪</span>
+            <div class="name">Hábitos</div>
+            <div class="desc">Charla de gym, deportes</div>
+            <span class="tag static">static</span>
+          </button>
+          <button class="state-btn" data-state="productos">
+            <span class="icon">🛍️</span>
+            <div class="name">Productos</div>
+            <div class="desc">Compras, gastos, productos</div>
+            <span class="tag static">static</span>
+          </button>
+          <button class="state-btn" data-state="recetas">
+            <span class="icon">🍳</span>
+            <div class="name">Recetas</div>
+            <div class="desc">Cocina, comida, recetas</div>
+            <span class="tag static">static</span>
+          </button>
+          <button class="state-btn" data-state="durmiendo">
+            <span class="icon">😴</span>
+            <div class="name">Durmiendo</div>
+            <div class="desc">Idle · inactivo +2 min</div>
+            <span class="tag video">video</span>
+          </button>
+        </div>
+
+        <!-- SCENARIO -->
+        <div class="scenario">
+          <h3>
+            <span class="step-indicator" id="stepNum">0/0</span>
+            Escenario automático: "una mañana con Koru"
+            <button class="play-btn" id="playBtn">▶ Play</button>
+          </h3>
+          <p class="desc">Simula una conversación real donde los estados van cambiando solos según el contexto.</p>
+          <div class="timeline" id="timeline"></div>
+          <div class="step-text" id="stepText">Tocá ▶ Play para empezar.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 2: STATE LIBRARY -->
+  <section>
+    <div class="section-title">
+      <span class="num">02</span>
+      <h2>Librería de estados</h2>
+    </div>
+    <p class="section-sub">Los 8 estados visuales con su activador (trigger) y tipo de asset. Los estáticos se animarán más adelante.</p>
+
+    <div class="legend">
+      <div class="legend-item"><span class="legend-dot" style="background:rgba(94,234,212,0.4)"></span>Video MP4 (animado)</div>
+      <div class="legend-item"><span class="legend-dot" style="background:rgba(252,211,77,0.4)"></span>PNG estático (pendiente animar)</div>
+      <div class="legend-item"><span class="legend-dot" style="background:rgba(249,168,212,0.4)"></span>Fallback (sin asset aún)</div>
+    </div>
+
+    <div class="library">
+      <div class="lib-card">
+        <video class="preview" src="assets/estado-trabajando.mp4" muted loop playsinline autoplay></video>
+        <div class="info">
+          <div class="name">⚙️ Trabajando</div>
+          <div class="trigger">Cuando Koru genera una respuesta trivial o normal (sin tools).</div>
+          <div class="meta"><span class="tag video">video · 4s loop</span></div>
+        </div>
+      </div>
+      <div class="lib-card">
+        <video class="preview" src="assets/estado-buscando.mp4" muted loop playsinline autoplay></video>
+        <div class="info">
+          <div class="name">🔍 Buscando</div>
+          <div class="trigger">Cuando invoca tools: weather, sports, search web.</div>
+          <div class="meta"><span class="tag video">video · 6s loop</span></div>
+        </div>
+      </div>
+      <div class="lib-card">
+        <video class="preview" src="assets/estado-memoria.mp4" muted loop playsinline autoplay></video>
+        <div class="info">
+          <div class="name">📝 Memoria</div>
+          <div class="trigger">Cuando guarda algo: gastos, recordatorios, hábitos, preferencias.</div>
+          <div class="meta"><span class="tag video">video · 8s loop</span></div>
+        </div>
+      </div>
+      <div class="lib-card">
+        <video class="preview" src="assets/estado-durmiendo.mp4" muted loop playsinline autoplay></video>
+        <div class="info">
+          <div class="name">😴 Durmiendo</div>
+          <div class="trigger">Idle / inactivo más de 2 minutos. Vuelve a "escuchando" al recibir input.</div>
+          <div class="meta"><span class="tag video">video · 12s loop</span></div>
+        </div>
+      </div>
+      <div class="lib-card">
+        <img class="preview" src="assets/estado-construyendo.png" alt="">
+        <div class="info">
+          <div class="name">🧱 Construyendo</div>
+          <div class="trigger">Respuesta compleja: resumen, plan, lista multi-paso, análisis.</div>
+          <div class="meta"><span class="tag static">png · estático</span></div>
+        </div>
+      </div>
+      <div class="lib-card">
+        <img class="preview" src="assets/estado-habitos.png" alt="">
+        <div class="info">
+          <div class="name">💪 Hábitos</div>
+          <div class="trigger">Topic context: gym, deportes, ejercicio, rutinas.</div>
+          <div class="meta"><span class="tag static">png · estático</span></div>
+        </div>
+      </div>
+      <div class="lib-card">
+        <img class="preview" src="assets/estado-productos.png" alt="">
+        <div class="info">
+          <div class="name">🛍️ Productos</div>
+          <div class="trigger">Topic context: compras, gastos, productos, mercado.</div>
+          <div class="meta"><span class="tag static">png · estático</span></div>
+        </div>
+      </div>
+      <div class="lib-card">
+        <img class="preview" src="assets/estado-recetas.png" alt="">
+        <div class="info">
+          <div class="name">🍳 Recetas</div>
+          <div class="trigger">Topic context: cocina, recetas, comida, ingredientes.</div>
+          <div class="meta"><span class="tag static">png · estático</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="notes">
+      <h4>📐 Estados que aún faltan (sin asset)</h4>
+      <ul>
+        <li><strong>Celebrando</strong> — proactive engine ("GANAMOS, Juan!"). Fallback temporal: estado <code>productos</code>.</li>
+        <li><strong>Escuchando</strong> — idle corto, app recién abierta. Fallback temporal: primer frame de <code>durmiendo</code>.</li>
+        <li><strong>Escribiendo</strong> — generando texto largo visible. Se puede reusar <code>trabajando</code> o crear uno nuevo.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- SECTION 3: STATE MACHINE -->
+  <section>
+    <div class="section-title">
+      <span class="num">03</span>
+      <h2>Cómo se decide el estado</h2>
+    </div>
+    <p class="section-sub">El backend ya sabe en todo momento qué está haciendo Koru (escribiendo, llamando tool, guardando memoria, idle). Solo necesita emitir ese estado al frontend, que crossfadea al fondo correspondiente.</p>
+
+    <div class="diagram">
+      <div class="flow">
+        <div class="flow-col">
+          <h4>Evento del backend</h4>
+          <div class="flow-card trigger">
+            <div class="lbl">tool_call: weather</div>
+            <div class="sub">LLM llama a una tool</div>
+          </div>
+          <div class="flow-card trigger">
+            <div class="lbl">memory_save</div>
+            <div class="sub">Persiste gasto, recordatorio</div>
+          </div>
+          <div class="flow-card trigger">
+            <div class="lbl">typing_start</div>
+            <div class="sub">Empieza a generar</div>
+          </div>
+          <div class="flow-card trigger">
+            <div class="lbl">idle_2min</div>
+            <div class="sub">Timer de inactividad</div>
+          </div>
+          <div class="flow-card trigger">
+            <div class="lbl">topic_detected</div>
+            <div class="sub">"receta", "gym", "compras"</div>
+          </div>
+        </div>
+
+        <div class="flow-arrow">→</div>
+
+        <div class="flow-col">
+          <h4>Estado emitido</h4>
+          <div class="flow-card state">
+            <div class="lbl">buscando</div>
+            <div class="sub">Koru consulta APIs</div>
+          </div>
+          <div class="flow-card state">
+            <div class="lbl">memoria</div>
+            <div class="sub">Koru anota algo</div>
+          </div>
+          <div class="flow-card state">
+            <div class="lbl">trabajando</div>
+            <div class="sub">Koru piensa su reply</div>
+          </div>
+          <div class="flow-card state">
+            <div class="lbl">durmiendo</div>
+            <div class="sub">Koru se duerme</div>
+          </div>
+          <div class="flow-card state">
+            <div class="lbl">recetas / habitos / productos</div>
+            <div class="sub">Koru en su tema</div>
+          </div>
+        </div>
+
+        <div class="flow-arrow">→</div>
+
+        <div class="flow-col">
+          <h4>Asset visual</h4>
+          <div class="flow-card asset">
+            <div class="lbl">estado-buscando.mp4</div>
+            <div class="sub">video · 6s loop</div>
+          </div>
+          <div class="flow-card asset">
+            <div class="lbl">estado-memoria.mp4</div>
+            <div class="sub">video · 8s loop</div>
+          </div>
+          <div class="flow-card asset">
+            <div class="lbl">estado-trabajando.mp4</div>
+            <div class="sub">video · 4s loop</div>
+          </div>
+          <div class="flow-card asset">
+            <div class="lbl">estado-durmiendo.mp4</div>
+            <div class="sub">video · 12s loop</div>
+          </div>
+          <div class="flow-card asset">
+            <div class="lbl">estado-{topic}.png</div>
+            <div class="sub">static (pendiente animar)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="notes">
+      <h4>🔑 Reglas de prioridad (cuando hay overlap)</h4>
+      <ul>
+        <li><strong>1. Procesamiento &gt; Topic &gt; Idle.</strong> Si Koru está guardando memoria pero hablando de recetas, gana "memoria" (acción &gt; tema).</li>
+        <li><strong>2. Idle solo pisa si no hay nada activo.</strong> El timer de 2 min arranca solo cuando el chat está estable.</li>
+        <li><strong>3. Topic persiste 30s post-respuesta.</strong> Después de contestar sobre recetas, el fondo se queda en "recetas" 30s antes de volver a "escuchando".</li>
+        <li><strong>4. Celebrando es prioritario.</strong> Cuando el proactive engine pega (partido, lluvia, etc.), pisa todo por 8s.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- SECTION 4: CODE INTEGRATION -->
+  <section>
+    <div class="section-title">
+      <span class="num">04</span>
+      <h2>Plan de integración en el código</h2>
+    </div>
+    <p class="section-sub">Estructura de archivos en el repo de Koru + los 3 componentes clave: registry, state store y background renderer.</p>
+
+    <h4 style="margin: 24px 0 10px; color: var(--accent-bright); font-size: 14px;">Estructura de archivos</h4>
+    <div class="structure">
+<span class="dir">koru-mvp/</span>
+<span class="indent"><span class="dir">public/</span></span>
+<span class="indent2"><span class="dir">koru-states/</span>  <span class="com"># assets servidos estáticamente</span></span>
+<span class="indent2"><span class="file">estado-trabajando.mp4</span>     <span class="com"># 4s · H.264 · 540×960</span></span>
+<span class="indent2"><span class="file">estado-buscando.mp4</span>       <span class="com"># 6s</span></span>
+<span class="indent2"><span class="file">estado-memoria.mp4</span>        <span class="com"># 8s</span></span>
+<span class="indent2"><span class="file">estado-durmiendo.mp4</span>      <span class="com"># 12s</span></span>
+<span class="indent2"><span class="file">estado-construyendo.png</span>   <span class="com"># 9:16 portrait</span></span>
+<span class="indent2"><span class="file">estado-habitos.png</span></span>
+<span class="indent2"><span class="file">estado-productos.png</span></span>
+<span class="indent2"><span class="file">estado-recetas.png</span></span>
+<span class="indent"><span class="dir">src/</span></span>
+<span class="indent2"><span class="file">states/registry.ts</span>        <span class="com"># mapa estado → asset + metadata</span></span>
+<span class="indent2"><span class="file">states/BackgroundLayer.tsx</span> <span class="com"># componente que renderiza + crossfade</span></span>
+<span class="indent2"><span class="file">states/useKoruState.ts</span>     <span class="com"># hook reactivo al estado actual</span></span>
+<span class="indent2"><span class="file">states/transitions.ts</span>     <span class="com"># reglas de prioridad + cooldowns</span></span>
+<span class="indent2"><span class="dir">api/</span></span>
+<span class="indent2"><span class="file">chat.ts</span>  <span class="com"># emite eventos de estado por SSE</span></span>
+    </div>
+
+    <h4 style="margin: 28px 0 12px; color: var(--accent-bright); font-size: 14px;">Snippets de código</h4>
+    <div class="code-tabs">
+      <button class="code-tab active" data-tab="registry">registry.ts</button>
+      <button class="code-tab" data-tab="background">BackgroundLayer.tsx</button>
+      <button class="code-tab" data-tab="hook">useKoruState.ts</button>
+      <button class="code-tab" data-tab="api">api/chat.ts (evento SSE)</button>
+      <button class="code-tab" data-tab="transitions">transitions.ts</button>
+    </div>
+
+    <div class="code-panel active" data-panel="registry">
+<div class="code-block"><span class="com">// src/states/registry.ts</span>
+<span class="com">// Mapa canonical: estado → asset. Single source of truth.</span>
+
+<span class="kw">export type</span> <span class="fn">KoruState</span> =
+  | <span class="str">'escuchando'</span>
+  | <span class="str">'trabajando'</span>
+  | <span class="str">'buscando'</span>
+  | <span class="str">'memoria'</span>
+  | <span class="str">'construyendo'</span>
+  | <span class="str">'habitos'</span>
+  | <span class="str">'productos'</span>
+  | <span class="str">'recetas'</span>
+  | <span class="str">'durmiendo'</span>
+  | <span class="str">'celebrando'</span>;
+
+<span class="kw">interface</span> <span class="fn">StateAsset</span> {
+  type: <span class="str">'video'</span> | <span class="str">'image'</span>;
+  src: <span class="kw">string</span>;
+  loop?: <span class="kw">boolean</span>;
+  <span class="com">// fallback si el video no carga (país con data, browser viejo)</span>
+  poster?: <span class="kw">string</span>;
+}
+
+<span class="kw">export const</span> STATE_REGISTRY: <span class="fn">Record</span>&lt;<span class="fn">KoruState</span>, <span class="fn">StateAsset</span>&gt; = {
+  escuchando:    { type: <span class="str">'video'</span>, src: <span class="str">'/koru-states/estado-durmiendo.mp4'</span>, poster: <span class="str">'/koru-states/estado-productos.png'</span> },
+  trabajando:    { type: <span class="str">'video'</span>, src: <span class="str">'/koru-states/estado-trabajando.mp4'</span> },
+  buscando:       { type: <span class="str">'video'</span>, src: <span class="str">'/koru-states/estado-buscando.mp4'</span> },
+  memoria:        { type: <span class="str">'video'</span>, src: <span class="str">'/koru-states/estado-memoria.mp4'</span> },
+  construyendo:   { type: <span class="str">'image'</span>, src: <span class="str">'/koru-states/estado-construyendo.png'</span> },
+  habitos:        { type: <span class="str">'image'</span>, src: <span class="str">'/koru-states/estado-habitos.png'</span> },
+  productos:      { type: <span class="str">'image'</span>, src: <span class="str">'/koru-states/estado-productos.png'</span> },
+  recetas:        { type: <span class="str">'image'</span>, src: <span class="str">'/koru-states/estado-recetas.png'</span> },
+  durmiendo:      { type: <span class="str">'video'</span>, src: <span class="str">'/koru-states/estado-durmiendo.mp4'</span> },
+  celebrando:     { type: <span class="str">'image'</span>, src: <span class="str">'/koru-states/estado-productos.png'</span> }, <span class="com">// fallback</span>
+};
+</div>
+    </div>
+
+    <div class="code-panel" data-panel="background">
+<div class="code-block"><span class="com">// src/states/BackgroundLayer.tsx</span>
+<span class="com">// Renderiza TODOS los assets en capas. Solo el activo tiene opacity:1.</span>
+<span class="com">// Crossfade CSS = transición suave sin re-mounts.</span>
+
+<span class="kw">import</span> { useState, useEffect, useRef } <span class="kw">from</span> <span class="str">'react'</span>;
+<span class="kw">import</span> { STATE_REGISTRY, KoruState } <span class="kw">from</span> <span class="str">'./registry'</span>;
+
+<span class="kw">export function</span> <span class="fn">BackgroundLayer</span>({ state }: { state: KoruState }) {
+  <span class="kw">const</span> [active, setActive] = useState&lt;KoruState&gt;(state);
+  <span class="kw">const</span> videoRefs = useRef&lt;Record&lt;string, HTMLVideoElement&gt;&gt;({});
+
+  useEffect(() =&gt; {
+    setActive(state);
+    <span class="com">// arranca el video del estado nuevo, pausa los demás</span>
+    Object.entries(videoRefs.current).forEach(([s, v]) =&gt; {
+      <span class="kw">if</span> (s === state) v.play().catch(() =&gt; {});
+      <span class="kw">else</span> v.pause();
+    });
+  }, [state]);
+
+  <span class="kw">return</span> (
+    &lt;<span class="kw">div</span> className=<span class="str">"koru-bg-stack"</span>&gt;
+      {Object.entries(STATE_REGISTRY).map(([s, asset]) =&gt; (
+        &lt;<span class="kw">div</span> key={s}
+           className={`koru-bg-layer ${s === active ? <span class="str">'active'</span> : <span class="str">''</span>}`}
+           style={{ opacity: s === active ? <span class="num">1</span> : <span class="num">0</span> }}&gt;
+          {asset.type === <span class="str">'video'</span> ? (
+            &lt;<span class="kw">video</span> ref={el =&gt; el &amp;&amp; (videoRefs.current[s] = el)}
+               src={asset.src} muted loop playsInline preload=<span class="str">"auto"</span> /&gt;
+          ) : (
+            &lt;<span class="kw">img</span> src={asset.src} alt=<span class="str">""</span> /&gt;
+          )}
+        &lt;/<span class="kw">div</span>&gt;
+      ))}
+    &lt;/<span class="kw">div</span>&gt;
+  );
+}
+<span class="com">/* CSS: .koru-bg-layer { position:absolute; inset:0; transition: opacity 800ms ease; } */</span>
+</div>
+    </div>
+
+    <div class="code-panel" data-panel="hook">
+<div class="code-block"><span class="com">// src/states/useKoruState.ts</span>
+<span class="com">// Hook que escucha el stream SSE del backend y devuelve el estado actual.</span>
+
+<span class="kw">import</span> { useState, useEffect } <span class="kw">from</span> <span class="str">'react'</span>;
+<span class="kw">import</span> { KoruState } <span class="kw">from</span> <span class="str">'./registry'</span>;
+<span class="kw">import</span> { applyTransition } <span class="kw">from</span> <span class="str">'./transitions'</span>;
+
+<span class="kw">export function</span> <span class="fn">useKoruState</span>(sessionId: <span class="kw">string</span>) {
+  <span class="kw">const</span> [state, setState] = useState&lt;KoruState&gt;(<span class="str">'escuchando'</span>);
+
+  useEffect(() =&gt; {
+    <span class="kw">const</span> es = <span class="kw">new</span> EventSource(`/api/chat/events?session=${sessionId}`);
+    es.addEventListener(<span class="str">'state'</span>, (e) =&gt; {
+      <span class="kw">const</span> next = JSON.parse(e.data).state <span class="kw">as</span> KoruState;
+      setState(prev =&gt; applyTransition(prev, next));  <span class="com">// respeta prioridades</span>
+    });
+    <span class="kw">return</span> () =&gt; es.close();
+  }, [sessionId]);
+
+  <span class="kw">return</span> state;
+}
+
+<span class="com">// Uso en App.tsx:</span>
+<span class="com">// const koruState = useKoruState(sessionId);</span>
+<span class="com">// &lt;BackgroundLayer state={koruState} /&gt;</span>
+<span class="com">// &lt;ChatUI state={koruState} /&gt;  // el pill del header lo usa también</span>
+</div>
+    </div>
+
+    <div class="code-panel" data-panel="api">
+<div class="code-block"><span class="com">// src/api/chat.ts (extracto · emite eventos de estado por SSE)</span>
+<span class="com">// El backend ya sabe en todo momento qué está pasando.</span>
+<span class="com">// Solo necesita emitir 'state' events además de los 'message' events.</span>
+
+<span class="kw">async function</span> <span class="fn">handleChat</span>(req, res) {
+  <span class="kw">const</span> { message, sessionId } = <span class="kw">await</span> req.json();
+
+  <span class="com">// 1) Usuario mandó mensaje → Koru despierta</span>
+  emitState(res, <span class="str">'trabajando'</span>);
+
+  <span class="kw">const</span> llmStream = <span class="kw">await</span> callLLM(message);
+
+  <span class="kw">for await</span> (<span class="kw">const</span> chunk <span class="kw">of</span> llmStream) {
+    <span class="kw">if</span> (chunk.tool_calls?.length) {
+      <span class="kw">const</span> tool = chunk.tool_calls[<span class="num">0</span>].function.name;
+      <span class="kw">if</span> ([<span class="str">'weather'</span>, <span class="str">'sports'</span>, <span class="str">'web_search'</span>].includes(tool)) {
+        emitState(res, <span class="str">'buscando'</span>);           <span class="com">// 🔍</span>
+      } <span class="kw">else if</span> ([<span class="str">'save_expense'</span>, <span class="str">'save_reminder'</span>].includes(tool)) {
+        emitState(res, <span class="str">'memoria'</span>);             <span class="com">// 📝</span>
+      }
+      <span class="kw">await</span> runTool(chunk.tool_calls[<span class="num">0</span>]);
+    }
+
+    <span class="kw">if</span> (chunk.content?.length &gt; <span class="num">800</span>) {
+      emitState(res, <span class="str">'construyendo'</span>);           <span class="com">// 🧱 respuesta larga</span>
+    }
+
+    res.write(`data: ${JSON.stringify({ type: <span class="str">'message'</span>, chunk })}\n\n`);
+  }
+
+  <span class="com">// 3) Topic detection post-respuesta (LLM tag rápido o regex)</span>
+  <span class="kw">const</span> topic = detectTopic(message);
+  <span class="kw">if</span> (topic) emitState(res, topic);  <span class="com">// 'recetas' | 'habitos' | 'productos'</span>
+
+  <span class="com">// 4) Vuelve a escuchando después de 30s sin actividad</span>
+  scheduleIdle(sessionId, <span class="num">30_000</span>, () =&gt; emitState(res, <span class="str">'escuchando'</span>));
+  scheduleSleep(sessionId, <span class="num">120_000</span>, () =&gt; emitState(res, <span class="str">'durmiendo'</span>));
+}
+
+<span class="kw">function</span> <span class="fn">emitState</span>(res, state) {
+  res.write(`event: state\ndata: ${JSON.stringify({ state })}\n\n`);
+}
+
+<span class="kw">function</span> <span class="fn">detectTopic</span>(msg): KoruState | <span class="kw">null</span> {
+  <span class="kw">const</span> t = msg.toLowerCase();
+  <span class="kw">if</span> (/(receta|cocinar|comida|ingredient|asado|pizza|hambre)/.test(t)) <span class="kw">return</span> <span class="str">'recetas'</span>;
+  <span class="kw">if</span> (/(gym|gimna|deporte|correr|peso|rutina|entren|futbol)/.test(t)) <span class="kw">return</span> <span class="str">'habitos'</span>;
+  <span class="kw">if</span> (/(compr|gasto|gasté|mercado|precio|producto|plata)/.test(t)) <span class="kw">return</span> <span class="str">'productos'</span>;
+  <span class="kw">return null</span>;
+}
+</div>
+    </div>
+
+    <div class="code-panel" data-panel="transitions">
+<div class="code-block"><span class="com">// src/states/transitions.ts</span>
+<span class="com">// Reglas de prioridad: ¿cuándo se permite el cambio prev → next?</span>
+<span class="com">// Evita flicker entre estados que pelean.</span>
+
+<span class="kw">import</span> { KoruState } <span class="kw">from</span> <span class="str">'./registry'</span>;
+
+<span class="kw">const</span> PRIORITY: Record&lt;KoruState, <span class="kw">number</span>&gt; = {
+  celebrando: <span class="num">100</span>,     <span class="com">// pisa todo (proactive engine)</span>
+  memoria: <span class="num">80</span>,          <span class="com">// guardando &gt; todo lo demás</span>
+  buscando: <span class="num">70</span>,
+  construyendo: <span class="num">60</span>,
+  trabajando: <span class="num">50</span>,
+  recetas: <span class="num">30</span>,
+  habitos: <span class="num">30</span>,
+  productos: <span class="num">30</span>,
+  escuchando: <span class="num">10</span>,
+  durmiendo: <span class="num">5</span>,
+};
+
+<span class="kw">const</span> MIN_DURATION_MS: Partial&lt;Record&lt;KoruState, <span class="kw">number</span>&gt;&gt; = {
+  <span class="com">// anti-flicker: un estado se queda mínimo X ms antes de poder cambiar</span>
+  celebrando: <span class="num">8_000</span>,
+  memoria: <span class="num">3_000</span>,
+  buscando: <span class="num">2_000</span>,
+  construyendo: <span class="num">3_000</span>,
+  trabajando: <span class="num">1_500</span>,
+};
+
+<span class="kw">let</span> lastChange: { state: KoruState; at: <span class="kw">number</span> } = { state: <span class="str">'escuchando'</span>, at: Date.now() };
+
+<span class="kw">export function</span> <span class="fn">applyTransition</span>(prev: KoruState, next: KoruState): KoruState {
+  <span class="kw">const</span> now = Date.now();
+  <span class="kw">const</span> elapsed = now - lastChange.at;
+  <span class="kw">const</span> minDur = MIN_DURATION_MS[prev] ?? <span class="num">0</span>;
+
+  <span class="com">// Regla 1: mismo estado, no hacer nada</span>
+  <span class="kw">if</span> (prev === next) <span class="kw">return</span> prev;
+
+  <span class="com">// Regla 2: anti-flicker — si el estado actual no cumplió su mínima, mantener</span>
+  <span class="kw">if</span> (elapsed &lt; minDur &amp;&amp; PRIORITY[next] &lt;= PRIORITY[prev]) <span class="kw">return</span> prev;
+
+  <span class="com">// Regla 3: si next tiene mayor prioridad, pisa siempre</span>
+  <span class="kw">if</span> (PRIORITY[next] &gt; PRIORITY[prev]) {
+    lastChange = { state: next, at: now };
+    <span class="kw">return</span> next;
+  }
+
+  <span class="com">// Regla 4: misma o menor prioridad, respeta min duration</span>
+  <span class="kw">if</span> (elapsed &gt;= minDur) {
+    lastChange = { state: next, at: now };
+    <span class="kw">return</span> next;
+  }
+  <span class="kw">return</span> prev;
+}
+</div>
+    </div>
+  </section>
+
+  <!-- SECTION 5: PERFORMANCE -->
+  <section>
+    <div class="section-title">
+      <span class="num">05</span>
+      <h2>Performance y delivery</h2>
+    </div>
+    <p class="section-sub">Para que los videos pesen poco y carguen rápido en mobile con data.</p>
+
+    <div class="library">
+      <div class="lib-card" style="padding: 18px;">
+        <div class="name" style="font-size: 15px; margin-bottom: 8px;">📦 Assets pre-convertidos</div>
+        <p style="font-size: 13px; color: var(--text-dim); line-height: 1.5;">
+          Los MP4 originales eran HEVC 2160×3840 (~13 MB c/u, no soportados en Chrome/Firefox). Los convertimos a <strong>H.264 · 540×960 · CRF 28</strong>. Tamaño final: <strong>~280–600 KB por video</strong>. Carga instantánea incluso en 3G.
+        </p>
+      </div>
+      <div class="lib-card" style="padding: 18px;">
+        <div class="name" style="font-size: 15px; margin-bottom: 8px;">⚡ preload estratégico</div>
+        <p style="font-size: 13px; color: var(--text-dim); line-height: 1.5;">
+          <code>preload="auto"</code> en los 4 videos. Se cargan en paralelo al abrir el chat. Peso total del state pack: <strong>~1.4 MB</strong> (menos que una foto de Instagram).
+        </p>
+      </div>
+      <div class="lib-card" style="padding: 18px;">
+        <div class="name" style="font-size: 15px; margin-bottom: 8px;">🎞️ Crossfade CSS, no re-mount</div>
+        <p style="font-size: 13px; color: var(--text-dim); line-height: 1.5;">
+          Todos los assets viven en capas absolutas. Solo cambia <code>opacity</code> con transition 800ms. El video no se reinicia al volver al estado — sigue donde estaba.
+        </p>
+      </div>
+      <div class="lib-card" style="padding: 18px;">
+        <div class="name" style="font-size: 15px; margin-bottom: 8px;">📱 Battery-friendly</div>
+        <p style="font-size: 13px; color: var(--text-dim); line-height: 1.5;">
+          Solo el video activo reproduce. Los demás están pausados via <code>v.pause()</code>. En estado <code>durmiendo</code>, framerate perceived es bajo (movimiento lento del personaje).
+        </p>
+      </div>
+      <div class="lib-card" style="padding: 18px;">
+        <div class="name" style="font-size: 15px; margin-bottom: 8px;">📶 Fallback a PNG</div>
+        <p style="font-size: 13px; color: var(--text-dim); line-height: 1.5;">
+          Si el dispositivo está en data-saver o el video falla, el poster PNG toma el lugar. Mismo estado visual, sin movimiento pero sin romper la UX.
+        </p>
+      </div>
+      <div class="lib-card" style="padding: 18px;">
+        <div class="name" style="font-size: 15px; margin-bottom: 8px;">🎨 Asset pipeline futuro</div>
+        <p style="font-size: 13px; color: var(--text-dim); line-height: 1.5;">
+          Cuando animes los 4 PNG estáticos (Construyendo, Hábitos, Productos, Recetas), el cambio en código es solo actualizar <code>STATE_REGISTRY</code>: <code>{ type: 'image' }</code> → <code>{ type: 'video' }</code>. Cero cambios en el renderer.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 6: ROADMAP -->
+  <section>
+    <div class="section-title">
+      <span class="num">06</span>
+      <h2>Roadmap de implementación</h2>
+    </div>
+    <p class="section-sub">3 pasos para tener esto andando en producción en el repo <code>Arx88/koru-mvp</code>.</p>
+
+    <div class="library">
+      <div class="lib-card" style="padding: 18px;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+          <div style="width:32px; height:32px; border-radius:50%; background:var(--accent); color:#0a0612; display:flex; align-items:center; justify-content:center; font-weight:800;">1</div>
+          <div class="name" style="font-size: 15px;">Subir assets al repo</div>
+        </div>
+        <p style="font-size: 13px; color: var(--text-dim); line-height: 1.5;">
+          Copiar los 8 archivos a <code>public/koru-states/</code> en la rama <code>main</code>. Commit directo, deploy automático en Render.
+        </p>
+        <p style="font-size: 11px; color: var(--text-mute); margin-top: 8px;">⏱️ 5 min · sin risk</p>
+      </div>
+      <div class="lib-card" style="padding: 18px;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+          <div style="width:32px; height:32px; border-radius:50%; background:var(--accent); color:#0a0612; display:flex; align-items:center; justify-content:center; font-weight:800;">2</div>
+          <div class="name" style="font-size: 15px;">Emitir estados desde el backend</div>
+        </div>
+        <p style="font-size: 13px; color: var(--text-dim); line-height: 1.5;">
+          En <code>api/chat.ts</code>, agregar <code>emitState()</code> en los 4 puntos clave: typing start, tool call, tool save, response end. + scheduler idle/sleep.
+        </p>
+        <p style="font-size: 11px; color: var(--text-mute); margin-top: 8px;">⏱️ 30 min · risk bajo</p>
+      </div>
+      <div class="lib-card" style="padding: 18px;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+          <div style="width:32px; height:32px; border-radius:50%; background:var(--accent); color:#0a0612; display:flex; align-items:center; justify-content:center; font-weight:800;">3</div>
+          <div class="name" style="font-size: 15px;">Reemplazar fondo estático</div>
+        </div>
+        <p style="font-size: 13px; color: var(--text-dim); line-height: 1.5;">
+          En el frontend (HTML/JS actual), reemplazar el <code>&lt;img src="fondo.jpg"&gt;</code> por el <code>BackgroundLayer</code> con state store mínimo. Crossfade CSS.
+        </p>
+        <p style="font-size: 11px; color: var(--text-mute); margin-top: 8px;">⏱️ 1-2 h · risk medio</p>
+      </div>
+    </div>
+
+    <div class="notes" style="margin-top: 24px;">
+      <h4>✅ Listo para producción</h4>
+      <ul>
+        <li><strong>Frontend actual (HTML/JS vanilla):</strong> se puede integrar tal cual con un simple store de estado y <code>setInterval</code> para idle/sleep.</li>
+        <li><strong>Backend actual (Nemotron Ultra):</strong> los eventos de tool call ya existen en el loop de streaming — solo hay que emitirlos como eventos SSE aparte.</li>
+        <li><strong>El bug del weather no bloquea esto:</strong> los fondos son independientes del tool. Cuando weather funcione, automáticamente va a mostrar "buscando" cuando se llame.</li>
+      </ul>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  // ====================== STATE MANAGEMENT ======================
+  const phone = document.getElementById('phone');
+  const bgLayers = phone.querySelectorAll('.bg-layer');
+  const statusPill = document.getElementById('statusPill');
+  const stateBtns = document.querySelectorAll('.state-btn');
+  const chatBody = document.getElementById('chatBody');
+
+  const STATE_META = {
+    trabajando:    { label: 'trabajando',  pill: '⚙️ trabajando' },
+    buscando:      { label: 'buscando',    pill: '🔍 buscando…' },
+    memoria:       { label: 'memoria',     pill: '📝 guardando' },
+    construyendo:  { label: 'construyendo', pill: '🧱 construyendo' },
+    habitos:       { label: 'hábitos',     pill: '💪 charlando' },
+    productos:     { label: 'productos',   pill: '🛍️ charlando' },
+    recetas:       { label: 'recetas',     pill: '🍳 charlando' },
+    durmiendo:     { label: 'durmiendo',   pill: '😴 idle' },
+    escuchando:    { label: 'escuchando',  pill: 'escuchando' },
+    celebrando:    { label: 'celebrando',  pill: '🎉 ¡GANAMOS!' },
+  };
+
+  let currentState = 'escuchando';
+
+  function setState(next) {
+    if (!STATE_META[next]) return;
+    currentState = next;
+
+    // crossfade bg layers
+    bgLayers.forEach(layer => {
+      const isActive = layer.dataset.state === next;
+      layer.classList.toggle('active', isActive);
+      if (isActive && layer.tagName === 'VIDEO') {
+        layer.play().catch(() => {});
+      } else if (layer.tagName === 'VIDEO') {
+        layer.pause();
+      }
+    });
+
+    // update pill
+    statusPill.textContent = STATE_META[next].pill;
+
+    // update rail
+    stateBtns.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.state === next);
+    });
+  }
+
+  // manual clicks
+  stateBtns.forEach(btn => {
+    btn.addEventListener('click', () => setState(btn.dataset.state));
+  });
+
+  // ====================== SCENARIO PLAYER ======================
+  const SCENARIO = [
+    { state: 'escuchando',   msg: { who: 'user',  text: 'Buen día Koru, ¿cómo estás?' }, wait: 1200 },
+    { state: 'trabajando',   msg: { who: 'koru',   text: '¡Hola Juan! Bien, ¿vos?' }, wait: 1800 },
+    { state: 'escuchando',   msg: null, wait: 1500 },
+    { state: 'trabajando',   msg: { who: 'user',  text: 'Che, ¿qué clima hace ahora?' }, wait: 800 },
+    { state: 'buscando',     msg: { who: 'koru',   text: '🔎 Consultando el clima…', tool: true }, wait: 2200 },
+    { state: 'trabajando',   msg: { who: 'koru',   text: '23°C, soleado, viento leve. Ideal para salir 🌤️' }, wait: 2000 },
+    { state: 'recetas',      msg: { who: 'user',  text: 'Pensaba hacer pizza hoy, ¿tenés una receta?' }, wait: 1500 },
+    { state: 'construyendo', msg: { who: 'koru',   text: '🧱 Armando la receta paso a paso…', tool: true }, wait: 2500 },
+    { state: 'construyendo', msg: { who: 'koru',   text: 'Pizza casera:\n1. 500g harina\n2. 300ml agua tibia\n3. 25g levadura\n4. Aceite, sal\nAmasar 10 min, dejar leudar 1h…' }, wait: 2500 },
+    { state: 'recetas',      msg: null, wait: 1500 },
+    { state: 'trabajando',   msg: { who: 'user',  text: 'Gasté 1200 en harina y levadura' }, wait: 800 },
+    { state: 'memoria',      msg: { who: 'koru',   text: '📝 Anotado: $1200 — groceries', tool: true }, wait: 2200 },
+    { state: 'trabajando',   msg: { who: 'koru',   text: 'Anotado ✓ Te muestro el gasto del mes cuando quieras.' }, wait: 2000 },
+    { state: 'escuchando',   msg: null, wait: 1800 },
+    { state: 'durmiendo',    msg: { who: 'sys',    text: '— 2 minutos sin actividad —' }, wait: 2500 },
+    { state: 'durmiendo',    msg: { who: 'koru',   text: '😴 zZz…' }, wait: 2000 },
+    { state: 'celebrando',   msg: { who: 'koru',   text: '🎉 ¡GANAMOS, Juan! Boca 2-1', tool: true }, wait: 3000 },
+    { state: 'escuchando',   msg: { who: 'user',  text: '¡Dale! Genial' }, wait: 1500 },
+    { state: 'trabajando',   msg: { who: 'koru',   text: '😎 👍' }, wait: 1500 },
+    { state: 'escuchando',   msg: null, wait: 0 },
+  ];
+
+  const playBtn = document.getElementById('playBtn');
+  const stepNum = document.getElementById('stepNum');
+  const stepText = document.getElementById('stepText');
+  const timeline = document.getElementById('timeline');
+
+  // build timeline segments
+  SCENARIO.forEach((_, i) => {
+    const seg = document.createElement('div');
+    seg.className = 'seg';
+    seg.dataset.idx = i;
+    timeline.appendChild(seg);
+  });
+  const segs = timeline.querySelectorAll('.seg');
+
+  let playing = false;
+  let timer = null;
+  let stepIdx = 0;
+
+  function addMsg(msg) {
+    if (!msg) return;
+    if (msg.who === 'sys') {
+      const div = document.createElement('div');
+      div.className = 'msg';
+      div.style.alignSelf = 'center';
+      div.style.background = 'rgba(255,255,255,0.1)';
+      div.style.color = '#a89cc4';
+      div.style.fontSize = '11px';
+      div.style.fontStyle = 'italic';
+      div.textContent = msg.text;
+      chatBody.appendChild(div);
+    } else {
+      const div = document.createElement('div');
+      div.className = 'msg ' + msg.who + (msg.tool ? ' tool' : '');
+      div.style.whiteSpace = 'pre-line';
+      div.textContent = msg.text;
+      chatBody.appendChild(div);
+    }
+    chatBody.scrollTop = chatBody.scrollHeight;
+  }
+
+  function playStep() {
+    if (stepIdx >= SCENARIO.length) {
+      playing = false;
+      playBtn.textContent = '▶ Play';
+      playBtn.disabled = false;
+      stepText.textContent = '✓ Escenario completo. Tocá Play para volver a verlo.';
+      return;
+    }
+    const step = SCENARIO[stepIdx];
+    stepNum.textContent = `${stepIdx + 1}/${SCENARIO.length}`;
+    setState(step.state);
+    if (step.msg) addMsg(step.msg);
+    stepText.textContent = `→ estado: "${step.state}" · ${step.msg ? (step.msg.who + ': "' + (step.msg.text.length > 50 ? step.msg.text.slice(0,50) + '…' : step.msg.text) + '"') : 'sin mensaje'}`;
+
+    // update timeline
+    segs.forEach((s, i) => {
+      s.classList.remove('active', 'done');
+      if (i < stepIdx) s.classList.add('done');
+      else if (i === stepIdx) s.classList.add('active');
+    });
+
+    stepIdx++;
+    timer = setTimeout(playStep, step.wait);
+  }
+
+  playBtn.addEventListener('click', () => {
+    if (playing) {
+      clearTimeout(timer);
+      playing = false;
+      playBtn.textContent = '▶ Play';
+      return;
+    }
+    // reset
+    chatBody.innerHTML = '';
+    stepIdx = 0;
+    playing = true;
+    playBtn.textContent = '⏸ Stop';
+    segs.forEach(s => s.classList.remove('active', 'done'));
+    playStep();
+  });
+
+  // ====================== CODE TABS ======================
+  const tabs = document.querySelectorAll('.code-tab');
+  const panels = document.querySelectorAll('.code-panel');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.tab;
+      tabs.forEach(t => t.classList.toggle('active', t === tab));
+      panels.forEach(p => p.classList.toggle('active', p.dataset.panel === target));
+    });
+  });
+
+  // ====================== INITIAL STATE ======================
+  setState('escuchando');
+
+  // Pause videos in lib cards when not visible (perf)
+  const libVideos = document.querySelectorAll('.lib-card video');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) e.target.play().catch(() => {});
+      else e.target.pause();
+    });
+  }, { threshold: 0.25 });
+  libVideos.forEach(v => io.observe(v));
+</script>
+
+</body>
+</html>

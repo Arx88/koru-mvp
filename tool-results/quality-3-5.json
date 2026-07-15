@@ -1,0 +1,54 @@
+[
+  {
+    "id": "rem-04",
+    "ok": true,
+    "elapsed": 5289,
+    "input": "acordate q el 20 vence la tarjeta",
+    "reply": "Listo, guardado en money. Te aviso cuando se acerque el 20.",
+    "blocks": [
+      "reminder"
+    ],
+    "tools": [
+      "memory_recall"
+    ],
+    "memories": 0,
+    "commitments": 1,
+    "intentOk": true,
+    "qualityScore": 10,
+    "issues": []
+  },
+  {
+    "id": "rem-05",
+    "ok": true,
+    "elapsed": 5184,
+    "input": "mañana x la mañana tengo q llevar el auto al taller",
+    "reply": "Listo, guardado en recordatorios. Mañana por la mañana te aviso.",
+    "blocks": [
+      "reminder"
+    ],
+    "tools": [
+      "memory_recall"
+    ],
+    "memories": 0,
+    "commitments": 1,
+    "intentOk": true,
+    "qualityScore": 10,
+    "issues": []
+  },
+  {
+    "id": "rem-06",
+    "ok": true,
+    "elapsed": 5186,
+    "input": "el finde largo me toca regar las plantas de mi hermana",
+    "reply": "Entendido. ¿Te dejo un recordatorio para que no se te pase?",
+    "blocks": [],
+    "tools": [],
+    "memories": 0,
+    "commitments": 0,
+    "intentOk": false,
+    "qualityScore": 6,
+    "issues": [
+      "NO_BLOCK"
+    ]
+  }
+]

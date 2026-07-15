@@ -1,0 +1,52 @@
+[
+  {
+    "id": "rcp-01",
+    "ok": true,
+    "elapsed": 5671,
+    "input": "tengo pollo y arroz q hago",
+    "reply": "No pude armar una respuesta clara. ¿Me lo repetís de otra forma?",
+    "blocks": [],
+    "tools": [],
+    "memories": 0,
+    "commitments": 0,
+    "intentOk": false,
+    "qualityScore": 5,
+    "issues": [
+      "GENERIC_ERROR",
+      "NO_BLOCK"
+    ]
+  },
+  {
+    "id": "rcp-02",
+    "ok": true,
+    "elapsed": 5183,
+    "input": "algo rapido de cenar",
+    "reply": "No pude armar una respuesta clara. ¿Me lo repetís de otra forma?",
+    "blocks": [],
+    "tools": [],
+    "memories": 0,
+    "commitments": 0,
+    "intentOk": true,
+    "qualityScore": 5,
+    "issues": [
+      "GENERIC_ERROR",
+      "NO_BLOCK"
+    ]
+  },
+  {
+    "id": "rcp-03",
+    "ok": true,
+    "elapsed": 5189,
+    "input": "tengo ganas de pasta",
+    "reply": "¿Qué te apetece? ¿Algo clásico tipo carbonara/bolognesa, o tenés ganas de probar algo distinto?",
+    "blocks": [],
+    "tools": [],
+    "memories": 0,
+    "commitments": 0,
+    "intentOk": false,
+    "qualityScore": 6,
+    "issues": [
+      "NO_BLOCK"
+    ]
+  }
+]

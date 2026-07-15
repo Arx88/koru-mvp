@@ -1,0 +1,69 @@
+[
+  {
+    "id": "rc01",
+    "ok": true,
+    "elapsed": 5709,
+    "input": "tengo pollo y arroz q hago",
+    "reply": "Tenés dos opciones clásicas que van perfecto con arroz: pollo en pepitoria (español, con azafrán y almendras) o pollo a la naranja (dulce, con jugo de naranja y azúcar morena). Te dejé ambas en la tarjeta con ingredientes y pasos.",
+    "quality": 10,
+    "issues": [],
+    "tools": [
+      "web_search"
+    ],
+    "blocks": [
+      "recipe",
+      "comparison"
+    ],
+    "memories": 0,
+    "commitments": 0
+  },
+  {
+    "id": "rc02",
+    "ok": true,
+    "elapsed": 5206,
+    "input": "algo rapido de cenar",
+    "reply": "No pude procesar tu mensaje. ¿Me lo repetís de otra forma?",
+    "quality": 6,
+    "issues": [
+      "GENERIC_ERROR"
+    ],
+    "tools": [],
+    "blocks": [],
+    "memories": 0,
+    "commitments": 0
+  },
+  {
+    "id": "rc03",
+    "ok": true,
+    "elapsed": 5208,
+    "input": "tengo ganas de pasta",
+    "reply": "Tuve un problema para armar la respuesta. ¿Me lo repetís de otra forma para ayudarte bien?",
+    "quality": 6,
+    "issues": [
+      "GENERIC_ERROR"
+    ],
+    "tools": [
+      "web_search"
+    ],
+    "blocks": [],
+    "memories": 0,
+    "commitments": 0
+  },
+  {
+    "id": "rc04",
+    "ok": true,
+    "elapsed": 5190,
+    "input": "tirame algo con lo q tengo en la heladera",
+    "reply": "No tengo guardado qué tenés en la heladera. Decime qué ingredientes tenés a mano y te busco algo para cocinar.",
+    "quality": 10,
+    "issues": [],
+    "tools": [
+      "memory_recall"
+    ],
+    "blocks": [
+      "saved_record"
+    ],
+    "memories": 0,
+    "commitments": 0
+  }
+]

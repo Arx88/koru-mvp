@@ -1,0 +1,995 @@
+     1→import react from "@vitejs/plugin-react";
+     2→import tailwindcss from "@tailwindcss/vite";
+     3→import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+     4→import { dirname, join } from "node:path";
+     5→import { fileURLToPath } from "node:url";
+     6→import { defineConfig, loadEnv, type Plugin } from "vite";
+     7→import { runKoruBackendTurn, type KoruBackendTurnRequest, type ProviderConfig } from "./src/server/koruBackend";
+     8→import { logger } from "./src/server/logger";
+     9→
+    10→function collectOpenRouterKeys(env: Record<string, string>): string[] {
+    11→  const keys = [env.OPENROUTER_API_KEY, env.OPENROUTER_FALLBACK_API_KEYS]
+    12→    .filter(Boolean)
+    13→    .flatMap((value) => value.split(","))
+    14→    .map((value) => value.trim())
+    15→    .filter(Boolean);
+    16→  return Array.from(new Set(keys));
+    17→}
+    18→
+    19→function collectOpenRouterModels(env: Record<string, string>): string[] {
+    20→  const models = (env.OPENROUTER_FALLBACK_MODELS || "nvidia/nemotron-3-ultra-550b-a55b:free,openai/gpt-oss-120b:free,google/gemma-4-31b-it:free")
+    21→    .split(",")
+    22→    .map((value) => value.trim())
+    23→    .filter(Boolean);
+    24→  return Array.from(new Set(models));
+    25→}
+    26→
+    27→function collectBlueSmindsKeys(env: Record<string, string>): string[] {
+    28→  const keys = [env.BLUESMINDS_API_KEY, env.BLUESMINDS_FALLBACK_API_KEYS]
+    29→    .filter(Boolean)
+    30→    .flatMap((value) => value.split(","))
+    31→    .map((value) => value.trim())
+    32→    .filter(Boolean);
+    33→  return Array.from(new Set(keys));
+    34→}
+    35→
+    36→function collectBlueSmindsModel(env: Record<string, string>): string {
+    37→  return (env.BLUESMINDS_MODEL || "mimo-v2.5").trim();
+    38→}
+    39→
+    40→function bodyHasAssistantContent(raw: string): boolean {
+    41→  try {
+    42→    const parsed = JSON.parse(raw) as {
+    43→      choices?: Array<{ message?: { content?: unknown } }>;
+    44→    };
+    45→    const content = parsed.choices?.[0]?.message?.content;
+    46→    return typeof content === "string" ? content.trim().length > 0 : Boolean(content);
+    47→  } catch {
+    48→    return raw.trim().length > 0;
+    49→  }
+    50→}
+    51→
+    52→function providerUrl(baseUrl: string, targetPath: string): string {
+    53→  const cleanBase = baseUrl.replace(/\/+$/, "");
+    54→  const cleanPath = targetPath.replace(/^\/+/, "");
+    55→  return `${cleanBase}/${cleanPath}`;
+    56→}
+    57→
+    58→type WebSearchMode = "news" | "shopping" | "research" | "weather" | "traffic" | "market" | "world";
+    59→
+    60→type WebSearchRequest = {
+    61→  queries?: string[];
+    62→  criteria?: string[];
+    63→  mode?: WebSearchMode;
+    64→  title?: string;
+    65→  body?: string;
+    66→};
+    67→
+    68→type WebSource = {
+    69→  title: string;
+    70→  url: string;
+    71→  domain: string;
+    72→  snippet?: string;
+    73→};
+    74→
+    75→function domainFromUrl(url: string): string {
+    76→  try {
+    77→    return new URL(url).hostname.replace(/^www\./, "");
+    78→  } catch {
+    79→    return "fuente externa";
+    80→  }
+    81→}
+    82→
+    83→function sourceFromRaw(item: Record<string, unknown>): WebSource | null {
+    84→  const url = typeof item.url === "string"
+    85→    ? item.url
+    86→    : typeof item.link === "string"
+    87→      ? item.link
+    88→      : undefined;
+    89→  const title = typeof item.title === "string"
+    90→    ? item.title
+    91→    : typeof item.name === "string"
+    92→      ? item.name
+    93→      : undefined;
+    94→  if (!url || !title) return null;
+    95→  return {
+    96→    title,
+    97→    url,
+    98→    domain: domainFromUrl(url),
+    99→    snippet: typeof item.snippet === "string"
+   100→      ? item.snippet
+   101→      : typeof item.description === "string"
+   102→        ? item.description
+   103→        : typeof item.content === "string"
+   104→          ? item.content
+   105→          : undefined,
+   106→  };
+   107→}
+   108→
+   109→function uniqueWebSources(sources: WebSource[]): WebSource[] {
+   110→  const seen = new Set<string>();
+   111→  return sources.filter((source) => {
+   112→    if (seen.has(source.url)) return false;
+   113→    seen.add(source.url);
+   114→    return true;
+   115→  }).slice(0, 8);
+   116→}
+   117→
+   118→function fallbackSearchSources(queries: string[], mode: WebSearchMode): WebSource[] {
+   119→  return queries.slice(0, 3).map((query) => ({
+   120→    title: mode === "news" ? "Consulta de noticias preparada" : mode === "shopping" ? "Consulta comparativa preparada" : "Consulta web preparada",
+   121→    url: `https://www.google.com/search?q=${encodeURIComponent(query)}`,
+   122→    domain: "google.com",
+   123→    snippet: "No es una fuente verificada: abre esta consulta manualmente si no hay conector configurado.",
+   124→  }));
+   125→}
+   126→
+   127→function comparisonItemsFromSources(sources: WebSource[]) {
+   128→  return sources.slice(0, 5).map((source, index) => ({
+   129→    title: source.title,
+   130→    price: priceFromEvidence(`${source.title} ${source.snippet ?? ""}`),
+   131→    vendor: source.domain,
+   132→    url: source.url,
+   133→    evidence: source.snippet,
+   134→    score: Math.max(45, 88 - index * 8),
+   135→  }));
+   136→}
+   137→
+   138→function priceFromEvidence(text: string): string | undefined {
+   139→  return /(?:€|\$)\s?\d[\d.,]*|\b\d[\d.,]*\s?(?:EUR|USD|ARS|€|\$)\b/i.exec(text)?.[0];
+   140→}
+   141→
+   142→function newsSummaryItems(sources: WebSource[]) {
+   143→  return sources.slice(0, 4).map((source, index) => ({
+   144→    label: index === 0 ? "Principal" : "Fuente",
+   145→    value: source.title,
+   146→    detail: source.domain,
+   147→  }));
+   148→}
+   149→
+   150→function parseOpenMeteoLocation(query: string): { label: string; latitude: number; longitude: number } | null {
+   151→  const normalized = query.toLowerCase();
+   152→  const known: Array<{ names: string[]; label: string; latitude: number; longitude: number }> = [
+   153→    { names: ["madrid"], label: "Madrid", latitude: 40.4168, longitude: -3.7038 },
+   154→    { names: ["barcelona"], label: "Barcelona", latitude: 41.3874, longitude: 2.1686 },
+   155→    { names: ["buenos aires"], label: "Buenos Aires", latitude: -34.6037, longitude: -58.3816 },
+   156→    { names: ["cordoba argentina", "córdoba argentina"], label: "Cordoba, Argentina", latitude: -31.4201, longitude: -64.1888 },
+   157→    { names: ["new york", "nueva york"], label: "New York", latitude: 40.7128, longitude: -74.006 },
+   158→    { names: ["miami"], label: "Miami", latitude: 25.7617, longitude: -80.1918 },
+   159→    { names: ["san francisco"], label: "San Francisco", latitude: 37.7749, longitude: -122.4194 },
+   160→  ];
+   161→  return known.find((item) => item.names.some((name) => normalized.includes(name))) ?? null;
+   162→}
+   163→
+   164→async function queryOpenMeteo(queries: string[]): Promise<WebSource[]> {
+   165→  const location = parseOpenMeteoLocation(queries.join(" "));
+   166→  if (!location) return [];
+   167→  const url = new URL("https://api.open-meteo.com/v1/forecast");
+   168→  url.searchParams.set("latitude", String(location.latitude));
+   169→  url.searchParams.set("longitude", String(location.longitude));
+   170→  url.searchParams.set("current", "temperature_2m,precipitation,wind_speed_10m");
+   171→  url.searchParams.set("daily", "temperature_2m_max,temperature_2m_min,precipitation_probability_max");
+   172→  url.searchParams.set("timezone", "auto");
+   173→  const response = await fetch(url);
+   174→  if (!response.ok) return [];
+   175→  const data = await response.json() as {
+   176→    current?: { temperature_2m?: number; precipitation?: number; wind_speed_10m?: number };
+   177→    daily?: { temperature_2m_max?: number[]; temperature_2m_min?: number[]; precipitation_probability_max?: number[] };
+   178→  };
+   179→  const current = data.current;
+   180→  if (!current) return [];
+   181→  const max = data.daily?.temperature_2m_max?.[0];
+   182→  const min = data.daily?.temperature_2m_min?.[0];
+   183→  const rain = data.daily?.precipitation_probability_max?.[0];
+   184→  return [{
+   185→    title: `Clima actual en ${location.label}`,
+   186→    url: "https://open-meteo.com/",
+   187→    domain: "open-meteo.com",
+   188→    snippet: [
+   189→      `${current.temperature_2m ?? "?"} C ahora`,
+   190→      max !== undefined && min !== undefined ? `${min}-${max} C hoy` : undefined,
+   191→      rain !== undefined ? `${rain}% probabilidad de lluvia` : undefined,
+   192→      current.wind_speed_10m !== undefined ? `viento ${current.wind_speed_10m} km/h` : undefined,
+   193→    ].filter(Boolean).join(" · "),
+   194→  }];
+   195→}
+   196→
+   197→async function queryGdelt(queries: string[]): Promise<WebSource[]> {
+   198→  const query = queries[0] ?? "";
+   199→  if (!query) return [];
+   200→  const url = new URL("https://api.gdeltproject.org/api/v2/doc/doc");
+   201→  url.searchParams.set("query", query);
+   202→  url.searchParams.set("mode", "ArtList");
+   203→  url.searchParams.set("format", "json");
+   204→  url.searchParams.set("maxrecords", "8");
+   205→  url.searchParams.set("sort", "HybridRel");
+   206→  const response = await fetch(url);
+   207→  if (!response.ok) return [];
+   208→  const data = await response.json() as { articles?: Array<Record<string, unknown>> };
+   209→  return (data.articles ?? []).map((item) => sourceFromRaw({
+   210→    title: item.title,
+   211→    url: item.url,
+   212→    domain: item.domain,
+   213→    snippet: item.seendate,
+   214→  })).filter(Boolean) as WebSource[];
+   215→}
+   216→
+   217→async function querySearXng(env: Record<string, string>, queries: string[]): Promise<WebSource[]> {
+   218→  const baseUrl = env.SEARXNG_BASE_URL?.trim();
+   219→  if (!baseUrl) return [];
+   220→  const sources: WebSource[] = [];
+   221→  for (const query of queries.slice(0, 3)) {
+   222→    const url = new URL(providerUrl(baseUrl, "/search"));
+   223→    url.searchParams.set("q", query);
+   224→    url.searchParams.set("format", "json");
+   225→    url.searchParams.set("language", "es-ES");
+   226→    const response = await fetch(url, { headers: { Accept: "application/json" } });
+   227→    if (!response.ok) continue;
+   228→    const data = await response.json() as { results?: Array<Record<string, unknown>> };
+   229→    sources.push(...((data.results ?? []).map(sourceFromRaw).filter(Boolean) as WebSource[]));
+   230→  }
+   231→  return sources;
+   232→}
+   233→
+   234→async function queryOsrmRoute(queries: string[]): Promise<WebSource[]> {
+   235→  const text = queries.join(" ").toLowerCase();
+   236→  const madridCenter = "-3.7038,40.4168";
+   237→  const madridAirport = "-3.5676,40.4983";
+   238→  if (!text.includes("madrid") || !(text.includes("aeropuerto") || text.includes("barajas"))) return [];
+   239→  const url = `https://router.project-osrm.org/route/v1/driving/${madridCenter};${madridAirport}?overview=false&alternatives=false&steps=false`;
+   240→  const response = await fetch(url);
+   241→  if (!response.ok) return [];
+   242→  const data = await response.json() as { routes?: Array<{ duration?: number; distance?: number }> };
+   243→  const route = data.routes?.[0];
+   244→  if (!route) return [];
+   245→  return [{
+   246→    title: "Ruta estimada Madrid centro - Aeropuerto",
+   247→    url: "https://project-osrm.org/",
+   248→    domain: "project-osrm.org",
+   249→    snippet: `${Math.round((route.duration ?? 0) / 60)} min estimados, ${Math.round((route.distance ?? 0) / 1000)} km. No incluye trafico en vivo.`,
+   250→  }];
+   251→}
+   252→
+   253→async function queryBrave(env: Record<string, string>, queries: string[]): Promise<WebSource[]> {
+   254→  const key = env.BRAVE_SEARCH_API_KEY?.trim();
+   255→  if (!key) return [];
+   256→  const sources: WebSource[] = [];
+   257→  for (const query of queries.slice(0, 3)) {
+   258→    const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=6`;
+   259→    const response = await fetch(url, {
+   260→      headers: {
+   261→        Accept: "application/json",
+   262→        "X-Subscription-Token": key,
+   263→      },
+   264→    });
+   265→    if (!response.ok) continue;
+   266→    const data = await response.json() as { web?: { results?: Array<Record<string, unknown>> } };
+   267→    sources.push(...(data.web?.results ?? []).map(sourceFromRaw).filter(Boolean) as WebSource[]);
+   268→  }
+   269→  return sources;
+   270→}
+   271→
+   272→async function querySerper(env: Record<string, string>, queries: string[], mode: WebSearchMode): Promise<WebSource[]> {
+   273→  const key = env.SERPER_API_KEY?.trim();
+   274→  if (!key) return [];
+   275→  const sources: WebSource[] = [];
+   276→  for (const query of queries.slice(0, 3)) {
+   277→    const response = await fetch(`https://google.serper.dev/${mode === "news" ? "news" : "search"}`, {
+   278→      method: "POST",
+   279→      headers: {
+   280→        "X-API-KEY": key,
+   281→        "Content-Type": "application/json",
+   282→      },
+   283→      body: JSON.stringify({ q: query, num: 6 }),
+   284→    });
+   285→    if (!response.ok) continue;
+   286→    const data = await response.json() as { organic?: Array<Record<string, unknown>>; news?: Array<Record<string, unknown>> };
+   287→    sources.push(...((data.news ?? data.organic ?? []).map(sourceFromRaw).filter(Boolean) as WebSource[]));
+   288→  }
+   289→  return sources;
+   290→}
+   291→
+   292→async function queryTavily(env: Record<string, string>, queries: string[]): Promise<WebSource[]> {
+   293→  const key = env.TAVILY_API_KEY?.trim();
+   294→  if (!key) return [];
+   295→  const sources: WebSource[] = [];
+   296→  for (const query of queries.slice(0, 2)) {
+   297→    const response = await fetch("https://api.tavily.com/search", {
+   298→      method: "POST",
+   299→      headers: { "Content-Type": "application/json" },
+   300→      body: JSON.stringify({ api_key: key, query, max_results: 6, search_depth: "basic" }),
+   301→    });
+   302→    if (!response.ok) continue;
+   303→    const data = await response.json() as { results?: Array<Record<string, unknown>> };
+   304→    sources.push(...(data.results ?? []).map(sourceFromRaw).filter(Boolean) as WebSource[]);
+   305→  }
+   306→  return sources;
+   307→}
+   308→
+   309→async function queryNewsApi(env: Record<string, string>, queries: string[]): Promise<WebSource[]> {
+   310→  const key = env.NEWS_API_KEY?.trim();
+   311→  if (!key) return [];
+   312→  const query = queries[0] ?? "";
+   313→  const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&sortBy=publishedAt&pageSize=8&language=es`;
+   314→  const response = await fetch(url, { headers: { "X-Api-Key": key } });
+   315→  if (!response.ok) return [];
+   316→  const data = await response.json() as { articles?: Array<Record<string, unknown>> };
+   317→  return (data.articles ?? []).map(sourceFromRaw).filter(Boolean) as WebSource[];
+   318→}
+   319→
+   320→async function queryGNews(env: Record<string, string>, queries: string[]): Promise<WebSource[]> {
+   321→  const key = env.GNEWS_API_KEY?.trim();
+   322→  if (!key) return [];
+   323→  const query = queries[0] ?? "";
+   324→  const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(query)}&lang=es&max=8&apikey=${encodeURIComponent(key)}`;
+   325→  const response = await fetch(url);
+   326→  if (!response.ok) return [];
+   327→  const data = await response.json() as { articles?: Array<Record<string, unknown>> };
+   328→  return (data.articles ?? []).map(sourceFromRaw).filter(Boolean) as WebSource[];
+   329→}
+   330→
+   331→function browserNavigationEnabled(env: Record<string, string>): boolean {
+   332→  return !["0", "false", "off"].includes((env.KORU_BROWSER_NAVIGATION ?? "on").trim().toLowerCase());
+   333→}
+   334→
+   335→function browserQueryFor(query: string, mode: WebSearchMode): string {
+   336→  if (mode === "news") return `${query} noticias recientes`;
+   337→  if (mode === "world") return `${query} tendencias ultimos 30 dias debate`;
+   338→  if (mode === "shopping") return `${query} precio entrega devoluciones`;
+   339→  if (mode === "weather") return `${query} clima hoy`;
+   340→  if (mode === "traffic") return `${query} trafico ruta tiempo estimado`;
+   341→  if (mode === "market") return `${query} precio mercado hoy`;
+   342→  return query;
+   343→}
+   344→
+   345→function cleanSearchResultUrl(rawUrl: string): string {
+   346→  try {
+   347→    const parsed = new URL(rawUrl, "https://duckduckgo.com");
+   348→    const decoded = parsed.searchParams.get("uddg") || parsed.searchParams.get("u");
+   349→    if (decoded) return decoded;
+   350→    return parsed.href;
+   351→  } catch {
+   352→    return rawUrl;
+   353→  }
+   354→}
+   355→
+   356→function isUsableBrowserSource(source: WebSource): boolean {
+   357→  if (!/^https?:\/\//i.test(source.url)) return false;
+   358→  return !/(^|\.)duckduckgo\.com$|(^|\.)bing\.com$|(^|\.)google\.com$/i.test(source.domain);
+   359→}
+   360→
+   361→async function extractDuckDuckGoResults(page: {
+   362→  goto: (url: string, options: Record<string, unknown>) => Promise<unknown>;
+   363→  $$eval: <T>(selector: string, pageFunction: (elements: Element[]) => T) => Promise<T>;
+   364→}, query: string): Promise<WebSource[]> {
+   365→  await page.goto(`https://duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
+   366→    waitUntil: "domcontentloaded",
+   367→    timeout: 15_000,
+   368→  });
+   369→  const raw = await page.$$eval("a.result__a", (anchors) =>
+   370→    anchors.slice(0, 8).map((anchor) => {
+   371→      const link = anchor as HTMLAnchorElement;
+   372→      const container = link.closest(".result");
+   373→      const snippet = container?.querySelector(".result__snippet")?.textContent?.trim();
+   374→      return {
+   375→        title: link.textContent?.trim() ?? "",
+   376→        url: link.href,
+   377→        snippet,
+   378→      };
+   379→    }),
+   380→  );
+   381→  return raw
+   382→    .map((item) => {
+   383→      const url = cleanSearchResultUrl(item.url);
+   384→      return {
+   385→        title: item.title,
+   386→        url,
+   387→        domain: domainFromUrl(url),
+   388→        snippet: item.snippet,
+   389→      };
+   390→    })
+   391→    .filter((item) => item.title && isUsableBrowserSource(item));
+   392→}
+   393→
+   394→async function extractBingResults(page: {
+   395→  goto: (url: string, options: Record<string, unknown>) => Promise<unknown>;
+   396→  $$eval: <T>(selector: string, pageFunction: (elements: Element[]) => T) => Promise<T>;
+   397→}, query: string): Promise<WebSource[]> {
+   398→  await page.goto(`https://www.bing.com/search?q=${encodeURIComponent(query)}`, {
+   399→    waitUntil: "domcontentloaded",
+   400→    timeout: 15_000,
+   401→  });
+   402→  const raw = await page.$$eval("li.b_algo", (items) =>
+   403→    items.slice(0, 8).map((item) => {
+   404→      const link = item.querySelector("h2 a") as HTMLAnchorElement | null;
+   405→      const snippet = item.querySelector(".b_caption p")?.textContent?.trim();
+   406→      return {
+   407→        title: link?.textContent?.trim() ?? "",
+   408→        url: link?.href ?? "",
+   409→        snippet,
+   410→      };
+   411→    }),
+   412→  );
+   413→  return raw
+   414→    .map((item) => ({
+   415→      title: item.title,
+   416→      url: item.url,
+   417→      domain: domainFromUrl(item.url),
+   418→      snippet: item.snippet,
+   419→    }))
+   420→    .filter((item) => item.title && isUsableBrowserSource(item));
+   421→}
+   422→
+   423→async function enrichSourcesWithBrowserPages(page: {
+   424→  goto: (url: string, options: Record<string, unknown>) => Promise<unknown>;
+   425→  evaluate: <T, A>(pageFunction: (arg: A) => T, arg: A) => Promise<T>;
+   426→}, sources: WebSource[], mode: WebSearchMode): Promise<WebSource[]> {
+   427→  const enriched: WebSource[] = [];
+   428→  for (const source of sources.slice(0, 5)) {
+   429→    try {
+   430→      await page.goto(source.url, { waitUntil: "domcontentloaded", timeout: 12_000 });
+   431→      const detail = await page.evaluate((currentMode) => {
+   432→        const meta =
+   433→          document.querySelector<HTMLMetaElement>('meta[name="description"]')?.content ||
+   434→          document.querySelector<HTMLMetaElement>('meta[property="og:description"]')?.content ||
+   435→          document.querySelector<HTMLMetaElement>('meta[name="twitter:description"]')?.content ||
+   436→          "";
+   437→        const title =
+   438→          document.querySelector<HTMLMetaElement>('meta[property="og:title"]')?.content ||
+   439→          document.title ||
+   440→          "";
+   441→        const body = document.body?.innerText?.replace(/\s+/g, " ").slice(0, 4_000) ?? "";
+   442→        const price = currentMode === "shopping"
+   443→          ? body.match(/(?:€|\$)\s?\d[\d.,]*|\b\d[\d.,]*\s?(?:EUR|USD|ARS|€|\$)\b/i)?.[0]
+   444→          : undefined;
+   445→        return {
+   446→          title: title.trim(),
+   447→          snippet: [price, meta || body.slice(0, 220)].filter(Boolean).join(" · "),
+   448→        };
+   449→      }, mode);
+   450→      enriched.push({
+   451→        ...source,
+   452→        title: detail.title || source.title,
+   453→        snippet: detail.snippet || source.snippet,
+   454→      });
+   455→    } catch {
+   456→      enriched.push(source);
+   457→    }
+   458→  }
+   459→  return enriched;
+   460→}
+   461→
+   462→async function queryPlaywrightSearch(env: Record<string, string>, queries: string[], mode: WebSearchMode): Promise<WebSource[]> {
+   463→  if (!browserNavigationEnabled(env)) return [];
+   464→  let browser: { close: () => Promise<void>; newPage: (options?: Record<string, unknown>) => Promise<{
+   465→    setDefaultTimeout: (timeout: number) => void;
+   466→    goto: (url: string, options: Record<string, unknown>) => Promise<unknown>;
+   467→    $$eval: <T>(selector: string, pageFunction: (elements: Element[]) => T) => Promise<T>;
+   468→    evaluate: <T, A>(pageFunction: (arg: A) => T, arg: A) => Promise<T>;
+   469→  }> } | undefined;
+   470→
+   471→  try {
+   472→    const { chromium } = await import("playwright");
+   473→    browser = await chromium.launch({ headless: true });
+   474→    const page = await browser.newPage({
+   475→      userAgent:
+   476→        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125 Safari/537.36 KoruLocalBrowser/1.0",
+   477→      locale: "es-ES",
+   478→    });
+   479→    page.setDefaultTimeout(8_000);
+   480→
+   481→    const sources: WebSource[] = [];
+   482→    for (const query of queries.slice(0, 2)) {
+   483→      const browserQuery = browserQueryFor(query, mode);
+   484→      let results: WebSource[] = [];
+   485→      try {
+   486→        results = await extractDuckDuckGoResults(page, browserQuery);
+   487→      } catch {
+   488→        results = [];
+   489→      }
+   490→      if (!results.length) {
+   491→        try {
+   492→          results = await extractBingResults(page, browserQuery);
+   493→        } catch {
+   494→          results = [];
+   495→        }
+   496→      }
+   497→      sources.push(...results);
+   498→    }
+   499→
+   500→    return uniqueWebSources(await enrichSourcesWithBrowserPages(page, sources, mode));
+   501→  } catch {
+   502→    return [];
+   503→  } finally {
+   504→    await browser?.close().catch(() => undefined);
+   505→  }
+   506→}
+   507→
+   508→function koruWebProxy(env: Record<string, string>): Plugin {
+   509→  return {
+   510→    name: "koru-web-proxy",
+   511→    configureServer(server) {
+   512→      server.middlewares.use("/koru-web/search", async (req, res) => {
+   513→        if (req.method !== "POST") {
+   514→          res.statusCode = 405;
+   515→          res.setHeader("Allow", "POST");
+   516→          res.end();
+   517→          return;
+   518→        }
+   519→
+   520→        const chunks: Buffer[] = [];
+   521→        for await (const chunk of req) chunks.push(Buffer.from(chunk));
+   522→        const body = Buffer.concat(chunks).toString("utf8");
+   523→        const parsed = JSON.parse(body || "{}") as WebSearchRequest;
+   524→        const queries = (parsed.queries ?? []).map((query) => query.trim()).filter(Boolean).slice(0, 4);
+   525→        const mode = parsed.mode ?? "research";
+   526→
+   527→        if (!queries.length) {
+   528→          res.statusCode = 400;
+   529→          res.setHeader("Content-Type", "application/json");
+   530→          res.end(JSON.stringify({ status: "failed", sources: [], recommendation: "Falta una consulta concreta." }));
+   531→          return;
+   532→        }
+   533→
+   534→        try {
+   535→          const providerResults = uniqueWebSources([
+   536→            ...(mode === "weather" ? await queryOpenMeteo(queries) : []),
+   537→            ...(mode === "traffic" ? await queryOsrmRoute(queries) : []),
+   538→            ...(mode === "news" || mode === "world" || mode === "market" ? await queryGdelt(queries) : []),
+   539→            ...(await querySearXng(env, queries)),
+   540→            ...(mode === "news" || mode === "world" ? await queryNewsApi(env, queries) : []),
+   541→            ...(mode === "news" || mode === "world" ? await queryGNews(env, queries) : []),
+   542→            ...(await queryBrave(env, queries)),
+   543→            ...(await querySerper(env, queries, mode)),
+   544→            ...(await queryTavily(env, queries)),
+   545→          ]);
+   546→          const browserResults = providerResults.length ? [] : await queryPlaywrightSearch(env, queries, mode);
+   547→          const webResults = uniqueWebSources([...providerResults, ...browserResults]);
+   548→
+   549→          const hasConfiguredProvider = Boolean(
+   550→            env.BRAVE_SEARCH_API_KEY?.trim() ||
+   551→            env.SERPER_API_KEY?.trim() ||
+   552→            env.TAVILY_API_KEY?.trim() ||
+   553→            env.NEWS_API_KEY?.trim() ||
+   554→            env.GNEWS_API_KEY?.trim() ||
+   555→            env.SEARXNG_BASE_URL?.trim() ||
+   556→            mode === "weather" ||
+   557→            mode === "traffic" ||
+   558→            mode === "news" ||
+   559→            mode === "world" ||
+   560→            mode === "market",
+   561→          );
+   562→
+   563→          if (!hasConfiguredProvider && !browserNavigationEnabled(env)) {
+   564→            res.statusCode = 200;
+   565→            res.setHeader("Content-Type", "application/json");
+   566→            res.end(JSON.stringify({
+   567→              status: "not_configured",
+   568→              verifiedAt: new Date().toISOString(),
+   569→              sources: fallbackSearchSources(queries, mode),
+   570→              recommendation: "No hay API de busqueda/noticias configurada. No lei la web; deje consultas manuales trazables.",
+   571→            }));
+   572→            return;
+   573→          }
+   574→
+   575→          if (!webResults.length) {
+   576→            res.statusCode = 200;
+   577→            res.setHeader("Content-Type", "application/json");
+   578→            res.end(JSON.stringify({
+   579→              status: "partial",
+   580→              verifiedAt: new Date().toISOString(),
+   581→              sources: fallbackSearchSources(queries, mode),
+   582→              recommendation: browserNavigationEnabled(env)
+   583→                ? "Intente navegar con Playwright, pero no consegui evidencia util. Deje busquedas manuales para continuar sin inventar."
+   584→                : "Los conectores configurados no devolvieron resultados utiles; deje busquedas manuales para continuar.",
+   585→            }));
+   586→            return;
+   587→          }
+   588→
+   589→          res.statusCode = 200;
+   590→          res.setHeader("Content-Type", "application/json");
+   591→          res.end(JSON.stringify({
+   592→            status: "verified",
+   593→            verifiedAt: new Date().toISOString(),
+   594→            sources: webResults,
+   595→            comparisonItems: mode === "shopping" ? comparisonItemsFromSources(webResults) : undefined,
+   596→            summaryItems: mode === "news" || mode === "world" ? newsSummaryItems(webResults) : undefined,
+   597→            recommendation: mode === "shopping"
+   598→              ? browserResults.length
+   599→                ? "Navegue con Playwright, abri resultados reales y compare evidencia visible. Antes de comprar, confirma precio final y entrega en el vendedor."
+   600→                : "Compare resultados por evidencia disponible. Antes de comprar, abre el vendedor y confirma precio final y entrega."
+   601→              : mode === "news"
+   602→                ? browserResults.length
+   603→                  ? "Navegue fuentes reales con Playwright, priorice actualidad y separe titulares de accion posible para tu trabajo."
+   604→                  : "Priorice fuentes recientes y separo titulares de accion posible para tu trabajo."
+   605→                : mode === "world"
+   606→                  ? browserResults.length
+   607→                    ? "Navegue senales recientes con Playwright y deje fuentes para que decidas si quieres seguir este radar."
+   608→                    : "Filtre senales recientes con fuentes abiertas. Si esto te sirve, puedes dejarlo como radar proactivo."
+   609→                : mode === "weather"
+   610→                  ? "Use Open-Meteo como fuente abierta; si necesitas ropa para reunion, cruzo clima con horario y contexto."
+   611→                  : mode === "traffic"
+   612→                    ? "Use rutas abiertas. Esto estima traslado, no trafico en vivo; para trafico real conviene conector dedicado o navegador local."
+   613→                    : browserResults.length
+   614→                      ? "Navegue con Playwright y deje fuentes reales para seguir investigando sin inventar conclusiones."
+   615→                      : "Deje fuentes reales para revisar y seguir investigando sin inventar conclusiones.",
+   616→          }));
+   617→        } catch (error) {
+   618→          res.statusCode = 502;
+   619→          res.setHeader("Content-Type", "application/json");
+   620→          res.end(JSON.stringify({
+   621→            status: "failed",
+   622→            sources: fallbackSearchSources(queries, mode),
+   623→            recommendation: error instanceof Error ? error.message : "Fallo la navegacion web.",
+   624→          }));
+   625→        }
+   626→      });
+   627→    },
+   628→  };
+   629→}
+   630→
+   631→function prepareJsonBody(raw: Buffer, patch: Record<string, unknown>, stripForNvidia = false): Buffer {
+   632→  const parsed = JSON.parse(raw.toString("utf8")) as Record<string, unknown>;
+   633→  const body = {
+   634→    ...parsed,
+   635→    ...patch,
+   636→    stream: false,
+   637→  };
+   638→  if (stripForNvidia) {
+   639→    delete body.plugins;
+   640→    delete body.reasoning;
+   641→    delete body.response_format;
+   642→  }
+   643→  return Buffer.from(JSON.stringify(body));
+   644→}
+   645→
+   646→function koruAiProxy(env: Record<string, string>): Plugin {
+   647→  const openRouterKeys = collectOpenRouterKeys(env);
+   648→  const openRouterModels = collectOpenRouterModels(env);
+   649→  const nvidiaKey = env.NVIDIA_API_KEY?.trim();
+   650→  const nvidiaBaseUrl = env.NVIDIA_BASE_URL?.trim() || "https://integrate.api.nvidia.com";
+   651→  const nvidiaModel = env.NVIDIA_MODEL?.trim() || "minimaxai/minimax-m3";
+   652→
+   653→  return {
+   654→    name: "koru-ai-proxy",
+   655→    configureServer(server) {
+   656→      server.middlewares.use("/koru-ai", async (req, res) => {
+   657→        if (!nvidiaKey && !openRouterKeys.length) {
+   658→          res.statusCode = 500;
+   659→          res.setHeader("Content-Type", "application/json");
+   660→          res.end(JSON.stringify({ error: { message: "No hay proveedor de IA configurado." } }));
+   661→          return;
+   662→        }
+   663→
+   664→        if (req.method !== "POST") {
+   665→          res.statusCode = 405;
+   666→          res.setHeader("Allow", "POST");
+   667→          res.end();
+   668→          return;
+   669→        }
+   670→
+   671→        const chunks: Buffer[] = [];
+   672→        for await (const chunk of req) chunks.push(Buffer.from(chunk));
+   673→        const body = Buffer.concat(chunks);
+   674→        const targetPath = req.url?.replace(/^\/?/, "") ?? "";
+   675→        let lastStatus = 502;
+   676→        let lastBody = JSON.stringify({ error: { message: "Ningun proveedor respondio con contenido usable." } });
+   677→        let lastContentType = "application/json";
+   678→
+   679→        if (nvidiaKey) {
+   680→          const controller = new AbortController();
+   681→          const timeout = setTimeout(() => controller.abort(), 55_000);
+   682→          try {
+   683→            const response = await fetch(providerUrl(nvidiaBaseUrl, targetPath), {
+   684→              method: "POST",
+   685→              headers: {
+   686→                Authorization: `Bearer ${nvidiaKey}`,
+   687→                "Content-Type": req.headers["content-type"] ?? "application/json",
+   688→                Accept: "application/json",
+   689→              },
+   690→              body: prepareJsonBody(body, { model: nvidiaModel, top_p: 0.95 }, true),
+   691→              signal: controller.signal,
+   692→            });
+   693→            const responseBody = await response.text();
+   694→            lastStatus = response.status;
+   695→            lastBody = responseBody;
+   696→            lastContentType = response.headers.get("content-type") ?? "application/json";
+   697→
+   698→            if (response.ok && bodyHasAssistantContent(responseBody)) {
+   699→              res.statusCode = response.status;
+   700→              res.setHeader("Content-Type", lastContentType);
+   701→              res.end(responseBody);
+   702→              return;
+   703→            }
+   704→          } catch (error) {
+   705→            lastStatus = 504;
+   706→            lastBody = JSON.stringify({
+   707→              error: {
+   708→                message: error instanceof Error ? error.message : "NVIDIA no respondio a tiempo.",
+   709→                provider: "nvidia",
+   710→                model: nvidiaModel,
+   711→              },
+   712→            });
+   713→            lastContentType = "application/json";
+   714→          } finally {
+   715→            clearTimeout(timeout);
+   716→          }
+   717→        }
+   718→
+   719→        for (const model of openRouterModels) {
+   720→          for (const key of openRouterKeys) {
+   721→            const response = await fetch(providerUrl("https://openrouter.ai/api", targetPath), {
+   722→              method: "POST",
+   723→              headers: {
+   724→                Authorization: `Bearer ${key}`,
+   725→                "Content-Type": req.headers["content-type"] ?? "application/json",
+   726→                "HTTP-Referer": "http://localhost:5173",
+   727→                "X-OpenRouter-Title": "Koru MVP",
+   728→              },
+   729→              body: prepareJsonBody(body, {
+   730→                model,
+   731→                response_format: { type: "json_object" },
+   732→                plugins: [{ id: "response-healing" }],
+   733→                reasoning: { exclude: true },
+   734→              }),
+   735→            });
+   736→            const responseBody = await response.text();
+   737→            lastStatus = response.status;
+   738→            lastBody = responseBody;
+   739→            lastContentType = response.headers.get("content-type") ?? "application/json";
+   740→
+   741→            if (response.ok && bodyHasAssistantContent(responseBody)) {
+   742→              res.statusCode = response.status;
+   743→              res.setHeader("Content-Type", lastContentType);
+   744→              res.end(responseBody);
+   745→              return;
+   746→            }
+   747→          }
+   748→        }
+   749→
+   750→        res.statusCode = lastStatus;
+   751→        res.setHeader("Content-Type", lastContentType);
+   752→        res.end(lastBody);
+   753→      });
+   754→    },
+   755→  };
+   756→}
+   757→
+   758→function readMiniMaxToken(): string | undefined {
+   759→  try {
+   760→    const tokenPath = join(dirname(fileURLToPath(import.meta.url)), "minimax-oauth-token.json");
+   761→    if (!existsSync(tokenPath)) return undefined;
+   762→    const data = JSON.parse(readFileSync(tokenPath, "utf-8")) as { accessToken?: string };
+   763→    return data.accessToken;
+   764→  } catch {
+   765→    return undefined;
+   766→  }
+   767→}
+   768→
+   769→function koruBackendAgent(env: Record<string, string>): Plugin {
+   770→  const config: ProviderConfig = {
+   771→    nvidiaApiKey: env.NVIDIA_API_KEY?.trim(),
+   772→    nvidiaBaseUrl: env.NVIDIA_BASE_URL?.trim() || "https://integrate.api.nvidia.com",
+   773→    nvidiaModel: env.NVIDIA_MODEL?.trim() || "nvidia/nemotron-3-ultra-550b-a55b",
+   774→    openRouterKeys: collectOpenRouterKeys(env),
+   775→    openRouterModels: collectOpenRouterModels(env),
+   776→    minimaxAccessToken: readMiniMaxToken(),
+   777→    bluesmindsKeys: collectBlueSmindsKeys(env),
+   778→    bluesmindsModel: collectBlueSmindsModel(env),
+   779→    ollamaEmbedBaseUrl: "http://localhost:11434",
+   780→  };
+   781→
+   782→  return {
+   783→    name: "koru-backend-agent",
+   784→    configureServer(server) {
+   785→      server.middlewares.use("/api/koru/models", async (req, res) => {
+   786→        if (req.method !== "GET") {
+   787→          res.statusCode = 405;
+   788→          res.setHeader("Allow", "GET");
+   789→          res.end();
+   790→          return;
+   791→        }
+   792→        const predefined: Array<{ id: string; provider: string; label: string }> = [];
+   793→        if (config.bluesmindsKeys.length) {
+   794→          predefined.push({ id: config.bluesmindsModel, provider: "bluesminds", label: `BlueSminds ${config.bluesmindsModel}` });
+   795→        }
+   796→        if (config.minimaxAccessToken) {
+   797→          predefined.push({ id: "MiniMax-M2.7", provider: "minimax", label: "MiniMax M2.7" });
+   798→        }
+   799→        if (config.nvidiaApiKey) {
+   800→          predefined.push({ id: config.nvidiaModel, provider: "nvidia", label: "NVIDIA Nemotron 3 Ultra" });
+   801→        }
+   802→        for (const m of config.openRouterModels.slice(0, 3)) {
+   803→          predefined.push({ id: m, provider: "openrouter", label: m });
+   804→        }
+   805→        try {
+   806→          const isOllama = config.nvidiaBaseUrl.includes(":11434") || config.nvidiaBaseUrl.includes("ollama");
+   807→          if (isOllama) {
+   808→            const ollamaUrl = config.nvidiaBaseUrl.replace("/v1", "").replace(/\/$/, "");
+   809→            const response = await fetch(ollamaUrl + "/api/tags", { method: "GET" });
+   810→            if (response.ok) {
+   811→              const data = await response.json();
+   812→              const dynamic = (data.models || []).map((m: any) => ({
+   813→                id: m.name,
+   814→                provider: "ollama",
+   815→                label: m.name,
+   816→              })).filter((m: any) => m.id);
+   817→              res.statusCode = 200;
+   818→              res.setHeader("Content-Type", "application/json");
+   819→              res.end(JSON.stringify({ models: [...predefined, ...dynamic] }));
+   820→              return;
+   821→            }
+   822→          }
+   823→        } catch { /* fallthrough */ }
+   824→        const fallback = [
+   825→          { id: "koru-qwen-32k:latest", provider: "ollama", label: "Koru Qwen 32k" },
+   826→          { id: "qwen3.6:27b", provider: "ollama", label: "Qwen 3.6 27B" },
+   827→          { id: "koru-gemma-16k:latest", provider: "ollama", label: "Koru Gemma 16k" },
+   828→          { id: "llama3.1:8b", provider: "ollama", label: "Llama 3.1 8B" },
+   829→          { id: "deepseek-r1:32b", provider: "ollama", label: "DeepSeek R1 32B" },
+   830→        ];
+   831→        res.statusCode = 200;
+   832→        res.setHeader("Content-Type", "application/json");
+   833→        res.end(JSON.stringify({ models: [...predefined, ...fallback] }));
+   834→      });
+   835→
+   836→      server.middlewares.use("/api/koru/turn", async (req, res) => {
+   837→        if (req.method !== "POST") {
+   838→          res.statusCode = 405;
+   839→          res.setHeader("Allow", "POST");
+   840→          res.end();
+   841→          return;
+   842→        }
+   843→
+   844→        const chunks: Buffer[] = [];
+   845→        for await (const chunk of req) chunks.push(Buffer.from(chunk));
+   846→        const raw = Buffer.concat(chunks).toString("utf8");
+   847→
+   848→        try {
+   849→          if (!config.nvidiaApiKey && !config.openRouterKeys.length) {
+   850→            res.statusCode = 500;
+   851→            res.setHeader("Content-Type", "application/json");
+   852→            res.end(JSON.stringify({ error: "No hay proveedor de IA configurado para Koru." }));
+   853→            return;
+   854→          }
+   855→
+   856→          const request = JSON.parse(raw || "{}") as KoruBackendTurnRequest & { stream?: boolean; model?: string };
+   857→          if (request.model) {
+   858→            (request as KoruBackendTurnRequest).model = request.model;
+   859→          }
+   860→          logger.info("koru-turn", "Request received", { input: request.input, historyLength: request.history.length, model: request.model || config.nvidiaModel });
+   861→          if (!request.input?.trim() || !request.state || !Array.isArray(request.history)) {
+   862→            res.statusCode = 400;
+   863→            res.setHeader("Content-Type", "application/json");
+   864→            res.end(JSON.stringify({ error: "Payload incompleto para /api/koru/turn." }));
+   865→            return;
+   866→          }
+   867→
+   868→          const startMs = Date.now();
+   869→          const streamEnabled = request.stream === true;
+   870→          if (streamEnabled) {
+   871→            res.statusCode = 200;
+   872→            res.setHeader("Content-Type", "application/x-ndjson");
+   873→            res.setHeader("Cache-Control", "no-cache");
+   874→            res.setHeader("Connection", "keep-alive");
+   875→            const chunks: string[] = [];
+   876→            const onChunk = (chunk: import("./src/server/koruBackend").KoruBackendTurnResponse) => {
+   877→              const line = JSON.stringify(chunk) + "\n";
+   878→              chunks.push(line);
+   879→              res.write(line);
+   880→            };
+   881→            const result = await runKoruBackendTurn(request, config, onChunk);
+   882→            const line = JSON.stringify(result) + "\n";
+   883→            if (!chunks.includes(line)) res.write(line);
+   884→            res.end();
+   885→          } else {
+   886→            const result = await runKoruBackendTurn(request, config);
+   887→            const durationMs = Date.now() - startMs;
+   888→            // eslint-disable-next-line no-console
+   889→            console.log("[KORU TURN]", new Date().toISOString(), "|", request.input.slice(0,40), "| provider:", result.provider, "| model:", result.model ?? "none", "| fallbackReason:", result.fallbackReason ?? "none", "| durationMs:", durationMs, "| replyPreview:", (result.reply ?? "").slice(0,60));
+   890→            try {
+   891→              const dir = join(process.cwd(), "logs");
+   892→              mkdirSync(dir, { recursive: true });
+   893→              const line = JSON.stringify({ ts: new Date().toISOString(), input: request.input, provider: result.provider, model: result.model, fallbackReason: result.fallbackReason, reply: result.reply, durationMs }) + "\n";
+   894→              appendFileSync(join(dir, "koru-turns.jsonl"), line, "utf8");
+   895→            } catch { /* silencioso */ }
+   896→            res.statusCode = 200;
+   897→            res.setHeader("Content-Type", "application/json");
+   898→            res.end(JSON.stringify(result));
+   899→            logger.info("koru-turn", "Response sent", { replyPreview: (result.reply ?? "").slice(0, 200), provider: result.provider, model: result.model });
+   900→          }
+   901→        } catch (error) {
+   902→          logger.error("koru-turn", "Backend error", { error: String(error), stack: error instanceof Error ? error.stack : undefined });
+   903→          if (res.headersSent) {
+   904→            res.write(JSON.stringify({
+   905→              error: error instanceof Error ? error.message : "Fallo el loop de agente de Koru.",
+   906→              reply: "No pude procesar tu mensaje. El modelo no respondió a tiempo.",
+   907→              uiBlocks: [],
+   908→              suggestedActions: [],
+   909→              understanding: { literalRequest: "", userGoal: "error", unstatedNeeds: [], assumptions: [], confidence: 0 },
+   910→              memoryCandidates: [], commitments: [], records: [], toolResults: [],
+   911→              stateEvents: [{ kind: "done", label: "Error" }],
+   912→              mascotState: "tired",
+   913→              provider: "nvidia",
+   914→              fallbackReason: "server-error",
+   915→            }) + "\n");
+   916→            res.end();
+   917→          } else {
+   918→            res.statusCode = 502;
+   919→            res.setHeader("Content-Type", "application/json");
+   920→            res.end(JSON.stringify({
+   921→              error: error instanceof Error ? error.message : "Fallo el loop de agente de Koru.",
+   922→            }));
+   923→          }
+   924→        }
+   925→      });
+   926→    },
+   927→  };
+   928→}
+   929→
+   930→function koruAuditLogger(): Plugin {
+   931→  return {
+   932→    name: "koru-audit-logger",
+   933→    configureServer(server) {
+   934→      server.middlewares.use("/koru-audit/log", async (req, res) => {
+   935→        if (req.method !== "POST") {
+   936→          res.statusCode = 405;
+   937→          res.setHeader("Allow", "POST");
+   938→          res.end();
+   939→          return;
+   940→        }
+   941→
+   942→        const chunks: Buffer[] = [];
+   943→        for await (const chunk of req) chunks.push(Buffer.from(chunk));
+   944→        const raw = Buffer.concat(chunks).toString("utf8");
+   945→        try {
+   946→          const parsed = JSON.parse(raw || "{}") as Record<string, unknown>;
+   947→          const dir = join(process.cwd(), "manual-audits");
+   948→          mkdirSync(dir, { recursive: true });
+   949→          const line = `${JSON.stringify({ serverReceivedAt: new Date().toISOString(), ...parsed })}\n`;
+   950→          const target = join(dir, "koru-current.jsonl");
+   951→          if (parsed.type === "audit_reset") writeFileSync(target, line, "utf8");
+   952→          else appendFileSync(target, line, "utf8");
+   953→          res.statusCode = 204;
+   954→          res.end();
+   955→        } catch (error) {
+   956→          res.statusCode = 400;
+   957→          res.setHeader("Content-Type", "application/json");
+   958→          res.end(JSON.stringify({ error: error instanceof Error ? error.message : "invalid audit payload" }));
+   959→        }
+   960→      });
+   961→    },
+   962→  };
+   963→}
+   964→
+   965→export default defineConfig(({ mode }) => {
+   966→  const env = loadEnv(mode, process.cwd(), "");
+   967→
+   968→  return {
+   969→    plugins: [koruBackendAgent(env), koruAiProxy(env), koruWebProxy(env), koruAuditLogger(), tailwindcss(), react()],
+   970→    build: {
+   971→      rollupOptions: {
+   972→        input: {
+   973→          main: new URL("./index.html", import.meta.url).pathname,
+   974→        },
+   975→      },
+   976→    },
+   977→    server: {
+   978→      host: "0.0.0.0",
+   979→      port: 3000,
+   980→      allowedHosts: true,
+   981→      cors: true,
+   982→      watch: {
+   983→        ignored: ["**/manual-audits/**"],
+   984→      },
+   985→      proxy: {
+   986→        "/ollama": {
+   987→          target: "http://127.0.0.1:11434",
+   988→          changeOrigin: true,
+   989→          rewrite: (path) => path.replace(/^\/ollama/, ""),
+   990→        },
+   991→      },
+   992→    },
+   993→  };
+   994→});
+   995→

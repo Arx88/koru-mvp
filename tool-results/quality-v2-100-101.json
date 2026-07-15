@@ -1,0 +1,38 @@
+[
+  {
+    "id": "cr05",
+    "ok": true,
+    "elapsed": 5269,
+    "input": "como esta solana",
+    "reply": "Solana está en unos $76.74 USD según CoinMarketCap. Te dejé las fuentes en la tarjeta por si querés ver el gráfico o el volumen de 24hs.",
+    "quality": 10,
+    "issues": [],
+    "tools": [
+      "web_search"
+    ],
+    "blocks": [
+      "deliverable"
+    ],
+    "memories": 0,
+    "commitments": 0
+  },
+  {
+    "id": "cr06",
+    "ok": true,
+    "elapsed": 5184,
+    "input": "cuanto vale el doge",
+    "reply": "Tuve un problema para armar la respuesta. ¿Me lo repetís de otra forma para ayudarte bien? Te dejé el detalle en la tarjeta.",
+    "quality": 6,
+    "issues": [
+      "GENERIC_ERROR"
+    ],
+    "tools": [
+      "crypto_price"
+    ],
+    "blocks": [
+      "forex"
+    ],
+    "memories": 0,
+    "commitments": 0
+  }
+]

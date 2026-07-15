@@ -1,0 +1,55 @@
+[
+  {
+    "id": "cr05",
+    "ok": true,
+    "elapsed": 5269,
+    "input": "como esta solana",
+    "reply": "Solana anda alrededor de $76-77 USD según las fuentes. Te dejé el detalle en la tarjeta.",
+    "quality": 10,
+    "issues": [],
+    "tools": [
+      "web_search"
+    ],
+    "blocks": [
+      "deliverable"
+    ],
+    "memories": 0,
+    "commitments": 0
+  },
+  {
+    "id": "cr06",
+    "ok": true,
+    "elapsed": 5184,
+    "input": "cuanto vale el doge",
+    "reply": "Tuve un problema para armar la respuesta. ¿Me lo repetís de otra forma para ayudarte bien? Te dejé el detalle en la tarjeta.",
+    "quality": 6,
+    "issues": [
+      "GENERIC_ERROR"
+    ],
+    "tools": [
+      "crypto_price"
+    ],
+    "blocks": [
+      "forex"
+    ],
+    "memories": 0,
+    "commitments": 0
+  },
+  {
+    "id": "sh01",
+    "ok": true,
+    "elapsed": 5184,
+    "input": "necesito auriculares nuevos",
+    "reply": "Te dejé una comparativa con las mejores opciones calidad-precio en la tarjeta. Hay desde AirPods Pro 3 hasta modelos más económicos por debajo de 60€.",
+    "quality": 10,
+    "issues": [],
+    "tools": [
+      "shopping_compare"
+    ],
+    "blocks": [
+      "comparison"
+    ],
+    "memories": 0,
+    "commitments": 0
+  }
+]

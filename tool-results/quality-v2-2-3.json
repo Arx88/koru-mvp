@@ -1,0 +1,36 @@
+[
+  {
+    "id": "r03",
+    "ok": true,
+    "elapsed": 3563,
+    "input": "la semana q viene tengo q pagar el alquiler",
+    "reply": "Listo, guardado en recordatorios. Te avisaré cuando se acerque la fecha.",
+    "quality": 10,
+    "issues": [],
+    "tools": [
+      "memory_recall"
+    ],
+    "blocks": [
+      "reminder"
+    ],
+    "memories": 0,
+    "commitments": 1
+  },
+  {
+    "id": "r04",
+    "ok": true,
+    "elapsed": 5569,
+    "input": "acordate q el 20 vence la tarjeta",
+    "reply": "Listo, guardado en recordatorios. Te aviso cuando se acerque el 20.",
+    "quality": 10,
+    "issues": [],
+    "tools": [
+      "memory_recall"
+    ],
+    "blocks": [
+      "reminder"
+    ],
+    "memories": 0,
+    "commitments": 1
+  }
+]

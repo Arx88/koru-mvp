@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Wheel → Ajustes (detalle) — Koru UX Audit v3</title>
+  <link rel="stylesheet" href="global.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet">
+  <style>
+    .slide { font-family: var(--font-body); }
+    .bullet-row { display: flex; align-items: flex-start; gap: 10px; }
+    .bullet-row .material-symbols-outlined { color: var(--accent); font-size: 18px; line-height: 1.4; flex-shrink: 0; }
+    .section-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 10px; border-radius: 8px;
+      font-size: 11px; font-weight: 700;
+      background: rgba(131,99,249,0.10);
+      color: var(--primary-soft);
+    }
+    .section-pill .material-symbols-outlined { font-size: 14px; }
+    .page-tag {
+      position: absolute; bottom: 28px; right: 36px;
+      font-size: 11px; color: var(--text-muted); letter-spacing: 0.12em;
+      text-transform: uppercase; font-weight: 600;
+    }
+    .corner-mark {
+      position: absolute; top: 28px; right: 36px;
+      font-size: 11px; color: var(--text-muted); letter-spacing: 0.12em;
+      text-transform: uppercase; font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="slide" style="padding: 56px 72px;">
+    <!-- decorative glows -->
+    <div class="glow-blob" data-decor aria-hidden="true" style="width: 380px; height: 380px; background: rgba(131,99,249,0.22); top: -120px; right: -100px;"></div>
+    <div class="glow-blob" data-decor aria-hidden="true" style="width: 240px; height: 240px; background: rgba(110,231,183,0.10); bottom: -80px; left: -60px;"></div>
+
+    <!-- corner mark -->
+    <div class="corner-mark">Koru · UX Audit v3</div>
+
+    <!-- Header -->
+    <header class="relative z-10 flex flex-col gap-3">
+      <span class="badge-ok" style="align-self: flex-start;">
+        <span class="material-symbols-outlined" style="font-size: 13px;">tune</span>
+        Wheel → Ajustes
+      </span>
+      <h1 style="color: var(--text); font-size: 32px; font-weight: 800; line-height: 1.1; letter-spacing: -0.015em;">
+        Configurá tu Koru
+      </h1>
+      <p style="color: var(--text-soft); font-size: 14px; line-height: 1.55; max-width: 560px;">
+        Settings expandido con 4 secciones en magical-cards: Perfil (nombre + cómo te hablo), Modelo de IA (Nemotron Ultra + modo), Permisos (mic, notificaciones, cámara con estado visual), Privacidad (exportar/borrar memoria). Cada sección tiene su accent de color y iconos claros.
+      </p>
+    </header>
+
+    <!-- Body split -->
+    <div class="relative z-10 flex gap-10 mt-6" style="height: 470px;">
+      <!-- Left: bullets + section pills -->
+      <div class="flex flex-col justify-between" style="width: 52%;">
+        <div class="flex flex-col gap-3">
+          <div class="bullet-row">
+            <span class="material-symbols-outlined">check_circle</span>
+            <div>
+              <div style="color: var(--text); font-size: 13.5px; font-weight: 600;">Perfil: nombre + tono de voz (cálido/directo)</div>
+              <div style="color: var(--text-muted); font-size: 11px; margin-top: 2px;">Cómo te habla Koru en cada respuesta</div>
+            </div>
+          </div>
+          <div class="bullet-row">
+            <span class="material-symbols-outlined">check_circle</span>
+            <div>
+              <div style="color: var(--text); font-size: 13.5px; font-weight: 600;">Modelo: Nemotron Ultra + modo Automático</div>
+              <div style="color: var(--text-muted); font-size: 11px; margin-top: 2px;">Selección del motor y velocidad de respuesta</div>
+            </div>
+          </div>
+          <div class="bullet-row">
+            <span class="material-symbols-outlined">check_circle</span>
+            <div>
+              <div style="color: var(--text); font-size: 13.5px; font-weight: 600;">Permisos: estado visual (✓ verde / ✗ ámbar)</div>
+              <div style="color: var(--text-muted); font-size: 11px; margin-top: 2px;">Micrófono, notificaciones y cámara a la vista</div>
+            </div>
+          </div>
+          <div class="bullet-row">
+            <span class="material-symbols-outlined">check_circle</span>
+            <div>
+              <div style="color: var(--text); font-size: 13.5px; font-weight: 600;">Privacidad: exportar y borrar memoria con 1 tap</div>
+              <div style="color: var(--text-muted); font-size: 11px; margin-top: 2px;">Control total sobre lo que Koru sabe de vos</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 section pills as visual recap -->
+        <div class="flex flex-wrap gap-2 mt-5">
+          <span class="section-pill"><span class="material-symbols-outlined">person</span>Perfil</span>
+          <span class="section-pill" style="background: rgba(110,231,183,0.10); color: var(--accent);"><span class="material-symbols-outlined">memory</span>Modelo IA</span>
+          <span class="section-pill" style="background: rgba(251,191,36,0.10); color: var(--warning);"><span class="material-symbols-outlined">lock</span>Permisos</span>
+          <span class="section-pill" style="background: rgba(253,164,175,0.10); color: var(--danger);"><span class="material-symbols-outlined">shield</span>Privacidad</span>
+        </div>
+      </div>
+
+      <!-- Right: phone -->
+      <div class="flex flex-col items-center justify-start" style="width: 48%;">
+        <div class="phone-frame" style="height: 460px;">
+          <img src="MOCKUP-wheel-settings.png" alt="Wheel → Ajustes mockup">
+        </div>
+        <p style="color: var(--text-muted); font-size: 11px; text-align: center; margin-top: 12px;">
+          Ajustes: 4 secciones con accents de color
+        </p>
+      </div>
+    </div>
+
+    <!-- page tag -->
+    <div class="page-tag">11 / 15</div>
+  </div>
+</body>
+</html>

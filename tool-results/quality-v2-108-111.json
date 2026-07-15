@@ -1,0 +1,66 @@
+[
+  {
+    "id": "p01",
+    "ok": true,
+    "elapsed": 5600,
+    "input": "organizame el dia",
+    "reply": "Te armé un esquema base para la tarde. Como no tengo tus tareas específicas, te dejé bloques genéricos: arrancá con lo que más te quite peso de encima, después elegí un paso concreto y cerrá con algo chico. Si me pasás qué tenés pendiente (reuniones, compras, trámites, lo que sea), lo afinamos.",
+    "quality": 10,
+    "issues": [],
+    "tools": [
+      "memory_recall"
+    ],
+    "blocks": [
+      "plan"
+    ],
+    "memories": 0,
+    "commitments": 0
+  },
+  {
+    "id": "p02",
+    "ok": true,
+    "elapsed": 5244,
+    "input": "tengo muchas cosas hoy",
+    "reply": "Te armé un plan rápido en la tarjeta. Si querés, decime qué tenés en la lista y lo ordenamos por prioridad real.",
+    "quality": 10,
+    "issues": [],
+    "tools": [
+      "memory_recall"
+    ],
+    "blocks": [
+      "plan"
+    ],
+    "memories": 0,
+    "commitments": 0
+  },
+  {
+    "id": "p03",
+    "ok": true,
+    "elapsed": 3169,
+    "input": "no se por donde empezar",
+    "reply": "¿Qué tenés en mente? A veces lo más difícil es nombrarlo.",
+    "quality": 10,
+    "issues": [],
+    "tools": [],
+    "blocks": [],
+    "memories": 0,
+    "commitments": 0
+  },
+  {
+    "id": "p04",
+    "ok": true,
+    "elapsed": 5182,
+    "input": "ayudame a planificar",
+    "reply": "Te armé un plan simple para arrancar. Lo tenés en la tarjeta.",
+    "quality": 10,
+    "issues": [],
+    "tools": [
+      "memory_recall"
+    ],
+    "blocks": [
+      "plan"
+    ],
+    "memories": 0,
+    "commitments": 0
+  }
+]

@@ -1,0 +1,1078 @@
+     1→import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+     2→import type {
+     3→  AssistantAction,
+     4→  UiBlock,
+     5→  DailyEntry,
+     6→  KoruState,
+     7→  KoruStage,
+     8→  LifeRecord,
+     9→  MascotState,
+    10→  MemoryFact,
+    11→} from "../domain/types";
+    12→import {
+    13→  applyHeartbeatNudges,
+    14→  addOnboardingMemories,
+    15→  approveAndExecuteAction,
+    16→  completeCommitment,
+    17→  confirmMemory as confirmMemoryInStore,
+    18→  createId,
+    19→  createInitialState,
+    20→  dismissNudge,
+    21→  loadPersistedState,
+    22→  rejectAction,
+    23→  rejectMemory,
+    24→  resetState,
+    25→  saveState,
+    26→  setActionPreparationEnabled,
+    27→  setDurableMemoryEnabled,
+    28→  setHeartbeatEnabled,
+    29→  setWorldSignalsEnabled,
+    30→  toggleMemorySuggestions,
+    31→  toggleEphemeralMode,
+    32→  updateMemoryText,
+    33→} from "../domain/store";
+    34→import { runBackendAgentTurn } from "../domain/backendAgentClient";
+    35→import { buildHeartbeatNudges } from "../domain/heartbeat";
+    36→import { runWebNavigation, webResultToPayload } from "../domain/web";
+    37→import { dueLabel } from "../domain/time";
+    38→import { inferActivity, type AgentActivity } from "../domain/agentKernel";
+    39→import { shouldAutoRunAction } from "../domain/toolRegistry";
+    40→import { actionToTurnItem, applyBackendTurnToState, type KoruTurnItem, type KoruChatTurn } from "../domain/turn";
+    41→// Fase 2.6: audit extraído a módulo propio
+    42→import { auditEnabled, auditSessionId, writeAuditEvent, auditStateSnapshot, auditTurnItems, auditStateDelta } from "./audit";
+    43→// Fase 2.6: adapters extraídos a módulo propio
+    44→import { stageForEnergy as stageForEnergyImpl, domainStageToNew, domainStatusToMemoryStatus, domainKindToCategory, greetingTurn, readChatTurns, saveChatTurns, patchUiBlockWithWebResult, actionConfirmationText, CHAT_STORAGE_KEY } from "./adapters";
+    45→export type { KoruTurnItem, KoruChatTurn };
+    46→
+    47→export type Stage = "semilla" | "brote" | "raices" | "nacimiento" | "jardin";
+    48→
+    49→export type MemoryStatus = "reciente" | "confirmada" | "dudosa" | "importante" | "sensible" | "archived" | "superseded" | "rejected";
+    50→
+    51→export type MemoryCategory =
+    52→  | "rutina" | "trabajo" | "relacion" | "preferencia" | "objetivo" | "salud";
+    53→
+    54→export type Priority = {
+    55→  id: string;
+    56→  label: string;
+    57→  done: boolean;
+    58→  detail?: string;
+    59→  kind?: "commitment" | "action" | "nudge";
+    60→};
+    61→
+    62→export type Memory = {
+    63→  id: string;
+    64→  text: string;
+    65→  status: MemoryStatus;
+    66→  category: MemoryCategory;
+    67→  origin: string;
+    68→  savedOn: string;
+    69→  useForSuggestions: boolean;
+    70→};
+    71→
+    72→export type HistoryEntry = {
+    73→  id: string;
+    74→  time: string;
+    75→  kind: "check-in" | "memoria" | "cierre";
+    76→  title: string;
+    77→  detail: string;
+    78→  reason?: string;
+    79→  energy?: number;
+    80→};
+    81→
+    82→export type Permission = {
+    83→  id: string;
+    84→  title: string;
+    85→  description: string;
+    86→  enabled: boolean;
+    87→};
+    88→
+    89→
+    90→export const STAGE_META: Record<Stage, { label: string; meaning: string; capability: string; minEnergy: number }> = {
+    91→  semilla: { label: "Semilla", meaning: "Koru acaba de llegar", capability: "Escucha, resume y ordena", minEnergy: 0 },
+    92→  brote: { label: "Brote", meaning: "Ya te entiendo lo suficiente", capability: "Reconoce tu rutina y objetivos", minEnergy: 31 },
+    93→  raices: { label: "Raíces", meaning: "Tengo contexto para ayudar mejor", capability: "Detecta patrones y hace follow-ups", minEnergy: 90 },
+    94→  nacimiento: { label: "Nacimiento", meaning: "Nací para acompañarte", capability: "Proactividad fina, con tu permiso", minEnergy: 160 },
+    95→  jardin: { label: "Jardín vivo", meaning: "Tu jardín se cuida solo", capability: "Memoria editable, autonomía completa", minEnergy: 260 },
+    96→};
+    97→
+    98→const STAGE_ORDER: Stage[] = ["semilla", "brote", "raices", "nacimiento", "jardin"];
+    99→
+   100→// Fase 2.6: audit + adapters + storage extraídos a ./audit.ts y ./adapters.ts
+   101→
+   102→export function stageForEnergy(energy: number): Stage {
+   103→  return stageForEnergyImpl(energy, STAGE_META);
+   104→}
+   105→
+   106→// Koru 2.0: fases reales del pipeline (emitidas por el backend en stateEvents).
+   107→// Se usan para la píldora de estado ("Creando rutina…") y la barra de progreso.
+   108→export const PHASE_ORDER = ["thinking", "searching", "comparing", "planning", "saving", "done"] as const;
+   109→export const PHASE_LABEL: Record<string, string> = {
+   110→  thinking: "Pensando…",
+   111→  searching: "Buscando…",
+   112→  comparing: "Comparando…",
+   113→  planning: "Creando rutina…",
+   114→  saving: "Guardando…",
+   115→};
+   116→
+   117→type KoruContextValue = {
+   118→  energy: number;
+   119→  roots: number;
+   120→  stage: Stage;
+   121→  userName: string;
+   122→  onboarded: boolean;
+   123→  ephemeral: boolean;
+   124→  priorities: Priority[];
+   125→  memories: Memory[];
+   126→  history: HistoryEntry[];
+   127→  records: LifeRecord[];
+   128→  permissions: Permission[];
+   129→  processing: boolean;
+   130→  activity: AgentActivity | null;
+   131→  phase: string | null;
+   132→  chatTurns: KoruChatTurn[];
+   133→  selectedModel: string | null;
+   134→  setSelectedModel: (model: string) => void;
+   135→  completeOnboarding: (name: string, facts?: string[]) => void;
+   136→  togglePriority: (id: string) => void;
+   137→  confirmMemory: (id: string) => void;
+   138→  pruneMemory: (id: string) => void;
+   139→  editMemory: (id: string, text: string) => void;
+   140→  toggleMemoryUse: (id: string) => void;
+   141→  completeCommitment: (id: string) => void;
+   142→  togglePermission: (id: string) => void;
+   143→  setEphemeral: (v: boolean) => void;
+   144→  // Fase 1 (C6): logRitual era un no-op — eliminado del contexto y de la API.
+   145→  submitEntry: (text: string, transcriptSource?: DailyEntry["transcriptSource"], history?: KoruChatTurn[]) => Promise<{ response: string; items: KoruTurnItem[]; state: KoruState; mascotState?: MascotState }>;
+   146→  sendMessage: (text: string, transcriptSource?: DailyEntry["transcriptSource"]) => Promise<KoruChatTurn | null>;
+   147→  reviewAction: (id: string, approve: boolean) => KoruTurnItem | null;
+   148→  toggleTurnLike: (id: string) => void;
+   149→  dismissNudge: (id: string) => void;
+   150→  setWorldSignals: (enabled: boolean) => void;
+   151→  // 🔴 Memory toast: aparece cuando Koru aprende algo del usuario
+   152→  memoryToast: { id: string; kind: string; text: string } | null;
+   153→  dismissMemoryToast: () => void;
+   154→};
+   155→
+   156→const KoruContext = createContext<KoruContextValue | null>(null);
+   157→
+   158→export function KoruProvider({ children }: { children: ReactNode }) {
+   159→  const [domainState, setDomainState] = useState<KoruState>(() => createInitialState());
+   160→  const [onboarded, setOnboarded] = useState(() => localStorage.getItem("koru.onboarded") === "true");
+   161→  const [userName, setUserName] = useState(() => localStorage.getItem("koru.username") ?? "");
+   162→  const [processing, setProcessing] = useState(false);
+   163→  const [activity, setActivity] = useState<AgentActivity | null>(null);
+   164→  // 🔴 Memory toast: se setea cuando llegan memoryCandidates nuevos y se limpia con dismissMemoryToast
+   165→  const [memoryToast, setMemoryToast] = useState<{ id: string; kind: string; text: string } | null>(null);
+   166→  const [phase, setPhase] = useState<string | null>(null);
+   167→  const [chatTurns, setChatTurns] = useState<KoruChatTurn[]>(() => readChatTurns(localStorage.getItem("koru.username") ?? ""));
+   168→  // Clave versionada (v2): la clave vieja "koru.selected-model" quedaba pegada con
+   169→  // modelos de prueba (ej. llama3.1:8b) y pisaba silenciosamente al proveedor
+   170→  // principal (BlueSminds) en CADA turno. v2 arranca en Automático para todos;
+   171→  // elegir un modelo vuelve a ser una decisión explícita del usuario.
+   172→  const [selectedModel, setSelectedModel] = useState<string | null>(() => {
+   173→    localStorage.removeItem("koru.selected-model");
+   174→    return localStorage.getItem("koru.selected-model.v2") ?? null;
+   175→  });
+   176→  const domainStateRef = useRef(domainState);
+   177→  const chatTurnsRef = useRef(chatTurns);
+   178→
+   179→  function commitDomainState(next: KoruState | ((prev: KoruState) => KoruState)) {
+   180→    setDomainState((prev) => {
+   181→      const resolved = typeof next === "function" ? (next as (prev: KoruState) => KoruState)(prev) : next;
+   182→      domainStateRef.current = resolved;
+   183→      return resolved;
+   184→    });
+   185→  }
+   186→
+   187→  function commitChatTurns(next: KoruChatTurn[] | ((prev: KoruChatTurn[]) => KoruChatTurn[])) {
+   188→    setChatTurns((prev) => {
+   189→      const resolved = typeof next === "function" ? (next as (prev: KoruChatTurn[]) => KoruChatTurn[])(prev) : next;
+   190→      chatTurnsRef.current = resolved;
+   191→      return resolved;
+   192→    });
+   193→  }
+   194→
+   195→  useEffect(() => {
+   196→    domainStateRef.current = domainState;
+   197→  }, [domainState]);
+   198→
+   199→  useEffect(() => {
+   200→    chatTurnsRef.current = chatTurns;
+   201→  }, [chatTurns]);
+   202→
+   203→  useEffect(() => {
+   204→    try {
+   205→      const params = new URLSearchParams(window.location.search);
+   206→      if (params.get("koruAudit") !== "1" || params.get("reset") !== "1") return;
+   207→      const sessionId = `audit_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+   208→      sessionStorage.setItem("koru.audit.enabled", "1");
+   209→      sessionStorage.setItem("koru.audit.session", sessionId);
+   210→      localStorage.removeItem(CHAT_STORAGE_KEY);
+   211→      localStorage.removeItem("koru.onboarded");
+   212→      localStorage.removeItem("koru.username");
+   213→      const fresh = resetState();
+   214→      commitDomainState(fresh);
+   215→      setOnboarded(false);
+   216→      setUserName("");
+   217→      commitChatTurns([greetingTurn()]);
+   218→      params.delete("reset");
+   219→      const cleanQuery = params.toString();
+   220→      const cleanUrl = `${window.location.pathname}${cleanQuery ? `?${cleanQuery}` : ""}${window.location.hash}`;
+   221→      window.history.replaceState(null, "", cleanUrl);
+   222→      writeAuditEvent({
+   223→        type: "audit_reset",
+   224→        note: "Koru browser memory, onboarding and chat reset for manual audit.",
+   225→        state: auditStateSnapshot(fresh),
+   226→      });
+   227→    } catch {
+   228→      // Audit reset is best-effort and should not block the app.
+   229→    }
+   230→  }, []);
+   231→
+   232→  useEffect(() => {
+   233→    let cancelled = false;
+   234→    void loadPersistedState().then((persisted) => {
+   235→      if (!cancelled) {
+   236→        const nudges = buildHeartbeatNudges(persisted);
+   237→        commitDomainState(nudges.length > 0 ? applyHeartbeatNudges(persisted, nudges) : persisted);
+   238→      }
+   239→    });
+   240→    return () => { cancelled = true; };
+   241→  }, []);
+   242→
+   243→  useEffect(() => {
+   244→    const runHeartbeat = () => {
+   245→      commitDomainState((prev) => {
+   246→        const nudges = buildHeartbeatNudges(prev);
+   247→        return nudges.length > 0 ? applyHeartbeatNudges(prev, nudges) : prev;
+   248→      });
+   249→    };
+   250→    // Fase 2.12: pausar heartbeat cuando el tab no está visible.
+   251→    // Antes corría cada 60s sin importar si el usuario estaba mirando.
+   252→    // Ahora se pausa al ocultar el tab y reanuda al volver, ahorrando CPU.
+   253→    let timer = window.setInterval(runHeartbeat, 60_000);
+   254→    const onVisibilityChange = () => {
+   255→      if (document.hidden) {
+   256→        window.clearInterval(timer);
+   257→      } else {
+   258→        // Al volver, ejecutar inmediatamente y reiniciar el intervalo
+   259→        runHeartbeat();
+   260→        timer = window.setInterval(runHeartbeat, 60_000);
+   261→      }
+   262→    };
+   263→    document.addEventListener("visibilitychange", onVisibilityChange);
+   264→    return () => {
+   265→      window.clearInterval(timer);
+   266→      document.removeEventListener("visibilitychange", onVisibilityChange);
+   267→    };
+   268→  }, []);
+   269→
+   270→  useEffect(() => {
+   271→    saveChatTurns(chatTurns, !domainState.ephemeralMode);
+   272→  }, [chatTurns, domainState.ephemeralMode]);
+   273→
+   274→  // ── Escuchar mensajes proactivos del engine ──
+   275→  useEffect(() => {
+   276→    const onProactive = (e: Event) => {
+   277→      const turn = (e as CustomEvent).detail as KoruChatTurn;
+   278→      if (turn && turn.text) {
+   279→        commitChatTurns((prev) => [...prev, turn].slice(-120));
+   280→      }
+   281→    };
+   282→    window.addEventListener("koru:proactive", onProactive);
+   283→    return () => window.removeEventListener("koru:proactive", onProactive);
+   284→  }, []);
+   285→
+   286→  const energy = domainState.trustedEnergy;
+   287→  const roots = domainState.memories.filter((m) => m.status === "confirmed").length;
+   288→  const stage = domainStageToNew(domainState.stage);
+   289→  const ephemeral = domainState.ephemeralMode;
+   290→
+   291→  const priorities: Priority[] = useMemo(() => {
+   292→    const actionItems = domainState.actions
+   293→      .filter((a) => a.status === "executed")
+   294→      .slice(0, 1)
+   295→      .map((a) => ({
+   296→        id: a.id,
+   297→        label: a.title,
+   298→        detail: a.result,
+   299→        done: true,
+   300→        kind: "action" as const,
+   301→      }));
+   302→    const nudgeItems = domainState.nudges
+   303→      .filter((nudge) => !nudge.dismissed)
+   304→      .slice(0, 2)
+   305→      .map((nudge) => ({
+   306→        id: nudge.id,
+   307→        label: nudge.title,
+   308→        detail: nudge.body || nudge.reason,
+   309→        done: false,
+   310→        kind: "nudge" as const,
+   311→      }));
+   312→    const commitments = domainState.commitments
+   313→      .filter((c) => c.status === "open")
+   314→      .map((c) => ({
+   315→        id: c.id,
+   316→        label: c.title,
+   317→        detail: dueLabel(c.dueAt, c.dueHint),
+   318→        done: false,
+   319→        kind: "commitment" as const,
+   320→      }))
+   321→      .slice(0, Math.max(0, 5 - actionItems.length - nudgeItems.length));
+   322→    return [...actionItems, ...nudgeItems, ...commitments];
+   323→  }, [domainState.actions, domainState.commitments, domainState.nudges]);
+   324→
+   325→  const memories: Memory[] = useMemo(() =>
+   326→    domainState.memories
+   327→      .filter((m) => m.status !== "rejected")
+   328→      .map((m) => ({
+   329→        id: m.id,
+   330→        text: m.text,
+   331→        status: domainStatusToMemoryStatus(m),
+   332→        category: domainKindToCategory(m.kind),
+   333→        origin: m.rootQuote || "Extraído de tu conversación reciente.",
+   334→        useForSuggestions: m.useForSuggestions !== false,
+   335→        savedOn: m.status === "confirmed" && m.confirmedAt
+   336→          ? `Confirmado · ${new Date(m.confirmedAt).toLocaleDateString("es", { day: "2-digit", month: "short" })}`
+   337→          : m.status === "candidate"
+   338→            ? "Por confirmar · pendiente"
+   339→            : `Reciente · ${new Date(m.createdAt).toLocaleDateString("es", { day: "2-digit", month: "short" })}`,
+   340→      })),
+   341→  [domainState.memories]);
+   342→
+   343→  const history: HistoryEntry[] = useMemo(() => {
+   344→    const entries: HistoryEntry[] = [];
+   345→    for (const entry of domainState.entries.slice(0, 20)) {
+   346→      entries.push({
+   347→        id: entry.id,
+   348→        time: new Date(entry.createdAt).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }),
+   349→        kind: "check-in",
+   350→        title: "Check-in",
+   351→        detail: entry.summary || entry.text.slice(0, 100),
+   352→        reason: entry.sentiment === "heavy" ? "Estado cargado" : entry.sentiment === "good" ? "Estado positivo" : "Rutina diaria",
+   353→        energy: entry.energyAwarded,
+   354→      });
+   355→    }
+   356→    for (const action of domainState.actions.filter((a) => a.status === "executed").slice(0, 20)) {
+   357→      entries.push({
+   358→        id: action.id,
+   359→        time: new Date(action.executedAt ?? action.createdAt).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }),
+   360→        kind: "cierre",
+   361→        title: action.title,
+   362→        detail: action.result ?? action.body,
+   363→        reason: "Accion aprobada y ejecutada por Koru",
+   364→        energy: 14,
+   365→      });
+   366→    }
+   367→    return entries.slice(0, 30);
+   368→  }, [domainState.actions, domainState.entries]);
+   369→
+   370→  const permissions: Permission[] = useMemo(() => [
+   371→    {
+   372→      id: "perm1",
+   373→      title: "Memoria duradera",
+   374→      description: "Guardar lo que aprende de ti, siempre editable.",
+   375→      enabled: domainState.durableMemoryEnabled && !domainState.ephemeralMode,
+   376→    },
+   377→    { id: "perm2", title: "Check-ins suaves", description: "Recordatorios proactivos en horas activas.", enabled: domainState.heartbeat.enabled },
+   378→    { id: "perm3", title: "Acciones autónomas", description: "Preparar borradores y eventos (requiere aprobación).", enabled: domainState.actionPreparationEnabled },
+   379→    { id: "perm-world", title: "Radar del mundo", description: "Traer señales recientes cuando puedan servirte.", enabled: domainState.worldSignalsEnabled },
+   380→    { id: "perm4", title: "Modo efímero", description: "No guardar memoria de esta sesión.", enabled: domainState.ephemeralMode },
+   381→  ], [domainState.actionPreparationEnabled, domainState.durableMemoryEnabled, domainState.ephemeralMode, domainState.heartbeat.enabled, domainState.worldSignalsEnabled]);
+   382→
+   383→  function completeOnboarding(name: string, facts: string[] = []) {
+   384→    const cleanName = name.trim() || "amigo";
+   385→    const previousState = domainStateRef.current;
+   386→    setUserName(cleanName);
+   387→    setOnboarded(true);
+   388→    localStorage.setItem("koru.onboarded", "true");
+   389→    localStorage.setItem("koru.username", cleanName);
+   390→    commitChatTurns((prev) => {
+   391→      if (prev.length === 0) return [greetingTurn(cleanName)];
+   392→      if (prev.length === 1 && prev[0].role === "koru") {
+   393→        return [{ ...prev[0], text: `Hola, ${cleanName}. Cuéntame cómo estás.` }];
+   394→      }
+   395→      return prev;
+   396→    });
+   397→    commitDomainState((prev) => {
+   398→      const withName = { ...prev, userName: cleanName };
+   399→      const next = facts.length ? addOnboardingMemories(withName, facts) : withName;
+   400→      if (!facts.length) saveState(next);
+   401→      writeAuditEvent({
+   402→        type: "onboarding_completed",
+   403→        name: cleanName,
+   404→        facts,
+   405→        state: auditStateSnapshot(next),
+   406→        delta: auditStateDelta(previousState, next),
+   407→      });
+   408→      return next;
+   409→    });
+   410→  }
+   411→
+   412→  function togglePriority(id: string) {
+   413→    commitDomainState((prev) => {
+   414→      if (prev.nudges.some((nudge) => nudge.id === id && !nudge.dismissed)) {
+   415→        return dismissNudge(prev, id);
+   416→      }
+   417→      return completeCommitment(prev, id);
+   418→    });
+   419→  }
+   420→
+   421→  function completeCommitmentInChat(id: string) {
+   422→    commitDomainState((prev) => {
+   423→      const next = completeCommitment(prev, id);
+   424→      writeAuditEvent({
+   425→        type: "commitment_completed",
+   426→        commitmentId: id,
+   427→        state: auditStateSnapshot(next),
+   428→        delta: auditStateDelta(prev, next),
+   429→      });
+   430→      return next;
+   431→    });
+   432→    commitChatTurns((prev) =>
+   433→      prev.map((turn) => ({
+   434→        ...turn,
+   435→        items: turn.items?.map((item) =>
+   436→          item.id === id && item.kind === "commitment" ? { ...item, status: "executed", tag: "Hecho" } : item,
+   437→        ),
+   438→      })),
+   439→    );
+   440→    const confirmation: KoruChatTurn = {
+   441→      id: createId("turn"),
+   442→      role: "koru",
+   443→      text: "Listo. Lo marco como hecho y lo saco de tu carga mental.",
+   444→      createdAt: new Date().toISOString(),
+   445→      status: "done",
+   446→    };
+   447→    commitChatTurns((prev) => [...prev, confirmation].slice(-120));
+   448→  }
+   449→
+   450→  function confirmMemory(id: string) {
+   451→    commitDomainState((prev) => {
+   452→      const next = confirmMemoryInStore(prev, id);
+   453→      writeAuditEvent({
+   454→        type: "memory_confirmed",
+   455→        memoryId: id,
+   456→        state: auditStateSnapshot(next),
+   457→        delta: auditStateDelta(prev, next),
+   458→      });
+   459→      return next;
+   460→    });
+   461→    commitChatTurns((prev) =>
+   462→      prev.map((turn) => ({
+   463→        ...turn,
+   464→        items: turn.items?.map((item) =>
+   465→          item.id === id && item.kind === "memory" ? { ...item, status: "confirmed", tag: "Guardado" } : item,
+   466→        ),
+   467→      })),
+   468→    );
+   469→  }
+   470→
+   471→  function pruneMemory(id: string) {
+   472→    commitDomainState((prev) => {
+   473→      const next = rejectMemory(prev, id);
+   474→      writeAuditEvent({
+   475→        type: "memory_rejected",
+   476→        memoryId: id,
+   477→        state: auditStateSnapshot(next),
+   478→        delta: auditStateDelta(prev, next),
+   479→      });
+   480→      return next;
+   481→    });
+   482→    commitChatTurns((prev) =>
+   483→      prev.map((turn) => ({
+   484→        ...turn,
+   485→        items: turn.items?.map((item) =>
+   486→          item.id === id && item.kind === "memory" ? { ...item, status: "rejected", tag: "Soltado" } : item,
+   487→        ),
+   488→      })),
+   489→    );
+   490→  }
+   491→
+   492→  function editMemory(id: string, text: string) {
+   493→    commitDomainState((prev) => {
+   494→      const next = updateMemoryText(prev, id, text);
+   495→      writeAuditEvent({
+   496→        type: "memory_edited",
+   497→        memoryId: id,
+   498→        text,
+   499→        state: auditStateSnapshot(next),
+   500→        delta: auditStateDelta(prev, next),
+   501→      });
+   502→      return next;
+   503→    });
+   504→    commitChatTurns((prev) =>
+   505→      prev.map((turn) => ({
+   506→        ...turn,
+   507→        items: turn.items?.map((item) => (item.id === id && item.kind === "memory" ? { ...item, text } : item)),
+   508→      })),
+   509→    );
+   510→  }
+   511→
+   512→  function toggleMemoryUse(id: string) {
+   513→    commitDomainState((prev) => {
+   514→      const next = toggleMemorySuggestions(prev, id);
+   515→      writeAuditEvent({
+   516→        type: "memory_usage_toggled",
+   517→        memoryId: id,
+   518→        state: auditStateSnapshot(next),
+   519→        delta: auditStateDelta(prev, next),
+   520→      });
+   521→      return next;
+   522→    });
+   523→  }
+   524→
+   525→  function togglePermission(id: string) {
+   526→    if (id === "perm1") {
+   527→      commitDomainState((prev) => setDurableMemoryEnabled(prev, !(prev.durableMemoryEnabled && !prev.ephemeralMode)));
+   528→      return;
+   529→    }
+   530→    if (id === "perm2") {
+   531→      commitDomainState((prev) => setHeartbeatEnabled(prev, !prev.heartbeat.enabled));
+   532→      return;
+   533→    }
+   534→    if (id === "perm3") {
+   535→      commitDomainState((prev) => setActionPreparationEnabled(prev, !prev.actionPreparationEnabled));
+   536→      return;
+   537→    }
+   538→    if (id === "perm-world") {
+   539→      setWorldSignals(!domainStateRef.current.worldSignalsEnabled);
+   540→      return;
+   541→    }
+   542→    if (id === "perm4" || id === "ephemeral") {
+   543→      setEphemeral(!domainStateRef.current.ephemeralMode);
+   544→    }
+   545→  }
+   546→
+   547→  function setWorldSignals(enabled: boolean) {
+   548→    commitDomainState((prev) => {
+   549→      const next = setWorldSignalsEnabled(prev, enabled);
+   550→      writeAuditEvent({
+   551→        type: "world_signals_toggled",
+   552→        enabled,
+   553→        state: auditStateSnapshot(next),
+   554→      });
+   555→      return next;
+   556→    });
+   557→    appendKoruConfirmation(
+   558→      enabled
+   559→        ? "Listo. Te voy a traer este radar solo cuando haya senales utiles."
+   560→        : "Listo. No te lo traigo proactivamente por ahora.",
+   561→    );
+   562→  }
+   563→
+   564→  function setEphemeral(v: boolean) {
+   565→    if (v !== domainStateRef.current.ephemeralMode) {
+   566→      if (!v) {
+   567→        commitChatTurns([greetingTurn(userName)]);
+   568→      }
+   569→      commitDomainState((prev) => {
+   570→        const next = toggleEphemeralMode(prev);
+   571→        const resolved = !next.ephemeralMode && !next.durableMemoryEnabled ? setDurableMemoryEnabled(next, true) : next;
+   572→        writeAuditEvent({
+   573→          type: "ephemeral_mode_toggled",
+   574→          enabled: resolved.ephemeralMode,
+   575→          state: auditStateSnapshot(resolved),
+   576→        });
+   577→        return resolved;
+   578→      });
+   579→    }
+   580→  }
+   581→
+   582→  // Fase 1 (C6): logRitual eliminado — era un no-op.
+   583→
+   584→  async function submitEntry(
+   585→    text: string,
+   586→    transcriptSource: DailyEntry["transcriptSource"] = "typed",
+   587→    history: KoruChatTurn[] = chatTurnsRef.current,
+   588→  ) {
+   589→    setProcessing(true);
+   590→    let koruTurnId: string | null = null;
+   591→    // Trackea los items creados durante el stream para preservar sus ids al
+   592→    // reemplazar con el resultado final. Sin esto, el resultado final crea items
+   593→    // con ids nuevos → el WebNavCardA se desmonta/remonta → pierde su estado
+   594→    // (animación de progreso, visibleCount) → reinicia a "Iniciando búsqueda...".
+   595→    const streamedItemsByType = new Map<string, KoruTurnItem>();
+   596→    try {
+   597→      const previousState = domainStateRef.current;
+   598→      const domainHistory = history
+   599→        .filter((turn) => turn.text.trim().length > 0)
+   600→        .slice(-12)
+   601→        .map((turn) => ({
+   602→          role: turn.role === "koru" ? ("assistant" as const) : ("user" as const),
+   603→          content: turn.text,
+   604→          createdAt: turn.createdAt,
+   605→        }));
+   606→      const agentResult = await runBackendAgentTurn(text, previousState, domainHistory, selectedModel ?? undefined, (chunk) => {
+   607→        // Fase real del pipeline: tomamos el último stateEvent para la píldora/barra.
+   608→        if (chunk.stateEvents?.length) {
+   609→          const last = chunk.stateEvents[chunk.stateEvents.length - 1];
+   610→          setPhase(last.kind === "done" ? null : last.kind);
+   611→        }
+   612→        const blocksToItems = (blocks: UiBlock[]): KoruTurnItem[] =>
+   613→          blocks.map((block) => ({
+   614→            id: createId("item"),
+   615→            kind: "action" as const,
+   616→            tag: block.type,
+   617→            text: (block as any).title ?? (block as any).query ?? "",
+   618→            status: "working" as const,
+   619→            uiBlock: block,
+   620→          }));
+   621→        if (!koruTurnId) {
+   622→          koruTurnId = createId("turn");
+   623→          const koruTurn: KoruChatTurn = {
+   624→            id: koruTurnId,
+   625→            role: "koru",
+   626→            text: chunk.reply,
+   627→            createdAt: new Date().toISOString(),
+   628→            items: blocksToItems(chunk.uiBlocks),
+   629→            status: "working" as const,
+   630→            mascotState: chunk.mascotState ?? "working",
+   631→          };
+   632→          (koruTurn.items ?? []).forEach((it) => { if (it.uiBlock?.type) streamedItemsByType.set(it.uiBlock.type, it); });
+   633→          commitChatTurns((prev) => [...prev, koruTurn].slice(-120));
+   634→        } else {
+   635→          const isDone = chunk.stateEvents?.some((e) => e.kind === "done");
+   636→          commitChatTurns((prev) =>
+   637→            prev.map((turn) => {
+   638→              if (turn.id !== koruTurnId) return turn;
+   639→              const existingItems = turn.items ?? [];
+   640→              const newBlocks = chunk.uiBlocks ?? [];
+   641→              // Merge por TIPO de block (no por índice). Así, si el orden cambia
+   642→              // entre chunks (ej: aparece un data_card antes que el web_nav),
+   643→              // cada item mantiene su identidad y estado (animación de progreso,
+   644→              // contadores internos). Antes se matcheaba por idx, lo que hacía
+   645→              // que un cambio de orden desmontara el componente y reiniciara la
+   646→              // animación ("Iniciando búsqueda..." colgado).
+   647→              const consumedExisting = new Set<string>();
+   648→              const mergedItems: KoruTurnItem[] = newBlocks.map((block) => {
+   649→                const existing = existingItems.find(
+   650→                  (it) => it.uiBlock?.type === block.type && !consumedExisting.has(it.uiBlock!.type),
+   651→                );
+   652→                if (existing) {
+   653→                  consumedExisting.add(existing.uiBlock!.type);
+   654→                  return { ...existing, uiBlock: block, text: (block as any).title ?? (block as any).query ?? "" };
+   655→                }
+   656→                return {
+   657→                  id: createId("item"),
+   658→                  kind: "action" as const,
+   659→                  tag: block.type,
+   660→                  text: (block as any).title ?? (block as any).query ?? "",
+   661→                  status: "working" as const,
+   662→                  uiBlock: block,
+   663→                };
+   664→              });
+   665→              mergedItems.forEach((it) => { if (it.uiBlock?.type) streamedItemsByType.set(it.uiBlock.type, it); });
+   666→              return {
+   667→                ...turn,
+   668→                text: chunk.reply,
+   669→                items: mergedItems,
+   670→                mascotState: chunk.mascotState ?? turn.mascotState,
+   671→                status: isDone ? ("done" as const) : ("working" as const),
+   672→              };
+   673→            }),
+   674→          );
+   675→        }
+   676→      });
+   677→      const result = applyBackendTurnToState(previousState, text, transcriptSource, agentResult);
+   678→      commitDomainState(result.state);
+   679→      if (koruTurnId) {
+   680→        // Preservar ids de los items del stream: si el resultado final tiene un item
+   681→        // del mismo tipo que uno ya renderizado en el stream, mantener su id (e
+   682→        // identidad de React) para no desmontar/remontar el componente y perder su
+   683→        // estado interno (animación de progreso del WebNavCardA, visibleCount, etc.).
+   684→        const consumedTypes = new Set<string>();
+   685→        const stableItems = result.items.map((item) => {
+   686→          const type = item.uiBlock?.type ?? item.tag;
+   687→          if (type && !consumedTypes.has(type)) {
+   688→            const streamed = streamedItemsByType.get(type);
+   689→            if (streamed) {
+   690→              consumedTypes.add(type);
+   691→              return { ...item, id: streamed.id };
+   692→            }
+   693→          }
+   694→          return item;
+   695→        });
+   696→        commitChatTurns((prev) =>
+   697→          prev.map((turn) =>
+   698→            turn.id === koruTurnId
+   699→              ? { ...turn, text: agentResult.reply, items: stableItems, status: "done" as const, mascotState: agentResult.mascotState ?? "idle" }
+   700→              : turn,
+   701→          ),
+   702→        );
+   703→        // 🔴 Memory toast: si hay memoryCandidates en la respuesta, mostrar toast.
+   704→        // Buscar en memoryCandidates top-level Y dentro de toolResults (save_memory tool).
+   705→        const topCandidates = (agentResult.memoryCandidates ?? []);
+   706→        const toolCandidates = (agentResult.toolResults ?? []).flatMap((tr: any) => {
+   707→          const data = tr.data;
+   708→          if (data?.type === "memory_capture" && Array.isArray(data.memoryCandidates)) return data.memoryCandidates;
+   709→          if (data?.type === "personal_capture" && Array.isArray(data.memoryCandidates)) return data.memoryCandidates;
+   710→          return [];
+   711→        });
+   712→        const allCandidates = [...topCandidates, ...toolCandidates].filter(
+   713→          (m: any) => m && typeof m.text === "string" && m.text.length > 4,
+   714→        );
+   715→        if (allCandidates.length > 0 && !previousState.ephemeralMode && previousState.durableMemoryEnabled) {
+   716→          const first = allCandidates[0];
+   717→          // Solo mostrar si NO existe ya una memoria con el mismo texto (deduplicación visual)
+   718→          const normalizedNew = first.text.toLowerCase().replace(/[áéíóú]/g, (m: string) => ({ á: "a", é: "e", í: "i", ó: "o", ú: "u" }[m]!)).replace(/[^a-z0-9\s]/g, "").trim();
+   719→          const alreadyExists = previousState.memories.some((existing: any) => {
+   720→            const norm = existing.text.toLowerCase().replace(/[áéíóú]/g, (m: string) => ({ á: "a", é: "e", í: "i", ó: "o", ú: "u" }[m]!)).replace(/[^a-z0-9\s]/g, "").trim();
+   721→            return norm === normalizedNew;
+   722→          });
+   723→          if (!alreadyExists) {
+   724→            setMemoryToast({
+   725→              id: `toast_${Date.now()}`,
+   726→              kind: first.kind,
+   727→              text: first.text,
+   728→            });
+   729→            // Auto-dismiss después de 6 segundos
+   730→            setTimeout(() => {
+   731→              setMemoryToast((current) => (current?.text === first.text ? null : current));
+   732→            }, 6000);
+   733→          }
+   734→        }
+   735→      }
+   736→      writeAuditEvent({
+   737→        type: "turn_analyzed",
+   738→        engine: "backend_agent_loop",
+   739→        input: text,
+   740→        transcriptSource,
+   741→        historyUsed: domainHistory,
+   742→        response: agentResult.reply,
+   743→        understanding: agentResult.understanding,
+   744→        suggestedActions: agentResult.suggestedActions,
+   745→        toolResults: agentResult.toolResults,
+   746→        provider: agentResult.provider,
+   747→        model: agentResult.model,
+   748→        fallbackReason: agentResult.fallbackReason,
+   749→        items: auditTurnItems(result.items),
+   750→        state: auditStateSnapshot(result.state),
+   751→        delta: auditStateDelta(previousState, result.state),
+   752→      });
+   753→      return { response: agentResult.reply, items: result.items, state: result.state, mascotState: agentResult.mascotState, koruTurnId };
+   754→    } finally {
+   755→      setProcessing(false);
+   756→      setActivity(null);
+   757→      setPhase(null);
+   758→    }
+   759→  }
+   760→
+   761→  async function sendMessage(text: string, transcriptSource: DailyEntry["transcriptSource"] = "typed") {
+   762→    const cleanText = text.trim();
+   763→    if (!cleanText) return null;
+   764→    const previousState = domainStateRef.current;
+   765→    const userTurn: KoruChatTurn = {
+   766→      id: createId("turn"),
+   767→      role: "user",
+   768→      text: cleanText,
+   769→      createdAt: new Date().toISOString(),
+   770→      status: "done",
+   771→    };
+   772→    const historyBeforeUser = chatTurnsRef.current;
+   773→    commitChatTurns((prev) => [...prev, userTurn].slice(-120));
+   774→    writeAuditEvent({
+   775→      type: "user_message",
+   776→      turn: userTurn,
+   777→      transcriptSource,
+   778→      historyBeforeUser: historyBeforeUser.map((turn) => ({
+   779→        id: turn.id,
+   780→        role: turn.role,
+   781→        text: turn.text,
+   782→        createdAt: turn.createdAt,
+   783→        status: turn.status,
+   784→        items: auditTurnItems(turn.items),
+   785→      })),
+   786→      stateBefore: auditStateSnapshot(previousState),
+   787→    });
+   788→    setActivity(inferActivity(cleanText));
+   789→    try {
+   790→      const result = await submitEntry(cleanText, transcriptSource, historyBeforeUser);
+   791→      let koruTurn: KoruChatTurn | undefined;
+   792→      if (!result.koruTurnId) {
+   793→        koruTurn = {
+   794→          id: createId("turn"),
+   795→          role: "koru",
+   796→          text: result.response,
+   797→          createdAt: new Date().toISOString(),
+   798→          items: result.items,
+   799→          status: "done",
+   800→          mascotState: result.mascotState ?? "idle",
+   801→        };
+   802→        commitChatTurns((prev) => [...prev, koruTurn!].slice(-120));
+   803→        writeAuditEvent({
+   804→          type: "koru_message",
+   805→          turn: {
+   806→            id: koruTurn.id,
+   807→            role: koruTurn.role,
+   808→            text: koruTurn.text,
+   809→            createdAt: koruTurn.createdAt,
+   810→            status: koruTurn.status,
+   811→            items: auditTurnItems(koruTurn.items),
+   812→          },
+   813→          stateAfter: auditStateSnapshot(result.state),
+   814→        });
+   815→      } else {
+   816→        commitChatTurns((prev) =>
+   817→          prev.map((turn) => {
+   818→            if (turn.id !== result.koruTurnId) return turn;
+   819→            const existingItems = turn.items ?? [];
+   820→            const mergedItems: KoruTurnItem[] = result.items.map((newItem, idx) => {
+   821→              const existing = existingItems[idx];
+   822→              if (existing && existing.uiBlock?.type === newItem.uiBlock?.type) {
+   823→                return { ...newItem, id: existing.id };
+   824→              }
+   825→              return newItem;
+   826→            });
+   827→            return { ...turn, items: mergedItems, status: "done" as const, mascotState: result.mascotState ?? "idle" };
+   828→          }),
+   829→        );
+   830→        koruTurn = chatTurnsRef.current.find((t) => t.id === result.koruTurnId);
+   831→        writeAuditEvent({
+   832→          type: "koru_message",
+   833→          turn: {
+   834→            id: result.koruTurnId,
+   835→            role: "koru",
+   836→            text: result.response,
+   837→            createdAt: new Date().toISOString(),
+   838→            status: "done",
+   839→            items: auditTurnItems(result.items),
+   840→          },
+   841→          stateAfter: auditStateSnapshot(result.state),
+   842→        });
+   843→      }
+   844→      const autoWebAction = result.state.actions
+   845→        .filter((action) => !previousState.actions.some((existing) => existing.id === action.id))
+   846→        .find(shouldAutoRunAction);
+   847→      if (autoWebAction) {
+   848→        window.setTimeout(() => runReadonlyWebAction(autoWebAction), 0);
+   849→      }
+   850→      return koruTurn ?? null;
+   851→    } catch (error) {
+   852→      const message = error instanceof Error ? error.message : "Fallo desconocido del agente.";
+   853→      const errorTurn: KoruChatTurn = {
+   854→        id: createId("turn"),
+   855→        role: "koru",
+   856→        text: `No pude contactar bien al agente ahora. No voy a inventarte una respuesta. Detalle: ${message}`,
+   857→        createdAt: new Date().toISOString(),
+   858→        status: "error",
+   859→      };
+   860→      commitChatTurns((prev) => [...prev, errorTurn].slice(-120));
+   861→      writeAuditEvent({
+   862→        type: "turn_error",
+   863→        input: cleanText,
+   864→        error: message,
+   865→        turn: errorTurn,
+   866→        state: auditStateSnapshot(domainStateRef.current),
+   867→      });
+   868→      setActivity(null);
+   869→      return errorTurn;
+   870→    }
+   871→  }
+   872→
+   873→  function replaceActionInChat(item: KoruTurnItem) {
+   874→    commitChatTurns((prev) =>
+   875→      prev.map((turn) => ({
+   876→        ...turn,
+   877→        items: turn.items?.map((existing) => (existing.id === item.id ? item : existing)),
+   878→      })),
+   879→    );
+   880→  }
+   881→
+   882→  function appendKoruConfirmation(text: string) {
+   883→    const confirmation: KoruChatTurn = {
+   884→      id: createId("turn"),
+   885→      role: "koru",
+   886→      text,
+   887→      createdAt: new Date().toISOString(),
+   888→      status: "done",
+   889→    };
+   890→    commitChatTurns((prev) => [...prev, confirmation].slice(-120));
+   891→    writeAuditEvent({
+   892→      type: "koru_confirmation",
+   893→      turn: confirmation,
+   894→      state: auditStateSnapshot(domainStateRef.current),
+   895→    });
+   896→  }
+   897→
+   898→  function runReadonlyWebAction(original: AssistantAction): KoruTurnItem {
+   899→    // Dato en vivo (clima/trafico/mercado) = quick, sin panel largo. Un
+   900→    // informe/investigacion real (webMode "research", o web_research sin
+   901→    // modo puntual) = deep, se gana el panel "Trabajando...". Ver
+   902→    // flujo-informe-aoe2.html pasos 3 (informe) vs 7 (clima).
+   903→    const webMode = original.payload.webMode;
+   904→    const isQuickSignal = webMode === "weather" || webMode === "traffic" || webMode === "market";
+   905→    const isDeepResearch = webMode === "research" || (original.kind === "web_research" && !webMode);
+   906→    setActivity({
+   907→      kind: "searching",
+   908→      depth: isQuickSignal ? "quick" : isDeepResearch ? "deep" : "quick",
+   909→      label: isDeepResearch
+   910→        ? "Es un tema para investigar a fondo. Dame unos segundos."
+   911→        : original.kind === "world_signal"
+   912→          ? "Busco senales reales."
+   913→          : "Consulto fuentes reales.",
+   914→    });
+   915→    const now = new Date().toISOString();
+   916→    const approvedAction: AssistantAction = {
+   917→      ...original,
+   918→      status: "approved",
+   919→      updatedAt: now,
+   920→    };
+   921→    commitDomainState((prev) => {
+   922→      const exists = prev.actions.some((action) => action.id === original.id);
+   923→      const next = {
+   924→        ...prev,
+   925→        actions: exists
+   926→          ? prev.actions.map((action) => (action.id === original.id ? approvedAction : action))
+   927→          : [approvedAction, ...prev.actions],
+   928→        updatedAt: now,
+   929→      };
+   930→      saveState(next);
+   931→      return next;
+   932→    });
+   933→    const waitingItem = actionToTurnItem(approvedAction);
+   934→    replaceActionInChat(waitingItem);
+   935→
+   936→    void (async () => {
+   937→      try {
+   938→        const result = await runWebNavigation(original.payload);
+   939→        const webPayload = webResultToPayload(result);
+   940→        const nextUiBlock = patchUiBlockWithWebResult(approvedAction, webPayload);
+   941→        const finishedAt = new Date().toISOString();
+   942→        const patchedAction: AssistantAction = {
+   943→          ...approvedAction,
+   944→          payload: {
+   945→            ...approvedAction.payload,
+   946→            ...webPayload,
+   947→            uiBlock: nextUiBlock ?? approvedAction.payload.uiBlock,
+   948→          },
+   949→          result: result.recommendation,
+   950→          status: "executed",
+   951→          updatedAt: finishedAt,
+   952→          executedAt: finishedAt,
+   953→        };
+   954→        const patchedItem = actionToTurnItem(patchedAction);
+   955→        commitDomainState((prev) => {
+   956→          const next = {
+   957→            ...prev,
+   958→            actions: prev.actions.map((action) => (action.id === original.id ? patchedAction : action)),
+   959→            updatedAt: finishedAt,
+   960→          };
+   961→          saveState(next);
+   962→          writeAuditEvent({
+   963→            type: "readonly_web_action_finished",
+   964→            action: {
+   965→              id: patchedAction.id,
+   966→              kind: patchedAction.kind,
+   967→              title: patchedAction.title,
+   968→              status: patchedAction.status,
+   969→              result: patchedAction.result,
+   970→              payload: patchedAction.payload,
+   971→            },
+   972→            item: auditTurnItems([patchedItem])[0],
+   973→            state: auditStateSnapshot(next),
+   974→            delta: auditStateDelta(prev, next),
+   975→          });
+   976→          return next;
+   977→        });
+   978→        replaceActionInChat(patchedItem);
+   979→      } finally {
+   980→        setActivity(null);
+   981→      }
+   982→    })();
+   983→    return waitingItem;
+   984→  }
+   985→
+   986→  function reviewAction(id: string, approve: boolean): KoruTurnItem | null {
+   987→    const currentState = domainStateRef.current;
+   988→    const original = currentState.actions.find((action) => action.id === id);
+   989→    if (approve && (original?.kind === "web_research" || original?.kind === "world_signal")) {
+   990→      return runReadonlyWebAction(original);
+   991→    }
+   992→
+   993→    const nextState = approve ? approveAndExecuteAction(currentState, id) : rejectAction(currentState, id);
+   994→    const reviewed = nextState.actions.find((action) => action.id === id);
+   995→    if (!reviewed) return null;
+   996→    commitDomainState(nextState);
+   997→    const item = actionToTurnItem(reviewed);
+   998→    replaceActionInChat(item);
+   999→    writeAuditEvent({
+  1000→      type: "action_reviewed",
+  1001→      actionId: id,
+  1002→      approved: approve,
+  1003→      item: auditTurnItems([item])[0],
+  1004→      state: auditStateSnapshot(nextState),
+  1005→      delta: auditStateDelta(currentState, nextState),
+  1006→    });
+  1007→    appendKoruConfirmation(approve ? actionConfirmationText(item) : "Lo suelto. No hice nada con eso.");
+  1008→
+  1009→    return item;
+  1010→  }
+  1011→
+  1012→  function toggleTurnLike(id: string) {
+  1013→    commitChatTurns((prev) => prev.map((turn) => (turn.id === id ? { ...turn, liked: !turn.liked } : turn)));
+  1014→  }
+  1015→
+  1016→  const value = useMemo<KoruContextValue>(() => ({
+  1017→    energy,
+  1018→    roots,
+  1019→    stage,
+  1020→    userName,
+  1021→    onboarded,
+  1022→    ephemeral,
+  1023→    priorities,
+  1024→    memories,
+  1025→    history,
+  1026→    records: domainState.records,
+  1027→    permissions,
+  1028→    processing,
+  1029→    activity,
+  1030→    phase,
+  1031→    chatTurns,
+  1032→    selectedModel,
+  1033→    setSelectedModel,
+  1034→    completeOnboarding,
+  1035→    togglePriority,
+  1036→    confirmMemory,
+  1037→    pruneMemory,
+  1038→    editMemory,
+  1039→    toggleMemoryUse,
+  1040→    completeCommitment: completeCommitmentInChat,
+  1041→    togglePermission,
+  1042→    setEphemeral,
+  1043→    submitEntry,
+  1044→    sendMessage,
+  1045→    reviewAction,
+  1046→    toggleTurnLike,
+  1047→    setWorldSignals,
+  1048→    dismissNudge: (id: string) => commitDomainState((prev) => dismissNudge(prev, id)),
+  1049→    memoryToast,
+  1050→    dismissMemoryToast: () => setMemoryToast(null),
+  1051→  }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, domainState.records, permissions, processing, activity, phase, chatTurns, selectedModel, memoryToast]);
+  1052→
+  1053→  // 🔴 Listener para guardar record desde el detail screen (botón Guardar informe)
+  1054→  useEffect(() => {
+  1055→    const onSaveRecord = async (e: Event) => {
+  1056→      const detail = (e as CustomEvent).detail;
+  1057→      // Usar submitEntry para guardar como record via el backend
+  1058→      const saveMsg = `Guardá "${detail.title}" en la carpeta "${detail.collection}"${detail.notes ? ` — ${detail.notes}` : ""}`;
+  1059→      try {
+  1060→        await submitEntry(saveMsg, "typed", chatTurns);
+  1061→      } catch (err) {
+  1062→        console.error("[Koru] Error guardando record:", err);
+  1063→      }
+  1064→    };
+  1065→    window.addEventListener("koru-save-record", onSaveRecord as EventListener);
+  1066→    return () => window.removeEventListener("koru-save-record", onSaveRecord as EventListener);
+  1067→  }, [submitEntry, chatTurns]);
+  1068→
+  1069→  return <KoruContext.Provider value={value}>{children}</KoruContext.Provider>;
+  1070→}
+  1071→
+  1072→export function useKoru() {
+  1073→  const ctx = useContext(KoruContext);
+  1074→  if (!ctx) throw new Error("useKoru must be used within KoruProvider");
+  1075→  return ctx;
+  1076→}
+  1077→
+  1078→

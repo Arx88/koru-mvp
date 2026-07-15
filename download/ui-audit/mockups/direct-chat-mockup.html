@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=430, initial-scale=1.0">
+<title>Koru Mockup — Entrada directa al chat</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; width: 430px; height: 932px; overflow: hidden; }
+  
+  .chat-screen {
+    position: relative;
+    width: 430px;
+    height: 932px;
+    background: #453f6a url("chat-bg.png") center top / cover no-repeat;
+    overflow: hidden;
+  }
+  
+  .back-btn {
+    position: absolute;
+    top: 18px;
+    left: 16px;
+    z-index: 30;
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.22);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+  }
+  
+  /* Welcome bubble — primera vez, Koru se presenta */
+  .chat-content {
+    position: absolute;
+    bottom: 120px;
+    left: 0;
+    right: 0;
+    padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .koru-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+  }
+  
+  .koru-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(18,10,50,0.15);
+    flex-shrink: 0;
+  }
+  
+  .koru-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .koru-bubble {
+    flex: 1;
+    background: #F8F4FA;
+    color: #301C70;
+    padding: 16px 18px 18px;
+    border-radius: 22px;
+    border-bottom-left-radius: 0;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.4;
+    box-shadow: 0 10px 28px rgba(18,10,50,0.18);
+  }
+  
+  .koru-bubble h3 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #523A9E;
+    margin-bottom: 8px;
+  }
+  
+  /* Suggestion chips dentro de la burbuja */
+  .chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+  }
+  
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(131, 99, 249, 0.12);
+    color: #523A9E;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  
+  .chip .material-symbols-outlined {
+    font-size: 14px;
+    color: #8363F9;
+  }
+  
+  /* Composer */
+  .composer {
+    position: absolute;
+    bottom: 24px;
+    left: 20px;
+    right: 20px;
+    height: 64px;
+    border-radius: 999px;
+    background: #fff;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 12px 32px rgba(18,10,50,0.22);
+  }
+  
+  .composer-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #a89ad7;
+  }
+  
+  .composer-field {
+    flex: 1;
+    height: 100%;
+    margin: 0 8px;
+    border: 1px solid #f0ebf8;
+    border-radius: 999px;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    color: #a89ad7;
+    font-size: 15px;
+    font-weight: 500;
+  }
+  
+  .mic-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 999px;
+    background: #7c5ff6;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+</style>
+</head>
+<body>
+<div class="chat-screen">
+  <button class="back-btn">
+    <span class="material-symbols-outlined">chevron_left</span>
+  </button>
+  
+  <!-- Welcome bubble — Koru saluda y sugiere -->
+  <div class="chat-content">
+    <div class="koru-row">
+      <div class="koru-avatar"><img src="avatar-chat.png" alt="Koru"></div>
+      <div class="koru-bubble">
+        <h3>Hola, soy Koru 🌿</h3>
+        <p>Tu asistente personal. Puedo ayudarte con clima, gastos, recordatorios, búsquedas y mucho más. ¿Qué necesitás hoy?</p>
+        <div class="chip-row">
+          <div class="chip"><span class="material-symbols-outlined">cloud</span>¿Qué tiempo hace?</div>
+          <div class="chip"><span class="material-symbols-outlined">savings</span>Anota un gasto</div>
+          <div class="chip"><span class="material-symbols-outlined">search</span>Buscá algo</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Composer -->
+  <div class="composer">
+    <div class="composer-icon"><span class="material-symbols-outlined">eco</span></div>
+    <div class="composer-field">Habla con Koru...</div>
+    <div class="mic-btn"><span class="material-symbols-outlined">arrow_upward</span></div>
+  </div>
+</div>
+</body>
+</html>

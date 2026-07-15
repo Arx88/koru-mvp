@@ -1,0 +1,1306 @@
+     1→# Koru MVP Stabilization Implementation Plan
+     2→
+     3→> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+     4→
+     5→**Goal:** Leave Koru MVP in a buildable, secure, maintainable state with one clear agent flow, the foundation for a schema-driven Presentation Engine, and semantic memory working without local Ollama.
+     6→
+     7→**Architecture:** Stabilize first (build + security), then unify the two overlapping agent flows around the backend agent (`koruBackend.ts`), refactor the monolithic backend into focused modules, and add a deterministic Presentation Engine that picks visualizers from tool-result schemas rather than from LLM output.
+     8→
+     9→**Tech Stack:** TypeScript, Vite, React 19, Tailwind 4, Vitest, Playwright.
+    10→
+    11→---
+    12→
+    13→## File structure overview
+    14→
+    15→What we will touch:
+    16→
+    17→| Path | Responsibility |
+    18→|------|----------------|
+    19→| `tsconfig.json` | Stricter type checking to prevent regressions. |
+    20→| `.gitignore` | Exclude untracked sensitive/cache/build artifacts. |
+    21→| `src/ui/cards/*.tsx` | Fix relative imports to `../../domain/types`. |
+    22→| `src/ui/cards/index.ts` | Fix `RestaurantCard` re-export. |
+    23→| `src/tools/types.ts` | Fix relative import to `../domain/types`. |
+    24→| `src/tools/*/*.ts` | Add explicit types, remove unused imports. |
+    25→| `src/ui/AllCardsPreview.tsx` | Fix mock data to match current `UiBlock` types. |
+    26→| `src/ui/App.test.tsx` | Fix `Element | undefined` type. |
+    27→| `src/ui/cards/*.test.tsx` | Update mock props to match current types. |
+    28→| `src/ui/KoruProvider.tsx` | Fix `sendMessage` return type and optional items access. |
+    29→| `src/server/providers/` | New directory: split LLM providers out of `koruBackend.ts`. |
+    30→| `src/server/prompts/` | New directory: agent prompts as plain TS exports. |
+    31→| `src/server/tools/` | Move builtin tool execution out of `koruBackend.ts`. |
+    32→| `src/domain/schemas/` | New directory: typed tool-result schemas and schema matcher. |
+    33→| `src/domain/presentation/` | New directory: Presentation Engine. |
+    34→| `src/domain/memory/` | New directory: semantic memory with embedding client fallback. |
+    35→
+    36→---
+    37→
+    38→## Phase 1: Stabilize build and repository
+    39→
+    40→> **Principle:** We do not refactor what we cannot build. Phase 1 ends when `npm run build` and `npm test` both pass cleanly.
+    41→
+    42→### Task 1.1: Harden TypeScript config
+    43→
+    44→**Files:**
+    45→- Modify: `tsconfig.json`
+    46→
+    47→- [ ] **Step 1: Add stricter compiler options**
+    48→
+    49→Add to `compilerOptions`:
+    50→
+    51→```json
+    52→"noImplicitAny": true,
+    53→"noUnusedLocals": true,
+    54→"noUnusedParameters": true
+    55→```
+    56→
+    57→If the project intentionally allows implicit any in tests, keep tests exempt via `tsconfig.test.json` or vitest's default settings.
+    58→
+    59→- [ ] **Step 2: Verify tsc sees the same errors as the build**
+    60→
+    61→Run:
+    62→
+    63→```bash
+    64→npx tsc --noEmit 2>&1 | tail -30
+    65→```
+    66→
+    67→Expected: same errors as `npm run build`.
+    68→
+    69→- [ ] **Step 3: Commit**
+    70→
+    71→```bash
+    72→git add tsconfig.json
+    73→git commit -m "chore(ts): enable noImplicitAny and noUnusedLocals"
+    74→```
+    75→
+    76→---
+    77→
+    78→### Task 1.2: Fix card component imports
+    79→
+    80→**Files:**
+    81→- Modify: `src/ui/cards/ActivityGroupCard.tsx`, `src/ui/cards/AlarmCard.tsx`, `src/ui/cards/ClarifyingQuestionCard.tsx`, `src/ui/cards/ComparisonCard.tsx`, `src/ui/cards/DataCard.tsx`, `src/ui/cards/DecisionSupportCard.tsx`, `src/ui/cards/MemoryCard.tsx`, `src/ui/cards/PlanCard.tsx`, `src/ui/cards/ProactiveSignalCard.tsx`, `src/ui/cards/ReminderCard.tsx`, `src/ui/cards/ShoppingListCard.tsx`, `src/ui/cards/TravelPlannerCard.tsx`, `src/ui/cards/WeatherCard.tsx`
+    82→- Modify: `src/ui/cards/index.ts`
+    83→
+    84→- [ ] **Step 1: Replace broken relative imports**
+    85→
+    86→In each file listed above, change:
+    87→
+    88→```ts
+    89→import type { ... } from "../domain/types";
+    90→```
+    91→
+    92→to:
+    93→
+    94→```ts
+    95→import type { ... } from "../../domain/types";
+    96→```
+    97→
+    98→For `WeatherCard.tsx` also fix the `Extract` import: `Extract` is a global TS utility, do not import it from types.
+    99→
+   100→- [ ] **Step 2: Fix `RestaurantCard` re-export**
+   101→
+   102→In `src/ui/cards/index.ts`, replace:
+   103→
+   104→```ts
+   105→export { default as RestaurantSynthesisCard } from "./RestaurantCard";
+   106→```
+   107→
+   108→with:
+   109→
+   110→```ts
+   111→export { RestaurantCard as RestaurantSynthesisCard } from "./RestaurantCard";
+   112→```
+   113→
+   114→assuming `RestaurantCard.tsx` exports `RestaurantCard` by name. If it is a default export, change `RestaurantCard.tsx` to a named export instead.
+   115→
+   116→- [ ] **Step 3: Run tsc to confirm card errors drop**
+   117→
+   118→Run:
+   119→
+   120→```bash
+   121→npx tsc --noEmit 2>&1 | grep -c "ui/cards"
+   122→```
+   123→
+   124→Expected: 0 (or only real type mismatches left, not import errors).
+   125→
+   126→- [ ] **Step 4: Commit**
+   127→
+   128→```bash
+   129→git add src/ui/cards
+   130→git commit -m "fix(cards): correct relative imports to domain types"
+   131→```
+   132→
+   133→---
+   134→
+   135→### Task 1.3: Fix `src/tools/types.ts` import
+   136→
+   137→**Files:**
+   138→- Modify: `src/tools/types.ts`
+   139→
+   140→- [ ] **Step 1: Correct the relative path**
+   141→
+   142→Change:
+   143→
+   144→```ts
+   145→import type { KoruState, UiBlock, AssistantSource } from "../../domain/types";
+   146→```
+   147→
+   148→to:
+   149→
+   150→```ts
+   151→import type { KoruState, UiBlock, AssistantSource } from "../domain/types";
+   152→```
+   153→
+   154→- [ ] **Step 2: Commit**
+   155→
+   156→```bash
+   157→git add src/tools/types.ts
+   158→git commit -m "fix(tools): correct relative import in tool types"
+   159→```
+   160→
+   161→---
+   162→
+   163→### Task 1.4: Fix implicit `any` parameters in tools and cards
+   164→
+   165→**Files:**
+   166→- Modify: `src/tools/money/advanced.ts`
+   167→- Modify: `src/tools/trending/trending.ts`
+   168→- Modify: `src/tools/knowledge/knowledge.ts`
+   169→- Modify: `src/ui/cards/ActivityGroupCard.tsx`, `ClarifyingQuestionCard.tsx`, `ComparisonCard.tsx`, `DataCard.tsx`, `DecisionSupportCard.tsx`, `MemoryCard.tsx`, `PlanCard.tsx`, `ProactiveSignalCard.tsx`, `ShoppingListCard.tsx`, `WeatherCard.tsx`
+   170→
+   171→- [ ] **Step 1: Add explicit types to `map/filter/reduce` callbacks**
+   172→
+   173→For example, in `src/tools/money/advanced.ts`, replace:
+   174→
+   175→```ts
+   176→return records.filter((r) => { ... });
+   177→```
+   178→
+   179→with typed arrays before the call or inline type annotations:
+   180→
+   181→```ts
+   182→const expenses = records.filter((r: LifeRecord) => r.kind === "expense");
+   183→```
+   184→
+   185→Use the imported `LifeRecord` type. Repeat for every callback flagged by `tsc`.
+   186→
+   187→For card `map` callbacks, use the concrete `UiBlock` subtype. Example in `ComparisonCard.tsx`:
+   188→
+   189→```tsx
+   190→{items.map((item: NonNullable<Extract<UiBlock, { type: "comparison" }>["items"]>[number], idx: number) => (...))}
+   191→```
+   192→
+   193→If a type is too long, create a local alias:
+   194→
+   195→```ts
+   196→type ComparisonItem = NonNullable<Extract<UiBlock, { type: "comparison" }>["items"]>[number];
+   197→```
+   198→
+   199→- [ ] **Step 2: Remove unused imports flagged by noUnusedLocals**
+   200→
+   201→Examples:
+   202→- `src/ui/cards/chatCards.tsx`: remove unused `Clock`, `ShoppingBasket`, `Sun`, `DecisionSupportCard`, etc.
+   203→- `src/tools/travel/travel.ts`: remove unused `fetchJson`, `limiters`, `OsrmRoute`.
+   204→- `src/tools/utils/utils.ts`: remove unused `fetchText`.
+   205→
+   206→- [ ] **Step 3: Run tsc and iterate until clean**
+   207→
+   208→Run:
+   209→
+   210→```bash
+   211→npx tsc --noEmit 2>&1 | head -50
+   212→```
+   213→
+   214→Expected: no implicit-any or unused-local errors from these files.
+   215→
+   216→- [ ] **Step 4: Commit**
+   217→
+   218→```bash
+   219→git add src/tools src/ui
+   220→git commit -m "fix(types): add explicit types and remove unused imports"
+   221→```
+   222→
+   223→---
+   224→
+   225→### Task 1.5: Fix `AllCardsPreview.tsx` mock data
+   226→
+   227→**Files:**
+   228→- Modify: `src/ui/AllCardsPreview.tsx`
+   229→
+   230→- [ ] **Step 1: Align mock objects with `UiBlock` types**
+   231→
+   232→Changes to make:
+   233→
+   234→- Remove `id` from `plan` blocks; use only `type`, `title`, `items`, `note`.
+   235→- In `live_match` blocks, set `homeTeam`/`awayTeam` as objects `{ name, abbrev, score }`, not strings.
+   236→- In `plan` items use `title` instead of `text`.
+   237→- In `comparison` items use `title` instead of `name`.
+   238→- In `saved_record` records remove `id`; use only the `Omit<LifeRecord, "id" | "createdAt" | "sourceEntryId">` shape.
+   239→- In `web_nav` blocks use `status: "loading" | "complete" | "report"` only; replace `"ok"`. Remove `domain` from result objects.
+   240→- In `birthday_calendar` remove `year`.
+   241→- In `election_vote` options use `label` and optional `sub`, not `description`.
+   242→- In `outfit` blocks remove `title`; use `specs` and `buttonLabel`.
+   243→
+   244→- [ ] **Step 2: Run tsc**
+   245→
+   246→```bash
+   247→npx tsc --noEmit 2>&1 | grep "AllCardsPreview"
+   248→```
+   249→
+   250→Expected: empty output.
+   251→
+   252→- [ ] **Step 3: Commit**
+   253→
+   254→```bash
+   255→git add src/ui/AllCardsPreview.tsx
+   256→git commit -m "fix(preview): align mock data with UiBlock types"
+   257→```
+   258→
+   259→---
+   260→
+   261→### Task 1.6: Fix test mock props
+   262→
+   263→**Files:**
+   264→- Modify: `src/ui/cards/LiveMatchCard.test.tsx`
+   265→- Modify: `src/ui/cards/MarketCard.test.tsx`
+   266→- Modify: `src/ui/App.test.tsx`
+   267→
+   268→- [ ] **Step 1: Update `LiveMatchCard.test.tsx`**
+   269→
+   270→Remove `globalStatus` from blocks. Replace `leftValue`/`rightValue` in stats with `leftPercent`/`rightPercent`.
+   271→
+   272→- [ ] **Step 2: Update `MarketCard.test.tsx`**
+   273→
+   274→Use `assets: [{ symbol, name, price, change, changeUp }]` instead of flat `symbol/name/pair/price/change/time`. The empty block must include `assets: []`.
+   275→
+   276→- [ ] **Step 3: Update `App.test.tsx`**
+   277→
+   278→At line 194, guard the `Element | undefined` with a non-null assertion or early return:
+   279→
+   280→```ts
+   281→const el = screen.getByText(/.../);
+   282→if (!el) throw new Error("element not found");
+   283→// pass el
+   284→```
+   285→
+   286→- [ ] **Step 4: Run tests**
+   287→
+   288→```bash
+   289→npm test 2>&1 | tail -20
+   290→```
+   291→
+   292→Expected: all tests pass.
+   293→
+   294→- [ ] **Step 5: Commit**
+   295→
+   296→```bash
+   297→git add src/ui/cards/LiveMatchCard.test.tsx src/ui/cards/MarketCard.test.tsx src/ui/App.test.tsx
+   298→git commit -m "fix(tests): update mock props to match current types"
+   299→```
+   300→
+   301→---
+   302→
+   303→### Task 1.7: Fix `KoruProvider.tsx` type errors
+   304→
+   305→**Files:**
+   306→- Modify: `src/ui/KoruProvider.tsx`
+   307→
+   308→- [ ] **Step 1: Guard optional `items`**
+   309→
+   310→At line 1425, replace direct access with:
+   311→
+   312→```ts
+   313→const items = koruTurn.items ?? [];
+   314→items.forEach((it) => { ... });
+   315→```
+   316→
+   317→- [ ] **Step 2: Narrow `sendMessage` return type**
+   318→
+   319→Ensure the function always returns `Promise<KoruChatTurn | null>`. At the end of the function, return `errorTurn` in the catch and `koruTurn ?? null` in the success path. Do not return `undefined`.
+   320→
+   321→- [ ] **Step 3: Fix encoding issue**
+   322→
+   323→Re-save the file as UTF-8 to remove `AcciÃ³n`, `AutonomÃ­a`, etc. Verify with:
+   324→
+   325→```bash
+   326→file src/ui/KoruProvider.tsx
+   327→```
+   328→
+   329→Expected: `UTF-8 Unicode text`.
+   330→
+   331→- [ ] **Step 4: Run tsc and tests**
+   332→
+   333→```bash
+   334→npx tsc --noEmit 2>&1 | tail -20
+   335→npm test 2>&1 | tail -10
+   336→```
+   337→
+   338→Expected: tsc clean, tests pass.
+   339→
+   340→- [ ] **Step 5: Commit**
+   341→
+   342→```bash
+   343→git add src/ui/KoruProvider.tsx
+   344→git commit -m "fix(provider): resolve type errors and fix UTF-8 encoding"
+   345→```
+   346→
+   347→---
+   348→
+   349→### Task 1.8: Secure the repository
+   350→
+   351→**Files:**
+   352→- Modify: `.gitignore`
+   353→- Delete/untokenize: `minimax-oauth-token.json` if tracked
+   354→
+   355→- [ ] **Step 1: Add entries to `.gitignore`**
+   356→
+   357→Append:
+   358→
+   359→```gitignore
+   360→# Local caches and secrets
+   361→.hf-cache/
+   362→unsloth_compiled_cache/
+   363→manual-audits/
+   364→logs/
+   365→*.log
+   366→minimax-oauth-token.json
+   367→.env
+   368→.env.*
+   369→!.env.example
+   370→.opencode.json
+   371→.tmp/
+   372→```
+   373→
+   374→- [ ] **Step 2: If `minimax-oauth-token.json` is tracked, remove it from git history**
+   375→
+   376→```bash
+   377→git rm --cached minimax-oauth-token.json
+   378→echo "minimax-oauth-token.json" >> .gitignore
+   379→git filter-repo --path minimax-oauth-token.json --invert-paths
+   380→```
+   381→
+   382→If `git filter-repo` is not available, rotate the token instead.
+   383→
+   384→- [ ] **Step 3: Verify no secrets in tracked files**
+   385→
+   386→```bash
+   387→git status --short | head -30
+   388→```
+   389→
+   390→Expected: no `minimax-oauth-token.json` staged.
+   391→
+   392→- [ ] **Step 4: Commit**
+   393→
+   394→```bash
+   395→git add .gitignore
+   396→git commit -m "chore(repo): ignore local caches, logs and secrets"
+   397→```
+   398→
+   399→---
+   400→
+   401→### Task 1.9: Verify build and tests pass
+   402→
+   403→- [ ] **Step 1: Run full build**
+   404→
+   405→```bash
+   406→npm run build 2>&1 | tail -20
+   407→```
+   408→
+   409→Expected: `dist/` generated with no TypeScript errors.
+   410→
+   411→- [ ] **Step 2: Run tests**
+   412→
+   413→```bash
+   414→npm test 2>&1 | tail -10
+   415→```
+   416→
+   417→Expected: all tests pass.
+   418→
+   419→- [ ] **Step 3: Commit any remaining fixes**
+   420→
+   421→If any new error appears, fix and commit with a descriptive message.
+   422→
+   423→---
+   424→
+   425→## Phase 2: Unify the agent flow
+   426→
+   427→> **Principle:** One entry point, one state machine. The local `submitReflection` path is deprecated in favor of the backend agent path.
+   428→
+   429→### Task 2.1: Audit who calls `submitReflection` and `analyzeReflection`
+   430→
+   431→**Files:**
+   432→- Read: `src/domain/store.ts`, `src/domain/brain.ts`, `src/ui/KoruProvider.tsx`, any test referencing `submitReflection`
+   433→
+   434→- [ ] **Step 1: Find all call sites**
+   435→
+   436→```bash
+   437→grep -r "submitReflection\|analyzeReflection" src tests --include="*.ts" --include="*.tsx" -l
+   438→```
+   439→
+   440→Expected: list of files. If `KoruProvider.tsx` is not in the list, the UI already uses the backend agent.
+   441→
+   442→- [ ] **Step 2: Decide migration strategy**
+   443→
+   444→If `submitReflection` is only used by tests/old code, mark it as deprecated:
+   445→
+   446→```ts
+   447→/** @deprecated Use the backend agent flow via KoruProvider instead. */
+   448→export function submitReflection(...) { ... }
+   449→```
+   450→
+   451→If any screen still calls it, redirect that call to `sendMessage`.
+   452→
+   453→- [ ] **Step 3: Commit**
+   454→
+   455→```bash
+   456→git add src/domain/store.ts
+   457→git commit -m "chore(store): deprecate submitReflection in favor of backend agent"
+   458→```
+   459→
+   460→---
+   461→
+   462→### Task 2.2: Extract shared knowledge extraction utilities
+   463→
+   464→**Files:**
+   465→- Create: `src/domain/knowledge/extractRecords.ts`
+   466→- Create: `src/domain/knowledge/extractCommitments.ts`
+   467→- Create: `src/domain/knowledge/extractMemories.ts`
+   468→- Modify: `src/domain/brain.ts`
+   469→- Modify: `src/server/koruBackend.ts`
+   470→
+   471→- [ ] **Step 1: Move local extractors to shared helpers**
+   472→
+   473→From `src/domain/brain.ts`, extract:
+   474→
+   475→- `extractLifeRecordsLocal`
+   476→- `extractCommitmentsLocal`
+   477→- `extractMemoryCandidatesLocal`
+   478→- supporting helpers (`extractAmount`, `inferCurrency`, `personFromText`, etc.)
+   479→
+   480→into the new files.
+   481→
+   482→Example signature:
+   483→
+   484→```ts
+   485→// src/domain/knowledge/extractRecords.ts
+   486→export function extractLifeRecordsFromText(input: string): Omit<LifeRecord, "id" | "createdAt" | "sourceEntryId">[] { ... }
+   487→```
+   488→
+   489→- [ ] **Step 2: Make `brain.ts` and `koruBackend.ts` import these helpers**
+   490→
+   491→Replace inline logic with imports.
+   492→
+   493→- [ ] **Step 3: Add unit tests for extractors**
+   494→
+   495→Create:
+   496→
+   497→```ts
+   498→// src/domain/knowledge/extractRecords.test.ts
+   499→import { describe, it, expect } from "vitest";
+   500→import { extractLifeRecordsFromText } from "./extractRecords";
+   501→
+   502→describe("extractLifeRecordsFromText", () => {
+   503→  it("extracts an expense", () => {
+   504→    const records = extractLifeRecordsFromText("gasté 18 euros en farmacia");
+   505→    expect(records).toHaveLength(1);
+   506→    expect(records[0].kind).toBe("expense");
+   507→    expect(records[0].amount).toBe(18);
+   508→  });
+   509→});
+   510→```
+   511→
+   512→- [ ] **Step 4: Run tests and commit**
+   513→
+   514→```bash
+   515→npm test src/domain/knowledge 2>&1 | tail -10
+   516→git add src/domain/knowledge src/domain/brain.ts src/server/koruBackend.ts
+   517→git commit -m "refactor(knowledge): extract shared record/commitment/memory extractors"
+   518→```
+   519→
+   520→---
+   521→
+   522→### Task 2.3: Align state application between local and backend flows
+   523→
+   524→**Files:**
+   525→- Modify: `src/domain/store.ts`
+   526→- Modify: `src/ui/KoruProvider.tsx`
+   527→
+   528→- [ ] **Step 1: Reuse `applyBackendTurnToState` logic in store**
+   529→
+   530→Create a pure function `applyTurnResultToState(state, result)` that:
+   531→
+   532→- Creates `MemoryFact` from candidates.
+   533→- Creates `Commitment` from commitments.
+   534→- Creates `LifeRecord` from records and uiBlock records.
+   535→- Creates `AssistantAction` from uiBlocks and suggestedActions.
+   536→- Awards energy.
+   537→
+   538→Use this function from both `applyBackendTurnToState` in `KoruProvider.tsx` and a new `submitBackendReflection` in `store.ts` (if tests still need a local path).
+   539→
+   540→- [ ] **Step 2: Add tests**
+   541→
+   542→```ts
+   543→// src/domain/store.turn.test.ts
+   544→import { describe, it, expect } from "vitest";
+   545→import { createInitialState, applyTurnResultToState } from "./store";
+   546→
+   547→describe("applyTurnResultToState", () => {
+   548→  it("adds a record and increments energy", () => {
+   549→    const state = createInitialState();
+   550→    const next = applyTurnResultToState(state, {
+   551→      reply: "ok",
+   552→      uiBlocks: [],
+   553→      suggestedActions: [],
+   554→      understanding: { literalRequest: "x", userGoal: "y", unstatedNeeds: [], assumptions: [], confidence: 0.9 },
+   555→      memoryCandidates: [],
+   556→      commitments: [],
+   557→      records: [{ domain: "money", kind: "expense", title: "farmacia", amount: 18, currency: "EUR" }],
+   558→      toolResults: [],
+   559→      stateEvents: [{ kind: "done", label: "done" }],
+   560→      provider: "nvidia",
+   561→    });
+   562→    expect(next.records).toHaveLength(1);
+   563→    expect(next.totalEnergy).toBeGreaterThan(state.totalEnergy);
+   564→  });
+   565→});
+   566→```
+   567→
+   568→- [ ] **Step 3: Run tests and commit**
+   569→
+   570→```bash
+   571→npm test src/domain/store.turn.test.ts 2>&1 | tail -10
+   572→git add src/domain/store.ts src/ui/KoruProvider.tsx src/domain/store.turn.test.ts
+   573→git commit -m "refactor(store): unify turn application between UI and backend"
+   574→```
+   575→
+   576→---
+   577→
+   578→## Phase 3: Break up `koruBackend.ts`
+   579→
+   580→> **Principle:** The backend file should orchestrate, not implement everything.
+   581→
+   582→### Task 3.1: Extract LLM providers
+   583→
+   584→**Files:**
+   585→- Create: `src/server/providers/types.ts`
+   586→- Create: `src/server/providers/nvidia.ts`
+   587→- Create: `src/server/providers/openrouter.ts`
+   588→- Create: `src/server/providers/minimax.ts`
+   589→- Create: `src/server/providers/ollama.ts`
+   590→- Create: `src/server/providers/index.ts`
+   591→- Modify: `src/server/koruBackend.ts`
+   592→
+   593→- [ ] **Step 1: Define provider interface**
+   594→
+   595→```ts
+   596→// src/server/providers/types.ts
+   597→import type { ChatMessage, ProviderResult } from "../koruBackend";
+   598→
+   599→export type ProviderName = "nvidia" | "openrouter" | "minimax";
+   600→
+   601→export interface ProviderConfig {
+   602→  apiKey?: string;
+   603→  baseUrl: string;
+   604→  model: string;
+   605→}
+   606→
+   607→export interface LlmProvider {
+   608→  call(messages: ChatMessage[], toolsEnabled: boolean, availableTools?: ToolDefinition[]): Promise<ProviderResult>;
+   609→}
+   610→```
+   611→
+   612→- [ ] **Step 2: Move `callNvidia`, `callOpenRouter`, `callMinimax`, `callProvider` logic into modules**
+   613→
+   614→Each module exports a factory. Example:
+   615→
+   616→```ts
+   617→// src/server/providers/nvidia.ts
+   618→export function createNvidiaProvider(config: ProviderConfig): LlmProvider { ... }
+   619→```
+   620→
+   621→- [ ] **Step 3: Update `koruBackend.ts`**
+   622→
+   623→Replace inline provider calls with:
+   624→
+   625→```ts
+   626→import { createProvider, type ProviderName } from "./providers";
+   627→```
+   628→
+   629→Keep fallback ordering logic in `koruBackend.ts`, but delegate the actual HTTP call.
+   630→
+   631→- [ ] **Step 4: Add a smoke test**
+   632→
+   633→```ts
+   634→// src/server/providers/providers.test.ts
+   635→import { describe, it, expect, vi } from "vitest";
+   636→import { createNvidiaProvider } from "./nvidia";
+   637→
+   638→describe("createNvidiaProvider", () => {
+   639→  it("throws if no key/baseUrl", () => {
+   640→    expect(() => createNvidiaProvider({ model: "x", baseUrl: "" })).toThrow();
+   641→  });
+   642→});
+   643→```
+   644→
+   645→- [ ] **Step 5: Run tests and commit**
+   646→
+   647→```bash
+   648→npm test src/server/providers 2>&1 | tail -10
+   649→git add src/server/providers src/server/koruBackend.ts
+   650→git commit -m "refactor(backend): extract LLM providers into modules"
+   651→```
+   652→
+   653→---
+   654→
+   655→### Task 3.2: Extract builtin tool execution
+   656→
+   657→**Files:**
+   658→- Create: `src/server/tools/weather.ts`
+   659→- Create: `src/server/tools/webSearch.ts`
+   660→- Create: `src/server/tools/planDay.ts`
+   661→- Create: `src/server/tools/queryPersonalContext.ts`
+   662→- Create: `src/server/tools/saveMemory.ts`
+   663→- Create: `src/server/tools/savePersonalItem.ts`
+   664→- Create: `src/server/tools/index.ts`
+   665→- Modify: `src/server/koruBackend.ts`
+   666→
+   667→- [ ] **Step 1: Define tool execution interface**
+   668→
+   669→```ts
+   670→// src/server/tools/types.ts
+   671→import type { KoruState } from "../../domain/types";
+   672→
+   673→export interface ToolExecutor {
+   674→  name: string;
+   675→  run(args: Record<string, unknown>, ctx: { state: KoruState; userInput: string }): Promise<Record<string, unknown>>;
+   676→}
+   677→```
+   678→
+   679→- [ ] **Step 2: Move each builtin tool into its own module**
+   680→
+   681→Move:
+   682→- `getWeather` → `src/server/tools/weather.ts`
+   683→- `runSearch` → `src/server/tools/webSearch.ts`
+   684→- `planFromState` → `src/server/tools/planDay.ts`
+   685→- `queryPersonalContextFromState` → `src/server/tools/queryPersonalContext.ts`
+   686→- `memoryCaptureFromArgs` → `src/server/tools/saveMemory.ts`
+   687→- `personalCaptureFromArgs` → `src/server/tools/savePersonalItem.ts`
+   688→
+   689→- [ ] **Step 3: Update `executeTool` in `koruBackend.ts`**
+   690→
+   691→Replace the long `if/else` chain with a registry lookup:
+   692→
+   693→```ts
+   694→import { BUILTIN_TOOL_BOX } from "./tools";
+   695→
+   696→async function executeTool(name: string, args: Record<string, unknown>, state: KoruState, userInput: string) {
+   697→  const handler = BUILTIN_TOOL_BOX.get(name) ?? TOOL_BOX.get(name);
+   698→  if (!handler) return { type: "unknown", error: `Unknown tool ${name}` };
+   699→  return handler.run(args, { state, userInput });
+   700→}
+   701→```
+   702→
+   703→- [ ] **Step 4: Run tests and commit**
+   704→
+   705→```bash
+   706→npm test src/server/koruBackend.test.ts 2>&1 | tail -10
+   707→git add src/server/tools src/server/koruBackend.ts
+   708→git commit -m "refactor(backend): extract builtin tools into registry modules"
+   709→```
+   710→
+   711→---
+   712→
+   713→### Task 3.3: Extract prompts and JSON parsing
+   714→
+   715→**Files:**
+   716→- Create: `src/server/prompts/system.ts`
+   717→- Create: `src/server/prompts/router.ts`
+   718→- Create: `src/server/prompts/composer.ts`
+   719→- Create: `src/server/prompts/enhancement.ts`
+   720→- Create: `src/server/json.ts`
+   721→- Modify: `src/server/koruBackend.ts`
+   722→
+   723→- [ ] **Step 1: Move prompts out**
+   724→
+   725→Move `systemPrompt()`, router prompt, composer prompt, and enhancement prompt to their own files. Export string constants or functions.
+   726→
+   727→- [ ] **Step 2: Move JSON helpers**
+   728→
+   729→Move `safeJsonParse`, `extractJsonBlock`, `safeJsonObjectFromContent`, `extractStringField`, `cleanReplyText` to `src/server/json.ts`.
+   730→
+   731→- [ ] **Step 3: Update `koruBackend.ts`**
+   732→
+   733→Import prompts and JSON helpers. The file should now be mostly orchestration logic.
+   734→
+   735→- [ ] **Step 4: Run tests and commit**
+   736→
+   737→```bash
+   738→npm test src/server 2>&1 | tail -10
+   739→git add src/server/prompts src/server/json.ts src/server/koruBackend.ts
+   740→git commit -m "refactor(backend): extract prompts and json helpers"
+   741→```
+   742→
+   743→---
+   744→
+   745→## Phase 4: Schema-driven Presentation Engine
+   746→
+   747→> **Principle:** The shape of the data decides the visualizer, not the LLM.
+   748→
+   749→### Task 4.1: Define typed tool-result schemas
+   750→
+   751→**Files:**
+   752→- Create: `src/domain/schemas/types.ts`
+   753→- Create: `src/domain/schemas/weather.ts`
+   754→- Create: `src/domain/schemas/sports.ts`
+   755→- Create: `src/domain/schemas/money.ts`
+   756→- Create: `src/domain/schemas/news.ts`
+   757→- Create: `src/domain/schemas/comparison.ts`
+   758→
+   759→- [ ] **Step 1: Define base schema interface**
+   760→
+   761→```ts
+   762→// src/domain/schemas/types.ts
+   763→export type SchemaId = "weather" | "sports_scores" | "money_summary" | "news_list" | "comparison_table" | "generic_list";
+   764→
+   765→export interface SchemaMatcher<T> {
+   766→  id: SchemaId;
+   767→  match(data: unknown): { matched: boolean; confidence: number; data?: T };
+   768→}
+   769→```
+   770→
+   771→- [ ] **Step 2: Implement concrete schemas**
+   772→
+   773→Example `weather.ts`:
+   774→
+   775→```ts
+   776→import { z } from "zod";
+   777→
+   778→export const WeatherSchema = z.object({
+   779→  type: z.literal("weather"),
+   780→  city: z.string(),
+   781→  now: z.string().optional(),
+   782→  range: z.string().optional(),
+   783→  rain: z.string().optional(),
+   784→  wind: z.string().optional(),
+   785→  advice: z.string().optional(),
+   786→});
+   787→
+   788→export type WeatherData = z.infer<typeof WeatherSchema>;
+   789→
+   790→export const WeatherMatcher: SchemaMatcher<WeatherData> = {
+   791→  id: "weather",
+   792→  match(data) {
+   793→    const result = WeatherSchema.safeParse(data);
+   794→    return result.success
+   795→      ? { matched: true, confidence: 1, data: result.data }
+   796→      : { matched: false, confidence: 0 };
+   797→  },
+   798→};
+   799→```
+   800→
+   801→Use `zod` if already a dependency; otherwise add it (`npm install zod`).
+   802→
+   803→- [ ] **Step 3: Commit**
+   804→
+   805→```bash
+   806→npm install zod
+   807→git add src/domain/schemas package.json package-lock.json
+   808→git commit -m "feat(schemas): add typed tool-result schemas with zod"
+   809→```
+   810→
+   811→---
+   812→
+   813→### Task 4.2: Build schema matcher
+   814→
+   815→**Files:**
+   816→- Create: `src/domain/schemas/matcher.ts`
+   817→- Create: `src/domain/schemas/matcher.test.ts`
+   818→
+   819→- [ ] **Step 1: Implement matcher registry**
+   820→
+   821→```ts
+   822→// src/domain/schemas/matcher.ts
+   823→import { WeatherMatcher } from "./weather";
+   824→import { SportsMatcher } from "./sports";
+   825→import { MoneyMatcher } from "./money";
+   826→import { NewsMatcher } from "./news";
+   827→import { ComparisonMatcher } from "./comparison";
+   828→import type { SchemaId, SchemaMatcher } from "./types";
+   829→
+   830→const MATCHERS: SchemaMatcher<unknown>[] = [
+   831→  WeatherMatcher,
+   832→  SportsMatcher,
+   833→  MoneyMatcher,
+   834→  NewsMatcher,
+   835→  ComparisonMatcher,
+   836→];
+   837→
+   838→export function matchSchema(data: unknown): { id: SchemaId; confidence: number; data: unknown } | null {
+   839→  const results = MATCHERS
+   840→    .map((m) => ({ ...m.match(data), id: m.id }))
+   841→    .filter((r) => r.matched)
+   842→    .sort((a, b) => b.confidence - a.confidence);
+   843→  return results[0] ? { id: results[0].id, confidence: results[0].confidence, data: results[0].data } : null;
+   844→}
+   845→```
+   846→
+   847→- [ ] **Step 2: Add tests**
+   848→
+   849→```ts
+   850→// src/domain/schemas/matcher.test.ts
+   851→import { describe, it, expect } from "vitest";
+   852→import { matchSchema } from "./matcher";
+   853→
+   854→describe("matchSchema", () => {
+   855→  it("matches weather", () => {
+   856→    const result = matchSchema({ type: "weather", city: "Madrid", now: "22 C" });
+   857→    expect(result?.id).toBe("weather");
+   858→  });
+   859→
+   860→  it("returns null for unknown data", () => {
+   861→    const result = matchSchema({ foo: "bar" });
+   862→    expect(result).toBeNull();
+   863→  });
+   864→});
+   865→```
+   866→
+   867→- [ ] **Step 3: Run tests and commit**
+   868→
+   869→```bash
+   870→npm test src/domain/schemas 2>&1 | tail -10
+   871→git add src/domain/schemas
+   872→git commit -m "feat(schemas): add schema matcher"
+   873→```
+   874→
+   875→---
+   876→
+   877→### Task 4.3: Create visualizer catalog
+   878→
+   879→**Files:**
+   880→- Create: `src/domain/presentation/types.ts`
+   881→- Create: `src/domain/presentation/visualizers/weather.ts`
+   882→- Create: `src/domain/presentation/visualizers/sportsScores.ts`
+   883→- Create: `src/domain/presentation/visualizers/moneySummary.ts`
+   884→- Create: `src/domain/presentation/visualizers/newsList.ts`
+   885→- Create: `src/domain/presentation/visualizers/comparisonTable.ts`
+   886→- Create: `src/domain/presentation/visualizers/genericList.ts`
+   887→- Create: `src/domain/presentation/catalog.ts`
+   888→
+   889→- [ ] **Step 1: Define visualizer interface**
+   890→
+   891→```ts
+   892→// src/domain/presentation/types.ts
+   893→import type { SchemaId } from "../schemas/types";
+   894→import type { UiBlock } from "../types";
+   895→
+   896→export interface Visualizer {
+   897→  id: SchemaId;
+   898→  render(data: unknown, enrichment?: Record<string, unknown>): UiBlock;
+   899→}
+   900→```
+   901→
+   902→- [ ] **Step 2: Implement weather visualizer**
+   903→
+   904→```ts
+   905→// src/domain/presentation/visualizers/weather.ts
+   906→import type { Visualizer } from "../types";
+   907→import type { WeatherData } from "../../schemas/weather";
+   908→
+   909→export const WeatherVisualizer: Visualizer = {
+   910→  id: "weather",
+   911→  render(data: unknown) {
+   912→    const w = data as WeatherData;
+   913→    return {
+   914→      type: "weather",
+   915→      city: w.city,
+   916→      now: w.now,
+   917→      range: w.range,
+   918→      rain: w.rain,
+   919→      wind: w.wind,
+   920→      advice: w.advice,
+   921→    };
+   922→  },
+   923→};
+   924→```
+   925→
+   926→- [ ] **Step 3: Build catalog**
+   927→
+   928→```ts
+   929→// src/domain/presentation/catalog.ts
+   930→import { WeatherVisualizer } from "./visualizers/weather";
+   931→import { SportsScoresVisualizer } from "./visualizers/sportsScores";
+   932→import { MoneySummaryVisualizer } from "./visualizers/moneySummary";
+   933→import { NewsListVisualizer } from "./visualizers/newsList";
+   934→import { ComparisonTableVisualizer } from "./visualizers/comparisonTable";
+   935→import { GenericListVisualizer } from "./visualizers/genericList";
+   936→import type { Visualizer } from "./types";
+   937→
+   938→export const VISUALIZER_CATALOG: Record<string, Visualizer> = {
+   939→  weather: WeatherVisualizer,
+   940→  sports_scores: SportsScoresVisualizer,
+   941→  money_summary: MoneySummaryVisualizer,
+   942→  news_list: NewsListVisualizer,
+   943→  comparison_table: ComparisonTableVisualizer,
+   944→  generic_list: GenericListVisualizer,
+   945→};
+   946→```
+   947→
+   948→- [ ] **Step 4: Commit**
+   949→
+   950→```bash
+   951→git add src/domain/presentation
+   952→git commit -m "feat(presentation): add visualizer catalog"
+   953→```
+   954→
+   955→---
+   956→
+   957→### Task 4.4: Implement Presentation Engine
+   958→
+   959→**Files:**
+   960→- Create: `src/domain/presentation/engine.ts`
+   961→- Create: `src/domain/presentation/engine.test.ts`
+   962→
+   963→- [ ] **Step 1: Implement engine**
+   964→
+   965→```ts
+   966→// src/domain/presentation/engine.ts
+   967→import { matchSchema } from "../schemas/matcher";
+   968→import { VISUALIZER_CATALOG } from "./catalog";
+   969→import type { UiBlock } from "../types";
+   970→
+   971→export interface PresentationInput {
+   972→  hint?: { kind: string; confidence: number; enrichment?: Record<string, unknown> };
+   973→  toolResults: Array<{ data?: Record<string, unknown>; summary?: string; sources?: unknown[] }>;
+   974→}
+   975→
+   976→export interface PresentationDecision {
+   977→  visualizer: string;
+   978→  block: UiBlock;
+   979→  reason: "schema_match" | "hint_validated" | "fallback_text";
+   980→  degraded: boolean;
+   981→}
+   982→
+   983→export function decidePresentation(input: PresentationInput): PresentationDecision | null {
+   984→  for (const result of input.toolResults) {
+   985→    const schemaMatch = matchSchema(result.data);
+   986→    if (!schemaMatch) continue;
+   987→
+   988→    const visualizer = VISUALIZER_CATALOG[schemaMatch.id];
+   989→    if (!visualizer) continue;
+   990→
+   991→    const hintMatches = input.hint?.kind === schemaMatch.id;
+   992→    const degraded = !hintMatches;
+   993→    const block = visualizer.render(schemaMatch.data, hintMatches ? input.hint?.enrichment : undefined);
+   994→
+   995→    return {
+   996→      visualizer: schemaMatch.id,
+   997→      block,
+   998→      reason: hintMatches ? "hint_validated" : "schema_match",
+   999→      degraded,
+  1000→    };
+  1001→  }
+  1002→
+  1003→  return null;
+  1004→}
+  1005→```
+  1006→
+  1007→- [ ] **Step 2: Add tests**
+  1008→
+  1009→```ts
+  1010→// src/domain/presentation/engine.test.ts
+  1011→import { describe, it, expect } from "vitest";
+  1012→import { decidePresentation } from "./engine";
+  1013→
+  1014→describe("decidePresentation", () => {
+  1015→  it("picks weather from tool result", () => {
+  1016→    const decision = decidePresentation({
+  1017→      toolResults: [{ data: { type: "weather", city: "Madrid", now: "22 C" } }],
+  1018→    });
+  1019→    expect(decision?.visualizer).toBe("weather");
+  1020→    expect(decision?.block.type).toBe("weather");
+  1021→  });
+  1022→
+  1023→  it("validates hint when it matches schema", () => {
+  1024→    const decision = decidePresentation({
+  1025→      hint: { kind: "weather", confidence: 0.9 },
+  1026→      toolResults: [{ data: { type: "weather", city: "Madrid" } }],
+  1027→    });
+  1028→    expect(decision?.reason).toBe("hint_validated");
+  1029→  });
+  1030→});
+  1031→```
+  1032→
+  1033→- [ ] **Step 3: Run tests and commit**
+  1034→
+  1035→```bash
+  1036→npm test src/domain/presentation 2>&1 | tail -10
+  1037→git add src/domain/presentation
+  1038→git commit -m "feat(presentation): add deterministic Presentation Engine"
+  1039→```
+  1040→
+  1041→---
+  1042→
+  1043→### Task 4.5: Wire Presentation Engine into backend turn
+  1044→
+  1045→**Files:**
+  1046→- Modify: `src/server/koruBackend.ts`
+  1047→- Modify: `src/domain/orchestrator.ts`
+  1048→
+  1049→- [ ] **Step 1: Feed tool results into engine after execution**
+  1050→
+  1051→In `orchestrator.ts`, after `executeRegisteredToolCall`, construct `toolResults` and call:
+  1052→
+  1053→```ts
+  1054→import { decidePresentation } from "../domain/presentation/engine";
+  1055→
+  1056→const presentation = decidePresentation({ hint: route.presentationHint, toolResults });
+  1057→const blocks = presentation ? [presentation.block, ...pendingBlocks] : composedBlocks;
+  1058→```
+  1059→
+  1060→For now, keep `composedBlocks` as fallback. Add a feature flag if needed:
+  1061→
+  1062→```ts
+  1063→const USE_PRESENTATION_ENGINE = import.meta.env.VITE_USE_PRESENTATION_ENGINE === "true";
+  1064→```
+  1065→
+  1066→- [ ] **Step 2: Update types**
+  1067→
+  1068→Add `presentationHint?: { kind: string; confidence: number; enrichment?: Record<string, unknown> }` to `RouterResult`.
+  1069→
+  1070→- [ ] **Step 3: Add integration test**
+  1071→
+  1072→```ts
+  1073→// src/server/koruBackend.presentation.test.ts
+  1074→import { describe, it, expect, vi } from "vitest";
+  1075→import { runKoruBackendTurn } from "./koruBackend";
+  1076→
+  1077→describe("Presentation Engine integration", () => {
+  1078→  it("renders weather block from tool result", async () => {
+  1079→    // mock provider to return tool call for weather and a hint
+  1080→    // assert result.uiBlocks contains a weather block
+  1081→  });
+  1082→});
+  1083→```
+  1084→
+  1085→- [ ] **Step 4: Run tests and commit**
+  1086→
+  1087→```bash
+  1088→npm test src/server 2>&1 | tail -10
+  1089→git add src/server/koruBackend.ts src/domain/orchestrator.ts
+  1090→git commit -m "feat(backend): wire Presentation Engine into turn flow"
+  1091→```
+  1092→
+  1093→---
+  1094→
+  1095→## Phase 5: Semantic memory without local Ollama
+  1096→
+  1097→> **Principle:** `selectRelevantMemories` should use embeddings, with a working default provider.
+  1098→
+  1099→### Task 5.1: Add embedding client abstraction
+  1100→
+  1101→**Files:**
+  1102→- Create: `src/domain/memory/embeddings.ts`
+  1103→- Create: `src/domain/memory/embeddings.test.ts`
+  1104→
+  1105→- [ ] **Step 1: Define embed interface**
+  1106→
+  1107→```ts
+  1108→// src/domain/memory/embeddings.ts
+  1109→import { runFreeLlmEmbedding, preferredBrainProvider } from "../freellmapi";
+  1110→import type { RuntimeSettings } from "../types";
+  1111→
+  1112→export type EmbedFn = (text: string) => Promise<number[]>;
+  1113→
+  1114→export function createEmbedFn(runtime: RuntimeSettings): EmbedFn {
+  1115→  const provider = preferredBrainProvider(runtime);
+  1116→
+  1117→  return async (text: string) => {
+  1118→    if (provider === "freellmapi" && runtime.embeddingsEnabled) {
+  1119→      const result = await runFreeLlmEmbedding(runtime, text);
+  1120→      return result.embedding;
+  1121→    }
+  1122→
+  1123→    if (provider === "open-model" && runtime.openModelBaseUrl) {
+  1124→      // Try Ollama embeddings endpoint
+  1125→      const response = await fetch(`${runtime.openModelBaseUrl}/embeddings`, {
+  1126→        method: "POST",
+  1127→        headers: { "Content-Type": "application/json" },
+  1128→        body: JSON.stringify({ model: runtime.openModelModel, prompt: text }),
+  1129→      });
+  1130→      const data = await response.json();
+  1131→      return data.embedding;
+  1132→    }
+  1133→
+  1134→    throw new Error("No embedding provider configured");
+  1135→  };
+  1136→}
+  1137→```
+  1138→
+  1139→- [ ] **Step 2: Add test**
+  1140→
+  1141→```ts
+  1142→// src/domain/memory/embeddings.test.ts
+  1143→import { describe, it, expect, vi } from "vitest";
+  1144→import { createEmbedFn } from "./embeddings";
+  1145→
+  1146→describe("createEmbedFn", () => {
+  1147→  it("throws when no provider is configured", async () => {
+  1148→    const fn = createEmbedFn({
+  1149→      freeLlmApiEnabled: false,
+  1150→      openModelEnabled: false,
+  1151→    } as RuntimeSettings);
+  1152→    await expect(fn("hello")).rejects.toThrow("No embedding provider");
+  1153→  });
+  1154→});
+  1155→```
+  1156→
+  1157→- [ ] **Step 3: Commit**
+  1158→
+  1159→```bash
+  1160→git add src/domain/memory
+  1161→git commit -m "feat(memory): add embedding client abstraction"
+  1162→```
+  1163→
+  1164→---
+  1165→
+  1166→### Task 5.2: Replace keyword memory selection with semantic search
+  1167→
+  1168→**Files:**
+  1169→- Create: `src/domain/memory/semanticSearch.ts`
+  1170→- Modify: `src/domain/brain.ts`
+  1171→- Modify: `src/domain/store.ts`
+  1172→
+  1173→- [ ] **Step 1: Implement cosine search**
+  1174→
+  1175→```ts
+  1176→// src/domain/memory/semanticSearch.ts
+  1177→import { cosineSimilarity } from "../brain"; // or extract to shared math util
+  1178→import type { MemoryFact } from "../types";
+  1179→
+  1180→export async function selectRelevantMemoriesSemantic(
+  1181→  input: string,
+  1182→  memories: MemoryFact[],
+  1183→  embedFn: (text: string) => Promise<number[]>,
+  1184→  maxResults = 5,
+  1185→): Promise<MemoryFact[]> {
+  1186→  const inputVector = await embedFn(input);
+  1187→  return memories
+  1188→    .filter((m) => m.status !== "rejected" && m.embedding?.length)
+  1189→    .map((m) => ({ memory: m, score: cosineSimilarity(inputVector, m.embedding!) }))
+  1190→    .filter((item) => item.score >= 0.55)
+  1191→    .sort((a, b) => b.score - a.score)
+  1192→    .slice(0, maxResults)
+  1193→    .map((item) => item.memory);
+  1194→}
+  1195→```
+  1196→
+  1197→- [ ] **Step 2: Update `brain.ts` to use semantic search when embeddings available**
+  1198→
+  1199→In `analyzeReflection`:
+  1200→
+  1201→```ts
+  1202→const provider = preferredBrainProvider(state.runtime);
+  1203→let queryEmbedding: number[] | undefined;
+  1204→if (state.runtime.embeddingsEnabled) {
+  1205→  try {
+  1206→    const embedFn = createEmbedFn(state.runtime);
+  1207→    queryEmbedding = await embedFn(input);
+  1208→  } catch { /* fall back to keyword */ }
+  1209→}
+  1210→const activeMemories = queryEmbedding
+  1211→  ? await selectRelevantMemoriesSemantic(input, state.memories, async () => queryEmbedding!, 5)
+  1212→  : selectActiveMemories(input, state, 5);
+  1213→```
+  1214→
+  1215→- [ ] **Step 3: Persist embeddings when confirming memories**
+  1216→
+  1217→In `store.ts`, when `confirmMemory` is called and the memory has no embedding, queue an async embedding hydration.
+  1218→
+  1219→- [ ] **Step 4: Add test**
+  1220→
+  1221→```ts
+  1222→// src/domain/memory/semanticSearch.test.ts
+  1223→import { describe, it, expect } from "vitest";
+  1224→import { selectRelevantMemoriesSemantic } from "./semanticSearch";
+  1225→
+  1226→describe("selectRelevantMemoriesSemantic", () => {
+  1227→  it("returns memories above threshold", async () => {
+  1228→    const memories = [
+  1229→      { id: "1", text: "tengo insomnio", status: "confirmed", embedding: [1, 0, 0] } as MemoryFact,
+  1230→      { id: "2", text: "me gusta el té", status: "confirmed", embedding: [0, 1, 0] } as MemoryFact,
+  1231→    ];
+  1232→    const result = await selectRelevantMemoriesSemantic("no puedo dormir", memories, async () => [0.95, 0.1, 0]);
+  1233→    expect(result).toHaveLength(1);
+  1234→    expect(result[0].id).toBe("1");
+  1235→  });
+  1236→});
+  1237→```
+  1238→
+  1239→- [ ] **Step 5: Run tests and commit**
+  1240→
+  1241→```bash
+  1242→npm test src/domain/memory src/domain/brain.test.ts 2>&1 | tail -10
+  1243→git add src/domain/memory src/domain/brain.ts src/domain/store.ts
+  1244→git commit -m "feat(memory): use semantic search with embedding fallback"
+  1245→```
+  1246→
+  1247→---
+  1248→
+  1249→## Phase 6: Final verification
+  1250→
+  1251→### Task 6.1: Full build and test pass
+  1252→
+  1253→- [ ] **Step 1: Build**
+  1254→
+  1255→```bash
+  1256→npm run build 2>&1 | tail -20
+  1257→```
+  1258→
+  1259→Expected: no errors.
+  1260→
+  1261→- [ ] **Step 2: Test**
+  1262→
+  1263→```bash
+  1264→npm test 2>&1 | tail -10
+  1265→```
+  1266→
+  1267→Expected: all tests pass.
+  1268→
+  1269→- [ ] **Step 3: E2E smoke (optional)**
+  1270→
+  1271→```bash
+  1272→npm run e2e 2>&1 | tail -20
+  1273→```
+  1274→
+  1275→Expected: smoke tests pass if Playwright is configured.
+  1276→
+  1277→- [ ] **Step 4: Commit any final fixes**
+  1278→
+  1279→---
+  1280→
+  1281→## Self-review checklist
+  1282→
+  1283→- **Spec coverage:**
+  1284→  - Build errors → Phase 1 covers all categories found by `tsc`.
+  1285→  - Security → Task 1.8.
+  1286→  - Dual architecture → Phase 2.
+  1287→  - Monolithic backend → Phase 3.
+  1288→  - Presentation Engine → Phase 4.
+  1289→  - Semantic memory → Phase 5.
+  1290→- **No placeholders:** every task has concrete file paths, commands, and code examples.
+  1291→- **Type consistency:** `UiBlock`, `SchemaId`, `Visualizer`, and `MemoryFact` references match the current codebase.
+  1292→
+  1293→---
+  1294→
+  1295→## Execution options
+  1296→
+  1297→**Plan complete and saved to `docs/superpowers/plans/2026-06-29-koru-mvp-stabilization.md`.**
+  1298→
+  1299→Two execution options:
+  1300→
+  1301→1. **Subagent-Driven (recommended)** — I dispatch a fresh subagent per phase/task, review between tasks, fast iteration. Best for keeping the codebase stable while moving through many files.
+  1302→
+  1303→2. **Inline Execution** — I execute tasks in this session using the executing-plans skill, batch execution with checkpoints. Best if you want to see every change as it happens and guide priorities.
+  1304→
+  1305→Which approach do you prefer? If you want, I can also split this into smaller plans (one per phase) so each one can be merged independently.
+  1306→

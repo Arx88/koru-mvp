@@ -189,11 +189,117 @@ function SectionBody({ section }: { section: DetailSection }) {
         </div>
       );
 
+    case "pitch":
+      return <FormationPitch pitch={section.pitch} />;
+
     default: {
       const _exhaustive: never = section;
       return _exhaustive;
     }
   }
+}
+
+function FormationPitch({ pitch }: { pitch: NonNullable<Extract<DetailSection, { kind: "pitch" }>["pitch"]> }) {
+  const { homeFormation, awayFormation, homePlayers, awayPlayers, homeColor, awayColor, homeName, awayName } = pitch;
+  const hc = homeColor || "#2d6a4f";
+  const ac = awayColor || "#8363f9";
+
+  // Parse formation string "4-3-3" → [4, 3, 3]
+  function parseFormation(f: string): number[] {
+    return f.split("-").map(n => parseInt(n, 10) || 0).filter(n => n > 0);
+  }
+
+  // Posicionar jugadores en una mitad de cancha (50% vertical)
+  // home juega "hacia arriba" (de abajo hacia arriba), away "hacia abajo"
+  // Cada línea del formation se posiciona a un Y% creciente desde el arquero.
+  function positionPlayers(players: Array<{ number?: string; name: string; position?: string }>, formation: string, isHome: boolean): Array<{ x: number; y: number; player: typeof players[0] }> {
+    if (players.length === 0) return [];
+    const lines = parseFormation(formation);
+    const result: Array<{ x: number; y: number; player: typeof players[0] }> = [];
+    let playerIdx = 0;
+
+    // GK siempre primero, en la línea de gol
+    if (players[0]) {
+      result.push({ x: 50, y: isHome ? 95 : 5, player: players[0] });
+      playerIdx = 1;
+    }
+
+    // Cada línea del formation: distribuir N jugadores en una fila horizontal
+    // Y va creciendo desde la defensa (cerca del arquero) hasta el ataque (cerca del mediocampo)
+    const linesCount = lines.length;
+    lines.forEach((count, lineIdx) => {
+      // Y para home: de 80% (defensa) a 55% (ataque, mediocampo)
+      // Y para away: de 20% (defensa) a 45% (ataque, mediocampo)
+      const yBase = isHome ? 80 : 20;
+      const yEnd = isHome ? 55 : 45;
+      const yRange = Math.abs(yBase - yEnd);
+      const yStep = linesCount > 1 ? yRange / (linesCount - 1) : 0;
+      const y = isHome ? yBase - lineIdx * yStep : yBase + lineIdx * yStep;
+
+      // Distribuir los N jugadores horizontalmente
+      for (let i = 0; i < count && playerIdx < players.length; i++) {
+        const x = ((i + 1) / (count + 1)) * 100;
+        result.push({ x, y, player: players[playerIdx] });
+        playerIdx++;
+      }
+    });
+
+    return result;
+  }
+
+  const homePositions = positionPlayers(homePlayers, homeFormation, true);
+  const awayPositions = positionPlayers(awayPlayers, awayFormation, false);
+
+  return (
+    <div className="koru-pitch-container">
+      <div className="koru-pitch-header">
+        <span style={{ color: hc }}>{awayName} · {awayFormation}</span>
+        <span style={{ color: ac, fontSize: 11, opacity: 0.7 }}>vs</span>
+        <span style={{ color: hc }}>{homeName} · {homeFormation}</span>
+      </div>
+      <div className="koru-pitch">
+        {/* Líneas de cancha */}
+        <div className="koru-pitch-line halfway" />
+        <div className="koru-pitch-circle" />
+        <div className="koru-pitch-box top" />
+        <div className="koru-pitch-box bottom" />
+
+        {/* Players away (arriba) */}
+        {awayPositions.map((pos, i) => (
+          <div
+            key={`away-${i}`}
+            className="koru-pitch-player away"
+            style={{
+              left: `${pos.x}%`,
+              top: `${pos.y}%`,
+              background: ac,
+            }}
+            title={`${pos.player.name}${pos.player.number ? ` #${pos.player.number}` : ""}`}
+          >
+            <span className="koru-pitch-player-num">{pos.player.number ?? ""}</span>
+            <span className="koru-pitch-player-name">{pos.player.name.split(" ").slice(-1)[0]}</span>
+          </div>
+        ))}
+
+        {/* Players home (abajo) */}
+        {homePositions.map((pos, i) => (
+          <div
+            key={`home-${i}`}
+            className="koru-pitch-player home"
+            style={{
+              left: `${pos.x}%`,
+              top: `${pos.y}%`,
+              background: hc,
+            }}
+            title={`${pos.player.name}${pos.player.number ? ` #${pos.player.number}` : ""}`}
+          >
+            <span className="koru-pitch-player-num">{pos.player.number ?? ""}</span>
+            <span className="koru-pitch-player-name">{pos.player.name.split(" ").slice(-1)[0]}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export function KoruDetailScreen({

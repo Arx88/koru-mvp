@@ -1,0 +1,88 @@
+[
+  {
+    "id": "cnt-01",
+    "ok": true,
+    "elapsed": 261,
+    "input": "cuanto falta para navidad",
+    "reply": "Cuenta regresiva · navidad Te dejé el detalle en la tarjeta.",
+    "blocks": [
+      "data_card"
+    ],
+    "tools": [
+      "calendar_reminder"
+    ],
+    "memories": 0,
+    "commitments": 0,
+    "intentOk": true,
+    "qualityScore": 10,
+    "issues": []
+  },
+  {
+    "id": "cnt-02",
+    "ok": true,
+    "elapsed": 5181,
+    "input": "cuantos dias para mi cumple",
+    "reply": "No tengo tu fecha de cumple guardada. ¿Qué día es?",
+    "blocks": [
+      "saved_record"
+    ],
+    "tools": [
+      "memory_recall"
+    ],
+    "memories": 1,
+    "commitments": 0,
+    "intentOk": true,
+    "qualityScore": 10,
+    "issues": []
+  },
+  {
+    "id": "cnt-03",
+    "ok": true,
+    "elapsed": 5182,
+    "input": "el 20 del mes q viene q dia es",
+    "reply": "El 20 de agosto de 2026 cae **jueves**.",
+    "blocks": [],
+    "tools": [],
+    "memories": 0,
+    "commitments": 0,
+    "intentOk": true,
+    "qualityScore": 6,
+    "issues": [
+      "NO_BLOCK"
+    ]
+  },
+  {
+    "id": "cnt-04",
+    "ok": true,
+    "elapsed": 309,
+    "input": "cuanto falta para fin de año",
+    "reply": "Cuenta regresiva Te dejé el detalle en la tarjeta.",
+    "blocks": [
+      "data_card"
+    ],
+    "tools": [
+      "calendar_reminder"
+    ],
+    "memories": 0,
+    "commitments": 0,
+    "intentOk": true,
+    "qualityScore": 10,
+    "issues": []
+  },
+  {
+    "id": "cnt-05",
+    "ok": true,
+    "elapsed": 5181,
+    "input": "cuantos dias pasaron desde enero",
+    "reply": "195 días (desde el 1 de enero hasta hoy, 14 de julio).",
+    "blocks": [],
+    "tools": [],
+    "memories": 0,
+    "commitments": 0,
+    "intentOk": true,
+    "qualityScore": 6,
+    "issues": [
+      "NO_BLOCK"
+    ]
+  }
+]
