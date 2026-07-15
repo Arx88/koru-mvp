@@ -1,41 +1,26 @@
 /**
- * Koru PDF export — generates real PDF files from chat sessions or individual
- * deliverables. Uses Puppeteer (headless Chromium) for true server-side PDF
- * generation that produces a downloadable .pdf file (not an HTML print view).
+ * Koru PDF export — generates branded printable HTML from chat sessions or
+ * individual deliverables. The browser's native "Save as PDF" handles the
+ * actual PDF generation via the print dialog (auto-triggered on load).
+ *
+ * Why HTML-to-PDF instead of puppeteer:
+ * - Puppeteer requires Chromium (~150MB) + system deps (libnss, libx11, etc.)
+ *   that aren't available in Render's free tier. The install would fail or
+ *   blow the 512MB memory limit.
+ * - Modern browsers produce excellent PDFs via the print dialog, with full
+ *   support for page breaks, headers/footers, and CSS @page rules.
+ * - The HTML we generate is fully branded (Koru logo, forest palette) and
+ *   renders cards with their type-specific visual treatment (match scoreboard,
+ *   comparison table, crypto sparkline, etc.) — visually equivalent to a
+ *   purpose-built PDF.
  *
  * Strategy:
  * - buildPdfHtml() renders the content as styled HTML with Koru branding.
- * - renderPdf(html) launches headless Chromium, prints to PDF, returns Buffer.
- * - Endpoint /api/koru/export-pdf streams the PDF binary as application/pdf.
+ * - Endpoint /api/koru/export-pdf returns the HTML with Content-Type: text/html.
  * - Endpoint /api/koru/export-deliverable exports a single block (plan, recipe,
  *   comparison, etc.) instead of the whole chat.
- *
- * Browser reuse: a single browser instance is launched lazily and reused
- * across requests to avoid the ~500ms launch cost on every PDF.
+ * - The frontend opens the HTML in a new tab; window.print() auto-fires on load.
  */
-
-const puppeteer = require("puppeteer");
-
-let browserPromise: Promise<any> | null = null;
-
-async function getBrowser(): Promise<any> {
-  if (!browserPromise) {
-    const p = puppeteer.launch({
-      headless: true,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage", // critical in containers with small /dev/shm
-        "--disable-gpu",
-        "--font-render-hinting=none",
-      ],
-    });
-    browserPromise = p;
-    // If launch fails, reset so next call retries.
-    p.catch(() => { browserPromise = null; });
-  }
-  return browserPromise;
-}
 
 export type PdfTurn = {
   role: "user" | "koru";
@@ -496,6 +481,20 @@ export function buildPdfHtml(req: PdfExportRequest): string {
       color: #8a9990;
       text-align: center;
     }
+    /* Print bar — only visible on screen, hidden when printing */
+    .print-bar {
+      position: sticky; top: 0; background: #fff; border-bottom: 1px solid #e3e8e5;
+      padding: 10px 0; margin-bottom: 16px; display: flex; gap: 10px; align-items: center;
+    }
+    .print-bar button {
+      background: #2d6a4f; color: white; border: none; padding: 8px 16px;
+      border-radius: 8px; font-size: 13px; cursor: pointer;
+    }
+    .print-bar button.secondary { background: #eef2ef; color: #2d4a3a; }
+    @media print {
+      .print-bar { display: none !important; }
+      body { padding: 0; }
+    }
   </style>
 </head>
 <body>
@@ -514,44 +513,31 @@ export function buildPdfHtml(req: PdfExportRequest): string {
   <div class="footer">
     Generado por Koru — koru-mvp.onrender.com · Documento confidencial
   </div>
+  <div class="print-bar no-print">
+    <button onclick="window.print()">Guardar como PDF / Imprimir</button>
+    <button class="secondary" onclick="window.close()">Cerrar</button>
+  </div>
+  <script>
+    // Auto-open print dialog on load
+    window.addEventListener('load', function() { setTimeout(function() { window.print(); }, 300); });
+  </script>
 </body>
 </html>`;
 }
 
 /**
- * Render HTML to PDF using headless Chromium. Returns a Buffer of PDF bytes.
- * Reuses a single browser instance across calls for performance.
+ * renderPdf — currently a stub that throws (we use HTML-to-PDF via browser
+ * print dialog instead of puppeteer to avoid Chromium install issues in
+ * Render's free tier). Kept for API compatibility; the server endpoint
+ * catches the throw and falls back to returning HTML.
  */
-export async function renderPdf(html: string, opts: { format?: "A4" | "Letter" } = {}): Promise<Buffer> {
-  const browser = await getBrowser();
-  const page = await browser.newPage();
-  try {
-    await page.setContent(html, { waitUntil: "networkidle0", timeout: 30_000 });
-    const pdfBuffer = await page.pdf({
-      format: opts.format || "A4",
-      printBackground: true,
-      margin: { top: "22mm", right: "18mm", bottom: "26mm", left: "18mm" },
-      displayHeaderFooter: true,
-      headerTemplate: `<div></div>`,
-      footerTemplate: `
-        <div style="font-size: 9px; color: #8a9990; width: 100%; text-align: center; padding: 0 18mm;">
-          Koru · Página <span class="pageNumber"></span> de <span class="totalPages"></span>
-        </div>
-      `,
-    });
-    return Buffer.from(pdfBuffer);
-  } finally {
-    await page.close();
-  }
+export async function renderPdf(_html: string, _opts: { format?: "A4" | "Letter" } = {}): Promise<Buffer> {
+  throw new Error("renderPdf not available — using HTML-to-PDF browser fallback");
 }
 
 /**
- * Close the shared browser instance (useful for graceful shutdown in tests).
+ * closePdfBrowser — no-op (no browser instance to close).
  */
 export async function closePdfBrowser(): Promise<void> {
-  if (browserPromise) {
-    const browser = await browserPromise;
-    await browser.close();
-    browserPromise = null;
-  }
+  // no-op
 }

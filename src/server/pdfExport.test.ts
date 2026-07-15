@@ -319,12 +319,12 @@ describe("pdfExport module", () => {
       expect(html).toContain("koru-mvp.onrender.com");
     });
 
-    it("includes displayHeaderFooter-compatible template (for puppeteer)", () => {
-      // Just verify the HTML structure is suitable for puppeteer — no window.print()
-      // which would be useless since we're rendering server-side.
+    it("includes auto-print script (window.print on load)", () => {
+      // v2 keeps the HTML-to-PDF browser-fallback approach: the HTML auto-opens
+      // the print dialog on load so the user can save as PDF in 1 click.
       const html = buildPdfHtml(sampleTurns);
-      expect(html).not.toContain("window.print()");
-      expect(html).not.toContain("window.close()");
+      expect(html).toContain("window.print()");
+      expect(html).toContain("print-bar");
     });
   });
 });

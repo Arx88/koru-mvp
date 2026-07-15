@@ -1,11 +1,5 @@
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
-  get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
-}) : x)(function(x) {
-  if (typeof require !== "undefined") return require.apply(this, arguments);
-  throw Error('Dynamic require of "' + x + '" is not supported');
-});
 var __esm = (fn, res, err) => function __init() {
   if (err) throw err[0];
   try {
@@ -13303,26 +13297,6 @@ __export(pdfExport_exports, {
   closePdfBrowser: () => closePdfBrowser,
   renderPdf: () => renderPdf
 });
-async function getBrowser() {
-  if (!browserPromise) {
-    const p = puppeteer.launch({
-      headless: true,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        // critical in containers with small /dev/shm
-        "--disable-gpu",
-        "--font-render-hinting=none"
-      ]
-    });
-    browserPromise = p;
-    p.catch(() => {
-      browserPromise = null;
-    });
-  }
-  return browserPromise;
-}
 function esc(value) {
   if (value === null || value === void 0) return "";
   return String(value).replace(/[&<>"']/g, (c) => ESC[c] ?? c);
@@ -13690,6 +13664,20 @@ function buildPdfHtml(req) {
       color: #8a9990;
       text-align: center;
     }
+    /* Print bar \u2014 only visible on screen, hidden when printing */
+    .print-bar {
+      position: sticky; top: 0; background: #fff; border-bottom: 1px solid #e3e8e5;
+      padding: 10px 0; margin-bottom: 16px; display: flex; gap: 10px; align-items: center;
+    }
+    .print-bar button {
+      background: #2d6a4f; color: white; border: none; padding: 8px 16px;
+      border-radius: 8px; font-size: 13px; cursor: pointer;
+    }
+    .print-bar button.secondary { background: #eef2ef; color: #2d4a3a; }
+    @media print {
+      .print-bar { display: none !important; }
+      body { padding: 0; }
+    }
   </style>
 </head>
 <body>
@@ -13708,44 +13696,26 @@ function buildPdfHtml(req) {
   <div class="footer">
     Generado por Koru \u2014 koru-mvp.onrender.com \xB7 Documento confidencial
   </div>
+  <div class="print-bar no-print">
+    <button onclick="window.print()">Guardar como PDF / Imprimir</button>
+    <button class="secondary" onclick="window.close()">Cerrar</button>
+  </div>
+  <script>
+    // Auto-open print dialog on load
+    window.addEventListener('load', function() { setTimeout(function() { window.print(); }, 300); });
+  </script>
 </body>
 </html>`;
 }
-async function renderPdf(html, opts = {}) {
-  const browser = await getBrowser();
-  const page = await browser.newPage();
-  try {
-    await page.setContent(html, { waitUntil: "networkidle0", timeout: 3e4 });
-    const pdfBuffer = await page.pdf({
-      format: opts.format || "A4",
-      printBackground: true,
-      margin: { top: "22mm", right: "18mm", bottom: "26mm", left: "18mm" },
-      displayHeaderFooter: true,
-      headerTemplate: `<div></div>`,
-      footerTemplate: `
-        <div style="font-size: 9px; color: #8a9990; width: 100%; text-align: center; padding: 0 18mm;">
-          Koru \xB7 P\xE1gina <span class="pageNumber"></span> de <span class="totalPages"></span>
-        </div>
-      `
-    });
-    return Buffer.from(pdfBuffer);
-  } finally {
-    await page.close();
-  }
+async function renderPdf(_html, _opts = {}) {
+  throw new Error("renderPdf not available \u2014 using HTML-to-PDF browser fallback");
 }
 async function closePdfBrowser() {
-  if (browserPromise) {
-    const browser = await browserPromise;
-    await browser.close();
-    browserPromise = null;
-  }
 }
-var puppeteer, browserPromise, ESC;
+var ESC;
 var init_pdfExport = __esm({
   "src/server/pdfExport.ts"() {
     "use strict";
-    puppeteer = __require("puppeteer");
-    browserPromise = null;
     ESC = {
       "&": "&amp;",
       "<": "&lt;",
