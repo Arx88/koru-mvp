@@ -617,10 +617,16 @@ function UiBlockCardA({ item }: { item: KoruTurnItem }) {
 
 function secondaryActions(item: KoruTurnItem): Array<{ label: string; icon: LucideIcon; onClick?: () => void }> {
   if (item.actionKind === "web_research" || item.actionKind === "world_signal") {
-    const firstUrl = item.sources?.[0]?.url;
-    return firstUrl
-      ? [{ label: "Abrir fuente", icon: ExternalLink, onClick: () => window.open(firstUrl, "_blank", "noopener,noreferrer") }]
-      : [];
+    // 🔴 FIX: mostrar TODAS las fuentes, no solo la primera
+    const sources = item.sources ?? [];
+    if (sources.length === 0) return [];
+    if (sources.length === 1) {
+      return [{ label: "Abrir fuente", icon: ExternalLink, onClick: () => window.open(sources[0].url, "_blank", "noopener,noreferrer") }];
+    }
+    // Múltiples fuentes: botón que abre la primera + contador
+    return [
+      { label: `Ver ${sources.length} fuentes`, icon: ExternalLink, onClick: () => window.open(sources[0].url, "_blank", "noopener,noreferrer") },
+    ];
   }
   return [];
 }

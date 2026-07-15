@@ -574,14 +574,30 @@ function comparison(b: Of<"comparison">): KoruPresentation {
       empty: { reason: "No tengo opciones para comparar todavía. Pedime algo específico.", icon: "search_off" },
     };
   }
+  // 🔴 v2: métricas enriquecidas — opciones + fuentes + mejor opción
+  const metrics: HeroMetric[] = [
+    { icon: "format_list_numbered", label: "Opciones", value: String(items.length), color: A.pink.color },
+  ];
+  if (b.sources?.length) {
+    metrics.push({ icon: "fact_check", label: "Fuentes", value: String(b.sources.length), color: A.purple.color });
+  }
+  if (topIdx >= 0 && items[topIdx]) {
+    const top = items[topIdx];
+    metrics.push({ icon: "emoji_events", label: "Mejor opción", value: top.title.length > 15 ? top.title.slice(0, 12) + "…" : top.title, color: A.emerald.color });
+  }
+  // 🔴 v2: desc con recomendación o preview del top item
+  const topItem = topIdx >= 0 ? items[topIdx] : items[0];
+  const heroDesc = b.recommendation
+    ?? (topItem ? `Mejor: ${topItem.title}${topItem.price ? ` · ${topItem.price}` : ""}${topItem.score != null ? ` · ★${topItem.score}` : ""}` : `${items.length} opciones analizadas`);
+
   return {
     hero: {
       kicker: "Tu Comparación",
       title: heroTitleFrom(b.title, "Opciones"),
-      desc: b.recommendation ?? `${items.length} opciones analizadas`,
+      desc: heroDesc,
       icon: "balance",
       accent: A.pink,
-      metrics: [{ icon: "format_list_numbered", label: "Opciones", value: String(items.length), color: A.pink.color }],
+      metrics: metrics.slice(0, 3),
     },
     detail: {
       title: b.title || "Comparación",
