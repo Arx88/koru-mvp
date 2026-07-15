@@ -142,11 +142,24 @@ function ListeningBubble({ interimText }: { interimText: string }) {
 // Incluye chips de fases visuales (como en el demo pantalla 2):
 // ✓ Entendí el pedido | ✓ Busqué 4 fuentes | ● Comparando datos | Redactar informe
 const WORKING_COPY: Partial<Record<AgentActivityKind, { title: string; subtitle: string }>> = {
-  planning: { title: "Trabajando en tu plan...", subtitle: "Esto tomara solo unos segundos ✨" },
-  searching: { title: "Armando tu informe...", subtitle: "Esto toma solo unos segundos ✨" },
-  writing: { title: "Preparando tu documento...", subtitle: "Esto tomara solo unos segundos ✨" },
-  comparing: { title: "Comparando opciones...", subtitle: "Esto tomara solo unos segundos ✨" },
+  planning: { title: "Tejiendo tu plan…", subtitle: "Cada nudo en su lugar ✨" },
+  searching: { title: "Saliendo a explorar…", subtitle: "Vuelvo con lo que encuentre 🌎" },
+  writing: { title: "Escribiendo con calma…", subtitle: "Palabra por palabra ✍️" },
+  comparing: { title: "Cruzando opciones…", subtitle: "Pesando lo que importa 🤝" },
 };
+
+// 🔴 Voz mágica para el motto inferior del WorkingPanel.
+// Rota aleatoriamente para que se sienta vivo, no mecánico.
+const MAGIC_MOTTOS = [
+  "Cada paso cuenta. Seguís bien.",
+  "Me llevo tu pedido en serio 🌿",
+  "Sin apuro, pero sin pausa.",
+  "Lo que vale no se apura.",
+  "Acá estamos, dale que sale.",
+  "El camino se hace caminando.",
+  "Ya lo tengo casi, aguantá.",
+  "Tu paciencia se nota. Gracias.",
+];
 
 // Mapeo de fase interna → label visible + icono Material Symbols.
 // El demo muestra 4 chips: Entendí, Busqué, Comparando, Redactar.
@@ -253,12 +266,19 @@ function WorkingPanel({ phase, kind, deliverable }: { phase: string | null; kind
   // 🔴 FIX UX: usar chips dinámicos según el tipo de tarea
   const taskChips = getTaskPhases(deliverable?.kicker, kind);
 
+  // 🔴 Voz mágica — el título del deliverable no dice "Trabajando en..." (frío),
+  // sino que abraza con una frase cálida + nombre del deliverable.
+  const kicker = deliverable?.kicker?.toLowerCase() ?? "";
+  const friendlyTitle = deliverable
+    ? `Sumergiéndome en ${kicker.startsWith("tu") ? kicker : `tu ${kicker}`}…`
+    : null;
+
   const copy = deliverable
     ? {
-        title: `Trabajando en ${deliverable.kicker.toLowerCase().startsWith("tu") ? deliverable.kicker.toLowerCase() : `tu ${deliverable.kicker.toLowerCase()}`}...`,
-        subtitle: deliverable.phaseLabel ?? "Esto tomara solo unos segundos ✨",
+        title: friendlyTitle ?? "Trabajando…",
+        subtitle: deliverable.phaseLabel ?? "Me llevo esto en serio 🌿",
       }
-    : (kind && WORKING_COPY[kind]) ?? { title: "Trabajando...", subtitle: "Esto tomara solo unos segundos ✨" };
+    : (kind && WORKING_COPY[kind]) ?? { title: "Trabajando…", subtitle: "Me llevo esto en serio 🌿" };
 
   const phaseIdx = phase ? (PHASE_ORDER as readonly string[]).indexOf(phase) : -1;
   const chips = taskChips.map((chip, i) => {
@@ -267,6 +287,10 @@ function WorkingPanel({ phase, kind, deliverable }: { phase: string | null; kind
     if (i === phaseIdx) return { ...chip, status: "active" as const };
     return { ...chip, status: "pending" as const };
   });
+
+  // 🔴 Motto mágico rotativo — se elige uno al azar al render para que se
+  // sienta vivo, no como una frase repetida mecánicamente.
+  const motto = MAGIC_MOTTOS[Math.floor(Math.random() * MAGIC_MOTTOS.length)];
 
   return (
     <section className="koru-working-panel" role="status" aria-live="polite">
@@ -311,7 +335,7 @@ function WorkingPanel({ phase, kind, deliverable }: { phase: string | null; kind
         <svg fill="none" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
           <path d="M12 2L15 9L22 12L15 15L12 22L9 15L2 12L9 9L12 2Z" fill="currentColor" />
         </svg>
-        Cada paso cuenta, sigue asi
+        {motto}
         <svg fill="currentColor" height="18" viewBox="0 0 24 24" width="18" xmlns="http://www.w3.org/2000/svg">
           <path d="M12 21.35L10.55 20.03C5.4 15.36 2 12.28 2 8.5C2 5.42 4.42 3 7.5 3C9.24 3 10.91 3.81 12 5.09C13.09 3.81 14.76 3 16.5 3C19.58 3 22 5.42 22 8.5C22 12.28 18.6 15.36 13.45 20.04L12 21.35Z" />
         </svg>

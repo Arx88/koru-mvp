@@ -25,12 +25,76 @@ export type AgentActivity = {
 const DEEP_INTENT_RE =
   /\b(informe|informes|investiga a fondo|investigacion a fondo|deep research|resumen completo|documento completo|propuesta completa|analisis completo|reporte completo|dossier)\b/i;
 
-function withDepth(lower: string, kind: AgentActivityKind, label: string): AgentActivity {
+// 🔴 Voz mágica de Koru: cada kind tiene un set de mensajes cortos, cálidos,
+// variados. Rotamos aleatoriamente para que no se sienta repetitivo. La idea
+// es que Koru suene como un compañero curioso que se sumerge en la tarea, no
+// como un bot que "procesa" fríamente.
+const MAGIC_LABELS: Record<AgentActivityKind, string[]> = {
+  thinking: [
+    "Mmm, déjame ver…",
+    "Lo estoy oliendo 🌿",
+    "Algo me dice que esto te importa.",
+    "Me meto en el tema un segundo.",
+    "Te escucho. Procesando.",
+  ],
+  saving: [
+    "Lo guardo donde corresponde ✨",
+    "Anotado, no se pierde.",
+    "Lo pongo a salvo en tu jardín.",
+    "Lo dejo guardadito para vos.",
+    "Toma, lo dejo anclado acá.",
+  ],
+  planning: [
+    "Busco el primer paso real.",
+    "Tejo un plan que puedas seguir.",
+    "Ordeno el desorden, dame un respiro.",
+    "Busco por dónde empezar.",
+    "Lo acomodo en pasos chiquitos.",
+  ],
+  searching: [
+    "Voy a ver qué encuentro 🌎",
+    "Salgo a explorar fuentes.",
+    "Meto la nariz en internet…",
+    "A ver qué dicen por ahí.",
+    "Recolecto señales y vuelvo.",
+  ],
+  comparing: [
+    "Pongo todo en la mesa y comparo.",
+    "Cruzo opciones, vemos cuál pega.",
+    "Los pongo lado a lado 🤝",
+    "Pesamos pros y contras.",
+    "Separo el ruido de lo importante.",
+  ],
+  writing: [
+    "Lo escribo con calma ✍️",
+    "Redacto algo que valga la pena.",
+    "Lo armo palabra por palabra.",
+    "Le doy forma, dame un momento.",
+    "Te lo dejo prolijo.",
+  ],
+  asking: [
+    "Necesito una pista tuya…",
+    "Una pregunta antes de seguir.",
+    "Aclarame algo y sigo.",
+    "Casi. Confirmame un detalle.",
+    "Para no equivocarme: ¿…?",
+  ],
+};
+
+function pickMagic(kind: AgentActivityKind): string {
+  const pool = MAGIC_LABELS[kind] ?? MAGIC_LABELS.thinking;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function withDepth(lower: string, kind: AgentActivityKind, fallbackLabel: string): AgentActivity {
   const deep = DEEP_INTENT_RE.test(lower) || kind === "planning";
+  const label = deep && kind === "searching"
+    ? "Es un tema para meterse a fondo. Dame unos segundos."
+    : pickMagic(kind) || fallbackLabel;
   return {
     kind,
     depth: deep ? "deep" : "quick",
-    label: deep && kind === "searching" ? "Es un tema para investigar a fondo. Dame unos segundos." : label,
+    label,
   };
 }
 
@@ -53,21 +117,21 @@ function looksLikeLocation(text: string): boolean {
 export function inferActivity(input: string): AgentActivity {
   const lower = foldAccents(input);
   if (/\b(clima|temperatura|lluvia|trafico|noticias|buscar|busca|buscame|investiga|internet|web|deep research)\b/i.test(lower)) {
-    return withDepth(lower, "searching", "Claro. Lo miro.");
+    return withDepth(lower, "searching", "Voy a ver qué encuentro.");
   }
   if (/\b(comparar|compara|precio|comprar|producto|entrega|devoluciones)\b/i.test(lower)) {
-    return withDepth(lower, "comparing", "Dale. Comparo lo importante.");
+    return withDepth(lower, "comparing", "Comparo lo importante.");
   }
   if (/\b(recordame|recuerdame|acordame|anota|guarda|captura|idea|gaste|pague|tengo .*en casa)\b/i.test(lower)) {
     return withDepth(lower, "saving", "Lo guardo bien.");
   }
   if (/\b(no se que hacer|que hago|por donde empiezo|plan|organiza|ordena|pendiente|pendientes)\b/i.test(lower)) {
-    return withDepth(lower, "planning", "Voy a buscar el primer paso real.");
+    return withDepth(lower, "planning", "Busco el primer paso real.");
   }
   if (/\b(mail|correo|mensaje|borrador|documento|informe|resumen|presentacion|propuesta)\b/i.test(lower)) {
-    return withDepth(lower, "writing", "Lo preparo con calma.");
+    return withDepth(lower, "writing", "Lo escribo con calma.");
   }
-  return withDepth(lower, "thinking", "Pensando el siguiente paso.");
+  return withDepth(lower, "thinking", "Mmm, déjame ver…");
 }
 
 export function rewritePendingFollowUp(text: string, pendingQuestionText: string): string {
