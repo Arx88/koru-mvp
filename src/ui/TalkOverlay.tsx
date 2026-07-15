@@ -627,53 +627,92 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
     return () => window.removeEventListener("koru-save-deliverable", onSaveDeliverable as EventListener);
   }, []);
 
-  // 🔴 PDF export — escucha el evento disparado por el detail screen,
-  // envía los turnos actuales al backend y abre el HTML imprimible en una nueva pestaña.
+  // 🔴 PDF export v2 — escucha el evento disparado por el detail screen,
+  // envía los turnos al backend que ahora devuelve un PDF binario real (puppeteer),
+  // y lo descarga automáticamente como archivo .pdf.
+  // Dos modos: 'chat' (toda la conversación) o 'deliverable' (solo el bloque actual).
   useEffect(() => {
+    const downloadPdf = async (endpoint: string, payload: any, filename: string) => {
+      const resp = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const contentType = resp.headers.get("Content-Type") || "";
+      // Si el backend devolvió PDF binario, descargamos directo
+      if (contentType.includes("application/pdf")) {
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        return;
+      }
+      // Fallback: el backend devolvió HTML (puppeteer falló) — abrir en nueva pestaña
+      const html = await resp.text();
+      const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const w = window.open(url, "_blank");
+      if (!w) window.location.href = url;
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    };
+
     const onExportPdf = async (e: Event) => {
       const detail = (e as CustomEvent).detail;
       const title = detail?.blockTitle || "Conversación con Koru";
-      // Convertir chatTurns al formato PdfTurn esperado por el backend.
-      const turns = chatTurns
-        .filter((t) => t.text && t.text.trim().length > 0)
-        .slice(-50) // último 50 turnos para no saturar el PDF
-        .map((t) => ({
-          role: t.role === "koru" ? "koru" : "user",
-          text: t.text,
-          createdAt: t.createdAt,
-          items: t.items?.map((it) => ({
-            type: it.uiBlock?.type,
-            title: (it.uiBlock as any)?.title,
-            subtitle: (it.uiBlock as any)?.subtitle,
-            note: (it.uiBlock as any)?.note,
-            items: (it.uiBlock as any)?.items,
-            sources: (it.uiBlock as any)?.sources,
-            summaryItems: (it.uiBlock as any)?.summaryItems,
-          })),
-        }));
+      const blockData = detail?.blockData;
       try {
-        const resp = await fetch("/api/koru/export-pdf", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        // 🔴 Si viene blockData, exportamos SOLO ese deliverable (modo limpio para compartir)
+        if (blockData) {
+          await downloadPdf("/api/koru/export-deliverable", {
+            block: blockData,
             title,
             userName,
             language,
-            turns,
             generatedAt: new Date().toISOString(),
-          }),
-        });
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const html = await resp.text();
-        const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-        const url = URL.createObjectURL(blob);
-        const w = window.open(url, "_blank");
-        if (!w) {
-          // Pop-up blocked — fallback: redirect current tab (less ideal but works)
-          window.location.href = url;
+          }, `koru-${(title || "deliverable").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40)}-${Date.now()}.pdf`);
+          return;
         }
-        // Revoke after 60s (enough for the print dialog)
-        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+        // 🔴 Si no, exportamos la conversación completa (últimos 50 turns)
+        const turns = chatTurns
+          .filter((t) => t.text && t.text.trim().length > 0)
+          .slice(-50)
+          .map((t) => ({
+            role: t.role === "koru" ? "koru" : "user",
+            text: t.text,
+            createdAt: t.createdAt,
+            items: t.items?.map((it) => ({
+              type: it.uiBlock?.type,
+              title: (it.uiBlock as any)?.title,
+              subtitle: (it.uiBlock as any)?.subtitle,
+              note: (it.uiBlock as any)?.note,
+              items: (it.uiBlock as any)?.items,
+              sources: (it.uiBlock as any)?.sources,
+              summaryItems: (it.uiBlock as any)?.summaryItems,
+              homeTeam: (it.uiBlock as any)?.homeTeam,
+              awayTeam: (it.uiBlock as any)?.awayTeam,
+              homeScore: (it.uiBlock as any)?.homeScore,
+              awayScore: (it.uiBlock as any)?.awayScore,
+              status: (it.uiBlock as any)?.status,
+              timeline: (it.uiBlock as any)?.timeline,
+              items2: (it.uiBlock as any)?.items2 || (it.uiBlock as any)?.items,
+              price: (it.uiBlock as any)?.price,
+              change24h: (it.uiBlock as any)?.change24h,
+              sparkline: (it.uiBlock as any)?.sparkline,
+            })),
+          }));
+        await downloadPdf("/api/koru/export-pdf", {
+          title,
+          userName,
+          language,
+          turns,
+          generatedAt: new Date().toISOString(),
+        }, `koru-conversacion-${Date.now()}.pdf`);
       } catch (err) {
         console.error("[export-pdf]", err);
         alert("No se pudo generar el PDF. Intentá de nuevo.");

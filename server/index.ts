@@ -440,7 +440,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // ── /api/koru/export-pdf — export chat session to printable HTML/PDF ──
+  // ── /api/koru/export-pdf — export chat session to real PDF (puppeteer) ──
   if (url === "/api/koru/export-pdf" && req.method === "POST") {
     try {
       const raw = await readBody(req);
@@ -449,22 +449,91 @@ const server = http.createServer(async (req, res) => {
         sendJson(res, 400, { error: "Falta 'turns' en el payload" });
         return;
       }
-      const { buildPdfHtml } = await import("../src/server/pdfExport.ts");
+      const { buildPdfHtml, renderPdf } = await import("../src/server/pdfExport.ts");
       const html = buildPdfHtml({
         title: body.title || "Conversación con Koru",
         userName: body.userName || "",
         language: body.language === "en" ? "en" : "es",
         turns: body.turns,
         generatedAt: body.generatedAt || new Date().toISOString(),
+        deliverableOnly: !!body.deliverableOnly,
+        blockType: body.blockType,
       });
-      res.writeHead(200, {
-        "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "no-store",
-      });
-      res.end(html);
+      // 🔴 v2: render to real PDF binary via headless Chromium.
+      // Falls back to HTML if puppeteer fails (e.g. sandbox issue).
+      try {
+        const pdfBuffer = await renderPdf(html, { format: body.format === "Letter" ? "Letter" : "A4" });
+        res.writeHead(200, {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="koru-${Date.now()}.pdf"`,
+          "Cache-Control": "no-store",
+          "Content-Length": pdfBuffer.length,
+        });
+        res.end(pdfBuffer);
+      } catch (pdfErr: any) {
+        console.error("[export-pdf] puppeteer failed, returning HTML fallback:", pdfErr?.message);
+        res.writeHead(200, {
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "no-store",
+        });
+        res.end(html);
+      }
     } catch (err: any) {
       console.error("[export-pdf]", err?.message);
       sendJson(res, 500, { error: err?.message ?? "Error generando PDF" });
+    }
+    return;
+  }
+
+  // ── /api/koru/export-deliverable — export a SINGLE block as PDF ──
+  // Body: { block: UiBlock, userName?, language?, title? }
+  // Renders just that one deliverable (plan / recipe / comparison / etc.)
+  // without the surrounding chat — much cleaner for sharing.
+  if (url === "/api/koru/export-deliverable" && req.method === "POST") {
+    try {
+      const raw = await readBody(req);
+      const body = JSON.parse(raw || "{}");
+      if (!body.block || typeof body.block !== "object") {
+        sendJson(res, 400, { error: "Falta 'block' en el payload" });
+        return;
+      }
+      const { buildPdfHtml, renderPdf } = await import("../src/server/pdfExport.ts");
+      // Wrap the single block as a "turn" with one item — deliverableOnly mode
+      // will render only the items, ignoring the turn wrapper.
+      const turns = [{
+        role: "koru" as const,
+        text: "",
+        items: [body.block],
+      }];
+      const html = buildPdfHtml({
+        title: body.title || body.block.title || "Informe de Koru",
+        userName: body.userName || "",
+        language: body.language === "en" ? "en" : "es",
+        turns,
+        generatedAt: body.generatedAt || new Date().toISOString(),
+        deliverableOnly: true,
+        blockType: body.block.type,
+      });
+      try {
+        const pdfBuffer = await renderPdf(html);
+        res.writeHead(200, {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="koru-deliverable-${Date.now()}.pdf"`,
+          "Cache-Control": "no-store",
+          "Content-Length": pdfBuffer.length,
+        });
+        res.end(pdfBuffer);
+      } catch (pdfErr: any) {
+        console.error("[export-deliverable] puppeteer failed, returning HTML:", pdfErr?.message);
+        res.writeHead(200, {
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "no-store",
+        });
+        res.end(html);
+      }
+    } catch (err: any) {
+      console.error("[export-deliverable]", err?.message);
+      sendJson(res, 500, { error: err?.message ?? "Error generando PDF del deliverable" });
     }
     return;
   }

@@ -1,5 +1,11 @@
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
+var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
+  get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
+}) : x)(function(x) {
+  if (typeof require !== "undefined") return require.apply(this, arguments);
+  throw Error('Dynamic require of "' + x + '" is not supported');
+});
 var __esm = (fn, res, err) => function __init() {
   if (err) throw err[0];
   try {
@@ -13293,8 +13299,30 @@ var init_proactiveEngine = __esm({
 // src/server/pdfExport.ts
 var pdfExport_exports = {};
 __export(pdfExport_exports, {
-  buildPdfHtml: () => buildPdfHtml
+  buildPdfHtml: () => buildPdfHtml,
+  closePdfBrowser: () => closePdfBrowser,
+  renderPdf: () => renderPdf
 });
+async function getBrowser() {
+  if (!browserPromise) {
+    const p = puppeteer.launch({
+      headless: true,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        // critical in containers with small /dev/shm
+        "--disable-gpu",
+        "--font-render-hinting=none"
+      ]
+    });
+    browserPromise = p;
+    p.catch(() => {
+      browserPromise = null;
+    });
+  }
+  return browserPromise;
+}
 function esc(value) {
   if (value === null || value === void 0) return "";
   return String(value).replace(/[&<>"']/g, (c) => ESC[c] ?? c);
@@ -13315,50 +13343,153 @@ function formatTime(iso) {
   }
 }
 function renderItem(item) {
-  const parts = [];
-  if (item.title) parts.push(`<div class="item-title">${esc(item.title)}</div>`);
-  if (item.subtitle) parts.push(`<div class="item-subtitle">${esc(item.subtitle)}</div>`);
-  if (item.note) parts.push(`<div class="item-note">${esc(item.note)}</div>`);
-  if (Array.isArray(item.items) && item.items.length > 0) {
-    parts.push('<ul class="item-list">');
+  const type = item.type || "generic";
+  const titleHtml = item.title ? `<div class="card-title">${esc(item.title)}</div>` : "";
+  const subtitleHtml = item.subtitle ? `<div class="card-subtitle">${esc(item.subtitle)}</div>` : "";
+  const noteHtml = item.note ? `<div class="card-note">${esc(item.note)}</div>` : "";
+  const accentByType = {
+    weather: "#3b82f6",
+    plan: "#2d6a4f",
+    comparison: "#8b5cf6",
+    crypto_portfolio: "#f59e0b",
+    live_match: "#ef4444",
+    match_timeline: "#ef4444",
+    recipe: "#ec4899",
+    movie_info: "#6366f1",
+    book_info: "#0ea5e9",
+    research_sources: "#14b8a6",
+    shopping_list: "#84cc16",
+    smart_checklist: "#14b8a6",
+    forex: "#a855f7",
+    route_timeline: "#06b6d4"
+  };
+  const accent = accentByType[type] || "#5a6b62";
+  let bodyHtml = "";
+  if (Array.isArray(item.items) && item.items.length > 0 && (type === "plan" || type === "smart_checklist")) {
+    bodyHtml += `<ul class="plan-list">`;
     for (const li of item.items) {
       const time = li.time ? `<span class="li-time">${esc(li.time)}</span>` : "";
-      const priority = li.priority ? `<span class="li-prio">${esc(li.priority)}</span>` : "";
+      const priority = li.priority ? `<span class="li-prio priority-${esc(li.priority.toLowerCase())}">${esc(li.priority)}</span>` : "";
       const duration = li.durationMinutes ? `<span class="li-dur">${esc(li.durationMinutes)} min</span>` : "";
-      parts.push(`<li>${time}<span class="li-title">${esc(li.title ?? "")}</span>${priority}${duration}</li>`);
+      bodyHtml += `<li>${time}<span class="li-title">${esc(li.title ?? "")}</span>${priority}${duration}</li>`;
     }
-    parts.push("</ul>");
+    bodyHtml += `</ul>`;
   }
   if (Array.isArray(item.summaryItems) && item.summaryItems.length > 0) {
-    parts.push('<table class="item-table">');
+    bodyHtml += `<div class="summary-grid">`;
     for (const si of item.summaryItems) {
-      parts.push(`<tr><td>${esc(si.label ?? "")}</td><td>${esc(si.value ?? "")}</td></tr>`);
+      bodyHtml += `<div class="summary-cell"><div class="summary-label">${esc(si.label ?? "")}</div><div class="summary-value">${esc(si.value ?? "")}</div></div>`;
     }
-    parts.push("</table>");
+    bodyHtml += `</div>`;
+  }
+  if (type === "live_match" && (item.homeTeam || item.awayTeam)) {
+    const home = esc(item.homeTeam || "Local");
+    const away = esc(item.awayTeam || "Visitante");
+    const hs = item.homeScore != null ? esc(item.homeScore) : "-";
+    const as = item.awayScore != null ? esc(item.awayScore) : "-";
+    const status = item.status ? `<div class="match-status">${esc(item.status)}</div>` : "";
+    bodyHtml += `
+      <div class="match-scoreboard">
+        <div class="match-team">${home}</div>
+        <div class="match-score">${hs} <span class="match-vs">-</span> ${as}</div>
+        <div class="match-team">${away}</div>
+      </div>
+      ${status}
+    `;
+    if (Array.isArray(item.timeline) && item.timeline.length > 0) {
+      bodyHtml += `<ul class="match-timeline">`;
+      for (const ev of item.timeline) {
+        bodyHtml += `<li><span class="ev-minute">${esc(ev.minute || "")}</span> ${esc(ev.event || "")}</li>`;
+      }
+      bodyHtml += `</ul>`;
+    }
+  }
+  if (type === "comparison" && Array.isArray(item.items2) && item.items2.length > 0) {
+    bodyHtml += `<table class="comparison-table"><thead><tr><th>Producto</th><th>Precio</th><th>Rating</th></tr></thead><tbody>`;
+    for (const p of item.items2) {
+      const stars = p.rating ? "\u2605".repeat(Math.round(p.rating)) + "\u2606".repeat(5 - Math.round(p.rating)) : "";
+      bodyHtml += `<tr><td>${esc(p.name || "")}</td><td>${esc(p.price || "-")}</td><td class="stars">${stars}</td></tr>`;
+      if (p.pros?.length || p.cons?.length) {
+        bodyHtml += `<tr class="pros-cons"><td colspan="3">`;
+        if (p.pros?.length) bodyHtml += `<div class="pros">\u2713 ${p.pros.map(esc).join(" \xB7 ")}</div>`;
+        if (p.cons?.length) bodyHtml += `<div class="cons">\u2717 ${p.cons.map(esc).join(" \xB7 ")}</div>`;
+        bodyHtml += `</td></tr>`;
+      }
+    }
+    bodyHtml += `</tbody></table>`;
+  }
+  if (type === "crypto_portfolio" && Array.isArray(item.sparkline) && item.sparkline.length > 1) {
+    const w = 200, h = 40;
+    const max = Math.max(...item.sparkline);
+    const min = Math.min(...item.sparkline);
+    const range = max - min || 1;
+    const points = item.sparkline.map((v, i) => {
+      const x = i / (item.sparkline.length - 1) * w;
+      const y = h - (v - min) / range * h;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(" ");
+    const changeColor = (item.change24h ?? 0) >= 0 ? "#10b981" : "#ef4444";
+    bodyHtml += `
+      <div class="crypto-card">
+        ${item.price != null ? `<div class="crypto-price" style="color: ${changeColor}">$${esc(item.price.toLocaleString())}</div>` : ""}
+        ${item.change24h != null ? `<div class="crypto-change" style="color: ${changeColor}">${item.change24h >= 0 ? "+" : ""}${esc(item.change24h)}%</div>` : ""}
+        <svg class="sparkline" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
+          <polyline points="${points}" fill="none" stroke="${changeColor}" stroke-width="1.5" />
+        </svg>
+      </div>
+    `;
   }
   if (Array.isArray(item.sources) && item.sources.length > 0) {
-    parts.push('<div class="item-sources"><strong>Fuentes:</strong><ul>');
+    bodyHtml += `<div class="card-sources"><strong>Fuentes:</strong><ul>`;
     for (const s of item.sources) {
-      parts.push(`<li>${esc(s.title || s.url || "")}${s.url ? ` \u2014 <a href="${esc(s.url)}">${esc(s.url)}</a>` : ""}</li>`);
+      bodyHtml += `<li>${esc(s.title || s.url || "")}${s.url ? ` \u2014 <a href="${esc(s.url)}">${esc(s.url)}</a>` : ""}</li>`;
     }
-    parts.push("</ul></div>");
+    bodyHtml += `</ul></div>`;
   }
-  return parts.join("");
+  const typeLabel = {
+    weather: "Clima",
+    plan: "Plan",
+    comparison: "Comparativa",
+    crypto_portfolio: "Crypto",
+    live_match: "Partido",
+    match_timeline: "Fixture",
+    recipe: "Receta",
+    movie_info: "Pel\xEDcula",
+    book_info: "Libro",
+    research_sources: "B\xFAsqueda",
+    shopping_list: "Lista",
+    smart_checklist: "Checklist",
+    forex: "Divisas",
+    route_timeline: "Ruta"
+  };
+  const badge = typeLabel[type] ? `<span class="type-badge" style="background: ${accent}">${typeLabel[type]}</span>` : "";
+  return `
+    <div class="deliverable-card" style="border-left-color: ${accent}">
+      <div class="card-header">${badge}${titleHtml}</div>
+      ${subtitleHtml}
+      ${noteHtml}
+      <div class="card-body">${bodyHtml}</div>
+    </div>
+  `;
 }
 function renderTurn(turn) {
   const role = turn.role === "user" ? "user" : "koru";
   const roleLabel = turn.role === "user" ? "T\xFA" : "Koru";
   const time = formatTime(turn.createdAt);
   const timeHtml = time ? `<span class="turn-time">${time}</span>` : "";
+  const avatarHtml = turn.role === "koru" ? `<div class="turn-avatar koru-avatar">\u{1F33F}</div>` : `<div class="turn-avatar user-avatar">\u{1F464}</div>`;
   const itemsHtml = Array.isArray(turn.items) && turn.items.length > 0 ? `<div class="turn-items">${turn.items.map(renderItem).join("")}</div>` : "";
   return `
     <div class="turn turn-${role}">
-      <div class="turn-header">
-        <span class="turn-role">${roleLabel}</span>
-        ${timeHtml}
+      ${avatarHtml}
+      <div class="turn-content">
+        <div class="turn-header">
+          <span class="turn-role">${roleLabel}</span>
+          ${timeHtml}
+        </div>
+        <div class="turn-text">${esc(turn.text)}</div>
+        ${itemsHtml}
       </div>
-      <div class="turn-text">${esc(turn.text)}</div>
-      ${itemsHtml}
     </div>
   `;
 }
@@ -13367,6 +13498,7 @@ function buildPdfHtml(req) {
   const userName = req.userName || "";
   const generatedAt = req.generatedAt || (/* @__PURE__ */ new Date()).toISOString();
   const turnsHtml = (req.turns || []).map(renderTurn).join("");
+  const bodyContent = req.deliverableOnly ? `<div class="deliverables-only">${(req.turns || []).flatMap((t) => t.items || []).map(renderItem).join("")}</div>` : turnsHtml;
   return `<!doctype html>
 <html lang="${esc(req.language || "es")}">
 <head>
@@ -13374,21 +13506,64 @@ function buildPdfHtml(req) {
   <title>${esc(title)}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    @page { margin: 18mm 16mm; }
+    @page {
+      margin: 22mm 18mm 26mm 18mm;
+      @bottom-center {
+        content: "Koru \xB7 P\xE1gina " counter(page) " de " counter(pages);
+        font-size: 9px;
+        color: #8a9990;
+      }
+    }
     * { box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       color: #1a1a1a;
       line-height: 1.55;
       margin: 0;
-      padding: 24px;
-      max-width: 800px;
-      margin: 0 auto;
+      padding: 0;
     }
-    h1 { font-size: 22px; margin: 0 0 4px; color: #0f1a14; }
-    .meta { color: #5a6b62; font-size: 12px; margin-bottom: 24px; }
+    .brand-header {
+      background: linear-gradient(135deg, #2d6a4f 0%, #1a4d33 100%);
+      color: #fafaf5;
+      padding: 18px 24px;
+      border-radius: 0 0 12px 12px;
+      margin: -22mm -18mm 16mm -18mm;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-logo {
+      font-size: 28px;
+      line-height: 1;
+    }
+    .brand-name {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+    .brand-tagline {
+      font-size: 11px;
+      opacity: 0.8;
+      margin-top: 2px;
+    }
+    h1 {
+      font-size: 22px;
+      margin: 0 0 4px;
+      color: #0f1a14;
+      font-weight: 700;
+    }
+    .meta {
+      color: #5a6b62;
+      font-size: 11px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #e3e8e5;
+    }
+    /* Turn styles */
     .turn {
-      padding: 12px 16px;
+      display: flex;
+      gap: 10px;
+      padding: 12px 14px;
       border-radius: 12px;
       margin-bottom: 14px;
       page-break-inside: avoid;
@@ -13396,66 +13571,181 @@ function buildPdfHtml(req) {
     }
     .turn-user { background: #f3f7f4; }
     .turn-koru { background: #fafaf5; border-color: #d9e0d6; }
-    .turn-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-    .turn-role { font-weight: 600; font-size: 13px; color: #2d4a3a; }
-    .turn-time { font-size: 11px; color: #8a9990; }
-    .turn-text { font-size: 14px; white-space: pre-wrap; word-wrap: break-word; }
-    .turn-items { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #d9e0d6; }
-    .item-title { font-weight: 600; font-size: 14px; color: #1a2a20; margin-bottom: 4px; }
-    .item-subtitle { font-size: 12px; color: #5a6b62; margin-bottom: 4px; }
-    .item-note { font-size: 12px; color: #5a6b62; font-style: italic; margin-bottom: 6px; }
-    .item-list { padding-left: 18px; margin: 6px 0; }
-    .item-list li { margin-bottom: 4px; font-size: 13px; }
-    .li-time { font-weight: 600; color: #2d4a3a; margin-right: 8px; }
-    .li-title { color: #1a2a20; }
-    .li-prio { font-size: 11px; padding: 1px 6px; border-radius: 4px; background: #eef2ef; color: #2d4a3a; margin-left: 8px; }
-    .li-dur { font-size: 11px; color: #8a9990; margin-left: 8px; }
-    .item-table { width: 100%; border-collapse: collapse; margin: 6px 0; font-size: 12px; }
-    .item-table td { padding: 4px 8px; border: 1px solid #e3e8e5; }
-    .item-table td:first-child { background: #f3f7f4; font-weight: 500; }
-    .item-sources { font-size: 11px; color: #5a6b62; margin-top: 8px; }
-    .item-sources ul { padding-left: 16px; margin: 4px 0; }
-    .item-sources a { color: #2d6a4f; word-break: break-all; }
-    .footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e3e8e5; font-size: 10px; color: #8a9990; text-align: center; }
-    @media print {
-      body { padding: 0; max-width: none; }
-      .no-print { display: none !important; }
+    .turn-avatar {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
     }
-    .print-bar {
-      position: sticky; top: 0; background: #fff; border-bottom: 1px solid #e3e8e5;
-      padding: 10px 0; margin-bottom: 16px; display: flex; gap: 10px; align-items: center;
+    .koru-avatar { background: #2d6a4f; }
+    .user-avatar { background: #523A9E; }
+    .turn-content { flex: 1; min-width: 0; }
+    .turn-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 4px;
     }
-    .print-bar button {
-      background: #2d6a4f; color: white; border: none; padding: 8px 16px;
-      border-radius: 8px; font-size: 13px; cursor: pointer;
+    .turn-role { font-weight: 600; font-size: 12px; color: #2d4a3a; }
+    .turn-time { font-size: 10px; color: #8a9990; }
+    .turn-text {
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      color: #1a2a20;
     }
-    .print-bar button.secondary { background: #eef2ef; color: #2d4a3a; }
+    .turn-items {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed #d9e0d6;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    /* Deliverable card */
+    .deliverable-card {
+      background: #ffffff;
+      border: 1px solid #e3e8e5;
+      border-left: 4px solid #5a6b62;
+      border-radius: 10px;
+      padding: 12px 14px;
+      page-break-inside: avoid;
+    }
+    .card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .type-badge {
+      color: white;
+      font-size: 9px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .card-title { font-weight: 700; font-size: 14px; color: #1a2a20; }
+    .card-subtitle { font-size: 11px; color: #5a6b62; margin-bottom: 4px; }
+    .card-note { font-size: 11px; color: #5a6b62; font-style: italic; margin-bottom: 8px; }
+    .card-body { font-size: 12px; }
+    /* Plan list */
+    .plan-list { padding-left: 16px; margin: 6px 0; list-style: none; }
+    .plan-list li {
+      margin-bottom: 6px;
+      padding: 4px 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .li-time { font-weight: 700; color: #2d6a4f; min-width: 50px; font-size: 12px; }
+    .li-title { color: #1a2a20; flex: 1; min-width: 0; }
+    .li-prio {
+      font-size: 9px; padding: 1px 6px; border-radius: 4px;
+      color: white; font-weight: 600;
+    }
+    .priority-alta { background: #ef4444; }
+    .priority-media { background: #f59e0b; }
+    .priority-baja { background: #10b981; }
+    .li-dur { font-size: 10px; color: #8a9990; }
+    /* Summary grid (weather/forex) */
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin: 8px 0; }
+    .summary-cell { background: #f3f7f4; border-radius: 8px; padding: 8px 10px; }
+    .summary-label { font-size: 10px; color: #5a6b62; text-transform: uppercase; letter-spacing: 0.4px; }
+    .summary-value { font-size: 16px; font-weight: 700; color: #1a2a20; margin-top: 2px; }
+    /* Match scoreboard */
+    .match-scoreboard {
+      display: flex; justify-content: space-around; align-items: center;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: white; border-radius: 10px; padding: 14px; margin: 8px 0;
+    }
+    .match-team { font-size: 14px; font-weight: 600; flex: 1; text-align: center; }
+    .match-score { font-size: 24px; font-weight: 800; flex: 0 0 auto; padding: 0 12px; }
+    .match-vs { color: #8a9990; margin: 0 4px; font-size: 16px; }
+    .match-status { text-align: center; font-size: 10px; color: #ef4444; font-weight: 600; margin-top: 4px; }
+    .match-timeline { padding-left: 16px; font-size: 11px; }
+    .match-timeline li { margin-bottom: 2px; }
+    .ev-minute { font-weight: 700; color: #2d6a4f; }
+    /* Comparison table */
+    .comparison-table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 11px; }
+    .comparison-table th { background: #2d6a4f; color: white; padding: 6px 8px; text-align: left; font-size: 10px; text-transform: uppercase; }
+    .comparison-table td { padding: 6px 8px; border-bottom: 1px solid #e3e8e5; }
+    .comparison-table .stars { color: #f59e0b; letter-spacing: 1px; }
+    .pros-cons td { background: #fafaf5; font-size: 10px; }
+    .pros { color: #10b981; margin-bottom: 2px; }
+    .cons { color: #ef4444; }
+    /* Crypto */
+    .crypto-card { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .crypto-price { font-size: 22px; font-weight: 800; }
+    .crypto-change { font-size: 14px; font-weight: 600; }
+    .sparkline { display: inline-block; vertical-align: middle; }
+    /* Sources */
+    .card-sources { font-size: 10px; color: #5a6b62; margin-top: 8px; padding-top: 6px; border-top: 1px dashed #e3e8e5; }
+    .card-sources ul { padding-left: 14px; margin: 4px 0; }
+    .card-sources a { color: #2d6a4f; word-break: break-all; }
+    /* Deliverable-only mode */
+    .deliverables-only { display: flex; flex-direction: column; gap: 12px; }
+    /* Footer */
+    .footer {
+      margin-top: 24px;
+      padding-top: 12px;
+      border-top: 1px solid #e3e8e5;
+      font-size: 9px;
+      color: #8a9990;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
-  <div class="print-bar no-print">
-    <button onclick="window.print()">Guardar como PDF / Imprimir</button>
-    <button class="secondary" onclick="window.close()">Cerrar</button>
+  <div class="brand-header">
+    <div class="brand-logo">\u{1F33F}</div>
+    <div>
+      <div class="brand-name">Koru</div>
+      <div class="brand-tagline">Tu asistente personal</div>
+    </div>
   </div>
   <h1>${esc(title)}</h1>
   <div class="meta">
-    ${userName ? `Conversaci\xF3n entre ${esc(userName)} y Koru. ` : ""}Generado el ${esc(formatTime(generatedAt))}.
+    ${userName ? `Conversaci\xF3n entre <strong>${esc(userName)}</strong> y Koru. ` : ""}Generado el ${esc(formatTime(generatedAt))}.
   </div>
-  ${turnsHtml}
+  ${bodyContent}
   <div class="footer">
-    Generado por Koru \u2014 tu asistente personal.
+    Generado por Koru \u2014 koru-mvp.onrender.com \xB7 Documento confidencial
   </div>
-  <script>
-    // Auto-open print dialog on load
-    window.addEventListener('load', function() { setTimeout(function() { window.print(); }, 300); });
-  </script>
 </body>
 </html>`;
 }
-var ESC;
+async function renderPdf(html, opts = {}) {
+  const browser = await getBrowser();
+  const page = await browser.newPage();
+  try {
+    await page.setContent(html, { waitUntil: "networkidle0", timeout: 3e4 });
+    const pdfBuffer = await page.pdf({
+      format: opts.format || "A4",
+      printBackground: true,
+      margin: { top: "22mm", right: "18mm", bottom: "26mm", left: "18mm" },
+      displayHeaderFooter: true,
+      headerTemplate: `<div></div>`,
+      footerTemplate: `
+        <div style="font-size: 9px; color: #8a9990; width: 100%; text-align: center; padding: 0 18mm;">
+          Koru \xB7 P\xE1gina <span class="pageNumber"></span> de <span class="totalPages"></span>
+        </div>
+      `
+    });
+    return Buffer.from(pdfBuffer);
+  } finally {
+    await page.close();
+  }
+}
+async function closePdfBrowser() {
+  if (browserPromise) {
+    const browser = await browserPromise;
+    await browser.close();
+    browserPromise = null;
+  }
+}
+var puppeteer, browserPromise, ESC;
 var init_pdfExport = __esm({
   "src/server/pdfExport.ts"() {
     "use strict";
+    puppeteer = __require("puppeteer");
+    browserPromise = null;
     ESC = {
       "&": "&amp;",
       "<": "&lt;",
@@ -13857,22 +14147,82 @@ var server = http.createServer(async (req, res) => {
         sendJson(res, 400, { error: "Falta 'turns' en el payload" });
         return;
       }
-      const { buildPdfHtml: buildPdfHtml2 } = await Promise.resolve().then(() => (init_pdfExport(), pdfExport_exports));
+      const { buildPdfHtml: buildPdfHtml2, renderPdf: renderPdf2 } = await Promise.resolve().then(() => (init_pdfExport(), pdfExport_exports));
       const html = buildPdfHtml2({
         title: body.title || "Conversaci\xF3n con Koru",
         userName: body.userName || "",
         language: body.language === "en" ? "en" : "es",
         turns: body.turns,
-        generatedAt: body.generatedAt || (/* @__PURE__ */ new Date()).toISOString()
+        generatedAt: body.generatedAt || (/* @__PURE__ */ new Date()).toISOString(),
+        deliverableOnly: !!body.deliverableOnly,
+        blockType: body.blockType
       });
-      res.writeHead(200, {
-        "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "no-store"
-      });
-      res.end(html);
+      try {
+        const pdfBuffer = await renderPdf2(html, { format: body.format === "Letter" ? "Letter" : "A4" });
+        res.writeHead(200, {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="koru-${Date.now()}.pdf"`,
+          "Cache-Control": "no-store",
+          "Content-Length": pdfBuffer.length
+        });
+        res.end(pdfBuffer);
+      } catch (pdfErr) {
+        console.error("[export-pdf] puppeteer failed, returning HTML fallback:", pdfErr?.message);
+        res.writeHead(200, {
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "no-store"
+        });
+        res.end(html);
+      }
     } catch (err) {
       console.error("[export-pdf]", err?.message);
       sendJson(res, 500, { error: err?.message ?? "Error generando PDF" });
+    }
+    return;
+  }
+  if (url === "/api/koru/export-deliverable" && req.method === "POST") {
+    try {
+      const raw = await readBody(req);
+      const body = JSON.parse(raw || "{}");
+      if (!body.block || typeof body.block !== "object") {
+        sendJson(res, 400, { error: "Falta 'block' en el payload" });
+        return;
+      }
+      const { buildPdfHtml: buildPdfHtml2, renderPdf: renderPdf2 } = await Promise.resolve().then(() => (init_pdfExport(), pdfExport_exports));
+      const turns = [{
+        role: "koru",
+        text: "",
+        items: [body.block]
+      }];
+      const html = buildPdfHtml2({
+        title: body.title || body.block.title || "Informe de Koru",
+        userName: body.userName || "",
+        language: body.language === "en" ? "en" : "es",
+        turns,
+        generatedAt: body.generatedAt || (/* @__PURE__ */ new Date()).toISOString(),
+        deliverableOnly: true,
+        blockType: body.block.type
+      });
+      try {
+        const pdfBuffer = await renderPdf2(html);
+        res.writeHead(200, {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="koru-deliverable-${Date.now()}.pdf"`,
+          "Cache-Control": "no-store",
+          "Content-Length": pdfBuffer.length
+        });
+        res.end(pdfBuffer);
+      } catch (pdfErr) {
+        console.error("[export-deliverable] puppeteer failed, returning HTML:", pdfErr?.message);
+        res.writeHead(200, {
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "no-store"
+        });
+        res.end(html);
+      }
+    } catch (err) {
+      console.error("[export-deliverable]", err?.message);
+      sendJson(res, 500, { error: err?.message ?? "Error generando PDF del deliverable" });
     }
     return;
   }

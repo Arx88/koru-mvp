@@ -83,9 +83,10 @@ describe("pdfExport module", () => {
       expect(html).toContain("24°C, soleado");
     });
 
-    it("renders items table when summaryItems is present", () => {
+    it("renders summary grid when summaryItems is present", () => {
       const html = buildPdfHtml(sampleTurns);
-      expect(html).toContain('class="item-table"');
+      expect(html).toContain('class="summary-grid"');
+      expect(html).toContain('class="summary-cell"');
       expect(html).toContain("Temp");
       expect(html).toContain("Humedad");
     });
@@ -93,7 +94,8 @@ describe("pdfExport module", () => {
     it("includes the user's name in the meta line", () => {
       const html = buildPdfHtml(sampleTurns);
       expect(html).toContain("Alex");
-      expect(html).toContain("Conversación entre Alex y Koru");
+      expect(html).toContain("Conversación entre");
+      expect(html).toContain("y Koru");
     });
 
     it("handles empty turns array gracefully", () => {
@@ -118,10 +120,19 @@ describe("pdfExport module", () => {
       expect(html).toContain("hello");
     });
 
-    it("includes the print stylesheet (auto-opens print dialog)", () => {
+    it("includes the brand header (Koru logo + name)", () => {
       const html = buildPdfHtml(sampleTurns);
-      expect(html).toContain("window.print()");
-      expect(html).toContain("@media print");
+      expect(html).toContain('class="brand-header"');
+      expect(html).toContain('class="brand-logo"');
+      expect(html).toContain("🌿");
+      expect(html).toContain('class="brand-name"');
+      expect(html).toContain("Koru");
+    });
+
+    it("includes the @page rule with footer page numbers", () => {
+      const html = buildPdfHtml(sampleTurns);
+      expect(html).toContain("@page");
+      expect(html).toContain("counter(page)");
     });
 
     it("renders item list (plan items) when items[].items is present", () => {
@@ -145,10 +156,10 @@ describe("pdfExport module", () => {
           },
         ],
       });
-      expect(html).toContain('class="item-list"');
+      expect(html).toContain('class="plan-list"');
       expect(html).toContain("Lanzar producto");
       expect(html).toContain("08:00");
-      expect(html).toContain("Alta");
+      expect(html).toContain('class="li-prio priority-alta"');
       expect(html).toContain("30 min");
     });
 
@@ -172,7 +183,7 @@ describe("pdfExport module", () => {
           },
         ],
       });
-      expect(html).toContain('class="item-sources"');
+      expect(html).toContain('class="card-sources"');
       expect(html).toContain("Wikipedia");
       expect(html).toContain("https://es.wikipedia.org/wiki/Koru");
     });
@@ -182,6 +193,138 @@ describe("pdfExport module", () => {
       const htmlEn = buildPdfHtml({ ...sampleTurns, language: "en" });
       expect(htmlEs).toContain('<html lang="es">');
       expect(htmlEn).toContain('<html lang="en">');
+    });
+
+    // 🔴 New tests for v2 (branding + card rendering)
+
+    it("renders match scoreboard for live_match items", () => {
+      const html = buildPdfHtml({
+        title: "Partido",
+        turns: [
+          {
+            role: "koru",
+            text: "España le ganó 2-1",
+            createdAt: new Date().toISOString(),
+            items: [{
+              type: "live_match",
+              title: "España vs Francia",
+              homeTeam: "España",
+              awayTeam: "Francia",
+              homeScore: 2,
+              awayScore: 1,
+              status: "Finalizado",
+              timeline: [{ minute: "23'", event: "Gol de Yamal", team: "España" }],
+            }],
+          },
+        ],
+      });
+      expect(html).toContain('class="match-scoreboard"');
+      expect(html).toContain('class="match-score"');
+      expect(html).toContain("España");
+      expect(html).toContain("Francia");
+      expect(html).toContain("Finalizado");
+    });
+
+    it("renders comparison table with stars and pros/cons", () => {
+      const html = buildPdfHtml({
+        title: "Comparativa",
+        turns: [{
+          role: "koru",
+          text: "Te comparé los dos",
+          createdAt: new Date().toISOString(),
+          items: [{
+            type: "comparison",
+            title: "Auriculares",
+            items2: [
+              { name: "Sony WH-1000", price: "$350", rating: 5, pros: ["Buen sonido"], cons: ["Caro"] },
+            ],
+          }],
+        }],
+      });
+      expect(html).toContain('class="comparison-table"');
+      expect(html).toContain("Sony WH-1000");
+      expect(html).toContain("$350");
+      expect(html).toContain("★"); // star rating
+      expect(html).toContain('class="pros"');
+      expect(html).toContain('class="cons"');
+    });
+
+    it("renders crypto sparkline SVG when sparkline data is present", () => {
+      const html = buildPdfHtml({
+        title: "BTC",
+        turns: [{
+          role: "koru",
+          text: "BTC subió",
+          createdAt: new Date().toISOString(),
+          items: [{
+            type: "crypto_portfolio",
+            title: "Bitcoin",
+            price: 65000,
+            change24h: 3.5,
+            sparkline: [60, 62, 61, 64, 65],
+          }],
+        }],
+      });
+      expect(html).toContain('class="crypto-card"');
+      expect(html).toContain("<svg");
+      expect(html).toContain("<polyline");
+      expect(html).toContain("65,000");
+    });
+
+    it("renders type badge with correct color per type", () => {
+      const html = buildPdfHtml({
+        title: "Test",
+        turns: [{
+          role: "koru",
+          text: "ok",
+          createdAt: new Date().toISOString(),
+          items: [{ type: "weather", title: "Clima" }],
+        }],
+      });
+      expect(html).toContain('class="type-badge"');
+      expect(html).toContain("Clima"); // badge label for weather
+    });
+
+    it("uses accent color from type in border-left", () => {
+      const html = buildPdfHtml({
+        title: "Test",
+        turns: [{
+          role: "koru",
+          text: "ok",
+          createdAt: new Date().toISOString(),
+          items: [{ type: "plan", title: "Mi plan" }],
+        }],
+      });
+      // Plan accent is #2d6a4f
+      expect(html).toContain("#2d6a4f");
+    });
+
+    it("deliverableOnly mode renders only the cards, no chat turns", () => {
+      const html = buildPdfHtml({
+        ...sampleTurns,
+        deliverableOnly: true,
+      });
+      expect(html).toContain('class="deliverables-only"');
+      // Should NOT contain the turn wrapper
+      expect(html).not.toContain('class="turn turn-user"');
+      // But SHOULD contain the deliverable card content
+      expect(html).toContain('class="deliverable-card"');
+      expect(html).toContain("Clima en Madrid");
+    });
+
+    it("includes footer with Koru branding", () => {
+      const html = buildPdfHtml(sampleTurns);
+      expect(html).toContain('class="footer"');
+      expect(html).toContain("Generado por Koru");
+      expect(html).toContain("koru-mvp.onrender.com");
+    });
+
+    it("includes displayHeaderFooter-compatible template (for puppeteer)", () => {
+      // Just verify the HTML structure is suitable for puppeteer — no window.print()
+      // which would be useless since we're rendering server-side.
+      const html = buildPdfHtml(sampleTurns);
+      expect(html).not.toContain("window.print()");
+      expect(html).not.toContain("window.close()");
     });
   });
 });

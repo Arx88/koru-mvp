@@ -116,10 +116,14 @@ export function KoruUnifiedCard({ block }: { block: UiBlock }) {
             setOpen(false);
           }}
           onExportPdf={() => {
-            // 🔴 PDF export — disparar evento que TalkOverlay escucha para enviar
-            // los turnos actuales al endpoint /api/koru/export-pdf
+            // 🔴 PDF export v2 — disparar evento con blockData para que TalkOverlay
+            // sepa que debe exportar SOLO este deliverable (no toda la conversación).
             window.dispatchEvent(new CustomEvent("koru-export-pdf", {
-              detail: { blockType: block.type, blockTitle: hero.title }
+              detail: {
+                blockType: block.type,
+                blockTitle: hero.title,
+                blockData: block, // ← el bloque completo para export-deliverable
+              }
             }));
           }}
         />
