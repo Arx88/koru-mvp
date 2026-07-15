@@ -496,24 +496,29 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
   // usuario + la respuesta de Koru a ese mensaje). Al decir algo nuevo, lo
   // anterior desaparece. El registro completo queda en Historial.
   // 🔴 v2: Chat thread visibility — mostrar últimos 4 turnos (2 intercambios)
-  // Si hay más, mostrar botón "Ver conversación anterior" arriba que scrollea al inicio.
-  // Approach simple y robusto: no colapsar, solo limitar visibles + botón de scroll.
+  // Si hay más, botón "Ver N mensajes anteriores" que togglea a "Re-colapsar".
+  // Los mensajes NUNCA se superponen con la mascota — el botón va al inicio del thread.
   const VISIBLE_TURN_COUNT = 4;
   const hasOlderTurns = chatTurns.length > VISIBLE_TURN_COUNT;
-  const visibleTurns = useMemo(() => {
-    return hasOlderTurns ? chatTurns.slice(-VISIBLE_TURN_COUNT) : chatTurns;
-  }, [chatTurns, hasOlderTurns]);
-
-  function scrollToTopOfThread() {
-    const node = scrollRef.current;
-    if (node) {
-      node.scrollTo({ top: 0, behavior: "smooth" });
-      // Mostrar todos los turnos temporalmente
-      setShowAllTurns(true);
-    }
-  }
+  const olderCount = chatTurns.length - VISIBLE_TURN_COUNT;
   const [showAllTurns, setShowAllTurns] = useState(false);
-  const turnsToShow = showAllTurns ? chatTurns : visibleTurns;
+  const visibleTurns = useMemo(() => {
+    if (showAllTurns || !hasOlderTurns) return chatTurns;
+    return chatTurns.slice(-VISIBLE_TURN_COUNT);
+  }, [chatTurns, hasOlderTurns, showAllTurns]);
+
+  function toggleOlderTurns() {
+    const next = !showAllTurns;
+    setShowAllTurns(next);
+    // Si colapsa, scrollear al fondo (último mensaje)
+    // Si expande, scrollear al inicio (mensajes viejos)
+    setTimeout(() => {
+      const node = scrollRef.current;
+      if (node) {
+        node.scrollTo({ top: next ? 0 : node.scrollHeight, behavior: "smooth" });
+      }
+    }, 50);
+  }
 
   // Entregable en curso (informe/investigación): su bloque "working" trae el
   // progreso REAL del pipeline. Mientras exista, el composer cede el lugar al
@@ -1161,16 +1166,25 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
 
         <main ref={scrollRef} className="koru-chat-scroll">
           <div className="koru-thread">
-            {/* 🔴 v2: botón "Ver conversación anterior" cuando hay turnos ocultos */}
-            {hasOlderTurns && !showAllTurns && (
+            {/* 🔴 v2: botón "Ver N mensajes anteriores" que togglea a "Re-colapsar" */}
+            {hasOlderTurns && (
               <div className="koru-thread-more">
-                <button type="button" className="koru-thread-more-btn" onClick={scrollToTopOfThread}>
-                  <span className="material-symbols-outlined">expand_less</span>
-                  Ver {chatTurns.length - VISIBLE_TURN_COUNT} mensajes anteriores
+                <button type="button" className="koru-thread-more-btn" onClick={toggleOlderTurns}>
+                  {showAllTurns ? (
+                    <>
+                      <span className="material-symbols-outlined">expand_less</span>
+                      Re-colapsar mensajes
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined">expand_less</span>
+                      Ver {olderCount} mensajes anteriores
+                    </>
+                  )}
                 </button>
               </div>
             )}
-            {turnsToShow.map((turn) =>
+            {visibleTurns.map((turn) =>
               turn.role === "user" ? (
                 <UserTurnBubble key={turn.id} turn={turn} />
               ) : (
