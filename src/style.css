@@ -5640,21 +5640,21 @@ a.koru-dsec-source:hover {
   border-radius: 2px;
 }
 
-/* 🔴 v2: Chat thread — turnos colapsados */
-.koru-collapsed-turn {
+/* 🔴 v2: Chat thread — botón "Ver mensajes anteriores" */
+.koru-thread-more {
   display: flex;
   justify-content: center;
-  margin: 4px 0;
+  margin-bottom: 8px;
 }
-.koru-collapsed-toggle {
+.koru-thread-more-btn {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   padding: 6px 14px;
   border-radius: 999px;
-  background: rgba(131, 99, 249, 0.08);
-  border: 1px solid rgba(131, 99, 249, 0.15);
-  color: #6b5f8c;
+  background: rgba(131, 99, 249, 0.1);
+  border: 1px solid rgba(131, 99, 249, 0.2);
+  color: #c9b8ff;
   font-size: 12px;
   font-weight: 600;
   font-family: inherit;
@@ -5662,9 +5662,44 @@ a.koru-dsec-source:hover {
   transition: all 0.15s;
   -webkit-tap-highlight-color: transparent;
 }
+.koru-thread-more-btn:hover {
+  background: rgba(131, 99, 249, 0.18);
+  color: #fff;
+}
+.koru-thread-more-btn:active { transform: scale(0.96); }
+.koru-thread-more-btn .material-symbols-outlined { font-size: 16px; }
+
+/* 🔴 v2: Chat thread — turnos colapsados (legacy, ya no se usa pero se mantiene por compat) */
+.koru-collapsed-turn {
+  display: flex;
+  justify-content: center;
+  margin: 12px 0;
+  clear: both;
+  width: 100%;
+}
+.koru-collapsed-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(131, 99, 249, 0.12);
+  border: 1px solid rgba(131, 99, 249, 0.25);
+  color: #c9b8ff;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+  position: relative;
+  z-index: 1;
+}
 .koru-collapsed-toggle:hover {
-  background: rgba(131, 99, 249, 0.14);
-  border-color: rgba(131, 99, 249, 0.3);
+  background: rgba(131, 99, 249, 0.2);
+  border-color: rgba(131, 99, 249, 0.4);
+  color: #fff;
 }
 .koru-collapsed-toggle:active { transform: scale(0.96); }
 .koru-collapsed-toggle .material-symbols-outlined { font-size: 16px; }
