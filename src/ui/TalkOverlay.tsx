@@ -1255,17 +1255,11 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
           </div>
         </main>
 
-        {/* 🔴 WorkingPanel — se renderiza ARRIBA del composer.
-            Para búsquedas web (kind=searching): muestra "Sumergiéndome en tu búsqueda…"
-            con 4 pasos (Entendiendo → Buscando → Filtrando → Preparando).
-            Para plans (kind=planning): muestra "Tejiendo tu plan…"
-            Para deliverables: muestra "Sumergiéndome en tu [kicker]…" */}
-        {processing && !isListening && (workingDeliverable || activity?.depth === "deep" || activity?.kind === "searching") && (
-          <WorkingPanel phase={phase} kind={activity?.kind} deliverable={workingDeliverable} onCancel={() => {
-            if ("vibrate" in navigator) navigator.vibrate(20);
-          }} />
-        )}
-
+        {/* WorkingPanel: REPLAZA el footer cuando hay tarea deep o searching.
+            No se muestra el composer/input mientras Koru trabaja. */}
+        {processing && !isListening && (workingDeliverable || activity?.depth === "deep" || activity?.kind === "searching") ? (
+          <WorkingPanel phase={phase} kind={activity?.kind} deliverable={workingDeliverable} />
+        ) : (
         <footer className="koru-chat-footer">
           {processing && !isListening && activity && !(workingDeliverable || activity?.depth === "deep" || activity?.kind === "searching") && (
             <div className="koru-activity-hint" role="status" aria-live="polite">
@@ -1411,6 +1405,7 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
               )}
             </div>
           </footer>
+        )}
 
         {/* Wheel Overlay — long-press navigation */}
         {wheelOpen && (
