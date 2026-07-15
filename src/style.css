@@ -5644,30 +5644,35 @@ a.koru-dsec-source:hover {
 .koru-thread-more {
   display: flex;
   justify-content: center;
-  margin-bottom: 8px;
+  padding: 4px 0 8px;
+  flex-shrink: 0;
 }
 .koru-thread-more-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px 14px;
+  gap: 6px;
+  padding: 8px 18px;
   border-radius: 999px;
-  background: rgba(131, 99, 249, 0.1);
-  border: 1px solid rgba(131, 99, 249, 0.2);
+  background: rgba(131, 99, 249, 0.15);
+  border: 1px solid rgba(131, 99, 249, 0.3);
   color: #c9b8ff;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
   transition: all 0.15s;
   -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .koru-thread-more-btn:hover {
-  background: rgba(131, 99, 249, 0.18);
+  background: rgba(131, 99, 249, 0.25);
+  border-color: rgba(131, 99, 249, 0.45);
   color: #fff;
 }
 .koru-thread-more-btn:active { transform: scale(0.96); }
-.koru-thread-more-btn .material-symbols-outlined { font-size: 16px; }
+.koru-thread-more-btn .material-symbols-outlined { font-size: 18px; }
 
 /* 🔴 v2: Chat thread — turnos colapsados (legacy, ya no se usa pero se mantiene por compat) */
 .koru-collapsed-turn {

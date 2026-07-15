@@ -33,9 +33,10 @@ export function KoruUnifiedCard({ block }: { block: UiBlock }) {
     : hero.title;
 
   // 🔴 v2: handler unificado para abrir (click + keyboard)
+  // Guard: no abrir si ya está abierto (evita re-trigger cuando el detail screen está visible)
   const handleOpen = useCallback(() => {
-    if (isTappable) setOpen(true);
-  }, [isTappable]);
+    if (isTappable && !open) setOpen(true);
+  }, [isTappable, open]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (isTappable && (e.key === "Enter" || e.key === " ")) {
@@ -51,8 +52,8 @@ export function KoruUnifiedCard({ block }: { block: UiBlock }) {
       role={isTappable ? "button" : undefined}
       tabIndex={isTappable ? 0 : undefined}
       aria-label={isTappable ? `Abrir ${hero.title}` : undefined}
-      onClick={isTappable ? handleOpen : undefined}
-      onKeyDown={handleKeyDown}
+      onClick={isTappable && !open ? handleOpen : undefined}
+      onKeyDown={!open ? handleKeyDown : undefined}
     >
       <div className="koru-plan-hero-top">
         <div className="koru-plan-hero-copy">
