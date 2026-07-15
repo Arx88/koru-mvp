@@ -1354,10 +1354,20 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
                 Deslizá y soltá sobre una opción
               </div>
 
-              <div className="koru-wheel-center">
-                <span className="material-symbols-outlined">radar</span>
-                <span>Wheel</span>
-              </div>
+              <button
+                type="button"
+                className="koru-wheel-center"
+                aria-label="Crear"
+                onClick={() => {
+                  setWheelOpen(false);
+                  setWheelActive(null);
+                  handleLongPressCancel();
+                  setShowCreate(true);
+                }}
+              >
+                <span className="material-symbols-outlined">add_circle</span>
+                <span>Crear</span>
+              </button>
 
               <div
                 className={`koru-wheel-option top ${wheelActive === "memory" ? "active" : ""}`}
@@ -1368,17 +1378,6 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
               >
                 <span className="material-symbols-outlined">neurology</span>
                 <span className="wheel-label">Memoria</span>
-              </div>
-
-              <div
-                className={`koru-wheel-option top-right ${wheelActive === "create" ? "active" : ""}`}
-                data-wheel-option="create"
-                onMouseEnter={() => setWheelActive("create")}
-                onClick={() => handleOptionTap("create")}
-                onTouchEnd={(e) => handleOptionTouchEnd(e, "create")}
-              >
-                <span className="material-symbols-outlined">add_circle</span>
-                <span className="wheel-label">Crear</span>
               </div>
 
               <div

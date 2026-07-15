@@ -3276,6 +3276,13 @@ a.koru-dsec-source:hover {
   position: relative;
   width: 300px;
   height: 300px;
+  /* 🔴 FIX: evitar selección de texto durante long-press / drag */
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .koru-wheel-center {
@@ -3283,31 +3290,49 @@ a.koru-dsec-source:hover {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 72px;
-  height: 72px;
+  width: 84px;
+  height: 84px;
   border-radius: 999px;
-  background: rgba(131, 99, 249, 0.3);
-  border: 2px solid #8363F9;
+  background: linear-gradient(135deg, #8363f9 0%, #523a9e 100%);
+  border: 2px solid rgba(255, 255, 255, 0.4);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   color: #fff;
   z-index: 10;
+  cursor: pointer;
+  font-family: inherit;
+  /* 🔴 FIX: evitar selección de texto */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 6px 20px rgba(131, 99, 249, 0.4);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.koru-wheel-center:hover {
+  transform: translate(-50%, -50%) scale(1.08);
+  box-shadow: 0 8px 24px rgba(131, 99, 249, 0.5);
+}
+
+.koru-wheel-center:active {
+  transform: translate(-50%, -50%) scale(0.95);
 }
 
 .koru-wheel-center .material-symbols-outlined {
-  font-size: 26px;
-  color: #c9b8ff;
+  font-size: 28px;
+  color: #fff;
 }
 
 .koru-wheel-center span:last-child {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   margin-top: 2px;
-  color: #c9b8ff;
+  color: #fff;
 }
 
 .koru-wheel-option {
@@ -3328,6 +3353,10 @@ a.koru-dsec-source:hover {
   /* Mobile: asegurar que el botón reciba taps directamente */
   touch-action: manipulation;  /* sin delay de 300ms, sin double-tap zoom */
   -webkit-tap-highlight-color: transparent;  /* sin highlight gris en mobile */
+  /* 🔴 FIX: evitar selección de texto durante drag del wheel */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
   /* Asegurar que esté encima del overlay para recibir el tap */
@@ -3363,18 +3392,11 @@ a.koru-dsec-source:hover {
 .koru-wheel-option.right  { top: 50%; right: 0; transform: translateY(-50%); }
 .koru-wheel-option.bottom { bottom: 0; left: 50%; transform: translateX(-50%); }
 .koru-wheel-option.left   { top: 50%; left: 0; transform: translateY(-50%); }
-/* 🔴 v2: 5ta opción Crear en diagonal top-right (pentágono parcial) */
-.koru-wheel-option.top-right {
-  top: 12%;
-  right: 12%;
-  /* posicionar en el cuadrante superior derecho del círculo */
-}
 
 .koru-wheel-option.top.active    { transform: translateX(-50%) scale(1.15); }
 .koru-wheel-option.right.active  { transform: translateY(-50%) scale(1.15); }
 .koru-wheel-option.bottom.active { transform: translateX(-50%) scale(1.15); }
 .koru-wheel-option.left.active   { transform: translateY(-50%) scale(1.15); }
-.koru-wheel-option.top-right.active { transform: scale(1.15); }
 
 .koru-wheel-hint {
   position: absolute;
