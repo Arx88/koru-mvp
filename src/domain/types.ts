@@ -999,6 +999,8 @@ export type KoruState = {
   actionPreparationEnabled: boolean;
   worldSignalsEnabled: boolean;
   learningPreferences: LearningPreference[];
+  /** 🔴 i18n: preferred reply language ("es" | "en"). Default "es". */
+  language?: "es" | "en";
 };
 
 export type KoruAnalysis = {

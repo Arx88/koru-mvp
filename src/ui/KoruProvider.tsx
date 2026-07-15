@@ -165,6 +165,9 @@ type KoruContextValue = {
   toggleVoice: () => void;
   speakReply: (text: string) => void;
   stopVoice: () => void;
+  // 🔴 i18n — preferred UI/reply language
+  language: "es" | "en";
+  setLanguage: (lang: "es" | "en") => void;
 };
 
 const KoruContext = createContext<KoruContextValue | null>(null);
@@ -194,6 +197,11 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("koru.selected-model");
     return localStorage.getItem("koru.selected-model.v2") ?? null;
   });
+  // 🔴 i18n — preferred language. Persisted in localStorage so the LLM and UI honor it.
+  const [language, setLanguageState] = useState<"es" | "en">(() => {
+    const stored = localStorage.getItem("koru.language");
+    return stored === "en" ? "en" : "es";
+  });
   const domainStateRef = useRef(domainState);
   const chatTurnsRef = useRef(chatTurns);
 
@@ -216,6 +224,11 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     domainStateRef.current = domainState;
   }, [domainState]);
+
+  // 🔴 i18n — sync UI language into domainState so the backend LLM honors it
+  useEffect(() => {
+    commitDomainState((prev) => (prev.language === language ? prev : { ...prev, language }));
+  }, [language]);
 
   // 🔴 PWA install prompt listener
   useEffect(() => {
@@ -688,6 +701,13 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   }
 
   // Fase 1 (C6): logRitual eliminado — era un no-op.
+
+  // 🔴 i18n — set preferred UI/reply language. Persisted + synced to domainState
+  // via the useEffect above so the backend LLM sees it on the next turn.
+  function setLanguage(lang: "es" | "en") {
+    setLanguageState(lang);
+    localStorage.setItem("koru.language", lang);
+  }
 
   async function submitEntry(
     text: string,
@@ -1203,7 +1223,9 @@ export function KoruProvider({ children }: { children: ReactNode }) {
       if (voiceEnabled) speak(text);
     },
     stopVoice: () => stopSpeaking(),
-  }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, domainState.records, permissions, processing, activity, phase, chatTurns, selectedModel, memoryToast, morningBrief, showInstallPrompt, installPromptEvent, voiceEnabled]);
+    language,
+    setLanguage,
+  }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, domainState.records, permissions, processing, activity, phase, chatTurns, selectedModel, memoryToast, morningBrief, showInstallPrompt, installPromptEvent, voiceEnabled, language]);
 
   // 🔴 Listener para guardar record desde el detail screen (botón Guardar informe)
   useEffect(() => {

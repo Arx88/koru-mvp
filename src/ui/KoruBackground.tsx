@@ -135,10 +135,14 @@ export const KoruBackground = memo(function KoruBackground({ state }: KoruBackgr
       if (!v) return;
       if (s === state) {
         // Reset playback to start when becoming active (avoid drift)
-        v.currentTime = 0;
-        v.play().catch(() => { /* autoplay puede fallar sin gesture */ });
+        try { v.currentTime = 0; } catch { /* some envs throw */ }
+        // jsdom doesn't implement play() — guard with optional chaining
+        const playPromise = v.play?.();
+        if (playPromise && typeof playPromise.catch === "function") {
+          playPromise.catch(() => { /* autoplay puede fallar sin gesture */ });
+        }
       } else {
-        v.pause();
+        try { v.pause(); } catch { /* noop */ }
       }
     });
   }, [state]);

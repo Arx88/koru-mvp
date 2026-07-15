@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useKoru } from "./KoruProvider";
-import { Cpu, Check, ChevronDown } from "lucide-react";
+import { Cpu, Check, ChevronDown, Languages } from "lucide-react";
 
 type ModelOption = {
   id: string;
@@ -9,7 +9,7 @@ type ModelOption = {
 };
 
 export function SettingsScreen() {
-  const { selectedModel, setSelectedModel } = useKoru();
+  const { selectedModel, setSelectedModel, language, setLanguage } = useKoru();
   const [models, setModels] = useState<ModelOption[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -101,6 +101,35 @@ export function SettingsScreen() {
           <strong>koru-qwen-32k</strong> es el modelo recomendado: 27B params, 32k contexto, JSON confiable.
         </p>
       </div>
+
+      {/* 🔴 i18n — language selector. Affects LLM reply language + UI strings (gradual rollout). */}
+      <section className="rounded-2xl border border-sand bg-cream p-4">
+        <header className="mb-3 flex items-center gap-2">
+          <Languages className="h-5 w-5 text-forest" />
+          <h2 className="text-sm font-semibold text-earth">Idioma / Language</h2>
+        </header>
+        <p className="mb-3 text-xs text-stone">
+          Koru responderá en el idioma seleccionado. Las tarjetas y la interfaz también se irán traduciendo.
+        </p>
+        <div className="flex gap-2">
+          {(["es", "en"] as const).map((lang) => (
+            <button
+              key={lang}
+              type="button"
+              onClick={() => setLanguage(lang)}
+              className={
+                "flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-medium transition-colors cursor-pointer " +
+                (language === lang
+                  ? "border-forest bg-forest text-cream"
+                  : "border-sand bg-warm-white text-earth hover:border-forest/40")
+              }
+            >
+              {language === lang && <Check className="h-3.5 w-3.5" />}
+              <span>{lang === "es" ? "Español" : "English"}</span>
+            </button>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

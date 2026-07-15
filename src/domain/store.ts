@@ -105,6 +105,7 @@ export function createInitialState(userId: string = "default"): KoruState {
     actionPreparationEnabled: true,
     worldSignalsEnabled: false,
     learningPreferences: [],
+    language: "es",
   };
 }
 

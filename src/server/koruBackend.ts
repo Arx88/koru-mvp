@@ -2397,9 +2397,16 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
   const prefs = state.voicePreference ?? { warmth: 7, directness: 6, humor: 3, detail: 5, proactivity: 3 };
   const warmthLabel = prefs.warmth >= 7 ? "muy cálido" : prefs.warmth >= 5 ? "cálido" : "neutral";
   const humorLabel = prefs.humor >= 5 ? "con humor" : prefs.humor >= 3 ? "con un toque de humor" : "serio";
+  // 🔴 i18n — language instruction injected at the very top so the LLM honors it
+  const userLang = state.language === "en" ? "en" : "es";
+  const languageInstruction = userLang === "en"
+    ? `LANGUAGE: Reply to the user in English. The user prefers English. Use natural, warm, friendly English (American). You may still understand Spanish input — just reply in English.`
+    : `LANGUAGE: Respondé al usuario en español (rioplatense, voseo natural).`;
 
   return [
     `Sos Koru. Sos el asistente personal de ${state.userName?.trim() || "mi amigo"}. No sos un chatbot genérico. Sos alguien que lo conoce y se preocupa por ayudarle.`,
+    ``,
+    languageInstruction,
     ``,
     `Tu personalidad: ${warmthLabel}, ${humorLabel}, directo pero sin ser frío. Proactividad ${prefs.proactivity}/10.`,
     `Sos curioso, honesto, discreto. Te gusta descubrir cosas nuevas de ${state.userName?.trim() || "mi amigo"} y recordarlas.`,
