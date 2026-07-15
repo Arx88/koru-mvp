@@ -510,14 +510,22 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
   function toggleOlderTurns() {
     const next = !showAllTurns;
     setShowAllTurns(next);
-    // Si colapsa, scrollear al fondo (último mensaje)
-    // Si expande, scrollear al inicio (mensajes viejos)
+    // 🔴 FIX: usar scrollTo instant (no smooth) para evitar drift acumulado.
+    // El smooth scroll dejaba offsets sin terminar antes del próximo render,
+    // causando que el botón se moviera 10-18px con cada toggle.
+    // Delay de 100ms para que React pinte los turnos nuevos antes de scrollear.
     setTimeout(() => {
       const node = scrollRef.current;
       if (node) {
-        node.scrollTo({ top: next ? 0 : node.scrollHeight, behavior: "smooth" });
+        if (next) {
+          // Expandir: ir al inicio (mensajes viejos)
+          node.scrollTo({ top: 0, behavior: "auto" });
+        } else {
+          // Colapsar: ir al fondo (último mensaje)
+          node.scrollTo({ top: node.scrollHeight, behavior: "auto" });
+        }
       }
-    }, 50);
+    }, 100);
   }
 
   // Entregable en curso (informe/investigación): su bloque "working" trae el
