@@ -6,6 +6,8 @@ import type {
   KoruState,
   KoruStage,
   LifeRecord,
+  LifeDomain,
+  LifeRecordKind,
   MascotState,
   MemoryFact,
 } from "../domain/types";
@@ -173,6 +175,12 @@ type KoruContextValue = {
   // 🔴 Offline cache — browser online status + offline message queue
   online: boolean;
   queueOfflineMessage: (text: string) => Promise<void>;
+  // 🔴 v2: Create flow — alta/baja/modificación de records sin pasar por LLM
+  createRecord: (input: { title: string; collection: string; notes?: string; url?: string; kind?: string; sourceBlock?: UiBlock }) => Promise<LifeRecord>;
+  updateRecord: (id: string, patch: Partial<LifeRecord>) => void;
+  deleteRecord: (id: string) => void;
+  reopenRecord: (record: LifeRecord) => void;
+  reopenedRecord: LifeRecord | null;
 };
 
 const KoruContext = createContext<KoruContextValue | null>(null);
@@ -211,6 +219,8 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   const [online, setOnline] = useState<boolean>(() => isOnline());
   // Ref to latest sendMessage — lets the offline-queue drain call the current closure.
   const sendMessageRef = useRef<((text: string) => Promise<unknown>) | null>(null);
+  // 🔴 v2: record reabiertos desde Collections — renderizan el bloque original
+  const [reopenedRecord, setReopenedRecord] = useState<LifeRecord | null>(null);
   const domainStateRef = useRef(domainState);
   const chatTurnsRef = useRef(chatTurns);
 
@@ -766,6 +776,76 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     await enqueueOfflineMessage(userId, text);
   }
 
+  // 🔴 v2: Create flow — CRUD de records directo (sin LLM, sin network, sin demora)
+  async function createRecord(input: {
+    title: string;
+    collection: string;
+    notes?: string;
+    url?: string;
+    kind?: string;
+    sourceBlock?: UiBlock;
+  }): Promise<LifeRecord> {
+    const kindMap: Record<string, LifeRecordKind> = {
+      note: "idea",
+      idea: "idea",
+      lista: "shopping_item",
+      shopping: "shopping_item",
+      gasto: "expense",
+      expense: "expense",
+      enlace: "bookmark",
+      bookmark: "bookmark",
+      receta: "idea",
+      reminder: "reminder",
+    };
+    const kind = (kindMap[input.kind ?? "note"] ?? "idea") as LifeRecordKind;
+    const domain: LifeDomain = input.kind === "gasto" ? "money" : "personal";
+    const newRecord: LifeRecord = {
+      id: `rec_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      domain,
+      kind,
+      title: input.title.trim(),
+      collection: input.collection.trim() || "Notas",
+      notes: input.notes,
+      url: input.url,
+      amount: kind === "expense" ? parseFloat(input.notes ?? "0") || undefined : undefined,
+      currency: kind === "expense" ? "ARS" : undefined,
+      createdAt: new Date().toISOString(),
+      sourceEntryId: "manual_create",
+      sourceBlock: input.sourceBlock,
+    };
+    commitDomainState((prev) => {
+      const next = { ...prev, records: [...prev.records, newRecord] };
+      saveState(next);
+      return next;
+    });
+    setMemoryToast({ id: newRecord.id, kind: "saved", text: `Creado en ${newRecord.collection}` });
+    setTimeout(() => setMemoryToast(null), 2500);
+    return newRecord;
+  }
+
+  function updateRecord(id: string, patch: Partial<LifeRecord>) {
+    commitDomainState((prev) => {
+      const next = {
+        ...prev,
+        records: prev.records.map((r) => (r.id === id ? { ...r, ...patch, id } : r)),
+      };
+      saveState(next);
+      return next;
+    });
+  }
+
+  function deleteRecord(id: string) {
+    commitDomainState((prev) => {
+      const next = { ...prev, records: prev.records.filter((r) => r.id !== id) };
+      saveState(next);
+      return next;
+    });
+  }
+
+  function reopenRecord(record: LifeRecord) {
+    setReopenedRecord(record);
+  }
+
   async function submitEntry(
     text: string,
     transcriptSource: DailyEntry["transcriptSource"] = "typed",
@@ -1290,23 +1370,46 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     setLanguage,
     online,
     queueOfflineMessage,
-  }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, domainState.records, permissions, processing, activity, phase, chatTurns, selectedModel, memoryToast, morningBrief, showInstallPrompt, installPromptEvent, voiceEnabled, language, online]);
+    createRecord,
+    updateRecord,
+    deleteRecord,
+    reopenRecord,
+    reopenedRecord,
+  }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, domainState.records, permissions, processing, activity, phase, chatTurns, selectedModel, memoryToast, morningBrief, showInstallPrompt, installPromptEvent, voiceEnabled, language, online, reopenedRecord]);
 
-  // 🔴 Listener para guardar record desde el detail screen (botón Guardar informe)
+  // 🔴 v2: Listener para guardar record desde el detail screen (botón Guardar informe)
+  // CAMBIO: ya NO pasa por el LLM (5-15s de espera + contaminación del chat).
+  // Ahora escribe directo en domainState.records + persiste via saveState.
   useEffect(() => {
     const onSaveRecord = async (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      // Usar submitEntry para guardar como record via el backend
-      const saveMsg = `Guardá "${detail.title}" en la carpeta "${detail.collection}"${detail.notes ? ` — ${detail.notes}` : ""}`;
-      try {
-        await submitEntry(saveMsg, "typed", chatTurns);
-      } catch (err) {
-        console.error("[Koru] Error guardando record:", err);
-      }
+      const title = String(detail?.title ?? "").trim();
+      const collection = String(detail?.collection ?? detail?.subtitle ?? "Informes").trim() || "Informes";
+      if (!title) return;
+      const newRecord: LifeRecord = {
+        id: `rec_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        domain: "personal" as LifeDomain,
+        kind: "idea" as LifeRecordKind,
+        title,
+        collection,
+        notes: detail?.notes,
+        url: detail?.url,
+        createdAt: new Date().toISOString(),
+        sourceEntryId: "manual_save",
+        sourceBlock: detail?.blockData, // 🔴 persistir el bloque original para reabrir
+      };
+      commitDomainState((prev) => {
+        const next = { ...prev, records: [...prev.records, newRecord] };
+        saveState(next);
+        return next;
+      });
+      // 🔴 Toast de confirmación (usa el mismo mecanismo que memory toast)
+      setMemoryToast({ id: newRecord.id, kind: "saved", text: `Guardado en ${collection}` });
+      setTimeout(() => setMemoryToast(null), 2500);
     };
     window.addEventListener("koru-save-record", onSaveRecord as EventListener);
     return () => window.removeEventListener("koru-save-record", onSaveRecord as EventListener);
-  }, [submitEntry, chatTurns]);
+  }, []);
 
   return <KoruContext.Provider value={value}>{children}</KoruContext.Provider>;
 }

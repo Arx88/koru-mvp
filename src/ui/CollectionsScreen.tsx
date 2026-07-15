@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import type { LifeRecord } from "../domain/types";
 import { useKoru } from "./KoruProvider";
@@ -8,8 +8,11 @@ import { useKoru } from "./KoruProvider";
 // estética Stitch del roadmap (fondo lila, magical-cards). Los enlaces abren
 // en pestaña nueva; el resto muestra su valor/nota.
 //
-// 🔴 FIX UX: se renderiza via createPortal en document.body para garantizar
+// 🔴 FIX UX v2: se renderiza via createPortal en document.body para garantizar
 // pantalla completa (z-index superior al chat) + backdrop oscuro detrás.
+// 🔴 FIX UX v2: las filas son TAPPABLE — si el record tiene sourceBlock, reabre
+// el detail screen original; si no, abre un editor inline. Long-press / botón
+// more_vert abre menú con Editar / Eliminar.
 
 function Mat({ children, className = "" }: { children: string; className?: string }) {
   return <span className={`material-symbols-outlined ${className}`}>{children}</span>;
@@ -55,11 +58,13 @@ export function CollectionsScreen({
   focusCollection?: string;
   onClose: () => void;
 }) {
-  const { records } = useKoru();
+  const { records, deleteRecord, reopenRecord, updateRecord } = useKoru();
+  const [menuFor, setMenuFor] = useState<string | null>(null);
+  const [editing, setEditing] = useState<LifeRecord | null>(null);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") { setMenuFor(null); setEditing(null); onClose(); }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -151,7 +156,27 @@ export function CollectionsScreen({
                       <Mat className="koru-collection-open">open_in_new</Mat>
                     </a>
                   ) : (
-                    <div key={record.id} className="koru-challenge-row">
+                    <div
+                      key={record.id}
+                      className="koru-challenge-row koru-collection-row-tappable"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => {
+                        // 🔴 FIX: si tiene sourceBlock, reabre el detail screen original
+                        if (record.sourceBlock) {
+                          reopenRecord(record);
+                        } else {
+                          setEditing(record);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          if (record.sourceBlock) reopenRecord(record);
+                          else setEditing(record);
+                        }
+                      }}
+                    >
                       <div className="koru-challenge-lock">
                         <Mat>{recordIcon(record)}</Mat>
                       </div>
@@ -161,6 +186,45 @@ export function CollectionsScreen({
                           <p className="koru-challenge-desc">{record.notes || record.value}</p>
                         ) : null}
                       </div>
+                      {/* 🔴 Icono indicador: open_in_full si tiene sourceBlock (reabre), edit si no */}
+                      <Mat className="koru-collection-open">
+                        {record.sourceBlock ? "open_in_full" : "edit"}
+                      </Mat>
+                      {/* 🔴 Menú more_vert para Editar / Eliminar */}
+                      <button
+                        type="button"
+                        className="koru-collection-row-menu"
+                        aria-label="Más opciones"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMenuFor(menuFor === record.id ? null : record.id);
+                        }}
+                      >
+                        <Mat>more_vert</Mat>
+                      </button>
+                      {menuFor === record.id && (
+                        <div className="koru-collection-menu-popover" role="menu">
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setMenuFor(null); setEditing(record); }}
+                          >
+                            <Mat>edit</Mat> Editar
+                          </button>
+                          <button
+                            type="button"
+                            className="koru-collection-menu-danger"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setMenuFor(null);
+                              if (confirm(`¿Eliminar "${record.title}"?`)) {
+                                deleteRecord(record.id);
+                              }
+                            }}
+                          >
+                            <Mat>delete</Mat> Eliminar
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ),
                 )}
@@ -169,6 +233,74 @@ export function CollectionsScreen({
           ))}
         </div>
       </div>
+
+      {/* 🔴 v2: Editor inline para records sin sourceBlock (notas, listas, gastos creados manualmente) */}
+      {editing && (
+        <div className="koru-collection-editor" role="dialog" aria-label="Editar registro">
+          <div className="koru-collection-editor-content">
+            <div className="koru-collection-editor-header">
+              <h3>Editar</h3>
+              <button type="button" onClick={() => setEditing(null)} aria-label="Cerrar">
+                <Mat>close</Mat>
+              </button>
+            </div>
+            <label className="koru-collection-editor-field">
+              <span>Título</span>
+              <input
+                type="text"
+                value={editing.title}
+                onChange={(e) => setEditing({ ...editing, title: e.target.value })}
+              />
+            </label>
+            <label className="koru-collection-editor-field">
+              <span>Colección</span>
+              <input
+                type="text"
+                value={editing.collection ?? ""}
+                onChange={(e) => setEditing({ ...editing, collection: e.target.value })}
+              />
+            </label>
+            {(editing.notes != null || editing.kind === "idea" || editing.kind === "shopping_item") && (
+              <label className="koru-collection-editor-field">
+                <span>Notas</span>
+                <textarea
+                  rows={4}
+                  value={editing.notes ?? ""}
+                  onChange={(e) => setEditing({ ...editing, notes: e.target.value })}
+                />
+              </label>
+            )}
+            <div className="koru-collection-editor-actions">
+              <button
+                type="button"
+                className="koru-collection-editor-btn koru-collection-editor-save"
+                onClick={() => {
+                  updateRecord(editing.id, {
+                    title: editing.title,
+                    collection: editing.collection,
+                    notes: editing.notes,
+                  });
+                  setEditing(null);
+                }}
+              >
+                <Mat>check</Mat> Guardar
+              </button>
+              <button
+                type="button"
+                className="koru-collection-editor-btn koru-collection-editor-delete"
+                onClick={() => {
+                  if (confirm(`¿Eliminar "${editing.title}"?`)) {
+                    deleteRecord(editing.id);
+                    setEditing(null);
+                  }
+                }}
+              >
+                <Mat>delete</Mat> Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>,
     document.body,
   );

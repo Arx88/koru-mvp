@@ -1088,63 +1088,96 @@ function buildMatchDetailSections(
   const homeColor = b.homeColor ?? A.emerald.color;
   const awayColor = b.awayColor ?? A.purple.color;
 
-  // 1. Goles
-  if (b.goals && b.goals.length > 0) {
-    sections.push({
-      kind: "rows",
-      icon: "sports_soccer",
-      accent: { ...A.emerald, color: homeColor },
-      title: "Goles",
-      rows: b.goals.map(g => {
-        const scorer = g.scorer ?? "Gol";
-        const minute = g.minute ?? "?";
-        const teamLabel = g.team === homeName ? homeName : g.team === awayName ? awayName : (g.team ?? "");
-        return {
-          title: `${scorer} · ${minute}`,
-          detail: teamLabel,
-        };
-      }),
+  // 🔴 v2: MERGE events en UN solo timeline (goles + tarjetas + cambios)
+  // ordenados por minuto — mucho más compacto que 3 secciones separadas.
+  type MergedEvent = { minute: string; minuteNum: number; text: string; sub?: string; icon: string; badge?: string; badgeTone?: "done" | "current" | "pending" | "urgent" };
+  const events: MergedEvent[] = [];
+  for (const g of b.goals ?? []) {
+    const minuteNum = parseInt(g.minute?.replace(/[^\d]/g, "") || "0", 10);
+    events.push({
+      minute: g.minute ?? "?",
+      minuteNum,
+      text: `${g.scorer ?? "Gol"}`,
+      sub: g.team === homeName ? homeName : g.team === awayName ? awayName : (g.team ?? ""),
+      icon: "sports_soccer", // ⚽
+      badge: "Gol",
+      badgeTone: "done",
     });
   }
-
-  // 2. Tarjetas (amarillas + rojas)
-  const cardRows: Array<{ title: string; detail: string; icon?: string }> = [];
   for (const y of b.yellowCards ?? []) {
-    cardRows.push({
-      title: `${y.player ?? "Amarilla"} · ${y.minute}`,
-      detail: y.team === homeName ? homeName : y.team === awayName ? awayName : (y.team ?? ""),
+    const minuteNum = parseInt(y.minute?.replace(/[^\d]/g, "") || "0", 10);
+    events.push({
+      minute: y.minute ?? "?",
+      minuteNum,
+      text: `${y.player ?? "Amarilla"}`,
+      sub: y.team === homeName ? homeName : y.team === awayName ? awayName : (y.team ?? ""),
+      icon: "square",
+      badge: "🟨",
+      badgeTone: "current",
     });
   }
   for (const r of b.redCards ?? []) {
-    cardRows.push({
-      title: `${r.player ?? "Roja"} · ${r.minute}`,
-      detail: (r.team ?? "") + " · 🟥",
+    const minuteNum = parseInt(r.minute?.replace(/[^\d]/g, "") || "0", 10);
+    events.push({
+      minute: r.minute ?? "?",
+      minuteNum,
+      text: `${r.player ?? "Roja"}`,
+      sub: r.team === homeName ? homeName : r.team === awayName ? awayName : (r.team ?? ""),
+      icon: "square",
+      badge: "🟥",
+      badgeTone: "urgent",
     });
   }
-  if (cardRows.length > 0) {
+  for (const s of b.substitutions ?? []) {
+    const minuteNum = parseInt(s.minute?.replace(/[^\d]/g, "") || "0", 10);
+    events.push({
+      minute: s.minute ?? "?",
+      minuteNum,
+      text: `${s.playerIn ?? "?"} ⇄ ${s.playerOut ?? "?"}`,
+      sub: s.team === homeName ? homeName : s.team === awayName ? awayName : (s.team ?? ""),
+      icon: "swap_horiz",
+      badge: "Cambio",
+      badgeTone: "pending",
+    });
+  }
+  events.sort((a, b) => a.minuteNum - b.minuteNum);
+
+  if (events.length > 0) {
     sections.push({
-      kind: "rows",
-      icon: "style",
-      accent: A.amber,
-      title: "Tarjetas",
-      rows: cardRows,
+      kind: "timeline",
+      icon: "timeline",
+      accent: A.emerald,
+      title: "Resumen del partido",
+      subtitle: `${events.length} EVENTOS`,
+      steps: events.map(e => ({
+        icon: e.icon,
+        title: `${e.minute} · ${e.text}`,
+        detail: e.sub,
+        status: "done" as const,
+        badge: e.badge,
+        badgeTone: e.badgeTone,
+      })),
     });
   }
 
-  // 3. Estadísticas con barras comparativas (usando detailedStats)
+  // 🔴 v2: Stats — solo las 4 más informativas (antes eran 12, ahora 4 + "ver más")
   if (b.detailedStats && b.detailedStats.length > 0) {
+    const PRIORITY_STATS = ["Posesión", "Tiros", "Tiros al arco", "Córners"];
+    const top4 = b.detailedStats.filter(s => PRIORITY_STATS.includes(s.label));
+    const rest = b.detailedStats.filter(s => !PRIORITY_STATS.includes(s.label));
+    const statsToShow = top4.length > 0 ? top4 : b.detailedStats.slice(0, 4);
+
     sections.push({
       kind: "rows",
       icon: "monitoring",
       accent: A.emerald,
-      title: "Estadísticas",
-      rows: b.detailedStats.map(s => ({
+      title: "Estadísticas clave",
+      subtitle: top4.length > 0 && rest.length > 0 ? "TOP 4 · VER DETALLE PARA MÁS" : undefined,
+      rows: statsToShow.map(s => ({
         title: s.label,
-        // Para %: mostrar "65% - 35%". Para conteos: "16 - 9"
         detail: s.isPercent
           ? `${s.home.toFixed(0)}% — ${s.away.toFixed(0)}%`
           : `${s.home} — ${s.away}`,
-        // 🔴 Pasamos los valores para que el renderer dibuje la barra
         bar: {
           homeValue: s.home,
           awayValue: s.away,
@@ -1154,52 +1187,93 @@ function buildMatchDetailSections(
         },
       })),
     });
+
+    // Stats adicionales como sección colapsable visualmente diferenciada
+    if (rest.length > 0) {
+      sections.push({
+        kind: "rows",
+        icon: "expand_more",
+        accent: A.primary,
+        title: "Más estadísticas",
+        subtitle: `${rest.length} MÉTRICAS ADICIONALES`,
+        rows: rest.map(s => ({
+          title: s.label,
+          detail: s.isPercent
+            ? `${s.home.toFixed(0)}% — ${s.away.toFixed(0)}%`
+            : `${s.home} — ${s.away}`,
+          bar: {
+            homeValue: s.home,
+            awayValue: s.away,
+            isPercent: s.isPercent,
+            homeColor,
+            awayColor,
+          },
+        })),
+      });
+    }
   }
 
-  // 4. Cambios / sustituciones
-  if (b.substitutions && b.substitutions.length > 0) {
-    sections.push({
-      kind: "rows",
-      icon: "swap_horiz",
-      accent: A.purple,
-      title: "Cambios",
-      rows: b.substitutions.map(s => ({
-        title: `${s.playerIn ?? "?"} ⇄ ${s.playerOut ?? "?"} · ${s.minute}`,
-        detail: s.team === homeName ? homeName : s.team === awayName ? awayName : (s.team ?? ""),
-      })),
-    });
-  }
-
-  // 5. Alineaciones (si hay)
+  // 🔴 v2: Alineaciones — compactar a formation chips + starter count (no 22 rows)
   if (b.lineups) {
     const homeLineup = b.lineups[homeName];
     const awayLineup = b.lineups[awayName];
     if (homeLineup || awayLineup) {
-      const rows: Array<{ title: string; detail: string }> = [];
-      if (homeLineup?.formation) rows.push({ title: `${homeName} (${homeLineup.formation})`, detail: "" });
-      if (homeLineup?.starters) {
-        for (const p of homeLineup.starters) {
+      const rows: Array<{ title: string; detail: string; icon?: string; badge?: string; badgeTone?: "done" | "current" | "pending" | "urgent" }> = [];
+      // Fila 1: formations lado a lado
+      if (homeLineup?.formation && awayLineup?.formation) {
+        rows.push({
+          icon: "grid_view",
+          title: `${homeLineup.formation} vs ${awayLineup.formation}`,
+          detail: "FORMACIONES",
+          badge: homeName.slice(0, 3).toUpperCase() + " / " + awayName.slice(0, 3).toUpperCase(),
+          badgeTone: "current",
+        });
+      }
+      // Fila 2: arqueros
+      if (homeLineup?.starters?.[0] || awayLineup?.starters?.[0]) {
+        const homeGK = homeLineup?.starters?.find(p => p.position === "G") ?? homeLineup?.starters?.[0];
+        const awayGK = awayLineup?.starters?.find(p => p.position === "G") ?? awayLineup?.starters?.[0];
+        if (homeGK && awayGK) {
           rows.push({
-            title: `#${p.number ?? "?"} ${p.name}`,
-            detail: p.position ?? "",
+            icon: "sports_soccer",
+            title: `${homeGK.name} vs ${awayGK.name}`,
+            detail: "ARQUEROS",
           });
         }
       }
-      if (awayLineup?.formation) rows.push({ title: `${awayName} (${awayLineup.formation})`, detail: "" });
-      if (awayLineup?.starters) {
-        for (const p of awayLineup.starters) {
+      // Fila 3: capitanes/star players (primeros 3 de cada equipo)
+      if (homeLineup?.starters && awayLineup?.starters) {
+        const homeTop = homeLineup.starters.slice(1, 4).map(p => p.name).join(", ");
+        const awayTop = awayLineup.starters.slice(1, 4).map(p => p.name).join(", ");
+        if (homeTop && awayTop) {
           rows.push({
-            title: `#${p.number ?? "?"} ${p.name}`,
-            detail: p.position ?? "",
+            icon: "groups",
+            title: homeTop,
+            detail: `${homeName.slice(0, 12)} · DESTACADOS`,
+          });
+          rows.push({
+            icon: "groups",
+            title: awayTop,
+            detail: `${awayName.slice(0, 12)} · DESTACADOS`,
           });
         }
+      }
+      // Fila final: total de jugadores
+      const totalStarters = (homeLineup?.starters?.length ?? 0) + (awayLineup?.starters?.length ?? 0);
+      if (totalStarters > 0) {
+        rows.push({
+          icon: "info",
+          title: `${totalStarters} titulares en cancha`,
+          detail: "ALINEACIONES COMPLETAS",
+        });
       }
       if (rows.length > 0) {
         sections.push({
           kind: "rows",
           icon: "groups",
-          accent: A.emerald,
+          accent: A.purple,
           title: "Alineaciones",
+          subtitle: "FORMACIONES Y DESTACADOS",
           rows,
         });
       }
@@ -1420,7 +1494,7 @@ function matchTimeline(b: Of<"match_timeline">): KoruPresentation {
       kicker: "Fixture · En vivo",
       title: heroTitleFrom(title, "Partido"),
       desc: now ? `${now.minute}' ${now.text}` : undefined,
-      icon: "sports",
+      icon: "sports_soccer",
       accent: A.emerald,
     },
     detail: items.length
@@ -1430,7 +1504,7 @@ function matchTimeline(b: Of<"match_timeline">): KoruPresentation {
           sections: [
             {
               kind: "timeline",
-              icon: "sports",
+              icon: "sports_soccer",
               accent: A.emerald,
               title: "Cronología",
               steps: items.map((i) => ({ title: `${i.minute}' ${i.text}`, detail: i.sub, status: i.now ? "current" : "done" })),

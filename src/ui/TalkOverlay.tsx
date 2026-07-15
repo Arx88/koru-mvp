@@ -1,10 +1,12 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp, Image as ImageIcon, Leaf, Mic, MicOff, Paperclip } from "lucide-react";
+import { ArrowUp, Image as ImageIcon, Leaf, Mic, MicOff, Paperclip, Plus } from "lucide-react";
 import { createSpeechSession, getSpeechSupport } from "../domain/speech";
 import { cn } from "../lib/utils";
 import { useKoru, PHASE_ORDER, type KoruChatTurn, type KoruTurnItem } from "./KoruProvider";
 import type { AgentActivityKind } from "../domain/agentKernel";
 import { KoruSemanticCard } from "./chatCards";
+import { KoruUnifiedCard } from "./cards/unified/KoruUnifiedCard";
+import { CreateScreen } from "./create/CreateScreen";
 import { KoruBackground, activityToBgState, type KoruBgState } from "./KoruBackground";
 import { MemoryToast } from "./MemoryToast";
 import { MorningBriefCard } from "./MorningBriefCard";
@@ -370,9 +372,12 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
     queueOfflineMessage,
     userName,
     language,
+    reopenedRecord,
+    reopenRecord,
   } = useKoru();
   const [inputText, setInputText] = useState("");
   const [isListening, setIsListening] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
   const [interimText, setInterimText] = useState("");
   const [speechStatus] = useState(() => getSpeechSupport());
   const [micError, setMicError] = useState("");
@@ -1242,7 +1247,7 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
             )}
 
             <div className="koru-composer">
-              {/* 🔴 Composer: ephemeral (toggle rápido) + adjuntar + input + mic/send */}
+              {/* 🔴 Composer: ephemeral (toggle rápido) + crear + adjuntar + input + mic/send */}
               <button
                 type="button"
                 onClick={() => setEphemeral(!ephemeral)}
@@ -1250,6 +1255,15 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
                 className={cn("koru-composer-icon", ephemeral && "is-active")}
               >
                 <Leaf size={20} />
+              </button>
+              {/* 🔴 v2: botón + para crear contenido estructurado (Nota/Lista/Gasto/Enlace) */}
+              <button
+                type="button"
+                onClick={() => setShowCreate(true)}
+                aria-label="Crear"
+                className="koru-composer-icon koru-composer-create"
+              >
+                <Plus size={20} />
               </button>
               <button
                 type="button"
@@ -1456,6 +1470,20 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
             </button>
           </div>
         </div>
+      )}
+
+      {/* 🔴 v2: CreateScreen — modal para crear Nota/Lista/Gasto/Enlace sin LLM */}
+      {showCreate && (
+        <CreateScreen onClose={() => setShowCreate(false)} />
+      )}
+
+      {/* 🔴 v2: reopenedRecord — reabre el bloque original de un record guardado */}
+      {reopenedRecord?.sourceBlock && (
+        <KoruUnifiedCard
+          block={reopenedRecord.sourceBlock}
+          // 🔴 key forzado para que se monte fresh cada vez
+          key={`reopened-${reopenedRecord.id}`}
+        />
       )}
     </div>
   );

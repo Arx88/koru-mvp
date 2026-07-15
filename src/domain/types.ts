@@ -90,6 +90,8 @@ export type LifeRecord = {
   tags?: string[];
   createdAt: string;
   sourceEntryId: string;
+  /** 🔴 v2: persistir el bloque original para poder reabrir el informe rico */
+  sourceBlock?: UiBlock;
 };
 
 export type MemoryFact = {
