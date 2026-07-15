@@ -298,6 +298,9 @@ function WorkingPanel({ phase, kind, deliverable, onCancel }: { phase: string | 
 
   return (
     <section className="koru-working-panel" role="status" aria-live="polite">
+      <div className="koru-working-avatar">
+        <img src={KORU_AVATAR} alt="Koru" />
+      </div>
       <img src={getTaskIllustration(deliverable?.kicker, kind)} alt="" className="koru-working-illustration" />
       <div className="koru-working-copy">
         <h2>{copy.title}</h2>
