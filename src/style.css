@@ -326,7 +326,9 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 120px 20px 12px; /* 🔴 v2: 80px → 120px para que el botón thread no quede bajo las suggestion pills */
+  /* 🔴 v2: padding-top = 38vh para que el botón thread quede a ~40% de la pantalla,
+     justo debajo de la mascota (que ocupa ~35%). */
+  padding: 38vh 20px 12px;
 }
 
 .koru-chat-scroll::-webkit-scrollbar {

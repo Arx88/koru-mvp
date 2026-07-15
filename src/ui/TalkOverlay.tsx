@@ -495,10 +495,11 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
   // turno: en pantalla solo vive el intercambio ACTUAL (ultimo mensaje del
   // usuario + la respuesta de Koru a ese mensaje). Al decir algo nuevo, lo
   // anterior desaparece. El registro completo queda en Historial.
-  // 🔴 v2: Chat thread visibility — mostrar últimos 4 turnos (2 intercambios)
+  // 🔴 v2: Chat thread visibility — cuando está colapsado, SOLO se ve la última
+  // interacción (último mensaje del user + respuesta de Koru = 2 turnos).
   // Si hay más, botón "Ver N mensajes anteriores" que togglea a "Re-colapsar".
-  // Los mensajes NUNCA se superponen con la mascota — el botón va al inicio del thread.
-  const VISIBLE_TURN_COUNT = 4;
+  // El botón va a ~40% de la pantalla (debajo de la mascota, arriba de los mensajes).
+  const VISIBLE_TURN_COUNT = 2;
   const hasOlderTurns = chatTurns.length > VISIBLE_TURN_COUNT;
   const olderCount = chatTurns.length - VISIBLE_TURN_COUNT;
   const [showAllTurns, setShowAllTurns] = useState(false);
@@ -510,15 +511,20 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
   function toggleOlderTurns() {
     const next = !showAllTurns;
     setShowAllTurns(next);
-    // 🔴 FIX: resetear scroll a 0 SIEMPRE (sin importar dirección).
-    // Esto asegura que el botón quede en la misma posición (arriba del todo)
-    // sin importar cuántas veces se toggle. El usuario scrollea manualmente si quiere ver más.
-    // Usar behavior:'auto' (instant) + requestAnimationFrame para esperar al paint.
+    // 🔴 FIX: al expandir, scroll al inicio (mensajes viejos).
+    // Al colapsar, scroll al fondo (último mensaje visible).
+    // Usar scrollTop directo (no smooth) para evitar drift.
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         const node = scrollRef.current;
         if (node) {
-          node.scrollTop = 0;
+          if (next) {
+            // Expandir: ir al inicio
+            node.scrollTop = 0;
+          } else {
+            // Colapsar: ir al fondo
+            node.scrollTop = node.scrollHeight;
+          }
         }
       });
     });
