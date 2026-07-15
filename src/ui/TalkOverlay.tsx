@@ -1149,8 +1149,9 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
         {/* 🔴 FIX: back-button eliminado — el wheel (long-press) es la única navegación */}
         <h1 className="koru-sr-heading">Koru</h1>
 
-        {/* Suggestion Pills — temas de conversaciones anteriores */}
-        {suggestionPills.length > 0 && !processing && (
+        {/* Suggestion Pills — temas de conversaciones anteriores.
+            OCULTAS cuando hay toggle button (hasOlderTurns) para no tapar la mascota. */}
+        {suggestionPills.length > 0 && !processing && !hasOlderTurns && (
           <div className="koru-suggestion-bar">
             {suggestionPills.map((pill) => (
               <button
