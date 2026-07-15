@@ -380,40 +380,76 @@ function clarifying(b: Of<"clarifying_question">): KoruPresentation {
 }
 
 function weather(b: Of<"weather">): KoruPresentation {
-  const metrics: HeroMetric[] = [];
-  if (b.humidity) metrics.push({ icon: "water_drop", label: "Humedad", value: b.humidity, color: A.primary.color });
-  if (b.wind) metrics.push({ icon: "air", label: "Viento", value: b.wind, color: A.emerald.color });
-  if (b.range) metrics.push({ icon: "device_thermostat", label: "Mín / Máx", value: b.range, color: A.amber.color });
-  else if (b.rain) metrics.push({ icon: "rainy", label: "Lluvia", value: b.rain, color: A.blue.color });
+  // 🔴 v2: icono dinámico según condición (antes siempre partly_cloudy_day)
+  const condition = (b.condition ?? "").toLowerCase();
+  const weatherIcon = /lluvia|rain|storm|tormenta/.test(condition) ? "rainy"
+    : /nieve|snow|nev/.test(condition) ? "ac_unit"
+    : /nublado|cloud|cubier/.test(condition) ? "cloud"
+    : /tormenta|thunder|storm/.test(condition) ? "thunderstorm"
+    : /niebla|fog|bruma/.test(condition) ? "foggy"
+    : /sol|soleado|clear|despej/.test(condition) ? "wb_sunny"
+    : "partly_cloudy_day";
 
+  // 🔴 v2: accent dinámico según condición (día soleado = amber, lluvia = blue, nieve = primary)
+  const weatherAccent = /lluvia|rain|storm|tormenta/.test(condition) ? A.blue
+    : /nieve|snow|nev/.test(condition) ? A.primary
+    : /sol|soleado|clear|despej/.test(condition) ? A.amber
+    : A.primary;
+
+  const metrics: HeroMetric[] = [];
+  if (b.range) metrics.push({ icon: "device_thermostat", label: "Mín / Máx", value: b.range, color: A.amber.color });
+  if (b.humidity) metrics.push({ icon: "water_drop", label: "Humedad", value: b.humidity, color: A.blue.color });
+  if (b.wind) metrics.push({ icon: "air", label: "Viento", value: b.wind, color: A.emerald.color });
+  if (b.rain) metrics.push({ icon: "rainy", label: "Lluvia", value: b.rain, color: A.blue.color });
+
+  // 🔴 v2: tiles agrupados por categoría (no lista plana)
   const detailTiles: DetailTile[] = [];
-  if (b.rain) detailTiles.push({ icon: "rainy", label: "Prob. lluvia", value: b.rain, color: A.primary.color });
-  if (b.uv) detailTiles.push({ icon: "light_mode", label: "Índice UV", value: b.uv, color: A.amber.color });
-  if (b.wind) detailTiles.push({ icon: "air", label: "Viento", value: b.wind, color: A.emerald.color });
+  if (b.feel) detailTiles.push({ icon: "thermostat", label: "Sensación térmica", value: b.feel, color: A.rose.color });
+  if (b.range) detailTiles.push({ icon: "device_thermostat", label: "Mín / Máx", value: b.range, color: A.amber.color });
   if (b.humidity) detailTiles.push({ icon: "water_drop", label: "Humedad", value: b.humidity, color: A.blue.color });
-  if (b.feel) detailTiles.push({ icon: "thermostat", label: "Sensación", value: b.feel, color: A.rose.color });
+  if (b.wind) detailTiles.push({ icon: "air", label: "Viento", value: b.wind, color: A.emerald.color });
+  if (b.rain) detailTiles.push({ icon: "rainy", label: "Prob. lluvia", value: b.rain, color: A.blue.color });
+  if (b.uv) detailTiles.push({ icon: "light_mode", label: "Índice UV", value: b.uv, color: A.amber.color });
+
+  // 🔴 v2: advice como sección destacada (antes era solo desc del hero, se perdía)
+  const adviceSection = b.advice ? [{
+    kind: "text" as const,
+    icon: "lightbulb" as const,
+    accent: A.amber,
+    title: "Recomendación",
+    subtitle: "PARA HOY",
+    body: b.advice,
+  }] : [];
 
   return {
     hero: {
       kicker: b.city ? `Tu Clima · ${b.city}` : "Tu Clima",
       title: heroTitleFrom(b.condition, "Pronóstico"),
       desc: b.advice,
-      icon: "partly_cloudy_day",
-      accent: A.primary,
+      icon: weatherIcon,
+      accent: weatherAccent,
       artValue: b.now,
-      metrics: metrics.length ? metrics : undefined,
+      metrics: metrics.length ? metrics.slice(0, 3) : undefined,
     },
-    detail: detailTiles.length
+    detail: detailTiles.length || b.advice
       ? {
           title: b.city ? `Clima · ${b.city}` : "Clima",
           subtitle: b.condition,
           sections: [
-            { kind: "tiles", icon: "monitoring", accent: A.emerald, title: "Detalles", subtitle: "CONDICIONES", tiles: detailTiles },
+            ...adviceSection,
+            ...(detailTiles.length ? [{
+              kind: "tiles" as const,
+              icon: "monitoring" as const,
+              accent: A.emerald,
+              title: "Condiciones actuales",
+              subtitle: "DETALLE",
+              tiles: detailTiles,
+            }] : []),
             ...(b.sources?.length ? [sourcesSection(b.sources)] : []),
           ],
         }
       : undefined,
-    cta: detailTiles.length ? { label: "Ver detalle" } : undefined,
+    cta: detailTiles.length || b.advice ? { label: "Ver detalle" } : undefined,
   };
 }
 
@@ -823,14 +859,33 @@ function webNav(b: Of<"web_nav">): KoruPresentation {
       title: "Hallazgos clave",
       rows: b.findings.map((f) => ({ icon: "check_circle", title: f })),
     });
+  // 🔴 v2: results con snippet + readTime + type icon (antes solo título + url)
   if (results.length)
     sections.push({
-      kind: "sources",
+      kind: "rows",
       icon: "menu_book",
       accent: A.purple,
       title: "Fuentes",
-      subtitle: "CONTRASTADAS",
-      sources: results.map((r) => ({ title: r.title, domain: r.source, url: r.url })),
+      subtitle: `${results.length} RESULTADOS`,
+      rows: results.map((r) => {
+        // 🔴 v2: icono según type (article/pdf/page/description)
+        const typeIcon = r.type === "pdf" ? "picture_as_pdf"
+          : r.type === "article" ? "article"
+          : r.type === "page" ? "language"
+          : "description";
+        // 🔴 v2: detail con snippet (lo más valioso) + readTime + source
+        const detailParts = [
+          r.snippet ? r.snippet.slice(0, 120) + (r.snippet.length > 120 ? "…" : "") : null,
+          [r.readTime, r.source].filter(Boolean).join(" · ") || null,
+        ].filter(Boolean);
+        return {
+          icon: typeIcon,
+          title: r.title,
+          detail: detailParts.join("\n") || undefined,
+          badge: r.readTime ?? undefined,
+          badgeTone: r.readTime ? "current" : undefined,
+        };
+      }),
     });
   return {
     hero: {
@@ -907,38 +962,70 @@ function dataCard(b: Of<"data_card">): KoruPresentation {
 function restaurant(b: Of<"restaurant_synthesis">): KoruPresentation {
   const matches = b.matches ?? [];
   const sections: DetailSection[] = [];
+  // 🔴 v2: usar labels del type si existen (localización), fallback a español
+  const L = b.labels ?? {};
+  const topPickLabel = L.topPickLabel ?? "Top";
+  const prosLabel = L.prosLabel ?? "Pros";
+  const consLabel = L.consLabel ?? "Contras";
+  const synthesisLabel = L.synthesisLabel ?? "Síntesis";
+
+  // 🔴 v2: incluir imageUrl en las cards de scroller (antes se descartaba)
   if (matches.length)
     sections.push({
       kind: "scroller",
       icon: "restaurant_menu",
       accent: A.amber,
-      title: "Top coincidencias",
+      title: L.top3Label ?? "Top coincidencias",
       cards: matches.map((m, i) => ({
-        badge: i === 0 ? b.topScore ?? "Top" : undefined,
+        badge: i === 0 ? (b.topScore ?? topPickLabel) : undefined,
         badgeColor: i === 0 ? A.emerald.color : undefined,
         title: m.name,
         detail: m.quote,
-        metrics: [`${m.sourcesMentioning} fuentes`, m.rating ? `★ ${m.rating}` : ""].filter(Boolean),
+        // 🔴 v2: métricas con rating visual (estrellas) + count de fuentes
+        metrics: [
+          m.rating ? `★ ${m.rating.toFixed(1)}` : "",
+          m.sourcesMentioning ? `${m.sourcesMentioning} ${m.sourcesMentioning === 1 ? "fuente" : "fuentes"}` : "",
+        ].filter(Boolean),
       })),
     });
+
+  // 🔴 v2: mood como sección destacada si existe (antes se descartaba)
+  if (b.mood) {
+    sections.unshift({
+      kind: "text",
+      icon: "mood",
+      accent: A.pink,
+      title: "Tu búsqueda",
+      subtitle: "CONTEXTO",
+      body: b.mood,
+    });
+  }
+
+  // 🔴 v2: status como badge en el hero (antes se descartaba)
   if (b.pros?.length || b.cons?.length)
     sections.push({
       kind: "rows",
       icon: "thumbs_up_down",
       accent: A.amber,
-      title: "Pros y contras",
+      title: `${prosLabel} y ${consLabel.toLowerCase()}`,
       rows: [
-        ...(b.pros ?? []).map((p) => ({ icon: "add_circle", title: p, badgeTone: "done" as const })),
-        ...(b.cons ?? []).map((c) => ({ icon: "remove_circle", title: c, badgeTone: "urgent" as const })),
+        ...(b.pros ?? []).map((p) => ({ icon: "add_circle", title: p, badge: "Pro", badgeTone: "done" as const })),
+        ...(b.cons ?? []).map((c) => ({ icon: "remove_circle", title: c, badge: "Contra", badgeTone: "urgent" as const })),
       ],
     });
-  if (b.synthesis) sections.push({ kind: "text", icon: "auto_awesome", accent: A.amber, title: "Síntesis", body: b.synthesis });
+  if (b.synthesis) sections.push({ kind: "text", icon: "auto_awesome", accent: A.amber, title: synthesisLabel, body: b.synthesis });
   if (b.sources?.length) sections.push(sourcesSection(b.sources));
+
+  // 🔴 v2: desc del hero más rico (mood + status)
+  const heroDesc = b.synthesis ?? b.note ?? (b.mood ? `Para: ${b.mood}` : undefined);
+  // 🔴 v2: kicker con status si es partial/failed
+  const statusLabel = b.status === "partial" ? " · Resultados parciales" : b.status === "failed" ? " · Sin datos" : "";
+
   return {
     hero: {
-      kicker: "Tu Recomendación",
+      kicker: `Tu Recomendación${statusLabel}`,
       title: heroTitleFrom(b.title ?? b.query, "Restaurantes"),
-      desc: b.synthesis ?? b.note,
+      desc: heroDesc,
       icon: "restaurant",
       accent: A.amber,
       metrics: matches.length ? [{ icon: "storefront", label: "Opciones", value: String(matches.length), color: A.amber.color }] : undefined,
@@ -1874,27 +1961,101 @@ function transportCompare(b: Of<"transport_compare">): KoruPresentation {
 }
 
 function routeMap(b: Of<"route_map">): KoruPresentation {
+  // 🔴 v2: fix progress bug (0.45 → "0.45%" en vez de "45%")
+  const progressPct = b.progress != null
+    ? (b.progress <= 1 ? Math.round(b.progress * 100) : Math.round(b.progress))
+    : null;
   return {
     hero: {
       kicker: "Tu Mapa",
-      title: b.to ? up(b.to) : "RUTA",
+      title: heroTitleFrom(b.to, "Ruta"),
       desc: [b.from && `Desde ${b.from}`, b.distance, b.remaining && `${b.remaining} restante`].filter(Boolean).join(" · "),
       icon: "map",
       accent: A.indigo,
-      metrics: b.progress != null ? [{ icon: "near_me", label: "Progreso", value: `${b.progress}%`, color: A.indigo.color }] : undefined,
+      artValue: progressPct != null ? `${progressPct}%` : undefined,
+      metrics: [
+        ...(b.distance ? [{ icon: "straighten", label: "Distancia", value: b.distance, color: A.indigo.color }] : []),
+        ...(progressPct != null ? [{ icon: "near_me", label: "Progreso", value: `${progressPct}%`, color: A.emerald.color }] : []),
+      ].slice(0, 3),
     },
+    detail: {
+      title: b.to ? `Ruta a ${b.to}` : "Ruta",
+      subtitle: b.from ? `DESDE ${b.from.toUpperCase()}` : undefined,
+      sections: [
+        {
+          kind: "rows",
+          icon: "directions",
+          accent: A.indigo,
+          title: "Detalle del viaje",
+          rows: [
+            ...(b.from ? [{ icon: "trip_origin", title: b.from, detail: "ORIGEN" }] : []),
+            ...(b.to ? [{ icon: "location_on", title: b.to, detail: "DESTINO" }] : []),
+            ...(b.distance ? [{ icon: "straighten", title: b.distance, detail: "DISTANCIA TOTAL" }] : []),
+            ...(b.remaining ? [{ icon: "flag", title: b.remaining, detail: "RESTANTE" }] : []),
+            ...(progressPct != null ? [{ icon: "near_me", title: `${progressPct}% completado`, detail: "PROGRESO", badge: progressPct >= 80 ? "Casi listo" : undefined, badgeTone: progressPct >= 80 ? "done" as const : "current" as const }] : []),
+          ],
+        },
+      ],
+    },
+    cta: b.to ? { label: "Ver detalle" } : undefined,
   };
 }
 
 function birthdayCalendar(b: Of<"birthday_calendar">): KoruPresentation {
+  // 🔴 v2: usar startDay + daysInMonth para generar grid visual del mes
+  const month = b.month ?? "Calendario";
+  const highlightedDay = b.highlightedDay;
+  const startDay = b.startDay ?? 0; // 0=Sunday, 1=Monday
+  const daysInMonth = b.daysInMonth ?? 30;
+
+  // Generar array de días con offset para el grid
+  const totalCells = Math.ceil((startDay + daysInMonth) / 7) * 7;
+  const days: Array<{ day: number | null; highlighted: boolean }> = [];
+  for (let i = 0; i < totalCells; i++) {
+    const dayNum = i - startDay + 1;
+    if (dayNum < 1 || dayNum > daysInMonth) {
+      days.push({ day: null, highlighted: false });
+    } else {
+      days.push({ day: dayNum, highlighted: dayNum === highlightedDay });
+    }
+  }
+
+  const dayNames = ["D", "L", "M", "M", "J", "V", "S"];
+
   return {
     hero: {
       kicker: "Calendario",
-      title: b.month ? up(b.month) : "CALENDARIO",
-      desc: b.highlightedDay ? `Día destacado: ${b.highlightedDay}` : undefined,
+      title: heroTitleFrom(month, "Calendario"),
+      desc: highlightedDay ? `Día destacado: ${highlightedDay}` : undefined,
       icon: "calendar_month",
       accent: A.pink,
+      artValue: highlightedDay ? String(highlightedDay) : undefined,
+      metrics: [
+        { icon: "event", label: "Mes", value: month, color: A.pink.color },
+        { icon: "cake", label: "Día", value: highlightedDay ? String(highlightedDay) : "—", color: A.amber.color },
+      ],
     },
+    detail: {
+      title: `Calendario · ${month}`,
+      subtitle: highlightedDay ? `DÍA DESTACADO: ${highlightedDay}` : undefined,
+      sections: [
+        {
+          kind: "chips",
+          icon: "calendar_month",
+          accent: A.pink,
+          title: "Calendario del mes",
+          subtitle: `${daysInMonth} DÍAS`,
+          // 🔴 Usamos chips para simular el grid — cada chip es un día
+          // El renderer de chips los pone en flex-wrap, lo que da el efecto de calendario
+          chips: days.map((d) => ({
+            label: d.day ? String(d.day) : "·",
+            color: d.highlighted ? A.pink.color : undefined,
+            sub: d.highlighted ? "★" : undefined,
+          })),
+        },
+      ],
+    },
+    cta: { label: "Ver calendario" },
   };
 }
 

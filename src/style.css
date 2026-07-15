@@ -5239,3 +5239,44 @@ a.koru-dsec-source:hover {
   white-space: nowrap;
   opacity: 0.95;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   🔴 v2: Calendario grid — chips que se comportan como días del mes
+   ═══════════════════════════════════════════════════════════════════════════ */
+.koru-dsec-chips {
+  flex-wrap: wrap;
+  gap: 4px !important;
+}
+.koru-dsec-chip {
+  min-width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f3f7f4;
+  color: #5a6b62;
+  font-size: 13px;
+  font-weight: 600;
+  position: relative;
+  flex: 0 0 auto;
+}
+.koru-dsec-chip .koru-dsec-chip-label {
+  font-size: 13px;
+}
+.koru-dsec-chip .koru-dsec-chip-sub {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: 9px;
+  color: #ec4899;
+}
+/* 🔴 Chip con color (día destacado) */
+.koru-dsec-chip[style*="color"] {
+  background: currentColor !important;
+  color: white !important;
+}
+.koru-dsec-chip[style*="color"] .koru-dsec-chip-label,
+.koru-dsec-chip[style*="color"] .koru-dsec-chip-sub {
+  color: white !important;
+}
