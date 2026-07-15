@@ -13,10 +13,10 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// koru-mvp/src/domain/types.ts
+// src/domain/types.ts
 var VALID_MASCOT_STATES;
 var init_types = __esm({
-  "koru-mvp/src/domain/types.ts"() {
+  "src/domain/types.ts"() {
     "use strict";
     VALID_MASCOT_STATES = [
       "idle",
@@ -39,42 +39,42 @@ var init_types = __esm({
   }
 });
 
-// koru-mvp/src/domain/web.ts
+// src/domain/web.ts
 var init_web = __esm({
-  "koru-mvp/src/domain/web.ts"() {
+  "src/domain/web.ts"() {
     "use strict";
   }
 });
 
-// koru-mvp/src/domain/toolRegistry.ts
+// src/domain/toolRegistry.ts
 var init_toolRegistry = __esm({
-  "koru-mvp/src/domain/toolRegistry.ts"() {
+  "src/domain/toolRegistry.ts"() {
     "use strict";
     init_web();
   }
 });
 
-// koru-mvp/src/domain/commitments.ts
+// src/domain/commitments.ts
 function foldAccents(text) {
   return text.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
 }
 var init_commitments = __esm({
-  "koru-mvp/src/domain/commitments.ts"() {
+  "src/domain/commitments.ts"() {
     "use strict";
   }
 });
 
-// koru-mvp/src/domain/time.ts
+// src/domain/time.ts
 var init_time = __esm({
-  "koru-mvp/src/domain/time.ts"() {
+  "src/domain/time.ts"() {
     "use strict";
     init_commitments();
   }
 });
 
-// koru-mvp/src/domain/turn.ts
+// src/domain/turn.ts
 var init_turn = __esm({
-  "koru-mvp/src/domain/turn.ts"() {
+  "src/domain/turn.ts"() {
     "use strict";
     init_store();
     init_toolRegistry();
@@ -82,16 +82,16 @@ var init_turn = __esm({
   }
 });
 
-// koru-mvp/src/domain/executor.ts
+// src/domain/executor.ts
 var init_executor = __esm({
-  "koru-mvp/src/domain/executor.ts"() {
+  "src/domain/executor.ts"() {
     "use strict";
     init_time();
     init_store();
   }
 });
 
-// koru-mvp/src/domain/freellmapi.ts
+// src/domain/freellmapi.ts
 function normalizeBaseUrl(baseUrl) {
   return baseUrl.trim().replace(/\/+$/, "");
 }
@@ -184,7 +184,7 @@ async function runOpenModelChat(runtime, messages, options) {
 }
 var FreeLlmApiError;
 var init_freellmapi = __esm({
-  "koru-mvp/src/domain/freellmapi.ts"() {
+  "src/domain/freellmapi.ts"() {
     "use strict";
     FreeLlmApiError = class extends Error {
       status;
@@ -197,21 +197,21 @@ var init_freellmapi = __esm({
   }
 });
 
-// koru-mvp/src/domain/persistence.ts
+// src/domain/persistence.ts
 var init_persistence = __esm({
-  "koru-mvp/src/domain/persistence.ts"() {
+  "src/domain/persistence.ts"() {
     "use strict";
   }
 });
 
-// koru-mvp/src/domain/soul.ts
+// src/domain/soul.ts
 var init_soul = __esm({
-  "koru-mvp/src/domain/soul.ts"() {
+  "src/domain/soul.ts"() {
     "use strict";
   }
 });
 
-// koru-mvp/src/domain/store.ts
+// src/domain/store.ts
 function selectRelevantMemories(memories, input, maxResults = 5) {
   const inputWords = new Set(
     input.toLowerCase().split(/\W+/).filter((w) => w.length > 3)
@@ -232,7 +232,7 @@ function selectRelevantMemories(memories, input, maxResults = 5) {
   return scored;
 }
 var init_store = __esm({
-  "koru-mvp/src/domain/store.ts"() {
+  "src/domain/store.ts"() {
     "use strict";
     init_turn();
     init_executor();
@@ -244,7 +244,7 @@ var init_store = __esm({
   }
 });
 
-// koru-mvp/src/domain/enhancementEngine.ts
+// src/domain/enhancementEngine.ts
 function scoreCandidate(candidate, state) {
   const valueMap = { low: 0.6, medium: 1, high: 1.4 };
   const value = valueMap[candidate.userValue];
@@ -364,13 +364,13 @@ function enhancementPrompt(candidates) {
   ].join("\n");
 }
 var init_enhancementEngine = __esm({
-  "koru-mvp/src/domain/enhancementEngine.ts"() {
+  "src/domain/enhancementEngine.ts"() {
     "use strict";
     init_commitments();
   }
 });
 
-// koru-mvp/src/domain/schemas.ts
+// src/domain/schemas.ts
 function parseJsonObjectStrict(text) {
   const trimmed = text.trim();
   if (!trimmed) throw new SchemaValidationError("Empty model response", ["empty_response"]);
@@ -384,7 +384,7 @@ function parseJsonObjectStrict(text) {
 }
 var SchemaValidationError;
 var init_schemas = __esm({
-  "koru-mvp/src/domain/schemas.ts"() {
+  "src/domain/schemas.ts"() {
     "use strict";
     SchemaValidationError = class extends Error {
       errors;
@@ -397,7 +397,7 @@ var init_schemas = __esm({
   }
 });
 
-// koru-mvp/src/domain/enhancementExtractor.ts
+// src/domain/enhancementExtractor.ts
 function systemPrompt() {
   return [
     "Sos el detector de oportunidades de Koru, un asistente personal con memoria.",
@@ -545,7 +545,7 @@ async function extractOpportunities(ctx, chatFn) {
 }
 var enhancementCache, CACHE_TTL;
 var init_enhancementExtractor = __esm({
-  "koru-mvp/src/domain/enhancementExtractor.ts"() {
+  "src/domain/enhancementExtractor.ts"() {
     "use strict";
     init_schemas();
     init_freellmapi();
@@ -554,7 +554,7 @@ var init_enhancementExtractor = __esm({
   }
 });
 
-// koru-mvp/src/domain/structureExtractor.ts
+// src/domain/structureExtractor.ts
 function normalizeForMatch(text) {
   return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/["'`«»""'']/g, "").replace(/\s+/g, " ").trim();
 }
@@ -666,14 +666,14 @@ async function extractStructuredData(input) {
 }
 var MIN_QUOTE_LENGTH;
 var init_structureExtractor = __esm({
-  "koru-mvp/src/domain/structureExtractor.ts"() {
+  "src/domain/structureExtractor.ts"() {
     "use strict";
     init_schemas();
     MIN_QUOTE_LENGTH = 25;
   }
 });
 
-// koru-mvp/src/domain/simulatedToolDetector.ts
+// src/domain/simulatedToolDetector.ts
 function tryParseArgs(jsonStr) {
   const trimmed = jsonStr.trim();
   if (!trimmed.startsWith("{")) return null;
@@ -768,7 +768,7 @@ function detectSimulatedToolCall(content) {
 }
 var VALID_TOOL_NAMES;
 var init_simulatedToolDetector = __esm({
-  "koru-mvp/src/domain/simulatedToolDetector.ts"() {
+  "src/domain/simulatedToolDetector.ts"() {
     "use strict";
     VALID_TOOL_NAMES = /* @__PURE__ */ new Set([
       "web_search",
@@ -812,7 +812,7 @@ var init_simulatedToolDetector = __esm({
   }
 });
 
-// koru-mvp/src/domain/vector.ts
+// src/domain/vector.ts
 function cosineSimilarity(a, b) {
   const length = Math.min(a.length, b.length);
   if (length === 0) return 0;
@@ -828,12 +828,12 @@ function cosineSimilarity(a, b) {
   return dot / (Math.sqrt(aNorm) * Math.sqrt(bNorm));
 }
 var init_vector = __esm({
-  "koru-mvp/src/domain/vector.ts"() {
+  "src/domain/vector.ts"() {
     "use strict";
   }
 });
 
-// koru-mvp/src/domain/semanticRouter.ts
+// src/domain/semanticRouter.ts
 function extractToolArgs(message, tool) {
   if (!tool) return void 0;
   const clean = message.trim();
@@ -1068,7 +1068,7 @@ function keywordFastPath(message) {
 }
 var ROUTE_EXAMPLES, CONFIDENCE_THRESHOLD, MIN_CATEGORY_MARGIN, SemanticRouter, KNOWN_TEAMS;
 var init_semanticRouter = __esm({
-  "koru-mvp/src/domain/semanticRouter.ts"() {
+  "src/domain/semanticRouter.ts"() {
     "use strict";
     init_vector();
     init_commitments();
@@ -1571,7 +1571,7 @@ var init_semanticRouter = __esm({
   }
 });
 
-// koru-mvp/src/server/logger.ts
+// src/server/logger.ts
 import { appendFileSync, mkdirSync } from "node:fs";
 function write(level, tag, message, extra) {
   const entry = {
@@ -1608,7 +1608,7 @@ function dump(value, maxLen = 1500) {
 }
 var LOG_DIR, LOG_FILE, logger;
 var init_logger = __esm({
-  "koru-mvp/src/server/logger.ts"() {
+  "src/server/logger.ts"() {
     "use strict";
     LOG_DIR = "./logs";
     LOG_FILE = "./logs/koru-backend.log";
@@ -1621,13 +1621,13 @@ var init_logger = __esm({
   }
 });
 
-// koru-mvp/src/tools/types.ts
+// src/tools/types.ts
 function defineTool(name, description, parameters) {
   return { type: "function", function: { name, description, parameters } };
 }
 var policies;
 var init_types2 = __esm({
-  "koru-mvp/src/tools/types.ts"() {
+  "src/tools/types.ts"() {
     "use strict";
     policies = {
       /** Solo lee datos externos/públicos. Ej: weather, wikipedia. */
@@ -1652,7 +1652,7 @@ var init_types2 = __esm({
   }
 });
 
-// koru-mvp/src/tools/shared/fetcher.ts
+// src/tools/shared/fetcher.ts
 async function fetchJson(url, options = {}) {
   const { method = "GET", headers = {}, body, timeoutMs = 1e4, retries = 1 } = options;
   const finalHeaders = {
@@ -1727,13 +1727,13 @@ function domainFromUrl(url) {
 }
 var KORU_USER_AGENT;
 var init_fetcher = __esm({
-  "koru-mvp/src/tools/shared/fetcher.ts"() {
+  "src/tools/shared/fetcher.ts"() {
     "use strict";
     KORU_USER_AGENT = "KoruLocal/1.0 (+local-first assistant)";
   }
 });
 
-// koru-mvp/src/tools/shared/cache.ts
+// src/tools/shared/cache.ts
 function getCached(key) {
   const entry = store.get(key);
   if (!entry) return void 0;
@@ -1761,7 +1761,7 @@ function pruneCache() {
 }
 var store, ttls;
 var init_cache = __esm({
-  "koru-mvp/src/tools/shared/cache.ts"() {
+  "src/tools/shared/cache.ts"() {
     "use strict";
     store = /* @__PURE__ */ new Map();
     ttls = {
@@ -1790,7 +1790,7 @@ var init_cache = __esm({
   }
 });
 
-// koru-mvp/src/tools/shared/rateLimiter.ts
+// src/tools/shared/rateLimiter.ts
 function rateLimiter(maxPerSec) {
   if (maxPerSec <= 0) return { acquire: async () => void 0 };
   const intervalMs = 1e3 / maxPerSec;
@@ -1824,7 +1824,7 @@ function rateLimiter(maxPerSec) {
 }
 var limiters;
 var init_rateLimiter = __esm({
-  "koru-mvp/src/tools/shared/rateLimiter.ts"() {
+  "src/tools/shared/rateLimiter.ts"() {
     "use strict";
     limiters = {
       /** Open-Meteo: 600/min ≈ 10/s. Conservamos 8/s para dejar margen. */
@@ -1857,10 +1857,10 @@ var init_rateLimiter = __esm({
   }
 });
 
-// koru-mvp/src/tools/money/currencyConvert.ts
+// src/tools/money/currencyConvert.ts
 var currencyConvert;
 var init_currencyConvert = __esm({
-  "koru-mvp/src/tools/money/currencyConvert.ts"() {
+  "src/tools/money/currencyConvert.ts"() {
     "use strict";
     init_types2();
     init_fetcher();
@@ -1923,10 +1923,10 @@ var init_currencyConvert = __esm({
   }
 });
 
-// koru-mvp/src/tools/money/exchangeHistory.ts
+// src/tools/money/exchangeHistory.ts
 var exchangeHistory;
 var init_exchangeHistory = __esm({
-  "koru-mvp/src/tools/money/exchangeHistory.ts"() {
+  "src/tools/money/exchangeHistory.ts"() {
     "use strict";
     init_types2();
     init_fetcher();
@@ -2006,10 +2006,10 @@ var init_exchangeHistory = __esm({
   }
 });
 
-// koru-mvp/src/tools/money/cryptoPrice.ts
+// src/tools/money/cryptoPrice.ts
 var cryptoPrice;
 var init_cryptoPrice = __esm({
-  "koru-mvp/src/tools/money/cryptoPrice.ts"() {
+  "src/tools/money/cryptoPrice.ts"() {
     "use strict";
     init_types2();
     init_fetcher();
@@ -2087,7 +2087,7 @@ var init_cryptoPrice = __esm({
   }
 });
 
-// koru-mvp/src/tools/money/stockQuote.ts
+// src/tools/money/stockQuote.ts
 function parseStooqCsv(csv) {
   const lines = csv.trim().split(/\r?\n/);
   if (lines.length < 2) return null;
@@ -2105,7 +2105,7 @@ function parseStooqCsv(csv) {
 }
 var stockQuote;
 var init_stockQuote = __esm({
-  "koru-mvp/src/tools/money/stockQuote.ts"() {
+  "src/tools/money/stockQuote.ts"() {
     "use strict";
     init_types2();
     init_fetcher();
@@ -2163,7 +2163,7 @@ var init_stockQuote = __esm({
   }
 });
 
-// koru-mvp/src/tools/money/expenses.ts
+// src/tools/money/expenses.ts
 function expensesByPeriod(records, periodDays) {
   const now = Date.now();
   const since = now - periodDays * 24 * 60 * 60 * 1e3;
@@ -2175,7 +2175,7 @@ function expensesByPeriod(records, periodDays) {
 }
 var expenseTrack, expenseSummary, expenseAlert, budgetSet, subscriptionReminder, taxEstimate, inflationData, priceCompareProduct;
 var init_expenses = __esm({
-  "koru-mvp/src/tools/money/expenses.ts"() {
+  "src/tools/money/expenses.ts"() {
     "use strict";
     init_types2();
     expenseTrack = {
@@ -2492,10 +2492,10 @@ var init_expenses = __esm({
   }
 });
 
-// koru-mvp/src/tools/money/advanced.ts
+// src/tools/money/advanced.ts
 var priceHistory, productReview, budgetCheck, expenseByCategory;
 var init_advanced = __esm({
-  "koru-mvp/src/tools/money/advanced.ts"() {
+  "src/tools/money/advanced.ts"() {
     "use strict";
     init_types2();
     priceHistory = {
@@ -2674,10 +2674,10 @@ var init_advanced = __esm({
   }
 });
 
-// koru-mvp/src/tools/money/index.ts
+// src/tools/money/index.ts
 var moneyTools;
 var init_money = __esm({
-  "koru-mvp/src/tools/money/index.ts"() {
+  "src/tools/money/index.ts"() {
     "use strict";
     init_currencyConvert();
     init_exchangeHistory();
@@ -2706,7 +2706,7 @@ var init_money = __esm({
   }
 });
 
-// koru-mvp/src/tools/sports/football.ts
+// src/tools/sports/football.ts
 function detectNationalTeam(queryLower) {
   for (const team of NATIONAL_TEAM_SYNONYMS) {
     for (const alias of team.aliases) {
@@ -2822,7 +2822,7 @@ function normalizeEvent(e) {
 }
 var TSDB_KEY, TSDB_BASE, ESPN_BASE, ESPN_LEAGUES, NATIONAL_TEAM_SYNONYMS, matchLive, leagueStandings, matchSchedule, teamFollow;
 var init_football = __esm({
-  "koru-mvp/src/tools/sports/football.ts"() {
+  "src/tools/sports/football.ts"() {
     "use strict";
     init_types2();
     init_fetcher();
@@ -3143,10 +3143,10 @@ var init_football = __esm({
   }
 });
 
-// koru-mvp/src/tools/sports/multi.ts
+// src/tools/sports/multi.ts
 var ESPN_BASE2, playerStats, tournamentBracket, sportsNews, golfLeaderboard, tennisAtpWta, f1Results;
 var init_multi = __esm({
-  "koru-mvp/src/tools/sports/multi.ts"() {
+  "src/tools/sports/multi.ts"() {
     "use strict";
     init_types2();
     init_fetcher();
@@ -3399,10 +3399,10 @@ var init_multi = __esm({
   }
 });
 
-// koru-mvp/src/tools/sports/index.ts
+// src/tools/sports/index.ts
 var sportsTools;
 var init_sports = __esm({
-  "koru-mvp/src/tools/sports/index.ts"() {
+  "src/tools/sports/index.ts"() {
     "use strict";
     init_football();
     init_multi();
@@ -3421,7 +3421,7 @@ var init_sports = __esm({
   }
 });
 
-// koru-mvp/src/tools/shared/scrapers.ts
+// src/tools/shared/scrapers.ts
 function htmlToText(html) {
   return html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
 }
@@ -3498,14 +3498,14 @@ async function searchAndEnrich(query, max = 5) {
   return usableSources(enriched);
 }
 var init_scrapers = __esm({
-  "koru-mvp/src/tools/shared/scrapers.ts"() {
+  "src/tools/shared/scrapers.ts"() {
     "use strict";
     init_fetcher();
     init_rateLimiter();
   }
 });
 
-// koru-mvp/src/tools/shared/extractor.ts
+// src/tools/shared/extractor.ts
 async function validateWithCitations(userInput, sources, chatFn) {
   return extractStructuredData({ userInput, sources, chatFn });
 }
@@ -3525,16 +3525,16 @@ function extractionToDataCard(extracted) {
   };
 }
 var init_extractor = __esm({
-  "koru-mvp/src/tools/shared/extractor.ts"() {
+  "src/tools/shared/extractor.ts"() {
     "use strict";
     init_structureExtractor();
   }
 });
 
-// koru-mvp/src/tools/food/restaurants.ts
+// src/tools/food/restaurants.ts
 var restaurantDeepSearch, restaurantReviewAggregate, menuExtract;
 var init_restaurants = __esm({
-  "koru-mvp/src/tools/food/restaurants.ts"() {
+  "src/tools/food/restaurants.ts"() {
     "use strict";
     init_types2();
     init_scrapers();
@@ -3749,7 +3749,7 @@ ${s.snippet ?? s.content ?? ""}`)
   }
 });
 
-// koru-mvp/src/tools/food/recipes.ts
+// src/tools/food/recipes.ts
 function extractIngredients(meal) {
   const out = [];
   for (let i = 1; i <= 20; i++) {
@@ -3819,7 +3819,7 @@ function bestMatch(food) {
 }
 var MEALDB_KEY, MEALDB_BASE, recipeFind, recipeByIngredients, recipeSave, recipeShow, foodInfo, winePairing, NUTRITION_TABLE, nutritionCalc;
 var init_recipes = __esm({
-  "koru-mvp/src/tools/food/recipes.ts"() {
+  "src/tools/food/recipes.ts"() {
     "use strict";
     init_types2();
     init_fetcher();
@@ -4171,10 +4171,10 @@ var init_recipes = __esm({
   }
 });
 
-// koru-mvp/src/tools/food/index.ts
+// src/tools/food/index.ts
 var foodTools;
 var init_food = __esm({
-  "koru-mvp/src/tools/food/index.ts"() {
+  "src/tools/food/index.ts"() {
     "use strict";
     init_restaurants();
     init_recipes();
@@ -4193,10 +4193,10 @@ var init_food = __esm({
   }
 });
 
-// koru-mvp/src/tools/travel/travel.ts
+// src/tools/travel/travel.ts
 var flightSearch, flightTrack, hotelSearch, routePlan, transportNearby, currencyAtm, visaCheck, travelItinerary, weatherTravel, languagePhrase;
 var init_travel = __esm({
-  "koru-mvp/src/tools/travel/travel.ts"() {
+  "src/tools/travel/travel.ts"() {
     "use strict";
     init_types2();
     init_scrapers();
@@ -4587,10 +4587,10 @@ var init_travel = __esm({
   }
 });
 
-// koru-mvp/src/tools/travel/index.ts
+// src/tools/travel/index.ts
 var travelTools;
 var init_travel2 = __esm({
-  "koru-mvp/src/tools/travel/index.ts"() {
+  "src/tools/travel/index.ts"() {
     "use strict";
     init_travel();
     travelTools = [
@@ -4608,7 +4608,7 @@ var init_travel2 = __esm({
   }
 });
 
-// koru-mvp/src/tools/trending/trending.ts
+// src/tools/trending/trending.ts
 async function queryGdelt(query, maxrecords = 8) {
   await limiters.gdelt.acquire();
   const url = new URL("https://api.gdeltproject.org/api/v2/doc/doc");
@@ -4623,7 +4623,7 @@ async function queryGdelt(query, maxrecords = 8) {
 }
 var newsUrgent, newsTopic, trendingTwitter, trendingReddit, trendingYoutube, trendingGithub, rssSubscribe, rssDigest, newsRadarTopic, worldSignal;
 var init_trending = __esm({
-  "koru-mvp/src/tools/trending/trending.ts"() {
+  "src/tools/trending/trending.ts"() {
     "use strict";
     init_types2();
     init_fetcher();
@@ -5024,10 +5024,10 @@ var init_trending = __esm({
   }
 });
 
-// koru-mvp/src/tools/trending/index.ts
+// src/tools/trending/index.ts
 var trendingTools;
 var init_trending2 = __esm({
-  "koru-mvp/src/tools/trending/index.ts"() {
+  "src/tools/trending/index.ts"() {
     "use strict";
     init_trending();
     trendingTools = [
@@ -5045,10 +5045,10 @@ var init_trending2 = __esm({
   }
 });
 
-// koru-mvp/src/tools/people/people.ts
+// src/tools/people/people.ts
 var WIKI_HEADERS, personInfo, personFollow, personFilmography, movieInfo, bookInfo, RAWG_KEY, RAWG_BASE, gameInfo;
 var init_people = __esm({
-  "koru-mvp/src/tools/people/people.ts"() {
+  "src/tools/people/people.ts"() {
     "use strict";
     init_types2();
     init_fetcher();
@@ -5471,20 +5471,20 @@ var init_people = __esm({
   }
 });
 
-// koru-mvp/src/tools/people/index.ts
+// src/tools/people/index.ts
 var peopleTools;
 var init_people2 = __esm({
-  "koru-mvp/src/tools/people/index.ts"() {
+  "src/tools/people/index.ts"() {
     "use strict";
     init_people();
     peopleTools = [personInfo, personFollow, personFilmography, movieInfo, bookInfo, gameInfo];
   }
 });
 
-// koru-mvp/src/tools/apps/apps.ts
+// src/tools/apps/apps.ts
 var appRecommend, gameRecommend, gameDeals, appDeals;
 var init_apps = __esm({
-  "koru-mvp/src/tools/apps/apps.ts"() {
+  "src/tools/apps/apps.ts"() {
     "use strict";
     init_types2();
     init_fetcher();
@@ -5632,20 +5632,20 @@ var init_apps = __esm({
   }
 });
 
-// koru-mvp/src/tools/apps/index.ts
+// src/tools/apps/index.ts
 var appsTools;
 var init_apps2 = __esm({
-  "koru-mvp/src/tools/apps/index.ts"() {
+  "src/tools/apps/index.ts"() {
     "use strict";
     init_apps();
     appsTools = [appRecommend, gameRecommend, gameDeals, appDeals];
   }
 });
 
-// koru-mvp/src/tools/docs/documents.ts
+// src/tools/docs/documents.ts
 var docCreateMd, docCreatePdf, docCreateWord, docCreateExcel, ocrText, dataAnalyze, dataChart;
 var init_documents = __esm({
-  "koru-mvp/src/tools/docs/documents.ts"() {
+  "src/tools/docs/documents.ts"() {
     "use strict";
     init_types2();
     docCreateMd = {
@@ -5988,10 +5988,10 @@ ${content}
   }
 });
 
-// koru-mvp/src/tools/docs/tasks.ts
+// src/tools/docs/tasks.ts
 var noteWrite, noteShow, noteSearch, projectCreate, projectAdd, projectShow, taskCreate, taskList, taskDone, calendarAdd, calendarShow, calendarExportIcs, countdown, reminderSet, alarmSet;
 var init_tasks = __esm({
-  "koru-mvp/src/tools/docs/tasks.ts"() {
+  "src/tools/docs/tasks.ts"() {
     "use strict";
     init_types2();
     noteWrite = {
@@ -6537,10 +6537,10 @@ var init_tasks = __esm({
   }
 });
 
-// koru-mvp/src/tools/docs/productivity.ts
+// src/tools/docs/productivity.ts
 var summarizeUrl, summarizeText, translate, lyricsFind, deepResearch, extractActionItems, emailDraft, messageDraft, copyToClipboard, qrGenerate, sunriseSunset, moonPhase, holidays, timeZone;
 var init_productivity = __esm({
-  "koru-mvp/src/tools/docs/productivity.ts"() {
+  "src/tools/docs/productivity.ts"() {
     "use strict";
     init_types2();
     init_fetcher();
@@ -7016,10 +7016,10 @@ Prop\xF3sito: ${purpose}` }
   }
 });
 
-// koru-mvp/src/tools/docs/index.ts
+// src/tools/docs/index.ts
 var docsTools;
 var init_docs = __esm({
-  "koru-mvp/src/tools/docs/index.ts"() {
+  "src/tools/docs/index.ts"() {
     "use strict";
     init_documents();
     init_tasks();
@@ -7069,7 +7069,7 @@ var init_docs = __esm({
   }
 });
 
-// koru-mvp/src/tools/shared/embeddings.ts
+// src/tools/shared/embeddings.ts
 function makeEmbedFn(baseUrl = OLLAMA_BASE, model = EMBED_MODEL) {
   return async (text) => {
     const controller = new AbortController();
@@ -7116,14 +7116,14 @@ async function isOllamaAvailable(baseUrl = OLLAMA_BASE) {
 }
 var OLLAMA_BASE, EMBED_MODEL;
 var init_embeddings = __esm({
-  "koru-mvp/src/tools/shared/embeddings.ts"() {
+  "src/tools/shared/embeddings.ts"() {
     "use strict";
     OLLAMA_BASE = "http://127.0.0.1:11434";
     EMBED_MODEL = "nomic-embed-text";
   }
 });
 
-// koru-mvp/src/tools/knowledge/knowledge.ts
+// src/tools/knowledge/knowledge.ts
 function findUnit(raw) {
   const r = raw.toLowerCase().trim();
   for (const [key, def] of Object.entries(UNITS)) {
@@ -7133,7 +7133,7 @@ function findUnit(raw) {
 }
 var memorySave, memorySearch, memoryForget, memoryEdit, memoryGardenShow, WIKI_HEADERS2, wikipediaLookup, dictionaryDefine, slangTranslate, UNITS, unitConvert, mathCalc;
 var init_knowledge = __esm({
-  "koru-mvp/src/tools/knowledge/knowledge.ts"() {
+  "src/tools/knowledge/knowledge.ts"() {
     "use strict";
     init_types2();
     init_fetcher();
@@ -7531,10 +7531,10 @@ var init_knowledge = __esm({
   }
 });
 
-// koru-mvp/src/tools/knowledge/index.ts
+// src/tools/knowledge/index.ts
 var knowledgeTools;
 var init_knowledge2 = __esm({
-  "koru-mvp/src/tools/knowledge/index.ts"() {
+  "src/tools/knowledge/index.ts"() {
     "use strict";
     init_knowledge();
     knowledgeTools = [
@@ -7552,10 +7552,10 @@ var init_knowledge2 = __esm({
   }
 });
 
-// koru-mvp/src/tools/health/health.ts
+// src/tools/health/health.ts
 var medicationReminder, sleepTrack, hydrationRemind, moodTrack, habitStreak, airQualityAdvice;
 var init_health = __esm({
-  "koru-mvp/src/tools/health/health.ts"() {
+  "src/tools/health/health.ts"() {
     "use strict";
     init_types2();
     init_fetcher();
@@ -7820,10 +7820,10 @@ var init_health = __esm({
   }
 });
 
-// koru-mvp/src/tools/health/index.ts
+// src/tools/health/index.ts
 var healthTools;
 var init_health2 = __esm({
-  "koru-mvp/src/tools/health/index.ts"() {
+  "src/tools/health/index.ts"() {
     "use strict";
     init_health();
     healthTools = [
@@ -7837,10 +7837,10 @@ var init_health2 = __esm({
   }
 });
 
-// koru-mvp/src/tools/utils/utils.ts
+// src/tools/utils/utils.ts
 var urlShorten, passwordGenerate, quoteOfDay, selfHealthCheck;
 var init_utils = __esm({
-  "koru-mvp/src/tools/utils/utils.ts"() {
+  "src/tools/utils/utils.ts"() {
     "use strict";
     init_types2();
     init_fetcher();
@@ -7993,20 +7993,20 @@ var init_utils = __esm({
   }
 });
 
-// koru-mvp/src/tools/utils/index.ts
+// src/tools/utils/index.ts
 var utilsTools;
 var init_utils2 = __esm({
-  "koru-mvp/src/tools/utils/index.ts"() {
+  "src/tools/utils/index.ts"() {
     "use strict";
     init_utils();
     utilsTools = [urlShorten, passwordGenerate, quoteOfDay, selfHealthCheck];
   }
 });
 
-// koru-mvp/src/tools/toolbox.ts
+// src/tools/toolbox.ts
 var allHandlers, TOOL_BOX, ALL_TOOL_DEFINITIONS;
 var init_toolbox = __esm({
-  "koru-mvp/src/tools/toolbox.ts"() {
+  "src/tools/toolbox.ts"() {
     "use strict";
     init_money();
     init_sports();
@@ -8039,7 +8039,7 @@ var init_toolbox = __esm({
   }
 });
 
-// koru-mvp/src/server/koruBackend.ts
+// src/server/koruBackend.ts
 var koruBackend_exports = {};
 __export(koruBackend_exports, {
   ALL_TOOL_DEFINITIONS: () => ALL_TOOL_DEFINITIONS2,
@@ -9597,8 +9597,12 @@ function systemPrompt2(nowIso, state, relevantMemories) {
   const prefs = state.voicePreference ?? { warmth: 7, directness: 6, humor: 3, detail: 5, proactivity: 3 };
   const warmthLabel = prefs.warmth >= 7 ? "muy c\xE1lido" : prefs.warmth >= 5 ? "c\xE1lido" : "neutral";
   const humorLabel = prefs.humor >= 5 ? "con humor" : prefs.humor >= 3 ? "con un toque de humor" : "serio";
+  const userLang = state.language === "en" ? "en" : "es";
+  const languageInstruction = userLang === "en" ? `LANGUAGE: Reply to the user in English. The user prefers English. Use natural, warm, friendly English (American). You may still understand Spanish input \u2014 just reply in English.` : `LANGUAGE: Respond\xE9 al usuario en espa\xF1ol (rioplatense, voseo natural).`;
   return [
     `Sos Koru. Sos el asistente personal de ${state.userName?.trim() || "mi amigo"}. No sos un chatbot gen\xE9rico. Sos alguien que lo conoce y se preocupa por ayudarle.`,
+    ``,
+    languageInstruction,
     ``,
     `Tu personalidad: ${warmthLabel}, ${humorLabel}, directo pero sin ser fr\xEDo. Proactividad ${prefs.proactivity}/10.`,
     `Sos curioso, honesto, discreto. Te gusta descubrir cosas nuevas de ${state.userName?.trim() || "mi amigo"} y recordarlas.`,
@@ -12674,7 +12678,7 @@ async function runKoruBackendTurn(request, config2, onChunk) {
 }
 var TOOL_DEFINITIONS, ALL_TOOL_DEFINITIONS2, RateLimitError, routerSingleton, routerNullWarned, DELIVERABLE_ICONS, DELIVERABLE_ICON_FALLBACKS;
 var init_koruBackend = __esm({
-  "koru-mvp/src/server/koruBackend.ts"() {
+  "src/server/koruBackend.ts"() {
     "use strict";
     init_types();
     init_store();
@@ -12933,7 +12937,7 @@ var init_koruBackend = __esm({
   }
 });
 
-// koru-mvp/src/domain/proactiveEngine.ts
+// src/domain/proactiveEngine.ts
 var proactiveEngine_exports = {};
 __export(proactiveEngine_exports, {
   collectEvents: () => collectEvents,
@@ -13263,7 +13267,7 @@ async function runProactiveCheck(state, config2, lastSeen) {
 }
 var TEAM_SYNONYMS;
 var init_proactiveEngine = __esm({
-  "koru-mvp/src/domain/proactiveEngine.ts"() {
+  "src/domain/proactiveEngine.ts"() {
     "use strict";
     TEAM_SYNONYMS = {
       "espa\xF1a": "Spain",
@@ -13286,7 +13290,183 @@ var init_proactiveEngine = __esm({
   }
 });
 
-// koru-mvp/server/index.ts
+// src/server/pdfExport.ts
+var pdfExport_exports = {};
+__export(pdfExport_exports, {
+  buildPdfHtml: () => buildPdfHtml
+});
+function esc(value) {
+  if (value === null || value === void 0) return "";
+  return String(value).replace(/[&<>"']/g, (c) => ESC[c] ?? c);
+}
+function formatTime(iso) {
+  if (!iso) return "";
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString("es-ES", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  } catch {
+    return iso;
+  }
+}
+function renderItem(item) {
+  const parts = [];
+  if (item.title) parts.push(`<div class="item-title">${esc(item.title)}</div>`);
+  if (item.subtitle) parts.push(`<div class="item-subtitle">${esc(item.subtitle)}</div>`);
+  if (item.note) parts.push(`<div class="item-note">${esc(item.note)}</div>`);
+  if (Array.isArray(item.items) && item.items.length > 0) {
+    parts.push('<ul class="item-list">');
+    for (const li of item.items) {
+      const time = li.time ? `<span class="li-time">${esc(li.time)}</span>` : "";
+      const priority = li.priority ? `<span class="li-prio">${esc(li.priority)}</span>` : "";
+      const duration = li.durationMinutes ? `<span class="li-dur">${esc(li.durationMinutes)} min</span>` : "";
+      parts.push(`<li>${time}<span class="li-title">${esc(li.title ?? "")}</span>${priority}${duration}</li>`);
+    }
+    parts.push("</ul>");
+  }
+  if (Array.isArray(item.summaryItems) && item.summaryItems.length > 0) {
+    parts.push('<table class="item-table">');
+    for (const si of item.summaryItems) {
+      parts.push(`<tr><td>${esc(si.label ?? "")}</td><td>${esc(si.value ?? "")}</td></tr>`);
+    }
+    parts.push("</table>");
+  }
+  if (Array.isArray(item.sources) && item.sources.length > 0) {
+    parts.push('<div class="item-sources"><strong>Fuentes:</strong><ul>');
+    for (const s of item.sources) {
+      parts.push(`<li>${esc(s.title || s.url || "")}${s.url ? ` \u2014 <a href="${esc(s.url)}">${esc(s.url)}</a>` : ""}</li>`);
+    }
+    parts.push("</ul></div>");
+  }
+  return parts.join("");
+}
+function renderTurn(turn) {
+  const role = turn.role === "user" ? "user" : "koru";
+  const roleLabel = turn.role === "user" ? "T\xFA" : "Koru";
+  const time = formatTime(turn.createdAt);
+  const timeHtml = time ? `<span class="turn-time">${time}</span>` : "";
+  const itemsHtml = Array.isArray(turn.items) && turn.items.length > 0 ? `<div class="turn-items">${turn.items.map(renderItem).join("")}</div>` : "";
+  return `
+    <div class="turn turn-${role}">
+      <div class="turn-header">
+        <span class="turn-role">${roleLabel}</span>
+        ${timeHtml}
+      </div>
+      <div class="turn-text">${esc(turn.text)}</div>
+      ${itemsHtml}
+    </div>
+  `;
+}
+function buildPdfHtml(req) {
+  const title = req.title || "Conversaci\xF3n con Koru";
+  const userName = req.userName || "";
+  const generatedAt = req.generatedAt || (/* @__PURE__ */ new Date()).toISOString();
+  const turnsHtml = (req.turns || []).map(renderTurn).join("");
+  return `<!doctype html>
+<html lang="${esc(req.language || "es")}">
+<head>
+  <meta charset="utf-8" />
+  <title>${esc(title)}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    @page { margin: 18mm 16mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: #1a1a1a;
+      line-height: 1.55;
+      margin: 0;
+      padding: 24px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1 { font-size: 22px; margin: 0 0 4px; color: #0f1a14; }
+    .meta { color: #5a6b62; font-size: 12px; margin-bottom: 24px; }
+    .turn {
+      padding: 12px 16px;
+      border-radius: 12px;
+      margin-bottom: 14px;
+      page-break-inside: avoid;
+      border: 1px solid #e3e8e5;
+    }
+    .turn-user { background: #f3f7f4; }
+    .turn-koru { background: #fafaf5; border-color: #d9e0d6; }
+    .turn-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .turn-role { font-weight: 600; font-size: 13px; color: #2d4a3a; }
+    .turn-time { font-size: 11px; color: #8a9990; }
+    .turn-text { font-size: 14px; white-space: pre-wrap; word-wrap: break-word; }
+    .turn-items { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #d9e0d6; }
+    .item-title { font-weight: 600; font-size: 14px; color: #1a2a20; margin-bottom: 4px; }
+    .item-subtitle { font-size: 12px; color: #5a6b62; margin-bottom: 4px; }
+    .item-note { font-size: 12px; color: #5a6b62; font-style: italic; margin-bottom: 6px; }
+    .item-list { padding-left: 18px; margin: 6px 0; }
+    .item-list li { margin-bottom: 4px; font-size: 13px; }
+    .li-time { font-weight: 600; color: #2d4a3a; margin-right: 8px; }
+    .li-title { color: #1a2a20; }
+    .li-prio { font-size: 11px; padding: 1px 6px; border-radius: 4px; background: #eef2ef; color: #2d4a3a; margin-left: 8px; }
+    .li-dur { font-size: 11px; color: #8a9990; margin-left: 8px; }
+    .item-table { width: 100%; border-collapse: collapse; margin: 6px 0; font-size: 12px; }
+    .item-table td { padding: 4px 8px; border: 1px solid #e3e8e5; }
+    .item-table td:first-child { background: #f3f7f4; font-weight: 500; }
+    .item-sources { font-size: 11px; color: #5a6b62; margin-top: 8px; }
+    .item-sources ul { padding-left: 16px; margin: 4px 0; }
+    .item-sources a { color: #2d6a4f; word-break: break-all; }
+    .footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e3e8e5; font-size: 10px; color: #8a9990; text-align: center; }
+    @media print {
+      body { padding: 0; max-width: none; }
+      .no-print { display: none !important; }
+    }
+    .print-bar {
+      position: sticky; top: 0; background: #fff; border-bottom: 1px solid #e3e8e5;
+      padding: 10px 0; margin-bottom: 16px; display: flex; gap: 10px; align-items: center;
+    }
+    .print-bar button {
+      background: #2d6a4f; color: white; border: none; padding: 8px 16px;
+      border-radius: 8px; font-size: 13px; cursor: pointer;
+    }
+    .print-bar button.secondary { background: #eef2ef; color: #2d4a3a; }
+  </style>
+</head>
+<body>
+  <div class="print-bar no-print">
+    <button onclick="window.print()">Guardar como PDF / Imprimir</button>
+    <button class="secondary" onclick="window.close()">Cerrar</button>
+  </div>
+  <h1>${esc(title)}</h1>
+  <div class="meta">
+    ${userName ? `Conversaci\xF3n entre ${esc(userName)} y Koru. ` : ""}Generado el ${esc(formatTime(generatedAt))}.
+  </div>
+  ${turnsHtml}
+  <div class="footer">
+    Generado por Koru \u2014 tu asistente personal.
+  </div>
+  <script>
+    // Auto-open print dialog on load
+    window.addEventListener('load', function() { setTimeout(function() { window.print(); }, 300); });
+  </script>
+</body>
+</html>`;
+}
+var ESC;
+var init_pdfExport = __esm({
+  "src/server/pdfExport.ts"() {
+    "use strict";
+    ESC = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    };
+  }
+});
+
+// server/index.ts
 init_koruBackend();
 import http from "node:http";
 import { readFileSync, existsSync } from "node:fs";
@@ -13666,6 +13846,33 @@ var server = http.createServer(async (req, res) => {
       sendJson(res, 200, { ok: true });
     } catch {
       sendJson(res, 200, { ok: true });
+    }
+    return;
+  }
+  if (url === "/api/koru/export-pdf" && req.method === "POST") {
+    try {
+      const raw = await readBody(req);
+      const body = JSON.parse(raw || "{}");
+      if (!body.turns || !Array.isArray(body.turns)) {
+        sendJson(res, 400, { error: "Falta 'turns' en el payload" });
+        return;
+      }
+      const { buildPdfHtml: buildPdfHtml2 } = await Promise.resolve().then(() => (init_pdfExport(), pdfExport_exports));
+      const html = buildPdfHtml2({
+        title: body.title || "Conversaci\xF3n con Koru",
+        userName: body.userName || "",
+        language: body.language === "en" ? "en" : "es",
+        turns: body.turns,
+        generatedAt: body.generatedAt || (/* @__PURE__ */ new Date()).toISOString()
+      });
+      res.writeHead(200, {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-store"
+      });
+      res.end(html);
+    } catch (err) {
+      console.error("[export-pdf]", err?.message);
+      sendJson(res, 500, { error: err?.message ?? "Error generando PDF" });
     }
     return;
   }
