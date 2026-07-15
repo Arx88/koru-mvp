@@ -218,26 +218,24 @@ export function KoruDetailScreen({
           ))}
         </div>
 
-        {/* 🔴 Botón Guardar informe — permite guardarlo para ver después */}
-        <div className="koru-dsec-save-section">
+        {/* 🔴 Botones de acción — layout flex 50/50 con spacing consistente */}
+        <div className="koru-dsec-actions">
           <button
             type="button"
-            className="koru-dsec-save-btn"
+            className="koru-dsec-action-btn koru-dsec-action-save"
             onClick={() => onSave?.(detail.title, detail.subtitle)}
           >
             <span className="material-symbols-outlined">bookmark_added</span>
-            Guardar informe
+            <span>Guardar</span>
           </button>
-          {/* 🔴 PDF export — opens a printable view in a new tab */}
           {onExportPdf && (
             <button
               type="button"
-              className="koru-dsec-save-btn"
+              className="koru-dsec-action-btn koru-dsec-action-pdf"
               onClick={onExportPdf}
-              style={{ marginLeft: 8, background: "rgba(45, 106, 79, 0.12)", color: "#2d6a4f" }}
             >
               <span className="material-symbols-outlined">picture_as_pdf</span>
-              Exportar PDF
+              <span>PDF</span>
             </button>
           )}
         </div>

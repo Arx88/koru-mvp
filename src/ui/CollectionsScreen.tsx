@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import type { LifeRecord } from "../domain/types";
 import { useKoru } from "./KoruProvider";
 
@@ -6,6 +7,9 @@ import { useKoru } from "./KoruProvider";
 // TODO lo guardado, agrupado por colección, navegable en un tap. Misma
 // estética Stitch del roadmap (fondo lila, magical-cards). Los enlaces abren
 // en pestaña nueva; el resto muestra su valor/nota.
+//
+// 🔴 FIX UX: se renderiza via createPortal en document.body para garantizar
+// pantalla completa (z-index superior al chat) + backdrop oscuro detrás.
 
 function Mat({ children, className = "" }: { children: string; className?: string }) {
   return <span className={`material-symbols-outlined ${className}`}>{children}</span>;
@@ -84,9 +88,9 @@ export function CollectionsScreen({
     return entries;
   }, [records, focusCollection]);
 
-  return (
-    <div className="koru-roadmap" role="dialog" aria-label="Mis colecciones">
-      <div className="koru-roadmap-screen">
+  return createPortal(
+    <div className="koru-roadmap koru-collections-overlay" role="dialog" aria-label="Mis colecciones">
+      <div className="koru-roadmap-screen koru-collections-screen">
         <div className="koru-roadmap-blob-1" />
         <div className="koru-roadmap-blob-2" />
 
@@ -165,6 +169,7 @@ export function CollectionsScreen({
           ))}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

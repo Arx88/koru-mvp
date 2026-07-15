@@ -4482,3 +4482,118 @@ a.koru-dsec-source:hover {
     display: none;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   🔴 UX FIXES — CollectionsScreen overlay + action buttons
+   Principios: pantalla completa via portal, backdrop visible, touch targets
+   ≥44px, spacing consistente, jerarquía visual clara.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* CollectionsScreen — se renderiza via createPortal(document.body) para
+   garantizar que cubre toda la pantalla, igual que KoruDetailScreen. */
+.koru-collections-overlay {
+  z-index: 220; /* mayor que el chat (z-index 200) pero menor que toasts (9999) */
+  animation: koru-fade-in 0.18s ease-out;
+}
+
+@keyframes koru-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.koru-collections-screen {
+  /* Hereda de .koru-roadmap-screen pero con safe-area para notch/home indicator */
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Botones de acción en detail screen — layout flex 50/50, sin overlap */
+.koru-dsec-actions {
+  display: flex;
+  gap: 12px;
+  padding: 16px 24px calc(32px + env(safe-area-inset-bottom, 0px));
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.koru-dsec-action-btn {
+  flex: 1 1 50%;
+  min-width: 0; /* permite que flex shrink funcione */
+  height: 52px; /* touch target ≥48px */
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  letter-spacing: 0.2px;
+}
+
+.koru-dsec-action-btn .material-symbols-outlined {
+  font-size: 20px;
+  line-height: 1;
+}
+
+/* Variante primaria — Guardar (lila Koru) */
+.koru-dsec-action-save {
+  background: #8363f9;
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(131, 99, 249, 0.28);
+}
+
+.koru-dsec-action-save:hover {
+  background: #7c3aed;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(131, 99, 249, 0.35);
+}
+
+.koru-dsec-action-save:active {
+  transform: scale(0.98);
+}
+
+/* Variante secundaria — PDF (verde forest, outline style para diferenciar) */
+.koru-dsec-action-pdf {
+  background: rgba(45, 106, 79, 0.08);
+  color: #2d6a4f;
+  border: 1.5px solid rgba(45, 106, 79, 0.25);
+  box-shadow: none;
+}
+
+.koru-dsec-action-pdf:hover {
+  background: rgba(45, 106, 79, 0.14);
+  border-color: rgba(45, 106, 79, 0.4);
+  transform: translateY(-1px);
+}
+
+.koru-dsec-action-pdf:active {
+  transform: scale(0.98);
+}
+
+/* Back button — garantizar touch target ≥44px */
+.koru-roadmap-back {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 380px) {
+  .koru-dsec-actions {
+    gap: 8px;
+    padding: 14px 16px 28px;
+  }
+  .koru-dsec-action-btn {
+    height: 48px;
+    font-size: 13px;
+  }
+  .koru-dsec-action-btn .material-symbols-outlined {
+    font-size: 18px;
+  }
+}
+
