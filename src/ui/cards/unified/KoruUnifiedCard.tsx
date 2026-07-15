@@ -21,7 +21,7 @@ function Mat({ children, style, className = "" }: { children: string; style?: CS
 
 export function KoruUnifiedCard({ block }: { block: UiBlock }) {
   const [open, setOpen] = useState(false);
-  const { hero, detail, cta, actions } = toPresentation(block);
+  const { hero, detail, cta, actions, empty } = toPresentation(block);
   const hasMetricValues = hero.metrics?.some((m) => m.value != null);
 
   // 🔴 v2: la card entera es tappable si hay detail o collections screen
@@ -109,6 +109,14 @@ export function KoruUnifiedCard({ block }: { block: UiBlock }) {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* 🔴 v2: empty state — placeholder cuando no hay datos suficientes */}
+      {empty && !hasMetricValues && (
+        <div className="koru-unified-empty">
+          <Mat>{empty.icon || "info"}</Mat>
+          <span>{empty.reason}</span>
         </div>
       )}
 

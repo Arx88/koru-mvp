@@ -495,17 +495,40 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
   // turno: en pantalla solo vive el intercambio ACTUAL (ultimo mensaje del
   // usuario + la respuesta de Koru a ese mensaje). Al decir algo nuevo, lo
   // anterior desaparece. El registro completo queda en Historial.
+  // 🔴 v2: Chat thread visibility — mostrar conversación completa
+  // Los últimos turnos (último user + respuesta de Koru) se muestran expandidos.
+  // Los turnos anteriores se muestran colapsados (solo el mensaje del usuario +
+  // un botón "Ver respuesta" para expandir inline).
+  const [expandedTurns, setExpandedTurns] = useState<Set<string>>(new Set());
   const visibleTurns = useMemo(() => {
+    // Mostrar todos los turnos, no solo el último intercambio
+    return chatTurns;
+  }, [chatTurns]);
+
+  // Determinar qué turnos están colapsados (todos excepto los últimos 2)
+  const collapsedTurnIds = useMemo(() => {
+    if (chatTurns.length <= 2) return new Set<string>();
     let lastUserIdx = -1;
     for (let i = chatTurns.length - 1; i >= 0; i--) {
-      if (chatTurns[i].role === "user") {
-        lastUserIdx = i;
-        break;
-      }
+      if (chatTurns[i].role === "user") { lastUserIdx = i; break; }
     }
-    if (lastUserIdx === -1) return chatTurns; // aun sin interaccion: saludo inicial
-    return chatTurns.slice(lastUserIdx);
-  }, [chatTurns]);
+    if (lastUserIdx === -1) return new Set<string>();
+    const collapsed = new Set<string>();
+    for (let i = 0; i < lastUserIdx; i++) {
+      const t = chatTurns[i];
+      if (!expandedTurns.has(t.id)) collapsed.add(t.id);
+    }
+    return collapsed;
+  }, [chatTurns, expandedTurns]);
+
+  function toggleTurnExpand(turnId: string) {
+    setExpandedTurns((prev) => {
+      const next = new Set(prev);
+      if (next.has(turnId)) next.delete(turnId);
+      else next.add(turnId);
+      return next;
+    });
+  }
 
   // Entregable en curso (informe/investigación): su bloque "working" trae el
   // progreso REAL del pipeline. Mientras exista, el composer cede el lugar al
@@ -1153,8 +1176,24 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
 
         <main ref={scrollRef} className="koru-chat-scroll">
           <div className="koru-thread">
-            {visibleTurns.map((turn) =>
-              turn.role === "user" ? (
+            {visibleTurns.map((turn) => {
+              const isCollapsed = collapsedTurnIds.has(turn.id);
+              if (isCollapsed && turn.role === "koru") {
+                // 🔴 Koru turn colapsado: mostrar botón "Ver respuesta" que expande
+                return (
+                  <div key={turn.id} className="koru-collapsed-turn">
+                    <button
+                      type="button"
+                      className="koru-collapsed-toggle"
+                      onClick={() => toggleTurnExpand(turn.id)}
+                    >
+                      <span className="material-symbols-outlined">expand_more</span>
+                      Ver respuesta de Koru
+                    </button>
+                  </div>
+                );
+              }
+              return turn.role === "user" ? (
                 <UserTurnBubble key={turn.id} turn={turn} />
               ) : (
                 <KoruTurnBubble
@@ -1166,8 +1205,8 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
                   onCompleteCommitment={completeCommitment}
                   onSetWorldSignals={setWorldSignals}
                 />
-              ),
-            )}
+              );
+            })}
 
             {/* 🔴 Typing indicator — tres puntos animados cuando Koru está procesando */}
             {processing && !isListening && !workingDeliverable && (

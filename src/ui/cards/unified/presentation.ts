@@ -103,6 +103,8 @@ export type KoruPresentation = {
     kind?: "primary" | "secondary" | "danger";
     action: string; // identificador que el renderer interpreta (ej: "complete", "snooze", "dismiss")
   }>;
+  /** 🔴 v2: empty state — cuando la card no tiene datos suficientes */
+  empty?: { reason: string; icon?: string };
 };
 
 // ---- Paleta Stitch ----------------------------------------------------------
@@ -559,6 +561,19 @@ function comparison(b: Of<"comparison">): KoruPresentation {
   const items = b.items ?? [];
   // 🔴 FIX: identificar el item con mayor score (no hardcoded al index 0)
   const topIdx = items.reduce((best, it, i) => (it.score != null && (best === -1 || (it.score ?? 0) > (items[best].score ?? 0))) ? i : best, -1);
+  // 🔴 v2: empty state cuando no hay items
+  if (items.length === 0) {
+    return {
+      hero: {
+        kicker: "Tu Comparación",
+        title: heroTitleFrom(b.title, "Comparación"),
+        desc: undefined,
+        icon: "balance",
+        accent: A.pink,
+      },
+      empty: { reason: "No tengo opciones para comparar todavía. Pedime algo específico.", icon: "search_off" },
+    };
+  }
   return {
     hero: {
       kicker: "Tu Comparación",
@@ -1358,6 +1373,11 @@ function urgentNow(b: Of<"urgent_now">): KoruPresentation {
       icon: b.icon || "priority_high",
       accent: A.red,
     },
+    // 🔴 v2: acciones inline para urgent (antes era surface muerta)
+    actions: [
+      { label: "Entendido", icon: "check", kind: "primary", action: "dismiss" },
+      { label: "Recordarme", icon: "snooze", kind: "secondary", action: "snooze" },
+    ],
   };
 }
 
@@ -1435,6 +1455,11 @@ function healthReminder(b: Of<"health_reminder">): KoruPresentation {
       icon: b.icon || "medication",
       accent: A.rose,
     },
+    // 🔴 v2: acciones inline para health reminder (antes era surface muerta)
+    actions: [
+      { label: "Tomé la dosis", icon: "check", kind: "primary", action: "complete" },
+      { label: "Posponer", icon: "snooze", kind: "secondary", action: "snooze" },
+    ],
   };
 }
 

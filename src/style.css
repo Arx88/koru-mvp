@@ -5,6 +5,56 @@
 @source "../all-cards-preview.html";
 @source "./**/*.{ts,tsx}";
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   🔴 v2: Design Tokens — sistema unificado de colores, tipografía y espaciado
+   Un solo source of truth para todos los componentes.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+  /* 🔴 Color system — un solo morado Koru (antes 3 distintos) */
+  --koru-purple: #8363f9;        /* primary — reemplaza #382b8c, #8127cf, #8363f9 */
+  --koru-purple-dark: #523a9e;   /* hover/active */
+  --koru-purple-deep: #382b8c;   /* texto sobre claro */
+  --koru-purple-soft: rgba(131, 99, 249, 0.12); /* backgrounds sutiles */
+  --koru-purple-border: rgba(131, 99, 249, 0.25); /* borders */
+
+  /* Accents semánticos */
+  --koru-emerald: #2d6a4f;
+  --koru-amber: #f59e0b;
+  --koru-rose: #ef4444;
+  --koru-blue: #3b82f6;
+  --koru-pink: #ec4899;
+  --koru-cyan: #06b6d4;
+
+  /* 🔴 Type scale — 6 sizes (antes 11) */
+  --koru-text-xs: 11px;     /* meta, badges, labels */
+  --koru-text-sm: 13px;     /* body, detail */
+  --koru-text-base: 15px;   /* inputs, botones */
+  --koru-text-lg: 18px;     /* section titles */
+  --koru-text-xl: 22px;     /* hero titles */
+  --koru-text-2xl: 36px;    /* artValue, big numbers */
+
+  /* 🔴 Spacing scale — base 4px */
+  --koru-space-1: 4px;
+  --koru-space-2: 8px;
+  --koru-space-3: 12px;
+  --koru-space-4: 16px;
+  --koru-space-5: 20px;
+  --koru-space-6: 24px;
+  --koru-space-8: 32px;
+
+  /* 🔴 Radii */
+  --koru-radius-sm: 8px;
+  --koru-radius-md: 12px;
+  --koru-radius-lg: 16px;
+  --koru-radius-xl: 20px;
+  --koru-radius-full: 999px;
+
+  /* 🔴 Shadows */
+  --koru-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --koru-shadow-md: 0 4px 16px rgba(131, 99, 249, 0.12);
+  --koru-shadow-lg: 0 8px 24px rgba(131, 99, 249, 0.18);
+}
+
 @theme inline {
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Bricolage Grotesque", Georgia, serif;
@@ -2459,8 +2509,8 @@ button.koru-stitch-row {
   z-index: 10;
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: 0 24px 48px;
+  gap: 16px;  /* 🔴 v2: 24px → 16px — menos espacio entre cards */
+  padding: 0 20px 24px;  /* 🔴 v2: 48px bottom → 24px — fix agujero de 100px */
 }
 
 .koru-magical-card {
@@ -4575,7 +4625,7 @@ a.koru-dsec-source:hover {
 .koru-dsec-actions {
   display: flex;
   gap: 12px;
-  padding: 16px 24px calc(32px + env(safe-area-inset-bottom, 0px));
+  padding: 12px 20px calc(24px + env(safe-area-inset-bottom, 0px));  /* 🔴 v2: menos top/bottom padding */
   width: 100%;
   box-sizing: border-box;
 }
@@ -5588,4 +5638,114 @@ a.koru-dsec-source:hover {
   background: #382b8c;
   transform: rotate(45deg);
   border-radius: 2px;
+}
+
+/* 🔴 v2: Chat thread — turnos colapsados */
+.koru-collapsed-turn {
+  display: flex;
+  justify-content: center;
+  margin: 4px 0;
+}
+.koru-collapsed-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(131, 99, 249, 0.08);
+  border: 1px solid rgba(131, 99, 249, 0.15);
+  color: #6b5f8c;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.koru-collapsed-toggle:hover {
+  background: rgba(131, 99, 249, 0.14);
+  border-color: rgba(131, 99, 249, 0.3);
+}
+.koru-collapsed-toggle:active { transform: scale(0.96); }
+.koru-collapsed-toggle .material-symbols-outlined { font-size: 16px; }
+
+/* 🔴 v2: Empty state placeholder */
+.koru-unified-empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  margin-top: 12px;
+  border-radius: 12px;
+  border: 1.5px dashed rgba(131, 99, 249, 0.25);
+  background: rgba(131, 99, 249, 0.04);
+  color: #6b5f8c;
+  font-size: 13px;
+  font-style: italic;
+}
+.koru-unified-empty .material-symbols-outlined {
+  font-size: 20px;
+  color: rgba(131, 99, 249, 0.5);
+  flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   🔴 v2: Microinteracciones — staggered card-in + bar-pop + pulse-dot
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Staggered card entrance — cada card entra con un delay incremental */
+@keyframes koru-card-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.koru-plan-hero {
+  animation: koru-card-in 0.3s ease-out backwards;
+}
+.koru-thread > *:nth-child(1) .koru-plan-hero { animation-delay: 0ms; }
+.koru-thread > *:nth-child(2) .koru-plan-hero { animation-delay: 70ms; }
+.koru-thread > *:nth-child(3) .koru-plan-hero { animation-delay: 140ms; }
+.koru-thread > *:nth-child(4) .koru-plan-hero { animation-delay: 210ms; }
+.koru-thread > *:nth-child(5) .koru-plan-hero { animation-delay: 280ms; }
+
+/* Bar pop — las barras comparativas crecen desde el centro */
+@keyframes koru-bar-pop {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.koru-comparison-fill.home {
+  transform-origin: right;
+  animation: koru-bar-pop 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: 0.1s;
+}
+.koru-comparison-fill.away {
+  transform-origin: left;
+  animation: koru-bar-pop 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: 0.15s;
+}
+
+/* Pulse dot — para indicar "en vivo" en matches */
+@keyframes koru-pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.3); }
+}
+.koru-live-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: koru-pulse-dot 1.5s ease-in-out infinite;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+/* 🔴 Reduced motion — respetar preferencia del usuario */
+@media (prefers-reduced-motion: reduce) {
+  .koru-plan-hero,
+  .koru-comparison-fill.home,
+  .koru-comparison-fill.away,
+  .koru-live-dot {
+    animation: none !important;
+    transition: none !important;
+  }
 }
