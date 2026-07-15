@@ -552,16 +552,25 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
   // ── Wheel: long-press detection ──
   // Mantener presionado 500ms en cualquier parte del chat (no en composer/buttons)
   // abre el wheel radial. Soltar fuera del wheel = cancelar.
+  // 🔴 FIX: tolerar movimiento del dedo hasta 10px (antes cualquier touchmove cancelaba)
+  const longPressStartPos = useRef<{ x: number; y: number } | null>(null);
+
   const handleLongPressStart = useCallback((e: React.TouchEvent | React.MouseEvent) => {
     // No activar si se está procesando o grabando
     if (processing || isRecording || wheelOpen) return;
     // No activar si el touch empieza en un botón o input
     const target = e.target as HTMLElement;
-    if (target.closest("button, input, textarea, .koru-composer, .koru-back-button, .koru-suggestion-pill")) return;
+    if (target.closest("button, input, textarea, .koru-composer, .koru-back-button, .koru-suggestion-pill, .koru-wheel-overlay")) return;
+
+    // Registrar posición inicial para detectar si es scroll vs long-press
+    const clientX = "touches" in e ? e.touches[0]?.clientX : (e as React.MouseEvent).clientX;
+    const clientY = "touches" in e ? e.touches[0]?.clientY : (e as React.MouseEvent).clientY;
+    longPressStartPos.current = { x: clientX ?? 0, y: clientY ?? 0 };
 
     longPressTimerRef.current = setTimeout(() => {
       setWheelOpen(true);
       setWheelActive(null);
+      longPressStartPos.current = null;
       // Haptic feedback si está disponible
       if ("vibrate" in navigator) navigator.vibrate(30);
     }, 500);
@@ -572,7 +581,22 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
     }
+    longPressStartPos.current = null;
   }, []);
+
+  // 🔴 FIX: en vez de cancelar con cualquier touchmove, tolerar hasta 10px
+  // (si el dedo se mueve más de 10px, es scroll → cancelar long-press)
+  const handleLongPressTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!longPressStartPos.current || !longPressTimerRef.current) return;
+    const touch = e.touches[0];
+    if (!touch) return;
+    const dx = touch.clientX - longPressStartPos.current.x;
+    const dy = touch.clientY - longPressStartPos.current.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist > 10) {
+      handleLongPressCancel();
+    }
+  }, [handleLongPressCancel]);
 
   const handleWheelSelect = useCallback((option: string) => {
     setWheelOpen(false);
@@ -1027,7 +1051,7 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
         aria-label="Conversacion con Koru"
         onTouchStart={handleLongPressStart}
         onTouchEnd={handleLongPressCancel}
-        onTouchMove={handleLongPressCancel}
+        onTouchMove={handleLongPressTouchMove}
         onMouseDown={handleLongPressStart}
         onMouseUp={handleLongPressCancel}
         onMouseLeave={handleLongPressCancel}
@@ -1358,7 +1382,16 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
                 type="button"
                 className="koru-wheel-center"
                 aria-label="Crear"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setWheelOpen(false);
+                  setWheelActive(null);
+                  handleLongPressCancel();
+                  setShowCreate(true);
+                }}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                   setWheelOpen(false);
                   setWheelActive(null);
                   handleLongPressCancel();
