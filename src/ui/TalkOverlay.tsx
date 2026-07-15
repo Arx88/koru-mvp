@@ -510,22 +510,18 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
   function toggleOlderTurns() {
     const next = !showAllTurns;
     setShowAllTurns(next);
-    // 🔴 FIX: usar scrollTo instant (no smooth) para evitar drift acumulado.
-    // El smooth scroll dejaba offsets sin terminar antes del próximo render,
-    // causando que el botón se moviera 10-18px con cada toggle.
-    // Delay de 100ms para que React pinte los turnos nuevos antes de scrollear.
-    setTimeout(() => {
-      const node = scrollRef.current;
-      if (node) {
-        if (next) {
-          // Expandir: ir al inicio (mensajes viejos)
-          node.scrollTo({ top: 0, behavior: "auto" });
-        } else {
-          // Colapsar: ir al fondo (último mensaje)
-          node.scrollTo({ top: node.scrollHeight, behavior: "auto" });
+    // 🔴 FIX: resetear scroll a 0 SIEMPRE (sin importar dirección).
+    // Esto asegura que el botón quede en la misma posición (arriba del todo)
+    // sin importar cuántas veces se toggle. El usuario scrollea manualmente si quiere ver más.
+    // Usar behavior:'auto' (instant) + requestAnimationFrame para esperar al paint.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const node = scrollRef.current;
+        if (node) {
+          node.scrollTop = 0;
         }
-      }
-    }, 100);
+      });
+    });
   }
 
   // Entregable en curso (informe/investigación): su bloque "working" trae el
