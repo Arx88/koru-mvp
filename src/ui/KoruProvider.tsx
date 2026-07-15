@@ -44,6 +44,8 @@ import { actionToTurnItem, applyBackendTurnToState, type KoruTurnItem, type Koru
 import { auditEnabled, auditSessionId, writeAuditEvent, auditStateSnapshot, auditTurnItems, auditStateDelta } from "./audit";
 // Fase 2.6: adapters extraídos a módulo propio
 import { stageForEnergy as stageForEnergyImpl, domainStageToNew, domainStatusToMemoryStatus, domainKindToCategory, greetingTurn, readChatTurns, saveChatTurns, patchUiBlockWithWebResult, actionConfirmationText, CHAT_STORAGE_KEY } from "./adapters";
+// 🔴 Offline cache — IndexedDB-backed 24h rolling window + offline message queue
+import { cacheTurn, isOnline, onOnlineStatusChange, enqueueOfflineMessage, readOfflineQueue, dequeueOfflineMessage, type CachedTurn } from "../domain/offlineCache";
 export type { KoruTurnItem, KoruChatTurn };
 
 export type Stage = "semilla" | "brote" | "raices" | "nacimiento" | "jardin";
@@ -168,6 +170,9 @@ type KoruContextValue = {
   // 🔴 i18n — preferred UI/reply language
   language: "es" | "en";
   setLanguage: (lang: "es" | "en") => void;
+  // 🔴 Offline cache — browser online status + offline message queue
+  online: boolean;
+  queueOfflineMessage: (text: string) => Promise<void>;
 };
 
 const KoruContext = createContext<KoruContextValue | null>(null);
@@ -202,6 +207,10 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     const stored = localStorage.getItem("koru.language");
     return stored === "en" ? "en" : "es";
   });
+  // 🔴 Offline cache — track browser online/offline status
+  const [online, setOnline] = useState<boolean>(() => isOnline());
+  // Ref to latest sendMessage — lets the offline-queue drain call the current closure.
+  const sendMessageRef = useRef<((text: string) => Promise<unknown>) | null>(null);
   const domainStateRef = useRef(domainState);
   const chatTurnsRef = useRef(chatTurns);
 
@@ -390,7 +399,48 @@ export function KoruProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     saveChatTurns(chatTurns, !domainState.ephemeralMode);
-  }, [chatTurns, domainState.ephemeralMode]);
+    // 🔴 Offline cache — also persist last turn to IndexedDB for 24h rolling window.
+    // This is best-effort and async; we don't await.
+    if (!domainState.ephemeralMode && chatTurns.length > 0) {
+      const last = chatTurns[chatTurns.length - 1];
+      const userId = domainStateRef.current?.userId ?? "default";
+      const cached: CachedTurn = {
+        id: `${last.createdAt}_${last.role}`,
+        userId,
+        role: last.role === "koru" ? "koru" : "user",
+        text: last.text,
+        createdAt: last.createdAt,
+        items: last.items as unknown[] | undefined,
+        mascotState: last.mascotState,
+        language,
+      };
+      cacheTurn(cached).catch(() => { /* best-effort */ });
+    }
+  }, [chatTurns, domainState.ephemeralMode, language]);
+
+  // 🔴 Offline cache — subscribe to online/offline events
+  useEffect(() => {
+    const unsubscribe = onOnlineStatusChange((nextOnline) => {
+      setOnline(nextOnline);
+      // When coming back online, drain the offline queue (best-effort replay)
+      if (nextOnline) {
+        const userId = domainStateRef.current?.userId ?? "default";
+        readOfflineQueue(userId).then(async (queue) => {
+          for (const msg of queue) {
+            // Re-submit each queued message; if it succeeds, dequeue it.
+            try {
+              await sendMessageRef.current?.(msg.text);
+              await dequeueOfflineMessage(msg.id);
+            } catch {
+              // If still failing, leave it queued for the next retry.
+              break;
+            }
+          }
+        }).catch(() => { /* best-effort */ });
+      }
+    });
+    return unsubscribe;
+  }, []);
 
   // ── Escuchar mensajes proactivos del engine ──
   useEffect(() => {
@@ -709,6 +759,13 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("koru.language", lang);
   }
 
+  // 🔴 Offline cache — queue a message that was typed while offline.
+  // It will be replayed automatically when the browser comes back online.
+  async function queueOfflineMessage(text: string) {
+    const userId = domainStateRef.current?.userId ?? "default";
+    await enqueueOfflineMessage(userId, text);
+  }
+
   async function submitEntry(
     text: string,
     transcriptSource: DailyEntry["transcriptSource"] = "typed",
@@ -1018,6 +1075,12 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  // 🔴 Offline cache — keep sendMessageRef current so the offline-queue drain
+  // (subscribed once on mount) can call the latest closure.
+  useEffect(() => {
+    sendMessageRef.current = async (text: string) => { await sendMessage(text); };
+  });
+
   function replaceActionInChat(item: KoruTurnItem) {
     commitChatTurns((prev) =>
       prev.map((turn) => ({
@@ -1225,7 +1288,9 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     stopVoice: () => stopSpeaking(),
     language,
     setLanguage,
-  }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, domainState.records, permissions, processing, activity, phase, chatTurns, selectedModel, memoryToast, morningBrief, showInstallPrompt, installPromptEvent, voiceEnabled, language]);
+    online,
+    queueOfflineMessage,
+  }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, domainState.records, permissions, processing, activity, phase, chatTurns, selectedModel, memoryToast, morningBrief, showInstallPrompt, installPromptEvent, voiceEnabled, language, online]);
 
   // 🔴 Listener para guardar record desde el detail screen (botón Guardar informe)
   useEffect(() => {

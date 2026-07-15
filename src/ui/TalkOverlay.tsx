@@ -342,6 +342,8 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
     showInstallPrompt,
     installApp,
     dismissInstallPrompt,
+    online,
+    queueOfflineMessage,
   } = useKoru();
   const [inputText, setInputText] = useState("");
   const [isListening, setIsListening] = useState(false);
@@ -730,8 +732,14 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
     const text = inputText.trim();
     if (!text) return;
     setInputText("");
+    // 🔴 Offline cache — if browser is offline, queue the message instead of
+    // attempting a network call that will fail. It will auto-replay on reconnect.
+    if (!online) {
+      await queueOfflineMessage(text);
+      return;
+    }
     await submitText(text, "typed");
-  }, [inputText, submitText]);
+  }, [inputText, submitText, online, queueOfflineMessage]);
 
   const handleReview = useCallback((id: string, approve: boolean) => {
     reviewAction(id, approve);
@@ -1076,6 +1084,12 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
                 <span className="koru-activity-dot" />
                 {activity.label}
               </div>
+            )}
+            {/* 🔴 Offline cache — banner shown when browser loses connectivity */}
+            {!online && (
+              <p className="koru-footer-error" role="status" aria-live="polite">
+                Sin conexión. Tus mensajes se guardan y se envían automáticamente al volver.
+              </p>
             )}
             {ephemeral && <p className="koru-footer-note">Modo efimero activo - esta charla no guardara memoria nueva</p>}
             {micError && <p className="koru-footer-error">{micError}</p>}
