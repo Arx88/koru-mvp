@@ -4662,3 +4662,417 @@ a.koru-dsec-source:hover {
   display: none; /* la barra ya muestra los valores, no hace falta el detail "65% - 35%" */
 }
 
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   🔴 v2: CreateScreen + Collections editor + Composer create button
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* CreateScreen overlay */
+.koru-create-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 240;
+  background: linear-gradient(180deg, #f0dbff 0%, #f8f9ff 100%);
+  display: flex;
+  justify-content: center;
+  animation: koru-fade-in 0.18s ease-out;
+}
+
+.koru-create-screen {
+  width: 100%;
+  max-width: 430px;
+  height: 100dvh;
+  overflow-y: auto;
+  padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+}
+
+.koru-create-header {
+  position: sticky;
+  top: 0;
+  background: rgba(240, 219, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 10;
+  border-bottom: 1px solid rgba(131, 99, 249, 0.15);
+}
+
+.koru-create-back, .koru-create-close {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(255, 255, 255, 0.5);
+  color: #523a9e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.koru-create-back:active, .koru-create-close:active { transform: scale(0.95); }
+.koru-create-back .material-symbols-outlined, .koru-create-close .material-symbols-outlined { font-size: 20px; }
+
+.koru-create-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #382b8c;
+  margin: 0;
+  font-family: "Bricolage Grotesque", "Plus Jakarta Sans", sans-serif;
+}
+
+/* Template picker */
+.koru-create-templates {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.koru-create-template {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(131, 99, 249, 0.12);
+  background: white;
+  cursor: pointer;
+  transition: all 0.18s;
+  text-align: left;
+  font-family: inherit;
+}
+.koru-create-template:hover { border-color: rgba(131, 99, 249, 0.35); transform: translateY(-1px); box-shadow: 0 6px 16px rgba(131, 99, 249, 0.1); }
+.koru-create-template:active { transform: scale(0.99); }
+
+.koru-create-template-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.koru-create-template-icon .material-symbols-outlined { font-size: 24px; }
+
+.koru-create-template-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.koru-create-template-label {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a2a20;
+}
+.koru-create-template-desc {
+  font-size: 13px;
+  color: #5a6b62;
+}
+.koru-create-template-arrow {
+  color: #8363f9;
+  font-size: 20px !important;
+}
+
+/* Form */
+.koru-create-form {
+  padding: 16px 20px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.koru-create-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.koru-create-field-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #523a9e;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.koru-create-field input,
+.koru-create-field textarea,
+.koru-create-field select {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(131, 99, 249, 0.2);
+  background: white;
+  font-size: 15px;
+  font-family: inherit;
+  color: #1a2a20;
+  outline: none;
+  transition: border-color 0.15s;
+  width: 100%;
+  box-sizing: border-box;
+}
+.koru-create-field input:focus, .koru-create-field textarea:focus, .koru-create-field select:focus {
+  border-color: #8363f9;
+}
+.koru-create-field textarea { resize: vertical; min-height: 80px; }
+
+.koru-create-field-row { flex-direction: row; gap: 12px; }
+.koru-create-field-row > div { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+
+/* List items editor */
+.koru-create-list-items { display: flex; flex-direction: column; gap: 8px; }
+.koru-create-list-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.koru-create-list-bullet {
+  color: #8363f9;
+  font-weight: 700;
+  font-size: 18px;
+}
+.koru-create-list-item input {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(131, 99, 249, 0.2);
+  background: white;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+}
+.koru-create-list-item input:focus { border-color: #8363f9; }
+.koru-create-list-remove {
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+}
+.koru-create-list-remove .material-symbols-outlined { font-size: 20px; }
+.koru-create-list-add {
+  align-self: flex-start;
+  background: rgba(131, 99, 249, 0.1);
+  color: #523a9e;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: inherit;
+}
+.koru-create-list-add .material-symbols-outlined { font-size: 18px; }
+
+/* Actions */
+.koru-create-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+.koru-create-action-cancel, .koru-create-action-save {
+  flex: 1;
+  height: 52px;
+  border-radius: 14px;
+  border: none;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: transform 0.15s;
+}
+.koru-create-action-cancel {
+  background: rgba(131, 99, 249, 0.08);
+  color: #523a9e;
+}
+.koru-create-action-save {
+  color: white;
+  box-shadow: 0 6px 16px rgba(131, 99, 249, 0.3);
+}
+.koru-create-action-save:disabled { opacity: 0.5; cursor: not-allowed; }
+.koru-create-action-save:active:not(:disabled), .koru-create-action-cancel:active { transform: scale(0.98); }
+.koru-create-action-save .material-symbols-outlined, .koru-create-action-cancel .material-symbols-outlined { font-size: 20px; }
+
+/* Composer + button */
+.koru-composer-create {
+  color: #523a9e !important;
+}
+.koru-composer-create:active { transform: scale(0.95); }
+
+/* CollectionsScreen — tappable rows + menu + editor */
+.koru-collection-row-tappable {
+  cursor: pointer;
+  transition: background 0.12s;
+  position: relative;
+}
+.koru-collection-row-tappable:hover { background: rgba(131, 99, 249, 0.04); }
+.koru-collection-row-tappable:active { background: rgba(131, 99, 249, 0.08); }
+
+.koru-collection-row-menu {
+  background: none;
+  border: none;
+  color: #8a9990;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.12s;
+}
+.koru-collection-row-menu:hover { background: rgba(131, 99, 249, 0.1); color: #523a9e; }
+.koru-collection-row-menu .material-symbols-outlined { font-size: 20px; }
+
+.koru-collection-menu-popover {
+  position: absolute;
+  right: 8px;
+  top: 100%;
+  margin-top: 4px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e3e8e5;
+  z-index: 20;
+  overflow: hidden;
+  min-width: 140px;
+}
+.koru-collection-menu-popover button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  background: none;
+  border: none;
+  font-size: 14px;
+  color: #1a2a20;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background 0.1s;
+}
+.koru-collection-menu-popover button:hover { background: #f3f7f4; }
+.koru-collection-menu-popover button .material-symbols-outlined { font-size: 18px; color: #5a6b62; }
+.koru-collection-menu-danger { color: #ef4444 !important; }
+.koru-collection-menu-danger .material-symbols-outlined { color: #ef4444 !important; }
+
+/* Inline editor modal */
+.koru-collection-editor {
+  position: fixed;
+  inset: 0;
+  z-index: 250;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: koru-fade-in 0.18s ease-out;
+}
+.koru-collection-editor-content {
+  background: white;
+  width: 100%;
+  max-width: 430px;
+  border-radius: 20px 20px 0 0;
+  padding: 20px;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: koru-sheet-up 0.22s ease-out;
+}
+@keyframes koru-sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.koru-collection-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.koru-collection-editor-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a2a20;
+  margin: 0;
+}
+.koru-collection-editor-header button {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: none;
+  background: #f3f7f4;
+  color: #5a6b62;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.koru-collection-editor-header button .material-symbols-outlined { font-size: 20px; }
+
+.koru-collection-editor-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.koru-collection-editor-field span {
+  font-size: 12px;
+  font-weight: 600;
+  color: #523a9e;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.koru-collection-editor-field input, .koru-collection-editor-field textarea {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1.5px solid #e3e8e5;
+  background: #fafaf5;
+  font-size: 14px;
+  font-family: inherit;
+  color: #1a2a20;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+.koru-collection-editor-field input:focus, .koru-collection-editor-field textarea:focus {
+  border-color: #8363f9;
+}
+.koru-collection-editor-field textarea { resize: vertical; min-height: 70px; }
+
+.koru-collection-editor-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+.koru-collection-editor-btn {
+  flex: 1;
+  height: 46px;
+  border-radius: 12px;
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: transform 0.15s;
+}
+.koru-collection-editor-btn:active { transform: scale(0.98); }
+.koru-collection-editor-btn .material-symbols-outlined { font-size: 18px; }
+.koru-collection-editor-save { background: #8363f9; color: white; }
+.koru-collection-editor-delete { background: rgba(239, 68, 68, 0.1); color: #ef4444; }

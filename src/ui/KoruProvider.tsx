@@ -792,13 +792,13 @@ export function KoruProvider({ children }: { children: ReactNode }) {
       shopping: "shopping_item",
       gasto: "expense",
       expense: "expense",
-      enlace: "bookmark",
-      bookmark: "bookmark",
+      enlace: "tool_link",
+      bookmark: "tool_link",
       receta: "idea",
-      reminder: "reminder",
+      reminder: "deadline",
     };
     const kind = (kindMap[input.kind ?? "note"] ?? "idea") as LifeRecordKind;
-    const domain: LifeDomain = input.kind === "gasto" ? "money" : "personal";
+    const domain: LifeDomain = input.kind === "gasto" ? "money" : "capture";
     const newRecord: LifeRecord = {
       id: `rec_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       domain,
