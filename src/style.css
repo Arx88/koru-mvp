@@ -326,11 +326,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  /* 🔴 v2: padding-top para que mensajes no se superpongan con mascota/suggestions */
   padding: 100px 20px 12px;
-  /* 🔴 v2: mask-image para fade-out arriba — los mensajes se desvanecen al scrollear hacia arriba */
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, transparent 80px, black 130px, black 100%);
-  mask-image: linear-gradient(to bottom, transparent 0%, transparent 80px, black 130px, black 100%);
 }
 
 .koru-chat-scroll::-webkit-scrollbar {
@@ -5654,20 +5650,18 @@ a.koru-dsec-source:hover {
      era de translucidez, no de z-index. */
 .koru-thread-toggle-sticky {
   position: sticky;
-  top: 132px;
+  top: 0;
   z-index: 15;
   display: flex;
   justify-content: center;
   flex-shrink: 0;
   padding: 10px 0;
-  /* fondo OPACO sólido: oculta completamente los mensajes que pasan por debajo */
   background: #3d3866;
-  /* suave sombra inferior para separar visualmente el header pegado de los mensajes */
   box-shadow: 0 6px 12px -6px rgba(18, 10, 50, 0.55);
-  margin: -10px -20px 0;
+  margin: 0 -20px;
   padding-left: 20px;
   padding-right: 20px;
-  isolation: isolate; /* stacking context limpio: garantiza z-index:15 sobre burbujas */
+  isolation: isolate;
 }
 .koru-thread-more-btn {
   display: inline-flex;
