@@ -64,6 +64,8 @@ export type DetailStep = {
   title: string;
   detail?: string;
   status?: "done" | "current" | "pending";
+  badge?: string;
+  badgeTone?: "done" | "current" | "pending" | "urgent";
 };
 export type DetailSourceRef = { title: string; domain?: string; url?: string; imageUrl?: string };
 
@@ -499,6 +501,8 @@ function shoppingList(b: Of<"shopping_list">): KoruPresentation {
 
 function comparison(b: Of<"comparison">): KoruPresentation {
   const items = b.items ?? [];
+  // 🔴 FIX: identificar el item con mayor score (no hardcoded al index 0)
+  const topIdx = items.reduce((best, it, i) => (it.score != null && (best === -1 || (it.score ?? 0) > (items[best].score ?? 0))) ? i : best, -1);
   return {
     hero: {
       kicker: "Tu Comparación",
@@ -510,7 +514,7 @@ function comparison(b: Of<"comparison">): KoruPresentation {
     },
     detail: {
       title: b.title || "Comparación",
-      subtitle: b.recommendation,
+      subtitle: (Array.isArray(b.criteria) ? b.criteria.join(" · ") : b.criteria) ?? b.recommendation,
       sections: [
         {
           kind: "scroller",
@@ -519,13 +523,42 @@ function comparison(b: Of<"comparison">): KoruPresentation {
           title: "Opciones",
           subtitle: items.length ? `${items.length} ANALIZADAS` : undefined,
           cards: items.map((it, i) => ({
-            badge: i === 0 ? "Recomendado" : undefined,
-            badgeColor: i === 0 ? A.emerald.color : undefined,
+            badge: i === topIdx ? "Mejor puntaje" : undefined,
+            badgeColor: i === topIdx ? A.emerald.color : undefined,
             title: it.title,
             detail: [it.price, it.vendor].filter(Boolean).join(" · ") || undefined,
-            metrics: [it.evidence].filter((x): x is string => Boolean(x)),
+            metrics: [
+              ...(it.score != null ? [`★ ${it.score}/10`] : []),
+              ...(it.evidence ? [it.evidence] : []),
+              ...(it.url ? [`🔗 ${it.url.replace(/^https?:\/\/(www\.)?/, "").split("/")[0]}`] : []),
+            ],
           })),
         },
+        // 🔴 FIX: renderizar details[] (pros/cons) como rows con badges positivos/negativos
+        ...(items.some(it => it.details?.length) ? [{
+          kind: "rows" as const,
+          icon: "fact_check" as const,
+          accent: A.emerald,
+          title: "Pros y Contras",
+          subtitle: "DETALLE POR OPCIÓN",
+          rows: items.flatMap((it) => {
+            const pros = (it.details ?? []).filter(d => d.positive).map(d => ({
+              icon: "check_circle",
+              title: d.label,
+              detail: it.title,
+              badge: "Pro",
+              badgeTone: "done" as const,
+            }));
+            const cons = (it.details ?? []).filter(d => !d.positive).map(d => ({
+              icon: "cancel",
+              title: d.label,
+              detail: it.title,
+              badge: "Contra",
+              badgeTone: "urgent" as const,
+            }));
+            return [...pros, ...cons];
+          }),
+        }] : []),
         ...(b.sources?.length ? [sourcesSection(b.sources)] : []),
       ],
     },
@@ -832,15 +865,37 @@ function dataCard(b: Of<"data_card">): KoruPresentation {
     },
     detail: items.length
       ? {
-          title: b.title || "Datos",
+          title: b.title || "Datos verificados",
+          subtitle: "CADA DATO CON SU CITA LITERAL",
           sections: [
             {
               kind: "rows",
               icon: "verified",
               accent: A.emerald,
               title: "Datos verificados",
-              rows: items.map((it) => ({ title: it.label, detail: it.value, meta: it.sourceDomain })),
+              rows: items.map((it) => ({
+                icon: "fact_check",
+                title: it.label,
+                detail: it.value,
+                meta: it.sourceDomain,
+                // 🔴 FIX: indicar si tiene cita literal de respaldo
+                badge: it.quote ? "Con cita" : undefined,
+                badgeTone: it.quote ? "done" : undefined,
+              })),
             },
+            // 🔴 FIX: sección dedicada a las citas literales (la "prueba" de validación)
+            ...(items.some(it => it.quote) ? [{
+              kind: "rows" as const,
+              icon: "format_quote" as const,
+              accent: A.purple,
+              title: "Citas literales",
+              subtitle: "EVIDENCIA DE FUENTES",
+              rows: items.filter(it => it.quote).map((it) => ({
+                icon: "format_quote",
+                title: it.quote!,
+                detail: `${it.label} · ${it.sourceDomain ?? "fuente"}`,
+              })),
+            }] : []),
           ],
         }
       : undefined,
@@ -1358,52 +1413,67 @@ function generation(b: Of<"generation">): KoruPresentation {
 function matchTimeline(b: Of<"match_timeline">): KoruPresentation {
   const items = b.items ?? [];
   const now = items.find((i) => i.now) ?? items[0];
+  // 🔴 FIX: title dinámico (antes "PARTIDO" hardcodeado) + "Timeline" → "Cronología"
+  const title = b.title ?? (now?.text ? now.text.split("—")[0].trim() : "Partido");
   return {
     hero: {
       kicker: "Fixture · En vivo",
-      title: "PARTIDO",
+      title: heroTitleFrom(title, "Partido"),
       desc: now ? `${now.minute}' ${now.text}` : undefined,
       icon: "sports",
       accent: A.emerald,
     },
     detail: items.length
       ? {
-          title: "Timeline",
+          title: title,
+          subtitle: "CRONOLOGÍA DEL PARTIDO",
           sections: [
             {
               kind: "timeline",
               icon: "sports",
               accent: A.emerald,
-              title: "Eventos",
+              title: "Cronología",
               steps: items.map((i) => ({ title: `${i.minute}' ${i.text}`, detail: i.sub, status: i.now ? "current" : "done" })),
             },
           ],
         }
       : undefined,
-    cta: items.length ? { label: "Ver timeline" } : undefined,
+    cta: items.length ? { label: "Ver cronología" } : undefined,
   };
 }
 
 function matchStats(b: Of<"match_stats">): KoruPresentation {
   const stats = b.stats ?? [];
+  // 🔴 FIX: usar barras comparativas (mismo pattern que live_match.detailedStats)
   return {
     hero: {
       kicker: "Estadísticas",
-      title: "PARTIDO",
+      title: heroTitleFrom(b.title, "Partido"),
       desc: stats[0] ? `${stats[0].label}: ${stats[0].home} — ${stats[0].away}` : undefined,
       icon: "monitoring",
       accent: A.primary,
     },
     detail: stats.length
       ? {
-          title: "Estadísticas",
+          title: b.title || "Estadísticas del partido",
+          subtitle: "COMPARATIVA DE EQUIPOS",
           sections: [
             {
               kind: "rows",
               icon: "monitoring",
               accent: A.primary,
               title: "Comparativa",
-              rows: stats.map((s) => ({ title: s.label, detail: `${s.home} — ${s.away}` })),
+              rows: stats.map((s) => ({
+                title: s.label,
+                detail: `${s.home} — ${s.away}`,
+                bar: {
+                  homeValue: typeof s.home === "number" ? s.home : parseFloat(s.home) || 0,
+                  awayValue: typeof s.away === "number" ? s.away : parseFloat(s.away) || 0,
+                  isPercent: /pos|posesi|precisi|efectiv/i.test(s.label),
+                  homeColor: b.homeColor,
+                  awayColor: b.awayColor,
+                },
+              })),
             },
           ],
         }
@@ -1433,7 +1503,20 @@ function electionResults(b: Of<"election_results">): KoruPresentation {
               icon: "how_to_vote",
               accent: A.amber,
               title: "Candidatos",
-              rows: items.map((it) => ({ title: it.name, detail: it.detail, meta: it.percent, badgeTone: it.done ? "done" : "pending" })),
+              rows: items.map((it) => ({
+                title: it.name,
+                detail: it.detail,
+                meta: it.percent,
+                badge: it.done ? "Ganador" : "Pendiente",
+                badgeTone: it.done ? "done" : "pending",
+                bar: it.percent != null ? {
+                  homeValue: parseFloat(String(it.percent).replace("%", "")) || 0,
+                  awayValue: 100 - (parseFloat(String(it.percent).replace("%", "")) || 0),
+                  isPercent: true,
+                  homeColor: it.color,
+                  awayColor: "#e3e8e5",
+                } : undefined,
+              })),
             },
           ],
         }
@@ -1582,10 +1665,11 @@ function memoryBlock(b: Of<"memory">): KoruPresentation {
 
 function dataTicker(b: Of<"data_ticker">): KoruPresentation {
   const items = b.items ?? [];
+  // 🔴 FIX: title dinámico (antes era "DATOS" hardcodeado) + badge visible
   return {
     hero: {
-      kicker: "Resumen",
-      title: "DATOS",
+      kicker: "Tendencias",
+      title: heroTitleFrom(b.title ?? (items[0]?.label ? items[0].label : "Datos en vivo"), "Tendencias"),
       desc: b.alert ?? (items[0] ? `${items[0].label}: ${items[0].value}` : undefined),
       icon: "insights",
       accent: A.primary,
@@ -1593,14 +1677,19 @@ function dataTicker(b: Of<"data_ticker">): KoruPresentation {
     },
     detail: items.length
       ? {
-          title: "Resumen",
+          title: b.title || "Tendencias en vivo",
           sections: [
             {
               kind: "rows",
               icon: "insights",
               accent: A.primary,
               title: "Datos",
-              rows: items.map((it) => ({ title: it.label, detail: it.value, badgeTone: it.highlight ? "done" : undefined })),
+              rows: items.map((it) => ({
+                title: it.label,
+                detail: it.value,
+                badge: it.highlight ? "Destacado" : undefined,
+                badgeTone: it.highlight ? "done" : undefined,
+              })),
             },
           ],
         }
@@ -1611,30 +1700,44 @@ function dataTicker(b: Of<"data_ticker">): KoruPresentation {
 
 function cryptoPortfolio(b: Of<"crypto_portfolio">): KoruPresentation {
   const items = b.items ?? [];
+  // 🔴 FIX: usar coin icon (char) + color si están disponibles, calcular agregados
+  const totalChange = items.length ? items.reduce((sum, it) => sum + (it.change ?? 0), 0) / items.length : 0;
   return {
     hero: {
-      kicker: "Mercados",
-      title: "CRIPTO",
+      kicker: "Tu Portafolio",
+      title: heroTitleFrom(b.title, "Cripto"),
       desc: items[0] ? `${items[0].name} · ${items[0].price}` : undefined,
       icon: "currency_bitcoin",
       accent: A.amber,
-      metrics: items.slice(0, 3).map((it) => ({
-        icon: it.change >= 0 ? "trending_up" : "trending_down",
-        label: it.symbol,
-        value: `${it.change >= 0 ? "+" : ""}${it.change}%`,
-        color: it.change >= 0 ? A.emerald.color : A.red.color,
-      })),
+      metrics: [
+        { icon: totalChange >= 0 ? "trending_up" : "trending_down", label: "Cambio 24h", value: `${totalChange >= 0 ? "+" : ""}${totalChange.toFixed(1)}%`, color: totalChange >= 0 ? A.emerald.color : A.red.color },
+        ...items.slice(0, 2).map((it) => ({
+          icon: it.change >= 0 ? "trending_up" : "trending_down",
+          label: it.symbol,
+          value: `${it.change >= 0 ? "+" : ""}${it.change}%`,
+          color: it.change >= 0 ? A.emerald.color : A.red.color,
+        })),
+      ].slice(0, 3),
     },
     detail: items.length
       ? {
-          title: "Portafolio",
+          title: "Tu Portafolio",
+          subtitle: `${items.length} activo${items.length > 1 ? "s" : ""} · cambio promedio ${totalChange >= 0 ? "+" : ""}${totalChange.toFixed(1)}%`,
           sections: [
             {
               kind: "rows",
               icon: "currency_bitcoin",
               accent: A.amber,
               title: "Activos",
-              rows: items.map((it) => ({ title: it.name, detail: it.price, meta: `${it.change >= 0 ? "+" : ""}${it.change}%`, badgeTone: it.change >= 0 ? "done" : "urgent" })),
+              rows: items.map((it) => ({
+                // 🔴 FIX: usar char (icon) y color del coin si están disponibles
+                icon: it.char || "currency_bitcoin",
+                title: it.name,
+                detail: it.price,
+                meta: `${it.change >= 0 ? "+" : ""}${it.change}%`,
+                badge: it.change >= 0 ? "Sube" : "Baja",
+                badgeTone: it.change >= 0 ? "done" : "urgent",
+              })),
             },
           ],
         }
@@ -1647,8 +1750,8 @@ function forex(b: Of<"forex">): KoruPresentation {
   const items = b.items ?? [];
   return {
     hero: {
-      kicker: "Forex",
-      title: "DIVISAS",
+      kicker: "Divisas",
+      title: heroTitleFrom(b.title, "Divisas"),
       desc: items[0] ? `${items[0].pair} · ${items[0].rate}` : undefined,
       icon: "currency_exchange",
       accent: A.primary,
@@ -1842,8 +1945,8 @@ function outfit(b: Of<"outfit">): KoruPresentation {
   const specs = b.specs ?? [];
   return {
     hero: {
-      kicker: "Tu Outfit",
-      title: "LOOK DEL DÍA",
+      kicker: "Tu Look",
+      title: heroTitleFrom(b.title, "Look del día"),
       desc: specs[0] ? `${specs[0].label}: ${specs[0].value}` : undefined,
       icon: "checkroom",
       accent: A.amber,
@@ -1851,7 +1954,7 @@ function outfit(b: Of<"outfit">): KoruPresentation {
     },
     detail: specs.length
       ? {
-          title: "Outfit",
+          title: "Tu Look",
           sections: [
             {
               kind: "tiles",
@@ -1863,7 +1966,7 @@ function outfit(b: Of<"outfit">): KoruPresentation {
           ],
         }
       : undefined,
-    cta: specs.length ? { label: b.buttonLabel || "Ver outfit" } : undefined,
+    cta: specs.length ? { label: b.buttonLabel || "Ver look" } : undefined,
   };
 }
 
@@ -1871,8 +1974,8 @@ function reviewScore(b: Of<"review_score">): KoruPresentation {
   const items = b.items ?? [];
   return {
     hero: {
-      kicker: "Tu Review",
-      title: "PUNTAJES",
+      kicker: "Tu Reseña",
+      title: heroTitleFrom(b.title, "Puntajes"),
       desc: items[0] ? `${items[0].label}: ${items[0].score}` : undefined,
       icon: "reviews",
       accent: A.violet,
@@ -1880,7 +1983,7 @@ function reviewScore(b: Of<"review_score">): KoruPresentation {
     },
     detail: items.length
       ? {
-          title: "Review",
+          title: "Reseña",
           sections: [
             {
               kind: "tiles",
@@ -1892,7 +1995,7 @@ function reviewScore(b: Of<"review_score">): KoruPresentation {
           ],
         }
       : undefined,
-    cta: items.length ? { label: b.buttonLabel || "Ver review" } : undefined,
+    cta: items.length ? { label: b.buttonLabel || "Ver reseña" } : undefined,
   };
 }
 
@@ -1973,13 +2076,29 @@ function planFallback(b: Of<"plan">): KoruPresentation {
     detail: items.length
       ? {
           title: b.title || "Tu Plan",
+          subtitle: `${items.length} PASO${items.length > 1 ? "S" : ""} ORDENADOS`,
           sections: [
             {
               kind: "timeline",
               icon: "route",
               accent: A.violet,
               title: "Pasos",
-              steps: items.map((it) => ({ title: it.title, detail: [it.time, it.rationale].filter(Boolean).join(" · ") })),
+              steps: items.map((it) => ({
+                // 🔴 FIX: icono específico del paso (no genérico route)
+                icon: it.icon || "schedule",
+                title: it.title,
+                detail: [
+                  it.time,
+                  it.durationMinutes ? `${it.durationMinutes} min` : null,
+                  it.priority,
+                  it.mode ? `· ${it.mode}` : null,
+                ].filter(Boolean).join(" · "),
+                // 🔴 FIX: status basado en done (no siempre "done")
+                status: it.done ? "done" : "current",
+                // 🔴 FIX: badge con priority (Alta/Media/Baja)
+                badge: it.priority,
+                badgeTone: it.priority === "Alta" ? "urgent" : it.priority === "Media" ? "current" : "pending",
+              })),
             },
           ],
         }

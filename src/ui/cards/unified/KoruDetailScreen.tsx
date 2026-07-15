@@ -153,6 +153,8 @@ function SectionBody({ section }: { section: DetailSection }) {
                   <div className="koru-timeline-body">
                     <h4 className="koru-timeline-name">{s.title}</h4>
                     {s.detail && <p className="koru-timeline-meta">{s.detail}</p>}
+                    {/* 🔴 v2: badge de prioridad (Alta/Media/Baja) en pasos del plan */}
+                    {s.badge && <span className={`koru-step-chip is-${s.badgeTone ?? "pending"}`}>{s.badge}</span>}
                   </div>
                 </div>
               );

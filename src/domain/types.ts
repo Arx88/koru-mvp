@@ -759,11 +759,17 @@ export type UiBlock =
     }
   | {
       type: "match_timeline";
+      title?: string;
       items?: Array<{ minute: string; text: string; sub?: string; active?: boolean; now?: boolean }>;
     }
   | {
       type: "match_stats";
+      title?: string;
       stats?: Array<{ label: string; home: string; away: string; width: string }>;
+      homeColor?: string;
+      awayColor?: string;
+      homeName?: string;
+      awayName?: string;
     }
   | {
       type: "election_results";
@@ -797,15 +803,18 @@ export type UiBlock =
     }
   | {
       type: "data_ticker";
+      title?: string;
       items?: Array<{ label: string; value: string; highlight?: boolean }>;
       alert?: string;
     }
   | {
       type: "crypto_portfolio";
+      title?: string;
       items?: Array<{ symbol: string; name: string; price: string; change: number; color: string; bg: string; char?: string }>;
     }
   | {
       type: "forex";
+      title?: string;
       items?: Array<{ pair: string; rate: string; change: number; flag: string; positive: boolean }>;
     }
   | {
@@ -857,11 +866,13 @@ export type UiBlock =
     }
   | {
       type: "outfit";
+      title?: string;
       specs?: Array<{ emoji: string; label: string; value: string }>;
       buttonLabel?: string;
     }
   | {
       type: "review_score";
+      title?: string;
       items?: Array<{ emoji: string; score: string; label: string; color: string }>;
       buttonLabel?: string;
     }
