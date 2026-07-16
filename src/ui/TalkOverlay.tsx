@@ -1,5 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
-import { ErrorBoundary } from "./ErrorBoundary";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUp, Image as ImageIcon, Leaf, Mic, MicOff, Paperclip, Plus } from "lucide-react";
 import { createSpeechSession, getSpeechSupport } from "../domain/speech";
 import { cn } from "../lib/utils";
@@ -10,11 +9,7 @@ import { KoruUnifiedCard } from "./cards/unified/KoruUnifiedCard";
 import { KoruBackground, activityToBgState, type KoruBgState } from "./KoruBackground";
 import { MemoryToast } from "./MemoryToast";
 import { MorningBriefCard } from "./MorningBriefCard";
-
-// 🔴 Code-splitting: CreateScreen (~1500 líneas, formularios pesados) se
-// carga bajo demanda cuando el usuario abre el modal "Crear". Necesita
-// default export en create/CreateScreen.tsx (agregado).
-const CreateScreen = lazy(() => import("./create/CreateScreen"));
+import { CreateScreen } from "./create/CreateScreen";
 
 // TalkOverlay = réplica Stitch "Chat con Koru": paisaje nocturno ilustrado a
 // pantalla completa, conversación anclada abajo con burbujas claras (usuario
@@ -1603,13 +1598,8 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
         </div>
       )}
 
-      {/* 🔴 v2: CreateScreen — modal para crear Nota/Lista/Gasto/Enlace sin LLM.
-          Code-split: CreateScreen se carga bajo demanda (React.lazy) para no
-          inflar el bundle inicial del chat. Suspense muestra un skeleton
-          lila mientras llega el chunk. */}
+      {/* 🔴 v2: CreateScreen — modal para crear Nota/Lista/Gasto/Enlace sin LLM. */}
       {showCreate && (
-        <Suspense fallback={<div className="koru-skeleton" style={{ height: 200 }} />}>
-          <ErrorBoundary>
           <CreateScreen
             onClose={() => setShowCreate(false)}
             // 🔴 AI-assist — delega al backend /api/koru/ai-assist, que usa el
@@ -1637,8 +1627,6 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
             }
           }}
           />
-          </ErrorBoundary>
-        </Suspense>
       )}
 
       {/* 🔴 v2: reopenedRecord — reabre el bloque original de un record guardado */}

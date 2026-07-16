@@ -1,27 +1,11 @@
-import { useState, lazy, Suspense } from "react";
+import { useState } from "react";
 import { KoruProvider, useKoru } from "./KoruProvider";
 import { MemoryScreen } from "./MemoryScreen";
 import { PermissionsScreen } from "./PermissionsScreen";
 import { HistoryScreen } from "./HistoryScreen";
 import { TalkOverlay } from "./TalkOverlay";
-
-// 🔴 Code-splitting: las pantallas "pesadas" se cargan vía React.lazy para
-// que Vite las separe en chunks independientes y no entren al bundle
-// inicial. Cada una requiere default export en su file (agregado abajo del
-// named export existente para no romper tests / otros importers).
-//   - HomeScreen: ~1100 líneas, widgets de hidratación/clima/nudges.
-//   - SettingsScreen: ~1700 líneas, 8 secciones colapsables + formularios.
-// Las demás (CreateScreen, CollectionsScreen, PlanRoadmapScreen) no se
-// renderizan en App.tsx — se lazy-cargan en su caller real
-// (TalkOverlay / KoruUnifiedCard / PlanHeroCard).
-const HomeScreen = lazy(() => import("./HomeScreen"));
-const SettingsScreen = lazy(() => import("./SettingsScreen"));
-
-// Skeleton reutilizado como fallback de Suspense para todas las lazy screens.
-// `.koru-skeleton` ya existe en style.css (shimmer lila).
-function ScreenSkeleton() {
-  return <div className="koru-skeleton" style={{ height: 200 }} />;
-}
+import { HomeScreen } from "./HomeScreen";
+import { SettingsScreen } from "./SettingsScreen";
 
 type Screen = "chat" | "hoy" | "memoria" | "permisos" | "historial" | "configuracion";
 
@@ -87,7 +71,6 @@ function KoruApp() {
           )}
 
           {screen === "hoy" && (
-            <Suspense fallback={<ScreenSkeleton />}>
               <HomeScreen
                 state={state}
                 onNavigate={(s) => setScreen(s as Screen)}
@@ -115,13 +98,11 @@ function KoruApp() {
                   }
                 }}
               />
-            </Suspense>
           )}
           {screen === "memoria" && <MemoryScreen />}
           {screen === "permisos" && <PermissionsScreen />}
           {screen === "historial" && <HistoryScreen />}
           {screen === "configuracion" && (
-            <Suspense fallback={<ScreenSkeleton />}>
               <SettingsScreen
                 state={state}
                 onUpdateProfile={(profile) => updateUserProfile(profile)}
@@ -141,7 +122,6 @@ function KoruApp() {
                 onAddPerson={(name, relationship, birthday) => addPerson(name, relationship, birthday)}
                 onClose={() => setScreen("chat")}
               />
-            </Suspense>
           )}
         </div>
       </div>

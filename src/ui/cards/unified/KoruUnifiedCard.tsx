@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, lazy, Suspense } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import type { UiBlock } from "../../../domain/types";
 import { toPresentation } from "./presentation";
@@ -12,7 +12,7 @@ import { convertCurrency } from "../../../tools/travel/currencyConverter";
 // 🔴 Code-splitting: CollectionsScreen (~600 líneas, renderer markdown + portal)
 // se carga bajo demanda cuando el CTA del card abre la vista de colección.
 // Necesita default export en CollectionsScreen.tsx (agregado).
-const CollectionsScreen = lazy(() => import("../../CollectionsScreen"));
+import { CollectionsScreen } from "../../CollectionsScreen";
 
 // Card unificada — TODA respuesta con estructura se renderiza con esta hoja,
 // réplica del Stitch "Plan Entregado": superficie lila, kicker + título,
@@ -120,9 +120,7 @@ function DetailOverlay({
   if (!open) return null;
   if (cta?.screen === "collections") {
     return (
-      <Suspense fallback={<div className="koru-skeleton" style={{ height: 200 }} />}>
-        <CollectionsScreen focusCollection={cta.collection} onClose={() => setOpen(false)} />
-      </Suspense>
+      <CollectionsScreen focusCollection={cta.collection} onClose={() => setOpen(false)} />
     );
   }
   if (detail) {
