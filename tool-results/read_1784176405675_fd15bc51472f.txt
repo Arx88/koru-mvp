@@ -1,0 +1,302 @@
+  2099→          <tr><td><code>koru-shimmer-sweep</code></td><td>Idle</td><td>4s</td><td>ease-in-out</td><td>CTA hint brilla cada 4s</td></tr>
+  2100→          <tr><td><code>koru-arrow-pulse</code></td><td>Idle</td><td>2s</td><td>ease-in-out</td><td>Arrow del CTA hint</td></tr>
+  2101→          <tr><td><code>koru-ring-pulse</code></td><td>Idle</td><td>2.4s</td><td>ease-out</td><td>Avatar ring · focus ring</td></tr>
+  2102→          <tr><td><code>koru-typing-bounce</code></td><td>Idle</td><td>1.4s</td><td>ease-in-out</td><td>Typing indicator</td></tr>
+  2103→          <tr><td><code>koru-shimmer-bar</code></td><td>Idle</td><td>1.5s</td><td>linear</td><td>Skeleton loader</td></tr>
+  2104→          <tr><td><code>koru-star-pop</code></td><td>Idle</td><td>2s</td><td>ease-in-out</td><td>Rating stars</td></tr>
+  2105→          <tr><td><code>koru-icon-rotate</code></td><td>Idle</td><td>4s</td><td>linear</td><td>Refresh · sync</td></tr>
+  2106→          <tr><td><code>koru-icon-bounce</code></td><td>Idle</td><td>2s</td><td>ease-in-out</td><td>Trending · arrow up</td></tr>
+  2107→          <tr><td><code>koru-count-up</code></td><td>Entrance</td><td>0.6s</td><td>out (cubic)</td><td>artValue numérico · JS rAF</td></tr>
+  2108→          <tr><td><code>koru-fade-up</code></td><td>Entrance</td><td>0.5s</td><td>out</td><td>Reveal on scroll</td></tr>
+  2109→          <tr><td><code>koru-sheet-up</code></td><td>Entrance</td><td>0.32s</td><td>spring</td><td>Detail screen abre</td></tr>
+  2110→          <tr><td><code>koru-lift</code></td><td>Hover</td><td>0.15s</td><td>smooth</td><td>Card hover · translateY(-2px)</td></tr>
+  2111→          <tr><td><code>koru-icon-fill-toggle</code></td><td>Hover</td><td>0.2s</td><td>smooth</td><td>FILL 0→1, wght 400→600</td></tr>
+  2112→          <tr><td><code>koru-tap-ripple</code></td><td>Tap</td><td>0.4s</td><td>spring</td><td>Ripple desde punto tap</td></tr>
+  2113→          <tr><td><code>koru-scale-down</code></td><td>Tap</td><td>0.1s</td><td>smooth</td><td>scale(1→0.97) en :active</td></tr>
+  2114→          <tr><td><code>koru-haptic</code></td><td>Tap</td><td>—</td><td>—</td><td>navigator.vibrate(15ms)</td></tr>
+  2115→          <tr><td><code>koru-success-pop</code></td><td>State</td><td>0.3s</td><td>spring</td><td>Bookmark fill · save done</td></tr>
+  2116→          <tr><td><code>koru-shake</code></td><td>State</td><td>0.4s</td><td>smooth</td><td>Error · translateX</td></tr>
+  2117→          <tr><td><code>koru-save-rise</code></td><td>State</td><td>0.35s</td><td>spring</td><td>Toast save sube</td></tr>
+  2118→          <tr><td><code>koru-aurora</code></td><td>Background</td><td>18s</td><td>ease-in-out</td><td>Cover blobs drift (reactbits pattern)</td></tr>
+  2119→          <tr><td><code>koru-spotlight</code></td><td>Hover</td><td>0.2s</td><td>smooth</td><td>Radial-gradient sigue cursor (reactbits)</td></tr>
+  2120→          <tr><td><code>koru-tilt</code></td><td>Hover</td><td>0.3s</td><td>smooth</td><td>3D tilt hacia cursor</td></tr>
+  2121→          <tr><td><code>koru-underline-grow</code></td><td>Hover</td><td>0.25s</td><td>out</td><td>Width 0→100% from left</td></tr>
+  2122→          <tr><td><code>koru-color-flash</code></td><td>Tap</td><td>0.3s</td><td>smooth</td><td>Background 0.08→0.20→0.08</td></tr>
+  2123→          <tr><td><code>koru-image-zoom</code></td><td>Hover</td><td>0.4s</td><td>smooth</td><td>scale(1→1.05) con overflow hidden</td></tr>
+  2124→          <tr><td><code>koru-chevron-rotate</code></td><td>Tap</td><td>0.2s</td><td>spring</td><td>rotate(0→90deg) expandible</td></tr>
+  2125→          <tr><td><code>koru-skeleton-to-content</code></td><td>State</td><td>0.3s</td><td>smooth</td><td>Loader → contenido real fade</td></tr>
+  2126→          <tr><td><code>koru-sticky-collapse</code></td><td>Scroll</td><td>0.3s</td><td>smooth</td><td>Header condensa en scroll</td></tr>
+  2127→          <tr><td><code>koru-progress-bar</code></td><td>Scroll</td><td>0.2s</td><td>linear</td><td>Progress de lectura</td></tr>
+  2128→        </tbody>
+  2129→      </table>
+  2130→
+  2131→      <div class="callout win reveal" data-delay="4">
+  2132→        <span class="material-symbols-outlined">check_circle</span>
+  2133→        <div>
+  2134→          <div class="callout-title">Patrones adoptados de reactbits.dev + lucide-animated</div>
+  2135→          <div class="callout-body">
+  2136→            <strong>reactbits:</strong> Aurora background (cover), Spotlight card hover (mouse-follow gradient),
+  2137→            Shiny text (gradient sweep), Magnetic button (cursor attraction within 40px).<br>
+  2138→            <strong>lucide-animated:</strong> Draw-on-view icons (pathLength 0→1), loop variants
+  2139→            (rotate/pulse/bounce/wiggle), state-transition icons (bookmark empty→filled con pathLength morph +
+  2140→            scale pop). Adaptado a Material Symbols via <code>font-variation-settings</code> FILL axis.
+  2141→          </div>
+  2142→        </div>
+  2143→      </div>
+  2144→    </section>
+  2145→
+  2146→    <!-- ============ MICRODETAILS MANIFESTO ============ -->
+  2147→    <section class="section" id="microdetails">
+  2148→      <div class="section-tag reveal">
+  2149→        <span class="material-symbols-outlined">deblur</span>
+  2150→        04 · 110 microdetalles
+  2151→      </div>
+  2152→      <h2 class="section-title reveal">
+  2153→        Lo que separa Tier S de <span class="accent">"bueno"</span>.
+  2154→      </h2>
+  2155→      <p class="section-lead reveal" data-delay="1">
+  2156→        110 reglas específicas divididas en 8 categorías. Cada una medida contra los tokens reales de Koru (WCAG
+  2157→        contrast ratios calculados, no estimados). Esto es lo que v1 faltó — la diferencia entre 6/10 y 10/10.
+  2158→      </p>
+  2159→
+  2160→      <div class="reveal" data-delay="2" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:13px;margin-top:24px;">
+  2161→        <div style="background:linear-gradient(180deg,#fff,#faf8ff);border-radius:13px;padding:16px;border:1px solid var(--c-sand);">
+  2162→          <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
+  2163→            <span style="width:30px;height:30px;border-radius:9px;background:var(--kp-soft);color:var(--kp);display:grid;place-items:center;font-family:var(--t-display);font-weight:800;font-size:12px;">V</span>
+  2164→            <strong style="font-size:12.5px;color:var(--c-bark);">Visual Hierarchy</strong>
+  2165→          </div>
+  2166→          <p style="font-size:11.5px;color:var(--c-earth);line-height:1.5;">20 reglas. Regla 1-3-1: un foco, tres soportes, un CTA. Máx 3 pesos y 4 tamaños por card.</p>
+  2167→        </div>
+  2168→        <div style="background:linear-gradient(180deg,#fff,#faf8ff);border-radius:13px;padding:16px;border:1px solid var(--c-sand);">
+  2169→          <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
+  2170→            <span style="width:30px;height:30px;border-radius:9px;background:rgba(236,72,153,0.12);color:var(--k-pink);display:grid;place-items:center;font-family:var(--t-display);font-weight:800;font-size:12px;">C</span>
+  2171→            <strong style="font-size:12.5px;color:var(--c-bark);">Color Contrast</strong>
+  2172→          </div>
+  2173→          <p style="font-size:11.5px;color:var(--c-earth);line-height:1.5;">20 reglas. WCAG medido: <code>#8363f9</code> en cream = 3.75:1 (AA-large), NO 4.5:1. Texto accent &lt;18px usar <code>#523a9e</code>.</p>
+  2174→        </div>
+  2175→        <div style="background:linear-gradient(180deg,#fff,#faf8ff);border-radius:13px;padding:16px;border:1px solid var(--c-sand);">
+  2176→          <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
+  2177→            <span style="width:30px;height:30px;border-radius:9px;background:rgba(45,106,79,0.12);color:var(--k-emerald);display:grid;place-items:center;font-family:var(--t-display);font-weight:800;font-size:12px;">S</span>
+  2178→            <strong style="font-size:12.5px;color:var(--c-bark);">Spacing &amp; Alignment</strong>
+  2179→          </div>
+  2180→          <p style="font-size:11.5px;color:var(--c-earth);line-height:1.5;">15 reglas. 7 tokens (4/8/12/16/20/24/32). Nunca 10, 14, 18, 28px. Safe-area obligatorio.</p>
+  2181→        </div>
+  2182→        <div style="background:linear-gradient(180deg,#fff,#faf8ff);border-radius:13px;padding:16px;border:1px solid var(--c-sand);">
+  2183→          <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
+  2184→            <span style="width:30px;height:30px;border-radius:9px;background:rgba(245,158,11,0.12);color:var(--k-amber-text);display:grid;place-items:center;font-family:var(--t-display);font-weight:800;font-size:12px;">E</span>
+  2185→            <strong style="font-size:12.5px;color:var(--c-bark);">Entrance</strong>
+  2186→          </div>
+  2187→          <p style="font-size:11.5px;color:var(--c-earth);line-height:1.5;">15 animaciones. Card-in 0.35s spring + stagger 70ms. Section-stagger delay i×60ms.</p>
+  2188→        </div>
+  2189→        <div style="background:linear-gradient(180deg,#fff,#faf8ff);border-radius:13px;padding:16px;border:1px solid var(--c-sand);">
+  2190→          <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
+  2191→            <span style="width:30px;height:30px;border-radius:9px;background:rgba(59,130,246,0.12);color:var(--k-blue);display:grid;place-items:center;font-family:var(--t-display);font-weight:800;font-size:12px;">H</span>
+  2192→            <strong style="font-size:12.5px;color:var(--c-bark);">Hover</strong>
+  2193→          </div>
+  2194→          <p style="font-size:11.5px;color:var(--c-earth);line-height:1.5;">10 interacciones. Lift -2px + shadow 0.12→0.20. Icon fill toggle. Spotlight mouse-follow.</p>
+  2195→        </div>
+  2196→        <div style="background:linear-gradient(180deg,#fff,#faf8ff);border-radius:13px;padding:16px;border:1px solid var(--c-sand);">
+  2197→          <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
+  2198→            <span style="width:30px;height:30px;border-radius:9px;background:rgba(129,39,207,0.12);color:#8127cf;display:grid;place-items:center;font-family:var(--t-display);font-weight:800;font-size:12px;">T</span>
+  2199→            <strong style="font-size:12.5px;color:var(--c-bark);">Tap</strong>
+  2200→          </div>
+  2201→          <p style="font-size:11.5px;color:var(--c-earth);line-height:1.5;">8 interacciones. Ripple desde punto tap 0.4s spring. Haptic 15ms. Scale-down 0.97.</p>
+  2202→        </div>
+  2203→        <div style="background:linear-gradient(180deg,#fff,#faf8ff);border-radius:13px;padding:16px;border:1px solid var(--c-sand);">
+  2204→          <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
+  2205→            <span style="width:30px;height:30px;border-radius:9px;background:rgba(239,68,68,0.12);color:var(--k-rose-text);display:grid;place-items:center;font-family:var(--t-display);font-weight:800;font-size:12px;">ST</span>
+  2206→            <strong style="font-size:12.5px;color:var(--c-bark);">State Indicators</strong>
+  2207→          </div>
+  2208→          <p style="font-size:11.5px;color:var(--c-earth);line-height:1.5;">10 patrones. Live dot pulse, New amber pill fade 3s, Verified emerald check, Urgent rose pulse.</p>
+  2209→        </div>
+  2210→        <div style="background:linear-gradient(180deg,#fff,#faf8ff);border-radius:13px;padding:16px;border:1px solid var(--c-sand);">
+  2211→          <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
+  2212→            <span style="width:30px;height:30px;border-radius:9px;background:rgba(6,182,212,0.12);color:var(--k-cyan);display:grid;place-items:center;font-family:var(--t-display);font-weight:800;font-size:12px;">A</span>
+  2213→            <strong style="font-size:12.5px;color:var(--c-bark);">Accessibility</strong>
+  2214→          </div>
+  2215→          <p style="font-size:11.5px;color:var(--c-earth);line-height:1.5;">12 reglas. Touch 44×44px mínimo. Focus ring 3px violet. prefers-reduced-motion guard total.</p>
+  2216→        </div>
+  2217→      </div>
+  2218→
+  2219→      <h3 class="reveal" data-delay="3" style="font-family:var(--t-display);font-size:22px;font-weight:800;color:var(--kp-deep);margin-top:36px;margin-bottom:14px;letter-spacing:-0.02em;">
+  2220→        Contrastes WCAG medidos (no estimados)
+  2221→      </h3>
+  2222→      <div class="callout warn reveal" data-delay="3">
+  2223→        <span class="material-symbols-outlined">warning</span>
+  2224→        <div>
+  2225→          <div class="callout-title">Correcciones críticas de contraste</div>
+  2226→          <div class="callout-body">
+  2227→            El brief original asumía contrastes incorrectos. Mediciones WCAG reales contra <code>#f6f3fe</code> (cream):<br><br>
+  2228→            <strong>1.</strong> <code>#8363f9</code> (violet primary) en cream = <strong>3.75:1 — solo AA-large</strong>. Ilegal para texto &lt;18px.
+  2229→            Solución: usar <code>#523a9e</code> (7.80:1 AAA) para texto accent &lt;18px.<br>
+  2230→            <strong>2.</strong> <code>#a99bbe</code> (stone) en cream = <strong>2.36:1 — FAILS AA</strong>. No usar para texto legible.
+  2231→            Solución: nuevo token <code>--k-meta: #7566a0</code> (4.60:1 AA).<br>
+  2232→            <strong>3.</strong> <code>#f59e0b</code> (amber) en cream = <strong>1.96:1 — FAIL</strong>. Solo iconos/fill.
+  2233→            Para texto amber &lt;18px usar <code>#b45309</code> (4.58:1 AA).<br>
+  2234→            <strong>4.</strong> <code>#ef4444</code> (rose) en cream = <strong>3.44:1 — solo AA-large</strong>.
+  2235→            Para texto rose &lt;18px usar <code>#c81e1e</code> (5.24:1 AA).<br>
+  2236→            <strong>5.</strong> <code>#2e2650</code> (bark) en cream = <strong>12.70:1 AAA</strong> ✓ confirmado.<br>
+  2237→            <strong>6.</strong> <code>#6b5f8c</code> (earth) en cream = <strong>5.27:1 AA</strong> ✓ confirmado.
+  2238→          </div>
+  2239→        </div>
+  2240→      </div>
+  2241→
+  2242→      <h3 class="reveal" data-delay="4" style="font-family:var(--t-display);font-size:22px;font-weight:800;color:var(--kp-deep);margin-top:36px;margin-bottom:14px;letter-spacing:-0.02em;">
+  2243→        Las 20 reglas de jerarquía visual (V-01 a V-20)
+  2244→      </h3>
+  2245→      <table class="spec-table reveal" data-delay="4">
+  2246→        <thead><tr><th>ID</th><th>Regla</th><th>Aplicación</th></tr></thead>
+  2247→        <tbody>
+  2248→          <tr><td>V-01</td><td>Regla 1-3-1</td><td>Un elemento foco, tres soportes, un CTA por card</td></tr>
+  2249→          <tr><td>V-02</td><td>Máx 3 pesos por card</td><td>Combinar 400+600+800 o 500+700+800</td></tr>
+  2250→          <tr><td>V-03</td><td>Máx 4 tamaños por card</td><td>Ej: 22px title + 15px body + 13px desc + 11px kicker</td></tr>
+  2251→          <tr><td>V-04</td><td>Hero number siempre Bricolage</td><td><code>artValue</code> usa var(--t-display) 36px/800</td></tr>
+  2252→          <tr><td>V-05</td><td>Title siempre Plus Jakarta 22/800</td><td>Hero card title = var(--t-sans) 22px/800/-0.01em</td></tr>
+  2253→          <tr><td>V-06</td><td>Kicker siempre uppercase 11/600</td><td>letter-spacing +0.08em, color = accent</td></tr>
+  2254→          <tr><td>V-07</td><td>Nunca uppercase en titles</td><td>Solo kickers, eyebrows, badges</td></tr>
+  2255→          <tr><td>V-08</td><td>Whitespace generoso</td><td>Mínimo 24px entre sections, 16px entre módulos</td></tr>
+  2256→          <tr><td>V-09</td><td>Foco claro en cada card</td><td>artValue gigante O poster O title — nunca competir</td></tr>
+  2257→          <tr><td>V-10</td><td>Secondary text 70% opacity</td><td>Descripciones usan color + opacity 0.72</td></tr>
+  2258→          <tr><td>V-11</td><td>Metric label uppercase 9px</td><td>Pequeño pero legible, color earth</td></tr>
+  2259→          <tr><td>V-12</td><td>Metric value Bricolage 13/800</td><td>Números siempre en display font</td></tr>
+  2260→          <tr><td>V-13</td><td>CTA hint siempre al pie</td><td>Border-top sutil + texto accent + arrow</td></tr>
+  2261→          <tr><td>V-14</td><td>Actions inline primary+secondary</td><td>Flex 1:1, gap 8px, primary solid accent</td></tr>
+  2262→          <tr><td>V-15</td><td>Section head con icon + title + meta</td><td>Meta opcional a la derecha (count, badge)</td></tr>
+  2263→          <tr><td>V-16</td><td>Detail title Bricolage 24/800</td><td>Sobre backdrop: white + text-shadow</td></tr>
+  2264→          <tr><td>V-17</td><td>Module title 15/800</td><td>Color = module accent</td></tr>
+  2265→          <tr><td>V-18</td><td>Module kicker 10/600 uppercase</td><td>Color earth</td></tr>
+  2266→          <tr><td>V-19</td><td>Sticky actions siempre 2 botones</td><td>Save + PDF, flex 1:1, altura 44px</td></tr>
+  2267→          <tr><td>V-20</td><td>Custom action opcional 33/33/33</td><td>Si existe, reparte 3 botones equitativos</td></tr>
+  2268→        </tbody>
+  2269→      </table>
+  2270→
+  2271→      <h3 class="reveal" data-delay="5" style="font-family:var(--t-display);font-size:22px;font-weight:800;color:var(--kp-deep);margin-top:36px;margin-bottom:14px;letter-spacing:-0.02em;">
+  2272→        Las 15 animaciones de entrada (E-01 a E-15)
+  2273→      </h3>
+  2274→      <div class="reveal" data-delay="5" style="background:#fff;border-radius:13px;padding:18px;border:1px solid var(--c-sand);font-size:13px;line-height:1.7;color:var(--c-earth);">
+  2275→        <p><strong style="color:var(--c-bark);">E-01 Card-in:</strong> opacity 0→1 + translateY(12px→0) + scale(0.97→1), 0.35s spring, stagger 70ms per sibling.</p>
+  2276→        <p><strong style="color:var(--c-bark);">E-02 Section-stagger:</strong> opacity 0→1 + translateY(20px→0), 0.5s out, delay = i × 60ms.</p>
+  2277→        <p><strong style="color:var(--c-bark);">E-03 Count-up:</strong> numeric artValue anima 0→target over 600ms ease-out cubic, triggered by IntersectionObserver.</p>
+  2278→        <p><strong style="color:var(--c-bark);">E-04 Icon-pop:</strong> icon scale(0.8→1) + rotate(-5deg→0), 0.4s spring, delay 100ms after card-in.</p>
+  2279→        <p><strong style="color:var(--c-bark);">E-05 Glow-breathe:</strong> radial-gradient opacity 0.20→0.40→0.20 + scale(1→1.08), 4s ease-in-out infinite.</p>
+  2280→        <p><strong style="color:var(--c-bark);">E-06 Bar-pop:</strong> scaleX(0→1) with transform-origin, 0.5s out, stagger 50ms between home/away.</p>
+  2281→        <p><strong style="color:var(--c-bark);">E-07 Shimmer-sweep:</strong> light sweep across CTA hint every 4s, 0.8s ease-in-out.</p>
+  2282→        <p><strong style="color:var(--c-bark);">E-08 Image-fade-in:</strong> opacity 0→1 + blur(8px→0), 0.6s out, on image load.</p>
+  2283→        <p><strong style="color:var(--c-bark);">E-09 Skeleton-shimmer:</strong> gradient sweep 1.5s linear infinite, lavender→cream→lavender.</p>
+  2284→        <p><strong style="color:var(--c-bark);">E-10 Sheet-up:</strong> opacity 0→1 + translateY(100%→0), 0.32s spring, backdrop fade 0.18s.</p>
+  2285→        <p><strong style="color:var(--c-bark);">E-11 Sticky-collapse:</strong> on scroll > 80px, header condensa: hero icon 96→32px, title 36→14px, 0.3s smooth.</p>
+  2286→        <p><strong style="color:var(--c-bark);">E-12 Aurora-drift:</strong> 3 blurred radial-gradient blobs, 18s ease-in-out, mix-blend-mode: screen (cover background).</p>
+  2287→        <p><strong style="color:var(--c-bark);">E-13 Live-dot:</strong> opacity 1→0.5 + scale(1→1.3), 1.5s infinite, box-shadow glow.</p>
+  2288→        <p><strong style="color:var(--c-bark);">E-14 Ring-pulse:</strong> scale(1→1.6) + opacity(0.6→0), 2.4s infinite, en focus rings y avatars.</p>
+  2289→        <p><strong style="color:var(--c-bark);">E-15 Typing-bounce:</strong> 3 dots translateY(0→-6px→0), 1.4s ease-in-out, stagger -0.16s.</p>
+  2290→      </div>
+  2291→
+  2292→      <div class="callout info reveal" data-delay="6">
+  2293→        <span class="material-symbols-outlined">info</span>
+  2294→        <div>
+  2295→          <div class="callout-title">Las 12 reglas de accesibilidad (A-01 a A-12)</div>
+  2296→          <div class="callout-body">
+  2297→            <strong>A-01:</strong> Touch targets mínimo 44×44px · <strong>A-02:</strong> Focus ring 3px solid rgba(131,99,249,0.5) offset 2px ·
+  2298→            <strong>A-03:</strong> aria-label en todos los icon-only buttons · <strong>A-04:</strong> role="button" + tabIndex={0} en tappable divs ·
+  2299→            <strong>A-05:</strong> Enter/Space triggers tap · <strong>A-06:</strong> Escape closes overlay ·
+  2300→            <strong>A-07:</strong> prefers-reduced-motion: disable ALL infinite animations · <strong>A-08:</strong> AA mínimo (4.5:1) body, AAA (7:1) primary text ·
+  2301→            <strong>A-09:</strong> alt text en todas las imágenes · <strong>A-10:</strong> aria-live="polite" para toasts ·
+  2302→            <strong>A-11:</strong> aria-expanded en expandible · <strong>A-12:</strong> Visual order = DOM order.
+  2303→          </div>
+  2304→        </div>
+  2305→      </div>
+  2306→    </section>
+  2307→
+  2308→
+  2309→<!-- ============ ICONS + LAYOUTS SECTIONS ============ -->
+  2310→
+  2311→    <section class="section" id="icons">
+  2312→      <div class="section-tag reveal">
+  2313→        <span class="material-symbols-outlined">stars</span>
+  2314→        05 · Iconografía animada
+  2315→      </div>
+  2316→      <h2 class="section-title reveal">
+  2317→        Material Symbols <span class="accent">con vida propia</span>.
+  2318→      </h2>
+  2319→      <p class="section-lead reveal" data-delay="1">
+  2320→        Koru usa Material Symbols Outlined con <code>FILL 0, wght 400, GRAD 0, opsz 24</code>. Tier S mantiene esa
+  2321→        base pero adopta el patrón de lucide-animated: <strong>draw-on-view</strong> (pathLength 0→1),
+  2322→        <strong>loop variants</strong> (rotate/pulse/bounce/wiggle), y <strong>state-transition</strong> (bookmark
+  2323→        empty→filled con morph). Todo vía <code>font-variation-settings</code> FILL axis de Material Symbols.
+  2324→      </p>
+  2325→
+  2326→      <div class="reveal" data-delay="2" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:13px;margin-top:24px;">
+  2327→        <div style="background:#fff;border-radius:13px;padding:18px;border:1px solid var(--c-sand);text-align:center;transition:all 0.25s var(--e-spring);cursor:pointer;" onmouseover="this.querySelector('span').style.fontVariationSettings="'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 24";this.querySelector('span').style.transform='scale(1.15)';" onmouseout="this.querySelector('span').style.fontVariationSettings="'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24";this.querySelector('span').style.transform='scale(1)';">
+  2328→          <span class="material-symbols-outlined" style="font-size:36px;color:#8363f9;transition:all 0.25s var(--e-spring);display:inline-block;">favorite</span>
+  2329→          <div style="font-size:11.5px;font-weight:700;color:var(--c-bark);margin-top:7px;">Hover → Fill</div>
+  2330→          <div style="font-size:10px;color:var(--c-earth);margin-top:2px;">FILL 0→1, scale 1→1.15</div>
+  2331→        </div>
+  2332→        <div style="background:#fff;border-radius:13px;padding:18px;border:1px solid var(--c-sand);text-align:center;">
+  2333→          <div style="position:relative;width:36px;height:36px;margin:0 auto;">
+  2334→            <span class="material-symbols-outlined" style="font-size:36px;color:#c81e1e;">notifications</span>
+  2335→            <span style="position:absolute;top:-2px;right:-2px;width:11px;height:11px;border-radius:50%;background:#ef4444;border:2px solid #fff;animation:koru-pulse-dot 1.5s ease-in-out infinite;"></span>
+  2336→          </div>
+  2337→          <div style="font-size:11.5px;font-weight:700;color:var(--c-bark);margin-top:7px;">Badge pulse</div>
+  2338→          <div style="font-size:10px;color:var(--c-earth);margin-top:2px;">notification dot · 1.5s</div>
+  2339→        </div>
+  2340→        <div style="background:#fff;border-radius:13px;padding:18px;border:1px solid var(--c-sand);text-align:center;">
+  2341→          <span class="material-symbols-outlined ms-fill" style="font-size:36px;color:#f59e0b;animation:koru-star-pop 2s ease-in-out infinite;">star</span>
+  2342→          <div style="font-size:11.5px;font-weight:700;color:var(--c-bark);margin-top:7px;">Star pop</div>
+  2343→          <div style="font-size:10px;color:var(--c-earth);margin-top:2px;">rating icon · 2s</div>
+  2344→        </div>
+  2345→        <div style="background:#fff;border-radius:13px;padding:18px;border:1px solid var(--c-sand);text-align:center;">
+  2346→          <div style="width:44px;height:44px;border-radius:13px;background:radial-gradient(circle at 30% 30%,#c9bdf5 0%,#8363f9 50%,#523a9e 100%);display:grid;place-items:center;margin:0 auto;box-shadow:0 4px 12px rgba(131,99,249,0.3);animation:koru-breathe 3s ease-in-out infinite;">
+  2347→            <span class="material-symbols-outlined ms-fill" style="font-size:22px;color:#fff;">auto_awesome</span>
+  2348→          </div>
+  2349→          <div style="font-size:11.5px;font-weight:700;color:var(--c-bark);margin-top:7px;">Avatar breathe</div>
+  2350→          <div style="font-size:10px;color:var(--c-earth);margin-top:2px;">brand mark · 3s</div>
+  2351→        </div>
+  2352→        <div style="background:#fff;border-radius:13px;padding:18px;border:1px solid var(--c-sand);text-align:center;">
+  2353→          <span class="material-symbols-outlined" style="font-size:36px;color:#2d6a4f;animation:koru-icon-rotate 4s linear infinite;">refresh</span>
+  2354→          <div style="font-size:11.5px;font-weight:700;color:var(--c-bark);margin-top:7px;">Rotate</div>
+  2355→          <div style="font-size:10px;color:var(--c-earth);margin-top:2px;">refresh · 4s linear</div>
+  2356→        </div>
+  2357→        <div style="background:#fff;border-radius:13px;padding:18px;border:1px solid var(--c-sand);text-align:center;">
+  2358→          <span class="material-symbols-outlined" style="font-size:36px;color:#8127cf;animation:koru-icon-bounce 2s ease-in-out infinite;">trending_up</span>
+  2359→          <div style="font-size:11.5px;font-weight:700;color:var(--c-bark);margin-top:7px;">Bounce</div>
+  2360→          <div style="font-size:10px;color:var(--c-earth);margin-top:2px;">trending · 2s</div>
+  2361→        </div>
+  2362→      </div>
+  2363→
+  2364→      <h3 class="reveal" data-delay="3" style="font-family:var(--t-display);font-size:22px;font-weight:800;color:var(--kp-deep);margin-top:32px;margin-bottom:14px;letter-spacing:-0.02em;">
+  2365→        Custom stitched icons · <code>/public/stitch/icons/</code>
+  2366→      </h3>
+  2367→      <p class="reveal" data-delay="3" style="font-size:13.5px;color:var(--c-earth);margin-bottom:14px;max-width:720px;">
+  2368→        Los 11 PNGs del usuario ya están colocados. Tier S los usa en los mapeadores de deliverable, weather, recipe,
+  2369→        sports, etc. — reemplazando el icono genérico cuando existe ilustración propia.
+  2370→      </p>
+  2371→      <div class="reveal" data-delay="4" style="background:#fff;border-radius:14px;padding:18px;border:1px solid var(--c-sand);display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:12px;">
+  2372→        <div style="text-align:center;"><div style="width:42px;height:42px;border-radius:11px;background:rgba(131,99,249,0.08);display:grid;place-items:center;margin:0 auto 5px;"><span class="material-symbols-outlined" style="color:#8363f9;font-size:22px;">task_alt</span></div><div style="font-size:9.5px;color:var(--c-earth);">tasks.png</div></div>
+  2373→        <div style="text-align:center;"><div style="width:42px;height:42px;border-radius:11px;background:rgba(245,158,11,0.08);display:grid;place-items:center;margin:0 auto 5px;"><span class="material-symbols-outlined" style="color:#b45309;font-size:22px;">payments</span></div><div style="font-size:9.5px;color:var(--c-earth);">finance.png</div></div>
+  2374→        <div style="text-align:center;"><div style="width:42px;height:42px;border-radius:11px;background:rgba(236,72,153,0.08);display:grid;place-items:center;margin:0 auto 5px;"><span class="material-symbols-outlined" style="color:#ec4899;font-size:22px;">shopping_bag</span></div><div style="font-size:9.5px;color:var(--c-earth);">shopping.png</div></div>
+  2375→        <div style="text-align:center;"><div style="width:42px;height:42px;border-radius:11px;background:rgba(45,106,79,0.08);display:grid;place-items:center;margin:0 auto 5px;"><span class="material-symbols-outlined" style="color:#2d6a4f;font-size:22px;">sports_soccer</span></div><div style="font-size:9.5px;color:var(--c-earth);">sports.png</div></div>
+  2376→        <div style="text-align:center;"><div style="width:42px;height:42px;border-radius:11px;background:rgba(59,130,246,0.08);display:grid;place-items:center;margin:0 auto 5px;"><span class="material-symbols-outlined" style="color:#3b82f6;font-size:22px;">travel_explore</span></div><div style="font-size:9.5px;color:var(--c-earth);">search-web.png</div></div>
+  2377→        <div style="text-align:center;"><div style="width:42px;height:42px;border-radius:11px;background:rgba(129,39,207,0.08);display:grid;place-items:center;margin:0 auto 5px;"><span class="material-symbols-outlined" style="color:#8127cf;font-size:22px;">analytics</span></div><div style="font-size:9.5px;color:var(--c-earth);">tech-analysis.png</div></div>
+  2378→        <div style="text-align:center;"><div style="width:42px;height:42px;border-radius:11px;background:rgba(79,70,229,0.08);display:grid;place-items:center;margin:0 auto 5px;"><span class="material-symbols-outlined" style="color:#4f46e5;font-size:22px;">flight_takeoff</span></div><div style="font-size:9.5px;color:var(--c-earth);">travel.png</div></div>
+  2379→        <div style="text-align:center;"><div style="width:42px;height:42px;border-radius:11px;background:rgba(131,99,249,0.08);display:grid;place-items:center;margin:0 auto 5px;"><span class="material-symbols-outlined" style="color:#8363f9;font-size:22px;">spa</span></div><div style="font-size:9.5px;color:var(--c-earth);">wellness.png</div></div>
+  2380→      </div>
+  2381→    </section>
+  2382→
+  2383→
+  2384→    <section class="section" id="layouts">
+  2385→      <div class="section-tag reveal">
+  2386→        <span class="material-symbols-outlined">view_quilt</span>
+  2387→        06 · Layouts configurables
+  2388→      </div>
+  2389→      <h2 class="section-title reveal">
+  2390→        5 configuraciones de <span class="accent">hero card</span>.
+  2391→      </h2>
+  2392→      <p class="section-lead reveal" data-delay="1">
+  2393→        Una sola card mold no alcanza para 60+ tipos de contenido. Tier S introduce 5 layouts seleccionables por el
+  2394→        mapper, todos coherentes con la paleta y tipografía de Koru.
+  2395→      </p>
+  2396→
+  2397→      <div class="reveal" data-delay="2" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;margin-top:24px;">
+  2398→        <div>
+
+[showing lines 2099-2398 of 6188; use offset=2399 with limit to continue reading]
