@@ -14,12 +14,9 @@ import type {
   PlanStep,
   Attachment,
 } from "../../domain/types";
-import { computeDecision } from "../../domain/decisionEngine";
-import {
-  saveAttachmentBlob,
-  deleteAttachmentBlob,
-} from "../../domain/attachments";
-import { scanReceipt } from "../../tools/ocr/receiptOCR";
+// computeDecision se importa dinámicamente para evitar side effects en el bundle
+// saveAttachmentBlob, deleteAttachmentBlob se importan dinámicamente
+// scanReceipt se importa dinámicamente para evitar side effects en el bundle
 
 // 🔴 CreateScreen v2 — entrada para que el usuario cree contenido estructurado
 // SIN tener que pedirselo a Koru via chat. Plantillas: nota, lista, gasto,
@@ -300,6 +297,7 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
     setOcrError(null);
     setOcrItems([]);
     try {
+      const { scanReceipt } = await import("../../tools/ocr/receiptOCR");
       const result = await scanReceipt(file);
       if (result.items.length === 0) {
         setOcrError(
@@ -395,7 +393,7 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
     setAttachments([]);
     // best-effort: borrar blobs ya persistidos para attachments descartados
     for (const a of pending) {
-      deleteAttachmentBlob(a.id).catch(() => {});
+      import("../../domain/attachments").then(m => m.deleteAttachmentBlob(a.id).catch(() => {}));
     }
   }
 
@@ -413,7 +411,8 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
         blobKey: `attachment_${id}`,
       };
       try {
-        await saveAttachmentBlob(id, file);
+        const { saveAttachmentBlob } = await import("../../domain/attachments");
+      await saveAttachmentBlob(id, file);
       } catch {
         // best-effort — si falla IDB (private mode), aún mostramos el chip
         // pero el blob no persistirá. El usuario puede quitarlo con X.
@@ -782,7 +781,8 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
           decisions: [newDecision, ...(state.decisions ?? [])],
         };
         try {
-          computeDecision(syntheticState, newDecision.id);
+          const { computeDecision } = await import("../../domain/decisionEngine");
+      computeDecision(syntheticState, newDecision.id);
         } catch {
           // best-effort: la decisión ya quedó persistida con .result por el wrapper.
         }
