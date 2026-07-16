@@ -12,6 +12,7 @@
 import { fetchText, domainFromUrl, truncate, normalize } from "../shared/fetcher";
 import { cached, ttls } from "../shared/cache";
 import { limiters } from "../shared/rateLimiter";
+import { defineTool, policies, type ToolHandler } from "../types";
 
 // ─── Tipos públicos ────────────────────────────────────────────────────────
 
@@ -426,3 +427,71 @@ export async function fetchUrgentNews(
     };
   });
 }
+
+// ─── Tool `news_urgent_search` (envoltura ToolHandler) ───────────────────────
+
+/**
+ * ToolHandler que orquesta `fetchUrgentNews` (GDELT + USGS + NewsAPI + Fact
+ * Check Tools) y devuelve un `UrgentNewsResult` con `type: "news_urgent_search"`
+ * listo para mapear al UiBlock `news_urgent`.
+ *
+ * Diferencia con el `news_urgent` histórico de `trending.ts` (solo GDELT,
+ * artículos planos): este wrapper devuelve headline + summary + severity +
+ * timeline + factChecks + location, alineado con el `news_urgent` UiBlock.
+ */
+export const newsUrgentSearch: ToolHandler = {
+  definition: defineTool(
+    "news_urgent_search",
+    "Noticias urgentes enriquecidas: titular, severidad (breaking/urgent/important), " +
+      "timeline de eventos, fact-checks (Google Fact Check Tools) y ubicación para desastres. " +
+      "Úsala cuando el usuario pregunte 'qué pasó hace nada en Argentina', 'noticias de última " +
+      "hora del mundo', 'hubo un terremoto?', 'noticias urgentes de X'. " +
+      "Devuelve headline, summary, severity, category, timeline, factChecks, sources, location.",
+    {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        query: {
+          type: "string",
+          description: "Tema o titular a buscar (ej: 'Argentina', 'terremoto Japón', 'elecciones USA').",
+        },
+        region: {
+          type: "string",
+          description: "Región o país opcional para acotar (ej: 'Argentina', 'España', 'mundo').",
+        },
+      },
+      required: ["query"],
+    },
+  ),
+  policy: policies.readonly("Lee GDELT, USGS, NewsAPI y Google Fact Check Tools."),
+  async run(args) {
+    const query = String(args.query ?? "").trim();
+    const region = String(args.region ?? "").trim() || undefined;
+    if (!query) {
+      return {
+        type: "news_urgent_search",
+        status: "failed",
+        error: "Indicá un tema o región para buscar última hora.",
+      };
+    }
+    try {
+      const result = await fetchUrgentNews(query, region);
+      return {
+        type: "news_urgent_search",
+        status: "ok",
+        query,
+        region: region ?? "",
+        ...result,
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return {
+        type: "news_urgent_search",
+        status: "no_data",
+        query,
+        region: region ?? "",
+        note: msg || `No encontré noticias urgentes para "${query}".`,
+      };
+    }
+  },
+};

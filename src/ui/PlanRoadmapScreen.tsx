@@ -58,7 +58,12 @@ export function PlanRoadmapScreen({
   items: AssistantPlanItem[];
   onClose: () => void;
 }) {
-  const { priorities, togglePriority } = useKoru();
+  // 🔴 TIER S: además de priorities/togglePriority, leemos state para
+  // exponer botones que disparen logWorkout (sobre el ExercisePlan actual)
+  // y archivePlan (sobre el Plan durable actual). Los botones dispatchan
+  // CustomEvent "koru-card-action" que el handler de KoruProvider traduce a
+  // llamadas a los reducers logWorkout / archivePlan.
+  const { state, priorities, togglePriority } = useKoru();
   const storageKey = useMemo(() => progressKey(title, items), [title, items]);
   const [doneSteps, setDoneSteps] = useState<boolean[]>(() => {
     try {
@@ -281,6 +286,110 @@ export function PlanRoadmapScreen({
               </div>
             </div>
           </div>
+
+          {/* 🔴 TIER S: Acciones del Plan — botones que disparan reducers
+              que antes no tenían caller en la UI:
+              • logWorkout: marca la sesión actual del primer ExercisePlan
+                como completada (avanza currentSessionIdx).
+              • archivePlan: archiva el primer Plan durable (status=archived).
+              Ambos dispatchan `koru-card-action` que el listener de
+              KoruProvider traduce a llamadas a los reducers. */}
+          {((state.exercisePlans ?? []).length > 0 || (state.plans ?? []).length > 0) && (
+            <div className="koru-magical-card module-core">
+              <div className="koru-module-head">
+                <div className="koru-module-id">
+                  <div className="koru-module-icon">
+                    <Mat>bolt</Mat>
+                  </div>
+                  <div>
+                    <h3 className="koru-module-title">Acciones del Plan</h3>
+                    <p className="koru-module-kicker">REGISTRA TU PROGRESO</p>
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "4px 0" }}>
+                {(state.exercisePlans ?? []).length > 0 && (() => {
+                  const plan = state.exercisePlans![0];
+                  const session = plan.sessions[plan.currentSessionIdx] ?? plan.sessions[0];
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        window.dispatchEvent(
+                          new CustomEvent("koru-card-action", {
+                            detail: {
+                              action: "log_workout",
+                              planId: plan.id,
+                              sessionId: session?.id ?? "",
+                              durationMin: 30,
+                            },
+                          }),
+                        );
+                        if ("vibrate" in navigator) navigator.vibrate(12);
+                      }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        padding: "10px 12px",
+                        borderRadius: 12,
+                        border: "1px solid rgba(34, 160, 107, 0.2)",
+                        background: "rgba(34, 160, 107, 0.06)",
+                        color: "#0b1c30",
+                        cursor: "pointer",
+                        textAlign: "left",
+                        fontSize: 13,
+                        fontWeight: 600,
+                      }}
+                    >
+                      <span className="material-symbols-outlined" style={{ color: "#22a06b", fontSize: 20 }}>fitness_center</span>
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        Completar sesión{session ? `: ${session.dayLabel}` : ""} (logWorkout)
+                      </span>
+                    </button>
+                  );
+                })()}
+                {(state.plans ?? []).length > 0 && (() => {
+                  const plan = state.plans![0];
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        window.dispatchEvent(
+                          new CustomEvent("koru-card-action", {
+                            detail: {
+                              action: "archive_plan",
+                              planId: plan.id,
+                            },
+                          }),
+                        );
+                        if ("vibrate" in navigator) navigator.vibrate(12);
+                      }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        padding: "10px 12px",
+                        borderRadius: 12,
+                        border: "1px solid rgba(220, 38, 38, 0.2)",
+                        background: "rgba(220, 38, 38, 0.04)",
+                        color: "#0b1c30",
+                        cursor: "pointer",
+                        textAlign: "left",
+                        fontSize: 13,
+                        fontWeight: 600,
+                      }}
+                    >
+                      <span className="material-symbols-outlined" style={{ color: "#dc2626", fontSize: 20 }}>archive</span>
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        Archivar plan “{plan.title}” (archivePlan)
+                      </span>
+                    </button>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

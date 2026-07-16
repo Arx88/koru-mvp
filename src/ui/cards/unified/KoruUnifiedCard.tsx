@@ -121,6 +121,7 @@ function DetailOverlay({
         detail={detail}
         headerIcon={hero.icon}
         onClose={() => setOpen(false)}
+        block={block}
         onSave={(title, subtitle) => {
           window.dispatchEvent(
             new CustomEvent("koru-save-deliverable", {

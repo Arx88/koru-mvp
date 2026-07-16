@@ -24,6 +24,7 @@ import type {
   UserPreferences,
   Decision,
   WeatherCache,
+  ProactiveNudge,
 } from "../domain/types";
 import {
   applyHeartbeatNudges,
@@ -234,7 +235,7 @@ type KoruContextValue = {
   archivePlan: (planId: string) => void;
   createChecklist: (title: string, items: Omit<ChecklistItem, "id" | "order">[]) => void;
   toggleChecklistItem: (checklistId: string, itemId: string) => void;
-  createHabit: (label: string, icon: string, cadence: Habit["cadence"], target: number, unit?: string, anchorTime?: string) => void;
+  createHabit: (label: string, icon: string, cadence: Habit["cadence"], target: number, unit?: string, anchorTime?: string) => string;
   logHabit: (habitId: string, value: number) => void;
   computeStreak: (habitId: string) => number;
   createRoutine: (name: string, anchorTime: string, habitIds: string[], daysOfWeek: number[]) => void;
@@ -297,6 +298,10 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   const [reopenedRecord, setReopenedRecord] = useState<LifeRecord | null>(null);
   const domainStateRef = useRef(domainState);
   const chatTurnsRef = useRef(chatTurns);
+  // 🔴 Morning brief scheduler — deduplicación: si ya dispatcheamos el nudge
+  // "Buenos días" para hoy (puede pasar cuando loadPersistedState sobreescribe
+  // state.lastBriefDate justo después de que ya lo seteamos), no repetir.
+  const lastBriefNudgeDateRef = useRef<string | null>(null);
 
   function commitDomainState(next: KoruState | ((prev: KoruState) => KoruState)) {
     setDomainState((prev) => {
@@ -383,11 +388,16 @@ export function KoruProvider({ children }: { children: ReactNode }) {
         // Check overdue reminders on app load
         checkDueReminders(userId);
 
-        // 🔴 Morning Brief: si es mañana y no se mostró hoy, generar
+        // 🔴 Morning Brief: si es mañana y no se mostró hoy, generar.
+        // 🔴 TIER S: check usa `state.lastBriefDate` (vía persisted.lastBriefDate)
+        // como fuente de verdad, con fallback a localStorage para sesiones que
+        // todavía no tienen el campo en el store. Esto cumple el contrato del
+        // reducer setLastBrief: otras pantallas pueden inspeccionar si ya se
+        // mostró hoy leyendo state.lastBriefDate sin tocar localStorage.
         const now = new Date();
         const hour = now.getHours();
         const today = now.toISOString().slice(0, 10);
-        const lastBriefDate = localStorage.getItem("koru.lastBriefDate");
+        const lastBriefDate = persisted.lastBriefDate ?? localStorage.getItem("koru.lastBriefDate");
         if (hour >= 5 && hour <= 11 && lastBriefDate !== today) {
           try {
             const stateForBrief = {
@@ -406,6 +416,12 @@ export function KoruProvider({ children }: { children: ReactNode }) {
               if (data.shouldShow && data.brief) {
                 setMorningBrief(data.brief);
                 localStorage.setItem("koru.lastBriefDate", data.date ?? today);
+                // 🔴 TIER S: persistir el brief en el store (state.lastBriefDate
+                // + state.lastBriefBlock) vía el reducer setLastBrief. Así
+                // otras pantallas pueden inspeccionar si ya se mostró hoy sin
+                // leer localStorage directamente.
+                const briefBlock: UiBlock | undefined = data.brief?.block ?? data.brief;
+                commitDomainState((prev) => setLastBriefReducer(prev, data.date ?? today, briefBlock));
               }
             }
           } catch {
@@ -416,6 +432,65 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     });
     return () => { cancelled = true; };
   }, []);
+
+  // 🔴 Morning brief scheduler (sin LLM) — se ejecuta en mount y cada vez que
+  // `state.lastBriefDate` cambia. Si es de mañana (5-11h) y todavía no se
+  // mostró el brief hoy, dispatchea un nudge proactivo "Buenos días" y marca
+  // `lastBriefDate = today` para no repetir.
+  //
+  // A diferencia del useEffect de arriba (que llama a /api/koru/morning-brief
+  // y genera el brief real con un LLM), este efecto es best-effort: solo
+  // muestra el saludo y deja el flag. Si el backend responde con un brief
+  // completo, ese flujo (asíncrono) lo reemplaza / enriquece.
+  useEffect(() => {
+    const now = new Date();
+    const hour = now.getHours();
+    const today = now.toISOString().slice(0, 10);
+    // Solo dentro de la ventana matutina.
+    if (hour < 5 || hour > 11) return;
+    // Si ya se mostró el brief hoy (según state.lastBriefDate), no repetir.
+    if (domainState.lastBriefDate === today) return;
+    // 🔴 Deduplicación: loadPersistedState() puede sobreescribir
+    // state.lastBriefDate con el valor persistido (ej. undefined o ayer)
+    // DESPUÉS de que ya dispatcheamos el nudge en este mount. Sin este
+    // guard, dispararíamos dos "Buenos días" seguidos.
+    if (lastBriefNudgeDateRef.current === today) return;
+    lastBriefNudgeDateRef.current = today;
+
+    const nudge: ProactiveNudge = {
+      id: createId("nudge"),
+      title: "Buenos días",
+      body: "Tu brief matutino está listo. Tocá para revisar el día.",
+      reason: "morning-brief",
+      priority: "medium",
+      createdAt: new Date().toISOString(),
+      source: "brain",
+      sourceId: `morning-brief-${today}`,
+    };
+
+    // Inyectar el nudge en state.nudges — el heartbeat (60s) lo convertirá en
+    // chat turn en su próximo tick. También inyectamos un chat turn directo
+    // para que el saludo aparezca de inmediato, sin esperar al heartbeat.
+    commitDomainState((prev) => ({
+      ...prev,
+      nudges: [...(prev.nudges ?? []), nudge],
+    }));
+
+    const proactiveTurn: KoruChatTurn = {
+      id: `proactive_brief_${Date.now()}`,
+      role: "koru",
+      text: `${nudge.title}\n${nudge.body}`,
+      createdAt: new Date().toISOString(),
+      status: "done" as const,
+      mascotState: "happy" as const,
+    };
+    commitChatTurns((prev) => [...prev, proactiveTurn].slice(-120));
+
+    // Marcar como hecho para no repetir hoy. setLastBrief internally calls
+    // setLastBriefReducer + saveState, así que también persiste en localStorage.
+    setLastBrief(today);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [domainState.lastBriefDate]);
 
   useEffect(() => {
     const runHeartbeat = () => {
@@ -1039,6 +1114,31 @@ export function KoruProvider({ children }: { children: ReactNode }) {
       const result = applyBackendTurnToState(previousState, text, transcriptSource, agentResult);
       commitDomainState(result.state);
 
+      // 🔴 Wire weather cache: si el backend devolvió un UiBlock de weather (tool
+      // `weather_forecast` o `weather` legacy) con datos completos, actualizamos el
+      // weatherCache del KoruState. El reducer existe en store.ts pero no tenía
+      // caller — este es el puente entre tool result y el home widget de clima.
+      const weatherBlock = (agentResult.uiBlocks ?? []).find(
+        (b): b is Extract<UiBlock, { type: "weather" }> => b.type === "weather",
+      );
+      if (
+        weatherBlock &&
+        typeof weatherBlock.city === "string" &&
+        weatherBlock.city.trim().length > 0 &&
+        typeof weatherBlock.now === "string"
+      ) {
+        updateWeatherCache({
+          city: weatherBlock.city,
+          fetchedAt: weatherBlock.verifiedAt ?? new Date().toISOString(),
+          payload: {
+            now: weatherBlock.now,
+            condition: weatherBlock.condition ?? "",
+            hourly: weatherBlock.hourly,
+            daily: weatherBlock.daily,
+          },
+        });
+      }
+
       // 🔴 Programar notificaciones para nuevos commitments con dueAt
       const newCommitments = (result.state.commitments ?? []).filter(
         (c) => c.dueAt && !previousState.commitments?.find((pc) => pc.id === c.id)
@@ -1422,8 +1522,15 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   function toggleChecklistItem(checklistId: string, itemId: string) {
     commitDomainState((prev) => toggleChecklistItemReducer(prev, checklistId, itemId));
   }
-  function createHabit(label: string, icon: string, cadence: Habit["cadence"], target: number, unit?: string, anchorTime?: string) {
-    commitDomainState((prev) => createHabitReducer(prev, label, icon, cadence, target, unit, anchorTime));
+  function createHabit(label: string, icon: string, cadence: Habit["cadence"], target: number, unit?: string, anchorTime?: string): string {
+    // 🔴 TIER S: devolvemos el id del hábito recién creado para que callers
+    // (ej. CreateScreen rutina template) puedan encadenar createRoutine con
+    // el habitId. Generamos el id acá y lo pasamos al reducer (que acepta un
+    // id opcional) para garantizar consistencia entre lo que se persiste y lo
+    // que devolvemos, sin depender del timing del batch de React.
+    const habitId = createId("habit");
+    commitDomainState((prev) => createHabitReducer(prev, label, icon, cadence, target, unit, anchorTime, habitId));
+    return habitId;
   }
   function logHabit(habitId: string, value: number) {
     commitDomainState((prev) => logHabitReducer(prev, habitId, value));
@@ -1669,6 +1776,44 @@ export function KoruProvider({ children }: { children: ReactNode }) {
         saveState(next);
         return next;
       });
+      // 🔴 TIER S: si el bloque guardado es un "plan", también persistimos un
+      // Plan durable en el store (state.plans) vía createPlan — habilita
+      // togglePlanStep, archivePlan, etc. desde el detail screen reabierto.
+      if (detail?.blockData?.type === "plan" && Array.isArray(detail.blockData.items)) {
+        const planItems = (detail.blockData.items as Array<{ title: string; time?: string; priority?: string; icon?: string; durationMinutes?: number; mode?: string; done?: boolean; detail?: string; phase?: string; estimatedDays?: number }>)
+          .map(it => ({
+            title: it.title,
+            detail: it.detail ?? it.time,
+            icon: it.icon,
+            time: it.time,
+            durationMinutes: it.durationMinutes,
+            priority: it.priority === "Alta" ? "alta" : it.priority === "Media" ? "media" : it.priority === "Baja" ? "baja" : undefined,
+            phase: it.phase,
+            estimatedDays: it.estimatedDays,
+          }));
+        if (planItems.length > 0) {
+          commitDomainState((prev) =>
+            createPlanReducer(prev, title || "Plan", planItems as Omit<PlanStep, "id" | "order" | "done">[])
+          );
+        }
+      }
+      // 🔴 TIER S: si el bloque guardado es "weather", actualizamos el cache
+      // de clima (state.weatherCache) vía updateWeatherCache — así HomeScreen
+      // muestra el dato fresco sin tener que re-fetchear.
+      if (detail?.blockData?.type === "weather" && detail.blockData.city) {
+        const w = detail.blockData;
+        const cache: WeatherCache = {
+          city: String(w.city ?? ""),
+          fetchedAt: w.verifiedAt ?? new Date().toISOString(),
+          payload: {
+            now: String(w.now ?? ""),
+            condition: String(w.condition ?? ""),
+            hourly: w.hourly as WeatherCache["payload"]["hourly"],
+            daily: w.daily as WeatherCache["payload"]["daily"],
+          },
+        };
+        commitDomainState((prev) => updateWeatherCacheReducer(prev, cache));
+      }
       // 🔴 Toast de confirmación (usa el mismo mecanismo que memory toast)
       setMemoryToast({ id: newRecord.id, kind: "saved", text: `Guardado en ${collection}` });
       setTimeout(() => setMemoryToast(null), 2500);
@@ -1701,28 +1846,180 @@ export function KoruProvider({ children }: { children: ReactNode }) {
         setMemoryToast({ id: `action_${Date.now()}`, kind: "saved", text: action === "complete" ? "Listo ✓" : "Apagado" });
         setTimeout(() => setMemoryToast(null), 2000);
       } else if (action === "snooze") {
-        // 🔴 P0 FIX: Snooze real — reagenda el commitment 10 min en el futuro
+        // 🔴 P0 FIX: Snooze real — usa el reducer snoozeCommitment (no mutación
+        // inline del estado). El reducer reagenda dueAt = ahora + minutes y
+        // limpia remindedAt. Persistencia y audit quedan a cargo del reducer.
         const title = blockData?.title ?? blockData?.hero?.title;
+        const snoozeMinutes = Number(detail?.minutes ?? 10) || 10;
         if (title) {
-          commitDomainState((prev) => {
-            const commitment = prev.commitments.find(c => c.title === title);
-            if (!commitment) return prev;
-            const snoozeMinutes = 10;
-            const snoozeUntil = new Date(Date.now() + snoozeMinutes * 60 * 1000).toISOString();
-            const next = {
-              ...prev,
-              commitments: prev.commitments.map(c =>
-                c.id === commitment.id
-                  ? { ...c, dueAt: snoozeUntil, dueHint: `Pospuesto ${snoozeMinutes} min`, remindedAt: undefined }
-                  : c
-              ),
-            };
-            saveState(next);
-            return next;
-          });
+          const prev = domainStateRef.current;
+          const commitment = prev.commitments.find(c => c.title === title);
+          if (commitment) {
+            commitDomainState(snoozeCommitmentReducer(prev, commitment.id, snoozeMinutes));
+          }
         }
-        setMemoryToast({ id: `action_${Date.now()}`, kind: "saved", text: "Postergado 10 min ✓" });
+        setMemoryToast({ id: `action_${Date.now()}`, kind: "saved", text: `Postergado ${snoozeMinutes} min ✓` });
         setTimeout(() => setMemoryToast(null), 2000);
+      } else if (action === "toggle_step") {
+        // 🔴 TIER S: toggle de un step de Plan desde KoruDetailScreen.
+        // detail trae planId + stepId (sintéticos, derivados del título del
+        // bloque). Si no existe un Plan durable con ese id, lo creamos desde
+        // el blockData (tipo "plan") para que el toggle sea efectivo.
+        const planId = String(detail?.planId ?? "");
+        const stepId = String(detail?.stepId ?? "");
+        if (planId && stepId) {
+          const prev = domainStateRef.current;
+          const exists = (prev.plans ?? []).some(p => p.id === planId);
+          let state = prev;
+          if (!exists && blockData?.type === "plan" && Array.isArray(blockData.items)) {
+            // Auto-crear el Plan durable desde el UiBlock para que el toggle
+            // tenga efecto. Los stepIds se generan con la misma convención de
+            // slug que planFallback en presentation.ts.
+            const steps = (blockData.items as Array<{ title: string; time?: string; priority?: string; icon?: string; durationMinutes?: number; mode?: string; done?: boolean }>)
+              .map((it, i) => ({
+                title: it.title,
+                detail: it.time,
+                icon: it.icon,
+                time: it.time,
+                durationMinutes: it.durationMinutes,
+                priority: it.priority === "Alta" ? "alta" : it.priority === "Media" ? "media" : it.priority === "Baja" ? "baja" : undefined,
+                // El id del step debe matchear el sintético que generó planFallback.
+                // planFallback usa `step_${slug(it.title)}_${i}` — pero el reducer
+                // createPlan genera sus propios ids. Para que el toggle funcione,
+                // overrideamos el id del step con el sintético antes de crear.
+                // ⚠️ createPlan no acepta ids custom, así que dejamos que genere
+                // los suyos y luego hacemos un patch in-place para que coincidan.
+              }));
+            // Usar createPlanReducer y luego parchear los step ids para que
+            // coincidan con los sintéticos que viene dispatchando la UI.
+            void steps; // steps se pasa al reducer abajo
+            const created = createPlanReducer(state, blockData.title || "Plan", steps as Omit<PlanStep, "id" | "order" | "done">[]);
+            // Parchear el plan recién creado: reemplazar sus step ids por los
+            // sintéticos, para que el toggle posterior los encuentre.
+            const slug = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 48) || "untitled";
+            const createdPlans = created.plans ?? [];
+            const patchedPlans = createdPlans.map(p =>
+              p.id === (createdPlans[0]?.id ?? "")
+                ? {
+                    ...p,
+                    id: planId, // overridear el id del plan con el sintético
+                    steps: p.steps.map((s, i) => ({
+                      ...s,
+                      id: `step_${slug(s.title)}_${i}`,
+                    })),
+                  }
+                : p
+            );
+            state = { ...created, plans: patchedPlans };
+            saveState(state);
+            commitDomainState(state);
+          }
+          // Ahora sí, toggle del step (sea que existía o acaba de crearse).
+          commitDomainState(togglePlanStepReducer(state, planId, stepId));
+        }
+      } else if (action === "toggle_shopping") {
+        // 🔴 TIER S: toggle de un ShoppingItem desde KoruDetailScreen.
+        const listId = String(detail?.listId ?? "");
+        const itemId = String(detail?.itemId ?? "");
+        if (listId && itemId) {
+          const prev = domainStateRef.current;
+          const exists = (prev.shoppingLists ?? []).some(l => l.id === listId);
+          let state = prev;
+          if (!exists && blockData?.type === "shopping_list" && Array.isArray(blockData.items)) {
+            // Auto-crear la ShoppingList durable desde el UiBlock.
+            const items = (blockData.items as string[]).map(it => ({ name: it }));
+            const created = createShoppingListReducer(state, blockData.title || "Lista", items, undefined);
+            // Parchear: overridear el id de la lista y los item ids para que
+            // coincidan con los sintéticos (itemId = nombre del item).
+            const createdLists = created.shoppingLists ?? [];
+            const patchedLists = createdLists.map(l =>
+              l.id === (createdLists[0]?.id ?? "")
+                ? {
+                    ...l,
+                    id: listId,
+                    items: l.items.map(it => ({ ...it, id: it.name })),
+                  }
+                : l
+            );
+            state = { ...created, shoppingLists: patchedLists };
+            saveState(state);
+            commitDomainState(state);
+          }
+          commitDomainState(toggleShoppingItemReducer(state, listId, itemId));
+        }
+      } else if (action === "toggle_checklist") {
+        // 🔴 TIER S: toggle de un ChecklistItem desde KoruDetailScreen.
+        const checklistId = String(detail?.checklistId ?? "");
+        const itemId = String(detail?.itemId ?? "");
+        if (checklistId && itemId) {
+          const prev = domainStateRef.current;
+          const exists = (prev.checklists ?? []).some(c => c.id === checklistId);
+          let state = prev;
+          if (!exists && blockData?.type === "smart_checklist" && Array.isArray(blockData.items)) {
+            // Auto-crear el Checklist durable desde el UiBlock.
+            const items = (blockData.items as Array<{ label: string; checked?: boolean }>)
+              .map((it, i) => ({ label: it.label, urgency: "normal" as const, doneAt: it.checked ? new Date().toISOString() : undefined }));
+            const created = createChecklistReducer(state, blockData.title || "Checklist", items);
+            // Parchear ids para que coincidan con los sintéticos.
+            const slug = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 48) || "untitled";
+            const createdChecklists = created.checklists ?? [];
+            const patchedChecklists = createdChecklists.map(c =>
+              c.id === (createdChecklists[0]?.id ?? "")
+                ? {
+                    ...c,
+                    id: checklistId,
+                    items: c.items.map((it, i) => ({ ...it, id: `citem_${slug(it.label)}_${i}` })),
+                  }
+                : c
+            );
+            state = { ...created, checklists: patchedChecklists };
+            saveState(state);
+            commitDomainState(state);
+          }
+          commitDomainState(toggleChecklistItemReducer(state, checklistId, itemId));
+        }
+      } else if (action === "archive_plan") {
+        // 🔴 TIER S: archivar un Plan desde un botón inline.
+        const planId = String(detail?.planId ?? "");
+        if (planId) {
+          commitDomainState((prev) => archivePlanReducer(prev, planId));
+          setMemoryToast({ id: `action_${Date.now()}`, kind: "saved", text: "Plan archivado ✓" });
+          setTimeout(() => setMemoryToast(null), 2000);
+        }
+      } else if (action === "create_routine") {
+        // 🔴 TIER S: crear una Routine durable desde una card-action inline.
+        // detail trae name, anchorTime, habitIds (string[]), daysOfWeek (number[]).
+        // El reducer createRoutine ancla hábitos existentes a un horario + días.
+        const name = String(detail?.name ?? "").trim() || "Rutina";
+        const anchorTime = String(detail?.anchorTime ?? "08:00");
+        const habitIds: string[] = Array.isArray(detail?.habitIds)
+          ? (detail.habitIds as unknown[]).filter((id): id is string => typeof id === "string" && id.length > 0)
+          : [];
+        const daysOfWeek: number[] = Array.isArray(detail?.daysOfWeek)
+          ? (detail.daysOfWeek as unknown[]).filter((d): d is number => typeof d === "number" && d >= 0 && d <= 6)
+          : [0, 1, 2, 3, 4, 5, 6];
+        commitDomainState((prev) => createRoutineReducer(prev, name, anchorTime, habitIds, daysOfWeek));
+        setMemoryToast({ id: `action_${Date.now()}`, kind: "saved", text: "Rutina creada ✓" });
+        setTimeout(() => setMemoryToast(null), 2000);
+      } else if (action === "log_workout") {
+        // 🔴 TIER S: marcar una sesión de entrenamiento como completada.
+        // detail trae planId + sessionId + exercises + durationMin + kcal (opcional).
+        // Exercises se extrae del detail si está presente (array de ExerciseSet);
+        // si no viene, caemos a [] para no bloquear el log.
+        const planId = String(detail?.planId ?? "");
+        const sessionId = String(detail?.sessionId ?? "");
+        const exercises = Array.isArray(detail?.exercises)
+          ? (detail.exercises as WorkoutLog["exercises"])
+          : [];
+        const durationMin = Number(detail?.durationMin ?? 30) || 30;
+        const kcal = detail?.kcal != null ? Number(detail.kcal) : undefined;
+        if (planId && sessionId) {
+          commitDomainState((prev) =>
+            logWorkoutReducer(prev, planId, sessionId, exercises, durationMin, kcal)
+          );
+          setMemoryToast({ id: `action_${Date.now()}`, kind: "saved", text: "Entrenamiento registrado ✓" });
+          setTimeout(() => setMemoryToast(null), 2000);
+        }
       } else if (action === "reserve") {
         // 🔴 v3: abrir reserveUrl del top match del restaurant_synthesis block.
         // El blockData es el UiBlock completo; matches[].reserveUrl viene de Google Places.

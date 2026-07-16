@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState, type CSSProperties, type TouchEvent } from "react";
 import type { KoruState, ProactiveNudge } from "../domain/types";
+import { computeStreak } from "../domain/store";
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  Home dashboard — pantalla "Hoy" del wheel de navegación.
@@ -10,6 +11,14 @@ import type { KoruState, ProactiveNudge } from "../domain/types";
 //    • `.koru-detail-sticky-head` → header sticky con blur
 //    • `.koru-plan-hero` → hero de saludo
 //    • `.koru-magical-card` → tiles con gradiente + shadow tokens
+//
+//  🔴 TIER S: esta pantalla es el caller principal de varios reducers del
+//  store que antes no tenían uso en la UI:
+//    • logWellbeing — tile de hidratación (+250ml por tap)
+//    • logHabit — botón "marcar hecho" en cada hábito del día
+//    • computeStreak — streak count junto a cada hábito
+//  Los callbacks onLogWater / onLogHabit / onRefreshWeather los provee
+//  App.tsx desde useKoru() (que a su vez llama a los wrappers de KoruProvider).
 // ═══════════════════════════════════════════════════════════════════════════
 
 export interface HomeScreenProps {
@@ -19,6 +28,10 @@ export interface HomeScreenProps {
   onSearch: () => void;
   onTalk: () => void;
   onDismissNudge: (nudgeId: string) => void;
+  // 🔴 TIER S: callbacks para invocar reducers del store desde los widgets.
+  onLogWater?: (ml: number) => void;
+  onLogHabit?: (habitId: string) => void;
+  onRefreshWeather?: () => void;
 }
 
 const HYDRATION_GOAL_ML = 2000;
@@ -49,6 +62,9 @@ export function HomeScreen({
   onSearch,
   onTalk,
   onDismissNudge,
+  onLogWater,
+  onLogHabit,
+  onRefreshWeather,
 }: HomeScreenProps) {
   // ── Pull-to-refresh (visual indicator only — no refresh logic) ────────────
   const scrollerRef = useRef<HTMLDivElement | null>(null);
@@ -100,6 +116,12 @@ export function HomeScreen({
     const habitsRemaining = activeHabits.filter(
       (h) => !habitLogsToday.some((l) => l.habitId === h.id && l.date === today),
     );
+    // 🔴 TIER S: streak por hábito via computeStreak reducer (función pura).
+    // Lo precomputamos acá para que el render sólo haga un lookup por id.
+    const streakByHabitId: Record<string, number> = {};
+    for (const h of activeHabits) {
+      streakByHabitId[h.id] = computeStreak(h.id, habitLogsToday);
+    }
 
     // Prioridades — 4 cuadrantes. `Commitment` no tiene campo `priority`,
     // así que usamos proximidad de `dueAt` + recurrencia como heurística.
@@ -131,6 +153,8 @@ export function HomeScreen({
       deadlinesToday,
       waterMl,
       habitsRemaining,
+      activeHabits,
+      streakByHabitId,
       urgente,
       importante,
       rutina,
@@ -146,6 +170,8 @@ export function HomeScreen({
     deadlinesToday,
     waterMl,
     habitsRemaining,
+    activeHabits,
+    streakByHabitId,
     urgente,
     importante,
     rutina,
@@ -324,7 +350,12 @@ export function HomeScreen({
                 pct={waterPct}
                 accent="#3a8dde"
                 soft="#e3f0ff"
-                onClick={onTalk}
+                // 🔴 TIER S: tapping the water tile logs +250ml via logWellbeing.
+                // Si onLogWater no está wired (ej. en tests), cae a onTalk.
+                onClick={() => {
+                  if (onLogWater) onLogWater(250);
+                  else onTalk();
+                }}
               />
               <ItemTile
                 icon="repeat"
@@ -333,10 +364,119 @@ export function HomeScreen({
                 suffix={habitsRemaining.length === 1 ? " restante" : " restantes"}
                 accent="#22a06b"
                 soft="#e3f7ed"
-                onClick={onTalk}
+                // 🔴 TIER S: tapping the habits tile marks the first remaining
+                // habit as done via logHabit. Si no quedan hábitos o el callback
+                // no está wired, cae a onTalk.
+                onClick={() => {
+                  if (onLogHabit && habitsRemaining[0]) onLogHabit(habitsRemaining[0].id);
+                  else onTalk();
+                }}
               />
             </div>
           </section>
+
+          {/* ── Hábitos de hoy (lista con streak + marcar hecho) ─────────────── */}
+          {/* 🔴 TIER S: llama a computeStreak por hábito y a logHabit al tap. */}
+          {activeHabits.length > 0 && (
+            <section className="koru-magical-card" style={{ padding: 18 }}>
+              <div className="koru-module-head" style={{ marginBottom: 12 }}>
+                <div className="koru-module-id">
+                  <div
+                    className="koru-module-icon"
+                    style={
+                      {
+                        "--module-color": "#22a06b",
+                        "--module-bg": "#e3f7ed",
+                      } as CSSProperties
+                    }
+                  >
+                    <span className="material-symbols-outlined">repeat</span>
+                  </div>
+                  <div>
+                    <h3 className="koru-module-title">Hábitos de hoy</h3>
+                    <p className="koru-module-kicker">
+                      {habitsRemaining.length} pendiente{habitsRemaining.length === 1 ? "" : "s"} ·{" "}
+                      {activeHabits.length - habitsRemaining.length} hecho{activeHabits.length - habitsRemaining.length === 1 ? "" : "s"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {activeHabits.map((h) => {
+                  const doneToday = !habitsRemaining.some(r => r.id === h.id);
+                  const streak = streakByHabitId[h.id] ?? 0;
+                  return (
+                    <div
+                      key={h.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        padding: "8px 10px",
+                        borderRadius: 12,
+                        background: doneToday ? "rgba(34, 160, 107, 0.08)" : "rgba(255,255,255,0.5)",
+                        border: "1px solid rgba(34, 160, 107, 0.12)",
+                      }}
+                    >
+                      <button
+                        type="button"
+                        aria-label={doneToday ? `Hábito "${h.label}" completado` : `Marcar hábito "${h.label}" como hecho`}
+                        onClick={() => {
+                          // 🔴 TIER S: logHabit marca el hábito como hecho hoy.
+                          if (onLogHabit && !doneToday) onLogHabit(h.id);
+                        }}
+                        disabled={doneToday}
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 999,
+                          border: "none",
+                          background: doneToday ? "#22a06b" : "rgba(34, 160, 107, 0.12)",
+                          color: doneToday ? "#fff" : "#22a06b",
+                          cursor: doneToday ? "default" : "pointer",
+                          display: "grid",
+                          placeItems: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+                          {doneToday ? "check" : "radio_button_unchecked"}
+                        </span>
+                      </button>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#1a1a2e", textDecoration: doneToday ? "line-through" : "none", opacity: doneToday ? 0.7 : 1 }}>
+                          {h.label}
+                        </p>
+                        <p style={{ margin: 0, fontSize: 11, color: "#6b5f8c" }}>
+                          {h.target > 1 ? `Meta: ${h.target} ${h.unit ?? ""}`.trim() : "Diario"}
+                          {h.anchorTime ? ` · ${h.anchorTime}` : ""}
+                        </p>
+                      </div>
+                      {/* 🔴 TIER S: streak count (computeStreak ya precomputado en d). */}
+                      {streak > 0 && (
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 3,
+                            padding: "3px 8px",
+                            borderRadius: 999,
+                            background: "#fff1d6",
+                            color: "#92400e",
+                            fontSize: 11,
+                            fontWeight: 700,
+                            flexShrink: 0,
+                          }}
+                        >
+                          🔥 {streak}d
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
 
           {/* ── Calendario del día (horizontal scroller) ─────────────────────── */}
           {eventsToday.length > 0 && (
@@ -445,7 +585,7 @@ export function HomeScreen({
           </section>
 
           {/* ── Clima widget ─────────────────────────────────────────────────── */}
-          <ClimaWidget state={state} onNavigate={onNavigate} />
+          <ClimaWidget state={state} onNavigate={onNavigate} onRefresh={onRefreshWeather} />
 
           {/* ── Proactive nudges ─────────────────────────────────────────────── */}
           {activeNudges.length > 0 && (
@@ -674,11 +814,21 @@ function PriorityTile({
 function ClimaWidget({
   state,
   onNavigate,
+  onRefresh,
 }: {
   state: KoruState;
   onNavigate: (screen: string) => void;
+  onRefresh?: () => void;
 }) {
   const w = state.weatherCache;
+  // 🔴 TIER S: considerar el cache "stale" si fetchedAt > 60 min o ausente.
+  // Si está stale, mostrar un botón de refresh que llama a onRefresh.
+  const isStale = (() => {
+    if (!w?.fetchedAt) return true;
+    const fetched = new Date(w.fetchedAt).getTime();
+    if (Number.isNaN(fetched)) return true;
+    return Date.now() - fetched > 60 * 60 * 1000;
+  })();
 
   if (!w) {
     return (
@@ -710,23 +860,46 @@ function ClimaWidget({
             Configurá tu ciudad para ver el clima del día.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => onNavigate("configuracion")}
-          style={{
-            background: "#4648d4",
-            color: "#fff",
-            border: "none",
-            borderRadius: 999,
-            padding: "8px 14px",
-            fontSize: 12,
-            fontWeight: 700,
-            cursor: "pointer",
-            flexShrink: 0,
-          }}
-        >
-          Configurar ciudad
-        </button>
+        {/* 🔴 TIER S: si falta el cache, el botón de refresh es el principal
+            (si onRefresh está wired) — si no, cae a configurar ciudad. */}
+        {onRefresh ? (
+          <button
+            type="button"
+            onClick={onRefresh}
+            style={{
+              background: "#4648d4",
+              color: "#fff",
+              border: "none",
+              borderRadius: 999,
+              padding: "8px 14px",
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: "pointer",
+              flexShrink: 0,
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 14, verticalAlign: "middle", marginRight: 4 }}>refresh</span>
+            Traer clima
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onNavigate("configuracion")}
+            style={{
+              background: "#4648d4",
+              color: "#fff",
+              border: "none",
+              borderRadius: 999,
+              padding: "8px 14px",
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: "pointer",
+              flexShrink: 0,
+            }}
+          >
+            Configurar ciudad
+          </button>
+        )}
       </section>
     );
   }
@@ -754,6 +927,9 @@ function ClimaWidget({
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ fontSize: 12, color: "#6b5f8c", fontWeight: 600, margin: 0 }}>
             {w.city}
+            {isStale && (
+              <span style={{ marginLeft: 6, color: "#92400e", fontWeight: 700 }}>· dato antiguo</span>
+            )}
           </p>
           <p
             style={{
@@ -779,6 +955,32 @@ function ClimaWidget({
               {today.lo}
             </p>
           </div>
+        )}
+        {/* 🔴 TIER S: botón de refresh visible solo si el cache está stale
+            (>60 min) o sin fetchedAt. Llama a onRefresh (wired por App.tsx). */}
+        {isStale && onRefresh && (
+          <button
+            type="button"
+            aria-label="Actualizar clima"
+            onClick={onRefresh}
+            style={{
+              background: "rgba(70, 72, 212, 0.1)",
+              color: "#4648d4",
+              border: "none",
+              borderRadius: 999,
+              padding: "6px 10px",
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: "pointer",
+              flexShrink: 0,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>refresh</span>
+            Actualizar
+          </button>
         )}
       </div>
     </section>

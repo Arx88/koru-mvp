@@ -11,6 +11,7 @@ import type {
   DecisionOption,
   DecisionFactor,
   KoruState,
+  PlanStep,
 } from "../../domain/types";
 import { computeDecision } from "../../domain/decisionEngine";
 
@@ -23,7 +24,7 @@ function Mat({ children, className = "" }: { children: string; className?: strin
   return <span className={`material-symbols-outlined ${className}`}>{children}</span>;
 }
 
-type Template = "nota" | "lista" | "gasto" | "enlace" | "receta" | "rutina" | "ejercicio" | "memoria" | "decision";
+type Template = "nota" | "lista" | "gasto" | "enlace" | "receta" | "rutina" | "ejercicio" | "memoria" | "decision" | "plan";
 
 type TemplateDef = {
   id: Template;
@@ -44,6 +45,9 @@ const TEMPLATES: TemplateDef[] = [
   { id: "ejercicio", label: "Ejercicio", icon: "fitness_center", desc: "Plan de entrenamiento", collection: "Ejercicio", accent: "#2d6a4f" },
   { id: "memoria", label: "Memoria", icon: "psychology", desc: "Recuerdo o hecho", collection: "Memoria", accent: "#8127cf" },
   { id: "decision", label: "Decisión", icon: "psychology_alt", desc: "Decisión estructurada", collection: "Decisiones", accent: "#8127cf" },
+  // 🔴 TIER S: plantilla "plan" — invoca createPlan(title, steps) del store
+  // además del LifeRecord. Cada step tiene title + detail + priority select.
+  { id: "plan", label: "Plan", icon: "rocket_launch", desc: "Plan con pasos", collection: "Planes", accent: "#8363f9" },
 ];
 
 // 🔴 v2: cada template mapea a un LifeRecordKind VÁLIDO del enum.
@@ -59,6 +63,7 @@ const KIND_MAP: Record<Template, LifeRecordKind> = {
   ejercicio: "idea", // sourceBlock lleva el plan de entrenamiento
   memoria: "idea", // sourceBlock lleva la memoria estructurada
   decision: "decision",
+  plan: "idea", // sourceBlock lleva los pasos del plan
 };
 
 type RutinaCadence = "daily" | "weekly" | "mon-fri" | "custom";
@@ -67,6 +72,15 @@ type ExerciseSetInput = { name: string; sets: string; reps: string; weight: stri
 type SessionInput = { dayLabel: string; exercises: ExerciseSetInput[] };
 
 type MemoriaKind = "profile" | "routine" | "preference" | "goal" | "relationship" | "boundary" | "wellbeing" | "task";
+
+// 🔴 TIER S: Plan step input. priority se normaliza a "alta"|"media"|"baja"
+// antes de pasar al reducer createPlan. detail es opcional y se guarda como
+// string dentro del step.
+type PlanStepInput = {
+  title: string;
+  detail: string;
+  priority: "alta" | "media" | "baja";
+};
 
 type DecisionOptionInput = { id: string; label: string; factorScores: Record<string, number> };
 type DecisionFactorInput = { id: string; label: string; direction: "higherIsBetter" | "lowerIsBetter" };
@@ -137,6 +151,7 @@ function titleLabel(t: Template): string {
     case "ejercicio": return "Nombre del plan";
     case "memoria": return "Título";
     case "decision": return "Pregunta";
+    case "plan": return "Nombre del plan";
     default: return "Título";
   }
 }
@@ -149,6 +164,7 @@ function titlePlaceholder(t: Template): string {
     case "ejercicio": return "Ej: Plan de fuerza 4 días";
     case "memoria": return "Ej: Alergia a la penicilina";
     case "decision": return "Ej: ¿Qué carrera estudiar?";
+    case "plan": return "Ej: Lanzar producto MVP";
     default: return "Ej: Idea para el proyecto";
   }
 }
@@ -172,6 +188,15 @@ export function CreateScreen({ onClose, onAiAssist }: Props) {
     createExercisePlan,
     createChecklist,
     createDecision,
+    // 🔴 TIER S: reducers wired a templates existentes.
+    // - createShoppingList: alongside createChecklist in `lista` template.
+    // - createRoutine: after createHabit in `rutina` template (uses returned id).
+    // - addPerson: in `memoria` template when kind === "relationship".
+    // - createPlan: in `plan` template (nuevo) — genera un Plan durable con steps.
+    createShoppingList,
+    createRoutine,
+    addPerson,
+    createPlan,
   } = useKoru();
   const [selected, setSelected] = useState<Template | null>(null);
 
@@ -219,6 +244,12 @@ export function CreateScreen({ onClose, onAiAssist }: Props) {
     { id: genId("fac"), label: "", direction: "higherIsBetter" },
   ]);
 
+  // 🔴 TIER S: Plan — lista dinámica de pasos con title + detail + priority.
+  // Cada step se persiste vía createPlan(title, steps) además del LifeRecord.
+  const [planSteps, setPlanSteps] = useState<PlanStepInput[]>([
+    { title: "", detail: "", priority: "media" },
+  ]);
+
   // Rich text (nota)
   const [showPreview, setShowPreview] = useState(false);
   const notesRef = useRef<HTMLTextAreaElement>(null);
@@ -261,6 +292,8 @@ export function CreateScreen({ onClose, onAiAssist }: Props) {
     setDeadline("");
     setOptions([{ id: genId("opt"), label: "", factorScores: {} }]);
     setFactors([{ id: genId("fac"), label: "", direction: "higherIsBetter" }]);
+    // 🔴 TIER S: reset plan steps a un único step vacío con prioridad media.
+    setPlanSteps([{ title: "", detail: "", priority: "media" }]);
     setTags([]); setTagInput("");
     setShowPreview(false);
     setAiSuggestions([]);
@@ -355,6 +388,13 @@ export function CreateScreen({ onClose, onAiAssist }: Props) {
           title.trim() || "Lista sin título",
           items.map(it => ({ label: it, urgency: "normal" as const })),
         );
+        // 🔴 TIER S: también persistimos una ShoppingList durable — habilita
+        // toggleShoppingItem, totalSpent, etc. Los items se mapean a
+        // ShoppingItem input shape { name } (sin qty/price por ahora).
+        createShoppingList(
+          title.trim() || "Lista sin título",
+          items.map(it => ({ name: it })),
+        );
       }
       await persist({
         title: title.trim() || "Lista sin título",
@@ -396,13 +436,29 @@ export function CreateScreen({ onClose, onAiAssist }: Props) {
       ].filter(Boolean).join("\n");
       // 🔴 GAP-3: además del LifeRecord, persistimos un Habit durable —
       // habilita logHabit, streaks, rutinas ancladas, etc.
-      createHabit(
+      const habitId = createHabit(
         title.trim() || "Rutina",
         "repeat",
         rutinaCadence as Habit["cadence"],
         target,
         rutinaUnit || undefined,
         rutinaAnchorTime || undefined,
+      );
+      // 🔴 TIER S: creamos una Routine que ancla el hábito recién creado a
+      // un horario + días de la semana. daysOfWeek: L-V si cadence es
+      // "mon-fri", todos (0-6) si "daily", [1] si "weekly", [0] para custom.
+      const daysOfWeek: number[] = rutinaCadence === "mon-fri"
+        ? [1, 2, 3, 4, 5]
+        : rutinaCadence === "daily"
+          ? [0, 1, 2, 3, 4, 5, 6]
+          : rutinaCadence === "weekly"
+            ? [1]
+            : [0];
+      createRoutine(
+        title.trim() || "Rutina",
+        rutinaAnchorTime || "08:00",
+        [habitId],
+        daysOfWeek,
       );
       await persist({
         title: title.trim() || "Rutina sin título",
@@ -476,6 +532,13 @@ export function CreateScreen({ onClose, onAiAssist }: Props) {
         `Confianza: ${Math.round(memoriaConfidence * 100)}%`,
         memoriaSensitive ? "Sensibilidad: sensible" : null,
       ].filter(Boolean).join("\n");
+      // 🔴 TIER S: si la memoria es de tipo "relationship", también persistimos
+      // una Person durable en el store (state.people) vía addPerson — habilita
+      // recordatorios de cumpleaños, follow-ups, etc. El título del form se
+      // interpreta como el nombre de la persona.
+      if (memoriaKind === "relationship" && title.trim()) {
+        addPerson(title.trim(), "relationship");
+      }
       await persist({
         title: title.trim() || "Memoria",
         collection: finalCollection,
@@ -558,6 +621,41 @@ export function CreateScreen({ onClose, onAiAssist }: Props) {
           title: title.trim() || "Decisión",
           collection: finalCollection,
           notes: fullNotes,
+          kind,
+        }),
+      });
+      return;
+    }
+
+    if (selected === "plan") {
+      // 🔴 TIER S: además del LifeRecord (para Collections), persistimos un
+      // Plan durable en el store (state.plans) vía createPlan — habilita
+      // togglePlanStep, archivePlan, etc. Los steps con título vacío se
+      // filtran; detail y priority se pasan al reducer.
+      const validSteps = planSteps.filter(s => s.title.trim());
+      const planText = validSteps.length > 0
+        ? validSteps.map((s, i) => `${i + 1}. [${s.priority}] ${s.title}${s.detail ? ` — ${s.detail}` : ""}`).join("\n")
+        : "";
+      const stepInputs: Omit<PlanStep, "id" | "order" | "done">[] = validSteps.map(s => ({
+        title: s.title.trim(),
+        detail: s.detail.trim() || undefined,
+        priority: s.priority,
+      }));
+      if (stepInputs.length > 0) {
+        createPlan(
+          title.trim() || "Plan sin título",
+          stepInputs,
+        );
+      }
+      await persist({
+        title: title.trim() || "Plan sin título",
+        collection: finalCollection,
+        notes: planText || undefined,
+        kind,
+        sourceBlock: buildSavedRecordBlock({
+          title: title.trim() || "Plan",
+          collection: finalCollection,
+          notes: planText,
           kind,
         }),
       });
@@ -1311,6 +1409,76 @@ export function CreateScreen({ onClose, onAiAssist }: Props) {
               </>
             )}
 
+            {/* PLAN — lista dinámica de pasos con title + detail + priority */}
+            {selected === "plan" && (
+              <div className="koru-create-field">
+                <span className="koru-create-field-label">Pasos</span>
+                <div className="koru-create-list-items">
+                  {planSteps.map((step, i) => (
+                    <div key={i} className="koru-create-session">
+                      <div className="koru-create-session-header">
+                        <input
+                          type="text"
+                          value={step.title}
+                          placeholder={`Paso ${i + 1} (título)`}
+                          onChange={(e) => {
+                            const next = [...planSteps];
+                            next[i] = { ...step, title: e.target.value };
+                            setPlanSteps(next);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && i === planSteps.length - 1 && step.title.trim()) {
+                              setPlanSteps([...planSteps, { title: "", detail: "", priority: "media" }]);
+                            }
+                          }}
+                        />
+                        {planSteps.length > 1 && (
+                          <button
+                            type="button"
+                            aria-label="Quitar paso"
+                            className="koru-create-list-remove"
+                            onClick={() => setPlanSteps(planSteps.filter((_, idx) => idx !== i))}
+                          >
+                            <Mat>remove_circle</Mat>
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        value={step.detail}
+                        placeholder="Detalle (opcional)"
+                        onChange={(e) => {
+                          const next = [...planSteps];
+                          next[i] = { ...step, detail: e.target.value };
+                          setPlanSteps(next);
+                        }}
+                      />
+                      <select
+                        value={step.priority}
+                        onChange={(e) => {
+                          const next = [...planSteps];
+                          next[i] = { ...step, priority: e.target.value as PlanStepInput["priority"] };
+                          setPlanSteps(next);
+                        }}
+                        aria-label={`Prioridad del paso ${i + 1}`}
+                      >
+                        <option value="alta">Alta prioridad</option>
+                        <option value="media">Media prioridad</option>
+                        <option value="baja">Baja prioridad</option>
+                      </select>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    className="koru-create-list-add"
+                    onClick={() => setPlanSteps([...planSteps, { title: "", detail: "", priority: "media" }])}
+                  >
+                    <Mat>add</Mat> Agregar paso
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* TAGS — disponible en TODOS los templates */}
             <div className="koru-create-field">
               <span className="koru-create-field-label">Etiquetas</span>
@@ -1375,7 +1543,12 @@ export function CreateScreen({ onClose, onAiAssist }: Props) {
                 type="button"
                 className="koru-create-action-save"
                 onClick={selected === "receta" ? handleSaveReceta : handleSave}
-                disabled={saving || (!title.trim() && selected !== "gasto")}
+                disabled={
+                  saving ||
+                  (!title.trim() && selected !== "gasto") ||
+                  // 🔴 TIER S: plan requiere al menos un step con título.
+                  (selected === "plan" && !planSteps.some(s => s.title.trim()))
+                }
                 style={{ background: currentTpl?.accent }}
               >
                 {saving ? (

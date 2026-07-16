@@ -26,9 +26,11 @@ import type {
   KoruState,
   MemoryFact,
   MemoryKind,
+  Person,
   UserProfile,
   UserPreferences,
 } from "../domain/types";
+import { getGoogleAuthUrl } from "../tools/calendar/googleCalendar";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SettingsScreen — pantalla integrada de Ajustes (8 secciones colapsables).
@@ -53,6 +55,10 @@ export interface SettingsScreenProps {
   onExportData: () => void;
   onDeleteAllData: () => void;
   onClose: () => void;
+  // 🔴 TIER S: addPerson — invoca al reducer addPerson del store desde el
+  // sub-section "Personas" dentro de Perfil. Crea una Person durable
+  // (state.people) con name + relationship + birthday.
+  onAddPerson?: (name: string, relationship?: string, birthday?: string) => void;
 }
 
 type SectionId =
@@ -257,6 +263,7 @@ function Row({
 function TextInput(props: {
   value: string;
   onChange: (v: string) => void;
+  onBlur?: () => void;
   placeholder?: string;
   type?: string;
   ariaLabel?: string;
@@ -266,6 +273,7 @@ function TextInput(props: {
       type={props.type ?? "text"}
       value={props.value}
       onChange={(e) => props.onChange(e.target.value)}
+      onBlur={props.onBlur}
       placeholder={props.placeholder}
       aria-label={props.ariaLabel}
       style={{
@@ -280,6 +288,51 @@ function TextInput(props: {
         outline: "none",
       }}
     />
+  );
+}
+
+/**
+ * 🔴 TIER S: ProfileField — wrapper sobre TextInput que commitea el valor al
+ * reducer (vía onCommit) SOLO en blur, no en cada keystroke. Así evitamos
+ * re-renderizar todo el state tree + persistir en localStorage por cada tecla.
+ * Mantiene estado local para que el input siga siendo responsivo.
+ */
+function ProfileField({
+  label,
+  value,
+  onCommit,
+  placeholder,
+  type,
+  ariaLabel,
+}: {
+  label: string;
+  value: string;
+  onCommit: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+  ariaLabel?: string;
+}) {
+  const [local, setLocal] = useState(value);
+  // Sync local state when the external value changes (ej. after onCommit
+  // propagates back via props, or when another screen edits the profile).
+  useEffect(() => {
+    setLocal(value);
+  }, [value]);
+  return (
+    <Field label={label}>
+      <TextInput
+        value={local}
+        type={type}
+        placeholder={placeholder}
+        ariaLabel={ariaLabel}
+        onChange={setLocal}
+        // 🔴 TIER S: commit on blur — llama a onCommit que eventualmente
+        // invoca al reducer updateUserProfile.
+        onBlur={() => {
+          if (local !== value) onCommit(local);
+        }}
+      />
+    </Field>
   );
 }
 
@@ -531,6 +584,12 @@ export function SettingsScreen(props: SettingsScreenProps) {
   const [memKindFilter, setMemKindFilter] = useState<"all" | MemoryKind>("all");
   const [memSearch, setMemSearch] = useState("");
 
+  // 🔴 TIER S: Personas sub-form (under Perfil). Captura name + relationship
+  // + birthday y llama a props.onAddPerson → addPerson reducer del store.
+  const [newPersonName, setNewPersonName] = useState("");
+  const [newPersonRelationship, setNewPersonRelationship] = useState("");
+  const [newPersonBirthday, setNewPersonBirthday] = useState("");
+
   // Notificaciones: estado de permiso push
   const [pushGranted, setPushGranted] = useState<NotificationPermission | "unsupported">(() => {
     if (typeof Notification === "undefined") return "unsupported";
@@ -557,12 +616,58 @@ export function SettingsScreen(props: SettingsScreenProps) {
     return { calendar: { connected: false }, banks: { connected: false }, crypto: { connected: false } };
   });
 
-  useEffect(() => {
+  // 🔴 Google Calendar OAuth — flag "pending" persistido en
+  // `koru.integrations.googleCalendar` mientras el usuario completa el flujo
+  // de OAuth en la pestaña abierta por getGoogleAuthUrl(). El callback real
+  // (redirect URI + exchangeCodeForToken) todavía no está implementado, así
+  // que el estado queda en "pending" hasta que el backend lo confirme.
+  const [googleCalendarStatus, setGoogleCalendarStatus] = useState<"idle" | "pending" | "connected">(() => {
     try {
-      localStorage.setItem("koru.integrations", JSON.stringify(integrations));
+      const raw = localStorage.getItem("koru.integrations");
+      if (raw) {
+        const parsed = JSON.parse(raw) as Record<string, unknown>;
+        const flag = parsed.googleCalendar;
+        if (flag === "pending" || flag === "connected") return flag;
+      }
     } catch {
       /* noop */
     }
+    return "idle";
+  });
+
+  useEffect(() => {
+    try {
+      // Persistir el flag `googleCalendar` junto al resto de integraciones.
+      // El shape del resto (`{connected, lastSync}`) se mantiene intacto.
+      const raw = localStorage.getItem("koru.integrations");
+      const parsed: Record<string, unknown> = raw ? JSON.parse(raw) : {};
+      parsed.googleCalendar = googleCalendarStatus;
+      localStorage.setItem("koru.integrations", JSON.stringify(parsed));
+    } catch {
+      /* noop */
+    }
+  }, [googleCalendarStatus]);
+
+  useEffect(() => {
+    try {
+      // 🔴 Merge: preservar el flag `googleCalendar` (string) que se persiste
+      // por separado arriba. Si hacemos `JSON.stringify(integrations)` a secas,
+      // pisamos el campo `googleCalendar` y lo perdemos.
+      const raw = localStorage.getItem("koru.integrations");
+      const parsed: Record<string, unknown> = raw ? JSON.parse(raw) : {};
+      // Sobreponer el estado "vivo" de integrations (calendar/banks/crypto).
+      Object.assign(parsed, integrations);
+      // Mantener el flag googleCalendar tal cual estaba en React state.
+      if (googleCalendarStatus !== "idle") {
+        parsed.googleCalendar = googleCalendarStatus;
+      } else {
+        delete parsed.googleCalendar;
+      }
+      localStorage.setItem("koru.integrations", JSON.stringify(parsed));
+    } catch {
+      /* noop */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [integrations]);
 
   useEffect(() => {
@@ -598,6 +703,32 @@ export function SettingsScreen(props: SettingsScreenProps) {
     setIntegrations((prev) => ({ ...prev, [key]: { connected: false } }));
   }
 
+  // 🔴 Google Calendar OAuth — abre la URL de autorización en una pestaña nueva
+  // y marca el flag `pending` en localStorage. El callback de OAuth (redirect
+  // URI + exchangeCodeForToken) todavía no está implementado; este handler
+  // solo lanza el flujo y deja el estado en "Conectando...".
+  async function connectGoogleCalendar() {
+    if (googleCalendarStatus === "pending" || googleCalendarStatus === "connected") return;
+    setGoogleCalendarStatus("pending");
+    try {
+      const url = getGoogleAuthUrl();
+      if (typeof window !== "undefined") {
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
+    } catch (err) {
+      // Si falta GOOGLE_CLIENT_ID u otra env, revertimos a "idle" para que el
+      // usuario pueda reintentar y mostramos el error por consola.
+      // eslint-disable-next-line no-console
+      console.error("[SettingsScreen] Google Calendar auth URL falló:", err);
+      setGoogleCalendarStatus("idle");
+    }
+  }
+
+  function disconnectGoogleCalendar() {
+    setGoogleCalendarStatus("idle");
+    setIntegrations((prev) => ({ ...prev, calendar: { connected: false } }));
+  }
+
   // Filtrado de secciones por búsqueda
   const visibleSections = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -626,6 +757,20 @@ export function SettingsScreen(props: SettingsScreenProps) {
     props.onDeleteAllData();
     setDeleteOpen(false);
     setDeleteConfirmText("");
+  }
+
+  // 🔴 TIER S: handler para agregar una Person al store. Limpia el form
+  // después de invocar al reducer (vía props.onAddPerson). El name es
+  // obligatorio; relationship y birthday son opcionales.
+  function handleAddPerson() {
+    const name = newPersonName.trim();
+    if (!name) return;
+    const relationship = newPersonRelationship.trim() || undefined;
+    const birthday = newPersonBirthday.trim() || undefined;
+    props.onAddPerson?.(name, relationship, birthday);
+    setNewPersonName("");
+    setNewPersonRelationship("");
+    setNewPersonBirthday("");
   }
 
   return (
@@ -733,32 +878,32 @@ export function SettingsScreen(props: SettingsScreenProps) {
               >
                 {meta.id === "perfil" && (
                   <>
-                    <Field label="Nombre">
-                      <TextInput
-                        value={profile.name ?? ""}
-                        placeholder="¿Cómo te llamás?"
-                        ariaLabel="Nombre"
-                        onChange={(v) => props.onUpdateProfile({ name: v })}
-                      />
-                    </Field>
-                    <Field label="Cumpleaños">
-                      <TextInput
-                        type="date"
-                        value={profile.birthday ?? ""}
-                        ariaLabel="Cumpleaños"
-                        onChange={(v) => props.onUpdateProfile({ birthday: v })}
-                      />
-                    </Field>
-                    <Field label="Ciudad / Ubicación">
-                      <TextInput
-                        value={profile.location ?? profile.homeCity ?? ""}
-                        placeholder="Ej. Buenos Aires"
-                        ariaLabel="Ciudad"
-                        onChange={(v) =>
-                          props.onUpdateProfile({ location: v, homeCity: v })
-                        }
-                      />
-                    </Field>
+                    {/* 🔴 TIER S: Perfil fields commit on blur via ProfileField,
+                        que eventualmente invoca al reducer updateUserProfile
+                        (wired en App.tsx: onUpdateProfile={(p) => updateUserProfile(p)}). */}
+                    <ProfileField
+                      label="Nombre"
+                      value={profile.name ?? ""}
+                      placeholder="¿Cómo te llamás?"
+                      ariaLabel="Nombre"
+                      onCommit={(v) => props.onUpdateProfile({ name: v })}
+                    />
+                    <ProfileField
+                      label="Cumpleaños"
+                      value={profile.birthday ?? ""}
+                      type="date"
+                      ariaLabel="Cumpleaños"
+                      onCommit={(v) => props.onUpdateProfile({ birthday: v })}
+                    />
+                    <ProfileField
+                      label="Ciudad / Ubicación"
+                      value={profile.location ?? profile.homeCity ?? ""}
+                      placeholder="Ej. Buenos Aires"
+                      ariaLabel="Ciudad"
+                      onCommit={(v) =>
+                        props.onUpdateProfile({ location: v, homeCity: v })
+                      }
+                    />
                     <Field label={`Zona horaria (detectada: ${autoTz})`}>
                       <SelectInput
                         value={profile.timezone && profile.timezone !== "auto" ? profile.timezone : "auto"}
@@ -772,6 +917,117 @@ export function SettingsScreen(props: SettingsScreenProps) {
                         }))}
                       />
                     </Field>
+
+                    {/* 🔴 TIER S: Personas — sub-section under Perfil.
+                        Form simple: name + relationship + birthday.
+                        On save → props.onAddPerson → addPerson reducer.
+                        Lista las personas ya guardadas en state.people. */}
+                    <div
+                      style={{
+                        marginTop: 16,
+                        padding: 12,
+                        borderRadius: 14,
+                        background: "rgba(243, 232, 255, 0.45)",
+                        border: "1px solid rgba(129, 39, 207, 0.12)",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                        <span
+                          className="material-symbols-outlined"
+                          style={{ fontSize: 18, color: "#8127cf" }}
+                          aria-hidden
+                        >
+                          group
+                        </span>
+                        <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#8127cf" }}>
+                          Personas
+                        </h4>
+                      </div>
+
+                      <Field label="Nombre">
+                        <TextInput
+                          value={newPersonName}
+                          onChange={setNewPersonName}
+                          placeholder="Ej. María González"
+                          ariaLabel="Nombre de la persona"
+                        />
+                      </Field>
+                      <Field label="Relación (opcional)">
+                        <TextInput
+                          value={newPersonRelationship}
+                          onChange={setNewPersonRelationship}
+                          placeholder="Ej. Madre / Amiga / Colega"
+                          ariaLabel="Relación"
+                        />
+                      </Field>
+                      <Field label="Cumpleaños (opcional)">
+                        <TextInput
+                          value={newPersonBirthday}
+                          onChange={setNewPersonBirthday}
+                          type="date"
+                          ariaLabel="Cumpleaños de la persona"
+                        />
+                      </Field>
+                      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+                        <PillButton
+                          variant="primary"
+                          onClick={handleAddPerson}
+                          disabled={!newPersonName.trim() || !props.onAddPerson}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>person_add</span>
+                          Agregar persona
+                        </PillButton>
+                      </div>
+
+                      {(state.people ?? []).length > 0 && (
+                        <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+                          {(state.people as Person[]).map((p) => (
+                            <div
+                              key={p.id}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                gap: 8,
+                                padding: "8px 10px",
+                                borderRadius: 10,
+                                background: "rgba(255,255,255,0.7)",
+                                border: "1px solid rgba(129, 39, 207, 0.08)",
+                                fontSize: 13,
+                                color: "#0b1c30",
+                              }}
+                            >
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ fontWeight: 600 }}>{p.name}</div>
+                                <div style={{ fontSize: 11, color: "#64748b" }}>
+                                  {[p.relationship, p.birthday].filter(Boolean).join(" · ") || "Sin detalles"}
+                                </div>
+                              </div>
+                              {p.birthday && (
+                                <span
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 3,
+                                    padding: "2px 6px",
+                                    borderRadius: 6,
+                                    background: "#fde68a",
+                                    color: "#92400e",
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    flexShrink: 0,
+                                  }}
+                                  title={`Cumpleaños: ${p.birthday}`}
+                                >
+                                  <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>cake</span>
+                                  {p.birthday.slice(5)}
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </>
                 )}
 
@@ -1016,10 +1272,11 @@ export function SettingsScreen(props: SettingsScreenProps) {
                     <IntegrationRow
                       icon={<Calendar size={16} />}
                       title="Google Calendar"
-                      connected={integrations.calendar?.connected ?? false}
+                      connected={googleCalendarStatus === "connected" || integrations.calendar?.connected === true}
                       lastSync={integrations.calendar?.lastSync}
-                      onConnect={() => connectIntegration("calendar")}
-                      onDisconnect={() => disconnectIntegration("calendar")}
+                      connecting={googleCalendarStatus === "pending"}
+                      onConnect={connectGoogleCalendar}
+                      onDisconnect={disconnectGoogleCalendar}
                     />
                     <IntegrationRow
                       icon={<Landmark size={16} />}
@@ -1246,6 +1503,7 @@ function IntegrationRow({
   title,
   connected,
   lastSync,
+  connecting,
   onConnect,
   onDisconnect,
 }: {
@@ -1253,6 +1511,7 @@ function IntegrationRow({
   title: string;
   connected: boolean;
   lastSync?: string;
+  connecting?: boolean;
   onConnect: () => void;
   onDisconnect: () => void;
 }) {
@@ -1289,13 +1548,19 @@ function IntegrationRow({
               ? lastSync
                 ? `Última sync: ${formatLastSync(lastSync)}`
                 : "Conectado"
-              : "No conectado"}
+              : connecting
+                ? "Conectando…"
+                : "No conectado"}
           </div>
         </div>
       </div>
       {connected ? (
         <PillButton onClick={onDisconnect} variant="ghost">
           <Check size={14} /> Desconectar
+        </PillButton>
+      ) : connecting ? (
+        <PillButton onClick={onConnect} variant="primary" disabled>
+          Conectando…
         </PillButton>
       ) : (
         <PillButton onClick={onConnect} variant="primary">

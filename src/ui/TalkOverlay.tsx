@@ -1600,7 +1600,29 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
 
       {/* 🔴 v2: CreateScreen — modal para crear Nota/Lista/Gasto/Enlace sin LLM */}
       {showCreate && (
-        <CreateScreen onClose={() => setShowCreate(false)} />
+        <CreateScreen
+          onClose={() => setShowCreate(false)}
+          // 🔴 AI-assist — implementación mínima: el botón "Asistir" del
+          // CreateScreen queda funcional sin necesidad de un LLM real.
+          // Devuelve una sugerencia de carpeta basada en el template + título.
+          // El padre (este TalkOverlay) podría delegar al backend más adelante.
+          onAiAssist={async (template, title) => {
+            // En el futuro esto llamará a un endpoint tipo
+            // POST /api/koru/ai-assist con { template, title } y devolverá
+            // sugerencias para varios campos. Por ahora devolvemos una sola
+            // sugerencia (carpeta) para que el botón tenga efecto visible.
+            void title; // placeholder — el backend lo usará para contextualizar
+            return {
+              suggestions: [
+                {
+                  field: "collection",
+                  label: "Carpeta",
+                  value: template === "gasto" ? "Gastos" : "General",
+                },
+              ],
+            };
+          }}
+        />
       )}
 
       {/* 🔴 v2: reopenedRecord — reabre el bloque original de un record guardado */}

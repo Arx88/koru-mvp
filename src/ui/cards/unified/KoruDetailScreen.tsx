@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import type { CSSProperties } from "react";
+import type { UiBlock } from "../../../domain/types";
 import type { Detail, DetailSection, Accent, DetailRow, DetailSourceRef } from "./presentation";
 
 // Pantalla de detalle unificada — misma estética Stitch que PlanRoadmapScreen
@@ -157,7 +158,7 @@ function SourceRow({ source }: { source: DetailSourceRef }) {
   );
 }
 
-function SectionBody({ section }: { section: DetailSection }) {
+function SectionBody({ section, block }: { section: DetailSection; block?: UiBlock }) {
   switch (section.kind) {
     case "text":
       return <p className="koru-dsec-text">{section.body}</p>;
@@ -178,19 +179,61 @@ function SectionBody({ section }: { section: DetailSection }) {
     case "rows":
       return (
         <div className="koru-dsec-rows">
-          {section.rows.map((r, i) => (
-            <div key={i} className={"koru-dsec-row" + (r.bar ? " koru-dsec-row-with-bar" : "")}>
-              {r.icon && <Mat className="koru-dsec-row-icon">{r.icon}</Mat>}
-              <div className="koru-dsec-row-body">
-                <p className="koru-dsec-row-title">{r.title}</p>
-                {r.detail && <p className="koru-dsec-row-detail">{r.detail}</p>}
-                {/* 🔴 v2: barra comparativa para stats de fútbol (posesión, tiros, etc.) */}
-                {r.bar && <ComparisonBar bar={r.bar} />}
+          {section.rows.map((r, i) => {
+            // 🔴 TIER S: si la row trae `toggle`, la envolvemos en un botón
+            // que dispatcha `koru-card-action` con action "toggle_shopping" o
+            // "toggle_checklist" + los ids sintéticos. KoruProvider los pasa al
+            // reducer correspondiente (toggleShoppingItem / toggleChecklistItem).
+            const toggle = r.toggle;
+            const rowInner = (
+              <>
+                {r.icon && <Mat className="koru-dsec-row-icon">{r.icon}</Mat>}
+                <div className="koru-dsec-row-body">
+                  <p className="koru-dsec-row-title">{r.title}</p>
+                  {r.detail && <p className="koru-dsec-row-detail">{r.detail}</p>}
+                  {/* 🔴 v2: barra comparativa para stats de fútbol (posesión, tiros, etc.) */}
+                  {r.bar && <ComparisonBar bar={r.bar} />}
+                </div>
+                {r.meta && <span className="koru-dsec-row-meta">{r.meta}</span>}
+                {r.badge && <span className={`koru-step-chip is-${r.badgeTone ?? "pending"}`}>{r.badge}</span>}
+              </>
+            );
+            if (toggle) {
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  className="koru-dsec-row koru-dsec-row-toggle"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const action =
+                      toggle.kind === "shopping_item" ? "toggle_shopping" : "toggle_checklist";
+                    window.dispatchEvent(
+                      new CustomEvent("koru-card-action", {
+                        detail: {
+                          action,
+                          listId: toggle.listId,
+                          checklistId: toggle.checklistId,
+                          itemId: toggle.itemId,
+                          // 🔴 TIER S: include blockData so KoruProvider can
+                          // auto-create the durable entity if it doesn't exist.
+                          blockData: block,
+                        },
+                      }),
+                    );
+                    if ("vibrate" in navigator) navigator.vibrate(12);
+                  }}
+                >
+                  {rowInner}
+                </button>
+              );
+            }
+            return (
+              <div key={i} className={"koru-dsec-row" + (r.bar ? " koru-dsec-row-with-bar" : "")}>
+                {rowInner}
               </div>
-              {r.meta && <span className="koru-dsec-row-meta">{r.meta}</span>}
-              {r.badge && <span className={`koru-step-chip is-${r.badgeTone ?? "pending"}`}>{r.badge}</span>}
-            </div>
-          ))}
+            );
+          })}
         </div>
       );
 
@@ -262,8 +305,13 @@ function SectionBody({ section }: { section: DetailSection }) {
           <div className="koru-timeline-steps">
             {section.steps.map((s, i) => {
               const status = s.status ?? "pending";
-              return (
-                <div key={i} className={`koru-timeline-step is-${status}`}>
+              // 🔴 TIER S: si el paso trae `toggle.kind === "plan_step"`, lo
+              // envolvemos en un botón que dispatcha `koru-card-action` con
+              // action "toggle_step" + planId + stepId. KoruProvider los pasa
+              // al reducer togglePlanStep.
+              const toggle = s.toggle;
+              const stepInner = (
+                <>
                   <div className="koru-timeline-dot">
                     <Mat>{status === "done" ? "check" : s.icon ?? "radio_button_unchecked"}</Mat>
                   </div>
@@ -273,6 +321,38 @@ function SectionBody({ section }: { section: DetailSection }) {
                     {/* 🔴 v2: badge de prioridad (Alta/Media/Baja) en pasos del plan */}
                     {s.badge && <span className={`koru-step-chip is-${s.badgeTone ?? "pending"}`}>{s.badge}</span>}
                   </div>
+                </>
+              );
+              if (toggle && toggle.kind === "plan_step") {
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    className={`koru-timeline-step is-${status} koru-timeline-step-toggle`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.dispatchEvent(
+                        new CustomEvent("koru-card-action", {
+                          detail: {
+                            action: "toggle_step",
+                            planId: toggle.planId,
+                            stepId: toggle.stepId,
+                            // 🔴 TIER S: include blockData so KoruProvider can
+                            // auto-create the durable Plan if it doesn't exist.
+                            blockData: block,
+                          },
+                        }),
+                      );
+                      if ("vibrate" in navigator) navigator.vibrate(12);
+                    }}
+                  >
+                    {stepInner}
+                  </button>
+                );
+              }
+              return (
+                <div key={i} className={`koru-timeline-step is-${status}`}>
+                  {stepInner}
                 </div>
               );
             })}
@@ -408,12 +488,19 @@ export function KoruDetailScreen({
   onClose,
   onSave,
   onExportPdf,
+  block,
 }: {
   detail: Detail;
   headerIcon: string;
   onClose: () => void;
   onSave?: (title: string, subtitle?: string) => void;
   onExportPdf?: () => void;
+  // 🔴 TIER S: el UiBlock original se pasa para que los toggles de rows/steps
+  // puedan incluir `blockData` en el CustomEvent. Así el handler en
+  // KoruProvider puede auto-crear la entidad durable (Plan/ShoppingList/
+  // Checklist) si no existe, haciendo que el toggle sea efectivo aún para
+  // bloques transitorios del LLM.
+  block?: UiBlock;
 }) {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -478,7 +565,7 @@ export function KoruDetailScreen({
                 style={{ ...moduleStyle(section.accent), "--stagger-i": i } as CSSProperties}
               >
                 <SectionHead section={section} />
-                <SectionBody section={section} />
+                <SectionBody section={section} block={block} />
               </div>
             ))
           )}

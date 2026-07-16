@@ -1,0 +1,2002 @@
+     1→import type {
+     2→  AssistantPlanItem,
+     3→  AssistantSource,
+     4→  Commitment,
+     5→  KoruConversationMessage,
+     6→  KoruState,
+     7→  LifeRecord,
+     8→  MemoryFact,
+     9→  MascotState,
+    10→  RelevantMemory,
+    11→  ToolCall,
+    12→  ToolResult,
+    13→  UiBlock,
+    14→} from "../domain/types";
+    15→import { VALID_MASCOT_STATES } from "../domain/types";
+    16→import { selectRelevantMemories } from "../domain/store";
+    17→import { generateEnhancements, enhancementPrompt } from "../domain/enhancementEngine";
+    18→import { extractOpportunities } from "../domain/enhancementExtractor";
+    19→import { extractStructuredData, type ChatFn as ExtractorChatFn, type ExtractionResult } from "../domain/structureExtractor";
+    20→import { detectSimulatedToolCall } from "../domain/simulatedToolDetector";
+    21→import { SemanticRouter, type EmbedFn, type RouteResult, type RouteCategory, keywordFastPath } from "../domain/semanticRouter";
+    22→import { logger, dump } from "./logger";
+    23→import type { ToolDefinition } from "../tools/types";
+    24→
+    25→export type ProviderConfig = {
+    26→  nvidiaApiKey?: string;
+    27→  nvidiaBaseUrl: string;
+    28→  nvidiaModel: string;
+    29→  nvidiaFastModel?: string;
+    30→  nvidiaMediumModel?: string;
+    31→  openRouterKeys: string[];
+    32→  openRouterModels: string[];
+    33→  minimaxAccessToken?: string;
+    34→  bluesmindsKeys?: string[];
+    35→  bluesmindsModel?: string;
+    36→  /** URL de Ollama para embeddings del Semantic Router (nomic-embed-text). */
+    37→  ollamaEmbedBaseUrl?: string;
+    38→};
+    39→
+    40→export type KoruBackendTurnRequest = {
+    41→  input: string;
+    42→  history: KoruConversationMessage[];
+    43→  state: KoruState;
+    44→  model?: string;
+    45→  
+    46→};
+    47→
+    48→export type KoruUnderstanding = {
+    49→  literalRequest: string;
+    50→  userGoal: string;
+    51→  unstatedNeeds: string[];
+    52→  assumptions: string[];
+    53→  confidence: number;
+    54→};
+    55→
+    56→export type KoruSuggestedAction = {
+    57→  id: string;
+    58→  label: string;
+    59→  kind: "save" | "remind" | "watch" | "compare_more" | "approve" | "calendar" | "research";
+    60→  requiresApproval: boolean;
+    61→  payload?: Record<string, unknown>;
+    62→};
+    63→
+    64→export type KoruBackendTurnResponse = {
+    65→  reply: string;
+    66→  uiBlocks: UiBlock[];
+    67→  suggestedActions: KoruSuggestedAction[];
+    68→  understanding: KoruUnderstanding;
+    69→  memoryCandidates: Omit<MemoryFact, "id" | "createdAt" | "sourceEntryId">[];
+    70→  archiveMemoryIds?: string[];
+    71→  commitments: Omit<Commitment, "id" | "createdAt" | "sourceEntryId">[];
+    72→  records: Omit<LifeRecord, "id" | "createdAt" | "sourceEntryId">[];
+    73→  toolResults: ToolResult[];
+    74→  stateEvents: Array<{ kind: "thinking" | "searching" | "comparing" | "planning" | "saving" | "done"; label: string }>;
+    75→  provider: "nvidia" | "openrouter" | "minimax" | "bluesminds";
+    76→  model?: string;
+    77→  fallbackReason?: string;
+    78→  mascotState?: MascotState;
+    79→  skippedBecauseBoundary?: string[];
+    80→  behaviorNotes?: string[];
+    81→};
+    82→
+    83→type ChatRole = "system" | "user" | "assistant" | "tool";
+    84→
+    85→export type ChatMessage = {
+    86→  role: ChatRole;
+    87→  content?: string;
+    88→  tool_call_id?: string;
+    89→  tool_calls?: ProviderToolCall[];
+    90→};
+    91→
+    92→export type ProviderToolCall = {
+    93→  id: string;
+    94→  type: "function";
+    95→  function: {
+    96→    name: string;
+    97→    arguments: string;
+    98→  };
+    99→};
+   100→
+   101→type ProviderMessage = {
+   102→  content?: string | null;
+   103→  tool_calls?: ProviderToolCall[];
+   104→};
+   105→
+   106→export type ProviderResult = {
+   107→  provider: "nvidia" | "openrouter" | "minimax" | "bluesminds";
+   108→  model?: string;
+   109→  message: ProviderMessage;
+   110→};
+   111→
+   112→type ToolExecution = {
+   113→  id: string;
+   114→  name: string;
+   115→  result: Record<string, unknown>;
+   116→};
+   117→
+   118→export type WeatherData = {
+   119→  type: "weather";
+   120→  city: string;
+   121→  now?: string;
+   122→  range?: string;
+   123→  rain?: string;
+   124→  wind?: string;
+   125→  advice?: string;
+   126→  /** "need_city" cuando no hay ciudad ni en el pedido ni en el perfil: el composer debe preguntar UNA vez y recordarla. */
+   127→  status?: "need_city";
+   128→  sources: AssistantSource[];
+   129→};
+   130→
+   131→export type SearchData = {
+   132→  type: "search";
+   133→  mode: "news" | "research" | "shopping" | "world";
+   134→  title: string;
+   135→  summary: string;
+   136→  sources: AssistantSource[];
+   137→  comparisonItems?: NonNullable<Extract<UiBlock, { type: "comparison" }>["items"]>;
+   138→  extractedData?: Extract<UiBlock, { type: "data_card" }>;
+   139→  /**
+   140→   * Promesa diferida que resuelve a un data_card validado (o null si no hay datos).
+   141→   * El extractor corre en paralelo al Composer para no sumar latencia al turno.
+   142→   * El llamador la awaiting junto con la composición del reply (Promise.all).
+   143→   */
+   144→  deferredDataCard?: Promise<UiBlock | null>;
+   145→};
+   146→
+   147→type PlanData = {
+   148→  type: "plan";
+   149→  title: string;
+   150→  items: AssistantPlanItem[];
+   151→  context: string[];
+   152→};
+   153→
+   154→export type LocalActionData = {
+   155→  type: "local_action";
+   156→  block: UiBlock;
+   157→  requiresApproval: boolean;
+   158→  records?: Omit<LifeRecord, "id" | "createdAt" | "sourceEntryId">[];
+   159→  commitments?: Omit<Commitment, "id" | "createdAt" | "sourceEntryId">[];
+   160→};
+   161→
+   162→export type PersonalCaptureData = {
+   163→  type: "personal_capture";
+   164→  block: UiBlock;
+   165→  commitments?: Omit<Commitment, "id" | "createdAt" | "sourceEntryId">[];
+   166→  records?: Omit<LifeRecord, "id" | "createdAt" | "sourceEntryId">[];
+   167→  memoryCandidates?: Omit<MemoryFact, "id" | "createdAt" | "sourceEntryId">[];
+   168→};
+   169→
+   170→export type PersonalQueryData = {
+   171→  type: "personal_query";
+   172→  block: UiBlock;
+   173→  reply?: string;
+   174→};
+   175→
+   176→type MemoryCaptureData = {
+   177→  type: "memory_capture";
+   178→  memoryCandidates: Omit<MemoryFact, "id" | "createdAt" | "sourceEntryId">[];
+   179→};
+   180→
+   181→// ── ToolBox externo (doc 09): las tools nuevas viven en src/tools/ ──
+   182→// Se combinan con las builtin de abajo. El motor no cambia su lógica;
+   183→// solo ahora "conoce" más tools. Añadir tools = añadirlas en src/tools/.
+   184→import { ALL_TOOL_DEFINITIONS as EXTERNAL_TOOL_DEFINITIONS, TOOL_BOX } from "../tools/toolbox";
+   185→
+   186→export const TOOL_DEFINITIONS = [
+   187→  {
+   188→    type: "function",
+   189→    function: {
+   190→      name: "weather",
+   191→      description: "Obtén el clima actual de una ciudad cuando el usuario necesite información sobre condiciones meteorológicas para planificar actividades, vestimenta o desplazamientos. El usuario puede expresar esta necesidad en cualquiera de estas formas: clima, lluvia, nieve, calor, frío, sol, nublado, temporal, outfit, ropa, paraguas, campera, que me pongo, viste, layer, abrigo, o preguntas como '¿Qué tal está afuera?', '¿Necesito chaqueta?', '¿Hace frío?'.",
+   192→      parameters: {
+   193→        type: "object",
+   194→        additionalProperties: false,
+   195→        properties: {
+   196→          city: { type: "string", description: "City or location. Do NOT guess. If the user has not stated a location, ask for it first." },
+   197→          purpose: { type: "string", description: "Why the user needs this weather, e.g. outfit, meeting, umbrella." },
+   198→        },
+   199→        required: ["city"],
+   200→      },
+   201→    },
+   202→  },
+   203→  {
+   204→    type: "function",
+   205→    function: {
+   206→      name: "web_search",
+   207→      description: "Busca información actualizada en internet cuando el usuario pregunte sobre algo que ocurre en el mundo exterior y que no está en su contexto personal. Esto incluye: eventos recientes, noticias, figuras públicas, tendencias, avances científicos, datos de mercados, precios de activos, deportes, política, cultura, o cualquier tema que requiera consultar fuentes externas porque cambia con el tiempo. El usuario puede pedir esto de cualquier forma: '¿Qué pasó con...?', '¿Cómo va...?', '¿Quién ganó...?', '¿Cuáles son las últimas...?', o incluso solo mencionando el tema sin pedir explícitamente una búsqueda.",
+   208→      parameters: {
+   209→        type: "object",
+   210→        additionalProperties: false,
+   211→        properties: {
+   212→          query: { type: "string" },
+   213→          mode: { type: "string", enum: ["news", "research", "world"] },
+   214→        },
+   215→        required: ["query"],
+   216→      },
+   217→    },
+   218→  },
+   219→  {
+   220→    type: "function",
+   221→    function: {
+   222→      name: "shopping_compare",
+   223→      description: "Compara productos con evidencia de precios, fuentes y pros/contras cuando el usuario esté considerando una compra o necesite evaluar opciones de productos. El usuario puede expresar esto de muchas formas: pidiendo recomendaciones de algo para comprar, mencionando que necesita un producto, comparando dos cosas, buscando la mejor opción, o preguntando dónde comprar algo. También activa cuando el usuario pide review o comparativa de productos técnicos.",
+   224→      parameters: {
+   225→        type: "object",
+   226→        additionalProperties: false,
+   227→        properties: {
+   228→          query: { type: "string" },
+   229→          budget: { type: "string" },
+   230→          constraints: { type: "array", items: { type: "string" } },
+   231→        },
+   232→        required: ["query"],
+   233→      },
+   234→    },
+   235→  },
+   236→  {
+   237→    type: "function",
+   238→    function: {
+   239→      name: "plan_day",
+   240→      description: "Crea un plan práctico para el día considerando los compromisos abiertos, la energía y el contexto del usuario cuando necesite organizar su tiempo o priorizar tareas. El usuario puede pedir esto de cualquier forma: '¿Cómo organizo hoy?', '¿Qué hago primero?', 'Tengo muchas cosas', '¿Me ayudas a planificar?', '¿En qué orden?', 'Siento que no me da el tiempo', o mencionando múltiples tareas pendientes.",
+   241→      parameters: {
+   242→        type: "object",
+   243→        additionalProperties: false,
+   244→        properties: {
+   245→          focus: { type: "string" },
+   246→          energy: { type: "string", enum: ["low", "medium", "high", "unknown"] },
+   247→        },
+   248→        required: ["focus"],
+   249→      },
+   250→    },
+   251→  },
+   252→  {
+   253→    type: "function",
+   254→    function: {
+   255→      name: "query_personal_context",
+   256→      description: "Consulta el contexto personal guardado de Koru para responder preguntas sobre gastos, comida en casa, tareas pendientes, links guardados, notas médicas, personas que conoce, o lo que Koru recuerda. Úsala SIEMPRE que la pregunta pueda resolverse con los datos personales del usuario. NO uses esta herramienta para hechos del mundo exterior.",
+   257→      parameters: {
+   258→        type: "object",
+   259→        additionalProperties: false,
+   260→        properties: {
+   261→          topic: { type: "string", enum: ["expenses", "food_inventory", "shopping_list", "pending_tasks", "saved_links", "health", "relationships", "memory", "general"] },
+   262→          period: { type: "string", description: "Optional period, e.g. this week, today, this month." },
+   263→          query: { type: "string" },
+   264→        },
+   265→        required: ["topic"],
+   266→      },
+   267→    },
+   268→  },
+   269→  {
+   270→    type: "function",
+   271→    function: {
+   272→      name: "save_memory",
+   273→      description: "Save durable reusable memory about the user or people important to the user: preferences, identity, routines, goals, relationships, boundaries, wellbeing, teams/topics to follow. Use this when Koru should know it later.",
+   274→      parameters: {
+   275→        type: "object",
+   276→        additionalProperties: false,
+   277→        properties: {
+   278→          memories: {
+   279→            type: "array",
+   280→            items: {
+   281→              type: "object",
+   282→              additionalProperties: false,
+   283→              properties: {
+   284→                text: { type: "string", description: "Reusable memory sentence in the user's language." },
+   285→                kind: { type: "string", enum: ["profile", "routine", "preference", "goal", "relationship", "boundary", "retail", "wellbeing", "task"] },
+   286→                sensitivity: { type: "string", enum: ["normal", "sensitive"] },
+   287→                useForSuggestions: { type: "boolean" },
+   288→                rootQuote: { type: "string" },
+   289→              },
+   290→              required: ["text", "kind"],
+   291→            },
+   292→          },
+   293→        },
+   294→        required: ["memories"],
+   295→      },
+   296→    },
+   297→  },
+   298→  {
+   299→    type: "function",
+   300→    function: {
+   301→      name: "save_personal_item",
+   302→      description: "Save a personal task, reminder, alarm, shopping item, expense, health item, idea, home task, relationship follow-up, tool link, or any user-owned information. Use instead of only saying it was saved.",
+   303→      parameters: {
+   304→        type: "object",
+   305→        additionalProperties: false,
+   306→        properties: {
+   307→          uiBlockType: { type: "string", enum: ["reminder", "alarm", "shopping_list", "saved_record", "money_summary", "birthday_calendar", "birthday_alarm", "social_interaction"] },
+   308→          title: { type: "string" },
+   309→          dueText: { type: "string" },
+   310→          time: { type: "string" },
+   311→          repeat: { type: "string" },
+   312→          note: { type: "string" },
+   313→          items: { type: "array", items: { type: "string" } },
+   314→          domain: { type: "string", enum: ["morning", "work", "money", "health", "relationship", "home", "interest", "capture"] },
+   315→          recordKind: { type: "string", enum: ["expense", "medication", "meal_inventory", "tool_link", "meeting_note", "deadline", "person_followup", "gift", "birthday", "home_task", "shopping_item", "idea", "recommendation", "medical_info", "sleep", "decision"] },
+   316→          amount: { type: "number" },
+   317→          currency: { type: "string" },
+   318→          expenses: {
+   319→            type: "array",
+   320→            description: "Use when the user mentions multiple expenses in one turn.",
+   321→            items: {
+   322→              type: "object",
+   323→              additionalProperties: false,
+   324→              properties: {
+   325→                title: { type: "string" },
+   326→                amount: { type: "number" },
+   327→                currency: { type: "string" },
+   328→                notes: { type: "string" },
+   329→                tags: { type: "array", items: { type: "string" } },
+   330→              },
+   331→              required: ["title", "amount"],
+   332→            },
+   333→          },
+   334→          person: { type: "string" },
+   335→          url: { type: "string" },
+   336→          collection: { type: "string", description: "Optional named collection/folder, e.g. Mis enlaces, Regalos mama, Ideas de videos." },
+   337→          tags: { type: "array", items: { type: "string" } },
+   338→          rememberAs: { type: "string", description: "A durable memory sentence if this is a user preference, identity, routine, goal, relationship detail, or personal context Koru should reuse." },
+   339→          memoryKind: { type: "string", enum: ["profile", "routine", "preference", "goal", "relationship", "boundary", "retail", "wellbeing", "task"] },
+   340→          sensitivity: { type: "string", enum: ["normal", "sensitive"] },
+   341→          useForSuggestions: { type: "boolean" },
+   342→          listTitle: { type: "string" },
+   343→          summaryTitle: { type: "string" },
+   344→        },
+   345→        required: ["uiBlockType", "title"],
+   346→      },
+   347→    },
+   348→  },
+   349→  {
+   350→    type: "function",
+   351→    function: {
+   352→      name: "deliver_response",
+   353→      description: "Deliver the final Koru response after tools. This is the only valid final answer.",
+   354→      parameters: {
+   355→        type: "object",
+   356→        additionalProperties: false,
+   357→        properties: {
+   358→          reply: { type: "string" },
+   359→          understanding: {
+   360→            type: "object",
+   361→            additionalProperties: false,
+   362→            properties: {
+   363→              literalRequest: { type: "string" },
+   364→              userGoal: { type: "string" },
+   365→              unstatedNeeds: { type: "array", items: { type: "string" } },
+   366→              assumptions: { type: "array", items: { type: "string" } },
+   367→              confidence: { type: "number" },
+   368→            },
+   369→            required: ["literalRequest", "userGoal", "unstatedNeeds", "assumptions", "confidence"],
+   370→          },
+   371→          uiBlocks: {
+   372→            type: "array",
+   373→            items: { type: "object" },
+   374→            description: "Visual cards shown to the user. Each item MUST include a 'type' field. Available types: weather, restaurant_synthesis, comparison, product_analysis, smart_checklist, outfit, review_score, review_document, review_quote, plan, saved_record, personal_query, match_timeline, live_match, match_stats, crypto_portfolio, market, forex, election_results, election_vote, data_ticker, route_timeline, transport_compare, route_map, travel_planner, birthday_calendar, birthday_alarm, social_interaction, local_action, research_sources, data_card, web_nav, money_summary, morning_brief, generation.",
+   375→          },
+   376→          suggestedActions: { type: "array", items: { type: "object" } },
+   377→          memoryCandidates: { type: "array", items: { type: "object" } },
+   378→          commitments: { type: "array", items: { type: "object" } },
+   379→          records: { type: "array", items: { type: "object" } },
+   380→          sentiment: { type: "string", enum: ["calm", "heavy", "busy", "good"] },
+   381→        },
+   382→        required: ["reply", "understanding", "uiBlocks", "suggestedActions", "memoryCandidates", "commitments", "records"],
+   383→      },
+   384→    },
+   385→  },
+   386→] as const;
+   387→
+   388→/**
+   389→ * Definiciones finales que el LLM ve = builtin (arriba) + externas (ToolBox).
+   390→ * El motor referencia ALL_TOOL_DEFINITIONS en callProvider/callNvidia/etc.
+   391→ * Así cualquier tool añadida en src/tools/ queda disponible sin tocar más nada.
+   392→ */
+   393→export const ALL_TOOL_DEFINITIONS = [
+   394→  ...TOOL_DEFINITIONS,
+   395→  ...EXTERNAL_TOOL_DEFINITIONS,
+   396→];
+   397→
+   398→/**
+   399→ * Mapeo de categorías del Semantic Router a las tools relevantes.
+   400→ * Solo estas tools se envían al LLM cuando el router detecta una categoría
+   401→ * con alta confianza, reduciendo drásticamente el tamaño del prompt
+   402→ * (especialmente crítico para Ollama local con modelos pequeños).
+   403→ */
+   404→const CATEGORY_TOOLS: Record<RouteCategory, string[]> = {
+   405→  weather: ["weather", "weather_travel"],
+   406→  world_info: [
+   407→    "web_search",
+   408→    "restaurant_deep_search",
+   409→    "news_topic",
+   410→    "trending_twitter",
+   411→    "person_info",
+   412→    "world_signal",
+   413→  ],
+   414→  shopping: ["shopping_compare", "price_history", "product_review"],
+   415→  planning: [
+   416→    "plan_day",
+   417→    "route_plan",
+   418→    "reminder_set",
+   419→    "alarm_set",
+   420→    "calendar_add",
+   421→    "travel_itinerary",
+   422→  ],
+   423→  personal_query: [
+   424→    "query_personal_context",
+   425→    "expense_track",
+   426→    "budget_check",
+   427→    "save_memory",
+   428→    "save_personal_item",
+   429→  ],
+   430→  action: [
+   431→    "save_memory",
+   432→    "save_personal_item",
+   433→    "expense_track",
+   434→    "reminder_set",
+   435→    "alarm_set",
+   436→    "restaurant_deep_search",
+   437→  ],
+   438→  // research se maneja con su propio pipeline (runDeepResearchFlow); si algo
+   439→  // cae al flujo nativo, web_search es el único apoyo razonable.
+   440→  research: ["web_search"],
+   441→  sports: ["match_schedule", "match_live", "team_follow", "league_standings"],
+   442→  market: ["crypto_price", "stock_quote", "exchange_history", "currency_convert"],
+   443→  travel: ["travel_itinerary", "flight_search", "hotel_search"],
+   444→  directions: ["route_traffic", "weather", "travel_itinerary"],
+   445→  elections: ["web_search", "news_topic"],
+   446→  review: ["shopping_compare", "web_search", "movie_info", "book_info", "game_info", "product_review"],
+   447→  birthday: ["save_personal_item", "query_personal_context"],
+   448→  // 🔴 FIX P1: nuevas categorías para tools que ya existían pero no se rutaban
+   449→  food: ["recipe_find", "recipe_by_ingredients", "food_info", "wine_pairing", "nutrition_calc", "restaurant_deep_search"],
+   450→  media: ["movie_info", "book_info", "game_info", "person_info", "person_filmography", "web_search"],
+   451→  knowledge: ["wikipedia_lookup", "dictionary_define", "math_calc", "unit_convert", "web_search"],
+   452→  conversation: [],
+   453→};
+   454→
+   455→function asRecord(value: unknown): Record<string, unknown> {
+   456→  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+   457→}
+   458→
+   459→function asString(value: unknown): string | undefined {
+   460→  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+   461→}
+   462→
+   463→function asArray(value: unknown): unknown[] {
+   464→  return Array.isArray(value) ? value : [];
+   465→}
+   466→
+   467→export function cleanText(value: unknown, fallback = ""): string {
+   468→  return asString(value)?.replace(/\s+/g, " ").trim() ?? fallback;
+   469→}
+   470→
+   471→function plainLower(value: string): string {
+   472→  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+   473→}
+   474→
+   475→function timeFromText(value: string): string | undefined {
+   476→  const match = /\b(?:a\s+las|las)\s+(\d{1,2})(?::(\d{2}))?\b/i.exec(plainLower(value));
+   477→  if (!match) return undefined;
+   478→  const hour = Math.max(0, Math.min(23, Number(match[1])));
+   479→  const minute = match[2] ? Math.max(0, Math.min(59, Number(match[2]))) : 0;
+   480→  return `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
+   481→}
+   482→
+   483→function createId(prefix: string): string {
+   484→  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+   485→    return `${prefix}_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
+   486→  }
+   487→  return `${prefix}_${Math.random().toString(36).slice(2, 12)}`;
+   488→}
+   489→
+   490→/**
+   491→ * Genera iniciales de un nombre de equipo (máx 3 letras).
+   492→ * "Spain" → "SPA", "Real Madrid" → "MAD", "Boca Juniors" → "BJU", "PSG" → "PSG".
+   493→ */
+   494→function initialsFromName(name: string): string {
+   495→  const clean = String(name ?? "").trim().toUpperCase();
+   496→  if (!clean) return "???";
+   497→  // Si ya es sigla (PSG, MLS, etc), devolverla
+   498→  if (/^[A-Z]{2,4}$/.test(clean) && clean.length <= 4) return clean;
+   499→  const words = clean.split(/\s+/).filter(w => w.length > 0);
+   500→  if (words.length === 1) return words[0].slice(0, 3);
+   501→  // Tomar primera letra de las primeras 3 palabras, saltando artículos
+   502→  const filtered = words.filter(w => !["DE", "DEL", "LA", "LAS", "EL", "LOS", "Y", "FC", "CF"].includes(w));
+   503→  return (filtered.slice(0, 3).map(w => w[0]).join("") || words[0].slice(0, 3)).padEnd(3, "X");
+   504→}
+   505→
+   506→/**
+   507→ * Formatea una fecha ISO a "DD/MM YYYY" o "Hoy" / "Ayer" según corresponda.
+   508→ */
+   509→function formatMatchDate(iso: string): string {
+   510→  try {
+   511→    const d = new Date(iso);
+   512→    if (isNaN(d.getTime())) return "";
+   513→    const now = new Date();
+   514→    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+   515→    const dStart = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+   516→    const diffDays = Math.round((todayStart.getTime() - dStart.getTime()) / (24 * 60 * 60 * 1000));
+   517→    if (diffDays === 0) return "Hoy";
+   518→    if (diffDays === 1) return "Ayer";
+   519→    if (diffDays === -1) return "Mañana";
+   520→    const day = String(d.getDate()).padStart(2, "0");
+   521→    const month = String(d.getMonth() + 1).padStart(2, "0");
+   522→    return `${day}/${month}`;
+   523→  } catch { return ""; }
+   524→}
+   525→
+   526→function safeJsonParse(raw: string): Record<string, unknown> {
+   527→  try {
+   528→    return asRecord(JSON.parse(raw || "{}"));
+   529→  } catch {
+   530→    return {};
+   531→  }
+   532→}
+   533→
+   534→function extractJsonBlock(text: string): string {
+   535→  const start = text.indexOf("{");
+   536→  if (start === -1) return text;
+   537→  let depth = 0;
+   538→  let inString = false;
+   539→  let escapeNext = false;
+   540→  for (let i = start; i < text.length; i++) {
+   541→    const c = text[i];
+   542→    if (escapeNext) { escapeNext = false; continue; }
+   543→    if (c === "\\") { escapeNext = true; continue; }
+   544→    if (c === '"' && !inString) { inString = true; continue; }
+   545→    if (c === '"' && inString) { inString = false; continue; }
+   546→    if (inString) continue;
+   547→    if (c === "{") depth++;
+   548→    if (c === "}") { depth--; if (depth === 0) return text.slice(start, i + 1); }
+   549→  }
+   550→  return text;
+   551→}
+   552→
+   553→/**
+   554→ * 🔴 FIX P0 — stripReasoning: elimina razonamiento interno del LLM antes de
+   555→ * exponerlo como reply al usuario.
+   556→ *
+   557→ * Causa raíz del Bug 1: Nemotron Ultra (y otros modelos con modo "thinking")
+   558→ * a veces emiten su CoT en el campo `content` en lugar de `reasoning_content`.
+   559→ * Esto se ve como: "The user is asking about Argentina's football match...".
+   560→ *
+   561→ * Estrategias de strippado (en orden):
+   562→ *  1. Tags XML-style explícitos: <think>...</think>, <reasoning>...</reasoning>,
+   563→ *     <reflection>...</reflection>, <output>...</output> (conservar solo el contenido de <output>).
+   564→ *  2. CoT en inglés antes del JSON: si el texto contiene `{"reply"` más adelante,
+   565→ *     tirar todo lo anterior al primer `{`.
+   566→ *  3. AGRESIVO: si el texto EMPIEZA con un patrón de thinking en inglés
+   567→ *     ("The user is asking...", "I need to...", "Let me...", "I should..."),
+   568→ *     y NO contiene JSON reply, devolver "" — es thinking puro.
+   569→ *     Sin threshold de length: cualquier thinking al inicio = strip.
+   570→ *  4. AGRESIVO: si el texto contiene 2+ indicadores de thinking
+   571→ *     ("I need to", "Let me", "I should", "I will", "The user..."),
+   572→ *     y NO contiene JSON reply, devolver "".
+   573→ *
+   574→ * Tests verificados:
+   575→ *  - "The user is asking about Argentina's match yesterday..." (148 chars) → ""
+   576→ *  - "The user is asking about Argentina's football match... Let me use match_live..." (280 chars) → ""
+   577→ *  - "¡Hola Juan! ¿Cómo va todo?" → preservado
+   578→ *  - "En Madrid hace 29°C ahora..." → preservado
+   579→ *  - "Listo, guardado en gastos." → preservado
+   580→ */
+   581→function stripReasoning(text: string): string {
+   582→  if (!text) return "";
+   583→  let out = text;
+   584→  // 1. Tags XML-style
+   585→  out = out
+   586→    .replace(/<think>[\s\S]*?<\/think>/gi, "")
+   587→    .replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, "")
+   588→    .replace(/<reflection>[\s\S]*?<\/reflection>/gi, "")
+   589→    .replace(/<reflection>[\s\S]*$/gi, "") // reflection sin cerrar (truncado)
+   590→    .replace(/<\/?think>/gi, "")
+   591→    .replace(/<\/?reasoning>/gi, "");
+   592→  // Si hay tag <output>, conservar SOLO su contenido
+   593→  const outputMatch = out.match(/<output>([\s\S]*?)<\/output>/i);
+   594→  if (outputMatch) {
+   595→    out = outputMatch[1];
+   596→  }
+   597→  // 2. Si hay `{"reply"` o `{"reply":` más adelante, tirar todo lo anterior (CoT en inglés)
+   598→  const jsonStart = out.search(/\{\s*["']reply["']\s*:/);
+   599→  if (jsonStart > 0) {
+   600→    out = out.slice(jsonStart);
+   601→  }
+   602→  // Si ya encontramos JSON reply, no seguir strippando
+   603→  const hasJsonReply = /\{\s*["']reply["']\s*:/.test(out);
+   604→  if (hasJsonReply) {
+   605→    return out;
+   606→  }
+   607→  // 3. AGRESIVO: si empieza con patrón de thinking en inglés, strip total
+   608→  //    Patrones ampliados para cubrir más variantes del CoT de Nemotron.
+   609→  const thinkingStartPatterns = [
+   610→    /^(the user|the user is|the user wants|the user is asking|i should|i need to|let me|let's think|i'll|i will|i am going to|first,?\s*i|now i|the question|looking at|analyzing|to answer this|based on the|so,?\s*i|this is a|this is an|let's consider|step by step|i have to|i must|i'm going to|the request|the input|the message|i want to|i can|i could|i'm thinking|okay,?\s*(so|i|let|the)|alright,?\s*(so|i|let|the))\b/i,
+   611→  ];
+   612→  const trimmed = out.trim();
+   613→  if (trimmed.length > 20 && thinkingStartPatterns.some(re => re.test(trimmed))) {
+   614→    return "";
+   615→  }
+   616→  // 4. AGRESIVO: si contiene múltiples indicadores de thinking, es thinking
+   617→  //    aunque no empiece exactamente con un patrón.
+   618→  const thinkingIndicators = (out.match(/\b(i need to|let me|i should|i will|i'll|i am going to|i'm going to|i have to|i must|the user|i want to|i can|step by step|let's think|i think|i believe|first i|then i|next i|finally i)\b/gi) || []).length;
+   619→  if (thinkingIndicators >= 2 && trimmed.length > 30) {
+   620→    return "";
+   621→  }
+   622→  return out;
+   623→}
+   624→
+   625→function safeJsonObjectFromContent(raw: string): Record<string, unknown> {
+   626→  // 🔴 FIX P0: stripar reasoning ANTES de intentar parsear JSON
+   627→  const cleaned = stripReasoning(raw);
+   628→  const direct = safeJsonParse(cleaned);
+   629→  if (direct.reply !== undefined || direct.uiBlocks !== undefined) return direct;
+   630→  const extracted = safeJsonParse(extractJsonBlock(cleaned));
+   631→  if (extracted.reply !== undefined || extracted.uiBlocks !== undefined) return extracted;
+   632→  // Dirty extraction: fields individually with regex
+   633→  const reply = extractStringField(cleaned, "reply");
+   634→  const mascotState = extractStringField(cleaned, "mascotState") || extractStringField(cleaned, "mascot_state");
+   635→  if (reply && reply.length > 3) {
+   636→    return { reply, mascotState: mascotState || "idle", uiBlocks: [] };
+   637→  }
+   638→  return {};
+   639→}
+   640→
+   641→function extractStringField(raw: string, field: string): string | undefined {
+   642→  const idx = raw.toLowerCase().indexOf(`"${field.toLowerCase()}"`);
+   643→  if (idx === -1) return undefined;
+   644→  let start = raw.indexOf('"', idx + field.length + 2);
+   645→  if (start === -1) return undefined;
+   646→  start++;
+   647→  let i = start;
+   648→  let escaped = false;
+   649→  while (i < raw.length) {
+   650→    const c = raw[i];
+   651→    if (escaped) { escaped = false; i++; continue; }
+   652→    if (c === '\\') { escaped = true; i++; continue; }
+   653→    if (c === '"') break;
+   654→    i++;
+   655→  }
+   656→  return raw.slice(start, i);
+   657→}
+   658→
+   659→function cleanReplyText(value: unknown): string {
+   660→  // 🔴 FIX P0: stripar reasoning PRIMERO, antes de cualquier otra limpieza
+   661→  return stripReasoning(cleanText(value))
+   662→    .replace(/\*?\s*uiBlock\s*:\s*[a-z_]+\s*\*?/gi, "")
+   663→    .replace(/\buiBlocks?\b\s*[:=]\s*\[[\s\S]*$/i, "")
+   664→    .replace(/\b(Hola|Gracias|Perfecto|Listo)(?=[A-ZÁÉÍÓÚÑ])/g, "$1 ")
+   665→    .replace(/\s+/g, " ")
+   666→    .trim();
+   667→}
+   668→
+   669→function formatCompactNumber(value: number, currency?: string): string {
+   670→  const formatter = new Intl.NumberFormat("en-US", {
+   671→    notation: "compact",
+   672→    maximumFractionDigits: 1,
+   673→    ...(currency ? { style: "currency" as const, currency } : {}),
+   674→  });
+   675→  return formatter.format(value);
+   676→}
+   677→
+   678→async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+   679→  const controller = new AbortController();
+   680→  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+   681→  try {
+   682→    return await fetch(url, { ...init, signal: controller.signal });
+   683→  } finally {
+   684→    clearTimeout(timeout);
+   685→  }
+   686→}
+   687→
+   688→function wait(ms: number): Promise<"timeout"> {
+   689→  return new Promise((resolve) => {
+   690→    setTimeout(() => resolve("timeout"), ms);
+   691→  });
+   692→}
+   693→
+   694→function providerUrl(baseUrl: string, path: string): string {
+   695→  return `${baseUrl.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
+   696→}
+   697→
+   698→export function hasUsableAssistantMessage(data: unknown): boolean {
+   699→  const choice = asRecord(asArray(asRecord(data).choices)[0]);
+   700→  const message = asRecord(choice.message);
+   701→  return Boolean(asString(message.content) || asString(message.reasoning) || asArray(message.tool_calls).length);
+   702→}
+   703→
+   704→async function callMinimax(
+   705→  config: ProviderConfig,
+   706→  messages: ChatMessage[],
+   707→  timeoutMs: number,
+   708→  toolsEnabled = true,
+   709→): Promise<ProviderResult> {
+   710→  const accessToken = config.minimaxAccessToken;
+   711→  if (!accessToken) throw new Error("MiniMax access token not configured");
+   712→  logger.info("callMinimax", "Requesting MiniMax", { model: "MiniMax-M2.7", msgCount: messages.length, toolsEnabled });
+   713→  const minimaxMessages = messages.map((m) => {
+   714→    if (m.role === "tool") {
+   715→      let content = m.content ?? "";
+   716→      try {
+   717→        const data = JSON.parse(content);
+   718→        if (data.type === "search" && Array.isArray(data.sources)) {
+   719→          const formatted = data.sources
+   720→            .map((s: any, i: number) => {
+   721→              const text = s.content || s.snippet || "";
+   722→              return `${i + 1}. ${s.title} (${s.domain})\n${text}`;
+   723→            })
+   724→            .filter((s: string) => s.trim().length > 3)
+   725→            .join("\n\n");
+   726→          content = formatted || `Búsqueda: ${data.title || ""}`;
+   727→        } else if (data.type === "weather") {
+   728→          content = `Clima - Ciudad: ${data.city || "?"}, Ahora: ${data.now || "?"}, Rango: ${data.range || "?"}, Lluvia: ${data.rain || "?"}, Viento: ${data.wind || "?"}`;
+   729→        }
+   730→      } catch {
+   731→        // mantener contenido original si no es JSON
+   732→      }
+   733→      return { role: "user" as const, content: `Resultado de herramienta (${m.tool_call_id ?? "unknown"}):\n${content}` };
+   734→    }
+   735→    if (m.role === "assistant" && m.tool_calls) {
+   736→      return {
+   737→        role: "assistant" as const,
+   738→        content: m.content ?? `Voy a usar herramientas: ${m.tool_calls.map((t) => t.function.name).join(", ")}`,
+   739→      };
+   740→    }
+   741→    return { role: m.role, content: m.content ?? "" };
+   742→  });
+   743→  const response = await fetchWithTimeout("https://api.minimax.io/v1/chat/completions", {
+   744→    method: "POST",
+   745→    headers: {
+   746→      Authorization: `Bearer ${accessToken}`,
+   747→      "Content-Type": "application/json",
+   748→      Accept: "application/json",
+   749→    },
+   750→    body: JSON.stringify({
+   751→      model: "MiniMax-M2.7",
+   752→      messages: minimaxMessages,
+   753→      ...(toolsEnabled ? { tools: ALL_TOOL_DEFINITIONS, tool_choice: "auto" } : {}),
+   754→      temperature: 0.25,
+   755→      top_p: 0.95,
+   756→      max_tokens: 8192,
+   757→      stream: false,
+   758→      reasoning_split: true,
+   759→    }),
+   760→  }, timeoutMs);
+   761→  const data = await response.json().catch(() => ({}));
+   762→  const choice = asRecord(asArray(asRecord(data).choices)[0]);
+   763→  const assistantMsg = asRecord(choice.message);
+   764→  const content = asString(assistantMsg.content) ?? "";
+   765→  const toolCalls = asArray(assistantMsg.tool_calls);
+   766→  const reasoningContent = asString(assistantMsg.reasoning_content) ?? "";
+   767→  logger.info("callMinimax", `Response HTTP ${response.status}`, { contentPreview: content.slice(0, 500), reasoningPreview: reasoningContent.slice(0, 200), hasTools: toolCalls.length > 0, usage: dump(data.usage, 300) });
+   768→  if (!response.ok || !hasUsableAssistantMessage(data)) {
+   769→    logger.error("callMinimax", `MiniMax returned ${response.status}`, { body: dump(data, 1000) });
+   770→    throw new Error(`MiniMax returned ${response.status}`);
+   771→  }
+   772→  return {
+   773→    provider: "minimax",
+   774→    model: asString(asRecord(data).model) ?? "MiniMax-M2.7",
+   775→    message: assistantMsg as ProviderMessage,
+   776→  };
+   777→}
+   778→
+   779→async function callNvidia(
+   780→  config: ProviderConfig,
+   781→  messages: ChatMessage[],
+   782→  timeoutMs: number,
+   783→  toolsEnabled = true,
+   784→  availableTools?: ToolDefinition[],
+   785→  modelOverride?: string,
+   786→): Promise<ProviderResult> {
+   787→  const isOllama = isOllamaUrl(config.nvidiaBaseUrl);
+   788→  if (isOllama) {
+   789→    const body: Record<string, unknown> = {
+   790→      model: modelOverride ?? config.nvidiaModel,
+   791→      messages: messages.map((m) => ({ role: m.role, content: m.content ?? "" })),
+   792→      ...(toolsEnabled ? {} : { format: "json" }),
+   793→      options: { temperature: 0.0, top_p: 0.95, num_predict: 8192 },
+   794→      stream: false,
+   795→    };
+   796→    if (toolsEnabled) {
+   797→      body.tools = availableTools ?? ALL_TOOL_DEFINITIONS;
+   798→    }
+   799→    const response = await fetchWithTimeout(providerUrl(config.nvidiaBaseUrl, "/api/chat"), {
+   800→      method: "POST",
+   801→      headers: { "Content-Type": "application/json" },
+   802→      body: JSON.stringify(body),
+   803→    }, timeoutMs);
+   804→    const data = await response.json().catch(() => ({}));
+   805→    if (!response.ok || !data.message) {
+   806→      throw new Error(`Ollama returned ${response.status}`);
+   807→    }
+   808→    const msg = asRecord(data.message);
+   809→    const rawToolCalls = asArray(msg.tool_calls);
+   810→    const toolCalls = rawToolCalls.map((tc, index) => {
+   811→      const t = asRecord(tc);
+   812→      const fn = asRecord(t.function);
+   813→      return {
+   814→        id: asString(t.id) || `call_${Date.now()}_${index}`,
+   815→        type: asString(t.type) || "function",
+   816→        function: {
+   817→          name: cleanText(fn.name),
+   818→          arguments: typeof fn.arguments === "string" ? fn.arguments : JSON.stringify(fn.arguments),
+   819→        },
+   820→      };
+   821→    });
+   822→    return {
+   823→      provider: "nvidia",
+   824→      model: asString(data.model) ?? config.nvidiaModel,
+   825→      message: {
+   826→        role: asString(msg.role) ?? "assistant",
+   827→        content: asString(msg.content),
+   828→        tool_calls: toolCalls,
+   829→      } as ProviderMessage,
+   830→    };
+   831→  }
+   832→
+   833→  const headers: Record<string, string> = {
+   834→    "Content-Type": "application/json",
+   835→    Accept: "application/json",
+   836→  };
+   837→  if (config.nvidiaApiKey && config.nvidiaApiKey !== "dummy") {
+   838→    headers.Authorization = `Bearer ${config.nvidiaApiKey}`;
+   839→  }
+   840→  const body: Record<string, unknown> = {
+   841→    model: modelOverride ?? config.nvidiaModel,
+   842→    messages,
+   843→    ...(toolsEnabled ? { tools: availableTools ?? TOOL_DEFINITIONS, tool_choice: "auto" } : {}),
+   844→    temperature: 0.25,
+   845→    top_p: 0.95,
+   846→    max_tokens: 8192,
+   847→    stream: false,
+   848→  };
+   849→  // FIX: retry automático para NVIDIA (1 retry con backoff de 2s).
+   850→  // ~20% de las requests dan timeout transient.
+   851→  let response: Response;
+   852→  try {
+   853→    response = await fetchWithTimeout(providerUrl(config.nvidiaBaseUrl, "/v1/chat/completions"), {
+   854→      method: "POST",
+   855→      headers,
+   856→      body: JSON.stringify(body),
+   857→    }, timeoutMs);
+   858→  } catch (firstErr) {
+   859→    logger.warn("callNvidia", "First attempt failed, retrying in 2s", { error: firstErr instanceof Error ? firstErr.message : "unknown" });
+   860→    await new Promise(resolve => setTimeout(resolve, 2000));
+   861→    response = await fetchWithTimeout(providerUrl(config.nvidiaBaseUrl, "/v1/chat/completions"), {
+   862→      method: "POST",
+   863→      headers,
+   864→      body: JSON.stringify(body),
+   865→    }, timeoutMs);
+   866→  }
+   867→  const data = await response.json().catch(() => ({}));
+   868→  if (!response.ok || !hasUsableAssistantMessage(data)) {
+   869→    throw new Error(`NVIDIA returned ${response.status}`);
+   870→  }
+   871→  const choice = asRecord(asArray(asRecord(data).choices)[0]);
+   872→  return {
+   873→    provider: "nvidia",
+   874→    model: asString(asRecord(data).model) ?? config.nvidiaModel,
+   875→    message: asRecord(choice.message) as ProviderMessage,
+   876→  };
+   877→}
+   878→
+   879→async function callOpenRouterCandidate(
+   880→  key: string,
+   881→  model: string,
+   882→  messages: ChatMessage[],
+   883→  timeoutMs: number,
+   884→  toolsEnabled = true,
+   885→): Promise<ProviderResult> {
+   886→  const response = await fetchWithTimeout("https://openrouter.ai/api/v1/chat/completions", {
+   887→    method: "POST",
+   888→    headers: {
+   889→      Authorization: `Bearer ${key}`,
+   890→      "Content-Type": "application/json",
+   891→      "HTTP-Referer": "http://localhost:5173",
+   892→      "X-OpenRouter-Title": "Koru Agent Loop",
+   893→    },
+   894→    body: JSON.stringify({
+   895→      model,
+   896→      messages,
+   897→      ...(toolsEnabled ? { tools: ALL_TOOL_DEFINITIONS, tool_choice: "auto" } : {}),
+   898→      temperature: 0.25,
+   899→      max_tokens: 8192,
+   900→      stream: false,
+   901→      response_format: { type: "json_object" },
+   902→    }),
+   903→  }, timeoutMs);
+   904→  const data = await response.json().catch(() => ({}));
+   905→  if (!response.ok || !hasUsableAssistantMessage(data)) {
+   906→    // eslint-disable-next-line no-console
+   907→    throw new Error(`OpenRouter ${model} returned ${response.status}`);
+   908→  }
+   909→  const choice = asRecord(asArray(asRecord(data).choices)[0]);
+   910→  return {
+   911→    provider: "openrouter",
+   912→    model: asString(asRecord(data).model) ?? model,
+   913→    message: asRecord(choice.message) as ProviderMessage,
+   914→  };
+   915→}
+   916→
+   917→async function callOpenRouter(config: ProviderConfig, messages: ChatMessage[], timeoutMs: number, toolsEnabled = true): Promise<ProviderResult> {
+   918→  const candidates = config.openRouterKeys
+   919→    .slice(0, 3)
+   920→    .flatMap((key) => config.openRouterModels.slice(0, 3).map((model) => ({ key, model })));
+   921→  if (!candidates.length) throw new Error("OpenRouter fallback is not configured.");
+   922→  return Promise.any(candidates.map((candidate) => callOpenRouterCandidate(candidate.key, candidate.model, messages, timeoutMs, toolsEnabled)));
+   923→}
+   924→
+   925→async function callBlueSmindsCandidate(
+   926→  key: string,
+   927→  model: string,
+   928→  messages: ChatMessage[],
+   929→  timeoutMs: number,
+   930→  toolsEnabled = true,
+   931→): Promise<ProviderResult> {
+   932→  const response = await fetchWithTimeout("https://api.bluesminds.com/v1/chat/completions", {
+   933→    method: "POST",
+   934→    headers: {
+   935→      Authorization: `Bearer ${key}`,
+   936→      "Content-Type": "application/json",
+   937→      Accept: "application/json",
+   938→    },
+   939→    body: JSON.stringify({
+   940→      model,
+   941→      messages,
+   942→      ...(toolsEnabled ? { tools: ALL_TOOL_DEFINITIONS, tool_choice: "auto" } : {}),
+   943→      temperature: 0.25,
+   944→      max_tokens: 8192,
+   945→      stream: false,
+   946→    }),
+   947→  }, timeoutMs);
+   948→  const data = await response.json().catch(() => ({}));
+   949→  if (!response.ok || !hasUsableAssistantMessage(data)) {
+   950→    throw new Error(`BlueSminds ${model} returned ${response.status}`);
+   951→  }
+   952→  const choice = asRecord(asArray(asRecord(data).choices)[0]);
+   953→  return {
+   954→    provider: "bluesminds",
+   955→    model: asString(asRecord(data).model) ?? model,
+   956→    message: asRecord(choice.message) as ProviderMessage,
+   957→  };
+   958→}
+   959→
+   960→async function callBlueSminds(config: ProviderConfig, messages: ChatMessage[], timeoutMs: number, toolsEnabled = true): Promise<ProviderResult> {
+   961→  const keys = (config.bluesmindsKeys ?? []).slice(0, 3);
+   962→  const model = config.bluesmindsModel ?? "mimo-v2.5";
+   963→  if (!keys.length) throw new Error("BlueSminds is not configured.");
+   964→  let lastError: Error | undefined;
+   965→  for (const key of keys) {
+   966→    try {
+   967→      return await callBlueSmindsCandidate(key, model, messages, timeoutMs, toolsEnabled);
+   968→    } catch (err) {
+   969→      lastError = err instanceof Error ? err : new Error(String(err));
+   970→      logger.warn("callBlueSminds", `BlueSminds ${model} failed with a key, trying next`, { reason: lastError.message });
+   971→    }
+   972→  }
+   973→  throw lastError ?? new Error(`BlueSminds ${model} failed with all available keys.`);
+   974→}
+   975→
+   976→function providerResultIsValid(result: ProviderResult): boolean {
+   977→  const content = result.message?.content ?? "";
+   978→  const trimmed = content.trim();
+   979→  const hasTools = asArray(result.message?.tool_calls).length > 0;
+   980→  const hasContent = trimmed.length > 0;
+   981→  return hasContent || hasTools;
+   982→}
+   983→
+   984→function isOllamaUrl(baseUrl: string | undefined): boolean {
+   985→  const value = (baseUrl ?? "").toLowerCase();
+   986→  return value.includes(":11434") || value.includes("ollama");
+   987→}
+   988→
+   989→export function inferProviderFromModel(model: string | undefined): "minimax" | "nvidia" | "openrouter" | "bluesminds" | undefined {
+   990→  if (!model) return undefined;
+   991→  if (model === "MiniMax-M2.7") return "minimax";
+   992→  if (model === "mimo-v2.5") return "bluesminds";
+   993→  if (model.startsWith("hf.co/")) return "nvidia"; // HuggingFace models served by Ollama
+   994→  if (!model.includes("/")) return "nvidia"; // Ollama tags without namespace, e.g. qwen3.6:27b, llama3.1:8b
+   995→  if (model.startsWith("nvidia/") && !model.includes(":")) return "nvidia"; // NVIDIA API models
+   996→  if (model.startsWith("stepfun-ai/")) return "nvidia"; // Flash model served by NVIDIA API
+   997→  if (model.includes("/") && model.includes(":")) return "openrouter"; // OpenRouter free models (e.g. openai/gpt-oss-120b:free)
+   998→  return undefined;
+   999→}
+  1000→
+  1001→function nvidiaTimeoutMs(config: ProviderConfig, isOllama: boolean, timeoutMs: number): number {
+  1002→  if (isOllama) return Math.min(150_000, timeoutMs);
+  1003→  const isLargeNemotron = config.nvidiaModel.toLowerCase().includes("nemotron-3-ultra");
+  1004→  // 🔴 FIX P2.4: bumped Nemotron Ultra from 120s → 180s
+  1005→  // Algunas síntesis con muchos tool results tardan más de 120s.
+  1006→  return Math.min(isLargeNemotron ? 180_000 : 60_000, timeoutMs);
+  1007→}
+  1008→
+  1009→/**
+  1010→ * Fase 4.1 — Router de modelos NVIDIA.
+  1011→ *
+  1012→ * Selecciona el modelo óptimo según la complejidad del input del usuario:
+  1013→ * - Trivial (hola, gracias, adios): modelo flash (~1-2s)
+  1014→ * - Normal (clima, gasto, lista): modelo mediano (~5-8s)
+  1015→ * - Complejo (informe, deep research): modelo ultra (~15s)
+  1016→ *
+  1017→ * Esto reduce la latencia percibida para interacciones simples sin
+  1018→ * sacrificar calidad en tareas complejas.
+  1019→ */
+  1020→function selectModelForInput(
+  1021→  input: string,
+  1022→  config: ProviderConfig,
+  1023→  isTrivial: boolean,
+  1024→  isDeliverable: boolean,
+  1025→): string | undefined {
+  1026→  // Si no hay fast/medium model configurado, usar el default
+  1027→  if (!config.nvidiaFastModel && !config.nvidiaMediumModel) return undefined;
+  1028→
+  1029→  // Trivial → flash (sin tools, respuesta rápida)
+  1030→  if (isTrivial && config.nvidiaFastModel) {
+  1031→    logger.info("modelRouter", "Using fast model", { model: config.nvidiaFastModel, reason: "trivial input" });
+  1032→    return config.nvidiaFastModel;
+  1033→  }
+  1034→
+  1035→  // Deliverable (informe/investigación) → ultra (máxima calidad)
+  1036→  if (isDeliverable) {
+  1037→    logger.info("modelRouter", "Using ultra model", { model: config.nvidiaModel, reason: "deliverable" });
+  1038→    return config.nvidiaModel; // nvidiaModel = ultra por default
+  1039→  }
+  1040→
+  1041→  // Normal → medium si está disponible, sino ultra
+  1042→  if (config.nvidiaMediumModel) {
+  1043→    logger.info("modelRouter", "Using medium model", { model: config.nvidiaMediumModel, reason: "normal input" });
+  1044→    return config.nvidiaMediumModel;
+  1045→  }
+  1046→
+  1047→  return undefined;
+  1048→}
+  1049→
+  1050→export async function callProvider(
+  1051→  config: ProviderConfig,
+  1052→  messages: ChatMessage[],
+  1053→  timeoutMs: number,
+  1054→  toolsEnabled = true,
+  1055→  preferredProvider?: "minimax" | "nvidia" | "openrouter" | "bluesminds",
+  1056→  availableTools?: ToolDefinition[],
+  1057→  modelOverride?: string,
+  1058→): Promise<ProviderResult & { fallbackReason?: string }> {
+  1059→  const isOllama = isOllamaUrl(config.nvidiaBaseUrl);
+  1060→  const nvidiaAvailable = Boolean(config.nvidiaApiKey) || isOllama;
+  1061→  const bluesmindsKeys = config.bluesmindsKeys ?? [];
+  1062→  const bluesmindsModel = config.bluesmindsModel ?? "mimo-v2.5";
+  1063→  const bluesmindsAvailable = bluesmindsKeys.length > 0 && bluesmindsModel.length > 0;
+  1064→
+  1065→  // SALTO DIRECTO si el usuario eligió un provider específico
+  1066→  if (preferredProvider === "bluesminds" && bluesmindsAvailable) {
+  1067→    try {
+  1068→      return await callBlueSminds(config, messages, Math.min(60_000, timeoutMs), toolsEnabled);
+  1069→    } catch (err: any) {
+  1070→      if (isRateLimitError(err)) throw err;
+  1071→      logger.warn("callProvider", "Preferred BlueSminds failed, falling through", { reason: err?.message });
+  1072→    }
+  1073→  }
+  1074→
+  1075→  if (preferredProvider === "minimax" && config.minimaxAccessToken) {
+  1076→    try {
+  1077→      const result = await callMinimax(config, messages, timeoutMs, toolsEnabled);
+  1078→      if (providerResultIsValid(result)) {
+  1079→        logger.info("callProvider", "Preferred MiniMax succeeded");
+  1080→        return result;
+  1081→      }
+  1082→      logger.warn("callProvider", "Preferred MiniMax responded but invalid, falling through");
+  1083→    } catch (err: any) {
+  1084→      logger.warn("callProvider", "Preferred MiniMax failed, falling through", { reason: err?.message });
+  1085→    }
+  1086→  }
+  1087→
+  1088→  if (preferredProvider === "nvidia" && nvidiaAvailable) {
+  1089→    try {
+  1090→      const result = await callNvidia(config, messages, nvidiaTimeoutMs(config, isOllama, timeoutMs), toolsEnabled, availableTools, modelOverride);
+  1091→      if (providerResultIsValid(result)) return result;
+  1092→      logger.warn("callProvider", "Preferred NVIDIA responded but invalid, falling back");
+  1093→    } catch (err: any) {
+  1094→      if (isRateLimitError(err)) throw err;
+  1095→      logger.warn("callProvider", "Preferred NVIDIA failed, falling back", { reason: err?.message });
+  1096→    }
+  1097→  }
+  1098→
+  1099→  if (preferredProvider === "openrouter" && config.openRouterKeys.length) {
+  1100→    return callOpenRouter(config, messages, Math.min(115_000, timeoutMs), toolsEnabled);
+  1101→  }
+  1102→
+  1103→  // FLUJO NORMAL (sin preferencia o preferencia fallida)
+  1104→  // BlueSminds es el proveedor principal si está configurado.
+  1105→  if (bluesmindsAvailable && (!preferredProvider || preferredProvider === "bluesminds")) {
+  1106→    try {
+  1107→      const result = await callBlueSminds(config, messages, Math.min(60_000, timeoutMs), toolsEnabled);
+  1108→      if (providerResultIsValid(result)) {
+  1109→        logger.info("callProvider", "BlueSminds succeeded");
+  1110→        return result;
+  1111→      }
+  1112→      logger.warn("callProvider", "BlueSminds responded but invalid, falling through");
+  1113→    } catch (err: any) {
+  1114→      if (isRateLimitError(err)) throw err;
+  1115→      logger.warn("callProvider", "BlueSminds failed, falling through", { reason: err?.message });
+  1116→    }
+  1117→  }
+  1118→
+  1119→  // Si el usuario eligió un provider específico que no es MiniMax, no lo intentamos.
+  1120→  if (config.minimaxAccessToken && (!preferredProvider || preferredProvider === "minimax")) {
+  1121→    try {
+  1122→      const result = await callMinimax(config, messages, timeoutMs, toolsEnabled);
+  1123→      if (providerResultIsValid(result)) {
+  1124→        logger.info("callProvider", "MiniMax succeeded");
+  1125→        return result;
+  1126→      }
+  1127→      logger.warn("callProvider", "MiniMax responded but invalid, falling through");
+  1128→    } catch (err: any) {
+  1129→      logger.warn("callProvider", "MiniMax failed, falling through", { reason: err?.message });
+  1130→    }
+  1131→  }
+  1132→
+  1133→  if (!nvidiaAvailable) {
+  1134→    return callOpenRouter(config, messages, Math.min(115_000, timeoutMs), toolsEnabled);
+  1135→  }
+  1136→
+  1137→  // Si el usuario eligió OpenRouter, saltamos NVIDIA en el flujo normal
+  1138→  if (!preferredProvider || preferredProvider !== "openrouter") {
+  1139→    try {
+  1140→      const result = await callNvidia(config, messages, nvidiaTimeoutMs(config, isOllama, timeoutMs), toolsEnabled, availableTools, modelOverride);
+  1141→      if (providerResultIsValid(result)) return result;
+  1142→      logger.warn("callProvider", "NVIDIA responded but invalid, falling back");
+  1143→    } catch (err: any) {
+  1144→      if (isRateLimitError(err)) throw err;
+  1145→      logger.warn("callProvider", "NVIDIA failed, falling back to OpenRouter", { reason: err?.message });
+  1146→    }
+  1147→  }
+  1148→
+  1149→  if (config.openRouterKeys.length) {
+  1150→    return callOpenRouter(config, messages, Math.min(115_000, timeoutMs), toolsEnabled);
+  1151→  }
+  1152→
+  1153→  throw new Error("Ningún proveedor de IA respondió. Verificá la conexión o las credenciales.");
+  1154→}
+  1155→
+  1156→class RateLimitError extends Error {
+  1157→  constructor(message: string) {
+  1158→    super(message);
+  1159→    this.name = "RateLimitError";
+  1160→  }
+  1161→}
+  1162→
+  1163→function isRateLimitError(error: unknown): boolean {
+  1164→  const msg = String(error instanceof Error ? error.message : error).toLowerCase();
+  1165→  return msg.includes("429") || msg.includes("rate limit") || msg.includes("too many requests") || msg.includes("quota") || msg.includes("free-models-per-day");
+  1166→}
+  1167→
+  1168→function sourceFromUrl(title: string, url: string, snippet?: string): AssistantSource {
+  1169→  let domain = "fuente externa";
+  1170→  try {
+  1171→    domain = new URL(url).hostname.replace(/^www\./, "");
+  1172→  } catch {
+  1173→    domain = "fuente externa";
+  1174→  }
+  1175→  return { title, url, domain, snippet };
+  1176→}
+  1177→
+  1178→async function geocodeCity(city: string): Promise<{ name: string; latitude: number; longitude: number } | null> {
+  1179→  const url = new URL("https://geocoding-api.open-meteo.com/v1/search");
+  1180→  url.searchParams.set("name", city);
+  1181→  url.searchParams.set("count", "1");
+  1182→  url.searchParams.set("language", "es");
+  1183→  url.searchParams.set("format", "json");
+  1184→  const response = await fetchWithTimeout(url.toString(), { headers: { Accept: "application/json" } }, 15_000);
+  1185→  const data = await response.json().catch(() => ({})) as { results?: Array<{ name?: string; latitude?: number; longitude?: number; country?: string }> };
+  1186→  const result = data.results?.[0];
+  1187→  if (!result || typeof result.latitude !== "number" || typeof result.longitude !== "number") return null;
+  1188→  return {
+  1189→    name: [result.name, result.country].filter(Boolean).join(", "),
+  1190→    latitude: result.latitude,
+  1191→    longitude: result.longitude,
+  1192→  };
+  1193→}
+  1194→
+  1195→export async function getWeather(args: Record<string, unknown>): Promise<WeatherData> {
+  1196→  const requestedCity = cleanText(args.city);
+  1197→  if (!requestedCity) {
+  1198→    return {
+  1199→      type: "weather",
+  1200→      city: "",
+  1201→      status: "need_city",
+  1202→      advice: "No hay ciudad conocida del usuario. Preguntale con calidez en qué ciudad está, avisale que la vas a recordar para la próxima, y NO inventes datos de clima.",
+  1203→      sources: [],
+  1204→    };
+  1205→  }
+  1206→
+  1207→  // 🔴 FIX MACRO: usar wttr.in como fuente PRINCIPAL (sin rate limits, sin API key).
+  1208→  // open-meteo como fallback si wttr.in falla.
+  1209→  try {
+  1210→    const wttrUrl = `https://wttr.in/${encodeURIComponent(requestedCity)}?format=j1`;
+  1211→    const wttrRes = await fetchWithTimeout(wttrUrl, { headers: { "User-Agent": "Koru/1.0" } }, 10_000);
+  1212→    if (wttrRes.ok) {
+  1213→      const wttr = await wttrRes.json() as {
+  1214→        current_condition?: Array<{ temp_C?: string; humidity?: string; windspeedKmph?: string; weatherDesc?: Array<{ value?: string }> }>;
+  1215→        weather?: Array<{ mintempC?: string[]; maxtempC?: string[]; hourly?: Array<{ chanceofrain?: string[] }> }>;
+  1216→        nearest_area?: Array<{ areaName?: Array<{ value?: string }>; country?: Array<{ value?: string }> }>;
+  1217→      };
+  1218→      const cur = wttr.current_condition?.[0];
+  1219→      const area = wttr.nearest_area?.[0];
+  1220→      const cityName = area?.areaName?.[0]?.value ?? requestedCity;
+  1221→      const country = area?.country?.[0]?.value ?? "";
+  1222→      const temp = cur?.temp_C ? parseInt(cur.temp_C) : undefined;
+  1223→      const wind = cur?.windspeedKmph ? parseInt(cur.windspeedKmph) : undefined;
+  1224→      const desc = cur?.weatherDesc?.[0]?.value?.trim() ?? "";
+  1225→      const max = wttr.weather?.[0]?.maxtempC?.[0] ? parseInt(wttr.weather[0].maxtempC[0]) : undefined;
+  1226→      const min = wttr.weather?.[0]?.mintempC?.[0] ? parseInt(wttr.weather[0].mintempC[0]) : undefined;
+  1227→      const rain = wttr.weather?.[0]?.hourly?.[0]?.chanceofrain?.[0] ? parseInt(wttr.weather[0].hourly[0].chanceofrain[0]) : undefined;
+  1228→
+  1229→      if (temp !== undefined) {
+  1230→        const advice = [
+  1231→          `${Math.round(temp)} C ahora`,
+  1232→          rain !== undefined && rain >= 50 ? "conviene paraguas" : rain !== undefined ? "lluvia poco probable" : undefined,
+  1233→          min !== undefined && min <= 10 ? "lleva abrigo si sales tarde" : undefined,
+  1234→        ].filter(Boolean).join("; ");
+  1235→        return {
+  1236→          type: "weather",
+  1237→          city: country ? `${cityName}, ${country}` : cityName,
+  1238→          now: `${Math.round(temp)} C`,
+  1239→          range: min !== undefined && max !== undefined ? `${Math.round(min)}-${Math.round(max)} C` : undefined,
+  1240→          rain: rain !== undefined ? `${rain}%` : undefined,
+  1241→          wind: wind !== undefined ? `${Math.round(wind)} km/h` : undefined,
+  1242→          advice: advice || "Clima consultado.",
+  1243→          sources: [sourceFromUrl("wttr.in", "https://wttr.in/", "Datos de clima en tiempo real.")],
+  1244→        };
+  1245→      }
+  1246→    }
+  1247→  } catch {
+  1248→    // wttr.in falló, intentar open-meteo
+  1249→  }
+  1250→
+  1251→  // Fallback: open-meteo
+  1252→  const location = await geocodeCity(requestedCity);
+  1253→  if (!location) {
+  1254→    return {
+  1255→      type: "weather",
+  1256→      city: requestedCity,
+  1257→      advice: "No pude ubicar esa ciudad. No invento clima.",
+  1258→      sources: [],
+  1259→    };
+  1260→  }
+  1261→  try {
+  1262→    const url = new URL("https://api.open-meteo.com/v1/forecast");
+  1263→    url.searchParams.set("latitude", String(location.latitude));
+  1264→    url.searchParams.set("longitude", String(location.longitude));
+  1265→    url.searchParams.set("current", "temperature_2m,precipitation,wind_speed_10m");
+  1266→    url.searchParams.set("daily", "temperature_2m_max,temperature_2m_min,precipitation_probability_max");
+  1267→    url.searchParams.set("timezone", "auto");
+  1268→    const response = await fetchWithTimeout(url.toString(), { headers: { Accept: "application/json" } }, 10_000);
+  1269→    const data = await response.json().catch(() => ({})) as {
+  1270→      current?: { temperature_2m?: number; wind_speed_10m?: number };
+  1271→      daily?: { temperature_2m_max?: number[]; temperature_2m_min?: number[]; precipitation_probability_max?: number[] };
+  1272→    };
+  1273→    const temp = data.current?.temperature_2m;
+  1274→    const max = data.daily?.temperature_2m_max?.[0];
+  1275→    const min = data.daily?.temperature_2m_min?.[0];
+  1276→    const rain = data.daily?.precipitation_probability_max?.[0];
+  1277→    const wind = data.current?.wind_speed_10m;
+  1278→    if (temp !== undefined) {
+  1279→      const advice = [
+  1280→        `${Math.round(temp)} C ahora`,
+  1281→        rain !== undefined && rain >= 50 ? "conviene paraguas" : rain !== undefined ? "lluvia poco probable" : undefined,
+  1282→        min !== undefined && min <= 10 ? "lleva abrigo si sales tarde" : undefined,
+  1283→      ].filter(Boolean).join("; ");
+  1284→      return {
+  1285→        type: "weather",
+  1286→        city: location.name,
+  1287→        now: `${Math.round(temp)} C`,
+  1288→        range: min !== undefined && max !== undefined ? `${Math.round(min)}-${Math.round(max)} C` : undefined,
+  1289→        rain: rain !== undefined ? `${rain}%` : undefined,
+  1290→        wind: wind !== undefined ? `${Math.round(wind)} km/h` : undefined,
+  1291→        advice: advice || "Clima consultado.",
+  1292→        sources: [sourceFromUrl("Open-Meteo", "https://open-meteo.com/", "Datos abiertos de clima.")],
+  1293→      };
+  1294→    }
+  1295→  } catch {
+  1296→    // open-meteo también falló
+  1297→  }
+  1298→
+  1299→  // Si ambas fuentes fallan, devolver sin datos (el fallback universal lo maneja)
+  1300→  return {
+  1301→    type: "weather",
+  1302→    city: requestedCity,
+  1303→    advice: "No pude obtener el clima en este momento.",
+  1304→    sources: [],
+  1305→  };
+  1306→}
+  1307→
+  1308→function htmlText(raw: string): string {
+  1309→  return raw
+  1310→    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+  1311→    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+  1312→    .replace(/<[^>]+>/g, " ")
+  1313→    .replace(/&amp;/g, "&")
+  1314→    .replace(/&quot;/g, '"')
+  1315→    .replace(/&#39;/g, "'")
+  1316→    .replace(/\s+/g, " ")
+  1317→    .trim();
+  1318→}
+  1319→
+  1320→async function searchDuckDuckGo(query: string): Promise<AssistantSource[]> {
+  1321→  const response = await fetchWithTimeout(`https://duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
+  1322→    headers: {
+  1323→      "User-Agent": "Mozilla/5.0 KoruAgent/1.0",
+  1324→      Accept: "text/html",
+  1325→    },
+  1326→  }, 10_000);
+  1327→  const html = await response.text();
+  1328→  const sources: AssistantSource[] = [];
+  1329→  const resultRe = /<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a[^>]+class="result__snippet"[^>]*>([\s\S]*?)<\/a>/gi;
+  1330→  let match: RegExpExecArray | null;
+  1331→  while ((match = resultRe.exec(html)) && sources.length < 6) {
+  1332→    const rawUrl = match[1];
+  1333→    let url = rawUrl;
+  1334→    try {
+  1335→      const parsed = new URL(rawUrl, "https://duckduckgo.com");
+  1336→      url = parsed.searchParams.get("uddg") ?? parsed.href;
+  1337→    } catch {
+  1338→      url = rawUrl;
+  1339→    }
+  1340→    if (!/^https?:\/\//i.test(url)) continue;
+  1341→    const domain = (() => {
+  1342→      try {
+  1343→        return new URL(url).hostname;
+  1344→      } catch {
+  1345→        return "";
+  1346→      }
+  1347→    })();
+  1348→    if (/duckduckgo\.com|google\.com|bing\.com/i.test(domain)) continue;
+  1349→    sources.push(sourceFromUrl(htmlText(match[2]), url, htmlText(match[3]).slice(0, 260)));
+  1350→  }
+  1351→  return sources;
+  1352→}
+  1353→
+  1354→async function searchGdelt(query: string): Promise<AssistantSource[]> {
+  1355→  const url = new URL("https://api.gdeltproject.org/api/v2/doc/doc");
+  1356→  url.searchParams.set("query", query);
+  1357→  url.searchParams.set("mode", "ArtList");
+  1358→  url.searchParams.set("format", "json");
+  1359→  url.searchParams.set("maxrecords", "6");
+  1360→  url.searchParams.set("sort", "HybridRel");
+  1361→  const response = await fetchWithTimeout(url.toString(), { headers: { Accept: "application/json" } }, 10_000);
+  1362→  const data = await response.json().catch(() => ({})) as { articles?: Array<{ title?: string; url?: string; domain?: string; seendate?: string }> };
+  1363→  return (data.articles ?? [])
+  1364→    .filter((item) => item.title && item.url)
+  1365→    .slice(0, 6)
+  1366→    .map((item) => sourceFromUrl(item.title!, item.url!, item.seendate));
+  1367→}
+  1368→
+  1369→/**
+  1370→ * 🔴 FIX P2.2 — Extrae la imagen principal de una página HTML.
+  1371→ * Reutiliza la misma lógica que builtins.ts pero en este archivo.
+  1372→ */
+  1373→function extractMainImage(html: string, pageUrl: string): string | undefined {
+  1374→  const ogMatch = html.match(/<meta\s+(?:property|name)=["']og:image["']\s+content=["']([^"']+)["']/i)
+  1375→    ?? html.match(/<meta\s+content=["']([^"']+)["']\s+(?:property|name)=["']og:image["']/i);
+  1376→  if (ogMatch?.[1]) return resolveImageUrl(ogMatch[1], pageUrl);
+  1377→
+  1378→  const twMatch = html.match(/<meta\s+(?:property|name)=["']twitter:image["']\s+content=["']([^"']+)["']/i)
+  1379→    ?? html.match(/<meta\s+content=["']([^"']+)["']\s+(?:property|name)=["']twitter:image["']/i);
+  1380→  if (twMatch?.[1]) return resolveImageUrl(twMatch[1], pageUrl);
+  1381→
+  1382→  const linkMatch = html.match(/<link\s+rel=["']image_src["']\s+href=["']([^"']+)["']/i);
+  1383→  if (linkMatch?.[1]) return resolveImageUrl(linkMatch[1], pageUrl);
+  1384→
+  1385→  const contentBlock = html.match(/<(?:article|main)\b[^>]*>([\s\S]*?)<\/(?:article|main)>/i)?.[1] ?? html;
+  1386→  const imgMatches = contentBlock.matchAll(/<img\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi);
+  1387→  for (const m of imgMatches) {
+  1388→    const src = m[1];
+  1389→    if (isValidContentImage(src)) {
+  1390→      return resolveImageUrl(src, pageUrl);
+  1391→    }
+  1392→  }
+  1393→  return undefined;
+  1394→}
+  1395→
+  1396→function isValidContentImage(src: string): boolean {
+  1397→  if (!src) return false;
+  1398→  const lower = src.toLowerCase();
+  1399→  if (lower.startsWith("data:")) return false;
+  1400→  if (/\b(logo|icon|avatar|sprite|placeholder|blank|spacer|pixel|favicon|tracking|beacon|1x1)\b/i.test(lower)) return false;
+  1401→  if (lower.endsWith(".svg") || lower.endsWith(".gif")) return false;
+  1402→  if (/(google-analytics|doubleclick|facebook\.com\/tr|pixel\.)/i.test(lower)) return false;
+  1403→  if (/[?&](w|h|width|height)=(\d{1,2})\b/i.test(lower)) {
+  1404→    const sizeMatch = lower.match(/[?&](w|h|width|height)=(\d{1,2})\b/i);
+  1405→    if (sizeMatch && parseInt(sizeMatch[2]) < 100) return false;
+  1406→  }
+  1407→  return true;
+  1408→}
+  1409→
+  1410→function resolveImageUrl(src: string, baseUrl: string): string {
+  1411→  try {
+  1412→    if (/^https?:\/\//i.test(src)) return src;
+  1413→    if (src.startsWith("//")) {
+  1414→      const proto = baseUrl.match(/^(https?)/i)?.[1] ?? "https";
+  1415→      return `${proto}:${src}`;
+  1416→    }
+  1417→    if (src.startsWith("/")) {
+  1418→      const origin = baseUrl.match(/^(https?:\/\/[^/]+)/i)?.[1];
+  1419→      if (origin) return `${origin}${src}`;
+  1420→    }
+  1421→    const base = baseUrl.replace(/[^/]*$/, "");
+  1422→    return `${base}${src}`;
+  1423→  } catch {
+  1424→    return src;
+  1425→  }
+  1426→}
+  1427→
+  1428→async function fetchPageContent(url: string, maxChars = 1200): Promise<{ text: string; imageUrl?: string }> {
+  1429→  try {
+  1430→    const res = await fetchWithTimeout(url, { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" } }, 15_000);
+  1431→    const html = await res.text();
+  1432→
+  1433→    // 🔴 FIX P2.2: extraer imagen principal
+  1434→    const imageUrl = extractMainImage(html, url);
+  1435→
+  1436→    // Extraer contenido principal: intentar <article>, luego <main>, luego clases comunes
+  1437→    let contentHtml = html;
+  1438→    const articleMatch = html.match(/<article\b[^>]*>([\s\S]*?)<\/article>/i);
+  1439→    if (articleMatch) {
+  1440→      contentHtml = articleMatch[1];
+  1441→    } else {
+  1442→      const mainMatch = html.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i);
+  1443→      if (mainMatch) {
+  1444→        contentHtml = mainMatch[1];
+  1445→      } else {
+  1446→        const classMatch = html.match(/<(?:div|section)\b[^>]*\b(?:class|id)="(?:entry-content|article-body|post-content|story-body|content-body|texto-nota|nota-content|article__content|main-content|nota-texto|content-text)[^"]*"[^>]*>([\s\S]*?)<\/\1>/i);
+  1447→        if (classMatch) {
+  1448→          contentHtml = classMatch[2] ?? classMatch[1];
+  1449→        }
+  1450→      }
+  1451→    }
+  1452→
+  1453→    // Si no encontramos nada semántico, buscar la zona con más <p> consecutivos
+  1454→    if (contentHtml === html) {
+  1455→      const pMatches = html.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi);
+  1456→      const paragraphs: string[] = [];
+  1457→      for (const m of pMatches) {
+  1458→        const text = m[1].replace(/<[^>]+>/g, " ").trim();
+  1459→        if (text.length > 40) paragraphs.push(text);
+  1460→      }
+  1461→      if (paragraphs.length > 0) {
+  1462→        contentHtml = paragraphs.slice(0, 8).join(" ");
+  1463→      }
+  1464→    }
+  1465→
+  1466→    const text = contentHtml
+  1467→      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+  1468→      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
+  1469→      .replace(/<[^>]+>/g, " ")
+  1470→      .replace(/\s+/g, " ")
+  1471→      .trim();
+  1472→    return { text: text.slice(0, maxChars), imageUrl };
+  1473→  } catch {
+  1474→    return { text: "" };
+  1475→  }
+  1476→}
+  1477→
+  1478→export async function runSearch(
+  1479→  args: Record<string, unknown>,
+  1480→  shopping = false,
+  1481→  extractorCtx?: { userInput: string; chatFn: ExtractorChatFn; onDeferredChunk?: (block: UiBlock) => void },
+  1482→): Promise<SearchData> {
+  1483→  const query = cleanText(args.query, "noticias importantes hoy");
+  1484→  const mode = shopping ? "shopping" : cleanText(args.mode, "research") as SearchData["mode"];
+  1485→  const expanded = mode === "world"
+  1486→    ? `${query} ultimos 30 dias tendencias`
+  1487→    : mode === "news"
+  1488→      ? `${query} noticias recientes`
+  1489→      : shopping
+  1490→        ? `${query} precio opiniones entrega`
+  1491→        : query;
+  1492→  const gdelt = mode === "news" || mode === "world" ? await searchGdelt(expanded).catch(() => []) : [];
+  1493→  const duck = gdelt.length ? [] : await searchDuckDuckGo(expanded).catch(() => []);
+  1494→  let sources = [...gdelt, ...duck].slice(0, 6);
+  1495→  const comparisonItems = shopping
+  1496→    ? sources.slice(0, 4).map((source, index) => ({
+  1497→        title: source.title,
+  1498→        vendor: source.domain,
+  1499→        url: source.url,
+  1500→        evidence: source.snippet,
+  1501→        score: Math.max(55, 88 - index * 8),
+  1502→      }))
+  1503→    : undefined;
+  1504→
+  1505→  // Scrape content from first 3 sources for synthesis
+  1506→  // 🔴 FIX P2.2: ahora también extrae la imagen principal de cada página
+  1507→  for (let i = 0; i < Math.min(sources.length, 3); i++) {
+  1508→    const pageData = await fetchPageContent(sources[i].url, 1200);
+  1509→    sources[i].content = pageData.text;
+  1510→    if (pageData.imageUrl) {
+  1511→      sources[i].imageUrl = pageData.imageUrl;
+  1512→    }
+  1513→  }
+  1514→
+  1515→  // ── Extracción de estructura validada (NO BLOQUEANTE) ──
+  1516→  // runSearch devuelve inmediatamente con los sources (web_nav). La extracción
+  1517→  // corre como promesa diferida que el llamador espera EN PARALELO con la
+  1518→  // composición del reply. Así el extractor (~11s) queda oculto detrás del
+  1519→  // Composer, no suma latencia al turno. Si encuentra datos validados, se
+  1520→  // convierten en un data_card que se adjunta al resultado final.
+  1521→  let deferredDataCard: Promise<UiBlock | null> | undefined;
+  1522→  if (extractorCtx && !shopping && sources.length > 0) {
+  1523→    const sourcesCopy = sources.map((s) => ({ ...s }));
+  1524→    const userInput = extractorCtx.userInput;
+  1525→    const chatFn = extractorCtx.chatFn;
+  1526→    const extractStart = Date.now();
+  1527→    deferredDataCard = (async (): Promise<UiBlock | null> => {
+  1528→      try {
+  1529→        const extracted = await extractStructuredData({ userInput, sources: sourcesCopy, chatFn });
+  1530→        logger.info("runSearch", "Structure extraction (deferred)", {
+  1531→          extracted: extracted ? `${extracted.items.length} items` : "none",
+  1532→          durationMs: Date.now() - extractStart,
+  1533→        });
+  1534→        if (!extracted || extracted.items.length === 0) return null;
+  1535→        return {
+  1536→          type: "data_card" as const,
+  1537→          title: extracted.title,
+  1538→          items: extracted.items.map((it) => ({
+  1539→            label: it.label,
+  1540→            value: it.value,
+  1541→            detail: it.detail,
+  1542→            quote: it.quote,
+  1543→            sourceUrl: it.sourceUrl,
+  1544→            sourceDomain: it.sourceDomain,
+  1545→          })),
+  1546→        };
+  1547→      } catch (err: any) {
+  1548→        logger.warn("runSearch", "Deferred structure extraction failed (non-fatal)", { reason: err?.message });
+  1549→        return null;
+  1550→      }
+  1551→    })();
+  1552→  }
+  1553→
+  1554→  return {
+  1555→    type: "search",
+  1556→    mode,
+  1557→    title: shopping ? "Comparativa" : mode === "news" ? "Noticias importantes" : mode === "world" ? "El mundo esta hablando de esto" : "Busqueda",
+  1558→    summary: sources.length ? "" : "No pude conseguir fuentes útiles con los conectores abiertos. No inventes resultados.",
+  1559→    sources,
+  1560→    comparisonItems,
+  1561→    deferredDataCard,
+  1562→  };
+  1563→}
+  1564→
+  1565→export function planFromState(state: KoruState, args: Record<string, unknown>): PlanData {
+  1566→  const openCommitments = (Array.isArray(state.commitments) ? state.commitments : []).filter((item) => item && item.status === "open").slice(0, 5);
+  1567→  const recentRecords = (Array.isArray(state.records) ? state.records : []).slice(0, 5);
+  1568→  const focus = cleanText(args.focus, "ordenar el dia");
+  1569→  const candidates = openCommitments.length
+  1570→    ? openCommitments.map((item) => item.title)
+  1571→    : recentRecords.length
+  1572→      ? recentRecords.map((item) => item.title)
+  1573→      : [focus, "Elegir el primer paso", "Cerrar con una accion chica"];
+  1574→  const items: AssistantPlanItem[] = candidates.slice(0, 4).map((title, index) => ({
+  1575→    time: index === 0 ? "Ahora" : index === 1 ? "+25m" : index === 2 ? "+50m" : "+75m",
+  1576→    title: index === 0 ? `Primer paso: ${title}` : title,
+  1577→    priority: index === 0 ? "Alta" : index === 1 ? "Media" : "Baja",
+  1578→    durationMinutes: index === 0 ? 25 : 15,
+  1579→    mode: index === 0 ? "focus" : "quick",
+  1580→    rationale: index === 0 ? "Empieza por lo que mas reduce carga mental." : "Lo dejo chico para que no bloquee.",
+  1581→  }));
+  1582→  return {
+  1583→    type: "plan",
+  1584→    title: "Plan accionable",
+  1585→    items,
+  1586→    context: [
+  1587→      ...openCommitments.map((item) => `Pendiente: ${item.title} (${item.dueHint})`),
+  1588→      ...recentRecords.map((item) => `Dato: ${item.title}`),
+  1589→    ].slice(0, 8),
+  1590→  };
+  1591→}
+  1592→
+  1593→export function localReminderFromArgs(args: Record<string, unknown>, input = ""): LocalActionData {
+  1594→  const title = cleanText(args.title, input || "Recordatorio");
+  1595→  const dueText = cleanText(args.dueText ?? args.dueHint ?? args.startsAt, "sin fecha");
+  1596→  const note = cleanText(args.note);
+  1597→  return {
+  1598→    type: "local_action",
+  1599→    requiresApproval: true,
+  1600→    block: {
+  1601→      type: "reminder",
+  1602→      title,
+  1603→      dueText,
+  1604→      note,
+  1605→    },
+  1606→    commitments: [{ title, dueHint: dueText, status: "open" }],
+  1607→    records: [{
+  1608→      domain: "capture",
+  1609→      kind: "deadline",
+  1610→      title,
+  1611→      value: title,
+  1612→      dueHint: dueText,
+  1613→      notes: note,
+  1614→    }],
+  1615→  };
+  1616→}
+  1617→
+  1618→export function localAlarmFromArgs(args: Record<string, unknown>, input = ""): LocalActionData {
+  1619→  const title = cleanText(args.title, input || "Alarma");
+  1620→  const time = cleanText(args.time ?? args.startsAt ?? args.hour) || timeFromText(`${title} ${cleanText(args.note)} ${cleanText(args.dueText)}`) || "hora pendiente";
+  1621→  const repeat = cleanText(args.repeat);
+  1622→  const note = cleanText(args.note);
+  1623→  return {
+  1624→    type: "local_action",
+  1625→    requiresApproval: true,
+  1626→    block: {
+  1627→      type: "alarm",
+  1628→      title,
+  1629→      time,
+  1630→      repeat,
+  1631→      note,
+  1632→    },
+  1633→    commitments: [{ title, dueHint: time, status: "open" }],
+  1634→    records: [{
+  1635→      domain: "capture",
+  1636→      kind: "deadline",
+  1637→      title,
+  1638→      value: title,
+  1639→      dueHint: time,
+  1640→      notes: note,
+  1641→    }],
+  1642→  };
+  1643→}
+  1644→
+  1645→function isRecordInPeriod(record: LifeRecord, period: string): boolean {
+  1646→  const normalized = plainLower(period);
+  1647→  if (!normalized || !record.createdAt) return true;
+  1648→  const created = new Date(record.createdAt);
+  1649→  if (Number.isNaN(created.getTime())) return true;
+  1650→  const now = new Date();
+  1651→  const ageMs = now.getTime() - created.getTime();
+  1652→  if (/\bhoy|today\b/.test(normalized)) return ageMs >= 0 && ageMs <= 36 * 60 * 60 * 1000;
+  1653→  if (/\bsemana|week\b/.test(normalized)) return ageMs >= 0 && ageMs <= 8 * 24 * 60 * 60 * 1000;
+  1654→  if (/\bmes|month\b/.test(normalized)) return ageMs >= 0 && ageMs <= 32 * 24 * 60 * 60 * 1000;
+  1655→  return true;
+  1656→}
+  1657→
+  1658→function rowsFromRecords(records: LifeRecord[]): NonNullable<Extract<UiBlock, { type: "activity_group" }>["sections"][number]["rows"]> {
+  1659→  return records.slice(0, 8).map((record) => ({
+  1660→    title: record.title,
+  1661→    detail: [record.value && record.value !== record.title ? record.value : undefined, record.notes].filter(Boolean).join(" - "),
+  1662→    meta: [record.person, record.dueHint, record.amount !== undefined ? `${record.amount} ${record.currency || ""}`.trim() : undefined].filter(Boolean).join(" · "),
+  1663→    actionLabel: record.url ? "Abrir" : undefined,
+  1664→  }));
+  1665→}
+  1666→
+  1667→function emptyContextBlock(title: string, _note: string): Extract<UiBlock, { type: "activity_group" }> {
+  1668→  return {
+  1669→    type: "activity_group",
+  1670→    title,
+  1671→    subtitle: "No tengo datos guardados para eso todavia.",
+  1672→    sections: [
+  1673→      {
+  1674→        title: "Siguiente paso",
+  1675→        tone: "neutral",
+  1676→        rows: [{ title: _note }],
+  1677→      },
+  1678→    ],
+  1679→    note: _note,
+  1680→  };
+  1681→}
+  1682→
+  1683→function recordSearchText(record: LifeRecord): string {
+  1684→  return [
+  1685→    record.kind,
+  1686→    record.domain,
+  1687→    record.title,
+  1688→    record.value,
+  1689→    record.notes,
+  1690→    record.url,
+  1691→    record.collection,
+  1692→    record.person,
+  1693→    ...(record.tags ?? []),
+  1694→  ].filter(Boolean).join(" ");
+  1695→}
+  1696→
+  1697→function queryTokens(query: string): string[] {
+  1698→  return plainLower(query)
+  1699→    .replace(/[^\p{L}\p{N}\s:/._-]+/gu, " ")
+  1700→    .split(/\s+/)
+  1701→    .map((token) => token.trim())
+  1702→    .filter((token) => token.length > 1 && !["que", "con", "por", "sin", "mas", "los", "las", "del", "una", "uno", "mis", "tengo", "sobre", "guarde", "guardado", "guardaste"].includes(token));
+  1703→}
+  1704→
+  1705→function semanticRecordMatches(records: LifeRecord[], query: string, limit = 8): LifeRecord[] {
+  1706→  const tokens = queryTokens(query);
+  1707→  if (!tokens.length) return [];
+  1708→  return records
+  1709→    .map((record) => {
+  1710→      const haystack = plainLower(recordSearchText(record));
+  1711→      const score = tokens.reduce((sum, token) => sum + (haystack.includes(token) ? 1 : 0), 0);
+  1712→      return { record, score };
+  1713→    })
+  1714→    .filter((item) => item.score > 0)
+  1715→    .sort((a, b) => b.score - a.score)
+  1716→    .map((item) => item.record)
+  1717→    .slice(0, limit);
+  1718→}
+  1719→
+  1720→function uniqueLifeRecords(records: LifeRecord[]): LifeRecord[] {
+  1721→  const seen = new Set<string>();
+  1722→  return records.filter((record) => {
+  1723→    const key = `${record.id}|${record.domain}|${record.kind}|${plainLower(record.title)}|${plainLower(record.value ?? "")}|${plainLower(record.url ?? "")}`;
+  1724→    if (seen.has(key)) return false;
+  1725→    seen.add(key);
+  1726→    return true;
+  1727→  });
+  1728→}
+  1729→
+  1730→export function queryPersonalContextFromState(state: KoruState, args: Record<string, unknown>): PersonalQueryData {
+  1731→  const topic = cleanText(args.topic, "general");
+  1732→  const query = cleanText(args.query, cleanText(args.__userInput));
+  1733→  const period = cleanText(args.period);
+  1734→  const records = (Array.isArray(state.records) ? state.records : []).filter((record) => isRecordInPeriod(record, period));
+  1735→
+  1736→  if (topic === "expenses") {
+  1737→    const expenses = records.filter((record) => record.kind === "expense");
+  1738→    if (!expenses.length) {
+  1739→      return {
+  1740→        type: "personal_query",
+  1741→        block: {
+  1742→          type: "money_summary",
+  1743→          title: "Gastos",
+  1744→          summaryItems: [{ label: "Registros", value: "0" }],
+  1745→          recommendation: "No tengo gastos guardados para ese periodo. Si me decis uno, lo anoto y despues puedo sumarlo.",
+  1746→        },
+  1747→      };
+  1748→    }
+  1749→    const currency = expenses.find((record) => record.currency)?.currency || "EUR";
+  1750→    const withAmount = expenses.filter((record) => typeof record.amount === "number");
+  1751→    const total = withAmount.reduce((sum, record) => sum + (record.amount ?? 0), 0);
+  1752→    return {
+  1753→      type: "personal_query",
+  1754→      block: {
+  1755→        type: "money_summary",
+  1756→        title: "Gastos registrados",
+  1757→        total: withAmount.length ? Number(total.toFixed(2)) : undefined,
+  1758→        currency,
+  1759→        summaryItems: [
+  1760→          { label: "Con monto", value: String(withAmount.length), detail: `${expenses.length} registro(s) en total` },
+  1761→          ...(expenses.length - withAmount.length > 0 ? [{ label: "Sin monto", value: String(expenses.length - withAmount.length), detail: "Los cuento, pero no los sumo." }] : []),
+  1762→        ],
+  1763→        recommendation: withAmount.length
+  1764→          ? `Tengo registrado ${Number(total.toFixed(2))} ${currency} en ${withAmount.length} gasto(s).`
+  1765→          : "Tengo gastos guardados, pero sin monto. No invento el total.",
+  1766→      },
+  1767→    };
+  1768→  }
+  1769→
+  1770→  if (topic === "food_inventory") {
+  1771→    const food = records.filter((record) => record.kind === "meal_inventory");
+  1772→    if (!food.length) return { type: "personal_query", block: { type: "saved_record", title: "Comida en casa", records: [] } };
+  1773→    return {
+  1774→      type: "personal_query",
+  1775→      block: {
+  1776→        type: "activity_group",
+  1777→        title: "Comida en casa",
+  1778→        subtitle: `Tengo ${food.length} cosa(s) guardadas.`,
+  1779→        sections: [
+  1780→          {
+  1781→            title: "Disponible",
+  1782→            tone: "green",
+  1783→            tiles: food.slice(0, 6).map((record) => ({
+  1784→              kind: "food" as const,
+  1785→              label: "En casa",
+  1786→              value: record.title,
+  1787→              detail: record.notes || record.value,
+  1788→            })),
+  1789→          },
+  1790→          {
+  1791→            title: "Ideas rapidas",
+  1792→            tone: "amber",
+  1793→            rows: [{ title: `Con ${food.slice(0, 3).map((record) => record.title).join(", ")} podes armar algo simple sin comprar primero.` }],
+  1794→          },
+  1795→        ],
+  1796→      },
+  1797→    };
+  1798→  }
+  1799→
+  1800→  if (topic === "shopping_list") {
+  1801→    const shopping = records.filter((record) => record.kind === "shopping_item");
+  1802→    if (!shopping.length) return { type: "personal_query", block: emptyContextBlock("Compras", "No tengo una lista de compras activa guardada.") };
+  1803→    const items = shopping.map((record) => record.title).filter(Boolean).slice(0, 30);
+  1804→    return {
+  1805→      type: "personal_query",
+  1806→      block: {
+  1807→        type: "shopping_list",
+  1808→        title: "Lista del super",
+  1809→        items,
+  1810→        note: "La arme desde tus pendientes guardados.",
+  1811→      },
+  1812→    };
+  1813→  }
+  1814→
+  1815→  if (topic === "pending_tasks") {
+  1816→    const open = (Array.isArray(state.commitments) ? state.commitments : []).filter((item) => item && item.status === "open").slice(0, 8);
+  1817→    if (!open.length) return { type: "personal_query", block: emptyContextBlock("Pendientes", "No veo pendientes abiertos. Si queres, tirame una descarga de cosas y las ordeno.") };
+  1818→    return {
+  1819→      type: "personal_query",
+  1820→      block: {
+  1821→        type: "plan",
+  1822→        title: "Pendientes abiertos",
+  1823→        items: open.map((item, index) => ({
+  1824→          time: index === 0 ? "Ahora" : undefined,
+  1825→          title: item.title,
+  1826→          priority: index === 0 ? "Alta" : index < 3 ? "Media" : "Baja",
+  1827→          durationMinutes: index === 0 ? 25 : 10,
+  1828→          mode: index === 0 ? "focus" : "quick",
+  1829→          rationale: item.dueHint,
+  1830→        })),
+  1831→        note: "Los ordene desde lo que Koru tiene guardado.",
+  1832→      },
+  1833→    };
+  1834→  }
+  1835→
+  1836→  const kindByTopic: Record<string, LifeRecord["kind"][]> = {
+  1837→    saved_links: ["tool_link"],
+  1838→    health: ["medication", "medical_info", "sleep"],
+  1839→    relationships: ["person_followup", "gift", "birthday"],
+  1840→    memory: [],
+  1841→    general: ["idea", "recommendation", "deadline", "home_task", "meeting_note", "decision"],
+  1842→  };
+  1843→
+  1844→  if (topic === "memory") {
+  1845→    const useful = (Array.isArray(state.memories) ? state.memories : [])
+  1846→      .filter((memory) => memory && memory.status !== "rejected" && memory.useForSuggestions !== false)
+  1847→      .slice(0, 8);
+  1848→    if (!useful.length) return { type: "personal_query", block: { type: "saved_record", title: "Memoria", records: [] } };
+  1849→    return {
+  1850→      type: "personal_query",
+  1851→      block: {
+  1852→        type: "activity_group",
+  1853→        title: "Lo que tengo presente",
+  1854→        subtitle: `${useful.length} recuerdo(s) utiles.`,
+  1855→        sections: [
+  1856→          {
+  1857→            title: "Memoria",
+  1858→            tone: "purple",
+  1859→            rows: useful.map((memory) => ({
+  1860→              title: memory.text,
+  1861→              meta: memory.kind,
+  1862→              detail: memory.rootQuote,
+  1863→            })),
+  1864→          },
+  1865→        ],
+  1866→      },
+  1867→    };
+  1868→  }
+  1869→
+  1870→  if (topic === "relationships") {
+  1871→    const relationshipRecords = records.filter((record) => ["person_followup", "gift", "birthday"].includes(record.kind));
+  1872→    const relationshipMemories = (Array.isArray(state.memories) ? state.memories : [])
+  1873→      .filter((memory) => memory && memory.status !== "rejected" && memory.useForSuggestions !== false)
+  1874→      .filter((memory) => memory.kind === "relationship" || semanticRecordMatches([{
+  1875→        id: memory.id,
+  1876→        domain: "relationship",
+  1877→        kind: "person_followup",
+  1878→        title: memory.text,
+  1879→        value: memory.rootQuote,
+  1880→        createdAt: memory.createdAt,
+  1881→        sourceEntryId: memory.sourceEntryId,
+  1882→      }], query, 1).length > 0)
+  1883→      .slice(0, 8);
+  1884→    const semanticRelationships = semanticRecordMatches(records, query).filter((record) => record.domain === "relationship" || ["person_followup", "gift", "birthday"].includes(record.kind));
+  1885→    const finalRecords = uniqueLifeRecords([...relationshipRecords, ...semanticRelationships]).slice(0, 8);
+  1886→    if (!finalRecords.length && !relationshipMemories.length) {
+  1887→      return { type: "personal_query", block: emptyContextBlock("Relaciones", "No encontre datos guardados sobre esa persona todavia.") };
+  1888→    }
+  1889→    return {
+  1890→      type: "personal_query",
+  1891→      block: {
+  1892→        type: "activity_group",
+  1893→        title: "Relaciones",
+  1894→        subtitle: `${finalRecords.length + relationshipMemories.length} dato(s) para tener en cuenta.`,
+  1895→        sections: [
+  1896→          ...(finalRecords.length ? [{
+  1897→            title: "Guardado",
+  1898→            tone: "purple" as const,
+  1899→            rows: rowsFromRecords(finalRecords),
+  1900→          }] : []),
+  1901→          ...(relationshipMemories.length ? [{
+  1902→            title: "Memoria",
+  1903→            tone: "purple" as const,
+  1904→            rows: relationshipMemories.map((memory) => ({
+  1905→              title: memory.text,
+  1906→              detail: memory.rootQuote,
+  1907→              meta: memory.kind,
+  1908→            })),
+  1909→          }] : []),
+  1910→        ],
+  1911→      },
+  1912→    };
+  1913→  }
+  1914→
+  1915→  const acceptedKinds = kindByTopic[topic] ?? kindByTopic.general;
+  1916→  const queryLower = plainLower(query);
+  1917→  const semanticMatches = semanticRecordMatches(records, query);
+  1918→  const matching = topic === "saved_links"
+  1919→    ? records.filter((record) =>
+  1920→        record.kind === "tool_link" ||
+  1921→        Boolean(record.url) ||
+  1922→        Boolean(record.collection && queryLower.includes(plainLower(record.collection))) ||
+  1923→        Boolean(record.tags?.some((tag) => queryLower.includes(plainLower(tag))))
+  1924→      )
+  1925→    : topic === "general"
+  1926→      ? (query ? [] : records)
+  1927→      : acceptedKinds.length ? records.filter((record) => acceptedKinds.includes(record.kind)) : records;
+  1928→  const finalMatches = uniqueLifeRecords([...matching, ...semanticMatches]).slice(0, 8);
+  1929→  if (!finalMatches.length) return { type: "personal_query", block: { type: "saved_record", title: "Contexto guardado", records: [] } };
+  1930→  return {
+  1931→    type: "personal_query",
+  1932→    block: {
+  1933→      type: "activity_group",
+  1934→      title: topic === "saved_links" ? "Enlaces guardados" : topic === "health" ? "Salud" : topic === "relationships" ? "Relaciones" : "Contexto guardado",
+  1935→      subtitle: `${finalMatches.length} dato(s) encontrados.`,
+  1936→      sections: [
+  1937→        {
+  1938→          title: "Guardado",
+  1939→          tone: topic === "health" ? "blue" : topic === "relationships" ? "purple" : "neutral",
+  1940→          rows: rowsFromRecords(finalMatches),
+  1941→        },
+  1942→      ],
+  1943→    },
+  1944→  };
+  1945→}
+  1946→
+  1947→function inputMentionsValue(input: string, value: string): boolean {
+  1948→  if (!value) return false;
+  1949→  return plainLower(input).includes(plainLower(value));
+  1950→}
+  1951→
+  1952→function argsWithCaptureHygiene(args: Record<string, unknown>, input: string): Record<string, unknown> {
+  1953→  const next = { ...args };
+  1954→  let uiBlockType = cleanText(next.uiBlockType);
+  1955→  let recordKind = cleanText(next.recordKind);
+  1956→  const collection = cleanText(next.collection);
+  1957→  const title = cleanText(next.title);
+  1958→  const items = asArray(next.items).map((item) => cleanText(item)).filter(Boolean);
+  1959→  const inputLower = plainLower(input);
+  1960→
+  1961→  if (collection && !inputMentionsValue(input, collection) && !/\b(esa|ahi|alli|misma|mismo|carpeta|coleccion)\b/i.test(inputLower)) {
+  1962→    delete next.collection;
+  1963→  }
+  1964→
+  1965→  if (uiBlockType === "shopping_list" || recordKind === "shopping_item") {
+  1966→    next.uiBlockType = "shopping_list";
+  1967→    next.recordKind = "shopping_item";
+  1968→    next.domain = "home";
+  1969→    uiBlockType = "shopping_list";
+  1970→    recordKind = "shopping_item";
+  1971→    if (!items.length && title) next.items = [title];
+  1972→    if (!inputMentionsValue(input, cleanText(next.collection))) delete next.collection;
+  1973→  }
+  1974→
+  1975→  if (recordKind === "meal_inventory") {
+  1976→    next.uiBlockType = "saved_record";
+  1977→    next.recordKind = "meal_inventory";
+  1978→    next.domain = "home";
+  1979→    uiBlockType = "saved_record";
+  1980→    recordKind = "meal_inventory";
+  1981→  }
+  1982→
+  1983→  if ((uiBlockType === "money_summary" || recordKind === "expense") && asArray(next.expenses).length) {
+  1984→    next.uiBlockType = "money_summary";
+  1985→    next.recordKind = "expense";
+  1986→    next.domain = "money";
+  1987→    uiBlockType = "money_summary";
+  1988→    recordKind = "expense";
+  1989→  }
+  1990→
+  1991→  return next;
+  1992→}
+  1993→
+  1994→export function memoryCaptureFromArgs(args: Record<string, unknown>, input = ""): MemoryCaptureData {
+  1995→  const memories = asArray(args.memories).map(asRecord).map((item) => {
+  1996→    const kind = ["profile", "routine", "preference", "goal", "relationship", "boundary", "retail", "wellbeing", "task"].includes(cleanText(item.kind))
+  1997→      ? cleanText(item.kind) as MemoryFact["kind"]
+  1998→      : "profile";
+  1999→    const sensitivity = cleanText(item.sensitivity) === "sensitive" ? "sensitive" as const : "normal" as const;
+  2000→    return {
+
+[showing lines 1-2000 of 6250; use offset=2001 with limit to continue reading]

@@ -886,10 +886,10 @@ export function toggleChecklistItem(state: KoruState, checklistId: string, itemI
 }
 
 // ─── Habits ───
-export function createHabit(state: KoruState, label: string, icon: string, cadence: Habit["cadence"], target: number, unit?: string, anchorTime?: string): KoruState {
+export function createHabit(state: KoruState, label: string, icon: string, cadence: Habit["cadence"], target: number, unit?: string, anchorTime?: string, id?: string): KoruState {
   const now = nowIso();
   const habit: Habit = {
-    id: createId("habit"),
+    id: id ?? createId("habit"),
     label, icon, cadence, target, unit, anchorTime,
     active: true,
     createdAt: now,

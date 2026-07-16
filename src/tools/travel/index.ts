@@ -1,7 +1,12 @@
 /**
- * Bloque Travel — barrel de 10 tools (exporta el array travelTools).
+ * Bloque Travel — barrel de 11 tools (exporta el array travelTools).
  * También re-exporta el planner de rutas (Google Maps) para que otras tools
  * puedan enriquecer el `route_map` UiBlock con steps y alternatives.
+ *
+ * `routePlanner` (travelPlanner.ts) envuelve `fetchRoute` con la Directions API
+ * de Google y devuelve `type: "route_plan_search"` con steps + alternatives +
+ * trafficLevel + fuelEstimate. Diferencia con `routePlan` (travel.ts, OSRM
+ * sin API key): más rico, pero requiere `GOOGLE_MAPS_KEY`.
  */
 
 import {
@@ -16,12 +21,14 @@ import {
   weatherTravel,
   languagePhrase,
 } from "./travel";
+import { routePlanner } from "./travelPlanner";
 
 export {
   fetchRoute,
   formatDistance,
   formatDuration,
   trafficLabel,
+  routePlanner,
   type RouteResult,
   type RouteStep,
   type TravelMode,
@@ -33,6 +40,7 @@ export const travelTools = [
   flightTrack,
   hotelSearch,
   routePlan,
+  routePlanner,
   transportNearby,
   currencyAtm,
   visaCheck,

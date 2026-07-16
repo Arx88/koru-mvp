@@ -54,6 +54,17 @@ export type DetailRow = {
   badgeTone?: "done" | "current" | "pending" | "urgent";
   // 🔴 v2: para stats comparativas con barras de equipo
   bar?: { homeValue: number; awayValue: number; isPercent: boolean; homeColor?: string; awayColor?: string };
+  // 🔴 TIER S: metadata para que KoruDetailScreen haga la fila tappable y
+  // dispare el reducer correcto (toggleShoppingItem / toggleChecklistItem).
+  // `planId/listId/checklistId` y `itemId/stepId` son ids sintéticos derivados
+  // del bloque (los UiBlock no traen ids propios); el handler en KoruProvider
+  // los pasa al reducer correspondiente.
+  toggle?: {
+    kind: "shopping_item" | "checklist_item";
+    listId?: string;
+    checklistId?: string;
+    itemId: string;
+  };
 };
 export type DetailChip = { label: string; sub?: string; color?: string };
 export type DetailScrollCard = {
@@ -73,6 +84,15 @@ export type DetailStep = {
   status?: "done" | "current" | "pending";
   badge?: string;
   badgeTone?: "done" | "current" | "pending" | "urgent";
+  // 🔴 TIER S: metadata para que KoruDetailScreen haga el paso tappable y
+  // dispare togglePlanStep. `planId` y `stepId` son sintéticos (derivados del
+  // título del bloque + índice del paso) porque los UiBlock `plan` no traen
+  // ids propios. El handler en KoruProvider los pasa al reducer.
+  toggle?: {
+    kind: "plan_step";
+    planId: string;
+    stepId: string;
+  };
 };
 export type DetailSourceRef = {
   title: string;
@@ -154,6 +174,20 @@ type Of<T extends UiBlock["type"]> = Extract<UiBlock, { type: T }>;
 
 const up = (s: string) => s.toUpperCase();
 const clean = (s?: string) => (s ?? "").trim();
+
+/** 🔴 TIER S: slug para generar ids sintéticos estables a partir de un título
+ *  de UiBlock. Se usa en shoppingList / smartChecklist / planFallback para que
+ *  los toggles de KoruDetailScreen puedan referenciar la entidad durable
+ *  correspondiente (mismo slug → mismo id). */
+function slug(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 48) || "untitled";
+}
 
 function sourcesToRefs(sources?: AssistantSource[]): DetailSourceRef[] {
   return (sources ?? []).slice(0, 8).map((s) => ({
@@ -598,6 +632,10 @@ function shoppingList(b: Of<"shopping_list">): KoruPresentation {
   if (hasMore) {
     metrics.push({ icon: "more_horiz", label: `+${items.length - 3} más`, color: A.amber.color });
   }
+  // 🔴 TIER S: id sintético del ShoppingList correspondiente a este bloque.
+  // Se deriva del título (slug) para que toggleShoppingItem pueda encontrar
+  // la lista durable si fue creada con el mismo slug.
+  const listId = `shoplist_${slug(clean(b.title) || "compras")}`;
   return {
     hero: {
       kicker: "Tu Lista",
@@ -618,11 +656,13 @@ function shoppingList(b: Of<"shopping_list">): KoruPresentation {
               accent: A.amber,
               title: "Ítems",
               rows: items.map((it) => ({
-                icon: "check_box_outline_blank",
+                icon: b.checked?.includes(it) ? "check_box" : "check_box_outline_blank",
                 title: it,
                 meta: b.quantities?.[it] ? `x${b.quantities[it]}` : undefined,
                 badgeTone: b.checked?.includes(it) ? "done" : undefined,
                 badge: b.checked?.includes(it) ? "Listo" : undefined,
+                // 🔴 TIER S: toggle → toggleShoppingItem(listId, itemId=it)
+                toggle: { kind: "shopping_item", listId, itemId: it },
               })),
             },
           ],
@@ -2599,6 +2639,10 @@ function socialInteraction(b: Of<"social_interaction">): KoruPresentation {
 function smartChecklist(b: Of<"smart_checklist">): KoruPresentation {
   const items = b.items ?? [];
   const done = items.filter((i) => i.checked).length;
+  // 🔴 TIER S: id sintético del Checklist durable. Misma convención de slug
+  // que createChecklist en KoruProvider: si el usuario crea un checklist desde
+  // CreateScreen con el mismo título, el toggle acá lo encontrará.
+  const checklistId = `checklist_${slug(clean(b.title) || "lista")}`;
   return {
     hero: {
       kicker: "Tu Checklist",
@@ -2617,11 +2661,13 @@ function smartChecklist(b: Of<"smart_checklist">): KoruPresentation {
               icon: "checklist",
               accent: A.violet,
               title: "Tareas",
-              rows: items.map((it) => ({
+              rows: items.map((it, i) => ({
                 icon: it.checked ? "check_box" : "check_box_outline_blank",
                 title: it.label,
                 badge: it.checked ? "Listo" : undefined,
                 badgeTone: it.checked ? "done" : undefined,
+                // 🔴 TIER S: toggle → toggleChecklistItem(checklistId, itemId)
+                toggle: { kind: "checklist_item", checklistId, itemId: `citem_${slug(it.label)}_${i}` },
               })),
             },
           ],
@@ -2751,6 +2797,10 @@ function planFallback(b: Of<"plan">): KoruPresentation {
   const heroTitle = rawTitle && rawTitle.length > 1
     ? rawTitle
     : "Tu día";
+  // 🔴 TIER S: id sintético del Plan durable. Misma convención de slug que
+  // createPlan en KoruProvider: si el usuario crea un plan desde CreateScreen
+  // con el mismo título, el toggle acá lo encontrará.
+  const planId = `plan_${slug(rawTitle || "tu_dia")}`;
   return {
     hero: {
       kicker: "Tu Plan",
@@ -2773,7 +2823,7 @@ function planFallback(b: Of<"plan">): KoruPresentation {
               icon: "route",
               accent: A.violet,
               title: "Pasos",
-              steps: items.map((it) => ({
+              steps: items.map((it, i) => ({
                 // 🔴 FIX: icono específico del paso (no genérico route)
                 icon: it.icon || "schedule",
                 title: it.title,
@@ -2788,6 +2838,8 @@ function planFallback(b: Of<"plan">): KoruPresentation {
                 // 🔴 FIX: badge con priority (Alta/Media/Baja)
                 badge: it.priority,
                 badgeTone: it.priority === "Alta" ? "urgent" : it.priority === "Media" ? "current" : "pending",
+                // 🔴 TIER S: toggle → togglePlanStep(planId, stepId)
+                toggle: { kind: "plan_step", planId, stepId: `step_${slug(it.title)}_${i}` },
               })),
             },
           ],

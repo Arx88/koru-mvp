@@ -16,6 +16,7 @@
  */
 
 import { fetchJson } from "../shared/fetcher";
+import { defineTool, policies, type ToolHandler } from "../types";
 
 // ─── Tipos públicos ───────────────────────────────────────────────────────────
 
@@ -294,3 +295,98 @@ export function trafficLabel(level: TrafficLevel): string {
       return "Tráfico pesado";
   }
 }
+
+// ─── Tool `route_planner` (envoltura ToolHandler de `fetchRoute`) ─────────────
+
+/**
+ * ToolHandler que envuelve `fetchRoute` (Google Maps Directions API) y devuelve
+ * un `RouteResult` enriquecido con `type: "route_plan_search"` listo para mapear
+ * al UiBlock `route_map` con `steps`, `alternatives`, `trafficLevel` y
+ * `fuelEstimate`.
+ *
+ * Diferencia con `route_plan` (`travel.ts`, basado en OSRM sin API key):
+ * - Requiere `GOOGLE_MAPS_KEY` (devuelve `not_configured` si falta).
+ * - Devuelve pasos detallados (instructions, maneuver, distance, duration).
+ * - Devuelve rutas alternativas y nivel de tráfico real (light/moderate/heavy).
+ * - Para modo driving, estima combustible y CO2.
+ *
+ * Si no hay API key, el caller (koruBackend) puede caer al `route_plan` legacy.
+ */
+export const routePlanner: ToolHandler = {
+  definition: defineTool(
+    "route_planner",
+    "Calcula ruta real entre origen y destino con Google Maps Directions API. " +
+      "Úsala cuando el usuario necesite instrucciones paso a paso, tráfico real y " +
+      "rutas alternativas: 'cómo llego a Ezeiza con tráfico', 'ruta a la playa con " +
+      "alternativas', 'cuánto combustible gasto hasta Mar del Plata'. " +
+      "Devuelve steps (instrucciones de giro), alternatives, trafficLevel y fuelEstimate. " +
+      "Requiere GOOGLE_MAPS_KEY configurado.",
+    {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        origin: {
+          type: "string",
+          description: "Punto de origen (dirección o 'lat,lng').",
+        },
+        destination: {
+          type: "string",
+          description: "Destino (dirección o 'lat,lng').",
+        },
+        mode: {
+          type: "string",
+          enum: ["driving", "transit", "walking", "bicycling"],
+          description: "Modo de viaje. Default 'driving'.",
+        },
+      },
+      required: ["origin", "destination"],
+    },
+  ),
+  policy: policies.readonly("Llama a Google Maps Directions API (read-only)."),
+  async run(args) {
+    const origin = String(args.origin ?? "").trim();
+    const destination = String(args.destination ?? "").trim();
+    const modeRaw = String(args.mode ?? "driving").trim().toLowerCase();
+    const mode = (["driving", "transit", "walking", "bicycling"].includes(modeRaw)
+      ? modeRaw
+      : "driving") as TravelMode;
+    if (!origin || !destination) {
+      return {
+        type: "route_plan_search",
+        status: "failed",
+        error: "Indicá origen y destino.",
+      };
+    }
+    if (!process.env.GOOGLE_MAPS_KEY) {
+      return {
+        type: "route_plan_search",
+        status: "not_configured",
+        origin,
+        destination,
+        mode,
+        note: "Falta GOOGLE_MAPS_KEY. Caé al tool route_plan (OSRM) como fallback.",
+      };
+    }
+    try {
+      const route = await fetchRoute(origin, destination, mode);
+      return {
+        type: "route_plan_search",
+        status: "ok",
+        origin,
+        destination,
+        mode,
+        ...route,
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return {
+        type: "route_plan_search",
+        status: "failed",
+        origin,
+        destination,
+        mode,
+        error: msg,
+      };
+    }
+  },
+};

@@ -25,6 +25,12 @@ function KoruApp() {
     forgetMemory,
     exportData,
     deleteAllData,
+    // 🔴 TIER S: reducers wired a widgets del HomeScreen.
+    logWellbeing,
+    logHabit,
+    updateWeatherCache,
+    // 🔴 TIER S: addPerson — wired al sub-form "Personas" en SettingsScreen.
+    addPerson,
   } = useKoru();
   const [screen, setScreen] = useState<Screen>("chat");
 
@@ -69,6 +75,23 @@ function KoruApp() {
               onSearch={() => setScreen("chat")}
               onTalk={() => setScreen("chat")}
               onDismissNudge={dismissNudge}
+              // 🔴 TIER S: wiring de reducers a widgets del HomeScreen.
+              // - onLogWater → logWellbeing("water", ml, "ml") en KoruProvider.
+              // - onLogHabit → logHabit(habitId, 1) en KoruProvider.
+              // - onRefreshWeather → updateWeatherCache con el cache actual
+              //   pero fetchedAt = ahora (mark-as-fresh). El fetch real del
+              //   dato viene del agente via chat; acá sólo tocamos el cache
+              //   para que el botón haga algo visible.
+              onLogWater={(ml) => logWellbeing("water", ml, "ml")}
+              onLogHabit={(habitId) => logHabit(habitId, 1)}
+              onRefreshWeather={() => {
+                if (state.weatherCache) {
+                  updateWeatherCache({
+                    ...state.weatherCache,
+                    fetchedAt: new Date().toISOString(),
+                  });
+                }
+              }}
             />
           )}
           {screen === "memoria" && <MemoryScreen />}
@@ -88,6 +111,9 @@ function KoruApp() {
               onForgetMemory={(memoryId) => forgetMemory(memoryId)}
               onExportData={() => exportData()}
               onDeleteAllData={() => deleteAllData()}
+              // 🔴 TIER S: wiring de addPerson — SettingsScreen lo invoca desde
+              // el sub-form "Personas" bajo Perfil.
+              onAddPerson={(name, relationship, birthday) => addPerson(name, relationship, birthday)}
               onClose={() => setScreen("chat")}
             />
           )}

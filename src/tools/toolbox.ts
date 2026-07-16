@@ -18,6 +18,7 @@ import { sportsTools } from "./sports";
 import { foodTools } from "./food";
 import { travelTools } from "./travel";
 import { trendingTools } from "./trending";
+import { newsTools } from "./news";
 import { peopleTools } from "./people";
 import { appsTools } from "./apps";
 import { docsTools } from "./docs";
@@ -25,6 +26,15 @@ import { knowledgeTools } from "./knowledge";
 import { healthTools } from "./health";
 import { utilsTools } from "./utils";
 import { mediaTools } from "./media";
+import { weatherTools } from "./weather";
+
+// Sanity-check (grep "tennis_live\|news_urgent\|route_plan" src/tools/toolbox.ts):
+//   - tennis_live        → sportsTools (sports/tennis.ts → tennisLive)
+//   - news_urgent        → trendingTools (trending/trending.ts → newsUrgent)
+//   - route_plan         → travelTools (travel/travel.ts → routePlan)
+//   - news_urgent_search → newsTools (news/newsUrgent.ts → newsUrgentSearch)
+//   - route_planner      → travelTools (travel/travelPlanner.ts → routePlanner)
+//   - weather_forecast   → weatherTools (weather/weatherTool.ts → fetchWeather)
 
 /** Lista maestra de todas las tools NUEVAS disponibles. */
 const allHandlers: ToolHandler[] = [
@@ -33,6 +43,7 @@ const allHandlers: ToolHandler[] = [
   ...foodTools,
   ...travelTools,
   ...trendingTools,
+  ...newsTools,
   ...peopleTools,
   ...appsTools,
   ...docsTools,
@@ -40,6 +51,7 @@ const allHandlers: ToolHandler[] = [
   ...healthTools,
   ...utilsTools,
   ...mediaTools,
+  ...weatherTools,
 ];
 
 /** Mapa nombre → handler. El dispatcher de executeTool lo consulta para tools no-builtin. */

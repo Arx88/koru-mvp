@@ -675,6 +675,33 @@ function formatCompactNumber(value: number, currency?: string): string {
   return formatter.format(value);
 }
 
+/**
+ * 🔴 FIX GAP-2: formatea una distancia en metros como "X.Y km" o "Y m".
+ * Usado por el mapping `route_plan_search` → `route_map` (campo `distance`).
+ */
+function formatRouteDistance(meters: unknown): string | undefined {
+  const m = Number(meters);
+  if (!Number.isFinite(m) || m <= 0) return undefined;
+  if (m >= 1000) return `${(m / 1000).toFixed(1)} km`;
+  return `${Math.round(m)} m`;
+}
+
+/**
+ * 🔴 FIX GAP-2: formatea una duración en segundos como "Xh Ym", "Y min" o "Z s".
+ * Usado por el mapping `route_plan_search` → `route_map` (campos `remaining` y
+ * `alternatives[].time`).
+ */
+function formatRouteDuration(seconds: unknown): string | undefined {
+  const s = Number(seconds);
+  if (!Number.isFinite(s) || s <= 0) return undefined;
+  if (s < 60) return `${Math.round(s)}s`;
+  const m = Math.round(s / 60);
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  const rem = m % 60;
+  return rem ? `${h}h ${rem}m` : `${h}h`;
+}
+
 async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -2948,6 +2975,29 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
       });
       continue;
     }
+    if (result.type === "weather_forecast") {
+      // Tool nueva (weather_forecast) que envuelve a `fetchWeather` (Open-Meteo).
+      // Devuelve: { now, condition, conditionIcon, hourly, daily, verifiedAt, freshnessLabel, city }.
+      const r = result as any;
+      // Sin datos útiles no emitimos card: el composer se hace cargo en texto.
+      if (r.status === "failed" || r.status === "no_data") continue;
+      const city = cleanText(r.city);
+      if (!cleanText(r.now) && !cleanText(r.condition)) continue;
+      blocks.push({
+        type: "weather" as const,
+        title: "Clima",
+        city,
+        now: r.now,
+        condition: r.condition,
+        hourly: Array.isArray(r.hourly) ? r.hourly : undefined,
+        daily: Array.isArray(r.daily) ? r.daily : undefined,
+        verifiedAt: r.verifiedAt,
+        freshnessLabel: r.freshnessLabel,
+        sourceStatus: "verified" as const,
+        sources: [],
+      });
+      continue;
+    }
     if (result.type === "restaurant_deep_search") {
       const search = result as unknown as { query: string; matches?: Array<{ name: string; sourcesMentioning: number; quote?: string }>; topScore?: string; pros?: string[]; cons?: string[]; synthesis?: string; sources?: AssistantSource[]; status?: string };
       blocks.push({
@@ -3837,6 +3887,160 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
           domain: a.source ?? a.domain ?? "",
           snippet: (a.summary ?? a.snippet ?? "").slice(0, 200),
         })),
+      } as UiBlock);
+      continue;
+    }
+
+    // 🔴 FIX GAP-2: tennis_live → UiBlock `tennis_match`.
+    // El tool `tennis_live` (src/tools/sports/tennis.ts) devuelve un
+    // `TennisMatchResult` con players, tournament, sets, currentSet,
+    // currentPoint, stats, elapsedMs, status y sources. El UiBlock `tennis_match`
+    // es 1:1 con ese shape, así que solo normalizamos y copiamos campos.
+    if (result.type === "tennis_live") {
+      const r = result as any;
+      // Anti-alucinación: si el tool devolvió no_data/failed, no emitimos card.
+      if (r.status === "no_data" || r.status === "failed") {
+        (result as any).__forceHonestReply = true;
+        (result as any).__honestReplyText =
+          r.note || r.error || `No encontré un partido de tenis para "${r.player ?? ''}".`;
+        continue;
+      }
+      // Solo generar card si hay al menos un jugador.
+      const players = r.players && typeof r.players === "object" ? r.players : undefined;
+      if (!players?.home?.name && !players?.away?.name) continue;
+      blocks.push({
+        type: "tennis_match" as const,
+        players,
+        tournament: r.tournament,
+        sets: Array.isArray(r.sets) ? r.sets : undefined,
+        currentSet: r.currentSet,
+        currentPoint: r.currentPoint,
+        stats: r.stats,
+        elapsedMs: r.elapsedMs,
+        status: r.status,
+        sources: Array.isArray(r.sources) ? r.sources : undefined,
+      } as UiBlock);
+      continue;
+    }
+
+    // 🔴 FIX GAP-2: news_urgent_search → UiBlock `news_urgent`.
+    // El tool `news_urgent_search` (src/tools/news/newsUrgent.ts →
+    // newsUrgentSearch ToolHandler) devuelve un `UrgentNewsResult` con headline,
+    // summary, severity, category, timeline, factChecks, sources, location y
+    // lastUpdated. El UiBlock `news_urgent` es 1:1 con ese shape.
+    if (result.type === "news_urgent_search") {
+      const r = result as any;
+      if (r.status === "failed" || r.status === "no_data") {
+        (result as any).__forceHonestReply = true;
+        (result as any).__honestReplyText =
+          r.note || r.error || `No encontré noticias urgentes para "${r.query ?? ''}".`;
+        continue;
+      }
+      // Solo emitir card si hay headline o summary (evita cards vacías).
+      const headline = cleanText(r.headline);
+      const summary = cleanText(r.summary);
+      if (!headline && !summary) continue;
+      // Normalizar sources al tipo AssistantSource ({title,url,domain}).
+      const sources = Array.isArray(r.sources)
+        ? r.sources
+            .map((s: any) => ({
+              title: cleanText(s.title, "Sin título"),
+              url: cleanText(s.url),
+              domain: cleanText(s.domain),
+              snippet: s.snippet,
+            }))
+            .filter((s: any) => s.url)
+            .slice(0, 8)
+        : [];
+      blocks.push({
+        type: "news_urgent" as const,
+        headline: headline || "Última hora",
+        summary: summary.slice(0, 800),
+        severity: ["breaking", "urgent", "important"].includes(cleanText(r.severity))
+          ? (cleanText(r.severity) as "breaking" | "urgent" | "important")
+          : undefined,
+        category: cleanText(r.category) || undefined,
+        timeline: Array.isArray(r.timeline)
+          ? r.timeline
+              .map((t: any) => ({
+                time: cleanText(t.time),
+                event: cleanText(t.event),
+                status: ["done", "current", "pending"].includes(cleanText(t.status))
+                  ? (cleanText(t.status) as "done" | "current" | "pending")
+                  : "done",
+              }))
+              .filter((t: any) => t.event)
+              .slice(0, 5)
+          : undefined,
+        factChecks: Array.isArray(r.factChecks)
+          ? r.factChecks
+              .map((f: any) => ({
+                claim: cleanText(f.claim),
+                verdict: cleanText(f.verdict),
+                source: cleanText(f.source),
+              }))
+              .filter((f: any) => f.claim)
+              .slice(0, 8)
+          : undefined,
+        sources,
+        location: r.location && typeof r.location === "object"
+          ? {
+              lat: Number(r.location.lat ?? 0),
+              lng: Number(r.location.lng ?? 0),
+              label: cleanText(r.location.label, "Ubicación"),
+            }
+          : undefined,
+        lastUpdated: cleanText(r.lastUpdated),
+      } as UiBlock);
+      continue;
+    }
+
+    // 🔴 FIX GAP-2: route_plan_search → UiBlock `route_map` (enriquecido).
+    // El tool `route_planner` (src/tools/travel/travelPlanner.ts → routePlanner
+    // ToolHandler) envuelve `fetchRoute` (Google Maps Directions API) y devuelve
+    // un `RouteResult` con steps, alternatives, trafficLevel y fuelEstimate.
+    // Mapeamos al UiBlock `route_map` extendido (campos steps, alternatives,
+    // trafficLevel, fuelEstimate definidos en types.ts).
+    if (result.type === "route_plan_search") {
+      const r = result as any;
+      if (r.status === "failed" || r.status === "no_data" || r.status === "not_configured") {
+        (result as any).__forceHonestReply = true;
+        (result as any).__honestReplyText =
+          r.note || r.error || `No pude calcular la ruta de "${r.origin ?? ''}" a "${r.destination ?? ''}".`;
+        continue;
+      }
+      const steps = Array.isArray(r.steps)
+        ? r.steps
+            .map((s: any) => ({
+              instruction: cleanText(s.instruction),
+              distanceMeters: Number(s.distanceMeters ?? 0),
+              maneuver: cleanText(s.maneuver, "straight"),
+            }))
+            .filter((s: any) => s.instruction)
+            .slice(0, 12)
+        : [];
+      const alternatives = Array.isArray(r.alternatives)
+        ? r.alternatives
+            .map((alt: any) => ({
+              mode: cleanText(r.mode, "driving"),
+              time: formatRouteDuration(alt.durationSec),
+              traffic: cleanText(alt.trafficLevel, "light"),
+            }))
+            .slice(0, 3)
+        : [];
+      blocks.push({
+        type: "route_map" as const,
+        from: cleanText(r.origin),
+        to: cleanText(r.destination),
+        distance: formatRouteDistance(r.distanceMeters),
+        remaining: formatRouteDuration(r.durationSec),
+        steps: steps.length ? steps : undefined,
+        alternatives: alternatives.length ? alternatives : undefined,
+        trafficLevel: cleanText(r.trafficLevel, "light"),
+        fuelEstimate:
+          typeof r.fuelEstimateLiters === "number" && r.fuelEstimateLiters > 0
+            ? `${r.fuelEstimateLiters} L`
+            : undefined,
       } as UiBlock);
       continue;
     }
