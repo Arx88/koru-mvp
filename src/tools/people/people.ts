@@ -11,6 +11,28 @@ import { limiters } from "../shared/rateLimiter";
 // Wikipedia API requiere User-Agent válido (sino devuelve 403).
 const WIKI_HEADERS = { "User-Agent": "KoruBot/1.0 (personal assistant; contact: dev@koru.app)" };
 
+// 🔴 v4: Formatea un monto en dólares (TMDB trae budget/revenue en USD enteros).
+//  - budget: siempre en millones (150_000_000 → "$150M")
+//  - revenue (boxOffice): si supera 1B usa "B", si no "M"
+// Devuelve undefined para 0 o valores no finitos (TMDB a veces trae 0 cuando
+// el dato no está publicado — lo tratamos como "sin info" para no mostrar "$0M").
+function formatBudget(amount: unknown): string | undefined {
+  const n = typeof amount === "number" && Number.isFinite(amount) ? amount : undefined;
+  if (n == null || n <= 0) return undefined;
+  const millions = n / 1_000_000;
+  if (millions >= 1000) return `$${(millions / 1000).toFixed(1)}B`;
+  return `$${Math.round(millions)}M`;
+}
+
+function formatBoxOffice(amount: unknown): string | undefined {
+  const n = typeof amount === "number" && Number.isFinite(amount) ? amount : undefined;
+  if (n == null || n <= 0) return undefined;
+  const billions = n / 1_000_000_000;
+  if (billions >= 1) return `$${billions.toFixed(1)}B`;
+  const millions = n / 1_000_000;
+  return `$${Math.round(millions)}M`;
+}
+
 // ─── person_info ────────────────────────────────────────────────────────────
 type WikiSummary = {
   type?: string;
@@ -202,6 +224,9 @@ export const movieInfo: ToolHandler = {
       streaming?: Array<{ provider: string; logo?: string; deeplink?: string }>;
       crew?: Array<{ name: string; job: string }>;
       ratings?: Array<{ source: string; score: number; outOf: number }>;
+      // 🔴 v4: presupuesto y taquilla (presupuesto vs recaudación) formateados.
+      budget?: string;
+      boxOffice?: string;
     } = {};
 
     if (tmdbEnabled) {
@@ -229,11 +254,19 @@ export const movieInfo: ToolHandler = {
             runtime?: number;
             genres?: Array<{ id: number; name: string }>;
             imdb_id?: string;
+            budget?: number;
+            revenue?: number;
             credits?: { crew?: Array<{ job: string; name: string }>; cast?: Array<{ name: string }> };
           };
           if (details.runtime) tmdbData.runtime = `${details.runtime} min`;
           if (details.genres) tmdbData.genres = details.genres.map(g => g.name);
           if (details.imdb_id) tmdbData.imdbId = details.imdb_id;
+          // 🔴 v4: presupuesto y taquilla (TMDB los publica en USD enteros).
+          // Formateamos a "$150M" / "$1.2B"; si la API trae 0 lo omitimos.
+          const budgetStr = formatBudget(details.budget);
+          if (budgetStr) tmdbData.budget = budgetStr;
+          const boxStr = formatBoxOffice(details.revenue);
+          if (boxStr) tmdbData.boxOffice = boxStr;
 
           // Crew extraction: Director (existing) + Writer, Composer, Cinematographer (new)
           const crewList: Array<{ name: string; job: string }> = [];
@@ -400,6 +433,9 @@ export const movieInfo: ToolHandler = {
         streaming: tmdbData.streaming,
         crew: tmdbData.crew,
         ratings: tmdbData.ratings,
+        // 🔴 v4: presupuesto y taquilla formateados ("$150M" / "$1.2B").
+        budget: tmdbData.budget,
+        boxOffice: tmdbData.boxOffice,
         sources: wikiExtract?.sourceUrl
           ? [{ title: wikiExtract.sourceTitle ?? title, url: wikiExtract.sourceUrl, domain: "wikipedia.org", snippet: wikiExtract.snippet ?? "" }]
           : [],
@@ -425,6 +461,8 @@ export const movieInfo: ToolHandler = {
           streaming: tmdbData.streaming,
           crew: tmdbData.crew,
           ratings: tmdbData.ratings,
+          budget: tmdbData.budget,
+          boxOffice: tmdbData.boxOffice,
           sources: [],
         };
       }
@@ -480,6 +518,15 @@ export const bookInfo: ToolHandler = {
       return { type: "book_info", status: "ok", title, note: `No encontré "${title}" en Open Library.` };
     }
 
+    // 🔴 v4: construir URL de preview embebido de Archive.org.
+    // Open Library devuelve `key` con la forma "/works/OL12345W"; el OLID es
+    // la porción final ("OL12345W") y el embed de Archive.org lo sirve
+    // directamente como https://archive.org/embed/{olid}.
+    const olid = typeof book.key === "string"
+      ? book.key.split("/").filter(Boolean).pop() ?? ""
+      : "";
+    const previewUrl = olid ? `https://archive.org/embed/${olid}` : undefined;
+
     return {
       type: "book_info",
       status: "ok",
@@ -489,6 +536,8 @@ export const bookInfo: ToolHandler = {
       pages: book.number_of_pages_median,
       coverUrl: book.cover?.medium,
       openLibraryUrl: book.key ? `https://openlibrary.org${book.key}` : undefined,
+      // 🔴 v4: preview embebido de Archive.org (iframe 16:9 en el detail screen).
+      previewUrl,
       source: "Open Library",
     };
   },

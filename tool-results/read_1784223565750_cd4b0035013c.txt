@@ -1,0 +1,693 @@
+     1→/**
+     2→ * Bloque People — Personajes famosos, películas, libros, videojuegos.
+     3→ * APIs: Wikipedia REST (sin key), Open Library (sin key), RAWG (key gratuita).
+     4→ */
+     5→
+     6→import { defineTool, policies, type ToolHandler } from "../types";
+     7→import { fetchJson } from "../shared/fetcher";
+     8→import { cached, ttls } from "../shared/cache";
+     9→import { limiters } from "../shared/rateLimiter";
+    10→
+    11→// Wikipedia API requiere User-Agent válido (sino devuelve 403).
+    12→const WIKI_HEADERS = { "User-Agent": "KoruBot/1.0 (personal assistant; contact: dev@koru.app)" };
+    13→
+    14→// 🔴 v4: Formatea un monto en dólares (TMDB trae budget/revenue en USD enteros).
+    15→//  - budget: siempre en millones (150_000_000 → "$150M")
+    16→//  - revenue (boxOffice): si supera 1B usa "B", si no "M"
+    17→// Devuelve undefined para 0 o valores no finitos (TMDB a veces trae 0 cuando
+    18→// el dato no está publicado — lo tratamos como "sin info" para no mostrar "$0M").
+    19→function formatBudget(amount: unknown): string | undefined {
+    20→  const n = typeof amount === "number" && Number.isFinite(amount) ? amount : undefined;
+    21→  if (n == null || n <= 0) return undefined;
+    22→  const millions = n / 1_000_000;
+    23→  if (millions >= 1000) return `$${(millions / 1000).toFixed(1)}B`;
+    24→  return `$${Math.round(millions)}M`;
+    25→}
+    26→
+    27→function formatBoxOffice(amount: unknown): string | undefined {
+    28→  const n = typeof amount === "number" && Number.isFinite(amount) ? amount : undefined;
+    29→  if (n == null || n <= 0) return undefined;
+    30→  const billions = n / 1_000_000_000;
+    31→  if (billions >= 1) return `$${billions.toFixed(1)}B`;
+    32→  const millions = n / 1_000_000;
+    33→  return `$${Math.round(millions)}M`;
+    34→}
+    35→
+    36→// ─── person_info ────────────────────────────────────────────────────────────
+    37→type WikiSummary = {
+    38→  type?: string;
+    39→  title?: string;
+    40→  displaytitle?: string;
+    41→  description?: string;
+    42→  extract?: string;
+    43→  thumbnail?: { source?: string };
+    44→  content_urls?: { desktop?: { page?: string } };
+    45→};
+    46→
+    47→export const personInfo: ToolHandler = {
+    48→  definition: defineTool(
+    49→    "person_info",
+    50→    "Biografía, edad, profesión, obras y premios de una figura pública. Úsala cuando el usuario diga 'quién es Taylor Swift?', 'decime de Messi', 'info de Nolan', 'cuántos años tiene Spielberg'.",
+    51→    {
+    52→      type: "object",
+    53→      additionalProperties: false,
+    54→      properties: {
+    55→        name: { type: "string", description: "Nombre de la persona." },
+    56→        lang: { type: "string", description: "Idioma (ej: 'es', 'en'). Default 'es'." },
+    57→      },
+    58→      required: ["name"],
+    59→    },
+    60→  ),
+    61→  policy: policies.readonly("Lee biografía de Wikipedia."),
+    62→  async run(args) {
+    63→    const name = String(args.name ?? "").trim();
+    64→    const lang = String(args.lang ?? "es").trim();
+    65→    if (!name) return { type: "person_info", status: "failed", error: "Indicá el nombre." };
+    66→
+    67→    const cacheKey = `person:${lang}:${name.toLowerCase()}`;
+    68→    const summary = await cached<WikiSummary>(cacheKey, ttls.reference, async () => {
+    69→      await limiters.wikipedia.acquire();
+    70→      const r = await fetchJson<WikiSummary>(
+    71→        `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name)}`,
+    72→        { timeoutMs: 9_000, headers: { Accept: "application/json" } },
+    73→      );
+    74→      if (!r.ok) throw new Error(r.error);
+    75→      return r.data!;
+    76→    });
+    77→
+    78→    if (summary.type === "not_found" || !summary.extract) {
+    79→      return { type: "person_info", status: "ok", name, note: `No encontré "${name}" en Wikipedia (${lang}). Probá en inglés o con otro nombre.` };
+    80→    }
+    81→
+    82→    return {
+    83→      type: "person_info",
+    84→      status: "ok",
+    85→      name: summary.title ?? name,
+    86→      description: summary.description,
+    87→      extract: summary.extract,
+    88→      thumbnail: summary.thumbnail?.source,
+    89→      wikiUrl: summary.content_urls?.desktop?.page,
+    90→      source: "Wikipedia",
+    91→    };
+    92→  },
+    93→};
+    94→
+    95→// ─── person_follow ──────────────────────────────────────────────────────────
+    96→export const personFollow: ToolHandler = {
+    97→  definition: defineTool(
+    98→    "person_follow",
+    99→    "Guarda una persona como favorita para que Koru te avise cuando haya noticias suyas. Úsala cuando el usuario diga 'seguí a Tarantino', 'avisame cuando saque algo Elon Musk', 'vigilar a X'.",
+   100→    {
+   101→      type: "object",
+   102→      additionalProperties: false,
+   103→      properties: {
+   104→        name: { type: "string", description: "Nombre de la persona." },
+   105→      },
+   106→      required: ["name"],
+   107→    },
+   108→  ),
+   109→  policy: policies.localWrite("Guarda persona favorita como memory."),
+   110→  async run(args) {
+   111→    const name = String(args.name ?? "").trim();
+   112→    if (!name) return { type: "person_follow", status: "failed", error: "Indicá el nombre." };
+   113→    return {
+   114→      type: "person_follow",
+   115→      status: "ok",
+   116→      name,
+   117→      memoryCandidates: [{
+   118→        kind: "interest" as const,
+   119→        text: `Sigue a ${name}`,
+   120→        confidence: 0.95,
+   121→        sensitivity: "normal" as const,
+   122→        status: "candidate" as const,
+   123→        rootQuote: name,
+   124→        useForSuggestions: true,
+   125→      }],
+   126→    };
+   127→  },
+   128→};
+   129→
+   130→// ─── person_filmography ─────────────────────────────────────────────────────
+   131→export const personFilmography: ToolHandler = {
+   132→  definition: defineTool(
+   133→    "person_filmography",
+   134→    "Lista de películas/álbumes/libros/obras de un artista. Úsala cuando el usuario diga 'películas de Scorsese', 'discografía de Radiohead', 'libros de Murakami'.",
+   135→    {
+   136→      type: "object",
+   137→      additionalProperties: false,
+   138→      properties: {
+   139→        name: { type: "string", description: "Nombre del artista." },
+   140→        kind: { type: "string", enum: ["film", "music", "books", "any"], default: "any" },
+   141→      },
+   142→      required: ["name"],
+   143→    },
+   144→  ),
+   145→  policy: policies.readonly("Busca obras en Wikipedia."),
+   146→  async run(args) {
+   147→    const name = String(args.name ?? "").trim();
+   148→    const kind = String(args.kind ?? "any");
+   149→    if (!name) return { type: "person_filmography", status: "failed", error: "Indicá el nombre." };
+   150→    const kindQuery = kind === "film" ? "filmografía películas" : kind === "music" ? "discografía álbumes" : kind === "books" ? "libros obra" : "filmografía discografía libros";
+   151→    // Fase 3.1: usar Wikipedia API directamente en lugar de delegar a web_search.
+   152→    try {
+   153→      const searchUrl = `https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(`${name} ${kindQuery}`)}&format=json&origin=*&srlimit=3`;
+   154→      const res = await fetch(searchUrl, { signal: AbortSignal.timeout(9000), headers: WIKI_HEADERS });
+   155→      const data = await res.json() as { query?: { search?: Array<{ title: string; snippet: string }> } };
+   156→      const results = data.query?.search ?? [];
+   157→      if (results.length === 0) {
+   158→        return { type: "person_filmography", status: "ok", name, kind, note: `No encontré información sobre ${name} en Wikipedia.` };
+   159→      }
+   160→      // Fetch summary del primer resultado
+   161→      const firstTitle = results[0].title;
+   162→      const summaryRes = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(firstTitle)}`, { signal: AbortSignal.timeout(9000), headers: WIKI_HEADERS });
+   163→      const summary = await summaryRes.json() as { extract?: string; content_urls?: { desktop?: { page: string } } };
+   164→      return {
+   165→        type: "person_filmography",
+   166→        status: "ok",
+   167→        name,
+   168→        kind,
+   169→        text: summary.extract ?? `Encontré información sobre ${firstTitle}.`,
+   170→        sources: [{ title: firstTitle, url: summary.content_urls?.desktop?.page ?? `https://es.wikipedia.org/wiki/${encodeURIComponent(firstTitle)}`, domain: "wikipedia.org", snippet: results[0].snippet?.replace(/<[^>]+>/g, "") }],
+   171→      };
+   172→    } catch (err) {
+   173→      console.warn("[Koru] person_filmography Wikipedia fetch failed:", err instanceof Error ? err.message : err);
+   174→      return { type: "person_filmography", status: "failed", error: `No pude buscar información sobre ${name}.` };
+   175→    }
+   176→  },
+   177→};
+   178→
+   179→// ─── movie_info ─────────────────────────────────────────────────────────────
+   180→export const movieInfo: ToolHandler = {
+   181→  definition: defineTool(
+   182→    "movie_info",
+   183→    "Sinopsis, reparto, año, rating y dónde ver una película o serie. Úsala cuando el usuario diga 'de qué va Oppenheimer?', 'rating de The Bear', 'dónde ver Severance', 'reparto de Dune'.",
+   184→    {
+   185→      type: "object",
+   186→      additionalProperties: false,
+   187→      properties: {
+   188→        title: { type: "string", description: "Título de la película o serie." },
+   189→        year: { type: "string", description: "Año opcional para desambiguar." },
+   190→      },
+   191→      required: ["title"],
+   192→    },
+   193→  ),
+   194→  policy: policies.readonly("Busca info de película en Wikipedia + TMDB."),
+   195→  async run(args) {
+   196→    const title = String(args.title ?? "").trim();
+   197→    const year = String(args.year ?? "").trim();
+   198→    if (!title) return { type: "movie_info", status: "failed", error: "Indicá el título." };
+   199→
+   200→    // 🔴 FIX P2: enriquecer con TMDB (poster, rating, géneros, estreno, runtime, sinopsis original)
+   201→    // TMDB soporta 2 métodos de auth:
+   202→    //  - Bearer token (v4, preferido): Authorization: Bearer XXX header
+   203→    //  - API key (v3, fallback): ?api_key=XXX query param
+   204→    const TMDB_BEARER = process.env.TMDB_BEARER_TOKEN || "";
+   205→    const TMDB_API_KEY = process.env.TMDB_API_KEY || "";
+   206→    const tmdbHeaders: Record<string, string> = TMDB_BEARER
+   207→      ? { "Authorization": `Bearer ${TMDB_BEARER}`, "Content-Type": "application/json" }
+   208→      : {};
+   209→    const tmdbAuthParam = TMDB_BEARER ? "" : (TMDB_API_KEY ? `&api_key=${TMDB_API_KEY}` : "");
+   210→    const tmdbEnabled = Boolean(TMDB_BEARER || TMDB_API_KEY);
+   211→
+   212→    let tmdbData: {
+   213→      poster?: string;
+   214→      rating?: number;
+   215→      releaseDate?: string;
+   216→      genres?: string[];
+   217→      runtime?: string;
+   218→      overview?: string;
+   219→      cast?: string[];
+   220→      director?: string;
+   221→      imdbId?: string;
+   222→      trailerUrl?: string;
+   223→      whereToWatch?: string[];
+   224→      streaming?: Array<{ provider: string; logo?: string; deeplink?: string }>;
+   225→      crew?: Array<{ name: string; job: string }>;
+   226→      ratings?: Array<{ source: string; score: number; outOf: number }>;
+   227→      // 🔴 v4: presupuesto y taquilla (presupuesto vs recaudación) formateados.
+   228→      budget?: string;
+   229→      boxOffice?: string;
+   230→    } = {};
+   231→
+   232→    if (tmdbEnabled) {
+   233→      try {
+   234→        // Search movie by title
+   235→        const searchUrl = `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(title)}${year ? `&year=${year}` : ""}&language=es-ES${tmdbAuthParam}`;
+   236→        const searchRes = await fetch(searchUrl, {
+   237→          headers: tmdbHeaders,
+   238→          signal: AbortSignal.timeout(9000),
+   239→        });
+   240→        const searchData = await searchRes.json() as { results?: Array<{ id: number; poster_path?: string; vote_average?: number; release_date?: string; genre_ids?: number[]; overview?: string }> };
+   241→        const first = searchData.results?.[0];
+   242→        if (first) {
+   243→          tmdbData.poster = first.poster_path ? `https://image.tmdb.org/t/p/w500${first.poster_path}` : undefined;
+   244→          tmdbData.rating = typeof first.vote_average === "number" ? Math.round(first.vote_average * 10) / 10 : undefined;
+   245→          tmdbData.releaseDate = first.release_date;
+   246→          tmdbData.overview = first.overview;
+   247→          // Get details (runtime, genres, director, cast, imdb_id)
+   248→          const detailsUrl = `https://api.themoviedb.org/3/movie/${first.id}?language=es-ES${tmdbAuthParam}&append_to_response=credits`;
+   249→          const detailsRes = await fetch(detailsUrl, {
+   250→            headers: tmdbHeaders,
+   251→            signal: AbortSignal.timeout(9000),
+   252→          });
+   253→          const details = await detailsRes.json() as {
+   254→            runtime?: number;
+   255→            genres?: Array<{ id: number; name: string }>;
+   256→            imdb_id?: string;
+   257→            budget?: number;
+   258→            revenue?: number;
+   259→            credits?: { crew?: Array<{ job: string; name: string }>; cast?: Array<{ name: string }> };
+   260→          };
+   261→          if (details.runtime) tmdbData.runtime = `${details.runtime} min`;
+   262→          if (details.genres) tmdbData.genres = details.genres.map(g => g.name);
+   263→          if (details.imdb_id) tmdbData.imdbId = details.imdb_id;
+   264→          // 🔴 v4: presupuesto y taquilla (TMDB los publica en USD enteros).
+   265→          // Formateamos a "$150M" / "$1.2B"; si la API trae 0 lo omitimos.
+   266→          const budgetStr = formatBudget(details.budget);
+   267→          if (budgetStr) tmdbData.budget = budgetStr;
+   268→          const boxStr = formatBoxOffice(details.revenue);
+   269→          if (boxStr) tmdbData.boxOffice = boxStr;
+   270→
+   271→          // Crew extraction: Director (existing) + Writer, Composer, Cinematographer (new)
+   272→          const crewList: Array<{ name: string; job: string }> = [];
+   273→          if (details.credits?.crew) {
+   274→            const findCrew = (job: string) => details.credits!.crew!.find(c => c.job === job);
+   275→            const dir = findCrew("Director");
+   276→            if (dir) tmdbData.director = dir.name;
+   277→            const writer = findCrew("Writer");
+   278→            if (writer) crewList.push({ name: writer.name, job: "Writer" });
+   279→            const composer = findCrew("Original Music Composer") ?? findCrew("Music");
+   280→            if (composer) crewList.push({ name: composer.name, job: "Composer" });
+   281→            const cinematographer = findCrew("Director of Photography");
+   282→            if (cinematographer) crewList.push({ name: cinematographer.name, job: "Cinematographer" });
+   283→            if (crewList.length > 0) tmdbData.crew = crewList;
+   284→          }
+   285→          if (details.credits?.cast) {
+   286→            tmdbData.cast = details.credits.cast.slice(0, 5).map(c => c.name);
+   287→          }
+   288→
+   289→          // 🎬 Trailer URL: first YouTube trailer from /videos endpoint
+   290→          try {
+   291→            const videosUrl = `https://api.themoviedb.org/3/movie/${first.id}/videos?language=es-ES${tmdbAuthParam}`;
+   292→            const videosRes = await fetch(videosUrl, {
+   293→              headers: tmdbHeaders,
+   294→              signal: AbortSignal.timeout(9000),
+   295→            });
+   296→            const videos = await videosRes.json() as { results?: Array<{ type?: string; site?: string; key?: string }> };
+   297→            const trailer = videos.results?.find(v => v.type === "Trailer" && v.site === "YouTube" && v.key);
+   298→            if (trailer?.key) tmdbData.trailerUrl = `https://www.youtube.com/watch?v=${trailer.key}`;
+   299→          } catch (err) {
+   300→            console.warn("[Koru] movie_info TMDB videos fetch failed:", err instanceof Error ? err.message : err);
+   301→          }
+   302→
+   303→          // 📺 Where to watch: extract ES (Spain) flatrate streaming providers
+   304→          try {
+   305→            const providersUrl = `https://api.themoviedb.org/3/movie/${first.id}/watch/providers?language=es-ES${tmdbAuthParam}`;
+   306→            const providersRes = await fetch(providersUrl, {
+   307→              headers: tmdbHeaders,
+   308→              signal: AbortSignal.timeout(9000),
+   309→            });
+   310→            const providers = await providersRes.json() as {
+   311→              results?: Record<string, { link?: string; flatrate?: Array<{ provider_name?: string; logo_path?: string }> }>;
+   312→            };
+   313→            const esEntry = providers.results?.["ES"];
+   314→            if (esEntry?.flatrate && esEntry.flatrate.length > 0) {
+   315→              const streaming = esEntry.flatrate
+   316→                .map(p => ({
+   317→                  provider: p.provider_name ?? "",
+   318→                  logo: p.logo_path ? `https://image.tmdb.org/t/p/w200${p.logo_path}` : undefined,
+   319→                  deeplink: esEntry.link,
+   320→                }))
+   321→                .filter(s => s.provider);
+   322→              if (streaming.length > 0) {
+   323→                tmdbData.streaming = streaming;
+   324→                tmdbData.whereToWatch = streaming.map(s => s.provider);
+   325→              }
+   326→            }
+   327→          } catch (err) {
+   328→            console.warn("[Koru] movie_info TMDB providers fetch failed:", err instanceof Error ? err.message : err);
+   329→          }
+   330→
+   331→          // ⭐ Multiple ratings (IMDb, RT, Metacritic) from OMDB if OMDB_API_KEY is set
+   332→          const OMDB_API_KEY = process.env.OMDB_API_KEY;
+   333→          if (OMDB_API_KEY && tmdbData.imdbId) {
+   334→            try {
+   335→              const omdbUrl = `https://www.omdbapi.com/?i=${tmdbData.imdbId}&apikey=${OMDB_API_KEY}`;
+   336→              const omdbRes = await fetch(omdbUrl, { signal: AbortSignal.timeout(9000) });
+   337→              const omdb = await omdbRes.json() as {
+   338→                Response?: string;
+   339→                imdbRating?: string;
+   340→                Metascore?: string;
+   341→                Ratings?: Array<{ Source?: string; Value?: string }>;
+   342→              };
+   343→              if (omdb.Response === "True") {
+   344→                const ratings: Array<{ source: string; score: number; outOf: number }> = [];
+   345→                // IMDb (e.g. "7.5/10")
+   346→                const imdbVal = omdb.Ratings?.find(r => r.Source === "Internet Movie Database")?.Value ?? omdb.imdbRating;
+   347→                if (imdbVal) {
+   348→                  const m = imdbVal.match(/^([\d.]+)\/(\d+)$/);
+   349→                  if (m) ratings.push({ source: "IMDb", score: parseFloat(m[1]), outOf: parseInt(m[2], 10) });
+   350→                }
+   351→                // Rotten Tomatoes (e.g. "85%")
+   352→                const rtVal = omdb.Ratings?.find(r => r.Source === "Rotten Tomatoes")?.Value;
+   353→                if (rtVal) {
+   354→                  const m = rtVal.match(/^(\d+)%$/);
+   355→                  if (m) ratings.push({ source: "Rotten Tomatoes", score: parseInt(m[1], 10), outOf: 100 });
+   356→                }
+   357→                // Metacritic (e.g. "65/100")
+   358→                const metaVal = omdb.Ratings?.find(r => r.Source === "Metacritic")?.Value ?? omdb.Metascore;
+   359→                if (metaVal) {
+   360→                  const m = metaVal.match(/^(\d+)\/(\d+)$/);
+   361→                  if (m) ratings.push({ source: "Metacritic", score: parseInt(m[1], 10), outOf: parseInt(m[2], 10) });
+   362→                }
+   363→                if (ratings.length > 0) tmdbData.ratings = ratings;
+   364→              }
+   365→            } catch (err) {
+   366→              // Si no hay OMDB key o falla, saltamos silenciosamente
+   367→              console.warn("[Koru] movie_info OMDB fetch failed (skipping silently):", err instanceof Error ? err.message : err);
+   368→            }
+   369→          }
+   370→        }
+   371→      } catch (err) {
+   372→        console.warn("[Koru] movie_info TMDB fetch failed (continuing with Wikipedia only):", err instanceof Error ? err.message : err);
+   373→      }
+   374→    }
+   375→
+   376→    // Wikipedia para contexto adicional en español
+   377→    try {
+   378→      const searchQuery = year ? `${title} ${year} película` : `${title} película`;
+   379→      const searchUrl = `https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(searchQuery)}&format=json&origin=*&srlimit=3`;
+   380→      const res = await fetch(searchUrl, { signal: AbortSignal.timeout(9000), headers: WIKI_HEADERS });
+   381→      const data = await res.json() as { query?: { search?: Array<{ title: string; snippet: string }> } };
+   382→      const results = data.query?.search ?? [];
+   383→      const wikiExtract = results.length > 0
+   384→        ? await (async () => {
+   385→            try {
+   386→              const firstTitle = results[0].title;
+   387→              const summaryRes = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(firstTitle)}`, { signal: AbortSignal.timeout(9000), headers: WIKI_HEADERS });
+   388→              const summary = await summaryRes.json() as { extract?: string; content_urls?: { desktop?: { page: string } } };
+   389→              return {
+   390→                text: summary.extract,
+   391→                sourceUrl: summary.content_urls?.desktop?.page ?? `https://es.wikipedia.org/wiki/${encodeURIComponent(firstTitle)}`,
+   392→                snippet: results[0].snippet?.replace(/<[^>]+>/g, ""),
+   393→                sourceTitle: firstTitle,
+   394→              };
+   395→            } catch { return null; }
+   396→          })()
+   397→        : null;
+   398→
+   399→      // 🔴 FIX CRÍTICO: Si NO tenemos TMDB y Wikipedia no encontró la película específica,
+   400→      // devolver status "failed" para que el backend haga fallback a web_search.
+   401→      // Antes devolvía status "ok" con datos vacíos → card inaccesible sin info.
+   402→      const hasTmdbData = Boolean(tmdbData.poster || tmdbData.overview || tmdbData.rating);
+   403→      const wikiFoundMovie = wikiExtract && wikiExtract.text &&
+   404→        // Verificar que el extracto de Wikipedia realmente trata sobre una película
+   405→        // (no sobre el sentimiento "obsesión" u otros significados)
+   406→        /\b(pel[ií]cula|film|movie|director|estren|cinematogr|actriz|actor|drama|thriller|comedia|terror|acci[oó]n)\b/i.test(wikiExtract.text);
+   407→
+   408→      if (!hasTmdbData && !wikiFoundMovie) {
+   409→        return {
+   410→          type: "movie_info",
+   411→          status: "failed",
+   412→          error: `No pude encontrar la película "${title}" en mis fuentes. Probá con web_search.`,
+   413→          query: title,
+   414→        };
+   415→      }
+   416→
+   417→      // Componer texto final: preferir overview de TMDB (más preciso), fallback a Wikipedia extract
+   418→      const text = tmdbData.overview || wikiExtract?.text || `Encontré información sobre ${title}.`;
+   419→      return {
+   420→        type: "movie_info",
+   421→        status: "ok",
+   422→        title,
+   423→        text,
+   424→        poster: tmdbData.poster,
+   425→        rating: tmdbData.rating,
+   426→        releaseDate: tmdbData.releaseDate,
+   427→        genres: tmdbData.genres,
+   428→        runtime: tmdbData.runtime,
+   429→        director: tmdbData.director,
+   430→        cast: tmdbData.cast,
+   431→        trailerUrl: tmdbData.trailerUrl,
+   432→        whereToWatch: tmdbData.whereToWatch,
+   433→        streaming: tmdbData.streaming,
+   434→        crew: tmdbData.crew,
+   435→        ratings: tmdbData.ratings,
+   436→        // 🔴 v4: presupuesto y taquilla formateados ("$150M" / "$1.2B").
+   437→        budget: tmdbData.budget,
+   438→        boxOffice: tmdbData.boxOffice,
+   439→        sources: wikiExtract?.sourceUrl
+   440→          ? [{ title: wikiExtract.sourceTitle ?? title, url: wikiExtract.sourceUrl, domain: "wikipedia.org", snippet: wikiExtract.snippet ?? "" }]
+   441→          : [],
+   442→      };
+   443→    } catch (err) {
+   444→      console.warn("[Koru] movie_info Wikipedia fetch failed:", err instanceof Error ? err.message : err);
+   445→      // Si TMDB funcionó, devolver igual con lo que tengamos
+   446→      if (tmdbData.poster || tmdbData.overview) {
+   447→        return {
+   448→          type: "movie_info",
+   449→          status: "ok",
+   450→          title,
+   451→          text: tmdbData.overview ?? `Encontré información sobre ${title}.`,
+   452→          poster: tmdbData.poster,
+   453→          rating: tmdbData.rating,
+   454→          releaseDate: tmdbData.releaseDate,
+   455→          genres: tmdbData.genres,
+   456→          runtime: tmdbData.runtime,
+   457→          director: tmdbData.director,
+   458→          cast: tmdbData.cast,
+   459→          trailerUrl: tmdbData.trailerUrl,
+   460→          whereToWatch: tmdbData.whereToWatch,
+   461→          streaming: tmdbData.streaming,
+   462→          crew: tmdbData.crew,
+   463→          ratings: tmdbData.ratings,
+   464→          budget: tmdbData.budget,
+   465→          boxOffice: tmdbData.boxOffice,
+   466→          sources: [],
+   467→        };
+   468→      }
+   469→      return { type: "movie_info", status: "failed", error: `No pude buscar información sobre ${title}.` };
+   470→    }
+   471→  },
+   472→};
+   473→
+   474→
+   475→// ─── book_info ──────────────────────────────────────────────────────────────
+   476→type OlBook = {
+   477→  title?: string;
+   478→  authors?: Array<{ name?: string }>;
+   479→  first_publish_date?: string;
+   480→  number_of_pages_median?: number;
+   481→  cover?: { medium?: string };
+   482→  key?: string;
+   483→};
+   484→
+   485→export const bookInfo: ToolHandler = {
+   486→  definition: defineTool(
+   487→    "book_info",
+   488→    "Sinopsis, autor, año, género y dónde comprar de un libro. Úsala cuando el usuario diga 'de qué trata 1984?', 'info del último Murakami', 'autor de El Nombre de la Rosa'.",
+   489→    {
+   490→      type: "object",
+   491→      additionalProperties: false,
+   492→      properties: {
+   493→        title: { type: "string", description: "Título del libro." },
+   494→        author: { type: "string", description: "Autor opcional." },
+   495→      },
+   496→      required: ["title"],
+   497→    },
+   498→  ),
+   499→  policy: policies.readonly("Lee info de Open Library."),
+   500→  async run(args) {
+   501→    const title = String(args.title ?? "").trim();
+   502→    const author = String(args.author ?? "").trim();
+   503→    if (!title) return { type: "book_info", status: "failed", error: "Indicá el título." };
+   504→
+   505→    const cacheKey = `book:${title.toLowerCase()}:${author.toLowerCase()}`;
+   506→    const book = await cached<OlBook | null>(cacheKey, ttls.reference, async () => {
+   507→      const params = new URLSearchParams({ title });
+   508→      if (author) params.set("author", author);
+   509→      const r = await fetchJson<{ docs?: OlBook[] }>(
+   510→        `https://openlibrary.org/search.json?${params.toString()}&limit=1`,
+   511→        { timeoutMs: 9_000 },
+   512→      );
+   513→      if (!r.ok || !r.data!.docs?.length) return null;
+   514→      return r.data!.docs[0];
+   515→    });
+   516→
+   517→    if (!book) {
+   518→      return { type: "book_info", status: "ok", title, note: `No encontré "${title}" en Open Library.` };
+   519→    }
+   520→
+   521→    // 🔴 v4: construir URL de preview embebido de Archive.org.
+   522→    // Open Library devuelve `key` con la forma "/works/OL12345W"; el OLID es
+   523→    // la porción final ("OL12345W") y el embed de Archive.org lo sirve
+   524→    // directamente como https://archive.org/embed/{olid}.
+   525→    const olid = typeof book.key === "string"
+   526→      ? book.key.split("/").filter(Boolean).pop() ?? ""
+   527→      : "";
+   528→    const previewUrl = olid ? `https://archive.org/embed/${olid}` : undefined;
+   529→
+   530→    return {
+   531→      type: "book_info",
+   532→      status: "ok",
+   533→      title: book.title ?? title,
+   534→      author: book.authors?.[0]?.name,
+   535→      firstPublished: book.first_publish_date,
+   536→      pages: book.number_of_pages_median,
+   537→      coverUrl: book.cover?.medium,
+   538→      openLibraryUrl: book.key ? `https://openlibrary.org${book.key}` : undefined,
+   539→      // 🔴 v4: preview embebido de Archive.org (iframe 16:9 en el detail screen).
+   540→      previewUrl,
+   541→      source: "Open Library",
+   542→    };
+   543→  },
+   544→};
+   545→
+   546→// ─── game_info ──────────────────────────────────────────────────────────────
+   547→// RAWG API (https://rawg.io/api) — clave pública gratuita, 20k req/mes.
+   548→// Sin clave funciona pero con rate-limit estricto.
+   549→const RAWG_KEY = process.env.RAWG_API_KEY || "1";
+   550→const RAWG_BASE = "https://api.rawg.io/api";
+   551→
+   552→type RawgGame = {
+   553→  id?: number;
+   554→  name?: string;
+   555→  released?: string;
+   556→  background_image?: string;
+   557→  description_raw?: string;
+   558→  description?: string;
+   559→  metacritic?: number;
+   560→  rating?: number;
+   561→  rating_top?: number;
+   562→  ratings_count?: number;
+   563→  playtime?: number;
+   564→  genres?: Array<{ name?: string }>;
+   565→  platforms?: Array<{ platform?: { name?: string } }>;
+   566→  developers?: Array<{ name?: string }>;
+   567→  publishers?: Array<{ name?: string }>;
+   568→  esrb_rating?: { name?: string };
+   569→  website?: string;
+   570→  stores?: Array<{ store?: { name?: string; url?: string } }>;
+   571→};
+   572→
+   573→export const gameInfo: ToolHandler = {
+   574→  definition: defineTool(
+   575→    "game_info",
+   576→    "Información y reseña de un videojuego: rating, metacritic, géneros, plataformas, desarrollador, fecha de lanzamiento, sinopsis. Úsala cuando el usuario diga 'reseña del juego X', 'información de Y', 'cómo es Z', 'análisis de W'. Devuelve datos estructurados desde RAWG con sinopsis de Wikipedia.",
+   577→    {
+   578→      type: "object",
+   579→      additionalProperties: false,
+   580→      properties: {
+   581→        title: { type: "string", description: "Título del videojuego." },
+   582→      },
+   583→      required: ["title"],
+   584→    },
+   585→  ),
+   586→  policy: policies.readonly("Lee info de RAWG y Wikipedia."),
+   587→  async run(args) {
+   588→    const title = String(args.title ?? "").trim();
+   589→    if (!title) return { type: "game_info", status: "failed", error: "Indicá el título del juego." };
+   590→
+   591→    // 1. Buscar en RAWG
+   592→    let game: RawgGame | null = null;
+   593→    try {
+   594→      const searchRes = await fetchJson<{ results?: RawgGame[] }>(
+   595→        `${RAWG_BASE}/games?key=${RAWG_KEY}&search=${encodeURIComponent(title)}&page_size=1`,
+   596→        { timeoutMs: 9_000 },
+   597→      );
+   598→      if (searchRes.ok && searchRes.data!.results?.length) {
+   599→        const id = searchRes.data!.results[0].id;
+   600→        if (id) {
+   601→          const detailRes = await fetchJson<RawgGame>(
+   602→            `${RAWG_BASE}/games/${id}?key=${RAWG_KEY}`,
+   603→            { timeoutMs: 9_000 },
+   604→          );
+   605→          if (detailRes.ok) game = detailRes.data!;
+   606→        }
+   607→      }
+   608→    } catch (err) {
+   609→      console.warn("[Koru] game_info RAWG fetch failed:", err instanceof Error ? err.message : err);
+   610→    }
+   611→
+   612→    if (!game) {
+   613→      // 2. Fallback: Wikipedia search + summary (más robusto que adivinar el título exacto)
+   614→      try {
+   615→        const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(`${title} video game`)}&format=json&origin=*&srlimit=1`;
+   616→        const searchRes = await fetch(searchUrl, { signal: AbortSignal.timeout(9000), headers: WIKI_HEADERS });
+   617→        if (searchRes.ok) {
+   618→          const searchData = await searchRes.json() as { query?: { search?: Array<{ title: string; snippet: string }> } };
+   619→          const wikiTitle = searchData.query?.search?.[0]?.title;
+   620→          if (wikiTitle) {
+   621→            const summaryRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(wikiTitle)}`, { signal: AbortSignal.timeout(9000), headers: WIKI_HEADERS });
+   622→            if (summaryRes.ok) {
+   623→              const summary = await summaryRes.json() as WikiSummary;
+   624→              if (summary.extract) {
+   625→                return {
+   626→                  type: "game_info",
+   627→                  status: "ok",
+   628→                  title: summary.title ?? title,
+   629→                  description: summary.extract.slice(0, 1500),
+   630→                  backgroundImage: summary.thumbnail?.source,
+   631→                  sources: [{ title: summary.title ?? title, url: summary.content_urls?.desktop?.page ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(wikiTitle)}`, domain: "wikipedia.org", snippet: summary.extract.slice(0, 200) }],
+   632→                  source: "Wikipedia",
+   633→                };
+   634→              }
+   635→            }
+   636→          }
+   637→        }
+   638→      } catch { /* ignore */ }
+   639→
+   640→      return { type: "game_info", status: "failed", error: `No encontré el juego "${title}".` };
+   641→    }
+   642→
+   643→    // 3. Enriquecer con sinopsis de Wikipedia si la de RAWG es muy corta
+   644→    let description = game.description_raw ?? game.description ?? "";
+   645→    let wikiUrl: string | undefined;
+   646→    description = description.replace(/<[^>]+>/g, "");
+   647→    if (description.length < 200) {
+   648→      try {
+   649→        const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(`${title} video game`)}&format=json&origin=*&srlimit=1`;
+   650→        const searchRes = await fetch(searchUrl, { signal: AbortSignal.timeout(9000), headers: WIKI_HEADERS });
+   651→        if (searchRes.ok) {
+   652→          const searchData = await searchRes.json() as { query?: { search?: Array<{ title: string }> } };
+   653→          const wikiTitle = searchData.query?.search?.[0]?.title;
+   654→          if (wikiTitle) {
+   655→            const summaryRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(wikiTitle)}`, { signal: AbortSignal.timeout(9000), headers: WIKI_HEADERS });
+   656→            if (summaryRes.ok) {
+   657→              const summary = await summaryRes.json() as WikiSummary;
+   658→              if (summary.extract && summary.extract.length > description.length) {
+   659→                description = summary.extract;
+   660→                wikiUrl = summary.content_urls?.desktop?.page;
+   661→              }
+   662→            }
+   663→          }
+   664→        }
+   665→      } catch { /* ignore */ }
+   666→    }
+   667→
+   668→    return {
+   669→      type: "game_info",
+   670→      status: "ok",
+   671→      title: game.name ?? title,
+   672→      released: game.released,
+   673→      backgroundImage: game.background_image,
+   674→      description: description.slice(0, 1500),
+   675→      rating: typeof game.rating === "number" ? game.rating : undefined,
+   676→      metacritic: game.metacritic,
+   677→      playtime: game.playtime,
+   678→      genres: Array.isArray(game.genres) ? game.genres.map(g => g.name).filter(Boolean) : undefined,
+   679→      platforms: Array.isArray(game.platforms) ? game.platforms.map(p => p.platform?.name).filter(Boolean) : undefined,
+   680→      developer: Array.isArray(game.developers) ? game.developers.map(d => d.name).filter(Boolean).join(", ") : undefined,
+   681→      publisher: Array.isArray(game.publishers) ? game.publishers.map(p => p.name).filter(Boolean).join(", ") : undefined,
+   682→      publishers: Array.isArray(game.publishers) ? game.publishers.map(p => p.name).filter(Boolean) : undefined,
+   683→      website: game.website,
+   684→      esrb: game.esrb_rating?.name,
+   685→      sources: [
+   686→        { title: game.name ?? title, url: `https://rawg.io/games/${game.id ?? ""}`, domain: "rawg.io", snippet: description.slice(0, 200) },
+   687→        ...(wikiUrl ? [{ title: `${title} (Wikipedia)`, url: wikiUrl, domain: "wikipedia.org", snippet: description.slice(0, 200) }] : []),
+   688→      ],
+   689→      source: "RAWG + Wikipedia",
+   690→    };
+   691→  },
+   692→};
+   693→

@@ -6,6 +6,12 @@ import type { Detail, DetailSection, Accent, DetailRow, DetailSourceRef } from "
 import { CookingMode, type CookingStep } from "./CookingMode";
 import { WorkoutSession } from "../../WorkoutSession";
 import { PriceHistoryChart, extractAsin } from "./PriceHistoryChart";
+import { useKoru } from "../../KoruProvider";
+import {
+  sensitivityAnalysis,
+  preMortem,
+  weightedAdditive,
+} from "../../../domain/decisionEngine";
 
 // Pantalla de detalle unificada — misma estética Stitch que PlanRoadmapScreen
 // (koru-roadmap + magical-cards + blobs), pero genérica: renderiza cualquier
@@ -141,9 +147,11 @@ function SectionHead({ section }: { section: DetailSection }) {
 }
 
 // 🔴 v2: SourceRow — un source puede tener favicon (imageUrl) o ser un video
-// embebido de YouTube (thumbnail + play button + duration badge).
+// embebido de YouTube (thumbnail + play button + duration badge), o un
+// iframe de preview de Archive.org (Open Library book preview).
 function SourceRow({ source }: { source: DetailSourceRef }) {
   const ytId = source.url ? youtubeId(source.url) : null;
+  const isArchiveEmbed = !!source.url && /archive\.org\/embed\//i.test(source.url);
 
   const titleEl = (
     <span className="koru-dsec-source-title">
@@ -151,6 +159,35 @@ function SourceRow({ source }: { source: DetailSourceRef }) {
       {source.domain && <span className="koru-dsec-source-domain"> — {source.domain}</span>}
     </span>
   );
+
+  // 🔴 v4: Archive.org embed — renderiza un iframe 16:9 (400px height) en
+  // lugar del link textual. Permite ver el preview del libro sin salir de Koru.
+  if (isArchiveEmbed && source.url) {
+    return (
+      <div className="koru-dsec-source koru-dsec-source-embed">
+        <div className="koru-dsec-embed-wrap">
+          <iframe
+            src={source.url}
+            title={source.title}
+            loading="lazy"
+            allowFullScreen
+            referrerPolicy="no-referrer"
+            sandbox="allow-scripts allow-same-origin allow-popups"
+            style={{
+              width: "100%",
+              aspectRatio: "16 / 9",
+              height: 400,
+              maxHeight: 400,
+              border: 0,
+              borderRadius: 12,
+              background: "#000",
+            }}
+          />
+        </div>
+        {titleEl}
+      </div>
+    );
+  }
 
   // Video embed: thumbnail 16:9 + play button (koru-breathe) + duration badge
   if (ytId) {
@@ -535,6 +572,723 @@ function FormationPitch({ pitch }: { pitch: NonNullable<Extract<DetailSection, {
   );
 }
 
+// 🔴 v4 — Decision sensitivity analysis panel. For each factor in the
+// decision, runs sensitivityAnalysis with +20% delta on that factor's weight,
+// then renders an inline-SVG horizontal bar chart where bar width ∝ score
+// change of the current winner. Bars that would flip the winner are amber
+// with a "⚠ Cambia el ganador" annotation.
+function DecisionSensitivityPanel({ block }: { block: Extract<UiBlock, { type: "decision_support" }> }) {
+  const { state } = useKoru();
+  const decisionId = block.decisionId;
+  if (!decisionId) return null;
+  const decision = (state.decisions ?? []).find((d) => d.id === decisionId);
+  if (!decision) return null;
+  if (decision.factors.length === 0 || decision.options.length === 0) return null;
+
+  const deltaPct = 20;
+  const rows = decision.factors.map((factor) => {
+    const result = sensitivityAnalysis(decision, factor.id, deltaPct);
+    // Compute the magnitude of the winning option's WADD score change so
+    // we have something proportional to drive the bar width. sensitivityAnalysis
+    // itself only reports wouldFlip + newWinner; the actual delta we compute
+    // here with weightedAdditive (same algorithm the engine uses internally).
+    const adjustedWeights = { ...decision.weights };
+    const currentWeight = adjustedWeights[factor.id] ?? 0;
+    adjustedWeights[factor.id] = currentWeight * (1 + deltaPct / 100);
+    const originalScores = weightedAdditive(
+      decision.options,
+      decision.factors,
+      decision.weights,
+    );
+    const adjustedScores = weightedAdditive(
+      decision.options,
+      decision.factors,
+      adjustedWeights,
+    );
+    const winner = decision.result?.recommendation ?? "";
+    const scoreChange = Math.abs(
+      (adjustedScores[winner] ?? 0) - (originalScores[winner] ?? 0),
+    );
+    return { factor, result, scoreChange };
+  });
+
+  const maxChange = Math.max(...rows.map((r) => r.scoreChange), 0.0001);
+
+  // SVG layout — each row 28px tall, bar grows left→right inside a 220px track.
+  const rowH = 28;
+  const labelW = 110;
+  const barX = labelW + 8;
+  const barMax = 220;
+  const svgW = labelW + 8 + barMax + 12;
+  const svgH = rows.length * rowH + 8;
+
+  return (
+    <div style={{ padding: "0 16px 16px" }}>
+      <div
+        style={{
+          background: "rgba(99,102,241,0.05)",
+          borderRadius: 18,
+          padding: "16px 18px",
+          border: "1px solid rgba(99,102,241,0.18)",
+        }}
+      >
+        <p
+          style={{
+            margin: "0 0 4px",
+            fontSize: 11,
+            fontWeight: 800,
+            color: "#4f46e5",
+            letterSpacing: 0.4,
+            textTransform: "uppercase",
+          }}
+        >
+          Análisis de sensibilidad
+        </p>
+        <p style={{ margin: "0 0 12px", fontSize: 12, color: "#5a5a72" }}>
+          ¿Qué pasa si cada factor pesa +20%? Las barras ámbar indican que el ganador cambiaría.
+        </p>
+        <svg
+          width="100%"
+          viewBox={`0 0 ${svgW} ${svgH}`}
+          preserveAspectRatio="xMinYMin meet"
+          role="img"
+          aria-label="Análisis de sensibilidad de la decisión"
+        >
+          {rows.map((row, i) => {
+            const y = i * rowH + 6;
+            const barLen = Math.max(2, (row.scoreChange / maxChange) * barMax);
+            const flip = row.result.wouldFlip;
+            const barColor = flip ? "#f59e0b" : "#6366f1";
+            const label =
+              row.factor.label.length > 16
+                ? row.factor.label.slice(0, 15) + "…"
+                : row.factor.label;
+            return (
+              <g key={row.factor.id}>
+                <text
+                  x={labelW}
+                  y={y + 12}
+                  textAnchor="end"
+                  fontSize={11}
+                  fill="#1a1a2e"
+                  fontWeight={600}
+                >
+                  {label}
+                </text>
+                <rect x={barX} y={y} width={barMax} height={14} rx={3} fill="rgba(0,0,0,0.05)" />
+                <rect x={barX} y={y} width={barLen} height={14} rx={3} fill={barColor} />
+                {flip && (
+                  <text x={barX + barMax + 6} y={y + 12} fontSize={10} fill="#b45309" fontWeight={700}>
+                    ⚠
+                  </text>
+                )}
+              </g>
+            );
+          })}
+        </svg>
+        {rows.some((r) => r.result.wouldFlip) && (
+          <p
+            style={{
+              margin: "8px 0 0",
+              fontSize: 12,
+              color: "#b45309",
+              fontWeight: 700,
+            }}
+          >
+            ⚠ Cambia el ganador si sube +20%:{" "}
+            {rows
+              .filter((r) => r.result.wouldFlip)
+              .map((r) => r.factor.label)
+              .join(", ")}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// 🔴 v4 — Decision pre-mortem panel. For each option, show a collapsible card
+// with its 3 lowest-scoring factors (template-based risk string). Each risk
+// has a "Mitigado" / "Aceptado" toggle stored in local state. Risk text is
+// rendered in amber.
+function DecisionPreMortemPanel({ block }: { block: Extract<UiBlock, { type: "decision_support" }> }) {
+  const { state } = useKoru();
+  const decisionId = block.decisionId;
+  if (!decisionId) return null;
+  const decision = (state.decisions ?? []).find((d) => d.id === decisionId);
+  if (!decision) return null;
+  if (decision.options.length === 0 || decision.factors.length === 0) return null;
+
+  const analysis = preMortem(decision.options, decision.factors);
+  // Mitigation state: keyed by `${optionId}:${riskIndex}` → "mitigated" | "accepted" | undefined
+  const [mitigation, setMitigation] = useState<Record<string, "mitigated" | "accepted" | undefined>>({});
+  const [openOption, setOpenOption] = useState<string | null>(
+    decision.options[0]?.id ?? null,
+  );
+
+  return (
+    <div style={{ padding: "0 16px 16px" }}>
+      <div
+        style={{
+          background: "rgba(245,158,11,0.05)",
+          borderRadius: 18,
+          padding: "16px 18px",
+          border: "1px solid rgba(245,158,11,0.22)",
+        }}
+      >
+        <p
+          style={{
+            margin: "0 0 4px",
+            fontSize: 11,
+            fontWeight: 800,
+            color: "#b45309",
+            letterSpacing: 0.4,
+            textTransform: "uppercase",
+          }}
+        >
+          Pre-mortem
+        </p>
+        <p style={{ margin: "0 0 12px", fontSize: 12, color: "#5a5a72" }}>
+          Si esta opción falla, lo más probable es que sea por…
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {analysis.map((entry) => {
+            const option = decision.options.find((o) => o.id === entry.optionId);
+            const isOpen = openOption === entry.optionId;
+            return (
+              <div
+                key={entry.optionId}
+                style={{
+                  borderRadius: 12,
+                  border: "1px solid rgba(245,158,11,0.25)",
+                  background: "#fff",
+                  overflow: "hidden",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setOpenOption(isOpen ? null : entry.optionId)}
+                  aria-expanded={isOpen}
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    border: "none",
+                    background: "transparent",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 8,
+                    textAlign: "left",
+                  }}
+                >
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#1a1a2e" }}>
+                    {option?.label ?? entry.optionId}
+                  </span>
+                  <span
+                    className="material-symbols-outlined"
+                    style={{
+                      fontSize: 18,
+                      color: "#b45309",
+                      transition: "transform 0.15s",
+                      transform: isOpen ? "rotate(180deg)" : "none",
+                    }}
+                  >
+                    expand_more
+                  </span>
+                </button>
+                {isOpen && (
+                  <div style={{ padding: "0 12px 10px", display: "flex", flexDirection: "column", gap: 6 }}>
+                    {entry.risks.map((risk, idx) => {
+                      const key = `${entry.optionId}:${idx}`;
+                      const status = mitigation[key];
+                      return (
+                        <div
+                          key={idx}
+                          style={{
+                            padding: "8px 10px",
+                            borderRadius: 8,
+                            background: "rgba(245,158,11,0.06)",
+                            border: "1px solid rgba(245,158,11,0.15)",
+                          }}
+                        >
+                          <p
+                            style={{
+                              margin: "0 0 6px",
+                              fontSize: 12,
+                              color: "#b45309",
+                              lineHeight: 1.4,
+                            }}
+                          >
+                            {risk}
+                          </p>
+                          <div style={{ display: "flex", gap: 6 }}>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setMitigation((prev) => ({
+                                  ...prev,
+                                  [key]: status === "mitigated" ? undefined : "mitigated",
+                                }))
+                              }
+                              style={{
+                                flex: 1,
+                                padding: "6px 0",
+                                borderRadius: 8,
+                                border:
+                                  status === "mitigated"
+                                    ? "2px solid #059669"
+                                    : "1px solid rgba(0,0,0,0.12)",
+                                background:
+                                  status === "mitigated" ? "rgba(5,150,105,0.10)" : "#fff",
+                                color: status === "mitigated" ? "#059669" : "#5a5a72",
+                                fontSize: 11,
+                                fontWeight: 700,
+                                cursor: "pointer",
+                              }}
+                            >
+                              Mitigado
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setMitigation((prev) => ({
+                                  ...prev,
+                                  [key]: status === "accepted" ? undefined : "accepted",
+                                }))
+                              }
+                              style={{
+                                flex: 1,
+                                padding: "6px 0",
+                                borderRadius: 8,
+                                border:
+                                  status === "accepted"
+                                    ? "2px solid #b45309"
+                                    : "1px solid rgba(0,0,0,0.12)",
+                                background:
+                                  status === "accepted" ? "rgba(245,158,11,0.12)" : "#fff",
+                                color: status === "accepted" ? "#b45309" : "#5a5a72",
+                                fontSize: 11,
+                                fontWeight: 700,
+                                cursor: "pointer",
+                              }}
+                            >
+                              Aceptado
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 🔴 v4 — Recipe servings scaler. Lets the user scale ingredient quantities
+// up/down with "−" / "+" buttons (1..20). For each ingredient we parse the
+// numeric prefix of `measure`, multiply by (newServings/originalServings), and
+// re-render the quantity next to the original. Falls back to the original
+// measure string when no number is parseable.
+function RecipeServingsScaler({ block }: { block: Extract<UiBlock, { type: "recipe" }> }) {
+  const originalServings = block.servings && block.servings > 0 ? block.servings : 4;
+  const [servings, setServings] = useState(originalServings);
+  const ingredients = block.ingredients ?? [];
+
+  // Parse the leading number (int or decimal) of a measure string like
+  // "200 g", "1/2 taza", "2 cdas". Returns null when no leading number is found.
+  function parseLeadingNumber(s: string): { value: number; rest: string } | null {
+    const m = s.trim().match(/^(\d+(?:[.,]\d+)?)/);
+    if (!m) return null;
+    return { value: parseFloat(m[1].replace(",", ".")), rest: s.trim().slice(m[1].length) };
+  }
+
+  function scaleMeasure(measure: string): string {
+    if (!measure) return measure;
+    const parsed = parseLeadingNumber(measure);
+    if (!parsed) return measure;
+    const scaled = parsed.value * (servings / originalServings);
+    // Pretty-print: integers without decimals, otherwise 2 decimal places trimmed.
+    const rounded = Math.round(scaled * 100) / 100;
+    const display = Number.isInteger(rounded) ? String(rounded) : String(rounded);
+    return `${display}${parsed.rest}`;
+  }
+
+  return (
+    <div style={{ padding: "0 16px 16px" }}>
+      <div
+        style={{
+          background: "rgba(16,185,129,0.05)",
+          borderRadius: 18,
+          padding: "16px 18px",
+          border: "1px solid rgba(16,185,129,0.22)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 8 }}>
+          <p
+            style={{
+              margin: 0,
+              fontSize: 11,
+              fontWeight: 800,
+              color: "#059669",
+              letterSpacing: 0.4,
+              textTransform: "uppercase",
+            }}
+          >
+            Ajustar porciones
+          </p>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button
+              type="button"
+              aria-label="Restar porción"
+              onClick={() => setServings((s) => Math.max(1, s - 1))}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 10,
+                border: "1px solid rgba(16,185,129,0.30)",
+                background: "#fff",
+                color: "#059669",
+                fontSize: 18,
+                fontWeight: 800,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              −
+            </button>
+            <span style={{ fontSize: 15, fontWeight: 800, color: "#1a1a2e", minWidth: 18, textAlign: "center" }}>
+              {servings}
+            </span>
+            <button
+              type="button"
+              aria-label="Sumar porción"
+              onClick={() => setServings((s) => Math.min(20, s + 1))}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 10,
+                border: "1px solid rgba(16,185,129,0.30)",
+                background: "#fff",
+                color: "#059669",
+                fontSize: 18,
+                fontWeight: 800,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              +
+            </button>
+          </div>
+        </div>
+        <p style={{ margin: "0 0 10px", fontSize: 11, color: "#5a5a72" }}>
+          Original: {originalServings} · Actual: {servings}
+        </p>
+        {ingredients.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {ingredients.map((ing, i) => {
+              const original = ing.measure || "";
+              const scaled = scaleMeasure(original);
+              const changed = scaled !== original && servings !== originalServings;
+              return (
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 8,
+                    padding: "6px 8px",
+                    borderRadius: 8,
+                    background: "rgba(255,255,255,0.55)",
+                  }}
+                >
+                  <span style={{ fontSize: 13, color: "#1a1a2e", fontWeight: 600 }}>
+                    {ing.ingredient}
+                  </span>
+                  <span style={{ fontSize: 12, color: changed ? "#059669" : "#5a5a72", fontWeight: 700 }}>
+                    {changed ? `${original} → ${scaled}` : original}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// 🔴 v4 — Decision outcome panel: lets the user register which option they
+// chose + a 1-5 satisfaction rating. The reducer updateDecisionOutcome writes
+// the outcome, creates a follow-up commitment (90d) and a MemoryFact kind
+// "preference" with confidence boosted/reduced by the satisfaction score.
+function DecisionOutcomePanel({ block }: { block: Extract<UiBlock, { type: "decision_support" }> }) {
+  const { state, updateDecisionOutcome } = useKoru();
+  const decisionId = block.decisionId;
+  // Sin decisionId no podemos vincular el bloque a una Decision durable.
+  if (!decisionId) return null;
+  const decision = (state.decisions ?? []).find((d) => d.id === decisionId);
+  if (!decision) return null;
+
+  // Outcome ya registrado → mostrar resumen "Decidiste: X · Satisfacción: N/5".
+  const outcome = decision.outcome;
+  if (outcome) {
+    const chosen = decision.options.find((o) => o.id === outcome.chosenOptionId);
+    const chosenLabel = chosen?.label ?? "Opción elegida";
+    return (
+      <div style={{ padding: "0 16px 16px" }}>
+        <div
+          style={{
+            background: "linear-gradient(135deg, rgba(99,102,241,0.08), rgba(67,56,202,0.06))",
+            borderRadius: 18,
+            padding: "16px 18px",
+            border: "1px solid rgba(99,102,241,0.18)",
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 22, color: "#4f46e5" }}>
+              check_circle
+            </span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: "#4f46e5", letterSpacing: 0.4, textTransform: "uppercase" }}>
+              Decidiste
+            </span>
+          </div>
+          <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#1a1a2e" }}>
+            {chosenLabel}
+          </p>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 13, color: "#5a5a72" }}>Satisfacción:</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: satisfactionColor(outcome.satisfaction1to5) }}>
+              {outcome.satisfaction1to5}/5
+            </span>
+            <div style={{ display: "flex", gap: 2, marginLeft: 4 }}>
+              {Array.from({ length: 5 }, (_, i) => (
+                <span
+                  key={i}
+                  className="material-symbols-outlined"
+                  style={{
+                    fontSize: 14,
+                    color: i < outcome.satisfaction1to5 ? "#f59e0b" : "rgba(0,0,0,0.18)",
+                  }}
+                >
+                  star
+                </span>
+              ))}
+            </div>
+          </div>
+          {outcome.notes && (
+            <p style={{ margin: 0, fontSize: 13, color: "#5a5a72", fontStyle: "italic" }}>
+              "{outcome.notes}"
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Sin outcome → mostrar prompt "¿Ya decidiste?" con botones por opción.
+  // El primer tap elige la opción; luego pedimos satisfaction 1-5 inline.
+  return (
+    <DecisionOutcomeEditor
+      decision={decision}
+      onSubmit={(chosenOptionId, satisfaction1to5, notes) => {
+        updateDecisionOutcome(decision.id, {
+          chosenOptionId,
+          decidedAt: new Date().toISOString(),
+          satisfaction1to5,
+          notes,
+        });
+        if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+          try { navigator.vibrate(15); } catch { /* best-effort */ }
+        }
+      }}
+    />
+  );
+}
+
+function satisfactionColor(rating: number): string {
+  if (rating >= 4) return "#059669";
+  if (rating <= 2) return "#dc2626";
+  return "#d97706";
+}
+
+// 🔴 v4 — Inline editor: opción elegida → satisfaction rating → submit.
+// Tres estados: "choosing" (lista de opciones), "rating" (selector 1-5 estrellas),
+// "done" (transient confirmation; el panel padre ya re-renderiza con el outcome).
+function DecisionOutcomeEditor({
+  decision,
+  onSubmit,
+}: {
+  decision: import("../../../domain/types").Decision;
+  onSubmit: (chosenOptionId: string, satisfaction1to5: number, notes?: string) => void;
+}) {
+  const [phase, setPhase] = useState<"choosing" | "rating">("choosing");
+  const [chosenId, setChosenId] = useState<string | null>(null);
+  const [rating, setRating] = useState<number>(0);
+
+  const options = decision.options.length > 0
+    ? decision.options
+    : [];
+
+  if (options.length === 0) return null;
+
+  // Phase 2: rating — muestra la opción elegida + 5 estrellas para satisfaction.
+  if (phase === "rating" && chosenId) {
+    const chosen = options.find((o) => o.id === chosenId);
+    return (
+      <div style={{ padding: "0 16px 16px" }}>
+        <div
+          style={{
+            background: "rgba(99,102,241,0.06)",
+            borderRadius: 18,
+            padding: "16px 18px",
+            border: "1px solid rgba(99,102,241,0.18)",
+          }}
+        >
+          <p style={{ margin: "0 0 4px", fontSize: 11, fontWeight: 800, color: "#4f46e5", letterSpacing: 0.4, textTransform: "uppercase" }}>
+            ¿Ya decidiste?
+          </p>
+          <p style={{ margin: "0 0 12px", fontSize: 15, fontWeight: 700, color: "#1a1a2e" }}>
+            Elegiste: {chosen?.label ?? "—"}
+          </p>
+          <p style={{ margin: "0 0 8px", fontSize: 13, color: "#5a5a72" }}>
+            ¿Qué tan satisfecho quedaste?
+          </p>
+          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setRating(n)}
+                aria-label={`${n} estrellas`}
+                style={{
+                  flex: 1,
+                  padding: "10px 0",
+                  borderRadius: 12,
+                  border: rating === n ? "2px solid #4f46e5" : "1px solid rgba(0,0,0,0.12)",
+                  background: rating === n ? "rgba(99,102,241,0.10)" : "#fff",
+                  cursor: "pointer",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 2,
+                }}
+              >
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 18, color: rating >= n ? "#f59e0b" : "rgba(0,0,0,0.25)" }}
+                >
+                  star
+                </span>
+                <span style={{ fontSize: 11, color: "#5a5a72", fontWeight: 700 }}>{n}</span>
+              </button>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              type="button"
+              onClick={() => { setPhase("choosing"); setChosenId(null); setRating(0); }}
+              style={{
+                flex: 1,
+                padding: "10px 0",
+                borderRadius: 12,
+                border: "1px solid rgba(0,0,0,0.12)",
+                background: "#fff",
+                color: "#5a5a72",
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              Volver
+            </button>
+            <button
+              type="button"
+              disabled={rating === 0}
+              onClick={() => onSubmit(chosenId, rating)}
+              style={{
+                flex: 2,
+                padding: "10px 0",
+                borderRadius: 12,
+                border: "none",
+                background: rating === 0 ? "rgba(99,102,241,0.30)" : "linear-gradient(135deg, #6366f1, #4338ca)",
+                color: "#fff",
+                fontSize: 13,
+                fontWeight: 800,
+                cursor: rating === 0 ? "not-allowed" : "pointer",
+                boxShadow: rating === 0 ? "none" : "0 6px 16px rgba(99,102,241,0.30)",
+              }}
+            >
+              Confirmar decisión
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Phase 1: choosing — lista de opciones como botones grandes.
+  return (
+    <div style={{ padding: "0 16px 16px" }}>
+      <div
+        style={{
+          background: "rgba(99,102,241,0.06)",
+          borderRadius: 18,
+          padding: "16px 18px",
+          border: "1px solid rgba(99,102,241,0.18)",
+        }}
+      >
+        <p style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 800, color: "#4f46e5", letterSpacing: 0.4, textTransform: "uppercase" }}>
+          ¿Ya decidiste?
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {options.map((o) => (
+            <button
+              key={o.id}
+              type="button"
+              onClick={() => { setChosenId(o.id); setPhase("rating"); }}
+              style={{
+                width: "100%",
+                padding: "12px 14px",
+                borderRadius: 12,
+                border: "1px solid rgba(99,102,241,0.25)",
+                background: "#fff",
+                color: "#1a1a2e",
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: "pointer",
+                textAlign: "left",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 8,
+              }}
+            >
+              <span>{o.label}</span>
+              <span className="material-symbols-outlined" style={{ fontSize: 18, color: "#4f46e5" }}>
+                arrow_forward
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function KoruDetailScreen({
   detail,
   headerIcon,
@@ -839,6 +1593,32 @@ export function KoruDetailScreen({
                 ))}
             </div>
           </div>
+        )}
+
+        {/* 🔴 v4: Decision outcome panel — when block is decision_support and
+            has decisionId, render the outcome tracker (chosen option +
+            satisfaction rating). The panel reads the Decision from state via
+            useKoru() and calls updateDecisionOutcome. */}
+        {block && block.type === "decision_support" && (
+          <DecisionOutcomePanel block={block} />
+        )}
+
+        {/* 🔴 v4: Decision sensitivity analysis + pre-mortem — both panels
+            read the Decision from state via useKoru() and only render when
+            the block is decision_support and has a valid decisionId pointing
+            to a Decision with options + factors. */}
+        {block && block.type === "decision_support" && (
+          <DecisionSensitivityPanel block={block} />
+        )}
+        {block && block.type === "decision_support" && (
+          <DecisionPreMortemPanel block={block} />
+        )}
+
+        {/* 🔴 v4: Recipe servings scaler — when block is a recipe with
+            ingredients, render a "− / +" scaler (1..20) that re-computes
+            each ingredient's leading quantity proportionally. */}
+        {block && block.type === "recipe" && block.ingredients && block.ingredients.length > 0 && (
+          <RecipeServingsScaler block={block} />
         )}
 
         {/* 🔴 v2: Sticky footer — Save + PDF pinned al fondo con blur backdrop */}

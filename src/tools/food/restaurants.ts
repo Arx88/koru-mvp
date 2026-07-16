@@ -7,8 +7,9 @@
 import { defineTool, policies, type ToolHandler } from "../types";
 import { searchAndEnrich, usableSources } from "../shared/scrapers";
 import { validateWithCitations, extractionToDataCard } from "../shared/extractor";
-import { fetchJson } from "../shared/fetcher";
+import { fetchJson, fetchText } from "../shared/fetcher";
 import type { UiBlock } from "../../domain/types";
+import { searchPlacesOSM } from "./osmPlaces";
 
 // ─── Google Places enrichment ──────────────────────────────────────────────
 
@@ -27,6 +28,8 @@ export interface RestaurantDetails {
   photos?: string[]; // photo URLs
   menuHighlights?: Array<{ dish: string; price?: string }>;
   reserveUrl?: string;
+  /** 🔴 v4: URL del website oficial del place (Google Places field "website"). */
+  website?: string;
 }
 
 // Shapes mínimas de la respuesta de Google Places (Find Place From Text).
@@ -49,12 +52,107 @@ interface GooglePlacesCandidate {
   opening_hours?: { weekday_text?: string[]; open_now?: boolean };
   photos?: GooglePlacesPhoto[];
   url?: string;
+  website?: string;
 }
 
 interface GoogleFindPlaceResponse {
   candidates?: GooglePlacesCandidate[];
   status: string;
   error_message?: string;
+}
+
+// ─── Menu highlights scraping ───────────────────────────────────────────────
+
+/**
+ * 🔴 v4: extrae hasta 5 highlights del menú desde el HTML del website del
+ * restaurante. Heurística simple:
+ *  1. Sanea el HTML (elimina <script>/<style>, decodifica entidades básicas).
+ *  2. Busca pares (texto del plato, precio) en dos patrones:
+ *     a) <li> o <h3>/<h4> con texto corto, seguido de un precio en la misma
+ *        línea o en el siguiente nodo de texto.
+ *     b) Línea de texto plano con un precio al final (formato "Paella €18").
+ *  3. Filtra por palabras clave gastronómicas para evitar ruido (ej. links de
+ *     navegación con "€" por promociones).
+ *  4. Devuelve hasta 5 items únicos.
+ *
+ * Best-effort: si el sitio bloquea el fetch o el HTML no tiene precios, devuelve [].
+ */
+const FOOD_KEYWORDS = /\b(pizza|pasta|ensalada|sopa|postre|carne|pescado|pollo|vegan|cel[ií]aco|paella|hamburguesa|sushi|ramen|taco|burrito|ceviche|croquetas|tortilla|gazpacho|fabada|pulpo|chulet[oó]n|bife|milanesa|empanada|locro|asado|matambre|cordero|cochinillo|bacalao|rabas|calamares|gambas|-langostinos|mejillones|almejas|risotto|ñ[oñ]oqui|lasa[ñn]a|ravioles|sorrentinos|fideos|tallarines|focaccia|pancake|waffle|tarta|flan|helado|mousse|tiramis[uú]|profiterol|crepe|cr[eè]me|coulant|brownie|cheesecake|limonada|zumo|jugo|smoothie|cafe|caf[eé]|capuchino|latte|vino|cerveza|c[oó]ctel|mojito|agua)\b/i;
+
+const PRICE_PATTERN = /(?:€|EUR|usd|\$|£|¥|ARS|MXN|COP|CLP|BRL)\s?\d+(?:[.,]\d{1,2})?/i;
+
+function decodeEntities(s: string): string {
+  return s
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&aacute;/gi, "á")
+    .replace(/&eacute;/gi, "é")
+    .replace(/&iacute;/gi, "í")
+    .replace(/&oacute;/gi, "ó")
+    .replace(/&uacute;/gi, "ú")
+    .replace(/&ntilde;/gi, "ñ")
+    .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(parseInt(d, 10)));
+}
+
+function extractMenuHighlights(html: string, max = 5): Array<{ dish: string; price?: string }> {
+  if (!html) return [];
+  // 1. Sanea: elimina scripts/styles/comments.
+  const sanitized = html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<\/?(?:nav|header|footer|aside|form|button|svg|img|iframe)[^>]*>/gi, " ");
+
+  const found: Array<{ dish: string; price?: string }> = [];
+  const seen = new Set<string>();
+
+  // 2a. Pattern: <li ...>text...price</li> (o <h3>/<h4>)
+  const blockRe = /<(?:li|h[2345]|p|div)[^>]*>([\s\S]{0,400}?)<\/(?:li|h[2345]|p|div)>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = blockRe.exec(sanitized)) !== null && found.length < max) {
+    const raw = m[1] ?? "";
+    // Limpia tags internas y decodifica entidades.
+    const text = decodeEntities(raw.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+    if (text.length < 3 || text.length > 120) continue;
+    const priceMatch = text.match(PRICE_PATTERN);
+    if (!priceMatch) continue;
+    const price = priceMatch[0].replace(/\s+/g, " ").trim();
+    const dish = text.replace(price, "").replace(/[|\-–—:•·]+\s*$/, "").trim();
+    if (!dish || dish.length < 3) continue;
+    // Filtra ruido: debe contener palabra gastronómica O parecer nombre de plato.
+    if (!FOOD_KEYWORDS.test(dish) && !/^[A-ZÁÉÍÓÚÑ]/.test(dish)) continue;
+    // Descarta si el "plato" parece link de navegación (muy corto + todo mayúsculas).
+    if (dish === dish.toUpperCase() && dish.length < 12) continue;
+    const key = dish.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    found.push({ dish, price });
+  }
+
+  // 2b. Pattern: línea de texto plano con precio al final ("Paella €18").
+  if (found.length < max) {
+    const lines = decodeEntities(sanitized.replace(/<[^>]+>/g, "\n"))
+      .split(/\n/)
+      .map(l => l.replace(/\s+/g, " ").trim())
+      .filter(Boolean);
+    for (const line of lines) {
+      if (found.length >= max) break;
+      if (line.length < 5 || line.length > 120) continue;
+      const priceMatch = line.match(PRICE_PATTERN);
+      if (!priceMatch) continue;
+      const price = priceMatch[0].replace(/\s+/g, " ").trim();
+      const dish = line.replace(price, "").replace(/[|\-–—:•·]+\s*$/, "").trim();
+      if (!dish || dish.length < 3) continue;
+      if (!FOOD_KEYWORDS.test(dish) && !/^[A-ZÁÉÍÓÚÑ]/.test(dish)) continue;
+      if (dish === dish.toUpperCase() && dish.length < 12) continue;
+      const key = dish.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      found.push({ dish, price });
+    }
+  }
+
+  return found;
 }
 
 /**
@@ -88,6 +186,7 @@ export async function fetchRestaurantDetails(
     "opening_hours",
     "photos",
     "url",
+    "website",
   ].join(",");
 
   const url =
@@ -137,7 +236,26 @@ export async function fetchRestaurantDetails(
     openingHours: candidate.opening_hours?.weekday_text,
     photos: photos.length > 0 ? photos : undefined,
     reserveUrl: candidate.url,
+    website: candidate.website,
   };
+
+  // 🔴 v4: scraping de highlights del menú desde el website oficial del place.
+  // Best-effort: si no hay website, o el fetch falla, o no encontramos precios,
+  // simplemente dejamos menuHighlights como undefined (la card degradará sin
+  // esa sección). Nunca propagamos el error — el enriquecimiento base ya quedó.
+  if (candidate.website) {
+    try {
+      const htmlRes = await fetchText(candidate.website, { timeoutMs: 12_000 });
+      if (htmlRes.ok && htmlRes.text) {
+        const highlights = extractMenuHighlights(htmlRes.text, 5);
+        if (highlights.length > 0) {
+          details.menuHighlights = highlights;
+        }
+      }
+    } catch (err) {
+      console.warn(`[Koru] restaurant menu scraping failed for ${candidate.website}:`, err instanceof Error ? err.message : err);
+    }
+  }
 
   return details;
 }
@@ -208,6 +326,8 @@ export const restaurantDeepSearch: ToolHandler = {
       photos?: string[];
       reserveUrl?: string;
       distanceFromUser?: string;
+      // 🔴 v4: highlights del menú extraídos por scraping del website.
+      menuHighlights?: Array<{ dish: string; price?: string }>;
     };
     let matches: RestaurantMatch[] = [];
     let pros: string[] = [];
@@ -293,11 +413,38 @@ export const restaurantDeepSearch: ToolHandler = {
               priceLevel: details.priceLevel,
               photos: details.photos,
               reserveUrl: details.reserveUrl,
+              // 🔴 v4: highlights del menú (scraping del website).
+              menuHighlights: details.menuHighlights,
             };
           } catch {
             // Sin enriquecimiento — mantenemos el match como está.
             return m;
           }
+        }),
+      );
+      matches = enriched;
+    } else if (matches.length > 0) {
+      // 🔴 FREE FALLBACK: sin GOOGLE_PLACES_KEY usamos OSM (Nominatim) para
+      // conseguir al menos lat/lng/address del restaurante. Best-effort: si
+      // no encuentra el lugar, mantenemos el match con la data léxica.
+      const enriched = await Promise.all(
+        matches.slice(0, 3).map(async (m): Promise<RestaurantMatch> => {
+          try {
+            const osmPlaces = await searchPlacesOSM(`${m.name} ${query}`);
+            const first = osmPlaces[0];
+            if (first) {
+              return {
+                ...m,
+                lat: first.lat,
+                lng: first.lng,
+                address: first.name,
+                // OSM no expone rating/phone/photos; los dejamos como estaban.
+              };
+            }
+          } catch {
+            // Sin enriquecimiento OSM — mantenemos el match como está.
+          }
+          return m;
         }),
       );
       matches = enriched;

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   X,
   Search,
@@ -24,6 +24,9 @@ import {
   Save,
   History,
   RotateCcw,
+  Wallet,
+  Upload,
+  ScanLine,
 } from "lucide-react";
 import type {
   HeartbeatSettings,
@@ -36,6 +39,10 @@ import type {
   UserPreferences,
 } from "../domain/types";
 import { getGoogleAuthUrl } from "../tools/calendar/googleCalendar";
+import { MemoryGraph } from "./MemoryGraph";
+import { parseBankCSV } from "../tools/money/csvImport";
+import { fetchWalletBalance, isValidEthAddress } from "../tools/money/etherscanReader";
+import { useKoru } from "./KoruProvider";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SettingsScreen — pantalla integrada de Ajustes (8 secciones colapsables).
@@ -585,6 +592,11 @@ export function SettingsScreen(props: SettingsScreenProps) {
     highContrast: false,
   };
 
+  // 🔴 FREE: hooks para crear records (CSV bank import) y consultar balance
+  // ETH (Etherscan). Se traen vía useKoru para no ensanchar los props del
+  // SettingsScreen con callbacks que solo sirven a la sección Integraciones.
+  const { createRecord } = useKoru();
+
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState<Set<SectionId>>(() => new Set<SectionId>(["perfil"]));
   const [autoTz] = useState(() => detectTimezone());
@@ -608,6 +620,30 @@ export function SettingsScreen(props: SettingsScreenProps) {
   // Delete-all confirmation flow (require typing ELIMINAR)
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+
+  // 🔴 FREE (item 1): CSV bank import. Estado del file picker + resultado del
+  // último import (para feedback en la UI). El hidden input vive en el DOM.
+  const [csvImporting, setCsvImporting] = useState(false);
+  const [csvImportResult, setCsvImportResult] = useState<string | null>(null);
+  const csvFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // 🔴 FREE (item 2): Wallet ETH via Etherscan (sin key). Dirección persistida
+  // en localStorage + balance en estado.
+  const [ethAddress, setEthAddress] = useState<string>(() => {
+    try {
+      return localStorage.getItem("koru.ethWalletAddress") ?? "";
+    } catch {
+      return "";
+    }
+  });
+  const [ethBalance, setEthBalance] = useState<number | null>(null);
+  const [ethTokenCount, setEthTokenCount] = useState<number | null>(null);
+  const [ethLoading, setEthLoading] = useState(false);
+  const [ethError, setEthError] = useState<string | null>(null);
+
+  // 🔴 v4: Memory graph modal — toggle para abrir el force-directed graph
+  // de memorias (MemoryGraph.tsx). Se renderiza via portal sobre todo el DOM.
+  const [memoryGraphOpen, setMemoryGraphOpen] = useState(false);
 
   // Retention (local — el reducer no existe aún; se persiste en localStorage)
   const [retention, setRetention] = useState<string>(
@@ -710,6 +746,91 @@ export function SettingsScreen(props: SettingsScreenProps) {
 
   function disconnectIntegration(key: "calendar" | "banks" | "crypto") {
     setIntegrations((prev) => ({ ...prev, [key]: { connected: false } }));
+  }
+
+  // 🔴 FREE (item 1): CSV bank import. Abre el file picker; cuando el usuario
+  // elige un CSV, lo lee, lo parsea con `parseBankCSV` y crea un LifeRecord
+  // tipo "expense" por cada transacción detectada. Sin API, sin key, sin
+  // intervención más allá del click.
+  async function handleCsvImport(file: File) {
+    setCsvImporting(true);
+    setCsvImportResult(null);
+    try {
+      const text = await file.text();
+      const txs = parseBankCSV(text);
+      if (txs.length === 0) {
+        setCsvImportResult("No se detectaron transacciones en el CSV.");
+        return;
+      }
+      let created = 0;
+      for (const tx of txs) {
+        try {
+          await createRecord({
+            title: tx.description,
+            collection: "Gastos",
+            notes: `${tx.currency} ${tx.amount} · ${tx.date}`,
+            kind: "expense",
+            tags: ["csv-import"],
+          });
+          created++;
+        } catch {
+          // Si falla una transacción, seguimos con las demás.
+        }
+      }
+      setIntegrations((prev) => ({
+        ...prev,
+        banks: { connected: true, lastSync: new Date().toISOString() },
+      }));
+      setCsvImportResult(`Importadas ${created} de ${txs.length} transacciones.`);
+    } catch (err) {
+      setCsvImportResult(
+        `Error al importar CSV: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    } finally {
+      setCsvImporting(false);
+    }
+  }
+
+  // 🔴 FREE (item 2): Wallet ETH via Etherscan (sin key). Guarda la dirección
+  // en localStorage y consulta el balance.
+  async function handleFetchEthBalance(address: string) {
+    const trimmed = address.trim();
+    setEthError(null);
+    if (!trimmed) {
+      setEthBalance(null);
+      setEthTokenCount(null);
+      try {
+        localStorage.removeItem("koru.ethWalletAddress");
+      } catch { /* noop */ }
+      return;
+    }
+    if (!isValidEthAddress(trimmed)) {
+      setEthError("Dirección ETH inválida (debe ser 0x + 40 hex).");
+      setEthBalance(null);
+      setEthTokenCount(null);
+      return;
+    }
+    try {
+      localStorage.setItem("koru.ethWalletAddress", trimmed);
+    } catch { /* noop */ }
+    setEthLoading(true);
+    try {
+      const result = await fetchWalletBalance(trimmed);
+      if (result == null) {
+        setEthError("No pude consultar el balance. Probá de nuevo en unos segundos.");
+        setEthBalance(null);
+        setEthTokenCount(null);
+      } else {
+        setEthBalance(result.ethBalance);
+        setEthTokenCount(result.tokenCount);
+      }
+    } catch (err) {
+      setEthError(
+        `Error al consultar Etherscan: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    } finally {
+      setEthLoading(false);
+    }
   }
 
   // 🔴 Google Calendar OAuth — abre la URL de autorización en una pestaña nueva
@@ -1358,14 +1479,143 @@ export function SettingsScreen(props: SettingsScreenProps) {
                       onConnect={connectGoogleCalendar}
                       onDisconnect={disconnectGoogleCalendar}
                     />
-                    <IntegrationRow
-                      icon={<Landmark size={16} />}
-                      title="Bancos (Plaid / Tink)"
-                      connected={integrations.banks?.connected ?? false}
-                      lastSync={integrations.banks?.lastSync}
-                      onConnect={() => connectIntegration("banks")}
-                      onDisconnect={() => disconnectIntegration("banks")}
-                    />
+                    {/* 🔴 FREE (item 1): Reemplaza Plaid "Conectar" con Importar CSV.
+                        Sin OAuth, sin API key — el usuario selecciona un extracto
+                        bancario exportado y lo importamos como gastos. */}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 10,
+                        padding: "12px 0",
+                        borderBottom: "1px solid rgba(129, 39, 207, 0.08)",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            width: 34,
+                            height: 34,
+                            alignItems: "center",
+                            justifyContent: "center",
+                            borderRadius: 10,
+                            background: integrations.banks?.connected ? "#dcfce7" : "#f1f5f9",
+                            color: integrations.banks?.connected ? "#16a34a" : "#475569",
+                          }}
+                        >
+                          <Landmark size={16} />
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: "#0b1c30" }}>
+                            Banco (CSV)
+                          </div>
+                          <div style={{ fontSize: 11, color: "#94a3b8" }}>
+                            {integrations.banks?.connected
+                              ? `Última sync: ${formatLastSync(integrations.banks.lastSync)}`
+                              : "Importá tu extracto bancario en CSV"}
+                          </div>
+                          {csvImportResult && (
+                            <div style={{ fontSize: 11, color: "#6366f1", marginTop: 4 }}>
+                              {csvImportResult}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <input
+                        ref={csvFileInputRef}
+                        type="file"
+                        accept=".csv,text/csv,text/plain"
+                        style={{ display: "none" }}
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) void handleCsvImport(f);
+                          // Reset para permitir re-importar el mismo archivo.
+                          e.target.value = "";
+                        }}
+                      />
+                      <PillButton
+                        onClick={() => csvFileInputRef.current?.click()}
+                        variant="primary"
+                        disabled={csvImporting}
+                      >
+                        {csvImporting ? (
+                          <><RotateCcw size={14} className="koru-spin" /> Importando…</>
+                        ) : (
+                          <><Upload size={14} /> Importar CSV</>
+                        )}
+                      </PillButton>
+                    </div>
+
+                    {/* 🔴 FREE (item 2): Wallet ETH via Etherscan (sin key).
+                        Input de dirección + botón consultar → muestra balance. */}
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 8,
+                        padding: "12px 0",
+                        borderBottom: "1px solid rgba(129, 39, 207, 0.08)",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            width: 34,
+                            height: 34,
+                            alignItems: "center",
+                            justifyContent: "center",
+                            borderRadius: 10,
+                            background: ethBalance != null ? "#dcfce7" : "#f1f5f9",
+                            color: ethBalance != null ? "#16a34a" : "#475569",
+                          }}
+                        >
+                          <Wallet size={16} />
+                        </div>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: "#0b1c30" }}>
+                            Wallet ETH (Etherscan)
+                          </div>
+                          <div style={{ fontSize: 11, color: "#94a3b8" }}>
+                            {ethBalance != null
+                              ? `${ethBalance} ETH${ethTokenCount != null && ethTokenCount > 0 ? ` · ${ethTokenCount} token(s)` : ""}`
+                              : ethLoading
+                                ? "Consultando…"
+                                : ethError ?? "Sin key — dirección pública"}
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <input
+                          type="text"
+                          value={ethAddress}
+                          onChange={(e) => setEthAddress(e.target.value)}
+                          placeholder="0x… (dirección ETH)"
+                          aria-label="Dirección ETH de la wallet"
+                          style={{
+                            flex: 1,
+                            padding: "8px 10px",
+                            borderRadius: 10,
+                            border: "1px solid #e2d4f5",
+                            background: "rgba(255,255,255,0.8)",
+                            fontSize: 12,
+                            color: "#0b1c30",
+                            outline: "none",
+                            fontFamily: "monospace",
+                          }}
+                        />
+                        <PillButton
+                          onClick={() => void handleFetchEthBalance(ethAddress)}
+                          variant="default"
+                          disabled={ethLoading || !ethAddress.trim()}
+                        >
+                          {ethLoading ? "…" : "Consultar"}
+                        </PillButton>
+                      </div>
+                    </div>
+
                     <IntegrationRow
                       icon={<Bitcoin size={16} />}
                       title="Exchanges de crypto"
@@ -1376,7 +1626,8 @@ export function SettingsScreen(props: SettingsScreenProps) {
                     />
                     <p style={{ margin: "10px 0 0", fontSize: 11, color: "#94a3b8" }}>
                       Las conexiones son placeholders visuales por ahora. La sincronización real
-                      arriveá con OAuth en una próxima iteración.
+                      arriveá con OAuth en una próxima iteración. CSV y Wallet ETH ya funcionan
+                      sin configuración extra.
                     </p>
                   </>
                 )}
@@ -1419,6 +1670,31 @@ export function SettingsScreen(props: SettingsScreenProps) {
                         onChange={setMemKindFilter}
                         options={MEMORY_KIND_FILTERS}
                       />
+                      {/* 🔴 v4: "Ver grafo" — abre el MemoryGraph en un portal
+                          modal. Force-directed graph sobre las memorias con
+                          embeddings; nodos coloreados por MemoryKind y
+                          dimensionados por confidence. */}
+                      <button
+                        type="button"
+                        onClick={() => setMemoryGraphOpen(true)}
+                        style={{
+                          padding: "8px 12px",
+                          borderRadius: 10,
+                          border: "1px solid #7c3aed",
+                          background: "rgba(124,58,237,0.08)",
+                          color: "#7c3aed",
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                        aria-label="Ver grafo de memorias"
+                      >
+                        <Brain size={14} />
+                        Ver grafo
+                      </button>
                     </div>
 
                     <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 320, overflowY: "auto", paddingRight: 4 }}>
@@ -1497,6 +1773,16 @@ export function SettingsScreen(props: SettingsScreenProps) {
             Koru · Ajustes integrados v1
           </div>
         </div>
+
+        {/* 🔴 v4: Memory graph modal — portal que renderiza el force-directed
+            graph de memorias (MemoryGraph.tsx). El componente se encarga de
+            crear su propio portal sobre document.body. */}
+        {memoryGraphOpen && (
+          <MemoryGraph
+            memories={state.memories}
+            onClose={() => setMemoryGraphOpen(false)}
+          />
+        )}
 
         {/* Delete-all confirmation — requiere tipear ELIMINAR */}
         {deleteOpen && (

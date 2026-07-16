@@ -1,0 +1,1207 @@
+     1→import { useEffect, useState } from "react";
+     2→import { createPortal } from "react-dom";
+     3→import type { CSSProperties } from "react";
+     4→import type { UiBlock } from "../../../domain/types";
+     5→import type { Detail, DetailSection, Accent, DetailRow, DetailSourceRef } from "./presentation";
+     6→import { CookingMode, type CookingStep } from "./CookingMode";
+     7→import { WorkoutSession } from "../../WorkoutSession";
+     8→import { PriceHistoryChart, extractAsin } from "./PriceHistoryChart";
+     9→import { useKoru } from "../../KoruProvider";
+    10→
+    11→// Pantalla de detalle unificada — misma estética Stitch que PlanRoadmapScreen
+    12→// (koru-roadmap + magical-cards + blobs), pero genérica: renderiza cualquier
+    13→// conjunto de secciones normalizadas. Cada UiBlock que abre su CTA cae acá,
+    14→// así informe, clima, mercados, etc. comparten un único lenguaje visual.
+    15→
+    16→function Mat({ children, className = "" }: { children: string; className?: string }) {
+    17→  return <span className={`material-symbols-outlined ${className}`}>{children}</span>;
+    18→}
+    19→
+    20→// 🔴 P2 — Platform detection para el botón "Navegar" de route_map.
+    21→// iOS detection incluye el iPad con iOS 13+ que se reporta como MacIntel.
+    22→function isIOS(): boolean {
+    23→  if (typeof navigator === "undefined") return false;
+    24→  return (
+    25→    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    26→    (navigator.platform === "MacIntel" && (navigator.maxTouchPoints ?? 0) > 1)
+    27→  );
+    28→}
+    29→
+    30→function isAndroid(): boolean {
+    31→  if (typeof navigator === "undefined") return false;
+    32→  return /Android/i.test(navigator.userAgent);
+    33→}
+    34→
+    35→/**
+    36→ * 🔴 P2 — Construye la URL de navegación según plataforma y datos disponibles.
+    37→ * - Si lat/lng están presentes:
+    38→ *   • Android: geo:${lat},${lng}?q=${destination}
+    39→ *   • iOS:     maps://?daddr=${lat},${lng}
+    40→ *   • Desktop: https://www.google.com/maps/dir/?api=1&destination=${dest}
+    41→ * - Si NO hay lat/lng, cae a esquemas address-based:
+    42→ *   • Android: geo:0,0?q=${destination}
+    43→ *   • iOS:     maps://?daddr=${destination}
+    44→ *   • Desktop: https://www.google.com/maps/dir/?api=1&destination=${dest}
+    45→ * Devuelve null si no hay destino (ni to ni from ni lat/lng).
+    46→ */
+    47→function buildNavUrl(opts: {
+    48→  destination: string;
+    49→  lat?: number;
+    50→  lng?: number;
+    51→}): string | null {
+    52→  const { destination, lat, lng } = opts;
+    53→  const hasCoords = typeof lat === "number" && typeof lng === "number";
+    54→  if (isAndroid()) {
+    55→    if (hasCoords) {
+    56→      return `geo:${lat},${lng}?q=${encodeURIComponent(destination)}`;
+    57→    }
+    58→    return `geo:0,0?q=${encodeURIComponent(destination)}`;
+    59→  }
+    60→  if (isIOS()) {
+    61→    if (hasCoords) {
+    62→      return `maps://?daddr=${lat},${lng}`;
+    63→    }
+    64→    return `maps://?daddr=${encodeURIComponent(destination)}`;
+    65→  }
+    66→  // Desktop (o fallback)
+    67→  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
+    68→}
+    69→
+    70→// 🔴 v2: ComparisonBar — barra comparativa para stats de fútbol (o cualquier
+    71→// matchup home/away). Dibuja dos segmentos coloreados con team colors,
+    72→// mostrando visualmente quién domina esa stat.
+    73→function ComparisonBar({ bar }: { bar: NonNullable<DetailRow["bar"]> }) {
+    74→  const { homeValue, awayValue, isPercent, homeColor, awayColor } = bar;
+    75→  const total = (homeValue ?? 0) + (awayValue ?? 0);
+    76→  const homePct = total > 0 ? Math.max(2, Math.min(98, (homeValue / total) * 100)) : 50;
+    77→  const awayPct = 100 - homePct;
+    78→  const hc = homeColor || "#2d6a4f";
+    79→  const ac = awayColor || "#8363f9";
+    80→  return (
+    81→    <div className="koru-comparison-bar" role="presentation">
+    82→      <span className="koru-comparison-value home" style={{ color: hc }}>
+    83→        {isPercent ? `${Math.round(homeValue)}%` : homeValue}
+    84→      </span>
+    85→      <div className="koru-comparison-track">
+    86→        <div
+    87→          className="koru-comparison-fill home"
+    88→          style={{ width: `${homePct}%`, background: hc }}
+    89→        />
+    90→        <div
+    91→          className="koru-comparison-fill away"
+    92→          style={{ width: `${awayPct}%`, background: ac }}
+    93→        />
+    94→      </div>
+    95→      <span className="koru-comparison-value away" style={{ color: ac }}>
+    96→        {isPercent ? `${Math.round(awayValue)}%` : awayValue}
+    97→      </span>
+    98→    </div>
+    99→  );
+   100→}
+   101→
+   102→/** Aplica el accent de la sección a las CSS custom props del módulo. */
+   103→function moduleStyle(accent: Accent): CSSProperties {
+   104→  return { "--module-color": accent.color, "--module-bg": accent.soft } as CSSProperties;
+   105→}
+   106→
+   107→// 🔴 v2: Extrae el video ID de una URL de YouTube (youtu.be / watch?v= / embed / shorts).
+   108→// Devuelve null si no es una URL válida de YouTube.
+   109→function youtubeId(url: string): string | null {
+   110→  try {
+   111→    const u = new URL(url);
+   112→    if (u.hostname.includes("youtu.be")) {
+   113→      const id = u.pathname.slice(1).split("/")[0];
+   114→      return id || null;
+   115→    }
+   116→    if (u.hostname.includes("youtube.com")) {
+   117→      const v = u.searchParams.get("v");
+   118→      if (v) return v;
+   119→      const m = u.pathname.match(/\/(?:embed|shorts)\/([\w-]+)/);
+   120→      if (m) return m[1];
+   121→    }
+   122→    return null;
+   123→  } catch {
+   124→    return null;
+   125→  }
+   126→}
+   127→
+   128→function SectionHead({ section }: { section: DetailSection }) {
+   129→  return (
+   130→    <div className="koru-module-head">
+   131→      <div className="koru-module-id">
+   132→        <div className="koru-module-icon">
+   133→          <Mat>{section.icon}</Mat>
+   134→        </div>
+   135→        <div>
+   136→          <h3 className="koru-module-title">{section.title}</h3>
+   137→          {section.subtitle && <p className="koru-module-kicker">{section.subtitle}</p>}
+   138→        </div>
+   139→      </div>
+   140→    </div>
+   141→  );
+   142→}
+   143→
+   144→// 🔴 v2: SourceRow — un source puede tener favicon (imageUrl) o ser un video
+   145→// embebido de YouTube (thumbnail + play button + duration badge), o un
+   146→// iframe de preview de Archive.org (Open Library book preview).
+   147→function SourceRow({ source }: { source: DetailSourceRef }) {
+   148→  const ytId = source.url ? youtubeId(source.url) : null;
+   149→  const isArchiveEmbed = !!source.url && /archive\.org\/embed\//i.test(source.url);
+   150→
+   151→  const titleEl = (
+   152→    <span className="koru-dsec-source-title">
+   153→      {source.title}
+   154→      {source.domain && <span className="koru-dsec-source-domain"> — {source.domain}</span>}
+   155→    </span>
+   156→  );
+   157→
+   158→  // 🔴 v4: Archive.org embed — renderiza un iframe 16:9 (400px height) en
+   159→  // lugar del link textual. Permite ver el preview del libro sin salir de Koru.
+   160→  if (isArchiveEmbed && source.url) {
+   161→    return (
+   162→      <div className="koru-dsec-source koru-dsec-source-embed">
+   163→        <div className="koru-dsec-embed-wrap">
+   164→          <iframe
+   165→            src={source.url}
+   166→            title={source.title}
+   167→            loading="lazy"
+   168→            allowFullScreen
+   169→            referrerPolicy="no-referrer"
+   170→            sandbox="allow-scripts allow-same-origin allow-popups"
+   171→            style={{
+   172→              width: "100%",
+   173→              aspectRatio: "16 / 9",
+   174→              height: 400,
+   175→              maxHeight: 400,
+   176→              border: 0,
+   177→              borderRadius: 12,
+   178→              background: "#000",
+   179→            }}
+   180→          />
+   181→        </div>
+   182→        {titleEl}
+   183→      </div>
+   184→    );
+   185→  }
+   186→
+   187→  // Video embed: thumbnail 16:9 + play button (koru-breathe) + duration badge
+   188→  if (ytId) {
+   189→    const thumb = `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg`;
+   190→    const inner = (
+   191→      <>
+   192→        <div
+   193→          className="koru-source-video-thumb"
+   194→          style={{ backgroundImage: `url(${thumb})` }}
+   195→        >
+   196→          <span className="koru-source-video-play animate-breathe">
+   197→            <Mat>play_arrow</Mat>
+   198→          </span>
+   199→          {source.duration && (
+   200→            <span className="koru-source-video-duration">{source.duration}</span>
+   201→          )}
+   202→        </div>
+   203→        {titleEl}
+   204→      </>
+   205→    );
+   206→    return source.url ? (
+   207→      <a
+   208→        href={source.url}
+   209→        target="_blank"
+   210→        rel="noreferrer"
+   211→        className="koru-dsec-source koru-dsec-source-video"
+   212→      >
+   213→        {inner}
+   214→      </a>
+   215→    ) : (
+   216→      <div className="koru-dsec-source koru-dsec-source-video">{inner}</div>
+   217→    );
+   218→  }
+   219→
+   220→  // Favicon: si hay imageUrl, mostrar imagen 28x28 en vez del ícono genérico
+   221→  const inner = (
+   222→    <>
+   223→      {source.imageUrl ? (
+   224→        <img
+   225→          src={source.imageUrl}
+   226→          alt=""
+   227→          className="koru-source-favicon"
+   228→          loading="lazy"
+   229→        />
+   230→      ) : (
+   231→        <Mat className="koru-dsec-source-icon">language</Mat>
+   232→      )}
+   233→      {titleEl}
+   234→    </>
+   235→  );
+   236→
+   237→  return source.url ? (
+   238→    <a href={source.url} target="_blank" rel="noreferrer" className="koru-dsec-source">
+   239→      {inner}
+   240→    </a>
+   241→  ) : (
+   242→    <div className="koru-dsec-source">{inner}</div>
+   243→  );
+   244→}
+   245→
+   246→function SectionBody({ section, block }: { section: DetailSection; block?: UiBlock }) {
+   247→  switch (section.kind) {
+   248→    case "text":
+   249→      return <p className="koru-dsec-text">{section.body}</p>;
+   250→
+   251→    case "tiles":
+   252→      return (
+   253→        <div className="koru-dsec-tiles">
+   254→          {section.tiles.map((t, i) => (
+   255→            <div key={i} className="koru-dsec-tile">
+   256→              {t.icon && <Mat className="koru-dsec-tile-icon" >{t.icon}</Mat>}
+   257→              <span className="koru-dsec-tile-label">{t.label}</span>
+   258→              <span className="koru-dsec-tile-value">{t.value}</span>
+   259→            </div>
+   260→          ))}
+   261→        </div>
+   262→      );
+   263→
+   264→    case "rows":
+   265→      return (
+   266→        <div className="koru-dsec-rows">
+   267→          {section.rows.map((r, i) => {
+   268→            // 🔴 TIER S: si la row trae `toggle`, la envolvemos en un botón
+   269→            // que dispatcha `koru-card-action` con action "toggle_shopping" o
+   270→            // "toggle_checklist" + los ids sintéticos. KoruProvider los pasa al
+   271→            // reducer correspondiente (toggleShoppingItem / toggleChecklistItem).
+   272→            const toggle = r.toggle;
+   273→            const rowInner = (
+   274→              <>
+   275→                {r.icon && <Mat className="koru-dsec-row-icon">{r.icon}</Mat>}
+   276→                <div className="koru-dsec-row-body">
+   277→                  <p className="koru-dsec-row-title">{r.title}</p>
+   278→                  {r.detail && <p className="koru-dsec-row-detail">{r.detail}</p>}
+   279→                  {/* 🔴 v2: barra comparativa para stats de fútbol (posesión, tiros, etc.) */}
+   280→                  {r.bar && <ComparisonBar bar={r.bar} />}
+   281→                </div>
+   282→                {r.meta && <span className="koru-dsec-row-meta">{r.meta}</span>}
+   283→                {r.badge && <span className={`koru-step-chip is-${r.badgeTone ?? "pending"}`}>{r.badge}</span>}
+   284→              </>
+   285→            );
+   286→            if (toggle) {
+   287→              return (
+   288→                <button
+   289→                  key={i}
+   290→                  type="button"
+   291→                  className="koru-dsec-row koru-dsec-row-toggle"
+   292→                  onClick={(e) => {
+   293→                    e.stopPropagation();
+   294→                    const action =
+   295→                      toggle.kind === "shopping_item" ? "toggle_shopping" : "toggle_checklist";
+   296→                    window.dispatchEvent(
+   297→                      new CustomEvent("koru-card-action", {
+   298→                        detail: {
+   299→                          action,
+   300→                          listId: toggle.listId,
+   301→                          checklistId: toggle.checklistId,
+   302→                          itemId: toggle.itemId,
+   303→                          // 🔴 TIER S: include blockData so KoruProvider can
+   304→                          // auto-create the durable entity if it doesn't exist.
+   305→                          blockData: block,
+   306→                        },
+   307→                      }),
+   308→                    );
+   309→                    if ("vibrate" in navigator) navigator.vibrate(12);
+   310→                  }}
+   311→                >
+   312→                  {rowInner}
+   313→                </button>
+   314→              );
+   315→            }
+   316→            return (
+   317→              <div key={i} className={"koru-dsec-row" + (r.bar ? " koru-dsec-row-with-bar" : "")}>
+   318→                {rowInner}
+   319→              </div>
+   320→            );
+   321→          })}
+   322→        </div>
+   323→      );
+   324→
+   325→    case "chips":
+   326→      return (
+   327→        <div className="koru-dsec-chips">
+   328→          {section.chips.map((c, i) => (
+   329→            <div key={i} className="koru-dsec-chip">
+   330→              <span className="koru-dsec-chip-label">{c.label}</span>
+   331→              {c.sub && <span className="koru-dsec-chip-sub">{c.sub}</span>}
+   332→            </div>
+   333→          ))}
+   334→        </div>
+   335→      );
+   336→
+   337→    case "calendar":
+   338→      // 🔴 v2: kind dedicado para el calendario de cumpleaños. Usa clases
+   339→      // propias (.koru-dsec-calendar / -day) para no colisionar con los chips
+   340→      // genéricos que ahora vuelven a verse como píldoras.
+   341→      return (
+   342→        <div className="koru-dsec-calendar">
+   343→          {section.days.map((d, i) => (
+   344→            <div
+   345→              key={i}
+   346→              className="koru-dsec-calendar-day"
+   347→              style={d.color ? { color: d.color } : undefined}
+   348→            >
+   349→              <span className="koru-dsec-chip-label">{d.label}</span>
+   350→              {d.sub && <span className="koru-dsec-chip-sub">{d.sub}</span>}
+   351→            </div>
+   352→          ))}
+   353→        </div>
+   354→      );
+   355→
+   356→    case "scroller":
+   357→      return (
+   358→        <div className="koru-dsec-scroller">
+   359→          {section.cards.map((c, i) => (
+   360→            <div key={i} className="koru-dsec-scard">
+   361→              {/* 🔴 v3: badge image (Google Places photo) — thumbnail 16:9 sobre el título. */}
+   362→              {c.image && (
+   363→                <div className="koru-dsec-scard-image">
+   364→                  <img src={c.image} alt={c.title} loading="lazy" />
+   365→                </div>
+   366→              )}
+   367→              {c.badge && (
+   368→                <span className="koru-dsec-scard-badge" style={c.badgeColor ? { color: c.badgeColor, background: `${c.badgeColor}1a` } : undefined}>
+   369→                  {c.badge}
+   370→                </span>
+   371→              )}
+   372→              <h4 className="koru-dsec-scard-title">{c.title}</h4>
+   373→              {c.detail && <p className="koru-dsec-scard-detail">{c.detail}</p>}
+   374→              {c.metrics && c.metrics.length > 0 && (
+   375→                <div className="koru-dsec-scard-metrics">
+   376→                  {c.metrics.map((m, j) => (
+   377→                    <span key={j} className="koru-dsec-scard-metric">{m}</span>
+   378→                  ))}
+   379→                </div>
+   380→              )}
+   381→            </div>
+   382→          ))}
+   383→        </div>
+   384→      );
+   385→
+   386→    case "timeline":
+   387→      return (
+   388→        <div className="koru-timeline">
+   389→          <div className="koru-timeline-line" />
+   390→          <div className="koru-timeline-steps">
+   391→            {section.steps.map((s, i) => {
+   392→              const status = s.status ?? "pending";
+   393→              // 🔴 TIER S: si el paso trae `toggle.kind === "plan_step"`, lo
+   394→              // envolvemos en un botón que dispatcha `koru-card-action` con
+   395→              // action "toggle_step" + planId + stepId. KoruProvider los pasa
+   396→              // al reducer togglePlanStep.
+   397→              const toggle = s.toggle;
+   398→              const stepInner = (
+   399→                <>
+   400→                  <div className="koru-timeline-dot">
+   401→                    <Mat>{status === "done" ? "check" : s.icon ?? "radio_button_unchecked"}</Mat>
+   402→                  </div>
+   403→                  <div className="koru-timeline-body">
+   404→                    <h4 className="koru-timeline-name">{s.title}</h4>
+   405→                    {s.detail && <p className="koru-timeline-meta">{s.detail}</p>}
+   406→                    {/* 🔴 v2: badge de prioridad (Alta/Media/Baja) en pasos del plan */}
+   407→                    {s.badge && <span className={`koru-step-chip is-${s.badgeTone ?? "pending"}`}>{s.badge}</span>}
+   408→                  </div>
+   409→                </>
+   410→              );
+   411→              if (toggle && toggle.kind === "plan_step") {
+   412→                return (
+   413→                  <button
+   414→                    key={i}
+   415→                    type="button"
+   416→                    className={`koru-timeline-step is-${status} koru-timeline-step-toggle`}
+   417→                    onClick={(e) => {
+   418→                      e.stopPropagation();
+   419→                      window.dispatchEvent(
+   420→                        new CustomEvent("koru-card-action", {
+   421→                          detail: {
+   422→                            action: "toggle_step",
+   423→                            planId: toggle.planId,
+   424→                            stepId: toggle.stepId,
+   425→                            // 🔴 TIER S: include blockData so KoruProvider can
+   426→                            // auto-create the durable Plan if it doesn't exist.
+   427→                            blockData: block,
+   428→                          },
+   429→                        }),
+   430→                      );
+   431→                      if ("vibrate" in navigator) navigator.vibrate(12);
+   432→                    }}
+   433→                  >
+   434→                    {stepInner}
+   435→                  </button>
+   436→                );
+   437→              }
+   438→              return (
+   439→                <div key={i} className={`koru-timeline-step is-${status}`}>
+   440→                  {stepInner}
+   441→                </div>
+   442→              );
+   443→            })}
+   444→          </div>
+   445→        </div>
+   446→      );
+   447→
+   448→    case "sources":
+   449→      return (
+   450→        <div className="koru-dsec-sources">
+   451→          {section.sources.map((s, i) => (
+   452→            <SourceRow key={i} source={s} />
+   453→          ))}
+   454→        </div>
+   455→      );
+   456→
+   457→    case "pitch":
+   458→      return <FormationPitch pitch={section.pitch} />;
+   459→
+   460→    default: {
+   461→      const _exhaustive: never = section;
+   462→      return _exhaustive;
+   463→    }
+   464→  }
+   465→}
+   466→
+   467→function FormationPitch({ pitch }: { pitch: NonNullable<Extract<DetailSection, { kind: "pitch" }>["pitch"]> }) {
+   468→  const { homeFormation, awayFormation, homePlayers, awayPlayers, homeColor, awayColor, homeName, awayName } = pitch;
+   469→  const hc = homeColor || "#2d6a4f";
+   470→  const ac = awayColor || "#8363f9";
+   471→
+   472→  // Parse formation string "4-3-3" → [4, 3, 3]
+   473→  function parseFormation(f: string): number[] {
+   474→    return f.split("-").map(n => parseInt(n, 10) || 0).filter(n => n > 0);
+   475→  }
+   476→
+   477→  // Posicionar jugadores en una mitad de cancha (50% vertical)
+   478→  // home juega "hacia arriba" (de abajo hacia arriba), away "hacia abajo"
+   479→  // Cada línea del formation se posiciona a un Y% creciente desde el arquero.
+   480→  function positionPlayers(players: Array<{ number?: string; name: string; position?: string }>, formation: string, isHome: boolean): Array<{ x: number; y: number; player: typeof players[0] }> {
+   481→    if (players.length === 0) return [];
+   482→    const lines = parseFormation(formation);
+   483→    const result: Array<{ x: number; y: number; player: typeof players[0] }> = [];
+   484→    let playerIdx = 0;
+   485→
+   486→    // GK siempre primero, en la línea de gol
+   487→    if (players[0]) {
+   488→      result.push({ x: 50, y: isHome ? 95 : 5, player: players[0] });
+   489→      playerIdx = 1;
+   490→    }
+   491→
+   492→    // Cada línea del formation: distribuir N jugadores en una fila horizontal
+   493→    // Y va creciendo desde la defensa (cerca del arquero) hasta el ataque (cerca del mediocampo)
+   494→    const linesCount = lines.length;
+   495→    lines.forEach((count, lineIdx) => {
+   496→      // Y para home: de 80% (defensa) a 55% (ataque, mediocampo)
+   497→      // Y para away: de 20% (defensa) a 45% (ataque, mediocampo)
+   498→      const yBase = isHome ? 80 : 20;
+   499→      const yEnd = isHome ? 55 : 45;
+   500→      const yRange = Math.abs(yBase - yEnd);
+   501→      const yStep = linesCount > 1 ? yRange / (linesCount - 1) : 0;
+   502→      const y = isHome ? yBase - lineIdx * yStep : yBase + lineIdx * yStep;
+   503→
+   504→      // Distribuir los N jugadores horizontalmente
+   505→      for (let i = 0; i < count && playerIdx < players.length; i++) {
+   506→        const x = ((i + 1) / (count + 1)) * 100;
+   507→        result.push({ x, y, player: players[playerIdx] });
+   508→        playerIdx++;
+   509→      }
+   510→    });
+   511→
+   512→    return result;
+   513→  }
+   514→
+   515→  const homePositions = positionPlayers(homePlayers, homeFormation, true);
+   516→  const awayPositions = positionPlayers(awayPlayers, awayFormation, false);
+   517→
+   518→  return (
+   519→    <div className="koru-pitch-container">
+   520→      <div className="koru-pitch-header">
+   521→        <span style={{ color: hc }}>{awayName} · {awayFormation}</span>
+   522→        <span style={{ color: ac, fontSize: 11, opacity: 0.7 }}>vs</span>
+   523→        <span style={{ color: hc }}>{homeName} · {homeFormation}</span>
+   524→      </div>
+   525→      <div className="koru-pitch">
+   526→        {/* Líneas de cancha */}
+   527→        <div className="koru-pitch-line halfway" />
+   528→        <div className="koru-pitch-circle" />
+   529→        <div className="koru-pitch-box top" />
+   530→        <div className="koru-pitch-box bottom" />
+   531→
+   532→        {/* Players away (arriba) */}
+   533→        {awayPositions.map((pos, i) => (
+   534→          <div
+   535→            key={`away-${i}`}
+   536→            className="koru-pitch-player away"
+   537→            style={{
+   538→              left: `${pos.x}%`,
+   539→              top: `${pos.y}%`,
+   540→              background: ac,
+   541→            }}
+   542→            title={`${pos.player.name}${pos.player.number ? ` #${pos.player.number}` : ""}`}
+   543→          >
+   544→            <span className="koru-pitch-player-num">{pos.player.number ?? ""}</span>
+   545→            <span className="koru-pitch-player-name">{pos.player.name.split(" ").slice(-1)[0]}</span>
+   546→          </div>
+   547→        ))}
+   548→
+   549→        {/* Players home (abajo) */}
+   550→        {homePositions.map((pos, i) => (
+   551→          <div
+   552→            key={`home-${i}`}
+   553→            className="koru-pitch-player home"
+   554→            style={{
+   555→              left: `${pos.x}%`,
+   556→              top: `${pos.y}%`,
+   557→              background: hc,
+   558→            }}
+   559→            title={`${pos.player.name}${pos.player.number ? ` #${pos.player.number}` : ""}`}
+   560→          >
+   561→            <span className="koru-pitch-player-num">{pos.player.number ?? ""}</span>
+   562→            <span className="koru-pitch-player-name">{pos.player.name.split(" ").slice(-1)[0]}</span>
+   563→          </div>
+   564→        ))}
+   565→      </div>
+   566→    </div>
+   567→  );
+   568→}
+   569→
+   570→// 🔴 v4 — Decision outcome panel: lets the user register which option they
+   571→// chose + a 1-5 satisfaction rating. The reducer updateDecisionOutcome writes
+   572→// the outcome, creates a follow-up commitment (90d) and a MemoryFact kind
+   573→// "preference" with confidence boosted/reduced by the satisfaction score.
+   574→function DecisionOutcomePanel({ block }: { block: Extract<UiBlock, { type: "decision_support" }> }) {
+   575→  const { state, updateDecisionOutcome } = useKoru();
+   576→  const decisionId = block.decisionId;
+   577→  // Sin decisionId no podemos vincular el bloque a una Decision durable.
+   578→  if (!decisionId) return null;
+   579→  const decision = (state.decisions ?? []).find((d) => d.id === decisionId);
+   580→  if (!decision) return null;
+   581→
+   582→  // Outcome ya registrado → mostrar resumen "Decidiste: X · Satisfacción: N/5".
+   583→  const outcome = decision.outcome;
+   584→  if (outcome) {
+   585→    const chosen = decision.options.find((o) => o.id === outcome.chosenOptionId);
+   586→    const chosenLabel = chosen?.label ?? "Opción elegida";
+   587→    return (
+   588→      <div style={{ padding: "0 16px 16px" }}>
+   589→        <div
+   590→          style={{
+   591→            background: "linear-gradient(135deg, rgba(99,102,241,0.08), rgba(67,56,202,0.06))",
+   592→            borderRadius: 18,
+   593→            padding: "16px 18px",
+   594→            border: "1px solid rgba(99,102,241,0.18)",
+   595→            display: "flex",
+   596→            flexDirection: "column",
+   597→            gap: 8,
+   598→          }}
+   599→        >
+   600→          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+   601→            <span className="material-symbols-outlined" style={{ fontSize: 22, color: "#4f46e5" }}>
+   602→              check_circle
+   603→            </span>
+   604→            <span style={{ fontSize: 13, fontWeight: 800, color: "#4f46e5", letterSpacing: 0.4, textTransform: "uppercase" }}>
+   605→              Decidiste
+   606→            </span>
+   607→          </div>
+   608→          <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#1a1a2e" }}>
+   609→            {chosenLabel}
+   610→          </p>
+   611→          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+   612→            <span style={{ fontSize: 13, color: "#5a5a72" }}>Satisfacción:</span>
+   613→            <span style={{ fontSize: 13, fontWeight: 800, color: satisfactionColor(outcome.satisfaction1to5) }}>
+   614→              {outcome.satisfaction1to5}/5
+   615→            </span>
+   616→            <div style={{ display: "flex", gap: 2, marginLeft: 4 }}>
+   617→              {Array.from({ length: 5 }, (_, i) => (
+   618→                <span
+   619→                  key={i}
+   620→                  className="material-symbols-outlined"
+   621→                  style={{
+   622→                    fontSize: 14,
+   623→                    color: i < outcome.satisfaction1to5 ? "#f59e0b" : "rgba(0,0,0,0.18)",
+   624→                  }}
+   625→                >
+   626→                  star
+   627→                </span>
+   628→              ))}
+   629→            </div>
+   630→          </div>
+   631→          {outcome.notes && (
+   632→            <p style={{ margin: 0, fontSize: 13, color: "#5a5a72", fontStyle: "italic" }}>
+   633→              "{outcome.notes}"
+   634→            </p>
+   635→          )}
+   636→        </div>
+   637→      </div>
+   638→    );
+   639→  }
+   640→
+   641→  // Sin outcome → mostrar prompt "¿Ya decidiste?" con botones por opción.
+   642→  // El primer tap elige la opción; luego pedimos satisfaction 1-5 inline.
+   643→  return (
+   644→    <DecisionOutcomeEditor
+   645→      decision={decision}
+   646→      onSubmit={(chosenOptionId, satisfaction1to5, notes) => {
+   647→        updateDecisionOutcome(decision.id, {
+   648→          chosenOptionId,
+   649→          decidedAt: new Date().toISOString(),
+   650→          satisfaction1to5,
+   651→          notes,
+   652→        });
+   653→        if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+   654→          try { navigator.vibrate(15); } catch { /* best-effort */ }
+   655→        }
+   656→      }}
+   657→    />
+   658→  );
+   659→}
+   660→
+   661→function satisfactionColor(rating: number): string {
+   662→  if (rating >= 4) return "#059669";
+   663→  if (rating <= 2) return "#dc2626";
+   664→  return "#d97706";
+   665→}
+   666→
+   667→// 🔴 v4 — Inline editor: opción elegida → satisfaction rating → submit.
+   668→// Tres estados: "choosing" (lista de opciones), "rating" (selector 1-5 estrellas),
+   669→// "done" (transient confirmation; el panel padre ya re-renderiza con el outcome).
+   670→function DecisionOutcomeEditor({
+   671→  decision,
+   672→  onSubmit,
+   673→}: {
+   674→  decision: import("../../../domain/types").Decision;
+   675→  onSubmit: (chosenOptionId: string, satisfaction1to5: number, notes?: string) => void;
+   676→}) {
+   677→  const [phase, setPhase] = useState<"choosing" | "rating">("choosing");
+   678→  const [chosenId, setChosenId] = useState<string | null>(null);
+   679→  const [rating, setRating] = useState<number>(0);
+   680→
+   681→  const options = decision.options.length > 0
+   682→    ? decision.options
+   683→    : [];
+   684→
+   685→  if (options.length === 0) return null;
+   686→
+   687→  // Phase 2: rating — muestra la opción elegida + 5 estrellas para satisfaction.
+   688→  if (phase === "rating" && chosenId) {
+   689→    const chosen = options.find((o) => o.id === chosenId);
+   690→    return (
+   691→      <div style={{ padding: "0 16px 16px" }}>
+   692→        <div
+   693→          style={{
+   694→            background: "rgba(99,102,241,0.06)",
+   695→            borderRadius: 18,
+   696→            padding: "16px 18px",
+   697→            border: "1px solid rgba(99,102,241,0.18)",
+   698→          }}
+   699→        >
+   700→          <p style={{ margin: "0 0 4px", fontSize: 11, fontWeight: 800, color: "#4f46e5", letterSpacing: 0.4, textTransform: "uppercase" }}>
+   701→            ¿Ya decidiste?
+   702→          </p>
+   703→          <p style={{ margin: "0 0 12px", fontSize: 15, fontWeight: 700, color: "#1a1a2e" }}>
+   704→            Elegiste: {chosen?.label ?? "—"}
+   705→          </p>
+   706→          <p style={{ margin: "0 0 8px", fontSize: 13, color: "#5a5a72" }}>
+   707→            ¿Qué tan satisfecho quedaste?
+   708→          </p>
+   709→          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+   710→            {[1, 2, 3, 4, 5].map((n) => (
+   711→              <button
+   712→                key={n}
+   713→                type="button"
+   714→                onClick={() => setRating(n)}
+   715→                aria-label={`${n} estrellas`}
+   716→                style={{
+   717→                  flex: 1,
+   718→                  padding: "10px 0",
+   719→                  borderRadius: 12,
+   720→                  border: rating === n ? "2px solid #4f46e5" : "1px solid rgba(0,0,0,0.12)",
+   721→                  background: rating === n ? "rgba(99,102,241,0.10)" : "#fff",
+   722→                  cursor: "pointer",
+   723→                  display: "flex",
+   724→                  flexDirection: "column",
+   725→                  alignItems: "center",
+   726→                  gap: 2,
+   727→                }}
+   728→              >
+   729→                <span
+   730→                  className="material-symbols-outlined"
+   731→                  style={{ fontSize: 18, color: rating >= n ? "#f59e0b" : "rgba(0,0,0,0.25)" }}
+   732→                >
+   733→                  star
+   734→                </span>
+   735→                <span style={{ fontSize: 11, color: "#5a5a72", fontWeight: 700 }}>{n}</span>
+   736→              </button>
+   737→            ))}
+   738→          </div>
+   739→          <div style={{ display: "flex", gap: 8 }}>
+   740→            <button
+   741→              type="button"
+   742→              onClick={() => { setPhase("choosing"); setChosenId(null); setRating(0); }}
+   743→              style={{
+   744→                flex: 1,
+   745→                padding: "10px 0",
+   746→                borderRadius: 12,
+   747→                border: "1px solid rgba(0,0,0,0.12)",
+   748→                background: "#fff",
+   749→                color: "#5a5a72",
+   750→                fontSize: 13,
+   751→                fontWeight: 700,
+   752→                cursor: "pointer",
+   753→              }}
+   754→            >
+   755→              Volver
+   756→            </button>
+   757→            <button
+   758→              type="button"
+   759→              disabled={rating === 0}
+   760→              onClick={() => onSubmit(chosenId, rating)}
+   761→              style={{
+   762→                flex: 2,
+   763→                padding: "10px 0",
+   764→                borderRadius: 12,
+   765→                border: "none",
+   766→                background: rating === 0 ? "rgba(99,102,241,0.30)" : "linear-gradient(135deg, #6366f1, #4338ca)",
+   767→                color: "#fff",
+   768→                fontSize: 13,
+   769→                fontWeight: 800,
+   770→                cursor: rating === 0 ? "not-allowed" : "pointer",
+   771→                boxShadow: rating === 0 ? "none" : "0 6px 16px rgba(99,102,241,0.30)",
+   772→              }}
+   773→            >
+   774→              Confirmar decisión
+   775→            </button>
+   776→          </div>
+   777→        </div>
+   778→      </div>
+   779→    );
+   780→  }
+   781→
+   782→  // Phase 1: choosing — lista de opciones como botones grandes.
+   783→  return (
+   784→    <div style={{ padding: "0 16px 16px" }}>
+   785→      <div
+   786→        style={{
+   787→          background: "rgba(99,102,241,0.06)",
+   788→          borderRadius: 18,
+   789→          padding: "16px 18px",
+   790→          border: "1px solid rgba(99,102,241,0.18)",
+   791→        }}
+   792→      >
+   793→        <p style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 800, color: "#4f46e5", letterSpacing: 0.4, textTransform: "uppercase" }}>
+   794→          ¿Ya decidiste?
+   795→        </p>
+   796→        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+   797→          {options.map((o) => (
+   798→            <button
+   799→              key={o.id}
+   800→              type="button"
+   801→              onClick={() => { setChosenId(o.id); setPhase("rating"); }}
+   802→              style={{
+   803→                width: "100%",
+   804→                padding: "12px 14px",
+   805→                borderRadius: 12,
+   806→                border: "1px solid rgba(99,102,241,0.25)",
+   807→                background: "#fff",
+   808→                color: "#1a1a2e",
+   809→                fontSize: 14,
+   810→                fontWeight: 700,
+   811→                cursor: "pointer",
+   812→                textAlign: "left",
+   813→                display: "flex",
+   814→                alignItems: "center",
+   815→                justifyContent: "space-between",
+   816→                gap: 8,
+   817→              }}
+   818→            >
+   819→              <span>{o.label}</span>
+   820→              <span className="material-symbols-outlined" style={{ fontSize: 18, color: "#4f46e5" }}>
+   821→                arrow_forward
+   822→              </span>
+   823→            </button>
+   824→          ))}
+   825→        </div>
+   826→      </div>
+   827→    </div>
+   828→  );
+   829→}
+   830→
+   831→export function KoruDetailScreen({
+   832→  detail,
+   833→  headerIcon,
+   834→  onClose,
+   835→  onSave,
+   836→  onExportPdf,
+   837→  block,
+   838→}: {
+   839→  detail: Detail;
+   840→  headerIcon: string;
+   841→  onClose: () => void;
+   842→  onSave?: (title: string, subtitle?: string) => void;
+   843→  onExportPdf?: () => void;
+   844→  // 🔴 TIER S: el UiBlock original se pasa para que los toggles de rows/steps
+   845→  // puedan incluir `blockData` en el CustomEvent. Así el handler en
+   846→  // KoruProvider puede auto-crear la entidad durable (Plan/ShoppingList/
+   847→  // Checklist) si no existe, haciendo que el toggle sea efectivo aún para
+   848→  // bloques transitorios del LLM.
+   849→  block?: UiBlock;
+   850→}) {
+   851→  // 🔴 P2 — Cooking mode: estado que abre el overlay full-screen.
+   852→  // Sólo se activa si el block es un UiBlock `recipe` con steps.
+   853→  const [cookingOpen, setCookingOpen] = useState(false);
+   854→  // 🔴 P2 — Workout session: estado que abre el overlay full-screen.
+   855→  // Sólo se activa si el block es un UiBlock `exercise_plan` con sesiones.
+   856→  const [workoutOpen, setWorkoutOpen] = useState(false);
+   857→  // 🔴 P2 — Toast "Abriendo navegación..." para el botón Navegar de route_map.
+   858→  // Se muestra con la animación koru-save-rise (mismo feel que el modal Save).
+   859→  const [navToast, setNavToast] = useState<string | null>(null);
+   860→
+   861→  const recipe = block && block.type === "recipe" ? block : null;
+   862→  const recipeTitle = recipe?.name ?? recipe?.title ?? detail.title;
+   863→  const cookingSteps: CookingStep[] = (recipe?.steps ?? []).map((s) => {
+   864→    const maybeTimer = (s as unknown as { timerSec?: unknown }).timerSec;
+   865→    return {
+   866→      step: s.step,
+   867→      text: s.text,
+   868→      // timerSec se conserva si el dominio lo llega a agregar (hoy no viene).
+   869→      ...(typeof maybeTimer === "number"
+   870→        ? { timerSec: maybeTimer }
+   871→        : {}),
+   872→    };
+   873→  });
+   874→  const canCook = !!recipe && cookingSteps.length > 0;
+   875→
+   876→  // exercise_plan: plan + sesión actual (currentSessionIdx).
+   877→  const exercisePlan = block && block.type === "exercise_plan" ? block : null;
+   878→  const exercisePlanObj = exercisePlan?.plan;
+   879→  const workoutSession =
+   880→    exercisePlanObj && exercisePlanObj.sessions.length > 0
+   881→      ? exercisePlanObj.sessions[Math.min(exercisePlanObj.currentSessionIdx ?? 0, exercisePlanObj.sessions.length - 1)]
+   882→      : null;
+   883→  const canWorkout = !!exercisePlanObj && !!workoutSession;
+   884→
+   885→  // 🔴 P2 — route_map: extraemos destino + coords (opcionales) para el CTA
+   886→  // "Navegar". El destino prioriza `to` (lugar de llegada); si no, cae a
+   887→  // `from`. Sin destino, el botón no se renderiza.
+   888→  const routeMap = block && block.type === "route_map" ? block : null;
+   889→  const navDestination =
+   890→    (routeMap?.to && routeMap.to.trim()) ||
+   891→    (routeMap?.from && routeMap.from.trim()) ||
+   892→    "";
+   893→  const canNavigate = !!routeMap && navDestination.length > 0;
+   894→
+   895→  // 🔴 P2 — Handler "Navegar": construye la URL según plataforma, abre la
+   896→  // app nativa de mapas (geo:/maps:) o Google Maps web en desktop, muestra
+   897→  // un toast "Abriendo navegación..." con koru-save-rise, y vibra (haptic).
+   898→  function handleNavigate() {
+   899→    if (!canNavigate) return;
+   900→    const url = buildNavUrl({
+   901→      destination: navDestination,
+   902→      lat: routeMap?.lat,
+   903→      lng: routeMap?.lng,
+   904→    });
+   905→    if (!url) return;
+   906→    // 🔴 Toast con animación koru-save-rise (mismo feel que el modal Save).
+   907→    setNavToast("Abriendo navegación...");
+   908→    // 🔴 Haptic feedback — patrón corto si Vibration API está disponible.
+   909→    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+   910→      try {
+   911→        navigator.vibrate(20);
+   912→      } catch {
+   913→        // best-effort — algunos browsers lanzan si el usuario no interactuó
+   914→      }
+   915→    }
+   916→    // 🔴 Abrir URL — en mobile usamos window.location.href para que el SO
+   917→    // intercepte el esquema (geo:/maps:) y abra la app nativa. En desktop
+   918→    // abrimos en pestaña nueva con window.open.
+   919→    try {
+   920→      if (isAndroid() || isIOS()) {
+   921→        window.location.href = url;
+   922→      } else {
+   923→        window.open(url, "_blank", "noopener,noreferrer");
+   924→      }
+   925→    } catch {
+   926→      // best-effort — si el esquema falla (popup blocker, etc.), el toast
+   927→      // igual le da feedback al usuario de que intentamos.
+   928→    }
+   929→    // 🔴 Auto-ocultar el toast después de 2.2s (mismo tiempo que save-toast).
+   930→    window.setTimeout(() => setNavToast(null), 2200);
+   931→  }
+   932→
+   933→  useEffect(() => {
+   934→    const onKeyDown = (event: KeyboardEvent) => {
+   935→      if (event.key === "Escape") onClose();
+   936→    };
+   937→    window.addEventListener("keydown", onKeyDown);
+   938→    return () => window.removeEventListener("keydown", onKeyDown);
+   939→  }, [onClose]);
+   940→
+   941→  const sections = detail.sections ?? [];
+   942→  const isEmpty = sections.length === 0;
+   943→
+   944→  return createPortal(
+   945→    <div className="koru-roadmap" role="dialog" aria-label={detail.title}>
+   946→      <div className="koru-roadmap-screen">
+   947→        <div className="koru-roadmap-blob-1" />
+   948→        <div className="koru-roadmap-blob-2" />
+   949→
+   950→        {/* 🔴 v2: Sticky header — back (izq) / mini icon + condensed title (centro) / save (der) */}
+   951→        <header className="koru-detail-sticky-head">
+   952→          <button
+   953→            type="button"
+   954→            aria-label="Volver"
+   955→            className="koru-detail-sticky-back"
+   956→            onClick={onClose}
+   957→          >
+   958→            <Mat>arrow_back_ios_new</Mat>
+   959→          </button>
+   960→          <div className="koru-detail-mini-icon">
+   961→            <Mat>{headerIcon}</Mat>
+   962→          </div>
+   963→          <h2 className="koru-detail-mini-title">{detail.title}</h2>
+   964→          <button
+   965→            type="button"
+   966→            aria-label="Guardar"
+   967→            className="koru-detail-sticky-save"
+   968→            onClick={() => onSave?.(detail.title, detail.subtitle)}
+   969→          >
+   970→            <Mat>bookmark_border</Mat>
+   971→          </button>
+   972→        </header>
+   973→
+   974→        <div className="koru-roadmap-header">
+   975→          <div className="koru-detail-hero-icon">
+   976→            <Mat>{headerIcon}</Mat>
+   977→          </div>
+   978→          <h1 className="koru-roadmap-title">{detail.title}</h1>
+   979→          {detail.subtitle && <p className="koru-roadmap-subtitle">{detail.subtitle}</p>}
+   980→        </div>
+   981→
+   982→        <div className="koru-roadmap-modules">
+   983→          {isEmpty ? (
+   984→            <div className="koru-unified-empty koru-detail-empty">
+   985→              <Mat>inbox</Mat>
+   986→              <span>No hay secciones para mostrar en este detalle.</span>
+   987→            </div>
+   988→          ) : (
+   989→            sections.map((section, i) => (
+   990→              <div
+   991→                key={i}
+   992→                className="koru-magical-card"
+   993→                style={{ ...moduleStyle(section.accent), "--stagger-i": i } as CSSProperties}
+   994→              >
+   995→                <SectionHead section={section} />
+   996→                <SectionBody section={section} block={block} />
+   997→              </div>
+   998→            ))
+   999→          )}
+  1000→        </div>
+  1001→
+  1002→        {/* 🔴 P2 — "Empezar a cocinar": abre el overlay CookingMode cuando el
+  1003→            bloque es una receta con pasos. Se renderiza como un CTA grande
+  1004→            al final de la lista de secciones (antes del sticky footer). */}
+  1005→        {canCook && (
+  1006→          <div style={{ padding: "0 16px 16px" }}>
+  1007→            <button
+  1008→              type="button"
+  1009→              onClick={() => setCookingOpen(true)}
+  1010→              style={{
+  1011→                width: "100%",
+  1012→                padding: "16px 18px",
+  1013→                borderRadius: 18,
+  1014→                border: "none",
+  1015→                background: "linear-gradient(135deg, #8363f9, #4648d4)",
+  1016→                color: "#fff",
+  1017→                fontSize: 15,
+  1018→                fontWeight: 800,
+  1019→                cursor: "pointer",
+  1020→                boxShadow: "0 10px 24px rgba(131, 99, 249, 0.30)",
+  1021→                display: "inline-flex",
+  1022→                alignItems: "center",
+  1023→                justifyContent: "center",
+  1024→                gap: 8,
+  1025→              }}
+  1026→            >
+  1027→              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>soup_kitchen</span>
+  1028→              Empezar a cocinar
+  1029→              <span className="material-symbols-outlined" style={{ fontSize: 18, opacity: 0.85 }}>arrow_forward</span>
+  1030→            </button>
+  1031→          </div>
+  1032→        )}
+  1033→
+  1034→        {/* 🔴 P2 — "Empezar sesión": abre el overlay WorkoutSession cuando el
+  1035→            bloque es un exercise_plan con sesiones. CTA verde oscuro fitness. */}
+  1036→        {canWorkout && (
+  1037→          <div style={{ padding: "0 16px 16px" }}>
+  1038→            <button
+  1039→              type="button"
+  1040→              onClick={() => setWorkoutOpen(true)}
+  1041→              style={{
+  1042→                width: "100%",
+  1043→                padding: "16px 18px",
+  1044→                borderRadius: 18,
+  1045→                border: "none",
+  1046→                background: "linear-gradient(135deg, #2d6a4f, #1a3d2e)",
+  1047→                color: "#fff",
+  1048→                fontSize: 15,
+  1049→                fontWeight: 800,
+  1050→                cursor: "pointer",
+  1051→                boxShadow: "0 10px 24px rgba(45, 106, 79, 0.30)",
+  1052→                display: "inline-flex",
+  1053→                alignItems: "center",
+  1054→                justifyContent: "center",
+  1055→                gap: 8,
+  1056→              }}
+  1057→            >
+  1058→              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>play_arrow</span>
+  1059→              Empezar sesión
+  1060→              <span className="material-symbols-outlined" style={{ fontSize: 18, opacity: 0.85 }}>arrow_forward</span>
+  1061→            </button>
+  1062→          </div>
+  1063→        )}
+  1064→
+  1065→        {/* 🔴 P2 — "Navegar" para route_map. Abre la app nativa de mapas
+  1066→            (geo: en Android, maps: en iOS) o Google Maps web en desktop.
+  1067→            El CTA usa el accent indigo (mismo que el hero de routeMap) para
+  1068→            coherencia visual. Toast + haptic al tap. */}
+  1069→        {canNavigate && (
+  1070→          <div style={{ padding: "0 16px 16px" }}>
+  1071→            <button
+  1072→              type="button"
+  1073→              onClick={handleNavigate}
+  1074→              style={{
+  1075→                width: "100%",
+  1076→                padding: "16px 18px",
+  1077→                borderRadius: 18,
+  1078→                border: "none",
+  1079→                background: "linear-gradient(135deg, #6366f1, #4338ca)",
+  1080→                color: "#fff",
+  1081→                fontSize: 15,
+  1082→                fontWeight: 800,
+  1083→                cursor: "pointer",
+  1084→                boxShadow: "0 10px 24px rgba(99, 102, 241, 0.30)",
+  1085→                display: "inline-flex",
+  1086→                alignItems: "center",
+  1087→                justifyContent: "center",
+  1088→                gap: 8,
+  1089→              }}
+  1090→              aria-label={`Navegar a ${navDestination}`}
+  1091→            >
+  1092→              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>navigation</span>
+  1093→              Navegar
+  1094→              {navDestination ? (
+  1095→                <span style={{ opacity: 0.85, fontWeight: 600, fontSize: 13 }}>
+  1096→                  · {navDestination.length > 28 ? navDestination.slice(0, 28) + "…" : navDestination}
+  1097→                </span>
+  1098→              ) : null}
+  1099→            </button>
+  1100→          </div>
+  1101→        )}
+  1102→
+  1103→        {/* 🔴 P2 — Price history sparklines para bloques de comparison.
+  1104→            Cada item con URL (Amazon/product) muestra un mini-chart SVG
+  1105→            inline alimentado por Keepa (si hay KEEPA_API_KEY) o un fallback
+  1106→            "no disponible". */}
+  1107→        {block && block.type === "comparison" && block.items.some((it) => it.url) && (
+  1108→          <div style={{ padding: "0 16px 16px" }}>
+  1109→            <h3
+  1110→              style={{
+  1111→                margin: "0 0 10px",
+  1112→                fontSize: 13,
+  1113→                fontWeight: 800,
+  1114→                color: "#1a1a2e",
+  1115→                letterSpacing: 0.4,
+  1116→                textTransform: "uppercase",
+  1117→              }}
+  1118→            >
+  1119→              Histórico de precios
+  1120→            </h3>
+  1121→            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+  1122→              {block.items
+  1123→                .filter((it) => it.url)
+  1124→                .map((it, i) => (
+  1125→                  <PriceHistoryChart
+  1126→                    key={i}
+  1127→                    title={it.title}
+  1128→                    url={it.url ?? ""}
+  1129→                    asin={extractAsin(it.url ?? "")}
+  1130→                    currentPrice={it.price}
+  1131→                  />
+  1132→                ))}
+  1133→            </div>
+  1134→          </div>
+  1135→        )}
+  1136→
+  1137→        {/* 🔴 v4: Decision outcome panel — when block is decision_support and
+  1138→            has decisionId, render the outcome tracker (chosen option +
+  1139→            satisfaction rating). The panel reads the Decision from state via
+  1140→            useKoru() and calls updateDecisionOutcome. */}
+  1141→        {block && block.type === "decision_support" && (
+  1142→          <DecisionOutcomePanel block={block} />
+  1143→        )}
+  1144→
+  1145→        {/* 🔴 v2: Sticky footer — Save + PDF pinned al fondo con blur backdrop */}
+  1146→        <div className="koru-detail-actions-sticky">
+  1147→          <button
+  1148→            type="button"
+  1149→            className="koru-dsec-action-btn koru-dsec-action-save"
+  1150→            onClick={() => onSave?.(detail.title, detail.subtitle)}
+  1151→          >
+  1152→            <span className="material-symbols-outlined">bookmark_added</span>
+  1153→            <span>Guardar</span>
+  1154→          </button>
+  1155→          {onExportPdf && (
+  1156→            <button
+  1157→              type="button"
+  1158→              className="koru-dsec-action-btn koru-dsec-action-pdf"
+  1159→              onClick={onExportPdf}
+  1160→            >
+  1161→              <span className="material-symbols-outlined">picture_as_pdf</span>
+  1162→              <span>PDF</span>
+  1163→            </button>
+  1164→          )}
+  1165→        </div>
+  1166→      </div>
+  1167→
+  1168→      {/* 🔴 P2 — Cooking mode overlay (full-screen, z-index 300). */}
+  1169→      {cookingOpen && canCook && (
+  1170→        <CookingMode
+  1171→          title={recipeTitle}
+  1172→          steps={cookingSteps}
+  1173→          block={block}
+  1174→          onClose={() => setCookingOpen(false)}
+  1175→        />
+  1176→      )}
+  1177→
+  1178→      {/* 🔴 P2 — Workout session overlay (full-screen, z-index 300). */}
+  1179→      {workoutOpen && canWorkout && exercisePlanObj && workoutSession && (
+  1180→        <WorkoutSession
+  1181→          plan={exercisePlanObj}
+  1182→          session={workoutSession}
+  1183→          onClose={() => setWorkoutOpen(false)}
+  1184→        />
+  1185→      )}
+  1186→
+  1187→      {/* 🔴 P2 — Toast "Abriendo navegación..." para el botón Navegar.
+  1188→          Reutiliza la animación koru-save-rise (mismo feel que el modal Save).
+  1189→          Se auto-oculta a los 2.2s (ver handleNavigate). */}
+  1190→      {navToast && (
+  1191→        <div
+  1192→          className="koru-nav-toast"
+  1193→          role="status"
+  1194→          aria-live="polite"
+  1195→          onClick={() => setNavToast(null)}
+  1196→        >
+  1197→          <div className="koru-nav-toast-content">
+  1198→            <span className="material-symbols-outlined koru-nav-toast-icon">navigation</span>
+  1199→            <span className="koru-nav-toast-text">{navToast}</span>
+  1200→          </div>
+  1201→        </div>
+  1202→      )}
+  1203→    </div>,
+  1204→    document.body,
+  1205→  );
+  1206→}
+  1207→

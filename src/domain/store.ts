@@ -995,6 +995,37 @@ export function computeStreak(habitId: string, logs: HabitLog[]): number {
   return streak;
 }
 
+/**
+ * 🔴 Pausa un hábito sin perder la racha. El streak se computa desde
+ * HabitLog history (que queda intacto), así que al reanudar el hábito
+ * vuelve a aparecer con su racha anterior. Sólo setea `active = false`
+ * y limpia `archivedAt` (no es archive, es pause).
+ */
+export function pauseHabit(state: KoruState, habitId: string): KoruState {
+  const now = nowIso();
+  const habits = (state.habits ?? []).map(h =>
+    h.id === habitId ? { ...h, active: false, archivedAt: undefined } : h
+  );
+  const next = { ...state, habits, updatedAt: now };
+  saveState(next);
+  return next;
+}
+
+/**
+ * 🔴 Reanuda un hábito previamente pausado. Vuelve a `active = true` y
+ * limpia cualquier `archivedAt`. La racha anterior (si quedó viva en
+ * HabitLog history) sigue siendo computable.
+ */
+export function resumeHabit(state: KoruState, habitId: string): KoruState {
+  const now = nowIso();
+  const habits = (state.habits ?? []).map(h =>
+    h.id === habitId ? { ...h, active: true, archivedAt: undefined } : h
+  );
+  const next = { ...state, habits, updatedAt: now };
+  saveState(next);
+  return next;
+}
+
 // ─── Routines ───
 export function createRoutine(state: KoruState, name: string, anchorTime: string, habitIds: string[], daysOfWeek: number[]): KoruState {
   const now = nowIso();
@@ -1137,6 +1168,112 @@ export function createDecision(state: KoruState, question: string, options: Deci
     createdAt: now,
   };
   const next = { ...state, decisions: [decision, ...(state.decisions ?? [])], updatedAt: now };
+  saveState(next);
+  return next;
+}
+
+/**
+ * 🔴 v4 — Registra el outcome de una decisión ya tomada (chosen option + 1-5
+ * satisfaction). El reducer:
+ *  1. Actualiza `Decision.outcome` con chosenOptionId/decidedAt/satisfaction1to5.
+ *  2. Crea un Commitment de follow-up 90 días en el futuro para re-chequear
+ *     la satisfacción real (el usuario puede cerrarlo antes si quiere).
+ *  3. Crea un MemoryFact kind "preference" basado en la opción elegida.
+ *     - satisfaction >= 4 → confianza alta (0.85), refuerza la preferencia.
+ *     - satisfaction <= 2 → confianza baja (0.35), debilita la preferencia.
+ *     - satisfaction 3    → confianza media (0.6), neutral.
+ *
+ * Idempotente: si la decisión ya tenía outcome, lo sobrescribe y NO crea
+ * otro Commitment/MemoryFact (usa los linkedMemoryIds para encontrar el
+ * previo y reemplazarlo, evitando duplicados).
+ */
+export function updateDecisionOutcome(
+  state: KoruState,
+  decisionId: string,
+  outcome: {
+    chosenOptionId: string;
+    decidedAt: string;
+    satisfaction1to5: number;
+    notes?: string;
+  },
+): KoruState {
+  const now = nowIso();
+  const decisions = state.decisions ?? [];
+  const decision = decisions.find((d) => d.id === decisionId);
+  if (!decision) return state;
+
+  // 1. Actualizar el outcome de la Decision.
+  const updatedDecision: Decision = {
+    ...decision,
+    outcome: {
+      chosenOptionId: outcome.chosenOptionId,
+      decidedAt: outcome.decidedAt,
+      satisfaction1to5: Math.max(1, Math.min(5, Math.round(outcome.satisfaction1to5))),
+      notes: outcome.notes,
+      followUpAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+  };
+  const nextDecisions = decisions.map((d) => (d.id === decisionId ? updatedDecision : d));
+
+  // 2. Commitment de follow-up (90 días).
+  const followUpCommitment: Commitment = {
+    id: createId("commit"),
+    title: `Follow-up decisión: ${decision.question.slice(0, 60)}`,
+    dueHint: `follow-up decision ${decisionId}`,
+    dueAt: updatedDecision.outcome!.followUpAt,
+    status: "open",
+    createdAt: now,
+    sourceEntryId: decisionId,
+  };
+
+  // 3. MemoryFact kind "preference" basado en la opción elegida + satisfaction.
+  const chosenOption = decision.options.find((o) => o.id === outcome.chosenOptionId);
+  const satisfaction = updatedDecision.outcome!.satisfaction1to5;
+  const confidence = satisfaction >= 4 ? 0.85 : satisfaction <= 2 ? 0.35 : 0.6;
+  const verdict = satisfaction >= 4
+    ? "buena experiencia"
+    : satisfaction <= 2
+      ? "mala experiencia"
+      : "experiencia neutra";
+
+  // Buscar un MemoryFact previo del mismo outcome (idempotencia: reemplazar).
+  const prevMemoryId = decision.linkedMemoryIds.find((id) =>
+    state.memories.some((m) => m.id === id && m.kind === "preference"),
+  );
+  const newMemory: MemoryFact = {
+    id: prevMemoryId ?? createId("mem"),
+    kind: "preference",
+    text: chosenOption
+      ? `Elegí "${chosenOption.label}" para "${decision.question}" — ${verdict} (${satisfaction}/5)`
+      : `Decidí sobre "${decision.question}" — ${verdict} (${satisfaction}/5)`,
+    confidence,
+    sensitivity: "normal",
+    status: "confirmed",
+    createdAt: prevMemoryId ? (state.memories.find((m) => m.id === prevMemoryId)?.createdAt ?? now) : now,
+    updatedAt: now,
+    confirmedAt: now,
+    rootQuote: chosenOption?.label,
+    useForSuggestions: satisfaction >= 4,
+    sourceEntryId: decisionId,
+  };
+  const nextMemories = prevMemoryId
+    ? state.memories.map((m) => (m.id === prevMemoryId ? newMemory : m))
+    : [newMemory, ...state.memories];
+
+  // Vincular el nuevo MemoryFact a la decisión (si recién creado).
+  const nextLinkedMemoryIds = prevMemoryId
+    ? decision.linkedMemoryIds
+    : [...decision.linkedMemoryIds, newMemory.id];
+  const finalDecision: Decision = { ...updatedDecision, linkedMemoryIds: nextLinkedMemoryIds };
+  const finalDecisions = nextDecisions.map((d) => (d.id === decisionId ? finalDecision : d));
+
+  const next: KoruState = {
+    ...state,
+    decisions: finalDecisions,
+    memories: nextMemories,
+    commitments: [followUpCommitment, ...state.commitments],
+    updatedAt: now,
+  };
   saveState(next);
   return next;
 }

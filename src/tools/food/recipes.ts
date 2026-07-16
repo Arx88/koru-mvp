@@ -8,6 +8,7 @@ import type { LifeRecord } from "../../domain/types";
 import { fetchJson } from "../shared/fetcher";
 import { cached, ttls } from "../shared/cache";
 import { limiters } from "../shared/rateLimiter";
+import { fetchNutrition } from "./nutritionOFF";
 
 const MEALDB_KEY = "1"; // key pública gratuita.
 const MEALDB_BASE = `https://www.themealdb.com/api/json/v1/${MEALDB_KEY}`;
@@ -83,19 +84,38 @@ export const recipeFind: ToolHandler = {
       return { type: "recipe_find", status: "no_data", query, recipes: [], note: `No encontré recetas para "${query}" en TheMealDB.` };
     }
 
+    // 🔴 FREE: traer nutrición promedio por 100g del ingrediente principal
+    // vía Open Food Facts. Best-effort: si no hay datos o falla, no se incluye
+    // y la card simplemente no muestra la sección de nutrición.
+    const topRecipes = meals.slice(0, 5);
+    const recipesWithNutrition = await Promise.all(
+      topRecipes.map(async (m) => {
+        const ings = extractIngredients(m);
+        const mainIngredient = ings[0]?.ingredient ?? m.strMeal ?? query;
+        let nutrition: { kcal: number; protein: number; carbs: number; fat: number } | undefined;
+        try {
+          nutrition = await fetchNutrition(mainIngredient) ?? undefined;
+        } catch {
+          nutrition = undefined;
+        }
+        return {
+          name: m.strMeal,
+          category: m.strCategory,
+          area: m.strArea,
+          ingredients: ings,
+          instructions: m.strInstructions,
+          thumbnail: m.strMealThumb,
+          videoUrl: m.strYoutube,
+          nutrition,
+        };
+      }),
+    );
+
     return {
       type: "recipe_find",
       status: "ok",
       query,
-      recipes: meals.slice(0, 5).map((m) => ({
-        name: m.strMeal,
-        category: m.strCategory,
-        area: m.strArea,
-        ingredients: extractIngredients(m),
-        instructions: m.strInstructions,
-        thumbnail: m.strMealThumb,
-        videoUrl: m.strYoutube,
-      })),
+      recipes: recipesWithNutrition,
       source: "TheMealDB",
       sourceUrl: "https://www.themealdb.com/",
     };

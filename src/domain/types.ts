@@ -638,6 +638,8 @@ export type UiBlock =
         photos?: string[];
         reserveUrl?: string;
         distanceFromUser?: string;
+        // 🔴 v4: highlights del menú extraídos por scraping del website del place.
+        menuHighlights?: Array<{ dish: string; price?: string }>;
       }>;
       topScore?: string;
       pros?: string[];
@@ -686,6 +688,17 @@ export type UiBlock =
       }>;
       sleep?: { icon: string; value: string; label: string };
       suggestion?: { icon: string; value: string; label: string };
+      /**
+       * 🔴 P2 — Bienestar con inferencia de estrés. Cuando el bloque lleva
+       * `logs` y `entries` (WellbeingLog[] y DailyEntry[] del KoruState), el
+       * presentation mapper puede invocar `inferStressLevel` para calcular
+       * nivel de estrés y mostrarlo como métrica + tiles de análisis.
+       * `habits` y `habitLogs` opcionales habilitan el factor "racha cortada".
+       */
+      logs?: WellbeingLog[];
+      entries?: DailyEntry[];
+      habits?: Habit[];
+      habitLogs?: HabitLog[];
     }
   | {
       type: "live_match";
@@ -889,6 +902,13 @@ export type UiBlock =
       options?: Array<{ label: string; probability?: number }>;
       factors?: string[];
       recommendation?: string;
+      /** 🔴 v4: id de la Decision durable en state.decisions que respalda este
+       *  bloque. Si está presente, KoruDetailScreen puede:
+       *  - leer `decision.outcome` para mostrar "Decidiste: X · Satisfacción: N/5"
+       *  - ofrecer botones para registrar el outcome (chosenOptionId + satisfaction1to5)
+       *  y disparar el reducer `updateDecisionOutcome`.
+       */
+      decisionId?: string;
     }
   | {
       type: "memory";
@@ -1029,6 +1049,9 @@ export type UiBlock =
       prepTime?: string;
       cookTime?: string;
       source?: { title: string; url: string; domain: string };
+      /** 🔴 FREE: nutrición promedio por 100g del ingrediente principal,
+       *  vía Open Food Facts. Opcional — solo presente si la API lo devuelve. */
+      nutrition?: { kcal: number; protein: number; carbs: number; fat: number };
     }
   | {
       type: "movie_review";
@@ -1047,6 +1070,12 @@ export type UiBlock =
       crew?: Array<{ name: string; job: string }>;
       ratings?: Array<{ source: string; score: number; outOf: number }>;
       streaming?: Array<{ provider: string; logo?: string; deeplink?: string }>;
+      /** Awards (no se traen desde TMDB; reservado para futuro enriquecimiento IMDb/OMDB). */
+      awards?: string[];
+      /** 🔴 Budget formateado (ej. "$150M") — extraído de TMDB /movie/{id}.budget. */
+      budget?: string;
+      /** 🔴 Box office formateado (ej. "$1.2B") — extraído de TMDB /movie/{id}.revenue. */
+      boxOffice?: string;
       sources?: AssistantSource[];
     }
   | {
@@ -1061,6 +1090,8 @@ export type UiBlock =
       rating?: number;
       synopsis?: string;
       isbn?: string;
+      /** 🔴 URL de preview embebido (Open Library / Archive.org embed). */
+      previewUrl?: string;
       sources?: AssistantSource[];
     }
   | {
@@ -1097,6 +1128,14 @@ export type UiBlock =
       type: "exercise_plan";
       title?: string;
       plan: ExercisePlan;
+      /**
+       * 🔴 P2 — Cálculo de fuerza (1RM Epley) + delta vs histórico + kcal.
+       * Cuando el bloque lleva `workoutLogs` (WorkoutLog[] históricos), el
+       * presentation mapper puede calcular 1RM por ejercicio, delta vs hace
+       * 4 semanas, y estimación de kcal con la tabla MET.
+       */
+      workoutLogs?: WorkoutLog[];
+      userWeightKg?: number;
     }
 
 export type AssistantActionStatus = "proposed" | "approved" | "executed" | "rejected";
@@ -1355,6 +1394,11 @@ export type UserProfile = {
   homeCity?: string;
   homeLat?: number;
   homeLng?: number;
+  /** 🔴 Moneda principal del usuario (código ISO 4217, ej: "EUR", "USD", "ARS").
+   *  Se usa para conversión de presupuestos de viaje y otros montos. Default EUR. */
+  currency?: string;
+  /** 🔴 P2 — peso del usuario en kg; usado por strengthEngine para estimar kcal (MET). */
+  weightKg?: number;
 };
 
 /** UserPreferences — para Settings */

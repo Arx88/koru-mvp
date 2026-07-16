@@ -17,6 +17,7 @@
 
 import { fetchJson } from "../shared/fetcher";
 import { defineTool, policies, type ToolHandler } from "../types";
+import { fetchRouteOSRM } from "./osrmRouter";
 
 // ─── Tipos públicos ───────────────────────────────────────────────────────────
 
@@ -196,6 +197,21 @@ function parseRoute(route: GmRoute, mode: TravelMode, includeAlternatives: boole
 // ─── fetchRoute — API pública ─────────────────────────────────────────────────
 
 /**
+ * Parsea un string "lat,lng" (con signo negativo para S/W) y devuelve
+ * coordenadas numéricas. Usado por el fallback OSRM cuando el caller pasa
+ * coordenadas en vez de direcciones. Devuelve null si el formato no matchea.
+ */
+function parseLatLng(s: string): { lat: number; lng: number } | null {
+  const m = s.trim().match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
+  if (!m) return null;
+  const lat = parseFloat(m[1]);
+  const lng = parseFloat(m[2]);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+  return { lat, lng };
+}
+
+/**
  * Llama a Google Maps Directions API y devuelve un `RouteResult` con pasos,
  * distancia, duración, tráfico y (en driving) combustible y CO2.
  *
@@ -358,6 +374,50 @@ export const routePlanner: ToolHandler = {
       };
     }
     if (!process.env.GOOGLE_MAPS_KEY) {
+      // 🔴 FREE FALLBACK: sin GOOGLE_MAPS_KEY intentamos OSRM (demo server
+      // público, sin key). Solo soporta driving/walking/cycling. Para
+      // transit, devolvemos not_configured como antes.
+      if (mode !== "transit") {
+        try {
+          // OSRM espera coordenadas; si el caller pasa direcciones, no
+          // podemos geocodificar sin key — devolvemos not_configured.
+          // Si pasa "lat,lng" las parseamos.
+          const fromCoords = parseLatLng(origin);
+          const toCoords = parseLatLng(destination);
+          if (fromCoords && toCoords) {
+            const osrmRoute = await fetchRouteOSRM(
+              {
+                fromLat: fromCoords.lat,
+                fromLng: fromCoords.lng,
+                toLat: toCoords.lat,
+                toLng: toCoords.lng,
+              },
+              mode === "bicycling" ? "cycling" : mode === "walking" ? "walking" : "driving",
+            );
+            if (osrmRoute) {
+              return {
+                type: "route_plan_search",
+                status: "ok",
+                origin,
+                destination,
+                mode,
+                distanceMeters: osrmRoute.distanceMeters,
+                durationSec: osrmRoute.durationSec,
+                steps: osrmRoute.steps.map((s) => ({
+                  instruction: s.instruction,
+                  distanceMeters: s.distanceMeters,
+                  durationSec: 0,
+                })),
+                trafficLevel: "light",
+                alternatives: [],
+                note: "Ruta vía OSRM (servicio público sin API key).",
+              };
+            }
+          }
+        } catch {
+          // OSRM falló — caemos a not_configured.
+        }
+      }
       return {
         type: "route_plan_search",
         status: "not_configured",

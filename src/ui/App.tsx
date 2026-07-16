@@ -45,6 +45,8 @@ function KoruApp() {
     // 🔴 TIER S: reducers wired a widgets del HomeScreen.
     logWellbeing,
     logHabit,
+    pauseHabit,
+    resumeHabit,
     updateWeatherCache,
     // 🔴 TIER S: addPerson — wired al sub-form "Personas" en SettingsScreen.
     addPerson,
@@ -102,6 +104,8 @@ function KoruApp() {
                 //   para que el botón haga algo visible.
                 onLogWater={(ml) => logWellbeing("water", ml, "ml")}
                 onLogHabit={(habitId) => logHabit(habitId, 1)}
+                onPauseHabit={(habitId) => pauseHabit(habitId)}
+                onResumeHabit={(habitId) => resumeHabit(habitId)}
                 onRefreshWeather={() => {
                   if (state.weatherCache) {
                     updateWeatherCache({

@@ -35,6 +35,14 @@ export {
   type TrafficLevel,
 } from "./travelPlanner";
 
+// 🔴 v4: currency converter (ECB / Frankfurter API, 24h cache).
+export {
+  convertCurrency,
+  getCachedRate,
+  getCachedRateDate,
+  formatCurrency,
+} from "./currencyConverter";
+
 export const travelTools = [
   flightSearch,
   flightTrack,

@@ -1,0 +1,812 @@
+     1→import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+     2→import { createPortal } from "react-dom";
+     3→import type { LifeRecord, LifeRecordKind } from "../domain/types";
+     4→import { useKoru } from "./KoruProvider";
+     5→import { ConfirmDialog } from "./ConfirmDialog";
+     6→
+     7→// Mis Colecciones — la promesa "Listo, guardado en Sitios de IA" cierra acá:
+     8→// TODO lo guardado, agrupado por colección, navegable en un tap. Misma
+     9→// estética Stitch del roadmap (fondo lila, magical-cards). Los enlaces abren
+    10→// en pestaña nueva; el resto muestra su valor/nota.
+    11→//
+    12→// 🔴 FIX UX v2: se renderiza via createPortal en document.body para garantizar
+    13→// pantalla completa (z-index superior al chat) + backdrop oscuro detrás.
+    14→// 🔴 FIX UX v2: las filas son TAPPABLE — si el record tiene sourceBlock, reabre
+    15→// el detail screen original; si no, abre un editor inline. Long-press / botón
+    16→// more_vert abre menú con Editar / Eliminar.
+    17→//
+    18→// 🔴 FIX UX v3 (audit):
+    19→//  • Iconos con color de acento por kind (gradient tile, icono blanco).
+    20→//  • Search bar sticky (filtra por título, notas, tags; case-insensitive).
+    21→//  • FAB "+" (violet→pink gradient, koru-breathe, safe-area-aware).
+    22→//  • "Ver N más" pagination per-group (no global, no silent slice).
+    23→//  • Menú more_vert via portal (no clipping por overflow:hidden del card).
+    24→//  • Notes con markdown (mismo renderer que CreateScreen).
+    25→//  • Tags como chips bajo el título.
+    26→//
+    27→// 🔴 Folders v4: collection se interpreta como path slash-delimitado
+    28→// (ej: "Trabajo/ACME/Ideas"). Breadcrumb arriba navega hacia arriba;
+    29→// sub-carpetas aparecen como cards; "Nueva carpeta" appenda al path actual.
+    30→
+    31→function Mat({ children, className = "" }: { children: string; className?: string }) {
+    32→  return <span className={`material-symbols-outlined ${className}`}>{children}</span>;
+    33→}
+    34→
+    35→const MODULE_CLASSES = ["module-challenges", "module-core", "module-nutrition", "module-morning", "module-habits"];
+    36→
+    37→const COLLECTION_ICONS: Array<[RegExp, string]> = [
+    38→  [/\bia\b|inteligencia/i, "smart_toy"],
+    39→  [/video/i, "play_circle"],
+    40→  [/receta/i, "restaurant"],
+    41→  [/dev|herramienta/i, "terminal"],
+    42→  [/compra/i, "shopping_bag"],
+    43→  [/noticia/i, "newspaper"],
+    44→  [/lectura/i, "menu_book"],
+    45→  [/m[uú]sica/i, "music_note"],
+    46→  [/viaje/i, "flight"],
+    47→  [/enlace/i, "link"],
+    48→];
+    49→
+    50→function collectionIcon(name: string): string {
+    51→  for (const [pattern, icon] of COLLECTION_ICONS) {
+    52→    if (pattern.test(name)) return icon;
+    53→  }
+    54→  return "bookmark";
+    55→}
+    56→
+    57→// 🔴 FIX v3 #1: cada kind tiene su color de acento + ícono (igual que CreateScreen).
+    58→type RecordVisual = { icon: string; accent: string };
+    59→
+    60→const RECORD_VISUALS: Partial<Record<LifeRecordKind, RecordVisual>> = {
+    61→  expense: { icon: "payments", accent: "#d97706" },
+    62→  shopping_item: { icon: "shopping_cart", accent: "#ec4899" },
+    63→  idea: { icon: "sticky_note_2", accent: "#8363f9" },
+    64→  tool_link: { icon: "link", accent: "#3b82f6" },
+    65→  recommendation: { icon: "restaurant", accent: "#059669" },
+    66→  decision: { icon: "psychology_alt", accent: "#8127cf" },
+    67→  birthday: { icon: "cake", accent: "#ec4899" },
+    68→};
+    69→
+    70→const DEFAULT_VISUAL: RecordVisual = { icon: "bookmark", accent: "#8363f9" };
+    71→
+    72→function recordVisual(record: LifeRecord): RecordVisual {
+    73→  // Si el record tiene URL pero NO es tool_link, igualmente usamos el visual
+    74→  // del kind (no forzamos azul). tool_link ya mapea a azul/link por sí solo.
+    75→  return RECORD_VISUALS[record.kind] ?? DEFAULT_VISUAL;
+    76→}
+    77→
+    78→function iconTileStyle(accent: string): CSSProperties {
+    79→  // Gradient con el accent; icono blanco (definido en CSS .koru-collection-icon-tile).
+    80→  return {
+    81→    background: `linear-gradient(135deg, ${accent} 0%, ${accent}cc 100%)`,
+    82→  };
+    83→}
+    84→
+    85→// ---------------------------------------------------------------------------
+    86→// Markdown helpers (regex-based, sin deps externos) — mismos que CreateScreen.
+    87→// ---------------------------------------------------------------------------
+    88→
+    89→function escapeHtml(s: string): string {
+    90→  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    91→}
+    92→
+    93→function inlineMd(s: string): string {
+    94→  // s ya está escapado
+    95→  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    96→  s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    97→  s = s.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+    98→  return s;
+    99→}
+   100→
+   101→function renderMarkdown(text: string): string {
+   102→  if (!text.trim()) return "";
+   103→  const lines = text.split("\n");
+   104→  const out: string[] = [];
+   105→  let inList = false;
+   106→  let para: string[] = [];
+   107→  const flushPara = () => {
+   108→    if (para.length > 0) {
+   109→      out.push(`<p>${para.map((p) => inlineMd(escapeHtml(p))).join("<br />")}</p>`);
+   110→      para = [];
+   111→    }
+   112→  };
+   113→  for (const line of lines) {
+   114→    const listMatch = line.match(/^\s*-\s+(.*)$/);
+   115→    if (listMatch) {
+   116→      flushPara();
+   117→      if (!inList) {
+   118→        out.push("<ul>");
+   119→        inList = true;
+   120→      }
+   121→      out.push(`<li>${inlineMd(escapeHtml(listMatch[1]))}</li>`);
+   122→      continue;
+   123→    }
+   124→    if (inList) {
+   125→      out.push("</ul>");
+   126→      inList = false;
+   127→    }
+   128→    para.push(line);
+   129→  }
+   130→  flushPara();
+   131→  if (inList) out.push("</ul>");
+   132→  return out.join("");
+   133→}
+   134→
+   135→// 🔴 FIX v3 #6: si la nota tiene marcadores markdown, renderiza como HTML.
+   136→function hasMarkdown(text: string): boolean {
+   137→  return /(\*\*|\*|^\s*-\s|\[[^\]]+\]\([^)]+\))/m.test(text);
+   138→}
+   139→
+   140→// Limpieza del input de búsqueda: case-insensitive, trim.
+   141→function matchesQuery(record: LifeRecord, q: string): boolean {
+   142→  if (!q) return true;
+   143→  const needle = q.toLowerCase();
+   144→  if (record.title.toLowerCase().includes(needle)) return true;
+   145→  if (record.notes && record.notes.toLowerCase().includes(needle)) return true;
+   146→  if (record.tags && record.tags.some((t) => t.toLowerCase().includes(needle))) return true;
+   147→  return false;
+   148→}
+   149→
+   150→// 🔴 Folders helpers — collection se interpreta como path slash-delimitado.
+   151→// parsePath("Trabajo/ACME/Ideas") → ["Trabajo", "ACME", "Ideas"].
+   152→// parsePath("") → []  (record vive en la raíz, "Guardados").
+   153→function parsePath(collection: string | undefined): string[] {
+   154→  const c = (collection ?? "").trim();
+   155→  if (!c) return [];
+   156→  return c
+   157→    .split("/")
+   158→    .map((s) => s.trim())
+   159→    .filter(Boolean);
+   160→}
+   161→
+   162→/** Path segments where the record lives (its collection parsed as a path). */
+   163→function recordPathSegments(record: LifeRecord): string[] {
+   164→  return parsePath(record.collection);
+   165→}
+   166→
+   167→/** Join a path array back into the slash-delimited string. */
+   168→function joinPath(segs: string[]): string {
+   169→  return segs.filter(Boolean).join("/");
+   170→}
+   171→
+   172→/**
+   173→ * Records whose collection path EXACTLY equals `currentPath` (joined).
+   174→ * These are the records that live directly in the current folder — they
+   175→ * don't belong to any sub-folder.
+   176→ */
+   177→function recordsInFolder(records: LifeRecord[], currentPath: string[]): LifeRecord[] {
+   178→  return records.filter((r) => {
+   179→    const segs = recordPathSegments(r);
+   180→    if (segs.length !== currentPath.length) return false;
+   181→    return segs.every((s, i) => s === currentPath[i]);
+   182→  });
+   183→}
+   184→
+   185→/**
+   186→ * Unique names of sub-folders directly inside `currentPath`. A sub-folder
+   187→ * exists if at least one record's path extends currentPath by exactly one
+   188→ * segment — that segment is the sub-folder name.
+   189→ */
+   190→function subFolderNames(records: LifeRecord[], currentPath: string[]): string[] {
+   191→  const set = new Set<string>();
+   192→  for (const r of records) {
+   193→    const segs = recordPathSegments(r);
+   194→    if (segs.length <= currentPath.length) continue;
+   195→    const parentMatch = currentPath.every((s, i) => segs[i] === s);
+   196→    if (!parentMatch) continue;
+   197→    set.add(segs[currentPath.length]);
+   198→  }
+   199→  return Array.from(set).sort((a, b) => a.localeCompare(b));
+   200→}
+   201→
+   202→const PAGE_SIZE = 5;
+   203→
+   204→export function CollectionsScreen({
+   205→  focusCollection,
+   206→  onClose,
+   207→  onCreate,
+   208→}: {
+   209→  /** Colección a mostrar primero (la recién usada en "guardado en X"). */
+   210→  focusCollection?: string;
+   211→  onClose: () => void;
+   212→  /**
+   213→   * 🔴 FIX v3 #3 + Folders v4: callback del FAB "+". Recibe el path completo
+   214→   * slash-delimitado de la carpeta actual (ej: "Trabajo/ACME") para que el
+   215→   * padre pueda pre-llenar el campo "Carpeta" del CreateScreen. Vacío = raíz.
+   216→   */
+   217→  onCreate?: (currentPath: string) => void;
+   218→}) {
+   219→  const { records, deleteRecord, reopenRecord, updateRecord } = useKoru();
+   220→  // 🔴 FIX v3 #5: el menú ahora guarda el rect del botón ancla (para portal fixed).
+   221→  const [menuFor, setMenuFor] = useState<{ id: string; rect: DOMRect } | null>(null);
+   222→  const [editing, setEditing] = useState<LifeRecord | null>(null);
+   223→  const [confirmDelete, setConfirmDelete] = useState<LifeRecord | null>(null);
+   224→  // 🔴 FIX v3 #2: estado del search bar.
+   225→  const [query, setQuery] = useState("");
+   226→  // 🔴 FIX v3 #4: expansión per-group (no global). Set de nombres de colección.
+   227→  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+   228→
+   229→  // 🔴 Folders v4: path actual (array de segmentos). Vacío = raíz ("Inicio").
+   230→  // Se inicializa desde focusCollection (si viene como path) para que el
+   231→  // "Ver colección" del card aterrice directamente en la carpeta correcta.
+   232→  const [currentPath, setCurrentPath] = useState<string[]>(() =>
+   233→    parsePath(focusCollection),
+   234→  );
+   235→
+   236→  // Si focusCollection cambia externamente (ej.: el usuario abre otra
+   237→  // colección desde un card distinto sin cerrar este modal), reseteamos el
+   238→  // path al nuevo focus. Es un efecto intencional, no un re-render casual.
+   239→  useEffect(() => {
+   240→    setCurrentPath(parsePath(focusCollection));
+   241→  }, [focusCollection]);
+   242→
+   243→  // Cerrar el menú popover si se scrollea el contenedor (sino queda flotando en Y viejo).
+   244→  const scrollRef = useRef<HTMLDivElement | null>(null);
+   245→
+   246→  useEffect(() => {
+   247→    const onKeyDown = (event: KeyboardEvent) => {
+   248→      if (event.key === "Escape") {
+   249→        // 🔴 Folders: si estamos en una sub-carpeta, Escape sube un nivel
+   250→        // antes de cerrar el modal completo (patrón "back" natural).
+   251→        if (currentPath.length > 0 && !menuFor && !editing) {
+   252→          setCurrentPath((prev) => prev.slice(0, -1));
+   253→          return;
+   254→        }
+   255→        setMenuFor(null);
+   256→        setEditing(null);
+   257→        onClose();
+   258→      }
+   259→    };
+   260→    window.addEventListener("keydown", onKeyDown);
+   261→    return () => window.removeEventListener("keydown", onKeyDown);
+   262→  }, [onClose, currentPath.length, menuFor, editing]);
+   263→
+   264→  // Cerrar el popover ante cualquier scroll/resize del viewport.
+   265→  useEffect(() => {
+   266→    if (!menuFor) return;
+   267→    const close = () => setMenuFor(null);
+   268→    const el = scrollRef.current;
+   269→    el?.addEventListener("scroll", close);
+   270→    window.addEventListener("resize", close);
+   271→    return () => {
+   272→      el?.removeEventListener("scroll", close);
+   273→      window.removeEventListener("resize", close);
+   274→    };
+   275→  }, [menuFor]);
+   276→
+   277→  const filteredRecords = useMemo(() => {
+   278→    const q = query.trim();
+   279→    if (!q) return records;
+   280→    return records.filter((r) => matchesQuery(r, q));
+   281→  }, [records, query]);
+   282→
+   283→  // 🔴 Folders v4: sub-carpetas directas del currentPath.
+   284→  const subFolders = useMemo(
+   285→    () => subFolderNames(filteredRecords, currentPath),
+   286→    [filteredRecords, currentPath],
+   287→  );
+   288→
+   289→  // 🔴 Folders v4: records que viven directamente en currentPath (sin
+   290→  // sub-carpetas). Se agrupan por el último segmento de su path (= el
+   291→  // nombre de la carpeta actual, o "Guardados" en la raíz).
+   292→  const recordsHere = useMemo(
+   293→    () => recordsInFolder(filteredRecords, currentPath),
+   294→    [filteredRecords, currentPath],
+   295→  );
+   296→
+   297→  const groups = useMemo(() => {
+   298→    const map = new Map<string, LifeRecord[]>();
+   299→    for (const record of recordsHere) {
+   300→      // 🔴 Folders: agrupar por el último segmento del path (= carpeta
+   301→      // inmediata del record). En la raíz, los records sin path quedan
+   302→      // bajo "Guardados".
+   303→      const segs = recordPathSegments(record);
+   304→      const key = segs.length > 0 ? segs[segs.length - 1] : "Guardados";
+   305→      const list = map.get(key) ?? [];
+   306→      list.push(record);
+   307→      map.set(key, list);
+   308→    }
+   309→    const entries = [...map.entries()].map(([name, items]) => ({
+   310→      name,
+   311→      items: [...items].reverse(), // lo más nuevo primero
+   312→    }));
+   313→    // Ordenar por tamaño (más registros primero).
+   314→    entries.sort((a, b) => b.items.length - a.items.length);
+   315→    return entries;
+   316→  }, [recordsHere]);
+   317→
+   318→  const toggleGroup = useCallback((name: string) => {
+   319→    setExpandedGroups((prev) => {
+   320→      const next = new Set(prev);
+   321→      if (next.has(name)) next.delete(name);
+   322→      else next.add(name);
+   323→      return next;
+   324→    });
+   325→  }, []);
+   326→
+   327→  // 🔴 Folders v4: navegación. navigateToSegment(i) sube hasta el segmento i
+   328→  // (incluido); navigateToRoot() vuelve a la raíz; enterSubFolder(name)
+   329→  // appenda un segmento al path actual.
+   330→  const navigateToSegment = useCallback((i: number) => {
+   331→    setCurrentPath((prev) => prev.slice(0, i + 1));
+   332→  }, []);
+   333→  const navigateToRoot = useCallback(() => setCurrentPath([]), []);
+   334→  const enterSubFolder = useCallback((name: string) => {
+   335→    setCurrentPath((prev) => [...prev, name]);
+   336→  }, []);
+   337→
+   338→  // 🔴 Folders v4: "Nueva carpeta" — prompt nativo por simplicidad. Append
+   339→  // el nombre al currentPath y navega adentro (queda vacía hasta que el
+   340→  // usuario guarde un record allí).
+   341→  const handleNewFolder = useCallback(() => {
+   342→    // window.prompt es bloqueado en algunos sandboxes; si no está disponible
+   343→    // o el usuario cancela, no hacemos nada.
+   344→    if (typeof window === "undefined" || typeof window.prompt !== "function") return;
+   345→    const name = window.prompt("Nombre de la nueva carpeta:");
+   346→    if (!name || !name.trim()) return;
+   347→    const clean = name.trim().replace(/[/\\]+/g, " ").trim();
+   348→    if (!clean) return;
+   349→    enterSubFolder(clean);
+   350→  }, [enterSubFolder]);
+   351→
+   352→  // 🔴 Folders v4: el FAB "+" ahora pasa el path actual al onCreate, para
+   353→  // que el padre (TalkOverlay / App) pueda pre-llenar CreateScreen.
+   354→  const handleFabCreate = useCallback(() => {
+   355→    onCreate?.(joinPath(currentPath));
+   356→  }, [onCreate, currentPath]);
+   357→
+   358→  const totalFiltered = filteredRecords.length;
+   359→  const totalInFolder = recordsHere.length;
+   360→  const currentPathString = joinPath(currentPath);
+   361→
+   362→  return createPortal(
+   363→    <div className="koru-roadmap koru-collections-overlay" role="dialog" aria-label="Mis colecciones">
+   364→      <div className="koru-roadmap-screen koru-collections-screen" ref={scrollRef}>
+   365→        <div className="koru-roadmap-blob-1" />
+   366→        <div className="koru-roadmap-blob-2" />
+   367→
+   368→        <button type="button" aria-label="Volver" className="koru-roadmap-back" onClick={onClose}>
+   369→          <Mat>arrow_back_ios_new</Mat>
+   370→        </button>
+   371→
+   372→        <div className="koru-roadmap-header">
+   373→          <h1 className="koru-roadmap-title">Mis Colecciones</h1>
+   374→          <p className="koru-roadmap-subtitle">
+   375→            {records.length ? `${records.length} cosas guardadas, siempre a mano` : "Todavía no guardaste nada"}
+   376→          </p>
+   377→        </div>
+   378→
+   379→        {/* 🔴 Folders v4: breadcrumb navegable. "Inicio" siempre presente;
+   380→            cada segmento es tappable para subir hasta ese nivel. */}
+   381→        <nav className="koru-collection-breadcrumb" aria-label="Ruta de carpetas">
+   382→          <button
+   383→            type="button"
+   384→            className="koru-collection-breadcrumb-item"
+   385→            onClick={navigateToRoot}
+   386→            aria-current={currentPath.length === 0 ? "page" : undefined}
+   387→          >
+   388→            <Mat className="koru-collection-breadcrumb-icon">home</Mat>
+   389→            <span>Inicio</span>
+   390→          </button>
+   391→          {currentPath.map((seg, i) => (
+   392→            <span key={`${seg}-${i}`} className="koru-collection-breadcrumb-seg">
+   393→              <span className="koru-collection-breadcrumb-sep" aria-hidden="true">›</span>
+   394→              <button
+   395→                type="button"
+   396→                className="koru-collection-breadcrumb-item"
+   397→                onClick={() => navigateToSegment(i)}
+   398→                aria-current={i === currentPath.length - 1 ? "page" : undefined}
+   399→              >
+   400→                {seg}
+   401→              </button>
+   402→            </span>
+   403→          ))}
+   404→          {/* 🔴 "Nueva carpeta" — al final del breadcrumb, siempre visible. */}
+   405→          <button
+   406→            type="button"
+   407→            className="koru-collection-breadcrumb-new"
+   408→            onClick={handleNewFolder}
+   409→            aria-label="Nueva carpeta"
+   410→            title="Nueva carpeta"
+   411→          >
+   412→            <Mat>create_new_folder</Mat>
+   413→            <span>Nueva carpeta</span>
+   414→          </button>
+   415→        </nav>
+   416→
+   417→        {/* 🔴 FIX v3 #2: search bar sticky */}
+   418→        <div className="koru-collection-search" role="search">
+   419→          <Mat className="koru-collection-search-icon">search</Mat>
+   420→          <input
+   421→            type="search"
+   422→            inputMode="search"
+   423→            className="koru-collection-search-input"
+   424→            placeholder="Buscar por título, nota o tag…"
+   425→            value={query}
+   426→            onChange={(e) => setQuery(e.target.value)}
+   427→            aria-label="Buscar en colecciones"
+   428→          />
+   429→          {query ? (
+   430→            <button
+   431→              type="button"
+   432→              className="koru-collection-search-clear"
+   433→              aria-label="Limpiar búsqueda"
+   434→              onClick={() => setQuery("")}
+   435→            >
+   436→              <Mat>close</Mat>
+   437→            </button>
+   438→          ) : null}
+   439→          <span className="koru-collection-search-count" aria-live="polite">
+   440→            {query ? `${totalFiltered} resultado${totalFiltered === 1 ? "" : "s"}` : `${totalInFolder}`}
+   441→          </span>
+   442→        </div>
+   443→
+   444→        <div className="koru-roadmap-modules">
+   445→          {/* 🔴 Folders v4: sub-carpetas como cards al inicio del view. */}
+   446→          {subFolders.length > 0 && (
+   447→            <div className="koru-magical-card module-core koru-collection-subfolders">
+   448→              <div className="koru-module-head">
+   449→                <div className="koru-module-id">
+   450→                  <div className="koru-module-icon">
+   451→                    <Mat>folder</Mat>
+   452→                  </div>
+   453→                  <div>
+   454→                    <h3 className="koru-module-title">
+   455→                      {currentPath.length === 0 ? "Carpetas" : "Sub-carpetas"}
+   456→                    </h3>
+   457→                    <p className="koru-module-kicker">
+   458→                      {subFolders.length} {subFolders.length === 1 ? "CARPETA" : "CARPETAS"}
+   459→                    </p>
+   460→                  </div>
+   461→                </div>
+   462→              </div>
+   463→              <div className="koru-collection-subfolder-grid">
+   464→                {subFolders.map((name) => (
+   465→                  <button
+   466→                    key={name}
+   467→                    type="button"
+   468→                    className="koru-collection-subfolder-card"
+   469→                    onClick={() => enterSubFolder(name)}
+   470→                  >
+   471→                    <div className="koru-collection-subfolder-icon">
+   472→                      <Mat>{collectionIcon(name)}</Mat>
+   473→                    </div>
+   474→                    <div className="koru-collection-subfolder-meta">
+   475→                      <span className="koru-collection-subfolder-name">{name}</span>
+   476→                      <span className="koru-collection-subfolder-count">
+   477→                        {(() => {
+   478→                          // Cuenta de records directos en la sub-carpeta
+   479→                          const childPath = [...currentPath, name];
+   480→                          const count = recordsInFolder(filteredRecords, childPath).length;
+   481→                          return count > 0 ? `${count} guardado${count === 1 ? "" : "s"}` : "Vacía";
+   482→                        })()}
+   483→                      </span>
+   484→                    </div>
+   485→                    <Mat className="koru-collection-subfolder-arrow">chevron_right</Mat>
+   486→                  </button>
+   487→                ))}
+   488→              </div>
+   489→            </div>
+   490→          )}
+   491→
+   492→          {groups.length === 0 && subFolders.length === 0 && (
+   493→            <div className="koru-magical-card module-challenges">
+   494→              <p className="koru-collections-empty">
+   495→                {query.trim()
+   496→                  ? "Nada coincide con tu búsqueda. Probá con otra palabra."
+   497→                  : currentPath.length === 0
+   498→                    ? "Decime \"guardame este enlace\" o \"anotá esto\" y lo vas a encontrar acá, ordenado solo."
+   499→                    : `Esta carpeta está vacía. Tap \"+\" para crear algo en ${currentPathString}.`}
+   500→              </p>
+   501→            </div>
+   502→          )}
+   503→
+   504→          {groups.map((group, idx) => {
+   505→            const isExpanded = expandedGroups.has(group.name);
+   506→            const visibleItems = isExpanded ? group.items : group.items.slice(0, PAGE_SIZE);
+   507→            const hiddenCount = group.items.length - visibleItems.length;
+   508→
+   509→            return (
+   510→              <div key={group.name} className={`koru-magical-card ${MODULE_CLASSES[idx % MODULE_CLASSES.length]}`}>
+   511→                <div className="koru-module-head">
+   512→                  <div className="koru-module-id">
+   513→                    <div className="koru-module-icon">
+   514→                      <Mat>{collectionIcon(group.name)}</Mat>
+   515→                    </div>
+   516→                    <div>
+   517→                      <h3 className="koru-module-title">{group.name}</h3>
+   518→                      <p className="koru-module-kicker">
+   519→                        {group.items.length} {group.items.length === 1 ? "GUARDADO" : "GUARDADOS"}
+   520→                      </p>
+   521→                    </div>
+   522→                  </div>
+   523→                </div>
+   524→                <div className="koru-challenge-list">
+   525→                  {visibleItems.map((record) => {
+   526→                    const visual = recordVisual(record);
+   527→                    const tileStyle = iconTileStyle(visual.accent);
+   528→                    return record.url ? (
+   529→                      <a
+   530→                        key={record.id}
+   531→                        className="koru-challenge-row koru-collection-link"
+   532→                        href={record.url}
+   533→                        target="_blank"
+   534→                        rel="noreferrer"
+   535→                      >
+   536→                        <div className="koru-challenge-lock koru-collection-icon-tile" style={tileStyle}>
+   537→                          <Mat>{visual.icon}</Mat>
+   538→                        </div>
+   539→                        <div className="koru-collection-body">
+   540→                          <p className="koru-challenge-name">{record.title}</p>
+   541→                          {/* 🔴 FIX v3 #7: tags como chips */}
+   542→                          {record.tags && record.tags.length > 0 ? (
+   543→                            <div className="koru-collection-tags">
+   544→                              {record.tags.map((t) => (
+   545→                                <span key={t} className="koru-collection-tag">#{t}</span>
+   546→                              ))}
+   547→                            </div>
+   548→                          ) : null}
+   549→                          {/* 🔴 FIX v3 #6: markdown para notas */}
+   550→                          {record.notes && hasMarkdown(record.notes) ? (
+   551→                            <div
+   552→                              className="koru-challenge-desc koru-collection-md"
+   553→                              dangerouslySetInnerHTML={{ __html: renderMarkdown(record.notes) }}
+   554→                            />
+   555→                          ) : (
+   556→                            <p className="koru-challenge-desc">
+   557→                              {record.notes || record.url.replace(/^https?:\/\/(www\.)?/, "").split("/")[0]}
+   558→                            </p>
+   559→                          )}
+   560→                        </div>
+   561→                        <Mat className="koru-collection-open">open_in_new</Mat>
+   562→                      </a>
+   563→                    ) : (
+   564→                      <div
+   565→                        key={record.id}
+   566→                        className="koru-challenge-row koru-collection-row-tappable"
+   567→                        role="button"
+   568→                        tabIndex={0}
+   569→                        onClick={() => {
+   570→                          // 🔴 FIX: si tiene sourceBlock, reabre el detail screen original
+   571→                          if (record.sourceBlock) {
+   572→                            reopenRecord(record);
+   573→                          } else {
+   574→                            setEditing(record);
+   575→                          }
+   576→                        }}
+   577→                        onKeyDown={(e) => {
+   578→                          if (e.key === "Enter" || e.key === " ") {
+   579→                            e.preventDefault();
+   580→                            if (record.sourceBlock) reopenRecord(record);
+   581→                            else setEditing(record);
+   582→                          }
+   583→                        }}
+   584→                      >
+   585→                        <div className="koru-challenge-lock koru-collection-icon-tile" style={tileStyle}>
+   586→                          <Mat>{visual.icon}</Mat>
+   587→                        </div>
+   588→                        <div className="koru-collection-body">
+   589→                          <p className="koru-challenge-name">{record.title}</p>
+   590→                          {/* 🔴 FIX v3 #7: tags como chips */}
+   591→                          {record.tags && record.tags.length > 0 ? (
+   592→                            <div className="koru-collection-tags">
+   593→                              {record.tags.map((t) => (
+   594→                                <span key={t} className="koru-collection-tag">#{t}</span>
+   595→                              ))}
+   596→                            </div>
+   597→                          ) : null}
+   598→                          {/* 🔴 FIX v3 #6: markdown si la nota lo pide */}
+   599→                          {(record.value && record.value !== record.title) || record.notes ? (
+   600→                            record.notes && hasMarkdown(record.notes) ? (
+   601→                              <div
+   602→                                className="koru-challenge-desc koru-collection-md"
+   603→                                dangerouslySetInnerHTML={{ __html: renderMarkdown(record.notes) }}
+   604→                              />
+   605→                            ) : (
+   606→                              <p className="koru-challenge-desc">{record.notes || record.value}</p>
+   607→                            )
+   608→                          ) : null}
+   609→                        </div>
+   610→                        {/* 🔴 Icono indicador: open_in_full si tiene sourceBlock (reabre), edit si no */}
+   611→                        <Mat className="koru-collection-open">
+   612→                          {record.sourceBlock ? "open_in_full" : "edit"}
+   613→                        </Mat>
+   614→                        {/* 🔴 Menú more_vert para Editar / Eliminar */}
+   615→                        <button
+   616→                          type="button"
+   617→                          className="koru-collection-row-menu"
+   618→                          aria-label="Más opciones"
+   619→                          aria-haspopup="menu"
+   620→                          aria-expanded={menuFor?.id === record.id}
+   621→                          onClick={(e) => {
+   622→                            e.stopPropagation();
+   623→                            const btn = e.currentTarget;
+   624→                            const rect = btn.getBoundingClientRect();
+   625→                            setMenuFor((prev) =>
+   626→                              prev?.id === record.id ? null : { id: record.id, rect },
+   627→                            );
+   628→                          }}
+   629→                        >
+   630→                          <Mat>more_vert</Mat>
+   631→                        </button>
+   632→                      </div>
+   633→                    );
+   634→                  })}
+   635→                </div>
+   636→                {/* 🔴 FIX v3 #4: "Ver N más" pagination per-group */}
+   637→                {hiddenCount > 0 ? (
+   638→                  <button
+   639→                    type="button"
+   640→                    className="koru-collection-show-more"
+   641→                    onClick={() => toggleGroup(group.name)}
+   642→                  >
+   643→                    Ver {hiddenCount} más
+   644→                    <Mat>expand_more</Mat>
+   645→                  </button>
+   646→                ) : isExpanded && group.items.length > PAGE_SIZE ? (
+   647→                  <button
+   648→                    type="button"
+   649→                    className="koru-collection-show-more"
+   650→                    onClick={() => toggleGroup(group.name)}
+   651→                  >
+   652→                    Ver menos
+   653→                    <Mat>expand_less</Mat>
+   654→                  </button>
+   655→                ) : null}
+   656→              </div>
+   657→            );
+   658→          })}
+   659→        </div>
+   660→      </div>
+   661→
+   662→      {/* 🔴 FIX v3 #3: FAB "+" — gradient violet→pink, koru-breathe, safe-area-aware.
+   663→          🔴 Folders v4: pasa el path actual al onCreate para pre-llenar CreateScreen. */}
+   664→      {onCreate ? (
+   665→        <button
+   666→          type="button"
+   667→          className="koru-collection-fab"
+   668→          aria-label="Nuevo registro"
+   669→          onClick={handleFabCreate}
+   670→        >
+   671→          <Mat>add</Mat>
+   672→        </button>
+   673→      ) : null}
+   674→
+   675→      {/* 🔴 FIX v3 #5: popover via portal (no clipping por overflow:hidden del card) */}
+   676→      {menuFor
+   677→        ? createPortal(
+   678→            <>
+   679→              <div
+   680→                className="koru-collection-menu-backdrop"
+   681→                onClick={() => setMenuFor(null)}
+   682→                aria-hidden="true"
+   683→              />
+   684→              <div
+   685→                className="koru-collection-menu-popover koru-collection-menu-popover-portal"
+   686→                role="menu"
+   687→                style={{
+   688→                  position: "fixed",
+   689→                  top: `${menuFor.rect.bottom + 4}px`,
+   690→                  left: `${Math.max(8, menuFor.rect.left - 140 + menuFor.rect.width)}px`,
+   691→                  right: "auto",
+   692→                  margin: 0,
+   693→                }}
+   694→              >
+   695→                <button
+   696→                  type="button"
+   697→                  onClick={(e) => {
+   698→                    e.stopPropagation();
+   699→                    const rec = filteredRecords.find((r) => r.id === menuFor.id);
+   700→                    setMenuFor(null);
+   701→                    if (rec) setEditing(rec);
+   702→                  }}
+   703→                >
+   704→                  <Mat>edit</Mat> Editar
+   705→                </button>
+   706→                <button
+   707→                  type="button"
+   708→                  className="koru-collection-menu-danger"
+   709→                  onClick={(e) => {
+   710→                    e.stopPropagation();
+   711→                    const rec = filteredRecords.find((r) => r.id === menuFor.id);
+   712→                    setMenuFor(null);
+   713→                    if (rec) setConfirmDelete(rec);
+   714→                  }}
+   715→                >
+   716→                  <Mat>delete</Mat> Eliminar
+   717→                </button>
+   718→              </div>
+   719→            </>,
+   720→            document.body,
+   721→          )
+   722→        : null}
+   723→
+   724→      {/* 🔴 v2: Editor inline para records sin sourceBlock (notas, listas, gastos creados manualmente) */}
+   725→      {editing && (
+   726→        <div className="koru-collection-editor" role="dialog" aria-label="Editar registro">
+   727→          <div className="koru-collection-editor-content">
+   728→            <div className="koru-collection-editor-header">
+   729→              <h3>Editar</h3>
+   730→              <button type="button" onClick={() => setEditing(null)} aria-label="Cerrar">
+   731→                <Mat>close</Mat>
+   732→              </button>
+   733→            </div>
+   734→            <label className="koru-collection-editor-field">
+   735→              <span>Título</span>
+   736→              <input
+   737→                type="text"
+   738→                value={editing.title}
+   739→                onChange={(e) => setEditing({ ...editing, title: e.target.value })}
+   740→              />
+   741→            </label>
+   742→            <label className="koru-collection-editor-field">
+   743→              <span>Colección</span>
+   744→              <input
+   745→                type="text"
+   746→                value={editing.collection ?? ""}
+   747→                onChange={(e) => setEditing({ ...editing, collection: e.target.value })}
+   748→              />
+   749→            </label>
+   750→            {(editing.notes != null || editing.kind === "idea" || editing.kind === "shopping_item") && (
+   751→              <label className="koru-collection-editor-field">
+   752→                <span>Notas</span>
+   753→                <textarea
+   754→                  rows={4}
+   755→                  value={editing.notes ?? ""}
+   756→                  onChange={(e) => setEditing({ ...editing, notes: e.target.value })}
+   757→                />
+   758→              </label>
+   759→            )}
+   760→            <div className="koru-collection-editor-actions">
+   761→              <button
+   762→                type="button"
+   763→                className="koru-collection-editor-btn koru-collection-editor-save"
+   764→                onClick={() => {
+   765→                  updateRecord(editing.id, {
+   766→                    title: editing.title,
+   767→                    collection: editing.collection,
+   768→                    notes: editing.notes,
+   769→                  });
+   770→                  setEditing(null);
+   771→                }}
+   772→              >
+   773→                <Mat>check</Mat> Guardar
+   774→              </button>
+   775→              <button
+   776→                type="button"
+   777→                className="koru-collection-editor-btn koru-collection-editor-delete"
+   778→                onClick={() => setConfirmDelete(editing)}
+   779→              >
+   780→                <Mat>delete</Mat> Eliminar
+   781→              </button>
+   782→            </div>
+   783→          </div>
+   784→        </div>
+   785→      )}
+   786→
+   787→      {/* 🔴 v2: ConfirmDialog custom para eliminar (reemplaza window.confirm) */}
+   788→      <ConfirmDialog
+   789→        open={!!confirmDelete}
+   790→        title="¿Eliminar?"
+   791→        message={confirmDelete ? `"${confirmDelete.title}" se va a borrar permanentemente.` : ""}
+   792→        confirmLabel="Eliminar"
+   793→        cancelLabel="Cancelar"
+   794→        destructive
+   795→        onConfirm={() => {
+   796→          if (confirmDelete) {
+   797→            deleteRecord(confirmDelete.id);
+   798→            if (editing?.id === confirmDelete.id) setEditing(null);
+   799→            setConfirmDelete(null);
+   800→          }
+   801→        }}
+   802→        onCancel={() => setConfirmDelete(null)}
+   803→      />
+   804→    </div>,
+   805→    document.body,
+   806→  );
+   807→}
+   808→
+   809→// 🔴 Default export para React.lazy (KoruUnifiedCard carga CollectionsScreen
+   810→// bajo demanda cuando el usuario tap "Ver colección").
+   811→export default CollectionsScreen;
+   812→

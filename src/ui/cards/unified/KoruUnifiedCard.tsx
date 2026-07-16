@@ -1,4 +1,4 @@
-import { useState, useCallback, lazy, Suspense } from "react";
+import { useState, useCallback, useEffect, lazy, Suspense } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import type { UiBlock } from "../../../domain/types";
 import { toPresentation } from "./presentation";
@@ -6,6 +6,8 @@ import type { Hero, Detail, KoruPresentation } from "./presentation";
 import { KoruDetailScreen } from "./KoruDetailScreen";
 import { KoruCountUp } from "./KoruCountUp";
 import { useTapRipple } from "./useTapRipple";
+import { useKoru } from "../../KoruProvider";
+import { convertCurrency } from "../../../tools/travel/currencyConverter";
 
 // 🔴 Code-splitting: CollectionsScreen (~600 líneas, renderer markdown + portal)
 // se carga bajo demanda cuando el CTA del card abre la vista de colección.
@@ -735,8 +737,37 @@ function BannerLayout(props: SharedProps) {
 
 export function KoruUnifiedCard({ block }: { block: UiBlock }) {
   const [open, setOpen] = useState(false);
-  const { hero, detail, cta, actions, empty, layout = "default" } = toPresentation(block);
+  const [, forceRerender] = useState(0);
+  const { state } = useKoru();
+  const userCurrency = (state.userProfile?.currency ?? "EUR").toUpperCase();
+  const { hero, detail, cta, actions, empty, layout = "default" } = toPresentation(block, { userCurrency });
   const hasMetricValues = hero.metrics?.some((m) => m.value != null) ?? false;
+
+  // 🔴 v4 — Pre-fetch exchange rates for travel_plan budget currencies.
+  // toPresentation's travelPlan mapper reads cached rates synchronously
+  // (via getCachedRate). On first render the cache is empty, so we trigger
+  // async convertCurrency calls for each (budget.currency, userCurrency)
+  // pair. When the rates land (and the cache is populated), we force a
+  // re-render so the converted amounts appear.
+  useEffect(() => {
+    if (block.type !== "travel_plan") return;
+    const budget = block.budget ?? [];
+    if (budget.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const currenciesToFetch = Array.from(new Set(
+        budget
+          .map((b) => (b.currency ?? "").toUpperCase())
+          .filter((c) => c && c !== userCurrency),
+      ));
+      await Promise.allSettled(
+        currenciesToFetch.map((from) => convertCurrency(1, from, userCurrency)),
+      );
+      if (!cancelled) forceRerender((n) => n + 1);
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [block, userCurrency]);
 
   // 🔴 v2: la card entera es tappable si hay detail o collections screen
   const isTappable = !!(cta && (detail || cta.screen === "collections"));

@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import type { LifeRecord, LifeRecordKind } from "../domain/types";
 import { useKoru } from "./KoruProvider";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { categorizeItem, aisleLabelFor, aisleOrderFor } from "../domain/aisleMap";
 
 // Mis Colecciones — la promesa "Listo, guardado en Sitios de IA" cierra acá:
 // TODO lo guardado, agrupado por colección, navegable en un tap. Misma
@@ -200,6 +201,55 @@ function subFolderNames(records: LifeRecord[], currentPath: string[]): string[] 
 }
 
 const PAGE_SIZE = 5;
+
+/**
+ * 🔴 P2 — Agrupa records shopping_item por categoría de pasillo, intercalando
+ * headers de sección ("Frutas y Verduras", "Lácteos", ...) entre grupos
+ * consecutivos. Los records que no son shopping_item se devuelven sin
+ * header (como antes). Los shopping_items se ordenan por aisle order.
+ *
+ * El resultado es una lista plana de elementos que el renderer mapea a
+ * headers visuales o filas de record, según `type`.
+ */
+type RenderElement =
+  | { type: "header"; label: string; category: string }
+  | { type: "item"; record: LifeRecord };
+
+function organizeGroupItems(records: LifeRecord[]): RenderElement[] {
+  if (records.length === 0) return [];
+  // Si el grupo no tiene ningún shopping_item, devolvemos los records tal cual.
+  const hasShopping = records.some((r) => r.kind === "shopping_item");
+  if (!hasShopping) return records.map((record) => ({ type: "item" as const, record }));
+
+  // Ordenamos: shopping_items por aisle order primero, el resto al final
+  // preservando su orden relativo (estable).
+  const shopping = records
+    .filter((r) => r.kind === "shopping_item")
+    .slice()
+    .sort((a, b) => {
+      const catA = categorizeItem(a.title);
+      const catB = categorizeItem(b.title);
+      return aisleOrderFor(catA) - aisleOrderFor(catB);
+    });
+  const others = records.filter((r) => r.kind !== "shopping_item");
+
+  const out: RenderElement[] = [];
+  let currentCategory: string | null = null;
+  for (const record of shopping) {
+    const cat = categorizeItem(record.title);
+    if (cat !== currentCategory) {
+      out.push({ type: "header", label: aisleLabelFor(cat), category: cat });
+      currentCategory = cat;
+    }
+    out.push({ type: "item", record });
+  }
+  // Si había otros records (no shopping), los agregamos al final sin header.
+  // (El header anterior era de shopping, así que reseteamos currentCategory.)
+  for (const record of others) {
+    out.push({ type: "item", record });
+  }
+  return out;
+}
 
 export function CollectionsScreen({
   focusCollection,
@@ -522,7 +572,38 @@ export function CollectionsScreen({
                   </div>
                 </div>
                 <div className="koru-challenge-list">
-                  {visibleItems.map((record) => {
+                  {(() => {
+                    // 🔴 P2 — Cuando el grupo contiene shopping_items, los
+                    // ordenamos por pasillo y mostramos headers de categoría
+                    // ("Frutas y Verduras", "Lácteos", ...) entre secciones.
+                    const elements = organizeGroupItems(visibleItems);
+                    return elements.map((el, ei) => {
+                      if (el.type === "header") {
+                        return (
+                          <div
+                            key={`hdr-${ei}-${el.category}`}
+                            className="koru-collection-aisle-header"
+                            style={{
+                              margin: "10px 0 6px",
+                              padding: "6px 10px",
+                              borderRadius: 8,
+                              background: "rgba(131, 99, 249, 0.08)",
+                              color: "#4f46e5",
+                              fontSize: 11,
+                              fontWeight: 800,
+                              letterSpacing: 0.6,
+                              textTransform: "uppercase",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 6,
+                            }}
+                          >
+                            <Mat>storefront</Mat>
+                            <span>{el.label}</span>
+                          </div>
+                        );
+                      }
+                      const record = el.record;
                     const visual = recordVisual(record);
                     const tileStyle = iconTileStyle(visual.accent);
                     return record.url ? (
@@ -631,7 +712,8 @@ export function CollectionsScreen({
                         </button>
                       </div>
                     );
-                  })}
+                    });
+                  })()}
                 </div>
                 {/* 🔴 FIX v3 #4: "Ver N más" pagination per-group */}
                 {hiddenCount > 0 ? (

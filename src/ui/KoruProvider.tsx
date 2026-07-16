@@ -59,6 +59,8 @@ import {
   toggleChecklistItem as toggleChecklistItemReducer,
   createHabit as createHabitReducer,
   logHabit as logHabitReducer,
+  pauseHabit as pauseHabitReducer,
+  resumeHabit as resumeHabitReducer,
   computeStreak as computeStreakReducer,
   createRoutine as createRoutineReducer,
   createExercisePlan as createExercisePlanReducer,
@@ -70,6 +72,7 @@ import {
   updateUserProfile as updateUserProfileReducer,
   updatePreferences as updatePreferencesReducer,
   createDecision as createDecisionReducer,
+  updateDecisionOutcome as updateDecisionOutcomeReducer,
   updateWeatherCache as updateWeatherCacheReducer,
   setLastBrief as setLastBriefReducer,
   forgetMemory as forgetMemoryReducer,
@@ -306,6 +309,8 @@ type KoruContextValue = {
   toggleChecklistItem: (checklistId: string, itemId: string) => void;
   createHabit: (label: string, icon: string, cadence: Habit["cadence"], target: number, unit?: string, anchorTime?: string) => string;
   logHabit: (habitId: string, value: number) => void;
+  pauseHabit: (habitId: string) => void;
+  resumeHabit: (habitId: string) => void;
   computeStreak: (habitId: string) => number;
   createRoutine: (name: string, anchorTime: string, habitIds: string[], daysOfWeek: number[]) => void;
   createExercisePlan: (name: string, weeksTotal: number, sessions: Omit<ExerciseSession, "id" | "order">[]) => void;
@@ -317,6 +322,7 @@ type KoruContextValue = {
   updateUserProfile: (profile: Partial<UserProfile>) => void;
   updatePreferences: (prefs: Partial<UserPreferences>) => void;
   createDecision: (question: string, options: Decision["options"], factors: Decision["factors"], weights: Record<string, number>) => Decision;
+  updateDecisionOutcome: (decisionId: string, outcome: { chosenOptionId: string; decidedAt: string; satisfaction1to5: number; notes?: string }) => void;
   updateWeatherCache: (cache: WeatherCache) => void;
   setLastBrief: (date: string, block?: UiBlock) => void;
   forgetMemory: (memoryId: string) => void;
@@ -1742,6 +1748,16 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   function logHabit(habitId: string, value: number) {
     commitDomainState((prev) => logHabitReducer(prev, habitId, value));
   }
+  function pauseHabit(habitId: string) {
+    commitDomainState((prev) => pauseHabitReducer(prev, habitId));
+    setMemoryToast({ id: `action_${Date.now()}`, kind: "saved", text: "Hábito pausado — tu racha se conserva" });
+    setTimeout(() => setMemoryToast(null), 2500);
+  }
+  function resumeHabit(habitId: string) {
+    commitDomainState((prev) => resumeHabitReducer(prev, habitId));
+    setMemoryToast({ id: `action_${Date.now()}`, kind: "saved", text: "Hábito reanudado ✓" });
+    setTimeout(() => setMemoryToast(null), 2000);
+  }
   function computeStreak(habitId: string): number {
     return computeStreakReducer(habitId, domainStateRef.current.habitLogs ?? []);
   }
@@ -1810,6 +1826,12 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   }
   function updateWeatherCache(cache: WeatherCache) {
     commitDomainState((prev) => updateWeatherCacheReducer(prev, cache));
+  }
+  function updateDecisionOutcome(
+    decisionId: string,
+    outcome: { chosenOptionId: string; decidedAt: string; satisfaction1to5: number; notes?: string },
+  ) {
+    commitDomainState((prev) => updateDecisionOutcomeReducer(prev, decisionId, outcome));
   }
   function setLastBrief(date: string, block?: UiBlock) {
     commitDomainState((prev) => setLastBriefReducer(prev, date, block));
@@ -1936,6 +1958,8 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     toggleChecklistItem,
     createHabit,
     logHabit,
+    pauseHabit,
+    resumeHabit,
     computeStreak,
     createRoutine,
     createExercisePlan,
@@ -1947,6 +1971,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     updateUserProfile,
     updatePreferences,
     createDecision,
+    updateDecisionOutcome,
     updateWeatherCache,
     setLastBrief,
     forgetMemory,

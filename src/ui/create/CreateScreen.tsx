@@ -19,6 +19,7 @@ import {
   saveAttachmentBlob,
   deleteAttachmentBlob,
 } from "../../domain/attachments";
+import { scanReceipt } from "../../tools/ocr/receiptOCR";
 
 // 🔴 CreateScreen v2 — entrada para que el usuario cree contenido estructurado
 // SIN tener que pedirselo a Koru via chat. Plantillas: nota, lista, gasto,
@@ -285,6 +286,44 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
   const [attachmentThumbs, setAttachmentThumbs] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const attachmentUrlMapRef = useRef<Map<string, string>>(new Map());
+
+  // 🔴 FREE (item 7): OCR de recibos con Tesseract.js. El botón "Escanear
+  // recibo" en el template gasto abre un file picker, corre el OCR
+  // (local, sin API), parsea los items y auto-fill el monto + descripción.
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrItems, setOcrItems] = useState<Array<{ description: string; amount: number }>>([]);
+  const [ocrError, setOcrError] = useState<string | null>(null);
+  const receiptFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  async function handleScanReceipt(file: File) {
+    setOcrLoading(true);
+    setOcrError(null);
+    setOcrItems([]);
+    try {
+      const result = await scanReceipt(file);
+      if (result.items.length === 0) {
+        setOcrError(
+          result.rawText
+            ? "No detecté items con precio en el recibo. Probá con otra foto."
+            : "OCR no reconoció texto. Probá con una foto más nítida.",
+        );
+        return;
+      }
+      setOcrItems(result.items);
+      // Auto-fill: monto = suma de items, título = primer item (o "Recibo escaneado").
+      const total = result.items.reduce((s, it) => s + it.amount, 0);
+      setAmount(total.toFixed(2));
+      if (!title.trim()) {
+        setTitle(result.items[0].description.slice(0, 60));
+      }
+    } catch (err) {
+      setOcrError(
+        `Error OCR: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    } finally {
+      setOcrLoading(false);
+    }
+  }
 
   // Limpieza al desmontar: revoca todos los object URLs creados para thumbs.
   useEffect(() => {
@@ -747,6 +786,31 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
         } catch {
           // best-effort: la decisión ya quedó persistida con .result por el wrapper.
         }
+        // 🔴 v4: persistimos un UiBlock `decision_support` con `decisionId`
+        // como sourceBlock del LifeRecord. Así, al reabrir la decisión desde
+        // Collections, el KoruDetailScreen puede:
+        //  - leer `decision.outcome` para mostrar "Decidiste: X · Satisfacción: N/5"
+        //  - ofrecer el editor de outcome (chosenOptionId + satisfaction1to5)
+        //  y disparar `updateDecisionOutcome`.
+        const rec = newDecision.result?.recommendation;
+        await persist({
+          title: title.trim() || "Decisión",
+          collection: finalCollection,
+          notes: fullNotes,
+          kind,
+          sourceBlock: {
+            type: "decision_support",
+            title: title.trim() || "Decisión",
+            options: decisionOptions.map((o, idx) => ({
+              label: o.label,
+              probability: newDecision.result?.perOptionProbability?.[o.id] ?? (idx === 0 ? 1 : 0),
+            })),
+            factors: decisionFactors.map((f) => f.label),
+            recommendation: rec,
+            decisionId: newDecision.id,
+          },
+        });
+        return;
       }
       await persist({
         title: title.trim() || "Decisión",
@@ -1153,26 +1217,95 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
 
             {/* GASTO */}
             {selected === "gasto" && (
-              <label className="koru-create-field koru-create-field-row">
-                <div>
-                  <span className="koru-create-field-label">Monto</span>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="0.00"
-                  />
-                </div>
-                <div>
-                  <span className="koru-create-field-label">Moneda</span>
-                  <select value={currency} onChange={(e) => setCurrency(e.target.value)}>
-                    <option value="ARS">ARS</option>
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                  </select>
-                </div>
-              </label>
+              <>
+                <label className="koru-create-field koru-create-field-row">
+                  <div>
+                    <span className="koru-create-field-label">Monto</span>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div>
+                    <span className="koru-create-field-label">Moneda</span>
+                    <select value={currency} onChange={(e) => setCurrency(e.target.value)}>
+                      <option value="ARS">ARS</option>
+                      <option value="USD">USD</option>
+                      <option value="EUR">EUR</option>
+                    </select>
+                  </div>
+                </label>
+                {/* 🔴 FREE (item 7): Escanear recibo con Tesseract.js.
+                    Sin API key — OCR 100% local. Abre file picker, reconoce
+                    el texto del ticket y auto-fill monto + descripción. */}
+                <input
+                  ref={receiptFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void handleScanReceipt(f);
+                    e.target.value = "";
+                  }}
+                />
+                <button
+                  type="button"
+                  className="koru-create-ai-pill"
+                  onClick={() => receiptFileInputRef.current?.click()}
+                  disabled={ocrLoading}
+                  title="Escanear recibo con OCR"
+                  style={{ marginTop: 8 }}
+                >
+                  {ocrLoading ? (
+                    <><Mat className="koru-spin">progress_activity</Mat> Escaneando…</>
+                  ) : (
+                    <><Mat>document_scanner</Mat> Escanear recibo</>
+                  )}
+                </button>
+                {ocrError && (
+                  <div style={{ marginTop: 6, fontSize: 12, color: "#dc2626" }}>
+                    {ocrError}
+                  </div>
+                )}
+                {ocrItems.length > 0 && (
+                  <div
+                    style={{
+                      marginTop: 8,
+                      padding: 8,
+                      borderRadius: 8,
+                      border: "1px solid rgba(131, 99, 249, 0.14)",
+                      background: "rgba(131, 99, 249, 0.04)",
+                      fontSize: 12,
+                      maxHeight: 160,
+                      overflowY: "auto",
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, marginBottom: 4, color: "#1a1a2e" }}>
+                      {ocrItems.length} item(s) detectado(s) · total auto-fill
+                    </div>
+                    {ocrItems.map((it, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          padding: "2px 0",
+                          color: "#475569",
+                        }}
+                      >
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "70%" }}>
+                          {it.description}
+                        </span>
+                        <span style={{ fontWeight: 600 }}>${it.amount.toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
 
             {/* ENLACE */}

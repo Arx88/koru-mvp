@@ -38,6 +38,9 @@ export interface HomeScreenProps {
   onLogWater?: (ml: number) => void;
   onLogHabit?: (habitId: string) => void;
   onRefreshWeather?: () => void;
+  // 🔴 P2 — pausar/reanudar hábitos sin perder racha.
+  onPauseHabit?: (habitId: string) => void;
+  onResumeHabit?: (habitId: string) => void;
 }
 
 const HYDRATION_GOAL_ML = 2000;
@@ -95,6 +98,8 @@ export function HomeScreen({
   onLogWater,
   onLogHabit,
   onRefreshWeather,
+  onPauseHabit,
+  onResumeHabit,
 }: HomeScreenProps) {
   // ── Pull-to-refresh (visual indicator only — no refresh logic) ────────────
   const scrollerRef = useRef<HTMLDivElement | null>(null);
@@ -147,13 +152,16 @@ export function HomeScreen({
     const habits = state.habits ?? [];
     const habitLogsToday = state.habitLogs ?? [];
     const activeHabits = habits.filter((h) => h.active);
+    const pausedHabits = habits.filter((h) => !h.active);
     const habitsRemaining = activeHabits.filter(
       (h) => !habitLogsToday.some((l) => l.habitId === h.id && l.date === today),
     );
     // 🔴 TIER S: streak por hábito via computeStreak reducer (función pura).
     // Lo precomputamos acá para que el render sólo haga un lookup por id.
+    // Incluimos los pausados también: la racha se conserva aunque el hábito
+    // esté pausado (no se resetea).
     const streakByHabitId: Record<string, number> = {};
-    for (const h of activeHabits) {
+    for (const h of habits) {
       streakByHabitId[h.id] = computeStreak(h.id, habitLogsToday);
     }
 
@@ -188,6 +196,7 @@ export function HomeScreen({
       waterMl,
       habitsRemaining,
       activeHabits,
+      pausedHabits,
       streakByHabitId,
       urgente,
       importante,
@@ -205,6 +214,7 @@ export function HomeScreen({
     waterMl,
     habitsRemaining,
     activeHabits,
+    pausedHabits,
     streakByHabitId,
     urgente,
     importante,
@@ -504,6 +514,150 @@ export function HomeScreen({
                         >
                           🔥 {streak}d
                         </span>
+                      )}
+                      {/* 🔴 P2 — botón "Pausar" sin perder la racha. El streak
+                          se conserva porque HabitLog history no se toca. */}
+                      {onPauseHabit && (
+                        <button
+                          type="button"
+                          aria-label={`Pausar hábito "${h.label}" sin perder la racha`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onPauseHabit(h.id);
+                          }}
+                          title="Pausar sin perder racha"
+                          style={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: 999,
+                            border: "1px solid rgba(131, 99, 249, 0.18)",
+                            background: "rgba(131, 99, 249, 0.08)",
+                            color: "#8363f9",
+                            cursor: "pointer",
+                            display: "grid",
+                            placeItems: "center",
+                            flexShrink: 0,
+                          }}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+                            pause
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* ── Hábitos pausados (racha conservada) ─────────────────────────── */}
+          {/* 🔴 P2: cada hábito pausado se muestra con su racha anterior y un
+              botón "Reanudar" que vuelve a active=true. La racha se mantiene
+              porque HabitLog history no se resetea al pausar. */}
+          {pausedHabits.length > 0 && (
+            <section className="koru-magical-card" style={{ padding: 18, opacity: 0.85 }}>
+              <div className="koru-module-head" style={{ marginBottom: 12 }}>
+                <div className="koru-module-id">
+                  <div
+                    className="koru-module-icon"
+                    style={
+                      {
+                        "--module-color": "#8363f9",
+                        "--module-bg": "#efe6ff",
+                      } as CSSProperties
+                    }
+                  >
+                    <span className="material-symbols-outlined">pause_circle</span>
+                  </div>
+                  <div>
+                    <h3 className="koru-module-title">Pausados</h3>
+                    <p className="koru-module-kicker">
+                      {pausedHabits.length} hábito{pausedHabits.length === 1 ? "" : "s"} · racha conservada
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {pausedHabits.map((h) => {
+                  const streak = streakByHabitId[h.id] ?? 0;
+                  return (
+                    <div
+                      key={h.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        padding: "8px 10px",
+                        borderRadius: 12,
+                        background: "rgba(131, 99, 249, 0.06)",
+                        border: "1px dashed rgba(131, 99, 249, 0.25)",
+                      }}
+                    >
+                      <span
+                        className="material-symbols-outlined"
+                        style={{
+                          fontSize: 20,
+                          color: "#8363f9",
+                          width: 32,
+                          height: 32,
+                          borderRadius: 999,
+                          background: "rgba(131, 99, 249, 0.12)",
+                          display: "grid",
+                          placeItems: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        pause
+                      </span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#1a1a2e" }}>
+                          {h.label}
+                        </p>
+                        <p style={{ margin: 0, fontSize: 11, color: "#6b5f8c" }}>
+                          Pausado · la racha sigue activa cuando retomes
+                        </p>
+                      </div>
+                      {streak > 0 && (
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 3,
+                            padding: "3px 8px",
+                            borderRadius: 999,
+                            background: "#fff1d6",
+                            color: "#92400e",
+                            fontSize: 11,
+                            fontWeight: 700,
+                            flexShrink: 0,
+                          }}
+                        >
+                          🔥 {streak}d
+                        </span>
+                      )}
+                      {onResumeHabit && (
+                        <button
+                          type="button"
+                          aria-label={`Reanudar hábito "${h.label}"`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onResumeHabit(h.id);
+                          }}
+                          style={{
+                            padding: "6px 12px",
+                            borderRadius: 999,
+                            border: "none",
+                            background: "#8363f9",
+                            color: "#fff",
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            flexShrink: 0,
+                          }}
+                        >
+                          Reanudar
+                        </button>
                       )}
                     </div>
                   );

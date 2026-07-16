@@ -2999,7 +2999,7 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
       continue;
     }
     if (result.type === "restaurant_deep_search") {
-      const search = result as unknown as { query: string; matches?: Array<{ name: string; sourcesMentioning: number; quote?: string }>; topScore?: string; pros?: string[]; cons?: string[]; synthesis?: string; sources?: AssistantSource[]; status?: string };
+      const search = result as unknown as { query: string; matches?: Array<{ name: string; sourcesMentioning: number; quote?: string; menuHighlights?: Array<{ dish: string; price?: string }> }>; topScore?: string; pros?: string[]; cons?: string[]; synthesis?: string; sources?: AssistantSource[]; status?: string };
       blocks.push({
         type: "restaurant_synthesis" as const,
         title: search.query || "Restaurantes encontrados",
@@ -3594,6 +3594,9 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
         cast: Array.isArray(r.cast) ? r.cast : undefined,
         genres: Array.isArray(r.genres) ? r.genres : undefined,
         overview: overview.slice(0, 800),
+        // 🔴 v4: presupuesto y taquilla formateados desde TMDB (ej. "$150M" / "$1.2B").
+        budget: typeof r.budget === "string" ? r.budget : undefined,
+        boxOffice: typeof r.boxOffice === "string" ? r.boxOffice : undefined,
         sources: Array.isArray(r.sources) ? r.sources : undefined,
       });
       continue;
@@ -3625,6 +3628,8 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
         ingredients: Array.isArray(first.ingredients) ? first.ingredients : undefined,
         steps: steps.length > 0 ? steps : undefined,
         source: { title: "TheMealDB", url: "https://www.themealdb.com/", domain: "themealdb.com" },
+        // 🔴 FREE: nutrición promedio del ingrediente principal (Open Food Facts).
+        nutrition: first.nutrition,
       });
       // Si hay más recetas, agregar segunda card con lista
       if (recipes.length > 1) {
@@ -3659,6 +3664,8 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
         rating: typeof r.rating === "number" ? r.rating : undefined,
         synopsis: synopsis.slice(0, 800),
         isbn: r.isbn,
+        // 🔴 v4: preview embebido de Archive.org (Open Library OLID → iframe).
+        previewUrl: typeof r.previewUrl === "string" ? r.previewUrl : undefined,
         sources: Array.isArray(r.sources) ? r.sources : undefined,
       });
       continue;

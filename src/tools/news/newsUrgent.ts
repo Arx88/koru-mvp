@@ -13,6 +13,7 @@ import { fetchText, domainFromUrl, truncate, normalize } from "../shared/fetcher
 import { cached, ttls } from "../shared/cache";
 import { limiters } from "../shared/rateLimiter";
 import { defineTool, policies, type ToolHandler } from "../types";
+import { fetchMultipleRSS, DEFAULT_RSS_SOURCES, type RssItem } from "./rssFeed";
 
 // ─── Tipos públicos ────────────────────────────────────────────────────────
 

@@ -1,4 +1,13 @@
 import type { UiBlock, AssistantSource } from "../../../domain/types";
+import { getCachedRate, formatCurrency } from "../../../tools/travel/currencyConverter";
+import { sortItemsByAisle, categorizeItem, aisleLabelFor } from "../../../domain/aisleMap";
+import { inferStressLevel } from "../../../domain/stressEngine";
+import {
+  calculate1RM,
+  calculateStrengthDelta,
+  estimateKcal,
+} from "../../../domain/strengthEngine";
+import { suggestWinePairing } from "../../../tools/food/winePairing";
 
 // ============================================================================
 // Modelo de presentación unificado (una sola fuente de verdad para TODAS las
@@ -214,7 +223,17 @@ function asPercent(value?: number): string | undefined {
 // Normalizador principal
 // ============================================================================
 
-export function toPresentation(block: UiBlock): KoruPresentation {
+/**
+ * 🔴 v4 — Contexto opcional para el normalizador. Hoy sólo se usa para pasar
+ * la moneda principal del usuario (state.userProfile.currency ?? "EUR") al
+ * mapper de travel_plan, que muestra montos convertidos cuando una línea de
+ * presupuesto está en otra moneda.
+ */
+export type PresentationContext = {
+  userCurrency?: string;
+};
+
+export function toPresentation(block: UiBlock, ctx?: PresentationContext): KoruPresentation {
   switch (block.type) {
     case "deliverable":
       return deliverable(block);
@@ -269,7 +288,7 @@ export function toPresentation(block: UiBlock): KoruPresentation {
     case "travel_planner":
       return travelPlanner(block);
     case "travel_plan":
-      return travelPlan(block);
+      return travelPlan(block, ctx);
     case "generation":
       return generation(block);
     case "match_timeline":
@@ -620,7 +639,14 @@ function reminder(b: Of<"reminder">): KoruPresentation {
 }
 
 function shoppingList(b: Of<"shopping_list">): KoruPresentation {
-  const items = b.items ?? [];
+  const rawItems = b.items ?? [];
+  // 🔴 P2 — Ordenar ítems por pasillo de supermercado. Usamos sortItemsByAisle
+  // con un wrapper { name, category? } para que el orden de recorrido sea
+  // natural (frutas → verduras → panadería → lácteos → ... → otros).
+  // El meta de cada fila muestra la categoría detectada, así el usuario
+  // entiende por qué están agrupados.
+  const sortedItems = sortItemsByAisle(rawItems.map((name) => ({ name }))).map((it) => it.name);
+  const items = sortedItems;
   // Mostrar los primeros 3 items como métricas (chips) en el hero,
   // así el usuario ve QUÉ comprar sin abrir la card.
   // El conteo total va en el desc.
@@ -657,15 +683,21 @@ function shoppingList(b: Of<"shopping_list">): KoruPresentation {
               icon: "shopping_cart",
               accent: A.amber,
               title: "Ítems",
-              rows: items.map((it) => ({
-                icon: b.checked?.includes(it) ? "check_box" : "check_box_outline_blank",
-                title: it,
-                meta: b.quantities?.[it] ? `x${b.quantities[it]}` : undefined,
-                badgeTone: b.checked?.includes(it) ? "done" : undefined,
-                badge: b.checked?.includes(it) ? "Listo" : undefined,
-                // 🔴 TIER S: toggle → toggleShoppingItem(listId, itemId=it)
-                toggle: { kind: "shopping_item", listId, itemId: it },
-              })),
+              subtitle: "ORDENADOS POR PASILLO",
+              rows: items.map((it) => {
+                const cat = categorizeItem(it);
+                const aisleLabel = aisleLabelFor(cat);
+                const qty = b.quantities?.[it];
+                return {
+                  icon: b.checked?.includes(it) ? "check_box" : "check_box_outline_blank",
+                  title: it,
+                  meta: [aisleLabel, qty ? `x${qty}` : undefined].filter(Boolean).join(" · ") || undefined,
+                  badgeTone: b.checked?.includes(it) ? "done" : undefined,
+                  badge: b.checked?.includes(it) ? "Listo" : undefined,
+                  // 🔴 TIER S: toggle → toggleShoppingItem(listId, itemId=it)
+                  toggle: { kind: "shopping_item", listId, itemId: it },
+                };
+              }),
             },
           ],
         }
@@ -1196,6 +1228,27 @@ function restaurant(b: Of<"restaurant_synthesis">): KoruPresentation {
       ],
     });
   if (b.synthesis) sections.push({ kind: "text", icon: "auto_awesome", accent: A.amber, title: synthesisLabel, body: b.synthesis });
+
+  // 🔴 v4: "Highlights del menú" tiles — hasta 5 platos con precio, extraídos
+  // del website del top match por scraping. Solo se muestra si el match #1
+  // trae menuHighlights (vienen de fetchRestaurantDetails → extractMenuHighlights).
+  const topMatchHighlights = matches[0]?.menuHighlights ?? [];
+  if (topMatchHighlights.length > 0) {
+    sections.push({
+      kind: "tiles",
+      icon: "restaurant_menu",
+      accent: A.emerald,
+      title: "Highlights del menú",
+      subtitle: `${topMatchHighlights.length} PLATOS`,
+      tiles: topMatchHighlights.map((h) => ({
+        icon: "lunch_dining",
+        label: h.dish,
+        value: h.price ?? "—",
+        color: A.emerald.color,
+      })),
+    });
+  }
+
   if (b.sources?.length) sections.push(sourcesSection(b.sources));
 
   // 🔴 v2: desc del hero más rico (mood + status)
@@ -1272,6 +1325,71 @@ function wellbeing(b: Of<"wellbeing">): KoruPresentation {
   if (b.sleep) tiles.push({ icon: b.sleep.icon, label: b.sleep.label, value: b.sleep.value, color: A.indigo.color });
   if (b.suggestion) tiles.push({ icon: b.suggestion.icon, label: b.suggestion.label, value: b.suggestion.value, color: A.purple.color });
   (b.sections ?? []).forEach((s) => tiles.push({ icon: s.icon, label: s.label, value: s.value, color: s.iconColor }));
+
+  // 🔴 P2 — Inferencia de estrés. Si el bloque lleva logs/entries (y
+  // opcionalmente habits/habitLogs), invocamos inferStressLevel para
+  // obtener { level, score, factors }. Lo mostramos como métrica en el
+  // hero y como tiles de análisis en el detalle.
+  const stress =
+    b.logs && b.entries
+      ? inferStressLevel(b.logs, b.entries, b.habits, b.habitLogs)
+      : null;
+  const stressAccent =
+    stress?.level === "alto" ? A.red
+    : stress?.level === "medio" ? A.amber
+    : A.emerald;
+  const stressIcon =
+    stress?.level === "alto" ? "priority_high"
+    : stress?.level === "medio" ? "warning"
+    : "spa";
+
+  // Hero metrics: tiles existentes + métrica de estrés (si hay).
+  const heroMetrics: HeroMetric[] = tiles.slice(0, 3).map((t) => ({
+    icon: t.icon ?? "favorite",
+    label: t.label,
+    value: t.value,
+    color: t.color,
+  }));
+  if (stress) {
+    heroMetrics.unshift({
+      icon: stressIcon,
+      label: "Estrés",
+      value: `${stress.level} · ${stress.score}`,
+      color: stressAccent.color,
+    });
+  }
+
+  // Detail sections: tiles existentes + sección de análisis de estrés.
+  const detailSections: DetailSection[] = [];
+  if (tiles.length > 0) {
+    detailSections.push({
+      kind: "tiles",
+      icon: "favorite",
+      accent: A.purple,
+      title: "Detalle",
+      tiles,
+    });
+  }
+  if (stress) {
+    detailSections.push({
+      kind: "tiles",
+      icon: stressIcon,
+      accent: stressAccent,
+      title: "Análisis de estrés",
+      subtitle: `SCORE ${stress.score}/100 · NIVEL ${stress.level.toUpperCase()}`,
+      tiles: [
+        { icon: "speed", label: "Nivel", value: stress.level, color: stressAccent.color },
+        { icon: "monitoring", label: "Score", value: String(stress.score), color: stressAccent.color },
+        ...stress.factors.map((f, i) => ({
+          icon: "info",
+          label: `Factor ${i + 1}`,
+          value: f,
+          color: A.indigo.color,
+        })),
+      ],
+    });
+  }
+
   return {
     hero: {
       kicker: "Tu Bienestar",
@@ -1279,12 +1397,12 @@ function wellbeing(b: Of<"wellbeing">): KoruPresentation {
       desc: b.suggestion?.label,
       icon: "favorite",
       accent: A.purple,
-      metrics: tiles.slice(0, 3).map((t) => ({ icon: t.icon ?? "favorite", label: t.label, value: t.value, color: t.color })),
+      metrics: heroMetrics.length > 0 ? heroMetrics : undefined,
     },
-    detail: tiles.length
-      ? { title: b.title || "Bienestar", sections: [{ kind: "tiles", icon: "favorite", accent: A.purple, title: "Detalle", tiles }] }
+    detail: detailSections.length > 0
+      ? { title: b.title || "Bienestar", sections: detailSections }
       : undefined,
-    cta: tiles.length ? { label: "Ver detalle" } : undefined,
+    cta: detailSections.length > 0 ? { label: "Ver detalle" } : undefined,
   };
 }
 
@@ -1733,12 +1851,397 @@ function travelPlanner(b: Of<"travel_planner">): KoruPresentation {
  * checklist de equipaje y presupuesto. Hero con icono de vuelo y accent azul;
  * el detalle arma 4 secciones: timeline (días), tiles (reservas), chips
  * (packing checklist) y tiles (presupuesto).
+ *
+ * 🔴 P2 — Sugerencias de equipaje por clima. Si el plan tiene destination +
+ * dates, buscamos la temperatura promedio del mes para esa ciudad (tabla
+ * estática CLIMATE_BY_MONTH). Para ciudades desconocidas, caemos a una tabla
+ * genérica por hemisferio (asumido norte salvo ciudades del sur conocidas).
+ * Según el rango de temperatura sugerimos items, que se agregan como chips
+ * en una sección "Sugerencias de equipaje por clima".
  */
-function travelPlan(b: Of<"travel_plan">): KoruPresentation {
+
+// ─── Climate table (static lookup, no API) ─────────────────────────────────
+type MonthClimate = { avg: number; min: number; max: number };
+const CLIMATE_BY_MONTH: Record<string, Record<number, MonthClimate>> = {
+  tokyo: {
+    1: { avg: 5, min: -1, max: 10 },
+    2: { avg: 6, min: 0, max: 11 },
+    3: { avg: 10, min: 5, max: 15 },
+    4: { avg: 15, min: 10, max: 20 },
+    5: { avg: 19, min: 14, max: 24 },
+    6: { avg: 23, min: 18, max: 27 },
+    7: { avg: 27, min: 22, max: 31 },
+    8: { avg: 28, min: 23, max: 32 },
+    9: { avg: 24, min: 19, max: 28 },
+    10: { avg: 18, min: 13, max: 23 },
+    11: { avg: 12, min: 7, max: 17 },
+    12: { avg: 7, min: 2, max: 12 },
+  },
+  // Alias en español (Tokio).
+  tokio: {
+    1: { avg: 5, min: -1, max: 10 },
+    2: { avg: 6, min: 0, max: 11 },
+    3: { avg: 10, min: 5, max: 15 },
+    4: { avg: 15, min: 10, max: 20 },
+    5: { avg: 19, min: 14, max: 24 },
+    6: { avg: 23, min: 18, max: 27 },
+    7: { avg: 27, min: 22, max: 31 },
+    8: { avg: 28, min: 23, max: 32 },
+    9: { avg: 24, min: 19, max: 28 },
+    10: { avg: 18, min: 13, max: 23 },
+    11: { avg: 12, min: 7, max: 17 },
+    12: { avg: 7, min: 2, max: 12 },
+  },
+  "buenos aires": {
+    1: { avg: 25, min: 20, max: 30 },
+    2: { avg: 24, min: 19, max: 29 },
+    3: { avg: 21, min: 16, max: 26 },
+    4: { avg: 18, min: 13, max: 22 },
+    5: { avg: 14, min: 10, max: 19 },
+    6: { avg: 11, min: 7, max: 16 },
+    7: { avg: 11, min: 7, max: 15 },
+    8: { avg: 13, min: 8, max: 17 },
+    9: { avg: 15, min: 10, max: 20 },
+    10: { avg: 18, min: 13, max: 23 },
+    11: { avg: 21, min: 16, max: 26 },
+    12: { avg: 24, min: 19, max: 29 },
+  },
+  madrid: {
+    1: { avg: 6, min: 1, max: 11 },
+    2: { avg: 8, min: 2, max: 13 },
+    3: { avg: 11, min: 4, max: 17 },
+    4: { avg: 13, min: 6, max: 19 },
+    5: { avg: 18, min: 10, max: 25 },
+    6: { avg: 23, min: 15, max: 30 },
+    7: { avg: 27, min: 18, max: 34 },
+    8: { avg: 26, min: 18, max: 33 },
+    9: { avg: 21, min: 14, max: 28 },
+    10: { avg: 15, min: 9, max: 21 },
+    11: { avg: 9, min: 4, max: 14 },
+    12: { avg: 6, min: 1, max: 11 },
+  },
+  "nueva york": {
+    1: { avg: 0, min: -4, max: 4 },
+    2: { avg: 1, min: -3, max: 6 },
+    3: { avg: 6, min: 1, max: 11 },
+    4: { avg: 12, min: 6, max: 17 },
+    5: { avg: 17, min: 12, max: 22 },
+    6: { avg: 22, min: 17, max: 27 },
+    7: { avg: 25, min: 20, max: 30 },
+    8: { avg: 25, min: 19, max: 30 },
+    9: { avg: 21, min: 16, max: 26 },
+    10: { avg: 14, min: 9, max: 19 },
+    11: { avg: 9, min: 4, max: 13 },
+    12: { avg: 3, min: -2, max: 8 },
+  },
+  // Alias Nueva York en inglés.
+  "new york": {
+    1: { avg: 0, min: -4, max: 4 },
+    2: { avg: 1, min: -3, max: 6 },
+    3: { avg: 6, min: 1, max: 11 },
+    4: { avg: 12, min: 6, max: 17 },
+    5: { avg: 17, min: 12, max: 22 },
+    6: { avg: 22, min: 17, max: 27 },
+    7: { avg: 25, min: 20, max: 30 },
+    8: { avg: 25, min: 19, max: 30 },
+    9: { avg: 21, min: 16, max: 26 },
+    10: { avg: 14, min: 9, max: 19 },
+    11: { avg: 9, min: 4, max: 13 },
+    12: { avg: 3, min: -2, max: 8 },
+  },
+  barcelona: {
+    1: { avg: 9, min: 4, max: 14 },
+    2: { avg: 10, min: 4, max: 15 },
+    3: { avg: 12, min: 7, max: 17 },
+    4: { avg: 14, min: 9, max: 19 },
+    5: { avg: 18, min: 12, max: 23 },
+    6: { avg: 22, min: 16, max: 27 },
+    7: { avg: 25, min: 19, max: 30 },
+    8: { avg: 25, min: 20, max: 30 },
+    9: { avg: 22, min: 16, max: 26 },
+    10: { avg: 18, min: 12, max: 23 },
+    11: { avg: 13, min: 7, max: 18 },
+    12: { avg: 10, min: 5, max: 15 },
+  },
+  "ciudad de mexico": {
+    1: { avg: 14, min: 7, max: 21 },
+    2: { avg: 16, min: 8, max: 23 },
+    3: { avg: 18, min: 10, max: 26 },
+    4: { avg: 19, min: 11, max: 27 },
+    5: { avg: 19, min: 12, max: 27 },
+    6: { avg: 18, min: 12, max: 25 },
+    7: { avg: 17, min: 11, max: 23 },
+    8: { avg: 17, min: 11, max: 23 },
+    9: { avg: 17, min: 11, max: 23 },
+    10: { avg: 17, min: 10, max: 24 },
+    11: { avg: 15, min: 8, max: 22 },
+    12: { avg: 14, min: 7, max: 21 },
+  },
+  // Alias CDMX.
+  "cdmx": {
+    1: { avg: 14, min: 7, max: 21 },
+    2: { avg: 16, min: 8, max: 23 },
+    3: { avg: 18, min: 10, max: 26 },
+    4: { avg: 19, min: 11, max: 27 },
+    5: { avg: 19, min: 12, max: 27 },
+    6: { avg: 18, min: 12, max: 25 },
+    7: { avg: 17, min: 11, max: 23 },
+    8: { avg: 17, min: 11, max: 23 },
+    9: { avg: 17, min: 11, max: 23 },
+    10: { avg: 17, min: 10, max: 24 },
+    11: { avg: 15, min: 8, max: 22 },
+    12: { avg: 14, min: 7, max: 21 },
+  },
+  paris: {
+    1: { avg: 5, min: 1, max: 8 },
+    2: { avg: 6, min: 1, max: 10 },
+    3: { avg: 10, min: 4, max: 15 },
+    4: { avg: 12, min: 6, max: 18 },
+    5: { avg: 16, min: 10, max: 22 },
+    6: { avg: 19, min: 13, max: 25 },
+    7: { avg: 22, min: 15, max: 27 },
+    8: { avg: 22, min: 15, max: 27 },
+    9: { avg: 18, min: 12, max: 23 },
+    10: { avg: 14, min: 8, max: 19 },
+    11: { avg: 8, min: 4, max: 13 },
+    12: { avg: 5, min: 1, max: 9 },
+  },
+  london: {
+    1: { avg: 5, min: 2, max: 8 },
+    2: { avg: 5, min: 2, max: 8 },
+    3: { avg: 8, min: 4, max: 12 },
+    4: { avg: 10, min: 5, max: 14 },
+    5: { avg: 14, min: 9, max: 19 },
+    6: { avg: 17, min: 12, max: 22 },
+    7: { avg: 19, min: 14, max: 24 },
+    8: { avg: 19, min: 14, max: 23 },
+    9: { avg: 16, min: 11, max: 20 },
+    10: { avg: 12, min: 8, max: 16 },
+    11: { avg: 8, min: 5, max: 11 },
+    12: { avg: 6, min: 2, max: 9 },
+  },
+  // Alias Londres.
+  londres: {
+    1: { avg: 5, min: 2, max: 8 },
+    2: { avg: 5, min: 2, max: 8 },
+    3: { avg: 8, min: 4, max: 12 },
+    4: { avg: 10, min: 5, max: 14 },
+    5: { avg: 14, min: 9, max: 19 },
+    6: { avg: 17, min: 12, max: 22 },
+    7: { avg: 19, min: 14, max: 24 },
+    8: { avg: 19, min: 14, max: 23 },
+    9: { avg: 16, min: 11, max: 20 },
+    10: { avg: 12, min: 8, max: 16 },
+    11: { avg: 8, min: 5, max: 11 },
+    12: { avg: 6, min: 2, max: 9 },
+  },
+  roma: {
+    1: { avg: 8, min: 3, max: 13 },
+    2: { avg: 9, min: 3, max: 14 },
+    3: { avg: 11, min: 5, max: 17 },
+    4: { avg: 14, min: 8, max: 20 },
+    5: { avg: 19, min: 12, max: 25 },
+    6: { avg: 23, min: 16, max: 29 },
+    7: { avg: 26, min: 19, max: 32 },
+    8: { avg: 26, min: 19, max: 32 },
+    9: { avg: 22, min: 15, max: 28 },
+    10: { avg: 17, min: 11, max: 23 },
+    11: { avg: 12, min: 6, max: 18 },
+    12: { avg: 9, min: 3, max: 14 },
+  },
+  rome: {
+    1: { avg: 8, min: 3, max: 13 },
+    2: { avg: 9, min: 3, max: 14 },
+    3: { avg: 11, min: 5, max: 17 },
+    4: { avg: 14, min: 8, max: 20 },
+    5: { avg: 19, min: 12, max: 25 },
+    6: { avg: 23, min: 16, max: 29 },
+    7: { avg: 26, min: 19, max: 32 },
+    8: { avg: 26, min: 19, max: 32 },
+    9: { avg: 22, min: 15, max: 28 },
+    10: { avg: 17, min: 11, max: 23 },
+    11: { avg: 12, min: 6, max: 18 },
+    12: { avg: 9, min: 3, max: 14 },
+  },
+  // Ciudades del hemisferio sur marcadas explícitamente para el fallback.
+  sydney: {
+    1: { avg: 23, min: 18, max: 28 },
+    2: { avg: 23, min: 18, max: 27 },
+    3: { avg: 21, min: 16, max: 25 },
+    4: { avg: 19, min: 14, max: 23 },
+    5: { avg: 16, min: 11, max: 20 },
+    6: { avg: 13, min: 9, max: 17 },
+    7: { avg: 12, min: 8, max: 16 },
+    8: { avg: 13, min: 9, max: 18 },
+    9: { avg: 16, min: 11, max: 21 },
+    10: { avg: 18, min: 13, max: 23 },
+    11: { avg: 20, min: 15, max: 25 },
+    12: { avg: 22, min: 17, max: 27 },
+  },
+};
+
+// Ciudades conocidas del hemisferio sur (para el fallback estacional).
+const SOUTHERN_HEMISPHERE_HINTS = [
+  "buenos aires", "santiago", "montevideo", "lima", "la paz", "asuncion",
+  "saopaulo", "sao paulo", "rio", "rio de janeiro", "brasilia",
+  "sydney", "melbourne", "brisbane", "auckland", "wellington",
+  "cape town", "johannesburg", "pretoria",
+];
+
+/** Tabla genérica por hemisferio (valores promedio). */
+const GENERIC_CLIMATE_NORTH: Record<number, MonthClimate> = {
+  1: { avg: 2, min: -3, max: 7 },
+  2: { avg: 3, min: -2, max: 8 },
+  3: { avg: 8, min: 2, max: 13 },
+  4: { avg: 13, min: 7, max: 18 },
+  5: { avg: 18, min: 12, max: 23 },
+  6: { avg: 22, min: 16, max: 27 },
+  7: { avg: 25, min: 18, max: 30 },
+  8: { avg: 24, min: 17, max: 29 },
+  9: { avg: 20, min: 13, max: 25 },
+  10: { avg: 14, min: 8, max: 19 },
+  11: { avg: 8, min: 3, max: 13 },
+  12: { avg: 3, min: -2, max: 8 },
+};
+
+/**
+ * Tabla genérica del hemisferio sur: mismos valores que el norte pero
+ * desplazados 6 meses (enero = invierno austral).
+ */
+const GENERIC_CLIMATE_SOUTH: Record<number, MonthClimate> = Object.fromEntries(
+  Object.entries(GENERIC_CLIMATE_NORTH).map(([m, c]) => {
+    const monthNum = Number(m);
+    // Shift +6 mod 12 → invertimos meses para reflejar la inversión estacional.
+    const southMonth = ((monthNum + 5) % 12) + 1;
+    return [monthNum, GENERIC_CLIMATE_NORTH[southMonth]];
+  }),
+);
+
+const MONTH_NAMES_ES = [
+  "enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+];
+
+const MONTH_NAMES_ES_SHORT = [
+  "ene", "feb", "mar", "abr", "may", "jun",
+  "jul", "ago", "sep", "oct", "nov", "dic",
+];
+
+/**
+ * Extrae el número de mes (1-12) de un string de fechas tipo
+ * "15-22 marzo 2026", "Mar 2026", "del 3 al 10 de julio", etc.
+ * Devuelve null si no encuentra ninguno.
+ */
+function monthFromDates(dates?: string): number | null {
+  if (!dates) return null;
+  const lower = dates.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  // 1) Buscar nombre de mes completo en español.
+  for (let i = 0; i < MONTH_NAMES_ES.length; i++) {
+    if (lower.includes(MONTH_NAMES_ES[i])) return i + 1;
+  }
+  // 2) Buscar abreviatura de mes (palabra completa, no substring).
+  for (let i = 0; i < MONTH_NAMES_ES_SHORT.length; i++) {
+    const re = new RegExp(`\\b${MONTH_NAMES_ES_SHORT[i]}\\b`);
+    if (re.test(lower)) return i + 1;
+  }
+  // 3) Formato ISO: "2026-03-15" → mes = 03.
+  const isoMatch = lower.match(/\d{4}-(\d{2})-\d{2}/);
+  if (isoMatch) {
+    const m = parseInt(isoMatch[1], 10);
+    if (m >= 1 && m <= 12) return m;
+  }
+  return null;
+}
+
+/**
+ * Normaliza el nombre de destino para lookup en CLIMATE_BY_MONTH.
+ * Quita acentos, pasa a minúsculas, recorta "ciudad de" / "san" / "sao" a
+ * formas equivalentes más comunes.
+ */
+function normalizeDestination(dest: string): string {
+  return dest
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+/**
+ * Devuelve el clima promedio para un destino y mes, o null si no hay datos.
+ * Para ciudades desconocidas cae a la tabla genérica por hemisferio.
+ */
+function climateFor(destination: string, month: number): MonthClimate | null {
+  if (month < 1 || month > 12) return null;
+  const key = normalizeDestination(destination);
+  // 1) Match exacto en CLIMATE_BY_MONTH.
+  if (CLIMATE_BY_MONTH[key] && CLIMATE_BY_MONTH[key][month]) {
+    return CLIMATE_BY_MONTH[key][month];
+  }
+  // 2) Match parcial: la key está contenida en el destino o viceversa.
+  for (const [cityKey, months] of Object.entries(CLIMATE_BY_MONTH)) {
+    if (key.includes(cityKey) || cityKey.includes(key)) {
+      if (months[month]) return months[month];
+    }
+  }
+  // 3) Fallback: tabla genérica por hemisferio.
+  const isSouth = SOUTHERN_HEMISPHERE_HINTS.some(h => key.includes(h) || h.includes(key));
+  const table = isSouth ? GENERIC_CLIMATE_SOUTH : GENERIC_CLIMATE_NORTH;
+  return table[month] ?? null;
+}
+
+/**
+ * Sugiere items de equipaje según la temperatura promedio.
+ * Rangos:
+ *   < 0°C    → Abrigo grueso, guantes, gorro, capa térmica
+ *   0-10°C   → Cortavientos, campera, bufanda
+ *   10-20°C  → Campera liviana, ropa de entretiempo
+ *   20-30°C  → Ropa ligera, protector solar, gorra
+ *   > 30°C   → Ropa muy ligera, protector solar SPF50, gorra, botella de agua
+ */
+function packingSuggestionsForClimate(climate: MonthClimate): string[] {
+  const items: string[] = [];
+  const avg = climate.avg;
+  if (avg < 0) {
+    items.push("Abrigo grueso", "Guantes", "Gorro", "Capa térmica");
+  } else if (avg < 10) {
+    items.push("Cortavientos", "Campera", "Bufanda");
+  } else if (avg < 20) {
+    items.push("Campera liviana", "Ropa de entretiempo");
+  } else if (avg < 30) {
+    items.push("Ropa ligera", "Protector solar", "Gorra");
+  } else {
+    items.push("Ropa muy ligera", "Protector solar SPF50", "Gorra", "Botella de agua");
+  }
+  // Si la amplitud térmica (max-min) es alta, sugerir capas.
+  const amplitude = climate.max - climate.min;
+  if (amplitude >= 12 && !items.includes("Capa térmica")) {
+    items.push("Capas (amplitud térmica alta)");
+  }
+  return items;
+}
+
+function travelPlan(b: Of<"travel_plan">, ctx?: PresentationContext): KoruPresentation {
   const days = b.days ?? [];
   const reservations = b.reservations ?? [];
   const packing = b.packing ?? [];
   const budget = b.budget ?? [];
+
+  // 🔴 v4 — moneda principal del usuario (state.userProfile.currency ?? "EUR").
+  // Se usa para mostrar montos convertidos cuando una línea de presupuesto
+  // está en otra moneda. La conversión usa el cache de rates (24h) poblado
+  // por convertCurrency. Si la tasa no está en cache (ej. la card se renderiza
+  // antes del primer fetch), se omite la conversión — KoruUnifiedCard dispara
+  // un useEffect async para pre-fetchear las tasas de las monedas del budget.
+  const userCurrency = (ctx?.userCurrency ?? "EUR").toUpperCase();
+
+  // 🔴 P2 — Sugerencias de equipaje por clima. Si tenemos destination + dates
+  // y podemos extraer el mes, generamos chips con items sugeridos.
+  const month = monthFromDates(b.dates);
+  const climate = b.destination && month ? climateFor(b.destination, month) : null;
+  const climateSuggestions = climate ? packingSuggestionsForClimate(climate) : [];
+  const climateRangeLabel = climate
+    ? `${climate.min}°–${climate.max}° (prom ${climate.avg}°)`
+    : undefined;
 
   // Hero metrics: días, viajeros, presupuesto total (en orden de disponibilidad).
   const metrics: HeroMetric[] = [];
@@ -1816,23 +2319,114 @@ function travelPlan(b: Of<"travel_plan">): KoruPresentation {
     });
   }
 
+  // 3.5) 🔴 P2 — Sugerencias de equipaje por clima. Chips generados a partir
+  // de la temperatura promedio del mes de destino (tabla estática). Se muestran
+  // separados del packing checklist para que se vean como "sugerencias"
+  // (no tildables).
+  if (climateSuggestions.length > 0) {
+    sections.push({
+      kind: "chips",
+      icon: "thermostat",
+      accent: A.sky,
+      title: "Sugerencias de equipaje por clima",
+      subtitle: climateRangeLabel ? `CLIMA ${climateRangeLabel}` : "SEGÚN CLIMA",
+      chips: climateSuggestions.map((item) => ({
+        label: item,
+        sub: "sugerencia",
+        color: A.sky.color,
+      })),
+    });
+  }
+
   // 4) Tiles de presupuesto — cada categoría como tile con monto formateado.
+  // 🔴 v4: si la moneda de la línea difiere de la moneda principal del usuario
+  // y tenemos una tasa cacheada (24h), mostramos el monto convertido al lado.
   if (budget.length > 0) {
+    // Acumuladores para el "Presupuesto total" en ambas monedas.
+    let totalInUserCurrency = 0;
+    let hasAnyConversion = false;
+    const budgetTiles: DetailTile[] = budget.map((item) => {
+      const lineCurrency = (item.currency ?? "").toUpperCase();
+      const lineValue = `${lineCurrency}${item.amount.toLocaleString()}`;
+      // Misma moneda → no hay conversión; sumamos al total directo.
+      if (lineCurrency === userCurrency) {
+        totalInUserCurrency += item.amount;
+        return {
+          icon: "category",
+          label: item.category,
+          value: lineValue,
+          color: A.emerald.color,
+        };
+      }
+      // Distinta moneda → buscar tasa cacheada (síncrono).
+      const rate = getCachedRate(lineCurrency, userCurrency);
+      if (rate != null && Number.isFinite(rate)) {
+        const converted = item.amount * rate;
+        totalInUserCurrency += converted;
+        hasAnyConversion = true;
+        return {
+          icon: "category",
+          label: item.category,
+          value: `${lineValue} ≈ ${formatCurrency(converted, userCurrency)}`,
+          color: A.emerald.color,
+        };
+      }
+      // Sin tasa cacheada — mostramos solo el monto original.
+      return {
+        icon: "category",
+        label: item.category,
+        value: lineValue,
+        color: A.emerald.color,
+      };
+    });
+
+    // Subtitle: si ya sabemos el total en la moneda original del bloque, lo
+    // mostramos; si no, la cantidad de categorías.
+    const originalTotalLabel = typeof b.totalBudget === "number"
+      ? `TOTAL ${(b.currency ?? "").toUpperCase()}${b.totalBudget.toLocaleString()}`
+      : `${budget.length} CATEGORÍAS`;
+
     sections.push({
       kind: "tiles",
       icon: "payments",
       accent: A.emerald,
       title: "Presupuesto",
-      subtitle: typeof b.totalBudget === "number"
-        ? `TOTAL ${b.currency ?? ""}${b.totalBudget.toLocaleString()}`
-        : `${budget.length} CATEGORÍAS`,
-      tiles: budget.map((item) => ({
-        icon: "category",
-        label: item.category,
-        value: `${item.currency}${item.amount.toLocaleString()}`,
-        color: A.emerald.color,
-      })),
+      subtitle: originalTotalLabel,
+      tiles: budgetTiles,
     });
+
+    // 🔴 v4: "Presupuesto total" tile mostrando ambas monedas cuando hubo
+    // conversión. Si el bloque ya trae totalBudget en la moneda original,
+    // lo usamos como referencia; si no, sumamos las líneas en moneda original
+    // cuando todas comparten la misma currency.
+    if (hasAnyConversion && totalInUserCurrency > 0) {
+      const originalTotal = typeof b.totalBudget === "number"
+        ? `${(b.currency ?? "").toUpperCase()}${b.totalBudget.toLocaleString()}`
+        : budget.length > 0 && budget.every((it) => (it.currency ?? "").toUpperCase() === (budget[0].currency ?? "").toUpperCase())
+          ? `${(budget[0].currency ?? "").toUpperCase()}${budget.reduce((acc, it) => acc + it.amount, 0).toLocaleString()}`
+          : "—";
+      sections.push({
+        kind: "tiles",
+        icon: "savings",
+        accent: A.indigo,
+        title: "Presupuesto total",
+        subtitle: "CONVERTIDO A TU MONEDA",
+        tiles: [
+          {
+            icon: "payments",
+            label: "Original",
+            value: originalTotal,
+            color: A.amber.color,
+          },
+          {
+            icon: "account_balance_wallet",
+            label: `En ${userCurrency}`,
+            value: formatCurrency(totalInUserCurrency, userCurrency),
+            color: A.emerald.color,
+          },
+        ],
+      });
+    }
   }
 
   const hasDetail = sections.length > 0;
@@ -2919,6 +3513,21 @@ function recipeBlock(b: Of<"recipe">): KoruPresentation {
     });
   }
 
+  // 🔴 v4: Maridaje de vino — cuando la receta declara category o area,
+  // sugerimos un vino con un motivo corto y un pairingScore 0-1. Lo dejamos
+  // como una sección de texto simple para no inventar un nuevo kind.
+  if (b.category || b.area) {
+    const pairing = suggestWinePairing(b.category ?? "", b.area);
+    sections.push({
+      kind: "text",
+      icon: "wine_bar",
+      accent: A.rose,
+      title: "Maridaje",
+      subtitle: "VINO SUGERIDO",
+      body: `${pairing.wine} — ${pairing.reason}. (Afinidad ${Math.round(pairing.pairingScore * 100)}%)`,
+    });
+  }
+
   if (b.source) {
     sections.push({
       kind: "sources",
@@ -3052,6 +3661,22 @@ function movieReviewBlock(b: Of<"movie_review">): KoruPresentation {
     });
   }
 
+  // 💰 Detalles financieros: presupuesto y taquilla (formato "$150M" / "$1.2B")
+  // extraídos de TMDB. Awards se deja vacío por ahora (no viene de TMDB).
+  const financialTiles: DetailTile[] = [];
+  if (b.budget) financialTiles.push({ icon: "savings", label: "Presupuesto", value: b.budget, color: A.emerald.color });
+  if (b.boxOffice) financialTiles.push({ icon: "monetization_on", label: "Taquilla", value: b.boxOffice, color: A.emerald.color });
+  if (financialTiles.length > 0) {
+    sections.push({
+      kind: "tiles",
+      icon: "payments",
+      accent: A.emerald,
+      title: "Detalles financieros",
+      subtitle: "PRESUPUESTO · TAQUILLA",
+      tiles: financialTiles,
+    });
+  }
+
   if (b.sources && b.sources.length > 0) {
     sections.push({
       kind: "sources",
@@ -3142,7 +3767,23 @@ function bookReviewBlock(b: Of<"book_review">): KoruPresentation {
     });
   }
 
-  if (b.sources && b.sources.length > 0) {
+  // 🔴 v4: preview embebido de Archive.org — se renderiza como iframe 16:9
+  // en el detail screen (KoruDetailScreen detecta la URL archive.org/embed
+  // y la convierte a <iframe> en vez de un link textual).
+  if (b.previewUrl) {
+    sections.push({
+      kind: "sources",
+      icon: "auto_stories",
+      accent: A.amber,
+      title: "Fuentes",
+      subtitle: "PREVIEW DISPONIBLE",
+      sources: [{
+        title: "Ver preview",
+        domain: "archive.org",
+        url: b.previewUrl,
+      }],
+    });
+  } else if (b.sources && b.sources.length > 0) {
     sections.push({
       kind: "sources",
       icon: "menu_book",
@@ -3603,6 +4244,15 @@ function exercisePlan(b: Of<"exercise_plan">): KoruPresentation {
   const currentIdx = Math.min(Math.max(plan.currentSessionIdx ?? 0, 0), Math.max(totalSessions - 1, 0));
   const current = sessions[currentIdx];
 
+  // 🔴 P2 — Peso del usuario para estimar kcal (MET). Default 70kg si no se
+  // especifica. Si el bloque trae `userWeightKg`, lo usamos; si no, cae a 70.
+  const userWeightKg = typeof b.userWeightKg === "number" && b.userWeightKg > 0
+    ? b.userWeightKg
+    : 70;
+
+  // WorkoutLogs históricos (para delta de fuerza vs hace 4 semanas).
+  const historicalLogs = b.workoutLogs ?? [];
+
   const sections: DetailSection[] = [];
 
   // Resumen del plan: semanas + estado + sesión actual
@@ -3657,6 +4307,80 @@ function exercisePlan(b: Of<"exercise_plan">): KoruPresentation {
         badge: e.notes,
       })),
     });
+  }
+
+  // 🔴 P2 — Sección de fuerza: 1RM (Epley) + delta vs histórico + kcal por
+  // ejercicio. Para cada ejercicio de la sesión actual calculamos:
+  //   • 1RM con calculate1RM(weight, reps)
+  //   • delta con calculateStrengthDelta(currentLogs=historicalLogs,
+  //     historicalLogs=historicalLogs, exerciseName) → compara último log vs
+  //     hace 4 semanas
+  //   • kcal estimadas con estimateKcal(MET) usando userWeightKg
+  // Mostramos como tiles para que se vea compacto.
+  if (current && current.exercises.length > 0) {
+    const strengthTiles: DetailTile[] = [];
+    let sessionKcalTotal = 0;
+    for (const ex of current.exercises) {
+      // 1RM (sólo si hay peso declarado)
+      if (typeof ex.weight === "number" && ex.weight > 0) {
+        const onerm = calculate1RM(ex.weight, ex.reps);
+        strengthTiles.push({
+          icon: "trending_up",
+          label: `${ex.exercise} · 1RM`,
+          value: `${onerm.toFixed(1)} kg`,
+          color: A.emerald.color,
+        });
+        // Delta vs histórico (si hay logs)
+        if (historicalLogs.length > 0) {
+          const delta = calculateStrengthDelta(historicalLogs, historicalLogs, ex.exercise);
+          if (delta.deltaPct !== 0 && delta.previous1RM > 0) {
+            const sign = delta.deltaPct > 0 ? "+" : "";
+            strengthTiles.push({
+              icon: delta.deltaPct > 0 ? "north" : "south",
+              label: `${ex.exercise} · Δ 4 sem`,
+              value: `${sign}${delta.deltaPct.toFixed(0)}%`,
+              color: delta.deltaPct > 0 ? A.emerald.color : A.rose.color,
+            });
+          }
+        }
+      }
+      // kcal estimadas por ejercicio
+      const durationMin = ex.durationSec ? ex.durationSec / 60 : 0;
+      const kcal = estimateKcal(
+        ex.exercise,
+        ex.sets ?? 0,
+        ex.reps ?? 0,
+        ex.weight ?? 0,
+        durationMin,
+        userWeightKg,
+      );
+      sessionKcalTotal += kcal;
+      strengthTiles.push({
+        icon: "local_fire_department",
+        label: `${ex.exercise} · kcal`,
+        value: `${kcal} kcal`,
+        color: A.amber.color,
+      });
+    }
+    // Tile final con el total de kcal de la sesión.
+    if (sessionKcalTotal > 0) {
+      strengthTiles.push({
+        icon: "whatshot",
+        label: "Total sesión",
+        value: `${sessionKcalTotal} kcal`,
+        color: A.rose.color,
+      });
+    }
+    if (strengthTiles.length > 0) {
+      sections.push({
+        kind: "tiles",
+        icon: "monitoring",
+        accent: A.emerald,
+        title: "Fuerza y energía",
+        subtitle: `1RM (Epley) · kcal MET · peso ${userWeightKg}kg`,
+        tiles: strengthTiles,
+      });
+    }
   }
 
   return {
