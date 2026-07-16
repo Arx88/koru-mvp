@@ -258,7 +258,7 @@ function getTaskPhases(kicker?: string, kind?: string): Array<{ phase: string; l
 
 type WorkingDeliverable = { kicker: string; progress?: number; phaseLabel?: string };
 
-function WorkingPanel({ phase, kind, deliverable, onCancel }: { phase: string | null; kind?: AgentActivityKind; deliverable?: WorkingDeliverable | null; onCancel?: () => void }) {
+function WorkingPanel({ phase, kind, deliverable }: { phase: string | null; kind?: AgentActivityKind; deliverable?: WorkingDeliverable | null }) {
   const idx = phase ? (PHASE_ORDER as readonly string[]).indexOf(phase) : -1;
   const doneIdx = PHASE_ORDER.length - 1;
   const pct = deliverable?.progress != null
@@ -280,9 +280,7 @@ function WorkingPanel({ phase, kind, deliverable, onCancel }: { phase: string | 
         title: friendlyTitle ?? "Trabajando…",
         subtitle: deliverable.phaseLabel ?? "Me llevo esto en serio 🌿",
       }
-    : kind === "searching"
-      ? { title: "Sumergiéndome en tu búsqueda…", subtitle: "Buscando… 🌎" }
-      : (kind && WORKING_COPY[kind]) ?? { title: "Trabajando…", subtitle: "Me llevo esto en serio 🌿" };
+    : (kind && WORKING_COPY[kind]) ?? { title: "Trabajando…", subtitle: "Me llevo esto en serio 🌿" };
 
   const phaseIdx = phase ? (PHASE_ORDER as readonly string[]).indexOf(phase) : -1;
   const chips = taskChips.map((chip, i) => {
@@ -298,9 +296,6 @@ function WorkingPanel({ phase, kind, deliverable, onCancel }: { phase: string | 
 
   return (
     <section className="koru-working-panel" role="status" aria-live="polite">
-      <div className="koru-working-avatar">
-        <img src={KORU_AVATAR} alt="Koru" />
-      </div>
       <img src={getTaskIllustration(deliverable?.kicker, kind)} alt="" className="koru-working-illustration" />
       <div className="koru-working-copy">
         <h2>{copy.title}</h2>
@@ -347,12 +342,6 @@ function WorkingPanel({ phase, kind, deliverable, onCancel }: { phase: string | 
           <path d="M12 21.35L10.55 20.03C5.4 15.36 2 12.28 2 8.5C2 5.42 4.42 3 7.5 3C9.24 3 10.91 3.81 12 5.09C13.09 3.81 14.76 3 16.5 3C19.58 3 22 5.42 22 8.5C22 12.28 18.6 15.36 13.45 20.04L12 21.35Z" />
         </svg>
       </p>
-      {/* 🔴 v2: botón Cancelar para que el usuario pueda interrumpir tareas deep */}
-      {onCancel && (
-        <button type="button" className="koru-working-cancel" onClick={onCancel}>
-          Cancelar
-        </button>
-      )}
     </section>
   );
 }
@@ -1175,7 +1164,7 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
             )}
 
             {/* 🔴 Typing indicator — tres puntos animados cuando Koru está procesando */}
-            {processing && !isListening && !workingDeliverable && activity?.kind !== "searching" && activity?.depth !== "deep" && (
+            {processing && !isListening && !workingDeliverable && (
               <div className="koru-message is-koru">
                 <div className="koru-row">
                   <div className="koru-avatar">
@@ -1258,13 +1247,11 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
           </div>
         </main>
 
-        {/* WorkingPanel: REPLAZA el footer cuando hay tarea deep o searching.
-            No se muestra el composer/input mientras Koru trabaja. */}
-        {processing && !isListening && (workingDeliverable || activity?.depth === "deep" || activity?.kind === "searching") ? (
+        {processing && !isListening && (workingDeliverable || activity?.depth === "deep") ? (
           <WorkingPanel phase={phase} kind={activity?.kind} deliverable={workingDeliverable} />
         ) : (
         <footer className="koru-chat-footer">
-          {processing && !isListening && activity && !(workingDeliverable || activity?.depth === "deep" || activity?.kind === "searching") && (
+          {processing && !isListening && activity && (
             <div className="koru-activity-hint" role="status" aria-live="polite">
               <span className="koru-activity-dot" />
               {activity.label}
