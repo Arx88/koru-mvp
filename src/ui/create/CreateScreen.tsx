@@ -446,7 +446,7 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
       return next;
     });
     // best-effort: borrar el blob de IndexedDB.
-    deleteAttachmentBlob(id).catch(() => {});
+    import("../../domain/attachments").then(m => m.deleteAttachmentBlob(id).catch(() => {}));
   }
 
   function attachmentIcon(mimeType: string): string {
