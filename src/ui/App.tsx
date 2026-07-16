@@ -39,6 +39,7 @@ function KoruApp() {
     setWorldSignals,
     togglePermission,
     forgetMemory,
+    editMemory,
     exportData,
     deleteAllData,
     // 🔴 TIER S: reducers wired a widgets del HomeScreen.
@@ -128,6 +129,7 @@ function KoruApp() {
                 onToggleWorldSignals={() => setWorldSignals(!state.worldSignalsEnabled)}
                 onToggleActionPreparation={() => togglePermission("perm3")}
                 onForgetMemory={(memoryId) => forgetMemory(memoryId)}
+                onEditMemory={(memoryId, newText) => editMemory(memoryId, newText)}
                 onExportData={() => exportData()}
                 onDeleteAllData={() => deleteAllData()}
                 // 🔴 TIER S: wiring de addPerson — SettingsScreen lo invoca desde

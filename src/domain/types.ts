@@ -4,6 +4,19 @@ export type MemorySensitivity = "normal" | "sensitive";
 
 export type MemoryStatus = "candidate" | "confirmed" | "rejected" | "archived" | "superseded";
 
+/**
+ * 🔴 P2 — Memory edit history.
+ * Cada vez que el texto de una memoria se modifica (manualmente o por
+ * reversión desde el Historial), el valor anterior se preserva acá para
+ * mostrar un timeline con diff visual y permitir revertir.
+ */
+export type MemoryEditHistoryEntry = {
+  timestamp: string;
+  field: "text" | "status" | "confidence" | "kind";
+  before: string;
+  after: string;
+};
+
 export type MemoryKind =
   | "profile"
   | "routine"
@@ -88,6 +101,7 @@ export type LifeRecord = {
   happenedAt?: string;
   notes?: string;
   tags?: string[];
+  attachments?: Attachment[];
   createdAt: string;
   sourceEntryId: string;
   /** 🔴 v2: persistir el bloque original para poder reabrir el informe rico */
@@ -109,6 +123,9 @@ export type MemoryFact = {
   embedding?: number[];
   embeddingModel?: string;
   sourceEntryId: string;
+  // 🔴 P2 — edit history con diff. Se appendea en updateMemoryText y se
+  // consume desde SettingsScreen ("Historial" expandable en cada MemoryRow).
+  editHistory?: MemoryEditHistoryEntry[];
 };
 
 export type CommitmentStatus = "open" | "done" | "dismissed";
@@ -917,6 +934,14 @@ export type UiBlock =
       distance?: string;
       remaining?: string;
       /**
+       * Coordenadas del destino (opcional). Si están presentes, el botón
+       * "Navegar" usa geo:${lat},${lng} en Android y maps://?daddr=${lat},${lng}
+       * en iOS para abrir la app nativa de mapas. Si no, cae a esquemas
+       * address-based (geo:0,0?q=address / maps://?daddr=address).
+       */
+      lat?: number;
+      lng?: number;
+      /**
        * Pasos detallados de la ruta (instrucciones de giro). Se populan desde
        * `fetchRoute()` en travelPlanner.ts (Google Maps Directions API).
        */
@@ -1061,6 +1086,17 @@ export type UiBlock =
       elapsedMs?: number;
       status?: "scheduled"|"live"|"finished";
       sources?: AssistantSource[];
+    }
+  | {
+      /**
+       * exercise_plan — Plan de entrenamiento activo. Renderiza el detalle con
+       * las sesiones del plan (días) y un botón "Empezar sesión" que abre el
+       * overlay WorkoutSession para la sesión actual (currentSessionIdx).
+       * El plan completo se reutiliza desde el UiBlock; no se consulta state.
+       */
+      type: "exercise_plan";
+      title?: string;
+      plan: ExercisePlan;
     }
 
 export type AssistantActionStatus = "proposed" | "approved" | "executed" | "rejected";

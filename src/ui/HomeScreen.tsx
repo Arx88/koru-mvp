@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, type CSSProperties, type TouchEvent } from "react";
 import type { KoruState, ProactiveNudge } from "../domain/types";
 import { computeStreak } from "../domain/store";
+import { MeditationOverlay, type MeditationSession } from "./MeditationOverlay";
 
 // 🔴 Code-splitting: App.tsx carga HomeScreen via React.lazy. Necesitamos
 // un default export para que `lazy(() => import("./HomeScreen"))` funcione.
@@ -42,6 +43,30 @@ export interface HomeScreenProps {
 const HYDRATION_GOAL_ML = 2000;
 const PULL_THRESHOLD = 64;
 
+// 🔴 P2 — Sesiones de meditación disponibles en el dashboard "Hoy".
+// Cada sesión abre el overlay MeditationOverlay (z-index 300) con el
+// círculo de respiración y timer countdown.
+const MEDITATION_SESSIONS: MeditationSession[] = [
+  {
+    label: "Respiración 4-7-8",
+    description: "Inhala 4s · sostén 7s · exhala 8s",
+    durationSec: 180,
+    icon: "self_improvement",
+  },
+  {
+    label: "Respiración consciente",
+    description: "4s inhala · 4s exhala",
+    durationSec: 300,
+    icon: "air",
+  },
+  {
+    label: "Pausa corta",
+    description: "Reset rápido en 2 minutos",
+    durationSec: 120,
+    icon: "spa",
+  },
+];
+
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }
@@ -75,6 +100,10 @@ export function HomeScreen({
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const touchStartY = useRef<number | null>(null);
   const [pull, setPull] = useState(0);
+
+  // 🔴 P2 — Sesión de meditación activa (abre MeditationOverlay).
+  // null = overlay cerrado; objeto = sesión que se está reproduciendo.
+  const [meditationSession, setMeditationSession] = useState<MeditationSession | null>(null);
 
   const onTouchStart = (e: TouchEvent<HTMLDivElement>) => {
     if ((scrollerRef.current?.scrollTop ?? 0) > 0) return;
@@ -592,6 +621,102 @@ export function HomeScreen({
           {/* ── Clima widget ─────────────────────────────────────────────────── */}
           <ClimaWidget state={state} onNavigate={onNavigate} onRefresh={onRefreshWeather} />
 
+          {/* ── Bienestar: sesiones de meditación ───────────────────────────── */}
+          {/* 🔴 P2: tapping a session card opens MeditationOverlay (full-screen,
+              z-index 300) con breathing circle + timer countdown. Al cerrar,
+              el overlay dispatcha `koru-card-action` con action
+              "meditation_complete" y la duración efectiva. */}
+          <section className="koru-magical-card" style={{ padding: 18 }}>
+            <div className="koru-module-head" style={{ marginBottom: 12 }}>
+              <div className="koru-module-id">
+                <div
+                  className="koru-module-icon"
+                  style={
+                    {
+                      "--module-color": "#8363f9",
+                      "--module-bg": "#efe6ff",
+                    } as CSSProperties
+                  }
+                >
+                  <span className="material-symbols-outlined">self_improvement</span>
+                </div>
+                <div>
+                  <h3 className="koru-module-title">Bienestar</h3>
+                  <p className="koru-module-kicker">Tmate un respiro</p>
+                </div>
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {MEDITATION_SESSIONS.map((s) => {
+                const mins = Math.round((s.durationSec ?? 300) / 60);
+                return (
+                  <button
+                    key={s.label}
+                    type="button"
+                    onClick={() => setMeditationSession(s)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "12px 14px",
+                      borderRadius: 14,
+                      border: "1px solid rgba(131, 99, 249, 0.14)",
+                      background: "linear-gradient(135deg, rgba(239, 230, 255, 0.6), rgba(245, 237, 255, 0.4))",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      width: "100%",
+                    }}
+                  >
+                    <span
+                      className="material-symbols-outlined animate-breathe"
+                      style={{
+                        fontSize: 24,
+                        color: "#8363f9",
+                        background: "rgba(255, 255, 255, 0.7)",
+                        width: 42,
+                        height: 42,
+                        borderRadius: 12,
+                        display: "grid",
+                        placeItems: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {s.icon ?? "self_improvement"}
+                    </span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#382b8c" }}>
+                        {s.label}
+                      </p>
+                      {s.description && (
+                        <p style={{ margin: "2px 0 0", fontSize: 11, color: "#6b5f8c" }}>
+                          {s.description}
+                        </p>
+                      )}
+                    </div>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                        padding: "5px 10px",
+                        borderRadius: 999,
+                        background: "#fff",
+                        color: "#4648d4",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        flexShrink: 0,
+                        border: "1px solid rgba(70, 72, 212, 0.12)",
+                      }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: 13 }}>schedule</span>
+                      {mins} min
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
           {/* ── Proactive nudges ─────────────────────────────────────────────── */}
           {activeNudges.length > 0 && (
             <section>
@@ -627,6 +752,15 @@ export function HomeScreen({
           </section>
         </div>
       </div>
+
+      {/* 🔴 P2 — Meditation overlay (full-screen, z-index 300). Se monta cuando
+          el usuario elige una sesión en la sección Bienestar. */}
+      {meditationSession && (
+        <MeditationOverlay
+          session={meditationSession}
+          onClose={() => setMeditationSession(null)}
+        />
+      )}
     </div>
   );
 }

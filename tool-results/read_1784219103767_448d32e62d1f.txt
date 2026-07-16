@@ -1,0 +1,1745 @@
+     1→import { useEffect, useMemo, useState, type ReactNode } from "react";
+     2→import {
+     3→  X,
+     4→  Search,
+     5→  ChevronDown,
+     6→  User,
+     7→  Languages,
+     8→  Palette,
+     9→  Bell,
+    10→  Shield,
+    11→  Plug,
+    12→  Brain,
+    13→  Accessibility,
+    14→  Check,
+    15→  Lock,
+    16→  Download,
+    17→  Trash2,
+    18→  CloudOff,
+    19→  Calendar,
+    20→  Landmark,
+    21→  Bitcoin,
+    22→  AlertTriangle,
+    23→} from "lucide-react";
+    24→import type {
+    25→  HeartbeatSettings,
+    26→  KoruState,
+    27→  MemoryFact,
+    28→  MemoryKind,
+    29→  Person,
+    30→  UserProfile,
+    31→  UserPreferences,
+    32→} from "../domain/types";
+    33→import { getGoogleAuthUrl } from "../tools/calendar/googleCalendar";
+    34→
+    35→// ─────────────────────────────────────────────────────────────────────────────
+    36→// SettingsScreen — pantalla integrada de Ajustes (8 secciones colapsables).
+    37→// Reemplaza los toggles fragmentados que estaban dispersos por la app.
+    38→//
+    39→// Diseño: gradiente lila → blanco (#f0dbff → #f8f9ff), max-width 430px,
+    40→// header sticky con título "Ajustes" + botón cerrar, buscador de secciones,
+    41→// cards `.koru-magical-card` con icono + título + chevron rotatorio.
+    42→// ─────────────────────────────────────────────────────────────────────────────
+    43→
+    44→export interface SettingsScreenProps {
+    45→  state: KoruState;
+    46→  onUpdateProfile: (profile: Partial<UserProfile>) => void;
+    47→  onUpdatePreferences: (prefs: Partial<UserPreferences>) => void;
+    48→  onUpdateLanguage: (lang: "es" | "en") => void;
+    49→  onUpdateHeartbeat: (settings: Partial<HeartbeatSettings>) => void;
+    50→  onToggleEphemeral: () => void;
+    51→  onToggleDurableMemory: () => void;
+    52→  onToggleWorldSignals: () => void;
+    53→  onToggleActionPreparation: () => void;
+    54→  onForgetMemory: (memoryId: string) => void;
+    55→  onExportData: () => void;
+    56→  onDeleteAllData: () => void;
+    57→  onClose: () => void;
+    58→  // 🔴 TIER S: addPerson — invoca al reducer addPerson del store desde el
+    59→  // sub-section "Personas" dentro de Perfil. Crea una Person durable
+    60→  // (state.people) con name + relationship + birthday.
+    61→  onAddPerson?: (name: string, relationship?: string, birthday?: string) => void;
+    62→}
+    63→
+    64→type SectionId =
+    65→  | "perfil"
+    66→  | "idioma"
+    67→  | "apariencia"
+    68→  | "notificaciones"
+    69→  | "privacidad"
+    70→  | "integraciones"
+    71→  | "memoria"
+    72→  | "accesibilidad";
+    73→
+    74→type SectionMeta = {
+    75→  id: SectionId;
+    76→  title: string;
+    77→  kicker: string;
+    78→  icon: typeof User;
+    79→  accent: string; // module-color
+    80→  tint: string;   // module-bg (icon background)
+    81→  keywords: string[];
+    82→};
+    83→
+    84→const SECTIONS: SectionMeta[] = [
+    85→  { id: "perfil",         title: "Perfil",            kicker: "QUIÉN ERES",        icon: User,          accent: "#8127cf", tint: "#f3e8ff", keywords: ["nombre", "cumpleaños", "ciudad", "zona horaria", "timezone", "name", "birthday", "location"] },
+    86→  { id: "idioma",         title: "Idioma",            kicker: "ESPAÑOL / ENGLISH", icon: Languages,     accent: "#2563eb", tint: "#dbeafe", keywords: ["language", "español", "english", "spanish"] },
+    87→  { id: "apariencia",     title: "Apariencia",        kicker: "TEMA Y TIPOGRAFÍA", icon: Palette,       accent: "#db2777", tint: "#fce7f3", keywords: ["theme", "font", "tamaño", "haptics", "sonidos", "contraste", "movimiento", "dark", "light"] },
+    88→  { id: "notificaciones", title: "Notificaciones",    kicker: "ALERTEX Y DND",     icon: Bell,          accent: "#ea580c", tint: "#ffedd5", keywords: ["push", "dnd", "sonidos", "no molestar", "permiso"] },
+    89→  { id: "privacidad",     title: "Privacidad",        kicker: "TUS DATOS",         icon: Shield,        accent: "#16a34a", tint: "#dcfce7", keywords: ["ephemeral", "durable", "retention", "export", "eliminar", "lock", "webauthn", "borrar"] },
+    90→  { id: "integraciones",  title: "Integraciones",     kicker: "CONECTAR SERVICIOS",icon: Plug,          accent: "#0891b2", tint: "#cffafe", keywords: ["google", "calendar", "plaid", "tink", "banco", "crypto", "exchange", "sincronizar"] },
+    91→  { id: "memoria",        title: "Gestión de memoria",kicker: "LO QUE KORU SABE",  icon: Brain,         accent: "#7c3aed", tint: "#ede9fe", keywords: ["memoria", "memories", "forget", "olvidar", "sensible", "confianza"] },
+    92→  { id: "accesibilidad",  title: "Accesibilidad",     kicker: "INCLUSIÓN",         icon: Accessibility, accent: "#0d9488", tint: "#ccfbf1", keywords: ["screen reader", "lector", "movimiento", "contraste", "teclado", "keyboard", "a11y"] },
+    93→];
+    94→
+    95→// Zonas horarias comunes para el override manual (lista corta + auto).
+    96→const COMMON_TIMEZONES = [
+    97→  "auto",
+    98→  "America/Argentina/Buenos_Aires",
+    99→  "America/Montevideo",
+   100→  "America/Santiago",
+   101→  "America/Bogota",
+   102→  "America/Mexico_City",
+   103→  "America/Lima",
+   104→  "Europe/Madrid",
+   105→  "Europe/London",
+   106→  "US/Eastern",
+   107→  "US/Pacific",
+   108→  "UTC",
+   109→];
+   110→
+   111→const MEMORY_KIND_LABEL: Record<MemoryKind, string> = {
+   112→  profile: "Perfil",
+   113→  routine: "Rutina",
+   114→  preference: "Preferencia",
+   115→  goal: "Objetivo",
+   116→  relationship: "Relación",
+   117→  boundary: "Límite",
+   118→  retail: "Compras",
+   119→  wellbeing: "Bienestar",
+   120→  task: "Tarea",
+   121→};
+   122→
+   123→const MEMORY_KIND_FILTERS: Array<{ value: "all" | MemoryKind; label: string }> = [
+   124→  { value: "all", label: "Todas" },
+   125→  { value: "profile", label: "Perfil" },
+   126→  { value: "routine", label: "Rutina" },
+   127→  { value: "preference", label: "Preferencia" },
+   128→  { value: "goal", label: "Objetivo" },
+   129→  { value: "relationship", label: "Relación" },
+   130→  { value: "boundary", label: "Límite" },
+   131→  { value: "retail", label: "Compras" },
+   132→  { value: "wellbeing", label: "Bienestar" },
+   133→  { value: "task", label: "Tarea" },
+   134→];
+   135→
+   136→const RETENTION_OPTIONS: Array<{ value: string; label: string }> = [
+   137→  { value: "30",   label: "30 días" },
+   138→  { value: "60",   label: "60 días" },
+   139→  { value: "90",   label: "90 días" },
+   140→  { value: "180",  label: "180 días" },
+   141→  { value: "never",label: "Nunca (conservar todo)" },
+   142→];
+   143→
+   144→// ─── Helpers ─────────────────────────────────────────────────────────────────
+   145→
+   146→function detectTimezone(): string {
+   147→  try {
+   148→    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+   149→  } catch {
+   150→    return "UTC";
+   151→  }
+   152→}
+   153→
+   154→function prefersReducedMotion(): boolean {
+   155→  try {
+   156→    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+   157→  } catch {
+   158→    return false;
+   159→  }
+   160→}
+   161→
+   162→function truncate(text: string, max: number): string {
+   163→  if (text.length <= max) return text;
+   164→  return text.slice(0, max - 1).trimEnd() + "…";
+   165→}
+   166→
+   167→function formatLastSync(iso: string | undefined): string {
+   168→  if (!iso) return "";
+   169→  try {
+   170→    const d = new Date(iso);
+   171→    if (isNaN(d.getTime())) return "";
+   172→    return d.toLocaleString("es-ES", { dateStyle: "medium", timeStyle: "short" });
+   173→  } catch {
+   174→    return "";
+   175→  }
+   176→}
+   177→
+   178→// ─── Primitivas UI ────────────────────────────────────────────────────────────
+   179→
+   180→function Toggle({
+   181→  checked,
+   182→  onChange,
+   183→  disabled,
+   184→  "aria-label": ariaLabel,
+   185→}: {
+   186→  checked: boolean;
+   187→  onChange: (next: boolean) => void;
+   188→  disabled?: boolean;
+   189→  "aria-label"?: string;
+   190→}) {
+   191→  return (
+   192→    <button
+   193→      type="button"
+   194→      role="switch"
+   195→      aria-checked={checked}
+   196→      aria-label={ariaLabel}
+   197→      disabled={disabled}
+   198→      onClick={() => !disabled && onChange(!checked)}
+   199→      className="koru-toggle"
+   200→      style={{
+   201→        position: "relative",
+   202→        width: 44,
+   203→        height: 26,
+   204→        borderRadius: 999,
+   205→        border: "none",
+   206→        padding: 0,
+   207→        cursor: disabled ? "not-allowed" : "pointer",
+   208→        background: checked ? "#8127cf" : "#cbd5e1",
+   209→        opacity: disabled ? 0.5 : 1,
+   210→        transition: "background-color 160ms ease",
+   211→        flex: "0 0 auto",
+   212→      }}
+   213→    >
+   214→      <span
+   215→        style={{
+   216→          position: "absolute",
+   217→          top: 3,
+   218→          left: checked ? 21 : 3,
+   219→          width: 20,
+   220→          height: 20,
+   221→          borderRadius: 999,
+   222→          background: "#ffffff",
+   223→          boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+   224→          transition: "left 160ms ease",
+   225→        }}
+   226→      />
+   227→    </button>
+   228→  );
+   229→}
+   230→
+   231→function Row({
+   232→  label,
+   233→  hint,
+   234→  children,
+   235→  stacked,
+   236→}: {
+   237→  label: string;
+   238→  hint?: string;
+   239→  children: ReactNode;
+   240→  stacked?: boolean;
+   241→}) {
+   242→  return (
+   243→    <div
+   244→      style={{
+   245→        display: "flex",
+   246→        flexDirection: stacked ? "column" : "row",
+   247→        alignItems: stacked ? "stretch" : "center",
+   248→        justifyContent: stacked ? "flex-start" : "space-between",
+   249→        gap: stacked ? 8 : 12,
+   250→        padding: "10px 0",
+   251→        borderBottom: "1px solid rgba(129, 39, 207, 0.08)",
+   252→      }}
+   253→    >
+   254→      <div style={{ minWidth: 0, flex: "1 1 auto" }}>
+   255→        <div style={{ fontSize: 14, fontWeight: 600, color: "#0b1c30" }}>{label}</div>
+   256→        {hint && <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{hint}</div>}
+   257→      </div>
+   258→      <div style={{ flex: stacked ? "1 1 auto" : "0 0 auto", minWidth: 0 }}>{children}</div>
+   259→    </div>
+   260→  );
+   261→}
+   262→
+   263→function TextInput(props: {
+   264→  value: string;
+   265→  onChange: (v: string) => void;
+   266→  onBlur?: () => void;
+   267→  placeholder?: string;
+   268→  type?: string;
+   269→  ariaLabel?: string;
+   270→}) {
+   271→  return (
+   272→    <input
+   273→      type={props.type ?? "text"}
+   274→      value={props.value}
+   275→      onChange={(e) => props.onChange(e.target.value)}
+   276→      onBlur={props.onBlur}
+   277→      placeholder={props.placeholder}
+   278→      aria-label={props.ariaLabel}
+   279→      style={{
+   280→        width: "100%",
+   281→        maxWidth: 220,
+   282→        padding: "8px 12px",
+   283→        borderRadius: 10,
+   284→        border: "1px solid #e2d4f5",
+   285→        background: "rgba(255,255,255,0.8)",
+   286→        fontSize: 14,
+   287→        color: "#0b1c30",
+   288→        outline: "none",
+   289→      }}
+   290→    />
+   291→  );
+   292→}
+   293→
+   294→/**
+   295→ * 🔴 TIER S: ProfileField — wrapper sobre TextInput que commitea el valor al
+   296→ * reducer (vía onCommit) SOLO en blur, no en cada keystroke. Así evitamos
+   297→ * re-renderizar todo el state tree + persistir en localStorage por cada tecla.
+   298→ * Mantiene estado local para que el input siga siendo responsivo.
+   299→ */
+   300→function ProfileField({
+   301→  label,
+   302→  value,
+   303→  onCommit,
+   304→  placeholder,
+   305→  type,
+   306→  ariaLabel,
+   307→}: {
+   308→  label: string;
+   309→  value: string;
+   310→  onCommit: (v: string) => void;
+   311→  placeholder?: string;
+   312→  type?: string;
+   313→  ariaLabel?: string;
+   314→}) {
+   315→  const [local, setLocal] = useState(value);
+   316→  // Sync local state when the external value changes (ej. after onCommit
+   317→  // propagates back via props, or when another screen edits the profile).
+   318→  useEffect(() => {
+   319→    setLocal(value);
+   320→  }, [value]);
+   321→  return (
+   322→    <Field label={label}>
+   323→      <TextInput
+   324→        value={local}
+   325→        type={type}
+   326→        placeholder={placeholder}
+   327→        ariaLabel={ariaLabel}
+   328→        onChange={setLocal}
+   329→        // 🔴 TIER S: commit on blur — llama a onCommit que eventualmente
+   330→        // invoca al reducer updateUserProfile.
+   331→        onBlur={() => {
+   332→          if (local !== value) onCommit(local);
+   333→        }}
+   334→      />
+   335→    </Field>
+   336→  );
+   337→}
+   338→
+   339→function Field({ label, children }: { label: string; children: ReactNode }) {
+   340→  return (
+   341→    <div style={{ padding: "10px 0", borderBottom: "1px solid rgba(129, 39, 207, 0.08)" }}>
+   342→      <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: "#0b1c30", marginBottom: 6 }}>
+   343→        {label}
+   344→      </label>
+   345→      {children}
+   346→    </div>
+   347→  );
+   348→}
+   349→
+   350→function RadioGroup<T extends string>({
+   351→  value,
+   352→  options,
+   353→  onChange,
+   354→}: {
+   355→  value: T;
+   356→  options: Array<{ value: T; label: string; disabled?: boolean; badge?: string }>;
+   357→  onChange: (v: T) => void;
+   358→}) {
+   359→  return (
+   360→    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+   361→      {options.map((opt) => {
+   362→        const active = value === opt.value;
+   363→        return (
+   364→          <button
+   365→            key={opt.value}
+   366→            type="button"
+   367→            disabled={opt.disabled}
+   368→            onClick={() => !opt.disabled && onChange(opt.value)}
+   369→            style={{
+   370→              display: "inline-flex",
+   371→              alignItems: "center",
+   372→              gap: 6,
+   373→              padding: "7px 12px",
+   374→              borderRadius: 999,
+   375→              border: active ? "1px solid #8127cf" : "1px solid #e2d4f5",
+   376→              background: active ? "#f3e8ff" : "rgba(255,255,255,0.7)",
+   377→              color: active ? "#8127cf" : "#0b1c30",
+   378→              fontSize: 13,
+   379→              fontWeight: 600,
+   380→              cursor: opt.disabled ? "not-allowed" : "pointer",
+   381→              opacity: opt.disabled ? 0.55 : 1,
+   382→            }}
+   383→          >
+   384→            {active && <Check size={14} />}
+   385→            <span>{opt.label}</span>
+   386→            {opt.badge && (
+   387→              <span
+   388→                style={{
+   389→                  marginLeft: 4,
+   390→                  padding: "1px 6px",
+   391→                  borderRadius: 6,
+   392→                  background: "#fde68a",
+   393→                  color: "#92400e",
+   394→                  fontSize: 10,
+   395→                  fontWeight: 700,
+   396→                }}
+   397→              >
+   398→                {opt.badge}
+   399→              </span>
+   400→            )}
+   401→          </button>
+   402→        );
+   403→      })}
+   404→    </div>
+   405→  );
+   406→}
+   407→
+   408→function SelectInput<T extends string>({
+   409→  value,
+   410→  options,
+   411→  onChange,
+   412→  ariaLabel,
+   413→}: {
+   414→  value: T;
+   415→  options: Array<{ value: T; label: string }>;
+   416→  onChange: (v: T) => void;
+   417→  ariaLabel?: string;
+   418→}) {
+   419→  return (
+   420→    <div style={{ position: "relative", maxWidth: 220, width: "100%" }}>
+   421→      <select
+   422→        value={value}
+   423→        aria-label={ariaLabel}
+   424→        onChange={(e) => onChange(e.target.value as T)}
+   425→        style={{
+   426→          width: "100%",
+   427→          padding: "8px 30px 8px 12px",
+   428→          borderRadius: 10,
+   429→          border: "1px solid #e2d4f5",
+   430→          background: "rgba(255,255,255,0.85)",
+   431→          fontSize: 14,
+   432→          color: "#0b1c30",
+   433→          outline: "none",
+   434→          appearance: "none",
+   435→          cursor: "pointer",
+   436→        }}
+   437→      >
+   438→        {options.map((opt) => (
+   439→          <option key={opt.value} value={opt.value}>
+   440→            {opt.label}
+   441→          </option>
+   442→        ))}
+   443→      </select>
+   444→      <ChevronDown
+   445→        size={14}
+   446→        style={{
+   447→          position: "absolute",
+   448→          right: 10,
+   449→          top: "50%",
+   450→          transform: "translateY(-50%)",
+   451→          pointerEvents: "none",
+   452→          color: "#8127cf",
+   453→        }}
+   454→      />
+   455→    </div>
+   456→  );
+   457→}
+   458→
+   459→function PillButton({
+   460→  children,
+   461→  onClick,
+   462→  variant = "default",
+   463→  disabled,
+   464→}: {
+   465→  children: ReactNode;
+   466→  onClick: () => void;
+   467→  variant?: "default" | "primary" | "danger" | "ghost";
+   468→  disabled?: boolean;
+   469→}) {
+   470→  const styles: Record<string, React.CSSProperties> = {
+   471→    default: { background: "rgba(255,255,255,0.85)", color: "#0b1c30", border: "1px solid #e2d4f5" },
+   472→    primary: { background: "#8127cf", color: "#ffffff", border: "1px solid #8127cf" },
+   473→    danger:  { background: "#fee2e2", color: "#b91c1c", border: "1px solid #fecaca" },
+   474→    ghost:   { background: "transparent", color: "#8127cf", border: "1px dashed #c4b5fd" },
+   475→  };
+   476→  return (
+   477→    <button
+   478→      type="button"
+   479→      onClick={onClick}
+   480→      disabled={disabled}
+   481→      style={{
+   482→        display: "inline-flex",
+   483→        alignItems: "center",
+   484→        gap: 6,
+   485→        padding: "8px 14px",
+   486→        borderRadius: 10,
+   487→        fontSize: 13,
+   488→        fontWeight: 600,
+   489→        cursor: disabled ? "not-allowed" : "pointer",
+   490→        opacity: disabled ? 0.55 : 1,
+   491→        ...styles[variant],
+   492→      }}
+   493→    >
+   494→      {children}
+   495→    </button>
+   496→  );
+   497→}
+   498→
+   499→function SectionCard({
+   500→  meta,
+   501→  expanded,
+   502→  onToggle,
+   503→  children,
+   504→}: {
+   505→  meta: SectionMeta;
+   506→  expanded: boolean;
+   507→  onToggle: () => void;
+   508→  children: ReactNode;
+   509→}) {
+   510→  const Icon = meta.icon;
+   511→  return (
+   512→    <section
+   513→      className="koru-magical-card"
+   514→      style={{ "--module-color": meta.accent, "--module-bg": meta.tint } as React.CSSProperties}
+   515→      aria-expanded={expanded}
+   516→    >
+   517→      <button
+   518→        type="button"
+   519→        onClick={onToggle}
+   520→        aria-label={`${expanded ? "Contraer" : "Expandir"} sección ${meta.title}`}
+   521→        style={{
+   522→          display: "flex",
+   523→          width: "100%",
+   524→          alignItems: "center",
+   525→          justifyContent: "space-between",
+   526→          gap: 12,
+   527→          background: "transparent",
+   528→          border: "none",
+   529→          padding: 0,
+   530→          cursor: "pointer",
+   531→          textAlign: "left",
+   532→        }}
+   533→      >
+   534→        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+   535→          <div
+   536→            className="koru-module-icon"
+   537→            style={{ width: 40, height: 40, borderRadius: 12, background: meta.tint, color: meta.accent }}
+   538→          >
+   539→            <Icon size={20} />
+   540→          </div>
+   541→          <div>
+   542→            <h3 className="koru-module-title" style={{ fontSize: 17, color: meta.accent }}>
+   543→              {meta.title}
+   544→            </h3>
+   545→            <p className="koru-module-kicker" style={{ fontSize: 10, letterSpacing: 0.5 }}>
+   546→              {meta.kicker}
+   547→            </p>
+   548→          </div>
+   549→        </div>
+   550→        <ChevronDown
+   551→          size={20}
+   552→          style={{
+   553→            color: meta.accent,
+   554→            transition: "transform 200ms ease",
+   555→            transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+   556→            flexShrink: 0,
+   557→          }}
+   558→        />
+   559→      </button>
+   560→      {expanded && <div style={{ marginTop: 14 }}>{children}</div>}
+   561→    </section>
+   562→  );
+   563→}
+   564→
+   565→// ─── Pantalla ─────────────────────────────────────────────────────────────────
+   566→
+   567→export function SettingsScreen(props: SettingsScreenProps) {
+   568→  const { state } = props;
+   569→  const profile = state.userProfile ?? {};
+   570→  const prefs = state.preferences ?? {
+   571→    theme: "light",
+   572→    fontScale: "medium",
+   573→    haptics: true,
+   574→    sounds: true,
+   575→    reducedMotion: false,
+   576→    highContrast: false,
+   577→  };
+   578→
+   579→  const [query, setQuery] = useState("");
+   580→  const [expanded, setExpanded] = useState<Set<SectionId>>(() => new Set<SectionId>(["perfil"]));
+   581→  const [autoTz] = useState(() => detectTimezone());
+   582→
+   583→  // Memoria: filtros + búsqueda
+   584→  const [memKindFilter, setMemKindFilter] = useState<"all" | MemoryKind>("all");
+   585→  const [memSearch, setMemSearch] = useState("");
+   586→
+   587→  // 🔴 TIER S: Personas sub-form (under Perfil). Captura name + relationship
+   588→  // + birthday y llama a props.onAddPerson → addPerson reducer del store.
+   589→  const [newPersonName, setNewPersonName] = useState("");
+   590→  const [newPersonRelationship, setNewPersonRelationship] = useState("");
+   591→  const [newPersonBirthday, setNewPersonBirthday] = useState("");
+   592→
+   593→  // Notificaciones: estado de permiso push
+   594→  const [pushGranted, setPushGranted] = useState<NotificationPermission | "unsupported">(() => {
+   595→    if (typeof Notification === "undefined") return "unsupported";
+   596→    return Notification.permission;
+   597→  });
+   598→
+   599→  // Delete-all confirmation flow (require typing ELIMINAR)
+   600→  const [deleteOpen, setDeleteOpen] = useState(false);
+   601→  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+   602→
+   603→  // Retention (local — el reducer no existe aún; se persiste en localStorage)
+   604→  const [retention, setRetention] = useState<string>(
+   605→    () => localStorage.getItem("koru.memoryRetentionDays") ?? "90",
+   606→  );
+   607→
+   608→  // Integraciones (placeholder visual, persistido en localStorage)
+   609→  const [integrations, setIntegrations] = useState<Record<string, { connected: boolean; lastSync?: string }>>(() => {
+   610→    try {
+   611→      const raw = localStorage.getItem("koru.integrations");
+   612→      if (raw) return JSON.parse(raw) as Record<string, { connected: boolean; lastSync?: string }>;
+   613→    } catch {
+   614→      /* noop */
+   615→    }
+   616→    return { calendar: { connected: false }, banks: { connected: false }, crypto: { connected: false } };
+   617→  });
+   618→
+   619→  // 🔴 Google Calendar OAuth — flag "pending" persistido en
+   620→  // `koru.integrations.googleCalendar` mientras el usuario completa el flujo
+   621→  // de OAuth en la pestaña abierta por getGoogleAuthUrl(). El callback real
+   622→  // (redirect URI + exchangeCodeForToken) todavía no está implementado, así
+   623→  // que el estado queda en "pending" hasta que el backend lo confirme.
+   624→  const [googleCalendarStatus, setGoogleCalendarStatus] = useState<"idle" | "pending" | "connected">(() => {
+   625→    try {
+   626→      const raw = localStorage.getItem("koru.integrations");
+   627→      if (raw) {
+   628→        const parsed = JSON.parse(raw) as Record<string, unknown>;
+   629→        const flag = parsed.googleCalendar;
+   630→        if (flag === "pending" || flag === "connected") return flag;
+   631→      }
+   632→    } catch {
+   633→      /* noop */
+   634→    }
+   635→    return "idle";
+   636→  });
+   637→
+   638→  useEffect(() => {
+   639→    try {
+   640→      // Persistir el flag `googleCalendar` junto al resto de integraciones.
+   641→      // El shape del resto (`{connected, lastSync}`) se mantiene intacto.
+   642→      const raw = localStorage.getItem("koru.integrations");
+   643→      const parsed: Record<string, unknown> = raw ? JSON.parse(raw) : {};
+   644→      parsed.googleCalendar = googleCalendarStatus;
+   645→      localStorage.setItem("koru.integrations", JSON.stringify(parsed));
+   646→    } catch {
+   647→      /* noop */
+   648→    }
+   649→  }, [googleCalendarStatus]);
+   650→
+   651→  useEffect(() => {
+   652→    try {
+   653→      // 🔴 Merge: preservar el flag `googleCalendar` (string) que se persiste
+   654→      // por separado arriba. Si hacemos `JSON.stringify(integrations)` a secas,
+   655→      // pisamos el campo `googleCalendar` y lo perdemos.
+   656→      const raw = localStorage.getItem("koru.integrations");
+   657→      const parsed: Record<string, unknown> = raw ? JSON.parse(raw) : {};
+   658→      // Sobreponer el estado "vivo" de integrations (calendar/banks/crypto).
+   659→      Object.assign(parsed, integrations);
+   660→      // Mantener el flag googleCalendar tal cual estaba en React state.
+   661→      if (googleCalendarStatus !== "idle") {
+   662→        parsed.googleCalendar = googleCalendarStatus;
+   663→      } else {
+   664→        delete parsed.googleCalendar;
+   665→      }
+   666→      localStorage.setItem("koru.integrations", JSON.stringify(parsed));
+   667→    } catch {
+   668→      /* noop */
+   669→    }
+   670→    // eslint-disable-next-line react-hooks/exhaustive-deps
+   671→  }, [integrations]);
+   672→
+   673→  useEffect(() => {
+   674→    try {
+   675→      localStorage.setItem("koru.memoryRetentionDays", retention);
+   676→    } catch {
+   677→      /* noop */
+   678→    }
+   679→  }, [retention]);
+   680→
+   681→  function toggleSection(id: SectionId) {
+   682→    setExpanded((prev) => {
+   683→      const next = new Set(prev);
+   684→      if (next.has(id)) next.delete(id);
+   685→      else next.add(id);
+   686→      return next;
+   687→    });
+   688→  }
+   689→
+   690→  function requestPushPermission() {
+   691→    if (typeof Notification === "undefined") return;
+   692→    Notification.requestPermission().then((p) => setPushGranted(p));
+   693→  }
+   694→
+   695→  function connectIntegration(key: "calendar" | "banks" | "crypto") {
+   696→    setIntegrations((prev) => ({
+   697→      ...prev,
+   698→      [key]: { connected: true, lastSync: new Date().toISOString() },
+   699→    }));
+   700→  }
+   701→
+   702→  function disconnectIntegration(key: "calendar" | "banks" | "crypto") {
+   703→    setIntegrations((prev) => ({ ...prev, [key]: { connected: false } }));
+   704→  }
+   705→
+   706→  // 🔴 Google Calendar OAuth — abre la URL de autorización en una pestaña nueva
+   707→  // y marca el flag `pending` en localStorage. El callback de OAuth
+   708→  // (server-side: /api/integrations/google-calendar/callback) intercambia el
+   709→  // code por tokens, persiste en koru-integrations.json, y devuelve HTML que
+   710→  // escribe `googleCalendar: "connected"` en localStorage (mismo origen → el
+   711→  // popup comparte localStorage con la app) y luego cierra la pestaña.
+   712→  //
+   713→  // Mientras el usuario completa el consent en Google, polleamos localStorage
+   714→  // cada 2s durante 60s. En cuanto vemos `googleCalendar === "connected"`,
+   715→  // actualizamos el estado a "connected" → el IntegrationRow muestra
+   716→  // "Conectado ✓". Como fallback, también consultamos
+   717→  // GET /api/integrations/google-calendar/status (source-of-truth server-side)
+   718→  // por si el popup falló al escribir localStorage.
+   719→  async function connectGoogleCalendar() {
+   720→    if (googleCalendarStatus === "pending" || googleCalendarStatus === "connected") return;
+   721→    setGoogleCalendarStatus("pending");
+   722→    try {
+   723→      const url = getGoogleAuthUrl();
+   724→      if (typeof window !== "undefined") {
+   725→        window.open(url, "_blank", "noopener,noreferrer");
+   726→      }
+   727→      // Poll localStorage + status endpoint cada 2s por 60s (30 intentos).
+   728→      pollGoogleCalendarStatus(30, 2_000);
+   729→    } catch (err) {
+   730→      // Si falta GOOGLE_CLIENT_ID u otra env, revertimos a "idle" para que el
+   731→      // usuario pueda reintentar y mostramos el error por consola.
+   732→      // eslint-disable-next-line no-console
+   733→      console.error("[SettingsScreen] Google Calendar auth URL falló:", err);
+   734→      setGoogleCalendarStatus("idle");
+   735→    }
+   736→  }
+   737→
+   738→  // 🔴 Polling del flag `googleCalendar` en localStorage + fallback al
+   739→  // endpoint /status. El popup (tras OAuth callback exitoso) escribe el flag
+   740→  // `googleCalendar: "connected"` en localStorage y se cierra. Si por alguna
+   741→  // razón el popup no puede escribir (origen distinto, storage deshabilitado),
+   742→  // el endpoint /status nos dice la verdad server-side.
+   743→  function pollGoogleCalendarStatus(maxAttempts: number, intervalMs: number) {
+   744→    if (typeof window === "undefined") return;
+   745→    let attempts = 0;
+   746→    const timer = window.setInterval(async () => {
+   747→      attempts++;
+   748→      // 1) Chequeo local — barato, sin red.
+   749→      try {
+   750→        const raw = localStorage.getItem("koru.integrations");
+   751→        if (raw) {
+   752→          const parsed = JSON.parse(raw) as Record<string, unknown>;
+   753→          if (parsed.googleCalendar === "connected") {
+   754→            setGoogleCalendarStatus("connected");
+   755→            window.clearInterval(timer);
+   756→            return;
+   757→          }
+   758→          // Si el usuario canceló en Google, el popup manda ?error=… → el
+   759→          // callback escribe error HTML y NO toca el flag (queda "pending").
+   760→          // No hay nada que hacer acá; seguimos polleando hasta timeout.
+   761→        }
+   762→      } catch {
+   763→        /* noop */
+   764→      }
+   765→
+   766→      // 2) Fallback: consultar el endpoint server-side.
+   767→      try {
+   768→        const res = await fetch("/api/integrations/google-calendar/status");
+   769→        if (res.ok) {
+   770→          const data = (await res.json()) as { connected?: boolean };
+   771→          if (data.connected) {
+   772→            setGoogleCalendarStatus("connected");
+   773→            // Reflejarlo también en localStorage por si el popup no llegó.
+   774→            try {
+   775→              const r = localStorage.getItem("koru.integrations");
+   776→              const p: Record<string, unknown> = r ? JSON.parse(r) : {};
+   777→              p.googleCalendar = "connected";
+   778→              localStorage.setItem("koru.integrations", JSON.stringify(p));
+   779→            } catch {
+   780→              /* noop */
+   781→            }
+   782→            window.clearInterval(timer);
+   783→            return;
+   784→          }
+   785→        }
+   786→      } catch {
+   787→        /* noop — el server puede estar down, seguimos polleando localStorage */
+   788→      }
+   789→
+   790→      // 3) Timeout → revertir a "idle" para que el usuario pueda reintentar.
+   791→      if (attempts >= maxAttempts) {
+   792→        window.clearInterval(timer);
+   793→        setGoogleCalendarStatus("idle");
+   794→      }
+   795→    }, intervalMs);
+   796→  }
+   797→
+   798→  function disconnectGoogleCalendar() {
+   799→    setGoogleCalendarStatus("idle");
+   800→    setIntegrations((prev) => ({ ...prev, calendar: { connected: false } }));
+   801→  }
+   802→
+   803→  // Filtrado de secciones por búsqueda
+   804→  const visibleSections = useMemo(() => {
+   805→    const q = query.trim().toLowerCase();
+   806→    if (!q) return SECTIONS;
+   807→    return SECTIONS.filter((s) => {
+   808→      const haystack = [s.title, s.kicker, ...s.keywords].join(" ").toLowerCase();
+   809→      return haystack.includes(q);
+   810→    });
+   811→  }, [query]);
+   812→
+   813→  // Filtrado de memorias (sección 7)
+   814→  const filteredMemories = useMemo<MemoryFact[]>(() => {
+   815→    const q = memSearch.trim().toLowerCase();
+   816→    return (state.memories ?? []).filter((m) => {
+   817→      if (memKindFilter !== "all" && m.kind !== memKindFilter) return false;
+   818→      if (q && !m.text.toLowerCase().includes(q)) return false;
+   819→      return true;
+   820→    });
+   821→  }, [state.memories, memKindFilter, memSearch]);
+   822→
+   823→  const systemReducedMotion = prefersReducedMotion();
+   824→  const reducedMotionEffective = prefs.reducedMotion || systemReducedMotion;
+   825→
+   826→  function handleDeleteAll() {
+   827→    if (deleteConfirmText.trim().toUpperCase() !== "ELIMINAR") return;
+   828→    props.onDeleteAllData();
+   829→    setDeleteOpen(false);
+   830→    setDeleteConfirmText("");
+   831→  }
+   832→
+   833→  // 🔴 TIER S: handler para agregar una Person al store. Limpia el form
+   834→  // después de invocar al reducer (vía props.onAddPerson). El name es
+   835→  // obligatorio; relationship y birthday son opcionales.
+   836→  function handleAddPerson() {
+   837→    const name = newPersonName.trim();
+   838→    if (!name) return;
+   839→    const relationship = newPersonRelationship.trim() || undefined;
+   840→    const birthday = newPersonBirthday.trim() || undefined;
+   841→    props.onAddPerson?.(name, relationship, birthday);
+   842→    setNewPersonName("");
+   843→    setNewPersonRelationship("");
+   844→    setNewPersonBirthday("");
+   845→  }
+   846→
+   847→  return (
+   848→    <div className="koru-roadmap" role="dialog" aria-label="Ajustes">
+   849→      <div className="koru-roadmap-screen">
+   850→        <div className="koru-roadmap-blob-1" />
+   851→        <div className="koru-roadmap-blob-2" />
+   852→
+   853→        {/* Sticky header */}
+   854→        <header
+   855→          style={{
+   856→            position: "sticky",
+   857→            top: 0,
+   858→            zIndex: 20,
+   859→            display: "flex",
+   860→            alignItems: "center",
+   861→            justifyContent: "space-between",
+   862→            gap: 12,
+   863→            padding: "16px 20px 12px",
+   864→            background: "linear-gradient(180deg, rgba(240,219,255,0.95) 0%, rgba(240,219,255,0.85) 70%, rgba(240,219,255,0) 100%)",
+   865→            backdropFilter: "blur(8px)",
+   866→            WebkitBackdropFilter: "blur(8px)",
+   867→          }}
+   868→        >
+   869→          <div>
+   870→            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: "#8127cf", letterSpacing: "-0.02em" }}>
+   871→              Ajustes
+   872→            </h1>
+   873→            <p style={{ margin: 0, fontSize: 12, color: "#64748b" }}>Personalizá tu Koru</p>
+   874→          </div>
+   875→          <button
+   876→            type="button"
+   877→            onClick={props.onClose}
+   878→            aria-label="Cerrar ajustes"
+   879→            style={{
+   880→              display: "flex",
+   881→              width: 40,
+   882→              height: 40,
+   883→              alignItems: "center",
+   884→              justifyContent: "center",
+   885→              borderRadius: 999,
+   886→              border: "1px solid rgba(255,255,255,0.7)",
+   887→              background: "rgba(255,255,255,0.6)",
+   888→              color: "#8127cf",
+   889→              cursor: "pointer",
+   890→            }}
+   891→          >
+   892→            <X size={18} />
+   893→          </button>
+   894→        </header>
+   895→
+   896→        {/* Search bar */}
+   897→        <div style={{ padding: "0 20px 12px" }}>
+   898→          <div style={{ position: "relative" }}>
+   899→            <Search
+   900→              size={16}
+   901→              style={{
+   902→                position: "absolute",
+   903→                left: 12,
+   904→                top: "50%",
+   905→                transform: "translateY(-50%)",
+   906→                color: "#94a3b8",
+   907→                pointerEvents: "none",
+   908→              }}
+   909→            />
+   910→            <input
+   911→              type="text"
+   912→              value={query}
+   913→              onChange={(e) => setQuery(e.target.value)}
+   914→              placeholder="Buscar en ajustes…"
+   915→              aria-label="Buscar en ajustes"
+   916→              style={{
+   917→                width: "100%",
+   918→                padding: "10px 12px 10px 36px",
+   919→                borderRadius: 14,
+   920→                border: "1px solid rgba(255,255,255,0.7)",
+   921→                background: "rgba(255,255,255,0.7)",
+   922→                fontSize: 14,
+   923→                color: "#0b1c30",
+   924→                outline: "none",
+   925→              }}
+   926→            />
+   927→          </div>
+   928→        </div>
+   929→
+   930→        {/* Sections */}
+   931→        <div className="koru-roadmap-modules" style={{ paddingTop: 4 }}>
+   932→          {visibleSections.length === 0 && (
+   933→            <div
+   934→              className="koru-magical-card"
+   935→              style={{ textAlign: "center", color: "#64748b", fontSize: 14 }}
+   936→            >
+   937→              Sin resultados para “{query}”.
+   938→            </div>
+   939→          )}
+   940→
+   941→          {visibleSections.map((meta) => {
+   942→            const isExpanded = expanded.has(meta.id);
+   943→            return (
+   944→              <SectionCard
+   945→                key={meta.id}
+   946→                meta={meta}
+   947→                expanded={isExpanded}
+   948→                onToggle={() => toggleSection(meta.id)}
+   949→              >
+   950→                {meta.id === "perfil" && (
+   951→                  <>
+   952→                    {/* 🔴 TIER S: Perfil fields commit on blur via ProfileField,
+   953→                        que eventualmente invoca al reducer updateUserProfile
+   954→                        (wired en App.tsx: onUpdateProfile={(p) => updateUserProfile(p)}). */}
+   955→                    <ProfileField
+   956→                      label="Nombre"
+   957→                      value={profile.name ?? ""}
+   958→                      placeholder="¿Cómo te llamás?"
+   959→                      ariaLabel="Nombre"
+   960→                      onCommit={(v) => props.onUpdateProfile({ name: v })}
+   961→                    />
+   962→                    <ProfileField
+   963→                      label="Cumpleaños"
+   964→                      value={profile.birthday ?? ""}
+   965→                      type="date"
+   966→                      ariaLabel="Cumpleaños"
+   967→                      onCommit={(v) => props.onUpdateProfile({ birthday: v })}
+   968→                    />
+   969→                    <ProfileField
+   970→                      label="Ciudad / Ubicación"
+   971→                      value={profile.location ?? profile.homeCity ?? ""}
+   972→                      placeholder="Ej. Buenos Aires"
+   973→                      ariaLabel="Ciudad"
+   974→                      onCommit={(v) =>
+   975→                        props.onUpdateProfile({ location: v, homeCity: v })
+   976→                      }
+   977→                    />
+   978→                    <Field label={`Zona horaria (detectada: ${autoTz})`}>
+   979→                      <SelectInput
+   980→                        value={profile.timezone && profile.timezone !== "auto" ? profile.timezone : "auto"}
+   981→                        ariaLabel="Zona horaria"
+   982→                        onChange={(v) =>
+   983→                          props.onUpdateProfile({ timezone: v === "auto" ? autoTz : v })
+   984→                        }
+   985→                        options={COMMON_TIMEZONES.map((tz) => ({
+   986→                          value: tz,
+   987→                          label: tz === "auto" ? `Automática (${autoTz})` : tz,
+   988→                        }))}
+   989→                      />
+   990→                    </Field>
+   991→
+   992→                    {/* 🔴 TIER S: Personas — sub-section under Perfil.
+   993→                        Form simple: name + relationship + birthday.
+   994→                        On save → props.onAddPerson → addPerson reducer.
+   995→                        Lista las personas ya guardadas en state.people. */}
+   996→                    <div
+   997→                      style={{
+   998→                        marginTop: 16,
+   999→                        padding: 12,
+  1000→                        borderRadius: 14,
+  1001→                        background: "rgba(243, 232, 255, 0.45)",
+  1002→                        border: "1px solid rgba(129, 39, 207, 0.12)",
+  1003→                      }}
+  1004→                    >
+  1005→                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+  1006→                        <span
+  1007→                          className="material-symbols-outlined"
+  1008→                          style={{ fontSize: 18, color: "#8127cf" }}
+  1009→                          aria-hidden
+  1010→                        >
+  1011→                          group
+  1012→                        </span>
+  1013→                        <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#8127cf" }}>
+  1014→                          Personas
+  1015→                        </h4>
+  1016→                      </div>
+  1017→
+  1018→                      <Field label="Nombre">
+  1019→                        <TextInput
+  1020→                          value={newPersonName}
+  1021→                          onChange={setNewPersonName}
+  1022→                          placeholder="Ej. María González"
+  1023→                          ariaLabel="Nombre de la persona"
+  1024→                        />
+  1025→                      </Field>
+  1026→                      <Field label="Relación (opcional)">
+  1027→                        <TextInput
+  1028→                          value={newPersonRelationship}
+  1029→                          onChange={setNewPersonRelationship}
+  1030→                          placeholder="Ej. Madre / Amiga / Colega"
+  1031→                          ariaLabel="Relación"
+  1032→                        />
+  1033→                      </Field>
+  1034→                      <Field label="Cumpleaños (opcional)">
+  1035→                        <TextInput
+  1036→                          value={newPersonBirthday}
+  1037→                          onChange={setNewPersonBirthday}
+  1038→                          type="date"
+  1039→                          ariaLabel="Cumpleaños de la persona"
+  1040→                        />
+  1041→                      </Field>
+  1042→                      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+  1043→                        <PillButton
+  1044→                          variant="primary"
+  1045→                          onClick={handleAddPerson}
+  1046→                          disabled={!newPersonName.trim() || !props.onAddPerson}
+  1047→                        >
+  1048→                          <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>person_add</span>
+  1049→                          Agregar persona
+  1050→                        </PillButton>
+  1051→                      </div>
+  1052→
+  1053→                      {(state.people ?? []).length > 0 && (
+  1054→                        <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+  1055→                          {(state.people as Person[]).map((p) => (
+  1056→                            <div
+  1057→                              key={p.id}
+  1058→                              style={{
+  1059→                                display: "flex",
+  1060→                                alignItems: "center",
+  1061→                                justifyContent: "space-between",
+  1062→                                gap: 8,
+  1063→                                padding: "8px 10px",
+  1064→                                borderRadius: 10,
+  1065→                                background: "rgba(255,255,255,0.7)",
+  1066→                                border: "1px solid rgba(129, 39, 207, 0.08)",
+  1067→                                fontSize: 13,
+  1068→                                color: "#0b1c30",
+  1069→                              }}
+  1070→                            >
+  1071→                              <div style={{ minWidth: 0 }}>
+  1072→                                <div style={{ fontWeight: 600 }}>{p.name}</div>
+  1073→                                <div style={{ fontSize: 11, color: "#64748b" }}>
+  1074→                                  {[p.relationship, p.birthday].filter(Boolean).join(" · ") || "Sin detalles"}
+  1075→                                </div>
+  1076→                              </div>
+  1077→                              {p.birthday && (
+  1078→                                <span
+  1079→                                  style={{
+  1080→                                    display: "inline-flex",
+  1081→                                    alignItems: "center",
+  1082→                                    gap: 3,
+  1083→                                    padding: "2px 6px",
+  1084→                                    borderRadius: 6,
+  1085→                                    background: "#fde68a",
+  1086→                                    color: "#92400e",
+  1087→                                    fontSize: 10,
+  1088→                                    fontWeight: 700,
+  1089→                                    flexShrink: 0,
+  1090→                                  }}
+  1091→                                  title={`Cumpleaños: ${p.birthday}`}
+  1092→                                >
+  1093→                                  <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>cake</span>
+  1094→                                  {p.birthday.slice(5)}
+  1095→                                </span>
+  1096→                              )}
+  1097→                            </div>
+  1098→                          ))}
+  1099→                        </div>
+  1100→                      )}
+  1101→                    </div>
+  1102→                  </>
+  1103→                )}
+  1104→
+  1105→                {meta.id === "idioma" && (
+  1106→                  <Row label="Idioma de la interfaz y respuestas" hint="Koru te responderá en el idioma elegido.">
+  1107→                    <RadioGroup
+  1108→                      value={state.language ?? "es"}
+  1109→                      onChange={(lang) => props.onUpdateLanguage(lang)}
+  1110→                      options={[
+  1111→                        { value: "es", label: "Español" },
+  1112→                        { value: "en", label: "English" },
+  1113→                      ]}
+  1114→                    />
+  1115→                  </Row>
+  1116→                )}
+  1117→
+  1118→                {meta.id === "apariencia" && (
+  1119→                  <>
+  1120→                    <Field label="Tema">
+  1121→                      <RadioGroup
+  1122→                        value={prefs.theme}
+  1123→                        onChange={(v) => props.onUpdatePreferences({ theme: v })}
+  1124→                        options={[
+  1125→                          { value: "light", label: "Claro" },
+  1126→                          { value: "dark", label: "Oscuro", disabled: true, badge: "próximamente" },
+  1127→                          { value: "auto", label: "Automático" },
+  1128→                        ]}
+  1129→                      />
+  1130→                    </Field>
+  1131→                    <Field label="Tamaño de fuente">
+  1132→                      <RadioGroup
+  1133→                        value={prefs.fontScale}
+  1134→                        onChange={(v) => props.onUpdatePreferences({ fontScale: v })}
+  1135→                        options={[
+  1136→                          { value: "small", label: "Pequeña" },
+  1137→                          { value: "medium", label: "Mediana" },
+  1138→                          { value: "large", label: "Grande" },
+  1139→                        ]}
+  1140→                      />
+  1141→                    </Field>
+  1142→                    <Row label="Hápticos" hint="Vibración al tocar">
+  1143→                      <Toggle
+  1144→                        checked={prefs.haptics}
+  1145→                        onChange={(v) => props.onUpdatePreferences({ haptics: v })}
+  1146→                        aria-label="Hápticos"
+  1147→                      />
+  1148→                    </Row>
+  1149→                    <Row label="Sonidos" hint="Efectos de sonido de la interfaz">
+  1150→                      <Toggle
+  1151→                        checked={prefs.sounds}
+  1152→                        onChange={(v) => props.onUpdatePreferences({ sounds: v })}
+  1153→                        aria-label="Sonidos"
+  1154→                      />
+  1155→                    </Row>
+  1156→                    <Row
+  1157→                      label="Movimiento reducido"
+  1158→                      hint={
+  1159→                        systemReducedMotion
+  1160→                          ? "Tu sistema tiene activado prefers-reduced-motion."
+  1161→                          : "Reduce animaciones y transiciones."
+  1162→                      }
+  1163→                    >
+  1164→                      <Toggle
+  1165→                        checked={reducedMotionEffective}
+  1166→                        onChange={(v) => props.onUpdatePreferences({ reducedMotion: v })}
+  1167→                        aria-label="Movimiento reducido"
+  1168→                      />
+  1169→                    </Row>
+  1170→                    <Row label="Alto contraste" hint="Aumenta el contraste de textos y controles">
+  1171→                      <Toggle
+  1172→                        checked={prefs.highContrast}
+  1173→                        onChange={(v) => props.onUpdatePreferences({ highContrast: v })}
+  1174→                        aria-label="Alto contraste"
+  1175→                      />
+  1176→                    </Row>
+  1177→                  </>
+  1178→                )}
+  1179→
+  1180→                {meta.id === "notificaciones" && (
+  1181→                  <>
+  1182→                    <Row
+  1183→                      label="Notificaciones push"
+  1184→                      hint={
+  1185→                        pushGranted === "unsupported"
+  1186→                          ? "No soportadas en este dispositivo."
+  1187→                          : pushGranted === "granted"
+  1188→                          ? "Permiso concedido."
+  1189→                          : pushGranted === "denied"
+  1190→                          ? "Permiso bloqueado. Cambialo desde el navegador."
+  1191→                          : "Requiere permiso del navegador."
+  1192→                      }
+  1193→                    >
+  1194→                      {pushGranted === "default" ? (
+  1195→                        <PillButton variant="primary" onClick={requestPushPermission}>
+  1196→                          Permitir
+  1197→                        </PillButton>
+  1198→                      ) : pushGranted === "granted" ? (
+  1199→                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#16a34a", fontSize: 13, fontWeight: 600 }}>
+  1200→                          <Check size={14} /> Activas
+  1201→                        </span>
+  1202→                      ) : pushGranted === "denied" ? (
+  1203→                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#b91c1c", fontSize: 13, fontWeight: 600 }}>
+  1204→                          <AlertTriangle size={14} /> Bloqueado
+  1205→                        </span>
+  1206→                      ) : (
+  1207→                        <span style={{ color: "#64748b", fontSize: 13 }}>N/A</span>
+  1208→                      )}
+  1209→                    </Row>
+  1210→                    <Row label="Sonidos por evento" hint="Personaliza qué eventos suenan">
+  1211→                      <SelectInput
+  1212→                        value="default"
+  1213→                        ariaLabel="Sonido por evento"
+  1214→                        onChange={() => {
+  1215→                          /* placeholder — los sonidos se integran después */
+  1216→                        }}
+  1217→                        options={[
+  1218→                          { value: "default", label: "Por defecto" },
+  1219→                          { value: "gentle", label: "Suave" },
+  1220→                          { value: "chime", label: "Campana" },
+  1221→                          { value: "none", label: "Sin sonido" },
+  1222→                        ]}
+  1223→                      />
+  1224→                    </Row>
+  1225→                    <Field label="Horario No Molestar">
+  1226→                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+  1227→                        <label style={{ fontSize: 12, color: "#64748b" }}>Desde</label>
+  1228→                        <input
+  1229→                          type="number"
+  1230→                          min={0}
+  1231→                          max={23}
+  1232→                          value={prefs.dndStartHour ?? 22}
+  1233→                          onChange={(e) =>
+  1234→                            props.onUpdatePreferences({
+  1235→                              dndStartHour: Math.max(0, Math.min(23, Number(e.target.value) || 0)),
+  1236→                            })
+  1237→                          }
+  1238→                          aria-label="DND desde hora"
+  1239→                          style={{
+  1240→                            width: 64,
+  1241→                            padding: "6px 8px",
+  1242→                            borderRadius: 8,
+  1243→                            border: "1px solid #e2d4f5",
+  1244→                            background: "rgba(255,255,255,0.8)",
+  1245→                            fontSize: 14,
+  1246→                            textAlign: "center",
+  1247→                          }}
+  1248→                        />
+  1249→                        <label style={{ fontSize: 12, color: "#64748b" }}>Hasta</label>
+  1250→                        <input
+  1251→                          type="number"
+  1252→                          min={0}
+  1253→                          max={23}
+  1254→                          value={prefs.dndEndHour ?? 7}
+  1255→                          onChange={(e) =>
+  1256→                            props.onUpdatePreferences({
+  1257→                              dndEndHour: Math.max(0, Math.min(23, Number(e.target.value) || 0)),
+  1258→                            })
+  1259→                          }
+  1260→                          aria-label="DND hasta hora"
+  1261→                          style={{
+  1262→                            width: 64,
+  1263→                            padding: "6px 8px",
+  1264→                            borderRadius: 8,
+  1265→                            border: "1px solid #e2d4f5",
+  1266→                            background: "rgba(255,255,255,0.8)",
+  1267→                            fontSize: 14,
+  1268→                            textAlign: "center",
+  1269→                          }}
+  1270→                        />
+  1271→                        <span style={{ fontSize: 12, color: "#64748b" }}>hs</span>
+  1272→                      </div>
+  1273→                    </Field>
+  1274→                  </>
+  1275→                )}
+  1276→
+  1277→                {meta.id === "privacidad" && (
+  1278→                  <>
+  1279→                    <Row label="Bloqueo de la app" hint="WebAuthn / biometría">
+  1280→                      <span
+  1281→                        style={{
+  1282→                          display: "inline-flex",
+  1283→                          alignItems: "center",
+  1284→                          gap: 6,
+  1285→                          padding: "4px 10px",
+  1286→                          borderRadius: 999,
+  1287→                          background: "#fde68a",
+  1288→                          color: "#92400e",
+  1289→                          fontSize: 11,
+  1290→                          fontWeight: 700,
+  1291→                        }}
+  1292→                      >
+  1293→                        <Lock size={12} /> próximoamente
+  1294→                      </span>
+  1295→                    </Row>
+  1296→                    <Row
+  1297→                      label="Modo offline (ephemeral)"
+  1298→                      hint="No guarda nada en el servidor. La memoria se pierde al cerrar."
+  1299→                    >
+  1300→                      <Toggle
+  1301→                        checked={state.ephemeralMode}
+  1302→                        onChange={() => props.onToggleEphemeral()}
+  1303→                        aria-label="Modo offline ephemeral"
+  1304→                      />
+  1305→                    </Row>
+  1306→                    <Row
+  1307→                      label="Memoria durable"
+  1308→                      hint="Koru recordará entre sesiones."
+  1309→                    >
+  1310→                      <Toggle
+  1311→                        checked={state.durableMemoryEnabled}
+  1312→                        onChange={() => props.onToggleDurableMemory()}
+  1313→                        aria-label="Memoria durable"
+  1314→                      />
+  1315→                    </Row>
+  1316→                    <Row label="Retención de memoria" hint="Auto-archivar recuerdos antiguos">
+  1317→                      <SelectInput
+  1318→                        value={retention}
+  1319→                        ariaLabel="Retención de memoria"
+  1320→                        onChange={setRetention}
+  1321→                        options={RETENTION_OPTIONS}
+  1322→                      />
+  1323→                    </Row>
+  1324→                    <Row label="Exportar mis datos" hint="Descarga un JSON con todo tu estado" stacked>
+  1325→                      <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+  1326→                        <PillButton onClick={props.onExportData}>
+  1327→                          <Download size={14} /> Exportar
+  1328→                        </PillButton>
+  1329→                      </div>
+  1330→                    </Row>
+  1331→                    <Row label="Eliminar todos los datos" hint="Borra perfil, memorias y registros. No se puede deshacer." stacked>
+  1332→                      <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+  1333→                        <PillButton variant="danger" onClick={() => setDeleteOpen(true)}>
+  1334→                          <Trash2 size={14} /> Borrar todo
+  1335→                        </PillButton>
+  1336→                      </div>
+  1337→                    </Row>
+  1338→                  </>
+  1339→                )}
+  1340→
+  1341→                {meta.id === "integraciones" && (
+  1342→                  <>
+  1343→                    <IntegrationRow
+  1344→                      icon={<Calendar size={16} />}
+  1345→                      title="Google Calendar"
+  1346→                      connected={googleCalendarStatus === "connected" || integrations.calendar?.connected === true}
+  1347→                      lastSync={integrations.calendar?.lastSync}
+  1348→                      connecting={googleCalendarStatus === "pending"}
+  1349→                      onConnect={connectGoogleCalendar}
+  1350→                      onDisconnect={disconnectGoogleCalendar}
+  1351→                    />
+  1352→                    <IntegrationRow
+  1353→                      icon={<Landmark size={16} />}
+  1354→                      title="Bancos (Plaid / Tink)"
+  1355→                      connected={integrations.banks?.connected ?? false}
+  1356→                      lastSync={integrations.banks?.lastSync}
+  1357→                      onConnect={() => connectIntegration("banks")}
+  1358→                      onDisconnect={() => disconnectIntegration("banks")}
+  1359→                    />
+  1360→                    <IntegrationRow
+  1361→                      icon={<Bitcoin size={16} />}
+  1362→                      title="Exchanges de crypto"
+  1363→                      connected={integrations.crypto?.connected ?? false}
+  1364→                      lastSync={integrations.crypto?.lastSync}
+  1365→                      onConnect={() => connectIntegration("crypto")}
+  1366→                      onDisconnect={() => disconnectIntegration("crypto")}
+  1367→                    />
+  1368→                    <p style={{ margin: "10px 0 0", fontSize: 11, color: "#94a3b8" }}>
+  1369→                      Las conexiones son placeholders visuales por ahora. La sincronización real
+  1370→                      arriveá con OAuth en una próxima iteración.
+  1371→                    </p>
+  1372→                  </>
+  1373→                )}
+  1374→
+  1375→                {meta.id === "memoria" && (
+  1376→                  <>
+  1377→                    <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+  1378→                      <div style={{ position: "relative", flex: "1 1 160px", minWidth: 160 }}>
+  1379→                        <Search
+  1380→                          size={14}
+  1381→                          style={{
+  1382→                            position: "absolute",
+  1383→                            left: 10,
+  1384→                            top: "50%",
+  1385→                            transform: "translateY(-50%)",
+  1386→                            color: "#94a3b8",
+  1387→                            pointerEvents: "none",
+  1388→                          }}
+  1389→                        />
+  1390→                        <input
+  1391→                          type="text"
+  1392→                          value={memSearch}
+  1393→                          onChange={(e) => setMemSearch(e.target.value)}
+  1394→                          placeholder="Buscar memoria…"
+  1395→                          aria-label="Buscar memoria"
+  1396→                          style={{
+  1397→                            width: "100%",
+  1398→                            padding: "8px 10px 8px 30px",
+  1399→                            borderRadius: 10,
+  1400→                            border: "1px solid #e2d4f5",
+  1401→                            background: "rgba(255,255,255,0.8)",
+  1402→                            fontSize: 13,
+  1403→                            outline: "none",
+  1404→                          }}
+  1405→                        />
+  1406→                      </div>
+  1407→                      <SelectInput
+  1408→                        value={memKindFilter}
+  1409→                        ariaLabel="Filtrar por tipo"
+  1410→                        onChange={setMemKindFilter}
+  1411→                        options={MEMORY_KIND_FILTERS}
+  1412→                      />
+  1413→                    </div>
+  1414→
+  1415→                    <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 320, overflowY: "auto", paddingRight: 4 }}>
+  1416→                      {filteredMemories.length === 0 && (
+  1417→                        <div style={{ padding: 16, textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
+  1418→                          {state.memories.length === 0 ? "Koru todavía no registró memorias." : "Sin memorias para este filtro."}
+  1419→                        </div>
+  1420→                      )}
+  1421→                      {filteredMemories.map((m) => (
+  1422→                        <MemoryRow
+  1423→                          key={m.id}
+  1424→                          memory={m}
+  1425→                          onForget={() => props.onForgetMemory(m.id)}
+  1426→                        />
+  1427→                      ))}
+  1428→                    </div>
+  1429→                    <p style={{ margin: "10px 0 0", fontSize: 11, color: "#94a3b8" }}>
+  1430→                      {filteredMemories.length} de {state.memories.length} memorias
+  1431→                    </p>
+  1432→                  </>
+  1433→                )}
+  1434→
+  1435→                {meta.id === "accesibilidad" && (
+  1436→                  <>
+  1437→                    <Row label="Hints para lector de pantalla" hint="Descripciones adicionales en ARIA">
+  1438→                      <Toggle
+  1439→                        checked={prefs.highContrast}
+  1440→                        onChange={(v) => props.onUpdatePreferences({ highContrast: v })}
+  1441→                        aria-label="Hints para lector de pantalla"
+  1442→                      />
+  1443→                    </Row>
+  1444→                    <Row
+  1445→                      label="Movimiento reducido"
+  1446→                      hint={systemReducedMotion ? "Activado por tu sistema." : "Sincronizado con Apariencia."}
+  1447→                    >
+  1448→                      <Toggle
+  1449→                        checked={reducedMotionEffective}
+  1450→                        onChange={(v) => props.onUpdatePreferences({ reducedMotion: v })}
+  1451→                        aria-label="Movimiento reducido"
+  1452→                      />
+  1453→                    </Row>
+  1454→                    <Row
+  1455→                      label="Alto contraste"
+  1456→                      hint="Sincronizado con Apariencia."
+  1457→                    >
+  1458→                      <Toggle
+  1459→                        checked={prefs.highContrast}
+  1460→                        onChange={(v) => props.onUpdatePreferences({ highContrast: v })}
+  1461→                        aria-label="Alto contraste"
+  1462→                      />
+  1463→                    </Row>
+  1464→                    <div
+  1465→                      style={{
+  1466→                        marginTop: 12,
+  1467→                        padding: 12,
+  1468→                        borderRadius: 12,
+  1469→                        background: "rgba(255,255,255,0.5)",
+  1470→                        border: "1px solid rgba(13,148,136,0.15)",
+  1471→                        fontSize: 12,
+  1472→                        color: "#0f766e",
+  1473→                        lineHeight: 1.5,
+  1474→                      }}
+  1475→                    >
+  1476→                      <strong>Navegación por teclado:</strong> Tab / Shift+Tab para moverte entre
+  1477→                      controles · Enter o Espacio para activar · Esc para cerrar dialogs.
+  1478→                    </div>
+  1479→                  </>
+  1480→                )}
+  1481→              </SectionCard>
+  1482→            );
+  1483→          })}
+  1484→
+  1485→          {/* Footer hint */}
+  1486→          <div style={{ padding: "8px 4px 16px", textAlign: "center", color: "#94a3b8", fontSize: 11 }}>
+  1487→            Koru · Ajustes integrados v1
+  1488→          </div>
+  1489→        </div>
+  1490→
+  1491→        {/* Delete-all confirmation — requiere tipear ELIMINAR */}
+  1492→        {deleteOpen && (
+  1493→          <div
+  1494→            role="dialog"
+  1495→            aria-label="Confirmar eliminación"
+  1496→            style={{
+  1497→              position: "fixed",
+  1498→              inset: 0,
+  1499→              zIndex: 250,
+  1500→              display: "flex",
+  1501→              alignItems: "center",
+  1502→              justifyContent: "center",
+  1503→              padding: 20,
+  1504→              background: "rgba(11, 28, 48, 0.55)",
+  1505→              backdropFilter: "blur(4px)",
+  1506→            }}
+  1507→          >
+  1508→            <div
+  1509→              style={{
+  1510→                width: "100%",
+  1511→                maxWidth: 360,
+  1512→                padding: 20,
+  1513→                borderRadius: 20,
+  1514→                background: "#ffffff",
+  1515→                boxShadow: "0 24px 60px rgba(129, 39, 207, 0.25)",
+  1516→              }}
+  1517→            >
+  1518→              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, color: "#b91c1c" }}>
+  1519→                <AlertTriangle size={18} />
+  1520→                <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800 }}>Acción destructiva</h3>
+  1521→              </div>
+  1522→              <p style={{ margin: "0 0 12px", fontSize: 13, color: "#475569", lineHeight: 1.5 }}>
+  1523→                Esto borrará tu perfil, todas tus memorias, compromisos y registros. No se puede
+  1524→                deshacer. Para confirmar, escribí <strong>ELIMINAR</strong>:
+  1525→              </p>
+  1526→              <input
+  1527→                type="text"
+  1528→                value={deleteConfirmText}
+  1529→                onChange={(e) => setDeleteConfirmText(e.target.value)}
+  1530→                placeholder="ELIMINAR"
+  1531→                aria-label="Escribí ELIMINAR para confirmar"
+  1532→                autoFocus
+  1533→                style={{
+  1534→                  width: "100%",
+  1535→                  padding: "10px 12px",
+  1536→                  borderRadius: 10,
+  1537→                  border: "1px solid #fecaca",
+  1538→                  background: "#fef2f2",
+  1539→                  fontSize: 14,
+  1540→                  color: "#0b1c30",
+  1541→                  outline: "none",
+  1542→                  letterSpacing: "0.05em",
+  1543→                }}
+  1544→              />
+  1545→              <div style={{ display: "flex", gap: 8, marginTop: 14, justifyContent: "flex-end" }}>
+  1546→                <PillButton
+  1547→                  onClick={() => {
+  1548→                    setDeleteOpen(false);
+  1549→                    setDeleteConfirmText("");
+  1550→                  }}
+  1551→                >
+  1552→                  Cancelar
+  1553→                </PillButton>
+  1554→                <PillButton
+  1555→                  variant="danger"
+  1556→                  disabled={deleteConfirmText.trim().toUpperCase() !== "ELIMINAR"}
+  1557→                  onClick={handleDeleteAll}
+  1558→                >
+  1559→                  <Trash2 size={14} /> Eliminar todo
+  1560→                </PillButton>
+  1561→              </div>
+  1562→            </div>
+  1563→          </div>
+  1564→        )}
+  1565→      </div>
+  1566→    </div>
+  1567→  );
+  1568→}
+  1569→
+  1570→// ─── Sub-rows específicas ──────────────────────────────────────────────────────
+  1571→
+  1572→function IntegrationRow({
+  1573→  icon,
+  1574→  title,
+  1575→  connected,
+  1576→  lastSync,
+  1577→  connecting,
+  1578→  onConnect,
+  1579→  onDisconnect,
+  1580→}: {
+  1581→  icon: ReactNode;
+  1582→  title: string;
+  1583→  connected: boolean;
+  1584→  lastSync?: string;
+  1585→  connecting?: boolean;
+  1586→  onConnect: () => void;
+  1587→  onDisconnect: () => void;
+  1588→}) {
+  1589→  return (
+  1590→    <div
+  1591→      style={{
+  1592→        display: "flex",
+  1593→        alignItems: "center",
+  1594→        justifyContent: "space-between",
+  1595→        gap: 10,
+  1596→        padding: "12px 0",
+  1597→        borderBottom: "1px solid rgba(129, 39, 207, 0.08)",
+  1598→      }}
+  1599→    >
+  1600→      <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+  1601→        <div
+  1602→          style={{
+  1603→            display: "flex",
+  1604→            width: 34,
+  1605→            height: 34,
+  1606→            alignItems: "center",
+  1607→            justifyContent: "center",
+  1608→            borderRadius: 10,
+  1609→            background: connected ? "#dcfce7" : "#f1f5f9",
+  1610→            color: connected ? "#16a34a" : "#475569",
+  1611→          }}
+  1612→        >
+  1613→          {icon}
+  1614→        </div>
+  1615→        <div style={{ minWidth: 0 }}>
+  1616→          <div style={{ fontSize: 14, fontWeight: 600, color: "#0b1c30" }}>{title}</div>
+  1617→          <div style={{ fontSize: 11, color: "#94a3b8" }}>
+  1618→            {connected
+  1619→              ? lastSync
+  1620→                ? `Última sync: ${formatLastSync(lastSync)}`
+  1621→                : "Conectado ✓"
+  1622→              : connecting
+  1623→                ? "Conectando…"
+  1624→                : "No conectado"}
+  1625→          </div>
+  1626→        </div>
+  1627→      </div>
+  1628→      {connected ? (
+  1629→        <PillButton onClick={onDisconnect} variant="ghost">
+  1630→          <Check size={14} /> Desconectar
+  1631→        </PillButton>
+  1632→      ) : connecting ? (
+  1633→        <PillButton onClick={onConnect} variant="primary" disabled>
+  1634→          Conectando…
+  1635→        </PillButton>
+  1636→      ) : (
+  1637→        <PillButton onClick={onConnect} variant="primary">
+  1638→          Conectar
+  1639→        </PillButton>
+  1640→      )}
+  1641→    </div>
+  1642→  );
+  1643→}
+  1644→
+  1645→function MemoryRow({
+  1646→  memory,
+  1647→  onForget,
+  1648→}: {
+  1649→  memory: MemoryFact;
+  1650→  onForget: () => void;
+  1651→}) {
+  1652→  const isSensitive = memory.sensitivity === "sensitive";
+  1653→  const confidencePct = Math.round((memory.confidence ?? 0) * 100);
+  1654→  return (
+  1655→    <div
+  1656→      style={{
+  1657→        padding: 10,
+  1658→        borderRadius: 12,
+  1659→        background: "rgba(255,255,255,0.6)",
+  1660→        border: "1px solid rgba(129, 39, 207, 0.06)",
+  1661→      }}
+  1662→    >
+  1663→      <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+  1664→        <div style={{ flex: "1 1 auto", minWidth: 0 }}>
+  1665→          <p style={{ margin: 0, fontSize: 13, color: "#0b1c30", lineHeight: 1.4 }}>
+  1666→            {truncate(memory.text, 110)}
+  1667→          </p>
+  1668→          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6, marginTop: 6 }}>
+  1669→            <span
+  1670→              style={{
+  1671→                padding: "2px 8px",
+  1672→                borderRadius: 6,
+  1673→                background: "#ede9fe",
+  1674→                color: "#7c3aed",
+  1675→                fontSize: 10,
+  1676→                fontWeight: 700,
+  1677→                textTransform: "uppercase",
+  1678→                letterSpacing: 0.4,
+  1679→              }}
+  1680→            >
+  1681→              {MEMORY_KIND_LABEL[memory.kind]}
+  1682→            </span>
+  1683→            <span
+  1684→              style={{
+  1685→                padding: "2px 8px",
+  1686→                borderRadius: 6,
+  1687→                background: confidencePct >= 80 ? "#dcfce7" : confidencePct >= 50 ? "#fef9c3" : "#fee2e2",
+  1688→                color: confidencePct >= 80 ? "#15803d" : confidencePct >= 50 ? "#a16207" : "#b91c1c",
+  1689→                fontSize: 10,
+  1690→                fontWeight: 700,
+  1691→              }}
+  1692→            >
+  1693→              {confidencePct}%
+  1694→            </span>
+  1695→            {isSensitive && (
+  1696→              <span
+  1697→                title="Sensible"
+  1698→                style={{
+  1699→                  display: "inline-flex",
+  1700→                  alignItems: "center",
+  1701→                  gap: 3,
+  1702→                  padding: "2px 6px",
+  1703→                  borderRadius: 6,
+  1704→                  background: "#fce7f3",
+  1705→                  color: "#be185d",
+  1706→                  fontSize: 10,
+  1707→                  fontWeight: 700,
+  1708→                }}
+  1709→              >
+  1710→                <Lock size={10} /> Sensible
+  1711→              </span>
+  1712→            )}
+  1713→          </div>
+  1714→        </div>
+  1715→        <button
+  1716→          type="button"
+  1717→          onClick={onForget}
+  1718→          aria-label={`Olvidar memoria: ${truncate(memory.text, 40)}`}
+  1719→          style={{
+  1720→            display: "inline-flex",
+  1721→            alignItems: "center",
+  1722→            gap: 4,
+  1723→            padding: "6px 10px",
+  1724→            borderRadius: 8,
+  1725→            border: "1px solid #fecaca",
+  1726→            background: "#fef2f2",
+  1727→            color: "#b91c1c",
+  1728→            fontSize: 12,
+  1729→            fontWeight: 600,
+  1730→            cursor: "pointer",
+  1731→            flexShrink: 0,
+  1732→          }}
+  1733→        >
+  1734→          <CloudOff size={12} /> Olvidar
+  1735→        </button>
+  1736→      </div>
+  1737→    </div>
+  1738→  );
+  1739→}
+  1740→
+  1741→// 🔴 Default export para React.lazy en App.tsx.
+  1742→// El named export `SettingsScreen` se mantiene por compatibilidad con tests.
+  1743→export default SettingsScreen;
+  1744→
+  1745→

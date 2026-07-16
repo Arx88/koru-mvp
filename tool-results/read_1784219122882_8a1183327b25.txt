@@ -1,0 +1,1131 @@
+     1→     1→import { useMemo, useRef, useState, type CSSProperties, type TouchEvent } from "react";
+     2→     2→import type { KoruState, ProactiveNudge } from "../domain/types";
+     3→     3→import { computeStreak } from "../domain/store";
+     4→     4→
+     5→     5→// 🔴 Code-splitting: App.tsx carga HomeScreen via React.lazy. Necesitamos
+     6→     6→// un default export para que `lazy(() => import("./HomeScreen"))` funcione.
+     7→     7→// El named export `HomeScreen` se mantiene por compatibilidad con tests y
+     8→     8→// otros importers.
+     9→     9→
+    10→    10→// ═══════════════════════════════════════════════════════════════════════════
+    11→    11→//  Home dashboard — pantalla "Hoy" del wheel de navegación.
+    12→    12→//  Muestra el día de un vistazo: saludo temporal, items del día (2x2),
+    13→    13→//  calendario horizontal, prioridades, clima, nudges proactivos y
+    14→    14→//  acciones rápidas. Reutiliza los tokens visuales Stitch:
+    15→    15→//    • `.koru-roadmap` + `.koru-roadmap-screen` → fondo difuminado + 430px
+    16→    16→//    • `.koru-detail-sticky-head` → header sticky con blur
+    17→    17→//    • `.koru-plan-hero` → hero de saludo
+    18→    18→//    • `.koru-magical-card` → tiles con gradiente + shadow tokens
+    19→    19→//
+    20→    20→//  🔴 TIER S: esta pantalla es el caller principal de varios reducers del
+    21→    21→//  store que antes no tenían uso en la UI:
+    22→    22→//    • logWellbeing — tile de hidratación (+250ml por tap)
+    23→    23→//    • logHabit — botón "marcar hecho" en cada hábito del día
+    24→    24→//    • computeStreak — streak count junto a cada hábito
+    25→    25→//  Los callbacks onLogWater / onLogHabit / onRefreshWeather los provee
+    26→    26→//  App.tsx desde useKoru() (que a su vez llama a los wrappers de KoruProvider).
+    27→    27→// ═══════════════════════════════════════════════════════════════════════════
+    28→    28→
+    29→    29→export interface HomeScreenProps {
+    30→    30→  state: KoruState;
+    31→    31→  onNavigate: (screen: string) => void;
+    32→    32→  onCreate: () => void;
+    33→    33→  onSearch: () => void;
+    34→    34→  onTalk: () => void;
+    35→    35→  onDismissNudge: (nudgeId: string) => void;
+    36→    36→  // 🔴 TIER S: callbacks para invocar reducers del store desde los widgets.
+    37→    37→  onLogWater?: (ml: number) => void;
+    38→    38→  onLogHabit?: (habitId: string) => void;
+    39→    39→  onRefreshWeather?: () => void;
+    40→    40→}
+    41→    41→
+    42→    42→const HYDRATION_GOAL_ML = 2000;
+    43→    43→const PULL_THRESHOLD = 64;
+    44→    44→
+    45→    45→function todayISO(): string {
+    46→    46→  return new Date().toISOString().slice(0, 10);
+    47→    47→}
+    48→    48→
+    49→    49→function greetingFor(hour: number): string {
+    50→    50→  if (hour < 12) return "Buenos días";
+    51→    51→  if (hour <= 20) return "Buenas tardes";
+    52→    52→  return "Buenas noches";
+    53→    53→}
+    54→    54→
+    55→    55→function timeLabel(iso: string): string {
+    56→    56→  const d = new Date(iso);
+    57→    57→  if (Number.isNaN(d.getTime())) return "";
+    58→    58→  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    59→    59→}
+    60→    60→
+    61→    61→const DAY_MS = 24 * 60 * 60 * 1000;
+    62→    62→
+    63→    63→export function HomeScreen({
+    64→    64→  state,
+    65→    65→  onNavigate,
+    66→    66→  onCreate,
+    67→    67→  onSearch,
+    68→    68→  onTalk,
+    69→    69→  onDismissNudge,
+    70→    70→  onLogWater,
+    71→    71→  onLogHabit,
+    72→    72→  onRefreshWeather,
+    73→    73→}: HomeScreenProps) {
+    74→    74→  // ── Pull-to-refresh (visual indicator only — no refresh logic) ────────────
+    75→    75→  const scrollerRef = useRef<HTMLDivElement | null>(null);
+    76→    76→  const touchStartY = useRef<number | null>(null);
+    77→    77→  const [pull, setPull] = useState(0);
+    78→    78→
+    79→    79→  const onTouchStart = (e: TouchEvent<HTMLDivElement>) => {
+    80→    80→    if ((scrollerRef.current?.scrollTop ?? 0) > 0) return;
+    81→    81→    touchStartY.current = e.touches[0].clientY;
+    82→    82→  };
+    83→    83→  const onTouchMove = (e: TouchEvent<HTMLDivElement>) => {
+    84→    84→    if (touchStartY.current == null) return;
+    85→    85→    const delta = e.touches[0].clientY - touchStartY.current;
+    86→    86→    if (delta > 0 && (scrollerRef.current?.scrollTop ?? 0) <= 0) {
+    87→    87→      // Easing: los primeros 160px se resisten, luego tope de 80px.
+    88→    88→      const eased = Math.min(80, delta * 0.5);
+    89→    89→      setPull(eased);
+    90→    90→    }
+    91→    91→  };
+    92→    92→  const onTouchEnd = () => {
+    93→    93→    touchStartY.current = null;
+    94→    94→    // Visual indicator only — snap back without refreshing.
+    95→    95→    setPull(0);
+    96→    96→  };
+    97→    97→
+    98→    98→  // ── Derived data ───────────────────────────────────────────────────────────
+    99→    99→  const d = useMemo(() => {
+   100→   100→    const today = todayISO();
+   101→   101→    const hour = new Date().getHours();
+   102→   102→    const greeting = greetingFor(hour);
+   103→   103→    const name = state.userProfile?.name || state.userName || "";
+   104→   104→
+   105→   105→    const eventsToday = (state.calendarEvents ?? []).filter((e) =>
+   106→   106→      e.startsAt?.startsWith(today),
+   107→   107→    );
+   108→   108→
+   109→   109→    const deadlinesToday = (state.commitments ?? []).filter(
+   110→   110→      (c) => c.status === "open" && c.dueAt?.startsWith(today),
+   111→   111→    );
+   112→   112→
+   113→   113→    const waterLogs = (state.wellbeingLogs ?? []).filter(
+   114→   114→      (l) => l.date === today && l.metric === "water",
+   115→   115→    );
+   116→   116→    const waterMl = waterLogs.reduce((sum, l) => sum + (l.value || 0), 0);
+   117→   117→
+   118→   118→    const habits = state.habits ?? [];
+   119→   119→    const habitLogsToday = state.habitLogs ?? [];
+   120→   120→    const activeHabits = habits.filter((h) => h.active);
+   121→   121→    const habitsRemaining = activeHabits.filter(
+   122→   122→      (h) => !habitLogsToday.some((l) => l.habitId === h.id && l.date === today),
+   123→   123→    );
+   124→   124→    // 🔴 TIER S: streak por hábito via computeStreak reducer (función pura).
+   125→   125→    // Lo precomputamos acá para que el render sólo haga un lookup por id.
+   126→   126→    const streakByHabitId: Record<string, number> = {};
+   127→   127→    for (const h of activeHabits) {
+   128→   128→      streakByHabitId[h.id] = computeStreak(h.id, habitLogsToday);
+   129→   129→    }
+   130→   130→
+   131→   131→    // Prioridades — 4 cuadrantes. `Commitment` no tiene campo `priority`,
+   132→   132→    // así que usamos proximidad de `dueAt` + recurrencia como heurística.
+   133→   133→    const openCommitments = (state.commitments ?? []).filter(
+   134→   134→      (c) => c.status === "open",
+   135→   135→    );
+   136→   136→    const now = Date.now();
+   137→   137→    const urgente = openCommitments.filter((c) => {
+   138→   138→      if (!c.dueAt) return false;
+   139→   139→      const due = new Date(c.dueAt).getTime();
+   140→   140→      return Number.isNaN(due) ? false : due <= now + DAY_MS; // vence hoy o ya vencido
+   141→   141→    });
+   142→   142→    const importante = openCommitments.filter((c) => {
+   143→   143→      if (!c.dueAt) return false;
+   144→   144→      const due = new Date(c.dueAt).getTime();
+   145→   145→      if (Number.isNaN(due)) return false;
+   146→   146→      return due > now + DAY_MS && due <= now + 3 * DAY_MS;
+   147→   147→    });
+   148→   148→    const rutina = openCommitments.filter((c) => !!c.recurrence);
+   149→   149→    const opcional = openCommitments.filter((c) => !c.dueAt && !c.recurrence);
+   150→   150→
+   151→   151→    const activeNudges = (state.nudges ?? []).filter((n) => !n.dismissed);
+   152→   152→
+   153→   153→    return {
+   154→   154→      today,
+   155→   155→      greeting,
+   156→   156→      name,
+   157→   157→      eventsToday,
+   158→   158→      deadlinesToday,
+   159→   159→      waterMl,
+   160→   160→      habitsRemaining,
+   161→   161→      activeHabits,
+   162→   162→      streakByHabitId,
+   163→   163→      urgente,
+   164→   164→      importante,
+   165→   165→      rutina,
+   166→   166→      opcional,
+   167→   167→      activeNudges,
+   168→   168→    };
+   169→   169→  }, [state]);
+   170→   170→
+   171→   171→  const {
+   172→   172→    greeting,
+   173→   173→    name,
+   174→   174→    eventsToday,
+   175→   175→    deadlinesToday,
+   176→   176→    waterMl,
+   177→   177→    habitsRemaining,
+   178→   178→    activeHabits,
+   179→   179→    streakByHabitId,
+   180→   180→    urgente,
+   181→   181→    importante,
+   182→   182→    rutina,
+   183→   183→    opcional,
+   184→   184→    activeNudges,
+   185→   185→  } = d;
+   186→   186→
+   187→   187→  const waterPct = Math.min(100, Math.round((waterMl / HYDRATION_GOAL_ML) * 100));
+   188→   188→  const todayLong = new Date().toLocaleDateString("es", {
+   189→   189→    weekday: "long",
+   190→   190→    day: "numeric",
+   191→   191→    month: "long",
+   192→   192→  });
+   193→   193→
+   194→   194→  return (
+   195→   195→    <div className="koru-roadmap" role="region" aria-label="Hoy — Koru">
+   196→   196→      <div
+   197→   197→        ref={scrollerRef}
+   198→   198→        className="koru-roadmap-screen"
+   199→   199→        onTouchStart={onTouchStart}
+   200→   200→        onTouchMove={onTouchMove}
+   201→   201→        onTouchEnd={onTouchEnd}
+   202→   202→        style={{ overscrollBehaviorY: "contain" }}
+   203→   203→      >
+   204→   204→        {/* Blobs decorativos Stitch */}
+   205→   205→        <div className="koru-roadmap-blob-1" />
+   206→   206→        <div className="koru-roadmap-blob-2" />
+   207→   207→
+   208→   208→        {/* Pull-to-refresh indicator (visual only) */}
+   209→   209→        <div
+   210→   210→          aria-hidden
+   211→   211→          style={{
+   212→   212→            height: pull,
+   213→   213→            flexShrink: 0,
+   214→   214→            display: pull > 0 ? "flex" : "none",
+   215→   215→            alignItems: "flex-end",
+   216→   216→            justifyContent: "center",
+   217→   217→            overflow: "hidden",
+   218→   218→            transition: pull === 0 ? "height 220ms ease" : "none",
+   219→   219→          }}
+   220→   220→        >
+   221→   221→          <span
+   222→   222→            className="material-symbols-outlined"
+   223→   223→            style={{
+   224→   224→              fontSize: 22,
+   225→   225→              color: "#8363f9",
+   226→   226→              transform: `rotate(${pull * 3}deg)`,
+   227→   227→              opacity: Math.min(1, pull / PULL_THRESHOLD),
+   228→   228→              marginBottom: 6,
+   229→   229→            }}
+   230→   230→          >
+   231→   231→            {pull >= PULL_THRESHOLD ? "autorenew" : "progress_activity"}
+   232→   232→          </span>
+   233→   233→        </div>
+   234→   234→
+   235→   235→        {/* Sticky header — Koru brand + saludo + buscar + hablar */}
+   236→   236→        <header className="koru-detail-sticky-head">
+   237→   237→          <button
+   238→   238→            type="button"
+   239→   239→            aria-label="Hablar con Koru"
+   240→   240→            className="koru-detail-sticky-back"
+   241→   241→            onClick={onTalk}
+   242→   242→          >
+   243→   243→            <span className="material-symbols-outlined">graphic_eq</span>
+   244→   244→          </button>
+   245→   245→          <div className="koru-detail-mini-icon" style={brandIconStyle}>
+   246→   246→            <span className="material-symbols-outlined">eco</span>
+   247→   247→          </div>
+   248→   248→          <div style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1 }}>
+   249→   249→            <span className="koru-detail-mini-title">Koru</span>
+   250→   250→            <span className="koru-detail-mini-sub">
+   251→   251→              {greeting}
+   252→   252→              {name ? `, ${name}` : ""}
+   253→   253→            </span>
+   254→   254→          </div>
+   255→   255→          <button
+   256→   256→            type="button"
+   257→   257→            aria-label="Buscar"
+   258→   258→            className="koru-detail-sticky-back"
+   259→   259→            onClick={onSearch}
+   260→   260→          >
+   261→   261→            <span className="material-symbols-outlined">search</span>
+   262→   262→          </button>
+   263→   263→        </header>
+   264→   264→
+   265→   265→        <div className="koru-roadmap-modules">
+   266→   266→          {/* ── Hero de saludo ─────────────────────────────────────────────── */}
+   267→   267→          <section
+   268→   268→            className="koru-plan-hero is-tappable"
+   269→   269→            onClick={onTalk}
+   270→   270→            role="button"
+   271→   271→            tabIndex={0}
+   272→   272→          >
+   273→   273→            <div className="koru-plan-hero-top">
+   274→   274→              <div className="koru-plan-hero-copy">
+   275→   275→                <p className="koru-plan-hero-kicker">Hoy · {todayLong}</p>
+   276→   276→                <h2 className="koru-plan-hero-title">
+   277→   277→                  {greeting}
+   278→   278→                  {name ? `, ${name}` : ""}
+   279→   279→                </h2>
+   280→   280→                <p className="koru-plan-hero-desc">
+   281→   281→                  {eventsToday.length > 0 || deadlinesToday.length > 0 ? (
+   282→   282→                    <>
+   283→   283→                      Tenés <b>{eventsToday.length}</b>{" "}
+   284→   284→                      evento{eventsToday.length === 1 ? "" : "s"} y{" "}
+   285→   285→                      <b>{deadlinesToday.length}</b>{" "}
+   286→   286→                      deadline{deadlinesToday.length === 1 ? "" : "s"} hoy.
+   287→   287→                    </>
+   288→   288→                  ) : (
+   289→   289→                    <>Tu día está despejado. Contale a Koru qué querés hacer hoy.</>
+   290→   290→                  )}
+   291→   291→                </p>
+   292→   292→              </div>
+   293→   293→              <div
+   294→   294→                className="koru-plan-hero-art"
+   295→   295→                style={{
+   296→   296→                  background: "linear-gradient(135deg, #f0dbff, #d4b8ff)",
+   297→   297→                  display: "grid",
+   298→   298→                  placeItems: "center",
+   299→   299→                  borderRadius: 24,
+   300→   300→                }}
+   301→   301→              >
+   302→   302→                <span
+   303→   303→                  className="material-symbols-outlined"
+   304→   304→                  style={{ fontSize: 56, color: "#4648d4" }}
+   305→   305→                >
+   306→   306→                  eco
+   307→   307→                </span>
+   308→   308→              </div>
+   309→   309→            </div>
+   310→   310→          </section>
+   311→   311→
+   312→   312→          {/* ── Items del día (2x2) ─────────────────────────────────────────── */}
+   313→   313→          <section className="koru-magical-card" style={{ padding: 18 }}>
+   314→   314→            <div className="koru-module-head" style={{ marginBottom: 12 }}>
+   315→   315→              <div className="koru-module-id">
+   316→   316→                <div
+   317→   317→                  className="koru-module-icon"
+   318→   318→                  style={
+   319→   319→                    {
+   320→   320→                      "--module-color": "#4648d4",
+   321→   321→                      "--module-bg": "#ece8ff",
+   322→   322→                    } as CSSProperties
+   323→   323→                  }
+   324→   324→                >
+   325→   325→                  <span className="material-symbols-outlined">today</span>
+   326→   326→                </div>
+   327→   327→                <div>
+   328→   328→                  <h3 className="koru-module-title">Items del día</h3>
+   329→   329→                  <p className="koru-module-kicker">Lo que manda hoy</p>
+   330→   330→                </div>
+   331→   331→              </div>
+   332→   332→            </div>
+   333→   333→            <div style={grid2Style}>
+   334→   334→              <ItemTile
+   335→   335→                icon="event"
+   336→   336→                label="Eventos hoy"
+   337→   337→                value={eventsToday.length}
+   338→   338→                accent="#4648d4"
+   339→   339→                soft="#ece8ff"
+   340→   340→                onClick={() => onNavigate("historial")}
+   341→   341→              />
+   342→   342→              <ItemTile
+   343→   343→                icon="task_alt"
+   344→   344→                label="Deadlines hoy"
+   345→   345→                value={deadlinesToday.length}
+   346→   346→                accent="#e8593c"
+   347→   347→                soft="#ffe7e1"
+   348→   348→                onClick={onTalk}
+   349→   349→              />
+   350→   350→              <ItemTile
+   351→   351→                icon="water_drop"
+   352→   352→                label="Hidratación"
+   353→   353→                value={waterMl}
+   354→   354→                suffix={`/ ${HYDRATION_GOAL_ML}ml`}
+   355→   355→                pct={waterPct}
+   356→   356→                accent="#3a8dde"
+   357→   357→                soft="#e3f0ff"
+   358→   358→                // 🔴 TIER S: tapping the water tile logs +250ml via logWellbeing.
+   359→   359→                // Si onLogWater no está wired (ej. en tests), cae a onTalk.
+   360→   360→                onClick={() => {
+   361→   361→                  if (onLogWater) onLogWater(250);
+   362→   362→                  else onTalk();
+   363→   363→                }}
+   364→   364→              />
+   365→   365→              <ItemTile
+   366→   366→                icon="repeat"
+   367→   367→                label="Hábitos"
+   368→   368→                value={habitsRemaining.length}
+   369→   369→                suffix={habitsRemaining.length === 1 ? " restante" : " restantes"}
+   370→   370→                accent="#22a06b"
+   371→   371→                soft="#e3f7ed"
+   372→   372→                // 🔴 TIER S: tapping the habits tile marks the first remaining
+   373→   373→                // habit as done via logHabit. Si no quedan hábitos o el callback
+   374→   374→                // no está wired, cae a onTalk.
+   375→   375→                onClick={() => {
+   376→   376→                  if (onLogHabit && habitsRemaining[0]) onLogHabit(habitsRemaining[0].id);
+   377→   377→                  else onTalk();
+   378→   378→                }}
+   379→   379→              />
+   380→   380→            </div>
+   381→   381→          </section>
+   382→   382→
+   383→   383→          {/* ── Hábitos de hoy (lista con streak + marcar hecho) ─────────────── */}
+   384→   384→          {/* 🔴 TIER S: llama a computeStreak por hábito y a logHabit al tap. */}
+   385→   385→          {activeHabits.length > 0 && (
+   386→   386→            <section className="koru-magical-card" style={{ padding: 18 }}>
+   387→   387→              <div className="koru-module-head" style={{ marginBottom: 12 }}>
+   388→   388→                <div className="koru-module-id">
+   389→   389→                  <div
+   390→   390→                    className="koru-module-icon"
+   391→   391→                    style={
+   392→   392→                      {
+   393→   393→                        "--module-color": "#22a06b",
+   394→   394→                        "--module-bg": "#e3f7ed",
+   395→   395→                      } as CSSProperties
+   396→   396→                    }
+   397→   397→                  >
+   398→   398→                    <span className="material-symbols-outlined">repeat</span>
+   399→   399→                  </div>
+   400→   400→                  <div>
+   401→   401→                    <h3 className="koru-module-title">Hábitos de hoy</h3>
+   402→   402→                    <p className="koru-module-kicker">
+   403→   403→                      {habitsRemaining.length} pendiente{habitsRemaining.length === 1 ? "" : "s"} ·{" "}
+   404→   404→                      {activeHabits.length - habitsRemaining.length} hecho{activeHabits.length - habitsRemaining.length === 1 ? "" : "s"}
+   405→   405→                    </p>
+   406→   406→                  </div>
+   407→   407→                </div>
+   408→   408→              </div>
+   409→   409→              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+   410→   410→                {activeHabits.map((h) => {
+   411→   411→                  const doneToday = !habitsRemaining.some(r => r.id === h.id);
+   412→   412→                  const streak = streakByHabitId[h.id] ?? 0;
+   413→   413→                  return (
+   414→   414→                    <div
+   415→   415→                      key={h.id}
+   416→   416→                      style={{
+   417→   417→                        display: "flex",
+   418→   418→                        alignItems: "center",
+   419→   419→                        gap: 10,
+   420→   420→                        padding: "8px 10px",
+   421→   421→                        borderRadius: 12,
+   422→   422→                        background: doneToday ? "rgba(34, 160, 107, 0.08)" : "rgba(255,255,255,0.5)",
+   423→   423→                        border: "1px solid rgba(34, 160, 107, 0.12)",
+   424→   424→                      }}
+   425→   425→                    >
+   426→   426→                      <button
+   427→   427→                        type="button"
+   428→   428→                        aria-label={doneToday ? `Hábito "${h.label}" completado` : `Marcar hábito "${h.label}" como hecho`}
+   429→   429→                        onClick={() => {
+   430→   430→                          // 🔴 TIER S: logHabit marca el hábito como hecho hoy.
+   431→   431→                          if (onLogHabit && !doneToday) onLogHabit(h.id);
+   432→   432→                        }}
+   433→   433→                        disabled={doneToday}
+   434→   434→                        style={{
+   435→   435→                          width: 32,
+   436→   436→                          height: 32,
+   437→   437→                          borderRadius: 999,
+   438→   438→                          border: "none",
+   439→   439→                          background: doneToday ? "#22a06b" : "rgba(34, 160, 107, 0.12)",
+   440→   440→                          color: doneToday ? "#fff" : "#22a06b",
+   441→   441→                          cursor: doneToday ? "default" : "pointer",
+   442→   442→                          display: "grid",
+   443→   443→                          placeItems: "center",
+   444→   444→                          flexShrink: 0,
+   445→   445→                        }}
+   446→   446→                      >
+   447→   447→                        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+   448→   448→                          {doneToday ? "check" : "radio_button_unchecked"}
+   449→   449→                        </span>
+   450→   450→                      </button>
+   451→   451→                      <div style={{ flex: 1, minWidth: 0 }}>
+   452→   452→                        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#1a1a2e", textDecoration: doneToday ? "line-through" : "none", opacity: doneToday ? 0.7 : 1 }}>
+   453→   453→                          {h.label}
+   454→   454→                        </p>
+   455→   455→                        <p style={{ margin: 0, fontSize: 11, color: "#6b5f8c" }}>
+   456→   456→                          {h.target > 1 ? `Meta: ${h.target} ${h.unit ?? ""}`.trim() : "Diario"}
+   457→   457→                          {h.anchorTime ? ` · ${h.anchorTime}` : ""}
+   458→   458→                        </p>
+   459→   459→                      </div>
+   460→   460→                      {/* 🔴 TIER S: streak count (computeStreak ya precomputado en d). */}
+   461→   461→                      {streak > 0 && (
+   462→   462→                        <span
+   463→   463→                          style={{
+   464→   464→                            display: "inline-flex",
+   465→   465→                            alignItems: "center",
+   466→   466→                            gap: 3,
+   467→   467→                            padding: "3px 8px",
+   468→   468→                            borderRadius: 999,
+   469→   469→                            background: "#fff1d6",
+   470→   470→                            color: "#92400e",
+   471→   471→                            fontSize: 11,
+   472→   472→                            fontWeight: 700,
+   473→   473→                            flexShrink: 0,
+   474→   474→                          }}
+   475→   475→                        >
+   476→   476→                          🔥 {streak}d
+   477→   477→                        </span>
+   478→   478→                      )}
+   479→   479→                    </div>
+   480→   480→                  );
+   481→   481→                })}
+   482→   482→              </div>
+   483→   483→            </section>
+   484→   484→          )}
+   485→   485→
+   486→   486→          {/* ── Calendario del día (horizontal scroller) ─────────────────────── */}
+   487→   487→          {eventsToday.length > 0 && (
+   488→   488→            <section>
+   489→   489→              <div style={sectionHeadStyle}>
+   490→   490→                <h3 style={sectionTitleStyle}>Calendario del día</h3>
+   491→   491→                <span style={sectionHintStyle}>
+   492→   492→                  {eventsToday.length} evento{eventsToday.length === 1 ? "" : "s"}
+   493→   493→                </span>
+   494→   494→              </div>
+   495→   495→              <div style={hscrollStyle} className="koru-cal-strip">
+   496→   496→                {eventsToday.map((e) => (
+   497→   497→                  <article
+   498→   498→                    key={e.id}
+   499→   499→                    className="koru-magical-card"
+   500→   500→                    style={calCardStyle}
+   501→   501→                  >
+   502→   502→                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+   503→   503→                      <span
+   504→   504→                        className="material-symbols-outlined"
+   505→   505→                        style={{ fontSize: 16, color: "#4648d4" }}
+   506→   506→                      >
+   507→   507→                        schedule
+   508→   508→                      </span>
+   509→   509→                      <span style={{ fontSize: 12, fontWeight: 700, color: "#4648d4" }}>
+   510→   510→                        {timeLabel(e.startsAt) || "—"}
+   511→   511→                      </span>
+   512→   512→                    </div>
+   513→   513→                    <p style={{ fontSize: 13, fontWeight: 600, color: "#1a1a2e", lineHeight: 1.3 }}>
+   514→   514→                      {e.title}
+   515→   515→                    </p>
+   516→   516→                    {e.location && (
+   517→   517→                      <p
+   518→   518→                        style={{
+   519→   519→                          fontSize: 11,
+   520→   520→                          color: "#6b5f8c",
+   521→   521→                          marginTop: 4,
+   522→   522→                          display: "flex",
+   523→   523→                          alignItems: "center",
+   524→   524→                          gap: 4,
+   525→   525→                        }}
+   526→   526→                      >
+   527→   527→                        <span className="material-symbols-outlined" style={{ fontSize: 13 }}>
+   528→   528→                          place
+   529→   529→                        </span>
+   530→   530→                        {e.location}
+   531→   531→                      </p>
+   532→   532→                    )}
+   533→   533→                  </article>
+   534→   534→                ))}
+   535→   535→              </div>
+   536→   536→            </section>
+   537→   537→          )}
+   538→   538→
+   539→   539→          {/* ── Prioridades (4 tiles) ───────────────────────────────────────── */}
+   540→   540→          <section className="koru-magical-card" style={{ padding: 18 }}>
+   541→   541→            <div className="koru-module-head" style={{ marginBottom: 12 }}>
+   542→   542→              <div className="koru-module-id">
+   543→   543→                <div
+   544→   544→                  className="koru-module-icon"
+   545→   545→                  style={
+   546→   546→                    {
+   547→   547→                      "--module-color": "#e8593c",
+   548→   548→                      "--module-bg": "#ffe7e1",
+   549→   549→                    } as CSSProperties
+   550→   550→                  }
+   551→   551→                >
+   552→   552→                  <span className="material-symbols-outlined">flag</span>
+   553→   553→                </div>
+   554→   554→                <div>
+   555→   555→                  <h3 className="koru-module-title">Prioridades</h3>
+   556→   556→                  <p className="koru-module-kicker">Cuadrantes del día</p>
+   557→   557→                </div>
+   558→   558→              </div>
+   559→   559→            </div>
+   560→   560→            <div style={grid2Style}>
+   561→   561→              <PriorityTile
+   562→   562→                label="Urgente"
+   563→   563→                icon="priority_high"
+   564→   564→                count={urgente.length}
+   565→   565→                accent="#e8593c"
+   566→   566→                soft="#ffe7e1"
+   567→   567→              />
+   568→   568→              <PriorityTile
+   569→   569→                label="Importante"
+   570→   570→                icon="bookmark"
+   571→   571→                count={importante.length}
+   572→   572→                accent="#f0a830"
+   573→   573→                soft="#fff1d6"
+   574→   574→              />
+   575→   575→              <PriorityTile
+   576→   576→                label="Rutina"
+   577→   577→                icon="repeat"
+   578→   578→                count={rutina.length}
+   579→   579→                accent="#4648d4"
+   580→   580→                soft="#ece8ff"
+   581→   581→              />
+   582→   582→              <PriorityTile
+   583→   583→                label="Opcional"
+   584→   584→                icon="more_horiz"
+   585→   585→                count={opcional.length}
+   586→   586→                accent="#6b5f8c"
+   587→   587→                soft="#eee9f5"
+   588→   588→              />
+   589→   589→            </div>
+   590→   590→          </section>
+   591→   591→
+   592→   592→          {/* ── Clima widget ─────────────────────────────────────────────────── */}
+   593→   593→          <ClimaWidget state={state} onNavigate={onNavigate} onRefresh={onRefreshWeather} />
+   594→   594→
+   595→   595→          {/* ── Proactive nudges ─────────────────────────────────────────────── */}
+   596→   596→          {activeNudges.length > 0 && (
+   597→   597→            <section>
+   598→   598→              <div style={sectionHeadStyle}>
+   599→   599→                <h3 style={sectionTitleStyle}>Koru te sugiere</h3>
+   600→   600→                <span style={sectionHintStyle}>
+   601→   601→                  {activeNudges.length} nudge{activeNudges.length === 1 ? "" : "s"}
+   602→   602→                </span>
+   603→   603→              </div>
+   604→   604→              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+   605→   605→                {activeNudges.map((n) => (
+   606→   606→                  <NudgeCard
+   607→   607→                    key={n.id}
+   608→   608→                    nudge={n}
+   609→   609→                    onDismiss={onDismissNudge}
+   610→   610→                    onAct={onTalk}
+   611→   611→                  />
+   612→   612→                ))}
+   613→   613→              </div>
+   614→   614→            </section>
+   615→   615→          )}
+   616→   616→
+   617→   617→          {/* ── Quick actions row ───────────────────────────────────────────── */}
+   618→   618→          <section style={{ display: "flex", gap: 10, paddingBottom: 32 }}>
+   619→   619→            <QuickAction icon="add_circle" label="Crear" onClick={onCreate} />
+   620→   620→            <QuickAction icon="search" label="Buscar" onClick={onSearch} />
+   621→   621→            <QuickAction
+   622→   622→              icon="graphic_eq"
+   623→   623→              label="Hablar con Koru"
+   624→   624→              onClick={onTalk}
+   625→   625→              highlight
+   626→   626→            />
+   627→   627→          </section>
+   628→   628→        </div>
+   629→   629→      </div>
+   630→   630→    </div>
+   631→   631→  );
+   632→   632→}
+   633→   633→
+   634→   634→// 🔴 Default export para React.lazy en App.tsx.
+   635→   635→export default HomeScreen;
+   636→   636→
+   637→   637→// ═══════════════════════════════════════════════════════════════════════════
+   638→   638→//  Sub-componentes
+   639→   639→// ═══════════════════════════════════════════════════════════════════════════
+   640→   640→
+   641→   641→const brandIconStyle: CSSProperties = {
+   642→   642→  background: "linear-gradient(135deg, #8363f9, #4648d4)",
+   643→   643→  color: "#fff",
+   644→   644→};
+   645→   645→
+   646→   646→const grid2Style: CSSProperties = {
+   647→   647→  display: "grid",
+   648→   648→  gridTemplateColumns: "1fr 1fr",
+   649→   649→  gap: 10,
+   650→   650→};
+   651→   651→
+   652→   652→const sectionHeadStyle: CSSProperties = {
+   653→   653→  display: "flex",
+   654→   654→  alignItems: "center",
+   655→   655→  justifyContent: "space-between",
+   656→   656→  margin: "4px 4px 10px",
+   657→   657→};
+   658→   658→
+   659→   659→const sectionTitleStyle: CSSProperties = {
+   660→   660→  fontSize: 14,
+   661→   661→  fontWeight: 800,
+   662→   662→  color: "#382b8c",
+   663→   663→  margin: 0,
+   664→   664→};
+   665→   665→
+   666→   666→const sectionHintStyle: CSSProperties = {
+   667→   667→  fontSize: 11,
+   668→   668→  color: "#6b5f8c",
+   669→   669→};
+   670→   670→
+   671→   671→const hscrollStyle: CSSProperties = {
+   672→   672→  display: "flex",
+   673→   673→  gap: 10,
+   674→   674→  overflowX: "auto",
+   675→   675→  paddingBottom: 4,
+   676→   676→  scrollbarWidth: "none",
+   677→   677→};
+   678→   678→
+   679→   679→const calCardStyle: CSSProperties = {
+   680→   680→  padding: 14,
+   681→   681→  minWidth: 160,
+   682→   682→  flex: "0 0 auto",
+   683→   683→  borderRadius: 18,
+   684→   684→};
+   685→   685→
+   686→   686→// Gradiente + shadow token de `.koru-magical-card` reaplicado a los tiles
+   687→   687→// pequeños (la card original tiene padding 24px, demasiado para un tile 2x2).
+   688→   688→const tileBaseStyle: CSSProperties = {
+   689→   689→  background: "linear-gradient(180deg, #ffffff 0%, #faf7ff 100%)",
+   690→   690→  border: "1px solid rgba(255, 255, 255, 0.8)",
+   691→   691→  borderRadius: 18,
+   692→   692→  boxShadow: "0 8px 24px rgba(130, 39, 207, 0.06)",
+   693→   693→};
+   694→   694→
+   695→   695→function ItemTile({
+   696→   696→  icon,
+   697→   697→  label,
+   698→   698→  value,
+   699→   699→  suffix,
+   700→   700→  pct,
+   701→   701→  accent,
+   702→   702→  soft,
+   703→   703→  onClick,
+   704→   704→}: {
+   705→   705→  icon: string;
+   706→   706→  label: string;
+   707→   707→  value: number | string;
+   708→   708→  suffix?: string;
+   709→   709→  pct?: number;
+   710→   710→  accent: string;
+   711→   711→  soft: string;
+   712→   712→  onClick?: () => void;
+   713→   713→}) {
+   714→   714→  const interactive = !!onClick;
+   715→   715→  return (
+   716→   716→    <button
+   717→   717→      type="button"
+   718→   718→      onClick={onClick}
+   719→   719→      disabled={!interactive}
+   720→   720→      style={{
+   721→   721→        ...tileBaseStyle,
+   722→   722→        textAlign: "left",
+   723→   723→        cursor: interactive ? "pointer" : "default",
+   724→   724→        padding: 12,
+   725→   725→        display: "flex",
+   726→   726→        flexDirection: "column",
+   727→   727→        gap: 6,
+   728→   728→        opacity: interactive ? 1 : 1,
+   729→   729→      }}
+   730→   730→    >
+   731→   731→      <span
+   732→   732→        className="material-symbols-outlined"
+   733→   733→        style={{
+   734→   734→          fontSize: 22,
+   735→   735→          color: accent,
+   736→   736→          background: soft,
+   737→   737→          width: 36,
+   738→   738→          height: 36,
+   739→   739→          borderRadius: 10,
+   740→   740→          display: "grid",
+   741→   741→          placeItems: "center",
+   742→   742→        }}
+   743→   743→      >
+   744→   744→        {icon}
+   745→   745→      </span>
+   746→   746→      <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
+   747→   747→        <span style={{ fontSize: 22, fontWeight: 800, color: "#1a1a2e" }}>{value}</span>
+   748→   748→        {suffix && <span style={{ fontSize: 11, color: "#6b5f8c" }}>{suffix}</span>}
+   749→   749→      </div>
+   750→   750→      <span style={{ fontSize: 11, color: "#464554", fontWeight: 500 }}>{label}</span>
+   751→   751→      {typeof pct === "number" && (
+   752→   752→        <div
+   753→   753→          style={{
+   754→   754→            height: 4,
+   755→   755→            borderRadius: 2,
+   756→   756→            background: soft,
+   757→   757→            overflow: "hidden",
+   758→   758→            marginTop: 2,
+   759→   759→          }}
+   760→   760→        >
+   761→   761→          <div
+   762→   762→            style={{
+   763→   763→              width: `${pct}%`,
+   764→   764→              height: "100%",
+   765→   765→              background: accent,
+   766→   766→              transition: "width 240ms ease",
+   767→   767→            }}
+   768→   768→          />
+   769→   769→        </div>
+   770→   770→      )}
+   771→   771→    </button>
+   772→   772→  );
+   773→   773→}
+   774→   774→
+   775→   775→function PriorityTile({
+   776→   776→  label,
+   777→   777→  icon,
+   778→   778→  count,
+   779→   779→  accent,
+   780→   780→  soft,
+   781→   781→}: {
+   782→   782→  label: string;
+   783→   783→  icon: string;
+   784→   784→  count: number;
+   785→   785→  accent: string;
+   786→   786→  soft: string;
+   787→   787→}) {
+   788→   788→  return (
+   789→   789→    <div
+   790→   790→      style={{
+   791→   791→        ...tileBaseStyle,
+   792→   792→        padding: 12,
+   793→   793→        display: "flex",
+   794→   794→        alignItems: "center",
+   795→   795→        gap: 10,
+   796→   796→      }}
+   797→   797→    >
+   798→   798→      <span
+   799→   799→        className="material-symbols-outlined"
+   800→   800→        style={{
+   801→   801→          fontSize: 20,
+   802→   802→          color: accent,
+   803→   803→          background: soft,
+   804→   804→          width: 34,
+   805→   805→          height: 34,
+   806→   806→          borderRadius: 10,
+   807→   807→          display: "grid",
+   808→   808→          placeItems: "center",
+   809→   809→          flexShrink: 0,
+   810→   810→        }}
+   811→   811→      >
+   812→   812→        {icon}
+   813→   813→      </span>
+   814→   814→      <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+   815→   815→        <span style={{ fontSize: 12, color: "#464554", fontWeight: 500 }}>{label}</span>
+   816→   816→        <span style={{ fontSize: 18, fontWeight: 800, color: "#1a1a2e" }}>{count}</span>
+   817→   817→      </div>
+   818→   818→    </div>
+   819→   819→  );
+   820→   820→}
+   821→   821→
+   822→   822→function ClimaWidget({
+   823→   823→  state,
+   824→   824→  onNavigate,
+   825→   825→  onRefresh,
+   826→   826→}: {
+   827→   827→  state: KoruState;
+   828→   828→  onNavigate: (screen: string) => void;
+   829→   829→  onRefresh?: () => void;
+   830→   830→}) {
+   831→   831→  const w = state.weatherCache;
+   832→   832→  // 🔴 TIER S: considerar el cache "stale" si fetchedAt > 60 min o ausente.
+   833→   833→  // Si está stale, mostrar un botón de refresh que llama a onRefresh.
+   834→   834→  const isStale = (() => {
+   835→   835→    if (!w?.fetchedAt) return true;
+   836→   836→    const fetched = new Date(w.fetchedAt).getTime();
+   837→   837→    if (Number.isNaN(fetched)) return true;
+   838→   838→    return Date.now() - fetched > 60 * 60 * 1000;
+   839→   839→  })();
+   840→   840→
+   841→   841→  if (!w) {
+   842→   842→    return (
+   843→   843→      <section
+   844→   844→        className="koru-magical-card"
+   845→   845→        style={{ padding: 18, display: "flex", alignItems: "center", gap: 14 }}
+   846→   846→      >
+   847→   847→        <span
+   848→   848→          className="material-symbols-outlined"
+   849→   849→          style={{
+   850→   850→            fontSize: 32,
+   851→   851→            color: "#8363f9",
+   852→   852→            background: "#ece8ff",
+   853→   853→            width: 52,
+   854→   854→            height: 52,
+   855→   855→            borderRadius: 14,
+   856→   856→            display: "grid",
+   857→   857→            placeItems: "center",
+   858→   858→            flexShrink: 0,
+   859→   859→          }}
+   860→   860→        >
+   861→   861→          cloud
+   862→   862→        </span>
+   863→   863→        <div style={{ flex: 1, minWidth: 0 }}>
+   864→   864→          <p style={{ fontSize: 14, fontWeight: 700, color: "#1a1a2e", margin: 0 }}>
+   865→   865→            Sin ciudad configurada
+   866→   866→          </p>
+   867→   867→          <p style={{ fontSize: 12, color: "#6b5f8c", marginTop: 2, marginBottom: 0 }}>
+   868→   868→            Configurá tu ciudad para ver el clima del día.
+   869→   869→          </p>
+   870→   870→        </div>
+   871→   871→        {/* 🔴 TIER S: si falta el cache, el botón de refresh es el principal
+   872→   872→            (si onRefresh está wired) — si no, cae a configurar ciudad. */}
+   873→   873→        {onRefresh ? (
+   874→   874→          <button
+   875→   875→            type="button"
+   876→   876→            onClick={onRefresh}
+   877→   877→            style={{
+   878→   878→              background: "#4648d4",
+   879→   879→              color: "#fff",
+   880→   880→              border: "none",
+   881→   881→              borderRadius: 999,
+   882→   882→              padding: "8px 14px",
+   883→   883→              fontSize: 12,
+   884→   884→              fontWeight: 700,
+   885→   885→              cursor: "pointer",
+   886→   886→              flexShrink: 0,
+   887→   887→            }}
+   888→   888→          >
+   889→   889→            <span className="material-symbols-outlined" style={{ fontSize: 14, verticalAlign: "middle", marginRight: 4 }}>refresh</span>
+   890→   890→            Traer clima
+   891→   891→          </button>
+   892→   892→        ) : (
+   893→   893→          <button
+   894→   894→            type="button"
+   895→   895→            onClick={() => onNavigate("configuracion")}
+   896→   896→            style={{
+   897→   897→              background: "#4648d4",
+   898→   898→              color: "#fff",
+   899→   899→              border: "none",
+   900→   900→              borderRadius: 999,
+   901→   901→              padding: "8px 14px",
+   902→   902→              fontSize: 12,
+   903→   903→              fontWeight: 700,
+   904→   904→              cursor: "pointer",
+   905→   905→              flexShrink: 0,
+   906→   906→            }}
+   907→   907→          >
+   908→   908→            Configurar ciudad
+   909→   909→          </button>
+   910→   910→        )}
+   911→   911→      </section>
+   912→   912→    );
+   913→   913→  }
+   914→   914→
+   915→   915→  const today = w.payload.daily?.[0];
+   916→   916→  return (
+   917→   917→    <section className="koru-magical-card" style={{ padding: 18 }}>
+   918→   918→      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+   919→   919→        <span
+   920→   920→          className="material-symbols-outlined"
+   921→   921→          style={{
+   922→   922→            fontSize: 36,
+   923→   923→            color: "#f0a830",
+   924→   924→            background: "#fff1d6",
+   925→   925→            width: 56,
+   926→   926→            height: 56,
+   927→   927→            borderRadius: 16,
+   928→   928→            display: "grid",
+   929→   929→            placeItems: "center",
+   930→   930→            flexShrink: 0,
+   931→   931→          }}
+   932→   932→        >
+   933→   933→          partly_cloudy_day
+   934→   934→        </span>
+   935→   935→        <div style={{ flex: 1, minWidth: 0 }}>
+   936→   936→          <p style={{ fontSize: 12, color: "#6b5f8c", fontWeight: 600, margin: 0 }}>
+   937→   937→            {w.city}
+   938→   938→            {isStale && (
+   939→   939→              <span style={{ marginLeft: 6, color: "#92400e", fontWeight: 700 }}>· dato antiguo</span>
+   940→   940→            )}
+   941→   941→          </p>
+   942→   942→          <p
+   943→   943→            style={{
+   944→   944→              fontSize: 28,
+   945→   945→              fontWeight: 800,
+   946→   946→              color: "#1a1a2e",
+   947→   947→              lineHeight: 1.1,
+   948→   948→              margin: 0,
+   949→   949→            }}
+   950→   950→          >
+   951→   951→            {w.payload.now}
+   952→   952→          </p>
+   953→   953→          <p style={{ fontSize: 12, color: "#464554", marginTop: 2, marginBottom: 0 }}>
+   954→   954→            {w.payload.condition}
+   955→   955→          </p>
+   956→   956→        </div>
+   957→   957→        {today && (
+   958→   958→          <div style={{ textAlign: "right", flexShrink: 0 }}>
+   959→   959→            <p style={{ fontSize: 12, color: "#e8593c", fontWeight: 700, margin: 0 }}>
+   960→   960→              {today.hi}
+   961→   961→            </p>
+   962→   962→            <p style={{ fontSize: 12, color: "#3a8dde", fontWeight: 700, margin: 0 }}>
+   963→   963→              {today.lo}
+   964→   964→            </p>
+   965→   965→          </div>
+   966→   966→        )}
+   967→   967→        {/* 🔴 TIER S: botón de refresh visible solo si el cache está stale
+   968→   968→            (>60 min) o sin fetchedAt. Llama a onRefresh (wired por App.tsx). */}
+   969→   969→        {isStale && onRefresh && (
+   970→   970→          <button
+   971→   971→            type="button"
+   972→   972→            aria-label="Actualizar clima"
+   973→   973→            onClick={onRefresh}
+   974→   974→            style={{
+   975→   975→              background: "rgba(70, 72, 212, 0.1)",
+   976→   976→              color: "#4648d4",
+   977→   977→              border: "none",
+   978→   978→              borderRadius: 999,
+   979→   979→              padding: "6px 10px",
+   980→   980→              fontSize: 11,
+   981→   981→              fontWeight: 700,
+   982→   982→              cursor: "pointer",
+   983→   983→              flexShrink: 0,
+   984→   984→              display: "inline-flex",
+   985→   985→              alignItems: "center",
+   986→   986→              gap: 4,
+   987→   987→            }}
+   988→   988→          >
+   989→   989→            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>refresh</span>
+   990→   990→            Actualizar
+   991→   991→          </button>
+   992→   992→        )}
+   993→   993→      </div>
+   994→   994→    </section>
+   995→   995→  );
+   996→   996→}
+   997→   997→
+   998→   998→function NudgeCard({
+   999→   999→  nudge,
+  1000→  1000→  onDismiss,
+  1001→  1001→  onAct,
+  1002→  1002→}: {
+  1003→  1003→  nudge: ProactiveNudge;
+  1004→  1004→  onDismiss: (id: string) => void;
+  1005→  1005→  onAct: () => void;
+  1006→  1006→}) {
+  1007→  1007→  const accent =
+  1008→  1008→    nudge.priority === "high" ? "#e8593c" : nudge.priority === "medium" ? "#f0a830" : "#4648d4";
+  1009→  1009→  const soft =
+  1010→  1010→    nudge.priority === "high" ? "#ffe7e1" : nudge.priority === "medium" ? "#fff1d6" : "#ece8ff";
+  1011→  1011→
+  1012→  1012→  return (
+  1013→  1013→    <article className="koru-magical-card" style={{ padding: 14 }}>
+  1014→  1014→      <div style={{ display: "flex", gap: 12 }}>
+  1015→  1015→        <span
+  1016→  1016→          className="material-symbols-outlined"
+  1017→  1017→          style={{
+  1018→  1018→            fontSize: 20,
+  1019→  1019→            color: accent,
+  1020→  1020→            background: soft,
+  1021→  1021→            width: 36,
+  1022→  1022→            height: 36,
+  1023→  1023→            borderRadius: 10,
+  1024→  1024→            display: "grid",
+  1025→  1025→            placeItems: "center",
+  1026→  1026→            flexShrink: 0,
+  1027→  1027→          }}
+  1028→  1028→        >
+  1029→  1029→          notifications_active
+  1030→  1030→        </span>
+  1031→  1031→        <div style={{ flex: 1, minWidth: 0 }}>
+  1032→  1032→          <p style={{ fontSize: 13, fontWeight: 700, color: "#1a1a2e", margin: 0 }}>
+  1033→  1033→            {nudge.title}
+  1034→  1034→          </p>
+  1035→  1035→          {nudge.body && (
+  1036→  1036→            <p
+  1037→  1037→              style={{
+  1038→  1038→                fontSize: 12,
+  1039→  1039→                color: "#464554",
+  1040→  1040→                marginTop: 3,
+  1041→  1041→                marginBottom: 0,
+  1042→  1042→                lineHeight: 1.4,
+  1043→  1043→              }}
+  1044→  1044→            >
+  1045→  1045→              {nudge.body}
+  1046→  1046→            </p>
+  1047→  1047→          )}
+  1048→  1048→          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+  1049→  1049→            <button
+  1050→  1050→              type="button"
+  1051→  1051→              onClick={onAct}
+  1052→  1052→              style={{
+  1053→  1053→                background: accent,
+  1054→  1054→                color: "#fff",
+  1055→  1055→                border: "none",
+  1056→  1056→                borderRadius: 999,
+  1057→  1057→                padding: "6px 12px",
+  1058→  1058→                fontSize: 12,
+  1059→  1059→                fontWeight: 700,
+  1060→  1060→                cursor: "pointer",
+  1061→  1061→              }}
+  1062→  1062→            >
+  1063→  1063→              Actuar
+  1064→  1064→            </button>
+  1065→  1065→            <button
+  1066→  1066→              type="button"
+  1067→  1067→              onClick={() => onDismiss(nudge.id)}
+  1068→  1068→              style={{
+  1069→  1069→                background: "transparent",
+  1070→  1070→                color: "#6b5f8c",
+  1071→  1071→                border: "1px solid rgba(107, 95, 140, 0.25)",
+  1072→  1072→                borderRadius: 999,
+  1073→  1073→                padding: "6px 12px",
+  1074→  1074→                fontSize: 12,
+  1075→  1075→                fontWeight: 600,
+  1076→  1076→                cursor: "pointer",
+  1077→  1077→              }}
+  1078→  1078→            >
+  1079→  1079→              Ahora no
+  1080→  1080→            </button>
+  1081→  1081→          </div>
+  1082→  1082→        </div>
+  1083→  1083→      </div>
+  1084→  1084→    </article>
+  1085→  1085→  );
+  1086→  1086→}
+  1087→  1087→
+  1088→  1088→function QuickAction({
+  1089→  1089→  icon,
+  1090→  1090→  label,
+  1091→  1091→  onClick,
+  1092→  1092→  highlight,
+  1093→  1093→}: {
+  1094→  1094→  icon: string;
+  1095→  1095→  label: string;
+  1096→  1096→  onClick: () => void;
+  1097→  1097→  highlight?: boolean;
+  1098→  1098→}) {
+  1099→  1099→  return (
+  1100→  1100→    <button
+  1101→  1101→      type="button"
+  1102→  1102→      onClick={onClick}
+  1103→  1103→      style={{
+  1104→  1104→        flex: 1,
+  1105→  1105→        background: highlight
+  1106→  1106→          ? "linear-gradient(135deg, #8363f9, #4648d4)"
+  1107→  1107→          : "rgba(255, 255, 255, 0.85)",
+  1108→  1108→        color: highlight ? "#fff" : "#4648d4",
+  1109→  1109→        border: highlight ? "none" : "1px solid rgba(70, 72, 212, 0.15)",
+  1110→  1110→        borderRadius: 16,
+  1111→  1111→        padding: "12px 8px",
+  1112→  1112→        display: "flex",
+  1113→  1113→        flexDirection: "column",
+  1114→  1114→        alignItems: "center",
+  1115→  1115→        gap: 4,
+  1116→  1116→        cursor: "pointer",
+  1117→  1117→        boxShadow: highlight
+  1118→  1118→          ? "0 8px 20px rgba(131, 99, 249, 0.28)"
+  1119→  1119→          : "0 4px 12px rgba(130, 39, 207, 0.05)",
+  1120→  1120→        fontWeight: 700,
+  1121→  1121→        fontSize: 11,
+  1122→  1122→      }}
+  1123→  1123→    >
+  1124→  1124→      <span className="material-symbols-outlined" style={{ fontSize: 24 }}>
+  1125→  1125→        {icon}
+  1126→  1126→      </span>
+  1127→  1127→      {label}
+  1128→  1128→    </button>
+  1129→  1129→  );
+  1130→  1130→}
+  1131→  1131→

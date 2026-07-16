@@ -1,0 +1,2002 @@
+     1→import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+     2→import type {
+     3→  AssistantAction,
+     4→  UiBlock,
+     5→  DailyEntry,
+     6→  HeartbeatSettings,
+     7→  KoruState,
+     8→  KoruStage,
+     9→  LifeRecord,
+    10→  LifeDomain,
+    11→  LifeRecordKind,
+    12→  MascotState,
+    13→  MemoryFact,
+    14→  CommitmentStatus,
+    15→  // TIER S — nuevos tipos para los reducers de store
+    16→  PlanStep,
+    17→  ChecklistItem,
+    18→  Habit,
+    19→  ExerciseSession,
+    20→  WorkoutLog,
+    21→  ShoppingItem,
+    22→  WellbeingLog,
+    23→  UserProfile,
+    24→  UserPreferences,
+    25→  Decision,
+    26→  WeatherCache,
+    27→  ProactiveNudge,
+    28→} from "../domain/types";
+    29→import {
+    30→  applyHeartbeatNudges,
+    31→  addOnboardingMemories,
+    32→  approveAndExecuteAction,
+    33→  completeCommitment,
+    34→  confirmMemory as confirmMemoryInStore,
+    35→  createId,
+    36→  createInitialState,
+    37→  dismissNudge,
+    38→  exportState,
+    39→  loadPersistedState,
+    40→  rejectAction,
+    41→  rejectMemory,
+    42→  resetState,
+    43→  saveState,
+    44→  setActionPreparationEnabled,
+    45→  setDurableMemoryEnabled,
+    46→  setHeartbeatEnabled,
+    47→  setWorldSignalsEnabled,
+    48→  toggleMemorySuggestions,
+    49→  toggleEphemeralMode,
+    50→  updateHeartbeatSettings,
+    51→  updateMemoryText,
+    52→  // TIER S — nuevos reducers (importados con sufijo *Reducer para evitar colisión
+    53→  // con los wrappers del mismo nombre que exponemos vía KoruContext).
+    54→  createPlan as createPlanReducer,
+    55→  togglePlanStep as togglePlanStepReducer,
+    56→  archivePlan as archivePlanReducer,
+    57→  createChecklist as createChecklistReducer,
+    58→  toggleChecklistItem as toggleChecklistItemReducer,
+    59→  createHabit as createHabitReducer,
+    60→  logHabit as logHabitReducer,
+    61→  computeStreak as computeStreakReducer,
+    62→  createRoutine as createRoutineReducer,
+    63→  createExercisePlan as createExercisePlanReducer,
+    64→  logWorkout as logWorkoutReducer,
+    65→  createShoppingList as createShoppingListReducer,
+    66→  toggleShoppingItem as toggleShoppingItemReducer,
+    67→  logWellbeing as logWellbeingReducer,
+    68→  addPerson as addPersonReducer,
+    69→  updateUserProfile as updateUserProfileReducer,
+    70→  updatePreferences as updatePreferencesReducer,
+    71→  createDecision as createDecisionReducer,
+    72→  updateWeatherCache as updateWeatherCacheReducer,
+    73→  setLastBrief as setLastBriefReducer,
+    74→  forgetMemory as forgetMemoryReducer,
+    75→  snoozeCommitment as snoozeCommitmentReducer,
+    76→} from "../domain/store";
+    77→import { computeDecision } from "../domain/decisionEngine";
+    78→import { runBackendAgentTurn } from "../domain/backendAgentClient";
+    79→import { buildHeartbeatNudges } from "../domain/heartbeat";
+    80→import { runWebNavigation, webResultToPayload } from "../domain/web";
+    81→import { dueLabel } from "../domain/time";
+    82→import { inferActivity, type AgentActivity } from "../domain/agentKernel";
+    83→import { shouldAutoRunAction } from "../domain/toolRegistry";
+    84→import { checkDueReminders, syncScheduledReminders, scheduleReminderNotification, schedulePreciseTimeout, requestNotificationPermission } from "./NotificationManager";
+    85→import { speak, isVoiceEnabled, setVoiceEnabled, stopSpeaking } from "../domain/koruVoice";
+    86→import { actionToTurnItem, applyBackendTurnToState, type KoruTurnItem, type KoruChatTurn } from "../domain/turn";
+    87→// Fase 2.6: audit extraído a módulo propio
+    88→import { auditEnabled, auditSessionId, writeAuditEvent, auditStateSnapshot, auditTurnItems, auditStateDelta } from "./audit";
+    89→// Fase 2.6: adapters extraídos a módulo propio
+    90→import { stageForEnergy as stageForEnergyImpl, domainStageToNew, domainStatusToMemoryStatus, domainKindToCategory, greetingTurn, readChatTurns, saveChatTurns, patchUiBlockWithWebResult, actionConfirmationText, CHAT_STORAGE_KEY } from "./adapters";
+    91→// 🔴 Offline cache — IndexedDB-backed 24h rolling window + offline message queue
+    92→import { cacheTurn, isOnline, onOnlineStatusChange, enqueueOfflineMessage, readOfflineQueue, dequeueOfflineMessage, type CachedTurn } from "../domain/offlineCache";
+    93→// 🔴 v2: Analytics — tracking de Create adoption + reopen rate
+    94→import { track as analyticsTrack } from "../domain/analytics";
+    95→export type { KoruTurnItem, KoruChatTurn };
+    96→
+    97→export type Stage = "semilla" | "brote" | "raices" | "nacimiento" | "jardin";
+    98→
+    99→export type MemoryStatus = "reciente" | "confirmada" | "dudosa" | "importante" | "sensible" | "archived" | "superseded" | "rejected";
+   100→
+   101→export type MemoryCategory =
+   102→  | "rutina" | "trabajo" | "relacion" | "preferencia" | "objetivo" | "salud";
+   103→
+   104→export type Priority = {
+   105→  id: string;
+   106→  label: string;
+   107→  done: boolean;
+   108→  detail?: string;
+   109→  kind?: "commitment" | "action" | "nudge";
+   110→};
+   111→
+   112→export type Memory = {
+   113→  id: string;
+   114→  text: string;
+   115→  status: MemoryStatus;
+   116→  category: MemoryCategory;
+   117→  origin: string;
+   118→  savedOn: string;
+   119→  useForSuggestions: boolean;
+   120→};
+   121→
+   122→export type HistoryEntry = {
+   123→  id: string;
+   124→  time: string;
+   125→  kind: "check-in" | "memoria" | "cierre";
+   126→  title: string;
+   127→  detail: string;
+   128→  reason?: string;
+   129→  energy?: number;
+   130→};
+   131→
+   132→export type Permission = {
+   133→  id: string;
+   134→  title: string;
+   135→  description: string;
+   136→  enabled: boolean;
+   137→};
+   138→
+   139→
+   140→export const STAGE_META: Record<Stage, { label: string; meaning: string; capability: string; minEnergy: number }> = {
+   141→  semilla: { label: "Semilla", meaning: "Koru acaba de llegar", capability: "Escucha, resume y ordena", minEnergy: 0 },
+   142→  brote: { label: "Brote", meaning: "Ya te entiendo lo suficiente", capability: "Reconoce tu rutina y objetivos", minEnergy: 31 },
+   143→  raices: { label: "Raíces", meaning: "Tengo contexto para ayudar mejor", capability: "Detecta patrones y hace follow-ups", minEnergy: 90 },
+   144→  nacimiento: { label: "Nacimiento", meaning: "Nací para acompañarte", capability: "Proactividad fina, con tu permiso", minEnergy: 160 },
+   145→  jardin: { label: "Jardín vivo", meaning: "Tu jardín se cuida solo", capability: "Memoria editable, autonomía completa", minEnergy: 260 },
+   146→};
+   147→
+   148→const STAGE_ORDER: Stage[] = ["semilla", "brote", "raices", "nacimiento", "jardin"];
+   149→
+   150→// Fase 2.6: audit + adapters + storage extraídos a ./audit.ts y ./adapters.ts
+   151→
+   152→export function stageForEnergy(energy: number): Stage {
+   153→  return stageForEnergyImpl(energy, STAGE_META);
+   154→}
+   155→
+   156→// Koru 2.0: fases reales del pipeline (emitidas por el backend en stateEvents).
+   157→// Se usan para la píldora de estado ("Creando rutina…") y la barra de progreso.
+   158→export const PHASE_ORDER = ["thinking", "searching", "comparing", "planning", "saving", "done"] as const;
+   159→export const PHASE_LABEL: Record<string, string> = {
+   160→  thinking: "Pensando…",
+   161→  searching: "Buscando…",
+   162→  comparing: "Comparando…",
+   163→  planning: "Creando rutina…",
+   164→  saving: "Guardando…",
+   165→};
+   166→
+   167→type KoruContextValue = {
+   168→  // 🔴 v2: state completo expuesto para que screens (Home, etc.) lean slices
+   169→  // no cubiertos por los helpers específicos (commitments, calendarEvents,
+   170→  // habits, habitLogs, wellbeingLogs, weatherCache, userProfile, nudges…).
+   171→  state: KoruState;
+   172→  energy: number;
+   173→  roots: number;
+   174→  stage: Stage;
+   175→  userName: string;
+   176→  onboarded: boolean;
+   177→  ephemeral: boolean;
+   178→  priorities: Priority[];
+   179→  memories: Memory[];
+   180→  history: HistoryEntry[];
+   181→  records: LifeRecord[];
+   182→  permissions: Permission[];
+   183→  processing: boolean;
+   184→  activity: AgentActivity | null;
+   185→  phase: string | null;
+   186→  chatTurns: KoruChatTurn[];
+   187→  selectedModel: string | null;
+   188→  setSelectedModel: (model: string) => void;
+   189→  completeOnboarding: (name: string, facts?: string[]) => void;
+   190→  togglePriority: (id: string) => void;
+   191→  confirmMemory: (id: string) => void;
+   192→  pruneMemory: (id: string) => void;
+   193→  editMemory: (id: string, text: string) => void;
+   194→  toggleMemoryUse: (id: string) => void;
+   195→  completeCommitment: (id: string) => void;
+   196→  togglePermission: (id: string) => void;
+   197→  setEphemeral: (v: boolean) => void;
+   198→  // Fase 1 (C6): logRitual era un no-op — eliminado del contexto y de la API.
+   199→  submitEntry: (text: string, transcriptSource?: DailyEntry["transcriptSource"], history?: KoruChatTurn[]) => Promise<{ response: string; items: KoruTurnItem[]; state: KoruState; mascotState?: MascotState }>;
+   200→  sendMessage: (text: string, transcriptSource?: DailyEntry["transcriptSource"]) => Promise<KoruChatTurn | null>;
+   201→  reviewAction: (id: string, approve: boolean) => KoruTurnItem | null;
+   202→  toggleTurnLike: (id: string) => void;
+   203→  dismissNudge: (id: string) => void;
+   204→  setWorldSignals: (enabled: boolean) => void;
+   205→  // 🔴 Memory toast: aparece cuando Koru aprende algo del usuario
+   206→  memoryToast: { id: string; kind: string; text: string } | null;
+   207→  dismissMemoryToast: () => void;
+   208→  // 🔴 Morning brief
+   209→  morningBrief: any | null;
+   210→  dismissMorningBrief: () => void;
+   211→  // 🔴 PWA install
+   212→  showInstallPrompt: boolean;
+   213→  installApp: () => Promise<void>;
+   214→  dismissInstallPrompt: () => void;
+   215→  // 🔴 Voice (TTS)
+   216→  voiceEnabled: boolean;
+   217→  toggleVoice: () => void;
+   218→  speakReply: (text: string) => void;
+   219→  stopVoice: () => void;
+   220→  // 🔴 i18n — preferred UI/reply language
+   221→  language: "es" | "en";
+   222→  setLanguage: (lang: "es" | "en") => void;
+   223→  // 🔴 Offline cache — browser online status + offline message queue
+   224→  online: boolean;
+   225→  queueOfflineMessage: (text: string) => Promise<void>;
+   226→  // 🔴 v2: Create flow — alta/baja/modificación de records sin pasar por LLM
+   227→  createRecord: (input: { title: string; collection: string; notes?: string; url?: string; kind?: string; tags?: string[]; sourceBlock?: UiBlock }) => Promise<LifeRecord>;
+   228→  updateRecord: (id: string, patch: Partial<LifeRecord>) => void;
+   229→  deleteRecord: (id: string) => void;
+   230→  reopenRecord: (record: LifeRecord) => void;
+   231→  reopenedRecord: LifeRecord | null;
+   232→  // 🔴 TIER S — nuevos reducers del store (planes, checklists, hábitos, etc.)
+   233→  createPlan: (title: string, steps: Omit<PlanStep, "id" | "order" | "done">[]) => void;
+   234→  togglePlanStep: (planId: string, stepId: string) => void;
+   235→  archivePlan: (planId: string) => void;
+   236→  createChecklist: (title: string, items: Omit<ChecklistItem, "id" | "order">[]) => void;
+   237→  toggleChecklistItem: (checklistId: string, itemId: string) => void;
+   238→  createHabit: (label: string, icon: string, cadence: Habit["cadence"], target: number, unit?: string, anchorTime?: string) => string;
+   239→  logHabit: (habitId: string, value: number) => void;
+   240→  computeStreak: (habitId: string) => number;
+   241→  createRoutine: (name: string, anchorTime: string, habitIds: string[], daysOfWeek: number[]) => void;
+   242→  createExercisePlan: (name: string, weeksTotal: number, sessions: Omit<ExerciseSession, "id" | "order">[]) => void;
+   243→  logWorkout: (planId: string, sessionId: string, exercises: WorkoutLog["exercises"], durationMin: number, kcal?: number) => void;
+   244→  createShoppingList: (title: string, items: Omit<ShoppingItem, "id" | "order" | "checked">[], store?: string) => void;
+   245→  toggleShoppingItem: (listId: string, itemId: string) => void;
+   246→  logWellbeing: (metric: WellbeingLog["metric"], value: number, unit: string, source?: WellbeingLog["source"]) => void;
+   247→  addPerson: (name: string, relationship?: string, birthday?: string) => void;
+   248→  updateUserProfile: (profile: Partial<UserProfile>) => void;
+   249→  updatePreferences: (prefs: Partial<UserPreferences>) => void;
+   250→  createDecision: (question: string, options: Decision["options"], factors: Decision["factors"], weights: Record<string, number>) => Decision;
+   251→  updateWeatherCache: (cache: WeatherCache) => void;
+   252→  setLastBrief: (date: string, block?: UiBlock) => void;
+   253→  forgetMemory: (memoryId: string) => void;
+   254→  snoozeCommitment: (commitmentId: string, minutes: number) => void;
+   255→  // 🔴 SettingsScreen integrada — wrappers para ajustes que antes estaban dispersos
+   256→  updateHeartbeat: (patch: Partial<HeartbeatSettings>) => void;
+   257→  exportData: () => void;
+   258→  deleteAllData: () => void;
+   259→};
+   260→
+   261→const KoruContext = createContext<KoruContextValue | null>(null);
+   262→
+   263→export function KoruProvider({ children }: { children: ReactNode }) {
+   264→  const [domainState, setDomainState] = useState<KoruState>(() => createInitialState());
+   265→  const [onboarded, setOnboarded] = useState(() => localStorage.getItem("koru.onboarded") === "true");
+   266→  const [userName, setUserName] = useState(() => localStorage.getItem("koru.username") ?? "");
+   267→  const [processing, setProcessing] = useState(false);
+   268→  const [activity, setActivity] = useState<AgentActivity | null>(null);
+   269→  // 🔴 Memory toast: se setea cuando llegan memoryCandidates nuevos y se limpia con dismissMemoryToast
+   270→  const [memoryToast, setMemoryToast] = useState<{ id: string; kind: string; text: string } | null>(null);
+   271→  // 🔴 Morning brief state
+   272→  const [morningBrief, setMorningBrief] = useState<any | null>(null);
+   273→  // 🔴 PWA install prompt
+   274→  const [installPromptEvent, setInstallPromptEvent] = useState<any>(null);
+   275→  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+   276→  // 🔴 Voice (TTS)
+   277→  const [voiceEnabled, setVoiceEnabledState] = useState(() => localStorage.getItem("koru.voiceEnabled") === "true");
+   278→  const [phase, setPhase] = useState<string | null>(null);
+   279→  const [chatTurns, setChatTurns] = useState<KoruChatTurn[]>(() => readChatTurns(localStorage.getItem("koru.username") ?? ""));
+   280→  // Clave versionada (v2): la clave vieja "koru.selected-model" quedaba pegada con
+   281→  // modelos de prueba (ej. llama3.1:8b) y pisaba silenciosamente al proveedor
+   282→  // principal (BlueSminds) en CADA turno. v2 arranca en Automático para todos;
+   283→  // elegir un modelo vuelve a ser una decisión explícita del usuario.
+   284→  const [selectedModel, setSelectedModel] = useState<string | null>(() => {
+   285→    localStorage.removeItem("koru.selected-model");
+   286→    return localStorage.getItem("koru.selected-model.v2") ?? null;
+   287→  });
+   288→  // 🔴 i18n — preferred language. Persisted in localStorage so the LLM and UI honor it.
+   289→  const [language, setLanguageState] = useState<"es" | "en">(() => {
+   290→    const stored = localStorage.getItem("koru.language");
+   291→    return stored === "en" ? "en" : "es";
+   292→  });
+   293→  // 🔴 Offline cache — track browser online/offline status
+   294→  const [online, setOnline] = useState<boolean>(() => isOnline());
+   295→  // Ref to latest sendMessage — lets the offline-queue drain call the current closure.
+   296→  const sendMessageRef = useRef<((text: string) => Promise<unknown>) | null>(null);
+   297→  // 🔴 v2: record reabiertos desde Collections — renderizan el bloque original
+   298→  const [reopenedRecord, setReopenedRecord] = useState<LifeRecord | null>(null);
+   299→  const domainStateRef = useRef(domainState);
+   300→  const chatTurnsRef = useRef(chatTurns);
+   301→  // 🔴 Morning brief scheduler — deduplicación: si ya dispatcheamos el nudge
+   302→  // "Buenos días" para hoy (puede pasar cuando loadPersistedState sobreescribe
+   303→  // state.lastBriefDate justo después de que ya lo seteamos), no repetir.
+   304→  const lastBriefNudgeDateRef = useRef<string | null>(null);
+   305→
+   306→  function commitDomainState(next: KoruState | ((prev: KoruState) => KoruState)) {
+   307→    setDomainState((prev) => {
+   308→      const resolved = typeof next === "function" ? (next as (prev: KoruState) => KoruState)(prev) : next;
+   309→      domainStateRef.current = resolved;
+   310→      return resolved;
+   311→    });
+   312→  }
+   313→
+   314→  function commitChatTurns(next: KoruChatTurn[] | ((prev: KoruChatTurn[]) => KoruChatTurn[])) {
+   315→    setChatTurns((prev) => {
+   316→      const resolved = typeof next === "function" ? (next as (prev: KoruChatTurn[]) => KoruChatTurn[])(prev) : next;
+   317→      chatTurnsRef.current = resolved;
+   318→      return resolved;
+   319→    });
+   320→  }
+   321→
+   322→  useEffect(() => {
+   323→    domainStateRef.current = domainState;
+   324→  }, [domainState]);
+   325→
+   326→  // 🔴 i18n — sync UI language into domainState so the backend LLM honors it
+   327→  useEffect(() => {
+   328→    commitDomainState((prev) => (prev.language === language ? prev : { ...prev, language }));
+   329→  }, [language]);
+   330→
+   331→  // 🔴 PWA install prompt listener
+   332→  useEffect(() => {
+   333→    const handler = (e: Event) => {
+   334→      e.preventDefault();
+   335→      setInstallPromptEvent(e);
+   336→      // Show after 30s if not dismissed
+   337→      const dismissed = localStorage.getItem("koru.installDismissed");
+   338→      if (!dismissed) {
+   339→        setTimeout(() => setShowInstallPrompt(true), 30_000);
+   340→      }
+   341→    };
+   342→    window.addEventListener("beforeinstallprompt", handler);
+   343→    return () => window.removeEventListener("beforeinstallprompt", handler);
+   344→  }, []);
+   345→
+   346→  useEffect(() => {
+   347→    chatTurnsRef.current = chatTurns;
+   348→  }, [chatTurns]);
+   349→
+   350→  useEffect(() => {
+   351→    try {
+   352→      const params = new URLSearchParams(window.location.search);
+   353→      if (params.get("koruAudit") !== "1" || params.get("reset") !== "1") return;
+   354→      const sessionId = `audit_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+   355→      sessionStorage.setItem("koru.audit.enabled", "1");
+   356→      sessionStorage.setItem("koru.audit.session", sessionId);
+   357→      localStorage.removeItem(CHAT_STORAGE_KEY);
+   358→      localStorage.removeItem("koru.onboarded");
+   359→      localStorage.removeItem("koru.username");
+   360→      const fresh = resetState();
+   361→      commitDomainState(fresh);
+   362→      setOnboarded(false);
+   363→      setUserName("");
+   364→      commitChatTurns([greetingTurn()]);
+   365→      params.delete("reset");
+   366→      const cleanQuery = params.toString();
+   367→      const cleanUrl = `${window.location.pathname}${cleanQuery ? `?${cleanQuery}` : ""}${window.location.hash}`;
+   368→      window.history.replaceState(null, "", cleanUrl);
+   369→      writeAuditEvent({
+   370→        type: "audit_reset",
+   371→        note: "Koru browser memory, onboarding and chat reset for manual audit.",
+   372→        state: auditStateSnapshot(fresh),
+   373→      });
+   374→    } catch {
+   375→      // Audit reset is best-effort and should not block the app.
+   376→    }
+   377→  }, []);
+   378→
+   379→  useEffect(() => {
+   380→    let cancelled = false;
+   381→    void loadPersistedState().then(async (persisted) => {
+   382→      if (!cancelled) {
+   383→        const nudges = buildHeartbeatNudges(persisted);
+   384→        commitDomainState(nudges.length > 0 ? applyHeartbeatNudges(persisted, nudges) : persisted);
+   385→        // 🔴 Sincronizar reminders con notificaciones del navegador
+   386→        const userId = persisted.userId ?? "default";
+   387→        syncScheduledReminders(persisted.commitments ?? [], userId);
+   388→        // Check overdue reminders on app load
+   389→        checkDueReminders(userId);
+   390→
+   391→        // 🔴 Morning Brief: si es mañana y no se mostró hoy, generar.
+   392→        // 🔴 TIER S: check usa `state.lastBriefDate` (vía persisted.lastBriefDate)
+   393→        // como fuente de verdad, con fallback a localStorage para sesiones que
+   394→        // todavía no tienen el campo en el store. Esto cumple el contrato del
+   395→        // reducer setLastBrief: otras pantallas pueden inspeccionar si ya se
+   396→        // mostró hoy leyendo state.lastBriefDate sin tocar localStorage.
+   397→        const now = new Date();
+   398→        const hour = now.getHours();
+   399→        const today = now.toISOString().slice(0, 10);
+   400→        const lastBriefDate = persisted.lastBriefDate ?? localStorage.getItem("koru.lastBriefDate");
+   401→        if (hour >= 5 && hour <= 11 && lastBriefDate !== today) {
+   402→          try {
+   403→            // 🔴 FULL state: el endpoint necesita calendarEvents (eventos de
+   404→            // hoy), commitments (deadlines debidos hoy), weatherCache, entries
+   405→            // (último sentimiento) y memories (contexto de personalidad) para
+   406→            // generar un brief completo. Mandamos el estado completo y dejamos
+   407→            // que el endpoint filtre lo necesario.
+   408→            const stateForBrief = {
+   409→              userName: persisted.userName ?? "",
+   410→              memories: (persisted.memories ?? [])
+   411→                .filter((m: any) => m.status === "confirmed" || m.status === "candidate")
+   412→                .slice(0, 10)
+   413→                .map((m: any) => ({ kind: m.kind, text: m.text })),
+   414→              commitments: (persisted.commitments ?? [])
+   415→                .filter((c: any) => c.status === "open")
+   416→                .slice(0, 20)
+   417→                .map((c: any) => ({ title: c.title, dueHint: c.dueHint, dueAt: c.dueAt, status: c.status })),
+   418→              calendarEvents: (persisted.calendarEvents ?? []).slice(0, 20).map((e: any) => ({
+   419→                title: e.title,
+   420→                startsAt: e.startsAt,
+   421→                location: e.location,
+   422→              })),
+   423→              weatherCache: persisted.weatherCache ?? undefined,
+   424→              entries: (persisted.entries ?? []).slice(-3).map((e: any) => ({
+   425→                text: e.text,
+   426→                sentiment: e.sentiment,
+   427→                createdAt: e.createdAt,
+   428→              })),
+   429→              lastBriefDate,
+   430→            };
+   431→            const res = await fetch("/api/koru/morning-brief", {
+   432→              method: "POST",
+   433→              headers: { "Content-Type": "application/json" },
+   434→              body: JSON.stringify({ state: stateForBrief }),
+   435→            });
+   436→            if (res.ok) {
+   437→              const data = await res.json();
+   438→              if (data.shouldShow && data.brief) {
+   439→                const brief = data.brief;
+   440→                // 🔴 Construir morning_brief UiBlock desde el brief del LLM.
+   441→                // El LLM devuelve { greeting, items: [{icon, label, value}], reflection }.
+   442→                // El UiBlock morning_brief requiere items con {icon, iconColor, label, value, variant?}.
+   443→                // La reflection se appendea como un item destacado (variant: "highlight").
+   444→                const uiItems: Array<{
+   445→                  icon: string;
+   446→                  iconColor: string;
+   447→                  label: string;
+   448→                  value: string;
+   449→                  variant?: "default" | "highlight";
+   450→                }> = (Array.isArray(brief.items) ? brief.items : [])
+   451→                  .filter((it: any) => it && typeof it === "object")
+   452→                  .map((it: any, idx: number) => ({
+   453→                    icon: String(it.icon ?? "wb_sunny"),
+   454→                    iconColor: idx === 0 ? "#6ee7b7" : "#a99be0",
+   455→                    label: String(it.label ?? ""),
+   456→                    value: String(it.value ?? ""),
+   457→                    variant: "default" as const,
+   458→                  }));
+   459→                if (brief.reflection) {
+   460→                  uiItems.push({
+   461→                    icon: "lightbulb",
+   462→                    iconColor: "#fbbf24",
+   463→                    label: "Reflexión",
+   464→                    value: String(brief.reflection),
+   465→                    variant: "highlight" as const,
+   466→                  });
+   467→                }
+   468→                const briefBlock: UiBlock = {
+   469→                  type: "morning_brief",
+   470→                  greeting: String(brief.greeting ?? ""),
+   471→                  items: uiItems,
+   472→                };
+   473→                // 🔴 Backwards-compat: MorningBriefCard espera un shape legacy
+   474→                // (greeting + weather/tasks/memoryHighlight/suggestion). Mapeamos
+   475→                // los items del nuevo brief a los campos legacy para que la
+   476→                // card vieja siga renderizando algo útil.
+   477→                const legacyBrief = {
+   478→                  greeting: String(brief.greeting ?? ""),
+   479→                  weather: (brief.items ?? []).find((it: any) => /clima|weather/i.test(String(it.label ?? "")))?.value ?? "",
+   480→                  tasks: (brief.items ?? [])
+   481→                    .filter((it: any) => /pendiente|deadline|tarea|evento|commit/i.test(String(it.label ?? "")))
+   482→                    .map((it: any) => `${it.label}: ${it.value}`),
+   483→                  memoryHighlight: (brief.items ?? []).find((it: any) => /memoria|memory/i.test(String(it.label ?? "")))?.value ?? "",
+   484→                  suggestion: brief.reflection ?? "",
+   485→                };
+   486→                setMorningBrief(legacyBrief);
+   487→                localStorage.setItem("koru.lastBriefDate", data.date ?? today);
+   488→                // 🔴 TIER S: persistir el brief en el store (state.lastBriefDate
+   489→                // + state.lastBriefBlock) vía el reducer setLastBrief. Así
+   490→                // otras pantallas pueden inspeccionar si ya se mostró hoy sin
+   491→                // leer localStorage directamente.
+   492→                commitDomainState((prev) => setLastBriefReducer(prev, data.date ?? today, briefBlock));
+   493→              }
+   494→            }
+   495→            // 🔴 Si el endpoint devuelve error (res.ok = false) o data.shouldShow
+   496→            // es false, no hacemos nada acá — el useEffect de abajo (morning
+   497→            // brief scheduler sin LLM) se encarga del fallback al simple nudge.
+   498→          } catch {
+   499→            // silent — brief is optional. El scheduler sin LLM hace el fallback.
+   500→          }
+   501→        }
+   502→      }
+   503→    });
+   504→    return () => { cancelled = true; };
+   505→  }, []);
+   506→
+   507→  // 🔴 Morning brief scheduler (sin LLM) — se ejecuta en mount y cada vez que
+   508→  // `state.lastBriefDate` cambia. Si es de mañana (5-11h) y todavía no se
+   509→  // mostró el brief hoy, dispatchea un nudge proactivo "Buenos días" y marca
+   510→  // `lastBriefDate = today` para no repetir.
+   511→  //
+   512→  // A diferencia del useEffect de arriba (que llama a /api/koru/morning-brief
+   513→  // y genera el brief real con un LLM), este efecto es best-effort: solo
+   514→  // muestra el saludo y deja el flag. Si el backend responde con un brief
+   515→  // completo, ese flujo (asíncrono) lo reemplaza / enriquece.
+   516→  useEffect(() => {
+   517→    const now = new Date();
+   518→    const hour = now.getHours();
+   519→    const today = now.toISOString().slice(0, 10);
+   520→    // Solo dentro de la ventana matutina.
+   521→    if (hour < 5 || hour > 11) return;
+   522→    // Si ya se mostró el brief hoy (según state.lastBriefDate), no repetir.
+   523→    if (domainState.lastBriefDate === today) return;
+   524→    // 🔴 Deduplicación: loadPersistedState() puede sobreescribir
+   525→    // state.lastBriefDate con el valor persistido (ej. undefined o ayer)
+   526→    // DESPUÉS de que ya dispatcheamos el nudge en este mount. Sin este
+   527→    // guard, dispararíamos dos "Buenos días" seguidos.
+   528→    if (lastBriefNudgeDateRef.current === today) return;
+   529→    lastBriefNudgeDateRef.current = today;
+   530→
+   531→    const nudge: ProactiveNudge = {
+   532→      id: createId("nudge"),
+   533→      title: "Buenos días",
+   534→      body: "Tu brief matutino está listo. Tocá para revisar el día.",
+   535→      reason: "morning-brief",
+   536→      priority: "medium",
+   537→      createdAt: new Date().toISOString(),
+   538→      source: "brain",
+   539→      sourceId: `morning-brief-${today}`,
+   540→    };
+   541→
+   542→    // Inyectar el nudge en state.nudges — el heartbeat (60s) lo convertirá en
+   543→    // chat turn en su próximo tick. También inyectamos un chat turn directo
+   544→    // para que el saludo aparezca de inmediato, sin esperar al heartbeat.
+   545→    commitDomainState((prev) => ({
+   546→      ...prev,
+   547→      nudges: [...(prev.nudges ?? []), nudge],
+   548→    }));
+   549→
+   550→    const proactiveTurn: KoruChatTurn = {
+   551→      id: `proactive_brief_${Date.now()}`,
+   552→      role: "koru",
+   553→      text: `${nudge.title}\n${nudge.body}`,
+   554→      createdAt: new Date().toISOString(),
+   555→      status: "done" as const,
+   556→      mascotState: "happy" as const,
+   557→    };
+   558→    commitChatTurns((prev) => [...prev, proactiveTurn].slice(-120));
+   559→
+   560→    // Marcar como hecho para no repetir hoy. setLastBrief internally calls
+   561→    // setLastBriefReducer + saveState, así que también persiste en localStorage.
+   562→    setLastBrief(today);
+   563→    // eslint-disable-next-line react-hooks/exhaustive-deps
+   564→  }, [domainState.lastBriefDate]);
+   565→
+   566→  useEffect(() => {
+   567→    const runHeartbeat = () => {
+   568→      // 🔴 Proactividad: check due reminders y disparar notificaciones
+   569→      const userId = domainStateRef.current?.userId ?? "default";
+   570→      const { fired, overdue } = checkDueReminders(userId);
+   571→      if (fired.length > 0 || overdue.length > 0) {
+   572→        console.log("[Koru] Reminders fired:", fired.length, "overdue:", overdue.length);
+   573→      }
+   574→
+   575→      commitDomainState((prev) => {
+   576→        const nudges = buildHeartbeatNudges(prev);
+   577→        return nudges.length > 0 ? applyHeartbeatNudges(prev, nudges) : prev;
+   578→      });
+   579→
+   580→      // 🔴 MENSAJES PROACTIVOS EN EL CHAT
+   581→      // Si hay nudges nuevos, inyectarlos como mensajes de Koru en el chat.
+   582→      // Esto hace que Koru "hable" proactivamente, no solo muestre items invisibles.
+   583→      const state = domainStateRef.current;
+   584→      if (state && !state.ephemeralMode) {
+   585→        const activeNudges = (state.nudges ?? []).filter(n =>
+   586→          !n.dismissed && !n.title.startsWith("[proactive_shown]")
+   587→        );
+   588→        if (activeNudges.length > 0) {
+   589→          // Solo inyectar 1 mensaje proactivo por heartbeat tick (no spamear)
+   590→          const nudge = activeNudges[0];
+   591→          const proactiveTurn: KoruChatTurn = {
+   592→            id: `proactive_hb_${Date.now()}`,
+   593→            role: "koru",
+   594→            text: nudge.title + (nudge.body ? `\n${nudge.body}` : ""),
+   595→            createdAt: new Date().toISOString(),
+   596→            status: "done" as const,
+   597→            mascotState: "happy" as const,
+   598→          };
+   599→          // Marcar como mostrado para no repetir
+   600→          commitDomainState((prev) => ({
+   601→            ...prev,
+   602→            nudges: (prev.nudges ?? []).map(n =>
+   603→              n.id === nudge.id ? { ...n, title: `[proactive_shown] ${n.title}` } : n
+   604→            ),
+   605→          }));
+   606→          commitChatTurns((prev) => [...prev, proactiveTurn].slice(-120));
+   607→        }
+   608→      }
+   609→    };
+   610→    // Fase 2.12: pausar heartbeat cuando el tab no está visible.
+   611→    // Antes corría cada 60s sin importar si el usuario estaba mirando.
+   612→    // Ahora se pausa al ocultar el tab y reanuda al volver, ahorrando CPU.
+   613→    let timer = window.setInterval(runHeartbeat, 60_000);
+   614→    const onVisibilityChange = () => {
+   615→      if (document.hidden) {
+   616→        window.clearInterval(timer);
+   617→      } else {
+   618→        // Al volver, ejecutar inmediatamente y reiniciar el intervalo
+   619→        runHeartbeat();
+   620→        timer = window.setInterval(runHeartbeat, 60_000);
+   621→      }
+   622→    };
+   623→    document.addEventListener("visibilitychange", onVisibilityChange);
+   624→    return () => {
+   625→      window.clearInterval(timer);
+   626→      document.removeEventListener("visibilitychange", onVisibilityChange);
+   627→    };
+   628→  }, []);
+   629→
+   630→  useEffect(() => {
+   631→    saveChatTurns(chatTurns, !domainState.ephemeralMode);
+   632→    // 🔴 Offline cache — also persist last turn to IndexedDB for 24h rolling window.
+   633→    // This is best-effort and async; we don't await.
+   634→    if (!domainState.ephemeralMode && chatTurns.length > 0) {
+   635→      const last = chatTurns[chatTurns.length - 1];
+   636→      const userId = domainStateRef.current?.userId ?? "default";
+   637→      const cached: CachedTurn = {
+   638→        id: `${last.createdAt}_${last.role}`,
+   639→        userId,
+   640→        role: last.role === "koru" ? "koru" : "user",
+   641→        text: last.text,
+   642→        createdAt: last.createdAt,
+   643→        items: last.items as unknown[] | undefined,
+   644→        mascotState: last.mascotState,
+   645→        language,
+   646→      };
+   647→      cacheTurn(cached).catch(() => { /* best-effort */ });
+   648→    }
+   649→  }, [chatTurns, domainState.ephemeralMode, language]);
+   650→
+   651→  // 🔴 Offline cache — subscribe to online/offline events
+   652→  useEffect(() => {
+   653→    const unsubscribe = onOnlineStatusChange((nextOnline) => {
+   654→      setOnline(nextOnline);
+   655→      // When coming back online, drain the offline queue (best-effort replay)
+   656→      if (nextOnline) {
+   657→        const userId = domainStateRef.current?.userId ?? "default";
+   658→        readOfflineQueue(userId).then(async (queue) => {
+   659→          for (const msg of queue) {
+   660→            // Re-submit each queued message; if it succeeds, dequeue it.
+   661→            try {
+   662→              await sendMessageRef.current?.(msg.text);
+   663→              await dequeueOfflineMessage(msg.id);
+   664→            } catch {
+   665→              // If still failing, leave it queued for the next retry.
+   666→              break;
+   667→            }
+   668→          }
+   669→        }).catch(() => { /* best-effort */ });
+   670→      }
+   671→    });
+   672→    return unsubscribe;
+   673→  }, []);
+   674→
+   675→  // ── Escuchar mensajes proactivos del engine ──
+   676→  useEffect(() => {
+   677→    const onProactive = (e: Event) => {
+   678→      const turn = (e as CustomEvent).detail as KoruChatTurn;
+   679→      if (turn && turn.text) {
+   680→        commitChatTurns((prev) => [...prev, turn].slice(-120));
+   681→      }
+   682→    };
+   683→    window.addEventListener("koru:proactive", onProactive);
+   684→    return () => window.removeEventListener("koru:proactive", onProactive);
+   685→  }, []);
+   686→
+   687→  const energy = domainState.trustedEnergy;
+   688→  const roots = domainState.memories.filter((m) => m.status === "confirmed").length;
+   689→  const stage = domainStageToNew(domainState.stage);
+   690→  const ephemeral = domainState.ephemeralMode;
+   691→
+   692→  const priorities: Priority[] = useMemo(() => {
+   693→    const actionItems = domainState.actions
+   694→      .filter((a) => a.status === "executed")
+   695→      .slice(0, 1)
+   696→      .map((a) => ({
+   697→        id: a.id,
+   698→        label: a.title,
+   699→        detail: a.result,
+   700→        done: true,
+   701→        kind: "action" as const,
+   702→      }));
+   703→    const nudgeItems = domainState.nudges
+   704→      .filter((nudge) => !nudge.dismissed)
+   705→      .slice(0, 2)
+   706→      .map((nudge) => ({
+   707→        id: nudge.id,
+   708→        label: nudge.title,
+   709→        detail: nudge.body || nudge.reason,
+   710→        done: false,
+   711→        kind: "nudge" as const,
+   712→      }));
+   713→    const commitments = domainState.commitments
+   714→      .filter((c) => c.status === "open")
+   715→      .map((c) => ({
+   716→        id: c.id,
+   717→        label: c.title,
+   718→        detail: dueLabel(c.dueAt, c.dueHint),
+   719→        done: false,
+   720→        kind: "commitment" as const,
+   721→      }))
+   722→      .slice(0, Math.max(0, 5 - actionItems.length - nudgeItems.length));
+   723→    return [...actionItems, ...nudgeItems, ...commitments];
+   724→  }, [domainState.actions, domainState.commitments, domainState.nudges]);
+   725→
+   726→  const memories: Memory[] = useMemo(() =>
+   727→    domainState.memories
+   728→      .filter((m) => m.status !== "rejected")
+   729→      .map((m) => ({
+   730→        id: m.id,
+   731→        text: m.text,
+   732→        status: domainStatusToMemoryStatus(m),
+   733→        category: domainKindToCategory(m.kind),
+   734→        origin: m.rootQuote || "Extraído de tu conversación reciente.",
+   735→        useForSuggestions: m.useForSuggestions !== false,
+   736→        savedOn: m.status === "confirmed" && m.confirmedAt
+   737→          ? `Confirmado · ${new Date(m.confirmedAt).toLocaleDateString("es", { day: "2-digit", month: "short" })}`
+   738→          : m.status === "candidate"
+   739→            ? "Por confirmar · pendiente"
+   740→            : `Reciente · ${new Date(m.createdAt).toLocaleDateString("es", { day: "2-digit", month: "short" })}`,
+   741→      })),
+   742→  [domainState.memories]);
+   743→
+   744→  const history: HistoryEntry[] = useMemo(() => {
+   745→    const entries: HistoryEntry[] = [];
+   746→    for (const entry of domainState.entries.slice(0, 20)) {
+   747→      entries.push({
+   748→        id: entry.id,
+   749→        time: new Date(entry.createdAt).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }),
+   750→        kind: "check-in",
+   751→        title: "Check-in",
+   752→        detail: entry.summary || entry.text.slice(0, 100),
+   753→        reason: entry.sentiment === "heavy" ? "Estado cargado" : entry.sentiment === "good" ? "Estado positivo" : "Rutina diaria",
+   754→        energy: entry.energyAwarded,
+   755→      });
+   756→    }
+   757→    for (const action of domainState.actions.filter((a) => a.status === "executed").slice(0, 20)) {
+   758→      entries.push({
+   759→        id: action.id,
+   760→        time: new Date(action.executedAt ?? action.createdAt).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }),
+   761→        kind: "cierre",
+   762→        title: action.title,
+   763→        detail: action.result ?? action.body,
+   764→        reason: "Accion aprobada y ejecutada por Koru",
+   765→        energy: 14,
+   766→      });
+   767→    }
+   768→    return entries.slice(0, 30);
+   769→  }, [domainState.actions, domainState.entries]);
+   770→
+   771→  const permissions: Permission[] = useMemo(() => [
+   772→    {
+   773→      id: "perm1",
+   774→      title: "Memoria duradera",
+   775→      description: "Guardar lo que aprende de ti, siempre editable.",
+   776→      enabled: domainState.durableMemoryEnabled && !domainState.ephemeralMode,
+   777→    },
+   778→    { id: "perm2", title: "Check-ins suaves", description: "Recordatorios proactivos en horas activas.", enabled: domainState.heartbeat.enabled },
+   779→    { id: "perm3", title: "Acciones autónomas", description: "Preparar borradores y eventos (requiere aprobación).", enabled: domainState.actionPreparationEnabled },
+   780→    { id: "perm-world", title: "Radar del mundo", description: "Traer señales recientes cuando puedan servirte.", enabled: domainState.worldSignalsEnabled },
+   781→    { id: "perm4", title: "Modo efímero", description: "No guardar memoria de esta sesión.", enabled: domainState.ephemeralMode },
+   782→  ], [domainState.actionPreparationEnabled, domainState.durableMemoryEnabled, domainState.ephemeralMode, domainState.heartbeat.enabled, domainState.worldSignalsEnabled]);
+   783→
+   784→  function completeOnboarding(name: string, facts: string[] = []) {
+   785→    const cleanName = name.trim() || "amigo";
+   786→    const previousState = domainStateRef.current;
+   787→    setUserName(cleanName);
+   788→    setOnboarded(true);
+   789→    localStorage.setItem("koru.onboarded", "true");
+   790→    localStorage.setItem("koru.username", cleanName);
+   791→    commitChatTurns((prev) => {
+   792→      if (prev.length === 0) return [greetingTurn(cleanName)];
+   793→      if (prev.length === 1 && prev[0].role === "koru") {
+   794→        return [{ ...prev[0], text: `Hola, ${cleanName}. Cuéntame cómo estás.` }];
+   795→      }
+   796→      return prev;
+   797→    });
+   798→    commitDomainState((prev) => {
+   799→      const withName = { ...prev, userName: cleanName };
+   800→      const next = facts.length ? addOnboardingMemories(withName, facts) : withName;
+   801→      if (!facts.length) saveState(next);
+   802→      writeAuditEvent({
+   803→        type: "onboarding_completed",
+   804→        name: cleanName,
+   805→        facts,
+   806→        state: auditStateSnapshot(next),
+   807→        delta: auditStateDelta(previousState, next),
+   808→      });
+   809→      return next;
+   810→    });
+   811→  }
+   812→
+   813→  function togglePriority(id: string) {
+   814→    commitDomainState((prev) => {
+   815→      if (prev.nudges.some((nudge) => nudge.id === id && !nudge.dismissed)) {
+   816→        return dismissNudge(prev, id);
+   817→      }
+   818→      return completeCommitment(prev, id);
+   819→    });
+   820→  }
+   821→
+   822→  function completeCommitmentInChat(id: string) {
+   823→    commitDomainState((prev) => {
+   824→      const next = completeCommitment(prev, id);
+   825→      writeAuditEvent({
+   826→        type: "commitment_completed",
+   827→        commitmentId: id,
+   828→        state: auditStateSnapshot(next),
+   829→        delta: auditStateDelta(prev, next),
+   830→      });
+   831→      return next;
+   832→    });
+   833→    commitChatTurns((prev) =>
+   834→      prev.map((turn) => ({
+   835→        ...turn,
+   836→        items: turn.items?.map((item) =>
+   837→          item.id === id && item.kind === "commitment" ? { ...item, status: "executed", tag: "Hecho" } : item,
+   838→        ),
+   839→      })),
+   840→    );
+   841→    const confirmation: KoruChatTurn = {
+   842→      id: createId("turn"),
+   843→      role: "koru",
+   844→      text: "Listo. Lo marco como hecho y lo saco de tu carga mental.",
+   845→      createdAt: new Date().toISOString(),
+   846→      status: "done",
+   847→    };
+   848→    commitChatTurns((prev) => [...prev, confirmation].slice(-120));
+   849→  }
+   850→
+   851→  function confirmMemory(id: string) {
+   852→    commitDomainState((prev) => {
+   853→      const next = confirmMemoryInStore(prev, id);
+   854→      writeAuditEvent({
+   855→        type: "memory_confirmed",
+   856→        memoryId: id,
+   857→        state: auditStateSnapshot(next),
+   858→        delta: auditStateDelta(prev, next),
+   859→      });
+   860→      return next;
+   861→    });
+   862→    commitChatTurns((prev) =>
+   863→      prev.map((turn) => ({
+   864→        ...turn,
+   865→        items: turn.items?.map((item) =>
+   866→          item.id === id && item.kind === "memory" ? { ...item, status: "confirmed", tag: "Guardado" } : item,
+   867→        ),
+   868→      })),
+   869→    );
+   870→  }
+   871→
+   872→  function pruneMemory(id: string) {
+   873→    commitDomainState((prev) => {
+   874→      const next = rejectMemory(prev, id);
+   875→      writeAuditEvent({
+   876→        type: "memory_rejected",
+   877→        memoryId: id,
+   878→        state: auditStateSnapshot(next),
+   879→        delta: auditStateDelta(prev, next),
+   880→      });
+   881→      return next;
+   882→    });
+   883→    commitChatTurns((prev) =>
+   884→      prev.map((turn) => ({
+   885→        ...turn,
+   886→        items: turn.items?.map((item) =>
+   887→          item.id === id && item.kind === "memory" ? { ...item, status: "rejected", tag: "Soltado" } : item,
+   888→        ),
+   889→      })),
+   890→    );
+   891→  }
+   892→
+   893→  function editMemory(id: string, text: string) {
+   894→    commitDomainState((prev) => {
+   895→      const next = updateMemoryText(prev, id, text);
+   896→      writeAuditEvent({
+   897→        type: "memory_edited",
+   898→        memoryId: id,
+   899→        text,
+   900→        state: auditStateSnapshot(next),
+   901→        delta: auditStateDelta(prev, next),
+   902→      });
+   903→      return next;
+   904→    });
+   905→    commitChatTurns((prev) =>
+   906→      prev.map((turn) => ({
+   907→        ...turn,
+   908→        items: turn.items?.map((item) => (item.id === id && item.kind === "memory" ? { ...item, text } : item)),
+   909→      })),
+   910→    );
+   911→  }
+   912→
+   913→  function toggleMemoryUse(id: string) {
+   914→    commitDomainState((prev) => {
+   915→      const next = toggleMemorySuggestions(prev, id);
+   916→      writeAuditEvent({
+   917→        type: "memory_usage_toggled",
+   918→        memoryId: id,
+   919→        state: auditStateSnapshot(next),
+   920→        delta: auditStateDelta(prev, next),
+   921→      });
+   922→      return next;
+   923→    });
+   924→  }
+   925→
+   926→  function togglePermission(id: string) {
+   927→    if (id === "perm1") {
+   928→      commitDomainState((prev) => setDurableMemoryEnabled(prev, !(prev.durableMemoryEnabled && !prev.ephemeralMode)));
+   929→      return;
+   930→    }
+   931→    if (id === "perm2") {
+   932→      commitDomainState((prev) => setHeartbeatEnabled(prev, !prev.heartbeat.enabled));
+   933→      return;
+   934→    }
+   935→    if (id === "perm3") {
+   936→      commitDomainState((prev) => setActionPreparationEnabled(prev, !prev.actionPreparationEnabled));
+   937→      return;
+   938→    }
+   939→    if (id === "perm-world") {
+   940→      setWorldSignals(!domainStateRef.current.worldSignalsEnabled);
+   941→      return;
+   942→    }
+   943→    if (id === "perm4" || id === "ephemeral") {
+   944→      setEphemeral(!domainStateRef.current.ephemeralMode);
+   945→    }
+   946→  }
+   947→
+   948→  function setWorldSignals(enabled: boolean) {
+   949→    commitDomainState((prev) => {
+   950→      const next = setWorldSignalsEnabled(prev, enabled);
+   951→      writeAuditEvent({
+   952→        type: "world_signals_toggled",
+   953→        enabled,
+   954→        state: auditStateSnapshot(next),
+   955→      });
+   956→      return next;
+   957→    });
+   958→    appendKoruConfirmation(
+   959→      enabled
+   960→        ? "Listo. Te voy a traer este radar solo cuando haya senales utiles."
+   961→        : "Listo. No te lo traigo proactivamente por ahora.",
+   962→    );
+   963→  }
+   964→
+   965→  function setEphemeral(v: boolean) {
+   966→    if (v !== domainStateRef.current.ephemeralMode) {
+   967→      if (!v) {
+   968→        commitChatTurns([greetingTurn(userName)]);
+   969→      }
+   970→      commitDomainState((prev) => {
+   971→        const next = toggleEphemeralMode(prev);
+   972→        const resolved = !next.ephemeralMode && !next.durableMemoryEnabled ? setDurableMemoryEnabled(next, true) : next;
+   973→        writeAuditEvent({
+   974→          type: "ephemeral_mode_toggled",
+   975→          enabled: resolved.ephemeralMode,
+   976→          state: auditStateSnapshot(resolved),
+   977→        });
+   978→        return resolved;
+   979→      });
+   980→    }
+   981→  }
+   982→
+   983→  // Fase 1 (C6): logRitual eliminado — era un no-op.
+   984→
+   985→  // 🔴 i18n — set preferred UI/reply language. Persisted + synced to domainState
+   986→  // via the useEffect above so the backend LLM sees it on the next turn.
+   987→  function setLanguage(lang: "es" | "en") {
+   988→    setLanguageState(lang);
+   989→    localStorage.setItem("koru.language", lang);
+   990→  }
+   991→
+   992→  // 🔴 Offline cache — queue a message that was typed while offline.
+   993→  // It will be replayed automatically when the browser comes back online.
+   994→  async function queueOfflineMessage(text: string) {
+   995→    const userId = domainStateRef.current?.userId ?? "default";
+   996→    await enqueueOfflineMessage(userId, text);
+   997→  }
+   998→
+   999→  // 🔴 v2: Create flow — CRUD de records directo (sin LLM, sin network, sin demora)
+  1000→  async function createRecord(input: {
+  1001→    title: string;
+  1002→    collection: string;
+  1003→    notes?: string;
+  1004→    url?: string;
+  1005→    kind?: string;
+  1006→    tags?: string[];
+  1007→    sourceBlock?: UiBlock;
+  1008→  }): Promise<LifeRecord> {
+  1009→    const kindMap: Record<string, LifeRecordKind> = {
+  1010→      // Legacy aliases (backward compat con llamadas existentes)
+  1011→      note: "idea",
+  1012→      lista: "shopping_item",
+  1013→      shopping: "shopping_item",
+  1014→      gasto: "expense",
+  1015→      enlace: "tool_link",
+  1016→      bookmark: "tool_link",
+  1017→      receta: "idea",
+  1018→      reminder: "deadline",
+  1019→      // 🔴 v2: pass-through directo de LifeRecordKind válidos.
+  1020→      // CreateScreen v2 ahora pasa el LifeRecordKind exacto en vez de un alias.
+  1021→      idea: "idea",
+  1022→      expense: "expense",
+  1023→      tool_link: "tool_link",
+  1024→      recommendation: "recommendation",
+  1025→      decision: "decision",
+  1026→      deadline: "deadline",
+  1027→      medication: "medication",
+  1028→      meal_inventory: "meal_inventory",
+  1029→      meeting_note: "meeting_note",
+  1030→      person_followup: "person_followup",
+  1031→      gift: "gift",
+  1032→      birthday: "birthday",
+  1033→      home_task: "home_task",
+  1034→      shopping_item: "shopping_item",
+  1035→      medical_info: "medical_info",
+  1036→      sleep: "sleep",
+  1037→    };
+  1038→    const kind = (kindMap[input.kind ?? "idea"] ?? "idea") as LifeRecordKind;
+  1039→    const domain: LifeDomain = kind === "expense" ? "money" : "capture";
+  1040→    const newRecord: LifeRecord = {
+  1041→      id: `rec_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+  1042→      domain,
+  1043→      kind,
+  1044→      title: input.title.trim(),
+  1045→      collection: input.collection.trim() || "Notas",
+  1046→      notes: input.notes,
+  1047→      url: input.url,
+  1048→      tags: input.tags && input.tags.length > 0 ? input.tags : undefined,
+  1049→      amount: kind === "expense" ? parseFloat(input.notes ?? "0") || undefined : undefined,
+  1050→      currency: kind === "expense" ? "ARS" : undefined,
+  1051→      createdAt: new Date().toISOString(),
+  1052→      sourceEntryId: "manual_create",
+  1053→      sourceBlock: input.sourceBlock,
+  1054→    };
+  1055→    commitDomainState((prev) => {
+  1056→      const next = { ...prev, records: [...prev.records, newRecord] };
+  1057→      saveState(next);
+  1058→      return next;
+  1059→    });
+  1060→    setMemoryToast({ id: newRecord.id, kind: "saved", text: `Creado en ${newRecord.collection}` });
+  1061→    setTimeout(() => setMemoryToast(null), 2500);
+  1062→    // 🔴 v2: analytics — track Create adoption
+  1063→    analyticsTrack("create_record", { kind: input.kind, collection: newRecord.collection });
+  1064→    return newRecord;
+  1065→  }
+  1066→
+  1067→  function updateRecord(id: string, patch: Partial<LifeRecord>) {
+  1068→    commitDomainState((prev) => {
+  1069→      const next = {
+  1070→        ...prev,
+  1071→        records: prev.records.map((r) => (r.id === id ? { ...r, ...patch, id } : r)),
+  1072→      };
+  1073→      saveState(next);
+  1074→      return next;
+  1075→    });
+  1076→  }
+  1077→
+  1078→  function deleteRecord(id: string) {
+  1079→    commitDomainState((prev) => {
+  1080→      const next = { ...prev, records: prev.records.filter((r) => r.id !== id) };
+  1081→      saveState(next);
+  1082→      return next;
+  1083→    });
+  1084→  }
+  1085→
+  1086→  function reopenRecord(record: LifeRecord) {
+  1087→    setReopenedRecord(record);
+  1088→    // 🔴 v2: analytics — track reopen rate
+  1089→    analyticsTrack("reopen_record", { hasSourceBlock: !!record.sourceBlock, collection: record.collection });
+  1090→  }
+  1091→
+  1092→  async function submitEntry(
+  1093→    text: string,
+  1094→    transcriptSource: DailyEntry["transcriptSource"] = "typed",
+  1095→    history: KoruChatTurn[] = chatTurnsRef.current,
+  1096→  ) {
+  1097→    setProcessing(true);
+  1098→    let koruTurnId: string | null = null;
+  1099→    // Trackea los items creados durante el stream para preservar sus ids al
+  1100→    // reemplazar con el resultado final. Sin esto, el resultado final crea items
+  1101→    // con ids nuevos → el WebNavCardA se desmonta/remonta → pierde su estado
+  1102→    // (animación de progreso, visibleCount) → reinicia a "Iniciando búsqueda...".
+  1103→    const streamedItemsByType = new Map<string, KoruTurnItem>();
+  1104→    try {
+  1105→      const previousState = domainStateRef.current;
+  1106→      const domainHistory = history
+  1107→        .filter((turn) => turn.text.trim().length > 0)
+  1108→        .slice(-12)
+  1109→        .map((turn) => ({
+  1110→          role: turn.role === "koru" ? ("assistant" as const) : ("user" as const),
+  1111→          content: turn.text,
+  1112→          createdAt: turn.createdAt,
+  1113→        }));
+  1114→      const agentResult = await runBackendAgentTurn(text, previousState, domainHistory, selectedModel ?? undefined, (chunk) => {
+  1115→        // Fase real del pipeline: tomamos el último stateEvent para la píldora/barra.
+  1116→        if (chunk.stateEvents?.length) {
+  1117→          const last = chunk.stateEvents[chunk.stateEvents.length - 1];
+  1118→          setPhase(last.kind === "done" ? null : last.kind);
+  1119→        }
+  1120→        const blocksToItems = (blocks: UiBlock[]): KoruTurnItem[] =>
+  1121→          blocks.map((block) => ({
+  1122→            id: createId("item"),
+  1123→            kind: "action" as const,
+  1124→            tag: block.type,
+  1125→            text: (block as any).title ?? (block as any).query ?? "",
+  1126→            status: "working" as const,
+  1127→            uiBlock: block,
+  1128→          }));
+  1129→        if (!koruTurnId) {
+  1130→          koruTurnId = createId("turn");
+  1131→          const koruTurn: KoruChatTurn = {
+  1132→            id: koruTurnId,
+  1133→            role: "koru",
+  1134→            text: chunk.reply,
+  1135→            createdAt: new Date().toISOString(),
+  1136→            items: blocksToItems(chunk.uiBlocks),
+  1137→            status: "working" as const,
+  1138→            mascotState: chunk.mascotState ?? "working",
+  1139→          };
+  1140→          (koruTurn.items ?? []).forEach((it) => { if (it.uiBlock?.type) streamedItemsByType.set(it.uiBlock.type, it); });
+  1141→          commitChatTurns((prev) => [...prev, koruTurn].slice(-120));
+  1142→        } else {
+  1143→          const isDone = chunk.stateEvents?.some((e) => e.kind === "done");
+  1144→          commitChatTurns((prev) =>
+  1145→            prev.map((turn) => {
+  1146→              if (turn.id !== koruTurnId) return turn;
+  1147→              const existingItems = turn.items ?? [];
+  1148→              const newBlocks = chunk.uiBlocks ?? [];
+  1149→              // Merge por TIPO de block (no por índice). Así, si el orden cambia
+  1150→              // entre chunks (ej: aparece un data_card antes que el web_nav),
+  1151→              // cada item mantiene su identidad y estado (animación de progreso,
+  1152→              // contadores internos). Antes se matcheaba por idx, lo que hacía
+  1153→              // que un cambio de orden desmontara el componente y reiniciara la
+  1154→              // animación ("Iniciando búsqueda..." colgado).
+  1155→              const consumedExisting = new Set<string>();
+  1156→              const mergedItems: KoruTurnItem[] = newBlocks.map((block) => {
+  1157→                const existing = existingItems.find(
+  1158→                  (it) => it.uiBlock?.type === block.type && !consumedExisting.has(it.uiBlock!.type),
+  1159→                );
+  1160→                if (existing) {
+  1161→                  consumedExisting.add(existing.uiBlock!.type);
+  1162→                  return { ...existing, uiBlock: block, text: (block as any).title ?? (block as any).query ?? "" };
+  1163→                }
+  1164→                return {
+  1165→                  id: createId("item"),
+  1166→                  kind: "action" as const,
+  1167→                  tag: block.type,
+  1168→                  text: (block as any).title ?? (block as any).query ?? "",
+  1169→                  status: "working" as const,
+  1170→                  uiBlock: block,
+  1171→                };
+  1172→              });
+  1173→              mergedItems.forEach((it) => { if (it.uiBlock?.type) streamedItemsByType.set(it.uiBlock.type, it); });
+  1174→              return {
+  1175→                ...turn,
+  1176→                text: chunk.reply,
+  1177→                items: mergedItems,
+  1178→                mascotState: chunk.mascotState ?? turn.mascotState,
+  1179→                status: isDone ? ("done" as const) : ("working" as const),
+  1180→              };
+  1181→            }),
+  1182→          );
+  1183→        }
+  1184→      });
+  1185→      const result = applyBackendTurnToState(previousState, text, transcriptSource, agentResult);
+  1186→      commitDomainState(result.state);
+  1187→
+  1188→      // 🔴 Wire weather cache: si el backend devolvió un UiBlock de weather (tool
+  1189→      // `weather_forecast` o `weather` legacy) con datos completos, actualizamos el
+  1190→      // weatherCache del KoruState. El reducer existe en store.ts pero no tenía
+  1191→      // caller — este es el puente entre tool result y el home widget de clima.
+  1192→      const weatherBlock = (agentResult.uiBlocks ?? []).find(
+  1193→        (b): b is Extract<UiBlock, { type: "weather" }> => b.type === "weather",
+  1194→      );
+  1195→      if (
+  1196→        weatherBlock &&
+  1197→        typeof weatherBlock.city === "string" &&
+  1198→        weatherBlock.city.trim().length > 0 &&
+  1199→        typeof weatherBlock.now === "string"
+  1200→      ) {
+  1201→        updateWeatherCache({
+  1202→          city: weatherBlock.city,
+  1203→          fetchedAt: weatherBlock.verifiedAt ?? new Date().toISOString(),
+  1204→          payload: {
+  1205→            now: weatherBlock.now,
+  1206→            condition: weatherBlock.condition ?? "",
+  1207→            hourly: weatherBlock.hourly,
+  1208→            daily: weatherBlock.daily,
+  1209→          },
+  1210→        });
+  1211→      }
+  1212→
+  1213→      // 🔴 Programar notificaciones para nuevos commitments con dueAt
+  1214→      const newCommitments = (result.state.commitments ?? []).filter(
+  1215→        (c) => c.dueAt && !previousState.commitments?.find((pc) => pc.id === c.id)
+  1216→      );
+  1217→      if (newCommitments.length > 0) {
+  1218→        const userId = result.state.userId ?? "default";
+  1219→        for (const c of newCommitments) {
+  1220→          scheduleReminderNotification(c as any, userId);
+  1221→          // 🔴 NUEVO: programar setTimeout preciso para que la notificación
+  1222→          // dispare EXACTO cuando llega la hora, no en el próximo heartbeat tick.
+  1223→          schedulePreciseTimeout(c.id, c.dueAt!, c.title, userId);
+  1224→        }
+  1225→        // 🔴 Request notification permission — best effort
+  1226→        requestNotificationPermission().catch(() => {});
+  1227→      }
+  1228→      if (koruTurnId) {
+  1229→        // Preservar ids de los items del stream: si el resultado final tiene un item
+  1230→        // del mismo tipo que uno ya renderizado en el stream, mantener su id (e
+  1231→        // identidad de React) para no desmontar/remontar el componente y perder su
+  1232→        // estado interno (animación de progreso del WebNavCardA, visibleCount, etc.).
+  1233→        const consumedTypes = new Set<string>();
+  1234→        const stableItems = result.items.map((item) => {
+  1235→          const type = item.uiBlock?.type ?? item.tag;
+  1236→          if (type && !consumedTypes.has(type)) {
+  1237→            const streamed = streamedItemsByType.get(type);
+  1238→            if (streamed) {
+  1239→              consumedTypes.add(type);
+  1240→              return { ...item, id: streamed.id };
+  1241→            }
+  1242→          }
+  1243→          return item;
+  1244→        });
+  1245→        commitChatTurns((prev) =>
+  1246→          prev.map((turn) =>
+  1247→            turn.id === koruTurnId
+  1248→              ? { ...turn, text: agentResult.reply, items: stableItems, status: "done" as const, mascotState: agentResult.mascotState ?? "idle" }
+  1249→              : turn,
+  1250→          ),
+  1251→        );
+  1252→        // 🔴 Voice: si voice está activado, Koru habla la respuesta
+  1253→        if (voiceEnabled && agentResult.reply) {
+  1254→          speak(agentResult.reply);
+  1255→        }
+  1256→        // 🔴 Memory toast: si hay memoryCandidates en la respuesta, mostrar toast.
+  1257→        // Buscar en memoryCandidates top-level Y dentro de toolResults (save_memory tool).
+  1258→        const topCandidates = (agentResult.memoryCandidates ?? []);
+  1259→        const toolCandidates = (agentResult.toolResults ?? []).flatMap((tr: any) => {
+  1260→          const data = tr.data;
+  1261→          if (data?.type === "memory_capture" && Array.isArray(data.memoryCandidates)) return data.memoryCandidates;
+  1262→          if (data?.type === "personal_capture" && Array.isArray(data.memoryCandidates)) return data.memoryCandidates;
+  1263→          return [];
+  1264→        });
+  1265→        const allCandidates = [...topCandidates, ...toolCandidates].filter(
+  1266→          (m: any) => m && typeof m.text === "string" && m.text.length > 4,
+  1267→        );
+  1268→        if (allCandidates.length > 0 && !previousState.ephemeralMode && previousState.durableMemoryEnabled) {
+  1269→          const first = allCandidates[0];
+  1270→          // Solo mostrar si NO existe ya una memoria con el mismo texto (deduplicación visual)
+  1271→          const normalizedNew = first.text.toLowerCase().replace(/[áéíóú]/g, (m: string) => ({ á: "a", é: "e", í: "i", ó: "o", ú: "u" }[m]!)).replace(/[^a-z0-9\s]/g, "").trim();
+  1272→          const alreadyExists = previousState.memories.some((existing: any) => {
+  1273→            const norm = existing.text.toLowerCase().replace(/[áéíóú]/g, (m: string) => ({ á: "a", é: "e", í: "i", ó: "o", ú: "u" }[m]!)).replace(/[^a-z0-9\s]/g, "").trim();
+  1274→            return norm === normalizedNew;
+  1275→          });
+  1276→          if (!alreadyExists) {
+  1277→            setMemoryToast({
+  1278→              id: `toast_${Date.now()}`,
+  1279→              kind: first.kind,
+  1280→              text: first.text,
+  1281→            });
+  1282→            // Auto-dismiss después de 6 segundos
+  1283→            setTimeout(() => {
+  1284→              setMemoryToast((current) => (current?.text === first.text ? null : current));
+  1285→            }, 6000);
+  1286→          }
+  1287→        }
+  1288→      }
+  1289→      writeAuditEvent({
+  1290→        type: "turn_analyzed",
+  1291→        engine: "backend_agent_loop",
+  1292→        input: text,
+  1293→        transcriptSource,
+  1294→        historyUsed: domainHistory,
+  1295→        response: agentResult.reply,
+  1296→        understanding: agentResult.understanding,
+  1297→        suggestedActions: agentResult.suggestedActions,
+  1298→        toolResults: agentResult.toolResults,
+  1299→        provider: agentResult.provider,
+  1300→        model: agentResult.model,
+  1301→        fallbackReason: agentResult.fallbackReason,
+  1302→        items: auditTurnItems(result.items),
+  1303→        state: auditStateSnapshot(result.state),
+  1304→        delta: auditStateDelta(previousState, result.state),
+  1305→      });
+  1306→      return { response: agentResult.reply, items: result.items, state: result.state, mascotState: agentResult.mascotState, koruTurnId };
+  1307→    } finally {
+  1308→      setProcessing(false);
+  1309→      setActivity(null);
+  1310→      setPhase(null);
+  1311→    }
+  1312→  }
+  1313→
+  1314→  async function sendMessage(text: string, transcriptSource: DailyEntry["transcriptSource"] = "typed") {
+  1315→    const cleanText = text.trim();
+  1316→    if (!cleanText) return null;
+  1317→    const previousState = domainStateRef.current;
+  1318→    const userTurn: KoruChatTurn = {
+  1319→      id: createId("turn"),
+  1320→      role: "user",
+  1321→      text: cleanText,
+  1322→      createdAt: new Date().toISOString(),
+  1323→      status: "done",
+  1324→    };
+  1325→    const historyBeforeUser = chatTurnsRef.current;
+  1326→    commitChatTurns((prev) => [...prev, userTurn].slice(-120));
+  1327→    writeAuditEvent({
+  1328→      type: "user_message",
+  1329→      turn: userTurn,
+  1330→      transcriptSource,
+  1331→      historyBeforeUser: historyBeforeUser.map((turn) => ({
+  1332→        id: turn.id,
+  1333→        role: turn.role,
+  1334→        text: turn.text,
+  1335→        createdAt: turn.createdAt,
+  1336→        status: turn.status,
+  1337→        items: auditTurnItems(turn.items),
+  1338→      })),
+  1339→      stateBefore: auditStateSnapshot(previousState),
+  1340→    });
+  1341→    setActivity(inferActivity(cleanText));
+  1342→    try {
+  1343→      const result = await submitEntry(cleanText, transcriptSource, historyBeforeUser);
+  1344→      let koruTurn: KoruChatTurn | undefined;
+  1345→      if (!result.koruTurnId) {
+  1346→        koruTurn = {
+  1347→          id: createId("turn"),
+  1348→          role: "koru",
+  1349→          text: result.response,
+  1350→          createdAt: new Date().toISOString(),
+  1351→          items: result.items,
+  1352→          status: "done",
+  1353→          mascotState: result.mascotState ?? "idle",
+  1354→        };
+  1355→        commitChatTurns((prev) => [...prev, koruTurn!].slice(-120));
+  1356→        writeAuditEvent({
+  1357→          type: "koru_message",
+  1358→          turn: {
+  1359→            id: koruTurn.id,
+  1360→            role: koruTurn.role,
+  1361→            text: koruTurn.text,
+  1362→            createdAt: koruTurn.createdAt,
+  1363→            status: koruTurn.status,
+  1364→            items: auditTurnItems(koruTurn.items),
+  1365→          },
+  1366→          stateAfter: auditStateSnapshot(result.state),
+  1367→        });
+  1368→      } else {
+  1369→        commitChatTurns((prev) =>
+  1370→          prev.map((turn) => {
+  1371→            if (turn.id !== result.koruTurnId) return turn;
+  1372→            const existingItems = turn.items ?? [];
+  1373→            const mergedItems: KoruTurnItem[] = result.items.map((newItem, idx) => {
+  1374→              const existing = existingItems[idx];
+  1375→              if (existing && existing.uiBlock?.type === newItem.uiBlock?.type) {
+  1376→                return { ...newItem, id: existing.id };
+  1377→              }
+  1378→              return newItem;
+  1379→            });
+  1380→            return { ...turn, items: mergedItems, status: "done" as const, mascotState: result.mascotState ?? "idle" };
+  1381→          }),
+  1382→        );
+  1383→        koruTurn = chatTurnsRef.current.find((t) => t.id === result.koruTurnId);
+  1384→        writeAuditEvent({
+  1385→          type: "koru_message",
+  1386→          turn: {
+  1387→            id: result.koruTurnId,
+  1388→            role: "koru",
+  1389→            text: result.response,
+  1390→            createdAt: new Date().toISOString(),
+  1391→            status: "done",
+  1392→            items: auditTurnItems(result.items),
+  1393→          },
+  1394→          stateAfter: auditStateSnapshot(result.state),
+  1395→        });
+  1396→      }
+  1397→      const autoWebAction = result.state.actions
+  1398→        .filter((action) => !previousState.actions.some((existing) => existing.id === action.id))
+  1399→        .find(shouldAutoRunAction);
+  1400→      if (autoWebAction) {
+  1401→        window.setTimeout(() => runReadonlyWebAction(autoWebAction), 0);
+  1402→      }
+  1403→      return koruTurn ?? null;
+  1404→    } catch (error) {
+  1405→      const message = error instanceof Error ? error.message : "Fallo desconocido del agente.";
+  1406→      const errorTurn: KoruChatTurn = {
+  1407→        id: createId("turn"),
+  1408→        role: "koru",
+  1409→        text: `No pude contactar bien al agente ahora. No voy a inventarte una respuesta. Detalle: ${message}`,
+  1410→        createdAt: new Date().toISOString(),
+  1411→        status: "error",
+  1412→      };
+  1413→      commitChatTurns((prev) => [...prev, errorTurn].slice(-120));
+  1414→      writeAuditEvent({
+  1415→        type: "turn_error",
+  1416→        input: cleanText,
+  1417→        error: message,
+  1418→        turn: errorTurn,
+  1419→        state: auditStateSnapshot(domainStateRef.current),
+  1420→      });
+  1421→      setActivity(null);
+  1422→      return errorTurn;
+  1423→    }
+  1424→  }
+  1425→
+  1426→  // 🔴 Offline cache — keep sendMessageRef current so the offline-queue drain
+  1427→  // (subscribed once on mount) can call the latest closure.
+  1428→  useEffect(() => {
+  1429→    sendMessageRef.current = async (text: string) => { await sendMessage(text); };
+  1430→  });
+  1431→
+  1432→  function replaceActionInChat(item: KoruTurnItem) {
+  1433→    commitChatTurns((prev) =>
+  1434→      prev.map((turn) => ({
+  1435→        ...turn,
+  1436→        items: turn.items?.map((existing) => (existing.id === item.id ? item : existing)),
+  1437→      })),
+  1438→    );
+  1439→  }
+  1440→
+  1441→  function appendKoruConfirmation(text: string) {
+  1442→    const confirmation: KoruChatTurn = {
+  1443→      id: createId("turn"),
+  1444→      role: "koru",
+  1445→      text,
+  1446→      createdAt: new Date().toISOString(),
+  1447→      status: "done",
+  1448→    };
+  1449→    commitChatTurns((prev) => [...prev, confirmation].slice(-120));
+  1450→    writeAuditEvent({
+  1451→      type: "koru_confirmation",
+  1452→      turn: confirmation,
+  1453→      state: auditStateSnapshot(domainStateRef.current),
+  1454→    });
+  1455→  }
+  1456→
+  1457→  function runReadonlyWebAction(original: AssistantAction): KoruTurnItem {
+  1458→    // Dato en vivo (clima/trafico/mercado) = quick, sin panel largo. Un
+  1459→    // informe/investigacion real (webMode "research", o web_research sin
+  1460→    // modo puntual) = deep, se gana el panel "Trabajando...". Ver
+  1461→    // flujo-informe-aoe2.html pasos 3 (informe) vs 7 (clima).
+  1462→    const webMode = original.payload.webMode;
+  1463→    const isQuickSignal = webMode === "weather" || webMode === "traffic" || webMode === "market";
+  1464→    const isDeepResearch = webMode === "research" || (original.kind === "web_research" && !webMode);
+  1465→    setActivity({
+  1466→      kind: "searching",
+  1467→      depth: isQuickSignal ? "quick" : isDeepResearch ? "deep" : "quick",
+  1468→      label: isDeepResearch
+  1469→        ? "Es un tema para investigar a fondo. Dame unos segundos."
+  1470→        : original.kind === "world_signal"
+  1471→          ? "Busco senales reales."
+  1472→          : "Consulto fuentes reales.",
+  1473→    });
+  1474→    const now = new Date().toISOString();
+  1475→    const approvedAction: AssistantAction = {
+  1476→      ...original,
+  1477→      status: "approved",
+  1478→      updatedAt: now,
+  1479→    };
+  1480→    commitDomainState((prev) => {
+  1481→      const exists = prev.actions.some((action) => action.id === original.id);
+  1482→      const next = {
+  1483→        ...prev,
+  1484→        actions: exists
+  1485→          ? prev.actions.map((action) => (action.id === original.id ? approvedAction : action))
+  1486→          : [approvedAction, ...prev.actions],
+  1487→        updatedAt: now,
+  1488→      };
+  1489→      saveState(next);
+  1490→      return next;
+  1491→    });
+  1492→    const waitingItem = actionToTurnItem(approvedAction);
+  1493→    replaceActionInChat(waitingItem);
+  1494→
+  1495→    void (async () => {
+  1496→      try {
+  1497→        const result = await runWebNavigation(original.payload);
+  1498→        const webPayload = webResultToPayload(result);
+  1499→        const nextUiBlock = patchUiBlockWithWebResult(approvedAction, webPayload);
+  1500→        const finishedAt = new Date().toISOString();
+  1501→        const patchedAction: AssistantAction = {
+  1502→          ...approvedAction,
+  1503→          payload: {
+  1504→            ...approvedAction.payload,
+  1505→            ...webPayload,
+  1506→            uiBlock: nextUiBlock ?? approvedAction.payload.uiBlock,
+  1507→          },
+  1508→          result: result.recommendation,
+  1509→          status: "executed",
+  1510→          updatedAt: finishedAt,
+  1511→          executedAt: finishedAt,
+  1512→        };
+  1513→        const patchedItem = actionToTurnItem(patchedAction);
+  1514→        commitDomainState((prev) => {
+  1515→          const next = {
+  1516→            ...prev,
+  1517→            actions: prev.actions.map((action) => (action.id === original.id ? patchedAction : action)),
+  1518→            updatedAt: finishedAt,
+  1519→          };
+  1520→          saveState(next);
+  1521→          writeAuditEvent({
+  1522→            type: "readonly_web_action_finished",
+  1523→            action: {
+  1524→              id: patchedAction.id,
+  1525→              kind: patchedAction.kind,
+  1526→              title: patchedAction.title,
+  1527→              status: patchedAction.status,
+  1528→              result: patchedAction.result,
+  1529→              payload: patchedAction.payload,
+  1530→            },
+  1531→            item: auditTurnItems([patchedItem])[0],
+  1532→            state: auditStateSnapshot(next),
+  1533→            delta: auditStateDelta(prev, next),
+  1534→          });
+  1535→          return next;
+  1536→        });
+  1537→        replaceActionInChat(patchedItem);
+  1538→      } finally {
+  1539→        setActivity(null);
+  1540→      }
+  1541→    })();
+  1542→    return waitingItem;
+  1543→  }
+  1544→
+  1545→  function reviewAction(id: string, approve: boolean): KoruTurnItem | null {
+  1546→    const currentState = domainStateRef.current;
+  1547→    const original = currentState.actions.find((action) => action.id === id);
+  1548→    if (approve && (original?.kind === "web_research" || original?.kind === "world_signal")) {
+  1549→      return runReadonlyWebAction(original);
+  1550→    }
+  1551→
+  1552→    const nextState = approve ? approveAndExecuteAction(currentState, id) : rejectAction(currentState, id);
+  1553→    const reviewed = nextState.actions.find((action) => action.id === id);
+  1554→    if (!reviewed) return null;
+  1555→    commitDomainState(nextState);
+  1556→    const item = actionToTurnItem(reviewed);
+  1557→    replaceActionInChat(item);
+  1558→    writeAuditEvent({
+  1559→      type: "action_reviewed",
+  1560→      actionId: id,
+  1561→      approved: approve,
+  1562→      item: auditTurnItems([item])[0],
+  1563→      state: auditStateSnapshot(nextState),
+  1564→      delta: auditStateDelta(currentState, nextState),
+  1565→    });
+  1566→    appendKoruConfirmation(approve ? actionConfirmationText(item) : "Lo suelto. No hice nada con eso.");
+  1567→
+  1568→    return item;
+  1569→  }
+  1570→
+  1571→  function toggleTurnLike(id: string) {
+  1572→    commitChatTurns((prev) => prev.map((turn) => (turn.id === id ? { ...turn, liked: !turn.liked } : turn)));
+  1573→  }
+  1574→
+  1575→  // ─── TIER S — wrappers sobre los nuevos reducers del store ───
+  1576→  // Cada wrapper toma los mismos params que el reducer (menos `state`, que viene
+  1577→  // del contexto), invoca al reducer con el estado previo y commitea el resultado
+  1578→  // via commitDomainState (que a su vez persiste con saveState, ya llamado dentro
+  1579→  // de cada reducer). computeStreak es una función pura sin estado: lee
+  1580→  // habitLogs del domainStateRef actual.
+  1581→  function createPlan(title: string, steps: Omit<PlanStep, "id" | "order" | "done">[]) {
+  1582→    commitDomainState((prev) => createPlanReducer(prev, title, steps));
+  1583→  }
+  1584→  function togglePlanStep(planId: string, stepId: string) {
+  1585→    commitDomainState((prev) => togglePlanStepReducer(prev, planId, stepId));
+  1586→  }
+  1587→  function archivePlan(planId: string) {
+  1588→    commitDomainState((prev) => archivePlanReducer(prev, planId));
+  1589→  }
+  1590→  function createChecklist(title: string, items: Omit<ChecklistItem, "id" | "order">[]) {
+  1591→    commitDomainState((prev) => createChecklistReducer(prev, title, items));
+  1592→  }
+  1593→  function toggleChecklistItem(checklistId: string, itemId: string) {
+  1594→    commitDomainState((prev) => toggleChecklistItemReducer(prev, checklistId, itemId));
+  1595→  }
+  1596→  function createHabit(label: string, icon: string, cadence: Habit["cadence"], target: number, unit?: string, anchorTime?: string): string {
+  1597→    // 🔴 TIER S: devolvemos el id del hábito recién creado para que callers
+  1598→    // (ej. CreateScreen rutina template) puedan encadenar createRoutine con
+  1599→    // el habitId. Generamos el id acá y lo pasamos al reducer (que acepta un
+  1600→    // id opcional) para garantizar consistencia entre lo que se persiste y lo
+  1601→    // que devolvemos, sin depender del timing del batch de React.
+  1602→    const habitId = createId("habit");
+  1603→    commitDomainState((prev) => createHabitReducer(prev, label, icon, cadence, target, unit, anchorTime, habitId));
+  1604→    return habitId;
+  1605→  }
+  1606→  function logHabit(habitId: string, value: number) {
+  1607→    commitDomainState((prev) => logHabitReducer(prev, habitId, value));
+  1608→  }
+  1609→  function computeStreak(habitId: string): number {
+  1610→    return computeStreakReducer(habitId, domainStateRef.current.habitLogs ?? []);
+  1611→  }
+  1612→  function createRoutine(name: string, anchorTime: string, habitIds: string[], daysOfWeek: number[]) {
+  1613→    commitDomainState((prev) => createRoutineReducer(prev, name, anchorTime, habitIds, daysOfWeek));
+  1614→  }
+  1615→  function createExercisePlan(name: string, weeksTotal: number, sessions: Omit<ExerciseSession, "id" | "order">[]) {
+  1616→    commitDomainState((prev) => createExercisePlanReducer(prev, name, weeksTotal, sessions));
+  1617→  }
+  1618→  function logWorkout(planId: string, sessionId: string, exercises: WorkoutLog["exercises"], durationMin: number, kcal?: number) {
+  1619→    commitDomainState((prev) => logWorkoutReducer(prev, planId, sessionId, exercises, durationMin, kcal));
+  1620→  }
+  1621→  function createShoppingList(title: string, items: Omit<ShoppingItem, "id" | "order" | "checked">[], store?: string) {
+  1622→    commitDomainState((prev) => createShoppingListReducer(prev, title, items, store));
+  1623→  }
+  1624→  function toggleShoppingItem(listId: string, itemId: string) {
+  1625→    commitDomainState((prev) => toggleShoppingItemReducer(prev, listId, itemId));
+  1626→  }
+  1627→  function logWellbeing(metric: WellbeingLog["metric"], value: number, unit: string, source?: WellbeingLog["source"]) {
+  1628→    commitDomainState((prev) => logWellbeingReducer(prev, metric, value, unit, source));
+  1629→  }
+  1630→  function addPerson(name: string, relationship?: string, birthday?: string) {
+  1631→    commitDomainState((prev) => addPersonReducer(prev, name, relationship, birthday));
+  1632→  }
+  1633→  function updateUserProfile(profile: Partial<UserProfile>) {
+  1634→    commitDomainState((prev) => updateUserProfileReducer(prev, profile));
+  1635→  }
+  1636→  function updatePreferences(prefs: Partial<UserPreferences>) {
+  1637→    commitDomainState((prev) => updatePreferencesReducer(prev, prefs));
+  1638→  }
+  1639→  function createDecision(question: string, options: Decision["options"], factors: Decision["factors"], weights: Record<string, number>): Decision {
+  1640→    // 🔴 GAP-2: el motor de decisión (computeDecision) se invoca acá,
+  1641→    // dentro del wrapper, para que la decisión persistida quede con su
+  1642→    // `result` ya poblado (recommendation + confidenceInterval + scores).
+  1643→    // El reducer original (createDecisionReducer) sólo persiste la decisión
+  1644→    // "en crudo"; nosotros construimos el objeto, lo computamos, y luego
+  1645→    // commiteamos el estado resultante. Devolvemos la Decision al caller
+  1646→    // (CreateScreen) para que pueda invocar computeDecision explícitamente
+  1647→    // sobre la decisión recién creada — cumpliendo el contrato GAP-2.
+  1648→    const now = new Date().toISOString();
+  1649→    const decision: Decision = {
+  1650→      id: createId("decision"),
+  1651→      question,
+  1652→      options,
+  1653→      factors,
+  1654→      weights,
+  1655→      linkedMemoryIds: [],
+  1656→      createdAt: now,
+  1657→    };
+  1658→    const prev = domainStateRef.current;
+  1659→    const nextState: KoruState = {
+  1660→      ...prev,
+  1661→      decisions: [decision, ...(prev.decisions ?? [])],
+  1662→      updatedAt: now,
+  1663→    };
+  1664→    // El motor muta `decision.result` in-place.
+  1665→    try {
+  1666→      computeDecision(nextState, decision.id);
+  1667→    } catch {
+  1668→      // best-effort: si el motor falla (ej. opciones vacías), la decisión
+  1669→      // se persiste igual sin result — el usuario puede re-computar luego.
+  1670→    }
+  1671→    saveState(nextState);
+  1672→    commitDomainState(nextState);
+  1673→    return decision;
+  1674→  }
+  1675→  function updateWeatherCache(cache: WeatherCache) {
+  1676→    commitDomainState((prev) => updateWeatherCacheReducer(prev, cache));
+  1677→  }
+  1678→  function setLastBrief(date: string, block?: UiBlock) {
+  1679→    commitDomainState((prev) => setLastBriefReducer(prev, date, block));
+  1680→  }
+  1681→  function forgetMemory(memoryId: string) {
+  1682→    commitDomainState((prev) => forgetMemoryReducer(prev, memoryId));
+  1683→  }
+  1684→  function snoozeCommitment(commitmentId: string, minutes: number) {
+  1685→    commitDomainState((prev) => snoozeCommitmentReducer(prev, commitmentId, minutes));
+  1686→  }
+  1687→
+  1688→  // 🔴 SettingsScreen integrada — wrappers que antes faltaban en el provider.
+  1689→  // - updateHeartbeat: ajusta horas activas / maxNudgesPerDay / enabled.
+  1690→  // - exportData: descarga un JSON con todo el estado del usuario.
+  1691→  // - deleteAllData: reinicia el estado a createInitialState() y limpia flags locales.
+  1692→  function updateHeartbeat(patch: Partial<HeartbeatSettings>) {
+  1693→    commitDomainState((prev) => updateHeartbeatSettings(prev, patch));
+  1694→  }
+  1695→  function exportData() {
+  1696→    try {
+  1697→      const json = exportState(domainStateRef.current);
+  1698→      const blob = new Blob([json], { type: "application/json" });
+  1699→      const url = URL.createObjectURL(blob);
+  1700→      const a = document.createElement("a");
+  1701→      a.href = url;
+  1702→      a.download = `koru-data-${new Date().toISOString().slice(0, 10)}.json`;
+  1703→      document.body.appendChild(a);
+  1704→      a.click();
+  1705→      a.remove();
+  1706→      URL.revokeObjectURL(url);
+  1707→    } catch (err) {
+  1708→      // best-effort: loguear y no romper la UI
+  1709→      console.error("[Koru] exportData failed", err);
+  1710→    }
+  1711→  }
+  1712→  function deleteAllData() {
+  1713→    const fresh = resetState();
+  1714→    commitDomainState(() => fresh);
+  1715→    try {
+  1716→      localStorage.removeItem("koru.username");
+  1717→      localStorage.removeItem("koru.onboarded");
+  1718→    } catch {
+  1719→      /* noop */
+  1720→    }
+  1721→  }
+  1722→
+  1723→  const value = useMemo<KoruContextValue>(() => ({
+  1724→    state: domainState,
+  1725→    energy,
+  1726→    roots,
+  1727→    stage,
+  1728→    userName,
+  1729→    onboarded,
+  1730→    ephemeral,
+  1731→    priorities,
+  1732→    memories,
+  1733→    history,
+  1734→    records: domainState.records,
+  1735→    permissions,
+  1736→    processing,
+  1737→    activity,
+  1738→    phase,
+  1739→    chatTurns,
+  1740→    selectedModel,
+  1741→    setSelectedModel,
+  1742→    completeOnboarding,
+  1743→    togglePriority,
+  1744→    confirmMemory,
+  1745→    pruneMemory,
+  1746→    editMemory,
+  1747→    toggleMemoryUse,
+  1748→    completeCommitment: completeCommitmentInChat,
+  1749→    togglePermission,
+  1750→    setEphemeral,
+  1751→    submitEntry,
+  1752→    sendMessage,
+  1753→    reviewAction,
+  1754→    toggleTurnLike,
+  1755→    setWorldSignals,
+  1756→    dismissNudge: (id: string) => commitDomainState((prev) => dismissNudge(prev, id)),
+  1757→    memoryToast,
+  1758→    dismissMemoryToast: () => setMemoryToast(null),
+  1759→    morningBrief,
+  1760→    dismissMorningBrief: () => setMorningBrief(null),
+  1761→    showInstallPrompt,
+  1762→    installApp: async () => {
+  1763→      if (installPromptEvent) {
+  1764→        installPromptEvent.prompt();
+  1765→        await installPromptEvent.userChoice;
+  1766→        setInstallPromptEvent(null);
+  1767→        setShowInstallPrompt(false);
+  1768→      }
+  1769→    },
+  1770→    dismissInstallPrompt: () => {
+  1771→      setShowInstallPrompt(false);
+  1772→      localStorage.setItem("koru.installDismissed", "1");
+  1773→    },
+  1774→    voiceEnabled,
+  1775→    toggleVoice: () => {
+  1776→      const next = !voiceEnabled;
+  1777→      setVoiceEnabledState(next);
+  1778→      setVoiceEnabled(next);
+  1779→      localStorage.setItem("koru.voiceEnabled", String(next));
+  1780→      if (!next) stopSpeaking();
+  1781→    },
+  1782→    speakReply: (text: string) => {
+  1783→      if (voiceEnabled) speak(text);
+  1784→    },
+  1785→    stopVoice: () => stopSpeaking(),
+  1786→    language,
+  1787→    setLanguage,
+  1788→    online,
+  1789→    queueOfflineMessage,
+  1790→    createRecord,
+  1791→    updateRecord,
+  1792→    deleteRecord,
+  1793→    reopenRecord,
+  1794→    reopenedRecord,
+  1795→    // 🔴 TIER S — nuevos reducers del store
+  1796→    createPlan,
+  1797→    togglePlanStep,
+  1798→    archivePlan,
+  1799→    createChecklist,
+  1800→    toggleChecklistItem,
+  1801→    createHabit,
+  1802→    logHabit,
+  1803→    computeStreak,
+  1804→    createRoutine,
+  1805→    createExercisePlan,
+  1806→    logWorkout,
+  1807→    createShoppingList,
+  1808→    toggleShoppingItem,
+  1809→    logWellbeing,
+  1810→    addPerson,
+  1811→    updateUserProfile,
+  1812→    updatePreferences,
+  1813→    createDecision,
+  1814→    updateWeatherCache,
+  1815→    setLastBrief,
+  1816→    forgetMemory,
+  1817→    snoozeCommitment,
+  1818→    // 🔴 SettingsScreen integrada
+  1819→    updateHeartbeat,
+  1820→    exportData,
+  1821→    deleteAllData,
+  1822→  }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, domainState, domainState.records, permissions, processing, activity, phase, chatTurns, selectedModel, memoryToast, morningBrief, showInstallPrompt, installPromptEvent, voiceEnabled, language, online, reopenedRecord]);
+  1823→
+  1824→  // 🔴 v2: Listener para guardar record desde el detail screen (botón Guardar informe)
+  1825→  // CAMBIO: ya NO pasa por el LLM (5-15s de espera + contaminación del chat).
+  1826→  // Ahora escribe directo en domainState.records + persiste via saveState.
+  1827→  useEffect(() => {
+  1828→    const onSaveRecord = async (e: Event) => {
+  1829→      const detail = (e as CustomEvent).detail;
+  1830→      const title = String(detail?.title ?? "").trim();
+  1831→      const collection = String(detail?.collection ?? detail?.subtitle ?? "Informes").trim() || "Informes";
+  1832→      if (!title) return;
+  1833→      const newRecord: LifeRecord = {
+  1834→        id: `rec_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+  1835→        domain: "personal" as LifeDomain,
+  1836→        kind: "idea" as LifeRecordKind,
+  1837→        title,
+  1838→        collection,
+  1839→        notes: detail?.notes,
+  1840→        url: detail?.url,
+  1841→        createdAt: new Date().toISOString(),
+  1842→        sourceEntryId: "manual_save",
+  1843→        sourceBlock: detail?.blockData, // 🔴 persistir el bloque original para reabrir
+  1844→      };
+  1845→      commitDomainState((prev) => {
+  1846→        const next = { ...prev, records: [...prev.records, newRecord] };
+  1847→        saveState(next);
+  1848→        return next;
+  1849→      });
+  1850→      // 🔴 TIER S: si el bloque guardado es un "plan", también persistimos un
+  1851→      // Plan durable en el store (state.plans) vía createPlan — habilita
+  1852→      // togglePlanStep, archivePlan, etc. desde el detail screen reabierto.
+  1853→      if (detail?.blockData?.type === "plan" && Array.isArray(detail.blockData.items)) {
+  1854→        const planItems = (detail.blockData.items as Array<{ title: string; time?: string; priority?: string; icon?: string; durationMinutes?: number; mode?: string; done?: boolean; detail?: string; phase?: string; estimatedDays?: number }>)
+  1855→          .map(it => ({
+  1856→            title: it.title,
+  1857→            detail: it.detail ?? it.time,
+  1858→            icon: it.icon,
+  1859→            time: it.time,
+  1860→            durationMinutes: it.durationMinutes,
+  1861→            priority: it.priority === "Alta" ? "alta" : it.priority === "Media" ? "media" : it.priority === "Baja" ? "baja" : undefined,
+  1862→            phase: it.phase,
+  1863→            estimatedDays: it.estimatedDays,
+  1864→          }));
+  1865→        if (planItems.length > 0) {
+  1866→          commitDomainState((prev) =>
+  1867→            createPlanReducer(prev, title || "Plan", planItems as Omit<PlanStep, "id" | "order" | "done">[])
+  1868→          );
+  1869→        }
+  1870→      }
+  1871→      // 🔴 TIER S: si el bloque guardado es "weather", actualizamos el cache
+  1872→      // de clima (state.weatherCache) vía updateWeatherCache — así HomeScreen
+  1873→      // muestra el dato fresco sin tener que re-fetchear.
+  1874→      if (detail?.blockData?.type === "weather" && detail.blockData.city) {
+  1875→        const w = detail.blockData;
+  1876→        const cache: WeatherCache = {
+  1877→          city: String(w.city ?? ""),
+  1878→          fetchedAt: w.verifiedAt ?? new Date().toISOString(),
+  1879→          payload: {
+  1880→            now: String(w.now ?? ""),
+  1881→            condition: String(w.condition ?? ""),
+  1882→            hourly: w.hourly as WeatherCache["payload"]["hourly"],
+  1883→            daily: w.daily as WeatherCache["payload"]["daily"],
+  1884→          },
+  1885→        };
+  1886→        commitDomainState((prev) => updateWeatherCacheReducer(prev, cache));
+  1887→      }
+  1888→      // 🔴 Toast de confirmación (usa el mismo mecanismo que memory toast)
+  1889→      setMemoryToast({ id: newRecord.id, kind: "saved", text: `Guardado en ${collection}` });
+  1890→      setTimeout(() => setMemoryToast(null), 2500);
+  1891→      // 🔴 v2: analytics — track chat save (vs Create save)
+  1892→      analyticsTrack("save_record_via_chat", { collection, hasSourceBlock: !!detail?.blockData });
+  1893→    };
+  1894→    window.addEventListener("koru-save-record", onSaveRecord as EventListener);
+  1895→    return () => window.removeEventListener("koru-save-record", onSaveRecord as EventListener);
+  1896→  }, []);
+  1897→
+  1898→  // 🔴 v2: listener para acciones inline de cards (alarm/reminder complete/snooze/dismiss)
+  1899→  useEffect(() => {
+  1900→    const onCardAction = (e: Event) => {
+  1901→      const detail = (e as CustomEvent).detail;
+  1902→      const action = detail?.action as string;
+  1903→      const blockData = detail?.blockData;
+  1904→      // 🔴 Para alarm/reminder, marcar el commitment como completo si hay action=complete
+  1905→      if (action === "complete" || action === "dismiss") {
+  1906→        // Buscar el commitment que matchea el título del block
+  1907→        const title = blockData?.title ?? blockData?.hero?.title;
+  1908→        if (title) {
+  1909→          commitDomainState((prev) => {
+  1910→            const next = { ...prev, commitments: prev.commitments.map(c =>
+  1911→              c.title === title ? { ...c, status: (action === "complete" ? "done" : "dismissed") as CommitmentStatus } : c
+  1912→            ) };
+  1913→            saveState(next);
+  1914→            return next;
+  1915→          });
+  1916→        }
+  1917→        setMemoryToast({ id: `action_${Date.now()}`, kind: "saved", text: action === "complete" ? "Listo ✓" : "Apagado" });
+  1918→        setTimeout(() => setMemoryToast(null), 2000);
+  1919→      } else if (action === "snooze") {
+  1920→        // 🔴 P0 FIX: Snooze real — usa el reducer snoozeCommitment (no mutación
+  1921→        // inline del estado). El reducer reagenda dueAt = ahora + minutes y
+  1922→        // limpia remindedAt. Persistencia y audit quedan a cargo del reducer.
+  1923→        const title = blockData?.title ?? blockData?.hero?.title;
+  1924→        const snoozeMinutes = Number(detail?.minutes ?? 10) || 10;
+  1925→        if (title) {
+  1926→          const prev = domainStateRef.current;
+  1927→          const commitment = prev.commitments.find(c => c.title === title);
+  1928→          if (commitment) {
+  1929→            commitDomainState(snoozeCommitmentReducer(prev, commitment.id, snoozeMinutes));
+  1930→          }
+  1931→        }
+  1932→        setMemoryToast({ id: `action_${Date.now()}`, kind: "saved", text: `Postergado ${snoozeMinutes} min ✓` });
+  1933→        setTimeout(() => setMemoryToast(null), 2000);
+  1934→      } else if (action === "toggle_step") {
+  1935→        // 🔴 TIER S: toggle de un step de Plan desde KoruDetailScreen.
+  1936→        // detail trae planId + stepId (sintéticos, derivados del título del
+  1937→        // bloque). Si no existe un Plan durable con ese id, lo creamos desde
+  1938→        // el blockData (tipo "plan") para que el toggle sea efectivo.
+  1939→        const planId = String(detail?.planId ?? "");
+  1940→        const stepId = String(detail?.stepId ?? "");
+  1941→        if (planId && stepId) {
+  1942→          const prev = domainStateRef.current;
+  1943→          const exists = (prev.plans ?? []).some(p => p.id === planId);
+  1944→          let state = prev;
+  1945→          if (!exists && blockData?.type === "plan" && Array.isArray(blockData.items)) {
+  1946→            // Auto-crear el Plan durable desde el UiBlock para que el toggle
+  1947→            // tenga efecto. Los stepIds se generan con la misma convención de
+  1948→            // slug que planFallback en presentation.ts.
+  1949→            const steps = (blockData.items as Array<{ title: string; time?: string; priority?: string; icon?: string; durationMinutes?: number; mode?: string; done?: boolean }>)
+  1950→              .map((it, i) => ({
+  1951→                title: it.title,
+  1952→                detail: it.time,
+  1953→                icon: it.icon,
+  1954→                time: it.time,
+  1955→                durationMinutes: it.durationMinutes,
+  1956→                priority: it.priority === "Alta" ? "alta" : it.priority === "Media" ? "media" : it.priority === "Baja" ? "baja" : undefined,
+  1957→                // El id del step debe matchear el sintético que generó planFallback.
+  1958→                // planFallback usa `step_${slug(it.title)}_${i}` — pero el reducer
+  1959→                // createPlan genera sus propios ids. Para que el toggle funcione,
+  1960→                // overrideamos el id del step con el sintético antes de crear.
+  1961→                // ⚠️ createPlan no acepta ids custom, así que dejamos que genere
+  1962→                // los suyos y luego hacemos un patch in-place para que coincidan.
+  1963→              }));
+  1964→            // Usar createPlanReducer y luego parchear los step ids para que
+  1965→            // coincidan con los sintéticos que viene dispatchando la UI.
+  1966→            void steps; // steps se pasa al reducer abajo
+  1967→            const created = createPlanReducer(state, blockData.title || "Plan", steps as Omit<PlanStep, "id" | "order" | "done">[]);
+  1968→            // Parchear el plan recién creado: reemplazar sus step ids por los
+  1969→            // sintéticos, para que el toggle posterior los encuentre.
+  1970→            const slug = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 48) || "untitled";
+  1971→            const createdPlans = created.plans ?? [];
+  1972→            const patchedPlans = createdPlans.map(p =>
+  1973→              p.id === (createdPlans[0]?.id ?? "")
+  1974→                ? {
+  1975→                    ...p,
+  1976→                    id: planId, // overridear el id del plan con el sintético
+  1977→                    steps: p.steps.map((s, i) => ({
+  1978→                      ...s,
+  1979→                      id: `step_${slug(s.title)}_${i}`,
+  1980→                    })),
+  1981→                  }
+  1982→                : p
+  1983→            );
+  1984→            state = { ...created, plans: patchedPlans };
+  1985→            saveState(state);
+  1986→            commitDomainState(state);
+  1987→          }
+  1988→          // Ahora sí, toggle del step (sea que existía o acaba de crearse).
+  1989→          commitDomainState(togglePlanStepReducer(state, planId, stepId));
+  1990→        }
+  1991→      } else if (action === "toggle_shopping") {
+  1992→        // 🔴 TIER S: toggle de un ShoppingItem desde KoruDetailScreen.
+  1993→        const listId = String(detail?.listId ?? "");
+  1994→        const itemId = String(detail?.itemId ?? "");
+  1995→        if (listId && itemId) {
+  1996→          const prev = domainStateRef.current;
+  1997→          const exists = (prev.shoppingLists ?? []).some(l => l.id === listId);
+  1998→          let state = prev;
+  1999→          if (!exists && blockData?.type === "shopping_list" && Array.isArray(blockData.items)) {
+  2000→            // Auto-crear la ShoppingList durable desde el UiBlock.
+
+[showing lines 1-2000 of 2124; use offset=2001 with limit to continue reading]

@@ -25,6 +25,7 @@ import type {
   Decision,
   WeatherCache,
   ProactiveNudge,
+  Attachment,
 } from "../domain/types";
 import {
   applyHeartbeatNudges,
@@ -73,6 +74,7 @@ import {
   setLastBrief as setLastBriefReducer,
   forgetMemory as forgetMemoryReducer,
   snoozeCommitment as snoozeCommitmentReducer,
+  resolveMemoryConflict as resolveMemoryConflictReducer,
 } from "../domain/store";
 import { computeDecision } from "../domain/decisionEngine";
 import { runBackendAgentTurn } from "../domain/backendAgentClient";
@@ -92,6 +94,8 @@ import { stageForEnergy as stageForEnergyImpl, domainStageToNew, domainStatusToM
 import { cacheTurn, isOnline, onOnlineStatusChange, enqueueOfflineMessage, readOfflineQueue, dequeueOfflineMessage, type CachedTurn } from "../domain/offlineCache";
 // 🔴 v2: Analytics — tracking de Create adoption + reopen rate
 import { track as analyticsTrack } from "../domain/analytics";
+// 🔴 P2 — Memory conflict resolution modal
+import { MemoryConflictResolver } from "./MemoryConflictResolver";
 export type { KoruTurnItem, KoruChatTurn };
 
 export type Stage = "semilla" | "brote" | "raices" | "nacimiento" | "jardin";
@@ -164,6 +168,71 @@ export const PHASE_LABEL: Record<string, string> = {
   saving: "Guardando…",
 };
 
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔴 P2 — Memory conflict detection (pure helper).
+// Dada una memoria nueva y la lista de memorias existentes, devuelve la
+// primera memoria existente que contradice a la nueva:
+//   1. Mismo `kind`.
+//   2. Comparten 3+ palabras significativas (>4 chars, sin stopwords ni
+//      acentos) → "overlapping keywords".
+//   3. Los textos NO son substring uno del otro (si lo son, no hay
+//      contradicción real, sólo una expansión).
+//   4. Sólo memorias activas (candidate/confirmed) — no superseded/archived.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Stopwords mínimas en ES/EN para no contar "que", "de", "the", etc. como
+// keywords significativas. La lista es intencionalmente corta — el filtro
+// principal es la longitud > 4 chars.
+const CONFLICT_STOPWORDS = new Set([
+  "para", "por", "con", "pero", "como", "this", "that", "with", "from",
+  "have", "they", "their", "there", "where", "when", "what", "which",
+]);
+
+function normalizeWordList(text: string): Set<string> {
+  const norm = text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // quitar acentos
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .map((w) => w.trim())
+    .filter((w) => w.length > 4 && !CONFLICT_STOPWORDS.has(w));
+  return new Set(norm);
+}
+
+function isSubstring(a: string, b: string): boolean {
+  const na = a.toLowerCase().trim();
+  const nb = b.toLowerCase().trim();
+  if (!na || !nb) return false;
+  return na.includes(nb) || nb.includes(na);
+}
+
+export function detectMemoryConflictInState(
+  newMemory: MemoryFact,
+  existingMemories: MemoryFact[],
+): MemoryFact | null {
+  if (!newMemory?.text || existingMemories.length === 0) return null;
+  const newWords = normalizeWordList(newMemory.text);
+  if (newWords.size < 1) return null;
+  for (const existing of existingMemories) {
+    if (!existing || existing.id === newMemory.id) continue;
+    if (existing.kind !== newMemory.kind) continue;
+    // Sólo memorias vivas (candidate / confirmed) cuentan como conflicto.
+    if (existing.status !== "candidate" && existing.status !== "confirmed") continue;
+    const existingWords = normalizeWordList(existing.text);
+    if (existingWords.size === 0) continue;
+    let overlap = 0;
+    for (const w of newWords) {
+      if (existingWords.has(w)) overlap++;
+    }
+    if (overlap < 3) continue;
+    // Si los textos son substring uno del otro, no hay contradicción real.
+    if (isSubstring(existing.text, newMemory.text)) continue;
+    return existing;
+  }
+  return null;
+}
+
 type KoruContextValue = {
   // 🔴 v2: state completo expuesto para que screens (Home, etc.) lean slices
   // no cubiertos por los helpers específicos (commitments, calendarEvents,
@@ -224,7 +293,7 @@ type KoruContextValue = {
   online: boolean;
   queueOfflineMessage: (text: string) => Promise<void>;
   // 🔴 v2: Create flow — alta/baja/modificación de records sin pasar por LLM
-  createRecord: (input: { title: string; collection: string; notes?: string; url?: string; kind?: string; tags?: string[]; sourceBlock?: UiBlock }) => Promise<LifeRecord>;
+  createRecord: (input: { title: string; collection: string; notes?: string; url?: string; kind?: string; tags?: string[]; sourceBlock?: UiBlock; attachments?: Attachment[] }) => Promise<LifeRecord>;
   updateRecord: (id: string, patch: Partial<LifeRecord>) => void;
   deleteRecord: (id: string) => void;
   reopenRecord: (record: LifeRecord) => void;
@@ -252,6 +321,11 @@ type KoruContextValue = {
   setLastBrief: (date: string, block?: UiBlock) => void;
   forgetMemory: (memoryId: string) => void;
   snoozeCommitment: (commitmentId: string, minutes: number) => void;
+  // 🔴 P2 — Memory conflict resolution
+  detectMemoryConflict: (newMemory: MemoryFact) => MemoryFact | null;
+  pendingMemoryConflict: { oldMemory: MemoryFact; newMemory: MemoryFact } | null;
+  resolveMemoryConflict: (keepId: string, supersedeId: string) => void;
+  dismissMemoryConflict: () => void;
   // 🔴 SettingsScreen integrada — wrappers para ajustes que antes estaban dispersos
   updateHeartbeat: (patch: Partial<HeartbeatSettings>) => void;
   exportData: () => void;
@@ -302,6 +376,16 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   // "Buenos días" para hoy (puede pasar cuando loadPersistedState sobreescribe
   // state.lastBriefDate justo después de que ya lo seteamos), no repetir.
   const lastBriefNudgeDateRef = useRef<string | null>(null);
+
+  // 🔴 P2 — Memory conflict resolution. Cuando detectMemoryConflict encuentra
+  // una contradicción entre una memoria nueva y una existente, seteamos
+  // `pendingMemoryConflict` y el modal <MemoryConflictResolver> se monta
+  // encima de todo. resolveMemoryConflict(keepId, supersedeId) despacha el
+  // reducer del store y limpia el estado.
+  const [pendingMemoryConflict, setPendingMemoryConflict] = useState<{
+    oldMemory: MemoryFact;
+    newMemory: MemoryFact;
+  } | null>(null);
 
   function commitDomainState(next: KoruState | ((prev: KoruState) => KoruState)) {
     setDomainState((prev) => {
@@ -923,6 +1007,37 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     });
   }
 
+  // 🔴 P2 — Memory conflict detection. Recibe una memoria nueva y devuelve la
+  // primera memoria existente que la contradice (mismo kind + 3+ keywords
+  // compartidas + textos no substring). Delega al helper puro
+  // `detectMemoryConflictInState`. Lo llama submitEntry() cuando llegan
+  // memoryCandidates nuevos desde el backend.
+  function detectMemoryConflict(newMemory: MemoryFact): MemoryFact | null {
+    return detectMemoryConflictInState(newMemory, domainStateRef.current.memories);
+  }
+
+  // 🔴 P2 — Resuelve un conflicto: keeper → confirmed, otra → superseded.
+  // Limpia el estado del modal. Si keepId === supersedeId (no debería pasar)
+  // es no-op.
+  function resolveMemoryConflict(keepId: string, supersedeId: string) {
+    commitDomainState((prev) => {
+      const next = resolveMemoryConflictReducer(prev, keepId, supersedeId);
+      writeAuditEvent({
+        type: "memory_conflict_resolved",
+        keepId,
+        supersedeId,
+        state: auditStateSnapshot(next),
+        delta: auditStateDelta(prev, next),
+      });
+      return next;
+    });
+    setPendingMemoryConflict(null);
+  }
+
+  function dismissMemoryConflict() {
+    setPendingMemoryConflict(null);
+  }
+
   function togglePermission(id: string) {
     if (id === "perm1") {
       commitDomainState((prev) => setDurableMemoryEnabled(prev, !(prev.durableMemoryEnabled && !prev.ephemeralMode)));
@@ -1005,6 +1120,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     kind?: string;
     tags?: string[];
     sourceBlock?: UiBlock;
+    attachments?: Attachment[];
   }): Promise<LifeRecord> {
     const kindMap: Record<string, LifeRecordKind> = {
       // Legacy aliases (backward compat con llamadas existentes)
@@ -1046,6 +1162,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
       notes: input.notes,
       url: input.url,
       tags: input.tags && input.tags.length > 0 ? input.tags : undefined,
+      attachments: input.attachments && input.attachments.length > 0 ? input.attachments : undefined,
       amount: kind === "expense" ? parseFloat(input.notes ?? "0") || undefined : undefined,
       currency: kind === "expense" ? "ARS" : undefined,
       createdAt: new Date().toISOString(),
@@ -1224,6 +1341,25 @@ export function KoruProvider({ children }: { children: ReactNode }) {
         }
         // 🔴 Request notification permission — best effort
         requestNotificationPermission().catch(() => {});
+      }
+
+      // 🔴 P2 — Memory conflict detection. Comparar las memorias NUEVAS de
+      // este turno (las que están en result.state pero no en previousState)
+      // contra las memorias PREEXISTENTES (previousState.memories). Si
+      // detectamos conflicto, abrimos el modal. Sólo un conflicto a la vez
+      // (el primero) para no abrumar al usuario.
+      if (!previousState.ephemeralMode && previousState.durableMemoryEnabled) {
+        const prevIds = new Set(previousState.memories.map((m) => m.id));
+        const addedMemories = (result.state.memories ?? []).filter(
+          (m) => !prevIds.has(m.id) && (m.status === "candidate" || m.status === "confirmed"),
+        );
+        for (const fresh of addedMemories) {
+          const conflicting = detectMemoryConflictInState(fresh, previousState.memories);
+          if (conflicting) {
+            setPendingMemoryConflict({ oldMemory: conflicting, newMemory: fresh });
+            break;
+          }
+        }
       }
       if (koruTurnId) {
         // Preservar ids de los items del stream: si el resultado final tiene un item
@@ -1815,11 +1951,16 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     setLastBrief,
     forgetMemory,
     snoozeCommitment,
+    // 🔴 P2 — Memory conflict resolution
+    detectMemoryConflict,
+    pendingMemoryConflict,
+    resolveMemoryConflict,
+    dismissMemoryConflict,
     // 🔴 SettingsScreen integrada
     updateHeartbeat,
     exportData,
     deleteAllData,
-  }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, domainState, domainState.records, permissions, processing, activity, phase, chatTurns, selectedModel, memoryToast, morningBrief, showInstallPrompt, installPromptEvent, voiceEnabled, language, online, reopenedRecord]);
+  }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, domainState, domainState.records, permissions, processing, activity, phase, chatTurns, selectedModel, memoryToast, morningBrief, showInstallPrompt, installPromptEvent, voiceEnabled, language, online, reopenedRecord, pendingMemoryConflict]);
 
   // 🔴 v2: Listener para guardar record desde el detail screen (botón Guardar informe)
   // CAMBIO: ya NO pasa por el LLM (5-15s de espera + contaminación del chat).
@@ -2106,13 +2247,54 @@ export function KoruProvider({ children }: { children: ReactNode }) {
             setTimeout(() => setMemoryToast(null), 2500);
           }
         }
+      } else if (action === "create_commitment") {
+        // 🔴 P2 — Crear un Commitment genérico desde una card-action inline.
+        // Hoy lo usa el botón "Alerta de precio" de PriceHistoryChart para
+        // fijar un target de precio; el dueHint queda como "precio baja a X".
+        // detail trae title + dueHint (+ opcionalmente url/asin/target).
+        const title = String(detail?.title ?? "Recordatorio").trim();
+        const dueHint = String(detail?.dueHint ?? "").trim();
+        if (title) {
+          commitDomainState((prev) => {
+            const now = new Date().toISOString();
+            const newCommitment = {
+              id: createId("commit"),
+              title,
+              dueHint: dueHint || "próximamente",
+              status: "open" as CommitmentStatus,
+              createdAt: now,
+              sourceEntryId: createId("entry"),
+            };
+            const next = {
+              ...prev,
+              commitments: [newCommitment, ...prev.commitments],
+              updatedAt: now,
+            };
+            saveState(next);
+            return next;
+          });
+          setMemoryToast({ id: `action_${Date.now()}`, kind: "saved", text: "Alerta creada ✓" });
+          setTimeout(() => setMemoryToast(null), 2000);
+        }
       }
     };
     window.addEventListener("koru-card-action", onCardAction as EventListener);
     return () => window.removeEventListener("koru-card-action", onCardAction as EventListener);
   }, []);
 
-  return <KoruContext.Provider value={value}>{children}</KoruContext.Provider>;
+  return (
+    <>
+      <KoruContext.Provider value={value}>{children}</KoruContext.Provider>
+      {pendingMemoryConflict && (
+        <MemoryConflictResolver
+          oldMemory={pendingMemoryConflict.oldMemory}
+          newMemory={pendingMemoryConflict.newMemory}
+          onResolve={(keepId, supersedeId) => resolveMemoryConflict(keepId, supersedeId)}
+          onClose={() => dismissMemoryConflict()}
+        />
+      )}
+    </>
+  );
 }
 
 export function useKoru() {

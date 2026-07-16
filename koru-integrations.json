@@ -1,0 +1,8 @@
+{
+  "googleCalendar": {
+    "connected": true,
+    "accessToken": "access-123",
+    "refreshToken": "refresh-456",
+    "connectedAt": "2026-07-16T16:47:40.614Z"
+  }
+}

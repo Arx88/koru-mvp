@@ -1,8 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CSSProperties } from "react";
 import type { UiBlock } from "../../../domain/types";
 import type { Detail, DetailSection, Accent, DetailRow, DetailSourceRef } from "./presentation";
+import { CookingMode, type CookingStep } from "./CookingMode";
+import { WorkoutSession } from "../../WorkoutSession";
+import { PriceHistoryChart, extractAsin } from "./PriceHistoryChart";
 
 // Pantalla de detalle unificada — misma estética Stitch que PlanRoadmapScreen
 // (koru-roadmap + magical-cards + blobs), pero genérica: renderiza cualquier
@@ -11,6 +14,56 @@ import type { Detail, DetailSection, Accent, DetailRow, DetailSourceRef } from "
 
 function Mat({ children, className = "" }: { children: string; className?: string }) {
   return <span className={`material-symbols-outlined ${className}`}>{children}</span>;
+}
+
+// 🔴 P2 — Platform detection para el botón "Navegar" de route_map.
+// iOS detection incluye el iPad con iOS 13+ que se reporta como MacIntel.
+function isIOS(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && (navigator.maxTouchPoints ?? 0) > 1)
+  );
+}
+
+function isAndroid(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Android/i.test(navigator.userAgent);
+}
+
+/**
+ * 🔴 P2 — Construye la URL de navegación según plataforma y datos disponibles.
+ * - Si lat/lng están presentes:
+ *   • Android: geo:${lat},${lng}?q=${destination}
+ *   • iOS:     maps://?daddr=${lat},${lng}
+ *   • Desktop: https://www.google.com/maps/dir/?api=1&destination=${dest}
+ * - Si NO hay lat/lng, cae a esquemas address-based:
+ *   • Android: geo:0,0?q=${destination}
+ *   • iOS:     maps://?daddr=${destination}
+ *   • Desktop: https://www.google.com/maps/dir/?api=1&destination=${dest}
+ * Devuelve null si no hay destino (ni to ni from ni lat/lng).
+ */
+function buildNavUrl(opts: {
+  destination: string;
+  lat?: number;
+  lng?: number;
+}): string | null {
+  const { destination, lat, lng } = opts;
+  const hasCoords = typeof lat === "number" && typeof lng === "number";
+  if (isAndroid()) {
+    if (hasCoords) {
+      return `geo:${lat},${lng}?q=${encodeURIComponent(destination)}`;
+    }
+    return `geo:0,0?q=${encodeURIComponent(destination)}`;
+  }
+  if (isIOS()) {
+    if (hasCoords) {
+      return `maps://?daddr=${lat},${lng}`;
+    }
+    return `maps://?daddr=${encodeURIComponent(destination)}`;
+  }
+  // Desktop (o fallback)
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
 }
 
 // 🔴 v2: ComparisonBar — barra comparativa para stats de fútbol (o cualquier
@@ -502,6 +555,88 @@ export function KoruDetailScreen({
   // bloques transitorios del LLM.
   block?: UiBlock;
 }) {
+  // 🔴 P2 — Cooking mode: estado que abre el overlay full-screen.
+  // Sólo se activa si el block es un UiBlock `recipe` con steps.
+  const [cookingOpen, setCookingOpen] = useState(false);
+  // 🔴 P2 — Workout session: estado que abre el overlay full-screen.
+  // Sólo se activa si el block es un UiBlock `exercise_plan` con sesiones.
+  const [workoutOpen, setWorkoutOpen] = useState(false);
+  // 🔴 P2 — Toast "Abriendo navegación..." para el botón Navegar de route_map.
+  // Se muestra con la animación koru-save-rise (mismo feel que el modal Save).
+  const [navToast, setNavToast] = useState<string | null>(null);
+
+  const recipe = block && block.type === "recipe" ? block : null;
+  const recipeTitle = recipe?.name ?? recipe?.title ?? detail.title;
+  const cookingSteps: CookingStep[] = (recipe?.steps ?? []).map((s) => {
+    const maybeTimer = (s as unknown as { timerSec?: unknown }).timerSec;
+    return {
+      step: s.step,
+      text: s.text,
+      // timerSec se conserva si el dominio lo llega a agregar (hoy no viene).
+      ...(typeof maybeTimer === "number"
+        ? { timerSec: maybeTimer }
+        : {}),
+    };
+  });
+  const canCook = !!recipe && cookingSteps.length > 0;
+
+  // exercise_plan: plan + sesión actual (currentSessionIdx).
+  const exercisePlan = block && block.type === "exercise_plan" ? block : null;
+  const exercisePlanObj = exercisePlan?.plan;
+  const workoutSession =
+    exercisePlanObj && exercisePlanObj.sessions.length > 0
+      ? exercisePlanObj.sessions[Math.min(exercisePlanObj.currentSessionIdx ?? 0, exercisePlanObj.sessions.length - 1)]
+      : null;
+  const canWorkout = !!exercisePlanObj && !!workoutSession;
+
+  // 🔴 P2 — route_map: extraemos destino + coords (opcionales) para el CTA
+  // "Navegar". El destino prioriza `to` (lugar de llegada); si no, cae a
+  // `from`. Sin destino, el botón no se renderiza.
+  const routeMap = block && block.type === "route_map" ? block : null;
+  const navDestination =
+    (routeMap?.to && routeMap.to.trim()) ||
+    (routeMap?.from && routeMap.from.trim()) ||
+    "";
+  const canNavigate = !!routeMap && navDestination.length > 0;
+
+  // 🔴 P2 — Handler "Navegar": construye la URL según plataforma, abre la
+  // app nativa de mapas (geo:/maps:) o Google Maps web en desktop, muestra
+  // un toast "Abriendo navegación..." con koru-save-rise, y vibra (haptic).
+  function handleNavigate() {
+    if (!canNavigate) return;
+    const url = buildNavUrl({
+      destination: navDestination,
+      lat: routeMap?.lat,
+      lng: routeMap?.lng,
+    });
+    if (!url) return;
+    // 🔴 Toast con animación koru-save-rise (mismo feel que el modal Save).
+    setNavToast("Abriendo navegación...");
+    // 🔴 Haptic feedback — patrón corto si Vibration API está disponible.
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+      try {
+        navigator.vibrate(20);
+      } catch {
+        // best-effort — algunos browsers lanzan si el usuario no interactuó
+      }
+    }
+    // 🔴 Abrir URL — en mobile usamos window.location.href para que el SO
+    // intercepte el esquema (geo:/maps:) y abra la app nativa. En desktop
+    // abrimos en pestaña nueva con window.open.
+    try {
+      if (isAndroid() || isIOS()) {
+        window.location.href = url;
+      } else {
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
+    } catch {
+      // best-effort — si el esquema falla (popup blocker, etc.), el toast
+      // igual le da feedback al usuario de que intentamos.
+    }
+    // 🔴 Auto-ocultar el toast después de 2.2s (mismo tiempo que save-toast).
+    window.setTimeout(() => setNavToast(null), 2200);
+  }
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -571,6 +706,141 @@ export function KoruDetailScreen({
           )}
         </div>
 
+        {/* 🔴 P2 — "Empezar a cocinar": abre el overlay CookingMode cuando el
+            bloque es una receta con pasos. Se renderiza como un CTA grande
+            al final de la lista de secciones (antes del sticky footer). */}
+        {canCook && (
+          <div style={{ padding: "0 16px 16px" }}>
+            <button
+              type="button"
+              onClick={() => setCookingOpen(true)}
+              style={{
+                width: "100%",
+                padding: "16px 18px",
+                borderRadius: 18,
+                border: "none",
+                background: "linear-gradient(135deg, #8363f9, #4648d4)",
+                color: "#fff",
+                fontSize: 15,
+                fontWeight: 800,
+                cursor: "pointer",
+                boxShadow: "0 10px 24px rgba(131, 99, 249, 0.30)",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>soup_kitchen</span>
+              Empezar a cocinar
+              <span className="material-symbols-outlined" style={{ fontSize: 18, opacity: 0.85 }}>arrow_forward</span>
+            </button>
+          </div>
+        )}
+
+        {/* 🔴 P2 — "Empezar sesión": abre el overlay WorkoutSession cuando el
+            bloque es un exercise_plan con sesiones. CTA verde oscuro fitness. */}
+        {canWorkout && (
+          <div style={{ padding: "0 16px 16px" }}>
+            <button
+              type="button"
+              onClick={() => setWorkoutOpen(true)}
+              style={{
+                width: "100%",
+                padding: "16px 18px",
+                borderRadius: 18,
+                border: "none",
+                background: "linear-gradient(135deg, #2d6a4f, #1a3d2e)",
+                color: "#fff",
+                fontSize: 15,
+                fontWeight: 800,
+                cursor: "pointer",
+                boxShadow: "0 10px 24px rgba(45, 106, 79, 0.30)",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>play_arrow</span>
+              Empezar sesión
+              <span className="material-symbols-outlined" style={{ fontSize: 18, opacity: 0.85 }}>arrow_forward</span>
+            </button>
+          </div>
+        )}
+
+        {/* 🔴 P2 — "Navegar" para route_map. Abre la app nativa de mapas
+            (geo: en Android, maps: en iOS) o Google Maps web en desktop.
+            El CTA usa el accent indigo (mismo que el hero de routeMap) para
+            coherencia visual. Toast + haptic al tap. */}
+        {canNavigate && (
+          <div style={{ padding: "0 16px 16px" }}>
+            <button
+              type="button"
+              onClick={handleNavigate}
+              style={{
+                width: "100%",
+                padding: "16px 18px",
+                borderRadius: 18,
+                border: "none",
+                background: "linear-gradient(135deg, #6366f1, #4338ca)",
+                color: "#fff",
+                fontSize: 15,
+                fontWeight: 800,
+                cursor: "pointer",
+                boxShadow: "0 10px 24px rgba(99, 102, 241, 0.30)",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+              }}
+              aria-label={`Navegar a ${navDestination}`}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>navigation</span>
+              Navegar
+              {navDestination ? (
+                <span style={{ opacity: 0.85, fontWeight: 600, fontSize: 13 }}>
+                  · {navDestination.length > 28 ? navDestination.slice(0, 28) + "…" : navDestination}
+                </span>
+              ) : null}
+            </button>
+          </div>
+        )}
+
+        {/* 🔴 P2 — Price history sparklines para bloques de comparison.
+            Cada item con URL (Amazon/product) muestra un mini-chart SVG
+            inline alimentado por Keepa (si hay KEEPA_API_KEY) o un fallback
+            "no disponible". */}
+        {block && block.type === "comparison" && block.items.some((it) => it.url) && (
+          <div style={{ padding: "0 16px 16px" }}>
+            <h3
+              style={{
+                margin: "0 0 10px",
+                fontSize: 13,
+                fontWeight: 800,
+                color: "#1a1a2e",
+                letterSpacing: 0.4,
+                textTransform: "uppercase",
+              }}
+            >
+              Histórico de precios
+            </h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {block.items
+                .filter((it) => it.url)
+                .map((it, i) => (
+                  <PriceHistoryChart
+                    key={i}
+                    title={it.title}
+                    url={it.url ?? ""}
+                    asin={extractAsin(it.url ?? "")}
+                    currentPrice={it.price}
+                  />
+                ))}
+            </div>
+          </div>
+        )}
+
         {/* 🔴 v2: Sticky footer — Save + PDF pinned al fondo con blur backdrop */}
         <div className="koru-detail-actions-sticky">
           <button
@@ -593,6 +863,42 @@ export function KoruDetailScreen({
           )}
         </div>
       </div>
+
+      {/* 🔴 P2 — Cooking mode overlay (full-screen, z-index 300). */}
+      {cookingOpen && canCook && (
+        <CookingMode
+          title={recipeTitle}
+          steps={cookingSteps}
+          block={block}
+          onClose={() => setCookingOpen(false)}
+        />
+      )}
+
+      {/* 🔴 P2 — Workout session overlay (full-screen, z-index 300). */}
+      {workoutOpen && canWorkout && exercisePlanObj && workoutSession && (
+        <WorkoutSession
+          plan={exercisePlanObj}
+          session={workoutSession}
+          onClose={() => setWorkoutOpen(false)}
+        />
+      )}
+
+      {/* 🔴 P2 — Toast "Abriendo navegación..." para el botón Navegar.
+          Reutiliza la animación koru-save-rise (mismo feel que el modal Save).
+          Se auto-oculta a los 2.2s (ver handleNavigate). */}
+      {navToast && (
+        <div
+          className="koru-nav-toast"
+          role="status"
+          aria-live="polite"
+          onClick={() => setNavToast(null)}
+        >
+          <div className="koru-nav-toast-content">
+            <span className="material-symbols-outlined koru-nav-toast-icon">navigation</span>
+            <span className="koru-nav-toast-text">{navToast}</span>
+          </div>
+        </div>
+      )}
     </div>,
     document.body,
   );

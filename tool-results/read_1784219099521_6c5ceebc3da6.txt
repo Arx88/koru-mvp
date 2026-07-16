@@ -1,0 +1,1572 @@
+     1→import { useState, useRef, useMemo } from "react";
+     2→import { createPortal } from "react-dom";
+     3→import { useKoru } from "../KoruProvider";
+     4→import type {
+     5→  LifeRecordKind,
+     6→  LifeDomain,
+     7→  UiBlock,
+     8→  Habit,
+     9→  ExerciseSession,
+    10→  Decision,
+    11→  DecisionOption,
+    12→  DecisionFactor,
+    13→  KoruState,
+    14→  PlanStep,
+    15→} from "../../domain/types";
+    16→import { computeDecision } from "../../domain/decisionEngine";
+    17→
+    18→// 🔴 CreateScreen v2 — entrada para que el usuario cree contenido estructurado
+    19→// SIN tener que pedirselo a Koru via chat. Plantillas: nota, lista, gasto,
+    20→// enlace, receta + rutina, ejercicio, memoria, decision.
+    21→// Las plantillas se guardan como LifeRecords via createRecord() (directo, sin LLM).
+    22→
+    23→function Mat({ children, className = "" }: { children: string; className?: string }) {
+    24→  return <span className={`material-symbols-outlined ${className}`}>{children}</span>;
+    25→}
+    26→
+    27→type Template = "nota" | "lista" | "gasto" | "enlace" | "receta" | "rutina" | "ejercicio" | "memoria" | "decision" | "plan";
+    28→
+    29→type TemplateDef = {
+    30→  id: Template;
+    31→  label: string;
+    32→  icon: string;
+    33→  desc: string;
+    34→  collection: string;
+    35→  accent: string;
+    36→};
+    37→
+    38→const TEMPLATES: TemplateDef[] = [
+    39→  { id: "nota", label: "Nota", icon: "sticky_note_2", desc: "Anotá una idea o pensamiento", collection: "Notas", accent: "#8363f9" },
+    40→  { id: "lista", label: "Lista", icon: "checklist", desc: "Lista de tareas o compras", collection: "Listas", accent: "#2d6a4f" },
+    41→  { id: "gasto", label: "Gasto", icon: "payments", desc: "Registrá un gasto", collection: "Gastos", accent: "#f59e0b" },
+    42→  { id: "enlace", label: "Enlace", icon: "link", desc: "Guardá un link para después", collection: "Enlaces", accent: "#06b6d4" },
+    43→  { id: "receta", label: "Receta", icon: "restaurant", desc: "Creá tu propia receta", collection: "Recetas", accent: "#ec4899" },
+    44→  { id: "rutina", label: "Rutina", icon: "repeat", desc: "Hábito diario o semanal", collection: "Rutinas", accent: "#3b82f6" },
+    45→  { id: "ejercicio", label: "Ejercicio", icon: "fitness_center", desc: "Plan de entrenamiento", collection: "Ejercicio", accent: "#2d6a4f" },
+    46→  { id: "memoria", label: "Memoria", icon: "psychology", desc: "Recuerdo o hecho", collection: "Memoria", accent: "#8127cf" },
+    47→  { id: "decision", label: "Decisión", icon: "psychology_alt", desc: "Decisión estructurada", collection: "Decisiones", accent: "#8127cf" },
+    48→  // 🔴 TIER S: plantilla "plan" — invoca createPlan(title, steps) del store
+    49→  // además del LifeRecord. Cada step tiene title + detail + priority select.
+    50→  { id: "plan", label: "Plan", icon: "rocket_launch", desc: "Plan con pasos", collection: "Planes", accent: "#8363f9" },
+    51→];
+    52→
+    53→// 🔴 v2: cada template mapea a un LifeRecordKind VÁLIDO del enum.
+    54→// Antes se usaba "nota"/"lista"/"gasto" que NO existen en el enum → quedaban
+    55→// como "idea" por fallback. Ahora mapeamos explícitamente.
+    56→const KIND_MAP: Record<Template, LifeRecordKind> = {
+    57→  nota: "idea",
+    58→  lista: "idea", // la lista vive dentro de `notes`
+    59→  gasto: "expense",
+    60→  enlace: "tool_link",
+    61→  receta: "recommendation",
+    62→  rutina: "idea", // sourceBlock lleva datos para crear el hábito
+    63→  ejercicio: "idea", // sourceBlock lleva el plan de entrenamiento
+    64→  memoria: "idea", // sourceBlock lleva la memoria estructurada
+    65→  decision: "decision",
+    66→  plan: "idea", // sourceBlock lleva los pasos del plan
+    67→};
+    68→
+    69→type RutinaCadence = "daily" | "weekly" | "mon-fri" | "custom";
+    70→
+    71→type ExerciseSetInput = { name: string; sets: string; reps: string; weight: string };
+    72→type SessionInput = { dayLabel: string; exercises: ExerciseSetInput[] };
+    73→
+    74→type MemoriaKind = "profile" | "routine" | "preference" | "goal" | "relationship" | "boundary" | "wellbeing" | "task";
+    75→
+    76→// 🔴 TIER S: Plan step input. priority se normaliza a "alta"|"media"|"baja"
+    77→// antes de pasar al reducer createPlan. detail es opcional y se guarda como
+    78→// string dentro del step.
+    79→type PlanStepInput = {
+    80→  title: string;
+    81→  detail: string;
+    82→  priority: "alta" | "media" | "baja";
+    83→};
+    84→
+    85→type DecisionOptionInput = { id: string; label: string; factorScores: Record<string, number> };
+    86→type DecisionFactorInput = { id: string; label: string; direction: "higherIsBetter" | "lowerIsBetter" };
+    87→
+    88→// 🔴 v2: AI-assist. El padre implementa onAiAssist y devuelve sugerencias
+    89→// por campo. El usuario acepta/rechaza cada una individualmente.
+    90→export type AiSuggestion = { field: string; label: string; value: string };
+    91→export type AiAssistResult = { suggestions: AiSuggestion[] };
+    92→
+    93→type Props = {
+    94→  onClose: () => void;
+    95→  onAiAssist?: (template: Template, title: string) => Promise<AiAssistResult | void> | AiAssistResult | void;
+    96→};
+    97→
+    98→// ---------------------------------------------------------------------------
+    99→// Markdown helpers (regex-based, sin deps externos)
+   100→// ---------------------------------------------------------------------------
+   101→
+   102→function escapeHtml(s: string): string {
+   103→  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+   104→}
+   105→
+   106→function inlineMd(s: string): string {
+   107→  // s ya está escapado
+   108→  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+   109→  s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+   110→  s = s.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+   111→  return s;
+   112→}
+   113→
+   114→function renderMarkdown(text: string): string {
+   115→  if (!text.trim()) return "";
+   116→  const lines = text.split("\n");
+   117→  const out: string[] = [];
+   118→  let inList = false;
+   119→  let para: string[] = [];
+   120→  const flushPara = () => {
+   121→    if (para.length > 0) {
+   122→      out.push(`<p>${para.map(p => inlineMd(escapeHtml(p))).join("<br />")}</p>`);
+   123→      para = [];
+   124→    }
+   125→  };
+   126→  for (const line of lines) {
+   127→    const listMatch = line.match(/^\s*-\s+(.*)$/);
+   128→    if (listMatch) {
+   129→      flushPara();
+   130→      if (!inList) { out.push("<ul>"); inList = true; }
+   131→      out.push(`<li>${inlineMd(escapeHtml(listMatch[1]))}</li>`);
+   132→      continue;
+   133→    }
+   134→    if (inList) { out.push("</ul>"); inList = false; }
+   135→    para.push(line);
+   136→  }
+   137→  flushPara();
+   138→  if (inList) out.push("</ul>");
+   139→  return out.join("");
+   140→}
+   141→
+   142→function genId(prefix: string): string {
+   143→  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+   144→}
+   145→
+   146→function titleLabel(t: Template): string {
+   147→  switch (t) {
+   148→    case "gasto": return "Concepto";
+   149→    case "lista": return "Título de la lista";
+   150→    case "rutina": return "Hábito";
+   151→    case "ejercicio": return "Nombre del plan";
+   152→    case "memoria": return "Título";
+   153→    case "decision": return "Pregunta";
+   154→    case "plan": return "Nombre del plan";
+   155→    default: return "Título";
+   156→  }
+   157→}
+   158→
+   159→function titlePlaceholder(t: Template): string {
+   160→  switch (t) {
+   161→    case "gasto": return "Ej: Café con amigos";
+   162→    case "lista": return "Ej: Super de la semana";
+   163→    case "rutina": return "Ej: Meditar";
+   164→    case "ejercicio": return "Ej: Plan de fuerza 4 días";
+   165→    case "memoria": return "Ej: Alergia a la penicilina";
+   166→    case "decision": return "Ej: ¿Qué carrera estudiar?";
+   167→    case "plan": return "Ej: Lanzar producto MVP";
+   168→    default: return "Ej: Idea para el proyecto";
+   169→  }
+   170→}
+   171→
+   172→const MEMORIA_KINDS: { value: MemoriaKind; label: string }[] = [
+   173→  { value: "profile", label: "Perfil" },
+   174→  { value: "routine", label: "Rutina" },
+   175→  { value: "preference", label: "Preferencia" },
+   176→  { value: "goal", label: "Objetivo" },
+   177→  { value: "relationship", label: "Relación" },
+   178→  { value: "boundary", label: "Límite" },
+   179→  { value: "wellbeing", label: "Bienestar" },
+   180→  { value: "task", label: "Tarea" },
+   181→];
+   182→
+   183→export function CreateScreen({ onClose, onAiAssist }: Props) {
+   184→  const {
+   185→    createRecord,
+   186→    state,
+   187→    createHabit,
+   188→    createExercisePlan,
+   189→    createChecklist,
+   190→    createDecision,
+   191→    // 🔴 TIER S: reducers wired a templates existentes.
+   192→    // - createShoppingList: alongside createChecklist in `lista` template.
+   193→    // - createRoutine: after createHabit in `rutina` template (uses returned id).
+   194→    // - addPerson: in `memoria` template when kind === "relationship".
+   195→    // - createPlan: in `plan` template (nuevo) — genera un Plan durable con steps.
+   196→    createShoppingList,
+   197→    createRoutine,
+   198→    addPerson,
+   199→    createPlan,
+   200→  } = useKoru();
+   201→  const [selected, setSelected] = useState<Template | null>(null);
+   202→
+   203→  // Form state (común)
+   204→  const [title, setTitle] = useState("");
+   205→  const [notes, setNotes] = useState("");
+   206→  const [amount, setAmount] = useState("");
+   207→  const [currency, setCurrency] = useState("ARS");
+   208→  const [url, setUrl] = useState("");
+   209→  const [listItems, setListItems] = useState<string[]>([""]);
+   210→  const [collection, setCollection] = useState("");
+   211→  const [saving, setSaving] = useState(false);
+   212→
+   213→  // Receta
+   214→  const [ingredients, setIngredients] = useState<string[]>([""]);
+   215→  const [steps, setSteps] = useState<string[]>([""]);
+   216→  const [prepTime, setPrepTime] = useState("");
+   217→  const [cookTime, setCookTime] = useState("");
+   218→  const [servings, setServings] = useState("");
+   219→
+   220→  // Rutina
+   221→  const [rutinaCadence, setRutinaCadence] = useState<RutinaCadence>("daily");
+   222→  const [rutinaTarget, setRutinaTarget] = useState("");
+   223→  const [rutinaUnit, setRutinaUnit] = useState("");
+   224→  const [rutinaAnchorTime, setRutinaAnchorTime] = useState("");
+   225→
+   226→  // Ejercicio
+   227→  const [weeksTotal, setWeeksTotal] = useState("");
+   228→  const [sessions, setSessions] = useState<SessionInput[]>([
+   229→    { dayLabel: "", exercises: [{ name: "", sets: "", reps: "", weight: "" }] },
+   230→  ]);
+   231→
+   232→  // Memoria
+   233→  const [memoriaText, setMemoriaText] = useState("");
+   234→  const [memoriaKind, setMemoriaKind] = useState<MemoriaKind>("profile");
+   235→  const [memoriaConfidence, setMemoriaConfidence] = useState(0.7);
+   236→  const [memoriaSensitive, setMemoriaSensitive] = useState(false);
+   237→
+   238→  // Decisión
+   239→  const [deadline, setDeadline] = useState("");
+   240→  const [options, setOptions] = useState<DecisionOptionInput[]>([
+   241→    { id: genId("opt"), label: "", factorScores: {} },
+   242→  ]);
+   243→  const [factors, setFactors] = useState<DecisionFactorInput[]>([
+   244→    { id: genId("fac"), label: "", direction: "higherIsBetter" },
+   245→  ]);
+   246→
+   247→  // 🔴 TIER S: Plan — lista dinámica de pasos con title + detail + priority.
+   248→  // Cada step se persiste vía createPlan(title, steps) además del LifeRecord.
+   249→  const [planSteps, setPlanSteps] = useState<PlanStepInput[]>([
+   250→    { title: "", detail: "", priority: "media" },
+   251→  ]);
+   252→
+   253→  // Rich text (nota)
+   254→  const [showPreview, setShowPreview] = useState(false);
+   255→  const notesRef = useRef<HTMLTextAreaElement>(null);
+   256→
+   257→  // Tags (todos los templates)
+   258→  const [tags, setTags] = useState<string[]>([]);
+   259→  const [tagInput, setTagInput] = useState("");
+   260→
+   261→  // AI assist
+   262→  const [aiLoading, setAiLoading] = useState(false);
+   263→  const [aiSuggestions, setAiSuggestions] = useState<AiSuggestion[]>([]);
+   264→
+   265→  // Smart defaults
+   266→  const [lastUsedCollection, setLastUsedCollection] = useState<string | null>(null);
+   267→
+   268→  // Tags existentes en el state (para autocomplete)
+   269→  const existingTags = useMemo(() => {
+   270→    const set = new Set<string>();
+   271→    for (const r of state.records) {
+   272→      for (const t of r.tags ?? []) set.add(t);
+   273→    }
+   274→    return Array.from(set).sort();
+   275→  }, [state.records]);
+   276→
+   277→  const tagSuggestions = useMemo(() => {
+   278→    const q = tagInput.trim().toLowerCase();
+   279→    if (!q) return [];
+   280→    return existingTags
+   281→      .filter(t => t.toLowerCase().includes(q) && !tags.includes(t))
+   282→      .slice(0, 6);
+   283→  }, [tagInput, existingTags, tags]);
+   284→
+   285→  function reset() {
+   286→    setTitle(""); setNotes(""); setAmount(""); setCurrency("ARS"); setUrl(""); setListItems([""]); setCollection("");
+   287→    setIngredients([""]); setSteps([""]); setPrepTime(""); setCookTime(""); setServings("");
+   288→    setRutinaCadence("daily"); setRutinaTarget(""); setRutinaUnit(""); setRutinaAnchorTime("");
+   289→    setWeeksTotal("");
+   290→    setSessions([{ dayLabel: "", exercises: [{ name: "", sets: "", reps: "", weight: "" }] }]);
+   291→    setMemoriaText(""); setMemoriaKind("profile"); setMemoriaConfidence(0.7); setMemoriaSensitive(false);
+   292→    setDeadline("");
+   293→    setOptions([{ id: genId("opt"), label: "", factorScores: {} }]);
+   294→    setFactors([{ id: genId("fac"), label: "", direction: "higherIsBetter" }]);
+   295→    // 🔴 TIER S: reset plan steps a un único step vacío con prioridad media.
+   296→    setPlanSteps([{ title: "", detail: "", priority: "media" }]);
+   297→    setTags([]); setTagInput("");
+   298→    setShowPreview(false);
+   299→    setAiSuggestions([]);
+   300→    setLastUsedCollection(null);
+   301→  }
+   302→
+   303→  function selectTemplate(tpl: Template) {
+   304→    setSelected(tpl);
+   305→    // 🔴 Smart defaults: recordar último collection usado por template
+   306→    const last = (() => {
+   307→      try { return localStorage.getItem(`koru.create.lastCollection.${tpl}`); } catch { return null; }
+   308→    })();
+   309→    setLastUsedCollection(last);
+   310→    setCollection(last ?? TEMPLATES.find(t => t.id === tpl)!.collection);
+   311→    setAiSuggestions([]);
+   312→  }
+   313→
+   314→  function rememberCollection(template: Template, coll: string) {
+   315→    try { localStorage.setItem(`koru.create.lastCollection.${template}`, coll); } catch { /* ignore */ }
+   316→  }
+   317→
+   318→  // ---------------------------------------------------------------------------
+   319→  // SourceBlock helpers (rutina / ejercicio / memoria / decision)
+   320→  // Encapsulan los datos estructurados para que luego puedan convertirse en
+   321→  // hábito / plan / memoria / decisión al reabrir el record.
+   322→  // ---------------------------------------------------------------------------
+   323→
+   324→  function buildSavedRecordBlock(payload: {
+   325→    title: string;
+   326→    collection: string;
+   327→    notes?: string;
+   328→    kind: LifeRecordKind;
+   329→  }): UiBlock {
+   330→    return {
+   331→      type: "saved_record",
+   332→      title: payload.title,
+   333→      records: [{
+   334→        domain: "capture" as LifeDomain,
+   335→        kind: payload.kind,
+   336→        title: payload.title,
+   337→        collection: payload.collection,
+   338→        notes: payload.notes,
+   339→      }],
+   340→    };
+   341→  }
+   342→
+   343→  // ---------------------------------------------------------------------------
+   344→  // Save
+   345→  // ---------------------------------------------------------------------------
+   346→
+   347→  async function persist(args: {
+   348→    title: string;
+   349→    collection: string;
+   350→    notes?: string;
+   351→    url?: string;
+   352→    kind: LifeRecordKind;
+   353→    sourceBlock?: UiBlock;
+   354→  }) {
+   355→    const finalTags = tags.length > 0 ? tags : undefined;
+   356→    setSaving(true);
+   357→    try {
+   358→      await createRecord({
+   359→        title: args.title,
+   360→        collection: args.collection,
+   361→        notes: args.notes,
+   362→        url: args.url,
+   363→        kind: args.kind,
+   364→        tags: finalTags,
+   365→        sourceBlock: args.sourceBlock,
+   366→      });
+   367→    } finally {
+   368→      setSaving(false);
+   369→    }
+   370→    rememberCollection(selected!, args.collection);
+   371→    reset();
+   372→    setSelected(null);
+   373→  }
+   374→
+   375→  async function handleSave() {
+   376→    if (!selected) return;
+   377→    const tpl = TEMPLATES.find(t => t.id === selected)!;
+   378→    const kind = KIND_MAP[selected];
+   379→    const finalCollection = collection.trim() || tpl.collection;
+   380→
+   381→    if (selected === "lista") {
+   382→      const items = listItems.filter(i => i.trim());
+   383→      const listText = items.map(i => `• ${i}`).join("\n");
+   384→      // 🔴 GAP-3: además del LifeRecord (para Collections), persistimos un
+   385→      // Checklist durable en el store — habilita toggles, completado, etc.
+   386→      if (items.length > 0) {
+   387→        createChecklist(
+   388→          title.trim() || "Lista sin título",
+   389→          items.map(it => ({ label: it, urgency: "normal" as const })),
+   390→        );
+   391→        // 🔴 TIER S: también persistimos una ShoppingList durable — habilita
+   392→        // toggleShoppingItem, totalSpent, etc. Los items se mapean a
+   393→        // ShoppingItem input shape { name } (sin qty/price por ahora).
+   394→        createShoppingList(
+   395→          title.trim() || "Lista sin título",
+   396→          items.map(it => ({ name: it })),
+   397→        );
+   398→      }
+   399→      await persist({
+   400→        title: title.trim() || "Lista sin título",
+   401→        collection: finalCollection,
+   402→        notes: listText,
+   403→        kind,
+   404→      });
+   405→      return;
+   406→    }
+   407→
+   408→    if (selected === "gasto") {
+   409→      const amt = parseFloat(amount) || 0;
+   410→      await persist({
+   411→        title: title.trim() || "Gasto",
+   412→        collection: finalCollection,
+   413→        notes: `${currency} ${amt}`,
+   414→        kind,
+   415→      });
+   416→      return;
+   417→    }
+   418→
+   419→    if (selected === "enlace") {
+   420→      await persist({
+   421→        title: title.trim() || url.trim() || "Enlace",
+   422→        collection: finalCollection,
+   423→        url: url.trim(),
+   424→        notes: notes.trim() || undefined,
+   425→        kind,
+   426→      });
+   427→      return;
+   428→    }
+   429→
+   430→    if (selected === "rutina") {
+   431→      const target = parseFloat(rutinaTarget) || 0;
+   432→      const rutinaText = [
+   433→        `Cadencia: ${rutinaCadence}`,
+   434→        `Meta: ${target} ${rutinaUnit || ""}`.trim(),
+   435→        rutinaAnchorTime ? `Ancla: ${rutinaAnchorTime}` : null,
+   436→      ].filter(Boolean).join("\n");
+   437→      // 🔴 GAP-3: además del LifeRecord, persistimos un Habit durable —
+   438→      // habilita logHabit, streaks, rutinas ancladas, etc.
+   439→      const habitId = createHabit(
+   440→        title.trim() || "Rutina",
+   441→        "repeat",
+   442→        rutinaCadence as Habit["cadence"],
+   443→        target,
+   444→        rutinaUnit || undefined,
+   445→        rutinaAnchorTime || undefined,
+   446→      );
+   447→      // 🔴 TIER S: creamos una Routine que ancla el hábito recién creado a
+   448→      // un horario + días de la semana. daysOfWeek: L-V si cadence es
+   449→      // "mon-fri", todos (0-6) si "daily", [1] si "weekly", [0] para custom.
+   450→      const daysOfWeek: number[] = rutinaCadence === "mon-fri"
+   451→        ? [1, 2, 3, 4, 5]
+   452→        : rutinaCadence === "daily"
+   453→          ? [0, 1, 2, 3, 4, 5, 6]
+   454→          : rutinaCadence === "weekly"
+   455→            ? [1]
+   456→            : [0];
+   457→      createRoutine(
+   458→        title.trim() || "Rutina",
+   459→        rutinaAnchorTime || "08:00",
+   460→        [habitId],
+   461→        daysOfWeek,
+   462→      );
+   463→      await persist({
+   464→        title: title.trim() || "Rutina sin título",
+   465→        collection: finalCollection,
+   466→        notes: rutinaText,
+   467→        kind,
+   468→        sourceBlock: buildSavedRecordBlock({
+   469→          title: title.trim() || "Rutina",
+   470→          collection: finalCollection,
+   471→          notes: rutinaText,
+   472→          kind,
+   473→        }),
+   474→      });
+   475→      return;
+   476→    }
+   477→
+   478→    if (selected === "ejercicio") {
+   479→      const weeks = parseInt(weeksTotal) || 0;
+   480→      const sessionsText = sessions
+   481→        .filter(s => s.dayLabel.trim() || s.exercises.some(e => e.name.trim()))
+   482→        .map(s => {
+   483→          const ex = s.exercises.filter(e => e.name.trim());
+   484→          const exText = ex
+   485→            .map(e => `  - ${e.name}: ${e.sets || 0}x${e.reps || 0}${e.weight ? ` @ ${e.weight}kg` : ""}`)
+   486→            .join("\n");
+   487→          return `${s.dayLabel || "Día"}:\n${exText}`;
+   488→        })
+   489→        .join("\n\n");
+   490→      const ejText = `Semanas: ${weeks}\n\n${sessionsText}`;
+   491→      // 🔴 GAP-3: además del LifeRecord, persistimos un ExercisePlan durable —
+   492→      // habilita logWorkout, avance de sesión, completado del plan, etc.
+   493→      const planSessions: Omit<ExerciseSession, "id" | "order">[] = sessions
+   494→        .filter(s => s.dayLabel.trim() || s.exercises.some(e => e.name.trim()))
+   495→        .map(s => ({
+   496→          dayLabel: s.dayLabel || "Día",
+   497→          exercises: s.exercises
+   498→            .filter(e => e.name.trim())
+   499→            .map(e => ({
+   500→              exercise: e.name,
+   501→              sets: parseInt(e.sets) || 0,
+   502→              reps: parseInt(e.reps) || 0,
+   503→              weight: e.weight ? parseFloat(e.weight) : undefined,
+   504→            })),
+   505→        }));
+   506→      if (planSessions.length > 0) {
+   507→        createExercisePlan(
+   508→          title.trim() || "Plan de entrenamiento",
+   509→          weeks,
+   510→          planSessions,
+   511→        );
+   512→      }
+   513→      await persist({
+   514→        title: title.trim() || "Plan de entrenamiento",
+   515→        collection: finalCollection,
+   516→        notes: ejText,
+   517→        kind,
+   518→        sourceBlock: buildSavedRecordBlock({
+   519→          title: title.trim() || "Plan de entrenamiento",
+   520→          collection: finalCollection,
+   521→          notes: ejText,
+   522→          kind,
+   523→        }),
+   524→      });
+   525→      return;
+   526→    }
+   527→
+   528→    if (selected === "memoria") {
+   529→      const memText = [
+   530→        memoriaText.trim(),
+   531→        `Tipo: ${memoriaKind}`,
+   532→        `Confianza: ${Math.round(memoriaConfidence * 100)}%`,
+   533→        memoriaSensitive ? "Sensibilidad: sensible" : null,
+   534→      ].filter(Boolean).join("\n");
+   535→      // 🔴 TIER S: si la memoria es de tipo "relationship", también persistimos
+   536→      // una Person durable en el store (state.people) vía addPerson — habilita
+   537→      // recordatorios de cumpleaños, follow-ups, etc. El título del form se
+   538→      // interpreta como el nombre de la persona.
+   539→      if (memoriaKind === "relationship" && title.trim()) {
+   540→        addPerson(title.trim(), "relationship");
+   541→      }
+   542→      await persist({
+   543→        title: title.trim() || "Memoria",
+   544→        collection: finalCollection,
+   545→        notes: memText,
+   546→        kind,
+   547→        sourceBlock: buildSavedRecordBlock({
+   548→          title: title.trim() || "Memoria",
+   549→          collection: finalCollection,
+   550→          notes: memText,
+   551→          kind,
+   552→        }),
+   553→      });
+   554→      return;
+   555→    }
+   556→
+   557→    if (selected === "decision") {
+   558→      const facIds = factors.map(f => f.id);
+   559→      const decText = [
+   560→        deadline ? `Deadline: ${deadline}` : null,
+   561→        "Factores:",
+   562→        ...factors.filter(f => f.label.trim()).map(f => `  • ${f.label} (${f.direction === "higherIsBetter" ? "↑" : "↓"})`),
+   563→        "Opciones:",
+   564→        ...options.filter(o => o.label.trim()).map(o => `  • ${o.label}`),
+   565→      ].filter(Boolean).join("\n");
+   566→      // Embed structured payload (factor scores) as a JSON footer for later reopening.
+   567→      const optionsWithScores = options.filter(o => o.label.trim()).map(o => ({
+   568→        label: o.label,
+   569→        factorScores: Object.fromEntries(facIds.map(id => [id, o.factorScores[id] ?? 0])),
+   570→      }));
+   571→      const structured = JSON.stringify({ weeks: null, factors: factors.filter(f => f.label.trim()), options: optionsWithScores, deadline: deadline || undefined });
+   572→      const fullNotes = `${decText}\n\n---\n${structured}`;
+   573→      // 🔴 GAP-2: además del LifeRecord, persistimos una Decision durable en
+   574→      // el store y disparamos el motor (computeDecision) para poblar el
+   575→      // resultado: recommendation, perOptionScore, perOptionProbability y
+   576→      // confidenceInterval. El wrapper createDecision ejecuta computeDecision
+   577→      // internamente y devuelve la Decision ya persistida con .result.
+   578→      const decisionOptions: DecisionOption[] = options
+   579→        .filter(o => o.label.trim())
+   580→        .map(o => ({
+   581→          id: o.id,
+   582→          label: o.label,
+   583→          factorScores: Object.fromEntries(facIds.map(id => [id, o.factorScores[id] ?? 0])),
+   584→        }));
+   585→      const decisionFactors: DecisionFactor[] = factors
+   586→        .filter(f => f.label.trim())
+   587→        .map(f => ({ id: f.id, label: f.label, direction: f.direction }));
+   588→      // Pesos iguales (1.0) por factor — el motor normaliza internamente.
+   589→      // Si no hay factores, weights queda vacío y el motor reparte probabilidad
+   590→      // uniforme entre las opciones.
+   591→      const weights: Record<string, number> = Object.fromEntries(
+   592→        decisionFactors.map(f => [f.id, 1]),
+   593→      );
+   594→      if (decisionOptions.length > 0) {
+   595→        const newDecision: Decision = createDecision(
+   596→          title.trim() || "Decisión",
+   597→          decisionOptions,
+   598→          decisionFactors,
+   599→          weights,
+   600→        );
+   601→        // 🔴 GAP-2 (contrato): invocamos computeDecision explícitamente desde
+   602→        // la UI, sobre la decisión recién creada, para garantizar el poblado
+   603→        // del resultado. Construimos un estado sintético porque `state` (de
+   604→        // useKoru) aún no refleja la decisión nueva en este render cycle.
+   605→        const syntheticState: KoruState = {
+   606→          ...state,
+   607→          decisions: [newDecision, ...(state.decisions ?? [])],
+   608→        };
+   609→        try {
+   610→          computeDecision(syntheticState, newDecision.id);
+   611→        } catch {
+   612→          // best-effort: la decisión ya quedó persistida con .result por el wrapper.
+   613→        }
+   614→      }
+   615→      await persist({
+   616→        title: title.trim() || "Decisión",
+   617→        collection: finalCollection,
+   618→        notes: fullNotes,
+   619→        kind,
+   620→        sourceBlock: buildSavedRecordBlock({
+   621→          title: title.trim() || "Decisión",
+   622→          collection: finalCollection,
+   623→          notes: fullNotes,
+   624→          kind,
+   625→        }),
+   626→      });
+   627→      return;
+   628→    }
+   629→
+   630→    if (selected === "plan") {
+   631→      // 🔴 TIER S: además del LifeRecord (para Collections), persistimos un
+   632→      // Plan durable en el store (state.plans) vía createPlan — habilita
+   633→      // togglePlanStep, archivePlan, etc. Los steps con título vacío se
+   634→      // filtran; detail y priority se pasan al reducer.
+   635→      const validSteps = planSteps.filter(s => s.title.trim());
+   636→      const planText = validSteps.length > 0
+   637→        ? validSteps.map((s, i) => `${i + 1}. [${s.priority}] ${s.title}${s.detail ? ` — ${s.detail}` : ""}`).join("\n")
+   638→        : "";
+   639→      const stepInputs: Omit<PlanStep, "id" | "order" | "done">[] = validSteps.map(s => ({
+   640→        title: s.title.trim(),
+   641→        detail: s.detail.trim() || undefined,
+   642→        priority: s.priority,
+   643→      }));
+   644→      if (stepInputs.length > 0) {
+   645→        createPlan(
+   646→          title.trim() || "Plan sin título",
+   647→          stepInputs,
+   648→        );
+   649→      }
+   650→      await persist({
+   651→        title: title.trim() || "Plan sin título",
+   652→        collection: finalCollection,
+   653→        notes: planText || undefined,
+   654→        kind,
+   655→        sourceBlock: buildSavedRecordBlock({
+   656→          title: title.trim() || "Plan",
+   657→          collection: finalCollection,
+   658→          notes: planText,
+   659→          kind,
+   660→        }),
+   661→      });
+   662→      return;
+   663→    }
+   664→
+   665→    // nota (default)
+   666→    await persist({
+   667→      title: title.trim() || "Nota sin título",
+   668→      collection: finalCollection,
+   669→      notes: notes.trim() || undefined,
+   670→      kind,
+   671→    });
+   672→  }
+   673→
+   674→  async function handleSaveReceta() {
+   675→    if (!selected || selected !== "receta") return;
+   676→    const tpl = TEMPLATES.find(t => t.id === selected)!;
+   677→    const kind = KIND_MAP[selected];
+   678→    const finalCollection = collection.trim() || tpl.collection;
+   679→    const ing = ingredients.filter(i => i.trim());
+   680→    const stp = steps.filter(s => s.trim());
+   681→    const recetaText = [
+   682→      prepTime || cookTime || servings
+   683→        ? `⏱ ${[prepTime && `Prep: ${prepTime}min`, cookTime && `Cocción: ${cookTime}min`, servings && `Porciones: ${servings}`].filter(Boolean).join(" · ")}`
+   684→        : null,
+   685→      ing.length > 0 ? `Ingredientes:\n${ing.map(i => `• ${i}`).join("\n")}` : null,
+   686→      stp.length > 0 ? `Pasos:\n${stp.map((s, i) => `${i + 1}. ${s}`).join("\n")}` : null,
+   687→    ].filter(Boolean).join("\n\n");
+   688→    await persist({
+   689→      title: title.trim() || "Receta sin nombre",
+   690→      collection: finalCollection,
+   691→      notes: recetaText,
+   692→      kind,
+   693→    });
+   694→  }
+   695→
+   696→  // ---------------------------------------------------------------------------
+   697→  // AI assist
+   698→  // ---------------------------------------------------------------------------
+   699→
+   700→  async function handleAiAssist() {
+   701→    if (!selected || !onAiAssist) return;
+   702→    setAiLoading(true);
+   703→    try {
+   704→      const result = await onAiAssist(selected, title);
+   705→      if (result?.suggestions && result.suggestions.length > 0) {
+   706→        setAiSuggestions(result.suggestions);
+   707→      }
+   708→    } catch {
+   709→      // ignore — el padre puede manejar errores
+   710→    } finally {
+   711→      setAiLoading(false);
+   712→    }
+   713→  }
+   714→
+   715→  function applySuggestion(s: AiSuggestion) {
+   716→    const v = s.value;
+   717→    switch (s.field) {
+   718→      case "title": setTitle(v); break;
+   719→      case "notes": setNotes(v); break;
+   720→      case "amount": setAmount(v); break;
+   721→      case "currency": setCurrency(v); break;
+   722→      case "url": setUrl(v); break;
+   723→      case "collection": setCollection(v); break;
+   724→      case "prepTime": setPrepTime(v); break;
+   725→      case "cookTime": setCookTime(v); break;
+   726→      case "servings": setServings(v); break;
+   727→      case "rutinaCadence": setRutinaCadence((v as RutinaCadence) || "daily"); break;
+   728→      case "rutinaTarget": setRutinaTarget(v); break;
+   729→      case "rutinaUnit": setRutinaUnit(v); break;
+   730→      case "rutinaAnchorTime": setRutinaAnchorTime(v); break;
+   731→      case "weeksTotal": setWeeksTotal(v); break;
+   732→      case "memoriaText": setMemoriaText(v); break;
+   733→      case "memoriaKind": setMemoriaKind((v as MemoriaKind) || "profile"); break;
+   734→      case "memoriaConfidence": setMemoriaConfidence(parseFloat(v) || 0.5); break;
+   735→      case "deadline": setDeadline(v); break;
+   736→      default: break;
+   737→    }
+   738→    setAiSuggestions(prev => prev.filter(p => p.field !== s.field));
+   739→  }
+   740→
+   741→  function rejectSuggestion(field: string) {
+   742→    setAiSuggestions(prev => prev.filter(p => p.field !== field));
+   743→  }
+   744→
+   745→  // ---------------------------------------------------------------------------
+   746→  // Markdown toolbar (nota)
+   747→  // ---------------------------------------------------------------------------
+   748→
+   749→  function insertWrap(wrap: string, placeholder: string) {
+   750→    const ta = notesRef.current;
+   751→    if (!ta) return;
+   752→    const start = ta.selectionStart;
+   753→    const end = ta.selectionEnd;
+   754→    const sel = notes.slice(start, end) || placeholder;
+   755→    const next = notes.slice(0, start) + wrap + sel + wrap + notes.slice(end);
+   756→    setNotes(next);
+   757→    requestAnimationFrame(() => {
+   758→      ta.focus();
+   759→      const pos = start + wrap.length;
+   760→      ta.setSelectionRange(pos, pos + sel.length);
+   761→    });
+   762→  }
+   763→
+   764→  function insertPrefix(prefix: string) {
+   765→    const ta = notesRef.current;
+   766→    if (!ta) return;
+   767→    const start = ta.selectionStart;
+   768→    const before = notes.slice(0, start);
+   769→    const lineStart = before.lastIndexOf("\n") + 1;
+   770→    const next = notes.slice(0, lineStart) + prefix + notes.slice(lineStart);
+   771→    setNotes(next);
+   772→    requestAnimationFrame(() => {
+   773→      ta.focus();
+   774→      const pos = start + prefix.length;
+   775→      ta.setSelectionRange(pos, pos);
+   776→    });
+   777→  }
+   778→
+   779→  function insertLink() {
+   780→    const ta = notesRef.current;
+   781→    if (!ta) return;
+   782→    const start = ta.selectionStart;
+   783→    const end = ta.selectionEnd;
+   784→    const sel = notes.slice(start, end) || "texto";
+   785→    const link = `[${sel}](https://)`;
+   786→    const next = notes.slice(0, start) + link + notes.slice(end);
+   787→    setNotes(next);
+   788→    requestAnimationFrame(() => {
+   789→      ta.focus();
+   790→      const urlStart = start + sel.length + 3; // "[" + sel + "]("
+   791→      ta.setSelectionRange(urlStart, urlStart + 8); // selecciona "https://"
+   792→    });
+   793→  }
+   794→
+   795→  // ---------------------------------------------------------------------------
+   796→  // Tags
+   797→  // ---------------------------------------------------------------------------
+   798→
+   799→  function addTag(t: string) {
+   800→    const clean = t.trim().replace(/^,+|,+$/g, "").trim();
+   801→    if (!clean) { setTagInput(""); return; }
+   802→    if (tags.includes(clean)) { setTagInput(""); return; }
+   803→    setTags([...tags, clean]);
+   804→    setTagInput("");
+   805→  }
+   806→
+   807→  function removeTag(t: string) {
+   808→    setTags(tags.filter(x => x !== t));
+   809→  }
+   810→
+   811→  // ---------------------------------------------------------------------------
+   812→  // Ejercicio session helpers
+   813→  // ---------------------------------------------------------------------------
+   814→
+   815→  function updateSession(idx: number, patch: Partial<SessionInput>) {
+   816→    setSessions(prev => prev.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
+   817→  }
+   818→  function updateExercise(sIdx: number, eIdx: number, patch: Partial<ExerciseSetInput>) {
+   819→    setSessions(prev => prev.map((s, i) => {
+   820→      if (i !== sIdx) return s;
+   821→      const exs = s.exercises.map((e, j) => (j === eIdx ? { ...e, ...patch } : e));
+   822→      return { ...s, exercises: exs };
+   823→    }));
+   824→  }
+   825→  function addExercise(sIdx: number) {
+   826→    setSessions(prev => prev.map((s, i) => (i === sIdx
+   827→      ? { ...s, exercises: [...s.exercises, { name: "", sets: "", reps: "", weight: "" }] }
+   828→      : s)));
+   829→  }
+   830→  function removeExercise(sIdx: number, eIdx: number) {
+   831→    setSessions(prev => prev.map((s, i) => {
+   832→      if (i !== sIdx) return s;
+   833→      return { ...s, exercises: s.exercises.filter((_, j) => j !== eIdx) };
+   834→    }));
+   835→  }
+   836→  function addSession() {
+   837→    setSessions([...sessions, { dayLabel: "", exercises: [{ name: "", sets: "", reps: "", weight: "" }] }]);
+   838→  }
+   839→  function removeSession(idx: number) {
+   840→    setSessions(sessions.filter((_, i) => i !== idx));
+   841→  }
+   842→
+   843→  // ---------------------------------------------------------------------------
+   844→  // Decisión helpers
+   845→  // ---------------------------------------------------------------------------
+   846→
+   847→  function updateOption(idx: number, patch: Partial<DecisionOptionInput>) {
+   848→    setOptions(prev => prev.map((o, i) => (i === idx ? { ...o, ...patch } : o)));
+   849→  }
+   850→  function addOption() {
+   851→    setOptions([...options, { id: genId("opt"), label: "", factorScores: {} }]);
+   852→  }
+   853→  function removeOption(idx: number) {
+   854→    setOptions(options.filter((_, i) => i !== idx));
+   855→  }
+   856→  function updateFactor(idx: number, patch: Partial<DecisionFactorInput>) {
+   857→    setFactors(prev => prev.map((f, i) => (i === idx ? { ...f, ...patch } : f)));
+   858→  }
+   859→  function addFactor() {
+   860→    setFactors([...factors, { id: genId("fac"), label: "", direction: "higherIsBetter" }]);
+   861→  }
+   862→  function removeFactor(idx: number) {
+   863→    const removedId = factors[idx].id;
+   864→    setFactors(factors.filter((_, i) => i !== idx));
+   865→    // limpiar factorScores huérfanos
+   866→    setOptions(prev => prev.map(o => {
+   867→      if (!(removedId in o.factorScores)) return o;
+   868→      const next = { ...o.factorScores };
+   869→      delete next[removedId];
+   870→      return { ...o, factorScores: next };
+   871→    }));
+   872→  }
+   873→
+   874→  const currentTpl = selected ? TEMPLATES.find(t => t.id === selected) : null;
+   875→
+   876→  return createPortal(
+   877→    <div className="koru-create-overlay" role="dialog" aria-label="Crear">
+   878→      <div className="koru-create-screen">
+   879→        <div className="koru-create-header">
+   880→          {selected ? (
+   881→            <button type="button" aria-label="Volver" className="koru-create-back" onClick={() => setSelected(null)}>
+   882→              <Mat>arrow_back_ios_new</Mat>
+   883→            </button>
+   884→          ) : (
+   885→            <div style={{ width: 40 }} />
+   886→          )}
+   887→          <h1 className="koru-create-title">
+   888→            {selected ? TEMPLATES.find(t => t.id === selected)!.label : "¿Qué querés crear?"}
+   889→          </h1>
+   890→          <button type="button" aria-label="Cerrar" className="koru-create-close" onClick={onClose}>
+   891→            <Mat>close</Mat>
+   892→          </button>
+   893→        </div>
+   894→
+   895→        {!selected ? (
+   896→          <div className="koru-create-templates">
+   897→            {TEMPLATES.map((tpl) => (
+   898→              <button
+   899→                key={tpl.id}
+   900→                type="button"
+   901→                className="koru-create-template"
+   902→                onClick={() => selectTemplate(tpl.id)}
+   903→              >
+   904→                <div className="koru-create-template-icon" style={{ background: `${tpl.accent}20`, color: tpl.accent }}>
+   905→                  <Mat>{tpl.icon}</Mat>
+   906→                </div>
+   907→                <div className="koru-create-template-body">
+   908→                  <span className="koru-create-template-label">{tpl.label}</span>
+   909→                  <span className="koru-create-template-desc">{tpl.desc}</span>
+   910→                </div>
+   911→                <Mat className="koru-create-template-arrow">arrow_forward</Mat>
+   912→              </button>
+   913→            ))}
+   914→          </div>
+   915→        ) : (
+   916→          <div className="koru-create-form">
+   917→            {/* 🔴 AI suggestions panel — el usuario acepta/rechaza por campo */}
+   918→            {aiSuggestions.length > 0 && (
+   919→              <div className="koru-create-ai-panel">
+   920→                <div className="koru-create-ai-panel-title">
+   921→                  <Mat>auto_awesome</Mat> Sugerencias de Koru
+   922→                </div>
+   923→                {aiSuggestions.map(s => (
+   924→                  <div key={s.field} className="koru-create-ai-suggestion">
+   925→                    <div className="koru-create-ai-suggestion-body">
+   926→                      <div className="koru-create-ai-suggestion-label">{s.label}</div>
+   927→                      <div className="koru-create-ai-suggestion-value">{s.value}</div>
+   928→                    </div>
+   929→                    <div className="koru-create-ai-suggestion-actions">
+   930→                      <button type="button" className="koru-create-ai-accept" onClick={() => applySuggestion(s)}>
+   931→                        <Mat>check</Mat>
+   932→                      </button>
+   933→                      <button type="button" className="koru-create-ai-reject" onClick={() => rejectSuggestion(s.field)}>
+   934→                        <Mat>close</Mat>
+   935→                      </button>
+   936→                    </div>
+   937→                  </div>
+   938→                ))}
+   939→              </div>
+   940→            )}
+   941→
+   942→            {/* Título + AI assist pill */}
+   943→            <label className="koru-create-field">
+   944→              <span className="koru-create-field-label">{titleLabel(selected)}</span>
+   945→              <div className="koru-create-title-row">
+   946→                <input
+   947→                  type="text"
+   948→                  value={title}
+   949→                  onChange={(e) => setTitle(e.target.value)}
+   950→                  placeholder={titlePlaceholder(selected)}
+   951→                  autoFocus
+   952→                />
+   953→                {onAiAssist && (
+   954→                  <button
+   955→                    type="button"
+   956→                    className="koru-create-ai-pill"
+   957→                    onClick={handleAiAssist}
+   958→                    disabled={aiLoading}
+   959→                    title="Koru sugiere campos"
+   960→                  >
+   961→                    {aiLoading ? (
+   962→                      <><Mat className="koru-spin">progress_activity</Mat></>
+   963→                    ) : (
+   964→                      <>✨ Koru sugiere</>
+   965→                    )}
+   966→                  </button>
+   967→                )}
+   968→              </div>
+   969→            </label>
+   970→
+   971→            {/* GASTO */}
+   972→            {selected === "gasto" && (
+   973→              <label className="koru-create-field koru-create-field-row">
+   974→                <div>
+   975→                  <span className="koru-create-field-label">Monto</span>
+   976→                  <input
+   977→                    type="number"
+   978→                    inputMode="decimal"
+   979→                    value={amount}
+   980→                    onChange={(e) => setAmount(e.target.value)}
+   981→                    placeholder="0.00"
+   982→                  />
+   983→                </div>
+   984→                <div>
+   985→                  <span className="koru-create-field-label">Moneda</span>
+   986→                  <select value={currency} onChange={(e) => setCurrency(e.target.value)}>
+   987→                    <option value="ARS">ARS</option>
+   988→                    <option value="USD">USD</option>
+   989→                    <option value="EUR">EUR</option>
+   990→                  </select>
+   991→                </div>
+   992→              </label>
+   993→            )}
+   994→
+   995→            {/* ENLACE */}
+   996→            {selected === "enlace" && (
+   997→              <label className="koru-create-field">
+   998→                <span className="koru-create-field-label">URL</span>
+   999→                <input
+  1000→                  type="url"
+  1001→                  value={url}
+  1002→                  onChange={(e) => setUrl(e.target.value)}
+  1003→                  placeholder="https://..."
+  1004→                />
+  1005→              </label>
+  1006→            )}
+  1007→
+  1008→            {/* LISTA */}
+  1009→            {selected === "lista" && (
+  1010→              <div className="koru-create-field">
+  1011→                <span className="koru-create-field-label">Items</span>
+  1012→                <div className="koru-create-list-items">
+  1013→                  {listItems.map((item, i) => (
+  1014→                    <div key={i} className="koru-create-list-item">
+  1015→                      <span className="koru-create-list-bullet">•</span>
+  1016→                      <input
+  1017→                        type="text"
+  1018→                        value={item}
+  1019→                        onChange={(e) => {
+  1020→                          const next = [...listItems];
+  1021→                          next[i] = e.target.value;
+  1022→                          setListItems(next);
+  1023→                        }}
+  1024→                        onKeyDown={(e) => {
+  1025→                          if (e.key === "Enter" && i === listItems.length - 1 && item.trim()) {
+  1026→                            setListItems([...listItems, ""]);
+  1027→                          }
+  1028→                        }}
+  1029→                        placeholder={`Item ${i + 1}`}
+  1030→                      />
+  1031→                      {listItems.length > 1 && (
+  1032→                        <button
+  1033→                          type="button"
+  1034→                          aria-label="Quitar"
+  1035→                          className="koru-create-list-remove"
+  1036→                          onClick={() => setListItems(listItems.filter((_, idx) => idx !== i))}
+  1037→                        >
+  1038→                          <Mat>remove_circle</Mat>
+  1039→                        </button>
+  1040→                      )}
+  1041→                    </div>
+  1042→                  ))}
+  1043→                  <button
+  1044→                    type="button"
+  1045→                    className="koru-create-list-add"
+  1046→                    onClick={() => setListItems([...listItems, ""])}
+  1047→                  >
+  1048→                    <Mat>add</Mat> Agregar item
+  1049→                  </button>
+  1050→                </div>
+  1051→              </div>
+  1052→            )}
+  1053→
+  1054→            {/* NOTA — rich text con toolbar + preview */}
+  1055→            {selected === "nota" && (
+  1056→              <div className="koru-create-field">
+  1057→                <div className="koru-create-field-label-row">
+  1058→                  <span className="koru-create-field-label">Notas (opcional)</span>
+  1059→                  <button
+  1060→                    type="button"
+  1061→                    className="koru-create-md-toggle"
+  1062→                    onClick={() => setShowPreview(p => !p)}
+  1063→                  >
+  1064→                    {showPreview ? "Editar" : "Vista previa"}
+  1065→                  </button>
+  1066→                </div>
+  1067→                {!showPreview ? (
+  1068→                  <>
+  1069→                    <div className="koru-create-md-toolbar" role="toolbar" aria-label="Formato">
+  1070→                      <button type="button" onClick={() => insertWrap("**", "negrita")} aria-label="Negrita" title="Negrita"><b>B</b></button>
+  1071→                      <button type="button" onClick={() => insertWrap("*", "italica")} aria-label="Itálica" title="Itálica"><i>I</i></button>
+  1072→                      <button type="button" onClick={() => insertPrefix("- ")} aria-label="Lista" title="Lista">≡</button>
+  1073→                      <button type="button" onClick={insertLink} aria-label="Enlace" title="Enlace">🔗</button>
+  1074→                    </div>
+  1075→                    <textarea
+  1076→                      ref={notesRef}
+  1077→                      rows={5}
+  1078→                      value={notes}
+  1079→                      onChange={(e) => setNotes(e.target.value)}
+  1080→                      placeholder="Escribí lo que quieras recordar..."
+  1081→                    />
+  1082→                  </>
+  1083→                ) : (
+  1084→                  <div
+  1085→                    className="koru-create-md-preview"
+  1086→                    dangerouslySetInnerHTML={{
+  1087→                      __html: renderMarkdown(notes) || "<em style='color:#999'>Sin contenido</em>",
+  1088→                    }}
+  1089→                  />
+  1090→                )}
+  1091→              </div>
+  1092→            )}
+  1093→
+  1094→            {/* ENLACE — notas plain */}
+  1095→            {selected === "enlace" && (
+  1096→              <label className="koru-create-field">
+  1097→                <span className="koru-create-field-label">Notas (opcional)</span>
+  1098→                <textarea
+  1099→                  rows={5}
+  1100→                  value={notes}
+  1101→                  onChange={(e) => setNotes(e.target.value)}
+  1102→                  placeholder="Agregá contexto sobre este enlace..."
+  1103→                />
+  1104→              </label>
+  1105→            )}
+  1106→
+  1107→            {/* RECETA */}
+  1108→            {selected === "receta" && (
+  1109→              <>
+  1110→                <label className="koru-create-field koru-create-field-row">
+  1111→                  <div>
+  1112→                    <span className="koru-create-field-label">Prep (min)</span>
+  1113→                    <input type="number" inputMode="numeric" value={prepTime} onChange={(e) => setPrepTime(e.target.value)} placeholder="15" />
+  1114→                  </div>
+  1115→                  <div>
+  1116→                    <span className="koru-create-field-label">Cocción (min)</span>
+  1117→                    <input type="number" inputMode="numeric" value={cookTime} onChange={(e) => setCookTime(e.target.value)} placeholder="30" />
+  1118→                  </div>
+  1119→                  <div>
+  1120→                    <span className="koru-create-field-label">Porciones</span>
+  1121→                    <input type="number" inputMode="numeric" value={servings} onChange={(e) => setServings(e.target.value)} placeholder="4" />
+  1122→                  </div>
+  1123→                </label>
+  1124→                <div className="koru-create-field">
+  1125→                  <span className="koru-create-field-label">Ingredientes</span>
+  1126→                  <div className="koru-create-list-items">
+  1127→                    {ingredients.map((item, i) => (
+  1128→                      <div key={i} className="koru-create-list-item">
+  1129→                        <span className="koru-create-list-bullet">•</span>
+  1130→                        <input
+  1131→                          type="text"
+  1132→                          value={item}
+  1133→                          onChange={(e) => { const next = [...ingredients]; next[i] = e.target.value; setIngredients(next); }}
+  1134→                          onKeyDown={(e) => { if (e.key === "Enter" && i === ingredients.length - 1 && item.trim()) setIngredients([...ingredients, ""]); }}
+  1135→                          placeholder={`Ingrediente ${i + 1}`}
+  1136→                        />
+  1137→                        {ingredients.length > 1 && (
+  1138→                          <button type="button" aria-label="Quitar" className="koru-create-list-remove" onClick={() => setIngredients(ingredients.filter((_, idx) => idx !== i))}>
+  1139→                            <Mat>remove_circle</Mat>
+  1140→                          </button>
+  1141→                        )}
+  1142→                      </div>
+  1143→                    ))}
+  1144→                    <button type="button" className="koru-create-list-add" onClick={() => setIngredients([...ingredients, ""])}>
+  1145→                      <Mat>add</Mat> Agregar ingrediente
+  1146→                    </button>
+  1147→                  </div>
+  1148→                </div>
+  1149→                <div className="koru-create-field">
+  1150→                  <span className="koru-create-field-label">Pasos</span>
+  1151→                  <div className="koru-create-list-items">
+  1152→                    {steps.map((step, i) => (
+  1153→                      <div key={i} className="koru-create-list-item">
+  1154→                        <span className="koru-create-list-bullet">{i + 1}.</span>
+  1155→                        <input
+  1156→                          type="text"
+  1157→                          value={step}
+  1158→                          onChange={(e) => { const next = [...steps]; next[i] = e.target.value; setSteps(next); }}
+  1159→                          onKeyDown={(e) => { if (e.key === "Enter" && i === steps.length - 1 && step.trim()) setSteps([...steps, ""]); }}
+  1160→                          placeholder={`Paso ${i + 1}`}
+  1161→                        />
+  1162→                        {steps.length > 1 && (
+  1163→                          <button type="button" aria-label="Quitar" className="koru-create-list-remove" onClick={() => setSteps(steps.filter((_, idx) => idx !== i))}>
+  1164→                            <Mat>remove_circle</Mat>
+  1165→                          </button>
+  1166→                        )}
+  1167→                      </div>
+  1168→                    ))}
+  1169→                    <button type="button" className="koru-create-list-add" onClick={() => setSteps([...steps, ""])}>
+  1170→                      <Mat>add</Mat> Agregar paso
+  1171→                    </button>
+  1172→                  </div>
+  1173→                </div>
+  1174→              </>
+  1175→            )}
+  1176→
+  1177→            {/* RUTINA */}
+  1178→            {selected === "rutina" && (
+  1179→              <>
+  1180→                <label className="koru-create-field">
+  1181→                  <span className="koru-create-field-label">Cadencia</span>
+  1182→                  <select value={rutinaCadence} onChange={(e) => setRutinaCadence(e.target.value as RutinaCadence)}>
+  1183→                    <option value="daily">Diaria</option>
+  1184→                    <option value="weekly">Semanal</option>
+  1185→                    <option value="mon-fri">Lunes a Viernes</option>
+  1186→                    <option value="custom">Personalizada</option>
+  1187→                  </select>
+  1188→                </label>
+  1189→                <label className="koru-create-field koru-create-field-row">
+  1190→                  <div>
+  1191→                    <span className="koru-create-field-label">Meta</span>
+  1192→                    <input type="number" inputMode="decimal" value={rutinaTarget} onChange={(e) => setRutinaTarget(e.target.value)} placeholder="1" />
+  1193→                  </div>
+  1194→                  <div>
+  1195→                    <span className="koru-create-field-label">Unidad</span>
+  1196→                    <input type="text" value={rutinaUnit} onChange={(e) => setRutinaUnit(e.target.value)} placeholder="vez / min / km" />
+  1197→                  </div>
+  1198→                </label>
+  1199→                <label className="koru-create-field">
+  1200→                  <span className="koru-create-field-label">Hora ancla (opcional)</span>
+  1201→                  <input type="time" value={rutinaAnchorTime} onChange={(e) => setRutinaAnchorTime(e.target.value)} />
+  1202→                </label>
+  1203→              </>
+  1204→            )}
+  1205→
+  1206→            {/* EJERCICIO */}
+  1207→            {selected === "ejercicio" && (
+  1208→              <>
+  1209→                <label className="koru-create-field">
+  1210→                  <span className="koru-create-field-label">Semanas</span>
+  1211→                  <input type="number" inputMode="numeric" value={weeksTotal} onChange={(e) => setWeeksTotal(e.target.value)} placeholder="8" />
+  1212→                </label>
+  1213→                <div className="koru-create-field">
+  1214→                  <span className="koru-create-field-label">Sesiones</span>
+  1215→                  <div className="koru-create-sessions">
+  1216→                    {sessions.map((s, i) => (
+  1217→                      <div key={i} className="koru-create-session">
+  1218→                        <div className="koru-create-session-header">
+  1219→                          <input
+  1220→                            type="text"
+  1221→                            value={s.dayLabel}
+  1222→                            placeholder={`Día ${i + 1} (ej: Lunes)`}
+  1223→                            onChange={(e) => updateSession(i, { dayLabel: e.target.value })}
+  1224→                          />
+  1225→                          {sessions.length > 1 && (
+  1226→                            <button type="button" aria-label="Quitar sesión" className="koru-create-list-remove" onClick={() => removeSession(i)}>
+  1227→                              <Mat>remove_circle</Mat>
+  1228→                            </button>
+  1229→                          )}
+  1230→                        </div>
+  1231→                        <div className="koru-create-exercises">
+  1232→                          {s.exercises.map((ex, j) => (
+  1233→                            <div key={j} className="koru-create-exercise">
+  1234→                              <input
+  1235→                                type="text"
+  1236→                                className="koru-create-exercise-name"
+  1237→                                value={ex.name}
+  1238→                                placeholder="Ejercicio (ej: Sentadilla)"
+  1239→                                onChange={(e) => updateExercise(i, j, { name: e.target.value })}
+  1240→                              />
+  1241→                              <input type="number" inputMode="numeric" className="koru-create-exercise-num" value={ex.sets} placeholder="Series" title="Series"
+  1242→                                onChange={(e) => updateExercise(i, j, { sets: e.target.value })} />
+  1243→                              <input type="number" inputMode="numeric" className="koru-create-exercise-num" value={ex.reps} placeholder="Reps" title="Reps"
+  1244→                                onChange={(e) => updateExercise(i, j, { reps: e.target.value })} />
+  1245→                              <input type="number" inputMode="decimal" className="koru-create-exercise-num" value={ex.weight} placeholder="Peso" title="Peso (kg)"
+  1246→                                onChange={(e) => updateExercise(i, j, { weight: e.target.value })} />
+  1247→                              {s.exercises.length > 1 && (
+  1248→                                <button type="button" aria-label="Quitar ejercicio" className="koru-create-list-remove" onClick={() => removeExercise(i, j)}>
+  1249→                                  <Mat>remove_circle</Mat>
+  1250→                                </button>
+  1251→                              )}
+  1252→                            </div>
+  1253→                          ))}
+  1254→                          <button type="button" className="koru-create-list-add" onClick={() => addExercise(i)}>
+  1255→                            <Mat>add</Mat> Agregar ejercicio
+  1256→                          </button>
+  1257→                        </div>
+  1258→                      </div>
+  1259→                    ))}
+  1260→                    <button type="button" className="koru-create-list-add" onClick={addSession}>
+  1261→                      <Mat>add</Mat> Agregar sesión
+  1262→                    </button>
+  1263→                  </div>
+  1264→                </div>
+  1265→              </>
+  1266→            )}
+  1267→
+  1268→            {/* MEMORIA */}
+  1269→            {selected === "memoria" && (
+  1270→              <>
+  1271→                <label className="koru-create-field">
+  1272→                  <span className="koru-create-field-label">Contenido</span>
+  1273→                  <textarea
+  1274→                    rows={4}
+  1275→                    value={memoriaText}
+  1276→                    onChange={(e) => setMemoriaText(e.target.value)}
+  1277→                    placeholder="Ej: Soy alérgico a la penicilina."
+  1278→                  />
+  1279→                </label>
+  1280→                <label className="koru-create-field">
+  1281→                  <span className="koru-create-field-label">Tipo</span>
+  1282→                  <select value={memoriaKind} onChange={(e) => setMemoriaKind(e.target.value as MemoriaKind)}>
+  1283→                    {MEMORIA_KINDS.map(k => (
+  1284→                      <option key={k.value} value={k.value}>{k.label}</option>
+  1285→                    ))}
+  1286→                  </select>
+  1287→                </label>
+  1288→                <div className="koru-create-field">
+  1289→                  <span className="koru-create-field-label">Confianza: {Math.round(memoriaConfidence * 100)}%</span>
+  1290→                  <input
+  1291→                    type="range"
+  1292→                    min="0"
+  1293→                    max="1"
+  1294→                    step="0.05"
+  1295→                    value={memoriaConfidence}
+  1296→                    onChange={(e) => setMemoriaConfidence(parseFloat(e.target.value))}
+  1297→                  />
+  1298→                </div>
+  1299→                <div className="koru-create-field koru-create-toggle-row">
+  1300→                  <span className="koru-create-field-label">Sensibilidad</span>
+  1301→                  <button
+  1302→                    type="button"
+  1303→                    className="koru-create-toggle"
+  1304→                    onClick={() => setMemoriaSensitive(v => !v)}
+  1305→                    aria-pressed={memoriaSensitive}
+  1306→                  >
+  1307→                    <span className="koru-create-toggle-label">{memoriaSensitive ? "Sensible" : "Normal"}</span>
+  1308→                    <span className={`koru-create-toggle-switch${memoriaSensitive ? " on" : ""}`} />
+  1309→                  </button>
+  1310→                </div>
+  1311→              </>
+  1312→            )}
+  1313→
+  1314→            {/* DECISIÓN */}
+  1315→            {selected === "decision" && (
+  1316→              <>
+  1317→                <label className="koru-create-field">
+  1318→                  <span className="koru-create-field-label">Deadline (opcional)</span>
+  1319→                  <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
+  1320→                </label>
+  1321→                <div className="koru-create-field">
+  1322→                  <span className="koru-create-field-label">Factores</span>
+  1323→                  <div className="koru-create-list-items">
+  1324→                    {factors.map((f, i) => (
+  1325→                      <div key={f.id} className="koru-create-list-item koru-create-list-item-decision">
+  1326→                        <input
+  1327→                          type="text"
+  1328→                          value={f.label}
+  1329→                          placeholder={`Factor ${i + 1}`}
+  1330→                          onChange={(e) => updateFactor(i, { label: e.target.value })}
+  1331→                        />
+  1332→                        <select
+  1333→                          value={f.direction}
+  1334→                          onChange={(e) => updateFactor(i, { direction: e.target.value as DecisionFactorInput["direction"] })}
+  1335→                        >
+  1336→                          <option value="higherIsBetter">↑ Mejor alto</option>
+  1337→                          <option value="lowerIsBetter">↓ Mejor bajo</option>
+  1338→                        </select>
+  1339→                        {factors.length > 1 && (
+  1340→                          <button type="button" aria-label="Quitar" className="koru-create-list-remove" onClick={() => removeFactor(i)}>
+  1341→                            <Mat>remove_circle</Mat>
+  1342→                          </button>
+  1343→                        )}
+  1344→                      </div>
+  1345→                    ))}
+  1346→                    <button type="button" className="koru-create-list-add" onClick={addFactor}>
+  1347→                      <Mat>add</Mat> Agregar factor
+  1348→                    </button>
+  1349→                  </div>
+  1350→                </div>
+  1351→                <div className="koru-create-field">
+  1352→                  <span className="koru-create-field-label">Opciones</span>
+  1353→                  <div className="koru-create-list-items">
+  1354→                    {options.map((o, i) => (
+  1355→                      <div key={o.id} className="koru-create-list-item">
+  1356→                        <span className="koru-create-list-bullet">•</span>
+  1357→                        <input
+  1358→                          type="text"
+  1359→                          value={o.label}
+  1360→                          placeholder={`Opción ${i + 1}`}
+  1361→                          onChange={(e) => updateOption(i, { label: e.target.value })}
+  1362→                        />
+  1363→                        {options.length > 1 && (
+  1364→                          <button type="button" aria-label="Quitar" className="koru-create-list-remove" onClick={() => removeOption(i)}>
+  1365→                            <Mat>remove_circle</Mat>
+  1366→                          </button>
+  1367→                        )}
+  1368→                      </div>
+  1369→                    ))}
+  1370→                    <button type="button" className="koru-create-list-add" onClick={addOption}>
+  1371→                      <Mat>add</Mat> Agregar opción
+  1372→                    </button>
+  1373→                  </div>
+  1374→                </div>
+  1375→                {factors.filter(f => f.label.trim()).length > 0 && options.filter(o => o.label.trim()).length > 0 && (
+  1376→                  <div className="koru-create-field">
+  1377→                    <span className="koru-create-field-label">Puntajes (0-10)</span>
+  1378→                    <div className="koru-create-matrix">
+  1379→                      <div className="koru-create-matrix-row koru-create-matrix-header">
+  1380→                        <span>Opción</span>
+  1381→                        {factors.filter(f => f.label.trim()).map(f => (
+  1382→                          <span key={f.id} title={f.label}>{f.label.length > 8 ? f.label.slice(0, 8) + "…" : f.label}</span>
+  1383→                        ))}
+  1384→                      </div>
+  1385→                      {options.filter(o => o.label.trim()).map(o => (
+  1386→                        <div key={o.id} className="koru-create-matrix-row">
+  1387→                          <span title={o.label}>{o.label}</span>
+  1388→                          {factors.filter(f => f.label.trim()).map(f => (
+  1389→                            <input
+  1390→                              key={f.id}
+  1391→                              type="number"
+  1392→                              inputMode="numeric"
+  1393→                              min="0"
+  1394→                              max="10"
+  1395→                              value={o.factorScores[f.id] ?? 0}
+  1396→                              onChange={(e) => {
+  1397→                                const val = parseFloat(e.target.value) || 0;
+  1398→                                setOptions(prev => prev.map(oo => oo.id === o.id
+  1399→                                  ? { ...oo, factorScores: { ...oo.factorScores, [f.id]: val } }
+  1400→                                  : oo));
+  1401→                              }}
+  1402→                            />
+  1403→                          ))}
+  1404→                        </div>
+  1405→                      ))}
+  1406→                    </div>
+  1407→                  </div>
+  1408→                )}
+  1409→              </>
+  1410→            )}
+  1411→
+  1412→            {/* PLAN — lista dinámica de pasos con title + detail + priority */}
+  1413→            {selected === "plan" && (
+  1414→              <div className="koru-create-field">
+  1415→                <span className="koru-create-field-label">Pasos</span>
+  1416→                <div className="koru-create-list-items">
+  1417→                  {planSteps.map((step, i) => (
+  1418→                    <div key={i} className="koru-create-session">
+  1419→                      <div className="koru-create-session-header">
+  1420→                        <input
+  1421→                          type="text"
+  1422→                          value={step.title}
+  1423→                          placeholder={`Paso ${i + 1} (título)`}
+  1424→                          onChange={(e) => {
+  1425→                            const next = [...planSteps];
+  1426→                            next[i] = { ...step, title: e.target.value };
+  1427→                            setPlanSteps(next);
+  1428→                          }}
+  1429→                          onKeyDown={(e) => {
+  1430→                            if (e.key === "Enter" && i === planSteps.length - 1 && step.title.trim()) {
+  1431→                              setPlanSteps([...planSteps, { title: "", detail: "", priority: "media" }]);
+  1432→                            }
+  1433→                          }}
+  1434→                        />
+  1435→                        {planSteps.length > 1 && (
+  1436→                          <button
+  1437→                            type="button"
+  1438→                            aria-label="Quitar paso"
+  1439→                            className="koru-create-list-remove"
+  1440→                            onClick={() => setPlanSteps(planSteps.filter((_, idx) => idx !== i))}
+  1441→                          >
+  1442→                            <Mat>remove_circle</Mat>
+  1443→                          </button>
+  1444→                        )}
+  1445→                      </div>
+  1446→                      <input
+  1447→                        type="text"
+  1448→                        value={step.detail}
+  1449→                        placeholder="Detalle (opcional)"
+  1450→                        onChange={(e) => {
+  1451→                          const next = [...planSteps];
+  1452→                          next[i] = { ...step, detail: e.target.value };
+  1453→                          setPlanSteps(next);
+  1454→                        }}
+  1455→                      />
+  1456→                      <select
+  1457→                        value={step.priority}
+  1458→                        onChange={(e) => {
+  1459→                          const next = [...planSteps];
+  1460→                          next[i] = { ...step, priority: e.target.value as PlanStepInput["priority"] };
+  1461→                          setPlanSteps(next);
+  1462→                        }}
+  1463→                        aria-label={`Prioridad del paso ${i + 1}`}
+  1464→                      >
+  1465→                        <option value="alta">Alta prioridad</option>
+  1466→                        <option value="media">Media prioridad</option>
+  1467→                        <option value="baja">Baja prioridad</option>
+  1468→                      </select>
+  1469→                    </div>
+  1470→                  ))}
+  1471→                  <button
+  1472→                    type="button"
+  1473→                    className="koru-create-list-add"
+  1474→                    onClick={() => setPlanSteps([...planSteps, { title: "", detail: "", priority: "media" }])}
+  1475→                  >
+  1476→                    <Mat>add</Mat> Agregar paso
+  1477→                  </button>
+  1478→                </div>
+  1479→              </div>
+  1480→            )}
+  1481→
+  1482→            {/* TAGS — disponible en TODOS los templates */}
+  1483→            <div className="koru-create-field">
+  1484→              <span className="koru-create-field-label">Etiquetas</span>
+  1485→              <input
+  1486→                type="text"
+  1487→                value={tagInput}
+  1488→                onChange={(e) => setTagInput(e.target.value)}
+  1489→                onKeyDown={(e) => {
+  1490→                  if (e.key === "Enter" || e.key === ",") {
+  1491→                    e.preventDefault();
+  1492→                    addTag(tagInput);
+  1493→                  } else if (e.key === "Backspace" && !tagInput && tags.length > 0) {
+  1494→                    setTags(tags.slice(0, -1));
+  1495→                  }
+  1496→                }}
+  1497→                placeholder="Agregar etiqueta y Enter…"
+  1498→              />
+  1499→              {tagSuggestions.length > 0 && (
+  1500→                <div className="koru-create-tag-suggest">
+  1501→                  {tagSuggestions.map(t => (
+  1502→                    <button key={t} type="button" className="koru-create-tag-suggest-item" onClick={() => addTag(t)}>
+  1503→                      {t}
+  1504→                    </button>
+  1505→                  ))}
+  1506→                </div>
+  1507→              )}
+  1508→              {tags.length > 0 && (
+  1509→                <div className="koru-create-tag-chips">
+  1510→                  {tags.map(t => (
+  1511→                    <span key={t} className="koru-create-tag-chip">
+  1512→                      {t}
+  1513→                      <button type="button" aria-label={`Quitar ${t}`} onClick={() => removeTag(t)}>×</button>
+  1514→                    </span>
+  1515→                  ))}
+  1516→                </div>
+  1517→              )}
+  1518→            </div>
+  1519→
+  1520→            {/* CARPETA — con smart defaults hint */}
+  1521→            <label className="koru-create-field">
+  1522→              <span className="koru-create-field-label">Carpeta</span>
+  1523→              {lastUsedCollection && (
+  1524→                <span className="koru-create-last-used">Último usado: {lastUsedCollection}</span>
+  1525→              )}
+  1526→              <input
+  1527→                type="text"
+  1528→                value={collection}
+  1529→                onChange={(e) => setCollection(e.target.value)}
+  1530→                placeholder={currentTpl?.collection}
+  1531→              />
+  1532→            </label>
+  1533→
+  1534→            <div className="koru-create-actions">
+  1535→              <button
+  1536→                type="button"
+  1537→                className="koru-create-action-cancel"
+  1538→                onClick={() => setSelected(null)}
+  1539→              >
+  1540→                Cancelar
+  1541→              </button>
+  1542→              <button
+  1543→                type="button"
+  1544→                className="koru-create-action-save"
+  1545→                onClick={selected === "receta" ? handleSaveReceta : handleSave}
+  1546→                disabled={
+  1547→                  saving ||
+  1548→                  (!title.trim() && selected !== "gasto") ||
+  1549→                  // 🔴 TIER S: plan requiere al menos un step con título.
+  1550→                  (selected === "plan" && !planSteps.some(s => s.title.trim()))
+  1551→                }
+  1552→                style={{ background: currentTpl?.accent }}
+  1553→              >
+  1554→                {saving ? (
+  1555→                  <><Mat>hourglass_top</Mat> Guardando…</>
+  1556→                ) : (
+  1557→                  <><Mat>check</Mat> Guardar</>
+  1558→                )}
+  1559→              </button>
+  1560→            </div>
+  1561→          </div>
+  1562→        )}
+  1563→      </div>
+  1564→    </div>,
+  1565→    document.body,
+  1566→  );
+  1567→}
+  1568→
+  1569→// 🔴 Default export para React.lazy (TalkOverlay carga CreateScreen bajo
+  1570→// demanda para reducir el bundle inicial del chat).
+  1571→export default CreateScreen;
+  1572→

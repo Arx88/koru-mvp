@@ -322,6 +322,8 @@ export function toPresentation(block: UiBlock): KoruPresentation {
       return newsUrgentBlock(block);
     case "tennis_match":
       return tennisMatch(block);
+    case "exercise_plan":
+      return exercisePlan(block);
     case "plan":
       // El plan conserva su render canónico (PlanHeroCard); si llegara acá,
       // damos un hero equivalente por robustez.
@@ -3589,4 +3591,91 @@ function formatFreshness(iso: string): string | undefined {
   if (h < 24) return `hace ${h} h`;
   const d = Math.floor(h / 24);
   return `hace ${d} d`;
+}
+
+// ============================================================================
+// exercise_plan — Plan de entrenamiento activo
+// ============================================================================
+function exercisePlan(b: Of<"exercise_plan">): KoruPresentation {
+  const plan = b.plan;
+  const sessions = plan.sessions ?? [];
+  const totalSessions = sessions.length;
+  const currentIdx = Math.min(Math.max(plan.currentSessionIdx ?? 0, 0), Math.max(totalSessions - 1, 0));
+  const current = sessions[currentIdx];
+
+  const sections: DetailSection[] = [];
+
+  // Resumen del plan: semanas + estado + sesión actual
+  sections.push({
+    kind: "tiles",
+    icon: "fitness_center",
+    accent: A.emerald,
+    title: "Resumen del plan",
+    subtitle: plan.name?.toUpperCase() ?? "PLAN",
+    tiles: [
+      { icon: "event", label: "Sesiones", value: String(totalSessions) },
+      { icon: "calendar_month", label: "Semanas", value: String(plan.weeksTotal ?? 0) },
+      { icon: "play_circle", label: "Próxima sesión", value: current?.dayLabel ?? "—" },
+      { icon: "toggle_on", label: "Estado", value: plan.status === "active" ? "Activo" : plan.status === "completed" ? "Completado" : "Archivado" },
+    ],
+  });
+
+  // Sesiones como timeline (cada una con sus ejercicios como rows internas)
+  if (sessions.length > 0) {
+    sections.push({
+      kind: "timeline",
+      icon: "timeline",
+      accent: A.primary,
+      title: "Sesiones",
+      subtitle: `${totalSessions} DÍAS`,
+      steps: sessions.map((s, i) => ({
+        icon: s.completedAt ? "check_circle" : i === currentIdx ? "play_arrow" : "radio_button_unchecked",
+        title: s.dayLabel || `Sesión ${i + 1}`,
+        detail: s.exercises.map((e) => `${e.exercise} · ${e.sets}×${e.reps}${e.weight ? ` · ${e.weight}kg` : ""}`).join("  ·  ") || undefined,
+        status: s.completedAt ? "done" : i === currentIdx ? "current" : ("pending" as const),
+      })),
+    });
+  }
+
+  // Detalle de ejercicios de la sesión actual
+  if (current && current.exercises.length > 0) {
+    sections.push({
+      kind: "rows",
+      icon: "list_alt",
+      accent: A.amber,
+      title: current.dayLabel ?? "Sesión actual",
+      subtitle: "EJERCICIOS DE HOY",
+      rows: current.exercises.map((e) => ({
+        icon: "fitness_center",
+        title: e.exercise,
+        detail: [
+          `${e.sets} series × ${e.reps} reps`,
+          e.weight ? `${e.weight} kg` : undefined,
+          e.restSec ? `${e.restSec}s descanso` : undefined,
+          e.durationSec ? `${e.durationSec}s` : undefined,
+        ].filter(Boolean).join(" · "),
+        badge: e.notes,
+      })),
+    });
+  }
+
+  return {
+    hero: {
+      kicker: "Tu Plan de Fuerza",
+      title: heroTitleFrom(plan.name ?? b.title, "Entrenamiento"),
+      desc: current ? `Hoy: ${current.dayLabel} — ${current.exercises.length} ejercicio${current.exercises.length === 1 ? "" : "s"}` : `${totalSessions} sesiones`,
+      icon: "fitness_center",
+      accent: A.emerald,
+      metrics: [
+        { icon: "event", label: "Sesiones", value: String(totalSessions), color: A.emerald.color },
+        { icon: "calendar_month", label: "Semanas", value: String(plan.weeksTotal ?? 0), color: A.primary.color },
+      ],
+    },
+    detail: {
+      title: plan.name || "Plan de Entrenamiento",
+      subtitle: `${totalSessions} sesiones · ${plan.status}`,
+      sections,
+    },
+    cta: { label: "Ver plan completo" },
+  };
 }

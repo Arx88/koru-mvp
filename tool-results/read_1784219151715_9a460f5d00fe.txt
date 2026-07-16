@@ -1,0 +1,940 @@
+     1→// FIX: Vite patchea global.fetch. Restaurar fetch nativo de Node.js antes de cualquier otra cosa.
+     2→try { const undici = eval("require")("undici"); globalThis.fetch = undici.fetch; } catch {}
+     3→
+     4→/**
+     5→ * Fase 3.11 — Backend Express independiente de Vite.
+     6→ *
+     7→ * Extrae los middlewares de koruBackend del vite.config.ts a un proceso
+     8→ * Express independiente, habilitando deploy a Railway/Fly.io.
+     9→ *
+    10→ * Uso:
+    11→ *   npm run server  → arranca en puerto 3001
+    12→ *   npm run dev     → arranca Vite en :3000 (dev server con HMR)
+    13→ *
+    14→ * En producción:
+    15→ *   - Frontend: Vercel/Netlify (sirve dist/)
+    16→ *   - Backend: Railway/Fly.io (este archivo)
+    17→ *   - Frontend hace fetch a BACKEND_URL (env var)
+    18→ */
+    19→import http from "node:http";
+    20→import { readFileSync, existsSync, writeFileSync } from "node:fs";
+    21→import { join, dirname } from "node:path";
+    22→import { fileURLToPath } from "node:url";
+    23→import { runKoruBackendTurn, type KoruBackendTurnRequest, type ProviderConfig } from "../src/server/koruBackend.ts";
+    24→import { exchangeCodeForToken } from "../src/tools/calendar/googleCalendar.ts";
+    25→
+    26→const __dirname = dirname(fileURLToPath(import.meta.url));
+    27→// Si estamos corriendo desde server-bundle.mjs, __dirname es la raíz del proyecto.
+    28→// Si desde server/index.ts, es server/. En ambos casos, dist/ está en la raíz.
+    29→const PROJECT_ROOT = existsSync(join(__dirname, "dist")) ? __dirname : join(__dirname, "..");
+    30→const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
+    31→
+    32→// Load .env manually (no dotenv dependency)
+    33→function loadEnv() {
+    34→  const envPath = join(PROJECT_ROOT, ".env");
+    35→  if (!existsSync(envPath)) return;
+    36→  const content = readFileSync(envPath, "utf8");
+    37→  for (const line of content.split("\n")) {
+    38→    const trimmed = line.trim();
+    39→    if (!trimmed || trimmed.startsWith("#")) continue;
+    40→    const eqIdx = trimmed.indexOf("=");
+    41→    if (eqIdx === -1) continue;
+    42→    const key = trimmed.slice(0, eqIdx).trim();
+    43→    const value = trimmed.slice(eqIdx + 1).trim();
+    44→    if (!process.env[key]) process.env[key] = value;
+    45→  }
+    46→}
+    47→loadEnv();
+    48→
+    49→// Build ProviderConfig from env
+    50→function buildConfig() {
+    51→  const env = process.env;
+    52→  return {
+    53→    nvidiaApiKey: env.NVIDIA_API_KEY?.trim(),
+    54→    nvidiaBaseUrl: env.NVIDIA_BASE_URL?.trim() || "https://integrate.api.nvidia.com",
+    55→    nvidiaModel: env.NVIDIA_MODEL?.trim() || "nvidia/nemotron-3-ultra-550b-a55b",
+    56→    nvidiaFastModel: (env.NVIDIA_FAST_MODEL && !env.NVIDIA_FAST_MODEL.includes("stepfun") && !env.NVIDIA_FAST_MODEL.includes("nemotron-3-nano") && !env.NVIDIA_FAST_MODEL.includes("llama-3.1-8b")) ? env.NVIDIA_FAST_MODEL.trim() : "nvidia/nemotron-3-ultra-550b-a55b",
+    57→    nvidiaMediumModel: env.NVIDIA_MEDIUM_MODEL?.trim(),
+    58→    openRouterKeys: [env.OPENROUTER_API_KEY, env.OPENROUTER_FALLBACK_API_KEYS]
+    59→      .filter(Boolean)
+    60→      .flatMap((v) => v!.split(","))
+    61→      .map((v) => v.trim())
+    62→      .filter(Boolean),
+    63→    openRouterModels: (env.OPENROUTER_FALLBACK_MODELS || "")
+    64→      .split(",")
+    65→      .map((v) => v.trim())
+    66→      .filter(Boolean),
+    67→    minimaxAccessToken: env.MINIMAX_ACCESS_TOKEN?.trim(),
+    68→    ollamaEmbedBaseUrl: env.OLLAMA_EMBED_BASE_URL?.trim() || undefined,
+    69→  };
+    70→}
+    71→
+    72→const config = buildConfig();
+    73→
+    74→// Helper: read body as string
+    75→async function readBody(req: http.IncomingMessage): Promise<string> {
+    76→  const chunks: Buffer[] = [];
+    77→  for await (const chunk of req) chunks.push(Buffer.from(chunk as Buffer));
+    78→  return Buffer.concat(chunks).toString("utf8");
+    79→}
+    80→
+    81→// Helper: send JSON
+    82→function sendJson(res: http.ServerResponse, status: number, data: unknown) {
+    83→  res.writeHead(status, {
+    84→    "Content-Type": "application/json",
+    85→    "Access-Control-Allow-Origin": "*",
+    86→    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    87→    "Access-Control-Allow-Headers": "Content-Type",
+    88→  });
+    89→  res.end(JSON.stringify(data));
+    90→}
+    91→
+    92→// Helper: send HTML (used por el OAuth callback — la pestaña del popup
+    93→// recibe este HTML, escribe el flag en localStorage y se cierra sola).
+    94→function sendHtml(res: http.ServerResponse, status: number, html: string) {
+    95→  res.writeHead(status, {
+    96→    "Content-Type": "text/html; charset=utf-8",
+    97→    "Access-Control-Allow-Origin": "*",
+    98→    "Cache-Control": "no-store",
+    99→  });
+   100→  res.end(html);
+   101→}
+   102→
+   103→// ── Integrations store ────────────────────────────────────────────
+   104→// Persistencia simple en `koru-integrations.json` (PROJECT_ROOT).
+   105→// Shape:
+   106→//   {
+   107→//     "googleCalendar": {
+   108→//       "connected": true,
+   109→//       "accessToken": "...",
+   110→//       "refreshToken": "...",
+   111→//       "connectedAt": "2026-..."
+   112→//     }
+   113→//   }
+   114→// No es una DB — suficiente para MVP. El frontend consulta el flag
+   115→// `connected` via GET /api/integrations/google-calendar/status.
+   116→type GoogleCalendarIntegration = {
+   117→  connected: boolean;
+   118→  accessToken?: string;
+   119→  refreshToken?: string;
+   120→  connectedAt?: string;
+   121→};
+   122→
+   123→type IntegrationsStore = {
+   124→  googleCalendar?: GoogleCalendarIntegration;
+   125→};
+   126→
+   127→const INTEGRATIONS_FILE = join(PROJECT_ROOT, "koru-integrations.json");
+   128→// In-memory cache — arranca con lo que haya en disco (si existe) y se
+   129→// mantiene sincronizado con cada write. Evita leer el archivo en cada
+   130→// GET /status.
+   131→let integrationsCache: IntegrationsStore = (() => {
+   132→  try {
+   133→    if (existsSync(INTEGRATIONS_FILE)) {
+   134→      const raw = readFileSync(INTEGRATIONS_FILE, "utf8");
+   135→      return JSON.parse(raw) as IntegrationsStore;
+   136→    }
+   137→  } catch (err) {
+   138→    console.warn("[integrations] No se pudo leer koru-integrations.json:", (err as Error).message);
+   139→  }
+   140→  return {};
+   141→})();
+   142→
+   143→function persistIntegrations() {
+   144→  try {
+   145→    writeFileSync(INTEGRATIONS_FILE, JSON.stringify(integrationsCache, null, 2), "utf8");
+   146→  } catch (err) {
+   147→    console.warn("[integrations] No se pudo escribir koru-integrations.json:", (err as Error).message);
+   148→  }
+   149→}
+   150→
+   151→// Escape HTML para evitar XSS en los mensajes de error del OAuth callback.
+   152→function escapeHtml(s: string): string {
+   153→  return s
+   154→    .replace(/&/g, "&amp;")
+   155→    .replace(/</g, "&lt;")
+   156→    .replace(/>/g, "&gt;")
+   157→    .replace(/"/g, "&quot;")
+   158→    .replace(/'/g, "&#39;");
+   159→}
+   160→
+   161→const server = http.createServer(async (req, res) => {
+   162→  // CORS preflight
+   163→  if (req.method === "OPTIONS") {
+   164→    res.writeHead(204, {
+   165→      "Access-Control-Allow-Origin": "*",
+   166→      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+   167→      "Access-Control-Allow-Headers": "Content-Type",
+   168→    });
+   169→    res.end();
+   170→    return;
+   171→  }
+   172→
+   173→  const url = req.url ?? "";
+   174→
+   175→  // ── Health check ──────────────────────────────────────────────
+   176→  if (url.startsWith("/api/health") && req.method === "GET") {
+   177→    sendJson(res, 200, {
+   178→      status: "ok",
+   179→      service: "koru-backend",
+   180→      provider: config.nvidiaApiKey ? "nvidia" : "none",
+   181→      model: config.nvidiaModel,
+   182→      timestamp: new Date().toISOString(),
+   183→    });
+   184→    return;
+   185→  }
+   186→
+   187→  // ── /api/koru/models ──────────────────────────────────────────
+   188→  if (url.startsWith("/api/koru/models") && req.method === "GET") {
+   189→    const predefined: Array<{ id: string; provider: string; label: string }> = [];
+   190→    if (config.nvidiaApiKey) {
+   191→      predefined.push({ id: config.nvidiaModel, provider: "nvidia", label: "NVIDIA Nemotron 3 Ultra" });
+   192→    }
+   193→    for (const m of config.openRouterModels) {
+   194→      predefined.push({ id: m, provider: "openrouter", label: m });
+   195→    }
+   196→    sendJson(res, 200, { models: predefined });
+   197→    return;
+   198→  }
+   199→
+   200→  // ── /api/koru/vlm (análisis de imágenes con VLM) ─────────────
+   201→  if (url === "/api/koru/vlm" && req.method === "POST") {
+   202→    try {
+   203→      const raw = await readBody(req);
+   204→      const body = JSON.parse(raw || "{}");
+   205→      if (!body.image_base64) {
+   206→        sendJson(res, 400, { error: "Falta image_base64" });
+   207→        return;
+   208→      }
+   209→      const { default: ZAI } = await import("z-ai-web-dev-sdk");
+   210→      const zai = await ZAI.create();
+   211→      const prompt = body.prompt || "Extraé todo el texto visible en la imagen, preservando estructura. Si no hay texto, describí qué se ve.";
+   212→      const response = await zai.chat.completions.createVision({
+   213→        messages: [{
+   214→          role: "user",
+   215→          content: [
+   216→            { type: "text", text: prompt },
+   217→            { type: "image_url", image_url: { url: `data:image/jpeg;base64,${body.image_base64}` } },
+   218→          ],
+   219→        }],
+   220→        thinking: { type: "disabled" },
+   221→      });
+   222→      const text = response.choices?.[0]?.message?.content ?? "";
+   223→      sendJson(res, 200, { text });
+   224→    } catch (err: any) {
+   225→      console.error("[koru-vlm]", err?.message);
+   226→      sendJson(res, 500, { error: err?.message ?? "Error de VLM" });
+   227→    }
+   228→    return;
+   229→  }
+   230→
+   231→  // ── /api/koru/asr (transcripción de audio) ───────────────────
+   232→  if (url === "/api/koru/asr" && req.method === "POST") {
+   233→    try {
+   234→      const raw = await readBody(req);
+   235→      const body = JSON.parse(raw || "{}");
+   236→      if (!body.audio_base64) {
+   237→        sendJson(res, 400, { error: "Falta audio_base64" });
+   238→        return;
+   239→      }
+   240→      const { default: ZAI } = await import("z-ai-web-dev-sdk");
+   241→      const zai = await ZAI.create();
+   242→      const response = await zai.audio.asr.create({ file_base64: body.audio_base64 });
+   243→      sendJson(res, 200, { text: response.text ?? "" });
+   244→    } catch (err: any) {
+   245→      console.error("[koru-asr]", err?.message);
+   246→      sendJson(res, 500, { error: err?.message ?? "Error de ASR" });
+   247→    }
+   248→    return;
+   249→  }
+   250→
+   251→  // ── /api/koru/turn (chat principal con NDJSON streaming) ─────
+   252→  if (url.startsWith("/api/koru/turn") && req.method === "POST") {
+   253→    try {
+   254→      const raw = await readBody(req);
+   255→      const request = JSON.parse(raw || "{}");
+   256→      if (!request.input?.trim() || !request.state || !Array.isArray(request.history)) {
+   257→        sendJson(res, 400, { error: "Payload incompleto para /api/koru/turn." });
+   258→        return;
+   259→      }
+   260→
+   261→      // SIEMPRE usar streaming con heartbeat para evitar timeout de Render (30s)
+   262→      // El heartbeat envía un chunk vacío cada 5s para mantener viva la conexión
+   263→      res.writeHead(200, {
+   264→        "Content-Type": "application/x-ndjson",
+   265→        "Cache-Control": "no-cache",
+   266→        "Connection": "keep-alive",
+   267→        "Access-Control-Allow-Origin": "*",
+   268→        "X-Accel-Buffering": "no", // Render/nginx: no buffer
+   269→      });
+   270→
+   271→      // Heartbeat: cada 5s enviar un comentario para mantener la conexión
+   272→      const heartbeat = setInterval(() => {
+   273→        try { res.write("\n"); } catch {}
+   274→      }, 5000);
+   275→
+   276→      const onChunk = (chunk: any) => {
+   277→        try { res.write(JSON.stringify(chunk) + "\n"); } catch {}
+   278→      };
+   279→
+   280→      try {
+   281→        const result = await runKoruBackendTurn(request, config as any, onChunk);
+   282→        clearInterval(heartbeat);
+   283→        try { res.write(JSON.stringify(result) + "\n"); } catch {}
+   284→      } catch (err: any) {
+   285→        clearInterval(heartbeat);
+   286→        const errorResponse = {
+   287→          error: err?.message ?? "Error interno",
+   288→          reply: "No pude procesar tu mensaje. El modelo no respondió a tiempo.",
+   289→          uiBlocks: [],
+   290→          suggestedActions: [],
+   291→          understanding: { literalRequest: "", userGoal: "error", unstatedNeeds: [], assumptions: [], confidence: 0 },
+   292→          memoryCandidates: [], commitments: [], records: [], toolResults: [],
+   293→          stateEvents: [{ kind: "done" as const, label: "Error" }],
+   294→          mascotState: "tired",
+   295→          provider: "nvidia",
+   296→          fallbackReason: "server-error",
+   297→        };
+   298→        try { res.write(JSON.stringify(errorResponse) + "\n"); } catch {}
+   299→      }
+   300→      res.end();
+   301→    } catch (err: any) {
+   302→      console.error("[koru-turn]", err?.message);
+   303→      sendJson(res, 500, { error: err?.message ?? "Error interno" });
+   304→    }
+   305→    return;
+   306→  }
+   307→
+   308→  // ── /api/debug/weather — debug weather fetch ────────────────
+   309→  if (url.startsWith("/api/debug/weather") && req.method === "GET") {
+   310→    try {
+   311→      const city = new URL(req.url ?? "", "http://localhost").searchParams.get("city") || "Valencia";
+   312→      console.log("[debug/weather] Testing city:", city);
+   313→
+   314→      // Step 1: Geocode
+   315→      const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&format=json`;
+   316→      console.log("[debug/weather] Geocoding:", geoUrl);
+   317→      const geoRes = await globalThis.fetch(geoUrl, { signal: AbortSignal.timeout(15000) });
+   318→      console.log("[debug/weather] Geo status:", geoRes.status);
+   319→      const geoData = await geoRes.json() as any;
+   320→      const geo = geoData.results?.[0];
+   321→      if (!geo) {
+   322→        sendJson(res, 200, { error: "Geocode failed", geoStatus: geoRes.status, geoData: JSON.stringify(geoData).slice(0, 200) });
+   323→        return;
+   324→      }
+   325→      console.log("[debug/weather] Geo result:", geo.name, geo.latitude, geo.longitude);
+   326→
+   327→      // Step 2: Weather — try wttr.in first (no rate limits), then open-meteo
+   328→      let temp: number | undefined;
+   329→      let wind: number | undefined;
+   330→      let max: number | undefined;
+   331→      let min: number | undefined;
+   332→      let rain: number | undefined;
+   333→      let desc: string | undefined;
+   334→      let source: string = "unknown";
+   335→
+   336→      // Try wttr.in (no rate limits, no API key)
+   337→      try {
+   338→        const wttrUrl = `https://wttr.in/${encodeURIComponent(geo.name)}?format=j1`;
+   339→        console.log("[debug/weather] wttr.in:", wttrUrl);
+   340→        const wttrRes = await globalThis.fetch(wttrUrl, { signal: AbortSignal.timeout(15000), headers: { "Accept": "application/json" } });
+   341→        if (wttrRes.ok) {
+   342→          const wttrData = await wttrRes.json() as any;
+   343→          const cur = wttrData.current_condition?.[0];
+   344→          const today = wttrData.weather?.[0];
+   345→          temp = cur ? Number(cur.temp_C) : undefined;
+   346→          wind = cur ? Number(cur.windspeedKmph) : undefined;
+   347→          desc = cur?.weatherDesc?.[0]?.value;
+   348→          max = today ? Number(today.maxtempC) : undefined;
+   349→          min = today ? Number(today.mintempC) : undefined;
+   350→          rain = today?.hourly?.[0]?.chanceofrain ? Number(today.hourly[0].chanceofrain) : undefined;
+   351→          source = "wttr.in";
+   352→          console.log("[debug/weather] wttr.in OK:", temp, "°C");
+   353→        }
+   354→      } catch (e: any) { console.error("[debug/weather] wttr.in failed:", e?.message); }
+   355→
+   356→      // Fallback: open-meteo
+   357→      if (temp === undefined) {
+   358→        try {
+   359→          const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${geo.latitude}&longitude=${geo.longitude}&current=temperature_2m,precipitation,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=1`;
+   360→          console.log("[debug/weather] open-meteo:", weatherUrl);
+   361→          const weatherRes = await globalThis.fetch(weatherUrl, { signal: AbortSignal.timeout(15000) });
+   362→          if (weatherRes.ok) {
+   363→            const weatherData = await weatherRes.json() as any;
+   364→            temp = weatherData.current?.temperature_2m;
+   365→            wind = weatherData.current?.wind_speed_10m;
+   366→            max = weatherData.daily?.temperature_2m_max?.[0];
+   367→            min = weatherData.daily?.temperature_2m_min?.[0];
+   368→            rain = weatherData.daily?.precipitation_probability_max?.[0];
+   369→            source = "open-meteo";
+   370→            console.log("[debug/weather] open-meteo OK:", temp, "°C");
+   371→          } else {
+   372→            console.error("[debug/weather] open-meteo HTTP:", weatherRes.status);
+   373→          }
+   374→        } catch (e: any) { console.error("[debug/weather] open-meteo failed:", e?.message); }
+   375→      }
+   376→
+   377→      sendJson(res, 200, {
+   378→        city: geo.name,
+   379→        country: geo.country,
+   380→        temp, wind, max, min, rain, desc, source,
+   381→      });
+   382→    } catch (err: any) {
+   383→      sendJson(res, 200, { error: err?.message, stack: err?.stack?.slice(0, 200) });
+   384→    }
+   385→    return;
+   386→  }
+   387→
+   388→  // ── /api/koru/proactive — proactive engine ───────────────────
+   389→  if (url === "/api/koru/proactive" && req.method === "POST") {
+   390→    try {
+   391→      const raw = await readBody(req);
+   392→      const body = JSON.parse(raw || "{}");
+   393→      const { state, lastSeen } = body;
+   394→
+   395→      console.log("[proactive] Request received, memories:", state?.memories?.length ?? 0);
+   396→
+   397→      // Import proactive engine
+   398→      const { runProactiveCheck } = await import("../src/domain/proactiveEngine.ts");
+   399→      const message = await runProactiveCheck(state, config, lastSeen || Date.now());
+   400→
+   401→      console.log("[proactive] Result:", message?.shouldShow ?? false, message?.reply?.slice(0, 60) ?? "");
+   402→
+   403→      sendJson(res, 200, message || { shouldShow: false });
+   404→    } catch (err: any) {
+   405→      console.error("[proactive] Error:", err?.message);
+   406→      sendJson(res, 200, { shouldShow: false, error: err?.message });
+   407→    }
+   408→    return;
+   409→  }
+   410→
+   411→  // ── /api/koru/morning-brief — brief matutino automático ──────
+   412→  if (url === "/api/koru/morning-brief" && req.method === "POST") {
+   413→    try {
+   414→      const raw = await readBody(req);
+   415→      const body = JSON.parse(raw || "{}");
+   416→      const { state } = body;
+   417→
+   418→      const now = new Date();
+   419→      const hour = now.getHours();
+   420→      const isMorning = hour >= 5 && hour <= 11;
+   421→
+   422→      if (!isMorning) {
+   423→        sendJson(res, 200, { shouldShow: false, reason: "not_morning" });
+   424→        return;
+   425→      }
+   426→
+   427→      // Verificar si ya se mostró hoy
+   428→      const today = now.toISOString().slice(0, 10);
+   429→      if (state?.lastBriefDate === today) {
+   430→        sendJson(res, 200, { shouldShow: false, reason: "already_shown" });
+   431→        return;
+   432→      }
+   433→
+   434→      // 🔴 FULL morning brief — gather context from KoruState, then call LLM.
+   435→      // Context sources (todos opcionales, el endpoint no falla si faltan):
+   436→      //   - today's calendar events (calendarEvents)
+   437→      //   - open commitments due today (commitments con dueAt/dueHint == hoy)
+   438→      //   - weather cache (weatherCache)
+   439→      //   - last entry sentiment (entries[last].sentiment)
+   440→      //   - confirmed/candidate memories (para contexto de personalidad)
+   441→      const userName = state?.userName ?? "";
+   442→
+   443→      // Today's calendar events
+   444→      const todayEvents = (state?.calendarEvents ?? []).filter((ev: any) => {
+   445→        try {
+   446→          if (!ev?.startsAt) return false;
+   447→          return new Date(ev.startsAt).toISOString().slice(0, 10) === today;
+   448→        } catch { return false; }
+   449→      }).slice(0, 5);
+   450→
+   451→      // Open commitments due today (por dueAt o dueHint que mencione "hoy"/"today"/fecha de hoy)
+   452→      const todayCommitments = (state?.commitments ?? []).filter((c: any) => {
+   453→        if (c?.status !== "open") return false;
+   454→        try {
+   455→          if (c.dueAt && new Date(c.dueAt).toISOString().slice(0, 10) === today) return true;
+   456→        } catch {}
+   457→        const hint = String(c?.dueHint ?? "").toLowerCase();
+   458→        return hint.includes("hoy") || hint.includes("today") || hint.includes(today);
+   459→      }).slice(0, 5);
+   460→
+   461→      // Weather cache
+   462→      const weatherCache = state?.weatherCache;
+   463→      const weatherStr = weatherCache?.payload?.now
+   464→        ? `${weatherCache.payload.now} en ${weatherCache.city}`
+   465→        : "no disponible";
+   466→
+   467→      // Last entry sentiment
+   468→      const entries: any[] = Array.isArray(state?.entries) ? state.entries : [];
+   469→      const lastEntry = entries.length > 0 ? entries[entries.length - 1] : null;
+   470→      const lastSentiment = lastEntry?.sentiment ?? "neutral";
+   471→
+   472→      // Confirmed/candidate memories (for personality context)
+   473→      const memories = (state?.memories ?? [])
+   474→        .filter((m: any) => m.status === "confirmed" || m.status === "candidate")
+   475→        .slice(0, 10);
+   476→
+   477→      // 🔴 LLM prompt — formato especificado:
+   478→      // { greeting: string, items: [{icon, label, value}], reflection: string }
+   479→      const briefMessages = [
+   480→        {
+   481→          role: "system" as const,
+   482→          content: `Sos Koru. Generá el morning brief para ${userName}. Hoy es ${today}. Eventos: ${JSON.stringify(todayEvents.map((e: any) => e.title))}. Deadlines: ${JSON.stringify(todayCommitments.map((c: any) => c.title))}. Clima: ${weatherStr}. Último sentimiento registrado: ${lastSentiment}. Memorias relevantes: ${JSON.stringify(memories.map((m: any) => `[${m.kind}] ${m.text}`))}. Generá: greeting, 3-item summary, reflection. Respondé en JSON: { greeting: string, items: [{icon, label, value}], reflection: string }`,
+   483→        },
+   484→        {
+   485→          role: "user" as const,
+   486→          content: `Generá el morning brief ahora. Recordá: greeting cálido y personalizado, 3 items con icon (material symbols), label corto y value concreto, reflection breve para cerrar.`,
+   487→        },
+   488→      ];
+   489→
+   490→      let brief: any = null;
+   491→      try {
+   492→        const { callProvider, inferProviderFromModel } = await import("../src/server/koruBackend.ts");
+   493→        const pp = inferProviderFromModel(config.nvidiaModel);
+   494→        const result = await callProvider(config, briefMessages, 30_000, false, pp);
+   495→        const content = (result.message as any).content?.trim() ?? "";
+   496→        const jsonMatch = content.match(/\{[\s\S]*\}/);
+   497→        if (jsonMatch) {
+   498→          const parsed = JSON.parse(jsonMatch[0]);
+   499→          // Validar estructura mínima: greeting + items + reflection
+   500→          if (parsed && typeof parsed.greeting === "string" && Array.isArray(parsed.items)) {
+   501→            brief = {
+   502→              greeting: String(parsed.greeting),
+   503→              items: parsed.items
+   504→                .filter((it: any) => it && typeof it === "object")
+   505→                .map((it: any) => ({
+   506→                  icon: String(it.icon ?? "wb_sunny"),
+   507→                  label: String(it.label ?? ""),
+   508→                  value: String(it.value ?? ""),
+   509→                })),
+   510→              reflection: String(parsed.reflection ?? ""),
+   511→            };
+   512→          }
+   513→        }
+   514→      } catch (llmErr: any) {
+   515→        console.error("[morning-brief] LLM failed:", llmErr?.message);
+   516→      }
+   517→
+   518→      // 🔴 Fallback brief: si el LLM falló o devolvió JSON inválido,
+   519→      // construimos un brief estático con saludo + items derivados del state.
+   520→      if (!brief || typeof brief.greeting !== "string") {
+   521→        const fallbackItems: Array<{ icon: string; label: string; value: string }> = [];
+   522→        if (todayEvents.length > 0) {
+   523→          fallbackItems.push({
+   524→            icon: "event",
+   525→            label: "Eventos",
+   526→            value: `${todayEvents.length} evento(s) hoy: ${todayEvents.map((e: any) => e.title).join(", ")}`,
+   527→          });
+   528→        }
+   529→        if (todayCommitments.length > 0) {
+   530→          fallbackItems.push({
+   531→            icon: "check_circle",
+   532→            label: "Pendientes",
+   533→            value: `${todayCommitments.length} tarea(s): ${todayCommitments.map((c: any) => c.title).join(", ")}`,
+   534→          });
+   535→        }
+   536→        fallbackItems.push({
+   537→          icon: "wb_sunny",
+   538→          label: "Clima",
+   539→          value: weatherStr,
+   540→        });
+   541→        brief = {
+   542→          greeting: `¡Buenos días${userName ? `, ${userName}` : ""}!`,
+   543→          items: fallbackItems.slice(0, 3),
+   544→          reflection: "Hoy es un buen día para avanzar con lo que importa.",
+   545→        };
+   546→      }
+   547→
+   548→      sendJson(res, 200, { shouldShow: true, brief, date: today });
+   549→    } catch (err: any) {
+   550→      console.error("[morning-brief] Error:", err?.message);
+   551→      sendJson(res, 200, { shouldShow: false, error: err?.message });
+   552→    }
+   553→    return;
+   554→  }
+   555→
+   556→  // ── /api/koru/ai-assist — sugerencias para CreateScreen ──────
+   557→  // Body: { template: string, title: string, language?: "es"|"en" }
+   558→  // Usa el mismo LLM client que el chat principal (callProvider).
+   559→  // Timeout: 10s. Si el LLM falla, devuelve { suggestions: [] }.
+   560→  if (url === "/api/koru/ai-assist" && req.method === "POST") {
+   561→    try {
+   562→      const raw = await readBody(req);
+   563→      const body = JSON.parse(raw || "{}");
+   564→      const template: string = typeof body.template === "string" ? body.template : "";
+   565→      const title: string = typeof body.title === "string" ? body.title : "";
+   566→      const language: "es" | "en" = body.language === "en" ? "en" : "es";
+   567→
+   568→      if (!template || !title) {
+   569→        sendJson(res, 400, { error: "Faltan template o title", suggestions: [] });
+   570→        return;
+   571→      }
+   572→
+   573→      // Reglas por template — indican al LLM qué campos incluir siempre.
+   574→      const templateRules: Record<string, string> = {
+   575→        gasto: 'Siempre incluí: collection="Gastos", currency="ARS". Además, categorizá el título (ej: "Comida", "Transporte", "Hogar", "Ocio", "Salud").',
+   576→        receta: 'Siempre incluí: collection="Recetas", servings=4, prepTime="20 min".',
+   577→        nota: 'Siempre incluí: collection="Notas".',
+   578→        plan: 'Generá 3 pasos (step1, step2, step3) basados en el título — cada uno como una sugerencia separada.',
+   579→        rutina: 'Siempre incluí: cadence="daily", target=1.',
+   580→        decision: 'Generá 3 factores relevantes (factor1, factor2, factor3) para decidir sobre el título — cada uno como una sugerencia separada.',
+   581→      };
+   582→      const templateRule = templateRules[template] ?? "";
+   583→
+   584→      const systemPrompt = `Sos Koru. El usuario está creando un registro de tipo '${template}' con título '${title}'. Sugerí valores para los campos relevantes. ${templateRule} Respondé en JSON con formato: { suggestions: [{ field: string, label: string, value: string }] }`;
+   585→
+   586→      const messages = [
+   587→        { role: "system" as const, content: systemPrompt },
+   588→        { role: "user" as const, content: `Título: ${title}\nIdioma: ${language}\nGenerá las sugerencias ahora.` },
+   589→      ];
+   590→
+   591→      let suggestions: Array<{ field: string; label: string; value: string }> = [];
+   592→      try {
+   593→        const { callProvider, inferProviderFromModel } = await import("../src/server/koruBackend.ts");
+   594→        const pp = inferProviderFromModel(config.nvidiaModel);
+   595→        // 🔴 Timeout 10s estricto: Promise.race con timeout absoluto.
+   596→        // callProvider internamente también respeta timeoutMs (min con 10s),
+   597→        // pero el race garantiza el techo incluso si hay retries/fallbacks.
+   598→        const result = await Promise.race([
+   599→          callProvider(config, messages, 10_000, false, pp),
+   600→          new Promise<never>((_, reject) =>
+   601→            setTimeout(() => reject(new Error("ai-assist-timeout")), 10_000),
+   602→          ),
+   603→        ]);
+   604→        const content = (result.message as any).content?.trim() ?? "";
+   605→        const jsonMatch = content.match(/\{[\s\S]*\}/);
+   606→        if (jsonMatch) {
+   607→          const parsed = JSON.parse(jsonMatch[0]);
+   608→          if (parsed && Array.isArray(parsed.suggestions)) {
+   609→            suggestions = parsed.suggestions
+   610→              .filter((s: any) => s && typeof s.field === "string" && typeof s.value === "string")
+   611→              .map((s: any) => ({
+   612→                field: String(s.field),
+   613→                label: String(s.label ?? s.field),
+   614→                value: String(s.value),
+   615→              }));
+   616→          }
+   617→        }
+   618→      } catch (llmErr: any) {
+   619→        // Si el LLM falla (timeout, error de red, JSON inválido, etc.),
+   620→        // devolvemos suggestions vacías — el botón simplemente no muestra nada.
+   621→        console.error("[ai-assist] LLM failed:", llmErr?.message);
+   622→      }
+   623→
+   624→      sendJson(res, 200, { suggestions });
+   625→    } catch (err: any) {
+   626→      console.error("[ai-assist] Error:", err?.message);
+   627→      // Error outer: también devolvemos suggestions vacías para no romper el UI.
+   628→      sendJson(res, 200, { suggestions: [] });
+   629→    }
+   630→    return;
+   631→  }
+   632→
+   633→  // ── /koru-audit/log (auditoría QA) ───────────────────────────
+   634→  if (url === "/koru-audit/log" && req.method === "POST") {
+   635→    try {
+   636→      const raw = await readBody(req);
+   637→      const event = JSON.parse(raw || "{}");
+   638→      // Best-effort: append to log file
+   639→      const logDir = join(PROJECT_ROOT, "manual-audits");
+   640→      if (!existsSync(logDir)) {
+   641→        const { mkdirSync } = await import("node:fs");
+   642→        mkdirSync(logDir, { recursive: true });
+   643→      }
+   644→      const { appendFileSync } = await import("node:fs");
+   645→      appendFileSync(join(logDir, "koru-current.jsonl"), JSON.stringify(event) + "\n");
+   646→      sendJson(res, 200, { ok: true });
+   647→    } catch {
+   648→      sendJson(res, 200, { ok: true }); // Best-effort
+   649→    }
+   650→    return;
+   651→  }
+   652→
+   653→  // ── /api/koru/export-pdf — export chat session to real PDF (puppeteer) ──
+   654→  if (url === "/api/koru/export-pdf" && req.method === "POST") {
+   655→    try {
+   656→      const raw = await readBody(req);
+   657→      const body = JSON.parse(raw || "{}");
+   658→      if (!body.turns || !Array.isArray(body.turns)) {
+   659→        sendJson(res, 400, { error: "Falta 'turns' en el payload" });
+   660→        return;
+   661→      }
+   662→      const { buildPdfHtml, renderPdf } = await import("../src/server/pdfExport.ts");
+   663→      const html = buildPdfHtml({
+   664→        title: body.title || "Conversación con Koru",
+   665→        userName: body.userName || "",
+   666→        language: body.language === "en" ? "en" : "es",
+   667→        turns: body.turns,
+   668→        generatedAt: body.generatedAt || new Date().toISOString(),
+   669→        deliverableOnly: !!body.deliverableOnly,
+   670→        blockType: body.blockType,
+   671→      });
+   672→      // 🔴 v2: render to real PDF binary via headless Chromium.
+   673→      // Falls back to HTML if puppeteer fails (e.g. sandbox issue).
+   674→      try {
+   675→        const pdfBuffer = await renderPdf(html, { format: body.format === "Letter" ? "Letter" : "A4" });
+   676→        res.writeHead(200, {
+   677→          "Content-Type": "application/pdf",
+   678→          "Content-Disposition": `attachment; filename="koru-${Date.now()}.pdf"`,
+   679→          "Cache-Control": "no-store",
+   680→          "Content-Length": pdfBuffer.length,
+   681→        });
+   682→        res.end(pdfBuffer);
+   683→      } catch (pdfErr: any) {
+   684→        console.error("[export-pdf] puppeteer failed, returning HTML fallback:", pdfErr?.message);
+   685→        res.writeHead(200, {
+   686→          "Content-Type": "text/html; charset=utf-8",
+   687→          "Cache-Control": "no-store",
+   688→        });
+   689→        res.end(html);
+   690→      }
+   691→    } catch (err: any) {
+   692→      console.error("[export-pdf]", err?.message);
+   693→      sendJson(res, 500, { error: err?.message ?? "Error generando PDF" });
+   694→    }
+   695→    return;
+   696→  }
+   697→
+   698→  // ── /api/koru/export-deliverable — export a SINGLE block as PDF ──
+   699→  // Body: { block: UiBlock, userName?, language?, title? }
+   700→  // Renders just that one deliverable (plan / recipe / comparison / etc.)
+   701→  // without the surrounding chat — much cleaner for sharing.
+   702→  if (url === "/api/koru/export-deliverable" && req.method === "POST") {
+   703→    try {
+   704→      const raw = await readBody(req);
+   705→      const body = JSON.parse(raw || "{}");
+   706→      if (!body.block || typeof body.block !== "object") {
+   707→        sendJson(res, 400, { error: "Falta 'block' en el payload" });
+   708→        return;
+   709→      }
+   710→      const { buildPdfHtml, renderPdf } = await import("../src/server/pdfExport.ts");
+   711→      // Wrap the single block as a "turn" with one item — deliverableOnly mode
+   712→      // will render only the items, ignoring the turn wrapper.
+   713→      const turns = [{
+   714→        role: "koru" as const,
+   715→        text: "",
+   716→        items: [body.block],
+   717→      }];
+   718→      const html = buildPdfHtml({
+   719→        title: body.title || body.block.title || "Informe de Koru",
+   720→        userName: body.userName || "",
+   721→        language: body.language === "en" ? "en" : "es",
+   722→        turns,
+   723→        generatedAt: body.generatedAt || new Date().toISOString(),
+   724→        deliverableOnly: true,
+   725→        blockType: body.block.type,
+   726→      });
+   727→      try {
+   728→        const pdfBuffer = await renderPdf(html);
+   729→        res.writeHead(200, {
+   730→          "Content-Type": "application/pdf",
+   731→          "Content-Disposition": `attachment; filename="koru-deliverable-${Date.now()}.pdf"`,
+   732→          "Cache-Control": "no-store",
+   733→          "Content-Length": pdfBuffer.length,
+   734→        });
+   735→        res.end(pdfBuffer);
+   736→      } catch (pdfErr: any) {
+   737→        console.error("[export-deliverable] puppeteer failed, returning HTML:", pdfErr?.message);
+   738→        res.writeHead(200, {
+   739→          "Content-Type": "text/html; charset=utf-8",
+   740→          "Cache-Control": "no-store",
+   741→        });
+   742→        res.end(html);
+   743→      }
+   744→    } catch (err: any) {
+   745→      console.error("[export-deliverable]", err?.message);
+   746→      sendJson(res, 500, { error: err?.message ?? "Error generando PDF del deliverable" });
+   747→    }
+   748→    return;
+   749→  }
+   750→
+   751→  // ── /api/integrations/google-calendar/callback ───────────────────
+   752→  // OAuth redirect URI. Google redirige acá con ?code=XXX tras el consent.
+   753→  // 1. exchangeCodeForToken(code) → access_token + refresh_token.
+   754→  // 2. Persiste tokens en koru-integrations.json + actualiza in-memory cache.
+   755→  // 3. Devuelve HTML que escribe `googleCalendar: "connected"` en localStorage
+   756→  //    (mismo origen → el popup comparte localStorage con la app) y luego
+   757→  //    cierra la pestaña con window.close().
+   758→  // El frontend (SettingsScreen) está polleando localStorage cada 2s y
+   759→  // actualiza el badge a "Conectado ✓" cuando ve el flag.
+   760→  if (url.startsWith("/api/integrations/google-calendar/callback") && req.method === "GET") {
+   761→    try {
+   762→      const parsedUrl = new URL(url, "http://localhost");
+   763→      const code = parsedUrl.searchParams.get("code");
+   764→      const oauthError = parsedUrl.searchParams.get("error");
+   765→
+   766→      // Google puede mandar ?error=access_denied si el usuario cancela.
+   767→      if (oauthError) {
+   768→        const errHtml = `<!doctype html><html lang="es"><body style="font-family:system-ui;padding:24px">
+   769→<p>No se conectó Google Calendar: ${oauthError}</p>
+   770→<script>window.close();</script>
+   771→</body></html>`;
+   772→        sendHtml(res, 400, errHtml);
+   773→        return;
+   774→      }
+   775→      if (!code) {
+   776→        const errHtml = `<!doctype html><html lang="es"><body style="font-family:system-ui;padding:24px">
+   777→<p>Falta el parámetro <code>code</code> en el callback de OAuth.</p>
+   778→<script>window.close();</script>
+   779→</body></html>`;
+   780→        sendHtml(res, 400, errHtml);
+   781→        return;
+   782→      }
+   783→
+   784→      // Intercambio single-use: si falla la red a mitad de camino NO hay
+   785→      // retry (exchangeCodeForToken ya tiene retries:0).
+   786→      const tokens = await exchangeCodeForToken(code);
+   787→
+   788→      // Persistir tokens en disco + in-memory cache.
+   789→      integrationsCache.googleCalendar = {
+   790→        connected: true,
+   791→        accessToken: tokens.access_token,
+   792→        refreshToken: tokens.refresh_token,
+   793→        connectedAt: new Date().toISOString(),
+   794→      };
+   795→      persistIntegrations();
+   796→
+   797→      // HTML que escribe el flag en localStorage y cierra el popup.
+   798→      // El popup está en el mismo origen que la app (la redirect URI es
+   799→      // nuestro propio server), así que comparten localStorage.
+   800→      const okHtml = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Google Calendar conectado</title></head>
+   801→<body style="font-family:system-ui;padding:24px;text-align:center">
+   802→<p>Google Calendar conectado. Podés cerrar esta pestaña.</p>
+   803→<script>
+   804→try {
+   805→  var raw = localStorage.getItem('koru.integrations');
+   806→  var parsed = raw ? JSON.parse(raw) : {};
+   807→  parsed.googleCalendar = 'connected';
+   808→  localStorage.setItem('koru.integrations', JSON.stringify(parsed));
+   809→} catch (e) { /* noop */ }
+   810→window.close();
+   811→</script>
+   812→</body></html>`;
+   813→      sendHtml(res, 200, okHtml);
+   814→    } catch (err: any) {
+   815→      console.error("[google-calendar/callback]", err?.message);
+   816→      const errHtml = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Error</title></head>
+   817→<body style="font-family:system-ui;padding:24px;text-align:center">
+   818→<p>No se pudo conectar Google Calendar: ${escapeHtml(err?.message ?? "Error desconocido")}</p>
+   819→<script>window.close();</script>
+   820→</body></html>`;
+   821→      sendHtml(res, 500, errHtml);
+   822→    }
+   823→    return;
+   824→  }
+   825→
+   826→  // ── /api/integrations/google-calendar/status ─────────────────────
+   827→  // Devuelve { connected: boolean, connectedAt?: string } basado en el
+   828→  // cache en memoria. Es el source-of-truth server-side — el frontend
+   829→  // puede consultarlo como fallback del flag en localStorage.
+   830→  if (url.startsWith("/api/integrations/google-calendar/status") && req.method === "GET") {
+   831→    const gc = integrationsCache.googleCalendar;
+   832→    sendJson(res, 200, {
+   833→      connected: !!gc?.connected,
+   834→      connectedAt: gc?.connectedAt,
+   835→    });
+   836→    return;
+   837→  }
+   838→
+   839→  // ── Static files (serve dist/ with in-memory cache) ──────────
+   840→  if (req.method === "GET") {
+   841→    const distDir = join(PROJECT_ROOT, "dist");
+   842→    let filePath = join(distDir, url === "/" ? "index.html" : url);
+   843→    // Security: prevent path traversal
+   844→    if (!filePath.startsWith(distDir)) {
+   845→      sendJson(res, 403, { error: "Forbidden" });
+   846→      return;
+   847→    }
+   848→    // Check if file exists and is directory
+   849→    try {
+   850→      const { statSync } = await import("node:fs");
+   851→      const s = statSync(filePath);
+   852→      if (s.isDirectory()) filePath = join(filePath, "index.html");
+   853→    } catch {
+   854→      // File not found → SPA fallback to index.html
+   855→      filePath = join(distDir, "index.html");
+   856→    }
+   857→    // Use cache
+   858→    const cached = getStaticFile(filePath);
+   859→    if (cached) {
+   860→      res.writeHead(200, { "Content-Type": cached.contentType, "Cache-Control": "no-cache" });
+   861→      res.end(cached.data);
+   862→      return;
+   863→    }
+   864→    // File doesn't exist
+   865→    sendJson(res, 404, { error: "Not found" });
+   866→    return;
+   867→  }
+   868→
+   869→  // ── 404 ───────────────────────────────────────────────────────
+   870→  sendJson(res, 404, { error: "Not found", url });
+   871→});
+   872→
+   873→// ── Cache static files in memory (avoid disk I/O on every request) ──
+   874→const staticCache = new Map<string, { data: Buffer; contentType: string }>();
+   875→const STATIC_DIR = join(PROJECT_ROOT, "dist");
+   876→
+   877→function getStaticFile(filePath: string): { data: Buffer; contentType: string } | null {
+   878→  if (staticCache.has(filePath)) return staticCache.get(filePath)!;
+   879→  try {
+   880→    const data = readFileSync(filePath);
+   881→    const ext = filePath.endsWith(".html") ? "text/html"
+   882→      : filePath.endsWith(".js") ? "application/javascript"
+   883→      : filePath.endsWith(".css") ? "text/css"
+   884→      : filePath.endsWith(".png") ? "image/png"
+   885→      : filePath.endsWith(".jpg") || filePath.endsWith(".jpeg") ? "image/jpeg"
+   886→      : filePath.endsWith(".svg") ? "image/svg+xml"
+   887→      : filePath.endsWith(".json") ? "application/json"
+   888→      : filePath.endsWith(".woff") ? "font/woff"
+   889→      : filePath.endsWith(".woff2") ? "font/woff2"
+   890→      : filePath.endsWith(".mp4") ? "video/mp4"
+   891→      : filePath.endsWith(".webm") ? "video/webm"
+   892→      : filePath.endsWith(".webp") ? "image/webp"
+   893→      : filePath.endsWith(".gif") ? "image/gif"
+   894→      : filePath.endsWith(".ico") ? "image/x-icon"
+   895→      : "application/octet-stream";
+   896→    const entry = { data, contentType: ext };
+   897→    // Limit cache to 50 files to avoid memory bloat — but NOT for videos (too big)
+   898→    if (staticCache.size < 50 && data.length < 5_000_000) staticCache.set(filePath, entry);
+   899→    return entry;
+   900→  } catch {
+   901→    return null;
+   902→  }
+   903→}
+   904→
+   905→// ── Graceful shutdown ──
+   906→function shutdown(signal: string) {
+   907→  console.log(`[Koru] ${signal} received, shutting down...`);
+   908→  server.close(() => {
+   909→    console.log("[Koru] Server closed.");
+   910→    process.exit(0);
+   911→  });
+   912→  // Force exit after 5s if connections don't close
+   913→  setTimeout(() => process.exit(1), 5000).unref();
+   914→}
+   915→process.on("SIGTERM", () => shutdown("SIGTERM"));
+   916→process.on("SIGINT", () => shutdown("SIGINT"));
+   917→
+   918→// ── Catch uncaught errors (don't crash) ──
+   919→process.on("uncaughtException", (err) => {
+   920→  console.error("[Koru] Uncaught exception:", err.message);
+   921→});
+   922→process.on("unhandledRejection", (err) => {
+   923→  console.error("[Koru] Unhandled rejection:", err);
+   924→});
+   925→
+   926→// ── Memory monitoring (log if getting close to limit) ──
+   927→setInterval(() => {
+   928→  const used = process.memoryUsage().heapUsed / 1024 / 1024;
+   929→  if (used > 400) {
+   930→    console.warn(`[Koru] Memory warning: ${Math.round(used)}MB heap used`);
+   931→  }
+   932→}, 60000);
+   933→
+   934→server.listen(PORT, "0.0.0.0", () => {
+   935→  console.log(`[Koru] Running on http://localhost:${PORT}`);
+   936→  console.log(`[Koru] Provider: ${config.nvidiaApiKey ? "nvidia" : "none"}`);
+   937→  console.log(`[Koru] Model: ${config.nvidiaModel}`);
+   938→  console.log(`[Koru] Memory limit: ${Math.round(process.memoryUsage().heapTotal / 1024 / 1024)}MB`);
+   939→});
+   940→

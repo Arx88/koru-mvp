@@ -20,10 +20,15 @@ import {
   Landmark,
   Bitcoin,
   AlertTriangle,
+  Pencil,
+  Save,
+  History,
+  RotateCcw,
 } from "lucide-react";
 import type {
   HeartbeatSettings,
   KoruState,
+  MemoryEditHistoryEntry,
   MemoryFact,
   MemoryKind,
   Person,
@@ -52,6 +57,10 @@ export interface SettingsScreenProps {
   onToggleWorldSignals: () => void;
   onToggleActionPreparation: () => void;
   onForgetMemory: (memoryId: string) => void;
+  // 🔴 P2 — Memory edit. Al guardar el textarea inline, el parent invoca
+  // editMemory(memoryId, newText) que despacha updateMemoryText (el cual a
+  // su vez pushea el valor anterior a editHistory).
+  onEditMemory?: (memoryId: string, newText: string) => void;
   onExportData: () => void;
   onDeleteAllData: () => void;
   onClose: () => void;
@@ -1423,6 +1432,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
                           key={m.id}
                           memory={m}
                           onForget={() => props.onForgetMemory(m.id)}
+                          onEdit={(newText) => props.onEditMemory?.(m.id, newText)}
                         />
                       ))}
                     </div>
@@ -1642,15 +1652,160 @@ function IntegrationRow({
   );
 }
 
+function formatTimestamp(iso: string): string {
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleString("es-ES", { dateStyle: "medium", timeStyle: "short" });
+  } catch {
+    return iso;
+  }
+}
+
+/**
+ * 🔴 P2 — Render de una entrada de editHistory como timeline.
+ * Muestra timestamp, campo cambiado y diff before → after con tachado para
+ * el valor viejo y verde para el nuevo.
+ */
+function HistoryEntryRow({
+  entry,
+  onRevert,
+}: {
+  entry: MemoryEditHistoryEntry;
+  onRevert: () => void;
+}) {
+  return (
+    <div
+      style={{
+        position: "relative",
+        padding: "8px 10px 10px 22px",
+        marginBottom: 6,
+        borderRadius: 10,
+        background: "rgba(255,255,255,0.55)",
+        border: "1px solid rgba(129, 39, 207, 0.06)",
+        fontSize: 12,
+      }}
+    >
+      {/* Timeline dot */}
+      <span
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          left: 8,
+          top: 12,
+          width: 8,
+          height: 8,
+          borderRadius: 999,
+          background: "#8127cf",
+          boxShadow: "0 0 0 3px rgba(129, 39, 207, 0.15)",
+        }}
+      />
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center" }}>
+        <span style={{ color: "#94a3b8", fontSize: 11 }}>{formatTimestamp(entry.timestamp)}</span>
+        <span
+          style={{
+            padding: "1px 6px",
+            borderRadius: 6,
+            background: "#ede9fe",
+            color: "#7c3aed",
+            fontSize: 10,
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: 0.4,
+          }}
+        >
+          {entry.field}
+        </span>
+      </div>
+      <div style={{ marginTop: 6, lineHeight: 1.45 }}>
+        <div
+          style={{
+            color: "#b91c1c",
+            textDecoration: "line-through",
+            textDecorationColor: "rgba(185, 28, 28, 0.55)",
+            wordBreak: "break-word",
+          }}
+        >
+          {entry.before}
+        </div>
+        <div style={{ color: "#64748b", fontSize: 10, margin: "2px 0" }}>→</div>
+        <div style={{ color: "#15803d", fontWeight: 600, wordBreak: "break-word" }}>
+          {entry.after}
+        </div>
+      </div>
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "flex-end" }}>
+        <button
+          type="button"
+          onClick={onRevert}
+          aria-label="Revertir a versión anterior"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+            padding: "4px 8px",
+            borderRadius: 8,
+            border: "1px solid #c4b5fd",
+            background: "rgba(255,255,255,0.75)",
+            color: "#7c3aed",
+            fontSize: 11,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          <RotateCcw size={11} /> Revertir
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function MemoryRow({
   memory,
   onForget,
+  onEdit,
 }: {
   memory: MemoryFact;
   onForget: () => void;
+  onEdit?: (newText: string) => void;
 }) {
   const isSensitive = memory.sensitivity === "sensitive";
   const confidencePct = Math.round((memory.confidence ?? 0) * 100);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(memory.text);
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  // Si la memoria cambia externamente mientras no estamos editando, sync del draft.
+  useEffect(() => {
+    if (!editing) setDraft(memory.text);
+  }, [memory.text, editing]);
+
+  const history = memory.editHistory ?? [];
+  const hasHistory = history.length > 0;
+
+  function handleSaveEdit() {
+    const cleaned = draft.trim();
+    if (!cleaned || cleaned === memory.text) {
+      setEditing(false);
+      setDraft(memory.text);
+      return;
+    }
+    onEdit?.(cleaned);
+    setEditing(false);
+  }
+
+  function handleCancelEdit() {
+    setDraft(memory.text);
+    setEditing(false);
+  }
+
+  function handleRevertTo(previousText: string) {
+    // Revertir dispara updateMemoryText → el valor actual se pushea a
+    // editHistory automáticamente, preservando el trail.
+    onEdit?.(previousText);
+    setEditing(false);
+    setDraft(previousText);
+  }
+
   return (
     <div
       style={{
@@ -1662,9 +1817,32 @@ function MemoryRow({
     >
       <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
         <div style={{ flex: "1 1 auto", minWidth: 0 }}>
-          <p style={{ margin: 0, fontSize: 13, color: "#0b1c30", lineHeight: 1.4 }}>
-            {truncate(memory.text, 110)}
-          </p>
+          {editing ? (
+            <textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              autoFocus
+              rows={3}
+              aria-label="Editar texto de memoria"
+              style={{
+                width: "100%",
+                padding: "8px 10px",
+                borderRadius: 10,
+                border: "1px solid #c4b5fd",
+                background: "#ffffff",
+                fontSize: 13,
+                lineHeight: 1.4,
+                color: "#0b1c30",
+                outline: "none",
+                resize: "vertical",
+                fontFamily: "inherit",
+              }}
+            />
+          ) : (
+            <p style={{ margin: 0, fontSize: 13, color: "#0b1c30", lineHeight: 1.4 }}>
+              {truncate(memory.text, 110)}
+            </p>
+          )}
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6, marginTop: 6 }}>
             <span
               style={{
@@ -1712,28 +1890,177 @@ function MemoryRow({
             )}
           </div>
         </div>
-        <button
-          type="button"
-          onClick={onForget}
-          aria-label={`Olvidar memoria: ${truncate(memory.text, 40)}`}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 4,
-            padding: "6px 10px",
-            borderRadius: 8,
-            border: "1px solid #fecaca",
-            background: "#fef2f2",
-            color: "#b91c1c",
-            fontSize: 12,
-            fontWeight: 600,
-            cursor: "pointer",
-            flexShrink: 0,
-          }}
-        >
-          <CloudOff size={12} /> Olvidar
-        </button>
+
+        {/* Action buttons */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, flexShrink: 0 }}>
+          {editing ? (
+            <>
+              <button
+                type="button"
+                onClick={handleSaveEdit}
+                aria-label="Guardar edición"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: "6px 10px",
+                  borderRadius: 8,
+                  border: "1px solid #15803d",
+                  background: "#dcfce7",
+                  color: "#15803d",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                <Save size={12} /> Guardar
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                aria-label="Cancelar edición"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: "6px 10px",
+                  borderRadius: 8,
+                  border: "1px solid #e2d4f5",
+                  background: "rgba(255,255,255,0.7)",
+                  color: "#64748b",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Cancelar
+              </button>
+            </>
+          ) : (
+            <>
+              {onEdit && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDraft(memory.text);
+                    setEditing(true);
+                  }}
+                  aria-label={`Editar memoria: ${truncate(memory.text, 40)}`}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: "6px 10px",
+                    borderRadius: 8,
+                    border: "1px solid #c4b5fd",
+                    background: "#f5f3ff",
+                    color: "#7c3aed",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  <Pencil size={12} /> Editar
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={onForget}
+                aria-label={`Olvidar memoria: ${truncate(memory.text, 40)}`}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: "6px 10px",
+                  borderRadius: 8,
+                  border: "1px solid #fecaca",
+                  background: "#fef2f2",
+                  color: "#b91c1c",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                <CloudOff size={12} /> Olvidar
+              </button>
+            </>
+          )}
+        </div>
       </div>
+
+      {/* 🔴 P2 — Historial expandible */}
+      {hasHistory && (
+        <div style={{ marginTop: 8 }}>
+          <button
+            type="button"
+            onClick={() => setHistoryOpen((v) => !v)}
+            aria-expanded={historyOpen}
+            aria-label={`${historyOpen ? "Contraer" : "Expandir"} historial de ediciones`}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "5px 10px",
+              borderRadius: 8,
+              border: "1px solid rgba(129, 39, 207, 0.18)",
+              background: "rgba(255,255,255,0.7)",
+              color: "#6d28d9",
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            <History size={12} />
+            Historial
+            <span
+              style={{
+                padding: "1px 6px",
+                borderRadius: 999,
+                background: "#ede9fe",
+                color: "#7c3aed",
+                fontSize: 10,
+                fontWeight: 700,
+              }}
+            >
+              {history.length}
+            </span>
+            <ChevronDown
+              size={12}
+              style={{
+                transition: "transform 200ms ease",
+                transform: historyOpen ? "rotate(180deg)" : "rotate(0deg)",
+              }}
+            />
+          </button>
+          {historyOpen && (
+            <div style={{ marginTop: 8, position: "relative", paddingLeft: 4 }}>
+              {/* Timeline vertical line */}
+              <span
+                aria-hidden="true"
+                style={{
+                  position: "absolute",
+                  left: 11,
+                  top: 8,
+                  bottom: 8,
+                  width: 2,
+                  background: "rgba(129, 39, 207, 0.15)",
+                  borderRadius: 1,
+                }}
+              />
+              {history
+                .slice()
+                .reverse()
+                .map((entry, idx) => (
+                  <HistoryEntryRow
+                    key={`${entry.timestamp}-${idx}`}
+                    entry={entry}
+                    onRevert={() => handleRevertTo(entry.before)}
+                  />
+                ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

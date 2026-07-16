@@ -4876,6 +4876,127 @@ a.koru-dsec-source:hover {
 .koru-create-back:active, .koru-create-close:active { transform: scale(0.95); }
 .koru-create-back .material-symbols-outlined, .koru-create-close .material-symbols-outlined { font-size: 20px; }
 
+/* 🔴 Paperclip button — mismo patrón que back/close pero con badge contador */
+.koru-create-attach-btn {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(255, 255, 255, 0.5);
+  color: #523a9e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-right: 4px;
+}
+.koru-create-attach-btn:active { transform: scale(0.95); }
+.koru-create-attach-btn .material-symbols-outlined { font-size: 20px; }
+.koru-create-attach-count {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #8363f9;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(131, 99, 249, 0.4);
+}
+
+/* 🔴 Attachment chips — fila de chips con thumb/ícono + name/size + remove */
+.koru-create-attach-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.koru-create-attach-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(131, 99, 249, 0.08);
+  border: 1px solid rgba(131, 99, 249, 0.2);
+  border-radius: 12px;
+  padding: 6px 8px 6px 6px;
+  max-width: 100%;
+  min-width: 0;
+}
+.koru-create-attach-thumb {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.05);
+}
+.koru-create-attach-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(131, 99, 249, 0.15);
+  color: #523a9e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.koru-create-attach-icon .material-symbols-outlined { font-size: 20px; }
+.koru-create-attach-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 auto;
+  max-width: 140px;
+}
+.koru-create-attach-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #382b8c;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.koru-create-attach-size {
+  font-size: 10px;
+  color: #7a6ba8;
+  font-weight: 500;
+}
+.koru-create-attach-remove {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(120, 80, 200, 0.12);
+  color: #523a9e;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.koru-create-attach-remove:hover { background: rgba(239, 68, 68, 0.18); color: #dc2626; }
+.koru-create-attach-remove:active { transform: scale(0.9); }
+.koru-create-attach-remove .material-symbols-outlined { font-size: 16px; }
+
+/* 🔴 Hint bajo el campo Carpeta */
+.koru-create-field-hint {
+  display: block;
+  font-size: 11px;
+  color: #7a6ba8;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
 .koru-create-title {
   font-size: 17px;
   font-weight: 700;
@@ -5409,6 +5530,146 @@ a.koru-dsec-source:hover {
 .koru-collection-icon-tile .material-symbols-outlined {
   font-size: 22px;
   color: #ffffff;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   🔴 Folders v4 — breadcrumb navegable + sub-folder cards
+   ═══════════════════════════════════════════════════════════════════════════ */
+.koru-collection-breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin: 0 20px 12px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(131, 99, 249, 0.15);
+  border-radius: 12px;
+  font-size: 13px;
+  color: #382b8c;
+}
+.koru-collection-breadcrumb-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 8px;
+  color: #523a9e;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  max-width: 160px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.koru-collection-breadcrumb-item:hover { background: rgba(131, 99, 249, 0.12); }
+.koru-collection-breadcrumb-item[aria-current="page"] {
+  color: #382b8c;
+  background: rgba(131, 99, 249, 0.16);
+  cursor: default;
+}
+.koru-collection-breadcrumb-icon .material-symbols-outlined { font-size: 16px; }
+.koru-collection-breadcrumb-sep {
+  color: #9b8aca;
+  font-weight: 700;
+  margin: 0 2px;
+  user-select: none;
+}
+.koru-collection-breadcrumb-new {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(131, 99, 249, 0.12);
+  border: 1px dashed rgba(131, 99, 249, 0.35);
+  padding: 4px 10px;
+  border-radius: 8px;
+  color: #523a9e;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.koru-collection-breadcrumb-new:hover {
+  background: rgba(131, 99, 249, 0.2);
+  border-color: rgba(131, 99, 249, 0.5);
+}
+.koru-collection-breadcrumb-new .material-symbols-outlined { font-size: 16px; }
+
+/* Sub-folder cards grid */
+.koru-collection-subfolder-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  padding: 4px 4px 8px;
+}
+.koru-collection-subfolder-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(131, 99, 249, 0.18);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+  min-width: 0;
+}
+.koru-collection-subfolder-card:hover {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(131, 99, 249, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(131, 99, 249, 0.15);
+}
+.koru-collection-subfolder-card:active { transform: scale(0.98); }
+.koru-collection-subfolder-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #8363f9 0%, #a78bfa 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.koru-collection-subfolder-icon .material-symbols-outlined { font-size: 20px; }
+.koru-collection-subfolder-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.koru-collection-subfolder-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #382b8c;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.koru-collection-subfolder-count {
+  font-size: 11px;
+  color: #7a6ba8;
+  font-weight: 500;
+}
+.koru-collection-subfolder-arrow {
+  color: #9b8aca;
+  flex-shrink: 0;
+}
+.koru-collection-subfolder-arrow .material-symbols-outlined { font-size: 20px; }
+
+@media (max-width: 380px) {
+  .koru-collection-subfolder-grid {
+    grid-template-columns: 1fr;
+  }
+  .koru-collection-breadcrumb-new span { display: none; }
+  .koru-collection-breadcrumb-new { padding: 4px 8px; }
 }
 
 /* 🔴 FIX v3 #2: sticky search bar */
@@ -6452,6 +6713,42 @@ a.koru-dsec-source:hover {
   border-top: 1px solid rgba(131, 99, 249, 0.12);
   box-shadow: 0 -8px 24px rgba(18, 10, 50, 0.06);
   z-index: 50;
+}
+
+/* 🔴 P2 — Toast "Abriendo navegación..." para el botón Navegar de route_map.
+   Reutiliza la animación koru-save-rise definida arriba (mismo feel que el
+   modal Save). Posición fixed arriba-centro, sobre todo el resto del detalle. */
+.koru-nav-toast {
+  position: fixed;
+  top: max(16px, env(safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 400;
+  cursor: pointer;
+  animation: koru-save-rise 0.35s ease-out;
+  max-width: calc(100vw - 32px);
+}
+.koru-nav-toast-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
+  color: #fff;
+  border-radius: 999px;
+  box-shadow: 0 12px 32px rgba(99, 102, 241, 0.45);
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.koru-nav-toast-icon {
+  font-size: 18px !important;
+  animation: koru-spin 1.2s linear infinite;
+}
+.koru-nav-toast-text {
+  font-family: "Bricolage Grotesque", "Plus Jakarta Sans", sans-serif;
 }
 
 /* Sources con favicon */

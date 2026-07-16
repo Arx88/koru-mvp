@@ -297,18 +297,76 @@ export function updateMemoryText(state: KoruState, id: string, text: string): Ko
   const now = nowIso();
   const next = {
     ...state,
-    memories: state.memories.map((memory) =>
-      memory.id === id
-        ? {
-            ...memory,
-            text: cleanText,
-            confidence: Math.max(memory.confidence, 0.92),
-            updatedAt: now,
-          }
-        : memory,
-    ),
+    memories: state.memories.map((memory) => {
+      if (memory.id !== id) return memory;
+      // 🔴 P2 — push prior text to editHistory BEFORE mutating. Sólo si el
+      // texto realmente cambió (evita entradas duplicadas al revertir al
+      // mismo valor, etc.).
+      const priorText = memory.text;
+      const editHistory =
+        priorText === cleanText
+          ? memory.editHistory
+          : [
+              ...(memory.editHistory ?? []),
+              {
+                timestamp: now,
+                field: "text" as const,
+                before: priorText,
+                after: cleanText,
+              },
+            ];
+      return {
+        ...memory,
+        text: cleanText,
+        confidence: Math.max(memory.confidence, 0.92),
+        updatedAt: now,
+        editHistory,
+      };
+    }),
     updatedAt: now,
   };
+  saveState(next);
+  return next;
+}
+
+/**
+ * 🔴 P2 — Memory conflict resolution.
+ * Marca `keepId` como confirmed (subiendo confidence) y `supersedeId` como
+ * superseded. Lo invoca MemoryConflictResolver desde KoruProvider cuando el
+ * usuario elige cuál de dos memorias contradictorias conservar.
+ */
+export function resolveMemoryConflict(
+  state: KoruState,
+  keepId: string,
+  supersedeId: string,
+): KoruState {
+  if (keepId === supersedeId) return state;
+  const now = nowIso();
+  const next = {
+    ...state,
+    memories: state.memories.map((memory) => {
+      if (memory.id === keepId) {
+        return {
+          ...memory,
+          status: "confirmed" as const,
+          confidence: Math.max(memory.confidence, 0.9),
+          confirmedAt: now,
+          updatedAt: now,
+          useForSuggestions: memory.useForSuggestions ?? memory.sensitivity === "normal",
+        };
+      }
+      if (memory.id === supersedeId) {
+        return {
+          ...memory,
+          status: "superseded" as const,
+          updatedAt: now,
+        };
+      }
+      return memory;
+    }),
+    updatedAt: now,
+  };
+  next.stage = stageFor(next);
   saveState(next);
   return next;
 }

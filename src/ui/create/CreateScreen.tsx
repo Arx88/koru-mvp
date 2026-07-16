@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useKoru } from "../KoruProvider";
 import type {
@@ -12,8 +12,13 @@ import type {
   DecisionFactor,
   KoruState,
   PlanStep,
+  Attachment,
 } from "../../domain/types";
 import { computeDecision } from "../../domain/decisionEngine";
+import {
+  saveAttachmentBlob,
+  deleteAttachmentBlob,
+} from "../../domain/attachments";
 
 // 🔴 CreateScreen v2 — entrada para que el usuario cree contenido estructurado
 // SIN tener que pedirselo a Koru via chat. Plantillas: nota, lista, gasto,
@@ -93,6 +98,12 @@ export type AiAssistResult = { suggestions: AiSuggestion[] };
 type Props = {
   onClose: () => void;
   onAiAssist?: (template: Template, title: string) => Promise<AiAssistResult | void> | AiAssistResult | void;
+  /**
+   * Carpeta inicial (path completo slash-delimited, ej: "Trabajo/ACME/Ideas").
+   * Se usa cuando CreateScreen se abre desde una carpeta concreta en
+   * CollectionsScreen — el campo "Carpeta" arranca pre-llenado con este path.
+   */
+  initialCollection?: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -180,7 +191,7 @@ const MEMORIA_KINDS: { value: MemoriaKind; label: string }[] = [
   { value: "task", label: "Tarea" },
 ];
 
-export function CreateScreen({ onClose, onAiAssist }: Props) {
+export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) {
   const {
     createRecord,
     state,
@@ -265,6 +276,25 @@ export function CreateScreen({ onClose, onAiAssist }: Props) {
   // Smart defaults
   const [lastUsedCollection, setLastUsedCollection] = useState<string | null>(null);
 
+  // 🔴 Attachments — paperclip en el header abre el picker; los archivos se
+  // guardan como Blob en IndexedDB (attachments.ts) y se referencian desde
+  // el LifeRecord via el campo `attachments`. Las thumbnails para imágenes
+  // se generan on-the-fly con URL.createObjectURL; el resto muestra un
+  // ícono según mimeType.
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [attachmentThumbs, setAttachmentThumbs] = useState<Record<string, string>>({});
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const attachmentUrlMapRef = useRef<Map<string, string>>(new Map());
+
+  // Limpieza al desmontar: revoca todos los object URLs creados para thumbs.
+  useEffect(() => {
+    const map = attachmentUrlMapRef.current;
+    return () => {
+      for (const url of map.values()) URL.revokeObjectURL(url);
+      map.clear();
+    };
+  }, []);
+
   // Tags existentes en el state (para autocomplete)
   const existingTags = useMemo(() => {
     const set = new Set<string>();
@@ -298,6 +328,103 @@ export function CreateScreen({ onClose, onAiAssist }: Props) {
     setShowPreview(false);
     setAiSuggestions([]);
     setLastUsedCollection(null);
+    // 🔴 Attachments: tras un save exitoso, los blobs ya quedaron referenciados
+    // por el LifeRecord. Sólo limpiamos el estado UI (chips + thumbs) sin
+    // borrar blobs de IndexedDB — los blobs son ahora propiedad del record.
+    clearAttachmentState();
+  }
+
+  // 🔴 Limpia solo el estado UI de attachments (chips + object URLs).
+  // NO toca los blobs en IndexedDB. Se usa tras un save exitoso.
+  function clearAttachmentState() {
+    const map = attachmentUrlMapRef.current;
+    for (const url of map.values()) URL.revokeObjectURL(url);
+    map.clear();
+    setAttachmentThumbs({});
+    setAttachments([]);
+  }
+
+  // 🔴 Attachments helpers — manejan el ciclo de vida del blob en IndexedDB
+  // + el object URL local para thumbnails. discardAllAttachments se invoca
+  // al cerrar el form sin guardar, para no dejar blobs huérfanos.
+  function discardAllAttachments() {
+    const map = attachmentUrlMapRef.current;
+    for (const url of map.values()) URL.revokeObjectURL(url);
+    map.clear();
+    setAttachmentThumbs({});
+    const pending = attachments;
+    setAttachments([]);
+    // best-effort: borrar blobs ya persistidos para attachments descartados
+    for (const a of pending) {
+      deleteAttachmentBlob(a.id).catch(() => {});
+    }
+  }
+
+  async function handleFilesSelected(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    const next: Attachment[] = [];
+    const nextThumbs: Record<string, string> = {};
+    for (const file of Array.from(files)) {
+      const id = genId("att");
+      const att: Attachment = {
+        id,
+        name: file.name,
+        mimeType: file.type || "application/octet-stream",
+        sizeBytes: file.size,
+        blobKey: `attachment_${id}`,
+      };
+      try {
+        await saveAttachmentBlob(id, file);
+      } catch {
+        // best-effort — si falla IDB (private mode), aún mostramos el chip
+        // pero el blob no persistirá. El usuario puede quitarlo con X.
+      }
+      // Thumbnail si es imagen — creamos object URL local (no se persiste).
+      if (file.type.startsWith("image/")) {
+        const url = URL.createObjectURL(file);
+        attachmentUrlMapRef.current.set(id, url);
+        nextThumbs[id] = url;
+      }
+      next.push(att);
+    }
+    setAttachments(prev => [...prev, ...next]);
+    setAttachmentThumbs(prev => ({ ...prev, ...nextThumbs }));
+    // Reset del input para permitir volver a elegir el mismo archivo.
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  async function removeAttachment(id: string) {
+    // Revocar el object URL local si existe.
+    const map = attachmentUrlMapRef.current;
+    const url = map.get(id);
+    if (url) {
+      URL.revokeObjectURL(url);
+      map.delete(id);
+    }
+    setAttachments(prev => prev.filter(a => a.id !== id));
+    setAttachmentThumbs(prev => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    // best-effort: borrar el blob de IndexedDB.
+    deleteAttachmentBlob(id).catch(() => {});
+  }
+
+  function attachmentIcon(mimeType: string): string {
+    if (mimeType.startsWith("image/")) return "image";
+    if (mimeType.startsWith("audio/")) return "audio_file";
+    if (mimeType.startsWith("video/")) return "video_file";
+    if (mimeType === "application/pdf") return "picture_as_pdf";
+    if (mimeType.includes("zip") || mimeType.includes("compressed")) return "folder_zip";
+    if (mimeType.startsWith("text/")) return "description";
+    return "attach_file";
+  }
+
+  function formatBytes(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
   function selectTemplate(tpl: Template) {
@@ -307,7 +434,14 @@ export function CreateScreen({ onClose, onAiAssist }: Props) {
       try { return localStorage.getItem(`koru.create.lastCollection.${tpl}`); } catch { return null; }
     })();
     setLastUsedCollection(last);
-    setCollection(last ?? TEMPLATES.find(t => t.id === tpl)!.collection);
+    // 🔴 Folders: si el padre nos pasó initialCollection (path completo
+    // slash-delimitado, ej: "Trabajo/ACME"), lo usamos como default. Sino,
+    // caemos al último usado por template o al default del template.
+    if (initialCollection && initialCollection.trim()) {
+      setCollection(initialCollection.trim());
+    } else {
+      setCollection(last ?? TEMPLATES.find(t => t.id === tpl)!.collection);
+    }
     setAiSuggestions([]);
   }
 
@@ -353,6 +487,7 @@ export function CreateScreen({ onClose, onAiAssist }: Props) {
     sourceBlock?: UiBlock;
   }) {
     const finalTags = tags.length > 0 ? tags : undefined;
+    const finalAttachments = attachments.length > 0 ? attachments : undefined;
     setSaving(true);
     try {
       await createRecord({
@@ -363,6 +498,7 @@ export function CreateScreen({ onClose, onAiAssist }: Props) {
         kind: args.kind,
         tags: finalTags,
         sourceBlock: args.sourceBlock,
+        attachments: finalAttachments,
       });
     } finally {
       setSaving(false);
@@ -873,12 +1009,43 @@ export function CreateScreen({ onClose, onAiAssist }: Props) {
 
   const currentTpl = selected ? TEMPLATES.find(t => t.id === selected) : null;
 
+  // 🔴 Attachments: al cerrar el modal sin guardar, descartamos los blobs
+  // pendientes en IndexedDB (no quedaron referenciados por ningún record).
+  function handleClose() {
+    if (attachments.length > 0) {
+      discardAllAttachments();
+    }
+    onClose();
+  }
+
+  // 🔴 Volver del template al selector también descarta attachments pendientes
+  // (el usuario canceló este template sin guardar).
+  function handleBackToTemplates() {
+    if (attachments.length > 0) {
+      discardAllAttachments();
+    }
+    setSelected(null);
+  }
+
   return createPortal(
     <div className="koru-create-overlay" role="dialog" aria-label="Crear">
       <div className="koru-create-screen">
+        {/* 🔴 Hidden file input — abierto por el paperclip del header.
+            multiple + sin accept para permitir cualquier tipo de archivo. */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          style={{ display: "none" }}
+          onChange={(e) => {
+            handleFilesSelected(e.target.files);
+          }}
+          aria-hidden="true"
+          tabIndex={-1}
+        />
         <div className="koru-create-header">
           {selected ? (
-            <button type="button" aria-label="Volver" className="koru-create-back" onClick={() => setSelected(null)}>
+            <button type="button" aria-label="Volver" className="koru-create-back" onClick={handleBackToTemplates}>
               <Mat>arrow_back_ios_new</Mat>
             </button>
           ) : (
@@ -887,7 +1054,23 @@ export function CreateScreen({ onClose, onAiAssist }: Props) {
           <h1 className="koru-create-title">
             {selected ? TEMPLATES.find(t => t.id === selected)!.label : "¿Qué querés crear?"}
           </h1>
-          <button type="button" aria-label="Cerrar" className="koru-create-close" onClick={onClose}>
+          {/* 🔴 Paperclip — visible solo cuando hay un template seleccionado,
+              abre el picker de archivos. Disponible en TODOS los templates. */}
+          {selected ? (
+            <button
+              type="button"
+              aria-label="Adjuntar archivos"
+              className="koru-create-attach-btn"
+              onClick={() => fileInputRef.current?.click()}
+              title="Adjuntar archivos"
+            >
+              <Mat>attach_file</Mat>
+              {attachments.length > 0 && (
+                <span className="koru-create-attach-count">{attachments.length}</span>
+              )}
+            </button>
+          ) : null}
+          <button type="button" aria-label="Cerrar" className="koru-create-close" onClick={handleClose}>
             <Mat>close</Mat>
           </button>
         </div>
@@ -1517,7 +1700,10 @@ export function CreateScreen({ onClose, onAiAssist }: Props) {
               )}
             </div>
 
-            {/* CARPETA — con smart defaults hint */}
+            {/* CARPETA — con smart defaults hint.
+                🔴 Folders: el campo acepta paths slash-delimitados
+                (ej: "Trabajo/ACME/Ideas"). CollectionsScreen los interpreta
+                como jerarquía navegable. */}
             <label className="koru-create-field">
               <span className="koru-create-field-label">Carpeta</span>
               {lastUsedCollection && (
@@ -1529,13 +1715,60 @@ export function CreateScreen({ onClose, onAiAssist }: Props) {
                 onChange={(e) => setCollection(e.target.value)}
                 placeholder={currentTpl?.collection}
               />
+              <span className="koru-create-field-hint">
+                Podés usar / para crear subcarpetas (ej: Trabajo/ACME/Ideas)
+              </span>
             </label>
+
+            {/* 🔴 ATTACHMENTS — chips con thumbnail (imagen) o ícono (otros).
+                Disponible en TODOS los templates. El paperclip del header
+                abre el picker; el botón X del chip borra el blob de IndexedDB. */}
+            {attachments.length > 0 && (
+              <div className="koru-create-field">
+                <span className="koru-create-field-label">
+                  Adjuntos ({attachments.length})
+                </span>
+                <div className="koru-create-attach-chips">
+                  {attachments.map((a) => {
+                    const thumb = attachmentThumbs[a.id];
+                    return (
+                      <div key={a.id} className="koru-create-attach-chip" title={a.name}>
+                        {thumb ? (
+                          <img
+                            src={thumb}
+                            alt={a.name}
+                            className="koru-create-attach-thumb"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <span className="koru-create-attach-icon">
+                            <Mat>{attachmentIcon(a.mimeType)}</Mat>
+                          </span>
+                        )}
+                        <div className="koru-create-attach-meta">
+                          <span className="koru-create-attach-name">{a.name}</span>
+                          <span className="koru-create-attach-size">{formatBytes(a.sizeBytes)}</span>
+                        </div>
+                        <button
+                          type="button"
+                          aria-label={`Quitar ${a.name}`}
+                          className="koru-create-attach-remove"
+                          onClick={() => removeAttachment(a.id)}
+                        >
+                          <Mat>close</Mat>
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <div className="koru-create-actions">
               <button
                 type="button"
                 className="koru-create-action-cancel"
-                onClick={() => setSelected(null)}
+                onClick={handleBackToTemplates}
               >
                 Cancelar
               </button>

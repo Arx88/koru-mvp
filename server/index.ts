@@ -158,7 +158,15 @@ function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
-const server = http.createServer(async (req, res) => {
+const server = http.createServer(koruRequestHandler);
+
+/**
+ * Request handler del backend Koru. Exportado para que los tests puedan
+ * invocarlo directamente con mock req/res sin levantar un server real.
+ * Cada endpoint lee el body si necesita, mockea LLM/OAuth via dynamic imports
+ * (que vitest puede interceptar con vi.mock) y responde con sendJson/sendHtml.
+ */
+export async function koruRequestHandler(req: http.IncomingMessage, res: http.ServerResponse) {
   // CORS preflight
   if (req.method === "OPTIONS") {
     res.writeHead(204, {
@@ -868,7 +876,7 @@ window.close();
 
   // ── 404 ───────────────────────────────────────────────────────
   sendJson(res, 404, { error: "Not found", url });
-});
+}
 
 // ── Cache static files in memory (avoid disk I/O on every request) ──
 const staticCache = new Map<string, { data: Buffer; contentType: string }>();
@@ -931,9 +939,23 @@ setInterval(() => {
   }
 }, 60000);
 
-server.listen(PORT, "0.0.0.0", () => {
-  console.log(`[Koru] Running on http://localhost:${PORT}`);
-  console.log(`[Koru] Provider: ${config.nvidiaApiKey ? "nvidia" : "none"}`);
-  console.log(`[Koru] Model: ${config.nvidiaModel}`);
-  console.log(`[Koru] Memory limit: ${Math.round(process.memoryUsage().heapTotal / 1024 / 1024)}MB`);
-});
+// ── Levantar el server sólo si este archivo es el entrypoint (no cuando
+//    lo importan los tests). ESM no tiene `require.main === module`, así que
+//    comparamos import.meta.url con el path del argv[1].
+const __isMain = (() => {
+  try {
+    if (typeof process.argv[1] !== "string") return false;
+    return fileURLToPath(import.meta.url) === (process.argv[1].startsWith("file:") ? fileURLToPath(process.argv[1]) : fileURLToPath(`file://${process.argv[1]}`));
+  } catch {
+    return false;
+  }
+})();
+
+if (__isMain) {
+  server.listen(PORT, "0.0.0.0", () => {
+    console.log(`[Koru] Running on http://localhost:${PORT}`);
+    console.log(`[Koru] Provider: ${config.nvidiaApiKey ? "nvidia" : "none"}`);
+    console.log(`[Koru] Model: ${config.nvidiaModel}`);
+    console.log(`[Koru] Memory limit: ${Math.round(process.memoryUsage().heapTotal / 1024 / 1024)}MB`);
+  });
+}
