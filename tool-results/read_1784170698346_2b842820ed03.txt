@@ -1,0 +1,2002 @@
+     1→@import "tailwindcss" source(none);
+     2→@import "tw-animate-css";
+     3→
+     4→@source "../index.html";
+     5→@source "../all-cards-preview.html";
+     6→@source "./**/*.{ts,tsx}";
+     7→
+     8→/* ═══════════════════════════════════════════════════════════════════════════
+     9→   🔴 v2: Design Tokens — sistema unificado de colores, tipografía y espaciado
+    10→   Un solo source of truth para todos los componentes.
+    11→   ═══════════════════════════════════════════════════════════════════════════ */
+    12→:root {
+    13→  /* 🔴 Color system — un solo morado Koru (antes 3 distintos) */
+    14→  --koru-purple: #8363f9;        /* primary — reemplaza #382b8c, #8127cf, #8363f9 */
+    15→  --koru-purple-dark: #523a9e;   /* hover/active */
+    16→  --koru-purple-deep: #382b8c;   /* texto sobre claro */
+    17→  --koru-purple-soft: rgba(131, 99, 249, 0.12); /* backgrounds sutiles */
+    18→  --koru-purple-border: rgba(131, 99, 249, 0.25); /* borders */
+    19→
+    20→  /* Accents semánticos */
+    21→  --koru-emerald: #2d6a4f;
+    22→  --koru-amber: #f59e0b;
+    23→  --koru-rose: #ef4444;
+    24→  --koru-blue: #3b82f6;
+    25→  --koru-pink: #ec4899;
+    26→  --koru-cyan: #06b6d4;
+    27→
+    28→  /* 🔴 Type scale — 6 sizes (antes 11) */
+    29→  --koru-text-xs: 11px;     /* meta, badges, labels */
+    30→  --koru-text-sm: 13px;     /* body, detail */
+    31→  --koru-text-base: 15px;   /* inputs, botones */
+    32→  --koru-text-lg: 18px;     /* section titles */
+    33→  --koru-text-xl: 22px;     /* hero titles */
+    34→  --koru-text-2xl: 36px;    /* artValue, big numbers */
+    35→
+    36→  /* 🔴 Spacing scale — base 4px */
+    37→  --koru-space-1: 4px;
+    38→  --koru-space-2: 8px;
+    39→  --koru-space-3: 12px;
+    40→  --koru-space-4: 16px;
+    41→  --koru-space-5: 20px;
+    42→  --koru-space-6: 24px;
+    43→  --koru-space-8: 32px;
+    44→
+    45→  /* 🔴 Radii */
+    46→  --koru-radius-sm: 8px;
+    47→  --koru-radius-md: 12px;
+    48→  --koru-radius-lg: 16px;
+    49→  --koru-radius-xl: 20px;
+    50→  --koru-radius-full: 999px;
+    51→
+    52→  /* 🔴 Shadows */
+    53→  --koru-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+    54→  --koru-shadow-md: 0 4px 16px rgba(131, 99, 249, 0.12);
+    55→  --koru-shadow-lg: 0 8px 24px rgba(131, 99, 249, 0.18);
+    56→}
+    57→
+    58→@theme inline {
+    59→  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+    60→  --font-serif: "Bricolage Grotesque", Georgia, serif;
+    61→  --font-heading: "Bricolage Grotesque", Georgia, serif;
+    62→  --font-mono: ui-monospace, monospace;
+    63→
+    64→  /* Koru 2.0: los nombres de token son legado-verde, pero los valores son la
+    65→     paleta violeta/lavanda mágica. Remapeamos valores (no nombres) para que las
+    66→     ~219 referencias existentes (text-forest, bg-cream, ...) recoloreen solas. */
+    67→  --color-forest: #7c5cdb;      /* primary violeta */
+    68→  --color-sage: #a99be0;        /* acento muted */
+    69→  --color-moss: #8b6ff0;        /* acento activo */
+    70→  --color-leaf: #c9bdf5;        /* acento suave */
+    71→  --color-cream: #f6f3fe;       /* fondo lavanda claro */
+    72→  --color-warm-white: #efeafb;  /* superficie suave */
+    73→  --color-sand: #e4ddf7;        /* borde */
+    74→  --color-gold: #e0a3d6;        /* acento magenta/rosa */
+    75→  --color-bark: #2e2650;        /* texto tinta violeta */
+    76→  --color-earth: #6b5f8c;       /* texto muted */
+    77→  --color-stone: #a99bbe;       /* texto tenue */
+    78→  --color-blush: #f0d9ee;       /* aviso suave */
+    79→
+    80→  --color-background: #f6f3fe;
+    81→  --color-foreground: #2e2650;
+    82→  --color-card: #ffffff;
+    83→  --color-card-foreground: #2e2650;
+    84→  --color-popover: #ffffff;
+    85→  --color-popover-foreground: #2e2650;
+    86→  --color-primary: #7c5cdb;
+    87→  --color-primary-foreground: #f6f3fe;
+    88→  --color-secondary: #efeafb;
+    89→  --color-secondary-foreground: #2e2650;
+    90→  --color-muted: #efeafb;
+    91→  --color-muted-foreground: #6b5f8c;
+    92→  --color-accent: #e0a3d6;
+    93→  --color-accent-foreground: #2e2650;
+    94→  --color-destructive: #e5657a;
+    95→  --color-border: #e4ddf7;
+    96→  --color-input: #e4ddf7;
+    97→  --color-ring: #a99be0;
+    98→  --radius: 1rem;
+    99→}
+   100→
+   101→@layer base {
+   102→  * {
+   103→    @apply border-border;
+   104→  }
+   105→  body {
+   106→    @apply bg-background text-foreground;
+   107→    -webkit-font-smoothing: antialiased;
+   108→  }
+   109→  html {
+   110→    @apply font-sans;
+   111→  }
+   112→}
+   113→
+   114→@keyframes koru-breathe {
+   115→  0%, 100% { transform: translateY(0) scale(1); }
+   116→  50% { transform: translateY(-6px) scale(1.02); }
+   117→}
+   118→
+   119→@keyframes koru-listen {
+   120→  0%, 100% { transform: scale(1); opacity: 0.5; }
+   121→  50% { transform: scale(1.18); opacity: 0; }
+   122→}
+   123→
+   124→@keyframes koru-rise {
+   125→  0% { opacity: 0; transform: translateY(10px); }
+   126→  100% { opacity: 1; transform: translateY(0); }
+   127→}
+   128→
+   129→@keyframes koru-wave {
+   130→  0%, 100% { transform: scaleY(0.35); }
+   131→  50% { transform: scaleY(1); }
+   132→}
+   133→
+   134→@keyframes koru-shimmer {
+   135→  0%, 100% { opacity: 0.25; transform: scale(0.9); }
+   136→  50% { opacity: 0.7; transform: scale(1.1); }
+   137→}
+   138→/* Barra de progreso indeterminada: el shimmer viaja de izquierda a derecha
+   139→   en loop para indicar "estoy trabajando" mientras no hay resultados todavía. */
+   140→@keyframes koru-progress-indeterminate {
+   141→  0% { left: -33%; }
+   142→  100% { left: 100%; }
+   143→}
+   144→
+   145→@keyframes koru-dot-pulse {
+   146→  0%, 100% { opacity: 1; transform: scale(1); }
+   147→  50% { opacity: 0.4; transform: scale(0.82); }
+   148→}
+   149→
+   150→@keyframes koru-text-pulse {
+   151→  0%, 100% { opacity: 0.64; }
+   152→  50% { opacity: 1; }
+   153→}
+   154→
+   155→.animate-breathe {
+   156→  animation: koru-breathe 4s ease-in-out infinite;
+   157→}
+   158→.animate-rise {
+   159→  animation: koru-rise 0.6s ease-out both;
+   160→}
+   161→.animate-shimmer {
+   162→  animation: koru-shimmer 3.5s ease-in-out infinite;
+   163→}
+   164→
+   165→/* --- Chat Koru = réplica Stitch "Chat con Koru": paisaje nocturno ilustrado a
+   166→   pantalla completa, burbujas claras (#F0F4FF / #F8F4FA) con texto #301C70 y
+   167→   composer blanco con botón #7C5FF6. Tipografía Plus Jakarta Sans. --- */
+   168→.koru-chat-shell {
+   169→  --koru-bg: #453f6a;
+   170→  --koru-surface: #ffffff;
+   171→  --koru-surface-soft: #f8f4fa;
+   172→  --koru-inner: #f6f2fb;
+   173→  --koru-user: #f0f4ff;
+   174→  --koru-border: rgba(240, 235, 248, 0.9);
+   175→  --koru-border-strong: #f0ebf8;
+   176→  --koru-text: #301c70;
+   177→  --koru-text-soft: #523a9e;
+   178→  --koru-muted: #a89ad7;
+   179→  --koru-pill: rgba(255, 255, 255, 0.7);
+   180→  --koru-accent: #7c5ff6;
+   181→  --koru-accent-soft: #e2d4fa;
+   182→  --koru-accent-strong: #523a9e;
+   183→  --koru-amber: #d9a05b;
+   184→  --koru-amber-soft: #fff4e5;
+   185→  --koru-purple: #8363f9;
+   186→  --koru-purple-soft: #eae6f4;
+   187→  --koru-mic: #7c5ff6;
+   188→  --koru-heart: #e67e60;
+   189→  --koru-shadow: 0 1px 3px rgba(18, 10, 50, 0.08);
+   190→  position: fixed;
+   191→  inset: 0;
+   192→  z-index: 50;
+   193→  display: flex;
+   194→  justify-content: center;
+   195→  background: #14102a;
+   196→  color: var(--koru-text);
+   197→  font-family: "Plus Jakarta Sans", Inter, ui-sans-serif, system-ui, sans-serif;
+   198→}
+   199→
+   200→.koru-chat-screen {
+   201→  position: relative;
+   202→  display: flex;
+   203→  width: 100%;
+   204→  max-width: 430px;
+   205→  height: 100dvh;
+   206→  flex-direction: column;
+   207→  overflow: hidden;
+   208→  background: #14102a; /* fallback sólido mientras cargan los assets */
+   209→}
+   210→
+   211→/* ===== Sistema de Fondos Dinámicos por Estado ===== */
+   212→/* Stack de capas: cada estado tiene su propia capa absoluta. */
+   213→/* Solo la capa .is-active tiene opacity:1. Crossfade CSS 800ms. */
+   214→.koru-bg-stack {
+   215→  position: absolute;
+   216→  inset: 0;
+   217→  z-index: 0;
+   218→  overflow: hidden;
+   219→  background: #14102a;
+   220→  pointer-events: none;
+   221→  /* Sharper rendering: evitar blurry scaling en HiDPI */
+   222→  image-rendering: -webkit-optimize-contrast;
+   223→  image-rendering: crisp-edges;
+   224→  -webkit-font-smoothing: antialiased;
+   225→  -moz-osx-font-smoothing: grayscale;
+   226→}
+   227→
+   228→.koru-bg-layer {
+   229→  position: absolute;
+   230→  inset: 0;
+   231→  width: 100%;
+   232→  height: 100%;
+   233→  object-fit: cover;
+   234→  object-position: center top; /* anclar arriba — el personaje está en la parte superior del video */
+   235→  opacity: 0;
+   236→  transition: opacity 800ms ease-in-out;
+   237→  /* Backface visibility hidden = sharper text rendering on transforms */
+   238→  backface-visibility: hidden;
+   239→  -webkit-backface-visibility: hidden;
+   240→  /* TranslateZ para forzar GPU layer (mejor calidad + perf) */
+   241→  transform: translateZ(0);
+   242→  -webkit-transform: translateZ(0);
+   243→}
+   244→
+   245→.koru-bg-layer.is-active {
+   246→  opacity: 1;
+   247→}
+   248→
+   249→.koru-bg-layer video,
+   250→.koru-bg-layer img {
+   251→  width: 100%;
+   252→  height: 100%;
+   253→  object-fit: cover;
+   254→  object-position: center top;
+   255→  display: block;
+   256→  /* Mejor calidad de escalado en browsers modernos */
+   257→  image-rendering: auto; /* auto = bilinear/cubic depending on browser */
+   258→  -ms-interpolation-mode: bicubic;
+   259→  /* Sin poster por defecto — los videos cargan directo */
+   260→}
+   261→
+   262→/* Los videos específicamente: forzar alta calidad en mobile */
+   263→.koru-bg-layer video {
+   264→  /* En iOS Safari esto mejora la calidad de video en backgrounds */
+   265→  -webkit-filter: contrast(1.02) saturate(1.05);
+   266→  filter: contrast(1.02) saturate(1.05);
+   267→}
+   268→
+   269→/* Overlay oscuro SOLO en el bottom (donde están los mensajes + composer).
+   270→   El top queda limpio para que el personaje se vea completo. */
+   271→.koru-chat-screen::after {
+   272→  content: "";
+   273→  position: absolute;
+   274→  inset: 0;
+   275→  z-index: 1;
+   276→  pointer-events: none;
+   277→  background: linear-gradient(
+   278→    180deg,
+   279→    transparent 0%,
+   280→    transparent 45%,
+   281→    rgba(20, 16, 42, 0.35) 60%,
+   282→    rgba(20, 16, 42, 0.72) 100%
+   283→  );
+   284→}
+   285→
+   286→.koru-back-button {
+   287→  position: absolute;
+   288→  top: 18px;
+   289→  left: 16px;
+   290→  z-index: 30;
+   291→  display: grid;
+   292→  width: 44px;
+   293→  height: 44px;
+   294→  place-items: center;
+   295→  border: 1px solid rgba(255, 255, 255, 0.35);
+   296→  border-radius: 999px;
+   297→  background: rgba(255, 255, 255, 0.22);
+   298→  -webkit-backdrop-filter: blur(12px);
+   299→  backdrop-filter: blur(12px);
+   300→  color: #ffffff;
+   301→  box-shadow: 0 4px 12px rgba(18, 10, 50, 0.18);
+   302→  transition: transform 160ms ease, border-color 160ms ease;
+   303→}
+   304→
+   305→.koru-back-button:active {
+   306→  transform: scale(0.96);
+   307→}
+   308→
+   309→.koru-sr-heading {
+   310→  position: absolute;
+   311→  width: 1px;
+   312→  height: 1px;
+   313→  padding: 0;
+   314→  overflow: hidden;
+   315→  clip: rect(0, 0, 0, 0);
+   316→  white-space: nowrap;
+   317→  border: 0;
+   318→}
+   319→
+   320→.koru-chat-scroll {
+   321→  position: relative;
+   322→  z-index: 2;
+   323→  flex: 1;
+   324→  overflow-y: auto;
+   325→  scrollbar-width: none;
+   326→  display: flex;
+   327→  flex-direction: column;
+   328→  gap: 12px;
+   329→  /* 🔴 v2: padding-top para que mensajes no se superpongan con mascota/suggestions */
+   330→  padding: 100px 20px 12px;
+   331→  /* 🔴 v2: mask-image para fade-out arriba — los mensajes se desvanecen al scrollear hacia arriba */
+   332→  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, transparent 80px, black 130px, black 100%);
+   333→  mask-image: linear-gradient(to bottom, transparent 0%, transparent 80px, black 130px, black 100%);
+   334→}
+   335→
+   336→.koru-chat-scroll::-webkit-scrollbar {
+   337→  display: none;
+   338→}
+   339→
+   340→/* La conversación vive anclada abajo, sobre el paisaje (réplica Stitch). */
+   341→.koru-thread {
+   342→  display: flex;
+   343→  flex-direction: column;
+   344→  gap: 16px;
+   345→  margin-top: auto;
+   346→}
+   347→
+   348→.koru-message {
+   349→  display: flex;
+   350→  flex-direction: column;
+   351→  width: 100%;
+   352→}
+   353→
+   354→.koru-message.is-user {
+   355→  align-items: flex-end;
+   356→}
+   357→
+   358→.koru-bubble {
+   359→  max-width: 100%;
+   360→  box-shadow: 0 10px 28px rgba(18, 10, 50, 0.18);
+   361→}
+   362→
+   363→/* Fase 2 (audit UI): paddings unificados a 12px 16px 14px — valores
+   364→   profesionales tipo WhatsApp/Material. Antes era 24/24/28 (demasiado). */
+   365→.koru-message.is-user .koru-bubble {
+   366→  margin-left: 24px;
+   367→  border-radius: 22px;
+   368→  border-bottom-right-radius: 0;
+   369→  background: var(--koru-user);
+   370→  padding: 12px 16px 14px;
+   371→}
+   372→
+   373→/* Fase 2 (audit UI): avatar reducido de 88px → 56px. 88px competía con
+   374→   el contenido por atención y rompía la jerarquía. 44px era demasiado
+   375→   chico y se perdía la presencia de la mascota. 56px es el punto medio:
+   376→   mantiene presencia sin dominar el texto. */
+   377→.koru-row {
+   378→  display: flex;
+   379→  align-items: flex-end;
+   380→  gap: 10px;
+   381→  width: 100%;
+   382→}
+   383→
+   384→.koru-avatar {
+   385→  flex: 0 0 auto;
+   386→  width: 56px;
+   387→  height: 56px;
+   388→  overflow: hidden;
+   389→  border-radius: 999px;
+   390→  background: #ffffff;
+   391→  box-shadow: 0 4px 12px rgba(18, 10, 50, 0.15);
+   392→}
+   393→
+   394→.koru-avatar img {
+   395→  width: 100%;
+   396→  height: 100%;
+   397→  object-fit: cover;
+   398→  user-select: none;
+   399→  -webkit-user-drag: none;
+   400→}
+   401→
+   402→.koru-message.is-koru .koru-bubble {
+   403→  flex: 1;
+   404→  min-width: 0;
+   405→  border-radius: 22px;
+   406→  border-bottom-left-radius: 0;
+   407→  background: var(--koru-surface-soft);
+   408→  padding: 12px 16px 14px;
+   409→}
+   410→
+   411→.koru-bubble-heading {
+   412→  margin-bottom: 8px;
+   413→  color: #523a9e;
+   414→  font-size: 18px;
+   415→  font-weight: 700;
+   416→  line-height: 1.3;
+   417→}
+   418→
+   419→.koru-message-text {
+   420→  color: #301c70;
+   421→  font-size: 16px;
+   422→  font-weight: 500;
+   423→  line-height: 1.4;
+   424→  text-wrap: pretty;
+   425→  overflow-wrap: anywhere;
+   426→}
+   427→
+   428→.koru-message.is-user .koru-message-text {
+   429→  font-size: 17px;
+   430→}
+   431→
+   432→.koru-action-content {
+   433→  /* margin-top ya no es necesario cuando está dentro de .koru-cards-row */
+   434→}
+   435→
+   436→.koru-cards-row {
+   437→  display: flex;
+   438→  flex-direction: column;
+   439→  gap: 12px;
+   440→  /* Avatar ahora 56px + 10px gap = 66px. La card se
+   441→     alinea a la derecha del avatar, debajo de la burbuja. */
+   442→  width: calc(100% - 66px);
+   443→  margin-left: 66px;
+   444→  margin-top: 4px;
+   445→  margin-bottom: 8px;
+   446→}
+   447→
+   448→.koru-message.is-koru .koru-action-content {
+   449→  width: 100%;
+   450→}
+   451→
+   452→.koru-message.is-koru .koru-action-content[data-ui-block] {
+   453→  width: 100%;
+   454→  margin-top: 0;
+   455→  margin-inline: 0;
+   456→}
+   457→
+   458→.koru-action-title {
+   459→  display: flex;
+   460→  align-items: center;
+   461→  gap: 8px;
+   462→  color: var(--koru-text-soft);
+   463→  font-size: 15px;
+   464→  font-weight: 500;
+   465→  line-height: 1.4;
+   466→}
+   467→
+   468→.koru-action-title svg {
+   469→  flex: 0 0 auto;
+   470→  color: var(--koru-accent);
+   471→}
+   472→
+   473→/* Panel "Trabajando en tu plan" = réplica Stitch: hoja clara con radio 40px
+   474→   arriba, ilustración de Koru con tablet, barra #E2D4FA/#8363F9 con el % REAL
+   475→   sincronizado a las fases del pipeline (KoruProvider emite `phase`). */
+   476→.koru-working-panel {
+   477→  position: relative;
+   478→  z-index: 20;
+   479→  flex: 0 0 auto;
+   480→  display: flex;
+   481→  flex-direction: column;
+   482→  align-items: center;
+   483→  border-radius: 40px 40px 0 0;
+   484→  background: linear-gradient(180deg, #ffffff 0%, #f3f0f8 100%);
+   485→  padding: 24px 40px max(24px, env(safe-area-inset-bottom));
+   486→  box-shadow: 0 -12px 40px rgba(18, 10, 50, 0.25);
+   487→  animation: koru-rise 0.45s ease-out both;
+   488→}
+   489→.koru-working-illustration {
+   490→  width: 100%;
+   491→  max-width: 180px;
+   492→  height: auto;
+   493→  margin: 0 auto 4px;
+   494→  user-select: none;
+   495→  -webkit-user-drag: none;
+   496→}
+   497→.koru-working-copy {
+   498→  margin: 16px 0;
+   499→  text-align: center;
+   500→}
+   501→.koru-working-copy h2 {
+   502→  margin-bottom: 2px;
+   503→  color: #382b8c;
+   504→  font-size: 20px;
+   505→  font-weight: 700;
+   506→  line-height: 1.3;
+   507→}
+   508→.koru-working-copy p {
+   509→  color: #382b8c;
+   510→  font-size: 14px;
+   511→  font-weight: 500;
+   512→}
+   513→.koru-working-progress {
+   514→  display: flex;
+   515→  width: 100%;
+   516→  max-width: 384px;
+   517→  align-items: center;
+   518→  gap: 16px;
+   519→  margin-bottom: 24px;
+   520→}
+   521→.koru-working-pct {
+   522→  color: #382b8c;
+   523→  font-size: 18px;
+   524→  font-weight: 700;
+   525→  font-variant-numeric: tabular-nums;
+   526→}
+   527→.koru-working-motto {
+   528→  display: flex;
+   529→  align-items: center;
+   530→  justify-content: center;
+   531→  gap: 8px;
+   532→  color: #382b8c;
+   533→  font-size: 14px;
+   534→  font-weight: 600;
+   535→}
+   536→.koru-working-motto svg {
+   537→  color: #8363f9;
+   538→}
+   539→
+   540→/* Chips de fases del WorkingPanel — réplica del demo pantalla 2:
+   541→   4 chips que muestran el progreso del pipeline (done/active/pending).
+   542→   done: fondo #EDE7FB, texto #382B8C, icono check_circle verde
+   543→   active: fondo #8363F9, texto blanco, dot pulsante
+   544→   pending: fondo blanco, texto #a99cd6, borde #EDE7FB, icono gris */
+   545→.koru-working-chips {
+   546→  display: flex;
+   547→  flex-wrap: wrap;
+   548→  justify-content: center;
+   549→  gap: 8px;
+   550→  margin-bottom: 16px;
+   551→  max-width: 360px;
+   552→}
+   553→.koru-working-chip {
+   554→  display: inline-flex;
+   555→  align-items: center;
+   556→  gap: 4px;
+   557→  padding: 6px 12px;
+   558→  border-radius: 999px;
+   559→  font-size: 11px;
+   560→  font-weight: 700;
+   561→  line-height: 1;
+   562→  transition: all 0.3s ease;
+   563→}
+   564→.koru-working-chip.is-done {
+   565→  background: #ede7fb;
+   566→  color: #382b8c;
+   567→}
+   568→.koru-working-chip.is-active {
+   569→  background: #8363f9;
+   570→  color: #ffffff;
+   571→  box-shadow: 0 4px 12px rgba(131, 99, 249, 0.35);
+   572→}
+   573→.koru-working-chip.is-pending {
+   574→  background: #ffffff;
+   575→  color: #a99cd6;
+   576→  border: 1px solid #ede7fb;
+   577→}
+   578→.koru-working-chip-icon {
+   579→  font-size: 14px !important;
+   580→}
+   581→.koru-working-chip-icon.is-done {
+   582→  color: #059669;
+   583→}
+   584→.koru-working-chip-icon.is-pending {
+   585→  color: #a99cd6;
+   586→}
+   587→.koru-working-chip-dot {
+   588→  width: 8px;
+   589→  height: 8px;
+   590→  border-radius: 999px;
+   591→  background: #ffffff;
+   592→  animation: koru-dot-pulse 1.4s ease-in-out infinite;
+   593→}
+   594→.koru-progress {
+   595→  position: relative;
+   596→  height: 16px;
+   597→  flex: 1;
+   598→  overflow: hidden;
+   599→  border-radius: 999px;
+   600→  background: #e2d4fa;
+   601→}
+   602→.koru-progress-bar {
+   603→  position: absolute;
+   604→  top: 0;
+   605→  left: 0;
+   606→  height: 100%;
+   607→  border-radius: 999px;
+   608→  background: #8363f9;
+   609→  transition: width 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+   610→}
+   611→.koru-progress-bar.is-indeterminate {
+   612→  width: 33%;
+   613→  animation: koru-progress-indeterminate 1.15s ease-in-out infinite;
+   614→}
+   615→
+   616→.koru-process-card,
+   617→.koru-inline-card,
+   618→.koru-resource-list,
+   619→.koru-source-wrap {
+   620→  margin-top: 12px;
+   621→}
+   622→
+   623→.koru-process-card,
+   624→.koru-inline-card,
+   625→.koru-resource-list,
+   626→.koru-source {
+   627→  border-radius: 12px;
+   628→  background: var(--koru-inner);
+   629→}
+   630→
+   631→.koru-process-card {
+   632→  padding: 12px;
+   633→}
+   634→
+   635→.koru-step-list {
+   636→  display: flex;
+   637→  flex-direction: column;
+   638→  gap: 8px;
+   639→}
+   640→
+   641→.koru-step {
+   642→  display: flex;
+   643→  align-items: center;
+   644→  gap: 8px;
+   645→  color: var(--koru-text-soft);
+   646→  font-size: 14px;
+   647→  line-height: 1.35;
+   648→}
+   649→
+   650→.koru-step.is-waiting {
+   651→  color: var(--koru-muted);
+   652→}
+   653→
+   654→.koru-step-icon {
+   655→  display: grid;
+   656→  width: 16px;
+   657→  height: 16px;
+   658→  flex: 0 0 auto;
+   659→  place-items: center;
+   660→  color: var(--koru-accent);
+   661→}
+   662→
+   663→.koru-step.is-waiting .koru-step-icon {
+   664→  color: var(--koru-accent);
+   665→  animation: koru-dot-pulse 1.25s ease-in-out infinite;
+   666→}
+   667→
+   668→.koru-plan {
+   669→  display: flex;
+   670→  flex-direction: column;
+   671→  gap: 0;
+   672→  margin-top: 12px;
+   673→  border-radius: 12px;
+   674→  background: var(--koru-inner);
+   675→  padding: 4px 12px;
+   676→}
+   677→
+   678→.koru-context-review {
+   679→  display: flex;
+   680→  flex-direction: column;
+   681→  gap: 8px;
+   682→  margin-top: 12px;
+   683→  border-radius: 12px;
+   684→  background: var(--koru-inner);
+   685→  padding: 12px;
+   686→}
+   687→
+   688→.koru-activity-module {
+   689→  display: flex;
+   690→  flex-direction: column;
+   691→  gap: 12px;
+   692→  margin-top: 12px;
+   693→  border: 1px solid var(--koru-border);
+   694→  border-radius: 18px;
+   695→  background: var(--koru-surface);
+   696→  padding: 14px;
+   697→  box-shadow: var(--koru-shadow);
+   698→}
+   699→
+   700→.koru-stitch-card {
+   701→  display: flex;
+   702→  flex-direction: column;
+   703→  gap: 12px;
+   704→  width: 100%;
+   705→  margin-top: 0;
+   706→  border: 1px solid color-mix(in srgb, var(--koru-border-strong) 78%, transparent);
+   707→  border-radius: 18px;
+   708→  background: linear-gradient(180deg, var(--koru-surface) 0%, color-mix(in srgb, var(--koru-surface) 82%, var(--koru-inner)) 100%);
+   709→  padding: 16px;
+   710→  box-shadow: 0 10px 28px rgba(31, 41, 51, 0.06);
+   711→}
+   712→
+   713→.koru-stitch-card-header {
+   714→  display: flex;
+   715→  align-items: center;
+   716→  gap: 10px;
+   717→  margin-bottom: 0;
+   718→  color: var(--koru-text);
+   719→  font-size: 14px;
+   720→  font-weight: 800;
+   721→  line-height: 1.2;
+   722→}
+   723→
+   724→.koru-stitch-icon {
+   725→  display: grid;
+   726→  width: 36px;
+   727→  height: 36px;
+   728→  flex: 0 0 auto;
+   729→  place-items: center;
+   730→  border-radius: 12px;
+   731→  background: var(--koru-accent-soft);
+   732→  color: var(--koru-accent);
+   733→}
+   734→
+   735→.koru-stitch-icon.is-blue {
+   736→  background: #eff6ff;
+   737→  color: #3b82f6;
+   738→}
+   739→
+   740→.koru-stitch-icon.is-rose {
+   741→  background: #fdf2f0;
+   742→  color: #c4736b;
+   743→}
+   744→
+   745→.koru-stitch-icon.is-purple {
+   746→  background: var(--koru-purple-soft);
+   747→  color: var(--koru-purple);
+   748→}
+   749→
+   750→.koru-stitch-heading {
+   751→  display: flex;
+   752→  min-width: 0;
+   753→  flex-direction: column;
+   754→  gap: 3px;
+   755→}
+   756→
+   757→.koru-card-hint {
+   758→  color: var(--koru-muted);
+   759→  font-size: 10px;
+   760→  font-weight: 800;
+   761→  letter-spacing: 0.05em;
+   762→  line-height: 1.1;
+   763→  text-transform: uppercase;
+   764→}
+   765→
+   766→.koru-card-title {
+   767→  display: block;
+   768→  color: var(--koru-text);
+   769→  font-size: 15px;
+   770→  font-weight: 850;
+   771→  line-height: 1.2;
+   772→  overflow-wrap: anywhere;
+   773→  text-wrap: pretty;
+   774→}
+   775→
+   776→.koru-stitch-content {
+   777→  display: flex;
+   778→  flex-direction: column;
+   779→  gap: 8px;
+   780→}
+   781→
+   782→.koru-stitch-grid {
+   783→  display: grid;
+   784→  grid-template-columns: 1fr 1fr;
+   785→  gap: 10px;
+   786→}
+   787→
+   788→.koru-stitch-grid.is-single {
+   789→  grid-template-columns: 1fr;
+   790→}
+   791→
+   792→.koru-stitch-tile {
+   793→  border: 1px solid var(--koru-border);
+   794→  border-radius: 14px;
+   795→  background: var(--koru-inner);
+   796→  padding: 12px;
+   797→  text-align: center;
+   798→}
+   799→
+   800→.koru-stitch-tile strong {
+   801→  display: block;
+   802→  font-size: 18px;
+   803→  font-weight: 850;
+   804→  line-height: 1.1;
+   805→  margin-top: 6px;
+   806→  overflow-wrap: anywhere;
+   807→}
+   808→
+   809→.koru-stitch-tile small {
+   810→  display: block;
+   811→  font-size: 10px;
+   812→  font-weight: 700;
+   813→  letter-spacing: 0.05em;
+   814→  text-transform: uppercase;
+   815→  color: var(--koru-muted);
+   816→}
+   817→
+   818→.koru-stitch-tile span {
+   819→  display: block;
+   820→  margin-top: 4px;
+   821→  color: var(--koru-text-soft);
+   822→  font-size: 11px;
+   823→  font-weight: 650;
+   824→  line-height: 1.2;
+   825→  text-wrap: pretty;
+   826→}
+   827→
+   828→.koru-stitch-row {
+   829→  display: grid;
+   830→  grid-template-columns: auto 1fr auto;
+   831→  align-items: center;
+   832→  gap: 10px;
+   833→  min-height: 48px;
+   834→  border: 1px solid var(--koru-border);
+   835→  border-radius: 14px;
+   836→  background: var(--koru-inner);
+   837→  padding: 10px 12px;
+   838→}
+   839→
+   840→button.koru-stitch-row {
+   841→  width: 100%;
+   842→  color: inherit;
+   843→  cursor: pointer;
+   844→  font: inherit;
+   845→  text-align: left;
+   846→}
+   847→
+   848→.koru-stitch-row.is-highlighted {
+   849→  border-color: color-mix(in srgb, var(--koru-amber) 28%, var(--koru-border));
+   850→  background: color-mix(in srgb, var(--koru-amber-soft) 30%, var(--koru-inner));
+   851→}
+   852→
+   853→.koru-stitch-row-marker {
+   854→  display: grid;
+   855→  min-width: 28px;
+   856→  min-height: 28px;
+   857→  place-items: center;
+   858→  color: var(--koru-accent);
+   859→  font-size: 10px;
+   860→  font-weight: 850;
+   861→  line-height: 1;
+   862→  text-transform: uppercase;
+   863→}
+   864→
+   865→.koru-stitch-row-marker.is-amber {
+   866→  color: var(--koru-amber);
+   867→}
+   868→
+   869→.koru-stitch-row-marker.is-purple {
+   870→  color: var(--koru-purple);
+   871→}
+   872→
+   873→.koru-stitch-row-marker.is-rose {
+   874→  color: #c4736b;
+   875→}
+   876→
+   877→.koru-stitch-row-marker.is-blue {
+   878→  color: #3b82f6;
+   879→}
+   880→
+   881→.koru-stitch-row-marker.is-muted {
+   882→  color: var(--koru-muted);
+   883→}
+   884→
+   885→.koru-stitch-row-copy {
+   886→  min-width: 0;
+   887→}
+   888→
+   889→.koru-stitch-row-copy strong {
+   890→  display: block;
+   891→  color: var(--koru-text);
+   892→  font-size: 15px;
+   893→  font-weight: 850;
+   894→  line-height: 1.18;
+   895→  overflow-wrap: anywhere;
+   896→  text-wrap: pretty;
+   897→}
+   898→
+   899→.koru-stitch-row-copy small {
+   900→  display: block;
+   901→  margin-top: 3px;
+   902→  color: var(--koru-text-soft);
+   903→  font-size: 12px;
+   904→  font-weight: 650;
+   905→  line-height: 1.25;
+   906→  overflow-wrap: anywhere;
+   907→  text-wrap: pretty;
+   908→}
+   909→
+   910→.koru-stitch-row em {
+   911→  border-radius: 999px;
+   912→  background: var(--koru-accent-soft);
+   913→  color: var(--koru-accent);
+   914→  padding: 4px 8px;
+   915→  font-size: 10px;
+   916→  font-style: normal;
+   917→  font-weight: 800;
+   918→  line-height: 1;
+   919→  text-transform: capitalize;
+   920→  white-space: nowrap;
+   921→}
+   922→
+   923→.koru-saved-record-card {
+   924→  border-color: color-mix(in srgb, var(--koru-accent) 24%, var(--koru-border));
+   925→}
+   926→
+   927→.koru-saved-record-list {
+   928→  display: flex;
+   929→  flex-direction: column;
+   930→  gap: 8px;
+   931→}
+   932→
+   933→.koru-saved-record-row {
+   934→  display: grid;
+   935→  grid-template-columns: auto minmax(0, 1fr) auto;
+   936→  align-items: center;
+   937→  gap: 10px;
+   938→  min-height: 48px;
+   939→  border: 1px solid var(--koru-border);
+   940→  border-radius: 14px;
+   941→  background: var(--koru-inner);
+   942→  padding: 10px 11px;
+   943→}
+   944→
+   945→.koru-saved-record-row strong {
+   946→  display: block;
+   947→  color: var(--koru-text);
+   948→  font-size: 15px;
+   949→  font-weight: 850;
+   950→  line-height: 1.18;
+   951→  overflow-wrap: anywhere;
+   952→}
+   953→
+   954→.koru-saved-record-row small {
+   955→  display: block;
+   956→  margin-top: 3px;
+   957→  color: var(--koru-text-soft);
+   958→  font-size: 12px;
+   959→  font-weight: 650;
+   960→  line-height: 1.25;
+   961→  overflow-wrap: anywhere;
+   962→}
+   963→
+   964→.koru-saved-record-row em {
+   965→  border-radius: 999px;
+   966→  background: var(--koru-accent-soft);
+   967→  color: var(--koru-accent);
+   968→  padding: 4px 8px;
+   969→  font-size: 10px;
+   970→  font-style: normal;
+   971→  font-weight: 800;
+   972→  line-height: 1;
+   973→  text-transform: capitalize;
+   974→}
+   975→
+   976→.koru-stitch-icon.is-amber {
+   977→  background: var(--koru-amber-soft);
+   978→  color: var(--koru-amber);
+   979→}
+   980→
+   981→.koru-stitch-note {
+   982→  border-radius: 14px;
+   983→  background: color-mix(in srgb, var(--koru-accent-soft) 54%, var(--koru-surface));
+   984→  color: var(--koru-text-soft);
+   985→  padding: 11px 12px;
+   986→  font-size: 13px;
+   987→  font-weight: 650;
+   988→  line-height: 1.4;
+   989→  text-wrap: pretty;
+   990→}
+   991→
+   992→.koru-stitch-note.is-amber {
+   993→  background: color-mix(in srgb, var(--koru-amber-soft) 60%, var(--koru-surface));
+   994→}
+   995→
+   996→.koru-stitch-note.is-blue {
+   997→  background: color-mix(in srgb, #eff6ff 72%, var(--koru-surface));
+   998→}
+   999→
+  1000→.koru-stitch-pill-row {
+  1001→  display: flex;
+  1002→  flex-wrap: wrap;
+  1003→  gap: 8px;
+  1004→  margin-top: 2px;
+  1005→}
+  1006→
+  1007→.koru-stitch-pill {
+  1008→  display: inline-flex;
+  1009→  min-height: 30px;
+  1010→  align-items: center;
+  1011→  border: 1px solid var(--koru-border-strong);
+  1012→  border-radius: 999px;
+  1013→  background: var(--koru-surface);
+  1014→  color: var(--koru-text-soft);
+  1015→  padding: 6px 10px;
+  1016→  box-shadow: var(--koru-shadow);
+  1017→  font-size: 11px;
+  1018→  font-weight: 750;
+  1019→  line-height: 1;
+  1020→}
+  1021→
+  1022→.koru-stitch-plan {
+  1023→  display: flex;
+  1024→  flex-direction: column;
+  1025→  gap: 0;
+  1026→}
+  1027→
+  1028→.koru-stitch-plan-row {
+  1029→  display: grid;
+  1030→  grid-template-columns: 32px 52px minmax(0, 1fr) auto;
+  1031→  align-items: center;
+  1032→  gap: 8px;
+  1033→  padding: 10px 0;
+  1034→  border-bottom: 1px dashed var(--koru-border);
+  1035→}
+  1036→
+  1037→.koru-stitch-plan-row:last-child {
+  1038→  border-bottom: 0;
+  1039→}
+  1040→
+  1041→.koru-stitch-plan-icon {
+  1042→  display: grid;
+  1043→  width: 32px;
+  1044→  height: 32px;
+  1045→  place-items: center;
+  1046→  border-radius: 8px;
+  1047→  background: var(--koru-accent-soft);
+  1048→  color: var(--koru-accent);
+  1049→}
+  1050→
+  1051→.koru-stitch-plan-icon.is-amber {
+  1052→  background: var(--koru-amber-soft);
+  1053→  color: var(--koru-amber);
+  1054→}
+  1055→
+  1056→.koru-stitch-plan-icon.is-purple {
+  1057→  background: var(--koru-purple-soft);
+  1058→  color: var(--koru-purple);
+  1059→}
+  1060→
+  1061→.koru-stitch-plan-time {
+  1062→  color: var(--koru-text-soft);
+  1063→  font-size: 14px;
+  1064→  font-weight: 650;
+  1065→  line-height: 1.2;
+  1066→  white-space: nowrap;
+  1067→}
+  1068→
+  1069→.koru-stitch-plan-copy {
+  1070→  min-width: 0;
+  1071→}
+  1072→
+  1073→.koru-stitch-plan-copy strong {
+  1074→  display: block;
+  1075→  color: var(--koru-text);
+  1076→  font-size: 15px;
+  1077→  font-weight: 600;
+  1078→  line-height: 1.25;
+  1079→  overflow-wrap: anywhere;
+  1080→  text-wrap: pretty;
+  1081→}
+  1082→
+  1083→.koru-stitch-plan-copy small {
+  1084→  display: block;
+  1085→  margin-top: 2px;
+  1086→  color: var(--koru-muted);
+  1087→  font-size: 11px;
+  1088→  font-weight: 620;
+  1089→  line-height: 1.2;
+  1090→  overflow-wrap: anywhere;
+  1091→}
+  1092→
+  1093→.koru-stitch-priority {
+  1094→  border-radius: 4px;
+  1095→  background: var(--koru-accent-soft);
+  1096→  color: var(--koru-accent);
+  1097→  padding: 3px 8px;
+  1098→  font-size: 10px;
+  1099→  font-style: normal;
+  1100→  font-weight: 800;
+  1101→  line-height: 1;
+  1102→  white-space: nowrap;
+  1103→}
+  1104→
+  1105→.koru-stitch-priority.is-medium {
+  1106→  background: var(--koru-amber-soft);
+  1107→  color: var(--koru-amber);
+  1108→}
+  1109→
+  1110→.koru-source-status {
+  1111→  align-self: flex-start;
+  1112→  border: 1px solid color-mix(in srgb, var(--koru-border-strong) 70%, transparent);
+  1113→  border-radius: 999px;
+  1114→  background: var(--koru-inner);
+  1115→  color: var(--koru-muted);
+  1116→  padding: 6px 9px;
+  1117→  font-size: 11px;
+  1118→  font-weight: 800;
+  1119→  line-height: 1.1;
+  1120→}
+  1121→
+  1122→.koru-source-status.is-verified {
+  1123→  border-color: color-mix(in srgb, var(--koru-accent) 28%, var(--koru-border));
+  1124→  background: color-mix(in srgb, var(--koru-accent-soft) 72%, var(--koru-surface));
+  1125→  color: var(--koru-accent-strong);
+  1126→}
+  1127→
+  1128→.koru-activity-group {
+  1129→  gap: 14px;
+  1130→}
+  1131→
+  1132→.koru-activity-group-head,
+  1133→.koru-proactive-head {
+  1134→  display: flex;
+  1135→  align-items: center;
+  1136→  gap: 10px;
+  1137→}
+  1138→
+  1139→.koru-activity-group-head > span:nth-child(2),
+  1140→.koru-proactive-head > span:nth-child(2) {
+  1141→  display: flex;
+  1142→  min-width: 0;
+  1143→  flex: 1;
+  1144→  flex-direction: column;
+  1145→  gap: 3px;
+  1146→}
+  1147→
+  1148→.koru-activity-group-head strong,
+  1149→.koru-proactive-head strong {
+  1150→  color: var(--koru-text);
+  1151→  font-size: 15px;
+  1152→  font-weight: 800;
+  1153→  line-height: 1.2;
+  1154→  text-wrap: pretty;
+  1155→}
+  1156→
+  1157→.koru-activity-group-head small,
+  1158→.koru-proactive-head small {
+  1159→  color: var(--koru-muted);
+  1160→  font-size: 11px;
+  1161→  font-weight: 650;
+  1162→  line-height: 1.25;
+  1163→  text-wrap: pretty;
+  1164→}
+  1165→
+  1166→.koru-energy-rail {
+  1167→  position: relative;
+  1168→  width: 6px;
+  1169→  height: 58px;
+  1170→  flex: 0 0 auto;
+  1171→  overflow: hidden;
+  1172→  border-radius: 999px;
+  1173→  background: var(--koru-accent-soft);
+  1174→}
+  1175→
+  1176→.koru-energy-rail span {
+  1177→  position: absolute;
+  1178→  inset-inline: 0;
+  1179→  bottom: 0;
+  1180→  border-radius: inherit;
+  1181→  background: var(--koru-accent);
+  1182→}
+  1183→
+  1184→.koru-activity-section {
+  1185→  display: flex;
+  1186→  flex-direction: column;
+  1187→  gap: 10px;
+  1188→}
+  1189→
+  1190→.koru-activity-section-title {
+  1191→  color: var(--koru-text-soft);
+  1192→  font-size: 13px;
+  1193→  font-weight: 780;
+  1194→  line-height: 1.2;
+  1195→}
+  1196→
+  1197→.koru-activity-tiles {
+  1198→  display: grid;
+  1199→  grid-template-columns: repeat(2, minmax(0, 1fr));
+  1200→  gap: 10px;
+  1201→}
+  1202→
+  1203→.koru-activity-tile {
+  1204→  display: flex;
+  1205→  min-height: 116px;
+  1206→  flex-direction: column;
+  1207→  justify-content: space-between;
+  1208→  gap: 8px;
+  1209→  border: 1px solid var(--koru-border);
+  1210→  border-radius: 18px;
+  1211→  background: var(--koru-surface);
+  1212→  padding: 12px;
+  1213→}
+  1214→
+  1215→.koru-activity-section[data-tone="blue"] .koru-activity-tile,
+  1216→.koru-proactive-card[data-severity="info"] {
+  1217→  background: color-mix(in srgb, #eff6ff 62%, var(--koru-surface));
+  1218→  border-color: color-mix(in srgb, #bfdbfe 65%, var(--koru-border));
+  1219→}
+  1220→
+  1221→.koru-activity-section[data-tone="green"] .koru-activity-tile,
+  1222→.koru-proactive-card[data-severity="useful"] {
+  1223→  background: color-mix(in srgb, var(--koru-accent-soft) 60%, var(--koru-surface));
+  1224→  border-color: color-mix(in srgb, var(--koru-accent) 22%, var(--koru-border));
+  1225→}
+  1226→
+  1227→.koru-activity-section[data-tone="amber"] .koru-activity-tile,
+  1228→.koru-proactive-card[data-severity="important"] {
+  1229→  background: color-mix(in srgb, var(--koru-amber-soft) 72%, var(--koru-surface));
+  1230→  border-color: color-mix(in srgb, var(--koru-amber) 22%, var(--koru-border));
+  1231→}
+  1232→
+  1233→.koru-activity-section[data-tone="purple"] .koru-activity-tile {
+  1234→  background: color-mix(in srgb, #f5f0ff 70%, var(--koru-surface));
+  1235→  border-color: color-mix(in srgb, #d8c8ff 58%, var(--koru-border));
+  1236→}
+  1237→
+  1238→.koru-proactive-card[data-severity="urgent"],
+  1239→.koru-activity-tile[data-urgent="true"],
+  1240→.koru-activity-row[data-urgent="true"] {
+  1241→  background: color-mix(in srgb, #fff1f2 72%, var(--koru-surface));
+  1242→  border-color: color-mix(in srgb, #fecdd3 68%, var(--koru-border));
+  1243→}
+  1244→
+  1245→.koru-activity-tile-top {
+  1246→  display: flex;
+  1247→  align-items: center;
+  1248→  justify-content: space-between;
+  1249→  gap: 8px;
+  1250→  color: var(--koru-accent);
+  1251→}
+  1252→
+  1253→.koru-activity-tile-top span {
+  1254→  border-radius: 999px;
+  1255→  background: rgba(255, 255, 255, 0.72);
+  1256→  color: var(--koru-muted);
+  1257→  padding: 3px 7px;
+  1258→  font-size: 10px;
+  1259→  font-weight: 750;
+  1260→  line-height: 1;
+  1261→}
+  1262→
+  1263→.koru-activity-tile strong {
+  1264→  color: var(--koru-text);
+  1265→  font-size: 14px;
+  1266→  font-weight: 850;
+  1267→  line-height: 1.2;
+  1268→  overflow-wrap: anywhere;
+  1269→}
+  1270→
+  1271→.koru-activity-tile small {
+  1272→  color: var(--koru-muted);
+  1273→  font-size: 11px;
+  1274→  font-weight: 650;
+  1275→  line-height: 1.25;
+  1276→}
+  1277→
+  1278→.koru-activity-rows {
+  1279→  display: flex;
+  1280→  flex-direction: column;
+  1281→  gap: 8px;
+  1282→}
+  1283→
+  1284→.koru-activity-row {
+  1285→  display: grid;
+  1286→  grid-template-columns: auto minmax(0, 1fr) auto;
+  1287→  align-items: center;
+  1288→  gap: 10px;
+  1289→  border: 1px solid var(--koru-border);
+  1290→  border-radius: 16px;
+  1291→  background: var(--koru-surface);
+  1292→  padding: 11px;
+  1293→}
+  1294→
+  1295→.koru-activity-row strong {
+  1296→  display: block;
+  1297→  color: var(--koru-text);
+  1298→  font-size: 13px;
+  1299→  font-weight: 800;
+  1300→  line-height: 1.25;
+  1301→}
+  1302→
+  1303→.koru-activity-row small,
+  1304→.koru-activity-row em {
+  1305→  color: var(--koru-muted);
+  1306→  font-size: 11px;
+  1307→  font-style: normal;
+  1308→  font-weight: 650;
+  1309→  line-height: 1.2;
+  1310→}
+  1311→
+  1312→.koru-proactive-card {
+  1313→  gap: 12px;
+  1314→}
+  1315→
+  1316→.koru-proactive-card > p {
+  1317→  color: var(--koru-text-soft);
+  1318→  font-size: 13px;
+  1319→  font-weight: 650;
+  1320→  line-height: 1.42;
+  1321→  text-wrap: pretty;
+  1322→}
+  1323→
+  1324→.koru-weather-card {
+  1325→  border-color: color-mix(in srgb, var(--koru-accent) 28%, var(--koru-border));
+  1326→}
+  1327→
+  1328→.koru-weather-grid {
+  1329→  display: grid;
+  1330→  grid-template-columns: repeat(2, minmax(0, 1fr));
+  1331→  gap: 10px;
+  1332→}
+  1333→
+  1334→.koru-weather-grid div {
+  1335→  min-height: 74px;
+  1336→  border: 1px solid var(--koru-border);
+  1337→  border-radius: 15px;
+  1338→  background: var(--koru-inner);
+  1339→  padding: 12px;
+  1340→}
+  1341→
+  1342→.koru-weather-grid span {
+  1343→  display: block;
+  1344→  color: var(--koru-muted);
+  1345→  font-size: 10px;
+  1346→  font-weight: 800;
+  1347→  letter-spacing: 0.05em;
+  1348→  line-height: 1.2;
+  1349→  text-transform: uppercase;
+  1350→}
+  1351→
+  1352→.koru-weather-grid strong {
+  1353→  display: block;
+  1354→  margin-top: 7px;
+  1355→  color: var(--koru-text);
+  1356→  font-size: 18px;
+  1357→  font-weight: 850;
+  1358→  line-height: 1.1;
+  1359→  overflow-wrap: anywhere;
+  1360→}
+  1361→
+  1362→.koru-alarm-card {
+  1363→  align-items: flex-start;
+  1364→}
+  1365→
+  1366→.koru-alarm-time {
+  1367→  color: var(--koru-text);
+  1368→  font-size: 38px;
+  1369→  font-weight: 850;
+  1370→  letter-spacing: 0;
+  1371→  line-height: 1;
+  1372→}
+  1373→
+  1374→.koru-alarm-card p {
+  1375→  color: var(--koru-text-soft);
+  1376→  font-size: 14px;
+  1377→  font-weight: 700;
+  1378→  line-height: 1.35;
+  1379→}
+  1380→
+  1381→.koru-alarm-card small {
+  1382→  color: var(--koru-muted);
+  1383→  font-size: 12px;
+  1384→  line-height: 1.35;
+  1385→}
+  1386→
+  1387→.koru-activity-header {
+  1388→  display: flex;
+  1389→  align-items: center;
+  1390→  gap: 10px;
+  1391→  color: var(--koru-text);
+  1392→  font-size: 14px;
+  1393→  font-weight: 700;
+  1394→  line-height: 1.2;
+  1395→}
+  1396→
+  1397→.koru-activity-icon {
+  1398→  display: grid;
+  1399→  width: 30px;
+  1400→  height: 30px;
+  1401→  place-items: center;
+  1402→  border-radius: 999px;
+  1403→  background: var(--koru-accent-soft);
+  1404→  color: var(--koru-accent);
+  1405→  font-size: 12px;
+  1406→  font-weight: 800;
+  1407→}
+  1408→
+  1409→.koru-summary-grid {
+  1410→  display: grid;
+  1411→  grid-template-columns: repeat(2, minmax(0, 1fr));
+  1412→  gap: 10px;
+  1413→}
+  1414→
+  1415→.koru-summary-grid.is-single {
+  1416→  grid-template-columns: 1fr;
+  1417→}
+  1418→
+  1419→.koru-summary-tile {
+  1420→  display: flex;
+  1421→  min-height: 86px;
+  1422→  flex-direction: column;
+  1423→  justify-content: center;
+  1424→  gap: 4px;
+  1425→  border: 1px solid var(--koru-border);
+  1426→  border-radius: 14px;
+  1427→  background: var(--koru-inner);
+  1428→  padding: 12px;
+  1429→  text-align: center;
+  1430→}
+  1431→
+  1432→.koru-summary-tile.is-single {
+  1433→  min-height: 64px;
+  1434→}
+  1435→
+  1436→.koru-summary-tile strong {
+  1437→  color: var(--koru-text);
+  1438→  font-size: 15px;
+  1439→  font-weight: 800;
+  1440→  line-height: 1.2;
+  1441→  overflow-wrap: anywhere;
+  1442→}
+  1443→
+  1444→.koru-summary-tile small,
+  1445→.koru-summary-label {
+  1446→  color: var(--koru-muted);
+  1447→  font-size: 10px;
+  1448→  font-weight: 700;
+  1449→  letter-spacing: 0.04em;
+  1450→  line-height: 1.2;
+  1451→  text-transform: uppercase;
+  1452→}
+  1453→
+  1454→.koru-activity-recommendation {
+  1455→  border-radius: 14px;
+  1456→  background: color-mix(in srgb, var(--koru-accent-soft) 64%, var(--koru-surface));
+  1457→  color: var(--koru-text-soft);
+  1458→  padding: 12px;
+  1459→  font-size: 13px;
+  1460→  font-weight: 600;
+  1461→  line-height: 1.4;
+  1462→}
+  1463→
+  1464→.koru-activity-lead {
+  1465→  border-radius: 14px;
+  1466→  background: color-mix(in srgb, var(--koru-accent-soft) 58%, var(--koru-surface));
+  1467→  color: var(--koru-text-soft);
+  1468→  padding: 11px 12px;
+  1469→  font-size: 13px;
+  1470→  font-weight: 650;
+  1471→  line-height: 1.4;
+  1472→  text-wrap: pretty;
+  1473→}
+  1474→
+  1475→.koru-card-kicker {
+  1476→  display: block;
+  1477→  color: var(--koru-muted);
+  1478→  font-size: 10px;
+  1479→  font-weight: 800;
+  1480→  letter-spacing: 0.06em;
+  1481→  line-height: 1.2;
+  1482→  text-transform: uppercase;
+  1483→}
+  1484→
+  1485→.koru-decision-card,
+  1486→.koru-question-card,
+  1487→.koru-reminder-card,
+  1488→.koru-web-module,
+  1489→.koru-list-module {
+  1490→  display: flex;
+  1491→  flex-direction: column;
+  1492→  gap: 10px;
+  1493→  margin-top: 12px;
+  1494→  border: 1px solid var(--koru-border);
+  1495→  border-radius: 14px;
+  1496→  background: var(--koru-inner);
+  1497→  padding: 13px;
+  1498→}
+  1499→
+  1500→.koru-decision-card strong,
+  1501→.koru-question-card strong,
+  1502→.koru-reminder-card strong {
+  1503→  color: var(--koru-text);
+  1504→  font-size: 15px;
+  1505→  font-weight: 800;
+  1506→  line-height: 1.25;
+  1507→}
+  1508→
+  1509→.koru-decision-card p,
+  1510→.koru-question-card p {
+  1511→  color: var(--koru-text-soft);
+  1512→  font-size: 13px;
+  1513→  font-weight: 600;
+  1514→  line-height: 1.4;
+  1515→  text-wrap: pretty;
+  1516→}
+  1517→
+  1518→.koru-decision-card small,
+  1519→.koru-reminder-card small,
+  1520→.koru-web-criteria {
+  1521→  color: var(--koru-muted);
+  1522→  font-size: 11px;
+  1523→  line-height: 1.35;
+  1524→}
+  1525→
+  1526→.koru-question-followups {
+  1527→  display: flex;
+  1528→  flex-wrap: wrap;
+  1529→  gap: 6px;
+  1530→}
+  1531→
+  1532→.koru-question-followups span {
+  1533→  border: 1px solid var(--koru-border);
+  1534→  border-radius: 999px;
+  1535→  background: var(--koru-surface);
+  1536→  color: var(--koru-text-soft);
+  1537→  padding: 6px 9px;
+  1538→  font-size: 11px;
+  1539→  font-weight: 700;
+  1540→}
+  1541→
+  1542→.koru-web-query {
+  1543→  display: flex;
+  1544→  flex-direction: column;
+  1545→  gap: 3px;
+  1546→  border-radius: 12px;
+  1547→  background: var(--koru-surface);
+  1548→  padding: 10px;
+  1549→}
+  1550→
+  1551→.koru-web-query span {
+  1552→  color: var(--koru-muted);
+  1553→  font-size: 10px;
+  1554→  font-weight: 800;
+  1555→  letter-spacing: 0.05em;
+  1556→  text-transform: uppercase;
+  1557→}
+  1558→
+  1559→.koru-web-query strong {
+  1560→  color: var(--koru-text);
+  1561→  font-size: 13px;
+  1562→  font-weight: 700;
+  1563→  line-height: 1.35;
+  1564→  overflow-wrap: anywhere;
+  1565→}
+  1566→
+  1567→.koru-list-row {
+  1568→  display: flex;
+  1569→  align-items: flex-start;
+  1570→  gap: 10px;
+  1571→  border-radius: 12px;
+  1572→  background: var(--koru-surface);
+  1573→  padding: 10px;
+  1574→}
+  1575→
+  1576→.koru-list-row strong {
+  1577→  display: block;
+  1578→  color: var(--koru-text);
+  1579→  font-size: 13px;
+  1580→  font-weight: 750;
+  1581→  line-height: 1.3;
+  1582→  overflow-wrap: anywhere;
+  1583→}
+  1584→
+  1585→.koru-list-row small {
+  1586→  display: block;
+  1587→  margin-top: 2px;
+  1588→  color: var(--koru-muted);
+  1589→  font-size: 11px;
+  1590→  font-weight: 650;
+  1591→  line-height: 1.2;
+  1592→}
+  1593→
+  1594→.koru-record-grid {
+  1595→  display: grid;
+  1596→  grid-template-columns: repeat(2, minmax(0, 1fr));
+  1597→  gap: 8px;
+  1598→}
+  1599→
+  1600→.koru-record-chip {
+  1601→  display: flex;
+  1602→  min-width: 0;
+  1603→  align-items: flex-start;
+  1604→  gap: 8px;
+  1605→  border: 1px solid var(--koru-border);
+  1606→  border-radius: 10px;
+  1607→  background: var(--koru-inner);
+  1608→  padding: 9px;
+  1609→}
+  1610→
+  1611→.koru-record-chip strong {
+  1612→  display: block;
+  1613→  color: var(--koru-text);
+  1614→  font-size: 12px;
+  1615→  font-weight: 700;
+  1616→  line-height: 1.25;
+  1617→  overflow-wrap: anywhere;
+  1618→}
+  1619→
+  1620→.koru-record-chip small {
+  1621→  display: block;
+  1622→  margin-top: 2px;
+  1623→  color: var(--koru-muted);
+  1624→  font-size: 10px;
+  1625→  font-weight: 600;
+  1626→  line-height: 1.2;
+  1627→}
+  1628→
+  1629→.koru-record-check {
+  1630→  width: 14px;
+  1631→  height: 14px;
+  1632→  flex: 0 0 auto;
+  1633→  border: 1px solid var(--koru-border-strong);
+  1634→  border-radius: 4px;
+  1635→  background: var(--koru-surface);
+  1636→}
+  1637→
+  1638→.koru-context-title {
+  1639→  color: var(--koru-muted);
+  1640→  font-size: 11px;
+  1641→  font-weight: 700;
+  1642→  letter-spacing: 0.04em;
+  1643→  line-height: 1.2;
+  1644→  text-transform: uppercase;
+  1645→}
+  1646→
+  1647→.koru-context-row {
+  1648→  display: grid;
+  1649→  grid-template-columns: 64px minmax(0, 1fr) auto;
+  1650→  align-items: center;
+  1651→  gap: 8px;
+  1652→  min-height: 42px;
+  1653→}
+  1654→
+  1655→.koru-context-source {
+  1656→  border-radius: 999px;
+  1657→  background: var(--koru-accent-soft);
+  1658→  color: var(--koru-accent);
+  1659→  padding: 4px 8px;
+  1660→  text-align: center;
+  1661→  font-size: 10px;
+  1662→  font-weight: 700;
+  1663→  line-height: 1;
+  1664→}
+  1665→
+  1666→.koru-context-copy {
+  1667→  display: flex;
+  1668→  min-width: 0;
+  1669→  flex-direction: column;
+  1670→  gap: 2px;
+  1671→}
+  1672→
+  1673→.koru-context-copy span {
+  1674→  overflow: hidden;
+  1675→  color: var(--koru-text);
+  1676→  font-size: 13px;
+  1677→  font-weight: 600;
+  1678→  line-height: 1.25;
+  1679→  text-overflow: ellipsis;
+  1680→  white-space: nowrap;
+  1681→}
+  1682→
+  1683→.koru-context-copy small {
+  1684→  overflow: hidden;
+  1685→  color: var(--koru-muted);
+  1686→  font-size: 11px;
+  1687→  line-height: 1.25;
+  1688→  text-overflow: ellipsis;
+  1689→  white-space: nowrap;
+  1690→}
+  1691→
+  1692→.koru-plan-row {
+  1693→  display: grid;
+  1694→  grid-template-columns: 32px 52px minmax(0, 1fr) auto auto;
+  1695→  align-items: center;
+  1696→  gap: 8px;
+  1697→  min-height: 52px;
+  1698→  border-bottom: 1px dashed var(--koru-border);
+  1699→}
+  1700→
+  1701→.koru-plan-row:last-child {
+  1702→  border-bottom: 0;
+  1703→}
+  1704→
+  1705→.koru-plan-icon {
+  1706→  display: grid;
+  1707→  width: 32px;
+  1708→  height: 32px;
+  1709→  place-items: center;
+  1710→  border-radius: 8px;
+  1711→  background: var(--koru-accent-soft);
+  1712→  color: var(--koru-accent);
+  1713→}
+  1714→
+  1715→.koru-plan-icon.is-amber {
+  1716→  background: var(--koru-amber-soft);
+  1717→  color: var(--koru-amber);
+  1718→}
+  1719→
+  1720→.koru-plan-icon.is-purple {
+  1721→  background: var(--koru-purple-soft);
+  1722→  color: var(--koru-purple);
+  1723→}
+  1724→
+  1725→.koru-plan-time {
+  1726→  color: var(--koru-text-soft);
+  1727→  font-size: 14px;
+  1728→  font-weight: 600;
+  1729→}
+  1730→
+  1731→.koru-plan-title {
+  1732→  min-width: 0;
+  1733→  color: var(--koru-text);
+  1734→  font-size: 15px;
+  1735→  font-weight: 500;
+  1736→  line-height: 1.25;
+  1737→  overflow-wrap: anywhere;
+  1738→}
+  1739→
+  1740→.koru-plan-duration {
+  1741→  border-radius: 4px;
+  1742→  background: var(--koru-surface-strong);
+  1743→  color: var(--koru-text-soft);
+  1744→  padding: 2px 7px;
+  1745→  font-size: 10px;
+  1746→  font-weight: 700;
+  1747→  line-height: 1.4;
+  1748→}
+  1749→
+  1750→.koru-plan-rationale {
+  1751→  grid-column: 3 / -1;
+  1752→  margin-top: -4px;
+  1753→  color: var(--koru-muted);
+  1754→  font-size: 11px;
+  1755→  line-height: 1.25;
+  1756→}
+  1757→
+  1758→.koru-priority {
+  1759→  border-radius: 4px;
+  1760→  background: var(--koru-accent-soft);
+  1761→  color: var(--koru-accent);
+  1762→  padding: 2px 8px;
+  1763→  font-size: 10px;
+  1764→  font-weight: 700;
+  1765→  line-height: 1.4;
+  1766→}
+  1767→
+  1768→.koru-priority.is-medium {
+  1769→  background: var(--koru-amber-soft);
+  1770→  color: var(--koru-amber);
+  1771→}
+  1772→
+  1773→.koru-actions {
+  1774→  display: flex;
+  1775→  flex-wrap: wrap;
+  1776→  gap: 8px;
+  1777→  margin-top: 12px;
+  1778→}
+  1779→
+  1780→.koru-pill-button {
+  1781→  display: inline-flex;
+  1782→  min-height: 32px;
+  1783→  align-items: center;
+  1784→  gap: 6px;
+  1785→  border: 1px solid var(--koru-border-strong);
+  1786→  border-radius: 999px;
+  1787→  background: var(--koru-surface);
+  1788→  color: var(--koru-text-soft);
+  1789→  padding: 6px 12px;
+  1790→  box-shadow: var(--koru-shadow);
+  1791→  font-size: 12px;
+  1792→  font-weight: 600;
+  1793→  transition: transform 160ms ease, border-color 160ms ease;
+  1794→}
+  1795→
+  1796→.koru-pill-button.is-primary {
+  1797→  border-color: var(--koru-border-strong);
+  1798→}
+  1799→
+  1800→.koru-pill-button:active,
+  1801→.koru-like:active,
+  1802→.koru-icon-button:active,
+  1803→.koru-mic-button:active,
+  1804→.koru-composer-icon:active {
+  1805→  transform: scale(0.96);
+  1806→}
+  1807→
+  1808→.koru-inline-card {
+  1809→  border: 1px solid var(--koru-border);
+  1810→  padding: 12px;
+  1811→}
+  1812→
+  1813→.koru-inline-tag {
+  1814→  color: var(--koru-accent);
+  1815→  font-size: 11px;
+  1816→  font-weight: 700;
+  1817→  letter-spacing: 0.04em;
+  1818→  text-transform: uppercase;
+  1819→}
+  1820→
+  1821→.koru-inline-text,
+  1822→.koru-card-result {
+  1823→  margin-top: 4px;
+  1824→  color: var(--koru-text);
+  1825→  font-size: 14px;
+  1826→  line-height: 1.45;
+  1827→}
+  1828→
+  1829→.koru-card-note {
+  1830→  margin-top: 10px;
+  1831→  margin-bottom: 14px; /* Fase 1 (audit visual): respiro inferior para que no se pegue al globo Koru siguiente */
+  1832→  color: var(--koru-muted);
+  1833→  font-size: 12px;
+  1834→  line-height: 1.35;
+  1835→}
+  1836→
+  1837→.koru-card-result {
+  1838→  color: var(--koru-accent);
+  1839→  font-weight: 600;
+  1840→}
+  1841→
+  1842→.koru-resource-list {
+  1843→  overflow: hidden;
+  1844→  border: 1px solid var(--koru-border);
+  1845→}
+  1846→
+  1847→.koru-resource-row {
+  1848→  display: grid;
+  1849→  grid-template-columns: 32px minmax(0, 1fr) 36px;
+  1850→  align-items: center;
+  1851→  gap: 10px;
+  1852→  border-bottom: 1px solid var(--koru-border);
+  1853→  padding: 10px 12px;
+  1854→}
+  1855→
+  1856→.koru-resource-row:last-child {
+  1857→  border-bottom: 0;
+  1858→}
+  1859→
+  1860→.koru-resource-icon,
+  1861→.koru-source-open,
+  1862→.koru-icon-button {
+  1863→  display: grid;
+  1864→  place-items: center;
+  1865→  border-radius: 8px;
+  1866→  color: var(--koru-accent);
+  1867→}
+  1868→
+  1869→.koru-resource-icon {
+  1870→  width: 32px;
+  1871→  height: 32px;
+  1872→  background: var(--koru-accent-soft);
+  1873→}
+  1874→
+  1875→.koru-resource-copy,
+  1876→.koru-source-copy {
+  1877→  display: flex;
+  1878→  min-width: 0;
+  1879→  flex-direction: column;
+  1880→}
+  1881→
+  1882→.koru-resource-title,
+  1883→.koru-source-title {
+  1884→  overflow: hidden;
+  1885→  color: var(--koru-text);
+  1886→  font-size: 14px;
+  1887→  font-weight: 600;
+  1888→  line-height: 1.3;
+  1889→  text-overflow: ellipsis;
+  1890→  white-space: nowrap;
+  1891→}
+  1892→
+  1893→.koru-resource-meta,
+  1894→.koru-source-domain,
+  1895→.koru-source-snippet {
+  1896→  color: var(--koru-muted);
+  1897→  font-size: 12px;
+  1898→  line-height: 1.35;
+  1899→}
+  1900→
+  1901→.koru-icon-button {
+  1902→  width: 36px;
+  1903→  height: 36px;
+  1904→  transition: transform 160ms ease, background-color 160ms ease;
+  1905→}
+  1906→
+  1907→.koru-source {
+  1908→  display: grid;
+  1909→  grid-template-columns: minmax(0, 1fr) 58px;
+  1910→  gap: 12px;
+  1911→  border: 1px solid var(--koru-border);
+  1912→  padding: 12px;
+  1913→}
+  1914→
+  1915→.koru-source-open {
+  1916→  min-height: 48px;
+  1917→  background: var(--koru-accent-soft);
+  1918→}
+  1919→
+  1920→.koru-source-snippet {
+  1921→  display: -webkit-box;
+  1922→  margin-top: 4px;
+  1923→  overflow: hidden;
+  1924→  -webkit-line-clamp: 2;
+  1925→  -webkit-box-orient: vertical;
+  1926→}
+  1927→
+  1928→.koru-chat-footer {
+  1929→  position: relative;
+  1930→  z-index: 20;
+  1931→  flex: 0 0 auto;
+  1932→  /* Fase 1 (audit visual): padding-top generoso para que el activity hint
+  1933→     no se pegue al último globo de la conversación. padding-bottom con
+  1934→     safe-area para dispositivos con notch. */
+  1935→  padding: 14px 20px max(28px, env(safe-area-inset-bottom));
+  1936→}
+  1937→
+  1938→.koru-footer-note,
+  1939→.koru-footer-error {
+  1940→  margin-bottom: 8px;
+  1941→  text-align: center;
+  1942→  font-size: 12px;
+  1943→  font-weight: 600;
+  1944→  color: #ffffff;
+  1945→  text-shadow: 0 1px 6px rgba(18, 10, 50, 0.5);
+  1946→}
+  1947→
+  1948→.koru-footer-error {
+  1949→  color: #ffc9c2;
+  1950→}
+  1951→
+  1952→/* Composer réplica Stitch: píldora blanca 64px, hoja (eco) a la izquierda,
+  1953→   campo con borde #f0ebf8 y botón circular #7C5FF6 a la derecha. */
+  1954→.koru-composer {
+  1955→  display: flex;
+  1956→  align-items: center;
+  1957→  width: 100%;
+  1958→  height: 64px;
+  1959→  border-radius: 999px;
+  1960→  background: #ffffff;
+  1961→  padding: 8px;
+  1962→  box-shadow: 0 12px 32px rgba(18, 10, 50, 0.22);
+  1963→}
+  1964→
+  1965→.koru-composer-icon {
+  1966→  display: flex;
+  1967→  width: 48px;
+  1968→  height: 48px;
+  1969→  flex: 0 0 auto;
+  1970→  align-items: center;
+  1971→  justify-content: center;
+  1972→  margin-left: 4px;
+  1973→  border-radius: 999px;
+  1974→  color: #a89ad7;
+  1975→  transition: transform 160ms ease, color 160ms ease;
+  1976→}
+  1977→
+  1978→.koru-composer-icon.is-active {
+  1979→  color: #523a9e;
+  1980→}
+  1981→
+  1982→.koru-composer-field {
+  1983→  display: flex;
+  1984→  flex: 1;
+  1985→  min-width: 0;
+  1986→  align-items: center;
+  1987→  height: 100%;
+  1988→  margin: 0 8px;
+  1989→  border: 1px solid #f0ebf8;
+  1990→  border-radius: 999px;
+  1991→  padding: 0 16px;
+  1992→}
+  1993→
+  1994→.koru-composer-input {
+  1995→  width: 100%;
+  1996→  border: none;
+  1997→  background: transparent;
+  1998→  color: #523a9e;
+  1999→  font-family: inherit;
+  2000→  font-size: 15px;
+
+[showing lines 1-2000 of 5804; use offset=2001 with limit to continue reading]
