@@ -33,6 +33,26 @@ import type {
   ProactiveNudge,
   RuntimeSettings,
   VoicePreference,
+  // TIER S — nuevos tipos
+  Plan,
+  PlanStep,
+  Checklist,
+  ChecklistItem,
+  Habit,
+  HabitLog,
+  Routine,
+  ExercisePlan,
+  ExerciseSession,
+  WorkoutLog,
+  ShoppingList,
+  ShoppingItem,
+  WellbeingLog,
+  Person,
+  UserProfile,
+  UserPreferences,
+  Decision,
+  WeatherCache,
+  UiBlock,
 } from "./types";
 
 function nowIso(): string {
@@ -788,4 +808,316 @@ export function selectRelevantMemories(
     }));
 
   return scored;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TIER S — Nuevos reducers para entidades funcionales v2
+// ═══════════════════════════════════════════════════════════════
+
+// ─── Plans ───
+export function createPlan(state: KoruState, title: string, steps: Omit<PlanStep, "id" | "order" | "done">[]): KoruState {
+  const now = nowIso();
+  const plan: Plan = {
+    id: createId("plan"),
+    title,
+    steps: steps.map((s, i) => ({ ...s, id: createId("step"), order: i, done: false })),
+    status: "active",
+    createdAt: now,
+    updatedAt: now,
+  };
+  const next = { ...state, plans: [plan, ...(state.plans ?? [])], updatedAt: now };
+  saveState(next);
+  return next;
+}
+
+export function togglePlanStep(state: KoruState, planId: string, stepId: string): KoruState {
+  const now = nowIso();
+  const plans = (state.plans ?? []).map(p => {
+    if (p.id !== planId) return p;
+    const steps = p.steps.map(s =>
+      s.id === stepId ? { ...s, done: !s.done, doneAt: !s.done ? now : undefined } : s
+    );
+    const allDone = steps.every(s => s.done);
+    return { ...p, steps, status: allDone ? "completed" as const : p.status, updatedAt: now };
+  });
+  const next = { ...state, plans, updatedAt: now };
+  saveState(next);
+  return next;
+}
+
+export function archivePlan(state: KoruState, planId: string): KoruState {
+  const now = nowIso();
+  const plans = (state.plans ?? []).map(p =>
+    p.id === planId ? { ...p, status: "archived" as const, archivedAt: now, updatedAt: now } : p
+  );
+  const next = { ...state, plans, updatedAt: now };
+  saveState(next);
+  return next;
+}
+
+// ─── Checklists ───
+export function createChecklist(state: KoruState, title: string, items: Omit<ChecklistItem, "id" | "order">[]): KoruState {
+  const now = nowIso();
+  const checklist: Checklist = {
+    id: createId("checklist"),
+    title,
+    items: items.map((it, i) => ({ ...it, id: createId("citem"), order: i })),
+    status: "active",
+    createdAt: now,
+  };
+  const next = { ...state, checklists: [checklist, ...(state.checklists ?? [])], updatedAt: now };
+  saveState(next);
+  return next;
+}
+
+export function toggleChecklistItem(state: KoruState, checklistId: string, itemId: string): KoruState {
+  const now = nowIso();
+  const checklists = (state.checklists ?? []).map(c => {
+    if (c.id !== checklistId) return c;
+    const items = c.items.map(it =>
+      it.id === itemId ? { ...it, doneAt: it.doneAt ? undefined : now } : it
+    );
+    const allDone = items.every(it => it.doneAt);
+    return { ...c, items, status: allDone ? "completed" as const : c.status, completedAt: allDone ? now : undefined };
+  });
+  const next = { ...state, checklists, updatedAt: now };
+  saveState(next);
+  return next;
+}
+
+// ─── Habits ───
+export function createHabit(state: KoruState, label: string, icon: string, cadence: Habit["cadence"], target: number, unit?: string, anchorTime?: string): KoruState {
+  const now = nowIso();
+  const habit: Habit = {
+    id: createId("habit"),
+    label, icon, cadence, target, unit, anchorTime,
+    active: true,
+    createdAt: now,
+  };
+  const next = { ...state, habits: [habit, ...(state.habits ?? [])], updatedAt: now };
+  saveState(next);
+  return next;
+}
+
+export function logHabit(state: KoruState, habitId: string, value: number): KoruState {
+  const now = nowIso();
+  const today = now.slice(0, 10);
+  const log: HabitLog = {
+    id: createId("hlog"),
+    habitId,
+    date: today,
+    value,
+    completedAt: now,
+  };
+  // Remove existing log for today if present (idempotent)
+  const habitLogs = [
+    log,
+    ...(state.habitLogs ?? []).filter(l => !(l.habitId === habitId && l.date === today)),
+  ].slice(0, 1000);
+  const next = { ...state, habitLogs, updatedAt: now };
+  saveState(next);
+  return next;
+}
+
+export function computeStreak(habitId: string, logs: HabitLog[]): number {
+  const habitLogs = logs.filter(l => l.habitId === habitId).sort((a, b) => b.date.localeCompare(a.date));
+  if (habitLogs.length === 0) return 0;
+  let streak = 0;
+  let expectedDate = new Date().toISOString().slice(0, 10);
+  for (const log of habitLogs) {
+    if (log.date === expectedDate) {
+      streak++;
+      const d = new Date(expectedDate);
+      d.setDate(d.getDate() - 1);
+      expectedDate = d.toISOString().slice(0, 10);
+    } else if (log.date < expectedDate) {
+      break;
+    }
+  }
+  return streak;
+}
+
+// ─── Routines ───
+export function createRoutine(state: KoruState, name: string, anchorTime: string, habitIds: string[], daysOfWeek: number[]): KoruState {
+  const now = nowIso();
+  const routine: Routine = {
+    id: createId("routine"),
+    name, anchorTime, habitIds, daysOfWeek,
+    createdAt: now,
+  };
+  const next = { ...state, routines: [routine, ...(state.routines ?? [])], updatedAt: now };
+  saveState(next);
+  return next;
+}
+
+// ─── ExercisePlans ───
+export function createExercisePlan(state: KoruState, name: string, weeksTotal: number, sessions: Omit<ExerciseSession, "id" | "order">[]): KoruState {
+  const now = nowIso();
+  const plan: ExercisePlan = {
+    id: createId("explan"),
+    name, weeksTotal,
+    sessions: sessions.map((s, i) => ({ ...s, id: createId("exsess"), order: i })),
+    currentSessionIdx: 0,
+    createdAt: now,
+    status: "active",
+  };
+  const next = { ...state, exercisePlans: [plan, ...(state.exercisePlans ?? [])], updatedAt: now };
+  saveState(next);
+  return next;
+}
+
+export function logWorkout(state: KoruState, planId: string, sessionId: string, exercises: WorkoutLog["exercises"], durationMin: number, kcal?: number): KoruState {
+  const now = nowIso();
+  const log: WorkoutLog = {
+    id: createId("wlog"),
+    planId, sessionId,
+    date: now,
+    exercises, durationMin, kcal,
+  };
+  // Advance currentSessionIdx
+  const exercisePlans = (state.exercisePlans ?? []).map(p => {
+    if (p.id !== planId) return p;
+    const sessions = p.sessions.map(s => s.id === sessionId ? { ...s, completedAt: now } : s);
+    const nextIdx = Math.min(p.currentSessionIdx + 1, sessions.length - 1);
+    const allDone = sessions.every(s => s.completedAt);
+    return { ...p, sessions, currentSessionIdx: nextIdx, status: allDone ? "completed" as const : p.status };
+  });
+  const next = { ...state, workoutLogs: [log, ...(state.workoutLogs ?? [])].slice(0, 200), exercisePlans, updatedAt: now };
+  saveState(next);
+  return next;
+}
+
+// ─── ShoppingLists ───
+export function createShoppingList(state: KoruState, title: string, items: Omit<ShoppingItem, "id" | "order" | "checked">[], store?: string): KoruState {
+  const now = nowIso();
+  const list: ShoppingList = {
+    id: createId("shoplist"),
+    title, store,
+    items: items.map((it, i) => ({ ...it, id: createId("sitem"), order: i, checked: false })),
+    status: "active",
+    createdAt: now,
+  };
+  const next = { ...state, shoppingLists: [list, ...(state.shoppingLists ?? [])], updatedAt: now };
+  saveState(next);
+  return next;
+}
+
+export function toggleShoppingItem(state: KoruState, listId: string, itemId: string): KoruState {
+  const now = nowIso();
+  const shoppingLists = (state.shoppingLists ?? []).map(l => {
+    if (l.id !== listId) return l;
+    const items = l.items.map(it =>
+      it.id === itemId ? { ...it, checked: !it.checked, checkedAt: !it.checked ? now : undefined } : it
+    );
+    const allChecked = items.every(it => it.checked);
+    const totalSpent = items.filter(it => it.checked && it.price).reduce((sum, it) => sum + (it.price ?? 0), 0);
+    return { ...l, items, totalSpent, status: allChecked ? "completed" as const : l.status, completedAt: allChecked ? now : undefined };
+  });
+  const next = { ...state, shoppingLists, updatedAt: now };
+  saveState(next);
+  return next;
+}
+
+// ─── Wellbeing ───
+export function logWellbeing(state: KoruState, metric: WellbeingLog["metric"], value: number, unit: string, source: WellbeingLog["source"] = "manual"): KoruState {
+  const now = nowIso();
+  const today = now.slice(0, 10);
+  const log: WellbeingLog = {
+    id: createId("wblog"),
+    date: today,
+    metric, value, unit, source,
+  };
+  // Replace existing log for today+metric
+  const wellbeingLogs = [
+    log,
+    ...(state.wellbeingLogs ?? []).filter(l => !(l.date === today && l.metric === metric)),
+  ].slice(0, 500);
+  const next = { ...state, wellbeingLogs, updatedAt: now };
+  saveState(next);
+  return next;
+}
+
+// ─── People ───
+export function addPerson(state: KoruState, name: string, relationship?: string, birthday?: string): KoruState {
+  const now = nowIso();
+  const person: Person = {
+    id: createId("person"),
+    name, relationship, birthday,
+  };
+  const next = { ...state, people: [person, ...(state.people ?? [])], updatedAt: now };
+  saveState(next);
+  return next;
+}
+
+// ─── UserProfile ───
+export function updateUserProfile(state: KoruState, profile: Partial<UserProfile>): KoruState {
+  const now = nowIso();
+  const next = { ...state, userProfile: { ...state.userProfile, ...profile }, updatedAt: now };
+  saveState(next);
+  return next;
+}
+
+// ─── Preferences ───
+export function updatePreferences(state: KoruState, prefs: Partial<UserPreferences>): KoruState {
+  const now = nowIso();
+  const defaults: UserPreferences = {
+    theme: "light", fontScale: "medium", haptics: true, sounds: true,
+    reducedMotion: false, highContrast: false,
+  };
+  const next = { ...state, preferences: { ...defaults, ...state.preferences, ...prefs }, updatedAt: now };
+  saveState(next);
+  return next;
+}
+
+// ─── Decisions ───
+export function createDecision(state: KoruState, question: string, options: Decision["options"], factors: Decision["factors"], weights: Record<string, number>): KoruState {
+  const now = nowIso();
+  const decision: Decision = {
+    id: createId("decision"),
+    question, options, factors, weights,
+    linkedMemoryIds: [],
+    createdAt: now,
+  };
+  const next = { ...state, decisions: [decision, ...(state.decisions ?? [])], updatedAt: now };
+  saveState(next);
+  return next;
+}
+
+// ─── Weather cache ───
+export function updateWeatherCache(state: KoruState, cache: WeatherCache): KoruState {
+  const now = nowIso();
+  const next = { ...state, weatherCache: cache, updatedAt: now };
+  saveState(next);
+  return next;
+}
+
+// ─── Brief ───
+export function setLastBrief(state: KoruState, date: string, block?: UiBlock): KoruState {
+  const now = nowIso();
+  const next = { ...state, lastBriefDate: date, lastBriefBlock: block, updatedAt: now };
+  saveState(next);
+  return next;
+}
+
+// ─── Memory: forget (GDPR Art 17) ───
+export function forgetMemory(state: KoruState, memoryId: string): KoruState {
+  const now = nowIso();
+  const memories = state.memories.filter(m => m.id !== memoryId);
+  const next = { ...state, memories, updatedAt: now };
+  saveState(next);
+  return next;
+}
+
+// ─── P0 FIX: Snooze real para alarm/reminder ───
+export function snoozeCommitment(state: KoruState, commitmentId: string, minutes: number): KoruState {
+  const now = nowIso();
+  const snoozeUntil = new Date(Date.now() + minutes * 60 * 1000).toISOString();
+  const commitments = state.commitments.map(c =>
+    c.id === commitmentId
+      ? { ...c, dueAt: snoozeUntil, dueHint: `Pospuesto ${minutes} min`, remindedAt: undefined }
+      : c
+  );
+  const next = { ...state, commitments, updatedAt: now };
+  saveState(next);
+  return next;
 }

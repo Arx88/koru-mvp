@@ -1007,8 +1007,283 @@ export type LearningPreference = {
   lastInteractionAt: string;
 };
 
+// ═══════════════════════════════════════════════════════════════
+// TIER S — Nuevas entidades funcionales (v2 funcionalidades)
+// ═══════════════════════════════════════════════════════════════
+
+/** Plan durable — reemplaza la generación efímera de planFromState */
+export type PlanStep = {
+  id: string;
+  title: string;
+  detail?: string;
+  icon?: string;
+  time?: string;
+  durationMinutes?: number;
+  priority?: "alta" | "media" | "baja";
+  phase?: string;
+  estimatedDays?: number;
+  done?: boolean;
+  doneAt?: string;
+  order: number;
+};
+
+export type Plan = {
+  id: string;
+  title: string;
+  goalId?: string;
+  steps: PlanStep[];
+  estimatedWeeks?: number;
+  status: "active" | "completed" | "archived";
+  createdAt: string;
+  updatedAt: string;
+  archivedAt?: string;
+  strategyNotes?: Array<{ text: string; at: string }>;
+};
+
+/** Checklist durable — reemplaza smart_checklist efímero */
+export type ChecklistItem = {
+  id: string;
+  label: string;
+  detail?: string;
+  urgency: "normal" | "urgent" | "blocked";
+  dueAt?: string;
+  doneAt?: string;
+  source?: "manual" | "extracted" | "record";
+  order: number;
+};
+
+export type Checklist = {
+  id: string;
+  title: string;
+  items: ChecklistItem[];
+  dueAt?: string;
+  collection?: string;
+  status: "active" | "completed" | "archived";
+  createdAt: string;
+  completedAt?: string;
+};
+
+/** Habit + HabitLog — para rutinas y streaks */
+export type Habit = {
+  id: string;
+  label: string;
+  icon: string;
+  cadence: "daily" | "weekly" | "mon-fri" | "custom";
+  target: number;
+  unit?: string;
+  anchorTime?: string;
+  active: boolean;
+  createdAt: string;
+  archivedAt?: string;
+  routineId?: string;
+};
+
+export type HabitLog = {
+  id: string;
+  habitId: string;
+  date: string; // YYYY-MM-DD
+  value: number;
+  completedAt: string;
+};
+
+export type Routine = {
+  id: string;
+  name: string;
+  anchorTime: string;
+  habitIds: string[];
+  daysOfWeek: number[]; // 0=Dom, 1=Lun, ..., 6=Sáb
+  createdAt: string;
+};
+
+/** ExercisePlan — para planes de fuerza */
+export type ExerciseSet = {
+  exercise: string;
+  sets: number;
+  reps: number;
+  weight?: number;
+  durationSec?: number;
+  restSec?: number;
+  notes?: string;
+};
+
+export type ExerciseSession = {
+  id: string;
+  dayLabel: string;
+  exercises: ExerciseSet[];
+  completedAt?: string;
+  order: number;
+};
+
+export type ExercisePlan = {
+  id: string;
+  name: string;
+  weeksTotal: number;
+  sessions: ExerciseSession[];
+  currentSessionIdx: number;
+  createdAt: string;
+  status: "active" | "completed" | "archived";
+};
+
+export type WorkoutLog = {
+  id: string;
+  planId: string;
+  sessionId: string;
+  date: string;
+  exercises: ExerciseSet[];
+  durationMin: number;
+  kcal?: number;
+};
+
+/** ShoppingList durable — reemplaza shopping_item records sueltos */
+export type ShoppingItem = {
+  id: string;
+  name: string;
+  qty?: string;
+  unit?: string;
+  price?: number;
+  currency?: string;
+  checked: boolean;
+  checkedAt?: string;
+  category?: string;
+  order: number;
+};
+
+export type ShoppingList = {
+  id: string;
+  title: string;
+  store?: string;
+  items: ShoppingItem[];
+  dueAt?: string;
+  status: "active" | "completed" | "archived";
+  totalSpent?: number;
+  totalEstimate?: number;
+  createdAt: string;
+  completedAt?: string;
+};
+
+/** WellbeingLog — para métricas de salud */
+export type WellbeingLog = {
+  id: string;
+  date: string;
+  metric: "sleep" | "steps" | "hr" | "hrv" | "water" | "meditation" | "mood";
+  value: number;
+  unit: string;
+  source: "manual" | "healthkit" | "healthconnect" | "fitbit";
+};
+
+export type WellbeingStreak = {
+  meditation: { current: number; best: number; lastDate?: string };
+  water: { current: number; best: number; lastDate?: string };
+  sleep: { current: number; best: number; lastDate?: string };
+};
+
+/** Person — para recordatorios de personas */
+export type Person = {
+  id: string;
+  name: string;
+  relationship?: string;
+  birthday?: string;
+  giftPreferences?: string[];
+  lastContactedAt?: string;
+  phone?: string;
+};
+
+/** UserProfile — para Home dashboard y Settings */
+export type UserProfile = {
+  name?: string;
+  birthday?: string;
+  location?: string;
+  timezone?: string;
+  homeCity?: string;
+  homeLat?: number;
+  homeLng?: number;
+};
+
+/** UserPreferences — para Settings */
+export type UserPreferences = {
+  theme: "light" | "dark" | "auto";
+  fontScale: "small" | "medium" | "large";
+  haptics: boolean;
+  sounds: boolean;
+  dndStartHour?: number;
+  dndEndHour?: number;
+  reducedMotion: boolean;
+  highContrast: boolean;
+};
+
+/** Memory edit history */
+export type MemoryEdit = {
+  at: string;
+  field: string;
+  before?: string;
+  after?: string;
+  reason?: string;
+};
+
+/** Note attachment */
+export type Attachment = {
+  id: string;
+  name: string;
+  mimeType: string;
+  sizeBytes: number;
+  blobKey: string;
+};
+
+/** Decision support */
+export type DecisionOption = {
+  id: string;
+  label: string;
+  factorScores: Record<string, number>;
+  priorProbability?: number;
+  riskProfile?: "low" | "medium" | "high";
+};
+
+export type DecisionFactor = {
+  id: string;
+  label: string;
+  icon?: string;
+  direction: "higherIsBetter" | "lowerIsBetter";
+};
+
+export type Decision = {
+  id: string;
+  question: string;
+  deadline?: string;
+  options: DecisionOption[];
+  factors: DecisionFactor[];
+  weights: Record<string, number>;
+  algorithm?: "wadd" | "ttb" | "montecarlo";
+  result?: {
+    perOptionScore: Record<string, number>;
+    perOptionProbability: Record<string, number>;
+    recommendation: string;
+    confidenceInterval?: [number, number];
+  };
+  outcome?: {
+    chosenOptionId: string;
+    decidedAt: string;
+    satisfaction1to5: number;
+    followUpAt?: string;
+    notes?: string;
+  };
+  linkedMemoryIds: string[];
+  createdAt: string;
+};
+
+/** Weather cache */
+export type WeatherCache = {
+  city: string;
+  fetchedAt: string;
+  payload: {
+    now: string;
+    condition: string;
+    hourly?: Array<{ hour: string; temp: string; conditionIcon: string; rainPct: number; uv: number }>;
+    daily?: Array<{ dayAbbrev: string; hi: string; lo: string; conditionIcon: string }>;
+  };
+};
+
 export type KoruState = {
-  userId: string; // 🔴 Multi-cuenta: ID del usuario propietario de este state
+  userId: string;
   userName?: string;
   stage: KoruStage;
   trustedEnergy: number;
@@ -1032,8 +1307,26 @@ export type KoruState = {
   actionPreparationEnabled: boolean;
   worldSignalsEnabled: boolean;
   learningPreferences: LearningPreference[];
-  /** 🔴 i18n: preferred reply language ("es" | "en"). Default "es". */
   language?: "es" | "en";
+
+  // ═══ TIER S — Nuevos slices de estado ═══
+  plans?: Plan[];
+  checklists?: Checklist[];
+  habits?: Habit[];
+  habitLogs?: HabitLog[];
+  routines?: Routine[];
+  exercisePlans?: ExercisePlan[];
+  workoutLogs?: WorkoutLog[];
+  shoppingLists?: ShoppingList[];
+  wellbeingLogs?: WellbeingLog[];
+  wellbeingStreaks?: WellbeingStreak;
+  people?: Person[];
+  userProfile?: UserProfile;
+  preferences?: UserPreferences;
+  decisions?: Decision[];
+  weatherCache?: WeatherCache;
+  lastBriefDate?: string;
+  lastBriefBlock?: UiBlock;
 };
 
 export type KoruAnalysis = {

@@ -1442,7 +1442,27 @@ export function KoruProvider({ children }: { children: ReactNode }) {
         setMemoryToast({ id: `action_${Date.now()}`, kind: "saved", text: action === "complete" ? "Listo ✓" : "Apagado" });
         setTimeout(() => setMemoryToast(null), 2000);
       } else if (action === "snooze") {
-        setMemoryToast({ id: `action_${Date.now()}`, kind: "saved", text: "Postergado 10 min" });
+        // 🔴 P0 FIX: Snooze real — reagenda el commitment 10 min en el futuro
+        const title = blockData?.title ?? blockData?.hero?.title;
+        if (title) {
+          commitDomainState((prev) => {
+            const commitment = prev.commitments.find(c => c.title === title);
+            if (!commitment) return prev;
+            const snoozeMinutes = 10;
+            const snoozeUntil = new Date(Date.now() + snoozeMinutes * 60 * 1000).toISOString();
+            const next = {
+              ...prev,
+              commitments: prev.commitments.map(c =>
+                c.id === commitment.id
+                  ? { ...c, dueAt: snoozeUntil, dueHint: `Pospuesto ${snoozeMinutes} min`, remindedAt: undefined }
+                  : c
+              ),
+            };
+            saveState(next);
+            return next;
+          });
+        }
+        setMemoryToast({ id: `action_${Date.now()}`, kind: "saved", text: "Postergado 10 min ✓" });
         setTimeout(() => setMemoryToast(null), 2000);
       }
     };

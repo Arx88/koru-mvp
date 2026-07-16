@@ -326,7 +326,11 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 80px 20px 12px;
+  /* 🔴 v2: padding-top para que mensajes no se superpongan con mascota/suggestions */
+  padding: 100px 20px 12px;
+  /* 🔴 v2: mask-image para fade-out arriba — los mensajes se desvanecen al scrollear hacia arriba */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, transparent 80px, black 130px, black 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, transparent 80px, black 130px, black 100%);
 }
 
 .koru-chat-scroll::-webkit-scrollbar {
@@ -5640,15 +5644,48 @@ a.koru-dsec-source:hover {
   border-radius: 2px;
 }
 
-/* 🔴 v2: Botón STICKY — se queda pegado arriba del scroll viewport.
-   FIX bug "text appears above the toggle button":
-   - top subido a 132px para salir de la zona de fade del mask-image (0-130px)
-     del scroll container, que antes estaba transparentando el propio botón.
-   - fondo del wrapper ahora 100% OPACO (ya no gradient → transparent) para
-     que los mensajes que scrollean por debajo NO se vean a través del botón.
-   - z-index: 15 ya era correcto (pinta por encima de las burbujas); el bug
-     era de translucidez, no de z-index. */
-/* OLD sticky CSS removed — button is now a sibling outside scroll */
+/* 🔴 v2: Botón STICKY — se queda pegado arriba del scroll viewport */
+.koru-thread-toggle-sticky {
+  position: sticky;
+  top: 80px;
+  z-index: 15;
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 8px 0;
+  /* fondo con blur para que los mensajes que pasan por debajo se vean difuminados */
+  background: linear-gradient(to bottom, #453f6a 0%, #453f6a 60%, transparent 100%);
+  margin: -8px -20px 0;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+.koru-thread-more-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: rgba(131, 99, 249, 0.15);
+  border: 1px solid rgba(131, 99, 249, 0.3);
+  color: #c9b8ff;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.koru-thread-more-btn:hover {
+  background: rgba(131, 99, 249, 0.25);
+  border-color: rgba(131, 99, 249, 0.45);
+  color: #fff;
+}
+.koru-thread-more-btn:active { transform: scale(0.96); }
+.koru-thread-more-btn .material-symbols-outlined { font-size: 18px; }
+
 /* 🔴 v2: Chat thread — turnos colapsados (legacy, ya no se usa pero se mantiene por compat) */
 .koru-collapsed-turn {
   display: flex;
@@ -5765,18 +5802,249 @@ a.koru-dsec-source:hover {
   }
 }
 
-/* 🔴 Avatar de Koru arriba del WorkingPanel */
-.koru-working-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  overflow: hidden;
-  margin-bottom: 8px;
-  flex-shrink: 0;
-  border: 2px solid rgba(131, 99, 249, 0.3);
+/* ═══════════════════════════════════════════════════════════════
+   TIER S — Nuevas animaciones (catálogo de motion v2)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Section stagger — modules del detail screen entran escalonados */
+@keyframes koru-section-stagger {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-.koru-working-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.koru-magical-card {
+  animation: koru-section-stagger 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: calc(var(--stagger-i, 0) * 60ms);
+}
+
+/* Shimmer sweep — CTA hint brilla cada 4s */
+@keyframes koru-shimmer-sweep {
+  0%, 60% { left: -100%; }
+  80%, 100% { left: 150%; }
+}
+.koru-plan-hero-cta-hint {
+  position: relative;
+  overflow: hidden;
+}
+.koru-plan-hero-cta-hint::after {
+  content: "";
+  position: absolute;
+  top: 0; left: -100%;
+  width: 50%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+  animation: koru-shimmer-sweep 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Arrow pulse — arrow del CTA hint se mueve sutilmente */
+@keyframes koru-arrow-pulse {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(3px); }
+}
+
+/* Icon pop — icono escala 0.8→1 con spring al entrar */
+@keyframes koru-icon-pop {
+  0% { transform: scale(0.8) rotate(-5deg); opacity: 0; }
+  60% { transform: scale(1.08) rotate(2deg); }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+/* Glow breathe — halo detrás del hero art */
+@keyframes koru-glow-breathe {
+  0%, 100% { opacity: 0.20; transform: scale(1); }
+  50% { opacity: 0.40; transform: scale(1.08); }
+}
+.koru-hero-glow {
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 160px; height: 160px;
+  border-radius: 50%;
+  filter: blur(40px);
+  background: radial-gradient(circle, var(--accent-color, #8363f9), transparent 70%);
+  animation: koru-glow-breathe 4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Tap ripple — ripple desde punto de tap */
+@keyframes koru-tap-ripple {
+  to { transform: scale(4); opacity: 0; }
+}
+.koru-tap-ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(131, 99, 249, 0.3);
+  transform: scale(0);
+  animation: koru-tap-ripple 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  pointer-events: none;
+}
+
+/* Icon rotate — para refresh, sync */
+@keyframes koru-icon-rotate {
+  to { transform: rotate(360deg); }
+}
+
+/* Icon bounce — para trending_up, arrows */
+@keyframes koru-icon-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+/* Star pop — para rating stars */
+@keyframes koru-star-pop {
+  0%, 100% { transform: scale(0.95) rotate(0); }
+  50% { transform: scale(1.12) rotate(4deg); }
+}
+
+/* Shimmer bar — skeleton loader */
+@keyframes koru-shimmer-bar {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.koru-skeleton {
+  background: linear-gradient(90deg, #e4ddf7, #f6f3fe, #e4ddf7);
+  background-size: 200% 100%;
+  animation: koru-shimmer-bar 1.5s linear infinite;
+  border-radius: 4px;
+}
+
+/* Success pop — bookmark fill, save done */
+@keyframes koru-success-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* Shake — error feedback */
+@keyframes koru-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+/* Fade up — reveal on scroll */
+@keyframes koru-fade-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Underline grow — hover en links */
+@keyframes koru-underline-grow {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+/* Color flash — tap feedback */
+@keyframes koru-color-flash {
+  0% { background-color: rgba(131, 99, 249, 0.08); }
+  50% { background-color: rgba(131, 99, 249, 0.20); }
+  100% { background-color: rgba(131, 99, 249, 0.08); }
+}
+
+/* Chevron rotate — expandible sections */
+@keyframes koru-chevron-rotate {
+  from { transform: rotate(0); }
+  to { transform: rotate(90deg); }
+}
+
+/* Aurora drift — background blobs (reactbits pattern) */
+@keyframes koru-aurora-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(40px, -30px) scale(1.1); }
+  66% { transform: translate(-30px, 40px) scale(0.95); }
+}
+
+/* Detail screen sticky header collapse */
+.koru-detail-sticky-head {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(131, 99, 249, 0.12);
+  padding: 13px 15px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.koru-detail-sticky-back,
+.koru-detail-sticky-save {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: rgba(131, 99, 249, 0.10);
+  border: none;
+  color: var(--koru-purple, #8363f9);
+  display: grid; place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.koru-detail-sticky-back:hover,
+.koru-detail-sticky-save:hover {
+  background: rgba(131, 99, 249, 0.20);
+  transform: scale(1.08);
+}
+.koru-detail-mini-icon {
+  width: 30px; height: 30px;
+  border-radius: 9px;
+  display: grid; place-items: center;
+  flex-shrink: 0;
+}
+.koru-detail-mini-icon .material-symbols-outlined {
+  font-size: 17px;
+}
+.koru-detail-mini-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--koru-purple-deep, #382b8c);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1; min-width: 0;
+}
+.koru-detail-mini-sub {
+  font-size: 10px;
+  color: var(--color-earth, #6b5f8c);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Sticky actions footer with blur backdrop */
+.koru-detail-actions-sticky {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  gap: 10px;
+  padding: 12px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-top: 1px solid rgba(131, 99, 249, 0.12);
+  box-shadow: 0 -8px 24px rgba(18, 10, 50, 0.06);
+  z-index: 50;
+}
+
+/* Sources con favicon */
+.koru-source-favicon {
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+/* Wellbeing streak fire */
+.koru-streak-fire {
+  display: inline-block;
+  animation: koru-icon-bounce 2s ease-in-out infinite;
+}
+
+/* 🔴 Extended reduced motion — cubrir todas las nuevas animaciones */
+@media (prefers-reduced-motion: reduce) {
+  .koru-magical-card,
+  .koru-plan-hero-cta-hint::after,
+  .koru-tap-ripple,
+  .koru-hero-glow,
+  .koru-skeleton,
+  .koru-streak-fire {
+    animation: none !important;
+    transition: none !important;
+  }
 }
