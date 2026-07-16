@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
+import { ErrorBoundary } from "./ErrorBoundary";
 import { ArrowUp, Image as ImageIcon, Leaf, Mic, MicOff, Paperclip, Plus } from "lucide-react";
 import { createSpeechSession, getSpeechSupport } from "../domain/speech";
 import { cn } from "../lib/utils";
@@ -1608,6 +1609,7 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
           lila mientras llega el chunk. */}
       {showCreate && (
         <Suspense fallback={<div className="koru-skeleton" style={{ height: 200 }} />}>
+          <ErrorBoundary>
           <CreateScreen
             onClose={() => setShowCreate(false)}
             // 🔴 AI-assist — delega al backend /api/koru/ai-assist, que usa el
@@ -1634,7 +1636,8 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
               return { suggestions: [] };
             }
           }}
-        />
+          />
+          </ErrorBoundary>
         </Suspense>
       )}
 

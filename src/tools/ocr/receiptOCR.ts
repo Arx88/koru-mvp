@@ -9,7 +9,7 @@
  * debe mostrar un loader mientras tanto.
  */
 
-import Tesseract from "tesseract.js";
+// tesseract.js se carga dinámicamente para no romper el bundle
 
 export type ReceiptItem = {
   description: string;
@@ -72,6 +72,7 @@ export async function scanReceipt(
 ): Promise<ReceiptScanResult> {
   if (!imageFile) return { items: [], rawText: "" };
   try {
+    const Tesseract = (await import("tesseract.js")).default;
     const result = await Tesseract.recognize(imageFile, "spa+eng", {
       logger: () => {
         // Silenciamos el logger para no spamear consola. La UI puede pasar
