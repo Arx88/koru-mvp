@@ -1,5 +1,5 @@
 /**
- * Bloque Sports — barrel de 10 tools.
+ * Bloque Sports — barrel de tools.
  */
 
 import { matchLive, leagueStandings, matchSchedule, teamFollow } from "./football";
@@ -11,6 +11,7 @@ import {
   tennisAtpWta,
   f1Results,
 } from "./multi";
+import { tennisLive } from "./tennis";
 
 export const sportsTools = [
   matchLive,
@@ -23,4 +24,5 @@ export const sportsTools = [
   golfLeaderboard,
   tennisAtpWta,
   f1Results,
+  tennisLive,
 ];

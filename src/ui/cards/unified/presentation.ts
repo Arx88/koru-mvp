@@ -36,6 +36,10 @@ export type Hero = {
   /** valor grande sobre el arte (ej. "23°") */
   artValue?: string;
   metrics?: HeroMetric[];
+  /** 🔴 v2: timestamp ISO de cuándo se verificó el dato (transparencia de frescura). */
+  verifiedAt?: string;
+  /** 🔴 v2: etiqueta legible de antigüedad (ej. "Hace 2 min"). */
+  freshnessLabel?: string;
 };
 
 // ---- Secciones de la pantalla de detalle (magical-cards) --------------------
@@ -55,6 +59,9 @@ export type DetailChip = { label: string; sub?: string; color?: string };
 export type DetailScrollCard = {
   badge?: string;
   badgeColor?: string;
+  /** 🔴 v3: URL de imagen del restaurante (Google Places photo) — se renderiza como
+   *  thumbnail junto al badge; sustituye visualmente al badge textual. */
+  image?: string;
   title: string;
   detail?: string;
   metrics?: string[];
@@ -67,13 +74,21 @@ export type DetailStep = {
   badge?: string;
   badgeTone?: "done" | "current" | "pending" | "urgent";
 };
-export type DetailSourceRef = { title: string; domain?: string; url?: string; imageUrl?: string };
+export type DetailSourceRef = {
+  title: string;
+  domain?: string;
+  url?: string;
+  imageUrl?: string;
+  /** 🔴 v2: duración legible (ej. "12:34") para badge sobre thumbnails de video */
+  duration?: string;
+};
 
 export type DetailSection =
   | { kind: "text"; icon: string; accent: Accent; title: string; subtitle?: string; body: string }
   | { kind: "tiles"; icon: string; accent: Accent; title: string; subtitle?: string; tiles: DetailTile[] }
   | { kind: "rows"; icon: string; accent: Accent; title: string; subtitle?: string; rows: DetailRow[] }
   | { kind: "chips"; icon: string; accent: Accent; title: string; subtitle?: string; chips: DetailChip[] }
+  | { kind: "calendar"; icon: string; accent: Accent; title: string; subtitle?: string; days: DetailChip[] }
   | { kind: "scroller"; icon: string; accent: Accent; title: string; subtitle?: string; cards: DetailScrollCard[] }
   | { kind: "timeline"; icon: string; accent: Accent; title: string; subtitle?: string; steps: DetailStep[] }
   | { kind: "sources"; icon: string; accent: Accent; title: string; subtitle?: string; sources: DetailSourceRef[] }
@@ -105,6 +120,16 @@ export type KoruPresentation = {
   }>;
   /** 🔴 v2: empty state — cuando la card no tiene datos suficientes */
   empty?: { reason: string; icon?: string };
+  /**
+   * 🔴 v3: layout alternativo de la card. Default = molde Stitch clásico
+   * (kicker + título + arte + métricas + CTA). Las variantes rescriben la
+   * composición visual sin tocar el modelo de presentación.
+   *   - "compact"   → fila única (icono + kicker + título + chevron). ~60px.
+   *   - "spotlight" → imagen full-bleed (180px) con scrim + título overlay.
+   *   - "gallery"   → carrusel horizontal de mini-cards (70×80).
+   *   - "banner"    → gradiente full-width (100px) con número grande + label.
+   */
+  layout?: "default" | "compact" | "spotlight" | "gallery" | "banner";
 };
 
 // ---- Paleta Stitch ----------------------------------------------------------
@@ -209,6 +234,8 @@ export function toPresentation(block: UiBlock): KoruPresentation {
       return productAnalysis(block);
     case "travel_planner":
       return travelPlanner(block);
+    case "travel_plan":
+      return travelPlan(block);
     case "generation":
       return generation(block);
     case "match_timeline":
@@ -257,6 +284,10 @@ export function toPresentation(block: UiBlock): KoruPresentation {
       return movieReviewBlock(block);
     case "book_review":
       return bookReviewBlock(block);
+    case "news_urgent":
+      return newsUrgentBlock(block);
+    case "tennis_match":
+      return tennisMatch(block);
     case "plan":
       // El plan conserva su render canónico (PlanHeroCard); si llegara acá,
       // damos un hero equivalente por robustez.
@@ -433,6 +464,44 @@ function weather(b: Of<"weather">): KoruPresentation {
     body: b.advice,
   }] : [];
 
+  // 🔴 v2: pronóstico por hora como scroller horizontal (próximas 8 horas).
+  const hourlySection = b.hourly?.length
+    ? [{
+        kind: "scroller" as const,
+        icon: "schedule" as const,
+        accent: A.sky,
+        title: "Próximas horas",
+        subtitle: "POR HORA",
+        cards: b.hourly.map((h) => ({
+          badge: `${h.rainPct}%`,
+          badgeColor: A.blue.color,
+          title: h.hour,
+          detail: `${h.temp} · ${h.conditionIcon}`,
+          metrics: [`UV ${h.uv}`],
+        })),
+      }]
+    : [];
+
+  // 🔴 v2: pronóstico por día como tiles (próximos 7 días).
+  const dailySection = b.daily?.length
+    ? [{
+        kind: "tiles" as const,
+        icon: "calendar_view_week" as const,
+        accent: A.violet,
+        title: "Pronóstico 7 días",
+        subtitle: "ESTA SEMANA",
+        tiles: b.daily.map((d) => ({
+          icon: d.conditionIcon,
+          label: d.dayAbbrev,
+          value: `${d.hi} / ${d.lo}`,
+          color: A.amber.color,
+        })),
+      }]
+    : [];
+
+  // 🔴 v2: si hay hourly/daily, la detail screen cobra sentido aunque no haya tiles ni advice.
+  const hasDetailContent = detailTiles.length > 0 || !!b.advice || (b.hourly?.length ?? 0) > 0 || (b.daily?.length ?? 0) > 0;
+
   return {
     hero: {
       kicker: b.city ? `Tu Clima · ${b.city}` : "Tu Clima",
@@ -442,13 +511,17 @@ function weather(b: Of<"weather">): KoruPresentation {
       accent: weatherAccent,
       artValue: b.now,
       metrics: metrics.length ? metrics.slice(0, 3) : undefined,
+      // 🔴 v2: transparencia de frescura — cuándo se verificó el dato.
+      verifiedAt: b.verifiedAt,
+      freshnessLabel: b.freshnessLabel,
     },
-    detail: detailTiles.length || b.advice
+    detail: hasDetailContent
       ? {
           title: b.city ? `Clima · ${b.city}` : "Clima",
           subtitle: b.condition,
           sections: [
             ...adviceSection,
+            ...hourlySection,
             ...(detailTiles.length ? [{
               kind: "tiles" as const,
               icon: "monitoring" as const,
@@ -457,11 +530,12 @@ function weather(b: Of<"weather">): KoruPresentation {
               subtitle: "DETALLE",
               tiles: detailTiles,
             }] : []),
+            ...dailySection,
             ...(b.sources?.length ? [sourcesSection(b.sources)] : []),
           ],
         }
       : undefined,
-    cta: detailTiles.length || b.advice ? { label: "Ver detalle" } : undefined,
+    cta: hasDetailContent ? { label: "Ver detalle" } : undefined,
   };
 }
 
@@ -505,6 +579,7 @@ function reminder(b: Of<"reminder">): KoruPresentation {
       { label: "Listo", icon: "check", kind: "primary", action: "complete" },
       { label: "Posponer", icon: "snooze", kind: "secondary", action: "snooze" },
     ],
+    layout: "compact",
   };
 }
 
@@ -650,6 +725,8 @@ function comparison(b: Of<"comparison">): KoruPresentation {
       ],
     },
     cta: { label: "Ver comparación" },
+    // 🔴 v3: gallery (carrusel) cuando hay múltiples opciones que comparar.
+    layout: items.length > 1 ? "gallery" : "default",
   };
 }
 
@@ -864,6 +941,8 @@ function proactiveSignal(b: Of<"proactive_signal">): KoruPresentation {
           }
         : undefined,
     cta: b.sources?.length || b.summaryItems?.length ? { label: b.actionLabel ?? "Ver más" } : undefined,
+    // 🔴 v3: compact cuando no hay métricas (señal simple); default si las hay.
+    layout: b.summaryItems?.length ? "default" : "compact",
   };
 }
 
@@ -1020,23 +1099,34 @@ function restaurant(b: Of<"restaurant_synthesis">): KoruPresentation {
   const synthesisLabel = L.synthesisLabel ?? "Síntesis";
 
   // 🔴 v2: incluir imageUrl en las cards de scroller (antes se descartaba)
+  // 🔴 v3: si el match trae photos (Google Places), usamos la primera como
+  //        imagen del badge de la scroller card; enriquecemos metrics con
+  //        rating + ratingCount + priceLevel cuando estén disponibles.
   if (matches.length)
     sections.push({
       kind: "scroller",
       icon: "restaurant_menu",
       accent: A.amber,
       title: L.top3Label ?? "Top coincidencias",
-      cards: matches.map((m, i) => ({
-        badge: i === 0 ? (b.topScore ?? topPickLabel) : undefined,
-        badgeColor: i === 0 ? A.emerald.color : undefined,
-        title: m.name,
-        detail: m.quote,
-        // 🔴 v2: métricas con rating visual (estrellas) + count de fuentes
-        metrics: [
-          m.rating ? `★ ${m.rating.toFixed(1)}` : "",
-          m.sourcesMentioning ? `${m.sourcesMentioning} ${m.sourcesMentioning === 1 ? "fuente" : "fuentes"}` : "",
-        ].filter(Boolean),
-      })),
+      cards: matches.map((m, i) => {
+        const priceLabel = m.priceLevel ? "$".repeat(Math.max(1, Math.min(4, m.priceLevel))) : "";
+        const ratingMetric = m.rating ? `★ ${m.rating.toFixed(1)}${m.ratingCount ? ` (${m.ratingCount})` : ""}` : "";
+        const sourcesMetric = m.sourcesMentioning
+          ? `${m.sourcesMentioning} ${m.sourcesMentioning === 1 ? "fuente" : "fuentes"}`
+          : "";
+        const distanceMetric = m.distanceFromUser ? `📍 ${m.distanceFromUser}` : "";
+        return {
+          // 🔴 v3: primera foto de Google Places como badge image de la card.
+          image: m.photos?.[0] ?? m.imageUrl,
+          badge: i === 0 ? (b.topScore ?? topPickLabel) : undefined,
+          badgeColor: i === 0 ? A.emerald.color : undefined,
+          title: m.name,
+          // 🔴 v3: si hay address, la agregamos al detail junto con el quote.
+          detail: [m.address, m.quote].filter(Boolean).join(" · ") || undefined,
+          // 🔴 v3: métricas ricas — rating (con count) + price level + fuentes + distancia.
+          metrics: [ratingMetric, priceLabel, sourcesMetric, distanceMetric].filter(Boolean),
+        };
+      }),
     });
 
   // 🔴 v2: mood como sección destacada si existe (antes se descartaba)
@@ -1071,6 +1161,15 @@ function restaurant(b: Of<"restaurant_synthesis">): KoruPresentation {
   // 🔴 v2: kicker con status si es partial/failed
   const statusLabel = b.status === "partial" ? " · Resultados parciales" : b.status === "failed" ? " · Sin datos" : "";
 
+  // 🔴 v3: "Reservar" action button si el top match tiene reserveUrl
+  //        (Google Maps URL del place). El handler en KoruProvider recibe
+  //        `blockData` con todo el UiBlock, incluyendo matches[].reserveUrl.
+  const topMatch = matches[0];
+  const reserveAction =
+    topMatch?.reserveUrl
+      ? [{ label: L.reserveAction ?? "Reservar", icon: "event_available", kind: "primary" as const, action: "reserve" }]
+      : undefined;
+
   return {
     hero: {
       kicker: `Tu Recomendación${statusLabel}`,
@@ -1082,6 +1181,16 @@ function restaurant(b: Of<"restaurant_synthesis">): KoruPresentation {
     },
     detail: sections.length ? { title: b.title || "Restaurantes", sections } : undefined,
     cta: sections.length ? { label: "Ver recomendación" } : undefined,
+    // 🔴 v3: acción inline de reserva si hay reserveUrl en el top match.
+    actions: reserveAction,
+    // 🔴 v3: spotlight si el top match tiene foto (Google Places o imageUrl);
+    //       gallery si hay múltiples coincidencias pero ninguna foto hero.
+    layout:
+      topMatch?.photos?.[0] || topMatch?.imageUrl
+        ? "spotlight"
+        : matches.length > 1
+          ? "gallery"
+          : "default",
   };
 }
 
@@ -1111,6 +1220,8 @@ function morningBrief(b: Of<"morning_brief">): KoruPresentation {
         }
       : undefined,
     cta: items.length > 3 ? { label: "Ver todo" } : undefined,
+    // 🔴 v3: banner cuando el greeting es el hero (gran saludo matutino).
+    layout: b.greeting ? "banner" : "default",
   };
 }
 
@@ -1394,6 +1505,7 @@ function urgentNow(b: Of<"urgent_now">): KoruPresentation {
       { label: "Entendido", icon: "check", kind: "primary", action: "dismiss" },
       { label: "Recordarme", icon: "snooze", kind: "secondary", action: "snooze" },
     ],
+    layout: "compact",
   };
 }
 
@@ -1476,6 +1588,7 @@ function healthReminder(b: Of<"health_reminder">): KoruPresentation {
       { label: "Tomé la dosis", icon: "check", kind: "primary", action: "complete" },
       { label: "Posponer", icon: "snooze", kind: "secondary", action: "snooze" },
     ],
+    layout: "compact",
   };
 }
 
@@ -1538,6 +1651,8 @@ function productAnalysis(b: Of<"product_analysis">): KoruPresentation {
         }
       : undefined,
     cta: specs.length ? { label: b.actionLabel || "Ver opciones" } : undefined,
+    // 🔴 v3: gallery cuando hay múltiples especificaciones (specs como proxy de "products > 1").
+    layout: specs.length > 1 ? "gallery" : "default",
   };
 }
 
@@ -1571,23 +1686,244 @@ function travelPlanner(b: Of<"travel_planner">): KoruPresentation {
   };
 }
 
+/**
+ * travel_plan — Plan de viaje completo con itinerario día a día, reservas,
+ * checklist de equipaje y presupuesto. Hero con icono de vuelo y accent azul;
+ * el detalle arma 4 secciones: timeline (días), tiles (reservas), chips
+ * (packing checklist) y tiles (presupuesto).
+ */
+function travelPlan(b: Of<"travel_plan">): KoruPresentation {
+  const days = b.days ?? [];
+  const reservations = b.reservations ?? [];
+  const packing = b.packing ?? [];
+  const budget = b.budget ?? [];
+
+  // Hero metrics: días, viajeros, presupuesto total (en orden de disponibilidad).
+  const metrics: HeroMetric[] = [];
+  if (days.length > 0) metrics.push({ icon: "calendar_today", label: "Días", value: String(days.length), color: A.blue.color });
+  if (typeof b.travelers === "number" && b.travelers > 0) metrics.push({ icon: "group", label: "Viajeros", value: String(b.travelers), color: A.indigo.color });
+  if (typeof b.totalBudget === "number") {
+    const cur = b.currency ?? "";
+    metrics.push({ icon: "payments", label: "Presupuesto", value: `${cur}${b.totalBudget.toLocaleString()}`, color: A.emerald.color });
+  }
+
+  const sections: DetailSection[] = [];
+
+  // 1) Timeline de días — cada día es un step; sus actividades van como detail.
+  if (days.length > 0) {
+    sections.push({
+      kind: "timeline",
+      icon: "event",
+      accent: A.blue,
+      title: "Itinerario día a día",
+      subtitle: `${days.length} DÍAS`,
+      steps: days.map((d) => ({
+        icon: "calendar_today",
+        title: d.title || `Día ${d.day}`,
+        detail: [
+          `Día ${d.day}`,
+          ...(d.activities ?? []).map((a) => `${a.time} · ${a.title}${a.detail ? ` — ${a.detail}` : ""}`),
+        ].join("\n"),
+        status: "pending" as const,
+        badge: `Día ${d.day}`,
+        badgeTone: "pending" as const,
+      })),
+    });
+  }
+
+  // 2) Tiles de reservas — una tile por reserva con provider/tipo/status.
+  if (reservations.length > 0) {
+    sections.push({
+      kind: "tiles",
+      icon: "confirmation_number",
+      accent: A.indigo,
+      title: "Reservas",
+      subtitle: `${reservations.length} CONFIRMADAS`,
+      tiles: reservations.map((r) => ({
+        icon: r.type.toLowerCase().includes("vuelo") || r.type.toLowerCase().includes("flight")
+          ? "flight"
+          : r.type.toLowerCase().includes("hotel") || r.type.toLowerCase().includes("hospedaje")
+            ? "hotel"
+            : r.type.toLowerCase().includes("auto") || r.type.toLowerCase().includes("car")
+              ? "directions_car"
+              : "confirmation_number",
+        label: r.provider,
+        value: r.type,
+        color: r.status.toLowerCase() === "confirmed" || r.status.toLowerCase() === "confirmada"
+          ? A.emerald.color
+          : r.status.toLowerCase() === "pending" || r.status.toLowerCase() === "pendiente"
+            ? A.amber.color
+            : A.rose.color,
+      })),
+    });
+  }
+
+  // 3) Chips de packing checklist — agrupados por categoría cuando existe.
+  if (packing.length > 0) {
+    sections.push({
+      kind: "chips",
+      icon: "luggage",
+      accent: A.amber,
+      title: "Equipaje",
+      subtitle: `${packing.filter((p) => p.checked).length}/${packing.length} LISTOS`,
+      chips: packing.map((p) => ({
+        label: p.checked ? `✓ ${p.item}` : p.item,
+        sub: p.category,
+        color: p.checked ? A.emerald.color : A.amber.color,
+      })),
+    });
+  }
+
+  // 4) Tiles de presupuesto — cada categoría como tile con monto formateado.
+  if (budget.length > 0) {
+    sections.push({
+      kind: "tiles",
+      icon: "payments",
+      accent: A.emerald,
+      title: "Presupuesto",
+      subtitle: typeof b.totalBudget === "number"
+        ? `TOTAL ${b.currency ?? ""}${b.totalBudget.toLocaleString()}`
+        : `${budget.length} CATEGORÍAS`,
+      tiles: budget.map((item) => ({
+        icon: "category",
+        label: item.category,
+        value: `${item.currency}${item.amount.toLocaleString()}`,
+        color: A.emerald.color,
+      })),
+    });
+  }
+
+  const hasDetail = sections.length > 0;
+
+  return {
+    hero: {
+      kicker: "Tu Plan de Viaje",
+      title: heroTitleFrom(b.destination, "Plan de Viaje"),
+      desc: b.dates,
+      icon: "flight_takeoff",
+      accent: A.blue,
+      metrics,
+    },
+    detail: hasDetail
+      ? {
+          title: b.destination || "Plan de Viaje",
+          subtitle: [b.dates, typeof b.travelers === "number" ? `${b.travelers} viaj.` : undefined].filter(Boolean).join(" · "),
+          sections,
+        }
+      : undefined,
+    cta: hasDetail ? { label: "Ver plan completo" } : undefined,
+  };
+}
+
 function generation(b: Of<"generation">): KoruPresentation {
   const kickerByType: Record<string, string> = { text: "Tu Texto", image: "Tu Imagen", code: "Tu Código", document: "Tu Documento" };
+  const images = b.images ?? [];
+  const tips = b.tips ?? [];
+  const isImage = b.resultType === "image" || images.length > 0;
+
+  // Mapea aspect ratio de generación → arte del hero.
+  const heroAspect: "square" | "poster" | "cover" =
+    b.aspectRatio === "9:16" ? "poster" : b.aspectRatio === "16:9" ? "cover" : "square";
+
+  // Métricas del hero: solo si hay datos útiles que mostrar.
+  const metrics: HeroMetric[] = [];
+  if (b.model) metrics.push({ icon: "smart_toy", label: "Modelo", value: b.model, color: A.violet.color });
+  if (b.aspectRatio) metrics.push({ icon: "aspect_ratio", label: "Aspect", value: b.aspectRatio, color: A.purple.color });
+  if (b.style) metrics.push({ icon: "palette", label: "Estilo", value: b.style, color: A.pink.color });
+  if (typeof b.totalTime === "number") {
+    metrics.push({ icon: "timer", label: "Tiempo", value: `${(b.totalTime / 1000).toFixed(1)}s`, color: A.amber.color });
+  }
+  if (images.length > 0) {
+    metrics.push({ icon: "collections", label: "Variantes", value: String(images.length), color: A.emerald.color });
+  }
+
+  // Secciones del detalle.
+  const sections: DetailSection[] = [];
+
+  // 1) Vista previa textual (si existe).
+  if (b.preview) {
+    sections.push({
+      kind: "text",
+      icon: "auto_awesome",
+      accent: A.violet,
+      title: "Vista previa",
+      body: b.preview,
+    });
+  }
+
+  // 2) Galería de imágenes generadas (usamos `sources` porque soporta imageUrl).
+  if (images.length > 0) {
+    sections.push({
+      kind: "sources",
+      icon: "image",
+      accent: A.purple,
+      title: `Imágenes generadas · ${images.length}`,
+      subtitle: "VARIANTES",
+      sources: images.map((img, idx) => ({
+        title: `Variación ${idx + 1}`,
+        domain: `seed ${img.seed} · ${(img.generationMs / 1000).toFixed(1)}s`,
+        url: img.url,
+        imageUrl: img.url,
+      })),
+    });
+  }
+
+  // 3) Metadatos de la generación en tiles.
+  const metaTiles: DetailTile[] = [];
+  if (b.model) metaTiles.push({ icon: "smart_toy", label: "Modelo", value: b.model, color: A.violet.color });
+  if (b.aspectRatio) metaTiles.push({ icon: "aspect_ratio", label: "Aspect ratio", value: b.aspectRatio, color: A.purple.color });
+  if (b.style) metaTiles.push({ icon: "palette", label: "Estilo", value: b.style, color: A.pink.color });
+  if (typeof b.totalTime === "number") {
+    metaTiles.push({ icon: "timer", label: "Tiempo total", value: `${(b.totalTime / 1000).toFixed(1)}s`, color: A.amber.color });
+  }
+  if (images.length > 0) {
+    metaTiles.push({ icon: "collections", label: "Variantes", value: String(images.length), color: A.emerald.color });
+  }
+  if (metaTiles.length > 0) {
+    sections.push({
+      kind: "tiles",
+      icon: "tune",
+      accent: A.indigo,
+      title: "Parámetros",
+      subtitle: "AJUSTES DE GENERACIÓN",
+      tiles: metaTiles,
+    });
+  }
+
+  // 4) Tips de prompt engineering (chips).
+  if (tips.length > 0) {
+    sections.push({
+      kind: "chips",
+      icon: "lightbulb",
+      accent: A.amber,
+      title: "Tips de prompt",
+      subtitle: "PARA MEJORES RESULTADOS",
+      chips: tips.map((t) => ({ label: t })),
+    });
+  }
+
+  const hasDetail = sections.length > 0;
   return {
     hero: {
       kicker: kickerByType[b.resultType ?? "text"] ?? "Generado",
-      title: heroTitleFrom(b.title, "Resultado"),
+      title: heroTitleFrom(b.title, isImage ? "Imágenes" : "Resultado"),
       desc: b.prompt,
-      icon: b.resultType === "code" ? "code" : b.resultType === "image" ? "image" : "auto_awesome",
+      icon: b.resultType === "code" ? "code" : isImage ? "image" : "auto_awesome",
       accent: A.violet,
+      // Si hay imágenes, mostramos la primera como arte del hero.
+      art: images[0]?.url,
+      artAspect: images[0]?.url ? heroAspect : undefined,
+      metrics: metrics.length > 0 ? metrics : undefined,
     },
-    detail: b.preview
+    detail: hasDetail
       ? {
-          title: b.title || "Resultado",
-          sections: [{ kind: "text", icon: "auto_awesome", accent: A.violet, title: "Vista previa", body: b.preview }],
+          title: b.title || (isImage ? "Imágenes generadas" : "Resultado"),
+          sections,
         }
       : undefined,
-    cta: b.preview ? { label: b.actionLabel || "Ver resultado" } : undefined,
+    cta: hasDetail ? { label: b.actionLabel || (isImage ? "Ver imágenes" : "Ver resultado") } : undefined,
+    // 🔴 v3: spotlight cuando hay imágenes generadas (full-bleed del primer render).
+    layout: images.length > 0 ? "spotlight" : "default",
   };
 }
 
@@ -2025,6 +2361,93 @@ function routeMap(b: Of<"route_map">): KoruPresentation {
   const progressPct = b.progress != null
     ? (b.progress <= 1 ? Math.round(b.progress * 100) : Math.round(b.progress))
     : null;
+  const steps = b.steps ?? [];
+  const alternatives = b.alternatives ?? [];
+
+  // 🔴 v3: métricas enriquecidas con tráfico y combustible cuando están disponibles.
+  const heroMetrics: HeroMetric[] = [
+    ...(b.distance ? [{ icon: "straighten", label: "Distancia", value: b.distance, color: A.indigo.color }] : []),
+    ...(progressPct != null ? [{ icon: "near_me", label: "Progreso", value: `${progressPct}%`, color: A.emerald.color }] : []),
+    ...(b.trafficLevel ? [{
+      icon: b.trafficLevel === "heavy" ? "traffic" : b.trafficLevel === "moderate" ? "traffic" : "sensor_traffic",
+      label: "Tráfico",
+      value: b.trafficLevel === "heavy" ? "Pesado" : b.trafficLevel === "moderate" ? "Moderado" : "Liviano",
+      color: b.trafficLevel === "heavy" ? A.rose.color : b.trafficLevel === "moderate" ? A.amber.color : A.emerald.color,
+    }] : []),
+    ...(b.fuelEstimate ? [{ icon: "local_gas_station", label: "Combustible", value: b.fuelEstimate, color: A.amber.color }] : []),
+  ].slice(0, 3);
+
+  // 🔴 v3: secciones de detalle enriquecidas con steps (timeline) y
+  // alternatives (tiles comparativas), además de la sección de detalle del
+  // viaje que ya existía.
+  const sections: DetailSection[] = [
+    {
+      kind: "rows",
+      icon: "directions",
+      accent: A.indigo,
+      title: "Detalle del viaje",
+      rows: [
+        ...(b.from ? [{ icon: "trip_origin", title: b.from, detail: "ORIGEN" }] : []),
+        ...(b.to ? [{ icon: "location_on", title: b.to, detail: "DESTINO" }] : []),
+        ...(b.distance ? [{ icon: "straighten", title: b.distance, detail: "DISTANCIA TOTAL" }] : []),
+        ...(b.remaining ? [{ icon: "flag", title: b.remaining, detail: "RESTANTE" }] : []),
+        ...(b.trafficLevel ? [{
+          icon: "traffic",
+          title: b.trafficLevel === "heavy" ? "Tráfico pesado" : b.trafficLevel === "moderate" ? "Tráfico moderado" : "Tráfico liviano",
+          detail: "TRÁFICO",
+          badge: b.trafficLevel === "heavy" ? "Demora" : b.trafficLevel === "moderate" ? "Atención" : "Fluida",
+          badgeTone: b.trafficLevel === "heavy" ? "urgent" as const : b.trafficLevel === "moderate" ? "current" as const : "done" as const,
+        }] : []),
+        ...(b.fuelEstimate ? [{ icon: "local_gas_station", title: b.fuelEstimate, detail: "COMBUSTIBLE EST." }] : []),
+        ...(progressPct != null ? [{ icon: "near_me", title: `${progressPct}% completado`, detail: "PROGRESO", badge: progressPct >= 80 ? "Casi listo" : undefined, badgeTone: progressPct >= 80 ? "done" as const : "current" as const }] : []),
+      ],
+    },
+  ];
+
+  // Pasos de la ruta como timeline (instrucciones de giro).
+  if (steps.length > 0) {
+    sections.push({
+      kind: "timeline",
+      icon: "turn_straight",
+      accent: A.blue,
+      title: "Instrucciones de ruta",
+      subtitle: `${steps.length} PASOS`,
+      steps: steps.map((s, idx) => ({
+        icon: maneuverToIcon(s.maneuver),
+        title: s.instruction || `Paso ${idx + 1}`,
+        detail: s.distanceMeters > 0 ? `${(s.distanceMeters / 1000).toFixed(2)} km` : undefined,
+        status: idx === 0 ? ("current" as const) : ("pending" as const),
+      })),
+    });
+  }
+
+  // Rutas alternativas como tiles comparativas (modo / tiempo / tráfico).
+  if (alternatives.length > 0) {
+    sections.push({
+      kind: "tiles",
+      icon: "alt_route",
+      accent: A.purple,
+      title: "Rutas alternativas",
+      subtitle: `${alternatives.length} OPCIONES`,
+      tiles: alternatives.map((alt) => ({
+        icon: alt.mode.toLowerCase().includes("walk") || alt.mode.toLowerCase() === "a pie"
+          ? "directions_walk"
+          : alt.mode.toLowerCase().includes("bike") || alt.mode.toLowerCase().includes("bici")
+            ? "directions_bike"
+            : alt.mode.toLowerCase().includes("transit") || alt.mode.toLowerCase().includes("transporte")
+              ? "directions_transit"
+              : "directions_car",
+        label: alt.mode,
+        value: alt.time,
+        color: alt.traffic.toLowerCase() === "heavy" || alt.traffic.toLowerCase() === "pesado"
+          ? A.rose.color
+          : alt.traffic.toLowerCase() === "moderate" || alt.traffic.toLowerCase() === "moderado"
+            ? A.amber.color
+            : A.emerald.color,
+      })),
+    });
+  }
+
   return {
     hero: {
       kicker: "Tu Mapa",
@@ -2033,32 +2456,40 @@ function routeMap(b: Of<"route_map">): KoruPresentation {
       icon: "map",
       accent: A.indigo,
       artValue: progressPct != null ? `${progressPct}%` : undefined,
-      metrics: [
-        ...(b.distance ? [{ icon: "straighten", label: "Distancia", value: b.distance, color: A.indigo.color }] : []),
-        ...(progressPct != null ? [{ icon: "near_me", label: "Progreso", value: `${progressPct}%`, color: A.emerald.color }] : []),
-      ].slice(0, 3),
+      metrics: heroMetrics,
     },
     detail: {
       title: b.to ? `Ruta a ${b.to}` : "Ruta",
       subtitle: b.from ? `DESDE ${b.from.toUpperCase()}` : undefined,
-      sections: [
-        {
-          kind: "rows",
-          icon: "directions",
-          accent: A.indigo,
-          title: "Detalle del viaje",
-          rows: [
-            ...(b.from ? [{ icon: "trip_origin", title: b.from, detail: "ORIGEN" }] : []),
-            ...(b.to ? [{ icon: "location_on", title: b.to, detail: "DESTINO" }] : []),
-            ...(b.distance ? [{ icon: "straighten", title: b.distance, detail: "DISTANCIA TOTAL" }] : []),
-            ...(b.remaining ? [{ icon: "flag", title: b.remaining, detail: "RESTANTE" }] : []),
-            ...(progressPct != null ? [{ icon: "near_me", title: `${progressPct}% completado`, detail: "PROGRESO", badge: progressPct >= 80 ? "Casi listo" : undefined, badgeTone: progressPct >= 80 ? "done" as const : "current" as const }] : []),
-          ],
-        },
-      ],
+      sections,
     },
     cta: b.to ? { label: "Ver detalle" } : undefined,
   };
+}
+
+/**
+ * Mapea un maneuver de Google Maps (turn-left, roundabout-right, merge, etc.)
+ * a un ícono Material Symbols. Default: "turn_straight".
+ */
+function maneuverToIcon(maneuver: string): string {
+  const m = maneuver.trim().toLowerCase();
+  if (!m || m === "straight") return "straight";
+  if (m.includes("turn-left")) return "turn_left";
+  if (m.includes("turn-right")) return "turn_right";
+  if (m.includes("turn-slight-left")) return "turn_slight_left";
+  if (m.includes("turn-slight-right")) return "turn_slight_right";
+  if (m.includes("turn-sharp-left")) return "turn_sharp_left";
+  if (m.includes("turn-sharp-right")) return "turn_sharp_right";
+  if (m.includes("uturn") || m.includes("u-turn")) return "u_turn_left";
+  if (m.includes("roundabout")) return "roundabout_right";
+  if (m.includes("merge")) return "merge";
+  if (m.includes("fork")) return "fork_right";
+  if (m.includes("ramp")) return "departure_board";
+  if (m.includes("keep-left")) return "keep_left";
+  if (m.includes("keep-right")) return "keep_right";
+  if (m.includes("depart")) return "trip_origin";
+  if (m.includes("arrive")) return "location_on";
+  return "turn_straight";
 }
 
 function birthdayCalendar(b: Of<"birthday_calendar">): KoruPresentation {
@@ -2100,14 +2531,14 @@ function birthdayCalendar(b: Of<"birthday_calendar">): KoruPresentation {
       subtitle: highlightedDay ? `DÍA DESTACADO: ${highlightedDay}` : undefined,
       sections: [
         {
-          kind: "chips",
+          kind: "calendar",
           icon: "calendar_month",
           accent: A.pink,
           title: "Calendario del mes",
           subtitle: `${daysInMonth} DÍAS`,
-          // 🔴 Usamos chips para simular el grid — cada chip es un día
-          // El renderer de chips los pone en flex-wrap, lo que da el efecto de calendario
-          chips: days.map((d) => ({
+          // 🔴 v2: kind dedicado "calendar" — usa .koru-dsec-calendar / -day
+          // (clases dedicadas) en lugar de colisionar con .koru-dsec-chips.
+          days: days.map((d) => ({
             label: d.day ? String(d.day) : "·",
             color: d.highlighted ? A.pink.color : undefined,
             sub: d.highlighted ? "★" : undefined,
@@ -2116,6 +2547,8 @@ function birthdayCalendar(b: Of<"birthday_calendar">): KoruPresentation {
       ],
     },
     cta: { label: "Ver calendario" },
+    // 🔴 v3: banner con gradiente + número grande del día destacado.
+    layout: "banner",
   };
 }
 
@@ -2129,6 +2562,8 @@ function birthdayAlarm(b: Of<"birthday_alarm">): KoruPresentation {
       accent: A.amber,
       artValue: b.countdown ? `${b.countdown}${b.unit ? ` ${b.unit}` : ""}` : undefined,
     },
+    // 🔴 v3: banner con gradiente + countdown grande.
+    layout: "banner",
   };
 }
 
@@ -2476,12 +2911,17 @@ function recipeBlock(b: Of<"recipe">): KoruPresentation {
         }
       : undefined,
     cta: { label: b.videoUrl ? "Ver video y receta completa" : "Ver receta completa" },
+    // 🔴 v3: spotlight full-bleed cuando hay imagen del plato.
+    layout: b.image ? "spotlight" : "default",
   };
 }
 
 function movieReviewBlock(b: Of<"movie_review">): KoruPresentation {
   const cast = b.cast ?? [];
   const genres = b.genres ?? [];
+  const crew = b.crew ?? [];
+  const ratings = b.ratings ?? [];
+  const streaming = b.streaming ?? [];
   const sections: DetailSection[] = [];
 
   if (b.overview) {
@@ -2521,6 +2961,43 @@ function movieReviewBlock(b: Of<"movie_review">): KoruPresentation {
     });
   }
 
+  // 🎬 Crew: Writer, Composer, Cinematographer como tiles section
+  if (crew.length > 0) {
+    const crewLabelMap: Record<string, string> = {
+      Writer: "Guionista",
+      Composer: "Compositor",
+      Cinematographer: "Fotografía",
+    };
+    sections.push({
+      kind: "tiles",
+      icon: "edit_note",
+      accent: A.indigo,
+      title: "Equipo",
+      subtitle: `${crew.length} ROLES`,
+      tiles: crew.map((c) => ({
+        label: crewLabelMap[c.job] ?? c.job,
+        value: c.name,
+        color: A.indigo.color,
+      })),
+    });
+  }
+
+  // ⭐ Ratings: IMDb, RT, Metacritic como tiles section
+  if (ratings.length > 0) {
+    sections.push({
+      kind: "tiles",
+      icon: "star",
+      accent: A.amber,
+      title: "Puntajes",
+      subtitle: `${ratings.length} FUENTES`,
+      tiles: ratings.map((r) => ({
+        label: r.source,
+        value: `${r.score}/${r.outOf}`,
+        color: A.amber.color,
+      })),
+    });
+  }
+
   if (b.sources && b.sources.length > 0) {
     sections.push({
       kind: "sources",
@@ -2532,7 +3009,17 @@ function movieReviewBlock(b: Of<"movie_review">): KoruPresentation {
     });
   }
 
-  if (b.whereToWatch && b.whereToWatch.length > 0) {
+  // 📺 Streaming: chips con proveedores (preferir streaming rico sobre whereToWatch simple)
+  if (streaming.length > 0) {
+    sections.push({
+      kind: "chips",
+      icon: "play_circle",
+      accent: A.emerald,
+      title: "Dónde verla",
+      subtitle: "ESPAÑA",
+      chips: streaming.map((s) => ({ label: s.provider })),
+    });
+  } else if (b.whereToWatch && b.whereToWatch.length > 0) {
     sections.push({
       kind: "chips",
       icon: "play_circle",
@@ -2566,6 +3053,8 @@ function movieReviewBlock(b: Of<"movie_review">): KoruPresentation {
         }
       : undefined,
     cta: { label: b.trailerUrl ? "Ver trailer y ficha completa" : "Ver ficha completa" },
+    // 🔴 v3: spotlight full-bleed cuando hay poster de la película.
+    layout: b.poster ? "spotlight" : "default",
   };
 }
 
@@ -2634,5 +3123,418 @@ function bookReviewBlock(b: Of<"book_review">): KoruPresentation {
         }
       : undefined,
     cta: { label: "Ver ficha completa" },
+    // 🔴 v3: spotlight full-bleed cuando hay tapa del libro.
+    layout: b.cover ? "spotlight" : "default",
   };
+}
+
+// ─── news_urgent ────────────────────────────────────────────────────────────
+// Agregado de GDELT + USGS + NewsAPI con fact-check. El hero rota entre
+// accent rojo (breaking), ámbar (urgent) y primario (important) según
+// severidad; el detalle arma timeline + chips de fact-check (✓/✗/⚠) +
+// fuentes con favicon.
+function newsUrgentBlock(b: Of<"news_urgent">): KoruPresentation {
+  const severity = b.severity ?? "important";
+  const severityLabel =
+    severity === "breaking" ? "ÚLTIMA HORA" : severity === "urgent" ? "URGENTE" : "IMPORTANTE";
+  const accent =
+    severity === "breaking" ? A.red : severity === "urgent" ? A.amber : A.primary;
+
+  const categoryLabel = (b.category ?? "general")
+    .split(/[_\s-]/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+
+  const sections: DetailSection[] = [];
+
+  // 1. Resumen (texto).
+  if (b.summary) {
+    sections.push({
+      kind: "text",
+      icon: "subject",
+      accent,
+      title: "Resumen",
+      body: b.summary,
+    });
+  }
+
+  // 2. Timeline de eventos (5 más recientes).
+  const timeline = b.timeline ?? [];
+  if (timeline.length > 0) {
+    sections.push({
+      kind: "timeline",
+      icon: "timeline",
+      accent,
+      title: "Cronología",
+      subtitle: "EVENTOS RECIENTES",
+      steps: timeline.map((t) => ({
+        title: t.event,
+        meta: t.time,
+        status: (t.status === "current" ? "current" : t.status === "pending" ? "pending" : "done") as
+          | "done"
+          | "current"
+          | "pending",
+      })),
+    });
+  }
+
+  // 3. Fact-checks como chips con icono ✓/✗/⚠ embebido en el label.
+  const factChecks = b.factChecks ?? [];
+  if (factChecks.length > 0) {
+    sections.push({
+      kind: "chips",
+      icon: "fact_check",
+      accent: A.emerald,
+      title: "Verificación",
+      subtitle: "FACT-CHECK",
+      chips: factChecks.map((fc) => {
+        const icon =
+          fc.verdict === "confirmed" ? "✓" : fc.verdict === "denied" ? "✗" : "⚠";
+        const color =
+          fc.verdict === "confirmed"
+            ? A.emerald.color
+            : fc.verdict === "denied"
+              ? A.red.color
+              : A.amber.color;
+        return {
+          label: `${icon} ${fc.claim}`,
+          sub: `${fc.verdict.toUpperCase()} · ${fc.source}`,
+          color,
+        };
+      }),
+    });
+  }
+
+  // 4. Ubicación (si hay, ej. epicentro de terremoto).
+  if (b.location) {
+    sections.push({
+      kind: "tiles",
+      icon: "place",
+      accent: A.rose,
+      title: "Ubicación",
+      tiles: [
+        { label: "Lugar", value: b.location.label, color: A.rose.color },
+        { label: "Latitud", value: b.location.lat.toFixed(3), color: A.rose.color },
+        { label: "Longitud", value: b.location.lng.toFixed(3), color: A.rose.color },
+      ],
+    });
+  }
+
+  // 5. Fuentes con favicon.
+  if (b.sources && b.sources.length > 0) {
+    sections.push({
+      kind: "sources",
+      icon: "link",
+      accent: A.indigo,
+      title: "Fuentes",
+      subtitle: "TRAZABLES",
+      sources: sourcesToRefs(b.sources),
+    });
+  }
+
+  const heroMetrics: HeroMetric[] = [
+    { icon: "bolt", label: "Severidad", value: severityLabel, color: accent.color },
+  ];
+  if (b.category) heroMetrics.push({ icon: "category", label: "Categoría", value: categoryLabel, color: A.indigo.color });
+  if (b.sources?.length) heroMetrics.push({ icon: "link", label: "Fuentes", value: String(b.sources.length), color: A.emerald.color });
+  if (b.factChecks?.length) heroMetrics.push({ icon: "fact_check", label: "Fact-checks", value: String(b.factChecks.length), color: A.purple.color });
+
+  return {
+    hero: {
+      kicker: severity === "breaking" ? `🔴 ${severityLabel}` : severityLabel,
+      title: heroTitleFrom(b.headline, "Última Hora"),
+      desc: b.summary,
+      icon: "breaking_news",
+      accent,
+      metrics: heroMetrics,
+      verifiedAt: b.lastUpdated,
+      freshnessLabel: b.lastUpdated ? formatFreshness(b.lastUpdated) : undefined,
+    },
+    detail: sections.length
+      ? {
+          title: b.headline ?? "Última Hora",
+          subtitle: [categoryLabel, severityLabel].filter(Boolean).join(" · ") || undefined,
+          sections,
+        }
+      : undefined,
+    cta: { label: "Ver cobertura completa" },
+  };
+}
+
+function tennisMatch(b: Of<"tennis_match">): KoruPresentation {
+  const homeName = b.players?.home.name ?? "Local";
+  const awayName = b.players?.away.name ?? "Visitante";
+  const homeCountry = b.players?.home.country;
+  const awayCountry = b.players?.away.country;
+  const homeRank = b.players?.home.rank;
+  const awayRank = b.players?.away.rank;
+  const tournament = b.tournament;
+  const sets = b.sets ?? [];
+  const status = b.status ?? "live";
+  const live = status === "live";
+  const accent = live ? A.red : A.emerald;
+
+  // Sets ganados (conteo de sets con winner explícito).
+  const homeSetsWon = sets.filter((s) => s.winner === "home").length;
+  const awaySetsWon = sets.filter((s) => s.winner === "away").length;
+  const score = sets.length > 0 ? `${homeSetsWon} - ${awaySetsWon}` : "vs";
+  const title = `${homeName} vs ${awayName}`;
+
+  const tournamentName = tournament?.name ?? "Tenis";
+  const round = tournament?.round;
+  const surface = tournament?.surface;
+  const category = tournament?.category;
+
+  const kickerParts: string[] = [];
+  kickerParts.push(live ? "🔴 En vivo" : status === "scheduled" ? "Próximamente" : "Finalizado");
+  if (category && category !== "ATP/WTA") kickerParts.push(category);
+  const kicker = kickerParts.join(" · ");
+
+  const descParts: string[] = [];
+  if (tournamentName && tournamentName !== "Tenis") descParts.push(tournamentName);
+  if (round && round !== "—") descParts.push(round);
+  if (surface && surface !== "—") descParts.push(surface);
+  const desc = descParts.join(" · ") || undefined;
+
+  // Métricas del hero: aces, break points, 1er saque %.
+  const metrics: HeroMetric[] = [];
+  if (b.stats) {
+    const s = b.stats;
+    metrics.push({
+      icon: "flash_on",
+      label: "Aces",
+      value: `${s.aces.h}-${s.aces.a}`,
+      color: accent.color,
+    });
+    metrics.push({
+      icon: "flag",
+      label: "Breaks",
+      value: `${s.breakPointsWon.h}/${s.breakPointsFaced.h} · ${s.breakPointsWon.a}/${s.breakPointsFaced.a}`,
+      color: accent.color,
+    });
+    metrics.push({
+      icon: "speed",
+      label: "1er saque",
+      value: `${Math.round(s.firstServePct.h)}%-${Math.round(s.firstServePct.a)}%`,
+      color: accent.color,
+    });
+  }
+  if (live && b.currentPoint) {
+    metrics.push({ icon: "sports_tennis", label: "Punto", value: b.currentPoint, color: accent.color });
+  }
+  if (b.elapsedMs != null && b.elapsedMs > 0) {
+    const min = Math.floor(b.elapsedMs / 60_000);
+    metrics.push({ icon: "schedule", label: "Duración", value: `${min} min`, color: accent.color });
+  }
+
+  const sections: DetailSection[] = [];
+
+  // 1. Sets como tiles (Set 1, Set 2, Set 3 con scores).
+  const tiles: DetailTile[] = sets.map((s, i) => {
+    const scoreStr = s.tiebreak
+      ? `${s.homeGames}-${s.awayGames} (TB ${s.tiebreak.homePts}-${s.tiebreak.awayPts})`
+      : `${s.homeGames}-${s.awayGames}`;
+    return {
+      icon: s.winner ? "emoji_events" : undefined,
+      label: `Set ${i + 1}`,
+      value: scoreStr,
+      color: s.winner === "home" ? A.emerald.color : s.winner === "away" ? A.purple.color : undefined,
+    };
+  });
+  if (live && b.currentSet) {
+    tiles.push({
+      icon: "my_location",
+      label: "Set actual",
+      value: `${b.currentSet.gamesHome}-${b.currentSet.gamesAway}`,
+      color: A.amber.color,
+    });
+  }
+  if (tiles.length > 0) {
+    sections.push({
+      kind: "tiles",
+      icon: "scoreboard",
+      accent,
+      title: "Sets",
+      subtitle: `${sets.length} SET${sets.length > 1 ? "S" : ""}`,
+      tiles,
+    });
+  }
+
+  // 2. Stats como rows con barras comparativas (home vs away).
+  if (b.stats) {
+    const s = b.stats;
+    const homeColor = A.emerald.color;
+    const awayColor = A.purple.color;
+    const rows: DetailRow[] = [
+      {
+        title: "Aces",
+        detail: `${s.aces.h} — ${s.aces.a}`,
+        bar: { homeValue: s.aces.h, awayValue: s.aces.a, isPercent: false, homeColor, awayColor },
+      },
+      {
+        title: "Dobles faltas",
+        detail: `${s.doubleFaults.h} — ${s.doubleFaults.a}`,
+        bar: { homeValue: s.doubleFaults.h, awayValue: s.doubleFaults.a, isPercent: false, homeColor: A.red.color, awayColor: A.red.color },
+      },
+      {
+        title: "1er saque %",
+        detail: `${Math.round(s.firstServePct.h)}% — ${Math.round(s.firstServePct.a)}%`,
+        bar: { homeValue: s.firstServePct.h, awayValue: s.firstServePct.a, isPercent: true, homeColor, awayColor },
+      },
+      {
+        title: "Break points ganados",
+        detail: `${s.breakPointsWon.h}/${s.breakPointsFaced.h} — ${s.breakPointsWon.a}/${s.breakPointsFaced.a}`,
+        bar: { homeValue: s.breakPointsWon.h, awayValue: s.breakPointsWon.a, isPercent: false, homeColor, awayColor },
+      },
+      {
+        title: "Juegos de saque rotos",
+        detail: `${s.returnGamesWon.h} — ${s.returnGamesWon.a}`,
+        bar: { homeValue: s.returnGamesWon.h, awayValue: s.returnGamesWon.a, isPercent: false, homeColor, awayColor },
+      },
+    ];
+    sections.push({
+      kind: "rows",
+      icon: "monitoring",
+      accent,
+      title: "Estadísticas",
+      subtitle: `${homeName} vs ${awayName}`,
+      rows,
+    });
+  }
+
+  // 3. Timeline de momentos clave (sets, aces, breaks, juego actual).
+  const steps: DetailStep[] = [];
+  if (tournament) {
+    const ctx: string[] = [];
+    if (tournament.surface && tournament.surface !== "—") ctx.push(`Superficie: ${tournament.surface}`);
+    if (tournament.category) ctx.push(tournament.category);
+    steps.push({
+      icon: "event",
+      title: `${tournament.name}${tournament.round && tournament.round !== "—" ? ` · ${tournament.round}` : ""}`,
+      detail: ctx.join(" · ") || undefined,
+      status: "done",
+    });
+  }
+  const homeIntro = [homeName, homeCountry ? `(${homeCountry})` : null, homeRank ? `#${homeRank}` : null].filter(Boolean).join(" ");
+  const awayIntro = [awayName, awayCountry ? `(${awayCountry})` : null, awayRank ? `#${awayRank}` : null].filter(Boolean).join(" ");
+  steps.push({ icon: "person", title: homeIntro, detail: "Local", status: "current" });
+  steps.push({ icon: "person", title: awayIntro, detail: "Visitante", status: "current" });
+
+  for (let i = 0; i < sets.length; i++) {
+    const s = sets[i];
+    const winnerName = s.winner === "home" ? homeName : s.winner === "away" ? awayName : null;
+    const scoreStr = s.tiebreak
+      ? `${s.homeGames}-${s.awayGames} (TB ${s.tiebreak.homePts}-${s.tiebreak.awayPts})`
+      : `${s.homeGames}-${s.awayGames}`;
+    steps.push({
+      icon: s.winner ? "emoji_events" : "sports_tennis",
+      title: `Set ${i + 1}: ${scoreStr}`,
+      detail: winnerName ? `Ganó ${winnerName}` : "En progreso",
+      status: s.winner ? "done" : "current",
+      badge: s.tiebreak ? "TB" : undefined,
+      badgeTone: "current" as const,
+    });
+  }
+
+  if (live && b.currentSet) {
+    const cs = b.currentSet;
+    const serverName = cs.server === "home" ? homeName : awayName;
+    steps.push({
+      icon: "my_location",
+      title: `Juego actual: ${cs.gamesHome}-${cs.gamesAway}`,
+      detail: `Al saque: ${serverName}${b.currentPoint ? ` · Punto: ${b.currentPoint}` : ""}`,
+      status: "current",
+      badge: "Ahora",
+      badgeTone: "current" as const,
+    });
+  }
+
+  if (b.stats && (b.stats.aces.h > 0 || b.stats.aces.a > 0)) {
+    const s = b.stats;
+    const detail = s.aces.h > s.aces.a
+      ? `${homeName} domina en aces`
+      : s.aces.a > s.aces.h
+        ? `${awayName} domina en aces`
+        : "Empate en aces";
+    steps.push({
+      icon: "flash_on",
+      title: `Aces: ${s.aces.h} ${homeName} · ${s.aces.a} ${awayName}`,
+      detail,
+      status: "done",
+    });
+  }
+
+  if (b.stats && (b.stats.breakPointsWon.h > 0 || b.stats.breakPointsWon.a > 0)) {
+    const s = b.stats;
+    const homeEff = s.breakPointsFaced.h > 0 ? Math.round((s.breakPointsWon.h / s.breakPointsFaced.h) * 100) : 0;
+    const awayEff = s.breakPointsFaced.a > 0 ? Math.round((s.breakPointsWon.a / s.breakPointsFaced.a) * 100) : 0;
+    steps.push({
+      icon: "flag",
+      title: `Breaks: ${s.breakPointsWon.h}/${s.breakPointsFaced.h} ${homeName} · ${s.breakPointsWon.a}/${s.breakPointsFaced.a} ${awayName}`,
+      detail: `Conversión ${homeEff}% vs ${awayEff}%`,
+      status: "done",
+    });
+  }
+
+  if (steps.length > 0) {
+    sections.push({
+      kind: "timeline",
+      icon: "timeline",
+      accent,
+      title: "Momentos clave",
+      subtitle: live ? "PARTIDO EN JUEGO" : "RESUMEN",
+      steps,
+    });
+  }
+
+  // 4. Sources.
+  if (b.sources && b.sources.length > 0) {
+    sections.push({
+      kind: "sources",
+      icon: "link",
+      accent: A.indigo,
+      title: "Fuentes",
+      subtitle: "TRAZABLES",
+      sources: sourcesToRefs(b.sources),
+    });
+  }
+
+  const verifiedAt = new Date().toISOString();
+
+  return {
+    hero: {
+      kicker,
+      title: up(title),
+      desc,
+      icon: "sports_tennis",
+      accent,
+      artValue: score,
+      metrics: metrics.length > 0 ? metrics : undefined,
+      verifiedAt,
+      freshnessLabel: live ? "ahora" : status === "finished" ? "finalizado" : "programado",
+    },
+    detail: sections.length > 0
+      ? {
+          title: `${homeName} vs ${awayName}`,
+          subtitle: [tournamentName, round, surface].filter((v) => v && v !== "—").join(" · ") || undefined,
+          sections,
+        }
+      : undefined,
+    cta: sections.length > 0 ? { label: live ? "Ver partido en vivo" : "Ver resumen completo" } : undefined,
+  };
+}
+
+/** Etiqueta legible de antigüedad desde un ISO timestamp. */
+function formatFreshness(iso: string): string | undefined {
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return undefined;
+  const diffMs = Date.now() - t;
+  if (diffMs < 0) return "ahora";
+  const min = Math.floor(diffMs / 60_000);
+  if (min < 1) return "ahora";
+  if (min < 60) return `hace ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `hace ${h} h`;
+  const d = Math.floor(h / 24);
+  return `hace ${d} d`;
 }

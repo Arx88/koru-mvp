@@ -1,0 +1,1295 @@
+     1→     1→import { useState, useRef, useMemo } from "react";
+     2→     2→import { createPortal } from "react-dom";
+     3→     3→import { useKoru } from "../KoruProvider";
+     4→     4→import type { LifeRecordKind, LifeDomain, UiBlock } from "../../domain/types";
+     5→     5→
+     6→     6→// 🔴 CreateScreen v2 — entrada para que el usuario cree contenido estructurado
+     7→     7→// SIN tener que pedirselo a Koru via chat. Plantillas: nota, lista, gasto,
+     8→     8→// enlace, receta + rutina, ejercicio, memoria, decision.
+     9→     9→// Las plantillas se guardan como LifeRecords via createRecord() (directo, sin LLM).
+    10→    10→
+    11→    11→function Mat({ children, className = "" }: { children: string; className?: string }) {
+    12→    12→  return <span className={`material-symbols-outlined ${className}`}>{children}</span>;
+    13→    13→}
+    14→    14→
+    15→    15→type Template = "nota" | "lista" | "gasto" | "enlace" | "receta" | "rutina" | "ejercicio" | "memoria" | "decision";
+    16→    16→
+    17→    17→type TemplateDef = {
+    18→    18→  id: Template;
+    19→    19→  label: string;
+    20→    20→  icon: string;
+    21→    21→  desc: string;
+    22→    22→  collection: string;
+    23→    23→  accent: string;
+    24→    24→};
+    25→    25→
+    26→    26→const TEMPLATES: TemplateDef[] = [
+    27→    27→  { id: "nota", label: "Nota", icon: "sticky_note_2", desc: "Anotá una idea o pensamiento", collection: "Notas", accent: "#8363f9" },
+    28→    28→  { id: "lista", label: "Lista", icon: "checklist", desc: "Lista de tareas o compras", collection: "Listas", accent: "#2d6a4f" },
+    29→    29→  { id: "gasto", label: "Gasto", icon: "payments", desc: "Registrá un gasto", collection: "Gastos", accent: "#f59e0b" },
+    30→    30→  { id: "enlace", label: "Enlace", icon: "link", desc: "Guardá un link para después", collection: "Enlaces", accent: "#06b6d4" },
+    31→    31→  { id: "receta", label: "Receta", icon: "restaurant", desc: "Creá tu propia receta", collection: "Recetas", accent: "#ec4899" },
+    32→    32→  { id: "rutina", label: "Rutina", icon: "repeat", desc: "Hábito diario o semanal", collection: "Rutinas", accent: "#3b82f6" },
+    33→    33→  { id: "ejercicio", label: "Ejercicio", icon: "fitness_center", desc: "Plan de entrenamiento", collection: "Ejercicio", accent: "#2d6a4f" },
+    34→    34→  { id: "memoria", label: "Memoria", icon: "psychology", desc: "Recuerdo o hecho", collection: "Memoria", accent: "#8127cf" },
+    35→    35→  { id: "decision", label: "Decisión", icon: "psychology_alt", desc: "Decisión estructurada", collection: "Decisiones", accent: "#8127cf" },
+    36→    36→];
+    37→    37→
+    38→    38→// 🔴 v2: cada template mapea a un LifeRecordKind VÁLIDO del enum.
+    39→    39→// Antes se usaba "nota"/"lista"/"gasto" que NO existen en el enum → quedaban
+    40→    40→// como "idea" por fallback. Ahora mapeamos explícitamente.
+    41→    41→const KIND_MAP: Record<Template, LifeRecordKind> = {
+    42→    42→  nota: "idea",
+    43→    43→  lista: "idea", // la lista vive dentro de `notes`
+    44→    44→  gasto: "expense",
+    45→    45→  enlace: "tool_link",
+    46→    46→  receta: "recommendation",
+    47→    47→  rutina: "idea", // sourceBlock lleva datos para crear el hábito
+    48→    48→  ejercicio: "idea", // sourceBlock lleva el plan de entrenamiento
+    49→    49→  memoria: "idea", // sourceBlock lleva la memoria estructurada
+    50→    50→  decision: "decision",
+    51→    51→};
+    52→    52→
+    53→    53→type RutinaCadence = "daily" | "weekly" | "mon-fri" | "custom";
+    54→    54→
+    55→    55→type ExerciseSetInput = { name: string; sets: string; reps: string; weight: string };
+    56→    56→type SessionInput = { dayLabel: string; exercises: ExerciseSetInput[] };
+    57→    57→
+    58→    58→type MemoriaKind = "profile" | "routine" | "preference" | "goal" | "relationship" | "boundary" | "wellbeing" | "task";
+    59→    59→
+    60→    60→type DecisionOptionInput = { id: string; label: string; factorScores: Record<string, number> };
+    61→    61→type DecisionFactorInput = { id: string; label: string; direction: "higherIsBetter" | "lowerIsBetter" };
+    62→    62→
+    63→    63→// 🔴 v2: AI-assist. El padre implementa onAiAssist y devuelve sugerencias
+    64→    64→// por campo. El usuario acepta/rechaza cada una individualmente.
+    65→    65→export type AiSuggestion = { field: string; label: string; value: string };
+    66→    66→export type AiAssistResult = { suggestions: AiSuggestion[] };
+    67→    67→
+    68→    68→type Props = {
+    69→    69→  onClose: () => void;
+    70→    70→  onAiAssist?: (template: Template, title: string) => Promise<AiAssistResult | void> | AiAssistResult | void;
+    71→    71→};
+    72→    72→
+    73→    73→// ---------------------------------------------------------------------------
+    74→    74→// Markdown helpers (regex-based, sin deps externos)
+    75→    75→// ---------------------------------------------------------------------------
+    76→    76→
+    77→    77→function escapeHtml(s: string): string {
+    78→    78→  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    79→    79→}
+    80→    80→
+    81→    81→function inlineMd(s: string): string {
+    82→    82→  // s ya está escapado
+    83→    83→  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    84→    84→  s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    85→    85→  s = s.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+    86→    86→  return s;
+    87→    87→}
+    88→    88→
+    89→    89→function renderMarkdown(text: string): string {
+    90→    90→  if (!text.trim()) return "";
+    91→    91→  const lines = text.split("\n");
+    92→    92→  const out: string[] = [];
+    93→    93→  let inList = false;
+    94→    94→  let para: string[] = [];
+    95→    95→  const flushPara = () => {
+    96→    96→    if (para.length > 0) {
+    97→    97→      out.push(`<p>${para.map(p => inlineMd(escapeHtml(p))).join("<br />")}</p>`);
+    98→    98→      para = [];
+    99→    99→    }
+   100→   100→  };
+   101→   101→  for (const line of lines) {
+   102→   102→    const listMatch = line.match(/^\s*-\s+(.*)$/);
+   103→   103→    if (listMatch) {
+   104→   104→      flushPara();
+   105→   105→      if (!inList) { out.push("<ul>"); inList = true; }
+   106→   106→      out.push(`<li>${inlineMd(escapeHtml(listMatch[1]))}</li>`);
+   107→   107→      continue;
+   108→   108→    }
+   109→   109→    if (inList) { out.push("</ul>"); inList = false; }
+   110→   110→    para.push(line);
+   111→   111→  }
+   112→   112→  flushPara();
+   113→   113→  if (inList) out.push("</ul>");
+   114→   114→  return out.join("");
+   115→   115→}
+   116→   116→
+   117→   117→function genId(prefix: string): string {
+   118→   118→  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+   119→   119→}
+   120→   120→
+   121→   121→function titleLabel(t: Template): string {
+   122→   122→  switch (t) {
+   123→   123→    case "gasto": return "Concepto";
+   124→   124→    case "lista": return "Título de la lista";
+   125→   125→    case "rutina": return "Hábito";
+   126→   126→    case "ejercicio": return "Nombre del plan";
+   127→   127→    case "memoria": return "Título";
+   128→   128→    case "decision": return "Pregunta";
+   129→   129→    default: return "Título";
+   130→   130→  }
+   131→   131→}
+   132→   132→
+   133→   133→function titlePlaceholder(t: Template): string {
+   134→   134→  switch (t) {
+   135→   135→    case "gasto": return "Ej: Café con amigos";
+   136→   136→    case "lista": return "Ej: Super de la semana";
+   137→   137→    case "rutina": return "Ej: Meditar";
+   138→   138→    case "ejercicio": return "Ej: Plan de fuerza 4 días";
+   139→   139→    case "memoria": return "Ej: Alergia a la penicilina";
+   140→   140→    case "decision": return "Ej: ¿Qué carrera estudiar?";
+   141→   141→    default: return "Ej: Idea para el proyecto";
+   142→   142→  }
+   143→   143→}
+   144→   144→
+   145→   145→const MEMORIA_KINDS: { value: MemoriaKind; label: string }[] = [
+   146→   146→  { value: "profile", label: "Perfil" },
+   147→   147→  { value: "routine", label: "Rutina" },
+   148→   148→  { value: "preference", label: "Preferencia" },
+   149→   149→  { value: "goal", label: "Objetivo" },
+   150→   150→  { value: "relationship", label: "Relación" },
+   151→   151→  { value: "boundary", label: "Límite" },
+   152→   152→  { value: "wellbeing", label: "Bienestar" },
+   153→   153→  { value: "task", label: "Tarea" },
+   154→   154→];
+   155→   155→
+   156→   156→export function CreateScreen({ onClose, onAiAssist }: Props) {
+   157→   157→  const { createRecord, state } = useKoru();
+   158→   158→  const [selected, setSelected] = useState<Template | null>(null);
+   159→   159→
+   160→   160→  // Form state (común)
+   161→   161→  const [title, setTitle] = useState("");
+   162→   162→  const [notes, setNotes] = useState("");
+   163→   163→  const [amount, setAmount] = useState("");
+   164→   164→  const [currency, setCurrency] = useState("ARS");
+   165→   165→  const [url, setUrl] = useState("");
+   166→   166→  const [listItems, setListItems] = useState<string[]>([""]);
+   167→   167→  const [collection, setCollection] = useState("");
+   168→   168→  const [saving, setSaving] = useState(false);
+   169→   169→
+   170→   170→  // Receta
+   171→   171→  const [ingredients, setIngredients] = useState<string[]>([""]);
+   172→   172→  const [steps, setSteps] = useState<string[]>([""]);
+   173→   173→  const [prepTime, setPrepTime] = useState("");
+   174→   174→  const [cookTime, setCookTime] = useState("");
+   175→   175→  const [servings, setServings] = useState("");
+   176→   176→
+   177→   177→  // Rutina
+   178→   178→  const [rutinaCadence, setRutinaCadence] = useState<RutinaCadence>("daily");
+   179→   179→  const [rutinaTarget, setRutinaTarget] = useState("");
+   180→   180→  const [rutinaUnit, setRutinaUnit] = useState("");
+   181→   181→  const [rutinaAnchorTime, setRutinaAnchorTime] = useState("");
+   182→   182→
+   183→   183→  // Ejercicio
+   184→   184→  const [weeksTotal, setWeeksTotal] = useState("");
+   185→   185→  const [sessions, setSessions] = useState<SessionInput[]>([
+   186→   186→    { dayLabel: "", exercises: [{ name: "", sets: "", reps: "", weight: "" }] },
+   187→   187→  ]);
+   188→   188→
+   189→   189→  // Memoria
+   190→   190→  const [memoriaText, setMemoriaText] = useState("");
+   191→   191→  const [memoriaKind, setMemoriaKind] = useState<MemoriaKind>("profile");
+   192→   192→  const [memoriaConfidence, setMemoriaConfidence] = useState(0.7);
+   193→   193→  const [memoriaSensitive, setMemoriaSensitive] = useState(false);
+   194→   194→
+   195→   195→  // Decisión
+   196→   196→  const [deadline, setDeadline] = useState("");
+   197→   197→  const [options, setOptions] = useState<DecisionOptionInput[]>([
+   198→   198→    { id: genId("opt"), label: "", factorScores: {} },
+   199→   199→  ]);
+   200→   200→  const [factors, setFactors] = useState<DecisionFactorInput[]>([
+   201→   201→    { id: genId("fac"), label: "", direction: "higherIsBetter" },
+   202→   202→  ]);
+   203→   203→
+   204→   204→  // Rich text (nota)
+   205→   205→  const [showPreview, setShowPreview] = useState(false);
+   206→   206→  const notesRef = useRef<HTMLTextAreaElement>(null);
+   207→   207→
+   208→   208→  // Tags (todos los templates)
+   209→   209→  const [tags, setTags] = useState<string[]>([]);
+   210→   210→  const [tagInput, setTagInput] = useState("");
+   211→   211→
+   212→   212→  // AI assist
+   213→   213→  const [aiLoading, setAiLoading] = useState(false);
+   214→   214→  const [aiSuggestions, setAiSuggestions] = useState<AiSuggestion[]>([]);
+   215→   215→
+   216→   216→  // Smart defaults
+   217→   217→  const [lastUsedCollection, setLastUsedCollection] = useState<string | null>(null);
+   218→   218→
+   219→   219→  // Tags existentes en el state (para autocomplete)
+   220→   220→  const existingTags = useMemo(() => {
+   221→   221→    const set = new Set<string>();
+   222→   222→    for (const r of state.records) {
+   223→   223→      for (const t of r.tags ?? []) set.add(t);
+   224→   224→    }
+   225→   225→    return Array.from(set).sort();
+   226→   226→  }, [state.records]);
+   227→   227→
+   228→   228→  const tagSuggestions = useMemo(() => {
+   229→   229→    const q = tagInput.trim().toLowerCase();
+   230→   230→    if (!q) return [];
+   231→   231→    return existingTags
+   232→   232→      .filter(t => t.toLowerCase().includes(q) && !tags.includes(t))
+   233→   233→      .slice(0, 6);
+   234→   234→  }, [tagInput, existingTags, tags]);
+   235→   235→
+   236→   236→  function reset() {
+   237→   237→    setTitle(""); setNotes(""); setAmount(""); setCurrency("ARS"); setUrl(""); setListItems([""]); setCollection("");
+   238→   238→    setIngredients([""]); setSteps([""]); setPrepTime(""); setCookTime(""); setServings("");
+   239→   239→    setRutinaCadence("daily"); setRutinaTarget(""); setRutinaUnit(""); setRutinaAnchorTime("");
+   240→   240→    setWeeksTotal("");
+   241→   241→    setSessions([{ dayLabel: "", exercises: [{ name: "", sets: "", reps: "", weight: "" }] }]);
+   242→   242→    setMemoriaText(""); setMemoriaKind("profile"); setMemoriaConfidence(0.7); setMemoriaSensitive(false);
+   243→   243→    setDeadline("");
+   244→   244→    setOptions([{ id: genId("opt"), label: "", factorScores: {} }]);
+   245→   245→    setFactors([{ id: genId("fac"), label: "", direction: "higherIsBetter" }]);
+   246→   246→    setTags([]); setTagInput("");
+   247→   247→    setShowPreview(false);
+   248→   248→    setAiSuggestions([]);
+   249→   249→    setLastUsedCollection(null);
+   250→   250→  }
+   251→   251→
+   252→   252→  function selectTemplate(tpl: Template) {
+   253→   253→    setSelected(tpl);
+   254→   254→    // 🔴 Smart defaults: recordar último collection usado por template
+   255→   255→    const last = (() => {
+   256→   256→      try { return localStorage.getItem(`koru.create.lastCollection.${tpl}`); } catch { return null; }
+   257→   257→    })();
+   258→   258→    setLastUsedCollection(last);
+   259→   259→    setCollection(last ?? TEMPLATES.find(t => t.id === tpl)!.collection);
+   260→   260→    setAiSuggestions([]);
+   261→   261→  }
+   262→   262→
+   263→   263→  function rememberCollection(template: Template, coll: string) {
+   264→   264→    try { localStorage.setItem(`koru.create.lastCollection.${template}`, coll); } catch { /* ignore */ }
+   265→   265→  }
+   266→   266→
+   267→   267→  // ---------------------------------------------------------------------------
+   268→   268→  // SourceBlock helpers (rutina / ejercicio / memoria / decision)
+   269→   269→  // Encapsulan los datos estructurados para que luego puedan convertirse en
+   270→   270→  // hábito / plan / memoria / decisión al reabrir el record.
+   271→   271→  // ---------------------------------------------------------------------------
+   272→   272→
+   273→   273→  function buildSavedRecordBlock(payload: {
+   274→   274→    title: string;
+   275→   275→    collection: string;
+   276→   276→    notes?: string;
+   277→   277→    kind: LifeRecordKind;
+   278→   278→  }): UiBlock {
+   279→   279→    return {
+   280→   280→      type: "saved_record",
+   281→   281→      title: payload.title,
+   282→   282→      records: [{
+   283→   283→        domain: "capture" as LifeDomain,
+   284→   284→        kind: payload.kind,
+   285→   285→        title: payload.title,
+   286→   286→        collection: payload.collection,
+   287→   287→        notes: payload.notes,
+   288→   288→      }],
+   289→   289→    };
+   290→   290→  }
+   291→   291→
+   292→   292→  // ---------------------------------------------------------------------------
+   293→   293→  // Save
+   294→   294→  // ---------------------------------------------------------------------------
+   295→   295→
+   296→   296→  async function persist(args: {
+   297→   297→    title: string;
+   298→   298→    collection: string;
+   299→   299→    notes?: string;
+   300→   300→    url?: string;
+   301→   301→    kind: LifeRecordKind;
+   302→   302→    sourceBlock?: UiBlock;
+   303→   303→  }) {
+   304→   304→    const finalTags = tags.length > 0 ? tags : undefined;
+   305→   305→    setSaving(true);
+   306→   306→    try {
+   307→   307→      await createRecord({
+   308→   308→        title: args.title,
+   309→   309→        collection: args.collection,
+   310→   310→        notes: args.notes,
+   311→   311→        url: args.url,
+   312→   312→        kind: args.kind,
+   313→   313→        tags: finalTags,
+   314→   314→        sourceBlock: args.sourceBlock,
+   315→   315→      });
+   316→   316→    } finally {
+   317→   317→      setSaving(false);
+   318→   318→    }
+   319→   319→    rememberCollection(selected!, args.collection);
+   320→   320→    reset();
+   321→   321→    setSelected(null);
+   322→   322→  }
+   323→   323→
+   324→   324→  async function handleSave() {
+   325→   325→    if (!selected) return;
+   326→   326→    const tpl = TEMPLATES.find(t => t.id === selected)!;
+   327→   327→    const kind = KIND_MAP[selected];
+   328→   328→    const finalCollection = collection.trim() || tpl.collection;
+   329→   329→
+   330→   330→    if (selected === "lista") {
+   331→   331→      const items = listItems.filter(i => i.trim());
+   332→   332→      const listText = items.map(i => `• ${i}`).join("\n");
+   333→   333→      await persist({
+   334→   334→        title: title.trim() || "Lista sin título",
+   335→   335→        collection: finalCollection,
+   336→   336→        notes: listText,
+   337→   337→        kind,
+   338→   338→      });
+   339→   339→      return;
+   340→   340→    }
+   341→   341→
+   342→   342→    if (selected === "gasto") {
+   343→   343→      const amt = parseFloat(amount) || 0;
+   344→   344→      await persist({
+   345→   345→        title: title.trim() || "Gasto",
+   346→   346→        collection: finalCollection,
+   347→   347→        notes: `${currency} ${amt}`,
+   348→   348→        kind,
+   349→   349→      });
+   350→   350→      return;
+   351→   351→    }
+   352→   352→
+   353→   353→    if (selected === "enlace") {
+   354→   354→      await persist({
+   355→   355→        title: title.trim() || url.trim() || "Enlace",
+   356→   356→        collection: finalCollection,
+   357→   357→        url: url.trim(),
+   358→   358→        notes: notes.trim() || undefined,
+   359→   359→        kind,
+   360→   360→      });
+   361→   361→      return;
+   362→   362→    }
+   363→   363→
+   364→   364→    if (selected === "rutina") {
+   365→   365→      const target = parseFloat(rutinaTarget) || 0;
+   366→   366→      const rutinaText = [
+   367→   367→        `Cadencia: ${rutinaCadence}`,
+   368→   368→        `Meta: ${target} ${rutinaUnit || ""}`.trim(),
+   369→   369→        rutinaAnchorTime ? `Ancla: ${rutinaAnchorTime}` : null,
+   370→   370→      ].filter(Boolean).join("\n");
+   371→   371→      await persist({
+   372→   372→        title: title.trim() || "Rutina sin título",
+   373→   373→        collection: finalCollection,
+   374→   374→        notes: rutinaText,
+   375→   375→        kind,
+   376→   376→        sourceBlock: buildSavedRecordBlock({
+   377→   377→          title: title.trim() || "Rutina",
+   378→   378→          collection: finalCollection,
+   379→   379→          notes: rutinaText,
+   380→   380→          kind,
+   381→   381→        }),
+   382→   382→      });
+   383→   383→      return;
+   384→   384→    }
+   385→   385→
+   386→   386→    if (selected === "ejercicio") {
+   387→   387→      const weeks = parseInt(weeksTotal) || 0;
+   388→   388→      const sessionsText = sessions
+   389→   389→        .filter(s => s.dayLabel.trim() || s.exercises.some(e => e.name.trim()))
+   390→   390→        .map(s => {
+   391→   391→          const ex = s.exercises.filter(e => e.name.trim());
+   392→   392→          const exText = ex
+   393→   393→            .map(e => `  - ${e.name}: ${e.sets || 0}x${e.reps || 0}${e.weight ? ` @ ${e.weight}kg` : ""}`)
+   394→   394→            .join("\n");
+   395→   395→          return `${s.dayLabel || "Día"}:\n${exText}`;
+   396→   396→        })
+   397→   397→        .join("\n\n");
+   398→   398→      const ejText = `Semanas: ${weeks}\n\n${sessionsText}`;
+   399→   399→      await persist({
+   400→   400→        title: title.trim() || "Plan de entrenamiento",
+   401→   401→        collection: finalCollection,
+   402→   402→        notes: ejText,
+   403→   403→        kind,
+   404→   404→        sourceBlock: buildSavedRecordBlock({
+   405→   405→          title: title.trim() || "Plan de entrenamiento",
+   406→   406→          collection: finalCollection,
+   407→   407→          notes: ejText,
+   408→   408→          kind,
+   409→   409→        }),
+   410→   410→      });
+   411→   411→      return;
+   412→   412→    }
+   413→   413→
+   414→   414→    if (selected === "memoria") {
+   415→   415→      const memText = [
+   416→   416→        memoriaText.trim(),
+   417→   417→        `Tipo: ${memoriaKind}`,
+   418→   418→        `Confianza: ${Math.round(memoriaConfidence * 100)}%`,
+   419→   419→        memoriaSensitive ? "Sensibilidad: sensible" : null,
+   420→   420→      ].filter(Boolean).join("\n");
+   421→   421→      await persist({
+   422→   422→        title: title.trim() || "Memoria",
+   423→   423→        collection: finalCollection,
+   424→   424→        notes: memText,
+   425→   425→        kind,
+   426→   426→        sourceBlock: buildSavedRecordBlock({
+   427→   427→          title: title.trim() || "Memoria",
+   428→   428→          collection: finalCollection,
+   429→   429→          notes: memText,
+   430→   430→          kind,
+   431→   431→        }),
+   432→   432→      });
+   433→   433→      return;
+   434→   434→    }
+   435→   435→
+   436→   436→    if (selected === "decision") {
+   437→   437→      const facIds = factors.map(f => f.id);
+   438→   438→      const decText = [
+   439→   439→        deadline ? `Deadline: ${deadline}` : null,
+   440→   440→        "Factores:",
+   441→   441→        ...factors.filter(f => f.label.trim()).map(f => `  • ${f.label} (${f.direction === "higherIsBetter" ? "↑" : "↓"})`),
+   442→   442→        "Opciones:",
+   443→   443→        ...options.filter(o => o.label.trim()).map(o => `  • ${o.label}`),
+   444→   444→      ].filter(Boolean).join("\n");
+   445→   445→      // Embed structured payload (factor scores) as a JSON footer for later reopening.
+   446→   446→      const optionsWithScores = options.filter(o => o.label.trim()).map(o => ({
+   447→   447→        label: o.label,
+   448→   448→        factorScores: Object.fromEntries(facIds.map(id => [id, o.factorScores[id] ?? 0])),
+   449→   449→      }));
+   450→   450→      const structured = JSON.stringify({ weeks: null, factors: factors.filter(f => f.label.trim()), options: optionsWithScores, deadline: deadline || undefined });
+   451→   451→      const fullNotes = `${decText}\n\n---\n${structured}`;
+   452→   452→      await persist({
+   453→   453→        title: title.trim() || "Decisión",
+   454→   454→        collection: finalCollection,
+   455→   455→        notes: fullNotes,
+   456→   456→        kind,
+   457→   457→        sourceBlock: buildSavedRecordBlock({
+   458→   458→          title: title.trim() || "Decisión",
+   459→   459→          collection: finalCollection,
+   460→   460→          notes: fullNotes,
+   461→   461→          kind,
+   462→   462→        }),
+   463→   463→      });
+   464→   464→      return;
+   465→   465→    }
+   466→   466→
+   467→   467→    // nota (default)
+   468→   468→    await persist({
+   469→   469→      title: title.trim() || "Nota sin título",
+   470→   470→      collection: finalCollection,
+   471→   471→      notes: notes.trim() || undefined,
+   472→   472→      kind,
+   473→   473→    });
+   474→   474→  }
+   475→   475→
+   476→   476→  async function handleSaveReceta() {
+   477→   477→    if (!selected || selected !== "receta") return;
+   478→   478→    const tpl = TEMPLATES.find(t => t.id === selected)!;
+   479→   479→    const kind = KIND_MAP[selected];
+   480→   480→    const finalCollection = collection.trim() || tpl.collection;
+   481→   481→    const ing = ingredients.filter(i => i.trim());
+   482→   482→    const stp = steps.filter(s => s.trim());
+   483→   483→    const recetaText = [
+   484→   484→      prepTime || cookTime || servings
+   485→   485→        ? `⏱ ${[prepTime && `Prep: ${prepTime}min`, cookTime && `Cocción: ${cookTime}min`, servings && `Porciones: ${servings}`].filter(Boolean).join(" · ")}`
+   486→   486→        : null,
+   487→   487→      ing.length > 0 ? `Ingredientes:\n${ing.map(i => `• ${i}`).join("\n")}` : null,
+   488→   488→      stp.length > 0 ? `Pasos:\n${stp.map((s, i) => `${i + 1}. ${s}`).join("\n")}` : null,
+   489→   489→    ].filter(Boolean).join("\n\n");
+   490→   490→    await persist({
+   491→   491→      title: title.trim() || "Receta sin nombre",
+   492→   492→      collection: finalCollection,
+   493→   493→      notes: recetaText,
+   494→   494→      kind,
+   495→   495→    });
+   496→   496→  }
+   497→   497→
+   498→   498→  // ---------------------------------------------------------------------------
+   499→   499→  // AI assist
+   500→   500→  // ---------------------------------------------------------------------------
+   501→   501→
+   502→   502→  async function handleAiAssist() {
+   503→   503→    if (!selected || !onAiAssist) return;
+   504→   504→    setAiLoading(true);
+   505→   505→    try {
+   506→   506→      const result = await onAiAssist(selected, title);
+   507→   507→      if (result?.suggestions && result.suggestions.length > 0) {
+   508→   508→        setAiSuggestions(result.suggestions);
+   509→   509→      }
+   510→   510→    } catch {
+   511→   511→      // ignore — el padre puede manejar errores
+   512→   512→    } finally {
+   513→   513→      setAiLoading(false);
+   514→   514→    }
+   515→   515→  }
+   516→   516→
+   517→   517→  function applySuggestion(s: AiSuggestion) {
+   518→   518→    const v = s.value;
+   519→   519→    switch (s.field) {
+   520→   520→      case "title": setTitle(v); break;
+   521→   521→      case "notes": setNotes(v); break;
+   522→   522→      case "amount": setAmount(v); break;
+   523→   523→      case "currency": setCurrency(v); break;
+   524→   524→      case "url": setUrl(v); break;
+   525→   525→      case "collection": setCollection(v); break;
+   526→   526→      case "prepTime": setPrepTime(v); break;
+   527→   527→      case "cookTime": setCookTime(v); break;
+   528→   528→      case "servings": setServings(v); break;
+   529→   529→      case "rutinaCadence": setRutinaCadence((v as RutinaCadence) || "daily"); break;
+   530→   530→      case "rutinaTarget": setRutinaTarget(v); break;
+   531→   531→      case "rutinaUnit": setRutinaUnit(v); break;
+   532→   532→      case "rutinaAnchorTime": setRutinaAnchorTime(v); break;
+   533→   533→      case "weeksTotal": setWeeksTotal(v); break;
+   534→   534→      case "memoriaText": setMemoriaText(v); break;
+   535→   535→      case "memoriaKind": setMemoriaKind((v as MemoriaKind) || "profile"); break;
+   536→   536→      case "memoriaConfidence": setMemoriaConfidence(parseFloat(v) || 0.5); break;
+   537→   537→      case "deadline": setDeadline(v); break;
+   538→   538→      default: break;
+   539→   539→    }
+   540→   540→    setAiSuggestions(prev => prev.filter(p => p.field !== s.field));
+   541→   541→  }
+   542→   542→
+   543→   543→  function rejectSuggestion(field: string) {
+   544→   544→    setAiSuggestions(prev => prev.filter(p => p.field !== field));
+   545→   545→  }
+   546→   546→
+   547→   547→  // ---------------------------------------------------------------------------
+   548→   548→  // Markdown toolbar (nota)
+   549→   549→  // ---------------------------------------------------------------------------
+   550→   550→
+   551→   551→  function insertWrap(wrap: string, placeholder: string) {
+   552→   552→    const ta = notesRef.current;
+   553→   553→    if (!ta) return;
+   554→   554→    const start = ta.selectionStart;
+   555→   555→    const end = ta.selectionEnd;
+   556→   556→    const sel = notes.slice(start, end) || placeholder;
+   557→   557→    const next = notes.slice(0, start) + wrap + sel + wrap + notes.slice(end);
+   558→   558→    setNotes(next);
+   559→   559→    requestAnimationFrame(() => {
+   560→   560→      ta.focus();
+   561→   561→      const pos = start + wrap.length;
+   562→   562→      ta.setSelectionRange(pos, pos + sel.length);
+   563→   563→    });
+   564→   564→  }
+   565→   565→
+   566→   566→  function insertPrefix(prefix: string) {
+   567→   567→    const ta = notesRef.current;
+   568→   568→    if (!ta) return;
+   569→   569→    const start = ta.selectionStart;
+   570→   570→    const before = notes.slice(0, start);
+   571→   571→    const lineStart = before.lastIndexOf("\n") + 1;
+   572→   572→    const next = notes.slice(0, lineStart) + prefix + notes.slice(lineStart);
+   573→   573→    setNotes(next);
+   574→   574→    requestAnimationFrame(() => {
+   575→   575→      ta.focus();
+   576→   576→      const pos = start + prefix.length;
+   577→   577→      ta.setSelectionRange(pos, pos);
+   578→   578→    });
+   579→   579→  }
+   580→   580→
+   581→   581→  function insertLink() {
+   582→   582→    const ta = notesRef.current;
+   583→   583→    if (!ta) return;
+   584→   584→    const start = ta.selectionStart;
+   585→   585→    const end = ta.selectionEnd;
+   586→   586→    const sel = notes.slice(start, end) || "texto";
+   587→   587→    const link = `[${sel}](https://)`;
+   588→   588→    const next = notes.slice(0, start) + link + notes.slice(end);
+   589→   589→    setNotes(next);
+   590→   590→    requestAnimationFrame(() => {
+   591→   591→      ta.focus();
+   592→   592→      const urlStart = start + sel.length + 3; // "[" + sel + "]("
+   593→   593→      ta.setSelectionRange(urlStart, urlStart + 8); // selecciona "https://"
+   594→   594→    });
+   595→   595→  }
+   596→   596→
+   597→   597→  // ---------------------------------------------------------------------------
+   598→   598→  // Tags
+   599→   599→  // ---------------------------------------------------------------------------
+   600→   600→
+   601→   601→  function addTag(t: string) {
+   602→   602→    const clean = t.trim().replace(/^,+|,+$/g, "").trim();
+   603→   603→    if (!clean) { setTagInput(""); return; }
+   604→   604→    if (tags.includes(clean)) { setTagInput(""); return; }
+   605→   605→    setTags([...tags, clean]);
+   606→   606→    setTagInput("");
+   607→   607→  }
+   608→   608→
+   609→   609→  function removeTag(t: string) {
+   610→   610→    setTags(tags.filter(x => x !== t));
+   611→   611→  }
+   612→   612→
+   613→   613→  // ---------------------------------------------------------------------------
+   614→   614→  // Ejercicio session helpers
+   615→   615→  // ---------------------------------------------------------------------------
+   616→   616→
+   617→   617→  function updateSession(idx: number, patch: Partial<SessionInput>) {
+   618→   618→    setSessions(prev => prev.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
+   619→   619→  }
+   620→   620→  function updateExercise(sIdx: number, eIdx: number, patch: Partial<ExerciseSetInput>) {
+   621→   621→    setSessions(prev => prev.map((s, i) => {
+   622→   622→      if (i !== sIdx) return s;
+   623→   623→      const exs = s.exercises.map((e, j) => (j === eIdx ? { ...e, ...patch } : e));
+   624→   624→      return { ...s, exercises: exs };
+   625→   625→    }));
+   626→   626→  }
+   627→   627→  function addExercise(sIdx: number) {
+   628→   628→    setSessions(prev => prev.map((s, i) => (i === sIdx
+   629→   629→      ? { ...s, exercises: [...s.exercises, { name: "", sets: "", reps: "", weight: "" }] }
+   630→   630→      : s)));
+   631→   631→  }
+   632→   632→  function removeExercise(sIdx: number, eIdx: number) {
+   633→   633→    setSessions(prev => prev.map((s, i) => {
+   634→   634→      if (i !== sIdx) return s;
+   635→   635→      return { ...s, exercises: s.exercises.filter((_, j) => j !== eIdx) };
+   636→   636→    }));
+   637→   637→  }
+   638→   638→  function addSession() {
+   639→   639→    setSessions([...sessions, { dayLabel: "", exercises: [{ name: "", sets: "", reps: "", weight: "" }] }]);
+   640→   640→  }
+   641→   641→  function removeSession(idx: number) {
+   642→   642→    setSessions(sessions.filter((_, i) => i !== idx));
+   643→   643→  }
+   644→   644→
+   645→   645→  // ---------------------------------------------------------------------------
+   646→   646→  // Decisión helpers
+   647→   647→  // ---------------------------------------------------------------------------
+   648→   648→
+   649→   649→  function updateOption(idx: number, patch: Partial<DecisionOptionInput>) {
+   650→   650→    setOptions(prev => prev.map((o, i) => (i === idx ? { ...o, ...patch } : o)));
+   651→   651→  }
+   652→   652→  function addOption() {
+   653→   653→    setOptions([...options, { id: genId("opt"), label: "", factorScores: {} }]);
+   654→   654→  }
+   655→   655→  function removeOption(idx: number) {
+   656→   656→    setOptions(options.filter((_, i) => i !== idx));
+   657→   657→  }
+   658→   658→  function updateFactor(idx: number, patch: Partial<DecisionFactorInput>) {
+   659→   659→    setFactors(prev => prev.map((f, i) => (i === idx ? { ...f, ...patch } : f)));
+   660→   660→  }
+   661→   661→  function addFactor() {
+   662→   662→    setFactors([...factors, { id: genId("fac"), label: "", direction: "higherIsBetter" }]);
+   663→   663→  }
+   664→   664→  function removeFactor(idx: number) {
+   665→   665→    const removedId = factors[idx].id;
+   666→   666→    setFactors(factors.filter((_, i) => i !== idx));
+   667→   667→    // limpiar factorScores huérfanos
+   668→   668→    setOptions(prev => prev.map(o => {
+   669→   669→      if (!(removedId in o.factorScores)) return o;
+   670→   670→      const next = { ...o.factorScores };
+   671→   671→      delete next[removedId];
+   672→   672→      return { ...o, factorScores: next };
+   673→   673→    }));
+   674→   674→  }
+   675→   675→
+   676→   676→  const currentTpl = selected ? TEMPLATES.find(t => t.id === selected) : null;
+   677→   677→
+   678→   678→  return createPortal(
+   679→   679→    <div className="koru-create-overlay" role="dialog" aria-label="Crear">
+   680→   680→      <div className="koru-create-screen">
+   681→   681→        <div className="koru-create-header">
+   682→   682→          {selected ? (
+   683→   683→            <button type="button" aria-label="Volver" className="koru-create-back" onClick={() => setSelected(null)}>
+   684→   684→              <Mat>arrow_back_ios_new</Mat>
+   685→   685→            </button>
+   686→   686→          ) : (
+   687→   687→            <div style={{ width: 40 }} />
+   688→   688→          )}
+   689→   689→          <h1 className="koru-create-title">
+   690→   690→            {selected ? TEMPLATES.find(t => t.id === selected)!.label : "¿Qué querés crear?"}
+   691→   691→          </h1>
+   692→   692→          <button type="button" aria-label="Cerrar" className="koru-create-close" onClick={onClose}>
+   693→   693→            <Mat>close</Mat>
+   694→   694→          </button>
+   695→   695→        </div>
+   696→   696→
+   697→   697→        {!selected ? (
+   698→   698→          <div className="koru-create-templates">
+   699→   699→            {TEMPLATES.map((tpl) => (
+   700→   700→              <button
+   701→   701→                key={tpl.id}
+   702→   702→                type="button"
+   703→   703→                className="koru-create-template"
+   704→   704→                onClick={() => selectTemplate(tpl.id)}
+   705→   705→              >
+   706→   706→                <div className="koru-create-template-icon" style={{ background: `${tpl.accent}20`, color: tpl.accent }}>
+   707→   707→                  <Mat>{tpl.icon}</Mat>
+   708→   708→                </div>
+   709→   709→                <div className="koru-create-template-body">
+   710→   710→                  <span className="koru-create-template-label">{tpl.label}</span>
+   711→   711→                  <span className="koru-create-template-desc">{tpl.desc}</span>
+   712→   712→                </div>
+   713→   713→                <Mat className="koru-create-template-arrow">arrow_forward</Mat>
+   714→   714→              </button>
+   715→   715→            ))}
+   716→   716→          </div>
+   717→   717→        ) : (
+   718→   718→          <div className="koru-create-form">
+   719→   719→            {/* 🔴 AI suggestions panel — el usuario acepta/rechaza por campo */}
+   720→   720→            {aiSuggestions.length > 0 && (
+   721→   721→              <div className="koru-create-ai-panel">
+   722→   722→                <div className="koru-create-ai-panel-title">
+   723→   723→                  <Mat>auto_awesome</Mat> Sugerencias de Koru
+   724→   724→                </div>
+   725→   725→                {aiSuggestions.map(s => (
+   726→   726→                  <div key={s.field} className="koru-create-ai-suggestion">
+   727→   727→                    <div className="koru-create-ai-suggestion-body">
+   728→   728→                      <div className="koru-create-ai-suggestion-label">{s.label}</div>
+   729→   729→                      <div className="koru-create-ai-suggestion-value">{s.value}</div>
+   730→   730→                    </div>
+   731→   731→                    <div className="koru-create-ai-suggestion-actions">
+   732→   732→                      <button type="button" className="koru-create-ai-accept" onClick={() => applySuggestion(s)}>
+   733→   733→                        <Mat>check</Mat>
+   734→   734→                      </button>
+   735→   735→                      <button type="button" className="koru-create-ai-reject" onClick={() => rejectSuggestion(s.field)}>
+   736→   736→                        <Mat>close</Mat>
+   737→   737→                      </button>
+   738→   738→                    </div>
+   739→   739→                  </div>
+   740→   740→                ))}
+   741→   741→              </div>
+   742→   742→            )}
+   743→   743→
+   744→   744→            {/* Título + AI assist pill */}
+   745→   745→            <label className="koru-create-field">
+   746→   746→              <span className="koru-create-field-label">{titleLabel(selected)}</span>
+   747→   747→              <div className="koru-create-title-row">
+   748→   748→                <input
+   749→   749→                  type="text"
+   750→   750→                  value={title}
+   751→   751→                  onChange={(e) => setTitle(e.target.value)}
+   752→   752→                  placeholder={titlePlaceholder(selected)}
+   753→   753→                  autoFocus
+   754→   754→                />
+   755→   755→                {onAiAssist && (
+   756→   756→                  <button
+   757→   757→                    type="button"
+   758→   758→                    className="koru-create-ai-pill"
+   759→   759→                    onClick={handleAiAssist}
+   760→   760→                    disabled={aiLoading}
+   761→   761→                    title="Koru sugiere campos"
+   762→   762→                  >
+   763→   763→                    {aiLoading ? (
+   764→   764→                      <><Mat className="koru-spin">progress_activity</Mat></>
+   765→   765→                    ) : (
+   766→   766→                      <>✨ Koru sugiere</>
+   767→   767→                    )}
+   768→   768→                  </button>
+   769→   769→                )}
+   770→   770→              </div>
+   771→   771→            </label>
+   772→   772→
+   773→   773→            {/* GASTO */}
+   774→   774→            {selected === "gasto" && (
+   775→   775→              <label className="koru-create-field koru-create-field-row">
+   776→   776→                <div>
+   777→   777→                  <span className="koru-create-field-label">Monto</span>
+   778→   778→                  <input
+   779→   779→                    type="number"
+   780→   780→                    inputMode="decimal"
+   781→   781→                    value={amount}
+   782→   782→                    onChange={(e) => setAmount(e.target.value)}
+   783→   783→                    placeholder="0.00"
+   784→   784→                  />
+   785→   785→                </div>
+   786→   786→                <div>
+   787→   787→                  <span className="koru-create-field-label">Moneda</span>
+   788→   788→                  <select value={currency} onChange={(e) => setCurrency(e.target.value)}>
+   789→   789→                    <option value="ARS">ARS</option>
+   790→   790→                    <option value="USD">USD</option>
+   791→   791→                    <option value="EUR">EUR</option>
+   792→   792→                  </select>
+   793→   793→                </div>
+   794→   794→              </label>
+   795→   795→            )}
+   796→   796→
+   797→   797→            {/* ENLACE */}
+   798→   798→            {selected === "enlace" && (
+   799→   799→              <label className="koru-create-field">
+   800→   800→                <span className="koru-create-field-label">URL</span>
+   801→   801→                <input
+   802→   802→                  type="url"
+   803→   803→                  value={url}
+   804→   804→                  onChange={(e) => setUrl(e.target.value)}
+   805→   805→                  placeholder="https://..."
+   806→   806→                />
+   807→   807→              </label>
+   808→   808→            )}
+   809→   809→
+   810→   810→            {/* LISTA */}
+   811→   811→            {selected === "lista" && (
+   812→   812→              <div className="koru-create-field">
+   813→   813→                <span className="koru-create-field-label">Items</span>
+   814→   814→                <div className="koru-create-list-items">
+   815→   815→                  {listItems.map((item, i) => (
+   816→   816→                    <div key={i} className="koru-create-list-item">
+   817→   817→                      <span className="koru-create-list-bullet">•</span>
+   818→   818→                      <input
+   819→   819→                        type="text"
+   820→   820→                        value={item}
+   821→   821→                        onChange={(e) => {
+   822→   822→                          const next = [...listItems];
+   823→   823→                          next[i] = e.target.value;
+   824→   824→                          setListItems(next);
+   825→   825→                        }}
+   826→   826→                        onKeyDown={(e) => {
+   827→   827→                          if (e.key === "Enter" && i === listItems.length - 1 && item.trim()) {
+   828→   828→                            setListItems([...listItems, ""]);
+   829→   829→                          }
+   830→   830→                        }}
+   831→   831→                        placeholder={`Item ${i + 1}`}
+   832→   832→                      />
+   833→   833→                      {listItems.length > 1 && (
+   834→   834→                        <button
+   835→   835→                          type="button"
+   836→   836→                          aria-label="Quitar"
+   837→   837→                          className="koru-create-list-remove"
+   838→   838→                          onClick={() => setListItems(listItems.filter((_, idx) => idx !== i))}
+   839→   839→                        >
+   840→   840→                          <Mat>remove_circle</Mat>
+   841→   841→                        </button>
+   842→   842→                      )}
+   843→   843→                    </div>
+   844→   844→                  ))}
+   845→   845→                  <button
+   846→   846→                    type="button"
+   847→   847→                    className="koru-create-list-add"
+   848→   848→                    onClick={() => setListItems([...listItems, ""])}
+   849→   849→                  >
+   850→   850→                    <Mat>add</Mat> Agregar item
+   851→   851→                  </button>
+   852→   852→                </div>
+   853→   853→              </div>
+   854→   854→            )}
+   855→   855→
+   856→   856→            {/* NOTA — rich text con toolbar + preview */}
+   857→   857→            {selected === "nota" && (
+   858→   858→              <div className="koru-create-field">
+   859→   859→                <div className="koru-create-field-label-row">
+   860→   860→                  <span className="koru-create-field-label">Notas (opcional)</span>
+   861→   861→                  <button
+   862→   862→                    type="button"
+   863→   863→                    className="koru-create-md-toggle"
+   864→   864→                    onClick={() => setShowPreview(p => !p)}
+   865→   865→                  >
+   866→   866→                    {showPreview ? "Editar" : "Vista previa"}
+   867→   867→                  </button>
+   868→   868→                </div>
+   869→   869→                {!showPreview ? (
+   870→   870→                  <>
+   871→   871→                    <div className="koru-create-md-toolbar" role="toolbar" aria-label="Formato">
+   872→   872→                      <button type="button" onClick={() => insertWrap("**", "negrita")} aria-label="Negrita" title="Negrita"><b>B</b></button>
+   873→   873→                      <button type="button" onClick={() => insertWrap("*", "italica")} aria-label="Itálica" title="Itálica"><i>I</i></button>
+   874→   874→                      <button type="button" onClick={() => insertPrefix("- ")} aria-label="Lista" title="Lista">≡</button>
+   875→   875→                      <button type="button" onClick={insertLink} aria-label="Enlace" title="Enlace">🔗</button>
+   876→   876→                    </div>
+   877→   877→                    <textarea
+   878→   878→                      ref={notesRef}
+   879→   879→                      rows={5}
+   880→   880→                      value={notes}
+   881→   881→                      onChange={(e) => setNotes(e.target.value)}
+   882→   882→                      placeholder="Escribí lo que quieras recordar..."
+   883→   883→                    />
+   884→   884→                  </>
+   885→   885→                ) : (
+   886→   886→                  <div
+   887→   887→                    className="koru-create-md-preview"
+   888→   888→                    dangerouslySetInnerHTML={{
+   889→   889→                      __html: renderMarkdown(notes) || "<em style='color:#999'>Sin contenido</em>",
+   890→   890→                    }}
+   891→   891→                  />
+   892→   892→                )}
+   893→   893→              </div>
+   894→   894→            )}
+   895→   895→
+   896→   896→            {/* ENLACE — notas plain */}
+   897→   897→            {selected === "enlace" && (
+   898→   898→              <label className="koru-create-field">
+   899→   899→                <span className="koru-create-field-label">Notas (opcional)</span>
+   900→   900→                <textarea
+   901→   901→                  rows={5}
+   902→   902→                  value={notes}
+   903→   903→                  onChange={(e) => setNotes(e.target.value)}
+   904→   904→                  placeholder="Agregá contexto sobre este enlace..."
+   905→   905→                />
+   906→   906→              </label>
+   907→   907→            )}
+   908→   908→
+   909→   909→            {/* RECETA */}
+   910→   910→            {selected === "receta" && (
+   911→   911→              <>
+   912→   912→                <label className="koru-create-field koru-create-field-row">
+   913→   913→                  <div>
+   914→   914→                    <span className="koru-create-field-label">Prep (min)</span>
+   915→   915→                    <input type="number" inputMode="numeric" value={prepTime} onChange={(e) => setPrepTime(e.target.value)} placeholder="15" />
+   916→   916→                  </div>
+   917→   917→                  <div>
+   918→   918→                    <span className="koru-create-field-label">Cocción (min)</span>
+   919→   919→                    <input type="number" inputMode="numeric" value={cookTime} onChange={(e) => setCookTime(e.target.value)} placeholder="30" />
+   920→   920→                  </div>
+   921→   921→                  <div>
+   922→   922→                    <span className="koru-create-field-label">Porciones</span>
+   923→   923→                    <input type="number" inputMode="numeric" value={servings} onChange={(e) => setServings(e.target.value)} placeholder="4" />
+   924→   924→                  </div>
+   925→   925→                </label>
+   926→   926→                <div className="koru-create-field">
+   927→   927→                  <span className="koru-create-field-label">Ingredientes</span>
+   928→   928→                  <div className="koru-create-list-items">
+   929→   929→                    {ingredients.map((item, i) => (
+   930→   930→                      <div key={i} className="koru-create-list-item">
+   931→   931→                        <span className="koru-create-list-bullet">•</span>
+   932→   932→                        <input
+   933→   933→                          type="text"
+   934→   934→                          value={item}
+   935→   935→                          onChange={(e) => { const next = [...ingredients]; next[i] = e.target.value; setIngredients(next); }}
+   936→   936→                          onKeyDown={(e) => { if (e.key === "Enter" && i === ingredients.length - 1 && item.trim()) setIngredients([...ingredients, ""]); }}
+   937→   937→                          placeholder={`Ingrediente ${i + 1}`}
+   938→   938→                        />
+   939→   939→                        {ingredients.length > 1 && (
+   940→   940→                          <button type="button" aria-label="Quitar" className="koru-create-list-remove" onClick={() => setIngredients(ingredients.filter((_, idx) => idx !== i))}>
+   941→   941→                            <Mat>remove_circle</Mat>
+   942→   942→                          </button>
+   943→   943→                        )}
+   944→   944→                      </div>
+   945→   945→                    ))}
+   946→   946→                    <button type="button" className="koru-create-list-add" onClick={() => setIngredients([...ingredients, ""])}>
+   947→   947→                      <Mat>add</Mat> Agregar ingrediente
+   948→   948→                    </button>
+   949→   949→                  </div>
+   950→   950→                </div>
+   951→   951→                <div className="koru-create-field">
+   952→   952→                  <span className="koru-create-field-label">Pasos</span>
+   953→   953→                  <div className="koru-create-list-items">
+   954→   954→                    {steps.map((step, i) => (
+   955→   955→                      <div key={i} className="koru-create-list-item">
+   956→   956→                        <span className="koru-create-list-bullet">{i + 1}.</span>
+   957→   957→                        <input
+   958→   958→                          type="text"
+   959→   959→                          value={step}
+   960→   960→                          onChange={(e) => { const next = [...steps]; next[i] = e.target.value; setSteps(next); }}
+   961→   961→                          onKeyDown={(e) => { if (e.key === "Enter" && i === steps.length - 1 && step.trim()) setSteps([...steps, ""]); }}
+   962→   962→                          placeholder={`Paso ${i + 1}`}
+   963→   963→                        />
+   964→   964→                        {steps.length > 1 && (
+   965→   965→                          <button type="button" aria-label="Quitar" className="koru-create-list-remove" onClick={() => setSteps(steps.filter((_, idx) => idx !== i))}>
+   966→   966→                            <Mat>remove_circle</Mat>
+   967→   967→                          </button>
+   968→   968→                        )}
+   969→   969→                      </div>
+   970→   970→                    ))}
+   971→   971→                    <button type="button" className="koru-create-list-add" onClick={() => setSteps([...steps, ""])}>
+   972→   972→                      <Mat>add</Mat> Agregar paso
+   973→   973→                    </button>
+   974→   974→                  </div>
+   975→   975→                </div>
+   976→   976→              </>
+   977→   977→            )}
+   978→   978→
+   979→   979→            {/* RUTINA */}
+   980→   980→            {selected === "rutina" && (
+   981→   981→              <>
+   982→   982→                <label className="koru-create-field">
+   983→   983→                  <span className="koru-create-field-label">Cadencia</span>
+   984→   984→                  <select value={rutinaCadence} onChange={(e) => setRutinaCadence(e.target.value as RutinaCadence)}>
+   985→   985→                    <option value="daily">Diaria</option>
+   986→   986→                    <option value="weekly">Semanal</option>
+   987→   987→                    <option value="mon-fri">Lunes a Viernes</option>
+   988→   988→                    <option value="custom">Personalizada</option>
+   989→   989→                  </select>
+   990→   990→                </label>
+   991→   991→                <label className="koru-create-field koru-create-field-row">
+   992→   992→                  <div>
+   993→   993→                    <span className="koru-create-field-label">Meta</span>
+   994→   994→                    <input type="number" inputMode="decimal" value={rutinaTarget} onChange={(e) => setRutinaTarget(e.target.value)} placeholder="1" />
+   995→   995→                  </div>
+   996→   996→                  <div>
+   997→   997→                    <span className="koru-create-field-label">Unidad</span>
+   998→   998→                    <input type="text" value={rutinaUnit} onChange={(e) => setRutinaUnit(e.target.value)} placeholder="vez / min / km" />
+   999→   999→                  </div>
+  1000→  1000→                </label>
+  1001→  1001→                <label className="koru-create-field">
+  1002→  1002→                  <span className="koru-create-field-label">Hora ancla (opcional)</span>
+  1003→  1003→                  <input type="time" value={rutinaAnchorTime} onChange={(e) => setRutinaAnchorTime(e.target.value)} />
+  1004→  1004→                </label>
+  1005→  1005→              </>
+  1006→  1006→            )}
+  1007→  1007→
+  1008→  1008→            {/* EJERCICIO */}
+  1009→  1009→            {selected === "ejercicio" && (
+  1010→  1010→              <>
+  1011→  1011→                <label className="koru-create-field">
+  1012→  1012→                  <span className="koru-create-field-label">Semanas</span>
+  1013→  1013→                  <input type="number" inputMode="numeric" value={weeksTotal} onChange={(e) => setWeeksTotal(e.target.value)} placeholder="8" />
+  1014→  1014→                </label>
+  1015→  1015→                <div className="koru-create-field">
+  1016→  1016→                  <span className="koru-create-field-label">Sesiones</span>
+  1017→  1017→                  <div className="koru-create-sessions">
+  1018→  1018→                    {sessions.map((s, i) => (
+  1019→  1019→                      <div key={i} className="koru-create-session">
+  1020→  1020→                        <div className="koru-create-session-header">
+  1021→  1021→                          <input
+  1022→  1022→                            type="text"
+  1023→  1023→                            value={s.dayLabel}
+  1024→  1024→                            placeholder={`Día ${i + 1} (ej: Lunes)`}
+  1025→  1025→                            onChange={(e) => updateSession(i, { dayLabel: e.target.value })}
+  1026→  1026→                          />
+  1027→  1027→                          {sessions.length > 1 && (
+  1028→  1028→                            <button type="button" aria-label="Quitar sesión" className="koru-create-list-remove" onClick={() => removeSession(i)}>
+  1029→  1029→                              <Mat>remove_circle</Mat>
+  1030→  1030→                            </button>
+  1031→  1031→                          )}
+  1032→  1032→                        </div>
+  1033→  1033→                        <div className="koru-create-exercises">
+  1034→  1034→                          {s.exercises.map((ex, j) => (
+  1035→  1035→                            <div key={j} className="koru-create-exercise">
+  1036→  1036→                              <input
+  1037→  1037→                                type="text"
+  1038→  1038→                                className="koru-create-exercise-name"
+  1039→  1039→                                value={ex.name}
+  1040→  1040→                                placeholder="Ejercicio (ej: Sentadilla)"
+  1041→  1041→                                onChange={(e) => updateExercise(i, j, { name: e.target.value })}
+  1042→  1042→                              />
+  1043→  1043→                              <input type="number" inputMode="numeric" className="koru-create-exercise-num" value={ex.sets} placeholder="Series" title="Series"
+  1044→  1044→                                onChange={(e) => updateExercise(i, j, { sets: e.target.value })} />
+  1045→  1045→                              <input type="number" inputMode="numeric" className="koru-create-exercise-num" value={ex.reps} placeholder="Reps" title="Reps"
+  1046→  1046→                                onChange={(e) => updateExercise(i, j, { reps: e.target.value })} />
+  1047→  1047→                              <input type="number" inputMode="decimal" className="koru-create-exercise-num" value={ex.weight} placeholder="Peso" title="Peso (kg)"
+  1048→  1048→                                onChange={(e) => updateExercise(i, j, { weight: e.target.value })} />
+  1049→  1049→                              {s.exercises.length > 1 && (
+  1050→  1050→                                <button type="button" aria-label="Quitar ejercicio" className="koru-create-list-remove" onClick={() => removeExercise(i, j)}>
+  1051→  1051→                                  <Mat>remove_circle</Mat>
+  1052→  1052→                                </button>
+  1053→  1053→                              )}
+  1054→  1054→                            </div>
+  1055→  1055→                          ))}
+  1056→  1056→                          <button type="button" className="koru-create-list-add" onClick={() => addExercise(i)}>
+  1057→  1057→                            <Mat>add</Mat> Agregar ejercicio
+  1058→  1058→                          </button>
+  1059→  1059→                        </div>
+  1060→  1060→                      </div>
+  1061→  1061→                    ))}
+  1062→  1062→                    <button type="button" className="koru-create-list-add" onClick={addSession}>
+  1063→  1063→                      <Mat>add</Mat> Agregar sesión
+  1064→  1064→                    </button>
+  1065→  1065→                  </div>
+  1066→  1066→                </div>
+  1067→  1067→              </>
+  1068→  1068→            )}
+  1069→  1069→
+  1070→  1070→            {/* MEMORIA */}
+  1071→  1071→            {selected === "memoria" && (
+  1072→  1072→              <>
+  1073→  1073→                <label className="koru-create-field">
+  1074→  1074→                  <span className="koru-create-field-label">Contenido</span>
+  1075→  1075→                  <textarea
+  1076→  1076→                    rows={4}
+  1077→  1077→                    value={memoriaText}
+  1078→  1078→                    onChange={(e) => setMemoriaText(e.target.value)}
+  1079→  1079→                    placeholder="Ej: Soy alérgico a la penicilina."
+  1080→  1080→                  />
+  1081→  1081→                </label>
+  1082→  1082→                <label className="koru-create-field">
+  1083→  1083→                  <span className="koru-create-field-label">Tipo</span>
+  1084→  1084→                  <select value={memoriaKind} onChange={(e) => setMemoriaKind(e.target.value as MemoriaKind)}>
+  1085→  1085→                    {MEMORIA_KINDS.map(k => (
+  1086→  1086→                      <option key={k.value} value={k.value}>{k.label}</option>
+  1087→  1087→                    ))}
+  1088→  1088→                  </select>
+  1089→  1089→                </label>
+  1090→  1090→                <div className="koru-create-field">
+  1091→  1091→                  <span className="koru-create-field-label">Confianza: {Math.round(memoriaConfidence * 100)}%</span>
+  1092→  1092→                  <input
+  1093→  1093→                    type="range"
+  1094→  1094→                    min="0"
+  1095→  1095→                    max="1"
+  1096→  1096→                    step="0.05"
+  1097→  1097→                    value={memoriaConfidence}
+  1098→  1098→                    onChange={(e) => setMemoriaConfidence(parseFloat(e.target.value))}
+  1099→  1099→                  />
+  1100→  1100→                </div>
+  1101→  1101→                <div className="koru-create-field koru-create-toggle-row">
+  1102→  1102→                  <span className="koru-create-field-label">Sensibilidad</span>
+  1103→  1103→                  <button
+  1104→  1104→                    type="button"
+  1105→  1105→                    className="koru-create-toggle"
+  1106→  1106→                    onClick={() => setMemoriaSensitive(v => !v)}
+  1107→  1107→                    aria-pressed={memoriaSensitive}
+  1108→  1108→                  >
+  1109→  1109→                    <span className="koru-create-toggle-label">{memoriaSensitive ? "Sensible" : "Normal"}</span>
+  1110→  1110→                    <span className={`koru-create-toggle-switch${memoriaSensitive ? " on" : ""}`} />
+  1111→  1111→                  </button>
+  1112→  1112→                </div>
+  1113→  1113→              </>
+  1114→  1114→            )}
+  1115→  1115→
+  1116→  1116→            {/* DECISIÓN */}
+  1117→  1117→            {selected === "decision" && (
+  1118→  1118→              <>
+  1119→  1119→                <label className="koru-create-field">
+  1120→  1120→                  <span className="koru-create-field-label">Deadline (opcional)</span>
+  1121→  1121→                  <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
+  1122→  1122→                </label>
+  1123→  1123→                <div className="koru-create-field">
+  1124→  1124→                  <span className="koru-create-field-label">Factores</span>
+  1125→  1125→                  <div className="koru-create-list-items">
+  1126→  1126→                    {factors.map((f, i) => (
+  1127→  1127→                      <div key={f.id} className="koru-create-list-item koru-create-list-item-decision">
+  1128→  1128→                        <input
+  1129→  1129→                          type="text"
+  1130→  1130→                          value={f.label}
+  1131→  1131→                          placeholder={`Factor ${i + 1}`}
+  1132→  1132→                          onChange={(e) => updateFactor(i, { label: e.target.value })}
+  1133→  1133→                        />
+  1134→  1134→                        <select
+  1135→  1135→                          value={f.direction}
+  1136→  1136→                          onChange={(e) => updateFactor(i, { direction: e.target.value as DecisionFactorInput["direction"] })}
+  1137→  1137→                        >
+  1138→  1138→                          <option value="higherIsBetter">↑ Mejor alto</option>
+  1139→  1139→                          <option value="lowerIsBetter">↓ Mejor bajo</option>
+  1140→  1140→                        </select>
+  1141→  1141→                        {factors.length > 1 && (
+  1142→  1142→                          <button type="button" aria-label="Quitar" className="koru-create-list-remove" onClick={() => removeFactor(i)}>
+  1143→  1143→                            <Mat>remove_circle</Mat>
+  1144→  1144→                          </button>
+  1145→  1145→                        )}
+  1146→  1146→                      </div>
+  1147→  1147→                    ))}
+  1148→  1148→                    <button type="button" className="koru-create-list-add" onClick={addFactor}>
+  1149→  1149→                      <Mat>add</Mat> Agregar factor
+  1150→  1150→                    </button>
+  1151→  1151→                  </div>
+  1152→  1152→                </div>
+  1153→  1153→                <div className="koru-create-field">
+  1154→  1154→                  <span className="koru-create-field-label">Opciones</span>
+  1155→  1155→                  <div className="koru-create-list-items">
+  1156→  1156→                    {options.map((o, i) => (
+  1157→  1157→                      <div key={o.id} className="koru-create-list-item">
+  1158→  1158→                        <span className="koru-create-list-bullet">•</span>
+  1159→  1159→                        <input
+  1160→  1160→                          type="text"
+  1161→  1161→                          value={o.label}
+  1162→  1162→                          placeholder={`Opción ${i + 1}`}
+  1163→  1163→                          onChange={(e) => updateOption(i, { label: e.target.value })}
+  1164→  1164→                        />
+  1165→  1165→                        {options.length > 1 && (
+  1166→  1166→                          <button type="button" aria-label="Quitar" className="koru-create-list-remove" onClick={() => removeOption(i)}>
+  1167→  1167→                            <Mat>remove_circle</Mat>
+  1168→  1168→                          </button>
+  1169→  1169→                        )}
+  1170→  1170→                      </div>
+  1171→  1171→                    ))}
+  1172→  1172→                    <button type="button" className="koru-create-list-add" onClick={addOption}>
+  1173→  1173→                      <Mat>add</Mat> Agregar opción
+  1174→  1174→                    </button>
+  1175→  1175→                  </div>
+  1176→  1176→                </div>
+  1177→  1177→                {factors.filter(f => f.label.trim()).length > 0 && options.filter(o => o.label.trim()).length > 0 && (
+  1178→  1178→                  <div className="koru-create-field">
+  1179→  1179→                    <span className="koru-create-field-label">Puntajes (0-10)</span>
+  1180→  1180→                    <div className="koru-create-matrix">
+  1181→  1181→                      <div className="koru-create-matrix-row koru-create-matrix-header">
+  1182→  1182→                        <span>Opción</span>
+  1183→  1183→                        {factors.filter(f => f.label.trim()).map(f => (
+  1184→  1184→                          <span key={f.id} title={f.label}>{f.label.length > 8 ? f.label.slice(0, 8) + "…" : f.label}</span>
+  1185→  1185→                        ))}
+  1186→  1186→                      </div>
+  1187→  1187→                      {options.filter(o => o.label.trim()).map(o => (
+  1188→  1188→                        <div key={o.id} className="koru-create-matrix-row">
+  1189→  1189→                          <span title={o.label}>{o.label}</span>
+  1190→  1190→                          {factors.filter(f => f.label.trim()).map(f => (
+  1191→  1191→                            <input
+  1192→  1192→                              key={f.id}
+  1193→  1193→                              type="number"
+  1194→  1194→                              inputMode="numeric"
+  1195→  1195→                              min="0"
+  1196→  1196→                              max="10"
+  1197→  1197→                              value={o.factorScores[f.id] ?? 0}
+  1198→  1198→                              onChange={(e) => {
+  1199→  1199→                                const val = parseFloat(e.target.value) || 0;
+  1200→  1200→                                setOptions(prev => prev.map(oo => oo.id === o.id
+  1201→  1201→                                  ? { ...oo, factorScores: { ...oo.factorScores, [f.id]: val } }
+  1202→  1202→                                  : oo));
+  1203→  1203→                              }}
+  1204→  1204→                            />
+  1205→  1205→                          ))}
+  1206→  1206→                        </div>
+  1207→  1207→                      ))}
+  1208→  1208→                    </div>
+  1209→  1209→                  </div>
+  1210→  1210→                )}
+  1211→  1211→              </>
+  1212→  1212→            )}
+  1213→  1213→
+  1214→  1214→            {/* TAGS — disponible en TODOS los templates */}
+  1215→  1215→            <div className="koru-create-field">
+  1216→  1216→              <span className="koru-create-field-label">Etiquetas</span>
+  1217→  1217→              <input
+  1218→  1218→                type="text"
+  1219→  1219→                value={tagInput}
+  1220→  1220→                onChange={(e) => setTagInput(e.target.value)}
+  1221→  1221→                onKeyDown={(e) => {
+  1222→  1222→                  if (e.key === "Enter" || e.key === ",") {
+  1223→  1223→                    e.preventDefault();
+  1224→  1224→                    addTag(tagInput);
+  1225→  1225→                  } else if (e.key === "Backspace" && !tagInput && tags.length > 0) {
+  1226→  1226→                    setTags(tags.slice(0, -1));
+  1227→  1227→                  }
+  1228→  1228→                }}
+  1229→  1229→                placeholder="Agregar etiqueta y Enter…"
+  1230→  1230→              />
+  1231→  1231→              {tagSuggestions.length > 0 && (
+  1232→  1232→                <div className="koru-create-tag-suggest">
+  1233→  1233→                  {tagSuggestions.map(t => (
+  1234→  1234→                    <button key={t} type="button" className="koru-create-tag-suggest-item" onClick={() => addTag(t)}>
+  1235→  1235→                      {t}
+  1236→  1236→                    </button>
+  1237→  1237→                  ))}
+  1238→  1238→                </div>
+  1239→  1239→              )}
+  1240→  1240→              {tags.length > 0 && (
+  1241→  1241→                <div className="koru-create-tag-chips">
+  1242→  1242→                  {tags.map(t => (
+  1243→  1243→                    <span key={t} className="koru-create-tag-chip">
+  1244→  1244→                      {t}
+  1245→  1245→                      <button type="button" aria-label={`Quitar ${t}`} onClick={() => removeTag(t)}>×</button>
+  1246→  1246→                    </span>
+  1247→  1247→                  ))}
+  1248→  1248→                </div>
+  1249→  1249→              )}
+  1250→  1250→            </div>
+  1251→  1251→
+  1252→  1252→            {/* CARPETA — con smart defaults hint */}
+  1253→  1253→            <label className="koru-create-field">
+  1254→  1254→              <span className="koru-create-field-label">Carpeta</span>
+  1255→  1255→              {lastUsedCollection && (
+  1256→  1256→                <span className="koru-create-last-used">Último usado: {lastUsedCollection}</span>
+  1257→  1257→              )}
+  1258→  1258→              <input
+  1259→  1259→                type="text"
+  1260→  1260→                value={collection}
+  1261→  1261→                onChange={(e) => setCollection(e.target.value)}
+  1262→  1262→                placeholder={currentTpl?.collection}
+  1263→  1263→              />
+  1264→  1264→            </label>
+  1265→  1265→
+  1266→  1266→            <div className="koru-create-actions">
+  1267→  1267→              <button
+  1268→  1268→                type="button"
+  1269→  1269→                className="koru-create-action-cancel"
+  1270→  1270→                onClick={() => setSelected(null)}
+  1271→  1271→              >
+  1272→  1272→                Cancelar
+  1273→  1273→              </button>
+  1274→  1274→              <button
+  1275→  1275→                type="button"
+  1276→  1276→                className="koru-create-action-save"
+  1277→  1277→                onClick={selected === "receta" ? handleSaveReceta : handleSave}
+  1278→  1278→                disabled={saving || (!title.trim() && selected !== "gasto")}
+  1279→  1279→                style={{ background: currentTpl?.accent }}
+  1280→  1280→              >
+  1281→  1281→                {saving ? (
+  1282→  1282→                  <><Mat>hourglass_top</Mat> Guardando…</>
+  1283→  1283→                ) : (
+  1284→  1284→                  <><Mat>check</Mat> Guardar</>
+  1285→  1285→                )}
+  1286→  1286→              </button>
+  1287→  1287→            </div>
+  1288→  1288→          </div>
+  1289→  1289→        )}
+  1290→  1290→      </div>
+  1291→  1291→    </div>,
+  1292→  1292→    document.body,
+  1293→  1293→  );
+  1294→  1294→}
+  1295→  1295→

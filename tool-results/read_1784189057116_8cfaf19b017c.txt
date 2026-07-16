@@ -1,0 +1,768 @@
+     1→/**
+     2→ * Bloque Sports — Fútbol multi-liga.
+     3→ * API: TheSportsDB (key pública gratuita "3"). 1.200+ competencias.
+     4→ */
+     5→
+     6→import { defineTool, policies, type ToolHandler } from "../types";
+     7→import { fetchJson } from "../shared/fetcher";
+     8→import { cached, ttls } from "../shared/cache";
+     9→
+    10→const TSDB_KEY = "3"; // Key pública gratuita de TheSportsDB.
+    11→const TSDB_BASE = `https://www.thesportsdb.com/api/v1/json/${TSDB_KEY}`;
+    12→const ESPN_BASE = "https://site.api.espn.com/apis/site/v2/sports/soccer";
+    13→
+    14→// Ligas ESPN con IDs conocidos para buscar resultados.
+    15→// INCLUYE selecciones nacionales (fifa.world, uefa.euro, etc) — sin esto,
+    16→// "cómo salió España ayer" no encuentra nada porque España no juega en ligas de clubes.
+    17→// OPTIMIZACIÓN: reducir de 15 a 8 ligas para menos fetches paralelos.
+    18→// Las selecciones nacionales son las más importantes (fifa.world + uefa.euro).
+    19→// Para clubes, solo top 5 ligas + Champions.
+    20→const ESPN_LEAGUES = [
+    21→  // Selecciones nacionales (prioridad — la mayoría de queries son selecciones)
+    22→  { id: "fifa.world", name: "FIFA World Cup / International Friendlies" },
+    23→  { id: "uefa.euro", name: "UEFA Euro" },
+    24→  { id: "uefa.nations", name: "UEFA Nations League" },
+    25→  // Top 5 ligas de clubes
+    26→  { id: "eng.1", name: "Premier League" },
+    27→  { id: "esp.1", name: "La Liga" },
+    28→  { id: "ita.1", name: "Serie A" },
+    29→  { id: "ger.1", name: "Bundesliga" },
+    30→  { id: "uefa.champions", name: "Champions League" },
+    31→];
+    32→
+    33→// Sinónimos de selecciones nacionales → mapeo a nombres ESPN.
+    34→// "España" puede aparecer como "Spain" en ESPN. Esto dispara el match.
+    35→const NATIONAL_TEAM_SYNONYMS: Array<{ canonical: string; aliases: string[] }> = [
+    36→  { canonical: "Spain", aliases: ["españa", "espana", "seleccion espanola", "la roja", "spain"] },
+    37→  { canonical: "Argentina", aliases: ["argentina", "la albiceleste", "seleccion argentina"] },
+    38→  { canonical: "France", aliases: ["francia", "france", "les bleus", "seleccion francesa"] },
+    39→  { canonical: "Brazil", aliases: ["brasil", "brazil", "selecao", "verdeamarela", "seleccion brasilena"] },
+    40→  { canonical: "Germany", aliases: ["alemania", "germany", "mannschaft", "seleccion alemana"] },
+    41→  { canonical: "Italy", aliases: ["italia", "italy", "azzurri", "seleccion italiana"] },
+    42→  { canonical: "England", aliases: ["inglaterra", "england", "three lions", "seleccion inglesa"] },
+    43→  { canonical: "Netherlands", aliases: ["paises bajos", "holanda", "netherlands", "dutch", "oranje"] },
+    44→  { canonical: "Portugal", aliases: ["portugal", "selecao portuguesa", "seleccion portuguesa"] },
+    45→  { canonical: "Belgium", aliases: ["belgica", "belgium", "red devils", "seleccion belga"] },
+    46→  { canonical: "Uruguay", aliases: ["uruguay", "charruas", "celeste", "seleccion uruguaya"] },
+    47→  { canonical: "Colombia", aliases: ["colombia", "cafeteros", "seleccion colombiana"] },
+    48→  { canonical: "Chile", aliases: ["chile", "la roja chilena", "seleccion chilena"] },
+    49→  { canonical: "Mexico", aliases: ["mexico", "méxico", "el tri", "seleccion mexicana"] },
+    50→  { canonical: "Switzerland", aliases: ["suiza", "switzerland", "swiss", "nati"] },
+    51→  { canonical: "Croatia", aliases: ["croacia", "croatia", "vatreni"] },
+    52→  { canonical: "Norway", aliases: ["noruega", "norway"] },
+    53→];
+    54→
+    55→/**
+    56→ * Detecta si el query menciona una selección nacional y devuelve el canonical name.
+    57→ * Esto permite que "como salio España" → match exacto con "Spain" en ESPN.
+    58→ */
+    59→function detectNationalTeam(queryLower: string): string | null {
+    60→  for (const team of NATIONAL_TEAM_SYNONYMS) {
+    61→    for (const alias of team.aliases) {
+    62→      // Match exacto de palabra (para no confundir "España" con "español")
+    63→      const re = new RegExp(`\\b${alias.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")}\\b`, "i");
+    64→      if (re.test(queryLower)) return team.canonical;
+    65→    }
+    66→  }
+    67→  return null;
+    68→}
+    69→
+    70→/**
+    71→ * Calcula fechas a buscar basado en el query del usuario.
+    72→ * "ayer" → fecha de ayer.
+    73→ * "hoy" / "en vivo" → fecha de hoy.
+    74→ * "mañana" → fecha de mañana.
+    75→ * Sin indicador → busca hoy + ayer (3 días de ventana) para captar últimos resultados.
+    76→ */
+    77→function detectDatesToQuery(queryLower: string): string[] {
+    78→  const dates: string[] = [];
+    79→  const now = new Date();
+    80→  const fmt = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, "");
+    81→
+    82→  if (/\bayer\b|\bd'?ayer\b|last match|último partido|ultimo partido/.test(queryLower)) {
+    83→    const y = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    84→    dates.push(fmt(y));
+    85→    // También 2 días atrás por si el partido fue de madrugada
+    86→    const y2 = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+    87→    dates.push(fmt(y2));
+    88→  } else if (/\bhoy\b|\btoday\b|\ben vivo\b|\blive\b/.test(queryLower)) {
+    89→    dates.push(fmt(now));
+    90→  } else if (/\bmañana\b|\bmanana\b|\btomorrow\b/.test(queryLower)) {
+    91→    const t = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    92→    dates.push(fmt(t));
+    93→  } else {
+    94→    // Sin indicador: ventana de 3 días (ayer + hoy + anteayer) para captar último resultado
+    95→    dates.push(fmt(now));
+    96→    const y = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    97→    dates.push(fmt(y));
+    98→    const y2 = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+    99→    dates.push(fmt(y2));
+   100→  }
+   101→  return [...new Set(dates)];
+   102→}
+   103→
+   104→type EspnEvent = {
+   105→  id?: string;
+   106→  name?: string;
+   107→  date?: string;
+   108→  status?: { type?: { description?: string; detail?: string; state?: string } };
+   109→  competitions?: Array<{
+   110→    date?: string;
+   111→    venue?: { fullName?: string; address?: { city?: string; country?: string } };
+   112→    competitors?: Array<{
+   113→      homeAway?: string;
+   114→      score?: string;
+   115→      team?: {
+   116→        displayName?: string;
+   117→        shortDisplayName?: string;
+   118→        logo?: string;
+   119→        color?: string;
+   120→        alternateColor?: string;
+   121→        abbreviation?: string;
+   122→      };
+   123→      records?: Array<{ summary?: string }>;
+   124→    }>;
+   125→    details?: Array<{
+   126→      type?: { id?: string; text?: string };
+   127→      clock?: { displayValue?: string };
+   128→      teamId?: string;
+   129→      athlete?: { displayName?: string };
+   130→      text?: string;
+   131→    }>;
+   132→  }>;
+   133→};
+   134→
+   135→// 🔴 ESPN /summary — datos ricos: goles con scorer, tarjetas con player,
+   136→// sustituciones, alineaciones (formation + roster), 25+ estadísticas.
+   137→type EspnSummary = {
+   138→  boxscore?: {
+   139→    teams?: Array<{
+   140→      team?: { displayName?: string };
+   141→      statistics?: Array<{ name?: string; label?: string; abbreviation?: string; displayValue?: string }>;
+   142→    }>;
+   143→  };
+   144→  rosters?: Array<{
+   145→    team?: { displayName?: string };
+   146→    formation?: string;
+   147→    roster?: Array<{
+   148→      jerseyNumber?: string | number;
+   149→      starter?: boolean;
+   150→      athlete?: { displayName?: string };
+   151→      position?: { abbreviation?: string };
+   152→    }>;
+   153→  }>;
+   154→  keyEvents?: Array<{
+   155→    type?: { text?: string };
+   156→    clock?: { displayValue?: string };
+   157→    team?: { displayName?: string };
+   158→    athlete?: { displayName?: string };
+   159→    text?: string;
+   160→  }>;
+   161→  gameInfo?: { venue?: { fullName?: string; address?: { city?: string; country?: string } }; attendance?: number };
+   162→};
+   163→
+   164→async function searchEspnScoreboards(query: string): Promise<Array<{ event: EspnEvent; leagueId: string; leagueName: string }>> {
+   165→  const queryLower = query.toLowerCase();
+   166→  const results: Array<{ event: EspnEvent; leagueId: string; leagueName: string }> = [];
+   167→  const datesToQuery = detectDatesToQuery(queryLower);
+   168→  const nationalTeam = detectNationalTeam(queryLower);
+   169→
+   170→  // Si detectamos selección nacional, agregamos el canonical name al query
+   171→  // para que el filtro por nombre funcione (España → "Spain" en ESPN)
+   172→  const matchTerms = [queryLower];
+   173→  if (nationalTeam) matchTerms.push(nationalTeam.toLowerCase());
+   174→
+   175→  // Buscar en paralelo en todas las ligas × todas las fechas relevantes
+   176→  const promises: Promise<void>[] = [];
+   177→  for (const league of ESPN_LEAGUES) {
+   178→    for (const date of datesToQuery) {
+   179→      promises.push((async () => {
+   180→        try {
+   181→          const url = `${ESPN_BASE}/${league.id}/scoreboard?dates=${date}`;
+   182→          const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
+   183→          if (!res.ok) return;
+   184→          const data = await res.json() as { events?: EspnEvent[] };
+   185→          const events = data.events ?? [];
+   186→          const matching = events.filter(e => {
+   187→            const eventName = (e.name ?? "").toLowerCase();
+   188→            const comps = e.competitions ?? [];
+   189→            const teams = comps.flatMap(c => (c.competitors ?? []).map(comp => comp.team?.displayName?.toLowerCase() ?? ""));
+   190→            return matchTerms.some(term =>
+   191→              eventName.includes(term) || teams.some(t => t.includes(term))
+   192→            );
+   193→          });
+   194→          for (const m of matching) {
+   195→            results.push({ event: m, leagueId: league.id, leagueName: league.name });
+   196→          }
+   197→        } catch { /* league/date timeout — skip */ }
+   198→      })());
+   199→    }
+   200→  }
+   201→  await Promise.all(promises);
+   202→
+   203→  // Dedupe por id (mismo evento puede aparecer en múltiples fechas)
+   204→  const seen = new Set<string>();
+   205→  const deduped = results.filter(({ event: e }) => {
+   206→    const id = e.id ?? `${e.name ?? ""}-${e.date ?? ""}`;
+   207→    if (seen.has(id)) return false;
+   208→    seen.add(id);
+   209→    return true;
+   210→  });
+   211→  return deduped;
+   212→}
+   213→
+   214→function normalizeEspnEvent(e: EspnEvent, leagueName?: string) {
+   215→  const comps = e.competitions ?? [];
+   216→  const comp = comps[0];
+   217→  const competitors = comp?.competitors ?? [];
+   218→  const home = competitors.find(c => c.homeAway === "home");
+   219→  const away = competitors.find(c => c.homeAway === "away");
+   220→  const status = e.status?.type?.description ?? e.status?.type?.detail ?? "?";
+   221→  const venue = comp?.venue;
+   222→  return {
+   223→    id: e.id,
+   224→    eventId: e.id,
+   225→    match: `${home?.team?.displayName ?? "?"} vs ${away?.team?.displayName ?? "?"}`,
+   226→    homeTeam: home?.team?.displayName,
+   227→    awayTeam: away?.team?.displayName,
+   228→    homeShortName: home?.team?.shortDisplayName,
+   229→    awayShortName: away?.team?.shortDisplayName,
+   230→    homeLogo: home?.team?.logo,
+   231→    awayLogo: away?.team?.logo,
+   232→    homeColor: home?.team?.color ? `#${home.team.color}` : undefined,
+   233→    awayColor: away?.team?.color ? `#${away.team.color}` : undefined,
+   234→    homeAbbrev: home?.team?.abbreviation,
+   235→    awayAbbrev: away?.team?.abbreviation,
+   236→    homeScore: home?.score != null ? Number(home.score) : undefined,
+   237→    awayScore: away?.score != null ? Number(away.score) : undefined,
+   238→    status,
+   239→    state: e.status?.type?.state, // "pre" | "in" | "post"
+   240→    date: comp?.date ?? e.date,
+   241→    live: /in progress|live|halftime/i.test(status),
+   242→    league: leagueName,
+   243→    venue: venue?.fullName,
+   244→    venueCity: venue?.address?.city,
+   245→    venueCountry: venue?.address?.country,
+   246→  };
+   247→}
+   248→
+   249→// 🔴 ESPN /summary — extrae goles, tarjetas, sustituciones, alineaciones, stats.
+   250→// Se llama DESPUÉS de identificar el match en /scoreboard. Si falla, se sigue
+   251→// usando solo el scoreboard (compatible hacia atrás).
+   252→async function fetchEspnSummary(leagueId: string, eventId: string): Promise<EspnSummary | null> {
+   253→  try {
+   254→    const url = `${ESPN_BASE}/${leagueId}/summary?event=${eventId}`;
+   255→    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+   256→    if (!res.ok) return null;
+   257→    return await res.json() as EspnSummary;
+   258→  } catch {
+   259→    return null;
+   260→  }
+   261→}
+   262→
+   263→// 🔴 Extrae goles, tarjetas y sustituciones de keyEvents, agrupados por tipo.
+   264→// ESPN pone el texto del evento en `text`, con el nombre del jugador entre paréntesis.
+   265→// Ej: "Goal! Spain 1, England 0. Nico Williams (Spain) left footed shot..."
+   266→function parseKeyEvents(summary: EspnSummary | null) {
+   267→  const events = summary?.keyEvents ?? [];
+   268→  const goals: Array<{ minute: string; team?: string; scorer?: string; text?: string }> = [];
+   269→  const yellowCards: Array<{ minute: string; team?: string; player?: string }> = [];
+   270→  const redCards: Array<{ minute: string; team?: string; player?: string }> = [];
+   271→  const substitutions: Array<{ minute: string; team?: string; playerIn?: string; playerOut?: string }> = [];
+   272→
+   273→  for (const ev of events) {
+   274→    const minute = ev.clock?.displayValue ?? "";
+   275→    const team = ev.team?.displayName;
+   276→    const text = ev.text ?? "";
+   277→    const athlete = ev.athlete?.displayName;
+   278→    const typeText = ev.type?.text ?? "";
+   279→
+   280→    if (typeText === "Goal") {
+   281→      // Texto: "Goal! Spain 1, England 0. Nico Williams (Spain) left footed shot..."
+   282→      // El scorer suele estar justo después de "Goal! TeamA X, TeamB Y."
+   283→      let scorer = athlete;
+   284→      if (!scorer) {
+   285→        // Buscar patrón "FirstName LastName (Team)" en el texto
+   286→        const m = text.match(/(?:Goal!.*?\.\s+)?([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)*)\s*\(/);
+   287→        if (m) scorer = m[1];
+   288→      }
+   289→      goals.push({ minute, team, scorer, text });
+   290→    } else if (typeText === "Yellow Card") {
+   291→      let player = athlete;
+   292→      if (!player) {
+   293→        const m = text.match(/^([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)*)\s*\(/);
+   294→        if (m) player = m[1];
+   295→      }
+   296→      yellowCards.push({ minute, team, player });
+   297→    } else if (typeText === "Red Card") {
+   298→      let player = athlete;
+   299→      if (!player) {
+   300→        const m = text.match(/^([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)*)\s*\(/);
+   301→        if (m) player = m[1];
+   302→      }
+   303→      redCards.push({ minute, team, player });
+   304→    } else if (typeText === "Substitution") {
+   305→      // Texto: "Substitution, Spain. Martín Zubimendi replaces Rodri because of an injury."
+   306→      const m = text.match(/([A-ZÁÉÍÓÚÑa-záéíóúñ][\wáéíóúñ]+)\s+replaces\s+([A-ZÁÉÍÓÚÑa-záéíóúñ][\wáéíóúñ]+)/);
+   307→      substitutions.push({
+   308→        minute,
+   309→        team,
+   310→        playerIn: m?.[1],
+   311→        playerOut: m?.[2],
+   312→      });
+   313→    }
+   314→  }
+   315→
+   316→  return { goals, yellowCards, redCards, substitutions };
+   317→}
+   318→
+   319→// 🔴 Extrae alineaciones (formation + titulares + suplentes) por equipo.
+   320→function parseRosters(summary: EspnSummary | null) {
+   321→  const rosters = summary?.rosters ?? [];
+   322→  const byTeam: Record<string, { formation?: string; starters: Array<{ number?: string; name: string; position?: string }>; subs: Array<{ number?: string; name: string; position?: string }> }> = {};
+   323→
+   324→  for (const r of rosters) {
+   325→    const teamName = r.team?.displayName ?? "?";
+   326→    const formation = r.formation;
+   327→    const starters: Array<{ number?: string; name: string; position?: string }> = [];
+   328→    const subs: Array<{ number?: string; name: string; position?: string }> = [];
+   329→    for (const p of r.roster ?? []) {
+   330→      const entry = {
+   331→        number: p.jerseyNumber != null ? String(p.jerseyNumber) : undefined,
+   332→        name: p.athlete?.displayName ?? "?",
+   333→        position: p.position?.abbreviation,
+   334→      };
+   335→      if (p.starter) starters.push(entry);
+   336→      else subs.push(entry);
+   337→    }
+   338→    byTeam[teamName] = { formation, starters, subs };
+   339→  }
+   340→  return byTeam;
+   341→}
+   342→
+   343→// 🔴 Extrae estadísticas detalladas (posesión, tiros, faltas, córners, etc.)
+   344→// y las normaliza a pares home/away con valores numéricos.
+   345→function parseBoxscore(summary: EspnSummary | null, homeTeam?: string, awayTeam?: string) {
+   346→  const teams = summary?.boxscore?.teams ?? [];
+   347→  if (teams.length < 2) return [];
+   348→  const homeStats = teams.find(t => t.team?.displayName === homeTeam) ?? teams[0];
+   349→  const awayStats = teams.find(t => t.team?.displayName === awayTeam) ?? teams[1];
+   350→  if (!homeStats?.statistics || !awayStats?.statistics) return [];
+   351→
+   352→  // Map de stats de cada team por nombre
+   353→  const homeMap = new Map<string, string>();
+   354→  for (const s of homeStats.statistics) {
+   355→    if (s.name) homeMap.set(s.name, s.displayValue ?? "");
+   356→  }
+   357→  const awayMap = new Map<string, string>();
+   358→  for (const s of awayStats.statistics) {
+   359→    if (s.name) awayMap.set(s.name, s.displayValue ?? "");
+   360→  }
+   361→
+   362→  // Stats que nos interesan con su label en español. Para % usamos leftPercent/rightPercent.
+   363→  // Para conteos (tiros, faltas, córners) usamos los valores absolutos.
+   364→  const STAT_DEFS: Array<{ name: string; label: string; isPercent: boolean }> = [
+   365→    { name: "possessionPct", label: "Posesión", isPercent: true },
+   366→    { name: "totalShots", label: "Tiros", isPercent: false },
+   367→    { name: "shotsOnTarget", label: "Tiros al arco", isPercent: false },
+   368→    { name: "foulsCommitted", label: "Faltas", isPercent: false },
+   369→    { name: "cornerKicks", label: "Córners", isPercent: false },
+   370→    { name: "offsides", label: "Offsides", isPercent: false },
+   371→    { name: "saves", label: "Atajadas", isPercent: false },
+   372→    { name: "yellowCards", label: "Amarillas", isPercent: false },
+   373→    { name: "redCards", label: "Rojas", isPercent: false },
+   374→    { name: "accuratePasses", label: "Pases buenos", isPercent: false },
+   375→    { name: "totalPasses", label: "Pases totales", isPercent: false },
+   376→    { name: "passPct", label: "Precisión pases", isPercent: true },
+   377→  ];
+   378→
+   379→  const result: Array<{ label: string; home: number; away: number; isPercent: boolean }> = [];
+   380→  for (const def of STAT_DEFS) {
+   381→    const hv = homeMap.get(def.name);
+   382→    const av = awayMap.get(def.name);
+   383→    if (hv == null && av == null) continue;
+   384→    const hNum = parseFloat(hv ?? "0") || 0;
+   385→    const aNum = parseFloat(av ?? "0") || 0;
+   386→    result.push({ label: def.label, home: hNum, away: aNum, isPercent: def.isPercent });
+   387→  }
+   388→  return result;
+   389→}
+   390→
+   391→type TsdbEvent = {
+   392→  idEvent?: string;
+   393→  strEvent?: string;
+   394→  strLeague?: string;
+   395→  dateEvent?: string;
+   396→  strTime?: string;
+   397→  strHomeTeam?: string;
+   398→  strAwayTeam?: string;
+   399→  intHomeScore?: string | null;
+   400→  intAwayScore?: string | null;
+   401→  strTimestamp?: string;
+   402→  strStatus?: string;
+   403→  strSport?: string;
+   404→};
+   405→
+   406→function normalizeEvent(e: TsdbEvent) {
+   407→  const homeScore = e.intHomeScore != null && e.intHomeScore !== "" ? Number(e.intHomeScore) : undefined;
+   408→  const awayScore = e.intAwayScore != null && e.intAwayScore !== "" ? Number(e.intAwayScore) : undefined;
+   409→  const live = homeScore !== undefined && awayScore !== undefined && /progress|q[1-5]|ht|1h|2h|live|in play/i.test(e.strStatus ?? "");
+   410→  return {
+   411→    id: e.idEvent,
+   412→    match: `${e.strHomeTeam ?? "?"} vs ${e.strAwayTeam ?? "?"}`,
+   413→    homeTeam: e.strHomeTeam,
+   414→    awayTeam: e.strAwayTeam,
+   415→    homeScore,
+   416→    awayScore,
+   417→    status: e.strStatus ?? (live ? "en juego" : homeScore !== undefined ? "finalizado" : "programado"),
+   418→    league: e.strLeague,
+   419→    sport: e.strSport,
+   420→    date: e.dateEvent,
+   421→    time: e.strTime,
+   422→    live,
+   423→  };
+   424→}
+   425→
+   426→// ─── match_live ─────────────────────────────────────────────────────────────
+   427→export const matchLive: ToolHandler = {
+   428→  definition: defineTool(
+   429→    "match_live",
+   430→    "Obtén el marcador en vivo o resultado FINAL de un partido. Úsala SIEMPRE que el usuario pregunte por un resultado deportivo (fútbol): '¿cómo salió España ayer?', '¿cómo le fue a Boca?', '¿va ganando el Madrid?', 'resultado de Barcelona', 'quién ganó Argentina'. Devuelve equipos, marcador, minuto/estado, liga, fecha. Cubre selecciones nacionales (España, Argentina, Francia, etc) y clubes de las principales ligas. NUNCA uses web_search para resultados de partidos — esta tool tiene datos exactos en tiempo real desde ESPN.",
+   431→    {
+   432→      type: "object",
+   433→      additionalProperties: false,
+   434→      properties: {
+   435→        query: { type: "string", description: "Equipo, selección o partido (ej: 'España', 'Argentina', 'Boca River', 'Real Madrid', 'Champions'). Si el usuario menciona 'ayer', 'hoy' o 'mañana', incluí esa palabra." },
+   436→      },
+   437→      required: ["query"],
+   438→    },
+   439→  ),
+   440→  policy: policies.readonly("Lee resultados deportivos de ESPN y TheSportsDB."),
+   441→  async run(args) {
+   442→    // Fallback a __userInput si el LLM no pasa query (caso: "Como salió España ayer" sin args)
+   443→    const query = String(args.query ?? args.__userInput ?? "").trim();
+   444→    if (!query) return { type: "match_live", status: "failed", error: "Indicá el partido." };
+   445→
+   446→    // FIX: usar ESPN como fuente principal (TheSportsDB free no tiene datos recientes)
+   447→    // ESPN busca en 11 ligas en paralelo y filtra por nombre de equipo
+   448→    const espnResults = await searchEspnScoreboards(query);
+   449→
+   450→    if (espnResults.length > 0) {
+   451→      // 🔴 Tomar el primer match y enriquecerlo con /summary (goles, tarjetas, alineaciones, stats)
+   452→      const first = espnResults[0];
+   453→      const matches = espnResults.slice(0, 5).map(({ event }) => normalizeEspnEvent(event, first.leagueName));
+   454→
+   455→      // Enriquecer el primer match con datos del /summary
+   456→      let enriched: { goals?: any[]; yellowCards?: any[]; redCards?: any[]; substitutions?: any[]; lineups?: any; detailedStats?: any[]; venue?: string; venueCity?: string; attendance?: number } = {};
+   457→      if (first.event.id) {
+   458→        const summary = await fetchEspnSummary(first.leagueId, first.event.id);
+   459→        const events = parseKeyEvents(summary);
+   460→        const lineups = parseRosters(summary);
+   461→        const detailedStats = parseBoxscore(summary, matches[0]?.homeTeam, matches[0]?.awayTeam);
+   462→        enriched = {
+   463→          goals: events.goals.length > 0 ? events.goals : undefined,
+   464→          yellowCards: events.yellowCards.length > 0 ? events.yellowCards : undefined,
+   465→          redCards: events.redCards.length > 0 ? events.redCards : undefined,
+   466→          substitutions: events.substitutions.length > 0 ? events.substitutions : undefined,
+   467→          lineups: Object.keys(lineups).length > 0 ? lineups : undefined,
+   468→          detailedStats: detailedStats.length > 0 ? detailedStats : undefined,
+   469→          venue: summary?.gameInfo?.venue?.fullName,
+   470→          venueCity: summary?.gameInfo?.venue?.address?.city,
+   471→          attendance: summary?.gameInfo?.attendance,
+   472→        };
+   473→        if (enriched.goals || enriched.yellowCards || enriched.lineups || enriched.detailedStats) {
+   474→          matches[0] = { ...matches[0], ...enriched };
+   475→        }
+   476→      }
+   477→
+   478→      return {
+   479→        type: "match_live",
+   480→        status: "ok",
+   481→        query,
+   482→        matches,
+   483→        source: "ESPN",
+   484→        sourceUrl: "https://www.espn.com/soccer/",
+   485→        text: matches.map(m => `${m.homeTeam} ${m.homeScore ?? "?"} - ${m.awayScore ?? "?"} ${m.awayTeam} (${m.status})`).join("; "),
+   486→      };
+   487→    }
+   488→
+   489→    // Fallback: TheSportsDB
+   490→    const cacheKey = `match_live:${query.toLowerCase()}`;
+   491→    const events = await cached<TsdbEvent[]>(cacheKey, ttls.sportsLive, async () => {
+   492→      const result = await fetchJson<{ events?: TsdbEvent[] }>(
+   493→        `${TSDB_BASE}/searchevents.php?e=${encodeURIComponent(query)}`,
+   494→        { timeoutMs: 9_000 },
+   495→      );
+   496→      if (!result.ok) throw new Error(result.error);
+   497→      return result.data!.events ?? [];
+   498→    });
+   499→
+   500→    if (events.length > 0) {
+   501→      return {
+   502→        type: "match_live",
+   503→        status: "ok",
+   504→        query,
+   505→        matches: events.slice(0, 5).map(normalizeEvent),
+   506→        source: "TheSportsDB",
+   507→        sourceUrl: "https://www.thesportsdb.com/",
+   508→      };
+   509→    }
+   510→
+   511→    // Último fallback: buscar noticias del equipo en ESPN + Wikipedia
+   512→    try {
+   513→      const wikiRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(`${query} football team`)}&format=json&origin=*&srlimit=1`, { signal: AbortSignal.timeout(9000) });
+   514→      const wikiData = await wikiRes.json() as { query?: { search?: Array<{ title: string; snippet: string }> } };
+   515→      const results = wikiData.query?.search ?? [];
+   516→      if (results.length > 0) {
+   517→        const title = results[0].title;
+   518→        const summaryRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`, { signal: AbortSignal.timeout(9000) });
+   519→        const summary = await summaryRes.json() as { extract?: string; content_urls?: { desktop?: { page: string } } };
+   520→        return {
+   521→          type: "match_live",
+   522→          // 🔴 FIX: status "no_data" (no "ok") cuando no hay partidos reales.
+   523→          // El backend usa esto para bloquear alucinaciones del LLM.
+   524→          status: "no_data",
+   525→          query,
+   526→          matches: [],
+   527→          text: `No encontré partidos recientes de "${query}" en ESPN ni TheSportsDB. La temporada puede estar en receso. Acá va info general de Wikipedia sobre el equipo.`,
+   528→          wikipediaExtract: summary.extract,
+   529→          sources: [{ title, url: summary.content_urls?.desktop?.page ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`, domain: "wikipedia.org", snippet: results[0].snippet?.replace(/<[^>]+>/g, "") }],
+   530→          source: "Wikipedia",
+   531→        };
+   532→      }
+   533→    } catch { /* ignore */ }
+   534→
+   535→    // 🔴 FIX: status "no_data" explícito — NO inventar resultados
+   536→    return {
+   537→      type: "match_live",
+   538→      status: "no_data",
+   539→      query,
+   540→      matches: [],
+   541→      note: `No encontré partidos de "${query}" en este momento. La temporada puede estar en receso.`,
+   542→    };
+   543→  },
+   544→};
+   545→
+   546→// ─── league_standings ───────────────────────────────────────────────────────
+   547→export const leagueStandings: ToolHandler = {
+   548→  definition: defineTool(
+   549→    "league_standings",
+   550→    "Muestra la tabla de posiciones de una liga o campeonato. Úsala cuando el usuario pregunte 'tabla de la Liga', 'posiciones de la Premier', ' standings NBA Este'. Devuelve equipos ordenados con PJ, PTS, GF, GC.",
+   551→    {
+   552→      type: "object",
+   553→      additionalProperties: false,
+   554→      properties: {
+   555→        league: { type: "string", description: "Liga (ej: 'Spanish La Liga', 'English Premier League', 'NBA')." },
+   556→        season: { type: "string", description: "Temporada (ej: '2025-2026'). Default actual." },
+   557→      },
+   558→      required: ["league"],
+   559→    },
+   560→  ),
+   561→  policy: policies.readonly("Lee tabla de posiciones pública."),
+   562→  async run(args) {
+   563→    const league = String(args.league ?? "").trim();
+   564→    if (!league) return { type: "league_standings", status: "failed", error: "Indicá la liga." };
+   565→
+   566→    // Buscar liga por nombre.
+   567→    const cacheKey = `league_search:${league.toLowerCase()}`;
+   568→    const leagues = await cached<Array<{ idLeague?: string; strLeague?: string }>>(cacheKey, ttls.reference, async () => {
+   569→      const r = await fetchJson<{ leagues?: Array<{ idLeague?: string; strLeague?: string }> }>(
+   570→        `${TSDB_BASE}/search_all_leagues.php?l=${encodeURIComponent(league)}`,
+   571→        { timeoutMs: 9_000 },
+   572→      );
+   573→      if (!r.ok) throw new Error(r.error);
+   574→      return r.data!.leagues ?? [];
+   575→    });
+   576→
+   577→    if (leagues.length === 0) {
+   578→      return { type: "league_standings", status: "ok", league, standings: [], note: `No encontré la liga "${league}".` };
+   579→    }
+   580→
+   581→    const leagueId = leagues[0].idLeague;
+   582→    const season = String(args.season ?? "2025-2026");
+   583→    const standingsKey = `standings:${leagueId}:${season}`;
+   584→    const table = await cached<Array<{ strTeam?: string; intRank?: string; intPlayed?: string; intPoints?: string; intGoalsFor?: string; intGoalsAgainst?: string; strForm?: string }>>(standingsKey, ttls.sportsStandings, async () => {
+   585→      const r = await fetchJson<{ table?: Array<Record<string, unknown>> }>(
+   586→        `${TSDB_BASE}/lookuptable.php?l=${leagueId}&s=${encodeURIComponent(season)}`,
+   587→        { timeoutMs: 9_000 },
+   588→      );
+   589→      if (!r.ok) throw new Error(r.error);
+   590→      return (r.data!.table ?? []) as never;
+   591→    });
+   592→
+   593→    if (table.length === 0) {
+   594→      return { type: "league_standings", status: "ok", league: leagues[0].strLeague, season, standings: [], note: "Sin tabla para esa temporada." };
+   595→    }
+   596→
+   597→    return {
+   598→      type: "league_standings",
+   599→      status: "ok",
+   600→      league: leagues[0].strLeague,
+   601→      season,
+   602→      standings: table.slice(0, 20).map((row) => ({
+   603→        rank: Number(row.intRank ?? 0),
+   604→        team: row.strTeam,
+   605→        played: Number(row.intPlayed ?? 0),
+   606→        points: Number(row.intPoints ?? 0),
+   607→        goalsFor: Number(row.intGoalsFor ?? 0),
+   608→        goalsAgainst: Number(row.intGoalsAgainst ?? 0),
+   609→        form: row.strForm,
+   610→      })),
+   611→      source: "TheSportsDB",
+   612→    };
+   613→  },
+   614→};
+   615→
+   616→// ─── match_schedule ─────────────────────────────────────────────────────────
+   617→export const matchSchedule: ToolHandler = {
+   618→  definition: defineTool(
+   619→    "match_schedule",
+   620→    "Lista los próximos partidos (fixture) de un equipo o liga con fecha, rival y hora. Úsala cuando el usuario pregunte 'próximos partidos de Boca', 'cuándo juega Messi', 'fixture de la Champions'.",
+   621→    {
+   622→      type: "object",
+   623→      additionalProperties: false,
+   624→      properties: {
+   625→        team: { type: "string", description: "Equipo (ej: 'Boca Juniors', 'Real Madrid')." },
+   626→        league: { type: "string", description: "Liga (alternativa a team)." },
+   627→        next: { type: "number", description: "Cantidad de próximos partidos. Default 5." },
+   628→      },
+   629→      required: [],
+   630→    },
+   631→  ),
+   632→  policy: policies.readonly("Lee fixture deportivo público."),
+   633→  async run(args) {
+   634→    const team = String(args.team ?? "").trim();
+   635→    const league = String(args.league ?? "").trim();
+   636→    const next = Number(args.next ?? 5);
+   637→    if (!team && !league) return { type: "match_schedule", status: "failed", error: "Indicá equipo o liga." };
+   638→
+   639→    let events: TsdbEvent[] = [];
+   640→    if (team) {
+   641→      const cacheKey = `team_next:${team.toLowerCase()}`;
+   642→      events = await cached<TsdbEvent[]>(cacheKey, ttls.sportsStandings, async () => {
+   643→        const r = await fetchJson<{ events?: TsdbEvent[] }>(
+   644→          `${TSDB_BASE}/searchevents.php?e=${encodeURIComponent(team)}`,
+   645→          { timeoutMs: 9_000 },
+   646→        );
+   647→        if (!r.ok) throw new Error(r.error);
+   648→        return r.data!.events ?? [];
+   649→      });
+   650→    }
+   651→    if (events.length === 0 && league) {
+   652→      const cacheKey = `league_search:${league.toLowerCase()}`;
+   653→      const leagues = await cached<Array<{ idLeague?: string; strLeague?: string }>>(cacheKey, ttls.reference, async () => {
+   654→        const r = await fetchJson<{ leagues?: Array<{ idLeague?: string; strLeague?: string }> }>(
+   655→          `${TSDB_BASE}/search_all_leagues.php?l=${encodeURIComponent(league)}`,
+   656→          { timeoutMs: 9_000 },
+   657→        );
+   658→        if (!r.ok) throw new Error(r.error);
+   659→        return r.data!.leagues ?? [];
+   660→      });
+   661→      const leagueId = leagues[0]?.idLeague;
+   662→      if (leagueId) {
+   663→        const nextKey = `league_next:${leagueId}`;
+   664→        events = await cached<TsdbEvent[]>(nextKey, ttls.sportsStandings, async () => {
+   665→          const r = await fetchJson<{ events?: TsdbEvent[] }>(
+   666→            `${TSDB_BASE}/eventsnextleague.php?id=${leagueId}`,
+   667→            { timeoutMs: 9_000 },
+   668→          );
+   669→          if (!r.ok) throw new Error(r.error);
+   670→          return r.data!.events ?? [];
+   671→        });
+   672→      }
+   673→    }
+   674→
+   675→    const now = Date.now();
+   676→    const upcoming = events
+   677→      .filter((e) => e.strTimestamp && new Date(e.strTimestamp).getTime() >= now - 3 * 60 * 60 * 1000)
+   678→      .sort((a, b) => (a.strTimestamp ?? "") > (b.strTimestamp ?? "") ? 1 : -1)
+   679→      .slice(0, next);
+   680→
+   681→    if (upcoming.length === 0) {
+   682→      // Fallback: traer próximos partidos de ligas populares.
+   683→      const popularLeagues = [
+   684→        { id: "4328", name: "English Premier League" },
+   685→        { id: "4335", name: "Spanish La Liga" },
+   686→        { id: "4332", name: "Italian Serie A" },
+   687→        { id: "4331", name: "German Bundesliga" },
+   688→        { id: "4406", name: "Argentine Primera División" },
+   689→        { id: "4480", name: "UEFA Champions League" },
+   690→      ];
+   691→      const all: TsdbEvent[] = [];
+   692→      for (const pop of popularLeagues) {
+   693→        const r = await fetchJson<{ events?: TsdbEvent[] }>(
+   694→          `${TSDB_BASE}/eventsnextleague.php?id=${pop.id}`,
+   695→          { timeoutMs: 15_000 },
+   696→        );
+   697→        if (r.ok && r.data?.events) {
+   698→          const evs = r.data!.events
+   699→            .filter((e) => e.strTimestamp && new Date(e.strTimestamp).getTime() >= now - 3 * 60 * 60 * 1000)
+   700→            .sort((a, b) => (a.strTimestamp ?? "") > (b.strTimestamp ?? "") ? 1 : -1)
+   701→            .slice(0, 3);
+   702→          all.push(...evs);
+   703→        }
+   704→      }
+   705→      const fallbackUpcoming = all
+   706→        .sort((a, b) => (a.strTimestamp ?? "") > (b.strTimestamp ?? "") ? 1 : -1)
+   707→        .slice(0, next);
+   708→      if (fallbackUpcoming.length === 0) {
+   709→        return { type: "match_schedule", status: "ok", team: team || league, matches: [], note: "No encontré próximos partidos." };
+   710→      }
+   711→      return {
+   712→        type: "match_schedule",
+   713→        status: "ok",
+   714→        team: team || league,
+   715→        matches: fallbackUpcoming.map(normalizeEvent),
+   716→        source: "TheSportsDB (liga popular)",
+   717→        note: `Próximos partidos de ligas destacadas.`,
+   718→      };
+   719→    }
+   720→
+   721→    return {
+   722→      type: "match_schedule",
+   723→      status: "ok",
+   724→      team: team || league,
+   725→      matches: upcoming.map(normalizeEvent),
+   726→      source: "TheSportsDB",
+   727→    };
+   728→  },
+   729→};
+   730→
+   731→// ─── team_follow ────────────────────────────────────────────────────────────
+   732→export const teamFollow: ToolHandler = {
+   733→  definition: defineTool(
+   734→    "team_follow",
+   735→    "Guarda un equipo como favorito para que Koru te avise cuando juegue o termine el partido. Úsala cuando el usuario diga 'seguí a Boca', 'ségal a Real Madrid', 'avisame cuando juegue Nadal'. Crea una memory tipo 'interest'.",
+   736→    {
+   737→      type: "object",
+   738→      additionalProperties: false,
+   739→      properties: {
+   740→        team: { type: "string", description: "Equipo o deportista a seguir (ej: 'Boca Juniors', 'Nadal')." },
+   741→        sport: { type: "string", description: "Deporte (ej: 'fútbol', 'tenis')." },
+   742→      },
+   743→      required: ["team"],
+   744→    },
+   745→  ),
+   746→  policy: policies.localWrite("Guarda equipo favorito como memory."),
+   747→  async run(args) {
+   748→    const team = String(args.team ?? "").trim();
+   749→    const sport = String(args.sport ?? "fútbol").trim();
+   750→    if (!team) return { type: "team_follow", status: "failed", error: "Indicá el equipo." };
+   751→    return {
+   752→      type: "team_follow",
+   753→      status: "ok",
+   754→      team,
+   755→      sport,
+   756→      memoryCandidates: [{
+   757→        kind: "interest" as const,
+   758→        text: `Sigue a ${team} (${sport})`,
+   759→        confidence: 0.95,
+   760→        sensitivity: "normal" as const,
+   761→        status: "candidate" as const,
+   762→        rootQuote: team,
+   763→        useForSuggestions: true,
+   764→      }],
+   765→    };
+   766→  },
+   767→};
+   768→

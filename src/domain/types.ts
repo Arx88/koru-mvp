@@ -162,15 +162,41 @@ export type ProactiveNudge = {
   dismissed?: boolean;
 };
 
+export type CalendarAttendee = {
+  name: string;
+  email: string;
+  status: "confirmed" | "tentative" | "declined";
+  role?: string;
+};
+
+export type CalendarAgendaItem = {
+  time: string;
+  label: string;
+  durationMin: number;
+};
+
+export type CalendarMeetingLink = {
+  provider: "zoom" | "meet" | "teams";
+  url: string;
+  meetingId?: string;
+  passcode?: string;
+};
+
 export type CalendarEvent = {
   id: string;
   title: string;
   startsAt: string;
   endsAt?: string;
   location?: string;
-  source: "manual" | "ics";
+  source: "manual" | "ics" | "google";
   sourceRef?: string;
   createdAt: string;
+  /** Asistentes con estado RSVP (principalmente desde Google Calendar). */
+  attendees?: CalendarAttendee[];
+  /** Agenda preliminar opcional (bloques de tiempo dentro del evento). */
+  agenda?: CalendarAgendaItem[];
+  /** Link de reunión parseado desde location/description (Zoom, Meet, Teams). */
+  meetingLink?: CalendarMeetingLink;
 };
 
 export type HeartbeatSettings = {
@@ -416,6 +442,14 @@ export type UiBlock =
       humidity?: string;
       uv?: string;
       advice?: string;
+      /** Pronóstico por hora (próximas 8 horas). */
+      hourly?: Array<{ hour: string; temp: string; conditionIcon: string; rainPct: number; uv: number }>;
+      /** Pronóstico por día (próximos 7 días). */
+      daily?: Array<{ dayAbbrev: string; hi: string; lo: string; conditionIcon: string }>;
+      /** ISO timestamp de cuándo se verificó el dato. */
+      verifiedAt?: string;
+      /** Etiqueta legible de antigüedad (ej. "Hace 2 min"). */
+      freshnessLabel?: string;
       sourceStatus?: AssistantActionPayload["externalStatus"];
       sources?: AssistantSource[];
     }
@@ -576,6 +610,17 @@ export type UiBlock =
         quote?: string;
         imageUrl?: string;
         rating?: number;
+        // 🔴 v3: enriquecido por Google Places (fetchRestaurantDetails).
+        placeId?: string;
+        lat?: number;
+        lng?: number;
+        address?: string;
+        phone?: string;
+        ratingCount?: number;
+        priceLevel?: number;
+        photos?: string[];
+        reserveUrl?: string;
+        distanceFromUser?: string;
       }>;
       topScore?: string;
       pros?: string[];
@@ -751,6 +796,24 @@ export type UiBlock =
       actionLabel?: string;
     }
   | {
+      /**
+       * travel_plan — Plan de viaje completo (diferente de travel_planner que
+       * es solo un itinerario de paradas). Este bloque agrupa itinerario día a
+       * día + reservas + checklist de equipaje + presupuesto. Lo genera el
+       * travel planner cuando el usuario pide "planeá mi viaje a X".
+       */
+      type: "travel_plan";
+      destination?: string;
+      dates?: string;
+      travelers?: number;
+      days?: Array<{ day: number; title: string; activities: Array<{ time: string; title: string; detail: string }> }>;
+      reservations?: Array<{ provider: string; type: string; detail: string; status: string; deepLink?: string }>;
+      packing?: Array<{ item: string; checked: boolean; category?: string }>;
+      budget?: Array<{ category: string; amount: number; currency: string }>;
+      totalBudget?: number;
+      currency?: string;
+    }
+  | {
       type: "generation";
       title?: string;
       prompt?: string;
@@ -758,6 +821,24 @@ export type UiBlock =
       preview?: string;
       actionLabel?: string;
       actionIcon?: string;
+      /** Imágenes generadas (cuando resultType === "image"). */
+      images?: Array<{
+        id: string;
+        url: string;
+        promptVariant: string;
+        seed: number;
+        generationMs: number;
+      }>;
+      /** Tips de prompt engineering en español. */
+      tips?: string[];
+      /** Preset de estilo aplicado al prompt. */
+      style?: string;
+      /** Relación de aspecto solicitada. */
+      aspectRatio?: string;
+      /** Modelo de generación (dall-e-3 | sdxl). */
+      model?: string;
+      /** Tiempo total de generación en ms. */
+      totalTime?: number;
     }
   | {
       type: "match_timeline";
@@ -835,6 +916,20 @@ export type UiBlock =
       to?: string;
       distance?: string;
       remaining?: string;
+      /**
+       * Pasos detallados de la ruta (instrucciones de giro). Se populan desde
+       * `fetchRoute()` en travelPlanner.ts (Google Maps Directions API).
+       */
+      steps?: Array<{ instruction: string; distanceMeters: number; maneuver: string }>;
+      /**
+       * Rutas alternativas sugeridas por la API, cada una con modo/tiempo/tráfico
+       * en forma resumida (para mostrar como tiles comparativos).
+       */
+      alternatives?: Array<{ mode: string; time: string; traffic: string }>;
+      /** Nivel de tráfico: "light" | "moderate" | "heavy". */
+      trafficLevel?: string;
+      /** Estimación de combustible formateada (ej: "12.4 L"). */
+      fuelEstimate?: string;
     }
   | {
       type: "birthday_calendar";
@@ -924,6 +1019,9 @@ export type UiBlock =
       overview?: string;
       trailerUrl?: string;
       whereToWatch?: string[];
+      crew?: Array<{ name: string; job: string }>;
+      ratings?: Array<{ source: string; score: number; outOf: number }>;
+      streaming?: Array<{ provider: string; logo?: string; deeplink?: string }>;
       sources?: AssistantSource[];
     }
   | {
@@ -938,6 +1036,30 @@ export type UiBlock =
       rating?: number;
       synopsis?: string;
       isbn?: string;
+      sources?: AssistantSource[];
+    }
+  | {
+      type: "news_urgent";
+      headline?: string;
+      summary?: string;
+      severity?: "breaking" | "urgent" | "important";
+      category?: string;
+      timeline?: Array<{ time: string; event: string; status: "done" | "current" | "pending" }>;
+      factChecks?: Array<{ claim: string; verdict: string; source: string }>;
+      sources?: AssistantSource[];
+      location?: { lat: number; lng: number; label: string };
+      lastUpdated?: string;
+    }
+  | {
+      type: "tennis_match";
+      players?: { home: { name: string; country?: string; seed?: number; rank?: number; logo?: string }; away: { name: string; country?: string; seed?: number; rank?: number; logo?: string } };
+      tournament?: { name: string; round: string; surface: string; category: string };
+      sets?: Array<{ homeGames: number; awayGames: number; winner?: "home"|"away"; tiebreak?: { homePts: number; awayPts: number } }>;
+      currentSet?: { gamesHome: number; gamesAway: number; server: "home"|"away" };
+      currentPoint?: string;
+      stats?: { aces: { h: number; a: number }; doubleFaults: { h: number; a: number }; firstServePct: { h: number; a: number }; breakPointsWon: { h: number; a: number }; breakPointsFaced: { h: number; a: number }; returnGamesWon: { h: number; a: number } };
+      elapsedMs?: number;
+      status?: "scheduled"|"live"|"finished";
       sources?: AssistantSource[];
     }
 

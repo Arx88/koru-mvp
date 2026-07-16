@@ -1,0 +1,789 @@
+     1→import { useState, useCallback } from "react";
+     2→import type { CSSProperties, ReactNode } from "react";
+     3→import type { UiBlock } from "../../../domain/types";
+     4→import { toPresentation } from "./presentation";
+     5→import type { Hero, Detail, KoruPresentation } from "./presentation";
+     6→import { KoruDetailScreen } from "./KoruDetailScreen";
+     7→import { CollectionsScreen } from "../../CollectionsScreen";
+     8→import { KoruCountUp } from "./KoruCountUp";
+     9→import { useTapRipple } from "./useTapRripple";
+    10→
+    11→// Card unificada — TODA respuesta con estructura se renderiza con esta hoja,
+    12→// réplica del Stitch "Plan Entregado": superficie lila, kicker + título,
+    13→// arte (icono o ilustración) opcional con valor grande, fila de 3 métricas
+    14→// (tiles si traen valor, chips si no) y CTA que abre la pantalla de detalle.
+    15→// Reemplaza las ~45 estéticas de card sueltas por un único molde.
+    16→//
+    17→// 🔴 v3: soporta 5 layouts vía presentation.layout:
+    18→//   default  → molde clásico (sin cambios).
+    19→//   compact  → fila única (icono + kicker + título + chevron). ~60px.
+    20→//   spotlight → imagen full-bleed (180px) con scrim + título overlay + métricas.
+    21→//   gallery  → carrusel horizontal de mini-cards (70×80).
+    22→//   banner   → gradiente full-width (100px) con número grande + label.
+    23→
+    24→const FONT_HEADING = '"Bricolage Grotesque", "Plus Jakarta Sans", sans-serif';
+    25→const COLOR_INK = "#382b8c";
+    26→const COLOR_INK_MUTED = "#6b5f8c";
+    27→const COLOR_INK_TENUE = "#a99bbe";
+    28→
+    29→function Mat({ children, style, className = "" }: { children: string; style?: CSSProperties; className?: string }) {
+    30→  return (
+    31→    <span className={`material-symbols-outlined ${className}`} style={style}>
+    32→      {children}
+    33→    </span>
+    34→  );
+    35→}
+    36→
+    37→type Cta = KoruPresentation["cta"];
+    38→type Actions = KoruPresentation["actions"];
+    39→type Empty = KoruPresentation["empty"];
+    40→
+    41→type SharedProps = {
+    42→  block: UiBlock;
+    43→  hero: Hero;
+    44→  detail?: Detail;
+    45→  cta?: Cta;
+    46→  actions?: Actions;
+    47→  empty?: Empty;
+    48→  isTappable: boolean;
+    49→  open: boolean;
+    50→  setOpen: (open: boolean) => void;
+    51→  handleClick: (e: React.MouseEvent<HTMLElement>) => void;
+    52→  handleKeyDown: (e: React.KeyboardEvent) => void;
+    53→  hasMetricValues: boolean;
+    54→  displayTitle: string;
+    55→};
+    56→
+    57→// ---- Helpers compartidos por todos los layouts ------------------------------
+    58→
+    59→function CardRoot({
+    60→  block,
+    61→  hero,
+    62→  isTappable,
+    63→  open,
+    64→  handleClick,
+    65→  handleKeyDown,
+    66→  style,
+    67→  children,
+    68→}: {
+    69→  block: UiBlock;
+    70→  hero: Hero;
+    71→  isTappable: boolean;
+    72→  open: boolean;
+    73→  handleClick: (e: React.MouseEvent<HTMLElement>) => void;
+    74→  handleKeyDown: (e: React.KeyboardEvent) => void;
+    75→  style?: CSSProperties;
+    76→  children: ReactNode;
+    77→}) {
+    78→  // overflow + position necesarios para que el ripple quede recortado
+    79→  // a los bordes redondeados de la card. Las variantes full-bleed
+    80→  // (spotlight/banner) añaden padding:0 vía `style`.
+    81→  return (
+    82→    <div
+    83→      className={"koru-plan-hero" + (isTappable ? " is-tappable" : "")}
+    84→      data-ui-block={block.type}
+    85→      role={isTappable ? "button" : undefined}
+    86→      tabIndex={isTappable ? 0 : undefined}
+    87→      aria-label={isTappable ? `Abrir ${hero.title}` : undefined}
+    88→      onClick={isTappable ? handleClick : undefined}
+    89→      onKeyDown={!open ? handleKeyDown : undefined}
+    90→      style={{ overflow: "hidden", position: "relative", ...style }}
+    91→    >
+    92→      {children}
+    93→    </div>
+    94→  );
+    95→}
+    96→
+    97→/** Pantalla de detalle / collections — se monta dentro del root de la card
+    98→ *  cuando `open` está activo. Compartido por todos los layouts. */
+    99→function DetailOverlay({
+   100→  open,
+   101→  cta,
+   102→  detail,
+   103→  hero,
+   104→  block,
+   105→  setOpen,
+   106→}: {
+   107→  open: boolean;
+   108→  cta?: Cta;
+   109→  detail?: Detail;
+   110→  hero: Hero;
+   111→  block: UiBlock;
+   112→  setOpen: (open: boolean) => void;
+   113→}) {
+   114→  if (!open) return null;
+   115→  if (cta?.screen === "collections") {
+   116→    return <CollectionsScreen focusCollection={cta.collection} onClose={() => setOpen(false)} />;
+   117→  }
+   118→  if (detail) {
+   119→    return (
+   120→      <KoruDetailScreen
+   121→        detail={detail}
+   122→        headerIcon={hero.icon}
+   123→        onClose={() => setOpen(false)}
+   124→        onSave={(title, subtitle) => {
+   125→          window.dispatchEvent(
+   126→            new CustomEvent("koru-save-deliverable", {
+   127→              detail: { title, subtitle, blockType: block.type, blockData: block },
+   128→            }),
+   129→          );
+   130→          setOpen(false);
+   131→        }}
+   132→        onExportPdf={() => {
+   133→          window.dispatchEvent(
+   134→            new CustomEvent("koru-export-pdf", {
+   135→              detail: {
+   136→                blockType: block.type,
+   137→                blockTitle: hero.title,
+   138→                blockData: block,
+   139→              },
+   140→            }),
+   141→          );
+   142→        }}
+   143→      />
+   144→    );
+   145→  }
+   146→  return null;
+   147→}
+   148→
+   149→/** Acciones inline (alarm, reminder) — botones que disparan eventos
+   150→ *  `koru-card-action` sin abrir detail. stopPropagation para no reabrir. */
+   151→function InlineActions({
+   152→  actions,
+   153→  block,
+   154→  accentColor,
+   155→  style,
+   156→}: {
+   157→  actions?: Actions;
+   158→  block: UiBlock;
+   159→  accentColor: string;
+   160→  style?: CSSProperties;
+   161→}) {
+   162→  if (!actions || actions.length === 0) return null;
+   163→  return (
+   164→    <div className="koru-plan-hero-actions" style={style}>
+   165→      {actions.map((act, i) => (
+   166→        <button
+   167→          key={i}
+   168→          type="button"
+   169→          className={`koru-plan-hero-action is-${act.kind ?? "primary"}`}
+   170→          style={act.kind === "primary" ? { background: accentColor } : undefined}
+   171→          onClick={(e) => {
+   172→            e.stopPropagation();
+   173→            window.dispatchEvent(
+   174→              new CustomEvent("koru-card-action", {
+   175→                detail: { action: act.action, blockType: block.type, blockData: block },
+   176→              }),
+   177→            );
+   178→            if ("vibrate" in navigator) navigator.vibrate(15);
+   179→          }}
+   180→        >
+   181→          {act.icon && <Mat>{act.icon}</Mat>}
+   182→          <span>{act.label}</span>
+   183→        </button>
+   184→      ))}
+   185→    </div>
+   186→  );
+   187→}
+   188→
+   189→/** CTA hint visual (no botón — la card entera es el tap target). */
+   190→function CtaHint({ cta, detail, accentColor, style }: { cta?: Cta; detail?: Detail; accentColor: string; style?: CSSProperties }) {
+   191→  if (!cta || !(detail || cta.screen === "collections")) return null;
+   192→  return (
+   193→    <div className="koru-plan-hero-cta-hint" style={{ color: accentColor, ...style }}>
+   194→      <span>{cta.label}</span>
+   195→      <Mat>arrow_forward</Mat>
+   196→    </div>
+   197→  );
+   198→}
+   199→
+   200→function truncate(s: string | undefined, max: number): string | undefined {
+   201→  if (!s) return s;
+   202→  return s.length > max ? s.slice(0, max - 1).trimEnd() + "…" : s;
+   203→}
+   204→
+   205→// ============================================================================
+   206→// Layout: DEFAULT (molde Stitch clásico — sin cambios respecto a v2)
+   207→// ============================================================================
+   208→
+   209→function DefaultLayout(props: SharedProps) {
+   210→  const { block, hero, detail, cta, actions, empty, isTappable, open, setOpen, handleClick, handleKeyDown, hasMetricValues, displayTitle } = props;
+   211→  return (
+   212→    <CardRoot block={block} hero={hero} isTappable={isTappable} open={open} handleClick={handleClick} handleKeyDown={handleKeyDown}>
+   213→      <div className="koru-plan-hero-top">
+   214→        <div className="koru-plan-hero-copy">
+   215→          <p className="koru-plan-hero-kicker" style={{ color: hero.accent.color }}>
+   216→            {hero.kicker}
+   217→          </p>
+   218→          <h2 className="koru-plan-hero-title">{displayTitle}</h2>
+   219→          {hero.desc && <p className="koru-plan-hero-desc">{hero.desc}</p>}
+   220→        </div>
+   221→
+   222→        {hero.art ? (
+   223→          <img
+   224→            alt=""
+   225→            src={hero.art}
+   226→            className={
+   227→              hero.artAspect === "poster"
+   228→                ? "koru-plan-hero-art is-poster"
+   229→                : hero.artAspect === "cover"
+   230→                ? "koru-plan-hero-art is-cover"
+   231→                : "koru-plan-hero-art"
+   232→            }
+   233→          />
+   234→        ) : (
+   235→          <div className="koru-unified-art" style={{ background: hero.accent.soft, color: hero.accent.color }}>
+   236→            <Mat className="koru-unified-art-icon">{hero.icon}</Mat>
+   237→            {hero.artValue && <KoruCountUp value={hero.artValue} className="koru-unified-art-value" />}
+   238→          </div>
+   239→        )}
+   240→      </div>
+   241→
+   242→      {hero.metrics && hero.metrics.length > 0 && (
+   243→        <div className={hasMetricValues ? "koru-unified-metrics" : "koru-plan-hero-cats"}>
+   244→          {hero.metrics.map((m, i) => {
+   245→            const displayValue = truncate(m.value, 15);
+   246→            const displayLabel = truncate(m.label, 25);
+   247→            return hasMetricValues ? (
+   248→              <div key={i} className="koru-unified-metric">
+   249→                <Mat className="koru-unified-metric-icon" style={{ color: m.color ?? hero.accent.color }}>
+   250→                  {m.icon}
+   251→                </Mat>
+   252→                <span className="koru-unified-metric-label">{displayLabel}</span>
+   253→                <span className="koru-unified-metric-value">{displayValue}</span>
+   254→              </div>
+   255→            ) : (
+   256→              <div key={i} className="koru-plan-hero-cat">
+   257→                <Mat style={{ color: m.color ?? hero.accent.color }}>{m.icon}</Mat>
+   258→                <span>{displayLabel}</span>
+   259→              </div>
+   260→            );
+   261→          })}
+   262→        </div>
+   263→      )}
+   264→
+   265→      {empty && !hasMetricValues && (
+   266→        <div className="koru-unified-empty">
+   267→          <Mat>{empty.icon || "info"}</Mat>
+   268→          <span>{empty.reason}</span>
+   269→        </div>
+   270→      )}
+   271→
+   272→      <CtaHint cta={cta} detail={detail} accentColor={hero.accent.color} />
+   273→
+   274→      <InlineActions actions={actions} block={block} accentColor={hero.accent.color} />
+   275→
+   276→      <DetailOverlay open={open} cta={cta} detail={detail} hero={hero} block={block} setOpen={setOpen} />
+   277→    </CardRoot>
+   278→  );
+   279→}
+   280→
+   281→// ============================================================================
+   282→// Layout: COMPACT — fila única (icono + kicker + título + chevron). ~60px.
+   283→// Usado para reminders, signals, notificaciones simples.
+   284→// ============================================================================
+   285→
+   286→function CompactLayout(props: SharedProps) {
+   287→  const { block, hero, detail, cta, actions, isTappable, open, setOpen, handleClick, handleKeyDown } = props;
+   288→  const compactTitle = truncate(hero.title, 28) ?? hero.title;
+   289→
+   290→  return (
+   291→    <CardRoot block={block} hero={hero} isTappable={isTappable} open={open} handleClick={handleClick} handleKeyDown={handleKeyDown}>
+   292→      <div
+   293→        style={{
+   294→          display: "flex",
+   295→          alignItems: "center",
+   296→          gap: 12,
+   297→          minHeight: 60,
+   298→          padding: "10px 16px",
+   299→        }}
+   300→      >
+   301→        <div
+   302→          style={{
+   303→            flex: "0 0 auto",
+   304→            width: 36,
+   305→            height: 36,
+   306→            display: "grid",
+   307→            placeItems: "center",
+   308→            borderRadius: 12,
+   309→            background: hero.accent.soft,
+   310→            color: hero.accent.color,
+   311→          }}
+   312→        >
+   313→          <Mat style={{ fontSize: 24 }}>{hero.icon}</Mat>
+   314→        </div>
+   315→
+   316→        <div style={{ flex: "1 1 auto", minWidth: 0 }}>
+   317→          <p
+   318→            style={{
+   319→              color: hero.accent.color,
+   320→              fontSize: 10,
+   321→              fontWeight: 600,
+   322→              letterSpacing: "0.08em",
+   323→              textTransform: "uppercase",
+   324→              margin: 0,
+   325→              marginBottom: 2,
+   326→              overflow: "hidden",
+   327→              textOverflow: "ellipsis",
+   328→              whiteSpace: "nowrap",
+   329→            }}
+   330→          >
+   331→            {hero.kicker}
+   332→          </p>
+   333→          <h2
+   334→            style={{
+   335→              margin: 0,
+   336→              color: COLOR_INK,
+   337→              fontSize: 15,
+   338→              fontWeight: 700,
+   339→              lineHeight: 1.25,
+   340→              overflow: "hidden",
+   341→              textOverflow: "ellipsis",
+   342→              whiteSpace: "nowrap",
+   343→            }}
+   344→          >
+   345→            {compactTitle}
+   346→          </h2>
+   347→        </div>
+   348→
+   349→        <Mat
+   350→          style={{
+   351→            fontSize: 22,
+   352→            color: COLOR_INK_TENUE,
+   353→            opacity: isTappable ? 0.9 : 0.4,
+   354→            flex: "0 0 auto",
+   355→          }}
+   356→        >
+   357→          chevron_right
+   358→        </Mat>
+   359→      </div>
+   360→
+   361→      <InlineActions actions={actions} block={block} accentColor={hero.accent.color} />
+   362→
+   363→      <DetailOverlay open={open} cta={cta} detail={detail} hero={hero} block={block} setOpen={setOpen} />
+   364→    </CardRoot>
+   365→  );
+   366→}
+   367→
+   368→// ============================================================================
+   369→// Layout: SPOTLIGHT — imagen full-bleed (180px) con scrim + título overlay
+   370→// (Bricolage Grotesque, blanco), métricas debajo y CTA hint al pie.
+   371→// Usado para recipe, movie, book — cards con hero image.
+   372→// ============================================================================
+   373→
+   374→function SpotlightLayout(props: SharedProps) {
+   375→  const { block, hero, detail, cta, isTappable, open, setOpen, handleClick, handleKeyDown, hasMetricValues, displayTitle } = props;
+   376→
+   377→  const heroBg = hero.art
+   378→    ? `url(${hero.art})`
+   379→    : `linear-gradient(135deg, ${hero.accent.color}, ${hero.accent.soft})`;
+   380→
+   381→  return (
+   382→    <CardRoot
+   383→      block={block}
+   384→      hero={hero}
+   385→      isTappable={isTappable}
+   386→      open={open}
+   387→      handleClick={handleClick}
+   388→      handleKeyDown={handleKeyDown}
+   389→      style={{ padding: 0 }}
+   390→    >
+   391→      {/* Full-bleed hero + scrim + título overlay */}
+   392→      <div
+   393→        style={{
+   394→          position: "relative",
+   395→          width: "100%",
+   396→          height: 180,
+   397→          backgroundImage: heroBg,
+   398→          backgroundSize: "cover",
+   399→          backgroundPosition: "center",
+   400→          backgroundColor: hero.accent.soft,
+   401→        }}
+   402→      >
+   403→        <div
+   404→          style={{
+   405→            position: "absolute",
+   406→            inset: 0,
+   407→            background:
+   408→              "linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.18) 45%, transparent 75%)",
+   409→          }}
+   410→        />
+   411→        <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: "16px 20px 14px" }}>
+   412→          <p
+   413→            style={{
+   414→              color: "rgba(255,255,255,0.85)",
+   415→              fontSize: 11,
+   416→              fontWeight: 600,
+   417→              letterSpacing: "0.08em",
+   418→              textTransform: "uppercase",
+   419→              margin: 0,
+   420→              marginBottom: 4,
+   421→              textShadow: "0 1px 4px rgba(0,0,0,0.5)",
+   422→            }}
+   423→          >
+   424→            {hero.kicker}
+   425→          </p>
+   426→          <h2
+   427→            style={{
+   428→              margin: 0,
+   429→              color: "#ffffff",
+   430→              fontFamily: FONT_HEADING,
+   431→              fontSize: 22,
+   432→              fontWeight: 800,
+   433→              lineHeight: 1.15,
+   434→              letterSpacing: "-0.01em",
+   435→              textShadow: "0 2px 8px rgba(0,0,0,0.45)",
+   436→            }}
+   437→          >
+   438→            {displayTitle}
+   439→          </h2>
+   440→        </div>
+   441→      </div>
+   442→
+   443→      {/* Métricas debajo de la imagen */}
+   444→      {hero.metrics && hero.metrics.length > 0 && (
+   445→        <div
+   446→          style={{
+   447→            display: "flex",
+   448→            gap: 8,
+   449→            padding: "16px 20px 4px",
+   450→            flexWrap: "wrap",
+   451→          }}
+   452→        >
+   453→          {hero.metrics.map((m, i) => {
+   454→            const displayValue = truncate(m.value, 15);
+   455→            const displayLabel = truncate(m.label, 25);
+   456→            return (
+   457→              <div
+   458→                key={i}
+   459→                style={{
+   460→                  flex: "1 1 0",
+   461→                  minWidth: 80,
+   462→                  display: "flex",
+   463→                  flexDirection: "column",
+   464→                  alignItems: "center",
+   465→                  gap: 2,
+   466→                  padding: "10px 8px",
+   467→                  borderRadius: 14,
+   468→                  background: hero.accent.soft,
+   469→                }}
+   470→              >
+   471→                <Mat style={{ fontSize: 18, color: m.color ?? hero.accent.color }}>{m.icon}</Mat>
+   472→                {hasMetricValues && displayValue && (
+   473→                  <span style={{ color: COLOR_INK, fontSize: 14, fontWeight: 700 }}>{displayValue}</span>
+   474→                )}
+   475→                <span
+   476→                  style={{
+   477→                    color: COLOR_INK_MUTED,
+   478→                    fontSize: 10,
+   479→                    fontWeight: 500,
+   480→                    textAlign: "center",
+   481→                    lineHeight: 1.2,
+   482→                  }}
+   483→                >
+   484→                  {displayLabel}
+   485→                </span>
+   486→              </div>
+   487→            );
+   488→          })}
+   489→        </div>
+   490→      )}
+   491→
+   492→      <CtaHint cta={cta} detail={detail} accentColor={hero.accent.color} style={{ margin: "12px 20px" }} />
+   493→
+   494→      <DetailOverlay open={open} cta={cta} detail={detail} hero={hero} block={block} setOpen={setOpen} />
+   495→    </CardRoot>
+   496→  );
+   497→}
+   498→
+   499→// ============================================================================
+   500→// Layout: GALLERY — carrusel horizontal de mini-cards (70×80) con gradiente,
+   501→// título + métrica. Usado para comparación, síntesis de restaurantes.
+   502→// ============================================================================
+   503→
+   504→function GalleryLayout(props: SharedProps) {
+   505→  const { block, hero, detail, cta, isTappable, open, setOpen, handleClick, handleKeyDown, displayTitle } = props;
+   506→  const items = hero.metrics ?? [];
+   507→  // Paleta rotativa para que cada mini-card tenga su gradiente propio.
+   508→  const gradients = [
+   509→    `linear-gradient(135deg, ${hero.accent.color}, ${hero.accent.soft})`,
+   510→    "linear-gradient(135deg, #ec4899, rgba(236,72,153,0.18))",
+   511→    "linear-gradient(135deg, #2563eb, rgba(37,99,235,0.18))",
+   512→    "linear-gradient(135deg, #059669, rgba(16,185,129,0.18))",
+   513→    "linear-gradient(135deg, #d97706, rgba(217,119,6,0.18))",
+   514→    "linear-gradient(135deg, #8127cf, rgba(129,39,207,0.18))",
+   515→    "linear-gradient(135deg, #0284c7, rgba(2,132,199,0.18))",
+   516→    "linear-gradient(135deg, #e11d48, rgba(225,29,72,0.18))",
+   517→  ];
+   518→
+   519→  return (
+   520→    <CardRoot block={block} hero={hero} isTappable={isTappable} open={open} handleClick={handleClick} handleKeyDown={handleKeyDown}>
+   521→      <div style={{ padding: "16px 20px 4px" }}>
+   522→        <p className="koru-plan-hero-kicker" style={{ color: hero.accent.color, margin: 0, marginBottom: 4 }}>
+   523→          {hero.kicker}
+   524→        </p>
+   525→        <h2
+   526→          style={{
+   527→            margin: 0,
+   528→            color: COLOR_INK,
+   529→            fontFamily: FONT_HEADING,
+   530→            fontSize: 18,
+   531→            fontWeight: 800,
+   532→            lineHeight: 1.2,
+   533→            letterSpacing: "-0.01em",
+   534→          }}
+   535→        >
+   536→          {displayTitle}
+   537→        </h2>
+   538→        {hero.desc && (
+   539→          <p style={{ margin: "4px 0 0", color: COLOR_INK_MUTED, fontSize: 12, fontWeight: 400, lineHeight: 1.4 }}>
+   540→            {hero.desc}
+   541→          </p>
+   542→        )}
+   543→      </div>
+   544→
+   545→      {items.length > 0 ? (
+   546→        <div
+   547→          style={{
+   548→            display: "flex",
+   549→            gap: 8,
+   550→            overflowX: "auto",
+   551→            padding: "12px 20px 16px",
+   552→            scrollbarWidth: "thin",
+   553→            WebkitOverflowScrolling: "touch",
+   554→          }}
+   555→        >
+   556→          {items.map((m, i) => {
+   557→            const displayLabel = truncate(m.label, 12);
+   558→            const displayValue = truncate(m.value, 10);
+   559→            return (
+   560→              <div
+   561→                key={i}
+   562→                style={{
+   563→                  flex: "0 0 auto",
+   564→                  width: 70,
+   565→                  height: 80,
+   566→                  display: "flex",
+   567→                  flexDirection: "column",
+   568→                  justifyContent: "space-between",
+   569→                  padding: "8px 6px",
+   570→                  borderRadius: 14,
+   571→                  background: gradients[i % gradients.length],
+   572→                  color: "#ffffff",
+   573→                  boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+   574→                  overflow: "hidden",
+   575→                }}
+   576→              >
+   577→                <Mat style={{ fontSize: 18, color: "rgba(255,255,255,0.95)" }}>{m.icon}</Mat>
+   578→                <div>
+   579→                  {displayValue && (
+   580→                    <div
+   581→                      style={{
+   582→                        fontSize: 13,
+   583→                        fontWeight: 800,
+   584→                        lineHeight: 1.1,
+   585→                        marginBottom: 2,
+   586→                        color: "#ffffff",
+   587→                      }}
+   588→                    >
+   589→                      {displayValue}
+   590→                    </div>
+   591→                  )}
+   592→                  <div
+   593→                    style={{
+   594→                      fontSize: 9,
+   595→                      fontWeight: 500,
+   596→                      lineHeight: 1.15,
+   597→                      color: "rgba(255,255,255,0.88)",
+   598→                      overflow: "hidden",
+   599→                      display: "-webkit-box",
+   600→                      WebkitLineClamp: 2,
+   601→                      WebkitBoxOrient: "vertical",
+   602→                    }}
+   603→                  >
+   604→                    {displayLabel}
+   605→                  </div>
+   606→                </div>
+   607→              </div>
+   608→            );
+   609→          })}
+   610→        </div>
+   611→      ) : (
+   612→        <div style={{ padding: "8px 20px 16px", color: COLOR_INK_TENUE, fontSize: 12 }}>
+   613→          Sin opciones para mostrar.
+   614→        </div>
+   615→      )}
+   616→
+   617→      <CtaHint cta={cta} detail={detail} accentColor={hero.accent.color} />
+   618→
+   619→      <DetailOverlay open={open} cta={cta} detail={detail} hero={hero} block={block} setOpen={setOpen} />
+   620→    </CardRoot>
+   621→  );
+   622→}
+   623→
+   624→// ============================================================================
+   625→// Layout: BANNER — gradiente full-width (100px) con número grande (28px
+   626→// Bricolage) + label. Usado para birthday_calendar, birthday_alarm.
+   627→// ============================================================================
+   628→
+   629→function BannerLayout(props: SharedProps) {
+   630→  const { block, hero, detail, cta, isTappable, open, setOpen, handleClick, handleKeyDown } = props;
+   631→  // Número grande = artValue o primer métrica con valor.
+   632→  const bigNumber = hero.artValue ?? hero.metrics?.find((m) => m.value)?.value ?? "";
+   633→  // Label = primer métrica o kicker (cuando solo hay un número destacado).
+   634→  const label = hero.metrics?.[0]?.label ?? hero.kicker;
+   635→
+   636→  return (
+   637→    <CardRoot
+   638→      block={block}
+   639→      hero={hero}
+   640→      isTappable={isTappable}
+   641→      open={open}
+   642→      handleClick={handleClick}
+   643→      handleKeyDown={handleKeyDown}
+   644→      style={{ padding: 0, background: `linear-gradient(135deg, ${hero.accent.color}, ${hero.accent.soft})` }}
+   645→    >
+   646→      <div
+   647→        style={{
+   648→          position: "relative",
+   649→          width: "100%",
+   650→          minHeight: 100,
+   651→          display: "flex",
+   652→          alignItems: "center",
+   653→          justifyContent: "space-between",
+   654→          gap: 16,
+   655→          padding: "16px 24px",
+   656→          boxSizing: "border-box",
+   657→        }}
+   658→      >
+   659→        <div style={{ flex: "1 1 auto", minWidth: 0 }}>
+   660→          {hero.kicker && (
+   661→            <p
+   662→              style={{
+   663→                margin: 0,
+   664→                marginBottom: 4,
+   665→                color: "rgba(255,255,255,0.85)",
+   666→                fontSize: 11,
+   667→                fontWeight: 600,
+   668→                letterSpacing: "0.08em",
+   669→                textTransform: "uppercase",
+   670→              }}
+   671→            >
+   672→              {hero.kicker}
+   673→            </p>
+   674→          )}
+   675→          {bigNumber && (
+   676→            <div
+   677→              style={{
+   678→                fontFamily: FONT_HEADING,
+   679→                fontSize: 28,
+   680→                fontWeight: 800,
+   681→                color: "#ffffff",
+   682→                lineHeight: 1,
+   683→                letterSpacing: "-0.02em",
+   684→              }}
+   685→            >
+   686→              {bigNumber}
+   687→            </div>
+   688→          )}
+   689→          {label && (
+   690→            <div
+   691→              style={{
+   692→                color: "rgba(255,255,255,0.92)",
+   693→                fontSize: 13,
+   694→                fontWeight: 500,
+   695→                marginTop: 4,
+   696→              }}
+   697→            >
+   698→              {label}
+   699→            </div>
+   700→          )}
+   701→        </div>
+   702→
+   703→        {hero.icon && (
+   704→          <Mat
+   705→            style={{
+   706→              fontSize: 40,
+   707→              color: "rgba(255,255,255,0.55)",
+   708→              flex: "0 0 auto",
+   709→            }}
+   710→          >
+   711→            {hero.icon}
+   712→          </Mat>
+   713→        )}
+   714→      </div>
+   715→
+   716→      <DetailOverlay open={open} cta={cta} detail={detail} hero={hero} block={block} setOpen={setOpen} />
+   717→    </CardRoot>
+   718→  );
+   719→}
+   720→
+   721→// ============================================================================
+   722→// Root: levanta estado + handlers (ripple, keyboard, tappability) y despacha
+   723→// al layout elegido por la presentación. El modelo no cambia; solo la
+   724→// composición visual.
+   725→// ============================================================================
+   726→
+   727→export function KoruUnifiedCard({ block }: { block: UiBlock }) {
+   728→  const [open, setOpen] = useState(false);
+   729→  const { hero, detail, cta, actions, empty, layout = "default" } = toPresentation(block);
+   730→  const hasMetricValues = hero.metrics?.some((m) => m.value != null) ?? false;
+   731→
+   732→  // 🔴 v2: la card entera es tappable si hay detail o collections screen
+   733→  const isTappable = !!(cta && (detail || cta.screen === "collections"));
+   734→
+   735→  // Truncar título a 40 chars para que no rompa el layout
+   736→  const displayTitle = hero.title.length > 40 ? hero.title.slice(0, 37).trimEnd() + "…" : hero.title;
+   737→
+   738→  // Ripple feedback en cualquier tap sobre la card.
+   739→  const triggerRipple = useTapRipple();
+   740→
+   741→  // 🔴 v2: handler unificado para abrir (click + keyboard)
+   742→  // Guard: no abrir si ya está abierto (evita re-trigger cuando el detail screen está visible)
+   743→  const handleOpen = useCallback(() => {
+   744→    if (isTappable && !open) setOpen(true);
+   745→  }, [isTappable, open]);
+   746→
+   747→  // Click handler: ripple + abrir. El ripple se dispara siempre que la card
+   748→  // sea tappable (incluso si ya está abierta) para mantener el feedback táctil.
+   749→  const handleClick = useCallback(
+   750→    (e: React.MouseEvent<HTMLElement>) => {
+   751→      triggerRipple(e);
+   752→      if (!open) handleOpen();
+   753→    },
+   754→    [triggerRipple, handleOpen, open],
+   755→  );
+   756→
+   757→  const handleKeyDown = useCallback(
+   758→    (e: React.KeyboardEvent) => {
+   759→      if (isTappable && (e.key === "Enter" || e.key === " ")) {
+   760→        e.preventDefault();
+   761→        setOpen(true);
+   762→      }
+   763→    },
+   764→    [isTappable],
+   765→  );
+   766→
+   767→  const shared: SharedProps = {
+   768→    block,
+   769→    hero,
+   770→    detail,
+   771→    cta,
+   772→    actions,
+   773→    empty,
+   774→    isTappable,
+   775→    open,
+   776→    setOpen,
+   777→    handleClick,
+   778→    handleKeyDown,
+   779→    hasMetricValues,
+   780→    displayTitle,
+   781→  };
+   782→
+   783→  if (layout === "compact") return <CompactLayout {...shared} />;
+   784→  if (layout === "spotlight") return <SpotlightLayout {...shared} />;
+   785→  if (layout === "gallery") return <GalleryLayout {...shared} />;
+   786→  if (layout === "banner") return <BannerLayout {...shared} />;
+   787→  return <DefaultLayout {...shared} />;
+   788→}
+   789→

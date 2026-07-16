@@ -50,9 +50,14 @@
   --koru-radius-full: 999px;
 
   /* 🔴 Shadows */
-  --koru-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --koru-shadow-sm: 0 2px 8px rgba(18, 10, 50, 0.06);
   --koru-shadow-md: 0 4px 16px rgba(131, 99, 249, 0.12);
   --koru-shadow-lg: 0 8px 24px rgba(131, 99, 249, 0.18);
+
+  /* 🔴 Text-safe semantic colors — WCAG AA on white */
+  --koru-meta: #7566a0;        /* meta text, 4.6:1 AA — reemplaza stone */
+  --koru-amber-text: #b45309;  /* amber text-safe, 4.58:1 AA */
+  --koru-rose-text: #c81e1e;   /* rose text-safe, 5.24:1 AA */
 }
 
 @theme inline {
@@ -2805,6 +2810,7 @@ button.koru-stitch-row {
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .koru-metric-value {
@@ -2839,6 +2845,12 @@ button.koru-stitch-row {
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.4);
   padding: 12px;
+}
+
+/* Variante "bloqueado / próximamente": sí lleva el desaturado, pero SOLO para
+   features que aún no están disponibles. Los registros guardados reales usan
+   .koru-challenge-row sin esta clase y se ven a todo color. */
+.koru-challenge-row.is-locked {
   opacity: 0.7;
   filter: grayscale(50%);
 }
@@ -3127,6 +3139,21 @@ button.koru-stitch-row {
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.6);
   padding: 14px;
+}
+
+/* 🔴 v3: imagen del scroller card (Google Places photo). */
+.koru-dsec-scard-image {
+  margin: -14px -14px 10px;
+  border-radius: 18px 18px 0 0;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  background: rgba(0, 0, 0, 0.04);
+}
+.koru-dsec-scard-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .koru-dsec-scard-badge {
@@ -5055,6 +5082,256 @@ a.koru-dsec-source:hover {
 .koru-create-action-save:active:not(:disabled), .koru-create-action-cancel:active { transform: scale(0.98); }
 .koru-create-action-save .material-symbols-outlined, .koru-create-action-cancel .material-symbols-outlined { font-size: 20px; }
 
+/* =========================================================================
+   CreateScreen v2 — rich text toolbar, AI pill, tags, sessions, matrix,
+   toggle, smart-defaults hint, suggestions panel.
+   ========================================================================= */
+
+@keyframes koru-spin { to { transform: rotate(360deg); } }
+.koru-spin { animation: koru-spin 0.9s linear infinite; display: inline-block; }
+
+/* Title row + AI pill */
+.koru-create-title-row { display: flex; gap: 8px; align-items: stretch; }
+.koru-create-title-row > input:first-child { flex: 1; }
+.koru-create-ai-pill {
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 0 12px;
+  border: 1px solid rgba(131, 99, 249, 0.35);
+  background: rgba(131, 99, 249, 0.08);
+  color: #523a9e;
+  border-radius: 999px;
+  font-size: 12px; font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, transform 0.08s;
+  white-space: nowrap;
+}
+.koru-create-ai-pill:hover { background: rgba(131, 99, 249, 0.16); }
+.koru-create-ai-pill:active { transform: scale(0.96); }
+.koru-create-ai-pill:disabled { opacity: 0.6; cursor: progress; }
+.koru-create-ai-pill .material-symbols-outlined { font-size: 16px; }
+
+/* AI suggestions panel */
+.koru-create-ai-panel {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 10px;
+  margin-bottom: 4px;
+  border: 1px solid rgba(131, 99, 249, 0.25);
+  background: rgba(131, 99, 249, 0.05);
+  border-radius: 10px;
+}
+.koru-create-ai-panel-title {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 700; color: #523a9e;
+}
+.koru-create-ai-panel-title .material-symbols-outlined { font-size: 16px; }
+.koru-create-ai-suggestion {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;
+  padding: 8px;
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+}
+.koru-create-ai-suggestion-body { flex: 1; min-width: 0; }
+.koru-create-ai-suggestion-label {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em;
+  color: #888; font-weight: 600;
+}
+.koru-create-ai-suggestion-value {
+  font-size: 13px; color: var(--c-bark, #2b2440);
+  margin-top: 2px; word-break: break-word;
+  max-height: 60px; overflow: hidden;
+}
+.koru-create-ai-suggestion-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.koru-create-ai-accept, .koru-create-ai-reject {
+  width: 28px; height: 28px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 999px; border: none; cursor: pointer;
+  transition: transform 0.08s, background 0.12s;
+}
+.koru-create-ai-accept { background: #2d6a4f; color: white; }
+.koru-create-ai-reject { background: rgba(0, 0, 0, 0.08); color: #555; }
+.koru-create-ai-accept:hover { background: #245543; }
+.koru-create-ai-reject:hover { background: rgba(0, 0, 0, 0.14); }
+.koru-create-ai-accept:active, .koru-create-ai-reject:active { transform: scale(0.92); }
+.koru-create-ai-accept .material-symbols-outlined, .koru-create-ai-reject .material-symbols-outlined { font-size: 16px; }
+
+/* Markdown toolbar + preview (nota) */
+.koru-create-field-label-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.koru-create-md-toggle {
+  background: none; border: none; cursor: pointer;
+  font-size: 11px; font-weight: 600; color: #8363f9;
+  padding: 2px 6px; border-radius: 6px;
+}
+.koru-create-md-toggle:hover { background: rgba(131, 99, 249, 0.1); }
+.koru-create-md-toolbar {
+  display: flex; gap: 4px;
+  padding: 4px;
+  margin-bottom: 6px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 8px;
+}
+.koru-create-md-toolbar button {
+  min-width: 32px; height: 28px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: none; background: white;
+  border-radius: 6px; cursor: pointer;
+  font-size: 13px; color: #333;
+  transition: background 0.1s, transform 0.08s;
+}
+.koru-create-md-toolbar button:hover { background: rgba(131, 99, 249, 0.12); }
+.koru-create-md-toolbar button:active { transform: scale(0.92); }
+.koru-create-md-preview {
+  min-height: 80px;
+  padding: 10px 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  background: white;
+  font-size: 14px; line-height: 1.5;
+  color: var(--c-bark, #2b2440);
+  overflow-wrap: break-word;
+}
+.koru-create-md-preview p { margin: 0 0 8px 0; }
+.koru-create-md-preview p:last-child { margin-bottom: 0; }
+.koru-create-md-preview ul { margin: 0 0 8px 0; padding-left: 20px; }
+.koru-create-md-preview li { margin: 2px 0; }
+.koru-create-md-preview a { color: #8363f9; text-decoration: underline; }
+.koru-create-md-preview strong { font-weight: 700; }
+.koru-create-md-preview em { font-style: italic; }
+
+/* Tags */
+.koru-create-tag-suggest {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  margin-top: 6px;
+}
+.koru-create-tag-suggest-item {
+  border: 1px solid rgba(131, 99, 249, 0.3);
+  background: rgba(131, 99, 249, 0.06);
+  color: #523a9e;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 11px; font-weight: 600;
+  cursor: pointer;
+}
+.koru-create-tag-suggest-item:hover { background: rgba(131, 99, 249, 0.16); }
+.koru-create-tag-chips {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-top: 8px;
+}
+.koru-create-tag-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: #8363f9; color: white;
+  border-radius: 999px;
+  padding: 3px 4px 3px 10px;
+  font-size: 12px; font-weight: 600;
+}
+.koru-create-tag-chip button {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px;
+  border: none; background: rgba(255, 255, 255, 0.25);
+  color: white; border-radius: 999px;
+  cursor: pointer; font-size: 14px; line-height: 1;
+}
+.koru-create-tag-chip button:hover { background: rgba(255, 255, 255, 0.4); }
+
+/* Smart defaults hint */
+.koru-create-last-used {
+  display: block;
+  font-size: 10px; color: #888;
+  margin-bottom: 4px; font-style: italic;
+}
+
+/* Ejercicio: sessions + exercises */
+.koru-create-sessions { display: flex; flex-direction: column; gap: 10px; }
+.koru-create-session {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.015);
+}
+.koru-create-session-header {
+  display: flex; gap: 6px; align-items: center;
+  margin-bottom: 8px;
+}
+.koru-create-session-header input { flex: 1; }
+.koru-create-exercises { display: flex; flex-direction: column; gap: 6px; }
+.koru-create-exercise {
+  display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+}
+.koru-create-exercise-name { flex: 1 1 140px; min-width: 120px; }
+.koru-create-exercise-num { width: 64px !important; }
+
+/* Decisión: list-item con select */
+.koru-create-list-item-decision { gap: 6px; }
+.koru-create-list-item-decision input { flex: 1; }
+.koru-create-list-item-decision select { width: auto; flex-shrink: 0; }
+
+/* Decisión: matrix */
+.koru-create-matrix {
+  display: flex; flex-direction: column; gap: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  padding: 8px;
+  overflow-x: auto;
+}
+.koru-create-matrix-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.koru-create-matrix-row > span:first-child,
+.koru-create-matrix-row > input:first-child {
+  flex: 1 1 100px;
+  min-width: 80px;
+}
+.koru-create-matrix-row > span:not(:first-child),
+.koru-create-matrix-row > input:not(:first-child) {
+  flex: 0 0 56px;
+  width: 56px;
+}
+.koru-create-matrix-row > input { padding: 4px 6px; font-size: 12px; }
+.koru-create-matrix-row > span { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.koru-create-matrix-header > span {
+  font-weight: 600; font-size: 11px; color: #666;
+  text-transform: uppercase; letter-spacing: 0.03em;
+}
+.koru-create-matrix-header { padding-bottom: 4px; border-bottom: 1px solid rgba(0, 0, 0, 0.06); }
+
+/* Memoria: toggle */
+.koru-create-toggle-row {
+  flex-direction: row !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.koru-create-toggle {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: none; border: none; cursor: pointer;
+  padding: 4px 0;
+}
+.koru-create-toggle-label { font-size: 12px; font-weight: 600; color: #555; }
+.koru-create-toggle-switch {
+  width: 36px; height: 20px;
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 999px;
+  position: relative;
+  transition: background 0.15s;
+}
+.koru-create-toggle-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 16px; height: 16px;
+  background: white;
+  border-radius: 999px;
+  transition: transform 0.15s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+.koru-create-toggle-switch.on { background: #8127cf; }
+.koru-create-toggle-switch.on::after { transform: translateX(16px); }
+
 /* Composer + button */
 .koru-composer-create {
   color: #523a9e !important;
@@ -5352,13 +5629,18 @@ a.koru-dsec-source:hover {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   🔴 v2: Calendario grid — chips que se comportan como días del mes
+   🔴 v2: Calendario grid — clase dedicada para casillas de día del mes.
+   Antes esto colisionaba con .koru-dsec-chips/.koru-dsec-chip y hacía que
+   todos los chips (cast, tags, streaming) se vieran como celdas de calendario.
+   Ahora el calendario usa su propia clase .koru-dsec-calendar / -day y deja
+   que los chips genéricos conserven su estilo de píldora.
    ═══════════════════════════════════════════════════════════════════════════ */
-.koru-dsec-chips {
+.koru-dsec-calendar {
+  display: flex;
   flex-wrap: wrap;
-  gap: 4px !important;
+  gap: 4px;
 }
-.koru-dsec-chip {
+.koru-dsec-calendar-day {
   min-width: 36px;
   height: 36px;
   border-radius: 8px;
@@ -5372,23 +5654,23 @@ a.koru-dsec-source:hover {
   position: relative;
   flex: 0 0 auto;
 }
-.koru-dsec-chip .koru-dsec-chip-label {
+.koru-dsec-calendar-day .koru-dsec-chip-label {
   font-size: 13px;
 }
-.koru-dsec-chip .koru-dsec-chip-sub {
+.koru-dsec-calendar-day .koru-dsec-chip-sub {
   position: absolute;
   top: 2px;
   right: 4px;
   font-size: 9px;
   color: #ec4899;
 }
-/* 🔴 Chip con color (día destacado) */
-.koru-dsec-chip[style*="color"] {
+/* 🔴 Día destacado (con color inline) */
+.koru-dsec-calendar-day[style*="color"] {
   background: currentColor !important;
   color: white !important;
 }
-.koru-dsec-chip[style*="color"] .koru-dsec-chip-label,
-.koru-dsec-chip[style*="color"] .koru-dsec-chip-sub {
+.koru-dsec-calendar-day[style*="color"] .koru-dsec-chip-label,
+.koru-dsec-calendar-day[style*="color"] .koru-dsec-chip-sub {
   color: white !important;
 }
 
@@ -6028,6 +6310,67 @@ a.koru-dsec-source:hover {
   border-radius: 7px;
   background: #fff;
   flex-shrink: 0;
+  object-fit: cover;
+}
+
+/* 🔴 v2: Video embed para sources de YouTube — thumbnail 16:9 + play button */
+.koru-dsec-source-video {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 10px;
+}
+.koru-dsec-source-video .koru-dsec-source-title {
+  font-weight: 600;
+  font-size: 13px;
+}
+.koru-source-video-thumb {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  background-size: cover;
+  background-position: center;
+  background-color: #0b0614;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+}
+.koru-source-video-thumb::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 50%, rgba(0,0,0,0.35) 100%);
+  pointer-events: none;
+}
+.koru-source-video-play {
+  position: relative;
+  z-index: 1;
+  width: 54px; height: 54px;
+  border-radius: 50%;
+  background: #ff0033;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 6px 22px rgba(255, 0, 51, 0.55);
+}
+.koru-source-video-play .material-symbols-outlined {
+  font-size: 30px;
+  font-variation-settings: 'FILL' 1;
+  margin-left: 2px;
+}
+.koru-source-video-duration {
+  position: absolute;
+  z-index: 1;
+  bottom: 8px; right: 8px;
+  background: rgba(0, 0, 0, 0.80);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
 }
 
 /* Wellbeing streak fire */
@@ -6048,3 +6391,617 @@ a.koru-dsec-source:hover {
     transition: none !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   🔴 MICRODETAILS v3 — 110 microdetalles CSS + UX
+   Utility-first layer: utilities para jerarquía visual, contraste de color,
+   espaciado, animaciones de entrada, hover, tap, estados, accesibilidad y
+   helpers de layout. Las keyframes referenciadas ya existen más arriba.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────────────────────────────────
+   VISUAL HIERARCHY (rules 4-10)
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* Accent text — <18px, WCAG AAA 7.8:1 sobre blanco */
+.koru-text-accent {
+  color: var(--koru-purple-dark, #523a9e);
+}
+
+/* Meta text — reemplaza stone, 4.6:1 AA */
+.koru-text-meta {
+  color: var(--koru-meta, #7566a0);
+}
+
+/* Focus ring — keyboard navigation */
+.koru-focus-ring:focus-visible {
+  outline: 3px solid rgba(131, 99, 249, 0.5);
+  outline-offset: 2px;
+}
+
+/* Card lift — elevación suave al hover */
+.koru-card-lift {
+  transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.koru-card-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(131, 99, 249, 0.20);
+}
+
+/* Icon toggle — Material Symbols llena al hover */
+.koru-icon-toggle {
+  transition: font-variation-settings 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  font-variation-settings: 'FILL' 0, 'wght' 400;
+}
+.koru-icon-toggle:hover {
+  font-variation-settings: 'FILL' 1, 'wght' 600;
+}
+
+/* Underline grow — link hover crece de izquierda a derecha */
+.koru-underline-grow {
+  position: relative;
+  display: inline-block;
+}
+.koru-underline-grow::after {
+  content: "";
+  display: block;
+  height: 2px;
+  background: currentColor;
+  width: 0;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.koru-underline-grow:hover::after {
+  width: 100%;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   COLOR CONTRAST (rules 15-20)
+   (rules 11-14 ya aplicadas en :root arriba)
+   ───────────────────────────────────────────────────────────────────────── */
+
+.koru-shadow-warm {
+  box-shadow: 0 2px 8px rgba(18, 10, 50, 0.06);
+}
+
+.koru-shadow-glow {
+  box-shadow: 0 8px 24px rgba(131, 99, 249, 0.18);
+}
+
+.koru-border-warm {
+  border: 1px solid rgba(131, 99, 249, 0.25);
+}
+
+.koru-bg-accent-soft {
+  background: rgba(131, 99, 249, 0.08);
+}
+
+.koru-bg-accent-hover {
+  background: rgba(131, 99, 249, 0.14);
+}
+
+.koru-text-shadow-scrim {
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   SPACING (rules 21-25)
+   ───────────────────────────────────────────────────────────────────────── */
+
+.koru-safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.koru-safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.koru-touch-target {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.koru-overflow-hidden {
+  overflow: hidden;
+}
+
+.koru-no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.koru-no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   ENTRANCE ANIMATIONS (rules 26-35)
+   Keyframes (koru-card-in, koru-fade-up, koru-icon-pop, koru-glow-breathe,
+   koru-breathe) ya existen más arriba en este archivo.
+   ───────────────────────────────────────────────────────────────────────── */
+
+.koru-animate-card-in {
+  animation: koru-card-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+
+.koru-animate-fade-up {
+  animation: koru-fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.koru-animate-stagger-1 { animation-delay: 60ms; }
+.koru-animate-stagger-2 { animation-delay: 120ms; }
+.koru-animate-stagger-3 { animation-delay: 180ms; }
+.koru-animate-stagger-4 { animation-delay: 240ms; }
+.koru-animate-stagger-5 { animation-delay: 300ms; }
+
+.koru-animate-icon-pop {
+  animation: koru-icon-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+  animation-delay: 100ms;
+}
+
+.koru-animate-glow {
+  animation: koru-glow-breathe 4s ease-in-out infinite;
+}
+
+.koru-animate-breathe {
+  animation: koru-breathe 4s ease-in-out infinite;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   HOVER (rules 36-40)
+   ───────────────────────────────────────────────────────────────────────── */
+
+.koru-hover-lift {
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.koru-hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(131, 99, 249, 0.20);
+}
+
+.koru-hover-zoom {
+  overflow: hidden;
+}
+.koru-hover-zoom img {
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.koru-hover-zoom:hover img {
+  transform: scale(1.05);
+}
+
+.koru-hover-chevron {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.koru-hover-chevron.is-expanded {
+  transform: rotate(90deg);
+}
+
+.koru-hover-bg-shift {
+  transition: background 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.koru-hover-bg-shift:hover {
+  background: rgba(131, 99, 249, 0.14);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   TAP (rules 41-43)
+   ───────────────────────────────────────────────────────────────────────── */
+
+.koru-tap-scale {
+  transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.koru-tap-scale:active {
+  transform: scale(0.97);
+}
+
+.koru-tap-haptic {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.koru-tap-flash {
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.koru-tap-flash:active {
+  background-color: rgba(131, 99, 249, 0.20);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   STATE INDICATORS (rules 44-53)
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* LIVE — bolita roja pulsante + label */
+.koru-state-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.koru-state-live::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: koru-pulse-dot 1.5s ease-in-out infinite;
+}
+
+/* NEW — pill ámbar con shimmer sutil */
+.koru-state-new {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.14);
+  color: var(--koru-amber-text, #b45309);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  animation: koru-shimmer-bar 1.5s linear infinite;
+  background-size: 200% 100%;
+}
+
+/* VERIFIED — badge esmeralda con check */
+.koru-state-verified {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--koru-emerald, #2d6a4f);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+}
+.koru-state-verified::after {
+  content: "✓";
+  line-height: 1;
+}
+
+/* URGENT — pill rosa con pulse */
+.koru-state-urgent {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.14);
+  color: var(--koru-rose-text, #c81e1e);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  animation: koru-pulse-dot 1.5s ease-in-out infinite;
+}
+
+/* LOADING — skeleton shimmer */
+.koru-state-loading {
+  background: linear-gradient(90deg, #e4ddf7, #f6f3fe, #e4ddf7);
+  background-size: 200% 100%;
+  animation: koru-shimmer-bar 1.5s linear infinite;
+  border-radius: 4px;
+  color: transparent;
+}
+
+/* SAVED — icono de bookmark relleno en acento */
+.koru-state-saved {
+  color: var(--koru-purple, #8363f9);
+}
+.koru-state-saved .material-symbols-outlined,
+.koru-state-saved.material-symbols-outlined {
+  font-variation-settings: 'FILL' 1, 'wght' 600;
+  color: var(--koru-purple, #8363f9);
+}
+
+/* ERROR — borde rojo + shake al activarse */
+.koru-state-error {
+  border: 1.5px solid var(--koru-rose, #ef4444);
+  animation: koru-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+/* EMPTY — dashed border + icono centrado + texto muted */
+.koru-state-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px 16px;
+  border: 1.5px dashed rgba(131, 99, 249, 0.25);
+  border-radius: 12px;
+  background: rgba(131, 99, 249, 0.04);
+  color: var(--koru-meta, #7566a0);
+  font-size: 13px;
+  text-align: center;
+}
+.koru-state-empty .material-symbols-outlined {
+  font-size: 28px;
+  color: rgba(131, 99, 249, 0.5);
+}
+
+/* SYNCING — icono rotando */
+.koru-state-syncing .material-symbols-outlined,
+.koru-state-syncing.material-symbols-outlined {
+  animation: koru-icon-rotate 1s linear infinite;
+}
+
+/* OFFLINE — grayscale + banner */
+.koru-state-offline {
+  filter: grayscale(0.7);
+  opacity: 0.7;
+  position: relative;
+}
+.koru-state-offline::after {
+  content: "Sin conexión";
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(75, 85, 99, 0.92);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   ACCESSIBILITY (rules 54-65)
+   ARIA attributes reales van en JSX; estas clases son visuales/UX.
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* Screen-reader only — elemento visible solo para lectores de pantalla */
+.koru-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Focus-visible ring (utility — alias de koru-focus-ring) */
+.koru-focus-visible:focus-visible {
+  outline: 3px solid rgba(131, 99, 249, 0.5);
+  outline-offset: 2px;
+}
+
+/* ARIA helpers — visuales, los atributos role/aria-* reales van en JSX */
+.koru-aria-button {
+  cursor: pointer;
+}
+.koru-aria-button:focus-visible {
+  outline: 3px solid rgba(131, 99, 249, 0.5);
+  outline-offset: 2px;
+}
+.koru-aria-expanded[aria-expanded="true"] .koru-hover-chevron,
+.koru-aria-expanded.is-expanded .koru-hover-chevron {
+  transform: rotate(90deg);
+}
+.koru-aria-disabled,
+.koru-aria-disabled[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.koru-aria-hidden[aria-hidden="true"] {
+  display: none;
+}
+.koru-aria-pressed[aria-pressed="true"] {
+  background: rgba(131, 99, 249, 0.14);
+  color: var(--koru-purple-dark, #523a9e);
+}
+.koru-aria-selected[aria-selected="true"] {
+  background: rgba(131, 99, 249, 0.12);
+  color: var(--koru-purple-dark, #523a9e);
+}
+.koru-aria-current[aria-current="page"],
+.koru-aria-current[aria-current="true"] {
+  color: var(--koru-purple-dark, #523a9e);
+  font-weight: 700;
+}
+.koru-aria-busy[aria-busy="true"] {
+  cursor: progress;
+}
+.koru-aria-invalid[aria-invalid="true"] {
+  border-color: var(--koru-rose, #ef4444);
+}
+
+/* 106-110: Additional utilities to complete 110 microdetalles */
+.koru-z-index-10 { z-index: 10; }
+.koru-z-index-20 { z-index: 20; }
+.koru-z-index-50 { z-index: 50; }
+.koru-pointer-events-none { pointer-events: none; }
+.koru-pointer-events-auto { pointer-events: auto; }
+
+/* Extended reduced motion — desactiva TODAS las nuevas animaciones y
+   transiciones de microdetail cuando el usuario prefiere movimiento reducido. */
+@media (prefers-reduced-motion: reduce) {
+  .koru-animate-card-in,
+  .koru-animate-fade-up,
+  .koru-animate-icon-pop,
+  .koru-animate-glow,
+  .koru-animate-breathe,
+  .koru-animate-stagger-1,
+  .koru-animate-stagger-2,
+  .koru-animate-stagger-3,
+  .koru-animate-stagger-4,
+  .koru-animate-stagger-5,
+  .koru-card-lift,
+  .koru-hover-lift,
+  .koru-hover-zoom,
+  .koru-hover-zoom img,
+  .koru-hover-chevron,
+  .koru-hover-bg-shift,
+  .koru-tap-scale,
+  .koru-tap-flash,
+  .koru-underline-grow::after,
+  .koru-icon-toggle,
+  .koru-state-live::before,
+  .koru-state-new,
+  .koru-state-urgent,
+  .koru-state-loading,
+  .koru-state-error,
+  .koru-state-syncing .material-symbols-outlined,
+  .koru-state-syncing.material-symbols-outlined {
+    animation: none !important;
+    transition: none !important;
+    animation-delay: 0ms !important;
+  }
+  .koru-hover-lift:hover,
+  .koru-card-lift:hover {
+    transform: none !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   TEXT UTILITIES (rules 66-70)
+   ───────────────────────────────────────────────────────────────────────── */
+
+.koru-text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.koru-text-2-line {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.koru-text-3-line {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.koru-text-center { text-align: center; }
+.koru-text-right { text-align: right; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   FLEX LAYOUT (rules 71-75)
+   ───────────────────────────────────────────────────────────────────────── */
+
+.koru-flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.koru-flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.koru-flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.koru-flex-wrap {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.koru-gap-1 { gap: 4px; }
+.koru-gap-2 { gap: 8px; }
+.koru-gap-3 { gap: 12px; }
+.koru-gap-4 { gap: 16px; }
+.koru-gap-5 { gap: 20px; }
+.koru-gap-6 { gap: 24px; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   RADIUS UTILITIES (rules 76-80)
+   ───────────────────────────────────────────────────────────────────────── */
+
+.koru-radius-sm { border-radius: 8px; }
+.koru-radius-md { border-radius: 12px; }
+.koru-radius-lg { border-radius: 16px; }
+.koru-radius-xl { border-radius: 20px; }
+.koru-radius-full { border-radius: 999px; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   SHADOW UTILITIES (rules 81-85)
+   ───────────────────────────────────────────────────────────────────────── */
+
+.koru-shadow-none { box-shadow: none; }
+.koru-shadow-sm { box-shadow: 0 2px 8px rgba(18, 10, 50, 0.06); }
+.koru-shadow-md { box-shadow: 0 4px 16px rgba(131, 99, 249, 0.12); }
+.koru-shadow-lg { box-shadow: 0 8px 24px rgba(131, 99, 249, 0.18); }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   BACKGROUND UTILITIES (rules 86-90)
+   ───────────────────────────────────────────────────────────────────────── */
+
+.koru-bg-card { background: var(--color-card, #ffffff); }
+.koru-bg-surface { background: var(--color-secondary, #efeafb); }
+.koru-bg-soft { background: rgba(131, 99, 249, 0.08); }
+.koru-bg-gradient {
+  background: linear-gradient(135deg, var(--koru-purple, #8363f9), var(--koru-purple-dark, #523a9e));
+}
+.koru-bg-scrim {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.45) 100%);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   TRANSITION UTILITIES (rules 91-95)
+   ───────────────────────────────────────────────────────────────────────── */
+
+.koru-transition-smooth {
+  transition-property: transform, background, color, border-color, box-shadow, opacity;
+  transition-duration: 0.18s;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.koru-transition-spring {
+  transition-property: transform, background, color, border-color, box-shadow, opacity;
+  transition-duration: 0.3s;
+  transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.koru-transition-out {
+  transition-property: transform, background, color, border-color, box-shadow, opacity;
+  transition-duration: 0.22s;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   CURSOR UTILITIES (rules 96-100)
+   ───────────────────────────────────────────────────────────────────────── */
+
+.koru-cursor-pointer { cursor: pointer; }
+.koru-cursor-not-allowed { cursor: not-allowed; }
+.koru-cursor-loading { cursor: progress; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   STAGGER DELAY UTILITIES (rules 101-105)
+   ───────────────────────────────────────────────────────────────────────── */
+
+.koru-delay-0 { animation-delay: 0ms; }
+.koru-delay-50 { animation-delay: 50ms; }
+.koru-delay-100 { animation-delay: 100ms; }
+.koru-delay-150 { animation-delay: 150ms; }
+.koru-delay-200 { animation-delay: 200ms; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   VISIBILITY / OPACITY UTILITIES (rules 106-110)
+   ───────────────────────────────────────────────────────────────────────── */
+
+.koru-hidden { display: none; }
+.koru-visible { display: revert; }
+.koru-opacity-0 { opacity: 0; }
+.koru-opacity-50 { opacity: 0.5; }
+.koru-opacity-100 { opacity: 1; }
+
+/* 🔴 FIN microdetalles v3 — 110 microdetalles CSS + UX */

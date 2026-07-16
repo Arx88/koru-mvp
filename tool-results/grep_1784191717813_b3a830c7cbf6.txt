@@ -1,0 +1,252 @@
+/home/z/my-project/restaurant-real.html:22:        <div class="flex items-center gap-2">
+/home/z/my-project/restaurant-real.html:33:          <div class="flex items-center gap-3 p-2 bg-gray-50 rounded-xl border border-gray-100">
+/home/z/my-project/restaurant-real.html:48:          <div class="flex items-center gap-3 p-2 rounded-xl border border-transparent opacity-80">
+/home/z/my-project/restaurant-real.html:61:          <div class="flex items-center gap-3 p-2 rounded-xl border border-transparent opacity-80">
+/home/z/my-project/restaurant-real.html:77:        <div class="flex items-center gap-2 mb-3">
+/home/z/my-project/restaurant-real.html:98:          <div class="flex items-center gap-2 mb-1">
+/home/z/my-project/restaurant-real.html:115:      <div class="flex gap-2">
+/home/z/my-project/src/style.css:6911:.koru-gap-2 { gap: 8px; }
+/home/z/my-project/src/style.css:6912:.koru-gap-3 { gap: 12px; }
+/home/z/my-project/src/ui/home/WidgetCards.tsx:34:              <div className="flex items-center gap-2 text-[#0b1c30] bg-white/70 px-3 py-1 rounded-full backdrop-blur-md shadow-sm">
+/home/z/my-project/src/ui/home/WidgetCards.tsx:106:              <div className="flex items-center gap-2 mt-2">
+/home/z/my-project/src/ui/home/WidgetCards.tsx:115:            <div className="flex flex-col items-center gap-3 pr-2">
+/home/z/my-project/src/ui/home/WidgetCards.tsx:135:              <div className="flex items-center gap-2 mb-0.5">
+/home/z/my-project/src/ui/home/WidgetCards.tsx:170:          <div className="flex items-center gap-2 mb-4">
+/home/z/my-project/src/ui/home/WidgetCards.tsx:174:          <div className="flex-1 flex flex-col gap-3 justify-center">
+/home/z/my-project/src/ui/home/WidgetCards.tsx:176:              <div key={i} className="flex items-start gap-2">
+/home/z/my-project/src/ui/Onboarding.tsx:121:          <div className="mt-9 flex flex-col items-center gap-3">
+/home/z/my-project/src/ui/Onboarding.tsx:125:              className="flex w-64 items-center justify-center gap-2.5 rounded-full bg-forest py-4 font-semibold text-cream shadow-[0_4px_16px_rgba(92,122,95,0.3)] transition-transform active:scale-[0.97] cursor-pointer"
+/home/z/my-project/src/ui/Onboarding.tsx:158:          <ul className="mt-5 flex flex-col gap-3">
+/home/z/my-project/src/ui/Onboarding.tsx:175:                <div className="mt-3 flex gap-2">
+/home/z/my-project/src/ui/MemoryScreen.tsx:93:          <div className="flex items-center gap-2">
+/home/z/my-project/src/ui/MemoryScreen.tsx:109:      <div className="mt-6 grid flex-1 auto-rows-min grid-cols-2 gap-3 overflow-y-auto pb-4">
+/home/z/my-project/src/ui/MemoryScreen.tsx:120:                "group relative flex flex-col items-start gap-3 overflow-hidden rounded-2xl border p-4 text-left cursor-pointer",
+/home/z/my-project/src/ui/MemoryScreen.tsx:165:          <div className="col-span-2 flex flex-col items-center justify-center gap-3 py-16 text-center">
+/home/z/my-project/src/ui/MemoryScreen.tsx:234:        <div className="flex items-center gap-2 mb-2">
+/home/z/my-project/src/ui/MemoryScreen.tsx:274:          <p className="mt-4 rounded-lg bg-blush/40 px-3 py-2 text-xs text-[#8a635c] flex items-center gap-2">
+/home/z/my-project/src/ui/MemoryScreen.tsx:307:        <div className="mt-5 flex gap-3">
+/home/z/my-project/src/ui/MemoryScreen.tsx:312:              className="flex flex-1 items-center justify-center gap-2 rounded-full bg-forest py-3 text-sm font-semibold text-cream transition-all active:scale-[0.97] cursor-pointer hover:shadow-lg hover:shadow-forest/30"
+/home/z/my-project/src/ui/MemoryScreen.tsx:321:              "flex items-center justify-center gap-2 rounded-full border-2 border-sand py-3 text-sm font-medium text-earth transition-all hover:bg-warm-white hover:border-stone cursor-pointer active:scale-[0.97]",
+/home/z/my-project/src/ui/PermissionsScreen.tsx:17:      <ul className="mt-6 flex flex-col gap-3">
+/home/z/my-project/src/ui/HistoryScreen.tsx:23:      <ol className="mt-6 flex flex-1 flex-col gap-3 overflow-y-auto">
+/home/z/my-project/src/ui/HistoryScreen.tsx:36:    <li className="flex gap-3 rounded-xl border border-sand bg-card p-4">
+/home/z/my-project/src/ui/HistoryScreen.tsx:41:        <div className="flex items-center justify-between gap-2">
+/home/z/my-project/public/design-cards.html:42:    <div class="flex items-center gap-3">
+/home/z/my-project/public/design-cards.html:63:          <div class="flex flex-col items-center gap-2 w-1/3">
+/home/z/my-project/public/design-cards.html:74:          <div class="flex flex-col items-center gap-2 w-1/3">
+/home/z/my-project/public/design-cards.html:202:          <div class="flex items-center gap-3">
+/home/z/my-project/public/design-cards.html:205:              <div class="flex items-baseline gap-2"><h4 class="text-[18px] font-bold text-gray-900">BTC/USD</h4></div>
+/home/z/my-project/public/design-cards.html:232:          <div class="flex items-center justify-between p-2.5 hover:bg-gray-50 rounded-2xl transition-colors cursor-pointer"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 font-bold text-sm">₿</div><div><p class="text-[14px] font-bold text-gray-900">BTC</p><p class="text-[12px] text-gray-500">Bitcoin</p></div></div><div class="text-right"><p class="text-[14px] font-bold text-gray-900">$64.230</p><p class="text-[12px] text-emerald-500 font-bold">+2.4%</p></div></div>
+/home/z/my-project/public/design-cards.html:234:          <div class="flex items-center justify-between p-2.5 hover:bg-gray-50 rounded-2xl transition-colors cursor-pointer"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 font-bold text-sm">Ξ</div><div><p class="text-[14px] font-bold text-gray-900">ETH</p><p class="text-[12px] text-gray-500">Ethereum</p></div></div><div class="text-right"><p class="text-[14px] font-bold text-gray-900">$3.450</p><p class="text-[12px] text-red-500 font-bold">-0.8%</p></div></div>
+/home/z/my-project/public/design-cards.html:236:          <div class="flex items-center justify-between p-2.5 hover:bg-gray-50 rounded-2xl transition-colors cursor-pointer"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold text-sm">USDC</div><div><p class="text-[14px] font-bold text-gray-900">USDC</p><p class="text-[12px] text-gray-500">Stable</p></div></div><div class="text-right"><p class="text-[14px] font-bold text-gray-900">$1.000</p><p class="text-[12px] text-gray-400 font-bold">0.0%</p></div></div>
+/home/z/my-project/public/design-cards.html:245:        <div class="grid grid-cols-2 gap-2 mb-4">
+/home/z/my-project/public/design-cards.html:246:          <div class="bg-gray-50 p-2 rounded-xl"><div class="flex items-center gap-2 mb-1"><img src="https://flagsapi.com/DE/flat/24.png" class="w-5 h-5 rounded-full"><p class="text-[10px] text-gray-500 uppercase font-bold">EUR/USD</p></div><p class="text-[13px] font-bold">1.0854</p><p class="text-xs text-emerald-500 font-bold">+0.02%</p></div>
+/home/z/my-project/public/design-cards.html:247:          <div class="bg-gray-50 p-2 rounded-xl"><div class="flex items-center gap-2 mb-1"><img src="https://flagsapi.com/GB/flat/24.png" class="w-5 h-5 rounded-full"><p class="text-[10px] text-gray-500 uppercase font-bold">GBP/USD</p></div><p class="text-[13px] font-bold">1.2730</p><p class="text-xs text-emerald-500 font-bold">+0.08%</p></div>
+/home/z/my-project/public/design-cards.html:248:          <div class="bg-red-50 p-2 rounded-xl"><div class="flex items-center gap-2 mb-1"><img src="https://flagsapi.com/JP/flat/24.png" class="w-5 h-5 rounded-full"><p class="text-[10px] text-red-400 uppercase font-bold">USD/JPY</p></div><p class="text-[13px] font-bold">148.32</p><p class="text-xs text-red-500 font-bold">-0.15%</p></div>
+/home/z/my-project/public/design-cards.html:249:          <div class="bg-gray-50 p-2 rounded-xl"><div class="flex items-center gap-2 mb-1"><img src="https://flagsapi.com/AU/flat/24.png" class="w-5 h-5 rounded-full"><p class="text-[10px] text-gray-500 uppercase font-bold">AUD/USD</p></div><p class="text-[13px] font-bold">0.6645</p><p class="text-xs text-emerald-500 font-bold">+0.04%</p></div>
+/home/z/my-project/public/design-cards.html:262:          <div class="relative flex items-start gap-3"><div class="w-[10px] h-[10px] rounded-full bg-emerald-500 border-[2.5px] border-white shadow-sm shrink-0 z-10"></div><div><p class="text-sm font-bold text-gray-900">Girá a la izquierda</p><p class="text-xs text-gray-400">Av. Corrientes</p></div></div>
+/home/z/my-project/public/design-cards.html:263:          <div class="relative flex items-start gap-3"><div class="w-[10px] h-[10px] rounded-full bg-amber-400 border-[2.5px] border-white shadow-sm shrink-0 z-10"></div><div><p class="text-sm font-bold text-gray-900">Continuá por Acceso Norte</p><p class="text-xs text-gray-400">5.8 km</p></div></div>
+/home/z/my-project/public/design-cards.html:264:          <div class="relative flex items-start gap-3"><div class="w-[10px] h-[10px] rounded-full bg-violet-500 border-[2.5px] border-white shadow-sm shrink-0 z-10"></div><div><p class="text-sm font-bold text-gray-900">Salida 12 Olivos</p><p class="text-xs text-gray-400">1.9 km</p></div></div>
+/home/z/my-project/public/design-cards.html:275:          <div class="flex items-center justify-between p-2.5 hover:bg-gray-50 rounded-xl cursor-pointer"><div class="flex items-center gap-3"><span class="material-symbols-outlined text-gray-400 text-lg">directions_car</span><span class="text-sm font-bold">Auto</span></div><span class="text-sm font-extrabold text-gray-900">18 min</span></div>
+/home/z/my-project/public/design-cards.html:276:          <div class="flex items-center justify-between p-2.5 bg-amber-50 rounded-xl"><div class="flex items-center gap-3"><span class="material-symbols-outlined text-amber-500 text-lg">directions_bus</span><span class="text-sm font-bold">Transporte</span></div><span class="text-sm font-extrabold text-amber-500">42 min</span></div>
+/home/z/my-project/public/design-cards.html:277:          <div class="flex items-center justify-between p-2.5 hover:bg-gray-50 rounded-xl cursor-pointer"><div class="flex items-center gap-3"><span class="material-symbols-outlined text-gray-400 text-lg">directions_walk</span><span class="text-sm font-bold">Caminando</span></div><span class="text-sm font-extrabold text-gray-400">1h 50m</span></div>
+/home/z/my-project/public/design-cards.html:308:        <div class="flex gap-3 overflow-x-auto pb-2 no-scrollbar snap-x">
+/home/z/my-project/public/design-cards.html:341:        <div class="flex items-center gap-3">
+/home/z/my-project/public/design-cards.html:365:        <div class="grid grid-cols-2 gap-2 mb-4">
+/home/z/my-project/public/design-cards.html:371:        <button class="w-full py-2.5 bg-gray-900 text-white rounded-xl text-[13px] font-bold flex items-center justify-center gap-2"><span class="material-symbols-outlined text-[16px]">shopping_cart</span> Ver opciones</button>
+/home/z/my-project/public/design-cards.html:392:          <label class="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-xl cursor-pointer custom-checkbox"><input checked type="checkbox" class="peer hidden"/><div class="w-5 h-5 rounded-md border-2 border-gray-300 flex items-center justify-center transition-colors"><svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="text-[14px] text-gray-400 font-medium line-through peer-checked:line-through">Nespresso: mejor precio</span></label>
+/home/z/my-project/public/design-cards.html:393:          <label class="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-xl cursor-pointer custom-checkbox"><input checked type="checkbox" class="peer hidden"/><div class="w-5 h-5 rounded-md border-2 border-gray-300 flex items-center justify-center transition-colors"><svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="text-[14px] text-gray-400 font-medium line-through peer-checked:line-through">Dolce: garantía 3 años</span></label>
+/home/z/my-project/public/design-cards.html:394:          <label class="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-xl cursor-pointer custom-checkbox"><input type="checkbox" class="peer hidden"/><div class="w-5 h-5 rounded-md border-2 border-gray-300 flex items-center justify-center transition-colors peer-checked:bg-koru-500 peer-checked:border-koru-500"><svg class="w-3 h-3 text-white hidden peer-checked:block" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="text-[14px] font-medium text-gray-800">Compatibilidad universal</span></label>
+/home/z/my-project/public/design-cards.html:403:        <div class="grid grid-cols-3 gap-2 mb-4">
+/home/z/my-project/public/design-cards.html:408:        <button class="w-full py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl text-[13px] font-bold transition-colors flex items-center justify-center gap-2"><span class="material-symbols-outlined text-[16px]">check_circle</span> Verward ganador</button>
+/home/z/my-project/public/design-cards.html:419:        <div class="grid grid-cols-2 gap-2 mb-4">
+/home/z/my-project/public/design-cards.html:452:        <div class="flex items-center gap-3 mb-4">
+/home/z/my-project/public/design-cards.html:457:        <div class="flex flex-wrap gap-2 mb-5">
+/home/z/my-project/public/deephungry-sintesis.html:35:            <div class="flex items-center gap-2">
+/home/z/my-project/public/deephungry-sintesis.html:49:              <div class="flex items-center gap-3 p-2 bg-gray-50 rounded-xl border border-gray-100">
+/home/z/my-project/public/deephungry-sintesis.html:65:              <div class="flex items-center gap-3 p-2 rounded-xl border border-transparent opacity-80">
+/home/z/my-project/public/deephungry-sintesis.html:78:              <div class="flex items-center gap-3 p-2 rounded-xl border border-transparent opacity-80">
+/home/z/my-project/public/deephungry-sintesis.html:95:            <div class="flex items-center gap-2 mb-3">
+/home/z/my-project/public/deephungry-sintesis.html:137:              <div class="flex items-center gap-2 mb-1">
+/home/z/my-project/public/deephungry-sintesis.html:157:          <div class="flex gap-2">
+/home/z/my-project/public/deephungry-sintesis.html:178:            <div class="flex items-center gap-2">
+/home/z/my-project/public/deephungry-sintesis.html:190:              <div class="flex items-center gap-3 p-2 bg-gray-50 rounded-xl border border-gray-100">
+/home/z/my-project/public/deephungry-sintesis.html:209:            <div class="flex items-center gap-3">
+/home/z/my-project/public/koru-plan-mejora.html:140:    <div class="flex flex-wrap gap-3 mb-8">
+/home/z/my-project/public/koru-plan-mejora.html:238:  <div class="flex items-center gap-3 mb-3">
+/home/z/my-project/public/koru-plan-mejora.html:400:    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+/home/z/my-project/public/koru-plan-mejora.html:419:  <div class="flex items-center gap-3 mb-3">
+/home/z/my-project/public/koru-plan-mejora.html:571:    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+/home/z/my-project/public/koru-plan-mejora.html:590:  <div class="flex items-center gap-3 mb-3">
+/home/z/my-project/public/koru-plan-mejora.html:722:    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+/home/z/my-project/public/koru-plan-mejora.html:741:  <div class="flex items-center gap-3 mb-3">
+/home/z/my-project/public/koru-plan-mejora.html:853:    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+/home/z/my-project/public/koru-plan-mejora.html:1092:      <div class="flex items-center gap-3 mb-3">
+/home/z/my-project/public/koru-plan-mejora.html:1103:      <div class="flex items-center gap-3 mb-3">
+/home/z/my-project/public/koru-plan-mejora.html:1114:      <div class="flex items-center gap-3 mb-3">
+/home/z/my-project/public/koru-plan-mejora.html:1125:      <div class="flex items-center gap-3 mb-3">
+/home/z/my-project/public/koru-plan-mejora.html:1234:    <div class="inline-flex items-center gap-3 px-6 py-4 rounded-2xl" style="background: linear-gradient(135deg, rgba(131,99,249,.2), rgba(131,99,249,.05)); border: 1px solid rgba(131,99,249,.4);">
+/home/z/my-project/public/koru-informe-visual.html:175:    <div class="flex flex-wrap gap-3 mb-8">
+/home/z/my-project/public/koru-informe-visual.html:216:      <div class="flex items-center gap-3 mb-4">
+/home/z/my-project/public/koru-informe-visual.html:233:      <div class="flex items-center gap-3 mb-4">
+/home/z/my-project/public/koru-informe-visual.html:250:      <div class="flex items-center gap-3 mb-4">
+/home/z/my-project/public/koru-informe-visual.html:303:          <div class="flex items-center gap-3 mb-2">
+/home/z/my-project/public/koru-informe-visual.html:308:          <div class="flex flex-wrap gap-2 text-xs text-[#c4b5fd]">
+/home/z/my-project/public/koru-informe-visual.html:327:          <div class="flex items-center gap-3 mb-2">
+/home/z/my-project/public/koru-informe-visual.html:333:          <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+/home/z/my-project/public/koru-informe-visual.html:335:              <div class="flex items-center gap-2 mb-1">
+/home/z/my-project/public/koru-informe-visual.html:343:              <div class="flex items-center gap-2 mb-1">
+/home/z/my-project/public/koru-informe-visual.html:350:              <div class="flex items-center gap-2 mb-1">
+/home/z/my-project/public/koru-informe-visual.html:357:              <div class="flex items-center gap-2 mb-1">
+/home/z/my-project/public/koru-informe-visual.html:375:          <div class="flex items-center gap-3 mb-2">
+/home/z/my-project/public/koru-informe-visual.html:380:          <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px]">
+/home/z/my-project/public/koru-informe-visual.html:397:          <div class="flex items-center gap-3 mb-2">
+/home/z/my-project/public/koru-informe-visual.html:403:          <div class="flex flex-wrap gap-2 text-[11px]">
+/home/z/my-project/public/koru-informe-visual.html:419:          <div class="flex items-center gap-3 mb-2">
+/home/z/my-project/public/koru-informe-visual.html:441:    <div class="flex gap-3 items-stretch pb-4" style="min-width: max-content;">
+/home/z/my-project/public/koru-informe-visual.html:444:        <div class="flex items-center gap-2 mb-2">
+/home/z/my-project/public/koru-informe-visual.html:455:        <div class="flex items-center gap-2 mb-2">
+/home/z/my-project/public/koru-informe-visual.html:466:        <div class="flex items-center gap-2 mb-2">
+/home/z/my-project/public/koru-informe-visual.html:477:        <div class="flex items-center gap-2 mb-2">
+/home/z/my-project/public/koru-informe-visual.html:494:        <div class="flex items-center gap-2 mb-2">
+/home/z/my-project/public/koru-informe-visual.html:505:        <div class="flex items-center gap-2 mb-2">
+/home/z/my-project/public/koru-informe-visual.html:517:        <div class="flex items-center gap-2 mb-2">
+/home/z/my-project/public/koru-informe-visual.html:553:        <div class="flex items-center gap-3">
+/home/z/my-project/public/koru-informe-visual.html:567:        <div class="flex items-center gap-3">
+/home/z/my-project/public/koru-informe-visual.html:581:        <div class="flex items-center gap-3">
+/home/z/my-project/public/koru-informe-visual.html:595:        <div class="flex items-center gap-3">
+/home/z/my-project/public/koru-informe-visual.html:609:        <div class="flex items-center gap-3">
+/home/z/my-project/public/koru-informe-visual.html:623:        <div class="flex items-center gap-3">
+/home/z/my-project/public/koru-informe-visual.html:637:        <div class="flex items-center gap-3">
+/home/z/my-project/public/koru-informe-visual.html:651:        <div class="flex items-center gap-3">
+/home/z/my-project/public/koru-informe-visual.html:665:        <div class="flex items-center gap-3">
+/home/z/my-project/public/koru-informe-visual.html:679:        <div class="flex items-center gap-3">
+/home/z/my-project/public/koru-informe-visual.html:693:        <div class="flex items-center gap-3">
+/home/z/my-project/public/koru-informe-visual.html:707:        <div class="flex items-center gap-3">
+/home/z/my-project/public/koru-informe-visual.html:750:      <div class="flex items-center gap-3 mb-4">
+/home/z/my-project/public/koru-informe-visual.html:771:      <div class="flex items-center gap-3 mb-4">
+/home/z/my-project/public/koru-informe-visual.html:792:      <div class="flex items-center gap-3 mb-4">
+/home/z/my-project/public/koru-informe-visual.html:841:        <div class="flex items-center gap-3">
+/home/z/my-project/public/koru-informe-visual.html:855:        <div class="grid grid-cols-3 gap-2 mb-3">
+/home/z/my-project/public/koru-informe-visual.html:871:        <div class="flex items-center gap-3">
+/home/z/my-project/public/koru-informe-visual.html:1020:        <div class="flex gap-3 items-start">
+/home/z/my-project/public/koru-informe-visual.html:1032:            <div class="flex items-end gap-2 mb-4">
+/home/z/my-project/public/koru-informe-visual.html:1039:            <div class="flex items-center gap-2 justify-center mb-3">
+/home/z/my-project/public/koru-informe-visual.html:1054:        <div class="flex gap-3 items-start">
+/home/z/my-project/public/koru-informe-visual.html:1063:            <div class="flex items-end gap-2 px-4 mb-4">
+/home/z/my-project/public/koru-informe-visual.html:1075:              <div class="flex items-center gap-2 mb-3">
+/home/z/my-project/public/koru-informe-visual.html:1092:        <div class="flex gap-3 items-start">
+/home/z/my-project/public/koru-informe-visual.html:1101:            <div class="flex items-end gap-2 px-4 mb-4">
+/home/z/my-project/public/koru-informe-visual.html:1109:              <div class="flex justify-between items-start gap-2 mb-3">
+/home/z/my-project/public/koru-informe-visual.html:1130:        <div class="flex gap-3 items-start">
+/home/z/my-project/public/koru-informe-visual.html:1145:                <div class="flex items-center gap-2 mb-2"><div class="mod-icon" style="width:28px;height:28px"><span class="material-symbols-outlined text-sm">auto_awesome</span></div><h3 class="mod-title text-xs">Síntesis</h3></div>
+/home/z/my-project/public/koru-informe-visual.html:1154:                <div class="flex items-center gap-2 mb-2"><div class="mod-icon" style="width:28px;height:28px"><span class="material-symbols-outlined text-sm">castle</span></div><h3 class="mod-title text-xs">Historia</h3></div>
+/home/z/my-project/public/koru-informe-visual.html:1156:                  <div class="flex items-center gap-2"><div class="w-6 h-6 rounded-full bg-white border border-[#d97706] flex items-center justify-center text-[7px] font-bold text-[#d97706]">'99</div><p class="text-[8px] text-[#464554]">The Age of Kings</p></div>
+/home/z/my-project/public/koru-informe-visual.html:1157:                  <div class="flex items-center gap-2"><div class="w-6 h-6 rounded-full bg-white border border-[#d97706] flex items-center justify-center text-[7px] font-bold text-[#d97706]">'19</div><p class="text-[8px] text-[#464554]">Definitive Edition</p></div>
+/home/z/my-project/public/koru-informe-visual.html:1158:                  <div class="flex items-center gap-2"><div class="w-6 h-6 rounded-full bg-white border border-[#d97706] flex items-center justify-center text-[7px] font-bold text-[#d97706]">'24</div><p class="text-[8px] text-[#464554]">Victors and Vanquished</p></div>
+/home/z/my-project/public/koru-informe-visual.html:1162:                <div class="flex items-center gap-2 mb-2"><div class="mod-icon" style="width:28px;height:28px"><span class="material-symbols-outlined text-sm">fact_check</span></div><h3 class="mod-title text-xs">Fuentes</h3></div>
+/home/z/my-project/public/koru-informe-visual.html:1164:                  <div class="flex items-center gap-2 bg-white/60 rounded p-1.5"><span class="material-symbols-outlined text-[10px] text-[#464554]">language</span><p class="text-[8px] text-[#0b1c30] font-bold">ageofempires.com</p></div>
+/home/z/my-project/public/koru-informe-visual.html:1165:                  <div class="flex items-center gap-2 bg-white/60 rounded p-1.5"><span class="material-symbols-outlined text-[10px] text-[#464554]">menu_book</span><p class="text-[8px] text-[#0b1c30] font-bold">Wikipedia</p></div>
+/home/z/my-project/public/koru-informe-visual.html:1166:                  <div class="flex items-center gap-2 bg-white/60 rounded p-1.5"><span class="material-symbols-outlined text-[10px] text-[#464554]">emoji_events</span><p class="text-[8px] text-[#0b1c30] font-bold">Liquipedia AoE</p></div>
+/home/z/my-project/public/koru-informe-visual.html:1177:        <div class="flex gap-3 items-start">
+/home/z/my-project/public/koru-informe-visual.html:1189:            <div class="flex items-end gap-2 mb-3">
+/home/z/my-project/public/koru-informe-visual.html:1220:  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mt-8">
+/home/z/my-project/public/koru-informe-visual.html:1345:        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+/home/z/my-project/public/koru-informe-visual.html:1414:    <div class="inline-flex items-center gap-3 px-6 py-4 rounded-2xl" style="background: linear-gradient(135deg, rgba(131,99,249,.2), rgba(131,99,249,.05)); border: 1px solid rgba(131,99,249,.4);">
+/home/z/my-project/public/koru-guia-para-entender.html:95:    <div class="flex flex-wrap gap-3 justify-center">
+/home/z/my-project/public/koru-guia-para-entender.html:133:      <div class="flex items-center gap-2 mt-3">
+/home/z/my-project/public/koru-guia-para-entender.html:529:      <div class="flex items-center gap-3 mb-2">
+/home/z/my-project/public/koru-guia-para-entender.html:536:      <div class="flex items-center gap-3 mb-2">
+/home/z/my-project/public/deephungry-card.html:37:            <div class="flex items-center gap-2">
+/home/z/my-project/public/deephungry-card.html:75:              <div class="flex items-center gap-2 mb-2">
+/home/z/my-project/public/deephungry-card.html:87:              <div class="flex flex-wrap gap-2">
+/home/z/my-project/public/deephungry-card.html:88:                <div class="bg-[#F8FAF7] border border-[#E9F0E6] px-3 py-1.5 rounded-full flex items-center gap-2">
+/home/z/my-project/public/deephungry-card.html:92:                <div class="bg-[#F8FAF7] border border-[#E9F0E6] px-3 py-1.5 rounded-full flex items-center gap-2">
+/home/z/my-project/public/deephungry-card.html:96:                <div class="bg-[#F8FAF7] border border-[#E9F0E6] px-3 py-1.5 rounded-full flex items-center gap-2">
+/home/z/my-project/public/deephungry-card.html:100:                <div class="bg-[#FFF8F0] border border-[#F5E6D3] px-3 py-1.5 rounded-full flex items-center gap-2">
+/home/z/my-project/public/deephungry-card.html:109:              <div class="flex items-center gap-3">
+/home/z/my-project/public/deephungry-card.html:145:            <div class="flex items-center gap-2">
+/home/z/my-project/public/deephungry-card.html:162:              <div class="flex items-center gap-2 mb-2">
+/home/z/my-project/public/deephungry-card.html:173:              <div class="flex flex-wrap gap-2">
+/home/z/my-project/public/deephungry-card.html:174:                <div class="bg-[#F8FAF7] border border-[#E9F0E6] px-3 py-1.5 rounded-full flex items-center gap-2">
+/home/z/my-project/public/deephungry-card.html:178:                <div class="bg-[#F8FAF7] border border-[#E9F0E6] px-3 py-1.5 rounded-full flex items-center gap-2">
+/home/z/my-project/public/deephungry-card.html:186:              <div class="flex items-center gap-3">
+/home/z/my-project/public/web-nav-preview.html:37:          <div class="flex items-center gap-2">
+/home/z/my-project/public/web-nav-preview.html:48:          <div class="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors"><span class="material-symbols-outlined text-[14px] text-gray-400">public</span><span class="text-[11px] font-bold text-gray-600">awwwards.com</span><span class="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span></div>
+/home/z/my-project/public/web-nav-preview.html:49:          <div class="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors"><span class="material-symbols-outlined text-[14px] text-gray-400">article</span><span class="text-[11px] font-bold text-gray-600">The Verge</span><span class="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span></div>
+/home/z/my-project/public/web-nav-preview.html:50:          <div class="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors"><span class="material-symbols-outlined text-[14px] text-gray-400">language</span><span class="text-[11px] font-bold text-gray-600">Wired</span><span class="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span></div>
+/home/z/my-project/public/web-nav-preview.html:51:          <div class="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors"><span class="material-symbols-outlined text-[14px] text-gray-400">public</span><span class="text-[11px] font-bold text-gray-600">TechCrunch</span><span class="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span></div>
+/home/z/my-project/public/web-nav-preview.html:65:        <div class="flex items-center gap-2 mb-2">
+/home/z/my-project/public/web-nav-preview.html:73:          <a href="#" class="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors"><span class="material-symbols-outlined text-[14px] text-gray-400">public</span><span class="text-[11px] font-bold text-gray-600">awwwards.com</span><span class="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span></a>
+/home/z/my-project/public/web-nav-preview.html:74:          <a href="#" class="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors"><span class="material-symbols-outlined text-[14px] text-gray-400">article</span><span class="text-[11px] font-bold text-gray-600">The Verge</span><span class="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span></a>
+/home/z/my-project/public/web-nav-preview.html:75:          <a href="#" class="flex items-center gap-2 px-2 py-1.5 bg-white/40 border border-white/60 rounded-lg hover:bg-white/60 transition-colors"><span class="material-symbols-outlined text-[14px] text-gray-400">language</span><span class="text-[11px] font-bold text-gray-600">Wired</span><span class="ml-auto material-symbols-outlined text-[14px] text-koru opacity-70">verified</span></a>
+/home/z/my-project/public/web-nav-preview.html:89:        <div class="flex items-center gap-2 mb-2">
+/home/z/my-project/public/web-nav-preview.html:99:            <li class="flex items-start gap-2 text-[12px] text-gray-700"><span class="mt-1 w-1 h-1 rounded-full bg-koru shrink-0"></span><span>La IA generativa permite crear prototipos en segundos, acelerando drásticamente los flujos de trabajo de UX.</span></li>
+/home/z/my-project/public/web-nav-preview.html:100:            <li class="flex items-start gap-2 text-[12px] text-gray-700"><span class="mt-1 w-1 h-1 rounded-full bg-koru shrink-0"></span><span>El glassmorphism evoluciona hacia formas orgánicas con desenfoques más sutiles y profundidad variable.</span></li>
+/home/z/my-project/public/web-nav-preview.html:101:            <li class="flex items-start gap-2 text-[12px] text-gray-700"><span class="mt-1 w-1 h-1 rounded-full bg-koru shrink-0"></span><span>Los sistemas de diseño adaptativos ganan terreno, permitiendo interfaces que mutan según el contexto del usuario.</span></li>
+/home/z/my-project/public/web-nav-preview.html:105:            <div class="flex flex-wrap gap-2">
+/home/z/my-project/public/koru-test-e2e-dia.html:60:    <div class="flex flex-wrap gap-3 mb-8">
+/home/z/my-project/public/koru-test-e2e-dia.html:105:      <div class="flex items-center gap-3 mb-3">
+/home/z/my-project/public/koru-test-e2e-dia.html:129:      <div class="flex items-center gap-3 mb-3">
+/home/z/my-project/public/koru-test-e2e-dia.html:145:      <div class="flex items-center gap-3 mb-3">
+/home/z/my-project/public/koru-test-e2e-dia.html:172:      <div class="flex items-center gap-3 mb-3">
+/home/z/my-project/public/koru-test-e2e-dia.html:193:      <div class="flex items-center gap-3 mb-3">
+/home/z/my-project/public/koru-test-e2e-dia.html:204:        <div class="grid grid-cols-3 gap-2 mt-2 text-center">
+/home/z/my-project/public/koru-test-e2e-dia.html:224:      <div class="flex items-center gap-3 mb-3">
+/home/z/my-project/public/koru-test-e2e-dia.html:245:      <div class="flex items-center gap-3 mb-3">
+/home/z/my-project/public/koru-test-e2e-dia.html:289:      <div class="flex items-center gap-3 mb-3">
+/home/z/my-project/public/koru-test-e2e-dia.html:306:      <div class="flex items-center gap-3 mb-3">
+/home/z/my-project/public/koru-test-e2e-dia.html:392:      <div class="flex items-center gap-3 mb-4">
+/home/z/my-project/public/koru-test-e2e-dia.html:411:      <div class="flex items-center gap-3 mb-4">
+/home/z/my-project/public/koru-test-e2e-dia.html:429:    <div class="flex items-center gap-3 mb-4">
+/home/z/my-project/public/koru-test-e2e-dia.html:434:    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+/home/z/my-project/download/koru-plan-mejora.html:140:    <div class="flex flex-wrap gap-3 mb-8">
+/home/z/my-project/download/koru-plan-mejora.html:238:  <div class="flex items-center gap-3 mb-3">
+/home/z/my-project/download/koru-plan-mejora.html:400:    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+/home/z/my-project/download/koru-plan-mejora.html:419:  <div class="flex items-center gap-3 mb-3">
+/home/z/my-project/download/koru-plan-mejora.html:571:    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+/home/z/my-project/download/koru-plan-mejora.html:590:  <div class="flex items-center gap-3 mb-3">
+/home/z/my-project/download/koru-plan-mejora.html:722:    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+/home/z/my-project/download/koru-plan-mejora.html:741:  <div class="flex items-center gap-3 mb-3">
+/home/z/my-project/download/koru-plan-mejora.html:853:    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+/home/z/my-project/download/koru-plan-mejora.html:1092:      <div class="flex items-center gap-3 mb-3">
+/home/z/my-project/download/koru-plan-mejora.html:1103:      <div class="flex items-center gap-3 mb-3">
+/home/z/my-project/download/koru-plan-mejora.html:1114:      <div class="flex items-center gap-3 mb-3">
+/home/z/my-project/download/koru-plan-mejora.html:1125:      <div class="flex items-center gap-3 mb-3">
+/home/z/my-project/download/koru-plan-mejora.html:1234:    <div class="inline-flex items-center gap-3 px-6 py-4 rounded-2xl" style="background: linear-gradient(135deg, rgba(131,99,249,.2), rgba(131,99,249,.05)); border: 1px solid rgba(131,99,249,.4);">
+/home/z/my-project/download/koru-informe-visual.html:175:    <div class="flex flex-wrap gap-3 mb-8">
+/home/z/my-project/download/koru-informe-visual.html:216:      <div class="flex items-center gap-3 mb-4">
+/home/z/my-project/download/koru-informe-visual.html:233:      <div class="flex items-center gap-3 mb-4">
+/home/z/my-project/download/koru-informe-visual.html:250:      <div class="flex items-center gap-3 mb-4">
+/home/z/my-project/download/koru-informe-visual.html:303:          <div class="flex items-center gap-3 mb-2">
+/home/z/my-project/download/koru-informe-visual.html:308:          <div class="flex flex-wrap gap-2 text-xs text-[#c4b5fd]">
+/home/z/my-project/download/koru-informe-visual.html:327:          <div class="flex items-center gap-3 mb-2">
+/home/z/my-project/download/koru-informe-visual.html:333:          <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+/home/z/my-project/download/koru-informe-visual.html:335:              <div class="flex items-center gap-2 mb-1">
+/home/z/my-project/download/koru-informe-visual.html:343:              <div class="flex items-center gap-2 mb-1">
+/home/z/my-project/download/koru-informe-visual.html:350:              <div class="flex items-center gap-2 mb-1">
+/home/z/my-project/download/koru-informe-visual.html:357:              <div class="flex items-center gap-2 mb-1">
+/home/z/my-project/download/koru-informe-visual.html:375:          <div class="flex items-center gap-3 mb-2">
+/home/z/my-project/download/koru-informe-visual.html:380:          <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px]">
+/home/z/my-project/download/koru-informe-visual.html:397:          <div class="flex items-center gap-3 mb-2">
+/home/z/my-project/download/koru-informe-visual.html:403:          <div class="flex flex-wrap gap-2 text-[11px]">
+/home/z/my-project/download/koru-informe-visual.html:419:          <div class="flex items-center gap-3 mb-2">
+/home/z/my-project/download/koru-informe-visual.html:441:    <div class="flex gap-3 items-stretch pb-4" style="min-width: max-content;">
+/home/z/my-project/download/koru-informe-visual.html:444:        <div class="flex items-center gap-2 mb-2">
+/home/z/my-project/download/koru-informe-visual.html:455:        <div class="flex items-center gap-2 mb-2">
+/home/z/my-project/download/koru-informe-visual.html:466:        <div class="flex items-center gap-2 mb-2">
+/home/z/my-project/download/koru-informe-visual.html:477:        <div class="flex items-center gap-2 mb-2">
+/home/z/my-project/download/koru-informe-visual.html:494:        <div class="flex items-center gap-2 mb-2">
+/home/z/my-project/download/koru-informe-visual.html:505:        <div class="flex items-center gap-2 mb-2">
+/home/z/my-project/download/koru-informe-visual.html:517:        <div class="flex items-center gap-2 mb-2">
+/home/z/my-project/download/koru-informe-visual.html:553:        <div class="flex items-center gap-3">
+/home/z/my-project/download/koru-informe-visual.html:567:        <div class="flex items-center gap-3">
+/home/z/my-project/download/koru-informe-visual.html:581:        <div class="flex items-center gap-3">
+/home/z/my-project/download/koru-informe-visual.html:595:        <div class="flex items-center gap-3">
+/home/z/my-project/download/koru-informe-visual.html:609:        <div class="flex items-center gap-3">
+/home/z/my-project/download/koru-informe-visual.html:623:        <div class="flex items-center gap-3">
+/home/z/my-project/download/koru-informe-visual.html:637:        <div class="flex items-center gap-3">
+/home/z/my-project/download/koru-informe-visual.html:651:        <div class="flex items-center gap-3">
+/home/z/my-project/download/koru-informe-visual.html:665:        <div class="flex items-center gap-3">
+
+[Showing results with pagination = limit: 250]

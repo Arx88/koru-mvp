@@ -37,7 +37,20 @@ const PROFILE = [
 ];
 
 export function Onboarding() {
-  const { completeOnboarding } = useKoru();
+  const {
+    completeOnboarding,
+    state,
+    updateUserProfile,
+    updatePreferences,
+    setLanguage,
+    updateHeartbeat,
+    setEphemeral,
+    setWorldSignals,
+    togglePermission,
+    forgetMemory,
+    exportData,
+    deleteAllData,
+  } = useKoru();
   const [step, setStep] = useState<OnboardingView>("welcome");
   const [name, setName] = useState("");
   const [talking, setTalking] = useState(false);
@@ -69,7 +82,21 @@ export function Onboarding() {
               Volver
             </button>
           </div>
-          <SettingsScreen />
+          <SettingsScreen
+            state={state}
+            onUpdateProfile={(profile) => updateUserProfile(profile)}
+            onUpdatePreferences={(prefs) => updatePreferences(prefs)}
+            onUpdateLanguage={(lang) => setLanguage(lang)}
+            onUpdateHeartbeat={(patch) => updateHeartbeat(patch)}
+            onToggleEphemeral={() => setEphemeral(!state.ephemeralMode)}
+            onToggleDurableMemory={() => togglePermission("perm1")}
+            onToggleWorldSignals={() => setWorldSignals(!state.worldSignalsEnabled)}
+            onToggleActionPreparation={() => togglePermission("perm3")}
+            onForgetMemory={(memoryId) => forgetMemory(memoryId)}
+            onExportData={() => exportData()}
+            onDeleteAllData={() => deleteAllData()}
+            onClose={() => setStep("welcome")}
+          />
         </div>
       )}
 

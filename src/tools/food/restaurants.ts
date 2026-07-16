@@ -7,7 +7,140 @@
 import { defineTool, policies, type ToolHandler } from "../types";
 import { searchAndEnrich, usableSources } from "../shared/scrapers";
 import { validateWithCitations, extractionToDataCard } from "../shared/extractor";
+import { fetchJson } from "../shared/fetcher";
 import type { UiBlock } from "../../domain/types";
+
+// ─── Google Places enrichment ──────────────────────────────────────────────
+
+/** Detalles estructurados de un restaurante desde Google Places API. */
+export interface RestaurantDetails {
+  placeId: string;
+  name: string;
+  address: string;
+  lat: number;
+  lng: number;
+  phone?: string;
+  rating?: number;
+  ratingCount?: number;
+  priceLevel?: number; // 1-4
+  openingHours?: string[];
+  photos?: string[]; // photo URLs
+  menuHighlights?: Array<{ dish: string; price?: string }>;
+  reserveUrl?: string;
+}
+
+// Shapes mínimas de la respuesta de Google Places (Find Place From Text).
+interface GooglePlacesPhoto {
+  photo_reference: string;
+  height: number;
+  width: number;
+  html_attributions: string[];
+}
+
+interface GooglePlacesCandidate {
+  place_id: string;
+  name: string;
+  formatted_address: string;
+  geometry: { location: { lat: number; lng: number } };
+  rating?: number;
+  user_ratings_total?: number;
+  price_level?: number;
+  formatted_phone_number?: string;
+  opening_hours?: { weekday_text?: string[]; open_now?: boolean };
+  photos?: GooglePlacesPhoto[];
+  url?: string;
+}
+
+interface GoogleFindPlaceResponse {
+  candidates?: GooglePlacesCandidate[];
+  status: string;
+  error_message?: string;
+}
+
+/**
+ * Trae detalles enriquecidos de un restaurante desde Google Places API.
+ *
+ * 1. Find Place From Text (input=name) → primer candidato con todos los fields.
+ * 2. Construye URLs de foto via Place Photo endpoint (maxwidth=400).
+ *
+ * Requiere `process.env.GOOGLE_PLACES_KEY`. Lanza error si no está.
+ */
+export async function fetchRestaurantDetails(
+  placeName: string,
+  location?: { lat: number; lng: number },
+): Promise<RestaurantDetails> {
+  const KEY = process.env.GOOGLE_PLACES_KEY;
+  if (!KEY) throw new Error("Google Places API key required");
+
+  const input = location
+    ? `${placeName} @${location.lat},${location.lng}`
+    : placeName;
+
+  const fields = [
+    "place_id",
+    "name",
+    "formatted_address",
+    "geometry",
+    "rating",
+    "user_ratings_total",
+    "price_level",
+    "formatted_phone_number",
+    "opening_hours",
+    "photos",
+    "url",
+  ].join(",");
+
+  const url =
+    `https://maps.googleapis.com/maps/api/place/findplacefromtext/json` +
+    `?input=${encodeURIComponent(input)}` +
+    `&inputtype=textquery` +
+    `&fields=${fields}` +
+    `&key=${KEY}`;
+
+  const result = await fetchJson<GoogleFindPlaceResponse>(url, { timeoutMs: 12_000 });
+  if (!result.ok || !result.data) {
+    throw new Error(result.error ?? `Google Places API failed (HTTP ${result.status})`);
+  }
+
+  const data = result.data;
+  if (data.status && data.status !== "OK" && data.status !== "ZERO_RESULTS") {
+    throw new Error(`Google Places API: ${data.status}${data.error_message ? ` — ${data.error_message}` : ""}`);
+  }
+
+  const candidate = data.candidates?.[0];
+  if (!candidate) {
+    throw new Error(`No Google Places result for "${placeName}"`);
+  }
+
+  // Construir URLs de foto via Place Photo endpoint (maxwidth=400).
+  // El endpoint sirve la imagen directamente (no JSON), así que la URL misma
+  // es el `src` utilizable por un <img>.
+  const photos = (candidate.photos ?? [])
+    .slice(0, 5)
+    .map(
+      (p) =>
+        `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400` +
+        `&photoreference=${encodeURIComponent(p.photo_reference)}` +
+        `&key=${KEY}`,
+    );
+
+  const details: RestaurantDetails = {
+    placeId: candidate.place_id,
+    name: candidate.name,
+    address: candidate.formatted_address,
+    lat: candidate.geometry.location.lat,
+    lng: candidate.geometry.location.lng,
+    phone: candidate.formatted_phone_number,
+    rating: typeof candidate.rating === "number" ? candidate.rating : undefined,
+    ratingCount: typeof candidate.user_ratings_total === "number" ? candidate.user_ratings_total : undefined,
+    priceLevel: typeof candidate.price_level === "number" ? candidate.price_level : undefined,
+    openingHours: candidate.opening_hours?.weekday_text,
+    photos: photos.length > 0 ? photos : undefined,
+    reserveUrl: candidate.url,
+  };
+
+  return details;
+}
 
 // ─── restaurant_deep_search ─────────────────────────────────────────────────
 export const restaurantDeepSearch: ToolHandler = {
@@ -57,7 +190,26 @@ export const restaurantDeepSearch: ToolHandler = {
     // 2. Extracción estructurada anti-alucinación.
     // Le pedimos al LLM: top de restaurantes mencionados (con cuántas fuentes los citan),
     // pros/contras del #1, y una síntesis. Cada item validado contra cita literal.
-    let matches: Array<{ name: string; sourcesMentioning: number; quote?: string }> = [];
+    // 🔴 v3: el tipo de matches ahora incluye los campos enriquecidos por Google Places
+    //        (placeId, lat/lng, address, phone, rating, ratingCount, priceLevel, photos, reserveUrl).
+    type RestaurantMatch = {
+      name: string;
+      sourcesMentioning: number;
+      quote?: string;
+      imageUrl?: string;
+      rating?: number;
+      placeId?: string;
+      lat?: number;
+      lng?: number;
+      address?: string;
+      phone?: string;
+      ratingCount?: number;
+      priceLevel?: number;
+      photos?: string[];
+      reserveUrl?: string;
+      distanceFromUser?: string;
+    };
+    let matches: RestaurantMatch[] = [];
     let pros: string[] = [];
     let cons: string[] = [];
     let synthesis: string | undefined;
@@ -117,7 +269,38 @@ export const restaurantDeepSearch: ToolHandler = {
         .filter(([, n]) => n >= 1)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 3)
-        .map(([name, n]) => ({ name, sourcesMentioning: Math.min(sourceCount, n) }));
+        .map(([name, n]): RestaurantMatch => ({ name, sourcesMentioning: Math.min(sourceCount, n) }));
+    }
+
+    // 🔴 v3: enriquecer top matches con Google Places API (photos, rating, address,
+    //        phone, priceLevel, reserveUrl, lat/lng). Best-effort: si no hay API key
+    //        o falla alguna llamada, simplemente se omite el enriquecimiento y la
+    //        card degradará a la data léxica/LLM que ya teníamos.
+    if (matches.length > 0 && process.env.GOOGLE_PLACES_KEY) {
+      const enriched = await Promise.all(
+        matches.slice(0, 3).map(async (m): Promise<RestaurantMatch> => {
+          try {
+            const details = await fetchRestaurantDetails(m.name);
+            return {
+              ...m,
+              placeId: details.placeId,
+              lat: details.lat,
+              lng: details.lng,
+              address: details.address,
+              phone: details.phone,
+              rating: details.rating ?? m.rating,
+              ratingCount: details.ratingCount,
+              priceLevel: details.priceLevel,
+              photos: details.photos,
+              reserveUrl: details.reserveUrl,
+            };
+          } catch {
+            // Sin enriquecimiento — mantenemos el match como está.
+            return m;
+          }
+        }),
+      );
+      matches = enriched;
     }
 
     // 4. Calidad: score del top match sobre el total de fuentes.

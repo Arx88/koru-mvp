@@ -133,9 +133,15 @@ describe("Koru MVP UI", () => {
     // Press Escape to trigger onClose → setScreen("hoy") → Home screen.
     await user.keyboard("{Escape}");
 
-    // Home shows "Koru's Home" tagline
+    // Home dashboard shows the Koru brand + a time-of-day greeting with the
+    // onboarded name (e.g. "Buenos días, Alex"). The greeting appears in both
+    // the sticky header and the hero, so we assert at least one match.
     await waitFor(() => {
-      expect(screen.getByText(/Koru`s Home/i)).toBeInTheDocument();
+      expect(screen.getByText(/^Koru$/)).toBeInTheDocument();
+      expect(
+        screen.getAllByText(/buenos días, alex|buenas tardes, alex|buenas noches, alex/i)
+          .length,
+      ).toBeGreaterThan(0);
     }, { timeout: 3000 });
   }, 15000);
 

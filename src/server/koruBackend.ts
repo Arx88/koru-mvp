@@ -3614,6 +3614,29 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
       continue;
     }
 
+    // 🔴 FIX GAP-1: image_generate → UiBlock `generation` con images, tips,
+    // model y totalTime. Si la tool falló o no devolvió imágenes, no emitimos
+    // card vacía (sigue el mismo patrón defensivo que movie_info/recipe_find).
+    if (result.type === "image_generate") {
+      const r = result as any;
+      if (r.status === "failed" || r.status === "no_data") continue;
+      const images = Array.isArray(r.images) ? r.images : [];
+      if (images.length === 0) continue;
+      blocks.push({
+        type: "generation" as const,
+        title: "Imágenes generadas",
+        prompt: r.prompt,
+        resultType: "image" as const,
+        images,
+        tips: Array.isArray(r.tips) ? r.tips : undefined,
+        style: r.style,
+        aspectRatio: r.aspectRatio,
+        model: r.model,
+        totalTime: r.totalTime,
+      });
+      continue;
+    }
+
     // wikipedia_lookup: usar data_card con texto + source
     if (result.type === "wikipedia_lookup" || result.type === "person_info") {
       const r = result as any;
@@ -3834,6 +3857,8 @@ function hasUsefulBlockContent(block: UiBlock): boolean {
   if (block.type === "recipe") return Boolean(block.name || block.title || block.instructions || block.ingredients?.length);
   if (block.type === "movie_review") return Boolean(block.title || block.poster || block.overview || block.rating);
   if (block.type === "book_review") return Boolean(block.title || block.cover || block.synopsis || block.author);
+  // 🔴 FIX GAP-1: generation (image_generate) — descarta cards sin imágenes/preview.
+  if (block.type === "generation") return Boolean(block.images?.length || block.preview || block.prompt);
   return true;
 }
 
@@ -4383,6 +4408,7 @@ function normalizeFinalPayload(
     "deliverable", "market", "forex", "data_card", "web_nav",
     "restaurant_synthesis", "research_sources", "comparison",
     "crypto_portfolio", "data_ticker", "product_analysis",
+    "generation", // 🔴 FIX GAP-1: image_generate
   ]);
   const hasInformativeBlock = uiBlocks.some(b => informativeBlockTypes.has(b.type));
   if (finalReply.length > 250 && hasInformativeBlock) {

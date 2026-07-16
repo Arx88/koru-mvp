@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import type { CSSProperties } from "react";
-import type { Detail, DetailSection, Accent, DetailRow } from "./presentation";
+import type { Detail, DetailSection, Accent, DetailRow, DetailSourceRef } from "./presentation";
 
 // Pantalla de detalle unificada — misma estética Stitch que PlanRoadmapScreen
 // (koru-roadmap + magical-cards + blobs), pero genérica: renderiza cualquier
@@ -49,6 +49,27 @@ function moduleStyle(accent: Accent): CSSProperties {
   return { "--module-color": accent.color, "--module-bg": accent.soft } as CSSProperties;
 }
 
+// 🔴 v2: Extrae el video ID de una URL de YouTube (youtu.be / watch?v= / embed / shorts).
+// Devuelve null si no es una URL válida de YouTube.
+function youtubeId(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes("youtu.be")) {
+      const id = u.pathname.slice(1).split("/")[0];
+      return id || null;
+    }
+    if (u.hostname.includes("youtube.com")) {
+      const v = u.searchParams.get("v");
+      if (v) return v;
+      const m = u.pathname.match(/\/(?:embed|shorts)\/([\w-]+)/);
+      if (m) return m[1];
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function SectionHead({ section }: { section: DetailSection }) {
   return (
     <div className="koru-module-head">
@@ -62,6 +83,77 @@ function SectionHead({ section }: { section: DetailSection }) {
         </div>
       </div>
     </div>
+  );
+}
+
+// 🔴 v2: SourceRow — un source puede tener favicon (imageUrl) o ser un video
+// embebido de YouTube (thumbnail + play button + duration badge).
+function SourceRow({ source }: { source: DetailSourceRef }) {
+  const ytId = source.url ? youtubeId(source.url) : null;
+
+  const titleEl = (
+    <span className="koru-dsec-source-title">
+      {source.title}
+      {source.domain && <span className="koru-dsec-source-domain"> — {source.domain}</span>}
+    </span>
+  );
+
+  // Video embed: thumbnail 16:9 + play button (koru-breathe) + duration badge
+  if (ytId) {
+    const thumb = `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg`;
+    const inner = (
+      <>
+        <div
+          className="koru-source-video-thumb"
+          style={{ backgroundImage: `url(${thumb})` }}
+        >
+          <span className="koru-source-video-play animate-breathe">
+            <Mat>play_arrow</Mat>
+          </span>
+          {source.duration && (
+            <span className="koru-source-video-duration">{source.duration}</span>
+          )}
+        </div>
+        {titleEl}
+      </>
+    );
+    return source.url ? (
+      <a
+        href={source.url}
+        target="_blank"
+        rel="noreferrer"
+        className="koru-dsec-source koru-dsec-source-video"
+      >
+        {inner}
+      </a>
+    ) : (
+      <div className="koru-dsec-source koru-dsec-source-video">{inner}</div>
+    );
+  }
+
+  // Favicon: si hay imageUrl, mostrar imagen 28x28 en vez del ícono genérico
+  const inner = (
+    <>
+      {source.imageUrl ? (
+        <img
+          src={source.imageUrl}
+          alt=""
+          className="koru-source-favicon"
+          loading="lazy"
+        />
+      ) : (
+        <Mat className="koru-dsec-source-icon">language</Mat>
+      )}
+      {titleEl}
+    </>
+  );
+
+  return source.url ? (
+    <a href={source.url} target="_blank" rel="noreferrer" className="koru-dsec-source">
+      {inner}
+    </a>
+  ) : (
+    <div className="koru-dsec-source">{inner}</div>
   );
 }
 
@@ -114,11 +206,36 @@ function SectionBody({ section }: { section: DetailSection }) {
         </div>
       );
 
+    case "calendar":
+      // 🔴 v2: kind dedicado para el calendario de cumpleaños. Usa clases
+      // propias (.koru-dsec-calendar / -day) para no colisionar con los chips
+      // genéricos que ahora vuelven a verse como píldoras.
+      return (
+        <div className="koru-dsec-calendar">
+          {section.days.map((d, i) => (
+            <div
+              key={i}
+              className="koru-dsec-calendar-day"
+              style={d.color ? { color: d.color } : undefined}
+            >
+              <span className="koru-dsec-chip-label">{d.label}</span>
+              {d.sub && <span className="koru-dsec-chip-sub">{d.sub}</span>}
+            </div>
+          ))}
+        </div>
+      );
+
     case "scroller":
       return (
         <div className="koru-dsec-scroller">
           {section.cards.map((c, i) => (
             <div key={i} className="koru-dsec-scard">
+              {/* 🔴 v3: badge image (Google Places photo) — thumbnail 16:9 sobre el título. */}
+              {c.image && (
+                <div className="koru-dsec-scard-image">
+                  <img src={c.image} alt={c.title} loading="lazy" />
+                </div>
+              )}
               {c.badge && (
                 <span className="koru-dsec-scard-badge" style={c.badgeColor ? { color: c.badgeColor, background: `${c.badgeColor}1a` } : undefined}>
                   {c.badge}
@@ -166,26 +283,9 @@ function SectionBody({ section }: { section: DetailSection }) {
     case "sources":
       return (
         <div className="koru-dsec-sources">
-          {section.sources.map((s, i) => {
-            const inner = (
-              <>
-                <Mat className="koru-dsec-source-icon">language</Mat>
-                <span className="koru-dsec-source-title">
-                  {s.title}
-                  {s.domain && <span className="koru-dsec-source-domain"> — {s.domain}</span>}
-                </span>
-              </>
-            );
-            return s.url ? (
-              <a key={i} href={s.url} target="_blank" rel="noreferrer" className="koru-dsec-source">
-                {inner}
-              </a>
-            ) : (
-              <div key={i} className="koru-dsec-source">
-                {inner}
-              </div>
-            );
-          })}
+          {section.sources.map((s, i) => (
+            <SourceRow key={i} source={s} />
+          ))}
         </div>
       );
 
@@ -323,25 +423,38 @@ export function KoruDetailScreen({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
+  const sections = detail.sections ?? [];
+  const isEmpty = sections.length === 0;
+
   return createPortal(
     <div className="koru-roadmap" role="dialog" aria-label={detail.title}>
       <div className="koru-roadmap-screen">
         <div className="koru-roadmap-blob-1" />
         <div className="koru-roadmap-blob-2" />
 
-        <button type="button" aria-label="Volver" className="koru-roadmap-back" onClick={onClose}>
-          <Mat>arrow_back_ios_new</Mat>
-        </button>
-
-        {/* 🔴 Icono de guardar arriba a la derecha */}
-        <button
-          type="button"
-          aria-label="Guardar"
-          className="koru-dsec-save-top"
-          onClick={() => onSave?.(detail.title, detail.subtitle)}
-        >
-          <Mat>bookmark_border</Mat>
-        </button>
+        {/* 🔴 v2: Sticky header — back (izq) / mini icon + condensed title (centro) / save (der) */}
+        <header className="koru-detail-sticky-head">
+          <button
+            type="button"
+            aria-label="Volver"
+            className="koru-detail-sticky-back"
+            onClick={onClose}
+          >
+            <Mat>arrow_back_ios_new</Mat>
+          </button>
+          <div className="koru-detail-mini-icon">
+            <Mat>{headerIcon}</Mat>
+          </div>
+          <h2 className="koru-detail-mini-title">{detail.title}</h2>
+          <button
+            type="button"
+            aria-label="Guardar"
+            className="koru-detail-sticky-save"
+            onClick={() => onSave?.(detail.title, detail.subtitle)}
+          >
+            <Mat>bookmark_border</Mat>
+          </button>
+        </header>
 
         <div className="koru-roadmap-header">
           <div className="koru-detail-hero-icon">
@@ -352,16 +465,27 @@ export function KoruDetailScreen({
         </div>
 
         <div className="koru-roadmap-modules">
-          {detail.sections.map((section, i) => (
-            <div key={i} className="koru-magical-card" style={moduleStyle(section.accent)}>
-              <SectionHead section={section} />
-              <SectionBody section={section} />
+          {isEmpty ? (
+            <div className="koru-unified-empty koru-detail-empty">
+              <Mat>inbox</Mat>
+              <span>No hay secciones para mostrar en este detalle.</span>
             </div>
-          ))}
+          ) : (
+            sections.map((section, i) => (
+              <div
+                key={i}
+                className="koru-magical-card"
+                style={{ ...moduleStyle(section.accent), "--stagger-i": i } as CSSProperties}
+              >
+                <SectionHead section={section} />
+                <SectionBody section={section} />
+              </div>
+            ))
+          )}
         </div>
 
-        {/* 🔴 Botones de acción — layout flex 50/50 con spacing consistente */}
-        <div className="koru-dsec-actions">
+        {/* 🔴 v2: Sticky footer — Save + PDF pinned al fondo con blur backdrop */}
+        <div className="koru-detail-actions-sticky">
           <button
             type="button"
             className="koru-dsec-action-btn koru-dsec-action-save"

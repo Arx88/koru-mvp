@@ -196,6 +196,12 @@ export const movieInfo: ToolHandler = {
       overview?: string;
       cast?: string[];
       director?: string;
+      imdbId?: string;
+      trailerUrl?: string;
+      whereToWatch?: string[];
+      streaming?: Array<{ provider: string; logo?: string; deeplink?: string }>;
+      crew?: Array<{ name: string; job: string }>;
+      ratings?: Array<{ source: string; score: number; outOf: number }>;
     } = {};
 
     if (tmdbEnabled) {
@@ -213,7 +219,7 @@ export const movieInfo: ToolHandler = {
           tmdbData.rating = typeof first.vote_average === "number" ? Math.round(first.vote_average * 10) / 10 : undefined;
           tmdbData.releaseDate = first.release_date;
           tmdbData.overview = first.overview;
-          // Get details (runtime, genres, director, cast)
+          // Get details (runtime, genres, director, cast, imdb_id)
           const detailsUrl = `https://api.themoviedb.org/3/movie/${first.id}?language=es-ES${tmdbAuthParam}&append_to_response=credits`;
           const detailsRes = await fetch(detailsUrl, {
             headers: tmdbHeaders,
@@ -222,16 +228,111 @@ export const movieInfo: ToolHandler = {
           const details = await detailsRes.json() as {
             runtime?: number;
             genres?: Array<{ id: number; name: string }>;
+            imdb_id?: string;
             credits?: { crew?: Array<{ job: string; name: string }>; cast?: Array<{ name: string }> };
           };
           if (details.runtime) tmdbData.runtime = `${details.runtime} min`;
           if (details.genres) tmdbData.genres = details.genres.map(g => g.name);
+          if (details.imdb_id) tmdbData.imdbId = details.imdb_id;
+
+          // Crew extraction: Director (existing) + Writer, Composer, Cinematographer (new)
+          const crewList: Array<{ name: string; job: string }> = [];
           if (details.credits?.crew) {
-            const dir = details.credits.crew.find(c => c.job === "Director");
+            const findCrew = (job: string) => details.credits!.crew!.find(c => c.job === job);
+            const dir = findCrew("Director");
             if (dir) tmdbData.director = dir.name;
+            const writer = findCrew("Writer");
+            if (writer) crewList.push({ name: writer.name, job: "Writer" });
+            const composer = findCrew("Original Music Composer") ?? findCrew("Music");
+            if (composer) crewList.push({ name: composer.name, job: "Composer" });
+            const cinematographer = findCrew("Director of Photography");
+            if (cinematographer) crewList.push({ name: cinematographer.name, job: "Cinematographer" });
+            if (crewList.length > 0) tmdbData.crew = crewList;
           }
           if (details.credits?.cast) {
             tmdbData.cast = details.credits.cast.slice(0, 5).map(c => c.name);
+          }
+
+          // 🎬 Trailer URL: first YouTube trailer from /videos endpoint
+          try {
+            const videosUrl = `https://api.themoviedb.org/3/movie/${first.id}/videos?language=es-ES${tmdbAuthParam}`;
+            const videosRes = await fetch(videosUrl, {
+              headers: tmdbHeaders,
+              signal: AbortSignal.timeout(9000),
+            });
+            const videos = await videosRes.json() as { results?: Array<{ type?: string; site?: string; key?: string }> };
+            const trailer = videos.results?.find(v => v.type === "Trailer" && v.site === "YouTube" && v.key);
+            if (trailer?.key) tmdbData.trailerUrl = `https://www.youtube.com/watch?v=${trailer.key}`;
+          } catch (err) {
+            console.warn("[Koru] movie_info TMDB videos fetch failed:", err instanceof Error ? err.message : err);
+          }
+
+          // 📺 Where to watch: extract ES (Spain) flatrate streaming providers
+          try {
+            const providersUrl = `https://api.themoviedb.org/3/movie/${first.id}/watch/providers?language=es-ES${tmdbAuthParam}`;
+            const providersRes = await fetch(providersUrl, {
+              headers: tmdbHeaders,
+              signal: AbortSignal.timeout(9000),
+            });
+            const providers = await providersRes.json() as {
+              results?: Record<string, { link?: string; flatrate?: Array<{ provider_name?: string; logo_path?: string }> }>;
+            };
+            const esEntry = providers.results?.["ES"];
+            if (esEntry?.flatrate && esEntry.flatrate.length > 0) {
+              const streaming = esEntry.flatrate
+                .map(p => ({
+                  provider: p.provider_name ?? "",
+                  logo: p.logo_path ? `https://image.tmdb.org/t/p/w200${p.logo_path}` : undefined,
+                  deeplink: esEntry.link,
+                }))
+                .filter(s => s.provider);
+              if (streaming.length > 0) {
+                tmdbData.streaming = streaming;
+                tmdbData.whereToWatch = streaming.map(s => s.provider);
+              }
+            }
+          } catch (err) {
+            console.warn("[Koru] movie_info TMDB providers fetch failed:", err instanceof Error ? err.message : err);
+          }
+
+          // ⭐ Multiple ratings (IMDb, RT, Metacritic) from OMDB if OMDB_API_KEY is set
+          const OMDB_API_KEY = process.env.OMDB_API_KEY;
+          if (OMDB_API_KEY && tmdbData.imdbId) {
+            try {
+              const omdbUrl = `https://www.omdbapi.com/?i=${tmdbData.imdbId}&apikey=${OMDB_API_KEY}`;
+              const omdbRes = await fetch(omdbUrl, { signal: AbortSignal.timeout(9000) });
+              const omdb = await omdbRes.json() as {
+                Response?: string;
+                imdbRating?: string;
+                Metascore?: string;
+                Ratings?: Array<{ Source?: string; Value?: string }>;
+              };
+              if (omdb.Response === "True") {
+                const ratings: Array<{ source: string; score: number; outOf: number }> = [];
+                // IMDb (e.g. "7.5/10")
+                const imdbVal = omdb.Ratings?.find(r => r.Source === "Internet Movie Database")?.Value ?? omdb.imdbRating;
+                if (imdbVal) {
+                  const m = imdbVal.match(/^([\d.]+)\/(\d+)$/);
+                  if (m) ratings.push({ source: "IMDb", score: parseFloat(m[1]), outOf: parseInt(m[2], 10) });
+                }
+                // Rotten Tomatoes (e.g. "85%")
+                const rtVal = omdb.Ratings?.find(r => r.Source === "Rotten Tomatoes")?.Value;
+                if (rtVal) {
+                  const m = rtVal.match(/^(\d+)%$/);
+                  if (m) ratings.push({ source: "Rotten Tomatoes", score: parseInt(m[1], 10), outOf: 100 });
+                }
+                // Metacritic (e.g. "65/100")
+                const metaVal = omdb.Ratings?.find(r => r.Source === "Metacritic")?.Value ?? omdb.Metascore;
+                if (metaVal) {
+                  const m = metaVal.match(/^(\d+)\/(\d+)$/);
+                  if (m) ratings.push({ source: "Metacritic", score: parseInt(m[1], 10), outOf: parseInt(m[2], 10) });
+                }
+                if (ratings.length > 0) tmdbData.ratings = ratings;
+              }
+            } catch (err) {
+              // Si no hay OMDB key o falla, saltamos silenciosamente
+              console.warn("[Koru] movie_info OMDB fetch failed (skipping silently):", err instanceof Error ? err.message : err);
+            }
           }
         }
       } catch (err) {
@@ -294,6 +395,11 @@ export const movieInfo: ToolHandler = {
         runtime: tmdbData.runtime,
         director: tmdbData.director,
         cast: tmdbData.cast,
+        trailerUrl: tmdbData.trailerUrl,
+        whereToWatch: tmdbData.whereToWatch,
+        streaming: tmdbData.streaming,
+        crew: tmdbData.crew,
+        ratings: tmdbData.ratings,
         sources: wikiExtract?.sourceUrl
           ? [{ title: wikiExtract.sourceTitle ?? title, url: wikiExtract.sourceUrl, domain: "wikipedia.org", snippet: wikiExtract.snippet ?? "" }]
           : [],
@@ -314,6 +420,11 @@ export const movieInfo: ToolHandler = {
           runtime: tmdbData.runtime,
           director: tmdbData.director,
           cast: tmdbData.cast,
+          trailerUrl: tmdbData.trailerUrl,
+          whereToWatch: tmdbData.whereToWatch,
+          streaming: tmdbData.streaming,
+          crew: tmdbData.crew,
+          ratings: tmdbData.ratings,
           sources: [],
         };
       }

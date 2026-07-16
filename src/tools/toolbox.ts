@@ -24,6 +24,7 @@ import { docsTools } from "./docs";
 import { knowledgeTools } from "./knowledge";
 import { healthTools } from "./health";
 import { utilsTools } from "./utils";
+import { mediaTools } from "./media";
 
 /** Lista maestra de todas las tools NUEVAS disponibles. */
 const allHandlers: ToolHandler[] = [
@@ -38,6 +39,7 @@ const allHandlers: ToolHandler[] = [
   ...knowledgeTools,
   ...healthTools,
   ...utilsTools,
+  ...mediaTools,
 ];
 
 /** Mapa nombre → handler. El dispatcher de executeTool lo consulta para tools no-builtin. */

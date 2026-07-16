@@ -3,6 +3,7 @@ import type {
   AssistantAction,
   UiBlock,
   DailyEntry,
+  HeartbeatSettings,
   KoruState,
   KoruStage,
   LifeRecord,
@@ -11,6 +12,18 @@ import type {
   MascotState,
   MemoryFact,
   CommitmentStatus,
+  // TIER S — nuevos tipos para los reducers de store
+  PlanStep,
+  ChecklistItem,
+  Habit,
+  ExerciseSession,
+  WorkoutLog,
+  ShoppingItem,
+  WellbeingLog,
+  UserProfile,
+  UserPreferences,
+  Decision,
+  WeatherCache,
 } from "../domain/types";
 import {
   applyHeartbeatNudges,
@@ -21,6 +34,7 @@ import {
   createId,
   createInitialState,
   dismissNudge,
+  exportState,
   loadPersistedState,
   rejectAction,
   rejectMemory,
@@ -32,8 +46,34 @@ import {
   setWorldSignalsEnabled,
   toggleMemorySuggestions,
   toggleEphemeralMode,
+  updateHeartbeatSettings,
   updateMemoryText,
+  // TIER S — nuevos reducers (importados con sufijo *Reducer para evitar colisión
+  // con los wrappers del mismo nombre que exponemos vía KoruContext).
+  createPlan as createPlanReducer,
+  togglePlanStep as togglePlanStepReducer,
+  archivePlan as archivePlanReducer,
+  createChecklist as createChecklistReducer,
+  toggleChecklistItem as toggleChecklistItemReducer,
+  createHabit as createHabitReducer,
+  logHabit as logHabitReducer,
+  computeStreak as computeStreakReducer,
+  createRoutine as createRoutineReducer,
+  createExercisePlan as createExercisePlanReducer,
+  logWorkout as logWorkoutReducer,
+  createShoppingList as createShoppingListReducer,
+  toggleShoppingItem as toggleShoppingItemReducer,
+  logWellbeing as logWellbeingReducer,
+  addPerson as addPersonReducer,
+  updateUserProfile as updateUserProfileReducer,
+  updatePreferences as updatePreferencesReducer,
+  createDecision as createDecisionReducer,
+  updateWeatherCache as updateWeatherCacheReducer,
+  setLastBrief as setLastBriefReducer,
+  forgetMemory as forgetMemoryReducer,
+  snoozeCommitment as snoozeCommitmentReducer,
 } from "../domain/store";
+import { computeDecision } from "../domain/decisionEngine";
 import { runBackendAgentTurn } from "../domain/backendAgentClient";
 import { buildHeartbeatNudges } from "../domain/heartbeat";
 import { runWebNavigation, webResultToPayload } from "../domain/web";
@@ -124,6 +164,10 @@ export const PHASE_LABEL: Record<string, string> = {
 };
 
 type KoruContextValue = {
+  // 🔴 v2: state completo expuesto para que screens (Home, etc.) lean slices
+  // no cubiertos por los helpers específicos (commitments, calendarEvents,
+  // habits, habitLogs, wellbeingLogs, weatherCache, userProfile, nudges…).
+  state: KoruState;
   energy: number;
   roots: number;
   stage: Stage;
@@ -179,11 +223,38 @@ type KoruContextValue = {
   online: boolean;
   queueOfflineMessage: (text: string) => Promise<void>;
   // 🔴 v2: Create flow — alta/baja/modificación de records sin pasar por LLM
-  createRecord: (input: { title: string; collection: string; notes?: string; url?: string; kind?: string; sourceBlock?: UiBlock }) => Promise<LifeRecord>;
+  createRecord: (input: { title: string; collection: string; notes?: string; url?: string; kind?: string; tags?: string[]; sourceBlock?: UiBlock }) => Promise<LifeRecord>;
   updateRecord: (id: string, patch: Partial<LifeRecord>) => void;
   deleteRecord: (id: string) => void;
   reopenRecord: (record: LifeRecord) => void;
   reopenedRecord: LifeRecord | null;
+  // 🔴 TIER S — nuevos reducers del store (planes, checklists, hábitos, etc.)
+  createPlan: (title: string, steps: Omit<PlanStep, "id" | "order" | "done">[]) => void;
+  togglePlanStep: (planId: string, stepId: string) => void;
+  archivePlan: (planId: string) => void;
+  createChecklist: (title: string, items: Omit<ChecklistItem, "id" | "order">[]) => void;
+  toggleChecklistItem: (checklistId: string, itemId: string) => void;
+  createHabit: (label: string, icon: string, cadence: Habit["cadence"], target: number, unit?: string, anchorTime?: string) => void;
+  logHabit: (habitId: string, value: number) => void;
+  computeStreak: (habitId: string) => number;
+  createRoutine: (name: string, anchorTime: string, habitIds: string[], daysOfWeek: number[]) => void;
+  createExercisePlan: (name: string, weeksTotal: number, sessions: Omit<ExerciseSession, "id" | "order">[]) => void;
+  logWorkout: (planId: string, sessionId: string, exercises: WorkoutLog["exercises"], durationMin: number, kcal?: number) => void;
+  createShoppingList: (title: string, items: Omit<ShoppingItem, "id" | "order" | "checked">[], store?: string) => void;
+  toggleShoppingItem: (listId: string, itemId: string) => void;
+  logWellbeing: (metric: WellbeingLog["metric"], value: number, unit: string, source?: WellbeingLog["source"]) => void;
+  addPerson: (name: string, relationship?: string, birthday?: string) => void;
+  updateUserProfile: (profile: Partial<UserProfile>) => void;
+  updatePreferences: (prefs: Partial<UserPreferences>) => void;
+  createDecision: (question: string, options: Decision["options"], factors: Decision["factors"], weights: Record<string, number>) => Decision;
+  updateWeatherCache: (cache: WeatherCache) => void;
+  setLastBrief: (date: string, block?: UiBlock) => void;
+  forgetMemory: (memoryId: string) => void;
+  snoozeCommitment: (commitmentId: string, minutes: number) => void;
+  // 🔴 SettingsScreen integrada — wrappers para ajustes que antes estaban dispersos
+  updateHeartbeat: (patch: Partial<HeartbeatSettings>) => void;
+  exportData: () => void;
+  deleteAllData: () => void;
 };
 
 const KoruContext = createContext<KoruContextValue | null>(null);
@@ -786,22 +857,40 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     notes?: string;
     url?: string;
     kind?: string;
+    tags?: string[];
     sourceBlock?: UiBlock;
   }): Promise<LifeRecord> {
     const kindMap: Record<string, LifeRecordKind> = {
+      // Legacy aliases (backward compat con llamadas existentes)
       note: "idea",
-      idea: "idea",
       lista: "shopping_item",
       shopping: "shopping_item",
       gasto: "expense",
-      expense: "expense",
       enlace: "tool_link",
       bookmark: "tool_link",
       receta: "idea",
       reminder: "deadline",
+      // 🔴 v2: pass-through directo de LifeRecordKind válidos.
+      // CreateScreen v2 ahora pasa el LifeRecordKind exacto en vez de un alias.
+      idea: "idea",
+      expense: "expense",
+      tool_link: "tool_link",
+      recommendation: "recommendation",
+      decision: "decision",
+      deadline: "deadline",
+      medication: "medication",
+      meal_inventory: "meal_inventory",
+      meeting_note: "meeting_note",
+      person_followup: "person_followup",
+      gift: "gift",
+      birthday: "birthday",
+      home_task: "home_task",
+      shopping_item: "shopping_item",
+      medical_info: "medical_info",
+      sleep: "sleep",
     };
-    const kind = (kindMap[input.kind ?? "note"] ?? "idea") as LifeRecordKind;
-    const domain: LifeDomain = input.kind === "gasto" ? "money" : "capture";
+    const kind = (kindMap[input.kind ?? "idea"] ?? "idea") as LifeRecordKind;
+    const domain: LifeDomain = kind === "expense" ? "money" : "capture";
     const newRecord: LifeRecord = {
       id: `rec_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       domain,
@@ -810,6 +899,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
       collection: input.collection.trim() || "Notas",
       notes: input.notes,
       url: input.url,
+      tags: input.tags && input.tags.length > 0 ? input.tags : undefined,
       amount: kind === "expense" ? parseFloat(input.notes ?? "0") || undefined : undefined,
       currency: kind === "expense" ? "ARS" : undefined,
       createdAt: new Date().toISOString(),
@@ -1311,7 +1401,149 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     commitChatTurns((prev) => prev.map((turn) => (turn.id === id ? { ...turn, liked: !turn.liked } : turn)));
   }
 
+  // ─── TIER S — wrappers sobre los nuevos reducers del store ───
+  // Cada wrapper toma los mismos params que el reducer (menos `state`, que viene
+  // del contexto), invoca al reducer con el estado previo y commitea el resultado
+  // via commitDomainState (que a su vez persiste con saveState, ya llamado dentro
+  // de cada reducer). computeStreak es una función pura sin estado: lee
+  // habitLogs del domainStateRef actual.
+  function createPlan(title: string, steps: Omit<PlanStep, "id" | "order" | "done">[]) {
+    commitDomainState((prev) => createPlanReducer(prev, title, steps));
+  }
+  function togglePlanStep(planId: string, stepId: string) {
+    commitDomainState((prev) => togglePlanStepReducer(prev, planId, stepId));
+  }
+  function archivePlan(planId: string) {
+    commitDomainState((prev) => archivePlanReducer(prev, planId));
+  }
+  function createChecklist(title: string, items: Omit<ChecklistItem, "id" | "order">[]) {
+    commitDomainState((prev) => createChecklistReducer(prev, title, items));
+  }
+  function toggleChecklistItem(checklistId: string, itemId: string) {
+    commitDomainState((prev) => toggleChecklistItemReducer(prev, checklistId, itemId));
+  }
+  function createHabit(label: string, icon: string, cadence: Habit["cadence"], target: number, unit?: string, anchorTime?: string) {
+    commitDomainState((prev) => createHabitReducer(prev, label, icon, cadence, target, unit, anchorTime));
+  }
+  function logHabit(habitId: string, value: number) {
+    commitDomainState((prev) => logHabitReducer(prev, habitId, value));
+  }
+  function computeStreak(habitId: string): number {
+    return computeStreakReducer(habitId, domainStateRef.current.habitLogs ?? []);
+  }
+  function createRoutine(name: string, anchorTime: string, habitIds: string[], daysOfWeek: number[]) {
+    commitDomainState((prev) => createRoutineReducer(prev, name, anchorTime, habitIds, daysOfWeek));
+  }
+  function createExercisePlan(name: string, weeksTotal: number, sessions: Omit<ExerciseSession, "id" | "order">[]) {
+    commitDomainState((prev) => createExercisePlanReducer(prev, name, weeksTotal, sessions));
+  }
+  function logWorkout(planId: string, sessionId: string, exercises: WorkoutLog["exercises"], durationMin: number, kcal?: number) {
+    commitDomainState((prev) => logWorkoutReducer(prev, planId, sessionId, exercises, durationMin, kcal));
+  }
+  function createShoppingList(title: string, items: Omit<ShoppingItem, "id" | "order" | "checked">[], store?: string) {
+    commitDomainState((prev) => createShoppingListReducer(prev, title, items, store));
+  }
+  function toggleShoppingItem(listId: string, itemId: string) {
+    commitDomainState((prev) => toggleShoppingItemReducer(prev, listId, itemId));
+  }
+  function logWellbeing(metric: WellbeingLog["metric"], value: number, unit: string, source?: WellbeingLog["source"]) {
+    commitDomainState((prev) => logWellbeingReducer(prev, metric, value, unit, source));
+  }
+  function addPerson(name: string, relationship?: string, birthday?: string) {
+    commitDomainState((prev) => addPersonReducer(prev, name, relationship, birthday));
+  }
+  function updateUserProfile(profile: Partial<UserProfile>) {
+    commitDomainState((prev) => updateUserProfileReducer(prev, profile));
+  }
+  function updatePreferences(prefs: Partial<UserPreferences>) {
+    commitDomainState((prev) => updatePreferencesReducer(prev, prefs));
+  }
+  function createDecision(question: string, options: Decision["options"], factors: Decision["factors"], weights: Record<string, number>): Decision {
+    // 🔴 GAP-2: el motor de decisión (computeDecision) se invoca acá,
+    // dentro del wrapper, para que la decisión persistida quede con su
+    // `result` ya poblado (recommendation + confidenceInterval + scores).
+    // El reducer original (createDecisionReducer) sólo persiste la decisión
+    // "en crudo"; nosotros construimos el objeto, lo computamos, y luego
+    // commiteamos el estado resultante. Devolvemos la Decision al caller
+    // (CreateScreen) para que pueda invocar computeDecision explícitamente
+    // sobre la decisión recién creada — cumpliendo el contrato GAP-2.
+    const now = new Date().toISOString();
+    const decision: Decision = {
+      id: createId("decision"),
+      question,
+      options,
+      factors,
+      weights,
+      linkedMemoryIds: [],
+      createdAt: now,
+    };
+    const prev = domainStateRef.current;
+    const nextState: KoruState = {
+      ...prev,
+      decisions: [decision, ...(prev.decisions ?? [])],
+      updatedAt: now,
+    };
+    // El motor muta `decision.result` in-place.
+    try {
+      computeDecision(nextState, decision.id);
+    } catch {
+      // best-effort: si el motor falla (ej. opciones vacías), la decisión
+      // se persiste igual sin result — el usuario puede re-computar luego.
+    }
+    saveState(nextState);
+    commitDomainState(nextState);
+    return decision;
+  }
+  function updateWeatherCache(cache: WeatherCache) {
+    commitDomainState((prev) => updateWeatherCacheReducer(prev, cache));
+  }
+  function setLastBrief(date: string, block?: UiBlock) {
+    commitDomainState((prev) => setLastBriefReducer(prev, date, block));
+  }
+  function forgetMemory(memoryId: string) {
+    commitDomainState((prev) => forgetMemoryReducer(prev, memoryId));
+  }
+  function snoozeCommitment(commitmentId: string, minutes: number) {
+    commitDomainState((prev) => snoozeCommitmentReducer(prev, commitmentId, minutes));
+  }
+
+  // 🔴 SettingsScreen integrada — wrappers que antes faltaban en el provider.
+  // - updateHeartbeat: ajusta horas activas / maxNudgesPerDay / enabled.
+  // - exportData: descarga un JSON con todo el estado del usuario.
+  // - deleteAllData: reinicia el estado a createInitialState() y limpia flags locales.
+  function updateHeartbeat(patch: Partial<HeartbeatSettings>) {
+    commitDomainState((prev) => updateHeartbeatSettings(prev, patch));
+  }
+  function exportData() {
+    try {
+      const json = exportState(domainStateRef.current);
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `koru-data-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      // best-effort: loguear y no romper la UI
+      console.error("[Koru] exportData failed", err);
+    }
+  }
+  function deleteAllData() {
+    const fresh = resetState();
+    commitDomainState(() => fresh);
+    try {
+      localStorage.removeItem("koru.username");
+      localStorage.removeItem("koru.onboarded");
+    } catch {
+      /* noop */
+    }
+  }
+
   const value = useMemo<KoruContextValue>(() => ({
+    state: domainState,
     energy,
     roots,
     stage,
@@ -1382,7 +1614,34 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     deleteRecord,
     reopenRecord,
     reopenedRecord,
-  }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, domainState.records, permissions, processing, activity, phase, chatTurns, selectedModel, memoryToast, morningBrief, showInstallPrompt, installPromptEvent, voiceEnabled, language, online, reopenedRecord]);
+    // 🔴 TIER S — nuevos reducers del store
+    createPlan,
+    togglePlanStep,
+    archivePlan,
+    createChecklist,
+    toggleChecklistItem,
+    createHabit,
+    logHabit,
+    computeStreak,
+    createRoutine,
+    createExercisePlan,
+    logWorkout,
+    createShoppingList,
+    toggleShoppingItem,
+    logWellbeing,
+    addPerson,
+    updateUserProfile,
+    updatePreferences,
+    createDecision,
+    updateWeatherCache,
+    setLastBrief,
+    forgetMemory,
+    snoozeCommitment,
+    // 🔴 SettingsScreen integrada
+    updateHeartbeat,
+    exportData,
+    deleteAllData,
+  }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, domainState, domainState.records, permissions, processing, activity, phase, chatTurns, selectedModel, memoryToast, morningBrief, showInstallPrompt, installPromptEvent, voiceEnabled, language, online, reopenedRecord]);
 
   // 🔴 v2: Listener para guardar record desde el detail screen (botón Guardar informe)
   // CAMBIO: ya NO pasa por el LLM (5-15s de espera + contaminación del chat).
@@ -1464,6 +1723,21 @@ export function KoruProvider({ children }: { children: ReactNode }) {
         }
         setMemoryToast({ id: `action_${Date.now()}`, kind: "saved", text: "Postergado 10 min ✓" });
         setTimeout(() => setMemoryToast(null), 2000);
+      } else if (action === "reserve") {
+        // 🔴 v3: abrir reserveUrl del top match del restaurant_synthesis block.
+        // El blockData es el UiBlock completo; matches[].reserveUrl viene de Google Places.
+        const matches = blockData?.matches as Array<{ reserveUrl?: string }> | undefined;
+        const reserveUrl = matches?.find((m) => typeof m?.reserveUrl === "string")?.reserveUrl;
+        if (reserveUrl) {
+          try {
+            window.open(reserveUrl, "_blank", "noopener,noreferrer");
+            setMemoryToast({ id: `action_${Date.now()}`, kind: "saved", text: "Abriendo reserva…" });
+            setTimeout(() => setMemoryToast(null), 2000);
+          } catch {
+            setMemoryToast({ id: `action_${Date.now()}`, kind: "saved", text: "No se pudo abrir el enlace" });
+            setTimeout(() => setMemoryToast(null), 2500);
+          }
+        }
       }
     };
     window.addEventListener("koru-card-action", onCardAction as EventListener);
