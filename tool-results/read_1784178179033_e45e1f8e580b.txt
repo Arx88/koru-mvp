@@ -1,0 +1,702 @@
+     1→  3564→<div class="showcase reveal" id="card-live-match">
+     2→  3565→  <div class="showcase-compact">
+     3→  3566→    <span class="showcase-label compact"><span class="material-symbols-outlined">chat</span>Estado compacto · chat</span>
+     4→  3567→    <div class="k-card is-tappable" style="--accent:#ef4444;--accent-soft:rgba(239,68,68,0.12);">
+     5→  3568→  <div class="k-card-glow" style="background:radial-gradient(circle,#ef4444,transparent 70%);"></div>
+     6→  3569→  <div class="k-card-top">
+     7→  3570→    <div class="k-card-copy">
+     8→  3571→      <div class="k-card-kicker" style="color:#ef4444;"><span class="live-dot"></span> En vivo · La Liga · 67'</div>
+     9→  3572→      <div class="k-card-title">Barcelona vs Real Madrid</div>
+    10→  3573→      <div class="k-card-desc">Segunda mitad · Anchozorza en pie</div>
+    11→  3574→    </div>
+    12→  3575→    <div class="k-card-art" style="background:rgba(239,68,68,0.12);color:#ef4444;">
+    13→  3576→      <span class="material-symbols-outlined ms-fill">sports_soccer</span>
+    14→  3577→      <div class="k-card-art-value">2-1</div>
+    15→  3578→    </div>
+    16→  3579→  </div>
+    17→  3580→  <div class="k-metrics" style="grid-template-columns:repeat(3,1fr);">
+    18→  3581→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#c81e1e;">sports_soccer</span><div class="k-metric-label">Posesión</div><div class="k-metric-value">58-42</div></div>
+    19→  3582→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#c81e1e;">crisis_alert</span><div class="k-metric-label">Tiros</div><div class="k-metric-value">9-6</div></div>
+    20→  3583→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#c81e1e;">sports_score</span><div class="k-metric-label">Córners</div><div class="k-metric-value">5-3</div></div>
+    21→  3584→  </div>
+    22→  3585→  <div class="k-cta-hint" style="color:#ef4444;"><span>Ver detalle</span><span class="material-symbols-outlined">arrow_forward</span></div>
+    23→  3586→</div>
+    24→  3587→  </div>
+    25→  3588→  <div class="showcase-extended">
+    26→  3589→    <span class="showcase-label extended"><span class="material-symbols-outlined">fullscreen</span>Estado extendido · informe</span>
+    27→  3590→    <div class="k-detail">
+    28→  3591→  <div class="k-detail-sticky-head">
+    29→  3592→    <button class="k-detail-back"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+    30→  3593→    <div class="k-detail-mini-icon" style="background:rgba(239,68,68,0.12);color:#ef4444;"><span class="material-symbols-outlined">sports_soccer</span></div>
+    31→  3594→    <div style="flex:1;min-width:0;"><div class="k-detail-mini-title">Barcelona vs Real Madrid</div><div class="k-detail-mini-sub">En vivo · La Liga · 67'</div></div>
+    32→  3595→    <button class="k-detail-save"><span class="material-symbols-outlined ms-fill">bookmark</span></button>
+    33→  3596→  </div>
+    34→  3597→  <div class="k-detail-hero" style="height:140px;">
+    35→  3598→    <div class="k-detail-hero-backdrop" style="background:linear-gradient(135deg,#ef4444,#382b8c);"></div>
+    36→  3599→    <div class="k-detail-hero-scrim"></div>
+    37→  3600→    <div class="k-detail-hero-content">
+    38→  3601→      <div class="k-detail-hero-badge" style="background:rgba(255,255,255,0.92);color:#ef4444;"><span class="material-symbols-outlined" style="font-size:11px;">verified</span>67' Live</div>
+    39→  3602→      <div class="k-detail-hero-title">Barcelona vs Real Madrid</div>
+    40→  3603→      <div class="k-detail-hero-sub">Segunda mitad · Anchozorza en pie</div>
+    41→  3604→    </div>
+    42→  3605→  </div>
+    43→  3606→  <div class="k-detail-modules">
+    44→  3607→    <div class="k-module" style="--module-color:#ef4444;animation-delay:0.1s;">
+    45→  3608→      <div class="k-module-head">
+    46→  3609→        <div class="k-module-icon" style="background:rgba(239,68,68,0.12);color:#ef4444;"><span class="material-symbols-outlined">sports_soccer</span></div>
+    47→  3610→        <div><div class="k-module-title" style="color:#ef4444;">Estadísticas</div><div class="k-module-kicker">4 métricas</div></div>
+    48→  3611→        <span class="k-module-meta">2</span>
+    49→  3612→      </div>
+    50→  3613→      <div class="k-rows">
+    51→  3614→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#c81e1e;">sports_soccer</span><div class="k-row-body"><div class="k-row-title">Posesión</div><div class="k-row-detail">BAR 58% - 42% RMA</div></div><span class="k-row-meta">58-42</span></div>
+    52→  3615→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#c81e1e;">crisis_alert</span><div class="k-row-body"><div class="k-row-title">Tiros</div><div class="k-row-detail">BAR 9 - 6 RMA</div></div><span class="k-row-meta">9-6</span></div>
+    53→  3616→      </div>
+    54→  3617→    </div>
+    55→  3618→    <div class="k-module" style="--module-color:#ef4444;animation-delay:0.16s;">
+    56→  3619→      <div class="k-module-head">
+    57→  3620→        <div class="k-module-icon" style="background:rgba(239,68,68,0.12);color:#ef4444;"><span class="material-symbols-outlined">history</span></div>
+    58→  3621→        <div><div class="k-module-title" style="color:#ef4444;">Goles y jugadas</div><div class="k-module-kicker">5 eventos</div></div>
+    59→  3622→        <span class="k-module-meta">5</span>
+    60→  3623→      </div>
+    61→  3624→      <div class="k-timeline">
+    62→  3625→        <div class="k-timeline-step is-done">
+    63→  3626→          <div class="k-timeline-dot"><span class="material-symbols-outlined">check</span></div>
+    64→  3627→          <div class="k-timeline-body"><div class="k-timeline-name">12' Griezmann</div><div class="k-timeline-meta">Asistencia Lemar</div></div>
+    65→  3628→        </div>
+    66→  3629→        <div class="k-timeline-step is-done">
+    67→  3630→          <div class="k-timeline-dot"><span class="material-symbols-outlined">check</span></div>
+    68→  3631→          <div class="k-timeline-body"><div class="k-timeline-name">23' Koke 🟨</div><div class="k-timeline-meta">Amarilla</div></div>
+    69→  3632→        </div>
+    70→  3633→        <div class="k-timeline-step is-done">
+    71→  3634→          <div class="k-timeline-dot"><span class="material-symbols-outlined">check</span></div>
+    72→  3635→          <div class="k-timeline-body"><div class="k-timeline-name">34' Vinicius</div><div class="k-timeline-meta">Gol Real Madrid</div></div>
+    73→  3636→        </div>
+    74→  3637→        <div class="k-timeline-step is-done">
+    75→  3638→          <div class="k-timeline-dot"><span class="material-symbols-outlined">check</span></div>
+    76→  3639→          <div class="k-timeline-body"><div class="k-timeline-name">51' Morata</div><div class="k-timeline-meta">Gol Barcelona</div></div>
+    77→  3640→        </div>
+    78→  3641→        <div class="k-timeline-step is-current">
+    79→  3642→          <div class="k-timeline-dot"><span class="material-symbols-outlined">radio_button_checked</span></div>
+    80→  3643→          <div class="k-timeline-body"><div class="k-timeline-name">63' Camavinga 🟥</div><div class="k-timeline-meta">Roja Madrid</div></div>
+    81→  3644→        </div>
+    82→  3645→      </div>
+    83→  3646→    </div>
+    84→  3647→    <div class="k-module" style="--module-color:#ef4444;animation-delay:0.22s;">
+    85→  3648→      <div class="k-module-head">
+    86→  3649→        <div class="k-module-icon" style="background:rgba(239,68,68,0.12);color:#ef4444;"><span class="material-symbols-outlined">sports_soccer</span></div>
+    87→  3650→        <div><div class="k-module-title" style="color:#ef4444;">Formaciones</div><div class="k-module-kicker">4-3-3 vs 4-4-2</div></div>
+    88→  3651→      </div>
+    89→  3652→      <p class="k-text">Barcelona 4-3-3 con Griezmann-Morata-Dembélé arriba. Madrid 4-4-2 con Vinicius-Bellingham.</p>
+    90→  3653→    </div>
+    91→  3654→    <div class="k-module" style="--module-color:#ef4444;animation-delay:0.28s;">
+    92→  3655→      <div class="k-module-head">
+    93→  3656→        <div class="k-module-icon" style="background:rgba(239,68,68,0.12);color:#ef4444;"><span class="material-symbols-outlined">link</span></div>
+    94→  3657→        <div><div class="k-module-title" style="color:#ef4444;">Datos en vivo de</div><div class="k-module-kicker">3 fuentes</div></div>
+    95→  3658→        <span class="k-module-meta">3</span>
+    96→  3659→      </div>
+    97→  3660→      <div class="k-sources">
+    98→  3661→        <div class="k-source"><img class="k-source-favicon" src="https://www.google.com/s2/favicons?domain=optasports.com&sz=64" alt="" /><div class="k-source-body"><div class="k-source-title">Opta Sports</div><div class="k-source-domain">optasports.com</div></div><span class="material-symbols-outlined" style="color:#ef4444;font-size:16px;">open_in_new</span></div>
+    99→  3662→        <div class="k-source"><img class="k-source-favicon" src="https://www.google.com/s2/favicons?domain=laliga.com&sz=64" alt="" /><div class="k-source-body"><div class="k-source-title">LaLiga</div><div class="k-source-domain">laliga.com</div></div><span class="material-symbols-outlined" style="color:#ef4444;font-size:16px;">open_in_new</span></div>
+   100→  3663→        <div class="k-source"><img class="k-source-favicon" src="https://www.google.com/s2/favicons?domain=sofascore.com&sz=64" alt="" /><div class="k-source-body"><div class="k-source-title">SofaScore</div><div class="k-source-domain">sofascore.com</div></div><span class="material-symbols-outlined" style="color:#ef4444;font-size:16px;">open_in_new</span></div>
+   101→  3664→      </div>
+   102→  3665→    </div>
+   103→  3666→  </div>
+   104→  3667→  <div class="k-detail-actions">
+   105→  3668→    <button class="k-detail-action save"><span class="material-symbols-outlined ms-fill" style="font-size:18px;">bookmark_added</span>Guardar</button>
+   106→  3669→    <button class="k-detail-action pdf"><span class="material-symbols-outlined" style="font-size:18px;">picture_as_pdf</span>PDF</button>
+   107→  3670→  </div>
+   108→  3671→</div>
+   109→  3672→  </div>
+   110→  3673→</div>
+   111→  3674→
+   112→  3675→        <div class="card-spec reveal">
+   113→  3676→          <strong>Spec · Partido en vivo</strong> &middot;
+   114→  3677→          Accent: <code>#ef4444</code> &middot;
+   115→  3678→          Icon: <code>sports_soccer</code> &middot;
+   116→  3679→          Layout: <code>default</code> &middot;
+   117→  3680→          3 metrics &middot;
+   118→  3681→          4 secciones en extendido &middot;
+   119→  3682→          Glow halo activo &middot; Count-up en artValue &middot; CTA shimmer cíclico
+   120→  3683→        </div>
+   121→  3684→
+   122→  3685→<div class="showcase reveal" id="card-tennis-match">
+   123→  3686→  <div class="showcase-compact">
+   124→  3687→    <span class="showcase-label compact"><span class="material-symbols-outlined">chat</span>Estado compacto · chat</span>
+   125→  3688→    <div class="k-card is-tappable" style="--accent:#2d6a4f;--accent-soft:rgba(45,106,79,0.12);">
+   126→  3689→  <div class="k-card-glow" style="background:radial-gradient(circle,#2d6a4f,transparent 70%);"></div>
+   127→  3690→  <div class="k-card-top">
+   128→  3691→    <div class="k-card-copy">
+   129→  3692→      <div class="k-card-kicker" style="color:#2d6a4f;"><span class="live-dot"></span> En vivo · ATP Masters 1000</div>
+   130→  3693→      <div class="k-card-title">Alcaraz vs Sinner</div>
+   131→  3694→      <div class="k-card-desc">Set 3 · 4-3 · Saque Alcaraz</div>
+   132→  3695→    </div>
+   133→  3696→    <div class="k-card-art" style="background:rgba(45,106,79,0.12);color:#2d6a4f;">
+   134→  3697→      <span class="material-symbols-outlined ms-fill">sports_tennis</span>
+   135→  3698→      <div class="k-card-art-value">1-1</div>
+   136→  3699→    </div>
+   137→  3700→  </div>
+   138→  3701→  <div class="k-metrics" style="grid-template-columns:repeat(3,1fr);">
+   139→  3702→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#2d6a4f;">sports_tennis</span><div class="k-metric-label">Sets</div><div class="k-metric-value">1-1</div></div>
+   140→  3703→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#b45309;">emoji_events</span><div class="k-metric-label">Aces</div><div class="k-metric-value">12-8</div></div>
+   141→  3704→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#c81e1e;">crisis_alert</span><div class="k-metric-label">Dobles faltas</div><div class="k-metric-value">2-3</div></div>
+   142→  3705→  </div>
+   143→  3706→  <div class="k-cta-hint" style="color:#2d6a4f;"><span>Ver detalle</span><span class="material-symbols-outlined">arrow_forward</span></div>
+   144→  3707→</div>
+   145→  3708→  </div>
+   146→  3709→  <div class="showcase-extended">
+   147→  3710→    <span class="showcase-label extended"><span class="material-symbols-outlined">fullscreen</span>Estado extendido · informe</span>
+   148→  3711→    <div class="k-detail">
+   149→  3712→  <div class="k-detail-sticky-head">
+   150→  3713→    <button class="k-detail-back"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+   151→  3714→    <div class="k-detail-mini-icon" style="background:rgba(45,106,79,0.12);color:#2d6a4f;"><span class="material-symbols-outlined">sports_tennis</span></div>
+   152→  3715→    <div style="flex:1;min-width:0;"><div class="k-detail-mini-title">Alcaraz vs Sinner</div><div class="k-detail-mini-sub">En vivo · ATP Masters 1000</div></div>
+   153→  3716→    <button class="k-detail-save"><span class="material-symbols-outlined ms-fill">bookmark</span></button>
+   154→  3717→  </div>
+   155→  3718→  <div class="k-detail-hero" style="height:140px;">
+   156→  3719→    <div class="k-detail-hero-backdrop" style="background:linear-gradient(135deg,#2d6a4f,#382b8c);"></div>
+   157→  3720→    <div class="k-detail-hero-scrim"></div>
+   158→  3721→    <div class="k-detail-hero-content">
+   159→  3722→      <div class="k-detail-hero-badge" style="background:rgba(255,255,255,0.92);color:#2d6a4f;"><span class="material-symbols-outlined" style="font-size:11px;">verified</span>Set 3 · 4-3</div>
+   160→  3723→      <div class="k-detail-hero-title">Alcaraz vs Sinner</div>
+   161→  3724→      <div class="k-detail-hero-sub">Set 3 · 4-3 · Saque Alcaraz</div>
+   162→  3725→    </div>
+   163→  3726→  </div>
+   164→  3727→  <div class="k-detail-modules">
+   165→  3728→    <div class="k-module" style="--module-color:#2d6a4f;animation-delay:0.1s;">
+   166→  3729→      <div class="k-module-head">
+   167→  3730→        <div class="k-module-icon" style="background:rgba(45,106,79,0.12);color:#2d6a4f;"><span class="material-symbols-outlined">sports_tennis</span></div>
+   168→  3731→        <div><div class="k-module-title" style="color:#2d6a4f;">Score</div><div class="k-module-kicker">3 sets</div></div>
+   169→  3732→        <span class="k-module-meta">4</span>
+   170→  3733→      </div>
+   171→  3734→      <div class="k-tiles">
+   172→  3735→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#2d6a4f;">sports_tennis</span><div><div class="k-tile-label">Set 1</div><div class="k-tile-value">6-4 Alcaraz</div></div></div>
+   173→  3736→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#c81e1e;">sports_tennis</span><div><div class="k-tile-label">Set 2</div><div class="k-tile-value">3-6 Sinner</div></div></div>
+   174→  3737→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#2d6a4f;">sports_tennis</span><div><div class="k-tile-label">Set 3</div><div class="k-tile-value">4-3 Alcaraz</div></div></div>
+   175→  3738→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">schedule</span><div><div class="k-tile-label">Tiempo</div><div class="k-tile-value">2h 14min</div></div></div>
+   176→  3739→      </div>
+   177→  3740→    </div>
+   178→  3741→    <div class="k-module" style="--module-color:#2d6a4f;animation-delay:0.16s;">
+   179→  3742→      <div class="k-module-head">
+   180→  3743→        <div class="k-module-icon" style="background:rgba(45,106,79,0.12);color:#2d6a4f;"><span class="material-symbols-outlined">analytics</span></div>
+   181→  3744→        <div><div class="k-module-title" style="color:#2d6a4f;">Estadísticas</div><div class="k-module-kicker">4 datos</div></div>
+   182→  3745→        <span class="k-module-meta">3</span>
+   183→  3746→      </div>
+   184→  3747→      <div class="k-rows">
+   185→  3748→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#2d6a4f;">sports_tennis</span><div class="k-row-body"><div class="k-row-title">Aces</div><div class="k-row-detail">ALC 12 - 8 SIN</div></div><span class="k-row-meta">12-8</span></div>
+   186→  3749→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#c81e1e;">crisis_alert</span><div class="k-row-body"><div class="k-row-title">Dobles faltas</div><div class="k-row-detail">ALC 2 - 3 SIN</div></div><span class="k-row-meta">2-3</span></div>
+   187→  3750→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#2d6a4f;">check_circle</span><div class="k-row-body"><div class="k-row-title">Break points</div><div class="k-row-detail">ALC 3/5 - 2/4 SIN</div></div><span class="k-row-meta">3/5</span></div>
+   188→  3751→      </div>
+   189→  3752→    </div>
+   190→  3753→    <div class="k-module" style="--module-color:#2d6a4f;animation-delay:0.22s;">
+   191→  3754→      <div class="k-module-head">
+   192→  3755→        <div class="k-module-icon" style="background:rgba(45,106,79,0.12);color:#2d6a4f;"><span class="material-symbols-outlined">history</span></div>
+   193→  3756→        <div><div class="k-module-title" style="color:#2d6a4f;">Puntos clave</div><div class="k-module-kicker">5 momentos</div></div>
+   194→  3757→        <span class="k-module-meta">3</span>
+   195→  3758→      </div>
+   196→  3759→      <div class="k-timeline">
+   197→  3760→        <div class="k-timeline-step is-done">
+   198→  3761→          <div class="k-timeline-dot"><span class="material-symbols-outlined">check</span></div>
+   199→  3762→          <div class="k-timeline-body"><div class="k-timeline-name">Set 1 9º game</div><div class="k-timeline-meta">Break Alcaraz</div></div>
+   200→  3763→        </div>
+   201→  3764→        <div class="k-timeline-step is-done">
+   202→  3765→          <div class="k-timeline-dot"><span class="material-symbols-outlined">check</span></div>
+   203→  3766→          <div class="k-timeline-body"><div class="k-timeline-name">Set 2 4º game</div><div class="k-timeline-meta">Break Sinner</div></div>
+   204→  3767→        </div>
+   205→  3768→        <div class="k-timeline-step is-current">
+   206→  3769→          <div class="k-timeline-dot"><span class="material-symbols-outlined">radio_button_checked</span></div>
+   207→  3770→          <div class="k-timeline-body"><div class="k-timeline-name">Set 3 7º game</div><div class="k-timeline-meta">Saque Alcaraz</div></div>
+   208→  3771→        </div>
+   209→  3772→      </div>
+   210→  3773→    </div>
+   211→  3774→  </div>
+   212→  3775→  <div class="k-detail-actions">
+   213→  3776→    <button class="k-detail-action save"><span class="material-symbols-outlined ms-fill" style="font-size:18px;">bookmark_added</span>Guardar</button>
+   214→  3777→    <button class="k-detail-action pdf"><span class="material-symbols-outlined" style="font-size:18px;">picture_as_pdf</span>PDF</button>
+   215→  3778→  </div>
+   216→  3779→</div>
+   217→  3780→  </div>
+   218→  3781→</div>
+   219→  3782→
+   220→  3783→        <div class="card-spec reveal">
+   221→  3784→          <strong>Spec · Tenis en vivo</strong> &middot;
+   222→  3785→          Accent: <code>#2d6a4f</code> &middot;
+   223→  3786→          Icon: <code>sports_tennis</code> &middot;
+   224→  3787→          Layout: <code>default</code> &middot;
+   225→  3788→          3 metrics &middot;
+   226→  3789→          3 secciones en extendido &middot;
+   227→  3790→          Glow halo activo &middot; Count-up en artValue &middot; CTA shimmer cíclico
+   228→  3791→        </div>
+   229→  3792→
+   230→  3793→
+   231→  3794→      <div class="card-section-divider reveal">
+   232→  3795→        <div class="card-section-group-title">Finanzas y gastos</div>
+   233→  3796→        <div class="card-section-group-sub">Balance mensual, transacciones, presupuestos.</div>
+   234→  3797→      </div>
+   235→  3798→
+   236→  3799→<div class="showcase reveal" id="card-money-summary">
+   237→  3800→  <div class="showcase-compact">
+   238→  3801→    <span class="showcase-label compact"><span class="material-symbols-outlined">chat</span>Estado compacto · chat</span>
+   239→  3802→    <div class="k-card is-tappable" style="--accent:#2d6a4f;--accent-soft:rgba(45,106,79,0.12);">
+   240→  3803→  <div class="k-card-glow" style="background:radial-gradient(circle,#2d6a4f,transparent 70%);"></div>
+   241→  3804→  <div class="k-card-top">
+   242→  3805→    <div class="k-card-copy">
+   243→  3806→      <div class="k-card-kicker" style="color:#2d6a4f;">Tus Finanzas</div>
+   244→  3807→      <div class="k-card-title">Balance de marzo</div>
+   245→  3808→      <div class="k-card-desc">8 movimientos registrados este mes</div>
+   246→  3809→    </div>
+   247→  3810→    <div class="k-card-art" style="background:rgba(45,106,79,0.12);color:#2d6a4f;">
+   248→  3811→      <span class="material-symbols-outlined ms-fill">account_balance_wallet</span>
+   249→  3812→      <div class="k-card-art-value">€3.247</div>
+   250→  3813→    </div>
+   251→  3814→  </div>
+   252→  3815→  <div class="k-metrics" style="grid-template-columns:repeat(3,1fr);">
+   253→  3816→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#2d6a4f;">trending_up</span><div class="k-metric-label">Ingresos</div><div class="k-metric-value">€1.520</div></div>
+   254→  3817→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#c81e1e;">trending_down</span><div class="k-metric-label">Gastos</div><div class="k-metric-value">€1.180</div></div>
+   255→  3818→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#3b82f6;">savings</span><div class="k-metric-label">Ahorro</div><div class="k-metric-value">€340</div></div>
+   256→  3819→  </div>
+   257→  3820→  <div class="k-cta-hint" style="color:#2d6a4f;"><span>Ver detalle</span><span class="material-symbols-outlined">arrow_forward</span></div>
+   258→  3821→</div>
+   259→  3822→  </div>
+   260→  3823→  <div class="showcase-extended">
+   261→  3824→    <span class="showcase-label extended"><span class="material-symbols-outlined">fullscreen</span>Estado extendido · informe</span>
+   262→  3825→    <div class="k-detail">
+   263→  3826→  <div class="k-detail-sticky-head">
+   264→  3827→    <button class="k-detail-back"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+   265→  3828→    <div class="k-detail-mini-icon" style="background:rgba(45,106,79,0.12);color:#2d6a4f;"><span class="material-symbols-outlined">account_balance_wallet</span></div>
+   266→  3829→    <div style="flex:1;min-width:0;"><div class="k-detail-mini-title">Balance de marzo</div><div class="k-detail-mini-sub">Tus Finanzas</div></div>
+   267→  3830→    <button class="k-detail-save"><span class="material-symbols-outlined ms-fill">bookmark</span></button>
+   268→  3831→  </div>
+   269→  3832→  <div class="k-detail-hero" style="height:140px;">
+   270→  3833→    <div class="k-detail-hero-backdrop" style="background:linear-gradient(135deg,#2d6a4f,#382b8c);"></div>
+   271→  3834→    <div class="k-detail-hero-scrim"></div>
+   272→  3835→    <div class="k-detail-hero-content">
+   273→  3836→      <div class="k-detail-hero-badge" style="background:rgba(255,255,255,0.92);color:#2d6a4f;"><span class="material-symbols-outlined" style="font-size:11px;">verified</span>Mar 2024</div>
+   274→  3837→      <div class="k-detail-hero-title">Balance de marzo</div>
+   275→  3838→      <div class="k-detail-hero-sub">8 movimientos registrados este mes</div>
+   276→  3839→    </div>
+   277→  3840→  </div>
+   278→  3841→  <div class="k-detail-modules">
+   279→  3842→    <div class="k-module" style="--module-color:#2d6a4f;animation-delay:0.1s;">
+   280→  3843→      <div class="k-module-head">
+   281→  3844→        <div class="k-module-icon" style="background:rgba(45,106,79,0.12);color:#2d6a4f;"><span class="material-symbols-outlined">payments</span></div>
+   282→  3845→        <div><div class="k-module-title" style="color:#2d6a4f;">Ingresos vs Gastos</div><div class="k-module-kicker">3 barras</div></div>
+   283→  3846→        <span class="k-module-meta">3</span>
+   284→  3847→      </div>
+   285→  3848→      <div class="k-rows">
+   286→  3849→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#2d6a4f;">trending_up</span><div class="k-row-body"><div class="k-row-title">Ingresos</div><div class="k-row-detail">€1.520 nómina</div></div><span class="k-row-meta">+€1.520</span></div>
+   287→  3850→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#c81e1e;">trending_down</span><div class="k-row-body"><div class="k-row-title">Gastos</div><div class="k-row-detail">€1.180 total</div></div><span class="k-row-meta">-€1.180</span></div>
+   288→  3851→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#3b82f6;">savings</span><div class="k-row-body"><div class="k-row-title">Ahorro</div><div class="k-row-detail">€340 neto</div></div><span class="k-row-meta">+€340</span></div>
+   289→  3852→      </div>
+   290→  3853→    </div>
+   291→  3854→    <div class="k-module" style="--module-color:#2d6a4f;animation-delay:0.16s;">
+   292→  3855→      <div class="k-module-head">
+   293→  3856→        <div class="k-module-icon" style="background:rgba(45,106,79,0.12);color:#2d6a4f;"><span class="material-symbols-outlined">category</span></div>
+   294→  3857→        <div><div class="k-module-title" style="color:#2d6a4f;">Por categoría</div><div class="k-module-kicker">4 datos</div></div>
+   295→  3858→        <span class="k-module-meta">4</span>
+   296→  3859→      </div>
+   297→  3860→      <div class="k-tiles">
+   298→  3861→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#b45309;">restaurant</span><div><div class="k-tile-label">Comida</div><div class="k-tile-value">€420 (36%)</div></div></div>
+   299→  3862→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">home</span><div><div class="k-tile-label">Vivienda</div><div class="k-tile-value">€680 (58%)</div></div></div>
+   300→  3863→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#3b82f6;">directions_car</span><div><div class="k-tile-label">Transporte</div><div class="k-tile-value">€120</div></div></div>
+   301→  3864→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#ec4899;">sports_esports</span><div><div class="k-tile-label">Ocio</div><div class="k-tile-value">€85</div></div></div>
+   302→  3865→      </div>
+   303→  3866→    </div>
+   304→  3867→    <div class="k-module" style="--module-color:#2d6a4f;animation-delay:0.22s;">
+   305→  3868→      <div class="k-module-head">
+   306→  3869→        <div class="k-module-icon" style="background:rgba(45,106,79,0.12);color:#2d6a4f;"><span class="material-symbols-outlined">receipt_long</span></div>
+   307→  3870→        <div><div class="k-module-title" style="color:#2d6a4f;">Transacciones recientes</div><div class="k-module-kicker">4 movimientos</div></div>
+   308→  3871→        <span class="k-module-meta">3</span>
+   309→  3872→      </div>
+   310→  3873→      <div class="k-rows">
+   311→  3874→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#c81e1e;">shopping_cart</span><div class="k-row-body"><div class="k-row-title">Mercadona</div><div class="k-row-detail">Hoy 13:24</div></div><span class="k-row-meta">-€58.40</span></div>
+   312→  3875→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#c81e1e;">coffee</span><div class="k-row-body"><div class="k-row-title">Cafetería Central</div><div class="k-row-detail">Hoy 10:15</div></div><span class="k-row-meta">-€4.20</span></div>
+   313→  3876→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#2d6a4f;">payments</span><div class="k-row-body"><div class="k-row-title">Nómina</div><div class="k-row-detail">Ayer</div></div><span class="k-row-meta">+€1.520</span></div>
+   314→  3877→      </div>
+   315→  3878→    </div>
+   316→  3879→  </div>
+   317→  3880→  <div class="k-detail-actions">
+   318→  3881→    <button class="k-detail-action save"><span class="material-symbols-outlined ms-fill" style="font-size:18px;">bookmark_added</span>Guardar</button>
+   319→  3882→    <button class="k-detail-action pdf"><span class="material-symbols-outlined" style="font-size:18px;">picture_as_pdf</span>PDF</button>
+   320→  3883→  </div>
+   321→  3884→</div>
+   322→  3885→  </div>
+   323→  3886→</div>
+   324→  3887→
+   325→  3888→        <div class="card-spec reveal">
+   326→  3889→          <strong>Spec · Resumen financiero</strong> &middot;
+   327→  3890→          Accent: <code>#2d6a4f</code> &middot;
+   328→  3891→          Icon: <code>account_balance_wallet</code> &middot;
+   329→  3892→          Layout: <code>default</code> &middot;
+   330→  3893→          3 metrics &middot;
+   331→  3894→          3 secciones en extendido &middot;
+   332→  3895→          Glow halo activo &middot; Count-up en artValue &middot; CTA shimmer cíclico
+   333→  3896→        </div>
+   334→  3897→
+   335→  3898→
+   336→  3899→      <div class="card-section-divider reveal">
+   337→  3900→        <div class="card-section-group-title">Mercados y trading</div>
+   338→  3901→        <div class="card-section-group-sub">Watchlist, top movers, índices.</div>
+   339→  3902→      </div>
+   340→  3903→
+   341→  3904→<div class="showcase reveal" id="card-market">
+   342→  3905→  <div class="showcase-compact">
+   343→  3906→    <span class="showcase-label compact"><span class="material-symbols-outlined">chat</span>Estado compacto · chat</span>
+   344→  3907→    <div class="k-card is-tappable" style="--accent:#2d6a4f;--accent-soft:rgba(45,106,79,0.12);">
+   345→  3908→  <div class="k-card-glow" style="background:radial-gradient(circle,#2d6a4f,transparent 70%);"></div>
+   346→  3909→  <div class="k-card-top">
+   347→  3910→    <div class="k-card-copy">
+   348→  3911→      <div class="k-card-kicker" style="color:#2d6a4f;">Mercados · IBEX 35</div>
+   349→  3912→      <div class="k-card-title">IBEX 35 cierra al alza</div>
+   350→  3913→      <div class="k-card-desc">8 valores en watchlist · 2 earnings hoy</div>
+   351→  3914→    </div>
+   352→  3915→    <div class="k-card-art" style="background:rgba(45,106,79,0.12);color:#2d6a4f;">
+   353→  3916→      <span class="material-symbols-outlined ms-fill">trending_up</span>
+   354→  3917→      <div class="k-card-art-value">4.187</div>
+   355→  3918→    </div>
+   356→  3919→  </div>
+   357→  3920→  <div class="k-metrics" style="grid-template-columns:repeat(3,1fr);">
+   358→  3921→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#2d6a4f;">trending_up</span><div class="k-metric-label">SAN.MC</div><div class="k-metric-value">+2.1%</div></div>
+   359→  3922→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#c81e1e;">trending_down</span><div class="k-metric-label">ITX.MC</div><div class="k-metric-value">-0.4%</div></div>
+   360→  3923→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#3b82f6;">show_chart</span><div class="k-metric-label">Volumen</div><div class="k-metric-value">€2.4B</div></div>
+   361→  3924→  </div>
+   362→  3925→  <div class="k-cta-hint" style="color:#2d6a4f;"><span>Ver detalle</span><span class="material-symbols-outlined">arrow_forward</span></div>
+   363→  3926→</div>
+   364→  3927→  </div>
+   365→  3928→  <div class="showcase-extended">
+   366→  3929→    <span class="showcase-label extended"><span class="material-symbols-outlined">fullscreen</span>Estado extendido · informe</span>
+   367→  3930→    <div class="k-detail">
+   368→  3931→  <div class="k-detail-sticky-head">
+   369→  3932→    <button class="k-detail-back"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+   370→  3933→    <div class="k-detail-mini-icon" style="background:rgba(45,106,79,0.12);color:#2d6a4f;"><span class="material-symbols-outlined">trending_up</span></div>
+   371→  3934→    <div style="flex:1;min-width:0;"><div class="k-detail-mini-title">IBEX 35 cierra al alza</div><div class="k-detail-mini-sub">Mercados · IBEX 35</div></div>
+   372→  3935→    <button class="k-detail-save"><span class="material-symbols-outlined ms-fill">bookmark</span></button>
+   373→  3936→  </div>
+   374→  3937→  <div class="k-detail-hero" style="height:140px;">
+   375→  3938→    <div class="k-detail-hero-backdrop" style="background:linear-gradient(135deg,#2d6a4f,#382b8c);"></div>
+   376→  3939→    <div class="k-detail-hero-scrim"></div>
+   377→  3940→    <div class="k-detail-hero-content">
+   378→  3941→      <div class="k-detail-hero-badge" style="background:rgba(255,255,255,0.92);color:#2d6a4f;"><span class="material-symbols-outlined" style="font-size:11px;">verified</span>14:32 CET</div>
+   379→  3942→      <div class="k-detail-hero-title">IBEX 35 cierra al alza</div>
+   380→  3943→      <div class="k-detail-hero-sub">8 valores en watchlist · 2 earnings hoy</div>
+   381→  3944→    </div>
+   382→  3945→  </div>
+   383→  3946→  <div class="k-detail-modules">
+   384→  3947→    <div class="k-module" style="--module-color:#2d6a4f;animation-delay:0.1s;">
+   385→  3948→      <div class="k-module-head">
+   386→  3949→        <div class="k-module-icon" style="background:rgba(45,106,79,0.12);color:#2d6a4f;"><span class="material-symbols-outlined">show_chart</span></div>
+   387→  3950→        <div><div class="k-module-title" style="color:#2d6a4f;">Watchlist</div><div class="k-module-kicker">4 valores</div></div>
+   388→  3951→        <span class="k-module-meta">3</span>
+   389→  3952→      </div>
+   390→  3953→      <div class="k-rows">
+   391→  3954→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#2d6a4f;">show_chart</span><div class="k-row-body"><div class="k-row-title">SAN.MC</div><div class="k-row-detail">Santander · ▁▃▅▆▇</div></div><span class="k-row-meta">+2.1%</span></div>
+   392→  3955→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#c81e1e;">show_chart</span><div class="k-row-body"><div class="k-row-title">ITX.MC</div><div class="k-row-detail">Inditex · ▇▆▅▄▃</div></div><span class="k-row-meta">-0.4%</span></div>
+   393→  3956→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#2d6a4f;">show_chart</span><div class="k-row-body"><div class="k-row-title">BBVA.MC</div><div class="k-row-detail">BBVA · ▃▄▆▇▆</div></div><span class="k-row-meta">+1.8%</span></div>
+   394→  3957→      </div>
+   395→  3958→    </div>
+   396→  3959→    <div class="k-module" style="--module-color:#2d6a4f;animation-delay:0.16s;">
+   397→  3960→      <div class="k-module-head">
+   398→  3961→        <div class="k-module-icon" style="background:rgba(45,106,79,0.12);color:#2d6a4f;"><span class="material-symbols-outlined">trending_up</span></div>
+   399→  3962→        <div><div class="k-module-title" style="color:#2d6a4f;">Top movers</div><div class="k-module-kicker">5 valores</div></div>
+   400→  3963→        <span class="k-module-meta">2</span>
+   401→  3964→      </div>
+   402→  3965→      <div class="k-scroller">
+   403→  3966→        <div class="k-scard"><span class="k-scard-badge" style="background:rgba(45,106,79,0.12);color:#2d6a4f;">+5.2%</span><div class="k-scard-title">BBVA.MC</div><div class="k-scard-detail">€6.12 · Volumen 12.4M</div>
+   404→  3967→          <div class="k-scard-metrics">
+   405→  3968→            <span class="k-scard-metric">52w high</span>
+   406→  3969→          </div>
+   407→  3970→        </div>
+   408→  3971→        <div class="k-scard"><span class="k-scard-badge" style="background:rgba(45,106,79,0.12);color:#2d6a4f;">+3.8%</span><div class="k-scard-title">SAN.MC</div><div class="k-scard-detail">€4.82</div>
+   409→  3972→          <div class="k-scard-metrics">
+   410→  3973→            <span class="k-scard-metric">Earnings hoy</span>
+   411→  3974→          </div>
+   412→  3975→        </div>
+   413→  3976→      </div>
+   414→  3977→    </div>
+   415→  3978→    <div class="k-module" style="--module-color:#2d6a4f;animation-delay:0.22s;">
+   416→  3979→      <div class="k-module-head">
+   417→  3980→        <div class="k-module-icon" style="background:rgba(45,106,79,0.12);color:#2d6a4f;"><span class="material-symbols-outlined">pie_chart</span></div>
+   418→  3981→        <div><div class="k-module-title" style="color:#2d6a4f;">Sectores</div><div class="k-module-kicker">4 datos</div></div>
+   419→  3982→        <span class="k-module-meta">4</span>
+   420→  3983→      </div>
+   421→  3984→      <div class="k-tiles">
+   422→  3985→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#2d6a4f;">account_balance</span><div><div class="k-tile-label">Bancos</div><div class="k-tile-value">+1.8%</div></div></div>
+   423→  3986→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#c81e1e;">energy_savings_leaf</span><div><div class="k-tile-label">Energía</div><div class="k-tile-value">-0.6%</div></div></div>
+   424→  3987→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#2d6a4f;">construction</span><div><div class="k-tile-label">Construcción</div><div class="k-tile-value">+0.9%</div></div></div>
+   425→  3988→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#2d6a4f;">shopping_bag</span><div><div class="k-tile-label">Consumo</div><div class="k-tile-value">+0.3%</div></div></div>
+   426→  3989→      </div>
+   427→  3990→    </div>
+   428→  3991→  </div>
+   429→  3992→  <div class="k-detail-actions">
+   430→  3993→    <button class="k-detail-action save"><span class="material-symbols-outlined ms-fill" style="font-size:18px;">bookmark_added</span>Guardar</button>
+   431→  3994→    <button class="k-detail-action pdf"><span class="material-symbols-outlined" style="font-size:18px;">picture_as_pdf</span>PDF</button>
+   432→  3995→  </div>
+   433→  3996→</div>
+   434→  3997→  </div>
+   435→  3998→</div>
+   436→  3999→
+   437→  4000→        <div class="card-spec reveal">
+   438→  4001→          <strong>Spec · Mercados</strong> &middot;
+   439→  4002→          Accent: <code>#2d6a4f</code> &middot;
+   440→  4003→          Icon: <code>trending_up</code> &middot;
+   441→  4004→          Layout: <code>default</code> &middot;
+   442→  4005→          3 metrics &middot;
+   443→  4006→          3 secciones en extendido &middot;
+   444→  4007→          Glow halo activo &middot; Count-up en artValue &middot; CTA shimmer cíclico
+   445→  4008→        </div>
+   446→  4009→
+   447→  4010→
+   448→  4011→      <div class="card-section-divider reveal">
+   449→  4012→        <div class="card-section-group-title">Crypto y trading</div>
+   450→  4013→        <div class="card-section-group-sub">Portfolio, holdings, P&L, posiciones.</div>
+   451→  4014→      </div>
+   452→  4015→
+   453→  4016→<div class="showcase reveal" id="card-crypto-portfolio">
+   454→  4017→  <div class="showcase-compact">
+   455→  4018→    <span class="showcase-label compact"><span class="material-symbols-outlined">chat</span>Estado compacto · chat</span>
+   456→  4019→    <div class="k-card is-tappable" style="--accent:#f59e0b;--accent-soft:rgba(245,158,11,0.12);">
+   457→  4020→  <div class="k-card-glow" style="background:radial-gradient(circle,#f59e0b,transparent 70%);"></div>
+   458→  4021→  <div class="k-card-top">
+   459→  4022→    <div class="k-card-copy">
+   460→  4023→      <div class="k-card-kicker" style="color:#f59e0b;">Tu Portafolio</div>
+   461→  4024→      <div class="k-card-title">Balance crypto</div>
+   462→  4025→      <div class="k-card-desc">6 activos · BTC domina 38%</div>
+   463→  4026→    </div>
+   464→  4027→    <div class="k-card-art" style="background:rgba(245,158,11,0.12);color:#f59e0b;">
+   465→  4028→      <span class="material-symbols-outlined ms-fill">currency_bitcoin</span>
+   466→  4029→      <div class="k-card-art-value">$12.487</div>
+   467→  4030→    </div>
+   468→  4031→  </div>
+   469→  4032→  <div class="k-metrics" style="grid-template-columns:repeat(3,1fr);">
+   470→  4033→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#2d6a4f;">trending_up</span><div class="k-metric-label">24h</div><div class="k-metric-value">+2.4%</div></div>
+   471→  4034→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#b45309;">currency_bitcoin</span><div class="k-metric-label">BTC</div><div class="k-metric-value">38%</div></div>
+   472→  4035→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#8363f9;">currency_ethereum</span><div class="k-metric-label">ETH</div><div class="k-metric-value">24%</div></div>
+   473→  4036→  </div>
+   474→  4037→  <div class="k-cta-hint" style="color:#f59e0b;"><span>Ver detalle</span><span class="material-symbols-outlined">arrow_forward</span></div>
+   475→  4038→</div>
+   476→  4039→  </div>
+   477→  4040→  <div class="showcase-extended">
+   478→  4041→    <span class="showcase-label extended"><span class="material-symbols-outlined">fullscreen</span>Estado extendido · informe</span>
+   479→  4042→    <div class="k-detail">
+   480→  4043→  <div class="k-detail-sticky-head">
+   481→  4044→    <button class="k-detail-back"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+   482→  4045→    <div class="k-detail-mini-icon" style="background:rgba(245,158,11,0.12);color:#f59e0b;"><span class="material-symbols-outlined">currency_bitcoin</span></div>
+   483→  4046→    <div style="flex:1;min-width:0;"><div class="k-detail-mini-title">Balance crypto</div><div class="k-detail-mini-sub">Tu Portafolio</div></div>
+   484→  4047→    <button class="k-detail-save"><span class="material-symbols-outlined ms-fill">bookmark</span></button>
+   485→  4048→  </div>
+   486→  4049→  <div class="k-detail-hero" style="height:140px;">
+   487→  4050→    <div class="k-detail-hero-backdrop" style="background:linear-gradient(135deg,#f59e0b,#382b8c);"></div>
+   488→  4051→    <div class="k-detail-hero-scrim"></div>
+   489→  4052→    <div class="k-detail-hero-content">
+   490→  4053→      <div class="k-detail-hero-badge" style="background:rgba(255,255,255,0.92);color:#2d6a4f;"><span class="material-symbols-outlined" style="font-size:11px;">verified</span>+€287 hoy</div>
+   491→  4054→      <div class="k-detail-hero-title">Balance crypto</div>
+   492→  4055→      <div class="k-detail-hero-sub">6 activos · BTC domina 38%</div>
+   493→  4056→    </div>
+   494→  4057→  </div>
+   495→  4058→  <div class="k-detail-modules">
+   496→  4059→    <div class="k-module" style="--module-color:#f59e0b;animation-delay:0.1s;">
+   497→  4060→      <div class="k-module-head">
+   498→  4061→        <div class="k-module-icon" style="background:rgba(245,158,11,0.12);color:#f59e0b;"><span class="material-symbols-outlined">currency_bitcoin</span></div>
+   499→  4062→        <div><div class="k-module-title" style="color:#f59e0b;">Holdings</div><div class="k-module-kicker">6 activos</div></div>
+   500→  4063→        <span class="k-module-meta">3</span>
+   501→  4064→      </div>
+   502→  4065→      <div class="k-rows">
+   503→  4066→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#b45309;">currency_bitcoin</span><div class="k-row-body"><div class="k-row-title">Bitcoin</div><div class="k-row-detail">0.18 BTC · ▁▃▅▇▆▇▇</div></div><span class="k-row-meta">+3.2%</span></div>
+   504→  4067→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#8363f9;">currency_ethereum</span><div class="k-row-body"><div class="k-row-title">Ethereum</div><div class="k-row-detail">4.2 ETH · ▃▅▆▇▆▇</div></div><span class="k-row-meta">-0.8%</span></div>
+   505→  4068→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#2d6a4f;">currency_exchange</span><div class="k-row-body"><div class="k-row-title">Solana</div><div class="k-row-detail">24 SOL · ▁▃▅▆▇</div></div><span class="k-row-meta">+5.4%</span></div>
+   506→  4069→      </div>
+   507→  4070→    </div>
+   508→  4071→    <div class="k-module" style="--module-color:#f59e0b;animation-delay:0.16s;">
+   509→  4072→      <div class="k-module-head">
+   510→  4073→        <div class="k-module-icon" style="background:rgba(245,158,11,0.12);color:#f59e0b;"><span class="material-symbols-outlined">pie_chart</span></div>
+   511→  4074→        <div><div class="k-module-title" style="color:#f59e0b;">Distribución</div><div class="k-module-kicker">6 activos</div></div>
+   512→  4075→        <span class="k-module-meta">4</span>
+   513→  4076→      </div>
+   514→  4077→      <div class="k-tiles">
+   515→  4078→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#b45309;">currency_bitcoin</span><div><div class="k-tile-label">BTC</div><div class="k-tile-value">38%</div></div></div>
+   516→  4079→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">currency_ethereum</span><div><div class="k-tile-label">ETH</div><div class="k-tile-value">24%</div></div></div>
+   517→  4080→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#2d6a4f;">currency_exchange</span><div><div class="k-tile-label">SOL</div><div class="k-tile-value">12%</div></div></div>
+   518→  4081→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#3b82f6;">savings</span><div><div class="k-tile-label">USDC</div><div class="k-tile-value">18%</div></div></div>
+   519→  4082→      </div>
+   520→  4083→    </div>
+   521→  4084→    <div class="k-module" style="--module-color:#f59e0b;animation-delay:0.22s;">
+   522→  4085→      <div class="k-module-head">
+   523→  4086→        <div class="k-module-icon" style="background:rgba(245,158,11,0.12);color:#f59e0b;"><span class="material-symbols-outlined">history</span></div>
+   524→  4087→        <div><div class="k-module-title" style="color:#f59e0b;">Transacciones recientes</div><div class="k-module-kicker">4 movimientos</div></div>
+   525→  4088→        <span class="k-module-meta">2</span>
+   526→  4089→      </div>
+   527→  4090→      <div class="k-timeline">
+   528→  4091→        <div class="k-timeline-step is-done">
+   529→  4092→          <div class="k-timeline-dot"><span class="material-symbols-outlined">check</span></div>
+   530→  4093→          <div class="k-timeline-body"><div class="k-timeline-name">14:32 Compra 0.05 BTC</div><div class="k-timeline-meta">$248 entrada</div></div>
+   531→  4094→        </div>
+   532→  4095→        <div class="k-timeline-step is-done">
+   533→  4096→          <div class="k-timeline-dot"><span class="material-symbols-outlined">check</span></div>
+   534→  4097→          <div class="k-timeline-body"><div class="k-timeline-name">09:15 Swap ETH→SOL</div><div class="k-timeline-meta">4 ETH → 24 SOL</div></div>
+   535→  4098→        </div>
+   536→  4099→      </div>
+   537→  4100→    </div>
+   538→  4101→    <div class="k-module" style="--module-color:#f59e0b;animation-delay:0.28s;">
+   539→  4102→      <div class="k-module-head">
+   540→  4103→        <div class="k-module-icon" style="background:rgba(245,158,11,0.12);color:#f59e0b;"><span class="material-symbols-outlined">psychology</span></div>
+   541→  4104→        <div><div class="k-module-title" style="color:#f59e0b;">Insights</div><div class="k-module-kicker">Koru AI</div></div>
+   542→  4105→      </div>
+   543→  4106→      <p class="k-text">Tu portfolio está sobreexpuesto a BTC (38% vs recomendado 25%). Considera rebalancear hacia ETH o stablecoins.</p>
+   544→  4107→    </div>
+   545→  4108→  </div>
+   546→  4109→  <div class="k-detail-actions">
+   547→  4110→    <button class="k-detail-action save"><span class="material-symbols-outlined ms-fill" style="font-size:18px;">bookmark_added</span>Guardar</button>
+   548→  4111→    <button class="k-detail-action pdf"><span class="material-symbols-outlined" style="font-size:18px;">picture_as_pdf</span>PDF</button>
+   549→  4112→  </div>
+   550→  4113→</div>
+   551→  4114→  </div>
+   552→  4115→</div>
+   553→  4116→
+   554→  4117→        <div class="card-spec reveal">
+   555→  4118→          <strong>Spec · Crypto portfolio</strong> &middot;
+   556→  4119→          Accent: <code>#f59e0b</code> &middot;
+   557→  4120→          Icon: <code>currency_bitcoin</code> &middot;
+   558→  4121→          Layout: <code>default</code> &middot;
+   559→  4122→          3 metrics &middot;
+   560→  4123→          4 secciones en extendido &middot;
+   561→  4124→          Glow halo activo &middot; Count-up en artValue &middot; CTA shimmer cíclico
+   562→  4125→        </div>
+   563→  4126→
+   564→  4127→<div class="showcase reveal" id="card-trading">
+   565→  4128→  <div class="showcase-compact">
+   566→  4129→    <span class="showcase-label compact"><span class="material-symbols-outlined">chat</span>Estado compacto · chat</span>
+   567→  4130→    <div class="k-card is-tappable" style="--accent:#2d6a4f;--accent-soft:rgba(45,106,79,0.12);">
+   568→  4131→  <div class="k-card-glow" style="background:radial-gradient(circle,#2d6a4f,transparent 70%);"></div>
+   569→  4132→  <div class="k-card-top">
+   570→  4133→    <div class="k-card-copy">
+   571→  4134→      <div class="k-card-kicker" style="color:#2d6a4f;">Tu Trading</div>
+   572→  4135→      <div class="k-card-title">P&L del día</div>
+   573→  4136→      <div class="k-card-desc">4 posiciones abiertas · Apalancamiento 2x</div>
+   574→  4137→    </div>
+   575→  4138→    <div class="k-card-art" style="background:rgba(45,106,79,0.12);color:#2d6a4f;">
+   576→  4139→      <span class="material-symbols-outlined ms-fill">analytics</span>
+   577→  4140→      <div class="k-card-art-value">+$1.247</div>
+   578→  4141→    </div>
+   579→  4142→  </div>
+   580→  4143→  <div class="k-metrics" style="grid-template-columns:repeat(3,1fr);">
+   581→  4144→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#2d6a4f;">trending_up</span><div class="k-metric-label">Día</div><div class="k-metric-value">+8.4%</div></div>
+   582→  4145→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#8363f9;">show_chart</span><div class="k-metric-label">Posiciones</div><div class="k-metric-value">4</div></div>
+   583→  4146→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#b45309;">speed</span><div class="k-metric-label">Sharpe</div><div class="k-metric-value">1.8</div></div>
+   584→  4147→  </div>
+   585→  4148→  <div class="k-cta-hint" style="color:#2d6a4f;"><span>Ver detalle</span><span class="material-symbols-outlined">arrow_forward</span></div>
+   586→  4149→</div>
+   587→  4150→  </div>
+   588→  4151→  <div class="showcase-extended">
+   589→  4152→    <span class="showcase-label extended"><span class="material-symbols-outlined">fullscreen</span>Estado extendido · informe</span>
+   590→  4153→    <div class="k-detail">
+   591→  4154→  <div class="k-detail-sticky-head">
+   592→  4155→    <button class="k-detail-back"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+   593→  4156→    <div class="k-detail-mini-icon" style="background:rgba(45,106,79,0.12);color:#2d6a4f;"><span class="material-symbols-outlined">analytics</span></div>
+   594→  4157→    <div style="flex:1;min-width:0;"><div class="k-detail-mini-title">P&L del día</div><div class="k-detail-mini-sub">Tu Trading</div></div>
+   595→  4158→    <button class="k-detail-save"><span class="material-symbols-outlined ms-fill">bookmark</span></button>
+   596→  4159→  </div>
+   597→  4160→  <div class="k-detail-hero" style="height:140px;">
+   598→  4161→    <div class="k-detail-hero-backdrop" style="background:linear-gradient(135deg,#2d6a4f,#382b8c);"></div>
+   599→  4162→    <div class="k-detail-hero-scrim"></div>
+   600→  4163→    <div class="k-detail-hero-content">
+   601→  4164→      <div class="k-detail-hero-badge" style="background:rgba(255,255,255,0.92);color:#2d6a4f;"><span class="material-symbols-outlined" style="font-size:11px;">verified</span>Realizado</div>
+   602→  4165→      <div class="k-detail-hero-title">P&L del día</div>
+   603→  4166→      <div class="k-detail-hero-sub">4 posiciones abiertas · Apalancamiento 2x</div>
+   604→  4167→    </div>
+   605→  4168→  </div>
+   606→  4169→  <div class="k-detail-modules">
+   607→  4170→    <div class="k-module" style="--module-color:#2d6a4f;animation-delay:0.1s;">
+   608→  4171→      <div class="k-module-head">
+   609→  4172→        <div class="k-module-icon" style="background:rgba(45,106,79,0.12);color:#2d6a4f;"><span class="material-symbols-outlined">show_chart</span></div>
+   610→  4173→        <div><div class="k-module-title" style="color:#2d6a4f;">Curva P&L</div><div class="k-module-kicker">1 día</div></div>
+   611→  4174→        <span class="k-module-meta">1</span>
+   612→  4175→      </div>
+   613→  4176→      <div class="k-scroller">
+   614→  4177→        <div class="k-scard"><span class="k-scard-badge" style="background:rgba(45,106,79,0.12);color:#2d6a4f;">+8.4%</span><div class="k-scard-title">Curva P&L hoy</div><div class="k-scard-detail">Apertura +€120 → Actual +€1.247</div>
+   615→  4178→          <div class="k-scard-metrics">
+   616→  4179→            <span class="k-scard-metric">Max DD -€180</span>
+   617→  4180→            <span class="k-scard-metric">Sharpe 1.8</span>
+   618→  4181→          </div>
+   619→  4182→        </div>
+   620→  4183→      </div>
+   621→  4184→    </div>
+   622→  4185→    <div class="k-module" style="--module-color:#2d6a4f;animation-delay:0.16s;">
+   623→  4186→      <div class="k-module-head">
+   624→  4187→        <div class="k-module-icon" style="background:rgba(45,106,79,0.12);color:#2d6a4f;"><span class="material-symbols-outlined">show_chart</span></div>
+   625→  4188→        <div><div class="k-module-title" style="color:#2d6a4f;">Posiciones abiertas</div><div class="k-module-kicker">2 trades</div></div>
+   626→  4189→        <span class="k-module-meta">2</span>
+   627→  4190→      </div>
+   628→  4191→      <div class="k-rows">
+   629→  4192→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#2d6a4f;">trending_up</span><div class="k-row-body"><div class="k-row-title">Long TSLA</div><div class="k-row-detail">100 acc · Entrada $248</div></div><span class="k-row-meta">+$840</span></div>
+   630→  4193→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#c81e1e;">trending_down</span><div class="k-row-body"><div class="k-row-title">Short NIO</div><div class="k-row-detail">200 acc · Entrada $9.20</div></div><span class="k-row-meta">+$210</span></div>
+   631→  4194→      </div>
+   632→  4195→    </div>
+   633→  4196→    <div class="k-module" style="--module-color:#2d6a4f;animation-delay:0.22s;">
+   634→  4197→      <div class="k-module-head">
+   635→  4198→        <div class="k-module-icon" style="background:rgba(45,106,79,0.12);color:#2d6a4f;"><span class="material-symbols-outlined">warning</span></div>
+   636→  4199→        <div><div class="k-module-title" style="color:#2d6a4f;">Métricas de riesgo</div><div class="k-module-kicker">4 datos</div></div>
+   637→  4200→        <span class="k-module-meta">4</span>
+   638→  4201→      </div>
+   639→  4202→      <div class="k-tiles">
+   640→  4203→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#c81e1e;">warning</span><div><div class="k-tile-label">VaR 95%</div><div class="k-tile-value">-$420</div></div></div>
+   641→  4204→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">balance</span><div><div class="k-tile-label">Beta</div><div class="k-tile-value">1.32</div></div></div>
+   642→  4205→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#3b82f6;">water_drop</span><div><div class="k-tile-label">Liquidez</div><div class="k-tile-value">87%</div></div></div>
+   643→  4206→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#b45309;">speed</span><div><div class="k-tile-label">Sharpe</div><div class="k-tile-value">1.8</div></div></div>
+   644→  4207→      </div>
+   645→  4208→    </div>
+   646→  4209→    <div class="k-module" style="--module-color:#2d6a4f;animation-delay:0.28s;">
+   647→  4210→      <div class="k-module-head">
+   648→  4211→        <div class="k-module-icon" style="background:rgba(45,106,79,0.12);color:#2d6a4f;"><span class="material-symbols-outlined">article</span></div>
+   649→  4212→        <div><div class="k-module-title" style="color:#2d6a4f;">Noticias relevantes</div><div class="k-module-kicker">3 noticias</div></div>
+   650→  4213→        <span class="k-module-meta">1</span>
+   651→  4214→      </div>
+   652→  4215→      <div class="k-scroller">
+   653→  4216→        <div class="k-scard"><span class="k-scard-badge" style="background:rgba(45,106,79,0.12);color:#2d6a4f;">Bloomberg</span><div class="k-scard-title">TSLA deliveries beat estimates</div><div class="k-scard-detail">Q1 442k vs 430k expected</div>
+   654→  4217→          <div class="k-scard-metrics">
+   655→  4218→            <span class="k-scard-metric">Impact: alto</span>
+   656→  4219→          </div>
+   657→  4220→        </div>
+   658→  4221→      </div>
+   659→  4222→    </div>
+   660→  4223→  </div>
+   661→  4224→  <div class="k-detail-actions">
+   662→  4225→    <button class="k-detail-action save"><span class="material-symbols-outlined ms-fill" style="font-size:18px;">bookmark_added</span>Guardar</button>
+   663→  4226→    <button class="k-detail-action pdf"><span class="material-symbols-outlined" style="font-size:18px;">picture_as_pdf</span>PDF</button>
+   664→  4227→  </div>
+   665→  4228→</div>
+   666→  4229→  </div>
+   667→  4230→</div>
+   668→  4231→
+   669→  4232→        <div class="card-spec reveal">
+   670→  4233→          <strong>Spec · Trading</strong> &middot;
+   671→  4234→          Accent: <code>#2d6a4f</code> &middot;
+   672→  4235→          Icon: <code>analytics</code> &middot;
+   673→  4236→          Layout: <code>default</code> &middot;
+   674→  4237→          3 metrics &middot;
+   675→  4238→          4 secciones en extendido &middot;
+   676→  4239→          Glow halo activo &middot; Count-up en artValue &middot; CTA shimmer cíclico
+   677→  4240→        </div>
+   678→  4241→
+   679→  4242→
+   680→  4243→      <div class="card-section-divider reveal">
+   681→  4244→        <div class="card-section-group-title">Recetas y cocina</div>
+   682→  4245→        <div class="card-section-group-sub">Recetas con video, restaurantes recomendados.</div>
+   683→  4246→      </div>
+   684→  4247→
+   685→  4248→<div class="showcase reveal" id="card-recipe">
+   686→  4249→  <div class="showcase-compact">
+   687→  4250→    <span class="showcase-label compact"><span class="material-symbols-outlined">chat</span>Estado compacto · chat</span>
+   688→  4251→    <div class="k-card is-tappable" style="--accent:#2d6a4f;--accent-soft:rgba(45,106,79,0.12);">
+   689→  4252→  <div class="k-card-glow" style="background:radial-gradient(circle,#2d6a4f,transparent 70%);"></div>
+   690→  4253→  <div class="k-card-top">
+   691→  4254→    <div class="k-card-copy">
+   692→  4255→      <div class="k-card-kicker" style="color:#2d6a4f;">Tu Receta</div>
+   693→  4256→      <div class="k-card-title">Milanesa a la Napolitana</div>
+   694→  4257→      <div class="k-card-desc">Argentina · Almuerzo · 4 porciones</div>
+   695→  4258→    </div>
+   696→  4259→    <img class="k-card-art-poster" src="https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=200&h=300&fit=crop" alt="Receta" />
+   697→  4260→  </div>
+   698→  4261→  <div class="k-metrics" style="grid-template-columns:repeat(3,1fr);">
+   699→  4262→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#2d6a4f;">kitchen</span><div class="k-metric-label">Ingredientes</div><div class="k-metric-value">8</div></div>
+   700→  4263→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#8363f9;">schedule</span><div class="k-metric-label">Prep</div><div class="k-metric-value">20 min</div></div>
+   701→
+   702→[showing lines 3564-4263 of 6474; use offset=4264 with limit to continue reading]

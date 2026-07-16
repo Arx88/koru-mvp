@@ -1,0 +1,562 @@
+  4548→        <div><div class="k-module-title" style="color:#8127cf;">Equipo técnico</div><div class="k-module-kicker">4 datos</div></div>
+  4549→        <span class="k-module-meta">4</span>
+  4550→      </div>
+  4551→      <div class="k-tiles">
+  4552→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8127cf;">movie_filter</span><div><div class="k-tile-label">Dirección</div><div class="k-tile-value">D. Villeneuve</div></div></div>
+  4553→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">edit</span><div><div class="k-tile-label">Guion</div><div class="k-tile-value">Eric Roth</div></div></div>
+  4554→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#b45309;">music_note</span><div><div class="k-tile-label">Banda</div><div class="k-tile-value">Hans Zimmer</div></div></div>
+  4555→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#2d6a4f;">camera</span><div><div class="k-tile-label">Fotografía</div><div class="k-tile-value">G. Fraser</div></div></div>
+  4556→      </div>
+  4557→    </div>
+  4558→    <div class="k-module" style="--module-color:#8127cf;animation-delay:0.28s;">
+  4559→      <div class="k-module-head">
+  4560→        <div class="k-module-icon" style="background:rgba(129,39,207,0.12);color:#8127cf;"><span class="material-symbols-outlined">play_circle</span></div>
+  4561→        <div><div class="k-module-title" style="color:#8127cf;">Dónde verla</div><div class="k-module-kicker">4 opciones</div></div>
+  4562→        <span class="k-module-meta">4</span>
+  4563→      </div>
+  4564→      <div class="k-chips">
+  4565→        <div class="k-chip"><span class="material-symbols-outlined">play_circle</span>HBO Max</div>
+  4566→        <div class="k-chip"><span class="material-symbols-outlined">play_circle</span>Netflix</div>
+  4567→        <div class="k-chip"><span class="material-symbols-outlined">play_circle</span>Apple TV</div>
+  4568→        <div class="k-chip"><span class="material-symbols-outlined">play_circle</span>Cines 3D</div>
+  4569→      </div>
+  4570→    </div>
+  4571→  </div>
+  4572→  <div class="k-detail-actions">
+  4573→    <button class="k-detail-action save"><span class="material-symbols-outlined ms-fill" style="font-size:18px;">bookmark_added</span>Guardar</button>
+  4574→    <button class="k-detail-action pdf"><span class="material-symbols-outlined" style="font-size:18px;">picture_as_pdf</span>PDF</button>
+  4575→  </div>
+  4576→</div>
+  4577→  </div>
+  4578→</div>
+  4579→
+  4580→        <div class="card-spec reveal">
+  4581→          <strong>Spec · Película</strong> &middot;
+  4582→          Accent: <code>#8127cf</code> &middot;
+  4583→          Icon: <code>movie</code> &middot;
+  4584→          Layout: <code>default</code> &middot;
+  4585→          3 metrics &middot;
+  4586→          4 secciones en extendido &middot;
+  4587→          Glow halo activo &middot; Count-up en artValue &middot; CTA shimmer cíclico
+  4588→        </div>
+  4589→
+  4590→<div class="showcase reveal" id="card-book-review">
+  4591→  <div class="showcase-compact">
+  4592→    <span class="showcase-label compact"><span class="material-symbols-outlined">chat</span>Estado compacto · chat</span>
+  4593→    <div class="k-card is-tappable" style="--accent:#b45309;--accent-soft:rgba(180,83,9,0.12);">
+  4594→  <div class="k-card-glow" style="background:radial-gradient(circle,#b45309,transparent 70%);"></div>
+  4595→  <div class="k-card-top">
+  4596→    <div class="k-card-copy">
+  4597→      <div class="k-card-kicker" style="color:#b45309;">Tu Libro</div>
+  4598→      <div class="k-card-title">El infinito en un junco</div>
+  4599→      <div class="k-card-desc">Irene Vallejo · 2022 · 412 páginas</div>
+  4600→    </div>
+  4601→    <div class="k-card-art" style="background:rgba(180,83,9,0.12);color:#b45309;">
+  4602→      <span class="material-symbols-outlined ms-fill">menu_book</span>
+  4603→      <div class="k-card-art-value">★4.6</div>
+  4604→    </div>
+  4605→  </div>
+  4606→  <div class="k-metrics" style="grid-template-columns:repeat(3,1fr);">
+  4607→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#b45309;">star</span><div class="k-metric-label">Rating</div><div class="k-metric-value">4.6/5</div></div>
+  4608→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#8363f9;">calendar_today</span><div class="k-metric-label">Año</div><div class="k-metric-value">2022</div></div>
+  4609→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#8127cf;">auto_stories</span><div class="k-metric-label">Páginas</div><div class="k-metric-value">412</div></div>
+  4610→  </div>
+  4611→  <div class="k-cta-hint" style="color:#b45309;"><span>Ver detalle</span><span class="material-symbols-outlined">arrow_forward</span></div>
+  4612→</div>
+  4613→  </div>
+  4614→  <div class="showcase-extended">
+  4615→    <span class="showcase-label extended"><span class="material-symbols-outlined">fullscreen</span>Estado extendido · informe</span>
+  4616→    <div class="k-detail">
+  4617→  <div class="k-detail-sticky-head">
+  4618→    <button class="k-detail-back"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+  4619→    <div class="k-detail-mini-icon" style="background:rgba(180,83,9,0.12);color:#b45309;"><span class="material-symbols-outlined">menu_book</span></div>
+  4620→    <div style="flex:1;min-width:0;"><div class="k-detail-mini-title">El infinito en un junco</div><div class="k-detail-mini-sub">Tu Libro</div></div>
+  4621→    <button class="k-detail-save"><span class="material-symbols-outlined ms-fill">bookmark</span></button>
+  4622→  </div>
+  4623→  <div class="k-detail-hero" style="height:140px;">
+  4624→    <div class="k-detail-hero-backdrop" style="background:linear-gradient(135deg,#b45309,#382b8c);"></div>
+  4625→    <div class="k-detail-hero-scrim"></div>
+  4626→    <div class="k-detail-hero-content">
+  4627→      <div class="k-detail-hero-badge" style="background:rgba(255,255,255,0.92);color:#b45309;"><span class="material-symbols-outlined" style="font-size:11px;">verified</span>Bestseller</div>
+  4628→      <div class="k-detail-hero-title">El infinito en un junco</div>
+  4629→      <div class="k-detail-hero-sub">Irene Vallejo · 2022 · 412 páginas</div>
+  4630→    </div>
+  4631→  </div>
+  4632→  <div class="k-detail-modules">
+  4633→    <div class="k-module" style="--module-color:#b45309;animation-delay:0.1s;">
+  4634→      <div class="k-module-head">
+  4635→        <div class="k-module-icon" style="background:rgba(180,83,9,0.12);color:#b45309;"><span class="material-symbols-outlined">menu_book</span></div>
+  4636→        <div><div class="k-module-title" style="color:#b45309;">Sinopsis</div><div class="k-module-kicker">Lo esencial</div></div>
+  4637→      </div>
+  4638→      <p class="k-text">Un viaje apasionante por la historia de los libros desde Homero hasta el presente. Vallejo teje anécdotas, filología y emociones en un homenaje al poder transformador de la lectura.</p>
+  4639→    </div>
+  4640→    <div class="k-module" style="--module-color:#b45309;animation-delay:0.16s;">
+  4641→      <div class="k-module-head">
+  4642→        <div class="k-module-icon" style="background:rgba(180,83,9,0.12);color:#b45309;"><span class="material-symbols-outlined">person</span></div>
+  4643→        <div><div class="k-module-title" style="color:#b45309;">Ficha del autor</div><div class="k-module-kicker">3 datos</div></div>
+  4644→        <span class="k-module-meta">1</span>
+  4645→      </div>
+  4646→      <div class="k-rows">
+  4647→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#8363f9;">person</span><div class="k-row-body"><div class="k-row-title">Irene Vallejo</div><div class="k-row-detail">Nápoles, 1943 · Seudónimo</div></div><span class="k-row-meta">3 premios</span></div>
+  4648→      </div>
+  4649→    </div>
+  4650→    <div class="k-module" style="--module-color:#b45309;animation-delay:0.22s;">
+  4651→      <div class="k-module-head">
+  4652→        <div class="k-module-icon" style="background:rgba(180,83,9,0.12);color:#b45309;"><span class="material-symbols-outlined">menu_book</span></div>
+  4653→        <div><div class="k-module-title" style="color:#b45309;">Capítulos destacados</div><div class="k-module-kicker">4 capítulos</div></div>
+  4654→        <span class="k-module-meta">4</span>
+  4655→      </div>
+  4656→      <div class="k-timeline">
+  4657→        <div class="k-timeline-step is-done">
+  4658→          <div class="k-timeline-dot"><span class="material-symbols-outlined">check</span></div>
+  4659→          <div class="k-timeline-body"><div class="k-timeline-name">Cap. 1 La visita</div><div class="k-timeline-meta">Introducción a Homero</div></div>
+  4660→        </div>
+  4661→        <div class="k-timeline-step is-done">
+  4662→          <div class="k-timeline-dot"><span class="material-symbols-outlined">check</span></div>
+  4663→          <div class="k-timeline-body"><div class="k-timeline-name">Cap. 7 El cuarto azul</div><div class="k-timeline-meta">Biblioteca Alejandría</div></div>
+  4664→        </div>
+  4665→        <div class="k-timeline-step is-current">
+  4666→          <div class="k-timeline-dot"><span class="material-symbols-outlined">radio_button_checked</span></div>
+  4667→          <div class="k-timeline-body"><div class="k-timeline-name">Cap. 14 Confesión</div><div class="k-timeline-meta">Censura romana</div></div>
+  4668→        </div>
+  4669→        <div class="k-timeline-step is-pending">
+  4670→          <div class="k-timeline-dot"><span class="material-symbols-outlined">radio_button_unchecked</span></div>
+  4671→          <div class="k-timeline-body"><div class="k-timeline-name">Cap. 22 Huida</div><div class="k-timeline-meta">Edad Media</div></div>
+  4672→        </div>
+  4673→      </div>
+  4674→    </div>
+  4675→    <div class="k-module" style="--module-color:#b45309;animation-delay:0.28s;">
+  4676→      <div class="k-module-head">
+  4677→        <div class="k-module-icon" style="background:rgba(180,83,9,0.12);color:#b45309;"><span class="material-symbols-outlined">shopping_bag</span></div>
+  4678→        <div><div class="k-module-title" style="color:#b45309;">Dónde comprar</div><div class="k-module-kicker">4 opciones</div></div>
+  4679→        <span class="k-module-meta">4</span>
+  4680→      </div>
+  4681→      <div class="k-chips">
+  4682→        <div class="k-chip"><span class="material-symbols-outlined">shopping_bag</span>Amazon $18</div>
+  4683→        <div class="k-chip"><span class="material-symbols-outlined">shopping_bag</span>Casa del Libro €22</div>
+  4684→        <div class="k-chip"><span class="material-symbols-outlined">shopping_bag</span>Kindle $9</div>
+  4685→        <div class="k-chip"><span class="material-symbols-outlined">shopping_bag</span>Audiolibro $14</div>
+  4686→      </div>
+  4687→    </div>
+  4688→  </div>
+  4689→  <div class="k-detail-actions">
+  4690→    <button class="k-detail-action save"><span class="material-symbols-outlined ms-fill" style="font-size:18px;">bookmark_added</span>Guardar</button>
+  4691→    <button class="k-detail-action pdf"><span class="material-symbols-outlined" style="font-size:18px;">picture_as_pdf</span>PDF</button>
+  4692→  </div>
+  4693→</div>
+  4694→  </div>
+  4695→</div>
+  4696→
+  4697→        <div class="card-spec reveal">
+  4698→          <strong>Spec · Libro</strong> &middot;
+  4699→          Accent: <code>#b45309</code> &middot;
+  4700→          Icon: <code>menu_book</code> &middot;
+  4701→          Layout: <code>default</code> &middot;
+  4702→          3 metrics &middot;
+  4703→          4 secciones en extendido &middot;
+  4704→          Glow halo activo &middot; Count-up en artValue &middot; CTA shimmer cíclico
+  4705→        </div>
+  4706→
+  4707→
+  4708→      <div class="card-section-divider reveal">
+  4709→        <div class="card-section-group-title">Noticias, eventos e investigación</div>
+  4710→        <div class="card-section-group-sub">Urgent news, eventos importantes, deepsearch, image gen.</div>
+  4711→      </div>
+  4712→
+  4713→<div class="showcase reveal" id="card-news-urgent">
+  4714→  <div class="showcase-compact">
+  4715→    <span class="showcase-label compact"><span class="material-symbols-outlined">chat</span>Estado compacto · chat</span>
+  4716→    <div class="k-card is-tappable" style="--accent:#ef4444;--accent-soft:rgba(239,68,68,0.12);">
+  4717→  <div class="k-card-glow" style="background:radial-gradient(circle,#ef4444,transparent 70%);"></div>
+  4718→  <div class="k-card-top">
+  4719→    <div class="k-card-copy">
+  4720→      <div class="k-card-kicker" style="color:#ef4444;"><span class="live-dot"></span> URGENTE · Hace 4 min</div>
+  4721→      <div class="k-card-title">Terremoto en Turquía</div>
+  4722→      <div class="k-card-desc">Magnitud 6.4 · Costa de Izmir · Protocolo tsunami activado</div>
+  4723→    </div>
+  4724→    <div class="k-card-art" style="background:rgba(239,68,68,0.12);color:#ef4444;">
+  4725→      <span class="material-symbols-outlined ms-fill">breaking_news</span>
+  4726→      <div class="k-card-art-value">6.4</div>
+  4727→    </div>
+  4728→  </div>
+  4729→  <div class="k-metrics" style="grid-template-columns:repeat(3,1fr);">
+  4730→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#c81e1e;">place</span><div class="k-metric-label">Epicentro</div><div class="k-metric-value">30km Izmir</div></div>
+  4731→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#c81e1e;">schedule</span><div class="k-metric-label">Hora</div><div class="k-metric-value">14:32 local</div></div>
+  4732→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#b45309;">warning</span><div class="k-metric-label">Réplicas</div><div class="k-metric-value">M4.2</div></div>
+  4733→  </div>
+  4734→  <div class="k-cta-hint" style="color:#ef4444;"><span>Ver detalle</span><span class="material-symbols-outlined">arrow_forward</span></div>
+  4735→</div>
+  4736→  </div>
+  4737→  <div class="showcase-extended">
+  4738→    <span class="showcase-label extended"><span class="material-symbols-outlined">fullscreen</span>Estado extendido · informe</span>
+  4739→    <div class="k-detail">
+  4740→  <div class="k-detail-sticky-head">
+  4741→    <button class="k-detail-back"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+  4742→    <div class="k-detail-mini-icon" style="background:rgba(239,68,68,0.12);color:#ef4444;"><span class="material-symbols-outlined">breaking_news</span></div>
+  4743→    <div style="flex:1;min-width:0;"><div class="k-detail-mini-title">Terremoto en Turquía</div><div class="k-detail-mini-sub">Hace 4 min</div></div>
+  4744→    <button class="k-detail-save"><span class="material-symbols-outlined ms-fill">bookmark</span></button>
+  4745→  </div>
+  4746→  <div class="k-detail-hero" style="height:140px;">
+  4747→    <div class="k-detail-hero-backdrop" style="background:linear-gradient(135deg,#ef4444,#382b8c);"></div>
+  4748→    <div class="k-detail-hero-scrim"></div>
+  4749→    <div class="k-detail-hero-content">
+  4750→      <div class="k-detail-hero-badge" style="background:rgba(255,255,255,0.92);color:#ef4444;"><span class="material-symbols-outlined" style="font-size:11px;">verified</span>URGENTE · Live</div>
+  4751→      <div class="k-detail-hero-title">Terremoto en Turquía</div>
+  4752→      <div class="k-detail-hero-sub">Magnitud 6.4 · Costa de Izmir · Protocolo tsunami activado</div>
+  4753→    </div>
+  4754→  </div>
+  4755→  <div class="k-detail-modules">
+  4756→    <div class="k-module" style="--module-color:#ef4444;animation-delay:0.1s;">
+  4757→      <div class="k-module-head">
+  4758→        <div class="k-module-icon" style="background:rgba(239,68,68,0.12);color:#ef4444;"><span class="material-symbols-outlined">breaking_news</span></div>
+  4759→        <div><div class="k-module-title" style="color:#ef4444;">Resumen</div><div class="k-module-kicker">Lo esencial</div></div>
+  4760→      </div>
+  4761→      <p class="k-text">Un terremoto de magnitud 6.4 ha sacudido la costa de Turquía a las 14:32 hora local. El epicentro se localizó a 30 km de Izmir. Se han registrado réplicas de M4.2 y se ha activado el protocolo de tsunami como precaución.</p>
+  4762→    </div>
+  4763→    <div class="k-module" style="--module-color:#ef4444;animation-delay:0.16s;">
+  4764→      <div class="k-module-head">
+  4765→        <div class="k-module-icon" style="background:rgba(239,68,68,0.12);color:#ef4444;"><span class="material-symbols-outlined">history</span></div>
+  4766→        <div><div class="k-module-title" style="color:#ef4444;">Cronología de eventos</div><div class="k-module-kicker">5 actualizaciones</div></div>
+  4767→        <span class="k-module-meta">4</span>
+  4768→      </div>
+  4769→      <div class="k-timeline">
+  4770→        <div class="k-timeline-step is-done">
+  4771→          <div class="k-timeline-dot"><span class="material-symbols-outlined">check</span></div>
+  4772→          <div class="k-timeline-body"><div class="k-timeline-name">14:32 Epicentro</div><div class="k-timeline-meta">30km de Izmir, 10km profundidad</div></div>
+  4773→        </div>
+  4774→        <div class="k-timeline-step is-done">
+  4775→          <div class="k-timeline-dot"><span class="material-symbols-outlined">check</span></div>
+  4776→          <div class="k-timeline-body"><div class="k-timeline-name">14:38 Réplicas</div><div class="k-timeline-meta">M4.2 a 12km</div></div>
+  4777→        </div>
+  4778→        <div class="k-timeline-step is-current">
+  4779→          <div class="k-timeline-dot"><span class="material-symbols-outlined">radio_button_checked</span></div>
+  4780→          <div class="k-timeline-body"><div class="k-timeline-name">14:44 Tsunami</div><div class="k-timeline-meta">Protocolo activado</div></div>
+  4781→        </div>
+  4782→        <div class="k-timeline-step is-pending">
+  4783→          <div class="k-timeline-dot"><span class="material-symbols-outlined">radio_button_unchecked</span></div>
+  4784→          <div class="k-timeline-body"><div class="k-timeline-name">14:50 Heridos</div><div class="k-timeline-meta">Primeros reportes</div></div>
+  4785→        </div>
+  4786→      </div>
+  4787→    </div>
+  4788→    <div class="k-module" style="--module-color:#ef4444;animation-delay:0.22s;">
+  4789→      <div class="k-module-head">
+  4790→        <div class="k-module-icon" style="background:rgba(239,68,68,0.12);color:#ef4444;"><span class="material-symbols-outlined">fact_check</span></div>
+  4791→        <div><div class="k-module-title" style="color:#ef4444;">Verificación de hechos</div><div class="k-module-kicker">4 checks</div></div>
+  4792→        <span class="k-module-meta">4</span>
+  4793→      </div>
+  4794→      <div class="k-chips">
+  4795→        <div class="k-chip"><span class="material-symbols-outlined">check</span>Epicentro confirmado USGS</div>
+  4796→        <div class="k-chip"><span class="material-symbols-outlined">check</span>Magnitud 6.4 oficial</div>
+  4797→        <div class="k-chip"><span class="material-symbols-outlined">close</span>Tsunami NO confirmado</div>
+  4798→        <div class="k-chip"><span class="material-symbols-outlined">warning</span>Heridos sin verificar</div>
+  4799→      </div>
+  4800→    </div>
+  4801→    <div class="k-module" style="--module-color:#ef4444;animation-delay:0.28s;">
+  4802→      <div class="k-module-head">
+  4803→        <div class="k-module-icon" style="background:rgba(239,68,68,0.12);color:#ef4444;"><span class="material-symbols-outlined">link</span></div>
+  4804→        <div><div class="k-module-title" style="color:#ef4444;">Fuentes</div><div class="k-module-kicker">4 orígenes</div></div>
+  4805→        <span class="k-module-meta">4</span>
+  4806→      </div>
+  4807→      <div class="k-sources">
+  4808→        <div class="k-source"><img class="k-source-favicon" src="https://www.google.com/s2/favicons?domain=usgs.gov&sz=64" alt="" /><div class="k-source-body"><div class="k-source-title">USGS</div><div class="k-source-domain">usgs.gov</div></div><span class="material-symbols-outlined" style="color:#ef4444;font-size:16px;">open_in_new</span></div>
+  4809→        <div class="k-source"><img class="k-source-favicon" src="https://www.google.com/s2/favicons?domain=bbc.com&sz=64" alt="" /><div class="k-source-body"><div class="k-source-title">BBC</div><div class="k-source-domain">bbc.com</div></div><span class="material-symbols-outlined" style="color:#ef4444;font-size:16px;">open_in_new</span></div>
+  4810→        <div class="k-source"><img class="k-source-favicon" src="https://www.google.com/s2/favicons?domain=reuters.com&sz=64" alt="" /><div class="k-source-body"><div class="k-source-title">Reuters</div><div class="k-source-domain">reuters.com</div></div><span class="material-symbols-outlined" style="color:#ef4444;font-size:16px;">open_in_new</span></div>
+  4811→        <div class="k-source"><img class="k-source-favicon" src="https://www.google.com/s2/favicons?domain=afad.gov.tr&sz=64" alt="" /><div class="k-source-body"><div class="k-source-title">AFAD</div><div class="k-source-domain">afad.gov.tr</div></div><span class="material-symbols-outlined" style="color:#ef4444;font-size:16px;">open_in_new</span></div>
+  4812→      </div>
+  4813→    </div>
+  4814→  </div>
+  4815→  <div class="k-detail-actions">
+  4816→    <button class="k-detail-action save"><span class="material-symbols-outlined ms-fill" style="font-size:18px;">bookmark_added</span>Guardar</button>
+  4817→    <button class="k-detail-action pdf"><span class="material-symbols-outlined" style="font-size:18px;">picture_as_pdf</span>PDF</button>
+  4818→  </div>
+  4819→</div>
+  4820→  </div>
+  4821→</div>
+  4822→
+  4823→        <div class="card-spec reveal">
+  4824→          <strong>Spec · Noticia urgente</strong> &middot;
+  4825→          Accent: <code>#ef4444</code> &middot;
+  4826→          Icon: <code>breaking_news</code> &middot;
+  4827→          Layout: <code>default</code> &middot;
+  4828→          3 metrics &middot;
+  4829→          4 secciones en extendido &middot;
+  4830→          Glow halo activo &middot; Count-up en artValue &middot; CTA shimmer cíclico
+  4831→        </div>
+  4832→
+  4833→<div class="showcase reveal" id="card-important-event">
+  4834→  <div class="showcase-compact">
+  4835→    <span class="showcase-label compact"><span class="material-symbols-outlined">chat</span>Estado compacto · chat</span>
+  4836→    <div class="k-card is-tappable" style="--accent:#4f46e5;--accent-soft:rgba(79,70,229,0.12);">
+  4837→  <div class="k-card-glow" style="background:radial-gradient(circle,#4f46e5,transparent 70%);"></div>
+  4838→  <div class="k-card-top">
+  4839→    <div class="k-card-copy">
+  4840→      <div class="k-card-kicker" style="color:#4f46e5;">Tu Evento · Hoy</div>
+  4841→      <div class="k-card-title">Q1 Review con ACME</div>
+  4842→      <div class="k-card-desc">8 asistentes · 45 min · Zoom</div>
+  4843→    </div>
+  4844→    <div class="k-card-art" style="background:rgba(79,70,229,0.12);color:#4f46e5;">
+  4845→      <span class="material-symbols-outlined ms-fill">event</span>
+  4846→      <div class="k-card-art-value">02:14</div>
+  4847→    </div>
+  4848→  </div>
+  4849→  <div class="k-metrics" style="grid-template-columns:repeat(3,1fr);">
+  4850→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#4f46e5;">schedule</span><div class="k-metric-label">Cuándo</div><div class="k-metric-value">16:00 hoy</div></div>
+  4851→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#3b82f6;">videocam</span><div class="k-metric-label">Dónde</div><div class="k-metric-value">Zoom</div></div>
+  4852→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#8363f9;">groups</span><div class="k-metric-label">Asistentes</div><div class="k-metric-value">8</div></div>
+  4853→  </div>
+  4854→  <div class="k-cta-hint" style="color:#4f46e5;"><span>Ver detalle</span><span class="material-symbols-outlined">arrow_forward</span></div>
+  4855→</div>
+  4856→  </div>
+  4857→  <div class="showcase-extended">
+  4858→    <span class="showcase-label extended"><span class="material-symbols-outlined">fullscreen</span>Estado extendido · informe</span>
+  4859→    <div class="k-detail">
+  4860→  <div class="k-detail-sticky-head">
+  4861→    <button class="k-detail-back"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+  4862→    <div class="k-detail-mini-icon" style="background:rgba(79,70,229,0.12);color:#4f46e5;"><span class="material-symbols-outlined">event</span></div>
+  4863→    <div style="flex:1;min-width:0;"><div class="k-detail-mini-title">Q1 Review con ACME</div><div class="k-detail-mini-sub">Tu Evento · Hoy</div></div>
+  4864→    <button class="k-detail-save"><span class="material-symbols-outlined ms-fill">bookmark</span></button>
+  4865→  </div>
+  4866→  <div class="k-detail-hero" style="height:140px;">
+  4867→    <div class="k-detail-hero-backdrop" style="background:linear-gradient(135deg,#4f46e5,#382b8c);"></div>
+  4868→    <div class="k-detail-hero-scrim"></div>
+  4869→    <div class="k-detail-hero-content">
+  4870→      <div class="k-detail-hero-badge" style="background:rgba(255,255,255,0.92);color:#4f46e5;"><span class="material-symbols-outlined" style="font-size:11px;">verified</span>Countdown 2h 14min</div>
+  4871→      <div class="k-detail-hero-title">Q1 Review con ACME</div>
+  4872→      <div class="k-detail-hero-sub">8 asistentes · 45 min · Zoom</div>
+  4873→    </div>
+  4874→  </div>
+  4875→  <div class="k-detail-modules">
+  4876→    <div class="k-module" style="--module-color:#4f46e5;animation-delay:0.1s;">
+  4877→      <div class="k-module-head">
+  4878→        <div class="k-module-icon" style="background:rgba(79,70,229,0.12);color:#4f46e5;"><span class="material-symbols-outlined">event</span></div>
+  4879→        <div><div class="k-module-title" style="color:#4f46e5;">Detalles del evento</div><div class="k-module-kicker">4 datos</div></div>
+  4880→        <span class="k-module-meta">4</span>
+  4881→      </div>
+  4882→      <div class="k-tiles">
+  4883→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#4f46e5;">schedule</span><div><div class="k-tile-label">Cuándo</div><div class="k-tile-value">Hoy 16:00 CET</div></div></div>
+  4884→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#3b82f6;">videocam</span><div><div class="k-tile-label">Dónde</div><div class="k-tile-value">Zoom · link en agenda</div></div></div>
+  4885→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">groups</span><div><div class="k-tile-label">Asistentes</div><div class="k-tile-value">8 confirmados</div></div></div>
+  4886→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#b45309;">description</span><div><div class="k-tile-label">Agenda</div><div class="k-tile-value">4 temas · 45 min</div></div></div>
+  4887→      </div>
+  4888→    </div>
+  4889→    <div class="k-module" style="--module-color:#4f46e5;animation-delay:0.16s;">
+  4890→      <div class="k-module-head">
+  4891→        <div class="k-module-icon" style="background:rgba(79,70,229,0.12);color:#4f46e5;"><span class="material-symbols-outlined">schedule</span></div>
+  4892→        <div><div class="k-module-title" style="color:#4f46e5;">Agenda del evento</div><div class="k-module-kicker">5 bloques</div></div>
+  4893→        <span class="k-module-meta">4</span>
+  4894→      </div>
+  4895→      <div class="k-timeline">
+  4896→        <div class="k-timeline-step is-pending">
+  4897→          <div class="k-timeline-dot"><span class="material-symbols-outlined">radio_button_unchecked</span></div>
+  4898→          <div class="k-timeline-body"><div class="k-timeline-name">16:00 Bienvenida</div><div class="k-timeline-meta">5 min</div></div>
+  4899→        </div>
+  4900→        <div class="k-timeline-step is-pending">
+  4901→          <div class="k-timeline-dot"><span class="material-symbols-outlined">radio_button_unchecked</span></div>
+  4902→          <div class="k-timeline-body"><div class="k-timeline-name">16:05 Resultados Q1</div><div class="k-timeline-meta">10 min</div></div>
+  4903→        </div>
+  4904→        <div class="k-timeline-step is-pending">
+  4905→          <div class="k-timeline-dot"><span class="material-symbols-outlined">radio_button_unchecked</span></div>
+  4906→          <div class="k-timeline-body"><div class="k-timeline-name">16:15 Plan Q2</div><div class="k-timeline-meta">15 min</div></div>
+  4907→        </div>
+  4908→        <div class="k-timeline-step is-pending">
+  4909→          <div class="k-timeline-dot"><span class="material-symbols-outlined">radio_button_unchecked</span></div>
+  4910→          <div class="k-timeline-body"><div class="k-timeline-name">16:30 Q&A</div><div class="k-timeline-meta">10 min</div></div>
+  4911→        </div>
+  4912→      </div>
+  4913→    </div>
+  4914→    <div class="k-module" style="--module-color:#4f46e5;animation-delay:0.22s;">
+  4915→      <div class="k-module-head">
+  4916→        <div class="k-module-icon" style="background:rgba(79,70,229,0.12);color:#4f46e5;"><span class="material-symbols-outlined">groups</span></div>
+  4917→        <div><div class="k-module-title" style="color:#4f46e5;">Asistentes</div><div class="k-module-kicker">4 personas</div></div>
+  4918→        <span class="k-module-meta">3</span>
+  4919→      </div>
+  4920→      <div class="k-scroller">
+  4921→        <div class="k-scard"><span class="k-scard-badge" style="background:rgba(79,70,229,0.12);color:#4f46e5;">Org</span><div class="k-scard-title">Ana Ruiz</div><div class="k-scard-detail">CFO</div>
+  4922→          <div class="k-scard-metrics">
+  4923→            <span class="k-scard-metric">Confirmó</span>
+  4924→          </div>
+  4925→        </div>
+  4926→        <div class="k-scard"><span class="k-scard-badge" style="background:rgba(79,70,229,0.12);color:#4f46e5;">Org</span><div class="k-scard-title">Carlos Pérez</div><div class="k-scard-detail">CEO</div>
+  4927→          <div class="k-scard-metrics">
+  4928→            <span class="k-scard-metric">Confirmó</span>
+  4929→          </div>
+  4930→        </div>
+  4931→        <div class="k-scard"><span class="k-scard-badge" style="background:rgba(79,70,229,0.12);color:#4f46e5;">Cli</span><div class="k-scard-title">Mar ACME</div><div class="k-scard-detail">Cliente</div>
+  4932→          <div class="k-scard-metrics">
+  4933→            <span class="k-scard-metric">Confirmó</span>
+  4934→          </div>
+  4935→        </div>
+  4936→      </div>
+  4937→    </div>
+  4938→  </div>
+  4939→  <div class="k-detail-actions">
+  4940→    <button class="k-detail-action save"><span class="material-symbols-outlined ms-fill" style="font-size:18px;">bookmark_added</span>Guardar</button>
+  4941→    <button class="k-detail-action pdf"><span class="material-symbols-outlined" style="font-size:18px;">picture_as_pdf</span>PDF</button>
+  4942→  </div>
+  4943→</div>
+  4944→  </div>
+  4945→</div>
+  4946→
+  4947→        <div class="card-spec reveal">
+  4948→          <strong>Spec · Evento importante</strong> &middot;
+  4949→          Accent: <code>#4f46e5</code> &middot;
+  4950→          Icon: <code>event</code> &middot;
+  4951→          Layout: <code>default</code> &middot;
+  4952→          3 metrics &middot;
+  4953→          3 secciones en extendido &middot;
+  4954→          Glow halo activo &middot; Count-up en artValue &middot; CTA shimmer cíclico
+  4955→        </div>
+  4956→
+  4957→<div class="showcase reveal" id="card-deepsearch">
+  4958→  <div class="showcase-compact">
+  4959→    <span class="showcase-label compact"><span class="material-symbols-outlined">chat</span>Estado compacto · chat</span>
+  4960→    <div class="k-card is-tappable" style="--accent:#8363f9;--accent-soft:rgba(131,99,249,0.12);">
+  4961→  <div class="k-card-glow" style="background:radial-gradient(circle,#8363f9,transparent 70%);"></div>
+  4962→  <div class="k-card-top">
+  4963→    <div class="k-card-copy">
+  4964→      <div class="k-card-kicker" style="color:#8363f9;">Tu Investigación</div>
+  4965→      <div class="k-card-title">¿Invertir en IA en 2025?</div>
+  4966→      <div class="k-card-desc">14 fuentes verificadas · 8 min lectura · 92% confianza</div>
+  4967→    </div>
+  4968→    <div class="k-card-art" style="background:rgba(131,99,249,0.12);color:#8363f9;">
+  4969→      <span class="material-symbols-outlined ms-fill">manage_search</span>
+  4970→      <div class="k-card-art-value">92%</div>
+  4971→    </div>
+  4972→  </div>
+  4973→  <div class="k-metrics" style="grid-template-columns:repeat(3,1fr);">
+  4974→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#8363f9;">link</span><div class="k-metric-label">Fuentes</div><div class="k-metric-value">14</div></div>
+  4975→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#b45309;">schedule</span><div class="k-metric-label">Lectura</div><div class="k-metric-value">8 min</div></div>
+  4976→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#2d6a4f;">verified</span><div class="k-metric-label">Confianza</div><div class="k-metric-value">92%</div></div>
+  4977→  </div>
+  4978→  <div class="k-cta-hint" style="color:#8363f9;"><span>Ver detalle</span><span class="material-symbols-outlined">arrow_forward</span></div>
+  4979→</div>
+  4980→  </div>
+  4981→  <div class="showcase-extended">
+  4982→    <span class="showcase-label extended"><span class="material-symbols-outlined">fullscreen</span>Estado extendido · informe</span>
+  4983→    <div class="k-detail">
+  4984→  <div class="k-detail-sticky-head">
+  4985→    <button class="k-detail-back"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+  4986→    <div class="k-detail-mini-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">manage_search</span></div>
+  4987→    <div style="flex:1;min-width:0;"><div class="k-detail-mini-title">¿Invertir en IA en 2025?</div><div class="k-detail-mini-sub">Tu Investigación</div></div>
+  4988→    <button class="k-detail-save"><span class="material-symbols-outlined ms-fill">bookmark</span></button>
+  4989→  </div>
+  4990→  <div class="k-detail-hero" style="height:140px;">
+  4991→    <div class="k-detail-hero-backdrop" style="background:linear-gradient(135deg,#8363f9,#382b8c);"></div>
+  4992→    <div class="k-detail-hero-scrim"></div>
+  4993→    <div class="k-detail-hero-content">
+  4994→      <div class="k-detail-hero-badge" style="background:rgba(255,255,255,0.92);color:#8363f9;"><span class="material-symbols-outlined" style="font-size:11px;">verified</span>92% confianza</div>
+  4995→      <div class="k-detail-hero-title">¿Invertir en IA en 2025?</div>
+  4996→      <div class="k-detail-hero-sub">14 fuentes verificadas · 8 min lectura · 92% confianza</div>
+  4997→    </div>
+  4998→  </div>
+  4999→  <div class="k-detail-modules">
+  5000→    <div class="k-module" style="--module-color:#8363f9;animation-delay:0.1s;">
+  5001→      <div class="k-module-head">
+  5002→        <div class="k-module-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">auto_awesome</span></div>
+  5003→        <div><div class="k-module-title" style="color:#8363f9;">Síntesis IA</div><div class="k-module-kicker">Respuesta directa</div></div>
+  5004→      </div>
+  5005→      <p class="k-text">La inversión en IA en 2025 presenta 3 oportunidades claras (infraestructura GPU, vertical SaaS, edge AI) y 2 riesgos principales (saturación de GPU, regulación EU AI Act). Se recomienda exposición 15-25% del portfolio a IA con horizonte 3-5 años.</p>
+  5006→    </div>
+  5007→    <div class="k-module" style="--module-color:#8363f9;animation-delay:0.16s;">
+  5008→      <div class="k-module-head">
+  5009→        <div class="k-module-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">lightbulb</span></div>
+  5010→        <div><div class="k-module-title" style="color:#8363f9;">Hallazgos clave</div><div class="k-module-kicker">5 hallazgos</div></div>
+  5011→        <span class="k-module-meta">2</span>
+  5012→      </div>
+  5013→      <div class="k-scroller">
+  5014→        <div class="k-scard"><span class="k-scard-badge" style="background:rgba(131,99,249,0.12);color:#8363f9;">#1</span><div class="k-scard-title">Infraestructura GPU domina</div><div class="k-scard-detail">NVIDIA captura 78% del mercado de chips IA. Demanda sostenida hasta 2027.</div>
+  5015→          <div class="k-scard-metrics">
+  5016→            <span class="k-scard-metric">92% confianza</span>
+  5017→            <span class="k-scard-metric">3 fuentes</span>
+  5018→          </div>
+  5019→        </div>
+  5020→        <div class="k-scard"><span class="k-scard-badge" style="background:rgba(131,99,249,0.12);color:#8363f9;">#2</span><div class="k-scard-title">Vertical SaaS despega</div><div class="k-scard-detail">IA aplicada a salud, legal y finanzas crece 42% CAGR.</div>
+  5021→          <div class="k-scard-metrics">
+  5022→            <span class="k-scard-metric">88% confianza</span>
+  5023→          </div>
+  5024→        </div>
+  5025→      </div>
+  5026→    </div>
+  5027→    <div class="k-module" style="--module-color:#8363f9;animation-delay:0.22s;">
+  5028→      <div class="k-module-head">
+  5029→        <div class="k-module-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">link</span></div>
+  5030→        <div><div class="k-module-title" style="color:#8363f9;">Fuentes verificadas</div><div class="k-module-kicker">4 orígenes</div></div>
+  5031→        <span class="k-module-meta">4</span>
+  5032→      </div>
+  5033→      <div class="k-sources">
+  5034→        <div class="k-source"><img class="k-source-favicon" src="https://www.google.com/s2/favicons?domain=investor.nvidia.com&sz=64" alt="" /><div class="k-source-body"><div class="k-source-title">NVIDIA Q4 2024 Earnings</div><div class="k-source-domain">investor.nvidia.com</div></div><span class="material-symbols-outlined" style="color:#8363f9;font-size:16px;">open_in_new</span></div>
+  5035→        <div class="k-source"><img class="k-source-favicon" src="https://www.google.com/s2/favicons?domain=aiindex.stanford.edu&sz=64" alt="" /><div class="k-source-body"><div class="k-source-title">Stanford AI Index 2024</div><div class="k-source-domain">aiindex.stanford.edu</div></div><span class="material-symbols-outlined" style="color:#8363f9;font-size:16px;">open_in_new</span></div>
+  5036→        <div class="k-source"><img class="k-source-favicon" src="https://www.google.com/s2/favicons?domain=gartner.com&sz=64" alt="" /><div class="k-source-body"><div class="k-source-title">Gartner IA forecast</div><div class="k-source-domain">gartner.com</div></div><span class="material-symbols-outlined" style="color:#8363f9;font-size:16px;">open_in_new</span></div>
+  5037→        <div class="k-source"><img class="k-source-favicon" src="https://www.google.com/s2/favicons?domain=mckinsey.com&sz=64" alt="" /><div class="k-source-body"><div class="k-source-title">McKinsey AI report</div><div class="k-source-domain">mckinsey.com</div></div><span class="material-symbols-outlined" style="color:#8363f9;font-size:16px;">open_in_new</span></div>
+  5038→      </div>
+  5039→    </div>
+  5040→    <div class="k-module" style="--module-color:#8363f9;animation-delay:0.28s;">
+  5041→      <div class="k-module-head">
+  5042→        <div class="k-module-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">manage_search</span></div>
+  5043→        <div><div class="k-module-title" style="color:#8363f9;">Consultas relacionadas</div><div class="k-module-kicker">4 queries</div></div>
+  5044→        <span class="k-module-meta">4</span>
+  5045→      </div>
+  5046→      <div class="k-chips">
+  5047→        <div class="k-chip"><span class="material-symbols-outlined">manage_search</span>NVIDIA vs AMD</div>
+  5048→        <div class="k-chip"><span class="material-symbols-outlined">manage_search</span>ETFs de IA</div>
+  5049→        <div class="k-chip"><span class="material-symbols-outlined">manage_search</span>EU AI Act riesgos</div>
+  5050→        <div class="k-chip"><span class="material-symbols-outlined">manage_search</span>Startups IA</div>
+  5051→      </div>
+  5052→    </div>
+  5053→  </div>
+  5054→  <div class="k-detail-actions">
+  5055→    <button class="k-detail-action save"><span class="material-symbols-outlined ms-fill" style="font-size:18px;">bookmark_added</span>Guardar</button>
+  5056→    <button class="k-detail-action pdf"><span class="material-symbols-outlined" style="font-size:18px;">picture_as_pdf</span>PDF</button>
+  5057→  </div>
+  5058→</div>
+  5059→  </div>
+  5060→</div>
+  5061→
+  5062→        <div class="card-spec reveal">
+  5063→          <strong>Spec · Deepsearch</strong> &middot;
+  5064→          Accent: <code>#8363f9</code> &middot;
+  5065→          Icon: <code>manage_search</code> &middot;
+  5066→          Layout: <code>default</code> &middot;
+  5067→          3 metrics &middot;
+  5068→          4 secciones en extendido &middot;
+  5069→          Glow halo activo &middot; Count-up en artValue &middot; CTA shimmer cíclico
+  5070→        </div>
+  5071→
+  5072→<div class="showcase reveal" id="card-image-generation">
+  5073→  <div class="showcase-compact">
+  5074→    <span class="showcase-label compact"><span class="material-symbols-outlined">chat</span>Estado compacto · chat</span>
+  5075→    <div class="k-card is-tappable" style="--accent:#ec4899;--accent-soft:rgba(236,72,153,0.12);">
+  5076→  <div class="k-card-glow" style="background:radial-gradient(circle,#ec4899,transparent 70%);"></div>
+  5077→  <div class="k-card-top">
+  5078→    <div class="k-card-copy">
+  5079→      <div class="k-card-kicker" style="color:#ec4899;">Tu Imagen</div>
+  5080→      <div class="k-card-title">Jardín japonés al atardecer</div>
+  5081→      <div class="k-card-desc">4 variantes generadas · 8s · 1024×1024</div>
+  5082→    </div>
+  5083→    <img class="k-card-art-poster" src="https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=200&h=300&fit=crop" alt="Creación de imágenes" />
+  5084→  </div>
+  5085→  <div class="k-metrics" style="grid-template-columns:repeat(3,1fr);">
+  5086→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#ec4899;">image</span><div class="k-metric-label">Variantes</div><div class="k-metric-value">4</div></div>
+  5087→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#b45309;">schedule</span><div class="k-metric-label">Tiempo</div><div class="k-metric-value">8s</div></div>
+  5088→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#8363f9;">aspect_ratio</span><div class="k-metric-label">Resolución</div><div class="k-metric-value">1024²</div></div>
+  5089→  </div>
+  5090→  <div class="k-cta-hint" style="color:#ec4899;"><span>Ver detalle</span><span class="material-symbols-outlined">arrow_forward</span></div>
+  5091→</div>
+  5092→  </div>
+  5093→  <div class="showcase-extended">
+  5094→    <span class="showcase-label extended"><span class="material-symbols-outlined">fullscreen</span>Estado extendido · informe</span>
+  5095→    <div class="k-detail">
+  5096→  <div class="k-detail-sticky-head">
+  5097→    <button class="k-detail-back"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+  5098→    <div class="k-detail-mini-icon" style="background:rgba(236,72,153,0.12);color:#ec4899;"><span class="material-symbols-outlined">auto_awesome</span></div>
+  5099→    <div style="flex:1;min-width:0;"><div class="k-detail-mini-title">Jardín japonés al atardecer</div><div class="k-detail-mini-sub">Tu Imagen</div></div>
+  5100→    <button class="k-detail-save"><span class="material-symbols-outlined ms-fill">bookmark</span></button>
+  5101→  </div>
+  5102→  <div class="k-detail-hero" style="height:140px;">
+  5103→    <img class="k-detail-hero-backdrop" src="https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=200&h=300&fit=crop" alt="" />
+  5104→    <div class="k-detail-hero-scrim"></div>
+  5105→    <div class="k-detail-hero-content">
+  5106→      <div class="k-detail-hero-badge" style="background:rgba(255,255,255,0.92);color:#ec4899;"><span class="material-symbols-outlined" style="font-size:11px;">verified</span>4 variantes</div>
+  5107→      <div class="k-detail-hero-title">Jardín japonés al atardecer</div>
+
+[showing lines 4548-5107 of 6474; use offset=5108 with limit to continue reading]

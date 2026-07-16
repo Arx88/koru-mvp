@@ -1,0 +1,602 @@
+  2470→
+  2471→      <div class="card-section-divider reveal">
+  2472→        <div class="card-section-group-title">Vida diaria</div>
+  2473→        <div class="card-section-group-sub">Clima, morning brief, bienestar — las cards que el usuario ve cada día.</div>
+  2474→      </div>
+  2475→
+  2476→<div class="showcase reveal" id="card-weather">
+  2477→  <div class="showcase-compact">
+  2478→    <span class="showcase-label compact"><span class="material-symbols-outlined">chat</span>Estado compacto · chat</span>
+  2479→    <div class="k-card is-tappable" style="--accent:#f59e0b;--accent-soft:rgba(245,158,11,0.12);">
+  2480→  <div class="k-card-glow" style="background:radial-gradient(circle,#f59e0b,transparent 70%);"></div>
+  2481→  <div class="k-card-top">
+  2482→    <div class="k-card-copy">
+  2483→      <div class="k-card-kicker" style="color:#f59e0b;">Tu Clima · Buenos Aires</div>
+  2484→      <div class="k-card-title">Parcialmente nublado</div>
+  2485→      <div class="k-card-desc">Llevá una campera liviana. Posibles ráfagas hacia la tarde.</div>
+  2486→    </div>
+  2487→    <div class="k-card-art" style="background:rgba(245,158,11,0.12);color:#f59e0b;">
+  2488→      <span class="material-symbols-outlined ms-fill">wb_sunny</span>
+  2489→      <div class="k-card-art-value">23°</div>
+  2490→    </div>
+  2491→  </div>
+  2492→  <div class="k-metrics" style="grid-template-columns:repeat(3,1fr);">
+  2493→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#b45309;">device_thermostat</span><div class="k-metric-label">Mín/Máx</div><div class="k-metric-value">18°/26°</div></div>
+  2494→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#3b82f6;">water_drop</span><div class="k-metric-label">Humedad</div><div class="k-metric-value">62%</div></div>
+  2495→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#2d6a4f;">air</span><div class="k-metric-label">Viento</div><div class="k-metric-value">12 km/h</div></div>
+  2496→  </div>
+  2497→  <div class="k-cta-hint" style="color:#f59e0b;"><span>Ver detalle</span><span class="material-symbols-outlined">arrow_forward</span></div>
+  2498→</div>
+  2499→  </div>
+  2500→  <div class="showcase-extended">
+  2501→    <span class="showcase-label extended"><span class="material-symbols-outlined">fullscreen</span>Estado extendido · informe</span>
+  2502→    <div class="k-detail">
+  2503→  <div class="k-detail-sticky-head">
+  2504→    <button class="k-detail-back"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+  2505→    <div class="k-detail-mini-icon" style="background:rgba(245,158,11,0.12);color:#f59e0b;"><span class="material-symbols-outlined">wb_sunny</span></div>
+  2506→    <div style="flex:1;min-width:0;"><div class="k-detail-mini-title">Parcialmente nublado</div><div class="k-detail-mini-sub">Tu Clima · Buenos Aires</div></div>
+  2507→    <button class="k-detail-save"><span class="material-symbols-outlined ms-fill">bookmark</span></button>
+  2508→  </div>
+  2509→  <div class="k-detail-hero" style="height:140px;">
+  2510→    <div class="k-detail-hero-backdrop" style="background:linear-gradient(135deg,#f59e0b,#382b8c);"></div>
+  2511→    <div class="k-detail-hero-scrim"></div>
+  2512→    <div class="k-detail-hero-content">
+  2513→      <div class="k-detail-hero-badge" style="background:rgba(255,255,255,0.92);color:#2d6a4f;"><span class="material-symbols-outlined" style="font-size:11px;">verified</span>Hace 5 min</div>
+  2514→      <div class="k-detail-hero-title">Parcialmente nublado</div>
+  2515→      <div class="k-detail-hero-sub">Llevá una campera liviana. Posibles ráfagas hacia la tarde.</div>
+  2516→    </div>
+  2517→  </div>
+  2518→  <div class="k-detail-modules">
+  2519→    <div class="k-module" style="--module-color:#f59e0b;animation-delay:0.1s;">
+  2520→      <div class="k-module-head">
+  2521→        <div class="k-module-icon" style="background:rgba(245,158,11,0.12);color:#f59e0b;"><span class="material-symbols-outlined">schedule</span></div>
+  2522→        <div><div class="k-module-title" style="color:#f59e0b;">Próximas horas</div><div class="k-module-kicker">8 horas</div></div>
+  2523→        <span class="k-module-meta">3</span>
+  2524→      </div>
+  2525→      <div class="k-scroller">
+  2526→        <div class="k-scard"><span class="k-scard-badge" style="background:rgba(245,158,11,0.12);color:#f59e0b;">15:00</span><div class="k-scard-title">23° Soleado</div><div class="k-scard-detail">0% lluvia</div>
+  2527→          <div class="k-scard-metrics">
+  2528→            <span class="k-scard-metric">UV 6</span>
+  2529→          </div>
+  2530→        </div>
+  2531→        <div class="k-scard"><span class="k-scard-badge" style="background:rgba(245,158,11,0.12);color:#f59e0b;">16:00</span><div class="k-scard-title">23°</div><div class="k-scard-detail">5% lluvia</div>
+  2532→          <div class="k-scard-metrics">
+  2533→            <span class="k-scard-metric">UV 5</span>
+  2534→          </div>
+  2535→        </div>
+  2536→        <div class="k-scard"><span class="k-scard-badge" style="background:rgba(245,158,11,0.12);color:#f59e0b;">17:00</span><div class="k-scard-title">22°</div><div class="k-scard-detail">10% lluvia</div>
+  2537→          <div class="k-scard-metrics">
+  2538→            <span class="k-scard-metric">UV 3</span>
+  2539→          </div>
+  2540→        </div>
+  2541→      </div>
+  2542→    </div>
+  2543→    <div class="k-module" style="--module-color:#f59e0b;animation-delay:0.16s;">
+  2544→      <div class="k-module-head">
+  2545→        <div class="k-module-icon" style="background:rgba(245,158,11,0.12);color:#f59e0b;"><span class="material-symbols-outlined">calendar_month</span></div>
+  2546→        <div><div class="k-module-title" style="color:#f59e0b;">Pronóstico 7 días</div><div class="k-module-kicker">Lun-Dom</div></div>
+  2547→        <span class="k-module-meta">4</span>
+  2548→      </div>
+  2549→      <div class="k-tiles">
+  2550→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#b45309;">wb_sunny</span><div><div class="k-tile-label">Lun</div><div class="k-tile-value">24°/16°</div></div></div>
+  2551→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#b45309;">wb_sunny</span><div><div class="k-tile-label">Mar</div><div class="k-tile-value">25°/17°</div></div></div>
+  2552→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">cloud</span><div><div class="k-tile-label">Mié</div><div class="k-tile-value">22°/15°</div></div></div>
+  2553→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#3b82f6;">rainy</span><div><div class="k-tile-label">Jue</div><div class="k-tile-value">19°/14°</div></div></div>
+  2554→      </div>
+  2555→    </div>
+  2556→    <div class="k-module" style="--module-color:#f59e0b;animation-delay:0.22s;">
+  2557→      <div class="k-module-head">
+  2558→        <div class="k-module-icon" style="background:rgba(245,158,11,0.12);color:#f59e0b;"><span class="material-symbols-outlined">lightbulb</span></div>
+  2559→        <div><div class="k-module-title" style="color:#f59e0b;">Recomendación</div><div class="k-module-kicker">Consejo del día</div></div>
+  2560→      </div>
+  2561→      <p class="k-text">Llevá gafas de sol entre 13–16h. Cielo despejado toda la tarde, pero cuidado con el viento.</p>
+  2562→    </div>
+  2563→    <div class="k-module" style="--module-color:#f59e0b;animation-delay:0.28s;">
+  2564→      <div class="k-module-head">
+  2565→        <div class="k-module-icon" style="background:rgba(245,158,11,0.12);color:#f59e0b;"><span class="material-symbols-outlined">link</span></div>
+  2566→        <div><div class="k-module-title" style="color:#f59e0b;">Fuentes</div><div class="k-module-kicker">3 orígenes</div></div>
+  2567→        <span class="k-module-meta">3</span>
+  2568→      </div>
+  2569→      <div class="k-sources">
+  2570→        <div class="k-source"><img class="k-source-favicon" src="https://www.google.com/s2/favicons?domain=aemet.es&sz=64" alt="" /><div class="k-source-body"><div class="k-source-title">AEMET</div><div class="k-source-domain">aemet.es</div></div><span class="material-symbols-outlined" style="color:#f59e0b;font-size:16px;">open_in_new</span></div>
+  2571→        <div class="k-source"><img class="k-source-favicon" src="https://www.google.com/s2/favicons?domain=openweathermap.org&sz=64" alt="" /><div class="k-source-body"><div class="k-source-title">OpenWeather</div><div class="k-source-domain">openweathermap.org</div></div><span class="material-symbols-outlined" style="color:#f59e0b;font-size:16px;">open_in_new</span></div>
+  2572→        <div class="k-source"><img class="k-source-favicon" src="https://www.google.com/s2/favicons?domain=weatherapi.com&sz=64" alt="" /><div class="k-source-body"><div class="k-source-title">WeatherAPI</div><div class="k-source-domain">weatherapi.com</div></div><span class="material-symbols-outlined" style="color:#f59e0b;font-size:16px;">open_in_new</span></div>
+  2573→      </div>
+  2574→    </div>
+  2575→  </div>
+  2576→  <div class="k-detail-actions">
+  2577→    <button class="k-detail-action save"><span class="material-symbols-outlined ms-fill" style="font-size:18px;">bookmark_added</span>Guardar</button>
+  2578→    <button class="k-detail-action pdf"><span class="material-symbols-outlined" style="font-size:18px;">picture_as_pdf</span>PDF</button>
+  2579→  </div>
+  2580→</div>
+  2581→  </div>
+  2582→</div>
+  2583→
+  2584→        <div class="card-spec reveal">
+  2585→          <strong>Spec · Clima</strong> &middot;
+  2586→          Accent: <code>#f59e0b</code> &middot;
+  2587→          Icon: <code>wb_sunny</code> &middot;
+  2588→          Layout: <code>default</code> &middot;
+  2589→          3 metrics &middot;
+  2590→          4 secciones en extendido &middot;
+  2591→          Glow halo activo &middot; Count-up en artValue &middot; CTA shimmer cíclico
+  2592→        </div>
+  2593→
+  2594→<div class="showcase reveal" id="card-morning-brief">
+  2595→  <div class="showcase-compact">
+  2596→    <span class="showcase-label compact"><span class="material-symbols-outlined">chat</span>Estado compacto · chat</span>
+  2597→    <div class="k-card is-tappable" style="--accent:#f59e0b;--accent-soft:rgba(245,158,11,0.12);">
+  2598→  <div class="k-card-glow" style="background:radial-gradient(circle,#f59e0b,transparent 70%);"></div>
+  2599→  <div class="k-card-top">
+  2600→    <div class="k-card-copy">
+  2601→      <div class="k-card-kicker" style="color:#f59e0b;">Buenos días</div>
+  2602→      <div class="k-card-title">Buenos días, Ana</div>
+  2603→      <div class="k-card-desc">Tienes 3 eventos hoy y 2 deadlines. Empieza con café y revisa ACME.</div>
+  2604→    </div>
+  2605→    <div class="k-card-art" style="background:rgba(245,158,11,0.12);color:#f59e0b;">
+  2606→      <span class="material-symbols-outlined ms-fill">wb_sunny</span>
+  2607→      <div class="k-card-art-value">3</div>
+  2608→    </div>
+  2609→  </div>
+  2610→  <div class="k-metrics" style="grid-template-columns:repeat(3,1fr);">
+  2611→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#b45309;">event</span><div class="k-metric-label">Eventos</div><div class="k-metric-value">3</div></div>
+  2612→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#c81e1e;">flag</span><div class="k-metric-label">Deadlines</div><div class="k-metric-value">2</div></div>
+  2613→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#3b82f6;">local_drink</span><div class="k-metric-label">Agua</div><div class="k-metric-value">1.4L</div></div>
+  2614→  </div>
+  2615→  <div class="k-cta-hint" style="color:#f59e0b;"><span>Ver detalle</span><span class="material-symbols-outlined">arrow_forward</span></div>
+  2616→</div>
+  2617→  </div>
+  2618→  <div class="showcase-extended">
+  2619→    <span class="showcase-label extended"><span class="material-symbols-outlined">fullscreen</span>Estado extendido · informe</span>
+  2620→    <div class="k-detail">
+  2621→  <div class="k-detail-sticky-head">
+  2622→    <button class="k-detail-back"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+  2623→    <div class="k-detail-mini-icon" style="background:rgba(245,158,11,0.12);color:#f59e0b;"><span class="material-symbols-outlined">wb_sunny</span></div>
+  2624→    <div style="flex:1;min-width:0;"><div class="k-detail-mini-title">Buenos días, Ana</div><div class="k-detail-mini-sub">Buenos días</div></div>
+  2625→    <button class="k-detail-save"><span class="material-symbols-outlined ms-fill">bookmark</span></button>
+  2626→  </div>
+  2627→  <div class="k-detail-hero" style="height:140px;">
+  2628→    <div class="k-detail-hero-backdrop" style="background:linear-gradient(135deg,#f59e0b,#382b8c);"></div>
+  2629→    <div class="k-detail-hero-scrim"></div>
+  2630→    <div class="k-detail-hero-content">
+  2631→      <div class="k-detail-hero-badge" style="background:rgba(255,255,255,0.92);color:#8363f9;"><span class="material-symbols-outlined" style="font-size:11px;">verified</span>Jue 14 mar</div>
+  2632→      <div class="k-detail-hero-title">Buenos días, Ana</div>
+  2633→      <div class="k-detail-hero-sub">Tienes 3 eventos hoy y 2 deadlines. Empieza con café y revisa ACME.</div>
+  2634→    </div>
+  2635→  </div>
+  2636→  <div class="k-detail-modules">
+  2637→    <div class="k-module" style="--module-color:#f59e0b;animation-delay:0.1s;">
+  2638→      <div class="k-module-head">
+  2639→        <div class="k-module-icon" style="background:rgba(245,158,11,0.12);color:#f59e0b;"><span class="material-symbols-outlined">event</span></div>
+  2640→        <div><div class="k-module-title" style="color:#f59e0b;">Items del día</div><div class="k-module-kicker">6 items</div></div>
+  2641→        <span class="k-module-meta">4</span>
+  2642→      </div>
+  2643→      <div class="k-tiles">
+  2644→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">event</span><div><div class="k-tile-label">Reunión Q1</div><div class="k-tile-value">16:00</div></div></div>
+  2645→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#c81e1e;">flag</span><div><div class="k-tile-label">Deadlines</div><div class="k-tile-value">2 hoy</div></div></div>
+  2646→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#3b82f6;">local_drink</span><div><div class="k-tile-label">Agua</div><div class="k-tile-value">1.4L/2L</div></div></div>
+  2647→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#2d6a4f;">directions_run</span><div><div class="k-tile-label">Correr</div><div class="k-tile-value">5km</div></div></div>
+  2648→      </div>
+  2649→    </div>
+  2650→    <div class="k-module" style="--module-color:#f59e0b;animation-delay:0.16s;">
+  2651→      <div class="k-module-head">
+  2652→        <div class="k-module-icon" style="background:rgba(245,158,11,0.12);color:#f59e0b;"><span class="material-symbols-outlined">calendar_month</span></div>
+  2653→        <div><div class="k-module-title" style="color:#f59e0b;">Calendario del día</div><div class="k-module-kicker">4 eventos</div></div>
+  2654→        <span class="k-module-meta">3</span>
+  2655→      </div>
+  2656→      <div class="k-scroller">
+  2657→        <div class="k-scard"><span class="k-scard-badge" style="background:rgba(245,158,11,0.12);color:#f59e0b;">9:00</span><div class="k-scard-title">Standup</div><div class="k-scard-detail">Equipo producto</div>
+  2658→          <div class="k-scard-metrics">
+  2659→            <span class="k-scard-metric">30 min</span>
+  2660→          </div>
+  2661→        </div>
+  2662→        <div class="k-scard"><span class="k-scard-badge" style="background:rgba(245,158,11,0.12);color:#f59e0b;">11:00</span><div class="k-scard-title">1:1 con María</div><div class="k-scard-detail">Review semanal</div>
+  2663→          <div class="k-scard-metrics">
+  2664→            <span class="k-scard-metric">45 min</span>
+  2665→          </div>
+  2666→        </div>
+  2667→        <div class="k-scard"><span class="k-scard-badge" style="background:rgba(245,158,11,0.12);color:#f59e0b;">16:00</span><div class="k-scard-title">Q1 Review</div><div class="k-scard-detail">8 asistentes</div>
+  2668→          <div class="k-scard-metrics">
+  2669→            <span class="k-scard-metric">45 min</span>
+  2670→          </div>
+  2671→        </div>
+  2672→      </div>
+  2673→    </div>
+  2674→    <div class="k-module" style="--module-color:#f59e0b;animation-delay:0.22s;">
+  2675→      <div class="k-module-head">
+  2676→        <div class="k-module-icon" style="background:rgba(245,158,11,0.12);color:#f59e0b;"><span class="material-symbols-outlined">wb_sunny</span></div>
+  2677→        <div><div class="k-module-title" style="color:#f59e0b;">Clima</div><div class="k-module-kicker">Hoy y mañana</div></div>
+  2678→        <span class="k-module-meta">2</span>
+  2679→      </div>
+  2680→      <div class="k-tiles">
+  2681→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#b45309;">wb_sunny</span><div><div class="k-tile-label">Hoy</div><div class="k-tile-value">18°/12°</div></div></div>
+  2682→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">partly_cloudy_day</span><div><div class="k-tile-label">Mañana</div><div class="k-tile-value">16°/10°</div></div></div>
+  2683→      </div>
+  2684→    </div>
+  2685→    <div class="k-module" style="--module-color:#f59e0b;animation-delay:0.28s;">
+  2686→      <div class="k-module-head">
+  2687→        <div class="k-module-icon" style="background:rgba(245,158,11,0.12);color:#f59e0b;"><span class="material-symbols-outlined">psychology</span></div>
+  2688→        <div><div class="k-module-title" style="color:#f59e0b;">Reflexión del día</div><div class="k-module-kicker">Koru AI</div></div>
+  2689→      </div>
+  2690→      <p class="k-text">Hoy es un día de foco: tienes 2 deadlines y la Q1 review. Bloquea 9-11h para ACME sin interrupciones.</p>
+  2691→    </div>
+  2692→  </div>
+  2693→  <div class="k-detail-actions">
+  2694→    <button class="k-detail-action save"><span class="material-symbols-outlined ms-fill" style="font-size:18px;">bookmark_added</span>Guardar</button>
+  2695→    <button class="k-detail-action pdf"><span class="material-symbols-outlined" style="font-size:18px;">picture_as_pdf</span>PDF</button>
+  2696→  </div>
+  2697→</div>
+  2698→  </div>
+  2699→</div>
+  2700→
+  2701→        <div class="card-spec reveal">
+  2702→          <strong>Spec · Morning Brief</strong> &middot;
+  2703→          Accent: <code>#f59e0b</code> &middot;
+  2704→          Icon: <code>wb_sunny</code> &middot;
+  2705→          Layout: <code>default</code> &middot;
+  2706→          3 metrics &middot;
+  2707→          4 secciones en extendido &middot;
+  2708→          Glow halo activo &middot; Count-up en artValue &middot; CTA shimmer cíclico
+  2709→        </div>
+  2710→
+  2711→
+  2712→      <div class="card-section-divider reveal">
+  2713→        <div class="card-section-group-title">Alarmas y recordatorios</div>
+  2714→        <div class="card-section-group-sub">Cards action-only con botones inline primario/secundario.</div>
+  2715→      </div>
+  2716→
+  2717→<div class="showcase reveal" id="card-alarm">
+  2718→  <div class="showcase-compact">
+  2719→    <span class="showcase-label compact"><span class="material-symbols-outlined">chat</span>Estado compacto · chat</span>
+  2720→    <div class="k-card is-tappable" style="--accent:#ef4444;--accent-soft:rgba(239,68,68,0.12);">
+  2721→  <div class="k-card-glow" style="background:radial-gradient(circle,#ef4444,transparent 70%);"></div>
+  2722→  <div class="k-card-top">
+  2723→    <div class="k-card-copy">
+  2724→      <div class="k-card-kicker" style="color:#ef4444;">Alarma</div>
+  2725→      <div class="k-card-title">Reunión equipo</div>
+  2726→      <div class="k-card-desc">Se repite: Lunes a Viernes · Sala Zoom</div>
+  2727→    </div>
+  2728→    <div class="k-card-art" style="background:rgba(239,68,68,0.12);color:#ef4444;">
+  2729→      <span class="material-symbols-outlined ms-fill">alarm</span>
+  2730→      <div class="k-card-art-value">09:00</div>
+  2731→    </div>
+  2732→  </div>
+  2733→  <div class="k-actions">
+  2734→    <button class="k-action primary" style="background:#ef4444;"><span class="material-symbols-outlined">alarm_off</span>Apagar</button>
+  2735→    <button class="k-action secondary"><span class="material-symbols-outlined">snooze</span>Postergar 10 min</button>
+  2736→  </div>
+  2737→</div>
+  2738→  </div>
+  2739→  <div class="showcase-extended">
+  2740→    <span class="showcase-label extended"><span class="material-symbols-outlined">fullscreen</span>Estado extendido · informe</span>
+  2741→    <div class="k-detail">
+  2742→  <div class="k-detail-sticky-head">
+  2743→    <button class="k-detail-back"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+  2744→    <div class="k-detail-mini-icon" style="background:rgba(239,68,68,0.12);color:#ef4444;"><span class="material-symbols-outlined">alarm</span></div>
+  2745→    <div style="flex:1;min-width:0;"><div class="k-detail-mini-title">Reunión equipo</div><div class="k-detail-mini-sub">Alarma</div></div>
+  2746→    <button class="k-detail-save"><span class="material-symbols-outlined ms-fill">bookmark</span></button>
+  2747→  </div>
+  2748→  <div class="k-detail-hero" style="height:140px;">
+  2749→    <div class="k-detail-hero-backdrop" style="background:linear-gradient(135deg,#ef4444,#382b8c);"></div>
+  2750→    <div class="k-detail-hero-scrim"></div>
+  2751→    <div class="k-detail-hero-content">
+  2752→      <div class="k-detail-hero-badge" style="background:rgba(255,255,255,0.92);color:#ef4444;"><span class="material-symbols-outlined" style="font-size:11px;">verified</span>Activa</div>
+  2753→      <div class="k-detail-hero-title">Reunión equipo</div>
+  2754→      <div class="k-detail-hero-sub">Se repite: Lunes a Viernes · Sala Zoom</div>
+  2755→    </div>
+  2756→  </div>
+  2757→  <div class="k-detail-modules">
+  2758→    <div class="k-module" style="--module-color:#ef4444;animation-delay:0.1s;">
+  2759→      <div class="k-module-head">
+  2760→        <div class="k-module-icon" style="background:rgba(239,68,68,0.12);color:#ef4444;"><span class="material-symbols-outlined">alarm</span></div>
+  2761→        <div><div class="k-module-title" style="color:#ef4444;">Detalles</div><div class="k-module-kicker">4 datos</div></div>
+  2762→        <span class="k-module-meta">4</span>
+  2763→      </div>
+  2764→      <div class="k-tiles">
+  2765→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#c81e1e;">schedule</span><div><div class="k-tile-label">Cuándo</div><div class="k-tile-value">Lun-Vie 9:00</div></div></div>
+  2766→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">videocam</span><div><div class="k-tile-label">Dónde</div><div class="k-tile-value">Zoom</div></div></div>
+  2767→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#2d6a4f;">repeat</span><div><div class="k-tile-label">Frecuencia</div><div class="k-tile-value">Diaria</div></div></div>
+  2768→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#b45309;">label</span><div><div class="k-tile-label">Etiqueta</div><div class="k-tile-value">Trabajo</div></div></div>
+  2769→      </div>
+  2770→    </div>
+  2771→    <div class="k-module" style="--module-color:#ef4444;animation-delay:0.16s;">
+  2772→      <div class="k-module-head">
+  2773→        <div class="k-module-icon" style="background:rgba(239,68,68,0.12);color:#ef4444;"><span class="material-symbols-outlined">history</span></div>
+  2774→        <div><div class="k-module-title" style="color:#ef4444;">Próximas alarmas</div><div class="k-module-kicker">5 días</div></div>
+  2775→        <span class="k-module-meta">3</span>
+  2776→      </div>
+  2777→      <div class="k-timeline">
+  2778→        <div class="k-timeline-step is-done">
+  2779→          <div class="k-timeline-dot"><span class="material-symbols-outlined">check</span></div>
+  2780→          <div class="k-timeline-body"><div class="k-timeline-name">Lun 9:00</div><div class="k-timeline-meta">Reunión equipo</div></div>
+  2781→        </div>
+  2782→        <div class="k-timeline-step is-current">
+  2783→          <div class="k-timeline-dot"><span class="material-symbols-outlined">radio_button_checked</span></div>
+  2784→          <div class="k-timeline-body"><div class="k-timeline-name">Mar 9:00</div><div class="k-timeline-meta">Reunión equipo</div></div>
+  2785→        </div>
+  2786→        <div class="k-timeline-step is-pending">
+  2787→          <div class="k-timeline-dot"><span class="material-symbols-outlined">radio_button_unchecked</span></div>
+  2788→          <div class="k-timeline-body"><div class="k-timeline-name">Mié 9:00</div><div class="k-timeline-meta">Reunión equipo</div></div>
+  2789→        </div>
+  2790→      </div>
+  2791→    </div>
+  2792→    <div class="k-module" style="--module-color:#ef4444;animation-delay:0.22s;">
+  2793→      <div class="k-module-head">
+  2794→        <div class="k-module-icon" style="background:rgba(239,68,68,0.12);color:#ef4444;"><span class="material-symbols-outlined">lightbulb</span></div>
+  2795→        <div><div class="k-module-title" style="color:#ef4444;">Consejo</div><div class="k-module-kicker">Koru</div></div>
+  2796→      </div>
+  2797→      <p class="k-text">Esta alarma se repite cada día laborable. Considera silenciarla los feriados automáticamente.</p>
+  2798→    </div>
+  2799→  </div>
+  2800→  <div class="k-detail-actions">
+  2801→    <button class="k-detail-action save"><span class="material-symbols-outlined ms-fill" style="font-size:18px;">bookmark_added</span>Guardar</button>
+  2802→    <button class="k-detail-action pdf"><span class="material-symbols-outlined" style="font-size:18px;">picture_as_pdf</span>PDF</button>
+  2803→  </div>
+  2804→</div>
+  2805→  </div>
+  2806→</div>
+  2807→
+  2808→        <div class="card-spec reveal">
+  2809→          <strong>Spec · Alarma</strong> &middot;
+  2810→          Accent: <code>#ef4444</code> &middot;
+  2811→          Icon: <code>alarm</code> &middot;
+  2812→          Layout: <code>default</code> &middot;
+  2813→          0 metrics &middot;
+  2814→          3 secciones en extendido &middot;
+  2815→          Glow halo activo &middot; Count-up en artValue &middot; CTA shimmer cíclico
+  2816→        </div>
+  2817→
+  2818→<div class="showcase reveal" id="card-reminder">
+  2819→  <div class="showcase-compact">
+  2820→    <span class="showcase-label compact"><span class="material-symbols-outlined">chat</span>Estado compacto · chat</span>
+  2821→    <div class="k-card is-tappable" style="--accent:#2d6a4f;--accent-soft:rgba(45,106,79,0.12);">
+  2822→  <div class="k-card-glow" style="background:radial-gradient(circle,#2d6a4f,transparent 70%);"></div>
+  2823→  <div class="k-card-top">
+  2824→    <div class="k-card-copy">
+  2825→      <div class="k-card-kicker" style="color:#2d6a4f;">Recordatorio</div>
+  2826→      <div class="k-card-title">Llamar a mamá</div>
+  2827→      <div class="k-card-desc">Hoy · Es su cumpleaños</div>
+  2828→    </div>
+  2829→    <div class="k-card-art" style="background:rgba(45,106,79,0.12);color:#2d6a4f;">
+  2830→      <span class="material-symbols-outlined ms-fill">notifications</span>
+  2831→      <div class="k-card-art-value">18:00</div>
+  2832→    </div>
+  2833→  </div>
+  2834→  <div class="k-actions">
+  2835→    <button class="k-action primary" style="background:#2d6a4f;"><span class="material-symbols-outlined">check</span>Listo</button>
+  2836→    <button class="k-action secondary"><span class="material-symbols-outlined">snooze</span>Posponer</button>
+  2837→  </div>
+  2838→</div>
+  2839→  </div>
+  2840→  <div class="showcase-extended">
+  2841→    <span class="showcase-label extended"><span class="material-symbols-outlined">fullscreen</span>Estado extendido · informe</span>
+  2842→    <div class="k-detail">
+  2843→  <div class="k-detail-sticky-head">
+  2844→    <button class="k-detail-back"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+  2845→    <div class="k-detail-mini-icon" style="background:rgba(45,106,79,0.12);color:#2d6a4f;"><span class="material-symbols-outlined">notifications</span></div>
+  2846→    <div style="flex:1;min-width:0;"><div class="k-detail-mini-title">Llamar a mamá</div><div class="k-detail-mini-sub">Recordatorio</div></div>
+  2847→    <button class="k-detail-save"><span class="material-symbols-outlined ms-fill">bookmark</span></button>
+  2848→  </div>
+  2849→  <div class="k-detail-hero" style="height:140px;">
+  2850→    <div class="k-detail-hero-backdrop" style="background:linear-gradient(135deg,#2d6a4f,#382b8c);"></div>
+  2851→    <div class="k-detail-hero-scrim"></div>
+  2852→    <div class="k-detail-hero-content">
+  2853→      <div class="k-detail-hero-badge" style="background:rgba(255,255,255,0.92);color:#2d6a4f;"><span class="material-symbols-outlined" style="font-size:11px;">verified</span>Hoy</div>
+  2854→      <div class="k-detail-hero-title">Llamar a mamá</div>
+  2855→      <div class="k-detail-hero-sub">Hoy · Es su cumpleaños</div>
+  2856→    </div>
+  2857→  </div>
+  2858→  <div class="k-detail-modules">
+  2859→    <div class="k-module" style="--module-color:#2d6a4f;animation-delay:0.1s;">
+  2860→      <div class="k-module-head">
+  2861→        <div class="k-module-icon" style="background:rgba(45,106,79,0.12);color:#2d6a4f;"><span class="material-symbols-outlined">notifications</span></div>
+  2862→        <div><div class="k-module-title" style="color:#2d6a4f;">Detalles</div><div class="k-module-kicker">3 datos</div></div>
+  2863→        <span class="k-module-meta">3</span>
+  2864→      </div>
+  2865→      <div class="k-tiles">
+  2866→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#2d6a4f;">schedule</span><div><div class="k-tile-label">Cuándo</div><div class="k-tile-value">Hoy 18:00</div></div></div>
+  2867→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#ec4899;">cake</span><div><div class="k-tile-label">Motivo</div><div class="k-tile-value">Cumpleaños</div></div></div>
+  2868→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">phone</span><div><div class="k-tile-label">Acción</div><div class="k-tile-value">Llamar</div></div></div>
+  2869→      </div>
+  2870→    </div>
+  2871→    <div class="k-module" style="--module-color:#2d6a4f;animation-delay:0.16s;">
+  2872→      <div class="k-module-head">
+  2873→        <div class="k-module-icon" style="background:rgba(45,106,79,0.12);color:#2d6a4f;"><span class="material-symbols-outlined">favorite</span></div>
+  2874→        <div><div class="k-module-title" style="color:#2d6a4f;">Nota</div><div class="k-module-kicker">Personal</div></div>
+  2875→      </div>
+  2876→      <p class="k-text">Es el cumpleaños número 65 de mamá. Considera enviar flores además de llamar.</p>
+  2877→    </div>
+  2878→    <div class="k-module" style="--module-color:#2d6a4f;animation-delay:0.22s;">
+  2879→      <div class="k-module-head">
+  2880→        <div class="k-module-icon" style="background:rgba(45,106,79,0.12);color:#2d6a4f;"><span class="material-symbols-outlined">card_giftcard</span></div>
+  2881→        <div><div class="k-module-title" style="color:#2d6a4f;">Ideas</div><div class="k-module-kicker">4 sugerencias</div></div>
+  2882→        <span class="k-module-meta">4</span>
+  2883→      </div>
+  2884→      <div class="k-chips">
+  2885→        <div class="k-chip"><span class="material-symbols-outlined">📚</span>Libro</div>
+  2886→        <div class="k-chip"><span class="material-symbols-outlined">🌷</span>Flores</div>
+  2887→        <div class="k-chip"><span class="material-symbols-outlined">🍫</span>Chocolates</div>
+  2888→        <div class="k-chip"><span class="material-symbols-outlined">🎁</span>Tarjeta</div>
+  2889→      </div>
+  2890→    </div>
+  2891→  </div>
+  2892→  <div class="k-detail-actions">
+  2893→    <button class="k-detail-action save"><span class="material-symbols-outlined ms-fill" style="font-size:18px;">bookmark_added</span>Guardar</button>
+  2894→    <button class="k-detail-action pdf"><span class="material-symbols-outlined" style="font-size:18px;">picture_as_pdf</span>PDF</button>
+  2895→  </div>
+  2896→</div>
+  2897→  </div>
+  2898→</div>
+  2899→
+  2900→        <div class="card-spec reveal">
+  2901→          <strong>Spec · Recordatorio</strong> &middot;
+  2902→          Accent: <code>#2d6a4f</code> &middot;
+  2903→          Icon: <code>notifications</code> &middot;
+  2904→          Layout: <code>default</code> &middot;
+  2905→          0 metrics &middot;
+  2906→          3 secciones en extendido &middot;
+  2907→          Glow halo activo &middot; Count-up en artValue &middot; CTA shimmer cíclico
+  2908→        </div>
+  2909→
+  2910→
+  2911→      <div class="card-section-divider reveal">
+  2912→        <div class="card-section-group-title">Bienestar</div>
+  2913→        <div class="card-section-group-sub">Salud, sueño, meditation, outfit del día.</div>
+  2914→      </div>
+  2915→
+  2916→<div class="showcase reveal" id="card-wellbeing">
+  2917→  <div class="showcase-compact">
+  2918→    <span class="showcase-label compact"><span class="material-symbols-outlined">chat</span>Estado compacto · chat</span>
+  2919→    <div class="k-card is-tappable" style="--accent:#8127cf;--accent-soft:rgba(129,39,207,0.12);">
+  2920→  <div class="k-card-glow" style="background:radial-gradient(circle,#8127cf,transparent 70%);"></div>
+  2921→  <div class="k-card-top">
+  2922→    <div class="k-card-copy">
+  2923→      <div class="k-card-kicker" style="color:#8127cf;">Tu Bienestar</div>
+  2924→      <div class="k-card-title">Hora de meditar</div>
+  2925→      <div class="k-card-desc">Llevas 4 días sin meditar. 5 minutos alcanzan.</div>
+  2926→    </div>
+  2927→    <div class="k-card-art" style="background:rgba(129,39,207,0.12);color:#8127cf;">
+  2928→      <span class="material-symbols-outlined ms-fill">favorite</span>
+  2929→      <div class="k-card-art-value">5min</div>
+  2930→    </div>
+  2931→  </div>
+  2932→  <div class="k-metrics" style="grid-template-columns:repeat(3,1fr);">
+  2933→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#4f46e5;">bedtime</span><div class="k-metric-label">Sueño</div><div class="k-metric-value">7.2h</div></div>
+  2934→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#2d6a4f;">directions_walk</span><div class="k-metric-label">Pasos</div><div class="k-metric-value">8.4k</div></div>
+  2935→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#ec4899;">favorite</span><div class="k-metric-label">Heart</div><div class="k-metric-value">72bpm</div></div>
+  2936→  </div>
+  2937→  <div class="k-cta-hint" style="color:#8127cf;"><span>Ver detalle</span><span class="material-symbols-outlined">arrow_forward</span></div>
+  2938→</div>
+  2939→  </div>
+  2940→  <div class="showcase-extended">
+  2941→    <span class="showcase-label extended"><span class="material-symbols-outlined">fullscreen</span>Estado extendido · informe</span>
+  2942→    <div class="k-detail">
+  2943→  <div class="k-detail-sticky-head">
+  2944→    <button class="k-detail-back"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+  2945→    <div class="k-detail-mini-icon" style="background:rgba(129,39,207,0.12);color:#8127cf;"><span class="material-symbols-outlined">favorite</span></div>
+  2946→    <div style="flex:1;min-width:0;"><div class="k-detail-mini-title">Hora de meditar</div><div class="k-detail-mini-sub">Tu Bienestar</div></div>
+  2947→    <button class="k-detail-save"><span class="material-symbols-outlined ms-fill">bookmark</span></button>
+  2948→  </div>
+  2949→  <div class="k-detail-hero" style="height:140px;">
+  2950→    <div class="k-detail-hero-backdrop" style="background:linear-gradient(135deg,#8127cf,#382b8c);"></div>
+  2951→    <div class="k-detail-hero-scrim"></div>
+  2952→    <div class="k-detail-hero-content">
+  2953→      <div class="k-detail-hero-badge" style="background:rgba(255,255,255,0.92);color:#8127cf;"><span class="material-symbols-outlined" style="font-size:11px;">verified</span>Racha 4 días</div>
+  2954→      <div class="k-detail-hero-title">Hora de meditar</div>
+  2955→      <div class="k-detail-hero-sub">Llevas 4 días sin meditar. 5 minutos alcanzan.</div>
+  2956→    </div>
+  2957→  </div>
+  2958→  <div class="k-detail-modules">
+  2959→    <div class="k-module" style="--module-color:#8127cf;animation-delay:0.1s;">
+  2960→      <div class="k-module-head">
+  2961→        <div class="k-module-icon" style="background:rgba(129,39,207,0.12);color:#8127cf;"><span class="material-symbols-outlined">monitoring</span></div>
+  2962→        <div><div class="k-module-title" style="color:#8127cf;">Métricas de hoy</div><div class="k-module-kicker">4 datos</div></div>
+  2963→        <span class="k-module-meta">4</span>
+  2964→      </div>
+  2965→      <div class="k-tiles">
+  2966→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#4f46e5;">bedtime</span><div><div class="k-tile-label">Sueño</div><div class="k-tile-value">7.2h</div></div></div>
+  2967→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#2d6a4f;">directions_walk</span><div><div class="k-tile-label">Pasos</div><div class="k-tile-value">8.4k</div></div></div>
+  2968→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#ec4899;">favorite</span><div><div class="k-tile-label">HR</div><div class="k-tile-value">72bpm</div></div></div>
+  2969→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">psychology</span><div><div class="k-tile-label">Stress</div><div class="k-tile-value">Bajo</div></div></div>
+  2970→      </div>
+  2971→    </div>
+  2972→    <div class="k-module" style="--module-color:#8127cf;animation-delay:0.16s;">
+  2973→      <div class="k-module-head">
+  2974→        <div class="k-module-icon" style="background:rgba(129,39,207,0.12);color:#8127cf;"><span class="material-symbols-outlined">self_improvement</span></div>
+  2975→        <div><div class="k-module-title" style="color:#8127cf;">Sesión sugerida</div><div class="k-module-kicker">3 min</div></div>
+  2976→        <span class="k-module-meta">2</span>
+  2977→      </div>
+  2978→      <div class="k-scroller">
+  2979→        <div class="k-scard"><span class="k-scard-badge" style="background:rgba(129,39,207,0.12);color:#8127cf;">5 min</span><div class="k-scard-title">Respiración 4-7-8</div><div class="k-scard-detail">Reduce ansiedad</div>
+  2980→          <div class="k-scard-metrics">
+  2981→            <span class="k-scard-metric">Fácil</span>
+  2982→          </div>
+  2983→        </div>
+  2984→        <div class="k-scard"><span class="k-scard-badge" style="background:rgba(129,39,207,0.12);color:#8127cf;">10 min</span><div class="k-scard-title">Body scan</div><div class="k-scard-detail">Conciencia corporal</div>
+  2985→          <div class="k-scard-metrics">
+  2986→            <span class="k-scard-metric">Medio</span>
+  2987→          </div>
+  2988→        </div>
+  2989→      </div>
+  2990→    </div>
+  2991→    <div class="k-module" style="--module-color:#8127cf;animation-delay:0.22s;">
+  2992→      <div class="k-module-head">
+  2993→        <div class="k-module-icon" style="background:rgba(129,39,207,0.12);color:#8127cf;"><span class="material-symbols-outlined">lightbulb</span></div>
+  2994→        <div><div class="k-module-title" style="color:#8127cf;">Sugerencia</div><div class="k-module-kicker">Koru</div></div>
+  2995→      </div>
+  2996→      <p class="k-text">Meditar 5 minutos al día reduce el cortisol en 23%. Tu mejor hora es 18h según tu ritmo circadiano.</p>
+  2997→    </div>
+  2998→  </div>
+  2999→  <div class="k-detail-actions">
+  3000→    <button class="k-detail-action save"><span class="material-symbols-outlined ms-fill" style="font-size:18px;">bookmark_added</span>Guardar</button>
+  3001→    <button class="k-detail-action pdf"><span class="material-symbols-outlined" style="font-size:18px;">picture_as_pdf</span>PDF</button>
+  3002→  </div>
+  3003→</div>
+  3004→  </div>
+  3005→</div>
+  3006→
+  3007→        <div class="card-spec reveal">
+  3008→          <strong>Spec · Bienestar</strong> &middot;
+  3009→          Accent: <code>#8127cf</code> &middot;
+  3010→          Icon: <code>favorite</code> &middot;
+  3011→          Layout: <code>default</code> &middot;
+  3012→          3 metrics &middot;
+  3013→          3 secciones en extendido &middot;
+  3014→          Glow halo activo &middot; Count-up en artValue &middot; CTA shimmer cíclico
+  3015→        </div>
+  3016→
+  3017→
+  3018→      <div class="card-section-divider reveal">
+  3019→        <div class="card-section-group-title">Planes y checklists</div>
+  3020→        <div class="card-section-group-sub">Roadmaps, checklists, smart lists con progreso.</div>
+  3021→      </div>
+  3022→
+  3023→<div class="showcase reveal" id="card-plan">
+  3024→  <div class="showcase-compact">
+  3025→    <span class="showcase-label compact"><span class="material-symbols-outlined">chat</span>Estado compacto · chat</span>
+  3026→    <div class="k-card is-tappable" style="--accent:#8363f9;--accent-soft:rgba(131,99,249,0.12);">
+  3027→  <div class="k-card-glow" style="background:radial-gradient(circle,#8363f9,transparent 70%);"></div>
+  3028→  <div class="k-card-top">
+  3029→    <div class="k-card-copy">
+  3030→      <div class="k-card-kicker" style="color:#8363f9;">Tu Plan</div>
+  3031→      <div class="k-card-title">Lanzar producto MVP</div>
+  3032→      <div class="k-card-desc">7 pasos para hoy · 3 semanas estimadas</div>
+  3033→    </div>
+  3034→    <div class="k-card-art" style="background:rgba(131,99,249,0.12);color:#8363f9;">
+  3035→      <span class="material-symbols-outlined ms-fill">rocket_launch</span>
+  3036→      <div class="k-card-art-value">2/7</div>
+  3037→    </div>
+  3038→  </div>
+  3039→  <div class="k-metrics" style="grid-template-columns:repeat(3,1fr);">
+  3040→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#c81e1e;">flag</span><div class="k-metric-label">Alta</div><div class="k-metric-value">3</div></div>
+  3041→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#b45309;">schedule</span><div class="k-metric-label">Media</div><div class="k-metric-value">2</div></div>
+  3042→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#2d6a4f;">check_circle</span><div class="k-metric-label">Baja</div><div class="k-metric-value">2</div></div>
+  3043→  </div>
+  3044→  <div class="k-cta-hint" style="color:#8363f9;"><span>Ver detalle</span><span class="material-symbols-outlined">arrow_forward</span></div>
+  3045→</div>
+  3046→  </div>
+  3047→  <div class="showcase-extended">
+  3048→    <span class="showcase-label extended"><span class="material-symbols-outlined">fullscreen</span>Estado extendido · informe</span>
+  3049→    <div class="k-detail">
+  3050→  <div class="k-detail-sticky-head">
+  3051→    <button class="k-detail-back"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+  3052→    <div class="k-detail-mini-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">rocket_launch</span></div>
+  3053→    <div style="flex:1;min-width:0;"><div class="k-detail-mini-title">Lanzar producto MVP</div><div class="k-detail-mini-sub">Tu Plan</div></div>
+  3054→    <button class="k-detail-save"><span class="material-symbols-outlined ms-fill">bookmark</span></button>
+  3055→  </div>
+  3056→  <div class="k-detail-hero" style="height:140px;">
+  3057→    <div class="k-detail-hero-backdrop" style="background:linear-gradient(135deg,#8363f9,#382b8c);"></div>
+  3058→    <div class="k-detail-hero-scrim"></div>
+  3059→    <div class="k-detail-hero-content">
+  3060→      <div class="k-detail-hero-badge" style="background:rgba(255,255,255,0.92);color:#8363f9;"><span class="material-symbols-outlined" style="font-size:11px;">verified</span>3 semanas</div>
+  3061→      <div class="k-detail-hero-title">Lanzar producto MVP</div>
+  3062→      <div class="k-detail-hero-sub">7 pasos para hoy · 3 semanas estimadas</div>
+  3063→    </div>
+  3064→  </div>
+  3065→  <div class="k-detail-modules">
+  3066→    <div class="k-module" style="--module-color:#8363f9;animation-delay:0.1s;">
+  3067→      <div class="k-module-head">
+  3068→        <div class="k-module-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">checklist_rtl</span></div>
+  3069→        <div><div class="k-module-title" style="color:#8363f9;">Pasos del plan</div><div class="k-module-kicker">7 etapas</div></div>
+
+[showing lines 2470-3069 of 6474; use offset=3070 with limit to continue reading]

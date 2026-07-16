@@ -1,0 +1,2002 @@
+     1→<!DOCTYPE html>
+     2→<html lang="es">
+     3→<head>
+     4→<meta charset="UTF-8" />
+     5→<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+     6→<title>Koru · Auditoría UI Cards v2 — Tier S</title>
+     7→<link rel="preconnect" href="https://fonts.googleapis.com" />
+     8→<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+     9→<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bricolage+Grotesque:wght@600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+    10→<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" rel="stylesheet" />
+    11→<style>
+    12→/* =====================================================================
+    13→   KORU UI AUDIT v2 — TIER S
+    14→   Brand tokens lifted EXACTLY from src/style.css :root + chat-shell
+    15→   NO deviations. Anti-patterns from Brand Bible enforced.
+    16→   ===================================================================== */
+    17→:root {
+    18→  /* === PRIMARY VIOLET SCALE (the ONLY violet family) === */
+    19→  --kp:        #8363f9;   /* primary — buttons, active, accents */
+    20→  --kp-dark:   #523a9e;   /* hover / pressed */
+    21→  --kp-deep:   #382b8c;   /* body text on light, ink */
+    22→  --kp-soft:   rgba(131, 99, 249, 0.12);
+    23→  --kp-border: rgba(131, 99, 249, 0.25);
+    24→
+    25→  /* === TAILWIND-MAPPED (lavender values, legacy names) === */
+    26→  --c-forest:  #7c5cdb;
+    27→  --c-sage:    #a99be0;
+    28→  --c-moss:    #8b6ff0;
+    29→  --c-leaf:    #c9bdf5;
+    30→  --c-cream:   #f6f3fe;   /* app background */
+    31→  --c-warm:    #efeafb;   /* soft surface */
+    32→  --c-sand:    #e4ddf7;   /* border */
+    33→  --c-gold:    #e0a3d6;   /* magenta accent */
+    34→  --c-bark:    #2e2650;   /* ink text */
+    35→  --c-earth:   #6b5f8c;   /* muted text */
+    36→  --c-stone:   #a99bbe;   /* faint text (use sparingly — contrast 2.36:1) */
+    37→  --c-blush:   #f0d9ee;
+    38→
+    39→  /* === SEMANTIC ACCENTS (exact from :root) === */
+    40→  --k-emerald:    #2d6a4f;  --k-emerald-soft: rgba(45,106,79,0.10);
+    41→  --k-amber:      #f59e0b;  --k-amber-soft:   rgba(245,158,11,0.10);
+    42→  --k-amber-text: #b45309;  /* amber text-safe (4.58:1 AA) */
+    43→  --k-rose:       #ef4444;  --k-rose-soft:    rgba(239,68,68,0.10);
+    44→  --k-rose-text:  #c81e1e;  /* rose text-safe (5.24:1 AA) */
+    45→  --k-blue:       #3b82f6;  --k-blue-soft:    rgba(59,130,246,0.10);
+    46→  --k-pink:       #ec4899;  --k-pink-soft:    rgba(236,72,153,0.10);
+    47→  --k-cyan:       #06b6d4;  --k-cyan-soft:    rgba(6,182,212,0.10);
+    48→
+    49→  /* === TEXT-SAFE ACCENT (for under-18px accent text) === */
+    50→  --kp-text:   #523a9e;     /* 7.80:1 AAA — use for accent text < 18px */
+    51→  --k-meta:    #7566a0;     /* 4.60:1 AA — replacement for stone on readable text */
+    52→
+    53→  /* === CHAT NIGHT-SKY (the only dark surface allowed) === */
+    54→  --k-night:   #453f6a;
+    55→  --k-night-deep: #14102a;
+    56→  --k-night-text: #301c70;
+    57→  --k-night-accent: #7c5ff6;
+    58→
+    59→  /* === BACKGROUNDS (Koru signature gradients) === */
+    60→  --bg-app:       #f6f3fe;
+    61→  --bg-screen:    linear-gradient(180deg, #f0dbff 0%, #f8f9ff 100%);
+    62→  --bg-card:      linear-gradient(180deg, #ffffff 0%, #f3f0f8 100%);
+    63→  --bg-module:    rgba(255, 255, 255, 0.72);
+    64→  --bg-blob-violet: radial-gradient(circle, rgba(221,183,255,0.55) 0%, rgba(221,183,255,0) 70%);
+    65→
+    66→  /* === SPACING (7 tokens, base 4px) === */
+    67→  --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px;
+    68→  --s-5: 20px; --s-6: 24px; --s-8: 32px; --s-10: 40px; --s-12: 48px;
+    69→
+    70→  /* === RADIUS === */
+    71→  --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 20px; --r-2xl: 24px; --r-3xl: 32px; --r-full: 999px;
+    72→
+    73→  /* === SHADOWS (violet ink only — NEVER rgba(0,0,0,X)) === */
+    74→  --sh-sm:    0 2px 8px rgba(18, 10, 50, 0.06);
+    75→  --sh-md:    0 4px 16px rgba(131, 99, 249, 0.12);
+    76→  --sh-lg:    0 8px 24px rgba(131, 99, 249, 0.18);
+    77→  --sh-card:  0 8px 32px rgba(18, 10, 50, 0.08);
+    78→  --sh-hover: 0 12px 32px rgba(131, 99, 249, 0.20);
+    79→  --sh-cta:   0 6px 16px rgba(131, 99, 249, 0.28);
+    80→  --sh-float: 0 24px 64px rgba(46, 38, 80, 0.32);
+    81→
+    82→  /* === EASING (3 curves — never use linear except progress) === */
+    83→  --e-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    84→  --e-out:    cubic-bezier(0.22, 1, 0.36, 1);
+    85→  --e-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+    86→
+    87→  /* === TYPOGRAPHY === */
+    88→  --t-sans:    "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+    89→  --t-display: "Bricolage Grotesque", "Plus Jakarta Sans", sans-serif;
+    90→  --t-mono:    "JetBrains Mono", ui-monospace, monospace;
+    91→}
+    92→
+    93→* { box-sizing: border-box; margin: 0; padding: 0; }
+    94→html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+    95→body {
+    96→  font-family: var(--t-sans);
+    97→  color: var(--c-bark);
+    98→  background: var(--bg-app);
+    99→  line-height: 1.5;
+   100→  overflow-x: hidden;
+   101→}
+   102→
+   103→.material-symbols-outlined {
+   104→  font-family: 'Material Symbols Outlined';
+   105→  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+   106→  font-feature-settings: 'liga';
+   107→  vertical-align: middle;
+   108→  line-height: 1;
+   109→}
+   110→.ms-fill { font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24; }
+   111→.ms-bold { font-variation-settings: 'FILL' 0, 'wght' 700, 'GRAD' 0, 'opsz' 24; }
+   112→
+   113→/* =====================================================================
+   114→   LAYOUT — Reading column + Side rail
+   115→   ===================================================================== */
+   116→.audit {
+   117→  display: grid;
+   118→  grid-template-columns: 272px 1fr;
+   119→  min-height: 100vh;
+   120→}
+   121→
+   122→/* === SIDE RAIL === */
+   123→.rail {
+   124→  position: sticky; top: 0;
+   125→  height: 100vh; overflow-y: auto;
+   126→  background: linear-gradient(180deg, #2e2650 0%, #453f6a 50%, #2e2650 100%);
+   127→  color: #efeafb;
+   128→  padding: 28px 18px;
+   129→  border-right: 1px solid rgba(131, 99, 249, 0.15);
+   130→  z-index: 50;
+   131→  scrollbar-width: thin;
+   132→  scrollbar-color: rgba(131, 99, 249, 0.4) transparent;
+   133→}
+   134→.rail::-webkit-scrollbar { width: 5px; }
+   135→.rail::-webkit-scrollbar-thumb { background: rgba(131, 99, 249, 0.4); border-radius: 999px; }
+   136→
+   137→.rail-brand {
+   138→  display: flex; align-items: center; gap: 12px;
+   139→  margin-bottom: 28px;
+   140→}
+   141→.rail-brand-mark {
+   142→  width: 42px; height: 42px;
+   143→  border-radius: 13px;
+   144→  background: radial-gradient(circle at 30% 30%, #c9bdf5 0%, #8363f9 50%, #523a9e 100%);
+   145→  box-shadow: 0 0 20px rgba(131, 99, 249, 0.5), inset 0 1px 0 rgba(255,255,255,0.3);
+   146→  display: grid; place-items: center;
+   147→  animation: koru-breathe 4s ease-in-out infinite;
+   148→  position: relative;
+   149→}
+   150→.rail-brand-mark::after {
+   151→  content: ""; position: absolute; inset: -3px;
+   152→  border-radius: 15px;
+   153→  border: 1.5px solid rgba(131, 99, 249, 0.35);
+   154→  animation: koru-ring-pulse 2.4s ease-out infinite;
+   155→}
+   156→.rail-brand-mark .material-symbols-outlined {
+   157→  color: #fff; font-size: 22px;
+   158→  font-variation-settings: 'FILL' 1, 'wght' 600;
+   159→}
+   160→.rail-brand-text {
+   161→  font-family: var(--t-display);
+   162→  font-size: 21px; font-weight: 800;
+   163→  letter-spacing: -0.02em; color: #fff; line-height: 1.1;
+   164→}
+   165→.rail-brand-sub {
+   166→  font-size: 10px; letter-spacing: 0.12em;
+   167→  text-transform: uppercase;
+   168→  color: rgba(239, 234, 251, 0.5);
+   169→  font-weight: 600; margin-top: 2px;
+   170→}
+   171→
+   172→.rail-section { margin-top: 22px; }
+   173→.rail-section-title {
+   174→  font-size: 10px; font-weight: 700;
+   175→  letter-spacing: 0.16em; text-transform: uppercase;
+   176→  color: rgba(239, 234, 251, 0.35);
+   177→  margin-bottom: 7px; padding-left: 11px;
+   178→}
+   179→.rail-link {
+   180→  display: flex; align-items: center; gap: 10px;
+   181→  padding: 8px 11px;
+   182→  border-radius: 9px;
+   183→  color: rgba(239, 234, 251, 0.7);
+   184→  text-decoration: none;
+   185→  font-size: 12.5px; font-weight: 500;
+   186→  transition: all 0.18s var(--e-smooth);
+   187→  border-left: 2px solid transparent;
+   188→  margin-left: -2px;
+   189→}
+   190→.rail-link:hover {
+   191→  background: rgba(131, 99, 249, 0.10);
+   192→  color: #fff;
+   193→  transform: translateX(2px);
+   194→}
+   195→.rail-link.is-active {
+   196→  background: linear-gradient(90deg, rgba(131, 99, 249, 0.24), rgba(131, 99, 249, 0.02));
+   197→  color: #fff;
+   198→  border-left-color: #c9bdf5;
+   199→}
+   200→.rail-link .material-symbols-outlined {
+   201→  font-size: 16px;
+   202→  color: rgba(169, 155, 224, 0.8);
+   203→}
+   204→.rail-link.is-active .material-symbols-outlined { color: #c9bdf5; }
+   205→.rail-link-num {
+   206→  margin-left: auto;
+   207→  font-size: 9px; font-weight: 700;
+   208→  background: rgba(131, 99, 249, 0.22);
+   209→  color: #c9bdf5;
+   210→  padding: 2px 6px; border-radius: 999px;
+   211→  min-width: 20px; text-align: center;
+   212→}
+   213→
+   214→.rail-progress {
+   215→  margin-top: 28px;
+   216→  padding: 14px;
+   217→  border-radius: 13px;
+   218→  background: rgba(131, 99, 249, 0.07);
+   219→  border: 1px solid rgba(131, 99, 249, 0.16);
+   220→}
+   221→.rail-progress-label {
+   222→  font-size: 10px; letter-spacing: 0.1em;
+   223→  text-transform: uppercase;
+   224→  color: rgba(239, 234, 251, 0.5);
+   225→  font-weight: 700; margin-bottom: 9px;
+   226→}
+   227→.rail-progress-bar {
+   228→  height: 5px;
+   229→  background: rgba(131, 99, 249, 0.16);
+   230→  border-radius: 999px; overflow: hidden;
+   231→}
+   232→.rail-progress-fill {
+   233→  height: 100%;
+   234→  background: linear-gradient(90deg, #8363f9, #c9bdf5);
+   235→  border-radius: 999px; width: 0%;
+   236→  transition: width 0.2s linear;
+   237→  box-shadow: 0 0 10px rgba(131, 99, 249, 0.5);
+   238→}
+   239→.rail-progress-num {
+   240→  margin-top: 7px;
+   241→  font-family: var(--t-mono);
+   242→  font-size: 11px; color: #c9bdf5; font-weight: 600;
+   243→}
+   244→
+   245→.rail-foot {
+   246→  margin-top: 22px;
+   247→  padding-top: 18px;
+   248→  border-top: 1px solid rgba(131, 99, 249, 0.16);
+   249→  font-size: 10.5px; color: rgba(239, 234, 251, 0.4);
+   250→  line-height: 1.6;
+   251→}
+   252→.rail-foot strong { color: rgba(239, 234, 251, 0.65); }
+   253→
+   254→.rail-toggle {
+   255→  display: none; position: fixed;
+   256→  top: 14px; left: 14px; z-index: 100;
+   257→  width: 42px; height: 42px;
+   258→  border-radius: 11px;
+   259→  background: rgba(46, 38, 80, 0.95);
+   260→  backdrop-filter: blur(12px);
+   261→  color: #fff;
+   262→  border: 1px solid rgba(131, 99, 249, 0.3);
+   263→  cursor: pointer;
+   264→  align-items: center; justify-content: center;
+   265→}
+   266→.rail-toggle .material-symbols-outlined { font-size: 21px; }
+   267→
+   268→/* === READING COLUMN === */
+   269→.read { min-width: 0; position: relative; }
+   270→
+   271→.section {
+   272→  padding: 72px 56px 56px;
+   273→  border-bottom: 1px solid var(--c-sand);
+   274→  position: relative;
+   275→}
+   276→.section:last-child { border-bottom: none; }
+   277→
+   278→.section-tag {
+   279→  display: inline-flex; align-items: center; gap: 7px;
+   280→  padding: 5px 11px;
+   281→  background: var(--kp-soft);
+   282→  color: var(--kp);
+   283→  border-radius: 999px;
+   284→  font-size: 10.5px; font-weight: 700;
+   285→  letter-spacing: 0.1em; text-transform: uppercase;
+   286→  margin-bottom: 16px;
+   287→}
+   288→.section-tag .material-symbols-outlined { font-size: 13px; }
+   289→
+   290→.section-title {
+   291→  font-family: var(--t-display);
+   292→  font-size: 38px; font-weight: 800;
+   293→  color: var(--kp-deep);
+   294→  letter-spacing: -0.025em;
+   295→  line-height: 1.1;
+   296→  margin-bottom: 14px;
+   297→}
+   298→.section-title .accent {
+   299→  background: linear-gradient(135deg, #8363f9, #e0a3d6);
+   300→  -webkit-background-clip: text;
+   301→  background-clip: text;
+   302→  -webkit-text-fill-color: transparent;
+   303→}
+   304→
+   305→.section-lead {
+   306→  font-size: 16px; line-height: 1.6;
+   307→  color: var(--c-earth);
+   308→  max-width: 720px;
+   309→  margin-bottom: 32px;
+   310→  font-weight: 400;
+   311→}
+   312→.section-lead strong { color: var(--kp-deep); font-weight: 600; }
+   313→
+   314→/* =====================================================================
+   315→   COVER — with Aurora background (reactbits.dev pattern)
+   316→   ===================================================================== */
+   317→.cover {
+   318→  position: relative;
+   319→  min-height: 100vh;
+   320→  background: linear-gradient(180deg, #2e2650 0%, #453f6a 100%);
+   321→  color: #fff;
+   322→  overflow: hidden;
+   323→  display: flex; flex-direction: column; justify-content: center;
+   324→  padding: 72px 72px 56px;
+   325→}
+   326→
+   327→.aurora {
+   328→  position: absolute; inset: 0;
+   329→  overflow: hidden;
+   330→  pointer-events: none;
+   331→}
+   332→.aurora-blob {
+   333→  position: absolute;
+   334→  border-radius: 50%;
+   335→  filter: blur(60px);
+   336→  mix-blend-mode: screen;
+   337→  animation: aurora-drift 18s ease-in-out infinite;
+   338→}
+   339→.aurora-blob.b1 {
+   340→  width: 420px; height: 420px;
+   341→  background: radial-gradient(circle, rgba(131, 99, 249, 0.55), transparent 70%);
+   342→  top: -120px; right: -80px;
+   343→}
+   344→.aurora-blob.b2 {
+   345→  width: 360px; height: 360px;
+   346→  background: radial-gradient(circle, rgba(224, 163, 214, 0.40), transparent 70%);
+   347→  bottom: -100px; left: -60px;
+   348→  animation-delay: -6s;
+   349→}
+   350→.aurora-blob.b3 {
+   351→  width: 300px; height: 300px;
+   352→  background: radial-gradient(circle, rgba(201, 189, 245, 0.30), transparent 70%);
+   353→  top: 35%; left: 45%;
+   354→  animation-delay: -12s;
+   355→}
+   356→
+   357→@keyframes aurora-drift {
+   358→  0%, 100% { transform: translate(0, 0) scale(1); }
+   359→  33% { transform: translate(40px, -30px) scale(1.1); }
+   360→  66% { transform: translate(-30px, 40px) scale(0.95); }
+   361→}
+   362→
+   363→.cover-grid {
+   364→  position: absolute; inset: 0;
+   365→  background-image:
+   366→    linear-gradient(rgba(131, 99, 249, 0.04) 1px, transparent 1px),
+   367→    linear-gradient(90deg, rgba(131, 99, 249, 0.04) 1px, transparent 1px);
+   368→  background-size: 56px 56px;
+   369→  mask-image: radial-gradient(ellipse at center, black 25%, transparent 75%);
+   370→  pointer-events: none;
+   371→}
+   372→
+   373→.cover-inner { position: relative; z-index: 2; max-width: 920px; }
+   374→
+   375→.cover-eyebrow {
+   376→  display: inline-flex; align-items: center; gap: 10px;
+   377→  padding: 7px 14px;
+   378→  background: rgba(131, 99, 249, 0.13);
+   379→  border: 1px solid rgba(131, 99, 249, 0.32);
+   380→  border-radius: 999px;
+   381→  font-size: 11.5px; font-weight: 600;
+   382→  letter-spacing: 0.12em; text-transform: uppercase;
+   383→  color: #c9bdf5;
+   384→  margin-bottom: 28px;
+   385→  backdrop-filter: blur(8px);
+   386→}
+   387→.cover-eyebrow .dot {
+   388→  width: 7px; height: 7px;
+   389→  border-radius: 50%;
+   390→  background: #c9bdf5;
+   391→  box-shadow: 0 0 10px #c9bdf5;
+   392→  animation: koru-pulse-dot 1.5s ease-in-out infinite;
+   393→}
+   394→
+   395→.cover-title {
+   396→  font-family: var(--t-display);
+   397→  font-size: clamp(44px, 6.5vw, 88px);
+   398→  font-weight: 800;
+   399→  letter-spacing: -0.035em;
+   400→  line-height: 0.98;
+   401→  margin-bottom: 22px;
+   402→}
+   403→.cover-title .grad {
+   404→  background: linear-gradient(135deg, #c9bdf5 0%, #8363f9 50%, #e0a3d6 100%);
+   405→  -webkit-background-clip: text; background-clip: text;
+   406→  -webkit-text-fill-color: transparent;
+   407→  display: inline-block;
+   408→}
+   409→
+   410→.cover-sub {
+   411→  font-size: 19px; font-weight: 400;
+   412→  line-height: 1.5;
+   413→  color: rgba(239, 234, 251, 0.82);
+   414→  max-width: 680px;
+   415→  margin-bottom: 44px;
+   416→}
+   417→.cover-sub strong { color: #c9bdf5; font-weight: 600; }
+   418→
+   419→.cover-stats {
+   420→  display: grid;
+   421→  grid-template-columns: repeat(4, 1fr);
+   422→  gap: 14px;
+   423→  max-width: 800px;
+   424→  margin-bottom: 44px;
+   425→}
+   426→.cover-stat {
+   427→  padding: 18px;
+   428→  border-radius: 15px;
+   429→  background: rgba(255, 255, 255, 0.04);
+   430→  border: 1px solid rgba(131, 99, 249, 0.18);
+   431→  backdrop-filter: blur(12px);
+   432→  transition: all 0.3s var(--e-spring);
+   433→}
+   434→.cover-stat:hover {
+   435→  transform: translateY(-3px);
+   436→  background: rgba(131, 99, 249, 0.09);
+   437→  border-color: rgba(131, 99, 249, 0.42);
+   438→  box-shadow: 0 12px 28px rgba(131, 99, 249, 0.22);
+   439→}
+   440→.cover-stat-num {
+   441→  font-family: var(--t-display);
+   442→  font-size: 32px; font-weight: 800;
+   443→  letter-spacing: -0.02em;
+   444→  background: linear-gradient(135deg, #c9bdf5, #8363f9);
+   445→  -webkit-background-clip: text; background-clip: text;
+   446→  -webkit-text-fill-color: transparent;
+   447→  line-height: 1;
+   448→}
+   449→.cover-stat-label {
+   450→  font-size: 11px;
+   451→  color: rgba(239, 234, 251, 0.62);
+   452→  font-weight: 600;
+   453→  margin-top: 7px;
+   454→  letter-spacing: 0.04em;
+   455→}
+   456→
+   457→.cover-cta {
+   458→  display: inline-flex; align-items: center; gap: 11px;
+   459→  padding: 13px 26px;
+   460→  border-radius: 999px;
+   461→  background: linear-gradient(135deg, #8363f9, #523a9e);
+   462→  color: #fff; text-decoration: none;
+   463→  font-size: 14.5px; font-weight: 700;
+   464→  box-shadow: 0 8px 22px rgba(131, 99, 249, 0.40);
+   465→  transition: all 0.25s var(--e-spring);
+   466→  position: relative; overflow: hidden;
+   467→}
+   468→.cover-cta::before {
+   469→  content: ""; position: absolute;
+   470→  top: 0; left: -100%;
+   471→  width: 100%; height: 100%;
+   472→  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+   473→  transition: left 0.6s var(--e-smooth);
+   474→}
+   475→.cover-cta:hover {
+   476→  transform: translateY(-2px) scale(1.02);
+   477→  box-shadow: 0 12px 30px rgba(131, 99, 249, 0.50);
+   478→}
+   479→.cover-cta:hover::before { left: 100%; }
+   480→
+   481→.cover-foot {
+   482→  position: absolute;
+   483→  bottom: 28px; left: 72px; right: 72px;
+   484→  display: flex; justify-content: space-between; align-items: flex-end;
+   485→  font-size: 11.5px; color: rgba(239, 234, 251, 0.38);
+   486→  z-index: 2;
+   487→}
+   488→.cover-foot .left { display: flex; gap: 22px; }
+   489→.cover-foot strong { color: rgba(239, 234, 251, 0.65); }
+   490→
+   491→.cover-scroll {
+   492→  position: absolute;
+   493→  bottom: 28px; left: 50%;
+   494→  transform: translateX(-50%);
+   495→  display: flex; flex-direction: column; align-items: center; gap: 7px;
+   496→  color: rgba(239, 234, 251, 0.45);
+   497→  font-size: 9.5px; letter-spacing: 0.2em; text-transform: uppercase;
+   498→  z-index: 2;
+   499→}
+   500→.cover-scroll-line {
+   501→  width: 1px; height: 28px;
+   502→  background: linear-gradient(to bottom, transparent, rgba(239, 234, 251, 0.5));
+   503→  animation: koru-scroll-hint 2s ease-in-out infinite;
+   504→}
+   505→
+   506→/* =====================================================================
+   507→   KEYFRAMES — Koru signature + Tier S additions
+   508→   ===================================================================== */
+   509→@keyframes koru-breathe {
+   510→  0%, 100% { transform: scale(1); }
+   511→  50% { transform: scale(1.04); }
+   512→}
+   513→@keyframes koru-ring-pulse {
+   514→  0% { transform: scale(1); opacity: 0.6; }
+   515→  100% { transform: scale(1.6); opacity: 0; }
+   516→}
+   517→@keyframes koru-pulse-dot {
+   518→  0%, 100% { opacity: 1; transform: scale(1); }
+   519→  50% { opacity: 0.5; transform: scale(1.3); }
+   520→}
+   521→@keyframes koru-scroll-hint {
+   522→  0% { transform: scaleY(0); transform-origin: top; }
+   523→  50% { transform: scaleY(1); transform-origin: top; }
+   524→  51% { transform-origin: bottom; }
+   525→  100% { transform: scaleY(0); transform-origin: bottom; }
+   526→}
+   527→@keyframes koru-card-in {
+   528→  from { opacity: 0; transform: translateY(14px); }
+   529→  to { opacity: 1; transform: translateY(0); }
+   530→}
+   531→@keyframes koru-section-stagger {
+   532→  from { opacity: 0; transform: translateY(20px); }
+   533→  to { opacity: 1; transform: translateY(0); }
+   534→}
+   535→@keyframes koru-shimmer-sweep {
+   536→  0%, 60% { left: -100%; }
+   537→  80%, 100% { left: 150%; }
+   538→}
+   539→@keyframes koru-bar-pop {
+   540→  from { transform: scaleX(0); }
+   541→  to { transform: scaleX(1); }
+   542→}
+   543→@keyframes koru-arrow-pulse {
+   544→  0%, 100% { transform: translateX(0); }
+   545→  50% { transform: translateX(3px); }
+   546→}
+   547→@keyframes koru-icon-pop {
+   548→  0% { transform: scale(0.8) rotate(-5deg); opacity: 0; }
+   549→  60% { transform: scale(1.08) rotate(2deg); }
+   550→  100% { transform: scale(1) rotate(0); opacity: 1; }
+   551→}
+   552→@keyframes koru-glow-breathe {
+   553→  0%, 100% { opacity: 0.20; transform: scale(1); }
+   554→  50% { opacity: 0.40; transform: scale(1.08); }
+   555→}
+   556→@keyframes koru-typing-bounce {
+   557→  0%, 60%, 100% { transform: translateY(0); }
+   558→  30% { transform: translateY(-7px); }
+   559→}
+   560→@keyframes koru-shimmer-bar {
+   561→  0% { background-position: -200% 0; }
+   562→  100% { background-position: 200% 0; }
+   563→}
+   564→@keyframes koru-star-pop {
+   565→  0%, 100% { transform: scale(0.95) rotate(0); }
+   566→  50% { transform: scale(1.12) rotate(4deg); }
+   567→}
+   568→@keyframes koru-icon-rotate {
+   569→  to { transform: rotate(360deg); }
+   570→}
+   571→@keyframes koru-icon-bounce {
+   572→  0%, 100% { transform: translateY(0); }
+   573→  50% { transform: translateY(-4px); }
+   574→}
+   575→@keyframes koru-fade-up {
+   576→  from { opacity: 0; transform: translateY(20px); }
+   577→  to { opacity: 1; transform: translateY(0); }
+   578→}
+   579→@keyframes koru-spotlight-follow {
+   580→  0% { opacity: 0; }
+   581→  100% { opacity: 1; }
+   582→}
+   583→
+   584→/* Reveal on scroll */
+   585→.reveal {
+   586→  opacity: 0;
+   587→  transform: translateY(24px);
+   588→  transition: opacity 0.7s var(--e-out), transform 0.7s var(--e-out);
+   589→}
+   590→.reveal.is-visible {
+   591→  opacity: 1; transform: translateY(0);
+   592→}
+   593→.reveal[data-delay="1"] { transition-delay: 0.08s; }
+   594→.reveal[data-delay="2"] { transition-delay: 0.16s; }
+   595→.reveal[data-delay="3"] { transition-delay: 0.24s; }
+   596→
+   597→/* =====================================================================
+   598→   MOCK CARDS — pixel-faithful recreations of Koru cards
+   599→   ===================================================================== */
+   600→
+   601→/* Chat hero card (the compact state in chat) */
+   602→.k-card {
+   603→  background: var(--bg-card);
+   604→  border-radius: 28px;
+   605→  padding: 20px;
+   606→  box-shadow: var(--sh-card);
+   607→  margin-bottom: 12px;
+   608→  position: relative;
+   609→  font-family: var(--t-sans);
+   610→  overflow: hidden;
+   611→}
+   612→.k-card.is-tappable {
+   613→  cursor: pointer;
+   614→  transition: transform 0.15s var(--e-smooth), box-shadow 0.15s var(--e-smooth);
+   615→}
+   616→.k-card.is-tappable:hover {
+   617→  transform: translateY(-2px);
+   618→  box-shadow: var(--sh-hover);
+   619→}
+   620→.k-card-glow {
+   621→  position: absolute;
+   622→  top: -40px; right: -40px;
+   623→  width: 140px; height: 140px;
+   624→  border-radius: 50%;
+   625→  filter: blur(36px);
+   626→  opacity: 0.25;
+   627→  pointer-events: none;
+   628→  animation: koru-glow-breathe 4s ease-in-out infinite;
+   629→}
+   630→
+   631→.k-card-top {
+   632→  display: flex; gap: 14px;
+   633→  align-items: flex-start; justify-content: space-between;
+   634→  margin-bottom: 14px;
+   635→  position: relative; z-index: 1;
+   636→}
+   637→.k-card-copy { flex: 1; min-width: 0; max-width: 64%; }
+   638→.k-card-kicker {
+   639→  display: inline-flex; align-items: center; gap: 5px;
+   640→  font-size: 10.5px; font-weight: 600;
+   641→  letter-spacing: 0.08em; text-transform: uppercase;
+   642→  margin-bottom: 5px;
+   643→}
+   644→.k-card-title {
+   645→  font-size: 20px; font-weight: 800;
+   646→  color: var(--kp-deep);
+   647→  letter-spacing: -0.01em;
+   648→  line-height: 1.2;
+   649→  margin-bottom: 4px;
+   650→}
+   651→.k-card-desc {
+   652→  font-size: 12.5px;
+   653→  color: var(--kp-deep);
+   654→  opacity: 0.72;
+   655→  line-height: 1.42;
+   656→}
+   657→
+   658→.k-card-art {
+   659→  width: 92px; height: 92px;
+   660→  border-radius: 22px;
+   661→  display: grid; place-items: center;
+   662→  position: relative;
+   663→  flex-shrink: 0;
+   664→}
+   665→.k-card-art .material-symbols-outlined { font-size: 40px; }
+   666→.k-card-art-value {
+   667→  position: absolute;
+   668→  bottom: -2px; right: -2px;
+   669→  background: #fff;
+   670→  border-radius: 11px;
+   671→  padding: 2px 7px;
+   672→  font-family: var(--t-display);
+   673→  font-size: 15px; font-weight: 800;
+   674→  color: var(--kp-deep);
+   675→  box-shadow: 0 2px 8px rgba(18, 10, 50, 0.12);
+   676→}
+   677→.k-card-art-poster {
+   678→  width: 84px; height: 126px;
+   679→  border-radius: 11px;
+   680→  object-fit: cover;
+   681→  box-shadow: 0 6px 16px rgba(18, 10, 50, 0.20);
+   682→  flex-shrink: 0;
+   683→}
+   684→
+   685→.k-metrics {
+   686→  display: grid;
+   687→  grid-template-columns: repeat(3, 1fr);
+   688→  gap: 7px;
+   689→  margin-bottom: 11px;
+   690→  position: relative; z-index: 1;
+   691→}
+   692→.k-metric {
+   693→  background: #fff;
+   694→  border-radius: 13px;
+   695→  padding: 9px 7px;
+   696→  text-align: center;
+   697→  box-shadow: 0 2px 8px rgba(18, 10, 50, 0.05);
+   698→}
+   699→.k-metric .material-symbols-outlined { font-size: 17px; }
+   700→.k-metric-label {
+   701→  font-size: 9px; font-weight: 700;
+   702→  color: var(--c-earth);
+   703→  margin-top: 4px;
+   704→  text-transform: uppercase;
+   705→  letter-spacing: 0.04em;
+   706→}
+   707→.k-metric-value {
+   708→  font-family: var(--t-display);
+   709→  font-size: 13px; font-weight: 800;
+   710→  color: var(--kp-deep);
+   711→  margin-top: 1px;
+   712→}
+   713→
+   714→.k-cta-hint {
+   715→  position: relative; overflow: hidden;
+   716→  border-top: 1px solid rgba(131, 99, 249, 0.12);
+   717→  padding-top: 10px; margin-top: 4px;
+   718→  display: flex; align-items: center; justify-content: center; gap: 6px;
+   719→  font-size: 12px; font-weight: 600;
+   720→}
+   721→.k-cta-hint::after {
+   722→  content: ""; position: absolute;
+   723→  top: 0; left: -100%;
+   724→  width: 50%; height: 100%;
+   725→  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+   726→  animation: koru-shimmer-sweep 4s ease-in-out infinite;
+   727→  pointer-events: none;
+   728→}
+   729→.k-cta-hint .material-symbols-outlined {
+   730→  font-size: 14px;
+   731→  animation: koru-arrow-pulse 2s ease-in-out infinite;
+   732→}
+   733→
+   734→.k-actions {
+   735→  display: flex; gap: 8px;
+   736→  margin-top: 12px;
+   737→  position: relative; z-index: 1;
+   738→}
+   739→.k-action {
+   740→  flex: 1;
+   741→  padding: 11px 8px;
+   742→  border-radius: 13px;
+   743→  border: none;
+   744→  font-family: var(--t-sans);
+   745→  font-size: 13px; font-weight: 700;
+   746→  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+   747→  cursor: pointer;
+   748→  transition: transform 0.15s var(--e-smooth);
+   749→}
+   750→.k-action:active { transform: scale(0.96); }
+   751→.k-action.primary { color: #fff; }
+   752→.k-action.secondary {
+   753→  background: rgba(131, 99, 249, 0.08);
+   754→  color: var(--kp-dark);
+   755→  border: 1.5px solid rgba(131, 99, 249, 0.2);
+   756→}
+   757→
+   758→/* Comparison bar */
+   759→.k-bar-row {
+   760→  display: flex; flex-direction: column; gap: 5px;
+   761→  padding: 10px;
+   762→  background: rgba(255, 255, 255, 0.55);
+   763→  border-radius: 11px;
+   764→  margin-bottom: 7px;
+   765→}
+   766→.k-bar-label {
+   767→  display: flex; justify-content: space-between;
+   768→  font-size: 10.5px; font-weight: 700;
+   769→  color: var(--c-bark);
+   770→  text-transform: uppercase;
+   771→  letter-spacing: 0.05em;
+   772→}
+   773→.k-bar-track {
+   774→  display: flex;
+   775→  height: 7px;
+   776→  border-radius: 999px;
+   777→  overflow: hidden;
+   778→  background: rgba(240, 235, 248, 0.9);
+   779→}
+   780→.k-bar-fill {
+   781→  height: 100%;
+   782→  border-radius: 999px;
+   783→  transform-origin: left;
+   784→  animation: koru-bar-pop 0.6s var(--e-out) backwards;
+   785→}
+   786→.k-bar-fill.home { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+   787→.k-bar-fill.away { border-top-left-radius: 0; border-bottom-left-radius: 0; transform-origin: right; }
+   788→
+   789→/* Live dot */
+   790→.live-dot {
+   791→  width: 7px; height: 7px;
+   792→  border-radius: 50%;
+   793→  background: var(--k-rose);
+   794→  animation: koru-pulse-dot 1.5s ease-in-out infinite;
+   795→  display: inline-block;
+   796→  box-shadow: 0 0 6px var(--k-rose);
+   797→}
+   798→
+   799→/* === EXTENDED DETAIL MOCKUP === */
+   800→.k-detail {
+   801→  background: var(--bg-screen);
+   802→  border-radius: 26px;
+   803→  overflow: hidden;
+   804→  position: relative;
+   805→  box-shadow: 0 12px 36px rgba(18, 10, 50, 0.14);
+   806→}
+   807→.k-detail-sticky-head {
+   808→  position: relative;
+   809→  padding: 13px 15px;
+   810→  display: flex; align-items: center; gap: 11px;
+   811→  background: rgba(255, 255, 255, 0.85);
+   812→  backdrop-filter: blur(20px) saturate(180%);
+   813→  border-bottom: 1px solid rgba(131, 99, 249, 0.12);
+   814→  z-index: 10;
+   815→}
+   816→.k-detail-back, .k-detail-save {
+   817→  width: 34px; height: 34px;
+   818→  border-radius: 50%;
+   819→  background: rgba(131, 99, 249, 0.10);
+   820→  border: none;
+   821→  color: var(--kp);
+   822→  display: grid; place-items: center;
+   823→  cursor: pointer;
+   824→  flex-shrink: 0;
+   825→}
+   826→.k-detail-mini-icon {
+   827→  width: 30px; height: 30px;
+   828→  border-radius: 9px;
+   829→  display: grid; place-items: center;
+   830→  flex-shrink: 0;
+   831→}
+   832→.k-detail-mini-icon .material-symbols-outlined { font-size: 17px; }
+   833→.k-detail-mini-title {
+   834→  font-size: 13.5px; font-weight: 800;
+   835→  color: var(--kp-deep);
+   836→  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+   837→  flex: 1; min-width: 0;
+   838→}
+   839→.k-detail-mini-sub {
+   840→  font-size: 10px;
+   841→  color: var(--c-earth);
+   842→  text-transform: uppercase;
+   843→  letter-spacing: 0.04em;
+   844→}
+   845→
+   846→.k-detail-hero {
+   847→  position: relative;
+   848→  overflow: hidden;
+   849→}
+   850→.k-detail-hero-backdrop {
+   851→  position: absolute; inset: 0;
+   852→  filter: blur(10px) brightness(0.65);
+   853→  transform: scale(1.1);
+   854→  object-fit: cover;
+   855→  width: 100%; height: 100%;
+   856→}
+   857→.k-detail-hero-scrim {
+   858→  position: absolute; inset: 0;
+   859→  background: linear-gradient(180deg, rgba(46,38,80,0.15) 0%, rgba(46,38,80,0.85) 100%);
+   860→}
+   861→.k-detail-hero-content {
+   862→  position: relative; z-index: 2;
+   863→  padding: 22px 18px;
+   864→}
+   865→.k-detail-hero-badge {
+   866→  display: inline-flex; align-items: center; gap: 5px;
+   867→  padding: 4px 10px;
+   868→  border-radius: 999px;
+   869→  font-size: 10px; font-weight: 700;
+   870→  letter-spacing: 0.06em;
+   871→  text-transform: uppercase;
+   872→  margin-bottom: 10px;
+   873→}
+   874→.k-detail-hero-title {
+   875→  font-family: var(--t-display);
+   876→  font-size: 24px; font-weight: 800;
+   877→  color: #fff;
+   878→  letter-spacing: -0.02em;
+   879→  line-height: 1.1;
+   880→  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+   881→}
+   882→.k-detail-hero-sub {
+   883→  font-size: 11.5px;
+   884→  color: rgba(255, 255, 255, 0.85);
+   885→  margin-top: 5px;
+   886→}
+   887→
+   888→.k-detail-modules {
+   889→  padding: 14px;
+   890→  display: flex; flex-direction: column; gap: 12px;
+   891→}
+   892→.k-module {
+   893→  background: rgba(255, 255, 255, 0.78);
+   894→  backdrop-filter: blur(16px);
+   895→  border: 1px solid rgba(255, 255, 255, 0.85);
+   896→  border-radius: 22px;
+   897→  padding: 16px;
+   898→  box-shadow: 0 6px 24px rgba(130, 39, 207, 0.07);
+   899→  position: relative;
+   900→  overflow: hidden;
+   901→  animation: koru-section-stagger 0.5s var(--e-out) backwards;
+   902→}
+   903→.k-module::before {
+   904→  content: ""; position: absolute;
+   905→  top: 0; left: 0; right: 0; height: 3px;
+   906→  background: linear-gradient(90deg, var(--module-color, var(--kp)), transparent);
+   907→}
+   908→.k-module-head {
+   909→  display: flex; align-items: center; gap: 11px;
+   910→  margin-bottom: 12px;
+   911→}
+   912→.k-module-icon {
+   913→  width: 34px; height: 34px;
+   914→  border-radius: 11px;
+   915→  display: grid; place-items: center;
+   916→  flex-shrink: 0;
+   917→}
+   918→.k-module-icon .material-symbols-outlined { font-size: 19px; }
+   919→.k-module-title {
+   920→  font-size: 15px; font-weight: 800;
+   921→  line-height: 1.2;
+   922→}
+   923→.k-module-kicker {
+   924→  font-size: 10px; font-weight: 600;
+   925→  color: var(--c-earth);
+   926→  text-transform: uppercase;
+   927→  letter-spacing: 0.04em;
+   928→  margin-top: 2px;
+   929→}
+   930→.k-module-meta {
+   931→  margin-left: auto;
+   932→  font-size: 10px; font-weight: 700;
+   933→  color: var(--c-earth);
+   934→  background: rgba(131, 99, 249, 0.06);
+   935→  padding: 3px 8px;
+   936→  border-radius: 999px;
+   937→}
+   938→
+   939→/* Section kinds */
+   940→.k-text {
+   941→  font-size: 13px; line-height: 1.55;
+   942→  color: var(--c-earth);
+   943→}
+   944→.k-text strong { color: var(--c-bark); font-weight: 700; }
+   945→
+   946→.k-tiles {
+   947→  display: grid;
+   948→  grid-template-columns: 1fr 1fr;
+   949→  gap: 9px;
+   950→}
+   951→.k-tile {
+   952→  display: flex; align-items: center; gap: 9px;
+   953→  padding: 11px;
+   954→  background: rgba(255, 255, 255, 0.65);
+   955→  border-radius: 11px;
+   956→}
+   957→.k-tile-icon { font-size: 19px; flex-shrink: 0; }
+   958→.k-tile-label {
+   959→  font-size: 10.5px; font-weight: 600;
+   960→  color: var(--c-earth);
+   961→}
+   962→.k-tile-value {
+   963→  font-family: var(--t-display);
+   964→  font-size: 14px; font-weight: 800;
+   965→  color: var(--kp-deep);
+   966→  margin-top: 1px;
+   967→}
+   968→
+   969→.k-rows {
+   970→  display: flex; flex-direction: column; gap: 8px;
+   971→}
+   972→.k-row {
+   973→  display: flex; align-items: center; gap: 11px;
+   974→  padding: 11px;
+   975→  background: rgba(255, 255, 255, 0.55);
+   976→  border-radius: 11px;
+   977→}
+   978→.k-row-icon { font-size: 19px; flex-shrink: 0; }
+   979→.k-row-body { flex: 1; min-width: 0; }
+   980→.k-row-title {
+   981→  font-size: 12.5px; font-weight: 700;
+   982→  color: var(--c-bark);
+   983→  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+   984→}
+   985→.k-row-detail {
+   986→  font-size: 11px;
+   987→  color: var(--c-earth);
+   988→  margin-top: 2px;
+   989→  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+   990→}
+   991→.k-row-meta {
+   992→  font-size: 11px; font-weight: 700;
+   993→  color: var(--c-earth);
+   994→  flex-shrink: 0;
+   995→}
+   996→.k-row-badge {
+   997→  font-size: 9.5px; font-weight: 700;
+   998→  padding: 2px 7px;
+   999→  border-radius: 999px;
+  1000→  letter-spacing: 0.04em;
+  1001→  text-transform: uppercase;
+  1002→  flex-shrink: 0;
+  1003→}
+  1004→.k-row-badge.done    { background: rgba(45,106,79,0.12); color: var(--k-emerald); }
+  1005→.k-row-badge.current { background: rgba(59,130,246,0.12); color: var(--k-blue); }
+  1006→.k-row-badge.pending { background: rgba(118,90,134,0.12); color: var(--k-meta); }
+  1007→.k-row-badge.urgent  { background: rgba(239,68,68,0.12); color: var(--k-rose); }
+  1008→
+  1009→.k-chips {
+  1010→  display: flex; flex-wrap: wrap; gap: 6px;
+  1011→}
+  1012→.k-chip {
+  1013→  display: inline-flex; align-items: center; gap: 5px;
+  1014→  padding: 6px 11px;
+  1015→  border-radius: 999px;
+  1016→  font-size: 11.5px; font-weight: 700;
+  1017→  background: rgba(131, 99, 249, 0.08);
+  1018→  color: var(--kp-dark);
+  1019→}
+  1020→.k-chip .material-symbols-outlined { font-size: 13px; }
+  1021→
+  1022→.k-scroller {
+  1023→  display: flex; gap: 10px;
+  1024→  overflow-x: auto;
+  1025→  padding-bottom: 4px;
+  1026→  scrollbar-width: none;
+  1027→  scroll-snap: x mandatory;
+  1028→}
+  1029→.k-scroller::-webkit-scrollbar { display: none; }
+  1030→.k-scard {
+  1031→  flex: 0 0 145px;
+  1032→  border: 1px solid rgba(255, 255, 255, 0.85);
+  1033→  border-radius: 16px;
+  1034→  background: rgba(255, 255, 255, 0.65);
+  1035→  padding: 13px;
+  1036→  scroll-snap-align: start;
+  1037→}
+  1038→.k-scard-badge {
+  1039→  display: inline-block;
+  1040→  font-size: 9.5px; font-weight: 800;
+  1041→  padding: 2px 7px;
+  1042→  border-radius: 7px;
+  1043→  margin-bottom: 6px;
+  1044→  letter-spacing: 0.04em;
+  1045→  text-transform: uppercase;
+  1046→}
+  1047→.k-scard-title {
+  1048→  font-size: 13px; font-weight: 800;
+  1049→  color: var(--c-bark);
+  1050→  line-height: 1.2;
+  1051→}
+  1052→.k-scard-detail {
+  1053→  font-size: 11px;
+  1054→  color: var(--c-earth);
+  1055→  margin-top: 4px;
+  1056→  line-height: 1.4;
+  1057→}
+  1058→.k-scard-metrics {
+  1059→  display: flex; flex-wrap: wrap; gap: 5px;
+  1060→  margin-top: 7px;
+  1061→}
+  1062→.k-scard-metric {
+  1063→  font-size: 9.5px; font-weight: 700;
+  1064→  color: var(--kp-deep);
+  1065→  background: rgba(131, 99, 249, 0.08);
+  1066→  padding: 2px 6px;
+  1067→  border-radius: 999px;
+  1068→}
+  1069→
+  1070→.k-timeline {
+  1071→  position: relative;
+  1072→  padding-left: 42px;
+  1073→}
+  1074→.k-timeline::before {
+  1075→  content: ""; position: absolute;
+  1076→  left: 20px; top: 22px; bottom: 0;
+  1077→  width: 2px;
+  1078→  background: rgba(131, 99, 249, 0.18);
+  1079→}
+  1080→.k-timeline-step {
+  1081→  position: relative;
+  1082→  margin-bottom: 14px;
+  1083→  display: flex; gap: 12px; align-items: flex-start;
+  1084→}
+  1085→.k-timeline-dot {
+  1086→  position: absolute; left: -42px; top: 0;
+  1087→  width: 42px; height: 42px;
+  1088→  border-radius: 50%;
+  1089→  background: #fff;
+  1090→  border: 2px solid var(--module-color, var(--kp));
+  1091→  display: grid; place-items: center;
+  1092→  box-shadow: 0 3px 6px rgba(18, 10, 50, 0.10);
+  1093→}
+  1094→.k-timeline-dot .material-symbols-outlined {
+  1095→  font-size: 18px;
+  1096→  color: var(--module-color, var(--kp));
+  1097→}
+  1098→.k-timeline-step.is-pending .k-timeline-dot {
+  1099→  border-color: rgba(118, 90, 134, 0.3);
+  1100→}
+  1101→.k-timeline-step.is-pending .k-timeline-dot .material-symbols-outlined {
+  1102→  color: var(--k-meta);
+  1103→}
+  1104→.k-timeline-body {
+  1105→  background: rgba(255, 255, 255, 0.55);
+  1106→  border-radius: 11px;
+  1107→  padding: 11px 13px;
+  1108→  flex: 1;
+  1109→}
+  1110→.k-timeline-name {
+  1111→  font-size: 13px; font-weight: 700;
+  1112→  color: var(--c-bark);
+  1113→}
+  1114→.k-timeline-meta {
+  1115→  font-size: 11px;
+  1116→  color: var(--c-earth);
+  1117→  margin-top: 2px;
+  1118→}
+  1119→
+  1120→.k-sources {
+  1121→  display: flex; flex-direction: column; gap: 6px;
+  1122→}
+  1123→.k-source {
+  1124→  display: flex; align-items: center; gap: 11px;
+  1125→  padding: 9px 11px;
+  1126→  border-radius: 11px;
+  1127→  background: rgba(255, 255, 255, 0.55);
+  1128→  transition: background 0.18s;
+  1129→}
+  1130→.k-source:hover {
+  1131→  background: rgba(255, 255, 255, 0.85);
+  1132→}
+  1133→.k-source-favicon {
+  1134→  width: 28px; height: 28px;
+  1135→  border-radius: 7px;
+  1136→  background: #fff;
+  1137→  flex-shrink: 0;
+  1138→}
+  1139→.k-source-body { flex: 1; min-width: 0; }
+  1140→.k-source-title {
+  1141→  font-size: 12px; font-weight: 600;
+  1142→  color: var(--c-earth);
+  1143→  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  1144→}
+  1145→.k-source-domain {
+  1146→  font-size: 10.5px;
+  1147→  color: var(--k-meta);
+  1148→  margin-top: 1px;
+  1149→}
+  1150→
+  1151→.k-detail-actions {
+  1152→  position: sticky; bottom: 0;
+  1153→  display: flex; gap: 9px;
+  1154→  padding: 12px 14px calc(18px + env(safe-area-inset-bottom, 0px));
+  1155→  background: rgba(255, 255, 255, 0.92);
+  1156→  backdrop-filter: blur(20px) saturate(180%);
+  1157→  border-top: 1px solid rgba(131, 99, 249, 0.12);
+  1158→  box-shadow: 0 -8px 24px rgba(18, 10, 50, 0.06);
+  1159→}
+  1160→.k-detail-action {
+  1161→  flex: 1;
+  1162→  height: 44px;
+  1163→  border-radius: 13px;
+  1164→  border: none;
+  1165→  font-family: var(--t-sans);
+  1166→  font-size: 13px; font-weight: 700;
+  1167→  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  1168→  cursor: pointer;
+  1169→  transition: transform 0.15s var(--e-smooth);
+  1170→}
+  1171→.k-detail-action:active { transform: scale(0.98); }
+  1172→.k-detail-action.save {
+  1173→  background: linear-gradient(135deg, #8363f9, #523a9e);
+  1174→  color: #fff;
+  1175→  box-shadow: 0 6px 16px rgba(131, 99, 249, 0.32);
+  1176→}
+  1177→.k-detail-action.pdf {
+  1178→  background: rgba(45, 106, 79, 0.06);
+  1179→  border: 1.5px solid rgba(45, 106, 79, 0.22);
+  1180→  color: var(--k-emerald);
+  1181→}
+  1182→.k-detail-action.custom {
+  1183→  background: rgba(131, 99, 249, 0.08);
+  1184→  border: 1.5px solid rgba(131, 99, 249, 0.25);
+  1185→  color: var(--kp);
+  1186→}
+  1187→.k-detail-action.danger {
+  1188→  background: rgba(239, 68, 68, 0.08);
+  1189→  border: 1.5px solid rgba(239, 68, 68, 0.22);
+  1190→  color: var(--k-rose-text);
+  1191→}
+  1192→
+  1193→/* =====================================================================
+  1194→   SHARED COMPONENTS
+  1195→   ===================================================================== */
+  1196→
+  1197→.callout {
+  1198→  display: flex; gap: 14px;
+  1199→  padding: 16px 18px;
+  1200→  border-radius: 14px;
+  1201→  margin: 20px 0;
+  1202→  border: 1px solid;
+  1203→  position: relative;
+  1204→}
+  1205→.callout .material-symbols-outlined { font-size: 21px; flex-shrink: 0; }
+  1206→.callout-title {
+  1207→  font-size: 12px; font-weight: 700;
+  1208→  letter-spacing: 0.04em; text-transform: uppercase;
+  1209→  margin-bottom: 5px;
+  1210→}
+  1211→.callout-body {
+  1212→  font-size: 13px; line-height: 1.55;
+  1213→  color: var(--c-bark);
+  1214→}
+  1215→.callout.info {
+  1216→  background: rgba(59, 130, 246, 0.05);
+  1217→  border-color: rgba(59, 130, 246, 0.16);
+  1218→}
+  1219→.callout.info .material-symbols-outlined,
+  1220→.callout.info .callout-title { color: var(--k-blue); }
+  1221→.callout.warn {
+  1222→  background: rgba(245, 158, 11, 0.05);
+  1223→  border-color: rgba(245, 158, 11, 0.18);
+  1224→}
+  1225→.callout.warn .material-symbols-outlined,
+  1226→.callout.warn .callout-title { color: var(--k-amber-text); }
+  1227→.callout.crit {
+  1228→  background: rgba(239, 68, 68, 0.05);
+  1229→  border-color: rgba(239, 68, 68, 0.18);
+  1230→}
+  1231→.callout.crit .material-symbols-outlined,
+  1232→.callout.crit .callout-title { color: var(--k-rose-text); }
+  1233→.callout.win {
+  1234→  background: rgba(45, 106, 79, 0.05);
+  1235→  border-color: rgba(45, 106, 79, 0.18);
+  1236→}
+  1237→.callout.win .material-symbols-outlined,
+  1238→.callout.win .callout-title { color: var(--k-emerald); }
+  1239→
+  1240→.swatch-grid {
+  1241→  display: grid;
+  1242→  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  1243→  gap: 12px;
+  1244→}
+  1245→.swatch {
+  1246→  border-radius: 13px;
+  1247→  overflow: hidden;
+  1248→  border: 1px solid var(--c-sand);
+  1249→  background: #fff;
+  1250→  transition: all 0.2s var(--e-smooth);
+  1251→}
+  1252→.swatch:hover {
+  1253→  transform: translateY(-2px);
+  1254→  box-shadow: 0 10px 22px rgba(18, 10, 50, 0.10);
+  1255→}
+  1256→.swatch-color {
+  1257→  height: 72px;
+  1258→  position: relative;
+  1259→  display: flex; align-items: flex-end;
+  1260→  padding: 9px;
+  1261→}
+  1262→.swatch-color .check {
+  1263→  position: absolute; top: 7px; right: 7px;
+  1264→  width: 21px; height: 21px;
+  1265→  border-radius: 50%;
+  1266→  background: rgba(255, 255, 255, 0.88);
+  1267→  display: grid; place-items: center;
+  1268→  color: var(--c-bark);
+  1269→  font-size: 12px; font-weight: 700;
+  1270→}
+  1271→.swatch-meta { padding: 9px 11px 11px; }
+  1272→.swatch-name {
+  1273→  font-size: 12.5px; font-weight: 700;
+  1274→  color: var(--c-bark);
+  1275→}
+  1276→.swatch-hex {
+  1277→  font-family: var(--t-mono);
+  1278→  font-size: 10.5px;
+  1279→  color: var(--c-earth);
+  1280→  margin-top: 1px;
+  1281→}
+  1282→.swatch-usage {
+  1283→  font-size: 10.5px;
+  1284→  color: var(--c-earth);
+  1285→  margin-top: 5px;
+  1286→}
+  1287→
+  1288→.compare {
+  1289→  display: grid;
+  1290→  grid-template-columns: 1fr 1fr;
+  1291→  gap: 18px;
+  1292→  margin: 20px 0;
+  1293→}
+  1294→.compare-col { display: flex; flex-direction: column; }
+  1295→.compare-label {
+  1296→  display: inline-flex; align-items: center; gap: 7px;
+  1297→  padding: 5px 11px;
+  1298→  border-radius: 999px;
+  1299→  font-size: 10.5px; font-weight: 700;
+  1300→  letter-spacing: 0.1em; text-transform: uppercase;
+  1301→  margin-bottom: 12px;
+  1302→  align-self: flex-start;
+  1303→}
+  1304→.compare-label.before {
+  1305→  background: rgba(239, 68, 68, 0.08);
+  1306→  color: var(--k-rose-text);
+  1307→}
+  1308→.compare-label.after {
+  1309→  background: rgba(45, 106, 79, 0.08);
+  1310→  color: var(--k-emerald);
+  1311→}
+  1312→.compare-label .material-symbols-outlined { font-size: 13px; }
+  1313→
+  1314→.spec-table {
+  1315→  width: 100%;
+  1316→  border-collapse: collapse;
+  1317→  font-size: 12.5px;
+  1318→  margin: 14px 0;
+  1319→  background: #fff;
+  1320→  border-radius: 11px;
+  1321→  overflow: hidden;
+  1322→  box-shadow: 0 2px 10px rgba(18, 10, 50, 0.04);
+  1323→}
+  1324→.spec-table th, .spec-table td {
+  1325→  padding: 11px 14px;
+  1326→  text-align: left;
+  1327→  border-bottom: 1px solid var(--c-sand);
+  1328→}
+  1329→.spec-table th {
+  1330→  background: var(--kp-soft);
+  1331→  color: var(--kp-deep);
+  1332→  font-size: 10.5px; font-weight: 700;
+  1333→  letter-spacing: 0.06em; text-transform: uppercase;
+  1334→}
+  1335→.spec-table tr:last-child td { border-bottom: none; }
+  1336→.spec-table td code {
+  1337→  font-family: var(--t-mono);
+  1338→  font-size: 11px;
+  1339→  background: rgba(131, 99, 249, 0.06);
+  1340→  color: var(--kp);
+  1341→  padding: 2px 5px;
+  1342→  border-radius: 4px;
+  1343→}
+  1344→
+  1345→.pill {
+  1346→  display: inline-flex; align-items: center; gap: 5px;
+  1347→  padding: 4px 9px;
+  1348→  border-radius: 999px;
+  1349→  font-size: 10.5px; font-weight: 700;
+  1350→  letter-spacing: 0.04em;
+  1351→}
+  1352→.pill .material-symbols-outlined { font-size: 12px; }
+  1353→.pill.violet   { background: var(--kp-soft); color: var(--kp); }
+  1354→.pill.emerald  { background: var(--k-emerald-soft); color: var(--k-emerald); }
+  1355→.pill.amber    { background: var(--k-amber-soft); color: var(--k-amber-text); }
+  1356→.pill.rose     { background: var(--k-rose-soft); color: var(--k-rose-text); }
+  1357→.pill.pink     { background: var(--k-pink-soft); color: var(--k-pink); }
+  1358→.pill.blue     { background: var(--k-blue-soft); color: var(--k-blue); }
+  1359→
+  1360→.anim-demo {
+  1361→  background: #fff;
+  1362→  border-radius: 16px;
+  1363→  padding: 18px;
+  1364→  border: 1px solid var(--c-sand);
+  1365→  text-align: center;
+  1366→  transition: all 0.3s var(--e-smooth);
+  1367→}
+  1368→.anim-demo:hover {
+  1369→  border-color: var(--kp);
+  1370→  box-shadow: 0 8px 22px rgba(131, 99, 249, 0.16);
+  1371→}
+  1372→.anim-demo-stage {
+  1373→  height: 110px;
+  1374→  display: grid; place-items: center;
+  1375→  margin-bottom: 12px;
+  1376→  background: var(--bg-screen);
+  1377→  border-radius: 11px;
+  1378→  position: relative;
+  1379→  overflow: hidden;
+  1380→}
+  1381→.anim-demo-name {
+  1382→  font-size: 12.5px; font-weight: 700;
+  1383→  color: var(--c-bark);
+  1384→  margin-bottom: 3px;
+  1385→}
+  1386→.anim-demo-desc {
+  1387→  font-size: 10.5px;
+  1388→  color: var(--c-earth);
+  1389→  font-family: var(--t-mono);
+  1390→}
+  1391→
+  1392→.stage {
+  1393→  background:
+  1394→    radial-gradient(ellipse at top, rgba(131, 99, 249, 0.05), transparent 70%),
+  1395→    var(--bg-app);
+  1396→  border-radius: 22px;
+  1397→  padding: 28px;
+  1398→  border: 1px solid var(--c-sand);
+  1399→  margin: 20px 0;
+  1400→}
+  1401→.stage-label {
+  1402→  font-family: var(--t-mono);
+  1403→  font-size: 10.5px; font-weight: 600;
+  1404→  letter-spacing: 0.1em; text-transform: uppercase;
+  1405→  color: var(--k-meta);
+  1406→  margin-bottom: 14px;
+  1407→}
+  1408→
+  1409→/* Card showcase grid */
+  1410→.showcase {
+  1411→  display: grid;
+  1412→  grid-template-columns: 1fr 1fr;
+  1413→  gap: 22px;
+  1414→  margin: 24px 0;
+  1415→  align-items: start;
+  1416→}
+  1417→.showcase-compact, .showcase-extended {
+  1418→  display: flex; flex-direction: column; gap: 10px;
+  1419→}
+  1420→.showcase-label {
+  1421→  display: inline-flex; align-items: center; gap: 7px;
+  1422→  padding: 5px 11px;
+  1423→  border-radius: 999px;
+  1424→  font-size: 10.5px; font-weight: 700;
+  1425→  letter-spacing: 0.1em; text-transform: uppercase;
+  1426→  align-self: flex-start;
+  1427→}
+  1428→.showcase-label.compact {
+  1429→  background: rgba(131, 99, 249, 0.10);
+  1430→  color: var(--kp);
+  1431→}
+  1432→.showcase-label.extended {
+  1433→  background: rgba(45, 106, 79, 0.10);
+  1434→  color: var(--k-emerald);
+  1435→}
+  1436→.showcase-label .material-symbols-outlined { font-size: 13px; }
+  1437→
+  1438→/* Card section divider */
+  1439→.card-section-divider {
+  1440→  margin: 56px 0 32px;
+  1441→  padding-top: 28px;
+  1442→  border-top: 1px dashed var(--c-sand);
+  1443→}
+  1444→.card-section-group-title {
+  1445→  font-family: var(--t-display);
+  1446→  font-size: 26px; font-weight: 800;
+  1447→  color: var(--kp-deep);
+  1448→  letter-spacing: -0.02em;
+  1449→  margin-bottom: 6px;
+  1450→}
+  1451→.card-section-group-sub {
+  1452→  font-size: 13.5px;
+  1453→  color: var(--c-earth);
+  1454→  margin-bottom: 22px;
+  1455→  max-width: 640px;
+  1456→}
+  1457→
+  1458→.card-spec {
+  1459→  background: #fff;
+  1460→  border-radius: 13px;
+  1461→  padding: 16px;
+  1462→  border: 1px solid var(--c-sand);
+  1463→  margin-top: 14px;
+  1464→  font-size: 12.5px;
+  1465→  line-height: 1.55;
+  1466→  color: var(--c-earth);
+  1467→}
+  1468→.card-spec strong { color: var(--c-bark); }
+  1469→.card-spec code {
+  1470→  font-family: var(--t-mono);
+  1471→  font-size: 11px;
+  1472→  background: rgba(131, 99, 249, 0.06);
+  1473→  color: var(--kp);
+  1474→  padding: 1px 5px;
+  1475→  border-radius: 3px;
+  1476→}
+  1477→
+  1478→/* Responsive */
+  1479→@media (max-width: 1100px) {
+  1480→  .audit { grid-template-columns: 1fr; }
+  1481→  .rail {
+  1482→    position: fixed; left: -300px;
+  1483→    transition: left 0.3s var(--e-spring);
+  1484→    width: 272px;
+  1485→  }
+  1486→  .rail.is-open { left: 0; }
+  1487→  .rail-toggle { display: flex; }
+  1488→  .section { padding: 72px 28px 48px; }
+  1489→  .cover { padding: 72px 28px 56px; }
+  1490→  .cover-foot { left: 28px; right: 28px; }
+  1491→  .compare, .showcase { grid-template-columns: 1fr; }
+  1492→}
+  1493→@media (max-width: 640px) {
+  1494→  .section { padding: 56px 18px 36px; }
+  1495→  .cover { padding: 56px 18px 48px; }
+  1496→  .cover-foot { left: 18px; right: 18px; flex-direction: column; gap: 7px; align-items: flex-start; }
+  1497→  .cover-stats { grid-template-columns: repeat(2, 1fr); }
+  1498→  .section-title { font-size: 30px; }
+  1499→}
+  1500→
+  1501→@media (prefers-reduced-motion: reduce) {
+  1502→  *, *::before, *::after {
+  1503→    animation-duration: 0.01ms !important;
+  1504→    animation-iteration-count: 1 !important;
+  1505→    transition-duration: 0.01ms !important;
+  1506→  }
+  1507→  .reveal { opacity: 1; transform: none; }
+  1508→}
+  1509→</style>
+  1510→</head>
+  1511→<body>
+  1512→
+  1513→<button class="rail-toggle" id="railToggle" aria-label="Abrir índice">
+  1514→  <span class="material-symbols-outlined">menu</span>
+  1515→</button>
+  1516→
+  1517→<div class="audit">
+  1518→
+  1519→  <!-- ============ SIDE RAIL ============ -->
+  1520→  <aside class="rail" id="rail">
+  1521→    <div class="rail-brand">
+  1522→      <div class="rail-brand-mark">
+  1523→        <span class="material-symbols-outlined">auto_awesome</span>
+  1524→      </div>
+  1525→      <div>
+  1526→        <div class="rail-brand-text">Koru</div>
+  1527→        <div class="rail-brand-sub">UI Audit v2 · Tier S</div>
+  1528→      </div>
+  1529→    </div>
+  1530→
+  1531→    <div class="rail-section">
+  1532→      <div class="rail-section-title">Informe</div>
+  1533→      <a href="#cover" class="rail-link is-active"><span class="material-symbols-outlined">home</span>Portada</a>
+  1534→      <a href="#exec" class="rail-link"><span class="material-symbols-outlined">summarize</span>Resumen ejecutivo</a>
+  1535→      <a href="#brand" class="rail-link"><span class="material-symbols-outlined">palette</span>Brand Bible</a>
+  1536→    </div>
+  1537→
+  1538→    <div class="rail-section">
+  1539→      <div class="rail-section-title">Fundamentos</div>
+  1540→      <a href="#motion" class="rail-link"><span class="material-symbols-outlined">animation</span>Catálogo de motion</a>
+  1541→      <a href="#microdetails" class="rail-link"><span class="material-symbols-outlined">deblur</span>110 microdetalles</a>
+  1542→      <a href="#icons" class="rail-link"><span class="material-symbols-outlined">stars</span>Iconografía animada</a>
+  1543→      <a href="#layouts" class="rail-link"><span class="material-symbols-outlined">view_quilt</span>Layouts</a>
+  1544→    </div>
+  1545→
+  1546→    <div class="rail-section">
+  1547→      <div class="rail-section-title">Cards · Vida diaria</div>
+  1548→      <a href="#card-weather" class="rail-link"><span class="material-symbols-outlined">wb_sunny</span>Clima · Morning Brief</a>
+  1549→      <a href="#card-alarm" class="rail-link"><span class="material-symbols-outlined">alarm</span>Alarmas · Recordatorios</a>
+  1550→      <a href="#card-wellbeing" class="rail-link"><span class="material-symbols-outlined">favorite</span>Bienestar · Outfit</a>
+  1551→    </div>
+  1552→
+  1553→    <div class="rail-section">
+  1554→      <div class="rail-section-title">Cards · Productividad</div>
+  1555→      <a href="#card-plan" class="rail-link"><span class="material-symbols-outlined">checklist_rtl</span>Planes · Checklist</a>
+  1556→      <a href="#card-routine" class="rail-link"><span class="material-symbols-outlined">repeat</span>Rutinas</a>
+  1557→      <a href="#card-exercise-plan" class="rail-link"><span class="material-symbols-outlined">fitness_center</span>Planes de ejercicio</a>
+  1558→      <a href="#card-shopping-list" class="rail-link"><span class="material-symbols-outlined">shopping_cart</span>Compras · Listas</a>
+  1559→    </div>
+  1560→
+  1561→    <div class="rail-section">
+  1562→      <div class="rail-section-title">Cards · Sports</div>
+  1563→      <a href="#card-live-match" class="rail-link"><span class="material-symbols-outlined">sports_soccer</span>Fútbol en vivo</a>
+  1564→      <a href="#card-tennis-match" class="rail-link"><span class="material-symbols-outlined">sports_tennis</span>Tenis</a>
+  1565→    </div>
+  1566→
+  1567→    <div class="rail-section">
+  1568→      <div class="rail-section-title">Cards · Finance</div>
+  1569→      <a href="#card-money-summary" class="rail-link"><span class="material-symbols-outlined">payments</span>Finanzas · Gastos</a>
+  1570→      <a href="#card-market" class="rail-link"><span class="material-symbols-outlined">trending_up</span>Mercados</a>
+  1571→      <a href="#card-crypto-portfolio" class="rail-link"><span class="material-symbols-outlined">currency_bitcoin</span>Crypto · Trading</a>
+  1572→    </div>
+  1573→
+  1574→    <div class="rail-section">
+  1575→      <div class="rail-section-title">Cards · Media</div>
+  1576→      <a href="#card-recipe" class="rail-link"><span class="material-symbols-outlined">restaurant</span>Recetas</a>
+  1577→      <a href="#card-movie-review" class="rail-link"><span class="material-symbols-outlined">movie</span>Películas · Libros</a>
+  1578→      <a href="#card-restaurant-synthesis" class="rail-link"><span class="material-symbols-outlined">storefront</span>Restaurantes</a>
+  1579→    </div>
+  1580→
+  1581→    <div class="rail-section">
+  1582→      <div class="rail-section-title">Cards · Info & Research</div>
+  1583→      <a href="#card-news-urgent" class="rail-link"><span class="material-symbols-outlined">breaking_news</span>Noticias urgentes</a>
+  1584→      <a href="#card-important-event" class="rail-link"><span class="material-symbols-outlined">event</span>Eventos importantes</a>
+  1585→      <a href="#card-deepsearch" class="rail-link"><span class="material-symbols-outlined">manage_search</span>Deepsearch</a>
+  1586→      <a href="#card-image-generation" class="rail-link"><span class="material-symbols-outlined">image</span>Creación de imágenes</a>
+  1587→    </div>
+  1588→
+  1589→    <div class="rail-section">
+  1590→      <div class="rail-section-title">Cards · Travel & Decisions</div>
+  1591→      <a href="#card-travel-planner" class="rail-link"><span class="material-symbols-outlined">flight_takeoff</span>Viajes · Rutas</a>
+  1592→      <a href="#card-comparison" class="rail-link"><span class="material-symbols-outlined">compare_arrows</span>Comparativas</a>
+  1593→      <a href="#card-decision-support" class="rail-link"><span class="material-symbols-outlined">psychology_alt</span>Decisiones</a>
+  1594→    </div>
+  1595→
+  1596→    <div class="rail-section">
+  1597→      <div class="rail-section-title">Cards · Memory & System</div>
+  1598→      <a href="#card-memory" class="rail-link"><span class="material-symbols-outlined">psychology</span>Memoria · Notas</a>
+  1599→      <a href="#cards-catalog" class="rail-link"><span class="material-symbols-outlined">home</span>Home · Ajustes · Crear</a>
+  1600→    </div>
+  1601→
+  1602→    <div class="rail-section">
+  1603→      <div class="rail-section-title">Entrega</div>
+  1604→      <a href="#roadmap" class="rail-link"><span class="material-symbols-outlined">route</span>Roadmap</a>
+  1605→      <a href="#closing" class="rail-link"><span class="material-symbols-outlined">flag</span>Cierre</a>
+  1606→    </div>
+  1607→
+  1608→    <div class="rail-progress">
+  1609→      <div class="rail-progress-label">Progreso</div>
+  1610→      <div class="rail-progress-bar">
+  1611→        <div class="rail-progress-fill" id="progressFill"></div>
+  1612→      </div>
+  1613→      <div class="rail-progress-num" id="progressNum">0%</div>
+  1614→    </div>
+  1615→
+  1616→    <div class="rail-foot">
+  1617→      <strong>Auditoría v2 orchestrada</strong><br>
+  1618→      6 agentes paralelos · brand guardian + motion + cards + extensions + microdetalles + research<br><br>
+  1619→      <strong>Para que v1 fue 6/10</strong><br>Esta v2 apunta a 10/10
+  1620→    </div>
+  1621→  </aside>
+  1622→
+  1623→  <!-- ============ MAIN COLUMN ============ -->
+  1624→  <main class="read">
+  1625→
+  1626→    <!-- ============ COVER ============ -->
+  1627→    <section class="cover" id="cover">
+  1628→      <div class="aurora">
+  1629→        <div class="aurora-blob b1"></div>
+  1630→        <div class="aurora-blob b2"></div>
+  1631→        <div class="aurora-blob b3"></div>
+  1632→      </div>
+  1633→      <div class="cover-grid"></div>
+  1634→
+  1635→      <div class="cover-inner">
+  1636→        <div class="cover-eyebrow">
+  1637→          <span class="dot"></span>
+  1638→          Auditoría UI v2 · Tier S · HTML interactivo
+  1639→        </div>
+  1640→
+  1641→        <h1 class="cover-title">
+  1642→          Llevar las cards de Koru<br>
+  1643→          al <span class="grad">nivel más alto</span><br>
+  1644→          posible.
+  1645→        </h1>
+  1646→
+  1647→        <p class="cover-sub">
+  1648→          Una auditoría profundamente investigación-driven sobre <strong>chat cards</strong> y <strong>informes
+  1649→          completos</strong> de Koru. Cada card mostrada en su estado compacto <strong>y</strong> en su estado
+  1650→          extendido. Brand palette respetada al 100%. 36 animaciones, 110 microdetalles, 30 cards re-diseñadas (60 mockups).
+  1651→          Esta vez sin desviarse un píxel del lenguaje lavanda-violeta mágico de Koru.
+  1652→        </p>
+  1653→
+  1654→        <div class="cover-stats">
+  1655→          <div class="cover-stat">
+  1656→            <div class="cover-stat-num">30</div>
+  1657→            <div class="cover-stat-label">Cards (60 mockups)</div>
+  1658→          </div>
+  1659→          <div class="cover-stat">
+  1660→            <div class="cover-stat-num">30</div>
+  1661→            <div class="cover-stat-label">Layouts extendidos</div>
+  1662→          </div>
+  1663→          <div class="cover-stat">
+  1664→            <div class="cover-stat-num">36</div>
+  1665→            <div class="cover-stat-label">Animaciones</div>
+  1666→          </div>
+  1667→          <div class="cover-stat">
+  1668→            <div class="cover-stat-num">110</div>
+  1669→            <div class="cover-stat-label">Microdetalles</div>
+  1670→          </div>
+  1671→        </div>
+  1672→
+  1673→        <a href="#exec" class="cover-cta">
+  1674→          <span class="material-symbols-outlined">arrow_forward</span>
+  1675→          Comenzar auditoría
+  1676→        </a>
+  1677→      </div>
+  1678→
+  1679→      <div class="cover-foot">
+  1680→        <div class="left">
+  1681→          <span><strong>Repo:</strong> github.com/Arx88/koru-mvp</span>
+  1682→          <span><strong>v1 preservada:</strong> koru-ui-audit-v1.html</span>
+  1683→        </div>
+  1684→        <div><strong>6 agentes</strong> · investigación paralela</div>
+  1685→      </div>
+  1686→
+  1687→      <div class="cover-scroll">
+  1688→        Scroll
+  1689→        <div class="cover-scroll-line"></div>
+  1690→      </div>
+  1691→    </section>
+  1692→
+  1693→    <!-- ============ EXECUTIVE SUMMARY ============ -->
+  1694→    <section class="section" id="exec">
+  1695→      <div class="section-tag reveal">
+  1696→        <span class="material-symbols-outlined">summarize</span>
+  1697→        01 · Resumen ejecutivo
+  1698→      </div>
+  1699→      <h2 class="section-title reveal">
+  1700→        v1 fue un <span class="accent">6/10</span>. v2 apunta a <span class="accent">10/10</span>.
+  1701→      </h2>
+  1702→      <p class="section-lead reveal" data-delay="1">
+  1703→        La auditoría v1 falló en tres puntos críticos: <strong>(1) se desvió de la paleta lavanda-violeta de Koru</strong>
+  1704→        con gradientes pink-to-orange ajenos al brand; <strong>(2) no mostró el estado extendido de cada card</strong>,
+  1705→        dejando el 60% del diseño sin documentar; <strong>(3) no tuvo suficientes microdetalles</strong> — las cards
+  1706→        se veían bien pero no se sentían vivas. Esta v2 corrige los tres con 6 agentes especializados, investigación
+  1707→        profunda de reactbits.dev + lucide-animated + Apple/Linear/Stripe, y la regla de oro: <strong>0 desviaciones
+  1708→        de la paleta EXACTA de Koru</strong>.
+  1709→      </p>
+  1710→
+  1711→      <div class="reveal" data-delay="2" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:28px;">
+  1712→        <div style="background:#fff;border-radius:15px;padding:20px;border:1px solid var(--c-sand);border-top:4px solid var(--kp);">
+  1713→          <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px;">
+  1714→            <span class="material-symbols-outlined" style="color:var(--kp);font-size:22px;">verified</span>
+  1715→            <strong style="color:var(--c-bark);font-size:14px;">Paleta respetada al 100%</strong>
+  1716→          </div>
+  1717→          <p style="font-size:12.5px;color:var(--c-earth);line-height:1.55;">
+  1718→            Brand Bible extraída de los tokens REALES de <code>style.css</code> (5.803 líneas).
+  1719→            Cero desviaciones. Anti-patterns explícitos prohibidos.
+  1720→          </p>
+  1721→        </div>
+  1722→        <div style="background:#fff;border-radius:15px;padding:20px;border:1px solid var(--c-sand);border-top:4px solid var(--k-emerald);">
+  1723→          <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px;">
+  1724→            <span class="material-symbols-outlined" style="color:var(--k-emerald);font-size:22px;">fullscreen</span>
+  1725→            <strong style="color:var(--c-bark);font-size:14px;">Estado extendido de cada card</strong>
+  1726→          </div>
+  1727→          <p style="font-size:12.5px;color:var(--c-earth);line-height:1.55;">
+  1728→            30+ layouts extendidos diseñados con detalle sección por sección: header, módulos,
+  1729→            sticky actions, empty states, microdetalles específicos.
+  1730→          </p>
+  1731→        </div>
+  1732→        <div style="background:#fff;border-radius:15px;padding:20px;border:1px solid var(--c-sand);border-top:4px solid var(--k-amber);">
+  1733→          <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px;">
+  1734→            <span class="material-symbols-outlined" style="color:var(--k-amber-text);font-size:22px;">deblur</span>
+  1735→            <strong style="color:var(--c-bark);font-size:14px;">110 microdetalles</strong>
+  1736→          </div>
+  1737→          <p style="font-size:12.5px;color:var(--c-earth);line-height:1.55;">
+  1738→            Jerarquía visual, contraste (medido WCAG), spacing, entradas, hovers, taps,
+  1739→            estados, accesibilidad. Lo que separa Tier S de "bueno".
+  1740→          </p>
+  1741→        </div>
+  1742→        <div style="background:#fff;border-radius:15px;padding:20px;border:1px solid var(--c-sand);border-top:4px solid var(--k-pink);">
+  1743→          <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px;">
+  1744→            <span class="material-symbols-outlined" style="color:var(--k-pink);font-size:22px;">science</span>
+  1745→            <strong style="color:var(--c-bark);font-size:14px;">Research en vivo</strong>
+  1746→          </div>
+  1747→          <p style="font-size:12.5px;color:var(--c-earth);line-height:1.55;">
+  1748→            reactbits.dev (140 componentes), lucide-animated (435 icons),
+  1749→            Apple/Linear/Stripe/Vercel. Patrones adoptados con justificación.
+  1750→          </p>
+  1751→        </div>
+  1752→      </div>
+  1753→
+  1754→      <div class="callout crit reveal" data-delay="3">
+  1755→        <span class="material-symbols-outlined">error</span>
+  1756→        <div>
+  1757→          <div class="callout-title">Por qué v1 fue 6/10 — diagnóstico honesto</div>
+  1758→          <div class="callout-body">
+  1759→            <strong>1. Drift cromático:</strong> v1 usó <code>linear-gradient(135deg, #ec4899, #f59e0b)</code> y
+  1760→            <code>linear-gradient(135deg, #dc2626, #8127cf)</code> — ajenos al brand. Koru es lavanda-violeta
+  1761→            cálido, NO startup pink-orange.<br>
+  1762→            <strong>2. Falta de extended views:</strong> v1 solo mostró el estado compacto. El usuario dijo
+  1763→            "CADA CARD debe tener su extendido" — v2 cumple.<br>
+  1764→            <strong>3. Pocos microdetalles:</strong> v1 tuvo ~6 animaciones; v2 tiene 36 + 110 microdetails
+  1765→            en el manifesto.<br>
+  1766→            <strong>4. Jerarquía visual débil:</strong> v1 mezcló 5+ font sizes y pesos en una card.
+  1767→            v2 impone la regla 1-3-1 (un foco, tres soportes, un CTA).
+  1768→          </div>
+  1769→        </div>
+  1770→      </div>
+  1771→
+  1772→      <h3 class="reveal" data-delay="4" style="font-family:var(--t-display);font-size:22px;font-weight:800;color:var(--kp-deep);margin-top:36px;margin-bottom:14px;letter-spacing:-0.02em;">
+  1773→        Filosofía del rediseño v2
+  1774→      </h3>
+  1775→      <p class="reveal" data-delay="4" style="font-size:14.5px;color:var(--c-earth);line-height:1.65;max-width:740px;">
+  1776→        Mantener la arquitectura existente (<code>KoruPresentation → KoruUnifiedCard → KoruDetailScreen</code>),
+  1777→        pero <strong>llevar cada capa a su máxima expresión</strong>: motion vivo (count-up, glow breathe, section
+  1778→        stagger, shimmer sweep, tap ripple), imagen omnipresente (backdrops blur, favicons, video embeds, gallery),
+  1779→        jerarquía impecable (1-3-1 rule, 3 pesos máx, 4 tamaños máx por card), y microdetalles en cada interacción
+  1780→        (hover lift, icon fill toggle, shine sweep, success pop). Todo dentro del vocabulario lavanda-violeta
+  1781→        cálido-mágico de Koru. <strong>El objetivo: que cada card se sienta como Apple Health meets Linear meets Calm</strong> —
+  1782→        cuidadoso, inteligente, premium, vivo.
+  1783→      </p>
+  1784→    </section>
+  1785→
+  1786→    <!-- ============ BRAND BIBLE ============ -->
+  1787→    <section class="section" id="brand">
+  1788→      <div class="section-tag reveal">
+  1789→        <span class="material-symbols-outlined">palette</span>
+  1790→        02 · Brand Bible
+  1791→      </div>
+  1792→      <h2 class="section-title reveal">
+  1793→        La constitución cromática de <span class="accent">Koru</span>.
+  1794→      </h2>
+  1795→      <p class="section-lead reveal" data-delay="1">
+  1796→        Extraída de los tokens REALES de <code>src/style.css</code> — líneas 1-200 (root), 169-189 (chat-shell),
+  1797→        2200-2400 (hero card), 5500-5800 (animaciones). Esta es la única fuente de verdad. Cualquier desviación
+  1798→        es un regression.
+  1799→      </p>
+  1800→
+  1801→      <h3 class="reveal" data-delay="2" style="font-family:var(--t-display);font-size:22px;font-weight:800;color:var(--kp-deep);margin-top:32px;margin-bottom:14px;letter-spacing:-0.02em;">
+  1802→        Paleta primaria — la única familia violeta permitida
+  1803→      </h3>
+  1804→      <div class="swatch-grid reveal" data-delay="2">
+  1805→        <div class="swatch">
+  1806→          <div class="swatch-color" style="background:#8363f9;"><span class="check">Aa</span></div>
+  1807→          <div class="swatch-meta"><div class="swatch-name">Violet Primary</div><div class="swatch-hex">#8363f9</div><div class="swatch-usage">Botones · acentos · brand</div></div>
+  1808→        </div>
+  1809→        <div class="swatch">
+  1810→          <div class="swatch-color" style="background:#523a9e;"><span class="check">Aa</span></div>
+  1811→          <div class="swatch-meta"><div class="swatch-name">Violet Dark</div><div class="swatch-hex">#523a9e</div><div class="swatch-usage">Hover · texto acento &lt;18px</div></div>
+  1812→        </div>
+  1813→        <div class="swatch">
+  1814→          <div class="swatch-color" style="background:#382b8c;"><span class="check" style="background:rgba(255,255,255,0.9);color:#382b8c;">Aa</span></div>
+  1815→          <div class="swatch-meta"><div class="swatch-name">Violet Deep</div><div class="swatch-hex">#382b8c</div><div class="swatch-usage">Títulos hero · texto profundo</div></div>
+  1816→        </div>
+  1817→        <div class="swatch">
+  1818→          <div class="swatch-color" style="background:#7c5cdb;"><span class="check">Aa</span></div>
+  1819→          <div class="swatch-meta"><div class="swatch-name">Forest (Tailwind)</div><div class="swatch-hex">#7c5cdb</div><div class="swatch-usage">Superficie violeta primary</div></div>
+  1820→        </div>
+  1821→        <div class="swatch">
+  1822→          <div class="swatch-color" style="background:#c9bdf5;"><span class="check" style="color:#523a9e;">Aa</span></div>
+  1823→          <div class="swatch-meta"><div class="swatch-name">Leaf</div><div class="swatch-hex">#c9bdf5</div><div class="swatch-usage">Acento suave · glow</div></div>
+  1824→        </div>
+  1825→        <div class="swatch">
+  1826→          <div class="swatch-color" style="background:linear-gradient(180deg,#f0dbff 0%,#f8f9ff 100%);"><span class="check" style="background:rgba(131,99,249,0.85);color:#fff;">Aa</span></div>
+  1827→          <div class="swatch-meta"><div class="swatch-name">Lavender Screen</div><div class="swatch-hex">#f0dbff → #f8f9ff</div><div class="swatch-usage">Background del detail</div></div>
+  1828→        </div>
+  1829→      </div>
+  1830→
+  1831→      <h3 class="reveal" data-delay="3" style="font-family:var(--t-display);font-size:22px;font-weight:800;color:var(--kp-deep);margin-top:36px;margin-bottom:14px;letter-spacing:-0.02em;">
+  1832→        Texto &amp; superficies
+  1833→      </h3>
+  1834→      <div class="swatch-grid reveal" data-delay="3">
+  1835→        <div class="swatch">
+  1836→          <div class="swatch-color" style="background:#2e2650;"><span class="check" style="background:rgba(255,255,255,0.9);color:#2e2650;">Aa</span></div>
+  1837→          <div class="swatch-meta"><div class="swatch-name">Bark (Ink)</div><div class="swatch-hex">#2e2650</div><div class="swatch-usage">Texto primario · 12.7:1 AAA</div></div>
+  1838→        </div>
+  1839→        <div class="swatch">
+  1840→          <div class="swatch-color" style="background:#6b5f8c;"><span class="check">Aa</span></div>
+  1841→          <div class="swatch-meta"><div class="swatch-name">Earth (Muted)</div><div class="swatch-hex">#6b5f8c</div><div class="swatch-usage">Texto secundario · 5.3:1 AA</div></div>
+  1842→        </div>
+  1843→        <div class="swatch">
+  1844→          <div class="swatch-color" style="background:#7566a0;"><span class="check">Aa</span></div>
+  1845→          <div class="swatch-meta"><div class="swatch-name">Meta (NEW)</div><div class="swatch-hex">#7566a0</div><div class="swatch-usage">Reemplaza stone · 4.6:1 AA</div></div>
+  1846→        </div>
+  1847→        <div class="swatch">
+  1848→          <div class="swatch-color" style="background:#f6f3fe;"><span class="check" style="background:rgba(131,99,249,0.85);color:#fff;">Aa</span></div>
+  1849→          <div class="swatch-meta"><div class="swatch-name">Cream (App BG)</div><div class="swatch-hex">#f6f3fe</div><div class="swatch-usage">Fondo de la app</div></div>
+  1850→        </div>
+  1851→        <div class="swatch">
+  1852→          <div class="swatch-color" style="background:#efeafb;"><span class="check" style="background:rgba(131,99,249,0.85);color:#fff;">Aa</span></div>
+  1853→          <div class="swatch-meta"><div class="swatch-name">Warm White</div><div class="swatch-hex">#efeafb</div><div class="swatch-usage">Superficie suave</div></div>
+  1854→        </div>
+  1855→        <div class="swatch">
+  1856→          <div class="swatch-color" style="background:#e4ddf7;"><span class="check" style="background:rgba(131,99,249,0.85);color:#fff;">Aa</span></div>
+  1857→          <div class="swatch-meta"><div class="swatch-name">Sand (Border)</div><div class="swatch-hex">#e4ddf7</div><div class="swatch-usage">Bordes · NUNCA gris</div></div>
+  1858→        </div>
+  1859→      </div>
+  1860→
+  1861→      <h3 class="reveal" data-delay="4" style="font-family:var(--t-display);font-size:22px;font-weight:800;color:var(--kp-deep);margin-top:36px;margin-bottom:14px;letter-spacing:-0.02em;">
+  1862→        Acentos semánticos — solo para su significado
+  1863→      </h3>
+  1864→      <p class="reveal" data-delay="4" style="font-size:13.5px;color:var(--c-earth);margin-bottom:14px;max-width:720px;">
+  1865→        Cada acento tiene un significado semántico. <strong>Nunca usar decorativamente</strong>. Para texto
+  1866→        menor a 18px, usar las variantes text-safe (mayor contraste).
+  1867→      </p>
+  1868→      <div class="swatch-grid reveal" data-delay="4">
+  1869→        <div class="swatch"><div class="swatch-color" style="background:#2d6a4f;"><span class="check" style="background:rgba(255,255,255,0.85);">Aa</span></div><div class="swatch-meta"><div class="swatch-name">Emerald</div><div class="swatch-hex">#2d6a4f</div><div class="swatch-usage">Success · done · financias +</div></div></div>
+  1870→        <div class="swatch"><div class="swatch-color" style="background:#f59e0b;"><span class="check">Aa</span></div><div class="swatch-meta"><div class="swatch-name">Amber</div><div class="swatch-hex">#f59e0b</div><div class="swatch-usage">Warning · morning · iconos</div></div></div>
+  1871→        <div class="swatch"><div class="swatch-color" style="background:#b45309;"><span class="check">Aa</span></div><div class="swatch-meta"><div class="swatch-name">Amber Text-safe</div><div class="swatch-hex">#b45309</div><div class="swatch-usage">Texto amber &lt;18px · 4.6:1</div></div></div>
+  1872→        <div class="swatch"><div class="swatch-color" style="background:#ef4444;"><span class="check">Aa</span></div><div class="swatch-meta"><div class="swatch-name">Rose</div><div class="swatch-hex">#ef4444</div><div class="swatch-usage">Error · live · urgent</div></div></div>
+  1873→        <div class="swatch"><div class="swatch-color" style="background:#c81e1e;"><span class="check">Aa</span></div><div class="swatch-meta"><div class="swatch-name">Rose Text-safe</div><div class="swatch-hex">#c81e1e</div><div class="swatch-usage">Texto rose &lt;18px · 5.2:1</div></div></div>
+  1874→        <div class="swatch"><div class="swatch-color" style="background:#3b82f6;"><span class="check">Aa</span></div><div class="swatch-meta"><div class="swatch-name">Blue</div><div class="swatch-hex">#3b82f6</div><div class="swatch-usage">Info · "current" chip</div></div></div>
+  1875→        <div class="swatch"><div class="swatch-color" style="background:#ec4899;"><span class="check">Aa</span></div><div class="swatch-meta"><div class="swatch-name">Pink</div><div class="swatch-hex">#ec4899</div><div class="swatch-usage">Accent ONLY · nunca primario</div></div></div>
+  1876→        <div class="swatch"><div class="swatch-color" style="background:#453f6a;"><span class="check">Aa</span></div><div class="swatch-meta"><div class="swatch-name">Night Sky</div><div class="swatch-hex">#453f6a</div><div class="swatch-usage">Único dark permitido · chat</div></div></div>
+  1877→      </div>
+  1878→
+  1879→      <div class="callout crit reveal" data-delay="5">
+  1880→        <span class="material-symbols-outlined">block</span>
+  1881→        <div>
+  1882→          <div class="callout-title">Anti-patterns PROHIBIDOS (por qué v1 fue 6/10)</div>
+  1883→          <div class="callout-body">
+  1884→            <strong>1.</strong> Gradientes pink-to-orange (<code>linear-gradient(135deg, #ec4899, #f59e0b)</code>) — son startup-techy, no Koru.<br>
+  1885→            <strong>2.</strong> Cyan o blue como superficie primaria — rompen el campo lavanda.<br>
+  1886→            <strong>3.</strong> Fondos negros (<code>#000</code>, <code>#0b0b0f</code>) — Koru es lavanda-cream. El único dark es <code>#453f6a</code>.<br>
+  1887→            <strong>4.</strong> Material Symbols filled por defecto — Koru usa <code>FILL 0, wght 400</code> outlined.<br>
+  1888→            <strong>5.</strong> Esquinas afiladas — todo es 12-32px radius.<br>
+  1889→            <strong>6.</strong> Sombras con tinta negra <code>rgba(0,0,0,X)</code> — SIEMPRE <code>rgba(18,10,50,X)</code> o <code>rgba(131,99,249,X)</code>.<br>
+  1890→            <strong>7.</strong> Mezclar tipografías en un párrafo — body es Plus Jakarta Sans, display es Bricolage Grotesque (solo hero numbers/H1).<br>
+  1891→            <strong>8.</strong> Títulos uppercase — kickers sí, títulos no.<br>
+  1892→            <strong>9.</strong> Bordes greyscale (<code>#e5e7eb</code>) — siempre lavanda <code>#e4ddf7</code> o <code>rgba(131,99,249,0.25)</code>.<br>
+  1893→            <strong>10.</strong> Múltiples violetas compitiendo — uno solo: <code>#8363f9</code> / <code>#523a9e</code> / <code>#382b8c</code>.
+  1894→          </div>
+  1895→        </div>
+  1896→      </div>
+  1897→
+  1898→      <h3 class="reveal" data-delay="6" style="font-family:var(--t-display);font-size:22px;font-weight:800;color:var(--kp-deep);margin-top:36px;margin-bottom:14px;letter-spacing:-0.02em;">
+  1899→        Tipografía — 6 tamaños, 5 pesos, 1 display
+  1900→      </h3>
+  1901→      <div style="background:#fff;border-radius:13px;padding:20px;border:1px solid var(--c-sand);" class="reveal" data-delay="6">
+  1902→        <div style="padding-bottom:13px;border-bottom:1px dashed var(--c-sand);margin-bottom:13px;">
+  1903→          <div style="font-family:var(--t-display);font-size:36px;font-weight:800;color:var(--kp-deep);letter-spacing:-0.025em;line-height:1;">Bricolage 36/800</div>
+  1904→          <div style="font-size:10.5px;color:var(--c-earth);font-family:var(--t-mono);margin-top:5px;">Display · H1 informe · artValue gigante · --koru-text-2xl</div>
+  1905→        </div>
+  1906→        <div style="padding-bottom:13px;border-bottom:1px dashed var(--c-sand);margin-bottom:13px;">
+  1907→          <div style="font-family:var(--t-sans);font-size:22px;font-weight:800;color:var(--kp-deep);letter-spacing:-0.01em;">Plus Jakarta 22/800</div>
+  1908→          <div style="font-size:10.5px;color:var(--c-earth);font-family:var(--t-mono);margin-top:4px;">Hero card title · --koru-text-xl · line-height 1.2</div>
+  1909→        </div>
+  1910→        <div style="padding-bottom:13px;border-bottom:1px dashed var(--c-sand);margin-bottom:13px;">
+  1911→          <div style="font-family:var(--t-sans);font-size:15px;font-weight:400;color:var(--c-bark);">Plus Jakarta 15/400 — body text regular</div>
+  1912→          <div style="font-size:10.5px;color:var(--c-earth);font-family:var(--t-mono);margin-top:4px;">Body · inputs · botones · --koru-text-base · line-height 1.5</div>
+  1913→        </div>
+  1914→        <div style="padding-bottom:13px;border-bottom:1px dashed var(--c-sand);margin-bottom:13px;">
+  1915→          <div style="font-family:var(--t-sans);font-size:11px;font-weight:600;color:var(--kp);letter-spacing:0.08em;text-transform:uppercase;">KICKER · OVERLINE 11/600</div>
+  1916→          <div style="font-size:10.5px;color:var(--c-earth);font-family:var(--t-mono);margin-top:4px;">Kicker · badges · labels · --koru-text-xs · uppercase</div>
+  1917→        </div>
+  1918→        <div>
+  1919→          <div style="font-family:var(--t-mono);font-size:12.5px;color:var(--kp-deep);">JetBrains Mono · code &amp; specs</div>
+  1920→          <div style="font-size:10.5px;color:var(--c-earth);font-family:var(--t-mono);margin-top:4px;">Mono · 12.5px/500 · solo para código técnico</div>
+  1921→        </div>
+  1922→      </div>
+  1923→
+  1924→      <h3 class="reveal" data-delay="7" style="font-family:var(--t-display);font-size:22px;font-weight:800;color:var(--kp-deep);margin-top:32px;margin-bottom:14px;letter-spacing:-0.02em;">
+  1925→        Easing — la firma de Koru (3 curvas, nunca linear)
+  1926→      </h3>
+  1927→      <div class="reveal" data-delay="7" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:13px;">
+  1928→        <div style="background:#fff;border-radius:13px;padding:16px;border:1px solid var(--c-sand);">
+  1929→          <div style="font-family:var(--t-mono);font-size:11.5px;color:var(--kp);font-weight:600;margin-bottom:5px;">--e-spring</div>
+  1930→          <div style="font-family:var(--t-mono);font-size:10.5px;color:var(--c-earth);margin-bottom:11px;">cubic-bezier(0.34, 1.56, 0.64, 1)</div>
+  1931→          <svg viewBox="0 0 100 60" style="width:100%;height:55px;"><path d="M 0 60 L 0 30 C 20 30, 30 0, 50 5 C 70 10, 80 12, 100 12" fill="none" stroke="#8363f9" stroke-width="2" /><circle cx="100" cy="12" r="3" fill="#8363f9" /></svg>
+  1932→          <div style="font-size:10.5px;color:var(--c-earth);margin-top:7px;">Entradas · taps · sheets</div>
+  1933→        </div>
+  1934→        <div style="background:#fff;border-radius:13px;padding:16px;border:1px solid var(--c-sand);">
+  1935→          <div style="font-family:var(--t-mono);font-size:11.5px;color:var(--k-amber-text);font-weight:600;margin-bottom:5px;">--e-out</div>
+  1936→          <div style="font-family:var(--t-mono);font-size:10.5px;color:var(--c-earth);margin-bottom:11px;">cubic-bezier(0.22, 1, 0.36, 1)</div>
+  1937→          <svg viewBox="0 0 100 60" style="width:100%;height:55px;"><path d="M 0 60 C 20 0, 40 5, 100 12" fill="none" stroke="#b45309" stroke-width="2" /><circle cx="100" cy="12" r="3" fill="#b45309" /></svg>
+  1938→          <div style="font-size:10.5px;color:var(--c-earth);margin-top:7px;">Bars · scroller · deceleración</div>
+  1939→        </div>
+  1940→        <div style="background:#fff;border-radius:13px;padding:16px;border:1px solid var(--c-sand);">
+  1941→          <div style="font-family:var(--t-mono);font-size:11.5px;color:var(--k-emerald);font-weight:600;margin-bottom:5px;">--e-smooth</div>
+  1942→          <div style="font-family:var(--t-mono);font-size:10.5px;color:var(--c-earth);margin-bottom:11px;">cubic-bezier(0.4, 0, 0.2, 1)</div>
+  1943→          <svg viewBox="0 0 100 60" style="width:100%;height:55px;"><path d="M 0 60 C 40 60, 60 0, 100 12" fill="none" stroke="#2d6a4f" stroke-width="2" /><circle cx="100" cy="12" r="3" fill="#2d6a4f" /></svg>
+  1944→          <div style="font-size:10.5px;color:var(--c-earth);margin-top:7px;">Hovers · transiciones de color</div>
+  1945→        </div>
+  1946→      </div>
+  1947→
+  1948→      <div class="callout info reveal" data-delay="8">
+  1949→        <span class="material-symbols-outlined">info</span>
+  1950→        <div>
+  1951→          <div class="callout-title">El "Koru feel" — descripción cualitativa</div>
+  1952→          <div class="callout-body">
+  1953→            <em>"Una vela lavanda suave en una habitación tenue. Una respiración contenida. Un amigo que sabe la
+  1954→            respuesta pero espera a que preguntes."</em><br><br>
+  1955→            <strong>Cálido</strong> (cada neutral tira a violeta, nunca gris) · <strong>Cozy</strong> (radius 16-32px,
+  1956→            blur 16px) · <strong>Mágico</strong> (float 6s, breathe 4s, stagger 70ms) · <strong>Calmo</strong>
+  1957→            (decelera, nunca snap) · <strong>Premium</strong> (paleta restringida, whitespace generoso) ·
+  1958→            <strong>Inteligente</strong> (Bricolage para números hero) · <strong>Confiable</strong> (ink
+  1959→            <code>#2e2650</code>, sin CTAs hiper-saturados).<br><br>
+  1960→            Referencias: <strong>Apple Health</strong> (cuidado) + <strong>Linear</strong> (pulido) + <strong>Calm</strong> (serenidad lavanda).
+  1961→          </div>
+  1962→        </div>
+  1963→      </div>
+  1964→    </section>
+  1965→
+  1966→    <!-- ============ MOTION CATALOG ============ -->
+  1967→    <section class="section" id="motion">
+  1968→      <div class="section-tag reveal">
+  1969→        <span class="material-symbols-outlined">animation</span>
+  1970→        03 · Catálogo de motion
+  1971→      </div>
+  1972→      <h2 class="section-title reveal">
+  1973→        36 animaciones — <span class="accent">en vivo</span>, brand-tuned.
+  1974→      </h2>
+  1975→      <p class="section-lead reveal" data-delay="1">
+  1976→        Investigadas de reactbits.dev (140 componentes), lucide-animated.com (435 icons), y los patrones de
+  1977→        Apple/Linear/Stripe. Cada animación usa los 3 easings de Koru y respeta <code>prefers-reduced-motion</code>.
+  1978→        Las 12 más impactantes demostradas abajo en vivo.
+  1979→      </p>
+  1980→
+  1981→      <div class="reveal" data-delay="2" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:13px;margin-top:24px;">
+  1982→        <div class="anim-demo">
+  1983→          <div class="anim-demo-stage">
+  1984→            <div style="width:44px;height:44px;border-radius:50%;background:radial-gradient(circle,#c9bdf5,#8363f9);box-shadow:0 0 18px rgba(131,99,249,0.55);animation:koru-breathe 4s ease-in-out infinite;"></div>
+  1985→          </div>
+  1986→          <div class="anim-demo-name">Breathe</div>
+  1987→          <div class="anim-demo-desc">scale 1↔1.04 · 4s</div>
+  1988→        </div>
+  1989→        <div class="anim-demo">
+  1990→          <div class="anim-demo-stage">
+  1991→            <div style="display:flex;align-items:center;gap:6px;">
+  1992→              <span style="width:7px;height:7px;border-radius:50%;background:#ef4444;animation:koru-pulse-dot 1.5s ease-in-out infinite;box-shadow:0 0 6px #ef4444;"></span>
+  1993→              <span style="font-size:10.5px;font-weight:700;color:#c81e1e;letter-spacing:0.08em;text-transform:uppercase;">En vivo</span>
+  1994→            </div>
+  1995→          </div>
+  1996→          <div class="anim-demo-name">Pulse Dot</div>
+  1997→          <div class="anim-demo-desc">live · 1.5s</div>
+  1998→        </div>
+  1999→        <div class="anim-demo">
+  2000→          <div class="anim-demo-stage">
+
+[showing lines 1-2000 of 6474; use offset=2001 with limit to continue reading]

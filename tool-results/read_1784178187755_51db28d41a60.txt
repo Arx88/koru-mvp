@@ -1,0 +1,544 @@
+     1→<div class="showcase reveal" id="card-plan">
+     2→  <div class="showcase-compact">
+     3→    <span class="showcase-label compact"><span class="material-symbols-outlined">chat</span>Estado compacto · chat</span>
+     4→    <div class="k-card is-tappable" style="--accent:#8363f9;--accent-soft:rgba(131,99,249,0.12);">
+     5→  <div class="k-card-glow" style="background:radial-gradient(circle,#8363f9,transparent 70%);"></div>
+     6→  <div class="k-card-top">
+     7→    <div class="k-card-copy">
+     8→      <div class="k-card-kicker" style="color:#8363f9;">Tu Plan</div>
+     9→      <div class="k-card-title">Lanzar producto MVP</div>
+    10→      <div class="k-card-desc">7 pasos para hoy · 3 semanas estimadas</div>
+    11→    </div>
+    12→    <div class="k-card-art" style="background:rgba(131,99,249,0.12);color:#8363f9;">
+    13→      <span class="material-symbols-outlined ms-fill">rocket_launch</span>
+    14→      <div class="k-card-art-value">2/7</div>
+    15→    </div>
+    16→  </div>
+    17→  <div class="k-metrics" style="grid-template-columns:repeat(3,1fr);">
+    18→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#c81e1e;">flag</span><div class="k-metric-label">Alta</div><div class="k-metric-value">3</div></div>
+    19→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#b45309;">schedule</span><div class="k-metric-label">Media</div><div class="k-metric-value">2</div></div>
+    20→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#2d6a4f;">check_circle</span><div class="k-metric-label">Baja</div><div class="k-metric-value">2</div></div>
+    21→  </div>
+    22→  <div class="k-cta-hint" style="color:#8363f9;"><span>Ver detalle</span><span class="material-symbols-outlined">arrow_forward</span></div>
+    23→</div>
+    24→  </div>
+    25→  <div class="showcase-extended">
+    26→    <span class="showcase-label extended"><span class="material-symbols-outlined">fullscreen</span>Estado extendido · informe</span>
+    27→    <div class="k-detail">
+    28→  <div class="k-detail-sticky-head">
+    29→    <button class="k-detail-back"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+    30→    <div class="k-detail-mini-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">rocket_launch</span></div>
+    31→    <div style="flex:1;min-width:0;"><div class="k-detail-mini-title">Lanzar producto MVP</div><div class="k-detail-mini-sub">Tu Plan</div></div>
+    32→    <button class="k-detail-save"><span class="material-symbols-outlined ms-fill">bookmark</span></button>
+    33→  </div>
+    34→  <div class="k-detail-hero" style="height:140px;">
+    35→    <div class="k-detail-hero-backdrop" style="background:linear-gradient(135deg,#8363f9,#382b8c);"></div>
+    36→    <div class="k-detail-hero-scrim"></div>
+    37→    <div class="k-detail-hero-content">
+    38→      <div class="k-detail-hero-badge" style="background:rgba(255,255,255,0.92);color:#8363f9;"><span class="material-symbols-outlined" style="font-size:11px;">verified</span>3 semanas</div>
+    39→      <div class="k-detail-hero-title">Lanzar producto MVP</div>
+    40→      <div class="k-detail-hero-sub">7 pasos para hoy · 3 semanas estimadas</div>
+    41→    </div>
+    42→  </div>
+    43→  <div class="k-detail-modules">
+    44→    <div class="k-module" style="--module-color:#8363f9;animation-delay:0.1s;">
+    45→      <div class="k-module-head">
+    46→        <div class="k-module-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">checklist_rtl</span></div>
+    47→        <div><div class="k-module-title" style="color:#8363f9;">Pasos del plan</div><div class="k-module-kicker">7 etapas</div></div>
+    48→        <span class="k-module-meta">4</span>
+    49→      </div>
+    50→      <div class="k-timeline">
+    51→        <div class="k-timeline-step is-done">
+    52→          <div class="k-timeline-dot"><span class="material-symbols-outlined">check</span></div>
+    53→          <div class="k-timeline-body"><div class="k-timeline-name">1. Discovery</div><div class="k-timeline-meta">Definir objetivos OKR</div></div>
+    54→        </div>
+    55→        <div class="k-timeline-step is-done">
+    56→          <div class="k-timeline-dot"><span class="material-symbols-outlined">check</span></div>
+    57→          <div class="k-timeline-body"><div class="k-timeline-name">2. Auditar</div><div class="k-timeline-meta">Recursos actuales</div></div>
+    58→        </div>
+    59→        <div class="k-timeline-step is-current">
+    60→          <div class="k-timeline-dot"><span class="material-symbols-outlined">radio_button_checked</span></div>
+    61→          <div class="k-timeline-body"><div class="k-timeline-name">3. Diseñar MVP</div><div class="k-timeline-meta">Wireframes + flows</div></div>
+    62→        </div>
+    63→        <div class="k-timeline-step is-pending">
+    64→          <div class="k-timeline-dot"><span class="material-symbols-outlined">radio_button_unchecked</span></div>
+    65→          <div class="k-timeline-body"><div class="k-timeline-name">4. Validar</div><div class="k-timeline-meta">5 usuarios</div></div>
+    66→        </div>
+    67→      </div>
+    68→    </div>
+    69→    <div class="k-module" style="--module-color:#8363f9;animation-delay:0.16s;">
+    70→      <div class="k-module-head">
+    71→        <div class="k-module-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">schedule</span></div>
+    72→        <div><div class="k-module-title" style="color:#8363f9;">Distribución de tiempo</div><div class="k-module-kicker">4 fases</div></div>
+    73→        <span class="k-module-meta">4</span>
+    74→      </div>
+    75→      <div class="k-tiles">
+    76→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#c81e1e;">flag</span><div><div class="k-tile-label">Discovery</div><div class="k-tile-value">3 días</div></div></div>
+    77→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">design_services</span><div><div class="k-tile-label">Diseño</div><div class="k-tile-value">5 días</div></div></div>
+    78→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#2d6a4f;">code</span><div><div class="k-tile-label">Desarrollo</div><div class="k-tile-value">8 días</div></div></div>
+    79→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#b45309;">science</span><div><div class="k-tile-label">QA</div><div class="k-tile-value">3 días</div></div></div>
+    80→      </div>
+    81→    </div>
+    82→    <div class="k-module" style="--module-color:#8363f9;animation-delay:0.22s;">
+    83→      <div class="k-module-head">
+    84→        <div class="k-module-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">psychology</span></div>
+    85→        <div><div class="k-module-title" style="color:#8363f9;">Notas del plan</div><div class="k-module-kicker">Estrategia</div></div>
+    86→      </div>
+    87→      <p class="k-text">Si el discovery revela un mercado inmaduro, reconsiderar el Paso 4 y pivotar a vertical más nicho.</p>
+    88→    </div>
+    89→  </div>
+    90→  <div class="k-detail-actions">
+    91→    <button class="k-detail-action save"><span class="material-symbols-outlined ms-fill" style="font-size:18px;">bookmark_added</span>Guardar</button>
+    92→    <button class="k-detail-action pdf"><span class="material-symbols-outlined" style="font-size:18px;">picture_as_pdf</span>PDF</button>
+    93→  </div>
+    94→</div>
+    95→  </div>
+    96→</div>
+    97→
+    98→        <div class="card-spec reveal">
+    99→          <strong>Spec · Plan</strong> &middot;
+   100→          Accent: <code>#8363f9</code> &middot;
+   101→          Icon: <code>rocket_launch</code> &middot;
+   102→          Layout: <code>default</code> &middot;
+   103→          3 metrics &middot;
+   104→          3 secciones en extendido &middot;
+   105→          Glow halo activo &middot; Count-up en artValue &middot; CTA shimmer cíclico
+   106→        </div>
+   107→
+   108→<div class="showcase reveal" id="card-smart-checklist">
+   109→  <div class="showcase-compact">
+   110→    <span class="showcase-label compact"><span class="material-symbols-outlined">chat</span>Estado compacto · chat</span>
+   111→    <div class="k-card is-tappable" style="--accent:#8363f9;--accent-soft:rgba(131,99,249,0.12);">
+   112→  <div class="k-card-glow" style="background:radial-gradient(circle,#8363f9,transparent 70%);"></div>
+   113→  <div class="k-card-top">
+   114→    <div class="k-card-copy">
+   115→      <div class="k-card-kicker" style="color:#8363f9;">Tu Checklist</div>
+   116→      <div class="k-card-title">Checklist viaje Tokio</div>
+   117→      <div class="k-card-desc">8 de 12 completados · 4 pendientes</div>
+   118→    </div>
+   119→    <div class="k-card-art" style="background:rgba(131,99,249,0.12);color:#8363f9;">
+   120→      <span class="material-symbols-outlined ms-fill">checklist</span>
+   121→      <div class="k-card-art-value">8/12</div>
+   122→    </div>
+   123→  </div>
+   124→  <div class="k-metrics" style="grid-template-columns:repeat(3,1fr);">
+   125→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#2d6a4f;">check_box</span><div class="k-metric-label">Done</div><div class="k-metric-value">8</div></div>
+   126→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#8363f9;">check_box_outline_blank</span><div class="k-metric-label">Pendiente</div><div class="k-metric-value">4</div></div>
+   127→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#b45309;">task_alt</span><div class="k-metric-label">Urgente</div><div class="k-metric-value">1</div></div>
+   128→  </div>
+   129→  <div class="k-cta-hint" style="color:#8363f9;"><span>Ver detalle</span><span class="material-symbols-outlined">arrow_forward</span></div>
+   130→</div>
+   131→  </div>
+   132→  <div class="showcase-extended">
+   133→    <span class="showcase-label extended"><span class="material-symbols-outlined">fullscreen</span>Estado extendido · informe</span>
+   134→    <div class="k-detail">
+   135→  <div class="k-detail-sticky-head">
+   136→    <button class="k-detail-back"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+   137→    <div class="k-detail-mini-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">checklist</span></div>
+   138→    <div style="flex:1;min-width:0;"><div class="k-detail-mini-title">Checklist viaje Tokio</div><div class="k-detail-mini-sub">Tu Checklist</div></div>
+   139→    <button class="k-detail-save"><span class="material-symbols-outlined ms-fill">bookmark</span></button>
+   140→  </div>
+   141→  <div class="k-detail-hero" style="height:140px;">
+   142→    <div class="k-detail-hero-backdrop" style="background:linear-gradient(135deg,#8363f9,#382b8c);"></div>
+   143→    <div class="k-detail-hero-scrim"></div>
+   144→    <div class="k-detail-hero-content">
+   145→      <div class="k-detail-hero-badge" style="background:rgba(255,255,255,0.92);color:#8363f9;"><span class="material-symbols-outlined" style="font-size:11px;">verified</span>67% completo</div>
+   146→      <div class="k-detail-hero-title">Checklist viaje Tokio</div>
+   147→      <div class="k-detail-hero-sub">8 de 12 completados · 4 pendientes</div>
+   148→    </div>
+   149→  </div>
+   150→  <div class="k-detail-modules">
+   151→    <div class="k-module" style="--module-color:#8363f9;animation-delay:0.1s;">
+   152→      <div class="k-module-head">
+   153→        <div class="k-module-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">checklist</span></div>
+   154→        <div><div class="k-module-title" style="color:#8363f9;">Tareas</div><div class="k-module-kicker">12 items</div></div>
+   155→        <span class="k-module-meta">4</span>
+   156→      </div>
+   157→      <div class="k-rows">
+   158→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#2d6a4f;">check_box</span><div class="k-row-body"><div class="k-row-title">Pasaporte vigente</div><div class="k-row-detail">Vence 2028</div></div><span class="k-row-meta">✓</span></div>
+   159→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#2d6a4f;">check_box</span><div class="k-row-body"><div class="k-row-title">JR Pass comprado</div><div class="k-row-detail">7 días ¥29.110</div></div><span class="k-row-meta">✓</span></div>
+   160→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#8363f9;">check_box_outline_blank</span><div class="k-row-body"><div class="k-row-title">Reservar restaurante</div><div class="k-row-detail">Jiro 12 mar</div></div><span class="k-row-meta">—</span></div>
+   161→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#c81e1e;">check_box_outline_blank</span><div class="k-row-body"><div class="k-row-title">eSIM Japón</div><div class="k-row-detail">Urgente</div></div><span class="k-row-meta">!</span></div>
+   162→      </div>
+   163→    </div>
+   164→    <div class="k-module" style="--module-color:#8363f9;animation-delay:0.16s;">
+   165→      <div class="k-module-head">
+   166→        <div class="k-module-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">analytics</span></div>
+   167→        <div><div class="k-module-title" style="color:#8363f9;">Progreso</div><div class="k-module-kicker">4 métricas</div></div>
+   168→        <span class="k-module-meta">4</span>
+   169→      </div>
+   170→      <div class="k-tiles">
+   171→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">task_alt</span><div><div class="k-tile-label">Progreso</div><div class="k-tile-value">67%</div></div></div>
+   172→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#b45309;">schedule</span><div><div class="k-tile-label">Días restantes</div><div class="k-tile-value">12</div></div></div>
+   173→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#c81e1e;">flag</span><div><div class="k-tile-label">Urgentes</div><div class="k-tile-value">1</div></div></div>
+   174→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#2d6a4f;">check_circle</span><div><div class="k-tile-label">Completados</div><div class="k-tile-value">8</div></div></div>
+   175→      </div>
+   176→    </div>
+   177→  </div>
+   178→  <div class="k-detail-actions">
+   179→    <button class="k-detail-action save"><span class="material-symbols-outlined ms-fill" style="font-size:18px;">bookmark_added</span>Guardar</button>
+   180→    <button class="k-detail-action pdf"><span class="material-symbols-outlined" style="font-size:18px;">picture_as_pdf</span>PDF</button>
+   181→  </div>
+   182→</div>
+   183→  </div>
+   184→</div>
+   185→
+   186→        <div class="card-spec reveal">
+   187→          <strong>Spec · Checklist</strong> &middot;
+   188→          Accent: <code>#8363f9</code> &middot;
+   189→          Icon: <code>checklist</code> &middot;
+   190→          Layout: <code>default</code> &middot;
+   191→          3 metrics &middot;
+   192→          2 secciones en extendido &middot;
+   193→          Glow halo activo &middot; Count-up en artValue &middot; CTA shimmer cíclico
+   194→        </div>
+   195→
+   196→
+   197→      <div class="card-section-divider reveal">
+   198→        <div class="card-section-group-title">Rutinas</div>
+   199→        <div class="card-section-group-sub">Habit loops con streaks, adherencia semanal.</div>
+   200→      </div>
+   201→
+   202→<div class="showcase reveal" id="card-routine">
+   203→  <div class="showcase-compact">
+   204→    <span class="showcase-label compact"><span class="material-symbols-outlined">chat</span>Estado compacto · chat</span>
+   205→    <div class="k-card is-tappable" style="--accent:#3b82f6;--accent-soft:rgba(59,130,246,0.12);">
+   206→  <div class="k-card-glow" style="background:radial-gradient(circle,#3b82f6,transparent 70%);"></div>
+   207→  <div class="k-card-top">
+   208→    <div class="k-card-copy">
+   209→      <div class="k-card-kicker" style="color:#3b82f6;">Tu Rutina</div>
+   210→      <div class="k-card-title">Mañana productiva</div>
+   211→      <div class="k-card-desc">5 de 7 hábitos completados · Racha 7 días</div>
+   212→    </div>
+   213→    <div class="k-card-art" style="background:rgba(59,130,246,0.12);color:#3b82f6;">
+   214→      <span class="material-symbols-outlined ms-fill">repeat</span>
+   215→      <div class="k-card-art-value">7🔥</div>
+   216→    </div>
+   217→  </div>
+   218→  <div class="k-metrics" style="grid-template-columns:repeat(3,1fr);">
+   219→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#c81e1e;">local_fire_department</span><div class="k-metric-label">Racha</div><div class="k-metric-value">7 días</div></div>
+   220→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#2d6a4f;">check_circle</span><div class="k-metric-label">Hoy</div><div class="k-metric-value">5/7</div></div>
+   221→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#2d6a4f;">trending_up</span><div class="k-metric-label">Adherencia</div><div class="k-metric-value">82%</div></div>
+   222→  </div>
+   223→  <div class="k-cta-hint" style="color:#3b82f6;"><span>Ver detalle</span><span class="material-symbols-outlined">arrow_forward</span></div>
+   224→</div>
+   225→  </div>
+   226→  <div class="showcase-extended">
+   227→    <span class="showcase-label extended"><span class="material-symbols-outlined">fullscreen</span>Estado extendido · informe</span>
+   228→    <div class="k-detail">
+   229→  <div class="k-detail-sticky-head">
+   230→    <button class="k-detail-back"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+   231→    <div class="k-detail-mini-icon" style="background:rgba(59,130,246,0.12);color:#3b82f6;"><span class="material-symbols-outlined">repeat</span></div>
+   232→    <div style="flex:1;min-width:0;"><div class="k-detail-mini-title">Mañana productiva</div><div class="k-detail-mini-sub">Tu Rutina</div></div>
+   233→    <button class="k-detail-save"><span class="material-symbols-outlined ms-fill">bookmark</span></button>
+   234→  </div>
+   235→  <div class="k-detail-hero" style="height:140px;">
+   236→    <div class="k-detail-hero-backdrop" style="background:linear-gradient(135deg,#3b82f6,#382b8c);"></div>
+   237→    <div class="k-detail-hero-scrim"></div>
+   238→    <div class="k-detail-hero-content">
+   239→      <div class="k-detail-hero-badge" style="background:rgba(255,255,255,0.92);color:#3b82f6;"><span class="material-symbols-outlined" style="font-size:11px;">verified</span>Semana 4</div>
+   240→      <div class="k-detail-hero-title">Mañana productiva</div>
+   241→      <div class="k-detail-hero-sub">5 de 7 hábitos completados · Racha 7 días</div>
+   242→    </div>
+   243→  </div>
+   244→  <div class="k-detail-modules">
+   245→    <div class="k-module" style="--module-color:#3b82f6;animation-delay:0.1s;">
+   246→      <div class="k-module-head">
+   247→        <div class="k-module-icon" style="background:rgba(59,130,246,0.12);color:#3b82f6;"><span class="material-symbols-outlined">repeat</span></div>
+   248→        <div><div class="k-module-title" style="color:#3b82f6;">Hábitos de hoy</div><div class="k-module-kicker">7 items</div></div>
+   249→        <span class="k-module-meta">3</span>
+   250→      </div>
+   251→      <div class="k-rows">
+   252→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#3b82f6;">water_drop</span><div class="k-row-body"><div class="k-row-title">Beber 2L agua</div><div class="k-row-detail">1.4L hasta ahora</div></div><span class="k-row-meta">70%</span></div>
+   253→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#2d6a4f;">directions_run</span><div class="k-row-body"><div class="k-row-title">Correr 5km</div><div class="k-row-detail">Completado</div></div><span class="k-row-meta">✓</span></div>
+   254→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#8363f9;">menu_book</span><div class="k-row-body"><div class="k-row-title">Leer 20 min</div><div class="k-row-detail">Pendiente</div></div><span class="k-row-meta">—</span></div>
+   255→      </div>
+   256→    </div>
+   257→    <div class="k-module" style="--module-color:#3b82f6;animation-delay:0.16s;">
+   258→      <div class="k-module-head">
+   259→        <div class="k-module-icon" style="background:rgba(59,130,246,0.12);color:#3b82f6;"><span class="material-symbols-outlined">local_fire_department</span></div>
+   260→        <div><div class="k-module-title" style="color:#3b82f6;">Streaks</div><div class="k-module-kicker">4 datos</div></div>
+   261→        <span class="k-module-meta">4</span>
+   262→      </div>
+   263→      <div class="k-tiles">
+   264→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#c81e1e;">local_fire_department</span><div><div class="k-tile-label">Actual</div><div class="k-tile-value">7 días</div></div></div>
+   265→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#b45309;">emoji_events</span><div><div class="k-tile-label">Mejor</div><div class="k-tile-value">21 días</div></div></div>
+   266→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#2d6a4f;">check_circle</span><div><div class="k-tile-label">Activos</div><div class="k-tile-value">7</div></div></div>
+   267→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#2d6a4f;">trending_up</span><div><div class="k-tile-label">Adherencia</div><div class="k-tile-value">82%</div></div></div>
+   268→      </div>
+   269→    </div>
+   270→    <div class="k-module" style="--module-color:#3b82f6;animation-delay:0.22s;">
+   271→      <div class="k-module-head">
+   272→        <div class="k-module-icon" style="background:rgba(59,130,246,0.12);color:#3b82f6;"><span class="material-symbols-outlined">calendar_month</span></div>
+   273→        <div><div class="k-module-title" style="color:#3b82f6;">Vista semanal</div><div class="k-module-kicker">7 días</div></div>
+   274→        <span class="k-module-meta">3</span>
+   275→      </div>
+   276→      <div class="k-scroller">
+   277→        <div class="k-scard"><span class="k-scard-badge" style="background:rgba(59,130,246,0.12);color:#3b82f6;">Lun</span><div class="k-scard-title">7/7</div><div class="k-scard-detail">Completo</div>
+   278→          <div class="k-scard-metrics">
+   279→            <span class="k-scard-metric">100%</span>
+   280→          </div>
+   281→        </div>
+   282→        <div class="k-scard"><span class="k-scard-badge" style="background:rgba(59,130,246,0.12);color:#3b82f6;">Mar</span><div class="k-scard-title">6/7</div><div class="k-scard-detail">Faltó leer</div>
+   283→          <div class="k-scard-metrics">
+   284→            <span class="k-scard-metric">86%</span>
+   285→          </div>
+   286→        </div>
+   287→        <div class="k-scard"><span class="k-scard-badge" style="background:rgba(59,130,246,0.12);color:#3b82f6;">Mié</span><div class="k-scard-title">7/7</div><div class="k-scard-detail">Completo</div>
+   288→          <div class="k-scard-metrics">
+   289→            <span class="k-scard-metric">100%</span>
+   290→          </div>
+   291→        </div>
+   292→      </div>
+   293→    </div>
+   294→  </div>
+   295→  <div class="k-detail-actions">
+   296→    <button class="k-detail-action save"><span class="material-symbols-outlined ms-fill" style="font-size:18px;">bookmark_added</span>Guardar</button>
+   297→    <button class="k-detail-action pdf"><span class="material-symbols-outlined" style="font-size:18px;">picture_as_pdf</span>PDF</button>
+   298→  </div>
+   299→</div>
+   300→  </div>
+   301→</div>
+   302→
+   303→        <div class="card-spec reveal">
+   304→          <strong>Spec · Rutina diaria</strong> &middot;
+   305→          Accent: <code>#3b82f6</code> &middot;
+   306→          Icon: <code>repeat</code> &middot;
+   307→          Layout: <code>default</code> &middot;
+   308→          3 metrics &middot;
+   309→          3 secciones en extendido &middot;
+   310→          Glow halo activo &middot; Count-up en artValue &middot; CTA shimmer cíclico
+   311→        </div>
+   312→
+   313→
+   314→      <div class="card-section-divider reveal">
+   315→        <div class="card-section-group-title">Planes de ejercicio</div>
+   316→        <div class="card-section-group-sub">Gym routines, progresión de fuerza, sesiones.</div>
+   317→      </div>
+   318→
+   319→<div class="showcase reveal" id="card-exercise-plan">
+   320→  <div class="showcase-compact">
+   321→    <span class="showcase-label compact"><span class="material-symbols-outlined">chat</span>Estado compacto · chat</span>
+   322→    <div class="k-card is-tappable" style="--accent:#2d6a4f;--accent-soft:rgba(45,106,79,0.12);">
+   323→  <div class="k-card-glow" style="background:radial-gradient(circle,#2d6a4f,transparent 70%);"></div>
+   324→  <div class="k-card-top">
+   325→    <div class="k-card-copy">
+   326→      <div class="k-card-kicker" style="color:#2d6a4f;">Tu Plan Fitness</div>
+   327→      <div class="k-card-title">Full Body 12 semanas</div>
+   328→      <div class="k-card-desc">Sesión 5 de 12 · Hoy: Full Body B</div>
+   329→    </div>
+   330→    <div class="k-card-art" style="background:rgba(45,106,79,0.12);color:#2d6a4f;">
+   331→      <span class="material-symbols-outlined ms-fill">fitness_center</span>
+   332→      <div class="k-card-art-value">4/12</div>
+   333→    </div>
+   334→  </div>
+   335→  <div class="k-metrics" style="grid-template-columns:repeat(3,1fr);">
+   336→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#c81e1e;">local_fire_department</span><div class="k-metric-label">Kcal</div><div class="k-metric-value">1.240</div></div>
+   337→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#b45309;">schedule</span><div class="k-metric-label">Tiempo</div><div class="k-metric-value">4h 30min</div></div>
+   338→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#2d6a4f;">trending_up</span><div class="k-metric-label">Fuerza</div><div class="k-metric-value">+12%</div></div>
+   339→  </div>
+   340→  <div class="k-cta-hint" style="color:#2d6a4f;"><span>Ver detalle</span><span class="material-symbols-outlined">arrow_forward</span></div>
+   341→</div>
+   342→  </div>
+   343→  <div class="showcase-extended">
+   344→    <span class="showcase-label extended"><span class="material-symbols-outlined">fullscreen</span>Estado extendido · informe</span>
+   345→    <div class="k-detail">
+   346→  <div class="k-detail-sticky-head">
+   347→    <button class="k-detail-back"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+   348→    <div class="k-detail-mini-icon" style="background:rgba(45,106,79,0.12);color:#2d6a4f;"><span class="material-symbols-outlined">fitness_center</span></div>
+   349→    <div style="flex:1;min-width:0;"><div class="k-detail-mini-title">Full Body 12 semanas</div><div class="k-detail-mini-sub">Tu Plan Fitness</div></div>
+   350→    <button class="k-detail-save"><span class="material-symbols-outlined ms-fill">bookmark</span></button>
+   351→  </div>
+   352→  <div class="k-detail-hero" style="height:140px;">
+   353→    <div class="k-detail-hero-backdrop" style="background:linear-gradient(135deg,#2d6a4f,#382b8c);"></div>
+   354→    <div class="k-detail-hero-scrim"></div>
+   355→    <div class="k-detail-hero-content">
+   356→      <div class="k-detail-hero-badge" style="background:rgba(255,255,255,0.92);color:#2d6a4f;"><span class="material-symbols-outlined" style="font-size:11px;">verified</span>Sesión 5/12</div>
+   357→      <div class="k-detail-hero-title">Full Body 12 semanas</div>
+   358→      <div class="k-detail-hero-sub">Sesión 5 de 12 · Hoy: Full Body B</div>
+   359→    </div>
+   360→  </div>
+   361→  <div class="k-detail-modules">
+   362→    <div class="k-module" style="--module-color:#2d6a4f;animation-delay:0.1s;">
+   363→      <div class="k-module-head">
+   364→        <div class="k-module-icon" style="background:rgba(45,106,79,0.12);color:#2d6a4f;"><span class="material-symbols-outlined">fitness_center</span></div>
+   365→        <div><div class="k-module-title" style="color:#2d6a4f;">Plan 12 sesiones</div><div class="k-module-kicker">Progreso</div></div>
+   366→        <span class="k-module-meta">5</span>
+   367→      </div>
+   368→      <div class="k-timeline">
+   369→        <div class="k-timeline-step is-done">
+   370→          <div class="k-timeline-dot"><span class="material-symbols-outlined">check</span></div>
+   371→          <div class="k-timeline-body"><div class="k-timeline-name">S1 Full Body A</div><div class="k-timeline-meta">Completado</div></div>
+   372→        </div>
+   373→        <div class="k-timeline-step is-done">
+   374→          <div class="k-timeline-dot"><span class="material-symbols-outlined">check</span></div>
+   375→          <div class="k-timeline-body"><div class="k-timeline-name">S2 Push</div><div class="k-timeline-meta">Completado</div></div>
+   376→        </div>
+   377→        <div class="k-timeline-step is-done">
+   378→          <div class="k-timeline-dot"><span class="material-symbols-outlined">check</span></div>
+   379→          <div class="k-timeline-body"><div class="k-timeline-name">S3 Pull</div><div class="k-timeline-meta">Completado</div></div>
+   380→        </div>
+   381→        <div class="k-timeline-step is-done">
+   382→          <div class="k-timeline-dot"><span class="material-symbols-outlined">check</span></div>
+   383→          <div class="k-timeline-body"><div class="k-timeline-name">S4 Legs A</div><div class="k-timeline-meta">Completado</div></div>
+   384→        </div>
+   385→        <div class="k-timeline-step is-current">
+   386→          <div class="k-timeline-dot"><span class="material-symbols-outlined">radio_button_checked</span></div>
+   387→          <div class="k-timeline-body"><div class="k-timeline-name">S5 Full Body B</div><div class="k-timeline-meta">Actual</div></div>
+   388→        </div>
+   389→      </div>
+   390→    </div>
+   391→    <div class="k-module" style="--module-color:#2d6a4f;animation-delay:0.16s;">
+   392→      <div class="k-module-head">
+   393→        <div class="k-module-icon" style="background:rgba(45,106,79,0.12);color:#2d6a4f;"><span class="material-symbols-outlined">fitness_center</span></div>
+   394→        <div><div class="k-module-title" style="color:#2d6a4f;">Ejercicios de hoy</div><div class="k-module-kicker">4 ejercicios</div></div>
+   395→        <span class="k-module-meta">4</span>
+   396→      </div>
+   397→      <div class="k-tiles">
+   398→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#2d6a4f;">fitness_center</span><div><div class="k-tile-label">Sentadilla</div><div class="k-tile-value">4x8 80kg</div></div></div>
+   399→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#c81e1e;">sports_martial_arts</span><div><div class="k-tile-label">Press banca</div><div class="k-tile-value">4x6 60kg</div></div></div>
+   400→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#b45309;">directions_run</span><div><div class="k-tile-label">Peso muerto</div><div class="k-tile-value">3x5 100kg</div></div></div>
+   401→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">self_improvement</span><div><div class="k-tile-label">Plancha</div><div class="k-tile-value">3x45s</div></div></div>
+   402→      </div>
+   403→    </div>
+   404→    <div class="k-module" style="--module-color:#2d6a4f;animation-delay:0.22s;">
+   405→      <div class="k-module-head">
+   406→        <div class="k-module-icon" style="background:rgba(45,106,79,0.12);color:#2d6a4f;"><span class="material-symbols-outlined">trending_up</span></div>
+   407→        <div><div class="k-module-title" style="color:#2d6a4f;">Progreso de fuerza</div><div class="k-module-kicker">4 semanas</div></div>
+   408→        <span class="k-module-meta">2</span>
+   409→      </div>
+   410→      <div class="k-scroller">
+   411→        <div class="k-scard"><span class="k-scard-badge" style="background:rgba(45,106,79,0.12);color:#2d6a4f;">+12%</span><div class="k-scard-title">Sentadilla</div><div class="k-scard-detail">72kg → 80kg</div>
+   412→          <div class="k-scard-metrics">
+   413→            <span class="k-scard-metric">1RM 100kg</span>
+   414→          </div>
+   415→        </div>
+   416→        <div class="k-scard"><span class="k-scard-badge" style="background:rgba(45,106,79,0.12);color:#2d6a4f;">+8%</span><div class="k-scard-title">Press banca</div><div class="k-scard-detail">55kg → 60kg</div>
+   417→          <div class="k-scard-metrics">
+   418→            <span class="k-scard-metric">1RM 75kg</span>
+   419→          </div>
+   420→        </div>
+   421→      </div>
+   422→    </div>
+   423→  </div>
+   424→  <div class="k-detail-actions">
+   425→    <button class="k-detail-action save"><span class="material-symbols-outlined ms-fill" style="font-size:18px;">bookmark_added</span>Guardar</button>
+   426→    <button class="k-detail-action pdf"><span class="material-symbols-outlined" style="font-size:18px;">picture_as_pdf</span>PDF</button>
+   427→  </div>
+   428→</div>
+   429→  </div>
+   430→</div>
+   431→
+   432→        <div class="card-spec reveal">
+   433→          <strong>Spec · Plan de ejercicio</strong> &middot;
+   434→          Accent: <code>#2d6a4f</code> &middot;
+   435→          Icon: <code>fitness_center</code> &middot;
+   436→          Layout: <code>default</code> &middot;
+   437→          3 metrics &middot;
+   438→          3 secciones en extendido &middot;
+   439→          Glow halo activo &middot; Count-up en artValue &middot; CTA shimmer cíclico
+   440→        </div>
+   441→
+   442→
+   443→      <div class="card-section-divider reveal">
+   444→        <div class="card-section-group-title">Compras y listas</div>
+   445→        <div class="card-section-group-sub">Listas de supermercado, gastos en tiempo real.</div>
+   446→      </div>
+   447→
+   448→<div class="showcase reveal" id="card-shopping-list">
+   449→  <div class="showcase-compact">
+   450→    <span class="showcase-label compact"><span class="material-symbols-outlined">chat</span>Estado compacto · chat</span>
+   451→    <div class="k-card is-tappable" style="--accent:#f59e0b;--accent-soft:rgba(245,158,11,0.12);">
+   452→  <div class="k-card-glow" style="background:radial-gradient(circle,#f59e0b,transparent 70%);"></div>
+   453→  <div class="k-card-top">
+   454→    <div class="k-card-copy">
+   455→      <div class="k-card-kicker" style="color:#f59e0b;">Tu Lista</div>
+   456→      <div class="k-card-title">Supermercado semanal</div>
+   457→      <div class="k-card-desc">8 ítems · 3 ya en carrito</div>
+   458→    </div>
+   459→    <div class="k-card-art" style="background:rgba(245,158,11,0.12);color:#f59e0b;">
+   460→      <span class="material-symbols-outlined ms-fill">shopping_cart</span>
+   461→      <div class="k-card-art-value">3/8</div>
+   462→    </div>
+   463→  </div>
+   464→  <div class="k-metrics" style="grid-template-columns:repeat(3,1fr);">
+   465→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#b45309;">shopping_cart</span><div class="k-metric-label">Ítems</div><div class="k-metric-value">8</div></div>
+   466→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#2d6a4f;">check_circle</span><div class="k-metric-label">En carrito</div><div class="k-metric-value">3</div></div>
+   467→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#2d6a4f;">payments</span><div class="k-metric-label">Estimado</div><div class="k-metric-value">€45</div></div>
+   468→  </div>
+   469→  <div class="k-cta-hint" style="color:#f59e0b;"><span>Ver detalle</span><span class="material-symbols-outlined">arrow_forward</span></div>
+   470→</div>
+   471→  </div>
+   472→  <div class="showcase-extended">
+   473→    <span class="showcase-label extended"><span class="material-symbols-outlined">fullscreen</span>Estado extendido · informe</span>
+   474→    <div class="k-detail">
+   475→  <div class="k-detail-sticky-head">
+   476→    <button class="k-detail-back"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+   477→    <div class="k-detail-mini-icon" style="background:rgba(245,158,11,0.12);color:#f59e0b;"><span class="material-symbols-outlined">shopping_cart</span></div>
+   478→    <div style="flex:1;min-width:0;"><div class="k-detail-mini-title">Supermercado semanal</div><div class="k-detail-mini-sub">Tu Lista</div></div>
+   479→    <button class="k-detail-save"><span class="material-symbols-outlined ms-fill">bookmark</span></button>
+   480→  </div>
+   481→  <div class="k-detail-hero" style="height:140px;">
+   482→    <div class="k-detail-hero-backdrop" style="background:linear-gradient(135deg,#f59e0b,#382b8c);"></div>
+   483→    <div class="k-detail-hero-scrim"></div>
+   484→    <div class="k-detail-hero-content">
+   485→      <div class="k-detail-hero-badge" style="background:rgba(255,255,255,0.92);color:#f59e0b;"><span class="material-symbols-outlined" style="font-size:11px;">verified</span>Mercadona</div>
+   486→      <div class="k-detail-hero-title">Supermercado semanal</div>
+   487→      <div class="k-detail-hero-sub">8 ítems · 3 ya en carrito</div>
+   488→    </div>
+   489→  </div>
+   490→  <div class="k-detail-modules">
+   491→    <div class="k-module" style="--module-color:#f59e0b;animation-delay:0.1s;">
+   492→      <div class="k-module-head">
+   493→        <div class="k-module-icon" style="background:rgba(245,158,11,0.12);color:#f59e0b;"><span class="material-symbols-outlined">shopping_cart</span></div>
+   494→        <div><div class="k-module-title" style="color:#f59e0b;">Ítems</div><div class="k-module-kicker">8 productos</div></div>
+   495→        <span class="k-module-meta">4</span>
+   496→      </div>
+   497→      <div class="k-rows">
+   498→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#2d6a4f;">check_box</span><div class="k-row-body"><div class="k-row-title">Leche entera</div><div class="k-row-detail">2L · €2.40</div></div><span class="k-row-meta">✓</span></div>
+   499→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#2d6a4f;">check_box</span><div class="k-row-body"><div class="k-row-title">Huevos</div><div class="k-row-detail">12 · €2.10</div></div><span class="k-row-meta">✓</span></div>
+   500→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#b45309;">check_box_outline_blank</span><div class="k-row-body"><div class="k-row-title">Pan integral</div><div class="k-row-detail">1 · €1.80</div></div><span class="k-row-meta">—</span></div>
+   501→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#b45309;">check_box_outline_blank</span><div class="k-row-body"><div class="k-row-title">Manzanas</div><div class="k-row-detail">1kg · €2.50</div></div><span class="k-row-meta">—</span></div>
+   502→      </div>
+   503→    </div>
+   504→    <div class="k-module" style="--module-color:#f59e0b;animation-delay:0.16s;">
+   505→      <div class="k-module-head">
+   506→        <div class="k-module-icon" style="background:rgba(245,158,11,0.12);color:#f59e0b;"><span class="material-symbols-outlined">payments</span></div>
+   507→        <div><div class="k-module-title" style="color:#f59e0b;">Resumen</div><div class="k-module-kicker">4 datos</div></div>
+   508→        <span class="k-module-meta">4</span>
+   509→      </div>
+   510→      <div class="k-tiles">
+   511→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#b45309;">shopping_cart</span><div><div class="k-tile-label">Ítems</div><div class="k-tile-value">8</div></div></div>
+   512→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#2d6a4f;">check_circle</span><div><div class="k-tile-label">Comprados</div><div class="k-tile-value">3</div></div></div>
+   513→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#2d6a4f;">payments</span><div><div class="k-tile-label">Gastado</div><div class="k-tile-value">€12.40</div></div></div>
+   514→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">account_balance_wallet</span><div><div class="k-tile-label">Restante</div><div class="k-tile-value">€32.60</div></div></div>
+   515→      </div>
+   516→    </div>
+   517→  </div>
+   518→  <div class="k-detail-actions">
+   519→    <button class="k-detail-action save"><span class="material-symbols-outlined ms-fill" style="font-size:18px;">bookmark_added</span>Guardar</button>
+   520→    <button class="k-detail-action pdf"><span class="material-symbols-outlined" style="font-size:18px;">picture_as_pdf</span>PDF</button>
+   521→  </div>
+   522→</div>
+   523→  </div>
+   524→</div>
+   525→
+   526→        <div class="card-spec reveal">
+   527→          <strong>Spec · Lista de compras</strong> &middot;
+   528→          Accent: <code>#f59e0b</code> &middot;
+   529→          Icon: <code>shopping_cart</code> &middot;
+   530→          Layout: <code>default</code> &middot;
+   531→          3 metrics &middot;
+   532→          2 secciones en extendido &middot;
+   533→          Glow halo activo &middot; Count-up en artValue &middot; CTA shimmer cíclico
+   534→        </div>
+   535→
+   536→
+   537→      <div class="card-section-divider reveal">
+   538→        <div class="card-section-group-title">Fútbol y deportes</div>
+   539→        <div class="card-section-group-sub">Live match, tennis, estadísticas comparativas.</div>
+   540→      </div>
+   541→
+   542→<div class="showcase reveal" id="card-live-match">
+   543→  <div class="showcase-compact">
+   544→

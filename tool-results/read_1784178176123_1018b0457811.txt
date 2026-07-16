@@ -1,0 +1,702 @@
+  5190→        </div>
+  5191→
+  5192→
+  5193→      <div class="card-section-divider reveal">
+  5194→        <div class="card-section-group-title">Viajes y rutas</div>
+  5195→        <div class="card-section-group-sub">Itinerarios, navegación, transporte.</div>
+  5196→      </div>
+  5197→
+  5198→<div class="showcase reveal" id="card-travel-planner">
+  5199→  <div class="showcase-compact">
+  5200→    <span class="showcase-label compact"><span class="material-symbols-outlined">chat</span>Estado compacto · chat</span>
+  5201→    <div class="k-card is-tappable" style="--accent:#3b82f6;--accent-soft:rgba(59,130,246,0.12);">
+  5202→  <div class="k-card-glow" style="background:radial-gradient(circle,#3b82f6,transparent 70%);"></div>
+  5203→  <div class="k-card-top">
+  5204→    <div class="k-card-copy">
+  5205→      <div class="k-card-kicker" style="color:#3b82f6;">Tu Viaje · Tokio</div>
+  5206→      <div class="k-card-title">7 días en Japón</div>
+  5207→      <div class="k-card-desc">Tokio + Kioto · 2 viajeros · €2.160 total</div>
+  5208→    </div>
+  5209→    <div class="k-card-art" style="background:rgba(59,130,246,0.12);color:#3b82f6;">
+  5210→      <span class="material-symbols-outlined ms-fill">flight_takeoff</span>
+  5211→      <div class="k-card-art-value">7d</div>
+  5212→    </div>
+  5213→  </div>
+  5214→  <div class="k-metrics" style="grid-template-columns:repeat(3,1fr);">
+  5215→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#3b82f6;">flight_takeoff</span><div class="k-metric-label">Vuelo</div><div class="k-metric-value">14 mar</div></div>
+  5216→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#8363f9;">hotel</span><div class="k-metric-label">Hotel</div><div class="k-metric-value">5 noches</div></div>
+  5217→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#2d6a4f;">payments</span><div class="k-metric-label">Total</div><div class="k-metric-value">€2.160</div></div>
+  5218→  </div>
+  5219→  <div class="k-cta-hint" style="color:#3b82f6;"><span>Ver detalle</span><span class="material-symbols-outlined">arrow_forward</span></div>
+  5220→</div>
+  5221→  </div>
+  5222→  <div class="showcase-extended">
+  5223→    <span class="showcase-label extended"><span class="material-symbols-outlined">fullscreen</span>Estado extendido · informe</span>
+  5224→    <div class="k-detail">
+  5225→  <div class="k-detail-sticky-head">
+  5226→    <button class="k-detail-back"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+  5227→    <div class="k-detail-mini-icon" style="background:rgba(59,130,246,0.12);color:#3b82f6;"><span class="material-symbols-outlined">flight_takeoff</span></div>
+  5228→    <div style="flex:1;min-width:0;"><div class="k-detail-mini-title">7 días en Japón</div><div class="k-detail-mini-sub">Tu Viaje · Tokio</div></div>
+  5229→    <button class="k-detail-save"><span class="material-symbols-outlined ms-fill">bookmark</span></button>
+  5230→  </div>
+  5231→  <div class="k-detail-hero" style="height:140px;">
+  5232→    <div class="k-detail-hero-backdrop" style="background:linear-gradient(135deg,#3b82f6,#382b8c);"></div>
+  5233→    <div class="k-detail-hero-scrim"></div>
+  5234→    <div class="k-detail-hero-content">
+  5235→      <div class="k-detail-hero-badge" style="background:rgba(255,255,255,0.92);color:#3b82f6;"><span class="material-symbols-outlined" style="font-size:11px;">verified</span>14-20 marzo</div>
+  5236→      <div class="k-detail-hero-title">7 días en Japón</div>
+  5237→      <div class="k-detail-hero-sub">Tokio + Kioto · 2 viajeros · €2.160 total</div>
+  5238→    </div>
+  5239→  </div>
+  5240→  <div class="k-detail-modules">
+  5241→    <div class="k-module" style="--module-color:#3b82f6;animation-delay:0.1s;">
+  5242→      <div class="k-module-head">
+  5243→        <div class="k-module-icon" style="background:rgba(59,130,246,0.12);color:#3b82f6;"><span class="material-symbols-outlined">schedule</span></div>
+  5244→        <div><div class="k-module-title" style="color:#3b82f6;">Itinerario día a día</div><div class="k-module-kicker">7 días</div></div>
+  5245→        <span class="k-module-meta">4</span>
+  5246→      </div>
+  5247→      <div class="k-timeline">
+  5248→        <div class="k-timeline-step is-current">
+  5249→          <div class="k-timeline-dot"><span class="material-symbols-outlined">radio_button_checked</span></div>
+  5250→          <div class="k-timeline-body"><div class="k-timeline-name">Día 1 · Shibuya & Shinjuku</div><div class="k-timeline-meta">Llegada 14h, explorar</div></div>
+  5251→        </div>
+  5252→        <div class="k-timeline-step is-pending">
+  5253→          <div class="k-timeline-dot"><span class="material-symbols-outlined">radio_button_unchecked</span></div>
+  5254→          <div class="k-timeline-body"><div class="k-timeline-name">Día 2 · Asakusa & río Sumida</div><div class="k-timeline-meta">Templo Senso-ji</div></div>
+  5255→        </div>
+  5256→        <div class="k-timeline-step is-pending">
+  5257→          <div class="k-timeline-dot"><span class="material-symbols-outlined">radio_button_unchecked</span></div>
+  5258→          <div class="k-timeline-body"><div class="k-timeline-name">Día 3 · Hakone</div><div class="k-timeline-meta">Onsen y monte Fuji</div></div>
+  5259→        </div>
+  5260→        <div class="k-timeline-step is-pending">
+  5261→          <div class="k-timeline-dot"><span class="material-symbols-outlined">radio_button_unchecked</span></div>
+  5262→          <div class="k-timeline-body"><div class="k-timeline-name">Día 4-5 · Kioto</div><div class="k-timeline-meta">Tren bala, templos</div></div>
+  5263→        </div>
+  5264→      </div>
+  5265→    </div>
+  5266→    <div class="k-module" style="--module-color:#3b82f6;animation-delay:0.16s;">
+  5267→      <div class="k-module-head">
+  5268→        <div class="k-module-icon" style="background:rgba(59,130,246,0.12);color:#3b82f6;"><span class="material-symbols-outlined">flight</span></div>
+  5269→        <div><div class="k-module-title" style="color:#3b82f6;">Reservas</div><div class="k-module-kicker">4 datos</div></div>
+  5270→        <span class="k-module-meta">4</span>
+  5271→      </div>
+  5272→      <div class="k-tiles">
+  5273→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#3b82f6;">flight</span><div><div class="k-tile-label">Vuelo</div><div class="k-tile-value">IBERIA · 14 mar</div></div></div>
+  5274→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">hotel</span><div><div class="k-tile-label">Hotel</div><div class="k-tile-value">Park Hyatt 5 noches</div></div></div>
+  5275→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#2d6a4f;">directions_railway</span><div><div class="k-tile-label">JR Pass</div><div class="k-tile-value">7 días ¥29.110</div></div></div>
+  5276→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#b45309;">restaurant</span><div><div class="k-tile-label">Cenas</div><div class="k-tile-value">3 reservas</div></div></div>
+  5277→      </div>
+  5278→    </div>
+  5279→    <div class="k-module" style="--module-color:#3b82f6;animation-delay:0.22s;">
+  5280→      <div class="k-module-head">
+  5281→        <div class="k-module-icon" style="background:rgba(59,130,246,0.12);color:#3b82f6;"><span class="material-symbols-outlined">luggage</span></div>
+  5282→        <div><div class="k-module-title" style="color:#3b82f6;">Checklist de equipaje</div><div class="k-module-kicker">6 items</div></div>
+  5283→        <span class="k-module-meta">4</span>
+  5284→      </div>
+  5285→      <div class="k-chips">
+  5286→        <div class="k-chip"><span class="material-symbols-outlined">luggage</span>Adaptador tipo A</div>
+  5287→        <div class="k-chip"><span class="material-symbols-outlined">credit_card</span>Suica card</div>
+  5288→        <div class="k-chip"><span class="material-symbols-outlined">checkroom</span>Cortavientos</div>
+  5289→        <div class="k-chip"><span class="material-symbols-outlined">phone_android</span>eSIM Japón</div>
+  5290→      </div>
+  5291→    </div>
+  5292→    <div class="k-module" style="--module-color:#3b82f6;animation-delay:0.28s;">
+  5293→      <div class="k-module-head">
+  5294→        <div class="k-module-icon" style="background:rgba(59,130,246,0.12);color:#3b82f6;"><span class="material-symbols-outlined">payments</span></div>
+  5295→        <div><div class="k-module-title" style="color:#3b82f6;">Presupuesto</div><div class="k-module-kicker">4 categorías</div></div>
+  5296→        <span class="k-module-meta">4</span>
+  5297→      </div>
+  5298→      <div class="k-tiles">
+  5299→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#3b82f6;">flight</span><div><div class="k-tile-label">Vuelos</div><div class="k-tile-value">€780</div></div></div>
+  5300→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">hotel</span><div><div class="k-tile-label">Hotel</div><div class="k-tile-value">€820</div></div></div>
+  5301→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#b45309;">restaurant</span><div><div class="k-tile-label">Comidas</div><div class="k-tile-value">€350</div></div></div>
+  5302→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#2d6a4f;">directions_car</span><div><div class="k-tile-label">Transporte</div><div class="k-tile-value">€210</div></div></div>
+  5303→      </div>
+  5304→    </div>
+  5305→  </div>
+  5306→  <div class="k-detail-actions">
+  5307→    <button class="k-detail-action save"><span class="material-symbols-outlined ms-fill" style="font-size:18px;">bookmark_added</span>Guardar</button>
+  5308→    <button class="k-detail-action pdf"><span class="material-symbols-outlined" style="font-size:18px;">picture_as_pdf</span>PDF</button>
+  5309→  </div>
+  5310→</div>
+  5311→  </div>
+  5312→</div>
+  5313→
+  5314→        <div class="card-spec reveal">
+  5315→          <strong>Spec · Planificación de viaje</strong> &middot;
+  5316→          Accent: <code>#3b82f6</code> &middot;
+  5317→          Icon: <code>flight_takeoff</code> &middot;
+  5318→          Layout: <code>default</code> &middot;
+  5319→          3 metrics &middot;
+  5320→          4 secciones en extendido &middot;
+  5321→          Glow halo activo &middot; Count-up en artValue &middot; CTA shimmer cíclico
+  5322→        </div>
+  5323→
+  5324→<div class="showcase reveal" id="card-route-map">
+  5325→  <div class="showcase-compact">
+  5326→    <span class="showcase-label compact"><span class="material-symbols-outlined">chat</span>Estado compacto · chat</span>
+  5327→    <div class="k-card is-tappable" style="--accent:#4f46e5;--accent-soft:rgba(79,70,229,0.12);">
+  5328→  <div class="k-card-glow" style="background:radial-gradient(circle,#4f46e5,transparent 70%);"></div>
+  5329→  <div class="k-card-top">
+  5330→    <div class="k-card-copy">
+  5331→      <div class="k-card-kicker" style="color:#4f46e5;">Tu Ruta · A destino</div>
+  5332→      <div class="k-card-title">Ruta a Aeropuerto Barajas</div>
+  5333→      <div class="k-card-desc">12.4 km · Tráfico ligero · 24 min ETA</div>
+  5334→    </div>
+  5335→    <div class="k-card-art" style="background:rgba(79,70,229,0.12);color:#4f46e5;">
+  5336→      <span class="material-symbols-outlined ms-fill">map</span>
+  5337→      <div class="k-card-art-value">24min</div>
+  5338→    </div>
+  5339→  </div>
+  5340→  <div class="k-metrics" style="grid-template-columns:repeat(3,1fr);">
+  5341→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#4f46e5;">straighten</span><div class="k-metric-label">Distancia</div><div class="k-metric-value">12.4km</div></div>
+  5342→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#2d6a4f;">traffic</span><div class="k-metric-label">Tráfico</div><div class="k-metric-value">Ligero</div></div>
+  5343→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#b45309;">local_gas_station</span><div class="k-metric-label">Consumo</div><div class="k-metric-value">0.9L</div></div>
+  5344→  </div>
+  5345→  <div class="k-cta-hint" style="color:#4f46e5;"><span>Ver detalle</span><span class="material-symbols-outlined">arrow_forward</span></div>
+  5346→</div>
+  5347→  </div>
+  5348→  <div class="showcase-extended">
+  5349→    <span class="showcase-label extended"><span class="material-symbols-outlined">fullscreen</span>Estado extendido · informe</span>
+  5350→    <div class="k-detail">
+  5351→  <div class="k-detail-sticky-head">
+  5352→    <button class="k-detail-back"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+  5353→    <div class="k-detail-mini-icon" style="background:rgba(79,70,229,0.12);color:#4f46e5;"><span class="material-symbols-outlined">map</span></div>
+  5354→    <div style="flex:1;min-width:0;"><div class="k-detail-mini-title">Ruta a Aeropuerto Barajas</div><div class="k-detail-mini-sub">Tu Ruta · A destino</div></div>
+  5355→    <button class="k-detail-save"><span class="material-symbols-outlined ms-fill">bookmark</span></button>
+  5356→  </div>
+  5357→  <div class="k-detail-hero" style="height:140px;">
+  5358→    <div class="k-detail-hero-backdrop" style="background:linear-gradient(135deg,#4f46e5,#382b8c);"></div>
+  5359→    <div class="k-detail-hero-scrim"></div>
+  5360→    <div class="k-detail-hero-content">
+  5361→      <div class="k-detail-hero-badge" style="background:rgba(255,255,255,0.92);color:#4f46e5;"><span class="material-symbols-outlined" style="font-size:11px;">verified</span>ETA 24 min</div>
+  5362→      <div class="k-detail-hero-title">Ruta a Aeropuerto Barajas</div>
+  5363→      <div class="k-detail-hero-sub">12.4 km · Tráfico ligero · 24 min ETA</div>
+  5364→    </div>
+  5365→  </div>
+  5366→  <div class="k-detail-modules">
+  5367→    <div class="k-module" style="--module-color:#4f46e5;animation-delay:0.1s;">
+  5368→      <div class="k-module-head">
+  5369→        <div class="k-module-icon" style="background:rgba(79,70,229,0.12);color:#4f46e5;"><span class="material-symbols-outlined">directions</span></div>
+  5370→        <div><div class="k-module-title" style="color:#4f46e5;">Indicaciones paso a paso</div><div class="k-module-kicker">5 pasos</div></div>
+  5371→        <span class="k-module-meta">4</span>
+  5372→      </div>
+  5373→      <div class="k-timeline">
+  5374→        <div class="k-timeline-step is-current">
+  5375→          <div class="k-timeline-dot"><span class="material-symbols-outlined">radio_button_checked</span></div>
+  5376→          <div class="k-timeline-body"><div class="k-timeline-name">1. Salir C/ Mayor norte</div><div class="k-timeline-meta">300m</div></div>
+  5377→        </div>
+  5378→        <div class="k-timeline-step is-pending">
+  5379→          <div class="k-timeline-dot"><span class="material-symbols-outlined">radio_button_unchecked</span></div>
+  5380→          <div class="k-timeline-body"><div class="k-timeline-name">2. Girar derecha Gran Vía</div><div class="k-timeline-meta">1.2km</div></div>
+  5381→        </div>
+  5382→        <div class="k-timeline-step is-pending">
+  5383→          <div class="k-timeline-dot"><span class="material-symbols-outlined">radio_button_unchecked</span></div>
+  5384→          <div class="k-timeline-body"><div class="k-timeline-name">3. Continuar Plaza España</div><div class="k-timeline-meta">800m</div></div>
+  5385→        </div>
+  5386→        <div class="k-timeline-step is-pending">
+  5387→          <div class="k-timeline-dot"><span class="material-symbols-outlined">radio_button_unchecked</span></div>
+  5388→          <div class="k-timeline-body"><div class="k-timeline-name">4. Salida 7 M-30</div><div class="k-timeline-meta">5.4km</div></div>
+  5389→        </div>
+  5390→      </div>
+  5391→    </div>
+  5392→    <div class="k-module" style="--module-color:#4f46e5;animation-delay:0.16s;">
+  5393→      <div class="k-module-head">
+  5394→        <div class="k-module-icon" style="background:rgba(79,70,229,0.12);color:#4f46e5;"><span class="material-symbols-outlined">schedule</span></div>
+  5395→        <div><div class="k-module-title" style="color:#4f46e5;">ETA y alternativas</div><div class="k-module-kicker">4 rutas</div></div>
+  5396→        <span class="k-module-meta">4</span>
+  5397→      </div>
+  5398→      <div class="k-tiles">
+  5399→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#4f46e5;">schedule</span><div><div class="k-tile-label">Actual</div><div class="k-tile-value">24 min</div></div></div>
+  5400→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#3b82f6;">alt_route</span><div><div class="k-tile-label">M-30</div><div class="k-tile-value">31 min</div></div></div>
+  5401→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#b45309;">traffic</span><div><div class="k-tile-label">Centro</div><div class="k-tile-value">38 min</div></div></div>
+  5402→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#2d6a4f;">eco</span><div><div class="k-tile-label">Ecológica</div><div class="k-tile-value">27 min</div></div></div>
+  5403→      </div>
+  5404→    </div>
+  5405→    <div class="k-module" style="--module-color:#4f46e5;animation-delay:0.22s;">
+  5406→      <div class="k-module-head">
+  5407→        <div class="k-module-icon" style="background:rgba(79,70,229,0.12);color:#4f46e5;"><span class="material-symbols-outlined">traffic</span></div>
+  5408→        <div><div class="k-module-title" style="color:#4f46e5;">Tráfico</div><div class="k-module-kicker">4 datos</div></div>
+  5409→        <span class="k-module-meta">4</span>
+  5410→      </div>
+  5411→      <div class="k-tiles">
+  5412→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#2d6a4f;">sentiment_satisfied</span><div><div class="k-tile-label">Estado</div><div class="k-tile-value">🟢 Ligero</div></div></div>
+  5413→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#b45309;">warning</span><div><div class="k-tile-label">Incidencias</div><div class="k-tile-value">1 obra</div></div></div>
+  5414→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#4f46e5;">speed</span><div><div class="k-tile-label">Velocidad</div><div class="k-tile-value">48 km/h</div></div></div>
+  5415→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#c81e1e;">local_gas_station</span><div><div class="k-tile-label">Consumo</div><div class="k-tile-value">0.9L</div></div></div>
+  5416→      </div>
+  5417→    </div>
+  5418→  </div>
+  5419→  <div class="k-detail-actions">
+  5420→    <button class="k-detail-action save"><span class="material-symbols-outlined ms-fill" style="font-size:18px;">bookmark_added</span>Guardar</button>
+  5421→    <button class="k-detail-action pdf"><span class="material-symbols-outlined" style="font-size:18px;">picture_as_pdf</span>PDF</button>
+  5422→  </div>
+  5423→</div>
+  5424→  </div>
+  5425→</div>
+  5426→
+  5427→        <div class="card-spec reveal">
+  5428→          <strong>Spec · Ruta y navegación</strong> &middot;
+  5429→          Accent: <code>#4f46e5</code> &middot;
+  5430→          Icon: <code>map</code> &middot;
+  5431→          Layout: <code>default</code> &middot;
+  5432→          3 metrics &middot;
+  5433→          3 secciones en extendido &middot;
+  5434→          Glow halo activo &middot; Count-up en artValue &middot; CTA shimmer cíclico
+  5435→        </div>
+  5436→
+  5437→
+  5438→      <div class="card-section-divider reveal">
+  5439→        <div class="card-section-group-title">Comparativas y decisiones</div>
+  5440→        <div class="card-section-group-sub">Product comparison, decision support con probabilidades.</div>
+  5441→      </div>
+  5442→
+  5443→<div class="showcase reveal" id="card-comparison">
+  5444→  <div class="showcase-compact">
+  5445→    <span class="showcase-label compact"><span class="material-symbols-outlined">chat</span>Estado compacto · chat</span>
+  5446→    <div class="k-card is-tappable" style="--accent:#8363f9;--accent-soft:rgba(131,99,249,0.12);">
+  5447→  <div class="k-card-glow" style="background:radial-gradient(circle,#8363f9,transparent 70%);"></div>
+  5448→  <div class="k-card-top">
+  5449→    <div class="k-card-copy">
+  5450→      <div class="k-card-kicker" style="color:#8363f9;">Tu Comparación</div>
+  5451→      <div class="k-card-title">iPhone 16 Pro vs Galaxy S24</div>
+  5452→      <div class="k-card-desc">2 opciones analizadas · Top: iPhone</div>
+  5453→    </div>
+  5454→    <div class="k-card-art" style="background:rgba(131,99,249,0.12);color:#8363f9;">
+  5455→      <span class="material-symbols-outlined ms-fill">compare_arrows</span>
+  5456→      <div class="k-card-art-value">2</div>
+  5457→    </div>
+  5458→  </div>
+  5459→  <div class="k-metrics" style="grid-template-columns:repeat(3,1fr);">
+  5460→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#8363f9;">inventory_2</span><div class="k-metric-label">Opciones</div><div class="k-metric-value">2</div></div>
+  5461→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#2d6a4f;">attach_money</span><div class="k-metric-label">Precio</div><div class="k-metric-value">$999-1299</div></div>
+  5462→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#b45309;">emoji_events</span><div class="k-metric-label">Top pick</div><div class="k-metric-value">iPhone</div></div>
+  5463→  </div>
+  5464→  <div class="k-cta-hint" style="color:#8363f9;"><span>Ver detalle</span><span class="material-symbols-outlined">arrow_forward</span></div>
+  5465→</div>
+  5466→  </div>
+  5467→  <div class="showcase-extended">
+  5468→    <span class="showcase-label extended"><span class="material-symbols-outlined">fullscreen</span>Estado extendido · informe</span>
+  5469→    <div class="k-detail">
+  5470→  <div class="k-detail-sticky-head">
+  5471→    <button class="k-detail-back"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+  5472→    <div class="k-detail-mini-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">compare_arrows</span></div>
+  5473→    <div style="flex:1;min-width:0;"><div class="k-detail-mini-title">iPhone 16 Pro vs Galaxy S24</div><div class="k-detail-mini-sub">Tu Comparación</div></div>
+  5474→    <button class="k-detail-save"><span class="material-symbols-outlined ms-fill">bookmark</span></button>
+  5475→  </div>
+  5476→  <div class="k-detail-hero" style="height:140px;">
+  5477→    <div class="k-detail-hero-backdrop" style="background:linear-gradient(135deg,#8363f9,#382b8c);"></div>
+  5478→    <div class="k-detail-hero-scrim"></div>
+  5479→    <div class="k-detail-hero-content">
+  5480→      <div class="k-detail-hero-badge" style="background:rgba(255,255,255,0.92);color:#8363f9;"><span class="material-symbols-outlined" style="font-size:11px;">verified</span>Top: iPhone 16 Pro</div>
+  5481→      <div class="k-detail-hero-title">iPhone 16 Pro vs Galaxy S24</div>
+  5482→      <div class="k-detail-hero-sub">2 opciones analizadas · Top: iPhone</div>
+  5483→    </div>
+  5484→  </div>
+  5485→  <div class="k-detail-modules">
+  5486→    <div class="k-module" style="--module-color:#8363f9;animation-delay:0.1s;">
+  5487→      <div class="k-module-head">
+  5488→        <div class="k-module-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">inventory_2</span></div>
+  5489→        <div><div class="k-module-title" style="color:#8363f9;">Top pick</div><div class="k-module-kicker">1 recomendado</div></div>
+  5490→        <span class="k-module-meta">1</span>
+  5491→      </div>
+  5492→      <div class="k-scroller">
+  5493→        <div class="k-scard"><span class="k-scard-badge" style="background:rgba(131,99,249,0.12);color:#8363f9;">RECOMENDADO</span><div class="k-scard-title">iPhone 16 Pro</div><div class="k-scard-detail">Mejor equilibrio cámara-batería-ecosistema</div>
+  5494→          <div class="k-scard-metrics">
+  5495→            <span class="k-scard-metric">Cámara 9.4</span>
+  5496→            <span class="k-scard-metric">Batería 8.7</span>
+  5497→            <span class="k-scard-metric">$999</span>
+  5498→          </div>
+  5499→        </div>
+  5500→      </div>
+  5501→    </div>
+  5502→    <div class="k-module" style="--module-color:#8363f9;animation-delay:0.16s;">
+  5503→      <div class="k-module-head">
+  5504→        <div class="k-module-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">compare_arrows</span></div>
+  5505→        <div><div class="k-module-title" style="color:#8363f9;">Matriz de comparación</div><div class="k-module-kicker">4 barras</div></div>
+  5506→        <span class="k-module-meta">4</span>
+  5507→      </div>
+  5508→      <div class="k-rows">
+  5509→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#2d6a4f;">battery_full</span><div class="k-row-body"><div class="k-row-title">Batería</div><div class="k-row-detail">iPhone 8.7 vs Galaxy 9.1</div></div><span class="k-row-meta">8.7-9.1</span></div>
+  5510→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#8363f9;">photo_camera</span><div class="k-row-body"><div class="k-row-title">Cámara</div><div class="k-row-detail">iPhone 9.4 vs Galaxy 9.2</div></div><span class="k-row-meta">9.4-9.2</span></div>
+  5511→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#b45309;">speed</span><div class="k-row-body"><div class="k-row-title">Velocidad</div><div class="k-row-detail">iPhone 9.6 vs Galaxy 9.5</div></div><span class="k-row-meta">9.6-9.5</span></div>
+  5512→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#c81e1e;">attach_money</span><div class="k-row-body"><div class="k-row-title">Precio</div><div class="k-row-detail">iPhone $999 vs Galaxy $1299</div></div><span class="k-row-meta">$999-1299</span></div>
+  5513→      </div>
+  5514→    </div>
+  5515→    <div class="k-module" style="--module-color:#8363f9;animation-delay:0.22s;">
+  5516→      <div class="k-module-head">
+  5517→        <div class="k-module-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">check_circle</span></div>
+  5518→        <div><div class="k-module-title" style="color:#8363f9;">Pros iPhone</div><div class="k-module-kicker">4 puntos</div></div>
+  5519→        <span class="k-module-meta">4</span>
+  5520→      </div>
+  5521→      <div class="k-tiles">
+  5522→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#2d6a4f;">check_circle</span><div><div class="k-tile-label">Pro 1</div><div class="k-tile-value">Cámara pro</div></div></div>
+  5523→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#2d6a4f;">check_circle</span><div><div class="k-tile-label">Pro 2</div><div class="k-tile-value">Ecosistema</div></div></div>
+  5524→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#c81e1e;">cancel</span><div><div class="k-tile-label">Con 1</div><div class="k-tile-value">Precio alto</div></div></div>
+  5525→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#c81e1e;">cancel</span><div><div class="k-tile-label">Con 2</div><div class="k-tile-value">Sin USB-C rápido</div></div></div>
+  5526→      </div>
+  5527→    </div>
+  5528→    <div class="k-module" style="--module-color:#8363f9;animation-delay:0.28s;">
+  5529→      <div class="k-module-head">
+  5530→        <div class="k-module-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">psychology</span></div>
+  5531→        <div><div class="k-module-title" style="color:#8363f9;">Veredicto</div><div class="k-module-kicker">Koru AI</div></div>
+  5532→      </div>
+  5533→      <p class="k-text">Si valoras cámara y ecosistema: iPhone. Si quieres potencia bruta y S-Pen: Galaxy. Ambos son excelentes; la decisión depende de tu prioridad.</p>
+  5534→    </div>
+  5535→  </div>
+  5536→  <div class="k-detail-actions">
+  5537→    <button class="k-detail-action save"><span class="material-symbols-outlined ms-fill" style="font-size:18px;">bookmark_added</span>Guardar</button>
+  5538→    <button class="k-detail-action pdf"><span class="material-symbols-outlined" style="font-size:18px;">picture_as_pdf</span>PDF</button>
+  5539→  </div>
+  5540→</div>
+  5541→  </div>
+  5542→</div>
+  5543→
+  5544→        <div class="card-spec reveal">
+  5545→          <strong>Spec · Comparativa de productos</strong> &middot;
+  5546→          Accent: <code>#8363f9</code> &middot;
+  5547→          Icon: <code>compare_arrows</code> &middot;
+  5548→          Layout: <code>default</code> &middot;
+  5549→          3 metrics &middot;
+  5550→          4 secciones en extendido &middot;
+  5551→          Glow halo activo &middot; Count-up en artValue &middot; CTA shimmer cíclico
+  5552→        </div>
+  5553→
+  5554→<div class="showcase reveal" id="card-decision-support">
+  5555→  <div class="showcase-compact">
+  5556→    <span class="showcase-label compact"><span class="material-symbols-outlined">chat</span>Estado compacto · chat</span>
+  5557→    <div class="k-card is-tappable" style="--accent:#8127cf;--accent-soft:rgba(129,39,207,0.12);">
+  5558→  <div class="k-card-glow" style="background:radial-gradient(circle,#8127cf,transparent 70%);"></div>
+  5559→  <div class="k-card-top">
+  5560→    <div class="k-card-copy">
+  5561→      <div class="k-card-kicker" style="color:#8127cf;">Tu Decisión</div>
+  5562→      <div class="k-card-title">¿Cambiar de trabajo en 2025?</div>
+  5563→      <div class="k-card-desc">3 opciones · 74% confianza · Recomendado: startup</div>
+  5564→    </div>
+  5565→    <div class="k-card-art" style="background:rgba(129,39,207,0.12);color:#8127cf;">
+  5566→      <span class="material-symbols-outlined ms-fill">psychology_alt</span>
+  5567→      <div class="k-card-art-value">74%</div>
+  5568→    </div>
+  5569→  </div>
+  5570→  <div class="k-metrics" style="grid-template-columns:repeat(3,1fr);">
+  5571→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#8127cf;">balance</span><div class="k-metric-label">Opciones</div><div class="k-metric-value">3</div></div>
+  5572→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#8363f9;">psychology_alt</span><div class="k-metric-label">Factores</div><div class="k-metric-value">6</div></div>
+  5573→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#2d6a4f;">verified</span><div class="k-metric-label">Confianza</div><div class="k-metric-value">74%</div></div>
+  5574→  </div>
+  5575→  <div class="k-cta-hint" style="color:#8127cf;"><span>Ver detalle</span><span class="material-symbols-outlined">arrow_forward</span></div>
+  5576→</div>
+  5577→  </div>
+  5578→  <div class="showcase-extended">
+  5579→    <span class="showcase-label extended"><span class="material-symbols-outlined">fullscreen</span>Estado extendido · informe</span>
+  5580→    <div class="k-detail">
+  5581→  <div class="k-detail-sticky-head">
+  5582→    <button class="k-detail-back"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+  5583→    <div class="k-detail-mini-icon" style="background:rgba(129,39,207,0.12);color:#8127cf;"><span class="material-symbols-outlined">psychology_alt</span></div>
+  5584→    <div style="flex:1;min-width:0;"><div class="k-detail-mini-title">¿Cambiar de trabajo en 2025?</div><div class="k-detail-mini-sub">Tu Decisión</div></div>
+  5585→    <button class="k-detail-save"><span class="material-symbols-outlined ms-fill">bookmark</span></button>
+  5586→  </div>
+  5587→  <div class="k-detail-hero" style="height:140px;">
+  5588→    <div class="k-detail-hero-backdrop" style="background:linear-gradient(135deg,#8127cf,#382b8c);"></div>
+  5589→    <div class="k-detail-hero-scrim"></div>
+  5590→    <div class="k-detail-hero-content">
+  5591→      <div class="k-detail-hero-badge" style="background:rgba(255,255,255,0.92);color:#8127cf;"><span class="material-symbols-outlined" style="font-size:11px;">verified</span>Decisión en 2 sem</div>
+  5592→      <div class="k-detail-hero-title">¿Cambiar de trabajo en 2025?</div>
+  5593→      <div class="k-detail-hero-sub">3 opciones · 74% confianza · Recomendado: startup</div>
+  5594→    </div>
+  5595→  </div>
+  5596→  <div class="k-detail-modules">
+  5597→    <div class="k-module" style="--module-color:#8127cf;animation-delay:0.1s;">
+  5598→      <div class="k-module-head">
+  5599→        <div class="k-module-icon" style="background:rgba(129,39,207,0.12);color:#8127cf;"><span class="material-symbols-outlined">balance</span></div>
+  5600→        <div><div class="k-module-title" style="color:#8127cf;">Opciones con probabilidad</div><div class="k-module-kicker">3 opciones</div></div>
+  5601→        <span class="k-module-meta">3</span>
+  5602→      </div>
+  5603→      <div class="k-rows">
+  5604→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#8363f9;">trending_flat</span><div class="k-row-body"><div class="k-row-title">Quedarse actual</div><div class="k-row-detail">Probabilidad 35% · Seguro</div></div><span class="k-row-meta">35%</span></div>
+  5605→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#2d6a4f;">trending_up</span><div class="k-row-body"><div class="k-row-title">Cambiar a startup</div><div class="k-row-detail">Probabilidad 55% · Recomendado</div></div><span class="k-row-meta">55%</span></div>
+  5606→        <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#b45309;">trending_down</span><div class="k-row-body"><div class="k-row-title">Freelance</div><div class="k-row-detail">Probabilidad 10% · Riesgoso</div></div><span class="k-row-meta">10%</span></div>
+  5607→      </div>
+  5608→    </div>
+  5609→    <div class="k-module" style="--module-color:#8127cf;animation-delay:0.16s;">
+  5610→      <div class="k-module-head">
+  5611→        <div class="k-module-icon" style="background:rgba(129,39,207,0.12);color:#8127cf;"><span class="material-symbols-outlined">psychology</span></div>
+  5612→        <div><div class="k-module-title" style="color:#8127cf;">Factores clave</div><div class="k-module-kicker">6 factores</div></div>
+  5613→        <span class="k-module-meta">6</span>
+  5614→      </div>
+  5615→      <div class="k-chips">
+  5616→        <div class="k-chip"><span class="material-symbols-outlined">payments</span>Salario</div>
+  5617→        <div class="k-chip"><span class="material-symbols-outlined">balance</span>Work-life</div>
+  5618→        <div class="k-chip"><span class="material-symbols-outlined">trending_up</span>Crecimiento</div>
+  5619→        <div class="k-chip"><span class="material-symbols-outlined">shield</span>Estabilidad</div>
+  5620→        <div class="k-chip"><span class="material-symbols-outlined">rocket_launch</span>Proyecto</div>
+  5621→        <div class="k-chip"><span class="material-symbols-outlined">place</span>Flexibilidad</div>
+  5622→      </div>
+  5623→    </div>
+  5624→    <div class="k-module" style="--module-color:#8127cf;animation-delay:0.22s;">
+  5625→      <div class="k-module-head">
+  5626→        <div class="k-module-icon" style="background:rgba(129,39,207,0.12);color:#8127cf;"><span class="material-symbols-outlined">compare_arrows</span></div>
+  5627→        <div><div class="k-module-title" style="color:#8127cf;">Matriz de trade-offs</div><div class="k-module-kicker">4 datos</div></div>
+  5628→        <span class="k-module-meta">4</span>
+  5629→      </div>
+  5630→      <div class="k-tiles">
+  5631→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#2d6a4f;">trending_up</span><div><div class="k-tile-label">Startup crec.</div><div class="k-tile-value">+85%</div></div></div>
+  5632→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#c81e1e;">warning</span><div><div class="k-tile-label">Startup riesgo</div><div class="k-tile-value">Alto</div></div></div>
+  5633→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#3b82f6;">shield</span><div><div class="k-tile-label">Actual estab.</div><div class="k-tile-value">Alta</div></div></div>
+  5634→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#b45309;">trending_flat</span><div><div class="k-tile-label">Actual crec.</div><div class="k-tile-value">Bajo</div></div></div>
+  5635→      </div>
+  5636→    </div>
+  5637→    <div class="k-module" style="--module-color:#8127cf;animation-delay:0.28s;">
+  5638→      <div class="k-module-head">
+  5639→        <div class="k-module-icon" style="background:rgba(129,39,207,0.12);color:#8127cf;"><span class="material-symbols-outlined">auto_awesome</span></div>
+  5640→        <div><div class="k-module-title" style="color:#8127cf;">Recomendación Koru</div><div class="k-module-kicker">Análisis</div></div>
+  5641→      </div>
+  5642→      <p class="k-text">Considerando tu perfil (alto apetito de riesgo, prioridad a crecimiento, 32 años), la opción startup tiene 55% de probabilidad de optimizar tu utilidad esperada.</p>
+  5643→    </div>
+  5644→  </div>
+  5645→  <div class="k-detail-actions">
+  5646→    <button class="k-detail-action save"><span class="material-symbols-outlined ms-fill" style="font-size:18px;">bookmark_added</span>Guardar</button>
+  5647→    <button class="k-detail-action pdf"><span class="material-symbols-outlined" style="font-size:18px;">picture_as_pdf</span>PDF</button>
+  5648→  </div>
+  5649→</div>
+  5650→  </div>
+  5651→</div>
+  5652→
+  5653→        <div class="card-spec reveal">
+  5654→          <strong>Spec · Soporte de decisión</strong> &middot;
+  5655→          Accent: <code>#8127cf</code> &middot;
+  5656→          Icon: <code>psychology_alt</code> &middot;
+  5657→          Layout: <code>default</code> &middot;
+  5658→          3 metrics &middot;
+  5659→          4 secciones en extendido &middot;
+  5660→          Glow halo activo &middot; Count-up en artValue &middot; CTA shimmer cíclico
+  5661→        </div>
+  5662→
+  5663→
+  5664→      <div class="card-section-divider reveal">
+  5665→        <div class="card-section-group-title">Memoria y notas</div>
+  5666→        <div class="card-section-group-sub">Recuerdos con confianza, notas editables.</div>
+  5667→      </div>
+  5668→
+  5669→<div class="showcase reveal" id="card-memory">
+  5670→  <div class="showcase-compact">
+  5671→    <span class="showcase-label compact"><span class="material-symbols-outlined">chat</span>Estado compacto · chat</span>
+  5672→    <div class="k-card is-tappable" style="--accent:#8127cf;--accent-soft:rgba(129,39,207,0.12);">
+  5673→  <div class="k-card-glow" style="background:radial-gradient(circle,#8127cf,transparent 70%);"></div>
+  5674→  <div class="k-card-top">
+  5675→    <div class="k-card-copy">
+  5676→      <div class="k-card-kicker" style="color:#8127cf;">Memoria</div>
+  5677→      <div class="k-card-title">Vacaciones en Lisboa 2023</div>
+  5678→      <div class="k-card-desc">Hace 14 meses · Recall 87% · 4 relacionados</div>
+  5679→    </div>
+  5680→    <div class="k-card-art" style="background:rgba(129,39,207,0.12);color:#8127cf;">
+  5681→      <span class="material-symbols-outlined ms-fill">psychology</span>
+  5682→      <div class="k-card-art-value">87%</div>
+  5683→    </div>
+  5684→  </div>
+  5685→  <div class="k-metrics" style="grid-template-columns:repeat(3,1fr);">
+  5686→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#8127cf;">fingerprint</span><div class="k-metric-label">Recall</div><div class="k-metric-value">87%</div></div>
+  5687→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#8363f9;">event</span><div class="k-metric-label">Fecha</div><div class="k-metric-value">12 jun 23</div></div>
+  5688→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#ec4899;">group</span><div class="k-metric-label">Personas</div><div class="k-metric-value">María</div></div>
+  5689→  </div>
+  5690→  <div class="k-cta-hint" style="color:#8127cf;"><span>Ver detalle</span><span class="material-symbols-outlined">arrow_forward</span></div>
+  5691→</div>
+  5692→  </div>
+  5693→  <div class="showcase-extended">
+  5694→    <span class="showcase-label extended"><span class="material-symbols-outlined">fullscreen</span>Estado extendido · informe</span>
+  5695→    <div class="k-detail">
+  5696→  <div class="k-detail-sticky-head">
+  5697→    <button class="k-detail-back"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+  5698→    <div class="k-detail-mini-icon" style="background:rgba(129,39,207,0.12);color:#8127cf;"><span class="material-symbols-outlined">psychology</span></div>
+  5699→    <div style="flex:1;min-width:0;"><div class="k-detail-mini-title">Vacaciones en Lisboa 2023</div><div class="k-detail-mini-sub">Memoria</div></div>
+  5700→    <button class="k-detail-save"><span class="material-symbols-outlined ms-fill">bookmark</span></button>
+  5701→  </div>
+  5702→  <div class="k-detail-hero" style="height:140px;">
+  5703→    <div class="k-detail-hero-backdrop" style="background:linear-gradient(135deg,#8127cf,#382b8c);"></div>
+  5704→    <div class="k-detail-hero-scrim"></div>
+  5705→    <div class="k-detail-hero-content">
+  5706→      <div class="k-detail-hero-badge" style="background:rgba(255,255,255,0.92);color:#8127cf;"><span class="material-symbols-outlined" style="font-size:11px;">verified</span>Hace 14 meses</div>
+  5707→      <div class="k-detail-hero-title">Vacaciones en Lisboa 2023</div>
+  5708→      <div class="k-detail-hero-sub">Hace 14 meses · Recall 87% · 4 relacionados</div>
+  5709→    </div>
+  5710→  </div>
+  5711→  <div class="k-detail-modules">
+  5712→    <div class="k-module" style="--module-color:#8127cf;animation-delay:0.1s;">
+  5713→      <div class="k-module-head">
+  5714→        <div class="k-module-icon" style="background:rgba(129,39,207,0.12);color:#8127cf;"><span class="material-symbols-outlined">psychology</span></div>
+  5715→        <div><div class="k-module-title" style="color:#8127cf;">Recuerdo</div><div class="k-module-kicker">Memoria recuperada</div></div>
+  5716→      </div>
+  5717→      <p class="k-text">Fui a Lisboa en junio 2023 con María. Visitamos el barrio de Alfama, comimos pastéis de Belém en la Fábrica original. Subimos al castelo de São Jorge al atardecer. María se resfrió el tercer día.</p>
+  5718→    </div>
+  5719→    <div class="k-module" style="--module-color:#8127cf;animation-delay:0.16s;">
+  5720→      <div class="k-module-head">
+  5721→        <div class="k-module-icon" style="background:rgba(129,39,207,0.12);color:#8127cf;"><span class="material-symbols-outlined">fingerprint</span></div>
+  5722→        <div><div class="k-module-title" style="color:#8127cf;">Confianza del recuerdo</div><div class="k-module-kicker">4 datos</div></div>
+  5723→        <span class="k-module-meta">4</span>
+  5724→      </div>
+  5725→      <div class="k-tiles">
+  5726→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8127cf;">fingerprint</span><div><div class="k-tile-label">Confianza</div><div class="k-tile-value">87%</div></div></div>
+  5727→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">event</span><div><div class="k-tile-label">Fecha</div><div class="k-tile-value">12 jun 2023</div></div></div>
+  5728→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#3b82f6;">place</span><div><div class="k-tile-label">Ubicación</div><div class="k-tile-value">Lisboa, PT</div></div></div>
+  5729→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#ec4899;">group</span><div><div class="k-tile-label">Personas</div><div class="k-tile-value">María</div></div></div>
+  5730→      </div>
+  5731→    </div>
+  5732→    <div class="k-module" style="--module-color:#8127cf;animation-delay:0.22s;">
+  5733→      <div class="k-module-head">
+  5734→        <div class="k-module-icon" style="background:rgba(129,39,207,0.12);color:#8127cf;"><span class="material-symbols-outlined">link</span></div>
+  5735→        <div><div class="k-module-title" style="color:#8127cf;">Recuerdos relacionados</div><div class="k-module-kicker">4 memorias</div></div>
+  5736→        <span class="k-module-meta">2</span>
+  5737→      </div>
+  5738→      <div class="k-scroller">
+  5739→        <div class="k-scard"><span class="k-scard-badge" style="background:rgba(129,39,207,0.12);color:#8127cf;">Hace 1 año</span><div class="k-scard-title">Cumple María Madrid</div><div class="k-scard-detail">Conexión: misma persona</div>
+  5740→          <div class="k-scard-metrics">
+  5741→            <span class="k-scard-metric">72% similar</span>
+  5742→          </div>
+  5743→        </div>
+  5744→        <div class="k-scard"><span class="k-scard-badge" style="background:rgba(129,39,207,0.12);color:#8127cf;">Hace 2 años</span><div class="k-scard-title">Porto 2022</div><div class="k-scard-detail">Conexión: Portugal</div>
+  5745→          <div class="k-scard-metrics">
+  5746→            <span class="k-scard-metric">68% similar</span>
+  5747→          </div>
+  5748→        </div>
+  5749→      </div>
+  5750→    </div>
+  5751→    <div class="k-module" style="--module-color:#8127cf;animation-delay:0.28s;">
+  5752→      <div class="k-module-head">
+  5753→        <div class="k-module-icon" style="background:rgba(129,39,207,0.12);color:#8127cf;"><span class="material-symbols-outlined">history</span></div>
+  5754→        <div><div class="k-module-title" style="color:#8127cf;">Historia de la fuente</div><div class="k-module-kicker">4 hitos</div></div>
+  5755→        <span class="k-module-meta">4</span>
+  5756→      </div>
+  5757→      <div class="k-timeline">
+  5758→        <div class="k-timeline-step is-done">
+  5759→          <div class="k-timeline-dot"><span class="material-symbols-outlined">check</span></div>
+  5760→          <div class="k-timeline-body"><div class="k-timeline-name">12 jun 2023 Foto</div><div class="k-timeline-meta">iPhone · Alfama</div></div>
+  5761→        </div>
+  5762→        <div class="k-timeline-step is-done">
+  5763→          <div class="k-timeline-dot"><span class="material-symbols-outlined">check</span></div>
+  5764→          <div class="k-timeline-body"><div class="k-timeline-name">15 jun 2023 WhatsApp</div><div class="k-timeline-meta">Conversación María</div></div>
+  5765→        </div>
+  5766→        <div class="k-timeline-step is-done">
+  5767→          <div class="k-timeline-dot"><span class="material-symbols-outlined">check</span></div>
+  5768→          <div class="k-timeline-body"><div class="k-timeline-name">8 ago 2023 Diario</div><div class="k-timeline-meta">Editado en Notion</div></div>
+  5769→        </div>
+  5770→        <div class="k-timeline-step is-current">
+  5771→          <div class="k-timeline-dot"><span class="material-symbols-outlined">radio_button_checked</span></div>
+  5772→          <div class="k-timeline-body"><div class="k-timeline-name">Hoy Recuperado</div><div class="k-timeline-meta">Vía query usuario</div></div>
+  5773→        </div>
+  5774→      </div>
+  5775→    </div>
+  5776→  </div>
+  5777→  <div class="k-detail-actions">
+  5778→    <button class="k-detail-action save"><span class="material-symbols-outlined ms-fill" style="font-size:18px;">bookmark_added</span>Guardar</button>
+  5779→    <button class="k-detail-action pdf"><span class="material-symbols-outlined" style="font-size:18px;">picture_as_pdf</span>PDF</button>
+  5780→  </div>
+  5781→</div>
+  5782→  </div>
+  5783→</div>
+  5784→
+  5785→        <div class="card-spec reveal">
+  5786→          <strong>Spec · Memoria</strong> &middot;
+  5787→          Accent: <code>#8127cf</code> &middot;
+  5788→          Icon: <code>psychology</code> &middot;
+  5789→          Layout: <code>default</code> &middot;
+  5790→          3 metrics &middot;
+  5791→          4 secciones en extendido &middot;
+  5792→          Glow halo activo &middot; Count-up en artValue &middot; CTA shimmer cíclico
+  5793→        </div>
+  5794→
+  5795→<div class="showcase reveal" id="card-note">
+  5796→  <div class="showcase-compact">
+  5797→    <span class="showcase-label compact"><span class="material-symbols-outlined">chat</span>Estado compacto · chat</span>
+  5798→    <div class="k-card is-tappable" style="--accent:#8363f9;--accent-soft:rgba(131,99,249,0.12);">
+  5799→  <div class="k-card-glow" style="background:radial-gradient(circle,#8363f9,transparent 70%);"></div>
+  5800→  <div class="k-card-top">
+  5801→    <div class="k-card-copy">
+  5802→      <div class="k-card-kicker" style="color:#8363f9;">Tu Nota</div>
+  5803→      <div class="k-card-title">Ideas para el proyecto ACME</div>
+  5804→      <div class="k-card-desc">Creada hace 3 días · 4 etiquetas</div>
+  5805→    </div>
+  5806→    <div class="k-card-art" style="background:rgba(131,99,249,0.12);color:#8363f9;">
+  5807→      <span class="material-symbols-outlined ms-fill">sticky_note_2</span>
+  5808→    </div>
+  5809→  </div>
+  5810→  <div class="k-metrics" style="grid-template-columns:repeat(3,1fr);">
+  5811→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#8363f9;">label</span><div class="k-metric-label">Etiquetas</div><div class="k-metric-value">4</div></div>
+  5812→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#b45309;">schedule</span><div class="k-metric-label">Creada</div><div class="k-metric-value">hace 3d</div></div>
+  5813→    <div class="k-metric"><span class="material-symbols-outlined" style="color:#2d6a4f;">edit</span><div class="k-metric-label">Editada</div><div class="k-metric-value">hace 2h</div></div>
+  5814→  </div>
+  5815→  <div class="k-cta-hint" style="color:#8363f9;"><span>Ver detalle</span><span class="material-symbols-outlined">arrow_forward</span></div>
+  5816→</div>
+  5817→  </div>
+  5818→  <div class="showcase-extended">
+  5819→    <span class="showcase-label extended"><span class="material-symbols-outlined">fullscreen</span>Estado extendido · informe</span>
+  5820→    <div class="k-detail">
+  5821→  <div class="k-detail-sticky-head">
+  5822→    <button class="k-detail-back"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+  5823→    <div class="k-detail-mini-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">sticky_note_2</span></div>
+  5824→    <div style="flex:1;min-width:0;"><div class="k-detail-mini-title">Ideas para el proyecto ACME</div><div class="k-detail-mini-sub">Tu Nota</div></div>
+  5825→    <button class="k-detail-save"><span class="material-symbols-outlined ms-fill">bookmark</span></button>
+  5826→  </div>
+  5827→  <div class="k-detail-hero" style="height:140px;">
+  5828→    <div class="k-detail-hero-backdrop" style="background:linear-gradient(135deg,#8363f9,#382b8c);"></div>
+  5829→    <div class="k-detail-hero-scrim"></div>
+  5830→    <div class="k-detail-hero-content">
+  5831→      <div class="k-detail-hero-badge" style="background:rgba(255,255,255,0.92);color:#8363f9;"><span class="material-symbols-outlined" style="font-size:11px;">verified</span>Editada hace 2h</div>
+  5832→      <div class="k-detail-hero-title">Ideas para el proyecto ACME</div>
+  5833→      <div class="k-detail-hero-sub">Creada hace 3 días · 4 etiquetas</div>
+  5834→    </div>
+  5835→  </div>
+  5836→  <div class="k-detail-modules">
+  5837→    <div class="k-module" style="--module-color:#8363f9;animation-delay:0.1s;">
+  5838→      <div class="k-module-head">
+  5839→        <div class="k-module-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">sticky_note_2</span></div>
+  5840→        <div><div class="k-module-title" style="color:#8363f9;">Contenido de la nota</div><div class="k-module-kicker">Texto</div></div>
+  5841→      </div>
+  5842→      <p class="k-text">Ideas para proyecto ACME: 1) Integración con API de weather para sugerencias contextuales. 2) Modo offline con IndexedDB. 3) Onboarding con coachmark. 4) Exportar a Notion. 5) Widget iOS.</p>
+  5843→    </div>
+  5844→    <div class="k-module" style="--module-color:#8363f9;animation-delay:0.16s;">
+  5845→      <div class="k-module-head">
+  5846→        <div class="k-module-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">label</span></div>
+  5847→        <div><div class="k-module-title" style="color:#8363f9;">Metadatos</div><div class="k-module-kicker">4 datos</div></div>
+  5848→        <span class="k-module-meta">4</span>
+  5849→      </div>
+  5850→      <div class="k-tiles">
+  5851→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#b45309;">schedule</span><div><div class="k-tile-label">Creada</div><div class="k-tile-value">11 mar 2024</div></div></div>
+  5852→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#2d6a4f;">edit</span><div><div class="k-tile-label">Editada</div><div class="k-tile-value">hace 2h</div></div></div>
+  5853→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">folder</span><div><div class="k-tile-label">Carpeta</div><div class="k-tile-value">Trabajo</div></div></div>
+  5854→        <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8127cf;">label</span><div><div class="k-tile-label">Etiquetas</div><div class="k-tile-value">4</div></div></div>
+  5855→      </div>
+  5856→    </div>
+  5857→    <div class="k-module" style="--module-color:#8363f9;animation-delay:0.22s;">
+  5858→      <div class="k-module-head">
+  5859→        <div class="k-module-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">label</span></div>
+  5860→        <div><div class="k-module-title" style="color:#8363f9;">Etiquetas</div><div class="k-module-kicker">4 tags</div></div>
+  5861→        <span class="k-module-meta">4</span>
+  5862→      </div>
+  5863→      <div class="k-chips">
+  5864→        <div class="k-chip"><span class="material-symbols-outlined">label</span>#trabajo</div>
+  5865→        <div class="k-chip"><span class="material-symbols-outlined">label</span>#acme</div>
+  5866→        <div class="k-chip"><span class="material-symbols-outlined">label</span>#ideas</div>
+  5867→        <div class="k-chip"><span class="material-symbols-outlined">label</span>#producto</div>
+  5868→      </div>
+  5869→    </div>
+  5870→    <div class="k-module" style="--module-color:#8363f9;animation-delay:0.28s;">
+  5871→      <div class="k-module-head">
+  5872→        <div class="k-module-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">history</span></div>
+  5873→        <div><div class="k-module-title" style="color:#8363f9;">Historial de edición</div><div class="k-module-kicker">3 versiones</div></div>
+  5874→        <span class="k-module-meta">3</span>
+  5875→      </div>
+  5876→      <div class="k-timeline">
+  5877→        <div class="k-timeline-step is-done">
+  5878→          <div class="k-timeline-dot"><span class="material-symbols-outlined">check</span></div>
+  5879→          <div class="k-timeline-body"><div class="k-timeline-name">11 mar · Creada</div><div class="k-timeline-meta">Nota inicial</div></div>
+  5880→        </div>
+  5881→        <div class="k-timeline-step is-done">
+  5882→          <div class="k-timeline-dot"><span class="material-symbols-outlined">check</span></div>
+  5883→          <div class="k-timeline-body"><div class="k-timeline-name">12 mar · Editada</div><div class="k-timeline-meta">Añadidas 2 ideas</div></div>
+  5884→        </div>
+  5885→        <div class="k-timeline-step is-current">
+  5886→          <div class="k-timeline-dot"><span class="material-symbols-outlined">radio_button_checked</span></div>
+  5887→          <div class="k-timeline-body"><div class="k-timeline-name">Hoy · Editada</div><div class="k-timeline-meta">Reordenado</div></div>
+  5888→        </div>
+  5889→      </div>
+
+[showing lines 5190-5889 of 6474; use offset=5890 with limit to continue reading]

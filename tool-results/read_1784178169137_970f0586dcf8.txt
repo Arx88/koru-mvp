@@ -1,0 +1,792 @@
+     1→import { applyBackendTurnToState } from "./turn";
+     2→// Fase 2.14: brain.ts eliminado (motor client-side legacy).
+     3→// submitReflection se mantiene como stub que lanza error — el flujo
+     4→// activo usa runBackendAgentTurn via KoruProvider.submitEntry.
+     5→import { executeApprovedAction } from "./executor";
+     6→import { commitmentIdentityKey, mergeDueHint, uniqueCommitmentList } from "./commitments";
+     7→import { createDefaultRuntimeSettings, runFreeLlmEmbedding } from "./freellmapi";
+     8→import {
+     9→  clearLegacyState,
+    10→  clearPersistedState,
+    11→  getActiveUserId,
+    12→  readLegacyState,
+    13→  readPersistedState,
+    14→  writeLegacyState,
+    15→  writePersistedState,
+    16→} from "./persistence";
+    17→import type { LearningPreference, RelevantMemory } from "./types";
+    18→import { koruSoulCapsule } from "./soul";
+    19→import { dueAtFromText, nextDueAtFromRecurrence } from "./time";
+    20→import type {
+    21→  CalendarEvent,
+    22→  Commitment,
+    23→  KoruConversationMessage,
+    24→  DailyEntry,
+    25→  EnergyEvent,
+    26→  HeartbeatSettings,
+    27→  AssistantAction,
+    28→  KoruStage,
+    29→  KoruState,
+    30→  LifeRecord,
+    31→  ModelCall,
+    32→  MemoryFact,
+    33→  ProactiveNudge,
+    34→  RuntimeSettings,
+    35→  VoicePreference,
+    36→} from "./types";
+    37→
+    38→function nowIso(): string {
+    39→  return new Date().toISOString();
+    40→}
+    41→
+    42→export function createId(prefix: string): string {
+    43→  return `${prefix}_${Math.random().toString(36).slice(2, 10)}_${Date.now().toString(36)}`;
+    44→}
+    45→
+    46→function createDefaultHeartbeat(): HeartbeatSettings {
+    47→  return {
+    48→    enabled: true,
+    49→    activeStartHour: 8,
+    50→    activeEndHour: 21,
+    51→    maxNudgesPerDay: 3,
+    52→    dailyNudgeCount: 0,
+    53→  };
+    54→}
+    55→
+    56→function dedupeCommitments(commitments: Commitment[]): Commitment[] {
+    57→  const openByKey = new Map<string, Commitment>();
+    58→  const resolved: Commitment[] = [];
+    59→
+    60→  for (const commitment of commitments) {
+    61→    if (commitment.status !== "open") {
+    62→      resolved.push(commitment);
+    63→      continue;
+    64→    }
+    65→    const key = commitmentIdentityKey(commitment);
+    66→    const existing = openByKey.get(key);
+    67→    if (!existing) {
+    68→      openByKey.set(key, commitment);
+    69→      continue;
+    70→    }
+    71→    openByKey.set(key, {
+    72→      ...existing,
+    73→      dueHint: mergeDueHint(existing.dueHint, commitment.dueHint),
+    74→      dueAt: existing.dueAt ?? commitment.dueAt,
+    75→      recurrence: existing.recurrence ?? commitment.recurrence,
+    76→    });
+    77→  }
+    78→
+    79→  return [...openByKey.values(), ...resolved];
+    80→}
+    81→
+    82→export function createInitialState(userId: string = "default"): KoruState {
+    83→  const now = nowIso();
+    84→  return {
+    85→    userId,
+    86→    stage: "seed",
+    87→    trustedEnergy: 0,
+    88→    totalEnergy: 0,
+    89→    createdAt: now,
+    90→    updatedAt: now,
+    91→    voicePreference: koruSoulCapsule.defaults,
+    92→    runtime: createDefaultRuntimeSettings(),
+    93→    heartbeat: createDefaultHeartbeat(),
+    94→    memories: [],
+    95→    commitments: [],
+    96→    actions: [],
+    97→    calendarEvents: [],
+    98→    records: [],
+    99→    entries: [],
+   100→    energyEvents: [],
+   101→    nudges: [],
+   102→    modelCalls: [],
+   103→    ephemeralMode: false,
+   104→    durableMemoryEnabled: true,
+   105→    actionPreparationEnabled: true,
+   106→    worldSignalsEnabled: false,
+   107→    learningPreferences: [],
+   108→    language: "es",
+   109→  };
+   110→}
+   111→
+   112→function normalizeState(parsed?: Partial<KoruState> | null): KoruState {
+   113→  const initial = createInitialState();
+   114→  const envRuntime = createDefaultRuntimeSettings();
+   115→  if (!parsed) return initial;
+   116→  const runtime = { ...initial.runtime, ...parsed.runtime };
+   117→  if (envRuntime.openModelEnabled) {
+   118→    runtime.openModelEnabled = true;
+   119→    runtime.openModelBaseUrl = envRuntime.openModelBaseUrl;
+   120→    runtime.openModelApiKey = envRuntime.openModelApiKey;
+   121→    runtime.openModelModel = envRuntime.openModelModel;
+   122→  }
+   123→  if (envRuntime.freeLlmApiEnabled) {
+   124→    runtime.freeLlmApiEnabled = true;
+   125→    runtime.freeLlmApiBaseUrl = envRuntime.freeLlmApiBaseUrl;
+   126→    runtime.freeLlmApiKey = envRuntime.freeLlmApiKey;
+   127→    runtime.freeLlmApiModel = envRuntime.freeLlmApiModel;
+   128→    runtime.embeddingsEnabled = envRuntime.embeddingsEnabled;
+   129→  }
+   130→  return {
+   131→    ...initial,
+   132→    ...parsed,
+   133→    userId: parsed.userId ?? initial.userId, // 🔴 Multi-cuenta: preservar userId
+   134→    runtime,
+   135→    heartbeat: { ...initial.heartbeat, ...parsed.heartbeat },
+   136→    voicePreference: { ...initial.voicePreference, ...parsed.voicePreference },
+   137→    memories: (parsed.memories ?? []).map((memory) => ({
+   138→      useForSuggestions: memory.useForSuggestions ?? memory.sensitivity === "normal",
+   139→      ...memory,
+   140→    })),
+   141→    commitments: dedupeCommitments((parsed.commitments ?? []).map((commitment) => ({
+   142→      ...commitment,
+   143→      dueAt: commitment.dueAt ?? dueAtFromText(`${commitment.title} ${commitment.dueHint}`, new Date(commitment.createdAt ?? Date.now())),
+   144→    }))),
+   145→    actions: parsed.actions ?? [],
+   146→    calendarEvents: parsed.calendarEvents ?? [],
+   147→    records: parsed.records ?? [],
+   148→    entries: parsed.entries ?? [],
+   149→    energyEvents: parsed.energyEvents ?? [],
+   150→    nudges: parsed.nudges ?? [],
+   151→    modelCalls: parsed.modelCalls ?? [],
+   152→  } as KoruState;
+   153→}
+   154→
+   155→export function loadState(): KoruState {
+   156→  return normalizeState(readLegacyState());
+   157→}
+   158→
+   159→export async function loadPersistedState(): Promise<KoruState> {
+   160→  try {
+   161→    const userId = getActiveUserId();
+   162→    const persisted = await readPersistedState(userId);
+   163→    if (persisted) return normalizeState({ ...persisted, userId });
+   164→    const legacy = normalizeState({ ...readLegacyState(), userId });
+   165→    await writePersistedState(legacy);
+   166→    return legacy;
+   167→  } catch {
+   168→    return loadState();
+   169→  }
+   170→}
+   171→
+   172→export function saveState(state: KoruState): void {
+   173→  const snapshot = normalizeState({ ...state, updatedAt: nowIso() });
+   174→  writeLegacyState(snapshot);
+   175→  void writePersistedState(snapshot).catch(() => undefined);
+   176→}
+   177→
+   178→function saveEphemeralSessionSnapshot(previous: KoruState, current: KoruState): void {
+   179→  saveState({
+   180→    ...current,
+   181→    memories: previous.memories,
+   182→    commitments: previous.commitments,
+   183→    actions: previous.actions,
+   184→    calendarEvents: previous.calendarEvents,
+   185→    records: previous.records,
+   186→    entries: previous.entries,
+   187→    energyEvents: previous.energyEvents,
+   188→    nudges: previous.nudges,
+   189→    modelCalls: previous.modelCalls,
+   190→    totalEnergy: previous.totalEnergy,
+   191→    trustedEnergy: previous.trustedEnergy,
+   192→    stage: previous.stage,
+   193→  });
+   194→}
+   195→
+   196→export function resetState(): KoruState {
+   197→  const state = createInitialState();
+   198→  clearLegacyState();
+   199→  void clearPersistedState().catch(() => undefined);
+   200→  saveState(state);
+   201→  return state;
+   202→}
+   203→
+   204→export function stageFor(state: Pick<KoruState, "trustedEnergy" | "memories" | "entries">): KoruStage {
+   205→  const confirmed = state.memories.filter((memory) => memory.status === "confirmed").length;
+   206→  if (state.trustedEnergy >= 360 && confirmed >= 10 && state.entries.length >= 5) return "garden";
+   207→  if (state.trustedEnergy >= 220 && confirmed >= 7 && state.entries.length >= 3) return "born";
+   208→  if (state.trustedEnergy >= 130 && confirmed >= 4) return "roots";
+   209→  if (state.trustedEnergy >= 45 || confirmed >= 2) return "sprout";
+   210→  return "seed";
+   211→}
+   212→
+   213→export function applyTurnResultToState(
+   214→  state: KoruState,
+   215→  text: string,
+   216→  transcriptSource: DailyEntry["transcriptSource"],
+   217→  result: Parameters<typeof applyBackendTurnToState>[3],
+   218→): ReturnType<typeof applyBackendTurnToState> {
+   219→  return applyBackendTurnToState(state, text, transcriptSource, result);
+   220→}
+   221→
+   222→// Fase 2.14: submitReflection eliminado (usaba brain.ts que fue removido).
+   223→// El flujo activo usa runBackendAgentTurn via KoruProvider.submitEntry.
+   224→export async function submitReflection(
+   225→  _state: KoruState,
+   226→  _text: string,
+   227→  _transcriptSource: DailyEntry["transcriptSource"] = "typed",
+   228→  _history: KoruConversationMessage[] = [],
+   229→): Promise<{ state: KoruState; entry: DailyEntry; response: string }> {
+   230→  throw new Error("submitReflection is deprecated. Use runBackendAgentTurn via KoruProvider.submitEntry instead.");
+   231→}
+   232→
+   233→export function confirmMemory(state: KoruState, id: string): KoruState {
+   234→  const now = nowIso();
+   235→  const next = {
+   236→    ...state,
+   237→    memories: state.memories.map((memory) =>
+   238→      memory.id === id
+   239→        ? {
+   240→            ...memory,
+   241→            status: "confirmed" as const,
+   242→            confidence: Math.max(memory.confidence, 0.9),
+   243→            confirmedAt: now,
+   244→            updatedAt: now,
+   245→            useForSuggestions: memory.useForSuggestions ?? memory.sensitivity === "normal",
+   246→          }
+   247→        : memory,
+   248→    ),
+   249→    trustedEnergy: state.trustedEnergy + 18,
+   250→    updatedAt: now,
+   251→  };
+   252→  next.stage = stageFor(next);
+   253→  if (state.ephemeralMode) {
+   254→    saveEphemeralSessionSnapshot(state, next);
+   255→  } else {
+   256→    saveState(next);
+   257→  }
+   258→  return next;
+   259→}
+   260→
+   261→export function rejectMemory(state: KoruState, id: string): KoruState {
+   262→  const now = nowIso();
+   263→  const next = {
+   264→    ...state,
+   265→    memories: state.memories.map((memory) =>
+   266→      memory.id === id ? { ...memory, status: "rejected" as const, updatedAt: now } : memory,
+   267→    ),
+   268→    updatedAt: now,
+   269→  };
+   270→  saveState(next);
+   271→  return next;
+   272→}
+   273→
+   274→export function updateMemoryText(state: KoruState, id: string, text: string): KoruState {
+   275→  const cleanText = text.trim();
+   276→  if (!cleanText) return state;
+   277→  const now = nowIso();
+   278→  const next = {
+   279→    ...state,
+   280→    memories: state.memories.map((memory) =>
+   281→      memory.id === id
+   282→        ? {
+   283→            ...memory,
+   284→            text: cleanText,
+   285→            confidence: Math.max(memory.confidence, 0.92),
+   286→            updatedAt: now,
+   287→          }
+   288→        : memory,
+   289→    ),
+   290→    updatedAt: now,
+   291→  };
+   292→  saveState(next);
+   293→  return next;
+   294→}
+   295→
+   296→export function toggleMemorySuggestions(state: KoruState, id: string): KoruState {
+   297→  const now = nowIso();
+   298→  const next = {
+   299→    ...state,
+   300→    memories: state.memories.map((memory) =>
+   301→      memory.id === id
+   302→        ? { ...memory, useForSuggestions: memory.useForSuggestions === false ? true : false, updatedAt: now }
+   303→        : memory,
+   304→    ),
+   305→    updatedAt: now,
+   306→  };
+   307→  saveState(next);
+   308→  return next;
+   309→}
+   310→
+   311→export function completeCommitment(state: KoruState, id: string): KoruState {
+   312→  const now = nowIso();
+   313→  const next = {
+   314→    ...state,
+   315→    commitments: state.commitments.map((commitment) =>
+   316→      commitment.id === id
+   317→        ? commitment.recurrence
+   318→          ? { ...commitment, dueAt: nextDueAtFromRecurrence(commitment.dueAt, commitment.recurrence), remindedAt: undefined, status: "open" as const }
+   319→          : { ...commitment, status: "done" as const }
+   320→        : commitment,
+   321→    ),
+   322→    trustedEnergy: state.trustedEnergy + 12,
+   323→    updatedAt: now,
+   324→  };
+   325→  next.stage = stageFor(next);
+   326→  saveState(next);
+   327→  return next;
+   328→}
+   329→
+   330→function updateLearningPreference(
+   331→  state: KoruState,
+   332→  type: string | undefined,
+   333→  accepted: boolean,
+   334→): LearningPreference[] {
+   335→  if (!type) return state.learningPreferences;
+   336→  const now = nowIso();
+   337→  const existing = state.learningPreferences.find((p) => p.type === type);
+   338→  if (existing) {
+   339→    return state.learningPreferences.map((p) =>
+   340→      p.type === type
+   341→        ? {
+   342→            ...p,
+   343→            acceptedCount: accepted ? p.acceptedCount + 1 : p.acceptedCount,
+   344→            rejectedCount: accepted ? p.rejectedCount : p.rejectedCount + 1,
+   345→            lastInteractionAt: now,
+   346→          }
+   347→        : p,
+   348→    );
+   349→  }
+   350→  return [
+   351→    ...state.learningPreferences,
+   352→    {
+   353→      type,
+   354→      acceptedCount: accepted ? 1 : 0,
+   355→      rejectedCount: accepted ? 0 : 1,
+   356→      lastInteractionAt: now,
+   357→    },
+   358→  ];
+   359→}
+   360→
+   361→function enhancementTypeFromAction(action?: { payload?: Record<string, unknown> }): string | undefined {
+   362→  if (!action?.payload) return undefined;
+   363→  const type = action.payload.enhancementType;
+   364→  return typeof type === "string" ? type : undefined;
+   365→}
+   366→
+   367→export function rejectAction(state: KoruState, id: string): KoruState {
+   368→  const now = nowIso();
+   369→  const action = state.actions.find((item) => item.id === id);
+   370→  const type = enhancementTypeFromAction(action);
+   371→  const next = {
+   372→    ...state,
+   373→    actions: state.actions.map((action) =>
+   374→      action.id === id ? { ...action, status: "rejected" as const, updatedAt: now } : action,
+   375→    ),
+   376→    learningPreferences: updateLearningPreference(state, type, false),
+   377→    updatedAt: now,
+   378→  };
+   379→  saveState(next);
+   380→  return next;
+   381→}
+   382→
+   383→export function approveAndExecuteAction(state: KoruState, id: string): KoruState {
+   384→  const action = state.actions.find((item) => item.id === id);
+   385→  if (!action || action.status === "executed" || action.status === "rejected") return state;
+   386→
+   387→  const now = nowIso();
+   388→  const type = enhancementTypeFromAction(action);
+   389→  const execution = executeApprovedAction(
+   390→    state,
+   391→    { ...action, status: "approved", updatedAt: now },
+   392→    createId,
+   393→    now,
+   394→  );
+   395→  const done = new Set(execution.commitmentIdsDone);
+   396→  const existingKeys = new Set(state.commitments.map((commitment) => commitmentIdentityKey(commitment)));
+   397→  const newCommitments = execution.commitments.filter((commitment) => {
+   398→    const key = commitmentIdentityKey(commitment);
+   399→    if (existingKeys.has(key)) return false;
+   400→    existingKeys.add(key);
+   401→    return true;
+   402→  });
+   403→  const next = {
+   404→    ...state,
+   405→    actions: state.actions.map((item) => (item.id === id ? execution.action : item)),
+   406→    learningPreferences: updateLearningPreference(state, type, true),
+   407→    commitments: [
+   408→      ...newCommitments,
+   409→      ...state.commitments.map((commitment) =>
+   410→        done.has(commitment.id)
+   411→          ? commitment.recurrence
+   412→            ? { ...commitment, dueAt: nextDueAtFromRecurrence(commitment.dueAt, commitment.recurrence), remindedAt: undefined, status: "open" as const }
+   413→            : { ...commitment, status: "done" as const }
+   414→          : commitment,
+   415→      ),
+   416→    ],
+   417→    calendarEvents: [...execution.calendarEvents, ...state.calendarEvents]
+   418→      .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime())
+   419→      .slice(0, 200),
+   420→    nudges: [...execution.nudges, ...state.nudges].slice(0, 80),
+   421→    trustedEnergy: state.trustedEnergy + 14,
+   422→    energyEvents: [
+   423→      {
+   424→        id: createId("energy"),
+   425→        createdAt: now,
+   426→        source: "action_executed",
+   427→        points: 14,
+   428→        explanation: "Koru preparo una accion aprobada.",
+   429→      },
+   430→      ...state.energyEvents,
+   431→    ],
+   432→    updatedAt: now,
+   433→  };
+   434→  next.stage = stageFor(next);
+   435→  saveState(next);
+   436→  return next;
+   437→}
+   438→
+   439→export function dismissNudge(state: KoruState, id: string): KoruState {
+   440→  const now = nowIso();
+   441→  const next = {
+   442→    ...state,
+   443→    nudges: state.nudges.map((nudge) => (nudge.id === id ? { ...nudge, dismissed: true } : nudge)),
+   444→    updatedAt: now,
+   445→  };
+   446→  saveState(next);
+   447→  return next;
+   448→}
+   449→
+   450→export function updateUserName(state: KoruState, userName: string): KoruState {
+   451→  const next = { ...state, userName: userName.trim() || undefined, updatedAt: nowIso() };
+   452→  saveState(next);
+   453→  return next;
+   454→}
+   455→
+   456→export function addOnboardingMemories(state: KoruState, facts: string[]): KoruState {
+   457→  const cleaned = Array.from(new Set(facts.map((fact) => fact.trim()).filter((fact) => fact.length > 4))).slice(0, 4);
+   458→  if (!cleaned.length || state.ephemeralMode || !state.durableMemoryEnabled) return state;
+   459→  const now = nowIso();
+   460→  const existing = new Set(state.memories.map((memory) => memory.text.toLowerCase()));
+   461→  const memories: MemoryFact[] = cleaned
+   462→    .filter((fact) => !existing.has(fact.toLowerCase()))
+   463→    .map((fact) => ({
+   464→      id: createId("mem"),
+   465→      kind: "profile",
+   466→      text: fact,
+   467→      confidence: 0.9,
+   468→      sensitivity: "normal",
+   469→      status: "confirmed",
+   470→      createdAt: now,
+   471→      confirmedAt: now,
+   472→      updatedAt: now,
+   473→      rootQuote: fact,
+   474→      useForSuggestions: true,
+   475→      sourceEntryId: "onboarding",
+   476→    }));
+   477→  if (!memories.length) return state;
+   478→  const next = {
+   479→    ...state,
+   480→    memories: [...memories, ...state.memories],
+   481→    trustedEnergy: state.trustedEnergy + memories.length * 18,
+   482→    updatedAt: now,
+   483→  };
+   484→  next.stage = stageFor(next);
+   485→  saveState(next);
+   486→  return next;
+   487→}
+   488→
+   489→export function updateVoicePreference(
+   490→  state: KoruState,
+   491→  key: keyof VoicePreference,
+   492→  value: number,
+   493→): KoruState {
+   494→  const next = {
+   495→    ...state,
+   496→    voicePreference: {
+   497→      ...state.voicePreference,
+   498→      [key]: Math.max(0, Math.min(10, Math.round(value))),
+   499→    },
+   500→    updatedAt: nowIso(),
+   501→  };
+   502→  saveState(next);
+   503→  return next;
+   504→}
+   505→
+   506→export function toggleEphemeralMode(state: KoruState): KoruState {
+   507→  const next = { ...state, ephemeralMode: !state.ephemeralMode, updatedAt: nowIso() };
+   508→  saveState(next);
+   509→  return next;
+   510→}
+   511→
+   512→export function setDurableMemoryEnabled(state: KoruState, enabled: boolean): KoruState {
+   513→  const next = {
+   514→    ...state,
+   515→    durableMemoryEnabled: enabled,
+   516→    ephemeralMode: enabled ? false : true,
+   517→    updatedAt: nowIso(),
+   518→  };
+   519→  saveState(next);
+   520→  return next;
+   521→}
+   522→
+   523→export function setHeartbeatEnabled(state: KoruState, enabled: boolean): KoruState {
+   524→  const next = {
+   525→    ...state,
+   526→    heartbeat: {
+   527→      ...state.heartbeat,
+   528→      enabled,
+   529→    },
+   530→    updatedAt: nowIso(),
+   531→  };
+   532→  saveState(next);
+   533→  return next;
+   534→}
+   535→
+   536→export function setWorldSignalsEnabled(state: KoruState, enabled: boolean): KoruState {
+   537→  const next = {
+   538→    ...state,
+   539→    worldSignalsEnabled: enabled,
+   540→    updatedAt: nowIso(),
+   541→  };
+   542→  saveState(next);
+   543→  return next;
+   544→}
+   545→
+   546→export function setActionPreparationEnabled(state: KoruState, enabled: boolean): KoruState {
+   547→  const next = { ...state, actionPreparationEnabled: enabled, updatedAt: nowIso() };
+   548→  saveState(next);
+   549→  return next;
+   550→}
+   551→
+   552→export function updateRuntimeSettings(state: KoruState, patch: Partial<RuntimeSettings>): KoruState {
+   553→  const next = {
+   554→    ...state,
+   555→    runtime: {
+   556→      ...state.runtime,
+   557→      ...patch,
+   558→      freeLlmApiBaseUrl: patch.freeLlmApiBaseUrl?.trim() ?? state.runtime.freeLlmApiBaseUrl,
+   559→      freeLlmApiKey: patch.freeLlmApiKey?.trim() ?? state.runtime.freeLlmApiKey,
+   560→      freeLlmApiModel: patch.freeLlmApiModel?.trim() ?? state.runtime.freeLlmApiModel,
+   561→      openModelBaseUrl: patch.openModelBaseUrl?.trim() ?? state.runtime.openModelBaseUrl,
+   562→      openModelApiKey: patch.openModelApiKey?.trim() ?? state.runtime.openModelApiKey,
+   563→      openModelModel: patch.openModelModel?.trim() ?? state.runtime.openModelModel,
+   564→    },
+   565→    updatedAt: nowIso(),
+   566→  };
+   567→  saveState(next);
+   568→  return next;
+   569→}
+   570→
+   571→export async function hydrateMemoryEmbedding(state: KoruState, id: string): Promise<KoruState> {
+   572→  const memory = state.memories.find((item) => item.id === id);
+   573→  if (!memory || memory.status !== "confirmed" || memory.embedding?.length) return state;
+   574→  const startedAt = performance.now();
+   575→  try {
+   576→    const result = await runFreeLlmEmbedding(state.runtime, memory.text);
+   577→    const now = nowIso();
+   578→    const next = {
+   579→      ...state,
+   580→      memories: state.memories.map((item) =>
+   581→        item.id === id
+   582→          ? {
+   583→              ...item,
+   584→              embedding: result.embedding,
+   585→              embeddingModel: result.model ?? result.provider ?? "freellmapi",
+   586→              updatedAt: now,
+   587→            }
+   588→          : item,
+   589→      ),
+   590→      modelCalls: [
+   591→        {
+   592→          id: createId("call"),
+   593→          createdAt: now,
+   594→          taskType: "embedding" as const,
+   595→          provider: "freellmapi" as const,
+   596→          model: result.model ?? result.provider,
+   597→          success: true,
+   598→          latencyMs: Math.round(performance.now() - startedAt),
+   599→          summary: `Embedding para memoria ${id}`,
+   600→        },
+   601→        ...state.modelCalls,
+   602→      ].slice(0, 120),
+   603→      updatedAt: now,
+   604→    };
+   605→    saveState(next);
+   606→    return next;
+   607→  } catch {
+   608→    const now = nowIso();
+   609→    const next = {
+   610→      ...state,
+   611→      modelCalls: [
+   612→        {
+   613→          id: createId("call"),
+   614→          createdAt: now,
+   615→          taskType: "embedding" as const,
+   616→          provider: "freellmapi" as const,
+   617→          success: false,
+   618→          latencyMs: Math.round(performance.now() - startedAt),
+   619→          summary: `Embedding pendiente para memoria ${id}`,
+   620→        },
+   621→        ...state.modelCalls,
+   622→      ].slice(0, 120),
+   623→      updatedAt: now,
+   624→    };
+   625→    saveState(next);
+   626→    return next;
+   627→  }
+   628→}
+   629→
+   630→export function addCalendarEvents(
+   631→  state: KoruState,
+   632→  events: Array<Omit<CalendarEvent, "id" | "createdAt">>,
+   633→): KoruState {
+   634→  const now = nowIso();
+   635→  const existingKeys = new Set(
+   636→    state.calendarEvents.map((event) => `${event.sourceRef ?? ""}|${event.title}|${event.startsAt}`),
+   637→  );
+   638→  const nextEvents = events
+   639→    .map((event) => ({
+   640→      ...event,
+   641→      id: createId("cal"),
+   642→      createdAt: now,
+   643→    }))
+   644→    .filter((event) => {
+   645→      const key = `${event.sourceRef ?? ""}|${event.title}|${event.startsAt}`;
+   646→      if (existingKeys.has(key)) return false;
+   647→      existingKeys.add(key);
+   648→      return true;
+   649→    });
+   650→  const next = {
+   651→    ...state,
+   652→    calendarEvents: [...nextEvents, ...state.calendarEvents]
+   653→      .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime())
+   654→      .slice(0, 200),
+   655→    updatedAt: now,
+   656→  };
+   657→  saveState(next);
+   658→  return next;
+   659→}
+   660→
+   661→export function removeCalendarEvent(state: KoruState, id: string): KoruState {
+   662→  const next = {
+   663→    ...state,
+   664→    calendarEvents: state.calendarEvents.filter((event) => event.id !== id),
+   665→    updatedAt: nowIso(),
+   666→  };
+   667→  saveState(next);
+   668→  return next;
+   669→}
+   670→
+   671→export function updateHeartbeatSettings(
+   672→  state: KoruState,
+   673→  patch: Partial<HeartbeatSettings>,
+   674→): KoruState {
+   675→  const next = {
+   676→    ...state,
+   677→    heartbeat: {
+   678→      ...state.heartbeat,
+   679→      ...patch,
+   680→      activeStartHour: Math.max(0, Math.min(23, Math.round(patch.activeStartHour ?? state.heartbeat.activeStartHour))),
+   681→      activeEndHour: Math.max(0, Math.min(23, Math.round(patch.activeEndHour ?? state.heartbeat.activeEndHour))),
+   682→      maxNudgesPerDay: Math.max(1, Math.min(6, Math.round(patch.maxNudgesPerDay ?? state.heartbeat.maxNudgesPerDay))),
+   683→    },
+   684→    updatedAt: nowIso(),
+   685→  };
+   686→  saveState(next);
+   687→  return next;
+   688→}
+   689→
+   690→export function applyHeartbeatNudges(
+   691→  state: KoruState,
+   692→  nudges: Array<Omit<ProactiveNudge, "id" | "createdAt">>,
+   693→  runAt = new Date(),
+   694→): KoruState {
+   695→  const now = runAt.toISOString();
+   696→  const day = now.slice(0, 10);
+   697→  const countToday = state.heartbeat.dailyNudgeDate === day ? state.heartbeat.dailyNudgeCount : 0;
+   698→  const allowed = Math.max(0, state.heartbeat.maxNudgesPerDay - countToday);
+   699→  const existingKeys = new Set(
+   700→    state.nudges
+   701→      .filter((nudge) => !nudge.dismissed)
+   702→      .map((nudge) => `${nudge.source ?? "brain"}|${nudge.sourceId ?? ""}|${nudge.title}`),
+   703→  );
+   704→  const fresh = nudges
+   705→    .filter((nudge) => {
+   706→      const key = `${nudge.source ?? "heartbeat"}|${nudge.sourceId ?? ""}|${nudge.title}`;
+   707→      if (existingKeys.has(key)) return false;
+   708→      existingKeys.add(key);
+   709→      return true;
+   710→    })
+   711→    .slice(0, allowed)
+   712→    .map((nudge) => ({
+   713→      ...nudge,
+   714→      id: createId("nudge"),
+   715→      createdAt: now,
+   716→    }));
+   717→  const remindedIds = new Set(fresh.filter((nudge) => nudge.source === "commitment" && nudge.sourceId).map((nudge) => nudge.sourceId));
+   718→  const next = {
+   719→    ...state,
+   720→    heartbeat: {
+   721→      ...state.heartbeat,
+   722→      lastRunAt: now,
+   723→      dailyNudgeDate: day,
+   724→      dailyNudgeCount: countToday + fresh.length,
+   725→    },
+   726→    nudges: [...fresh, ...state.nudges].slice(0, 80),
+   727→    commitments: state.commitments.map((commitment) =>
+   728→      remindedIds.has(commitment.id) ? { ...commitment, remindedAt: now } : commitment,
+   729→    ),
+   730→    updatedAt: now,
+   731→  };
+   732→  saveState(next);
+   733→  return next;
+   734→}
+   735→
+   736→export function recordModelCall(state: KoruState, call: Omit<ModelCall, "id" | "createdAt">): KoruState {
+   737→  const now = nowIso();
+   738→  const next = {
+   739→    ...state,
+   740→    modelCalls: [{ ...call, id: createId("call"), createdAt: now }, ...state.modelCalls].slice(0, 120),
+   741→    updatedAt: now,
+   742→  };
+   743→  saveState(next);
+   744→  return next;
+   745→}
+   746→
+   747→export function exportState(state: KoruState): string {
+   748→  return JSON.stringify({ ...state, updatedAt: nowIso() }, null, 2);
+   749→}
+   750→
+   751→export function importState(raw: string): KoruState {
+   752→  const parsed = JSON.parse(raw) as Partial<KoruState>;
+   753→  const next = {
+   754→    ...normalizeState(parsed),
+   755→    updatedAt: nowIso(),
+   756→  } as KoruState;
+   757→  saveState(next);
+   758→  return next;
+   759→}
+   760→
+   761→export function selectRelevantMemories(
+   762→  memories: MemoryFact[],
+   763→  input: string,
+   764→  maxResults = 5,
+   765→): RelevantMemory[] {
+   766→  const inputWords = new Set(
+   767→    input.toLowerCase().split(/\W+/).filter(w => w.length > 3),
+   768→  );
+   769→
+   770→  if (inputWords.size === 0) return [];
+   771→
+   772→  const scored = memories
+   773→    .filter(m => m.status === "confirmed" || m.status === "candidate")
+   774→    .map(m => {
+   775→      const textLower = m.text.toLowerCase();
+   776→      const matchCount = Array.from(inputWords).filter(w => textLower.includes(w)).length;
+   777→      const createdTime = new Date(m.createdAt).getTime();
+   778→      const recencyBonus = !isNaN(createdTime) && Date.now() - createdTime < 7 * 24 * 60 * 60 * 1000 ? 0.2 : 0;
+   779→      const score = matchCount * 0.5 + recencyBonus + (m.confidence ?? 0.7) * 0.3;
+   780→      return { memory: m, score };
+   781→    })
+   782→    .sort((a, b) => b.score - a.score)
+   783→    .slice(0, maxResults)
+   784→    .map(({ memory }) => ({
+   785→      text: memory.text,
+   786→      kind: memory.kind,
+   787→      confidence: memory.confidence ?? 0.7,
+   788→    }));
+   789→
+   790→  return scored;
+   791→}
+   792→

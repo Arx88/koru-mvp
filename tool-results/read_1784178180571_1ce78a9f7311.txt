@@ -1,0 +1,352 @@
+  5900→        <div class="card-spec reveal">
+  5901→          <strong>Spec · Nota</strong> &middot;
+  5902→          Accent: <code>#8363f9</code> &middot;
+  5903→          Icon: <code>sticky_note_2</code> &middot;
+  5904→          Layout: <code>default</code> &middot;
+  5905→          3 metrics &middot;
+  5906→          4 secciones en extendido &middot;
+  5907→          Glow halo activo &middot; Count-up en artValue &middot; CTA shimmer cíclico
+  5908→        </div>
+  5909→
+  5910→
+  5911→      <div class="card-section-divider reveal">
+  5912→        <div class="card-section-group-title">Pantallas del sistema</div>
+  5913→        <div class="card-section-group-sub">Home, Crear, Ajustes — las pantallas estructurales de la app.</div>
+  5914→      </div>
+  5915→
+  5916→      <div class="showcase reveal" id="card-home">
+  5917→        <div class="showcase-compact">
+  5918→          <span class="showcase-label compact"><span class="material-symbols-outlined">home</span>Home · pantalla principal</span>
+  5919→          <div class="k-card" style="--accent:#8363f9;--accent-soft:rgba(131,99,249,0.12);">
+  5920→            <div class="k-card-glow" style="background:radial-gradient(circle,#8363f9,transparent 70%);"></div>
+  5921→            <div class="k-card-top">
+  5922→              <div class="k-card-copy">
+  5923→                <div class="k-card-kicker" style="color:#8363f9;">Buenos días, Ana</div>
+  5924→                <div class="k-card-title">Tu día de un vistazo</div>
+  5925→                <div class="k-card-desc">3 eventos · 2 deadlines · 18° soleado</div>
+  5926→              </div>
+  5927→              <div class="k-card-art" style="background:rgba(131,99,249,0.12);color:#8363f9;">
+  5928→                <span class="material-symbols-outlined ms-fill" style="font-size:40px;">wb_sunny</span>
+  5929→              </div>
+  5930→            </div>
+  5931→            <div class="k-metrics">
+  5932→              <div class="k-metric"><span class="material-symbols-outlined" style="color:#8363f9;">event</span><div class="k-metric-label">Eventos</div><div class="k-metric-value">3</div></div>
+  5933→              <div class="k-metric"><span class="material-symbols-outlined" style="color:#c81e1e;">flag</span><div class="k-metric-label">Deadlines</div><div class="k-metric-value">2</div></div>
+  5934→              <div class="k-metric"><span class="material-symbols-outlined" style="color:#b45309;">wb_sunny</span><div class="k-metric-label">Clima</div><div class="k-metric-value">18°</div></div>
+  5935→            </div>
+  5936→            <div class="k-cta-hint" style="color:#8363f9;"><span>Empezar el día</span><span class="material-symbols-outlined">arrow_forward</span></div>
+  5937→          </div>
+  5938→        </div>
+  5939→        <div class="showcase-extended">
+  5940→          <span class="showcase-label extended"><span class="material-symbols-outlined">fullscreen</span>Home extendido · dashboard</span>
+  5941→          <div class="k-detail">
+  5942→            <div class="k-detail-sticky-head">
+  5943→              <button class="k-detail-back"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+  5944→              <div class="k-detail-mini-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">home</span></div>
+  5945→              <div style="flex:1;min-width:0;"><div class="k-detail-mini-title">Buenos días, Ana</div><div class="k-detail-mini-sub">Jue 14 mar · 18° soleado</div></div>
+  5946→              <button class="k-detail-save"><span class="material-symbols-outlined ms-fill">bookmark</span></button>
+  5947→            </div>
+  5948→            <div class="k-detail-hero" style="height:140px;">
+  5949→              <div class="k-detail-hero-backdrop" style="background:linear-gradient(135deg,#f59e0b 0%,#8363f9 50%,#523a9e 100%);"></div>
+  5950→              <div class="k-detail-hero-scrim"></div>
+  5951→              <div class="k-detail-hero-content">
+  5952→                <div class="k-detail-hero-badge" style="background:rgba(255,255,255,0.92);color:#8363f9;"><span class="material-symbols-outlined" style="font-size:11px;">verified</span>Buenos días</div>
+  5953→                <div class="k-detail-hero-title">Tu día de un vistazo</div>
+  5954→                <div class="k-detail-hero-sub">3 eventos · 2 deadlines · 18° soleado</div>
+  5955→              </div>
+  5956→            </div>
+  5957→            <div class="k-detail-modules">
+  5958→              <div class="k-module" style="--module-color:#8363f9;animation-delay:0.1s;">
+  5959→                <div class="k-module-head">
+  5960→                  <div class="k-module-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">event</span></div>
+  5961→                  <div><div class="k-module-title" style="color:#8363f9;">Items del día</div><div class="k-module-kicker">6 prioridades</div></div>
+  5962→                  <span class="k-module-meta">6</span>
+  5963→                </div>
+  5964→                <div class="k-tiles">
+  5965→                  <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">event</span><div><div class="k-tile-label">Reunión Q1</div><div class="k-tile-value">16:00</div></div></div>
+  5966→                  <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#c81e1e;">flag</span><div><div class="k-tile-label">Deadlines</div><div class="k-tile-value">2 hoy</div></div></div>
+  5967→                  <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#3b82f6;">local_drink</span><div><div class="k-tile-label">Agua</div><div class="k-tile-value">1.4L</div></div></div>
+  5968→                  <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#2d6a4f;">directions_run</span><div><div class="k-tile-label">Correr</div><div class="k-tile-value">5km</div></div></div>
+  5969→                </div>
+  5970→              </div>
+  5971→              <div class="k-module" style="--module-color:#8363f9;animation-delay:0.16s;">
+  5972→                <div class="k-module-head">
+  5973→                  <div class="k-module-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">calendar_month</span></div>
+  5974→                  <div><div class="k-module-title" style="color:#8363f9;">Calendario del día</div><div class="k-module-kicker">4 eventos</div></div>
+  5975→                  <span class="k-module-meta">4</span>
+  5976→                </div>
+  5977→                <div class="k-scroller">
+  5978→                  <div class="k-scard"><span class="k-scard-badge" style="background:rgba(131,99,249,0.12);color:#8363f9;">9:00</span><div class="k-scard-title">Standup</div><div class="k-scard-detail">Equipo producto</div><div class="k-scard-metrics"><span class="k-scard-metric">30 min</span></div></div>
+  5979→                  <div class="k-scard"><span class="k-scard-badge" style="background:rgba(131,99,249,0.12);color:#8363f9;">11:00</span><div class="k-scard-title">1:1 María</div><div class="k-scard-detail">Review semanal</div><div class="k-scard-metrics"><span class="k-scard-metric">45 min</span></div></div>
+  5980→                  <div class="k-scard"><span class="k-scard-badge" style="background:rgba(131,99,249,0.12);color:#8363f9;">16:00</span><div class="k-scard-title">Q1 Review</div><div class="k-scard-detail">8 asistentes</div><div class="k-scard-metrics"><span class="k-scard-metric">45 min</span></div></div>
+  5981→                </div>
+  5982→              </div>
+  5983→              <div class="k-module" style="--module-color:#8363f9;animation-delay:0.22s;">
+  5984→                <div class="k-module-head">
+  5985→                  <div class="k-module-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">priority_high</span></div>
+  5986→                  <div><div class="k-module-title" style="color:#8363f9;">Prioridades</div><div class="k-module-kicker">4 niveles</div></div>
+  5987→                  <span class="k-module-meta">4</span>
+  5988→                </div>
+  5989→                <div class="k-tiles">
+  5990→                  <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#c81e1e;">priority_high</span><div><div class="k-tile-label">Urgente</div><div class="k-tile-value">Cerrar ACME</div></div></div>
+  5991→                  <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">today</span><div><div class="k-tile-label">Importante</div><div class="k-tile-value">Q1 review</div></div></div>
+  5992→                  <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#2d6a4f;">check_circle</span><div><div class="k-tile-label">Rutina</div><div class="k-tile-value">Correr</div></div></div>
+  5993→                  <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#b45309;">lightbulb</span><div><div class="k-tile-label">Opcional</div><div class="k-tile-value">Fondos IA</div></div></div>
+  5994→                </div>
+  5995→              </div>
+  5996→            </div>
+  5997→            <div class="k-detail-actions">
+  5998→              <button class="k-detail-action save"><span class="material-symbols-outlined ms-fill" style="font-size:18px;">wb_sunny</span>Empezar el día</button>
+  5999→              <button class="k-detail-action pdf"><span class="material-symbols-outlined" style="font-size:18px;">picture_as_pdf</span>PDF</button>
+  6000→            </div>
+  6001→          </div>
+  6002→        </div>
+  6003→      </div>
+  6004→      <div class="card-spec reveal">
+  6005→        <strong>Spec · Home</strong> &middot; Accent: <code>#8363f9</code> &middot; Icon: <code>home</code> &middot; Dashboard con items del día, calendario, prioridades y reflexión IA.
+  6006→      </div>
+  6007→
+  6008→      <div class="showcase reveal" id="card-create">
+  6009→        <div class="showcase-compact">
+  6010→          <span class="showcase-label compact"><span class="material-symbols-outlined">create_new_folder</span>Crear · picker</span>
+  6011→          <div class="k-card" style="--accent:#8363f9;--accent-soft:rgba(131,99,249,0.12);">
+  6012→            <div class="k-card-top">
+  6013→              <div class="k-card-copy">
+  6014→                <div class="k-card-kicker" style="color:#8363f9;">Crear nuevo</div>
+  6015→                <div class="k-card-title">¿Qué querés crear?</div>
+  6016→                <div class="k-card-desc">5 templates: Nota, Lista, Gasto, Enlace, Receta</div>
+  6017→              </div>
+  6018→              <div class="k-card-art" style="background:rgba(131,99,249,0.12);color:#8363f9;">
+  6019→                <span class="material-symbols-outlined ms-fill" style="font-size:40px;">add_circle</span>
+  6020→              </div>
+  6021→            </div>
+  6022→            <div class="k-metrics" style="grid-template-columns:repeat(5,1fr);">
+  6023→              <div class="k-metric"><span class="material-symbols-outlined" style="color:#8363f9;">sticky_note_2</span><div class="k-metric-label">Nota</div></div>
+  6024→              <div class="k-metric"><span class="material-symbols-outlined" style="color:#4f46e5;">checklist</span><div class="k-metric-label">Lista</div></div>
+  6025→              <div class="k-metric"><span class="material-symbols-outlined" style="color:#b45309;">payments</span><div class="k-metric-label">Gasto</div></div>
+  6026→              <div class="k-metric"><span class="material-symbols-outlined" style="color:#3b82f6;">link</span><div class="k-metric-label">Enlace</div></div>
+  6027→              <div class="k-metric"><span class="material-symbols-outlined" style="color:#ec4899;">restaurant</span><div class="k-metric-label">Receta</div></div>
+  6028→            </div>
+  6029→            <div class="k-cta-hint" style="color:#8363f9;"><span>Elegir template</span><span class="material-symbols-outlined">arrow_forward</span></div>
+  6030→          </div>
+  6031→        </div>
+  6032→        <div class="showcase-extended">
+  6033→          <span class="showcase-label extended"><span class="material-symbols-outlined">fullscreen</span>Crear extendido · form</span>
+  6034→          <div class="k-detail">
+  6035→            <div class="k-detail-sticky-head">
+  6036→              <button class="k-detail-back"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+  6037→              <div class="k-detail-mini-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">create_new_folder</span></div>
+  6038→              <div style="flex:1;min-width:0;"><div class="k-detail-mini-title">Nueva Receta</div><div class="k-detail-mini-sub">5 campos · 4 ingredientes</div></div>
+  6039→              <button class="k-detail-save"><span class="material-symbols-outlined ms-fill">check</span></button>
+  6040→            </div>
+  6041→            <div class="k-detail-hero" style="height:120px;">
+  6042→              <div class="k-detail-hero-backdrop" style="background:linear-gradient(135deg,#ec4899 0%,#8363f9 100%);"></div>
+  6043→              <div class="k-detail-hero-scrim"></div>
+  6044→              <div class="k-detail-hero-content">
+  6045→                <div class="k-detail-hero-badge" style="background:rgba(255,255,255,0.92);color:#ec4899;"><span class="material-symbols-outlined" style="font-size:11px;">restaurant</span>Template Receta</div>
+  6046→                <div class="k-detail-hero-title">Crear nueva receta</div>
+  6047→                <div class="k-detail-hero-sub">Completa los campos y guarda en tu colección</div>
+  6048→              </div>
+  6049→            </div>
+  6050→            <div class="k-detail-modules">
+  6051→              <div class="k-module" style="--module-color:#8363f9;animation-delay:0.1s;">
+  6052→                <div class="k-module-head">
+  6053→                  <div class="k-module-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">title</span></div>
+  6054→                  <div><div class="k-module-title" style="color:#8363f9;">Datos básicos</div><div class="k-module-kicker">3 campos</div></div>
+  6055→                </div>
+  6056→                <div class="k-tiles">
+  6057→                  <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">title</span><div><div class="k-tile-label">Título</div><div class="k-tile-value">Pasta pesto</div></div></div>
+  6058→                  <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">schedule</span><div><div class="k-tile-label">Prep/Cocción</div><div class="k-tile-value">20/15 min</div></div></div>
+  6059→                  <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">groups</span><div><div class="k-tile-label">Porciones</div><div class="k-tile-value">4</div></div></div>
+  6060→                </div>
+  6061→              </div>
+  6062→              <div class="k-module" style="--module-color:#8363f9;animation-delay:0.16s;">
+  6063→                <div class="k-module-head">
+  6064→                  <div class="k-module-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">kitchen</span></div>
+  6065→                  <div><div class="k-module-title" style="color:#8363f9;">Ingredientes</div><div class="k-module-kicker">4 ítems</div></div>
+  6066→                  <span class="k-module-meta">4</span>
+  6067→                </div>
+  6068→                <div class="k-rows">
+  6069→                  <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#8363f9;">restaurant</span><div class="k-row-body"><div class="k-row-title">Pasta</div><div class="k-row-detail">400g spaghetti</div></div><span class="k-row-meta">1</span></div>
+  6070→                  <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#8363f9;">restaurant</span><div class="k-row-body"><div class="k-row-title">Albahaca</div><div class="k-row-detail">2 tazas fresca</div></div><span class="k-row-meta">2</span></div>
+  6071→                  <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#8363f9;">restaurant</span><div class="k-row-body"><div class="k-row-title">Parmesano</div><div class="k-row-detail">80g rallado</div></div><span class="k-row-meta">3</span></div>
+  6072→                  <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#8363f9;">restaurant</span><div class="k-row-body"><div class="k-row-title">Aceite oliva</div><div class="k-row-detail">50ml extra virgen</div></div><span class="k-row-meta">4</span></div>
+  6073→                </div>
+  6074→              </div>
+  6075→              <div class="k-module" style="--module-color:#8363f9;animation-delay:0.22s;">
+  6076→                <div class="k-module-head">
+  6077→                  <div class="k-module-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">format_list_numbered</span></div>
+  6078→                  <div><div class="k-module-title" style="color:#8363f9;">Pasos</div><div class="k-module-kicker">3 etapas</div></div>
+  6079→                </div>
+  6080→                <div class="k-timeline">
+  6081→                  <div class="k-timeline-step is-done"><div class="k-timeline-dot"><span class="material-symbols-outlined">check</span></div><div class="k-timeline-body"><div class="k-timeline-name">1. Cocer pasta</div><div class="k-timeline-meta">8 min al dente</div></div></div>
+  6082→                  <div class="k-timeline-step is-current"><div class="k-timeline-dot"><span class="material-symbols-outlined">radio_button_checked</span></div><div class="k-timeline-body"><div class="k-timeline-name">2. Hacer pesto</div><div class="k-timeline-meta">Licuar ingredientes</div></div></div>
+  6083→                  <div class="k-timeline-step is-pending"><div class="k-timeline-dot"><span class="material-symbols-outlined">radio_button_unchecked</span></div><div class="k-timeline-body"><div class="k-timeline-name">3. Mezclar y servir</div><div class="k-timeline-meta">Agregar queso</div></div></div>
+  6084→                </div>
+  6085→              </div>
+  6086→            </div>
+  6087→            <div class="k-detail-actions">
+  6088→              <button class="k-detail-action save"><span class="material-symbols-outlined ms-fill" style="font-size:18px;">check</span>Guardar receta</button>
+  6089→              <button class="k-detail-action pdf"><span class="material-symbols-outlined" style="font-size:18px;">close</span>Cancelar</button>
+  6090→            </div>
+  6091→          </div>
+  6092→        </div>
+  6093→      </div>
+  6094→      <div class="card-spec reveal">
+  6095→        <strong>Spec · Crear</strong> &middot; Accent: <code>#8363f9</code> &middot; 5 templates unificados con kind coloring. Form con datos básicos, ingredientes y pasos.
+  6096→      </div>
+  6097→
+  6098→      <div class="showcase reveal" id="card-settings">
+  6099→        <div class="showcase-compact">
+  6100→          <span class="showcase-label compact"><span class="material-symbols-outlined">settings</span>Ajustes · pantalla</span>
+  6101→          <div class="k-card" style="--accent:#8363f9;--accent-soft:rgba(131,99,249,0.12);">
+  6102→            <div class="k-card-top">
+  6103→              <div class="k-card-copy">
+  6104→                <div class="k-card-kicker" style="color:#8363f9;">Ajustes</div>
+  6105→                <div class="k-card-title">Configuración</div>
+  6106→                <div class="k-card-desc">Perfil · Idioma · Apariencia · Notificaciones · Privacidad</div>
+  6107→              </div>
+  6108→              <div class="k-card-art" style="background:rgba(131,99,249,0.12);color:#8363f9;">
+  6109→                <span class="material-symbols-outlined ms-fill" style="font-size:40px;">settings</span>
+  6110→              </div>
+  6111→            </div>
+  6112→            <div class="k-metrics">
+  6113→              <div class="k-metric"><span class="material-symbols-outlined" style="color:#8363f9;">person</span><div class="k-metric-label">Perfil</div><div class="k-metric-value">Ana</div></div>
+  6114→              <div class="k-metric"><span class="material-symbols-outlined" style="color:#8363f9;">language</span><div class="k-metric-label">Idioma</div><div class="k-metric-value">ES</div></div>
+  6115→              <div class="k-metric"><span class="material-symbols-outlined" style="color:#8363f9;">notifications</span><div class="k-metric-label">Alertas</div><div class="k-metric-value">ON</div></div>
+  6116→            </div>
+  6117→            <div class="k-cta-hint" style="color:#8363f9;"><span>Ver ajustes</span><span class="material-symbols-outlined">arrow_forward</span></div>
+  6118→          </div>
+  6119→        </div>
+  6120→        <div class="showcase-extended">
+  6121→          <span class="showcase-label extended"><span class="material-symbols-outlined">fullscreen</span>Ajustes extendido</span>
+  6122→          <div class="k-detail">
+  6123→            <div class="k-detail-sticky-head">
+  6124→              <button class="k-detail-back"><span class="material-symbols-outlined">arrow_back_ios_new</span></button>
+  6125→              <div class="k-detail-mini-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">settings</span></div>
+  6126→              <div style="flex:1;min-width:0;"><div class="k-detail-mini-title">Ajustes</div><div class="k-detail-mini-sub">5 secciones</div></div>
+  6127→              <button class="k-detail-save"><span class="material-symbols-outlined">search</span></button>
+  6128→            </div>
+  6129→            <div class="k-detail-hero" style="height:110px;">
+  6130→              <div class="k-detail-hero-backdrop" style="background:linear-gradient(135deg,#8363f9 0%,#523a9e 100%);"></div>
+  6131→              <div class="k-detail-hero-scrim"></div>
+  6132→              <div class="k-detail-hero-content">
+  6133→                <div class="k-detail-hero-badge" style="background:rgba(255,255,255,0.92);color:#8363f9;"><span class="material-symbols-outlined" style="font-size:11px;">tune</span>Configuración</div>
+  6134→                <div class="k-detail-hero-title">Ajustes de Koru</div>
+  6135→                <div class="k-detail-hero-sub">Personaliza tu asistente</div>
+  6136→              </div>
+  6137→            </div>
+  6138→            <div class="k-detail-modules">
+  6139→              <div class="k-module" style="--module-color:#8363f9;animation-delay:0.1s;">
+  6140→                <div class="k-module-head">
+  6141→                  <div class="k-module-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">person</span></div>
+  6142→                  <div><div class="k-module-title" style="color:#8363f9;">Perfil</div><div class="k-module-kicker">Datos personales</div></div>
+  6143→                </div>
+  6144→                <div class="k-rows">
+  6145→                  <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#8363f9;">person</span><div class="k-row-body"><div class="k-row-title">Nombre</div><div class="k-row-detail">Ana Ruiz</div></div><span class="k-row-meta">edit</span></div>
+  6146→                  <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#8363f9;">cake</span><div class="k-row-body"><div class="k-row-title">Fecha nacimiento</div><div class="k-row-detail">15 mar 1990</div></div><span class="k-row-meta">edit</span></div>
+  6147→                  <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#8363f9;">place</span><div class="k-row-body"><div class="k-row-title">Ubicación</div><div class="k-row-detail">Madrid, ES</div></div><span class="k-row-meta">edit</span></div>
+  6148→                </div>
+  6149→              </div>
+  6150→              <div class="k-module" style="--module-color:#8363f9;animation-delay:0.16s;">
+  6151→                <div class="k-module-head">
+  6152→                  <div class="k-module-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">palette</span></div>
+  6153→                  <div><div class="k-module-title" style="color:#8363f9;">Apariencia</div><div class="k-module-kicker">Tema e idioma</div></div>
+  6154→                </div>
+  6155→                <div class="k-tiles">
+  6156→                  <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">language</span><div><div class="k-tile-label">Idioma</div><div class="k-tile-value">Español</div></div></div>
+  6157→                  <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">dark_mode</span><div><div class="k-tile-label">Tema</div><div class="k-tile-value">Auto</div></div></div>
+  6158→                  <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">text_fields</span><div><div class="k-tile-label">Tamaño</div><div class="k-tile-value">Medio</div></div></div>
+  6159→                  <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">vibration</span><div><div class="k-tile-label">Háptico</div><div class="k-tile-value">ON</div></div></div>
+  6160→                </div>
+  6161→              </div>
+  6162→              <div class="k-module" style="--module-color:#8363f9;animation-delay:0.22s;">
+  6163→                <div class="k-module-head">
+  6164→                  <div class="k-module-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">notifications</span></div>
+  6165→                  <div><div class="k-module-title" style="color:#8363f9;">Notificaciones</div><div class="k-module-kicker">Alertas y sonidos</div></div>
+  6166→                </div>
+  6167→                <div class="k-rows">
+  6168→                  <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#8363f9;">notifications</span><div class="k-row-body"><div class="k-row-title">Push</div><div class="k-row-detail">Todas las alertas</div></div><span class="k-row-meta">ON</span></div>
+  6169→                  <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#8363f9;">volume_up</span><div class="k-row-body"><div class="k-row-title">Sonidos</div><div class="k-row-detail">Suave lavanda</div></div><span class="k-row-meta">ON</span></div>
+  6170→                  <div class="k-row"><span class="material-symbols-outlined k-row-icon" style="color:#8363f9;">do_not_disturb</span><div class="k-row-body"><div class="k-row-title">No molestar</div><div class="k-row-detail">22:00 - 07:00</div></div><span class="k-row-meta">ON</span></div>
+  6171→                </div>
+  6172→              </div>
+  6173→              <div class="k-module" style="--module-color:#8363f9;animation-delay:0.28s;">
+  6174→                <div class="k-module-head">
+  6175→                  <div class="k-module-icon" style="background:rgba(131,99,249,0.12);color:#8363f9;"><span class="material-symbols-outlined">shield</span></div>
+  6176→                  <div><div class="k-module-title" style="color:#8363f9;">Privacidad</div><div class="k-module-kicker">Datos y memoria</div></div>
+  6177→                </div>
+  6178→                <div class="k-tiles">
+  6179→                  <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">lock</span><div><div class="k-tile-label">Bloqueo</div><div class="k-tile-value">Face ID</div></div></div>
+  6180→                  <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">cloud_off</span><div><div class="k-tile-label">Offline</div><div class="k-tile-value">Local</div></div></div>
+  6181→                  <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">delete_sweep</span><div><div class="k-tile-label">Memoria</div><div class="k-tile-value">Auto 30d</div></div></div>
+  6182→                  <div class="k-tile"><span class="material-symbols-outlined k-tile-icon" style="color:#8363f9;">download</span><div><div class="k-tile-label">Exportar</div><div class="k-tile-value">JSON</div></div></div>
+  6183→                </div>
+  6184→              </div>
+  6185→            </div>
+  6186→            <div class="k-detail-actions">
+  6187→              <button class="k-detail-action save"><span class="material-symbols-outlined ms-fill" style="font-size:18px;">check</span>Guardar</button>
+  6188→              <button class="k-detail-action pdf"><span class="material-symbols-outlined" style="font-size:18px;">logout</span>Cerrar sesión</button>
+  6189→            </div>
+  6190→          </div>
+  6191→        </div>
+  6192→      </div>
+  6193→      <div class="card-spec reveal">
+  6194→        <strong>Spec · Ajustes</strong> &middot; Accent: <code>#8363f9</code> &middot; 4 secciones: Perfil, Apariencia, Notificaciones, Privacidad. Toggle switches brand-compliant.
+  6195→      </div>
+  6196→
+  6197→    </section>
+  6198→
+  6199→    <!-- ============ ROADMAP ============ -->
+  6200→    <section class="section" id="roadmap">
+  6201→      <div class="section-tag reveal">
+  6202→        <span class="material-symbols-outlined">route</span>
+  6203→        08 · Roadmap de implementación
+  6204→      </div>
+  6205→      <h2 class="section-title reveal">
+  6206→        4 fases · <span class="accent">12 semanas</span> · sin breaking changes.
+  6207→      </h2>
+  6208→      <p class="section-lead reveal" data-delay="1">
+  6209→        Cada fase es entregable y desplegable de forma independiente. Al final de cada fase, la app sigue 100%
+  6210→        funcional. No hay big-bang refactor — cada paso agrega valor visible.
+  6211→      </p>
+  6212→
+  6213→      <div class="reveal" data-delay="2" style="display:grid;grid-template-columns:1fr;gap:13px;margin-top:24px;">
+  6214→        <div style="background:linear-gradient(135deg,#fff 0%,#faf8ff 100%);border-radius:16px;padding:20px;border:1px solid var(--c-sand);border-left:5px solid var(--kp);">
+  6215→          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;">
+  6216→            <div style="display:flex;align-items:center;gap:11px;">
+  6217→              <div style="width:40px;height:40px;border-radius:11px;background:var(--kp-soft);color:var(--kp);display:grid;place-items:center;font-family:var(--t-display);font-weight:800;font-size:16px;">1</div>
+  6218→              <div><div style="font-size:10.5px;font-weight:700;color:var(--kp);letter-spacing:0.08em;text-transform:uppercase;">Semanas 1-3 · Fundación</div><strong style="font-size:14.5px;color:var(--c-bark);">Tokens + motion + bug fixes críticos</strong></div>
+  6219→            </div>
+  6220→            <span class="pill violet"><span class="material-symbols-outlined">flag</span> 8 issues</span>
+  6221→          </div>
+  6222→          <ul style="margin:0;padding-left:18px;font-size:12px;color:var(--c-bark);line-height:1.7;">
+  6223→            <li>Unificar paleta a <code>#8363f9</code> (remap <code>#7c5ff6</code> y <code>#7c5cdb</code>)</li>
+  6224→            <li>Crear 6 nuevos <code>@keyframes</code>: section-stagger, cta-shine, tap-ripple, icon-pop, glow-breathe, count-up</li>
+  6225→            <li>Aplicar <code>koru-sheet-up</code> al detail screen (entrada + salida)</li>
+  6226→            <li>Mover back/save-top a <code>position: sticky</code></li>
+  6227→            <li>Hacer <code>.koru-dsec-actions</code> sticky con blur backdrop</li>
+  6228→            <li>Split chips CSS: nuevo kind <code>calendar</code> para birthday</li>
+  6229→            <li>Remover <code>opacity: 0.7; filter: grayscale(50%)</code> de Collections rows</li>
+  6230→            <li>Eliminar <code>DeliverableCard.tsx</code> y CSS muerto</li>
+  6231→          </ul>
+  6232→        </div>
+  6233→
+  6234→        <div style="background:linear-gradient(135deg,#fff 0%,#faf8ff 100%);border-radius:16px;padding:20px;border:1px solid var(--c-sand);border-left:5px solid var(--k-pink);">
+  6235→          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;">
+  6236→            <div style="display:flex;align-items:center;gap:11px;">
+  6237→              <div style="width:40px;height:40px;border-radius:11px;background:rgba(236,72,153,0.12);color:var(--k-pink);display:grid;place-items:center;font-family:var(--t-display);font-weight:800;font-size:16px;">2</div>
+  6238→              <div><div style="font-size:10.5px;font-weight:700;color:var(--k-pink);letter-spacing:0.08em;text-transform:uppercase;">Semanas 4-6 · Hero mold v2</div><strong style="font-size:14.5px;color:var(--c-bark);">5 layouts + microdetalles + glow</strong></div>
+  6239→            </div>
+  6240→            <span class="pill pink"><span class="material-symbols-outlined">layers</span> 5 layouts</span>
+  6241→          </div>
+  6242→          <ul style="margin:0;padding-left:18px;font-size:12px;color:var(--c-bark);line-height:1.7;">
+  6243→            <li>Extender type <code>KoruPresentation</code> con <code>layout, glow, countUp, shimmer, sharedElementId, badge, heroGallery</code></li>
+  6244→            <li>Implementar 5 layouts: <code>default, compact, spotlight, gallery, banner</code></li>
+  6245→            <li>Migrar weather, recipe, live_match, movie_review a layouts avanzados</li>
+  6246→            <li>Implementar count-up para artValue numérico</li>
+  6247→            <li>Implementar CTA shimmer cíclico</li>
+  6248→            <li>Implementar tap ripple + haptic feedback</li>
+  6249→            <li>Implementar shared-element transition via <code>view-transition-name</code></li>
+
+[showing lines 5900-6249 of 6474; use offset=6250 with limit to continue reading]
