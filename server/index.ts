@@ -17,10 +17,11 @@ try { const undici = eval("require")("undici"); globalThis.fetch = undici.fetch;
  *   - Frontend hace fetch a BACKEND_URL (env var)
  */
 import http from "node:http";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runKoruBackendTurn, type KoruBackendTurnRequest, type ProviderConfig } from "../src/server/koruBackend.ts";
+import { exchangeCodeForToken } from "../src/tools/calendar/googleCalendar.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 // Si estamos corriendo desde server-bundle.mjs, __dirname es la raíz del proyecto.
@@ -86,6 +87,75 @@ function sendJson(res: http.ServerResponse, status: number, data: unknown) {
     "Access-Control-Allow-Headers": "Content-Type",
   });
   res.end(JSON.stringify(data));
+}
+
+// Helper: send HTML (used por el OAuth callback — la pestaña del popup
+// recibe este HTML, escribe el flag en localStorage y se cierra sola).
+function sendHtml(res: http.ServerResponse, status: number, html: string) {
+  res.writeHead(status, {
+    "Content-Type": "text/html; charset=utf-8",
+    "Access-Control-Allow-Origin": "*",
+    "Cache-Control": "no-store",
+  });
+  res.end(html);
+}
+
+// ── Integrations store ────────────────────────────────────────────
+// Persistencia simple en `koru-integrations.json` (PROJECT_ROOT).
+// Shape:
+//   {
+//     "googleCalendar": {
+//       "connected": true,
+//       "accessToken": "...",
+//       "refreshToken": "...",
+//       "connectedAt": "2026-..."
+//     }
+//   }
+// No es una DB — suficiente para MVP. El frontend consulta el flag
+// `connected` via GET /api/integrations/google-calendar/status.
+type GoogleCalendarIntegration = {
+  connected: boolean;
+  accessToken?: string;
+  refreshToken?: string;
+  connectedAt?: string;
+};
+
+type IntegrationsStore = {
+  googleCalendar?: GoogleCalendarIntegration;
+};
+
+const INTEGRATIONS_FILE = join(PROJECT_ROOT, "koru-integrations.json");
+// In-memory cache — arranca con lo que haya en disco (si existe) y se
+// mantiene sincronizado con cada write. Evita leer el archivo en cada
+// GET /status.
+let integrationsCache: IntegrationsStore = (() => {
+  try {
+    if (existsSync(INTEGRATIONS_FILE)) {
+      const raw = readFileSync(INTEGRATIONS_FILE, "utf8");
+      return JSON.parse(raw) as IntegrationsStore;
+    }
+  } catch (err) {
+    console.warn("[integrations] No se pudo leer koru-integrations.json:", (err as Error).message);
+  }
+  return {};
+})();
+
+function persistIntegrations() {
+  try {
+    writeFileSync(INTEGRATIONS_FILE, JSON.stringify(integrationsCache, null, 2), "utf8");
+  } catch (err) {
+    console.warn("[integrations] No se pudo escribir koru-integrations.json:", (err as Error).message);
+  }
+}
+
+// Escape HTML para evitar XSS en los mensajes de error del OAuth callback.
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 const server = http.createServer(async (req, res) => {
@@ -361,54 +431,117 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      // Generar brief con LLM
-      const memories = (state?.memories ?? []).filter((m: any) => m.status === "confirmed" || m.status === "candidate").slice(0, 10);
-      const commitments = (state?.commitments ?? []).filter((c: any) => c.status === "open").slice(0, 5);
+      // 🔴 FULL morning brief — gather context from KoruState, then call LLM.
+      // Context sources (todos opcionales, el endpoint no falla si faltan):
+      //   - today's calendar events (calendarEvents)
+      //   - open commitments due today (commitments con dueAt/dueHint == hoy)
+      //   - weather cache (weatherCache)
+      //   - last entry sentiment (entries[last].sentiment)
+      //   - confirmed/candidate memories (para contexto de personalidad)
       const userName = state?.userName ?? "";
 
+      // Today's calendar events
+      const todayEvents = (state?.calendarEvents ?? []).filter((ev: any) => {
+        try {
+          if (!ev?.startsAt) return false;
+          return new Date(ev.startsAt).toISOString().slice(0, 10) === today;
+        } catch { return false; }
+      }).slice(0, 5);
+
+      // Open commitments due today (por dueAt o dueHint que mencione "hoy"/"today"/fecha de hoy)
+      const todayCommitments = (state?.commitments ?? []).filter((c: any) => {
+        if (c?.status !== "open") return false;
+        try {
+          if (c.dueAt && new Date(c.dueAt).toISOString().slice(0, 10) === today) return true;
+        } catch {}
+        const hint = String(c?.dueHint ?? "").toLowerCase();
+        return hint.includes("hoy") || hint.includes("today") || hint.includes(today);
+      }).slice(0, 5);
+
+      // Weather cache
+      const weatherCache = state?.weatherCache;
+      const weatherStr = weatherCache?.payload?.now
+        ? `${weatherCache.payload.now} en ${weatherCache.city}`
+        : "no disponible";
+
+      // Last entry sentiment
+      const entries: any[] = Array.isArray(state?.entries) ? state.entries : [];
+      const lastEntry = entries.length > 0 ? entries[entries.length - 1] : null;
+      const lastSentiment = lastEntry?.sentiment ?? "neutral";
+
+      // Confirmed/candidate memories (for personality context)
+      const memories = (state?.memories ?? [])
+        .filter((m: any) => m.status === "confirmed" || m.status === "candidate")
+        .slice(0, 10);
+
+      // 🔴 LLM prompt — formato especificado:
+      // { greeting: string, items: [{icon, label, value}], reflection: string }
       const briefMessages = [
         {
           role: "system" as const,
-          content: [
-            "Sos Koru. Generá un brief matutino personalizado para el usuario.",
-            "Devolvé SOLO JSON válido: {\"greeting\":\"...\",\"weather\":\"...\",\"tasks\":[],\"memoryHighlight\":\"...\",\"suggestion\":\"...\"}",
-            "Reglas:",
-            "- greeting: saludo cálido personalizado con el nombre del usuario y la fecha.",
-            "- weather: si hay ciudad guardada, mencionar el clima. Si no, omitir.",
-            "- tasks: lista de pendientes del día (commitments con dueHint que incluya hoy/mañana/fecha de hoy).",
-            "- memoryHighlight: referenciar UNA memoria del usuario de forma natural (no como recital).",
-            "- suggestion: UNA sugerencia basada en rutinas o preferencias del usuario.",
-            "- Tono: cercano, cálido, como un amigo que te conoce. No corporativo.",
-            "- Máximo 2-3 oraciones por campo. Conciso pero con personalidad.",
-          ].join("\n"),
+          content: `Sos Koru. Generá el morning brief para ${userName}. Hoy es ${today}. Eventos: ${JSON.stringify(todayEvents.map((e: any) => e.title))}. Deadlines: ${JSON.stringify(todayCommitments.map((c: any) => c.title))}. Clima: ${weatherStr}. Último sentimiento registrado: ${lastSentiment}. Memorias relevantes: ${JSON.stringify(memories.map((m: any) => `[${m.kind}] ${m.text}`))}. Generá: greeting, 3-item summary, reflection. Respondé en JSON: { greeting: string, items: [{icon, label, value}], reflection: string }`,
         },
         {
           role: "user" as const,
-          content: [
-            `Hora actual: ${now.toISOString()}`,
-            `Nombre: ${userName}`,
-            `Memorias: ${JSON.stringify(memories.map((m: any) => `[${m.kind}] ${m.text}`))}`,
-            `Pendientes: ${JSON.stringify(commitments.map((c: any) => `${c.title} (${c.dueHint ?? "sin fecha"})`))}`,
-          ].join("\n"),
+          content: `Generá el morning brief ahora. Recordá: greeting cálido y personalizado, 3 items con icon (material symbols), label corto y value concreto, reflection breve para cerrar.`,
         },
       ];
 
-      const { callProvider, inferProviderFromModel } = await import("../src/server/koruBackend.ts");
-      const pp = inferProviderFromModel(config.nvidiaModel);
-      const result = await callProvider(config, briefMessages, 30_000, false, pp);
-      const content = (result.message as any).content?.trim() ?? "";
-
       let brief: any = null;
       try {
+        const { callProvider, inferProviderFromModel } = await import("../src/server/koruBackend.ts");
+        const pp = inferProviderFromModel(config.nvidiaModel);
+        const result = await callProvider(config, briefMessages, 30_000, false, pp);
+        const content = (result.message as any).content?.trim() ?? "";
         const jsonMatch = content.match(/\{[\s\S]*\}/);
-        brief = JSON.parse(jsonMatch ? jsonMatch[0] : content);
-      } catch {
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          // Validar estructura mínima: greeting + items + reflection
+          if (parsed && typeof parsed.greeting === "string" && Array.isArray(parsed.items)) {
+            brief = {
+              greeting: String(parsed.greeting),
+              items: parsed.items
+                .filter((it: any) => it && typeof it === "object")
+                .map((it: any) => ({
+                  icon: String(it.icon ?? "wb_sunny"),
+                  label: String(it.label ?? ""),
+                  value: String(it.value ?? ""),
+                })),
+              reflection: String(parsed.reflection ?? ""),
+            };
+          }
+        }
+      } catch (llmErr: any) {
+        console.error("[morning-brief] LLM failed:", llmErr?.message);
+      }
+
+      // 🔴 Fallback brief: si el LLM falló o devolvió JSON inválido,
+      // construimos un brief estático con saludo + items derivados del state.
+      if (!brief || typeof brief.greeting !== "string") {
+        const fallbackItems: Array<{ icon: string; label: string; value: string }> = [];
+        if (todayEvents.length > 0) {
+          fallbackItems.push({
+            icon: "event",
+            label: "Eventos",
+            value: `${todayEvents.length} evento(s) hoy: ${todayEvents.map((e: any) => e.title).join(", ")}`,
+          });
+        }
+        if (todayCommitments.length > 0) {
+          fallbackItems.push({
+            icon: "check_circle",
+            label: "Pendientes",
+            value: `${todayCommitments.length} tarea(s): ${todayCommitments.map((c: any) => c.title).join(", ")}`,
+          });
+        }
+        fallbackItems.push({
+          icon: "wb_sunny",
+          label: "Clima",
+          value: weatherStr,
+        });
         brief = {
           greeting: `¡Buenos días${userName ? `, ${userName}` : ""}!`,
-          weather: "",
-          tasks: commitments.map((c: any) => c.title),
-          memoryHighlight: "",
-          suggestion: "",
+          items: fallbackItems.slice(0, 3),
+          reflection: "Hoy es un buen día para avanzar con lo que importa.",
         };
       }
 
@@ -416,6 +549,83 @@ const server = http.createServer(async (req, res) => {
     } catch (err: any) {
       console.error("[morning-brief] Error:", err?.message);
       sendJson(res, 200, { shouldShow: false, error: err?.message });
+    }
+    return;
+  }
+
+  // ── /api/koru/ai-assist — sugerencias para CreateScreen ──────
+  // Body: { template: string, title: string, language?: "es"|"en" }
+  // Usa el mismo LLM client que el chat principal (callProvider).
+  // Timeout: 10s. Si el LLM falla, devuelve { suggestions: [] }.
+  if (url === "/api/koru/ai-assist" && req.method === "POST") {
+    try {
+      const raw = await readBody(req);
+      const body = JSON.parse(raw || "{}");
+      const template: string = typeof body.template === "string" ? body.template : "";
+      const title: string = typeof body.title === "string" ? body.title : "";
+      const language: "es" | "en" = body.language === "en" ? "en" : "es";
+
+      if (!template || !title) {
+        sendJson(res, 400, { error: "Faltan template o title", suggestions: [] });
+        return;
+      }
+
+      // Reglas por template — indican al LLM qué campos incluir siempre.
+      const templateRules: Record<string, string> = {
+        gasto: 'Siempre incluí: collection="Gastos", currency="ARS". Además, categorizá el título (ej: "Comida", "Transporte", "Hogar", "Ocio", "Salud").',
+        receta: 'Siempre incluí: collection="Recetas", servings=4, prepTime="20 min".',
+        nota: 'Siempre incluí: collection="Notas".',
+        plan: 'Generá 3 pasos (step1, step2, step3) basados en el título — cada uno como una sugerencia separada.',
+        rutina: 'Siempre incluí: cadence="daily", target=1.',
+        decision: 'Generá 3 factores relevantes (factor1, factor2, factor3) para decidir sobre el título — cada uno como una sugerencia separada.',
+      };
+      const templateRule = templateRules[template] ?? "";
+
+      const systemPrompt = `Sos Koru. El usuario está creando un registro de tipo '${template}' con título '${title}'. Sugerí valores para los campos relevantes. ${templateRule} Respondé en JSON con formato: { suggestions: [{ field: string, label: string, value: string }] }`;
+
+      const messages = [
+        { role: "system" as const, content: systemPrompt },
+        { role: "user" as const, content: `Título: ${title}\nIdioma: ${language}\nGenerá las sugerencias ahora.` },
+      ];
+
+      let suggestions: Array<{ field: string; label: string; value: string }> = [];
+      try {
+        const { callProvider, inferProviderFromModel } = await import("../src/server/koruBackend.ts");
+        const pp = inferProviderFromModel(config.nvidiaModel);
+        // 🔴 Timeout 10s estricto: Promise.race con timeout absoluto.
+        // callProvider internamente también respeta timeoutMs (min con 10s),
+        // pero el race garantiza el techo incluso si hay retries/fallbacks.
+        const result = await Promise.race([
+          callProvider(config, messages, 10_000, false, pp),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("ai-assist-timeout")), 10_000),
+          ),
+        ]);
+        const content = (result.message as any).content?.trim() ?? "";
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed && Array.isArray(parsed.suggestions)) {
+            suggestions = parsed.suggestions
+              .filter((s: any) => s && typeof s.field === "string" && typeof s.value === "string")
+              .map((s: any) => ({
+                field: String(s.field),
+                label: String(s.label ?? s.field),
+                value: String(s.value),
+              }));
+          }
+        }
+      } catch (llmErr: any) {
+        // Si el LLM falla (timeout, error de red, JSON inválido, etc.),
+        // devolvemos suggestions vacías — el botón simplemente no muestra nada.
+        console.error("[ai-assist] LLM failed:", llmErr?.message);
+      }
+
+      sendJson(res, 200, { suggestions });
+    } catch (err: any) {
+      console.error("[ai-assist] Error:", err?.message);
+      // Error outer: también devolvemos suggestions vacías para no romper el UI.
+      sendJson(res, 200, { suggestions: [] });
     }
     return;
   }
@@ -535,6 +745,94 @@ const server = http.createServer(async (req, res) => {
       console.error("[export-deliverable]", err?.message);
       sendJson(res, 500, { error: err?.message ?? "Error generando PDF del deliverable" });
     }
+    return;
+  }
+
+  // ── /api/integrations/google-calendar/callback ───────────────────
+  // OAuth redirect URI. Google redirige acá con ?code=XXX tras el consent.
+  // 1. exchangeCodeForToken(code) → access_token + refresh_token.
+  // 2. Persiste tokens en koru-integrations.json + actualiza in-memory cache.
+  // 3. Devuelve HTML que escribe `googleCalendar: "connected"` en localStorage
+  //    (mismo origen → el popup comparte localStorage con la app) y luego
+  //    cierra la pestaña con window.close().
+  // El frontend (SettingsScreen) está polleando localStorage cada 2s y
+  // actualiza el badge a "Conectado ✓" cuando ve el flag.
+  if (url.startsWith("/api/integrations/google-calendar/callback") && req.method === "GET") {
+    try {
+      const parsedUrl = new URL(url, "http://localhost");
+      const code = parsedUrl.searchParams.get("code");
+      const oauthError = parsedUrl.searchParams.get("error");
+
+      // Google puede mandar ?error=access_denied si el usuario cancela.
+      if (oauthError) {
+        const errHtml = `<!doctype html><html lang="es"><body style="font-family:system-ui;padding:24px">
+<p>No se conectó Google Calendar: ${oauthError}</p>
+<script>window.close();</script>
+</body></html>`;
+        sendHtml(res, 400, errHtml);
+        return;
+      }
+      if (!code) {
+        const errHtml = `<!doctype html><html lang="es"><body style="font-family:system-ui;padding:24px">
+<p>Falta el parámetro <code>code</code> en el callback de OAuth.</p>
+<script>window.close();</script>
+</body></html>`;
+        sendHtml(res, 400, errHtml);
+        return;
+      }
+
+      // Intercambio single-use: si falla la red a mitad de camino NO hay
+      // retry (exchangeCodeForToken ya tiene retries:0).
+      const tokens = await exchangeCodeForToken(code);
+
+      // Persistir tokens en disco + in-memory cache.
+      integrationsCache.googleCalendar = {
+        connected: true,
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token,
+        connectedAt: new Date().toISOString(),
+      };
+      persistIntegrations();
+
+      // HTML que escribe el flag en localStorage y cierra el popup.
+      // El popup está en el mismo origen que la app (la redirect URI es
+      // nuestro propio server), así que comparten localStorage.
+      const okHtml = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Google Calendar conectado</title></head>
+<body style="font-family:system-ui;padding:24px;text-align:center">
+<p>Google Calendar conectado. Podés cerrar esta pestaña.</p>
+<script>
+try {
+  var raw = localStorage.getItem('koru.integrations');
+  var parsed = raw ? JSON.parse(raw) : {};
+  parsed.googleCalendar = 'connected';
+  localStorage.setItem('koru.integrations', JSON.stringify(parsed));
+} catch (e) { /* noop */ }
+window.close();
+</script>
+</body></html>`;
+      sendHtml(res, 200, okHtml);
+    } catch (err: any) {
+      console.error("[google-calendar/callback]", err?.message);
+      const errHtml = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Error</title></head>
+<body style="font-family:system-ui;padding:24px;text-align:center">
+<p>No se pudo conectar Google Calendar: ${escapeHtml(err?.message ?? "Error desconocido")}</p>
+<script>window.close();</script>
+</body></html>`;
+      sendHtml(res, 500, errHtml);
+    }
+    return;
+  }
+
+  // ── /api/integrations/google-calendar/status ─────────────────────
+  // Devuelve { connected: boolean, connectedAt?: string } basado en el
+  // cache en memoria. Es el source-of-truth server-side — el frontend
+  // puede consultarlo como fallback del flag en localStorage.
+  if (url.startsWith("/api/integrations/google-calendar/status") && req.method === "GET") {
+    const gc = integrationsCache.googleCalendar;
+    sendJson(res, 200, {
+      connected: !!gc?.connected,
+      connectedAt: gc?.connectedAt,
+    });
     return;
   }
 

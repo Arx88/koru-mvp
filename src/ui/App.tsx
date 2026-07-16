@@ -1,11 +1,27 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { KoruProvider, useKoru } from "./KoruProvider";
-import { HomeScreen } from "./HomeScreen";
 import { MemoryScreen } from "./MemoryScreen";
 import { PermissionsScreen } from "./PermissionsScreen";
 import { HistoryScreen } from "./HistoryScreen";
-import { SettingsScreen } from "./SettingsScreen";
 import { TalkOverlay } from "./TalkOverlay";
+
+// 🔴 Code-splitting: las pantallas "pesadas" se cargan vía React.lazy para
+// que Vite las separe en chunks independientes y no entren al bundle
+// inicial. Cada una requiere default export en su file (agregado abajo del
+// named export existente para no romper tests / otros importers).
+//   - HomeScreen: ~1100 líneas, widgets de hidratación/clima/nudges.
+//   - SettingsScreen: ~1700 líneas, 8 secciones colapsables + formularios.
+// Las demás (CreateScreen, CollectionsScreen, PlanRoadmapScreen) no se
+// renderizan en App.tsx — se lazy-cargan en su caller real
+// (TalkOverlay / KoruUnifiedCard / PlanHeroCard).
+const HomeScreen = lazy(() => import("./HomeScreen"));
+const SettingsScreen = lazy(() => import("./SettingsScreen"));
+
+// Skeleton reutilizado como fallback de Suspense para todas las lazy screens.
+// `.koru-skeleton` ya existe en style.css (shimmer lila).
+function ScreenSkeleton() {
+  return <div className="koru-skeleton" style={{ height: 200 }} />;
+}
 
 type Screen = "chat" | "hoy" | "memoria" | "permisos" | "historial" | "configuracion";
 
@@ -68,54 +84,58 @@ function KoruApp() {
           )}
 
           {screen === "hoy" && (
-            <HomeScreen
-              state={state}
-              onNavigate={(s) => setScreen(s as Screen)}
-              onCreate={() => setScreen("chat")}
-              onSearch={() => setScreen("chat")}
-              onTalk={() => setScreen("chat")}
-              onDismissNudge={dismissNudge}
-              // 🔴 TIER S: wiring de reducers a widgets del HomeScreen.
-              // - onLogWater → logWellbeing("water", ml, "ml") en KoruProvider.
-              // - onLogHabit → logHabit(habitId, 1) en KoruProvider.
-              // - onRefreshWeather → updateWeatherCache con el cache actual
-              //   pero fetchedAt = ahora (mark-as-fresh). El fetch real del
-              //   dato viene del agente via chat; acá sólo tocamos el cache
-              //   para que el botón haga algo visible.
-              onLogWater={(ml) => logWellbeing("water", ml, "ml")}
-              onLogHabit={(habitId) => logHabit(habitId, 1)}
-              onRefreshWeather={() => {
-                if (state.weatherCache) {
-                  updateWeatherCache({
-                    ...state.weatherCache,
-                    fetchedAt: new Date().toISOString(),
-                  });
-                }
-              }}
-            />
+            <Suspense fallback={<ScreenSkeleton />}>
+              <HomeScreen
+                state={state}
+                onNavigate={(s) => setScreen(s as Screen)}
+                onCreate={() => setScreen("chat")}
+                onSearch={() => setScreen("chat")}
+                onTalk={() => setScreen("chat")}
+                onDismissNudge={dismissNudge}
+                // 🔴 TIER S: wiring de reducers a widgets del HomeScreen.
+                // - onLogWater → logWellbeing("water", ml, "ml") en KoruProvider.
+                // - onLogHabit → logHabit(habitId, 1) en KoruProvider.
+                // - onRefreshWeather → updateWeatherCache con el cache actual
+                //   pero fetchedAt = ahora (mark-as-fresh). El fetch real del
+                //   dato viene del agente via chat; acá sólo tocamos el cache
+                //   para que el botón haga algo visible.
+                onLogWater={(ml) => logWellbeing("water", ml, "ml")}
+                onLogHabit={(habitId) => logHabit(habitId, 1)}
+                onRefreshWeather={() => {
+                  if (state.weatherCache) {
+                    updateWeatherCache({
+                      ...state.weatherCache,
+                      fetchedAt: new Date().toISOString(),
+                    });
+                  }
+                }}
+              />
+            </Suspense>
           )}
           {screen === "memoria" && <MemoryScreen />}
           {screen === "permisos" && <PermissionsScreen />}
           {screen === "historial" && <HistoryScreen />}
           {screen === "configuracion" && (
-            <SettingsScreen
-              state={state}
-              onUpdateProfile={(profile) => updateUserProfile(profile)}
-              onUpdatePreferences={(prefs) => updatePreferences(prefs)}
-              onUpdateLanguage={(lang) => setLanguage(lang)}
-              onUpdateHeartbeat={(patch) => updateHeartbeat(patch)}
-              onToggleEphemeral={() => setEphemeral(!state.ephemeralMode)}
-              onToggleDurableMemory={() => togglePermission("perm1")}
-              onToggleWorldSignals={() => setWorldSignals(!state.worldSignalsEnabled)}
-              onToggleActionPreparation={() => togglePermission("perm3")}
-              onForgetMemory={(memoryId) => forgetMemory(memoryId)}
-              onExportData={() => exportData()}
-              onDeleteAllData={() => deleteAllData()}
-              // 🔴 TIER S: wiring de addPerson — SettingsScreen lo invoca desde
-              // el sub-form "Personas" bajo Perfil.
-              onAddPerson={(name, relationship, birthday) => addPerson(name, relationship, birthday)}
-              onClose={() => setScreen("chat")}
-            />
+            <Suspense fallback={<ScreenSkeleton />}>
+              <SettingsScreen
+                state={state}
+                onUpdateProfile={(profile) => updateUserProfile(profile)}
+                onUpdatePreferences={(prefs) => updatePreferences(prefs)}
+                onUpdateLanguage={(lang) => setLanguage(lang)}
+                onUpdateHeartbeat={(patch) => updateHeartbeat(patch)}
+                onToggleEphemeral={() => setEphemeral(!state.ephemeralMode)}
+                onToggleDurableMemory={() => togglePermission("perm1")}
+                onToggleWorldSignals={() => setWorldSignals(!state.worldSignalsEnabled)}
+                onToggleActionPreparation={() => togglePermission("perm3")}
+                onForgetMemory={(memoryId) => forgetMemory(memoryId)}
+                onExportData={() => exportData()}
+                onDeleteAllData={() => deleteAllData()}
+                // 🔴 TIER S: wiring de addPerson — SettingsScreen lo invoca desde
+                // el sub-form "Personas" bajo Perfil.
+                onAddPerson={(name, relationship, birthday) => addPerson(name, relationship, birthday)}
+                onClose={() => setScreen("chat")}
+              />
+            </Suspense>
           )}
         </div>
       </div>

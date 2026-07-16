@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import { ArrowUp, Image as ImageIcon, Leaf, Mic, MicOff, Paperclip, Plus } from "lucide-react";
 import { createSpeechSession, getSpeechSupport } from "../domain/speech";
 import { cn } from "../lib/utils";
@@ -6,10 +6,14 @@ import { useKoru, PHASE_ORDER, type KoruChatTurn, type KoruTurnItem } from "./Ko
 import type { AgentActivityKind } from "../domain/agentKernel";
 import { KoruSemanticCard } from "./chatCards";
 import { KoruUnifiedCard } from "./cards/unified/KoruUnifiedCard";
-import { CreateScreen } from "./create/CreateScreen";
 import { KoruBackground, activityToBgState, type KoruBgState } from "./KoruBackground";
 import { MemoryToast } from "./MemoryToast";
 import { MorningBriefCard } from "./MorningBriefCard";
+
+// 🔴 Code-splitting: CreateScreen (~1500 líneas, formularios pesados) se
+// carga bajo demanda cuando el usuario abre el modal "Crear". Necesita
+// default export en create/CreateScreen.tsx (agregado).
+const CreateScreen = lazy(() => import("./create/CreateScreen"));
 
 // TalkOverlay = réplica Stitch "Chat con Koru": paisaje nocturno ilustrado a
 // pantalla completa, conversación anclada abajo con burbujas claras (usuario
@@ -1598,31 +1602,40 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
         </div>
       )}
 
-      {/* 🔴 v2: CreateScreen — modal para crear Nota/Lista/Gasto/Enlace sin LLM */}
+      {/* 🔴 v2: CreateScreen — modal para crear Nota/Lista/Gasto/Enlace sin LLM.
+          Code-split: CreateScreen se carga bajo demanda (React.lazy) para no
+          inflar el bundle inicial del chat. Suspense muestra un skeleton
+          lila mientras llega el chunk. */}
       {showCreate && (
-        <CreateScreen
-          onClose={() => setShowCreate(false)}
-          // 🔴 AI-assist — implementación mínima: el botón "Asistir" del
-          // CreateScreen queda funcional sin necesidad de un LLM real.
-          // Devuelve una sugerencia de carpeta basada en el template + título.
-          // El padre (este TalkOverlay) podría delegar al backend más adelante.
-          onAiAssist={async (template, title) => {
-            // En el futuro esto llamará a un endpoint tipo
-            // POST /api/koru/ai-assist con { template, title } y devolverá
-            // sugerencias para varios campos. Por ahora devolvemos una sola
-            // sugerencia (carpeta) para que el botón tenga efecto visible.
-            void title; // placeholder — el backend lo usará para contextualizar
-            return {
-              suggestions: [
-                {
-                  field: "collection",
-                  label: "Carpeta",
-                  value: template === "gasto" ? "Gastos" : "General",
-                },
-              ],
-            };
+        <Suspense fallback={<div className="koru-skeleton" style={{ height: 200 }} />}>
+          <CreateScreen
+            onClose={() => setShowCreate(false)}
+            // 🔴 AI-assist — delega al backend /api/koru/ai-assist, que usa el
+            // mismo LLM client que el chat principal (callProvider) con timeout
+            // de 10s. Si el LLM falla, el endpoint devuelve { suggestions: [] }
+            // y el botón simplemente no muestra sugerencias (graceful degrade).
+            onAiAssist={async (template, title) => {
+              try {
+                const res = await fetch("/api/koru/ai-assist", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ template, title }),
+                });
+              if (!res.ok) return { suggestions: [] };
+              const data = await res.json();
+              const suggestions = Array.isArray(data?.suggestions)
+                ? data.suggestions.filter(
+                    (s: any) => s && typeof s.field === "string" && typeof s.value === "string",
+                  )
+                : [];
+              return { suggestions };
+            } catch {
+              // Red caída o error inesperado — no rompemos el CreateScreen.
+              return { suggestions: [] };
+            }
           }}
         />
+        </Suspense>
       )}
 
       {/* 🔴 v2: reopenedRecord — reabre el bloque original de un record guardado */}

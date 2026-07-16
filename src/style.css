@@ -3944,11 +3944,7 @@ a.koru-dsec-source:hover {
    Memory Screen — animaciones sutiles y mejoras visuales
    ═══════════════════════════════════════════════════════════════════════════ */
 
-@keyframes koru-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
+/* (duplicate koru-fade-in removed — kept the most recent definition below) */
 @keyframes koru-slide-up {
   from { opacity: 0; transform: translateY(40px); }
   to { opacity: 1; transform: translateY(0); }
@@ -4338,18 +4334,7 @@ a.koru-dsec-source:hover {
   animation-delay: 0.05s;
 }
 
-/* Stagger para cards dentro de un mensaje de Koru */
-@keyframes koru-card-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
+/* Stagger para cards dentro de un mensaje de Koru — koru-card-in moved to v2 microinteractions below (single source of truth) */
 .koru-action-content {
   animation: koru-card-in 0.35s ease-out both;
 }

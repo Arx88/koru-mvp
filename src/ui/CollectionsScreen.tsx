@@ -592,3 +592,7 @@ export function CollectionsScreen({
     document.body,
   );
 }
+
+// 🔴 Default export para React.lazy (KoruUnifiedCard carga CollectionsScreen
+// bajo demanda cuando el usuario tap "Ver colección").
+export default CollectionsScreen;

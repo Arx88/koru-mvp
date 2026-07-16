@@ -2,6 +2,11 @@ import { useMemo, useRef, useState, type CSSProperties, type TouchEvent } from "
 import type { KoruState, ProactiveNudge } from "../domain/types";
 import { computeStreak } from "../domain/store";
 
+// 🔴 Code-splitting: App.tsx carga HomeScreen via React.lazy. Necesitamos
+// un default export para que `lazy(() => import("./HomeScreen"))` funcione.
+// El named export `HomeScreen` se mantiene por compatibilidad con tests y
+// otros importers.
+
 // ═══════════════════════════════════════════════════════════════════════════
 //  Home dashboard — pantalla "Hoy" del wheel de navegación.
 //  Muestra el día de un vistazo: saludo temporal, items del día (2x2),
@@ -625,6 +630,9 @@ export function HomeScreen({
     </div>
   );
 }
+
+// 🔴 Default export para React.lazy en App.tsx.
+export default HomeScreen;
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  Sub-componentes

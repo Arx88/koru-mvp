@@ -395,3 +395,7 @@ export function PlanRoadmapScreen({
     </div>
   );
 }
+
+// 🔴 Default export para React.lazy (PlanHeroCard carga PlanRoadmapScreen
+// bajo demanda cuando el usuario tap "Ver plan completo").
+export default PlanRoadmapScreen;

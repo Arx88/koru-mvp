@@ -1,12 +1,16 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, lazy, Suspense } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import type { UiBlock } from "../../../domain/types";
 import { toPresentation } from "./presentation";
 import type { Hero, Detail, KoruPresentation } from "./presentation";
 import { KoruDetailScreen } from "./KoruDetailScreen";
-import { CollectionsScreen } from "../../CollectionsScreen";
 import { KoruCountUp } from "./KoruCountUp";
 import { useTapRipple } from "./useTapRipple";
+
+// 🔴 Code-splitting: CollectionsScreen (~600 líneas, renderer markdown + portal)
+// se carga bajo demanda cuando el CTA del card abre la vista de colección.
+// Necesita default export en CollectionsScreen.tsx (agregado).
+const CollectionsScreen = lazy(() => import("../../CollectionsScreen"));
 
 // Card unificada — TODA respuesta con estructura se renderiza con esta hoja,
 // réplica del Stitch "Plan Entregado": superficie lila, kicker + título,
@@ -113,7 +117,11 @@ function DetailOverlay({
 }) {
   if (!open) return null;
   if (cta?.screen === "collections") {
-    return <CollectionsScreen focusCollection={cta.collection} onClose={() => setOpen(false)} />;
+    return (
+      <Suspense fallback={<div className="koru-skeleton" style={{ height: 200 }} />}>
+        <CollectionsScreen focusCollection={cta.collection} onClose={() => setOpen(false)} />
+      </Suspense>
+    );
   }
   if (detail) {
     return (

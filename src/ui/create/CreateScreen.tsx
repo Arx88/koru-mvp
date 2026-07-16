@@ -1565,3 +1565,7 @@ export function CreateScreen({ onClose, onAiAssist }: Props) {
     document.body,
   );
 }
+
+// 🔴 Default export para React.lazy (TalkOverlay carga CreateScreen bajo
+// demanda para reducir el bundle inicial del chat).
+export default CreateScreen;

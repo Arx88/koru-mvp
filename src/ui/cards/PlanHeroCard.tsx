@@ -1,6 +1,10 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import type { AssistantPlanItem } from "../../domain/types";
-import { PlanRoadmapScreen } from "../PlanRoadmapScreen";
+
+// 🔴 Code-splitting: PlanRoadmapScreen (~400 líneas, roadmap funcional con
+// checklist persistido) se carga bajo demanda cuando el usuario toca
+// "Ver plan completo". Necesita default export en PlanRoadmapScreen.tsx (agregado).
+const PlanRoadmapScreen = lazy(() => import("../PlanRoadmapScreen"));
 
 // Plan Entregado — réplica Stitch: hoja clara "Tu Plan / INTEGRAL" con la
 // ilustración 3D, tres categorías derivadas del plan real y el CTA
@@ -85,7 +89,11 @@ export function PlanHeroCard({ block }: { block: PlanBlock }) {
         <Mat>arrow_forward</Mat>
       </button>
 
-      {open && <PlanRoadmapScreen title={block.title} items={items} onClose={() => setOpen(false)} />}
+      {open && (
+        <Suspense fallback={<div className="koru-skeleton" style={{ height: 200 }} />}>
+          <PlanRoadmapScreen title={block.title} items={items} onClose={() => setOpen(false)} />
+        </Suspense>
+      )}
     </div>
   );
 }

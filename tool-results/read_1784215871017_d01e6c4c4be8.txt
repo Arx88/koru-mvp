@@ -1,0 +1,1671 @@
+     1→     1→import { useEffect, useMemo, useState, type ReactNode } from "react";
+     2→     2→import {
+     3→     3→  X,
+     4→     4→  Search,
+     5→     5→  ChevronDown,
+     6→     6→  User,
+     7→     7→  Languages,
+     8→     8→  Palette,
+     9→     9→  Bell,
+    10→    10→  Shield,
+    11→    11→  Plug,
+    12→    12→  Brain,
+    13→    13→  Accessibility,
+    14→    14→  Check,
+    15→    15→  Lock,
+    16→    16→  Download,
+    17→    17→  Trash2,
+    18→    18→  CloudOff,
+    19→    19→  Calendar,
+    20→    20→  Landmark,
+    21→    21→  Bitcoin,
+    22→    22→  AlertTriangle,
+    23→    23→} from "lucide-react";
+    24→    24→import type {
+    25→    25→  HeartbeatSettings,
+    26→    26→  KoruState,
+    27→    27→  MemoryFact,
+    28→    28→  MemoryKind,
+    29→    29→  Person,
+    30→    30→  UserProfile,
+    31→    31→  UserPreferences,
+    32→    32→} from "../domain/types";
+    33→    33→import { getGoogleAuthUrl } from "../tools/calendar/googleCalendar";
+    34→    34→
+    35→    35→// ─────────────────────────────────────────────────────────────────────────────
+    36→    36→// SettingsScreen — pantalla integrada de Ajustes (8 secciones colapsables).
+    37→    37→// Reemplaza los toggles fragmentados que estaban dispersos por la app.
+    38→    38→//
+    39→    39→// Diseño: gradiente lila → blanco (#f0dbff → #f8f9ff), max-width 430px,
+    40→    40→// header sticky con título "Ajustes" + botón cerrar, buscador de secciones,
+    41→    41→// cards `.koru-magical-card` con icono + título + chevron rotatorio.
+    42→    42→// ─────────────────────────────────────────────────────────────────────────────
+    43→    43→
+    44→    44→export interface SettingsScreenProps {
+    45→    45→  state: KoruState;
+    46→    46→  onUpdateProfile: (profile: Partial<UserProfile>) => void;
+    47→    47→  onUpdatePreferences: (prefs: Partial<UserPreferences>) => void;
+    48→    48→  onUpdateLanguage: (lang: "es" | "en") => void;
+    49→    49→  onUpdateHeartbeat: (settings: Partial<HeartbeatSettings>) => void;
+    50→    50→  onToggleEphemeral: () => void;
+    51→    51→  onToggleDurableMemory: () => void;
+    52→    52→  onToggleWorldSignals: () => void;
+    53→    53→  onToggleActionPreparation: () => void;
+    54→    54→  onForgetMemory: (memoryId: string) => void;
+    55→    55→  onExportData: () => void;
+    56→    56→  onDeleteAllData: () => void;
+    57→    57→  onClose: () => void;
+    58→    58→  // 🔴 TIER S: addPerson — invoca al reducer addPerson del store desde el
+    59→    59→  // sub-section "Personas" dentro de Perfil. Crea una Person durable
+    60→    60→  // (state.people) con name + relationship + birthday.
+    61→    61→  onAddPerson?: (name: string, relationship?: string, birthday?: string) => void;
+    62→    62→}
+    63→    63→
+    64→    64→type SectionId =
+    65→    65→  | "perfil"
+    66→    66→  | "idioma"
+    67→    67→  | "apariencia"
+    68→    68→  | "notificaciones"
+    69→    69→  | "privacidad"
+    70→    70→  | "integraciones"
+    71→    71→  | "memoria"
+    72→    72→  | "accesibilidad";
+    73→    73→
+    74→    74→type SectionMeta = {
+    75→    75→  id: SectionId;
+    76→    76→  title: string;
+    77→    77→  kicker: string;
+    78→    78→  icon: typeof User;
+    79→    79→  accent: string; // module-color
+    80→    80→  tint: string;   // module-bg (icon background)
+    81→    81→  keywords: string[];
+    82→    82→};
+    83→    83→
+    84→    84→const SECTIONS: SectionMeta[] = [
+    85→    85→  { id: "perfil",         title: "Perfil",            kicker: "QUIÉN ERES",        icon: User,          accent: "#8127cf", tint: "#f3e8ff", keywords: ["nombre", "cumpleaños", "ciudad", "zona horaria", "timezone", "name", "birthday", "location"] },
+    86→    86→  { id: "idioma",         title: "Idioma",            kicker: "ESPAÑOL / ENGLISH", icon: Languages,     accent: "#2563eb", tint: "#dbeafe", keywords: ["language", "español", "english", "spanish"] },
+    87→    87→  { id: "apariencia",     title: "Apariencia",        kicker: "TEMA Y TIPOGRAFÍA", icon: Palette,       accent: "#db2777", tint: "#fce7f3", keywords: ["theme", "font", "tamaño", "haptics", "sonidos", "contraste", "movimiento", "dark", "light"] },
+    88→    88→  { id: "notificaciones", title: "Notificaciones",    kicker: "ALERTEX Y DND",     icon: Bell,          accent: "#ea580c", tint: "#ffedd5", keywords: ["push", "dnd", "sonidos", "no molestar", "permiso"] },
+    89→    89→  { id: "privacidad",     title: "Privacidad",        kicker: "TUS DATOS",         icon: Shield,        accent: "#16a34a", tint: "#dcfce7", keywords: ["ephemeral", "durable", "retention", "export", "eliminar", "lock", "webauthn", "borrar"] },
+    90→    90→  { id: "integraciones",  title: "Integraciones",     kicker: "CONECTAR SERVICIOS",icon: Plug,          accent: "#0891b2", tint: "#cffafe", keywords: ["google", "calendar", "plaid", "tink", "banco", "crypto", "exchange", "sincronizar"] },
+    91→    91→  { id: "memoria",        title: "Gestión de memoria",kicker: "LO QUE KORU SABE",  icon: Brain,         accent: "#7c3aed", tint: "#ede9fe", keywords: ["memoria", "memories", "forget", "olvidar", "sensible", "confianza"] },
+    92→    92→  { id: "accesibilidad",  title: "Accesibilidad",     kicker: "INCLUSIÓN",         icon: Accessibility, accent: "#0d9488", tint: "#ccfbf1", keywords: ["screen reader", "lector", "movimiento", "contraste", "teclado", "keyboard", "a11y"] },
+    93→    93→];
+    94→    94→
+    95→    95→// Zonas horarias comunes para el override manual (lista corta + auto).
+    96→    96→const COMMON_TIMEZONES = [
+    97→    97→  "auto",
+    98→    98→  "America/Argentina/Buenos_Aires",
+    99→    99→  "America/Montevideo",
+   100→   100→  "America/Santiago",
+   101→   101→  "America/Bogota",
+   102→   102→  "America/Mexico_City",
+   103→   103→  "America/Lima",
+   104→   104→  "Europe/Madrid",
+   105→   105→  "Europe/London",
+   106→   106→  "US/Eastern",
+   107→   107→  "US/Pacific",
+   108→   108→  "UTC",
+   109→   109→];
+   110→   110→
+   111→   111→const MEMORY_KIND_LABEL: Record<MemoryKind, string> = {
+   112→   112→  profile: "Perfil",
+   113→   113→  routine: "Rutina",
+   114→   114→  preference: "Preferencia",
+   115→   115→  goal: "Objetivo",
+   116→   116→  relationship: "Relación",
+   117→   117→  boundary: "Límite",
+   118→   118→  retail: "Compras",
+   119→   119→  wellbeing: "Bienestar",
+   120→   120→  task: "Tarea",
+   121→   121→};
+   122→   122→
+   123→   123→const MEMORY_KIND_FILTERS: Array<{ value: "all" | MemoryKind; label: string }> = [
+   124→   124→  { value: "all", label: "Todas" },
+   125→   125→  { value: "profile", label: "Perfil" },
+   126→   126→  { value: "routine", label: "Rutina" },
+   127→   127→  { value: "preference", label: "Preferencia" },
+   128→   128→  { value: "goal", label: "Objetivo" },
+   129→   129→  { value: "relationship", label: "Relación" },
+   130→   130→  { value: "boundary", label: "Límite" },
+   131→   131→  { value: "retail", label: "Compras" },
+   132→   132→  { value: "wellbeing", label: "Bienestar" },
+   133→   133→  { value: "task", label: "Tarea" },
+   134→   134→];
+   135→   135→
+   136→   136→const RETENTION_OPTIONS: Array<{ value: string; label: string }> = [
+   137→   137→  { value: "30",   label: "30 días" },
+   138→   138→  { value: "60",   label: "60 días" },
+   139→   139→  { value: "90",   label: "90 días" },
+   140→   140→  { value: "180",  label: "180 días" },
+   141→   141→  { value: "never",label: "Nunca (conservar todo)" },
+   142→   142→];
+   143→   143→
+   144→   144→// ─── Helpers ─────────────────────────────────────────────────────────────────
+   145→   145→
+   146→   146→function detectTimezone(): string {
+   147→   147→  try {
+   148→   148→    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+   149→   149→  } catch {
+   150→   150→    return "UTC";
+   151→   151→  }
+   152→   152→}
+   153→   153→
+   154→   154→function prefersReducedMotion(): boolean {
+   155→   155→  try {
+   156→   156→    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+   157→   157→  } catch {
+   158→   158→    return false;
+   159→   159→  }
+   160→   160→}
+   161→   161→
+   162→   162→function truncate(text: string, max: number): string {
+   163→   163→  if (text.length <= max) return text;
+   164→   164→  return text.slice(0, max - 1).trimEnd() + "…";
+   165→   165→}
+   166→   166→
+   167→   167→function formatLastSync(iso: string | undefined): string {
+   168→   168→  if (!iso) return "";
+   169→   169→  try {
+   170→   170→    const d = new Date(iso);
+   171→   171→    if (isNaN(d.getTime())) return "";
+   172→   172→    return d.toLocaleString("es-ES", { dateStyle: "medium", timeStyle: "short" });
+   173→   173→  } catch {
+   174→   174→    return "";
+   175→   175→  }
+   176→   176→}
+   177→   177→
+   178→   178→// ─── Primitivas UI ────────────────────────────────────────────────────────────
+   179→   179→
+   180→   180→function Toggle({
+   181→   181→  checked,
+   182→   182→  onChange,
+   183→   183→  disabled,
+   184→   184→  "aria-label": ariaLabel,
+   185→   185→}: {
+   186→   186→  checked: boolean;
+   187→   187→  onChange: (next: boolean) => void;
+   188→   188→  disabled?: boolean;
+   189→   189→  "aria-label"?: string;
+   190→   190→}) {
+   191→   191→  return (
+   192→   192→    <button
+   193→   193→      type="button"
+   194→   194→      role="switch"
+   195→   195→      aria-checked={checked}
+   196→   196→      aria-label={ariaLabel}
+   197→   197→      disabled={disabled}
+   198→   198→      onClick={() => !disabled && onChange(!checked)}
+   199→   199→      className="koru-toggle"
+   200→   200→      style={{
+   201→   201→        position: "relative",
+   202→   202→        width: 44,
+   203→   203→        height: 26,
+   204→   204→        borderRadius: 999,
+   205→   205→        border: "none",
+   206→   206→        padding: 0,
+   207→   207→        cursor: disabled ? "not-allowed" : "pointer",
+   208→   208→        background: checked ? "#8127cf" : "#cbd5e1",
+   209→   209→        opacity: disabled ? 0.5 : 1,
+   210→   210→        transition: "background-color 160ms ease",
+   211→   211→        flex: "0 0 auto",
+   212→   212→      }}
+   213→   213→    >
+   214→   214→      <span
+   215→   215→        style={{
+   216→   216→          position: "absolute",
+   217→   217→          top: 3,
+   218→   218→          left: checked ? 21 : 3,
+   219→   219→          width: 20,
+   220→   220→          height: 20,
+   221→   221→          borderRadius: 999,
+   222→   222→          background: "#ffffff",
+   223→   223→          boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+   224→   224→          transition: "left 160ms ease",
+   225→   225→        }}
+   226→   226→      />
+   227→   227→    </button>
+   228→   228→  );
+   229→   229→}
+   230→   230→
+   231→   231→function Row({
+   232→   232→  label,
+   233→   233→  hint,
+   234→   234→  children,
+   235→   235→  stacked,
+   236→   236→}: {
+   237→   237→  label: string;
+   238→   238→  hint?: string;
+   239→   239→  children: ReactNode;
+   240→   240→  stacked?: boolean;
+   241→   241→}) {
+   242→   242→  return (
+   243→   243→    <div
+   244→   244→      style={{
+   245→   245→        display: "flex",
+   246→   246→        flexDirection: stacked ? "column" : "row",
+   247→   247→        alignItems: stacked ? "stretch" : "center",
+   248→   248→        justifyContent: stacked ? "flex-start" : "space-between",
+   249→   249→        gap: stacked ? 8 : 12,
+   250→   250→        padding: "10px 0",
+   251→   251→        borderBottom: "1px solid rgba(129, 39, 207, 0.08)",
+   252→   252→      }}
+   253→   253→    >
+   254→   254→      <div style={{ minWidth: 0, flex: "1 1 auto" }}>
+   255→   255→        <div style={{ fontSize: 14, fontWeight: 600, color: "#0b1c30" }}>{label}</div>
+   256→   256→        {hint && <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{hint}</div>}
+   257→   257→      </div>
+   258→   258→      <div style={{ flex: stacked ? "1 1 auto" : "0 0 auto", minWidth: 0 }}>{children}</div>
+   259→   259→    </div>
+   260→   260→  );
+   261→   261→}
+   262→   262→
+   263→   263→function TextInput(props: {
+   264→   264→  value: string;
+   265→   265→  onChange: (v: string) => void;
+   266→   266→  onBlur?: () => void;
+   267→   267→  placeholder?: string;
+   268→   268→  type?: string;
+   269→   269→  ariaLabel?: string;
+   270→   270→}) {
+   271→   271→  return (
+   272→   272→    <input
+   273→   273→      type={props.type ?? "text"}
+   274→   274→      value={props.value}
+   275→   275→      onChange={(e) => props.onChange(e.target.value)}
+   276→   276→      onBlur={props.onBlur}
+   277→   277→      placeholder={props.placeholder}
+   278→   278→      aria-label={props.ariaLabel}
+   279→   279→      style={{
+   280→   280→        width: "100%",
+   281→   281→        maxWidth: 220,
+   282→   282→        padding: "8px 12px",
+   283→   283→        borderRadius: 10,
+   284→   284→        border: "1px solid #e2d4f5",
+   285→   285→        background: "rgba(255,255,255,0.8)",
+   286→   286→        fontSize: 14,
+   287→   287→        color: "#0b1c30",
+   288→   288→        outline: "none",
+   289→   289→      }}
+   290→   290→    />
+   291→   291→  );
+   292→   292→}
+   293→   293→
+   294→   294→/**
+   295→   295→ * 🔴 TIER S: ProfileField — wrapper sobre TextInput que commitea el valor al
+   296→   296→ * reducer (vía onCommit) SOLO en blur, no en cada keystroke. Así evitamos
+   297→   297→ * re-renderizar todo el state tree + persistir en localStorage por cada tecla.
+   298→   298→ * Mantiene estado local para que el input siga siendo responsivo.
+   299→   299→ */
+   300→   300→function ProfileField({
+   301→   301→  label,
+   302→   302→  value,
+   303→   303→  onCommit,
+   304→   304→  placeholder,
+   305→   305→  type,
+   306→   306→  ariaLabel,
+   307→   307→}: {
+   308→   308→  label: string;
+   309→   309→  value: string;
+   310→   310→  onCommit: (v: string) => void;
+   311→   311→  placeholder?: string;
+   312→   312→  type?: string;
+   313→   313→  ariaLabel?: string;
+   314→   314→}) {
+   315→   315→  const [local, setLocal] = useState(value);
+   316→   316→  // Sync local state when the external value changes (ej. after onCommit
+   317→   317→  // propagates back via props, or when another screen edits the profile).
+   318→   318→  useEffect(() => {
+   319→   319→    setLocal(value);
+   320→   320→  }, [value]);
+   321→   321→  return (
+   322→   322→    <Field label={label}>
+   323→   323→      <TextInput
+   324→   324→        value={local}
+   325→   325→        type={type}
+   326→   326→        placeholder={placeholder}
+   327→   327→        ariaLabel={ariaLabel}
+   328→   328→        onChange={setLocal}
+   329→   329→        // 🔴 TIER S: commit on blur — llama a onCommit que eventualmente
+   330→   330→        // invoca al reducer updateUserProfile.
+   331→   331→        onBlur={() => {
+   332→   332→          if (local !== value) onCommit(local);
+   333→   333→        }}
+   334→   334→      />
+   335→   335→    </Field>
+   336→   336→  );
+   337→   337→}
+   338→   338→
+   339→   339→function Field({ label, children }: { label: string; children: ReactNode }) {
+   340→   340→  return (
+   341→   341→    <div style={{ padding: "10px 0", borderBottom: "1px solid rgba(129, 39, 207, 0.08)" }}>
+   342→   342→      <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: "#0b1c30", marginBottom: 6 }}>
+   343→   343→        {label}
+   344→   344→      </label>
+   345→   345→      {children}
+   346→   346→    </div>
+   347→   347→  );
+   348→   348→}
+   349→   349→
+   350→   350→function RadioGroup<T extends string>({
+   351→   351→  value,
+   352→   352→  options,
+   353→   353→  onChange,
+   354→   354→}: {
+   355→   355→  value: T;
+   356→   356→  options: Array<{ value: T; label: string; disabled?: boolean; badge?: string }>;
+   357→   357→  onChange: (v: T) => void;
+   358→   358→}) {
+   359→   359→  return (
+   360→   360→    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+   361→   361→      {options.map((opt) => {
+   362→   362→        const active = value === opt.value;
+   363→   363→        return (
+   364→   364→          <button
+   365→   365→            key={opt.value}
+   366→   366→            type="button"
+   367→   367→            disabled={opt.disabled}
+   368→   368→            onClick={() => !opt.disabled && onChange(opt.value)}
+   369→   369→            style={{
+   370→   370→              display: "inline-flex",
+   371→   371→              alignItems: "center",
+   372→   372→              gap: 6,
+   373→   373→              padding: "7px 12px",
+   374→   374→              borderRadius: 999,
+   375→   375→              border: active ? "1px solid #8127cf" : "1px solid #e2d4f5",
+   376→   376→              background: active ? "#f3e8ff" : "rgba(255,255,255,0.7)",
+   377→   377→              color: active ? "#8127cf" : "#0b1c30",
+   378→   378→              fontSize: 13,
+   379→   379→              fontWeight: 600,
+   380→   380→              cursor: opt.disabled ? "not-allowed" : "pointer",
+   381→   381→              opacity: opt.disabled ? 0.55 : 1,
+   382→   382→            }}
+   383→   383→          >
+   384→   384→            {active && <Check size={14} />}
+   385→   385→            <span>{opt.label}</span>
+   386→   386→            {opt.badge && (
+   387→   387→              <span
+   388→   388→                style={{
+   389→   389→                  marginLeft: 4,
+   390→   390→                  padding: "1px 6px",
+   391→   391→                  borderRadius: 6,
+   392→   392→                  background: "#fde68a",
+   393→   393→                  color: "#92400e",
+   394→   394→                  fontSize: 10,
+   395→   395→                  fontWeight: 700,
+   396→   396→                }}
+   397→   397→              >
+   398→   398→                {opt.badge}
+   399→   399→              </span>
+   400→   400→            )}
+   401→   401→          </button>
+   402→   402→        );
+   403→   403→      })}
+   404→   404→    </div>
+   405→   405→  );
+   406→   406→}
+   407→   407→
+   408→   408→function SelectInput<T extends string>({
+   409→   409→  value,
+   410→   410→  options,
+   411→   411→  onChange,
+   412→   412→  ariaLabel,
+   413→   413→}: {
+   414→   414→  value: T;
+   415→   415→  options: Array<{ value: T; label: string }>;
+   416→   416→  onChange: (v: T) => void;
+   417→   417→  ariaLabel?: string;
+   418→   418→}) {
+   419→   419→  return (
+   420→   420→    <div style={{ position: "relative", maxWidth: 220, width: "100%" }}>
+   421→   421→      <select
+   422→   422→        value={value}
+   423→   423→        aria-label={ariaLabel}
+   424→   424→        onChange={(e) => onChange(e.target.value as T)}
+   425→   425→        style={{
+   426→   426→          width: "100%",
+   427→   427→          padding: "8px 30px 8px 12px",
+   428→   428→          borderRadius: 10,
+   429→   429→          border: "1px solid #e2d4f5",
+   430→   430→          background: "rgba(255,255,255,0.85)",
+   431→   431→          fontSize: 14,
+   432→   432→          color: "#0b1c30",
+   433→   433→          outline: "none",
+   434→   434→          appearance: "none",
+   435→   435→          cursor: "pointer",
+   436→   436→        }}
+   437→   437→      >
+   438→   438→        {options.map((opt) => (
+   439→   439→          <option key={opt.value} value={opt.value}>
+   440→   440→            {opt.label}
+   441→   441→          </option>
+   442→   442→        ))}
+   443→   443→      </select>
+   444→   444→      <ChevronDown
+   445→   445→        size={14}
+   446→   446→        style={{
+   447→   447→          position: "absolute",
+   448→   448→          right: 10,
+   449→   449→          top: "50%",
+   450→   450→          transform: "translateY(-50%)",
+   451→   451→          pointerEvents: "none",
+   452→   452→          color: "#8127cf",
+   453→   453→        }}
+   454→   454→      />
+   455→   455→    </div>
+   456→   456→  );
+   457→   457→}
+   458→   458→
+   459→   459→function PillButton({
+   460→   460→  children,
+   461→   461→  onClick,
+   462→   462→  variant = "default",
+   463→   463→  disabled,
+   464→   464→}: {
+   465→   465→  children: ReactNode;
+   466→   466→  onClick: () => void;
+   467→   467→  variant?: "default" | "primary" | "danger" | "ghost";
+   468→   468→  disabled?: boolean;
+   469→   469→}) {
+   470→   470→  const styles: Record<string, React.CSSProperties> = {
+   471→   471→    default: { background: "rgba(255,255,255,0.85)", color: "#0b1c30", border: "1px solid #e2d4f5" },
+   472→   472→    primary: { background: "#8127cf", color: "#ffffff", border: "1px solid #8127cf" },
+   473→   473→    danger:  { background: "#fee2e2", color: "#b91c1c", border: "1px solid #fecaca" },
+   474→   474→    ghost:   { background: "transparent", color: "#8127cf", border: "1px dashed #c4b5fd" },
+   475→   475→  };
+   476→   476→  return (
+   477→   477→    <button
+   478→   478→      type="button"
+   479→   479→      onClick={onClick}
+   480→   480→      disabled={disabled}
+   481→   481→      style={{
+   482→   482→        display: "inline-flex",
+   483→   483→        alignItems: "center",
+   484→   484→        gap: 6,
+   485→   485→        padding: "8px 14px",
+   486→   486→        borderRadius: 10,
+   487→   487→        fontSize: 13,
+   488→   488→        fontWeight: 600,
+   489→   489→        cursor: disabled ? "not-allowed" : "pointer",
+   490→   490→        opacity: disabled ? 0.55 : 1,
+   491→   491→        ...styles[variant],
+   492→   492→      }}
+   493→   493→    >
+   494→   494→      {children}
+   495→   495→    </button>
+   496→   496→  );
+   497→   497→}
+   498→   498→
+   499→   499→function SectionCard({
+   500→   500→  meta,
+   501→   501→  expanded,
+   502→   502→  onToggle,
+   503→   503→  children,
+   504→   504→}: {
+   505→   505→  meta: SectionMeta;
+   506→   506→  expanded: boolean;
+   507→   507→  onToggle: () => void;
+   508→   508→  children: ReactNode;
+   509→   509→}) {
+   510→   510→  const Icon = meta.icon;
+   511→   511→  return (
+   512→   512→    <section
+   513→   513→      className="koru-magical-card"
+   514→   514→      style={{ "--module-color": meta.accent, "--module-bg": meta.tint } as React.CSSProperties}
+   515→   515→      aria-expanded={expanded}
+   516→   516→    >
+   517→   517→      <button
+   518→   518→        type="button"
+   519→   519→        onClick={onToggle}
+   520→   520→        aria-label={`${expanded ? "Contraer" : "Expandir"} sección ${meta.title}`}
+   521→   521→        style={{
+   522→   522→          display: "flex",
+   523→   523→          width: "100%",
+   524→   524→          alignItems: "center",
+   525→   525→          justifyContent: "space-between",
+   526→   526→          gap: 12,
+   527→   527→          background: "transparent",
+   528→   528→          border: "none",
+   529→   529→          padding: 0,
+   530→   530→          cursor: "pointer",
+   531→   531→          textAlign: "left",
+   532→   532→        }}
+   533→   533→      >
+   534→   534→        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+   535→   535→          <div
+   536→   536→            className="koru-module-icon"
+   537→   537→            style={{ width: 40, height: 40, borderRadius: 12, background: meta.tint, color: meta.accent }}
+   538→   538→          >
+   539→   539→            <Icon size={20} />
+   540→   540→          </div>
+   541→   541→          <div>
+   542→   542→            <h3 className="koru-module-title" style={{ fontSize: 17, color: meta.accent }}>
+   543→   543→              {meta.title}
+   544→   544→            </h3>
+   545→   545→            <p className="koru-module-kicker" style={{ fontSize: 10, letterSpacing: 0.5 }}>
+   546→   546→              {meta.kicker}
+   547→   547→            </p>
+   548→   548→          </div>
+   549→   549→        </div>
+   550→   550→        <ChevronDown
+   551→   551→          size={20}
+   552→   552→          style={{
+   553→   553→            color: meta.accent,
+   554→   554→            transition: "transform 200ms ease",
+   555→   555→            transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+   556→   556→            flexShrink: 0,
+   557→   557→          }}
+   558→   558→        />
+   559→   559→      </button>
+   560→   560→      {expanded && <div style={{ marginTop: 14 }}>{children}</div>}
+   561→   561→    </section>
+   562→   562→  );
+   563→   563→}
+   564→   564→
+   565→   565→// ─── Pantalla ─────────────────────────────────────────────────────────────────
+   566→   566→
+   567→   567→export function SettingsScreen(props: SettingsScreenProps) {
+   568→   568→  const { state } = props;
+   569→   569→  const profile = state.userProfile ?? {};
+   570→   570→  const prefs = state.preferences ?? {
+   571→   571→    theme: "light",
+   572→   572→    fontScale: "medium",
+   573→   573→    haptics: true,
+   574→   574→    sounds: true,
+   575→   575→    reducedMotion: false,
+   576→   576→    highContrast: false,
+   577→   577→  };
+   578→   578→
+   579→   579→  const [query, setQuery] = useState("");
+   580→   580→  const [expanded, setExpanded] = useState<Set<SectionId>>(() => new Set<SectionId>(["perfil"]));
+   581→   581→  const [autoTz] = useState(() => detectTimezone());
+   582→   582→
+   583→   583→  // Memoria: filtros + búsqueda
+   584→   584→  const [memKindFilter, setMemKindFilter] = useState<"all" | MemoryKind>("all");
+   585→   585→  const [memSearch, setMemSearch] = useState("");
+   586→   586→
+   587→   587→  // 🔴 TIER S: Personas sub-form (under Perfil). Captura name + relationship
+   588→   588→  // + birthday y llama a props.onAddPerson → addPerson reducer del store.
+   589→   589→  const [newPersonName, setNewPersonName] = useState("");
+   590→   590→  const [newPersonRelationship, setNewPersonRelationship] = useState("");
+   591→   591→  const [newPersonBirthday, setNewPersonBirthday] = useState("");
+   592→   592→
+   593→   593→  // Notificaciones: estado de permiso push
+   594→   594→  const [pushGranted, setPushGranted] = useState<NotificationPermission | "unsupported">(() => {
+   595→   595→    if (typeof Notification === "undefined") return "unsupported";
+   596→   596→    return Notification.permission;
+   597→   597→  });
+   598→   598→
+   599→   599→  // Delete-all confirmation flow (require typing ELIMINAR)
+   600→   600→  const [deleteOpen, setDeleteOpen] = useState(false);
+   601→   601→  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+   602→   602→
+   603→   603→  // Retention (local — el reducer no existe aún; se persiste en localStorage)
+   604→   604→  const [retention, setRetention] = useState<string>(
+   605→   605→    () => localStorage.getItem("koru.memoryRetentionDays") ?? "90",
+   606→   606→  );
+   607→   607→
+   608→   608→  // Integraciones (placeholder visual, persistido en localStorage)
+   609→   609→  const [integrations, setIntegrations] = useState<Record<string, { connected: boolean; lastSync?: string }>>(() => {
+   610→   610→    try {
+   611→   611→      const raw = localStorage.getItem("koru.integrations");
+   612→   612→      if (raw) return JSON.parse(raw) as Record<string, { connected: boolean; lastSync?: string }>;
+   613→   613→    } catch {
+   614→   614→      /* noop */
+   615→   615→    }
+   616→   616→    return { calendar: { connected: false }, banks: { connected: false }, crypto: { connected: false } };
+   617→   617→  });
+   618→   618→
+   619→   619→  // 🔴 Google Calendar OAuth — flag "pending" persistido en
+   620→   620→  // `koru.integrations.googleCalendar` mientras el usuario completa el flujo
+   621→   621→  // de OAuth en la pestaña abierta por getGoogleAuthUrl(). El callback real
+   622→   622→  // (redirect URI + exchangeCodeForToken) todavía no está implementado, así
+   623→   623→  // que el estado queda en "pending" hasta que el backend lo confirme.
+   624→   624→  const [googleCalendarStatus, setGoogleCalendarStatus] = useState<"idle" | "pending" | "connected">(() => {
+   625→   625→    try {
+   626→   626→      const raw = localStorage.getItem("koru.integrations");
+   627→   627→      if (raw) {
+   628→   628→        const parsed = JSON.parse(raw) as Record<string, unknown>;
+   629→   629→        const flag = parsed.googleCalendar;
+   630→   630→        if (flag === "pending" || flag === "connected") return flag;
+   631→   631→      }
+   632→   632→    } catch {
+   633→   633→      /* noop */
+   634→   634→    }
+   635→   635→    return "idle";
+   636→   636→  });
+   637→   637→
+   638→   638→  useEffect(() => {
+   639→   639→    try {
+   640→   640→      // Persistir el flag `googleCalendar` junto al resto de integraciones.
+   641→   641→      // El shape del resto (`{connected, lastSync}`) se mantiene intacto.
+   642→   642→      const raw = localStorage.getItem("koru.integrations");
+   643→   643→      const parsed: Record<string, unknown> = raw ? JSON.parse(raw) : {};
+   644→   644→      parsed.googleCalendar = googleCalendarStatus;
+   645→   645→      localStorage.setItem("koru.integrations", JSON.stringify(parsed));
+   646→   646→    } catch {
+   647→   647→      /* noop */
+   648→   648→    }
+   649→   649→  }, [googleCalendarStatus]);
+   650→   650→
+   651→   651→  useEffect(() => {
+   652→   652→    try {
+   653→   653→      // 🔴 Merge: preservar el flag `googleCalendar` (string) que se persiste
+   654→   654→      // por separado arriba. Si hacemos `JSON.stringify(integrations)` a secas,
+   655→   655→      // pisamos el campo `googleCalendar` y lo perdemos.
+   656→   656→      const raw = localStorage.getItem("koru.integrations");
+   657→   657→      const parsed: Record<string, unknown> = raw ? JSON.parse(raw) : {};
+   658→   658→      // Sobreponer el estado "vivo" de integrations (calendar/banks/crypto).
+   659→   659→      Object.assign(parsed, integrations);
+   660→   660→      // Mantener el flag googleCalendar tal cual estaba en React state.
+   661→   661→      if (googleCalendarStatus !== "idle") {
+   662→   662→        parsed.googleCalendar = googleCalendarStatus;
+   663→   663→      } else {
+   664→   664→        delete parsed.googleCalendar;
+   665→   665→      }
+   666→   666→      localStorage.setItem("koru.integrations", JSON.stringify(parsed));
+   667→   667→    } catch {
+   668→   668→      /* noop */
+   669→   669→    }
+   670→   670→    // eslint-disable-next-line react-hooks/exhaustive-deps
+   671→   671→  }, [integrations]);
+   672→   672→
+   673→   673→  useEffect(() => {
+   674→   674→    try {
+   675→   675→      localStorage.setItem("koru.memoryRetentionDays", retention);
+   676→   676→    } catch {
+   677→   677→      /* noop */
+   678→   678→    }
+   679→   679→  }, [retention]);
+   680→   680→
+   681→   681→  function toggleSection(id: SectionId) {
+   682→   682→    setExpanded((prev) => {
+   683→   683→      const next = new Set(prev);
+   684→   684→      if (next.has(id)) next.delete(id);
+   685→   685→      else next.add(id);
+   686→   686→      return next;
+   687→   687→    });
+   688→   688→  }
+   689→   689→
+   690→   690→  function requestPushPermission() {
+   691→   691→    if (typeof Notification === "undefined") return;
+   692→   692→    Notification.requestPermission().then((p) => setPushGranted(p));
+   693→   693→  }
+   694→   694→
+   695→   695→  function connectIntegration(key: "calendar" | "banks" | "crypto") {
+   696→   696→    setIntegrations((prev) => ({
+   697→   697→      ...prev,
+   698→   698→      [key]: { connected: true, lastSync: new Date().toISOString() },
+   699→   699→    }));
+   700→   700→  }
+   701→   701→
+   702→   702→  function disconnectIntegration(key: "calendar" | "banks" | "crypto") {
+   703→   703→    setIntegrations((prev) => ({ ...prev, [key]: { connected: false } }));
+   704→   704→  }
+   705→   705→
+   706→   706→  // 🔴 Google Calendar OAuth — abre la URL de autorización en una pestaña nueva
+   707→   707→  // y marca el flag `pending` en localStorage. El callback de OAuth (redirect
+   708→   708→  // URI + exchangeCodeForToken) todavía no está implementado; este handler
+   709→   709→  // solo lanza el flujo y deja el estado en "Conectando...".
+   710→   710→  async function connectGoogleCalendar() {
+   711→   711→    if (googleCalendarStatus === "pending" || googleCalendarStatus === "connected") return;
+   712→   712→    setGoogleCalendarStatus("pending");
+   713→   713→    try {
+   714→   714→      const url = getGoogleAuthUrl();
+   715→   715→      if (typeof window !== "undefined") {
+   716→   716→        window.open(url, "_blank", "noopener,noreferrer");
+   717→   717→      }
+   718→   718→    } catch (err) {
+   719→   719→      // Si falta GOOGLE_CLIENT_ID u otra env, revertimos a "idle" para que el
+   720→   720→      // usuario pueda reintentar y mostramos el error por consola.
+   721→   721→      // eslint-disable-next-line no-console
+   722→   722→      console.error("[SettingsScreen] Google Calendar auth URL falló:", err);
+   723→   723→      setGoogleCalendarStatus("idle");
+   724→   724→    }
+   725→   725→  }
+   726→   726→
+   727→   727→  function disconnectGoogleCalendar() {
+   728→   728→    setGoogleCalendarStatus("idle");
+   729→   729→    setIntegrations((prev) => ({ ...prev, calendar: { connected: false } }));
+   730→   730→  }
+   731→   731→
+   732→   732→  // Filtrado de secciones por búsqueda
+   733→   733→  const visibleSections = useMemo(() => {
+   734→   734→    const q = query.trim().toLowerCase();
+   735→   735→    if (!q) return SECTIONS;
+   736→   736→    return SECTIONS.filter((s) => {
+   737→   737→      const haystack = [s.title, s.kicker, ...s.keywords].join(" ").toLowerCase();
+   738→   738→      return haystack.includes(q);
+   739→   739→    });
+   740→   740→  }, [query]);
+   741→   741→
+   742→   742→  // Filtrado de memorias (sección 7)
+   743→   743→  const filteredMemories = useMemo<MemoryFact[]>(() => {
+   744→   744→    const q = memSearch.trim().toLowerCase();
+   745→   745→    return (state.memories ?? []).filter((m) => {
+   746→   746→      if (memKindFilter !== "all" && m.kind !== memKindFilter) return false;
+   747→   747→      if (q && !m.text.toLowerCase().includes(q)) return false;
+   748→   748→      return true;
+   749→   749→    });
+   750→   750→  }, [state.memories, memKindFilter, memSearch]);
+   751→   751→
+   752→   752→  const systemReducedMotion = prefersReducedMotion();
+   753→   753→  const reducedMotionEffective = prefs.reducedMotion || systemReducedMotion;
+   754→   754→
+   755→   755→  function handleDeleteAll() {
+   756→   756→    if (deleteConfirmText.trim().toUpperCase() !== "ELIMINAR") return;
+   757→   757→    props.onDeleteAllData();
+   758→   758→    setDeleteOpen(false);
+   759→   759→    setDeleteConfirmText("");
+   760→   760→  }
+   761→   761→
+   762→   762→  // 🔴 TIER S: handler para agregar una Person al store. Limpia el form
+   763→   763→  // después de invocar al reducer (vía props.onAddPerson). El name es
+   764→   764→  // obligatorio; relationship y birthday son opcionales.
+   765→   765→  function handleAddPerson() {
+   766→   766→    const name = newPersonName.trim();
+   767→   767→    if (!name) return;
+   768→   768→    const relationship = newPersonRelationship.trim() || undefined;
+   769→   769→    const birthday = newPersonBirthday.trim() || undefined;
+   770→   770→    props.onAddPerson?.(name, relationship, birthday);
+   771→   771→    setNewPersonName("");
+   772→   772→    setNewPersonRelationship("");
+   773→   773→    setNewPersonBirthday("");
+   774→   774→  }
+   775→   775→
+   776→   776→  return (
+   777→   777→    <div className="koru-roadmap" role="dialog" aria-label="Ajustes">
+   778→   778→      <div className="koru-roadmap-screen">
+   779→   779→        <div className="koru-roadmap-blob-1" />
+   780→   780→        <div className="koru-roadmap-blob-2" />
+   781→   781→
+   782→   782→        {/* Sticky header */}
+   783→   783→        <header
+   784→   784→          style={{
+   785→   785→            position: "sticky",
+   786→   786→            top: 0,
+   787→   787→            zIndex: 20,
+   788→   788→            display: "flex",
+   789→   789→            alignItems: "center",
+   790→   790→            justifyContent: "space-between",
+   791→   791→            gap: 12,
+   792→   792→            padding: "16px 20px 12px",
+   793→   793→            background: "linear-gradient(180deg, rgba(240,219,255,0.95) 0%, rgba(240,219,255,0.85) 70%, rgba(240,219,255,0) 100%)",
+   794→   794→            backdropFilter: "blur(8px)",
+   795→   795→            WebkitBackdropFilter: "blur(8px)",
+   796→   796→          }}
+   797→   797→        >
+   798→   798→          <div>
+   799→   799→            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: "#8127cf", letterSpacing: "-0.02em" }}>
+   800→   800→              Ajustes
+   801→   801→            </h1>
+   802→   802→            <p style={{ margin: 0, fontSize: 12, color: "#64748b" }}>Personalizá tu Koru</p>
+   803→   803→          </div>
+   804→   804→          <button
+   805→   805→            type="button"
+   806→   806→            onClick={props.onClose}
+   807→   807→            aria-label="Cerrar ajustes"
+   808→   808→            style={{
+   809→   809→              display: "flex",
+   810→   810→              width: 40,
+   811→   811→              height: 40,
+   812→   812→              alignItems: "center",
+   813→   813→              justifyContent: "center",
+   814→   814→              borderRadius: 999,
+   815→   815→              border: "1px solid rgba(255,255,255,0.7)",
+   816→   816→              background: "rgba(255,255,255,0.6)",
+   817→   817→              color: "#8127cf",
+   818→   818→              cursor: "pointer",
+   819→   819→            }}
+   820→   820→          >
+   821→   821→            <X size={18} />
+   822→   822→          </button>
+   823→   823→        </header>
+   824→   824→
+   825→   825→        {/* Search bar */}
+   826→   826→        <div style={{ padding: "0 20px 12px" }}>
+   827→   827→          <div style={{ position: "relative" }}>
+   828→   828→            <Search
+   829→   829→              size={16}
+   830→   830→              style={{
+   831→   831→                position: "absolute",
+   832→   832→                left: 12,
+   833→   833→                top: "50%",
+   834→   834→                transform: "translateY(-50%)",
+   835→   835→                color: "#94a3b8",
+   836→   836→                pointerEvents: "none",
+   837→   837→              }}
+   838→   838→            />
+   839→   839→            <input
+   840→   840→              type="text"
+   841→   841→              value={query}
+   842→   842→              onChange={(e) => setQuery(e.target.value)}
+   843→   843→              placeholder="Buscar en ajustes…"
+   844→   844→              aria-label="Buscar en ajustes"
+   845→   845→              style={{
+   846→   846→                width: "100%",
+   847→   847→                padding: "10px 12px 10px 36px",
+   848→   848→                borderRadius: 14,
+   849→   849→                border: "1px solid rgba(255,255,255,0.7)",
+   850→   850→                background: "rgba(255,255,255,0.7)",
+   851→   851→                fontSize: 14,
+   852→   852→                color: "#0b1c30",
+   853→   853→                outline: "none",
+   854→   854→              }}
+   855→   855→            />
+   856→   856→          </div>
+   857→   857→        </div>
+   858→   858→
+   859→   859→        {/* Sections */}
+   860→   860→        <div className="koru-roadmap-modules" style={{ paddingTop: 4 }}>
+   861→   861→          {visibleSections.length === 0 && (
+   862→   862→            <div
+   863→   863→              className="koru-magical-card"
+   864→   864→              style={{ textAlign: "center", color: "#64748b", fontSize: 14 }}
+   865→   865→            >
+   866→   866→              Sin resultados para “{query}”.
+   867→   867→            </div>
+   868→   868→          )}
+   869→   869→
+   870→   870→          {visibleSections.map((meta) => {
+   871→   871→            const isExpanded = expanded.has(meta.id);
+   872→   872→            return (
+   873→   873→              <SectionCard
+   874→   874→                key={meta.id}
+   875→   875→                meta={meta}
+   876→   876→                expanded={isExpanded}
+   877→   877→                onToggle={() => toggleSection(meta.id)}
+   878→   878→              >
+   879→   879→                {meta.id === "perfil" && (
+   880→   880→                  <>
+   881→   881→                    {/* 🔴 TIER S: Perfil fields commit on blur via ProfileField,
+   882→   882→                        que eventualmente invoca al reducer updateUserProfile
+   883→   883→                        (wired en App.tsx: onUpdateProfile={(p) => updateUserProfile(p)}). */}
+   884→   884→                    <ProfileField
+   885→   885→                      label="Nombre"
+   886→   886→                      value={profile.name ?? ""}
+   887→   887→                      placeholder="¿Cómo te llamás?"
+   888→   888→                      ariaLabel="Nombre"
+   889→   889→                      onCommit={(v) => props.onUpdateProfile({ name: v })}
+   890→   890→                    />
+   891→   891→                    <ProfileField
+   892→   892→                      label="Cumpleaños"
+   893→   893→                      value={profile.birthday ?? ""}
+   894→   894→                      type="date"
+   895→   895→                      ariaLabel="Cumpleaños"
+   896→   896→                      onCommit={(v) => props.onUpdateProfile({ birthday: v })}
+   897→   897→                    />
+   898→   898→                    <ProfileField
+   899→   899→                      label="Ciudad / Ubicación"
+   900→   900→                      value={profile.location ?? profile.homeCity ?? ""}
+   901→   901→                      placeholder="Ej. Buenos Aires"
+   902→   902→                      ariaLabel="Ciudad"
+   903→   903→                      onCommit={(v) =>
+   904→   904→                        props.onUpdateProfile({ location: v, homeCity: v })
+   905→   905→                      }
+   906→   906→                    />
+   907→   907→                    <Field label={`Zona horaria (detectada: ${autoTz})`}>
+   908→   908→                      <SelectInput
+   909→   909→                        value={profile.timezone && profile.timezone !== "auto" ? profile.timezone : "auto"}
+   910→   910→                        ariaLabel="Zona horaria"
+   911→   911→                        onChange={(v) =>
+   912→   912→                          props.onUpdateProfile({ timezone: v === "auto" ? autoTz : v })
+   913→   913→                        }
+   914→   914→                        options={COMMON_TIMEZONES.map((tz) => ({
+   915→   915→                          value: tz,
+   916→   916→                          label: tz === "auto" ? `Automática (${autoTz})` : tz,
+   917→   917→                        }))}
+   918→   918→                      />
+   919→   919→                    </Field>
+   920→   920→
+   921→   921→                    {/* 🔴 TIER S: Personas — sub-section under Perfil.
+   922→   922→                        Form simple: name + relationship + birthday.
+   923→   923→                        On save → props.onAddPerson → addPerson reducer.
+   924→   924→                        Lista las personas ya guardadas en state.people. */}
+   925→   925→                    <div
+   926→   926→                      style={{
+   927→   927→                        marginTop: 16,
+   928→   928→                        padding: 12,
+   929→   929→                        borderRadius: 14,
+   930→   930→                        background: "rgba(243, 232, 255, 0.45)",
+   931→   931→                        border: "1px solid rgba(129, 39, 207, 0.12)",
+   932→   932→                      }}
+   933→   933→                    >
+   934→   934→                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+   935→   935→                        <span
+   936→   936→                          className="material-symbols-outlined"
+   937→   937→                          style={{ fontSize: 18, color: "#8127cf" }}
+   938→   938→                          aria-hidden
+   939→   939→                        >
+   940→   940→                          group
+   941→   941→                        </span>
+   942→   942→                        <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#8127cf" }}>
+   943→   943→                          Personas
+   944→   944→                        </h4>
+   945→   945→                      </div>
+   946→   946→
+   947→   947→                      <Field label="Nombre">
+   948→   948→                        <TextInput
+   949→   949→                          value={newPersonName}
+   950→   950→                          onChange={setNewPersonName}
+   951→   951→                          placeholder="Ej. María González"
+   952→   952→                          ariaLabel="Nombre de la persona"
+   953→   953→                        />
+   954→   954→                      </Field>
+   955→   955→                      <Field label="Relación (opcional)">
+   956→   956→                        <TextInput
+   957→   957→                          value={newPersonRelationship}
+   958→   958→                          onChange={setNewPersonRelationship}
+   959→   959→                          placeholder="Ej. Madre / Amiga / Colega"
+   960→   960→                          ariaLabel="Relación"
+   961→   961→                        />
+   962→   962→                      </Field>
+   963→   963→                      <Field label="Cumpleaños (opcional)">
+   964→   964→                        <TextInput
+   965→   965→                          value={newPersonBirthday}
+   966→   966→                          onChange={setNewPersonBirthday}
+   967→   967→                          type="date"
+   968→   968→                          ariaLabel="Cumpleaños de la persona"
+   969→   969→                        />
+   970→   970→                      </Field>
+   971→   971→                      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+   972→   972→                        <PillButton
+   973→   973→                          variant="primary"
+   974→   974→                          onClick={handleAddPerson}
+   975→   975→                          disabled={!newPersonName.trim() || !props.onAddPerson}
+   976→   976→                        >
+   977→   977→                          <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>person_add</span>
+   978→   978→                          Agregar persona
+   979→   979→                        </PillButton>
+   980→   980→                      </div>
+   981→   981→
+   982→   982→                      {(state.people ?? []).length > 0 && (
+   983→   983→                        <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+   984→   984→                          {(state.people as Person[]).map((p) => (
+   985→   985→                            <div
+   986→   986→                              key={p.id}
+   987→   987→                              style={{
+   988→   988→                                display: "flex",
+   989→   989→                                alignItems: "center",
+   990→   990→                                justifyContent: "space-between",
+   991→   991→                                gap: 8,
+   992→   992→                                padding: "8px 10px",
+   993→   993→                                borderRadius: 10,
+   994→   994→                                background: "rgba(255,255,255,0.7)",
+   995→   995→                                border: "1px solid rgba(129, 39, 207, 0.08)",
+   996→   996→                                fontSize: 13,
+   997→   997→                                color: "#0b1c30",
+   998→   998→                              }}
+   999→   999→                            >
+  1000→  1000→                              <div style={{ minWidth: 0 }}>
+  1001→  1001→                                <div style={{ fontWeight: 600 }}>{p.name}</div>
+  1002→  1002→                                <div style={{ fontSize: 11, color: "#64748b" }}>
+  1003→  1003→                                  {[p.relationship, p.birthday].filter(Boolean).join(" · ") || "Sin detalles"}
+  1004→  1004→                                </div>
+  1005→  1005→                              </div>
+  1006→  1006→                              {p.birthday && (
+  1007→  1007→                                <span
+  1008→  1008→                                  style={{
+  1009→  1009→                                    display: "inline-flex",
+  1010→  1010→                                    alignItems: "center",
+  1011→  1011→                                    gap: 3,
+  1012→  1012→                                    padding: "2px 6px",
+  1013→  1013→                                    borderRadius: 6,
+  1014→  1014→                                    background: "#fde68a",
+  1015→  1015→                                    color: "#92400e",
+  1016→  1016→                                    fontSize: 10,
+  1017→  1017→                                    fontWeight: 700,
+  1018→  1018→                                    flexShrink: 0,
+  1019→  1019→                                  }}
+  1020→  1020→                                  title={`Cumpleaños: ${p.birthday}`}
+  1021→  1021→                                >
+  1022→  1022→                                  <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>cake</span>
+  1023→  1023→                                  {p.birthday.slice(5)}
+  1024→  1024→                                </span>
+  1025→  1025→                              )}
+  1026→  1026→                            </div>
+  1027→  1027→                          ))}
+  1028→  1028→                        </div>
+  1029→  1029→                      )}
+  1030→  1030→                    </div>
+  1031→  1031→                  </>
+  1032→  1032→                )}
+  1033→  1033→
+  1034→  1034→                {meta.id === "idioma" && (
+  1035→  1035→                  <Row label="Idioma de la interfaz y respuestas" hint="Koru te responderá en el idioma elegido.">
+  1036→  1036→                    <RadioGroup
+  1037→  1037→                      value={state.language ?? "es"}
+  1038→  1038→                      onChange={(lang) => props.onUpdateLanguage(lang)}
+  1039→  1039→                      options={[
+  1040→  1040→                        { value: "es", label: "Español" },
+  1041→  1041→                        { value: "en", label: "English" },
+  1042→  1042→                      ]}
+  1043→  1043→                    />
+  1044→  1044→                  </Row>
+  1045→  1045→                )}
+  1046→  1046→
+  1047→  1047→                {meta.id === "apariencia" && (
+  1048→  1048→                  <>
+  1049→  1049→                    <Field label="Tema">
+  1050→  1050→                      <RadioGroup
+  1051→  1051→                        value={prefs.theme}
+  1052→  1052→                        onChange={(v) => props.onUpdatePreferences({ theme: v })}
+  1053→  1053→                        options={[
+  1054→  1054→                          { value: "light", label: "Claro" },
+  1055→  1055→                          { value: "dark", label: "Oscuro", disabled: true, badge: "próximamente" },
+  1056→  1056→                          { value: "auto", label: "Automático" },
+  1057→  1057→                        ]}
+  1058→  1058→                      />
+  1059→  1059→                    </Field>
+  1060→  1060→                    <Field label="Tamaño de fuente">
+  1061→  1061→                      <RadioGroup
+  1062→  1062→                        value={prefs.fontScale}
+  1063→  1063→                        onChange={(v) => props.onUpdatePreferences({ fontScale: v })}
+  1064→  1064→                        options={[
+  1065→  1065→                          { value: "small", label: "Pequeña" },
+  1066→  1066→                          { value: "medium", label: "Mediana" },
+  1067→  1067→                          { value: "large", label: "Grande" },
+  1068→  1068→                        ]}
+  1069→  1069→                      />
+  1070→  1070→                    </Field>
+  1071→  1071→                    <Row label="Hápticos" hint="Vibración al tocar">
+  1072→  1072→                      <Toggle
+  1073→  1073→                        checked={prefs.haptics}
+  1074→  1074→                        onChange={(v) => props.onUpdatePreferences({ haptics: v })}
+  1075→  1075→                        aria-label="Hápticos"
+  1076→  1076→                      />
+  1077→  1077→                    </Row>
+  1078→  1078→                    <Row label="Sonidos" hint="Efectos de sonido de la interfaz">
+  1079→  1079→                      <Toggle
+  1080→  1080→                        checked={prefs.sounds}
+  1081→  1081→                        onChange={(v) => props.onUpdatePreferences({ sounds: v })}
+  1082→  1082→                        aria-label="Sonidos"
+  1083→  1083→                      />
+  1084→  1084→                    </Row>
+  1085→  1085→                    <Row
+  1086→  1086→                      label="Movimiento reducido"
+  1087→  1087→                      hint={
+  1088→  1088→                        systemReducedMotion
+  1089→  1089→                          ? "Tu sistema tiene activado prefers-reduced-motion."
+  1090→  1090→                          : "Reduce animaciones y transiciones."
+  1091→  1091→                      }
+  1092→  1092→                    >
+  1093→  1093→                      <Toggle
+  1094→  1094→                        checked={reducedMotionEffective}
+  1095→  1095→                        onChange={(v) => props.onUpdatePreferences({ reducedMotion: v })}
+  1096→  1096→                        aria-label="Movimiento reducido"
+  1097→  1097→                      />
+  1098→  1098→                    </Row>
+  1099→  1099→                    <Row label="Alto contraste" hint="Aumenta el contraste de textos y controles">
+  1100→  1100→                      <Toggle
+  1101→  1101→                        checked={prefs.highContrast}
+  1102→  1102→                        onChange={(v) => props.onUpdatePreferences({ highContrast: v })}
+  1103→  1103→                        aria-label="Alto contraste"
+  1104→  1104→                      />
+  1105→  1105→                    </Row>
+  1106→  1106→                  </>
+  1107→  1107→                )}
+  1108→  1108→
+  1109→  1109→                {meta.id === "notificaciones" && (
+  1110→  1110→                  <>
+  1111→  1111→                    <Row
+  1112→  1112→                      label="Notificaciones push"
+  1113→  1113→                      hint={
+  1114→  1114→                        pushGranted === "unsupported"
+  1115→  1115→                          ? "No soportadas en este dispositivo."
+  1116→  1116→                          : pushGranted === "granted"
+  1117→  1117→                          ? "Permiso concedido."
+  1118→  1118→                          : pushGranted === "denied"
+  1119→  1119→                          ? "Permiso bloqueado. Cambialo desde el navegador."
+  1120→  1120→                          : "Requiere permiso del navegador."
+  1121→  1121→                      }
+  1122→  1122→                    >
+  1123→  1123→                      {pushGranted === "default" ? (
+  1124→  1124→                        <PillButton variant="primary" onClick={requestPushPermission}>
+  1125→  1125→                          Permitir
+  1126→  1126→                        </PillButton>
+  1127→  1127→                      ) : pushGranted === "granted" ? (
+  1128→  1128→                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#16a34a", fontSize: 13, fontWeight: 600 }}>
+  1129→  1129→                          <Check size={14} /> Activas
+  1130→  1130→                        </span>
+  1131→  1131→                      ) : pushGranted === "denied" ? (
+  1132→  1132→                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#b91c1c", fontSize: 13, fontWeight: 600 }}>
+  1133→  1133→                          <AlertTriangle size={14} /> Bloqueado
+  1134→  1134→                        </span>
+  1135→  1135→                      ) : (
+  1136→  1136→                        <span style={{ color: "#64748b", fontSize: 13 }}>N/A</span>
+  1137→  1137→                      )}
+  1138→  1138→                    </Row>
+  1139→  1139→                    <Row label="Sonidos por evento" hint="Personaliza qué eventos suenan">
+  1140→  1140→                      <SelectInput
+  1141→  1141→                        value="default"
+  1142→  1142→                        ariaLabel="Sonido por evento"
+  1143→  1143→                        onChange={() => {
+  1144→  1144→                          /* placeholder — los sonidos se integran después */
+  1145→  1145→                        }}
+  1146→  1146→                        options={[
+  1147→  1147→                          { value: "default", label: "Por defecto" },
+  1148→  1148→                          { value: "gentle", label: "Suave" },
+  1149→  1149→                          { value: "chime", label: "Campana" },
+  1150→  1150→                          { value: "none", label: "Sin sonido" },
+  1151→  1151→                        ]}
+  1152→  1152→                      />
+  1153→  1153→                    </Row>
+  1154→  1154→                    <Field label="Horario No Molestar">
+  1155→  1155→                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+  1156→  1156→                        <label style={{ fontSize: 12, color: "#64748b" }}>Desde</label>
+  1157→  1157→                        <input
+  1158→  1158→                          type="number"
+  1159→  1159→                          min={0}
+  1160→  1160→                          max={23}
+  1161→  1161→                          value={prefs.dndStartHour ?? 22}
+  1162→  1162→                          onChange={(e) =>
+  1163→  1163→                            props.onUpdatePreferences({
+  1164→  1164→                              dndStartHour: Math.max(0, Math.min(23, Number(e.target.value) || 0)),
+  1165→  1165→                            })
+  1166→  1166→                          }
+  1167→  1167→                          aria-label="DND desde hora"
+  1168→  1168→                          style={{
+  1169→  1169→                            width: 64,
+  1170→  1170→                            padding: "6px 8px",
+  1171→  1171→                            borderRadius: 8,
+  1172→  1172→                            border: "1px solid #e2d4f5",
+  1173→  1173→                            background: "rgba(255,255,255,0.8)",
+  1174→  1174→                            fontSize: 14,
+  1175→  1175→                            textAlign: "center",
+  1176→  1176→                          }}
+  1177→  1177→                        />
+  1178→  1178→                        <label style={{ fontSize: 12, color: "#64748b" }}>Hasta</label>
+  1179→  1179→                        <input
+  1180→  1180→                          type="number"
+  1181→  1181→                          min={0}
+  1182→  1182→                          max={23}
+  1183→  1183→                          value={prefs.dndEndHour ?? 7}
+  1184→  1184→                          onChange={(e) =>
+  1185→  1185→                            props.onUpdatePreferences({
+  1186→  1186→                              dndEndHour: Math.max(0, Math.min(23, Number(e.target.value) || 0)),
+  1187→  1187→                            })
+  1188→  1188→                          }
+  1189→  1189→                          aria-label="DND hasta hora"
+  1190→  1190→                          style={{
+  1191→  1191→                            width: 64,
+  1192→  1192→                            padding: "6px 8px",
+  1193→  1193→                            borderRadius: 8,
+  1194→  1194→                            border: "1px solid #e2d4f5",
+  1195→  1195→                            background: "rgba(255,255,255,0.8)",
+  1196→  1196→                            fontSize: 14,
+  1197→  1197→                            textAlign: "center",
+  1198→  1198→                          }}
+  1199→  1199→                        />
+  1200→  1200→                        <span style={{ fontSize: 12, color: "#64748b" }}>hs</span>
+  1201→  1201→                      </div>
+  1202→  1202→                    </Field>
+  1203→  1203→                  </>
+  1204→  1204→                )}
+  1205→  1205→
+  1206→  1206→                {meta.id === "privacidad" && (
+  1207→  1207→                  <>
+  1208→  1208→                    <Row label="Bloqueo de la app" hint="WebAuthn / biometría">
+  1209→  1209→                      <span
+  1210→  1210→                        style={{
+  1211→  1211→                          display: "inline-flex",
+  1212→  1212→                          alignItems: "center",
+  1213→  1213→                          gap: 6,
+  1214→  1214→                          padding: "4px 10px",
+  1215→  1215→                          borderRadius: 999,
+  1216→  1216→                          background: "#fde68a",
+  1217→  1217→                          color: "#92400e",
+  1218→  1218→                          fontSize: 11,
+  1219→  1219→                          fontWeight: 700,
+  1220→  1220→                        }}
+  1221→  1221→                      >
+  1222→  1222→                        <Lock size={12} /> próximoamente
+  1223→  1223→                      </span>
+  1224→  1224→                    </Row>
+  1225→  1225→                    <Row
+  1226→  1226→                      label="Modo offline (ephemeral)"
+  1227→  1227→                      hint="No guarda nada en el servidor. La memoria se pierde al cerrar."
+  1228→  1228→                    >
+  1229→  1229→                      <Toggle
+  1230→  1230→                        checked={state.ephemeralMode}
+  1231→  1231→                        onChange={() => props.onToggleEphemeral()}
+  1232→  1232→                        aria-label="Modo offline ephemeral"
+  1233→  1233→                      />
+  1234→  1234→                    </Row>
+  1235→  1235→                    <Row
+  1236→  1236→                      label="Memoria durable"
+  1237→  1237→                      hint="Koru recordará entre sesiones."
+  1238→  1238→                    >
+  1239→  1239→                      <Toggle
+  1240→  1240→                        checked={state.durableMemoryEnabled}
+  1241→  1241→                        onChange={() => props.onToggleDurableMemory()}
+  1242→  1242→                        aria-label="Memoria durable"
+  1243→  1243→                      />
+  1244→  1244→                    </Row>
+  1245→  1245→                    <Row label="Retención de memoria" hint="Auto-archivar recuerdos antiguos">
+  1246→  1246→                      <SelectInput
+  1247→  1247→                        value={retention}
+  1248→  1248→                        ariaLabel="Retención de memoria"
+  1249→  1249→                        onChange={setRetention}
+  1250→  1250→                        options={RETENTION_OPTIONS}
+  1251→  1251→                      />
+  1252→  1252→                    </Row>
+  1253→  1253→                    <Row label="Exportar mis datos" hint="Descarga un JSON con todo tu estado" stacked>
+  1254→  1254→                      <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+  1255→  1255→                        <PillButton onClick={props.onExportData}>
+  1256→  1256→                          <Download size={14} /> Exportar
+  1257→  1257→                        </PillButton>
+  1258→  1258→                      </div>
+  1259→  1259→                    </Row>
+  1260→  1260→                    <Row label="Eliminar todos los datos" hint="Borra perfil, memorias y registros. No se puede deshacer." stacked>
+  1261→  1261→                      <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+  1262→  1262→                        <PillButton variant="danger" onClick={() => setDeleteOpen(true)}>
+  1263→  1263→                          <Trash2 size={14} /> Borrar todo
+  1264→  1264→                        </PillButton>
+  1265→  1265→                      </div>
+  1266→  1266→                    </Row>
+  1267→  1267→                  </>
+  1268→  1268→                )}
+  1269→  1269→
+  1270→  1270→                {meta.id === "integraciones" && (
+  1271→  1271→                  <>
+  1272→  1272→                    <IntegrationRow
+  1273→  1273→                      icon={<Calendar size={16} />}
+  1274→  1274→                      title="Google Calendar"
+  1275→  1275→                      connected={googleCalendarStatus === "connected" || integrations.calendar?.connected === true}
+  1276→  1276→                      lastSync={integrations.calendar?.lastSync}
+  1277→  1277→                      connecting={googleCalendarStatus === "pending"}
+  1278→  1278→                      onConnect={connectGoogleCalendar}
+  1279→  1279→                      onDisconnect={disconnectGoogleCalendar}
+  1280→  1280→                    />
+  1281→  1281→                    <IntegrationRow
+  1282→  1282→                      icon={<Landmark size={16} />}
+  1283→  1283→                      title="Bancos (Plaid / Tink)"
+  1284→  1284→                      connected={integrations.banks?.connected ?? false}
+  1285→  1285→                      lastSync={integrations.banks?.lastSync}
+  1286→  1286→                      onConnect={() => connectIntegration("banks")}
+  1287→  1287→                      onDisconnect={() => disconnectIntegration("banks")}
+  1288→  1288→                    />
+  1289→  1289→                    <IntegrationRow
+  1290→  1290→                      icon={<Bitcoin size={16} />}
+  1291→  1291→                      title="Exchanges de crypto"
+  1292→  1292→                      connected={integrations.crypto?.connected ?? false}
+  1293→  1293→                      lastSync={integrations.crypto?.lastSync}
+  1294→  1294→                      onConnect={() => connectIntegration("crypto")}
+  1295→  1295→                      onDisconnect={() => disconnectIntegration("crypto")}
+  1296→  1296→                    />
+  1297→  1297→                    <p style={{ margin: "10px 0 0", fontSize: 11, color: "#94a3b8" }}>
+  1298→  1298→                      Las conexiones son placeholders visuales por ahora. La sincronización real
+  1299→  1299→                      arriveá con OAuth en una próxima iteración.
+  1300→  1300→                    </p>
+  1301→  1301→                  </>
+  1302→  1302→                )}
+  1303→  1303→
+  1304→  1304→                {meta.id === "memoria" && (
+  1305→  1305→                  <>
+  1306→  1306→                    <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+  1307→  1307→                      <div style={{ position: "relative", flex: "1 1 160px", minWidth: 160 }}>
+  1308→  1308→                        <Search
+  1309→  1309→                          size={14}
+  1310→  1310→                          style={{
+  1311→  1311→                            position: "absolute",
+  1312→  1312→                            left: 10,
+  1313→  1313→                            top: "50%",
+  1314→  1314→                            transform: "translateY(-50%)",
+  1315→  1315→                            color: "#94a3b8",
+  1316→  1316→                            pointerEvents: "none",
+  1317→  1317→                          }}
+  1318→  1318→                        />
+  1319→  1319→                        <input
+  1320→  1320→                          type="text"
+  1321→  1321→                          value={memSearch}
+  1322→  1322→                          onChange={(e) => setMemSearch(e.target.value)}
+  1323→  1323→                          placeholder="Buscar memoria…"
+  1324→  1324→                          aria-label="Buscar memoria"
+  1325→  1325→                          style={{
+  1326→  1326→                            width: "100%",
+  1327→  1327→                            padding: "8px 10px 8px 30px",
+  1328→  1328→                            borderRadius: 10,
+  1329→  1329→                            border: "1px solid #e2d4f5",
+  1330→  1330→                            background: "rgba(255,255,255,0.8)",
+  1331→  1331→                            fontSize: 13,
+  1332→  1332→                            outline: "none",
+  1333→  1333→                          }}
+  1334→  1334→                        />
+  1335→  1335→                      </div>
+  1336→  1336→                      <SelectInput
+  1337→  1337→                        value={memKindFilter}
+  1338→  1338→                        ariaLabel="Filtrar por tipo"
+  1339→  1339→                        onChange={setMemKindFilter}
+  1340→  1340→                        options={MEMORY_KIND_FILTERS}
+  1341→  1341→                      />
+  1342→  1342→                    </div>
+  1343→  1343→
+  1344→  1344→                    <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 320, overflowY: "auto", paddingRight: 4 }}>
+  1345→  1345→                      {filteredMemories.length === 0 && (
+  1346→  1346→                        <div style={{ padding: 16, textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
+  1347→  1347→                          {state.memories.length === 0 ? "Koru todavía no registró memorias." : "Sin memorias para este filtro."}
+  1348→  1348→                        </div>
+  1349→  1349→                      )}
+  1350→  1350→                      {filteredMemories.map((m) => (
+  1351→  1351→                        <MemoryRow
+  1352→  1352→                          key={m.id}
+  1353→  1353→                          memory={m}
+  1354→  1354→                          onForget={() => props.onForgetMemory(m.id)}
+  1355→  1355→                        />
+  1356→  1356→                      ))}
+  1357→  1357→                    </div>
+  1358→  1358→                    <p style={{ margin: "10px 0 0", fontSize: 11, color: "#94a3b8" }}>
+  1359→  1359→                      {filteredMemories.length} de {state.memories.length} memorias
+  1360→  1360→                    </p>
+  1361→  1361→                  </>
+  1362→  1362→                )}
+  1363→  1363→
+  1364→  1364→                {meta.id === "accesibilidad" && (
+  1365→  1365→                  <>
+  1366→  1366→                    <Row label="Hints para lector de pantalla" hint="Descripciones adicionales en ARIA">
+  1367→  1367→                      <Toggle
+  1368→  1368→                        checked={prefs.highContrast}
+  1369→  1369→                        onChange={(v) => props.onUpdatePreferences({ highContrast: v })}
+  1370→  1370→                        aria-label="Hints para lector de pantalla"
+  1371→  1371→                      />
+  1372→  1372→                    </Row>
+  1373→  1373→                    <Row
+  1374→  1374→                      label="Movimiento reducido"
+  1375→  1375→                      hint={systemReducedMotion ? "Activado por tu sistema." : "Sincronizado con Apariencia."}
+  1376→  1376→                    >
+  1377→  1377→                      <Toggle
+  1378→  1378→                        checked={reducedMotionEffective}
+  1379→  1379→                        onChange={(v) => props.onUpdatePreferences({ reducedMotion: v })}
+  1380→  1380→                        aria-label="Movimiento reducido"
+  1381→  1381→                      />
+  1382→  1382→                    </Row>
+  1383→  1383→                    <Row
+  1384→  1384→                      label="Alto contraste"
+  1385→  1385→                      hint="Sincronizado con Apariencia."
+  1386→  1386→                    >
+  1387→  1387→                      <Toggle
+  1388→  1388→                        checked={prefs.highContrast}
+  1389→  1389→                        onChange={(v) => props.onUpdatePreferences({ highContrast: v })}
+  1390→  1390→                        aria-label="Alto contraste"
+  1391→  1391→                      />
+  1392→  1392→                    </Row>
+  1393→  1393→                    <div
+  1394→  1394→                      style={{
+  1395→  1395→                        marginTop: 12,
+  1396→  1396→                        padding: 12,
+  1397→  1397→                        borderRadius: 12,
+  1398→  1398→                        background: "rgba(255,255,255,0.5)",
+  1399→  1399→                        border: "1px solid rgba(13,148,136,0.15)",
+  1400→  1400→                        fontSize: 12,
+  1401→  1401→                        color: "#0f766e",
+  1402→  1402→                        lineHeight: 1.5,
+  1403→  1403→                      }}
+  1404→  1404→                    >
+  1405→  1405→                      <strong>Navegación por teclado:</strong> Tab / Shift+Tab para moverte entre
+  1406→  1406→                      controles · Enter o Espacio para activar · Esc para cerrar dialogs.
+  1407→  1407→                    </div>
+  1408→  1408→                  </>
+  1409→  1409→                )}
+  1410→  1410→              </SectionCard>
+  1411→  1411→            );
+  1412→  1412→          })}
+  1413→  1413→
+  1414→  1414→          {/* Footer hint */}
+  1415→  1415→          <div style={{ padding: "8px 4px 16px", textAlign: "center", color: "#94a3b8", fontSize: 11 }}>
+  1416→  1416→            Koru · Ajustes integrados v1
+  1417→  1417→          </div>
+  1418→  1418→        </div>
+  1419→  1419→
+  1420→  1420→        {/* Delete-all confirmation — requiere tipear ELIMINAR */}
+  1421→  1421→        {deleteOpen && (
+  1422→  1422→          <div
+  1423→  1423→            role="dialog"
+  1424→  1424→            aria-label="Confirmar eliminación"
+  1425→  1425→            style={{
+  1426→  1426→              position: "fixed",
+  1427→  1427→              inset: 0,
+  1428→  1428→              zIndex: 250,
+  1429→  1429→              display: "flex",
+  1430→  1430→              alignItems: "center",
+  1431→  1431→              justifyContent: "center",
+  1432→  1432→              padding: 20,
+  1433→  1433→              background: "rgba(11, 28, 48, 0.55)",
+  1434→  1434→              backdropFilter: "blur(4px)",
+  1435→  1435→            }}
+  1436→  1436→          >
+  1437→  1437→            <div
+  1438→  1438→              style={{
+  1439→  1439→                width: "100%",
+  1440→  1440→                maxWidth: 360,
+  1441→  1441→                padding: 20,
+  1442→  1442→                borderRadius: 20,
+  1443→  1443→                background: "#ffffff",
+  1444→  1444→                boxShadow: "0 24px 60px rgba(129, 39, 207, 0.25)",
+  1445→  1445→              }}
+  1446→  1446→            >
+  1447→  1447→              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, color: "#b91c1c" }}>
+  1448→  1448→                <AlertTriangle size={18} />
+  1449→  1449→                <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800 }}>Acción destructiva</h3>
+  1450→  1450→              </div>
+  1451→  1451→              <p style={{ margin: "0 0 12px", fontSize: 13, color: "#475569", lineHeight: 1.5 }}>
+  1452→  1452→                Esto borrará tu perfil, todas tus memorias, compromisos y registros. No se puede
+  1453→  1453→                deshacer. Para confirmar, escribí <strong>ELIMINAR</strong>:
+  1454→  1454→              </p>
+  1455→  1455→              <input
+  1456→  1456→                type="text"
+  1457→  1457→                value={deleteConfirmText}
+  1458→  1458→                onChange={(e) => setDeleteConfirmText(e.target.value)}
+  1459→  1459→                placeholder="ELIMINAR"
+  1460→  1460→                aria-label="Escribí ELIMINAR para confirmar"
+  1461→  1461→                autoFocus
+  1462→  1462→                style={{
+  1463→  1463→                  width: "100%",
+  1464→  1464→                  padding: "10px 12px",
+  1465→  1465→                  borderRadius: 10,
+  1466→  1466→                  border: "1px solid #fecaca",
+  1467→  1467→                  background: "#fef2f2",
+  1468→  1468→                  fontSize: 14,
+  1469→  1469→                  color: "#0b1c30",
+  1470→  1470→                  outline: "none",
+  1471→  1471→                  letterSpacing: "0.05em",
+  1472→  1472→                }}
+  1473→  1473→              />
+  1474→  1474→              <div style={{ display: "flex", gap: 8, marginTop: 14, justifyContent: "flex-end" }}>
+  1475→  1475→                <PillButton
+  1476→  1476→                  onClick={() => {
+  1477→  1477→                    setDeleteOpen(false);
+  1478→  1478→                    setDeleteConfirmText("");
+  1479→  1479→                  }}
+  1480→  1480→                >
+  1481→  1481→                  Cancelar
+  1482→  1482→                </PillButton>
+  1483→  1483→                <PillButton
+  1484→  1484→                  variant="danger"
+  1485→  1485→                  disabled={deleteConfirmText.trim().toUpperCase() !== "ELIMINAR"}
+  1486→  1486→                  onClick={handleDeleteAll}
+  1487→  1487→                >
+  1488→  1488→                  <Trash2 size={14} /> Eliminar todo
+  1489→  1489→                </PillButton>
+  1490→  1490→              </div>
+  1491→  1491→            </div>
+  1492→  1492→          </div>
+  1493→  1493→        )}
+  1494→  1494→      </div>
+  1495→  1495→    </div>
+  1496→  1496→  );
+  1497→  1497→}
+  1498→  1498→
+  1499→  1499→// ─── Sub-rows específicas ──────────────────────────────────────────────────────
+  1500→  1500→
+  1501→  1501→function IntegrationRow({
+  1502→  1502→  icon,
+  1503→  1503→  title,
+  1504→  1504→  connected,
+  1505→  1505→  lastSync,
+  1506→  1506→  connecting,
+  1507→  1507→  onConnect,
+  1508→  1508→  onDisconnect,
+  1509→  1509→}: {
+  1510→  1510→  icon: ReactNode;
+  1511→  1511→  title: string;
+  1512→  1512→  connected: boolean;
+  1513→  1513→  lastSync?: string;
+  1514→  1514→  connecting?: boolean;
+  1515→  1515→  onConnect: () => void;
+  1516→  1516→  onDisconnect: () => void;
+  1517→  1517→}) {
+  1518→  1518→  return (
+  1519→  1519→    <div
+  1520→  1520→      style={{
+  1521→  1521→        display: "flex",
+  1522→  1522→        alignItems: "center",
+  1523→  1523→        justifyContent: "space-between",
+  1524→  1524→        gap: 10,
+  1525→  1525→        padding: "12px 0",
+  1526→  1526→        borderBottom: "1px solid rgba(129, 39, 207, 0.08)",
+  1527→  1527→      }}
+  1528→  1528→    >
+  1529→  1529→      <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+  1530→  1530→        <div
+  1531→  1531→          style={{
+  1532→  1532→            display: "flex",
+  1533→  1533→            width: 34,
+  1534→  1534→            height: 34,
+  1535→  1535→            alignItems: "center",
+  1536→  1536→            justifyContent: "center",
+  1537→  1537→            borderRadius: 10,
+  1538→  1538→            background: connected ? "#dcfce7" : "#f1f5f9",
+  1539→  1539→            color: connected ? "#16a34a" : "#475569",
+  1540→  1540→          }}
+  1541→  1541→        >
+  1542→  1542→          {icon}
+  1543→  1543→        </div>
+  1544→  1544→        <div style={{ minWidth: 0 }}>
+  1545→  1545→          <div style={{ fontSize: 14, fontWeight: 600, color: "#0b1c30" }}>{title}</div>
+  1546→  1546→          <div style={{ fontSize: 11, color: "#94a3b8" }}>
+  1547→  1547→            {connected
+  1548→  1548→              ? lastSync
+  1549→  1549→                ? `Última sync: ${formatLastSync(lastSync)}`
+  1550→  1550→                : "Conectado"
+  1551→  1551→              : connecting
+  1552→  1552→                ? "Conectando…"
+  1553→  1553→                : "No conectado"}
+  1554→  1554→          </div>
+  1555→  1555→        </div>
+  1556→  1556→      </div>
+  1557→  1557→      {connected ? (
+  1558→  1558→        <PillButton onClick={onDisconnect} variant="ghost">
+  1559→  1559→          <Check size={14} /> Desconectar
+  1560→  1560→        </PillButton>
+  1561→  1561→      ) : connecting ? (
+  1562→  1562→        <PillButton onClick={onConnect} variant="primary" disabled>
+  1563→  1563→          Conectando…
+  1564→  1564→        </PillButton>
+  1565→  1565→      ) : (
+  1566→  1566→        <PillButton onClick={onConnect} variant="primary">
+  1567→  1567→          Conectar
+  1568→  1568→        </PillButton>
+  1569→  1569→      )}
+  1570→  1570→    </div>
+  1571→  1571→  );
+  1572→  1572→}
+  1573→  1573→
+  1574→  1574→function MemoryRow({
+  1575→  1575→  memory,
+  1576→  1576→  onForget,
+  1577→  1577→}: {
+  1578→  1578→  memory: MemoryFact;
+  1579→  1579→  onForget: () => void;
+  1580→  1580→}) {
+  1581→  1581→  const isSensitive = memory.sensitivity === "sensitive";
+  1582→  1582→  const confidencePct = Math.round((memory.confidence ?? 0) * 100);
+  1583→  1583→  return (
+  1584→  1584→    <div
+  1585→  1585→      style={{
+  1586→  1586→        padding: 10,
+  1587→  1587→        borderRadius: 12,
+  1588→  1588→        background: "rgba(255,255,255,0.6)",
+  1589→  1589→        border: "1px solid rgba(129, 39, 207, 0.06)",
+  1590→  1590→      }}
+  1591→  1591→    >
+  1592→  1592→      <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+  1593→  1593→        <div style={{ flex: "1 1 auto", minWidth: 0 }}>
+  1594→  1594→          <p style={{ margin: 0, fontSize: 13, color: "#0b1c30", lineHeight: 1.4 }}>
+  1595→  1595→            {truncate(memory.text, 110)}
+  1596→  1596→          </p>
+  1597→  1597→          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6, marginTop: 6 }}>
+  1598→  1598→            <span
+  1599→  1599→              style={{
+  1600→  1600→                padding: "2px 8px",
+  1601→  1601→                borderRadius: 6,
+  1602→  1602→                background: "#ede9fe",
+  1603→  1603→                color: "#7c3aed",
+  1604→  1604→                fontSize: 10,
+  1605→  1605→                fontWeight: 700,
+  1606→  1606→                textTransform: "uppercase",
+  1607→  1607→                letterSpacing: 0.4,
+  1608→  1608→              }}
+  1609→  1609→            >
+  1610→  1610→              {MEMORY_KIND_LABEL[memory.kind]}
+  1611→  1611→            </span>
+  1612→  1612→            <span
+  1613→  1613→              style={{
+  1614→  1614→                padding: "2px 8px",
+  1615→  1615→                borderRadius: 6,
+  1616→  1616→                background: confidencePct >= 80 ? "#dcfce7" : confidencePct >= 50 ? "#fef9c3" : "#fee2e2",
+  1617→  1617→                color: confidencePct >= 80 ? "#15803d" : confidencePct >= 50 ? "#a16207" : "#b91c1c",
+  1618→  1618→                fontSize: 10,
+  1619→  1619→                fontWeight: 700,
+  1620→  1620→              }}
+  1621→  1621→            >
+  1622→  1622→              {confidencePct}%
+  1623→  1623→            </span>
+  1624→  1624→            {isSensitive && (
+  1625→  1625→              <span
+  1626→  1626→                title="Sensible"
+  1627→  1627→                style={{
+  1628→  1628→                  display: "inline-flex",
+  1629→  1629→                  alignItems: "center",
+  1630→  1630→                  gap: 3,
+  1631→  1631→                  padding: "2px 6px",
+  1632→  1632→                  borderRadius: 6,
+  1633→  1633→                  background: "#fce7f3",
+  1634→  1634→                  color: "#be185d",
+  1635→  1635→                  fontSize: 10,
+  1636→  1636→                  fontWeight: 700,
+  1637→  1637→                }}
+  1638→  1638→              >
+  1639→  1639→                <Lock size={10} /> Sensible
+  1640→  1640→              </span>
+  1641→  1641→            )}
+  1642→  1642→          </div>
+  1643→  1643→        </div>
+  1644→  1644→        <button
+  1645→  1645→          type="button"
+  1646→  1646→          onClick={onForget}
+  1647→  1647→          aria-label={`Olvidar memoria: ${truncate(memory.text, 40)}`}
+  1648→  1648→          style={{
+  1649→  1649→            display: "inline-flex",
+  1650→  1650→            alignItems: "center",
+  1651→  1651→            gap: 4,
+  1652→  1652→            padding: "6px 10px",
+  1653→  1653→            borderRadius: 8,
+  1654→  1654→            border: "1px solid #fecaca",
+  1655→  1655→            background: "#fef2f2",
+  1656→  1656→            color: "#b91c1c",
+  1657→  1657→            fontSize: 12,
+  1658→  1658→            fontWeight: 600,
+  1659→  1659→            cursor: "pointer",
+  1660→  1660→            flexShrink: 0,
+  1661→  1661→          }}
+  1662→  1662→        >
+  1663→  1663→          <CloudOff size={12} /> Olvidar
+  1664→  1664→        </button>
+  1665→  1665→      </div>
+  1666→  1666→    </div>
+  1667→  1667→  );
+  1668→  1668→}
+  1669→  1669→
+  1670→  1670→
+  1671→  1671→

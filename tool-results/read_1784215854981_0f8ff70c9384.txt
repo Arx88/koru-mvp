@@ -1,0 +1,642 @@
+     1→     1→// FIX: Vite patchea global.fetch. Restaurar fetch nativo de Node.js antes de cualquier otra cosa.
+     2→     2→try { const undici = eval("require")("undici"); globalThis.fetch = undici.fetch; } catch {}
+     3→     3→
+     4→     4→/**
+     5→     5→ * Fase 3.11 — Backend Express independiente de Vite.
+     6→     6→ *
+     7→     7→ * Extrae los middlewares de koruBackend del vite.config.ts a un proceso
+     8→     8→ * Express independiente, habilitando deploy a Railway/Fly.io.
+     9→     9→ *
+    10→    10→ * Uso:
+    11→    11→ *   npm run server  → arranca en puerto 3001
+    12→    12→ *   npm run dev     → arranca Vite en :3000 (dev server con HMR)
+    13→    13→ *
+    14→    14→ * En producción:
+    15→    15→ *   - Frontend: Vercel/Netlify (sirve dist/)
+    16→    16→ *   - Backend: Railway/Fly.io (este archivo)
+    17→    17→ *   - Frontend hace fetch a BACKEND_URL (env var)
+    18→    18→ */
+    19→    19→import http from "node:http";
+    20→    20→import { readFileSync, existsSync } from "node:fs";
+    21→    21→import { join, dirname } from "node:path";
+    22→    22→import { fileURLToPath } from "node:url";
+    23→    23→import { runKoruBackendTurn, type KoruBackendTurnRequest, type ProviderConfig } from "../src/server/koruBackend.ts";
+    24→    24→
+    25→    25→const __dirname = dirname(fileURLToPath(import.meta.url));
+    26→    26→// Si estamos corriendo desde server-bundle.mjs, __dirname es la raíz del proyecto.
+    27→    27→// Si desde server/index.ts, es server/. En ambos casos, dist/ está en la raíz.
+    28→    28→const PROJECT_ROOT = existsSync(join(__dirname, "dist")) ? __dirname : join(__dirname, "..");
+    29→    29→const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
+    30→    30→
+    31→    31→// Load .env manually (no dotenv dependency)
+    32→    32→function loadEnv() {
+    33→    33→  const envPath = join(PROJECT_ROOT, ".env");
+    34→    34→  if (!existsSync(envPath)) return;
+    35→    35→  const content = readFileSync(envPath, "utf8");
+    36→    36→  for (const line of content.split("\n")) {
+    37→    37→    const trimmed = line.trim();
+    38→    38→    if (!trimmed || trimmed.startsWith("#")) continue;
+    39→    39→    const eqIdx = trimmed.indexOf("=");
+    40→    40→    if (eqIdx === -1) continue;
+    41→    41→    const key = trimmed.slice(0, eqIdx).trim();
+    42→    42→    const value = trimmed.slice(eqIdx + 1).trim();
+    43→    43→    if (!process.env[key]) process.env[key] = value;
+    44→    44→  }
+    45→    45→}
+    46→    46→loadEnv();
+    47→    47→
+    48→    48→// Build ProviderConfig from env
+    49→    49→function buildConfig() {
+    50→    50→  const env = process.env;
+    51→    51→  return {
+    52→    52→    nvidiaApiKey: env.NVIDIA_API_KEY?.trim(),
+    53→    53→    nvidiaBaseUrl: env.NVIDIA_BASE_URL?.trim() || "https://integrate.api.nvidia.com",
+    54→    54→    nvidiaModel: env.NVIDIA_MODEL?.trim() || "nvidia/nemotron-3-ultra-550b-a55b",
+    55→    55→    nvidiaFastModel: (env.NVIDIA_FAST_MODEL && !env.NVIDIA_FAST_MODEL.includes("stepfun") && !env.NVIDIA_FAST_MODEL.includes("nemotron-3-nano") && !env.NVIDIA_FAST_MODEL.includes("llama-3.1-8b")) ? env.NVIDIA_FAST_MODEL.trim() : "nvidia/nemotron-3-ultra-550b-a55b",
+    56→    56→    nvidiaMediumModel: env.NVIDIA_MEDIUM_MODEL?.trim(),
+    57→    57→    openRouterKeys: [env.OPENROUTER_API_KEY, env.OPENROUTER_FALLBACK_API_KEYS]
+    58→    58→      .filter(Boolean)
+    59→    59→      .flatMap((v) => v!.split(","))
+    60→    60→      .map((v) => v.trim())
+    61→    61→      .filter(Boolean),
+    62→    62→    openRouterModels: (env.OPENROUTER_FALLBACK_MODELS || "")
+    63→    63→      .split(",")
+    64→    64→      .map((v) => v.trim())
+    65→    65→      .filter(Boolean),
+    66→    66→    minimaxAccessToken: env.MINIMAX_ACCESS_TOKEN?.trim(),
+    67→    67→    ollamaEmbedBaseUrl: env.OLLAMA_EMBED_BASE_URL?.trim() || undefined,
+    68→    68→  };
+    69→    69→}
+    70→    70→
+    71→    71→const config = buildConfig();
+    72→    72→
+    73→    73→// Helper: read body as string
+    74→    74→async function readBody(req: http.IncomingMessage): Promise<string> {
+    75→    75→  const chunks: Buffer[] = [];
+    76→    76→  for await (const chunk of req) chunks.push(Buffer.from(chunk as Buffer));
+    77→    77→  return Buffer.concat(chunks).toString("utf8");
+    78→    78→}
+    79→    79→
+    80→    80→// Helper: send JSON
+    81→    81→function sendJson(res: http.ServerResponse, status: number, data: unknown) {
+    82→    82→  res.writeHead(status, {
+    83→    83→    "Content-Type": "application/json",
+    84→    84→    "Access-Control-Allow-Origin": "*",
+    85→    85→    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    86→    86→    "Access-Control-Allow-Headers": "Content-Type",
+    87→    87→  });
+    88→    88→  res.end(JSON.stringify(data));
+    89→    89→}
+    90→    90→
+    91→    91→const server = http.createServer(async (req, res) => {
+    92→    92→  // CORS preflight
+    93→    93→  if (req.method === "OPTIONS") {
+    94→    94→    res.writeHead(204, {
+    95→    95→      "Access-Control-Allow-Origin": "*",
+    96→    96→      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    97→    97→      "Access-Control-Allow-Headers": "Content-Type",
+    98→    98→    });
+    99→    99→    res.end();
+   100→   100→    return;
+   101→   101→  }
+   102→   102→
+   103→   103→  const url = req.url ?? "";
+   104→   104→
+   105→   105→  // ── Health check ──────────────────────────────────────────────
+   106→   106→  if (url.startsWith("/api/health") && req.method === "GET") {
+   107→   107→    sendJson(res, 200, {
+   108→   108→      status: "ok",
+   109→   109→      service: "koru-backend",
+   110→   110→      provider: config.nvidiaApiKey ? "nvidia" : "none",
+   111→   111→      model: config.nvidiaModel,
+   112→   112→      timestamp: new Date().toISOString(),
+   113→   113→    });
+   114→   114→    return;
+   115→   115→  }
+   116→   116→
+   117→   117→  // ── /api/koru/models ──────────────────────────────────────────
+   118→   118→  if (url.startsWith("/api/koru/models") && req.method === "GET") {
+   119→   119→    const predefined: Array<{ id: string; provider: string; label: string }> = [];
+   120→   120→    if (config.nvidiaApiKey) {
+   121→   121→      predefined.push({ id: config.nvidiaModel, provider: "nvidia", label: "NVIDIA Nemotron 3 Ultra" });
+   122→   122→    }
+   123→   123→    for (const m of config.openRouterModels) {
+   124→   124→      predefined.push({ id: m, provider: "openrouter", label: m });
+   125→   125→    }
+   126→   126→    sendJson(res, 200, { models: predefined });
+   127→   127→    return;
+   128→   128→  }
+   129→   129→
+   130→   130→  // ── /api/koru/vlm (análisis de imágenes con VLM) ─────────────
+   131→   131→  if (url === "/api/koru/vlm" && req.method === "POST") {
+   132→   132→    try {
+   133→   133→      const raw = await readBody(req);
+   134→   134→      const body = JSON.parse(raw || "{}");
+   135→   135→      if (!body.image_base64) {
+   136→   136→        sendJson(res, 400, { error: "Falta image_base64" });
+   137→   137→        return;
+   138→   138→      }
+   139→   139→      const { default: ZAI } = await import("z-ai-web-dev-sdk");
+   140→   140→      const zai = await ZAI.create();
+   141→   141→      const prompt = body.prompt || "Extraé todo el texto visible en la imagen, preservando estructura. Si no hay texto, describí qué se ve.";
+   142→   142→      const response = await zai.chat.completions.createVision({
+   143→   143→        messages: [{
+   144→   144→          role: "user",
+   145→   145→          content: [
+   146→   146→            { type: "text", text: prompt },
+   147→   147→            { type: "image_url", image_url: { url: `data:image/jpeg;base64,${body.image_base64}` } },
+   148→   148→          ],
+   149→   149→        }],
+   150→   150→        thinking: { type: "disabled" },
+   151→   151→      });
+   152→   152→      const text = response.choices?.[0]?.message?.content ?? "";
+   153→   153→      sendJson(res, 200, { text });
+   154→   154→    } catch (err: any) {
+   155→   155→      console.error("[koru-vlm]", err?.message);
+   156→   156→      sendJson(res, 500, { error: err?.message ?? "Error de VLM" });
+   157→   157→    }
+   158→   158→    return;
+   159→   159→  }
+   160→   160→
+   161→   161→  // ── /api/koru/asr (transcripción de audio) ───────────────────
+   162→   162→  if (url === "/api/koru/asr" && req.method === "POST") {
+   163→   163→    try {
+   164→   164→      const raw = await readBody(req);
+   165→   165→      const body = JSON.parse(raw || "{}");
+   166→   166→      if (!body.audio_base64) {
+   167→   167→        sendJson(res, 400, { error: "Falta audio_base64" });
+   168→   168→        return;
+   169→   169→      }
+   170→   170→      const { default: ZAI } = await import("z-ai-web-dev-sdk");
+   171→   171→      const zai = await ZAI.create();
+   172→   172→      const response = await zai.audio.asr.create({ file_base64: body.audio_base64 });
+   173→   173→      sendJson(res, 200, { text: response.text ?? "" });
+   174→   174→    } catch (err: any) {
+   175→   175→      console.error("[koru-asr]", err?.message);
+   176→   176→      sendJson(res, 500, { error: err?.message ?? "Error de ASR" });
+   177→   177→    }
+   178→   178→    return;
+   179→   179→  }
+   180→   180→
+   181→   181→  // ── /api/koru/turn (chat principal con NDJSON streaming) ─────
+   182→   182→  if (url.startsWith("/api/koru/turn") && req.method === "POST") {
+   183→   183→    try {
+   184→   184→      const raw = await readBody(req);
+   185→   185→      const request = JSON.parse(raw || "{}");
+   186→   186→      if (!request.input?.trim() || !request.state || !Array.isArray(request.history)) {
+   187→   187→        sendJson(res, 400, { error: "Payload incompleto para /api/koru/turn." });
+   188→   188→        return;
+   189→   189→      }
+   190→   190→
+   191→   191→      // SIEMPRE usar streaming con heartbeat para evitar timeout de Render (30s)
+   192→   192→      // El heartbeat envía un chunk vacío cada 5s para mantener viva la conexión
+   193→   193→      res.writeHead(200, {
+   194→   194→        "Content-Type": "application/x-ndjson",
+   195→   195→        "Cache-Control": "no-cache",
+   196→   196→        "Connection": "keep-alive",
+   197→   197→        "Access-Control-Allow-Origin": "*",
+   198→   198→        "X-Accel-Buffering": "no", // Render/nginx: no buffer
+   199→   199→      });
+   200→   200→
+   201→   201→      // Heartbeat: cada 5s enviar un comentario para mantener la conexión
+   202→   202→      const heartbeat = setInterval(() => {
+   203→   203→        try { res.write("\n"); } catch {}
+   204→   204→      }, 5000);
+   205→   205→
+   206→   206→      const onChunk = (chunk: any) => {
+   207→   207→        try { res.write(JSON.stringify(chunk) + "\n"); } catch {}
+   208→   208→      };
+   209→   209→
+   210→   210→      try {
+   211→   211→        const result = await runKoruBackendTurn(request, config as any, onChunk);
+   212→   212→        clearInterval(heartbeat);
+   213→   213→        try { res.write(JSON.stringify(result) + "\n"); } catch {}
+   214→   214→      } catch (err: any) {
+   215→   215→        clearInterval(heartbeat);
+   216→   216→        const errorResponse = {
+   217→   217→          error: err?.message ?? "Error interno",
+   218→   218→          reply: "No pude procesar tu mensaje. El modelo no respondió a tiempo.",
+   219→   219→          uiBlocks: [],
+   220→   220→          suggestedActions: [],
+   221→   221→          understanding: { literalRequest: "", userGoal: "error", unstatedNeeds: [], assumptions: [], confidence: 0 },
+   222→   222→          memoryCandidates: [], commitments: [], records: [], toolResults: [],
+   223→   223→          stateEvents: [{ kind: "done" as const, label: "Error" }],
+   224→   224→          mascotState: "tired",
+   225→   225→          provider: "nvidia",
+   226→   226→          fallbackReason: "server-error",
+   227→   227→        };
+   228→   228→        try { res.write(JSON.stringify(errorResponse) + "\n"); } catch {}
+   229→   229→      }
+   230→   230→      res.end();
+   231→   231→    } catch (err: any) {
+   232→   232→      console.error("[koru-turn]", err?.message);
+   233→   233→      sendJson(res, 500, { error: err?.message ?? "Error interno" });
+   234→   234→    }
+   235→   235→    return;
+   236→   236→  }
+   237→   237→
+   238→   238→  // ── /api/debug/weather — debug weather fetch ────────────────
+   239→   239→  if (url.startsWith("/api/debug/weather") && req.method === "GET") {
+   240→   240→    try {
+   241→   241→      const city = new URL(req.url ?? "", "http://localhost").searchParams.get("city") || "Valencia";
+   242→   242→      console.log("[debug/weather] Testing city:", city);
+   243→   243→
+   244→   244→      // Step 1: Geocode
+   245→   245→      const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&format=json`;
+   246→   246→      console.log("[debug/weather] Geocoding:", geoUrl);
+   247→   247→      const geoRes = await globalThis.fetch(geoUrl, { signal: AbortSignal.timeout(15000) });
+   248→   248→      console.log("[debug/weather] Geo status:", geoRes.status);
+   249→   249→      const geoData = await geoRes.json() as any;
+   250→   250→      const geo = geoData.results?.[0];
+   251→   251→      if (!geo) {
+   252→   252→        sendJson(res, 200, { error: "Geocode failed", geoStatus: geoRes.status, geoData: JSON.stringify(geoData).slice(0, 200) });
+   253→   253→        return;
+   254→   254→      }
+   255→   255→      console.log("[debug/weather] Geo result:", geo.name, geo.latitude, geo.longitude);
+   256→   256→
+   257→   257→      // Step 2: Weather — try wttr.in first (no rate limits), then open-meteo
+   258→   258→      let temp: number | undefined;
+   259→   259→      let wind: number | undefined;
+   260→   260→      let max: number | undefined;
+   261→   261→      let min: number | undefined;
+   262→   262→      let rain: number | undefined;
+   263→   263→      let desc: string | undefined;
+   264→   264→      let source: string = "unknown";
+   265→   265→
+   266→   266→      // Try wttr.in (no rate limits, no API key)
+   267→   267→      try {
+   268→   268→        const wttrUrl = `https://wttr.in/${encodeURIComponent(geo.name)}?format=j1`;
+   269→   269→        console.log("[debug/weather] wttr.in:", wttrUrl);
+   270→   270→        const wttrRes = await globalThis.fetch(wttrUrl, { signal: AbortSignal.timeout(15000), headers: { "Accept": "application/json" } });
+   271→   271→        if (wttrRes.ok) {
+   272→   272→          const wttrData = await wttrRes.json() as any;
+   273→   273→          const cur = wttrData.current_condition?.[0];
+   274→   274→          const today = wttrData.weather?.[0];
+   275→   275→          temp = cur ? Number(cur.temp_C) : undefined;
+   276→   276→          wind = cur ? Number(cur.windspeedKmph) : undefined;
+   277→   277→          desc = cur?.weatherDesc?.[0]?.value;
+   278→   278→          max = today ? Number(today.maxtempC) : undefined;
+   279→   279→          min = today ? Number(today.mintempC) : undefined;
+   280→   280→          rain = today?.hourly?.[0]?.chanceofrain ? Number(today.hourly[0].chanceofrain) : undefined;
+   281→   281→          source = "wttr.in";
+   282→   282→          console.log("[debug/weather] wttr.in OK:", temp, "°C");
+   283→   283→        }
+   284→   284→      } catch (e: any) { console.error("[debug/weather] wttr.in failed:", e?.message); }
+   285→   285→
+   286→   286→      // Fallback: open-meteo
+   287→   287→      if (temp === undefined) {
+   288→   288→        try {
+   289→   289→          const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${geo.latitude}&longitude=${geo.longitude}&current=temperature_2m,precipitation,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=1`;
+   290→   290→          console.log("[debug/weather] open-meteo:", weatherUrl);
+   291→   291→          const weatherRes = await globalThis.fetch(weatherUrl, { signal: AbortSignal.timeout(15000) });
+   292→   292→          if (weatherRes.ok) {
+   293→   293→            const weatherData = await weatherRes.json() as any;
+   294→   294→            temp = weatherData.current?.temperature_2m;
+   295→   295→            wind = weatherData.current?.wind_speed_10m;
+   296→   296→            max = weatherData.daily?.temperature_2m_max?.[0];
+   297→   297→            min = weatherData.daily?.temperature_2m_min?.[0];
+   298→   298→            rain = weatherData.daily?.precipitation_probability_max?.[0];
+   299→   299→            source = "open-meteo";
+   300→   300→            console.log("[debug/weather] open-meteo OK:", temp, "°C");
+   301→   301→          } else {
+   302→   302→            console.error("[debug/weather] open-meteo HTTP:", weatherRes.status);
+   303→   303→          }
+   304→   304→        } catch (e: any) { console.error("[debug/weather] open-meteo failed:", e?.message); }
+   305→   305→      }
+   306→   306→
+   307→   307→      sendJson(res, 200, {
+   308→   308→        city: geo.name,
+   309→   309→        country: geo.country,
+   310→   310→        temp, wind, max, min, rain, desc, source,
+   311→   311→      });
+   312→   312→    } catch (err: any) {
+   313→   313→      sendJson(res, 200, { error: err?.message, stack: err?.stack?.slice(0, 200) });
+   314→   314→    }
+   315→   315→    return;
+   316→   316→  }
+   317→   317→
+   318→   318→  // ── /api/koru/proactive — proactive engine ───────────────────
+   319→   319→  if (url === "/api/koru/proactive" && req.method === "POST") {
+   320→   320→    try {
+   321→   321→      const raw = await readBody(req);
+   322→   322→      const body = JSON.parse(raw || "{}");
+   323→   323→      const { state, lastSeen } = body;
+   324→   324→
+   325→   325→      console.log("[proactive] Request received, memories:", state?.memories?.length ?? 0);
+   326→   326→
+   327→   327→      // Import proactive engine
+   328→   328→      const { runProactiveCheck } = await import("../src/domain/proactiveEngine.ts");
+   329→   329→      const message = await runProactiveCheck(state, config, lastSeen || Date.now());
+   330→   330→
+   331→   331→      console.log("[proactive] Result:", message?.shouldShow ?? false, message?.reply?.slice(0, 60) ?? "");
+   332→   332→
+   333→   333→      sendJson(res, 200, message || { shouldShow: false });
+   334→   334→    } catch (err: any) {
+   335→   335→      console.error("[proactive] Error:", err?.message);
+   336→   336→      sendJson(res, 200, { shouldShow: false, error: err?.message });
+   337→   337→    }
+   338→   338→    return;
+   339→   339→  }
+   340→   340→
+   341→   341→  // ── /api/koru/morning-brief — brief matutino automático ──────
+   342→   342→  if (url === "/api/koru/morning-brief" && req.method === "POST") {
+   343→   343→    try {
+   344→   344→      const raw = await readBody(req);
+   345→   345→      const body = JSON.parse(raw || "{}");
+   346→   346→      const { state } = body;
+   347→   347→
+   348→   348→      const now = new Date();
+   349→   349→      const hour = now.getHours();
+   350→   350→      const isMorning = hour >= 5 && hour <= 11;
+   351→   351→
+   352→   352→      if (!isMorning) {
+   353→   353→        sendJson(res, 200, { shouldShow: false, reason: "not_morning" });
+   354→   354→        return;
+   355→   355→      }
+   356→   356→
+   357→   357→      // Verificar si ya se mostró hoy
+   358→   358→      const today = now.toISOString().slice(0, 10);
+   359→   359→      if (state?.lastBriefDate === today) {
+   360→   360→        sendJson(res, 200, { shouldShow: false, reason: "already_shown" });
+   361→   361→        return;
+   362→   362→      }
+   363→   363→
+   364→   364→      // Generar brief con LLM
+   365→   365→      const memories = (state?.memories ?? []).filter((m: any) => m.status === "confirmed" || m.status === "candidate").slice(0, 10);
+   366→   366→      const commitments = (state?.commitments ?? []).filter((c: any) => c.status === "open").slice(0, 5);
+   367→   367→      const userName = state?.userName ?? "";
+   368→   368→
+   369→   369→      const briefMessages = [
+   370→   370→        {
+   371→   371→          role: "system" as const,
+   372→   372→          content: [
+   373→   373→            "Sos Koru. Generá un brief matutino personalizado para el usuario.",
+   374→   374→            "Devolvé SOLO JSON válido: {\"greeting\":\"...\",\"weather\":\"...\",\"tasks\":[],\"memoryHighlight\":\"...\",\"suggestion\":\"...\"}",
+   375→   375→            "Reglas:",
+   376→   376→            "- greeting: saludo cálido personalizado con el nombre del usuario y la fecha.",
+   377→   377→            "- weather: si hay ciudad guardada, mencionar el clima. Si no, omitir.",
+   378→   378→            "- tasks: lista de pendientes del día (commitments con dueHint que incluya hoy/mañana/fecha de hoy).",
+   379→   379→            "- memoryHighlight: referenciar UNA memoria del usuario de forma natural (no como recital).",
+   380→   380→            "- suggestion: UNA sugerencia basada en rutinas o preferencias del usuario.",
+   381→   381→            "- Tono: cercano, cálido, como un amigo que te conoce. No corporativo.",
+   382→   382→            "- Máximo 2-3 oraciones por campo. Conciso pero con personalidad.",
+   383→   383→          ].join("\n"),
+   384→   384→        },
+   385→   385→        {
+   386→   386→          role: "user" as const,
+   387→   387→          content: [
+   388→   388→            `Hora actual: ${now.toISOString()}`,
+   389→   389→            `Nombre: ${userName}`,
+   390→   390→            `Memorias: ${JSON.stringify(memories.map((m: any) => `[${m.kind}] ${m.text}`))}`,
+   391→   391→            `Pendientes: ${JSON.stringify(commitments.map((c: any) => `${c.title} (${c.dueHint ?? "sin fecha"})`))}`,
+   392→   392→          ].join("\n"),
+   393→   393→        },
+   394→   394→      ];
+   395→   395→
+   396→   396→      const { callProvider, inferProviderFromModel } = await import("../src/server/koruBackend.ts");
+   397→   397→      const pp = inferProviderFromModel(config.nvidiaModel);
+   398→   398→      const result = await callProvider(config, briefMessages, 30_000, false, pp);
+   399→   399→      const content = (result.message as any).content?.trim() ?? "";
+   400→   400→
+   401→   401→      let brief: any = null;
+   402→   402→      try {
+   403→   403→        const jsonMatch = content.match(/\{[\s\S]*\}/);
+   404→   404→        brief = JSON.parse(jsonMatch ? jsonMatch[0] : content);
+   405→   405→      } catch {
+   406→   406→        brief = {
+   407→   407→          greeting: `¡Buenos días${userName ? `, ${userName}` : ""}!`,
+   408→   408→          weather: "",
+   409→   409→          tasks: commitments.map((c: any) => c.title),
+   410→   410→          memoryHighlight: "",
+   411→   411→          suggestion: "",
+   412→   412→        };
+   413→   413→      }
+   414→   414→
+   415→   415→      sendJson(res, 200, { shouldShow: true, brief, date: today });
+   416→   416→    } catch (err: any) {
+   417→   417→      console.error("[morning-brief] Error:", err?.message);
+   418→   418→      sendJson(res, 200, { shouldShow: false, error: err?.message });
+   419→   419→    }
+   420→   420→    return;
+   421→   421→  }
+   422→   422→
+   423→   423→  // ── /koru-audit/log (auditoría QA) ───────────────────────────
+   424→   424→  if (url === "/koru-audit/log" && req.method === "POST") {
+   425→   425→    try {
+   426→   426→      const raw = await readBody(req);
+   427→   427→      const event = JSON.parse(raw || "{}");
+   428→   428→      // Best-effort: append to log file
+   429→   429→      const logDir = join(PROJECT_ROOT, "manual-audits");
+   430→   430→      if (!existsSync(logDir)) {
+   431→   431→        const { mkdirSync } = await import("node:fs");
+   432→   432→        mkdirSync(logDir, { recursive: true });
+   433→   433→      }
+   434→   434→      const { appendFileSync } = await import("node:fs");
+   435→   435→      appendFileSync(join(logDir, "koru-current.jsonl"), JSON.stringify(event) + "\n");
+   436→   436→      sendJson(res, 200, { ok: true });
+   437→   437→    } catch {
+   438→   438→      sendJson(res, 200, { ok: true }); // Best-effort
+   439→   439→    }
+   440→   440→    return;
+   441→   441→  }
+   442→   442→
+   443→   443→  // ── /api/koru/export-pdf — export chat session to real PDF (puppeteer) ──
+   444→   444→  if (url === "/api/koru/export-pdf" && req.method === "POST") {
+   445→   445→    try {
+   446→   446→      const raw = await readBody(req);
+   447→   447→      const body = JSON.parse(raw || "{}");
+   448→   448→      if (!body.turns || !Array.isArray(body.turns)) {
+   449→   449→        sendJson(res, 400, { error: "Falta 'turns' en el payload" });
+   450→   450→        return;
+   451→   451→      }
+   452→   452→      const { buildPdfHtml, renderPdf } = await import("../src/server/pdfExport.ts");
+   453→   453→      const html = buildPdfHtml({
+   454→   454→        title: body.title || "Conversación con Koru",
+   455→   455→        userName: body.userName || "",
+   456→   456→        language: body.language === "en" ? "en" : "es",
+   457→   457→        turns: body.turns,
+   458→   458→        generatedAt: body.generatedAt || new Date().toISOString(),
+   459→   459→        deliverableOnly: !!body.deliverableOnly,
+   460→   460→        blockType: body.blockType,
+   461→   461→      });
+   462→   462→      // 🔴 v2: render to real PDF binary via headless Chromium.
+   463→   463→      // Falls back to HTML if puppeteer fails (e.g. sandbox issue).
+   464→   464→      try {
+   465→   465→        const pdfBuffer = await renderPdf(html, { format: body.format === "Letter" ? "Letter" : "A4" });
+   466→   466→        res.writeHead(200, {
+   467→   467→          "Content-Type": "application/pdf",
+   468→   468→          "Content-Disposition": `attachment; filename="koru-${Date.now()}.pdf"`,
+   469→   469→          "Cache-Control": "no-store",
+   470→   470→          "Content-Length": pdfBuffer.length,
+   471→   471→        });
+   472→   472→        res.end(pdfBuffer);
+   473→   473→      } catch (pdfErr: any) {
+   474→   474→        console.error("[export-pdf] puppeteer failed, returning HTML fallback:", pdfErr?.message);
+   475→   475→        res.writeHead(200, {
+   476→   476→          "Content-Type": "text/html; charset=utf-8",
+   477→   477→          "Cache-Control": "no-store",
+   478→   478→        });
+   479→   479→        res.end(html);
+   480→   480→      }
+   481→   481→    } catch (err: any) {
+   482→   482→      console.error("[export-pdf]", err?.message);
+   483→   483→      sendJson(res, 500, { error: err?.message ?? "Error generando PDF" });
+   484→   484→    }
+   485→   485→    return;
+   486→   486→  }
+   487→   487→
+   488→   488→  // ── /api/koru/export-deliverable — export a SINGLE block as PDF ──
+   489→   489→  // Body: { block: UiBlock, userName?, language?, title? }
+   490→   490→  // Renders just that one deliverable (plan / recipe / comparison / etc.)
+   491→   491→  // without the surrounding chat — much cleaner for sharing.
+   492→   492→  if (url === "/api/koru/export-deliverable" && req.method === "POST") {
+   493→   493→    try {
+   494→   494→      const raw = await readBody(req);
+   495→   495→      const body = JSON.parse(raw || "{}");
+   496→   496→      if (!body.block || typeof body.block !== "object") {
+   497→   497→        sendJson(res, 400, { error: "Falta 'block' en el payload" });
+   498→   498→        return;
+   499→   499→      }
+   500→   500→      const { buildPdfHtml, renderPdf } = await import("../src/server/pdfExport.ts");
+   501→   501→      // Wrap the single block as a "turn" with one item — deliverableOnly mode
+   502→   502→      // will render only the items, ignoring the turn wrapper.
+   503→   503→      const turns = [{
+   504→   504→        role: "koru" as const,
+   505→   505→        text: "",
+   506→   506→        items: [body.block],
+   507→   507→      }];
+   508→   508→      const html = buildPdfHtml({
+   509→   509→        title: body.title || body.block.title || "Informe de Koru",
+   510→   510→        userName: body.userName || "",
+   511→   511→        language: body.language === "en" ? "en" : "es",
+   512→   512→        turns,
+   513→   513→        generatedAt: body.generatedAt || new Date().toISOString(),
+   514→   514→        deliverableOnly: true,
+   515→   515→        blockType: body.block.type,
+   516→   516→      });
+   517→   517→      try {
+   518→   518→        const pdfBuffer = await renderPdf(html);
+   519→   519→        res.writeHead(200, {
+   520→   520→          "Content-Type": "application/pdf",
+   521→   521→          "Content-Disposition": `attachment; filename="koru-deliverable-${Date.now()}.pdf"`,
+   522→   522→          "Cache-Control": "no-store",
+   523→   523→          "Content-Length": pdfBuffer.length,
+   524→   524→        });
+   525→   525→        res.end(pdfBuffer);
+   526→   526→      } catch (pdfErr: any) {
+   527→   527→        console.error("[export-deliverable] puppeteer failed, returning HTML:", pdfErr?.message);
+   528→   528→        res.writeHead(200, {
+   529→   529→          "Content-Type": "text/html; charset=utf-8",
+   530→   530→          "Cache-Control": "no-store",
+   531→   531→        });
+   532→   532→        res.end(html);
+   533→   533→      }
+   534→   534→    } catch (err: any) {
+   535→   535→      console.error("[export-deliverable]", err?.message);
+   536→   536→      sendJson(res, 500, { error: err?.message ?? "Error generando PDF del deliverable" });
+   537→   537→    }
+   538→   538→    return;
+   539→   539→  }
+   540→   540→
+   541→   541→  // ── Static files (serve dist/ with in-memory cache) ──────────
+   542→   542→  if (req.method === "GET") {
+   543→   543→    const distDir = join(PROJECT_ROOT, "dist");
+   544→   544→    let filePath = join(distDir, url === "/" ? "index.html" : url);
+   545→   545→    // Security: prevent path traversal
+   546→   546→    if (!filePath.startsWith(distDir)) {
+   547→   547→      sendJson(res, 403, { error: "Forbidden" });
+   548→   548→      return;
+   549→   549→    }
+   550→   550→    // Check if file exists and is directory
+   551→   551→    try {
+   552→   552→      const { statSync } = await import("node:fs");
+   553→   553→      const s = statSync(filePath);
+   554→   554→      if (s.isDirectory()) filePath = join(filePath, "index.html");
+   555→   555→    } catch {
+   556→   556→      // File not found → SPA fallback to index.html
+   557→   557→      filePath = join(distDir, "index.html");
+   558→   558→    }
+   559→   559→    // Use cache
+   560→   560→    const cached = getStaticFile(filePath);
+   561→   561→    if (cached) {
+   562→   562→      res.writeHead(200, { "Content-Type": cached.contentType, "Cache-Control": "no-cache" });
+   563→   563→      res.end(cached.data);
+   564→   564→      return;
+   565→   565→    }
+   566→   566→    // File doesn't exist
+   567→   567→    sendJson(res, 404, { error: "Not found" });
+   568→   568→    return;
+   569→   569→  }
+   570→   570→
+   571→   571→  // ── 404 ───────────────────────────────────────────────────────
+   572→   572→  sendJson(res, 404, { error: "Not found", url });
+   573→   573→});
+   574→   574→
+   575→   575→// ── Cache static files in memory (avoid disk I/O on every request) ──
+   576→   576→const staticCache = new Map<string, { data: Buffer; contentType: string }>();
+   577→   577→const STATIC_DIR = join(PROJECT_ROOT, "dist");
+   578→   578→
+   579→   579→function getStaticFile(filePath: string): { data: Buffer; contentType: string } | null {
+   580→   580→  if (staticCache.has(filePath)) return staticCache.get(filePath)!;
+   581→   581→  try {
+   582→   582→    const data = readFileSync(filePath);
+   583→   583→    const ext = filePath.endsWith(".html") ? "text/html"
+   584→   584→      : filePath.endsWith(".js") ? "application/javascript"
+   585→   585→      : filePath.endsWith(".css") ? "text/css"
+   586→   586→      : filePath.endsWith(".png") ? "image/png"
+   587→   587→      : filePath.endsWith(".jpg") || filePath.endsWith(".jpeg") ? "image/jpeg"
+   588→   588→      : filePath.endsWith(".svg") ? "image/svg+xml"
+   589→   589→      : filePath.endsWith(".json") ? "application/json"
+   590→   590→      : filePath.endsWith(".woff") ? "font/woff"
+   591→   591→      : filePath.endsWith(".woff2") ? "font/woff2"
+   592→   592→      : filePath.endsWith(".mp4") ? "video/mp4"
+   593→   593→      : filePath.endsWith(".webm") ? "video/webm"
+   594→   594→      : filePath.endsWith(".webp") ? "image/webp"
+   595→   595→      : filePath.endsWith(".gif") ? "image/gif"
+   596→   596→      : filePath.endsWith(".ico") ? "image/x-icon"
+   597→   597→      : "application/octet-stream";
+   598→   598→    const entry = { data, contentType: ext };
+   599→   599→    // Limit cache to 50 files to avoid memory bloat — but NOT for videos (too big)
+   600→   600→    if (staticCache.size < 50 && data.length < 5_000_000) staticCache.set(filePath, entry);
+   601→   601→    return entry;
+   602→   602→  } catch {
+   603→   603→    return null;
+   604→   604→  }
+   605→   605→}
+   606→   606→
+   607→   607→// ── Graceful shutdown ──
+   608→   608→function shutdown(signal: string) {
+   609→   609→  console.log(`[Koru] ${signal} received, shutting down...`);
+   610→   610→  server.close(() => {
+   611→   611→    console.log("[Koru] Server closed.");
+   612→   612→    process.exit(0);
+   613→   613→  });
+   614→   614→  // Force exit after 5s if connections don't close
+   615→   615→  setTimeout(() => process.exit(1), 5000).unref();
+   616→   616→}
+   617→   617→process.on("SIGTERM", () => shutdown("SIGTERM"));
+   618→   618→process.on("SIGINT", () => shutdown("SIGINT"));
+   619→   619→
+   620→   620→// ── Catch uncaught errors (don't crash) ──
+   621→   621→process.on("uncaughtException", (err) => {
+   622→   622→  console.error("[Koru] Uncaught exception:", err.message);
+   623→   623→});
+   624→   624→process.on("unhandledRejection", (err) => {
+   625→   625→  console.error("[Koru] Unhandled rejection:", err);
+   626→   626→});
+   627→   627→
+   628→   628→// ── Memory monitoring (log if getting close to limit) ──
+   629→   629→setInterval(() => {
+   630→   630→  const used = process.memoryUsage().heapUsed / 1024 / 1024;
+   631→   631→  if (used > 400) {
+   632→   632→    console.warn(`[Koru] Memory warning: ${Math.round(used)}MB heap used`);
+   633→   633→  }
+   634→   634→}, 60000);
+   635→   635→
+   636→   636→server.listen(PORT, "0.0.0.0", () => {
+   637→   637→  console.log(`[Koru] Running on http://localhost:${PORT}`);
+   638→   638→  console.log(`[Koru] Provider: ${config.nvidiaApiKey ? "nvidia" : "none"}`);
+   639→   639→  console.log(`[Koru] Model: ${config.nvidiaModel}`);
+   640→   640→  console.log(`[Koru] Memory limit: ${Math.round(process.memoryUsage().heapTotal / 1024 / 1024)}MB`);
+   641→   641→});
+   642→   642→

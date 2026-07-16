@@ -400,10 +400,32 @@ export function KoruProvider({ children }: { children: ReactNode }) {
         const lastBriefDate = persisted.lastBriefDate ?? localStorage.getItem("koru.lastBriefDate");
         if (hour >= 5 && hour <= 11 && lastBriefDate !== today) {
           try {
+            // 🔴 FULL state: el endpoint necesita calendarEvents (eventos de
+            // hoy), commitments (deadlines debidos hoy), weatherCache, entries
+            // (último sentimiento) y memories (contexto de personalidad) para
+            // generar un brief completo. Mandamos el estado completo y dejamos
+            // que el endpoint filtre lo necesario.
             const stateForBrief = {
-              memories: (persisted.memories ?? []).filter((m: any) => m.status === "confirmed" || m.status === "candidate").slice(0, 10).map((m: any) => ({ kind: m.kind, text: m.text })),
-              commitments: (persisted.commitments ?? []).filter((c: any) => c.status === "open").slice(0, 5).map((c: any) => ({ title: c.title, dueHint: c.dueHint, dueAt: c.dueAt })),
               userName: persisted.userName ?? "",
+              memories: (persisted.memories ?? [])
+                .filter((m: any) => m.status === "confirmed" || m.status === "candidate")
+                .slice(0, 10)
+                .map((m: any) => ({ kind: m.kind, text: m.text })),
+              commitments: (persisted.commitments ?? [])
+                .filter((c: any) => c.status === "open")
+                .slice(0, 20)
+                .map((c: any) => ({ title: c.title, dueHint: c.dueHint, dueAt: c.dueAt, status: c.status })),
+              calendarEvents: (persisted.calendarEvents ?? []).slice(0, 20).map((e: any) => ({
+                title: e.title,
+                startsAt: e.startsAt,
+                location: e.location,
+              })),
+              weatherCache: persisted.weatherCache ?? undefined,
+              entries: (persisted.entries ?? []).slice(-3).map((e: any) => ({
+                text: e.text,
+                sentiment: e.sentiment,
+                createdAt: e.createdAt,
+              })),
               lastBriefDate,
             };
             const res = await fetch("/api/koru/morning-brief", {
@@ -414,18 +436,67 @@ export function KoruProvider({ children }: { children: ReactNode }) {
             if (res.ok) {
               const data = await res.json();
               if (data.shouldShow && data.brief) {
-                setMorningBrief(data.brief);
+                const brief = data.brief;
+                // 🔴 Construir morning_brief UiBlock desde el brief del LLM.
+                // El LLM devuelve { greeting, items: [{icon, label, value}], reflection }.
+                // El UiBlock morning_brief requiere items con {icon, iconColor, label, value, variant?}.
+                // La reflection se appendea como un item destacado (variant: "highlight").
+                const uiItems: Array<{
+                  icon: string;
+                  iconColor: string;
+                  label: string;
+                  value: string;
+                  variant?: "default" | "highlight";
+                }> = (Array.isArray(brief.items) ? brief.items : [])
+                  .filter((it: any) => it && typeof it === "object")
+                  .map((it: any, idx: number) => ({
+                    icon: String(it.icon ?? "wb_sunny"),
+                    iconColor: idx === 0 ? "#6ee7b7" : "#a99be0",
+                    label: String(it.label ?? ""),
+                    value: String(it.value ?? ""),
+                    variant: "default" as const,
+                  }));
+                if (brief.reflection) {
+                  uiItems.push({
+                    icon: "lightbulb",
+                    iconColor: "#fbbf24",
+                    label: "Reflexión",
+                    value: String(brief.reflection),
+                    variant: "highlight" as const,
+                  });
+                }
+                const briefBlock: UiBlock = {
+                  type: "morning_brief",
+                  greeting: String(brief.greeting ?? ""),
+                  items: uiItems,
+                };
+                // 🔴 Backwards-compat: MorningBriefCard espera un shape legacy
+                // (greeting + weather/tasks/memoryHighlight/suggestion). Mapeamos
+                // los items del nuevo brief a los campos legacy para que la
+                // card vieja siga renderizando algo útil.
+                const legacyBrief = {
+                  greeting: String(brief.greeting ?? ""),
+                  weather: (brief.items ?? []).find((it: any) => /clima|weather/i.test(String(it.label ?? "")))?.value ?? "",
+                  tasks: (brief.items ?? [])
+                    .filter((it: any) => /pendiente|deadline|tarea|evento|commit/i.test(String(it.label ?? "")))
+                    .map((it: any) => `${it.label}: ${it.value}`),
+                  memoryHighlight: (brief.items ?? []).find((it: any) => /memoria|memory/i.test(String(it.label ?? "")))?.value ?? "",
+                  suggestion: brief.reflection ?? "",
+                };
+                setMorningBrief(legacyBrief);
                 localStorage.setItem("koru.lastBriefDate", data.date ?? today);
                 // 🔴 TIER S: persistir el brief en el store (state.lastBriefDate
                 // + state.lastBriefBlock) vía el reducer setLastBrief. Así
                 // otras pantallas pueden inspeccionar si ya se mostró hoy sin
                 // leer localStorage directamente.
-                const briefBlock: UiBlock | undefined = data.brief?.block ?? data.brief;
                 commitDomainState((prev) => setLastBriefReducer(prev, data.date ?? today, briefBlock));
               }
             }
+            // 🔴 Si el endpoint devuelve error (res.ok = false) o data.shouldShow
+            // es false, no hacemos nada acá — el useEffect de abajo (morning
+            // brief scheduler sin LLM) se encarga del fallback al simple nudge.
           } catch {
-            // silent — brief is optional
+            // silent — brief is optional. El scheduler sin LLM hace el fallback.
           }
         }
       }

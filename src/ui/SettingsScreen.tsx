@@ -704,9 +704,18 @@ export function SettingsScreen(props: SettingsScreenProps) {
   }
 
   // 🔴 Google Calendar OAuth — abre la URL de autorización en una pestaña nueva
-  // y marca el flag `pending` en localStorage. El callback de OAuth (redirect
-  // URI + exchangeCodeForToken) todavía no está implementado; este handler
-  // solo lanza el flujo y deja el estado en "Conectando...".
+  // y marca el flag `pending` en localStorage. El callback de OAuth
+  // (server-side: /api/integrations/google-calendar/callback) intercambia el
+  // code por tokens, persiste en koru-integrations.json, y devuelve HTML que
+  // escribe `googleCalendar: "connected"` en localStorage (mismo origen → el
+  // popup comparte localStorage con la app) y luego cierra la pestaña.
+  //
+  // Mientras el usuario completa el consent en Google, polleamos localStorage
+  // cada 2s durante 60s. En cuanto vemos `googleCalendar === "connected"`,
+  // actualizamos el estado a "connected" → el IntegrationRow muestra
+  // "Conectado ✓". Como fallback, también consultamos
+  // GET /api/integrations/google-calendar/status (source-of-truth server-side)
+  // por si el popup falló al escribir localStorage.
   async function connectGoogleCalendar() {
     if (googleCalendarStatus === "pending" || googleCalendarStatus === "connected") return;
     setGoogleCalendarStatus("pending");
@@ -715,6 +724,8 @@ export function SettingsScreen(props: SettingsScreenProps) {
       if (typeof window !== "undefined") {
         window.open(url, "_blank", "noopener,noreferrer");
       }
+      // Poll localStorage + status endpoint cada 2s por 60s (30 intentos).
+      pollGoogleCalendarStatus(30, 2_000);
     } catch (err) {
       // Si falta GOOGLE_CLIENT_ID u otra env, revertimos a "idle" para que el
       // usuario pueda reintentar y mostramos el error por consola.
@@ -722,6 +733,66 @@ export function SettingsScreen(props: SettingsScreenProps) {
       console.error("[SettingsScreen] Google Calendar auth URL falló:", err);
       setGoogleCalendarStatus("idle");
     }
+  }
+
+  // 🔴 Polling del flag `googleCalendar` en localStorage + fallback al
+  // endpoint /status. El popup (tras OAuth callback exitoso) escribe el flag
+  // `googleCalendar: "connected"` en localStorage y se cierra. Si por alguna
+  // razón el popup no puede escribir (origen distinto, storage deshabilitado),
+  // el endpoint /status nos dice la verdad server-side.
+  function pollGoogleCalendarStatus(maxAttempts: number, intervalMs: number) {
+    if (typeof window === "undefined") return;
+    let attempts = 0;
+    const timer = window.setInterval(async () => {
+      attempts++;
+      // 1) Chequeo local — barato, sin red.
+      try {
+        const raw = localStorage.getItem("koru.integrations");
+        if (raw) {
+          const parsed = JSON.parse(raw) as Record<string, unknown>;
+          if (parsed.googleCalendar === "connected") {
+            setGoogleCalendarStatus("connected");
+            window.clearInterval(timer);
+            return;
+          }
+          // Si el usuario canceló en Google, el popup manda ?error=… → el
+          // callback escribe error HTML y NO toca el flag (queda "pending").
+          // No hay nada que hacer acá; seguimos polleando hasta timeout.
+        }
+      } catch {
+        /* noop */
+      }
+
+      // 2) Fallback: consultar el endpoint server-side.
+      try {
+        const res = await fetch("/api/integrations/google-calendar/status");
+        if (res.ok) {
+          const data = (await res.json()) as { connected?: boolean };
+          if (data.connected) {
+            setGoogleCalendarStatus("connected");
+            // Reflejarlo también en localStorage por si el popup no llegó.
+            try {
+              const r = localStorage.getItem("koru.integrations");
+              const p: Record<string, unknown> = r ? JSON.parse(r) : {};
+              p.googleCalendar = "connected";
+              localStorage.setItem("koru.integrations", JSON.stringify(p));
+            } catch {
+              /* noop */
+            }
+            window.clearInterval(timer);
+            return;
+          }
+        }
+      } catch {
+        /* noop — el server puede estar down, seguimos polleando localStorage */
+      }
+
+      // 3) Timeout → revertir a "idle" para que el usuario pueda reintentar.
+      if (attempts >= maxAttempts) {
+        window.clearInterval(timer);
+        setGoogleCalendarStatus("idle");
+      }
+    }, intervalMs);
   }
 
   function disconnectGoogleCalendar() {
@@ -1547,7 +1618,7 @@ function IntegrationRow({
             {connected
               ? lastSync
                 ? `Última sync: ${formatLastSync(lastSync)}`
-                : "Conectado"
+                : "Conectado ✓"
               : connecting
                 ? "Conectando…"
                 : "No conectado"}
@@ -1667,4 +1738,7 @@ function MemoryRow({
   );
 }
 
+// 🔴 Default export para React.lazy en App.tsx.
+// El named export `SettingsScreen` se mantiene por compatibilidad con tests.
+export default SettingsScreen;
 
