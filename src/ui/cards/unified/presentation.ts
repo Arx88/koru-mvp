@@ -247,10 +247,12 @@ function sourcesToRefs(sources?: AssistantSource[]): DetailSourceRef[] {
   }));
 }
 
-/** Título del hero sin prefijos redundantes ("Tu plan X" → "X"). */
+/** Título del hero sin prefijos redundantes ("Tu plan X" → "X").
+ *  🔴 KIMI v4 — NO mayusculiza (Title Case + Bricolage 21px del spec).
+ *  El CSS .kc-title aplica text-transform solo a kc-kicker, no a kc-title. */
 function heroTitleFrom(raw: string | undefined, fallback: string): string {
   const c = clean(raw).replace(/^\s*(tu|mi)\s+/i, "");
-  return up(c || fallback);
+  return c.length > 1 ? c : fallback;
 }
 
 function asPercent(value?: number): string | undefined {

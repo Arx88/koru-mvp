@@ -183,6 +183,37 @@ function heroIconBg(block: UiBlock): string {
 }
 
 /**
+ * 🔴 KIMI v4 — Background gradient del xt-hero (dark + tono del dominio).
+ * Replica los gradientes dark del spec Kimi por dominio (pág. 28-30).
+ */
+function heroGradientBg(block: UiBlock): string {
+  const t = block.type;
+  if (t === "weather") {
+    const condition = ("condition" in block && typeof block.condition === "string" ? block.condition : "").toLowerCase();
+    if (/lluvia|rain/.test(condition)) return "linear-gradient(170deg,#1e3a6e,#16294f 55%,#101a3a)";
+    if (/sol|soleado|clear/.test(condition)) return "linear-gradient(170deg,#5e3a1e,#4a2a14 55%,#2a1808)";
+    if (/nieve|snow/.test(condition)) return "linear-gradient(170deg,#3a2c5e,#2a1f4a 55%,#1a1240)";
+    return "linear-gradient(170deg,#1e3a6e,#16294f 55%,#101a3a)";
+  }
+  if (t === "live_match" || t === "tennis_match") return "linear-gradient(170deg,#1e4a3a,#143a2a 55%,#0a2a1a)";
+  if (t === "crypto_portfolio" || t === "market" || t === "forex" || t === "data_ticker") return "linear-gradient(170deg,#5e3a1e,#4a2a14 55%,#2a1808)";
+  if (t === "shopping_list") return "linear-gradient(170deg,#5e3a1e,#4a2a14 55%,#2a1808)";
+  if (t === "alarm") return "linear-gradient(170deg,#5e1e2a,#4a1420 55%,#2a0810)";
+  if (t === "reminder") return "linear-gradient(170deg,#2c1f5e,#1c1445 60%,#120d31)";
+  if (t === "memory") return "linear-gradient(170deg,#1e4a3a,#143a2a 55%,#0a2a1a)";
+  if (t === "restaurant_synthesis") return "linear-gradient(170deg,#5e3a1e,#4a2a14 55%,#2a1808)";
+  if (t === "recipe") return "linear-gradient(170deg,#5e1e2a,#4a1420 55%,#2a0810)";
+  if (t === "comparison") return "linear-gradient(170deg,#3a1e5e,#2a1445 55%,#1a0831)";
+  if (t === "morning_brief") return "linear-gradient(170deg,#5e3a1e,#4a2a14 55%,#2a1808)";
+  if (t === "news_urgent") return "linear-gradient(170deg,#5e1e2a,#4a1420 55%,#2a0810)";
+  if (t === "birthday_alarm") return "linear-gradient(170deg,#3a1e5e,#2a1445 55%,#1a0831)";
+  if (t === "exercise_plan") return "linear-gradient(170deg,#1e4a3a,#143a2a 55%,#0a2a1a)";
+  if (t === "travel_plan") return "linear-gradient(170deg,#1e3a6e,#16294f 55%,#101a3a)";
+  if (t === "route_map") return "linear-gradient(170deg,#1e3a5e,#16294a 55%,#101a30)";
+  return "linear-gradient(170deg,#2c1f5e,#1c1445 60%,#120d31)";
+}
+
+/**
  * 🔴 KIMI v4 — CTA contextual primario por tipo de bloque.
  * Replica los CTAs del spec Kimi por dominio (pág. 28-30).
  * Devuelve { label, icon } o null si no hay CTA contextual.
@@ -230,16 +261,26 @@ function youtubeId(url: string): string | null {
 }
 
 function SectionHead({ section }: { section: DetailSection }) {
+  // 🔴 KIMI v4 — clases canónicas del spec: .mh + .ic + h5 + .mk
+  // (reemplazan a koru-module-head/icon/title/kicker que NO aplicaban las
+  // reglas CSS Kimi del spec). El .ic usa el gradient del accent de la sección.
   return (
-    <div className="koru-module-head">
-      <div className="koru-module-id">
-        <div className="koru-module-icon">
-          <Mat>{section.icon}</Mat>
-        </div>
-        <div>
-          <h3 className="koru-module-title">{section.title}</h3>
-          {section.subtitle && <p className="koru-module-kicker">{section.subtitle}</p>}
-        </div>
+    <div className="mh koru-module-head">
+      <span
+        className="ic koru-module-icon"
+        style={{ background: `linear-gradient(140deg, ${section.accent.color}, ${section.accent.color}cc)` }}
+      >
+        {(() => {
+          const kn = iconFromMaterial(section.icon);
+          if (kn !== "default") {
+            return <KoruIcon name={kn} size={16} style={{ color: "#fff" }} />;
+          }
+          return <Mat>{section.icon}</Mat>;
+        })()}
+      </span>
+      <div>
+        <h5 className="koru-module-title">{section.title}</h5>
+        {section.subtitle && <span className="mk koru-module-kicker">{section.subtitle}</span>}
       </div>
     </div>
   );
@@ -350,40 +391,47 @@ function SourceRow({ source }: { source: DetailSourceRef }) {
 function SectionBody({ section, block }: { section: DetailSection; block?: UiBlock }) {
   switch (section.kind) {
     case "text":
-      return <p className="koru-dsec-text">{section.body}</p>;
+      // 🔴 KIMI v4: .tx canónico (12px ink-soft) reemplaza koru-dsec-text.
+      return <p className="tx koru-dsec-text">{section.body}</p>;
 
     case "tiles":
+      // 🔴 KIMI v4: .tiles + .tile + .tv + .tl canónicos reemplazan koru-dsec-*.
       return (
-        <div className="koru-dsec-tiles">
+        <div className="tiles koru-dsec-tiles">
           {section.tiles.map((t, i) => (
-            <div key={i} className="koru-dsec-tile">
-              {t.icon && <Mat className="koru-dsec-tile-icon" >{t.icon}</Mat>}
-              <span className="koru-dsec-tile-label">{t.label}</span>
-              <span className="koru-dsec-tile-value">{t.value}</span>
+            <div key={i} className="tile koru-dsec-tile">
+              <span className="tv koru-dsec-tile-value">{t.value}</span>
+              <span className="tl koru-dsec-tile-label">{t.label}</span>
             </div>
           ))}
         </div>
       );
 
     case "rows":
+      // 🔴 KIMI v4: .trow + .ti + .tb + .tt + .td + .tm canónicos reemplazan koru-dsec-row-*.
+      // .ti es el icon-chip con gradient del accent de la sección.
       return (
         <div className="koru-dsec-rows">
           {section.rows.map((r, i) => {
-            // 🔴 TIER S: si la row trae `toggle`, la envolvemos en un botón
-            // que dispatcha `koru-card-action` con action "toggle_shopping" o
-            // "toggle_checklist" + los ids sintéticos. KoruProvider los pasa al
-            // reducer correspondiente (toggleShoppingItem / toggleChecklistItem).
             const toggle = r.toggle;
             const rowInner = (
               <>
-                {r.icon && <Mat className="koru-dsec-row-icon">{r.icon}</Mat>}
-                <div className="koru-dsec-row-body">
-                  <p className="koru-dsec-row-title">{r.title}</p>
-                  {r.detail && <p className="koru-dsec-row-detail">{r.detail}</p>}
+                {r.icon && (
+                  <span className="ti koru-dsec-row-icon" style={{ background: `linear-gradient(140deg, ${section.accent.color}, ${section.accent.color}cc)` }}>
+                    {(() => {
+                      const kn = iconFromMaterial(r.icon);
+                      if (kn !== "default") return <KoruIcon name={kn} size={14} style={{ color: "#fff" }} />;
+                      return <Mat>{r.icon}</Mat>;
+                    })()}
+                  </span>
+                )}
+                <div className="tb koru-dsec-row-body">
+                  <p className="tt koru-dsec-row-title">{r.title}</p>
+                  {r.detail && <p className="td koru-dsec-row-detail">{r.detail}</p>}
                   {/* 🔴 v2: barra comparativa para stats de fútbol (posesión, tiros, etc.) */}
                   {r.bar && <ComparisonBar bar={r.bar} />}
                 </div>
-                {r.meta && <span className="koru-dsec-row-meta">{r.meta}</span>}
+                {r.meta && <span className="tm koru-dsec-row-meta">{r.meta}</span>}
                 {r.badge && <span className={`koru-step-chip is-${r.badgeTone ?? "pending"}`}>{r.badge}</span>}
               </>
             );
@@ -392,7 +440,7 @@ function SectionBody({ section, block }: { section: DetailSection; block?: UiBlo
                 <button
                   key={i}
                   type="button"
-                  className="koru-dsec-row koru-dsec-row-toggle"
+                  className="trow koru-dsec-row koru-dsec-row-toggle"
                   onClick={(e) => {
                     e.stopPropagation();
                     const action =
@@ -418,7 +466,7 @@ function SectionBody({ section, block }: { section: DetailSection; block?: UiBlo
               );
             }
             return (
-              <div key={i} className={"koru-dsec-row" + (r.bar ? " koru-dsec-row-with-bar" : "")}>
+              <div key={i} className={"trow koru-dsec-row" + (r.bar ? " koru-dsec-row-with-bar" : "")}>
                 {rowInner}
               </div>
             );
@@ -427,13 +475,14 @@ function SectionBody({ section, block }: { section: DetailSection; block?: UiBlo
       );
 
     case "chips":
+      // 🔴 KIMI v4: .pillchips + .pillchip canónicos reemplazan koru-dsec-chips.
       return (
-        <div className="koru-dsec-chips">
+        <div className="pillchips koru-dsec-chips">
           {section.chips.map((c, i) => (
-            <div key={i} className="koru-dsec-chip">
+            <span key={i} className="pillchip koru-dsec-chip" style={c.color ? { background: c.color, color: "#fff" } : undefined}>
               <span className="koru-dsec-chip-label">{c.label}</span>
               {c.sub && <span className="koru-dsec-chip-sub">{c.sub}</span>}
-            </div>
+            </span>
           ))}
         </div>
       );
@@ -488,26 +537,27 @@ function SectionBody({ section, block }: { section: DetailSection; block?: UiBlo
       );
 
     case "timeline":
+      // 🔴 KIMI v4: .tl-wrap + .tl-step + .when + .tt + .td canónicos
+      // reemplazan koru-timeline-*. Status done/now/pending como clases.
       return (
-        <div className="koru-timeline">
+        <div className="tl-wrap koru-timeline">
           <div className="koru-timeline-line" />
           <div className="koru-timeline-steps">
             {section.steps.map((s, i) => {
               const status = s.status ?? "pending";
-              // 🔴 TIER S: si el paso trae `toggle.kind === "plan_step"`, lo
-              // envolvemos en un botón que dispatcha `koru-card-action` con
-              // action "toggle_step" + planId + stepId. KoruProvider los pasa
-              // al reducer togglePlanStep.
               const toggle = s.toggle;
               const stepInner = (
                 <>
                   <div className="koru-timeline-dot">
-                    <Mat>{status === "done" ? "check" : s.icon ?? "radio_button_unchecked"}</Mat>
+                    {status === "done" ? (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.4" strokeLinecap="round"><path d="M4 12l5 5L20 6"/></svg>
+                    ) : (
+                      <Mat>{s.icon ?? "radio_button_unchecked"}</Mat>
+                    )}
                   </div>
                   <div className="koru-timeline-body">
-                    <h4 className="koru-timeline-name">{s.title}</h4>
-                    {s.detail && <p className="koru-timeline-meta">{s.detail}</p>}
-                    {/* 🔴 v2: badge de prioridad (Alta/Media/Baja) en pasos del plan */}
+                    {s.detail && <span className="when koru-timeline-meta">{s.detail}</span>}
+                    <h4 className="tt koru-timeline-name">{s.title}</h4>
                     {s.badge && <span className={`koru-step-chip is-${s.badgeTone ?? "pending"}`}>{s.badge}</span>}
                   </div>
                 </>
@@ -517,7 +567,7 @@ function SectionBody({ section, block }: { section: DetailSection; block?: UiBlo
                   <button
                     key={i}
                     type="button"
-                    className={`koru-timeline-step is-${status} koru-timeline-step-toggle`}
+                    className={`tl-step is-${status} koru-timeline-step koru-timeline-step-toggle`}
                     onClick={(e) => {
                       e.stopPropagation();
                       window.dispatchEvent(
@@ -526,8 +576,6 @@ function SectionBody({ section, block }: { section: DetailSection; block?: UiBlo
                             action: "toggle_step",
                             planId: toggle.planId,
                             stepId: toggle.stepId,
-                            // 🔴 TIER S: include blockData so KoruProvider can
-                            // auto-create the durable Plan if it doesn't exist.
                             blockData: block,
                           },
                         }),
@@ -540,7 +588,7 @@ function SectionBody({ section, block }: { section: DetailSection; block?: UiBlo
                 );
               }
               return (
-                <div key={i} className={`koru-timeline-step is-${status}`}>
+                <div key={i} className={`tl-step is-${status} koru-timeline-step`}>
                   {stepInner}
                 </div>
               );
@@ -1508,39 +1556,19 @@ export function KoruDetailScreen({
           (cargado después en style.css) pinta el fondo gradient night y
           border-radius:44px sobre el frame existente. */}
       <div className="koru-roadmap-screen xt">
-        <div className="koru-roadmap-blob-1" />
-        <div className="koru-roadmap-blob-2" />
+        {/* 🔴 KIMI v4: blobs eliminados — el spec Kimi NO los tiene.
+            El .glow del xt-hero ya da la atmósfera. */}
 
-        {/* 🔴 v2: Sticky header — back (izq) / mini icon + condensed title (centro) / save (der) */}
-        <header className="koru-detail-sticky-head">
-          <button
-            type="button"
-            aria-label="Volver"
-            className="koru-detail-sticky-back"
-            onClick={onClose}
-          >
-            <Mat>arrow_back_ios_new</Mat>
-          </button>
-          <div className="koru-detail-mini-icon">
-            <Mat>{headerIcon}</Mat>
-          </div>
-          <h2 className="koru-detail-mini-title">{detail.title}</h2>
-          <button
-            type="button"
-            aria-label="Guardar"
-            className="koru-detail-sticky-save"
-            onClick={() => onSave?.(detail.title, detail.subtitle)}
-          >
-            <Mat>bookmark_border</Mat>
-          </button>
-        </header>
-
-        {/* 🔴 KIMI v4: xt-hero CANÓNICO con glow + back + fav + xt-hicon (SVG
-            animado) + xt-title + xt-sub. Replica exactamente la estructura
-            del spec Kimi (pág. 28 anatomía del extendido). */}
-        <div className="koru-roadmap-header xt-hero">
-          {/* glow: div absolutamente posicionado con color del acento del bloque.
-              Toma el accent del primer section o un default por tipo de bloque. */}
+        {/* 🔴 KIMI v4: xt-hero CANÓNICO con gradient dark del dominio + glow +
+            back + fav + xt-hicon (SVG animado) + xt-title + xt-sub. Replica
+            exactamente la estructura del spec Kimi (pág. 28 anatomía del extendido).
+            NO hay sticky header duplicado — el spec solo tiene el xt-hero
+            con back + fav como botones flotantes absolutos. */}
+        <div
+          className="koru-roadmap-header xt-hero"
+          style={{ background: block ? heroGradientBg(block) : "linear-gradient(170deg,#2c1f5e,#1c1445 60%,#120d31)" }}
+        >
+          {/* glow: div absolutamente posicionado con color del acento del bloque. */}
           <div className="glow" style={{ background: block ? heroGlowColor(block) : "#8363f9" }} />
           {/* back: botón volver con SVG (igual al spec). Mismo handler que el sticky. */}
           <button
