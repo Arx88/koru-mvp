@@ -1019,8 +1019,11 @@ function reminder(b: Of<"reminder">): KoruPresentation {
         { label: "Semana", icon: "calendar", kind: "secondary", action: "reminder:week" },
       ],
     },
-    // 🔴 KIMI v5 — spec card 14 compacta: 2 CTAs (Hecho + Posponer 1 h), sin "Ver detalle".
-    cta: undefined,
+    // 🔴 KIMI v5 — spec card 14 compacta: 2 CTAs (Hecho + Posponer 1 h).
+    //   Mantenemos cta "Ver detalle" para que la card siga siendo tappable
+    //   (isTappable = !!(cta && detail)). En spec no aparece el hint, pero
+    //   sin cta no se abre el detail screen.
+    cta: { label: "Ver detalle" },
     // 🔴 KIMI v4: layout default .kc (no compact — spec pág. 57 muestra kc con kc-art + pillchips + 2 CTAs).
     layout: "default",
   };
