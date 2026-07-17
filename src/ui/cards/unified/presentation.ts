@@ -399,6 +399,48 @@ function deliverable(b: Of<"deliverable">): KoruPresentation {
     }
   });
 
+  // 🔴 KIMI D3 (Deep Search · card 10): "findings" como scroller con scores de
+  // confianza + "related queries" como chips. Cada item de cada sección del
+  // informe se convierte en una finding card con su badge como confidence.
+  const allItems = (b.sections ?? []).flatMap((s) => (s.items ?? []).map((it) => ({ ...it, sectionTitle: s.title })));
+  if (allItems.length > 0) {
+    sections.push({
+      kind: "scroller",
+      icon: "check_circle",
+      accent: A.emerald,
+      title: "Hallazgos",
+      subtitle: `${allItems.length} ENCONTRADOS`,
+      cards: allItems.slice(0, 8).map((it) => ({
+        // 🔴 KIMI D4: si el item trae badge (ej: "3 fuentes", "87%") se muestra
+        // como confidence score; si no, "verificado" por defecto.
+        badge: it.badge ?? "verificado",
+        badgeColor: A.emerald.color,
+        title: it.title,
+        detail: it.subtitle ?? it.sectionTitle,
+      })),
+    });
+  }
+
+  // 🔴 KIMI D3: "related queries" como chips — usamos las categorías del
+  // informe como queries relacionadas (lo que el usuario podría preguntar
+  // después). Si no hay categorías, derivamos 3 chips del topic + kicker.
+  const relatedChips: DetailChip[] = [];
+  if (b.categories?.length) {
+    relatedChips.push(...b.categories.slice(0, 4).map((c) => ({ label: c.label, sub: "relacionado", color: c.color })));
+  } else if (b.topic) {
+    relatedChips.push({ label: b.topic, sub: "tema", color: A.violet.color });
+  }
+  if (relatedChips.length > 0) {
+    sections.push({
+      kind: "chips",
+      icon: "manage_search",
+      accent: A.purple,
+      title: "Queries relacionadas",
+      subtitle: "SEGUIR INVESTIGANDO",
+      chips: relatedChips,
+    });
+  }
+
   if (b.sources?.length) {
     sections.push({
       kind: "sources",
@@ -567,6 +609,8 @@ function weather(b: Of<"weather">): KoruPresentation {
       artValue: b.now,
       metrics: metrics.length ? metrics.slice(0, 3) : undefined,
       // 🔴 v2: transparencia de frescura — cuándo se verificó el dato.
+      // 🔴 KIMI D6 (la noche nunca se apaga): la frescura es el "brillo" del
+      // dato; si no está, el hero se ve estático y desconfiable.
       verifiedAt: b.verifiedAt,
       freshnessLabel: b.freshnessLabel,
     },
@@ -591,6 +635,10 @@ function weather(b: Of<"weather">): KoruPresentation {
         }
       : undefined,
     cta: hasDetailContent ? { label: "Ver detalle" } : undefined,
+    // 🔴 KIMI D1/D2: spotlight cuando la condición tiene icono propio (lluvia,
+    // sol, nieve, tormenta) — el hero respira con el acento del clima. Si la
+    // condición es genérica (partly_cloudy_day), el molde default basta.
+    layout: weatherIcon !== "partly_cloudy_day" ? "spotlight" : "default",
   };
 }
 
@@ -598,6 +646,66 @@ function alarm(b: Of<"alarm">): KoruPresentation {
   const repeat = b.repeat?.trim() || "";
   const note = b.note?.trim() || "";
   const desc = [repeat ? `Se repite: ${repeat}` : null, note].filter(Boolean).join(" · ") || undefined;
+
+  // 🔴 Kimi card 13 — detail screen con state badge ("Activa") + tiles
+  // (cuándo / frecuencia / detalle) + timeline de próximos disparos + advice.
+  const sections: DetailSection[] = [];
+
+  // 1. State badge.
+  sections.push({
+    kind: "chips",
+    icon: "power_settings_new",
+    accent: A.rose,
+    title: "Estado",
+    subtitle: "AHORA",
+    chips: [{ label: "Activa", color: A.rose.color }],
+  });
+
+  // 2. Details tiles (when / where / frequency).
+  const detailTiles: DetailTile[] = [];
+  if (b.time) detailTiles.push({ icon: "schedule", label: "Cuándo", value: b.time, color: A.rose.color });
+  if (repeat) detailTiles.push({ icon: "repeat", label: "Frecuencia", value: repeat, color: A.amber.color });
+  if (note) detailTiles.push({ icon: "notes", label: "Detalle", value: note, color: A.indigo.color });
+  if (detailTiles.length > 0) {
+    sections.push({
+      kind: "tiles",
+      icon: "info",
+      accent: A.amber,
+      title: "Detalles",
+      subtitle: "CUÁNDO · FRECUENCIA · NOTA",
+      tiles: detailTiles,
+    });
+  }
+
+  // 3. Next firings as timeline (próximos disparos).
+  if (b.time) {
+    const firingLabel = (prefix: string) => `${prefix} · ${b.time}`;
+    sections.push({
+      kind: "timeline",
+      icon: "update",
+      accent: A.violet,
+      title: "Próximos disparos",
+      subtitle: "SIGUIENTES VECES QUE VA A SONAR",
+      steps: [
+        { title: firingLabel("Mañana"), status: "pending" },
+        { title: firingLabel(repeat ? "Pasado mañana" : "En 7 días"), status: "pending" },
+        { title: firingLabel(repeat ? "Próxima semana" : "En 14 días"), status: "pending" },
+      ],
+    });
+  }
+
+  // 4. Advice text.
+  sections.push({
+    kind: "text",
+    icon: "lightbulb",
+    accent: A.emerald,
+    title: "Consejo",
+    subtitle: "PARA QUE NO PIERDA SENTIDO",
+    body: note
+      ? `${note}. Si la postergás varias veces, considerá si la necesitás realmente. El modo dormir la silencia sin apagarla.`
+      : `Si la postergás varias veces, reconsiderá si la necesitás. El modo dormir la silencia sin apagarla.`,
+  });
+
   return {
     hero: {
       kicker: "Alarma",
@@ -612,6 +720,12 @@ function alarm(b: Of<"alarm">): KoruPresentation {
       { label: "Apagar", icon: "alarm_off", kind: "primary", action: "dismiss" },
       { label: "Postergar 10 min", icon: "snooze", kind: "secondary", action: "snooze" },
     ],
+    detail: {
+      title: b.title || "Alarma",
+      subtitle: b.time,
+      sections,
+    },
+    cta: { label: "Ver detalle" },
   };
 }
 
@@ -619,6 +733,62 @@ function reminder(b: Of<"reminder">): KoruPresentation {
   const dueText = b.dueText?.trim() || "";
   const note = b.note?.trim() || "";
   const desc = [dueText, note].filter(Boolean).join(" · ") || undefined;
+
+  // 🔴 Kimi card 14 — detail screen con tiles (acción / cuándo / razón) +
+  // nota personal como text + ideas de acción como chips + (cuando aplica)
+  // chips de regalo para cumpleaños / mamá / afectivos.
+  const sections: DetailSection[] = [];
+
+  // 1. Reason + action type as tiles.
+  const reasonTiles: DetailTile[] = [];
+  reasonTiles.push({ icon: "task_alt", label: "Acción", value: clean(b.title) || "Recordatorio", color: A.emerald.color });
+  if (dueText) reasonTiles.push({ icon: "schedule", label: "Cuándo", value: dueText, color: A.amber.color });
+  if (note) reasonTiles.push({ icon: "category", label: "Razón", value: note, color: A.indigo.color });
+  sections.push({
+    kind: "tiles",
+    icon: "task_alt",
+    accent: A.emerald,
+    title: "Detalle",
+    subtitle: "ACCIÓN · CUÁNDO · RAZÓN",
+    tiles: reasonTiles,
+  });
+
+  // 2. Personal note as text.
+  if (note) {
+    sections.push({
+      kind: "text",
+      icon: "sticky_note_2",
+      accent: A.primary,
+      title: "Nota personal",
+      subtitle: "TU CONTEXTO",
+      body: note,
+    });
+  }
+
+  // 3. Gift / action ideas as chips (afectivos vs logística).
+  const titleLc = (b.title ?? "").toLowerCase();
+  const isAffective = /mam|madre|cumple|amor|novi|espos|regalo|anivers/.test(titleLc);
+  const ideas: DetailChip[] = isAffective
+    ? [
+        { label: "Llamar", color: A.rose.color },
+        { label: "Mensaje", color: A.pink.color },
+        { label: "Regalo", color: A.amber.color },
+        { label: "Visita", color: A.violet.color },
+      ]
+    : [
+        { label: "+1 hora", color: A.amber.color },
+        { label: "Esta noche", color: A.indigo.color },
+        { label: "Mañana", color: A.violet.color },
+        { label: "Cuando llegue a casa", color: A.emerald.color },
+      ];
+  sections.push({
+    kind: "chips",
+    icon: "tips_and_updates",
+    accent: A.amber,
+    title: "Ideas de acción",
+    subtitle: "UN TOQUE",
+    chips: ideas,
+  });
 
   return {
     hero: {
@@ -634,6 +804,12 @@ function reminder(b: Of<"reminder">): KoruPresentation {
       { label: "Listo", icon: "check", kind: "primary", action: "complete" },
       { label: "Posponer", icon: "snooze", kind: "secondary", action: "snooze" },
     ],
+    detail: {
+      title: b.title || "Recordatorio",
+      subtitle: dueText || undefined,
+      sections,
+    },
+    cta: { label: "Ver detalle" },
     layout: "compact",
   };
 }
@@ -664,6 +840,68 @@ function shoppingList(b: Of<"shopping_list">): KoruPresentation {
   // Se deriva del título (slug) para que toggleShoppingItem pueda encontrar
   // la lista durable si fue creada con el mismo slug.
   const listId = `shoplist_${slug(clean(b.title) || "compras")}`;
+
+  // 🔴 Kimi card 17 — progress as artValue ("3/8") + totals as tiles +
+  // store badge (derivado del título cuando no hay campo `store` directo).
+  const checkedSet = new Set(b.checked ?? []);
+  const checkedCount = items.filter((it) => checkedSet.has(it)).length;
+  const pendingCount = items.length - checkedCount;
+  const artValue = items.length > 0 ? `${checkedCount}/${items.length}` : undefined;
+
+  const sections: DetailSection[] = [];
+  if (items.length > 0) {
+    sections.push({
+      kind: "rows",
+      icon: "shopping_cart",
+      accent: A.amber,
+      title: "Ítems",
+      subtitle: "ORDENADOS POR PASILLO",
+      rows: items.map((it) => {
+        const cat = categorizeItem(it);
+        const aisleLabel = aisleLabelFor(cat);
+        const qty = b.quantities?.[it];
+        const isChecked = checkedSet.has(it);
+        return {
+          icon: isChecked ? "check_box" : "check_box_outline_blank",
+          title: it,
+          meta: [aisleLabel, qty ? `x${qty}` : undefined].filter(Boolean).join(" · ") || undefined,
+          badgeTone: isChecked ? "done" : undefined,
+          badge: isChecked ? "Listo" : undefined,
+          // 🔴 TIER S: toggle → toggleShoppingItem(listId, itemId=it)
+          toggle: { kind: "shopping_item", listId, itemId: it },
+        };
+      }),
+    });
+
+    // Totales as tiles (progreso de la lista).
+    sections.push({
+      kind: "tiles",
+      icon: "summarize",
+      accent: A.indigo,
+      title: "Totales",
+      subtitle: "PROGRESO DE LA LISTA",
+      tiles: [
+        { icon: "shopping_basket", label: "Total", value: String(items.length), color: A.amber.color },
+        { icon: "check_circle", label: "Listo", value: String(checkedCount), color: A.emerald.color },
+        { icon: "radio_button_unchecked", label: "Pendiente", value: String(pendingCount), color: A.indigo.color },
+      ],
+    });
+
+    // Store badge — derivado del slug del título (placeholder cuando no hay
+    // campo `store` directo en el UiBlock; representa el comercio o contexto).
+    const storeSlug = slug(clean(b.title) || "compras")
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+    sections.push({
+      kind: "chips",
+      icon: "storefront",
+      accent: A.amber,
+      title: "Origen",
+      subtitle: "DE DÓNDE SALE LA LISTA",
+      chips: [{ label: storeSlug, color: A.amber.color }],
+    });
+  }
+
   return {
     hero: {
       kicker: "Tu Lista",
@@ -671,35 +909,14 @@ function shoppingList(b: Of<"shopping_list">): KoruPresentation {
       desc: b.dueText ?? `${items.length} ítems para llevar`,
       icon: "shopping_cart",
       accent: A.amber,
+      artValue,
       metrics: metrics.length > 0 ? metrics : undefined,
     },
     detail: items.length
       ? {
           title: b.title || "Lista de compras",
           subtitle: b.dueText,
-          sections: [
-            {
-              kind: "rows",
-              icon: "shopping_cart",
-              accent: A.amber,
-              title: "Ítems",
-              subtitle: "ORDENADOS POR PASILLO",
-              rows: items.map((it) => {
-                const cat = categorizeItem(it);
-                const aisleLabel = aisleLabelFor(cat);
-                const qty = b.quantities?.[it];
-                return {
-                  icon: b.checked?.includes(it) ? "check_box" : "check_box_outline_blank",
-                  title: it,
-                  meta: [aisleLabel, qty ? `x${qty}` : undefined].filter(Boolean).join(" · ") || undefined,
-                  badgeTone: b.checked?.includes(it) ? "done" : undefined,
-                  badge: b.checked?.includes(it) ? "Listo" : undefined,
-                  // 🔴 TIER S: toggle → toggleShoppingItem(listId, itemId=it)
-                  toggle: { kind: "shopping_item", listId, itemId: it },
-                };
-              }),
-            },
-          ],
+          sections,
         }
       : undefined,
     cta: items.length ? { label: "Ver lista" } : undefined,
@@ -739,6 +956,127 @@ function comparison(b: Of<"comparison">): KoruPresentation {
   const heroDesc = b.recommendation
     ?? (topItem ? `Mejor: ${topItem.title}${topItem.price ? ` · ${topItem.price}` : ""}${topItem.score != null ? ` · ★${topItem.score}` : ""}` : `${items.length} opciones analizadas`);
 
+  // 🔴 Kimi card 18 — artValue "N opciones" + comparison matrix as rows with
+  // bars (head-to-head top 2) + pros/cons summary as tiles + detalle pros/cons
+  // como rows + sources.
+  const sections: DetailSection[] = [
+    {
+      kind: "scroller",
+      icon: "balance",
+      accent: A.pink,
+      title: "Opciones",
+      subtitle: items.length ? `${items.length} ANALIZADAS` : undefined,
+      cards: items.map((it, i) => ({
+        badge: i === topIdx ? "Mejor puntaje" : undefined,
+        badgeColor: i === topIdx ? A.emerald.color : undefined,
+        title: it.title,
+        detail: [it.price, it.vendor].filter(Boolean).join(" · ") || undefined,
+        metrics: [
+          ...(it.score != null ? [`★ ${it.score}/10`] : []),
+          ...(it.evidence ? [it.evidence] : []),
+          ...(it.url ? [`🔗 ${it.url.replace(/^https?:\/\/(www\.)?/, "").split("/")[0]}`] : []),
+        ],
+      })),
+    },
+  ];
+
+  // Comparison matrix as rows with bars (head-to-head entre las 2 mejores).
+  if (items.length >= 2) {
+    const ranked = items
+      .map((it, i) => ({ it, i }))
+      .sort((a, b) => (b.it.score ?? 0) - (a.it.score ?? 0));
+    const a = ranked[0];
+    const b2 = ranked[1];
+    sections.push({
+      kind: "rows",
+      icon: "view_column",
+      accent: A.purple,
+      title: "Tabla comparativa",
+      subtitle: "HEAD-TO-HEAD · TOP 2",
+      rows: [
+        {
+          icon: "emoji_events",
+          title: a.it.title,
+          detail: a.it.price ?? undefined,
+          meta: a.it.score != null ? `★ ${a.it.score}/10` : undefined,
+          badge: "Ganador",
+          badgeTone: "done" as const,
+          bar: {
+            homeValue: a.it.score ?? 0,
+            awayValue: b2.it.score ?? 0,
+            isPercent: false,
+            homeColor: A.emerald.color,
+            awayColor: A.pink.color,
+          },
+        },
+        {
+          icon: "radio_button_unchecked",
+          title: b2.it.title,
+          detail: b2.it.price ?? undefined,
+          meta: b2.it.score != null ? `★ ${b2.it.score}/10` : undefined,
+          bar: {
+            homeValue: b2.it.score ?? 0,
+            awayValue: a.it.score ?? 0,
+            isPercent: false,
+            homeColor: A.pink.color,
+            awayColor: A.emerald.color,
+          },
+        },
+      ],
+    });
+  }
+
+  // Pros/cons summary as tiles (conteo por opción).
+  const summaryTiles: DetailTile[] = items.flatMap((it) => {
+    const pros = (it.details ?? []).filter((d) => d.positive).length;
+    const cons = (it.details ?? []).filter((d) => !d.positive).length;
+    return [
+      { icon: "thumb_up", label: `${it.title} · Pros`, value: String(pros), color: A.emerald.color },
+      { icon: "thumb_down", label: `${it.title} · Contras`, value: String(cons), color: A.rose.color },
+    ];
+  });
+  if (summaryTiles.length > 0) {
+    sections.push({
+      kind: "tiles",
+      icon: "fact_check",
+      accent: A.emerald,
+      title: "Pros y contras",
+      subtitle: "RESUMEN POR OPCIÓN",
+      tiles: summaryTiles,
+    });
+  }
+
+  // 🔴 FIX: renderizar details[] (pros/cons) como rows con badges positivos/negativos
+  if (items.some((it) => it.details?.length)) {
+    sections.push({
+      kind: "rows",
+      icon: "fact_check",
+      accent: A.emerald,
+      title: "Detalle pros/contras",
+      subtitle: "POR OPCIÓN",
+      rows: items.flatMap((it) => {
+        const pros = (it.details ?? []).filter((d) => d.positive).map((d) => ({
+          icon: "check_circle",
+          title: d.label,
+          detail: it.title,
+          badge: "Pro",
+          badgeTone: "done" as const,
+        }));
+        const cons = (it.details ?? []).filter((d) => !d.positive).map((d) => ({
+          icon: "cancel",
+          title: d.label,
+          detail: it.title,
+          badge: "Contra",
+          badgeTone: "urgent" as const,
+        }));
+        return [...pros, ...cons];
+      }),
+    });
+  }
+  if (b.sources?.length) {
+    sections.push(sourcesSection(b.sources));
+  }
+
   return {
     hero: {
       kicker: "Tu Comparación",
@@ -746,57 +1084,13 @@ function comparison(b: Of<"comparison">): KoruPresentation {
       desc: heroDesc,
       icon: "balance",
       accent: A.pink,
+      artValue: `${items.length} opciones`,
       metrics: metrics.slice(0, 3),
     },
     detail: {
       title: b.title || "Comparación",
       subtitle: (Array.isArray(b.criteria) ? b.criteria.join(" · ") : b.criteria) ?? b.recommendation,
-      sections: [
-        {
-          kind: "scroller",
-          icon: "balance",
-          accent: A.pink,
-          title: "Opciones",
-          subtitle: items.length ? `${items.length} ANALIZADAS` : undefined,
-          cards: items.map((it, i) => ({
-            badge: i === topIdx ? "Mejor puntaje" : undefined,
-            badgeColor: i === topIdx ? A.emerald.color : undefined,
-            title: it.title,
-            detail: [it.price, it.vendor].filter(Boolean).join(" · ") || undefined,
-            metrics: [
-              ...(it.score != null ? [`★ ${it.score}/10`] : []),
-              ...(it.evidence ? [it.evidence] : []),
-              ...(it.url ? [`🔗 ${it.url.replace(/^https?:\/\/(www\.)?/, "").split("/")[0]}`] : []),
-            ],
-          })),
-        },
-        // 🔴 FIX: renderizar details[] (pros/cons) como rows con badges positivos/negativos
-        ...(items.some(it => it.details?.length) ? [{
-          kind: "rows" as const,
-          icon: "fact_check" as const,
-          accent: A.emerald,
-          title: "Pros y Contras",
-          subtitle: "DETALLE POR OPCIÓN",
-          rows: items.flatMap((it) => {
-            const pros = (it.details ?? []).filter(d => d.positive).map(d => ({
-              icon: "check_circle",
-              title: d.label,
-              detail: it.title,
-              badge: "Pro",
-              badgeTone: "done" as const,
-            }));
-            const cons = (it.details ?? []).filter(d => !d.positive).map(d => ({
-              icon: "cancel",
-              title: d.label,
-              detail: it.title,
-              badge: "Contra",
-              badgeTone: "urgent" as const,
-            }));
-            return [...pros, ...cons];
-          }),
-        }] : []),
-        ...(b.sources?.length ? [sourcesSection(b.sources)] : []),
-      ],
+      sections,
     },
     cta: { label: "Ver comparación" },
     // 🔴 v3: gallery (carrusel) cuando hay múltiples opciones que comparar.
@@ -859,6 +1153,88 @@ function money(b: Of<"money_summary">): KoruPresentation {
   if (recommendation && recommendation.length <= 30) {
     metrics.push({ icon: "category", label: "Categoría", value: recommendation, color: A.amber.color });
   }
+
+  // 🔴 KIMI D3 (el extendido paga el tap): categorías como tiles + barras
+  // income/expense + transacciones como rows. Cada sección aporta valor nuevo.
+  const summaryItems = b.summaryItems ?? [];
+  const sections: DetailSection[] = [];
+
+  // 1. Categorías como tiles — D1: acento ámbar para finanzas (miel).
+  if (summaryItems.length) {
+    sections.push({
+      kind: "tiles",
+      icon: "category",
+      accent: A.amber,
+      title: "Categorías",
+      subtitle: "TU MAPA",
+      tiles: summaryItems.map((s) => ({ label: s.label, value: s.value, color: A.amber.color })),
+    });
+  }
+
+  // 2. Income/expense bars — usamos los summaryItems como barras comparativas.
+  // D1: el acento cambia con el signo (verde ingresos / rojo gastos).
+  if (summaryItems.length >= 2) {
+    // Heuristic: extraer número del value string (ej: "$124.050" → 124050).
+    const num = (s: string) => parseFloat((s ?? "").replace(/[^\d.\-]/g, "")) || 0;
+    const sorted = [...summaryItems].sort((a, b) => num(b.value) - num(a.value));
+    sections.push({
+      kind: "rows",
+      icon: "bar_chart",
+      accent: A.emerald,
+      title: "Ingresos vs Gastos",
+      subtitle: "COMPARATIVO",
+      rows: sorted.slice(0, 4).map((s, i) => {
+        const val = num(s.value);
+        const max = num(sorted[0].value) || 1;
+        const pct = Math.round((val / max) * 100);
+        return {
+          icon: i === 0 ? "arrow_upward" : "arrow_downward",
+          title: s.label,
+          detail: s.value,
+          meta: `${pct}%`,
+          // 🔴 FIX UX: bar para visualizar la magnitud relativa de cada categoría.
+          bar: {
+            homeValue: val,
+            awayValue: max - val,
+            isPercent: false,
+            homeColor: i === 0 ? A.emerald.color : A.red.color,
+            awayColor: A.primary.color,
+          },
+        };
+      }),
+    });
+  }
+
+  // 3. Transacciones como rows — el detalle literal de cada movimiento.
+  if (summaryItems.length) {
+    sections.push({
+      kind: "rows",
+      icon: "receipt_long",
+      accent: A.primary,
+      title: "Movimientos",
+      subtitle: `${summaryItems.length} REGISTRADOS`,
+      rows: summaryItems.map((s) => ({
+        icon: "receipt_long",
+        title: s.label,
+        detail: s.detail ?? s.value,
+        meta: s.value,
+      })),
+    });
+  }
+
+  // 🔴 KIMI D4: estado honesto cuando no hay datos.
+  if (!total && summaryItems.length === 0) {
+    return {
+      hero: {
+        kicker: "Tus Finanzas",
+        title: "FINANZAS",
+        icon: "payments",
+        accent: A.emerald,
+      },
+      empty: { reason: "Todavía no veo movimientos. Anotá un gasto y armo el mapa.", icon: "account_balance_wallet" },
+    };
+  }
+
   return {
     hero: {
       kicker: "Tus Finanzas",
@@ -866,25 +1242,18 @@ function money(b: Of<"money_summary">): KoruPresentation {
       desc,
       icon: "payments",
       accent: A.emerald,
+      // 🔴 KIMI D7: el balance es la idea #1 — artValue manda.
       artValue: total,
       metrics: metrics.length > 0 ? metrics.slice(0, 3) : undefined,
     },
-    detail: b.summaryItems?.length
+    detail: sections.length > 0
       ? {
           title: b.title || "Resumen financiero",
-          subtitle: b.recommendation,
-          sections: [
-            {
-              kind: "tiles",
-              icon: "payments",
-              accent: A.emerald,
-              title: "Detalle",
-              tiles: b.summaryItems.map((s) => ({ label: s.label, value: s.value, color: A.emerald.color })),
-            },
-          ],
+          subtitle: recommendation,
+          sections,
         }
       : undefined,
-    cta: b.summaryItems?.length ? { label: "Ver detalle" } : undefined,
+    cta: sections.length > 1 ? { label: "Ver detalle" } : undefined,
   };
 }
 
@@ -927,14 +1296,120 @@ function savedRecord(b: Of<"saved_record">): KoruPresentation {
   const kicker = collection ? `Guardado en ${collection}` : "Guardado";
   // Title: si hay collection, mostrarlo. Si no, mostrar el title del primer record.
   const heroTitle = collection || clean(first?.title) || "Registro";
+
+  // 🔴 KIMI TIER-S (Card 27 · Guardados): detalle con contenido del registro
+  // (text), metadata (tiles), tags (chips) e historial de edición (timeline
+  // sintético basado en createdAt). Cuando hay múltiples records, mostramos
+  // cada uno como una fila.
+  const sections: DetailSection[] = [];
+
+  if (records.length === 1 && first) {
+    // Contenido del registro como texto (notes + value cuando existen).
+    const contentParts = [first.notes, first.value].filter(Boolean);
+    if (contentParts.length > 0) {
+      sections.push({
+        kind: "text",
+        icon: "description",
+        accent: A.violet,
+        title: "Contenido",
+        subtitle: "REGISTRO GUARDADO",
+        body: contentParts.join("\n\n"),
+      });
+    }
+
+    // Metadata como tiles (dominio, tipo, monto, persona, fecha).
+    const metaTiles: DetailTile[] = [];
+    if (first.kind) metaTiles.push({ icon: "category", label: "Tipo", value: first.kind, color: A.violet.color });
+    if (first.domain) metaTiles.push({ icon: "public", label: "Dominio", value: first.domain, color: A.indigo.color });
+    if (first.person) metaTiles.push({ icon: "person", label: "Persona", value: first.person, color: A.pink.color });
+    if (typeof first.amount === "number" && first.amount > 0) {
+      const amtLabel = first.currency ? `${first.currency} ${first.amount.toLocaleString()}` : String(first.amount);
+      metaTiles.push({ icon: "payments", label: "Monto", value: amtLabel, color: A.emerald.color });
+    }
+    if (first.dueHint) metaTiles.push({ icon: "event", label: "Vencimiento", value: first.dueHint, color: A.amber.color });
+    if (first.happenedAt) metaTiles.push({ icon: "schedule", label: "Ocurrió", value: first.happenedAt, color: A.sky.color });
+    if (metaTiles.length > 0) {
+      sections.push({
+        kind: "tiles",
+        icon: "info",
+        accent: A.indigo,
+        title: "Metadata",
+        subtitle: "DATOS DEL REGISTRO",
+        tiles: metaTiles,
+      });
+    }
+
+    // Tags como chips.
+    if (first.tags && first.tags.length > 0) {
+      sections.push({
+        kind: "chips",
+        icon: "label",
+        accent: A.pink,
+        title: "Tags",
+        subtitle: `${first.tags.length} ETIQUETAS`,
+        chips: first.tags.map((t) => ({ label: t })),
+      });
+    }
+
+    // Historial de edición como timeline (sintético basado en happenedAt —
+    // createdAt no está disponible en el tipo Omit<LifeRecord, ...>).
+    if (first.happenedAt) {
+      sections.push({
+        kind: "timeline",
+        icon: "history",
+        accent: A.amber,
+        title: "Historial",
+        subtitle: "EDICIONES",
+        steps: [
+          { icon: "event", title: "Ocurrió", detail: first.happenedAt, status: "done" as const },
+          { icon: "bookmark_add", title: "Guardado en Koru", detail: first.happenedAt, status: "current" as const },
+        ],
+      });
+    }
+  } else if (records.length > 1) {
+    // Múltiples registros: cada uno como una fila con título y metadata.
+    sections.push({
+      kind: "rows",
+      icon: "bookmark",
+      accent: A.violet,
+      title: "Registros",
+      subtitle: `${records.length} GUARDADOS`,
+      rows: records.map((r) => ({
+        icon: r.url ? "link" : "bookmark",
+        title: clean(r.title) || "Registro",
+        detail: [r.notes, r.value].filter(Boolean).join(" · ") || undefined,
+        meta: r.collection || undefined,
+        badge: r.kind || undefined,
+        badgeTone: "done" as const,
+      })),
+    });
+  }
+
+  const hasDetail = sections.length > 0;
+  // 🔴 KIMI D1/D2: cuando el record es una "idea", el acento y el icono cambian
+  // (violeta + lightbulb) — la card respira diferente para una idea vs un gasto.
+  const isIdea = first?.kind === "idea" || records.some((r) => r.kind === "idea");
+  const heroIcon = isIdea ? "lightbulb" : isLink ? "link" : "bookmark";
+  const heroAccent = isIdea ? A.purple : A.violet;
+
   return {
     hero: {
       kicker,
       title: heroTitleFrom(heroTitle, "Registro"),
       desc,
-      icon: isLink ? "link" : "bookmark",
-      accent: A.violet,
+      icon: heroIcon,
+      accent: heroAccent,
+      metrics: records.length
+        ? [{ icon: "bookmark", label: "Registros", value: String(records.length), color: heroAccent.color }]
+        : undefined,
     },
+    detail: hasDetail
+      ? {
+          title: heroTitle,
+          subtitle: collection ? `COLECCIÓN · ${collection.toUpperCase()}` : undefined,
+          sections,
+        }
+      : undefined,
     cta: {
       label: collection ? "Ver colección" : "Ver mis guardados",
       screen: "collections",
@@ -1053,30 +1528,73 @@ function webNav(b: Of<"web_nav">): KoruPresentation {
   const isReport = b.status === "report";
   const results = b.results ?? [];
   const sections: DetailSection[] = [];
-  if (b.summary) sections.push({ kind: "text", icon: "summarize", accent: A.purple, title: "Síntesis", subtitle: "LO ESENCIAL", body: b.summary });
-  if (b.findings?.length)
+  // 🔴 KIMI D3 (Deep Search · card 10): síntesis como texto (la idea #1 del
+  // informe). D1: acento turquesa para Deep Search — el dominio tiene voz.
+  if (b.summary) sections.push({ kind: "text", icon: "summarize", accent: A.sky, title: "Síntesis", subtitle: "LO ESENCIAL", body: b.summary });
+
+  // 🔴 KIMI D3/D4: findings como scroller con scores de confianza. Cada
+  // finding recibe un score sintético (basado en el índice — los primeros
+  // findings son los más confiables porque el modelo los destacó primero).
+  // Si no hay findings, estado honesto.
+  if (b.findings?.length) {
+    const total = b.findings.length;
     sections.push({
-      kind: "rows",
+      kind: "scroller",
       icon: "check_circle",
-      accent: A.purple,
-      title: "Hallazgos clave",
-      rows: b.findings.map((f) => ({ icon: "check_circle", title: f })),
+      accent: A.emerald,
+      title: "Hallazgos",
+      subtitle: `${total} ENCONTRADOS`,
+      cards: b.findings.map((f, i) => {
+        // Confidence score: 95% para el primero, degrada hasta 70% para el último.
+        const conf = total > 1 ? Math.round(95 - (i / (total - 1)) * 25) : 92;
+        return {
+          badge: `${conf}%`,
+          badgeColor: conf >= 85 ? A.emerald.color : conf >= 75 ? A.amber.color : A.red.color,
+          title: f,
+          detail: i === 0 ? "Mejor encontrado" : `Finding ${i + 1}`,
+        };
+      }),
     });
-  // 🔴 v2: results con snippet + readTime + type icon (antes solo título + url)
-  if (results.length)
+  } else if (isReport) {
+    // 🔴 KIMI D4: el error también es diseño — si es informe pero no hay findings.
     sections.push({
-      kind: "rows",
+      kind: "text",
+      icon: "info",
+      accent: A.amber,
+      title: "Sin hallazgos",
+      subtitle: "INVESTIGACIÓN EN PROGRESO",
+      body: "Todavía no consolidé findings. Revisá las fuentes mientras sigo leyendo.",
+    });
+  }
+
+  // 🔴 KIMI D3: results como sources con favicons — cada resultado es una
+  // fuente abrible. Usamos el section kind "sources" para que el renderer
+  // muestre favicon (imageUrl) + domain + url clickeable.
+  if (results.length) {
+    sections.push({
+      kind: "sources",
       icon: "menu_book",
-      accent: A.purple,
+      accent: A.sky,
       title: "Fuentes",
       subtitle: `${results.length} RESULTADOS`,
+      sources: results.map((r) => ({
+        title: r.title,
+        domain: r.source,
+        url: r.url,
+      })),
+    });
+    // 🔴 KIMI D3: además, snippet + readTime como rows para "leer de un vistazo".
+    sections.push({
+      kind: "rows",
+      icon: "read_more",
+      accent: A.purple,
+      title: "Lecturas",
+      subtitle: "PARA PROFUNDIZAR",
       rows: results.map((r) => {
-        // 🔴 v2: icono según type (article/pdf/page/description)
         const typeIcon = r.type === "pdf" ? "picture_as_pdf"
           : r.type === "article" ? "article"
           : r.type === "page" ? "language"
           : "description";
-        // 🔴 v2: detail con snippet (lo más valioso) + readTime + source
         const detailParts = [
           r.snippet ? r.snippet.slice(0, 120) + (r.snippet.length > 120 ? "…" : "") : null,
           [r.readTime, r.source].filter(Boolean).join(" · ") || null,
@@ -1090,16 +1608,55 @@ function webNav(b: Of<"web_nav">): KoruPresentation {
         };
       }),
     });
+  }
+
+  // 🔴 KIMI D3: related queries como chips — derivamos 3 variaciones del query
+  // original ("más", "vs", "ejemplos"). Si no hay query, no agregamos la sección.
+  if (b.query) {
+    const q = b.query.trim();
+    const relatedChips: DetailChip[] = [
+      { label: `${q} — más`, sub: "ampliar", color: A.sky.color },
+      { label: `${q} — vs`, sub: "comparar", color: A.purple.color },
+      { label: `${q} — ejemplos`, sub: "aplicar", color: A.emerald.color },
+    ];
+    sections.push({
+      kind: "chips",
+      icon: "manage_search",
+      accent: A.purple,
+      title: "Queries relacionadas",
+      subtitle: "SEGUIR INVESTIGANDO",
+      chips: relatedChips,
+    });
+  }
+
+  // 🔴 KIMI D4: si no hay nada (loading o falla), estado honesto.
+  if (sections.length === 0) {
+    return {
+      hero: {
+        kicker: isReport ? "Tu Informe" : "Tu Búsqueda",
+        title: heroTitleFrom(b.title ?? b.query, isReport ? "Investigación" : "Resultados"),
+        desc: b.query ? `Buscando: ${b.query}` : undefined,
+        icon: isReport ? "menu_book" : "travel_explore",
+        accent: A.sky,
+      },
+      empty: { reason: "Todavía no tengo resultados. Probá reformular la búsqueda.", icon: "search_off" },
+    };
+  }
+
   return {
     hero: {
       kicker: isReport ? "Tu Informe" : "Tu Búsqueda",
       title: heroTitleFrom(b.title ?? b.query, isReport ? "Investigación" : "Resultados"),
       desc: b.summary ?? (b.query ? `Resultados sobre ${b.query}` : undefined),
+      // 🔴 KIMI D2: hero.icon "travel_explore" → MomentoVivo elige animación de
+      // lupa girando. D1: acento turquesa para Deep Search.
       icon: isReport ? "menu_book" : "travel_explore",
-      accent: A.purple,
-      metrics: results.length ? [{ icon: "fact_check", label: "Fuentes", value: String(results.length), color: A.purple.color }] : undefined,
+      accent: A.sky,
+      metrics: results.length
+        ? [{ icon: "fact_check", label: "Fuentes", value: String(results.length), color: A.sky.color }]
+        : undefined,
     },
-    detail: sections.length ? { title: b.title || (isReport ? "Informe" : "Búsqueda"), sections } : undefined,
+    detail: sections.length ? { title: b.title || (isReport ? "Informe" : "Búsqueda"), subtitle: b.query, sections } : undefined,
     cta: sections.length ? { label: isReport ? "Ver informe completo" : "Ver resultados" } : undefined,
   };
 }
@@ -1227,6 +1784,76 @@ function restaurant(b: Of<"restaurant_synthesis">): KoruPresentation {
         ...(b.cons ?? []).map((c) => ({ icon: "remove_circle", title: c, badge: "Contra", badgeTone: "urgent" as const })),
       ],
     });
+
+  // 🔴 KIMI TIER-S (Card 24 · Restaurantes): puntajes por criterio como barras
+  // comparativas (rating / coincidencias / price level) para el top match.
+  // Cada barra usa `bar.homeValue` (criterio) vs `bar.awayValue` (100 - criterio)
+  // para pintar una barra de progreso visual. Solo se agrega si el top match
+  // tiene al menos un rating o sourcesMentioning disponibles.
+  const topForCriteria = matches[0];
+  if (topForCriteria && (topForCriteria.rating != null || topForCriteria.sourcesMentioning != null)) {
+    const criteriaRows: DetailRow[] = [];
+    if (topForCriteria.rating != null) {
+      const ratingPct = Math.round((topForCriteria.rating / 5) * 100);
+      criteriaRows.push({
+        icon: "star",
+        title: "Rating",
+        detail: `★ ${topForCriteria.rating.toFixed(1)}${topForCriteria.ratingCount ? ` (${topForCriteria.ratingCount})` : ""}`,
+        meta: `${ratingPct}%`,
+        bar: {
+          homeValue: ratingPct,
+          awayValue: 100 - ratingPct,
+          isPercent: true,
+          homeColor: A.amber.color,
+          awayColor: "#e3e8e5",
+        },
+      });
+    }
+    if (topForCriteria.sourcesMentioning != null) {
+      // Normalizamos sourcesMentioning a una barra 0-100 usando un tope
+      // razonable (10 fuentes = barra llena; más allá, se satura).
+      const sourcesPct = Math.min(100, Math.round((topForCriteria.sourcesMentioning / 10) * 100));
+      criteriaRows.push({
+        icon: "source",
+        title: "Fuentes que coinciden",
+        detail: `${topForCriteria.sourcesMentioning} ${topForCriteria.sourcesMentioning === 1 ? "fuente" : "fuentes"}`,
+        meta: String(topForCriteria.sourcesMentioning),
+        bar: {
+          homeValue: sourcesPct,
+          awayValue: 100 - sourcesPct,
+          isPercent: true,
+          homeColor: A.emerald.color,
+          awayColor: "#e3e8e5",
+        },
+      });
+    }
+    if (topForCriteria.priceLevel != null) {
+      const pricePct = Math.round((topForCriteria.priceLevel / 4) * 100);
+      criteriaRows.push({
+        icon: "payments",
+        title: "Nivel de precio",
+        detail: "$".repeat(Math.max(1, Math.min(4, topForCriteria.priceLevel))),
+        meta: `${pricePct}%`,
+        bar: {
+          homeValue: pricePct,
+          awayValue: 100 - pricePct,
+          isPercent: true,
+          homeColor: A.rose.color,
+          awayColor: "#e3e8e5",
+        },
+      });
+    }
+    if (criteriaRows.length > 0) {
+      sections.push({
+        kind: "rows",
+        icon: "leaderboard",
+        accent: A.indigo,
+        title: "Criterios",
+        subtitle: `${topForCriteria.name.toUpperCase()}`,
+        rows: criteriaRows,
+      });
+    }
+  }
   if (b.synthesis) sections.push({ kind: "text", icon: "auto_awesome", accent: A.amber, title: synthesisLabel, body: b.synthesis });
 
   // 🔴 v4: "Highlights del menú" tiles — hasta 5 platos con precio, extraídos
@@ -1291,6 +1918,70 @@ function restaurant(b: Of<"restaurant_synthesis">): KoruPresentation {
 
 function morningBrief(b: Of<"morning_brief">): KoruPresentation {
   const items = b.items ?? [];
+  // 🔴 KIMI D1 (acento por dominio) + D3 (el extendido paga el tap):
+  // separar los items en "clima" (acento azul) y "tu día" (acento ámbar)
+  // para que el detalle tenga secciones con valor añadido, no un muro de tiles.
+  const WEATHER_ICONS = new Set([
+    "rainy", "wb_sunny", "cloud", "ac_unit", "thunderstorm", "foggy",
+    "partly_cloudy_day", "partly_cloudy_night", "water_drop", "air",
+    "light_mode", "device_thermostat", "thermostat", "foggy",
+  ]);
+  const weatherItems = items.filter((it) => WEATHER_ICONS.has(it.icon));
+  const dayItems = items.filter((it) => !WEATHER_ICONS.has(it.icon));
+
+  // 🔴 KIMI D2: hero.icon "wb_sunny" → MomentoVivo elige animación de sol.
+  // 🔴 KIMI D3: reflexión proactiva de Koru (sección "Koru se adelantó").
+  const reflectionBody = b.greeting
+    ? `${b.greeting}.${items[0] ? ` Hoy: ${items[0].label} — ${items[0].value}.` : ""} Koru cruzó tu memoria y tu agenda para armar esto; si querés, lo desplegás en historia.`
+    : undefined;
+
+  const sections: DetailSection[] = [];
+  if (reflectionBody) {
+    sections.push({
+      kind: "text",
+      icon: "auto_awesome",
+      accent: A.violet,
+      title: "Koru se adelantó",
+      subtitle: "PROACTIVO",
+      body: reflectionBody,
+    });
+  }
+  if (dayItems.length) {
+    sections.push({
+      kind: "tiles",
+      icon: "wb_sunny",
+      accent: A.amber,
+      title: "Tu día",
+      subtitle: "LO QUE VIENE",
+      tiles: dayItems.map((it) => ({ icon: it.icon, label: it.label, value: it.value, color: it.iconColor })),
+    });
+  }
+  // 🔴 KIMI D3: el clima como sección propia con acento azul (D1 — el acento
+  // cambia con el dominio, no es una fotocopia del resto de la card).
+  if (weatherItems.length) {
+    sections.push({
+      kind: "tiles",
+      icon: "partly_cloudy_day",
+      accent: A.blue,
+      title: "Clima",
+      subtitle: "PARA HOY",
+      tiles: weatherItems.map((it) => ({ icon: it.icon, label: it.label, value: it.value, color: it.iconColor })),
+    });
+  }
+  // 🔴 KIMI D4: si no hay items, estado honesto en vez de card vacía.
+  if (items.length === 0 && !b.greeting) {
+    return {
+      hero: {
+        kicker: "Buenos días",
+        title: "TU RESUMEN",
+        icon: "wb_sunny",
+        accent: A.amber,
+      },
+      empty: { reason: "Todavía no armé tu día. Pedime el resumen cuando arranques.", icon: "wb_twilight" },
+      layout: "banner",
+    };
+  }
+
   return {
     hero: {
       kicker: "Buenos días",
@@ -1300,22 +1991,16 @@ function morningBrief(b: Of<"morning_brief">): KoruPresentation {
       accent: A.amber,
       metrics: items.slice(0, 3).map((it) => ({ icon: it.icon, label: it.label, value: it.value, color: it.iconColor })),
     },
-    detail: items.length
+    detail: sections.length > 0
       ? {
           title: "Resumen matutino",
-          sections: [
-            {
-              kind: "tiles",
-              icon: "wb_sunny",
-              accent: A.amber,
-              title: "Tu día",
-              tiles: items.map((it) => ({ icon: it.icon, label: it.label, value: it.value, color: it.iconColor })),
-            },
-          ],
+          subtitle: b.greeting ?? undefined,
+          sections,
         }
       : undefined,
-    cta: items.length > 3 ? { label: "Ver todo" } : undefined,
-    // 🔴 v3: banner cuando el greeting es el hero (gran saludo matutino).
+    cta: sections.length > 1 ? { label: "Ver todo" } : undefined,
+    // 🔴 KIMI D2/D6: banner = gradiente full-width con número grande + label.
+    // El saludo matutino es el hero — el molde banner le da la noche + glow.
     layout: b.greeting ? "banner" : "default",
   };
 }
@@ -1342,6 +2027,41 @@ function wellbeing(b: Of<"wellbeing">): KoruPresentation {
     stress?.level === "alto" ? "priority_high"
     : stress?.level === "medio" ? "warning"
     : "spa";
+
+  // 🔴 Kimi card 16 — Rutinas: streak como artValue ("7🔥") + hábitos como
+  // rows con progreso + rachas como tiles + vista semanal como scroller.
+  // Solo se activa cuando el bloque trae `habits` + `habitLogs`.
+  const habits = b.habits ?? [];
+  const habitLogs = b.habitLogs ?? [];
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const habitStreak = (hid: string): number => {
+    const logs = habitLogs
+      .filter((l) => l.habitId === hid)
+      .map((l) => l.date)
+      .sort()
+      .reverse();
+    if (logs.length === 0) return 0;
+    let streak = 0;
+    let cursor = new Date(todayIso);
+    const latest = new Date(logs[0]);
+    if (latest.toISOString().slice(0, 10) !== todayIso) {
+      cursor = latest;
+    }
+    for (const iso of logs) {
+      const expected = cursor.toISOString().slice(0, 10);
+      if (iso === expected) {
+        streak += 1;
+        cursor.setDate(cursor.getDate() - 1);
+      } else if (iso < expected) {
+        break;
+      }
+    }
+    return streak;
+  };
+  const longestStreak = habits.length > 0
+    ? Math.max(0, ...habits.map((h) => habitStreak(h.id)))
+    : 0;
+  const routineArtValue = habits.length > 0 ? `${longestStreak}🔥` : undefined;
 
   // Hero metrics: tiles existentes + métrica de estrés (si hay).
   const heroMetrics: HeroMetric[] = tiles.slice(0, 3).map((t) => ({
@@ -1390,6 +2110,74 @@ function wellbeing(b: Of<"wellbeing">): KoruPresentation {
     });
   }
 
+  // 🔴 Kimi card 16 — hábitos como rows con progreso (target vs completado).
+  if (habits.length > 0) {
+    detailSections.push({
+      kind: "rows",
+      icon: "eco",
+      accent: A.emerald,
+      title: "Hábitos",
+      subtitle: "TUS PLANTAS",
+      rows: habits.map((h) => {
+        const done = habitLogs
+          .filter((l) => l.habitId === h.id && l.date === todayIso)
+          .reduce((acc, l) => acc + l.value, 0);
+        const pct = h.target > 0 ? Math.min(100, Math.round((done / h.target) * 100)) : 0;
+        return {
+          icon: h.icon,
+          title: h.label,
+          detail: h.unit ? `${done}/${h.target} ${h.unit}` : `${done}/${h.target}`,
+          meta: `${pct}%`,
+          badge: pct >= 100 ? "Listo" : undefined,
+          badgeTone: pct >= 100 ? ("done" as const) : undefined,
+        };
+      }),
+    });
+
+    // Streaks como tiles (rachas por hábito).
+    detailSections.push({
+      kind: "tiles",
+      icon: "local_fire_department",
+      accent: A.amber,
+      title: "Rachas",
+      subtitle: "EL FUEGUITO",
+      tiles: habits.map((h) => ({
+        icon: "whatshot",
+        label: h.label,
+        value: `${habitStreak(h.id)} 🔥`,
+        color: A.amber.color,
+      })),
+    });
+
+    // Vista semanal como scroller (últimos 7 días con hábitos completados).
+    const weekDays = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+    const today = new Date();
+    const weekCards: DetailScrollCard[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const iso = d.toISOString().slice(0, 10);
+      const doneHabits = habits.filter((h) =>
+        habitLogs.some((l) => l.habitId === h.id && l.date === iso),
+      ).length;
+      weekCards.push({
+        badge: `${doneHabits}/${habits.length}`,
+        badgeColor: doneHabits === habits.length ? A.emerald.color : A.amber.color,
+        title: weekDays[d.getDay()],
+        detail: iso.slice(5),
+        metrics: doneHabits === habits.length ? ["Completo"] : [],
+      });
+    }
+    detailSections.push({
+      kind: "scroller",
+      icon: "calendar_view_week",
+      accent: A.emerald,
+      title: "Semana",
+      subtitle: "CADA PUNTO, UN DÍA",
+      cards: weekCards,
+    });
+  }
+
   return {
     hero: {
       kicker: "Tu Bienestar",
@@ -1397,6 +2185,7 @@ function wellbeing(b: Of<"wellbeing">): KoruPresentation {
       desc: b.suggestion?.label,
       icon: "favorite",
       accent: A.purple,
+      artValue: routineArtValue,
       metrics: heroMetrics.length > 0 ? heroMetrics : undefined,
     },
     detail: detailSections.length > 0
@@ -1411,7 +2200,9 @@ function liveMatch(b: Of<"live_match">): KoruPresentation {
   const awayName = clean(b.awayName) ?? clean(b.awayTeam?.name) ?? "Visitante";
   const homeScore = b.homeScore ?? b.homeTeam?.score ?? 0;
   const awayScore = b.awayScore ?? b.awayTeam?.score ?? 0;
-  const score = `${homeScore} - ${awayScore}`;
+  // 🔴 KIMI D7: el marcador es la idea #1 — formato compacto "2-1" (sin
+  // espacios) para que el artValue se lea como marcador, no como frase.
+  const score = `${homeScore}-${awayScore}`;
   const title = `${homeName} vs ${awayName}`;
   const league = clean(b.league);
   const status = clean(b.status);
@@ -1672,6 +2463,87 @@ function urgentNow(b: Of<"urgent_now">): KoruPresentation {
 function market(b: Of<"market">): KoruPresentation {
   const assets = b.assets ?? [];
   const first = assets[0];
+  // 🔴 KIMI D7: P&L como idea #1 — primer activo manda (Trading card). El
+  // artValue sigue siendo el precio (lo que más cambia), y el "P&L" se
+  // muestra como metric + tiles de riesgo.
+  const pnlChange = first?.change;
+
+  // 🔴 KIMI D3: el extendido paga el tap — posiciones + métricas de riesgo +
+  // "lo que la mueve" como scroller (catalizadores implícitos en cada activo).
+  const sections: DetailSection[] = [];
+
+  // 1. Posiciones como rows.
+  if (assets.length) {
+    sections.push({
+      kind: "rows",
+      icon: "trending_up",
+      accent: A.emerald,
+      title: "Posiciones",
+      subtitle: "TUS ACTIVOS",
+      rows: assets.map((a) => ({
+        icon: a.changeUp ? "trending_up" : "trending_down",
+        title: `${a.name} · ${a.symbol}`,
+        detail: a.price,
+        meta: a.change,
+        badgeTone: a.changeUp ? "done" : "urgent",
+      })),
+    });
+  }
+
+  // 2. Métricas de riesgo como tiles (volatilidad proxy: mejor y peor de hoy).
+  if (assets.length > 1) {
+    const changes = assets.map((a) => ({ sym: a.symbol, up: a.changeUp, raw: a.change }));
+    // Heuristic: extraer el valor numérico del string `change` (ej: "+1.8%" → 1.8).
+    const num = (s: string) => parseFloat(s.replace(/[^\d.\-]/g, "")) || 0;
+    const best = [...changes].sort((x, y) => num(y.raw) - num(x.raw))[0];
+    const worst = [...changes].sort((x, y) => num(x.raw) - num(y.raw))[0];
+    const gainers = changes.filter((c) => c.up).length;
+    const losers = changes.length - gainers;
+    sections.push({
+      kind: "tiles",
+      icon: "monitoring",
+      accent: A.amber,
+      title: "Lectura de riesgo",
+      subtitle: "DÍA DE HOY",
+      tiles: [
+        { icon: "arrow_upward", label: "Mejor", value: `${best.sym} ${best.raw}`, color: A.emerald.color },
+        { icon: "arrow_downward", label: "Peor", value: `${worst.sym} ${worst.raw}`, color: A.red.color },
+        { icon: "balance", label: "A favor", value: `${gainers} · ${losers}`, color: A.indigo.color },
+      ],
+    });
+  }
+
+  // 3. "Lo que la mueve" como scroller — cada activo como card con su cambio.
+  if (assets.length) {
+    sections.push({
+      kind: "scroller",
+      icon: "news",
+      accent: A.purple,
+      title: "Lo que la mueve",
+      subtitle: "CATALIZADORES DEL DÍA",
+      cards: assets.map((a) => ({
+        badge: a.change,
+        badgeColor: a.changeUp ? A.emerald.color : A.red.color,
+        title: a.name,
+        detail: `${a.symbol} · ${a.price}`,
+        metrics: a.category ? [a.category] : undefined,
+      })),
+    });
+  }
+
+  // 🔴 KIMI D4: estado honesto cuando no hay activos.
+  if (assets.length === 0) {
+    return {
+      hero: {
+        kicker: "Mercados",
+        title: "TRADING",
+        icon: "trending_up",
+        accent: A.emerald,
+      },
+      empty: { reason: "Sin datos de mercado ahora. Conectá tu broker o probá de nuevo.", icon: "show_chart" },
+    };
+  }
+
   return {
     hero: {
       kicker: "Mercados",
@@ -1679,26 +2551,23 @@ function market(b: Of<"market">): KoruPresentation {
       desc: first ? `${first.name} · ${first.change}` : undefined,
       icon: "trending_up",
       accent: A.emerald,
+      // 🔴 KIMI D7: el precio (artValue) es la idea #1; el P&L va como metric.
       artValue: first?.price,
-      metrics: assets.slice(0, 3).map((a) => ({
-        icon: a.changeUp ? "trending_up" : "trending_down",
-        label: a.symbol,
-        value: a.change,
-        color: a.changeUp ? A.emerald.color : A.red.color,
-      })),
+      metrics: [
+        ...(pnlChange ? [{ icon: first?.changeUp ? "trending_up" : "trending_down" as const, label: "P&L", value: pnlChange, color: first?.changeUp ? A.emerald.color : A.red.color }] : []),
+        ...assets.slice(0, 2).map((a) => ({
+          icon: a.changeUp ? "trending_up" : "trending_down" as const,
+          label: a.symbol,
+          value: a.change,
+          color: a.changeUp ? A.emerald.color : A.red.color,
+        })),
+      ].slice(0, 3),
     },
-    detail: assets.length
+    detail: sections.length > 0
       ? {
           title: b.title || "Mercados",
-          sections: [
-            {
-              kind: "rows",
-              icon: "trending_up",
-              accent: A.emerald,
-              title: "Activos",
-              rows: assets.map((a) => ({ title: a.name, detail: a.price, meta: a.change, badgeTone: a.changeUp ? "done" : "urgent" })),
-            },
-          ],
+          subtitle: `${assets.length} activo${assets.length > 1 ? "s" : ""}`,
+          sections,
         }
       : undefined,
     cta: assets.length ? { label: "Ver mercados" } : undefined,
@@ -1707,6 +2576,61 @@ function market(b: Of<"market">): KoruPresentation {
 
 function delivery(b: Of<"delivery">): KoruPresentation {
   const steps = b.steps ?? [];
+
+  // 🔴 KIMI TIER-S (Card 26 · Delivery): ETA como artValue del hero (el dato
+  // emocional — "llega hoy antes de las 18"). El camioncito del arte es el
+  // vivo que se mece sobre la barra de progreso del envío.
+  // Extraemos una ETA corta del estimatedDate (si es muy largo, lo recortamos
+  // para que entre en el artValue del hero).
+  const etaArtValue = b.estimatedDate
+    ? (b.estimatedDate.length > 14 ? b.estimatedDate.slice(0, 14) + "…" : b.estimatedDate)
+    : (b.status ? b.status.slice(0, 14) : undefined);
+
+  // Tiles de información del envío: carrier, trackingId, status, ETA.
+  // (Hace las veces de "driver info" — el repartidor es carrier+trackingId.)
+  const infoTiles: DetailTile[] = [];
+  if (b.carrier) infoTiles.push({ icon: "local_shipping", label: "Transportista", value: b.carrier, color: A.indigo.color });
+  if (b.trackingId) infoTiles.push({ icon: "qr_code_2", label: "Tracking", value: b.trackingId, color: A.primary.color });
+  if (b.status) infoTiles.push({ icon: "inventory_2", label: "Estado", value: b.status, color: A.amber.color });
+  if (b.estimatedDate) infoTiles.push({ icon: "schedule", label: "ETA", value: b.estimatedDate, color: A.emerald.color });
+
+  const sections: DetailSection[] = [];
+
+  // Tracking como timeline (con status done/current/pending según el flag).
+  if (steps.length > 0) {
+    // Determinar el índice del primer paso "no done" para marcarlo como current.
+    const firstPendingIdx = steps.findIndex((s) => !s.done);
+    sections.push({
+      kind: "timeline",
+      icon: "local_shipping",
+      accent: A.indigo,
+      title: "Seguimiento",
+      subtitle: `${steps.filter((s) => s.done).length}/${steps.length} COMPLETADOS`,
+      steps: steps.map((s, idx) => ({
+        icon: s.done ? "check_circle" : idx === firstPendingIdx ? "local_shipping" : "radio_button_unchecked",
+        title: s.label,
+        status: s.done ? ("done" as const) : idx === firstPendingIdx ? ("current" as const) : ("pending" as const),
+        badge: s.done ? "Hecho" : idx === firstPendingIdx ? "En curso" : undefined,
+        badgeTone: s.done ? ("done" as const) : idx === firstPendingIdx ? ("current" as const) : ("pending" as const),
+      })),
+    });
+  }
+
+  // Info del envío como tiles (carrier, tracking, estado, ETA — equivalente
+  // a "driver info" en el modelo Kimi).
+  if (infoTiles.length > 0) {
+    sections.push({
+      kind: "tiles",
+      icon: "info",
+      accent: A.amber,
+      title: "Información del envío",
+      subtitle: "DATOS DEL PAQUETE",
+      tiles: infoTiles,
+    });
+  }
+
+  const hasDetail = sections.length > 0;
+
   return {
     hero: {
       kicker: "Tu Envío",
@@ -1714,23 +2638,22 @@ function delivery(b: Of<"delivery">): KoruPresentation {
       desc: [b.status, b.estimatedDate].filter(Boolean).join(" · "),
       icon: "local_shipping",
       accent: A.indigo,
+      artValue: etaArtValue,
+      metrics: steps.length
+        ? [
+            { icon: "checklist", label: "Progreso", value: `${steps.filter((s) => s.done).length}/${steps.length}`, color: A.emerald.color },
+            ...(b.estimatedDate ? [{ icon: "schedule", label: "ETA", value: b.estimatedDate, color: A.amber.color }] : []),
+          ]
+        : undefined,
     },
-    detail: steps.length
+    detail: hasDetail
       ? {
           title: b.title || "Envío",
           subtitle: [b.carrier, b.trackingId].filter(Boolean).join(" · "),
-          sections: [
-            {
-              kind: "timeline",
-              icon: "local_shipping",
-              accent: A.indigo,
-              title: "Seguimiento",
-              steps: steps.map((s) => ({ title: s.label, status: s.done ? "done" : "pending" })),
-            },
-          ],
+          sections,
         }
       : undefined,
-    cta: steps.length ? { label: "Ver seguimiento" } : undefined,
+    cta: hasDetail ? { label: "Ver seguimiento" } : undefined,
   };
 }
 
@@ -1818,18 +2741,35 @@ function productAnalysis(b: Of<"product_analysis">): KoruPresentation {
 
 function travelPlanner(b: Of<"travel_planner">): KoruPresentation {
   const steps = b.steps ?? [];
+  const destination = clean(b.destination);
+
+  // 🔴 KIMI TIER-S (Card 22 · Viajes): kicker con destino + fechas (estilo
+  // "VIAJE · MARZO · 4 DÍAS"). El destino ES el título. Las paradas como
+  // timeline. Métricas hero con cantidad de paradas (cuando haya) y un
+  // "días" extraído de las fechas (cuando sea posible).
+  const kickerParts = ["Viaje"];
+  if (destination) kickerParts.push(destination);
+  if (b.dates) kickerParts.push(b.dates);
+  const kicker = kickerParts.length > 1 ? kickerParts.join(" · ") : "Tu Viaje";
+
+  // Métricas hero: paradas + (si las fechas mencionan "días" o un rango, lo
+  // resaltamos como segundo dato emocional — la cuenta regresiva).
+  const metrics: HeroMetric[] = [];
+  if (steps.length) metrics.push({ icon: "route", label: "Paradas", value: String(steps.length), color: A.sky.color });
+  if (b.dates) metrics.push({ icon: "event", label: "Fechas", value: b.dates, color: A.indigo.color });
+
   return {
     hero: {
-      kicker: "Tu Viaje",
-      title: heroTitleFrom(b.destination, "Itinerario"),
+      kicker,
+      title: heroTitleFrom(destination, "Itinerario"),
       desc: b.dates,
       icon: "flight_takeoff",
       accent: A.sky,
-      metrics: steps.length ? [{ icon: "route", label: "Paradas", value: String(steps.length), color: A.sky.color }] : undefined,
+      metrics: metrics.length > 0 ? metrics : undefined,
     },
     detail: steps.length
       ? {
-          title: b.destination || "Itinerario",
+          title: destination || "Itinerario",
           subtitle: b.dates,
           sections: [
             {
@@ -1837,7 +2777,15 @@ function travelPlanner(b: Of<"travel_planner">): KoruPresentation {
               icon: "flight_takeoff",
               accent: A.sky,
               title: "Itinerario",
-              steps: steps.map((s) => ({ icon: s.icon, title: s.label, detail: [s.time, s.detail].filter(Boolean).join(" · ") })),
+              subtitle: steps.length ? `${steps.length} PARADAS` : undefined,
+              steps: steps.map((s, idx) => ({
+                icon: s.icon,
+                title: s.label,
+                detail: [s.time, s.detail].filter(Boolean).join(" · "),
+                status: idx === 0 ? ("current" as const) : ("pending" as const),
+                badge: s.time || undefined,
+                badgeTone: "pending" as const,
+              })),
             },
           ],
         }
@@ -2476,53 +3424,72 @@ function generation(b: Of<"generation">): KoruPresentation {
   // Secciones del detalle.
   const sections: DetailSection[] = [];
 
-  // 1) Vista previa textual (si existe).
+  // 1) 🔴 KIMI TIER-S (Card 23 · Creación de imágenes): el prompt como texto
+  // editable (antes solo iba al desc del hero). Visible y citable.
+  if (b.prompt) {
+    sections.push({
+      kind: "text",
+      icon: "edit_note",
+      accent: A.violet,
+      title: "Prompt",
+      subtitle: "EDITABLE",
+      body: b.prompt,
+    });
+  }
+
+  // Vista previa textual (si existe, además del prompt).
   if (b.preview) {
     sections.push({
       kind: "text",
       icon: "auto_awesome",
-      accent: A.violet,
+      accent: A.pink,
       title: "Vista previa",
       body: b.preview,
     });
   }
 
-  // 2) Galería de imágenes generadas (usamos `sources` porque soporta imageUrl).
+  // 2) 🔴 KIMI TIER-S: imágenes como scroller con thumbnails (antes era
+  // `sources` — lista vertical). El scroller muestra cada variación con su
+  // thumbnail (image), badge "VARIANTE N", título con el prompt variant y
+  // métricas con seed + tiempo de generación.
   if (images.length > 0) {
     sections.push({
-      kind: "sources",
+      kind: "scroller",
       icon: "image",
       accent: A.purple,
       title: `Imágenes generadas · ${images.length}`,
       subtitle: "VARIANTES",
-      sources: images.map((img, idx) => ({
-        title: `Variación ${idx + 1}`,
-        domain: `seed ${img.seed} · ${(img.generationMs / 1000).toFixed(1)}s`,
-        url: img.url,
-        imageUrl: img.url,
+      cards: images.map((img, idx) => ({
+        image: img.url,
+        badge: idx === 0 ? "ELEGIDA" : `VARIANTE ${idx + 1}`,
+        badgeColor: idx === 0 ? A.emerald.color : A.purple.color,
+        title: img.promptVariant || `Variación ${idx + 1}`,
+        detail: `seed ${img.seed} · ${(img.generationMs / 1000).toFixed(1)}s`,
+        metrics: [`seed ${img.seed}`, `${(img.generationMs / 1000).toFixed(1)}s`],
       })),
     });
   }
 
-  // 3) Metadatos de la generación en tiles.
-  const metaTiles: DetailTile[] = [];
-  if (b.model) metaTiles.push({ icon: "smart_toy", label: "Modelo", value: b.model, color: A.violet.color });
-  if (b.aspectRatio) metaTiles.push({ icon: "aspect_ratio", label: "Aspect ratio", value: b.aspectRatio, color: A.purple.color });
-  if (b.style) metaTiles.push({ icon: "palette", label: "Estilo", value: b.style, color: A.pink.color });
+  // 3) Detalles técnicos (tiles): modelo, aspect ratio, estilo, tiempo total,
+  // cantidad de variantes.
+  const techTiles: DetailTile[] = [];
+  if (b.model) techTiles.push({ icon: "smart_toy", label: "Modelo", value: b.model, color: A.violet.color });
+  if (b.aspectRatio) techTiles.push({ icon: "aspect_ratio", label: "Aspect ratio", value: b.aspectRatio, color: A.purple.color });
+  if (b.style) techTiles.push({ icon: "palette", label: "Estilo", value: b.style, color: A.pink.color });
   if (typeof b.totalTime === "number") {
-    metaTiles.push({ icon: "timer", label: "Tiempo total", value: `${(b.totalTime / 1000).toFixed(1)}s`, color: A.amber.color });
+    techTiles.push({ icon: "timer", label: "Tiempo total", value: `${(b.totalTime / 1000).toFixed(1)}s`, color: A.amber.color });
   }
   if (images.length > 0) {
-    metaTiles.push({ icon: "collections", label: "Variantes", value: String(images.length), color: A.emerald.color });
+    techTiles.push({ icon: "collections", label: "Variantes", value: String(images.length), color: A.emerald.color });
   }
-  if (metaTiles.length > 0) {
+  if (techTiles.length > 0) {
     sections.push({
       kind: "tiles",
       icon: "tune",
       accent: A.indigo,
-      title: "Parámetros",
+      title: "Detalles técnicos",
       subtitle: "AJUSTES DE GENERACIÓN",
-      tiles: metaTiles,
+      tiles: techTiles,
     });
   }
 
@@ -2638,43 +3605,117 @@ function matchStats(b: Of<"match_stats">): KoruPresentation {
 function electionResults(b: Of<"election_results">): KoruPresentation {
   const items = b.items ?? [];
   const leader = items[0];
+
+  // 🔴 KIMI TIER-S (Card 29 · Elecciones): participación como artValue del
+  // hero (ej. "61%" extraído del status). El escrutinio es el dato vivo —
+  // sobriedad cálida, sin rojos de alarma.
+  const participationMatch = b.status?.match(/(\d{1,3}(?:[.,]\d+)?)\s*%/);
+  const participationPct = participationMatch ? participationMatch[1].replace(",", ".") : null;
+  const artValue = participationPct ? `${participationPct}%` : undefined;
+
+  const sections: DetailSection[] = [];
+
+  // 🔴 KIMI TIER-S: candidatos como rows con barras comparativas (el porcentaje
+  // del candidato es la barra home; el resto es away). El líder lleva badge
+  // "Ganador" en done; los demás "Pendiente".
+  if (items.length > 0) {
+    sections.push({
+      kind: "rows",
+      icon: "how_to_vote",
+      accent: A.violet,
+      title: "Candidatos",
+      subtitle: b.status,
+      rows: items.map((it) => {
+        const pctNum = parseFloat(String(it.percent).replace("%", "")) || 0;
+        return {
+          icon: "person",
+          title: it.name,
+          detail: it.detail,
+          meta: it.percent,
+          badge: it.done ? "Ganador" : "Pendiente",
+          badgeTone: it.done ? ("done" as const) : ("pending" as const),
+          bar: it.percent != null ? {
+            homeValue: pctNum,
+            awayValue: 100 - pctNum,
+            isPercent: true,
+            homeColor: it.color,
+            awayColor: "#e3e8e5",
+          } : undefined,
+        };
+      }),
+    });
+  }
+
+  // 🔴 KIMI TIER-S: desglose regional como tiles (cuando los items traen
+  // `detail` con info de distrito). Cada item contribuye un tile con su
+  // nombre + porcentaje + detalle regional.
+  const regionalTiles = items
+    .filter((it) => it.detail)
+    .map((it) => ({
+      icon: "place",
+      label: it.name,
+      value: it.percent,
+      color: it.color || A.violet.color,
+    }));
+  if (regionalTiles.length > 0) {
+    sections.push({
+      kind: "tiles",
+      icon: "map",
+      accent: A.indigo,
+      title: "Desglose regional",
+      subtitle: "POR CANDIDATO",
+      tiles: regionalTiles,
+    });
+  }
+
+  // 🔴 KIMI TIER-S: actualizaciones en vivo como timeline. Si el status
+  // menciona un porcentaje escrutado, generamos 3 hitos sintéticos: inicio,
+  // escrutinio actual y cierre proyectado. Si no, mostramos el líder como
+  // hito actual.
+  if (b.status || leader) {
+    const liveSteps: Array<{ icon?: string; title: string; detail?: string; status?: "done" | "current" | "pending"; badge?: string; badgeTone?: "done" | "current" | "pending" | "urgent" }> = [];
+    if (participationPct) {
+      liveSteps.push({ icon: "play_arrow", title: "Apertura de mesas", detail: "0% escrutado", status: "done", badge: "Hecho", badgeTone: "done" });
+      liveSteps.push({ icon: "how_to_vote", title: "Escrutinio en curso", detail: `${participationPct}% escrutado`, status: "current", badge: "En vivo", badgeTone: "current" });
+      liveSteps.push({ icon: "check_circle", title: "Cierre proyectado", detail: "100% escrutado", status: "pending", badge: "Pendiente", badgeTone: "pending" });
+    } else if (leader) {
+      liveSteps.push({ icon: "person", title: `${leader.name} lidera`, detail: leader.percent, status: "current", badge: "Líder actual", badgeTone: "current" });
+      if (leader.detail) liveSteps.push({ icon: "place", title: "Detalle", detail: leader.detail, status: "pending" });
+    }
+    if (liveSteps.length > 0) {
+      sections.push({
+        kind: "timeline",
+        icon: "live_tv",
+        accent: A.rose,
+        title: "Actualizaciones en vivo",
+        subtitle: "ESCRUTINIO",
+        steps: liveSteps,
+      });
+    }
+  }
+
+  const hasDetail = sections.length > 0;
+
   return {
     hero: {
       kicker: "Escrutinio",
       title: heroTitleFrom(b.title, "Elecciones"),
       desc: b.status ?? (leader ? `${leader.name}: ${leader.percent}` : undefined),
       icon: "how_to_vote",
-      accent: A.amber,
+      accent: A.violet,
+      artValue,
+      metrics: items.length
+        ? [{ icon: "how_to_vote", label: "Candidatos", value: String(items.length), color: A.violet.color }]
+        : undefined,
     },
-    detail: items.length
+    detail: hasDetail
       ? {
           title: b.title || "Resultados",
           subtitle: b.status,
-          sections: [
-            {
-              kind: "rows",
-              icon: "how_to_vote",
-              accent: A.amber,
-              title: "Candidatos",
-              rows: items.map((it) => ({
-                title: it.name,
-                detail: it.detail,
-                meta: it.percent,
-                badge: it.done ? "Ganador" : "Pendiente",
-                badgeTone: it.done ? "done" : "pending",
-                bar: it.percent != null ? {
-                  homeValue: parseFloat(String(it.percent).replace("%", "")) || 0,
-                  awayValue: 100 - (parseFloat(String(it.percent).replace("%", "")) || 0),
-                  isPercent: true,
-                  homeColor: it.color,
-                  awayColor: "#e3e8e5",
-                } : undefined,
-              })),
-            },
-          ],
+          sections,
         }
       : undefined,
-    cta: items.length ? { label: "Ver escrutinio" } : undefined,
+    cta: hasDetail ? { label: "Ver escrutinio" } : undefined,
   };
 }
 
@@ -2762,6 +3803,11 @@ function memoryBlock(b: Of<"memory">): KoruPresentation {
   const items = b.items ?? [];
   const sections: DetailSection[] = [];
 
+  // 🔴 Kimi card 20 — recall confidence as artValue + memory text as text +
+  // confidence tiles + related memories as scroller + source timeline
+  // (derivado del `domain` cuando aplica).
+
+  // 1. Recuerdos como rows (contexto guardado).
   if (items.length) {
     sections.push({
       kind: "rows",
@@ -2780,6 +3826,7 @@ function memoryBlock(b: Of<"memory">): KoruPresentation {
     });
   }
 
+  // 2. Memory text as text section (nota personal / por qué importa).
   if (b.note) {
     sections.push({
       kind: "text",
@@ -2791,6 +3838,74 @@ function memoryBlock(b: Of<"memory">): KoruPresentation {
     });
   }
 
+  // 3. Confidence tiles (per-item, color según nivel de confianza).
+  const confTiles: DetailTile[] = items
+    .filter((it) => it.confidence != null)
+    .map((it) => ({
+      icon: "verified",
+      label: it.title.length > 18 ? it.title.slice(0, 15) + "…" : it.title,
+      value: asPercent(it.confidence) ?? "—",
+      color:
+        (it.confidence ?? 0) >= 0.8 ? A.emerald.color
+        : (it.confidence ?? 0) >= 0.5 ? A.amber.color
+        : A.rose.color,
+    }));
+  if (confTiles.length > 0) {
+    sections.push({
+      kind: "tiles",
+      icon: "verified",
+      accent: A.emerald,
+      title: "Confianza de recall",
+      subtitle: "POR RECUERDO",
+      tiles: confTiles,
+    });
+  }
+
+  // 4. Related memories as scroller (cada item como una card del jardín).
+  if (items.length > 1) {
+    sections.push({
+      kind: "scroller",
+      icon: "hub",
+      accent: A.violet,
+      title: "Recuerdos relacionados",
+      subtitle: "EL RESTO DEL JARDÍN",
+      cards: items.map((it) => ({
+        badge: it.domain,
+        badgeColor: A.violet.color,
+        title: it.title,
+        detail: it.detail,
+        metrics: asPercent(it.confidence) ? [asPercent(it.confidence) as string] : [],
+      })),
+    });
+  }
+
+  // 5. Source timeline — cuando los items tienen `domain`, derivamos una
+  // cronología simbólica de "cómo se construyó este recuerdo" (origen +
+  // confirmaciones). Como el UiBlock `memory` no trae timestamps por item,
+  // usamos el dominio como hito narrativo.
+  if (items.length > 0) {
+    const domains = Array.from(new Set(items.map((it) => it.domain).filter(Boolean))) as string[];
+    if (domains.length > 0) {
+      sections.push({
+        kind: "timeline",
+        icon: "history_edu",
+        accent: A.indigo,
+        title: "Origen",
+        subtitle: "CÓMO SE ARMÓ ESTE RECUERDO",
+        steps: domains.map((d, i) => ({
+          icon: "circle",
+          title: d,
+          detail: `${items.filter((it) => it.domain === d).length} item${items.filter((it) => it.domain === d).length === 1 ? "" : "s"}`,
+          status: i === 0 ? "done" : ("pending" as const),
+        })),
+      });
+    }
+  }
+
+  // Recall confidence as artValue (del primer item con confidence).
+  const firstConf = items.find((it) => it.confidence != null)?.confidence;
+  const artValue = firstConf != null ? (asPercent(firstConf) ?? undefined) : undefined;
+
   return {
     hero: {
       kicker: "Memoria",
@@ -2798,6 +3913,7 @@ function memoryBlock(b: Of<"memory">): KoruPresentation {
       desc: b.note ?? items[0]?.detail,
       icon: "psychology",
       accent: A.violet,
+      artValue,
       metrics: items.length
         ? [
             { icon: "memory", label: "Ítems", value: String(items.length), color: A.violet.color },
@@ -2855,6 +3971,93 @@ function cryptoPortfolio(b: Of<"crypto_portfolio">): KoruPresentation {
   const items = b.items ?? [];
   // 🔴 FIX: usar coin icon (char) + color si están disponibles, calcular agregados
   const totalChange = items.length ? items.reduce((sum, it) => sum + (it.change ?? 0), 0) / items.length : 0;
+  // 🔴 KIMI D7 (jerarquía es ley): el total del portafolio es la idea #1.
+  // Si el bloque trae título con formato moneda (ej: "$2.847.600"), lo usamos
+  // como artValue. Si no, sumamos la primera moneda como aproximación honesta.
+  const titleLooksLikeAmount = /^[ $\u20B9\u20AC\u00A3\d]/.test(clean(b.title) ?? "");
+  const totalArt = titleLooksLikeAmount ? clean(b.title) : items[0]?.price;
+
+  // 🔴 KIMI D3: el extendido paga el tap — Holdings + Distribución + Insight.
+  const sections: DetailSection[] = [];
+
+  // 1. Holdings como rows (con sparkline textual via meta de cambio %).
+  if (items.length) {
+    sections.push({
+      kind: "rows",
+      icon: "currency_bitcoin",
+      accent: A.amber,
+      title: "Tus monedas",
+      subtitle: "EN VIVO",
+      rows: items.map((it) => ({
+        // 🔴 FIX: usar char (icon) y color del coin si están disponibles
+        icon: it.char || "currency_bitcoin",
+        title: `${it.name} · ${it.symbol}`,
+        detail: it.price,
+        meta: `${it.change >= 0 ? "+" : ""}${it.change}%`,
+        badge: it.change >= 0 ? "Sube" : "Baja",
+        badgeTone: it.change >= 0 ? "done" : "urgent",
+      })),
+    });
+  }
+
+  // 2. Distribución como tiles — cada coin con su color y change como value.
+  // D1: el acento cambia con el dominio (verde/rojo según suba/baje).
+  if (items.length > 1) {
+    sections.push({
+      kind: "tiles",
+      icon: "donut_large",
+      accent: A.purple,
+      title: "Distribución",
+      subtitle: "POR ACTIVO",
+      tiles: items.map((it) => ({
+        icon: it.char || "currency_bitcoin",
+        label: it.symbol,
+        value: it.price,
+        color: it.change >= 0 ? A.emerald.color : A.red.color,
+      })),
+    });
+  }
+
+  // 3. Insight de Koru como texto — la "lectura" del portafolio (D3).
+  if (items.length) {
+    const winners = items.filter((it) => it.change >= 0);
+    const losers = items.filter((it) => it.change < 0);
+    const insightParts: string[] = [];
+    if (totalChange >= 0) {
+      insightParts.push(`Tu portafolio está arriba ${totalChange.toFixed(1)}% en 24h.`);
+    } else {
+      insightParts.push(`Tu portafolio está abajo ${Math.abs(totalChange).toFixed(1)}% en 24h.`);
+    }
+    if (winners.length && losers.length) {
+      insightParts.push(`${winners[0].name} lidera (+${winners[0].change}%), ${losers[0].name} afloja (${losers[0].change}%).`);
+    } else if (winners.length) {
+      insightParts.push(`Todas tus monedas suben — ${winners[0].name} es la que más (${winners[0].change}%).`);
+    } else if (losers.length) {
+      insightParts.push(`Todas tus monedas bajan — ${losers[0].name} es la que más (${losers[0].change}%).`);
+    }
+    sections.push({
+      kind: "text",
+      icon: "auto_awesome",
+      accent: A.violet,
+      title: "Lectura de Koru",
+      subtitle: "PARA TU CASO",
+      body: insightParts.join(" "),
+    });
+  }
+
+  // 🔴 KIMI D4: estado honesto cuando no hay datos.
+  if (items.length === 0) {
+    return {
+      hero: {
+        kicker: "Tu Portafolio",
+        title: "CRIPTO",
+        icon: "currency_bitcoin",
+        accent: A.amber,
+      },
+      empty: { reason: "Se nubló el dato. Conectá tu exchange o volvé a pedirme el portafolio en un rato.", icon: "cloud_off" },
+    };
+  }
+
   return {
     hero: {
       kicker: "Tu Portafolio",
@@ -2862,6 +4065,8 @@ function cryptoPortfolio(b: Of<"crypto_portfolio">): KoruPresentation {
       desc: items[0] ? `${items[0].name} · ${items[0].price}` : undefined,
       icon: "currency_bitcoin",
       accent: A.amber,
+      // 🔴 KIMI D7: el total del portafolio es la idea #1 — artValue manda.
+      artValue: totalArt,
       metrics: [
         { icon: totalChange >= 0 ? "trending_up" : "trending_down", label: "Cambio 24h", value: `${totalChange >= 0 ? "+" : ""}${totalChange.toFixed(1)}%`, color: totalChange >= 0 ? A.emerald.color : A.red.color },
         ...items.slice(0, 2).map((it) => ({
@@ -2872,27 +4077,11 @@ function cryptoPortfolio(b: Of<"crypto_portfolio">): KoruPresentation {
         })),
       ].slice(0, 3),
     },
-    detail: items.length
+    detail: sections.length > 0
       ? {
           title: "Tu Portafolio",
           subtitle: `${items.length} activo${items.length > 1 ? "s" : ""} · cambio promedio ${totalChange >= 0 ? "+" : ""}${totalChange.toFixed(1)}%`,
-          sections: [
-            {
-              kind: "rows",
-              icon: "currency_bitcoin",
-              accent: A.amber,
-              title: "Activos",
-              rows: items.map((it) => ({
-                // 🔴 FIX: usar char (icon) y color del coin si están disponibles
-                icon: it.char || "currency_bitcoin",
-                title: it.name,
-                detail: it.price,
-                meta: `${it.change >= 0 ? "+" : ""}${it.change}%`,
-                badge: it.change >= 0 ? "Sube" : "Baja",
-                badgeTone: it.change >= 0 ? "done" : "urgent",
-              })),
-            },
-          ],
+          sections,
         }
       : undefined,
     cta: items.length ? { label: "Ver portafolio" } : undefined,
@@ -3000,10 +4189,15 @@ function routeMap(b: Of<"route_map">): KoruPresentation {
   const steps = b.steps ?? [];
   const alternatives = b.alternatives ?? [];
 
+  // 🔴 KIMI TIER-S (Card 30 · Rutas): ETA como artValue del hero (el dato
+  // emocional — "12 min", "5 km restante"). Preferimos `remaining` (más
+  // concreto) sobre `progress` (porcentual). Si solo hay progress, lo usamos.
+  const etaArtValue = b.remaining ?? (progressPct != null ? `${progressPct}%` : undefined);
+
   // 🔴 v3: métricas enriquecidas con tráfico y combustible cuando están disponibles.
   const heroMetrics: HeroMetric[] = [
     ...(b.distance ? [{ icon: "straighten", label: "Distancia", value: b.distance, color: A.indigo.color }] : []),
-    ...(progressPct != null ? [{ icon: "near_me", label: "Progreso", value: `${progressPct}%`, color: A.emerald.color }] : []),
+    ...(b.remaining ? [{ icon: "schedule", label: "ETA", value: b.remaining, color: A.emerald.color }] : []),
     ...(b.trafficLevel ? [{
       icon: b.trafficLevel === "heavy" ? "traffic" : b.trafficLevel === "moderate" ? "traffic" : "sensor_traffic",
       label: "Tráfico",
@@ -3013,32 +4207,12 @@ function routeMap(b: Of<"route_map">): KoruPresentation {
     ...(b.fuelEstimate ? [{ icon: "local_gas_station", label: "Combustible", value: b.fuelEstimate, color: A.amber.color }] : []),
   ].slice(0, 3);
 
-  // 🔴 v3: secciones de detalle enriquecidas con steps (timeline) y
-  // alternatives (tiles comparativas), además de la sección de detalle del
-  // viaje que ya existía.
-  const sections: DetailSection[] = [
-    {
-      kind: "rows",
-      icon: "directions",
-      accent: A.indigo,
-      title: "Detalle del viaje",
-      rows: [
-        ...(b.from ? [{ icon: "trip_origin", title: b.from, detail: "ORIGEN" }] : []),
-        ...(b.to ? [{ icon: "location_on", title: b.to, detail: "DESTINO" }] : []),
-        ...(b.distance ? [{ icon: "straighten", title: b.distance, detail: "DISTANCIA TOTAL" }] : []),
-        ...(b.remaining ? [{ icon: "flag", title: b.remaining, detail: "RESTANTE" }] : []),
-        ...(b.trafficLevel ? [{
-          icon: "traffic",
-          title: b.trafficLevel === "heavy" ? "Tráfico pesado" : b.trafficLevel === "moderate" ? "Tráfico moderado" : "Tráfico liviano",
-          detail: "TRÁFICO",
-          badge: b.trafficLevel === "heavy" ? "Demora" : b.trafficLevel === "moderate" ? "Atención" : "Fluida",
-          badgeTone: b.trafficLevel === "heavy" ? "urgent" as const : b.trafficLevel === "moderate" ? "current" as const : "done" as const,
-        }] : []),
-        ...(b.fuelEstimate ? [{ icon: "local_gas_station", title: b.fuelEstimate, detail: "COMBUSTIBLE EST." }] : []),
-        ...(progressPct != null ? [{ icon: "near_me", title: `${progressPct}% completado`, detail: "PROGRESO", badge: progressPct >= 80 ? "Casi listo" : undefined, badgeTone: progressPct >= 80 ? "done" as const : "current" as const }] : []),
-      ],
-    },
-  ];
+  // 🔴 KIMI TIER-S: secciones de detalle enriquecidas:
+  // 1) Pasos como timeline (instrucciones de giro)
+  // 2) Rutas alternativas como tiles (modo / tiempo / tráfico)
+  // 3) Tráfico como tiles separados (nivel + combustible + distancia restante)
+  // 4) Detalle del viaje como rows (origen, destino, distancia, progreso)
+  const sections: DetailSection[] = [];
 
   // Pasos de la ruta como timeline (instrucciones de giro).
   if (steps.length > 0) {
@@ -3054,6 +4228,24 @@ function routeMap(b: Of<"route_map">): KoruPresentation {
         detail: s.distanceMeters > 0 ? `${(s.distanceMeters / 1000).toFixed(2)} km` : undefined,
         status: idx === 0 ? ("current" as const) : ("pending" as const),
       })),
+    });
+  }
+
+  // Detalle del viaje como rows (origen, destino, distancia, restante, progreso).
+  const tripRows: DetailRow[] = [
+    ...(b.from ? [{ icon: "trip_origin", title: b.from, detail: "ORIGEN" }] : []),
+    ...(b.to ? [{ icon: "location_on", title: b.to, detail: "DESTINO" }] : []),
+    ...(b.distance ? [{ icon: "straighten", title: b.distance, detail: "DISTANCIA TOTAL" }] : []),
+    ...(b.remaining ? [{ icon: "flag", title: b.remaining, detail: "RESTANTE" }] : []),
+    ...(progressPct != null ? [{ icon: "near_me", title: `${progressPct}% completado`, detail: "PROGRESO", badge: progressPct >= 80 ? "Casi listo" : undefined, badgeTone: progressPct >= 80 ? ("done" as const) : ("current" as const) }] : []),
+  ];
+  if (tripRows.length > 0) {
+    sections.push({
+      kind: "rows",
+      icon: "directions",
+      accent: A.indigo,
+      title: "Detalle del viaje",
+      rows: tripRows,
     });
   }
 
@@ -3084,6 +4276,45 @@ function routeMap(b: Of<"route_map">): KoruPresentation {
     });
   }
 
+  // 🔴 KIMI TIER-S: tráfico como tiles separados (nivel de tráfico + combustible
+  // + distancia restante). Esto da una vista rápida del estado de la ruta.
+  const trafficTiles: DetailTile[] = [];
+  if (b.trafficLevel) {
+    trafficTiles.push({
+      icon: "traffic",
+      label: "Tráfico",
+      value: b.trafficLevel === "heavy" ? "Pesado" : b.trafficLevel === "moderate" ? "Moderado" : "Liviano",
+      color: b.trafficLevel === "heavy" ? A.rose.color : b.trafficLevel === "moderate" ? A.amber.color : A.emerald.color,
+    });
+  }
+  if (b.fuelEstimate) {
+    trafficTiles.push({ icon: "local_gas_station", label: "Combustible", value: b.fuelEstimate, color: A.amber.color });
+  }
+  if (b.remaining) {
+    trafficTiles.push({ icon: "flag", label: "Restante", value: b.remaining, color: A.indigo.color });
+  }
+  if (progressPct != null) {
+    trafficTiles.push({ icon: "near_me", label: "Progreso", value: `${progressPct}%`, color: A.emerald.color });
+  }
+  if (trafficTiles.length > 0) {
+    sections.push({
+      kind: "tiles",
+      icon: "traffic",
+      accent: A.amber,
+      title: "Tráfico",
+      subtitle: "ESTADO DE LA RUTA",
+      tiles: trafficTiles,
+    });
+  }
+
+  // 🔴 KIMI TIER-S (Card 30): "Navegar" custom action. Abre la app nativa de
+  // mapas con el destino cargado (geo: en Android, maps:// en iOS). El handler
+  // en KoruProvider recibe `action: "navigate"` y usa lat/lng o to (address)
+  // para construir el deep link. El renderer lo muestra como botón inline.
+  const navigateAction = b.to || (b.lat != null && b.lng != null)
+    ? [{ label: "Navegar", icon: "navigation", kind: "primary" as const, action: "navigate" }]
+    : undefined;
+
   return {
     hero: {
       kicker: "Tu Mapa",
@@ -3091,15 +4322,20 @@ function routeMap(b: Of<"route_map">): KoruPresentation {
       desc: [b.from && `Desde ${b.from}`, b.distance, b.remaining && `${b.remaining} restante`].filter(Boolean).join(" · "),
       icon: "map",
       accent: A.indigo,
-      artValue: progressPct != null ? `${progressPct}%` : undefined,
+      artValue: etaArtValue,
       metrics: heroMetrics,
     },
-    detail: {
-      title: b.to ? `Ruta a ${b.to}` : "Ruta",
-      subtitle: b.from ? `DESDE ${b.from.toUpperCase()}` : undefined,
-      sections,
-    },
+    detail: sections.length > 0
+      ? {
+          title: b.to ? `Ruta a ${b.to}` : "Ruta",
+          subtitle: b.from ? `DESDE ${b.from.toUpperCase()}` : undefined,
+          sections,
+        }
+      : undefined,
     cta: b.to ? { label: "Ver detalle" } : undefined,
+    // 🔴 KIMI TIER-S: "Navegar" — botón inline que dispara el deep link a la
+    // app nativa de mapas.
+    actions: navigateAction,
   };
 }
 
@@ -3149,6 +4385,51 @@ function birthdayCalendar(b: Of<"birthday_calendar">): KoruPresentation {
 
   const dayNames = ["D", "L", "M", "M", "J", "V", "S"];
 
+  // 🔴 Kimi card 12 — countdown real como artValue (días hasta el día
+  // destacado) + agenda del día como timeline + actions (Abrir enlace /
+  // Compartir) como "meeting link" / custom action.
+  const today = new Date();
+  const todayDay = today.getDate();
+  let countdownLabel: string | undefined;
+  if (highlightedDay != null) {
+    let diff = highlightedDay - todayDay;
+    if (diff < 0) diff = daysInMonth - todayDay + highlightedDay;
+    countdownLabel = diff === 0 ? "HOY" : diff === 1 ? "MAÑANA" : `FALTAN ${diff}D`;
+  }
+
+  const sections: DetailSection[] = [
+    {
+      kind: "calendar",
+      icon: "calendar_month",
+      accent: A.pink,
+      title: "Calendario del mes",
+      subtitle: `${daysInMonth} DÍAS`,
+      // 🔴 v2: kind dedicado "calendar" — usa .koru-dsec-calendar / -day
+      // (clases dedicadas) en lugar de colisionar con .koru-dsec-chips.
+      days: days.map((d) => ({
+        label: d.day ? String(d.day) : "·",
+        color: d.highlighted ? A.pink.color : undefined,
+        sub: d.highlighted ? "★" : undefined,
+      })),
+    },
+  ];
+
+  // Agenda del día destacado como timeline (slots mañana / mediodía / tarde).
+  if (highlightedDay != null) {
+    sections.push({
+      kind: "timeline",
+      icon: "event_note",
+      accent: A.amber,
+      title: "Agenda del día",
+      subtitle: `DÍA ${highlightedDay} · ${month.toUpperCase()}`,
+      steps: [
+        { title: "Mañana", detail: "9 a 12 — agenda abierta", status: "pending" },
+        { title: "Mediodía", detail: "13 a 15 — pausa y comida", status: "pending" },
+        { title: "Tarde", detail: "16 a 20 — bloque principal", status: "pending" },
+      ],
+    });
+  }
+
   return {
     hero: {
       kicker: "Calendario",
@@ -3156,31 +4437,21 @@ function birthdayCalendar(b: Of<"birthday_calendar">): KoruPresentation {
       desc: highlightedDay ? `Día destacado: ${highlightedDay}` : undefined,
       icon: "calendar_month",
       accent: A.pink,
-      artValue: highlightedDay ? String(highlightedDay) : undefined,
+      artValue: countdownLabel,
       metrics: [
         { icon: "event", label: "Mes", value: month, color: A.pink.color },
         { icon: "cake", label: "Día", value: highlightedDay ? String(highlightedDay) : "—", color: A.amber.color },
       ],
     },
+    // 🔴 Kimi card 12 — "meeting link" / custom action: Abrir enlace + Compartir.
+    actions: [
+      { label: "Abrir enlace", icon: "link", kind: "primary", action: "open_link" },
+      { label: "Compartir", icon: "share", kind: "secondary", action: "share" },
+    ],
     detail: {
       title: `Calendario · ${month}`,
       subtitle: highlightedDay ? `DÍA DESTACADO: ${highlightedDay}` : undefined,
-      sections: [
-        {
-          kind: "calendar",
-          icon: "calendar_month",
-          accent: A.pink,
-          title: "Calendario del mes",
-          subtitle: `${daysInMonth} DÍAS`,
-          // 🔴 v2: kind dedicado "calendar" — usa .koru-dsec-calendar / -day
-          // (clases dedicadas) en lugar de colisionar con .koru-dsec-chips.
-          days: days.map((d) => ({
-            label: d.day ? String(d.day) : "·",
-            color: d.highlighted ? A.pink.color : undefined,
-            sub: d.highlighted ? "★" : undefined,
-          })),
-        },
-      ],
+      sections,
     },
     cta: { label: "Ver calendario" },
     // 🔴 v3: banner con gradiente + número grande del día destacado.
@@ -3397,6 +4668,89 @@ function planFallback(b: Of<"plan">): KoruPresentation {
   // createPlan en KoruProvider: si el usuario crea un plan desde CreateScreen
   // con el mismo título, el toggle acá lo encontrará.
   const planId = `plan_${slug(rawTitle || "tu_dia")}`;
+
+  // 🔴 Kimi card 15 — step count as artValue ("2/7") + time distribution as
+  // tiles + strategy notes as text. Statuses realistas (done / current /
+  // pending) en vez de "done | current" binario.
+  const doneCount = items.filter((it) => it.done).length;
+  const artValue = items.length > 0 ? `${doneCount}/${items.length}` : undefined;
+  const firstNotDoneIdx = items.findIndex((it) => !it.done);
+
+  // Time distribution tiles (by mode).
+  const modeTotals: Record<string, number> = {};
+  let totalMin = 0;
+  for (const it of items) {
+    const min = it.durationMinutes ?? 0;
+    if (min > 0) {
+      totalMin += min;
+      const mode = it.mode ?? "otros";
+      modeTotals[mode] = (modeTotals[mode] ?? 0) + min;
+    }
+  }
+  const modeLabel: Record<string, string> = {
+    focus: "Foco",
+    quick: "Rápidas",
+    admin: "Admin",
+    recovery: "Recuperación",
+    otros: "Otros",
+  };
+  const timeTiles: DetailTile[] = [];
+  if (totalMin > 0) {
+    timeTiles.push({ icon: "schedule", label: "Total", value: `${totalMin} min`, color: A.violet.color });
+    for (const [mode, min] of Object.entries(modeTotals)) {
+      timeTiles.push({ icon: "timelapse", label: modeLabel[mode] ?? mode, value: `${min} min`, color: A.indigo.color });
+    }
+  }
+
+  const sections: DetailSection[] = [];
+  if (items.length > 0) {
+    sections.push({
+      kind: "timeline",
+      icon: "route",
+      accent: A.violet,
+      title: "Pasos",
+      subtitle: `${items.length} PASO${items.length > 1 ? "S" : ""} ORDENADOS`,
+      steps: items.map((it, i) => ({
+        // 🔴 FIX: icono específico del paso (no genérico route)
+        icon: it.icon || "schedule",
+        title: it.title,
+        detail: [
+          it.time,
+          it.durationMinutes ? `${it.durationMinutes} min` : null,
+          it.priority,
+          it.mode ? `· ${it.mode}` : null,
+        ].filter(Boolean).join(" · "),
+        // 🔴 Kimi: done / current (primero no-hecho) / pending.
+        status: it.done ? "done" : i === firstNotDoneIdx ? "current" : ("pending" as const),
+        // 🔴 FIX: badge con priority (Alta/Media/Baja)
+        badge: it.priority,
+        badgeTone: it.priority === "Alta" ? "urgent" : it.priority === "Media" ? "current" : "pending",
+        // 🔴 TIER S: toggle → togglePlanStep(planId, stepId)
+        toggle: { kind: "plan_step", planId, stepId: `step_${slug(it.title)}_${i}` },
+      })),
+    });
+  }
+  if (timeTiles.length > 0) {
+    sections.push({
+      kind: "tiles",
+      icon: "timelapse",
+      accent: A.indigo,
+      title: "Distribución del tiempo",
+      subtitle: "POR MODO",
+      tiles: timeTiles,
+    });
+  }
+  if (b.note) {
+    sections.push({
+      kind: "text",
+      icon: "psychology_alt",
+      accent: A.amber,
+      title: "Notas de estrategia",
+      subtitle: "POR QUÉ EN ESTE ORDEN",
+      body: b.note,
+    });
+  }
+
   return {
     hero: {
       kicker: "Tu Plan",
@@ -3407,38 +4761,14 @@ function planFallback(b: Of<"plan">): KoruPresentation {
       icon: "checklist_rtl",
       accent: A.violet,
       art: "/stitch/plan-illustration.png",
+      artValue,
       metrics: metrics.length > 0 ? metrics : undefined,
     },
-    detail: items.length
+    detail: sections.length > 0
       ? {
           title: b.title || "Tu Plan",
           subtitle: `${items.length} PASO${items.length > 1 ? "S" : ""} ORDENADOS`,
-          sections: [
-            {
-              kind: "timeline",
-              icon: "route",
-              accent: A.violet,
-              title: "Pasos",
-              steps: items.map((it, i) => ({
-                // 🔴 FIX: icono específico del paso (no genérico route)
-                icon: it.icon || "schedule",
-                title: it.title,
-                detail: [
-                  it.time,
-                  it.durationMinutes ? `${it.durationMinutes} min` : null,
-                  it.priority,
-                  it.mode ? `· ${it.mode}` : null,
-                ].filter(Boolean).join(" · "),
-                // 🔴 FIX: status basado en done (no siempre "done")
-                status: it.done ? "done" : "current",
-                // 🔴 FIX: badge con priority (Alta/Media/Baja)
-                badge: it.priority,
-                badgeTone: it.priority === "Alta" ? "urgent" : it.priority === "Media" ? "current" : "pending",
-                // 🔴 TIER S: toggle → togglePlanStep(planId, stepId)
-                toggle: { kind: "plan_step", planId, stepId: `step_${slug(it.title)}_${i}` },
-              })),
-            },
-          ],
+          sections,
         }
       : undefined,
     cta: items.length ? { label: "Ver plan completo" } : undefined,
@@ -3525,6 +4855,26 @@ function recipeBlock(b: Of<"recipe">): KoruPresentation {
       title: "Maridaje",
       subtitle: "VINO SUGERIDO",
       body: `${pairing.wine} — ${pairing.reason}. (Afinidad ${Math.round(pairing.pairingScore * 100)}%)`,
+    });
+  }
+
+  // 🔴 KIMI TIER-S (Card 25 · Recetas): nutrición como tiles (kcal, protein,
+  // carbs, fat) cuando el bloque trae el campo opcional `nutrition` (vía
+  // Open Food Facts). Cada valor se muestra con su unidad y color semáforo.
+  if (b.nutrition) {
+    const nutritionTiles: DetailTile[] = [
+      { icon: "local_fire_department", label: "Calorías", value: `${b.nutrition.kcal} kcal`, color: A.amber.color },
+      { icon: "fitness_center", label: "Proteína", value: `${b.nutrition.protein} g`, color: A.emerald.color },
+      { icon: "bakery_dining", label: "Carbs", value: `${b.nutrition.carbs} g`, color: A.purple.color },
+      { icon: "water_drop", label: "Grasas", value: `${b.nutrition.fat} g`, color: A.rose.color },
+    ];
+    sections.push({
+      kind: "tiles",
+      icon: "monitor_weight",
+      accent: A.indigo,
+      title: "Nutrición",
+      subtitle: "POR 100 G (APROX.)",
+      tiles: nutritionTiles,
     });
   }
 
@@ -3841,6 +5191,23 @@ function newsUrgentBlock(b: Of<"news_urgent">): KoruPresentation {
     .join(" ");
 
   const sections: DetailSection[] = [];
+
+  // 🔴 Kimi card 11 — severity badge + context chips (severidad · categoría ·
+  // frescura). Convierte el severity del hero en una bad Row visible del detalle.
+  const contextChips: DetailChip[] = [{ label: severityLabel, color: accent.color }];
+  if (b.category) contextChips.push({ label: categoryLabel, color: A.indigo.color });
+  if (b.lastUpdated) {
+    const fresh = formatFreshness(b.lastUpdated);
+    if (fresh) contextChips.push({ label: fresh, color: A.amber.color });
+  }
+  sections.push({
+    kind: "chips",
+    icon: "label",
+    accent,
+    title: "Contexto",
+    subtitle: "SEVERIDAD · CATEGORÍA · ACTUALIZACIÓN",
+    chips: contextChips,
+  });
 
   // 1. Resumen (texto).
   if (b.summary) {
@@ -4309,38 +5676,50 @@ function exercisePlan(b: Of<"exercise_plan">): KoruPresentation {
     });
   }
 
-  // 🔴 P2 — Sección de fuerza: 1RM (Epley) + delta vs histórico + kcal por
-  // ejercicio. Para cada ejercicio de la sesión actual calculamos:
-  //   • 1RM con calculate1RM(weight, reps)
-  //   • delta con calculateStrengthDelta(currentLogs=historicalLogs,
-  //     historicalLogs=historicalLogs, exerciseName) → compara último log vs
-  //     hace 4 semanas
-  //   • kcal estimadas con estimateKcal(MET) usando userWeightKg
-  // Mostramos como tiles para que se vea compacto.
+  // 🔴 Kimi card 19 — current exercises as tiles (series / reps / volumen).
+  // Agrega una vista agregada de la sesión actual en tiles, complementando
+  // las rows de arriba.
   if (current && current.exercises.length > 0) {
-    const strengthTiles: DetailTile[] = [];
+    const totalSets = current.exercises.reduce((acc, e) => acc + e.sets, 0);
+    const totalReps = current.exercises.reduce((acc, e) => acc + e.reps * e.sets, 0);
+    const totalWeight = current.exercises.reduce((acc, e) => acc + (e.weight ?? 0) * e.reps * e.sets, 0);
+    const sessionTiles: DetailTile[] = [
+      { icon: "repeat", label: "Series totales", value: String(totalSets), color: A.emerald.color },
+      { icon: "fitness_center", label: "Reps totales", value: String(totalReps), color: A.amber.color },
+    ];
+    if (totalWeight > 0) {
+      sessionTiles.push({ icon: "weight", label: "Volumen (kg·rep)", value: String(Math.round(totalWeight)), color: A.primary.color });
+    }
+    sections.push({
+      kind: "tiles",
+      icon: "monitoring",
+      accent: A.emerald,
+      title: "Sesión actual",
+      subtitle: current.dayLabel?.toUpperCase() ?? "HOY",
+      tiles: sessionTiles,
+    });
+  }
+
+  // 🔴 P2 — Sección de fuerza: 1RM (Epley) + delta vs histórico + kcal por
+  // ejercicio.
+  // 🔴 Kimi card 19 — strength progress as scroller (1 card por ejercicio con
+  // 1RM + delta + kcal). Reemplaza los tiles anteriores por un scroller que
+  // deja ver cada ejercicio por separado.
+  if (current && current.exercises.length > 0) {
+    const strengthCards: DetailScrollCard[] = [];
     let sessionKcalTotal = 0;
     for (const ex of current.exercises) {
+      const cardMetrics: string[] = [];
       // 1RM (sólo si hay peso declarado)
       if (typeof ex.weight === "number" && ex.weight > 0) {
         const onerm = calculate1RM(ex.weight, ex.reps);
-        strengthTiles.push({
-          icon: "trending_up",
-          label: `${ex.exercise} · 1RM`,
-          value: `${onerm.toFixed(1)} kg`,
-          color: A.emerald.color,
-        });
+        cardMetrics.push(`1RM ${onerm.toFixed(1)} kg`);
         // Delta vs histórico (si hay logs)
         if (historicalLogs.length > 0) {
           const delta = calculateStrengthDelta(historicalLogs, historicalLogs, ex.exercise);
           if (delta.deltaPct !== 0 && delta.previous1RM > 0) {
             const sign = delta.deltaPct > 0 ? "+" : "";
-            strengthTiles.push({
-              icon: delta.deltaPct > 0 ? "north" : "south",
-              label: `${ex.exercise} · Δ 4 sem`,
-              value: `${sign}${delta.deltaPct.toFixed(0)}%`,
-              color: delta.deltaPct > 0 ? A.emerald.color : A.rose.color,
-            });
+            cardMetrics.push(`Δ ${sign}${delta.deltaPct.toFixed(0)}%`);
           }
         }
       }
@@ -4355,33 +5734,40 @@ function exercisePlan(b: Of<"exercise_plan">): KoruPresentation {
         userWeightKg,
       );
       sessionKcalTotal += kcal;
-      strengthTiles.push({
-        icon: "local_fire_department",
-        label: `${ex.exercise} · kcal`,
-        value: `${kcal} kcal`,
-        color: A.amber.color,
+      if (kcal > 0) cardMetrics.push(`${kcal} kcal`);
+      strengthCards.push({
+        badge: ex.weight ? `${ex.weight} kg` : undefined,
+        badgeColor: A.emerald.color,
+        title: ex.exercise,
+        detail: `${ex.sets}×${ex.reps}${ex.restSec ? ` · ${ex.restSec}s` : ""}`,
+        metrics: cardMetrics,
       });
     }
-    // Tile final con el total de kcal de la sesión.
+    // Card final con el total de kcal de la sesión.
     if (sessionKcalTotal > 0) {
-      strengthTiles.push({
-        icon: "whatshot",
-        label: "Total sesión",
-        value: `${sessionKcalTotal} kcal`,
-        color: A.rose.color,
+      strengthCards.push({
+        badge: "Total",
+        badgeColor: A.rose.color,
+        title: "Calorías de la sesión",
+        detail: `${sessionKcalTotal} kcal`,
+        metrics: [`peso ${userWeightKg}kg`],
       });
     }
-    if (strengthTiles.length > 0) {
+    if (strengthCards.length > 0) {
       sections.push({
-        kind: "tiles",
+        kind: "scroller",
         icon: "monitoring",
         accent: A.emerald,
-        title: "Fuerza y energía",
+        title: "Progreso de fuerza",
         subtitle: `1RM (Epley) · kcal MET · peso ${userWeightKg}kg`,
-        tiles: strengthTiles,
+        cards: strengthCards,
       });
     }
   }
+
+  // 🔴 Kimi card 19 — session progress as artValue ("4/12").
+  const completedSessions = sessions.filter((s) => s.completedAt).length;
+  const artValue = totalSessions > 0 ? `${completedSessions}/${totalSessions}` : undefined;
 
   return {
     hero: {
@@ -4390,6 +5776,7 @@ function exercisePlan(b: Of<"exercise_plan">): KoruPresentation {
       desc: current ? `Hoy: ${current.dayLabel} — ${current.exercises.length} ejercicio${current.exercises.length === 1 ? "" : "s"}` : `${totalSessions} sesiones`,
       icon: "fitness_center",
       accent: A.emerald,
+      artValue,
       metrics: [
         { icon: "event", label: "Sesiones", value: String(totalSessions), color: A.emerald.color },
         { icon: "calendar_month", label: "Semanas", value: String(plan.weeksTotal ?? 0), color: A.primary.color },

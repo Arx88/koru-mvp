@@ -1,0 +1,2002 @@
+     1→import type { UiBlock, AssistantSource } from "../../../domain/types";
+     2→import { getCachedRate, formatCurrency } from "../../../tools/travel/currencyConverter";
+     3→import { sortItemsByAisle, categorizeItem, aisleLabelFor } from "../../../domain/aisleMap";
+     4→import { inferStressLevel } from "../../../domain/stressEngine";
+     5→import {
+     6→  calculate1RM,
+     7→  calculateStrengthDelta,
+     8→  estimateKcal,
+     9→} from "../../../domain/strengthEngine";
+    10→import { suggestWinePairing } from "../../../tools/food/winePairing";
+    11→
+    12→// ============================================================================
+    13→// Modelo de presentación unificado (una sola fuente de verdad para TODAS las
+    14→// cards). Cada UiBlock se normaliza a esta forma y se renderiza con el mismo
+    15→// molde Stitch "Creando Plan / Plan Entregado": hoja lila (hero) + pantalla de
+    16→// detalle con magical-cards. Ningún componente de card conserva estética propia.
+    17→// ============================================================================
+    18→
+    19→export type Accent = {
+    20→  /** color principal (icono, kicker, CTA) */
+    21→  color: string;
+    22→  /** fondo suave del chip de icono */
+    23→  soft: string;
+    24→};
+    25→
+    26→/** Métrica de la fila 3-up del hero. Con `value` = tile; sin `value` = chip. */
+    27→export type HeroMetric = {
+    28→  icon: string;
+    29→  label: string;
+    30→  value?: string;
+    31→  color?: string;
+    32→};
+    33→
+    34→export type Hero = {
+    35→  kicker: string;
+    36→  title: string;
+    37→  desc?: string;
+    38→  /** icono Material Symbols para el arte del hero (si no hay ilustración) */
+    39→  icon: string;
+    40→  accent: Accent;
+    41→  /** ilustración opcional (reemplaza al icono) */
+    42→  art?: string;
+    43→  /** 🔴 FIX UX: aspect ratio de la imagen — "square" (default), "poster" (2:3 vertical), "cover" (wide banner) */
+    44→  artAspect?: "square" | "poster" | "cover";
+    45→  /** valor grande sobre el arte (ej. "23°") */
+    46→  artValue?: string;
+    47→  metrics?: HeroMetric[];
+    48→  /** 🔴 v2: timestamp ISO de cuándo se verificó el dato (transparencia de frescura). */
+    49→  verifiedAt?: string;
+    50→  /** 🔴 v2: etiqueta legible de antigüedad (ej. "Hace 2 min"). */
+    51→  freshnessLabel?: string;
+    52→};
+    53→
+    54→// ---- Secciones de la pantalla de detalle (magical-cards) --------------------
+    55→
+    56→export type DetailTile = { icon?: string; label: string; value: string; color?: string };
+    57→export type DetailRow = {
+    58→  icon?: string;
+    59→  title: string;
+    60→  detail?: string;
+    61→  meta?: string;
+    62→  badge?: string;
+    63→  badgeTone?: "done" | "current" | "pending" | "urgent";
+    64→  // 🔴 v2: para stats comparativas con barras de equipo
+    65→  bar?: { homeValue: number; awayValue: number; isPercent: boolean; homeColor?: string; awayColor?: string };
+    66→  // 🔴 TIER S: metadata para que KoruDetailScreen haga la fila tappable y
+    67→  // dispare el reducer correcto (toggleShoppingItem / toggleChecklistItem).
+    68→  // `planId/listId/checklistId` y `itemId/stepId` son ids sintéticos derivados
+    69→  // del bloque (los UiBlock no traen ids propios); el handler en KoruProvider
+    70→  // los pasa al reducer correspondiente.
+    71→  toggle?: {
+    72→    kind: "shopping_item" | "checklist_item";
+    73→    listId?: string;
+    74→    checklistId?: string;
+    75→    itemId: string;
+    76→  };
+    77→};
+    78→export type DetailChip = { label: string; sub?: string; color?: string };
+    79→export type DetailScrollCard = {
+    80→  badge?: string;
+    81→  badgeColor?: string;
+    82→  /** 🔴 v3: URL de imagen del restaurante (Google Places photo) — se renderiza como
+    83→   *  thumbnail junto al badge; sustituye visualmente al badge textual. */
+    84→  image?: string;
+    85→  title: string;
+    86→  detail?: string;
+    87→  metrics?: string[];
+    88→};
+    89→export type DetailStep = {
+    90→  icon?: string;
+    91→  title: string;
+    92→  detail?: string;
+    93→  status?: "done" | "current" | "pending";
+    94→  badge?: string;
+    95→  badgeTone?: "done" | "current" | "pending" | "urgent";
+    96→  // 🔴 TIER S: metadata para que KoruDetailScreen haga el paso tappable y
+    97→  // dispare togglePlanStep. `planId` y `stepId` son sintéticos (derivados del
+    98→  // título del bloque + índice del paso) porque los UiBlock `plan` no traen
+    99→  // ids propios. El handler en KoruProvider los pasa al reducer.
+   100→  toggle?: {
+   101→    kind: "plan_step";
+   102→    planId: string;
+   103→    stepId: string;
+   104→  };
+   105→};
+   106→export type DetailSourceRef = {
+   107→  title: string;
+   108→  domain?: string;
+   109→  url?: string;
+   110→  imageUrl?: string;
+   111→  /** 🔴 v2: duración legible (ej. "12:34") para badge sobre thumbnails de video */
+   112→  duration?: string;
+   113→};
+   114→
+   115→export type DetailSection =
+   116→  | { kind: "text"; icon: string; accent: Accent; title: string; subtitle?: string; body: string }
+   117→  | { kind: "tiles"; icon: string; accent: Accent; title: string; subtitle?: string; tiles: DetailTile[] }
+   118→  | { kind: "rows"; icon: string; accent: Accent; title: string; subtitle?: string; rows: DetailRow[] }
+   119→  | { kind: "chips"; icon: string; accent: Accent; title: string; subtitle?: string; chips: DetailChip[] }
+   120→  | { kind: "calendar"; icon: string; accent: Accent; title: string; subtitle?: string; days: DetailChip[] }
+   121→  | { kind: "scroller"; icon: string; accent: Accent; title: string; subtitle?: string; cards: DetailScrollCard[] }
+   122→  | { kind: "timeline"; icon: string; accent: Accent; title: string; subtitle?: string; steps: DetailStep[] }
+   123→  | { kind: "sources"; icon: string; accent: Accent; title: string; subtitle?: string; sources: DetailSourceRef[] }
+   124→  | { kind: "pitch"; icon: string; accent: Accent; title: string; subtitle?: string; pitch: { homeFormation: string; awayFormation: string; homePlayers: Array<{ number?: string; name: string; position?: string }>; awayPlayers: Array<{ number?: string; name: string; position?: string }>; homeColor?: string; awayColor?: string; homeName: string; awayName: string } };
+   125→
+   126→export type Detail = {
+   127→  title: string;
+   128→  subtitle?: string;
+   129→  sections: DetailSection[];
+   130→};
+   131→
+   132→export type KoruPresentation = {
+   133→  hero: Hero;
+   134→  detail?: Detail;
+   135→  /**
+   136→   * CTA de la hoja. Sin `screen` abre el detalle genérico (KoruDetailScreen);
+   137→   * con screen "collections" abre Mis Colecciones enfocada en `collection`.
+   138→   */
+   139→  cta?: { label: string; screen?: "collections"; collection?: string };
+   140→  /**
+   141→   * 🔴 v2: acciones inline para cards sin detail screen (alarm, reminder, etc.)
+   142→   * Se renderizan como botones dentro del hero, sin necesidad de abrir detail.
+   143→   */
+   144→  actions?: Array<{
+   145→    label: string;
+   146→    icon?: string;
+   147→    kind?: "primary" | "secondary" | "danger";
+   148→    action: string; // identificador que el renderer interpreta (ej: "complete", "snooze", "dismiss")
+   149→  }>;
+   150→  /** 🔴 v2: empty state — cuando la card no tiene datos suficientes */
+   151→  empty?: { reason: string; icon?: string };
+   152→  /**
+   153→   * 🔴 v3: layout alternativo de la card. Default = molde Stitch clásico
+   154→   * (kicker + título + arte + métricas + CTA). Las variantes rescriben la
+   155→   * composición visual sin tocar el modelo de presentación.
+   156→   *   - "compact"   → fila única (icono + kicker + título + chevron). ~60px.
+   157→   *   - "spotlight" → imagen full-bleed (180px) con scrim + título overlay.
+   158→   *   - "gallery"   → carrusel horizontal de mini-cards (70×80).
+   159→   *   - "banner"    → gradiente full-width (100px) con número grande + label.
+   160→   */
+   161→  layout?: "default" | "compact" | "spotlight" | "gallery" | "banner";
+   162→};
+   163→
+   164→// ---- Paleta Stitch ----------------------------------------------------------
+   165→
+   166→const A = {
+   167→  violet: { color: "#8363f9", soft: "rgba(131,99,249,0.12)" },
+   168→  primary: { color: "#4648d4", soft: "rgba(70,72,212,0.10)" },
+   169→  purple: { color: "#8127cf", soft: "rgba(129,39,207,0.12)" },
+   170→  emerald: { color: "#059669", soft: "rgba(16,185,129,0.12)" },
+   171→  amber: { color: "#d97706", soft: "rgba(217,119,6,0.12)" },
+   172→  blue: { color: "#2563eb", soft: "rgba(37,99,235,0.12)" },
+   173→  sky: { color: "#0284c7", soft: "rgba(2,132,199,0.12)" },
+   174→  rose: { color: "#e11d48", soft: "rgba(225,29,72,0.12)" },
+   175→  pink: { color: "#ec4899", soft: "rgba(236,72,153,0.12)" },
+   176→  indigo: { color: "#4f46e5", soft: "rgba(79,70,229,0.10)" },
+   177→  red: { color: "#dc2626", soft: "rgba(220,38,38,0.12)" },
+   178→} satisfies Record<string, Accent>;
+   179→
+   180→// ---- helpers ----------------------------------------------------------------
+   181→
+   182→type Of<T extends UiBlock["type"]> = Extract<UiBlock, { type: T }>;
+   183→
+   184→const up = (s: string) => s.toUpperCase();
+   185→const clean = (s?: string) => (s ?? "").trim();
+   186→
+   187→/** 🔴 TIER S: slug para generar ids sintéticos estables a partir de un título
+   188→ *  de UiBlock. Se usa en shoppingList / smartChecklist / planFallback para que
+   189→ *  los toggles de KoruDetailScreen puedan referenciar la entidad durable
+   190→ *  correspondiente (mismo slug → mismo id). */
+   191→function slug(s: string): string {
+   192→  return s
+   193→    .toLowerCase()
+   194→    .normalize("NFD")
+   195→    .replace(/[\u0300-\u036f]/g, "")
+   196→    .replace(/[^a-z0-9]+/g, "_")
+   197→    .replace(/^_+|_+$/g, "")
+   198→    .slice(0, 48) || "untitled";
+   199→}
+   200→
+   201→function sourcesToRefs(sources?: AssistantSource[]): DetailSourceRef[] {
+   202→  return (sources ?? []).slice(0, 8).map((s) => ({
+   203→    title: s.title,
+   204→    domain: s.domain,
+   205→    url: s.url,
+   206→    imageUrl: s.imageUrl,
+   207→  }));
+   208→}
+   209→
+   210→/** Título del hero sin prefijos redundantes ("Tu plan X" → "X"). */
+   211→function heroTitleFrom(raw: string | undefined, fallback: string): string {
+   212→  const c = clean(raw).replace(/^\s*(tu|mi)\s+/i, "");
+   213→  return up(c || fallback);
+   214→}
+   215→
+   216→function asPercent(value?: number): string | undefined {
+   217→  if (value == null || !Number.isFinite(value)) return undefined;
+   218→  const normalized = Math.abs(value) <= 1 ? value * 100 : value;
+   219→  return `${Math.round(normalized)}%`;
+   220→}
+   221→
+   222→// ============================================================================
+   223→// Normalizador principal
+   224→// ============================================================================
+   225→
+   226→/**
+   227→ * 🔴 v4 — Contexto opcional para el normalizador. Hoy sólo se usa para pasar
+   228→ * la moneda principal del usuario (state.userProfile.currency ?? "EUR") al
+   229→ * mapper de travel_plan, que muestra montos convertidos cuando una línea de
+   230→ * presupuesto está en otra moneda.
+   231→ */
+   232→export type PresentationContext = {
+   233→  userCurrency?: string;
+   234→};
+   235→
+   236→export function toPresentation(block: UiBlock, ctx?: PresentationContext): KoruPresentation {
+   237→  switch (block.type) {
+   238→    case "deliverable":
+   239→      return deliverable(block);
+   240→    case "clarifying_question":
+   241→      return clarifying(block);
+   242→    case "weather":
+   243→      return weather(block);
+   244→    case "alarm":
+   245→      return alarm(block);
+   246→    case "reminder":
+   247→      return reminder(block);
+   248→    case "shopping_list":
+   249→      return shoppingList(block);
+   250→    case "comparison":
+   251→      return comparison(block);
+   252→    case "research_sources":
+   253→      return research(block);
+   254→    case "money_summary":
+   255→      return money(block);
+   256→    case "saved_record":
+   257→      return savedRecord(block);
+   258→    case "activity_group":
+   259→      return activityGroup(block);
+   260→    case "proactive_signal":
+   261→      return proactiveSignal(block);
+   262→    case "resource_bundle":
+   263→      return resourceBundle(block);
+   264→    case "web_nav":
+   265→      return webNav(block);
+   266→    case "data_card":
+   267→      return dataCard(block);
+   268→    case "restaurant_synthesis":
+   269→      return restaurant(block);
+   270→    case "morning_brief":
+   271→      return morningBrief(block);
+   272→    case "wellbeing":
+   273→      return wellbeing(block);
+   274→    case "live_match":
+   275→      return liveMatch(block);
+   276→    case "urgent_now":
+   277→      return urgentNow(block);
+   278→    case "market":
+   279→      return market(block);
+   280→    case "delivery":
+   281→      return delivery(block);
+   282→    case "health_reminder":
+   283→      return healthReminder(block);
+   284→    case "activity_tracker":
+   285→      return activityTracker(block);
+   286→    case "product_analysis":
+   287→      return productAnalysis(block);
+   288→    case "travel_planner":
+   289→      return travelPlanner(block);
+   290→    case "travel_plan":
+   291→      return travelPlan(block, ctx);
+   292→    case "generation":
+   293→      return generation(block);
+   294→    case "match_timeline":
+   295→      return matchTimeline(block);
+   296→    case "match_stats":
+   297→      return matchStats(block);
+   298→    case "election_results":
+   299→      return electionResults(block);
+   300→    case "election_vote":
+   301→      return electionVote(block);
+   302→    case "decision_support":
+   303→      return decisionSupport(block);
+   304→    case "memory":
+   305→      return memoryBlock(block);
+   306→    case "data_ticker":
+   307→      return dataTicker(block);
+   308→    case "crypto_portfolio":
+   309→      return cryptoPortfolio(block);
+   310→    case "forex":
+   311→      return forex(block);
+   312→    case "route_timeline":
+   313→      return routeTimeline(block);
+   314→    case "transport_compare":
+   315→      return transportCompare(block);
+   316→    case "route_map":
+   317→      return routeMap(block);
+   318→    case "birthday_calendar":
+   319→      return birthdayCalendar(block);
+   320→    case "birthday_alarm":
+   321→      return birthdayAlarm(block);
+   322→    case "social_interaction":
+   323→      return socialInteraction(block);
+   324→    case "smart_checklist":
+   325→      return smartChecklist(block);
+   326→    case "outfit":
+   327→      return outfit(block);
+   328→    case "review_score":
+   329→      return reviewScore(block);
+   330→    case "review_document":
+   331→      return reviewDocument(block);
+   332→    case "review_quote":
+   333→      return reviewQuote(block);
+   334→    case "recipe":
+   335→      return recipeBlock(block);
+   336→    case "movie_review":
+   337→      return movieReviewBlock(block);
+   338→    case "book_review":
+   339→      return bookReviewBlock(block);
+   340→    case "news_urgent":
+   341→      return newsUrgentBlock(block);
+   342→    case "tennis_match":
+   343→      return tennisMatch(block);
+   344→    case "exercise_plan":
+   345→      return exercisePlan(block);
+   346→    case "plan":
+   347→      // El plan conserva su render canónico (PlanHeroCard); si llegara acá,
+   348→      // damos un hero equivalente por robustez.
+   349→      return planFallback(block);
+   350→    default: {
+   351→      const _exhaustive: never = block;
+   352→      return _exhaustive;
+   353→    }
+   354→  }
+   355→}
+   356→
+   357→// ============================================================================
+   358→// Mappers por tipo
+   359→// ============================================================================
+   360→
+   361→/** Acentos que rotan entre los módulos del detalle de un entregable. */
+   362→const DELIVERABLE_SECTION_ACCENTS: Accent[] = [A.amber, A.primary, A.emerald, A.pink, A.purple];
+   363→
+   364→/**
+   365→ * ENTREGABLE (deep_research) — el bloque ya llega con la forma del molde:
+   366→ * kicker/título/descripción/categorías/métricas + secciones tipadas. Acá solo
+   367→ * se traduce cada sección a su DetailSection y se anexan las fuentes.
+   368→ */
+   369→function deliverable(b: Of<"deliverable">): KoruPresentation {
+   370→  const kicker = clean(b.kicker) || "Tu Informe";
+   371→  const sections: DetailSection[] = [];
+   372→
+   373→  if (b.summary) {
+   374→    sections.push({ kind: "text", icon: "auto_awesome", accent: A.violet, title: "Síntesis", subtitle: "Lo esencial", body: b.summary });
+   375→  }
+   376→
+   377→  (b.sections ?? []).forEach((section, idx) => {
+   378→    const accent = DELIVERABLE_SECTION_ACCENTS[idx % DELIVERABLE_SECTION_ACCENTS.length];
+   379→    const base = { icon: section.icon ?? "menu_book", accent, title: section.title, subtitle: section.kicker };
+   380→    const items = section.items ?? [];
+   381→    if (section.kind === "timeline" && items.length) {
+   382→      sections.push({
+   383→        ...base,
+   384→        kind: "timeline",
+   385→        steps: items.map((it) => ({ icon: it.icon, title: it.badge ? `${it.badge} — ${it.title}` : it.title, detail: it.subtitle, status: "done" as const })),
+   386→      });
+   387→    } else if (section.kind === "grid" && items.length) {
+   388→      sections.push({ ...base, kind: "chips", chips: items.map((it) => ({ label: it.title, sub: it.subtitle })) });
+   389→    } else if (items.length) {
+   390→      sections.push({
+   391→        ...base,
+   392→        kind: "rows",
+   393→        rows: items.map((it) => ({ icon: it.icon, title: it.title, detail: it.subtitle, badge: it.badge })),
+   394→      });
+   395→    } else if (section.bullets?.length) {
+   396→      sections.push({ ...base, kind: "rows", rows: section.bullets.map((text) => ({ icon: "check_circle", title: text })) });
+   397→    } else if (section.paragraphs?.length) {
+   398→      sections.push({ ...base, kind: "text", body: section.paragraphs.join("\n\n") });
+   399→    }
+   400→  });
+   401→
+   402→  if (b.sources?.length) {
+   403→    sections.push({
+   404→      kind: "sources",
+   405→      icon: "fact_check",
+   406→      accent: A.indigo,
+   407→      title: "Fuentes",
+   408→      subtitle: "De dónde salió todo",
+   409→      sources: sourcesToRefs(b.sources),
+   410→    });
+   411→  }
+   412→
+   413→  // Hero: métricas reales si el informe las trae; si no, las categorías como chips.
+   414→  const metrics: HeroMetric[] = b.metrics?.length
+   415→    ? b.metrics.slice(0, 3).map((m, i) => ({ icon: b.categories?.[i]?.icon ?? "insights", label: m.label, value: m.value }))
+   416→    : (b.categories ?? []).slice(0, 3).map((c) => ({ icon: c.icon, label: c.label, color: c.color }));
+   417→
+   418→  return {
+   419→    hero: {
+   420→      kicker,
+   421→      title: up(clean(b.title) || "Informe"),
+   422→      desc: b.description,
+   423→      icon: "auto_awesome",
+   424→      accent: A.violet,
+   425→      // 🔴 FIX UX: icono según el kicker del deliverable
+   426→      art: (() => {
+   427→        const k = (b.kicker ?? "").toLowerCase();
+   428→        if (k.includes("pel") || k.includes("movie")) return "/stitch/icons/search-web.png";
+   429→        if (k.includes("receta") || k.includes("comida")) return "/stitch/icons/wellness.png";
+   430→        if (k.includes("clima") || k.includes("weather")) return "/stitch/icons/search-web.png";
+   431→        if (k.includes("partido") || k.includes("deport")) return "/stitch/icons/sports.png";
+   432→        if (k.includes("libro") || k.includes("book")) return "/stitch/icons/search-knowledge.png";
+   433→        if (k.includes("búsqueda") || k.includes("search")) return "/stitch/icons/search-web.png";
+   434→        if (k.includes("informe") || k.includes("reporte") || k.includes("investigaci")) return "/stitch/icons/tech-analysis.png";
+   435→        if (k.includes("plan")) return "/stitch/icons/tasks.png";
+   436→        if (k.includes("cotiz") || k.includes("dolar") || k.includes("crypto") || k.includes("finanz")) return "/stitch/icons/finance.png";
+   437→        if (k.includes("compar") || k.includes("compr")) return "/stitch/icons/shopping.png";
+   438→        if (k.includes("viaje") || k.includes("travel")) return "/stitch/icons/travel.png";
+   439→        return "/stitch/plan-illustration.png";
+   440→      })(),
+   441→      metrics,
+   442→    },
+   443→    detail: {
+   444→      title: clean(b.title) || "Tu Informe",
+   445→      subtitle: `${kicker}${b.sources?.length ? ` · ${b.sources.length} fuentes` : ""}`,
+   446→      sections,
+   447→    },
+   448→    cta: sections.length ? { label: `Ver ${kicker.replace(/^tu\s+/i, "").toLowerCase()} completo` } : undefined,
+   449→  };
+   450→}
+   451→
+   452→function clarifying(b: Of<"clarifying_question">): KoruPresentation {
+   453→  return {
+   454→    hero: {
+   455→      kicker: "Una pregunta",
+   456→      title: heroTitleFrom(b.title, "Necesito un dato"),
+   457→      desc: b.question,
+   458→      icon: "help",
+   459→      accent: A.violet,
+   460→    },
+   461→    detail: b.options?.length
+   462→      ? {
+   463→          title: b.title || "Elegí una opción",
+   464→          subtitle: b.question,
+   465→          sections: [
+   466→            {
+   467→              kind: "chips",
+   468→              icon: "help",
+   469→              accent: A.violet,
+   470→              title: "Opciones",
+   471→              chips: b.options.map((o) => ({ label: o })),
+   472→            },
+   473→          ],
+   474→        }
+   475→      : undefined,
+   476→    cta: b.options?.length ? { label: "Responder" } : undefined,
+   477→  };
+   478→}
+   479→
+   480→function weather(b: Of<"weather">): KoruPresentation {
+   481→  // 🔴 v2: icono dinámico según condición (antes siempre partly_cloudy_day)
+   482→  const condition = (b.condition ?? "").toLowerCase();
+   483→  const weatherIcon = /lluvia|rain|storm|tormenta/.test(condition) ? "rainy"
+   484→    : /nieve|snow|nev/.test(condition) ? "ac_unit"
+   485→    : /nublado|cloud|cubier/.test(condition) ? "cloud"
+   486→    : /tormenta|thunder|storm/.test(condition) ? "thunderstorm"
+   487→    : /niebla|fog|bruma/.test(condition) ? "foggy"
+   488→    : /sol|soleado|clear|despej/.test(condition) ? "wb_sunny"
+   489→    : "partly_cloudy_day";
+   490→
+   491→  // 🔴 v2: accent dinámico según condición (día soleado = amber, lluvia = blue, nieve = primary)
+   492→  const weatherAccent = /lluvia|rain|storm|tormenta/.test(condition) ? A.blue
+   493→    : /nieve|snow|nev/.test(condition) ? A.primary
+   494→    : /sol|soleado|clear|despej/.test(condition) ? A.amber
+   495→    : A.primary;
+   496→
+   497→  const metrics: HeroMetric[] = [];
+   498→  if (b.range) metrics.push({ icon: "device_thermostat", label: "Mín / Máx", value: b.range, color: A.amber.color });
+   499→  if (b.humidity) metrics.push({ icon: "water_drop", label: "Humedad", value: b.humidity, color: A.blue.color });
+   500→  if (b.wind) metrics.push({ icon: "air", label: "Viento", value: b.wind, color: A.emerald.color });
+   501→  if (b.rain) metrics.push({ icon: "rainy", label: "Lluvia", value: b.rain, color: A.blue.color });
+   502→
+   503→  // 🔴 v2: tiles agrupados por categoría (no lista plana)
+   504→  const detailTiles: DetailTile[] = [];
+   505→  if (b.feel) detailTiles.push({ icon: "thermostat", label: "Sensación térmica", value: b.feel, color: A.rose.color });
+   506→  if (b.range) detailTiles.push({ icon: "device_thermostat", label: "Mín / Máx", value: b.range, color: A.amber.color });
+   507→  if (b.humidity) detailTiles.push({ icon: "water_drop", label: "Humedad", value: b.humidity, color: A.blue.color });
+   508→  if (b.wind) detailTiles.push({ icon: "air", label: "Viento", value: b.wind, color: A.emerald.color });
+   509→  if (b.rain) detailTiles.push({ icon: "rainy", label: "Prob. lluvia", value: b.rain, color: A.blue.color });
+   510→  if (b.uv) detailTiles.push({ icon: "light_mode", label: "Índice UV", value: b.uv, color: A.amber.color });
+   511→
+   512→  // 🔴 v2: advice como sección destacada (antes era solo desc del hero, se perdía)
+   513→  const adviceSection = b.advice ? [{
+   514→    kind: "text" as const,
+   515→    icon: "lightbulb" as const,
+   516→    accent: A.amber,
+   517→    title: "Recomendación",
+   518→    subtitle: "PARA HOY",
+   519→    body: b.advice,
+   520→  }] : [];
+   521→
+   522→  // 🔴 v2: pronóstico por hora como scroller horizontal (próximas 8 horas).
+   523→  const hourlySection = b.hourly?.length
+   524→    ? [{
+   525→        kind: "scroller" as const,
+   526→        icon: "schedule" as const,
+   527→        accent: A.sky,
+   528→        title: "Próximas horas",
+   529→        subtitle: "POR HORA",
+   530→        cards: b.hourly.map((h) => ({
+   531→          badge: `${h.rainPct}%`,
+   532→          badgeColor: A.blue.color,
+   533→          title: h.hour,
+   534→          detail: `${h.temp} · ${h.conditionIcon}`,
+   535→          metrics: [`UV ${h.uv}`],
+   536→        })),
+   537→      }]
+   538→    : [];
+   539→
+   540→  // 🔴 v2: pronóstico por día como tiles (próximos 7 días).
+   541→  const dailySection = b.daily?.length
+   542→    ? [{
+   543→        kind: "tiles" as const,
+   544→        icon: "calendar_view_week" as const,
+   545→        accent: A.violet,
+   546→        title: "Pronóstico 7 días",
+   547→        subtitle: "ESTA SEMANA",
+   548→        tiles: b.daily.map((d) => ({
+   549→          icon: d.conditionIcon,
+   550→          label: d.dayAbbrev,
+   551→          value: `${d.hi} / ${d.lo}`,
+   552→          color: A.amber.color,
+   553→        })),
+   554→      }]
+   555→    : [];
+   556→
+   557→  // 🔴 v2: si hay hourly/daily, la detail screen cobra sentido aunque no haya tiles ni advice.
+   558→  const hasDetailContent = detailTiles.length > 0 || !!b.advice || (b.hourly?.length ?? 0) > 0 || (b.daily?.length ?? 0) > 0;
+   559→
+   560→  return {
+   561→    hero: {
+   562→      kicker: b.city ? `Tu Clima · ${b.city}` : "Tu Clima",
+   563→      title: heroTitleFrom(b.condition, "Pronóstico"),
+   564→      desc: b.advice,
+   565→      icon: weatherIcon,
+   566→      accent: weatherAccent,
+   567→      artValue: b.now,
+   568→      metrics: metrics.length ? metrics.slice(0, 3) : undefined,
+   569→      // 🔴 v2: transparencia de frescura — cuándo se verificó el dato.
+   570→      verifiedAt: b.verifiedAt,
+   571→      freshnessLabel: b.freshnessLabel,
+   572→    },
+   573→    detail: hasDetailContent
+   574→      ? {
+   575→          title: b.city ? `Clima · ${b.city}` : "Clima",
+   576→          subtitle: b.condition,
+   577→          sections: [
+   578→            ...adviceSection,
+   579→            ...hourlySection,
+   580→            ...(detailTiles.length ? [{
+   581→              kind: "tiles" as const,
+   582→              icon: "monitoring" as const,
+   583→              accent: A.emerald,
+   584→              title: "Condiciones actuales",
+   585→              subtitle: "DETALLE",
+   586→              tiles: detailTiles,
+   587→            }] : []),
+   588→            ...dailySection,
+   589→            ...(b.sources?.length ? [sourcesSection(b.sources)] : []),
+   590→          ],
+   591→        }
+   592→      : undefined,
+   593→    cta: hasDetailContent ? { label: "Ver detalle" } : undefined,
+   594→  };
+   595→}
+   596→
+   597→function alarm(b: Of<"alarm">): KoruPresentation {
+   598→  const repeat = b.repeat?.trim() || "";
+   599→  const note = b.note?.trim() || "";
+   600→  const desc = [repeat ? `Se repite: ${repeat}` : null, note].filter(Boolean).join(" · ") || undefined;
+   601→  return {
+   602→    hero: {
+   603→      kicker: "Alarma",
+   604→      title: heroTitleFrom(b.title, "Alarma"),
+   605→      desc,
+   606→      icon: "alarm",
+   607→      accent: A.rose,
+   608→      artValue: b.time,
+   609→    },
+   610→    // 🔴 v2: acciones inline para alarm (sin detail screen)
+   611→    actions: [
+   612→      { label: "Apagar", icon: "alarm_off", kind: "primary", action: "dismiss" },
+   613→      { label: "Postergar 10 min", icon: "snooze", kind: "secondary", action: "snooze" },
+   614→    ],
+   615→  };
+   616→}
+   617→
+   618→function reminder(b: Of<"reminder">): KoruPresentation {
+   619→  const dueText = b.dueText?.trim() || "";
+   620→  const note = b.note?.trim() || "";
+   621→  const desc = [dueText, note].filter(Boolean).join(" · ") || undefined;
+   622→
+   623→  return {
+   624→    hero: {
+   625→      kicker: "Recordatorio",
+   626→      title: heroTitleFrom(b.title, "Recordatorio"),
+   627→      desc,
+   628→      icon: "notifications",
+   629→      accent: A.emerald,
+   630→      artValue: dueText || undefined,
+   631→    },
+   632→    // 🔴 v2: acciones inline para reminder
+   633→    actions: [
+   634→      { label: "Listo", icon: "check", kind: "primary", action: "complete" },
+   635→      { label: "Posponer", icon: "snooze", kind: "secondary", action: "snooze" },
+   636→    ],
+   637→    layout: "compact",
+   638→  };
+   639→}
+   640→
+   641→function shoppingList(b: Of<"shopping_list">): KoruPresentation {
+   642→  const rawItems = b.items ?? [];
+   643→  // 🔴 P2 — Ordenar ítems por pasillo de supermercado. Usamos sortItemsByAisle
+   644→  // con un wrapper { name, category? } para que el orden de recorrido sea
+   645→  // natural (frutas → verduras → panadería → lácteos → ... → otros).
+   646→  // El meta de cada fila muestra la categoría detectada, así el usuario
+   647→  // entiende por qué están agrupados.
+   648→  const sortedItems = sortItemsByAisle(rawItems.map((name) => ({ name }))).map((it) => it.name);
+   649→  const items = sortedItems;
+   650→  // Mostrar los primeros 3 items como métricas (chips) en el hero,
+   651→  // así el usuario ve QUÉ comprar sin abrir la card.
+   652→  // El conteo total va en el desc.
+   653→  const previewItems = items.slice(0, 3);
+   654→  const hasMore = items.length > 3;
+   655→  const metrics: HeroMetric[] = previewItems.map((it, i) => ({
+   656→    icon: "check_box_outline_blank",
+   657→    label: typeof it === "string" ? it : String(it),
+   658→    color: A.amber.color,
+   659→  }));
+   660→  if (hasMore) {
+   661→    metrics.push({ icon: "more_horiz", label: `+${items.length - 3} más`, color: A.amber.color });
+   662→  }
+   663→  // 🔴 TIER S: id sintético del ShoppingList correspondiente a este bloque.
+   664→  // Se deriva del título (slug) para que toggleShoppingItem pueda encontrar
+   665→  // la lista durable si fue creada con el mismo slug.
+   666→  const listId = `shoplist_${slug(clean(b.title) || "compras")}`;
+   667→  return {
+   668→    hero: {
+   669→      kicker: "Tu Lista",
+   670→      title: heroTitleFrom(b.title, "Compras"),
+   671→      desc: b.dueText ?? `${items.length} ítems para llevar`,
+   672→      icon: "shopping_cart",
+   673→      accent: A.amber,
+   674→      metrics: metrics.length > 0 ? metrics : undefined,
+   675→    },
+   676→    detail: items.length
+   677→      ? {
+   678→          title: b.title || "Lista de compras",
+   679→          subtitle: b.dueText,
+   680→          sections: [
+   681→            {
+   682→              kind: "rows",
+   683→              icon: "shopping_cart",
+   684→              accent: A.amber,
+   685→              title: "Ítems",
+   686→              subtitle: "ORDENADOS POR PASILLO",
+   687→              rows: items.map((it) => {
+   688→                const cat = categorizeItem(it);
+   689→                const aisleLabel = aisleLabelFor(cat);
+   690→                const qty = b.quantities?.[it];
+   691→                return {
+   692→                  icon: b.checked?.includes(it) ? "check_box" : "check_box_outline_blank",
+   693→                  title: it,
+   694→                  meta: [aisleLabel, qty ? `x${qty}` : undefined].filter(Boolean).join(" · ") || undefined,
+   695→                  badgeTone: b.checked?.includes(it) ? "done" : undefined,
+   696→                  badge: b.checked?.includes(it) ? "Listo" : undefined,
+   697→                  // 🔴 TIER S: toggle → toggleShoppingItem(listId, itemId=it)
+   698→                  toggle: { kind: "shopping_item", listId, itemId: it },
+   699→                };
+   700→              }),
+   701→            },
+   702→          ],
+   703→        }
+   704→      : undefined,
+   705→    cta: items.length ? { label: "Ver lista" } : undefined,
+   706→  };
+   707→}
+   708→
+   709→function comparison(b: Of<"comparison">): KoruPresentation {
+   710→  const items = b.items ?? [];
+   711→  // 🔴 FIX: identificar el item con mayor score (no hardcoded al index 0)
+   712→  const topIdx = items.reduce((best, it, i) => (it.score != null && (best === -1 || (it.score ?? 0) > (items[best].score ?? 0))) ? i : best, -1);
+   713→  // 🔴 v2: empty state cuando no hay items
+   714→  if (items.length === 0) {
+   715→    return {
+   716→      hero: {
+   717→        kicker: "Tu Comparación",
+   718→        title: heroTitleFrom(b.title, "Comparación"),
+   719→        desc: undefined,
+   720→        icon: "balance",
+   721→        accent: A.pink,
+   722→      },
+   723→      empty: { reason: "No tengo opciones para comparar todavía. Pedime algo específico.", icon: "search_off" },
+   724→    };
+   725→  }
+   726→  // 🔴 v2: métricas enriquecidas — opciones + fuentes + mejor opción
+   727→  const metrics: HeroMetric[] = [
+   728→    { icon: "format_list_numbered", label: "Opciones", value: String(items.length), color: A.pink.color },
+   729→  ];
+   730→  if (b.sources?.length) {
+   731→    metrics.push({ icon: "fact_check", label: "Fuentes", value: String(b.sources.length), color: A.purple.color });
+   732→  }
+   733→  if (topIdx >= 0 && items[topIdx]) {
+   734→    const top = items[topIdx];
+   735→    metrics.push({ icon: "emoji_events", label: "Mejor opción", value: top.title.length > 15 ? top.title.slice(0, 12) + "…" : top.title, color: A.emerald.color });
+   736→  }
+   737→  // 🔴 v2: desc con recomendación o preview del top item
+   738→  const topItem = topIdx >= 0 ? items[topIdx] : items[0];
+   739→  const heroDesc = b.recommendation
+   740→    ?? (topItem ? `Mejor: ${topItem.title}${topItem.price ? ` · ${topItem.price}` : ""}${topItem.score != null ? ` · ★${topItem.score}` : ""}` : `${items.length} opciones analizadas`);
+   741→
+   742→  return {
+   743→    hero: {
+   744→      kicker: "Tu Comparación",
+   745→      title: heroTitleFrom(b.title, "Opciones"),
+   746→      desc: heroDesc,
+   747→      icon: "balance",
+   748→      accent: A.pink,
+   749→      metrics: metrics.slice(0, 3),
+   750→    },
+   751→    detail: {
+   752→      title: b.title || "Comparación",
+   753→      subtitle: (Array.isArray(b.criteria) ? b.criteria.join(" · ") : b.criteria) ?? b.recommendation,
+   754→      sections: [
+   755→        {
+   756→          kind: "scroller",
+   757→          icon: "balance",
+   758→          accent: A.pink,
+   759→          title: "Opciones",
+   760→          subtitle: items.length ? `${items.length} ANALIZADAS` : undefined,
+   761→          cards: items.map((it, i) => ({
+   762→            badge: i === topIdx ? "Mejor puntaje" : undefined,
+   763→            badgeColor: i === topIdx ? A.emerald.color : undefined,
+   764→            title: it.title,
+   765→            detail: [it.price, it.vendor].filter(Boolean).join(" · ") || undefined,
+   766→            metrics: [
+   767→              ...(it.score != null ? [`★ ${it.score}/10`] : []),
+   768→              ...(it.evidence ? [it.evidence] : []),
+   769→              ...(it.url ? [`🔗 ${it.url.replace(/^https?:\/\/(www\.)?/, "").split("/")[0]}`] : []),
+   770→            ],
+   771→          })),
+   772→        },
+   773→        // 🔴 FIX: renderizar details[] (pros/cons) como rows con badges positivos/negativos
+   774→        ...(items.some(it => it.details?.length) ? [{
+   775→          kind: "rows" as const,
+   776→          icon: "fact_check" as const,
+   777→          accent: A.emerald,
+   778→          title: "Pros y Contras",
+   779→          subtitle: "DETALLE POR OPCIÓN",
+   780→          rows: items.flatMap((it) => {
+   781→            const pros = (it.details ?? []).filter(d => d.positive).map(d => ({
+   782→              icon: "check_circle",
+   783→              title: d.label,
+   784→              detail: it.title,
+   785→              badge: "Pro",
+   786→              badgeTone: "done" as const,
+   787→            }));
+   788→            const cons = (it.details ?? []).filter(d => !d.positive).map(d => ({
+   789→              icon: "cancel",
+   790→              title: d.label,
+   791→              detail: it.title,
+   792→              badge: "Contra",
+   793→              badgeTone: "urgent" as const,
+   794→            }));
+   795→            return [...pros, ...cons];
+   796→          }),
+   797→        }] : []),
+   798→        ...(b.sources?.length ? [sourcesSection(b.sources)] : []),
+   799→      ],
+   800→    },
+   801→    cta: { label: "Ver comparación" },
+   802→    // 🔴 v3: gallery (carrusel) cuando hay múltiples opciones que comparar.
+   803→    layout: items.length > 1 ? "gallery" : "default",
+   804→  };
+   805→}
+   806→
+   807→function research(b: Of<"research_sources">): KoruPresentation {
+   808→  const isReport = b.mode === "research";
+   809→  // Truncar summary a ~140 chars para que el hero no se alarge demasiado.
+   810→  // El summary completo va en el detalle (Síntesis).
+   811→  const fullSummary = clean(b.summary);
+   812→  const heroDesc = fullSummary && fullSummary.length > 140
+   813→    ? fullSummary.slice(0, 137).trimEnd() + "…"
+   814→    : fullSummary;
+   815→  return {
+   816→    hero: {
+   817→      kicker: isReport ? "Tu Informe" : "Tu Búsqueda",
+   818→      title: heroTitleFrom(b.title, isReport ? "Investigación" : "Resultados"),
+   819→      desc: heroDesc,
+   820→      icon: isReport ? "menu_book" : "travel_explore",
+   821→      accent: A.purple,
+   822→      metrics: b.sources?.length
+   823→        ? [{ icon: "fact_check", label: "Fuentes verificadas", value: String(b.sources.length), color: A.purple.color }]
+   824→        : undefined,
+   825→    },
+   826→    detail: {
+   827→      title: b.title || (isReport ? "Informe" : "Búsqueda"),
+   828→      subtitle: b.followUpQuestion,
+   829→      sections: [
+   830→        { kind: "text", icon: "summarize", accent: A.purple, title: "Síntesis", subtitle: "LO ESENCIAL", body: b.summary },
+   831→        ...(b.sources?.length ? [sourcesSection(b.sources)] : []),
+   832→      ],
+   833→    },
+   834→    cta: { label: isReport ? "Ver informe completo" : "Ver resultados" },
+   835→  };
+   836→}
+   837→
+   838→function money(b: Of<"money_summary">): KoruPresentation {
+   839→  // Formato: "$2.000" o "ARS 2.000" con separador de miles.
+   840→  // Antes: "ARS2000" (sin espacio, sin separador) — ilegible.
+   841→  const fmtAmount = (amt: number, cur?: string) => {
+   842→    const formatted = new Intl.NumberFormat("es-AR").format(amt);
+   843→    return cur ? `${cur} ${formatted}` : `$${formatted}`;
+   844→  };
+   845→  const total = b.total != null ? fmtAmount(b.total, b.currency) : undefined;
+   846→  // Hero desc: si recommendation parece un string corto (categoria), lo usamos como
+   847→  // categoria visual. Si es más largo, lo usamos como descripción.
+   848→  // En cualquier caso, NO usamos el monto como desc (ya está en artValue).
+   849→  const recommendation = clean(b.recommendation);
+   850→  const summaryCount = b.summaryItems?.length ?? 0;
+   851→  const desc = summaryCount > 0
+   852→    ? `${summaryCount} movimiento${summaryCount > 1 ? "s" : ""} registrado${summaryCount > 1 ? "s" : ""}`
+   853→    : recommendation && recommendation.length > 30 ? recommendation : undefined;
+   854→  const metrics: HeroMetric[] = [];
+   855→  if (summaryCount > 0) {
+   856→    metrics.push({ icon: "receipt_long", label: "Movimientos", value: String(summaryCount), color: A.emerald.color });
+   857→  }
+   858→  // Mostrar categoría si la recommendation es corta (probablemente categoría)
+   859→  if (recommendation && recommendation.length <= 30) {
+   860→    metrics.push({ icon: "category", label: "Categoría", value: recommendation, color: A.amber.color });
+   861→  }
+   862→  return {
+   863→    hero: {
+   864→      kicker: "Tus Finanzas",
+   865→      title: heroTitleFrom(b.title, "Resumen"),
+   866→      desc,
+   867→      icon: "payments",
+   868→      accent: A.emerald,
+   869→      artValue: total,
+   870→      metrics: metrics.length > 0 ? metrics.slice(0, 3) : undefined,
+   871→    },
+   872→    detail: b.summaryItems?.length
+   873→      ? {
+   874→          title: b.title || "Resumen financiero",
+   875→          subtitle: b.recommendation,
+   876→          sections: [
+   877→            {
+   878→              kind: "tiles",
+   879→              icon: "payments",
+   880→              accent: A.emerald,
+   881→              title: "Detalle",
+   882→              tiles: b.summaryItems.map((s) => ({ label: s.label, value: s.value, color: A.emerald.color })),
+   883→            },
+   884→          ],
+   885→        }
+   886→      : undefined,
+   887→    cta: b.summaryItems?.length ? { label: "Ver detalle" } : undefined,
+   888→  };
+   889→}
+   890→
+   891→function savedRecord(b: Of<"saved_record">): KoruPresentation {
+   892→  const records = b.records ?? [];
+   893→  const first = records[0];
+   894→  // La colección donde quedó lo guardado: es el corazón de la promesa
+   895→  // "Listo, guardado en Sitios de IA" → CTA "Ver colección" abre Mis Colecciones.
+   896→  // Solo usar collection si first.collection existe; NO usar b.title como fallback
+   897→  // porque b.title suele ser "Guardado" (genérico) y produce "Guardado en Guardado".
+   898→  const collection = clean(first?.collection);
+   899→  const isLink = Boolean(first?.url);
+   900→  // desc: construir de forma robusta sin duplicados (case-insensitive + accent-insensitive).
+   901→  // Para "Café" + "cafe" + "2000 ARS": solo mostrar "Café · 2000 ARS".
+   902→  let desc: string | undefined;
+   903→  if (records.length > 1) {
+   904→    desc = `${records.length} registros guardados`;
+   905→  } else if (first) {
+   906→    const parts: string[] = [];
+   907→    const seen = new Set<string>();
+   908→    const title = clean(first.title);
+   909→    const notes = clean(first.notes);
+   910→    const value = clean(first.value);
+   911→    // Normaliza: lowercase + sin acentos para comparar
+   912→    const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+   913→    const tryAdd = (s: string | undefined) => {
+   914→      if (!s) return;
+   915→      const key = norm(s);
+   916→      if (seen.has(key)) return;
+   917→      if (key === norm(collection ?? "")) return;
+   918→      seen.add(key);
+   919→      parts.push(s);
+   920→    };
+   921→    tryAdd(title);
+   922→    tryAdd(notes);
+   923→    tryAdd(value);
+   924→    desc = parts.length > 0 ? parts.join(" · ") : undefined;
+   925→  }
+   926→  // Kicker: solo "Guardado en <colección>" si hay collection real; si no, "Guardado"
+   927→  const kicker = collection ? `Guardado en ${collection}` : "Guardado";
+   928→  // Title: si hay collection, mostrarlo. Si no, mostrar el title del primer record.
+   929→  const heroTitle = collection || clean(first?.title) || "Registro";
+   930→  return {
+   931→    hero: {
+   932→      kicker,
+   933→      title: heroTitleFrom(heroTitle, "Registro"),
+   934→      desc,
+   935→      icon: isLink ? "link" : "bookmark",
+   936→      accent: A.violet,
+   937→    },
+   938→    cta: {
+   939→      label: collection ? "Ver colección" : "Ver mis guardados",
+   940→      screen: "collections",
+   941→      collection: collection || undefined,
+   942→    },
+   943→  };
+   944→}
+   945→
+   946→function activityGroup(b: Of<"activity_group">): KoruPresentation {
+   947→  const toneAccent: Record<string, Accent> = {
+   948→    green: A.emerald,
+   949→    blue: A.blue,
+   950→    amber: A.amber,
+   951→    purple: A.purple,
+   952→    red: A.red,
+   953→    neutral: A.primary,
+   954→  };
+   955→  const sections: DetailSection[] = (b.sections ?? []).map((s) => {
+   956→    const accent = toneAccent[s.tone ?? "neutral"] ?? A.primary;
+   957→    if (s.tiles?.length) {
+   958→      return {
+   959→        kind: "tiles",
+   960→        icon: "widgets",
+   961→        accent,
+   962→        title: s.title,
+   963→        tiles: s.tiles.map((t) => ({ label: t.label, value: t.value, color: accent.color })),
+   964→      };
+   965→    }
+   966→    return {
+   967→      kind: "rows",
+   968→      icon: "list",
+   969→      accent,
+   970→      title: s.title,
+   971→      rows: (s.rows ?? []).map((r) => ({
+   972→        title: r.title,
+   973→        detail: r.detail,
+   974→        meta: r.meta,
+   975→        badge: r.urgent ? "Urgente" : undefined,
+   976→        badgeTone: r.urgent ? "urgent" : undefined,
+   977→      })),
+   978→    };
+   979→  });
+   980→  return {
+   981→    hero: {
+   982→      kicker: b.subtitle ?? "Tu Resumen",
+   983→      title: heroTitleFrom(b.title, "Actividad"),
+   984→      desc: b.note,
+   985→      icon: "dashboard",
+   986→      accent: A.primary,
+   987→      metrics: b.energy ? [{ icon: "bolt", label: b.energy.label ?? "Energía", value: `${b.energy.value}%`, color: A.emerald.color }] : undefined,
+   988→    },
+   989→    detail: sections.length ? { title: b.title, subtitle: b.subtitle, sections } : undefined,
+   990→    cta: sections.length ? { label: "Ver resumen" } : undefined,
+   991→  };
+   992→}
+   993→
+   994→function proactiveSignal(b: Of<"proactive_signal">): KoruPresentation {
+   995→  const urgent = b.severity === "urgent" || b.severity === "important";
+   996→  const accent = urgent ? A.amber : A.purple;
+   997→  return {
+   998→    hero: {
+   999→      kicker: b.timestampLabel ?? "Señal",
+  1000→      title: heroTitleFrom(b.title, "Aviso"),
+  1001→      desc: b.body,
+  1002→      icon: urgent ? "priority_high" : "lightbulb",
+  1003→      accent,
+  1004→      metrics: b.summaryItems?.slice(0, 3).map((s) => ({ icon: "insights", label: s.label, value: s.value, color: accent.color })),
+  1005→    },
+  1006→    detail:
+  1007→      b.sources?.length || b.summaryItems?.length
+  1008→        ? {
+  1009→            title: b.title,
+  1010→            subtitle: b.followUpQuestion,
+  1011→            sections: [
+  1012→              { kind: "text", icon: "lightbulb", accent, title: "Detalle", body: b.body },
+  1013→              ...(b.sources?.length ? [sourcesSection(b.sources)] : []),
+  1014→            ],
+  1015→          }
+  1016→        : undefined,
+  1017→    cta: b.sources?.length || b.summaryItems?.length ? { label: b.actionLabel ?? "Ver más" } : undefined,
+  1018→    // 🔴 v3: compact cuando no hay métricas (señal simple); default si las hay.
+  1019→    layout: b.summaryItems?.length ? "default" : "compact",
+  1020→  };
+  1021→}
+  1022→
+  1023→function resourceBundle(b: Of<"resource_bundle">): KoruPresentation {
+  1024→  const files = b.files ?? [];
+  1025→  return {
+  1026→    hero: {
+  1027→      kicker: "Tus Archivos",
+  1028→      title: heroTitleFrom(b.title, "Recursos"),
+  1029→      desc: b.summary ?? `${files.length} archivos listos`,
+  1030→      icon: "folder",
+  1031→      accent: A.indigo,
+  1032→      metrics: [{ icon: "attach_file", label: "Archivos", value: String(files.length), color: A.indigo.color }],
+  1033→    },
+  1034→    detail: files.length
+  1035→      ? {
+  1036→          title: b.title || "Archivos",
+  1037→          sections: [
+  1038→            {
+  1039→              kind: "rows",
+  1040→              icon: "folder",
+  1041→              accent: A.indigo,
+  1042→              title: "Descargas",
+  1043→              rows: files.map((f) => ({ icon: "description", title: f.name, detail: `${f.kind} · ${f.sizeLabel}` })),
+  1044→            },
+  1045→          ],
+  1046→        }
+  1047→      : undefined,
+  1048→    cta: files.length ? { label: "Ver archivos" } : undefined,
+  1049→  };
+  1050→}
+  1051→
+  1052→function webNav(b: Of<"web_nav">): KoruPresentation {
+  1053→  const isReport = b.status === "report";
+  1054→  const results = b.results ?? [];
+  1055→  const sections: DetailSection[] = [];
+  1056→  if (b.summary) sections.push({ kind: "text", icon: "summarize", accent: A.purple, title: "Síntesis", subtitle: "LO ESENCIAL", body: b.summary });
+  1057→  if (b.findings?.length)
+  1058→    sections.push({
+  1059→      kind: "rows",
+  1060→      icon: "check_circle",
+  1061→      accent: A.purple,
+  1062→      title: "Hallazgos clave",
+  1063→      rows: b.findings.map((f) => ({ icon: "check_circle", title: f })),
+  1064→    });
+  1065→  // 🔴 v2: results con snippet + readTime + type icon (antes solo título + url)
+  1066→  if (results.length)
+  1067→    sections.push({
+  1068→      kind: "rows",
+  1069→      icon: "menu_book",
+  1070→      accent: A.purple,
+  1071→      title: "Fuentes",
+  1072→      subtitle: `${results.length} RESULTADOS`,
+  1073→      rows: results.map((r) => {
+  1074→        // 🔴 v2: icono según type (article/pdf/page/description)
+  1075→        const typeIcon = r.type === "pdf" ? "picture_as_pdf"
+  1076→          : r.type === "article" ? "article"
+  1077→          : r.type === "page" ? "language"
+  1078→          : "description";
+  1079→        // 🔴 v2: detail con snippet (lo más valioso) + readTime + source
+  1080→        const detailParts = [
+  1081→          r.snippet ? r.snippet.slice(0, 120) + (r.snippet.length > 120 ? "…" : "") : null,
+  1082→          [r.readTime, r.source].filter(Boolean).join(" · ") || null,
+  1083→        ].filter(Boolean);
+  1084→        return {
+  1085→          icon: typeIcon,
+  1086→          title: r.title,
+  1087→          detail: detailParts.join("\n") || undefined,
+  1088→          badge: r.readTime ?? undefined,
+  1089→          badgeTone: r.readTime ? "current" : undefined,
+  1090→        };
+  1091→      }),
+  1092→    });
+  1093→  return {
+  1094→    hero: {
+  1095→      kicker: isReport ? "Tu Informe" : "Tu Búsqueda",
+  1096→      title: heroTitleFrom(b.title ?? b.query, isReport ? "Investigación" : "Resultados"),
+  1097→      desc: b.summary ?? (b.query ? `Resultados sobre ${b.query}` : undefined),
+  1098→      icon: isReport ? "menu_book" : "travel_explore",
+  1099→      accent: A.purple,
+  1100→      metrics: results.length ? [{ icon: "fact_check", label: "Fuentes", value: String(results.length), color: A.purple.color }] : undefined,
+  1101→    },
+  1102→    detail: sections.length ? { title: b.title || (isReport ? "Informe" : "Búsqueda"), sections } : undefined,
+  1103→    cta: sections.length ? { label: isReport ? "Ver informe completo" : "Ver resultados" } : undefined,
+  1104→  };
+  1105→}
+  1106→
+  1107→function dataCard(b: Of<"data_card">): KoruPresentation {
+  1108→  const items = b.items ?? [];
+  1109→  const first = items[0];
+  1110→  // Hero desc: resumen del dato principal, pero NO repetirlo en metrics.
+  1111→  // Antes: desc = "España: 2-1 a Bélgica" y metrics[0] = "2-1 a Bélgica" (duplicado).
+  1112→  // Ahora: desc = `${items.length} datos verificados` y metrics muestra label + value.
+  1113→  const desc = items.length > 1
+  1114→    ? `${items.length} datos verificados de fuentes reales`
+  1115→    : first ? `${first.label}: ${first.value}` : undefined;
+  1116→  return {
+  1117→    hero: {
+  1118→      kicker: "Tus Datos",
+  1119→      title: heroTitleFrom(b.title, "Datos"),
+  1120→      desc,
+  1121→      icon: "verified",
+  1122→      accent: A.emerald,
+  1123→      metrics: items.slice(0, 3).map((it) => ({ icon: "database", label: it.label, value: it.value, color: A.emerald.color })),
+  1124→    },
+  1125→    detail: items.length
+  1126→      ? {
+  1127→          title: b.title || "Datos verificados",
+  1128→          subtitle: "CADA DATO CON SU CITA LITERAL",
+  1129→          sections: [
+  1130→            {
+  1131→              kind: "rows",
+  1132→              icon: "verified",
+  1133→              accent: A.emerald,
+  1134→              title: "Datos verificados",
+  1135→              rows: items.map((it) => ({
+  1136→                icon: "fact_check",
+  1137→                title: it.label,
+  1138→                detail: it.value,
+  1139→                meta: it.sourceDomain,
+  1140→                // 🔴 FIX: indicar si tiene cita literal de respaldo
+  1141→                badge: it.quote ? "Con cita" : undefined,
+  1142→                badgeTone: it.quote ? "done" : undefined,
+  1143→              })),
+  1144→            },
+  1145→            // 🔴 FIX: sección dedicada a las citas literales (la "prueba" de validación)
+  1146→            ...(items.some(it => it.quote) ? [{
+  1147→              kind: "rows" as const,
+  1148→              icon: "format_quote" as const,
+  1149→              accent: A.purple,
+  1150→              title: "Citas literales",
+  1151→              subtitle: "EVIDENCIA DE FUENTES",
+  1152→              rows: items.filter(it => it.quote).map((it) => ({
+  1153→                icon: "format_quote",
+  1154→                title: it.quote!,
+  1155→                detail: `${it.label} · ${it.sourceDomain ?? "fuente"}`,
+  1156→              })),
+  1157→            }] : []),
+  1158→          ],
+  1159→        }
+  1160→      : undefined,
+  1161→    cta: items.length > 3 ? { label: "Ver todos" } : undefined,
+  1162→  };
+  1163→}
+  1164→
+  1165→function restaurant(b: Of<"restaurant_synthesis">): KoruPresentation {
+  1166→  const matches = b.matches ?? [];
+  1167→  const sections: DetailSection[] = [];
+  1168→  // 🔴 v2: usar labels del type si existen (localización), fallback a español
+  1169→  const L = b.labels ?? {};
+  1170→  const topPickLabel = L.topPickLabel ?? "Top";
+  1171→  const prosLabel = L.prosLabel ?? "Pros";
+  1172→  const consLabel = L.consLabel ?? "Contras";
+  1173→  const synthesisLabel = L.synthesisLabel ?? "Síntesis";
+  1174→
+  1175→  // 🔴 v2: incluir imageUrl en las cards de scroller (antes se descartaba)
+  1176→  // 🔴 v3: si el match trae photos (Google Places), usamos la primera como
+  1177→  //        imagen del badge de la scroller card; enriquecemos metrics con
+  1178→  //        rating + ratingCount + priceLevel cuando estén disponibles.
+  1179→  if (matches.length)
+  1180→    sections.push({
+  1181→      kind: "scroller",
+  1182→      icon: "restaurant_menu",
+  1183→      accent: A.amber,
+  1184→      title: L.top3Label ?? "Top coincidencias",
+  1185→      cards: matches.map((m, i) => {
+  1186→        const priceLabel = m.priceLevel ? "$".repeat(Math.max(1, Math.min(4, m.priceLevel))) : "";
+  1187→        const ratingMetric = m.rating ? `★ ${m.rating.toFixed(1)}${m.ratingCount ? ` (${m.ratingCount})` : ""}` : "";
+  1188→        const sourcesMetric = m.sourcesMentioning
+  1189→          ? `${m.sourcesMentioning} ${m.sourcesMentioning === 1 ? "fuente" : "fuentes"}`
+  1190→          : "";
+  1191→        const distanceMetric = m.distanceFromUser ? `📍 ${m.distanceFromUser}` : "";
+  1192→        return {
+  1193→          // 🔴 v3: primera foto de Google Places como badge image de la card.
+  1194→          image: m.photos?.[0] ?? m.imageUrl,
+  1195→          badge: i === 0 ? (b.topScore ?? topPickLabel) : undefined,
+  1196→          badgeColor: i === 0 ? A.emerald.color : undefined,
+  1197→          title: m.name,
+  1198→          // 🔴 v3: si hay address, la agregamos al detail junto con el quote.
+  1199→          detail: [m.address, m.quote].filter(Boolean).join(" · ") || undefined,
+  1200→          // 🔴 v3: métricas ricas — rating (con count) + price level + fuentes + distancia.
+  1201→          metrics: [ratingMetric, priceLabel, sourcesMetric, distanceMetric].filter(Boolean),
+  1202→        };
+  1203→      }),
+  1204→    });
+  1205→
+  1206→  // 🔴 v2: mood como sección destacada si existe (antes se descartaba)
+  1207→  if (b.mood) {
+  1208→    sections.unshift({
+  1209→      kind: "text",
+  1210→      icon: "mood",
+  1211→      accent: A.pink,
+  1212→      title: "Tu búsqueda",
+  1213→      subtitle: "CONTEXTO",
+  1214→      body: b.mood,
+  1215→    });
+  1216→  }
+  1217→
+  1218→  // 🔴 v2: status como badge en el hero (antes se descartaba)
+  1219→  if (b.pros?.length || b.cons?.length)
+  1220→    sections.push({
+  1221→      kind: "rows",
+  1222→      icon: "thumbs_up_down",
+  1223→      accent: A.amber,
+  1224→      title: `${prosLabel} y ${consLabel.toLowerCase()}`,
+  1225→      rows: [
+  1226→        ...(b.pros ?? []).map((p) => ({ icon: "add_circle", title: p, badge: "Pro", badgeTone: "done" as const })),
+  1227→        ...(b.cons ?? []).map((c) => ({ icon: "remove_circle", title: c, badge: "Contra", badgeTone: "urgent" as const })),
+  1228→      ],
+  1229→    });
+  1230→  if (b.synthesis) sections.push({ kind: "text", icon: "auto_awesome", accent: A.amber, title: synthesisLabel, body: b.synthesis });
+  1231→
+  1232→  // 🔴 v4: "Highlights del menú" tiles — hasta 5 platos con precio, extraídos
+  1233→  // del website del top match por scraping. Solo se muestra si el match #1
+  1234→  // trae menuHighlights (vienen de fetchRestaurantDetails → extractMenuHighlights).
+  1235→  const topMatchHighlights = matches[0]?.menuHighlights ?? [];
+  1236→  if (topMatchHighlights.length > 0) {
+  1237→    sections.push({
+  1238→      kind: "tiles",
+  1239→      icon: "restaurant_menu",
+  1240→      accent: A.emerald,
+  1241→      title: "Highlights del menú",
+  1242→      subtitle: `${topMatchHighlights.length} PLATOS`,
+  1243→      tiles: topMatchHighlights.map((h) => ({
+  1244→        icon: "lunch_dining",
+  1245→        label: h.dish,
+  1246→        value: h.price ?? "—",
+  1247→        color: A.emerald.color,
+  1248→      })),
+  1249→    });
+  1250→  }
+  1251→
+  1252→  if (b.sources?.length) sections.push(sourcesSection(b.sources));
+  1253→
+  1254→  // 🔴 v2: desc del hero más rico (mood + status)
+  1255→  const heroDesc = b.synthesis ?? b.note ?? (b.mood ? `Para: ${b.mood}` : undefined);
+  1256→  // 🔴 v2: kicker con status si es partial/failed
+  1257→  const statusLabel = b.status === "partial" ? " · Resultados parciales" : b.status === "failed" ? " · Sin datos" : "";
+  1258→
+  1259→  // 🔴 v3: "Reservar" action button si el top match tiene reserveUrl
+  1260→  //        (Google Maps URL del place). El handler en KoruProvider recibe
+  1261→  //        `blockData` con todo el UiBlock, incluyendo matches[].reserveUrl.
+  1262→  const topMatch = matches[0];
+  1263→  const reserveAction =
+  1264→    topMatch?.reserveUrl
+  1265→      ? [{ label: L.reserveAction ?? "Reservar", icon: "event_available", kind: "primary" as const, action: "reserve" }]
+  1266→      : undefined;
+  1267→
+  1268→  return {
+  1269→    hero: {
+  1270→      kicker: `Tu Recomendación${statusLabel}`,
+  1271→      title: heroTitleFrom(b.title ?? b.query, "Restaurantes"),
+  1272→      desc: heroDesc,
+  1273→      icon: "restaurant",
+  1274→      accent: A.amber,
+  1275→      metrics: matches.length ? [{ icon: "storefront", label: "Opciones", value: String(matches.length), color: A.amber.color }] : undefined,
+  1276→    },
+  1277→    detail: sections.length ? { title: b.title || "Restaurantes", sections } : undefined,
+  1278→    cta: sections.length ? { label: "Ver recomendación" } : undefined,
+  1279→    // 🔴 v3: acción inline de reserva si hay reserveUrl en el top match.
+  1280→    actions: reserveAction,
+  1281→    // 🔴 v3: spotlight si el top match tiene foto (Google Places o imageUrl);
+  1282→    //       gallery si hay múltiples coincidencias pero ninguna foto hero.
+  1283→    layout:
+  1284→      topMatch?.photos?.[0] || topMatch?.imageUrl
+  1285→        ? "spotlight"
+  1286→        : matches.length > 1
+  1287→          ? "gallery"
+  1288→          : "default",
+  1289→  };
+  1290→}
+  1291→
+  1292→function morningBrief(b: Of<"morning_brief">): KoruPresentation {
+  1293→  const items = b.items ?? [];
+  1294→  return {
+  1295→    hero: {
+  1296→      kicker: "Buenos días",
+  1297→      title: heroTitleFrom(b.greeting, "Tu Resumen"),
+  1298→      desc: items[0] ? `${items[0].label}: ${items[0].value}` : undefined,
+  1299→      icon: "wb_sunny",
+  1300→      accent: A.amber,
+  1301→      metrics: items.slice(0, 3).map((it) => ({ icon: it.icon, label: it.label, value: it.value, color: it.iconColor })),
+  1302→    },
+  1303→    detail: items.length
+  1304→      ? {
+  1305→          title: "Resumen matutino",
+  1306→          sections: [
+  1307→            {
+  1308→              kind: "tiles",
+  1309→              icon: "wb_sunny",
+  1310→              accent: A.amber,
+  1311→              title: "Tu día",
+  1312→              tiles: items.map((it) => ({ icon: it.icon, label: it.label, value: it.value, color: it.iconColor })),
+  1313→            },
+  1314→          ],
+  1315→        }
+  1316→      : undefined,
+  1317→    cta: items.length > 3 ? { label: "Ver todo" } : undefined,
+  1318→    // 🔴 v3: banner cuando el greeting es el hero (gran saludo matutino).
+  1319→    layout: b.greeting ? "banner" : "default",
+  1320→  };
+  1321→}
+  1322→
+  1323→function wellbeing(b: Of<"wellbeing">): KoruPresentation {
+  1324→  const tiles: DetailTile[] = [];
+  1325→  if (b.sleep) tiles.push({ icon: b.sleep.icon, label: b.sleep.label, value: b.sleep.value, color: A.indigo.color });
+  1326→  if (b.suggestion) tiles.push({ icon: b.suggestion.icon, label: b.suggestion.label, value: b.suggestion.value, color: A.purple.color });
+  1327→  (b.sections ?? []).forEach((s) => tiles.push({ icon: s.icon, label: s.label, value: s.value, color: s.iconColor }));
+  1328→
+  1329→  // 🔴 P2 — Inferencia de estrés. Si el bloque lleva logs/entries (y
+  1330→  // opcionalmente habits/habitLogs), invocamos inferStressLevel para
+  1331→  // obtener { level, score, factors }. Lo mostramos como métrica en el
+  1332→  // hero y como tiles de análisis en el detalle.
+  1333→  const stress =
+  1334→    b.logs && b.entries
+  1335→      ? inferStressLevel(b.logs, b.entries, b.habits, b.habitLogs)
+  1336→      : null;
+  1337→  const stressAccent =
+  1338→    stress?.level === "alto" ? A.red
+  1339→    : stress?.level === "medio" ? A.amber
+  1340→    : A.emerald;
+  1341→  const stressIcon =
+  1342→    stress?.level === "alto" ? "priority_high"
+  1343→    : stress?.level === "medio" ? "warning"
+  1344→    : "spa";
+  1345→
+  1346→  // Hero metrics: tiles existentes + métrica de estrés (si hay).
+  1347→  const heroMetrics: HeroMetric[] = tiles.slice(0, 3).map((t) => ({
+  1348→    icon: t.icon ?? "favorite",
+  1349→    label: t.label,
+  1350→    value: t.value,
+  1351→    color: t.color,
+  1352→  }));
+  1353→  if (stress) {
+  1354→    heroMetrics.unshift({
+  1355→      icon: stressIcon,
+  1356→      label: "Estrés",
+  1357→      value: `${stress.level} · ${stress.score}`,
+  1358→      color: stressAccent.color,
+  1359→    });
+  1360→  }
+  1361→
+  1362→  // Detail sections: tiles existentes + sección de análisis de estrés.
+  1363→  const detailSections: DetailSection[] = [];
+  1364→  if (tiles.length > 0) {
+  1365→    detailSections.push({
+  1366→      kind: "tiles",
+  1367→      icon: "favorite",
+  1368→      accent: A.purple,
+  1369→      title: "Detalle",
+  1370→      tiles,
+  1371→    });
+  1372→  }
+  1373→  if (stress) {
+  1374→    detailSections.push({
+  1375→      kind: "tiles",
+  1376→      icon: stressIcon,
+  1377→      accent: stressAccent,
+  1378→      title: "Análisis de estrés",
+  1379→      subtitle: `SCORE ${stress.score}/100 · NIVEL ${stress.level.toUpperCase()}`,
+  1380→      tiles: [
+  1381→        { icon: "speed", label: "Nivel", value: stress.level, color: stressAccent.color },
+  1382→        { icon: "monitoring", label: "Score", value: String(stress.score), color: stressAccent.color },
+  1383→        ...stress.factors.map((f, i) => ({
+  1384→          icon: "info",
+  1385→          label: `Factor ${i + 1}`,
+  1386→          value: f,
+  1387→          color: A.indigo.color,
+  1388→        })),
+  1389→      ],
+  1390→    });
+  1391→  }
+  1392→
+  1393→  return {
+  1394→    hero: {
+  1395→      kicker: "Tu Bienestar",
+  1396→      title: heroTitleFrom(b.title, "Bienestar"),
+  1397→      desc: b.suggestion?.label,
+  1398→      icon: "favorite",
+  1399→      accent: A.purple,
+  1400→      metrics: heroMetrics.length > 0 ? heroMetrics : undefined,
+  1401→    },
+  1402→    detail: detailSections.length > 0
+  1403→      ? { title: b.title || "Bienestar", sections: detailSections }
+  1404→      : undefined,
+  1405→    cta: detailSections.length > 0 ? { label: "Ver detalle" } : undefined,
+  1406→  };
+  1407→}
+  1408→
+  1409→function liveMatch(b: Of<"live_match">): KoruPresentation {
+  1410→  const homeName = clean(b.homeName) ?? clean(b.homeTeam?.name) ?? "Local";
+  1411→  const awayName = clean(b.awayName) ?? clean(b.awayTeam?.name) ?? "Visitante";
+  1412→  const homeScore = b.homeScore ?? b.homeTeam?.score ?? 0;
+  1413→  const awayScore = b.awayScore ?? b.awayTeam?.score ?? 0;
+  1414→  const score = `${homeScore} - ${awayScore}`;
+  1415→  const title = `${homeName} vs ${awayName}`;
+  1416→  const league = clean(b.league);
+  1417→  const status = clean(b.status);
+  1418→  const live = /in progress|live|halftime|en vivo/i.test(status);
+  1419→  const kickerParts: string[] = [];
+  1420→  if (live) kickerParts.push("En vivo");
+  1421→  if (league) kickerParts.push(league);
+  1422→  if (!live && status && status.toLowerCase() !== "scheduled") kickerParts.push(status);
+  1423→  const kicker = kickerParts.length > 0 ? kickerParts.join(" · ") : "Partido";
+  1424→  const desc = live ? (b.minute ? `Minuto ${b.minute}` : "En juego")
+  1425→    : status && /scheduled|programado/i.test(status) ? "Próximamente"
+  1426→    : status ?? "Final";
+  1427→
+  1428→  // 🔴 Metrics: usar detailedStats si hay (más rico), si no caer a stats básico.
+  1429→  // Mostrar hasta 3 stats clave: Posesión, Tiros, Tiros al arco.
+  1430→  const metrics: HeroMetric[] = [];
+  1431→  if (b.detailedStats && b.detailedStats.length > 0) {
+  1432→    const showStats = b.detailedStats.filter(s =>
+  1433→      ["Posesión", "Tiros", "Tiros al arco", "Córners", "Faltas"].includes(s.label)
+  1434→    ).slice(0, 3);
+  1435→    for (const s of showStats) {
+  1436→      const value = s.isPercent
+  1437→        ? `${s.home.toFixed(0)}% - ${s.away.toFixed(0)}%`
+  1438→        : `${s.home} - ${s.away}`;
+  1439→      const icon = s.label === "Posesión" ? "sports_soccer"
+  1440→        : s.label === "Tiros" || s.label === "Tiros al arco" ? "crisis_alert"
+  1441→        : s.label === "Córners" ? "sports_score"
+  1442→        : s.label === "Faltas" ? "report"
+  1443→        : "monitoring";
+  1444→      metrics.push({ icon, label: s.label, value, color: A.emerald.color });
+  1445→    }
+  1446→  } else if (b.stats && b.stats.length > 0) {
+  1447→    for (const s of b.stats.slice(0, 2)) {
+  1448→      const left = s.leftPercent ?? 0;
+  1449→      const right = s.rightPercent ?? 0;
+  1450→      const total = left + right;
+  1451→      const value = total > 0 ? `${left}% - ${right}%` : "—";
+  1452→      metrics.push({ icon: s.label === "Posesión" ? "sports_soccer" : "crisis_alert", label: s.label, value, color: A.emerald.color });
+  1453→    }
+  1454→  }
+  1455→
+  1456→  // 🔴 v2: detail screen con secciones ricas — hero, goles, tarjetas, stats con barras, alineaciones
+  1457→  const hasRichData = !!(b.goals?.length || b.yellowCards?.length || b.detailedStats?.length || b.lineups);
+  1458→  const detail = hasRichData ? {
+  1459→    title,
+  1460→    subtitle: [league, b.venue ? `${b.venue}` : null, b.venueCity ? b.venueCity : null].filter(Boolean).join(" · ") || kicker,
+  1461→    sections: buildMatchDetailSections(b, homeName, awayName),
+  1462→  } : b.stats?.length ? {
+  1463→    title,
+  1464→    subtitle: league ?? kicker,
+  1465→    sections: [{
+  1466→      kind: "rows" as const,
+  1467→      icon: "monitoring",
+  1468→      accent: A.emerald,
+  1469→      title: "Estadísticas",
+  1470→      rows: b.stats.map((s) => ({ title: s.label, detail: `${s.leftPercent}% — ${s.rightPercent}%` })),
+  1471→    }],
+  1472→  } : undefined;
+  1473→
+  1474→  return {
+  1475→    hero: {
+  1476→      kicker,
+  1477→      title: up(title),
+  1478→      desc,
+  1479→      icon: "sports_soccer",
+  1480→      accent: live ? A.red : A.emerald,
+  1481→      artValue: score,
+  1482→      metrics: metrics.length > 0 ? metrics : undefined,
+  1483→    },
+  1484→    detail,
+  1485→    cta: hasRichData || b.stats?.length ? { label: hasRichData ? "Ver partido completo" : "Ver estadísticas" } : undefined,
+  1486→  };
+  1487→}
+  1488→
+  1489→// 🔴 v2: construye secciones ricas para el detail screen del partido.
+  1490→// Secciones: Goles · Tarjetas · Estadísticas (con barras) · Alineaciones · Cambios
+  1491→function buildMatchDetailSections(
+  1492→  b: Of<"live_match">,
+  1493→  homeName: string,
+  1494→  awayName: string,
+  1495→): NonNullable<KoruPresentation["detail"]>["sections"] {
+  1496→  const sections: NonNullable<KoruPresentation["detail"]>["sections"] = [];
+  1497→  const homeColor = b.homeColor ?? A.emerald.color;
+  1498→  const awayColor = b.awayColor ?? A.purple.color;
+  1499→
+  1500→  // 🔴 v2: MERGE events en UN solo timeline (goles + tarjetas + cambios)
+  1501→  // ordenados por minuto — mucho más compacto que 3 secciones separadas.
+  1502→  type MergedEvent = { minute: string; minuteNum: number; text: string; sub?: string; icon: string; badge?: string; badgeTone?: "done" | "current" | "pending" | "urgent" };
+  1503→  const events: MergedEvent[] = [];
+  1504→  for (const g of b.goals ?? []) {
+  1505→    const minuteNum = parseInt(g.minute?.replace(/[^\d]/g, "") || "0", 10);
+  1506→    events.push({
+  1507→      minute: g.minute ?? "?",
+  1508→      minuteNum,
+  1509→      text: `${g.scorer ?? "Gol"}`,
+  1510→      sub: g.team === homeName ? homeName : g.team === awayName ? awayName : (g.team ?? ""),
+  1511→      icon: "sports_soccer", // ⚽
+  1512→      badge: "Gol",
+  1513→      badgeTone: "done",
+  1514→    });
+  1515→  }
+  1516→  for (const y of b.yellowCards ?? []) {
+  1517→    const minuteNum = parseInt(y.minute?.replace(/[^\d]/g, "") || "0", 10);
+  1518→    events.push({
+  1519→      minute: y.minute ?? "?",
+  1520→      minuteNum,
+  1521→      text: `${y.player ?? "Amarilla"}`,
+  1522→      sub: y.team === homeName ? homeName : y.team === awayName ? awayName : (y.team ?? ""),
+  1523→      icon: "square",
+  1524→      badge: "🟨",
+  1525→      badgeTone: "current",
+  1526→    });
+  1527→  }
+  1528→  for (const r of b.redCards ?? []) {
+  1529→    const minuteNum = parseInt(r.minute?.replace(/[^\d]/g, "") || "0", 10);
+  1530→    events.push({
+  1531→      minute: r.minute ?? "?",
+  1532→      minuteNum,
+  1533→      text: `${r.player ?? "Roja"}`,
+  1534→      sub: r.team === homeName ? homeName : r.team === awayName ? awayName : (r.team ?? ""),
+  1535→      icon: "square",
+  1536→      badge: "🟥",
+  1537→      badgeTone: "urgent",
+  1538→    });
+  1539→  }
+  1540→  for (const s of b.substitutions ?? []) {
+  1541→    const minuteNum = parseInt(s.minute?.replace(/[^\d]/g, "") || "0", 10);
+  1542→    events.push({
+  1543→      minute: s.minute ?? "?",
+  1544→      minuteNum,
+  1545→      text: `${s.playerIn ?? "?"} ⇄ ${s.playerOut ?? "?"}`,
+  1546→      sub: s.team === homeName ? homeName : s.team === awayName ? awayName : (s.team ?? ""),
+  1547→      icon: "swap_horiz",
+  1548→      badge: "Cambio",
+  1549→      badgeTone: "pending",
+  1550→    });
+  1551→  }
+  1552→  events.sort((a, b) => a.minuteNum - b.minuteNum);
+  1553→
+  1554→  if (events.length > 0) {
+  1555→    sections.push({
+  1556→      kind: "timeline",
+  1557→      icon: "timeline",
+  1558→      accent: A.emerald,
+  1559→      title: "Resumen del partido",
+  1560→      subtitle: `${events.length} EVENTOS`,
+  1561→      steps: events.map(e => ({
+  1562→        icon: e.icon,
+  1563→        title: `${e.minute} · ${e.text}`,
+  1564→        detail: e.sub,
+  1565→        status: "done" as const,
+  1566→        badge: e.badge,
+  1567→        badgeTone: e.badgeTone,
+  1568→      })),
+  1569→    });
+  1570→  }
+  1571→
+  1572→  // 🔴 v2: Stats — solo las 4 más informativas (antes eran 12, ahora 4 + "ver más")
+  1573→  if (b.detailedStats && b.detailedStats.length > 0) {
+  1574→    const PRIORITY_STATS = ["Posesión", "Tiros", "Tiros al arco", "Córners"];
+  1575→    const top4 = b.detailedStats.filter(s => PRIORITY_STATS.includes(s.label));
+  1576→    const rest = b.detailedStats.filter(s => !PRIORITY_STATS.includes(s.label));
+  1577→    const statsToShow = top4.length > 0 ? top4 : b.detailedStats.slice(0, 4);
+  1578→
+  1579→    sections.push({
+  1580→      kind: "rows",
+  1581→      icon: "monitoring",
+  1582→      accent: A.emerald,
+  1583→      title: "Estadísticas clave",
+  1584→      subtitle: top4.length > 0 && rest.length > 0 ? "TOP 4 · VER DETALLE PARA MÁS" : undefined,
+  1585→      rows: statsToShow.map(s => ({
+  1586→        title: s.label,
+  1587→        detail: s.isPercent
+  1588→          ? `${s.home.toFixed(0)}% — ${s.away.toFixed(0)}%`
+  1589→          : `${s.home} — ${s.away}`,
+  1590→        bar: {
+  1591→          homeValue: s.home,
+  1592→          awayValue: s.away,
+  1593→          isPercent: s.isPercent,
+  1594→          homeColor,
+  1595→          awayColor,
+  1596→        },
+  1597→      })),
+  1598→    });
+  1599→
+  1600→    // Stats adicionales como sección colapsable visualmente diferenciada
+  1601→    if (rest.length > 0) {
+  1602→      sections.push({
+  1603→        kind: "rows",
+  1604→        icon: "expand_more",
+  1605→        accent: A.primary,
+  1606→        title: "Más estadísticas",
+  1607→        subtitle: `${rest.length} MÉTRICAS ADICIONALES`,
+  1608→        rows: rest.map(s => ({
+  1609→          title: s.label,
+  1610→          detail: s.isPercent
+  1611→            ? `${s.home.toFixed(0)}% — ${s.away.toFixed(0)}%`
+  1612→            : `${s.home} — ${s.away}`,
+  1613→          bar: {
+  1614→            homeValue: s.home,
+  1615→            awayValue: s.away,
+  1616→            isPercent: s.isPercent,
+  1617→            homeColor,
+  1618→            awayColor,
+  1619→          },
+  1620→        })),
+  1621→      });
+  1622→    }
+  1623→  }
+  1624→
+  1625→  // 🔴 v2: Alineaciones — visualización de CANCHA con dots posicionados por formation
+  1626→  if (b.lineups) {
+  1627→    const homeLineup = b.lineups[homeName];
+  1628→    const awayLineup = b.lineups[awayName];
+  1629→    if (homeLineup?.starters?.length || awayLineup?.starters?.length) {
+  1630→      // 🔴 Sección pitch con cancha visual + dots por formation
+  1631→      sections.push({
+  1632→        kind: "pitch",
+  1633→        icon: "stadium",
+  1634→        accent: A.emerald,
+  1635→        title: "Alineaciones",
+  1636→        subtitle: `${homeLineup?.formation ?? "—"} vs ${awayLineup?.formation ?? "—"}`,
+  1637→        pitch: {
+  1638→          homeFormation: homeLineup?.formation ?? "4-3-3",
+  1639→          awayFormation: awayLineup?.formation ?? "4-3-3",
+  1640→          homePlayers: homeLineup?.starters ?? [],
+  1641→          awayPlayers: awayLineup?.starters ?? [],
+  1642→          homeColor,
+  1643→          awayColor,
+  1644→          homeName,
+  1645→          awayName,
+  1646→        },
+  1647→      });
+  1648→    }
+  1649→  }
+  1650→
+  1651→  return sections;
+  1652→}
+  1653→
+  1654→function urgentNow(b: Of<"urgent_now">): KoruPresentation {
+  1655→  return {
+  1656→    hero: {
+  1657→      kicker: b.eyebrow ?? "Urgente · Ahora",
+  1658→      title: heroTitleFrom(b.headline, "Aviso"),
+  1659→      desc: b.description,
+  1660→      icon: b.icon || "priority_high",
+  1661→      accent: A.red,
+  1662→    },
+  1663→    // 🔴 v2: acciones inline para urgent (antes era surface muerta)
+  1664→    actions: [
+  1665→      { label: "Entendido", icon: "check", kind: "primary", action: "dismiss" },
+  1666→      { label: "Recordarme", icon: "snooze", kind: "secondary", action: "snooze" },
+  1667→    ],
+  1668→    layout: "compact",
+  1669→  };
+  1670→}
+  1671→
+  1672→function market(b: Of<"market">): KoruPresentation {
+  1673→  const assets = b.assets ?? [];
+  1674→  const first = assets[0];
+  1675→  return {
+  1676→    hero: {
+  1677→      kicker: "Mercados",
+  1678→      title: heroTitleFrom(b.title ?? first?.symbol, "Mercado"),
+  1679→      desc: first ? `${first.name} · ${first.change}` : undefined,
+  1680→      icon: "trending_up",
+  1681→      accent: A.emerald,
+  1682→      artValue: first?.price,
+  1683→      metrics: assets.slice(0, 3).map((a) => ({
+  1684→        icon: a.changeUp ? "trending_up" : "trending_down",
+  1685→        label: a.symbol,
+  1686→        value: a.change,
+  1687→        color: a.changeUp ? A.emerald.color : A.red.color,
+  1688→      })),
+  1689→    },
+  1690→    detail: assets.length
+  1691→      ? {
+  1692→          title: b.title || "Mercados",
+  1693→          sections: [
+  1694→            {
+  1695→              kind: "rows",
+  1696→              icon: "trending_up",
+  1697→              accent: A.emerald,
+  1698→              title: "Activos",
+  1699→              rows: assets.map((a) => ({ title: a.name, detail: a.price, meta: a.change, badgeTone: a.changeUp ? "done" : "urgent" })),
+  1700→            },
+  1701→          ],
+  1702→        }
+  1703→      : undefined,
+  1704→    cta: assets.length ? { label: "Ver mercados" } : undefined,
+  1705→  };
+  1706→}
+  1707→
+  1708→function delivery(b: Of<"delivery">): KoruPresentation {
+  1709→  const steps = b.steps ?? [];
+  1710→  return {
+  1711→    hero: {
+  1712→      kicker: "Tu Envío",
+  1713→      title: heroTitleFrom(b.title, "Paquete"),
+  1714→      desc: [b.status, b.estimatedDate].filter(Boolean).join(" · "),
+  1715→      icon: "local_shipping",
+  1716→      accent: A.indigo,
+  1717→    },
+  1718→    detail: steps.length
+  1719→      ? {
+  1720→          title: b.title || "Envío",
+  1721→          subtitle: [b.carrier, b.trackingId].filter(Boolean).join(" · "),
+  1722→          sections: [
+  1723→            {
+  1724→              kind: "timeline",
+  1725→              icon: "local_shipping",
+  1726→              accent: A.indigo,
+  1727→              title: "Seguimiento",
+  1728→              steps: steps.map((s) => ({ title: s.label, status: s.done ? "done" : "pending" })),
+  1729→            },
+  1730→          ],
+  1731→        }
+  1732→      : undefined,
+  1733→    cta: steps.length ? { label: "Ver seguimiento" } : undefined,
+  1734→  };
+  1735→}
+  1736→
+  1737→function healthReminder(b: Of<"health_reminder">): KoruPresentation {
+  1738→  return {
+  1739→    hero: {
+  1740→      kicker: "Salud · Recordatorio",
+  1741→      title: heroTitleFrom(b.title, "Recordatorio"),
+  1742→      desc: b.reminder,
+  1743→      icon: b.icon || "medication",
+  1744→      accent: A.rose,
+  1745→    },
+  1746→    // 🔴 v2: acciones inline para health reminder (antes era surface muerta)
+  1747→    actions: [
+  1748→      { label: "Tomé la dosis", icon: "check", kind: "primary", action: "complete" },
+  1749→      { label: "Posponer", icon: "snooze", kind: "secondary", action: "snooze" },
+  1750→    ],
+  1751→    layout: "compact",
+  1752→  };
+  1753→}
+  1754→
+  1755→function activityTracker(b: Of<"activity_tracker">): KoruPresentation {
+  1756→  const metrics = b.metrics ?? [];
+  1757→  return {
+  1758→    hero: {
+  1759→      kicker: "Tu Actividad",
+  1760→      title: heroTitleFrom(b.title, "Progreso"),
+  1761→      desc: b.subtitle,
+  1762→      icon: "monitoring",
+  1763→      accent: A.emerald,
+  1764→      metrics: metrics.slice(0, 3).map((m) => ({ icon: m.icon, label: m.label, value: `${m.value}${m.unit ?? ""}`, color: m.iconColor })),
+  1765→    },
+  1766→    detail: metrics.length
+  1767→      ? {
+  1768→          title: b.title || "Actividad",
+  1769→          subtitle: b.subtitle,
+  1770→          sections: [
+  1771→            {
+  1772→              kind: "tiles",
+  1773→              icon: "monitoring",
+  1774→              accent: A.emerald,
+  1775→              title: "Métricas",
+  1776→              tiles: metrics.map((m) => ({ icon: m.icon, label: m.label, value: `${m.value}${m.unit ?? ""}`, color: m.iconColor })),
+  1777→            },
+  1778→          ],
+  1779→        }
+  1780→      : undefined,
+  1781→    cta: metrics.length ? { label: "Ver métricas" } : undefined,
+  1782→  };
+  1783→}
+  1784→
+  1785→function productAnalysis(b: Of<"product_analysis">): KoruPresentation {
+  1786→  const specs = b.specs ?? [];
+  1787→  return {
+  1788→    hero: {
+  1789→      kicker: "Tu Análisis",
+  1790→      title: heroTitleFrom(b.product?.name, "Producto"),
+  1791→      desc: b.product?.description,
+  1792→      icon: b.product?.icon || "inventory_2",
+  1793→      accent: A.primary,
+  1794→      metrics: b.product?.rating
+  1795→        ? [{ icon: "star", label: "Rating", value: `${b.product.rating}`, color: A.amber.color }]
+  1796→        : undefined,
+  1797→    },
+  1798→    detail: specs.length
+  1799→      ? {
+  1800→          title: b.product?.name || "Producto",
+  1801→          subtitle: b.product?.reviewCount ? `${b.product.reviewCount} opiniones` : undefined,
+  1802→          sections: [
+  1803→            {
+  1804→              kind: "tiles",
+  1805→              icon: "inventory_2",
+  1806→              accent: A.primary,
+  1807→              title: "Especificaciones",
+  1808→              tiles: specs.map((s) => ({ label: s.label, value: s.value, color: A.primary.color })),
+  1809→            },
+  1810→          ],
+  1811→        }
+  1812→      : undefined,
+  1813→    cta: specs.length ? { label: b.actionLabel || "Ver opciones" } : undefined,
+  1814→    // 🔴 v3: gallery cuando hay múltiples especificaciones (specs como proxy de "products > 1").
+  1815→    layout: specs.length > 1 ? "gallery" : "default",
+  1816→  };
+  1817→}
+  1818→
+  1819→function travelPlanner(b: Of<"travel_planner">): KoruPresentation {
+  1820→  const steps = b.steps ?? [];
+  1821→  return {
+  1822→    hero: {
+  1823→      kicker: "Tu Viaje",
+  1824→      title: heroTitleFrom(b.destination, "Itinerario"),
+  1825→      desc: b.dates,
+  1826→      icon: "flight_takeoff",
+  1827→      accent: A.sky,
+  1828→      metrics: steps.length ? [{ icon: "route", label: "Paradas", value: String(steps.length), color: A.sky.color }] : undefined,
+  1829→    },
+  1830→    detail: steps.length
+  1831→      ? {
+  1832→          title: b.destination || "Itinerario",
+  1833→          subtitle: b.dates,
+  1834→          sections: [
+  1835→            {
+  1836→              kind: "timeline",
+  1837→              icon: "flight_takeoff",
+  1838→              accent: A.sky,
+  1839→              title: "Itinerario",
+  1840→              steps: steps.map((s) => ({ icon: s.icon, title: s.label, detail: [s.time, s.detail].filter(Boolean).join(" · ") })),
+  1841→            },
+  1842→          ],
+  1843→        }
+  1844→      : undefined,
+  1845→    cta: steps.length ? { label: b.actionLabel || "Ver itinerario" } : undefined,
+  1846→  };
+  1847→}
+  1848→
+  1849→/**
+  1850→ * travel_plan — Plan de viaje completo con itinerario día a día, reservas,
+  1851→ * checklist de equipaje y presupuesto. Hero con icono de vuelo y accent azul;
+  1852→ * el detalle arma 4 secciones: timeline (días), tiles (reservas), chips
+  1853→ * (packing checklist) y tiles (presupuesto).
+  1854→ *
+  1855→ * 🔴 P2 — Sugerencias de equipaje por clima. Si el plan tiene destination +
+  1856→ * dates, buscamos la temperatura promedio del mes para esa ciudad (tabla
+  1857→ * estática CLIMATE_BY_MONTH). Para ciudades desconocidas, caemos a una tabla
+  1858→ * genérica por hemisferio (asumido norte salvo ciudades del sur conocidas).
+  1859→ * Según el rango de temperatura sugerimos items, que se agregan como chips
+  1860→ * en una sección "Sugerencias de equipaje por clima".
+  1861→ */
+  1862→
+  1863→// ─── Climate table (static lookup, no API) ─────────────────────────────────
+  1864→type MonthClimate = { avg: number; min: number; max: number };
+  1865→const CLIMATE_BY_MONTH: Record<string, Record<number, MonthClimate>> = {
+  1866→  tokyo: {
+  1867→    1: { avg: 5, min: -1, max: 10 },
+  1868→    2: { avg: 6, min: 0, max: 11 },
+  1869→    3: { avg: 10, min: 5, max: 15 },
+  1870→    4: { avg: 15, min: 10, max: 20 },
+  1871→    5: { avg: 19, min: 14, max: 24 },
+  1872→    6: { avg: 23, min: 18, max: 27 },
+  1873→    7: { avg: 27, min: 22, max: 31 },
+  1874→    8: { avg: 28, min: 23, max: 32 },
+  1875→    9: { avg: 24, min: 19, max: 28 },
+  1876→    10: { avg: 18, min: 13, max: 23 },
+  1877→    11: { avg: 12, min: 7, max: 17 },
+  1878→    12: { avg: 7, min: 2, max: 12 },
+  1879→  },
+  1880→  // Alias en español (Tokio).
+  1881→  tokio: {
+  1882→    1: { avg: 5, min: -1, max: 10 },
+  1883→    2: { avg: 6, min: 0, max: 11 },
+  1884→    3: { avg: 10, min: 5, max: 15 },
+  1885→    4: { avg: 15, min: 10, max: 20 },
+  1886→    5: { avg: 19, min: 14, max: 24 },
+  1887→    6: { avg: 23, min: 18, max: 27 },
+  1888→    7: { avg: 27, min: 22, max: 31 },
+  1889→    8: { avg: 28, min: 23, max: 32 },
+  1890→    9: { avg: 24, min: 19, max: 28 },
+  1891→    10: { avg: 18, min: 13, max: 23 },
+  1892→    11: { avg: 12, min: 7, max: 17 },
+  1893→    12: { avg: 7, min: 2, max: 12 },
+  1894→  },
+  1895→  "buenos aires": {
+  1896→    1: { avg: 25, min: 20, max: 30 },
+  1897→    2: { avg: 24, min: 19, max: 29 },
+  1898→    3: { avg: 21, min: 16, max: 26 },
+  1899→    4: { avg: 18, min: 13, max: 22 },
+  1900→    5: { avg: 14, min: 10, max: 19 },
+  1901→    6: { avg: 11, min: 7, max: 16 },
+  1902→    7: { avg: 11, min: 7, max: 15 },
+  1903→    8: { avg: 13, min: 8, max: 17 },
+  1904→    9: { avg: 15, min: 10, max: 20 },
+  1905→    10: { avg: 18, min: 13, max: 23 },
+  1906→    11: { avg: 21, min: 16, max: 26 },
+  1907→    12: { avg: 24, min: 19, max: 29 },
+  1908→  },
+  1909→  madrid: {
+  1910→    1: { avg: 6, min: 1, max: 11 },
+  1911→    2: { avg: 8, min: 2, max: 13 },
+  1912→    3: { avg: 11, min: 4, max: 17 },
+  1913→    4: { avg: 13, min: 6, max: 19 },
+  1914→    5: { avg: 18, min: 10, max: 25 },
+  1915→    6: { avg: 23, min: 15, max: 30 },
+  1916→    7: { avg: 27, min: 18, max: 34 },
+  1917→    8: { avg: 26, min: 18, max: 33 },
+  1918→    9: { avg: 21, min: 14, max: 28 },
+  1919→    10: { avg: 15, min: 9, max: 21 },
+  1920→    11: { avg: 9, min: 4, max: 14 },
+  1921→    12: { avg: 6, min: 1, max: 11 },
+  1922→  },
+  1923→  "nueva york": {
+  1924→    1: { avg: 0, min: -4, max: 4 },
+  1925→    2: { avg: 1, min: -3, max: 6 },
+  1926→    3: { avg: 6, min: 1, max: 11 },
+  1927→    4: { avg: 12, min: 6, max: 17 },
+  1928→    5: { avg: 17, min: 12, max: 22 },
+  1929→    6: { avg: 22, min: 17, max: 27 },
+  1930→    7: { avg: 25, min: 20, max: 30 },
+  1931→    8: { avg: 25, min: 19, max: 30 },
+  1932→    9: { avg: 21, min: 16, max: 26 },
+  1933→    10: { avg: 14, min: 9, max: 19 },
+  1934→    11: { avg: 9, min: 4, max: 13 },
+  1935→    12: { avg: 3, min: -2, max: 8 },
+  1936→  },
+  1937→  // Alias Nueva York en inglés.
+  1938→  "new york": {
+  1939→    1: { avg: 0, min: -4, max: 4 },
+  1940→    2: { avg: 1, min: -3, max: 6 },
+  1941→    3: { avg: 6, min: 1, max: 11 },
+  1942→    4: { avg: 12, min: 6, max: 17 },
+  1943→    5: { avg: 17, min: 12, max: 22 },
+  1944→    6: { avg: 22, min: 17, max: 27 },
+  1945→    7: { avg: 25, min: 20, max: 30 },
+  1946→    8: { avg: 25, min: 19, max: 30 },
+  1947→    9: { avg: 21, min: 16, max: 26 },
+  1948→    10: { avg: 14, min: 9, max: 19 },
+  1949→    11: { avg: 9, min: 4, max: 13 },
+  1950→    12: { avg: 3, min: -2, max: 8 },
+  1951→  },
+  1952→  barcelona: {
+  1953→    1: { avg: 9, min: 4, max: 14 },
+  1954→    2: { avg: 10, min: 4, max: 15 },
+  1955→    3: { avg: 12, min: 7, max: 17 },
+  1956→    4: { avg: 14, min: 9, max: 19 },
+  1957→    5: { avg: 18, min: 12, max: 23 },
+  1958→    6: { avg: 22, min: 16, max: 27 },
+  1959→    7: { avg: 25, min: 19, max: 30 },
+  1960→    8: { avg: 25, min: 20, max: 30 },
+  1961→    9: { avg: 22, min: 16, max: 26 },
+  1962→    10: { avg: 18, min: 12, max: 23 },
+  1963→    11: { avg: 13, min: 7, max: 18 },
+  1964→    12: { avg: 10, min: 5, max: 15 },
+  1965→  },
+  1966→  "ciudad de mexico": {
+  1967→    1: { avg: 14, min: 7, max: 21 },
+  1968→    2: { avg: 16, min: 8, max: 23 },
+  1969→    3: { avg: 18, min: 10, max: 26 },
+  1970→    4: { avg: 19, min: 11, max: 27 },
+  1971→    5: { avg: 19, min: 12, max: 27 },
+  1972→    6: { avg: 18, min: 12, max: 25 },
+  1973→    7: { avg: 17, min: 11, max: 23 },
+  1974→    8: { avg: 17, min: 11, max: 23 },
+  1975→    9: { avg: 17, min: 11, max: 23 },
+  1976→    10: { avg: 17, min: 10, max: 24 },
+  1977→    11: { avg: 15, min: 8, max: 22 },
+  1978→    12: { avg: 14, min: 7, max: 21 },
+  1979→  },
+  1980→  // Alias CDMX.
+  1981→  "cdmx": {
+  1982→    1: { avg: 14, min: 7, max: 21 },
+  1983→    2: { avg: 16, min: 8, max: 23 },
+  1984→    3: { avg: 18, min: 10, max: 26 },
+  1985→    4: { avg: 19, min: 11, max: 27 },
+  1986→    5: { avg: 19, min: 12, max: 27 },
+  1987→    6: { avg: 18, min: 12, max: 25 },
+  1988→    7: { avg: 17, min: 11, max: 23 },
+  1989→    8: { avg: 17, min: 11, max: 23 },
+  1990→    9: { avg: 17, min: 11, max: 23 },
+  1991→    10: { avg: 17, min: 10, max: 24 },
+  1992→    11: { avg: 15, min: 8, max: 22 },
+  1993→    12: { avg: 14, min: 7, max: 21 },
+  1994→  },
+  1995→  paris: {
+  1996→    1: { avg: 5, min: 1, max: 8 },
+  1997→    2: { avg: 6, min: 1, max: 10 },
+  1998→    3: { avg: 10, min: 4, max: 15 },
+  1999→    4: { avg: 12, min: 6, max: 18 },
+  2000→    5: { avg: 16, min: 10, max: 22 },
+
+[showing lines 1-2000 of 4405; use offset=2001 with limit to continue reading]

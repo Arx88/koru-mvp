@@ -1,0 +1,302 @@
+  1224→<section class="pg" id="card-home" data-toc="01 · Home">
+  1225→  <div class="wrap">
+  1226→    <span class="eyebrow rv">Card 01/30 · Pantalla</span>
+  1227→    <h2 class="title rv d1">Home: <em>la casita de Koru</em></h2>
+  1228→    <p class="lede rv d2">Hoy el Home es un port de un diseño Stitch con un fondo-nebulosa de Google, un título en inglés (“Koru`s Home” con backtick incluido) y widgets planos. Rediseño: la casita <b>dentro del mundo nocturno</b>, con la mascota recibiéndote y widgets vivos.</p>
+  1229→    <div class="stage" style="margin-top:30px">
+  1230→      <div class="phone rv d1">
+  1231→        <div class="p-screen">
+  1232→          <div class="p-stars"><i style="top:10%;left:15%;width:2px;height:2px"></i><i style="top:6%;left:60%;width:3px;height:3px;animation-delay:.7s"></i><i style="top:16%;left:82%;width:2px;height:2px;animation-delay:1.3s"></i><i style="top:24%;left:35%;width:2px;height:2px;animation-delay:.3s"></i></div>
+  1233→          <div class="p-status"><span>8:05</span><span class="sic">●●● 5G ▮</span></div>
+  1234→          <div style="position:relative;padding:6px 20px 0;text-align:center">
+  1235→            <div class="moon" style="position:absolute;top:-6px;right:26px;width:34px;height:34px"></div>
+  1236→            <img src="assets/mascot.png" alt="Koru" style="width:84px;border-radius:26px;animation:breathe 4.4s ease-in-out infinite;box-shadow:0 14px 30px rgba(0,0,0,.4)">
+  1237→            <h3 style="font:800 22px var(--serif);margin-top:8px">Buen día, Martín</h3>
+  1238→            <p style="font-size:11.5px;color:#cfc4f5">Koru te preparó el día · <span style="color:var(--honey)">3 cosas lindas</span></p>
+  1239→          </div>
+  1240→          <div style="position:relative;margin:14px 14px 0;background:rgba(255,255,255,.07);border:1px solid rgba(201,191,245,.2);backdrop-filter:blur(8px);border-radius:18px;padding:11px 14px">
+  1241→            <div style="display:flex;justify-content:space-between;font:700 10px var(--sans);letter-spacing:.1em;color:#cfc4f5"><span>KORU TE CONOCE</span><span style="color:var(--honey)">12 recuerdos</span></div>
+  1242→            <div class="progtrack" style="margin-top:8px;background:rgba(255,255,255,.12)"><div class="progfill" style="width:64%;background:linear-gradient(90deg,var(--leaf),var(--gold))"></div></div>
+  1243→          </div>
+  1244→          <div style="position:relative;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 14px 12px">
+  1245→            <div class="kc" style="max-width:none;padding:14px;animation-delay:.1s">
+  1246→              <p class="kc-kicker" style="color:#3b82f6;font-size:9px"><span class="dot"></span>CLIMA</p>
+  1247→              <p style="font:800 24px var(--serif);color:var(--ink)">16°</p>
+  1248→              <p style="font-size:10px;color:var(--ink-soft)">Nublado, abrigo a la noche</p>
+  1249→            </div>
+  1250→            <div class="kc" style="max-width:none;padding:14px;animation-delay:.18s">
+  1251→              <p class="kc-kicker" style="color:#2f8f6d;font-size:9px"><span class="dot live" style="background:#ef4444"></span>TU DÍA</p>
+  1252→              <p style="font:800 24px var(--serif);color:var(--ink)">3</p>
+  1253→              <p style="font-size:10px;color:var(--ink-soft)">eventos · primero 9:30</p>
+  1254→            </div>
+  1255→            <div class="kc" style="max-width:none;padding:14px;animation-delay:.26s">
+  1256→              <p class="kc-kicker" style="color:#b47608;font-size:9px"><span class="dot"></span>GASTOS</p>
+  1257→              <p style="font:800 24px var(--serif);color:var(--ink)">$84.2<small style="font-size:12px">mil</small></p>
+  1258→              <p style="font-size:10px;color:var(--ink-soft)">esta semana · −12%</p>
+  1259→            </div>
+  1260→            <div class="kc" style="max-width:none;padding:14px;background:linear-gradient(160deg,#8363f9,#523a9e);animation-delay:.34s">
+  1261→              <p class="kc-kicker" style="color:#e9e2ff;font-size:9px"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" class="sparkleA"><path d="M12 3l1.9 5.6L19.5 10l-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.4z"/></svg>MAGIA</p>
+  1262→              <p style="font:800 14px var(--serif);color:#fff;line-height:1.25">Hablemos,<br>estoy despierto</p>
+  1263→              <p style="font-size:10px;color:#d9cfff;margin-top:4px">tocá para charlar →</p>
+  1264→            </div>
+  1265→          </div>
+  1266→          <div style="margin:auto 14px 14px;display:flex;justify-content:space-around;background:rgba(12,9,34,.7);border:1px solid rgba(201,191,245,.16);backdrop-filter:blur(10px);border-radius:999px;padding:10px">
+  1267→            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#f6bd6d" stroke-width="2" stroke-linecap="round"><path d="M3 10.5L12 3l9 7.5M5 9.5V21h5v-6h4v6h5V9.5"/></svg>
+  1268→            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#a89cc7" stroke-width="2" stroke-linecap="round"><path class="leafsway" d="M12 21c-4 0-6.5-2.6-6.5-6C5.5 9.5 10 4.5 18 3.5c-.5 8-3 12.5-8 14.5"/></svg>
+  1269→            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#a89cc7" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+  1270→            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#a89cc7" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 5-5.5 8-5.5s6.5 1.5 8 5.5"/></svg>
+  1271→          </div>
+  1272→        </div>
+  1273→      </div>
+  1274→      <div style="flex:1;min-width:300px">
+  1275→        <div class="finding rv d1"><span class="fid">H · HOY</span><p>Fondo-nebulosa externo (URL de Google), “Koru`s Home” en inglés con backtick, widgets estáticos sin datos vivos.</p></div>
+  1276→        <div class="finding ok rv d2"><span class="fid">SE CONSERVA</span><p>La barra “Koru te conoce” — nunca llega al 100% porque conocer a alguien no se termina. Idea hermosa, ahora con brillo propio.</p></div>
+  1277→        <div class="panel rv d3" style="margin-top:16px"><span class="tagline">Funcionalidades</span><p>🌡️ Widgets con datos reales del día (clima, eventos, gastos)<br>✨ Card “Magia” en gradiente púrpura: la invitación a hablar, con sparkles vivos<br>🌱 Barra de vínculo animada al entrar<br>🌙 Mascota que te recibe en su mundo — no una nebulosa prestada<br>🕐 Saludo por hora real: “Buen día / Buenas tardes / Buenas noches”</p></div>
+  1278→      </div>
+  1279→    </div>
+  1280→  </div>
+  1281→</section>
+  1282→
+  1283→<!-- ══════════════ PÁG 32 · CARD 01B · HOME EXTENDIDA ══════════════ -->
+  1284→<section class="pg" id="card-home-x" data-toc="01 · Home · extendida">
+  1285→  <div class="wrap">
+  1286→    <span class="eyebrow rv">Card 01/30 · Extendida</span>
+  1287→    <h2 class="title rv d1">Home → <em>“Mi día” desplegado</em></h2>
+  1288→    <p class="lede rv d2">Tocar el widget “Tu día” despliega la agenda como Koru la narra: no una lista de calendario, <b>una historia con energía</b>.</p>
+  1289→    <div class="stage" style="margin-top:30px">
+  1290→      <div class="phone rv d1">
+  1291→        <div class="p-screen">
+  1292→          <div class="xt" style="position:relative;border-radius:44px">
+  1293→            <div class="xt-hero" style="background:linear-gradient(170deg,#4a3585,#2b1f5e 60%,#141031);padding-bottom:56px">
+  1294→              <div class="glow" style="background:#8363f9"></div>
+  1295→              <div class="back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg></div>
+  1296→              <div class="fav"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M4 12h4l2-6 4 12 2-6h4"/></svg></div>
+  1297→              <h3 class="xt-title" style="font-size:26px">Miércoles 24</h3>
+  1298→              <p class="xt-sub">3 eventos · energía estimada 72% · lluvia a la noche</p>
+  1299→              <div style="margin:16px auto 0;width:200px">
+  1300→                <div style="display:flex;justify-content:space-between;font:700 9px var(--sans);letter-spacing:.14em;color:#cfc4f5"><span>TU ENERGÍA</span><span>72%</span></div>
+  1301→                <div class="progtrack" style="margin-top:6px;background:rgba(255,255,255,.14)"><div class="progfill" style="width:72%;background:linear-gradient(90deg,var(--gold),var(--leaf))"></div></div>
+  1302→              </div>
+  1303→            </div>
+  1304→            <div class="xt-body">
+  1305→              <div class="mcard">
+  1306→                <div class="mh"><span class="ic" style="background:linear-gradient(140deg,#a78bfa,#8363f9)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path class="spin-slow" style="animation-duration:8s;transform-origin:12px 12px" d="M12 7v5l3 2"/></svg></span><div><h5>Tu día, contado</h5><span class="mk">TIMELINE VIVO</span></div></div>
+  1307→                <div class="tl-wrap">
+  1308→                  <div class="tl-step done"><span class="when">9:30</span><p class="tt">Daily con el equipo</p><p class="td">30 min · Koru ya preparó tus bullets de ayer</p></div>
+  1309→                  <div class="tl-step now"><span class="when">13:00</span><p class="tt">Almuerzo con Vale</p><p class="td">La Parolaccia · a 12 min caminando · sale sol a esa hora ☀️</p></div>
+  1310→                  <div class="tl-step"><span class="when">18:30</span><p class="tt">Gym · tren inferior</p><p class="td">Tu rutina de los miércoles · mochila lista desde las 8</p></div>
+  1311→                  <div class="tl-step"><span class="when">21:00</span><p class="tt">Llueve 80% 🌧</p><p class="td">Si volvés en bici, salí antes de las 20:30</p></div>
+  1312→                </div>
+  1313→              </div>
+  1314→              <div class="mcard">
+  1315→                <div class="mh"><span class="ic" style="background:linear-gradient(140deg,#f6bd6d,#f59e0b)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" class="sparkleA"><path d="M12 3l1.9 5.6L19.5 10l-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.4z"/></svg></span><div><h5>Koru se adelantó</h5><span class="mk">PROACTIVO</span></div></div>
+  1316→                <p class="tx">El cumple de tu hermano es <b>en 4 días</b> y todavía no hay regalo. ¿Te armo 3 opciones con lo que le gusta?</p>
+  1317→              </div>
+  1318→            </div>
+  1319→            <div class="xt-actions">
+  1320→              <button class="xbtn pri"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Agregar al día</button>
+  1321→              <button class="xbtn sec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>Semana</button>
+  1322→            </div>
+  1323→          </div>
+  1324→        </div>
+  1325→      </div>
+  1326→      <div style="flex:1;min-width:300px">
+  1327→        <div class="panel rv d1"><span class="tagline">Por qué este extendido paga</span><p>El widget decía “3 eventos”; el extendido te da <b>el día narrado</b>: timeline con estado (hecho/ahora/después), datos cruzados (clima + distancia + rutina) y una sorpresa proactiva.</p></div>
+  1328→        <div class="panel rv d2" style="margin-top:14px"><span class="tagline">Funcionalidades</span><p>⚡ Barra de energía estimada (del sistema de energía del repo)<br>🟢 Punto “ahora” pulsando en el evento actual<br>🌧 El clima aparece como hito del día, no como card aparte<br>🎁 Proactividad real: Koru cruza calendario + memoria<br>↔️ Swipe horizontal para pasar de día</p></div>
+  1329→      </div>
+  1330→    </div>
+  1331→  </div>
+  1332→</section>
+  1333→
+  1334→<!-- ══════════════ PÁG 33 · CARD 02A · CREAR ══════════════ -->
+  1335→<section class="pg" id="card-crear" data-toc="02 · Crear">
+  1336→  <div class="wrap">
+  1337→    <span class="eyebrow rv">Card 02/30 · Sheet</span>
+  1338→    <h2 class="title rv d1">Crear: <em>el botón que lo empieza todo</em></h2>
+  1339→    <p class="lede rv d2">Hoy “+” cubre la noche con un lavanda plano y 5 filas blancas (evidencia pág. 12). Rediseño: un <b>bottom sheet de cristal nocturno</b> — la magia sigue ahí detrás — con iconos que cobran vida al tocarlos.</p>
+  1340→    <div class="stage" style="margin-top:30px">
+  1341→      <div class="phone rv d1">
+  1342→        <div class="p-screen">
+  1343→          <div class="p-stars"><i style="top:12%;left:20%;width:2px;height:2px"></i><i style="top:8%;left:66%;width:3px;height:3px;animation-delay:.6s"></i><i style="top:22%;left:84%;width:2px;height:2px;animation-delay:1.1s"></i></div>
+  1344→          <div class="p-status"><span>9:41</span><span class="sic">●●● 5G ▮</span></div>
+  1345→          <div class="p-world" style="height:150px;filter:brightness(.6) blur(1px)">
+  1346→            <div class="moon"></div><div class="isle i1"><i class="lan"></i></div><div class="isle i3"><i class="lan"></i></div>
+  1347→            <img class="mascot" src="assets/mascot.png" alt="" style="top:18px">
+  1348→          </div>
+  1349→          <div style="position:relative;flex:1;background:rgba(16,11,38,.82);backdrop-filter:blur(14px);border-radius:32px 32px 0 0;border-top:1px solid rgba(201,191,245,.25);padding:10px 16px 16px;animation:xtIn .5s var(--ease-out) both">
+  1350→            <div style="width:38px;height:4px;border-radius:99px;background:rgba(201,191,245,.35);margin:2px auto 12px"></div>
+  1351→            <h3 style="font:800 19px var(--serif)">¿Qué creamos hoy?</h3>
+  1352→            <p style="font-size:11px;color:#cfc4f5;margin:2px 0 12px">Koru lo ordena y lo guarda en tu jardín 🌱</p>
+  1353→            <div style="display:flex;flex-direction:column;gap:8px">
+  1354→              <div class="kc" style="max-width:none;display:flex;align-items:center;gap:12px;padding:12px 14px;animation-delay:.06s">
+  1355→                <span class="mi" style="width:38px;height:38px;border-radius:13px;background:linear-gradient(140deg,#a78bfa,#8363f9);display:grid;place-items:center;flex:none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span>
+  1356→                <div style="flex:1"><p style="font:800 13.5px var(--sans);color:var(--ink)">Nota</p><p style="font-size:10.5px;color:var(--ink-soft)">Una idea, un pensamiento, un “no quiero olvidarme”</p></div>
+  1357→                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8363f9" stroke-width="2.4" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+  1358→              </div>
+  1359→              <div class="kc" style="max-width:none;display:flex;align-items:center;gap:12px;padding:12px 14px;animation-delay:.12s">
+  1360→                <span class="mi" style="width:38px;height:38px;border-radius:13px;background:linear-gradient(140deg,#46c293,#2f8f6d);display:grid;place-items:center;flex:none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path class="draw" d="M4 7l2 2 4-4M4 16l2 2 4-4M13 7h8M13 16h8"/></svg></span>
+  1361→                <div style="flex:1"><p style="font:800 13.5px var(--sans);color:var(--ink)">Lista</p><p style="font-size:10.5px;color:var(--ink-soft)">Tareas o compras que se tachan solas</p></div>
+  1362→                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8363f9" stroke-width="2.4" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+  1363→              </div>
+  1364→              <div class="kc" style="max-width:none;display:flex;align-items:center;gap:12px;padding:12px 14px;animation-delay:.18s">
+  1365→                <span class="mi" style="width:38px;height:38px;border-radius:13px;background:linear-gradient(140deg,#f6bd6d,#f59e0b);display:grid;place-items:center;flex:none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" class="coinspin"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10.2c0-1 1.1-1.7 2.5-1.7s2.5.7 2.5 1.6c0 2.3-5 1.5-5 3.9 0 .9 1.1 1.6 2.5 1.6s2.5-.7 2.5-1.7"/></svg></span>
+  1366→                <div style="flex:1"><p style="font:800 13.5px var(--sans);color:var(--ink)">Gasto</p><p style="font-size:10.5px;color:var(--ink-soft)">“café 2800” alcanza — Koru entiende</p></div>
+  1367→                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8363f9" stroke-width="2.4" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+  1368→              </div>
+  1369→              <div class="kc" style="max-width:none;display:flex;align-items:center;gap:12px;padding:12px 14px;animation-delay:.24s">
+  1370→                <span class="mi" style="width:38px;height:38px;border-radius:13px;background:linear-gradient(140deg,#22d3ee,#0891b2);display:grid;place-items:center;flex:none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M10 14a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.5 1.5M14 10a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7L12 18.5"/></svg></span>
+  1371→                <div style="flex:1"><p style="font:800 13.5px var(--sans);color:var(--ink)">Enlace</p><p style="font-size:10.5px;color:var(--ink-soft)">Guardá un link; Koru lo lee y lo resume</p></div>
+  1372→                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8363f9" stroke-width="2.4" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+  1373→              </div>
+  1374→              <div class="kc" style="max-width:none;display:flex;align-items:center;gap:12px;padding:12px 14px;animation-delay:.3s">
+  1375→                <span class="mi" style="width:38px;height:38px;border-radius:13px;background:linear-gradient(140deg,#f0a4d8,#ec4899);display:grid;place-items:center;flex:none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M7 4v7M10 4v7M8.5 11v9M4 4h7M17 4c-1.5 1-2.5 3-2.5 5 0 1.7 1 2.5 2.5 2.5S20 10.7 20 9c0-2-1.5-4-3-5zM17 12v8"/></svg></span>
+  1376→                <div style="flex:1"><p style="font:800 13.5px var(--sans);color:var(--ink)">Receta</p><p style="font-size:10.5px;color:var(--ink-soft)">Tu receta, con foto si querés</p></div>
+  1377→                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8363f9" stroke-width="2.4" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+  1378→              </div>
+  1379→            </div>
+  1380→          </div>
+  1381→        </div>
+  1382→      </div>
+  1383→      <div style="flex:1;min-width:300px">
+  1384→        <div class="finding rv d1"><span class="fid">H · HOY</span><p>Pantalla completa lavanda que apaga el mundo; 5 filas idénticas; cero animación; la acción más alegre de la app se siente un formulario.</p></div>
+  1385→        <div class="panel rv d2" style="margin-top:16px"><span class="tagline">Decisiones</span><p>🌙 <b>Bottom sheet de cristal</b>: el mundo se atenúa detrás (brightness .6 + blur) — nunca desaparece<br>🎨 Cada tipo con su acento y <b>icono vivo</b> (el check se dibuja, la moneda gira)<br>📈 Entrada en cascada 60ms por fila<br>🗣 Descripciones en voz Koru: “‘café 2800’ alcanza — Koru entiende”<br>👆 Swipe down para cerrar, handle visible</p></div>
+  1386→        <div class="panel lite rv d3" style="margin-top:14px"><span class="tagline">Microdetalle Tier-S</span><p style="color:#e9e2ff">Al mantener presionado un tipo, el icono hace su animación completa en loop — un “modo mirá lo que podés crear”.</p></div>
+  1387→      </div>
+  1388→    </div>
+  1389→  </div>
+  1390→</section>
+  1391→
+  1392→<!-- ══════════════ PÁG 34 · CARD 02B · CREAR EXTENDIDA ══════════════ -->
+  1393→<section class="pg" id="card-crear-x" data-toc="02 · Crear · extendida">
+  1394→  <div class="wrap">
+  1395→    <span class="eyebrow rv">Card 02/30 · Extendida</span>
+  1396→    <h2 class="title rv d1">Crear → <em>la nota que se escribe sola</em></h2>
+  1397→    <p class="lede rv d2">Elegir “Nota” abre el editor en el mismo cristal nocturno: escribís como le hablás a Koru, y él estructura — título, tags y vínculos con tu memoria.</p>
+  1398→    <div class="stage" style="margin-top:30px">
+  1399→      <div class="phone rv d1">
+  1400→        <div class="p-screen">
+  1401→          <div class="xt" style="position:relative;border-radius:44px">
+  1402→            <div class="xt-hero" style="background:linear-gradient(170deg,#3d2b75,#231a52 60%,#141031);padding:44px 20px 50px">
+  1403→              <div class="glow" style="background:#a78bfa"></div>
+  1404→              <div class="back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg></div>
+  1405→              <div class="xt-hicon" style="background:linear-gradient(140deg,#a78bfa,#8363f9)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path class="draw" d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></div>
+  1406→              <h3 class="xt-title">Nueva nota</h3>
+  1407→              <p class="xt-sub">escribí como te salga · Koru ordena</p>
+  1408→            </div>
+  1409→            <div class="xt-body">
+  1410→              <div class="mcard">
+  1411→                <p style="font:800 17px var(--serif);color:var(--ink)">Ideas para el asado del sábado<span style="animation:twinkle 1s infinite;color:#8363f9">▍</span></p>
+  1412→                <p class="tx" style="margin-top:8px">Comprar entraña en la carnicería de Córdoba. Vale trae el vino. Probar el chimichurri con miel que vi en el video…</p>
+  1413→                <div class="pillchips" style="margin-top:12px"><span class="pillchip">#asado</span><span class="pillchip">#sábado</span><span class="pillchip hot">#con-vale</span></div>
+  1414→              </div>
+  1415→              <div class="mcard">
+  1416→                <div class="mh"><span class="ic" style="background:linear-gradient(140deg,#46c293,#2f8f6d)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" class="leafsway"><path d="M12 21c-4 0-6.5-2.6-6.5-6C5.5 9.5 10 4.5 18 3.5c-.5 8-3 12.5-8 14.5"/></svg></span><div><h5>Koru conectó</h5><span class="mk">CON TU MEMORIA</span></div></div>
+  1417→                <div class="trow"><span class="ti" style="background:linear-gradient(140deg,#f6bd6d,#f59e0b)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 5-5.5 8-5.5s6.5 1.5 8 5.5"/></svg></span><div class="tb"><p class="tt">Vale · amiga</p><p class="td">le gusta el malbec, no come cerdo</p></div><span class="tm" style="color:#2f8f6d">✓</span></div>
+  1418→                <div class="trow"><span class="ti" style="background:linear-gradient(140deg,#22d3ee,#0891b2)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M10 14a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.5 1.5"/></svg></span><div class="tb"><p class="tt">Video guardado hace 3 días</p><p class="td">“el chimichurri definitivo” · youtube</p></div><span class="tm" style="color:#0891b2">abrir</span></div>
+  1419→              </div>
+  1420→              <div class="mcard">
+  1421→                <div class="mh"><span class="ic" style="background:linear-gradient(140deg,#f0a4d8,#ec4899)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" class="sparkleA"><path d="M12 3l1.9 5.6L19.5 10l-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.4z"/></svg></span><div><h5>¿Lo convierto?</h5><span class="mk">UN TOQUE</span></div></div>
+  1422→                <div class="pillchips"><span class="pillchip">→ Lista de compras</span><span class="pillchip">→ Evento sábado</span><span class="pillchip">→ Recordatorio viernes</span></div>
+  1423→              </div>
+  1424→            </div>
+  1425→            <div class="xt-actions">
+  1426→              <button class="xbtn pri"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path class="draw" d="M4 12l5 5L20 6"/></svg>Guardar nota</button>
+  1427→              <button class="xbtn sec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>Dictar</button>
+  1428→            </div>
+  1429→          </div>
+  1430→        </div>
+  1431→      </div>
+  1432→      <div style="flex:1;min-width:300px">
+  1433→        <div class="panel rv d1"><span class="tagline">Funcionalidades</span><p>▍ Cursor vivo dentro del editor<br>🏷 Tags sugeridos automáticamente del texto<br>🌱 <b>Conexiones con memoria en vivo</b>: Vale existe en tu jardín y Koru la trae<br>⚡ Conversión con un toque: nota → lista, evento o recordatorio<br>🎙 Dictado con el mismo mic del chat</p></div>
+  1434→        <div class="panel lite rv d2" style="margin-top:14px"><span class="tagline">La diferencia filosófica</span><p style="color:#e9e2ff">En otras apps “crear” es llenar campos. En Koru es <b>contarle algo a alguien que te conoce</b> — y la prueba es que la pantalla misma te muestra esas conexiones.</p></div>
+  1435→      </div>
+  1436→    </div>
+  1437→  </div>
+  1438→</section>
+  1439→
+  1440→<!-- ══════════════ PÁG 35 · CARD 03A · CLIMA ══════════════ -->
+  1441→<section class="pg" id="card-clima" data-toc="03 · Clima">
+  1442→  <div class="wrap">
+  1443→    <span class="eyebrow rv">Card 03/30 · Dominio cielo</span>
+  1444→    <h2 class="title rv d1">Clima: <em>la card más consultada</em></h2>
+  1445→    <p class="lede rv d2">Diagnóstico completo en págs. 10 y 27. Acá la variante que demuestra la regla D1: <b>el acento cambia con la condición</b> — lluvia = azul lluvia, y las gotas caen de verdad.</p>
+  1446→    <div class="stage" style="margin-top:30px">
+  1447→      <div class="phone rv d1">
+  1448→        <div class="p-screen">
+  1449→          <div class="p-stars"><i style="top:12%;left:18%;width:2px;height:2px"></i><i style="top:9%;left:72%;width:2px;height:2px;animation-delay:.9s"></i></div>
+  1450→          <div class="p-status"><span>7:58</span><span class="sic">●●● 5G ▮</span></div>
+  1451→          <div class="p-world" style="filter:brightness(.75) saturate(.85)"><div class="isle i1"><i class="lan"></i></div><div class="isle i2"></div><div class="isle i3"><i class="lan"></i></div><img class="mascot" src="assets/mascot.png" alt=""></div>
+  1452→          <div class="p-chat">
+  1453→            <div class="bubble me">¿llevo paraguas hoy?</div>
+  1454→            <div class="bubble koru">Llevalo. Llueve suave desde las 14 y recién para a la noche 🌧</div>
+  1455→            <div class="kc">
+  1456→              <div class="kc-top">
+  1457→                <div class="kc-copy">
+  1458→                  <p class="kc-kicker" style="color:#2563eb"><span class="dot"></span>TU CLIMA · VILLA CRESPO</p>
+  1459→                  <h3 class="kc-title">Lluvia suave a la tarde</h3>
+  1460→                  <p class="kc-desc">Empieza cerca de las 14 · llevalo plegado, no estorba</p>
+  1461→                </div>
+  1462→                <div class="kc-art" style="background:linear-gradient(150deg,#60a5fa,#2563eb 70%,#1d4ed8)">
+  1463→                  <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path class="cloudmove" d="M7 15h8.5a3.5 3.5 0 0 0 .6-6.9A5 5 0 0 0 6.3 9 3 3 0 0 0 7 15z"/><g class="raindrops"><line x1="9" y1="17" x2="8.4" y2="19.5"/><line x1="12.5" y1="17" x2="11.9" y2="19.5"/><line x1="16" y1="17" x2="15.4" y2="19.5"/></g></svg>
+  1464→                  <span class="val">14°</span>
+  1465→                </div>
+  1466→              </div>
+  1467→              <div class="kc-metrics">
+  1468→                <div class="kc-m"><span class="mi" style="background:linear-gradient(140deg,#60a5fa,#2563eb)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 4s5 5.6 5 9a5 5 0 0 1-10 0c0-3.4 5-9 5-9z"/></svg></span><span class="ml">Lluvia</span><span class="mv">80%</span></div>
+  1469→                <div class="kc-m"><span class="mi" style="background:linear-gradient(140deg,#94a3b8,#64748b)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span class="ml">Empieza</span><span class="mv">~14 h</span></div>
+  1470→                <div class="kc-m"><span class="mi" style="background:linear-gradient(140deg,#7dd3fc,#38bdf8)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path class="windflow" style="stroke-dasharray:26" d="M3 8h9a2.5 2.5 0 1 0-2.4-3.2M3 12h13a2.5 2.5 0 1 1-2.4 3.2M3 16h7"/></svg></span><span class="ml">Viento</span><span class="mv">22 <small>km/h</small></span></div>
+  1471→              </div>
+  1472→              <button class="kc-cta" style="background:linear-gradient(120deg,#3b82f6,#2563eb 60%,#1d4ed8)">Ver el radar hora por hora <svg class="arr" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+  1473→            </div>
+  1474→          </div>
+  1475→          <div class="p-input"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8363f9" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span class="ph">Habla con Koru…</span><span class="mic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span></div>
+  1476→        </div>
+  1477→      </div>
+  1478→      <div style="flex:1;min-width:300px">
+  1479→        <div class="panel rv d1"><span class="tagline">El momento vivo</span><p>Las <b>gotas caen</b> dentro del arte. Si es de noche y llovizna, el mundo detrás también se atenúa (filter brightness .75) — la card y el mundo cuentan lo mismo.</p></div>
+  1480→        <div class="panel rv d2" style="margin-top:14px"><span class="tagline">Jerarquía</span><p>1️⃣ Condición (“Lluvia suave a la tarde”) 2️⃣ 14° en el arte 3️⃣ Consejo de Koru 4️⃣ 3 métricas que deciden el día (¿llueve? ¿cuándo? ¿vuela todo?). El kicker queda en contexto puro.</p></div>
+  1481→        <div class="panel lite rv d3" style="margin-top:14px"><span class="tagline">Variantes de acento por condición</span><div class="chiprow" style="margin-top:8px"><span class="nchip" style="border-color:#f6bd6d;color:#ffd9a0">☀ ámbar</span><span class="nchip" style="border-color:#60a5fa;color:#bfdcff">🌧 azul lluvia</span><span class="nchip" style="border-color:#a5f3fc;color:#cffafe">❄ celeste nieve</span><span class="nchip" style="border-color:#c9bdf5;color:#e4dcf7">⛈ violeta tormenta</span></div></div>
+  1482→      </div>
+  1483→    </div>
+  1484→  </div>
+  1485→</section>
+  1486→
+  1487→<!-- ══════════════ PÁG 36 · CARD 03B · CLIMA EXTENDIDA ══════════════ -->
+  1488→<section class="pg" id="card-clima-x" data-toc="03 · Clima · extendida">
+  1489→  <div class="wrap">
+  1490→    <span class="eyebrow rv">Card 03/30 · Extendida</span>
+  1491→    <h2 class="title rv d1">Clima → <em>el radar hora por hora</em></h2>
+  1492→    <p class="lede rv d2">La promesa del CTA se cumple: strip horario con la lluvia marcada, tiles de decisión (UV, humedad, sensación) y la semana entera.</p>
+  1493→    <div class="stage" style="margin-top:30px">
+  1494→      <div class="phone rv d1">
+  1495→        <div class="p-screen">
+  1496→          <div class="xt" style="position:relative;border-radius:44px">
+  1497→            <div class="xt-hero" style="background:linear-gradient(170deg,#1e3a6e,#16294f 55%,#101a3a);padding-bottom:58px">
+  1498→              <div class="glow" style="background:#2563eb"></div>
+  1499→              <div class="back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg></div>
+  1500→              <div class="fav"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M6 4h12v17l-6-4-6 4z"/></svg></div>
+  1501→              <div class="xt-hicon" style="background:linear-gradient(150deg,#60a5fa,#2563eb)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path class="cloudmove" d="M7 15h8.5a3.5 3.5 0 0 0 .6-6.9A5 5 0 0 0 6.3 9 3 3 0 0 0 7 15z"/><g class="raindrops"><line x1="9" y1="17" x2="8.4" y2="19.5"/><line x1="12.5" y1="17" x2="11.9" y2="19.5"/><line x1="16" y1="17" x2="15.4" y2="19.5"/></g></svg></div>
+  1502→              <h3 class="xt-title">Lluvia suave · 14°</h3>
+  1503→              <p class="xt-sub">Villa Crespo · sensación 12° · hace 2 min</p>
+  1504→            </div>
+  1505→            <div class="xt-body">
+  1506→              <div class="mcard">
+  1507→                <div class="mh"><span class="ic" style="background:linear-gradient(140deg,#60a5fa,#2563eb)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path class="spin-slow" style="animation-duration:8s;transform-origin:12px 12px" d="M12 7v5l3 2"/></svg></span><div><h5>Hora por hora</h5><span class="mk">LA LLUVIA, MARCADA</span></div></div>
+  1508→                <div style="display:flex;gap:5px;align-items:flex-end;height:64px;padding-top:6px">
+  1509→                  <div style="flex:1;text-align:center"><div style="height:26px;border-radius:6px;background:linear-gradient(180deg,#c7d7f5,#e3eafb)"></div><span style="font:700 8.5px var(--sans);color:#a89cc7">ahora</span></div>
+  1510→                  <div style="flex:1;text-align:center"><div style="height:32px;border-radius:6px;background:linear-gradient(180deg,#c7d7f5,#e3eafb)"></div><span style="font:700 8.5px var(--sans);color:#a89cc7">12</span></div>
+  1511→                  <div style="flex:1;text-align:center"><div style="height:40px;border-radius:6px;background:linear-gradient(180deg,#60a5fa,#2563eb);animation:eq 1.8s ease-in-out infinite"></div><span style="font:700 8.5px var(--sans);color:#2563eb">14</span></div>
+  1512→                  <div style="flex:1;text-align:center"><div style="height:48px;border-radius:6px;background:linear-gradient(180deg,#60a5fa,#2563eb);animation:eq 1.8s .3s ease-in-out infinite"></div><span style="font:700 8.5px var(--sans);color:#2563eb">16</span></div>
+  1513→                  <div style="flex:1;text-align:center"><div style="height:38px;border-radius:6px;background:linear-gradient(180deg,#93c5fd,#3b82f6);animation:eq 1.8s .5s ease-in-out infinite"></div><span style="font:700 8.5px var(--sans);color:#3b82f6">18</span></div>
+  1514→                  <div style="flex:1;text-align:center"><div style="height:24px;border-radius:6px;background:linear-gradient(180deg,#c7d7f5,#e3eafb)"></div><span style="font:700 8.5px var(--sans);color:#a89cc7">20</span></div>
+  1515→                  <div style="flex:1;text-align:center"><div style="height:20px;border-radius:6px;background:linear-gradient(180deg,#c7d7f5,#e3eafb)"></div><span style="font:700 8.5px var(--sans);color:#a89cc7">22</span></div>
+  1516→                </div>
+  1517→                <p class="tx" style="margin-top:8px">Franja azul = lluvia. <b>Si salís a correr, antes de las 13.</b></p>
+  1518→              </div>
+  1519→              <div class="mcard">
+  1520→                <div class="tiles">
+  1521→                  <div class="tile"><span class="tv">12°</span><span class="tl">Sensación</span></div>
+  1522→                  <div class="tile"><span class="tv">87%</span><span class="tl">Humedad</span></div>
+  1523→                  <div class="tile"><span class="tv">UV 2</span><span class="tl">Bajo</span></div>
+
+[showing lines 1224-1523 of 4464; use offset=1524 with limit to continue reading]

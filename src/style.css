@@ -7452,3 +7452,77 @@ a.koru-dsec-source:hover {
 .koru-opacity-100 { opacity: 1; }
 
 /* 🔴 FIN microdetalles v3 — 110 microdetalles CSS + UX */
+
+/* ─────────────────────────────────────────────────────────────────────────
+   KIMI TIER-S microdetalles (cards 21-30 + interacciones tier-S)
+   Añade las interacciones de los items 2-4, 6-8, 12, 17-20 del inventario
+   Kimi que no existían en style.css. Las existentes (1, 5, 9-11, 13-16)
+   ya están implementadas arriba y no se duplican.
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* Kimi microdetalles */
+
+/* Item 2 — Tile hover: background shift a accent-soft + leve lift */
+.koru-unified-metric:hover {
+  background: var(--accent-soft, rgba(131, 99, 249, 0.08));
+  transform: translateY(-1px);
+  transition: all 0.18s var(--ease-soft, cubic-bezier(.45, .05, .15, 1));
+}
+
+/* Item 3 — Row hover: background shift + chevron (meta) aparece */
+.koru-dsec-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.koru-dsec-row:hover .koru-dsec-row-meta {
+  opacity: 1;
+}
+
+/* Item 4 — Chip hover: scale 1.05 con easing spring */
+.koru-dsec-chip:hover {
+  transform: scale(1.05);
+  transition: transform 0.15s var(--ease-spring, cubic-bezier(.34, 1.56, .64, 1));
+}
+
+/* Item 8 — Scroller: snap + peek hint (siguiente card 20% visible) */
+.koru-dsec-scroller {
+  scroll-snap-type: x mandatory;
+}
+.koru-dsec-scard {
+  scroll-snap-align: start;
+}
+.koru-dsec-scard:not(:last-child) {
+  margin-right: -20px;
+}
+
+/* Item 12 — Badge "NEW": fade after 3s via CSS animation */
+@keyframes koru-badge-fade {
+  0%, 70% { opacity: 1; }
+  100% { opacity: 0; transform: scale(0.8); }
+}
+.koru-badge-new {
+  animation: koru-badge-fade 3s ease-out forwards;
+}
+
+/* Item 17 — Error: shake + red border (override del existente con !important) */
+.koru-state-error {
+  animation: koru-shake 0.4s ease-in-out;
+  border-color: var(--brasa-2, #ef4444) !important;
+}
+
+/* Item 18 — Pull-to-refresh: spinner aparece (translación desde -100%) */
+@keyframes koru-pull-refresh {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(0); }
+}
+.koru-pull-indicator {
+  animation: koru-pull-refresh 0.3s var(--ease-spring, cubic-bezier(.34, 1.56, .64, 1));
+}
+
+/* Item 20 — Swipe: card dismisses with translateX */
+.koru-card-dismiss {
+  transform: translateX(-120%);
+  opacity: 0;
+  transition: all 0.3s var(--ease-soft, cubic-bezier(.45, .05, .15, 1));
+}
+
+/* 🔴 FIN Kimi Tier-S microdetalles (cards 21-30) */

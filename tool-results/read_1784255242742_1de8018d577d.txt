@@ -1,0 +1,302 @@
+   300→                  <div class="tile"><span class="tv">UV 2</span><span class="tl">Bajo</span></div>
+   301→                </div>
+   302→              </div>
+   303→              <div class="mcard">
+   304→                <div class="mh"><span class="ic" style="background:linear-gradient(140deg,#a78bfa,#8363f9)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg></span><div><h5>La semana</h5><span class="mk">DE UN VISTAZO</span></div></div>
+   305→                <div class="trow"><span class="ti" style="background:linear-gradient(140deg,#60a5fa,#2563eb)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 4s5 5.6 5 9a5 5 0 0 1-10 0c0-3.4 5-9 5-9z"/></svg></span><div class="tb"><p class="tt">Hoy · lluvia PM</p></div><span class="tm">10°–14°</span></div>
+   306→                <div class="trow"><span class="ti" style="background:linear-gradient(140deg,#f6bd6d,#f59e0b)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><g class="rays" style="animation-duration:20s"><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></g></svg></span><div class="tb"><p class="tt">Mañana · soleado ✨</p></div><span class="tm">12°–21°</span></div>
+   307→                <div class="trow"><span class="ti" style="background:linear-gradient(140deg,#94a3b8,#64748b)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M7 18h8.5a3.5 3.5 0 0 0 .6-6.9A5 5 0 0 0 6.3 12 3 3 0 0 0 7 18z"/></svg></span><div class="tb"><p class="tt">Viernes · nublado</p></div><span class="tm">11°–17°</span></div>
+   308→              </div>
+   309→            </div>
+   310→            <div class="xt-actions">
+   311→              <button class="xbtn pri"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" class="bellswing"><path d="M18 9a6 6 0 1 0-12 0c0 6-2.5 7-2.5 7h17S18 15 18 9zM10 20a2.2 2.2 0 0 0 4 0"/></svg>Avisame si cambia</button>
+   312→              <button class="xbtn sec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 4h12v17l-6-4-6 4z"/></svg>Guardar</button>
+   313→            </div>
+   314→          </div>
+   315→        </div>
+   316→      </div>
+   317→      <div style="flex:1;min-width:300px">
+   318→        <div class="panel rv d1"><span class="tagline">Funcionalidades</span><p>📊 Strip horario con <b>franja de lluvia viva</b> (las barras respiran)<br>🌡 Sensación, humedad, UV en tiles de decisión<br>📅 Semana con acentos por condición<br>🔔 CTA primario contextual: “Avisame si cambia” — la campana suena<br>📍 Si cambiás de ciudad, el hero entero transiciona de acento</p></div>
+   319→        <div class="panel lite rv d2" style="margin-top:14px"><span class="tagline">Contra el extendido actual</span><p style="color:#e9e2ff">El real (pág. 10) repetía la card y sumaba una fuente duplicada. Este entrega <b>4 piezas de valor nuevo</b> y una acción que solo tiene sentido acá.</p></div>
+   320→      </div>
+   321→    </div>
+   322→  </div>
+   323→</section>
+   324→
+   325→<!-- ══════════════ PÁG 37 · CARD 04A · FÚTBOL ══════════════ -->
+   326→<section class="pg" id="card-futbol" data-toc="04 · Fútbol">
+   327→  <div class="wrap">
+   328→    <span class="eyebrow rv">Card 04/30 · Dominio césped</span>
+   329→    <h2 class="title rv d1">Fútbol: <em>de la vergüenza al orgullo</em></h2>
+   330→    <p class="lede rv d2">La evidencia (pág. 11) mostraba kicker de 4 líneas, “Tiros” con sirena de emergencia y el resultado sin héroe. Rediseño: <b>el marcador manda</b>, los goleadores entran a la card y el césped se siente.</p>
+   331→    <div class="stage" style="margin-top:30px">
+   332→      <div class="phone rv d1">
+   333→        <div class="p-screen">
+   334→          <div class="p-stars"><i style="top:10%;left:24%;width:2px;height:2px"></i><i style="top:7%;left:64%;width:3px;height:3px;animation-delay:.7s"></i><i style="top:19%;left:84%;width:2px;height:2px;animation-delay:1.2s"></i></div>
+   335→          <div class="p-status"><span>22:07</span><span class="sic">●●● 5G ▮</span></div>
+   336→          <div class="p-world" style="height:120px"><div class="isle i1"><i class="lan"></i></div><div class="isle i3"><i class="lan"></i></div><img class="mascot" src="assets/mascot.png" alt="" style="width:100px;top:16px"></div>
+   337→          <div class="p-chat">
+   338→            <div class="bubble me">¿cómo salió España?</div>
+   339→            <div class="bubble koru">¡Ganó España 2–0! Porro abrió el marcador y lo liquidó Merino. Te armé la ficha completa ⚽</div>
+   340→            <div class="kc">
+   341→              <p class="kc-kicker" style="color:#2f8f6d"><span class="dot"></span>AMISTOSO INTERNACIONAL · FINAL</p>
+   342→              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding:0 4px">
+   343→                <div style="text-align:center;width:64px">
+   344→                  <div style="width:46px;height:46px;margin:0 auto;border-radius:50%;background:linear-gradient(150deg,#4a6cf7,#2440b8);display:grid;place-items:center;color:#fff;font:800 13px var(--sans);box-shadow:inset 0 2px 0 rgba(255,255,255,.35),0 6px 14px rgba(10,6,30,.3)">FRA</div>
+   345→                  <p style="font:700 10.5px var(--sans);color:var(--ink-soft);margin-top:5px">Francia</p>
+   346→                </div>
+   347→                <div style="text-align:center">
+   348→                  <p style="font:800 34px var(--serif);color:var(--ink);letter-spacing:-.02em">0 – 2</p>
+   349→                  <p style="font:700 9px var(--sans);letter-spacing:.14em;color:#2f8f6d;margin-top:2px">FINAL ✓</p>
+   350→                </div>
+   351→                <div style="text-align:center;width:64px">
+   352→                  <div style="width:46px;height:46px;margin:0 auto;border-radius:50%;background:linear-gradient(150deg,#ff7d6b,#d63b2f);display:grid;place-items:center;color:#fff;font:800 13px var(--sans);box-shadow:inset 0 2px 0 rgba(255,255,255,.35),0 6px 14px rgba(214,59,47,.35)">ESP</div>
+   353→                  <p style="font:700 10.5px var(--sans);color:var(--ink);margin-top:5px">España</p>
+   354→                </div>
+   355→              </div>
+   356→              <div style="margin-top:12px;background:rgba(70,194,147,.08);border:1px solid rgba(70,194,147,.22);border-radius:14px;padding:9px 12px">
+   357→                <div class="trow" style="border:none;padding:3px 0"><span class="ti" style="background:linear-gradient(140deg,#46c293,#2f8f6d)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" class="ballb"><circle cx="12" cy="12" r="9"/><path d="M12 7l3 2.2-1.2 3.6h-3.6L9 9.2zM12 3v4M4.5 10l4.5-.8M19.5 10L15 9.2M7 19l2.5-3.4M17 19l-2.5-3.4"/></svg></span><div class="tb"><p class="tt">Porro 23’ · Merino 67’</p><p class="td">Los goles, en la card — no solo en la voz</p></div></div>
+   358→              </div>
+   359→              <div class="kc-metrics" style="grid-template-columns:1fr">
+   360→                <div class="kc-m" style="gap:6px"><div style="display:flex;justify-content:space-between;font:700 9.5px var(--sans)"><span style="color:var(--ink-soft)">POSESIÓN</span><span><b style="color:#2440b8">49%</b> · <b style="color:#d63b2f">51%</b></span></div><div class="duel"><i style="width:49%;background:linear-gradient(90deg,#4a6cf7,#2440b8)"></i><i style="width:51%;background:linear-gradient(90deg,#ff7d6b,#d63b2f)"></i></div></div>
+   361→              </div>
+   362→              <button class="kc-cta" style="background:linear-gradient(120deg,#46c293,#2f8f6d 60%,#257a5c)">Ver la ficha del partido <svg class="arr" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+   363→            </div>
+   364→          </div>
+   365→          <div class="p-input"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8363f9" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span class="ph">Habla con Koru…</span><span class="mic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span></div>
+   366→        </div>
+   367→      </div>
+   368→      <div style="flex:1;min-width:300px">
+   369→        <div class="finding rv d1"><span class="fid">FIX H8–H10, W3–W4</span><p>Kicker de 1 línea y en español · marcador héroe 34px · escudos con iniciales y colores de equipo · goleadores dentro de la card · posesión como duelo de colores, no “49% – 51%” partido.</p></div>
+   370→        <div class="panel rv d2" style="margin-top:16px"><span class="tagline">El momento vivo</span><p>La <b>pelotita rebota</b> junto a los goleadores. En partido EN VIVO, el dot del kicker pulsa rojo y el minuto corre — lo ves en la página de Tenis y en microdetalles.</p></div>
+   371→        <div class="panel lite rv d3" style="margin-top:14px"><span class="tagline">Jerarquía</span><p style="color:#e9e2ff">1️⃣ Marcador 2️⃣ Equipos (color) 3️⃣ Goleadores 4️⃣ Una stat que cuenta el partido. Todo lo demás vive en el extendido.</p></div>
+   372→      </div>
+   373→    </div>
+   374→  </div>
+   375→</section>
+   376→
+   377→<!-- ══════════════ PÁG 38 · CARD 04B · FÚTBOL EXTENDIDA ══════════════ -->
+   378→<section class="pg" id="card-futbol-x" data-toc="04 · Fútbol · extendida">
+   379→  <div class="wrap">
+   380→    <span class="eyebrow rv">Card 04/30 · Extendida</span>
+   381→    <h2 class="title rv d1">Fútbol → <em>la ficha completa, con tabs vivos</em></h2>
+   382→    <p class="lede rv d2">El extendido hereda los tabs que el repo ya tenía en <span class="codetok">LiveMatchCard</span> (Stats · Lineups · Timeline) y los vuelve cine: <b>tocá los tabs del mock — funcionan de verdad.</b></p>
+   383→    <div class="stage" style="margin-top:30px">
+   384→      <div class="phone rv d1">
+   385→        <div class="p-screen">
+   386→          <div class="xt" style="position:relative;border-radius:44px">
+   387→            <div class="xt-hero" style="background:linear-gradient(170deg,#1e5c46,#143c30 60%,#0f2b22);padding:40px 20px 26px">
+   388→              <div class="glow" style="background:#46c293;opacity:.4"></div>
+   389→              <div class="back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg></div>
+   390→              <div class="fav"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" class="bellswing"><path d="M18 9a6 6 0 1 0-12 0c0 6-2.5 7-2.5 7h17S18 15 18 9zM10 20a2.2 2.2 0 0 0 4 0"/></svg></div>
+   391→              <div style="display:flex;align-items:center;justify-content:center;gap:18px;position:relative">
+   392→                <div style="text-align:center"><div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(150deg,#4a6cf7,#2440b8);display:grid;place-items:center;color:#fff;font:800 14px var(--sans);box-shadow:0 8px 18px rgba(0,0,0,.4)">FRA</div></div>
+   393→                <div style="text-align:center"><p style="font:800 40px var(--serif);color:#fff">0–2</p><p style="font:700 9px var(--sans);letter-spacing:.18em;color:#9fe8c9">FINAL</p></div>
+   394→                <div style="text-align:center"><div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(150deg,#ff7d6b,#d63b2f);display:grid;place-items:center;color:#fff;font:800 14px var(--sans);box-shadow:0 8px 18px rgba(214,59,47,.5)">ESP</div></div>
+   395→              </div>
+   396→              <p class="xt-sub" style="margin-top:10px">Amistoso internacional · París · Porro 23’, Merino 67’</p>
+   397→            </div>
+   398→            <div class="xt-body" style="margin-top:-8px">
+   399→              <div class="mcard" style="padding:10px 12px 12px">
+   400→                <div class="ktabs" style="margin-top:0" id="ftabs">
+   401→                  <button class="ktab on" data-kp="fp1">Stats</button>
+   402→                  <button class="ktab" data-kp="fp2">Formación</button>
+   403→                  <button class="ktab" data-kp="fp3">Timeline</button>
+   404→                </div>
+   405→                <div class="kpane on" id="fp1" style="margin-top:12px">
+   406→                  <div style="display:flex;flex-direction:column;gap:10px">
+   407→                    <div><div style="display:flex;justify-content:space-between;font:700 9.5px var(--sans);margin-bottom:4px"><span style="color:var(--ink-soft)">POSESIÓN</span><span><b style="color:#2440b8">49%</b> · <b style="color:#d63b2f">51%</b></span></div><div class="duel"><i style="width:49%;background:#4a6cf7"></i><i style="width:51%;background:#ff7d6b"></i></div></div>
+   408→                    <div><div style="display:flex;justify-content:space-between;font:700 9.5px var(--sans);margin-bottom:4px"><span style="color:var(--ink-soft)">TIROS</span><span><b style="color:#2440b8">10</b> · <b style="color:#d63b2f">10</b></span></div><div class="duel"><i style="width:50%;background:#4a6cf7"></i><i style="width:50%;background:#ff7d6b"></i></div></div>
+   409→                    <div><div style="display:flex;justify-content:space-between;font:700 9.5px var(--sans);margin-bottom:4px"><span style="color:var(--ink-soft)">TIROS AL ARCO</span><span><b style="color:#2440b8">3</b> · <b style="color:#d63b2f">2</b></span></div><div class="duel"><i style="width:60%;background:#4a6cf7"></i><i style="width:40%;background:#ff7d6b"></i></div></div>
+   410→                    <div><div style="display:flex;justify-content:space-between;font:700 9.5px var(--sans);margin-bottom:4px"><span style="color:var(--ink-soft)">PASES COMPLETADOS</span><span><b style="color:#2440b8">88%</b> · <b style="color:#d63b2f">91%</b></span></div><div class="duel"><i style="width:49%;background:#4a6cf7"></i><i style="width:51%;background:#ff7d6b"></i></div></div>
+   411→                  </div>
+   412→                </div>
+   413→                <div class="kpane" id="fp2" style="margin-top:12px">
+   414→                  <div style="position:relative;height:170px;border-radius:14px;background:linear-gradient(180deg,#3aa273,#2f8f6d);overflow:hidden;box-shadow:inset 0 0 0 2px rgba(255,255,255,.25)">
+   415→                    <div style="position:absolute;left:50%;top:0;bottom:0;width:2px;background:rgba(255,255,255,.35)"></div>
+   416→                    <div style="position:absolute;left:50%;top:50%;width:52px;height:52px;border:2px solid rgba(255,255,255,.35);border-radius:50%;transform:translate(-50%,-50%)"></div>
+   417→                    <span style="position:absolute;left:16%;top:44%;width:22px;height:22px;border-radius:50%;background:#4a6cf7;border:2px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.3)"></span>
+   418→                    <span style="position:absolute;left:12%;top:24%;width:22px;height:22px;border-radius:50%;background:#4a6cf7;border:2px solid #fff"></span>
+   419→                    <span style="position:absolute;left:12%;top:66%;width:22px;height:22px;border-radius:50%;background:#4a6cf7;border:2px solid #fff"></span>
+   420→                    <span style="position:absolute;left:34%;top:14%;width:22px;height:22px;border-radius:50%;background:#4a6cf7;border:2px solid #fff"></span>
+   421→                    <span style="position:absolute;left:34%;top:76%;width:22px;height:22px;border-radius:50%;background:#4a6cf7;border:2px solid #fff"></span>
+   422→                    <span style="position:absolute;right:16%;top:44%;width:22px;height:22px;border-radius:50%;background:#ff7d6b;border:2px solid #fff;animation:twinkle 2.4s infinite"></span>
+   423→                    <span style="position:absolute;right:12%;top:26%;width:22px;height:22px;border-radius:50%;background:#ff7d6b;border:2px solid #fff"></span>
+   424→                    <span style="position:absolute;right:12%;top:64%;width:22px;height:22px;border-radius:50%;background:#ff7d6b;border:2px solid #fff"></span>
+   425→                    <span style="position:absolute;right:34%;top:16%;width:22px;height:22px;border-radius:50%;background:#ff7d6b;border:2px solid #fff"></span>
+   426→                    <span style="position:absolute;right:34%;top:74%;width:22px;height:22px;border-radius:50%;background:#ff7d6b;border:2px solid #fff"></span>
+   427→                  </div>
+   428→                  <p class="tx" style="margin-top:8px">4-3-3 vs 4-2-3-1 · <b>Porro</b> brilló por la banda (titila)</p>
+   429→                </div>
+   430→                <div class="kpane" id="fp3" style="margin-top:12px">
+   431→                  <div class="tl-wrap">
+   432→                    <div class="tl-step done"><span class="when">23’</span><p class="tt">⚽ GOL de España · Porro</p><p class="td">contra letal por derecha, define cruzado</p></div>
+   433→                    <div class="tl-step done"><span class="when">41’</span><p class="tt">🟨 Amarilla · Francia</p><p class="td">plancha sobre Lamine</p></div>
+   434→                    <div class="tl-step done"><span class="when">67’</span><p class="tt">⚽ GOL de España · Merino</p><p class="td">cabezazo tras córner — la liquidó</p></div>
+   435→                    <div class="tl-step now"><span class="when">90’</span><p class="tt">Final del partido</p><p class="td">España estira el invicto a 12 partidos</p></div>
+   436→                  </div>
+   437→                </div>
+   438→              </div>
+   439→            </div>
+   440→            <div class="xt-actions">
+   441→              <button class="xbtn pri"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" class="bellswing"><path d="M18 9a6 6 0 1 0-12 0c0 6-2.5 7-2.5 7h17S18 15 18 9zM10 20a2.2 2.2 0 0 0 4 0"/></svg>Seguir a España</button>
+   442→              <button class="xbtn sec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.2 10.8l7.6-3.6M8.2 13.2l7.6 3.6"/></svg>Compartir</button>
+   443→            </div>
+   444→          </div>
+   445→        </div>
+   446→      </div>
+   447→      <div style="flex:1;min-width:300px">
+   448→        <div class="panel rv d1"><span class="tagline">Funcionalidades</span><p>📊 <b>Stats como duelos de color</b> animados al entrar (las barras crecen)<br>🟢 Formación en mini-cancha con el MVP titilando<br>⏱ Timeline con los goles narrados por Koru<br>🔔 “Seguir a España”: próximos partidos llegan solos al Home<br>📤 Compartir genera imagen de la ficha</p></div>
+   449→        <div class="panel lite rv d2" style="margin-top:14px"><span class="tagline">Lo interactivo es real</span><p style="color:#e9e2ff">Los tabs de este mock funcionan (JS puro, mismo patrón que el repo: <span class="codetok">LiveMatchCard</span> con tabs Stats/Lineups/Timeline). Probalos.</p></div>
+   450→      </div>
+   451→    </div>
+   452→  </div>
+   453→</section>
+   454→
+   455→<!-- ══════════════ PÁG 39 · CARD 05A · TENIS ══════════════ -->
+   456→<section class="pg" id="card-tenis" data-toc="05 · Tenis">
+   457→  <div class="wrap">
+   458→    <span class="eyebrow rv">Card 05/30 · Dominio césped</span>
+   459→    <h2 class="title rv d1">Tenis: <em>el deporte de los micro-momentos</em></h2>
+   460→    <p class="lede rv d2">El tenis no cabe en un “0–2”: vive punto a punto, game a game. La card compacta muestra <b>sets + el game en curso</b> con la pelotita viva; el extendido es un cuadro de punto completo.</p>
+   461→    <div class="stage" style="margin-top:30px">
+   462→      <div class="phone rv d1">
+   463→        <div class="p-screen">
+   464→          <div class="p-stars"><i style="top:11%;left:20%;width:2px;height:2px"></i><i style="top:8%;left:70%;width:2px;height:2px;animation-delay:.8s"></i></div>
+   465→          <div class="p-status"><span>16:32</span><span class="sic">●●● 5G ▮</span></div>
+   466→          <div class="p-world" style="height:118px"><div class="isle i1"><i class="lan"></i></div><div class="isle i3"><i class="lan"></i></div><img class="mascot" src="assets/mascot.png" alt="" style="width:98px;top:14px"></div>
+   467→          <div class="p-chat">
+   468→            <div class="bubble me">¿va ganando Alcaraz?</div>
+   469→            <div class="bubble koru">Va un set arriba y pelea el segundo ¡punto de quiebre ahora! 🎾</div>
+   470→            <div class="kc">
+   471→              <p class="kc-kicker" style="color:#d63b2f"><span class="dot live"></span>ROLAND GARROS · SEMIFINAL · <b style="color:#d63b2f">EN VIVO</b></p>
+   472→              <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
+   473→                <div style="display:flex;align-items:center;gap:10px">
+   474→                  <span style="width:26px;height:26px;border-radius:50%;background:linear-gradient(140deg,#ff9d5c,#e2682a);display:grid;place-items:center;color:#fff;font:800 9px var(--sans)">ALC</span>
+   475→                  <span style="flex:1;font:800 13px var(--sans);color:var(--ink)">Alcaraz</span>
+   476→                  <span style="font:800 13px var(--sans);color:var(--ink-faint)">6</span><span style="font:800 13px var(--sans);color:var(--ink);margin-left:10px;background:rgba(214,59,47,.1);padding:2px 8px;border-radius:8px">5</span>
+   477→                  <span style="font:800 13px var(--sans);color:#d63b2f;margin-left:8px">40</span>
+   478→                </div>
+   479→                <div style="display:flex;align-items:center;gap:10px">
+   480→                  <span style="width:26px;height:26px;border-radius:50%;background:linear-gradient(140deg,#4a6cf7,#2440b8);display:grid;place-items:center;color:#fff;font:800 9px var(--sans)">SIN</span>
+   481→                  <span style="flex:1;font:800 13px var(--sans);color:var(--ink-soft)">Sinner</span>
+   482→                  <span style="font:800 13px var(--sans);color:var(--ink-faint)">3</span><span style="font:800 13px var(--sans);color:var(--ink-soft);margin-left:10px;background:var(--paper2);padding:2px 8px;border-radius:8px">4</span>
+   483→                  <span style="font:800 13px var(--sans);color:var(--ink-soft);margin-left:8px">30</span>
+   484→                </div>
+   485→              </div>
+   486→              <div style="margin-top:12px;display:flex;align-items:center;gap:8px;background:rgba(214,59,47,.07);border:1px solid rgba(214,59,47,.2);border-radius:12px;padding:8px 12px">
+   487→                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#d63b2f" stroke-width="2" class="ballb"><circle cx="12" cy="12" r="9"/><path d="M4.5 7.5c3 2 3 7 0 9M19.5 7.5c-3 2-3 7 0 9"/></svg>
+   488→                <span style="font:700 10.5px var(--sans);color:#a03024">Punto de quiebre · saque de Sinner</span>
+   489→              </div>
+   490→              <button class="kc-cta" style="background:linear-gradient(120deg,#46c293,#2f8f6d 60%,#257a5c)">Ver el partido punto a punto <svg class="arr" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+   491→            </div>
+   492→          </div>
+   493→          <div class="p-input"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8363f9" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span class="ph">Habla con Koru…</span><span class="mic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span></div>
+   494→        </div>
+   495→      </div>
+   496→      <div style="flex:1;min-width:300px">
+   497→        <div class="panel rv d1"><span class="tagline">Por qué tenis es otra especie de card</span><p>El marcador es <b>tridimensional</b> (sets · games · puntos). La card lo ordena: set ganado en gris, set actual destacado, puntos en color vivo. Y el momento que importa — <b>punto de quiebre</b> — tiene su propio sello.</p></div>
+   498→        <div class="panel rv d2" style="margin-top:14px"><span class="tagline">El momento vivo</span><p>Pelotita rebotando junto al quiebre + dot LIVE pulsando. Cuando cambia el punto, la celda parpadea y se actualiza — como un marcador de verdad.</p></div>
+   499→      </div>
+   500→    </div>
+   501→  </div>
+   502→</section>
+   503→
+   504→<!-- ══════════════ PÁG 40 · CARD 05B · TENIS EXTENDIDA ══════════════ -->
+   505→<section class="pg" id="card-tenis-x" data-toc="05 · Tenis · extendida">
+   506→  <div class="wrap">
+   507→    <span class="eyebrow rv">Card 05/30 · Extendida</span>
+   508→    <h2 class="title rv d1">Tenis → <em>el cuadro de punto completo</em></h2>
+   509→    <div class="stage" style="margin-top:30px">
+   510→      <div class="phone rv d1">
+   511→        <div class="p-screen">
+   512→          <div class="xt" style="position:relative;border-radius:44px">
+   513→            <div class="xt-hero" style="background:linear-gradient(170deg,#7a3a24,#4d2317 60%,#2b130c);padding:40px 20px 26px">
+   514→              <div class="glow" style="background:#ff9d5c;opacity:.45"></div>
+   515→              <div class="back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg></div>
+   516→              <p class="xt-sub" style="color:#ffd9c2">ROLAND GARROS · SEMIFINAL · EN VIVO</p>
+   517→              <h3 class="xt-title" style="font-size:24px;margin-top:6px">Alcaraz 1–0 Sinner</h3>
+   518→              <p class="xt-sub" style="color:#ffd9c2">6–3 · 5–4 · 40–30 · punto de quiebre</p>
+   519→            </div>
+   520→            <div class="xt-body" style="margin-top:-10px">
+   521→              <div class="mcard">
+   522→                <div class="mh"><span class="ic" style="background:linear-gradient(140deg,#ff9d5c,#e2682a)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" class="ballb"><circle cx="12" cy="12" r="9"/><path d="M4.5 7.5c3 2 3 7 0 9M19.5 7.5c-3 2-3 7 0 9"/></svg></span><div><h5>Game en curso</h5><span class="mk">PUNTO A PUNTO</span></div></div>
+   523→                <div style="display:flex;justify-content:center;gap:8px;padding:4px 0 8px">
+   524→                  <span style="width:34px;height:24px;border-radius:8px;background:#2f8f6d;color:#fff;display:grid;place-items:center;font:800 10px var(--sans)">15</span>
+   525→                  <span style="width:34px;height:24px;border-radius:8px;background:#2f8f6d;color:#fff;display:grid;place-items:center;font:800 10px var(--sans)">30</span>
+   526→                  <span style="width:34px;height:24px;border-radius:8px;background:var(--paper3);color:var(--ink-soft);display:grid;place-items:center;font:800 10px var(--sans)">15</span>
+   527→                  <span style="width:34px;height:24px;border-radius:8px;background:#d63b2f;color:#fff;display:grid;place-items:center;font:800 10px var(--sans);animation:livePulse 1.6s infinite">40</span>
+   528→                </div>
+   529→                <p class="tx" style="text-align:center">Alcaraz quebró con una dejada que paró la grada 🔥</p>
+   530→              </div>
+   531→              <div class="mcard">
+   532→                <div class="mh"><span class="ic" style="background:linear-gradient(140deg,#46c293,#2f8f6d)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg></span><div><h5>Servicio</h5><span class="mk">LA BATALLA REAL</span></div></div>
+   533→                <div style="display:flex;flex-direction:column;gap:9px">
+   534→                  <div><div style="display:flex;justify-content:space-between;font:700 9.5px var(--sans);margin-bottom:4px"><span style="color:var(--ink-soft)">1ER SAQUE</span><span><b style="color:#e2682a">64%</b> · <b style="color:#2440b8">71%</b></span></div><div class="duel"><i style="width:47%;background:#ff9d5c"></i><i style="width:53%;background:#4a6cf7"></i></div></div>
+   535→                  <div><div style="display:flex;justify-content:space-between;font:700 9.5px var(--sans);margin-bottom:4px"><span style="color:var(--ink-soft)">PUNTOS GANADOS CON 1ERO</span><span><b style="color:#e2682a">78%</b> · <b style="color:#2440b8">66%</b></span></div><div class="duel"><i style="width:54%;background:#ff9d5c"></i><i style="width:46%;background:#4a6cf7"></i></div></div>
+   536→                </div>
+   537→              </div>
+   538→              <div class="mcard">
+   539→                <div class="mh"><span class="ic" style="background:linear-gradient(140deg,#a78bfa,#8363f9)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><div><h5>Historial (H2H)</h5><span class="mk">5–5 · LA RIVALIDAD</span></div></div>
+   540→                <p class="tx">Onceavo cruce. En polvo: <b>3–1 Alcaraz</b>. El que gana hoy juega la final del domingo.</p>
+   541→              </div>
+   542→            </div>
+   543→            <div class="xt-actions">
+   544→              <button class="xbtn pri"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" class="bellswing"><path d="M18 9a6 6 0 1 0-12 0c0 6-2.5 7-2.5 7h17S18 15 18 9zM10 20a2.2 2.2 0 0 0 4 0"/></svg>Avisame cada quiebre</button>
+   545→              <button class="xbtn sec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-8"/></svg>Stats</button>
+   546→            </div>
+   547→          </div>
+   548→        </div>
+   549→      </div>
+   550→      <div style="flex:1;min-width:300px">
+   551→        <div class="panel rv d1"><span class="tagline">Funcionalidades</span><p>🎾 Game en curso <b>punto a punto</b> con el último punto pulsando<br>📊 Duelo de servicio (la stat que define el polvo)<br>⚔️ H2H con contexto de superficie<br>🔔 Suscripción granular: “avisame cada quiebre”, no cada punto<br>🟠 Hero terracota Roland Garros — el torneo tiene identidad</p></div>
+   552→      </div>
+   553→    </div>
+   554→  </div>
+   555→</section>
+   556→
+   557→<!-- ══════════════ PÁG 41 · CARD 06A · CRIPTO ══════════════ -->
+   558→<section class="pg" id="card-cripto" data-toc="06 · Cripto">
+   559→  <div class="wrap">
+   560→    <span class="eyebrow rv">Card 06/30 · Dominio miel</span>
+   561→    <h2 class="title rv d1">Cripto: <em>tu portafolio con pulso</em></h2>
+   562→    <p class="lede rv d2">La evidencia (pág. 12) mostró el peor estado del producto: “? USD” y +0.0% falsos. Rediseño: datos canónicos del repo ($64.230, +2.45%) <b>latiendo en vivo</b> — y cuando no hay datos, el estado honesto de la pág. 29.</p>
+   563→    <div class="stage" style="margin-top:30px">
+   564→      <div class="phone rv d1">
+   565→        <div class="p-screen">
+   566→          <div class="p-stars"><i style="top:10%;left:22%;width:2px;height:2px"></i><i style="top:7%;left:68%;width:3px;height:3px;animation-delay:.6s"></i><i style="top:18%;left:82%;width:2px;height:2px;animation-delay:1.1s"></i></div>
+   567→          <div class="p-status"><span>11:24</span><span class="sic">●●● 5G ▮</span></div>
+   568→          <div class="p-world" style="height:112px"><div class="isle i1"><i class="lan"></i></div><div class="isle i3"><i class="lan"></i></div><img class="mascot" src="assets/mascot.png" alt="" style="width:96px;top:12px"></div>
+   569→          <div class="p-chat">
+   570→            <div class="bubble me">¿cómo viene el bitcoin?</div>
+   571→            <div class="bubble koru">Viene lindo: $64.230, subiendo 2.45% en el día. Te dejé el pulso completo 🍯</div>
+   572→            <div class="kc">
+   573→              <div class="kc-top">
+   574→                <div class="kc-copy">
+   575→                  <p class="kc-kicker" style="color:#b47608"><span class="dot" style="animation:livePulseG 1.8s infinite;background:#f59e0b"></span>TU PORTAFOLIO · EN VIVO</p>
+   576→                  <h3 class="kc-title">Bitcoin</h3>
+   577→                  <p class="kc-desc liveprice" style="font:800 22px var(--serif);color:var(--ink);margin-top:4px" id="btcPrice">$64.230</p>
+   578→                  <p style="font:700 10.5px var(--sans);color:#2f8f6d;margin-top:2px">▲ +2.45% hoy</p>
+   579→                </div>
+   580→                <div class="kc-art" style="background:linear-gradient(150deg,#f6bd6d,#f59e0b 65%,#d97706)">
+   581→                  <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" class="coinspin"><circle cx="12" cy="12" r="8.5"/><path d="M9.5 8.5h3.7a1.9 1.9 0 0 1 0 3.8H9.5zm0 3.8h4.2a1.9 1.9 0 0 1 0 3.8H9.5zM11.5 6.8v1.7M11.5 16.1v1.7"/></svg>
+   582→                </div>
+   583→              </div>
+   584→              <div style="margin-top:12px">
+   585→                <svg viewBox="0 0 300 60" style="width:100%;height:60px">
+   586→                  <defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f59e0b" stop-opacity=".4"/><stop offset="1" stop-color="#f59e0b" stop-opacity="0"/></linearGradient></defs>
+   587→                  <path d="M0,44 C20,42 30,48 45,44 C60,40 70,30 85,32 C100,34 110,42 130,38 C150,34 165,22 185,24 C205,26 220,18 245,16 C265,14 285,18 300,14 L300,60 L0,60 Z" fill="url(#cg)"/>
+   588→                  <path class="draw" style="stroke-dasharray:360" d="M0,44 C20,42 30,48 45,44 C60,40 70,30 85,32 C100,34 110,42 130,38 C150,34 165,22 185,24 C205,26 220,18 245,16 C265,14 285,18 300,14" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round"/>
+   589→                  <circle cx="300" cy="14" r="4" fill="#f59e0b"><animate attributeName="r" values="3.4;5;3.4" dur="1.6s" repeatCount="indefinite"/></circle>
+   590→                </svg>
+   591→              </div>
+   592→              <div class="kc-metrics m2">
+   593→                <div class="kc-m"><span class="ml">Market cap</span><span class="mv">$1.24 <small>B</small></span></div>
+   594→                <div class="kc-m"><span class="ml">Tu tenencia</span><span class="mv">0.042 <small>BTC</small></span></div>
+   595→              </div>
+   596→              <button class="kc-cta" style="background:linear-gradient(120deg,#f6bd6d,#f59e0b 60%,#d97706);color:#3d2404">Ver el portafolio completo <svg class="arr" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3d2404" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+   597→            </div>
+   598→          </div>
+   599→          <div class="p-input"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8363f9" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span class="ph">Habla con Koru…</span><span class="mic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span></div>
+
+[showing lines 300-599 of 1178; use offset=600 with limit to continue reading]
