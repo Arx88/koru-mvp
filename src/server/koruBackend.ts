@@ -4641,7 +4641,7 @@ function normalizeFinalPayload(
       finalReply += " Te dejé el detalle en la tarjeta.";
     }
   }
-  return {
+  const result: KoruBackendTurnResponse = {
     reply: finalReply,
     uiBlocks,
     suggestedActions: normalizeSuggestedActions(raw.suggestedActions),
@@ -4698,6 +4698,21 @@ function normalizeFinalPayload(
       ...asArray(extractedRaw?.behaviorNotes).map((v) => cleanText(v)).filter(Boolean),
     ])],
   };
+  // 🔴 KIMI v6 — Bug fix: si NO hay uiBlocks Y NO hay toolResults con datos,
+  // NO persistir commitments ni records. El memory extractor a veces interpreta
+  // la pregunta del usuario ("qué recordás de mí") como un commitment a crear,
+  // contaminando el store con basura. Solo persistir si hay cards reales o
+  // tools que devolvieron datos.
+  const hasUiBlocks = result.uiBlocks.length > 0;
+  const hasToolData = toolExecutions.some((exec) => {
+    const r = exec.result as Record<string, unknown>;
+    return r && (Array.isArray(r.records) || Array.isArray(r.commitments));
+  });
+  if (!hasUiBlocks && !hasToolData) {
+    result.commitments = [];
+    result.records = [];
+  }
+  return result;
 }
 
 
