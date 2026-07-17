@@ -11,6 +11,43 @@ import { convertCurrency } from "../../../tools/travel/currencyConverter";
 import { KoruIcon, iconFromMaterial } from "./KoruIcons";
 import { LivePrice } from "./useLivePrice";
 
+/** Hook: detecta si el navegador está offline. */
+function useOnlineStatus(): boolean {
+  const [online, setOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true);
+  useEffect(() => {
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
+  }, []);
+  return online;
+}
+
+/** Hook: detecta si el usuario está inactivo (sin touch/mouse/keyboard por N ms). */
+function useIsIdle(thresholdMs = 5 * 60 * 1000): boolean {
+  const [idle, setIdle] = useState(false);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const reset = () => {
+      setIdle(false);
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => setIdle(true), thresholdMs);
+    };
+    const events = ["mousemove", "touchstart", "keydown", "click", "scroll"];
+    events.forEach((e) => window.addEventListener(e, reset, { passive: true }));
+    reset();
+    return () => {
+      if (timer) clearTimeout(timer);
+      events.forEach((e) => window.removeEventListener(e, reset));
+    };
+  }, [thresholdMs]);
+  return idle;
+}
+
 // 🔴 Code-splitting: CollectionsScreen (~600 líneas, renderer markdown + portal)
 // se carga bajo demanda cuando el CTA del card abre la vista de colección.
 // Necesita default export en CollectionsScreen.tsx (agregado).
@@ -60,6 +97,9 @@ type SharedProps = {
   handleKeyDown: (e: React.KeyboardEvent) => void;
   hasMetricValues: boolean;
   displayTitle: string;
+  // 🔴 KIMI v4: estado ambiente para aplicar modo dormir / offline badge.
+  isIdle: boolean;
+  isOnline: boolean;
 };
 
 // ---- Helpers compartidos por todos los layouts ------------------------------
@@ -435,14 +475,25 @@ function isLivePriceBlock(block: UiBlock): boolean {
 // ============================================================================
 
 function DefaultLayout(props: SharedProps) {
-  const { block, hero, detail, cta, actions, empty, isTappable, open, setOpen, handleClick, handleKeyDown, hasMetricValues, displayTitle } = props;
+  const { block, hero, detail, cta, actions, empty, isTappable, open, setOpen, handleClick, handleKeyDown, hasMetricValues, displayTitle, isIdle, isOnline } = props;
   const metrics = hero.metrics ?? [];
   // 🔴 KIMI audit: si hay 2 métricas con valor, la grid usa la variante m2.
   const metricsClass = hasMetricValues
     ? `koru-unified-metrics kc-metrics${metrics.length === 2 ? " m2" : ""}`
     : "koru-plan-hero-cats";
+  // 🔴 KIMI v4: modo dormir + offline badge en la clase raíz.
+  const sleepyClass = isIdle ? " koru-card-sleepy" : "";
   return (
-    <CardRoot block={block} hero={hero} isTappable={isTappable} open={open} handleClick={handleClick} handleKeyDown={handleKeyDown} className="kc">
+    <CardRoot block={block} hero={hero} isTappable={isTappable} open={open} handleClick={handleClick} handleKeyDown={handleKeyDown} className={`kc${sleepyClass}`}>
+      {/* 🔴 KIMI v4: badge offline cuando no hay conexión. */}
+      {!isOnline && (
+        <div className="koru-card-offline-badge" style={{ position: "absolute", top: 10, right: 14, zIndex: 5 }}>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+            <path d="M5 16a4 4 0 0 1 0-8 6 6 0 0 1 11.5-2 4 4 0 0 1 1 8z" />
+          </svg>
+          Sin conexión
+        </div>
+      )}
       {/* 🔴 KIMI audit: sparkles decorativos (top-right + bottom-left).
           El CSS define la animación twinkle (si no existe en style.css,
           los puntos quedan estáticos — pendiente de agregar keyframes). */}
@@ -1015,6 +1066,10 @@ export function KoruUnifiedCard({ block }: { block: UiBlock }) {
   const { hero, detail, cta, actions, empty, layout = "default" } = toPresentation(block, { userCurrency });
   const hasMetricValues = hero.metrics?.some((m) => m.value != null) ?? false;
 
+  // 🔴 KIMI v4: modo dormir (5 min idle) + offline badge.
+  const isIdle = useIsIdle();
+  const isOnline = useOnlineStatus();
+
   // 🔴 v4 — Pre-fetch exchange rates for travel_plan budget currencies.
   // toPresentation's travelPlan mapper reads cached rates synchronously
   // (via getCachedRate). On first render the cache is empty, so we trigger
@@ -1090,6 +1145,8 @@ export function KoruUnifiedCard({ block }: { block: UiBlock }) {
     handleKeyDown,
     hasMetricValues,
     displayTitle,
+    isIdle,
+    isOnline,
   };
 
   if (layout === "compact") return <CompactLayout {...shared} />;
