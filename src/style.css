@@ -63,6 +63,14 @@
   --motion-tap: 150ms;
   --motion-entrance: 500ms;
   --motion-ambient: 4s;
+
+  /* 🔴 KIMI W3 (apéndice) — tipografías base del sistema.
+     `--font-display` para títulos hero, `--font-sans` para cuerpo,
+     `--font-mono` para números/código. (Los tokens @theme inline debajo
+     alimentan Tailwind; estos en :root son para CSS crudo.) */
+  --font-display: 'Bricolage Grotesque', Georgia, serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }
 
 @theme inline {
@@ -1483,13 +1491,25 @@ button.koru-stitch-row {
 }
 
 .koru-card-kicker {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   color: var(--koru-muted);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.06em;
   line-height: 1.2;
   text-transform: uppercase;
+}
+.koru-card-kicker .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+.koru-card-kicker .dot.live {
+  animation: koru-pulse-dot 1.6s infinite;
 }
 
 .koru-decision-card,
@@ -2933,7 +2953,7 @@ button.koru-stitch-row {
   height: 120px;
   flex: 0 0 auto;
   border-radius: 26px;
-  box-shadow: 0 16px 30px rgba(70, 72, 212, 0.18);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.35), inset 0 -10px 18px rgba(0,0,0,0.14), 0 8px 18px rgba(18,10,50,0.25), 0 0 24px var(--accent-glow, rgba(131,99,249,0.15));
 }
 
 .koru-unified-art-icon {
@@ -2944,6 +2964,11 @@ button.koru-stitch-row {
   font-size: 22px;
   font-weight: 800;
   color: #382b8c;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.4);
+}
+
+.koru-unified-art .material-symbols-outlined {
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25));
 }
 
 /* Fila de 3 métricas con valor (clima: humedad/viento/min-max).
@@ -7809,13 +7834,139 @@ a.koru-dsec-source:hover {
 
 .koru-plan-hero { animation: koru-card-body-in 0.7s var(--ease-spring, cubic-bezier(.34,1.56,.64,1)) backwards; }
 .koru-plan-hero-kicker { animation: koru-kicker-in 0.4s var(--ease-soft, cubic-bezier(.45,.05,.15,1)) backwards; animation-delay: 60ms; }
+.koru-card-kicker { animation: koru-kicker-in 0.4s var(--ease-soft, cubic-bezier(.45,.05,.15,1)) backwards; animation-delay: 60ms; }
 .koru-unified-metric:nth-child(1) { animation: koru-metric-cascade 0.4s var(--ease-soft, cubic-bezier(.45,.05,.15,1)) backwards; animation-delay: 120ms; }
 .koru-unified-metric:nth-child(2) { animation: koru-metric-cascade 0.4s var(--ease-soft, cubic-bezier(.45,.05,.15,1)) backwards; animation-delay: 160ms; }
 .koru-unified-metric:nth-child(3) { animation: koru-metric-cascade 0.4s var(--ease-soft, cubic-bezier(.45,.05,.15,1)) backwards; animation-delay: 200ms; }
 .koru-plan-hero-cta-hint { animation: koru-cta-glow-in 0.5s var(--ease-soft, cubic-bezier(.45,.05,.15,1)) backwards; animation-delay: 180ms; }
+.koru-kimi-cta { animation: koru-cta-glow-in 0.5s var(--ease-soft, cubic-bezier(.45,.05,.15,1)) backwards; animation-delay: 180ms; }
 
 @media (prefers-reduced-motion: reduce) {
-  .koru-plan-hero, .koru-plan-hero-kicker, .koru-unified-metric, .koru-plan-hero-cta-hint {
+  .koru-plan-hero, .koru-plan-hero-kicker, .koru-card-kicker, .koru-unified-metric, .koru-plan-hero-cta-hint, .koru-kimi-cta {
     animation: none !important;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   KIMI AUDIT — Refined card visual design (CTA pill, metric squares, foot)
+   Nuevos componentes visuales del molde Stitch unificado, extraídos del
+   audit Kimi (kc-*). No reemplazan a los anteriores; conviven para
+   backward compatibility.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ═══ KIMI — CTA pill button with sheen ═══ */
+.koru-kimi-cta {
+  position: relative;
+  overflow: hidden;
+  margin-top: 14px;
+  width: 100%;
+  border: none;
+  cursor: pointer;
+  border-radius: 999px;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #fff;
+  font: 800 13px "Plus Jakarta Sans", sans-serif;
+  letter-spacing: 0.02em;
+  background: linear-gradient(120deg, #8363f9 0%, #6a48e6 55%, #523a9e 120%);
+  box-shadow: 0 8px 20px rgba(131,99,249,0.4), inset 0 1px 0 rgba(255,255,255,0.35);
+  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s;
+}
+.koru-kimi-cta:hover { transform: scale(1.02); box-shadow: 0 12px 26px rgba(131,99,249,0.55), inset 0 1px 0 rgba(255,255,255,0.4); }
+.koru-kimi-cta:active { transform: scale(0.97); }
+.koru-kimi-cta .arr { transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+.koru-kimi-cta:hover .arr { transform: translateX(5px); }
+.koru-kimi-cta::after {
+  content: "";
+  position: absolute;
+  top: 0; left: -70%;
+  width: 45%; height: 100%;
+  transform: skewX(-22deg);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: koru-sheen 4.2s ease-in-out infinite;
+}
+@keyframes koru-sheen { 0%, 55% { left: -70% } 85%, 100% { left: 135% } }
+
+/* Ghost variant for secondary actions */
+.koru-kimi-cta.ghost {
+  background: transparent;
+  color: #523a9e;
+  box-shadow: none;
+  border: 1.5px solid rgba(131,99,249,0.35);
+}
+.koru-kimi-cta.ghost::after { display: none; }
+
+/* ═══ KIMI — Metric tile colored icon square (24×24, rounded 8px) ═══ */
+.koru-metric-icon-square {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.35);
+}
+.koru-metric-icon-square .material-symbols-outlined {
+  font-size: 14px;
+}
+
+/* ═══ KIMI — Card foot: source + action buttons ═══ */
+.koru-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 11px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(131,99,249,0.18);
+}
+.koru-card-foot .src {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 600 10px "Plus Jakarta Sans", sans-serif;
+  color: #a89ad7;
+  min-width: 0;
+  overflow: hidden;
+}
+.koru-card-foot .src img {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  flex: none;
+}
+.koru-card-foot .src span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.koru-card-foot .acts {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+.koru-icon-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  border: 1px solid rgba(131,99,249,0.2);
+  background: #fff;
+  color: #523a9e;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: 0.25s;
+  -webkit-tap-highlight-color: transparent;
+  padding: 0;
+  font-family: inherit;
+}
+.koru-icon-btn:hover {
+  background: #f4f0fd;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(46,38,80,0.12);
+}
+.koru-icon-btn .material-symbols-outlined {
+  font-size: 15px;
 }

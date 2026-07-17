@@ -207,6 +207,114 @@ function CtaHint({ cta, detail, accentColor, style }: { cta?: Cta; detail?: Deta
 }
 
 // ============================================================================
+// 🔴 KIMI AUDIT — Refined card visual design.
+// Nuevos componentes extraídos del audit (kc-*): pill CTA con sheen, foot con
+// source + icon buttons. Conviven con CtaHint/InlineActions para backward
+// compatibility (otros layouts siguen usando los anteriores).
+// ============================================================================
+
+/** Kimi CTA pill button — botón completo con gradiente + sheen animada.
+ *  Reemplaza a CtaHint en DefaultLayout (la card sigue siendo tappable;
+ *  el botón detiene la propagación para no reabrir el detail si el usuario
+ *  toca específicamente el CTA, pero mantiene el ripple + handleClick). */
+function KimiCtaButton({
+  cta,
+  handleClick,
+}: {
+  cta?: Cta;
+  handleClick: (e: React.MouseEvent<HTMLElement>) => void;
+}) {
+  if (!cta || !cta.label) return null;
+  return (
+    <button
+      type="button"
+      className="koru-kimi-cta"
+      onClick={(e) => {
+        // Mantener el ripple + open del handler unificado de la card.
+        // No stopPropagation: la card entera es el tap target y handleClick
+        // ya guarda contra re-open si el detail está activo.
+        handleClick(e);
+      }}
+    >
+      <span>{cta.label}</span>
+      <span className="material-symbols-outlined arr">arrow_forward</span>
+    </button>
+  );
+}
+
+/** Card foot — source info (favicon + domain) + icon action buttons.
+ *  Solo se renderiza si el bloque trae `sources` (mostramos el primero)
+ *  o si hay CTA tap-target (acciones save/share/open siempre útiles). */
+function CardFoot({
+  block,
+  cta,
+}: {
+  block: UiBlock;
+  cta?: Cta;
+}) {
+  // Solo bloques con sources los muestran en el foot. Type guard: el campo
+  // `sources` es opcional y solo algunos UiBlock lo traen.
+  const sources = "sources" in block && Array.isArray((block as { sources?: unknown }).sources)
+    ? ((block as { sources?: Array<{ title: string; url: string; domain: string }> }).sources)
+    : undefined;
+  const firstSource = sources?.[0];
+  const faviconSrc = firstSource
+    ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(firstSource.domain)}&sz=32`
+    : undefined;
+
+  const dispatchAction = (action: "save" | "share" | "open") => {
+    if ("vibrate" in navigator) navigator.vibrate(12);
+    window.dispatchEvent(
+      new CustomEvent("koru-card-foot-action", {
+        detail: { action, blockType: block.type, blockData: block, source: firstSource },
+      }),
+    );
+  };
+
+  return (
+    <div className="koru-card-foot">
+      <div className="src">
+        {firstSource ? (
+          <>
+            {faviconSrc && <img alt="" src={faviconSrc} loading="lazy" />}
+            <span>{firstSource.domain}</span>
+          </>
+        ) : (
+          <span>Koru</span>
+        )}
+      </div>
+      <div className="acts">
+        <button
+          type="button"
+          className="koru-icon-btn"
+          aria-label="Guardar"
+          onClick={(e) => { e.stopPropagation(); dispatchAction("save"); }}
+        >
+          <Mat>bookmark_border</Mat>
+        </button>
+        <button
+          type="button"
+          className="koru-icon-btn"
+          aria-label="Compartir"
+          onClick={(e) => { e.stopPropagation(); dispatchAction("share"); }}
+        >
+          <Mat>share</Mat>
+        </button>
+        <button
+          type="button"
+          className="koru-icon-btn"
+          aria-label="Abrir"
+          onClick={(e) => { e.stopPropagation(); dispatchAction("open"); }}
+          disabled={!cta && !firstSource}
+        >
+          <Mat>ios_share</Mat>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
 // 🔴 KIMI AUDIT — "Vacío que invita".
 // El jardín como metáfora: icono en cuadrado de acento, título rotundo,
 // descripción con un ejemplo concreto y un primer paso obvio (CTA).
@@ -299,9 +407,10 @@ function DefaultLayout(props: SharedProps) {
     <CardRoot block={block} hero={hero} isTappable={isTappable} open={open} handleClick={handleClick} handleKeyDown={handleKeyDown}>
       <div className="koru-plan-hero-top">
         <div className="koru-plan-hero-copy">
-          <p className="koru-plan-hero-kicker" style={{ color: hero.accent.color }}>
+          <div className="koru-card-kicker" style={{ color: hero.accent.color }}>
+            <span className={"dot" + (hero.live ? " live" : "")} />
             {hero.kicker}
-          </p>
+          </div>
           <h2 className="koru-plan-hero-title">{displayTitle}</h2>
           {hero.desc && <p className="koru-plan-hero-desc">{hero.desc}</p>}
         </div>
@@ -333,9 +442,9 @@ function DefaultLayout(props: SharedProps) {
             const displayLabel = truncate(m.label, 25);
             return hasMetricValues ? (
               <div key={i} className="koru-unified-metric">
-                <Mat className="koru-unified-metric-icon" style={{ color: m.color ?? hero.accent.color }}>
-                  {m.icon}
-                </Mat>
+                <span className="koru-metric-icon-square" style={{ background: m.color ?? hero.accent.color }}>
+                  <Mat>{m.icon}</Mat>
+                </span>
                 <span className="koru-unified-metric-label">{displayLabel}</span>
                 <span className="koru-unified-metric-value">{displayValue}</span>
               </div>
@@ -353,7 +462,13 @@ function DefaultLayout(props: SharedProps) {
         <EmptyState empty={empty} block={block} accentColor={hero.accent.color} accentSoft={hero.accent.soft} />
       )}
 
-      <CtaHint cta={cta} detail={detail} accentColor={hero.accent.color} />
+      {/* 🔴 KIMI audit: pill CTA replaces text-only hint in DefaultLayout.
+          Solo se renderiza si la card es tappable (mismo guard que CtaHint). */}
+      {isTappable && cta && <KimiCtaButton cta={cta} handleClick={handleClick} />}
+
+      {/* 🔴 KIMI audit: card foot (source + actions) — replaces nothing,
+          se añade al pie del molde default. */}
+      <CardFoot block={block} cta={cta} />
 
       <InlineActions actions={actions} block={block} accentColor={hero.accent.color} />
 

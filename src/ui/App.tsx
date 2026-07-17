@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { KoruProvider, useKoru } from "./KoruProvider";
+import { KoruIconSprite } from "./KoruIconSprite";
 import { MemoryScreen } from "./MemoryScreen";
 import { PermissionsScreen } from "./PermissionsScreen";
 import { HistoryScreen } from "./HistoryScreen";
@@ -139,6 +140,7 @@ export function App() {
   if (showIcons) return <IconGallery />;
   return (
     <KoruProvider>
+      <KoruIconSprite />
       <KoruApp />
     </KoruProvider>
   );

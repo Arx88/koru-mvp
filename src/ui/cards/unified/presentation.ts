@@ -49,6 +49,9 @@ export type Hero = {
   verifiedAt?: string;
   /** 🔴 v2: etiqueta legible de antigüedad (ej. "Hace 2 min"). */
   freshnessLabel?: string;
+  /** 🔴 KIMI audit: marca el dot del kicker como "live" (pulsa con koru-pulse-dot).
+   *  Lo setea liveMatch() cuando el partido está en juego. */
+  live?: boolean;
 };
 
 // ---- Secciones de la pantalla de detalle (magical-cards) --------------------
@@ -2321,6 +2324,7 @@ function liveMatch(b: Of<"live_match">): KoruPresentation {
       accent: live ? A.red : A.emerald,
       artValue: score,
       metrics: metrics.length > 0 ? metrics : undefined,
+      live,
     },
     detail,
     cta: hasRichData || b.stats?.length ? { label: hasRichData ? "Ver la ficha del partido" : "Ver estadísticas" } : undefined,
