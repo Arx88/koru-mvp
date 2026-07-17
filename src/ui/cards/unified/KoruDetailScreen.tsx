@@ -12,6 +12,7 @@ import {
   preMortem,
   weightedAdditive,
 } from "../../../domain/decisionEngine";
+import { KoruIcon, iconFromMaterial } from "./KoruIcons";
 
 // Pantalla de detalle unificada — misma estética Stitch que PlanRoadmapScreen
 // (koru-roadmap + magical-cards + blobs), pero genérica: renderiza cualquier
@@ -107,6 +108,104 @@ function ComparisonBar({ bar }: { bar: NonNullable<DetailRow["bar"]> }) {
 /** Aplica el accent de la sección a las CSS custom props del módulo. */
 function moduleStyle(accent: Accent): CSSProperties {
   return { "--module-color": accent.color, "--module-bg": accent.soft } as CSSProperties;
+}
+
+/**
+ * 🔴 KIMI v4 — Color del glow del xt-hero según tipo de bloque.
+ * Replica los gradientes del spec Kimi (pág. 28-30) por dominio:
+ * - weather: azul (lluvia) / amber (sol) / primary (nieve)
+ * - live_match / tennis_match: esmeralda
+ * - crypto_portfolio / market / forex / data_ticker: amber (miel)
+ * - shopping_list: amber
+ * - alarm: rose
+ * - reminder: violet
+ * - memory: emerald
+ * - restaurant_synthesis / recipe: amber
+ * - comparison: pink
+ * - morning_brief: amber (dorado)
+ * - default: violet
+ */
+function heroGlowColor(block: UiBlock): string {
+  const t = block.type;
+  if (t === "weather") {
+    const condition = ("condition" in block && typeof block.condition === "string" ? block.condition : "").toLowerCase();
+    if (/lluvia|rain/.test(condition)) return "#2563eb";
+    if (/sol|soleado|clear/.test(condition)) return "#f59e0b";
+    if (/nieve|snow/.test(condition)) return "#8363f9";
+    return "#2563eb";
+  }
+  if (t === "live_match" || t === "tennis_match") return "#2f8f6d";
+  if (t === "crypto_portfolio" || t === "market" || t === "forex" || t === "data_ticker") return "#f59e0b";
+  if (t === "shopping_list") return "#f59e0b";
+  if (t === "alarm") return "#ef4444";
+  if (t === "reminder") return "#8363f9";
+  if (t === "memory") return "#46c293";
+  if (t === "restaurant_synthesis" || t === "recipe") return "#f59e0b";
+  if (t === "comparison") return "#ec4899";
+  if (t === "morning_brief") return "#f6bd6d";
+  if (t === "news_urgent") return "#ff7d6b";
+  if (t === "birthday_alarm") return "#ec4899";
+  if (t === "exercise_plan") return "#2f8f6d";
+  if (t === "travel_plan" || t === "route_map") return "#3b82f6";
+  return "#8363f9"; // violet default
+}
+
+/**
+ * 🔴 KIMI v4 — Background gradient del xt-hicon según tipo de bloque.
+ * Replica los gradientes del spec Kimi por dominio.
+ */
+function heroIconBg(block: UiBlock): string {
+  const t = block.type;
+  if (t === "weather") {
+    const condition = ("condition" in block && typeof block.condition === "string" ? block.condition : "").toLowerCase();
+    if (/lluvia|rain/.test(condition)) return "linear-gradient(150deg,#60a5fa,#2563eb 70%,#1d4ed8)";
+    if (/sol|soleado|clear/.test(condition)) return "linear-gradient(150deg,#f6bd6d,#f59e0b 65%,#d97706)";
+    if (/nieve|snow/.test(condition)) return "linear-gradient(150deg,#c9bdf5,#8363f9)";
+    if (/tormenta|thunder|storm/.test(condition)) return "linear-gradient(150deg,#f6bd6d,#1d4ed8)";
+    return "linear-gradient(150deg,#60a5fa,#2563eb)";
+  }
+  if (t === "live_match" || t === "tennis_match") return "linear-gradient(150deg,#46c293,#2f8f6d 60%,#257a5c)";
+  if (t === "crypto_portfolio" || t === "market" || t === "forex" || t === "data_ticker") return "linear-gradient(150deg,#f6bd6d,#f59e0b 65%,#d97706)";
+  if (t === "shopping_list") return "linear-gradient(150deg,#f6bd6d,#f59e0b)";
+  if (t === "alarm") return "linear-gradient(150deg,#ff7d6b,#ef4444)";
+  if (t === "reminder") return "linear-gradient(150deg,#8363f9,#523a9e)";
+  if (t === "memory") return "linear-gradient(150deg,#7ed491,#2f8f6d)";
+  if (t === "restaurant_synthesis") return "linear-gradient(150deg,#f6bd6d,#f59e0b)";
+  if (t === "recipe") return "linear-gradient(150deg,#ff7d6b,#d63b2f)";
+  if (t === "comparison") return "linear-gradient(150deg,#ff8fb8,#ec4899)";
+  if (t === "morning_brief") return "linear-gradient(150deg,#f6bd6d,#f59e0b)";
+  if (t === "news_urgent") return "linear-gradient(150deg,#ff7d6b,#d63b2f)";
+  if (t === "birthday_alarm") return "linear-gradient(150deg,#ff8fb8,#ec4899)";
+  if (t === "exercise_plan") return "linear-gradient(150deg,#7ed491,#2f8f6d)";
+  if (t === "travel_plan") return "linear-gradient(150deg,#60a5fa,#3b82f6)";
+  if (t === "route_map") return "linear-gradient(150deg,#7dd3fc,#38bdf8)";
+  return "linear-gradient(150deg,#8363f9,#523a9e)";
+}
+
+/**
+ * 🔴 KIMI v4 — CTA contextual primario por tipo de bloque.
+ * Replica los CTAs del spec Kimi por dominio (pág. 28-30).
+ * Devuelve { label, icon } o null si no hay CTA contextual.
+ */
+function primaryActionFor(block: UiBlock): { label: string; icon: "bell" | "search" | "calendar" | "share" | "bookmark" | "play" | "navigate" | "shopping" | "alarm"; action: string } | null {
+  const t = block.type;
+  if (t === "weather") return { label: "Avisame si cambia", icon: "bell", action: "weather:notify" };
+  if (t === "live_match" || t === "tennis_match") return { label: "Avisame al terminar", icon: "bell", action: "match:notify" };
+  if (t === "crypto_portfolio" || t === "market" || t === "forex" || t === "data_ticker") return { label: "Avisame si baja del 5%", icon: "bell", action: "price:alert" };
+  if (t === "alarm") return { label: "Editar alarma", icon: "alarm", action: "alarm:edit" };
+  if (t === "reminder") return { label: "Posponer 1 hora", icon: "alarm", action: "reminder:snooze" };
+  if (t === "memory") return { label: "Regar el jardín", icon: "bookmark", action: "memory:water" };
+  if (t === "shopping_list") return { label: "Empezar a comprar", icon: "shopping", action: "shopping:start" };
+  if (t === "restaurant_synthesis") return { label: "Reservar mesa", icon: "calendar", action: "reserve" };
+  if (t === "recipe") return { label: "Empezar a cocinar", icon: "play", action: "recipe:cook" };
+  if (t === "exercise_plan") return { label: "Empezar entrenamiento", icon: "play", action: "exercise:start" };
+  if (t === "route_map") return { label: "Navegar", icon: "navigate", action: "route:navigate" };
+  if (t === "travel_plan") return { label: "Guardar viaje", icon: "bookmark", action: "travel:save" };
+  if (t === "comparison") return { label: "Ver detalles", icon: "search", action: "compare:details" };
+  if (t === "morning_brief") return { label: "Avisame mañana a las 7", icon: "bell", action: "morning:schedule" };
+  if (t === "news_urgent") return { label: "Leer después", icon: "bookmark", action: "news:save" };
+  if (t === "birthday_alarm") return { label: "Recordame 1 día antes", icon: "bell", action: "birthday:remind" };
+  return null;
 }
 
 // 🔴 v2: Extrae el video ID de una URL de YouTube (youtu.be / watch?v= / embed / shorts).
@@ -1436,14 +1535,44 @@ export function KoruDetailScreen({
           </button>
         </header>
 
-        {/* 🔴 KIMI audit: `.xt-hero` añade glow + back + fav slots sobre
-            el header existente (sin reestructurar el contenido). La animación
-            heroPop del CSS aplica al icono/título/subtítulo vía clases
-            xt-hicon/xt-title/xt-sub (no se añaden acá — solo xt-hero al
-            wrapper para heredar padding/overflow del audit). */}
+        {/* 🔴 KIMI v4: xt-hero CANÓNICO con glow + back + fav + xt-hicon (SVG
+            animado) + xt-title + xt-sub. Replica exactamente la estructura
+            del spec Kimi (pág. 28 anatomía del extendido). */}
         <div className="koru-roadmap-header xt-hero">
-          <div className="koru-detail-hero-icon xt-hicon">
-            <Mat>{headerIcon}</Mat>
+          {/* glow: div absolutamente posicionado con color del acento del bloque.
+              Toma el accent del primer section o un default por tipo de bloque. */}
+          <div className="glow" style={{ background: block ? heroGlowColor(block) : "#8363f9" }} />
+          {/* back: botón volver con SVG (igual al spec). Mismo handler que el sticky. */}
+          <button
+            type="button"
+            aria-label="Volver"
+            className="back"
+            onClick={onClose}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 5l-7 7 7 7" />
+            </svg>
+          </button>
+          {/* fav: botón favorito con SVG bookmark (igual al spec). */}
+          <button
+            type="button"
+            aria-label="Guardar"
+            className="fav"
+            onClick={() => onSave?.(detail.title, detail.subtitle)}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 4h12v17l-6-4-6 4z" />
+            </svg>
+          </button>
+          {/* xt-hicon: SVG animado (KoruIcon) en cuadrado de acento. */}
+          <div className="koru-detail-hero-icon xt-hicon" style={{ background: block ? heroIconBg(block) : "linear-gradient(150deg,#8363f9,#523a9e)" }}>
+            {(() => {
+              const kn = iconFromMaterial(headerIcon);
+              if (kn !== "default") {
+                return <KoruIcon name={kn} size={38} style={{ color: "#fff" }} />;
+              }
+              return <Mat>{headerIcon}</Mat>;
+            })()}
           </div>
           <h1 className="koru-roadmap-title xt-title">{detail.title}</h1>
           {detail.subtitle && <p className="koru-roadmap-subtitle xt-sub">{detail.subtitle}</p>}
@@ -1648,17 +1777,63 @@ export function KoruDetailScreen({
           <RecipeServingsScaler block={block} />
         )}
 
-        {/* 🔴 v2: Sticky footer — Save + PDF pinned al fondo con blur backdrop.
-            🔴 KIMI audit: `.xt-actions` añade el gradiente dark backdrop sobre
-            el footer; `.xbtn.pri` / `.xbtn.sec` añaden gradiente pill styles
-            sobre los botones existentes (conviven con koru-dsec-action-*). */}
+        {/* 🔴 KIMI v4: Sticky footer CANÓNICO con CTA contextual primario +
+            "Guardar" secundario. Replica el spec Kimi (pág. 28-30) donde cada
+            dominio tiene su CTA accionable ("Avisame si cambia" para clima,
+            "Reservar mesa" para restaurantes, "Empezar a cocinar" para recetas,
+            etc.). El botón secundario siempre es "Guardar" (action fav). */}
         <div className="koru-detail-actions-sticky xt-actions">
+          {/* CTA contextual primario (bell/alarm/play/etc según dominio) */}
+          {(() => {
+            if (!block) return null;
+            const primary = primaryActionFor(block);
+            if (!primary) return null;
+            const iconSvg = (() => {
+              switch (primary.icon) {
+                case "bell":
+                  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" className="bellswing"><path d="M18 9a6 6 0 1 0-12 0c0 6-2.5 7-2.5 7h17S18 15 18 9zM10 20a2.2 2.2 0 0 0 4 0"/></svg>;
+                case "alarm":
+                  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M5 3L2 6M22 6l-3-3"/></svg>;
+                case "play":
+                  return <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>;
+                case "calendar":
+                  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>;
+                case "navigate":
+                  return <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 11l18-8-8 18-2-7-8-3z"/></svg>;
+                case "shopping":
+                  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M5 7h14l-1.5 12a1.5 1.5 0 0 1-1.5 1.3H8a1.5 1.5 0 0 1-1.5-1.3L5 7z"/><path d="M8.5 7V5a3.5 3.5 0 0 1 7 0v2"/></svg>;
+                case "search":
+                  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M15.5 15.5L20 20"/></svg>;
+                case "bookmark":
+                  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 4h12v17l-6-4-6 4z"/></svg>;
+                default:
+                  return null;
+              }
+            })();
+            return (
+              <button
+                type="button"
+                className="koru-dsec-action-btn xbtn pri"
+                onClick={() => {
+                  if (!block) return;
+                  window.dispatchEvent(new CustomEvent("koru-card-action", {
+                    detail: { action: primary.action, blockType: block.type, blockData: block },
+                  }));
+                  if ("vibrate" in navigator) navigator.vibrate(15);
+                }}
+              >
+                {iconSvg}
+                <span>{primary.label}</span>
+              </button>
+            );
+          })()}
+          {/* CTA secundario: Guardar (con SVG bookmark, igual al spec) */}
           <button
             type="button"
-            className="koru-dsec-action-btn koru-dsec-action-save xbtn pri"
+            className="koru-dsec-action-btn koru-dsec-action-save xbtn sec"
             onClick={() => onSave?.(detail.title, detail.subtitle)}
           >
-            <span className="material-symbols-outlined">bookmark_added</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 4h12v17l-6-4-6 4z"/></svg>
             <span>Guardar</span>
           </button>
           {onExportPdf && (
@@ -1666,9 +1841,9 @@ export function KoruDetailScreen({
               type="button"
               className="koru-dsec-action-btn koru-dsec-action-pdf xbtn sec"
               onClick={onExportPdf}
+              aria-label="Exportar PDF"
             >
-              <span className="material-symbols-outlined">picture_as_pdf</span>
-              <span>PDF</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
             </button>
           )}
         </div>
