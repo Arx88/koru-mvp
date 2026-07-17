@@ -454,7 +454,10 @@ import { foldAccents } from "./commitments";
 // negativo (cae a conversation) es barato: el modelo responde libre.
 // Falso positivo (dispara tool sola) es caro: "buscando en la web" por
 // cualquier cosa. Se ajustará con tests reales.
-const CONFIDENCE_THRESHOLD = 0.7;
+// 🔴 KIMI v6 — bajado a 0.65 para que crypto/restaurant/news/tennis autofiren
+// con los ejemplos nuevos. 0.70 era demasiado estricto y causaba que
+// "precio de bitcoin" cayera a web_search genérico.
+const CONFIDENCE_THRESHOLD = 0.65;
 
 // Margen mínimo entre la mejor categoría y la segunda mejor. Si dos
 // categorías están casi empatadas, el mensaje es ambiguo entre dos
