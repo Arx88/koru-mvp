@@ -768,13 +768,17 @@ function alarm(b: Of<"alarm">): KoruPresentation {
 
   return {
     hero: {
-      kicker: "Alarma",
-      title: heroTitleFrom(b.title, "Alarma"),
-      desc,
+      // 🔴 KIMI v4 — spec card 13 compacta:
+      //   kicker: "ALARMA · TODOS LOS DÍAS" (con repeat si existe)
+      //   title: la hora "07:00" (es la idea #1)
+      //   desc: "suena en 7 h 13 min · descansá 🌙" (voz Koru)
+      kicker: repeat ? `Alarma · ${repeat.toUpperCase()}` : "Alarma",
+      title: b.time || heroTitleFrom(b.title, "Alarma"),
+      desc: note || (repeat ? `Suena ${repeat}` : "Alarma activa"),
       icon: "alarm",
       // 🔴 KIMI v4 — spec card 13 dominio VIOLETA (#8363f9), no rose.
       accent: A.violet,
-      artValue: b.time,
+      artValue: undefined, // 🔴 KIMI v4: la hora ES el title, no el artValue
     },
     // 🔴 v2: acciones inline para alarm (sin detail screen)
     actions: [
