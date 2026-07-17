@@ -219,26 +219,38 @@ function InlineActions({
   if (!actions || actions.length === 0) return null;
   return (
     <div className="koru-plan-hero-actions" style={style}>
-      {actions.map((act, i) => (
-        <button
-          key={i}
-          type="button"
-          className={`koru-plan-hero-action is-${act.kind ?? "primary"}`}
-          style={act.kind === "primary" ? { background: accentColor } : undefined}
-          onClick={(e) => {
-            e.stopPropagation();
-            window.dispatchEvent(
-              new CustomEvent("koru-card-action", {
-                detail: { action: act.action, blockType: block.type, blockData: block },
-              }),
-            );
-            if ("vibrate" in navigator) navigator.vibrate(15);
-          }}
-        >
-          {act.icon && <Mat>{act.icon}</Mat>}
-          <span>{act.label}</span>
-        </button>
-      ))}
+      {actions.map((act, i) => {
+        // 🔴 KIMI v3: clase especial para CTA "Reservar mesa" (restaurantes).
+        const isReserve = act.action === "reserve";
+        const className = isReserve
+          ? `koru-plan-hero-action is-primary koru-reserve-cta kc-cta`
+          : `koru-plan-hero-action is-${act.kind ?? "primary"}`;
+        return (
+          <button
+            key={i}
+            type="button"
+            className={className}
+            style={act.kind === "primary" && !isReserve ? { background: accentColor } : undefined}
+            onClick={(e) => {
+              e.stopPropagation();
+              window.dispatchEvent(
+                new CustomEvent("koru-card-action", {
+                  detail: { action: act.action, blockType: block.type, blockData: block },
+                }),
+              );
+              if ("vibrate" in navigator) navigator.vibrate(15);
+            }}
+          >
+            {act.icon && !isReserve && <Mat>{act.icon}</Mat>}
+            {isReserve && (
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+                <path d="M5 13h14M7 13V7a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v6M9 21V17M15 21V17" />
+              </svg>
+            )}
+            <span>{act.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -590,6 +602,23 @@ function DefaultLayout(props: SharedProps) {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* 🔴 KIMI v3: progtrack para Compras — "2/4 EN EL CHANGUITO" + barra. */}
+      {block.type === "shopping_list" && hero.artValue && (
+        <div className="koru-progtrack">
+          <span>{hero.artValue} EN EL CHANGUITO</span>
+          <div className="koru-progtrack-bar">
+            <i style={{ width: `${(() => {
+              const [checked, total] = hero.artValue.split("/").map((n) => parseInt(n, 10));
+              return total > 0 ? Math.round((checked / total) * 100) : 0;
+            })()}%` }} />
+          </div>
+          <span>{(() => {
+            const [checked, total] = hero.artValue.split("/").map((n) => parseInt(n, 10));
+            return `${total - checked} PENDIENTE`;
+          })()}</span>
         </div>
       )}
 
@@ -1153,5 +1182,213 @@ export function KoruUnifiedCard({ block }: { block: UiBlock }) {
   if (layout === "spotlight") return <SpotlightLayout {...shared} />;
   if (layout === "gallery") return <GalleryLayout {...shared} />;
   if (layout === "banner") return <BannerLayout {...shared} />;
+  if (layout === "match") return <MatchLayout {...shared} />;
+  if (layout === "garden") return <GardenLayout {...shared} />;
   return <DefaultLayout {...shared} />;
+}
+
+// ============================================================================
+// Layout: GARDEN — sublayout Kimi para Memoria (Card 20)
+//   hero con glow verde/dorado + SVG hoja que se balancea + fondo nocturno
+//   + CTAs "Regar" / "Podar" como metaphors accionables
+// ============================================================================
+
+function GardenLayout(props: SharedProps) {
+  const { block, hero, detail, cta, isTappable, open, setOpen, handleClick, handleKeyDown, isIdle, isOnline } = props;
+  const sleepyClass = isIdle ? " koru-card-sleepy" : "";
+  return (
+    <CardRoot block={block} hero={hero} isTappable={isTappable} open={open} handleClick={handleClick} handleKeyDown={handleKeyDown} className={`kc${sleepyClass}`}>
+      {!isOnline && (
+        <div className="koru-card-offline-badge" style={{ position: "absolute", top: 10, right: 14, zIndex: 5 }}>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+            <path d="M5 16a4 4 0 0 1 0-8 6 6 0 0 1 11.5-2 4 4 0 0 1 1 8z" />
+          </svg>
+          Sin conexión
+        </div>
+      )}
+      <div className="koru-garden-hero" style={{ margin: "-18px -18px 14px" }}>
+        <div className="glow" />
+        <KoruIcon name="memory" size={48} style={{ color: "var(--leaf, #7ed491)" }} />
+        <div className="koru-card-kicker kc-kicker" style={{ color: "rgba(239,234,255,0.85)" }}>
+          <span className={"dot" + (hero.live ? " live" : "")} />
+          {hero.kicker}
+        </div>
+        <h3>{hero.title}</h3>
+        {hero.desc && <p>{hero.desc}</p>}
+      </div>
+
+      {hero.metrics && hero.metrics.length > 0 && (
+        <div className="koru-unified-metrics kc-metrics">
+          {hero.metrics.slice(0, 3).map((m, i) => (
+            <div key={i} className="koru-unified-metric kc-m">
+              <span className="koru-metric-icon-square mi" style={{ background: m.color ?? hero.accent.color }}>
+                {(() => {
+                  const kn = iconFromMaterial(m.icon);
+                  if (kn !== "default") return <KoruIcon name={kn} size={14} />;
+                  return <Mat>{m.icon}</Mat>;
+                })()}
+              </span>
+              <span className="koru-unified-metric-label ml">{m.label}</span>
+              <span className="koru-unified-metric-value mv">{m.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 🔴 KIMI v3: CTAs "Regar" / "Podar" como metaphors accionables. */}
+      <div className="koru-memory-confirm">
+        <button
+          type="button"
+          className="regrow"
+          onClick={(e) => {
+            e.stopPropagation();
+            window.dispatchEvent(new CustomEvent("koru-card-action", {
+              detail: { action: "memory:water", blockType: block.type, blockData: block },
+            }));
+            if ("vibrate" in navigator) navigator.vibrate(15);
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+            <path d="M12 3s6 6 6 11a6 6 0 0 1-12 0c0-5 6-11 6-11z" />
+          </svg>
+          Regar
+        </button>
+        <button
+          type="button"
+          className="prune"
+          onClick={(e) => {
+            e.stopPropagation();
+            window.dispatchEvent(new CustomEvent("koru-card-action", {
+              detail: { action: "memory:prune", blockType: block.type, blockData: block },
+            }));
+            if ("vibrate" in navigator) navigator.vibrate(15);
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+            <path d="M6 6l12 12M6 18L18 6" />
+          </svg>
+          Podar
+        </button>
+      </div>
+
+      {isTappable && cta && <KimiCtaButton cta={cta} handleClick={handleClick} />}
+
+      <DetailOverlay open={open} cta={cta} detail={detail} hero={hero} block={block} setOpen={setOpen} />
+    </CardRoot>
+  );
+}
+
+// ============================================================================
+// Layout: MATCH — sublayout Kimi para Fútbol (Card 04)
+//   escudos 46×46 color equipo + score 34px Bricolage centrado entre ellos
+//   + goleadores .koru-trow con pelotita .ballb + posesión .koru-duel
+// ============================================================================
+
+function MatchLayout(props: SharedProps) {
+  const { block, hero, detail, cta, isTappable, open, setOpen, handleClick, handleKeyDown } = props;
+  const b = block as Extract<UiBlock, { type: "live_match" }>;
+
+  // Derivar home/away names y scores del propio block (no del hero.title).
+  const homeName = (b.homeName ?? b.homeTeam?.name ?? "Local").toString();
+  const awayName = (b.awayName ?? b.awayTeam?.name ?? "Visitante").toString();
+  const homeScore = b.homeScore ?? b.homeTeam?.score ?? 0;
+  const awayScore = b.awayScore ?? b.awayTeam?.score ?? 0;
+
+  // Color por equipo: derivado del nombre (hash → paleta) — acepta override via team.color.
+  const teamColor = (name: string, idx: number): string => {
+    if (idx === 0 && b.homeTeam?.color) return b.homeTeam.color;
+    if (idx === 1 && b.awayTeam?.color) return b.awayTeam.color;
+    // Hash simple del nombre → paleta azul/rojo (Kimi FRA vs ESP)
+    let h = 0;
+    for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) | 0;
+    const palette = ["#4a6cf7", "#ff7d6b", "#46c293", "#f6bd6d", "#a855f7"];
+    return palette[Math.abs(h) % palette.length];
+  };
+
+  const homeColor = teamColor(homeName, 0);
+  const awayColor = teamColor(awayName, 1);
+
+  // Escudo: 2 primeras letras del nombre en mayúscula.
+  const shieldLabel = (n: string) => n.slice(0, 2).toUpperCase();
+
+  // Goleadores (si hay en el block)
+  const goals = b.goals ?? [];
+  // Posesión (de detailedStats o stats) — ambos formatos posibles.
+  const possessionStat = (b.detailedStats?.find((s) => s.label === "Posesión")
+    ?? b.stats?.find((s) => s.label === "Posesión")) as
+    | { label: string; home?: number; away?: number; leftPercent?: number; rightPercent?: number }
+    | undefined;
+  const homePoss = possessionStat ? Math.round(possessionStat.home ?? possessionStat.leftPercent ?? 50) : 50;
+  const awayPoss = 100 - homePoss;
+
+  return (
+    <CardRoot block={block} hero={hero} isTappable={isTappable} open={open} handleClick={handleClick} handleKeyDown={handleKeyDown} className="kc">
+      <div className="kc-sparkle s1" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2c.6 4.5 3.5 7.4 8 8-4.5.6-7.4 3.5-8 8-.6-4.5-3.5-7.4-8-8 4.5-.6 7.4-3.5 8-8z" />
+        </svg>
+      </div>
+
+      {/* Kicker */}
+      <div className="koru-card-kicker kc-kicker" style={{ color: hero.accent.color }}>
+        <span className={"dot" + (hero.live ? " live" : "")} />
+        {hero.kicker}
+      </div>
+
+      {/* Match hero: escudos + score */}
+      <div className="koru-match-hero">
+        <div className="koru-match-team">
+          <div className="koru-match-shield" style={{ background: `linear-gradient(140deg, ${homeColor}, ${homeColor}cc)` }}>
+            {shieldLabel(homeName)}
+          </div>
+          <span className="koru-match-team-name">{homeName}</span>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <div className="koru-match-score">{homeScore}-{awayScore}</div>
+          <span className="koru-match-vs">VS</span>
+        </div>
+        <div className="koru-match-team">
+          <div className="koru-match-shield" style={{ background: `linear-gradient(140deg, ${awayColor}, ${awayColor}cc)` }}>
+            {shieldLabel(awayName)}
+          </div>
+          <span className="koru-match-team-name">{awayName}</span>
+        </div>
+      </div>
+
+      {/* Goleadores con pelotita .ballb */}
+      {goals.length > 0 && (
+        <div style={{ marginTop: 8 }}>
+          {goals.slice(0, 4).map((g, i) => (
+            <div key={i} className="koru-trow">
+              <span className="ballb" />
+              <span>{g.scorer ?? g.text ?? "Gol"}</span>
+              <span className="min">{g.minute ? `${g.minute}'` : ""}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Posesión como .koru-duel */}
+      {possessionStat && (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", font: "700 9.5px var(--font-sans)", color: "var(--ink-soft)", letterSpacing: "0.09em", textTransform: "uppercase", marginBottom: 4 }}>
+            <span>POSESIÓN</span>
+            <span><b style={{ color: homeColor }}>{homePoss}%</b> · <b style={{ color: awayColor }}>{awayPoss}%</b></span>
+          </div>
+          <div className="koru-duel">
+            <i className="left" style={{ width: `${homePoss}%` }} />
+            <i className="right" style={{ width: `${awayPoss}%` }} />
+          </div>
+        </div>
+      )}
+
+      {hero.desc && (
+        <p className="koru-plan-hero-desc kc-desc" style={{ marginTop: 10 }}>{hero.desc}</p>
+      )}
+
+      {isTappable && cta && <KimiCtaButton cta={cta} handleClick={handleClick} />}
+
+      <DetailOverlay open={open} cta={cta} detail={detail} hero={hero} block={block} setOpen={setOpen} />
+    </CardRoot>
+  );
 }

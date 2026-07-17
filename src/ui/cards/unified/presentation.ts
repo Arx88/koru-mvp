@@ -180,7 +180,7 @@ export type KoruPresentation = {
    *   - "gallery"   → carrusel horizontal de mini-cards (70×80).
    *   - "banner"    → gradiente full-width (100px) con número grande + label.
    */
-  layout?: "default" | "compact" | "spotlight" | "gallery" | "banner";
+  layout?: "default" | "compact" | "spotlight" | "gallery" | "banner" | "match" | "garden";
 };
 
 // ---- Paleta Stitch ----------------------------------------------------------
@@ -2344,6 +2344,8 @@ function liveMatch(b: Of<"live_match">): KoruPresentation {
     },
     detail,
     cta: hasRichData || b.stats?.length ? { label: hasRichData ? "Ver la ficha del partido" : "Ver estadísticas" } : undefined,
+    // 🔴 KIMI v3: sublayout match con escudos + score grande + goleadores + posesión
+    layout: "match",
   };
 }
 
@@ -4013,6 +4015,8 @@ function memoryBlock(b: Of<"memory">): KoruPresentation {
           desc: "Contame algo sobre vos y lo voy a recordar. Cada cosa que confirmás, lo riego y crece.",
           cta: { label: "Sembrar el primer recuerdo", action: "prompt:recordá que " },
         },
+    // 🔴 KIMI v3: sublayout garden con hero verde/dorado + CTAs Regar/Podar.
+    layout: "garden",
   };
 }
 

@@ -8,6 +8,7 @@ import { TalkOverlay } from "./TalkOverlay";
 import { HomeScreen } from "./HomeScreen";
 import { SettingsScreen } from "./SettingsScreen";
 import { IconGallery } from "./IconGallery";
+import { KoruMicrodetails } from "./cards/unified/KoruMicrodetails";
 
 type Screen = "chat" | "hoy" | "memoria" | "permisos" | "historial" | "configuracion";
 
@@ -141,6 +142,7 @@ export function App() {
   return (
     <KoruProvider>
       <KoruIconSprite />
+      <KoruMicrodetails />
       <KoruApp />
     </KoruProvider>
   );
