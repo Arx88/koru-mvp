@@ -764,66 +764,27 @@ function alarm(b: Of<"alarm">): KoruPresentation {
   // 🔴 KIMI v5 — normalizar hora a HH:MM (spec card 13: title = "07:00").
   const hhmm = extractHHMM(b.time) ?? extractHHMM(b.title);
   const alarmTitle = hhmm ?? b.time ?? heroTitleFrom(b.title, "Alarma");
-  // 🔴 KIMI v5 — desc con voz de Koru ("suena en X h Y min · descansá 🌙").
-  const sleepDesc = note || timeUntilAlarm(hhmm) || (repeat ? `Suena ${repeat}` : "Alarma activa");
-  // 🔴 KIMI v5 — kc-metrics canónicos del spec (Repite / Sonido / Suave).
-  const alarmMetrics: HeroMetric[] = [
-    { icon: "repeat", label: "Repite", value: repeat || "L a V", color: A.violet.color },
-    { icon: "music_note", label: "Sonido", value: "Horneros", color: A.amber.color },
-    { icon: "graphic_eq", label: "Suave", value: "+5 min", color: A.emerald.color },
-  ];
-  const desc = [repeat ? `Se repite: ${repeat}` : null, note].filter(Boolean).join(" · ") || undefined;
+  // 🔴 KIMI v6 — desc con datos REALES del backend (sin mocks).
+  const timeUntil = timeUntilAlarm(hhmm);
+  const sleepDesc = note || timeUntil || (repeat ? `Suena ${repeat}` : "Alarma activa");
 
-  // 🔴 KIMI v5 — spec card 13 extendida: 2 mcards canónicas.
-  //   1. "Despertar inteligente" — 3 trows con toggles (spec pág. 56).
-  //   2. "Tu semana de sueño" — barras + texto (espejado como tiles por ahora).
+  // 🔴 KIMI v6 — kc-metrics SOLO con datos del backend (sin mocks).
+  // Si el backend no manda sound/gradualWake, no mostramos esos metrics.
+  const alarmMetrics: HeroMetric[] = [];
+  if (repeat) {
+    alarmMetrics.push({ icon: "repeat", label: "Repite", value: repeat, color: A.violet.color });
+  }
+  if (note) {
+    alarmMetrics.push({ icon: "notes", label: "Nota", value: note.slice(0, 20), color: A.amber.color });
+  }
+  if (timeUntil) {
+    alarmMetrics.push({ icon: "schedule", label: "Sucede", value: timeUntil, color: A.emerald.color });
+  }
+
+  // 🔴 KIMI v6 — sections SOLO con datos del backend (SIN MOCKS).
   const sections: DetailSection[] = [];
 
-  // 1. Despertar inteligente — rows (replica .trow + .sw del spec).
-  //   Los toggles son visuales (sin backend reducer dedicado).
-  sections.push({
-    kind: "rows",
-    icon: "bedtime",
-    accent: A.violet,
-    title: "Despertar inteligente",
-    subtitle: "CRUZA TU VIDA",
-    rows: [
-      {
-        icon: "wb_sunny",
-        title: "Mañana hay sol ☀️",
-        meta: "sonido: horneros · si lloviera: lluvia suave",
-      },
-      {
-        icon: "event",
-        title: "Daily a las 9:30",
-        meta: "te despierto 2.5 h antes, llegás tranquilo",
-      },
-      {
-        icon: "graphic_eq",
-        title: "Subida gradual +5 min",
-        meta: "el volumen crece como un amanecer",
-      },
-    ],
-  });
-
-  // 2. Tu semana de sueño — tiles por día (espejo del bar chart del spec).
-  sections.push({
-    kind: "tiles",
-    icon: "monitoring",
-    accent: A.emerald,
-    title: "Tu semana de sueño",
-    subtitle: "PROMEDIO 7 H 12",
-    tiles: [
-      { icon: "bedtime", label: "Lun", value: "7 h 10", color: A.violet.color },
-      { icon: "bedtime", label: "Mar", value: "7 h 30", color: A.violet.color },
-      { icon: "bedtime", label: "Mié", value: "6 h 50", color: A.amber.color },
-      { icon: "bedtime", label: "Jue", value: "8 h 00", color: A.violet.color },
-      { icon: "bedtime", label: "Vie", value: "7 h 20", color: A.violet.color },
-      { icon: "bedtime", label: "Sáb", value: "8 h 45", color: A.emerald.color },
-    ],
-  });
-
-  // 3. Detalles tiles (when / where / frequency) — solo si hay datos del backend.
+  // 1. Detalles tiles (when / frequency / note) — solo si hay datos del backend.
   const detailTiles: DetailTile[] = [];
   if (b.time) detailTiles.push({ icon: "schedule", label: "Cuándo", value: alarmTitle, color: A.rose.color });
   if (repeat) detailTiles.push({ icon: "repeat", label: "Frecuencia", value: repeat, color: A.amber.color });
@@ -839,7 +800,7 @@ function alarm(b: Of<"alarm">): KoruPresentation {
     });
   }
 
-  // 4. Advice text.
+  // 2. Consejo — solo texto de voz de Koru (sin datos inventados).
   sections.push({
     kind: "text",
     icon: "lightbulb",
@@ -853,28 +814,18 @@ function alarm(b: Of<"alarm">): KoruPresentation {
 
   return {
     hero: {
-      // 🔴 KIMI v5 — spec card 13 compacta:
-      //   kicker: "ALARMA · TODOS LOS DÍAS" (uppercase, con repeat si existe)
-      //   title: la hora "07:00" (es la idea #1)
-      //   desc: "suena en 7 h 13 min · descansá 🌙" (voz Koru)
       kicker: `ALARMA · ${(repeat || "TODOS LOS DÍAS").toUpperCase()}`,
       title: alarmTitle,
       desc: sleepDesc,
       icon: "alarm",
-      // 🔴 KIMI v4 — spec card 13 dominio VIOLETA (#8363f9), no rose.
       accent: A.violet,
-      artValue: undefined, // 🔴 KIMI v4: la hora ES el title, no el artValue
-      metrics: alarmMetrics,
+      artValue: undefined,
+      metrics: alarmMetrics.length > 0 ? alarmMetrics : undefined,
     },
-    // 🔴 KIMI v5 — spec card 13 compacta: 1 CTA "Editar alarma" + toggle.
-    //   Sin inline actions (la card entera es el tap target).
     actions: undefined,
     detail: {
-      // 🔴 KIMI v4 — spec card 13 extendida:
-      //   xt-title: "07:00" (la hora ES el título)
-      //   xt-sub: "despertador · L a V · sonido horneros 🐦"
       title: alarmTitle,
-      subtitle: `despertador · ${repeat || "L a V"} · sonido horneros 🐦`,
+      subtitle: `despertador · ${repeat || "L a V"}`,
       sections,
       // 🔴 KIMI v4 — CTAs canónicos del spec (pág. 56):
       //   pri: Nueva alarma (plus)
@@ -1108,7 +1059,7 @@ function shoppingList(b: Of<"shopping_list">): KoruPresentation {
       accent: A.violet,
       title: "Koru suma",
       subtitle: "MAGIA",
-      body: `🧀 Lista compartida sincronizada con quien cocina\n💸 Al pagar, se anota en tus gastos de comida solo\n🔁 Los básicos se repiten cada ~3 semanas: te aviso cuando estén por faltar`,
+      body: `🧀 Lista compartida sincronizada con quien cocina\n💸 Al pagar, se anota en tus gastos de comida solo\n🔁 Los básicos que comprás seguido los puedo avisar cuando estén por faltar`,
     });
   }
 
@@ -4442,7 +4393,7 @@ function routeTimeline(b: Of<"route_timeline">): KoruPresentation {
   return {
     hero: {
       kicker: b.eta ? `Ruta · ETA ${b.eta}` : "Tu Ruta",
-      title: "RUTA",
+      title: heroTitleFrom((b as { title?: string }).title, items[0]?.label ?? "Ruta"),
       desc: items[0]?.label,
       icon: "route",
       accent: A.indigo,
@@ -4472,7 +4423,7 @@ function transportCompare(b: Of<"transport_compare">): KoruPresentation {
   return {
     hero: {
       kicker: "Comparativa",
-      title: "TRANSPORTE",
+      title: heroTitleFrom((b as { title?: string }).title, "Transporte"),
       desc: active ? `${active.mode} · ${active.time}` : undefined,
       icon: "commute",
       accent: A.amber,
@@ -4729,21 +4680,8 @@ function birthdayCalendar(b: Of<"birthday_calendar">): KoruPresentation {
     },
   ];
 
-  // Agenda del día destacado como timeline (slots mañana / mediodía / tarde).
-  if (highlightedDay != null) {
-    sections.push({
-      kind: "timeline",
-      icon: "event_note",
-      accent: A.amber,
-      title: "Agenda del día",
-      subtitle: `DÍA ${highlightedDay} · ${month.toUpperCase()}`,
-      steps: [
-        { title: "Mañana", detail: "9 a 12 — agenda abierta", status: "pending" },
-        { title: "Mediodía", detail: "13 a 15 — pausa y comida", status: "pending" },
-        { title: "Tarde", detail: "16 a 20 — bloque principal", status: "pending" },
-      ],
-    });
-  }
+  // 🔴 KIMI v6 — Agenda del día eliminada (era MOCK sin datos del backend).
+  // Si en el futuro el backend manda `b.dayAgenda`, se puede agregar acá.
 
   return {
     hero: {
@@ -5360,7 +5298,7 @@ function movieReviewBlock(b: Of<"movie_review">): KoruPresentation {
       icon: "play_circle",
       accent: A.emerald,
       title: "Dónde verla",
-      subtitle: "ESPAÑA",
+      subtitle: "DISPONIBLE",
       chips: streaming.map((s) => ({ label: s.provider })),
     });
   } else if (b.whereToWatch && b.whereToWatch.length > 0) {
