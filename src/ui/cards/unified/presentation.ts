@@ -1493,6 +1493,10 @@ function money(b: Of<"money_summary">): KoruPresentation {
           title: b.title || "Resumen financiero",
           subtitle: recommendation,
           sections,
+          actions: [
+            { label: "Anotar gasto", icon: "plus", kind: "primary", action: "finanzas:log" },
+            { label: "Exportar", icon: "play", kind: "secondary", action: "finanzas:export" },
+          ],
         }
       : undefined,
     cta: sections.length > 1 ? { label: "Ver de qué se compuso tu mes" } : undefined,
@@ -2150,7 +2154,15 @@ function restaurant(b: Of<"restaurant_synthesis">): KoruPresentation {
       accent: A.amber,
       metrics: matches.length ? [{ icon: "storefront", label: "Opciones", value: String(matches.length), color: A.amber.color }] : undefined,
     },
-    detail: sections.length ? { title: b.title || "Restaurantes", sections } : undefined,
+    detail: sections.length ? {
+      title: topMatch?.name ?? b.title ?? "Restaurantes",
+      subtitle: topMatch ? `${topMatch.address ?? ""} · ⭐ ${topMatch.rating ?? "—"}` : undefined,
+      sections,
+      actions: [
+        { label: "Reservar mesa", icon: "calendar", kind: "primary", action: "reserve" },
+        { label: "Compartir", icon: "search", kind: "secondary", action: "restaurant:share" },
+      ],
+    } : undefined,
     cta: sections.length ? { label: "Ver dónde comer hoy" } : undefined,
     // 🔴 v3: acción inline de reserva si hay reserveUrl en el top match.
     actions: reserveAction,
@@ -2250,6 +2262,10 @@ function morningBrief(b: Of<"morning_brief">): KoruPresentation {
           title: "Resumen matutino",
           subtitle: b.greeting ?? undefined,
           sections,
+          actions: [
+            { label: "Empezar el día", icon: "play", kind: "primary", action: "morning:start" },
+            { label: "Avisame mañana 7am", icon: "bell", kind: "secondary", action: "morning:schedule" },
+          ],
         }
       : undefined,
     cta: sections.length > 1 ? { label: "Ver todo" } : undefined,
@@ -2528,7 +2544,13 @@ function liveMatch(b: Of<"live_match">): KoruPresentation {
       metrics: metrics.length > 0 ? metrics : undefined,
       live,
     },
-    detail,
+    detail: detail ? {
+      ...detail,
+      actions: [
+        { label: "Avisame al terminar", icon: "bell", kind: "primary", action: "match:notify" },
+        { label: "Compartir", icon: "search", kind: "secondary", action: "match:share" },
+      ],
+    } : detail,
     cta: hasRichData || b.stats?.length ? { label: hasRichData ? "Ver la ficha del partido" : "Ver estadísticas" } : undefined,
     // 🔴 KIMI v3: sublayout match con escudos + score grande + goleadores + posesión
     layout: "match",
@@ -2832,6 +2854,10 @@ function market(b: Of<"market">): KoruPresentation {
           title: b.title || "Mercados",
           subtitle: `${assets.length} activo${assets.length > 1 ? "s" : ""}`,
           sections,
+          actions: [
+            { label: "Alerta de precio", icon: "bell", kind: "primary", action: "trading:alert" },
+            { label: "Watchlist", icon: "bookmark", kind: "secondary", action: "trading:watchlist" },
+          ],
         }
       : undefined,
     cta: assets.length ? { label: "Ver mercados" } : undefined,
@@ -4191,6 +4217,10 @@ function memoryBlock(b: Of<"memory">): KoruPresentation {
           title: b.title || "Tu Jardín",
           subtitle: items.length ? `${items.length} recuerdos activos` : undefined,
           sections,
+          actions: [
+            { label: "Confirmar todo", icon: "play", kind: "primary", action: "memory:confirm_all" },
+            { label: "Privacidad", icon: "bookmark", kind: "secondary", action: "memory:privacy" },
+          ],
         }
       : undefined,
     cta: sections.length ? { label: "Regar el jardín" } : undefined,
@@ -4363,6 +4393,10 @@ function cryptoPortfolio(b: Of<"crypto_portfolio">): KoruPresentation {
           title: "Tu Portafolio",
           subtitle: `${items.length} activo${items.length > 1 ? "s" : ""} · cambio promedio ${totalChange >= 0 ? "+" : ""}${totalChange.toFixed(1)}%`,
           sections,
+          actions: [
+            { label: "Nueva alerta", icon: "bell", kind: "primary", action: "crypto:alert" },
+            { label: "Exportar", icon: "play", kind: "secondary", action: "crypto:export" },
+          ],
         }
       : undefined,
     cta: items.length ? { label: "Ver tus tenencias y análisis" } : undefined,
