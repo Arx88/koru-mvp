@@ -1,846 +1,814 @@
 <div align="center">
 
-# 🌱 Koru MVP
+# 🌱 Koru
 
-### _Asistente personal conversacional con memoria confirmable y personalidad calibrada._
+### _Un compañero que escucha, ordena y recuerda — con tu permiso._
 
-**Una mascota que opera tu día a día. No un chatbot. Un compañero.**
+**No un chatbot. Una mascota que opera tu día.**
 
-[![Deploy](https://img.shields.io/badge/Deploy-koru--mvp.onrender.com-black?logo=render&logoColor=white)](https://koru-mvp.onrender.com)
-[![React](https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white)](https://react.dev/)
-[![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-6-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-38BDF8?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Deploy](https://img.shields.io/badge/App-koru--mvp.onrender.com-black?logo=render&logoColor=white)](https://koru-mvp.onrender.com)
 [![PWA](https://img.shields.io/badge/PWA-installable-5A0FC8?logo=pwa&logoColor=white)](https://web.dev/progressive-web-apps/)
-[![Tests](https://img.shields.io/badge/tests-287%20pass%20%2F%200%20fail-22C55E?logo=vitest&logoColor=white)](https://vitest.dev/)
-[![License](https://img.shields.io/badge/Uso-Privado-red)]()
-
-**Koru · local-first · mobile 420px · stage: garden**
+[![React](https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white)](https://react.dev/)
+[![Tests](https://img.shields.io/badge/tests-287%20pass-22C55E?logo=vitest&logoColor=white)](https://vitest.dev/)
 
 </div>
 
 ---
 
-## 🌟 ¿Qué es Koru?
-
-**Koru** es una **PWA local-first de asistente personal conversacional** construida en torno a una **mascota virtual** que actúa como compañero empático. No es un chatbot genérico: es un **operador cotidiano** que combina agenda, vida doméstica, búsqueda web semántica, memoria confirmable y personalidad calibrada, todo en una interfaz mobile-first de 420 px.
-
-Funcionalmente, Koru intenta ser — simultáneamente:
-
-| | | |
-|---|---|---|
-| 📅 | **Agenda y recordatorios** | Alarmas, tareas, compromisos, eventos ICS, Google Calendar |
-| 🏠 | **Gestor de vida doméstica** | Gastos, comidas, inventario, listas de compras, decisiones de compra |
-| 🔍 | **Buscador web semántico** | Noticias, clima, comparativas de productos, rutas, señales del mundo |
-| 🧠 | **Memoria persistente confirmable** | Preferencias, rutinas, objetivos, relaciones, límites |
-| 💜 | **Compañero empático** | Voz calibrada (cálida / directriz / humor ajustable) |
-
 > _"Koru no se alimenta de secretos."_
 
-### 🌿 El Jardín de la Memoria — la metáfora diferenciadora
+Koru es una mascota virtual que vive en tu teléfono. La abrís, le hablás como a un amigo, y ella **ordena tu día**: te recuerda cosas, anota tus gastos, busca en la web, te hace un informe, te sugiere una receta con lo que tenés en la heladera, te avisa si llové, te cuenta cómo le fue a tu equipo. Y **memoriza lo que le contás** — pero solo cuando vos querés.
 
-La memoria de Koru es **confirmable, no absorbente**. Koru propone hechos como "candidatos" y el usuario los **riega** (confirma) o **poda** (descarta). El "stage" del usuario crece con la confianza:
+No es un chatbot que escupe texto. Es un operador: cuando le pedís algo, **devuelve una card visual** con los datos organizados, fuentes verificables y botones para actuar.
+
+```
+Vos:    "anotá $1500 que gasté en café y medialunas"
+Koru:   "Listo, anoté los 500 pesos de café y medialunas. ¡Buen provecho!"
+        ┌─────────────────────────────┐
+        │ 💸 Tus Finanzas              │
+        │                              │
+        │  ARS 500                     │
+        │  café y medialunas           │
+        │                              │
+        │  [Ver todos los gastos →]    │
+        └─────────────────────────────┘
+```
+
+---
+
+## ✨ ¿Qué puedo pedirle a Koru?
+
+Acá van ejemplos **reales**, escritos como los escribiría un humano (sin tildes, vago, conversacional). Todos estos están en los tests E2E y funcionan hoy.
+
+### 📅 Recordatorios y alarmas
+
+```
+Vos:    "el martes q viene tengo q ir al dentista a las 18"
+Koru:   "Anotado. Te aviso el martes a las 17:30 así llegás tranquilo."
+        → crea compromiso + recordatorio
+
+Vos:    "no me olvides llamar a mi vieja mañana"
+Vos:    "acordate q el 20 vence la tarjeta"
+Vos:    "mañana x la mañana tengo q llevar el auto al taller"
+Vos:    "el 15 del mes q viene se vence el seguro"
+Vos:    "despertame temprano mañana"
+Vos:    "necesito levantarme a las 6 el sabado"
+```
+
+### 💸 Gastos y dinero
+
+```
+Vos:    "anotá $1500 que gasté en café y medialunas"
+Koru:   "Listo, anoté los 500 pesos de café y medialunas. ¡Buen provecho!"
+        → card "Tus Finanzas" con ARS 500
+
+Vos:    "gaste 23000 en super, 8900 en farmacia y 12000 en nafta"
+Vos:    "anota gasto de 100 euros en supermercado"
+Vos:    "pague 8 euros de farmacia hoy"
+
+Vos:    "cuanto gaste esta semana?"
+Koru:   "Esta semana gastaste 20 euros: 12 en supermercado y 8 en farmacia."
+        → card "Dinero" con desglose
+
+Vos:    "Puedo permitirme comprar una silla de 90 euros?"
+Koru:   "Mirá tus gastos de los últimos 7 días..."
+        → card "Decisión" con "Mi voto: Yo esperaría" + justificación
+```
+
+### 🛒 Listas y compras
+
+```
+Vos:    "necesito leche, huevos, pan y queso para el super"
+Koru:   "Listo, guardé la lista: leche, huevos, pan y queso. ¡Que vaya bien la compra!"
+        ┌─────────────────────────────┐
+        │ 📝 Tu Lista · LISTA DE COMPRAS│
+        │    Ítems: 4                   │
+        │    [Ver lista →]              │
+        └─────────────────────────────┘
+
+Vos:    "necesito auriculares nuevos"
+Vos:    "comparar auriculares Sony WH-1000XM5 vs Bose QC Ultra"
+Vos:    "donde compro mas barato airpods"
+```
+
+### ☀️ Clima
+
+```
+Vos:    "¿qué clima hace en Madrid?"
+Koru:   "En Madrid hace 34°C ahora, con máximas de 37°C y mínimas de 21°C.
+        No hay probabilidad de lluvia y el viento está a 10 km/h.
+        Día para ir ligero de ropa y llevar agua."
+        ┌─────────────────────────────────────┐
+        │ ☀️ Tu Clima · Madrid, España          │
+        │                                       │
+        │        34°C                           │
+        │        Viento 10 km/h                 │
+        │        Mín/Máx 21-37°C                │
+        │        Lluvia 0%                      │
+        │                                       │
+        │  💧 Día para ir ligero y llevar agua   │
+        └─────────────────────────────────────┘
+
+Vos:    "sale salir hoy?"
+Vos:    "paraguas o no?"
+Vos:    "esta para shorts?"
+```
+
+### 🍳 Recetas y comida
+
+```
+Vos:    "tengo pollo y arroz q hago"
+Koru:   "Mirá estas opciones con lo que tenés..."
+        → card con recetas que matchean tus ingredientes
+
+Vos:    "algo rapido de cenar"
+Vos:    "tirame algo con lo w tengo en la heladera"
+Vos:    "tengo huevos y pan"
+Vos:    "algo sin horno"
+Vos:    "postre facil y rapido"
+```
+
+### 🍽️ Restaurantes (DeepHungry)
+
+```
+Vos:    "mejor parrilla de Palermo"
+Koru:   "Cruzé 5 fuentes y esto es lo que encontré."
+        ┌─────────────────────────────────────────────┐
+        │ 🍖 DeepHungry Synthesis · 5 fuentes           │
+        │                                                │
+        │  TOP COINCIDENCIAS                             │
+        │  ⭐⭐⭐⭐  Don Julio          4/4 fuentes        │
+        │  ⭐⭐      La Cabrera         2/4 fuentes        │
+        │  ⭐        El Pobre Luis      1/4 fuentes        │
+        │                                                │
+        │  ✅ A FAVOR                                     │
+        │  · Asado de tira excepcional                   │
+        │  · Servicio atento y consistente               │
+        │  · Entradas de nivel                           │
+        │                                                │
+        │  ⚠️ A CONSIDERAR                                │
+        │  · Reservar 2 semanas antes                    │
+        │  · Ambiente ruidoso                            │
+        │  · Espera ~45 min sin reserva                  │
+        │                                                │
+        │  📝 SÍNTESIS                                    │
+        │  "La consistencia en carne y servicio lo       │
+        │   posicionan como top indiscutido. El asado    │
+        │   de tira es el plato más repetido."           │
+        │                                                │
+        │  Fuentes: La Nación · TripAdvisor · Yelp ·     │
+        │  Guía Oleo · Infobae                           │
+        │                                                │
+        │  [Cómo llegar] [Reservar] [share]              │
+        └─────────────────────────────────────────────┘
+```
+
+Si solo encuentra 2 fuentes, **no inventa**. Te muestra una caja ámbar:
+
+> ⚠️ Profundidad limitada — Solo crucé 2 fuentes. Para una recomendación confiable probá especificar barrio (Malasaña, Chueca) o tipo de cocina. No voy a inventar.
+
+### ⚽ Deportes
+
+```
+Vos:    "como salio España ayer"
+Koru:   "España le ganó 2-1. Te dejé el detalle en la tarjeta."
+        → card LiveMatch con tabs Stats / Lineups / Timeline
+
+Vos:    "como le fue a Boca"
+Vos:    "gano el madrid?"
+Vos:    "el barsa cuanto gano"
+Vos:    "como va la champions"
+```
+
+### 💰 Crypto y finanzas
+
+```
+Vos:    "a cuanto esta el bitcoin"
+Koru:   → card CryptoPortfolio con precio en vivo
+
+Vos:    "como esta el btc"
+Vos:    "precio del bitcoin"
+Vos:    "a cuanto está el dólar"
+Koru:   → card "Dato de Hoy · DÓLAR · Blue subió 1,2%"
+        OFICIAL $1.185 / BLUE $1.320 / MEP $1.292
+```
+
+### 📚 Conocimiento y reseñas
+
+```
+Vos:    "que es la relatividad"
+Vos:    "quien era tesla"
+Vos:    "como funcionan los agujeros negros"
+Vos:    "quien escribio 1984"
+Vos:    "info de inception"
+Vos:    "quien actua en joker"
+Vos:    "de q trata interstellar"
+```
+
+### 📝 Informes profundos
+
+```
+Vos:    "quiero un informe sobre Age of Empires 2: su historia, civilizaciones
+        y cómo se juega hoy"
+
+Koru:   "¡Buenísimo! 🏰 Me pongo a investigar y te armo el informe."
+
+        ┌─────────────────────────────────────────┐
+        │ 🔍 Trabajando en tu informe...           │
+        │                                          │
+        │  ✓ Buscando fuentes 1/4                  │
+        │    "Age of Empires 2 qué es y panorama"  │
+        │  ✓ Buscando fuentes 2/4                  │
+        │    "Historia del juego y expansiones"    │
+        │  ✓ Buscando fuentes 3/4                  │
+        │    "Noticias y actualizaciones recientes"│
+        │  ✓ Buscando fuentes 4/4                  │
+        │    "Civilizaciones y meta actual"        │
+        │                                          │
+        │  ✓ Redactando tu informe...              │
+        │                                          │
+        │  → 78% → 100% → Entregado                │
+        └─────────────────────────────────────────┘
+
+                          ↓ 90 segundos después
+
+        ┌─────────────────────────────────────────┐
+        │ 📄 Tu Informe                            │
+        │    AGE OF EMPIRES II: HISTORIA           │
+        │    El RTS clásico que sigue vivo         │
+        │    25 años después                       │
+        │                                          │
+        │  ┌────────┬────────┬────────┐           │
+        │  │  1999  │  2026  │   15   │           │
+        │  │ Lanza- │ Expan- │Títulos │           │
+        │  │ miento │  sión  │ S-Tier │           │
+        │  └────────┴────────┴────────┘           │
+        │                                          │
+        │  [Ver informe completo →]                │
+        └─────────────────────────────────────────┘
+
+Koru:   "¡Listo! Tu informe sobre Age of Empires 2 está terminado.
+        Lo investigué en 18 fuentes."
+```
+
+### 🧠 Memoria — el Jardín
+
+Koru **no guarda nada sin tu permiso**. Cuando mencionás algo personal, ella te lo muestra como candidato y vos decidís:
+
+```
+Vos:    "me encanta el helado de pistacho"
+Koru:   → card memoria candidata "Te encanta el helado de pistacho"
+        [🌊 Regar]  [✂️ Poda]  [📋 Archivar]
+
+Vos:    "estoy aprendiendo japonés los martes"
+Vos:    "tengo un gato q se llama michi"
+Vos:    "odio el morron"
+Vos:    "mi cumple es en marzo"
+Vos:    "estoy ahorrando para un viaje a japon"
+Vos:    "trabajo de programador"
+```
+
+Después, **Koru usa esa memoria** en contextos no relacionados:
+
+```
+Vos:    "que calor"        → Koru sugiere helado (recordó pistacho)
+Vos:    "que hago este finde"  → Koru sugiere practicar japonés
+Vos:    "tirame una receta" → Koru excluye morrón de las opciones
+Vos:    "que hago con mi sueldo" → Koru recuerda tu ahorro para Japón
+Vos:    "que tal el dia"  → Koru sabe que te gusta correr por la mañana
+```
+
+### 🌍 Radar del mundo
+
+```
+Vos:    "El mundo está hablando de esto en IA, te enteraste?"
+Koru:   → card "El mundo" con señales recientes
+        [Seguir radar]
+
+Koru (proactivo, luego): "Te voy a traer este radar cada mañana."
+```
+
+### 🌧️ Anti-alucinación — Koru no inventa
+
+```
+Vos:    "¿cómo le fue a River Plate en el último partido?"
+Koru:   "Busqué en las noticias pero no apareció el resultado concreto
+        del último partido (ni el rival ni el marcador). ¿Querés que
+        intente una búsqueda más específica o preferís mirar directo
+        en 365Scores / la web oficial?"
+
+Vos:    "¿qué paso en el mundo hoy?"
+Koru:   "No pude conseguir noticias frescas con las fuentes abiertas
+        ahora mismo. ¿Querés que lo intente más tarde?"
+```
+
+Esto es **deliberado**. Koru prefiere decir "no sé" antes que inventar un resultado o un número.
+
+---
+
+## 🌅 Un día con Koru
+
+### 8:00 — Despertar
+
+```
+Vos:    "buen día"
+Koru:   "Hola. ¿Cómo va todo?"
+        [mascota: happy]
+```
+
+### 10:30 — Café con medialunas
+
+```
+Vos:    "anotá $1500 que gasté en café y medialunas"
+Koru:   "Listo, anoté los 500 pesos de café y medialunas. ¡Buen provecho!"
+        → card "Tus Finanzas" con ARS 500
+```
+
+### 12:00 — Lista del super
+
+```
+Vos:    "necesito leche, huevos, pan y queso para el super"
+Koru:   "Listo, guardé la lista: leche, huevos, pan y queso.
+        ¡Que vaya bien la compra!"
+        → card "Tu Lista · LISTA DE COMPRAS · Ítems: 4"
+```
+
+### 14:00 — Salida
+
+```
+Vos:    "¿qué clima hace en Madrid hoy?"
+Koru:   "En Madrid hace 34°C ahora, con máximas de 37°C y mínimas de 21°C.
+        No hay probabilidad de lluvia y el viento está a 10 km/h.
+        Día para ir ligero de ropa y llevar agua."
+        → card "Tu Clima · Madrid, España"
+```
+
+### 16:00 — Deportes
+
+```
+Vos:    "¿cómo le fue a River Plate en el último partido?"
+Koru:   "Busqué en las noticias pero no apareció el resultado concreto.
+        ¿Querés que intente una búsqueda más específica?"
+        → (no inventa resultado — anti-alucinación)
+```
+
+### 18:00 — Informe profundo
+
+```
+Vos:    "quiero un informe sobre Age of Empires 2: su historia,
+        civilizaciones y cómo se juega hoy"
+
+Koru:   "¡Buenísimo! 🏰 Me pongo a investigar y te armo el informe."
+        → WorkingPanel con 4 fases de búsqueda
+        → (90 segundos después)
+        → card "Tu Informe · AGE OF EMPIRES II: HISTORIA"
+
+Koru:   "¡Listo! Tu informe está terminado. Lo investigué en 18 fuentes."
+```
+
+### 20:00 — Cena
+
+```
+Vos:    "¿qué puedo cenar esta noche?"
+Koru:   "¿En qué barrio o ciudad estás? Así te busco opciones cerca."
+Vos:    "estoy en Palermo, Buenos Aires"
+Koru:   → card RestaurantSynthesis con top coincidencias
+```
+
+### 23:00 — Cierre del día
+
+```
+Vos:    "anotá que hoy fue un buen día"
+Koru:   "Listo, guardado. Qué lindo que haya sido un buen día 🌿"
+        [mascota: affectionate]
+        → card "Guardado en · GUARDADO · Hoy fue un buen día"
+```
+
+### Resultado al final del día
+
+- **2 recuerdos** sembrados (tu nombre, "hoy fue un buen día")
+- **5 colecciones** (gastos, lista de compras, compromisos, memorias, registros)
+- **0 alucinaciones** — todo lo que no sabía, lo dijo
+
+---
+
+## 💜 La personalidad de Koru
+
+Koru tiene un **tono calibrado**: cálido pero directriz, con humor tímido. Voseo rioplatense. Frases cortas. Cero jerga.
+
+### Lo que Koru **sí** dice
+
+| Situación | Frase típica |
+|---|---|
+| Loading | "Lo estoy oliendo…" |
+| Guardado | "Listo, guardado en {colección}." |
+| Error | "Se nubló el dato — no te muestro números viejos como si fueran de ahora" |
+| Vacío | "Todavía no sembraste nada" |
+| Idle | "Koru se durmió un rato — despertalo con un hola" |
+| Cansancio del usuario | "Te entiendo. Si querés, bajo el ritmo y ordenamos lo mínimo indispensable para hoy." |
+| Cumpleaños | "¡Feliz cumple! 🌿" |
+| Saludo | "Hola. ¿Cómo va todo?" |
+
+### Lo que Koru **nunca** dice
+
+> "Te extrañe" / "No me abandones" / "Soy la única persona que te entiende" / "Si no vuelves me marchito" / "Siempre estaré aquí para ti" / "Yo sé lo que necesitas mejor que tú"
+
+Koru no es **dependiente**. No es **empalagosa**. No te convierte todo en plan. Respeta tu estado emocional.
+
+### Las 4 personas que evaluamos
+
+Koru se prueba contra 4 perfiles reales con voces distintas:
+
+| | Persona | Voz | Cómo la usa |
+|---|---|---|---|
+| 🎨 | **Camila** (23) — diseñadora freelance, ansiedad social | warmth 8, humor 4, proactivity 6 | "Estoy agotada. ¿Qué me recomendás para bajar la ansiedad?" |
+| 💼 | **Martín** (34) — PM en startup, padre primerizo | warmth 5, directness 9, proactivity 9 | "Hoy tengo 4 reuniones. Armame el día como un campamento militar." |
+| 📚 | **Laura** (47) — docente, 2 hijos adolescentes | warmth 6, directness 7, detail 6 | "Los chicos están raros, Juani no quiere estudiar. ¿Qué hago?" |
+| 🌿 | **Roberto** (61) — jubilado, viudo | warmth 9, humor 5, detail 5 | "Me siento un poco solo. Contame algo lindo." |
+
+Cada uno recibe respuestas con **tono ajustado a su voz**.
+
+---
+
+## 🎭 Los 16 estados de la mascota
+
+Koru se renderiza como una mascota animada que refleja lo que está pasando:
+
+| Estado | Cuándo lo ves |
+|---|---|
+| 🌿 `idle` | Esperando que le hables |
+| 🤔 `thinking` | Procesando tu mensaje |
+| ⚙️ `working` | Ejecutando una tool (clima, búsqueda, etc.) |
+| 😊 `happy` | Respuesta exitosa / "Hola" |
+| 😴 `sleeping` | Inactividad prolongada |
+| 😬 `mistake` | Algo falló |
+| 📋 `planning` | Generando un plan |
+| 🔍 `product-search` | Buscando productos |
+| 🏗️ `building` | Construyendo algo complejo (informe) |
+| 🍳 `cooking` | Modo cocina activo |
+| 🎉 `celebrating` | Logro desbloqueado |
+| 😟 `worried` | Detectó algo sensible ("estoy cansado") |
+| 🥰 `affectionate` | Tono cálido activado |
+| 🧐 `curious` | Te va a preguntar algo |
+| 🥱 `tired` | Muchos turnos seguidos |
+| 💭 `thinking-2` | Reflexión profunda |
+
+---
+
+## 🧠 El Jardín de la Memoria
+
+La memoria de Koru es **confirmable, no absorbente**. No como otros asistentes que absorben todo sin pedir permiso.
+
+### Cómo funciona
+
+```
+1. Vos mencionás algo personal
+   "estoy aprendiendo japonés los martes"
+
+2. Koru lo propone como candidato
+   ┌──────────────────────────────────────┐
+   │ 🌱 Memoria candidata                  │
+   │                                       │
+   │  "Estás aprendiendo japonés los       │
+   │   martes"                             │
+   │                                       │
+   │  [🌊 Regar]  [✂️ Poda]  [📋 Archivar] │
+   └──────────────────────────────────────┘
+
+3. Vos decidís
+   🌊 Regar  →  se confirma y entra a tu jardín
+   ✂️ Poda   →  se descarta para siempre
+   📋 Archivar  →  se guarda pero no se usa en sugerencias
+
+4. Koru la usa después, en contexto no relacionado
+   Vos: "que hago este finde?"
+   Koru: "... ¿quizás practicar japonés? Sé que los martes es tu día."
+```
+
+### Las 5 etapas del jardín
+
+Tu relación con Koru crece con la confianza:
 
 ```
 seed → sprout → roots → born → garden
+ └──────└────────└────────└───────┘
+   recién      confianza      compañero
+   empezando   construida      total
 ```
 
-Es una arquitectura explícita de **consentimiento**: nada entra a la memoria sin que el usuario lo autorice. La confianza se gana, no se asume.
+Cuantas más memorias confirmás, más crece el jardín. Koru no te pide todo de entrada — te lo pregunta cuando es relevante.
 
 ---
 
-## ✨ Highlights
+## 🛡️ Lo que Koru NO hace sin tu permiso
 
-| | |
-|---|---|
-| 🧠 **Memoria confirmable** | Sistema de candidatos → confirmados/rechazados · 5 stages de confianza · edit history con diff |
-| 🎭 **Mascota con 16 estados** | idle, thinking, working, happy, tired, sleeping, mistake, planning, celebrating, worried, affectionate, curious... |
-| 🃏 **56 tipos de cards Tier-S** | Sistema unificado: hero + detail + cta + actions · 51 mapper functions · mobile 420 px |
-| 🛠️ **121+ tools reales** | Clima, restaurantes, deportes, finanzas, noticias, rutas, viajes, gastos, salud, OCR, calendar... |
-| 🤖 **Multi-LLM con fallback** | NVIDIA Nemotron-3-Ultra · MiniMax · OpenRouter · Ollama local · Semantic Router por embeddings |
-| ✨ **Enhancement Engine** | Propone "+1 contextual" como botones clickeables tras cada respuesta |
-| 🛡️ **Boundaries de autonomía** | Cada tool declara `risk`, `requiresApproval`, `autoRun` — el usuario aprueba lo sensible |
-| 🔒 **Anti-alucinación** | `structureExtractor` valida datos contra citas literales de las fuentes |
-| 📴 **Offline-first** | IndexedDB cache 24h + offline message queue + auto-replay al reconectar |
-| 🌐 **i18n es/en** | Detección heurística + instrucción de idioma inyectada al LLM |
-| 📄 **PDF export** | Genera HTML imprimible de los últimos 50 turnos con sources y tablas |
-| 🎬 **36 motion patterns** | Sistema Tier-S sin framer-motion · CSS puro + `tw-animate-css` + hooks propios |
-| 🧪 **287 tests pasando** | 95 unitarios (Vitest) + 13 E2E (Playwright desktop + Pixel 7) + 6 agents eval |
-| 🚀 **5 deploy targets** | Vercel + Render · Railway · Fly.io · Docker · local prod |
+Koru tiene **boundaries explícitas**. Cada tool declara su nivel de riesgo:
 
----
+| Tool | Riesgo | Requiere aprobación |
+|---|---|---|
+| `weather_forecast` | low | ❌ auto |
+| `crypto_price` | low | ❌ auto |
+| `recipe_find` | low | ❌ auto |
+| `expense_track` | medium | ❌ auto (anota) |
+| `reminder_set` | medium | ❌ auto |
+| `alarm_set` | medium | ❌ auto |
+| `email_draft` | high | ✅ SÍ |
+| `message_draft` | high | ✅ SÍ |
+| `doc_create_pdf` | medium | ✅ SÍ |
+| `image_generate` | medium | ✅ SÍ |
 
-## 🧱 Stack técnico
-
-### Frontend
-- **React 19** (`StrictMode`) + **Vite 8** (Rolldown bundler) + **TypeScript 6**
-- **Tailwind 4** (CSS-first con `@theme inline`) + **tw-animate-css** + **lucide-react**
-- **Sin Redux/Zustand/Jotai** — estado en único `KoruContext` con `useReducer`
-- **Sin React Router** — navegación por estado interno (`useState<Screen>`)
-- **Sin framer-motion** — animaciones CSS + hooks propios (`useTapRipple`, `KoruCountUp`)
-- **PWA** con Service Worker (push notifications + background sync)
-- **Tesseract.js** (OCR en cliente para receipts)
-
-### Backend
-- **Node.js 22** HTTP nativo (sin Express) — backend embebido en Vite middleware (dev) o bundle esbuild (prod)
-- **Streaming NDJSON** para feedback de progreso en cada turno
-- **5 proveedores LLM** con fallback automático:
-  - **NVIDIA Integrate** — `nvidia/nemotron-3-ultra-550b-a55b` (default) + fast `stepfun-ai/step-3.5-flash`
-  - **MiniMax** — vía OAuth token, modelo `MiniMax-M2.7`
-  - **OpenRouter** — hasta 3 keys × 3 modelos (rotación con `Promise.any`)
-  - **Ollama local** — para embeddings del Semantic Router (`nomic-embed-text`) y modelos locales
-  - **BlueSminds** — `mimo-v2.5` (opcional)
-- **Semantic Router** — decide intención por embeddings *antes* del LLM (ahorra tokens y latencia)
-- **Simulated tool detector** — compatibilidad con modelos sin tool-calls nativos (Qwen3, DeepSeek-R1)
-- **Multi-búsqueda web** — Brave, Serper, Tavily, NewsAPI, GNews, SearXNG, GDELT, Open-Meteo, OSRM + Playwright fallback
-
-### Infra
-- **Vercel + Render** (frontend estático + backend Node) — `vercel.json` rewrites `/api/* → koru-mvp.onrender.com`
-- **Railway** — `nixpacks` builder, `node server-bundle.mjs --max-old-space-size=512`, healthcheck `/api/health`
-- **Fly.io** — `app=koru-mvp`, region `iad`, 1 CPU shared + 1 GB RAM, force_https
-- **Docker** multi-stage (`node:22-slim`), HEALTHCHECK cada 30s
-- **CI/CD** vía GitHub Actions: `deploy-fly.yml` + `deploy-railway.yml` (auto-deploy on `main` push)
-
-### Catálogo de Skills z.ai (65 skills)
-- **`skills/`** contiene 65 skills del **z-ai-web-dev-sdk** como catálogo de blueprints instruccionales (173 `SKILL.md` totales contando anidados)
-- Cubren: media AI (LLM, ASR, TTS, VLM, image-gen, video-gen), web/agent (browser, web-search, coding-agent), documentos (PDF, DOCX, XLSX, PPTX, charts), investigación académica, carrera, aprendizaje, contenido/marketing, finanzas, diseño/UX, bienestar, meta
-- No son runtime — son capacidades disponibles para el coding agent
-
----
-
-## 🏗️ Arquitectura — Pipeline de un turno
+Y **siempre** te explica qué no hizo y por qué:
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                       NAVEGADOR / PWA (420px)                        │
-│                                                                      │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────────┐  │
-│  │  TalkOverlay │  │  HomeScreen  │  │    Service Worker        │  │
-│  │  (chat)      │  │  (wheel +    │  │    (push + bg sync +     │  │
-│  │  + Composer  │  │   widgets)   │  │     offline cache 24h)   │  │
-│  └──────┬───────┘  └──────────────┘  └──────────────────────────┘  │
-│         │                                                            │
-│  ┌──────▼──────────────────────────────────────────────────┐        │
-│  │           KoruProvider (useReducer + Context)            │        │
-│  │  state · 6 pantallas · persistencia dual localStorage +  │        │
-│  │  IndexedDB · memory garden (5 stages)                    │        │
-│  └──────┬──────────────────────────────────────────────────┘        │
-│         │                                                            │
-│  ┌──────▼──────────────────────────────────────────────────┐        │
-│  │      backendAgentClient (streaming NDJSON fetch)         │        │
-│  └──────┬──────────────────────────────────────────────────┘        │
-└─────────┼────────────────────────────────────────────────────────────┘
-          │ POST /api/koru/turn {input, state, history, model}
-          │
-┌─────────▼────────────────────────────────────────────────────────────┐
-│                    BACKEND NODE (server-bundle.mjs)                  │
-│                                                                      │
-│  1. buildMessages                                                    │
-│     └─ systemPrompt (personalidad + memorias relevantes + records)   │
-│     └─ historial (últimos 10 turnos)                                 │
-│     └─ LANGUAGE instruction (es/en)                                  │
-│                                                                      │
-│  2. SemanticRouter (Ollama nomic-embed-text)                         │
-│     └─ Decide tool por similitud ANTES del LLM                       │
-│                                                                      │
-│  3. callProvider (fallback chain)                                    │
-│     └─ MiniMax → NVIDIA/Ollama → OpenRouter                          │
-│                                                                      │
-│  4. executeProviderToolCalls (121+ tools en src/tools/)              │
-│     └─ Cada tool respeta: risk / requiresApproval / autoRun          │
-│                                                                      │
-│  5. detectSimulatedToolCall (compat Qwen3, DeepSeek-R1)              │
-│                                                                      │
-│  6. Segunda llamada LLM (sin tools) → componse reply JSON            │
-│                                                                      │
-│  7. structureExtractor — anti-alucinación vs citas literales         │
-│  8. enhancementExtractor + enhancementEngine → "+1" contextual        │
-│  9. finalizePayload → JSON → NDJSON stream                           │
-└─────────┬────────────────────────────────────────────────────────────┘
-          │
-          ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                       RESPUESTA (KoruBackendTurnResponse)            │
-│                                                                      │
-│  {                                                                   │
-│    reply, uiBlocks: UiBlock[],                                       │
-│    suggestedActions: KoruSuggestedAction[],                          │
-│    understanding: {literalRequest, userGoal, unstatedNeeds, ...},    │
-│    memoryCandidates: MemoryFact[],      ← el usuario riega/poda      │
-│    commitments: Commitment[],                                       │
-│    records: LifeRecord[],                                           │
-│    toolResults: ToolResult[],                                       │
-│    stateEvents: [{kind: thinking|searching|comparing|..., label}],  │
-│    provider, model, mascotState, skippedBecauseBoundary             │
-│  }                                                                   │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-### Principios clave
-
-1. **Memoria confirmable.** Koru nunca guarda un hecho sin aprobación explícita del usuario. Los `memoryCandidates` se muestran como cards con botones "Regar" / "Poda" / "Archivar".
-
-2. **Boundaries de autonomía.** Cada tool declara su política (`risk`, `requiresApproval`, `autoRun`). Las tools sensibles (gastos, alarmas, envío de mensajes) requieren aprobación explícita. `skippedBecauseBoundary` explica qué no se hizo y por qué.
-
-3. **Anti-alucinación estructural.** El `structureExtractor` valida que todo dato numérico o factual en la respuesta tenga una cita literal en las sources. Si no la tiene, se descarta.
-
-4. **Enhancement "+1".** Tras cada respuesta, el `enhancementEngine` propone una acción contextual como botón clickeable (ej: "¿Agregar esta compra a la lista?"). El usuario decide si la ejecuta. El motor aprende de aceptaciones/rechazos.
-
-5. **Multi-LLM con fallback transparente.** Si NVIDIA cae por rate-limit, propagation. Si cae por otra causa, OpenRouter. Si MiniMax está configurado, va primero. El campo `fallbackReason` explica al usuario qué pasó.
-
-6. **Streaming NDJSON.** Cada turno emite eventos de progreso (`thinking`, `searching`, `comparing`, `planning`, `saving`, `done`) para que la UI muestre qué está haciendo Koru en tiempo real.
-
----
-
-## 🃏 Las 56 cards Tier-S
-
-Cada respuesta de Koru puede emitir **UiBlocks** — bloques visuales tipados que se renderizan como "hojas" Stitch en mobile 420 px. El sistema **unificado Tier-S** colapsa toda card a un solo molde: `hero + detail + cta + actions + empty`.
-
-### 13 dominios cubiertos
-
-| Dominio | Cards principales |
-|---|---|
-| **Clima** | `WeatherCard` (ciudad, ahora, rango, lluvia, viento, advice, sources) |
-| **Restaurantes** | `RestaurantSynthesisCard` (DeepHungry: 8 fuentes, top coincidencias, pros/cons, síntesis) |
-| **Compras** | `ComparisonCard`, `ProductAnalysisCard`, `SmartChecklistCard`, `OutfitCard`, `ReviewScoreCard`, `ReviewDocumentCard`, `ReviewQuoteCard` |
-| **Planificación** | `PlanCard`, `PlanTimelineCard` |
-| **Consultas personales** | `MemoryCard`, `MoneySummaryCard`, `SavedRecordCard`, `SocialInteractionCard` |
-| **Fútbol/Deportes** | `MatchTimelineCard`, `LiveMatchCard` (tabs Stats/Lineups/Timeline), `MatchStatsCard` |
-| **Mercados/Finanzas** | `CryptoPortfolioCard`, `MarketCard`, `ForexCard` |
-| **Elecciones** | `ElectionResultsCard`, `ElectionVoteCard` |
-| **Direcciones/Rutas** | `RouteTimelineCard`, `TransportCompareCard`, `RouteMapCard` |
-| **Viajes** | `TravelPlannerCard` |
-| **Cumpleaños/Eventos** | `BirthdayCalendarCard`, `BirthdayAlarmCard` |
-| **Acciones/Recordatorios** | `AlarmCard`, `UrgentNowCard`, `HealthReminderCard` |
-| **Información general/Web** | `ResearchSourcesCard`, `DataCard` |
-
-### La card estrella: `deliverable`
-
-Todo resultado de peso (informe, investigación, análisis) llega como `deliverable`:
-
-- `status: "working" | "ready"` — mientras `working`, UI muestra "Trabajando en tu {kicker}" con progreso **real** (`progress: 0..100`, `phaseLabel: "Buscando fuentes 2/4..."`)
-- `kicker, title (UPPER), description, summary, categories[3], metrics[3]`
-- `sections[{icon, title, kicker, kind: text|bullets|timeline|grid|rows, paragraphs, bullets, items}]`
-- `sources: AssistantSource[]` — siempre con citación verificable
-
----
-
-## 🛠️ Las 121+ tools reales
-
-Las tools viven en `src/tools/` (59 archivos, 12.390 líneas). Cada una declara `definition` (schema OpenAI function-calling) + `policy` (`risk`, `requiresApproval`, `autoRun`) + `handler`. Distribuidas por dominio:
-
-| Dominio | Ejemplos de tools |
-|---|---|
-| **Money** | `crypto_price`, `stock_quote`, `currency_convert`, `expense_track`, `expense_summary`, `budget_set`, `budget_check`, `subscription_reminder`, `tax_estimate`, `inflation_data`, `price_compare_product`, `price_history`, `product_review` |
-| **Sports** | `match_schedule`, `match_live`, `league_standings`, `team_follow`, `player_stats`, `tennis_atp_wta`, `tennis_live`, `tournament_bracket`, `golf_leaderboard`, `sports_news` |
-| **Food** | `recipe_find`, `recipe_by_ingredients`, `recipe_show`, `recipe_save`, `food_info`, `nutrition_calc`, `wine_pairing`, `restaurant_deep_search`, `restaurant_review_aggregate`, `menu_extract` |
-| **Travel** | `route_plan`, `route_planner`, `travel_itinerary`, `flight_search`, `flight_track`, `hotel_search`, `transport_nearby`, `currency_atm`, `language_phrase`, `visa_check`, `weather_travel` |
-| **Trending/News** | `news_urgent`, `news_urgent_search`, `news_radar_topic`, `news_topic`, `rss_digest`, `rss_subscribe`, `trending_twitter`, `trending_reddit`, `trending_youtube`, `trending_github` |
-| **Docs/Tasks** | `task_create`, `task_done`, `task_list`, `reminder_set`, `alarm_set`, `countdown`, `note_write`, `note_show`, `note_search`, `project_create`, `project_add`, `project_show`, `calendar_add`, `calendar_show`, `calendar_export_ics` |
-| **Productivity** | `translate`, `summarize_text`, `summarize_url`, `email_draft`, `message_draft`, `extract_action_items`, `deep_research`, `qr_generate`, `copy_to_clipboard`, `lyrics_find`, `sunrise_sunset`, `moon_phase`, `time_zone`, `holidays` |
-| **Documents** | `doc_create_md`, `doc_create_word`, `doc_create_excel`, `doc_create_pdf`, `data_analyze`, `data_chart`, `ocr_text` |
-| **Knowledge** | `wikipedia_lookup`, `dictionary_define`, `math_calc`, `unit_convert`, `slang_translate`, `memory_save`, `memory_search`, `memory_edit`, `memory_forget`, `memory_garden_show` |
-| **Health** | `medication_reminder`, `hydration_remind`, `sleep_track`, `mood_track`, `habit_streak`, `air_quality_advice` |
-| **People/Media** | `person_info`, `person_follow`, `person_filmography`, `movie_info`, `book_info`, `game_info`, `image_generate` |
-| **Apps** | `app_deals`, `app_recommend`, `game_deals`, `game_recommend` |
-| **Weather** | `weather_forecast` (open-meteo) |
-| **OCR** | `receiptOCR` (Tesseract.js en cliente) |
-| **Calendar** | `googleCalendar` (OAuth flow completo) |
-
----
-
-## 📁 Estructura del repositorio
-
-```
-koru-mvp/
-├── index.html                    # PWA entry · fuentes Google asíncronas · SW
-├── all-cards-preview.html        # Galería standalone de cards (dev)
-├── restaurant-real.html          # Mock pixel-fiel RestaurantSynthesisCard
-├── package.json                  # ESM · scripts dev/server/build/test/e2e
-├── vite.config.ts                # 1.094 líneas · backend embebido en plugin Vite
-├── tsconfig.json                 # ES2023 · strict · verbatimModuleSyntax
-├── vitest.config.ts              # jsdom + testing-library
-├── playwright.config.ts          # desktop + Pixel 7 mobile
-├── Dockerfile                    # Multi-stage node:22-slim · HEALTHCHECK
-├── vercel.json                   # rewrites /api/* → koru-mvp.onrender.com
-├── railway.toml                  # nixpacks · node server-bundle.mjs
-├── fly.toml                      # app=koru-mvp · region=iad · 1cpu/1GB
-├── .env.example                  # 5 providers + Ollama + VITE_*
-├── .github/workflows/            # deploy-fly.yml + deploy-railway.yml
-│
-├── src/
-│   ├── main.tsx                  # React 19 StrictMode · SW registration
-│   ├── style.css                 # 8.292 líneas · Brand Bible · design tokens
-│   ├── koru-motion.css           # 39 líneas · motion tokens
-│   │
-│   ├── domain/                   # 54 archivos · 11.181 líneas — EL CORE
-│   │   ├── types.ts              # 1.554 líneas · 56 UiBlock · MascotState · MemoryFact
-│   │   ├── store.ts              # 1.318 líneas · reducers · selectRelevantMemories
-│   │   ├── soul.ts               # personalidad base
-│   │   ├── brain.ts              # smart fallback contextual
-│   │   ├── backendAgentClient.ts # POST /api/koru/turn con streaming
-│   │   ├── semanticRouter.ts     # router por embeddings (Ollama nomic-embed-text)
-│   │   ├── simulatedToolDetector.ts   # compat modelos sin tool-calls
-│   │   ├── structureExtractor.ts # anti-alucinación vs citas literales
-│   │   ├── enhancementExtractor.ts + enhancementEngine.ts  # "+1" contextual
-│   │   ├── heartbeat.ts + heartbeatProactive.ts  # nudges proactivos
-│   │   ├── commitments.ts        # alarmas/reminders → commitments reales
-│   │   ├── decisionEngine.ts     # decisiones con "voto" claro
-│   │   ├── stressEngine.ts + strengthEngine.ts   # carga emocional
-│   │   ├── persistence.ts        # localStorage + IndexedDB
-│   │   ├── calendar.ts           # Google Calendar
-│   │   ├── i18n.ts               # es/en · detectLanguage · buildLanguageInstruction
-│   │   ├── offlineCache.ts       # IndexedDB 24h + offline queue
-│   │   ├── koruVoice.ts + kimiPrinciples.ts
-│   │   ├── memory/               # semanticSearch.ts + embeddings.ts
-│   │   ├── schemas/              # matcher, comparison, money, sports, weather, news
-│   │   └── 30+ *.test.ts
-│   │
-│   ├── server/                   # 8.751 líneas — Backend Node
-│   │   ├── koruBackend.ts        # 6.460 líneas · runKoruBackendTurn · pipeline completo
-│   │   ├── providers/            # nvidia, openrouter, minimax, ollama, fetch, types, index
-│   │   ├── tools/                # builtins, types
-│   │   ├── logger.ts · json.ts · pdfExport.ts
-│   │   └── 6 *.test.ts
-│   │
-│   ├── tools/                    # 59 archivos · 12.390 líneas — TOOLBOX
-│   │   ├── toolbox.ts            # registry: ALL_TOOL_DEFINITIONS + TOOL_BOX map
-│   │   ├── types.ts              # defineTool(name, description, parameters)
-│   │   ├── apps/ docs/ food/ health/ knowledge/ media/ money/ news/
-│   │   ├── ocr/ people/ shopping/ sports/ trending/ utils/ weather/
-│   │   ├── calendar/ travel/
-│   │   └── shared/               # fetcher, scrapers, cache, rateLimiter, embeddings
-│   │
-│   └── ui/                       # 30 .tsx + 2 .ts · 27.553 líneas
-│       ├── App.tsx               # Root · 6 pantallas (chat|hoy|memoria|permisos|historial|config)
-│       ├── KoruProvider.tsx      # 2.330 líneas · Context + useReducer + persistencia dual
-│       ├── TalkOverlay.tsx       # 1.645 líneas · Chat principal (composer + stream + cards)
-│       ├── HomeScreen.tsx        # wheel principal con widgets
-│       ├── MemoryScreen.tsx      # "Mi jardín" — memoria como plantas
-│       ├── HistoryScreen.tsx · SettingsScreen.tsx · PermissionsScreen.tsx
-│       ├── CollectionsScreen.tsx · PlanRoadmapScreen.tsx · CreateScreen.tsx
-│       ├── KoruBackground.tsx    # animación de fondo (orbes, gradientes)
-│       ├── KoruMascot.tsx        # 16 estados · MP4s + PNGs
-│       ├── KoruIconSprite.tsx    # sprite de iconos
-│       ├── Onboarding.tsx        # 3 pantallas: greeting → waiting_for_name → confirm
-│       ├── chatCards.tsx         # 808 líneas · dispatcher → KoruUnifiedCard
-│       ├── MorningBriefCard.tsx · MemoryGraph.tsx · MemoryToast.tsx
-│       ├── MemoryConflictResolver.tsx · BottomNav.tsx · ConfirmDialog.tsx
-│       ├── ErrorBoundary.tsx · IconGallery.tsx · DevCardPreview.tsx
-│       ├── NotificationManager.tsx · TypingDots.tsx · AnimatedIcon.tsx
-│       ├── WorkoutSession.tsx · MeditationOverlay.tsx
-│       ├── adapters.ts · audit.ts
-│       ├── home/WidgetCards.tsx + homeWidgets.ts
-│       └── cards/
-│           ├── PlanHeroCard.tsx
-│           └── unified/          # El molde unificado Tier-S
-│               ├── presentation.ts     # 5.864 líneas · 51 mapper functions
-│               ├── KoruUnifiedCard.tsx # 1.071 líneas · hero sheet
-│               ├── KoruDetailScreen.tsx # 1.702 líneas · 8 section kinds
-│               ├── DeliverableCard.tsx # card estrella (informes, análisis)
-│               ├── CardSkeleton.tsx · CardError.tsx
-│               ├── CookingMode.tsx · PriceHistoryChart.tsx
-│               ├── KoruCountUp.tsx     # rAF + easeOutExpo
-│               ├── useTapRipple.ts     # ripple magnético al tap
-│               └── 3 *.test.tsx
-│
-├── server-prod.ts                # HTTP Node nativo · 133 líneas · /api/koru/turn + /api/koru/models
-├── server-simple.mjs             # estático + proxy API · 122 líneas
-├── server-bundle.mjs             # esbuild output · 14.443 líneas (produción)
-│
-├── public/                       # 71 assets
-│   ├── manifest.json · favicon.svg · sw.js
-│   ├── icons.svg                 # sprite de iconos
-│   ├── koru-states/              # 4 MP4 + 11 PNG (16 estados de mascota)
-│   ├── stitch/                   # ilustraciones (plan-bg, chat-bg, roadmap-hero)
-│   ├── stitch-ref/               # referencias de diseño
-│   └── 10 HTML standalone (guias, informes, tests e2e)
-│
-├── skills/                       # 65 skills del catálogo z.ai SDK (173 SKILL.md)
-│   ├── ASR · LLM · TTS · VLM · image-edit · image-generation · image-search
-│   ├── agent-browser · web-reader · web-search · coding-agent · fullstack-dev
-│   ├── pdf · docx · xlsx · pptx · charts
-│   ├── aminer-* · market-research-reports · contentanalysis
-│   ├── interview-prep · resume-builder · jd-resume-tailor · job-intent-tracker
-│   ├── quiz-mastery · study-buddy · cheat-sheet · writing-plans
-│   ├── blog-writer · seo-content-writer · content-strategy · podcast-generate
-│   ├── finance · stock-analysis-skill
-│   ├── design/ (con 40+ brand refs: Apple, Stripe, Linear, Vercel, Notion...)
-│   ├── mindfulness-meditation · dream-interpreter · gift-evaluator
-│   ├── skill-creator · task-review · version-management
-│   └── ai-news-collectors · skill-finder-cn · gaokao-*
-│
-├── finetune/                     # Fine-tuning de koru-qwen-27b
-│   ├── README.md                 # workflow: schemas → dataset → train → eval → export
-│   ├── Modelfile.koru-qwen       # Ollama Modelfile
-│   ├── koru-tools.json           # 121 tool definitions para el LLM
-│   ├── koru-builtin-tools.json   # tools builtin del motor
-│   ├── koru-uiblock-types.json   # 56 tipos de UiBlock soportados
-│   ├── koru-dataset-v1.jsonl     # dataset sintético
-│   ├── extract-koru-schema.ts    # extrae schemas del código TS
-│   ├── generate-dataset.ts       # genera dataset
-│   ├── train-qwen-koru.py        # Unsloth + LoRA (24GB VRAM Q4)
-│   ├── eval-qwen-koru.py         # evaluación de calidad
-│   └── export-to-ollama.sh       # export a GGUF + Ollama
-│
-├── scripts/                      # 33 scripts de operación y QA
-│   ├── start-koru.sh · restart-koru.sh · keep-koru-alive.sh
-│   ├── koru-bug-hunt.mjs · koru-quality-test.mjs · koru-quality-v2.mjs
-│   ├── koru-probe.mjs · koru-memory-test.mjs · koru-batch.mjs
-│   ├── screenshot-card.mjs · screenshot-all-cards.mjs
-│   ├── gen_funcionalidades.py · gen_cards_catalog.py
-│   ├── inline_images.py · convert_videos.sh
-│   ├── test-model-router.py · validate-tools.ts
-│   └── minimax-oauth.ts
-│
-├── tests/
-│   ├── e2e/koru.spec.ts          # 404 líneas · 13 tests Playwright
-│   ├── agents/                   # framework de evaluación (6 archivos)
-│   └── smoke-restaurant.test.ts
-│
-├── docs/
-│   ├── auditoria/                # 9 docs · auditoría completa del código
-│   │   ├── 01-arquitectura-y-stack.md
-│   │   ├── 02-capas-del-codigo.md
-│   │   ├── 03-ui-y-experiencia.md
-│   │   ├── 04-seguridad-rendimiento-testing.md
-│   │   ├── 05-bugs-y-deuda-tecnica.md
-│   │   ├── 06-conclusiones.md
-│   │   ├── 07-plan-100-tools-gratuitas.md
-│   │   ├── 08-catalogo-tools-cotidianas.md
-│   │   └── 09-arquitectura-toolbox.md
-│   ├── MASTER_CARD_INVENTORY.md  # 959 líneas · 51 cards auditadas + 10 propuestas
-│   ├── MICIDETAILS_MANIFESTO.md  # 110 microdetalles · WCAG ratios medidos
-│   ├── PLAN_PROACTIVIDAD.md · PLAN_ROUTER_LLM.md
-│   ├── ARQUITECTURA_PRESENTACION_ADAPTATIVA.md
-│   ├── UI_AUDIT_REDESIGN_SPEC.md
-│   └── superpowers/plans/        # 3 planes de mejora
-│
-├── SUMMARY.md                    # Resumen visual + operativo · commits v1→v11
-├── CARD_CATALOG.md               # Mapeo UiBlock → componente (13 dominios)
-├── KORU_MOTION_CATALOG.md        # 1.615 líneas · 36 animaciones Tier-S
-├── DEPLOY.md                     # Guía Railway / Fly.io / Docker / local
-├── worklog.md                    # Bitácora de Sprints
-├── koru-integrations.json        # OAuth integrations state (Google Calendar)
-└── .kimchi/docs/verification.md  # Reporte estabilización: 287 tests pass
+Vos:    "mandale un mensaje a mi jefe que me voy a casa"
+Koru:   "Te armé el borrador del mensaje. Antes de enviarlo
+        necesito que lo apruebes — no envío mensajes en tu
+        nombre sin tu visto bueno."
+        → card MessageDraft + botón [Aprobar y enviar]
 ```
 
 ---
 
-## 🚀 Setup local
+## ✨ El "+1" — Enhancement Engine
 
-### Requisitos
+Después de cada respuesta, Koru propone **una** acción contextual como botón clickeable. No te inunda con opciones. Solo una, la más relevante.
 
-- **Node.js 22+**
-- **npm** o **bun**
-- **Ollama** (opcional, para Semantic Router + modelos locales) — https://ollama.com
-- Al menos **1 API key** de LLM provider (NVIDIA / OpenRouter / MiniMax)
+```
+Vos:    "anota que gasté 18 euros en farmacia"
+Koru:   "Guardado: 18 EUR en farmacia."
 
-### Paso a paso
+        ┌─────────────────────────────────────────┐
+        │ 💡 Como fue farmacia, ¿quieres que deje  │
+        │    una alarma para tomar algo, reponerlo │
+        │    o seguir el tratamiento?              │
+        │                                          │
+        │  [Crear recordatorio]                    │
+        └─────────────────────────────────────────┘
+```
+
+```
+Vos:    "estoy quemado, no puedo con todo"
+Koru:   "Te creo. Hoy no hace falta convertir todo en una montaña."
+
+        ┌─────────────────────────────────────────┐
+        │ 💡 ¿Querés que sugiera pausas?            │
+        │                                          │
+        │  [Sugerir pausas]                        │
+        └─────────────────────────────────────────┘
+```
+
+Si aceptás, Koru ejecuta la acción. Si la rechazás, **aprende** y no te lo vuelve a proponer con esa frecuencia.
+
+---
+
+## 📴 Offline-first
+
+Koru funciona **sin internet** para lo básico:
+
+- ✅ Ver tus gastos, listas, memorias y compromisos guardados
+- ✅ Crear nuevas notas, gastos, recordatorios (se encolan)
+- ✅ Ver el historial completo de turnos
+- ✅ Onboarding y ajustes
+
+Cuando recuperás conexión, **Koru replay** automáticamente todo lo que hiciste offline:
+
+```
+[Offline] "anota 25 euros de farmacia"     → se encola
+[Offline] "mañana llamar a Ana"            → se encola
+[Online]  → se envían en orden, se confirmen una por una
+```
+
+El cache de respuestas del LLM dura 24 horas en IndexedDB.
+
+---
+
+## 🌐 Idiomas
+
+Koru habla **español** e **inglés**, y detecta automáticamente cuál estás usando:
+
+```
+Vos:    "good morning, how are you?"
+Koru:   "Hey! I'm doing good. What's up?"
+
+Vos:    "buenas, como andás?"
+Koru:   "Buenas. Todo tranqui por acá. ¿Vos?"
+```
+
+Podés forzar el idioma en Ajustes si querés.
+
+---
+
+## 📱 Instalación
+
+### Como PWA (recomendado)
+
+1. Abrí https://koru-mvp.onrender.com en tu móvil (Chrome / Safari)
+2. Menú → **"Agregar a pantalla de inicio"**
+3. Ícono de Koru aparece en tu home
+4. Abrilo → pantalla completa, sin barra del navegador
+
+### Como APK Android
+
+(Todavía no hay APK firmado en el repo — está planeado para la Fase 2.)
+
+---
+
+## 🚀 Empezar a usarlo
+
+### Opción A: Usar la demo pública
+
+Andá a https://koru-mvp.onrender.com, hacé el onboarding (3 pantallas), y empezá a hablarle.
+
+### Opción B: Correrlo local
 
 ```bash
-# 1. Clonar
 git clone https://github.com/Arx88/koru-mvp.git
 cd koru-mvp
-
-# 2. Instalar dependencias
 npm install
-# o
-bun install
-
-# 3. Configurar variables de entorno
 cp .env.example .env
-# Editar .env con tus API keys:
-#   NVIDIA_API_KEY=nvapi-...        (recomendado, default provider)
-#   OPENROUTER_API_KEY=sk-or-...    (fallback)
-#   MINIMAX_ACCESS_TOKEN=...        (opcional)
-#   BLUESMINDS_API_KEY=...          (opcional)
-#
-# Opcionales para Ollama local:
-#   OLLAMA_EMBED_BASE_URL=http://127.0.0.1:11434
-#   VITE_OPEN_MODEL_BASE_URL=/ollama/v1
-#   VITE_OPEN_MODEL_API_KEY=ollama
-#   VITE_OPEN_MODEL_MODEL=llama3.1
-
-# 4. Levantar dev server (backend embebido en Vite)
+# Editar .env con al menos 1 API key (NVIDIA_API_KEY recomendado)
 npm run dev
-# App en http://localhost:5173
-
-# 5. (Opcional) Levantar server backend por separado
-npm run server    # http://localhost:3000
-
-# 6. (Opcional) Levantar Ollama con modelos recomendados
-ollama pull nomic-embed-text    # embeddings para Semantic Router
-ollama pull qwen3:32b           # modelo local opcional
+# → http://localhost:5173
 ```
 
-### Variables de entorno — regla crítica
-
-```
-Server-side only (SIN prefijo VITE_):
-  NVIDIA_API_KEY, OPENROUTER_API_KEY, MINIMAX_ACCESS_TOKEN, BLUESMINDS_API_KEY
-  → visibles SOLO en el backend
-
-Client-side (CON prefijo VITE_):
-  VITE_OPEN_MODEL_BASE_URL, VITE_OPEN_MODEL_API_KEY, VITE_OPEN_MODEL_MODEL
-  → se incrustan en el bundle del cliente y son públicas
-  → NUNCA poner API keys secretas acá
-```
+**API keys soportadas** (necesitás al menos una):
+- `NVIDIA_API_KEY` (recomendado — Nemotron-3-Ultra gratis)
+- `OPENROUTER_API_KEY` (fallback con 3 modelos gratis)
+- `MINIMAX_ACCESS_TOKEN` (opcional)
+- `OLLAMA_EMBED_BASE_URL` (si querés Semantic Router local con Ollama)
 
 ---
 
-## 🧪 Tests
+## 🎨 Galería de cards
 
-### Tests unitarios (Vitest)
+Koru tiene **56 tipos de cards visuales** organizadas en 13 dominios. Algunas de las más usadas:
 
-```bash
-npm test            # una vez
-npm run test:watch  # modo watch
-```
+### ☀️ WeatherCard
+Ciudad · temperatura actual · min/max · viento · probabilidad de lluvia · advice ("Día para salir ligero")
 
-Cobertura: **287 tests pasando / 0 fallando / 39 skipped** distribuidos en 28 archivos.
+### 🍖 RestaurantSynthesisCard (DeepHungry)
+Top coincidencias con score de fuentes · pros / cons · síntesis textual · 5 fuentes citadas · botones Cómo llegar / Reservar / share
 
-### Tests E2E (Playwright)
+### 📄 DeliverableCard (informes)
+Kicker + título + métricas (3 datos) + secciones (texto / bullets / timeline / grid / rows) + sources
 
-```bash
-# Requiere dev server corriendo en :5173 (Playwright lo levanta solo)
-npx playwright test
+### 💸 MoneySummaryCard
+Total gastado en el período + desglose por categoría + tendencia
 
-# Modo UI interactivo
-npx playwright test --ui
+### 📋 PlanCard
+Lista de tareas/actividades del día con botón "Aplicar plan"
 
-# Solo desktop
-npx playwright test --project=desktop
+### ⚽ LiveMatchCard
+Equipos · marcador · minuto · tabs interactivas Stats / Lineups / Timeline
 
-# Solo mobile (Pixel 7)
-npx playwright test --project=mobile
-```
+### 💰 CryptoPortfolioCard
+Precio en vivo · variación 24h · sparkline
 
-Cobertura: **13 tests** en `tests/e2e/koru.spec.ts` con 2 proyectos (Desktop Chrome + Pixel 7 mobile).
+### 🌍 ForexCard
+OFICIAL / BLUE / MEP · variación · "Ver evolución"
 
-### Framework de evaluación de agentes
+### 📝 ShoppingListCard
+Ítems agrupados · contador · "Ver lista"
 
-```bash
-node tests/agents/eval-smoke-test.mjs   # smoke test rápido
-node tests/agents/eval-reduced.mjs      # suite reducida
-node tests/agents/eval-ux-20.mjs        # suite UX de 20 criterios
-```
+### 🧠 MemoryCard
+Memoria candidata con botones Regar / Poda / Archivar
 
----
+### 🎂 BirthdayCalendarCard / BirthdayAlarmCard
+Calendario con cumpleaños marcados / alarma con días restantes
 
-## 🌐 Deploy
+### 🗺️ RouteTimelineCard
+Pasos numerados con direcciones + duración estimada
 
-### Opción 1 — Vercel + Render (frontend + backend separados)
+### 📰 ResearchSourcesCard
+Lista de fuentes verificadas con icono "verified" + link al original
 
-El repo ya está configurado para esto. Frontend en Vercel, backend en Render.
-
-**Frontend (Vercel)**:
-```bash
-npm i -g vercel
-vercel --prod
-# vercel.json ya rewrites /api/* → koru-mvp.onrender.com
-```
-
-**Backend (Render)**:
-- Conectá el repo en Render → New Web Service
-- Build Command: `npm run build && npx esbuild server/index.ts --bundle --platform=node --format=esm --outfile=server-bundle.mjs --external:z-ai-web-dev-sdk --external:playwright`
-- Start Command: `node --max-old-space-size=512 server-bundle.mjs`
-- Health Check: `/api/health`
-- Configurar env vars: `NVIDIA_API_KEY`, `OPENROUTER_API_KEY`, etc.
-
-### Opción 2 — Railway
-
-```bash
-npm i -g @railway/cli
-railway login
-railway init        # seguir prompts
-railway up          # deploy
-
-# Configurar secrets:
-railway variables set NVIDIA_API_KEY=nvapi-...
-railway variables set OPENROUTER_API_KEY=sk-or-...
-```
-
-`railway.toml` ya configurado con `nixpacks` builder + healthcheck `/api/health`.
-
-### Opción 3 — Fly.io
-
-```bash
-# Instalar flyctl: https://fly.io/docs/hands-on/install-flyctl/
-fly auth login
-fly launch         # primera vez (fly.toml ya existe, responder a prompts)
-fly secrets set NVIDIA_API_KEY=nvapi-...
-fly secrets set OPENROUTER_API_KEY=sk-or-...
-fly deploy
-```
-
-Configurado: 1 CPU shared, 1 GB RAM, region `iad`, force_https, min_machines_running 1.
-
-### Opción 4 — Docker
-
-```bash
-# Build
-docker build -t koru-mvp .
-
-# Run
-docker run -d \
-  -p 3000:3000 \
-  -e NVIDIA_API_KEY=nvapi-... \
-  -e OPENROUTER_API_KEY=sk-or-... \
-  --name koru \
-  koru-mvp
-
-# Healthcheck
-curl http://localhost:3000/api/health
-```
-
-`Dockerfile` multi-stage con `node:22-slim`, HEALTHCHECK cada 30s vía `/api/health`.
-
-### Opción 5 — Local production (sin Docker)
-
-```bash
-npm run build
-npx esbuild server/index.ts \
-  --bundle --platform=node --format=esm \
-  --outfile=server-bundle.mjs \
-  --external:z-ai-web-dev-sdk --external:playwright
-
-NVIDIA_API_KEY=nvapi-... \
-  node --max-old-space-size=512 server-bundle.mjs
-```
+### 💡 DecisionSupportCard
+"Mi voto" claro (Yo esperaría / Yo avanzaría / Me falta un dato) + justificación basada en tus datos
 
 ---
 
-## 🤖 Fine-tuning de Koru-Qwen (opcional)
+## 🛠️ Para desarrolladores
 
-Koru viene con un pipeline de fine-tuning para tener un modelo local propio basado en Qwen 27B. El directorio `finetune/` incluye:
+> Esta sección es **reference material**. Si solo querés usar Koru, no la necesitás.
 
-| Archivo | Función |
+### Stack
+
+- **Frontend**: React 19 + Vite 8 + TypeScript 6 + Tailwind 4 + lucide-react
+- **Estado**: `useReducer` + Context (sin Redux/Zustand)
+- **Animaciones**: CSS puro + `tw-animate-css` + hooks propios (`useTapRipple`, `KoruCountUp`)
+- **Backend**: Node.js 22 HTTP nativo (sin Express), bundleable con esbuild
+- **Streaming**: NDJSON para feedback de progreso en cada turno
+- **PWA**: Service Worker (push + background sync + offline cache 24h)
+- **OCR**: Tesseract.js (en cliente, para receipts)
+- **Tests**: 287 unitarios (Vitest) + 13 E2E (Playwright desktop + Pixel 7)
+
+### Proveedores LLM con fallback
+
+Koru prueba en este orden hasta que uno responde:
+
+1. **MiniMax** (si está configurado) — `MiniMax-M2.7`
+2. **NVIDIA Integrate** — `nvidia/nemotron-3-ultra-550b-a55b` (default)
+3. **Ollama local** — `qwen3:32b` o el que tengas
+4. **OpenRouter** — 3 keys × 3 modelos (rotación con `Promise.any`)
+
+Si todo falla, te dice "Se nubló el dato" y te explica por qué en `fallbackReason`.
+
+### Pipeline de un turno
+
+```
+1. Usuario escribe → TalkOverlay → submitEntry
+2. backendAgentClient → POST /api/koru/turn (streaming NDJSON)
+3. buildMessages (systemPrompt + memorias relevantes + historial)
+4. SemanticRouter (Ollama nomic-embed-text) → decide tool ANTES del LLM
+5. callProvider (fallback chain: MiniMax → NVIDIA → OpenRouter)
+6. executeProviderToolCalls (121+ tools)
+7. detectSimulatedToolCall (compat Qwen3, DeepSeek-R1 sin tool-calls nativos)
+8. Segunda llamada LLM (sin tools) → componse reply JSON
+9. structureExtractor → valida datos contra citas literales (anti-alucinación)
+10. enhancementEngine → propone "+1" contextual
+11. finalizePayload → JSON → NDJSON stream → cliente
+```
+
+### Las 121+ tools reales
+
+Distribuidas en 14 dominios:
+
+| Dominio | Ejemplos |
 |---|---|
-| `extract-koru-schema.ts` | Extrae los 121 tool definitions + 56 UiBlock types del código TS |
-| `generate-dataset.ts` | Genera dataset sintético en formato JSONL |
-| `koru-dataset-v1.jsonl` | Dataset final listo para entrenar |
-| `train-qwen-koru.py` | Script Unsloth + LoRA (requiere 24 GB VRAM, Q4 quantization) |
-| `eval-qwen-koru.py` | Evaluación de calidad del modelo entrenado |
-| `export-to-ollama.sh` | Exporta a GGUF y carga en Ollama |
-| `Modelfile.koru-qwen` | Ollama Modelfile para `koru-qwen-27b` |
+| Money | crypto_price, stock_quote, currency_convert, expense_track, budget_set, subscription_reminder, price_compare_product, price_history |
+| Sports | match_schedule, match_live, league_standings, team_follow, player_stats, tennis_atp_wta, tournament_bracket, golf_leaderboard |
+| Food | recipe_find, recipe_by_ingredients, food_info, nutrition_calc, wine_pairing, restaurant_deep_search, menu_extract |
+| Travel | route_plan, flight_search, hotel_search, transport_nearby, currency_atm, language_phrase, visa_check |
+| News | news_urgent, news_radar_topic, rss_digest, trending_twitter, trending_reddit, trending_youtube, trending_github |
+| Tasks | task_create, task_done, reminder_set, alarm_set, countdown, note_write, project_create, calendar_add, calendar_export_ics |
+| Productivity | translate, summarize_text, summarize_url, email_draft, message_draft, extract_action_items, deep_research, qr_generate |
+| Documents | doc_create_md, doc_create_word, doc_create_excel, doc_create_pdf, data_analyze, data_chart, ocr_text |
+| Knowledge | wikipedia_lookup, dictionary_define, math_calc, unit_convert, slang_translate, memory_save, memory_search, memory_garden_show |
+| Health | medication_reminder, hydration_remind, sleep_track, mood_track, habit_streak, air_quality_advice |
+| People/Media | person_info, movie_info, book_info, game_info, image_generate |
+| Apps | app_deals, app_recommend, game_deals, game_recommend |
+| Weather | weather_forecast (open-meteo) |
+| Calendar | googleCalendar (OAuth flow) |
 
-**Workflow:**
+### Deploy (5 opciones)
+
+| Target | Comando |
+|---|---|
+| **Vercel + Render** | Frontend en Vercel, backend en Render (`vercel.json` ya rewrites `/api/*`) |
+| **Railway** | `railway up` (config en `railway.toml`, nixpacks builder) |
+| **Fly.io** | `fly deploy` (config en `fly.toml`, 1 CPU / 1 GB RAM / iad) |
+| **Docker** | `docker build -t koru-mvp . && docker run -p 3000:3000 ...` |
+| **Local prod** | `npm run build && npx esbuild ... && node server-bundle.mjs` |
+
+### Tests
 
 ```bash
-cd finetune
-
-# 1. Extraer schemas del código
-npx tsx extract-koru-schema.ts
-
-# 2. Generar dataset sintético
-npx tsx generate-dataset.ts
-
-# 3. Entrenar (requiere GPU 24GB)
-python train-qwen-koru.py
-
-# 4. Evaluar
-python eval-qwen-koru.py
-
-# 5. Exportar a Ollama
-bash export-to-ollama.sh
-
-# 6. Configurar Koru para usar el modelo local
-# En .env:
-#   OLLAMA_EMBED_BASE_URL=http://127.0.0.1:11434
-# Y en Ajustes → Modelo, seleccionar "koru-qwen-27b:latest"
+npm test              # 287 unitarios (Vitest)
+npx playwright test   # 13 E2E (Playwright desktop + Pixel 7)
 ```
 
 ---
 
-## 🎨 Brand & Motion System
-
-### Brand Bible (`src/style.css` — 8.292 líneas)
-
-| Token | Valor |
-|---|---|
-| `--koru-purple` | `#8363f9` (morado unificado, antes 3 distintos) |
-| `--koru-purple-dark` | `#523a9e` |
-| `--koru-purple-deep` | `#382b8c` |
-| `--koru-cream` | `#f6f3fe` |
-| Background base | `#FCFCFA` |
-| Cards | blanco con `card-shadow: 0 4px 20px rgba(0,0,0,.03)` |
-| Tipografía display | Bricolage Grotesque (600-800) |
-| Tipografía body | Plus Jakarta Sans (400-800) |
-| Tipografía mono | JetBrains Mono / Fira Code |
-| Iconografía | Material Symbols Outlined (opsz 24, wght 400) |
-| Radii | sm 8 / md 12 / lg 16 / xl 20 / full |
-| Max width | 420 px (mobile-first) |
-
-### Motion tokens (`KORU_MOTION_CATALOG.md` — 1.615 líneas)
-
-**4 easings:**
-- `--koru-spring` (overshoot sutil)
-- `--koru-out` (deceleración natural)
-- `--koru-in-out` (simétrico)
-- `--koru-soft` (curva Stripe)
-
-**5 durations:**
-- `--t-instant` 120ms (taps)
-- `--t-quick` 200ms (hovers)
-- `--t-entrance` 500ms (entradas)
-- `--t-ambient` 4s (loops)
-- `--t-cinematic` 800ms (transiciones hero)
-
-**36 animaciones production-ready:** breathe, pulse dot, bar pop, shine sweep, arrow pulse, ring pulse, count up, glow, typing bounce, indeterminate, shimmer, star pop, aurora, tilted card, magnetic, scrambled text, gradient text, spotlight card...
-
-**Accesibilidad:** `@media (prefers-reduced-motion: reduce)` override global — todo pasa a instant 0.001ms.
-
----
-
-## 🎭 Mascota — 16 estados
-
-Koru se renderiza como una mascota con 16 estados emocionales que reflejan lo que está pasando:
-
-| Estado | Cuándo aparece |
-|---|---|
-| `idle` | Esperando input |
-| `thinking` | Procesando mensaje |
-| `working` | Ejecutando tools |
-| `happy` | Respuesta exitosa |
-| `tired` | Muchos turnos seguidos |
-| `sleeping` | Inactividad prolongada |
-| `mistake` | Error o tool falló |
-| `planning` | Generando un plan |
-| `product-search` | Buscando productos |
-| `building` | Construyendo algo complejo |
-| `cooking` | Modo cocina activo |
-| `thinking-2` | Reflexión profunda |
-| `celebrating` | Logro desbloqueado |
-| `worried` | Algo sensible detectado |
-| `affectionate` | Tono cálido |
-| `curious` | Pregunta aclaratoria |
-
-Assets en `public/koru-states/` (4 MP4 animados + 11 PNG).
-
----
-
-## 📊 Estadísticas del proyecto
+## 📊 Estado del proyecto
 
 | Métrica | Valor |
 |---|---|
-| **Líneas TS/TSX en `src/`** | ~64.000 |
-| **Líneas CSS (Brand Bible)** | 8.292 |
-| **Archivos en `src/`** | 196 (30 son tests) |
-| **Components React** | 30 |
-| **Cards Tier-S** | 56 variantes (51 mapper functions) |
+| **Líneas de código** | ~64.000 (TS/TSX) |
+| **Tests pasando** | 287 unitarios + 13 E2E = 300 |
+| **Cards Tier-S** | 56 variantes |
 | **Tools reales** | 121+ |
-| **Skills z.ai en catálogo** | 65 (173 SKILL.md) |
-| **Tests unitarios (Vitest)** | 287 pass / 0 fail / 39 skipped |
-| **Tests E2E (Playwright)** | 13 (desktop + mobile) |
+| **Proveedores LLM** | 5 (NVIDIA, OpenRouter, MiniMax, Ollama, BlueSminds) |
 | **Commits en main** | 454 |
-| **Duración del proyecto** | 28 días (19 jun → 17 jul 2026) |
-| **Deploy targets soportados** | 5 (Vercel+Render, Railway, Fly, Docker, local) |
-| **Proveedores LLM soportados** | 5 (NVIDIA, OpenRouter, MiniMax, Ollama, BlueSminds) |
-| **Animaciones Tier-S** | 36 |
-| **Idiomas soportados** | 2 (es, en) |
-
----
-
-## 📜 Documentación adicional
-
-El repo incluye documentación extensa más allá de este README:
-
-| Documento | Contenido |
-|---|---|
-| [`SUMMARY.md`](SUMMARY.md) | Resumen visual + operativo · commits de diseño v1→v11 |
-| [`CARD_CATALOG.md`](CARD_CATALOG.md) | Mapeo UiBlock → componente (13 dominios) |
-| [`KORU_MOTION_CATALOG.md`](KORU_MOTION_CATALOG.md) | 1.615 líneas · 36 animaciones Tier-S con research |
-| [`DEPLOY.md`](DEPLOY.md) | Guía detallada Railway / Fly.io / Docker / local |
-| [`worklog.md`](worklog.md) | Bitácora de Sprints (i18n, offline cache, PDF export, Tier-S audit) |
-| [`docs/MASTER_CARD_INVENTORY.md`](docs/MASTER_CARD_INVENTORY.md) | 959 líneas · auditoría de 51 cards + 10 propuestas |
-| [`docs/MICRODETAILS_MANIFESTO.md`](docs/MICRODETAILS_MANIFESTO.md) | 110 microdetalles · WCAG ratios medidos |
-| [`docs/auditoria/`](docs/auditoria/) | 9 docs de auditoría completa del código |
-| [`docs/superpowers/plans/`](docs/superpowers/plans/) | 3 planes de mejora a futuro |
-| [`.kimchi/docs/verification.md`](.kimchi/docs/verification.md) | Reporte de estabilización (287 tests pass) |
-
----
-
-## 🔒 Seguridad y privacidad
-
-### Local-first
-
-- Los datos del usuario viven en **localStorage** y **IndexedDB** del navegador
-- El backend **NO persiste** datos del usuario entre sesiones (stateless)
-- La cola offline se guarda en IndexedDB y se replay al reconectar
-- El Service Worker cachea respuestas 24h para funcionamiento offline
-
-### Boundaries de autonomía
-
-Cada tool declara su política:
-
-```ts
-{
-  risk: "low" | "medium" | "high",
-  requiresApproval: boolean,
-  autoRun: boolean
-}
-```
-
-Las tools con `requiresApproval: true` muestran una card de confirmación al usuario antes de ejecutarse. Las tools con `risk: "high"` NUNCA son `autoRun`. El campo `skippedBecauseBoundary` explica al usuario qué no se hizo y por qué.
-
-### Memoria confirmable
-
-Los `memoryCandidates` nunca se guardan automáticamente. El usuario debe hacer click en "Regar" (confirmar) para que pasen a `confirmed`. Los `rejected` se archivan. Los `sensitive` (salud, finanzas, relaciones) tienen tratamiento especial con `editHistory` y diff visible.
-
-### Variables de entorno
-
-```
-Server-side only (SIN VITE_):
-  → API keys de LLM providers, NO visibles en el cliente
-
-Client-side (CON VITE_):
-  → URLs de proxies, flags, configuraciones públicas
-  → NUNCA API keys secretas
-```
-
-### Permissions screen
-
-La pantalla "Permisos" muestra explícitamente al usuario qué puede y qué no puede hacer Koru, con toggles para revocar consentimiento en cualquier momento.
+| **Edad del proyecto** | 28 días (19 jun → 17 jul 2026) |
+| **Deploy targets** | 5 (Vercel+Render, Railway, Fly, Docker, local) |
+| **Idiomas** | 2 (es, en) |
+| **Estados de mascota** | 16 |
 
 ---
 
 ## 🛣️ Roadmap
 
-Koru está diseñado por fases. El estado actual corresponde a la **fase MVP estabilizada**.
-
-### Fases de la mascota (memory garden)
-
-```
-seed → sprout → roots → born → garden
- └── Etapa actual: garden (memoria confirmable + edición + diff)
-```
-
-### Próximas fases planificadas
-
-| Fase | Nombre | Estado | Highlight |
-|---|---|---|---|
-| **F1** | MVP Estabilizado | ✅ Done | 287 tests pass · 56 cards · 121 tools · 5 LLM providers |
-| **F2** | Personalización | 🚧 Plan | Voice preferences (cálida / directriz / humor ajustable) · Learning preferences model |
-| **F3** | Proactividad avanzada | 📋 Plan | Heartbeat con nudges contextuales (clima, tráfico, medicación, resultados) |
-| **F4** | Multi-dispositivo | 📋 Plan | Sync opcional cifrada entre dispositivos |
-| **F5** | Koru-Qwen 27B local | 📋 Plan | Fine-tuning propio (pipeline en `finetune/`) · 100% offline |
-
-Ver [`docs/superpowers/plans/`](docs/superpowers/plans/) para detalles.
+| Fase | Estado | Highlight |
+|---|---|---|
+| **F1** MVP estabilizado | ✅ Done | 287 tests · 56 cards · 121 tools · 5 LLM providers |
+| **F2** Personalización | 🚧 Plan | Voice preferences ajustables · APK Android firmado |
+| **F3** Proactividad avanzada | 📋 Plan | Heartbeat con nudges contextuales (clima, tráfico, medicación, resultados) |
+| **F4** Multi-dispositivo | 📋 Plan | Sync opcional cifrada entre dispositivos |
+| **F5** Koru-Qwen 27B local | 📋 Plan | Fine-tuning propio · 100% offline · pipeline en `finetune/` |
 
 ---
 
-## 🤝 Filosofía de diseño
+## 💜 Filosofía
 
 > _"Se siente como un compañero. Funciona como un operador. Respeta como un amigo."_
 
-Koru fue diseñado con 5 principios no negociables:
+5 principios no negociables:
 
-1. **Memoria confirmable.** El usuario es el único dueño de su memoria. Koru propone, el usuario decide.
+1. **Memoria confirmable.** Vos sos el único dueño de tu memoria. Koru propone, vos decidís.
 2. **Boundaries explícitas.** Koru nunca hace algo sensible sin aprobación. Y siempre explica qué no hizo y por qué.
 3. **Anti-alucinación estructural.** Todo dato en una respuesta debe tener una cita literal verificable. Si no la tiene, no se incluye.
-4. **Enhancement "+1".** Koru no solo responde — propone la próxima acción relevante como botón clickeable. El usuario decide si la ejecuta.
-5. **Personalidad calibrada.** Cálido pero directriz. No empalagoso. No convierte todo a plan. Respeta el estado emocional del usuario (stressEngine + strengthEngine).
+4. **Enhancement "+1".** Koru no solo responde — propone la próxima acción relevante como botón clickeable. Vos decidís si la ejecutás.
+5. **Personalidad calibrada.** Cálido pero directriz. No empalagoso. No convierte todo a plan. Respeta tu estado emocional.
 
 ---
 
@@ -852,27 +820,10 @@ Las skills en `skills/` son catálogo del **z-ai-web-dev-sdk** y mantienen sus p
 
 ---
 
-## 🙋 Créditos
-
-**Koru MVP** · 2026
-
-- Diseño & producto: Arx88
-- Stack: React 19 · Vite 8 · TypeScript 6 · Tailwind 4 · Node 22
-- LLMs: NVIDIA Nemotron-3-Ultra · MiniMax · OpenRouter · Ollama
-- Mascota: 16 estados · MP4 + PNG
-- Motion: 36 animaciones Tier-S · CSS puro · `tw-animate-css`
-- Tests: 287 unitarios (Vitest) + 13 E2E (Playwright)
-
----
-
 <div align="center">
 
-**¿Encontraste un bug? ¿Querés contribuir?**
+**Abrí Koru y contale algo. Ella escucha, ordena y recuerda — con tu permiso.**
 
-Abrí un issue en [GitHub Issues](https://github.com/Arx88/koru-mvp/issues)
-
----
-
-🌱 **Koru · local-first · mobile 420px · stage: garden** 🌱
+[🌱 Usar Koru →](https://koru-mvp.onrender.com) · [🐛 Reportar bug](https://github.com/Arx88/koru-mvp/issues)
 
 </div>
