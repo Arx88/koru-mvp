@@ -143,6 +143,24 @@ function CardRoot({
       onKeyDown={!open ? handleKeyDown : undefined}
       style={{ overflow: "hidden", position: "relative", ...style }}
     >
+      {/* 🔴 KIMI v4: sparkles globales en CardRoot para TODOS los layouts
+          que usen .kc (no solo Default y Match). El spec los pide en anatCard
+          (pág. 27) y card-noticias (pág. 51). Solo se renderizan si la card
+          tiene clase .kc (evita spotlight/banner que no son .kc). */}
+      {className?.includes("kc") && (
+        <>
+          <div className="kc-sparkle s1" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 2c.6 4.5 3.5 7.4 8 8-4.5.6-7.4 3.5-8 8-.6-4.5-3.5-7.4-8-8 4.5-.6 7.4-3.5 8-8z" />
+            </svg>
+          </div>
+          <div className="kc-sparkle s2" aria-hidden="true">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 2c.6 4.5 3.5 7.4 8 8-4.5.6-7.4 3.5-8 8-.6-4.5-3.5-7.4-8-8 4.5-.6 7.4-3.5 8-8z" />
+            </svg>
+          </div>
+        </>
+      )}
       {children}
     </div>
   );
@@ -506,19 +524,7 @@ function DefaultLayout(props: SharedProps) {
           Sin conexión
         </div>
       )}
-      {/* 🔴 KIMI audit: sparkles decorativos (top-right + bottom-left).
-          El CSS define la animación twinkle (si no existe en style.css,
-          los puntos quedan estáticos — pendiente de agregar keyframes). */}
-      <div className="kc-sparkle s1" aria-hidden="true">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M12 2c.6 4.5 3.5 7.4 8 8-4.5.6-7.4 3.5-8 8-.6-4.5-3.5-7.4-8-8 4.5-.6 7.4-3.5 8-8z" />
-        </svg>
-      </div>
-      <div className="kc-sparkle s2" aria-hidden="true">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M12 2c.6 4.5 3.5 7.4 8 8-4.5.6-7.4 3.5-8 8-.6-4.5-3.5-7.4-8-8 4.5-.6 7.4-3.5 8-8z" />
-        </svg>
-      </div>
+      {/* 🔴 KIMI v4: sparkles movidos a CardRoot (aplican a todos los layouts .kc). */}
 
       <div className="koru-plan-hero-top kc-top">
         <div className="koru-plan-hero-copy kc-copy">
@@ -630,9 +636,11 @@ function DefaultLayout(props: SharedProps) {
           Solo se renderiza si la card es tappable (mismo guard que CtaHint). */}
       {isTappable && cta && <KimiCtaButton cta={cta} handleClick={handleClick} />}
 
-      {/* 🔴 KIMI audit: card foot (source + actions) — replaces nothing,
-          se añade al pie del molde default. */}
-      <CardFoot block={block} cta={cta} />
+      {/* 🔴 KIMI v4: card foot SOLO cuando hay sources (spec pág. 27 — el .kc-foot
+          solo aparece en cards con fuentes verificables). Sin sources, no se renderiza. */}
+      {("sources" in block && Array.isArray((block as { sources?: unknown }).sources) && ((block as { sources?: unknown[] }).sources?.length ?? 0) > 0) && (
+        <CardFoot block={block} cta={cta} />
+      )}
 
       <InlineActions actions={actions} block={block} accentColor={hero.accent.color} />
 
@@ -1323,11 +1331,7 @@ function MatchLayout(props: SharedProps) {
 
   return (
     <CardRoot block={block} hero={hero} isTappable={isTappable} open={open} handleClick={handleClick} handleKeyDown={handleKeyDown} className="kc">
-      <div className="kc-sparkle s1" aria-hidden="true">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2c.6 4.5 3.5 7.4 8 8-4.5.6-7.4 3.5-8 8-.6-4.5-3.5-7.4-8-8 4.5-.6 7.4-3.5 8-8z" />
-        </svg>
-      </div>
+      {/* 🔴 KIMI v4: sparkles movidos a CardRoot (aplican a todos los layouts .kc). */}
 
       {/* Kicker */}
       <div className="koru-card-kicker kc-kicker" style={{ color: hero.accent.color }}>
