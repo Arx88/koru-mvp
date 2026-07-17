@@ -898,7 +898,8 @@ function reminder(b: Of<"reminder">): KoruPresentation {
       ],
     },
     cta: { label: "Ver detalle" },
-    layout: "compact",
+    // 🔴 KIMI v4: layout default .kc (no compact — spec pág. 57 muestra kc con kc-art + pillchips + 2 CTAs).
+    layout: "default",
   };
 }
 
@@ -1208,7 +1209,7 @@ function comparison(b: Of<"comparison">): KoruPresentation {
     },
     cta: { label: "Ver el duelo completo" },
     // 🔴 v3: gallery (carrusel) cuando hay múltiples opciones que comparar.
-    layout: items.length > 1 ? "gallery" : "default",
+    layout: "default",
   };
 }
 
@@ -2109,7 +2110,7 @@ function morningBrief(b: Of<"morning_brief">): KoruPresentation {
         desc: "Pedime el resumen cuando arranques. Probá: 'buenos días' o 'resumen del día'",
         cta: { label: "Armar mi día", action: "prompt:buenos días" },
       },
-      layout: "banner",
+      layout: "default",
     };
   }
 
@@ -2132,7 +2133,8 @@ function morningBrief(b: Of<"morning_brief">): KoruPresentation {
     cta: sections.length > 1 ? { label: "Ver todo" } : undefined,
     // 🔴 KIMI D2/D6: banner = gradiente full-width con número grande + label.
     // El saludo matutino es el hero — el molde banner le da la noche + glow.
-    layout: b.greeting ? "banner" : "default",
+    // 🔴 KIMI v4: layout default .kc (no banner — spec pág. 83 muestra kc con kc-art sun + 3 kc-m).
+    layout: "default",
   };
 }
 
@@ -2590,7 +2592,8 @@ function urgentNow(b: Of<"urgent_now">): KoruPresentation {
       { label: "Entendido", icon: "check", kind: "primary", action: "dismiss" },
       { label: "Recordarme", icon: "snooze", kind: "secondary", action: "snooze" },
     ],
-    layout: "compact",
+    // 🔴 KIMI v4: layout default .kc (no compact).
+    layout: "default",
   };
 }
 
@@ -2810,7 +2813,8 @@ function healthReminder(b: Of<"health_reminder">): KoruPresentation {
       { label: "Tomé la dosis", icon: "check", kind: "primary", action: "complete" },
       { label: "Posponer", icon: "snooze", kind: "secondary", action: "snooze" },
     ],
-    layout: "compact",
+    // 🔴 KIMI v4: layout default .kc (no compact).
+    layout: "default",
   };
 }
 
@@ -4609,8 +4613,8 @@ function birthdayCalendar(b: Of<"birthday_calendar">): KoruPresentation {
       sections,
     },
     cta: { label: "Ver calendario" },
-    // 🔴 v3: banner con gradiente + número grande del día destacado.
-    layout: "banner",
+    // 🔴 KIMI v4: layout default .kc (no banner — spec pág. 53 muestra kc normal).
+    layout: "default",
   };
 }
 
@@ -4624,8 +4628,8 @@ function birthdayAlarm(b: Of<"birthday_alarm">): KoruPresentation {
       accent: A.amber,
       artValue: b.countdown ? `${b.countdown}${b.unit ? ` ${b.unit}` : ""}` : undefined,
     },
-    // 🔴 v3: banner con gradiente + countdown grande.
-    layout: "banner",
+    // 🔴 KIMI v4: layout default .kc (no banner — spec pág. 53 muestra kc normal).
+    layout: "default",
   };
 }
 
