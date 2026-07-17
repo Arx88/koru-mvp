@@ -66,7 +66,7 @@ function TypingDots() {
 export function CardSkeleton() {
   return (
     <div
-      className="koru-plan-hero"
+      className="koru-plan-hero kc koru-card-skeleton"
       data-ui-block="skeleton"
       aria-busy="true"
       aria-live="polite"
@@ -111,21 +111,19 @@ export function CardSkeleton() {
 
       {/* Footer — voz de Koru mientras trabaja */}
       <div
+        className="kc-foot"
         style={{
-          padding: "10px 20px 14px",
-          borderTop: "1px solid rgba(131, 99, 249, 0.10)",
+          margin: "11px 20px 0",
+          padding: "10px 0 14px",
           display: "flex",
           alignItems: "center",
           gap: 8,
         }}
       >
-        <span
-          aria-hidden="true"
-          className="material-symbols-outlined"
-          style={{ fontSize: 16, color: "rgba(131, 99, 249, 0.55)" }}
-        >
-          search
-        </span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(131,99,249,0.7)" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="6.5" />
+          <path d="M15.5 15.5L20 20" />
+        </svg>
         <span
           style={{
             fontFamily: FONT_HEADING,

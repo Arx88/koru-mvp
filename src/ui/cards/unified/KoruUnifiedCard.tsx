@@ -8,6 +8,7 @@ import { KoruCountUp } from "./KoruCountUp";
 import { useTapRipple } from "./useTapRipple";
 import { useKoru } from "../../KoruProvider";
 import { convertCurrency } from "../../../tools/travel/currencyConverter";
+import { KoruIcon, iconFromMaterial } from "./KoruIcons";
 
 // 🔴 Code-splitting: CollectionsScreen (~600 líneas, renderer markdown + portal)
 // se carga bajo demanda cuando el CTA del card abre la vista de colección.
@@ -475,11 +476,19 @@ function DefaultLayout(props: SharedProps) {
           // para no romper otras reglas que dependen de esa clase. El fondo
           // sólido accent.color reemplaza el soft anterior (el CSS .kc-art
           // fuerza color:#fff, ícono blanco sobre fondo de acento).
+          // 🔴 KIMI v2: si el Material Symbol mapea a un KoruIcon animado,
+          // usamos el SVG; si no, caemos al Mat original (compatibilidad).
           <div
             className="koru-unified-art kc-art"
             style={{ background: hero.accent.color, color: "#fff" }}
           >
-            <Mat className="koru-unified-art-icon">{hero.icon}</Mat>
+            {(() => {
+              const kn = iconFromMaterial(hero.icon);
+              if (kn !== "default") {
+                return <KoruIcon name={kn} size={40} style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,.25))" }} />;
+              }
+              return <Mat className="koru-unified-art-icon">{hero.icon}</Mat>;
+            })()}
             {hero.artValue && (
               <KoruCountUp value={hero.artValue} className="koru-unified-art-value val" />
             )}
@@ -498,7 +507,13 @@ function DefaultLayout(props: SharedProps) {
                   className="koru-metric-icon-square mi"
                   style={{ background: m.color ?? hero.accent.color }}
                 >
-                  <Mat>{m.icon}</Mat>
+                  {(() => {
+                    const kn = iconFromMaterial(m.icon);
+                    if (kn !== "default") {
+                      return <KoruIcon name={kn} size={14} />;
+                    }
+                    return <Mat>{m.icon}</Mat>;
+                  })()}
                 </span>
                 <span className="koru-unified-metric-label ml">{displayLabel}</span>
                 <span className="koru-unified-metric-value mv">{displayValue}</span>

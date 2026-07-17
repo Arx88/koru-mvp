@@ -71,6 +71,44 @@
   --font-display: 'Bricolage Grotesque', Georgia, serif;
   --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* ═══ KIMI TIER-S — Tokens de dominio (pág. 14 del spec Kimi) ═══ */
+  /* Noche mágica cálida (fondo del documento, futuro chat nocturno) */
+  --night0: #070518;
+  --night1: #0c0922;
+  --night2: #141031;
+  --night3: #1c1642;
+  --ink2: #554a7d;
+  --ink-faint: #a89cc7;
+  --paper: #fbf9ff;
+  --paper2: #f4f0fd;
+  --paper3: #ece5fb;
+  --edge: #e4dcf7;
+  --lilac: #c9bdf5;
+  --moon: #efeaff;
+  --gold: #f6bd6d;
+  --honey: #ffd9a0;
+  --star: #ffe9b8;
+  --violet: #7c5cdb;
+  --coral: #ff7d6b;
+  --teal: #14b8a6;
+  --leaf: #7ed491;
+
+  /* Acentos por dominio (para .kc-art y .mi) */
+  --clima-1: #5ec9f8;
+  --clima-2: #3b82f6;
+  --cesped-1: #46c293;
+  --cesped-2: #2f8f6d;
+  --miel-1: #f6bd6d;
+  --miel-2: #f59e0b;
+  --brasa-1: #ff7d6b;
+  --brasa-2: #d63b2f;
+  --petalo-1: #ff8fb8;
+  --petalo-2: #ec4899;
+  --turq-1: #7dd3fc;
+  --turq-2: #38bdf8;
+  --azul-1: #60a5fa;
+  --azul-2: #2563eb;
 }
 
 @theme inline {
@@ -8290,3 +8328,249 @@ svg .draw{stroke-dasharray:60;stroke-dashoffset:60;animation:draw 1.6s var(--eas
 
 /* Fix xt position: keep scrollable, not absolute */
 .xt { position: relative; overflow-y: auto; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   KIMI TIER-S — Extensiones de cards (sublayout match, duel, trow, scrollhint,
+   live price, sparkline, garden hero, progtrack, offline state, garden confetti)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ——— .kc base (gradient bg + shadow canónica) ——— */
+.koru-plan-hero.kc {
+  background: linear-gradient(175deg, #ffffff 0%, #f8f5ff 55%, #f1ebfd 100%);
+  border: 1px solid rgba(131, 99, 249, 0.14);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset,
+              0 -14px 30px rgba(131, 99, 249, 0.06) inset,
+              0 18px 40px rgba(10, 6, 30, 0.45),
+              0 4px 14px rgba(10, 6, 30, 0.3),
+              0 0 0 6px rgba(12, 9, 34, 0.06);
+  border-radius: 28px;
+  padding: 18px 18px 14px;
+  animation: kcIn 0.7s var(--ease-spring) both;
+  transition: transform 0.35s var(--ease-spring), box-shadow 0.35s;
+}
+.koru-plan-hero.kc:hover {
+  transform: translateY(-4px) scale(1.012);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset,
+              0 -14px 30px rgba(131, 99, 249, 0.07) inset,
+              0 26px 54px rgba(10, 6, 30, 0.55),
+              0 6px 18px rgba(10, 6, 30, 0.34),
+              0 0 26px rgba(131, 99, 249, 0.24);
+}
+.koru-plan-hero.kc::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 8%; right: 8%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.95), transparent);
+}
+
+/* ——— .kc-cta::after z-index fix (sheen sobre el botón, no detrás) ——— */
+.kc-cta { position: relative; isolation: isolate; }
+.kc-cta > * { position: relative; z-index: 1; }
+.kc-cta::after { z-index: 0; }
+
+/* ——— SUBLAYOUT MATCH (Card 04 · Fútbol) ——— */
+.koru-match-hero { display: flex; align-items: center; gap: 12px; padding: 8px 0 4px; }
+.koru-match-team { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; min-width: 0; }
+.koru-match-shield {
+  width: 46px; height: 46px; border-radius: 50%;
+  display: grid; place-items: center;
+  font: 800 16px var(--font-display, 'Bricolage Grotesque', serif);
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.3);
+  flex: none;
+}
+.koru-match-team-name { font: 700 10px var(--font-sans); letter-spacing: 0.05em; color: var(--koru-purple-deep, #382b8c); text-align: center; text-transform: uppercase; }
+.koru-match-score {
+  font: 800 34px var(--font-display, 'Bricolage Grotesque', serif);
+  letter-spacing: -0.02em;
+  color: var(--koru-purple-deep, #382b8c);
+  min-width: 70px;
+  text-align: center;
+  line-height: 1;
+}
+.koru-match-vs { font: 700 9px var(--font-mono, monospace); color: var(--ink-faint, #a89cc7); letter-spacing: 0.18em; margin-top: 4px; }
+
+/* ——— Trow (goleadores con pelotita rebotando) ——— */
+.koru-trow { display: flex; align-items: center; gap: 8px; padding: 6px 0; font: 600 11.5px var(--font-sans); color: var(--ink2, #554a7d); }
+.koru-trow .ballb { width: 10px; height: 10px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #fff, #f6bd6d); flex: none; animation: ballb 1.7s ease-in-out infinite; }
+.koru-trow .min { font: 700 9px var(--font-mono, monospace); color: var(--ink-faint, #a89cc7); margin-left: auto; }
+
+/* ——— Duel (posesión / specs comparadas) ——— */
+.koru-duel { width: 100%; height: 8px; border-radius: 4px; overflow: hidden; display: flex; gap: 2px; background: var(--paper3, #ece5fb); }
+.koru-duel i { display: block; height: 100%; border-radius: 4px; transition: width 0.6s var(--ease-spring); }
+.koru-duel i.left { background: linear-gradient(90deg, var(--azul-1, #60a5fa), var(--azul-2, #2563eb)); }
+.koru-duel i.right { background: linear-gradient(90deg, var(--brasa-1, #ff7d6b), var(--brasa-2, #d63b2f)); }
+
+/* ——— Scrollhint (detail screen) ——— */
+.koru-scrollhint {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 6px 0 2px;
+  font: 700 9px var(--font-mono, monospace); letter-spacing: 0.2em;
+  color: var(--ink-faint, #a89cc7);
+  text-transform: uppercase;
+}
+.koru-scrollhint .arr { display: inline-block; }
+
+/* ——— Live price (Cripto / Trading) ——— */
+.koru-live-price {
+  display: inline-block;
+  border-radius: 8px;
+  padding: 2px 6px;
+  transition: background 0.4s ease-out;
+}
+.koru-live-price.up { animation: flashUp 0.9s ease-out; }
+.koru-live-price.dn { animation: flashDn 0.9s ease-out; }
+.koru-live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  display: inline-block;
+  background: var(--miel-2, #f59e0b);
+  margin-right: 6px;
+  animation: livePulseG 1.8s infinite;
+}
+
+/* ——— Sparkline SVG ——— */
+.koru-sparkline { width: 100%; height: 36px; overflow: visible; }
+.koru-sparkline .draw { stroke-dasharray: 200; animation: draw 1.4s var(--ease-out) forwards; }
+.koru-sparkline .draw-tip { animation: tickpulse 1.6s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+
+/* ——— Garden hero (Card 20 · Memoria) ——— */
+.koru-garden-hero {
+  position: relative;
+  border-radius: 28px;
+  overflow: hidden;
+  background: linear-gradient(160deg, #4d3a86 0%, #2c2158 60%, #1a1240 100%);
+  color: #fff;
+  padding: 22px 20px 18px;
+}
+.koru-garden-hero .glow {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(circle at 30% 30%, rgba(126, 212, 145, 0.25), transparent 60%),
+              radial-gradient(circle at 70% 80%, rgba(246, 189, 109, 0.18), transparent 50%);
+}
+.koru-garden-hero .koru-ic-leaf { color: var(--leaf, #7ed491); animation: leafsway 4s ease-in-out infinite; transform-origin: 50% 90%; display: inline-block; }
+.koru-garden-hero h3 { font: 800 22px var(--font-display, 'Bricolage Grotesque', serif); color: #fff; margin: 8px 0 4px; }
+.koru-garden-hero p { color: rgba(239, 234, 255, 0.78); font-size: 12.5px; line-height: 1.45; }
+
+/* ——— Progtrack (compras: "2/4 EN EL CHANGUITO") ——— */
+.koru-progtrack {
+  display: flex; align-items: center; justify-content: space-between;
+  font: 700 9px var(--font-mono, monospace); letter-spacing: 0.2em;
+  color: var(--ink-faint, #a89cc7);
+  text-transform: uppercase;
+  margin-top: 8px;
+}
+.koru-progtrack-bar { flex: 1; height: 4px; border-radius: 2px; background: var(--paper3, #ece5fb); margin: 0 10px; overflow: hidden; }
+.koru-progtrack-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--cesped-1, #46c293), var(--cesped-2, #2f8f6d)); border-radius: 2px; animation: progIn 0.6s var(--ease-spring) forwards; }
+
+/* ——— Offline / sleepy state ——— */
+.koru-card-sleepy { filter: brightness(0.78) saturate(0.7); transition: filter 0.6s ease-out; }
+.koru-card-sleepy .kc-kicker .dot.live { animation: none; opacity: 0.4; }
+.koru-card-offline-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font: 700 9px var(--font-mono, monospace); letter-spacing: 0.1em;
+  color: var(--koru-amber, #f59e0b);
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+/* ——— Confetti de hojitas Koru (logro racha 21 días) ——— */
+.koru-leaf-confetti {
+  position: fixed; inset: 0; pointer-events: none; z-index: 9999;
+  overflow: hidden;
+}
+.koru-leaf-confetti i {
+  position: absolute;
+  width: 12px; height: 12px;
+  background: var(--leaf, #7ed491);
+  border-radius: 0 100% 0 100%;
+  opacity: 0;
+  animation: koru-leaf-fall 2.6s ease-in forwards;
+}
+@keyframes koru-leaf-fall {
+  0% { transform: translateY(-20vh) rotate(0deg); opacity: 0; }
+  10% { opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg) translateX(40px); opacity: 0; }
+}
+
+/* ——— CardSkeleton + CardError con molde .kc ——— */
+.koru-card-skeleton.kc,
+.koru-card-error.kc {
+  background: linear-gradient(175deg, #ffffff 0%, #f8f5ff 55%, #f1ebfd 100%);
+  border: 1px solid rgba(131, 99, 249, 0.14);
+  border-radius: 28px;
+  padding: 22px 18px 16px;
+  text-align: center;
+  box-shadow: 0 18px 40px rgba(10, 6, 30, 0.25), 0 4px 14px rgba(10, 6, 30, 0.18);
+}
+.koru-card-error-icon {
+  width: 56px; height: 56px; border-radius: 50%;
+  display: grid; place-items: center; margin: 0 auto 10px;
+  background: linear-gradient(140deg, var(--brasa-1, #ff7d6b), var(--brasa-2, #d63b2f));
+  color: #fff;
+  animation: breathe 4s ease-in-out infinite;
+}
+.koru-card-error h3 { font: 800 18px var(--font-display, 'Bricolage Grotesque', serif); color: var(--koru-purple-deep, #382b8c); margin: 6px 0 4px; }
+.koru-card-error p { font-size: 12px; color: var(--ink2, #554a7d); line-height: 1.45; margin-bottom: 12px; }
+
+/* ——— Pull-to-refresh (con icono del dominio girando) ——— */
+.koru-pull-to-refresh {
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 36px; height: 36px; border-radius: 50%;
+  background: linear-gradient(140deg, var(--violet, #7c5cdb), var(--purple-d, #523a9e));
+  color: #fff;
+  display: grid; place-items: center;
+  box-shadow: 0 6px 16px rgba(131, 99, 249, 0.4);
+  z-index: 50;
+  transition: transform 0.3s var(--ease-spring);
+}
+.koru-pull-to-refresh.spinning .koru-pull-spinner { animation: spin 1s linear infinite; }
+.koru-pull-spinner { display: inline-block; }
+
+/* ——— Reservar mesa CTA contextual (Card 24 · Restaurantes) ——— */
+.koru-reserve-cta {
+  background: linear-gradient(120deg, var(--cesped-1, #46c293), var(--cesped-2, #2f8f6d) 60%, #257a5c);
+  color: #fff;
+}
+.koru-reserve-cta::after { background: rgba(255,255,255,0.4) !important; }
+
+/* ——— Aisle group (Card 17 · Compras extendida) ——— */
+.koru-aisle-group { margin-bottom: 12px; }
+.koru-aisle-header {
+  display: flex; align-items: center; gap: 8px;
+  font: 800 10px var(--font-sans); letter-spacing: 0.16em;
+  color: var(--ink-faint, #a89cc7);
+  text-transform: uppercase;
+  padding: 6px 0 8px;
+}
+.koru-aisle-header::after {
+  content: ""; flex: 1; height: 1px;
+  background: linear-gradient(90deg, var(--edge, #e4dcf7), transparent);
+}
+
+/* ——— Pregunta bonita de memoria confirmable ——— */
+.koru-memory-confirm {
+  display: flex; gap: 8px; padding: 10px 0 2px;
+  border-top: 1px dashed rgba(131, 99, 249, 0.18);
+  margin-top: 10px;
+}
+.koru-memory-confirm button {
+  flex: 1; padding: 10px 14px;
+  border-radius: 999px; border: none; cursor: pointer;
+  font: 700 12px var(--font-sans);
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  transition: transform 0.18s var(--ease-spring);
+}
+.koru-memory-confirm button:active { transform: scale(0.96); }
+.koru-memory-confirm .regrow {
+  background: linear-gradient(120deg, var(--cesped-1, #46c293), var(--cesped-2, #2f8f6d));
+  color: #fff;
+}
+.koru-memory-confirm .prune {
+  background: rgba(131, 99, 249, 0.12);
+  color: var(--koru-purple-deep, #382b8c);
+  border: 1.5px solid rgba(131, 99, 249, 0.3);
+}
+
