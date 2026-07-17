@@ -130,6 +130,12 @@ export type Detail = {
   title: string;
   subtitle?: string;
   sections: DetailSection[];
+  /**
+   * 🔴 KIMI v4 — CTAs contextuales del detail screen (xt-actions).
+   * Si se definen, el detail screen los usa en vez del fallback genérico.
+   * Replica los CTAs del spec Kimi por dominio (pág. 28-30).
+   */
+  actions?: DetailAction[];
 };
 
 export type KoruPresentation = {
@@ -182,6 +188,18 @@ export type KoruPresentation = {
    */
   layout?: "default" | "compact" | "spotlight" | "gallery" | "banner" | "match" | "garden";
 };
+
+/**
+ * 🔴 KIMI v4 — Detail actions canónicas por dominio.
+ * Cada mapper puede definir sus propias actions en el detail.screen,
+ * replicando los CTAs del spec Kimi (pág. 28-30).
+ */
+export interface DetailAction {
+  label: string;
+  icon?: "bell" | "plus" | "calendar" | "play" | "alarm" | "bookmark" | "navigate" | "shopping" | "search";
+  kind?: "primary" | "secondary";
+  action: string;
+}
 
 // ---- Paleta Stitch ----------------------------------------------------------
 
@@ -831,9 +849,51 @@ function reminder(b: Of<"reminder">): KoruPresentation {
       { label: "Posponer", icon: "snooze", kind: "secondary", action: "snooze" },
     ],
     detail: {
-      title: b.title || "Recordatorio",
-      subtitle: dueText || undefined,
-      sections,
+      // 🔴 KIMI v4 — vista agregada del dominio (spec pág. 58).
+      // Título general del dominio, no del item específico.
+      title: "Para hoy",
+      subtitle: `Recordatorios · ${dueText || "hoy"} · vas bien 🌿`,
+      sections: [
+        // 1. Checklist con el recordatorio actual (replica .buy rows del spec).
+        {
+          kind: "rows",
+          icon: "task_alt",
+          accent: A.violet,
+          title: "Tu lista del día",
+          subtitle: "DESVANACE CUANDO LO HACES",
+          rows: [
+            {
+              icon: "check_box_outline_blank",
+              title: b.title || "Recordatorio",
+              meta: dueText || undefined,
+              badgeTone: "pending" as const,
+            },
+          ],
+        },
+        // 2. Por lugar (geo-magia) — texto explicativo del spec.
+        {
+          kind: "text",
+          icon: "location_on",
+          accent: A.blue,
+          title: "Por lugar",
+          subtitle: "GEO-MAGIA",
+          body: `"${b.title || "Este recordatorio"}" puede saltar solo cuando estés cerca del lugar ideal. Nada de olvidarse por no mirar la lista.`,
+        },
+        // 3. Posponer con cabeza — pillchips contextuales del spec.
+        {
+          kind: "chips",
+          icon: "tips_and_updates",
+          accent: A.amber,
+          title: "Posponer con cabeza",
+          subtitle: "UN TOQUE",
+          chips: ideas,
+        },
+      ],
+      // 🔴 KIMI v4 — CTAs canónicos del spec (pág. 58).
+      actions: [
+        { label: "Nuevo recordatorio", icon: "plus", kind: "primary", action: "reminder:new" },
+        { label: "Semana", icon: "calendar", kind: "secondary", action: "reminder:week" },
+      ],
     },
     cta: { label: "Ver detalle" },
     layout: "compact",

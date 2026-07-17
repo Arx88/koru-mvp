@@ -1777,14 +1777,41 @@ export function KoruDetailScreen({
           <RecipeServingsScaler block={block} />
         )}
 
-        {/* 🔴 KIMI v4: Sticky footer CANÓNICO con CTA contextual primario +
-            "Guardar" secundario. Replica el spec Kimi (pág. 28-30) donde cada
-            dominio tiene su CTA accionable ("Avisame si cambia" para clima,
-            "Reservar mesa" para restaurantes, "Empezar a cocinar" para recetas,
-            etc.). El botón secundario siempre es "Guardar" (action fav). */}
+        {/* 🔴 KIMI v4: Sticky footer CANÓNICO con CTAs contextuales por dominio.
+            Lee los CTAs del `detail.actions` (definidos por cada mapper en
+            presentation.ts) en vez de hardcodearlos. Fallback a primaryActionFor
+            + Guardar si el mapper no definió actions. */}
         <div className="koru-detail-actions-sticky xt-actions">
-          {/* CTA contextual primario (bell/alarm/play/etc según dominio) */}
           {(() => {
+            // Si el mapper definió actions custom en detail, usar esos.
+            const actions = (detail as Detail & { actions?: Array<{ label: string; icon?: string; kind?: "primary" | "secondary"; action: string }> }).actions;
+            if (actions && actions.length > 0) {
+              return actions.map((act, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className={`koru-dsec-action-btn xbtn ${act.kind === "primary" ? "pri" : "sec"}`}
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent("koru-card-action", {
+                      detail: { action: act.action, blockType: block?.type, blockData: block },
+                    }));
+                    if ("vibrate" in navigator) navigator.vibrate(15);
+                  }}
+                >
+                  {act.icon === "bell" && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" className="bellswing"><path d="M18 9a6 6 0 1 0-12 0c0 6-2.5 7-2.5 7h17S18 15 18 9zM10 20a2.2 2.2 0 0 0 4 0"/></svg>}
+                  {act.icon === "plus" && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>}
+                  {act.icon === "calendar" && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>}
+                  {act.icon === "play" && <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>}
+                  {act.icon === "alarm" && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M5 3L2 6M22 6l-3-3"/></svg>}
+                  {act.icon === "bookmark" && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 4h12v17l-6-4-6 4z"/></svg>}
+                  {act.icon === "navigate" && <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 11l18-8-8 18-2-7-8-3z"/></svg>}
+                  {act.icon === "shopping" && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M5 7h14l-1.5 12a1.5 1.5 0 0 1-1.5 1.3H8a1.5 1.5 0 0 1-1.5-1.3L5 7z"/><path d="M8.5 7V5a3.5 3.5 0 0 1 7 0v2"/></svg>}
+                  {!act.icon && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/></svg>}
+                  <span>{act.label}</span>
+                </button>
+              ));
+            }
+            // Fallback: CTA contextual primario por defecto + Guardar.
             if (!block) return null;
             const primary = primaryActionFor(block);
             if (!primary) return null;
