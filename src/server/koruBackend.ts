@@ -4954,6 +4954,10 @@ async function buildEnhancementInstruction(
 // Es agnóstico al modelo y casi gratis (~26ms por decisión).
 let routerSingleton: SemanticRouter | null = null;
 let routerNullWarned = false;
+// 🔴 KIMI v6 — versión del router. Cambiar este número fuerza la re-inicialización
+// del router con los nuevos ejemplos del ROUTE_EXAMPLES. Sin esto, el singleton
+// se cachea por proceso y los nuevos ejemplos no se cargan hasta reiniciar.
+let routerVersion = "v6-crypto-restaurant-news-tennis";
 
 function buildEmbedFn(baseUrl: string): EmbedFn {
   return async (text: string): Promise<number[]> => {
@@ -5066,6 +5070,33 @@ async function getRouter(config: ProviderConfig): Promise<SemanticRouter | null>
  * Extrae el tema central del mensaje (ej: "Buscando info del mundial").
  * Es heurística simple sobre el input, no matching de intención (eso ya lo hizo el router).
  */
+/**
+ * 🔴 KIMI v6 — Fallback léxico para keywords obvias.
+ * Cuando el router semántico no tiene confianza suficiente, este fallback
+ * detecta keywords específicos y deriva a la tool correcta.
+ */
+function lexicalRouteForInput(input: string): { category: RouteCategory; tool: string; toolArgs?: Record<string, unknown> } | null {
+  const lc = input.toLowerCase().trim();
+  // Crypto
+  if (/\b(bitcoin|btc|ethereum|eth|crypto|cripto|criptomoneda|usdt|usdc|solana|cardano|dogecoin|litecoin)\b/.test(lc)) {
+    const coin = lc.match(/(bitcoin|btc|ethereum|eth|solana|cardano|dogecoin|litecoin|usdt|usdc)/)?.[1] || "bitcoin";
+    return { category: "market" as RouteCategory, tool: "crypto_price", toolArgs: { coin: coin === "btc" ? "bitcoin" : coin, query: input } };
+  }
+  // Restaurant
+  if (/\b(restaurante|restaurantes|donde comer|dónde comer|dónde cenar|donde cenar|parrilla|parrilla|sushi|pizza|hamburguesa|comida|reservar mesa|comida cerca)\b/.test(lc)) {
+    return { category: "world_info" as RouteCategory, tool: "restaurant_deep_search", toolArgs: { query: input } };
+  }
+  // News
+  if (/\b(noticias|noticia|última hora|ultima hora|último minuto|ultimo minuto|noticias urgentes|noticias de hoy|qué pasó hoy|que pasó hoy)\b/.test(lc)) {
+    return { category: "world_info" as RouteCategory, tool: "news_urgent_search", toolArgs: { query: input } };
+  }
+  // Tennis
+  if (/\b(tenis|tennis|roland garros|wimbledon|alcaraz|sinner|djokovic|nadal|atp|wta)\b/.test(lc)) {
+    return { category: "sports" as RouteCategory, tool: "tennis_live", toolArgs: { query: input } };
+  }
+  return null;
+}
+
 function searchLabelFromInput(input: string): string {
   const clean = input.trim().replace(/\s+/g, " ");
   // 🔴 FIX: para recordatorios y alarmas, no usar "Buscando X" — usar "Anotando X"
@@ -5881,6 +5912,106 @@ export async function runKoruBackendTurn(
     }
 
     // Si el fast-path no matcheó, caer al router semántico (que requiere embeddings)
+    // 🔴 KIMI v6 — Fallback léxico para keywords obvias que el router semántico
+    // puede no capturar con confianza ≥0.65. Esto garantiza que crypto, restaurant,
+    // news y tennis deriven a sus tools específicas.
+    const lexicalRoute = lexicalRouteForInput(request.input);
+    if (lexicalRoute) {
+      // Override léxico — saltar el router semántico y usar la tool específica
+      routeCategory = lexicalRoute.category;
+      logger.info("runKoruBackendTurn", "Lexical route override", {
+        category: lexicalRoute.category,
+        tool: lexicalRoute.tool ?? "none",
+        reason: "keyword match",
+      });
+      // Crear syntheticToolCall para el flujo del router
+      const syntheticToolCall: ProviderToolCall = {
+        id: `route_lexical_${Date.now()}`,
+        type: "function",
+        function: { name: lexicalRoute.tool!, arguments: JSON.stringify(lexicalRoute.toolArgs ?? {}) },
+      };
+      // Ejecutar la tool directamente
+      const query = lexicalRoute.toolArgs?.query as string | undefined;
+      const shortSearchLabel = query ? searchLabelFromInput(query) : "Buscando en la web";
+      onChunk?.({
+        reply: shortSearchLabel,
+        uiBlocks: [{ type: "deliverable" as const, status: "working" as const, kicker: "Tu Búsqueda", title: "Buscando", topic: query || request.input, progress: 15, phaseLabel: "Buscando..." }],
+        suggestedActions: [],
+        understanding: { literalRequest: request.input, userGoal: lexicalRoute.category, unstatedNeeds: [], assumptions: [], confidence: 0.9 },
+        memoryCandidates: [], commitments: [], records: [], toolResults: [],
+        stateEvents: [{ kind: "searching" as const, label: shortSearchLabel }],
+        mascotState: "working",
+        provider, model, fallbackReason: "lexical-" + lexicalRoute.category,
+      });
+      messages.push({ role: "assistant", content: "", tool_calls: [syntheticToolCall] });
+      await executeProviderToolCalls([syntheticToolCall], messages, request, toolExecutions, config);
+
+      // Síntesis con Fast Model
+      const synthConfigLex = { ...config, nvidiaModel: config.nvidiaFastModel || "meta/llama-3.1-8b-instruct" };
+      const synthMessagesLex = buildMessages(request);
+      for (const exec of toolExecutions) {
+        synthMessagesLex.push({
+          role: "assistant",
+          content: "",
+          tool_calls: [{ id: exec.id || `call_${Date.now()}`, type: "function", function: { name: exec.name, arguments: "{}" } }],
+        });
+        synthMessagesLex.push({
+          role: "tool",
+          content: JSON.stringify(exec.result).slice(0, 3000),
+          tool_call_id: exec.id || `call_${Date.now()}`,
+        });
+      }
+      synthMessagesLex.push({
+        role: "user",
+        content: [
+          "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks.",
+          "Respondé SOLO con este JSON:",
+          '{"reply":"1-2 lineas cortas","mascotState":"happy","summary":"sintesis de 60-120 palabras con datos concretos","sections":[{"title":"Sintesis","kind":"text","paragraphs":["texto redactado"]},{"title":"Datos clave","kind":"bullets","bullets":["dato 1","dato 2"]}]}',
+          "Reglas:",
+          "- reply: SOLO enmarca. Ej: 'Te dejé el detalle en la tarjeta.'",
+          "- summary: REDACTA una sintesis con datos concretos (nombres, cifras, fechas). NO copies snippets.",
+          "- sections: arma 2-3 secciones. kind puede ser 'text' (con paragraphs) o 'bullets' (con bullets).",
+          "- NO inventes datos que no esten en las tools.",
+        ].join("\n"),
+      });
+      let lexReply = "";
+      let lexMascot = "happy";
+      let lexSummary = "";
+      let lexSections: any[] = [];
+      try {
+        const synthResultLex = await callProvider(synthConfigLex, synthMessagesLex, 30_000, false, undefined, undefined, synthConfigLex.nvidiaModel);
+        const synthContentLex = cleanText(synthResultLex.message.content, "");
+        const synthParsedLex = safeJsonObjectFromContent(synthContentLex);
+        lexReply = cleanReplyText((synthParsedLex as Record<string, unknown>).reply as string || "");
+        lexMascot = ((synthParsedLex as Record<string, unknown>).mascotState as string) || "happy";
+        lexSummary = ((synthParsedLex as Record<string, unknown>).summary as string) || "";
+        lexSections = asArray((synthParsedLex as Record<string, unknown>).sections);
+      } catch { /* fallback */ }
+      const lexEffectiveSummary = lexSummary || (lexReply.length > 20 ? lexReply : "");
+      const lexResponse = await finalizePayloadWithFastModel(
+        request, synthConfigLex,
+        { reply: lexReply, mascotState: lexMascot, uiBlocks: [] } as Record<string, unknown>,
+        toolExecutions, 30_000,
+      );
+      if (lexResponse.uiBlocks) {
+        for (const block of lexResponse.uiBlocks) {
+          if (block.type === "deliverable" && lexEffectiveSummary && lexEffectiveSummary.length > 20) {
+            block.summary = lexEffectiveSummary;
+            const synthSection = (block.sections ?? []).find((s: any) => s.title === "Síntesis");
+            if (synthSection && synthSection.kind === "text") {
+              synthSection.paragraphs = [lexEffectiveSummary];
+            }
+          }
+          if (block.type === "deliverable" && lexSections.length > 0) {
+            const sourceSection = (block.sections ?? []).find((s: any) => s.title === "Fuentes");
+            block.sections = lexSections;
+            if (sourceSection) block.sections.push(sourceSection);
+          }
+        }
+      }
+      return { ...lexResponse, provider, model, fallbackReason: "lexical-" + lexicalRoute.category };
+    }
+
     const router = await getRouter(config);
     if (router) {
       try {
