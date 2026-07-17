@@ -1461,16 +1461,29 @@ export function KoruDetailScreen({
               <span>No hay secciones para mostrar en este detalle.</span>
             </div>
           ) : (
-            sections.map((section, i) => (
-              <div
-                key={i}
-                className="koru-magical-card mcard"
-                style={{ ...moduleStyle(section.accent), "--stagger-i": i } as CSSProperties}
-              >
-                <SectionHead section={section} />
-                <SectionBody section={section} block={block} />
-              </div>
-            ))
+            sections.map((section, i) => {
+              // 🔴 KIMI v3: si la sección es de Compras (título "Góndola N · ..."),
+              // la envolvemos en .koru-aisle-group con .koru-aisle-header visible.
+              const isAisle = /^g[óo]ndola\s+\d+/i.test(section.title ?? "");
+              const wrapperClass = isAisle
+                ? `koru-magical-card mcard koru-aisle-group`
+                : `koru-magical-card mcard`;
+              return (
+                <div
+                  key={i}
+                  className={wrapperClass}
+                  style={{ ...moduleStyle(section.accent), "--stagger-i": i } as CSSProperties}
+                >
+                  {isAisle && (
+                    <div className="koru-aisle-header" aria-hidden="true">
+                      <span>{section.title}</span>
+                    </div>
+                  )}
+                  <SectionHead section={section} />
+                  <SectionBody section={section} block={block} />
+                </div>
+              );
+            })
           )}
         </div>
 
