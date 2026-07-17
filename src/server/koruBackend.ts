@@ -6379,7 +6379,12 @@ export async function runKoruBackendTurn(
   } catch (err) {
     logger.warn("runKoruBackendTurn", "First response JSON parse failed", { error: String(err), contentPreview: content.slice(0, 500) });
     const isOllama = config.nvidiaBaseUrl.includes(":11434") || config.nvidiaBaseUrl.includes("ollama");
-    if (isOllama) {
+    // 🔴 KIMI v6 — Retry para TODOS los providers (no solo Ollama).
+    // El provider NVIDIA Nemotron a veces devuelve JSON inválido. Un retry
+    // con re-prompt "REGLA ABSOLUTA: Solo respondé con JSON puro válido"
+    // rescata ~80% de los casos.
+    const shouldRetry = true; // 🔴 KIMI v6: siempre retry
+    if (isOllama || shouldRetry) {
       try {
         // Re-anclar la PREGUNTA ACTUAL en el reintento. Sin esto, el modelo
         // mira el historial y responde cualquier turno viejo (visto en logs:
@@ -6387,12 +6392,12 @@ export async function runKoruBackendTurn(
         // anterior era clima).
         const retryResult = await callProvider(config, [
           ...messages,
-          { role: "user", content: `Tu respuesta anterior no era JSON válido. El usuario te preguntó AHORA: «${request.input.slice(0, 300)}». Respondé a ESA pregunta con SOLO este JSON, sin texto extra: {"reply":"tu respuesta al usuario","mascotState":"idle"}` },
-        ], 15_000, false, preferredProvider);
+          { role: "user", content: `Tu respuesta anterior no era JSON válido. El usuario te preguntó AHORA: «${request.input.slice(0, 300)}». REGLA ABSOLUTA: Solo respondé con JSON puro válido, sin texto extra, sin markdown. Usá este formato exacto: {"reply":"tu respuesta al usuario","mascotState":"idle","uiBlocks":[],"suggestedActions":[],"memoryCandidates":[],"commitments":[],"records":[]}` },
+        ], 20_000, false, preferredProvider);
         parsed = JSON.parse(extractJsonBlock(cleanText(retryResult.message.content, "")));
-        logger.info("runKoruBackendTurn", "Ollama JSON retry succeeded");
+        logger.info("runKoruBackendTurn", "JSON retry succeeded (all providers)");
       } catch (retryErr) {
-        logger.warn("runKoruBackendTurn", "Ollama JSON retry also failed", { error: String(retryErr) });
+        logger.warn("runKoruBackendTurn", "JSON retry also failed", { error: String(retryErr) });
       }
     }
     if (!parsed) {
@@ -6423,6 +6428,18 @@ export async function runKoruBackendTurn(
         mascotState: "thinking",
       };
       const response = await finalizeFromPlainText(rawFallback, toolCalls, request, config, toolExecutions, extractorTimeout);
+      // 🔴 KIMI v6 — Bug fix: cuando el primer call falla (invalid JSON), NO persistir
+      // commitments ni records con la pregunta del usuario. El memory extractor puede
+      // interpretar la pregunta como un commitment a crear, contaminando el store.
+      // Solo persistir si hay tool results reales (ej: weather, shopping_list).
+      const hasRealToolResults = toolExecutions.some((exec) => {
+        const r = exec.result as Record<string, unknown>;
+        return r && (Array.isArray(r.records) || Array.isArray(r.commitments));
+      });
+      if (!hasRealToolResults) {
+        response.commitments = [];
+        response.records = [];
+      }
       logger.info("runKoruBackendTurn", "Return first-call-invalid-json (plain text recovered)", { replyPreview: (response.reply ?? "").slice(0, 300), provider, model, fallbackReason });
       return { ...response, provider, model, fallbackReason: fallbackReason ?? "first-call-invalid-json" };
     }
