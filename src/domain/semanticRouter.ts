@@ -90,7 +90,9 @@ export type RouteTool =
   | "reminder_set"
   | "alarm_set"
   | "countdown"
-  | "game_info";
+  | "game_info"
+  | "tennis_live"
+  | "news_urgent_search";
 
 // ── Ejemplos modelo por categoría ──────────────────────────────────
 // Pocas frases (5-8) por categoría, elegidas para cubrir las formas comunes
@@ -103,7 +105,13 @@ const ROUTE_EXAMPLES: Array<{ category: RouteCategory; tool?: RouteTool; text: s
   { category: "world_info", tool: "web_search", text: "¿qué pasó hoy en el mundo?" },
   { category: "world_info", tool: "web_search", text: "últimas noticias de tecnología" },
   { category: "world_info", tool: "web_search", text: "¿qué pasó en Argentina hoy?" },
-  { category: "world_info", tool: "web_search", text: "noticias urgentes" },
+  // 🔴 KIMI v6 — "noticias urgentes" ahora deriva a news_urgent_search (era web_search).
+  { category: "world_info", tool: "news_urgent_search", text: "noticias urgentes" },
+  { category: "world_info", tool: "news_urgent_search", text: "última hora" },
+  { category: "world_info", tool: "news_urgent_search", text: "noticias de hoy" },
+  { category: "world_info", tool: "news_urgent_search", text: "último minuto" },
+  { category: "world_info", tool: "news_urgent_search", text: "noticias urgentes de hoy" },
+  { category: "world_info", tool: "news_urgent_search", text: "qué pasó hoy" },
   { category: "world_info", tool: "web_search", text: "buscar refuerzos del Madrid" },
   { category: "world_info", tool: "web_search", text: "fichajes del mercado de pases" },
   { category: "world_info", tool: "web_search", text: "qué pasó con la economía" },
@@ -192,6 +200,13 @@ const ROUTE_EXAMPLES: Array<{ category: RouteCategory; tool?: RouteTool; text: s
   { category: "world_info", tool: "restaurant_deep_search", text: "qué restaurante me recomendás" },
   { category: "world_info", tool: "restaurant_deep_search", text: "donde como paella en Valencia" },
   { category: "world_info", tool: "restaurant_deep_search", text: "restaurantes románticos en París" },
+  { category: "world_info", tool: "restaurant_deep_search", text: "restaurantes en Palermo" },
+  { category: "world_info", tool: "restaurant_deep_search", text: "restaurantes cerca mío" },
+  { category: "world_info", tool: "restaurant_deep_search", text: "dónde comer hoy" },
+  { category: "world_info", tool: "restaurant_deep_search", text: "dónde comer pizza" },
+  { category: "world_info", tool: "restaurant_deep_search", text: "buenos restaurantes en Buenos Aires" },
+  { category: "world_info", tool: "restaurant_deep_search", text: "reservar mesa para 2" },
+  { category: "world_info", tool: "restaurant_deep_search", text: "comida cerca" },
 
   // action: crear alarma, recordatorio, guardar algo, salud.
   { category: "action", text: "creame una alarma" },
@@ -260,6 +275,16 @@ const ROUTE_EXAMPLES: Array<{ category: RouteCategory; tool?: RouteTool; text: s
   { category: "sports", tool: "match_schedule", text: "próximo partido de Argentina" },
   { category: "sports", tool: "match_schedule", text: "cuándo juega España" },
   { category: "sports", tool: "match_schedule", text: "cuándo juega Francia" },
+  // 🔴 KIMI v6 — tenis → tennis_live
+  { category: "sports", tool: "tennis_live", text: "resultado de tenis Roland Garros" },
+  { category: "sports", tool: "tennis_live", text: "cómo le fue a Alcaraz" },
+  { category: "sports", tool: "tennis_live", text: "cómo le fue a Sinner" },
+  { category: "sports", tool: "tennis_live", text: "resultado de tenis Wimbledon" },
+  { category: "sports", tool: "tennis_live", text: "partido de tenis ATP" },
+  { category: "sports", tool: "tennis_live", text: "partido de tenis WTA" },
+  { category: "sports", tool: "tennis_live", text: "marcador de Alcaraz" },
+  { category: "sports", tool: "tennis_live", text: "marcador de Sinner" },
+  { category: "sports", tool: "tennis_live", text: "tenis en vivo" },
   // 🔴 FIX: ejemplos SIN tildes (los usuarios escriben sin tildes)
   { category: "sports", tool: "match_live", text: "como salio hoy Argentina" },
   { category: "sports", tool: "match_live", text: "como salio España" },
@@ -280,13 +305,22 @@ const ROUTE_EXAMPLES: Array<{ category: RouteCategory; tool?: RouteTool; text: s
 
   // market → crypto_price / stock_quote / currency_convert
   { category: "market", tool: "crypto_price", text: "precio del bitcoin" },
+  { category: "market", tool: "crypto_price", text: "precio de bitcoin" },
+  { category: "market", tool: "crypto_price", text: "cuánto vale el bitcoin" },
   { category: "market", tool: "crypto_price", text: "cómo está el ethereum" },
+  { category: "market", tool: "crypto_price", text: "precio del ethereum" },
+  { category: "market", tool: "crypto_price", text: "precio de ethereum" },
+  { category: "market", tool: "crypto_price", text: "cotización de criptomonedas" },
+  { category: "market", tool: "crypto_price", text: "precio del btc" },
+  { category: "market", tool: "crypto_price", text: "precio de btc" },
+  { category: "market", tool: "crypto_price", text: "mi portafolio de cripto" },
+  { category: "market", tool: "crypto_price", text: "cartera de criptomonedas" },
   { category: "market", tool: "stock_quote", text: "cotización de Apple" },
+  { category: "market", tool: "stock_quote", text: "precio de Apple AAPL" },
+  { category: "market", tool: "stock_quote", text: "cómo cerró Tesla" },
   { category: "market", tool: "stock_quote", text: "cierre del S&P 500" },
   { category: "market", tool: "currency_convert", text: "precio del dólar" },
   { category: "market", tool: "currency_convert", text: "cuánto vale el oro" },
-  { category: "market", tool: "stock_quote", text: "cómo cerró Tesla" },
-  { category: "market", tool: "crypto_price", text: "cotización de criptomonedas" },
   { category: "market", tool: "currency_convert", text: "tipo de cambio euro dólar" },
 
   // elections → web_search
