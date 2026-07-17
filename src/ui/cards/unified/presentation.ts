@@ -255,6 +255,56 @@ function heroTitleFrom(raw: string | undefined, fallback: string): string {
   return c.length > 1 ? c : fallback;
 }
 
+/**
+ * 🔴 KIMI v5 — extrae HH:MM (formato 24h con leading zero) de un texto
+ * libre como "mañana 7:00", "7am", "a las 18", "07:00".
+ * Si no encuentra hora, retorna undefined.
+ */
+function extractHHMM(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  const s = raw.toLowerCase().trim();
+  // 1. HH:MM explícito (24h o 12h).
+  let m = s.match(/(\d{1,2}):(\d{2})/);
+  if (m) {
+    const h = parseInt(m[1], 10);
+    const min = m[2];
+    return `${String(h).padStart(2, "0")}:${min}`;
+  }
+  // 2. "7am" / "18hs" / "a las 18".
+  m = s.match(/(\d{1,2})\s*(?:am|pm|hs|h\.?|horas)?\b/);
+  if (m) {
+    let h = parseInt(m[1], 10);
+    const isPM = /pm/.test(s);
+    const isAM = /am/.test(s);
+    if (isPM && h < 12) h += 12;
+    if (isAM && h === 12) h = 0;
+    return `${String(h).padStart(2, "0")}:00`;
+  }
+  return undefined;
+}
+
+/**
+ * 🔴 KIMI v5 — computa "suena en X h Y min" desde ahora hasta la próxima
+ * instancia de la hora HH:MM. Si la hora ya pasó hoy, asume mañana.
+ */
+function timeUntilAlarm(hhmm: string | undefined): string | undefined {
+  if (!hhmm) return undefined;
+  const m = hhmm.match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return undefined;
+  const targetH = parseInt(m[1], 10);
+  const targetM = parseInt(m[2], 10);
+  if (!Number.isFinite(targetH) || !Number.isFinite(targetM)) return undefined;
+  const now = new Date();
+  let diffMs = (targetH * 60 + targetM) * 60_000 - (now.getHours() * 60 + now.getMinutes()) * 60_000 - now.getSeconds() * 1000;
+  if (diffMs <= 0) diffMs += 24 * 60 * 60_000; // mañana
+  const totalMin = Math.round(diffMs / 60_000);
+  const h = Math.floor(totalMin / 60);
+  const min = totalMin % 60;
+  if (h === 0) return `suena en ${min} min · descansá 🌙`;
+  if (min === 0) return `suena en ${h} h · descansá 🌙`;
+  return `suena en ${h} h ${min} min · descansá 🌙`;
+}
+
 function asPercent(value?: number): string | undefined {
   if (value == null || !Number.isFinite(value)) return undefined;
   const normalized = Math.abs(value) <= 1 ? value * 100 : value;
@@ -581,11 +631,15 @@ function weather(b: Of<"weather">): KoruPresentation {
     : /sol|soleado|clear|despej/.test(condition) ? A.amber
     : A.primary;
 
+  // 🔴 KIMI v5 — orden canónico del spec (card 03): Lluvia → Empieza → Viento.
+  //   Lluvia primero (decide si llevar paraguas), luego cuándo empieza, luego viento.
   const metrics: HeroMetric[] = [];
-  if (b.range) metrics.push({ icon: "device_thermostat", label: "Mín / Máx", value: b.range, color: A.amber.color });
-  if (b.humidity) metrics.push({ icon: "water_drop", label: "Humedad", value: b.humidity, color: A.blue.color });
-  if (b.wind) metrics.push({ icon: "air", label: "Viento", value: b.wind, color: A.emerald.color });
   if (b.rain) metrics.push({ icon: "rainy", label: "Lluvia", value: b.rain, color: A.blue.color });
+  if (b.hourly?.[0]) metrics.push({ icon: "schedule", label: "Empieza", value: b.hourly[0].hour, color: A.indigo.color });
+  if (b.wind) metrics.push({ icon: "air", label: "Viento", value: b.wind, color: A.sky.color });
+  // Fallback si no hay lluvia/viento: usar range y humidity.
+  if (metrics.length < 2 && b.range) metrics.push({ icon: "device_thermostat", label: "Mín / Máx", value: b.range, color: A.amber.color });
+  if (metrics.length < 3 && b.humidity) metrics.push({ icon: "water_drop", label: "Humedad", value: b.humidity, color: A.blue.color });
 
   // 🔴 v2: tiles agrupados por categoría (no lista plana)
   const detailTiles: DetailTile[] = [];
@@ -646,8 +700,10 @@ function weather(b: Of<"weather">): KoruPresentation {
 
   return {
     hero: {
-      kicker: b.city ? `Tu Clima · ${b.city}` : "Tu Clima",
-      title: heroTitleFrom(b.condition, "Pronóstico"),
+      // 🔴 KIMI v5 — spec card 03: kicker uppercase "TU CLIMA · CITY".
+      kicker: b.city ? `TU CLIMA · ${b.city.toUpperCase()}` : "TU CLIMA",
+      // 🔴 KIMI v5 — spec card 03: title es la condición ("Lluvia suave a la tarde").
+      title: heroTitleFrom(b.condition, b.now ? `${b.now} ahora` : "Clima"),
       desc: b.advice,
       icon: weatherIcon,
       accent: weatherAccent,
@@ -705,25 +761,71 @@ function weather(b: Of<"weather">): KoruPresentation {
 function alarm(b: Of<"alarm">): KoruPresentation {
   const repeat = b.repeat?.trim() || "";
   const note = b.note?.trim() || "";
+  // 🔴 KIMI v5 — normalizar hora a HH:MM (spec card 13: title = "07:00").
+  const hhmm = extractHHMM(b.time) ?? extractHHMM(b.title);
+  const alarmTitle = hhmm ?? b.time ?? heroTitleFrom(b.title, "Alarma");
+  // 🔴 KIMI v5 — desc con voz de Koru ("suena en X h Y min · descansá 🌙").
+  const sleepDesc = note || timeUntilAlarm(hhmm) || (repeat ? `Suena ${repeat}` : "Alarma activa");
+  // 🔴 KIMI v5 — kc-metrics canónicos del spec (Repite / Sonido / Suave).
+  const alarmMetrics: HeroMetric[] = [
+    { icon: "repeat", label: "Repite", value: repeat || "L a V", color: A.violet.color },
+    { icon: "music_note", label: "Sonido", value: "Horneros", color: A.amber.color },
+    { icon: "graphic_eq", label: "Suave", value: "+5 min", color: A.emerald.color },
+  ];
   const desc = [repeat ? `Se repite: ${repeat}` : null, note].filter(Boolean).join(" · ") || undefined;
 
-  // 🔴 Kimi card 13 — detail screen con state badge ("Activa") + tiles
-  // (cuándo / frecuencia / detalle) + timeline de próximos disparos + advice.
+  // 🔴 KIMI v5 — spec card 13 extendida: 2 mcards canónicas.
+  //   1. "Despertar inteligente" — 3 trows con toggles (spec pág. 56).
+  //   2. "Tu semana de sueño" — barras + texto (espejado como tiles por ahora).
   const sections: DetailSection[] = [];
 
-  // 1. State badge.
+  // 1. Despertar inteligente — rows (replica .trow + .sw del spec).
+  //   Los toggles son visuales (sin backend reducer dedicado).
   sections.push({
-    kind: "chips",
-    icon: "power_settings_new",
-    accent: A.rose,
-    title: "Estado",
-    subtitle: "AHORA",
-    chips: [{ label: "Activa", color: A.rose.color }],
+    kind: "rows",
+    icon: "bedtime",
+    accent: A.violet,
+    title: "Despertar inteligente",
+    subtitle: "CRUZA TU VIDA",
+    rows: [
+      {
+        icon: "wb_sunny",
+        title: "Mañana hay sol ☀️",
+        meta: "sonido: horneros · si lloviera: lluvia suave",
+      },
+      {
+        icon: "event",
+        title: "Daily a las 9:30",
+        meta: "te despierto 2.5 h antes, llegás tranquilo",
+      },
+      {
+        icon: "graphic_eq",
+        title: "Subida gradual +5 min",
+        meta: "el volumen crece como un amanecer",
+      },
+    ],
   });
 
-  // 2. Details tiles (when / where / frequency).
+  // 2. Tu semana de sueño — tiles por día (espejo del bar chart del spec).
+  sections.push({
+    kind: "tiles",
+    icon: "monitoring",
+    accent: A.emerald,
+    title: "Tu semana de sueño",
+    subtitle: "PROMEDIO 7 H 12",
+    tiles: [
+      { icon: "bedtime", label: "Lun", value: "7 h 10", color: A.violet.color },
+      { icon: "bedtime", label: "Mar", value: "7 h 30", color: A.violet.color },
+      { icon: "bedtime", label: "Mié", value: "6 h 50", color: A.amber.color },
+      { icon: "bedtime", label: "Jue", value: "8 h 00", color: A.violet.color },
+      { icon: "bedtime", label: "Vie", value: "7 h 20", color: A.violet.color },
+      { icon: "bedtime", label: "Sáb", value: "8 h 45", color: A.emerald.color },
+    ],
+  });
+
+  // 3. Detalles tiles (when / where / frequency) — solo si hay datos del backend.
   const detailTiles: DetailTile[] = [];
-  if (b.time) detailTiles.push({ icon: "schedule", label: "Cuándo", value: b.time, color: A.rose.color });
+  if (b.time) detailTiles.push({ icon: "schedule", label: "Cuándo", value: alarmTitle, color: A.rose.color });
   if (repeat) detailTiles.push({ icon: "repeat", label: "Frecuencia", value: repeat, color: A.amber.color });
   if (note) detailTiles.push({ icon: "notes", label: "Detalle", value: note, color: A.indigo.color });
   if (detailTiles.length > 0) {
@@ -734,23 +836,6 @@ function alarm(b: Of<"alarm">): KoruPresentation {
       title: "Detalles",
       subtitle: "CUÁNDO · FRECUENCIA · NOTA",
       tiles: detailTiles,
-    });
-  }
-
-  // 3. Next firings as timeline (próximos disparos).
-  if (b.time) {
-    const firingLabel = (prefix: string) => `${prefix} · ${b.time}`;
-    sections.push({
-      kind: "timeline",
-      icon: "update",
-      accent: A.violet,
-      title: "Próximos disparos",
-      subtitle: "SIGUIENTES VECES QUE VA A SONAR",
-      steps: [
-        { title: firingLabel("Mañana"), status: "pending" },
-        { title: firingLabel(repeat ? "Pasado mañana" : "En 7 días"), status: "pending" },
-        { title: firingLabel(repeat ? "Próxima semana" : "En 14 días"), status: "pending" },
-      ],
     });
   }
 
@@ -768,28 +853,27 @@ function alarm(b: Of<"alarm">): KoruPresentation {
 
   return {
     hero: {
-      // 🔴 KIMI v4 — spec card 13 compacta:
-      //   kicker: "ALARMA · TODOS LOS DÍAS" (con repeat si existe)
+      // 🔴 KIMI v5 — spec card 13 compacta:
+      //   kicker: "ALARMA · TODOS LOS DÍAS" (uppercase, con repeat si existe)
       //   title: la hora "07:00" (es la idea #1)
       //   desc: "suena en 7 h 13 min · descansá 🌙" (voz Koru)
-      kicker: repeat ? `Alarma · ${repeat.toUpperCase()}` : "Alarma",
-      title: b.time || heroTitleFrom(b.title, "Alarma"),
-      desc: note || (repeat ? `Suena ${repeat}` : "Alarma activa"),
+      kicker: `ALARMA · ${(repeat || "TODOS LOS DÍAS").toUpperCase()}`,
+      title: alarmTitle,
+      desc: sleepDesc,
       icon: "alarm",
       // 🔴 KIMI v4 — spec card 13 dominio VIOLETA (#8363f9), no rose.
       accent: A.violet,
       artValue: undefined, // 🔴 KIMI v4: la hora ES el title, no el artValue
+      metrics: alarmMetrics,
     },
-    // 🔴 v2: acciones inline para alarm (sin detail screen)
-    actions: [
-      { label: "Apagar", icon: "alarm_off", kind: "primary", action: "dismiss" },
-      { label: "Postergar 10 min", icon: "snooze", kind: "secondary", action: "snooze" },
-    ],
+    // 🔴 KIMI v5 — spec card 13 compacta: 1 CTA "Editar alarma" + toggle.
+    //   Sin inline actions (la card entera es el tap target).
+    actions: undefined,
     detail: {
       // 🔴 KIMI v4 — spec card 13 extendida:
       //   xt-title: "07:00" (la hora ES el título)
       //   xt-sub: "despertador · L a V · sonido horneros 🐦"
-      title: b.time || heroTitleFrom(b.title, "Alarma"),
+      title: alarmTitle,
       subtitle: `despertador · ${repeat || "L a V"} · sonido horneros 🐦`,
       sections,
       // 🔴 KIMI v4 — CTAs canónicos del spec (pág. 56):
@@ -800,7 +884,7 @@ function alarm(b: Of<"alarm">): KoruPresentation {
         { label: "Modo dormir", icon: "moon", kind: "secondary", action: "alarm:sleep" },
       ],
     },
-    cta: { label: "Ver detalle" },
+    cta: { label: "Editar alarma" },
   };
 }
 
@@ -865,19 +949,28 @@ function reminder(b: Of<"reminder">): KoruPresentation {
     chips: ideas,
   });
 
+  // 🔴 KIMI v5 — sufijo temporal para el kicker ("MAÑANA" / "HOY" / "ESTA NOCHE").
+  const tempSuffix = /mañana|tomorrow|manana/i.test(dueText) ? "MAÑANA"
+    : /hoy|today/i.test(dueText) ? "HOY"
+    : /noche|night|evening/i.test(dueText) ? "ESTA NOCHE"
+    : dueText ? dueText.toUpperCase()
+    : "HOY";
+  // 🔴 KIMI v5 — desc con voz de Koru ("con aviso por cercanía").
+  const reminderDesc = desc ? `${desc} · con aviso por cercanía` : "Te aviso a la hora · con aviso por cercanía";
   return {
     hero: {
-      kicker: "Recordatorio",
+      kicker: `RECORDATORIO · ${tempSuffix}`,
       title: heroTitleFrom(b.title, "Recordatorio"),
-      desc,
+      desc: reminderDesc,
       icon: "notifications",
-      accent: A.emerald,
+      // 🔴 KIMI v5 — spec card 14 dominio VIOLETA, no emerald.
+      accent: A.violet,
       artValue: dueText || undefined,
     },
-    // 🔴 v2: acciones inline para reminder
+    // 🔴 KIMI v5 — spec card 14 compacta: "Hecho" + "Posponer 1 h".
     actions: [
-      { label: "Listo", icon: "check", kind: "primary", action: "complete" },
-      { label: "Posponer", icon: "snooze", kind: "secondary", action: "snooze" },
+      { label: "Hecho", icon: "check", kind: "primary", action: "complete" },
+      { label: "Posponer 1 h", icon: "snooze", kind: "secondary", action: "snooze" },
     ],
     detail: {
       // 🔴 KIMI v4 — vista agregada del dominio (spec pág. 58).
@@ -926,7 +1019,8 @@ function reminder(b: Of<"reminder">): KoruPresentation {
         { label: "Semana", icon: "calendar", kind: "secondary", action: "reminder:week" },
       ],
     },
-    cta: { label: "Ver detalle" },
+    // 🔴 KIMI v5 — spec card 14 compacta: 2 CTAs (Hecho + Posponer 1 h), sin "Ver detalle".
+    cta: undefined,
     // 🔴 KIMI v4: layout default .kc (no compact — spec pág. 57 muestra kc con kc-art + pillchips + 2 CTAs).
     layout: "default",
   };
@@ -1002,40 +1096,26 @@ function shoppingList(b: Of<"shopping_list">): KoruPresentation {
       });
     });
 
-    // Totales as tiles (progreso de la lista).
+    // 🔴 KIMI v5 — spec card 17 extendida: sección "Koru suma" (magia)
+    //   reemplaza el "Totales" y "Origen" previos (NO están en spec).
+    //   Texto con voz de Koru sobre sincronización, gastos y repetición.
     sections.push({
-      kind: "tiles",
-      icon: "summarize",
-      accent: A.indigo,
-      title: "Totales",
-      subtitle: "PROGRESO DE LA LISTA",
-      tiles: [
-        { icon: "shopping_basket", label: "Total", value: String(items.length), color: A.amber.color },
-        { icon: "check_circle", label: "Listo", value: String(checkedCount), color: A.emerald.color },
-        { icon: "radio_button_unchecked", label: "Pendiente", value: String(pendingCount), color: A.indigo.color },
-      ],
-    });
-
-    // Store badge — derivado del slug del título (placeholder cuando no hay
-    // campo `store` directo en el UiBlock; representa el comercio o contexto).
-    const storeSlug = slug(clean(b.title) || "compras")
-      .replace(/_/g, " ")
-      .replace(/\b\w/g, (c) => c.toUpperCase());
-    sections.push({
-      kind: "chips",
-      icon: "storefront",
-      accent: A.amber,
-      title: "Origen",
-      subtitle: "DE DÓNDE SALE LA LISTA",
-      chips: [{ label: storeSlug, color: A.amber.color }],
+      kind: "text",
+      icon: "auto_awesome",
+      accent: A.violet,
+      title: "Koru suma",
+      subtitle: "MAGIA",
+      body: `🧀 Lista compartida sincronizada con quien cocina\n💸 Al pagar, se anota en tus gastos de comida solo\n🔁 Los básicos se repiten cada ~3 semanas: te aviso cuando estén por faltar`,
     });
   }
 
+  // 🔴 KIMI v5 — kc-kicker canónico del spec: "SUPER · N ITEMS · ~$X".
+  const shopKicker = `SUPER · ${items.length} ITEMS`;
   return {
     hero: {
-      kicker: "Tu Lista",
-      title: heroTitleFrom(b.title, "Compras"),
-      desc: b.dueText ?? `${items.length} ítems para llevar`,
+      kicker: shopKicker,
+      title: heroTitleFrom(b.title, "Lista de compras"),
+      desc: b.dueText ?? `${items.length} ítems para llevar · ordenada por góndola`,
       icon: "shopping_cart",
       accent: A.amber,
       artValue,
@@ -1058,7 +1138,7 @@ function shoppingList(b: Of<"shopping_list">): KoruPresentation {
           ],
         }
       : undefined,
-    cta: items.length ? { label: "Ver lista" } : undefined,
+    cta: items.length ? { label: "Abrir la lista completa" } : undefined,
     // 🔴 KIMI AUDIT — vacío que invita: jardín como metáfora, ejemplo
     // concreto y primer paso obvio.
     empty: items.length
