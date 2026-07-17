@@ -1834,6 +1834,9 @@ export function KoruDetailScreen({
                   {act.icon === "bookmark" && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 4h12v17l-6-4-6 4z"/></svg>}
                   {act.icon === "navigate" && <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 11l18-8-8 18-2-7-8-3z"/></svg>}
                   {act.icon === "shopping" && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M5 7h14l-1.5 12a1.5 1.5 0 0 1-1.5 1.3H8a1.5 1.5 0 0 1-1.5-1.3L5 7z"/><path d="M8.5 7V5a3.5 3.5 0 0 1 7 0v2"/></svg>}
+                  {act.icon === "search" && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M15.5 15.5L20 20"/></svg>}
+                  {act.icon === "moon" && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg>}
+                  {act.icon === "share" && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.2 10.8l7.6-3.6M8.2 13.2l7.6 3.6"/></svg>}
                   {!act.icon && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/></svg>}
                   <span>{act.label}</span>
                 </button>
@@ -1882,25 +1885,36 @@ export function KoruDetailScreen({
               </button>
             );
           })()}
-          {/* CTA secundario: Guardar (con SVG bookmark, igual al spec) */}
-          <button
-            type="button"
-            className="koru-dsec-action-btn koru-dsec-action-save xbtn sec"
-            onClick={() => onSave?.(detail.title, detail.subtitle)}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 4h12v17l-6-4-6 4z"/></svg>
-            <span>Guardar</span>
-          </button>
-          {onExportPdf && (
-            <button
-              type="button"
-              className="koru-dsec-action-btn koru-dsec-action-pdf xbtn sec"
-              onClick={onExportPdf}
-              aria-label="Exportar PDF"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
-            </button>
-          )}
+          {/* 🔴 KIMI v4 — CTAs secundarios (Guardar + PDF) son FALLBACK.
+              Solo se renderizan si el mapper NO definió `detail.actions`.
+              Spec Kimi: 2 CTAs canónicos por dominio (pri + sec). Si el
+              mapper ya definió sus 2 actions, no duplicar con Guardar/PDF. */}
+          {(() => {
+            const actions = (detail as Detail & { actions?: Array<{ label: string; icon?: string; kind?: "primary" | "secondary"; action: string }> }).actions;
+            if (actions && actions.length > 0) return null;
+            return (
+              <>
+                <button
+                  type="button"
+                  className="koru-dsec-action-btn koru-dsec-action-save xbtn sec"
+                  onClick={() => onSave?.(detail.title, detail.subtitle)}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 4h12v17l-6-4-6 4z"/></svg>
+                  <span>Guardar</span>
+                </button>
+                {onExportPdf && (
+                  <button
+                    type="button"
+                    className="koru-dsec-action-btn koru-dsec-action-pdf xbtn sec"
+                    onClick={onExportPdf}
+                    aria-label="Exportar PDF"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+                  </button>
+                )}
+              </>
+            );
+          })()}
         </div>
       </div>
 

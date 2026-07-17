@@ -196,7 +196,7 @@ export type KoruPresentation = {
  */
 export interface DetailAction {
   label: string;
-  icon?: "bell" | "plus" | "calendar" | "play" | "alarm" | "bookmark" | "navigate" | "shopping" | "search";
+  icon?: "bell" | "plus" | "calendar" | "play" | "alarm" | "bookmark" | "navigate" | "shopping" | "search" | "moon" | "share";
   kind?: "primary" | "secondary";
   action: string;
 }
@@ -661,8 +661,15 @@ function weather(b: Of<"weather">): KoruPresentation {
     },
     detail: hasDetailContent
       ? {
-          title: b.city ? `Clima · ${b.city}` : "Clima",
-          subtitle: b.condition,
+          // 🔴 KIMI v4 — spec card 03 extendida:
+          //   xt-title: "Lluvia suave · 14°" (condición + temp)
+          //   xt-sub: "Villa Crespo · sensación 12° · hace 2 min"
+          title: b.condition && b.now ? `${b.condition} · ${b.now}` : (b.condition || (b.city ? `Clima · ${b.city}` : "Clima")),
+          subtitle: [
+            b.city,
+            b.feel ? `sensación ${b.feel}` : null,
+            b.freshnessLabel,
+          ].filter(Boolean).join(" · ") || b.condition,
           sections: [
             ...adviceSection,
             ...hourlySection,
@@ -676,6 +683,13 @@ function weather(b: Of<"weather">): KoruPresentation {
             }] : []),
             ...dailySection,
             ...(b.sources?.length ? [sourcesSection(b.sources)] : []),
+          ],
+          // 🔴 KIMI v4 — CTAs canónicos del spec (pág. 22):
+          //   pri: Avisame si cambia (bell)
+          //   sec: Guardar (bookmark)
+          actions: [
+            { label: "Avisame si cambia", icon: "bell", kind: "primary", action: "weather:alert" },
+            { label: "Guardar", icon: "bookmark", kind: "secondary", action: "weather:save" },
           ],
         }
       : undefined,
@@ -758,7 +772,8 @@ function alarm(b: Of<"alarm">): KoruPresentation {
       title: heroTitleFrom(b.title, "Alarma"),
       desc,
       icon: "alarm",
-      accent: A.rose,
+      // 🔴 KIMI v4 — spec card 13 dominio VIOLETA (#8363f9), no rose.
+      accent: A.violet,
       artValue: b.time,
     },
     // 🔴 v2: acciones inline para alarm (sin detail screen)
@@ -767,9 +782,19 @@ function alarm(b: Of<"alarm">): KoruPresentation {
       { label: "Postergar 10 min", icon: "snooze", kind: "secondary", action: "snooze" },
     ],
     detail: {
-      title: b.title || "Alarma",
-      subtitle: b.time,
+      // 🔴 KIMI v4 — spec card 13 extendida:
+      //   xt-title: "07:00" (la hora ES el título)
+      //   xt-sub: "despertador · L a V · sonido horneros 🐦"
+      title: b.time || heroTitleFrom(b.title, "Alarma"),
+      subtitle: `despertador · ${repeat || "L a V"} · sonido horneros 🐦`,
       sections,
+      // 🔴 KIMI v4 — CTAs canónicos del spec (pág. 56):
+      //   pri: Nueva alarma (plus)
+      //   sec: Modo dormir (moon)
+      actions: [
+        { label: "Nueva alarma", icon: "plus", kind: "primary", action: "alarm:new" },
+        { label: "Modo dormir", icon: "moon", kind: "secondary", action: "alarm:sleep" },
+      ],
     },
     cta: { label: "Ver detalle" },
   };
@@ -1014,9 +1039,19 @@ function shoppingList(b: Of<"shopping_list">): KoruPresentation {
     },
     detail: items.length
       ? {
+          // 🔴 KIMI v4 — spec card 17 extendida:
+          //   xt-title: store name (ej: "Super del chino")
+          //   xt-sub: "ordenada por góndola · estimado ~$9.200"
           title: b.title || "Lista de compras",
-          subtitle: b.dueText,
+          subtitle: `ordenada por góndola · ${items.length} ítems`,
           sections,
+          // 🔴 KIMI v4 — CTAs canónicos del spec (pág. 64):
+          //   pri: Agregar item (plus)
+          //   sec: Compartir (share)
+          actions: [
+            { label: "Agregar item", icon: "plus", kind: "primary", action: "shopping:add" },
+            { label: "Compartir", icon: "share", kind: "secondary", action: "shopping:share" },
+          ],
         }
       : undefined,
     cta: items.length ? { label: "Ver lista" } : undefined,
