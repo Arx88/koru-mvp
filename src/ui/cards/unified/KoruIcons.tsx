@@ -420,13 +420,13 @@ export function iconFromMaterial(matName: string | undefined): KoruIconName {
   if (m === "whatshot" || m.includes("breaking") || m === "warning" || m === "priority_high") return "news";
   if (m === "shopping_cart" || m === "shopping_bag" || m.includes("cart")) return "shopping";
   if (m === "compare" || m === "compare_arrows" || m === "balance") return "compare";
-  if (m === "restaurant" || m === "menu_book" || m === "soup_kitchen") return "recipe";
+  if (m === "restaurant" || m === "menu_book" || m === "soup_kitchen" || m === "local_dining") return "recipe";
   if (m === "delivery_dining" || m === "two_wheeler" || m === "directions_bike") return "delivery";
-  if (m === "travel_explore" || m === "luggage" || m === "flight" || m === "directions_car") return "travel";
-  if (m === "fitness_center" || m === "directions_run" || m === "sports_gymnastics") return "exercise";
+  if (m === "travel_explore" || m === "luggage" || m === "flight" || m === "directions_car" || m === "route" || m === "map" || m === "near_me" || m === "location_on") return "travel";
+  if (m === "fitness_center" || m === "directions_run" || m === "sports_gymnastics" || m === "exercise") return "exercise";
   if (m === "wb_twilight" || m === "light_mode" || m === "morning") return "morning";
-  if (m === "search" || m === "manage_search") return "search";
-  if (m === "bookmark" || m === "save" || m === "saved") return "save";
+  if (m === "search" || m === "manage_search" || m === "explore" || m === "travel_explore") return "search";
+  if (m === "bookmark" || m === "save" || m === "saved" || m === "bookmark_border") return "save";
   return "default";
 }
 

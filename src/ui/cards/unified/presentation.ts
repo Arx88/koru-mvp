@@ -876,27 +876,38 @@ function shoppingList(b: Of<"shopping_list">): KoruPresentation {
 
   const sections: DetailSection[] = [];
   if (items.length > 0) {
-    sections.push({
-      kind: "rows",
-      icon: "shopping_cart",
-      accent: A.amber,
-      title: "Ítems",
-      subtitle: "ORDENADOS POR PASILLO",
-      rows: items.map((it) => {
-        const cat = categorizeItem(it);
-        const aisleLabel = aisleLabelFor(cat);
-        const qty = b.quantities?.[it];
-        const isChecked = checkedSet.has(it);
-        return {
-          icon: isChecked ? "check_box" : "check_box_outline_blank",
-          title: it,
-          meta: [aisleLabel, qty ? `x${qty}` : undefined].filter(Boolean).join(" · ") || undefined,
-          badgeTone: isChecked ? "done" : undefined,
-          badge: isChecked ? "Listo" : undefined,
-          // 🔴 TIER S: toggle → toggleShoppingItem(listId, itemId=it)
-          toggle: { kind: "shopping_item", listId, itemId: it },
-        };
-      }),
+    // 🔴 KIMI v3: agrupar por góndola/aisle. Cada aisle genera su propia
+    // sección "rows" con título "GÓNDOLA N · CATEGORÍA" — replica el spec
+    // Kimi card 17 extendida (.koru-aisle-group con .koru-aisle-header).
+    const groups: Array<{ aisle: string; items: string[] }> = [];
+    for (const it of items) {
+      const cat = categorizeItem(it);
+      const aisleLabel = aisleLabelFor(cat);
+      const last = groups[groups.length - 1];
+      if (last && last.aisle === aisleLabel) last.items.push(it);
+      else groups.push({ aisle: aisleLabel, items: [it] });
+    }
+    groups.forEach((g, gi) => {
+      sections.push({
+        kind: "rows",
+        icon: gi === 0 ? "shopping_cart" : "storefront",
+        accent: A.amber,
+        title: `Góndola ${gi + 1} · ${g.aisle}`,
+        subtitle: "PASILLO",
+        rows: g.items.map((it) => {
+          const qty = b.quantities?.[it];
+          const isChecked = checkedSet.has(it);
+          return {
+            icon: isChecked ? "check_box" : "check_box_outline_blank",
+            title: it,
+            meta: qty ? `x${qty}` : undefined,
+            badgeTone: isChecked ? "done" : undefined,
+            badge: isChecked ? "Listo" : undefined,
+            // 🔴 TIER S: toggle → toggleShoppingItem(listId, itemId=it)
+            toggle: { kind: "shopping_item", listId, itemId: it },
+          };
+        }),
+      });
     });
 
     // Totales as tiles (progreso de la lista).
@@ -1938,10 +1949,11 @@ function restaurant(b: Of<"restaurant_synthesis">): KoruPresentation {
   // 🔴 v3: "Reservar" action button si el top match tiene reserveUrl
   //        (Google Maps URL del place). El handler en KoruProvider recibe
   //        `blockData` con todo el UiBlock, incluyendo matches[].reserveUrl.
+  // 🔴 KIMI v3: label más contextual — "Reservar mesa" en vez de "Reservar".
   const topMatch = matches[0];
   const reserveAction =
     topMatch?.reserveUrl
-      ? [{ label: L.reserveAction ?? "Reservar", icon: "event_available", kind: "primary" as const, action: "reserve" }]
+      ? [{ label: L.reserveAction ?? "Reservar mesa", icon: "event_available", kind: "primary" as const, action: "reserve" }]
       : undefined;
 
   return {
