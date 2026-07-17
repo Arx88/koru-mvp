@@ -1,0 +1,1686 @@
+     1→import { useEffect, useState } from "react";
+     2→import { createPortal } from "react-dom";
+     3→import type { CSSProperties } from "react";
+     4→import type { UiBlock } from "../../../domain/types";
+     5→import type { Detail, DetailSection, Accent, DetailRow, DetailSourceRef } from "./presentation";
+     6→import { CookingMode, type CookingStep } from "./CookingMode";
+     7→import { WorkoutSession } from "../../WorkoutSession";
+     8→import { PriceHistoryChart, extractAsin } from "./PriceHistoryChart";
+     9→import { useKoru } from "../../KoruProvider";
+    10→import {
+    11→  sensitivityAnalysis,
+    12→  preMortem,
+    13→  weightedAdditive,
+    14→} from "../../../domain/decisionEngine";
+    15→
+    16→// Pantalla de detalle unificada — misma estética Stitch que PlanRoadmapScreen
+    17→// (koru-roadmap + magical-cards + blobs), pero genérica: renderiza cualquier
+    18→// conjunto de secciones normalizadas. Cada UiBlock que abre su CTA cae acá,
+    19→// así informe, clima, mercados, etc. comparten un único lenguaje visual.
+    20→
+    21→function Mat({ children, className = "" }: { children: string; className?: string }) {
+    22→  return <span className={`material-symbols-outlined ${className}`}>{children}</span>;
+    23→}
+    24→
+    25→// 🔴 P2 — Platform detection para el botón "Navegar" de route_map.
+    26→// iOS detection incluye el iPad con iOS 13+ que se reporta como MacIntel.
+    27→function isIOS(): boolean {
+    28→  if (typeof navigator === "undefined") return false;
+    29→  return (
+    30→    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    31→    (navigator.platform === "MacIntel" && (navigator.maxTouchPoints ?? 0) > 1)
+    32→  );
+    33→}
+    34→
+    35→function isAndroid(): boolean {
+    36→  if (typeof navigator === "undefined") return false;
+    37→  return /Android/i.test(navigator.userAgent);
+    38→}
+    39→
+    40→/**
+    41→ * 🔴 P2 — Construye la URL de navegación según plataforma y datos disponibles.
+    42→ * - Si lat/lng están presentes:
+    43→ *   • Android: geo:${lat},${lng}?q=${destination}
+    44→ *   • iOS:     maps://?daddr=${lat},${lng}
+    45→ *   • Desktop: https://www.google.com/maps/dir/?api=1&destination=${dest}
+    46→ * - Si NO hay lat/lng, cae a esquemas address-based:
+    47→ *   • Android: geo:0,0?q=${destination}
+    48→ *   • iOS:     maps://?daddr=${destination}
+    49→ *   • Desktop: https://www.google.com/maps/dir/?api=1&destination=${dest}
+    50→ * Devuelve null si no hay destino (ni to ni from ni lat/lng).
+    51→ */
+    52→function buildNavUrl(opts: {
+    53→  destination: string;
+    54→  lat?: number;
+    55→  lng?: number;
+    56→}): string | null {
+    57→  const { destination, lat, lng } = opts;
+    58→  const hasCoords = typeof lat === "number" && typeof lng === "number";
+    59→  if (isAndroid()) {
+    60→    if (hasCoords) {
+    61→      return `geo:${lat},${lng}?q=${encodeURIComponent(destination)}`;
+    62→    }
+    63→    return `geo:0,0?q=${encodeURIComponent(destination)}`;
+    64→  }
+    65→  if (isIOS()) {
+    66→    if (hasCoords) {
+    67→      return `maps://?daddr=${lat},${lng}`;
+    68→    }
+    69→    return `maps://?daddr=${encodeURIComponent(destination)}`;
+    70→  }
+    71→  // Desktop (o fallback)
+    72→  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
+    73→}
+    74→
+    75→// 🔴 v2: ComparisonBar — barra comparativa para stats de fútbol (o cualquier
+    76→// matchup home/away). Dibuja dos segmentos coloreados con team colors,
+    77→// mostrando visualmente quién domina esa stat.
+    78→function ComparisonBar({ bar }: { bar: NonNullable<DetailRow["bar"]> }) {
+    79→  const { homeValue, awayValue, isPercent, homeColor, awayColor } = bar;
+    80→  const total = (homeValue ?? 0) + (awayValue ?? 0);
+    81→  const homePct = total > 0 ? Math.max(2, Math.min(98, (homeValue / total) * 100)) : 50;
+    82→  const awayPct = 100 - homePct;
+    83→  const hc = homeColor || "#2d6a4f";
+    84→  const ac = awayColor || "#8363f9";
+    85→  return (
+    86→    <div className="koru-comparison-bar" role="presentation">
+    87→      <span className="koru-comparison-value home" style={{ color: hc }}>
+    88→        {isPercent ? `${Math.round(homeValue)}%` : homeValue}
+    89→      </span>
+    90→      <div className="koru-comparison-track">
+    91→        <div
+    92→          className="koru-comparison-fill home"
+    93→          style={{ width: `${homePct}%`, background: hc }}
+    94→        />
+    95→        <div
+    96→          className="koru-comparison-fill away"
+    97→          style={{ width: `${awayPct}%`, background: ac }}
+    98→        />
+    99→      </div>
+   100→      <span className="koru-comparison-value away" style={{ color: ac }}>
+   101→        {isPercent ? `${Math.round(awayValue)}%` : awayValue}
+   102→      </span>
+   103→    </div>
+   104→  );
+   105→}
+   106→
+   107→/** Aplica el accent de la sección a las CSS custom props del módulo. */
+   108→function moduleStyle(accent: Accent): CSSProperties {
+   109→  return { "--module-color": accent.color, "--module-bg": accent.soft } as CSSProperties;
+   110→}
+   111→
+   112→// 🔴 v2: Extrae el video ID de una URL de YouTube (youtu.be / watch?v= / embed / shorts).
+   113→// Devuelve null si no es una URL válida de YouTube.
+   114→function youtubeId(url: string): string | null {
+   115→  try {
+   116→    const u = new URL(url);
+   117→    if (u.hostname.includes("youtu.be")) {
+   118→      const id = u.pathname.slice(1).split("/")[0];
+   119→      return id || null;
+   120→    }
+   121→    if (u.hostname.includes("youtube.com")) {
+   122→      const v = u.searchParams.get("v");
+   123→      if (v) return v;
+   124→      const m = u.pathname.match(/\/(?:embed|shorts)\/([\w-]+)/);
+   125→      if (m) return m[1];
+   126→    }
+   127→    return null;
+   128→  } catch {
+   129→    return null;
+   130→  }
+   131→}
+   132→
+   133→function SectionHead({ section }: { section: DetailSection }) {
+   134→  return (
+   135→    <div className="koru-module-head">
+   136→      <div className="koru-module-id">
+   137→        <div className="koru-module-icon">
+   138→          <Mat>{section.icon}</Mat>
+   139→        </div>
+   140→        <div>
+   141→          <h3 className="koru-module-title">{section.title}</h3>
+   142→          {section.subtitle && <p className="koru-module-kicker">{section.subtitle}</p>}
+   143→        </div>
+   144→      </div>
+   145→    </div>
+   146→  );
+   147→}
+   148→
+   149→// 🔴 v2: SourceRow — un source puede tener favicon (imageUrl) o ser un video
+   150→// embebido de YouTube (thumbnail + play button + duration badge), o un
+   151→// iframe de preview de Archive.org (Open Library book preview).
+   152→function SourceRow({ source }: { source: DetailSourceRef }) {
+   153→  const ytId = source.url ? youtubeId(source.url) : null;
+   154→  const isArchiveEmbed = !!source.url && /archive\.org\/embed\//i.test(source.url);
+   155→
+   156→  const titleEl = (
+   157→    <span className="koru-dsec-source-title">
+   158→      {source.title}
+   159→      {source.domain && <span className="koru-dsec-source-domain"> — {source.domain}</span>}
+   160→    </span>
+   161→  );
+   162→
+   163→  // 🔴 v4: Archive.org embed — renderiza un iframe 16:9 (400px height) en
+   164→  // lugar del link textual. Permite ver el preview del libro sin salir de Koru.
+   165→  if (isArchiveEmbed && source.url) {
+   166→    return (
+   167→      <div className="koru-dsec-source koru-dsec-source-embed">
+   168→        <div className="koru-dsec-embed-wrap">
+   169→          <iframe
+   170→            src={source.url}
+   171→            title={source.title}
+   172→            loading="lazy"
+   173→            allowFullScreen
+   174→            referrerPolicy="no-referrer"
+   175→            sandbox="allow-scripts allow-same-origin allow-popups"
+   176→            style={{
+   177→              width: "100%",
+   178→              aspectRatio: "16 / 9",
+   179→              height: 400,
+   180→              maxHeight: 400,
+   181→              border: 0,
+   182→              borderRadius: 12,
+   183→              background: "#000",
+   184→            }}
+   185→          />
+   186→        </div>
+   187→        {titleEl}
+   188→      </div>
+   189→    );
+   190→  }
+   191→
+   192→  // Video embed: thumbnail 16:9 + play button (koru-breathe) + duration badge
+   193→  if (ytId) {
+   194→    const thumb = `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg`;
+   195→    const inner = (
+   196→      <>
+   197→        <div
+   198→          className="koru-source-video-thumb"
+   199→          style={{ backgroundImage: `url(${thumb})` }}
+   200→        >
+   201→          <span className="koru-source-video-play animate-breathe">
+   202→            <Mat>play_arrow</Mat>
+   203→          </span>
+   204→          {source.duration && (
+   205→            <span className="koru-source-video-duration">{source.duration}</span>
+   206→          )}
+   207→        </div>
+   208→        {titleEl}
+   209→      </>
+   210→    );
+   211→    return source.url ? (
+   212→      <a
+   213→        href={source.url}
+   214→        target="_blank"
+   215→        rel="noreferrer"
+   216→        className="koru-dsec-source koru-dsec-source-video"
+   217→      >
+   218→        {inner}
+   219→      </a>
+   220→    ) : (
+   221→      <div className="koru-dsec-source koru-dsec-source-video">{inner}</div>
+   222→    );
+   223→  }
+   224→
+   225→  // Favicon: si hay imageUrl, mostrar imagen 28x28 en vez del ícono genérico
+   226→  const inner = (
+   227→    <>
+   228→      {source.imageUrl ? (
+   229→        <img
+   230→          src={source.imageUrl}
+   231→          alt=""
+   232→          className="koru-source-favicon"
+   233→          loading="lazy"
+   234→        />
+   235→      ) : (
+   236→        <Mat className="koru-dsec-source-icon">language</Mat>
+   237→      )}
+   238→      {titleEl}
+   239→    </>
+   240→  );
+   241→
+   242→  return source.url ? (
+   243→    <a href={source.url} target="_blank" rel="noreferrer" className="koru-dsec-source">
+   244→      {inner}
+   245→    </a>
+   246→  ) : (
+   247→    <div className="koru-dsec-source">{inner}</div>
+   248→  );
+   249→}
+   250→
+   251→function SectionBody({ section, block }: { section: DetailSection; block?: UiBlock }) {
+   252→  switch (section.kind) {
+   253→    case "text":
+   254→      return <p className="koru-dsec-text">{section.body}</p>;
+   255→
+   256→    case "tiles":
+   257→      return (
+   258→        <div className="koru-dsec-tiles">
+   259→          {section.tiles.map((t, i) => (
+   260→            <div key={i} className="koru-dsec-tile">
+   261→              {t.icon && <Mat className="koru-dsec-tile-icon" >{t.icon}</Mat>}
+   262→              <span className="koru-dsec-tile-label">{t.label}</span>
+   263→              <span className="koru-dsec-tile-value">{t.value}</span>
+   264→            </div>
+   265→          ))}
+   266→        </div>
+   267→      );
+   268→
+   269→    case "rows":
+   270→      return (
+   271→        <div className="koru-dsec-rows">
+   272→          {section.rows.map((r, i) => {
+   273→            // 🔴 TIER S: si la row trae `toggle`, la envolvemos en un botón
+   274→            // que dispatcha `koru-card-action` con action "toggle_shopping" o
+   275→            // "toggle_checklist" + los ids sintéticos. KoruProvider los pasa al
+   276→            // reducer correspondiente (toggleShoppingItem / toggleChecklistItem).
+   277→            const toggle = r.toggle;
+   278→            const rowInner = (
+   279→              <>
+   280→                {r.icon && <Mat className="koru-dsec-row-icon">{r.icon}</Mat>}
+   281→                <div className="koru-dsec-row-body">
+   282→                  <p className="koru-dsec-row-title">{r.title}</p>
+   283→                  {r.detail && <p className="koru-dsec-row-detail">{r.detail}</p>}
+   284→                  {/* 🔴 v2: barra comparativa para stats de fútbol (posesión, tiros, etc.) */}
+   285→                  {r.bar && <ComparisonBar bar={r.bar} />}
+   286→                </div>
+   287→                {r.meta && <span className="koru-dsec-row-meta">{r.meta}</span>}
+   288→                {r.badge && <span className={`koru-step-chip is-${r.badgeTone ?? "pending"}`}>{r.badge}</span>}
+   289→              </>
+   290→            );
+   291→            if (toggle) {
+   292→              return (
+   293→                <button
+   294→                  key={i}
+   295→                  type="button"
+   296→                  className="koru-dsec-row koru-dsec-row-toggle"
+   297→                  onClick={(e) => {
+   298→                    e.stopPropagation();
+   299→                    const action =
+   300→                      toggle.kind === "shopping_item" ? "toggle_shopping" : "toggle_checklist";
+   301→                    window.dispatchEvent(
+   302→                      new CustomEvent("koru-card-action", {
+   303→                        detail: {
+   304→                          action,
+   305→                          listId: toggle.listId,
+   306→                          checklistId: toggle.checklistId,
+   307→                          itemId: toggle.itemId,
+   308→                          // 🔴 TIER S: include blockData so KoruProvider can
+   309→                          // auto-create the durable entity if it doesn't exist.
+   310→                          blockData: block,
+   311→                        },
+   312→                      }),
+   313→                    );
+   314→                    if ("vibrate" in navigator) navigator.vibrate(12);
+   315→                  }}
+   316→                >
+   317→                  {rowInner}
+   318→                </button>
+   319→              );
+   320→            }
+   321→            return (
+   322→              <div key={i} className={"koru-dsec-row" + (r.bar ? " koru-dsec-row-with-bar" : "")}>
+   323→                {rowInner}
+   324→              </div>
+   325→            );
+   326→          })}
+   327→        </div>
+   328→      );
+   329→
+   330→    case "chips":
+   331→      return (
+   332→        <div className="koru-dsec-chips">
+   333→          {section.chips.map((c, i) => (
+   334→            <div key={i} className="koru-dsec-chip">
+   335→              <span className="koru-dsec-chip-label">{c.label}</span>
+   336→              {c.sub && <span className="koru-dsec-chip-sub">{c.sub}</span>}
+   337→            </div>
+   338→          ))}
+   339→        </div>
+   340→      );
+   341→
+   342→    case "calendar":
+   343→      // 🔴 v2: kind dedicado para el calendario de cumpleaños. Usa clases
+   344→      // propias (.koru-dsec-calendar / -day) para no colisionar con los chips
+   345→      // genéricos que ahora vuelven a verse como píldoras.
+   346→      return (
+   347→        <div className="koru-dsec-calendar">
+   348→          {section.days.map((d, i) => (
+   349→            <div
+   350→              key={i}
+   351→              className="koru-dsec-calendar-day"
+   352→              style={d.color ? { color: d.color } : undefined}
+   353→            >
+   354→              <span className="koru-dsec-chip-label">{d.label}</span>
+   355→              {d.sub && <span className="koru-dsec-chip-sub">{d.sub}</span>}
+   356→            </div>
+   357→          ))}
+   358→        </div>
+   359→      );
+   360→
+   361→    case "scroller":
+   362→      return (
+   363→        <div className="koru-dsec-scroller">
+   364→          {section.cards.map((c, i) => (
+   365→            <div key={i} className="koru-dsec-scard">
+   366→              {/* 🔴 v3: badge image (Google Places photo) — thumbnail 16:9 sobre el título. */}
+   367→              {c.image && (
+   368→                <div className="koru-dsec-scard-image">
+   369→                  <img src={c.image} alt={c.title} loading="lazy" />
+   370→                </div>
+   371→              )}
+   372→              {c.badge && (
+   373→                <span className="koru-dsec-scard-badge" style={c.badgeColor ? { color: c.badgeColor, background: `${c.badgeColor}1a` } : undefined}>
+   374→                  {c.badge}
+   375→                </span>
+   376→              )}
+   377→              <h4 className="koru-dsec-scard-title">{c.title}</h4>
+   378→              {c.detail && <p className="koru-dsec-scard-detail">{c.detail}</p>}
+   379→              {c.metrics && c.metrics.length > 0 && (
+   380→                <div className="koru-dsec-scard-metrics">
+   381→                  {c.metrics.map((m, j) => (
+   382→                    <span key={j} className="koru-dsec-scard-metric">{m}</span>
+   383→                  ))}
+   384→                </div>
+   385→              )}
+   386→            </div>
+   387→          ))}
+   388→        </div>
+   389→      );
+   390→
+   391→    case "timeline":
+   392→      return (
+   393→        <div className="koru-timeline">
+   394→          <div className="koru-timeline-line" />
+   395→          <div className="koru-timeline-steps">
+   396→            {section.steps.map((s, i) => {
+   397→              const status = s.status ?? "pending";
+   398→              // 🔴 TIER S: si el paso trae `toggle.kind === "plan_step"`, lo
+   399→              // envolvemos en un botón que dispatcha `koru-card-action` con
+   400→              // action "toggle_step" + planId + stepId. KoruProvider los pasa
+   401→              // al reducer togglePlanStep.
+   402→              const toggle = s.toggle;
+   403→              const stepInner = (
+   404→                <>
+   405→                  <div className="koru-timeline-dot">
+   406→                    <Mat>{status === "done" ? "check" : s.icon ?? "radio_button_unchecked"}</Mat>
+   407→                  </div>
+   408→                  <div className="koru-timeline-body">
+   409→                    <h4 className="koru-timeline-name">{s.title}</h4>
+   410→                    {s.detail && <p className="koru-timeline-meta">{s.detail}</p>}
+   411→                    {/* 🔴 v2: badge de prioridad (Alta/Media/Baja) en pasos del plan */}
+   412→                    {s.badge && <span className={`koru-step-chip is-${s.badgeTone ?? "pending"}`}>{s.badge}</span>}
+   413→                  </div>
+   414→                </>
+   415→              );
+   416→              if (toggle && toggle.kind === "plan_step") {
+   417→                return (
+   418→                  <button
+   419→                    key={i}
+   420→                    type="button"
+   421→                    className={`koru-timeline-step is-${status} koru-timeline-step-toggle`}
+   422→                    onClick={(e) => {
+   423→                      e.stopPropagation();
+   424→                      window.dispatchEvent(
+   425→                        new CustomEvent("koru-card-action", {
+   426→                          detail: {
+   427→                            action: "toggle_step",
+   428→                            planId: toggle.planId,
+   429→                            stepId: toggle.stepId,
+   430→                            // 🔴 TIER S: include blockData so KoruProvider can
+   431→                            // auto-create the durable Plan if it doesn't exist.
+   432→                            blockData: block,
+   433→                          },
+   434→                        }),
+   435→                      );
+   436→                      if ("vibrate" in navigator) navigator.vibrate(12);
+   437→                    }}
+   438→                  >
+   439→                    {stepInner}
+   440→                  </button>
+   441→                );
+   442→              }
+   443→              return (
+   444→                <div key={i} className={`koru-timeline-step is-${status}`}>
+   445→                  {stepInner}
+   446→                </div>
+   447→              );
+   448→            })}
+   449→          </div>
+   450→        </div>
+   451→      );
+   452→
+   453→    case "sources":
+   454→      return (
+   455→        <div className="koru-dsec-sources">
+   456→          {section.sources.map((s, i) => (
+   457→            <SourceRow key={i} source={s} />
+   458→          ))}
+   459→        </div>
+   460→      );
+   461→
+   462→    case "pitch":
+   463→      return <FormationPitch pitch={section.pitch} />;
+   464→
+   465→    default: {
+   466→      const _exhaustive: never = section;
+   467→      return _exhaustive;
+   468→    }
+   469→  }
+   470→}
+   471→
+   472→function FormationPitch({ pitch }: { pitch: NonNullable<Extract<DetailSection, { kind: "pitch" }>["pitch"]> }) {
+   473→  const { homeFormation, awayFormation, homePlayers, awayPlayers, homeColor, awayColor, homeName, awayName } = pitch;
+   474→  const hc = homeColor || "#2d6a4f";
+   475→  const ac = awayColor || "#8363f9";
+   476→
+   477→  // Parse formation string "4-3-3" → [4, 3, 3]
+   478→  function parseFormation(f: string): number[] {
+   479→    return f.split("-").map(n => parseInt(n, 10) || 0).filter(n => n > 0);
+   480→  }
+   481→
+   482→  // Posicionar jugadores en una mitad de cancha (50% vertical)
+   483→  // home juega "hacia arriba" (de abajo hacia arriba), away "hacia abajo"
+   484→  // Cada línea del formation se posiciona a un Y% creciente desde el arquero.
+   485→  function positionPlayers(players: Array<{ number?: string; name: string; position?: string }>, formation: string, isHome: boolean): Array<{ x: number; y: number; player: typeof players[0] }> {
+   486→    if (players.length === 0) return [];
+   487→    const lines = parseFormation(formation);
+   488→    const result: Array<{ x: number; y: number; player: typeof players[0] }> = [];
+   489→    let playerIdx = 0;
+   490→
+   491→    // GK siempre primero, en la línea de gol
+   492→    if (players[0]) {
+   493→      result.push({ x: 50, y: isHome ? 95 : 5, player: players[0] });
+   494→      playerIdx = 1;
+   495→    }
+   496→
+   497→    // Cada línea del formation: distribuir N jugadores en una fila horizontal
+   498→    // Y va creciendo desde la defensa (cerca del arquero) hasta el ataque (cerca del mediocampo)
+   499→    const linesCount = lines.length;
+   500→    lines.forEach((count, lineIdx) => {
+   501→      // Y para home: de 80% (defensa) a 55% (ataque, mediocampo)
+   502→      // Y para away: de 20% (defensa) a 45% (ataque, mediocampo)
+   503→      const yBase = isHome ? 80 : 20;
+   504→      const yEnd = isHome ? 55 : 45;
+   505→      const yRange = Math.abs(yBase - yEnd);
+   506→      const yStep = linesCount > 1 ? yRange / (linesCount - 1) : 0;
+   507→      const y = isHome ? yBase - lineIdx * yStep : yBase + lineIdx * yStep;
+   508→
+   509→      // Distribuir los N jugadores horizontalmente
+   510→      for (let i = 0; i < count && playerIdx < players.length; i++) {
+   511→        const x = ((i + 1) / (count + 1)) * 100;
+   512→        result.push({ x, y, player: players[playerIdx] });
+   513→        playerIdx++;
+   514→      }
+   515→    });
+   516→
+   517→    return result;
+   518→  }
+   519→
+   520→  const homePositions = positionPlayers(homePlayers, homeFormation, true);
+   521→  const awayPositions = positionPlayers(awayPlayers, awayFormation, false);
+   522→
+   523→  return (
+   524→    <div className="koru-pitch-container">
+   525→      <div className="koru-pitch-header">
+   526→        <span style={{ color: hc }}>{awayName} · {awayFormation}</span>
+   527→        <span style={{ color: ac, fontSize: 11, opacity: 0.7 }}>vs</span>
+   528→        <span style={{ color: hc }}>{homeName} · {homeFormation}</span>
+   529→      </div>
+   530→      <div className="koru-pitch">
+   531→        {/* Líneas de cancha */}
+   532→        <div className="koru-pitch-line halfway" />
+   533→        <div className="koru-pitch-circle" />
+   534→        <div className="koru-pitch-box top" />
+   535→        <div className="koru-pitch-box bottom" />
+   536→
+   537→        {/* Players away (arriba) */}
+   538→        {awayPositions.map((pos, i) => (
+   539→          <div
+   540→            key={`away-${i}`}
+   541→            className="koru-pitch-player away"
+   542→            style={{
+   543→              left: `${pos.x}%`,
+   544→              top: `${pos.y}%`,
+   545→              background: ac,
+   546→            }}
+   547→            title={`${pos.player.name}${pos.player.number ? ` #${pos.player.number}` : ""}`}
+   548→          >
+   549→            <span className="koru-pitch-player-num">{pos.player.number ?? ""}</span>
+   550→            <span className="koru-pitch-player-name">{pos.player.name.split(" ").slice(-1)[0]}</span>
+   551→          </div>
+   552→        ))}
+   553→
+   554→        {/* Players home (abajo) */}
+   555→        {homePositions.map((pos, i) => (
+   556→          <div
+   557→            key={`home-${i}`}
+   558→            className="koru-pitch-player home"
+   559→            style={{
+   560→              left: `${pos.x}%`,
+   561→              top: `${pos.y}%`,
+   562→              background: hc,
+   563→            }}
+   564→            title={`${pos.player.name}${pos.player.number ? ` #${pos.player.number}` : ""}`}
+   565→          >
+   566→            <span className="koru-pitch-player-num">{pos.player.number ?? ""}</span>
+   567→            <span className="koru-pitch-player-name">{pos.player.name.split(" ").slice(-1)[0]}</span>
+   568→          </div>
+   569→        ))}
+   570→      </div>
+   571→    </div>
+   572→  );
+   573→}
+   574→
+   575→// 🔴 v4 — Decision sensitivity analysis panel. For each factor in the
+   576→// decision, runs sensitivityAnalysis with +20% delta on that factor's weight,
+   577→// then renders an inline-SVG horizontal bar chart where bar width ∝ score
+   578→// change of the current winner. Bars that would flip the winner are amber
+   579→// with a "⚠ Cambia el ganador" annotation.
+   580→function DecisionSensitivityPanel({ block }: { block: Extract<UiBlock, { type: "decision_support" }> }) {
+   581→  const { state } = useKoru();
+   582→  const decisionId = block.decisionId;
+   583→  if (!decisionId) return null;
+   584→  const decision = (state.decisions ?? []).find((d) => d.id === decisionId);
+   585→  if (!decision) return null;
+   586→  if (decision.factors.length === 0 || decision.options.length === 0) return null;
+   587→
+   588→  const deltaPct = 20;
+   589→  const rows = decision.factors.map((factor) => {
+   590→    const result = sensitivityAnalysis(decision, factor.id, deltaPct);
+   591→    // Compute the magnitude of the winning option's WADD score change so
+   592→    // we have something proportional to drive the bar width. sensitivityAnalysis
+   593→    // itself only reports wouldFlip + newWinner; the actual delta we compute
+   594→    // here with weightedAdditive (same algorithm the engine uses internally).
+   595→    const adjustedWeights = { ...decision.weights };
+   596→    const currentWeight = adjustedWeights[factor.id] ?? 0;
+   597→    adjustedWeights[factor.id] = currentWeight * (1 + deltaPct / 100);
+   598→    const originalScores = weightedAdditive(
+   599→      decision.options,
+   600→      decision.factors,
+   601→      decision.weights,
+   602→    );
+   603→    const adjustedScores = weightedAdditive(
+   604→      decision.options,
+   605→      decision.factors,
+   606→      adjustedWeights,
+   607→    );
+   608→    const winner = decision.result?.recommendation ?? "";
+   609→    const scoreChange = Math.abs(
+   610→      (adjustedScores[winner] ?? 0) - (originalScores[winner] ?? 0),
+   611→    );
+   612→    return { factor, result, scoreChange };
+   613→  });
+   614→
+   615→  const maxChange = Math.max(...rows.map((r) => r.scoreChange), 0.0001);
+   616→
+   617→  // SVG layout — each row 28px tall, bar grows left→right inside a 220px track.
+   618→  const rowH = 28;
+   619→  const labelW = 110;
+   620→  const barX = labelW + 8;
+   621→  const barMax = 220;
+   622→  const svgW = labelW + 8 + barMax + 12;
+   623→  const svgH = rows.length * rowH + 8;
+   624→
+   625→  return (
+   626→    <div style={{ padding: "0 16px 16px" }}>
+   627→      <div
+   628→        style={{
+   629→          background: "rgba(99,102,241,0.05)",
+   630→          borderRadius: 18,
+   631→          padding: "16px 18px",
+   632→          border: "1px solid rgba(99,102,241,0.18)",
+   633→        }}
+   634→      >
+   635→        <p
+   636→          style={{
+   637→            margin: "0 0 4px",
+   638→            fontSize: 11,
+   639→            fontWeight: 800,
+   640→            color: "#4f46e5",
+   641→            letterSpacing: 0.4,
+   642→            textTransform: "uppercase",
+   643→          }}
+   644→        >
+   645→          Análisis de sensibilidad
+   646→        </p>
+   647→        <p style={{ margin: "0 0 12px", fontSize: 12, color: "#5a5a72" }}>
+   648→          ¿Qué pasa si cada factor pesa +20%? Las barras ámbar indican que el ganador cambiaría.
+   649→        </p>
+   650→        <svg
+   651→          width="100%"
+   652→          viewBox={`0 0 ${svgW} ${svgH}`}
+   653→          preserveAspectRatio="xMinYMin meet"
+   654→          role="img"
+   655→          aria-label="Análisis de sensibilidad de la decisión"
+   656→        >
+   657→          {rows.map((row, i) => {
+   658→            const y = i * rowH + 6;
+   659→            const barLen = Math.max(2, (row.scoreChange / maxChange) * barMax);
+   660→            const flip = row.result.wouldFlip;
+   661→            const barColor = flip ? "#f59e0b" : "#6366f1";
+   662→            const label =
+   663→              row.factor.label.length > 16
+   664→                ? row.factor.label.slice(0, 15) + "…"
+   665→                : row.factor.label;
+   666→            return (
+   667→              <g key={row.factor.id}>
+   668→                <text
+   669→                  x={labelW}
+   670→                  y={y + 12}
+   671→                  textAnchor="end"
+   672→                  fontSize={11}
+   673→                  fill="#1a1a2e"
+   674→                  fontWeight={600}
+   675→                >
+   676→                  {label}
+   677→                </text>
+   678→                <rect x={barX} y={y} width={barMax} height={14} rx={3} fill="rgba(0,0,0,0.05)" />
+   679→                <rect x={barX} y={y} width={barLen} height={14} rx={3} fill={barColor} />
+   680→                {flip && (
+   681→                  <text x={barX + barMax + 6} y={y + 12} fontSize={10} fill="#b45309" fontWeight={700}>
+   682→                    ⚠
+   683→                  </text>
+   684→                )}
+   685→              </g>
+   686→            );
+   687→          })}
+   688→        </svg>
+   689→        {rows.some((r) => r.result.wouldFlip) && (
+   690→          <p
+   691→            style={{
+   692→              margin: "8px 0 0",
+   693→              fontSize: 12,
+   694→              color: "#b45309",
+   695→              fontWeight: 700,
+   696→            }}
+   697→          >
+   698→            ⚠ Cambia el ganador si sube +20%:{" "}
+   699→            {rows
+   700→              .filter((r) => r.result.wouldFlip)
+   701→              .map((r) => r.factor.label)
+   702→              .join(", ")}
+   703→          </p>
+   704→        )}
+   705→      </div>
+   706→    </div>
+   707→  );
+   708→}
+   709→
+   710→// 🔴 v4 — Decision pre-mortem panel. For each option, show a collapsible card
+   711→// with its 3 lowest-scoring factors (template-based risk string). Each risk
+   712→// has a "Mitigado" / "Aceptado" toggle stored in local state. Risk text is
+   713→// rendered in amber.
+   714→function DecisionPreMortemPanel({ block }: { block: Extract<UiBlock, { type: "decision_support" }> }) {
+   715→  const { state } = useKoru();
+   716→  const decisionId = block.decisionId;
+   717→  if (!decisionId) return null;
+   718→  const decision = (state.decisions ?? []).find((d) => d.id === decisionId);
+   719→  if (!decision) return null;
+   720→  if (decision.options.length === 0 || decision.factors.length === 0) return null;
+   721→
+   722→  const analysis = preMortem(decision.options, decision.factors);
+   723→  // Mitigation state: keyed by `${optionId}:${riskIndex}` → "mitigated" | "accepted" | undefined
+   724→  const [mitigation, setMitigation] = useState<Record<string, "mitigated" | "accepted" | undefined>>({});
+   725→  const [openOption, setOpenOption] = useState<string | null>(
+   726→    decision.options[0]?.id ?? null,
+   727→  );
+   728→
+   729→  return (
+   730→    <div style={{ padding: "0 16px 16px" }}>
+   731→      <div
+   732→        style={{
+   733→          background: "rgba(245,158,11,0.05)",
+   734→          borderRadius: 18,
+   735→          padding: "16px 18px",
+   736→          border: "1px solid rgba(245,158,11,0.22)",
+   737→        }}
+   738→      >
+   739→        <p
+   740→          style={{
+   741→            margin: "0 0 4px",
+   742→            fontSize: 11,
+   743→            fontWeight: 800,
+   744→            color: "#b45309",
+   745→            letterSpacing: 0.4,
+   746→            textTransform: "uppercase",
+   747→          }}
+   748→        >
+   749→          Pre-mortem
+   750→        </p>
+   751→        <p style={{ margin: "0 0 12px", fontSize: 12, color: "#5a5a72" }}>
+   752→          Si esta opción falla, lo más probable es que sea por…
+   753→        </p>
+   754→        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+   755→          {analysis.map((entry) => {
+   756→            const option = decision.options.find((o) => o.id === entry.optionId);
+   757→            const isOpen = openOption === entry.optionId;
+   758→            return (
+   759→              <div
+   760→                key={entry.optionId}
+   761→                style={{
+   762→                  borderRadius: 12,
+   763→                  border: "1px solid rgba(245,158,11,0.25)",
+   764→                  background: "#fff",
+   765→                  overflow: "hidden",
+   766→                }}
+   767→              >
+   768→                <button
+   769→                  type="button"
+   770→                  onClick={() => setOpenOption(isOpen ? null : entry.optionId)}
+   771→                  aria-expanded={isOpen}
+   772→                  style={{
+   773→                    width: "100%",
+   774→                    padding: "10px 12px",
+   775→                    border: "none",
+   776→                    background: "transparent",
+   777→                    cursor: "pointer",
+   778→                    display: "flex",
+   779→                    alignItems: "center",
+   780→                    justifyContent: "space-between",
+   781→                    gap: 8,
+   782→                    textAlign: "left",
+   783→                  }}
+   784→                >
+   785→                  <span style={{ fontSize: 13, fontWeight: 700, color: "#1a1a2e" }}>
+   786→                    {option?.label ?? entry.optionId}
+   787→                  </span>
+   788→                  <span
+   789→                    className="material-symbols-outlined"
+   790→                    style={{
+   791→                      fontSize: 18,
+   792→                      color: "#b45309",
+   793→                      transition: "transform 0.15s",
+   794→                      transform: isOpen ? "rotate(180deg)" : "none",
+   795→                    }}
+   796→                  >
+   797→                    expand_more
+   798→                  </span>
+   799→                </button>
+   800→                {isOpen && (
+   801→                  <div style={{ padding: "0 12px 10px", display: "flex", flexDirection: "column", gap: 6 }}>
+   802→                    {entry.risks.map((risk, idx) => {
+   803→                      const key = `${entry.optionId}:${idx}`;
+   804→                      const status = mitigation[key];
+   805→                      return (
+   806→                        <div
+   807→                          key={idx}
+   808→                          style={{
+   809→                            padding: "8px 10px",
+   810→                            borderRadius: 8,
+   811→                            background: "rgba(245,158,11,0.06)",
+   812→                            border: "1px solid rgba(245,158,11,0.15)",
+   813→                          }}
+   814→                        >
+   815→                          <p
+   816→                            style={{
+   817→                              margin: "0 0 6px",
+   818→                              fontSize: 12,
+   819→                              color: "#b45309",
+   820→                              lineHeight: 1.4,
+   821→                            }}
+   822→                          >
+   823→                            {risk}
+   824→                          </p>
+   825→                          <div style={{ display: "flex", gap: 6 }}>
+   826→                            <button
+   827→                              type="button"
+   828→                              onClick={() =>
+   829→                                setMitigation((prev) => ({
+   830→                                  ...prev,
+   831→                                  [key]: status === "mitigated" ? undefined : "mitigated",
+   832→                                }))
+   833→                              }
+   834→                              style={{
+   835→                                flex: 1,
+   836→                                padding: "6px 0",
+   837→                                borderRadius: 8,
+   838→                                border:
+   839→                                  status === "mitigated"
+   840→                                    ? "2px solid #059669"
+   841→                                    : "1px solid rgba(0,0,0,0.12)",
+   842→                                background:
+   843→                                  status === "mitigated" ? "rgba(5,150,105,0.10)" : "#fff",
+   844→                                color: status === "mitigated" ? "#059669" : "#5a5a72",
+   845→                                fontSize: 11,
+   846→                                fontWeight: 700,
+   847→                                cursor: "pointer",
+   848→                              }}
+   849→                            >
+   850→                              Mitigado
+   851→                            </button>
+   852→                            <button
+   853→                              type="button"
+   854→                              onClick={() =>
+   855→                                setMitigation((prev) => ({
+   856→                                  ...prev,
+   857→                                  [key]: status === "accepted" ? undefined : "accepted",
+   858→                                }))
+   859→                              }
+   860→                              style={{
+   861→                                flex: 1,
+   862→                                padding: "6px 0",
+   863→                                borderRadius: 8,
+   864→                                border:
+   865→                                  status === "accepted"
+   866→                                    ? "2px solid #b45309"
+   867→                                    : "1px solid rgba(0,0,0,0.12)",
+   868→                                background:
+   869→                                  status === "accepted" ? "rgba(245,158,11,0.12)" : "#fff",
+   870→                                color: status === "accepted" ? "#b45309" : "#5a5a72",
+   871→                                fontSize: 11,
+   872→                                fontWeight: 700,
+   873→                                cursor: "pointer",
+   874→                              }}
+   875→                            >
+   876→                              Aceptado
+   877→                            </button>
+   878→                          </div>
+   879→                        </div>
+   880→                      );
+   881→                    })}
+   882→                  </div>
+   883→                )}
+   884→              </div>
+   885→            );
+   886→          })}
+   887→        </div>
+   888→      </div>
+   889→    </div>
+   890→  );
+   891→}
+   892→
+   893→// 🔴 v4 — Recipe servings scaler. Lets the user scale ingredient quantities
+   894→// up/down with "−" / "+" buttons (1..20). For each ingredient we parse the
+   895→// numeric prefix of `measure`, multiply by (newServings/originalServings), and
+   896→// re-render the quantity next to the original. Falls back to the original
+   897→// measure string when no number is parseable.
+   898→function RecipeServingsScaler({ block }: { block: Extract<UiBlock, { type: "recipe" }> }) {
+   899→  const originalServings = block.servings && block.servings > 0 ? block.servings : 4;
+   900→  const [servings, setServings] = useState(originalServings);
+   901→  const ingredients = block.ingredients ?? [];
+   902→
+   903→  // Parse the leading number (int or decimal) of a measure string like
+   904→  // "200 g", "1/2 taza", "2 cdas". Returns null when no leading number is found.
+   905→  function parseLeadingNumber(s: string): { value: number; rest: string } | null {
+   906→    const m = s.trim().match(/^(\d+(?:[.,]\d+)?)/);
+   907→    if (!m) return null;
+   908→    return { value: parseFloat(m[1].replace(",", ".")), rest: s.trim().slice(m[1].length) };
+   909→  }
+   910→
+   911→  function scaleMeasure(measure: string): string {
+   912→    if (!measure) return measure;
+   913→    const parsed = parseLeadingNumber(measure);
+   914→    if (!parsed) return measure;
+   915→    const scaled = parsed.value * (servings / originalServings);
+   916→    // Pretty-print: integers without decimals, otherwise 2 decimal places trimmed.
+   917→    const rounded = Math.round(scaled * 100) / 100;
+   918→    const display = Number.isInteger(rounded) ? String(rounded) : String(rounded);
+   919→    return `${display}${parsed.rest}`;
+   920→  }
+   921→
+   922→  return (
+   923→    <div style={{ padding: "0 16px 16px" }}>
+   924→      <div
+   925→        style={{
+   926→          background: "rgba(16,185,129,0.05)",
+   927→          borderRadius: 18,
+   928→          padding: "16px 18px",
+   929→          border: "1px solid rgba(16,185,129,0.22)",
+   930→        }}
+   931→      >
+   932→        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 8 }}>
+   933→          <p
+   934→            style={{
+   935→              margin: 0,
+   936→              fontSize: 11,
+   937→              fontWeight: 800,
+   938→              color: "#059669",
+   939→              letterSpacing: 0.4,
+   940→              textTransform: "uppercase",
+   941→            }}
+   942→          >
+   943→            Ajustar porciones
+   944→          </p>
+   945→          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+   946→            <button
+   947→              type="button"
+   948→              aria-label="Restar porción"
+   949→              onClick={() => setServings((s) => Math.max(1, s - 1))}
+   950→              style={{
+   951→                width: 32,
+   952→                height: 32,
+   953→                borderRadius: 10,
+   954→                border: "1px solid rgba(16,185,129,0.30)",
+   955→                background: "#fff",
+   956→                color: "#059669",
+   957→                fontSize: 18,
+   958→                fontWeight: 800,
+   959→                cursor: "pointer",
+   960→                display: "flex",
+   961→                alignItems: "center",
+   962→                justifyContent: "center",
+   963→              }}
+   964→            >
+   965→              −
+   966→            </button>
+   967→            <span style={{ fontSize: 15, fontWeight: 800, color: "#1a1a2e", minWidth: 18, textAlign: "center" }}>
+   968→              {servings}
+   969→            </span>
+   970→            <button
+   971→              type="button"
+   972→              aria-label="Sumar porción"
+   973→              onClick={() => setServings((s) => Math.min(20, s + 1))}
+   974→              style={{
+   975→                width: 32,
+   976→                height: 32,
+   977→                borderRadius: 10,
+   978→                border: "1px solid rgba(16,185,129,0.30)",
+   979→                background: "#fff",
+   980→                color: "#059669",
+   981→                fontSize: 18,
+   982→                fontWeight: 800,
+   983→                cursor: "pointer",
+   984→                display: "flex",
+   985→                alignItems: "center",
+   986→                justifyContent: "center",
+   987→              }}
+   988→            >
+   989→              +
+   990→            </button>
+   991→          </div>
+   992→        </div>
+   993→        <p style={{ margin: "0 0 10px", fontSize: 11, color: "#5a5a72" }}>
+   994→          Original: {originalServings} · Actual: {servings}
+   995→        </p>
+   996→        {ingredients.length > 0 && (
+   997→          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+   998→            {ingredients.map((ing, i) => {
+   999→              const original = ing.measure || "";
+  1000→              const scaled = scaleMeasure(original);
+  1001→              const changed = scaled !== original && servings !== originalServings;
+  1002→              return (
+  1003→                <div
+  1004→                  key={i}
+  1005→                  style={{
+  1006→                    display: "flex",
+  1007→                    alignItems: "center",
+  1008→                    justifyContent: "space-between",
+  1009→                    gap: 8,
+  1010→                    padding: "6px 8px",
+  1011→                    borderRadius: 8,
+  1012→                    background: "rgba(255,255,255,0.55)",
+  1013→                  }}
+  1014→                >
+  1015→                  <span style={{ fontSize: 13, color: "#1a1a2e", fontWeight: 600 }}>
+  1016→                    {ing.ingredient}
+  1017→                  </span>
+  1018→                  <span style={{ fontSize: 12, color: changed ? "#059669" : "#5a5a72", fontWeight: 700 }}>
+  1019→                    {changed ? `${original} → ${scaled}` : original}
+  1020→                  </span>
+  1021→                </div>
+  1022→              );
+  1023→            })}
+  1024→          </div>
+  1025→        )}
+  1026→      </div>
+  1027→    </div>
+  1028→  );
+  1029→}
+  1030→
+  1031→// 🔴 v4 — Decision outcome panel: lets the user register which option they
+  1032→// chose + a 1-5 satisfaction rating. The reducer updateDecisionOutcome writes
+  1033→// the outcome, creates a follow-up commitment (90d) and a MemoryFact kind
+  1034→// "preference" with confidence boosted/reduced by the satisfaction score.
+  1035→function DecisionOutcomePanel({ block }: { block: Extract<UiBlock, { type: "decision_support" }> }) {
+  1036→  const { state, updateDecisionOutcome } = useKoru();
+  1037→  const decisionId = block.decisionId;
+  1038→  // Sin decisionId no podemos vincular el bloque a una Decision durable.
+  1039→  if (!decisionId) return null;
+  1040→  const decision = (state.decisions ?? []).find((d) => d.id === decisionId);
+  1041→  if (!decision) return null;
+  1042→
+  1043→  // Outcome ya registrado → mostrar resumen "Decidiste: X · Satisfacción: N/5".
+  1044→  const outcome = decision.outcome;
+  1045→  if (outcome) {
+  1046→    const chosen = decision.options.find((o) => o.id === outcome.chosenOptionId);
+  1047→    const chosenLabel = chosen?.label ?? "Opción elegida";
+  1048→    return (
+  1049→      <div style={{ padding: "0 16px 16px" }}>
+  1050→        <div
+  1051→          style={{
+  1052→            background: "linear-gradient(135deg, rgba(99,102,241,0.08), rgba(67,56,202,0.06))",
+  1053→            borderRadius: 18,
+  1054→            padding: "16px 18px",
+  1055→            border: "1px solid rgba(99,102,241,0.18)",
+  1056→            display: "flex",
+  1057→            flexDirection: "column",
+  1058→            gap: 8,
+  1059→          }}
+  1060→        >
+  1061→          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+  1062→            <span className="material-symbols-outlined" style={{ fontSize: 22, color: "#4f46e5" }}>
+  1063→              check_circle
+  1064→            </span>
+  1065→            <span style={{ fontSize: 13, fontWeight: 800, color: "#4f46e5", letterSpacing: 0.4, textTransform: "uppercase" }}>
+  1066→              Decidiste
+  1067→            </span>
+  1068→          </div>
+  1069→          <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#1a1a2e" }}>
+  1070→            {chosenLabel}
+  1071→          </p>
+  1072→          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+  1073→            <span style={{ fontSize: 13, color: "#5a5a72" }}>Satisfacción:</span>
+  1074→            <span style={{ fontSize: 13, fontWeight: 800, color: satisfactionColor(outcome.satisfaction1to5) }}>
+  1075→              {outcome.satisfaction1to5}/5
+  1076→            </span>
+  1077→            <div style={{ display: "flex", gap: 2, marginLeft: 4 }}>
+  1078→              {Array.from({ length: 5 }, (_, i) => (
+  1079→                <span
+  1080→                  key={i}
+  1081→                  className="material-symbols-outlined"
+  1082→                  style={{
+  1083→                    fontSize: 14,
+  1084→                    color: i < outcome.satisfaction1to5 ? "#f59e0b" : "rgba(0,0,0,0.18)",
+  1085→                  }}
+  1086→                >
+  1087→                  star
+  1088→                </span>
+  1089→              ))}
+  1090→            </div>
+  1091→          </div>
+  1092→          {outcome.notes && (
+  1093→            <p style={{ margin: 0, fontSize: 13, color: "#5a5a72", fontStyle: "italic" }}>
+  1094→              "{outcome.notes}"
+  1095→            </p>
+  1096→          )}
+  1097→        </div>
+  1098→      </div>
+  1099→    );
+  1100→  }
+  1101→
+  1102→  // Sin outcome → mostrar prompt "¿Ya decidiste?" con botones por opción.
+  1103→  // El primer tap elige la opción; luego pedimos satisfaction 1-5 inline.
+  1104→  return (
+  1105→    <DecisionOutcomeEditor
+  1106→      decision={decision}
+  1107→      onSubmit={(chosenOptionId, satisfaction1to5, notes) => {
+  1108→        updateDecisionOutcome(decision.id, {
+  1109→          chosenOptionId,
+  1110→          decidedAt: new Date().toISOString(),
+  1111→          satisfaction1to5,
+  1112→          notes,
+  1113→        });
+  1114→        if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+  1115→          try { navigator.vibrate(15); } catch { /* best-effort */ }
+  1116→        }
+  1117→      }}
+  1118→    />
+  1119→  );
+  1120→}
+  1121→
+  1122→function satisfactionColor(rating: number): string {
+  1123→  if (rating >= 4) return "#059669";
+  1124→  if (rating <= 2) return "#dc2626";
+  1125→  return "#d97706";
+  1126→}
+  1127→
+  1128→// 🔴 v4 — Inline editor: opción elegida → satisfaction rating → submit.
+  1129→// Tres estados: "choosing" (lista de opciones), "rating" (selector 1-5 estrellas),
+  1130→// "done" (transient confirmation; el panel padre ya re-renderiza con el outcome).
+  1131→function DecisionOutcomeEditor({
+  1132→  decision,
+  1133→  onSubmit,
+  1134→}: {
+  1135→  decision: import("../../../domain/types").Decision;
+  1136→  onSubmit: (chosenOptionId: string, satisfaction1to5: number, notes?: string) => void;
+  1137→}) {
+  1138→  const [phase, setPhase] = useState<"choosing" | "rating">("choosing");
+  1139→  const [chosenId, setChosenId] = useState<string | null>(null);
+  1140→  const [rating, setRating] = useState<number>(0);
+  1141→
+  1142→  const options = decision.options.length > 0
+  1143→    ? decision.options
+  1144→    : [];
+  1145→
+  1146→  if (options.length === 0) return null;
+  1147→
+  1148→  // Phase 2: rating — muestra la opción elegida + 5 estrellas para satisfaction.
+  1149→  if (phase === "rating" && chosenId) {
+  1150→    const chosen = options.find((o) => o.id === chosenId);
+  1151→    return (
+  1152→      <div style={{ padding: "0 16px 16px" }}>
+  1153→        <div
+  1154→          style={{
+  1155→            background: "rgba(99,102,241,0.06)",
+  1156→            borderRadius: 18,
+  1157→            padding: "16px 18px",
+  1158→            border: "1px solid rgba(99,102,241,0.18)",
+  1159→          }}
+  1160→        >
+  1161→          <p style={{ margin: "0 0 4px", fontSize: 11, fontWeight: 800, color: "#4f46e5", letterSpacing: 0.4, textTransform: "uppercase" }}>
+  1162→            ¿Ya decidiste?
+  1163→          </p>
+  1164→          <p style={{ margin: "0 0 12px", fontSize: 15, fontWeight: 700, color: "#1a1a2e" }}>
+  1165→            Elegiste: {chosen?.label ?? "—"}
+  1166→          </p>
+  1167→          <p style={{ margin: "0 0 8px", fontSize: 13, color: "#5a5a72" }}>
+  1168→            ¿Qué tan satisfecho quedaste?
+  1169→          </p>
+  1170→          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+  1171→            {[1, 2, 3, 4, 5].map((n) => (
+  1172→              <button
+  1173→                key={n}
+  1174→                type="button"
+  1175→                onClick={() => setRating(n)}
+  1176→                aria-label={`${n} estrellas`}
+  1177→                style={{
+  1178→                  flex: 1,
+  1179→                  padding: "10px 0",
+  1180→                  borderRadius: 12,
+  1181→                  border: rating === n ? "2px solid #4f46e5" : "1px solid rgba(0,0,0,0.12)",
+  1182→                  background: rating === n ? "rgba(99,102,241,0.10)" : "#fff",
+  1183→                  cursor: "pointer",
+  1184→                  display: "flex",
+  1185→                  flexDirection: "column",
+  1186→                  alignItems: "center",
+  1187→                  gap: 2,
+  1188→                }}
+  1189→              >
+  1190→                <span
+  1191→                  className="material-symbols-outlined"
+  1192→                  style={{ fontSize: 18, color: rating >= n ? "#f59e0b" : "rgba(0,0,0,0.25)" }}
+  1193→                >
+  1194→                  star
+  1195→                </span>
+  1196→                <span style={{ fontSize: 11, color: "#5a5a72", fontWeight: 700 }}>{n}</span>
+  1197→              </button>
+  1198→            ))}
+  1199→          </div>
+  1200→          <div style={{ display: "flex", gap: 8 }}>
+  1201→            <button
+  1202→              type="button"
+  1203→              onClick={() => { setPhase("choosing"); setChosenId(null); setRating(0); }}
+  1204→              style={{
+  1205→                flex: 1,
+  1206→                padding: "10px 0",
+  1207→                borderRadius: 12,
+  1208→                border: "1px solid rgba(0,0,0,0.12)",
+  1209→                background: "#fff",
+  1210→                color: "#5a5a72",
+  1211→                fontSize: 13,
+  1212→                fontWeight: 700,
+  1213→                cursor: "pointer",
+  1214→              }}
+  1215→            >
+  1216→              Volver
+  1217→            </button>
+  1218→            <button
+  1219→              type="button"
+  1220→              disabled={rating === 0}
+  1221→              onClick={() => onSubmit(chosenId, rating)}
+  1222→              style={{
+  1223→                flex: 2,
+  1224→                padding: "10px 0",
+  1225→                borderRadius: 12,
+  1226→                border: "none",
+  1227→                background: rating === 0 ? "rgba(99,102,241,0.30)" : "linear-gradient(135deg, #6366f1, #4338ca)",
+  1228→                color: "#fff",
+  1229→                fontSize: 13,
+  1230→                fontWeight: 800,
+  1231→                cursor: rating === 0 ? "not-allowed" : "pointer",
+  1232→                boxShadow: rating === 0 ? "none" : "0 6px 16px rgba(99,102,241,0.30)",
+  1233→              }}
+  1234→            >
+  1235→              Confirmar decisión
+  1236→            </button>
+  1237→          </div>
+  1238→        </div>
+  1239→      </div>
+  1240→    );
+  1241→  }
+  1242→
+  1243→  // Phase 1: choosing — lista de opciones como botones grandes.
+  1244→  return (
+  1245→    <div style={{ padding: "0 16px 16px" }}>
+  1246→      <div
+  1247→        style={{
+  1248→          background: "rgba(99,102,241,0.06)",
+  1249→          borderRadius: 18,
+  1250→          padding: "16px 18px",
+  1251→          border: "1px solid rgba(99,102,241,0.18)",
+  1252→        }}
+  1253→      >
+  1254→        <p style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 800, color: "#4f46e5", letterSpacing: 0.4, textTransform: "uppercase" }}>
+  1255→          ¿Ya decidiste?
+  1256→        </p>
+  1257→        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+  1258→          {options.map((o) => (
+  1259→            <button
+  1260→              key={o.id}
+  1261→              type="button"
+  1262→              onClick={() => { setChosenId(o.id); setPhase("rating"); }}
+  1263→              style={{
+  1264→                width: "100%",
+  1265→                padding: "12px 14px",
+  1266→                borderRadius: 12,
+  1267→                border: "1px solid rgba(99,102,241,0.25)",
+  1268→                background: "#fff",
+  1269→                color: "#1a1a2e",
+  1270→                fontSize: 14,
+  1271→                fontWeight: 700,
+  1272→                cursor: "pointer",
+  1273→                textAlign: "left",
+  1274→                display: "flex",
+  1275→                alignItems: "center",
+  1276→                justifyContent: "space-between",
+  1277→                gap: 8,
+  1278→              }}
+  1279→            >
+  1280→              <span>{o.label}</span>
+  1281→              <span className="material-symbols-outlined" style={{ fontSize: 18, color: "#4f46e5" }}>
+  1282→                arrow_forward
+  1283→              </span>
+  1284→            </button>
+  1285→          ))}
+  1286→        </div>
+  1287→      </div>
+  1288→    </div>
+  1289→  );
+  1290→}
+  1291→
+  1292→export function KoruDetailScreen({
+  1293→  detail,
+  1294→  headerIcon,
+  1295→  onClose,
+  1296→  onSave,
+  1297→  onExportPdf,
+  1298→  block,
+  1299→}: {
+  1300→  detail: Detail;
+  1301→  headerIcon: string;
+  1302→  onClose: () => void;
+  1303→  onSave?: (title: string, subtitle?: string) => void;
+  1304→  onExportPdf?: () => void;
+  1305→  // 🔴 TIER S: el UiBlock original se pasa para que los toggles de rows/steps
+  1306→  // puedan incluir `blockData` en el CustomEvent. Así el handler en
+  1307→  // KoruProvider puede auto-crear la entidad durable (Plan/ShoppingList/
+  1308→  // Checklist) si no existe, haciendo que el toggle sea efectivo aún para
+  1309→  // bloques transitorios del LLM.
+  1310→  block?: UiBlock;
+  1311→}) {
+  1312→  // 🔴 P2 — Cooking mode: estado que abre el overlay full-screen.
+  1313→  // Sólo se activa si el block es un UiBlock `recipe` con steps.
+  1314→  const [cookingOpen, setCookingOpen] = useState(false);
+  1315→  // 🔴 P2 — Workout session: estado que abre el overlay full-screen.
+  1316→  // Sólo se activa si el block es un UiBlock `exercise_plan` con sesiones.
+  1317→  const [workoutOpen, setWorkoutOpen] = useState(false);
+  1318→  // 🔴 P2 — Toast "Abriendo navegación..." para el botón Navegar de route_map.
+  1319→  // Se muestra con la animación koru-save-rise (mismo feel que el modal Save).
+  1320→  const [navToast, setNavToast] = useState<string | null>(null);
+  1321→
+  1322→  const recipe = block && block.type === "recipe" ? block : null;
+  1323→  const recipeTitle = recipe?.name ?? recipe?.title ?? detail.title;
+  1324→  const cookingSteps: CookingStep[] = (recipe?.steps ?? []).map((s) => {
+  1325→    const maybeTimer = (s as unknown as { timerSec?: unknown }).timerSec;
+  1326→    return {
+  1327→      step: s.step,
+  1328→      text: s.text,
+  1329→      // timerSec se conserva si el dominio lo llega a agregar (hoy no viene).
+  1330→      ...(typeof maybeTimer === "number"
+  1331→        ? { timerSec: maybeTimer }
+  1332→        : {}),
+  1333→    };
+  1334→  });
+  1335→  const canCook = !!recipe && cookingSteps.length > 0;
+  1336→
+  1337→  // exercise_plan: plan + sesión actual (currentSessionIdx).
+  1338→  const exercisePlan = block && block.type === "exercise_plan" ? block : null;
+  1339→  const exercisePlanObj = exercisePlan?.plan;
+  1340→  const workoutSession =
+  1341→    exercisePlanObj && exercisePlanObj.sessions.length > 0
+  1342→      ? exercisePlanObj.sessions[Math.min(exercisePlanObj.currentSessionIdx ?? 0, exercisePlanObj.sessions.length - 1)]
+  1343→      : null;
+  1344→  const canWorkout = !!exercisePlanObj && !!workoutSession;
+  1345→
+  1346→  // 🔴 P2 — route_map: extraemos destino + coords (opcionales) para el CTA
+  1347→  // "Navegar". El destino prioriza `to` (lugar de llegada); si no, cae a
+  1348→  // `from`. Sin destino, el botón no se renderiza.
+  1349→  const routeMap = block && block.type === "route_map" ? block : null;
+  1350→  const navDestination =
+  1351→    (routeMap?.to && routeMap.to.trim()) ||
+  1352→    (routeMap?.from && routeMap.from.trim()) ||
+  1353→    "";
+  1354→  const canNavigate = !!routeMap && navDestination.length > 0;
+  1355→
+  1356→  // 🔴 P2 — Handler "Navegar": construye la URL según plataforma, abre la
+  1357→  // app nativa de mapas (geo:/maps:) o Google Maps web en desktop, muestra
+  1358→  // un toast "Abriendo navegación..." con koru-save-rise, y vibra (haptic).
+  1359→  function handleNavigate() {
+  1360→    if (!canNavigate) return;
+  1361→    const url = buildNavUrl({
+  1362→      destination: navDestination,
+  1363→      lat: routeMap?.lat,
+  1364→      lng: routeMap?.lng,
+  1365→    });
+  1366→    if (!url) return;
+  1367→    // 🔴 Toast con animación koru-save-rise (mismo feel que el modal Save).
+  1368→    setNavToast("Abriendo navegación...");
+  1369→    // 🔴 Haptic feedback — patrón corto si Vibration API está disponible.
+  1370→    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+  1371→      try {
+  1372→        navigator.vibrate(20);
+  1373→      } catch {
+  1374→        // best-effort — algunos browsers lanzan si el usuario no interactuó
+  1375→      }
+  1376→    }
+  1377→    // 🔴 Abrir URL — en mobile usamos window.location.href para que el SO
+  1378→    // intercepte el esquema (geo:/maps:) y abra la app nativa. En desktop
+  1379→    // abrimos en pestaña nueva con window.open.
+  1380→    try {
+  1381→      if (isAndroid() || isIOS()) {
+  1382→        window.location.href = url;
+  1383→      } else {
+  1384→        window.open(url, "_blank", "noopener,noreferrer");
+  1385→      }
+  1386→    } catch {
+  1387→      // best-effort — si el esquema falla (popup blocker, etc.), el toast
+  1388→      // igual le da feedback al usuario de que intentamos.
+  1389→    }
+  1390→    // 🔴 Auto-ocultar el toast después de 2.2s (mismo tiempo que save-toast).
+  1391→    window.setTimeout(() => setNavToast(null), 2200);
+  1392→  }
+  1393→
+  1394→  useEffect(() => {
+  1395→    const onKeyDown = (event: KeyboardEvent) => {
+  1396→      if (event.key === "Escape") onClose();
+  1397→    };
+  1398→    window.addEventListener("keydown", onKeyDown);
+  1399→    return () => window.removeEventListener("keydown", onKeyDown);
+  1400→  }, [onClose]);
+  1401→
+  1402→  const sections = detail.sections ?? [];
+  1403→  const isEmpty = sections.length === 0;
+  1404→
+  1405→  return createPortal(
+  1406→    <div className="koru-roadmap" role="dialog" aria-label={detail.title}>
+  1407→      <div className="koru-roadmap-screen">
+  1408→        <div className="koru-roadmap-blob-1" />
+  1409→        <div className="koru-roadmap-blob-2" />
+  1410→
+  1411→        {/* 🔴 v2: Sticky header — back (izq) / mini icon + condensed title (centro) / save (der) */}
+  1412→        <header className="koru-detail-sticky-head">
+  1413→          <button
+  1414→            type="button"
+  1415→            aria-label="Volver"
+  1416→            className="koru-detail-sticky-back"
+  1417→            onClick={onClose}
+  1418→          >
+  1419→            <Mat>arrow_back_ios_new</Mat>
+  1420→          </button>
+  1421→          <div className="koru-detail-mini-icon">
+  1422→            <Mat>{headerIcon}</Mat>
+  1423→          </div>
+  1424→          <h2 className="koru-detail-mini-title">{detail.title}</h2>
+  1425→          <button
+  1426→            type="button"
+  1427→            aria-label="Guardar"
+  1428→            className="koru-detail-sticky-save"
+  1429→            onClick={() => onSave?.(detail.title, detail.subtitle)}
+  1430→          >
+  1431→            <Mat>bookmark_border</Mat>
+  1432→          </button>
+  1433→        </header>
+  1434→
+  1435→        <div className="koru-roadmap-header">
+  1436→          <div className="koru-detail-hero-icon">
+  1437→            <Mat>{headerIcon}</Mat>
+  1438→          </div>
+  1439→          <h1 className="koru-roadmap-title">{detail.title}</h1>
+  1440→          {detail.subtitle && <p className="koru-roadmap-subtitle">{detail.subtitle}</p>}
+  1441→        </div>
+  1442→
+  1443→        <div className="koru-roadmap-modules">
+  1444→          {isEmpty ? (
+  1445→            <div className="koru-unified-empty koru-detail-empty">
+  1446→              <Mat>inbox</Mat>
+  1447→              <span>No hay secciones para mostrar en este detalle.</span>
+  1448→            </div>
+  1449→          ) : (
+  1450→            sections.map((section, i) => (
+  1451→              <div
+  1452→                key={i}
+  1453→                className="koru-magical-card"
+  1454→                style={{ ...moduleStyle(section.accent), "--stagger-i": i } as CSSProperties}
+  1455→              >
+  1456→                <SectionHead section={section} />
+  1457→                <SectionBody section={section} block={block} />
+  1458→              </div>
+  1459→            ))
+  1460→          )}
+  1461→        </div>
+  1462→
+  1463→        {/* 🔴 P2 — "Empezar a cocinar": abre el overlay CookingMode cuando el
+  1464→            bloque es una receta con pasos. Se renderiza como un CTA grande
+  1465→            al final de la lista de secciones (antes del sticky footer). */}
+  1466→        {canCook && (
+  1467→          <div style={{ padding: "0 16px 16px" }}>
+  1468→            <button
+  1469→              type="button"
+  1470→              onClick={() => setCookingOpen(true)}
+  1471→              style={{
+  1472→                width: "100%",
+  1473→                padding: "16px 18px",
+  1474→                borderRadius: 18,
+  1475→                border: "none",
+  1476→                background: "linear-gradient(135deg, #8363f9, #4648d4)",
+  1477→                color: "#fff",
+  1478→                fontSize: 15,
+  1479→                fontWeight: 800,
+  1480→                cursor: "pointer",
+  1481→                boxShadow: "0 10px 24px rgba(131, 99, 249, 0.30)",
+  1482→                display: "inline-flex",
+  1483→                alignItems: "center",
+  1484→                justifyContent: "center",
+  1485→                gap: 8,
+  1486→              }}
+  1487→            >
+  1488→              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>soup_kitchen</span>
+  1489→              Empezar a cocinar
+  1490→              <span className="material-symbols-outlined" style={{ fontSize: 18, opacity: 0.85 }}>arrow_forward</span>
+  1491→            </button>
+  1492→          </div>
+  1493→        )}
+  1494→
+  1495→        {/* 🔴 P2 — "Empezar sesión": abre el overlay WorkoutSession cuando el
+  1496→            bloque es un exercise_plan con sesiones. CTA verde oscuro fitness. */}
+  1497→        {canWorkout && (
+  1498→          <div style={{ padding: "0 16px 16px" }}>
+  1499→            <button
+  1500→              type="button"
+  1501→              onClick={() => setWorkoutOpen(true)}
+  1502→              style={{
+  1503→                width: "100%",
+  1504→                padding: "16px 18px",
+  1505→                borderRadius: 18,
+  1506→                border: "none",
+  1507→                background: "linear-gradient(135deg, #2d6a4f, #1a3d2e)",
+  1508→                color: "#fff",
+  1509→                fontSize: 15,
+  1510→                fontWeight: 800,
+  1511→                cursor: "pointer",
+  1512→                boxShadow: "0 10px 24px rgba(45, 106, 79, 0.30)",
+  1513→                display: "inline-flex",
+  1514→                alignItems: "center",
+  1515→                justifyContent: "center",
+  1516→                gap: 8,
+  1517→              }}
+  1518→            >
+  1519→              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>play_arrow</span>
+  1520→              Empezar sesión
+  1521→              <span className="material-symbols-outlined" style={{ fontSize: 18, opacity: 0.85 }}>arrow_forward</span>
+  1522→            </button>
+  1523→          </div>
+  1524→        )}
+  1525→
+  1526→        {/* 🔴 P2 — "Navegar" para route_map. Abre la app nativa de mapas
+  1527→            (geo: en Android, maps: en iOS) o Google Maps web en desktop.
+  1528→            El CTA usa el accent indigo (mismo que el hero de routeMap) para
+  1529→            coherencia visual. Toast + haptic al tap. */}
+  1530→        {canNavigate && (
+  1531→          <div style={{ padding: "0 16px 16px" }}>
+  1532→            <button
+  1533→              type="button"
+  1534→              onClick={handleNavigate}
+  1535→              style={{
+  1536→                width: "100%",
+  1537→                padding: "16px 18px",
+  1538→                borderRadius: 18,
+  1539→                border: "none",
+  1540→                background: "linear-gradient(135deg, #6366f1, #4338ca)",
+  1541→                color: "#fff",
+  1542→                fontSize: 15,
+  1543→                fontWeight: 800,
+  1544→                cursor: "pointer",
+  1545→                boxShadow: "0 10px 24px rgba(99, 102, 241, 0.30)",
+  1546→                display: "inline-flex",
+  1547→                alignItems: "center",
+  1548→                justifyContent: "center",
+  1549→                gap: 8,
+  1550→              }}
+  1551→              aria-label={`Navegar a ${navDestination}`}
+  1552→            >
+  1553→              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>navigation</span>
+  1554→              Navegar
+  1555→              {navDestination ? (
+  1556→                <span style={{ opacity: 0.85, fontWeight: 600, fontSize: 13 }}>
+  1557→                  · {navDestination.length > 28 ? navDestination.slice(0, 28) + "…" : navDestination}
+  1558→                </span>
+  1559→              ) : null}
+  1560→            </button>
+  1561→          </div>
+  1562→        )}
+  1563→
+  1564→        {/* 🔴 P2 — Price history sparklines para bloques de comparison.
+  1565→            Cada item con URL (Amazon/product) muestra un mini-chart SVG
+  1566→            inline alimentado por Keepa (si hay KEEPA_API_KEY) o un fallback
+  1567→            "no disponible". */}
+  1568→        {block && block.type === "comparison" && block.items.some((it) => it.url) && (
+  1569→          <div style={{ padding: "0 16px 16px" }}>
+  1570→            <h3
+  1571→              style={{
+  1572→                margin: "0 0 10px",
+  1573→                fontSize: 13,
+  1574→                fontWeight: 800,
+  1575→                color: "#1a1a2e",
+  1576→                letterSpacing: 0.4,
+  1577→                textTransform: "uppercase",
+  1578→              }}
+  1579→            >
+  1580→              Histórico de precios
+  1581→            </h3>
+  1582→            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+  1583→              {block.items
+  1584→                .filter((it) => it.url)
+  1585→                .map((it, i) => (
+  1586→                  <PriceHistoryChart
+  1587→                    key={i}
+  1588→                    title={it.title}
+  1589→                    url={it.url ?? ""}
+  1590→                    asin={extractAsin(it.url ?? "")}
+  1591→                    currentPrice={it.price}
+  1592→                  />
+  1593→                ))}
+  1594→            </div>
+  1595→          </div>
+  1596→        )}
+  1597→
+  1598→        {/* 🔴 v4: Decision outcome panel — when block is decision_support and
+  1599→            has decisionId, render the outcome tracker (chosen option +
+  1600→            satisfaction rating). The panel reads the Decision from state via
+  1601→            useKoru() and calls updateDecisionOutcome. */}
+  1602→        {block && block.type === "decision_support" && (
+  1603→          <DecisionOutcomePanel block={block} />
+  1604→        )}
+  1605→
+  1606→        {/* 🔴 v4: Decision sensitivity analysis + pre-mortem — both panels
+  1607→            read the Decision from state via useKoru() and only render when
+  1608→            the block is decision_support and has a valid decisionId pointing
+  1609→            to a Decision with options + factors. */}
+  1610→        {block && block.type === "decision_support" && (
+  1611→          <DecisionSensitivityPanel block={block} />
+  1612→        )}
+  1613→        {block && block.type === "decision_support" && (
+  1614→          <DecisionPreMortemPanel block={block} />
+  1615→        )}
+  1616→
+  1617→        {/* 🔴 v4: Recipe servings scaler — when block is a recipe with
+  1618→            ingredients, render a "− / +" scaler (1..20) that re-computes
+  1619→            each ingredient's leading quantity proportionally. */}
+  1620→        {block && block.type === "recipe" && block.ingredients && block.ingredients.length > 0 && (
+  1621→          <RecipeServingsScaler block={block} />
+  1622→        )}
+  1623→
+  1624→        {/* 🔴 v2: Sticky footer — Save + PDF pinned al fondo con blur backdrop */}
+  1625→        <div className="koru-detail-actions-sticky">
+  1626→          <button
+  1627→            type="button"
+  1628→            className="koru-dsec-action-btn koru-dsec-action-save"
+  1629→            onClick={() => onSave?.(detail.title, detail.subtitle)}
+  1630→          >
+  1631→            <span className="material-symbols-outlined">bookmark_added</span>
+  1632→            <span>Guardar</span>
+  1633→          </button>
+  1634→          {onExportPdf && (
+  1635→            <button
+  1636→              type="button"
+  1637→              className="koru-dsec-action-btn koru-dsec-action-pdf"
+  1638→              onClick={onExportPdf}
+  1639→            >
+  1640→              <span className="material-symbols-outlined">picture_as_pdf</span>
+  1641→              <span>PDF</span>
+  1642→            </button>
+  1643→          )}
+  1644→        </div>
+  1645→      </div>
+  1646→
+  1647→      {/* 🔴 P2 — Cooking mode overlay (full-screen, z-index 300). */}
+  1648→      {cookingOpen && canCook && (
+  1649→        <CookingMode
+  1650→          title={recipeTitle}
+  1651→          steps={cookingSteps}
+  1652→          block={block}
+  1653→          onClose={() => setCookingOpen(false)}
+  1654→        />
+  1655→      )}
+  1656→
+  1657→      {/* 🔴 P2 — Workout session overlay (full-screen, z-index 300). */}
+  1658→      {workoutOpen && canWorkout && exercisePlanObj && workoutSession && (
+  1659→        <WorkoutSession
+  1660→          plan={exercisePlanObj}
+  1661→          session={workoutSession}
+  1662→          onClose={() => setWorkoutOpen(false)}
+  1663→        />
+  1664→      )}
+  1665→
+  1666→      {/* 🔴 P2 — Toast "Abriendo navegación..." para el botón Navegar.
+  1667→          Reutiliza la animación koru-save-rise (mismo feel que el modal Save).
+  1668→          Se auto-oculta a los 2.2s (ver handleNavigate). */}
+  1669→      {navToast && (
+  1670→        <div
+  1671→          className="koru-nav-toast"
+  1672→          role="status"
+  1673→          aria-live="polite"
+  1674→          onClick={() => setNavToast(null)}
+  1675→        >
+  1676→          <div className="koru-nav-toast-content">
+  1677→            <span className="material-symbols-outlined koru-nav-toast-icon">navigation</span>
+  1678→            <span className="koru-nav-toast-text">{navToast}</span>
+  1679→          </div>
+  1680→        </div>
+  1681→      )}
+  1682→    </div>,
+  1683→    document.body,
+  1684→  );
+  1685→}
+  1686→

@@ -1404,7 +1404,11 @@ export function KoruDetailScreen({
 
   return createPortal(
     <div className="koru-roadmap" role="dialog" aria-label={detail.title}>
-      <div className="koru-roadmap-screen">
+      {/* 🔴 KIMI audit: kc-* / xt-* — `.xt` (dark night theme) se añade
+          alongside `.koru-roadmap-screen` (phone frame). El CSS del audit
+          (cargado después en style.css) pinta el fondo gradient night y
+          border-radius:44px sobre el frame existente. */}
+      <div className="koru-roadmap-screen xt">
         <div className="koru-roadmap-blob-1" />
         <div className="koru-roadmap-blob-2" />
 
@@ -1432,15 +1436,25 @@ export function KoruDetailScreen({
           </button>
         </header>
 
-        <div className="koru-roadmap-header">
-          <div className="koru-detail-hero-icon">
+        {/* 🔴 KIMI audit: `.xt-hero` añade glow + back + fav slots sobre
+            el header existente (sin reestructurar el contenido). La animación
+            heroPop del CSS aplica al icono/título/subtítulo vía clases
+            xt-hicon/xt-title/xt-sub (no se añaden acá — solo xt-hero al
+            wrapper para heredar padding/overflow del audit). */}
+        <div className="koru-roadmap-header xt-hero">
+          <div className="koru-detail-hero-icon xt-hicon">
             <Mat>{headerIcon}</Mat>
           </div>
-          <h1 className="koru-roadmap-title">{detail.title}</h1>
-          {detail.subtitle && <p className="koru-roadmap-subtitle">{detail.subtitle}</p>}
+          <h1 className="koru-roadmap-title xt-title">{detail.title}</h1>
+          {detail.subtitle && <p className="koru-roadmap-subtitle xt-sub">{detail.subtitle}</p>}
         </div>
 
-        <div className="koru-roadmap-modules">
+        {/* 🔴 KIMI audit: `.xt-body` añade margin-top negativo + padding
+            sobre el stack de módulos, y `.mcard` añade el gradiente blanco→
+            lila + border-radius:22px sobre cada `.koru-magical-card`. Ambos
+            conviven con las clases Stitch existentes (cascade: xt/mcard
+            cargados después prevalecen para mismas props). */}
+        <div className="koru-roadmap-modules xt-body">
           {isEmpty ? (
             <div className="koru-unified-empty koru-detail-empty">
               <Mat>inbox</Mat>
@@ -1450,7 +1464,7 @@ export function KoruDetailScreen({
             sections.map((section, i) => (
               <div
                 key={i}
-                className="koru-magical-card"
+                className="koru-magical-card mcard"
                 style={{ ...moduleStyle(section.accent), "--stagger-i": i } as CSSProperties}
               >
                 <SectionHead section={section} />
@@ -1621,11 +1635,14 @@ export function KoruDetailScreen({
           <RecipeServingsScaler block={block} />
         )}
 
-        {/* 🔴 v2: Sticky footer — Save + PDF pinned al fondo con blur backdrop */}
-        <div className="koru-detail-actions-sticky">
+        {/* 🔴 v2: Sticky footer — Save + PDF pinned al fondo con blur backdrop.
+            🔴 KIMI audit: `.xt-actions` añade el gradiente dark backdrop sobre
+            el footer; `.xbtn.pri` / `.xbtn.sec` añaden gradiente pill styles
+            sobre los botones existentes (conviven con koru-dsec-action-*). */}
+        <div className="koru-detail-actions-sticky xt-actions">
           <button
             type="button"
-            className="koru-dsec-action-btn koru-dsec-action-save"
+            className="koru-dsec-action-btn koru-dsec-action-save xbtn pri"
             onClick={() => onSave?.(detail.title, detail.subtitle)}
           >
             <span className="material-symbols-outlined">bookmark_added</span>
@@ -1634,7 +1651,7 @@ export function KoruDetailScreen({
           {onExportPdf && (
             <button
               type="button"
-              className="koru-dsec-action-btn koru-dsec-action-pdf"
+              className="koru-dsec-action-btn koru-dsec-action-pdf xbtn sec"
               onClick={onExportPdf}
             >
               <span className="material-symbols-outlined">picture_as_pdf</span>

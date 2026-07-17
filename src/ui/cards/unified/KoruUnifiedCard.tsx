@@ -70,6 +70,7 @@ function CardRoot({
   handleClick,
   handleKeyDown,
   style,
+  className,
   children,
 }: {
   block: UiBlock;
@@ -79,14 +80,19 @@ function CardRoot({
   handleClick: (e: React.MouseEvent<HTMLElement>) => void;
   handleKeyDown: (e: React.KeyboardEvent) => void;
   style?: CSSProperties;
+  // 🔴 KIMI audit: clase adicional para que el DefaultLayout monte el
+  // molde `.kc` (gradient bg + sparkles + shadows) sin perder la
+  // compatibilidad con `.koru-plan-hero` (otros layouts no la pasan).
+  className?: string;
   children: ReactNode;
 }) {
   // overflow + position necesarios para que el ripple quede recortado
   // a los bordes redondeados de la card. Las variantes full-bleed
   // (spotlight/banner) añaden padding:0 vía `style`.
+  const base = "koru-plan-hero" + (className ? " " + className : "") + (isTappable ? " is-tappable" : "");
   return (
     <div
-      className={"koru-plan-hero" + (isTappable ? " is-tappable" : "")}
+      className={base}
       data-ui-block={block.type}
       role={isTappable ? "button" : undefined}
       tabIndex={isTappable ? 0 : undefined}
@@ -228,7 +234,7 @@ function KimiCtaButton({
   return (
     <button
       type="button"
-      className="koru-kimi-cta"
+      className="koru-kimi-cta kc-cta"
       onClick={(e) => {
         // Mantener el ripple + open del handler unificado de la card.
         // No stopPropagation: la card entera es el tap target y handleClick
@@ -237,7 +243,23 @@ function KimiCtaButton({
       }}
     >
       <span>{cta.label}</span>
-      <span className="material-symbols-outlined arr">arrow_forward</span>
+      {/* 🔴 KIMI audit: SVG arrow (.arr) — el CSS .kc-cta .arr anima
+          translateX en hover. Reemplaza el material-symbols arrow_forward
+          para coincidir con el spec del audit (SVG 15×15, stroke #fff). */}
+      <svg
+        className="arr"
+        width="15"
+        height="15"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#fff"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M5 12h14M13 6l6 6-6 6" />
+      </svg>
     </button>
   );
 }
@@ -272,7 +294,7 @@ function CardFoot({
   };
 
   return (
-    <div className="koru-card-foot">
+    <div className="koru-card-foot kc-foot">
       <div className="src">
         {firstSource ? (
           <>
@@ -286,7 +308,7 @@ function CardFoot({
       <div className="acts">
         <button
           type="button"
-          className="koru-icon-btn"
+          className="koru-icon-btn iconbtn"
           aria-label="Guardar"
           onClick={(e) => { e.stopPropagation(); dispatchAction("save"); }}
         >
@@ -294,7 +316,7 @@ function CardFoot({
         </button>
         <button
           type="button"
-          className="koru-icon-btn"
+          className="koru-icon-btn iconbtn"
           aria-label="Compartir"
           onClick={(e) => { e.stopPropagation(); dispatchAction("share"); }}
         >
@@ -302,7 +324,7 @@ function CardFoot({
         </button>
         <button
           type="button"
-          className="koru-icon-btn"
+          className="koru-icon-btn iconbtn"
           aria-label="Abrir"
           onClick={(e) => { e.stopPropagation(); dispatchAction("open"); }}
           disabled={!cta && !firstSource}
@@ -403,16 +425,35 @@ function truncate(s: string | undefined, max: number): string | undefined {
 
 function DefaultLayout(props: SharedProps) {
   const { block, hero, detail, cta, actions, empty, isTappable, open, setOpen, handleClick, handleKeyDown, hasMetricValues, displayTitle } = props;
+  const metrics = hero.metrics ?? [];
+  // 🔴 KIMI audit: si hay 2 métricas con valor, la grid usa la variante m2.
+  const metricsClass = hasMetricValues
+    ? `koru-unified-metrics kc-metrics${metrics.length === 2 ? " m2" : ""}`
+    : "koru-plan-hero-cats";
   return (
-    <CardRoot block={block} hero={hero} isTappable={isTappable} open={open} handleClick={handleClick} handleKeyDown={handleKeyDown}>
-      <div className="koru-plan-hero-top">
-        <div className="koru-plan-hero-copy">
-          <div className="koru-card-kicker" style={{ color: hero.accent.color }}>
+    <CardRoot block={block} hero={hero} isTappable={isTappable} open={open} handleClick={handleClick} handleKeyDown={handleKeyDown} className="kc">
+      {/* 🔴 KIMI audit: sparkles decorativos (top-right + bottom-left).
+          El CSS define la animación twinkle (si no existe en style.css,
+          los puntos quedan estáticos — pendiente de agregar keyframes). */}
+      <div className="kc-sparkle s1" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 2c.6 4.5 3.5 7.4 8 8-4.5.6-7.4 3.5-8 8-.6-4.5-3.5-7.4-8-8 4.5-.6 7.4-3.5 8-8z" />
+        </svg>
+      </div>
+      <div className="kc-sparkle s2" aria-hidden="true">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 2c.6 4.5 3.5 7.4 8 8-4.5.6-7.4 3.5-8 8-.6-4.5-3.5-7.4-8-8 4.5-.6 7.4-3.5 8-8z" />
+        </svg>
+      </div>
+
+      <div className="koru-plan-hero-top kc-top">
+        <div className="koru-plan-hero-copy kc-copy">
+          <div className="koru-card-kicker kc-kicker" style={{ color: hero.accent.color }}>
             <span className={"dot" + (hero.live ? " live" : "")} />
             {hero.kicker}
           </div>
-          <h2 className="koru-plan-hero-title">{displayTitle}</h2>
-          {hero.desc && <p className="koru-plan-hero-desc">{hero.desc}</p>}
+          <h3 className="koru-plan-hero-title kc-title">{displayTitle}</h3>
+          {hero.desc && <p className="koru-plan-hero-desc kc-desc">{hero.desc}</p>}
         </div>
 
         {hero.art ? (
@@ -421,32 +462,46 @@ function DefaultLayout(props: SharedProps) {
             src={hero.art}
             className={
               hero.artAspect === "poster"
-                ? "koru-plan-hero-art is-poster"
+                ? "koru-plan-hero-art is-poster kc-art"
                 : hero.artAspect === "cover"
-                ? "koru-plan-hero-art is-cover"
-                : "koru-plan-hero-art"
+                ? "koru-plan-hero-art is-cover kc-art"
+                : "koru-plan-hero-art kc-art"
             }
+            style={{ background: hero.accent.color }}
           />
         ) : (
-          <div className="koru-unified-art" style={{ background: hero.accent.soft, color: hero.accent.color }}>
+          // 🔴 KIMI audit: kc-art = bloque 88×88 con inner-shadows y valor
+          // grande abajo a la derecha (.val). Convive con koru-unified-art
+          // para no romper otras reglas que dependen de esa clase. El fondo
+          // sólido accent.color reemplaza el soft anterior (el CSS .kc-art
+          // fuerza color:#fff, ícono blanco sobre fondo de acento).
+          <div
+            className="koru-unified-art kc-art"
+            style={{ background: hero.accent.color, color: "#fff" }}
+          >
             <Mat className="koru-unified-art-icon">{hero.icon}</Mat>
-            {hero.artValue && <KoruCountUp value={hero.artValue} className="koru-unified-art-value" />}
+            {hero.artValue && (
+              <KoruCountUp value={hero.artValue} className="koru-unified-art-value val" />
+            )}
           </div>
         )}
       </div>
 
-      {hero.metrics && hero.metrics.length > 0 && (
-        <div className={hasMetricValues ? "koru-unified-metrics" : "koru-plan-hero-cats"}>
-          {hero.metrics.map((m, i) => {
+      {metrics.length > 0 && (
+        <div className={metricsClass}>
+          {metrics.map((m, i) => {
             const displayValue = truncate(m.value, 15);
             const displayLabel = truncate(m.label, 25);
             return hasMetricValues ? (
-              <div key={i} className="koru-unified-metric">
-                <span className="koru-metric-icon-square" style={{ background: m.color ?? hero.accent.color }}>
+              <div key={i} className="koru-unified-metric kc-m">
+                <span
+                  className="koru-metric-icon-square mi"
+                  style={{ background: m.color ?? hero.accent.color }}
+                >
                   <Mat>{m.icon}</Mat>
                 </span>
-                <span className="koru-unified-metric-label">{displayLabel}</span>
-                <span className="koru-unified-metric-value">{displayValue}</span>
+                <span className="koru-unified-metric-label ml">{displayLabel}</span>
+                <span className="koru-unified-metric-value mv">{displayValue}</span>
               </div>
             ) : (
               <div key={i} className="koru-plan-hero-cat">
