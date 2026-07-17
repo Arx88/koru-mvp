@@ -543,12 +543,15 @@ function clarifying(b: Of<"clarifying_question">): KoruPresentation {
 
 function weather(b: Of<"weather">): KoruPresentation {
   // 🔴 v2: icono dinámico según condición (antes siempre partly_cloudy_day)
+  // 🔴 KIMI v3: nombres alineados con KoruIcons (weather_rain, weather_snow, etc.)
+  //   para que el .kc-art renderice el SVG animado (rays/cloudmove/raindrops/bolt/snow).
   const condition = (b.condition ?? "").toLowerCase();
-  const weatherIcon = /lluvia|rain|storm|tormenta/.test(condition) ? "rainy"
+  const weatherIcon = /tormenta|thunder|storm/.test(condition) ? "thunderstorm"
+    : /lluvia|rain|drizzle/.test(condition) ? "rainy"
     : /nieve|snow|nev/.test(condition) ? "ac_unit"
+    : /niebla|fog|bruma|mist/.test(condition) ? "foggy"
     : /nublado|cloud|cubier/.test(condition) ? "cloud"
-    : /tormenta|thunder|storm/.test(condition) ? "thunderstorm"
-    : /niebla|fog|bruma/.test(condition) ? "foggy"
+    : /noche|night|moon|bedtime|despejado nocturno/.test(condition) ? "bedtime"
     : /sol|soleado|clear|despej/.test(condition) ? "wb_sunny"
     : "partly_cloudy_day";
 
@@ -657,10 +660,11 @@ function weather(b: Of<"weather">): KoruPresentation {
         }
       : undefined,
     cta: hasDetailContent ? { label: "Ver el radar hora por hora" } : undefined,
-    // 🔴 KIMI D1/D2: spotlight cuando la condición tiene icono propio (lluvia,
-    // sol, nieve, tormenta) — el hero respira con el acento del clima. Si la
-    // condición es genérica (partly_cloudy_day), el molde default basta.
-    layout: weatherIcon !== "partly_cloudy_day" ? "spotlight" : "default",
+    // 🔴 KIMI v3: layout default (molde .kc) con .kc-art SVG animado.
+    //   El spotlight se reservaba para imagen full-bleed, pero el SVG animado
+    //   del .kc-art (rays/cloudmove/raindrops/bolt/snow/moon) es más Kimi
+    //   que un gradient plano. Si hay art externo (imagen), cae al spotlight.
+    layout: b.now ? "default" : "default",
   };
 }
 
@@ -3967,35 +3971,35 @@ function memoryBlock(b: Of<"memory">): KoruPresentation {
 
   return {
     hero: {
-      kicker: "Memoria",
-      title: heroTitleFrom(b.title, items[0]?.title ?? "Contexto"),
-      desc: b.note ?? items[0]?.detail,
-      icon: "psychology",
-      accent: A.violet,
+      kicker: "Tu Jardín",
+      title: heroTitleFrom(b.title, items[0]?.title ?? "Memoria"),
+      desc: b.note ?? items[0]?.detail ?? "Lo que voy recordando, con tu permiso",
+      icon: "eco",
+      accent: A.emerald,
       artValue,
       metrics: items.length
         ? [
-            { icon: "memory", label: "Ítems", value: String(items.length), color: A.violet.color },
+            { icon: "memory", label: "Sembrados", value: String(items.length), color: A.emerald.color },
             ...(items[0]?.domain ? [{ icon: "label", label: "Dominio", value: items[0].domain, color: A.primary.color }] : []),
           ].slice(0, 3)
         : undefined,
     },
     detail: sections.length
       ? {
-          title: b.title || "Memoria",
+          title: b.title || "Tu Jardín",
           subtitle: items.length ? `${items.length} recuerdos activos` : undefined,
           sections,
         }
       : undefined,
-    cta: sections.length ? { label: "Ver memoria" } : undefined,
+    cta: sections.length ? { label: "Regar el jardín" } : undefined,
     // 🔴 KIMI AUDIT — vacío que invita: el jardín como metáfora.
     empty: items.length || b.note
       ? undefined
       : {
           icon: "spa",
           title: "Tu jardín está empezando",
-          desc: "Contame algo sobre vos y lo voy a recordar.",
-          cta: { label: "Contame algo", action: "prompt:recordá que " },
+          desc: "Contame algo sobre vos y lo voy a recordar. Cada cosa que confirmás, lo riego y crece.",
+          cta: { label: "Sembrar el primer recuerdo", action: "prompt:recordá que " },
         },
   };
 }

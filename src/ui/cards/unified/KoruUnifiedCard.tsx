@@ -9,6 +9,7 @@ import { useTapRipple } from "./useTapRipple";
 import { useKoru } from "../../KoruProvider";
 import { convertCurrency } from "../../../tools/travel/currencyConverter";
 import { KoruIcon, iconFromMaterial } from "./KoruIcons";
+import { LivePrice } from "./useLivePrice";
 
 // 🔴 Code-splitting: CollectionsScreen (~600 líneas, renderer markdown + portal)
 // se carga bajo demanda cuando el CTA del card abre la vista de colección.
@@ -420,6 +421,15 @@ function truncate(s: string | undefined, max: number): string | undefined {
   return s.length > max ? s.slice(0, max - 1).trimEnd() + "…" : s;
 }
 
+/** Bloques cuyo artValue es un precio latiente (cripto/trading/forex/data_ticker).
+ *  Para esos usamos LivePrice con flash verde/rojo cada 3s. */
+function isLivePriceBlock(block: UiBlock): boolean {
+  return block.type === "crypto_portfolio" ||
+    block.type === "market" ||
+    block.type === "forex" ||
+    block.type === "data_ticker";
+}
+
 // ============================================================================
 // Layout: DEFAULT (molde Stitch clásico — sin cambios respecto a v2)
 // ============================================================================
@@ -490,7 +500,11 @@ function DefaultLayout(props: SharedProps) {
               return <Mat className="koru-unified-art-icon">{hero.icon}</Mat>;
             })()}
             {hero.artValue && (
-              <KoruCountUp value={hero.artValue} className="koru-unified-art-value val" />
+              isLivePriceBlock(block) ? (
+                <LivePrice value={hero.artValue} className="koru-unified-art-value val" />
+              ) : (
+                <KoruCountUp value={hero.artValue} className="koru-unified-art-value val" />
+              )
             )}
           </div>
         )}
