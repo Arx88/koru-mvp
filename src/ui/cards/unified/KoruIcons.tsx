@@ -5,7 +5,8 @@
 //  bellswing, heartb, coinspin, windflow, sparkleA, leafsway, etc.).
 // ════════════════════════════════════════════════════════════════════════
 
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactElement, ReactNode } from "react";
+import React from "react";
 
 export type KoruIconName =
   | "weather_sunny"
@@ -41,7 +42,7 @@ interface IconProps {
   style?: CSSProperties;
 }
 
-const baseSvg = (size: number, children: React.ReactNode, viewBox = "0 0 24 24") => (
+const baseSvg = (size: number, children: ReactNode, viewBox = "0 0 24 24") => (
   <svg
     width={size}
     height={size}
@@ -369,7 +370,7 @@ const Default = ({ size = 40 }: IconProps) =>
     </g>,
   );
 
-const ICON_MAP: Record<KoruIconName, (p: IconProps) => JSX.Element> = {
+const ICON_MAP: Record<KoruIconName, (p: IconProps) => ReactElement> = {
   weather_sunny: WeatherSunny,
   weather_cloudy: WeatherCloudy,
   weather_rain: WeatherRain,

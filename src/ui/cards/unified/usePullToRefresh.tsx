@@ -21,19 +21,22 @@ export function usePullToRefresh({ threshold = 70, onRefresh, container }: PullT
   const startY = useRef<number | null>(null);
   const target = container ?? (typeof window !== "undefined" ? window : null);
 
-  const onTouchStart = useCallback((e: TouchEvent) => {
+  const onTouchStart = useCallback((e: Event) => {
+    const te = e as TouchEvent;
     // Solo activar si el scroll está en el top
     const scrollTop = container ? container.scrollTop : (window.scrollY || document.documentElement.scrollTop);
-    if (scrollTop <= 0 && !isRefreshing) {
-      startY.current = e.touches[0].clientY;
+    if (scrollTop <= 0 && !isRefreshing && te.touches[0]) {
+      startY.current = te.touches[0].clientY;
     } else {
       startY.current = null;
     }
   }, [container, isRefreshing]);
 
-  const onTouchMove = useCallback((e: TouchEvent) => {
+  const onTouchMove = useCallback((e: Event) => {
     if (startY.current == null || isRefreshing) return;
-    const delta = e.touches[0].clientY - startY.current;
+    const te = e as TouchEvent;
+    if (!te.touches[0]) return;
+    const delta = te.touches[0].clientY - startY.current;
     if (delta > 0) {
       // Resistencia elástica: el pull se siente más pesado al avanzar
       const elastic = Math.min(delta * 0.45, threshold * 1.6);
