@@ -4712,6 +4712,17 @@ function normalizeFinalPayload(
     result.commitments = [];
     result.records = [];
   }
+  // 🔴 KIMI v6 — Bug fix adicional: si el único uiBlock es un reminder con la
+  // pregunta del usuario como title, el commitment correspondiente es basura.
+  // Ej: "que recordas de mi" → reminder con title="que recordas de mi" + commitment.
+  if (result.uiBlocks.length === 1 && result.uiBlocks[0].type === "reminder") {
+    const reminderTitle = ((result.uiBlocks[0] as { title?: string }).title ?? "").toLowerCase();
+    const userInput = input.toLowerCase().trim();
+    if (reminderTitle.length > 5 && (userInput.includes(reminderTitle.slice(0, 15)) || reminderTitle.includes(userInput.slice(0, 15)))) {
+      result.commitments = [];
+      result.records = [];
+    }
+  }
   return result;
 }
 
