@@ -702,16 +702,16 @@ function weather(b: Of<"weather">): KoruPresentation {
     hero: {
       // 🔴 KIMI v5 — spec card 03: kicker uppercase "TU CLIMA · CITY".
       kicker: b.city ? `TU CLIMA · ${b.city.toUpperCase()}` : "TU CLIMA",
-      // 🔴 KIMI v5 — spec card 03: title es la condición ("Lluvia suave a la tarde").
-      title: heroTitleFrom(b.condition, b.now ? `${b.now} ahora` : "Clima"),
+      // 🔴 KIMI v5 — spec card 03: title es la condición ("Lluvia suave a la tarde")
+      //   seguida de la temp. Si backend no manda condition, usamos temp como title.
+      title: b.condition
+        ? heroTitleFrom(b.condition, b.now ?? "Clima")
+        : b.now ?? "Clima",
       desc: b.advice,
       icon: weatherIcon,
       accent: weatherAccent,
-      artValue: b.now,
+      artValue: undefined, // 🔴 KIMI v5: la temp va en el title, no en .val
       metrics: metrics.length ? metrics.slice(0, 3) : undefined,
-      // 🔴 v2: transparencia de frescura — cuándo se verificó el dato.
-      // 🔴 KIMI D6 (la noche nunca se apaga): la frescura es el "brillo" del
-      // dato; si no está, el hero se ve estático y desconfiable.
       verifiedAt: b.verifiedAt,
       freshnessLabel: b.freshnessLabel,
     },
