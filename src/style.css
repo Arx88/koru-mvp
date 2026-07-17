@@ -7995,13 +7995,13 @@ a.koru-dsec-source:hover {
 
 /* ═══ KIMI AUDIT — Complete app CSS (card, extended, elements, animations) ═══ */
 
-.kc{position:relative;width:100%;max-width:330px;margin:0 auto;border-radius:28px;padding:18px 18px 14px;color:var(--ink);
+.kc{position:relative;width:100%;margin:0 auto;border-radius:28px;padding:18px 18px 14px;color:var(--ink);
   background:linear-gradient(175deg,#ffffff 0%,#f8f5ff 55%,#f1ebfd 100%);
   border:1px solid rgba(131,99,249,.14);
   box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 -14px 30px rgba(131,99,249,.06) inset,
-    0 18px 40px rgba(10,6,30,.45),0 4px 14px rgba(10,6,30,.3),0 0 0 6px rgba(12,9,34,.06);
-  overflow:hidden;animation:kcIn .7s var(--ease-spring) both;cursor:pointer;transition:transform .35s var(--ease-spring),box-shadow .35s}
-.kc:hover{transform:translateY(-4px) scale(1.012);box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 -14px 30px rgba(131,99,249,.07) inset,0 26px 54px rgba(10,6,30,.55),0 6px 18px rgba(10,6,30,.34),0 0 26px rgba(131,99,249,.24)}
+    0 8px 24px rgba(18,10,50,0.10),0 2px 8px rgba(18,10,50,0.06);
+  overflow:hidden;animation:kcIn .7s var(--ease-spring) backwards;cursor:pointer;transition:transform .35s var(--ease-spring),box-shadow .35s}
+.kc:hover{transform:translateY(-4px) scale(1.012);box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 -14px 30px rgba(131,99,249,.07) inset,0 12px 32px rgba(131,99,249,0.20),0 4px 12px rgba(18,10,50,0.08)}
 .kc::before{content:"";position:absolute;top:0;left:8%;right:8%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.95),transparent)}
 @keyframes kcIn{from{opacity:0;transform:translateY(20px) scale(.96)}to{opacity:1;transform:none}}
 .kc-sparkle{position:absolute;pointer-events:none;color:#d9c9ff}
@@ -8019,6 +8019,7 @@ a.koru-dsec-source:hover {
   box-shadow:inset 0 2px 0 rgba(255,255,255,.35),inset 0 -10px 18px rgba(0,0,0,.14),0 8px 18px rgba(10,6,30,.25)}
 .kc-art .val{position:absolute;bottom:7px;right:9px;font:800 13px var(--sans);color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.4)}
 .kc-art svg{width:40px;height:40px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.25))}
+.kc-art .material-symbols-outlined{font-size:40px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.25))}
 .kc-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
 .kc-metrics.m2{grid-template-columns:1fr 1fr}
 .kc-m{background:rgba(255,255,255,.72);border:1px solid rgba(131,99,249,.1);border-radius:16px;padding:9px 10px 8px;display:flex;flex-direction:column;gap:4px;min-width:0;
@@ -8026,6 +8027,7 @@ a.koru-dsec-source:hover {
 .kc:hover .kc-m{transform:translateY(-1px)}
 .kc-m .mi{width:24px;height:24px;border-radius:8px;display:grid;place-items:center;color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.35)}
 .kc-m .mi svg{width:14px;height:14px}
+.kc-m .mi .material-symbols-outlined{font-size:14px}
 .kc-m .ml{font:700 8.5px var(--sans);letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kc-m .mv{font:800 13.5px var(--sans);color:var(--ink);letter-spacing:-.01em;white-space:nowrap}
 .kc-m .mv small{font-weight:700;font-size:10px;color:var(--ink-soft)}
@@ -8035,10 +8037,11 @@ a.koru-dsec-source:hover {
 .kc-cta{position:relative;overflow:hidden;margin-top:14px;width:100%;border:none;cursor:pointer;border-radius:999px;padding:12px 18px;
   display:flex;align-items:center;justify-content:center;gap:8px;color:#fff;font:800 13px var(--sans);letter-spacing:.02em;
   background:linear-gradient(120deg,var(--purple) 0%,#6a48e6 55%,var(--purple-d) 120%);
-  box-shadow:0 8px 20px rgba(131,99,249,.4),inset 0 1px 0 rgba(255,255,255,.35);transition:transform .3s var(--ease-spring),box-shadow .3s}
-.kc-cta:hover{transform:scale(1.02);box-shadow:0 12px 26px rgba(131,99,249,.55),inset 0 1px 0 rgba(255,255,255,.4)}
+  box-shadow:0 6px 16px rgba(131,99,249,0.32),inset 0 1px 0 rgba(255,255,255,0.35);transition:transform .3s var(--ease-spring),box-shadow .3s}
+.kc-cta:hover{transform:scale(1.02);box-shadow:0 8px 20px rgba(131,99,249,0.42),inset 0 1px 0 rgba(255,255,255,0.4)}
 .kc-cta:active{transform:scale(.97)}
 .kc-cta .arr{transition:transform .3s var(--ease-spring)}
+.kc-cta .material-symbols-outlined.arr{font-size:18px}
 .kc-cta:hover .arr{transform:translateX(5px)}
 .kc-cta::after{content:"";position:absolute;top:0;left:-70%;width:45%;height:100%;transform:skewX(-22deg);
   background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);animation:sheen 4.2s ease-in-out infinite}
@@ -8116,10 +8119,9 @@ svg .draw{stroke-dasharray:60;stroke-dashoffset:60;animation:draw 1.6s var(--eas
 @keyframes ringIn{to{stroke-dashoffset:var(--ro,40)}}
 
 /* ——— extendido (pantalla completa dentro del phone) ——— */
-.xt{position:absolute;inset:0;z-index:8;display:flex;flex-direction:column;border-radius:44px;overflow:hidden;
-  background:linear-gradient(180deg,#231b50 0%,#17123a 30%,#0f0b28 100%);animation:xtIn .55s var(--ease-out) both}
+.xt{background:linear-gradient(180deg,#231b50 0%,#17123a 30%,#0f0b28 100%);animation:xtIn .55s var(--ease-out) backwards}
 @keyframes xtIn{from{opacity:0;transform:translateY(46px)}to{opacity:1;transform:none}}
-.xt-hero{position:relative;flex:none;padding:38px 20px 64px;overflow:hidden}
+.xt-hero{position:relative;flex:none;padding:20px 20px 48px;overflow:hidden}
 .xt-hero .glow{position:absolute;width:260px;height:260px;border-radius:50%;filter:blur(50px);opacity:.5;top:-70px;left:50%;transform:translateX(-50%)}
 .xt-hero .back{position:absolute;top:16px;left:16px;z-index:5;width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.25);
   background:rgba(255,255,255,.12);backdrop-filter:blur(6px);color:#fff;display:grid;place-items:center;cursor:pointer;transition:.25s}
@@ -8132,9 +8134,9 @@ svg .draw{stroke-dasharray:60;stroke-dashoffset:60;animation:draw 1.6s var(--eas
 @keyframes heroPop{from{opacity:0;transform:scale(.6) translateY(14px)}to{opacity:1;transform:none}}
 .xt-title{position:relative;text-align:center;font-family:var(--serif);font-weight:800;font-size:23px;color:#fff;letter-spacing:-.01em;animation:heroPop .7s var(--ease-spring) both .18s}
 .xt-sub{position:relative;text-align:center;font-size:11.5px;color:#cfc4f5;margin-top:5px;letter-spacing:.05em;animation:heroPop .7s var(--ease-spring) both .26s}
-.xt-body{flex:1;position:relative;margin-top:-44px;padding:0 14px 12px;overflow:hidden;display:flex;flex-direction:column;gap:10px}
+.xt-body{flex:1;position:relative;margin-top:-24px;padding:0 14px 12px;overflow:hidden;display:flex;flex-direction:column;gap:10px}
 .mcard{position:relative;background:linear-gradient(170deg,#ffffff,#f6f2fe);border-radius:22px;padding:14px 15px;color:var(--ink);
-  border:1px solid rgba(131,99,249,.12);box-shadow:0 12px 26px rgba(6,3,20,.4);animation:mcIn .6s var(--ease-out) both}
+  border:1px solid rgba(131,99,249,.12);box-shadow:0 8px 24px rgba(18,10,50,0.12);animation:mcIn .6s var(--ease-out) backwards}
 .mcard:nth-child(2){animation-delay:.08s}.mcard:nth-child(3){animation-delay:.16s}.mcard:nth-child(4){animation-delay:.24s}.mcard:nth-child(5){animation-delay:.3s}
 @keyframes mcIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
 .mcard .mh{display:flex;align-items:center;gap:10px;margin-bottom:9px}
