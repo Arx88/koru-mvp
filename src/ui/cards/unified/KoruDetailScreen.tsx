@@ -117,7 +117,7 @@ function moduleStyle(accent: Accent): CSSProperties {
  * - live_match / tennis_match: esmeralda
  * - crypto_portfolio / market / forex / data_ticker: amber (miel)
  * - shopping_list: amber
- * - alarm: rose
+ * - alarm: violet (spec card 13 dominio VIOLETA #8363f9)
  * - reminder: violet
  * - memory: emerald
  * - restaurant_synthesis / recipe: amber
@@ -137,7 +137,8 @@ function heroGlowColor(block: UiBlock): string {
   if (t === "live_match" || t === "tennis_match") return "#2f8f6d";
   if (t === "crypto_portfolio" || t === "market" || t === "forex" || t === "data_ticker") return "#f59e0b";
   if (t === "shopping_list") return "#f59e0b";
-  if (t === "alarm") return "#ef4444";
+  // 🔴 KIMI v4 — spec card 13 alarmas dominio VIOLETA (#8363f9), no rose.
+  if (t === "alarm") return "#8363f9";
   if (t === "reminder") return "#8363f9";
   if (t === "memory") return "#46c293";
   if (t === "restaurant_synthesis" || t === "recipe") return "#f59e0b";
@@ -167,7 +168,8 @@ function heroIconBg(block: UiBlock): string {
   if (t === "live_match" || t === "tennis_match") return "linear-gradient(150deg,#46c293,#2f8f6d 60%,#257a5c)";
   if (t === "crypto_portfolio" || t === "market" || t === "forex" || t === "data_ticker") return "linear-gradient(150deg,#f6bd6d,#f59e0b 65%,#d97706)";
   if (t === "shopping_list") return "linear-gradient(150deg,#f6bd6d,#f59e0b)";
-  if (t === "alarm") return "linear-gradient(150deg,#ff7d6b,#ef4444)";
+  // 🔴 KIMI v4 — spec card 13 alarmas dominio VIOLETA, gradiente c9bdf5→8363f9→523a9e.
+  if (t === "alarm") return "linear-gradient(150deg,#c9bdf5,#8363f9 65%,#523a9e)";
   if (t === "reminder") return "linear-gradient(150deg,#8363f9,#523a9e)";
   if (t === "memory") return "linear-gradient(150deg,#7ed491,#2f8f6d)";
   if (t === "restaurant_synthesis") return "linear-gradient(150deg,#f6bd6d,#f59e0b)";
@@ -198,7 +200,8 @@ function heroGradientBg(block: UiBlock): string {
   if (t === "live_match" || t === "tennis_match") return "linear-gradient(170deg,#1e4a3a,#143a2a 55%,#0a2a1a)";
   if (t === "crypto_portfolio" || t === "market" || t === "forex" || t === "data_ticker") return "linear-gradient(170deg,#5e3a1e,#4a2a14 55%,#2a1808)";
   if (t === "shopping_list") return "linear-gradient(170deg,#5e3a1e,#4a2a14 55%,#2a1808)";
-  if (t === "alarm") return "linear-gradient(170deg,#5e1e2a,#4a1420 55%,#2a0810)";
+  // 🔴 KIMI v4 — spec card 13 alarmas: dark violet (#2c1f5e→#1c1445→#120d31).
+  if (t === "alarm") return "linear-gradient(170deg,#2c1f5e,#1c1445 60%,#120d31)";
   if (t === "reminder") return "linear-gradient(170deg,#2c1f5e,#1c1445 60%,#120d31)";
   if (t === "memory") return "linear-gradient(170deg,#1e4a3a,#143a2a 55%,#0a2a1a)";
   if (t === "restaurant_synthesis") return "linear-gradient(170deg,#5e3a1e,#4a2a14 55%,#2a1808)";
