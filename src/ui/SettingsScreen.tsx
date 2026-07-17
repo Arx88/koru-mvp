@@ -1762,6 +1762,40 @@ export function SettingsScreen(props: SettingsScreenProps) {
                       <strong>Navegación por teclado:</strong> Tab / Shift+Tab para moverte entre
                       controles · Enter o Espacio para activar · Esc para cerrar dialogs.
                     </div>
+
+                    {/* 🔴 KIMI — Dev/reference: galería de iconos animados.
+                        Botón que navega a ?icons=1 (App.tsx intercepta el query
+                        param y renderiza <IconGallery/> en lugar del flujo normal). */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const url = new URL(window.location.href);
+                        url.searchParams.set("icons", "1");
+                        window.location.href = url.toString();
+                      }}
+                      style={{
+                        marginTop: 12,
+                        width: "100%",
+                        padding: "10px 14px",
+                        borderRadius: 12,
+                        border: "1px solid rgba(131,99,249,0.3)",
+                        background: "rgba(131,99,249,0.08)",
+                        color: "#523a9e",
+                        fontSize: 13,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 8,
+                      }}
+                    >
+                      <span className="material-symbols-outlined" aria-hidden="true" style={{ fontSize: 18 }}>
+                        animation
+                      </span>
+                      Ver galería de iconos
+                    </button>
                   </>
                 )}
               </SectionCard>

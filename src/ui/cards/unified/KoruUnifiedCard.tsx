@@ -206,6 +206,84 @@ function CtaHint({ cta, detail, accentColor, style }: { cta?: Cta; detail?: Deta
   );
 }
 
+// ============================================================================
+// 🔴 KIMI AUDIT — "Vacío que invita".
+// El jardín como metáfora: icono en cuadrado de acento, título rotundo,
+// descripción con un ejemplo concreto y un primer paso obvio (CTA).
+// Si la presentación solo trae `reason` (legacy), cae al molde anterior.
+// ============================================================================
+function EmptyState({
+  empty,
+  block,
+  accentColor,
+  accentSoft,
+}: {
+  empty: NonNullable<Empty>;
+  block: UiBlock;
+  accentColor: string;
+  accentSoft: string;
+}) {
+  // Legacy: solo `reason` → molde viejo (icon + línea).
+  if (!empty.title && !empty.desc && empty.reason) {
+    return (
+      <div className="koru-unified-empty">
+        <Mat>{empty.icon || "info"}</Mat>
+        <span>{empty.reason}</span>
+      </div>
+    );
+  }
+
+  const iconColor = empty.accent?.color ?? accentColor;
+  const iconBg = empty.accent?.soft ?? accentSoft;
+  const title = empty.title ?? "No hay nada acá todavía";
+  const desc = empty.desc ?? "Pedime algo y lo busco";
+
+  const handleCta = () => {
+    if ("vibrate" in navigator) navigator.vibrate(15);
+    window.dispatchEvent(
+      new CustomEvent("koru-empty-cta", {
+        detail: {
+          action: empty.cta?.action ?? "prompt",
+          blockType: block.type,
+          blockData: block,
+        },
+      }),
+    );
+  };
+
+  return (
+    <div className="koru-unified-empty-v2">
+      <div className="koru-unified-empty-v2-row">
+        <div
+          className="koru-unified-empty-v2-icon"
+          style={{ background: iconBg, color: iconColor }}
+          aria-hidden="true"
+        >
+          <Mat>{empty.icon || "eco"}</Mat>
+        </div>
+        <div style={{ flex: "1 1 auto", minWidth: 0 }}>
+          <p className="koru-unified-empty-v2-title">{title}</p>
+          <p className="koru-unified-empty-v2-desc">{desc}</p>
+        </div>
+      </div>
+      {empty.cta && (
+        <button
+          type="button"
+          className="koru-unified-empty-v2-cta"
+          style={{ background: iconColor }}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleCta();
+          }}
+        >
+          <Mat>{empty.icon === "spa" ? "eco" : "arrow_forward"}</Mat>
+          <span>{empty.cta.label}</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
 function truncate(s: string | undefined, max: number): string | undefined {
   if (!s) return s;
   return s.length > max ? s.slice(0, max - 1).trimEnd() + "…" : s;
@@ -272,10 +350,7 @@ function DefaultLayout(props: SharedProps) {
       )}
 
       {empty && !hasMetricValues && (
-        <div className="koru-unified-empty">
-          <Mat>{empty.icon || "info"}</Mat>
-          <span>{empty.reason}</span>
-        </div>
+        <EmptyState empty={empty} block={block} accentColor={hero.accent.color} accentSoft={hero.accent.soft} />
       )}
 
       <CtaHint cta={cta} detail={detail} accentColor={hero.accent.color} />

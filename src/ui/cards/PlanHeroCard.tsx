@@ -86,7 +86,7 @@ export function PlanHeroCard({ block }: { block: PlanBlock }) {
       </div>
 
       <button type="button" className="koru-plan-hero-cta" onClick={() => setOpen(true)}>
-        Ver plan completo
+        Ver el plan paso a paso
         <Mat>arrow_forward</Mat>
       </button>
 

@@ -10,6 +10,7 @@ import { KoruBackground, activityToBgState, type KoruBgState } from "./KoruBackg
 import { MemoryToast } from "./MemoryToast";
 import { MorningBriefCard } from "./MorningBriefCard";
 import { CreateScreen } from "./create/CreateScreen";
+import { TypingDots } from "./TypingDots";
 
 // TalkOverlay = réplica Stitch "Chat con Koru": paisaje nocturno ilustrado a
 // pantalla completa, conversación anclada abajo con burbujas claras (usuario
@@ -1163,7 +1164,10 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
               ),
             )}
 
-            {/* 🔴 Typing indicator — tres puntos animados cuando Koru está procesando */}
+            {/* 🔴 Typing indicator — tres puntos animados cuando Koru está procesando.
+                Kimi audit: reemplazamos los puntos sueltos por <TypingDots> con la
+                voz mágica "Lo estoy oliendo…" para que el usuario sienta que Koru
+                está presente, no esperando en frío. */}
             {processing && !isListening && !workingDeliverable && (
               <div className="koru-message is-koru">
                 <div className="koru-row">
@@ -1172,9 +1176,7 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
                   </div>
                   <div className="koru-bubble ai-bubble">
                     <div className="koru-typing-indicator">
-                      <span className="koru-typing-dot" />
-                      <span className="koru-typing-dot" />
-                      <span className="koru-typing-dot" />
+                      <TypingDots label="Lo estoy oliendo…" />
                     </div>
                   </div>
                 </div>

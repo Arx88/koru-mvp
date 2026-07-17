@@ -167,7 +167,7 @@ describe("Koru MVP UI", () => {
       expect(planCard).toBeInTheDocument();
       expect(planCard).toHaveTextContent(/de hoy|plan de hoy/i);
     }, { timeout: 3000 });
-    expect(chat).toHaveTextContent(/ver plan completo/i);
+    expect(chat).toHaveTextContent(/ver el plan paso a paso/i);
   }, 20000);
 
   it("renders enhancement reply when user types 'estoy quemado'", async () => {

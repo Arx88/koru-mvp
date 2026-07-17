@@ -6,6 +6,7 @@ import { HistoryScreen } from "./HistoryScreen";
 import { TalkOverlay } from "./TalkOverlay";
 import { HomeScreen } from "./HomeScreen";
 import { SettingsScreen } from "./SettingsScreen";
+import { IconGallery } from "./IconGallery";
 
 type Screen = "chat" | "hoy" | "memoria" | "permisos" | "historial" | "configuracion";
 
@@ -130,6 +131,12 @@ function KoruApp() {
 }
 
 export function App() {
+  // 🔴 KIMI — Hidden route: ?icons=1 → galería de iconos animados (dev/ref).
+  // Se evalúa en cada render para reaccionar a cambios de URL sin reload.
+  const showIcons =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("icons") === "1";
+  if (showIcons) return <IconGallery />;
   return (
     <KoruProvider>
       <KoruApp />

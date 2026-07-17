@@ -58,6 +58,11 @@
   --koru-meta: #7566a0;        /* meta text, 4.6:1 AA — reemplaza stone */
   --koru-amber-text: #b45309;  /* amber text-safe, 4.58:1 AA */
   --koru-rose-text: #c81e1e;   /* rose text-safe, 5.24:1 AA */
+
+  /* Motion budget (Kimi) */
+  --motion-tap: 150ms;
+  --motion-entrance: 500ms;
+  --motion-ambient: 4s;
 }
 
 @theme inline {
@@ -6599,6 +6604,74 @@ a.koru-dsec-source:hover {
   animation: koru-shimmer-bar 1.5s linear infinite;
   border-radius: 4px;
 }
+/* 🔴 KIMI AUDIT — skeleton card: shimmer lines que reproducen la anatomía
+   del molde Stitch unificado (kicker + título + desc + arte + métricas 3-up). */
+.koru-shimmer-line {
+  background: linear-gradient(90deg, #e4ddf7, #f6f3fe, #e4ddf7);
+  background-size: 200% 100%;
+  animation: koru-shimmer-bar 1.5s linear infinite;
+  border-radius: 4px;
+  height: 12px;
+}
+
+/* 🔴 KIMI AUDIT — empty state enriquecido (jardín como metáfora). */
+.koru-unified-empty-v2 {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 18px;
+  margin-top: 12px;
+  border-radius: 14px;
+  border: 1.5px dashed rgba(131, 99, 249, 0.25);
+  background: rgba(131, 99, 249, 0.04);
+}
+.koru-unified-empty-v2-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.koru-unified-empty-v2-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+.koru-unified-empty-v2-icon .material-symbols-outlined {
+  font-size: 26px;
+}
+.koru-unified-empty-v2-title {
+  margin: 0;
+  color: #382b8c;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.koru-unified-empty-v2-desc {
+  margin: 2px 0 0;
+  color: #6b5f8c;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.koru-unified-empty-v2-cta {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.koru-unified-empty-v2-cta:active { transform: scale(0.96); }
+.koru-unified-empty-v2-cta .material-symbols-outlined { font-size: 16px; }
 
 /* Success pop — bookmark fill, save done */
 @keyframes koru-success-pop {
@@ -7526,3 +7599,223 @@ a.koru-dsec-source:hover {
 }
 
 /* 🔴 FIN Kimi Tier-S microdetalles (cards 21-30) */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   KIMI — Animated icon system (.koru-icon-anim)
+   Wrapper class + 5 animation modifiers (draw / pulse / rotate / bounce / wiggle).
+   Respeta prefers-reduced-motion: el icono queda estático perfectamente dibujado.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Draw-on: el icono se "dibuja" de izquierda a derecha con clip-path.
+   Inspirado en lucide-animated (trazo vivo). Solo one-shot. */
+@keyframes koru-icon-draw {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+
+/* Pulse: escala 1 → 1.1 → 1. Para iconos que "laten" (partido en vivo). */
+@keyframes koru-pulse-dot {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.1); }
+}
+
+/* Wrapper de todo icono animado. inline-flex para alinear con texto y
+   respetar el box del glyph; transition para suavizar hover-state. */
+.koru-icon-anim {
+  display: inline-flex;
+  transition: transform var(--t-fast, 180ms) var(--ease-soft, cubic-bezier(.45, .05, .15, 1));
+}
+
+.koru-icon-anim.is-drawing {
+  animation: koru-icon-draw 0.6s var(--ease-out, cubic-bezier(.22, 1, .36, 1)) forwards;
+}
+
+.koru-icon-anim.is-pulsing {
+  animation: koru-pulse-dot 2s ease-in-out infinite;
+}
+
+.koru-icon-anim.is-rotating {
+  animation: koru-icon-rotate 4s linear infinite;
+}
+
+.koru-icon-anim.is-bouncing {
+  animation: koru-icon-bounce 2s ease-in-out infinite;
+}
+
+.koru-icon-anim.is-wiggling {
+  animation: koru-shake 0.5s ease-in-out;
+}
+
+/* Respeta prefers-reduced-motion: el icono queda estático perfectamente
+   dibujado. Es la regla #4 del audit ("con reduced-motion, queda el
+   icono estático perfectamente dibujado"). */
+@media (prefers-reduced-motion: reduce) {
+  .koru-icon-anim.is-drawing,
+  .koru-icon-anim.is-pulsing,
+  .koru-icon-anim.is-rotating,
+  .koru-icon-anim.is-bouncing,
+  .koru-icon-anim.is-wiggling {
+    animation: none !important;
+    clip-path: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   KIMI — Icon gallery modal styling (dev/reference tool, ?icons=1)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.koru-icon-gallery {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: linear-gradient(180deg, #1a1430 0%, #0f0a1f 100%);
+  color: #f6f3fe;
+  font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.koru-icon-gallery-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.koru-icon-gallery-title {
+  font-family: "Bricolage Grotesque", Georgia, serif;
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+  color: #f6f3fe;
+}
+
+.koru-icon-gallery-subtitle {
+  font-size: 11px;
+  color: #a99be0;
+  margin: 2px 0 0;
+}
+
+.koru-icon-gallery-search {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(131, 99, 249, 0.35);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f6f3fe;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+}
+.koru-icon-gallery-search:focus {
+  border-color: rgba(131, 99, 249, 0.7);
+  background: rgba(131, 99, 249, 0.1);
+}
+
+.koru-icon-gallery-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  width: 36px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f6f3fe;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+.koru-icon-gallery-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: scale(1.05);
+}
+
+.koru-icon-gallery-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px 40px;
+}
+
+.koru-icon-gallery-row {
+  margin-bottom: 24px;
+}
+
+.koru-icon-gallery-row-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #a99be0;
+  margin: 0 0 10px;
+}
+
+.koru-icon-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 12px;
+}
+
+.koru-icon-gallery-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 8px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: #f6f3fe;
+  cursor: pointer;
+  transition: all 0.18s var(--ease-soft, cubic-bezier(.45, .05, .15, 1));
+}
+.koru-icon-gallery-tile:hover {
+  background: rgba(131, 99, 249, 0.12);
+  border-color: rgba(131, 99, 249, 0.35);
+  transform: translateY(-2px);
+}
+
+.koru-icon-gallery-tile-icon {
+  color: #c9bdf5;
+  font-size: 32px;
+  line-height: 1;
+}
+
+.koru-icon-gallery-tile-name {
+  font-size: 11px;
+  color: #a99be0;
+  font-family: ui-monospace, monospace;
+  text-align: center;
+  word-break: break-all;
+}
+
+.koru-icon-gallery-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: #a99be0;
+  font-size: 13px;
+}
+
+/* ═══ KIMI — Card entrance choreography ═══ */
+@keyframes koru-card-body-in { 0% { opacity: 0; transform: translateY(20px) scale(0.96) } 100% { opacity: 1; transform: translateY(0) scale(1) } }
+@keyframes koru-kicker-in { 0% { opacity: 0; transform: translateY(-8px) } 100% { opacity: 0.7; transform: translateY(0) } }
+@keyframes koru-metric-cascade { 0% { opacity: 0; transform: translateY(8px) } 100% { opacity: 1; transform: translateY(0) } }
+@keyframes koru-cta-glow-in { 0% { opacity: 0; box-shadow: 0 0 0 0 var(--accent-glow, rgba(131,99,249,0)) } 100% { opacity: 0.85; box-shadow: 0 0 12px 2px var(--accent-glow, rgba(131,99,249,0.15)) } }
+
+.koru-plan-hero { animation: koru-card-body-in 0.7s var(--ease-spring, cubic-bezier(.34,1.56,.64,1)) backwards; }
+.koru-plan-hero-kicker { animation: koru-kicker-in 0.4s var(--ease-soft, cubic-bezier(.45,.05,.15,1)) backwards; animation-delay: 60ms; }
+.koru-unified-metric:nth-child(1) { animation: koru-metric-cascade 0.4s var(--ease-soft, cubic-bezier(.45,.05,.15,1)) backwards; animation-delay: 120ms; }
+.koru-unified-metric:nth-child(2) { animation: koru-metric-cascade 0.4s var(--ease-soft, cubic-bezier(.45,.05,.15,1)) backwards; animation-delay: 160ms; }
+.koru-unified-metric:nth-child(3) { animation: koru-metric-cascade 0.4s var(--ease-soft, cubic-bezier(.45,.05,.15,1)) backwards; animation-delay: 200ms; }
+.koru-plan-hero-cta-hint { animation: koru-cta-glow-in 0.5s var(--ease-soft, cubic-bezier(.45,.05,.15,1)) backwards; animation-delay: 180ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .koru-plan-hero, .koru-plan-hero-kicker, .koru-unified-metric, .koru-plan-hero-cta-hint {
+    animation: none !important;
+  }
+}

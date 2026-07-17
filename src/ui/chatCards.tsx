@@ -23,6 +23,8 @@ import type { AssistantArtifact, AssistantPlanItem, AssistantSource, UiBlock } f
 import type { KoruTurnItem } from "./KoruProvider";
 import { PlanHeroCard } from "./cards/PlanHeroCard";
 import { KoruUnifiedCard } from "./cards/unified/KoruUnifiedCard";
+import { CardSkeleton } from "./cards/unified/CardSkeleton";
+import { CardError } from "./cards/unified/CardError";
 
 export type CardActionHandlers = {
   onReview: (id: string, approve: boolean) => void;
@@ -595,17 +597,25 @@ function UiBlockCardA({ item }: { item: KoruTurnItem }) {
     return <PlanHeroCard block={block} />;
   }
 
-  // web_nav en estado "loading" no es una card: ese momento lo cubre el
-  // WorkingPanel / hint de actividad del overlay. Solo materializamos la
-  // respuesta cuando ya hay resultado (complete/report).
-  if (block.type === "web_nav" && block.status === "loading") {
-    return null;
+  // 🔴 KIMI AUDIT — "Error honesto": si la tool marcó __forceHonestReply (la
+  // única forma en que el backend nos dice "no inventes datos"), o si algún
+  // block llega con status === "error", rendereamos el CardError en lugar de
+  // la card real. Sin datos falsos, con reintento y promesa de aviso.
+  const blockAny = block as UiBlock & { __forceHonestReply?: boolean; status?: string };
+  if (blockAny.__forceHonestReply === true || (blockAny as { status?: string }).status === "error") {
+    return <CardError />;
   }
 
-  // El entregable en curso tampoco: su progreso REAL lo muestra el panel
-  // "Trabajando en tu informe" del overlay. La hoja aparece cuando está listo.
+  // 🔴 KIMI AUDIT — "Nunca un spinner genérico": mientras la card carga
+  // (web_nav loading / deliverable working), rendereamos un skeleton con la
+  // MISMA anatomía que el molde Stitch. El usuario "ve" la card que va a
+  // llegar, sin ambigüedad ni spinner huérfano.
+  if (block.type === "web_nav" && block.status === "loading") {
+    return <CardSkeleton />;
+  }
+
   if (block.type === "deliverable" && block.status === "working") {
-    return null;
+    return <CardSkeleton />;
   }
 
   // TODO lo demás (los otros 44 tipos) se renderiza con el molde unificado

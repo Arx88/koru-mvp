@@ -147,8 +147,27 @@ export type KoruPresentation = {
     kind?: "primary" | "secondary" | "danger";
     action: string; // identificador que el renderer interpreta (ej: "complete", "snooze", "dismiss")
   }>;
-  /** 🔴 v2: empty state — cuando la card no tiene datos suficientes */
-  empty?: { reason: string; icon?: string };
+  /**
+   * 🔴 v2: empty state — cuando la card no tiene datos suficientes.
+   * 🔴 KIMI AUDIT: "Vacío que invita — el jardín como metáfora, un ejemplo
+   * concreto y un primer paso obvio". `title` + `desc` + `cta` reemplazan el
+   * `reason` único. Se mantiene `reason` por retrocompatibilidad: si solo
+   * viene `reason`, el renderer cae al molde anterior (icon + línea).
+   */
+  empty?: {
+    /** Línea legacy (sigue siendo usada por el fallback del renderer). */
+    reason?: string;
+    icon?: string;
+    /** Título corto y rotundo (ej: "Todavía no sembraste nada"). */
+    title?: string;
+    /** Descripción con un ejemplo concreto de primer paso. */
+    desc?: string;
+    /** Acento opcional para el cuadrado del ícono (default = accent del hero). */
+    accent?: Accent;
+    /** CTA: primer paso obvio que el usuario puede dar. `action` se emite
+     *  como CustomEvent `koru-empty-cta` para que el handler lo interprete. */
+    cta?: { label: string; action: string };
+  };
   /**
    * 🔴 v3: layout alternativo de la card. Default = molde Stitch clásico
    * (kicker + título + arte + métricas + CTA). Las variantes rescriben la
@@ -487,7 +506,7 @@ function deliverable(b: Of<"deliverable">): KoruPresentation {
       subtitle: `${kicker}${b.sources?.length ? ` · ${b.sources.length} fuentes` : ""}`,
       sections,
     },
-    cta: sections.length ? { label: `Ver ${kicker.replace(/^tu\s+/i, "").toLowerCase()} completo` } : undefined,
+    cta: sections.length ? { label: `Leer el ${kicker.replace(/^tu\s+/i, "").toLowerCase()} completo` } : undefined,
   };
 }
 
@@ -634,7 +653,7 @@ function weather(b: Of<"weather">): KoruPresentation {
           ],
         }
       : undefined,
-    cta: hasDetailContent ? { label: "Ver detalle" } : undefined,
+    cta: hasDetailContent ? { label: "Ver el radar hora por hora" } : undefined,
     // 🔴 KIMI D1/D2: spotlight cuando la condición tiene icono propio (lluvia,
     // sol, nieve, tormenta) — el hero respira con el acento del clima. Si la
     // condición es genérica (partly_cloudy_day), el molde default basta.
@@ -920,6 +939,16 @@ function shoppingList(b: Of<"shopping_list">): KoruPresentation {
         }
       : undefined,
     cta: items.length ? { label: "Ver lista" } : undefined,
+    // 🔴 KIMI AUDIT — vacío que invita: jardín como metáfora, ejemplo
+    // concreto y primer paso obvio.
+    empty: items.length
+      ? undefined
+      : {
+          icon: "shopping_basket",
+          title: "Tu lista está vacía",
+          desc: "Anotá el primer ítem: 'agregá leche a la lista'",
+          cta: { label: "Anotar primer ítem", action: "prompt:agregá leche a la lista" },
+        },
   };
 }
 
@@ -937,7 +966,12 @@ function comparison(b: Of<"comparison">): KoruPresentation {
         icon: "balance",
         accent: A.pink,
       },
-      empty: { reason: "No tengo opciones para comparar todavía. Pedime algo específico.", icon: "search_off" },
+      empty: {
+        icon: "search_off",
+        title: "Todavía no sembraste nada",
+        desc: "Cuando tengas dos opciones, las comparo. Probá: 'compará iPhone vs Samsung'",
+        cta: { label: "Empezar comparación", action: "prompt:compará X vs Y" },
+      },
     };
   }
   // 🔴 v2: métricas enriquecidas — opciones + fuentes + mejor opción
@@ -1092,7 +1126,7 @@ function comparison(b: Of<"comparison">): KoruPresentation {
       subtitle: (Array.isArray(b.criteria) ? b.criteria.join(" · ") : b.criteria) ?? b.recommendation,
       sections,
     },
-    cta: { label: "Ver comparación" },
+    cta: { label: "Ver el duelo completo" },
     // 🔴 v3: gallery (carrusel) cuando hay múltiples opciones que comparar.
     layout: items.length > 1 ? "gallery" : "default",
   };
@@ -1125,7 +1159,7 @@ function research(b: Of<"research_sources">): KoruPresentation {
         ...(b.sources?.length ? [sourcesSection(b.sources)] : []),
       ],
     },
-    cta: { label: isReport ? "Ver informe completo" : "Ver resultados" },
+    cta: { label: isReport ? "Leer el informe completo" : "Ver resultados" },
   };
 }
 
@@ -1231,7 +1265,12 @@ function money(b: Of<"money_summary">): KoruPresentation {
         icon: "payments",
         accent: A.emerald,
       },
-      empty: { reason: "Todavía no veo movimientos. Anotá un gasto y armo el mapa.", icon: "account_balance_wallet" },
+      empty: {
+        icon: "account_balance_wallet",
+        title: "Todavía no veo movimientos",
+        desc: "Anotá un gasto y armo el mapa. Probá: 'gasté 12€ en café'",
+        cta: { label: "Anotar un gasto", action: "prompt:gasté 12€ en café" },
+      },
     };
   }
 
@@ -1253,7 +1292,7 @@ function money(b: Of<"money_summary">): KoruPresentation {
           sections,
         }
       : undefined,
-    cta: sections.length > 1 ? { label: "Ver detalle" } : undefined,
+    cta: sections.length > 1 ? { label: "Ver de qué se compuso tu mes" } : undefined,
   };
 }
 
@@ -1639,7 +1678,12 @@ function webNav(b: Of<"web_nav">): KoruPresentation {
         icon: isReport ? "menu_book" : "travel_explore",
         accent: A.sky,
       },
-      empty: { reason: "Todavía no tengo resultados. Probá reformular la búsqueda.", icon: "search_off" },
+      empty: {
+        icon: "search_off",
+        title: "No encontré nada",
+        desc: "Probá con otra búsqueda. Si querés, reformulo con sinónimos o amplío el rango.",
+        cta: { label: "Reformular búsqueda", action: "prompt:buscá de otra forma" },
+      },
     };
   }
 
@@ -1657,7 +1701,7 @@ function webNav(b: Of<"web_nav">): KoruPresentation {
         : undefined,
     },
     detail: sections.length ? { title: b.title || (isReport ? "Informe" : "Búsqueda"), subtitle: b.query, sections } : undefined,
-    cta: sections.length ? { label: isReport ? "Ver informe completo" : "Ver resultados" } : undefined,
+    cta: sections.length ? { label: isReport ? "Leer el informe completo" : "Ver resultados" } : undefined,
   };
 }
 
@@ -1881,7 +1925,8 @@ function restaurant(b: Of<"restaurant_synthesis">): KoruPresentation {
   // 🔴 v2: desc del hero más rico (mood + status)
   const heroDesc = b.synthesis ?? b.note ?? (b.mood ? `Para: ${b.mood}` : undefined);
   // 🔴 v2: kicker con status si es partial/failed
-  const statusLabel = b.status === "partial" ? " · Resultados parciales" : b.status === "failed" ? " · Sin datos" : "";
+  // 🔴 KIMI AUDIT — voz honesta: "Algo se trancó" en lugar de "Sin datos".
+  const statusLabel = b.status === "partial" ? " · Resultados parciales" : b.status === "failed" ? " · Algo se trancó" : "";
 
   // 🔴 v3: "Reservar" action button si el top match tiene reserveUrl
   //        (Google Maps URL del place). El handler en KoruProvider recibe
@@ -1902,7 +1947,7 @@ function restaurant(b: Of<"restaurant_synthesis">): KoruPresentation {
       metrics: matches.length ? [{ icon: "storefront", label: "Opciones", value: String(matches.length), color: A.amber.color }] : undefined,
     },
     detail: sections.length ? { title: b.title || "Restaurantes", sections } : undefined,
-    cta: sections.length ? { label: "Ver recomendación" } : undefined,
+    cta: sections.length ? { label: "Ver dónde comer hoy" } : undefined,
     // 🔴 v3: acción inline de reserva si hay reserveUrl en el top match.
     actions: reserveAction,
     // 🔴 v3: spotlight si el top match tiene foto (Google Places o imageUrl);
@@ -1977,7 +2022,12 @@ function morningBrief(b: Of<"morning_brief">): KoruPresentation {
         icon: "wb_sunny",
         accent: A.amber,
       },
-      empty: { reason: "Todavía no armé tu día. Pedime el resumen cuando arranques.", icon: "wb_twilight" },
+      empty: {
+        icon: "wb_twilight",
+        title: "Todavía no armé tu día",
+        desc: "Pedime el resumen cuando arranques. Probá: 'buenos días' o 'resumen del día'",
+        cta: { label: "Armar mi día", action: "prompt:buenos días" },
+      },
       layout: "banner",
     };
   }
@@ -2273,7 +2323,7 @@ function liveMatch(b: Of<"live_match">): KoruPresentation {
       metrics: metrics.length > 0 ? metrics : undefined,
     },
     detail,
-    cta: hasRichData || b.stats?.length ? { label: hasRichData ? "Ver partido completo" : "Ver estadísticas" } : undefined,
+    cta: hasRichData || b.stats?.length ? { label: hasRichData ? "Ver la ficha del partido" : "Ver estadísticas" } : undefined,
   };
 }
 
@@ -2540,7 +2590,12 @@ function market(b: Of<"market">): KoruPresentation {
         icon: "trending_up",
         accent: A.emerald,
       },
-      empty: { reason: "Sin datos de mercado ahora. Conectá tu broker o probá de nuevo.", icon: "show_chart" },
+      empty: {
+        icon: "show_chart",
+        title: "Se nubló el dato",
+        desc: "Sin datos de mercado ahora. Conectá tu broker o volvé a pedírmelo en un rato.",
+        cta: { label: "Reintentar", action: "retry" },
+      },
     };
   }
 
@@ -2790,7 +2845,7 @@ function travelPlanner(b: Of<"travel_planner">): KoruPresentation {
           ],
         }
       : undefined,
-    cta: steps.length ? { label: b.actionLabel || "Ver itinerario" } : undefined,
+    cta: steps.length ? { label: b.actionLabel || "Ver el viaje día por día" } : undefined,
   };
 }
 
@@ -3795,7 +3850,7 @@ function decisionSupport(b: Of<"decision_support">): KoruPresentation {
           sections,
         }
       : undefined,
-    cta: sections.length ? { label: "Ver análisis" } : undefined,
+    cta: sections.length ? { label: "Ver el análisis completo" } : undefined,
   };
 }
 
@@ -3929,6 +3984,15 @@ function memoryBlock(b: Of<"memory">): KoruPresentation {
         }
       : undefined,
     cta: sections.length ? { label: "Ver memoria" } : undefined,
+    // 🔴 KIMI AUDIT — vacío que invita: el jardín como metáfora.
+    empty: items.length || b.note
+      ? undefined
+      : {
+          icon: "spa",
+          title: "Tu jardín está empezando",
+          desc: "Contame algo sobre vos y lo voy a recordar.",
+          cta: { label: "Contame algo", action: "prompt:recordá que " },
+        },
   };
 }
 
@@ -4054,7 +4118,12 @@ function cryptoPortfolio(b: Of<"crypto_portfolio">): KoruPresentation {
         icon: "currency_bitcoin",
         accent: A.amber,
       },
-      empty: { reason: "Se nubló el dato. Conectá tu exchange o volvé a pedirme el portafolio en un rato.", icon: "cloud_off" },
+      empty: {
+        icon: "cloud_off",
+        title: "Se nubló el dato",
+        desc: "Conectá tu exchange o volvé a pedirme el portafolio en un rato. No te muestro números viejos como si fueran de ahora.",
+        cta: { label: "Reintentar", action: "retry" },
+      },
     };
   }
 
@@ -4084,7 +4153,7 @@ function cryptoPortfolio(b: Of<"crypto_portfolio">): KoruPresentation {
           sections,
         }
       : undefined,
-    cta: items.length ? { label: "Ver portafolio" } : undefined,
+    cta: items.length ? { label: "Ver tus tenencias y análisis" } : undefined,
   };
 }
 
@@ -4771,7 +4840,7 @@ function planFallback(b: Of<"plan">): KoruPresentation {
           sections,
         }
       : undefined,
-    cta: items.length ? { label: "Ver plan completo" } : undefined,
+    cta: items.length ? { label: "Ver el plan paso a paso" } : undefined,
   };
 }
 
@@ -4923,7 +4992,7 @@ function recipeBlock(b: Of<"recipe">): KoruPresentation {
           sections,
         }
       : undefined,
-    cta: { label: b.videoUrl ? "Ver video y receta completa" : "Ver receta completa" },
+    cta: { label: b.videoUrl ? "Ver el video y cocinar paso a paso" : "Cocinar paso a paso" },
     // 🔴 v3: spotlight full-bleed cuando hay imagen del plato.
     layout: b.image ? "spotlight" : "default",
   };
@@ -5081,7 +5150,7 @@ function movieReviewBlock(b: Of<"movie_review">): KoruPresentation {
           sections,
         }
       : undefined,
-    cta: { label: b.trailerUrl ? "Ver trailer y ficha completa" : "Ver ficha completa" },
+    cta: { label: "Ver trailer y ficha" },
     // 🔴 v3: spotlight full-bleed cuando hay poster de la película.
     layout: b.poster ? "spotlight" : "default",
   };
@@ -5167,7 +5236,7 @@ function bookReviewBlock(b: Of<"book_review">): KoruPresentation {
           sections,
         }
       : undefined,
-    cta: { label: "Ver ficha completa" },
+    cta: { label: "Leer sinopsis y comprar" },
     // 🔴 v3: spotlight full-bleed cuando hay tapa del libro.
     layout: b.cover ? "spotlight" : "default",
   };
@@ -5787,6 +5856,6 @@ function exercisePlan(b: Of<"exercise_plan">): KoruPresentation {
       subtitle: `${totalSessions} sesiones · ${plan.status}`,
       sections,
     },
-    cta: { label: "Ver plan completo" },
+    cta: { label: "Ver el plan sesión por sesión" },
   };
 }
