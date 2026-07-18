@@ -4617,6 +4617,17 @@ function normalizeFinalPayload(
   extractedRaw?: Record<string, unknown>,
   prebuiltToolBlocks?: UiBlock[],
 ): KoruBackendTurnResponse {
+  // 🔴 KORU 3.0 — DEBUG: ver qué llega a normalizeFinalPayload
+  logger.info("normalizeFinalPayload", "ENTRY", {
+    toolExecutionsCount: toolExecutions.length,
+    toolExecutionsResults: toolExecutions.map(e => ({
+      name: e.name,
+      resultType: (e.result as any)?.type,
+      hasCommitments: Array.isArray((e.result as any)?.commitments),
+      commitmentsCount: (e.result as any)?.commitments?.length ?? 0,
+      hasDataCommitments: Array.isArray((e.result as any)?.data?.commitments),
+    })),
+  });
   const modelBlocks = asArray(raw.uiBlocks).map(normalizeUiBlock).filter((block): block is UiBlock => Boolean(block));
   const mascotState = cleanText(raw.mascotState) || "idle";
   const validatedMascotState = VALID_MASCOT_STATES.includes(mascotState as MascotState)
