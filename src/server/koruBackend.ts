@@ -4860,19 +4860,6 @@ function normalizeFinalPayload(
     result.commitments = [];
     result.records = [];
   }
-  // 🔴 KORU 3.0 — DEBUG: ver qué se retorna
-  logger.info("normalizeFinalPayload", "RETURN", {
-    hasUiBlocks,
-    hasToolData,
-    resultCommitments: result.commitments.length,
-    resultRecords: result.records.length,
-    toolResultsCount: toolResults.length,
-    toolResultsDataCommitments: toolResults.map(tr => ({
-      tool: tr.tool,
-      hasData: !!(tr as any).data,
-      dataCommitments: (tr as any)?.data?.commitments?.length ?? 0,
-    })),
-  });
   // 🔴 KORU 3.0 — FALLBACK FINAL: si por alguna razón los commitments no se
   // extrajeron arriba, extraerlos AHORA de toolResults.data antes de retornar.
   // Esto es una safety net para garantizar que NUNCA se pierdan commitments.
@@ -4881,11 +4868,6 @@ function normalizeFinalPayload(
       if (tr?.data?.commitments && Array.isArray(tr.data.commitments)) {
         result.commitments.push(...tr.data.commitments);
       }
-    }
-    if (result.commitments.length > 0) {
-      logger.info("normalizeFinalPayload", "FALLBACK extracted commitments", {
-        count: result.commitments.length,
-      });
     }
   }
   if (result.records.length === 0) {
