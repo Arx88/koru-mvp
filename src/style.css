@@ -257,11 +257,21 @@
   position: relative;
   display: flex;
   width: 100%;
-  max-width: 430px;
+  /* 🔴 KORU 3.0 — Responsive fix: en mobile ocupar toda la pantalla.
+     Antes: max-width: 430px en todos los viewports → franja blanca a los
+     costados en teléfonos con viewport > 430px (iPhone Pro Max, landscape,
+     tablets pequeñas). Ahora: 100% en viewport <= 480px, 430px en desktop. */
+  max-width: 100%;
   height: 100dvh;
   flex-direction: column;
   overflow: hidden;
   background: #14102a; /* fallback sólido mientras cargan los assets */
+}
+
+@media (min-width: 481px) {
+  .koru-chat-screen {
+    max-width: 430px;
+  }
 }
 
 /* ===== Sistema de Fondos Dinámicos por Estado ===== */
@@ -2483,7 +2493,9 @@ button.koru-stitch-row {
 .koru-roadmap-screen {
   position: relative;
   width: 100%;
-  max-width: 430px;
+  /* 🔴 KORU 3.0 — Responsive fix: mismo patrón que .koru-chat-screen.
+     En mobile ocupar toda la pantalla; en desktop limitar a 430px. */
+  max-width: 100%;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
@@ -2492,6 +2504,12 @@ button.koru-stitch-row {
   scrollbar-width: none;
   background: linear-gradient(180deg, #f0dbff 0%, #f8f9ff 100%);
   color: #0b1c30;
+}
+
+@media (min-width: 481px) {
+  .koru-roadmap-screen {
+    max-width: 430px;
+  }
 }
 
 .koru-roadmap-screen::-webkit-scrollbar {
@@ -4929,10 +4947,17 @@ a.koru-dsec-source:hover {
 
 .koru-create-screen {
   width: 100%;
-  max-width: 430px;
+  /* 🔴 KORU 3.0 — Responsive fix: mismo patrón que .koru-chat-screen. */
+  max-width: 100%;
   height: 100dvh;
   overflow-y: auto;
   padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+}
+
+@media (min-width: 481px) {
+  .koru-create-screen {
+    max-width: 430px;
+  }
 }
 
 .koru-create-header {
@@ -5191,6 +5216,230 @@ a.koru-dsec-source:hover {
   border-color: #8363f9;
 }
 .koru-create-field textarea { resize: vertical; min-height: 80px; }
+
+/* 🔴 KORU 3.0 — FolderPicker: combobox moderno para elegir/crear carpeta. */
+.koru-folder-picker {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+}
+.koru-folder-picker-display {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(131, 99, 249, 0.2);
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  user-select: none;
+}
+.koru-folder-picker-display:hover {
+  border-color: rgba(131, 99, 249, 0.5);
+}
+.koru-folder-picker-display:active {
+  border-color: #8363f9;
+  box-shadow: 0 0 0 3px rgba(131, 99, 249, 0.12);
+}
+.koru-folder-picker-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ede4ff, #d4c2ff);
+  color: #523a9e;
+  flex-shrink: 0;
+}
+.koru-folder-picker-icon .material-symbols-outlined {
+  font-size: 18px;
+  font-variation-settings: 'FILL' 1, 'wght' 500;
+}
+.koru-folder-picker-value {
+  flex: 1;
+  font-size: 15px;
+  color: #1a2a20;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.koru-folder-picker-value.is-empty {
+  color: #9ca3af;
+}
+.koru-folder-picker-chevron {
+  display: inline-flex;
+  align-items: center;
+  color: #6b7280;
+  transition: transform 0.2s;
+}
+.koru-folder-picker-chevron.is-open {
+  transform: rotate(180deg);
+}
+.koru-folder-picker-chevron .material-symbols-outlined {
+  font-size: 22px;
+}
+
+.koru-folder-picker-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(18, 10, 50, 0.18), 0 2px 8px rgba(18, 10, 50, 0.08);
+  border: 1px solid rgba(131, 99, 249, 0.15);
+  z-index: 50;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 360px;
+}
+.koru-folder-picker-search-row {
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+  border-bottom: 1px solid rgba(131, 99, 249, 0.1);
+  background: linear-gradient(180deg, #faf8ff, #ffffff);
+}
+.koru-folder-picker-search-input {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(131, 99, 249, 0.2);
+  background: white;
+  font-size: 14px;
+  font-family: inherit;
+  color: #1a2a20;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.koru-folder-picker-search-input:focus {
+  border-color: #8363f9;
+  box-shadow: 0 0 0 3px rgba(131, 99, 249, 0.12);
+}
+.koru-folder-picker-create-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #8363f9, #523a9e);
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.15s;
+  flex-shrink: 0;
+}
+.koru-folder-picker-create-btn:hover {
+  box-shadow: 0 4px 12px rgba(131, 99, 249, 0.3);
+}
+.koru-folder-picker-create-btn:active {
+  transform: scale(0.96);
+}
+.koru-folder-picker-create-btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.koru-folder-picker-list {
+  overflow-y: auto;
+  padding: 6px;
+  flex: 1;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(131, 99, 249, 0.3) transparent;
+}
+.koru-folder-picker-list::-webkit-scrollbar { width: 6px; }
+.koru-folder-picker-list::-webkit-scrollbar-thumb {
+  background: rgba(131, 99, 249, 0.3);
+  border-radius: 3px;
+}
+
+.koru-folder-picker-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.1s;
+  text-align: left;
+  font-family: inherit;
+  color: #1a2a20;
+  font-size: 14px;
+}
+.koru-folder-picker-option:hover {
+  background: rgba(131, 99, 249, 0.08);
+}
+.koru-folder-picker-option.is-selected {
+  background: rgba(131, 99, 249, 0.12);
+  font-weight: 600;
+}
+.koru-folder-picker-option-icon {
+  display: inline-flex;
+  align-items: center;
+  color: #8363f9;
+  flex-shrink: 0;
+}
+.koru-folder-picker-option-icon .material-symbols-outlined {
+  font-size: 18px;
+  font-variation-settings: 'FILL' 1, 'wght' 400;
+}
+.koru-folder-picker-option-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.koru-folder-picker-check {
+  display: inline-flex;
+  align-items: center;
+  color: #523a9e;
+}
+.koru-folder-picker-check .material-symbols-outlined {
+  font-size: 18px;
+  font-variation-settings: 'wght' 700;
+}
+.koru-folder-picker-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 16px;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 13px;
+}
+.koru-folder-picker-empty .material-symbols-outlined {
+  font-size: 32px;
+  opacity: 0.5;
+}
+.koru-folder-picker-more {
+  padding: 8px 12px;
+  text-align: center;
+  font-size: 12px;
+  color: #6b7280;
+  background: rgba(131, 99, 249, 0.04);
+}
+.koru-folder-picker-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-top: 1px solid rgba(131, 99, 249, 0.1);
+  background: #faf8ff;
+  font-size: 12px;
+  color: #6b7280;
+}
+.koru-folder-picker-hint .material-symbols-outlined {
+  font-size: 14px;
+  color: #8363f9;
+}
 
 .koru-create-field-row { flex-direction: row; gap: 12px; }
 .koru-create-field-row > div { flex: 1; display: flex; flex-direction: column; gap: 6px; }

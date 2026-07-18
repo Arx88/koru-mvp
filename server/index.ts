@@ -46,6 +46,30 @@ function loadEnv() {
 }
 loadEnv();
 
+// 🔴 KORU 3.0 — Crear .z-ai-config dinámicamente desde env vars.
+// El SDK z-ai-web-dev-sdk (usado para ASR/HABLAR y generación de imágenes)
+// requiere un archivo .z-ai-config en cwd/home/etc. En Render no existe,
+// así que lo creamos al arrancar desde ZAI_API_KEY y ZAI_BASE_URL env vars.
+// Sin esto, el botón HABLAR tira error 500 "Configuration file not found".
+function ensureZaiConfig() {
+  const apiKey = process.env.ZAI_API_KEY?.trim() || process.env.Z_AI_API_KEY?.trim();
+  if (!apiKey) {
+    console.warn("[zai] ZAI_API_KEY no configurada — ASR (HABLAR) e image generation no funcionarán.");
+    return;
+  }
+  const baseUrl = process.env.ZAI_BASE_URL?.trim() || "https://api.z.ai/api/paas/v4";
+  const config = JSON.stringify({ apiKey, baseUrl });
+  const configPaths = [
+    join(PROJECT_ROOT, ".z-ai-config"),
+    join(process.env.HOME || process.env.HOMEPATH || "/tmp", ".z-ai-config"),
+  ];
+  for (const p of configPaths) {
+    try { writeFileSync(p, config, { mode: 0o600 }); } catch { /* ignore */ }
+  }
+  console.log("[zai] .z-ai-config escrita desde ZAI_API_KEY");
+}
+ensureZaiConfig();
+
 // Build ProviderConfig from env
 function buildConfig() {
   const env = process.env;
@@ -251,7 +275,14 @@ export async function koruRequestHandler(req: http.IncomingMessage, res: http.Se
       sendJson(res, 200, { text: response.text ?? "" });
     } catch (err: any) {
       console.error("[koru-asr]", err?.message);
-      sendJson(res, 500, { error: err?.message ?? "Error de ASR" });
+      // 🔴 KORU 3.0 — Mensaje de error más útil para el usuario.
+      const msg = err?.message ?? "Error de ASR";
+      const userFriendly = msg.includes("Configuration file not found")
+        ? "El servicio de voz no está configurado en el servidor. Contactá al admin."
+        : msg.includes("fetch failed") || msg.includes("ECONNREFUSED")
+          ? "No pude conectar con el servicio de transcripción. Probá de nuevo."
+          : `No pude transcribir el audio: ${msg}`;
+      sendJson(res, 500, { error: userFriendly });
     }
     return;
   }

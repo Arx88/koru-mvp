@@ -189,6 +189,156 @@ const MEMORIA_KINDS: { value: MemoriaKind; label: string }[] = [
   { value: "task", label: "Tarea" },
 ];
 
+// 🔴 KORU 3.0 — FolderPicker: combobox moderno que reemplaza el input de texto
+// plano para elegir/crear carpeta. Muestra:
+//  - Lista de carpetas existentes (extraídas de state.records.collection)
+//  - Agrupadas por jerarquía (split por "/")
+//  - Input para escribir carpeta nueva o subcarpeta
+//  - Botón "Crear nueva" que pre-llena el input
+//  - Búsqueda fuzzy mientras se escribe
+function FolderPicker({
+  value,
+  onChange,
+  placeholder,
+  existingCollections,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  existingCollections: string[];
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Cerrar dropdown al hacer click fuera
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  // Filtrar colecciones por búsqueda
+  const filtered = useMemo(() => {
+    if (!search.trim()) return existingCollections;
+    const q = search.toLowerCase();
+    return existingCollections.filter(c => c.toLowerCase().includes(q));
+  }, [existingCollections, search]);
+
+  // Sincronizar search con value cuando se abre
+  useEffect(() => {
+    if (open) {
+      setSearch(value);
+      setTimeout(() => inputRef.current?.focus(), 50);
+    }
+  }, [open, value]);
+
+  const handleSelect = (c: string) => {
+    onChange(c);
+    setOpen(false);
+  };
+
+  const handleCreateNew = () => {
+    onChange(search.trim() || placeholder || "");
+    setOpen(false);
+  };
+
+  return (
+    <div className="koru-folder-picker" ref={containerRef}>
+      <div className="koru-folder-picker-display" onClick={() => setOpen(!open)}>
+        <span className="koru-folder-picker-icon">
+          <Mat>folder</Mat>
+        </span>
+        <span className={`koru-folder-picker-value ${!value ? "is-empty" : ""}`}>
+          {value || placeholder || "Seleccionar carpeta..."}
+        </span>
+        <span className={`koru-folder-picker-chevron ${open ? "is-open" : ""}`}>
+          <Mat>expand_more</Mat>
+        </span>
+      </div>
+
+      {open && (
+        <div className="koru-folder-picker-dropdown">
+          <div className="koru-folder-picker-search-row">
+            <input
+              ref={inputRef}
+              type="text"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                onChange(e.target.value);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleCreateNew();
+                } else if (e.key === "Escape") {
+                  setOpen(false);
+                }
+              }}
+              placeholder="Buscar o escribir nueva carpeta..."
+              className="koru-folder-picker-search-input"
+            />
+            <button
+              type="button"
+              className="koru-folder-picker-create-btn"
+              onClick={handleCreateNew}
+              title="Crear carpeta nueva"
+            >
+              <Mat>add</Mat>
+              <span>Nueva</span>
+            </button>
+          </div>
+
+          <div className="koru-folder-picker-list">
+            {filtered.length === 0 ? (
+              <div className="koru-folder-picker-empty">
+                <Mat>folder_off</Mat>
+                <span>No hay carpetas todavía. Escribí arriba para crear la primera.</span>
+              </div>
+            ) : (
+              filtered.slice(0, 30).map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  className={`koru-folder-picker-option ${c === value ? "is-selected" : ""}`}
+                  onClick={() => handleSelect(c)}
+                >
+                  <span className="koru-folder-picker-option-icon">
+                    <Mat>folder</Mat>
+                  </span>
+                  <span className="koru-folder-picker-option-label">{c}</span>
+                  {c === value && (
+                    <span className="koru-folder-picker-check">
+                      <Mat>check</Mat>
+                    </span>
+                  )}
+                </button>
+              ))
+            )}
+            {filtered.length > 30 && (
+              <div className="koru-folder-picker-more">
+                +{filtered.length - 30} carpetas más — refiná la búsqueda
+              </div>
+            )}
+          </div>
+
+          <div className="koru-folder-picker-hint">
+            <Mat>info</Mat>
+            <span>Usá / para subcarpetas (ej: Trabajo/Proyectos)</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) {
   const {
     createRecord,
@@ -273,6 +423,20 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
 
   // Smart defaults
   const [lastUsedCollection, setLastUsedCollection] = useState<string | null>(null);
+
+  // 🔴 KORU 3.0 — Colecciones existentes para FolderPicker.
+  // Extraídas de state.records.collection, deduped y sorted alfabéticamente.
+  // Incluye subcarpetas (paths split por "/" se muestran completos).
+  const existingCollections = useMemo(() => {
+    const records = state?.records ?? [];
+    const set = new Set<string>();
+    for (const r of records) {
+      if (r.collection && r.collection.trim()) {
+        set.add(r.collection.trim());
+      }
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "es"));
+  }, [state?.records]);
 
   // 🔴 Attachments — paperclip en el header abre el picker; los archivos se
   // guardan como Blob en IndexedDB (attachments.ts) y se referencian desde
@@ -1833,24 +1997,21 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
               )}
             </div>
 
-            {/* CARPETA — con smart defaults hint.
-                🔴 Folders: el campo acepta paths slash-delimitados
-                (ej: "Trabajo/ACME/Ideas"). CollectionsScreen los interpreta
-                como jerarquía navegable. */}
+            {/* CARPETA — FolderPicker moderno (combobox con búsqueda + crear nueva).
+                🔴 KORU 3.0 — Reemplaza el input de texto plano por un combobox
+                que muestra carpetas existentes y permite crear nuevas con
+                subcarpetas (paths slash-delimitados). */}
             <label className="koru-create-field">
               <span className="koru-create-field-label">Carpeta</span>
               {lastUsedCollection && (
                 <span className="koru-create-last-used">Último usado: {lastUsedCollection}</span>
               )}
-              <input
-                type="text"
+              <FolderPicker
                 value={collection}
-                onChange={(e) => setCollection(e.target.value)}
+                onChange={setCollection}
                 placeholder={currentTpl?.collection}
+                existingCollections={existingCollections}
               />
-              <span className="koru-create-field-hint">
-                Podés usar / para crear subcarpetas (ej: Trabajo/ACME/Ideas)
-              </span>
             </label>
 
             {/* 🔴 ATTACHMENTS — chips con thumbnail (imagen) o ícono (otros).

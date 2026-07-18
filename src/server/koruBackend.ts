@@ -4359,9 +4359,15 @@ function replyFromBlocks(blocks: UiBlock[], input: string): string {
     return best ? `Te deje una comparativa inicial. Miraria primero ${best.title}${best.vendor ? ` en ${best.vendor}` : ""}.` : "Te deje una comparativa inicial con evidencia visible.";
   }
   if (first.type === "research_sources") {
+    // 🔴 KORU 3.0 — Reply más útil: mencionar cuántas fuentes y el tema.
+    // Antes: "Traje fuentes para revisar sin inventar conclusiones" — sonaba
+    // a que no hice el trabajo. Ahora: confirmar qué se buscó y cuántas fuentes.
+    const topic = first.title && first.title !== "Noticias importantes" && first.title !== "Busqueda"
+      ? first.title
+      : (input.length > 60 ? input.slice(0, 60) + "…" : input);
     return first.sources.length
-      ? `Traje fuentes para revisar sin inventar conclusiones: ${first.sources[0].domain}.`
-      : first.summary;
+      ? `Encontré ${first.sources.length} fuentes sobre ${topic}. Te dejé el detalle en la tarjeta.`
+      : (first.summary || `No encontré fuentes útiles sobre ${topic} en este momento.`);
   }
   if (first.type === "activity_group") {
     const firstSection = first.sections[0];
@@ -6962,12 +6968,40 @@ export async function runKoruBackendTurn(
     });
     messages.push({ role: "assistant", content: "", tool_calls: [syntheticToolCall] });
     const delivered = await executeProviderToolCalls([syntheticToolCall], messages, request, toolExecutions, config);
-    if (delivered) {
-      const response = await finalizePayload(request, config, delivered, toolExecutions, extractorTimeout);
-      return { ...response, provider, model, fallbackReason: (fallbackReason ? fallbackReason + " + " : "") + "simulated-tool" };
+    // 🔴 KORU 3.0 — SIEMPRE hacer la segunda llamada LLM para síntesis.
+    // Antes: si `delivered=true`, retornabamos directo con finalizePayload
+    // (sin LLM synthesis). Eso hacía que web_search devolviera SOLO fuentes
+    // con un reply genérico ("Traje fuentes para revisar sin inventar
+    // conclusiones") en vez de un informe real redactado sobre lo que se pidió.
+    // Ahora: SIEMPRE hacemos la 2da llamada para que el LLM redacte un summary
+    // basado en los tool results, EXCEPTO si la tool es una acción local pura
+    // (save_personal_item, reminder_set, alarm_set, etc.) que ya tiene reply.
+    const isLocalActionTool = ["save_personal_item", "save_memory", "reminder_set",
+      "alarm_set", "countdown", "plan_day", "query_personal_context",
+      "calendar_add"].includes(simulatedCall.name);
+
+    if (delivered && isLocalActionTool) {
+      // Acciones locales: no necesitan síntesis LLM, ya tienen reply en el tool result.
+      const response = await finalizePayload(request, config, { reply: "", mascotState: "happy", uiBlocks: [] } as Record<string, unknown>, toolExecutions, extractorTimeout);
+      return { ...response, provider, model, fallbackReason: (fallbackReason ? fallbackReason + " + " : "") + "simulated-tool-local" };
     }
+
+    // Para web_search y otras tools que devuelven datos, hacer síntesis LLM.
     // Paso 2: segunda llamada (sin tools) para que el LLM síntetice la respuesta final.
-    messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }." });
+    // 🔴 KORU 3.0 — Prompt mejorado: pedir EXPLÍCITAMENTE un summary redactado
+    // con datos concretos de las fuentes, NO solo "traje fuentes".
+    messages.push({ role: "user", content: [
+      "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }.",
+      "",
+      "Tu trabajo ahora es SINTETIZAR los resultados de las tools en una respuesta útil al usuario.",
+      "NO digas 'traje fuentes' o 'mirá las fuentes'. REDACTÁ un informe real:",
+      "- reply: 1-2 líneas cálidas que enmarcan lo que encontraste.",
+      "- En el reply, MENCIONÁ al menos UN dato concreto (fecha, cifra, nombre, evento) que aparezca en los tool results.",
+      "- Si las fuentes no tienen datos suficientes, decí honestamente 'no encontré datos suficientes sobre X'.",
+      "- NO inventes datos que no estén en los tool results.",
+      "",
+      "Formato: {\"reply\":\"...\",\"mascotState\":\"happy\"}",
+    ].join("\n") });
     const secondResult = await callProvider(config, messages, secondaryTimeout, false, preferredProvider, undefined, modelOverride);
     provider = secondResult.provider;
     model = secondResult.model ?? model;

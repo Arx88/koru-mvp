@@ -638,6 +638,80 @@ export const matchSchedule: ToolHandler = {
     const next = Number(args.next ?? 5);
     if (!team && !league) return { type: "match_schedule", status: "failed", error: "Indicá equipo o liga." };
 
+    // 🔴 KORU 3.0 — ESPN PRIMARIO para fixture (mucho mejor que TheSportsDB free).
+    // ESPN scoreboard devuelve partidos futuros cuando pedimos fechas futuras.
+    // Buscamos en los próximos 7 días en paralelo en todas las ligas.
+    const queryLower = (team || league).toLowerCase();
+    const nationalTeam = detectNationalTeam(queryLower);
+    const matchTerms = [queryLower];
+    if (nationalTeam) matchTerms.push(nationalTeam.toLowerCase());
+
+    const now = new Date();
+    const fmt = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, "");
+    const futureDates: string[] = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(now.getTime() + i * 24 * 60 * 60 * 1000);
+      futureDates.push(fmt(d));
+    }
+    const espnResults: Array<{ event: EspnEvent; leagueId: string; leagueName: string }> = [];
+    const espnPromises: Promise<void>[] = [];
+    for (const lg of ESPN_LEAGUES) {
+      for (const date of futureDates) {
+        espnPromises.push((async () => {
+          try {
+            const url = `${ESPN_BASE}/${lg.id}/scoreboard?dates=${date}`;
+            const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
+            if (!res.ok) return;
+            const data = await res.json() as { events?: EspnEvent[] };
+            const events = data.events ?? [];
+            const matching = events.filter(e => {
+              const eventName = (e.name ?? "").toLowerCase();
+              const comps = e.competitions ?? [];
+              const teams = comps.flatMap(c => (c.competitors ?? []).map(comp => comp.team?.displayName?.toLowerCase() ?? ""));
+              return matchTerms.some(term =>
+                eventName.includes(term) || teams.some(t => t.includes(term))
+              );
+            });
+            for (const m of matching) {
+              espnResults.push({ event: m, leagueId: lg.id, leagueName: lg.name });
+            }
+          } catch { /* league/date timeout — skip */ }
+        })());
+      }
+    }
+    await Promise.all(espnPromises);
+
+    // Dedupe por id
+    const seen = new Set<string>();
+    const dedupedEspn = espnResults.filter(({ event: e }) => {
+      const id = e.id ?? `${e.name ?? ""}-${e.date ?? ""}`;
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+
+    // Filtrar solo partidos futuros
+    const upcomingEspn = dedupedEspn
+      .map(({ event, leagueName }) => normalizeEspnEvent(event, leagueName))
+      .filter(m => {
+        const d = m.date ? new Date(m.date) : null;
+        return d && d.getTime() >= now.getTime() - 3 * 60 * 60 * 1000;
+      })
+      .sort((a, b) => (a.date ?? "") > (b.date ?? "") ? 1 : -1)
+      .slice(0, next);
+
+    if (upcomingEspn.length > 0) {
+      return {
+        type: "match_schedule",
+        status: "ok",
+        team: team || league,
+        matches: upcomingEspn,
+        source: "ESPN",
+        sourceUrl: "https://www.espn.com/soccer/",
+      };
+    }
+
+    // Fallback: TheSportsDB
     let events: TsdbEvent[] = [];
     if (team) {
       const cacheKey = `team_next:${team.toLowerCase()}`;
@@ -674,9 +748,9 @@ export const matchSchedule: ToolHandler = {
       }
     }
 
-    const now = Date.now();
+    const nowMs = now.getTime();
     const upcoming = events
-      .filter((e) => e.strTimestamp && new Date(e.strTimestamp).getTime() >= now - 3 * 60 * 60 * 1000)
+      .filter((e) => e.strTimestamp && new Date(e.strTimestamp).getTime() >= nowMs - 3 * 60 * 60 * 1000)
       .sort((a, b) => (a.strTimestamp ?? "") > (b.strTimestamp ?? "") ? 1 : -1)
       .slice(0, next);
 
@@ -698,7 +772,7 @@ export const matchSchedule: ToolHandler = {
         );
         if (r.ok && r.data?.events) {
           const evs = r.data!.events
-            .filter((e) => e.strTimestamp && new Date(e.strTimestamp).getTime() >= now - 3 * 60 * 60 * 1000)
+            .filter((e) => e.strTimestamp && new Date(e.strTimestamp).getTime() >= nowMs - 3 * 60 * 60 * 1000)
             .sort((a, b) => (a.strTimestamp ?? "") > (b.strTimestamp ?? "") ? 1 : -1)
             .slice(0, 3);
           all.push(...evs);

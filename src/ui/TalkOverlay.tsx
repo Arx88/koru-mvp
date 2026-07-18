@@ -477,13 +477,14 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
   const inputRef = useRef<HTMLInputElement>(null);
   const turnCountRef = useRef(chatTurns.length);
 
-  // Fase 1 (audit visual): auto-dismiss del error de micrófono tras 4s.
-  // Antes el error "No pude transcribir: not-allowed" se quedaba pegado en
-  // el footer compitiendo con el composer. Ahora se limpia solo.
+  // Fase 1 (audit visual): auto-dismiss del error de micrófono.
+  // 🔴 KORU 3.0 — Tiempo dinámico: 4s para errores de permiso, 8s para errores
+  // de servidor (ASR no configurado, etc.) — el usuario necesita tiempo para leer.
   const showMicError = useCallback((message: string) => {
     if (micErrorTimerRef.current) clearTimeout(micErrorTimerRef.current);
     setMicError(message);
-    micErrorTimerRef.current = setTimeout(() => setMicError(""), 4000);
+    const isServerError = /no configurado|servidor|conectar|transcribir/i.test(message);
+    micErrorTimerRef.current = setTimeout(() => setMicError(""), isServerError ? 8000 : 4000);
   }, []);
 
   // UX Stitch: NO es un chat con historial. Es interaccion inmediata de un solo
