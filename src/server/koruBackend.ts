@@ -6068,7 +6068,11 @@ export async function runKoruBackendTurn(
     // 🔴 KIMI v6 — Fallback léxico para keywords obvias que el router semántico
     // puede no capturar con confianza ≥0.65. Esto garantiza que crypto, restaurant,
     // news y tennis deriven a sus tools específicas.
-    const lexicalRoute = lexicalRouteForInput(request.input);
+    // 🔴 KORU 3.0 — Lexical routing DISABLED.
+    // Era regex/keyword matching frágil a acentos, typos, slang, regionalismos.
+    // El LLM con tool-calling nativo es infinitamente más flexible.
+    // La función lexicalRouteForInput se conserva para tests pero SIEMPRE devuelve null.
+    const lexicalRoute: { category: RouteCategory; tool: string; toolArgs?: Record<string, unknown> } | null = null;
     if (lexicalRoute) {
       // Override léxico — saltar el router semántico y usar la tool específica
       routeCategory = lexicalRoute.category;
@@ -6187,7 +6191,8 @@ export async function runKoruBackendTurn(
     }
 
     const router = await getRouter(config);
-    if (router) {
+    const routerEnabled = false; // 🔴 KORU 3.0 — semantic router disabled as gate
+    if (routerEnabled && router) {
       try {
         const routeStart = Date.now();
         const route = await router.route(request.input);
