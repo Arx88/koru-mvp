@@ -304,7 +304,7 @@ export const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "save_personal_item",
-      description: "Save a personal task, reminder, alarm, shopping item, expense, health item, idea, home task, relationship follow-up, tool link, or any user-owned information. Use instead of only saying it was saved.",
+      description: "Guarda items personales: gastos, listas de compras, ideas, notas, enlaces, cumpleaños, información de salud. NO uses para recordatorios con fecha/hora (usá reminder_set), ni para alarmas (alarm_set). Ej: 'anotá 1500 de café' → save_personal_item con uiBlockType='saved_record'; 'recordame llamar a Juan' → reminder_set (NO save_personal_item).",
       parameters: {
         type: "object",
         additionalProperties: false,
