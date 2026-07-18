@@ -6097,29 +6097,129 @@ export async function runKoruBackendTurn(
       messages.push({ role: "assistant", content: "", tool_calls: [syntheticToolCall] });
       await executeProviderToolCalls([syntheticToolCall], messages, request, toolExecutions, config);
 
-      // 🔴 KIMI v7 — Fallback a web_search si la tool falló (igual que el router path)
+      // 🔴 KIMI v7 — Fallback inteligente según el tipo de tool que falló
       if (toolExecutions.length > 0) {
         const lastResult = toolExecutions[toolExecutions.length - 1]?.result as any;
         const toolFailed = lastResult?.status === "no_data" || lastResult?.status === "failed";
         if (toolFailed && lexicalRoute.tool !== "web_search") {
-          logger.info("runKoruBackendTurn", "Lexical tool failed, falling back to web_search", {
+          logger.info("runKoruBackendTurn", "Lexical tool failed", {
             failedTool: lexicalRoute.tool, status: lastResult?.status,
           });
-          // 🔴 KIMI v7 — Para deportes, buscar con contexto deportivo
-          let fallbackQuery = String(lexicalRoute.toolArgs?.query || lexicalRoute.toolArgs?.team || request.input);
-          if (lexicalRoute.category === "sports") {
-            fallbackQuery = `${fallbackQuery} partido resultado futbol`;
+
+          // 🔴 KIMI v7 — crypto_price falló → intentar Binance API directamente
+          if (lexicalRoute.tool === "crypto_price") {
+            const coin = String(lexicalRoute.toolArgs?.coin ?? "bitcoin").toLowerCase();
+            const binanceMap: Record<string, string> = {
+              bitcoin: "BTCUSDT", btc: "BTCUSDT", ethereum: "ETHUSDT", eth: "ETHUSDT",
+              solana: "SOLUSDT", sol: "SOLUSDT", cardano: "ADAUSDT", ada: "ADAUSDT",
+              dogecoin: "DOGEUSDT", doge: "DOGEUSDT", ripple: "XRPUSDT", xrp: "XRPUSDT",
+              litecoin: "LTCUSDT", ltc: "LTCUSDT", binancecoin: "BNBUSDT", bnb: "BNBUSDT",
+              polkadot: "DOTUSDT", dot: "DOTUSDT", chainlink: "LINKUSDT", link: "LINKUSDT",
+              avalanche: "AVAXUSDT", avax: "AVAXUSDT", matic: "MATICUSDT", "matic-network": "MATICUSDT",
+            };
+            const binanceSymbol = binanceMap[coin] || binanceMap[coin.replace("-", "")] || "BTCUSDT";
+            const nameMap: Record<string, string> = {
+              bitcoin: "Bitcoin", ethereum: "Ethereum", solana: "Solana", cardano: "Cardano",
+              dogecoin: "Dogecoin", ripple: "XRP", litecoin: "Litecoin", binancecoin: "BNB",
+              polkadot: "Polkadot", chainlink: "Chainlink", avalanche: "Avalanche", "matic-network": "Polygon",
+            };
+            try {
+              const binanceRes = await fetchWithTimeout(
+                `https://api.binance.com/api/v3/ticker/24hr?symbol=${binanceSymbol}`,
+                { headers: { Accept: "application/json" } },
+                8_000,
+              );
+              if (binanceRes.ok) {
+                const bd = await binanceRes.json() as any;
+                const price = parseFloat(bd.lastPrice || "0");
+                if (price > 0) {
+                  // Crear el UiBlock crypto_portfolio directamente
+                  toolExecutions.push({
+                    id: `binance_fallback_${Date.now()}`,
+                    name: "crypto_price",
+                    result: {
+                      type: "crypto_price",
+                      status: "ok",
+                      coin: nameMap[coin] || coin,
+                      symbol: binanceSymbol.replace("USDT", ""),
+                      price,
+                      currency: "USD",
+                      change24hPct: bd.priceChangePercent ? Number(parseFloat(bd.priceChangePercent).toFixed(2)) : 0,
+                      high24h: bd.highPrice ? parseFloat(bd.highPrice) : undefined,
+                      low24h: bd.lowPrice ? parseFloat(bd.lowPrice) : undefined,
+                      source: "Binance",
+                      sourceUrl: `https://www.binance.com/en/trade/${binanceSymbol}`,
+                    },
+                  });
+                  // Remover la tool fallida
+                  const failedIdx = toolExecutions.findIndex(e => (e.result as any)?.status === "no_data" || (e.result as any)?.status === "failed");
+                  if (failedIdx >= 0) toolExecutions.splice(failedIdx, 1);
+                  logger.info("runKoruBackendTurn", "Binance fallback succeeded for crypto", { coin, price });
+                }
+              }
+            } catch (binanceErr) {
+              logger.warn("runKoruBackendTurn", "Binance fallback also failed", { error: String(binanceErr) });
+            }
           }
-          const fallbackMode = lexicalRoute.category === "sports" ? "news" : "research";
-          const fallbackToolCall: ProviderToolCall = {
-            id: `lexical_fallback_${Date.now()}`,
-            type: "function",
-            function: { name: "web_search", arguments: JSON.stringify({ query: fallbackQuery, mode: fallbackMode }) },
-          };
-          messages.push({ role: "assistant", content: "", tool_calls: [fallbackToolCall] });
-          await executeProviderToolCalls([fallbackToolCall], messages, request, toolExecutions, config);
-          const failedIdx = toolExecutions.findIndex(e => (e.result as any)?.status === "no_data" || (e.result as any)?.status === "failed");
-          if (failedIdx >= 0) toolExecutions.splice(failedIdx, 1);
+
+          // 🔴 KIMI v7 — match_live/match_schedule falló → buscar con contexto deportivo
+          if (lexicalRoute.tool === "match_live" || lexicalRoute.tool === "match_schedule") {
+            const team = String(lexicalRoute.toolArgs?.query || lexicalRoute.toolArgs?.team || request.input);
+            const fallbackQuery = `${team} partido resultado futbol`;
+            const fallbackToolCall: ProviderToolCall = {
+              id: `lexical_fallback_${Date.now()}`,
+              type: "function",
+              function: { name: "web_search", arguments: JSON.stringify({ query: fallbackQuery, mode: "news" }) },
+            };
+            messages.push({ role: "assistant", content: "", tool_calls: [fallbackToolCall] });
+            await executeProviderToolCalls([fallbackToolCall], messages, request, toolExecutions, config);
+            const failedIdx = toolExecutions.findIndex(e => (e.result as any)?.status === "no_data" || (e.result as any)?.status === "failed");
+            if (failedIdx >= 0) toolExecutions.splice(failedIdx, 1);
+          }
+
+          // 🔴 KIMI v7 — tennis_live falló → buscar con contexto deportivo
+          if (lexicalRoute.tool === "tennis_live") {
+            const fallbackQuery = `${lexicalRoute.toolArgs?.query || request.input} tenis resultado`;
+            const fallbackToolCall: ProviderToolCall = {
+              id: `lexical_fallback_${Date.now()}`,
+              type: "function",
+              function: { name: "web_search", arguments: JSON.stringify({ query: fallbackQuery, mode: "news" }) },
+            };
+            messages.push({ role: "assistant", content: "", tool_calls: [fallbackToolCall] });
+            await executeProviderToolCalls([fallbackToolCall], messages, request, toolExecutions, config);
+            const failedIdx = toolExecutions.findIndex(e => (e.result as any)?.status === "no_data" || (e.result as any)?.status === "failed");
+            if (failedIdx >= 0) toolExecutions.splice(failedIdx, 1);
+          }
+
+          // 🔴 KIMI v7 — stock_quote falló → buscar con contexto financiero
+          if (lexicalRoute.tool === "stock_quote") {
+            const fallbackQuery = `${lexicalRoute.toolArgs?.symbol || request.input} stock price`;
+            const fallbackToolCall: ProviderToolCall = {
+              id: `lexical_fallback_${Date.now()}`,
+              type: "function",
+              function: { name: "web_search", arguments: JSON.stringify({ query: fallbackQuery, mode: "research" }) },
+            };
+            messages.push({ role: "assistant", content: "", tool_calls: [fallbackToolCall] });
+            await executeProviderToolCalls([fallbackToolCall], messages, request, toolExecutions, config);
+            const failedIdx = toolExecutions.findIndex(e => (e.result as any)?.status === "no_data" || (e.result as any)?.status === "failed");
+            if (failedIdx >= 0) toolExecutions.splice(failedIdx, 1);
+          }
+
+          // 🔴 KIMI v7 — Si la tool fallida NO es una de las anteriores, fallback genérico a web_search
+          const stillFailed = toolExecutions.some(e => (e.result as any)?.status === "no_data" || (e.result as any)?.status === "failed");
+          if (stillFailed && lexicalRoute.tool !== "web_search") {
+            let fallbackQuery = String(lexicalRoute.toolArgs?.query || lexicalRoute.toolArgs?.team || request.input);
+            const fallbackMode = lexicalRoute.category === "sports" ? "news" : "research";
+            const fallbackToolCall: ProviderToolCall = {
+              id: `lexical_fallback_${Date.now()}`,
+              type: "function",
+              function: { name: "web_search", arguments: JSON.stringify({ query: fallbackQuery, mode: fallbackMode }) },
+            };
+            messages.push({ role: "assistant", content: "", tool_calls: [fallbackToolCall] });
+            await executeProviderToolCalls([fallbackToolCall], messages, request, toolExecutions, config);
+            const failedIdx = toolExecutions.findIndex(e => (e.result as any)?.status === "no_data" || (e.result as any)?.status === "failed");
+            if (failedIdx >= 0) toolExecutions.splice(failedIdx, 1);
+          }
         }
       }
 
