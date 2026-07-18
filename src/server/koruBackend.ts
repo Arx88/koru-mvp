@@ -275,7 +275,7 @@ export const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "save_memory",
-      description: "Save durable reusable memory about the user or people important to the user: preferences, identity, routines, goals, relationships, boundaries, wellbeing, teams/topics to follow. Use this when Koru should know it later.",
+      description: "Guarda información DURADERA y REUTILIZABLE sobre el usuario: preferencias, identidad, rutinas, objetivos, relaciones, límites, bienestar, equipos/temas a seguir. NO uses save_memory para recordatorios puntuales (usá reminder_set), ni para alarmas (alarm_set), ni para gastos (save_personal_item). Ej: 'me encanta el helado' → save_memory; 'recordame llamar a Juan' → reminder_set (NO save_memory).",
       parameters: {
         type: "object",
         additionalProperties: false,
