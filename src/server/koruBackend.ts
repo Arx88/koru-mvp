@@ -4617,17 +4617,6 @@ function normalizeFinalPayload(
   extractedRaw?: Record<string, unknown>,
   prebuiltToolBlocks?: UiBlock[],
 ): KoruBackendTurnResponse {
-  // 🔴 KORU 3.0 — DEBUG: ver qué llega a normalizeFinalPayload
-  logger.info("normalizeFinalPayload", "ENTRY", {
-    toolExecutionsCount: toolExecutions.length,
-    toolExecutionsResults: toolExecutions.map(e => ({
-      name: e.name,
-      resultType: (e.result as any)?.type,
-      hasCommitments: Array.isArray((e.result as any)?.commitments),
-      commitmentsCount: (e.result as any)?.commitments?.length ?? 0,
-      hasDataCommitments: Array.isArray((e.result as any)?.data?.commitments),
-    })),
-  });
   const modelBlocks = asArray(raw.uiBlocks).map(normalizeUiBlock).filter((block): block is UiBlock => Boolean(block));
   const mascotState = cleanText(raw.mascotState) || "idle";
   const validatedMascotState = VALID_MASCOT_STATES.includes(mascotState as MascotState)
@@ -4813,13 +4802,14 @@ function normalizeFinalPayload(
       ...normalizeCommitments(extractedRaw?.commitments),
       ...captures.flatMap((capture) => capture.commitments ?? []),
       ...localActions.flatMap((action) => action.commitments ?? []),
-      // 🔴 KORU 3.0 — EXTRAER commitments de CUALQUIER toolResult que los tenga.
-      ...toolExecutions.flatMap((exec) => {
-        const r = exec.result as any;
-        const comms = Array.isArray(r?.commitments) ? r.commitments : Array.isArray(r?.data?.commitments) ? r.data.commitments : [];
+      // 🔴 KORU 3.0 — EXTRAER commitments de toolResults.data (no de execution.result).
+      // toolResults se construye arriba con data: execution.result, pero a veces
+      // execution.result se modifica después. Usar toolResults.data es más confiable.
+      ...toolResults.flatMap((tr: any) => {
+        const comms = Array.isArray(tr?.data?.commitments) ? tr.data.commitments : [];
         if (comms.length > 0) {
-          logger.info("normalizeFinalPayload", "EXTRACTED commitments from toolResult", {
-            tool: exec.name, count: comms.length, titles: comms.map((c: any) => c.title).join("|"),
+          logger.info("normalizeFinalPayload", "EXTRACTED commitments from toolResults.data", {
+            tool: tr.tool, count: comms.length,
           });
         }
         return comms;
@@ -4831,12 +4821,10 @@ function normalizeFinalPayload(
       ...normalizeRecords(extractedRaw?.records),
       ...captures.flatMap((capture) => capture.records ?? []),
       ...localActions.flatMap((action) => action.records ?? []),
-      // 🔴 KORU 3.0 — EXTRAER records de CUALQUIER toolResult que los tenga.
-      ...toolExecutions.flatMap((exec) => {
-        const r = exec.result as any;
-        if (Array.isArray(r?.records)) return r.records;
-        if (Array.isArray(r?.data?.records)) return r.data.records;
-        return [];
+      // 🔴 KORU 3.0 — EXTRAER records de toolResults.data
+      ...toolResults.flatMap((tr: any) => {
+        const recs = Array.isArray(tr?.data?.records) ? tr.data.records : [];
+        return recs;
       }),
     ]).slice(0, 12),
     toolResults,
