@@ -2585,6 +2585,28 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
     `  - save_memory: Cuando el usuario revela algo importante sobre sí mismo (rutinas, metas, preferencias, relaciones).`,
     `  - save_personal_item: Cuando el usuario pide guardar algo (gasto, recordatorio, lista de compras, alarma).`,
     `REGLA CRÍTICA DE ROUTING: si el usuario pregunta por un resultado o partido de fútbol (cualquier equipo o selección), USÁ match_live, NO web_search. web_search devuelve noticias genéricas sin el marcador exacto; match_live te da el score real en tiempo real.`,
+    `- 🔴 CRÍTICO — ROUTING POR INTENCIÓN, NO POR PALABRAS: Entendés la INTENCIÓN del usuario, no las palabras exactas. Esto significa que UN ACENTO, un typo, slang, voseo, o regionalismo NUNCA deben romper la routing. El usuario puede hablar de cualquier forma y vos entendés igual. Ejemplos REALES de cómo el usuario habla y lo que vos tenés que hacer:`,
+    `  - "cuándo juega argentina" → match_schedule(team="Argentina") — el acento en "cuándo" no cambia nada`,
+    `  - "cuando juega argentina" → match_schedule(team="Argentina") — sin acento, misma intención`,
+    `  - "cuand juega arg" → match_schedule(team="Argentina") — typo y abreviatura, misma intención`,
+    `  - "a q hora juega boca?" → match_schedule(team="Boca Juniors") — abreviatura "q" en vez de "que"`,
+    `  - "che decime cuando juegan los pibes" → match_schedule(team="Argentina") — "los pibes" es slang argentino para la selección`,
+    `  - "kmo le fue a la scaloneta?" → match_live(query="Argentina") — "kmo" es typo, "scaloneta" es slang para la selección argentina`,
+    `  - "como le fue a españa ayer?" → match_live(query="España ayer") — sin acento en "España" o "como", igual`,
+    `  - "y el partido de river?" → match_live(query="River Plate") — el contexto se entiende`,
+    `  - "btc a cuanto sta?" → crypto_price(coin="bitcoin") — "sta" es typo de "está", "btc" es ticker`,
+    `  - "dame el precio del ether" → crypto_price(coin="ethereum") — "ether" coloquial para ETH`,
+    `  - "ke tiempo hace?" → weather(city=...) — "ke" es typo de "que"`,
+    `  - "donde como algo rico?" → restaurant_deep_search(query="...") — frase coloquial`,
+    `  - "algun recipe de pasta?" → recipe_find(query="pasta") — mezcla spanglish "recipe"`,
+    `  - "info de inception" → movie_info(title="Inception") — abreviatura "info"`,
+    `  - "donde queda parís?" → route_traffic(destination="París") — "queda" coloquial para ubicación`,
+    `  - "como llego al aeropuerto" → route_traffic(destination="aeropuerto") — sin acento en "cómo"`,
+    `  - "cuanto gaste ayer?" → query_personal_context(domain="money") — sin acento en "cuánto" o "gasté"`,
+    `  - "recordame llamar a juan mañana" → save_personal_item(uiBlockType="reminder", ...) — voseo "recordame"`,
+    `  - "anotá 1500 de café" → save_personal_item(uiBlockType="expense", amount=1500, ...) — voseo imperativo`,
+    `  La regla es simple: SI LA INTENCIÓN ES CLARA, USÁ LA TOOL CORRECTA. No esperes que el usuario hable con ortografía perfecta. No esperes que use las palabras exactas del ejemplo. Entendé el SIGNIFICADO, no la forma.`,
+    `  IMPORTANTÍSIMO: Si el input del usuario NO matchea literalmente ningún ejemplo de arriba pero la intención es clara (un partido, un precio, una receta, una ruta, un clima, una película, etc.), IGUAL usá la tool. Los ejemplos son solo guía — vos entendés lenguaje natural de verdad.`,
     `Usá tools SOLO cuando la intención del usuario REQUIERA datos reales del mundo (clima, búsqueda, ruta, precios, resultados deportivos, recetas, películas, libros). Por ejemplo: si el usuario dice 'hola', 'gracias', 'adiós', '¿cómo estás?' o cualquier frase de cortesía, NO uses tools. Respondé directamente con naturalidad.`,
     `- Para datos personales ya guardados, no llames tools; respondé directamente usando el contexto.`,
     `- 🔴 CRÍTICO — PROHIBIDO RAZONAMIENTO EN "reply": NUNCA incluyas tu razonamiento interno, análisis de qué tool llamar, ni texto en inglés tipo "The user is asking...", "I should use...", "Let me think..." en "reply". El campo "reply" debe contener SOLO la respuesta final al usuario, en español, cálido y directo. Si necesitás decidir una tool, EMITE tool_calls directamente en el JSON sin escribir tu razonamiento en el texto. Si estás pensando, NO escribas "thinking..." — simplemente devolvé el JSON final con la respuesta.`,
@@ -5179,9 +5201,26 @@ async function getRouter(config: ProviderConfig): Promise<SemanticRouter | null>
  * Es heurística simple sobre el input, no matching de intención (eso ya lo hizo el router).
  */
 /**
+ * 🔴 KORU 3.0 — Lexical route DISABLED.
+ * El lexical route original (`lexicalRouteForInput`) era regex/keyword matching
+ * frágil a acentos, typos, slang, regionalismos. UN ACENTO rompía el match en
+ * algunos casos por el `\b` entre á (no-word char en default JS regex) y el espacio.
+ * El LLM con tool-calling nativo es infinitamente más flexible: entiende INTENCIÓN,
+ * no palabras. Esta shim SIEMPRE devuelve null para que el flujo principal caiga
+ * al LLM con `tool_choice: "auto"`.
+ *
+ * La función original se conserva abajo para los tests unitarios que la invocan
+ * directamente y como documentación viva de las intenciones que detectaba.
+ */
+function lexicalRouteForInputDisabled(): { category: RouteCategory; tool: string; toolArgs?: Record<string, unknown> } | null {
+  return null;
+}
+
+/**
  * 🔴 KIMI v6 — Fallback léxico para keywords obvias.
- * Cuando el router semántico no tiene confianza suficiente, este fallback
- * detecta keywords específicos y deriva a la tool correcta.
+ * @deprecated KORU 3.0 — Desactivado en el flujo principal. Se conserva solo
+ * para tests unitarios y como documentación de intenciones. No invocar desde
+ * runKoruBackendTurn — usar el LLM con tool-calling nativo.
  */
 function lexicalRouteForInput(input: string): { category: RouteCategory; tool: string; toolArgs?: Record<string, unknown> } | null {
   const lc = input.toLowerCase().trim();
@@ -6064,11 +6103,19 @@ export async function runKoruBackendTurn(
       return { ...response, provider, model, fallbackReason: "fastpath-skip-router" };
     }
 
-    // Si el fast-path no matcheó, caer al router semántico (que requiere embeddings)
-    // 🔴 KIMI v6 — Fallback léxico para keywords obvias que el router semántico
-    // puede no capturar con confianza ≥0.65. Esto garantiza que crypto, restaurant,
-    // news y tennis deriven a sus tools específicas.
-    const lexicalRoute = lexicalRouteForInput(request.input);
+    // 🔴 KORU 3.0 — Lexical routing DISABLED.
+    // El lexical route era regex/keyword matching con \b...\b y alternancias tipo
+    // "cuando juega|cu[aá]ndo juega" — frágil a acentos, typos, slang, regionalismos,
+    // voseo, formas no canon de hablar. UN ACENTO rompia el match en algunos casos
+    // por el \b entre á (no-word char en default JS regex) y el espacio.
+    // El LLM con tool-calling nativo entiende INTENCIÓN, no palabras. Sabe que
+    // "che decime a q hora juega argentina" → match_schedule(query="Argentina"),
+    // algo que ningún regex podria capturar.
+    // El LLM ya recibe TODAS las tools via ALL_TOOL_DEFINITIONS + tool_choice: auto.
+    // La funcion lexicalRouteForInput se conserva como artefacto muerto para
+    // referencia y para los tests que la invocan directamente; pero en el flujo
+    // de runKoruBackendTurn SIEMPRE devuelve null.
+    const lexicalRoute: { category: RouteCategory; tool: string; toolArgs?: Record<string, unknown> } | null = lexicalRouteForInputDisabled();
     if (lexicalRoute) {
       // Override léxico — saltar el router semántico y usar la tool específica
       routeCategory = lexicalRoute.category;
@@ -6340,7 +6387,19 @@ export async function runKoruBackendTurn(
     }
 
     const router = await getRouter(config);
-    if (router) {
+    const routerEnabled = false; // 🔴 KORU 3.0 — semantic router disabled as gate
+    if (routerEnabled && router) {
+      // 🔴 KORU 3.0 — Semantic Router DISABLED as primary routing gate.
+      // El router semántico usaba embeddings + umbral 0.65 para decidir la tool.
+      // Problema: si la confianza era 0.64, caía al flujo nativo; si era 0.66,
+      // forzaba una tool que podria no ser la correcta. Es un filtro binario
+      // artificial que no se adapta a cómo habla el usuario.
+      // El LLM con tool-calling nativo es infinitamente mas flexible: entiende
+      // contexto, intencion, slang, acentos, typos, voseo, frases incompletas.
+      // Ej: "che y como le fue a la scaloneta?" → match_live(query="Argentina")
+      // sin que un embedding tenga que pre-clasificarlo.
+      // El router se mantiene como clase para los tests unitarios, pero en el
+      // flujo de runKoruBackendTurn no se consulta.
       try {
         const routeStart = Date.now();
         const route = await router.route(request.input);
