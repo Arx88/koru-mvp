@@ -4860,6 +4860,19 @@ function normalizeFinalPayload(
     result.commitments = [];
     result.records = [];
   }
+  // 🔴 KORU 3.0 — DEBUG: ver qué se retorna
+  logger.info("normalizeFinalPayload", "RETURN", {
+    hasUiBlocks,
+    hasToolData,
+    resultCommitments: result.commitments.length,
+    resultRecords: result.records.length,
+    toolResultsCount: toolResults.length,
+    toolResultsDataCommitments: toolResults.map(tr => ({
+      tool: tr.tool,
+      hasData: !!(tr as any).data,
+      dataCommitments: (tr as any)?.data?.commitments?.length ?? 0,
+    })),
+  });
   // 🔴 KIMI v6 — Bug fix adicional: si el único uiBlock es un reminder con la
   // pregunta del usuario como title, el commitment correspondiente es basura.
   // Ej: "que recordas de mi" → reminder con title="que recordas de mi" + commitment.
