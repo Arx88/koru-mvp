@@ -2588,6 +2588,12 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
     `- 🔴 CRÍTICO — CONTINUIDAD DE CONVERSACIÓN (Bug "y ayer?"): Cuando el usuario hace una pregunta de seguimiento corta como "y ayer?", "y mañana?", "y el otro?", "y el sábado?", "cómo le fue ayer?", debés MANTENER EL CONTEXTO de la conversación reciente. Si en los últimos mensajes se habló de un equipo/partido (ej: Argentina, Boca, España), el seguimiento se refiere a ESE MISMO equipo. Ejecutá match_live con query "<equipo> ayer" o "<equipo> <fecha>" sin pedir aclaración. NO respondas "no entiendo" ni "¿a qué te referís?". El contexto SIEMPRE está en el historial.`,
     `- 🔴 CRÍTICO — PRONOMBRES Y REFERENCIAS: Si el usuario dice "esa película", "ese libro", "esa receta", "ese equipo", "esos resultados", asumí que se refiere al último tema mencionado en la conversación. NO pidas aclaración. Si el tema fue "obsesión", "y esa película?" significa "información sobre la película obsesión". Mantener contexto es tu trabajo principal.`,
     `- 🔴 CRÍTICO — FOLLOW-UPS TEMPORALES: combiná el contexto del tema (equipo, película, etc.) con el contexto temporal (ayer, hoy, mañana, la semana pasada). "y ayer?" después de hablar de Argentina = match_live(query="Argentina ayer"). "y la anterior?" después de una película = movie_info(title="<película anterior>").`,
+    `- 🔴 CRÍTICO — RECORDATORIOS CON CONTEXTO: Si el usuario dice "activa un recordatorio", "recordame", "avisame", "anota esto" o similar SIN especificar QUÉ recordar, NO pidas aclaración. Usá el TEMA del último intercambio como título del recordatorio. Ejemplos:`,
+    `  - Después de hablar de un partido de Boca → "activa un recordatorio" → reminder_set con title="Partido de Boca" y dueText con la fecha mencionada.`,
+    `  - Después de ver el clima de mañana → "recordame" → reminder_set con title="Clima de mañana" y dueText="mañana".`,
+    `  - Después de una receta → "anota esto" → save_personal_item con el título de la receta.`,
+    `  NO respondas "¿para qué y cuándo te lo pongo?" — el contexto YA está en el historial. Extraé el tema y la fecha de los últimos mensajes del asistente.`,
+    `- 🔴 CRÍTICO — SIEMPRE EJECUTÁ LA TOOL: Cuando el usuario pide un recordatorio/alarma/gasto, EJECUTÁ la tool (reminder_set, alarm_set, save_personal_item). NO digas "Listo, guardado" sin ejecutar la tool. Si la tool no se ejecuta, el recordatorio NO se guarda.`,
     ``,
     `Memorias relevantes para esta conversación (usalas para personalizar tu respuesta):`,
     ...(relevantMemories.length
