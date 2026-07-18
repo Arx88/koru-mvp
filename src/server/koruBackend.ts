@@ -4898,10 +4898,20 @@ function normalizeFinalPayload(
   // 🔴 KIMI v6 — Bug fix adicional: si el único uiBlock es un reminder con la
   // pregunta del usuario como title, el commitment correspondiente es basura.
   // Ej: "que recordas de mi" → reminder con title="que recordas de mi" + commitment.
+  // 🔴 KORU 3.0 — FIX: solo borrar si el title del reminder ES EXACTAMENTE el
+  // input del usuario (no si comparten los primeros 15 chars). Antes borraba
+  // recordatorios legítimos como "Llamar a Juan" cuando el input era "recordame
+  // llamar a juan mañana a las 10" (comparten "llamar a juan").
   if (result.uiBlocks.length === 1 && result.uiBlocks[0].type === "reminder") {
-    const reminderTitle = ((result.uiBlocks[0] as { title?: string }).title ?? "").toLowerCase();
+    const reminderTitle = ((result.uiBlocks[0] as { title?: string }).title ?? "").toLowerCase().trim();
     const userInput = input.toLowerCase().trim();
-    if (reminderTitle.length > 5 && (userInput.includes(reminderTitle.slice(0, 15)) || reminderTitle.includes(userInput.slice(0, 15)))) {
+    // Solo borrar si el title ES el input completo (caso de pregunta mal interpretada)
+    const isExactMatch = reminderTitle.length > 5 && (
+      reminderTitle === userInput ||
+      reminderTitle.startsWith("que record") || // "que recordas de mi"
+      reminderTitle.startsWith("recordame ") && reminderTitle === userInput
+    );
+    if (isExactMatch) {
       result.commitments = [];
       result.records = [];
     }
