@@ -115,13 +115,49 @@ function extractFenceContent(content: string): { lang: string; body: string } | 
 export function detectSimulatedToolCall(content: string): SimulatedToolCall | null {
   if (!content || content.length < 5) return null;
 
-  // 0. JSON directo plano: {"name":"tool","parameters":{...}}
+  // 0. JSON directo plano — múltiples formatos que el LLM puede emitir:
+  //    - {"name":"tool","parameters":{...}}     (formato OpenAI-like)
+  //    - {"name":"tool","arguments":{...}}      (formato OpenAI tool_call)
+  //    - {"tool":"match_live","arguments":{...}} (formato Nemotron cuando no usa tools nativas)
+  //    - {"tool_name":"X","args":{...}}         (variante snake_case)
+  //    - {"function":"X","parameters":{...}}    (variante function)
+  //    - {"call":"X","arguments":{...}}         (variante call)
+  //    🔴 KORU 3.0 — Esto es CRÍTICO: Nemotron-3-Ultra cuando el prompt incluye
+  //    tools pero el modelo decide "escribir" la tool call como texto en vez
+  //    de usar el campo tool_calls nativo. El detector anterior solo reconocía
+  //    "name"+"parameters"; agregamos todos los aliases comunes.
   try {
     const directJson = JSON.parse(content.trim());
-    if (directJson && typeof directJson.name === "string" && VALID_TOOL_NAMES.has(directJson.name.toLowerCase())) {
-      const params = directJson.parameters || directJson.arguments || directJson;
-      if (typeof params === "object" && params !== null && !Array.isArray(params)) {
-        return { name: directJson.name.toLowerCase(), arguments: params, format: "json_fence" };
+    if (directJson && typeof directJson === "object" && !Array.isArray(directJson)) {
+      // Buscar el nombre de la tool en cualquier clave común
+      const toolName = directJson.name || directJson.tool || directJson.tool_name || directJson.function || directJson.call;
+      if (typeof toolName === "string" && VALID_TOOL_NAMES.has(toolName.toLowerCase())) {
+        const params = directJson.parameters || directJson.arguments || directJson.args || directJson.argumentos || directJson.payload;
+        // Si no hay sub-objeto de parámetros, usar todo el objeto menos las claves que identifican la tool
+        const finalParams = (typeof params === "object" && params !== null && !Array.isArray(params))
+          ? params
+          : Object.fromEntries(Object.entries(directJson).filter(([k]) => !["name", "tool", "tool_name", "function", "call"].includes(k)));
+        if (typeof finalParams === "object" && finalParams !== null && !Array.isArray(finalParams)) {
+          return { name: toolName.toLowerCase(), arguments: finalParams, format: "json_fence" };
+        }
+      }
+      // 🔴 KIMI v8 — Caso adicional: el LLM devuelve {"tool_calls":[{"function":{"name":"X","arguments":{...}}}]}
+      // (formato OpenAI crudo dentro del content). Lo respetamos igual.
+      if (Array.isArray(directJson.tool_calls) && directJson.tool_calls.length > 0) {
+        const first = directJson.tool_calls[0];
+        const fn = first?.function || first;
+        const fnName = fn?.name || first?.name;
+        if (typeof fnName === "string" && VALID_TOOL_NAMES.has(fnName.toLowerCase())) {
+          const fnArgs = fn?.arguments || fn?.parameters || first?.arguments || {};
+          // arguments puede venir como string JSON o como objeto
+          let parsedArgs = fnArgs;
+          if (typeof fnArgs === "string") {
+            try { parsedArgs = JSON.parse(fnArgs); } catch { parsedArgs = {}; }
+          }
+          if (typeof parsedArgs === "object" && parsedArgs !== null && !Array.isArray(parsedArgs)) {
+            return { name: fnName.toLowerCase(), arguments: parsedArgs, format: "json_fence" };
+          }
+        }
       }
     }
   } catch { /* no es JSON directo */ }
