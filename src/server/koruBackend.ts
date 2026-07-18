@@ -17,7 +17,7 @@ import { selectRelevantMemories } from "../domain/store";
 import { generateEnhancements, enhancementPrompt } from "../domain/enhancementEngine";
 import { extractOpportunities } from "../domain/enhancementExtractor";
 import { extractStructuredData, type ChatFn as ExtractorChatFn, type ExtractionResult } from "../domain/structureExtractor";
-import { detectSimulatedToolCall, extractArgsFromUserInput } from "../domain/simulatedToolDetector";
+import { detectSimulatedToolCall } from "../domain/simulatedToolDetector";
 import { SemanticRouter, type EmbedFn, type RouteResult, type RouteCategory, keywordFastPath } from "../domain/semanticRouter";
 import { logger, dump } from "./logger";
 import type { ToolDefinition } from "../tools/types";
@@ -209,7 +209,7 @@ export const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "web_search",
-      description: "ULTIMO RECURSO. Busca información en internet cuando NINGUNA tool específica aplica. NO uses web_search para: deportes (usá match_live/match_schedule/tennis_live), clima (weather), cripto (crypto_price), acciones (stock_quote), restaurantes (restaurant_deep_search), recetas (recipe_find), películas (movie_info), libros (book_info), rutas (route_traffic), Wikipedia (wikipedia_lookup). web_search es para: noticias generales (no deportivas), eventos actuales, figuras públicas, tendencias, avances científicos, política, cultura, o cualquier tema que cambie con el tiempo Y que no tenga una tool específica. Si el usuario pregunta por un partido de fútbol, NO uses web_search — usá match_live o match_schedule.",
+      description: "Busca información actualizada en internet cuando el usuario pregunte sobre algo que ocurre en el mundo exterior y que no está en su contexto personal. Esto incluye: eventos recientes, noticias, figuras públicas, tendencias, avances científicos, datos de mercados, precios de activos, deportes, política, cultura, o cualquier tema que requiera consultar fuentes externas porque cambia con el tiempo. El usuario puede pedir esto de cualquier forma: '¿Qué pasó con...?', '¿Cómo va...?', '¿Quién ganó...?', '¿Cuáles son las últimas...?', o incluso solo mencionando el tema sin pedir explícitamente una búsqueda.",
       parameters: {
         type: "object",
         additionalProperties: false,
@@ -403,45 +403,24 @@ export const ALL_TOOL_DEFINITIONS = [
 /**
  * 🔴 KORU 3.0 — Curated core tool list for LLM tool-calling.
  *
- * ALL_TOOL_DEFINITIONS tiene 135 tools. Nemotron-3-Ultra con 135 tools se
- * abruma: tarda demasiado, emite texto no-JSON, o no llama ninguna tool.
+ * ALL_TOOL_DEFINITIONS tiene 135 tools. Nemotron con 135 tools se abruma:
+ * tarda demasiado, emite texto no-JSON, o no llama ninguna tool.
  *
- * CORE_TOOL_DEFINITIONS es una selección curada de ~30 tools que cubren
- * 95% de los casos de uso reales de un asistente personal. Las tools
- * excluidas son: duplicadas (route_plan vs route_planner), raras
- * (moon_phase, holidays, qr_generate), o especializadas que el LLM rara
- * vez elige correctamente.
- *
- * El LLM recibe CORE_TOOL_DEFINITIONS con tool_choice: "auto". Sigue
- * teniendo libertad total para elegir la tool correcta — solo que ahora
- * no se abruma con 135 opciones.
- *
- * Si una tool específica no está en CORE pero el usuario la pide
- * explícitamente, el LLM debe responder con honestidad en "reply"
- * (no inventar una tool call).
+ * CORE_TOOL_DEFINITIONS es una selección curada de ~44 tools que cubren
+ * 95% de los casos de uso reales de un asistente personal.
  */
 const CORE_TOOL_NAMES = new Set([
-  // Builtins
   "weather", "web_search", "shopping_compare", "plan_day",
   "query_personal_context", "save_memory", "save_personal_item",
-  // Money
   "crypto_price", "stock_quote", "currency_convert", "expense_track",
-  // Sports
   "match_live", "match_schedule", "tennis_live",
-  // Food
   "restaurant_deep_search", "recipe_find", "food_info", "wine_pairing",
-  // Travel
   "route_plan", "travel_itinerary", "flight_search", "hotel_search",
-  // Media
   "movie_info", "book_info", "game_info", "person_info", "image_generate",
-  // Knowledge
   "wikipedia_lookup", "dictionary_define", "math_calc", "unit_convert",
-  // News
   "news_topic", "news_urgent_search", "trending_twitter",
-  // Productivity
   "reminder_set", "alarm_set", "countdown", "calendar_add",
   "deep_research", "summarize_url", "translate",
-  // Health
   "medication_reminder", "mood_track", "habit_streak",
 ]);
 
@@ -488,7 +467,6 @@ const CATEGORY_TOOLS: Record<RouteCategory, string[]> = {
     "reminder_set",
     "alarm_set",
     "restaurant_deep_search",
-    "image_generate",
   ],
   // research se maneja con su propio pipeline (runDeepResearchFlow); si algo
   // cae al flujo nativo, web_search es el único apoyo razonable.
@@ -502,7 +480,7 @@ const CATEGORY_TOOLS: Record<RouteCategory, string[]> = {
   birthday: ["save_personal_item", "query_personal_context"],
   // 🔴 FIX P1: nuevas categorías para tools que ya existían pero no se rutaban
   food: ["recipe_find", "recipe_by_ingredients", "food_info", "wine_pairing", "nutrition_calc", "restaurant_deep_search"],
-  media: ["movie_info", "book_info", "game_info", "person_info", "person_filmography", "web_search", "image_generate"],
+  media: ["movie_info", "book_info", "game_info", "person_info", "person_filmography", "web_search"],
   knowledge: ["wikipedia_lookup", "dictionary_define", "math_calc", "unit_convert", "web_search"],
   conversation: [],
 };
@@ -965,28 +943,45 @@ async function callOpenRouterCandidate(
   timeoutMs: number,
   toolsEnabled = true,
 ): Promise<ProviderResult> {
+  // 🔴 KORU 3.0 — Usar CORE_TOOL_DEFINITIONS (44 tools) en vez de ALL (135).
+  // 135 tools abruman al modelo y causan timeouts/respuestas no-JSON.
+  // 44 tools cubren 95% de los casos sin saturar.
+  // Además: NO forzar response_format json_object cuando hay tools activas
+  // (algunos modelos free de OpenRouter no soportan json mode + tools juntos).
+  const useTools = toolsEnabled && CORE_TOOL_DEFINITIONS.length > 0;
+  const body: Record<string, unknown> = {
+    model,
+    messages,
+    ...(useTools ? { tools: CORE_TOOL_DEFINITIONS, tool_choice: "auto" } : {}),
+    temperature: 0.25,
+    max_tokens: 8192,
+    stream: false,
+  };
+  // response_format solo cuando NO hay tools (síntesis final sin tools)
+  if (!useTools) {
+    body.response_format = { type: "json_object" };
+  }
+
   const response = await fetchWithTimeout("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${key}`,
       "Content-Type": "application/json",
-      "HTTP-Referer": "http://localhost:5173",
-      "X-OpenRouter-Title": "Koru Agent Loop",
+      "HTTP-Referer": "https://koru-mvp.onrender.com",
+      "X-OpenRouter-Title": "Koru Personal Assistant",
     },
-    body: JSON.stringify({
-      model,
-      messages,
-      ...(toolsEnabled ? { tools: ALL_TOOL_DEFINITIONS, tool_choice: "auto" } : {}),
-      temperature: 0.25,
-      max_tokens: 8192,
-      stream: false,
-      response_format: { type: "json_object" },
-    }),
+    body: JSON.stringify(body),
   }, timeoutMs);
   const data = await response.json().catch(() => ({}));
   if (!response.ok || !hasUsableAssistantMessage(data)) {
-    // eslint-disable-next-line no-console
-    throw new Error(`OpenRouter ${model} returned ${response.status}`);
+    // 🔴 KORU 3.0 — Detectar rate limit de OpenRouter (429)
+    const errMsg = `OpenRouter ${model} returned ${response.status}`;
+    if (response.status === 429) {
+      const err = new Error(errMsg);
+      err.name = "RateLimitError";
+      throw err;
+    }
+    throw new Error(errMsg);
   }
   const choice = asRecord(asArray(asRecord(data).choices)[0]);
   return {
@@ -1173,11 +1168,10 @@ export async function callProvider(
       if (providerResultIsValid(result)) return result;
       logger.warn("callProvider", "Preferred NVIDIA responded but invalid, falling back");
     } catch (err: any) {
-      // 🔴 KORU 3.0 — Si es rate limit (429), NO re-throw — caer al siguiente
-      // provider (OpenRouter, BlueSminds, etc). Antes se re-throw y el error
-      // llegaba hasta el usuario sin intentar fallback.
+      // 🔴 KORU 3.0 — rate limit: NO re-throw, caer al siguiente provider.
+      // Antes se re-throw y el error llegaba al usuario sin intentar fallback.
       if (isRateLimitError(err)) {
-        logger.warn("callProvider", "Preferred NVIDIA rate-limited (429), falling through to next provider");
+        logger.warn("callProvider", "Preferred NVIDIA rate-limited (429), falling through to OpenRouter/other");
       } else {
         logger.warn("callProvider", "Preferred NVIDIA failed, falling back", { reason: err?.message });
       }
@@ -1744,60 +1738,10 @@ export function planFromState(state: KoruState, args: Record<string, unknown>): 
   };
 }
 
-export function localReminderFromArgs(args: Record<string, unknown>, input = "", history?: Array<{ role: string; content: string }>): LocalActionData {
-  // 🔴 KORU 3.0 — Context-aware reminder title extraction.
-  // Cuando el usuario dice "activa un recordatorio" / "recordame" / "avisame"
-  // sin especificar QUÉ recordar, usar el historial de conversación para
-  // extraer el tema. Ej: si el turno anterior fue "cuando juega Boca" →
-  // "mañana juega Boca", el recordatorio debe ser "Partido de Boca - mañana".
-  let title = cleanText(args.title);
-  let dueText = cleanText(args.dueText ?? args.dueHint ?? args.startsAt);
+export function localReminderFromArgs(args: Record<string, unknown>, input = ""): LocalActionData {
+  const title = cleanText(args.title, input || "Recordatorio");
+  const dueText = cleanText(args.dueText ?? args.dueHint ?? args.startsAt, "sin fecha");
   const note = cleanText(args.note);
-
-  // Si no hay título explícito Y el input es solo un comando ("activa un
-  // recordatorio", "recordame", "avisame"), extraer el tema del historial.
-  const isCommandOnly = !title && /^(activa|crea|poné|pone|programa|recordame|recuerdame|avisame|avisa|no me olvides|no te olvides|anota|anotá|recordarme|avisarme)\b/i.test(input.trim())
-    && input.trim().length < 60;
-
-  if (isCommandOnly && history && history.length > 0) {
-    // Buscar el último mensaje del asistente (de atrás para adelante)
-    for (let i = history.length - 1; i >= 0; i--) {
-      const msg = history[i];
-      if (msg.role === "assistant" && msg.content && msg.content.trim().length > 10) {
-        // Extraer el tema principal del mensaje del asistente
-        const assistantText = msg.content.trim();
-        // Si el asistente mencionó un partido/equipo, usar eso como título
-        const matchMention = assistantText.match(/(?:partido|juega|juegan|fixture|resultado)\s+(?:de\s+|del\s+)?([A-ZÁÉÍÓÚÑ][\wáéíóúñ\s]{2,40})/i);
-        if (matchMention && matchMention[1]) {
-          const team = matchMention[1].trim().replace(/[.!?,;:]+$/g, "").trim();
-          title = `Partido de ${team}`;
-          // Intentar extraer fecha del mensaje del asistente
-          if (!dueText) {
-            const dateMention = assistantText.match(/(mañana|hoy|pasado\s+mañana|el\s+\d{1,2}\s+de\s+\w+|este\s+\w+|el\s+\w+\s+\d{1,2})/i);
-            if (dateMention) dueText = dateMention[1];
-          }
-          break;
-        }
-        // Si mencionó un evento/clima/receta/etc, extraer el tema
-        const eventMention = assistantText.match(/(?:te\s+dejé|encontré|mirá|acá|esto)\s+(?:el\s+|la\s+|los\s+|las\s+)?(.{10,80})/i);
-        if (eventMention && eventMention[1]) {
-          title = eventMention[1].trim().replace(/[.!?,;:]+$/g, "").slice(0, 60);
-          break;
-        }
-        // Fallback: usar las primeras 50 chars del mensaje del asistente
-        title = assistantText.slice(0, 60).replace(/[.!?,;:\n]+.*$/g, "").trim();
-        if (title.length < 5) title = "";
-        break;
-      }
-    }
-  }
-
-  // Si seguimos sin título, usar el input (comportamiento anterior) o "Recordatorio"
-  if (!title) {
-    title = input || "Recordatorio";
-  }
-  if (!dueText) dueText = "sin fecha";
-
   return {
     type: "local_action",
     requiresApproval: true,
@@ -1932,37 +1876,12 @@ function uniqueLifeRecords(records: LifeRecord[]): LifeRecord[] {
 }
 
 export function queryPersonalContextFromState(state: KoruState, args: Record<string, unknown>): PersonalQueryData {
-  const topic = cleanText(args.topic, cleanText(args.domain, "general"));
+  const topic = cleanText(args.topic, "general");
   const query = cleanText(args.query, cleanText(args.__userInput));
   const period = cleanText(args.period);
   const records = (Array.isArray(state.records) ? state.records : []).filter((record) => isRecordInPeriod(record, period));
 
-  // 🔴 KIMI v7 — Mapear domain del lexical route a topic interno
-  const effectiveTopic = topic === "money" ? "expenses" : topic === "morning" ? "general" : topic === "memory" ? "general" : topic;
-
-  // 🔴 KIMI v7 — Morning brief: devolver morning_brief block directamente
-  if (topic === "morning") {
-    const memories = (Array.isArray(state.memories) ? state.memories : []).slice(0, 5);
-    const weather = state.weatherCache;
-    const items: Array<{ icon: string; label: string; value: string; iconColor: string }> = [];
-    if (weather?.payload?.now) {
-      items.push({ icon: "wb_sunny", label: "Clima", value: `${weather.payload.now}${weather.payload.condition ? ` · ${weather.payload.condition}` : ""}`, iconColor: "#f59e0b" });
-    }
-    if (memories.length) {
-      items.push({ icon: "psychology", label: "Recuerdos", value: `${memories.length} activos`, iconColor: "#8363f9" });
-    }
-    items.push({ icon: "schedule", label: "Hoy", value: new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "short" }), iconColor: "#46c293" });
-    return {
-      type: "personal_query",
-      block: {
-        type: "morning_brief" as const,
-        greeting: `Buenos días! Son las ${new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}.`,
-        items,
-      },
-    };
-  }
-
-  if (effectiveTopic === "expenses") {
+  if (topic === "expenses") {
     const expenses = records.filter((record) => record.kind === "expense");
     if (!expenses.length) {
       return {
@@ -1996,7 +1915,7 @@ export function queryPersonalContextFromState(state: KoruState, args: Record<str
     };
   }
 
-  if (effectiveTopic === "food_inventory") {
+  if (topic === "food_inventory") {
     const food = records.filter((record) => record.kind === "meal_inventory");
     if (!food.length) return { type: "personal_query", block: { type: "saved_record", title: "Comida en casa", records: [] } };
     return {
@@ -2026,7 +1945,7 @@ export function queryPersonalContextFromState(state: KoruState, args: Record<str
     };
   }
 
-  if (effectiveTopic === "shopping_list") {
+  if (topic === "shopping_list") {
     const shopping = records.filter((record) => record.kind === "shopping_item");
     if (!shopping.length) return { type: "personal_query", block: emptyContextBlock("Compras", "No tengo una lista de compras activa guardada.") };
     const items = shopping.map((record) => record.title).filter(Boolean).slice(0, 30);
@@ -2041,7 +1960,7 @@ export function queryPersonalContextFromState(state: KoruState, args: Record<str
     };
   }
 
-  if (effectiveTopic === "pending_tasks") {
+  if (topic === "pending_tasks") {
     const open = (Array.isArray(state.commitments) ? state.commitments : []).filter((item) => item && item.status === "open").slice(0, 8);
     if (!open.length) return { type: "personal_query", block: emptyContextBlock("Pendientes", "No veo pendientes abiertos. Si queres, tirame una descarga de cosas y las ordeno.") };
     return {
@@ -2070,7 +1989,7 @@ export function queryPersonalContextFromState(state: KoruState, args: Record<str
     general: ["idea", "recommendation", "deadline", "home_task", "meeting_note", "decision"],
   };
 
-  if (effectiveTopic === "memory") {
+  if (topic === "memory") {
     const useful = (Array.isArray(state.memories) ? state.memories : [])
       .filter((memory) => memory && memory.status !== "rejected" && memory.useForSuggestions !== false)
       .slice(0, 8);
@@ -2096,7 +2015,7 @@ export function queryPersonalContextFromState(state: KoruState, args: Record<str
     };
   }
 
-  if (effectiveTopic === "relationships") {
+  if (topic === "relationships") {
     const relationshipRecords = records.filter((record) => ["person_followup", "gift", "birthday"].includes(record.kind));
     const relationshipMemories = (Array.isArray(state.memories) ? state.memories : [])
       .filter((memory) => memory && memory.status !== "rejected" && memory.useForSuggestions !== false)
@@ -2524,7 +2443,7 @@ async function executeTool(
   name: string,
   args: Record<string, unknown>,
   state: KoruState,
-  extractorCtx?: { userInput: string; chatFn: ExtractorChatFn; history?: Array<{ role: string; content: string }> },
+  extractorCtx?: { userInput: string; chatFn: ExtractorChatFn },
 ): Promise<{ result: Record<string, unknown>; deferredDataCard?: Promise<UiBlock | null> }> {
   logger.info("executeTool", `Executing tool: ${name}`, { argsKeys: Object.keys(args) });
   let result: Record<string, unknown>;
@@ -2543,7 +2462,7 @@ async function executeTool(
     }
     else if (name === "shopping_compare") result = await runSearch(args, true) as unknown as Record<string, unknown>;
     else if (name === "route_traffic") result = await runSearch({ ...args, mode: "research", query: cleanText(args.query) || [cleanText(args.origin), cleanText(args.destination)].filter(Boolean).join(" a ") || cleanText(args.__userInput) }, false) as unknown as Record<string, unknown>;
-    else if (name === "calendar_reminder") result = localReminderFromArgs(args, cleanText(args.__userInput), extractorCtx?.history) as unknown as Record<string, unknown>;
+    else if (name === "calendar_reminder") result = localReminderFromArgs(args, cleanText(args.__userInput)) as unknown as Record<string, unknown>;
     else if (name === "alarm") result = localAlarmFromArgs(args, cleanText(args.__userInput)) as unknown as Record<string, unknown>;
     else if (name === "plan_day") result = planFromState(state, args) as unknown as Record<string, unknown>;
     else if (name === "query_personal_context") result = queryPersonalContextFromState(state, args) as unknown as Record<string, unknown>;
@@ -2637,28 +2556,6 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
     ``,
     languageInstruction,
     ``,
-    `=== REGLAS DE ROUTING POR INTENCIÓN — LÉELAS ANTES DE RESPONDER ===`,
-    `🔴 CRÍTICO ABSOLUTO — ROUTING POR INTENCIÓN: Tu trabajo es entender la INTENCIÓN del usuario (lo que quiere), no las palabras exactas. Acentos, typos, slang, voseo, abreviaturas, regionalismos NUNCA deben cambiar la tool que elegís. "cuando juega argentina", "cuándo juega argentina", "cuand juega arg" y "a q hora juegan los pibes" son TODOS la misma intención → match_schedule.`,
-    ``,
-    `🔴 REGLA DE ROUTING — DEPORTES (la más violada):`,
-    `  - Si el usuario pregunta por un RESULTADO de fútbol ("cómo le fue a X", "cómo salió X", "quién ganó X", "resultado de X") → USÁ match_live. NUNCA web_search.`,
-    `  - Si el usuario pregunta por el PRÓXIMO partido ("cuándo juega X", "a qué hora juega X", "fixture de X", "próximo partido de X") → USÁ match_schedule. NUNCA web_search.`,
-    `  - Si el usuario pregunta por tenis (alcaraz, sinner, djokovic, nadal, roland garros, wimbledon, atp, wta) → USÁ tennis_live.`,
-    `  - web_search para deportes DEVUELVE NOTICIAS GENÉRICAS SIN EL MARCADOR EXACTO. Es PEOR que match_live/match_schedule. NUNCA uses web_search para un partido específico.`,
-    `  - Esto aplica para TODA forma de preguntar: "como le fue a españa" / "cómo le fue a españa" / "kmo le fue a españa" / "che y el partido de españa" / "scaloneta" / "la roja" / "la albiceleste" / "los pibes" → TODOS son match_live o match_schedule según la intención.`,
-    ``,
-    `🔴 REGLA DE ROUTING — OTRAS TOOLS ESPECÍFICAS:`,
-    `  - Clima ("qué tiempo hace", "hace frío", "necesito paraguas", "ke tiempo hace" con typo) → weather. NO web_search.`,
-    `  - Cripto ("a cuánto está BTC", "precio de ethereum", "btc a cuanto sta") → crypto_price. NO web_search.`,
-    `  - Acciones ("cotización de AAPL", "cómo está Tesla") → stock_quote. NO web_search.`,
-    `  - Restaurantes ("dónde como", "dónde cenar", "parrilla cerca", "sushi") → restaurant_deep_search. NO web_search.`,
-    `  - Recetas ("receta de X", "qué cocino con Y", "cómo hago X") → recipe_find. NO web_search.`,
-    `  - Películas ("info de X", "reseña de X", "quién actúa en X") → movie_info. NO web_search.`,
-    `  - Libros ("quién escribió X", "de qué trata X") → book_info. NO web_search.`,
-    `  - Rutas ("cómo llego a X", "cómo voy a X", "dónde queda X") → route_traffic. NO web_search.`,
-    `  - Wikipedia ("qué es X", "quién fue X", "contame sobre X" enciclopédico) → wikipedia_lookup. NO web_search.`,
-    `  web_search es el ÚLTIMO recurso, NO el default. Solo usá web_search si NINGUNA tool específica aplica.`,
-    ``,
     `Tu personalidad: ${warmthLabel}, ${humorLabel}, directo pero sin ser frío. Proactividad ${prefs.proactivity}/10.`,
     `Sos curioso, honesto, discreto. Te gusta descubrir cosas nuevas de ${state.userName?.trim() || "mi amigo"} y recordarlas.`,
     ``,
@@ -2720,35 +2617,10 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
     `  - save_memory: Cuando el usuario revela algo importante sobre sí mismo (rutinas, metas, preferencias, relaciones).`,
     `  - save_personal_item: Cuando el usuario pide guardar algo (gasto, recordatorio, lista de compras, alarma).`,
     `REGLA CRÍTICA DE ROUTING: si el usuario pregunta por un resultado o partido de fútbol (cualquier equipo o selección), USÁ match_live, NO web_search. web_search devuelve noticias genéricas sin el marcador exacto; match_live te da el score real en tiempo real.`,
-    `- 🔴 CRÍTICO — ROUTING POR INTENCIÓN, NO POR PALABRAS: Entendés la INTENCIÓN del usuario, no las palabras exactas. Esto significa que UN ACENTO, un typo, slang, voseo, o regionalismo NUNCA deben romper la routing. El usuario puede hablar de cualquier forma y vos entendés igual. Ejemplos REALES de cómo el usuario habla y lo que vos tenés que hacer:`,
-    `  - "cuándo juega argentina" → match_schedule(team="Argentina") — el acento en "cuándo" no cambia nada`,
-    `  - "cuando juega argentina" → match_schedule(team="Argentina") — sin acento, misma intención`,
-    `  - "cuand juega arg" → match_schedule(team="Argentina") — typo y abreviatura, misma intención`,
-    `  - "a q hora juega boca?" → match_schedule(team="Boca Juniors") — abreviatura "q" en vez de "que"`,
-    `  - "che decime cuando juegan los pibes" → match_schedule(team="Argentina") — "los pibes" es slang argentino para la selección`,
-    `  - "kmo le fue a la scaloneta?" → match_live(query="Argentina") — "kmo" es typo, "scaloneta" es slang para la selección argentina`,
-    `  - "como le fue a españa ayer?" → match_live(query="España ayer") — sin acento en "España" o "como", igual`,
-    `  - "y el partido de river?" → match_live(query="River Plate") — el contexto se entiende`,
-    `  - "btc a cuanto sta?" → crypto_price(coin="bitcoin") — "sta" es typo de "está", "btc" es ticker`,
-    `  - "dame el precio del ether" → crypto_price(coin="ethereum") — "ether" coloquial para ETH`,
-    `  - "ke tiempo hace?" → weather(city=...) — "ke" es typo de "que"`,
-    `  - "donde como algo rico?" → restaurant_deep_search(query="...") — frase coloquial`,
-    `  - "algun recipe de pasta?" → recipe_find(query="pasta") — mezcla spanglish "recipe"`,
-    `  - "info de inception" → movie_info(title="Inception") — abreviatura "info"`,
-    `  - "donde queda parís?" → route_traffic(destination="París") — "queda" coloquial para ubicación`,
-    `  - "como llego al aeropuerto" → route_traffic(destination="aeropuerto") — sin acento en "cómo"`,
-    `  - "cuanto gaste ayer?" → query_personal_context(domain="money") — sin acento en "cuánto" o "gasté"`,
-    `  - "recordame llamar a juan mañana" → save_personal_item(uiBlockType="reminder", ...) — voseo "recordame"`,
-    `  - "anotá 1500 de café" → save_personal_item(uiBlockType="expense", amount=1500, ...) — voseo imperativo`,
-    `  La regla es simple: SI LA INTENCIÓN ES CLARA, USÁ LA TOOL CORRECTA. No esperes que el usuario hable con ortografía perfecta. No esperes que use las palabras exactas del ejemplo. Entendé el SIGNIFICADO, no la forma.`,
-    `  IMPORTANTÍSIMO: Si el input del usuario NO matchea literalmente ningún ejemplo de arriba pero la intención es clara (un partido, un precio, una receta, una ruta, un clima, una película, etc.), IGUAL usá la tool. Los ejemplos son solo guía — vos entendés lenguaje natural de verdad.`,
     `Usá tools SOLO cuando la intención del usuario REQUIERA datos reales del mundo (clima, búsqueda, ruta, precios, resultados deportivos, recetas, películas, libros). Por ejemplo: si el usuario dice 'hola', 'gracias', 'adiós', '¿cómo estás?' o cualquier frase de cortesía, NO uses tools. Respondé directamente con naturalidad.`,
     `- Para datos personales ya guardados, no llames tools; respondé directamente usando el contexto.`,
     `- 🔴 CRÍTICO — PROHIBIDO RAZONAMIENTO EN "reply": NUNCA incluyas tu razonamiento interno, análisis de qué tool llamar, ni texto en inglés tipo "The user is asking...", "I should use...", "Let me think..." en "reply". El campo "reply" debe contener SOLO la respuesta final al usuario, en español, cálido y directo. Si necesitás decidir una tool, EMITE tool_calls directamente en el JSON sin escribir tu razonamiento en el texto. Si estás pensando, NO escribas "thinking..." — simplemente devolvé el JSON final con la respuesta.`,
     `- 🔴 CRÍTICO — DIVISIÓN DE TRABAJO TEXTO ↔ CARD: Cuando ejecutaste CUALQUIER tool que devuelve datos (weather, match_live, movie_info, recipe_find, book_info, crypto_price, web_search, wikipedia_lookup, etc.), los datos concretos (títulos, ratings, reparto, ingredientes, pasos, scores, precios, sinopsis) ya están estructurados y se muestran en la card. Tu reply SOLO debe ENMARCAR: 1-2 líneas cálidas que conecten con el usuario y eventualmente destaquen UN dato insignia. NUNCA repitas la lista de datos que ya está en la card.`,
-    `- 🔴 CRÍTICO — USÁ LAS TOOLS: Si el usuario pide "generá una imagen", "dibujá", "creá una imagen" → USÁ la tool image_generate. NO respondas "no puedo generar imágenes". La tool SÍ puede.`,
-    `- 🔴 CRÍTICO — Si el usuario pide "armá un entrenamiento", "rutina de ejercicio", "plan de gym" → USÁ save_personal_item con uiBlockType="exercise_plan" para crear una card con el plan.`,
-    `- 🔴 CRÍTICO — Si el usuario pide "seguí mi pedido", "rastrear envío" → USÁ save_personal_item con uiBlockType="delivery" para crear una card de seguimiento.`,
     `- Ejemplos de reply CORRECTO (corto, enmarca, NO repite datos de la card):`,
     `  ✅ "Mirá, la encontré. Te la dejo en la tarjeta con todo el detalle."`,
     `  ✅ "Te dejé la receta en la tarjeta. Mirá el video al final, vale la pena."`,
@@ -4423,15 +4295,9 @@ function replyFromBlocks(blocks: UiBlock[], input: string): string {
     return best ? `Te deje una comparativa inicial. Miraria primero ${best.title}${best.vendor ? ` en ${best.vendor}` : ""}.` : "Te deje una comparativa inicial con evidencia visible.";
   }
   if (first.type === "research_sources") {
-    // 🔴 KORU 3.0 — Reply más útil: mencionar cuántas fuentes y el tema.
-    // Antes: "Traje fuentes para revisar sin inventar conclusiones" — sonaba
-    // a que no hice el trabajo. Ahora: confirmar qué se buscó y cuántas fuentes.
-    const topic = first.title && first.title !== "Noticias importantes" && first.title !== "Busqueda"
-      ? first.title
-      : (input.length > 60 ? input.slice(0, 60) + "…" : input);
     return first.sources.length
-      ? `Encontré ${first.sources.length} fuentes sobre ${topic}. Te dejé el detalle en la tarjeta.`
-      : (first.summary || `No encontré fuentes útiles sobre ${topic} en este momento.`);
+      ? `Traje fuentes para revisar sin inventar conclusiones: ${first.sources[0].domain}.`
+      : first.summary;
   }
   if (first.type === "activity_group") {
     const firstSection = first.sections[0];
@@ -5126,11 +4992,7 @@ async function executeProviderToolCalls(
     const d = await r.json().catch(() => ({}));
     return { content: d.message?.content ?? "" };
   };
-  // 🔴 KORU 3.0 — Pasar history al extractorCtx para que localReminderFromArgs
-  // pueda extraer el tema del contexto cuando el usuario dice "activa un recordatorio"
-  // sin especificar qué.
-  const extractorHistory = (request.history ?? []).slice(-10).map(h => ({ role: h.role, content: h.content }));
-  const extractorCtx = { userInput: request.input, chatFn: extractorChatFn, history: extractorHistory };
+  const extractorCtx = { userInput: request.input, chatFn: extractorChatFn };
   const deferredDataCards: Array<Promise<UiBlock | null>> = [];
 
   for (const call of toolCalls) {
@@ -5346,26 +5208,9 @@ async function getRouter(config: ProviderConfig): Promise<SemanticRouter | null>
  * Es heurística simple sobre el input, no matching de intención (eso ya lo hizo el router).
  */
 /**
- * 🔴 KORU 3.0 — Lexical route DISABLED.
- * El lexical route original (`lexicalRouteForInput`) era regex/keyword matching
- * frágil a acentos, typos, slang, regionalismos. UN ACENTO rompía el match en
- * algunos casos por el `\b` entre á (no-word char en default JS regex) y el espacio.
- * El LLM con tool-calling nativo es infinitamente más flexible: entiende INTENCIÓN,
- * no palabras. Esta shim SIEMPRE devuelve null para que el flujo principal caiga
- * al LLM con `tool_choice: "auto"`.
- *
- * La función original se conserva abajo para los tests unitarios que la invocan
- * directamente y como documentación viva de las intenciones que detectaba.
- */
-function lexicalRouteForInputDisabled(): { category: RouteCategory; tool: string; toolArgs?: Record<string, unknown> } | null {
-  return null;
-}
-
-/**
  * 🔴 KIMI v6 — Fallback léxico para keywords obvias.
- * @deprecated KORU 3.0 — Desactivado en el flujo principal. Se conserva solo
- * para tests unitarios y como documentación de intenciones. No invocar desde
- * runKoruBackendTurn — usar el LLM con tool-calling nativo.
+ * Cuando el router semántico no tiene confianza suficiente, este fallback
+ * detecta keywords específicos y deriva a la tool correcta.
  */
 function lexicalRouteForInput(input: string): { category: RouteCategory; tool: string; toolArgs?: Record<string, unknown> } | null {
   const lc = input.toLowerCase().trim();
@@ -5373,10 +5218,6 @@ function lexicalRouteForInput(input: string): { category: RouteCategory; tool: s
   if (/\b(bitcoin|btc|ethereum|eth|crypto|cripto|criptomoneda|usdt|usdc|solana|cardano|dogecoin|litecoin)\b/.test(lc)) {
     const coin = lc.match(/(bitcoin|btc|ethereum|eth|solana|cardano|dogecoin|litecoin|usdt|usdc)/)?.[1] || "bitcoin";
     return { category: "market" as RouteCategory, tool: "crypto_price", toolArgs: { coin: coin === "btc" ? "bitcoin" : coin, query: input } };
-  }
-  // Stock/Trading
-  if (/\b(aapl|apple|tesla|tsla|stock|acci[oó]n|acciones|cotizaci[oó]n|nasdaq|s&p|wall street|bolsa|mercado de valores)\b/.test(lc)) {
-    return { category: "market" as RouteCategory, tool: "stock_quote", toolArgs: { query: input, symbol: lc.match(/(aapl|apple|tesla|tsla|amazon|amzn|google|googl|meta|msft|microsoft)/)?.[1] || "" } };
   }
   // Restaurant
   if (/\b(restaurante|restaurantes|donde comer|dónde comer|dónde cenar|donde cenar|parrilla|parrilla|sushi|pizza|hamburguesa|comida|reservar mesa|comida cerca)\b/.test(lc)) {
@@ -5390,46 +5231,21 @@ function lexicalRouteForInput(input: string): { category: RouteCategory; tool: s
   if (/\b(tenis|tennis|roland garros|wimbledon|alcaraz|sinner|djokovic|nadal|atp|wta)\b/.test(lc)) {
     return { category: "sports" as RouteCategory, tool: "tennis_live", toolArgs: { query: input } };
   }
-  // Football — extraer equipo del input y distinguir match_live vs match_schedule
-  if (/\b(c[oó]mo le fue a|como le fue a|c[oó]mo sali[oó]|como salio|resultado de|partido de|jug[oó]|gano|gan[oó]|perdi[oó]|empat[oó])\b/.test(lc)) {
-    // Resultado → match_live
-    const teamMatch = lc.match(/(?:de|a|fue a|sali[oó]|resultado de|partido de)\s+([a-záéíóúñ\s]{3,30})/);
-    const team = teamMatch?.[1]?.trim() || input;
-    return { category: "sports" as RouteCategory, tool: "match_live", toolArgs: { query: team } };
-  }
-  if (/\b(cuando juega|cu[aá]ndo juega|pr[oó]ximo partido|proximo partido|fixture|pr[oó]ximos partidos|proximos partidos|agenda|calendario)\b/.test(lc)) {
-    // Fixture → match_schedule
-    const teamMatch = lc.match(/(?:de|juega|juegan|partido de|partidos de|fixture de|pr[oó]ximo partido de|proximo partido de|pr[oó]ximos partidos de|proximos partidos de)\s+([a-záéíóúñ\s]{3,30})/);
-    const team = teamMatch?.[1]?.trim() || input;
-    return { category: "sports" as RouteCategory, tool: "match_schedule", toolArgs: { team } };
-  }
   // Recipe
   if (/\b(receta|recetas|cocinar|que cocino|qué cocino|plato|platos|ingredientes|receta de)\b/.test(lc)) {
     return { category: "food" as RouteCategory, tool: "recipe_find", toolArgs: { query: input.replace(/^receta de\s+/i, "").replace(/^receta\s+/i, "") } };
   }
-  // Route map
+  // 🔴 KIMI v6 — Route map
   if (/\b(c[oó]mo llego|como llego|ruta a|direcci[oó]n?a? al?|camino a|navegar a|ir a|c[oó]mo voy|como voy|d[oó]nde queda|donde queda|indicaciones)\b/.test(lc)) {
     return { category: "travel" as RouteCategory, tool: "route_traffic", toolArgs: { destination: input, query: input } };
   }
-  // Morning brief
+  // 🔴 KIMI v6 — Morning brief ("buenos dias" ya no es trivial)
   if (/\b(buenos d[ií]as|buen d[ií]a|buen dia|que tal el d[ií]a|resumen del d[ií]a|empezamos el d[ií]a)\b/.test(lc)) {
     return { category: "action" as RouteCategory, tool: "query_personal_context", toolArgs: { query: input, domain: "morning" } };
   }
-  // Money summary
+  // 🔴 KIMI v6 — Money summary
   if (/\b(cu[aá]nto gast[eé]|gast[eé]|gastos|gasto|finanzas|presupuesto|mis gastos|resumen financiero|cu[aá]nto gast[eé] esta)\b/.test(lc)) {
     return { category: "action" as RouteCategory, tool: "query_personal_context", toolArgs: { query: input, domain: "money" } };
-  }
-  // Travel
-  if (/\b(viaje|viajar|planific[aá]?\s+un\s+viaje|itinerario|vacaciones|destino)\b/.test(lc)) {
-    return { category: "travel" as RouteCategory, tool: "web_search", toolArgs: { query: input, mode: "research" } };
-  }
-  // Elections
-  if (/\b(elecciones|escrutinio|resultados?\s+eleccion|votaci[oó]n|candidato|partido\s+pol[ií]tico)\b/.test(lc)) {
-    return { category: "elections" as RouteCategory, tool: "web_search", toolArgs: { query: input, mode: "news" } };
-  }
-  // Memory — usar query_personal_context con domain=memory
-  if (/\b(qu[eé] record[aá]s de m[ií]|qu[eé] sab[eé]s de m[ií]|qu[eé] ten[eé]s guardado|mi memoria|qu[eé] te cont[eé])\b/.test(lc)) {
-    return { category: "personal_query" as RouteCategory, tool: "query_personal_context", toolArgs: { query: input, domain: "memory" } };
   }
   return null;
 }
@@ -6248,19 +6064,11 @@ export async function runKoruBackendTurn(
       return { ...response, provider, model, fallbackReason: "fastpath-skip-router" };
     }
 
-    // 🔴 KORU 3.0 — Lexical routing DISABLED.
-    // El lexical route era regex/keyword matching con \b...\b y alternancias tipo
-    // "cuando juega|cu[aá]ndo juega" — frágil a acentos, typos, slang, regionalismos,
-    // voseo, formas no canon de hablar. UN ACENTO rompia el match en algunos casos
-    // por el \b entre á (no-word char en default JS regex) y el espacio.
-    // El LLM con tool-calling nativo entiende INTENCIÓN, no palabras. Sabe que
-    // "che decime a q hora juega argentina" → match_schedule(query="Argentina"),
-    // algo que ningún regex podria capturar.
-    // El LLM ya recibe TODAS las tools via ALL_TOOL_DEFINITIONS + tool_choice: auto.
-    // La funcion lexicalRouteForInput se conserva como artefacto muerto para
-    // referencia y para los tests que la invocan directamente; pero en el flujo
-    // de runKoruBackendTurn SIEMPRE devuelve null.
-    const lexicalRoute: { category: RouteCategory; tool: string; toolArgs?: Record<string, unknown> } | null = lexicalRouteForInputDisabled();
+    // Si el fast-path no matcheó, caer al router semántico (que requiere embeddings)
+    // 🔴 KIMI v6 — Fallback léxico para keywords obvias que el router semántico
+    // puede no capturar con confianza ≥0.65. Esto garantiza que crypto, restaurant,
+    // news y tennis deriven a sus tools específicas.
+    const lexicalRoute = lexicalRouteForInput(request.input);
     if (lexicalRoute) {
       // Override léxico — saltar el router semántico y usar la tool específica
       routeCategory = lexicalRoute.category;
@@ -6291,129 +6099,24 @@ export async function runKoruBackendTurn(
       messages.push({ role: "assistant", content: "", tool_calls: [syntheticToolCall] });
       await executeProviderToolCalls([syntheticToolCall], messages, request, toolExecutions, config);
 
-      // 🔴 KIMI v7 — Fallback inteligente según el tipo de tool que falló
+      // 🔴 KIMI v7 — Fallback a web_search si la tool falló (igual que el router path)
       if (toolExecutions.length > 0) {
         const lastResult = toolExecutions[toolExecutions.length - 1]?.result as any;
         const toolFailed = lastResult?.status === "no_data" || lastResult?.status === "failed";
         if (toolFailed && lexicalRoute.tool !== "web_search") {
-          logger.info("runKoruBackendTurn", "Lexical tool failed", {
+          logger.info("runKoruBackendTurn", "Lexical tool failed, falling back to web_search", {
             failedTool: lexicalRoute.tool, status: lastResult?.status,
           });
-
-          // 🔴 KIMI v7 — crypto_price falló → intentar Binance API directamente
-          if (lexicalRoute.tool === "crypto_price") {
-            const coin = String(lexicalRoute.toolArgs?.coin ?? "bitcoin").toLowerCase();
-            const binanceMap: Record<string, string> = {
-              bitcoin: "BTCUSDT", btc: "BTCUSDT", ethereum: "ETHUSDT", eth: "ETHUSDT",
-              solana: "SOLUSDT", sol: "SOLUSDT", cardano: "ADAUSDT", ada: "ADAUSDT",
-              dogecoin: "DOGEUSDT", doge: "DOGEUSDT", ripple: "XRPUSDT", xrp: "XRPUSDT",
-              litecoin: "LTCUSDT", ltc: "LTCUSDT", binancecoin: "BNBUSDT", bnb: "BNBUSDT",
-              polkadot: "DOTUSDT", dot: "DOTUSDT", chainlink: "LINKUSDT", link: "LINKUSDT",
-              avalanche: "AVAXUSDT", avax: "AVAXUSDT", matic: "MATICUSDT", "matic-network": "MATICUSDT",
-            };
-            const binanceSymbol = binanceMap[coin] || binanceMap[coin.replace("-", "")] || "BTCUSDT";
-            const nameMap: Record<string, string> = {
-              bitcoin: "Bitcoin", ethereum: "Ethereum", solana: "Solana", cardano: "Cardano",
-              dogecoin: "Dogecoin", ripple: "XRP", litecoin: "Litecoin", binancecoin: "BNB",
-              polkadot: "Polkadot", chainlink: "Chainlink", avalanche: "Avalanche", "matic-network": "Polygon",
-            };
-            try {
-              const binanceRes = await fetchWithTimeout(
-                `https://api.binance.com/api/v3/ticker/24hr?symbol=${binanceSymbol}`,
-                { headers: { Accept: "application/json" } },
-                8_000,
-              );
-              if (binanceRes.ok) {
-                const bd = await binanceRes.json() as any;
-                const price = parseFloat(bd.lastPrice || "0");
-                if (price > 0) {
-                  // Crear el UiBlock crypto_portfolio directamente
-                  toolExecutions.push({
-                    id: `binance_fallback_${Date.now()}`,
-                    name: "crypto_price",
-                    result: {
-                      type: "crypto_price",
-                      status: "ok",
-                      coin: nameMap[coin] || coin,
-                      symbol: binanceSymbol.replace("USDT", ""),
-                      price,
-                      currency: "USD",
-                      change24hPct: bd.priceChangePercent ? Number(parseFloat(bd.priceChangePercent).toFixed(2)) : 0,
-                      high24h: bd.highPrice ? parseFloat(bd.highPrice) : undefined,
-                      low24h: bd.lowPrice ? parseFloat(bd.lowPrice) : undefined,
-                      source: "Binance",
-                      sourceUrl: `https://www.binance.com/en/trade/${binanceSymbol}`,
-                    },
-                  });
-                  // Remover la tool fallida
-                  const failedIdx = toolExecutions.findIndex(e => (e.result as any)?.status === "no_data" || (e.result as any)?.status === "failed");
-                  if (failedIdx >= 0) toolExecutions.splice(failedIdx, 1);
-                  logger.info("runKoruBackendTurn", "Binance fallback succeeded for crypto", { coin, price });
-                }
-              }
-            } catch (binanceErr) {
-              logger.warn("runKoruBackendTurn", "Binance fallback also failed", { error: String(binanceErr) });
-            }
-          }
-
-          // 🔴 KIMI v7 — match_live/match_schedule falló → buscar con contexto deportivo
-          if (lexicalRoute.tool === "match_live" || lexicalRoute.tool === "match_schedule") {
-            const team = String(lexicalRoute.toolArgs?.query || lexicalRoute.toolArgs?.team || request.input);
-            const fallbackQuery = `${team} partido resultado futbol`;
-            const fallbackToolCall: ProviderToolCall = {
-              id: `lexical_fallback_${Date.now()}`,
-              type: "function",
-              function: { name: "web_search", arguments: JSON.stringify({ query: fallbackQuery, mode: "news" }) },
-            };
-            messages.push({ role: "assistant", content: "", tool_calls: [fallbackToolCall] });
-            await executeProviderToolCalls([fallbackToolCall], messages, request, toolExecutions, config);
-            const failedIdx = toolExecutions.findIndex(e => (e.result as any)?.status === "no_data" || (e.result as any)?.status === "failed");
-            if (failedIdx >= 0) toolExecutions.splice(failedIdx, 1);
-          }
-
-          // 🔴 KIMI v7 — tennis_live falló → buscar con contexto deportivo
-          if (lexicalRoute.tool === "tennis_live") {
-            const fallbackQuery = `${lexicalRoute.toolArgs?.query || request.input} tenis resultado`;
-            const fallbackToolCall: ProviderToolCall = {
-              id: `lexical_fallback_${Date.now()}`,
-              type: "function",
-              function: { name: "web_search", arguments: JSON.stringify({ query: fallbackQuery, mode: "news" }) },
-            };
-            messages.push({ role: "assistant", content: "", tool_calls: [fallbackToolCall] });
-            await executeProviderToolCalls([fallbackToolCall], messages, request, toolExecutions, config);
-            const failedIdx = toolExecutions.findIndex(e => (e.result as any)?.status === "no_data" || (e.result as any)?.status === "failed");
-            if (failedIdx >= 0) toolExecutions.splice(failedIdx, 1);
-          }
-
-          // 🔴 KIMI v7 — stock_quote falló → buscar con contexto financiero
-          if (lexicalRoute.tool === "stock_quote") {
-            const fallbackQuery = `${lexicalRoute.toolArgs?.symbol || request.input} stock price`;
-            const fallbackToolCall: ProviderToolCall = {
-              id: `lexical_fallback_${Date.now()}`,
-              type: "function",
-              function: { name: "web_search", arguments: JSON.stringify({ query: fallbackQuery, mode: "research" }) },
-            };
-            messages.push({ role: "assistant", content: "", tool_calls: [fallbackToolCall] });
-            await executeProviderToolCalls([fallbackToolCall], messages, request, toolExecutions, config);
-            const failedIdx = toolExecutions.findIndex(e => (e.result as any)?.status === "no_data" || (e.result as any)?.status === "failed");
-            if (failedIdx >= 0) toolExecutions.splice(failedIdx, 1);
-          }
-
-          // 🔴 KIMI v7 — Si la tool fallida NO es una de las anteriores, fallback genérico a web_search
-          const stillFailed = toolExecutions.some(e => (e.result as any)?.status === "no_data" || (e.result as any)?.status === "failed");
-          if (stillFailed && lexicalRoute.tool !== "web_search") {
-            let fallbackQuery = String(lexicalRoute.toolArgs?.query || lexicalRoute.toolArgs?.team || request.input);
-            const fallbackMode = lexicalRoute.category === "sports" ? "news" : "research";
-            const fallbackToolCall: ProviderToolCall = {
-              id: `lexical_fallback_${Date.now()}`,
-              type: "function",
-              function: { name: "web_search", arguments: JSON.stringify({ query: fallbackQuery, mode: fallbackMode }) },
-            };
-            messages.push({ role: "assistant", content: "", tool_calls: [fallbackToolCall] });
-            await executeProviderToolCalls([fallbackToolCall], messages, request, toolExecutions, config);
-            const failedIdx = toolExecutions.findIndex(e => (e.result as any)?.status === "no_data" || (e.result as any)?.status === "failed");
-            if (failedIdx >= 0) toolExecutions.splice(failedIdx, 1);
-          }
+          const fallbackQuery = lexicalRoute.toolArgs?.query || request.input;
+          const fallbackToolCall: ProviderToolCall = {
+            id: `lexical_fallback_${Date.now()}`,
+            type: "function",
+            function: { name: "web_search", arguments: JSON.stringify({ query: fallbackQuery, mode: "research" }) },
+          };
+          messages.push({ role: "assistant", content: "", tool_calls: [fallbackToolCall] });
+          await executeProviderToolCalls([fallbackToolCall], messages, request, toolExecutions, config);
+          const failedIdx = toolExecutions.findIndex(e => (e.result as any)?.status === "no_data" || (e.result as any)?.status === "failed");
+          if (failedIdx >= 0) toolExecutions.splice(failedIdx, 1);
         }
       }
 
@@ -6478,73 +6181,13 @@ export async function runKoruBackendTurn(
             block.sections = lexSections;
             if (sourceSection) block.sections.push(sourceSection);
           }
-          // 🔴 KIMI v7 — Transformar deliverable genérico en el block type correcto
-          // según el tool original del lexical route
-          if (block.type === "deliverable") {
-            const tool = lexicalRoute.tool;
-            const sources = (block as any).sources || [];
-            const summary = (block as any).summary || lexEffectiveSummary || "";
-            const sections = (block as any).sections || [];
-
-            if (tool === "route_traffic" || tool === "web_search" && lexicalRoute.category === "travel") {
-              // Transformar a route_map
-              const dest = String(lexicalRoute.toolArgs?.destination || request.input).replace(/como llego al?/i, "").trim();
-              Object.assign(block, {
-                type: "route_map",
-                to: dest,
-                from: undefined,
-                distance: undefined,
-                remaining: undefined,
-                sources,
-              });
-            } else if (tool === "web_search" && lexicalRoute.category === "elections") {
-              // Transformar a election_results
-              Object.assign(block, {
-                type: "election_results",
-                title: "Resultados electorales",
-                status: "Parcial",
-                candidates: [],
-                participationPct: undefined,
-                sources,
-              });
-            } else if (tool === "web_search" && lexicalRoute.category === "travel") {
-              // Transformar a travel_planner
-              const dest = request.input.replace(/planific[aá] un viaje a/i, "").trim();
-              Object.assign(block, {
-                type: "travel_planner",
-                destination: dest,
-                dates: undefined,
-                travelers: 1,
-                sources,
-              });
-            } else if (tool === "web_search" && lexicalRoute.category === "sports") {
-              // Mantener deliverable pero con mejor título
-              const team = String(lexicalRoute.toolArgs?.query || lexicalRoute.toolArgs?.team || "").replace(/partido resultado futbol/i, "").trim();
-              (block as any).title = team ? `Último partido de ${team}` : "Resultado deportivo";
-            } else if (tool === "web_search" && lexicalRoute.category === "market") {
-              // Mantener deliverable pero con mejor título
-              (block as any).title = "Cotización";
-            }
-          }
         }
       }
       return { ...lexResponse, provider, model, fallbackReason: "lexical-" + lexicalRoute.category };
     }
 
     const router = await getRouter(config);
-    const routerEnabled = false; // 🔴 KORU 3.0 — semantic router disabled as gate
-    if (routerEnabled && router) {
-      // 🔴 KORU 3.0 — Semantic Router DISABLED as primary routing gate.
-      // El router semántico usaba embeddings + umbral 0.65 para decidir la tool.
-      // Problema: si la confianza era 0.64, caía al flujo nativo; si era 0.66,
-      // forzaba una tool que podria no ser la correcta. Es un filtro binario
-      // artificial que no se adapta a cómo habla el usuario.
-      // El LLM con tool-calling nativo es infinitamente mas flexible: entiende
-      // contexto, intencion, slang, acentos, typos, voseo, frases incompletas.
-      // Ej: "che y como le fue a la scaloneta?" → match_live(query="Argentina")
-      // sin que un embedding tenga que pre-clasificarlo.
-      // El router se mantiene como clase para los tests unitarios, pero en el
-      // flujo de runKoruBackendTurn no se consulta.
+    if (router) {
       try {
         const routeStart = Date.now();
         const route = await router.route(request.input);
@@ -6985,42 +6628,17 @@ export async function runKoruBackendTurn(
   const content = cleanText(firstMessage.content, "No pude componer una respuesta util.");
   const simulatedCall = detectSimulatedToolCall(content);
   if (simulatedCall) {
-    // 🔴 KORU 3.0 — Extraer args del input del usuario.
-    // El LLM a veces emite {"tool":"match_schedule","arguments":{"team":"cuándo juega argentina"}}
-    // pasando el input COMPLETO como team. Eso genera búsquedas basura en TheSportsDB.
-    // Para tools donde tenemos patrones confiables (sports, crypto, weather, food, media),
-    // SIEMPRE preferimos extractArgsFromUserInput sobre los args del LLM.
-    // Para otras tools, usamos los args del LLM si los pasó, sino extraemos del input.
-    const TOOLS_WITH_RELIABLE_PATTERNS = new Set([
-      "match_schedule", "match_live", "crypto_price", "weather",
-      "restaurant_deep_search", "recipe_find", "movie_info", "book_info",
-      "wikipedia_lookup",
-    ]);
-    let finalArgs = simulatedCall.arguments;
-    if (TOOLS_WITH_RELIABLE_PATTERNS.has(simulatedCall.name)) {
-      // Para estas tools, SIEMPRE extraer del user input (más confiable que el LLM)
-      const extracted = extractArgsFromUserInput(simulatedCall.name, request.input);
-      // Solo usar extracted si tiene al menos un campo relevante
-      if (Object.keys(extracted).length > 0) {
-        finalArgs = extracted;
-      }
-    } else if (!finalArgs || Object.keys(finalArgs).length === 0) {
-      // Para otras tools, solo extraer si el LLM no pasó args
-      finalArgs = extractArgsFromUserInput(simulatedCall.name, request.input);
-    }
     logger.info("runKoruBackendTurn", "Simulated tool-call detected", {
       tool: simulatedCall.name,
       format: simulatedCall.format,
-      argsKeys: Object.keys(finalArgs),
-      llmArgsKeys: Object.keys(simulatedCall.arguments),
-      usedExtracted: TOOLS_WITH_RELIABLE_PATTERNS.has(simulatedCall.name),
+      argsKeys: Object.keys(simulatedCall.arguments),
     });
     const syntheticToolCall: ProviderToolCall = {
       id: `sim_${Date.now()}`,
       type: "function",
       function: {
         name: simulatedCall.name,
-        arguments: JSON.stringify(finalArgs),
+        arguments: JSON.stringify(simulatedCall.arguments),
       },
     };
     const query = simulatedCall.name === "web_search" ? cleanText(simulatedCall.arguments.query as string) : undefined;
@@ -7036,40 +6654,12 @@ export async function runKoruBackendTurn(
     });
     messages.push({ role: "assistant", content: "", tool_calls: [syntheticToolCall] });
     const delivered = await executeProviderToolCalls([syntheticToolCall], messages, request, toolExecutions, config);
-    // 🔴 KORU 3.0 — SIEMPRE hacer la segunda llamada LLM para síntesis.
-    // Antes: si `delivered=true`, retornabamos directo con finalizePayload
-    // (sin LLM synthesis). Eso hacía que web_search devolviera SOLO fuentes
-    // con un reply genérico ("Traje fuentes para revisar sin inventar
-    // conclusiones") en vez de un informe real redactado sobre lo que se pidió.
-    // Ahora: SIEMPRE hacemos la 2da llamada para que el LLM redacte un summary
-    // basado en los tool results, EXCEPTO si la tool es una acción local pura
-    // (save_personal_item, reminder_set, alarm_set, etc.) que ya tiene reply.
-    const isLocalActionTool = ["save_personal_item", "save_memory", "reminder_set",
-      "alarm_set", "countdown", "plan_day", "query_personal_context",
-      "calendar_add"].includes(simulatedCall.name);
-
-    if (delivered && isLocalActionTool) {
-      // Acciones locales: no necesitan síntesis LLM, ya tienen reply en el tool result.
-      const response = await finalizePayload(request, config, { reply: "", mascotState: "happy", uiBlocks: [] } as Record<string, unknown>, toolExecutions, extractorTimeout);
-      return { ...response, provider, model, fallbackReason: (fallbackReason ? fallbackReason + " + " : "") + "simulated-tool-local" };
+    if (delivered) {
+      const response = await finalizePayload(request, config, delivered, toolExecutions, extractorTimeout);
+      return { ...response, provider, model, fallbackReason: (fallbackReason ? fallbackReason + " + " : "") + "simulated-tool" };
     }
-
-    // Para web_search y otras tools que devuelven datos, hacer síntesis LLM.
     // Paso 2: segunda llamada (sin tools) para que el LLM síntetice la respuesta final.
-    // 🔴 KORU 3.0 — Prompt mejorado: pedir EXPLÍCITAMENTE un summary redactado
-    // con datos concretos de las fuentes, NO solo "traje fuentes".
-    messages.push({ role: "user", content: [
-      "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }.",
-      "",
-      "Tu trabajo ahora es SINTETIZAR los resultados de las tools en una respuesta útil al usuario.",
-      "NO digas 'traje fuentes' o 'mirá las fuentes'. REDACTÁ un informe real:",
-      "- reply: 1-2 líneas cálidas que enmarcan lo que encontraste.",
-      "- En el reply, MENCIONÁ al menos UN dato concreto (fecha, cifra, nombre, evento) que aparezca en los tool results.",
-      "- Si las fuentes no tienen datos suficientes, decí honestamente 'no encontré datos suficientes sobre X'.",
-      "- NO inventes datos que no estén en los tool results.",
-      "",
-      "Formato: {\"reply\":\"...\",\"mascotState\":\"happy\"}",
-    ].join("\n") });
+    messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }." });
     const secondResult = await callProvider(config, messages, secondaryTimeout, false, preferredProvider, undefined, modelOverride);
     provider = secondResult.provider;
     model = secondResult.model ?? model;
@@ -7131,38 +6721,10 @@ export async function runKoruBackendTurn(
       }
     }
     if (!parsed) {
-      // 🔴 KIMI v7 — Antes de caer al fallback de texto plano, intentar detectar
-      // tool calls simuladas en el contenido (el Nemotron a veces devuelve
-      // {"tool_calls":[...]} como texto plano en lugar de JSON válido).
-      const simulatedFromPlain = detectSimulatedToolCall(content);
-      if (simulatedFromPlain) {
-        // 🔴 KORU 3.0 — mismo fix que arriba: extraer args del user input
-        let finalArgsPlain = simulatedFromPlain.arguments;
-        if (!finalArgsPlain || Object.keys(finalArgsPlain).length === 0) {
-          finalArgsPlain = extractArgsFromUserInput(simulatedFromPlain.name, request.input);
-        }
-        logger.info("runKoruBackendTurn", "Simulated tool-call detected in plain text fallback", {
-          tool: simulatedFromPlain.name,
-          format: simulatedFromPlain.format,
-          argsKeys: Object.keys(finalArgsPlain),
-        });
-        const syntheticToolCall: ProviderToolCall = {
-          id: `sim_plain_${Date.now()}`,
-          type: "function",
-          function: {
-            name: simulatedFromPlain.name,
-            arguments: JSON.stringify(finalArgsPlain),
-          },
-        };
-        messages.push({ role: "assistant", content: "", tool_calls: [syntheticToolCall] });
-        const delivered = await executeProviderToolCalls([syntheticToolCall], messages, request, toolExecutions, config);
-        if (delivered) {
-          const response = await finalizePayload(request, config, delivered, toolExecutions, extractorTimeout);
-          return { ...response, provider, model, fallbackReason: (fallbackReason ? fallbackReason + " + " : "") + "simulated-tool-plain" };
-        }
-      }
-
-      // 🔴 FIX CRÍTICO: el LLM respondió con texto plano (no JSON).
+      // 🔴 FIX CRÍTICO: el LLM respondió con texto plano (no JSON). En lugar de mostrar
+      // "No pude armar una respuesta clara", USAR el texto plano del LLM como reply.
+      // El LLM suele dar respuestas conversacionales válidas en texto plano cuando
+      // no necesita tools (follow-ups, opiniones, charla). Descartar eso es un error.
       const plainReply = cleanReplyText(content);
       const effectiveReply = (plainReply && plainReply.trim().length > 10)
         ? plainReply.trim()
