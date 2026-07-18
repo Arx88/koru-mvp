@@ -4635,6 +4635,17 @@ function normalizeFinalPayload(
     : mergeModelAndToolBlocks(modelBlocks, toolBlocks);
   const captures = personalCapturesFromTools(toolExecutions);
   const localActions = localActionsFromTools(toolExecutions);
+  // 🔴 KORU 3.0 — DEBUG TEMPORAL: ver por qué no se extraen commitments
+  if (captures.length === 0 && toolExecutions.some(e => (e.result as any)?.type === "personal_capture")) {
+    console.warn("[normalizeFinalPayload] personal_capture found but captures empty!", {
+      toolExecutionsTypes: toolExecutions.map(e => (e.result as any)?.type),
+    });
+  }
+  logger.info("normalizeFinalPayload", "captures extracted", {
+    capturesCount: captures.length,
+    capturesCommitments: captures.flatMap(c => c.commitments ?? []).length,
+    toolExecutionsTypes: toolExecutions.map(e => (e.result as any)?.type),
+  });
   const memoryCaptures = memoryCapturesFromTools(toolExecutions);
   const toolResults: ToolResult[] = toolExecutions.map((execution, index) => {
     const resultAny = execution.result as Record<string, unknown>;
