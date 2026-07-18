@@ -401,6 +401,55 @@ export const ALL_TOOL_DEFINITIONS = [
 ];
 
 /**
+ * 🔴 KORU 3.0 — Curated core tool list for LLM tool-calling.
+ *
+ * ALL_TOOL_DEFINITIONS tiene 135 tools. Nemotron-3-Ultra con 135 tools se
+ * abruma: tarda demasiado, emite texto no-JSON, o no llama ninguna tool.
+ *
+ * CORE_TOOL_DEFINITIONS es una selección curada de ~30 tools que cubren
+ * 95% de los casos de uso reales de un asistente personal. Las tools
+ * excluidas son: duplicadas (route_plan vs route_planner), raras
+ * (moon_phase, holidays, qr_generate), o especializadas que el LLM rara
+ * vez elige correctamente.
+ *
+ * El LLM recibe CORE_TOOL_DEFINITIONS con tool_choice: "auto". Sigue
+ * teniendo libertad total para elegir la tool correcta — solo que ahora
+ * no se abruma con 135 opciones.
+ *
+ * Si una tool específica no está en CORE pero el usuario la pide
+ * explícitamente, el LLM debe responder con honestidad en "reply"
+ * (no inventar una tool call).
+ */
+const CORE_TOOL_NAMES = new Set([
+  // Builtins
+  "weather", "web_search", "shopping_compare", "plan_day",
+  "query_personal_context", "save_memory", "save_personal_item",
+  // Money
+  "crypto_price", "stock_quote", "currency_convert", "expense_track",
+  // Sports
+  "match_live", "match_schedule", "tennis_live",
+  // Food
+  "restaurant_deep_search", "recipe_find", "food_info", "wine_pairing",
+  // Travel
+  "route_plan", "travel_itinerary", "flight_search", "hotel_search",
+  // Media
+  "movie_info", "book_info", "game_info", "person_info", "image_generate",
+  // Knowledge
+  "wikipedia_lookup", "dictionary_define", "math_calc", "unit_convert",
+  // News
+  "news_topic", "news_urgent_search", "trending_twitter",
+  // Productivity
+  "reminder_set", "alarm_set", "countdown", "calendar_add",
+  "deep_research", "summarize_url", "translate",
+  // Health
+  "medication_reminder", "mood_track", "habit_streak",
+]);
+
+export const CORE_TOOL_DEFINITIONS = ALL_TOOL_DEFINITIONS.filter(
+  (t) => t?.function?.name && CORE_TOOL_NAMES.has(t.function.name),
+);
+
+/**
  * Mapeo de categorías del Semantic Router a las tools relevantes.
  * Solo estas tools se envían al LLM cuando el router detecta una categoría
  * con alta confianza, reduciendo drásticamente el tamaño del prompt

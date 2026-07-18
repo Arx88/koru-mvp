@@ -2,7 +2,7 @@ import type { ToolDefinition } from "../../tools/types";
 import type { ProviderConfig, ChatMessage, ProviderResult, ProviderMessage, LlmProvider } from "./types";
 import { fetchWithTimeout, providerUrl } from "./fetch";
 import { asArray, asRecord, asString, cleanText } from "../json";
-import { ALL_TOOL_DEFINITIONS, hasUsableAssistantMessage } from "../koruBackend";
+import { ALL_TOOL_DEFINITIONS, CORE_TOOL_DEFINITIONS, hasUsableAssistantMessage } from "../koruBackend";
 import { isOllamaUrl } from "./ollama";
 
 export async function callNvidia(
@@ -24,7 +24,7 @@ export async function callNvidia(
       stream: false,
     };
     if (toolsEnabled) {
-      body.tools = availableTools ?? ALL_TOOL_DEFINITIONS;
+      body.tools = availableTools ?? CORE_TOOL_DEFINITIONS;
     }
     const response = await fetchWithTimeout(providerUrl(config.nvidiaBaseUrl, "/api/chat"), {
       method: "POST",
@@ -70,7 +70,7 @@ export async function callNvidia(
   const body: Record<string, unknown> = {
     model: useModel,
     messages,
-    ...(toolsEnabled ? { tools: availableTools ?? ALL_TOOL_DEFINITIONS, tool_choice: "auto" } : {}),
+    ...(toolsEnabled ? { tools: availableTools ?? CORE_TOOL_DEFINITIONS, tool_choice: "auto" } : {}),
     // Fase 4.2: JSON mode strict. Cuando no hay tools (síntesis final),
     // pedir response_format json_object para que Nemotron devuelva JSON válido.
     // Esto elimina el fallback first-call-invalid-json.
