@@ -6911,23 +6911,35 @@ export async function runKoruBackendTurn(
   const content = cleanText(firstMessage.content, "No pude componer una respuesta util.");
   const simulatedCall = detectSimulatedToolCall(content);
   if (simulatedCall) {
-    // 🔴 KORU 3.0 — Si el detector no pudo extraer argumentos (arguments={}),
-    // intentar extraerlos del input del usuario con extractArgsFromUserInput.
-    // Esto es lo que permite que "cuando juega argentina" → match_schedule(team="argentina")
-    // en vez de match_schedule(team="cuando juega argentina").
+    // 🔴 KORU 3.0 — Extraer args del input del usuario.
+    // El LLM a veces emite {"tool":"match_schedule","arguments":{"team":"cuándo juega argentina"}}
+    // pasando el input COMPLETO como team. Eso genera búsquedas basura en TheSportsDB.
+    // Para tools donde tenemos patrones confiables (sports, crypto, weather, food, media),
+    // SIEMPRE preferimos extractArgsFromUserInput sobre los args del LLM.
+    // Para otras tools, usamos los args del LLM si los pasó, sino extraemos del input.
+    const TOOLS_WITH_RELIABLE_PATTERNS = new Set([
+      "match_schedule", "match_live", "crypto_price", "weather",
+      "restaurant_deep_search", "recipe_find", "movie_info", "book_info",
+      "wikipedia_lookup",
+    ]);
     let finalArgs = simulatedCall.arguments;
-    if (!finalArgs || Object.keys(finalArgs).length === 0) {
+    if (TOOLS_WITH_RELIABLE_PATTERNS.has(simulatedCall.name)) {
+      // Para estas tools, SIEMPRE extraer del user input (más confiable que el LLM)
+      const extracted = extractArgsFromUserInput(simulatedCall.name, request.input);
+      // Solo usar extracted si tiene al menos un campo relevante
+      if (Object.keys(extracted).length > 0) {
+        finalArgs = extracted;
+      }
+    } else if (!finalArgs || Object.keys(finalArgs).length === 0) {
+      // Para otras tools, solo extraer si el LLM no pasó args
       finalArgs = extractArgsFromUserInput(simulatedCall.name, request.input);
-      logger.info("runKoruBackendTurn", "Extracted args from user input", {
-        tool: simulatedCall.name,
-        userInput: request.input,
-        extractedArgs: finalArgs,
-      });
     }
     logger.info("runKoruBackendTurn", "Simulated tool-call detected", {
       tool: simulatedCall.name,
       format: simulatedCall.format,
       argsKeys: Object.keys(finalArgs),
+      llmArgsKeys: Object.keys(simulatedCall.arguments),
+      usedExtracted: TOOLS_WITH_RELIABLE_PATTERNS.has(simulatedCall.name),
     });
     const syntheticToolCall: ProviderToolCall = {
       id: `sim_${Date.now()}`,
