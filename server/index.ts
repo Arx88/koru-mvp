@@ -335,7 +335,6 @@ export async function koruRequestHandler(req: http.IncomingMessage, res: http.Se
           mascotState: "tired",
           provider: "nvidia",
           fallbackReason: "server-error",
-          __debugError: errMsg, // 🔴 KORU 3.0 — temp debug
         };
         try { res.write(JSON.stringify(errorResponse) + "\n"); } catch {}
       }
