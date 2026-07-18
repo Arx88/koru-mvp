@@ -17,7 +17,7 @@ import { selectRelevantMemories } from "../domain/store";
 import { generateEnhancements, enhancementPrompt } from "../domain/enhancementEngine";
 import { extractOpportunities } from "../domain/enhancementExtractor";
 import { extractStructuredData, type ChatFn as ExtractorChatFn, type ExtractionResult } from "../domain/structureExtractor";
-import { detectSimulatedToolCall } from "../domain/simulatedToolDetector";
+import { detectSimulatedToolCall, extractArgsFromUserInput } from "../domain/simulatedToolDetector";
 import { SemanticRouter, type EmbedFn, type RouteResult, type RouteCategory, keywordFastPath } from "../domain/semanticRouter";
 import { logger, dump } from "./logger";
 import type { ToolDefinition } from "../tools/types";
@@ -6729,17 +6729,45 @@ export async function runKoruBackendTurn(
   const content = cleanText(firstMessage.content, "No pude componer una respuesta util.");
   const simulatedCall = detectSimulatedToolCall(content);
   if (simulatedCall) {
+    // 🔴 KORU 3.0 — Extraer args del input del usuario cuando el LLM no los pasa
+    // correctamente. El LLM a veces emite {"tool":"match_live","arguments":{"query":"cuando juega boca"}}
+    // pasando el input COMPLETO como query. extractArgsFromUserInput extrae solo "boca".
+    const TOOLS_WITH_RELIABLE_PATTERNS = new Set([
+      "match_schedule", "match_live", "crypto_price", "weather",
+      "restaurant_deep_search", "recipe_find", "movie_info", "book_info",
+      "wikipedia_lookup",
+    ]);
+    let finalArgs = simulatedCall.arguments;
+    if (TOOLS_WITH_RELIABLE_PATTERNS.has(simulatedCall.name)) {
+      const extracted = extractArgsFromUserInput(simulatedCall.name, request.input);
+      if (Object.keys(extracted).length > 0) {
+        // Solo usar extracted si tiene al menos un campo con valor
+        const hasValues = Object.values(extracted).some(v => v && String(v).trim().length >= 2);
+        if (hasValues) {
+          finalArgs = extracted;
+          logger.info("runKoruBackendTurn", "Extracted args from user input", {
+            tool: simulatedCall.name,
+            userInput: request.input,
+            extractedArgs: finalArgs,
+          });
+        }
+      }
+    } else if (!finalArgs || Object.keys(finalArgs).length === 0) {
+      finalArgs = extractArgsFromUserInput(simulatedCall.name, request.input);
+    }
     logger.info("runKoruBackendTurn", "Simulated tool-call detected", {
       tool: simulatedCall.name,
       format: simulatedCall.format,
-      argsKeys: Object.keys(simulatedCall.arguments),
+      argsKeys: Object.keys(finalArgs),
+      llmArgsKeys: Object.keys(simulatedCall.arguments),
+      usedExtracted: TOOLS_WITH_RELIABLE_PATTERNS.has(simulatedCall.name),
     });
     const syntheticToolCall: ProviderToolCall = {
       id: `sim_${Date.now()}`,
       type: "function",
       function: {
         name: simulatedCall.name,
-        arguments: JSON.stringify(simulatedCall.arguments),
+        arguments: JSON.stringify(finalArgs),
       },
     };
     const query = simulatedCall.name === "web_search" ? cleanText(simulatedCall.arguments.query as string) : undefined;
