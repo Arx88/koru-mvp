@@ -322,8 +322,10 @@ export async function koruRequestHandler(req: http.IncomingMessage, res: http.Se
         try { res.write(JSON.stringify(result) + "\n"); } catch {}
       } catch (err: any) {
         clearInterval(heartbeat);
+        const errMsg = err?.message ?? "Error interno";
+        console.error("[koru-turn] EXCEPTION:", errMsg, err?.stack?.slice(0, 500));
         const errorResponse = {
-          error: err?.message ?? "Error interno",
+          error: errMsg,
           reply: "No pude procesar tu mensaje. El modelo no respondió a tiempo.",
           uiBlocks: [],
           suggestedActions: [],
@@ -333,6 +335,7 @@ export async function koruRequestHandler(req: http.IncomingMessage, res: http.Se
           mascotState: "tired",
           provider: "nvidia",
           fallbackReason: "server-error",
+          __debugError: errMsg, // 🔴 KORU 3.0 — temp debug
         };
         try { res.write(JSON.stringify(errorResponse) + "\n"); } catch {}
       }
