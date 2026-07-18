@@ -6952,7 +6952,7 @@ export async function runKoruBackendTurn(
     const delivered = await executeProviderToolCalls([syntheticToolCall], messages, request, toolExecutions, config);
     if (delivered) {
       const response = await finalizePayload(request, config, delivered, toolExecutions, extractorTimeout);
-      return { ...response, provider, model, fallbackReason: (fallbackReason ? fallbackReason + " + " : "") + "simulated-tool" };
+      return { ...response, provider, model, fallbackReason: (fallbackReason ? fallbackReason + " + " : "") + "simulated-tool", __debugRawContent: content.slice(0, 800), __debugSimulatedArgs: finalArgs } as any;
     }
     // Paso 2: segunda llamada (sin tools) para que el LLM síntetice la respuesta final.
     messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }." });
