@@ -209,7 +209,7 @@ export const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "web_search",
-      description: "Busca información actualizada en internet cuando el usuario pregunte sobre algo que ocurre en el mundo exterior y que no está en su contexto personal. Esto incluye: eventos recientes, noticias, figuras públicas, tendencias, avances científicos, datos de mercados, precios de activos, deportes, política, cultura, o cualquier tema que requiera consultar fuentes externas porque cambia con el tiempo. El usuario puede pedir esto de cualquier forma: '¿Qué pasó con...?', '¿Cómo va...?', '¿Quién ganó...?', '¿Cuáles son las últimas...?', o incluso solo mencionando el tema sin pedir explícitamente una búsqueda.",
+      description: "ULTIMO RECURSO. Busca información en internet cuando NINGUNA tool específica aplica. NO uses web_search para: deportes (usá match_live/match_schedule/tennis_live), clima (weather), cripto (crypto_price), acciones (stock_quote), restaurantes (restaurant_deep_search), recetas (recipe_find), películas (movie_info), libros (book_info), rutas (route_traffic), Wikipedia (wikipedia_lookup). web_search es para: noticias generales (no deportivas), eventos actuales, figuras públicas, tendencias, avances científicos, política, cultura, o cualquier tema que cambie con el tiempo Y que no tenga una tool específica. Si el usuario pregunta por un partido de fútbol, NO uses web_search — usá match_live o match_schedule.",
       parameters: {
         type: "object",
         additionalProperties: false,
