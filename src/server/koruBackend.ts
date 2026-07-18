@@ -4873,6 +4873,28 @@ function normalizeFinalPayload(
       dataCommitments: (tr as any)?.data?.commitments?.length ?? 0,
     })),
   });
+  // 🔴 KORU 3.0 — FALLBACK FINAL: si por alguna razón los commitments no se
+  // extrajeron arriba, extraerlos AHORA de toolResults.data antes de retornar.
+  // Esto es una safety net para garantizar que NUNCA se pierdan commitments.
+  if (result.commitments.length === 0) {
+    for (const tr of toolResults as any[]) {
+      if (tr?.data?.commitments && Array.isArray(tr.data.commitments)) {
+        result.commitments.push(...tr.data.commitments);
+      }
+    }
+    if (result.commitments.length > 0) {
+      logger.info("normalizeFinalPayload", "FALLBACK extracted commitments", {
+        count: result.commitments.length,
+      });
+    }
+  }
+  if (result.records.length === 0) {
+    for (const tr of toolResults as any[]) {
+      if (tr?.data?.records && Array.isArray(tr.data.records)) {
+        result.records.push(...tr.data.records);
+      }
+    }
+  }
   // 🔴 KIMI v6 — Bug fix adicional: si el único uiBlock es un reminder con la
   // pregunta del usuario como title, el commitment correspondiente es basura.
   // Ej: "que recordas de mi" → reminder con title="que recordas de mi" + commitment.
