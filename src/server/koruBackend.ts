@@ -2180,8 +2180,14 @@ export function inferLinkCollection(url: string, text: string): string {
 export function personalCaptureFromArgs(args: Record<string, unknown>, input = ""): PersonalCaptureData {
   const cleanArgs = argsWithCaptureHygiene(args, input);
   const requestedType = cleanText(cleanArgs.uiBlockType, "saved_record");
-  const uiBlockType = ["reminder", "alarm", "shopping_list", "saved_record", "money_summary", "birthday_calendar", "birthday_alarm", "social_interaction"].includes(requestedType)
-    ? requestedType
+  // 🔴 KORU 3.0 — Detectar intención de recordatorio del input del usuario.
+  // Si el LLM llamó save_personal_item pero el input dice "recordame"/"avisame"/
+  // "activa un recordatorio", tratar como reminder (crear commitment).
+  const reminderIntent = /\b(recordame|recuerdame|avisame|avisa|no me olvides|no te olvides|activa un recordatorio|activa recordatorio|recordar|recordarme|avisarme|recuérdame|recuerda que)\b/i.test(input);
+  const alarmIntent = /\b(alarma|despertador|wake me|wake me up)\b/i.test(input);
+  const inferredType = alarmIntent ? "alarm" : reminderIntent ? "reminder" : requestedType;
+  const uiBlockType = ["reminder", "alarm", "shopping_list", "saved_record", "money_summary", "birthday_calendar", "birthday_alarm", "social_interaction"].includes(inferredType)
+    ? inferredType
     : "saved_record";
   const title = cleanText(cleanArgs.title, input || "Dato guardado");
   const dueText = cleanText(cleanArgs.dueText);
