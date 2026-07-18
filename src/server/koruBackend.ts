@@ -17,7 +17,7 @@ import { selectRelevantMemories } from "../domain/store";
 import { generateEnhancements, enhancementPrompt } from "../domain/enhancementEngine";
 import { extractOpportunities } from "../domain/enhancementExtractor";
 import { extractStructuredData, type ChatFn as ExtractorChatFn, type ExtractionResult } from "../domain/structureExtractor";
-import { detectSimulatedToolCall } from "../domain/simulatedToolDetector";
+import { detectSimulatedToolCall, extractArgsFromUserInput } from "../domain/simulatedToolDetector";
 import { SemanticRouter, type EmbedFn, type RouteResult, type RouteCategory, keywordFastPath } from "../domain/semanticRouter";
 import { logger, dump } from "./logger";
 import type { ToolDefinition } from "../tools/types";
@@ -6911,17 +6911,30 @@ export async function runKoruBackendTurn(
   const content = cleanText(firstMessage.content, "No pude componer una respuesta util.");
   const simulatedCall = detectSimulatedToolCall(content);
   if (simulatedCall) {
+    // 🔴 KORU 3.0 — Si el detector no pudo extraer argumentos (arguments={}),
+    // intentar extraerlos del input del usuario con extractArgsFromUserInput.
+    // Esto es lo que permite que "cuando juega argentina" → match_schedule(team="argentina")
+    // en vez de match_schedule(team="cuando juega argentina").
+    let finalArgs = simulatedCall.arguments;
+    if (!finalArgs || Object.keys(finalArgs).length === 0) {
+      finalArgs = extractArgsFromUserInput(simulatedCall.name, request.input);
+      logger.info("runKoruBackendTurn", "Extracted args from user input", {
+        tool: simulatedCall.name,
+        userInput: request.input,
+        extractedArgs: finalArgs,
+      });
+    }
     logger.info("runKoruBackendTurn", "Simulated tool-call detected", {
       tool: simulatedCall.name,
       format: simulatedCall.format,
-      argsKeys: Object.keys(simulatedCall.arguments),
+      argsKeys: Object.keys(finalArgs),
     });
     const syntheticToolCall: ProviderToolCall = {
       id: `sim_${Date.now()}`,
       type: "function",
       function: {
         name: simulatedCall.name,
-        arguments: JSON.stringify(simulatedCall.arguments),
+        arguments: JSON.stringify(finalArgs),
       },
     };
     const query = simulatedCall.name === "web_search" ? cleanText(simulatedCall.arguments.query as string) : undefined;
@@ -7009,16 +7022,22 @@ export async function runKoruBackendTurn(
       // {"tool_calls":[...]} como texto plano en lugar de JSON válido).
       const simulatedFromPlain = detectSimulatedToolCall(content);
       if (simulatedFromPlain) {
+        // 🔴 KORU 3.0 — mismo fix que arriba: extraer args del user input
+        let finalArgsPlain = simulatedFromPlain.arguments;
+        if (!finalArgsPlain || Object.keys(finalArgsPlain).length === 0) {
+          finalArgsPlain = extractArgsFromUserInput(simulatedFromPlain.name, request.input);
+        }
         logger.info("runKoruBackendTurn", "Simulated tool-call detected in plain text fallback", {
           tool: simulatedFromPlain.name,
           format: simulatedFromPlain.format,
+          argsKeys: Object.keys(finalArgsPlain),
         });
         const syntheticToolCall: ProviderToolCall = {
           id: `sim_plain_${Date.now()}`,
           type: "function",
           function: {
             name: simulatedFromPlain.name,
-            arguments: JSON.stringify(simulatedFromPlain.arguments),
+            arguments: JSON.stringify(finalArgsPlain),
           },
         };
         messages.push({ role: "assistant", content: "", tool_calls: [syntheticToolCall] });

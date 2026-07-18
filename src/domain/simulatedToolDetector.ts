@@ -239,7 +239,8 @@ export function detectSimulatedToolCall(content: string): SimulatedToolCall | nu
   //   "I'll use match_schedule to find..."
   //   "Voy a usar match_schedule para..."
   //   "Debería usar match_schedule."
-  // Extraemos el nombre de la tool y usamos el input del usuario como query.
+  // Extraemos el nombre de la tool y los argumentos del texto del usuario
+  // (que se pasa como segundo argumento).
   const NL_PATTERNS = [
     /(?:i\s+(?:should|will|'ll|am\s+going\s+to|need\s+to|have\s+to)\s+(?:use|call|invoke|run))\s+(?:the\s+)?([a-z_]+)(?:\s+tool)?/i,
     /(?:let\s+me\s+(?:use|call|invoke|run))\s+(?:the\s+)?([a-z_]+)(?:\s+tool)?/i,
@@ -253,12 +254,93 @@ export function detectSimulatedToolCall(content: string): SimulatedToolCall | nu
     if (m) {
       const name = m[1].toLowerCase().replace(/[^a-z_]/g, "");
       if (VALID_TOOL_NAMES.has(name)) {
-        // Sin argumentos explícitos — devolver args vacío y dejar que el
-        // ejecutor de la tool use __userInput como fallback.
+        // Sin argumentos explícitos — devolver args vacío. El executor usa
+        // __userInput como fallback y la tool hace su propio cleanup.
         return { name, arguments: {}, format: "call_prefix" };
       }
     }
   }
 
   return null;
+}
+
+/**
+ * 🔴 KORU 3.0 — Extrae argumentos de la pregunta del usuario cuando el LLM
+ * no los pasó explícitamente (caso: simulated tool call con arguments={}).
+ *
+ * NO es lexical routing — no decide la tool, solo limpia el input del usuario
+ * para que se use como argumento (team, query, coin, city, etc.).
+ *
+ * Strippa prefijos comunes de pregunta: "cuando juega", "como le fue a",
+ * "a q hora juega", "precio del", "info de", etc. Lo que queda es el
+ * argumento que la tool necesita.
+ *
+ * Es agnóstico a acentos (normaliza con NFD) y a typos comunes.
+ */
+export function extractArgsFromUserInput(toolName: string, userInput: string): Record<string, unknown> {
+  const normalized = userInput.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
+  // Patrones de prefijo por tool. Cada uno captura el argumento relevante.
+  // Si ningún patrón matchea, devolver el input original (sin prefijos genéricos).
+
+  if (toolName === "match_schedule" || toolName === "match_live") {
+    // "cuando juega argentina" → "argentina"
+    // "como le fue a españa" → "españa"
+    // "a q hora juega boca" → "boca"
+    // "resultado de river" → "river"
+    // "kmo le fue a la scaloneta" → "scaloneta"
+    const m = normalized.match(/(?:cuando\s+juega[n]?\s+(?:los\s+\w+\s+)?|cuand\s+juega\s+|como\s+(?:le\s+fue\s+a|salio|salio\s+)|kmo\s+le\s+fue\s+(?:a\s+|al\s+)?|resultado\s+(?:de\s+|del\s+)|a\s+q\s+hora\s+juega\s+|a\s+que\s+hora\s+juega\s+|proximo\s+partido\s+(?:de\s+|del\s+)|fixture\s+(?:de\s+|del\s+)|quien\s+gano\s+|el\s+partido\s+(?:de\s+)?)(.+)/);
+    if (m && m[1]) {
+      const team = m[1].trim().replace(/[?¿!¡.]+$/g, "").trim();
+      if (team.length >= 2) {
+        return toolName === "match_schedule" ? { team } : { query: team };
+      }
+    }
+  }
+
+  if (toolName === "crypto_price") {
+    // "btc a cuanto sta" → "btc"
+    // "precio del ether" → "ether"
+    // "a cuanto esta el bitcoin" → "bitcoin"
+    const m = normalized.match(/(?:precio\s+(?:del\s+|de\s+la\s+|de\s+)?|a\s+cuanto\s+(?:esta|sta)\s+(?:el\s+)?|cotizacion\s+(?:del\s+|de\s+)?|cuanto\s+(?:esta\s+)?(?:el\s+)?)(btc|eth|ether|bitcoin|ethereum|solana|sol|cardano|ada|dogecoin|doge|ripple|xrp|litecoin|ltc|binance|bnb|polkadot|dot|usdt|usdc)/);
+    if (m && m[1]) return { coin: m[1] };
+    // Si solo menciona un ticker suelto
+    const ticker = normalized.match(/\b(btc|eth|ether|bitcoin|ethereum|solana|sol|cardano|ada|dogecoin|doge|ripple|xrp|litecoin|ltc)\b/);
+    if (ticker) return { coin: ticker[1] };
+  }
+
+  if (toolName === "weather") {
+    // "que tiempo hace en madrid" → "madrid"
+    const m = normalized.match(/(?:tiempo\s+(?:hace\s+)?en|hace\s+(?:en\s+)?|clima\s+en\s+|temperatura\s+en\s+)(.+)/);
+    if (m && m[1]) return { city: m[1].trim().replace(/[?¿!¡.]+$/g, "") };
+  }
+
+  if (toolName === "restaurant_deep_search") {
+    // "donde como algo rico" → "" (no city)
+    // "donde como sushi en palermo" → "sushi en palermo"
+    const m = normalized.match(/(?:donde\s+(?:como|cenar|almorzar|comer)|restaurantes?\s+(?:en|cerca)|parrilla\s+(?:en|cerca)|sushi\s+(?:en|cerca))\s*(.+)/);
+    if (m && m[1]) return { query: m[1].trim() };
+  }
+
+  if (toolName === "recipe_find") {
+    // "receta de pasta" → "pasta"
+    const m = normalized.match(/(?:receta\s+(?:de\s+|para\s+)?|como\s+hago\s+|que\s+cocino\s+(?:con\s+)?|algo\s+con\s+)(.+)/);
+    if (m && m[1]) return { query: m[1].trim().replace(/[?¿!¡.]+$/g, "") };
+  }
+
+  if (toolName === "movie_info" || toolName === "book_info") {
+    // "info de inception" → "inception"
+    const m = normalized.match(/(?:info\s+(?:de\s+|del\s+|sobre\s+)|resena\s+(?:de\s+|del\s+)?|sobre\s+(?:la\s+pelicula\s+|el\s+libro\s+)?|quien\s+actua\s+en\s+|quien\s+escribio\s+)(.+)/);
+    if (m && m[1]) return { title: m[1].trim().replace(/[?¿!¡.]+$/g, "") };
+  }
+
+  if (toolName === "wikipedia_lookup") {
+    // "que es la fotosintesis" → "la fotosintesis"
+    const m = normalized.match(/(?:que\s+es\s+(?:un\s+|una\s+|el\s+|la\s+|los\s+|las\s+)?|quien\s+fue\s+|contame\s+sobre\s+|defini\s+)(.+)/);
+    if (m && m[1]) return { query: m[1].trim().replace(/[?¿!¡.]+$/g, "") };
+  }
+
+  // Default: devolver el input sin prefijos genéricos
+  const generic = normalized.replace(/^(hola|buenas|che|hey|koru|por\s+favor|podrias|puedes|decime|dame|quiero\s+saber|necesito\s+saber)\s+/i, "").trim();
+  return { query: generic || userInput };
 }
