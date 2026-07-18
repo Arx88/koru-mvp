@@ -3080,7 +3080,7 @@ button.koru-stitch-row {
   text-align: left;
 }
 
-.koru-dsec-text b { font-weight: 700; color: #0b1c30; }
+.koru-dsec-text b { font-weight: 700; color: var(--ink, #2e2650); }
 .koru-dsec-text i { font-style: italic; }
 
 .koru-dsec-tiles {
@@ -3257,14 +3257,14 @@ button.koru-stitch-row {
 
 .koru-dsec-scard-title {
   margin: 10px 0 4px;
-  color: #0b1c30;
+  color: var(--ink, #2e2650);
   font-size: 14px;
   font-weight: 800;
 }
 
 .koru-dsec-scard-detail {
   margin: 0;
-  color: #464554;
+  color: var(--ink-soft, #554a7d);
   font-size: 11.5px;
 }
 
@@ -3312,7 +3312,7 @@ a.koru-dsec-source:hover {
 }
 
 .koru-dsec-source-title {
-  color: #464554;
+  color: var(--ink, #2e2650);
   font-size: 12.5px;
   font-weight: 500;
 }
@@ -3323,7 +3323,7 @@ a.koru-dsec-source:hover {
 
 /* ── Mis Colecciones (pantalla de guardados) ── */
 .koru-collections-empty {
-  color: #464554;
+  color: var(--ink-soft, #554a7d);
   font-size: 14px;
   font-weight: 500;
   line-height: 1.55;

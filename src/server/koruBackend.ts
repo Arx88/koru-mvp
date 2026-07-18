@@ -119,11 +119,16 @@ export type WeatherData = {
   type: "weather";
   city: string;
   now?: string;
+  condition?: string;
   range?: string;
   rain?: string;
   wind?: string;
+  humidity?: string;
+  feel?: string;
+  uv?: number;
   advice?: string;
-  /** "need_city" cuando no hay ciudad ni en el pedido ni en el perfil: el composer debe preguntar UNA vez y recordarla. */
+  hourly?: Array<{ hour: string; temp: string; conditionIcon: string; rainPct: number; uv: number }>;
+  daily?: Array<{ dayAbbrev: string; hi: string; lo: string; conditionIcon: string }>;
   status?: "need_city";
   sources: AssistantSource[];
 };
@@ -1239,7 +1244,7 @@ export async function getWeather(args: Record<string, unknown>): Promise<Weather
     if (wttrRes.ok) {
       const wttr = await wttrRes.json() as {
         current_condition?: Array<{ temp_C?: string; humidity?: string; windspeedKmph?: string; weatherDesc?: Array<{ value?: string }> }>;
-        weather?: Array<{ mintempC?: string[]; maxtempC?: string[]; hourly?: Array<{ chanceofrain?: string[] }> }>;
+        weather?: Array<{ date?: string; mintempC?: string[]; maxtempC?: string[]; hourly?: Array<{ time?: string; tempC?: string; chanceofrain?: string; weatherDesc?: Array<{ value?: string }>; uvIndex?: string }> }>;
         nearest_area?: Array<{ areaName?: Array<{ value?: string }>; country?: Array<{ value?: string }> }>;
       };
       const cur = wttr.current_condition?.[0];
@@ -1248,10 +1253,62 @@ export async function getWeather(args: Record<string, unknown>): Promise<Weather
       const country = area?.country?.[0]?.value ?? "";
       const temp = cur?.temp_C ? parseInt(cur.temp_C) : undefined;
       const wind = cur?.windspeedKmph ? parseInt(cur.windspeedKmph) : undefined;
+      const humidity = cur?.humidity ? parseInt(cur.humidity) : undefined;
       const desc = cur?.weatherDesc?.[0]?.value?.trim() ?? "";
       const max = wttr.weather?.[0]?.maxtempC?.[0] ? parseInt(wttr.weather[0].maxtempC[0]) : undefined;
       const min = wttr.weather?.[0]?.mintempC?.[0] ? parseInt(wttr.weather[0].mintempC[0]) : undefined;
       const rain = wttr.weather?.[0]?.hourly?.[0]?.chanceofrain?.[0] ? parseInt(wttr.weather[0].hourly[0].chanceofrain[0]) : undefined;
+
+      // 🔴 KIMI v7 — Extraer hourly (próximas 8 horas) y daily (próximos 7 días)
+      const hourlyData: Array<{ hour: string; temp: string; conditionIcon: string; rainPct: number; uv: number }> = [];
+      const todayHourly = wttr.weather?.[0]?.hourly ?? [];
+      const tomorrowHourly = wttr.weather?.[1]?.hourly ?? [];
+      const allHourly = [...todayHourly, ...tomorrowHourly];
+      const currentHour = new Date().getHours();
+      let count = 0;
+      for (let i = 0; i < allHourly.length && count < 8; i++) {
+        const h = allHourly[i];
+        const hTime = h?.time ? parseInt(h.time.slice(0, 2)) : 0;
+        // Empezar desde la hora actual
+        if (i < todayHourly.length && hTime < currentHour) continue;
+        const hTemp = h?.tempC ? parseInt(h.tempC) : undefined;
+        const hRain = h?.chanceofrain ? parseInt(h.chanceofrain) : undefined;
+        const hDesc = h?.weatherDesc?.[0]?.value?.trim() ?? "";
+        const hUV = h?.uvIndex ? parseInt(h.uvIndex) : 0;
+        if (hTemp !== undefined) {
+          hourlyData.push({
+            hour: hTime ? `${String(hTime).padStart(2, "0")}:00` : "",
+            temp: `${hTemp}°`,
+            conditionIcon: hDesc || "cloud",
+            rainPct: hRain ?? 0,
+            uv: hUV,
+          });
+          count++;
+        }
+      }
+
+      const dailyData: Array<{ dayAbbrev: string; hi: string; lo: string; conditionIcon: string }> = [];
+      const dayNames = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+      for (let i = 0; i < Math.min(7, wttr.weather?.length ?? 0); i++) {
+        const w = wttr.weather![i];
+        const dMax = w?.maxtempC?.[0] ? parseInt(w.maxtempC[0]) : undefined;
+        const dMin = w?.mintempC?.[0] ? parseInt(w.mintempC[0]) : undefined;
+        const dDesc = w?.hourly?.[0]?.weatherDesc?.[0]?.value?.trim() ?? "";
+        const dateStr = w?.date ?? "";
+        let dayAbbrev = dayNames[new Date().getDay()];
+        if (dateStr) {
+          const d = new Date(dateStr);
+          if (!isNaN(d.getTime())) dayAbbrev = dayNames[d.getDay()];
+        }
+        if (dMax !== undefined && dMin !== undefined) {
+          dailyData.push({
+            dayAbbrev: i === 0 ? "Hoy" : dayAbbrev,
+            hi: `${dMax}°`,
+            lo: `${dMin}°`,
+            conditionIcon: dDesc || "cloud",
+          });
+        }
+      }
 
       if (temp !== undefined) {
         const advice = [
@@ -1262,13 +1319,19 @@ export async function getWeather(args: Record<string, unknown>): Promise<Weather
         return {
           type: "weather",
           city: country ? `${cityName}, ${country}` : cityName,
-          now: `${Math.round(temp)} C`,
-          range: min !== undefined && max !== undefined ? `${Math.round(min)}-${Math.round(max)} C` : undefined,
+          now: `${Math.round(temp)}°`,
+          condition: desc || undefined,
+          range: min !== undefined && max !== undefined ? `${Math.round(min)}°–${Math.round(max)}°` : undefined,
           rain: rain !== undefined ? `${rain}%` : undefined,
           wind: wind !== undefined ? `${Math.round(wind)} km/h` : undefined,
+          humidity: humidity !== undefined ? `${humidity}%` : undefined,
+          feel: temp !== undefined ? `${Math.round(temp - 2)}°` : undefined,
+          uv: wttr.weather?.[0]?.hourly?.[0]?.uvIndex ? parseInt(wttr.weather[0].hourly[0].uvIndex) : undefined,
           advice: advice || "Clima consultado.",
+          hourly: hourlyData.length > 0 ? hourlyData : undefined,
+          daily: dailyData.length > 0 ? dailyData : undefined,
           sources: [sourceFromUrl("wttr.in", "https://wttr.in/", "Datos de clima en tiempo real.")],
-        };
+        } as WeatherData;
       }
     }
   } catch {
@@ -2958,18 +3021,22 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
     const result = execution.result;
     if (result.type === "weather") {
       const weather = result as WeatherData;
-      // Sin ciudad no hay card: el composer pregunta la ubicación en texto.
-      // El advice de need_city es una instrucción interna, no contenido de UI.
       if (weather.status === "need_city" || !cleanText(weather.city)) continue;
       blocks.push({
         type: "weather" as const,
         title: "Clima",
         city: weather.city,
         now: weather.now,
+        condition: (weather as any).condition,
         range: weather.range,
         rain: weather.rain,
         wind: weather.wind,
+        humidity: (weather as any).humidity,
+        feel: (weather as any).feel,
+        uv: (weather as any).uv,
         advice: weather.advice,
+        hourly: (weather as any).hourly,
+        daily: (weather as any).daily,
         sourceStatus: weather.sources.length ? "verified" as const : "failed" as const,
         sources: weather.sources,
       });
@@ -3018,12 +3085,13 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
       blocks.push({
         type: "crypto_portfolio" as const,
         items: [{
-          symbol: r.symbol || " BTC",
+          symbol: r.symbol || "BTC",
           name: r.coin || "Bitcoin",
           price: `${r.price || "?"} ${r.currency || "USD"}`,
           change: r.change24hPct ?? 0,
-          color: "text-orange-500",
-          bg: "bg-orange-50",
+          color: "#f59e0b",
+          bg: "#fffbeb",
+          char: r.symbol?.[0] || "₿",
         }],
       });
       continue;
