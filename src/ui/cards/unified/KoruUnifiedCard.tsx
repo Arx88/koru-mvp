@@ -1100,7 +1100,7 @@ export function KoruUnifiedCard({ block }: { block: UiBlock }) {
   const [, forceRerender] = useState(0);
   const { state } = useKoru();
   const userCurrency = (state.userProfile?.currency ?? "EUR").toUpperCase();
-  const { hero, detail, cta, actions, empty, layout = "default" } = toPresentation(block, { userCurrency });
+  const { hero, detail, cta, actions, empty, layout = "default" } = toPresentation(block, { userCurrency, state: state as any });
   const hasMetricValues = hero.metrics?.some((m) => m.value != null) ?? false;
 
   // 🔴 KIMI v4: modo dormir (5 min idle) + offline badge.

@@ -323,6 +323,15 @@ function asPercent(value?: number): string | undefined {
  */
 export type PresentationContext = {
   userCurrency?: string;
+  /** 🔴 KIMI v7 — state del usuario para que los mappers puedan acceder a datos
+   * reales (weatherCache, habits, wellbeingLogs, calendarEvents, etc.) */
+  state?: {
+    weatherCache?: { condition?: string; now?: string; city?: string; range?: string };
+    habits?: Array<{ id: string; name: string; streak?: number }>;
+    habitLogs?: Array<{ habitId: string; date: string; done: boolean }>;
+    wellbeingLogs?: Array<{ date: string; kind: string; value: number; unit?: string }>;
+    calendarEvents?: Array<{ title: string; date: string; time?: string }>;
+  };
 };
 
 export function toPresentation(block: UiBlock, ctx?: PresentationContext): KoruPresentation {
@@ -334,7 +343,7 @@ export function toPresentation(block: UiBlock, ctx?: PresentationContext): KoruP
     case "weather":
       return weather(block);
     case "alarm":
-      return alarm(block);
+      return alarm(block, ctx);
     case "reminder":
       return reminder(block);
     case "shopping_list":
@@ -758,7 +767,7 @@ function weather(b: Of<"weather">): KoruPresentation {
   };
 }
 
-function alarm(b: Of<"alarm">): KoruPresentation {
+function alarm(b: Of<"alarm">, ctx?: PresentationContext): KoruPresentation {
   const repeat = b.repeat?.trim() || "";
   const note = b.note?.trim() || "";
   // 🔴 KIMI v5 — normalizar hora a HH:MM (spec card 13: title = "07:00").
@@ -768,39 +777,72 @@ function alarm(b: Of<"alarm">): KoruPresentation {
   const timeUntil = timeUntilAlarm(hhmm);
   const sleepDesc = note || timeUntil || (repeat ? `Suena ${repeat}` : "Alarma activa");
 
-  // 🔴 KIMI v6 — kc-metrics SOLO con datos del backend (sin mocks).
-  // Si el backend no manda sound/gradualWake, no mostramos esos metrics.
+  // 🔴 KIMI v7 — metrics con datos del backend + state.
   const alarmMetrics: HeroMetric[] = [];
-  if (repeat) {
-    alarmMetrics.push({ icon: "repeat", label: "Repite", value: repeat, color: A.violet.color });
-  }
-  if (note) {
-    alarmMetrics.push({ icon: "notes", label: "Nota", value: note.slice(0, 20), color: A.amber.color });
-  }
-  if (timeUntil) {
-    alarmMetrics.push({ icon: "schedule", label: "Sucede", value: timeUntil, color: A.emerald.color });
-  }
+  if (repeat) alarmMetrics.push({ icon: "repeat", label: "Repite", value: repeat, color: A.violet.color });
+  if (timeUntil) alarmMetrics.push({ icon: "schedule", label: "Sucede", value: timeUntil, color: A.emerald.color });
+  const weather = ctx?.state?.weatherCache;
+  if (weather?.now) alarmMetrics.push({ icon: "wb_sunny", label: "Clima", value: weather.now, color: A.amber.color });
 
-  // 🔴 KIMI v6 — sections SOLO con datos del backend (SIN MOCKS).
+  // 🔴 KIMI v7 — sections con datos REALES del state.
   const sections: DetailSection[] = [];
 
-  // 1. Detalles tiles (when / frequency / note) — solo si hay datos del backend.
+  // 1. "Despertar inteligente" — rows con datos del state (clima, calendario).
+  const wakeRows: Array<{ icon: string; title: string; detail?: string }> = [];
+  if (weather?.condition) {
+    wakeRows.push({ icon: "wb_sunny", title: `Mañana: ${weather.condition}`, detail: weather.city ? `En ${weather.city}` : undefined });
+  }
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+  const tomorrowEvents = ctx?.state?.calendarEvents?.filter((e) => e.date?.startsWith(tomorrowStr)) ?? [];
+  for (const ev of tomorrowEvents.slice(0, 2)) {
+    wakeRows.push({ icon: "event", title: ev.title, detail: ev.time ? `A las ${ev.time}` : undefined });
+  }
+  if (note) wakeRows.push({ icon: "notes", title: note });
+  // Feature real de la app: subida gradual de volumen
+  wakeRows.push({ icon: "graphic_eq", title: "Subida gradual de volumen", detail: "El volumen crece como un amanecer" });
+
+  if (wakeRows.length > 0) {
+    sections.push({
+      kind: "rows",
+      icon: "bedtime",
+      accent: A.violet,
+      title: "Despertar inteligente",
+      subtitle: "CRUZA TU VIDA",
+      rows: wakeRows.map(r => ({ icon: r.icon, title: r.title, detail: r.detail })),
+    });
+  }
+
+  // 2. "Tu semana de sueño" — tiles con datos REALES de wellbeingLogs.
+  const sleepLogs = ctx?.state?.wellbeingLogs?.filter((l) => l.kind === "sleep") ?? [];
+  const dayLabels = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+  const sleepTiles: DetailTile[] = [];
+  const recentSleepLogs = sleepLogs.slice(-7);
+  for (const log of recentSleepLogs) {
+    const hours = log.unit === "h" ? String(log.value) : (log.value / 60).toFixed(1);
+    const dayIdx = new Date(log.date).getDay();
+    const dayLabel = dayLabels[dayIdx === 0 ? 6 : dayIdx - 1];
+    const color = log.value >= 7 ? A.emerald.color : log.value >= 6 ? A.violet.color : A.amber.color;
+    sleepTiles.push({ icon: "bedtime", label: dayLabel, value: `${hours}h`, color });
+  }
+  if (sleepTiles.length > 0) {
+    const avg = sleepTiles.reduce((sum, t) => sum + parseFloat(t.value), 0) / sleepTiles.length;
+    sections.push({ kind: "tiles", icon: "monitoring", accent: A.emerald, title: "Tu semana de sueño", subtitle: `PROMEDIO ${avg.toFixed(1)}H`, tiles: sleepTiles });
+  } else {
+    sections.push({ kind: "text", icon: "monitoring", accent: A.emerald, title: "Tu semana de sueño", subtitle: "AÚN SIN DATOS", body: "Cuando registres tus horas de sueño (con 'dormí 7 horas'), voy a mostrarte tu semana acá." });
+  }
+
+  // 3. Detalles tiles (when / frequency / note).
   const detailTiles: DetailTile[] = [];
   if (b.time) detailTiles.push({ icon: "schedule", label: "Cuándo", value: alarmTitle, color: A.rose.color });
   if (repeat) detailTiles.push({ icon: "repeat", label: "Frecuencia", value: repeat, color: A.amber.color });
   if (note) detailTiles.push({ icon: "notes", label: "Detalle", value: note, color: A.indigo.color });
   if (detailTiles.length > 0) {
-    sections.push({
-      kind: "tiles",
-      icon: "info",
-      accent: A.amber,
-      title: "Detalles",
-      subtitle: "CUÁNDO · FRECUENCIA · NOTA",
-      tiles: detailTiles,
-    });
+    sections.push({ kind: "tiles", icon: "info", accent: A.amber, title: "Detalles", subtitle: "CUÁNDO · FRECUENCIA · NOTA", tiles: detailTiles });
   }
 
-  // 2. Consejo — solo texto de voz de Koru (sin datos inventados).
+  // 4. Consejo.
   sections.push({
     kind: "text",
     icon: "lightbulb",
