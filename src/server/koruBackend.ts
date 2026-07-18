@@ -3198,14 +3198,37 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
     if (result.type === "match_schedule") {
       const r = result as any;
       const matches = r.matches || [];
+      const teamName = r.team || r.query || "Equipo";
       blocks.push({
         type: "match_timeline" as const,
-        items: matches.slice(0, 5).map((m: any) => ({
-          minute: m.date ? new Date(m.date).getDate() + "'" : "—",
-          text: `${r.team || "Equipo"} vs ${m.opponent || "Rival"}`,
-          sub: `${m.competition || ""} · ${m.venue || ""}`,
-          active: true,
-        })),
+        title: teamName,
+        items: matches.slice(0, 5).map((m: any) => {
+          // Determinar el rival (el equipo que NO es el consultado)
+          const homeLower = (m.homeTeam ?? "").toLowerCase();
+          const teamLower = teamName.toLowerCase();
+          const isHome = homeLower.includes(teamLower) || teamLower.includes(homeLower);
+          const opponent = isHome ? m.awayTeam : m.homeTeam;
+          const homeTeam = m.homeTeam ?? teamName;
+          const awayTeam = m.awayTeam ?? opponent ?? "Rival";
+          // Formatear fecha legible
+          let minute = "—";
+          if (m.date) {
+            const d = new Date(m.date);
+            if (!isNaN(d.getTime())) {
+              minute = `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}`;
+            }
+          }
+          return {
+            minute,
+            text: `${homeTeam} vs ${awayTeam}`,
+            sub: `${m.league ?? ""}${m.time ? " · " + m.time : ""}`,
+            active: true,
+          };
+        }),
+        // 🔴 KORU 3.0 — pasar teamInfo/nextMatch/wikiExtract si están disponibles
+        teamInfo: r.teamInfo,
+        nextMatch: r.nextMatch,
+        wikipediaExtract: r.wikipediaExtract,
       });
       continue;
     }

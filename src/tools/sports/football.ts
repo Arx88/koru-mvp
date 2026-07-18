@@ -946,6 +946,59 @@ export const matchSchedule: ToolHandler = {
         .sort((a, b) => (a.strTimestamp ?? "") > (b.strTimestamp ?? "") ? 1 : -1)
         .slice(0, next);
       if (fallbackUpcoming.length === 0) {
+        // 🔴 KORU 3.0 — Fallback enriquecido: traer info del equipo + Wikipedia
+        let teamInfo: { id: string; name: string; stadium?: string; location?: string; league?: string; description?: string } | null = null;
+        try {
+          const searchRes = await fetchJson<{ teams?: Array<{ idTeam?: string; strTeam?: string; strStadium?: string; strLocation?: string; strLeague?: string; strDescriptionES?: string; strDescriptionEN?: string }> }>(
+            `${TSDB_BASE}/searchteams.php?t=${encodeURIComponent(team || league)}`,
+            { timeoutMs: 8_000 },
+          );
+          if (searchRes.ok && searchRes.data?.teams && searchRes.data.teams.length > 0) {
+            const t = searchRes.data.teams[0];
+            teamInfo = {
+              id: t.idTeam ?? "",
+              name: t.strTeam ?? (team || league),
+              stadium: t.strStadium,
+              location: t.strLocation,
+              league: t.strLeague,
+              description: t.strDescriptionES || t.strDescriptionEN,
+            };
+          }
+        } catch { /* ignore */ }
+
+        let wikiExtract: string | null = null;
+        let wikiSource: { title: string; url: string; domain: string; snippet: string } | null = null;
+        try {
+          const wikiRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(`${team || league} football team`)}&format=json&origin=*&srlimit=1`, { signal: AbortSignal.timeout(9000) });
+          const wikiData = await wikiRes.json() as { query?: { search?: Array<{ title: string; snippet: string }> } };
+          const results = wikiData.query?.search ?? [];
+          if (results.length > 0) {
+            const title = results[0].title;
+            const summaryRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`, { signal: AbortSignal.timeout(9000) });
+            const summary = await summaryRes.json() as { extract?: string; content_urls?: { desktop?: { page: string } } };
+            wikiExtract = summary.extract ?? null;
+            wikiSource = {
+              title,
+              url: summary.content_urls?.desktop?.page ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`,
+              domain: "wikipedia.org",
+              snippet: results[0].snippet?.replace(/<[^>]+>/g, "") ?? "",
+            };
+          }
+        } catch { /* ignore */ }
+
+        if (teamInfo || wikiExtract) {
+          return {
+            type: "match_schedule",
+            status: "ok",
+            team: team || league,
+            matches: [],
+            teamInfo: teamInfo ?? undefined,
+            wikipediaExtract: wikiExtract ?? undefined,
+            sources: wikiSource ? [wikiSource] : undefined,
+            source: teamInfo ? "TheSportsDB + Wikipedia" : "Wikipedia",
+            note: `No hay próximos partidos de "${team || league}" programados. Te mostramos info del equipo.`,
+          };
+        }
         return { type: "match_schedule", status: "ok", team: team || league, matches: [], note: "No encontré próximos partidos." };
       }
       return {

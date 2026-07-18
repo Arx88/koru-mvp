@@ -3855,24 +3855,31 @@ function generation(b: Of<"generation">): KoruPresentation {
 function matchTimeline(b: Of<"match_timeline">): KoruPresentation {
   const items = b.items ?? [];
   const now = items.find((i) => i.now) ?? items[0];
-  // 🔴 FIX: title dinámico (antes "PARTIDO" hardcodeado) + "Timeline" → "Cronología"
   const title = b.title ?? (now?.text ? now.text.split("—")[0].trim() : "Partido");
 
-  // 🔴 KORU 3.0 — Si no hay items de timeline, armar detail con info del equipo
-  // (teamInfo, nextMatch, wikipediaExtract) que viene en el block.
+  // 🔴 KORU 3.0 — Info adicional del equipo (siempre presente cuando hay fallback)
   const teamInfo = (b as any).teamInfo;
   const nextMatch = (b as any).nextMatch;
   const wikiExtract = (b as any).wikipediaExtract;
 
-  const fallbackSections: any[] = [];
+  // Construir secciones de info del equipo (comunes para ambos casos)
+  const teamInfoSections: any[] = [];
+
+  // Sección 1: Info del equipo (estadio, ubicación, liga, descripción)
   if (teamInfo) {
     const rows: any[] = [];
+    if (teamInfo.name) rows.push({ title: "Equipo", detail: teamInfo.name, icon: "shield" });
     if (teamInfo.stadium) rows.push({ title: "Estadio", detail: teamInfo.stadium, icon: "stadium" });
     if (teamInfo.location) rows.push({ title: "Ubicación", detail: teamInfo.location, icon: "location_on" });
     if (teamInfo.league) rows.push({ title: "Liga", detail: teamInfo.league, icon: "emoji_events" });
-    if (teamInfo.description) rows.push({ title: "Sobre el equipo", detail: teamInfo.description.slice(0, 200) + "...", icon: "info" });
+    if (teamInfo.description) {
+      const desc = teamInfo.description.length > 300
+        ? teamInfo.description.slice(0, 300) + "..."
+        : teamInfo.description;
+      rows.push({ title: "Sobre el equipo", detail: desc, icon: "info" });
+    }
     if (rows.length > 0) {
-      fallbackSections.push({
+      teamInfoSections.push({
         kind: "rows",
         icon: "shield",
         accent: A.emerald,
@@ -3881,22 +3888,29 @@ function matchTimeline(b: Of<"match_timeline">): KoruPresentation {
       });
     }
   }
+
+  // Sección 2: Próximo partido (tiles)
   if (nextMatch) {
-    fallbackSections.push({
-      kind: "tiles",
-      icon: "event",
-      accent: A.amber,
-      title: "Próximo partido",
-      tiles: [
-        { label: "Partido", value: nextMatch.match ?? nextMatch.homeTeam + " vs " + nextMatch.awayTeam },
-        { label: "Fecha", value: nextMatch.date ?? "?" },
-        { label: "Hora", value: nextMatch.time ?? "?" },
-        { label: "Liga", value: nextMatch.league ?? "?" },
-      ],
-    });
+    const tiles: any[] = [];
+    if (nextMatch.match) tiles.push({ label: "Partido", value: nextMatch.match });
+    else if (nextMatch.homeTeam && nextMatch.awayTeam) tiles.push({ label: "Partido", value: `${nextMatch.homeTeam} vs ${nextMatch.awayTeam}` });
+    if (nextMatch.date) tiles.push({ label: "Fecha", value: nextMatch.date });
+    if (nextMatch.time) tiles.push({ label: "Hora", value: nextMatch.time });
+    if (nextMatch.league) tiles.push({ label: "Liga", value: nextMatch.league });
+    if (tiles.length > 0) {
+      teamInfoSections.push({
+        kind: "tiles",
+        icon: "event",
+        accent: A.amber,
+        title: "Próximo partido",
+        tiles,
+      });
+    }
   }
+
+  // Sección 3: Sobre el equipo (text de Wikipedia)
   if (wikiExtract) {
-    fallbackSections.push({
+    teamInfoSections.push({
       kind: "text",
       icon: "menu_book",
       accent: A.primary,
@@ -3905,36 +3919,53 @@ function matchTimeline(b: Of<"match_timeline">): KoruPresentation {
     });
   }
 
+  // Construir secciones según haya items o no
+  let detailSections: any[] = [];
+
+  if (items.length > 0) {
+    // Caso 1: Hay partidos próximos — mostrar cronología + info del equipo
+    detailSections.push({
+      kind: "timeline",
+      icon: "sports_soccer",
+      accent: A.emerald,
+      title: "Próximos partidos",
+      steps: items.map((i) => ({
+        title: i.text,
+        detail: i.sub,
+        status: i.now ? "current" : "done",
+      })),
+    });
+    // Agregar info del equipo después de la cronología
+    detailSections.push(...teamInfoSections);
+  } else {
+    // Caso 2: No hay partidos — mostrar solo info del equipo
+    detailSections = teamInfoSections;
+  }
+
+  // Determinar kicker y desc del hero
+  const hasItems = items.length > 0;
+  const hasTeamInfo = teamInfoSections.length > 0;
+  const kicker = hasItems ? "Fixture" : (hasTeamInfo ? "Info del equipo" : "Partido");
+  const desc = hasItems
+    ? (now ? `${now.minute} · ${now.text}` : undefined)
+    : (nextMatch ? `Próximo: ${nextMatch.date ?? "fecha por confirmar"}` : (teamInfo?.league ?? undefined));
+
   return {
     hero: {
-      kicker: items.length ? "Fixture · En vivo" : "Info del equipo",
+      kicker,
       title: heroTitleFrom(title, "Partido"),
-      desc: now ? `${now.minute}' ${now.text}` : (nextMatch ? `Próximo: ${nextMatch.date ?? "fecha por confirmar"}` : undefined),
+      desc,
       icon: "sports_soccer",
       accent: A.emerald,
     },
-    detail: items.length
+    detail: detailSections.length > 0
       ? {
           title: title,
-          subtitle: "CRONOLOGÍA DEL PARTIDO",
-          sections: [
-            {
-              kind: "timeline",
-              icon: "sports_soccer",
-              accent: A.emerald,
-              title: "Cronología",
-              steps: items.map((i) => ({ title: `${i.minute}' ${i.text}`, detail: i.sub, status: i.now ? "current" : "done" })),
-            },
-          ],
+          subtitle: hasItems ? "FIXTURE Y INFO" : "INFO DEL EQUIPO",
+          sections: detailSections,
         }
-      : fallbackSections.length
-        ? {
-            title: title,
-            subtitle: "INFO DEL EQUIPO",
-            sections: fallbackSections,
-          }
-        : undefined,
-    cta: items.length ? { label: "Ver cronología" } : (fallbackSections.length ? { label: "Ver detalle" } : undefined),
+      : undefined,
+    cta: detailSections.length > 0 ? { label: hasItems ? "Ver fixture" : "Ver detalle" } : undefined,
   };
 }
 
