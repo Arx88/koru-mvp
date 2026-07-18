@@ -6105,11 +6105,16 @@ export async function runKoruBackendTurn(
           logger.info("runKoruBackendTurn", "Lexical tool failed, falling back to web_search", {
             failedTool: lexicalRoute.tool, status: lastResult?.status,
           });
-          const fallbackQuery = lexicalRoute.toolArgs?.query || request.input;
+          // 🔴 KIMI v7 — Para deportes, buscar con contexto deportivo
+          let fallbackQuery = String(lexicalRoute.toolArgs?.query || lexicalRoute.toolArgs?.team || request.input);
+          if (lexicalRoute.category === "sports") {
+            fallbackQuery = `${fallbackQuery} partido resultado futbol`;
+          }
+          const fallbackMode = lexicalRoute.category === "sports" ? "news" : "research";
           const fallbackToolCall: ProviderToolCall = {
             id: `lexical_fallback_${Date.now()}`,
             type: "function",
-            function: { name: "web_search", arguments: JSON.stringify({ query: fallbackQuery, mode: "research" }) },
+            function: { name: "web_search", arguments: JSON.stringify({ query: fallbackQuery, mode: fallbackMode }) },
           };
           messages.push({ role: "assistant", content: "", tool_calls: [fallbackToolCall] });
           await executeProviderToolCalls([fallbackToolCall], messages, request, toolExecutions, config);
