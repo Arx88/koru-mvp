@@ -6964,7 +6964,7 @@ export async function runKoruBackendTurn(
     const delivered = await executeProviderToolCalls([syntheticToolCall], messages, request, toolExecutions, config);
     if (delivered) {
       const response = await finalizePayload(request, config, delivered, toolExecutions, extractorTimeout);
-      return { ...response, provider, model, fallbackReason: (fallbackReason ? fallbackReason + " + " : "") + "simulated-tool", __debugRawContent: content.slice(0, 800), __debugSimulatedArgs: finalArgs } as any;
+      return { ...response, provider, model, fallbackReason: (fallbackReason ? fallbackReason + " + " : "") + "simulated-tool" };
     }
     // Paso 2: segunda llamada (sin tools) para que el LLM síntetice la respuesta final.
     messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }." });
@@ -7097,7 +7097,7 @@ export async function runKoruBackendTurn(
         response.records = [];
       }
       logger.info("runKoruBackendTurn", "Return first-call-invalid-json (plain text recovered)", { replyPreview: (response.reply ?? "").slice(0, 300), provider, model, fallbackReason });
-      return { ...response, provider, model, fallbackReason: fallbackReason ?? "first-call-invalid-json", __debugRawContent: content.slice(0, 800) } as any;
+      return { ...response, provider, model, fallbackReason: fallbackReason ?? "first-call-invalid-json" };
     }
   }
 
@@ -7129,6 +7129,5 @@ export async function runKoruBackendTurn(
     provider,
     model,
     fallbackReason: fallbackReason ?? response.memoryFallbackReason ?? "first-call",
-    __debugRawContent: content.slice(0, 800),
-  } as any;
+  };
 }
