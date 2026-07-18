@@ -1818,12 +1818,15 @@ function uniqueLifeRecords(records: LifeRecord[]): LifeRecord[] {
 }
 
 export function queryPersonalContextFromState(state: KoruState, args: Record<string, unknown>): PersonalQueryData {
-  const topic = cleanText(args.topic, "general");
+  const topic = cleanText(args.topic, cleanText(args.domain, "general"));
   const query = cleanText(args.query, cleanText(args.__userInput));
   const period = cleanText(args.period);
   const records = (Array.isArray(state.records) ? state.records : []).filter((record) => isRecordInPeriod(record, period));
 
-  if (topic === "expenses") {
+  // 🔴 KIMI v7 — Mapear domain del lexical route a topic interno
+  const effectiveTopic = topic === "money" ? "expenses" : topic === "morning" ? "general" : topic === "memory" ? "general" : topic;
+
+  if (effectiveTopic === "expenses") {
     const expenses = records.filter((record) => record.kind === "expense");
     if (!expenses.length) {
       return {
@@ -1857,7 +1860,7 @@ export function queryPersonalContextFromState(state: KoruState, args: Record<str
     };
   }
 
-  if (topic === "food_inventory") {
+  if (effectiveTopic === "food_inventory") {
     const food = records.filter((record) => record.kind === "meal_inventory");
     if (!food.length) return { type: "personal_query", block: { type: "saved_record", title: "Comida en casa", records: [] } };
     return {
@@ -1887,7 +1890,7 @@ export function queryPersonalContextFromState(state: KoruState, args: Record<str
     };
   }
 
-  if (topic === "shopping_list") {
+  if (effectiveTopic === "shopping_list") {
     const shopping = records.filter((record) => record.kind === "shopping_item");
     if (!shopping.length) return { type: "personal_query", block: emptyContextBlock("Compras", "No tengo una lista de compras activa guardada.") };
     const items = shopping.map((record) => record.title).filter(Boolean).slice(0, 30);
@@ -1902,7 +1905,7 @@ export function queryPersonalContextFromState(state: KoruState, args: Record<str
     };
   }
 
-  if (topic === "pending_tasks") {
+  if (effectiveTopic === "pending_tasks") {
     const open = (Array.isArray(state.commitments) ? state.commitments : []).filter((item) => item && item.status === "open").slice(0, 8);
     if (!open.length) return { type: "personal_query", block: emptyContextBlock("Pendientes", "No veo pendientes abiertos. Si queres, tirame una descarga de cosas y las ordeno.") };
     return {
@@ -1931,7 +1934,7 @@ export function queryPersonalContextFromState(state: KoruState, args: Record<str
     general: ["idea", "recommendation", "deadline", "home_task", "meeting_note", "decision"],
   };
 
-  if (topic === "memory") {
+  if (effectiveTopic === "memory") {
     const useful = (Array.isArray(state.memories) ? state.memories : [])
       .filter((memory) => memory && memory.status !== "rejected" && memory.useForSuggestions !== false)
       .slice(0, 8);
@@ -1957,7 +1960,7 @@ export function queryPersonalContextFromState(state: KoruState, args: Record<str
     };
   }
 
-  if (topic === "relationships") {
+  if (effectiveTopic === "relationships") {
     const relationshipRecords = records.filter((record) => ["person_followup", "gift", "birthday"].includes(record.kind));
     const relationshipMemories = (Array.isArray(state.memories) ? state.memories : [])
       .filter((memory) => memory && memory.status !== "rejected" && memory.useForSuggestions !== false)
