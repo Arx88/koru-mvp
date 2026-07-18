@@ -919,9 +919,63 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
     reviewAction(id, approve);
   }, [reviewAction]);
 
+  // 🔴 KORU 3.0 — Web Speech API: PRIMARIO cuando está disponible (Chrome/Edge/Safari).
+  // No requiere API key, no requiere servidor, transcribe en tiempo real.
+  // Es la opción más rápida y gratuita para el botón HABLAR.
+  // Cae a toggleMediaRecorder (ZAI) solo si Web Speech API no está disponible.
+  const toggleWebSpeech = useCallback(() => {
+    if (isRecording) {
+      // Detener: el onend del recognition se dispara solo
+      recognitionRef.current?.stop();
+      setIsRecording(false);
+      return;
+    }
+    if (!speechStatus.supported) return;
+
+    showMicError("");
+    const recognition = createSpeechSession({
+      onFinalText: (text) => {
+        // Texto final reconocido — enviar como mensaje
+        if (text.trim()) {
+          void submitText(text.trim(), "speech");
+        }
+      },
+      onInterimText: (text) => {
+        // Mostrar texto parcial mientras habla (no envía)
+        setInputText(text);
+      },
+      onError: (message) => {
+        showMicError(message);
+        setIsRecording(false);
+      },
+      onEnd: () => {
+        setIsRecording(false);
+        // Limpiar inputText parcial si quedó (ya se envió en onFinalText)
+        setInputText("");
+      },
+      continuous: false,
+    });
+
+    if (!recognition) {
+      showMicError("No pude iniciar el reconocimiento de voz en este navegador.");
+      return;
+    }
+    recognitionRef.current = recognition;
+    setIsRecording(true);
+    try {
+      recognition.start();
+    } catch (err) {
+      showMicError(`No pude iniciar el micrófono: ${err instanceof Error ? err.message : "error desconocido"}`);
+      setIsRecording(false);
+    }
+  }, [isRecording, speechStatus.supported, showMicError, submitText]);
+
   // Fase FIX: grabar audio con MediaRecorder API (funciona en todos los navegadores)
   // en lugar de SpeechRecognition que solo funciona en Chrome/Edge.
   // Graba → convierte a base64 → manda a /api/koru/asr → transcribe → envía como mensaje.
+  // 🔴 KORU 3.0 — Ahora es FALLBACK. Se usa solo cuando Web Speech API no está
+  // disponible (Firefox, navegadores sin SpeechRecognition). Requiere ZAI_API_KEY
+  // configurada en el server.
   const toggleMediaRecorder = useCallback(async () => {
     if (isRecording) {
       // Detener grabación
@@ -983,6 +1037,20 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
       showMicError(`No pude acceder al micrófono: ${err instanceof Error ? err.message : "permiso denegado"}`);
     }
   }, [isRecording, showMicError, submitText]);
+
+  // 🔴 KORU 3.0 — Handler unificado del botón HABLAR.
+  // Estrategia:
+  //   1. Si Web Speech API está disponible (Chrome/Edge/Safari) → toggleWebSpeech
+  //      (sin API key, transcripción en tiempo real, gratis)
+  //   2. Si NO está disponible (Firefox) → toggleMediaRecorder (ZAI, requiere API key)
+  //   3. Si el navegador no soporta ninguno → mensaje útil
+  const handleMicToggle = useCallback(() => {
+    if (speechStatus.supported) {
+      toggleWebSpeech();
+    } else {
+      void toggleMediaRecorder();
+    }
+  }, [speechStatus.supported, toggleWebSpeech, toggleMediaRecorder]);
 
   // Fase 2.1 — Subir nota de voz: transcribe audio via /api/koru/asr y lo
   // manda como mensaje normal. Permite grabar audios largos sin SpeechRecognition
@@ -1375,25 +1443,29 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
                   className="koru-composer-input"
                 />
               </div>
-              {speechStatus.supported || true ? (
+              {speechStatus.supported ? (
                 <button
                   type="button"
-                  onClick={inputText.trim() ? () => void handleTextSubmit() : toggleMediaRecorder}
+                  onClick={inputText.trim() ? () => void handleTextSubmit() : handleMicToggle}
                   disabled={processing && !inputText.trim()}
                   aria-label={inputText.trim() ? "Enviar" : isRecording ? "Detener grabación" : "Hablar"}
                   className={cn("koru-mic-button", isRecording && "is-listening")}
+                  title="Web Speech API — sin API key, transcripción nativa del navegador"
                 >
                   {inputText.trim() ? <ArrowUp size={22} /> : isRecording ? <MicOff size={22} /> : <Mic size={22} />}
                 </button>
               ) : (
+                // 🔴 KORU 3.0 — Firefox y navegadores sin Web Speech API: usar
+                // MediaRecorder + ZAI. Requiere ZAI_API_KEY en el server.
                 <button
                   type="button"
-                  onClick={() => void handleTextSubmit()}
-                  disabled={!inputText.trim() || processing}
-                  aria-label="Enviar"
-                  className="koru-mic-button"
+                  onClick={inputText.trim() ? () => void handleTextSubmit() : handleMicToggle}
+                  disabled={processing && !inputText.trim()}
+                  aria-label={inputText.trim() ? "Enviar" : isRecording ? "Detener grabación" : "Hablar"}
+                  className={cn("koru-mic-button", isRecording && "is-listening")}
+                  title="MediaRecorder + ZAI — requiere API key configurada"
                 >
-                  <ArrowUp size={24} />
+                  {inputText.trim() ? <ArrowUp size={22} /> : isRecording ? <MicOff size={22} /> : <Mic size={22} />}
                 </button>
               )}
             </div>
