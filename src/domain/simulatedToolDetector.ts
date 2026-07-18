@@ -278,7 +278,25 @@ export function detectSimulatedToolCall(content: string): SimulatedToolCall | nu
  * Es agnóstico a acentos (normaliza con NFD) y a typos comunes.
  */
 export function extractArgsFromUserInput(toolName: string, userInput: string): Record<string, unknown> {
+  // 🔴 KORU 3.0 — Preservar acentos en el argumento capturado.
+  // Normalizamos solo para MATCHING del prefijo ("cuando juega", "como le fue a"),
+  // pero el argumento capturado (team, coin, city, etc.) se extrae del ORIGINAL
+  // para no perder acentos. "españa" → "españa" (no "espana").
   const normalized = userInput.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  const lower = userInput.toLowerCase().trim();
+
+  // Helper: dado un match en `normalized`, extraer el mismo rango del `lower`
+  // original (preserva acentos).
+  const extractWithAccents = (regex: RegExp): string | null => {
+    const m = normalized.match(regex);
+    if (!m || !m[1]) return null;
+    // Buscar el índice del match en normalized
+    const matchStart = m.index ?? 0;
+    const capturedStart = matchStart + (m[0].length - m[1].length);
+    const capturedEnd = capturedStart + m[1].length;
+    // Extraer el mismo rango del `lower` original (preserva acentos)
+    return lower.slice(capturedStart, capturedEnd).trim().replace(/[?¿!¡.]+$/g, "").trim();
+  };
 
   // Patrones de prefijo por tool. Cada uno captura el argumento relevante.
   // Si ningún patrón matchea, devolver el input original (sin prefijos genéricos).
@@ -289,12 +307,16 @@ export function extractArgsFromUserInput(toolName: string, userInput: string): R
     // "a q hora juega boca" → "boca"
     // "resultado de river" → "river"
     // "kmo le fue a la scaloneta" → "scaloneta"
-    const m = normalized.match(/(?:cuando\s+juega[n]?\s+(?:los\s+\w+\s+)?|cuand\s+juega\s+|como\s+(?:le\s+fue\s+a|salio|salio\s+)|kmo\s+le\s+fue\s+(?:a\s+|al\s+)?|resultado\s+(?:de\s+|del\s+)|a\s+q\s+hora\s+juega\s+|a\s+que\s+hora\s+juega\s+|proximo\s+partido\s+(?:de\s+|del\s+)|fixture\s+(?:de\s+|del\s+)|quien\s+gano\s+|el\s+partido\s+(?:de\s+)?)(.+)/);
-    if (m && m[1]) {
-      const team = m[1].trim().replace(/[?¿!¡.]+$/g, "").trim();
-      if (team.length >= 2) {
-        return toolName === "match_schedule" ? { team } : { query: team };
+    // Para match_live: preservar "ayer" / "hoy" / "mañana" (la tool lo usa para filtro de fecha)
+    // Para match_schedule: strippear "ayer" / "hoy" (no aplica a fixtures futuros)
+    const prefixRegex = /(?:cuando\s+juega[n]?\s+(?:los\s+\w+\s+)?|cuand\s+juega\s+|como\s+(?:le\s+fue\s+a|salio|salio\s+)|kmo\s+le\s+fue\s+(?:a\s+|al\s+)?|resultado\s+(?:de\s+|del\s+)|a\s+q\s+hora\s+juega\s+|a\s+que\s+hora\s+juega\s+|proximo\s+partido\s+(?:de\s+|del\s+)|fixture\s+(?:de\s+|del\s+)|quien\s+gano\s+|el\s+partido\s+(?:de\s+)?)(.+)/;
+    let captured = extractWithAccents(prefixRegex);
+    if (captured && captured.length >= 2) {
+      // Para match_schedule, remover "ayer", "hoy", "mañana" del final
+      if (toolName === "match_schedule") {
+        captured = captured.replace(/\s+(?:ayer|hoy|manana|mañana)$/i, "").trim();
       }
+      return toolName === "match_schedule" ? { team: captured } : { query: captured };
     }
   }
 
@@ -311,36 +333,36 @@ export function extractArgsFromUserInput(toolName: string, userInput: string): R
 
   if (toolName === "weather") {
     // "que tiempo hace en madrid" → "madrid"
-    const m = normalized.match(/(?:tiempo\s+(?:hace\s+)?en|hace\s+(?:en\s+)?|clima\s+en\s+|temperatura\s+en\s+)(.+)/);
-    if (m && m[1]) return { city: m[1].trim().replace(/[?¿!¡.]+$/g, "") };
+    const captured = extractWithAccents(/(?:tiempo\s+(?:hace\s+)?en|hace\s+(?:en\s+)?|clima\s+en\s+|temperatura\s+en\s+)(.+)/);
+    if (captured) return { city: captured };
   }
 
   if (toolName === "restaurant_deep_search") {
     // "donde como algo rico" → "" (no city)
     // "donde como sushi en palermo" → "sushi en palermo"
-    const m = normalized.match(/(?:donde\s+(?:como|cenar|almorzar|comer)|restaurantes?\s+(?:en|cerca)|parrilla\s+(?:en|cerca)|sushi\s+(?:en|cerca))\s*(.+)/);
-    if (m && m[1]) return { query: m[1].trim() };
+    const captured = extractWithAccents(/(?:donde\s+(?:como|cenar|almorzar|comer)|restaurantes?\s+(?:en|cerca)|parrilla\s+(?:en|cerca)|sushi\s+(?:en|cerca))\s*(.+)/);
+    if (captured) return { query: captured };
   }
 
   if (toolName === "recipe_find") {
     // "receta de pasta" → "pasta"
-    const m = normalized.match(/(?:receta\s+(?:de\s+|para\s+)?|como\s+hago\s+|que\s+cocino\s+(?:con\s+)?|algo\s+con\s+)(.+)/);
-    if (m && m[1]) return { query: m[1].trim().replace(/[?¿!¡.]+$/g, "") };
+    const captured = extractWithAccents(/(?:receta\s+(?:de\s+|para\s+)?|como\s+hago\s+|que\s+cocino\s+(?:con\s+)?|algo\s+con\s+)(.+)/);
+    if (captured) return { query: captured };
   }
 
   if (toolName === "movie_info" || toolName === "book_info") {
     // "info de inception" → "inception"
-    const m = normalized.match(/(?:info\s+(?:de\s+|del\s+|sobre\s+)|resena\s+(?:de\s+|del\s+)?|sobre\s+(?:la\s+pelicula\s+|el\s+libro\s+)?|quien\s+actua\s+en\s+|quien\s+escribio\s+)(.+)/);
-    if (m && m[1]) return { title: m[1].trim().replace(/[?¿!¡.]+$/g, "") };
+    const captured = extractWithAccents(/(?:info\s+(?:de\s+|del\s+|sobre\s+)|resena\s+(?:de\s+|del\s+)?|sobre\s+(?:la\s+pelicula\s+|el\s+libro\s+)?|quien\s+actua\s+en\s+|quien\s+escribio\s+)(.+)/);
+    if (captured) return { title: captured };
   }
 
   if (toolName === "wikipedia_lookup") {
     // "que es la fotosintesis" → "la fotosintesis"
-    const m = normalized.match(/(?:que\s+es\s+(?:un\s+|una\s+|el\s+|la\s+|los\s+|las\s+)?|quien\s+fue\s+|contame\s+sobre\s+|defini\s+)(.+)/);
-    if (m && m[1]) return { query: m[1].trim().replace(/[?¿!¡.]+$/g, "") };
+    const captured = extractWithAccents(/(?:que\s+es\s+(?:un\s+|una\s+|el\s+|la\s+|los\s+|las\s+)?|quien\s+fue\s+|contame\s+sobre\s+|defini\s+)(.+)/);
+    if (captured) return { query: captured };
   }
 
   // Default: devolver el input sin prefijos genéricos
-  const generic = normalized.replace(/^(hola|buenas|che|hey|koru|por\s+favor|podrias|puedes|decime|dame|quiero\s+saber|necesito\s+saber)\s+/i, "").trim();
+  const generic = lower.replace(/^(hola|buenas|che|hey|koru|por\s+favor|podrias|puedes|decime|dame|quiero\s+saber|necesito\s+saber)\s+/i, "").trim();
   return { query: generic || userInput };
 }
