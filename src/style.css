@@ -3070,9 +3070,9 @@ button.koru-stitch-row {
 /* Secciones de detalle normalizadas — cada .koru-magical-card
    renderiza uno de estos "kind" según el contenido del bloque. */
 .koru-dsec-text {
-  color: #464554;
-  font-size: 13.5px;
-  line-height: 1.55;
+  color: var(--ink-soft, #554a7d);
+  font-size: 12px;
+  line-height: 1.5;
   margin: 0;
 }
 
@@ -3081,37 +3081,44 @@ button.koru-stitch-row {
 
 .koru-dsec-tiles {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
 }
 
 .koru-dsec-tile {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.6);
-  padding: 14px;
+  gap: 2px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(131, 99, 249, 0.1);
+  padding: 10px 6px 8px;
+  text-align: center;
 }
 
 .koru-dsec-tile-icon {
-  font-size: 24px;
+  font-size: 18px;
   flex: 0 0 auto;
+  display: none;
 }
 
 .koru-dsec-tile-label {
   display: block;
-  color: #464554;
-  font-size: 11px;
-  font-weight: 600;
+  color: var(--ink-faint, #a89cc7);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
 }
 
 .koru-dsec-tile-value {
   display: block;
-  margin-top: 1px;
-  color: #382b8c;
+  margin-bottom: 2px;
+  color: var(--ink, #2e2650);
   font-size: 16px;
   font-weight: 800;
+  font-family: var(--font-display, 'Bricolage Grotesque', serif);
 }
 
 .koru-dsec-rows {
@@ -3123,16 +3130,21 @@ button.koru-stitch-row {
 .koru-dsec-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.6);
-  padding: 12px;
+  gap: 10px;
+  border-radius: 0;
+  background: transparent;
+  padding: 8px 0;
+  border: none;
 }
 
 .koru-dsec-row-icon {
   flex: 0 0 auto;
-  font-size: 22px;
-  color: var(--module-color);
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: #fff;
 }
 
 .koru-dsec-row-body {
@@ -3142,48 +3154,52 @@ button.koru-stitch-row {
 
 .koru-dsec-row-title {
   margin: 0;
-  color: #0b1c30;
-  font-size: 13.5px;
+  color: var(--ink, #2e2650);
+  font-size: 12.5px;
   font-weight: 700;
 }
 
 .koru-dsec-row-detail {
   margin: 2px 0 0;
-  color: #464554;
-  font-size: 11.5px;
+  color: var(--ink-soft, #554a7d);
+  font-size: 10.5px;
 }
 
 .koru-dsec-row-meta {
   flex: 0 0 auto;
-  color: #464554;
-  font-size: 11px;
+  color: var(--ink-faint, #a89cc7);
+  font-size: 10px;
   font-weight: 700;
+  background: rgba(131, 99, 249, 0.08);
+  padding: 3px 8px;
+  border-radius: 999px;
 }
 
 .koru-dsec-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .koru-dsec-chip {
-  display: flex;
-  flex-direction: column;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.6);
-  padding: 8px 12px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: rgba(131, 99, 249, 0.1);
+  border: 1px solid rgba(131, 99, 249, 0.2);
+  padding: 7px 13px;
 }
 
 .koru-dsec-chip-label {
-  color: #0b1c30;
-  font-size: 12.5px;
+  color: var(--ink, #2e2650);
+  font-size: 11.5px;
   font-weight: 700;
 }
 
 .koru-dsec-chip-sub {
-  margin-top: 1px;
-  color: #464554;
-  font-size: 10.5px;
+  margin-top: 0;
+  color: var(--ink-soft, #554a7d);
+  font-size: 9.5px;
   font-weight: 500;
 }
 
