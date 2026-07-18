@@ -587,6 +587,10 @@ function deliverable(b: Of<"deliverable">): KoruPresentation {
       title: clean(b.title) || "Tu Informe",
       subtitle: `${kicker}${b.sources?.length ? ` · ${b.sources.length} fuentes` : ""}`,
       sections,
+      actions: [
+        { label: "Guardar informe", icon: "bookmark", kind: "primary", action: "deepsearch:save" },
+        { label: "PDF", icon: "play", kind: "secondary", action: "deepsearch:pdf" },
+      ],
     },
     cta: sections.length ? { label: `Leer el ${kicker.replace(/^tu\s+/i, "").toLowerCase()} completo` } : undefined,
   };
@@ -607,12 +611,16 @@ function clarifying(b: Of<"clarifying_question">): KoruPresentation {
           subtitle: b.question,
           sections: [
             {
-              kind: "chips",
-              icon: "help",
+              kind: "rows",
+              icon: "list",
               accent: A.violet,
               title: "Opciones",
-              chips: b.options.map((o) => ({ label: o })),
+              rows: b.options.map((opt: string) => ({ icon: "radio_button_unchecked", title: opt })),
             },
+          ],
+          actions: [
+            { label: "Responder", icon: "play", kind: "primary", action: "clarifying:answer" },
+            { label: "Cancelar", icon: "bookmark", kind: "secondary", action: "clarifying:cancel" },
           ],
         }
       : undefined,
@@ -1321,6 +1329,10 @@ function comparison(b: Of<"comparison">): KoruPresentation {
       title: b.title || "Comparación",
       subtitle: (Array.isArray(b.criteria) ? b.criteria.join(" · ") : b.criteria) ?? b.recommendation,
       sections,
+      actions: [
+        { label: "Guardar decisión", icon: "bookmark", kind: "primary", action: "comparison:save" },
+        { label: "Compartir", icon: "search", kind: "secondary", action: "comparison:share" },
+      ],
     },
     cta: { label: "Ver el duelo completo" },
     // 🔴 v3: gallery (carrusel) cuando hay múltiples opciones que comparar.
@@ -1353,6 +1365,10 @@ function research(b: Of<"research_sources">): KoruPresentation {
       sections: [
         { kind: "text", icon: "summarize", accent: A.purple, title: "Síntesis", subtitle: "LO ESENCIAL", body: b.summary },
         ...(b.sources?.length ? [sourcesSection(b.sources)] : []),
+      ],
+      actions: [
+        { label: "Guardar informe", icon: "bookmark", kind: "primary", action: "research:save" },
+        { label: "PDF", icon: "play", kind: "secondary", action: "research:pdf" },
       ],
     },
     cta: { label: isReport ? "Leer el informe completo" : "Ver resultados" },
@@ -1704,7 +1720,10 @@ function activityGroup(b: Of<"activity_group">): KoruPresentation {
       accent: A.primary,
       metrics: b.energy ? [{ icon: "bolt", label: b.energy.label ?? "Energía", value: `${b.energy.value}%`, color: A.emerald.color }] : undefined,
     },
-    detail: sections.length ? { title: b.title, subtitle: b.subtitle, sections } : undefined,
+    detail: sections.length ? { title: b.title, subtitle: b.subtitle, sections, actions: [
+      { label: "Ver todo", icon: "play", kind: "primary", action: "activity:view_all" },
+      { label: "Guardar", icon: "bookmark", kind: "secondary", action: "activity:save" },
+    ] } : undefined,
     cta: sections.length ? { label: "Ver resumen" } : undefined,
   };
 }
@@ -1904,7 +1923,10 @@ function webNav(b: Of<"web_nav">): KoruPresentation {
         ? [{ icon: "fact_check", label: "Fuentes", value: String(results.length), color: A.sky.color }]
         : undefined,
     },
-    detail: sections.length ? { title: b.title || (isReport ? "Informe" : "Búsqueda"), subtitle: b.query, sections } : undefined,
+    detail: sections.length ? { title: b.title || (isReport ? "Informe" : "Búsqueda"), subtitle: b.query, sections, actions: [
+      { label: "Abrir enlace", icon: "navigate", kind: "primary", action: "webnav:open" },
+      { label: "Guardar", icon: "bookmark", kind: "secondary", action: "webnav:save" },
+    ] } : undefined,
     cta: sections.length ? { label: isReport ? "Leer el informe completo" : "Ver resultados" } : undefined,
   };
 }
@@ -4097,6 +4119,10 @@ function decisionSupport(b: Of<"decision_support">): KoruPresentation {
           title: b.title || "Decisión",
           subtitle: b.recommendation,
           sections,
+          actions: [
+            { label: "Confirmar", icon: "play", kind: "primary", action: "decision:confirm" },
+            { label: "Revisar", icon: "search", kind: "secondary", action: "decision:review" },
+          ],
         }
       : undefined,
     cta: sections.length ? { label: "Ver el análisis completo" } : undefined,
@@ -4771,6 +4797,10 @@ function birthdayCalendar(b: Of<"birthday_calendar">): KoruPresentation {
       title: `Calendario · ${month}`,
       subtitle: highlightedDay ? `DÍA DESTACADO: ${highlightedDay}` : undefined,
       sections,
+      actions: [
+        { label: "Llamar ahora", icon: "alarm", kind: "primary", action: "event:call" },
+        { label: "Recordame", icon: "bell", kind: "secondary", action: "birthday:remind" },
+      ],
     },
     cta: { label: "Ver calendario" },
     // 🔴 KIMI v4: layout default .kc (no banner — spec pág. 53 muestra kc normal).
@@ -4931,7 +4961,10 @@ function reviewDocument(b: Of<"review_document">): KoruPresentation {
       accent: A.primary,
     },
     detail: b.body
-      ? { title: b.title || "Veredicto", sections: [{ kind: "text", icon: "description", accent: A.primary, title: "Análisis", body: b.body }] }
+      ? { title: b.title || "Veredicto", sections: [{ kind: "text", icon: "description", accent: A.primary, title: "Análisis", body: b.body }], actions: [
+        { label: "Abrir", icon: "play", kind: "primary", action: "reviewdoc:open" },
+        { label: "Guardar", icon: "bookmark", kind: "secondary", action: "reviewdoc:save" },
+      ] }
       : undefined,
     cta: b.body ? { label: "Leer veredicto" } : undefined,
   };
