@@ -5206,9 +5206,12 @@ function lexicalRouteForInput(input: string): { category: RouteCategory; tool: s
   if (/\b(tenis|tennis|roland garros|wimbledon|alcaraz|sinner|djokovic|nadal|atp|wta)\b/.test(lc)) {
     return { category: "sports" as RouteCategory, tool: "tennis_live", toolArgs: { query: input } };
   }
-  // Football (match_live)
-  if (/\b(c[oó]mo le fue a|como le fue a|c[oó]mo sali[oó]|como salio|c[oó]mo sali[oó] boca|c[oó]mo le fue a boca|c[oó]mo le fue a river|resultado de|partido de|jug[oó] boca|jug[oó] river|gano|perdi[oó]|empat[oó])\b/.test(lc)) {
-    return { category: "sports" as RouteCategory, tool: "match_live", toolArgs: { query: input } };
+  // Football (match_live) — extraer equipo del input
+  if (/\b(c[oó]mo le fue a|como le fue a|c[oó]mo sali[oó]|como salio|resultado de|partido de|cuando juega|cu[aá]ndo juega|juega|jug[oó]|gano|gan[oó]|perdi[oó]|perdi[oó]|empat[oó]|pr[oó]ximo partido|proximo partido)\b/.test(lc)) {
+    // Extraer nombre del equipo del input
+    const teamMatch = lc.match(/(?:de|a|juega|jug[oó]|fue a|sali[oó]|resultado de|partido de|cuando juega|pr[oó]ximo partido de)\s+([a-záéíóúñ\s]{3,30})/);
+    const team = teamMatch?.[1]?.trim() || input;
+    return { category: "sports" as RouteCategory, tool: "match_live", toolArgs: { query: team } };
   }
   // Recipe
   if (/\b(receta|recetas|cocinar|que cocino|qué cocino|plato|platos|ingredientes|receta de)\b/.test(lc)) {

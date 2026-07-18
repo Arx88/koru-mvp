@@ -248,9 +248,10 @@ export async function generateImages(
 
   const openaiKey = process.env.OPENAI_API_KEY;
   const stabilityKey = process.env.STABILITY_API_KEY;
+  const googleKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
 
-  if (!openaiKey && !stabilityKey) {
-    throw new Error("Image generation requires OPENAI_API_KEY or STABILITY_API_KEY");
+  if (!openaiKey && !stabilityKey && !googleKey) {
+    throw new Error("Image generation requires OPENAI_API_KEY, STABILITY_API_KEY, or GOOGLE_API_KEY");
   }
 
   const styleSuffix = style ? STYLE_SUFFIX[style] : "";
@@ -261,6 +262,8 @@ export async function generateImages(
     useModel = options.model;
   } else if (openaiKey) {
     useModel = "dall-e-3";
+  } else if (googleKey) {
+    useModel = "sdxl"; // usamos el path de sdxl pero con Google
   } else {
     useModel = "sdxl";
   }
@@ -291,15 +294,18 @@ export async function generateImages(
 
     // Hasta 2 intentos: primero con `attempt`, luego fallback al otro proveedor
     // si está disponible y no fue de autenticación obvia.
-    for (let tryNum = 0; tryNum < 2; tryNum++) {
+    for (let tryNum = 0; tryNum < 3; tryNum++) {
       try {
         let result: { url: string; seed: number; generationMs: number };
-        if (attempt === "dall-e-3") {
-          if (!openaiKey) throw new Error("OPENAI_API_KEY no configurada");
+        if (attempt === "dall-e-3" && openaiKey) {
           result = await generateWithDallE(promptVariant, aspect, openaiKey);
-        } else {
-          if (!stabilityKey) throw new Error("STABILITY_API_KEY no configurada");
+        } else if (googleKey) {
+          // 🔴 KIMI v7 — Google Gemini Imagen como proveedor
+          result = await generateWithGoogle(promptVariant, aspect, googleKey);
+        } else if (stabilityKey) {
           result = await generateWithSDXL(promptVariant, aspect, stabilityKey);
+        } else {
+          throw new Error("No hay API keys de imagen configuradas");
         }
         images.push({
           id: makeId(attempt, i),
@@ -313,15 +319,10 @@ export async function generateImages(
         break;
       } catch (err) {
         lastErr = err;
-        // Fallback al otro proveedor solo si está disponible y no fue
-        // selección explícita del usuario.
-        if (options?.model) break; // no fallback si se forzó modelo
-        if (attempt === "dall-e-3" && stabilityKey) {
-          attempt = "sdxl";
-        } else if (attempt === "sdxl" && openaiKey) {
-          attempt = "dall-e-3";
-        } else {
-          break;
+        if (options?.model) break;
+        // Fallback chain: dall-e-3 → google → sdxl
+        if (attempt === "dall-e-3" && googleKey) {
+          attempt = "sdxl"; // sdxl path pero usará google
         }
       }
     }
@@ -337,6 +338,69 @@ export async function generateImages(
     tips: PROMPT_TIPS,
     model: usedModel,
     totalTime: Date.now() - totalStartedAt,
+  };
+}
+
+// ============================================================================
+// Google Gemini (Imagen) — free tier
+// ============================================================================
+
+async function generateWithGoogle(
+  prompt: string,
+  aspect: ImageAspectRatio,
+  apiKey: string,
+): Promise<{ url: string; seed: number; generationMs: number }> {
+  const startedAt = Date.now();
+  const seed = Math.floor(Math.random() * 1_000_000);
+
+  // Google Gemini API: usar el modelo gemini-2.0-flash-exp para generación de imágenes
+  const sizeMap: Record<ImageAspectRatio, string> = {
+    "1:1": "1024x1024",
+    "16:9": "1536x864",
+    "9:16": "864x1536",
+    "4:3": "1280x960",
+  };
+
+  const res = await fetchWithTimeout(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: `Generate an image: ${prompt}` }] }],
+        generationConfig: {
+          responseModalities: ["TEXT", "IMAGE"],
+        },
+      }),
+    },
+    30_000,
+  );
+
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => "");
+    throw new Error(`Google Gemini image API error ${res.status}: ${errBody.slice(0, 200)}`);
+  }
+
+  const data = await res.json() as {
+    candidates?: Array<{
+      content?: {
+        parts?: Array<{ text?: string; inlineData?: { mimeType?: string; data?: string } }>;
+      };
+    }>;
+  };
+
+  // Buscar la parte de imagen en la respuesta
+  const imagePart = data.candidates?.[0]?.content?.parts?.find((p) => p.inlineData?.data);
+  if (!imagePart?.inlineData?.data) {
+    throw new Error("Google Gemini no devolvió una imagen");
+  }
+
+  const dataUrl = `data:${imagePart.inlineData.mimeType || "image/png"};base64,${imagePart.inlineData.data}`;
+
+  return {
+    url: dataUrl,
+    seed,
+    generationMs: Date.now() - startedAt,
   };
 }
 
