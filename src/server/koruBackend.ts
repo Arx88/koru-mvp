@@ -5235,12 +5235,14 @@ function lexicalRouteForInput(input: string): { category: RouteCategory; tool: s
   if (/\b(cu[aá]nto gast[eé]|gast[eé]|gastos|gasto|finanzas|presupuesto|mis gastos|resumen financiero|cu[aá]nto gast[eé] esta)\b/.test(lc)) {
     return { category: "action" as RouteCategory, tool: "query_personal_context", toolArgs: { query: input, domain: "money" } };
   }
-  // Exercise — dejar que el LLM genere exercise_plan nativamente
-  // (no usar save_personal_item porque crea saved_record genérico)
-  // Travel — dejar que el LLM use travel_itinerary nativamente
-  // Elections — dejar que el LLM use web_search nativamente
-  // Image generation — dejar que el LLM use image_gen nativamente
-  // Delivery — dejar que el LLM genere delivery block nativamente
+  // Travel
+  if (/\b(viaje|viajar|planific[aá]?\s+un\s+viaje|itinerario|vacaciones|destino)\b/.test(lc)) {
+    return { category: "travel" as RouteCategory, tool: "web_search", toolArgs: { query: input, mode: "research" } };
+  }
+  // Elections
+  if (/\b(elecciones|escrutinio|resultados?\s+eleccion|votaci[oó]n|candidato|partido\s+pol[ií]tico)\b/.test(lc)) {
+    return { category: "elections" as RouteCategory, tool: "web_search", toolArgs: { query: input, mode: "news" } };
+  }
   // Memory — usar query_personal_context con domain=memory
   if (/\b(qu[eé] record[aá]s de m[ií]|qu[eé] sab[eé]s de m[ií]|qu[eé] ten[eé]s guardado|mi memoria|qu[eé] te cont[eé])\b/.test(lc)) {
     return { category: "personal_query" as RouteCategory, tool: "query_personal_context", toolArgs: { query: input, domain: "memory" } };
