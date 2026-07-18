@@ -22,7 +22,12 @@ const ESPN_LEAGUES = [
   { id: "fifa.world", name: "FIFA World Cup / International Friendlies" },
   { id: "uefa.euro", name: "UEFA Euro" },
   { id: "uefa.nations", name: "UEFA Nations League" },
-  // Top 5 ligas de clubes
+  // 🔴 KORU 3.0 — agregar ligas argentinas y sudamericanas para que
+  // "cuando juega Boca" funcione. ESPN tiene arg.1 (Primera División Argentina)
+  // y bra.1 (Brasileirão), entre otras.
+  { id: "arg.1", name: "Argentine Primera División" },
+  { id: "bra.1", name: "Brasileirão Série A" },
+  // Top 5 ligas de clubes europeas
   { id: "eng.1", name: "Premier League" },
   { id: "esp.1", name: "La Liga" },
   { id: "ita.1", name: "Serie A" },
@@ -51,6 +56,41 @@ const NATIONAL_TEAM_SYNONYMS: Array<{ canonical: string; aliases: string[] }> = 
   { canonical: "Croatia", aliases: ["croacia", "croatia", "vatreni"] },
   { canonical: "Norway", aliases: ["noruega", "norway"] },
 ];
+
+// 🔴 KORU 3.0 — Sinónimos de CLUBES sudamericanos populares.
+// ESPN los registra con nombres en inglés o abreviados. Esto permite
+// que "cuando juega Boca" → match con "Boca Juniors" en ESPN arg.1.
+const CLUB_SYNONYMS: Array<{ canonical: string; aliases: string[] }> = [
+  { canonical: "Boca Juniors", aliases: ["boca", "boca juniors", "xeneizes", "azul y oro"] },
+  { canonical: "River Plate", aliases: ["river", "river plate", "millonarios", "gallinas"] },
+  { canonical: "Racing Club", aliases: ["racing", "racing club", "la academia"] },
+  { canonical: "Independiente", aliases: ["independiente", "el rojo", "rey de copas"] },
+  { canonical: "San Lorenzo", aliases: ["san lorenzo", "cuervos", "cyclone"] },
+  { canonical: "Estudiantes", aliases: ["estudiantes", "estudiantes de la plata", "pincharrata"] },
+  { canonical: "Rosario Central", aliases: ["rosario central", "central", "canalla"] },
+  { canonical: "Newell's Old Boys", aliases: ["newells", "newell's", "leprosos"] },
+  { canonical: "Flamengo", aliases: ["flamengo", "mengao"] },
+  { canonical: "Palmeiras", aliases: ["palmeiras", "verdao"] },
+  { canonical: "Corinthians", aliases: ["corinthians", "timao"] },
+  { canonical: "São Paulo", aliases: ["sao paulo", "são paulo", "tricolor paulista"] },
+  { canonical: "Santos", aliases: ["santos", "peixe"] },
+  { canonical: "Atlético Mineiro", aliases: ["atletico mineiro", "galo"] },
+  { canonical: "Grêmio", aliases: ["gremio", "grêmio", "tricolor gaucho"] },
+  { canonical: "Internacional", aliases: ["internacional", "inter", "colorados"] },
+];
+
+/**
+ * Detecta si el query menciona un club sudamericano y devuelve el canonical name.
+ */
+function detectClub(queryLower: string): string | null {
+  for (const club of CLUB_SYNONYMS) {
+    for (const alias of club.aliases) {
+      const re = new RegExp(`\\b${alias.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")}\\b`, "i");
+      if (re.test(queryLower)) return club.canonical;
+    }
+  }
+  return null;
+}
 
 /**
  * Detecta si el query menciona una selección nacional y devuelve el canonical name.
@@ -166,11 +206,13 @@ async function searchEspnScoreboards(query: string): Promise<Array<{ event: Espn
   const results: Array<{ event: EspnEvent; leagueId: string; leagueName: string }> = [];
   const datesToQuery = detectDatesToQuery(queryLower);
   const nationalTeam = detectNationalTeam(queryLower);
+  const club = detectClub(queryLower);
 
-  // Si detectamos selección nacional, agregamos el canonical name al query
-  // para que el filtro por nombre funcione (España → "Spain" en ESPN)
+  // Si detectamos selección nacional o club, agregamos el canonical name al query
+  // para que el filtro por nombre funcione (España → "Spain", Boca → "Boca Juniors")
   const matchTerms = [queryLower];
   if (nationalTeam) matchTerms.push(nationalTeam.toLowerCase());
+  if (club) matchTerms.push(club.toLowerCase());
 
   // Buscar en paralelo en todas las ligas × todas las fechas relevantes
   const promises: Promise<void>[] = [];
@@ -643,8 +685,10 @@ export const matchSchedule: ToolHandler = {
     // Buscamos en los próximos 7 días en paralelo en todas las ligas.
     const queryLower = (team || league).toLowerCase();
     const nationalTeam = detectNationalTeam(queryLower);
+    const club = detectClub(queryLower);
     const matchTerms = [queryLower];
     if (nationalTeam) matchTerms.push(nationalTeam.toLowerCase());
+    if (club) matchTerms.push(club.toLowerCase());
 
     const now = new Date();
     const fmt = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, "");
