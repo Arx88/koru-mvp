@@ -4635,17 +4635,6 @@ function normalizeFinalPayload(
     : mergeModelAndToolBlocks(modelBlocks, toolBlocks);
   const captures = personalCapturesFromTools(toolExecutions);
   const localActions = localActionsFromTools(toolExecutions);
-  // 🔴 KORU 3.0 — DEBUG TEMPORAL: ver por qué no se extraen commitments
-  if (captures.length === 0 && toolExecutions.some(e => (e.result as any)?.type === "personal_capture")) {
-    console.warn("[normalizeFinalPayload] personal_capture found but captures empty!", {
-      toolExecutionsTypes: toolExecutions.map(e => (e.result as any)?.type),
-    });
-  }
-  logger.info("normalizeFinalPayload", "captures extracted", {
-    capturesCount: captures.length,
-    capturesCommitments: captures.flatMap(c => c.commitments ?? []).length,
-    toolExecutionsTypes: toolExecutions.map(e => (e.result as any)?.type),
-  });
   const memoryCaptures = memoryCapturesFromTools(toolExecutions);
   const toolResults: ToolResult[] = toolExecutions.map((execution, index) => {
     const resultAny = execution.result as Record<string, unknown>;
@@ -4813,9 +4802,17 @@ function normalizeFinalPayload(
       ...normalizeCommitments(extractedRaw?.commitments),
       ...captures.flatMap((capture) => capture.commitments ?? []),
       ...localActions.flatMap((action) => action.commitments ?? []),
+      // 🔴 KORU 3.0 — EXTRAER commitments de CUALQUIER toolResult que los tenga.
+      // Antes solo se extraían de captures (type=personal_capture) y localActions.
+      // Pero algunos resultados tienen commitments anidados en .data o directamente.
+      // Esto asegura que NUNCA se pierdan commitments creados por tools.
       ...toolExecutions.flatMap((exec) => {
         const r = exec.result as any;
-        return Array.isArray(r?.commitments) ? r.commitments : [];
+        // Direct commitments en el resultado
+        if (Array.isArray(r?.commitments)) return r.commitments;
+        // Commitments anidados en .data (caso toolResults del response)
+        if (Array.isArray(r?.data?.commitments)) return r.data.commitments;
+        return [];
       }),
       ...synthCommitments,
     ]).slice(0, 8),
@@ -4824,10 +4821,12 @@ function normalizeFinalPayload(
       ...normalizeRecords(extractedRaw?.records),
       ...captures.flatMap((capture) => capture.records ?? []),
       ...localActions.flatMap((action) => action.records ?? []),
-      // 🔴 FIX: extract records from any tool result that has them
+      // 🔴 KORU 3.0 — EXTRAER records de CUALQUIER toolResult que los tenga.
       ...toolExecutions.flatMap((exec) => {
         const r = exec.result as any;
-        return Array.isArray(r?.records) ? r.records : [];
+        if (Array.isArray(r?.records)) return r.records;
+        if (Array.isArray(r?.data?.records)) return r.data.records;
+        return [];
       }),
     ]).slice(0, 12),
     toolResults,
