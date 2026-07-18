@@ -6284,6 +6284,54 @@ export async function runKoruBackendTurn(
             block.sections = lexSections;
             if (sourceSection) block.sections.push(sourceSection);
           }
+          // 🔴 KIMI v7 — Transformar deliverable genérico en el block type correcto
+          // según el tool original del lexical route
+          if (block.type === "deliverable") {
+            const tool = lexicalRoute.tool;
+            const sources = (block as any).sources || [];
+            const summary = (block as any).summary || lexEffectiveSummary || "";
+            const sections = (block as any).sections || [];
+
+            if (tool === "route_traffic" || tool === "web_search" && lexicalRoute.category === "travel") {
+              // Transformar a route_map
+              const dest = String(lexicalRoute.toolArgs?.destination || request.input).replace(/como llego al?/i, "").trim();
+              Object.assign(block, {
+                type: "route_map",
+                to: dest,
+                from: undefined,
+                distance: undefined,
+                remaining: undefined,
+                sources,
+              });
+            } else if (tool === "web_search" && lexicalRoute.category === "elections") {
+              // Transformar a election_results
+              Object.assign(block, {
+                type: "election_results",
+                title: "Resultados electorales",
+                status: "Parcial",
+                candidates: [],
+                participationPct: undefined,
+                sources,
+              });
+            } else if (tool === "web_search" && lexicalRoute.category === "travel") {
+              // Transformar a travel_planner
+              const dest = request.input.replace(/planific[aá] un viaje a/i, "").trim();
+              Object.assign(block, {
+                type: "travel_planner",
+                destination: dest,
+                dates: undefined,
+                travelers: 1,
+                sources,
+              });
+            } else if (tool === "web_search" && lexicalRoute.category === "sports") {
+              // Mantener deliverable pero con mejor título
+              const team = String(lexicalRoute.toolArgs?.query || lexicalRoute.toolArgs?.team || "").replace(/partido resultado futbol/i, "").trim();
+              (block as any).title = team ? `Último partido de ${team}` : "Resultado deportivo";
+            } else if (tool === "web_search" && lexicalRoute.category === "market") {
+              // Mantener deliverable pero con mejor título
+              (block as any).title = "Cotización";
+            }
+          }
         }
       }
       return { ...lexResponse, provider, model, fallbackReason: "lexical-" + lexicalRoute.category };
