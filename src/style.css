@@ -2581,6 +2581,7 @@ button.koru-stitch-row {
   opacity: 1;
   text-align: center;
   letter-spacing: 0.05em;
+  margin-top: 4px;
 }
 
 .koru-roadmap-modules {
@@ -3074,8 +3075,9 @@ button.koru-stitch-row {
 .koru-dsec-text {
   color: var(--ink-soft, #554a7d);
   font-size: 12px;
-  line-height: 1.5;
+  line-height: 1.45;
   margin: 0;
+  text-align: left;
 }
 
 .koru-dsec-text b { font-weight: 700; color: #0b1c30; }
@@ -3126,7 +3128,7 @@ button.koru-stitch-row {
 .koru-dsec-rows {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 4px;
 }
 
 .koru-dsec-row {
@@ -3135,8 +3137,9 @@ button.koru-stitch-row {
   gap: 10px;
   border-radius: 0;
   background: transparent;
-  padding: 8px 0;
+  padding: 6px 0;
   border: none;
+  text-align: left;
 }
 
 .koru-dsec-row-icon {
@@ -3162,9 +3165,10 @@ button.koru-stitch-row {
 }
 
 .koru-dsec-row-detail {
-  margin: 2px 0 0;
+  margin: 1px 0 0;
   color: var(--ink-soft, #554a7d);
   font-size: 10.5px;
+  line-height: 1.3;
 }
 
 .koru-dsec-row-meta {
