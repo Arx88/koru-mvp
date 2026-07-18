@@ -2602,7 +2602,7 @@ function isTrivialInput(input: string): boolean {
   if (trimmed.length === 0) return true;
   if (trimmed.length < 3) return true;
   const trivial = [
-    "hola", "buenos dias", "buen dia", "buenas", "buenas tardes", "buenas noches",
+    "hola", "buenas", "buenas tardes", "buenas noches",
     "hey", "hi", "hello", "que tal", "como estas", "como va", "todo bien", "que onda",
     "che", "epa", "alo", "aló", "buen", "epa",
     "adios", "adiós", "chau", "nos vemos", "hasta luego", "hasta pronto", "bye",
@@ -5104,6 +5104,18 @@ function lexicalRouteForInput(input: string): { category: RouteCategory; tool: s
   // Tennis
   if (/\b(tenis|tennis|roland garros|wimbledon|alcaraz|sinner|djokovic|nadal|atp|wta)\b/.test(lc)) {
     return { category: "sports" as RouteCategory, tool: "tennis_live", toolArgs: { query: input } };
+  }
+  // 🔴 KIMI v6 — Recipe
+  if (/\b(receta|recetas|cocinar|que cocino|qué cocino|plato|platos|ingredientes|receta de)\b/.test(lc)) {
+    return { category: "food" as RouteCategory, tool: "recipe_find", toolArgs: { query: input } };
+  }
+  // 🔴 KIMI v6 — Route map
+  if (/\b(c[oó]mo llego|como llego|ruta a|direcci[oó]n?a? al?|camino a|navegar a|ir a|c[oó]mo voy|como voy|d[oó]nde queda|donde queda|indicaciones)\b/.test(lc)) {
+    return { category: "travel" as RouteCategory, tool: "route_traffic", toolArgs: { destination: input, query: input } };
+  }
+  // 🔴 KIMI v6 — Money summary
+  if (/\b(cu[aá]nto gast[eé]|gast[eé]|gastos|gasto|finanzas|presupuesto|mis gastos|resumen financiero|cu[aá]nto gast[eé] esta)\b/.test(lc)) {
+    return { category: "action" as RouteCategory, tool: "query_personal_context", toolArgs: { query: input, domain: "money" } };
   }
   return null;
 }
