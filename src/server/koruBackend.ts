@@ -5101,17 +5101,21 @@ function lexicalRouteForInput(input: string): { category: RouteCategory; tool: s
   if (/\b(noticias|noticia|última hora|ultima hora|último minuto|ultimo minuto|noticias urgentes|noticias de hoy|qué pasó hoy|que pasó hoy)\b/.test(lc)) {
     return { category: "world_info" as RouteCategory, tool: "news_urgent_search", toolArgs: { query: input } };
   }
-  // Tennis
+  // Tennis (usar web_search porque tennis_live puede fallar)
   if (/\b(tenis|tennis|roland garros|wimbledon|alcaraz|sinner|djokovic|nadal|atp|wta)\b/.test(lc)) {
-    return { category: "sports" as RouteCategory, tool: "tennis_live", toolArgs: { query: input } };
+    return { category: "sports" as RouteCategory, tool: "web_search", toolArgs: { query: input, mode: "news" } };
   }
-  // 🔴 KIMI v6 — Recipe
+  // 🔴 KIMI v6 — Recipe (usar web_search porque recipe_find puede fallar)
   if (/\b(receta|recetas|cocinar|que cocino|qué cocino|plato|platos|ingredientes|receta de)\b/.test(lc)) {
-    return { category: "food" as RouteCategory, tool: "recipe_find", toolArgs: { query: input } };
+    return { category: "food" as RouteCategory, tool: "web_search", toolArgs: { query: input, mode: "research" } };
   }
   // 🔴 KIMI v6 — Route map
   if (/\b(c[oó]mo llego|como llego|ruta a|direcci[oó]n?a? al?|camino a|navegar a|ir a|c[oó]mo voy|como voy|d[oó]nde queda|donde queda|indicaciones)\b/.test(lc)) {
     return { category: "travel" as RouteCategory, tool: "route_traffic", toolArgs: { destination: input, query: input } };
+  }
+  // 🔴 KIMI v6 — Morning brief ("buenos dias" ya no es trivial)
+  if (/\b(buenos d[ií]as|buen d[ií]a|buen dia|que tal el d[ií]a|resumen del d[ií]a|empezamos el d[ií]a)\b/.test(lc)) {
+    return { category: "action" as RouteCategory, tool: "query_personal_context", toolArgs: { query: input, domain: "morning" } };
   }
   // 🔴 KIMI v6 — Money summary
   if (/\b(cu[aá]nto gast[eé]|gast[eé]|gastos|gasto|finanzas|presupuesto|mis gastos|resumen financiero|cu[aá]nto gast[eé] esta)\b/.test(lc)) {
