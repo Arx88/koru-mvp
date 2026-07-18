@@ -5222,27 +5222,13 @@ function lexicalRouteForInput(input: string): { category: RouteCategory; tool: s
   if (/\b(cu[aá]nto gast[eé]|gast[eé]|gastos|gasto|finanzas|presupuesto|mis gastos|resumen financiero|cu[aá]nto gast[eé] esta)\b/.test(lc)) {
     return { category: "action" as RouteCategory, tool: "query_personal_context", toolArgs: { query: input, domain: "money" } };
   }
-  // Exercise
-  if (/\b(entrenamiento|ejercicio|gym|gimnasio|rutina de|entren[aá]|workout|fitness|pesas|cardio)\b/.test(lc)) {
-    return { category: "action" as RouteCategory, tool: "save_personal_item", toolArgs: { query: input, kind: "exercise_plan", title: input } };
-  }
-  // Travel
-  if (/\b(viaje|viajar|planific[aá] un viaje|itinerario|vacaciones|destino)\b/.test(lc)) {
-    return { category: "travel" as RouteCategory, tool: "web_search", toolArgs: { query: input, mode: "research" } };
-  }
-  // Elections
-  if (/\b(elecciones|escrutinio|resultados de|votaci[oó]n|candidato|partido pol[ií]tico)\b/.test(lc)) {
-    return { category: "elections" as RouteCategory, tool: "web_search", toolArgs: { query: input, mode: "news" } };
-  }
-  // Image generation
-  if (/\b(genera una imagen|gener[aá] imagen|crea una imagen|dibuja|ilustra|render|ai art)\b/.test(lc)) {
-    return { category: "action" as RouteCategory, tool: "save_personal_item", toolArgs: { query: input, kind: "generation", title: input } };
-  }
-  // Delivery
-  if (/\b(segu[ií] mi pedido|seguimiento|d[oó]nde est[aá] mi pedido|pedidosya|env[ií]o|paquete|delivery)\b/.test(lc)) {
-    return { category: "action" as RouteCategory, tool: "save_personal_item", toolArgs: { query: input, kind: "delivery", title: input } };
-  }
-  // Memory
+  // Exercise — dejar que el LLM genere exercise_plan nativamente
+  // (no usar save_personal_item porque crea saved_record genérico)
+  // Travel — dejar que el LLM use travel_itinerary nativamente
+  // Elections — dejar que el LLM use web_search nativamente
+  // Image generation — dejar que el LLM use image_gen nativamente
+  // Delivery — dejar que el LLM genere delivery block nativamente
+  // Memory — usar query_personal_context con domain=memory
   if (/\b(qu[eé] record[aá]s de m[ií]|qu[eé] sab[eé]s de m[ií]|qu[eé] ten[eé]s guardado|mi memoria|qu[eé] te cont[eé])\b/.test(lc)) {
     return { category: "personal_query" as RouteCategory, tool: "query_personal_context", toolArgs: { query: input, domain: "memory" } };
   }
