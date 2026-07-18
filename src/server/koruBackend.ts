@@ -5208,9 +5208,20 @@ async function getRouter(config: ProviderConfig): Promise<SemanticRouter | null>
  * Es heurística simple sobre el input, no matching de intención (eso ya lo hizo el router).
  */
 /**
+ * 🔴 KORU 3.0 — Lexical route DISABLED.
+ * El lexical route original era regex/keyword matching frágil a acentos,
+ * typos, slang, regionalismos. El LLM con tool-calling nativo es
+ * infinitamente más flexible. Esta shim SIEMPRE devuelve null.
+ * La función original lexicalRouteForInput se conserva abajo para tests.
+ */
+function lexicalRouteForInputDisabled(): { category: RouteCategory; tool: string; toolArgs?: Record<string, unknown> } | null {
+  return null;
+}
+
+/**
  * 🔴 KIMI v6 — Fallback léxico para keywords obvias.
- * Cuando el router semántico no tiene confianza suficiente, este fallback
- * detecta keywords específicos y deriva a la tool correcta.
+ * @deprecated KORU 3.0 — Desactivado en el flujo principal. Se conserva solo
+ * para tests unitarios y como documentación de intenciones.
  */
 function lexicalRouteForInput(input: string): { category: RouteCategory; tool: string; toolArgs?: Record<string, unknown> } | null {
   const lc = input.toLowerCase().trim();
@@ -6072,7 +6083,7 @@ export async function runKoruBackendTurn(
     // Era regex/keyword matching frágil a acentos, typos, slang, regionalismos.
     // El LLM con tool-calling nativo es infinitamente más flexible.
     // La función lexicalRouteForInput se conserva para tests pero SIEMPRE devuelve null.
-    const lexicalRoute: { category: RouteCategory; tool: string; toolArgs?: Record<string, unknown> } | null = null;
+    const lexicalRoute: { category: RouteCategory; tool: string; toolArgs?: Record<string, unknown> } | null = lexicalRouteForInputDisabled();
     if (lexicalRoute) {
       // Override léxico — saltar el router semántico y usar la tool específica
       routeCategory = lexicalRoute.category;
