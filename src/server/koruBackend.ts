@@ -1826,6 +1826,28 @@ export function queryPersonalContextFromState(state: KoruState, args: Record<str
   // 🔴 KIMI v7 — Mapear domain del lexical route a topic interno
   const effectiveTopic = topic === "money" ? "expenses" : topic === "morning" ? "general" : topic === "memory" ? "general" : topic;
 
+  // 🔴 KIMI v7 — Morning brief: devolver morning_brief block directamente
+  if (topic === "morning") {
+    const memories = (Array.isArray(state.memories) ? state.memories : []).slice(0, 5);
+    const weather = state.weatherCache;
+    const items: Array<{ icon: string; label: string; value: string; iconColor: string }> = [];
+    if (weather?.payload?.now) {
+      items.push({ icon: "wb_sunny", label: "Clima", value: `${weather.payload.now}${weather.payload.condition ? ` · ${weather.payload.condition}` : ""}`, iconColor: "#f59e0b" });
+    }
+    if (memories.length) {
+      items.push({ icon: "psychology", label: "Recuerdos", value: `${memories.length} activos`, iconColor: "#8363f9" });
+    }
+    items.push({ icon: "schedule", label: "Hoy", value: new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "short" }), iconColor: "#46c293" });
+    return {
+      type: "personal_query",
+      block: {
+        type: "morning_brief" as const,
+        greeting: `Buenos días! Son las ${new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}.`,
+        items,
+      },
+    };
+  }
+
   if (effectiveTopic === "expenses") {
     const expenses = records.filter((record) => record.kind === "expense");
     if (!expenses.length) {
