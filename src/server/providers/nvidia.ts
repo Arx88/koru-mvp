@@ -13,6 +13,35 @@ export async function callNvidia(
   availableTools?: ToolDefinition[],
   modelOverride?: string,
 ): Promise<ProviderResult> {
+  // 🔴 KORU 3.0 — Retry con backoff para 429 (rate limit).
+  // NVIDIA free tier tiene rate limits agresivos. Cuando devuelve 429,
+  // esperar 2s y reintentar (hasta 2 veces). Solo después de 3 intentos
+  // fallidos, tirar RateLimitError para que callProvider caiga al siguiente.
+  const maxRetries = 2;
+  const baseDelay = 2000;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await callNvidiaOnce(config, messages, timeoutMs, toolsEnabled, availableTools, modelOverride);
+    } catch (err: any) {
+      const isRateLimit = err?.name === "RateLimitError" || /429|rate limit/i.test(err?.message || "");
+      if (!isRateLimit || attempt === maxRetries) throw err;
+      // Esperar antes de reintentar (backoff exponencial: 2s, 4s)
+      const delay = baseDelay * Math.pow(2, attempt);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  throw new Error("NVIDIA retry exhausted");
+}
+
+async function callNvidiaOnce(
+  config: ProviderConfig,
+  messages: ChatMessage[],
+  timeoutMs: number,
+  toolsEnabled = true,
+  availableTools?: ToolDefinition[],
+  modelOverride?: string,
+): Promise<ProviderResult> {
   const useModel = modelOverride ?? config.nvidiaModel;
   const isOllama = isOllamaUrl(config.nvidiaBaseUrl);
   if (isOllama) {
