@@ -1730,10 +1730,60 @@ export function planFromState(state: KoruState, args: Record<string, unknown>): 
   };
 }
 
-export function localReminderFromArgs(args: Record<string, unknown>, input = ""): LocalActionData {
-  const title = cleanText(args.title, input || "Recordatorio");
-  const dueText = cleanText(args.dueText ?? args.dueHint ?? args.startsAt, "sin fecha");
+export function localReminderFromArgs(args: Record<string, unknown>, input = "", history?: Array<{ role: string; content: string }>): LocalActionData {
+  // 🔴 KORU 3.0 — Context-aware reminder title extraction.
+  // Cuando el usuario dice "activa un recordatorio" / "recordame" / "avisame"
+  // sin especificar QUÉ recordar, usar el historial de conversación para
+  // extraer el tema. Ej: si el turno anterior fue "cuando juega Boca" →
+  // "mañana juega Boca", el recordatorio debe ser "Partido de Boca - mañana".
+  let title = cleanText(args.title);
+  let dueText = cleanText(args.dueText ?? args.dueHint ?? args.startsAt);
   const note = cleanText(args.note);
+
+  // Si no hay título explícito Y el input es solo un comando ("activa un
+  // recordatorio", "recordame", "avisame"), extraer el tema del historial.
+  const isCommandOnly = !title && /^(activa|crea|poné|pone|programa|recordame|recuerdame|avisame|avisa|no me olvides|no te olvides|anota|anotá|recordarme|avisarme)\b/i.test(input.trim())
+    && input.trim().length < 60;
+
+  if (isCommandOnly && history && history.length > 0) {
+    // Buscar el último mensaje del asistente (de atrás para adelante)
+    for (let i = history.length - 1; i >= 0; i--) {
+      const msg = history[i];
+      if (msg.role === "assistant" && msg.content && msg.content.trim().length > 10) {
+        // Extraer el tema principal del mensaje del asistente
+        const assistantText = msg.content.trim();
+        // Si el asistente mencionó un partido/equipo, usar eso como título
+        const matchMention = assistantText.match(/(?:partido|juega|juegan|fixture|resultado)\s+(?:de\s+|del\s+)?([A-ZÁÉÍÓÚÑ][\wáéíóúñ\s]{2,40})/i);
+        if (matchMention && matchMention[1]) {
+          const team = matchMention[1].trim().replace(/[.!?,;:]+$/g, "").trim();
+          title = `Partido de ${team}`;
+          // Intentar extraer fecha del mensaje del asistente
+          if (!dueText) {
+            const dateMention = assistantText.match(/(mañana|hoy|pasado\s+mañana|el\s+\d{1,2}\s+de\s+\w+|este\s+\w+|el\s+\w+\s+\d{1,2})/i);
+            if (dateMention) dueText = dateMention[1];
+          }
+          break;
+        }
+        // Si mencionó un evento/clima/receta/etc, extraer el tema
+        const eventMention = assistantText.match(/(?:te\s+dejé|encontré|mirá|acá|esto)\s+(?:el\s+|la\s+|los\s+|las\s+)?(.{10,80})/i);
+        if (eventMention && eventMention[1]) {
+          title = eventMention[1].trim().replace(/[.!?,;:]+$/g, "").slice(0, 60);
+          break;
+        }
+        // Fallback: usar las primeras 50 chars del mensaje del asistente
+        title = assistantText.slice(0, 60).replace(/[.!?,;:\n]+.*$/g, "").trim();
+        if (title.length < 5) title = "";
+        break;
+      }
+    }
+  }
+
+  // Si seguimos sin título, usar el input (comportamiento anterior) o "Recordatorio"
+  if (!title) {
+    title = input || "Recordatorio";
+  }
+  if (!dueText) dueText = "sin fecha";
+
   return {
     type: "local_action",
     requiresApproval: true,
@@ -2460,7 +2510,7 @@ async function executeTool(
   name: string,
   args: Record<string, unknown>,
   state: KoruState,
-  extractorCtx?: { userInput: string; chatFn: ExtractorChatFn },
+  extractorCtx?: { userInput: string; chatFn: ExtractorChatFn; history?: Array<{ role: string; content: string }> },
 ): Promise<{ result: Record<string, unknown>; deferredDataCard?: Promise<UiBlock | null> }> {
   logger.info("executeTool", `Executing tool: ${name}`, { argsKeys: Object.keys(args) });
   let result: Record<string, unknown>;
@@ -2479,7 +2529,7 @@ async function executeTool(
     }
     else if (name === "shopping_compare") result = await runSearch(args, true) as unknown as Record<string, unknown>;
     else if (name === "route_traffic") result = await runSearch({ ...args, mode: "research", query: cleanText(args.query) || [cleanText(args.origin), cleanText(args.destination)].filter(Boolean).join(" a ") || cleanText(args.__userInput) }, false) as unknown as Record<string, unknown>;
-    else if (name === "calendar_reminder") result = localReminderFromArgs(args, cleanText(args.__userInput)) as unknown as Record<string, unknown>;
+    else if (name === "calendar_reminder") result = localReminderFromArgs(args, cleanText(args.__userInput), extractorCtx?.history) as unknown as Record<string, unknown>;
     else if (name === "alarm") result = localAlarmFromArgs(args, cleanText(args.__userInput)) as unknown as Record<string, unknown>;
     else if (name === "plan_day") result = planFromState(state, args) as unknown as Record<string, unknown>;
     else if (name === "query_personal_context") result = queryPersonalContextFromState(state, args) as unknown as Record<string, unknown>;
@@ -5062,7 +5112,11 @@ async function executeProviderToolCalls(
     const d = await r.json().catch(() => ({}));
     return { content: d.message?.content ?? "" };
   };
-  const extractorCtx = { userInput: request.input, chatFn: extractorChatFn };
+  // 🔴 KORU 3.0 — Pasar history al extractorCtx para que localReminderFromArgs
+  // pueda extraer el tema del contexto cuando el usuario dice "activa un recordatorio"
+  // sin especificar qué.
+  const extractorHistory = (request.history ?? []).slice(-10).map(h => ({ role: h.role, content: h.content }));
+  const extractorCtx = { userInput: request.input, chatFn: extractorChatFn, history: extractorHistory };
   const deferredDataCards: Array<Promise<UiBlock | null>> = [];
 
   for (const call of toolCalls) {
