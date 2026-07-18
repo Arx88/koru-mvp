@@ -6710,10 +6710,32 @@ export async function runKoruBackendTurn(
       }
     }
     if (!parsed) {
-      // 🔴 FIX CRÍTICO: el LLM respondió con texto plano (no JSON). En lugar de mostrar
-      // "No pude armar una respuesta clara", USAR el texto plano del LLM como reply.
-      // El LLM suele dar respuestas conversacionales válidas en texto plano cuando
-      // no necesita tools (follow-ups, opiniones, charla). Descartar eso es un error.
+      // 🔴 KIMI v7 — Antes de caer al fallback de texto plano, intentar detectar
+      // tool calls simuladas en el contenido (el Nemotron a veces devuelve
+      // {"tool_calls":[...]} como texto plano en lugar de JSON válido).
+      const simulatedFromPlain = detectSimulatedToolCall(content);
+      if (simulatedFromPlain) {
+        logger.info("runKoruBackendTurn", "Simulated tool-call detected in plain text fallback", {
+          tool: simulatedFromPlain.name,
+          format: simulatedFromPlain.format,
+        });
+        const syntheticToolCall: ProviderToolCall = {
+          id: `sim_plain_${Date.now()}`,
+          type: "function",
+          function: {
+            name: simulatedFromPlain.name,
+            arguments: JSON.stringify(simulatedFromPlain.arguments),
+          },
+        };
+        messages.push({ role: "assistant", content: "", tool_calls: [syntheticToolCall] });
+        const delivered = await executeProviderToolCalls([syntheticToolCall], messages, request, toolExecutions, config);
+        if (delivered) {
+          const response = await finalizePayload(request, config, delivered, toolExecutions, extractorTimeout);
+          return { ...response, provider, model, fallbackReason: (fallbackReason ? fallbackReason + " + " : "") + "simulated-tool-plain" };
+        }
+      }
+
+      // 🔴 FIX CRÍTICO: el LLM respondió con texto plano (no JSON).
       const plainReply = cleanReplyText(content);
       const effectiveReply = (plainReply && plainReply.trim().length > 10)
         ? plainReply.trim()
