@@ -5101,13 +5101,13 @@ function lexicalRouteForInput(input: string): { category: RouteCategory; tool: s
   if (/\b(noticias|noticia|última hora|ultima hora|último minuto|ultimo minuto|noticias urgentes|noticias de hoy|qué pasó hoy|que pasó hoy)\b/.test(lc)) {
     return { category: "world_info" as RouteCategory, tool: "news_urgent_search", toolArgs: { query: input } };
   }
-  // Tennis (usar web_search porque tennis_live puede fallar)
+  // Tennis
   if (/\b(tenis|tennis|roland garros|wimbledon|alcaraz|sinner|djokovic|nadal|atp|wta)\b/.test(lc)) {
-    return { category: "sports" as RouteCategory, tool: "web_search", toolArgs: { query: input, mode: "news" } };
+    return { category: "sports" as RouteCategory, tool: "tennis_live", toolArgs: { query: input } };
   }
-  // 🔴 KIMI v6 — Recipe (usar web_search porque recipe_find puede fallar)
+  // Recipe
   if (/\b(receta|recetas|cocinar|que cocino|qué cocino|plato|platos|ingredientes|receta de)\b/.test(lc)) {
-    return { category: "food" as RouteCategory, tool: "web_search", toolArgs: { query: input, mode: "research" } };
+    return { category: "food" as RouteCategory, tool: "recipe_find", toolArgs: { query: input.replace(/^receta de\s+/i, "").replace(/^receta\s+/i, "") } };
   }
   // 🔴 KIMI v6 — Route map
   if (/\b(c[oó]mo llego|como llego|ruta a|direcci[oó]n?a? al?|camino a|navegar a|ir a|c[oó]mo voy|como voy|d[oó]nde queda|donde queda|indicaciones)\b/.test(lc)) {
@@ -5972,6 +5972,27 @@ export async function runKoruBackendTurn(
       });
       messages.push({ role: "assistant", content: "", tool_calls: [syntheticToolCall] });
       await executeProviderToolCalls([syntheticToolCall], messages, request, toolExecutions, config);
+
+      // 🔴 KIMI v7 — Fallback a web_search si la tool falló (igual que el router path)
+      if (toolExecutions.length > 0) {
+        const lastResult = toolExecutions[toolExecutions.length - 1]?.result as any;
+        const toolFailed = lastResult?.status === "no_data" || lastResult?.status === "failed";
+        if (toolFailed && lexicalRoute.tool !== "web_search") {
+          logger.info("runKoruBackendTurn", "Lexical tool failed, falling back to web_search", {
+            failedTool: lexicalRoute.tool, status: lastResult?.status,
+          });
+          const fallbackQuery = lexicalRoute.toolArgs?.query || request.input;
+          const fallbackToolCall: ProviderToolCall = {
+            id: `lexical_fallback_${Date.now()}`,
+            type: "function",
+            function: { name: "web_search", arguments: JSON.stringify({ query: fallbackQuery, mode: "research" }) },
+          };
+          messages.push({ role: "assistant", content: "", tool_calls: [fallbackToolCall] });
+          await executeProviderToolCalls([fallbackToolCall], messages, request, toolExecutions, config);
+          const failedIdx = toolExecutions.findIndex(e => (e.result as any)?.status === "no_data" || (e.result as any)?.status === "failed");
+          if (failedIdx >= 0) toolExecutions.splice(failedIdx, 1);
+        }
+      }
 
       // Síntesis con Fast Model
       const synthConfigLex = { ...config, nvidiaModel: config.nvidiaFastModel || "meta/llama-3.1-8b-instruct" };
