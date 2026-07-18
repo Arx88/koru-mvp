@@ -4803,16 +4803,15 @@ function normalizeFinalPayload(
       ...captures.flatMap((capture) => capture.commitments ?? []),
       ...localActions.flatMap((action) => action.commitments ?? []),
       // 🔴 KORU 3.0 — EXTRAER commitments de CUALQUIER toolResult que los tenga.
-      // Antes solo se extraían de captures (type=personal_capture) y localActions.
-      // Pero algunos resultados tienen commitments anidados en .data o directamente.
-      // Esto asegura que NUNCA se pierdan commitments creados por tools.
       ...toolExecutions.flatMap((exec) => {
         const r = exec.result as any;
-        // Direct commitments en el resultado
-        if (Array.isArray(r?.commitments)) return r.commitments;
-        // Commitments anidados en .data (caso toolResults del response)
-        if (Array.isArray(r?.data?.commitments)) return r.data.commitments;
-        return [];
+        const comms = Array.isArray(r?.commitments) ? r.commitments : Array.isArray(r?.data?.commitments) ? r.data.commitments : [];
+        if (comms.length > 0) {
+          logger.info("normalizeFinalPayload", "EXTRACTED commitments from toolResult", {
+            tool: exec.name, count: comms.length, titles: comms.map((c: any) => c.title).join("|"),
+          });
+        }
+        return comms;
       }),
       ...synthCommitments,
     ]).slice(0, 8),
