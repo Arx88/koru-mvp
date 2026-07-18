@@ -487,7 +487,64 @@ export const matchLive: ToolHandler = {
 
     // FIX: usar ESPN como fuente principal (TheSportsDB free no tiene datos recientes)
     // ESPN busca en 11 ligas en paralelo y filtra por nombre de equipo
-    const espnResults = await searchEspnScoreboards(query);
+    let espnResults = await searchEspnScoreboards(query);
+
+    // 🔴 KORU 3.0 — Si no encuentra resultados pasados y el query NO menciona
+    // "ayer/hoy/resultado" (es decir, podría ser pregunta de fixture), buscar
+    // también en próximos 5 días. Esto rescata "cuando juega X" que llegó a
+    // match_live por error del LLM.
+    if (espnResults.length === 0 && !/\b(ayer|hoy|resultado|como (le fue|salio|salio)|como le fue|salio)\b/i.test(query)) {
+      const queryLower = query.toLowerCase();
+      const nationalTeam = detectNationalTeam(queryLower);
+      const club = detectClub(queryLower);
+      const matchTerms = [queryLower];
+      if (nationalTeam) matchTerms.push(nationalTeam.toLowerCase());
+      if (club) matchTerms.push(club.toLowerCase());
+
+      const now = new Date();
+      const fmt = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, "");
+      const futureDates: string[] = [];
+      for (let i = 0; i < 5; i++) {
+        const d = new Date(now.getTime() + i * 24 * 60 * 60 * 1000);
+        futureDates.push(fmt(d));
+      }
+
+      const futurePromises: Promise<void>[] = [];
+      const futureResults: Array<{ event: EspnEvent; leagueId: string; leagueName: string }> = [];
+      for (const lg of ESPN_LEAGUES) {
+        for (const date of futureDates) {
+          futurePromises.push((async () => {
+            try {
+              const url = `${ESPN_BASE}/${lg.id}/scoreboard?dates=${date}`;
+              const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
+              if (!res.ok) return;
+              const data = await res.json() as { events?: EspnEvent[] };
+              const events = data.events ?? [];
+              const matching = events.filter(e => {
+                const eventName = (e.name ?? "").toLowerCase();
+                const comps = e.competitions ?? [];
+                const teams = comps.flatMap(c => (c.competitors ?? []).map(comp => comp.team?.displayName?.toLowerCase() ?? ""));
+                return matchTerms.some(term =>
+                  eventName.includes(term) || teams.some(t => t.includes(term))
+                );
+              });
+              for (const m of matching) {
+                futureResults.push({ event: m, leagueId: lg.id, leagueName: lg.name });
+              }
+            } catch { /* league/date timeout — skip */ }
+          })());
+        }
+      }
+      await Promise.all(futurePromises);
+      // Dedupe
+      const seen = new Set<string>();
+      espnResults = futureResults.filter(({ event: e }) => {
+        const id = e.id ?? `${e.name ?? ""}-${e.date ?? ""}`;
+        if (seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      });
+    }
 
     if (espnResults.length > 0) {
       // 🔴 Tomar el primer match y enriquecerlo con /summary (goles, tarjetas, alineaciones, stats)
