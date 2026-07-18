@@ -5161,6 +5161,10 @@ function lexicalRouteForInput(input: string): { category: RouteCategory; tool: s
     const coin = lc.match(/(bitcoin|btc|ethereum|eth|solana|cardano|dogecoin|litecoin|usdt|usdc)/)?.[1] || "bitcoin";
     return { category: "market" as RouteCategory, tool: "crypto_price", toolArgs: { coin: coin === "btc" ? "bitcoin" : coin, query: input } };
   }
+  // Stock/Trading
+  if (/\b(aapl|apple|tesla|tsla|stock|acci[oó]n|acciones|cotizaci[oó]n|nasdaq|s&p|wall street|bolsa|mercado de valores)\b/.test(lc)) {
+    return { category: "market" as RouteCategory, tool: "stock_quote", toolArgs: { query: input, symbol: lc.match(/(aapl|apple|tesla|tsla|amazon|amzn|google|googl|meta|msft|microsoft)/)?.[1] || "" } };
+  }
   // Restaurant
   if (/\b(restaurante|restaurantes|donde comer|dónde comer|dónde cenar|donde cenar|parrilla|parrilla|sushi|pizza|hamburguesa|comida|reservar mesa|comida cerca)\b/.test(lc)) {
     return { category: "world_info" as RouteCategory, tool: "restaurant_deep_search", toolArgs: { query: input } };
@@ -5173,21 +5177,49 @@ function lexicalRouteForInput(input: string): { category: RouteCategory; tool: s
   if (/\b(tenis|tennis|roland garros|wimbledon|alcaraz|sinner|djokovic|nadal|atp|wta)\b/.test(lc)) {
     return { category: "sports" as RouteCategory, tool: "tennis_live", toolArgs: { query: input } };
   }
+  // Football (match_live)
+  if (/\b(c[oó]mo le fue a|como le fue a|c[oó]mo sali[oó]|como salio|c[oó]mo sali[oó] boca|c[oó]mo le fue a boca|c[oó]mo le fue a river|resultado de|partido de|jug[oó] boca|jug[oó] river|gano|perdi[oó]|empat[oó])\b/.test(lc)) {
+    return { category: "sports" as RouteCategory, tool: "match_live", toolArgs: { query: input } };
+  }
   // Recipe
   if (/\b(receta|recetas|cocinar|que cocino|qué cocino|plato|platos|ingredientes|receta de)\b/.test(lc)) {
     return { category: "food" as RouteCategory, tool: "recipe_find", toolArgs: { query: input.replace(/^receta de\s+/i, "").replace(/^receta\s+/i, "") } };
   }
-  // 🔴 KIMI v6 — Route map
+  // Route map
   if (/\b(c[oó]mo llego|como llego|ruta a|direcci[oó]n?a? al?|camino a|navegar a|ir a|c[oó]mo voy|como voy|d[oó]nde queda|donde queda|indicaciones)\b/.test(lc)) {
     return { category: "travel" as RouteCategory, tool: "route_traffic", toolArgs: { destination: input, query: input } };
   }
-  // 🔴 KIMI v6 — Morning brief ("buenos dias" ya no es trivial)
+  // Morning brief
   if (/\b(buenos d[ií]as|buen d[ií]a|buen dia|que tal el d[ií]a|resumen del d[ií]a|empezamos el d[ií]a)\b/.test(lc)) {
     return { category: "action" as RouteCategory, tool: "query_personal_context", toolArgs: { query: input, domain: "morning" } };
   }
-  // 🔴 KIMI v6 — Money summary
+  // Money summary
   if (/\b(cu[aá]nto gast[eé]|gast[eé]|gastos|gasto|finanzas|presupuesto|mis gastos|resumen financiero|cu[aá]nto gast[eé] esta)\b/.test(lc)) {
     return { category: "action" as RouteCategory, tool: "query_personal_context", toolArgs: { query: input, domain: "money" } };
+  }
+  // Exercise
+  if (/\b(entrenamiento|ejercicio|gym|gimnasio|rutina de|entren[aá]|workout|fitness|pesas|cardio)\b/.test(lc)) {
+    return { category: "action" as RouteCategory, tool: "save_personal_item", toolArgs: { query: input, kind: "exercise_plan", title: input } };
+  }
+  // Travel
+  if (/\b(viaje|viajar|planific[aá] un viaje|itinerario|vacaciones|destino)\b/.test(lc)) {
+    return { category: "travel" as RouteCategory, tool: "web_search", toolArgs: { query: input, mode: "research" } };
+  }
+  // Elections
+  if (/\b(elecciones|escrutinio|resultados de|votaci[oó]n|candidato|partido pol[ií]tico)\b/.test(lc)) {
+    return { category: "elections" as RouteCategory, tool: "web_search", toolArgs: { query: input, mode: "news" } };
+  }
+  // Image generation
+  if (/\b(genera una imagen|gener[aá] imagen|crea una imagen|dibuja|ilustra|render|ai art)\b/.test(lc)) {
+    return { category: "action" as RouteCategory, tool: "save_personal_item", toolArgs: { query: input, kind: "generation", title: input } };
+  }
+  // Delivery
+  if (/\b(segu[ií] mi pedido|seguimiento|d[oó]nde est[aá] mi pedido|pedidosya|env[ií]o|paquete|delivery)\b/.test(lc)) {
+    return { category: "action" as RouteCategory, tool: "save_personal_item", toolArgs: { query: input, kind: "delivery", title: input } };
+  }
+  // Memory
+  if (/\b(qu[eé] record[aá]s de m[ií]|qu[eé] sab[eé]s de m[ií]|qu[eé] ten[eé]s guardado|mi memoria|qu[eé] te cont[eé])\b/.test(lc)) {
+    return { category: "personal_query" as RouteCategory, tool: "query_personal_context", toolArgs: { query: input, domain: "memory" } };
   }
   return null;
 }
