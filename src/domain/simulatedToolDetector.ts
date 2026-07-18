@@ -307,9 +307,11 @@ export function extractArgsFromUserInput(toolName: string, userInput: string): R
     // "a q hora juega boca" → "boca"
     // "resultado de river" → "river"
     // "kmo le fue a la scaloneta" → "scaloneta"
+    // "buscar partido de liverpool" → "liverpool"
+    // "partido de boca" → "boca"
     // Para match_live: preservar "ayer" / "hoy" / "mañana" (la tool lo usa para filtro de fecha)
     // Para match_schedule: strippear "ayer" / "hoy" (no aplica a fixtures futuros)
-    const prefixRegex = /(?:cuando\s+juega[n]?\s+(?:los\s+\w+\s+)?|cuand\s+juega\s+|como\s+(?:le\s+fue\s+a|salio|salio\s+)|kmo\s+le\s+fue\s+(?:a\s+|al\s+)?|resultado\s+(?:de\s+|del\s+)|a\s+q\s+hora\s+juega\s+|a\s+que\s+hora\s+juega\s+|proximo\s+partido\s+(?:de\s+|del\s+)|fixture\s+(?:de\s+|del\s+)|quien\s+gano\s+|el\s+partido\s+(?:de\s+)?)(.+)/;
+    const prefixRegex = /(?:cuando\s+juega[n]?\s+(?:los\s+\w+\s+)?|cuand\s+juega\s+|como\s+(?:le\s+fue\s+a|salio|salio\s+)|kmo\s+le\s+fue\s+(?:a\s+|al\s+)?|resultado\s+(?:de\s+|del\s+)|a\s+q\s+hora\s+juega\s+|a\s+que\s+hora\s+juega\s+|proximo\s+partido\s+(?:de\s+|del\s+)|proximos\s+partidos\s+(?:de\s+|del\s+)|fixture\s+(?:de\s+|del\s+)|quien\s+gano\s+|el\s+partido\s+(?:de\s+)?|buscar\s+(?:partido\s+(?:de\s+|del\s+)?)|partido\s+(?:de\s+|del\s+)|juega\s+(?:el\s+|al\s+)?|juegan\s+(?:los\s+\w+\s+)?)(.+)/;
     let captured = extractWithAccents(prefixRegex);
     if (captured && captured.length >= 2) {
       // Para match_schedule, remover "ayer", "hoy", "mañana" del final
