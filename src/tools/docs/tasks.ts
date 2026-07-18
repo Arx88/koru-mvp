@@ -487,17 +487,17 @@ export const countdown: ToolHandler = {
 export const reminderSet: ToolHandler = {
   definition: defineTool(
     "reminder_set",
-    "Programa un recordatorio. Úsala cuando el usuario te pida que le recuerdes algo. DEBES calcular el dueAt (timestamp ISO 8601) a partir de la fecha/hora actual y lo que el usuario dijo. El usuario puede decirlo de cualquier forma: 'en 60 segundos', 'mañana a las 9', 'el 20 del mes que viene', 'cuando llegue la noche', 'en un rato'. Vos calculás el timestamp exacto.",
+    "Programa un recordatorio. USÁ ESTA TOOL (no save_memory) cuando el usuario diga 'recordame', 'activa un recordatorio', 'avisame', 'no me olvides', 'recuérdame'. Si el usuario NO especifica qué recordar, usá el tema del último mensaje del asistente como title. Si el usuario NO especifica cuándo, dejá dueText='próximamente' y dueAt vacío. El usuario puede decir la hora de cualquier forma: 'en 60 segundos', 'mañana a las 9', 'el 20 del mes que viene'. Vos calculás el timestamp ISO 8601 si podés; si no podés, dejá dueAt vacío y el sistema igual crea el recordatorio.",
     {
       type: "object",
       additionalProperties: false,
       properties: {
-        title: { type: "string", description: "Qué recordar (ej: 'Llamar a mi tía', 'Pagar el alquiler')." },
-        dueText: { type: "string", description: "Texto legible del cuándo (ej: 'en 60 segundos', 'mañana a las 9', 'el 20')." },
-        dueAt: { type: "string", description: "Timestamp ISO 8601 exacto calculado por vos. Ej: '2026-07-15T18:00:00.000Z'. Usá la fecha/hora actual del sistema para calcular. Este campo es OBLIGATORIO — sin él el recordatorio no puede disparar." },
+        title: { type: "string", description: "Qué recordar (ej: 'Llamar a mi tía', 'Partido de Boca', 'Pagar el alquiler'). Si el usuario no especificó qué, usá el tema del contexto conversacional." },
+        dueText: { type: "string", description: "Texto legible del cuándo (ej: 'en 60 segundos', 'mañana a las 9', 'próximamente')." },
+        dueAt: { type: "string", description: "Timestamp ISO 8601 (ej: '2026-07-15T18:00:00.000Z'). OPCIONAL — si no podés calcularlo, dejá vacío. El recordatorio se crea igual con dueText." },
         note: { type: "string" },
       },
-      required: ["title", "dueText", "dueAt"],
+      required: ["title", "dueText"],
     },
   ),
   policy: policies.localWrite("Crea recordatorio."),
@@ -506,11 +506,18 @@ export const reminderSet: ToolHandler = {
     const dueText = String(args.dueText ?? "").trim();
     const dueAt = String(args.dueAt ?? "").trim();
     if (!title || !dueText) return { type: "reminder_set", status: "failed", error: "Indicá qué y cuándo." };
-    if (!dueAt) return { type: "reminder_set", status: "failed", error: "dueAt es obligatorio. Calculá el timestamp ISO 8601." };
-    // Validar que dueAt es una fecha válida
-    const dueDate = new Date(dueAt);
-    if (isNaN(dueDate.getTime())) return { type: "reminder_set", status: "failed", error: `dueAt inválido: ${dueAt}` };
-    const commitment: Omit<Commitment, "id" | "createdAt" | "sourceEntryId"> = { title, dueHint: dueText, dueAt, status: "open" };
+    // Validar dueAt si está presente
+    let dueDate: Date | null = null;
+    if (dueAt) {
+      dueDate = new Date(dueAt);
+      if (isNaN(dueDate.getTime())) dueDate = null;
+    }
+    const commitment: Omit<Commitment, "id" | "createdAt" | "sourceEntryId"> = {
+      title,
+      dueHint: dueText,
+      ...(dueDate ? { dueAt: dueDate.toISOString() } : {}),
+      status: "open",
+    };
     return {
       type: "reminder_set",
       status: "ok",
