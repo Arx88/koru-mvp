@@ -7066,7 +7066,7 @@ export async function runKoruBackendTurn(
         response.records = [];
       }
       logger.info("runKoruBackendTurn", "Return first-call-invalid-json (plain text recovered)", { replyPreview: (response.reply ?? "").slice(0, 300), provider, model, fallbackReason });
-      return { ...response, provider, model, fallbackReason: fallbackReason ?? "first-call-invalid-json" };
+      return { ...response, provider, model, fallbackReason: fallbackReason ?? "first-call-invalid-json", __debugRawContent: content.slice(0, 800) } as any;
     }
   }
 
@@ -7098,5 +7098,6 @@ export async function runKoruBackendTurn(
     provider,
     model,
     fallbackReason: fallbackReason ?? response.memoryFallbackReason ?? "first-call",
-  };
+    __debugRawContent: content.slice(0, 800),
+  } as any;
 }
