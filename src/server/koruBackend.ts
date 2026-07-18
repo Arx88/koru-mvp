@@ -309,7 +309,7 @@ export const TOOL_DEFINITIONS = [
         type: "object",
         additionalProperties: false,
         properties: {
-          uiBlockType: { type: "string", enum: ["reminder", "alarm", "shopping_list", "saved_record", "money_summary", "birthday_calendar", "birthday_alarm", "social_interaction"] },
+          uiBlockType: { type: "string", enum: ["shopping_list", "saved_record", "money_summary", "birthday_calendar", "birthday_alarm", "social_interaction"], description: "Tipo de item a guardar. NO usar 'reminder' ni 'alarm' — para esos usá reminder_set o alarm_set." },
           title: { type: "string" },
           dueText: { type: "string" },
           time: { type: "string" },
