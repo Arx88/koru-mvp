@@ -439,6 +439,7 @@ const CATEGORY_TOOLS: Record<RouteCategory, string[]> = {
     "reminder_set",
     "alarm_set",
     "restaurant_deep_search",
+    "image_generate",
   ],
   // research se maneja con su propio pipeline (runDeepResearchFlow); si algo
   // cae al flujo nativo, web_search es el único apoyo razonable.
@@ -452,7 +453,7 @@ const CATEGORY_TOOLS: Record<RouteCategory, string[]> = {
   birthday: ["save_personal_item", "query_personal_context"],
   // 🔴 FIX P1: nuevas categorías para tools que ya existían pero no se rutaban
   food: ["recipe_find", "recipe_by_ingredients", "food_info", "wine_pairing", "nutrition_calc", "restaurant_deep_search"],
-  media: ["movie_info", "book_info", "game_info", "person_info", "person_filmography", "web_search"],
+  media: ["movie_info", "book_info", "game_info", "person_info", "person_filmography", "web_search", "image_generate"],
   knowledge: ["wikipedia_lookup", "dictionary_define", "math_calc", "unit_convert", "web_search"],
   conversation: [],
 };
@@ -2588,6 +2589,9 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
     `- Para datos personales ya guardados, no llames tools; respondé directamente usando el contexto.`,
     `- 🔴 CRÍTICO — PROHIBIDO RAZONAMIENTO EN "reply": NUNCA incluyas tu razonamiento interno, análisis de qué tool llamar, ni texto en inglés tipo "The user is asking...", "I should use...", "Let me think..." en "reply". El campo "reply" debe contener SOLO la respuesta final al usuario, en español, cálido y directo. Si necesitás decidir una tool, EMITE tool_calls directamente en el JSON sin escribir tu razonamiento en el texto. Si estás pensando, NO escribas "thinking..." — simplemente devolvé el JSON final con la respuesta.`,
     `- 🔴 CRÍTICO — DIVISIÓN DE TRABAJO TEXTO ↔ CARD: Cuando ejecutaste CUALQUIER tool que devuelve datos (weather, match_live, movie_info, recipe_find, book_info, crypto_price, web_search, wikipedia_lookup, etc.), los datos concretos (títulos, ratings, reparto, ingredientes, pasos, scores, precios, sinopsis) ya están estructurados y se muestran en la card. Tu reply SOLO debe ENMARCAR: 1-2 líneas cálidas que conecten con el usuario y eventualmente destaquen UN dato insignia. NUNCA repitas la lista de datos que ya está en la card.`,
+    `- 🔴 CRÍTICO — USÁ LAS TOOLS: Si el usuario pide "generá una imagen", "dibujá", "creá una imagen" → USÁ la tool image_generate. NO respondas "no puedo generar imágenes". La tool SÍ puede.`,
+    `- 🔴 CRÍTICO — Si el usuario pide "armá un entrenamiento", "rutina de ejercicio", "plan de gym" → USÁ save_personal_item con uiBlockType="exercise_plan" para crear una card con el plan.`,
+    `- 🔴 CRÍTICO — Si el usuario pide "seguí mi pedido", "rastrear envío" → USÁ save_personal_item con uiBlockType="delivery" para crear una card de seguimiento.`,
     `- Ejemplos de reply CORRECTO (corto, enmarca, NO repite datos de la card):`,
     `  ✅ "Mirá, la encontré. Te la dejo en la tarjeta con todo el detalle."`,
     `  ✅ "Te dejé la receta en la tarjeta. Mirá el video al final, vale la pena."`,
