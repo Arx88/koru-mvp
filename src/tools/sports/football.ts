@@ -631,7 +631,9 @@ export const matchSchedule: ToolHandler = {
   ),
   policy: policies.readonly("Lee fixture deportivo público."),
   async run(args) {
-    const team = String(args.team ?? "").trim();
+    // 🔴 KORU 3.0 — fallback a __userInput cuando el LLM no pasa team
+    // (caso: detector de simulated tool call extrae solo el nombre, sin args)
+    const team = String(args.team ?? args.__userInput ?? "").trim();
     const league = String(args.league ?? "").trim();
     const next = Number(args.next ?? 5);
     if (!team && !league) return { type: "match_schedule", status: "failed", error: "Indicá equipo o liga." };

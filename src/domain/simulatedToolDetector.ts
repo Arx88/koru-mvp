@@ -230,5 +230,35 @@ export function detectSimulatedToolCall(content: string): SimulatedToolCall | nu
     }
   }
 
+  // 5. 🔴 KORU 3.0 — Lenguaje natural "Let me use the X tool" / "I should use X"
+  // Nemotron-3-Ultra a veces ignora `chat_template_kwargs: { thinking: false }` y
+  // emite texto de razonamiento en `content` en vez de usar tool_calls nativo.
+  // Patrones comunes:
+  //   "I should use the match_schedule tool to..."
+  //   "Let me use the match_schedule tool."
+  //   "I'll use match_schedule to find..."
+  //   "Voy a usar match_schedule para..."
+  //   "Debería usar match_schedule."
+  // Extraemos el nombre de la tool y usamos el input del usuario como query.
+  const NL_PATTERNS = [
+    /(?:i\s+(?:should|will|'ll|am\s+going\s+to|need\s+to|have\s+to)\s+(?:use|call|invoke|run))\s+(?:the\s+)?([a-z_]+)(?:\s+tool)?/i,
+    /(?:let\s+me\s+(?:use|call|invoke|run))\s+(?:the\s+)?([a-z_]+)(?:\s+tool)?/i,
+    /(?:i'?m\s+going\s+to\s+(?:use|call))\s+(?:the\s+)?([a-z_]+)(?:\s+tool)?/i,
+    /(?:voy\s+a\s+(?:usar|llamar|invocar))\s+(?:la\s+|el\s+)?(?:tool\s+|herramienta\s+)?([a-z_]+)/i,
+    /(?:deber[ií]a\s+(?:usar|llamar))\s+(?:la\s+|el\s+)?(?:tool\s+|herramienta\s+)?([a-z_]+)/i,
+    /(?:use\s+the\s+|call\s+the\s+|invoke\s+the\s+)([a-z_]+)\s+tool/i,
+  ];
+  for (const pattern of NL_PATTERNS) {
+    const m = content.match(pattern);
+    if (m) {
+      const name = m[1].toLowerCase().replace(/[^a-z_]/g, "");
+      if (VALID_TOOL_NAMES.has(name)) {
+        // Sin argumentos explícitos — devolver args vacío y dejar que el
+        // ejecutor de la tool use __userInput como fallback.
+        return { name, arguments: {}, format: "call_prefix" };
+      }
+    }
+  }
+
   return null;
 }
