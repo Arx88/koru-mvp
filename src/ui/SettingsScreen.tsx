@@ -590,6 +590,8 @@ export function SettingsScreen(props: SettingsScreenProps) {
     sounds: true,
     reducedMotion: false,
     highContrast: false,
+    koruVoiceEnabled: false,
+    koruVoiceRate: 1.0,
   };
 
   // 🔴 FREE: hooks para crear records (CSV bank import) y consultar balance
@@ -1304,6 +1306,35 @@ export function SettingsScreen(props: SettingsScreenProps) {
                         aria-label="Alto contraste"
                       />
                     </Row>
+                    {/* 🔴 KORU 3.0 — Voz de Koru: TTS del navegador para que Koru "hable" sus respuestas */}
+                    <Row
+                      label="Voz de Koru"
+                      hint={
+                        typeof window !== "undefined" && "speechSynthesis" in window
+                          ? "Koru leerá sus respuestas en voz alta"
+                          : "No soportado en este navegador"
+                      }
+                    >
+                      <Toggle
+                        checked={prefs.koruVoiceEnabled ?? false}
+                        onChange={(v) => props.onUpdatePreferences({ koruVoiceEnabled: v })}
+                        aria-label="Voz de Koru"
+                      />
+                    </Row>
+                    {(prefs.koruVoiceEnabled ?? false) && (
+                      <Row label="Velocidad de voz" hint={`Velocidad: ${(prefs.koruVoiceRate ?? 1.0).toFixed(1)}x`}>
+                        <input
+                          type="range"
+                          min={0.5}
+                          max={2}
+                          step={0.1}
+                          value={prefs.koruVoiceRate ?? 1.0}
+                          onChange={(e) => props.onUpdatePreferences({ koruVoiceRate: parseFloat(e.target.value) })}
+                          style={{ width: 120 }}
+                          aria-label="Velocidad de voz"
+                        />
+                      </Row>
+                    )}
                   </>
                 )}
 

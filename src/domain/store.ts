@@ -126,6 +126,12 @@ export function createInitialState(userId: string = "default"): KoruState {
     worldSignalsEnabled: false,
     learningPreferences: [],
     language: "es",
+    // 🔴 KORU 3.0 — preferences default con voz de Koru desactivada
+    preferences: {
+      theme: "light", fontScale: "medium", haptics: true, sounds: true,
+      reducedMotion: false, highContrast: false,
+      koruVoiceEnabled: false, koruVoiceRate: 1.0,
+    },
   };
 }
 
@@ -154,6 +160,8 @@ function normalizeState(parsed?: Partial<KoruState> | null): KoruState {
     runtime,
     heartbeat: { ...initial.heartbeat, ...parsed.heartbeat },
     voicePreference: { ...initial.voicePreference, ...parsed.voicePreference },
+    // 🔴 KORU 3.0 — merge preferences para no perder campos al cargar estado viejo
+    preferences: { ...initial.preferences, ...parsed.preferences },
     memories: (parsed.memories ?? []).map((memory) => ({
       useForSuggestions: memory.useForSuggestions ?? memory.sensitivity === "normal",
       ...memory,
@@ -890,15 +898,66 @@ export function createPlan(state: KoruState, title: string, steps: Omit<PlanStep
 
 export function togglePlanStep(state: KoruState, planId: string, stepId: string): KoruState {
   const now = nowIso();
+  let completedStepTitle: string | null = null;
+  let completedPlanTitle: string | null = null;
+  let allStepsDone = false;
+
   const plans = (state.plans ?? []).map(p => {
     if (p.id !== planId) return p;
+    // 🔴 KORU 3.0 — detectar el step que se va a marcar como done
+    // (antes del toggle) para crear una memory de actividad completada.
+    const stepBeingToggled = p.steps.find(s => s.id === stepId);
+    if (stepBeingToggled && !stepBeingToggled.done) {
+      completedStepTitle = stepBeingToggled.title;
+      completedPlanTitle = p.title;
+    }
     const steps = p.steps.map(s =>
       s.id === stepId ? { ...s, done: !s.done, doneAt: !s.done ? now : undefined } : s
     );
-    const allDone = steps.every(s => s.done);
-    return { ...p, steps, status: allDone ? "completed" as const : p.status, updatedAt: now };
+    allStepsDone = steps.every(s => s.done);
+    return { ...p, steps, status: allStepsDone ? "completed" as const : p.status, updatedAt: now };
   });
-  const next = { ...state, plans, updatedAt: now };
+
+  // 🔴 KORU 3.0 — Crear memory cuando un step se completa.
+  // Esto permite que Koru "recuerde" que actividades hizo el usuario,
+  // para no volver a sugerirlas y para referenciarlas en futuras conversaciones.
+  let memories = state.memories;
+  let records = state.records;
+  if (completedStepTitle && completedPlanTitle) {
+    const memoryText = `Actividad completada: ${completedStepTitle} (del plan "${completedPlanTitle}")`;
+    const newMemory: MemoryFact = {
+      id: createId("mem"),
+      kind: "task",
+      text: memoryText,
+      confidence: 0.95,
+      sensitivity: "normal",
+      status: "confirmed",
+      rootQuote: completedStepTitle,
+      useForSuggestions: true,
+      createdAt: now,
+      updatedAt: now,
+      sourceEntryId: `plan_${planId}_step_${stepId}`,
+    };
+    memories = [newMemory, ...(state.memories ?? [])];
+
+    // También crear un record de actividad completada
+    const newRecord = {
+      id: createId("rec"),
+      domain: "work" as const,
+      kind: "deadline" as const,
+      title: `✓ ${completedStepTitle}`,
+      value: completedStepTitle,
+      notes: `Completado del plan: ${completedPlanTitle}`,
+      collection: "Actividades completadas",
+      tags: ["plan", "completado"],
+      createdAt: now,
+      updatedAt: now,
+      sourceEntryId: `plan_${planId}_step_${stepId}`,
+    };
+    records = [newRecord, ...(state.records ?? [])];
+  }
+
+  const next = { ...state, plans, memories, records, updatedAt: now };
   saveState(next);
   return next;
 }
@@ -1152,6 +1211,7 @@ export function updatePreferences(state: KoruState, prefs: Partial<UserPreferenc
   const defaults: UserPreferences = {
     theme: "light", fontScale: "medium", haptics: true, sounds: true,
     reducedMotion: false, highContrast: false,
+    koruVoiceEnabled: false, koruVoiceRate: 1.0,
   };
   const next = { ...state, preferences: { ...defaults, ...state.preferences, ...prefs }, updatedAt: now };
   saveState(next);

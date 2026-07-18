@@ -521,6 +521,31 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
     return null;
   }, [chatTurns]);
 
+  // 🔴 KORU 3.0 — Sugerencias inteligentes rotativas por categoría.
+  // En vez de mostrar siempre las mismas 4 sugerencias, rotamos entre un pool
+  // de ~28 sugerencias divididas en 7 categorías. Cada vez que cambia el día
+  // o la cantidad de turns, se seleccionan 4 aleatorias (1 por categoría).
+  const smartSuggestions = useMemo(() => {
+    const categories = [
+      { icon: "cloud", items: ["¿Qué tiempo hace?", "¿Necesito paraguas?", "¿Hace frío afuera?", "¿Qué me pongo?"] },
+      { icon: "savings", items: ["Anota un gasto", "¿Cuánto gasté ayer?", "Anota 1500 de café", "¿Cómo van mis finanzas?"] },
+      { icon: "sports_soccer", items: ["¿Cómo salió España?", "¿Cuándo juega Boca?", "¿Cómo le fue a Argentina?", "Resultado de Liverpool"] },
+      { icon: "search", items: ["Buscá algo", "¿Qué pasó hoy?", "Hacé un informe de IA", "¿Qué es la fotosíntesis?"] },
+      { icon: "task_alt", items: ["Recordame llamar a Juan", "Activá una alarma", "Organizá mi día", "Anota comprar pan"] },
+      { icon: "restaurant", items: ["Receta de pasta", "¿Dónde como sushi?", "¿Qué cocino hoy?", "Receta de tarta"] },
+      { icon: "currency_bitcoin", items: ["¿A cuánto está el BTC?", "Precio de Ethereum", "Cotización de Solana", "¿Cómo está el Bitcoin?"] },
+    ];
+    const seed = new Date().toDateString() + `-${chatTurns.length}`;
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0;
+    const catOrder = [...categories].sort((a, b) => ((hash + a.icon.charCodeAt(0)) % 100) - ((hash + b.icon.charCodeAt(0)) % 100));
+    const picked: { icon: string; text: string }[] = [];
+    for (let i = 0; i < Math.min(4, catOrder.length); i++) {
+      picked.push({ icon: catOrder[i].icon, text: catOrder[i].items[Math.abs(hash + i * 7) % catOrder[i].items.length] });
+    }
+    return picked;
+  }, [chatTurns.length]);
+
   // ── Sugerencias de temas: extrae topics de los user turns anteriores ──
   // Solo aparecen si hay charla previa (más de 1 user turn en el historial completo).
   // Cada pill muestra un icono según la categoría detectada + el topic recortado.
@@ -1055,9 +1080,15 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
   // Fase 2.1 — Subir nota de voz: transcribe audio via /api/koru/asr y lo
   // manda como mensaje normal. Permite grabar audios largos sin SpeechRecognition
   // en vivo (que tiene timeout ~60s y no funciona en todos los navegadores).
+  // 🔴 KORU 3.0 — Mejor manejo de errores: mensajes específicos para config faltante.
   const handleAudioUpload = useCallback(async (file: File) => {
     if (!file) return;
     if (transcribing || processing) return;
+    // Validar tamaño (máx 10MB para no saturar el server)
+    if (file.size > 10 * 1024 * 1024) {
+      showMicError("El audio es muy grande (máx 10MB). Grabá algo más corto.");
+      return;
+    }
     setTranscribing(true);
     showMicError("Transcribiendo audio...");
     try {
@@ -1072,33 +1103,39 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `HTTP ${res.status}`);
+        const errMsg = err.error || `HTTP ${res.status}`;
+        // 🔴 KORU 3.0 — Mensaje más útil para error de configuración
+        if (/not configured|Configuration file not found|no configurado/i.test(errMsg)) {
+          throw new Error("El servicio de transcripción no está configurado en el servidor. Usá el botón HABLAR (micrófono) que usa reconocimiento nativo del navegador.");
+        }
+        throw new Error(errMsg);
       }
       const data = (await res.json()) as { text?: string };
       const text = (data.text ?? "").trim();
       if (!text) {
-        showMicError("No pude transcribir el audio.");
+        showMicError("No pude transcribir el audio. Probá grabarlo más claro.");
         return;
       }
       await submitText(text, "typed");
     } catch (err) {
-      showMicError(`Error de transcripción: ${err instanceof Error ? err.message : "desconocido"}`);
+      const msg = err instanceof Error ? err.message : "desconocido";
+      showMicError(`Error de transcripción: ${msg}`);
     } finally {
       setTranscribing(false);
     }
   }, [transcribing, processing, showMicError, submitText]);
 
-  const onFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) void handleAudioUpload(file);
-    e.target.value = "";
-  }, [handleAudioUpload]);
-
   // Fase 3.8 — Subir imagen: analiza con VLM (OCR, descripción, etc.)
   // y manda el resultado como mensaje normal.
+  // 🔴 KORU 3.0 — Mejor manejo de errores + soporte para archivos de texto.
   const handleImageUpload = useCallback(async (file: File) => {
     if (!file) return;
     if (analyzingImage || processing) return;
+    // Validar tamaño (máx 5MB para imágenes)
+    if (file.size > 5 * 1024 * 1024) {
+      showMicError("La imagen es muy grande (máx 5MB).");
+      return;
+    }
     setAnalyzingImage(true);
     showMicError("Analizando imagen...");
     try {
@@ -1111,27 +1148,74 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `HTTP ${res.status}`);
+        const errMsg = err.error || `HTTP ${res.status}`;
+        if (/not configured|Configuration file not found|no configurado/i.test(errMsg)) {
+          throw new Error("El servicio de análisis de imágenes no está configurado en el servidor.");
+        }
+        throw new Error(errMsg);
       }
       const data = (await res.json()) as { text?: string };
       const text = (data.text ?? "").trim();
       if (!text) {
-        showMicError("No pude analizar la imagen.");
+        showMicError("No pude analizar la imagen. Probá con otra.");
         return;
       }
       await submitText(text, "typed");
     } catch (err) {
-      showMicError(`Error de análisis: ${err instanceof Error ? err.message : "desconocido"}`);
+      const msg = err instanceof Error ? err.message : "desconocido";
+      showMicError(`Error de análisis: ${msg}`);
     } finally {
       setAnalyzingImage(false);
     }
   }, [analyzingImage, processing, showMicError, submitText]);
+
+  // 🔴 KORU 3.0 — Subir archivo de texto: lee el contenido y lo manda como mensaje.
+  // Soporta .txt, .md, .json, .csv. Para PDFs u otros formatos, muestra mensaje útil.
+  const handleTextFileUpload = useCallback(async (file: File) => {
+    if (!file) return;
+    if (processing) return;
+    if (file.size > 100 * 1024) {
+      showMicError("El archivo es muy grande (máx 100KB para texto).");
+      return;
+    }
+    showMicError("Leyendo archivo...");
+    try {
+      const text = await file.text();
+      if (!text.trim()) {
+        showMicError("El archivo está vacío.");
+        return;
+      }
+      // Truncar si es muy largo
+      const truncated = text.length > 2000 ? text.slice(0, 2000) + "\n... (truncado)" : text;
+      await submitText(`Te paso el contenido de "${file.name}":\n\n${truncated}`, "typed");
+    } catch (err) {
+      showMicError(`No pude leer el archivo: ${err instanceof Error ? err.message : "error"}`);
+    }
+  }, [processing, showMicError, submitText]);
 
   const onImageChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) void handleImageUpload(file);
     e.target.value = "";
   }, [handleImageUpload]);
+
+  // 🔴 KORU 3.0 — Handler unificado para archivos: detecta tipo y rutea.
+  const onFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type.startsWith("audio/")) {
+      void handleAudioUpload(file);
+    } else if (file.type.startsWith("image/")) {
+      void handleImageUpload(file);
+    } else if (file.type.startsWith("text/") || /\.(txt|md|json|csv|log)$/i.test(file.name)) {
+      void handleTextFileUpload(file);
+    } else if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
+      showMicError("Los PDFs no se pueden leer directamente todavía. Copiá el texto y pegalo en el chat.");
+    } else {
+      showMicError(`No soporto archivos ${file.type || "de ese tipo"} todavía. Probá con imagen, audio o texto.`);
+    }
+    e.target.value = "";
+  }, [handleAudioUpload, handleImageUpload, handleTextFileUpload, showMicError]);
 
   return (
     <div className="koru-chat-shell" role="dialog" aria-modal="true" aria-label="Conversacion con Koru">
@@ -1200,8 +1284,6 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
                 className="koru-suggestion-pill"
                 onClick={() => {
                   // Tap en pill = reenviar ese mensaje como nuevo turno
-                  // (alternativa más simple: scroll al turno, pero como solo
-                  // mostramos el último intercambio, reenviar es más útil)
                   const originalTurn = chatTurns.find(t => t.id === pill.turnId);
                   if (originalTurn) {
                     submitText(originalTurn.text, "typed");
@@ -1210,6 +1292,25 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
               >
                 <span className="material-symbols-outlined">{pill.icon}</span>
                 {pill.topic}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* 🔴 KORU 3.0 — Smart Suggestions: cuando no hay pills de historial
+            (chat vacío o primera visita post-onboarding), mostrar sugerencias
+            rotativas por categoría para descubrir features. */}
+        {suggestionPills.length === 0 && !processing && visibleTurns.length === 0 && !onboarding && (
+          <div className="koru-suggestion-bar">
+            {smartSuggestions.map((chip) => (
+              <button
+                key={chip.text}
+                type="button"
+                className="koru-suggestion-pill"
+                onClick={() => submitText(chip.text, "typed")}
+              >
+                <span className="material-symbols-outlined">{chip.icon}</span>
+                {chip.text}
               </button>
             ))}
           </div>
@@ -1264,12 +1365,7 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
                     <p className="koru-message-text">Tu asistente personal. Puedo ayudarte con clima, gastos, recordatorios, búsquedas y mucho más.</p>
                     <p className="koru-message-text" style={{ marginTop: 8, fontWeight: 600 }}>¿Qué necesitás hoy?</p>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 12 }}>
-                      {[
-                        { icon: "cloud", text: "¿Qué tiempo hace?" },
-                        { icon: "savings", text: "Anota un gasto" },
-                        { icon: "search", text: "Buscá algo" },
-                        { icon: "sports_soccer", text: "¿Cómo salió España?" },
-                      ].map((chip) => (
+                      {smartSuggestions.map((chip) => (
                         <button
                           key={chip.text}
                           type="button"
@@ -1415,16 +1511,8 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="audio/*,image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  if (file.type.startsWith("image/")) {
-                    onImageChange(e);
-                  } else {
-                    onFileChange(e);
-                  }
-                }}
+                accept="audio/*,image/*,.txt,.md,.json,.csv,.log,text/*"
+                onChange={onFileChange}
                 className="hidden"
               />
               <div className="koru-composer-field">

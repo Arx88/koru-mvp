@@ -738,6 +738,37 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     }
   }, [chatTurns, domainState.ephemeralMode, language]);
 
+  // 🔴 KORU 3.0 — TTS: cuando koruVoiceEnabled está activo y llega un nuevo
+  // turno de Koru con texto, reproducirlo con SpeechSynthesis del navegador.
+  // Solo se reproduce el ÚLTIMO turno (no re-reproduce al cargar historial).
+  const lastSpokenTurnRef = useRef<string | null>(null);
+  useEffect(() => {
+    const prefs = domainStateRef.current?.preferences;
+    if (!prefs?.koruVoiceEnabled) {
+      lastSpokenTurnRef.current = null;
+      return;
+    }
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    if (chatTurns.length === 0) return;
+    const lastTurn = chatTurns[chatTurns.length - 1];
+    if (lastTurn.role !== "koru") return;
+    if (lastTurn.text.trim().length < 2) return;
+    // No repetir el mismo turno
+    if (lastSpokenTurnRef.current === lastTurn.id) return;
+    lastSpokenTurnRef.current = lastTurn.id;
+    // Cancelar cualquier síntesis anterior
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(lastTurn.text);
+    utterance.lang = language === "en" ? "en-US" : "es-ES";
+    utterance.rate = prefs.koruVoiceRate ?? 1.0;
+    utterance.pitch = 1.0;
+    // Intentar usar una voz en español si está disponible
+    const voices = window.speechSynthesis.getVoices();
+    const spanishVoice = voices.find(v => v.lang.startsWith("es"));
+    if (spanishVoice) utterance.voice = spanishVoice;
+    window.speechSynthesis.speak(utterance);
+  }, [chatTurns, language]);
+
   // 🔴 Offline cache — subscribe to online/offline events
   useEffect(() => {
     const unsubscribe = onOnlineStatusChange((nextOnline) => {

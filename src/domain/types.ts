@@ -1411,6 +1411,11 @@ export type UserPreferences = {
   dndEndHour?: number;
   reducedMotion: boolean;
   highContrast: boolean;
+  /** 🔴 KORU 3.0 — Voz de Koru: cuando está activo, Koru "habla" sus respuestas
+   * usando TTS del navegador (Web Speech API SpeechSynthesis). */
+  koruVoiceEnabled?: boolean;
+  /** Velocidad de voz de Koru (0.5 a 2.0, default 1.0). */
+  koruVoiceRate?: number;
 };
 
 /** Memory edit history */
