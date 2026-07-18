@@ -6688,20 +6688,19 @@ export async function runKoruBackendTurn(
     // El provider NVIDIA Nemotron a veces devuelve JSON inválido. Un retry
     // con re-prompt "REGLA ABSOLUTA: Solo respondé con JSON puro válido"
     // rescata ~80% de los casos.
-    const shouldRetry = true;
+    const shouldRetry = true; // 🔴 KIMI v6: siempre retry
     if (isOllama || shouldRetry) {
       try {
-        // 🔴 KIMI v7 — Retry con OpenRouter (modelo más obediente con JSON) si NVIDIA falló
-        const hasOpenRouter = config.openRouterKeys && config.openRouterKeys.length > 0;
-        const retryConfig = provider === "nvidia" && hasOpenRouter
-          ? { ...config, nvidiaApiKey: config.openRouterKeys[0], nvidiaBaseUrl: "https://openrouter.ai/api/v1", nvidiaModel: "google/gemini-flash-1.5" }
-          : config;
-        const retryResult = await callProvider(retryConfig, [
+        // Re-anclar la PREGUNTA ACTUAL en el reintento. Sin esto, el modelo
+        // mira el historial y responde cualquier turno viejo (visto en logs:
+        // "informe sobre AoE2" → "¿En qué ciudad estás?" porque el turno
+        // anterior era clima).
+        const retryResult = await callProvider(config, [
           ...messages,
           { role: "user", content: `Tu respuesta anterior no era JSON válido. El usuario te preguntó AHORA: «${request.input.slice(0, 300)}». REGLA ABSOLUTA: Solo respondé con JSON puro válido, sin texto extra, sin markdown. Usá este formato exacto: {"reply":"tu respuesta al usuario","mascotState":"idle","uiBlocks":[],"suggestedActions":[],"memoryCandidates":[],"commitments":[],"records":[]}` },
-        ], 25_000, false, provider === "nvidia" && hasOpenRouter ? "openrouter" : preferredProvider);
+        ], 20_000, false, preferredProvider);
         parsed = JSON.parse(extractJsonBlock(cleanText(retryResult.message.content, "")));
-        logger.info("runKoruBackendTurn", "JSON retry succeeded", { retryProvider: retryResult.provider });
+        logger.info("runKoruBackendTurn", "JSON retry succeeded (all providers)");
       } catch (retryErr) {
         logger.warn("runKoruBackendTurn", "JSON retry also failed", { error: String(retryErr) });
       }
