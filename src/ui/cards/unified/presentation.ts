@@ -1647,6 +1647,10 @@ function savedRecord(b: Of<"saved_record">): KoruPresentation {
           title: heroTitle,
           subtitle: collection ? `COLECCIÓN · ${collection.toUpperCase()}` : undefined,
           sections,
+          actions: [
+            { label: "Agregar pieza", icon: "plus", kind: "primary", action: "saved:add" },
+            { label: "Offline", icon: "play", kind: "secondary", action: "saved:offline" },
+          ],
         }
       : undefined,
     cta: {
@@ -2934,6 +2938,10 @@ function delivery(b: Of<"delivery">): KoruPresentation {
           title: b.title || "Envío",
           subtitle: [b.carrier, b.trackingId].filter(Boolean).join(" · "),
           sections,
+          actions: [
+            { label: "Ver en el mapa", icon: "navigate", kind: "primary", action: "delivery:map" },
+            { label: "Compartir", icon: "search", kind: "secondary", action: "delivery:share" },
+          ],
         }
       : undefined,
     cta: hasDetail ? { label: "Ver seguimiento" } : undefined,
@@ -3071,6 +3079,10 @@ function travelPlanner(b: Of<"travel_planner">): KoruPresentation {
                 badgeTone: "pending" as const,
               })),
             },
+          ],
+          actions: [
+            { label: "Alerta de precio", icon: "bell", kind: "primary", action: "travel:price_alert" },
+            { label: "PDF", icon: "play", kind: "secondary", action: "travel:pdf" },
           ],
         }
       : undefined,
@@ -3806,6 +3818,10 @@ function generation(b: Of<"generation">): KoruPresentation {
       ? {
           title: b.title || (isImage ? "Imágenes generadas" : "Resultado"),
           sections,
+          actions: [
+            { label: "Guardar en HD", icon: "play", kind: "primary", action: "image:save_hd" },
+            { label: "Otras 4", icon: "play", kind: "secondary", action: "image:more" },
+          ],
         }
       : undefined,
     cta: hasDetail ? { label: b.actionLabel || (isImage ? "Ver imágenes" : "Ver resultado") } : undefined,
@@ -3997,6 +4013,10 @@ function electionResults(b: Of<"election_results">): KoruPresentation {
           title: b.title || "Resultados",
           subtitle: b.status,
           sections,
+          actions: [
+            { label: "Avisar resultado final", icon: "bell", kind: "primary", action: "election:final_alert" },
+            { label: "Compartir", icon: "search", kind: "secondary", action: "election:share" },
+          ],
         }
       : undefined,
     cta: hasDetail ? { label: "Ver escrutinio" } : undefined,
@@ -5386,6 +5406,10 @@ function movieReviewBlock(b: Of<"movie_review">): KoruPresentation {
           title: b.title ?? "Película",
           subtitle: [b.releaseDate, b.runtime].filter(Boolean).join(" · ") || undefined,
           sections,
+          actions: [
+            { label: "Ver en streaming", icon: "play", kind: "primary", action: "movie:stream" },
+            { label: "Tráiler", icon: "play", kind: "secondary", action: "movie:trailer" },
+          ],
         }
       : undefined,
     cta: { label: "Ver trailer y ficha" },
@@ -5472,6 +5496,10 @@ function bookReviewBlock(b: Of<"book_review">): KoruPresentation {
           title: b.title ?? "Libro",
           subtitle: [b.author, b.year ? String(b.year) : undefined].filter(Boolean).join(", ") || undefined,
           sections,
+          actions: [
+            { label: "Dónde comprarlo", icon: "shopping", kind: "primary", action: "book:buy" },
+            { label: "Preview", icon: "play", kind: "secondary", action: "book:preview" },
+          ],
         }
       : undefined,
     cta: { label: "Leer sinopsis y comprar" },
