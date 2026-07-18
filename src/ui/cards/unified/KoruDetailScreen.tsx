@@ -1617,8 +1617,17 @@ export function KoruDetailScreen({
         <div className="koru-roadmap-modules xt-body">
           {isEmpty ? (
             <div className="koru-unified-empty koru-detail-empty">
-              <Mat>inbox</Mat>
-              <span>No hay secciones para mostrar en este detalle.</span>
+              <Mat>soccer</Mat>
+              <span className="koru-detail-empty-title">
+                {block?.type === "match_timeline" || block?.type === "live_match"
+                  ? "Partido próximo"
+                  : "Sin datos detallados"}
+              </span>
+              <span className="koru-detail-empty-desc">
+                {block?.type === "match_timeline" || block?.type === "live_match"
+                  ? "El partido aún no se jugó. Te dejo lo que sé del equipo, sede y contexto mientras llega la fecha."
+                  : "No hay secciones para mostrar. Pedime más info sobre este tema y la busco."}
+              </span>
             </div>
           ) : (
             sections.map((section, i) => {

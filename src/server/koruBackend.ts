@@ -3311,6 +3311,19 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
           });
         }
       }
+      // 🔴 KORU 3.0 — Si no hay matches pero hay teamInfo/nextMatch/wikiExtract,
+      // generar un match_timeline con esa info para que el detail screen la muestre.
+      if (matches.length === 0 && (r.teamInfo || r.nextMatch || r.wikipediaExtract)) {
+        blocks.push({
+          type: "match_timeline" as const,
+          title: r.teamInfo?.name || r.query || "Equipo",
+          items: [],
+          teamInfo: r.teamInfo,
+          nextMatch: r.nextMatch,
+          wikipediaExtract: r.wikipediaExtract,
+        });
+        continue;
+      }
       continue;
     }
     if (result.type === "route_traffic") {

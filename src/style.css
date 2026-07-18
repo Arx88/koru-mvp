@@ -6757,19 +6757,47 @@ a.koru-dsec-source:hover {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 14px;
-  margin-top: 12px;
-  border-radius: 12px;
+  padding: 16px 18px;
+  margin-top: 24px; /* 🔴 KORU 3.0: 12px → 24px para evitar superposición con hero */
+  border-radius: 14px;
   border: 1.5px dashed rgba(131, 99, 249, 0.25);
   background: rgba(131, 99, 249, 0.04);
   color: #6b5f8c;
-  font-size: 13px;
+  font-size: 14px;
   font-style: italic;
+  position: relative;
+  z-index: 1;
 }
 .koru-unified-empty .material-symbols-outlined {
-  font-size: 20px;
+  font-size: 22px;
   color: rgba(131, 99, 249, 0.5);
   flex-shrink: 0;
+}
+
+/* 🔴 KORU 3.0 — Empty state específico de detail screen con más info útil */
+.koru-detail-empty {
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px 20px;
+  text-align: center;
+  align-items: center;
+}
+.koru-detail-empty .material-symbols-outlined {
+  font-size: 36px;
+  color: rgba(131, 99, 249, 0.4);
+}
+.koru-detail-empty .koru-detail-empty-title {
+  font-size: 16px;
+  font-weight: 700;
+  font-style: normal;
+  color: #2e2650;
+}
+.koru-detail-empty .koru-detail-empty-desc {
+  font-size: 13px;
+  font-style: normal;
+  color: #6b5f8c;
+  line-height: 1.5;
+  max-width: 280px;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

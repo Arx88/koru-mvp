@@ -522,26 +522,92 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
   }, [chatTurns]);
 
   // 🔴 KORU 3.0 — Sugerencias inteligentes rotativas por categoría.
-  // En vez de mostrar siempre las mismas 4 sugerencias, rotamos entre un pool
-  // de ~28 sugerencias divididas en 7 categorías. Cada vez que cambia el día
-  // o la cantidad de turns, se seleccionan 4 aleatorias (1 por categoría).
+  // Pool amplio de sugerencias útiles divididas en categorías.
+  // Cada vez que cambia el día o la cantidad de turns, se seleccionan
+  // 5 aleatorias (1 por categoría) para dar variedad y descubrir features.
   const smartSuggestions = useMemo(() => {
     const categories = [
-      { icon: "cloud", items: ["¿Qué tiempo hace?", "¿Necesito paraguas?", "¿Hace frío afuera?", "¿Qué me pongo?"] },
-      { icon: "savings", items: ["Anota un gasto", "¿Cuánto gasté ayer?", "Anota 1500 de café", "¿Cómo van mis finanzas?"] },
-      { icon: "sports_soccer", items: ["¿Cómo salió España?", "¿Cuándo juega Boca?", "¿Cómo le fue a Argentina?", "Resultado de Liverpool"] },
-      { icon: "search", items: ["Buscá algo", "¿Qué pasó hoy?", "Hacé un informe de IA", "¿Qué es la fotosíntesis?"] },
-      { icon: "task_alt", items: ["Recordame llamar a Juan", "Activá una alarma", "Organizá mi día", "Anota comprar pan"] },
-      { icon: "restaurant", items: ["Receta de pasta", "¿Dónde como sushi?", "¿Qué cocino hoy?", "Receta de tarta"] },
-      { icon: "currency_bitcoin", items: ["¿A cuánto está el BTC?", "Precio de Ethereum", "Cotización de Solana", "¿Cómo está el Bitcoin?"] },
+      {
+        icon: "cloud",
+        items: [
+          "¿Qué tiempo hace?", "¿Necesito paraguas?", "¿Hace frío afuera?",
+          "¿Qué tal el día?", "¿Qué me pongo?", "¿Va a llover mañana?",
+        ],
+      },
+      {
+        icon: "savings",
+        items: [
+          "Anota un gasto", "¿Cuánto gasté ayer?", "Anota 1500 de café",
+          "¿Cómo van mis finanzas?", "Resumen de gastos", "Anota 2000 de transporte",
+        ],
+      },
+      {
+        icon: "sports_soccer",
+        items: [
+          "¿Cuándo juega Boca?", "¿Cómo le fue a Argentina?",
+          "Resultado de Liverpool", "¿Cuándo juega España?",
+          "Fixture de Champions", "¿Cómo salió Real Madrid?",
+        ],
+      },
+      {
+        icon: "currency_bitcoin",
+        items: [
+          "¿A cuánto está el BTC?", "Precio de Ethereum",
+          "Cotización de Solana", "¿Cómo está el Bitcoin?",
+          "Precio de Cardano", "¿A cuánto está el DOGE?",
+        ],
+      },
+      {
+        icon: "restaurant",
+        items: [
+          "Receta de pasta", "¿Dónde como sushi?", "¿Qué cocino hoy?",
+          "Receta de tarta", "Restaurante cerca", "Receta de postre",
+        ],
+      },
+      {
+        icon: "task_alt",
+        items: [
+          "Recordame llamar a Juan", "Activá una alarma",
+          "Organizá mi día", "Anota comprar pan", "Recordame pagar el alquiler",
+        ],
+      },
+      {
+        icon: "auto_awesome",
+        items: [
+          "Hacé un informe de IA", "¿Qué pasó hoy en el mundo?",
+          "¿Qué es la fotosíntesis?", "Informame sobre el cambio climático",
+          "Buscá noticias de tecnología", "¿Quién ganó el Nobel de literatura?",
+        ],
+      },
+      {
+        icon: "movie",
+        items: [
+          "Info de Inception", "¿Qué película veo?",
+          "Reseña de Dune", "¿Quién dirigió Pulp Fiction?",
+        ],
+      },
+      {
+        icon: "map",
+        items: [
+          "¿Cómo llego al aeropuerto?", "¿Dónde queda París?",
+          "Ruta a Buenos Aires", "Planificá un viaje a Madrid",
+        ],
+      },
     ];
+    // Seed determinístico que cambia por día y por cantidad de turns
     const seed = new Date().toDateString() + `-${chatTurns.length}`;
     let hash = 0;
     for (let i = 0; i < seed.length; i++) hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0;
-    const catOrder = [...categories].sort((a, b) => ((hash + a.icon.charCodeAt(0)) % 100) - ((hash + b.icon.charCodeAt(0)) % 100));
+    // Mezclar categorías y tomar 5
+    const catOrder = [...categories].sort((a, b) =>
+      ((hash + a.icon.charCodeAt(0)) % 100) - ((hash + b.icon.charCodeAt(0)) % 100)
+    );
     const picked: { icon: string; text: string }[] = [];
-    for (let i = 0; i < Math.min(4, catOrder.length); i++) {
-      picked.push({ icon: catOrder[i].icon, text: catOrder[i].items[Math.abs(hash + i * 7) % catOrder[i].items.length] });
+    for (let i = 0; i < Math.min(5, catOrder.length); i++) {
+      picked.push({
+        icon: catOrder[i].icon,
+        text: catOrder[i].items[Math.abs(hash + i * 7) % catOrder[i].items.length],
+      });
     }
     return picked;
   }, [chatTurns.length]);
@@ -1433,16 +1499,13 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
             {ephemeral && <p className="koru-footer-note">Modo efimero activo - esta charla no guardara memoria nueva</p>}
             {micError && <p className="koru-footer-error">{micError}</p>}
 
-            {/* 🔴 Quick actions — chips de sugerencias rápidas cuando el input está vacío */}
+            {/* 🔴 KORU 3.0 — Quick actions: smartSuggestions rotativas.
+                Antes eran 5 sugerencias fijas que nunca cambiaban.
+                Ahora rotan por categoría (clima, deportes, crypto, recetas, etc.)
+                basadas en el día + cantidad de turns. */}
             {!inputText.trim() && !processing && !isListening && !isRecording && (
               <div className="koru-quick-actions">
-                {[
-                  { icon: "wb_sunny", text: "¿Qué tal el día?" },
-                  { icon: "sports_soccer", text: "¿Cómo salió España?" },
-                  { icon: "restaurant", text: "Receta" },
-                  { icon: "savings", text: "Bitcoin" },
-                  { icon: "calendar_today", text: "Mi día" },
-                ].map((chip) => (
+                {smartSuggestions.map((chip) => (
                   <button
                     key={chip.text}
                     type="button"

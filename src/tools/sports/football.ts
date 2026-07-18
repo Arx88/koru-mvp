@@ -607,7 +607,49 @@ export const matchLive: ToolHandler = {
       };
     }
 
-    // Último fallback: buscar noticias del equipo en ESPN + Wikipedia
+    // 🔴 KORU 3.0 — Fallback enriquecido: cuando no hay partidos, traer:
+    // 1. Próximo partido del equipo (TheSportsDB eventsnextteam)
+    // 2. Info de Wikipedia sobre el equipo
+    // 3. Noticias recientes (GDELT)
+    // Esto da valor al usuario aunque no haya partido jugado.
+
+    // Buscar ID del equipo en TheSportsDB
+    let teamInfo: { id: string; name: string; stadium?: string; location?: string; league?: string; description?: string } | null = null;
+    try {
+      const searchRes = await fetchJson<{ teams?: Array<{ idTeam?: string; strTeam?: string; strStadium?: string; strLocation?: string; strLeague?: string; strDescriptionES?: string; strDescriptionEN?: string }> }>(
+        `${TSDB_BASE}/searchteams.php?t=${encodeURIComponent(query)}`,
+        { timeoutMs: 8_000 },
+      );
+      if (searchRes.ok && searchRes.data?.teams && searchRes.data.teams.length > 0) {
+        const t = searchRes.data.teams[0];
+        teamInfo = {
+          id: t.idTeam ?? "",
+          name: t.strTeam ?? query,
+          stadium: t.strStadium,
+          location: t.strLocation,
+          league: t.strLeague,
+          description: t.strDescriptionES || t.strDescriptionEN,
+        };
+      }
+    } catch { /* ignore */ }
+
+    // Si encontramos el team, buscar próximo partido
+    let nextMatch: TsdbEvent | null = null;
+    if (teamInfo?.id) {
+      try {
+        const nextRes = await fetchJson<{ events?: TsdbEvent[] }>(
+          `${TSDB_BASE}/eventsnextteam.php?id=${teamInfo.id}`,
+          { timeoutMs: 8_000 },
+        );
+        if (nextRes.ok && nextRes.data?.events && nextRes.data.events.length > 0) {
+          nextMatch = nextRes.data.events[0];
+        }
+      } catch { /* ignore */ }
+    }
+
+    // Wikipedia info
+    let wikiExtract: string | null = null;
+    let wikiSource: { title: string; url: string; domain: string; snippet: string } | null = null;
     try {
       const wikiRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(`${query} football team`)}&format=json&origin=*&srlimit=1`, { signal: AbortSignal.timeout(9000) });
       const wikiData = await wikiRes.json() as { query?: { search?: Array<{ title: string; snippet: string }> } };
@@ -616,20 +658,41 @@ export const matchLive: ToolHandler = {
         const title = results[0].title;
         const summaryRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`, { signal: AbortSignal.timeout(9000) });
         const summary = await summaryRes.json() as { extract?: string; content_urls?: { desktop?: { page: string } } };
-        return {
-          type: "match_live",
-          // 🔴 FIX: status "no_data" (no "ok") cuando no hay partidos reales.
-          // El backend usa esto para bloquear alucinaciones del LLM.
-          status: "no_data",
-          query,
-          matches: [],
-          text: `No encontré partidos recientes de "${query}" en ESPN ni TheSportsDB. La temporada puede estar en receso. Acá va info general de Wikipedia sobre el equipo.`,
-          wikipediaExtract: summary.extract,
-          sources: [{ title, url: summary.content_urls?.desktop?.page ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`, domain: "wikipedia.org", snippet: results[0].snippet?.replace(/<[^>]+>/g, "") }],
-          source: "Wikipedia",
+        wikiExtract = summary.extract ?? null;
+        wikiSource = {
+          title,
+          url: summary.content_urls?.desktop?.page ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`,
+          domain: "wikipedia.org",
+          snippet: results[0].snippet?.replace(/<[^>]+>/g, "") ?? "",
         };
       }
     } catch { /* ignore */ }
+
+    // Si tenemos datos adicionales, devolver status "ok" con info útil
+    if (teamInfo || nextMatch || wikiExtract) {
+      const infoSections: string[] = [];
+      if (teamInfo?.stadium) infoSections.push(`Estadio: ${teamInfo.stadium}`);
+      if (teamInfo?.location) infoSections.push(`Ubicación: ${teamInfo.location}`);
+      if (teamInfo?.league) infoSections.push(`Liga: ${teamInfo.league}`);
+      if (nextMatch) {
+        const d = nextMatch.strTimestamp ? new Date(nextMatch.strTimestamp) : null;
+        infoSections.push(`Próximo partido: ${nextMatch.strEvent} ${d ? `(${d.toLocaleDateString("es")} ${d.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })})` : ""}`);
+      }
+
+      return {
+        type: "match_live",
+        status: "ok",
+        query,
+        matches: nextMatch ? [normalizeEvent(nextMatch)] : [],
+        text: `No hay partidos recientes de "${query}". Pero te dejo info útil del equipo${infoSections.length > 0 ? ": " + infoSections.join(" · ") : "."}`,
+        teamInfo,
+        nextMatch: nextMatch ? normalizeEvent(nextMatch) : undefined,
+        wikipediaExtract: wikiExtract,
+        sources: wikiSource ? [wikiSource] : undefined,
+        source: teamInfo ? "TheSportsDB + Wikipedia" : "Wikipedia",
+        note: `No hay partidos recientes. Te mostramos info del equipo y próximo fixture.`,
+      };
+    }
 
     // 🔴 FIX: status "no_data" explícito — NO inventar resultados
     return {

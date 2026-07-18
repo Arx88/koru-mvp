@@ -874,6 +874,10 @@ export type UiBlock =
       type: "match_timeline";
       title?: string;
       items?: Array<{ minute: string; text: string; sub?: string; active?: boolean; now?: boolean }>;
+      /** 🔴 KORU 3.0 — Campos adicionales para cuando no hay partido jugado */
+      teamInfo?: { name: string; stadium?: string; location?: string; league?: string; description?: string };
+      nextMatch?: { match?: string; homeTeam?: string; awayTeam?: string; date?: string; time?: string; league?: string };
+      wikipediaExtract?: string;
     }
   | {
       type: "match_stats";

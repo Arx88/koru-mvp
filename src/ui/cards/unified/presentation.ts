@@ -3857,11 +3857,59 @@ function matchTimeline(b: Of<"match_timeline">): KoruPresentation {
   const now = items.find((i) => i.now) ?? items[0];
   // 🔴 FIX: title dinámico (antes "PARTIDO" hardcodeado) + "Timeline" → "Cronología"
   const title = b.title ?? (now?.text ? now.text.split("—")[0].trim() : "Partido");
+
+  // 🔴 KORU 3.0 — Si no hay items de timeline, armar detail con info del equipo
+  // (teamInfo, nextMatch, wikipediaExtract) que viene en el block.
+  const teamInfo = (b as any).teamInfo;
+  const nextMatch = (b as any).nextMatch;
+  const wikiExtract = (b as any).wikipediaExtract;
+
+  const fallbackSections: any[] = [];
+  if (teamInfo) {
+    const rows: any[] = [];
+    if (teamInfo.stadium) rows.push({ title: "Estadio", detail: teamInfo.stadium, icon: "stadium" });
+    if (teamInfo.location) rows.push({ title: "Ubicación", detail: teamInfo.location, icon: "location_on" });
+    if (teamInfo.league) rows.push({ title: "Liga", detail: teamInfo.league, icon: "emoji_events" });
+    if (teamInfo.description) rows.push({ title: "Sobre el equipo", detail: teamInfo.description.slice(0, 200) + "...", icon: "info" });
+    if (rows.length > 0) {
+      fallbackSections.push({
+        kind: "rows",
+        icon: "shield",
+        accent: A.emerald,
+        title: "Info del equipo",
+        rows,
+      });
+    }
+  }
+  if (nextMatch) {
+    fallbackSections.push({
+      kind: "tiles",
+      icon: "event",
+      accent: A.amber,
+      title: "Próximo partido",
+      tiles: [
+        { label: "Partido", value: nextMatch.match ?? nextMatch.homeTeam + " vs " + nextMatch.awayTeam },
+        { label: "Fecha", value: nextMatch.date ?? "?" },
+        { label: "Hora", value: nextMatch.time ?? "?" },
+        { label: "Liga", value: nextMatch.league ?? "?" },
+      ],
+    });
+  }
+  if (wikiExtract) {
+    fallbackSections.push({
+      kind: "text",
+      icon: "menu_book",
+      accent: A.primary,
+      title: "Sobre el equipo",
+      body: wikiExtract,
+    });
+  }
+
   return {
     hero: {
-      kicker: "Fixture · En vivo",
+      kicker: items.length ? "Fixture · En vivo" : "Info del equipo",
       title: heroTitleFrom(title, "Partido"),
-      desc: now ? `${now.minute}' ${now.text}` : undefined,
+      desc: now ? `${now.minute}' ${now.text}` : (nextMatch ? `Próximo: ${nextMatch.date ?? "fecha por confirmar"}` : undefined),
       icon: "sports_soccer",
       accent: A.emerald,
     },
@@ -3879,8 +3927,14 @@ function matchTimeline(b: Of<"match_timeline">): KoruPresentation {
             },
           ],
         }
-      : undefined,
-    cta: items.length ? { label: "Ver cronología" } : undefined,
+      : fallbackSections.length
+        ? {
+            title: title,
+            subtitle: "INFO DEL EQUIPO",
+            sections: fallbackSections,
+          }
+        : undefined,
+    cta: items.length ? { label: "Ver cronología" } : (fallbackSections.length ? { label: "Ver detalle" } : undefined),
   };
 }
 
