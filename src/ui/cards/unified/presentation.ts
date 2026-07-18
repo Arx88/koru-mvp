@@ -4638,6 +4638,10 @@ function routeMap(b: Of<"route_map">): KoruPresentation {
           title: b.to ? `Ruta a ${b.to}` : "Ruta",
           subtitle: b.from ? `DESDE ${b.from.toUpperCase()}` : undefined,
           sections,
+          actions: [
+            { label: "Navegar", icon: "navigate", kind: "primary", action: "route:start" },
+            { label: "Aviso vuelta", icon: "bell", kind: "secondary", action: "route:return_alert" },
+          ],
         }
       : undefined,
     cta: b.to ? { label: "Ver detalle" } : undefined,
@@ -5064,6 +5068,10 @@ function planFallback(b: Of<"plan">): KoruPresentation {
           title: b.title || "Tu Plan",
           subtitle: `${items.length} PASO${items.length > 1 ? "S" : ""} ORDENADOS`,
           sections,
+          actions: [
+            { label: "Activar avisos", icon: "bell", kind: "primary", action: "plan:alerts" },
+            { label: "Compras", icon: "shopping", kind: "secondary", action: "plan:shopping" },
+          ],
         }
       : undefined,
     cta: items.length ? { label: "Ver el plan paso a paso" } : undefined,
@@ -5216,6 +5224,10 @@ function recipeBlock(b: Of<"recipe">): KoruPresentation {
           title: b.name ?? b.title ?? "Receta",
           subtitle,
           sections,
+          actions: [
+            { label: "Empezar a cocinar", icon: "play", kind: "primary", action: "recipe:cook" },
+            { label: "Voz", icon: "bell", kind: "secondary", action: "recipe:voice" },
+          ],
         }
       : undefined,
     cta: { label: b.videoUrl ? "Ver el video y cocinar paso a paso" : "Cocinar paso a paso" },
@@ -5612,6 +5624,10 @@ function newsUrgentBlock(b: Of<"news_urgent">): KoruPresentation {
           title: b.headline ?? "Última Hora",
           subtitle: [categoryLabel, severityLabel].filter(Boolean).join(" · ") || undefined,
           sections,
+          actions: [
+            { label: "Seguir el tema", icon: "bell", kind: "primary", action: "news:follow" },
+            { label: "Leer después", icon: "bookmark", kind: "secondary", action: "news:save" },
+          ],
         }
       : undefined,
     cta: { label: "Ver cobertura completa" },
@@ -6081,6 +6097,10 @@ function exercisePlan(b: Of<"exercise_plan">): KoruPresentation {
       title: plan.name || "Plan de Entrenamiento",
       subtitle: `${totalSessions} sesiones · ${plan.status}`,
       sections,
+      actions: [
+        { label: "Empezar entrenamiento", icon: "play", kind: "primary", action: "exercise:start" },
+        { label: "Pausar", icon: "play", kind: "secondary", action: "exercise:pause" },
+      ],
     },
     cta: { label: "Ver el plan sesión por sesión" },
   };
