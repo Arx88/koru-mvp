@@ -1173,8 +1173,14 @@ export async function callProvider(
       if (providerResultIsValid(result)) return result;
       logger.warn("callProvider", "Preferred NVIDIA responded but invalid, falling back");
     } catch (err: any) {
-      if (isRateLimitError(err)) throw err;
-      logger.warn("callProvider", "Preferred NVIDIA failed, falling back", { reason: err?.message });
+      // 🔴 KORU 3.0 — Si es rate limit (429), NO re-throw — caer al siguiente
+      // provider (OpenRouter, BlueSminds, etc). Antes se re-throw y el error
+      // llegaba hasta el usuario sin intentar fallback.
+      if (isRateLimitError(err)) {
+        logger.warn("callProvider", "Preferred NVIDIA rate-limited (429), falling through to next provider");
+      } else {
+        logger.warn("callProvider", "Preferred NVIDIA failed, falling back", { reason: err?.message });
+      }
     }
   }
 
@@ -1193,8 +1199,12 @@ export async function callProvider(
       }
       logger.warn("callProvider", "BlueSminds responded but invalid, falling through");
     } catch (err: any) {
-      if (isRateLimitError(err)) throw err;
-      logger.warn("callProvider", "BlueSminds failed, falling through", { reason: err?.message });
+      // 🔴 KORU 3.0 — rate limit: caer al siguiente, no re-throw
+      if (isRateLimitError(err)) {
+        logger.warn("callProvider", "BlueSminds rate-limited (429), falling through");
+      } else {
+        logger.warn("callProvider", "BlueSminds failed, falling through", { reason: err?.message });
+      }
     }
   }
 
@@ -1223,8 +1233,12 @@ export async function callProvider(
       if (providerResultIsValid(result)) return result;
       logger.warn("callProvider", "NVIDIA responded but invalid, falling back");
     } catch (err: any) {
-      if (isRateLimitError(err)) throw err;
-      logger.warn("callProvider", "NVIDIA failed, falling back to OpenRouter", { reason: err?.message });
+      // 🔴 KORU 3.0 — rate limit: caer a OpenRouter, no re-throw
+      if (isRateLimitError(err)) {
+        logger.warn("callProvider", "NVIDIA rate-limited (429), falling back to OpenRouter");
+      } else {
+        logger.warn("callProvider", "NVIDIA failed, falling back to OpenRouter", { reason: err?.message });
+      }
     }
   }
 

@@ -94,7 +94,16 @@ export async function callNvidia(
   }, timeoutMs);
   const data = await response.json().catch(() => ({}));
   if (!response.ok || !hasUsableAssistantMessage(data)) {
-    throw new Error(`NVIDIA returned ${response.status}`);
+    // 🔴 KORU 3.0 — Si es 429 (rate limit), tirar RateLimitError para que
+    // callProvider caiga al siguiente provider (OpenRouter, BlueSminds, etc).
+    // Antes tiraba Error genérico y callProvider no detectaba que era rate limit.
+    const msg = `NVIDIA returned ${response.status}`;
+    if (response.status === 429) {
+      const err = new Error(msg);
+      err.name = "RateLimitError";
+      throw err;
+    }
+    throw new Error(msg);
   }
   const choice = asRecord(asArray(asRecord(data).choices)[0]);
   return {
