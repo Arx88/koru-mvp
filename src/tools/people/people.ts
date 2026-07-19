@@ -180,7 +180,7 @@ export const personFilmography: ToolHandler = {
 export const movieInfo: ToolHandler = {
   definition: defineTool(
     "movie_info",
-    "Sinopsis, reparto, año, rating y dónde ver una película o serie. USÁ ESTA TOOL SIEMPRE que el usuario pida recomendar, sugerir o mencionar películas — aunque las conozcas de memoria. NO respondas con texto plano. Ejemplos: 'recomendame una película' → movie_info(title='X'), 'dame 3 películas' → llamá movie_info 3 veces o pasá múltiples títulos. Si el usuario da contexto de gustos ('me gusta Wes Anderson'), elegí películas que encajen y llamá la tool para cada una.",
+    "Información de películas y series: sinopsis, reparto, año, rating, géneros y dónde verla. Usala cuando el usuario pregunte por una película específica, pida recomendaciones ('recomendame una peli'), o quiera saber de qué trata una película. Si el usuario no nombra una película específica, elegí una buena y buscala.",
     {
       type: "object",
       additionalProperties: false,

@@ -6655,10 +6655,10 @@ export async function runKoruBackendTurn(
     messages.push({ role: "assistant", content: "", tool_calls: toolCalls });
 
     const delivered = await executeProviderToolCalls(toolCalls, messages, request, toolExecutions, config);
-    if (delivered) {
-      const response = await finalizePayload(request, config, delivered, toolExecutions, extractorTimeout);
-      return { ...response, provider, model, fallbackReason: fallbackReason ?? response.memoryFallbackReason };
-    }
+    // 🔴 KORU 3.0 — SIEMPRE hacer síntesis LLM después de tools nativas.
+    // Antes: si delivered=true, saltaba la síntesis y el reply quedaba
+    // como JSON crudo o texto de thinking del LLM.
+    // Ahora: siempre pasa a la 2da llamada LLM para generar reply natural.
 
     // Emitir chunk intermedio con los resultados de tools para progreso en tiempo real
     if (onChunk && toolExecutions.length > 0) {
@@ -6828,10 +6828,10 @@ export async function runKoruBackendTurn(
     });
     messages.push({ role: "assistant", content: "", tool_calls: [syntheticToolCall] });
     const delivered = await executeProviderToolCalls([syntheticToolCall], messages, request, toolExecutions, config);
-    if (delivered) {
-      const response = await finalizePayload(request, config, delivered, toolExecutions, extractorTimeout);
-      return { ...response, provider, model, fallbackReason: (fallbackReason ? fallbackReason + " + " : "") + "simulated-tool" };
-    }
+    // 🔴 KORU 3.0 — SIEMPRE hacer síntesis LLM después de ejecutar la tool,
+    // incluso si delivered=true. Sin esto, el reply queda como el texto crudo
+    // del thinking del LLM (que puede ser JSON, no texto natural).
+    // El flujo es: ejecutar tool → 2da llamada LLM (sin tools) → reply natural.
     // Paso 2: segunda llamada (sin tools) para que el LLM síntetice la respuesta final.
     messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }." });
     const secondResult = await callProvider(config, messages, secondaryTimeout, false, preferredProvider, undefined, modelOverride);
