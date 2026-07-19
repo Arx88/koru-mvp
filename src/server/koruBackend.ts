@@ -6833,7 +6833,12 @@ export async function runKoruBackendTurn(
     // del thinking del LLM (que puede ser JSON, no texto natural).
     // El flujo es: ejecutar tool → 2da llamada LLM (sin tools) → reply natural.
     // Paso 2: segunda llamada (sin tools) para que el LLM síntetice la respuesta final.
-    messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }." });
+    messages.push({ role: "user", content: [
+      "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }.",
+      "Respondé SOLO con este formato: {\"reply\":\"texto natural en español\",\"mascotState\":\"happy\"}",
+      "El campo 'reply' debe ser texto natural conversacional (NO JSON, NO markdown). Ej: 'Te dejé el detalle en la tarjeta.'",
+      "NO repitas los datos de la tool en el reply — ya están en la card visual.",
+    ].join("\n") });
     const secondResult = await callProvider(config, messages, secondaryTimeout, false, preferredProvider, undefined, modelOverride);
     provider = secondResult.provider;
     model = secondResult.model ?? model;
