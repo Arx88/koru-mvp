@@ -531,18 +531,18 @@ export const reminderSet: ToolHandler = {
 export const alarmSet: ToolHandler = {
   definition: defineTool(
     "alarm_set",
-    "Crea una alarma. Úsala cuando el usuario te pida una alarma o despertador. DEBES calcular el dueAt (timestamp ISO 8601) a partir de la hora actual y lo que el usuario dijo.",
+    "Crea una alarma, despertador o temporizador. Úsala cuando el usuario pida 'activá un temporizador de X minutos', 'poné una alarma para las 7', 'despertame a las 6', 'cronómetro de 5 minutos'. Si el usuario pide un temporizador de X minutos, calculá la hora futura = ahora + X minutos. Si no podés calcular el timestamp exacto, pasá time='en X minutos' y dejá dueAt vacío.",
     {
       type: "object",
       additionalProperties: false,
       properties: {
         title: { type: "string" },
         time: { type: "string", description: "Hora legible (ej: '7am', '16:30', '6 de la mañana')." },
-        dueAt: { type: "string", description: "Timestamp ISO 8601 exacto calculado por vos. OBLIGATORIO." },
+        dueAt: { type: "string", description: "Timestamp ISO 8601. OPCIONAL — si no podés calcularlo, dejá vacío." },
         repeat: { type: "string", description: "Repetición (ej: 'diario', 'semanal', 'lunes a viernes')." },
         note: { type: "string" },
       },
-      required: ["title", "time", "dueAt"],
+      required: ["title", "time"],
     },
   ),
   policy: policies.localWrite("Crea alarma."),
@@ -551,11 +551,14 @@ export const alarmSet: ToolHandler = {
     const time = String(args.time ?? "").trim();
     const dueAt = String(args.dueAt ?? "").trim();
     if (!title || !time) return { type: "alarm_set", status: "failed", error: "Indicá título y hora." };
-    if (!dueAt) return { type: "alarm_set", status: "failed", error: "dueAt es obligatorio." };
-    const dueDate = new Date(dueAt);
-    if (isNaN(dueDate.getTime())) return { type: "alarm_set", status: "failed", error: `dueAt inválido: ${dueAt}` };
     const block = { type: "alarm" as const, title, time, repeat: args.repeat ? String(args.repeat) : undefined, note: args.note ? String(args.note) : undefined };
-    const commitment: Omit<Commitment, "id" | "createdAt" | "sourceEntryId"> = { title, dueHint: time, dueAt, status: "open" };
+    const commitment: Omit<Commitment, "id" | "createdAt" | "sourceEntryId"> = {
+      title, dueHint: time, status: "open",
+      ...(dueAt ? (() => {
+        const d = new Date(dueAt);
+        return isNaN(d.getTime()) ? {} : { dueAt: d.toISOString() };
+      })() : {}),
+    };
     return { type: "alarm_set", status: "ok", block, commitments: [commitment] };
   },
 };
