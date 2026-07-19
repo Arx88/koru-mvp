@@ -26,7 +26,7 @@ describe("systemPrompt snapshot", () => {
     // pero podemos verificar que las reglas clave existen en el código fuente.
     // Este test es un guardian: si alguien quita las reglas, falla.
     const fs = require("fs");
-    const src = fs.readFileSync("./src/server/koruBackend.ts", "utf8");
+    const src = fs.readFileSync("./src/server/systemPrompt.ts", "utf8");
     expect(src).toContain("UTILIDAD POR ENCIMA DE TODO");
     expect(src).toContain("NO sobre-valides");
     expect(src).toContain("NO exageres");
@@ -35,14 +35,16 @@ describe("systemPrompt snapshot", () => {
 
   it("contiene few-shot examples (Fase 4.3)", () => {
     const fs = require("fs");
-    const src = fs.readFileSync("./src/server/koruBackend.ts", "utf8");
-    expect(src).toContain("few-shot");
-    expect(src).toContain("Listo, guardado en gastos");
+    const src = fs.readFileSync("./src/server/systemPrompt.ts", "utf8");
+    // El bloque de few-shots existe bajo "Ejemplos de respuestas".
+    expect(src).toContain("Ejemplos de respuestas");
+    // Regla de guardado con colección (variable en el prompt).
+    expect(src).toContain("Listo, guardado en {colección}");
   });
 
   it("contiene reglas anti-alucinación CRÍTICO", () => {
     const fs = require("fs");
-    const src = fs.readFileSync("./src/server/koruBackend.ts", "utf8");
+    const src = fs.readFileSync("./src/server/systemPrompt.ts", "utf8");
     expect(src).toContain("CRÍTICO");
     expect(src).toContain("NO inventés los datos");
     expect(src).toContain("status \"failed\"");
