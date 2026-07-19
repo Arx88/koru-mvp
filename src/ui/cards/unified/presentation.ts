@@ -2539,14 +2539,67 @@ function liveMatch(b: Of<"live_match">): KoruPresentation {
   const league = clean(b.league);
   const status = clean(b.status);
   const live = /in progress|live|halftime|en vivo/i.test(status);
+  const finished = !live && (!status || /final|finished|ended|ft/i.test(status));
+  const scheduled = !live && /scheduled|programado|upcoming|próximamente/i.test(status);
   const kickerParts: string[] = [];
   if (live) kickerParts.push("En vivo");
   if (league) kickerParts.push(league);
-  if (!live && status && status.toLowerCase() !== "scheduled") kickerParts.push(status);
+  if (!live && status && !scheduled && !finished) kickerParts.push(status);
+  if (finished && !league) kickerParts.push("Final");
   const kicker = kickerParts.length > 0 ? kickerParts.join(" · ") : "Partido";
-  const desc = live ? (b.minute ? `Minuto ${b.minute}` : "En juego")
-    : status && /scheduled|programado/i.test(status) ? "Próximamente"
-    : status ?? "Final";
+
+  // 🔴 KIMI Card 04 — desc integra goles y venue inline:
+  //   "Amistoso internacional · París · Porro 23', Merino 67'"
+  // En vivo muestra "Minuto 67'"; en final muestra goles; en scheduled "Próximamente".
+  // Sin goles disponibles, cae a "Final" / "En juego" / "Próximamente" como antes.
+  const goals = b.goals ?? [];
+  const goalsInline = goals
+    .filter((g) => g.scorer || g.text)
+    .slice(0, 6)
+    .map((g) => {
+      const who = clean(g.scorer) ?? clean(g.text) ?? "Gol";
+      const min = clean(g.minute);
+      return min ? `${who} ${min}'` : who;
+    })
+    .join(", ");
+  const venueBits: string[] = [];
+  if (league) venueBits.push(league);
+  if (clean(b.venueCity)) venueBits.push(clean(b.venueCity)!);
+  else if (clean(b.venue)) venueBits.push(clean(b.venue)!);
+  const ctxLine = venueBits.join(" · ");
+  const descParts: string[] = [];
+  if (live) {
+    descParts.push(b.minute ? `Minuto ${b.minute}'` : "En juego");
+  } else if (scheduled) {
+    descParts.push("Próximamente");
+  } else {
+    descParts.push("Final");
+  }
+  if (goalsInline) descParts.push(goalsInline);
+  // 🔴 KIMI Card 04 — si la línea de contexto (liga + ciudad) es distinta del
+  // kicker (que ya tiene la liga), agregamos sólo la ciudad para no duplicar.
+  const cityOnly = clean(b.venueCity) ?? clean(b.venue);
+  if (cityOnly && !descParts.includes(cityOnly)) {
+    // Insertar la ciudad entre el status y los goles, como en el spec
+    // ("Amistoso internacional · París · Porro 23', Merino 67'").
+    // Si la liga coincide con el kicker, omitirla del desc para no duplicar.
+    const insertIdx = live || scheduled || finished ? 1 : 0;
+    descParts.splice(insertIdx, 0, cityOnly);
+  }
+  const desc = descParts.filter(Boolean).join(" · ");
+
+  // 🔴 KIMI Card 04 — acción primaria contextual: "Seguir a {winnerName}"
+  // cuando hay un ganador claro (finished + score distinto). Si está live,
+  // "Avisame al terminar". Si scheduled, "Recordarme".
+  let primaryAction: { label: string; icon: "bell"; kind: "primary"; action: string };
+  if (finished && homeScore !== awayScore) {
+    const winnerName = homeScore > awayScore ? homeName : awayName;
+    primaryAction = { label: `Seguir a ${winnerName}`, icon: "bell", kind: "primary", action: "match:follow" };
+  } else if (live) {
+    primaryAction = { label: "Avisame al terminar", icon: "bell", kind: "primary", action: "match:notify" };
+  } else {
+    primaryAction = { label: "Recordarme", icon: "bell", kind: "primary", action: "match:notify" };
+  }
 
   // 🔴 Metrics: usar detailedStats si hay (más rico), si no caer a stats básico.
   // Mostrar hasta 3 stats clave: Posesión, Tiros, Tiros al arco.
@@ -2580,7 +2633,7 @@ function liveMatch(b: Of<"live_match">): KoruPresentation {
   const hasRichData = !!(b.goals?.length || b.yellowCards?.length || b.detailedStats?.length || b.lineups);
   const detail = hasRichData ? {
     title,
-    subtitle: [league, b.venue ? `${b.venue}` : null, b.venueCity ? b.venueCity : null].filter(Boolean).join(" · ") || kicker,
+    subtitle: ctxLine || kicker,
     sections: buildMatchDetailSections(b, homeName, awayName),
   } : b.stats?.length ? {
     title,
@@ -2608,8 +2661,8 @@ function liveMatch(b: Of<"live_match">): KoruPresentation {
     detail: detail ? {
       ...detail,
       actions: [
-        { label: "Avisame al terminar", icon: "bell", kind: "primary", action: "match:notify" },
-        { label: "Compartir", icon: "search", kind: "secondary", action: "match:share" },
+        primaryAction,
+        { label: "Compartir", icon: "share", kind: "secondary", action: "match:share" },
       ],
     } : detail,
     cta: hasRichData || b.stats?.length ? { label: hasRichData ? "Ver la ficha del partido" : "Ver estadísticas" } : undefined,
