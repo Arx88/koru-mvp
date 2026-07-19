@@ -258,7 +258,7 @@ export const TOOL_DEFINITIONS = [
                 time: { type: "string", description: "Horario o bloque (ej: 'Lunes mañana', '09:00-11:00', 'Bloque 1')." },
                 priority: { type: "string", enum: ["Alta", "Media", "Baja"] },
                 durationMinutes: { type: "number", description: "Duración estimada en minutos." },
-                mode: { type: "string", enum: ["focus", "quick", "break", "meeting", "learning"], description: "Tipo de actividad." },
+                mode: { type: "string", enum: ["focus", "quick", "admin", "recovery"], description: "Tipo de actividad. focus=trabajo profundo, quick=tarea rápida, admin=admin/mails, recovery=descanso." },
               },
               required: ["title"],
             },
@@ -1735,14 +1735,18 @@ export function planFromState(state: KoruState, args: Record<string, unknown>): 
   // de los items genéricos que se generaban antes desde state.
   const llmItems = Array.isArray(args.items) ? args.items : [];
   if (llmItems.length > 0) {
-    const items: AssistantPlanItem[] = llmItems.slice(0, 8).map((raw: any, index: number) => ({
-      time: cleanText(raw.time) || (index === 0 ? "Ahora" : `Paso ${index + 1}`),
-      title: cleanText(raw.title, `Paso ${index + 1}`),
-      priority: (["Alta", "Media", "Baja"].includes(cleanText(raw.priority)) ? cleanText(raw.priority) : index === 0 ? "Alta" : "Media") as "Alta" | "Media" | "Baja",
-      durationMinutes: typeof raw.durationMinutes === "number" ? raw.durationMinutes : 30,
-      mode: (["focus", "quick", "break", "meeting", "learning"].includes(cleanText(raw.mode)) ? cleanText(raw.mode) : index === 0 ? "focus" : "quick") as "focus" | "quick" | "break" | "meeting" | "learning",
-      rationale: undefined,
-    }));
+    const items: AssistantPlanItem[] = llmItems.slice(0, 8).map((raw: any, index: number) => {
+      const rawMode = cleanText(raw.mode);
+      const mode = rawMode === "focus" ? "focus" : rawMode === "admin" ? "admin" : rawMode === "recovery" ? "recovery" : "quick";
+      return {
+        time: cleanText(raw.time) || (index === 0 ? "Ahora" : `Paso ${index + 1}`),
+        title: cleanText(raw.title, `Paso ${index + 1}`),
+        priority: (["Alta", "Media", "Baja"].includes(cleanText(raw.priority)) ? cleanText(raw.priority) : index === 0 ? "Alta" : "Media") as "Alta" | "Media" | "Baja",
+        durationMinutes: typeof raw.durationMinutes === "number" ? raw.durationMinutes : 30,
+        mode: mode as "focus" | "quick" | "admin" | "recovery",
+        rationale: undefined,
+      };
+    });
     return {
       type: "plan",
       title: focus,
