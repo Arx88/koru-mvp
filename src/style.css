@@ -4596,12 +4596,14 @@ a.koru-dsec-source:hover {
   gap: 6px;
   padding: 8px 14px;
   border-radius: 999px;
-  border: 1px solid rgba(131, 99, 249, 0.2);
-  background: rgba(131, 99, 249, 0.08);
-  color: #6b5f8c;
+  border: 1px solid rgba(201, 184, 255, 0.3);
+  background: rgba(131, 99, 249, 0.22);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #e8e0ff;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
   transition: all 0.2s;
@@ -4609,9 +4611,9 @@ a.koru-dsec-source:hover {
 }
 
 .koru-quick-action:hover {
-  background: rgba(131, 99, 249, 0.15);
-  border-color: rgba(131, 99, 249, 0.35);
-  color: #2e2650;
+  background: rgba(131, 99, 249, 0.35);
+  border-color: rgba(201, 184, 255, 0.5);
+  color: #ffffff;
   transform: translateY(-1px);
 }
 
@@ -4621,7 +4623,7 @@ a.koru-dsec-source:hover {
 
 .koru-quick-action .material-symbols-outlined {
   font-size: 16px;
-  color: #8363F9;
+  color: #c9b8ff;
 }
 
 @media (max-width: 480px) {
