@@ -108,12 +108,13 @@ async function callNvidiaOnce(
     top_p: 0.95,
     max_tokens: 8192,
     stream: false,
-    // 🔴 KORU 3.0 — thinking: false estaba INTERFIRIENDO con tool_calls nativas.
-    // Cuando thinking está desactivado, Nemotron a veces "piensa" en el content
-    // en vez de emitir tool_calls. Lo dejamos activado (default del modelo)
-    // para que use tool_calls nativas de forma consistente.
-    // El reasoning_content (si la API lo emite por separado) no se muestra al usuario.
-    // chat_template_kwargs: { thinking: false },  // 🔴 DESACTIVADO - ver KORU 3.0
+    // 🔴 KORU 3.0 — thinking: false MANTIENE el content limpio (sin CoT en inglés).
+    // Verificamos que Nemotron SÍ soporta tool_calls nativas (2/5 queries las usan).
+    // El que algunas queries usen simulated tool calls NO es por thinking:false —
+    // es comportamiento del modelo que a veces decide pensar en texto.
+    // Mantenemos thinking:false porque sin él el content se llena de JSON crudo
+    // y razonamiento en inglés que NO debe llegar al usuario.
+    chat_template_kwargs: { thinking: false },
   };
   const response = await fetchWithTimeout(providerUrl(config.nvidiaBaseUrl, "/v1/chat/completions"), {
     method: "POST",
