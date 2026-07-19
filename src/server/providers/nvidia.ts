@@ -108,13 +108,12 @@ async function callNvidiaOnce(
     top_p: 0.95,
     max_tokens: 8192,
     stream: false,
-    // 🔴 FIX P0: Nemotron Ultra tiene modo "thinking" activado por defecto que
-    // emite CoT en `content` (texto en inglés tipo "The user is asking...").
-    // Desactivamos explícitamente el thinking para que `content` contenga SOLO
-    // la respuesta final al usuario. El campo `reasoning_content` (si la API
-    // lo emite por separado) se captura en ProviderMessage para logging pero
-    // nunca se muestra al usuario.
-    chat_template_kwargs: { thinking: false },
+    // 🔴 KORU 3.0 — thinking: false estaba INTERFIRIENDO con tool_calls nativas.
+    // Cuando thinking está desactivado, Nemotron a veces "piensa" en el content
+    // en vez de emitir tool_calls. Lo dejamos activado (default del modelo)
+    // para que use tool_calls nativas de forma consistente.
+    // El reasoning_content (si la API lo emite por separado) no se muestra al usuario.
+    // chat_template_kwargs: { thinking: false },  // 🔴 DESACTIVADO - ver KORU 3.0
   };
   const response = await fetchWithTimeout(providerUrl(config.nvidiaBaseUrl, "/v1/chat/completions"), {
     method: "POST",

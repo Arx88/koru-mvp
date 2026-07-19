@@ -8511,10 +8511,10 @@ svg .draw{stroke-dasharray:60;stroke-dashoffset:60;animation:draw 1.6s var(--eas
 .pillchips{display:flex;flex-wrap:wrap;gap:6px}
 .pillchip{font:700 10.5px var(--sans);padding:6px 11px;border-radius:999px;background:var(--paper2);border:1px solid rgba(131,99,249,.16);color:var(--purple-deep)}
 .pillchip.hot{background:linear-gradient(120deg,#fff2df,#ffe4c2);border-color:#f3c98d;color:#9a5a12}
-.tl-wrap{position:relative;padding-left:22px}
-.tl-wrap::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;border-radius:2px;background:linear-gradient(180deg,var(--mint),var(--lilac))}
-.tl-step{position:relative;padding:0 0 12px}
-.tl-step::before{content:"";position:absolute;left:-19px;top:4px;width:10px;height:10px;border-radius:50%;background:#fff;border:2.5px solid var(--lilac);box-shadow:0 0 0 3px rgba(201,191,245,.25)}
+.tl-wrap{position:relative;padding-left:30px}
+.tl-wrap::before{content:"";position:absolute;left:9px;top:8px;bottom:8px;width:2px;border-radius:2px;background:linear-gradient(180deg,var(--mint),var(--lilac))}
+.tl-step{position:relative;padding:0 0 14px}
+.tl-step::before{content:"";position:absolute;left:-26px;top:4px;width:12px;height:12px;border-radius:50%;background:#fff;border:2.5px solid var(--lilac);box-shadow:0 0 0 3px rgba(201,191,245,.25);z-index:1}
 .tl-step.done::before{background:var(--mint);border-color:var(--mint)}
 .tl-step.now::before{background:var(--gold);border-color:var(--gold);animation:livePulseG 1.8s infinite}
 @keyframes livePulseG{0%{box-shadow:0 0 0 0 rgba(246,189,109,.6)}70%{box-shadow:0 0 0 8px rgba(246,189,109,0)}100%{box-shadow:0 0 0 0 rgba(246,189,109,0)}}
