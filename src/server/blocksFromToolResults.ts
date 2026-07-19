@@ -724,13 +724,20 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
       const recipes = Array.isArray(r.recipes) ? r.recipes : [];
       if (recipes.length === 0) continue;
       const first = recipes[0];
-      // Parsear instrucciones en pasos numerados (suelen venir como string con \r\n)
+      // Parsear instrucciones en pasos numerados.
+      // Task 12-FIX: TheMealDB devuelve instrucciones como string con \r\n entre pasos,
+      // SIN marcadores "STEP N". El parser anterior filtraba solo líneas con "STEP N",
+      // dejando steps vacíos. Ahora: dividir por líneas no vacías, numerarlas, y
+      // limpiar marcadores si existen.
       const instructions = String(first.instructions ?? "");
-      const steps = instructions
+      const rawSteps = instructions
         .split(/\r?\n/)
         .map((s: string) => s.trim())
-        .filter((s: string) => s && /^(STEP\s*\d+|PASO\s*\d+|\d+[).])/.test(s.toUpperCase()))
-        .map((text: string, i: number) => ({ step: i + 1, text: text.replace(/^(STEP\s*\d+|PASO\s*\d+|\d+[).])\s*/i, "") }));
+        .filter((s: string) => s.length > 0);
+      const steps = rawSteps.map((text: string, i: number) => ({
+        step: i + 1,
+        text: text.replace(/^(STEP\s*\d+|PASO\s*\d+|\d+[).])\s*/i, "").trim()
+      })).filter(s => s.text.length > 0);
       blocks.push({
         type: "recipe" as const,
         name: first.name ?? "Receta",

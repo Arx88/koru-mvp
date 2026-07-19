@@ -1344,7 +1344,9 @@ export async function getWeather(args: Record<string, unknown>): Promise<Weather
     if (wttrRes.ok) {
       const wttr = await wttrRes.json() as {
         current_condition?: Array<{ temp_C?: string; humidity?: string; windspeedKmph?: string; weatherDesc?: Array<{ value?: string }> }>;
-        weather?: Array<{ date?: string; mintempC?: string[]; maxtempC?: string[]; hourly?: Array<{ time?: string; tempC?: string; chanceofrain?: string; weatherDesc?: Array<{ value?: string }>; uvIndex?: string }> }>;
+        // Task 12-FIX: wttr.in devuelve mintempC/maxtempC como string plano ("36"),
+        // no como string[]. El type anterior causaba que "36"[0] = "3" → range "3°-2°".
+        weather?: Array<{ date?: string; mintempC?: string; maxtempC?: string; hourly?: Array<{ time?: string; tempC?: string; chanceofrain?: string; weatherDesc?: Array<{ value?: string }>; uvIndex?: string }> }>;
         nearest_area?: Array<{ areaName?: Array<{ value?: string }>; country?: Array<{ value?: string }> }>;
       };
       const cur = wttr.current_condition?.[0];
@@ -1355,9 +1357,10 @@ export async function getWeather(args: Record<string, unknown>): Promise<Weather
       const wind = cur?.windspeedKmph ? parseInt(cur.windspeedKmph) : undefined;
       const humidity = cur?.humidity ? parseInt(cur.humidity) : undefined;
       const desc = cur?.weatherDesc?.[0]?.value?.trim() ?? "";
-      const max = wttr.weather?.[0]?.maxtempC?.[0] ? parseInt(wttr.weather[0].maxtempC[0]) : undefined;
-      const min = wttr.weather?.[0]?.mintempC?.[0] ? parseInt(wttr.weather[0].mintempC[0]) : undefined;
-      const rain = wttr.weather?.[0]?.hourly?.[0]?.chanceofrain?.[0] ? parseInt(wttr.weather[0].hourly[0].chanceofrain[0]) : undefined;
+      // Task 12-FIX: maxtempC/mintempC son strings, no arrays. parseInt directo.
+      const max = wttr.weather?.[0]?.maxtempC ? parseInt(wttr.weather[0].maxtempC) : undefined;
+      const min = wttr.weather?.[0]?.mintempC ? parseInt(wttr.weather[0].mintempC) : undefined;
+      const rain = wttr.weather?.[0]?.hourly?.[0]?.chanceofrain ? parseInt(wttr.weather[0].hourly[0].chanceofrain) : undefined;
 
       // 🔴 KIMI v7 — Extraer hourly (próximas 8 horas) y daily (próximos 7 días)
       const hourlyData: Array<{ hour: string; temp: string; conditionIcon: string; rainPct: number; uv: number }> = [];
@@ -1368,7 +1371,10 @@ export async function getWeather(args: Record<string, unknown>): Promise<Weather
       let count = 0;
       for (let i = 0; i < allHourly.length && count < 8; i++) {
         const h = allHourly[i];
-        const hTime = h?.time ? parseInt(h.time.slice(0, 2)) : 0;
+        // Task 12-FIX: wttr.in devuelve time como "300", "900", "2100" (entero sin pad).
+        // Antes: parseInt("300".slice(0,2)) = parseInt("30") = 30 → "30:00" (inválido).
+        // Ahora: parseInt("300") / 100 = 3 → "03:00" (correcto).
+        const hTime = h?.time ? Math.floor(parseInt(h.time) / 100) : 0;
         // Empezar desde la hora actual
         if (i < todayHourly.length && hTime < currentHour) continue;
         const hTemp = h?.tempC ? parseInt(h.tempC) : undefined;
@@ -1391,8 +1397,9 @@ export async function getWeather(args: Record<string, unknown>): Promise<Weather
       const dayNames = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
       for (let i = 0; i < Math.min(7, wttr.weather?.length ?? 0); i++) {
         const w = wttr.weather![i];
-        const dMax = w?.maxtempC?.[0] ? parseInt(w.maxtempC[0]) : undefined;
-        const dMin = w?.mintempC?.[0] ? parseInt(w.mintempC[0]) : undefined;
+        // Task 12-FIX: maxtempC/mintempC son strings, no arrays.
+        const dMax = w?.maxtempC ? parseInt(w.maxtempC) : undefined;
+        const dMin = w?.mintempC ? parseInt(w.mintempC) : undefined;
         const dDesc = w?.hourly?.[0]?.weatherDesc?.[0]?.value?.trim() ?? "";
         const dateStr = w?.date ?? "";
         let dayAbbrev = dayNames[new Date().getDay()];
@@ -2579,7 +2586,21 @@ export function isTrivialInput(input: string): boolean {
   // 🔴 FIX: si el input revela información personal, NO es trivial.
   const hasPersonalReveal = /\b(me encanta|me gusta|me encantan|me gustan|amo|odio|prefiero|soy de|estoy trabajando|estoy aprendiendo|estoy leyendo|estoy escuchando|estoy viendo|estoy estudiando|estoy haciendo|estoy armando|estoy programando|estoy escribiendo|estoy cocinando|tengo que|mi madre|mi padre|mi mama|mi papa|mi hermano|mi hermana|mi hijo|mi hija|mi novio|mi novia|mi mujer|mi marido|mi esposa|mi esposo|mi amigo|mi amiga|juego al|juego a|practico|todos los dias|todas las semanas|cada semana|en una semana|en dos semanas|la semana que viene|el mes que viene|mañana cumplo|cumple años|mi cumple|aniversario)\b/i.test(input);
   if (hasPersonalReveal) return false;
-  return trivial.some(t => trimmed === t || trimmed.startsWith(t + " "));
+  // Task 12-FIX: solo es trivial si el input ES EXACTAMENTE el saludo,
+  // o si es el saludo + nombre propio (1 palabra más, máx 15 chars).
+  // Antes: startsWith("que tal ") hacía que "que tal el dia" fuera trivial. Bug.
+  return trivial.some(t => {
+    if (trimmed === t) return true;
+    // Permitir "hola Koru", "buenas che", "hey juan" — saludo + 1 palabra corta
+    if (trimmed.startsWith(t + " ")) {
+      const rest = trimmed.slice(t.length + 1).trim();
+      // Si el resto es 1 palabra de <=15 chars (probable nombre), OK trivial
+      if (rest.length <= 15 && !rest.includes(" ")) return true;
+      // Si el resto tiene más palabras o es largo, NO es trivial
+      return false;
+    }
+    return false;
+  });
 }
 
 export function cityMemorySuggestion(toolCalls: ProviderToolCall[], state: KoruState): KoruSuggestedAction | null {

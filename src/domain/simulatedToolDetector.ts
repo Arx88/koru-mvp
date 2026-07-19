@@ -65,6 +65,15 @@ const VALID_TOOL_NAMES = new Set([
   "team_follow",
   "league_standings",
   "player_stats",
+  // Task 12-FIX: tools de memoria/tareas que el LLM simula como texto pero el detector no reconocía.
+  // Sin estas, "recuerdame X" caía en first-call fallback en vez de ejecutar reminder_set.
+  "alarm_set",
+  "reminder_set",
+  "save_memory",
+  "save_personal_item",
+  "memory_recall",
+  "monthly_recap",
+  "deliver_response",
 ]);
 
 /**

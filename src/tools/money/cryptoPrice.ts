@@ -199,6 +199,6 @@ export const cryptoPrice: ToolHandler = {
       }
     }
 
-    return { type: "crypto_price", status: "failed", error: `No pude obtener el precio de ${displayName}. Las APIs de precio están saturadas.` };
+    return { type: "crypto_price", status: "failed", symbol: symbol, coin: displayName, error: `No pude obtener el precio de ${displayName}. Las APIs de precio están saturadas.` };
   },
 };
