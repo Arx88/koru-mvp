@@ -1143,6 +1143,12 @@ export type UiBlock =
       elapsedMs?: number;
       status?: "scheduled"|"live"|"finished";
       sources?: AssistantSource[];
+      /** 🔴 KIMI Card 05 — punto de quiebre activo (break point). */
+      breakPoint?: boolean;
+      /** 🔴 KIMI Card 05 — últimos N puntos del juego actual (PUNTO A PUNTO). */
+      lastPoints?: Array<{ point: string; outcome?: "won" | "lost" | "neutral"; server?: "home" | "away" }>;
+      /** 🔴 KIMI Card 05 — head-to-head entre los dos jugadores. */
+      h2h?: { record: string; summary?: string; surfaceRecord?: string };
     }
   | {
       /**

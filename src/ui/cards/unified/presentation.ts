@@ -5955,7 +5955,7 @@ function tennisMatch(b: Of<"tennis_match">): KoruPresentation {
   // Sets ganados (conteo de sets con winner explícito).
   const homeSetsWon = sets.filter((s) => s.winner === "home").length;
   const awaySetsWon = sets.filter((s) => s.winner === "away").length;
-  const score = sets.length > 0 ? `${homeSetsWon} - ${awaySetsWon}` : "vs";
+  const score = sets.length > 0 ? `${homeSetsWon}-${awaySetsWon}` : "vs";
   const title = `${homeName} vs ${awayName}`;
 
   const tournamentName = tournament?.name ?? "Tenis";
@@ -5963,16 +5963,41 @@ function tennisMatch(b: Of<"tennis_match">): KoruPresentation {
   const surface = tournament?.surface;
   const category = tournament?.category;
 
+  // 🔴 KIMI Card 05 — kicker con tournament · round · EN VIVO (spec):
+  //   "ROLAND GARROS · SEMIFINAL · EN VIVO"
+  // Antes era "🔴 En vivo · ATP" — ahora replica el spec Kimi con tournament
+  // name + round + status, separados por '·'. Sin tournament, cae al fallback.
   const kickerParts: string[] = [];
-  kickerParts.push(live ? "🔴 En vivo" : status === "scheduled" ? "Próximamente" : "Finalizado");
-  if (category && category !== "ATP/WTA") kickerParts.push(category);
+  if (tournamentName && tournamentName !== "Tenis") kickerParts.push(tournamentName.toUpperCase());
+  if (round && round !== "—") kickerParts.push(round.toUpperCase());
+  kickerParts.push(live ? "EN VIVO" : status === "scheduled" ? "PRÓXIMAMENTE" : "FINAL");
   const kicker = kickerParts.join(" · ");
 
+  // 🔴 KIMI Card 05 — desc con set scores + juego actual + punto de quiebre:
+  //   "6–3 · 5–4 · 40–30 · punto de quiebre"
+  // Cada set score formateado como "6-3". El current set como "5-4". El
+  // currentPoint como "40-30". Si breakPoint=true, agrega "punto de quiebre".
+  // Sin sets[], cae al formato anterior (tournamentName · round · surface).
   const descParts: string[] = [];
-  if (tournamentName && tournamentName !== "Tenis") descParts.push(tournamentName);
-  if (round && round !== "—") descParts.push(round);
-  if (surface && surface !== "—") descParts.push(surface);
-  const desc = descParts.join(" · ") || undefined;
+  for (const s of sets) {
+    descParts.push(`${s.homeGames}-${s.awayGames}`);
+  }
+  if (live && b.currentSet) {
+    descParts.push(`${b.currentSet.gamesHome}-${b.currentSet.gamesAway}`);
+  }
+  if (live && b.currentPoint) {
+    descParts.push(b.currentPoint);
+  }
+  if (live && b.breakPoint) {
+    descParts.push("punto de quiebre");
+  }
+  // 🔴 Fallback honesto: si no hay sets ni currentSet, mostrar contexto del torneo.
+  if (descParts.length === 0) {
+    if (tournamentName && tournamentName !== "Tenis") descParts.push(tournamentName);
+    if (round && round !== "—") descParts.push(round);
+    if (surface && surface !== "—") descParts.push(surface);
+  }
+  const desc = descParts.filter(Boolean).join(" · ") || undefined;
 
   // Métricas del hero: aces, break points, 1er saque %.
   const metrics: HeroMetric[] = [];
@@ -6177,7 +6202,51 @@ function tennisMatch(b: Of<"tennis_match">): KoruPresentation {
     });
   }
 
+  // 🔴 KIMI Card 05 — H2H (head-to-head): "5–5 · LA RIVALIDAD" con resumen.
+  //    Solo se monta si el backend trae `h2h` (record + summary opcional).
+  //    Es la última sección antes de sources (spec lo pone abajo).
+  if (b.h2h && b.h2h.record) {
+    const h2hBody = [b.h2h.summary, b.h2h.surfaceRecord].filter(Boolean).join(" · ");
+    sections.push({
+      kind: "text",
+      icon: "history",
+      accent: A.indigo,
+      title: b.h2h.record,
+      subtitle: "LA RIVALIDAD",
+      body: h2hBody || "Histórico entre ambos jugadores.",
+    });
+  }
+
+  // 🔴 KIMI Card 05 — Punto a punto: últimos N puntos del juego actual.
+  //    Spec: "Game en curso" / "PUNTO A PUNTO" con secuencia de puntos.
+  //    Cada punto se renderiza como step del timeline.
+  if (b.lastPoints && b.lastPoints.length > 0) {
+    sections.push({
+      kind: "timeline",
+      icon: "my_location",
+      accent: A.amber,
+      title: "Game en curso",
+      subtitle: "PUNTO A PUNTO",
+      steps: b.lastPoints.map((p, i) => ({
+        icon: p.outcome === "won" ? "check_circle" : p.outcome === "lost" ? "cancel" : "radio_button_unchecked",
+        title: p.point,
+        detail: p.server === "home" ? `Al saque: ${homeName}` : p.server === "away" ? `Al saque: ${awayName}` : undefined,
+        status: i === b.lastPoints!.length - 1 ? "current" as const : "done" as const,
+      })),
+    });
+  }
+
   const verifiedAt = new Date().toISOString();
+
+  // 🔴 KIMI Card 05 — actions contextuales: "Avisame cada quiebre" (live)
+  //    y "Stats" (secondary, siempre). En finished/scheduled el primary
+  //    cambia a "Ver resumen completo".
+  const primaryAction: { label: string; icon: "bell"; kind: "primary"; action: string } =
+    live
+      ? { label: "Avisame cada quiebre", icon: "bell", kind: "primary", action: "tennis:notify_break" }
+      : status === "scheduled"
+        ? { label: "Recordarme", icon: "bell", kind: "primary", action: "tennis:notify" }
+        : { label: "Ver resumen completo", icon: "bell", kind: "primary", action: "tennis:summary" };
 
   return {
     hero: {
@@ -6190,12 +6259,17 @@ function tennisMatch(b: Of<"tennis_match">): KoruPresentation {
       metrics: metrics.length > 0 ? metrics : undefined,
       verifiedAt,
       freshnessLabel: live ? "ahora" : status === "finished" ? "finalizado" : "programado",
+      live,
     },
     detail: sections.length > 0
       ? {
           title: `${homeName} vs ${awayName}`,
           subtitle: [tournamentName, round, surface].filter((v) => v && v !== "—").join(" · ") || undefined,
           sections,
+          actions: [
+            primaryAction,
+            { label: "Stats", icon: "share", kind: "secondary", action: "tennis:stats" },
+          ],
         }
       : undefined,
     cta: sections.length > 0 ? { label: live ? "Ver partido en vivo" : "Ver resumen completo" } : undefined,
