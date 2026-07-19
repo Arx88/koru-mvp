@@ -647,6 +647,17 @@ export type UiBlock =
       synthesis?: string;
       sources?: AssistantSource[];
       note?: string;
+      /** 🔴 KIMI Card 24 — logística del top match (travel time, parking, mesa time).
+       *  Poblado por el tool cuando conoce la ubicación del usuario y la del place. */
+      logistics?: {
+        travelTime?: string;
+        parking?: string;
+        reservationTime?: string;
+        extra?: string;
+      };
+      /** 🔴 KIMI Card 24 — 'Por qué esta noche': personalización de Koru.
+       *  Si no está, el mapper cae a `synthesis` o `note` como antes. */
+      whyTonight?: string;
       labels?: {
         cardTitle?: string;
         badge?: string;

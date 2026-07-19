@@ -2171,14 +2171,15 @@ function restaurant(b: Of<"restaurant_synthesis">): KoruPresentation {
   // 🔴 v4: "Highlights del menú" tiles — hasta 5 platos con precio, extraídos
   // del website del top match por scraping. Solo se muestra si el match #1
   // trae menuHighlights (vienen de fetchRestaurantDetails → extractMenuHighlights).
+  // 🔴 KIMI Card 24 — spec llama a esta sección "Qué pedir" / "LA JUGADA SEGURA".
   const topMatchHighlights = matches[0]?.menuHighlights ?? [];
   if (topMatchHighlights.length > 0) {
     sections.push({
       kind: "tiles",
       icon: "restaurant_menu",
       accent: A.emerald,
-      title: "Highlights del menú",
-      subtitle: `${topMatchHighlights.length} PLATOS`,
+      title: "Qué pedir",
+      subtitle: "LA JUGADA SEGURA",
       tiles: topMatchHighlights.map((h) => ({
         icon: "lunch_dining",
         label: h.dish,
@@ -2186,6 +2187,75 @@ function restaurant(b: Of<"restaurant_synthesis">): KoruPresentation {
         color: A.emerald.color,
       })),
     });
+  }
+
+  // 🔴 KIMI Card 24 — "Por qué esta noche" / "KORU CRUZÓ": personalización de Koru.
+  //    Preferimos `b.whyTonight` si está; si no, caemos a `b.synthesis` o `b.note`.
+  //    Sólo se monta si hay un body no vacío. Reemplaza la sección 'Síntesis'
+  //    anterior (mismo dato, label más fiel al spec Kimi).
+  const whyTonightBody = clean(b.whyTonight) || clean(b.synthesis) || clean(b.note) || "";
+  if (whyTonightBody) {
+    // Remover la sección 'Síntesis' que se agregó arriba si whyTonight está presente,
+    // para no duplicar contenido.
+    const synthIdx = sections.findIndex((s) => s.kind === "text" && s.title === synthesisLabel);
+    if (synthIdx >= 0) sections.splice(synthIdx, 1);
+    sections.push({
+      kind: "text",
+      icon: "auto_awesome",
+      accent: A.violet,
+      title: "Por qué esta noche",
+      subtitle: "KORU CRUZÓ",
+      body: whyTonightBody,
+    });
+  }
+
+  // 🔴 KIMI Card 24 — "Logística" / "SIN FRICCIÓN": travel time, parking, mesa time.
+  //    Sólo se monta si el backend trae `b.logistics` con al menos un campo.
+  //    Cada detalle se renderiza como row con icono semántico.
+  if (b.logistics) {
+    const log = b.logistics;
+    const logRows: DetailRow[] = [];
+    if (clean(log.travelTime)) {
+      logRows.push({
+        icon: "directions_car",
+        title: clean(log.travelTime)!,
+        detail: "Tiempo de viaje",
+        badge: "Auto",
+        badgeTone: "current" as const,
+      });
+    }
+    if (clean(log.parking)) {
+      logRows.push({
+        icon: "local_parking",
+        title: clean(log.parking)!,
+        detail: "Estacionamiento",
+      });
+    }
+    if (clean(log.reservationTime)) {
+      logRows.push({
+        icon: "event_seat",
+        title: `Mesa ${clean(log.reservationTime)}`,
+        detail: "Si llegás 10 min antes, te sentás directo",
+        badge: clean(log.reservationTime),
+        badgeTone: "done" as const,
+      });
+    }
+    if (clean(log.extra)) {
+      logRows.push({
+        icon: "info",
+        title: clean(log.extra)!,
+      });
+    }
+    if (logRows.length > 0) {
+      sections.push({
+        kind: "rows",
+        icon: "place",
+        accent: A.sky,
+        title: "Logística",
+        subtitle: "SIN FRICCIÓN",
+        rows: logRows,
+      });
+    }
   }
 
   if (b.sources?.length) sections.push(sourcesSection(b.sources));
@@ -2196,20 +2266,51 @@ function restaurant(b: Of<"restaurant_synthesis">): KoruPresentation {
   // 🔴 KIMI AUDIT — voz honesta: "Algo se trancó" en lugar de "Sin datos".
   const statusLabel = b.status === "partial" ? " · Resultados parciales" : b.status === "failed" ? " · Algo se trancó" : "";
 
+  // 🔴 KIMI Card 24 — kicker con attribute chips del top match (spec):
+  //    "parrilla · Palermo · ★ 4.8 (6.2k) · $$$"
+  //    Si hay topMatch con rating/priceLevel, construimos los chips. Si no,
+  //    caemos al fallback "Tu Recomendación". statusLabel va al final.
+  const topMatch = matches[0];
+  const attrChips: string[] = [];
+  if (topMatch) {
+    // rating chip: "★ 4.8 (6.2k)" si hay rating + count; "★ 4.8" si sólo rating.
+    if (typeof topMatch.rating === "number") {
+      const ratingChip = topMatch.ratingCount
+        ? `★ ${topMatch.rating.toFixed(1)} (${formatCount(topMatch.ratingCount)})`
+        : `★ ${topMatch.rating.toFixed(1)}`;
+      attrChips.push(ratingChip);
+    }
+    // price chip: "$$$" según priceLevel (1-4).
+    if (typeof topMatch.priceLevel === "number") {
+      const n = Math.max(1, Math.min(4, topMatch.priceLevel));
+      attrChips.push("$".repeat(n));
+    }
+    // distance chip si hay distanceFromUser.
+    if (clean(topMatch.distanceFromUser)) {
+      attrChips.push(`📍 ${topMatch.distanceFromUser}`);
+    }
+  }
+  const heroKicker = attrChips.length > 0
+    ? `${attrChips.join(" · ")}${statusLabel}`
+    : `Tu Recomendación${statusLabel}`;
+
   // 🔴 v3: "Reservar" action button si el top match tiene reserveUrl
   //        (Google Maps URL del place). El handler en KoruProvider recibe
   //        `blockData` con todo el UiBlock, incluyendo matches[].reserveUrl.
-  // 🔴 KIMI v3: label más contextual — "Reservar mesa" en vez de "Reservar".
-  const topMatch = matches[0];
+  // 🔴 KIMI Card 24 — label contextual: "Confirmar {time}" si logistics.reservationTime,
+  //    sino "Reservar mesa".
+  const reserveLabel = b.logistics?.reservationTime
+    ? `Confirmar ${b.logistics.reservationTime}`
+    : (L.reserveAction ?? "Reservar mesa");
   const reserveAction =
     topMatch?.reserveUrl
-      ? [{ label: L.reserveAction ?? "Reservar mesa", icon: "event_available", kind: "primary" as const, action: "reserve" }]
+      ? [{ label: reserveLabel, icon: "event_available", kind: "primary" as const, action: "reserve" }]
       : undefined;
 
   return {
     hero: {
-      kicker: `Tu Recomendación${statusLabel}`,
-      title: heroTitleFrom(b.title ?? b.query, "Restaurantes"),
+      kicker: heroKicker,
+      title: topMatch?.name ?? heroTitleFrom(b.title ?? b.query, "Restaurantes"),
       desc: heroDesc,
       icon: "restaurant",
       accent: A.amber,
@@ -2220,8 +2321,8 @@ function restaurant(b: Of<"restaurant_synthesis">): KoruPresentation {
       subtitle: topMatch ? `${topMatch.address ?? ""} · ⭐ ${topMatch.rating ?? "—"}` : undefined,
       sections,
       actions: [
-        { label: "Reservar mesa", icon: "calendar", kind: "primary", action: "reserve" },
-        { label: "Compartir", icon: "search", kind: "secondary", action: "restaurant:share" },
+        { label: reserveLabel, icon: "calendar", kind: "primary", action: "reserve" },
+        { label: "Compartir", icon: "share", kind: "secondary", action: "restaurant:share" },
       ],
     } : undefined,
     cta: sections.length ? { label: "Ver dónde comer hoy" } : undefined,
@@ -2236,6 +2337,14 @@ function restaurant(b: Of<"restaurant_synthesis">): KoruPresentation {
           ? "gallery"
           : "default",
   };
+}
+
+/** 🔴 KIMI Card 24 — formatea un count grande a formato compacto (6.2k, 12k, 1.2M). */
+function formatCount(n: number): string {
+  if (!Number.isFinite(n) || n < 0) return String(n);
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, "")}k`;
+  return String(n);
 }
 
 function morningBrief(b: Of<"morning_brief">): KoruPresentation {
