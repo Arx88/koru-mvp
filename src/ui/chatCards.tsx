@@ -591,11 +591,10 @@ function UiBlockCardA({ item }: { item: KoruTurnItem }) {
   const block = item.uiBlock;
   if (!block) return null;
 
-  // El plan conserva su render canónico (hero + roadmap funcional con
-  // checkboxes persistidos): es la referencia de la que sale todo el molde.
-  if (block.type === "plan") {
-    return <PlanHeroCard block={block} />;
-  }
+  // 🔴 KORU 3.0 — TODOS los blocks (incluido plan) se renderizan con
+  // KoruUnifiedCard que tiene DetailOverlay (detalle extendido al tocar).
+  // Antes el plan usaba PlanHeroCard que se mostraba inline sin detalle.
+  // if (block.type === "plan") { return <PlanHeroCard block={block} />; }
 
   // 🔴 KIMI AUDIT — "Error honesto": si la tool marcó __forceHonestReply (la
   // única forma en que el backend nos dice "no inventes datos"), o si algún
