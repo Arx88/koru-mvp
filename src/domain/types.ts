@@ -1080,7 +1080,11 @@ export type UiBlock =
       instructions?: string;
       videoUrl?: string;
       ingredients?: Array<{ ingredient: string; measure: string }>;
-      steps?: Array<{ step: number; text: string }>;
+      /** 🔴 KIMI Card 25 — steps enriquecidos con title + durationMinutes.
+       *  step.title: "Sellar el pollo" (acción corta, no el texto largo).
+       *  step.durationMinutes: duración del paso para estimar timer.
+       *  step.text: descripción detallada del paso. */
+      steps?: Array<{ step: number; text: string; title?: string; durationMinutes?: number }>;
       tips?: string[];
       servings?: number;
       prepTime?: string;
@@ -1089,6 +1093,12 @@ export type UiBlock =
       /** 🔴 FREE: nutrición promedio por 100g del ingrediente principal,
        *  vía Open Food Facts. Opcional — solo presente si la API lo devuelve. */
       nutrition?: { kcal: number; protein: number; carbs: number; fat: number };
+      /** 🔴 KIMI Card 25 — dificultad: easy/medium/hard. Hero metric. */
+      difficulty?: "easy" | "medium" | "hard";
+      /** 🔴 KIMI Card 25 — paso activo en modo cocina (0-indexed).
+       *  Cuando está seteado, el hero.kicker cambia a "paso N de M · modo cocina".
+       *  Si no está (modo lectura), el kicker cae a "Tu Receta". */
+      currentStepIdx?: number;
     }
   | {
       type: "movie_review";

@@ -5505,21 +5505,48 @@ function recipeBlock(b: Of<"recipe">): KoruPresentation {
   const subtitle = [b.category, b.area].filter(Boolean).join(" · ") || undefined;
   const sections: DetailSection[] = [];
 
+  // 🔴 KIMI Card 25 — difficulty label para hero metric.
+  const difficultyLabel = b.difficulty === "easy" ? "Fácil" : b.difficulty === "medium" ? "Media" : b.difficulty === "hard" ? "Difícil" : undefined;
+  const difficultyColor = b.difficulty === "easy" ? A.emerald.color : b.difficulty === "medium" ? A.amber.color : b.difficulty === "hard" ? A.red.color : undefined;
+
+  // 🔴 KIMI Card 25 — modo cocina: si currentStepIdx está seteado, el kicker
+  //    cambia a "paso N de M · modo cocina · pantalla despierta". Si no, queda
+  //    "Tu Receta" (modo lectura, sin mock de cooking mode).
+  const cookingMode = typeof b.currentStepIdx === "number" && Number.isFinite(b.currentStepIdx) && b.currentStepIdx >= 0 && b.currentStepIdx < steps.length;
+  const currentStepNum = cookingMode ? (b.currentStepIdx ?? 0) + 1 : undefined;
+  const kicker = cookingMode && currentStepNum != null
+    ? `paso ${currentStepNum} de ${steps.length} · modo cocina · pantalla despierta`
+    : "Tu Receta";
+
+  // 🔴 KIMI Card 25 — Ingredientes como rows (no tiles) para soportar 'TACHÁ AL USAR'.
+  //    Spec: cada ingrediente con checkbox que el usuario puede tachar al usarlo.
+  //    Usamos toggle.shopping_item para que el renderer haga la fila tappable.
   if (ingredients.length > 0) {
     sections.push({
-      kind: "tiles",
+      kind: "rows",
       icon: "kitchen",
       accent: A.emerald,
       title: "Ingredientes",
-      subtitle: `${ingredients.length} items`,
-      tiles: ingredients.map((ing) => ({
-        label: ing.ingredient,
-        value: ing.measure || "",
-        color: A.emerald.color,
+      subtitle: "TACHÁ AL USAR",
+      rows: ingredients.map((ing, i) => ({
+        icon: "check_box_outline_blank",
+        title: ing.ingredient,
+        detail: ing.measure || undefined,
+        badge: undefined,
+        toggle: {
+          kind: "shopping_item" as const,
+          listId: `recipe-${slug(b.name ?? b.title ?? "receta")}`,
+          itemId: `ing-${i}-${slug(ing.ingredient)}`,
+        },
       })),
     });
   }
 
+  // 🔴 KIMI Card 25 — Pasos con title + duration + text (spec):
+  //    'Sellar el pollo' / 'TIMER VIVO' / '3:42' / 'Fuego fuerte, 4 min por lado…'
+  //    step.title es la acción corta; step.text es la descripción detallada;
+  //    step.durationMinutes se muestra como badge ("3 min").
+  //    Si cookingMode=true, marcamos el paso actual con status="current".
   if (steps.length > 0) {
     sections.push({
       kind: "timeline",
@@ -5527,11 +5554,49 @@ function recipeBlock(b: Of<"recipe">): KoruPresentation {
       accent: A.primary,
       title: "Pasos",
       subtitle: `${steps.length} pasos`,
-      steps: steps.map((s) => ({
-        title: `Paso ${s.step}`,
-        detail: s.text,
-      })),
+      steps: steps.map((s, i) => {
+        const isCurrent = cookingMode && i === (b.currentStepIdx ?? 0);
+        const isPast = cookingMode && i < (b.currentStepIdx ?? 0);
+        const stepTitle = clean(s.title) || `Paso ${s.step}`;
+        const stepDetail = s.text;
+        const stepBadge = typeof s.durationMinutes === "number" && Number.isFinite(s.durationMinutes) && s.durationMinutes > 0
+          ? `${Math.round(s.durationMinutes)} min`
+          : undefined;
+        return {
+          icon: isCurrent ? "play_arrow" : isPast ? "check_circle" : "radio_button_unchecked",
+          title: stepTitle,
+          detail: stepDetail,
+          status: isCurrent ? "current" as const : isPast ? "done" as const : "pending" as const,
+          badge: stepBadge,
+          badgeTone: isCurrent ? "current" as const : "pending" as const,
+        };
+      }),
     });
+
+    // 🔴 KIMI Card 25 — 'Próximos pasos' section: si cookingMode=true y hay
+    //    pasos posteriores al actual, los mostramos como sección destacada
+    //    con subtitle "N, N+1 Y N+2" (ej: "3, 4 Y 5").
+    if (cookingMode && (b.currentStepIdx ?? 0) + 1 < steps.length) {
+      const upcoming = steps.slice((b.currentStepIdx ?? 0) + 1);
+      const upcomingNums = upcoming.map((s) => s.step).join(", ").replace(/, ([^,]+)$/, " y $1");
+      sections.push({
+        kind: "timeline",
+        icon: "next_plan",
+        accent: A.amber,
+        title: "Próximos pasos",
+        subtitle: upcomingNums.toUpperCase(),
+        steps: upcoming.map((s) => ({
+          icon: "radio_button_unchecked",
+          title: clean(s.title) || `Paso ${s.step}`,
+          detail: s.text,
+          status: "pending" as const,
+          badge: typeof s.durationMinutes === "number" && Number.isFinite(s.durationMinutes) && s.durationMinutes > 0
+            ? `${Math.round(s.durationMinutes)} min`
+            : undefined,
+          badgeTone: "pending" as const,
+        })),
+      });
+    }
   } else if (b.instructions) {
     sections.push({
       kind: "text",
@@ -5611,7 +5676,7 @@ function recipeBlock(b: Of<"recipe">): KoruPresentation {
 
   return {
     hero: {
-      kicker: "Tu Receta",
+      kicker,
       title: heroTitleFrom(b.name ?? b.title, "Receta"),
       desc: b.description ?? subtitle,
       art: b.image,
@@ -5623,17 +5688,23 @@ function recipeBlock(b: Of<"recipe">): KoruPresentation {
         ...(b.prepTime ? [{ icon: "schedule", label: "Preparación", value: b.prepTime, color: A.primary.color }] : []),
         ...(b.cookTime ? [{ icon: "local_fire_department", label: "Cocción", value: b.cookTime, color: A.amber.color }] : []),
         ...(b.servings ? [{ icon: "groups", label: "Porciones", value: String(b.servings), color: A.purple.color }] : []),
-      ],
+        ...(difficultyLabel ? [{ icon: "whatshot", label: "Dificultad", value: difficultyLabel, color: difficultyColor ?? A.amber.color }] : []),
+      ].slice(0, 4),
     },
     detail: sections.length
       ? {
           title: b.name ?? b.title ?? "Receta",
           subtitle,
           sections,
-          actions: [
-            { label: "Empezar a cocinar", icon: "play", kind: "primary", action: "recipe:cook" },
-            { label: "Voz", icon: "bell", kind: "secondary", action: "recipe:voice" },
-          ],
+          actions: cookingMode
+            ? [
+                { label: "Siguiente paso", icon: "play", kind: "primary", action: "recipe:next" },
+                { label: "Voz", icon: "bell", kind: "secondary", action: "recipe:voice" },
+              ]
+            : [
+                { label: "Empezar a cocinar", icon: "play", kind: "primary", action: "recipe:cook" },
+                { label: "Voz", icon: "bell", kind: "secondary", action: "recipe:voice" },
+              ],
         }
       : undefined,
     cta: { label: b.videoUrl ? "Ver el video y cocinar paso a paso" : "Cocinar paso a paso" },
