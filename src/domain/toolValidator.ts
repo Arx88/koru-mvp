@@ -130,8 +130,8 @@ export function getToolResultType(toolName: string, result: Record<string, unkno
 function suggestInfoTool(input: string): { tool: string; args: Record<string, unknown> } | null {
   const lower = input.toLowerCase();
 
-  // Películas
-  if (/\b(pel[ií]cula|pelicula|film|cine|movie|estreno)\b/i.test(lower)) {
+  // Películas (incluye "peli" abreviado)
+  if (/\b(pel[ií]cula|pelicula|peli|film|cine|movie|estreno)\b/i.test(lower)) {
     // Extraer título si lo menciona
     const titleMatch = input.match(/(?:de|sobre|llamada|titulada|buscame)\s+[""']?([^""'?,]+)[""']?/i);
     const title = titleMatch?.[1]?.trim() || "";
@@ -182,6 +182,13 @@ function suggestInfoTool(input: string): { tool: string; args: Record<string, un
     return { tool: "wikipedia_lookup", args: { query: queryMatch?.[1]?.trim() || input.slice(0, 60) } };
   }
 
+  // Temporizador / alarma / cronómetro
+  if (/\b(temporizador|cron[oó]metro|timer|alarma|despertador)\b/i.test(lower)) {
+    const timeMatch = lower.match(/(\d+)\s*(minutos?|min|segundos?|seg|horas?|h)\b/i);
+    const time = timeMatch ? `${timeMatch[1]} ${timeMatch[2]}` : "5 minutos";
+    return { tool: "alarm_set", args: { title: "Temporizador", time } };
+  }
+
   // Búsqueda general
   return { tool: "web_search", args: { query: input.slice(0, 80) } };
 }
@@ -196,39 +203,69 @@ export function validateToolResults(
 ): ValidationMismatch | null {
   const userIntent = detectUserIntent(userInput);
 
-  // Solo validar si el usuario quiere INFORMACIÓN
-  // Si el usuario quiere ACTION (guardar, anotar), un personal_capture es correcto
-  if (userIntent !== "information") return null;
-
   // Si no se ejecutó ninguna tool, no hay mismatch
   if (toolExecutions.length === 0) return null;
 
-  // Verificar si alguna tool devolvió un tipo de "guardado" cuando el usuario
-  // quería información
+  // 🔴 KORU 3.0 — Validar TAMBIÉN actions: si el usuario pide un temporizador
+  // (action) pero la tool devolvió un save_personal_item (personal_capture)
+  // en vez de alarm_set, hay mismatch.
+  // Antes solo validábamos information. Ahora validamos ambos.
+
   for (const exec of toolExecutions) {
     const resultType = getToolResultType(exec.name, exec.result);
 
-    // Si el usuario quiere información pero la tool devolvió un guardado
+    // Si la tool devolvió un guardado (personal_capture/memory_capture)
     if (resultType === "personal_capture" || resultType === "memory_capture") {
-      // Verificar que el resultado NO sea un recordatorio o alarma
-      // (esos sí son actions válidos incluso si el usuario "preguntó")
       const block = (exec.result as any)?.block;
+
+      // Si el block es un reminder/alarm Y el input contiene palabras de recordatorio,
+      // es un action válido — NO es mismatch.
       if (block?.type === "reminder" || block?.type === "alarm") {
-        // Si el input contiene "recordame" o "activa", un reminder es correcto
-        if (/\b(record|avis|activ|alarm)\b/i.test(userInput)) return null;
+        if (/\b(record|avis)\b/i.test(userInput)) return null;
+        // Pero si el input contiene "temporizador/cronómetro/timer" y el block
+        // es un reminder (no alarm), sí es mismatch — debería ser alarm_set
+        if (/\b(temporizador|cron[oó]metro|timer)\b/i.test(userInput) && block?.type !== "alarm") {
+          const suggested = suggestInfoTool(userInput);
+          if (suggested) {
+            return {
+              executedTool: exec.name,
+              resultType,
+              userIntent,
+              suggestedTool: suggested.tool,
+              suggestedArgs: suggested.args,
+              reason: `Usuario pidió temporizador pero la tool '${exec.name}' devolvió un reminder. Sugerido: alarm_set.`,
+            };
+          }
+        }
+        // Si el input contiene "alarma/despertador" y el block es reminder (no alarm), mismatch
+        if (/\b(alarma|despertador)\b/i.test(userInput) && block?.type !== "alarm") {
+          const suggested = suggestInfoTool(userInput);
+          if (suggested) {
+            return {
+              executedTool: exec.name,
+              resultType,
+              userIntent,
+              suggestedTool: suggested.tool,
+              suggestedArgs: suggested.args,
+              reason: `Usuario pidió alarma pero la tool '${exec.name}' devolvió un reminder. Sugerido: alarm_set.`,
+            };
+          }
+        }
       }
 
-      // Mismatch detectado: el usuario quería info pero la tool guardó
-      const suggested = suggestInfoTool(userInput);
-      if (suggested) {
-        return {
-          executedTool: exec.name,
-          resultType,
-          userIntent,
-          suggestedTool: suggested.tool,
-          suggestedArgs: suggested.args,
-          reason: `Usuario pidió información pero la tool '${exec.name}' devolvió un guardado (${resultType}). Sugerido: ${suggested.tool}`,
-        };
+      // Si el usuario quiere información pero la tool devolvió un guardado
+      if (userIntent === "information") {
+        const suggested = suggestInfoTool(userInput);
+        if (suggested) {
+          return {
+            executedTool: exec.name,
+            resultType,
+            userIntent,
+            suggestedTool: suggested.tool,
+            suggestedArgs: suggested.args,
+            reason: `Usuario pidió información pero la tool '${exec.name}' devolvió un guardado (${resultType}). Sugerido: ${suggested.tool}`,
+          };
+        }
       }
     }
   }

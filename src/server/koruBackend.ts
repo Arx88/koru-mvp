@@ -916,7 +916,7 @@ async function callNvidia(
   const body: Record<string, unknown> = {
     model: modelOverride ?? config.nvidiaModel,
     messages,
-    ...(toolsEnabled ? { tools: availableTools ?? TOOL_DEFINITIONS, tool_choice: "auto" } : {}),
+    ...(toolsEnabled ? { tools: availableTools ?? CORE_TOOL_DEFINITIONS, tool_choice: "auto" } : {}),
     temperature: 0.25,
     top_p: 0.95,
     max_tokens: 8192,
@@ -2668,7 +2668,7 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
     `  - plan_day: "¿Cómo organizo hoy?" / "Organizame una semana ideal" / "Tengo muchas cosas" / "Armá un plan de estudio". PASÁ los pasos reales en 'items'.`,
     `  - query_personal_context: "¿Cuánto gasté?" / "¿Qué tenía para comer?" / "¿Recordás que me dijiste?"`,
     `  - save_memory: Cuando el usuario revela algo importante sobre sí mismo (rutinas, metas, preferencias, relaciones).`,
-    `  - save_personal_item: Cuando el usuario pide guardar algo (gasto, recordatorio, lista de compras, alarma).`,
+    `  - save_personal_item: Gastos, listas de compras, ideas, notas, enlaces, cumpleaños. Para recordatorios usá reminder_set; para alarmas/temporizadores usá alarm_set.`,
     `  - crypto_price: "¿A cuánto está el BTC?" / "Precio de Ethereum" / "Cotización de Bitcoin".`,
     `REGLA CRÍTICA DE ROUTING: si el usuario pregunta por un resultado o partido de fútbol, USÁ match_live, NO web_search.`,
     `Usá tools cuando la intención del usuario REQUIERA datos reales del mundo. Si el usuario dice 'hola', 'gracias', 'adiós', NO uses tools.`,

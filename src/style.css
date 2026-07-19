@@ -2746,7 +2746,8 @@ button.koru-stitch-row {
 }
 .koru-timeline-step.is-done .koru-timeline-name { color: var(--ink-faint, #a89cc7); }
 
-.koru-timeline-step.is-now .koru-timeline-dot {
+.koru-timeline-step.is-now .koru-timeline-dot,
+.koru-timeline-step.is-current .koru-timeline-dot {
   border-color: var(--purple, #8363f9);
   color: var(--purple, #8363f9);
   background: rgba(131,99,249,0.05);

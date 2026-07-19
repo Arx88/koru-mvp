@@ -502,10 +502,11 @@ export const reminderSet: ToolHandler = {
   ),
   policy: policies.localWrite("Crea recordatorio."),
   async run(args) {
-    const title = String(args.title ?? "").trim();
-    const dueText = String(args.dueText ?? "").trim();
+    // 🔴 KORU 3.0 — Fallback a __userInput si no hay title
+    const title = String(args.title ?? args.__userInput ?? "").trim();
+    const dueText = String(args.dueText ?? "próximamente").trim();
     const dueAt = String(args.dueAt ?? "").trim();
-    if (!title || !dueText) return { type: "reminder_set", status: "failed", error: "Indicá qué y cuándo." };
+    if (!title) return { type: "reminder_set", status: "failed", error: "Indicá qué recordar." };
     // Validar dueAt si está presente
     let dueDate: Date | null = null;
     if (dueAt) {

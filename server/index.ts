@@ -84,7 +84,7 @@ function buildConfig() {
       .flatMap((v) => v!.split(","))
       .map((v) => v.trim())
       .filter(Boolean),
-    openRouterModels: (env.OPENROUTER_FALLBACK_MODELS || "")
+    openRouterModels: (env.OPENROUTER_FALLBACK_MODELS || "nvidia/nemotron-3-ultra-550b-a55b:free,meta-llama/llama-3.3-70b-instruct:free")
       .split(",")
       .map((v) => v.trim())
       .filter(Boolean),
