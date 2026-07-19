@@ -53,6 +53,7 @@ import {
   isGenericAgentReply,
 } from "./pipeline/finalizePayload";
 import { blocksFromToolResults } from "./blocksFromToolResults";
+import { callAINative } from "./providers/ainative";
 
 // Re-export for backwards compatibility (test files import blocksFromToolResults
 // from koruBackend).
@@ -71,6 +72,9 @@ export type ProviderConfig = {
   bluesmindsModel?: string;
   /** URL de Ollama para embeddings del Semantic Router (nomic-embed-text). */
   ollamaEmbedBaseUrl?: string;
+  /** AI Native Studio API key — fallback cuando NVIDIA falla.
+   *  Modelos: kimi-k2.6 (primario), deepseek-v4-flash (secundario). */
+  ainativeApiKey?: string;
 };
 
 export type KoruBackendTurnRequest = {
@@ -1269,11 +1273,32 @@ export async function callProvider(
       if (providerResultIsValid(result)) return result;
       logger.warn("callProvider", "NVIDIA responded but invalid, falling back");
     } catch (err: any) {
-      // 🔴 KORU 3.0 — rate limit: caer a OpenRouter, no re-throw
+      // 🔴 KORU 3.0 — rate limit: caer a AI Native Studio, no re-throw
       if (isRateLimitError(err)) {
-        logger.warn("callProvider", "NVIDIA rate-limited (429), falling back to OpenRouter");
+        logger.warn("callProvider", "NVIDIA rate-limited (429), falling back to AI Native Studio");
       } else {
-        logger.warn("callProvider", "NVIDIA failed, falling back to OpenRouter", { reason: err?.message });
+        logger.warn("callProvider", "NVIDIA failed, falling back to AI Native Studio", { reason: err?.message });
+      }
+    }
+  }
+
+  // 🔴 KORU 3.1 — AI Native Studio fallback (kimi-k2.6 → deepseek-v4-flash).
+  // Cuando NVIDIA falla (server-error, first-call-invalid-json, rate limit),
+  // caer a AI Native Studio ANTES de OpenRouter. Kimi K2.6 tiene 90% tool
+  // calling success y 4.8s latencia vs NVIDIA saturado (96% fallbacks en benchmark).
+  if (config.ainativeApiKey) {
+    try {
+      const result = await callAINative(config, messages, Math.min(60_000, timeoutMs), toolsEnabled, availableTools);
+      if (providerResultIsValid(result)) {
+        logger.info("callProvider", "AI Native Studio (kimi-k2.6/deepseek-v4-flash) succeeded");
+        return result;
+      }
+      logger.warn("callProvider", "AI Native Studio responded but invalid, falling through to OpenRouter");
+    } catch (err: any) {
+      if (isRateLimitError(err)) {
+        logger.warn("callProvider", "AI Native Studio rate-limited, falling through to OpenRouter");
+      } else {
+        logger.warn("callProvider", "AI Native Studio failed, falling through to OpenRouter", { reason: err?.message });
       }
     }
   }

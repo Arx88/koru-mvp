@@ -14,6 +14,9 @@ export type ProviderConfig = {
   minimaxAccessToken?: string;
   /** URL de Ollama para embeddings del Semantic Router (nomic-embed-text). */
   ollamaEmbedBaseUrl?: string;
+  /** AI Native Studio API key — fallback cuando NVIDIA falla.
+   *  Modelos: kimi-k2.6 (primario), deepseek-v4-flash (secundario). */
+  ainativeApiKey?: string;
 };
 
 export type ChatRole = "system" | "user" | "assistant" | "tool";
