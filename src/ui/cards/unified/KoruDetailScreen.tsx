@@ -553,14 +553,14 @@ function SectionBody({ section, block }: { section: DetailSection; block?: UiBlo
                 <>
                   <div className="koru-timeline-dot">
                     {status === "done" ? (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.4" strokeLinecap="round"><path d="M4 12l5 5L20 6"/></svg>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                     ) : (
                       <Mat>{s.icon ?? "radio_button_unchecked"}</Mat>
                     )}
                   </div>
                   <div className="koru-timeline-body">
-                    {s.detail && <span className="when koru-timeline-meta">{s.detail}</span>}
                     <h4 className="tt koru-timeline-name">{s.title}</h4>
+                    {s.detail && <span className="koru-timeline-meta">{s.detail}</span>}
                     {s.badge && <span className={`koru-step-chip is-${s.badgeTone ?? "pending"}`}>{s.badge}</span>}
                   </div>
                 </>
