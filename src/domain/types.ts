@@ -934,7 +934,29 @@ export type UiBlock =
   | {
       type: "crypto_portfolio";
       title?: string;
-      items?: Array<{ symbol: string; name: string; price: string; change: number; color: string; bg: string; char?: string }>;
+      items?: Array<{
+        symbol: string;
+        name: string;
+        price: string;
+        change: number;
+        color: string;
+        bg: string;
+        char?: string;
+        /** 🔴 KIMI Card 06 — cantidad de la moneda (ej: 0.042). */
+        amount?: number;
+        /** 🔴 KIMI Card 06 — valor formateado de la tenencia (ej: "$2.697"). */
+        value?: string;
+      }>;
+      /** 🔴 KIMI Card 06 — total del portafolio formateado (artValue del hero). */
+      totalValue?: string;
+      /** 🔴 KIMI Card 06 — delta % semanal (kicker del hero). */
+      weekChange?: number;
+      /** 🔴 KIMI Card 06 — historial 7 días (para sparkline). */
+      sparkline?: number[];
+      /** 🔴 KIMI Card 06 — alertas de precio activas. */
+      alerts?: Array<{ symbol: string; target: string; direction: "above" | "below" }>;
+      /** 🔴 KIMI Card 06 — source attribution (CoinGecko / Binance / CoinCap). */
+      sources?: AssistantSource[];
     }
   | {
       type: "forex";

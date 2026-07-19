@@ -311,6 +311,48 @@ function asPercent(value?: number): string | undefined {
   return `${Math.round(normalized)}%`;
 }
 
+/**
+ * 🔴 KIMI Card 06 — sparkline textual a partir de un array de números
+ * (historial de precios 7 días). Usa los 8 caracteres Unicode de bloques
+ * (▁▂▃▄▅▆▇█) para construir una mini-gráfica compacta de una sola línea.
+ *
+ * No es un SVG animado (eso requeriría modificar el renderer, fuera de scope)
+ * pero es honesto: cuando el backend trae `sparkline`, se ve una curva; cuando
+ * no lo trae, la sección directamente no se monta (no hay mock).
+ *
+ * Retorna undefined si el array tiene menos de 2 puntos (sin curva posible).
+ */
+function sparklineAscii(points?: number[]): string | undefined {
+  if (!points || points.length < 2) return undefined;
+  const BLOCKS = "▁▂▃▄▅▆▇█";
+  let min = Infinity;
+  let max = -Infinity;
+  for (const p of points) {
+    if (!Number.isFinite(p)) return undefined;
+    if (p < min) min = p;
+    if (p > max) max = p;
+  }
+  const range = max - min || 1;
+  let out = "";
+  for (const p of points) {
+    const idx = Math.min(BLOCKS.length - 1, Math.max(0, Math.round(((p - min) / range) * (BLOCKS.length - 1))));
+    out += BLOCKS[idx];
+  }
+  return out;
+}
+
+/** 🔴 KIMI Card 06 — formatea un amount de cripto sin notación científica.
+ *  - >=1000: separador de miles (1.234,56).
+ *  - 1..999: hasta 4 decimales.
+ *  - <1: hasta 6 decimales significativos (0.042). */
+function formatAmount(amount: number): string {
+  if (!Number.isFinite(amount)) return "?";
+  if (amount === 0) return "0";
+  if (amount >= 1000) return new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 }).format(amount);
+  if (amount >= 1) return new Intl.NumberFormat("es-AR", { maximumFractionDigits: 4 }).format(amount);
+  return new Intl.NumberFormat("es-AR", { maximumFractionDigits: 6 }).format(amount);
+}
+
 // ============================================================================
 // Normalizador principal
 // ============================================================================
@@ -4401,16 +4443,44 @@ function cryptoPortfolio(b: Of<"crypto_portfolio">): KoruPresentation {
   const items = b.items ?? [];
   // 🔴 FIX: usar coin icon (char) + color si están disponibles, calcular agregados
   const totalChange = items.length ? items.reduce((sum, it) => sum + (it.change ?? 0), 0) / items.length : 0;
-  // 🔴 KIMI D7 (jerarquía es ley): el total del portafolio es la idea #1.
-  // Si el bloque trae título con formato moneda (ej: "$2.847.600"), lo usamos
-  // como artValue. Si no, sumamos la primera moneda como aproximación honesta.
+  // 🔴 KIMI Card 06 (jerarquía es ley): el total del portafolio es la idea #1.
+  // Orden de preferencia para el artValue del hero:
+  //   1. `b.totalValue` (string formateado, ej: "$2.847.600")
+  //   2. `b.title` si parece un monto (empieza con $ o dígito)
+  //   3. `items[0].price` (fallback honesto: la primer moneda como referencia)
   const titleLooksLikeAmount = /^[ $\u20B9\u20AC\u00A3\d]/.test(clean(b.title) ?? "");
-  const totalArt = titleLooksLikeAmount ? clean(b.title) : items[0]?.price;
+  const totalArt = clean(b.totalValue) || (titleLooksLikeAmount ? clean(b.title) : items[0]?.price);
 
-  // 🔴 KIMI D3: el extendido paga el tap — Holdings + Distribución + Insight.
+  // 🔴 KIMI Card 06 — kicker con delta semanal upfront (▲ +3.1% esta semana).
+  // Solo se agrega si el backend trae `weekChange`; si no, queda "Tu Portafolio".
+  const weekDelta = typeof b.weekChange === "number" && Number.isFinite(b.weekChange) ? b.weekChange : undefined;
+  const kicker = weekDelta != null
+    ? `Tu Portafolio · ${weekDelta >= 0 ? "▲" : "▼"} ${weekDelta >= 0 ? "+" : ""}${weekDelta.toFixed(1)}% esta semana`
+    : "Tu Portafolio";
+
+  // 🔴 KIMI D3: el extendido paga el tap — Sparkline + Holdings + Distribución +
+  // Alertas + Insight + Sources. Cada sección se monta sólo si el dato existe.
   const sections: DetailSection[] = [];
 
-  // 1. Holdings como rows (con sparkline textual via meta de cambio %).
+  // 1. Sparkline 7 días — sección textual con caracteres Unicode de bloque.
+  //    Spec Kimi: "7 días" / "TU CURVA" con line graph. Como no podemos tocar
+  //    el renderer, usamos sparklineAscii() para dibujar la curva en una línea
+  //    de texto (▁▂▃▅▇█▇▅▃▂▁). Si no hay sparkline[] en el bloque, omitimos.
+  const spark = sparklineAscii(b.sparkline);
+  if (spark) {
+    sections.push({
+      kind: "text",
+      icon: "show_chart",
+      accent: A.emerald,
+      title: "7 días",
+      subtitle: "TU CURVA",
+      body: spark,
+    });
+  }
+
+  // 2. Holdings como rows — spec Kimi: "Bitcoin · 0.042" + "$64.230" + "▲ +2.4%" + "$2.697".
+  //    amount y value son opcionales: si no están, caemos al formato anterior
+  //    (name · symbol + price + change%).
   if (items.length) {
     sections.push({
       kind: "rows",
@@ -4418,19 +4488,30 @@ function cryptoPortfolio(b: Of<"crypto_portfolio">): KoruPresentation {
       accent: A.amber,
       title: "Tus monedas",
       subtitle: "EN VIVO",
-      rows: items.map((it) => ({
-        // 🔴 FIX: usar char (icon) y color del coin si están disponibles
-        icon: it.char || "currency_bitcoin",
-        title: `${it.name} · ${it.symbol}`,
-        detail: it.price,
-        meta: `${it.change >= 0 ? "+" : ""}${it.change}%`,
-        badge: it.change >= 0 ? "Sube" : "Baja",
-        badgeTone: it.change >= 0 ? "done" : "urgent",
-      })),
+      rows: items.map((it) => {
+        const arrow = it.change >= 0 ? "▲" : "▼";
+        const sign = it.change >= 0 ? "+" : "";
+        // 🔴 KIMI Card 06 — title con amount si está disponible ("Bitcoin · 0.042").
+        const amountNum = typeof it.amount === "number" && Number.isFinite(it.amount) && it.amount > 0 ? it.amount : undefined;
+        const title = amountNum != null
+          ? `${it.name} · ${formatAmount(amountNum)}`
+          : `${it.name} · ${it.symbol}`;
+        // 🔴 KIMI Card 06 — meta con delta arrow ("▲ +2.4%"); badge con value ("$2.697").
+        const meta = `${arrow} ${sign}${it.change.toFixed(1)}%`;
+        const badge = it.value ? it.value : (it.change >= 0 ? "Sube" : "Baja");
+        return {
+          icon: it.char || "currency_bitcoin",
+          title,
+          detail: it.price,
+          meta,
+          badge,
+          badgeTone: it.change >= 0 ? "done" : "urgent",
+        };
+      }),
     });
   }
 
-  // 2. Distribución como tiles — cada coin con su color y change como value.
+  // 3. Distribución como tiles — cada coin con su color y value como value.
   // D1: el acento cambia con el dominio (verde/rojo según suba/baje).
   if (items.length > 1) {
     sections.push({
@@ -4442,13 +4523,32 @@ function cryptoPortfolio(b: Of<"crypto_portfolio">): KoruPresentation {
       tiles: items.map((it) => ({
         icon: it.char || "currency_bitcoin",
         label: it.symbol,
-        value: it.price,
+        value: it.value || it.price,
         color: it.change >= 0 ? A.emerald.color : A.red.color,
       })),
     });
   }
 
-  // 3. Insight de Koru como texto — la "lectura" del portafolio (D3).
+  // 4. Alertas activas — spec Kimi: "Tus alertas" / "2 ACTIVAS" con "BTC llegue a $70.000".
+  //    Solo se monta si el backend trae `alerts[]`. Sin mock.
+  if (b.alerts && b.alerts.length > 0) {
+    sections.push({
+      kind: "rows",
+      icon: "notifications_active",
+      accent: A.rose,
+      title: "Tus alertas",
+      subtitle: `${b.alerts.length} ACTIVA${b.alerts.length > 1 ? "S" : ""}`,
+      rows: b.alerts.map((a) => ({
+        icon: "bell",
+        title: `${a.symbol} llegue a ${a.target}`,
+        detail: a.direction === "above" ? "Dispará cuando suba" : "Dispará cuando baje",
+        badge: a.direction === "above" ? "▲ Sube" : "▼ Baja",
+        badgeTone: a.direction === "above" ? "done" : "urgent",
+      })),
+    });
+  }
+
+  // 5. Insight de Koru como texto — la "lectura" del portafolio (D3).
   if (items.length) {
     const winners = items.filter((it) => it.change >= 0);
     const losers = items.filter((it) => it.change < 0);
@@ -4475,11 +4575,17 @@ function cryptoPortfolio(b: Of<"crypto_portfolio">): KoruPresentation {
     });
   }
 
+  // 6. Source attribution — CoinGecko / Binance / CoinCap. Sólo si el backend
+  //    puebla `sources[]`. Sin mock: si no hay fuentes, la sección no se monta.
+  if (b.sources && b.sources.length > 0) {
+    sections.push(sourcesSection(b.sources));
+  }
+
   // 🔴 KIMI D4: estado honesto cuando no hay datos.
   if (items.length === 0) {
     return {
       hero: {
-        kicker: "Tu Portafolio",
+        kicker,
         title: "CRIPTO",
         icon: "currency_bitcoin",
         accent: A.amber,
@@ -4495,12 +4601,12 @@ function cryptoPortfolio(b: Of<"crypto_portfolio">): KoruPresentation {
 
   return {
     hero: {
-      kicker: "Tu Portafolio",
+      kicker,
       title: heroTitleFrom(b.title, "Cripto"),
       desc: items[0] ? `${items[0].name} · ${items[0].price}` : undefined,
       icon: "currency_bitcoin",
       accent: A.amber,
-      // 🔴 KIMI D7: el total del portafolio es la idea #1 — artValue manda.
+      // 🔴 KIMI Card 06: el total del portafolio es la idea #1 — artValue manda.
       artValue: totalArt,
       metrics: [
         { icon: totalChange >= 0 ? "trending_up" : "trending_down", label: "Cambio 24h", value: `${totalChange >= 0 ? "+" : ""}${totalChange.toFixed(1)}%`, color: totalChange >= 0 ? A.emerald.color : A.red.color },
