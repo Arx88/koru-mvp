@@ -242,12 +242,27 @@ export const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "plan_day",
-      description: "Crea un plan práctico para el día considerando los compromisos abiertos, la energía y el contexto del usuario cuando necesite organizar su tiempo o priorizar tareas. El usuario puede pedir esto de cualquier forma: '¿Cómo organizo hoy?', '¿Qué hago primero?', 'Tengo muchas cosas', '¿Me ayudas a planificar?', '¿En qué orden?', 'Siento que no me da el tiempo', o mencionando múltiples tareas pendientes.",
+      description: "Crea un plan estructurado con pasos accionables. Úsala SIEMPRE que el usuario pida organizar, planificar, estructurar o armar un plan — sea para un día, una semana, un proyecto o cualquier tipo de planificación. Ejemplos: 'organizá mi día', 'planificá una semana ideal', 'armá un plan de estudio', '¿cómo organizo el proyecto?', 'estructurá mi rutina'. Si el usuario da contexto (ej: 'soy diseñador', 'tengo 3 proyectos'), usalo para personalizar los pasos. Pasá los pasos reales del plan en `items`, no un focus genérico.",
       parameters: {
         type: "object",
         additionalProperties: false,
         properties: {
-          focus: { type: "string" },
+          focus: { type: "string", description: "Tema general del plan (ej: 'Semana ideal para diseñador', 'Plan de estudio para Python')." },
+          items: {
+            type: "array",
+            description: "Los pasos reales del plan. Pasá entre 3 y 8 pasos con título, horario/bloque y prioridad.",
+            items: {
+              type: "object",
+              properties: {
+                title: { type: "string", description: "Título del paso (ej: 'Trabajo profundo en proyecto principal')." },
+                time: { type: "string", description: "Horario o bloque (ej: 'Lunes mañana', '09:00-11:00', 'Bloque 1')." },
+                priority: { type: "string", enum: ["Alta", "Media", "Baja"] },
+                durationMinutes: { type: "number", description: "Duración estimada en minutos." },
+                mode: { type: "string", enum: ["focus", "quick", "break", "meeting", "learning"], description: "Tipo de actividad." },
+              },
+              required: ["title"],
+            },
+          },
           energy: { type: "string", enum: ["low", "medium", "high", "unknown"] },
         },
         required: ["focus"],
@@ -1714,6 +1729,32 @@ export function planFromState(state: KoruState, args: Record<string, unknown>): 
   const openCommitments = (Array.isArray(state.commitments) ? state.commitments : []).filter((item) => item && item.status === "open").slice(0, 5);
   const recentRecords = (Array.isArray(state.records) ? state.records : []).slice(0, 5);
   const focus = cleanText(args.focus, "ordenar el dia");
+
+  // 🔴 KORU 3.0 — Si el LLM pasó items en args, usarlos directamente.
+  // Esto permite que el LLM genere planes reales y personalizados en vez
+  // de los items genéricos que se generaban antes desde state.
+  const llmItems = Array.isArray(args.items) ? args.items : [];
+  if (llmItems.length > 0) {
+    const items: AssistantPlanItem[] = llmItems.slice(0, 8).map((raw: any, index: number) => ({
+      time: cleanText(raw.time) || (index === 0 ? "Ahora" : `Paso ${index + 1}`),
+      title: cleanText(raw.title, `Paso ${index + 1}`),
+      priority: (["Alta", "Media", "Baja"].includes(cleanText(raw.priority)) ? cleanText(raw.priority) : index === 0 ? "Alta" : "Media") as "Alta" | "Media" | "Baja",
+      durationMinutes: typeof raw.durationMinutes === "number" ? raw.durationMinutes : 30,
+      mode: (["focus", "quick", "break", "meeting", "learning"].includes(cleanText(raw.mode)) ? cleanText(raw.mode) : index === 0 ? "focus" : "quick") as "focus" | "quick" | "break" | "meeting" | "learning",
+      rationale: undefined,
+    }));
+    return {
+      type: "plan",
+      title: focus,
+      items,
+      context: [
+        ...openCommitments.map((item) => `Pendiente: ${item.title} (${item.dueHint})`),
+        ...recentRecords.map((item) => `Dato: ${item.title}`),
+      ].slice(0, 8),
+    };
+  }
+
+  // Fallback: generar items genéricos desde state (comportamiento anterior)
   const candidates = openCommitments.length
     ? openCommitments.map((item) => item.title)
     : recentRecords.length
@@ -2624,7 +2665,7 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
     `  - movie_info: "¿Qué se dice de la película X?" / "Reseña de X" / "Información sobre la película X" / "Quién actúa en X". Devuelve sinopsis, reparto, rating, géneros. NUNCA uses web_search para una película específica — movie_info trae datos estructurados.`,
     `  - book_info: "Info del libro X" / "Quién escribió X" / "De qué trata X". Devuelve cover, autor, año, sinopsis.`,
     `  - wikipedia_lookup: "¿Qué es X?" / "Contame sobre X" / "Quién fue X". Para temas enciclopédicos puntuales.`,
-    `  - plan_day: "¿Cómo organizo hoy?" / "Tengo muchas cosas" / "¿Qué hago primero?" / "¿Me ayudas a planificar?"`,
+    `  - plan_day: "¿Cómo organizo hoy?" / "Organizame una semana ideal" / "Tengo muchas cosas" / "¿Qué hago primero?" / "Armá un plan de estudio" / "Planificá mi proyecto" / "Estructurá mi rutina". PASÁ los pasos reales del plan en el parámetro 'items' (array de objetos con title, time, priority). NO respondas el plan en texto plano — siempre usá la tool plan_day para que se genere la card visual.`,
     `  - query_personal_context: "¿Cuánto gasté?" / "¿Qué tenía para comer?" / "¿Recordás que me dijiste?" / Cualquier cosa que Koru ya haya guardado del usuario.`,
     `  - save_memory: Cuando el usuario revela algo importante sobre sí mismo (rutinas, metas, preferencias, relaciones).`,
     `  - save_personal_item: Cuando el usuario pide guardar algo (gasto, recordatorio, lista de compras, alarma).`,
