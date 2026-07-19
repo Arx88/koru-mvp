@@ -22,6 +22,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runKoruBackendTurn, type KoruBackendTurnRequest, type ProviderConfig } from "../src/server/koruBackend.ts";
 import { exchangeCodeForToken } from "../src/tools/calendar/googleCalendar.ts";
+import { corsOrigin, rateLimitAllow, isAuthorized, securityHeaders } from "./middleware.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 // Si estamos corriendo desde server-bundle.mjs, __dirname es la raíz del proyecto.
@@ -102,13 +103,11 @@ async function readBody(req: http.IncomingMessage): Promise<string> {
   return Buffer.concat(chunks).toString("utf8");
 }
 
-// Helper: send JSON
+// Helper: send JSON. CORS headers are set once at the top of
+// koruRequestHandler via res.setHeader() — writeHead() merges with those.
 function sendJson(res: http.ServerResponse, status: number, data: unknown) {
   res.writeHead(status, {
     "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
   });
   res.end(JSON.stringify(data));
 }
@@ -118,7 +117,6 @@ function sendJson(res: http.ServerResponse, status: number, data: unknown) {
 function sendHtml(res: http.ServerResponse, status: number, html: string) {
   res.writeHead(status, {
     "Content-Type": "text/html; charset=utf-8",
-    "Access-Control-Allow-Origin": "*",
     "Cache-Control": "no-store",
   });
   res.end(html);
@@ -191,18 +189,36 @@ const server = http.createServer(koruRequestHandler);
  * (que vitest puede interceptar con vi.mock) y responde con sendJson/sendHtml.
  */
 export async function koruRequestHandler(req: http.IncomingMessage, res: http.ServerResponse) {
+  // ── HTTP security headers (Task 10-P2-FIX) — seteados ANTES de cualquier otra cosa.
+  securityHeaders(res);
+
+  // ── CORS whitelist (Task 9-ENG-FIX-v2) ────────────────────────────
+  const origin = corsOrigin(req);
+  if (origin) res.setHeader("Access-Control-Allow-Origin", origin);
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
   // CORS preflight
   if (req.method === "OPTIONS") {
-    res.writeHead(204, {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-    });
+    res.writeHead(204, {});
     res.end();
     return;
   }
 
   const url = req.url ?? "";
+  const path = url.split("?")[0];
+
+  // ── Rate limit (Task 9-ENG-FIX-v2): 30 req/min por IP en endpoints costosos.
+  if (!rateLimitAllow(req)) {
+    sendJson(res, 429, { error: "Rate limit exceeded. Máximo 30 req/min por IP." });
+    return;
+  }
+
+  // ── API key opcional (Task 9-ENG-FIX-v2) ──────────────────────────
+  if (path.startsWith("/api/koru/") && !isAuthorized(req)) {
+    sendJson(res, 401, { error: "Unauthorized — falta o es inválida la API key." });
+    return;
+  }
 
   // ── Health check ──────────────────────────────────────────────
   if (url.startsWith("/api/health") && req.method === "GET") {
@@ -299,44 +315,71 @@ export async function koruRequestHandler(req: http.IncomingMessage, res: http.Se
 
       // SIEMPRE usar streaming con heartbeat para evitar timeout de Render (30s)
       // El heartbeat envía un chunk vacío cada 5s para mantener viva la conexión
+      // CORS ya fue seteado vía res.setHeader() al inicio del handler.
       res.writeHead(200, {
         "Content-Type": "application/x-ndjson",
         "Cache-Control": "no-cache",
         "Connection": "keep-alive",
-        "Access-Control-Allow-Origin": "*",
         "X-Accel-Buffering": "no", // Render/nginx: no buffer
       });
 
-      // Heartbeat: cada 5s enviar un comentario para mantener la conexión
+      // Task 10-P2-FIX (P2-3): abortar el turno si el cliente se desconecta.
+      // res.on('close') dispara cuando la response se cerró (normalmente vía
+      // res.end()) O cuando el cliente cortó la conexión. Distinguimos ambos
+      // casos con res.writableEnded.
+      const ac = new AbortController();
+      let aborted = false;
+      res.on("close", () => {
+        if (!aborted && !res.writableEnded) {
+          aborted = true;
+          ac.abort();
+          console.log("[koru-turn] Client disconnected — aborting turn to save LLM quota.");
+        }
+      });
+
+      // Heartbeat: cada 5s enviar un comentario para mantener la conexión.
+      // Si el cliente ya se desconectó, no escribir (evita EPIPE).
       const heartbeat = setInterval(() => {
+        if (aborted) return;
         try { res.write("\n"); } catch {}
       }, 5000);
 
       const onChunk = (chunk: any) => {
+        if (aborted) return;
         try { res.write(JSON.stringify(chunk) + "\n"); } catch {}
       };
 
       try {
-        const result = await runKoruBackendTurn(request, config as any, onChunk);
+        // Pasar el abortSignal al runtime para que cancele los fetches al LLM.
+        // (abortSignal es opcional en KoruBackendTurnRequest; si no se usa, no rompe.)
+        const result = await runKoruBackendTurn({ ...request, abortSignal: ac.signal } as any, config as any, onChunk);
         clearInterval(heartbeat);
-        try { res.write(JSON.stringify(result) + "\n"); } catch {}
+        if (!aborted) {
+          try { res.write(JSON.stringify(result) + "\n"); } catch {}
+        }
       } catch (err: any) {
         clearInterval(heartbeat);
-        const errMsg = err?.message ?? "Error interno";
-        console.error("[koru-turn] EXCEPTION:", errMsg, err?.stack?.slice(0, 500));
-        const errorResponse = {
-          error: errMsg,
-          reply: "No pude procesar tu mensaje. El modelo no respondió a tiempo.",
-          uiBlocks: [],
-          suggestedActions: [],
-          understanding: { literalRequest: "", userGoal: "error", unstatedNeeds: [], assumptions: [], confidence: 0 },
-          memoryCandidates: [], commitments: [], records: [], toolResults: [],
-          stateEvents: [{ kind: "done" as const, label: "Error" }],
-          mascotState: "tired",
-          provider: "nvidia",
-          fallbackReason: "server-error",
-        };
-        try { res.write(JSON.stringify(errorResponse) + "\n"); } catch {}
+        // Si el turno abortó por desconexión del cliente, no escribir nada
+        // (el socket ya está cerrado). Solo loggeamos silenciosamente.
+        if (aborted || err?.name === "AbortError") {
+          console.log("[koru-turn] Turn aborted (client disconnect). No response sent.");
+        } else {
+          const errMsg = err?.message ?? "Error interno";
+          console.error("[koru-turn] EXCEPTION:", errMsg, err?.stack?.slice(0, 500));
+          const errorResponse = {
+            error: errMsg,
+            reply: "No pude procesar tu mensaje. El modelo no respondió a tiempo.",
+            uiBlocks: [],
+            suggestedActions: [],
+            understanding: { literalRequest: "", userGoal: "error", unstatedNeeds: [], assumptions: [], confidence: 0 },
+            memoryCandidates: [], commitments: [], records: [], toolResults: [],
+            stateEvents: [{ kind: "done" as const, label: "Error" }],
+            mascotState: "tired",
+            provider: "nvidia",
+            fallbackReason: "server-error",
+          };
+          try { res.write(JSON.stringify(errorResponse) + "\n"); } catch {}
+        }
       }
       res.end();
     } catch (err: any) {
@@ -347,7 +390,12 @@ export async function koruRequestHandler(req: http.IncomingMessage, res: http.Se
   }
 
   // ── /api/debug/weather — debug weather fetch ────────────────
+  // Task 9-ENG-FIX-v2: gateado en prod. Exponer solo en dev/staging.
   if (url.startsWith("/api/debug/weather") && req.method === "GET") {
+    if (process.env.NODE_ENV === "production") {
+      sendJson(res, 404, { error: "Not found" });
+      return;
+    }
     try {
       const city = new URL(req.url ?? "", "http://localhost").searchParams.get("city") || "Valencia";
       console.log("[debug/weather] Testing city:", city);

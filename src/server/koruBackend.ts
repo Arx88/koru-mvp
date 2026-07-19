@@ -6357,7 +6357,11 @@ export async function runKoruBackendTurn(
     }
 
     const router = await getRouter(config);
-    const routerEnabled = false; // 🔴 KORU 3.0 — semantic router disabled as gate
+    // Task 9-DEV-FIX (P0 #1): Semantic Router reactivado. Estuvo deshabilitado por un
+    // gate booleano que dejó 449 líneas de routing con 317 ejemplos embedidos en
+    // cold-start pagado sin beneficio. Reactivar arregla 4/15 cards que caían en
+    // `deliverable` (crypto_portfolio, restaurant_synthesis, news_urgent, recipe).
+    const routerEnabled = true;
     if (routerEnabled && router) {
       try {
         const routeStart = Date.now();
