@@ -18,6 +18,7 @@ import { generateEnhancements, enhancementPrompt } from "../domain/enhancementEn
 import { extractOpportunities } from "../domain/enhancementExtractor";
 import { extractStructuredData, type ChatFn as ExtractorChatFn, type ExtractionResult } from "../domain/structureExtractor";
 import { detectSimulatedToolCall, extractArgsFromUserInput } from "../domain/simulatedToolDetector";
+import { validateToolResults } from "../domain/toolValidator";
 import { SemanticRouter, type EmbedFn, type RouteResult, type RouteCategory, keywordFastPath } from "../domain/semanticRouter";
 import { logger, dump } from "./logger";
 import type { ToolDefinition } from "../tools/types";
@@ -5120,6 +5121,45 @@ async function executeProviderToolCalls(
   // Adjuntar las promesas diferidas al objeto de retorno para que el llamador
   // las espere en paralelo con el Composer.
   (toolExecutions as ToolExecution[] & { __deferredDataCards?: Array<Promise<UiBlock | null>> }).__deferredDataCards = deferredDataCards;
+
+  // 🔴 KORU 3.0 — Validación semántica post-ejecución.
+  // Si el usuario pidió información pero la tool que ejecutó devolvió un
+  // guardado (personal_capture/memory_capture), hay un mismatch semántico.
+  // El sistema detecta esto y ejecuta la tool de información correcta.
+  const mismatch = validateToolResults(request.input, toolExecutions.map(e => ({ name: e.name, result: e.result as Record<string, unknown> })));
+  if (mismatch) {
+    logger.info("executeProviderToolCalls", "SEMANTIC MISMATCH detected", {
+      executedTool: mismatch.executedTool,
+      resultType: mismatch.resultType,
+      suggestedTool: mismatch.suggestedTool,
+      reason: mismatch.reason,
+    });
+    // Ejecutar la tool sugerida
+    const correctedCall: ProviderToolCall = {
+      id: `corrected_${Date.now()}`,
+      type: "function",
+      function: { name: mismatch.suggestedTool, arguments: JSON.stringify(mismatch.suggestedArgs) },
+    };
+    const correctedArgs = { ...mismatch.suggestedArgs, __userInput: request.input };
+    const { result: correctedResult } = await executeTool(mismatch.suggestedTool, correctedArgs, request.state, extractorCtx);
+    // Agregar la tool corregida a toolExecutions
+    toolExecutions.push({ id: correctedCall.id, name: mismatch.suggestedTool, result: correctedResult });
+    messages.push({
+      role: "assistant",
+      content: "",
+      tool_calls: [correctedCall],
+    });
+    messages.push({
+      role: "tool",
+      tool_call_id: correctedCall.id,
+      content: JSON.stringify(correctedResult),
+    });
+    logger.info("executeProviderToolCalls", "Corrected tool executed", {
+      tool: mismatch.suggestedTool,
+      resultType: (correctedResult as any)?.type,
+    });
+  }
+
   return null;
 }
 
