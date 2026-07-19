@@ -2674,15 +2674,6 @@ function systemPrompt(nowIso: string, state: KoruState, relevantMemories: Releva
     `  - save_memory: Cuando el usuario revela algo importante sobre sí mismo (rutinas, metas, preferencias, relaciones).`,
     `  - save_personal_item: Cuando el usuario pide guardar algo (gasto, recordatorio, lista de compras, alarma).`,
     `REGLA CRÍTICA DE ROUTING: si el usuario pregunta por un resultado o partido de fútbol (cualquier equipo o selección), USÁ match_live, NO web_search. web_search devuelve noticias genéricas sin el marcador exacto; match_live te da el score real en tiempo real.`,
-    `🔴 CRÍTICO — SIEMPRE USÁ TOOLS PARA GENERAR CONTENIDO: Cuando el usuario pida recomendaciones, información, planes, recetas, películas, libros, o CUALQUIER cosa que involucre datos estructurados, DEBES llamar la tool correspondiente. NUNCA respondas con texto plano/markdown cuando existe una tool que puede generar una card visual.`,
-    `  - 'Recomendame una película' → movie_info (NO texto plano con markdown)`,
-    `  - 'Dame 3 películas' → movie_info para cada una (NO lista en texto)`,
-    `  - 'Organizá mi día/semana' → plan_day con items (NO texto plano)`,
-    `  - 'Receta de pasta' → recipe_find (NO receta en texto)`,
-    `  - 'Información de X' → wikipedia_lookup o movie_info o book_info (NO texto plano)`,
-    `  - '¿Qué sabés de mí?' → query_personal_context (NO lista en texto)`,
-    `  Si la tool falla o no hay datos, recién ahí podés responder en texto. Pero PRIMERO intentá la tool.`,
-    `  🔴 NUNCA PIDAS ACLARACIÓN CUANDO PODÉS ELEGIR VOS: Si el usuario pide 'recomendame una película' sin especificar género, NO preguntes qué género quiere. ELEGÍ VOS una película buena y llamá movie_info. Lo mismo con recetas, libros, etc. El usuario espera que vos sepas elegir, no que le hagas preguntas obvias.`,
     `Usá tools SOLO cuando la intención del usuario REQUIERA datos reales del mundo (clima, búsqueda, ruta, precios, resultados deportivos, recetas, películas, libros, planes). Por ejemplo: si el usuario dice 'hola', 'gracias', 'adiós', '¿cómo estás?' o cualquier frase de cortesía, NO uses tools. Respondé directamente con naturalidad.`,
     `- Para datos personales ya guardados, no llames tools; respondé directamente usando el contexto.`,
     `- 🔴 CRÍTICO — PROHIBIDO RAZONAMIENTO EN "reply": NUNCA incluyas tu razonamiento interno, análisis de qué tool llamar, ni texto en inglés tipo "The user is asking...", "I should use...", "Let me think..." en "reply". El campo "reply" debe contener SOLO la respuesta final al usuario, en español, cálido y directo. Si necesitás decidir una tool, EMITE tool_calls directamente en el JSON sin escribir tu razonamiento en el texto. Si estás pensando, NO escribas "thinking..." — simplemente devolvé el JSON final con la respuesta.`,
@@ -6874,52 +6865,6 @@ export async function runKoruBackendTurn(
     return { ...response, provider, model, fallbackReason: (fallbackReason ? fallbackReason + " + " : "") + "simulated-tool" };
   }
 
-  // 🔴 KORU 3.0 — AUTO-TOOL FALLBACK: si el LLM respondió sin llamar tools
-  // (ni nativas ni simuladas), pero el input claramente requiere una tool,
-  // forzar la ejecución de la tool. Esto resuelve "recomendame una película"
-  // → texto plano, "receta de pasta" → texto plano, etc.
-  {
-    const lowerInput = request.input.toLowerCase();
-    let forcedTool: { name: string; args: Record<string, unknown> } | null = null;
-
-    if (/\b(pel[ií]cula|pelicula|film|cine|movie|estreno)\b/.test(lowerInput) && !/que\s+(peli|película|genero|g[eé]nero)/.test(lowerInput)) {
-      const titleMatch = request.input.match(/(?:de|sobre|llamada|titulada)\s+[""']?([^""'?]+)[""']?/i);
-      const title = titleMatch?.[1]?.trim() || "Parasite";
-      forcedTool = { name: "movie_info", args: { title: title.slice(0, 80) } };
-    }
-    else if (/\b(receta|cocinar|cocino|comida|plato)\b/.test(lowerInput)) {
-      const queryMatch = request.input.match(/(?:receta\s+(?:de\s+)?)\s*(.+)/i);
-      const query = queryMatch?.[1]?.trim() || "pasta";
-      forcedTool = { name: "recipe_find", args: { query: query.slice(0, 80) } };
-    }
-    else if (/\b(organiz|planific|estructur|arm[aá]\s+(?:un\s+)?plan|c[oó]mo\s+organizo|qu[eé]\s+hago)\b/.test(lowerInput)) {
-      forcedTool = { name: "plan_day", args: { focus: request.input.slice(0, 100) } };
-    }
-    else if (/\b(libro|book|novela)\b/.test(lowerInput) && !/que\s+libro/.test(lowerInput)) {
-      const titleMatch = request.input.match(/(?:de|sobre|llamado|titulado)\s+[""']?([^""'?]+)[""']?/i);
-      const title = titleMatch?.[1]?.trim() || "Cien años de soledad";
-      forcedTool = { name: "book_info", args: { title: title.slice(0, 80) } };
-    }
-
-    if (forcedTool) {
-      logger.info("runKoruBackendTurn", "AUTO-TOOL FALLBACK", {
-        forcedTool: forcedTool.name,
-        input: request.input.slice(0, 80),
-      });
-      const forcedToolCall: ProviderToolCall = {
-        id: `forced_${Date.now()}`,
-        type: "function",
-        function: { name: forcedTool.name, arguments: JSON.stringify(forcedTool.args) },
-      };
-      messages.push({ role: "assistant", content: "", tool_calls: [forcedToolCall] });
-      await executeProviderToolCalls([forcedToolCall], messages, request, toolExecutions, config);
-      if (toolExecutions.length > 0) {
-        const response = await finalizePayload(request, config, { reply: "", mascotState: "happy", uiBlocks: [] } as Record<string, unknown>, toolExecutions, extractorTimeout);
-        return { ...response, provider, model, fallbackReason: "auto-tool-fallback" };
-      }
-    }
-  }
-
   // Sin tool calls (ni simuladas): parsear la respuesta JSON directamente
   logger.info("runKoruBackendTurn", "Parsing first response JSON", { contentPreview: content.slice(0, 500) });
   let parsed: any;
@@ -6991,57 +6936,6 @@ export async function runKoruBackendTurn(
       }
       logger.info("runKoruBackendTurn", "Return first-call-invalid-json (plain text recovered)", { replyPreview: (response.reply ?? "").slice(0, 300), provider, model, fallbackReason });
       return { ...response, provider, model, fallbackReason: fallbackReason ?? "first-call-invalid-json" };
-    }
-  }
-
-  // 🔴 KORU 3.0 — AUTO-TOOL FALLBACK: si el LLM respondió en texto plano
-  // sin llamar tools, pero el input claramente requiere una tool, forzarla.
-  // Esto resuelve el problema de "recomendame una película" → texto plano.
-  if (toolCalls.length === 0 && !simulatedCall && toolExecutions.length === 0) {
-    const lowerInput = request.input.toLowerCase();
-    let forcedTool: { name: string; args: Record<string, unknown> } | null = null;
-
-    // Detectar intención de película
-    if (/\b(pel[ií]cula|pelicula|film|cine|movie|estreno)\b/.test(lowerInput)) {
-      const titleMatch = request.input.match(/(?:de|sobre|llamada|titulada)\s+[""']?([^""'?]+)[""']?/i);
-      const title = titleMatch?.[1]?.trim() || "Parasite";
-      forcedTool = { name: "movie_info", args: { title: title.slice(0, 80) } };
-    }
-    // Detectar intención de receta
-    else if (/\b(receta|cocinar|cocino|comida|plato)\b/.test(lowerInput)) {
-      const queryMatch = request.input.match(/(?:receta\s+(?:de\s+)?)\s*(.+)/i);
-      const query = queryMatch?.[1]?.trim() || "pasta";
-      forcedTool = { name: "recipe_find", args: { query: query.slice(0, 80) } };
-    }
-    // Detectar intención de plan/organización
-    else if (/\b(organiz|planific|estructur|arm[aá]\s+(?:un\s+)?plan|c[oó]mo\s+organizo|qu[eé]\s+hago)\b/.test(lowerInput)) {
-      forcedTool = { name: "plan_day", args: { focus: request.input.slice(0, 100) } };
-    }
-    // Detectar intención de libro
-    else if (/\b(libro|book|novela|leer|lectura)\b/.test(lowerInput)) {
-      const titleMatch = request.input.match(/(?:de|sobre|llamado|titulado)\s+[""']?([^""'?]+)[""']?/i);
-      const title = titleMatch?.[1]?.trim() || "Cien años de soledad";
-      forcedTool = { name: "book_info", args: { title: title.slice(0, 80) } };
-    }
-
-    if (forcedTool) {
-      logger.info("runKoruBackendTurn", "AUTO-TOOL FALLBACK: forcing tool call", {
-        forcedTool: forcedTool.name,
-        reason: "LLM responded in plain text but input requires a tool",
-      });
-      const forcedToolCall: ProviderToolCall = {
-        id: `forced_${Date.now()}`,
-        type: "function",
-        function: { name: forcedTool.name, arguments: JSON.stringify(forcedTool.args) },
-      };
-      messages.push({ role: "assistant", content: "", tool_calls: [forcedToolCall] });
-      await executeProviderToolCalls([forcedToolCall], messages, request, toolExecutions, config);
-
-      // Si la tool ejecutó, hacer síntesis LLM
-      if (toolExecutions.length > 0) {
-        const response = await finalizePayload(request, config, { reply: "", mascotState: "happy", uiBlocks: [] } as Record<string, unknown>, toolExecutions, extractorTimeout);
-        return { ...response, provider, model, fallbackReason: "auto-tool-fallback" };
-      }
     }
   }
 
