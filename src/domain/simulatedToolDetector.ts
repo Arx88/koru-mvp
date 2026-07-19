@@ -159,6 +159,24 @@ export function detectSimulatedToolCall(content: string): SimulatedToolCall | nu
           }
         }
       }
+
+      // 🔴 KORU 3.0 — Caso: el LLM devuelve {"toolCalls":[{"name":"X","args":{...}}], "reply":"", ...}
+      // Nemotron a veces emite este formato en el content en vez de usar tool_calls nativas.
+      // Es distinto de tool_calls (camelCase) — usa "toolCalls" y "args" (no "arguments").
+      if (Array.isArray(directJson.toolCalls) && directJson.toolCalls.length > 0) {
+        const first = directJson.toolCalls[0];
+        const fnName = first?.name || first?.tool || first?.function;
+        if (typeof fnName === "string" && VALID_TOOL_NAMES.has(fnName.toLowerCase())) {
+          const fnArgs = first?.args || first?.arguments || first?.parameters || {};
+          let parsedArgs = fnArgs;
+          if (typeof fnArgs === "string") {
+            try { parsedArgs = JSON.parse(fnArgs); } catch { parsedArgs = {}; }
+          }
+          if (typeof parsedArgs === "object" && parsedArgs !== null && !Array.isArray(parsedArgs)) {
+            return { name: fnName.toLowerCase(), arguments: parsedArgs, format: "json_fence" };
+          }
+        }
+      }
     }
   } catch { /* no es JSON directo */ }
 
