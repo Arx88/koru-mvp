@@ -6874,6 +6874,52 @@ export async function runKoruBackendTurn(
     return { ...response, provider, model, fallbackReason: (fallbackReason ? fallbackReason + " + " : "") + "simulated-tool" };
   }
 
+  // 🔴 KORU 3.0 — AUTO-TOOL FALLBACK: si el LLM respondió sin llamar tools
+  // (ni nativas ni simuladas), pero el input claramente requiere una tool,
+  // forzar la ejecución de la tool. Esto resuelve "recomendame una película"
+  // → texto plano, "receta de pasta" → texto plano, etc.
+  {
+    const lowerInput = request.input.toLowerCase();
+    let forcedTool: { name: string; args: Record<string, unknown> } | null = null;
+
+    if (/\b(pel[ií]cula|pelicula|film|cine|movie|estreno)\b/.test(lowerInput) && !/que\s+(peli|película|genero|g[eé]nero)/.test(lowerInput)) {
+      const titleMatch = request.input.match(/(?:de|sobre|llamada|titulada)\s+[""']?([^""'?]+)[""']?/i);
+      const title = titleMatch?.[1]?.trim() || "Parasite";
+      forcedTool = { name: "movie_info", args: { title: title.slice(0, 80) } };
+    }
+    else if (/\b(receta|cocinar|cocino|comida|plato)\b/.test(lowerInput)) {
+      const queryMatch = request.input.match(/(?:receta\s+(?:de\s+)?)\s*(.+)/i);
+      const query = queryMatch?.[1]?.trim() || "pasta";
+      forcedTool = { name: "recipe_find", args: { query: query.slice(0, 80) } };
+    }
+    else if (/\b(organiz|planific|estructur|arm[aá]\s+(?:un\s+)?plan|c[oó]mo\s+organizo|qu[eé]\s+hago)\b/.test(lowerInput)) {
+      forcedTool = { name: "plan_day", args: { focus: request.input.slice(0, 100) } };
+    }
+    else if (/\b(libro|book|novela)\b/.test(lowerInput) && !/que\s+libro/.test(lowerInput)) {
+      const titleMatch = request.input.match(/(?:de|sobre|llamado|titulado)\s+[""']?([^""'?]+)[""']?/i);
+      const title = titleMatch?.[1]?.trim() || "Cien años de soledad";
+      forcedTool = { name: "book_info", args: { title: title.slice(0, 80) } };
+    }
+
+    if (forcedTool) {
+      logger.info("runKoruBackendTurn", "AUTO-TOOL FALLBACK", {
+        forcedTool: forcedTool.name,
+        input: request.input.slice(0, 80),
+      });
+      const forcedToolCall: ProviderToolCall = {
+        id: `forced_${Date.now()}`,
+        type: "function",
+        function: { name: forcedTool.name, arguments: JSON.stringify(forcedTool.args) },
+      };
+      messages.push({ role: "assistant", content: "", tool_calls: [forcedToolCall] });
+      await executeProviderToolCalls([forcedToolCall], messages, request, toolExecutions, config);
+      if (toolExecutions.length > 0) {
+        const response = await finalizePayload(request, config, { reply: "", mascotState: "happy", uiBlocks: [] } as Record<string, unknown>, toolExecutions, extractorTimeout);
+        return { ...response, provider, model, fallbackReason: "auto-tool-fallback" };
+      }
+    }
+  }
+
   // Sin tool calls (ni simuladas): parsear la respuesta JSON directamente
   logger.info("runKoruBackendTurn", "Parsing first response JSON", { contentPreview: content.slice(0, 500) });
   let parsed: any;
