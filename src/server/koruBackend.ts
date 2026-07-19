@@ -6948,6 +6948,57 @@ export async function runKoruBackendTurn(
     }
   }
 
+  // 🔴 KORU 3.0 — AUTO-TOOL FALLBACK: si el LLM respondió en texto plano
+  // sin llamar tools, pero el input claramente requiere una tool, forzarla.
+  // Esto resuelve el problema de "recomendame una película" → texto plano.
+  if (toolCalls.length === 0 && !simulatedCall && toolExecutions.length === 0) {
+    const lowerInput = request.input.toLowerCase();
+    let forcedTool: { name: string; args: Record<string, unknown> } | null = null;
+
+    // Detectar intención de película
+    if (/\b(pel[ií]cula|pelicula|film|cine|movie|estreno)\b/.test(lowerInput)) {
+      const titleMatch = request.input.match(/(?:de|sobre|llamada|titulada)\s+[""']?([^""'?]+)[""']?/i);
+      const title = titleMatch?.[1]?.trim() || "Parasite";
+      forcedTool = { name: "movie_info", args: { title: title.slice(0, 80) } };
+    }
+    // Detectar intención de receta
+    else if (/\b(receta|cocinar|cocino|comida|plato)\b/.test(lowerInput)) {
+      const queryMatch = request.input.match(/(?:receta\s+(?:de\s+)?)\s*(.+)/i);
+      const query = queryMatch?.[1]?.trim() || "pasta";
+      forcedTool = { name: "recipe_find", args: { query: query.slice(0, 80) } };
+    }
+    // Detectar intención de plan/organización
+    else if (/\b(organiz|planific|estructur|arm[aá]\s+(?:un\s+)?plan|c[oó]mo\s+organizo|qu[eé]\s+hago)\b/.test(lowerInput)) {
+      forcedTool = { name: "plan_day", args: { focus: request.input.slice(0, 100) } };
+    }
+    // Detectar intención de libro
+    else if (/\b(libro|book|novela|leer|lectura)\b/.test(lowerInput)) {
+      const titleMatch = request.input.match(/(?:de|sobre|llamado|titulado)\s+[""']?([^""'?]+)[""']?/i);
+      const title = titleMatch?.[1]?.trim() || "Cien años de soledad";
+      forcedTool = { name: "book_info", args: { title: title.slice(0, 80) } };
+    }
+
+    if (forcedTool) {
+      logger.info("runKoruBackendTurn", "AUTO-TOOL FALLBACK: forcing tool call", {
+        forcedTool: forcedTool.name,
+        reason: "LLM responded in plain text but input requires a tool",
+      });
+      const forcedToolCall: ProviderToolCall = {
+        id: `forced_${Date.now()}`,
+        type: "function",
+        function: { name: forcedTool.name, arguments: JSON.stringify(forcedTool.args) },
+      };
+      messages.push({ role: "assistant", content: "", tool_calls: [forcedToolCall] });
+      await executeProviderToolCalls([forcedToolCall], messages, request, toolExecutions, config);
+
+      // Si la tool ejecutó, hacer síntesis LLM
+      if (toolExecutions.length > 0) {
+        const response = await finalizePayload(request, config, { reply: "", mascotState: "happy", uiBlocks: [] } as Record<string, unknown>, toolExecutions, extractorTimeout);
+        return { ...response, provider, model, fallbackReason: "auto-tool-fallback" };
+      }
+    }
+  }
+
   const raw = {
     reply: cleanText(parsed.reply, content),
     understanding: parsed.understanding || {},
