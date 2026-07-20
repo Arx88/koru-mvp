@@ -91,6 +91,7 @@ function buildConfig() {
       .filter(Boolean),
     minimaxAccessToken: env.MINIMAX_ACCESS_TOKEN?.trim(),
     ollamaEmbedBaseUrl: env.OLLAMA_EMBED_BASE_URL?.trim() || undefined,
+    ainativeApiKey: env.AINATIVE_API_KEY?.trim(),
   };
 }
 

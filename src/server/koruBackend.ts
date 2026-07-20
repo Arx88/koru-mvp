@@ -53,6 +53,7 @@ import {
   isGenericAgentReply,
 } from "./pipeline/finalizePayload";
 import { blocksFromToolResults } from "./blocksFromToolResults";
+import { callAINative } from "./providers/ainative";
 
 // Re-export for backwards compatibility (test files import blocksFromToolResults
 // from koruBackend).
@@ -71,6 +72,7 @@ export type ProviderConfig = {
   bluesmindsModel?: string;
   /** URL de Ollama para embeddings del Semantic Router (nomic-embed-text). */
   ollamaEmbedBaseUrl?: string;
+  ainativeApiKey?: string;
 };
 
 export type KoruBackendTurnRequest = {
@@ -1275,6 +1277,18 @@ export async function callProvider(
       } else {
         logger.warn("callProvider", "NVIDIA failed, falling back to OpenRouter", { reason: err?.message });
       }
+    }
+  }
+
+  // AI Native Studio fallback (kimi-k2.6 → deepseek-v4-flash)
+  if (config.ainativeApiKey) {
+    try {
+      const result = await callAINative(config, messages, Math.min(60_000, timeoutMs), toolsEnabled, availableTools);
+      if (providerResultIsValid(result)) { logger.info("callProvider", "AI Native Studio succeeded"); return result; }
+      logger.warn("callProvider", "AI Native Studio invalid, falling through to OpenRouter");
+    } catch (err: any) {
+      if (isRateLimitError(err)) logger.warn("callProvider", "AI Native Studio rate-limited, falling through");
+      else logger.warn("callProvider", "AI Native Studio failed, falling through", { reason: err?.message });
     }
   }
 

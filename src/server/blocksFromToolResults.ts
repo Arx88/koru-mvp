@@ -94,17 +94,25 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
     }
     if (result.type === "crypto_price") {
       const r = result as any;
+      if (r.status === "failed" || r.price === undefined || r.price === null) {
+        blocks.push({ type: "crypto_portfolio" as const, title: "Cripto", items: [],
+          message: r.error || "No pude obtener el precio. Las APIs estan saturadas.",
+          sources: r.source ? [{ title: r.source, url: r.sourceUrl || "", domain: r.source }] : [],
+        } as any);
+        continue;
+      }
       blocks.push({
         type: "crypto_portfolio" as const,
         items: [{
           symbol: r.symbol || "BTC",
           name: r.coin || "Bitcoin",
-          price: `${r.price || "?"} ${r.currency || "USD"}`,
+          price: `${r.price} ${r.currency || "USD"}`,
           change: r.change24hPct ?? 0,
           color: "#f59e0b",
           bg: "#fffbeb",
           char: r.symbol?.[0] || "₿",
         }],
+        sources: r.source ? [{ title: r.source, url: r.sourceUrl || "", domain: r.source }] : [],
       });
       continue;
     }
