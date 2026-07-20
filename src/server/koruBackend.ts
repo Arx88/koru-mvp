@@ -265,7 +265,7 @@ export const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "shopping_compare",
-      description: "Compara productos con evidencia de precios, fuentes y pros/contras cuando el usuario esté considerando una compra o necesite evaluar opciones de productos. El usuario puede expresar esto de muchas formas: pidiendo recomendaciones de algo para comprar, mencionando que necesita un producto, comparando dos cosas, buscando la mejor opción, o preguntando dónde comprar algo. También activa cuando el usuario pide review o comparativa de productos técnicos.",
+      description: "Compara productos con evidencia de precios, fuentes y pros/contras cuando el usuario esté considerando una compra o necesite evaluar opciones de productos. El usuario puede expresar esto de muchas formas: pidiendo recomendaciones de algo para comprar, mencionando que necesita un producto, comparando dos cosas, buscando la mejor opción, o preguntando dónde comprar algo. También activa cuando el usuario pide review o comparativa de productos técnicos. NOTA: Para comparaciones específicas tipo 'compara X vs Y', usá comparison_deep que hace scraping real de Amazon/eBay/Best Buy.",
       parameters: {
         type: "object",
         additionalProperties: false,
