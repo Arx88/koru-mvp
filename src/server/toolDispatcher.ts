@@ -57,7 +57,28 @@ export async function executeTool(
       deferredDataCard = searchData.deferredDataCard;
       result = searchData as unknown as Record<string, unknown>;
     }
-    else if (name === "shopping_compare") result = await runSearch(args, true) as unknown as Record<string, unknown>;
+    else if (name === "shopping_compare") {
+      // Task 15: si el input contiene "compara X vs Y", usar comparison_deep (scraping real)
+      const userInput = String(args.__userInput ?? args.query ?? "").toLowerCase();
+      if (/compara\s+.+\s+(?:vs|versus)\s+/i.test(userInput) || /mejor\s+(?:precio|opcion)/i.test(userInput)) {
+        const handler = TOOL_BOX.get("comparison_deep");
+        if (handler) {
+          const runResult = await handler.run({ query: args.query ?? args.__userInput ?? "", budget: args.budget }, {
+            userInput: cleanText(args.__userInput),
+            state,
+            signal: ctx?.signal,
+            onProgress: ctx?.onProgress,
+            chatFn: ctx?.chatFn,
+          });
+          deferredDataCard = (runResult as any)?.deferredDataCard;
+          result = runResult as unknown as Record<string, unknown>;
+        } else {
+          result = await runSearch(args, true) as unknown as Record<string, unknown>;
+        }
+      } else {
+        result = await runSearch(args, true) as unknown as Record<string, unknown>;
+      }
+    }
     else if (name === "route_traffic") result = await runSearch({ ...args, mode: "research", query: cleanText(args.query) || [cleanText(args.origin), cleanText(args.destination)].filter(Boolean).join(" a ") || cleanText(args.__userInput) }, false) as unknown as Record<string, unknown>;
     else if (name === "calendar_reminder") result = localReminderFromArgs(args, cleanText(args.__userInput)) as unknown as Record<string, unknown>;
     else if (name === "alarm") result = localAlarmFromArgs(args, cleanText(args.__userInput)) as unknown as Record<string, unknown>;
