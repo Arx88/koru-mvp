@@ -29,7 +29,7 @@ export type ToolRunContext = {
    * (summarize, translate, NER, etc.). Si no hay Ollama disponible, es undefined.
    * El contrato del callback sigue el de `structureExtractor.ChatFn`.
    */
-  chatFn?: (messages: { role: string; content: string }[], opts: { temperature: number; maxTokens: number }) => Promise<{ content: string }>;
+  chatFn?: (messages: { role: "user" | "system"; content: string }[], opts: { temperature: number; maxTokens: number }) => Promise<{ content: string }>;
 };
 
 /** Resultado que devuelve una tool. Es un objeto plano que el motor envuelve. */
