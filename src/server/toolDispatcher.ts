@@ -66,9 +66,9 @@ export async function executeTool(
           const runResult = await handler.run({ query: args.query ?? args.__userInput ?? "", budget: args.budget }, {
             userInput: cleanText(args.__userInput),
             state,
-            signal: ctx?.signal,
-            onProgress: ctx?.onProgress,
-            chatFn: ctx?.chatFn,
+            signal: extractorCtx?.signal,
+            onProgress: extractorCtx?.onProgress,
+            chatFn: extractorCtx?.chatFn,
           });
           deferredDataCard = (runResult as any)?.deferredDataCard;
           result = runResult as unknown as Record<string, unknown>;
