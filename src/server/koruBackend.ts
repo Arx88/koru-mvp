@@ -4366,7 +4366,7 @@ export async function runKoruBackendTurn(
           if (retryContent.trim()) {
             try {
               parsed = JSON.parse(extractJsonBlock(retryContent));
-              provider = "ainative";
+              provider = "nvidia" as any;  // keep type compatible, model shows real provider
               model = retryResult.model ?? "kimi-k2.6";
               logger.info("runKoruBackendTurn", "AI Native Studio retry succeeded", { model });
               // Skip the fallback below, continue to process parsed
