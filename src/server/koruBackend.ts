@@ -1101,7 +1101,21 @@ function providerResultIsValid(result: ProviderResult): boolean {
   const trimmed = content.trim();
   const hasTools = asArray(result.message?.tool_calls).length > 0;
   const hasContent = trimmed.length > 0;
-  return hasContent || hasTools;
+  // Task 14-FIX: si no tiene tools NI content, es inválido (caer a fallback)
+  if (!hasContent && !hasTools) return false;
+  // Task 14-FIX: si tiene content pero parece un error del modelo (ej: "All promises were rejected")
+  // tratar como inválido para forzar fallback
+  const lowerContent = trimmed.toLowerCase();
+  const errorIndicators = [
+    "all promises were rejected",
+    "no pude procesar",
+    "el modelo no respondió a tiempo",
+    "openrouter fallback is not configured",
+    "service unavailable",
+    "internal server error",
+  ];
+  if (errorIndicators.some(ind => lowerContent.includes(ind))) return false;
+  return true;
 }
 
 function isOllamaUrl(baseUrl: string | undefined): boolean {
