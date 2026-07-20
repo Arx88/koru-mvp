@@ -4357,25 +4357,48 @@ export async function runKoruBackendTurn(
       parsed = JSON.parse(extractJsonBlock(secondContent));
     } catch (err) {
       logger.warn("runKoruBackendTurn", "Second response JSON parse failed", { error: String(err), secondContentPreview: secondContent.slice(0, 500) });
-      const rawFallback: Record<string, unknown> = {
-        reply: cleanReplyText(secondContent) || "No pude armar una respuesta clara. ¿Me lo repetís de otra forma?",
-        understanding: {
-          literalRequest: request.input,
-          userGoal: "Resolver el pedido con ayuda de Koru.",
-          unstatedNeeds: [],
-          assumptions: [],
-          confidence: 0.45,
-        },
-        uiBlocks: [...validDeferredCards, ...blocksFromToolResults(toolExecutions)],
-        suggestedActions: [],
-        memoryCandidates: [],
-        commitments: [],
-        records: [],
-        mascotState: "thinking",
-      };
-      const response = await finalizeFromPlainText(rawFallback, toolCalls, request, config, toolExecutions, extractorTimeout);
-      logger.info("runKoruBackendTurn", "Return second-call-invalid-json", { replyPreview: (response.reply ?? "").slice(0, 300), provider, model, fallbackReason });
-      return { ...response, provider, model, fallbackReason: fallbackReason ?? "second-call-invalid-json" };
+      // Task 14-FIX: retry con AI Native Studio (kimi-k2.6) si el segundo call de NVIDIA dio JSON inválido
+      if (config.ainativeApiKey && provider === "nvidia") {
+        try {
+          logger.info("runKoruBackendTurn", "Retrying second call with AI Native Studio (kimi-k2.6)");
+          const retryResult = await callAINative(config, messages, 45_000, false);
+          const retryContent = retryResult.message?.content ?? "";
+          if (retryContent.trim()) {
+            try {
+              parsed = JSON.parse(extractJsonBlock(retryContent));
+              provider = "ainative";
+              model = retryResult.model ?? "kimi-k2.6";
+              logger.info("runKoruBackendTurn", "AI Native Studio retry succeeded", { model });
+              // Skip the fallback below, continue to process parsed
+            } catch (retryErr) {
+              logger.warn("runKoruBackendTurn", "AI Native Studio retry also failed JSON parse", { error: String(retryErr) });
+            }
+          }
+        } catch (retryErr) {
+          logger.warn("runKoruBackendTurn", "AI Native Studio retry failed", { error: String(retryErr) });
+        }
+      }
+      if (!parsed) {
+        const rawFallback: Record<string, unknown> = {
+          reply: cleanReplyText(secondContent) || "No pude armar una respuesta clara. ¿Me lo repetís de otra forma?",
+          understanding: {
+            literalRequest: request.input,
+            userGoal: "Resolver el pedido con ayuda de Koru.",
+            unstatedNeeds: [],
+            assumptions: [],
+            confidence: 0.45,
+          },
+          uiBlocks: [...validDeferredCards, ...blocksFromToolResults(toolExecutions)],
+          suggestedActions: [],
+          memoryCandidates: [],
+          commitments: [],
+          records: [],
+          mascotState: "thinking",
+        };
+        const response = await finalizeFromPlainText(rawFallback, toolCalls, request, config, toolExecutions, extractorTimeout);
+        logger.info("runKoruBackendTurn", "Return second-call-invalid-json", { replyPreview: (response.reply ?? "").slice(0, 300), provider, model, fallbackReason });
+        return { ...response, provider, model, fallbackReason: fallbackReason ?? "second-call-invalid-json" };
+      }
     }
 
     const raw = {
