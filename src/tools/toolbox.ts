@@ -27,6 +27,7 @@ import { healthTools } from "./health";
 import { utilsTools } from "./utils";
 import { mediaTools } from "./media";
 import { weatherTools } from "./weather";
+import { shoppingTools } from "./shopping";
 
 // Sanity-check (grep "tennis_live\|news_urgent\|route_plan" src/tools/toolbox.ts):
 //   - tennis_live        → sportsTools (sports/tennis.ts → tennisLive)
@@ -52,6 +53,7 @@ const allHandlers: ToolHandler[] = [
   ...utilsTools,
   ...mediaTools,
   ...weatherTools,
+  ...shoppingTools,
 ];
 
 /** Mapa nombre → handler. El dispatcher de executeTool lo consulta para tools no-builtin. */
