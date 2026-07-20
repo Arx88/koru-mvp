@@ -53,9 +53,28 @@ export async function executeTool(
       result = await getWeather(argsWithCity) as unknown as Record<string, unknown>;
     }
     else if (name === "web_search") {
-      const searchData = await runSearch(args, false, extractorCtx);
-      deferredDataCard = searchData.deferredDataCard;
-      result = searchData as unknown as Record<string, unknown>;
+      // Task 15: si el input contiene "compara X vs Y", redirigir a comparison_deep
+      const combinedInput = String(args.__userInput ?? "") + " " + String(args.query ?? "");
+      if (/\b(?:vs|versus)\b/i.test(combinedInput) || /compara\s+/i.test(combinedInput)) {
+        const handler = TOOL_BOX.get("comparison_deep");
+        if (handler) {
+          const runResult = await handler.run({ query: args.query ?? args.__userInput ?? "" }, {
+            userInput: cleanText(args.__userInput ?? args.query),
+            state,
+            chatFn: extractorCtx?.chatFn,
+          });
+          deferredDataCard = (runResult as any)?.deferredDataCard;
+          result = runResult as unknown as Record<string, unknown>;
+        } else {
+          const searchData = await runSearch(args, false, extractorCtx);
+          deferredDataCard = searchData.deferredDataCard;
+          result = searchData as unknown as Record<string, unknown>;
+        }
+      } else {
+        const searchData = await runSearch(args, false, extractorCtx);
+        deferredDataCard = searchData.deferredDataCard;
+        result = searchData as unknown as Record<string, unknown>;
+      }
     }
     else if (name === "shopping_compare") {
       // Task 15: si el input o query contiene "vs" o "versus", usar comparison_deep (scraping real)
