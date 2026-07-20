@@ -58,13 +58,13 @@ export async function executeTool(
       result = searchData as unknown as Record<string, unknown>;
     }
     else if (name === "shopping_compare") {
-      // Task 15: si el input contiene "compara X vs Y", usar comparison_deep (scraping real)
-      const userInput = String(args.__userInput ?? args.query ?? "").toLowerCase();
-      if (/compara\s+.+\s+(?:vs|versus)\s+/i.test(userInput) || /mejor\s+(?:precio|opcion)/i.test(userInput)) {
+      // Task 15: si el input o query contiene "vs" o "versus", usar comparison_deep (scraping real)
+      const combinedInput = String(args.__userInput ?? "") + " " + String(args.query ?? "");
+      if (/\b(?:vs|versus)\b/i.test(combinedInput) || /compara/i.test(combinedInput) || /mejor\s+(?:precio|opcion)/i.test(combinedInput)) {
         const handler = TOOL_BOX.get("comparison_deep");
         if (handler) {
           const runResult = await handler.run({ query: args.query ?? args.__userInput ?? "", budget: args.budget }, {
-            userInput: cleanText(args.__userInput),
+            userInput: cleanText(args.__userInput ?? args.query),
             state,
             chatFn: extractorCtx?.chatFn,
           });
