@@ -228,6 +228,7 @@ export async function koruRequestHandler(req: http.IncomingMessage, res: http.Se
       service: "koru-backend",
       provider: config.nvidiaApiKey ? "nvidia" : "none",
       model: config.nvidiaModel,
+      ainative: config.ainativeApiKey ? "configured" : "NOT_CONFIGURED",
       timestamp: new Date().toISOString(),
     });
     return;
