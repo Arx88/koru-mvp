@@ -29,9 +29,15 @@ import {
 
 export function blocksFromToolResults(results: ToolExecution[], userInput?: string): UiBlock[] {
   const blocks: UiBlock[] = [];
-  // Task 15: si el usuario pidió comparar productos, generar comparison card
-  // en vez de deliverable genérico
-  const isComparisonQuery = userInput && (/compara/i.test(userInput) || /\b(?:vs|versus)\b/i.test(userInput));
+  // 🔴 Task 15-FIX1: ELIMINADO `isComparisonQuery` regex.
+  // Antes: si el input matcheaba `/compara/i` o `/\bvs\b/i`, el mapper
+  // interceptaba resultados de `web_search` y generaba una comparison card
+  // shallow (sin structureExtractor, con `pros: []`, `cons: []`).
+  // Ahora: la tool `comparison_deep` es la ÚNICA fuente de comparison cards.
+  // Si el LLM la llamó, la card ya viene enriquecida desde el tool (con
+  // specs, score, details). Si el LLM NO la llamó, el mapper no debe
+  // fabricar una card a partir de `web_search` results — eso generaba
+  // cards sin citas respaldadas.
   for (const execution of results) {
     const result = execution.result;
     if (result.type === "weather") {
@@ -383,29 +389,15 @@ export function blocksFromToolResults(results: ToolExecution[], userInput?: stri
       // El detail screen muestra módulos ricos, no solo una lista de enlaces.
       const sources = (search.sources ?? []).filter((s) => s.url?.startsWith("http")).slice(0, 6);
 
-      // Task 15: si el usuario pidió comparar, generar comparison card con los sources
-      if (isComparisonQuery && sources.length > 0) {
-        const comparisonItems = sources.map((s: any) => ({
-          title: s.title || s.domain,
-          vendor: s.domain,
-          url: s.url,
-          evidence: (s.snippet ?? "").slice(0, 200),
-          pros: [] as string[],
-          cons: [] as string[],
-        }));
-        let recommendation = `Encontré ${sources.length} fuentes comparando productos. `;
-        if (sources.length >= 2) {
-          recommendation += `Te recomiendo revisar ${sources[0].domain} y ${sources[1].domain} para detalles específicos.`;
-        }
-        blocks.push({
-          type: "comparison" as const,
-          title: "Comparativa",
-          items: comparisonItems,
-          recommendation,
-          sources,
-        } as any);
-        continue;
-      }
+      // 🔴 Task 15-FIX1: ELIMINADO el branch `isComparisonQuery && sources.length > 0`.
+      // Antes este branch generaba una comparison card shallow con `pros: []`,
+      // `cons: []` y recommendation genérica ("Te recomiendo revisar X y Y").
+      // Eso violaba el anti-patrón premium del plan-15 §8 ("campos vacíos" y
+      // "recommendation genérica"). Ahora: si el usuario pidió comparar,
+      // `comparison_deep` debe ser llamada por el LLM (instrucciones en systemPrompt.ts).
+      // Si por alguna razón el LLM llamó `web_search` en vez de `comparison_deep`,
+      // el mapper NO debe fabricar items comparativos sin extractor — cae al
+      // deliverable estándar con sources y datos extraídos por extractor simple.
 
       if (search.mode === "shopping" && search.comparisonItems?.length) {
         // Task 14: Comparison EXCEPCIONAL — generar análisis real, no solo links

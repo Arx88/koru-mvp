@@ -4448,62 +4448,16 @@ export async function runKoruBackendTurn(
     if (validDeferredCards.length > 0) {
       raw.uiBlocks = [...validDeferredCards, ...asArray(raw.uiBlocks)];
     }
-    // Task 15: si el usuario pidió comparar y no hay COMPARISON card, ejecutar búsqueda
-    const userWantsComparison = /compara/i.test(request.input) || /\b(?:vs|versus)\b/i.test(request.input);
-    const currentBlocks = asArray(raw.uiBlocks);
-    const hasComparisonCard = currentBlocks.some((b: any) => b?.type === "comparison");
-    if (userWantsComparison && !hasComparisonCard) {
-      // Proactive search: call searchDuckDuckGo directly and build comparison card
-      try {
-        const { searchDuckDuckGo, usableSources } = await import("./../tools/shared/scrapers");
-        const ddgSources = await searchDuckDuckGo(`${request.input} precio specs review`, 5);
-        const usable = usableSources(ddgSources);
-        if (usable.length > 0) {
-          const comparisonItems = usable.map(s => ({
-            title: s.title || s.domain,
-            vendor: s.domain,
-            url: s.url,
-            evidence: (s.snippet ?? "").slice(0, 200),
-          }));
-          const comparisonCard: UiBlock = {
-            type: "comparison",
-            title: "Comparativa",
-            items: comparisonItems,
-            recommendation: `Encontré ${usable.length} fuentes. Te recomiendo revisar ${usable[0].domain} y ${usable[1]?.domain ?? "las demás fuentes"} para detalles.`,
-            sources: usable,
-          } as any;
-          raw.uiBlocks = [...currentBlocks, comparisonCard];
-        }
-      } catch {
-        // sin búsqueda proactiva
-      }
-    }
+    // 🔴 Task 15-FIX1: ELIMINADO el override proactivo de comparison card.
+    // Antes: si el input matcheaba `/compara/i` o `/\bvs\b/i`, el backend
+    // ejecutaba DuckDuckGo y pegaba una comparison card shallow encima
+    // del output del LLM, sin pasar por structureExtractor.
+    // Ahora: el LLM decide cuándo llamar `comparison_deep` (instrucciones en
+    // systemPrompt.ts), y la tool genera su propia `deferredDataCard`
+    // premium via `validateComparisonWithCitations`. El override ahogaba
+    // multi-intent (si el usuario pedía "compará X y decime el clima", el
+    // override solo ejecutaba la comparación).
     const response = await finalizePayload(request, config, raw, toolExecutions, extractorTimeout);
-    // Task 15: si el usuario pidió comparar y finalizePayload no generó comparison card, agregarla
-    if (userWantsComparison && !response.uiBlocks?.some((b: any) => b?.type === "comparison")) {
-      try {
-        const { searchDuckDuckGo, usableSources } = await import("./../tools/shared/scrapers");
-        const ddgSources = await searchDuckDuckGo(`${request.input} precio specs review`, 5);
-        const usable = usableSources(ddgSources);
-        if (usable.length > 0) {
-          const comparisonCard = {
-            type: "comparison",
-            title: "Comparativa",
-            items: usable.map(s => ({
-              title: s.title || s.domain,
-              vendor: s.domain,
-              url: s.url,
-              evidence: (s.snippet ?? "").slice(0, 200),
-            })),
-            recommendation: `Encontré ${usable.length} fuentes comparando productos. Te recomiendo revisar ${usable[0].domain}.`,
-            sources: usable,
-          };
-          response.uiBlocks = [...(response.uiBlocks || []), comparisonCard] as any;
-        }
-      } catch {
-        // sin card de comparación
-      }
-    }
     return {
       ...response,
       provider,

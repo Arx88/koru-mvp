@@ -1,24 +1,122 @@
 /**
  * Bloque Shopping — Comparison Deep Search.
  *
- * PATRÓN PROFESIONAL (igual que restaurant_deep_search):
- * 1. Buscar productos en múltiples tiendas via searchAndEnrich (DuckDuckGo + scrape)
- * 2. Pasar TODO el contenido por structureExtractor (anti-alucinación)
- * 3. El LLM extrae datos CON citas literales del contenido real
- * 4. El validador rechaza cualquier dato sin respaldo textual
- * 5. Solo datos validados llegan a la card
+ * 🔴 Task 15 — PREMIUM EXTRACTOR.
+ *
+ * PATRÓN PROFESIONAL:
+ * 1. Buscar productos en múltiples tiendas via searchAndEnrich (con fallback DDG)
+ * 2. Pasar TODO el contenido por `extractComparisonData` (anti-alucinación por campo)
+ * 3. El LLM extrae productos con: name, price, specs[], rating, pros[], cons[]
+ * 4. Validador descarta CADA CAMPO no respaldado por cita literal (no el producto entero)
+ * 5. Score determinista por producto: (campos_validados / 5) * 10
+ * 6. Recommendation real: diferencia de specs + precio, NO plantilla genérica
+ *
+ * Activación: el LLM decide llamar `comparison_deep` cuando detecta intent de compra
+ * (ver systemPrompt.ts). NO hay regex de activación en el backend.
+ *
+ * Observación del validador (PLAN-15 §2.1): DuckDuckGo puede bloquear Render.
+ * Implementado fallback `searchAndEnrichWithFallback` que reintenta SIN `site:`
+ * filter si el primer batch devuelve 0 sources.
  */
 
 import { defineTool, policies, type ToolHandler } from "../types";
-import { searchAndEnrich, usableSources } from "../shared/scrapers";
-import { validateWithCitations, extractionToDataCard } from "../shared/extractor";
-import type { ExtractionResult } from "../../domain/structureExtractor";
+import { searchAndEnrich, searchAndEnrichWithFallback, usableSources } from "../shared/scrapers";
+import { validateComparisonWithCitations } from "../shared/extractor";
+import type { ComparisonExtractionResult, ComparisonProduct } from "../../domain/structureExtractor";
 import type { UiBlock } from "../../domain/types";
+
+/** Normaliza un string de precio a número comparable. */
+function priceToNumber(priceStr?: string): number | null {
+  if (!priceStr) return null;
+  const n = parseFloat(priceStr.replace(/[^0-9.]/g, ""));
+  return isNaN(n) ? null : n;
+}
+
+/**
+ * Genera una recommendation PREMIUM basada en diferencias específicas entre los
+ * productos. NO es una plantilla genérica — menciona specs reales y diferencias
+ * de precio concretas. Determinista (sin LLM adicional).
+ *
+ * Ejemplo: "El S24 gana en pantalla (120Hz vs 60Hz). El iPhone 15 es $60 más barato."
+ */
+function buildPremiumRecommendation(products: ComparisonProduct[]): string {
+  if (products.length === 0) return "No pude extraer specs comparables de estas fuentes.";
+  if (products.length === 1) {
+    const p = products[0];
+    const parts: string[] = [`Encontré un producto validado: ${p.name}`];
+    if (p.price) parts.push(`a ${p.price.value}`);
+    if (p.rating) parts.push(`con rating ${p.rating.value}/5`);
+    parts.push(`(${p.score}/10 datos respaldados)`);
+    return parts.join(" ") + ". Probá con un término más específico para comparar.";
+  }
+
+  // Ordenar por score (mayor primero) y por precio (menor primero).
+  const ranked = [...products].sort((a, b) => b.score - a.score);
+  const top = ranked[0];
+
+  // Comparativa de specs head-to-head entre top 2.
+  const second = ranked[1] ?? ranked[0];
+
+  // Encontrar specs diferenciales: misma label, distinto value.
+  const topSpecMap = new Map(top.specs.map((s) => [s.label.toLowerCase(), s.value]));
+  const diffSpecs: Array<{ label: string; topValue: string; otherValue: string }> = [];
+  for (const spec of second.specs) {
+    const topValue = topSpecMap.get(spec.label.toLowerCase());
+    if (topValue && topValue !== spec.value) {
+      diffSpecs.push({ label: spec.label, topValue, otherValue: spec.value });
+    }
+  }
+
+  const sentences: string[] = [];
+
+  // Veredicto sobre specs.
+  if (diffSpecs.length > 0) {
+    const topSpecStr = diffSpecs.slice(0, 2).map((d) => `${d.label}: ${d.topValue} vs ${d.otherValue}`).join(", ");
+    sentences.push(`El ${top.name} gana en specs (${topSpecStr})`);
+  } else if (top.score > second.score) {
+    sentences.push(`El ${top.name} tiene mejor cobertura de datos (${top.score}/10 vs ${second.score}/10)`);
+  }
+
+  // Veredicto sobre precio.
+  const topPriceNum = priceToNumber(top.price?.value);
+  const secondPriceNum = priceToNumber(second.price?.value);
+  if (topPriceNum !== null && secondPriceNum !== null && topPriceNum !== secondPriceNum) {
+    const diff = Math.abs(topPriceNum - secondPriceNum);
+    const cheaper = topPriceNum < secondPriceNum ? top.name : second.name;
+    const expensive = topPriceNum < secondPriceNum ? second.name : top.name;
+    sentences.push(`El ${cheaper} es $${diff.toFixed(0)} más barato que el ${expensive}`);
+  }
+
+  if (sentences.length === 0) {
+    // Fallback honesto si no hay specs diferenciales ni precios.
+    sentences.push(`Comparativa de ${products.length} productos validados`);
+    if (top.rating) sentences.push(`Mejor rating: ${top.name} (${top.rating.value}/5)`);
+  }
+
+  return sentences.join(". ") + ".";
+}
+
+/** Mapea ComparisonProduct[] a ComparisonItem[] (el shape del UiBlock). */
+function mapProductsToItems(products: ComparisonProduct[]) {
+  return products.map((p) => ({
+    title: p.name,
+    price: p.price?.value,
+    vendor: p.sources[0]?.domain,
+    url: p.sources[0]?.url,
+    score: p.score,
+    evidence: p.summaryQuote,
+    details: [
+      ...p.specs.map((s) => ({ label: `${s.label}: ${s.value}`, positive: true })),
+      ...p.pros.map((pro) => ({ label: pro.text, positive: true })),
+      ...p.cons.map((con) => ({ label: con.text, positive: false })),
+    ],
+  }));
+}
 
 export const comparisonDeep: ToolHandler = {
   definition: defineTool(
     "comparison_deep",
-    "Compara productos haciendo scraping real de múltiples tiendas (Amazon, eBay, Best Buy, MercadoLibre). Extrae precios, specs, ratings y reviews VALIDADOS contra cita literal del contenido. Genera recommendation basada en datos reales. Úsala cuando el usuario diga 'compara X vs Y', 'qué teléfono compro', 'dónde compro Z más barato'. NUNCA uses web_search para comparar productos — usá esta tool.",
+    "Compara productos haciendo scraping real de múltiples tiendas (Amazon, eBay, Best Buy, MercadoLibre). Extrae precios, specs, ratings y reviews VALIDADOS contra cita literal del contenido. Genera recommendation basada en diferencias reales (no plantilla). Úsala cuando el usuario diga 'compara X vs Y', 'qué teléfono compro', 'dónde compro Z más barato', 'ayudame a buscar un X'. NUNCA uses web_search para comparar productos — usá esta tool.",
     {
       type: "object",
       additionalProperties: false,
@@ -41,8 +139,10 @@ export const comparisonDeep: ToolHandler = {
       `${query} reseñas mejores características pros contras`,
     ];
 
-    const allResults = await Promise.all(storeQueries.map(q => searchAndEnrich(q, 4)));
-    const sources = usableSources(allResults.flat()).slice(0, 8);
+    // 🔴 Task 15-FIX1: usar searchAndEnrichWithFallback — reintenta sin `site:` filter
+    // si DDG bloquea la IP de Render y devuelve 0 sources.
+    const allResults = await searchAndEnrichWithFallback(storeQueries, 4);
+    const sources = usableSources(allResults).slice(0, 8);
 
     if (sources.length === 0) {
       const failedCard: Promise<UiBlock> = Promise.resolve({
@@ -55,48 +155,46 @@ export const comparisonDeep: ToolHandler = {
       return { type: "comparison_deep", status: "failed", query, error: "No pude encontrar productos.", deferredDataCard: failedCard };
     }
 
-    let extractedData: ExtractionResult | null = null;
+    // 🔴 Task 15-FIX1: extractor PREMIUM con schema por-producto (no flat).
+    // Valida campo-por-campo: si el LLM propone `rating: 4.9` sin cita, se descarta
+    // SOLO el rating (no el producto entero).
+    let extractedData: ComparisonExtractionResult | null = null;
     if (ctx.chatFn) {
       try {
-        extractedData = await validateWithCitations(
-          `Compará productos para: "${query}". Extraé precio, specs, rating y pros/contras de cada producto encontrado.`,
+        extractedData = await validateComparisonWithCitations(
+          `Compará productos para: "${query}". Extraé name, price, specs, rating, pros y cons de cada producto encontrado. Cada campo con cita literal.`,
           sources, ctx.chatFn,
         );
-      } catch { /* sin extracción */ }
-    }
-
-    let dataCard: UiBlock | null = null;
-    if (extractedData) dataCard = extractionToDataCard(extractedData);
-
-    let recommendation = "";
-    if (extractedData && extractedData.items.length > 0) {
-      const priceItems = extractedData.items.filter((it: any) => /[$€£]\s*\d|USD\s*\d|\d+\s*(?:dólares|euros)/i.test(it.value));
-      if (priceItems.length >= 2) {
-        const cheapest = priceItems.reduce((min: any, it: any) => {
-          const minVal = parseFloat(String(min.value).replace(/[^0-9.]/g, "")) || Infinity;
-          const iVal = parseFloat(String(it.value).replace(/[^0-9.]/g, "")) || Infinity;
-          return iVal < minVal ? it : min;
-        });
-        recommendation = `Basado en ${priceItems.length} precios validados, la opción más económica es "${cheapest.label}" (${cheapest.value}) según ${cheapest.sourceDomain}.`;
-      } else {
-        recommendation = `Encontré ${extractedData.items.length} datos validados de ${sources.length} fuentes. Cada dato respaldado por cita literal.`;
+      } catch {
+        // sin extracción premium — cae a card honesto con sources sin items enriquecidos
       }
-    } else {
-      recommendation = `Encontré ${sources.length} fuentes. Revisá los links para más detalle.`;
     }
+
+    // Recommendation PREMIUM: menciona diferencias específicas entre productos.
+    const recommendation = extractedData && extractedData.products.length > 0
+      ? buildPremiumRecommendation(extractedData.products)
+      : `Encontré ${sources.length} fuentes. Revisá los links para más detalle.`;
+
+    // Mapear products a ComparisonItem[] (shape del UiBlock).
+    const items = extractedData ? mapProductsToItems(extractedData.products) : [];
 
     const deferredDataCard: Promise<UiBlock> = Promise.resolve({
       type: "comparison",
       title: `Comparativa: ${query}`,
-      items: extractedData?.items.map((it: any) => ({
-        title: it.label, vendor: it.sourceDomain, url: it.sourceUrl,
-        price: /[$€£]\s*\d|USD\s*\d|\d+\s*(?:dólares|euros)/i.test(it.value) ? it.value : undefined,
-        evidence: it.quote,
-      })) ?? [],
+      items,
       recommendation,
       sources,
     } as UiBlock);
 
-    return { type: "comparison_deep", status: "ok", query, budget, extractedData, dataCard, recommendation, sources, deferredDataCard };
+    return {
+      type: "comparison_deep",
+      status: "ok",
+      query,
+      budget,
+      extractedData,
+      recommendation,
+      sources,
+      deferredDataCard,
+    };
   },
 };

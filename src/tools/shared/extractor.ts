@@ -10,7 +10,7 @@
  *   ({role, content}[], {temperature, maxTokens}) => {content}
  */
 
-import { extractStructuredData } from "../../domain/structureExtractor";
+import { extractStructuredData, extractComparisonData } from "../../domain/structureExtractor";
 import type { AssistantSource, UiBlock } from "../../domain/types";
 import type { ChatFn } from "../../domain/structureExtractor";
 
@@ -26,6 +26,23 @@ export async function validateWithCitations(
   chatFn: ChatFn,
 ): ReturnType<typeof extractStructuredData> {
   return extractStructuredData({ userInput, sources, chatFn });
+}
+
+/**
+ * Extrae PRODUCTOS (no items flat) para comparación premium. Cada producto
+ * tiene: name, price, specs[], rating, pros[], cons[], score.
+ * Valida campo-por-campo: si el LLM propone `rating: 4.9` sin cita respaldada,
+ * se descarta SOLO el rating (no el producto entero).
+ *
+ * @returns `ComparisonExtractionResult` con products validados, o null si
+ *          no hay sources usables o el LLM no devuelve nada confiable.
+ */
+export async function validateComparisonWithCitations(
+  userInput: string,
+  sources: AssistantSource[],
+  chatFn: ChatFn,
+): ReturnType<typeof extractComparisonData> {
+  return extractComparisonData({ userInput, sources, chatFn });
 }
 
 /**

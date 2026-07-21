@@ -108,6 +108,52 @@ export async function searchAndEnrich(query: string, max = 5): Promise<Assistant
   return usableSources(enriched);
 }
 
+/**
+ * 🔴 Task 15 — Fallback para IP-blocking de DuckDuckGo en Render.
+ *
+ * Si la primera tanda de queries devuelve 0 sources usables (lo que ocurre
+ * cuando DDG rate-limita o bloquea la IP de Render), reintenta la búsqueda
+ * SIN los filtros `site:` restrictivos — estos filtran demasiado y combinados
+ * con bloqueo dejan el resultado en 0.
+ *
+ * Estrategia:
+ *   1. Ejecutar las queries originales con `searchAndEnrich`.
+ *   2. Si se obtienen 0 sources usables, normalizar las queries quitando
+ *      `site:foo.com OR site:bar.com` y ejecutar la versión sin filtro.
+ *   3. Devolver la unión de ambos batches (deduplicada por usableSources).
+ *
+ * NO es interceptación determinista del LLM — solo es un retry con queries
+ * más amplias. El LLM sigue decidiendo qué tool llamar y con qué arguments.
+ */
+export async function searchAndEnrichWithFallback(queries: string[], max = 5): Promise<AssistantSource[]> {
+  // 1. Primer intento: queries originales (pueden tener `site:` filter).
+  const firstBatchArrays = await Promise.all(queries.map((q) => searchAndEnrich(q, max)));
+  const firstBatch = usableSources(firstBatchArrays.flat());
+
+  // Si ya hay sources usables, devolverlos sin reintento.
+  if (firstBatch.length > 0) {
+    return firstBatch.slice(0, max * 2);
+  }
+
+  // 2. Fallback: queries sin `site:` filter (más amplias).
+  //    Strip únicamente el patrón "site:dominio.com" o "OR site:dominio.com".
+  const fallbackQueries = queries
+    .map((q) => q.replace(/\s*(?:OR\s*)?site:[a-z0-9.-]+\s*/gi, " ").replace(/\s+/g, " ").trim())
+    .filter((q, i, arr) => q.length > 0 && arr.indexOf(q) === i);
+
+  // Si las queries fallback son idénticas a las originales, no hay nada que reintentar.
+  const sameAsOriginal = fallbackQueries.length === queries.length &&
+    fallbackQueries.every((q, i) => q === queries[i].replace(/\s*(?:OR\s*)?site:[a-z0-9.-]+\s*/gi, " ").replace(/\s+/g, " ").trim());
+  if (sameAsOriginal || fallbackQueries.length === 0) {
+    return [];
+  }
+
+  const fallbackBatchArrays = await Promise.all(fallbackQueries.map((q) => searchAndEnrich(q, max)));
+  const fallbackBatch = usableSources(fallbackBatchArrays.flat());
+
+  return fallbackBatch.slice(0, max * 2);
+}
+
 /** Comprueba si un texto menciona la query (para filtrar resultados irrelevantes). */
 export function mentions(text: string, query: string): boolean {
   const tokens = normalize(query).split(/\s+/).filter((t) => t.length > 2);

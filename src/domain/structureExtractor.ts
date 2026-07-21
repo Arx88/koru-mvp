@@ -271,3 +271,253 @@ export async function extractStructuredData(input: ExtractorInput): Promise<Extr
   if (validatedItems.length === 0) return null;
   return { title, items: validatedItems.slice(0, 8) };
 }
+
+// ───────────────────────────────────────────────────────────────────
+// COMPARISON EXTRACTOR — same anti-alucinación axioms, product-shaped output
+// ───────────────────────────────────────────────────────────────────
+
+/**
+ * Un producto extraído para comparación. Cada campo opcional debe estar
+ * respaldado por una cita LITERAL de algún source. Si el LLM propone un
+ * campo sin respaldo, se descarta SOLO ESE CAMPO (no el producto entero).
+ *
+ * `score` es determinista: (campos_validados / 5) * 10, capped at 10.
+ * 5 = campos esperados del schema ideal: price, rating, specs, pros, cons.
+ */
+export type ComparisonProduct = {
+  name: string;
+  price?: {
+    value: string;
+    quote: string;
+    sourceUrl: string;
+    sourceDomain: string;
+  };
+  rating?: {
+    value: number;
+    quote: string;
+    sourceUrl: string;
+    sourceDomain: string;
+  };
+  specs: Array<{
+    label: string;
+    value: string;
+    quote: string;
+    sourceUrl: string;
+    sourceDomain: string;
+  }>;
+  pros: Array<{
+    text: string;
+    quote: string;
+    sourceUrl: string;
+    sourceDomain: string;
+  }>;
+  cons: Array<{
+    text: string;
+    quote: string;
+    sourceUrl: string;
+    sourceDomain: string;
+  }>;
+  /** 0-10. (campos_validados / 5) * 10. Determinista, explicable. */
+  score: number;
+  /** Todas las fuentes que respaldan al menos un campo del producto. */
+  sources: Array<{ url: string; domain: string }>;
+  /** Mejor cita representativa del producto (para el `evidence` del card). */
+  summaryQuote?: string;
+};
+
+export type ComparisonExtractionResult = {
+  title: string;
+  products: ComparisonProduct[];
+};
+
+/** Número de campos esperados por producto — fija el denominador del score. */
+const COMPARISON_EXPECTED_FIELDS = 5;
+
+function buildComparisonPrompt(userInput: string, sources: AssistantSource[]): { system: string; user: string } {
+  const system = [
+    "Sos el extractor de comparación de productos de Koru. Tu trabajo: leer contenido web y extraer PRODUCTOS COMPLETOS con sus specs, precio, rating, pros y contras.",
+    "",
+    "Reglas ABSOLUTAS (no negociables):",
+    "1. Solo extraés datos que aparezcan LITERALMENTE en el contenido. Nunca inventás ni completás de memoria.",
+    "2. Por cada dato (precio, rating, spec, pro, contra), incluís una `quote`: la frase EXACTA del texto de dónde lo sacaste. Mínimo una oración completa.",
+    "3. Si el contenido no contiene un dato concreto, omití ese campo (NO lo inventes). El producto puede quedarse con menos campos.",
+    "4. Sacá hasta 4 productos. Si solo hay info de 1 producto, devolvés 1. Si no hay nada, devolvés products: [].",
+    "5. `name` es el nombre del producto (ej: 'Samsung Galaxy S24', 'iPhone 15').",
+    "6. `price.value` debe contener el precio crudo (ej: '$799', 'USD 859').",
+    "7. `rating.value` es un número (ej: 4.5).",
+    "8. `specs` es un array de {label, value, quote}. Label ej: 'Pantalla', 'RAM', 'Battery'. Value ej: '120Hz', '8GB', '5000mAh'.",
+    "9. `pros` y `cons` son arrays de {text, quote}. Texto corto, ej: 'Mejor pantalla', 'Sin jack de auriculares'.",
+    "",
+    "Devolvé SOLO JSON válido, sin markdown:",
+    '{"title":"Comparativa de ...","products":[{"name":"...","price":{"value":"$...","quote":"frase literal"},"rating":{"value":4.5,"quote":"frase literal"},"specs":[{"label":"Pantalla","value":"120Hz","quote":"frase literal"}],"pros":[{"text":"...","quote":"frase literal"}],"cons":[{"text":"...","quote":"frase literal"}]}]}',
+  ].join("\n");
+
+  const sourcesBlock = sources
+    .map((s, i) => {
+      const parts = [`[FUENTE ${i + 1}] ${s.domain}`];
+      if (s.title) parts.push(`Título: ${s.title}`);
+      if (s.snippet) parts.push(`Resumen: ${s.snippet}`);
+      if (s.content) parts.push(`Contenido: ${s.content.slice(0, 1000)}`);
+      return parts.join("\n");
+    })
+    .join("\n\n");
+
+  const user = [
+    `Pedido del usuario: "${userInput}"`,
+    "",
+    "Contenido recuperado de la web:",
+    sourcesBlock || "(sin contenido)",
+  ].join("\n");
+
+  return { system, user };
+}
+
+type RawCitedField = { value?: unknown; quote?: unknown };
+type RawSpec = { label?: unknown; value?: unknown; quote?: unknown };
+type RawProCon = { text?: unknown; quote?: unknown };
+type RawProduct = {
+  name?: unknown;
+  price?: RawCitedField;
+  rating?: RawCitedField;
+  specs?: unknown;
+  pros?: unknown;
+  cons?: unknown;
+};
+
+function validateCitedField<T>(
+  raw: RawCitedField | undefined,
+  parse: (rawValue: string) => T | null,
+  sources: AssistantSource[],
+): { value: T; quote: string; sourceUrl: string; sourceDomain: string } | null {
+  if (!raw) return null;
+  const valueStr = asString(raw.value as unknown);
+  const quote = asString(raw.quote as unknown);
+  if (!valueStr || !quote) return null;
+  const parsed = parse(valueStr);
+  if (parsed === null) return null;
+  const backing = findBackingSource(quote, sources);
+  if (!backing) return null;
+  return { value: parsed, quote, sourceUrl: backing.url, sourceDomain: backing.domain };
+}
+
+/**
+ * Ejecuta el extractor de comparación.
+ *
+ * @returns ComparisonExtractionResult con products validados campo-por-campo,
+ *          o null si no hay sources usables o el LLM no devolvió nada confiable.
+ */
+export async function extractComparisonData(input: ExtractorInput): Promise<ComparisonExtractionResult | null> {
+  const usableSources = input.sources.filter((s) => (s.snippet?.trim() ?? "") || (s.content?.trim() ?? ""));
+  if (usableSources.length === 0) return null;
+
+  const { system, user } = buildComparisonPrompt(input.userInput, usableSources);
+
+  let raw: unknown;
+  try {
+    const result = await input.chatFn(
+      [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+      { temperature: 0.1, maxTokens: 1500, responseFormat: { type: "json_object" } },
+    );
+    raw = parseJsonObjectStrict(stripReasoning(result.content));
+  } catch {
+    return null;
+  }
+
+  const obj = raw as Record<string, unknown>;
+  const title = asString(obj.title) || "Comparativa";
+  const rawProducts = Array.isArray(obj.products) ? (obj.products as RawProduct[]) : [];
+
+  const products: ComparisonProduct[] = [];
+  for (const rawProduct of rawProducts.slice(0, 4)) {
+    const name = asString(rawProduct.name);
+    if (!name || name.length < 2) continue;
+
+    const price = validateCitedField(rawProduct.price, (v) => v, usableSources);
+    const rating = validateCitedField(rawProduct.rating, (v) => {
+      const n = parseFloat(v);
+      return isNaN(n) ? null : n;
+    }, usableSources);
+
+    const rawSpecs = Array.isArray(rawProduct.specs) ? (rawProduct.specs as RawSpec[]) : [];
+    const specs = rawSpecs
+      .map((rs) => {
+        const label = asString(rs.label);
+        const value = asString(rs.value);
+        const quote = asString(rs.quote);
+        if (!label || !value || !quote) return null;
+        const backing = findBackingSource(quote, usableSources);
+        if (!backing) return null;
+        return { label, value, quote, sourceUrl: backing.url, sourceDomain: backing.domain };
+      })
+      .filter((s): s is NonNullable<typeof s> => s !== null)
+      .slice(0, 5);
+
+    const rawPros = Array.isArray(rawProduct.pros) ? (rawProduct.pros as RawProCon[]) : [];
+    const pros = rawPros
+      .map((rp) => {
+        const text = asString(rp.text);
+        const quote = asString(rp.quote);
+        if (!text || !quote) return null;
+        const backing = findBackingSource(quote, usableSources);
+        if (!backing) return null;
+        return { text, quote, sourceUrl: backing.url, sourceDomain: backing.domain };
+      })
+      .filter((p): p is NonNullable<typeof p> => p !== null)
+      .slice(0, 3);
+
+    const rawCons = Array.isArray(rawProduct.cons) ? (rawProduct.cons as RawProCon[]) : [];
+    const cons = rawCons
+      .map((rc) => {
+        const text = asString(rc.text);
+        const quote = asString(rc.quote);
+        if (!text || !quote) return null;
+        const backing = findBackingSource(quote, usableSources);
+        if (!backing) return null;
+        return { text, quote, sourceUrl: backing.url, sourceDomain: backing.domain };
+      })
+      .filter((c): c is NonNullable<typeof c> => c !== null)
+      .slice(0, 3);
+
+    // Score determinista: (campos_validados / 5) * 10
+    const validatedFields = [
+      price ? 1 : 0,
+      rating ? 1 : 0,
+      specs.length > 0 ? 1 : 0,
+      pros.length > 0 ? 1 : 0,
+      cons.length > 0 ? 1 : 0,
+    ].reduce((a, b) => a + b, 0);
+    const score = Math.round((validatedFields / COMPARISON_EXPECTED_FIELDS) * 10 * 10) / 10;
+
+    // Si NINGÚN campo está respaldado, descartar el producto entero.
+    if (validatedFields === 0) continue;
+
+    // Recopilar todas las fuentes que respaldan al producto.
+    const sourceMap = new Map<string, { url: string; domain: string }>();
+    if (price) sourceMap.set(price.sourceUrl, { url: price.sourceUrl, domain: price.sourceDomain });
+    if (rating) sourceMap.set(rating.sourceUrl, { url: rating.sourceUrl, domain: rating.sourceDomain });
+    for (const s of specs) sourceMap.set(s.sourceUrl, { url: s.sourceUrl, domain: s.sourceDomain });
+    for (const p of pros) sourceMap.set(p.sourceUrl, { url: p.sourceUrl, domain: p.sourceDomain });
+    for (const c of cons) sourceMap.set(c.sourceUrl, { url: c.sourceUrl, domain: c.sourceDomain });
+
+    // Mejor cita representativa: la del rating > precio > primer spec > primer pro.
+    const summaryQuote = rating?.quote ?? price?.quote ?? specs[0]?.quote ?? pros[0]?.quote ?? cons[0]?.quote;
+
+    products.push({
+      name,
+      price: price ?? undefined,
+      rating: rating ?? undefined,
+      specs,
+      pros,
+      cons,
+      score,
+      sources: Array.from(sourceMap.values()),
+      summaryQuote,
+    });
+  }
+
+  if (products.length === 0) return null;
+  return { title, products };
+}
