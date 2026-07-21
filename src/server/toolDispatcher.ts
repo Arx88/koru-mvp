@@ -55,6 +55,7 @@ export async function executeTool(
     else if (name === "web_search") {
       // Task 15: si el input contiene "compara X vs Y", redirigir a comparison_deep
       const combinedInput = String(args.__userInput ?? "") + " " + String(args.query ?? "");
+      logger.info("executeTool", "web_search check", { combinedInput: combinedInput.slice(0, 80), willIntercept: /\b(?:vs|versus)\b/i.test(combinedInput) || /compara\s+/i.test(combinedInput) });
       if (/\b(?:vs|versus)\b/i.test(combinedInput) || /compara\s+/i.test(combinedInput)) {
         const handler = TOOL_BOX.get("comparison_deep");
         if (handler) {
