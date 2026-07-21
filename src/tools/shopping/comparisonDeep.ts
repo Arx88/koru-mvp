@@ -45,7 +45,7 @@ export const comparisonDeep: ToolHandler = {
     const sources = usableSources(allResults.flat()).slice(0, 8);
 
     if (sources.length === 0) {
-      return { type: "comparison_deep", status: "failed", query, error: "No pude encontrar productos para comparar." };
+      return { type: "comparison_deep", status: "failed", query, error: "No pude encontrar productos para comparar.", queries: storeQueries, rawResultCount: allResults.flat().length };
     }
 
     let extractedData: ExtractionResult | null = null;
