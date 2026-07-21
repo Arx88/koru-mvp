@@ -4216,7 +4216,7 @@ export async function runKoruBackendTurn(
             const rawFallback: Record<string, unknown> = {
               reply: cleanReplyText(secondContent) || "No pude armar una respuesta clara. ¿Me lo repetís de otra forma?",
               understanding: { literalRequest: request.input, userGoal: route.category, unstatedNeeds: [], assumptions: [], confidence: 0.45 },
-              uiBlocks: blocksFromToolResults(toolExecutions),
+              uiBlocks: blocksFromToolResults(toolExecutions, request.input),
               suggestedActions: [], memoryCandidates: [], commitments: [], records: [], mascotState: "thinking",
             };
             const response = await finalizeFromPlainText(rawFallback, [syntheticToolCall], request, config, toolExecutions, extractorTimeout);
@@ -4330,7 +4330,7 @@ export async function runKoruBackendTurn(
 
     // Emitir chunk intermedio con los resultados de tools para progreso en tiempo real
     if (onChunk && toolExecutions.length > 0) {
-      const intermediateBlocks = blocksFromToolResults(toolExecutions).map((b) => {
+      const intermediateBlocks = blocksFromToolResults(toolExecutions, request.input).map((b) => {
         if (b.type === "web_nav") return null as any; // 🔴 FIX: no more web_nav loading
         return b;
       });
@@ -4404,7 +4404,7 @@ export async function runKoruBackendTurn(
             assumptions: [],
             confidence: 0.45,
           },
-          uiBlocks: [...validDeferredCards, ...blocksFromToolResults(toolExecutions)],
+          uiBlocks: [...validDeferredCards, ...blocksFromToolResults(toolExecutions, request.input)],
           suggestedActions: [],
           memoryCandidates: [],
           commitments: [],
@@ -4541,7 +4541,7 @@ export async function runKoruBackendTurn(
       const rawFallback: Record<string, unknown> = {
         reply: cleanReplyText(secondContent) || "No pude armar una respuesta clara. ¿Me lo repetís de otra forma?",
         understanding: { literalRequest: request.input, userGoal: "Resolver el pedido con ayuda de Koru.", unstatedNeeds: [], assumptions: [], confidence: 0.45 },
-        uiBlocks: blocksFromToolResults(toolExecutions),
+        uiBlocks: blocksFromToolResults(toolExecutions, request.input),
         suggestedActions: [], memoryCandidates: [], commitments: [], records: [], mascotState: "thinking",
       };
       const response = await finalizeFromPlainText(rawFallback, [syntheticToolCall], request, config, toolExecutions, extractorTimeout);
@@ -4610,7 +4610,7 @@ export async function runKoruBackendTurn(
           assumptions: [],
           confidence: 0.45,
         },
-        uiBlocks: blocksFromToolResults(toolExecutions),
+        uiBlocks: blocksFromToolResults(toolExecutions, request.input),
         suggestedActions: [],
         memoryCandidates: [],
         commitments: [],
