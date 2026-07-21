@@ -8,6 +8,7 @@ import { defineTool, policies, type ToolHandler } from "../types";
 import { searchAndEnrich, usableSources } from "../shared/scrapers";
 import { validateWithCitations, extractionToDataCard } from "../shared/extractor";
 import { fetchJson, fetchText } from "../shared/fetcher";
+import { findBackingSource } from "../../domain/structureExtractor";
 import type { UiBlock } from "../../domain/types";
 import { searchPlacesOSM } from "./osmPlaces";
 
@@ -358,11 +359,20 @@ export const restaurantDeepSearch: ToolHandler = {
         const jsonText = result.content.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
         const parsed = JSON.parse(jsonText);
         if (Array.isArray(parsed.matches)) {
-          matches = parsed.matches.slice(0, 3).map((m: Record<string, unknown>) => ({
+          // 🔴 V5: anti-hallucination — validate each match's `quote` against
+          // the sources using the SAME validator that `validateWithCitations`
+          // uses internally (findBackingSource, en structureExtractor.ts).
+          // Si la quote del LLM no aparece literalmente en ningún source, el
+          // match se descarta como alucinación. Antes confiábamos en
+          // ctx.chatFn directo y cualquier invento del modelo pasaba al user.
+          const rawMatches = parsed.matches.slice(0, 3).map((m: Record<string, unknown>) => ({
             name: String(m.name ?? "").trim(),
             sourcesMentioning: Math.max(0, Math.min(sourceCount, Number(m.sourcesMentioning ?? 0))),
             quote: m.quote ? String(m.quote).slice(0, 120) : undefined,
-          })).filter((m: { name: string }) => m.name.length > 1);
+          })) as Array<{ name: string; sourcesMentioning: number; quote?: string }>;
+          matches = rawMatches
+            .filter((m) => m.name.length > 1)
+            .filter((m) => typeof m.quote === "string" && m.quote.length > 0 && findBackingSource(m.quote, sources) !== null);
         }
         if (Array.isArray(parsed.pros)) pros = parsed.pros.map((p: unknown) => String(p).trim()).filter(Boolean).slice(0, 3);
         if (Array.isArray(parsed.cons)) cons = parsed.cons.map((c: unknown) => String(c).trim()).filter(Boolean).slice(0, 3);
@@ -381,12 +391,15 @@ export const restaurantDeepSearch: ToolHandler = {
         const candidates = text.match(/\b([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+(?:de|del|la|el)\s+|\s+)[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)\b/g) ?? [];
         for (const c of candidates) {
           const lower = c.toLowerCase();
-          if (/restaurante|bar|cafe|parrilla|sushi|trattoria|bistró|bistro|comida|gastronom/.test(lower)) continue;
+          // 🔴 V5: filtro expandido — descarta genéricos gastronómicos EN/ES
+          // y adjetivos listicle ("best", "top") que aparecían como falsos
+          // positivos en queries tipo "Best Italian Restaurants".
+          if (/restaurante|restaurants|bar|cafe|parrilla|sushi|trattoria|bistró|bistro|comida|gastronom|italian|french|best|top/.test(lower)) continue;
           nameCount.set(c, (nameCount.get(c) ?? 0) + 1);
         }
       }
       matches = Array.from(nameCount.entries())
-        .filter(([, n]) => n >= 1)
+        .filter(([, n]) => n >= 2)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 3)
         .map(([name, n]): RestaurantMatch => ({ name, sourcesMentioning: Math.min(sourceCount, n) }));
