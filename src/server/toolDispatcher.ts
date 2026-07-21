@@ -79,6 +79,7 @@ export async function executeTool(
     else if (name === "shopping_compare") {
       // Task 15: si el input o query contiene "vs" o "versus", usar comparison_deep (scraping real)
       const combinedInput = String(args.__userInput ?? "") + " " + String(args.query ?? "");
+      logger.info("executeTool", "shopping_compare intercepted", { combinedInput: combinedInput.slice(0, 100), hasUserInput: !!args.__userInput, hasQuery: !!args.query });
       if (/\b(?:vs|versus)\b/i.test(combinedInput) || /compara/i.test(combinedInput) || /mejor\s+(?:precio|opcion)/i.test(combinedInput)) {
         const handler = TOOL_BOX.get("comparison_deep");
         if (handler) {
