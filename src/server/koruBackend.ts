@@ -465,7 +465,7 @@ export const ALL_TOOL_DEFINITIONS = [
  * 95% de los casos de uso reales de un asistente personal.
  */
 const CORE_TOOL_NAMES = new Set([
-  "weather", "web_search", "shopping_compare", "plan_day",
+  "weather", "web_search", "shopping_compare", "comparison_deep", "plan_day",
   "query_personal_context", "save_memory", "save_personal_item",
   "crypto_price", "stock_quote", "currency_convert", "expense_track",
   "match_live", "match_schedule", "tennis_live",
