@@ -4448,10 +4448,23 @@ export async function runKoruBackendTurn(
     if (validDeferredCards.length > 0) {
       raw.uiBlocks = [...validDeferredCards, ...asArray(raw.uiBlocks)];
     }
-    // Task 15: si el usuario pidió comparar y no hay cards, generar comparison card desde toolExecutions
+    // Task 15: si el usuario pidió comparar y no hay cards, ejecutar búsqueda directamente
     const userWantsComparison = /compara/i.test(request.input) || /\b(?:vs|versus)\b/i.test(request.input);
     const currentBlocks = asArray(raw.uiBlocks);
-    if (userWantsComparison && currentBlocks.length === 0 && toolExecutions.length > 0) {
+    if (userWantsComparison && currentBlocks.length === 0) {
+      // Si no hay toolExecutions con sources, ejecutar runSearch directamente
+      const hasSearchResults = toolExecutions.some(t => {
+        const r = t.result as any;
+        return r?.type === "search" && Array.isArray(r?.sources) && r.sources.length > 0;
+      });
+      if (!hasSearchResults) {
+        try {
+          const searchData = await runSearch({ query: request.input, mode: "world" } as any, true);
+          toolExecutions.push({ id: `proactive_search_${Date.now()}`, name: "web_search", result: searchData });
+        } catch {
+          // sin búsqueda proactiva
+        }
+      }
       const toolBlocks = blocksFromToolResults(toolExecutions, request.input);
       if (toolBlocks.length > 0) {
         raw.uiBlocks = toolBlocks;
