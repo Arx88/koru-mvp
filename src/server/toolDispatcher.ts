@@ -53,12 +53,45 @@ export async function executeTool(
       result = await getWeather(argsWithCity) as unknown as Record<string, unknown>;
     }
     else if (name === "web_search") {
-      const searchData = await runSearch(args, false, extractorCtx);
-      deferredDataCard = searchData.deferredDataCard;
-      result = searchData as unknown as Record<string, unknown>;
+      // Task 15: si el input contiene "compara" o "vs", usar comparison_deep
+      const combinedInput = String(args.__userInput ?? "") + " " + String(args.query ?? "");
+      if (/compara/i.test(combinedInput) || /\b(?:vs|versus)\b/i.test(combinedInput)) {
+        const handler = TOOL_BOX.get("comparison_deep");
+        if (handler) {
+          const runResult = await handler.run(
+            { query: String(args.query ?? args.__userInput ?? "") },
+            { userInput: String(args.__userInput ?? args.query ?? ""), state, chatFn: extractorCtx?.chatFn as never },
+          ) as any;
+          deferredDataCard = runResult?.deferredDataCard;
+          result = { type: "comparison_deep", status: "ok" };
+        } else {
+          const searchData = await runSearch(args, false, extractorCtx);
+          deferredDataCard = searchData.deferredDataCard;
+          result = searchData as unknown as Record<string, unknown>;
+        }
+      } else {
+        const searchData = await runSearch(args, false, extractorCtx);
+        deferredDataCard = searchData.deferredDataCard;
+        result = searchData as unknown as Record<string, unknown>;
+      }
     }
     else if (name === "shopping_compare") {
-      result = await runSearch(args, true) as unknown as Record<string, unknown>;
+      const combinedInput = String(args.__userInput ?? "") + " " + String(args.query ?? "");
+      if (/compara/i.test(combinedInput) || /\b(?:vs|versus)\b/i.test(combinedInput)) {
+        const handler = TOOL_BOX.get("comparison_deep");
+        if (handler) {
+          const runResult = await handler.run(
+            { query: String(args.query ?? args.__userInput ?? ""), budget: String(args.budget ?? "") },
+            { userInput: String(args.__userInput ?? args.query ?? ""), state, chatFn: extractorCtx?.chatFn as never },
+          ) as any;
+          deferredDataCard = runResult?.deferredDataCard;
+          result = { type: "comparison_deep", status: "ok" };
+        } else {
+          result = await runSearch(args, true) as unknown as Record<string, unknown>;
+        }
+      } else {
+        result = await runSearch(args, true) as unknown as Record<string, unknown>;
+      }
     }
     else if (name === "route_traffic") result = await runSearch({ ...args, mode: "research", query: cleanText(args.query) || [cleanText(args.origin), cleanText(args.destination)].filter(Boolean).join(" a ") || cleanText(args.__userInput) }, false) as unknown as Record<string, unknown>;
     else if (name === "calendar_reminder") result = localReminderFromArgs(args, cleanText(args.__userInput)) as unknown as Record<string, unknown>;
