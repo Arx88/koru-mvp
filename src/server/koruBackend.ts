@@ -1758,11 +1758,24 @@ export async function runSearch(
     })();
   }
 
+  // 🔴 V5: recommendation honesta. Cuando el extractor no encuentra datos
+  // validados (o corrió async y todavía no sabemos el resultado), el summary
+  // del shopping card dice simple y honestamente: "Encontré N fuentes sobre
+  // X. Mirá los links arriba para specs y precios." — sin inventar precios,
+  // specs ni scores. Si el extractor deferred sí encuentra datos validados,
+  // esos viajan por separado en deferredDataCard (data_card con quotes
+  // respaldadas) y aparecen debajo del comparison card.
+  const honestShoppingSummary = sources.length
+    ? `Encontré ${sources.length} fuente${sources.length === 1 ? "" : "s"} sobre "${query}". Mirá los links arriba para specs y precios.`
+    : "No pude conseguir fuentes útiles con los conectores abiertos. No inventes resultados.";
+
   return {
     type: "search",
     mode,
     title: shopping ? "Comparativa" : mode === "news" ? "Noticias importantes" : mode === "world" ? "El mundo esta hablando de esto" : "Busqueda",
-    summary: sources.length ? "" : "No pude conseguir fuentes útiles con los conectores abiertos. No inventes resultados.",
+    summary: sources.length
+      ? (shopping ? honestShoppingSummary : "")
+      : "No pude conseguir fuentes útiles con los conectores abiertos. No inventes resultados.",
     sources,
     comparisonItems,
     deferredDataCard,
