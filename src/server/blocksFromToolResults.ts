@@ -81,17 +81,59 @@ export function blocksFromToolResults(results: ToolExecution[], userInput?: stri
       continue;
     }
     if (result.type === "restaurant_deep_search") {
-      const search = result as unknown as { query: string; matches?: Array<{ name: string; sourcesMentioning: number; quote?: string; menuHighlights?: Array<{ dish: string; price?: string }> }>; topScore?: string; pros?: string[]; cons?: string[]; synthesis?: string; sources?: AssistantSource[]; status?: string };
+      // Task 15-FIX2: widen the cast to expose ALL premium fields produced by the tool
+      // at runtime. TS doesn't strip fields at runtime, but a narrow cast hides them
+      // from downstream code and creates silent type debt. Explicitly declaring them
+      // here makes the contract between tool and UiBlock visible and type-safe.
+      const search = result as unknown as {
+        query: string;
+        matches?: Array<{
+          name: string;
+          sourcesMentioning: number;
+          quote?: string;
+          imageUrl?: string;
+          rating?: number;
+          // Google Places enrichment
+          placeId?: string;
+          lat?: number;
+          lng?: number;
+          address?: string;
+          phone?: string;
+          ratingCount?: number;
+          priceLevel?: number;
+          photos?: string[];
+          reserveUrl?: string;
+          distanceFromUser?: string;
+          menuHighlights?: Array<{ dish: string; price?: string }>;
+          // 🔴 Premium fields (Task 15-FIX2)
+          cuisine?: string;
+          typicalDishes?: string[];
+          averagePrice?: string;
+          reviewSummary?: string;
+        }>;
+        topScore?: string;
+        pros?: string[];
+        cons?: string[];
+        synthesis?: string;
+        sources?: AssistantSource[];
+        status?: string;
+        note?: string;
+        mood?: string;
+      };
+      // Pass-through: el array matches ya viene completo desde el tool (con todos los
+      // campos premium). Aquí lo dejamos pasar sin acotar — el renderer decidirá cuáles
+      // mostrar. NO tocar presentation.ts.
       blocks.push({
         type: "restaurant_synthesis" as const,
         title: search.query || "Restaurantes encontrados",
         status: search.status === "ok" ? "ok" as const : search.status === "failed" ? "failed" as const : "partial" as const,
-        matches: search.matches || [],
+        matches: (search.matches ?? []) as any,
         topScore: search.topScore,
         pros: search.pros,
         cons: search.cons,
         synthesis: search.synthesis,
         sources: search.sources || [],
+        note: search.note,
       });
       continue;
     }
