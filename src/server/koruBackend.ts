@@ -4460,13 +4460,16 @@ export async function runKoruBackendTurn(
       });
       if (!hasSearchResults) {
         try {
+          logger.info("runKoruBackendTurn", "Proactive search for comparison", { query: request.input, toolExecCount: toolExecutions.length });
           const searchData = await runSearch({ query: request.input, mode: "world" } as any, true);
+          logger.info("runKoruBackendTurn", "Proactive search result", { type: searchData.type, sourcesCount: searchData.sources?.length, hasComparisonItems: !!searchData.comparisonItems?.length });
           toolExecutions.push({ id: `proactive_search_${Date.now()}`, name: "web_search", result: searchData });
-        } catch {
-          // sin búsqueda proactiva
+        } catch (err: any) {
+          logger.warn("runKoruBackendTurn", "Proactive search failed", { error: err?.message });
         }
       }
       const toolBlocks = blocksFromToolResults(toolExecutions, request.input);
+      logger.info("runKoruBackendTurn", "blocksFromToolResults for comparison", { blockCount: toolBlocks.length, isComparisonQuery: !!userWantsComparison });
       if (toolBlocks.length > 0) {
         raw.uiBlocks = toolBlocks;
       }
