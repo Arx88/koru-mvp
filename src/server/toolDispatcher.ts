@@ -46,8 +46,6 @@ export async function executeTool(
   let result: Record<string, unknown>;
   let deferredDataCard: Promise<UiBlock | null> | undefined;
   try {
-    // DEBUG: mark that executeTool was called
-    result = { _debug: `executeTool:${name}`, _hasUserInput: !!args.__userInput, _userInput: String(args.__userInput ?? "").slice(0, 50) };
     if (name === "weather") {
       // Resolver ciudad desde el perfil si el mensaje no la trae: la ciudad se
       // pregunta UNA vez en la vida, después Koru la sabe.
@@ -55,55 +53,12 @@ export async function executeTool(
       result = await getWeather(argsWithCity) as unknown as Record<string, unknown>;
     }
     else if (name === "web_search") {
-      // Task 15: si el input contiene "compara X vs Y", redirigir a comparison_deep
-      const combinedInput = String(args.__userInput ?? "") + " " + String(args.query ?? "");
-      const shouldIntercept = /\b(?:vs|versus)\b/i.test(combinedInput) || /compara\s+/i.test(combinedInput);
-      if (shouldIntercept) {
-        const handler = TOOL_BOX.get("comparison_deep");
-        if (handler) {
-          try {
-            const runResult = await handler.run({ query: args.query ?? args.__userInput ?? "" }, {
-              userInput: cleanText(args.__userInput ?? args.query),
-              state,
-              chatFn: extractorCtx?.chatFn,
-            });
-            deferredDataCard = (runResult as any)?.deferredDataCard;
-            const { deferredDataCard: _dd, ...cleanResult } = runResult as any;
-            result = { ...cleanResult, _intercepted: "comparison_deep" } as Record<string, unknown>;
-          } catch (err: any) {
-            result = { type: "comparison_deep", status: "error", error: String(err?.message ?? err).slice(0, 200), _intercepted: true };
-          }
-        } else {
-          result = { type: "web_search", status: "error", error: "comparison_deep not in TOOL_BOX", _intercepted: true };
-        }
-      } else {
-        const searchData = await runSearch(args, false, extractorCtx);
-        deferredDataCard = searchData.deferredDataCard;
-        result = searchData as unknown as Record<string, unknown>;
-      }
+      const searchData = await runSearch(args, false, extractorCtx);
+      deferredDataCard = searchData.deferredDataCard;
+      result = searchData as unknown as Record<string, unknown>;
     }
     else if (name === "shopping_compare") {
-      // Task 15: si el input o query contiene "vs" o "versus", usar comparison_deep (scraping real)
-      const combinedInput = String(args.__userInput ?? "") + " " + String(args.query ?? "");
-      logger.info("executeTool", "shopping_compare intercepted", { combinedInput: combinedInput.slice(0, 100), hasUserInput: !!args.__userInput, hasQuery: !!args.query });
-      if (/\b(?:vs|versus)\b/i.test(combinedInput) || /compara/i.test(combinedInput) || /mejor\s+(?:precio|opcion)/i.test(combinedInput)) {
-        const handler = TOOL_BOX.get("comparison_deep");
-        if (handler) {
-          const runResult = await handler.run({ query: args.query ?? args.__userInput ?? "", budget: args.budget }, {
-            userInput: cleanText(args.__userInput ?? args.query),
-            state,
-            chatFn: extractorCtx?.chatFn,
-          });
-          deferredDataCard = (runResult as any)?.deferredDataCard;
-          // Strip deferredDataCard (Promise) from result to avoid serialization issues
-          const { deferredDataCard: _dd, ...cleanResult } = runResult as any;
-          result = cleanResult as Record<string, unknown>;
-        } else {
-          result = await runSearch(args, true) as unknown as Record<string, unknown>;
-        }
-      } else {
-        result = await runSearch(args, true) as unknown as Record<string, unknown>;
-      }
+      result = await runSearch(args, true) as unknown as Record<string, unknown>;
     }
     else if (name === "route_traffic") result = await runSearch({ ...args, mode: "research", query: cleanText(args.query) || [cleanText(args.origin), cleanText(args.destination)].filter(Boolean).join(" a ") || cleanText(args.__userInput) }, false) as unknown as Record<string, unknown>;
     else if (name === "calendar_reminder") result = localReminderFromArgs(args, cleanText(args.__userInput)) as unknown as Record<string, unknown>;
