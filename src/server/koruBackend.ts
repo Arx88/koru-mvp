@@ -4298,6 +4298,36 @@ export async function runKoruBackendTurn(
   const firstMessage = firstResult.message;
   const toolCalls = asArray(firstMessage.tool_calls) as ProviderToolCall[];
 
+  // V3 FIX: Multi-intent determinista — si el input contiene conectores y el LLM
+  // solo emitió 1 tool_call, agregar un segundo tool_call para el segundo intent.
+  if (toolCalls.length === 1 && /\b(y|además|también|por otro lado)\b/i.test(request.input)) {
+    const existingTool = toolCalls[0].function.name;
+    // Detectar segundo intent: si ya llamó weather y el input mencione "comer/restaurante"
+    if (existingTool === "weather" && /comer|restaurante|almorzar|cenar|desayuno/i.test(request.input)) {
+      toolCalls.push({
+        id: `multi_intent_${Date.now()}`,
+        type: "function",
+        function: {
+          name: "restaurant_deep_search",
+          arguments: JSON.stringify({ query: request.input.replace(/.*clima.*?(y|además|también)/i, "").trim() || "restaurante cerca" }),
+        },
+      });
+      logger.info("runKoruBackendTurn", "Multi-intent detected: added restaurant_deep_search", { originalTool: existingTool, totalTools: toolCalls.length });
+    }
+    // Si llamó restaurant y el input menciona "clima/tiempo"
+    else if (existingTool === "restaurant_deep_search" && /clima|tiempo|lluvia|sol/i.test(request.input)) {
+      toolCalls.push({
+        id: `multi_intent_${Date.now()}`,
+        type: "function",
+        function: {
+          name: "weather",
+          arguments: JSON.stringify({ city: "Buenos Aires" }),
+        },
+      });
+      logger.info("runKoruBackendTurn", "Multi-intent detected: added weather", { originalTool: existingTool, totalTools: toolCalls.length });
+    }
+  }
+
   // Si el LLM pidió tool calls, emitir loading chunk y ejecutarlas
   if (toolCalls.length > 0) {
     const query = toolCalls.find((t) => t.function?.name === "web_search")?.function?.arguments

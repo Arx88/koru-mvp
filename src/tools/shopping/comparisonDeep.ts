@@ -171,9 +171,25 @@ export const comparisonDeep: ToolHandler = {
     }
 
     // Recommendation PREMIUM: menciona diferencias específicas entre productos.
-    const recommendation = extractedData && extractedData.products.length > 0
-      ? buildPremiumRecommendation(extractedData.products)
-      : `Encontré ${sources.length} fuentes con información sobre "${query}". Te dejo los links con specs y precios para que compares.`;
+    // V3 FIX: si extractedData es null pero hay sources con snippets que mencionan specs/precios,
+    // generar recommendation del contenido real en vez de plantilla genérica.
+    let recommendation: string;
+    if (extractedData && extractedData.products.length > 0) {
+      recommendation = buildPremiumRecommendation(extractedData.products);
+    } else {
+      // Buscar specs/precios en los snippets reales de los sources
+      const allSnippets = sources.map((s: any) => `${s.title} ${s.snippet ?? ""}`).join(" ");
+      const priceMatches = allSnippets.match(/\$\d[\d,.]*|\d[\d.,]*\s*(?:dólares|euros|USD|EUR)/gi) || [];
+      const specMatches = allSnippets.match(/\d+\s*(?:GB|TB|MP|mAh|GHz|Hz|cores?|K|p)\b/gi) || [];
+      if (priceMatches.length > 0 || specMatches.length > 0) {
+        const parts: string[] = [];
+        if (specMatches.length > 0) parts.push(`Specs detectadas: ${specMatches.slice(0, 4).join(", ")}`);
+        if (priceMatches.length > 0) parts.push(`Precios encontrados: ${priceMatches.slice(0, 3).join(", ")}`);
+        recommendation = `Encontré ${sources.length} fuentes. ${parts.join(". ")}. Compará las opciones arriba.`;
+      } else {
+        recommendation = `Encontré ${sources.length} fuentes con información sobre "${query}". Te dejo los links con specs y precios para que compares.`;
+      }
+    }
 
     // Mapear products a ComparisonItem[] (shape del UiBlock).
     // V2 FIX: si extractedData es null, usar los sources como items con evidence real
