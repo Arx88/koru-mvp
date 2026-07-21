@@ -382,28 +382,12 @@ export const restaurantDeepSearch: ToolHandler = {
       }
     }
 
-    // 3. Fallback léxico de coincidencias si el LLM no devolvió nada.
-    if (matches.length === 0 && sourceCount >= 2) {
-      // Detectar nombres propios (Capitalized) repetidos entre fuentes.
-      const nameCount = new Map<string, number>();
-      for (const s of sources) {
-        const text = `${s.title} ${s.snippet ?? ""} ${s.content ?? ""}`;
-        const candidates = text.match(/\b([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+(?:de|del|la|el)\s+|\s+)[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)\b/g) ?? [];
-        for (const c of candidates) {
-          const lower = c.toLowerCase();
-          // 🔴 V5: filtro expandido — descarta genéricos gastronómicos EN/ES
-          // y adjetivos listicle ("best", "top") que aparecían como falsos
-          // positivos en queries tipo "Best Italian Restaurants".
-          if (/restaurante|restaurants|bar|cafe|parrilla|sushi|trattoria|bistró|bistro|comida|gastronom|italian|french|best|top/.test(lower)) continue;
-          nameCount.set(c, (nameCount.get(c) ?? 0) + 1);
-        }
-      }
-      matches = Array.from(nameCount.entries())
-        .filter(([, n]) => n >= 2)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 3)
-        .map(([name, n]): RestaurantMatch => ({ name, sourcesMentioning: Math.min(sourceCount, n) }));
-    }
+    // 3. 🔴 ITER1-FIX 2: NO fallback léxico. Antes hacíamos matching de
+    // nombres propios con regex sobre el texto de los sources, lo que
+    // fabricaba falsos positivos ("Don Julio" matcheado por regex de
+    // Capitalized + Capitalized, sin contexto real).
+    // Si el LLM no devolvió matches con quote respaldada, devolvemos
+    // matches: [] + note honesto. Sin invención.
 
     // 🔴 v3: enriquecer top matches con Google Places API (photos, rating, address,
     //        phone, priceLevel, reserveUrl, lat/lng). Best-effort: si no hay API key
@@ -467,9 +451,13 @@ export const restaurantDeepSearch: ToolHandler = {
     const topScore = matches.length > 0 ? `${matches[0].sourcesMentioning}/${sourceCount}` : undefined;
     const status: "ok" | "partial" = sourceCount >= 3 && matches.length >= 1 ? "ok" : "partial";
 
-    const note = status === "partial"
-      ? `Solo crucé ${sourceCount} fuente(s). Para una recomendación confiable probá especificar barrio o tipo de cocina. No invento.`
-      : `Cruzadas ${sourceCount} fuentes. Cada coincidencia respaldada por cita.`;
+    // 🔴 ITER1-FIX 2: si matches quedó vacío (LLM falló o no devolvió nada),
+    // note honesto en vez de fabricar que sí encontró.
+    const note = matches.length === 0
+      ? "No pude identificar restaurantes específicos en las fuentes. Revisá los links abajo."
+      : status === "partial"
+        ? `Solo crucé ${sourceCount} fuente(s). Para una recomendación confiable probá especificar barrio o tipo de cocina. No invento.`
+        : `Cruzadas ${sourceCount} fuentes. Cada coincidencia respaldada por cita.`;
 
     // Generar card visual restaurant_synthesis para que el frontend lo renderice.
     const deferredDataCard: Promise<UiBlock> = Promise.resolve({
