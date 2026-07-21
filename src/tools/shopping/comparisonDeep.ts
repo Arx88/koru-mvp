@@ -173,10 +173,19 @@ export const comparisonDeep: ToolHandler = {
     // Recommendation PREMIUM: menciona diferencias específicas entre productos.
     const recommendation = extractedData && extractedData.products.length > 0
       ? buildPremiumRecommendation(extractedData.products)
-      : `Encontré ${sources.length} fuentes. Revisá los links para más detalle.`;
+      : `Encontré ${sources.length} fuentes con información sobre "${query}". Te dejo los links con specs y precios para que compares.`;
 
     // Mapear products a ComparisonItem[] (shape del UiBlock).
-    const items = extractedData ? mapProductsToItems(extractedData.products) : [];
+    // V2 FIX: si extractedData es null, usar los sources como items con evidence real
+    const items = extractedData && extractedData.products.length > 0
+      ? mapProductsToItems(extractedData.products)
+      : sources.map((s: any) => ({
+          title: s.title || s.domain,
+          vendor: s.domain,
+          url: s.url,
+          evidence: (s.snippet ?? s.content ?? "").slice(0, 200),
+          details: [],
+        }));
 
     const deferredDataCard: Promise<UiBlock> = Promise.resolve({
       type: "comparison",
