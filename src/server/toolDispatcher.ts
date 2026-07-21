@@ -46,6 +46,8 @@ export async function executeTool(
   let result: Record<string, unknown>;
   let deferredDataCard: Promise<UiBlock | null> | undefined;
   try {
+    // DEBUG: mark that executeTool was called
+    result = { _debug: `executeTool:${name}`, _hasUserInput: !!args.__userInput, _userInput: String(args.__userInput ?? "").slice(0, 50) };
     if (name === "weather") {
       // Resolver ciudad desde el perfil si el mensaje no la trae: la ciudad se
       // pregunta UNA vez en la vida, después Koru la sabe.
