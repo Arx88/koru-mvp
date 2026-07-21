@@ -56,13 +56,6 @@ export async function executeTool(
       // Task 15: si el input contiene "compara" o "vs", usar comparison_deep
       const combinedInput = String(args.__userInput ?? "") + " " + String(args.query ?? "");
       const shouldIntercept = /compara/i.test(combinedInput) || /\b(?:vs|versus)\b/i.test(combinedInput);
-      logger.info("executeTool", "web_search interception check", {
-        hasUserInput: !!args.__userInput,
-        userInputPreview: String(args.__userInput ?? "").slice(0, 60),
-        queryPreview: String(args.query ?? "").slice(0, 60),
-        combinedPreview: combinedInput.slice(0, 80),
-        shouldIntercept,
-      });
       if (shouldIntercept) {
         const handler = TOOL_BOX.get("comparison_deep");
         if (handler) {
@@ -71,7 +64,7 @@ export async function executeTool(
             { userInput: String(args.__userInput ?? args.query ?? ""), state, chatFn: extractorCtx?.chatFn as never },
           ) as any;
           deferredDataCard = runResult?.deferredDataCard;
-          result = { type: "comparison_deep", status: "ok" };
+          result = { type: "comparison_deep", status: "ok", reply: "Comparé los productos. Mirá la tarjeta arriba." };
         } else {
           const searchData = await runSearch(args, false, extractorCtx);
           deferredDataCard = searchData.deferredDataCard;
