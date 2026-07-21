@@ -58,7 +58,7 @@ export const comparisonDeep: ToolHandler = {
       } catch { /* sin extracción */ }
     }
 
-    let dataCard = null;
+    let dataCard: UiBlock | null = null;
     if (extractedData) dataCard = extractionToDataCard(extractedData);
 
     let recommendation = "";
