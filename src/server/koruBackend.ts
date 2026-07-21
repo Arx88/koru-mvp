@@ -4448,10 +4448,11 @@ export async function runKoruBackendTurn(
     if (validDeferredCards.length > 0) {
       raw.uiBlocks = [...validDeferredCards, ...asArray(raw.uiBlocks)];
     }
-    // Task 15: si el usuario pidió comparar y no hay cards, ejecutar búsqueda directamente
+    // Task 15: si el usuario pidió comparar y no hay COMPARISON card, ejecutar búsqueda
     const userWantsComparison = /compara/i.test(request.input) || /\b(?:vs|versus)\b/i.test(request.input);
     const currentBlocks = asArray(raw.uiBlocks);
-    if (userWantsComparison && currentBlocks.length === 0) {
+    const hasComparisonCard = currentBlocks.some((b: any) => b?.type === "comparison");
+    if (userWantsComparison && !hasComparisonCard) {
       // Si no hay toolExecutions con sources, ejecutar runSearch directamente
       const hasSearchResults = toolExecutions.some(t => {
         const r = t.result as any;
