@@ -2818,7 +2818,7 @@ export async function buildEnhancementInstruction(
   enhancementActions: KoruSuggestedAction[];
 }> {
   try {
-    const uiBlocks = blocksFromToolResults(toolExecutions);
+    const uiBlocks = blocksFromToolResults(toolExecutions, request.input);
 
     const toolBlocks: ToolResult[] = toolExecutions.flatMap((t) => {
       const resultStatus = (t.result as Record<string, unknown> | undefined)?.status;
@@ -3852,7 +3852,7 @@ export async function runKoruBackendTurn(
       // El reply se genera con replyFromBlocks (mecánico pero rápido).
       // Esto elimina los timeouts causados por múltiples LLM calls.
       const fastConfig = { ...config, nvidiaModel: config.nvidiaModel };
-      const toolBlocks = blocksFromToolResults(toolExecutions);
+      const toolBlocks = blocksFromToolResults(toolExecutions, request.input);
       const blockReply = replyFromBlocks(toolBlocks, request.input);
       const taskKicker = fastPathKickerForCategory(routeCategory ?? "conversation");
       const effectiveReply = blockReply || `Te dejé ${taskKicker.toLowerCase()} en la tarjeta.`;

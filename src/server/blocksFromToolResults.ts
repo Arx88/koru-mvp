@@ -27,8 +27,11 @@ import {
   type LocalActionData,
 } from "./koruBackend";
 
-export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
+export function blocksFromToolResults(results: ToolExecution[], userInput?: string): UiBlock[] {
   const blocks: UiBlock[] = [];
+  // Task 15: si el usuario pidió comparar productos, generar comparison card
+  // en vez de deliverable genérico
+  const isComparisonQuery = userInput && (/compara/i.test(userInput) || /\b(?:vs|versus)\b/i.test(userInput));
   for (const execution of results) {
     const result = execution.result;
     if (result.type === "weather") {
@@ -337,6 +340,30 @@ export function blocksFromToolResults(results: ToolExecution[]): UiBlock[] {
       // El deliverable tiene: summary (síntesis), metrics, sections (datos + fuentes).
       // El detail screen muestra módulos ricos, no solo una lista de enlaces.
       const sources = (search.sources ?? []).filter((s) => s.url?.startsWith("http")).slice(0, 6);
+
+      // Task 15: si el usuario pidió comparar, generar comparison card con los sources
+      if (isComparisonQuery && sources.length > 0) {
+        const comparisonItems = sources.map((s: any) => ({
+          title: s.title || s.domain,
+          vendor: s.domain,
+          url: s.url,
+          evidence: (s.snippet ?? "").slice(0, 200),
+          pros: [] as string[],
+          cons: [] as string[],
+        }));
+        let recommendation = `Encontré ${sources.length} fuentes comparando productos. `;
+        if (sources.length >= 2) {
+          recommendation += `Te recomiendo revisar ${sources[0].domain} y ${sources[1].domain} para detalles específicos.`;
+        }
+        blocks.push({
+          type: "comparison" as const,
+          title: "Comparativa",
+          items: comparisonItems,
+          recommendation,
+          sources,
+        } as any);
+        continue;
+      }
 
       if (search.mode === "shopping" && search.comparisonItems?.length) {
         // Task 14: Comparison EXCEPCIONAL — generar análisis real, no solo links
