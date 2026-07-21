@@ -4448,6 +4448,15 @@ export async function runKoruBackendTurn(
     if (validDeferredCards.length > 0) {
       raw.uiBlocks = [...validDeferredCards, ...asArray(raw.uiBlocks)];
     }
+    // Task 15: si el usuario pidió comparar y no hay cards, generar comparison card desde toolExecutions
+    const userWantsComparison = /compara/i.test(request.input) || /\b(?:vs|versus)\b/i.test(request.input);
+    const currentBlocks = asArray(raw.uiBlocks);
+    if (userWantsComparison && currentBlocks.length === 0 && toolExecutions.length > 0) {
+      const toolBlocks = blocksFromToolResults(toolExecutions, request.input);
+      if (toolBlocks.length > 0) {
+        raw.uiBlocks = toolBlocks;
+      }
+    }
     const response = await finalizePayload(request, config, raw, toolExecutions, extractorTimeout);
     return {
       ...response,
