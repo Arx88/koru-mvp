@@ -65,7 +65,9 @@ export async function executeTool(
             chatFn: extractorCtx?.chatFn,
           });
           deferredDataCard = (runResult as any)?.deferredDataCard;
-          result = runResult as unknown as Record<string, unknown>;
+          // Strip deferredDataCard (Promise) from result to avoid serialization issues
+          const { deferredDataCard: _dd, ...cleanResult } = runResult as any;
+          result = cleanResult as Record<string, unknown>;
         } else {
           const searchData = await runSearch(args, false, extractorCtx);
           deferredDataCard = searchData.deferredDataCard;
@@ -90,7 +92,9 @@ export async function executeTool(
             chatFn: extractorCtx?.chatFn,
           });
           deferredDataCard = (runResult as any)?.deferredDataCard;
-          result = runResult as unknown as Record<string, unknown>;
+          // Strip deferredDataCard (Promise) from result to avoid serialization issues
+          const { deferredDataCard: _dd, ...cleanResult } = runResult as any;
+          result = cleanResult as Record<string, unknown>;
         } else {
           result = await runSearch(args, true) as unknown as Record<string, unknown>;
         }
