@@ -352,12 +352,17 @@ export async function runSearch(
   const duck = gdelt.length ? [] : await searchDuckDuckGo(expanded).catch(() => []);
   let sources = [...gdelt, ...duck].slice(0, 6);
   const comparisonItems = shopping
-    ? sources.slice(0, 4).map((source, index) => ({
+    ? sources.slice(0, 4).map((source) => ({
         title: source.title,
         vendor: source.domain,
         url: source.url,
         evidence: source.snippet,
-        score: Math.max(55, 88 - index * 8),
+        // 🔴 ITER1-FIX 4: ELIMINADO el score fabricado `Math.max(55, 88 - index * 8)`.
+        // Esa fórmula inventaba barras de score basadas en la posición del item
+        // en la lista de search (no en ningún análisis real). Si el extractor
+        // encuentra datos validados (precios, specs), esos viajan por separado
+        // en `deferredDataCard`. (V5 ya lo había eliminado en koruBackend.ts pero
+        // este duplicate en builtins.ts seguía presente — lo sacamos ahora.)
       }))
     : undefined;
 
