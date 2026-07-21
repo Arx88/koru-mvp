@@ -399,62 +399,15 @@ export function blocksFromToolResults(results: ToolExecution[], userInput?: stri
       // el mapper NO debe fabricar items comparativos sin extractor — cae al
       // deliverable estándar con sources y datos extraídos por extractor simple.
 
-      if (search.mode === "shopping" && search.comparisonItems?.length) {
-        // Task 14: Comparison EXCEPCIONAL — generar análisis real, no solo links
-        const items = search.comparisonItems;
-        const sources = (search.sources ?? []).filter((s) => s.url?.startsWith("http")).slice(0, 6);
-
-        // Extraer precios de los items si están disponibles
-        const itemsWithAnalysis = items.map((item: any) => {
-          const title = String(item.title ?? item.name ?? "");
-          const vendor = String(item.vendor ?? item.source ?? "");
-          const url = String(item.url ?? "");
-          const evidence = String(item.evidence ?? item.snippet ?? "");
-          // Intentar extraer precio del título o evidence
-          const priceMatch = (title + " " + evidence).match(/\$[\d,.]+|USD\s*[\d,.]+|[\d,.]+\s*(?:dólares|pesos|USD)/i);
-          const price = priceMatch ? priceMatch[0] : undefined;
-          // Extraer specs del evidence (ej: "8GB RAM", "256GB storage")
-          const specs = evidence.match(/\d+\s*(?:GB|TB|MP|mAh|GHz|GB\s*RAM|inch|pulgadas)/gi) || [];
-          return {
-            title: title.length > 60 ? title.slice(0, 57) + "..." : title,
-            vendor,
-            url,
-            price,
-            specs: specs.slice(0, 5),
-            evidence: evidence.slice(0, 200),
-            pros: [] as string[],
-            cons: [] as string[],
-          };
-        });
-
-        // Generar recommendation basada en datos reales
-        let recommendation = "";
-        const itemsWithPrices = itemsWithAnalysis.filter((i: any) => i.price);
-        if (itemsWithPrices.length >= 2) {
-          // Encontrar el más barato
-          const cheapest = itemsWithPrices.reduce((min: any, i: any) => {
-            const minVal = parseFloat(String(min.price).replace(/[^0-9.]/g, "")) || Infinity;
-            const iVal = parseFloat(String(i.price).replace(/[^0-9.]/g, "")) || Infinity;
-            return iVal < minVal ? i : min;
-          });
-          recommendation = `Basado en ${itemsWithPrices.length} opciones con precio visible, ${cheapest.vendor || cheapest.title} ofrece el mejor precio (${cheapest.price}). `;
-        } else if (sources.length > 0) {
-          recommendation = `Encontré ${sources.length} fuentes con información. `;
-        }
-        if (itemsWithAnalysis.length > 0) {
-          const topItem = itemsWithAnalysis[0];
-          recommendation += `Te recomiendo revisar "${topItem.title}" en ${topItem.vendor || "la fuente principal"}, que parece ser la opción más completa según las fuentes consultadas.`;
-        }
-
-        blocks.push({
-          type: "comparison" as const,
-          title: search.title || "Comparativa",
-          items: itemsWithAnalysis,
-          recommendation: recommendation || "Compará las opciones arriba. La primera parece ser la más relevante según las fuentes.",
-          sources,
-        } as any);
-        continue;
-      }
+      // 🔴 ITER1-FIX 3: ELIMINADO el branch legacy `search.mode === "shopping"`
+      // que fabricaba items con pros: [] / cons: [] vacíos y recommendation
+      // generada con regex (precios y specs extraídos del title/evidence con
+      // patrones como /\$[\d,.]+|USD\s*[\d,.]+|.../ y /\d+\s*(?:GB|TB|MP|...)/).
+      // Violaba las reglas R1 (no regex) y el axioma A2 (no items sin cita).
+      // El happy path es: comparison_deep tool → comparison card con datos reales
+      // del extractor premium. Si llegó `search.mode === "shopping"` acá, fue
+      // porque el LLM no llamó comparison_deep — el deliverable estándar de abajo
+      // muestra los sources sin inventar items comparativos.
 
       // Construir sections del deliverable
       const sections: any[] = [];
