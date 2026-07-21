@@ -55,23 +55,24 @@ export async function executeTool(
     else if (name === "web_search") {
       // Task 15: si el input contiene "compara X vs Y", redirigir a comparison_deep
       const combinedInput = String(args.__userInput ?? "") + " " + String(args.query ?? "");
-      logger.info("executeTool", "web_search check", { combinedInput: combinedInput.slice(0, 80), willIntercept: /\b(?:vs|versus)\b/i.test(combinedInput) || /compara\s+/i.test(combinedInput) });
-      if (/\b(?:vs|versus)\b/i.test(combinedInput) || /compara\s+/i.test(combinedInput)) {
+      const shouldIntercept = /\b(?:vs|versus)\b/i.test(combinedInput) || /compara\s+/i.test(combinedInput);
+      if (shouldIntercept) {
         const handler = TOOL_BOX.get("comparison_deep");
         if (handler) {
-          const runResult = await handler.run({ query: args.query ?? args.__userInput ?? "" }, {
-            userInput: cleanText(args.__userInput ?? args.query),
-            state,
-            chatFn: extractorCtx?.chatFn,
-          });
-          deferredDataCard = (runResult as any)?.deferredDataCard;
-          // Strip deferredDataCard (Promise) from result to avoid serialization issues
-          const { deferredDataCard: _dd, ...cleanResult } = runResult as any;
-          result = cleanResult as Record<string, unknown>;
+          try {
+            const runResult = await handler.run({ query: args.query ?? args.__userInput ?? "" }, {
+              userInput: cleanText(args.__userInput ?? args.query),
+              state,
+              chatFn: extractorCtx?.chatFn,
+            });
+            deferredDataCard = (runResult as any)?.deferredDataCard;
+            const { deferredDataCard: _dd, ...cleanResult } = runResult as any;
+            result = { ...cleanResult, _intercepted: "comparison_deep" } as Record<string, unknown>;
+          } catch (err: any) {
+            result = { type: "comparison_deep", status: "error", error: String(err?.message ?? err).slice(0, 200), _intercepted: true };
+          }
         } else {
-          const searchData = await runSearch(args, false, extractorCtx);
-          deferredDataCard = searchData.deferredDataCard;
-          result = searchData as unknown as Record<string, unknown>;
+          result = { type: "web_search", status: "error", error: "comparison_deep not in TOOL_BOX", _intercepted: true };
         }
       } else {
         const searchData = await runSearch(args, false, extractorCtx);
