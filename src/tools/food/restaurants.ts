@@ -448,7 +448,22 @@ export const restaurantDeepSearch: ToolHandler = {
     }
 
     // 4. Calidad: score del top match sobre el total de fuentes.
-    const topScore = matches.length > 0 ? `${matches[0].sourcesMentioning}/${sourceCount}` : undefined;
+    // 🔴 ITER1-FIX 5: topScore antes era `${matches[0].sourcesMentioning}/${sourceCount}`
+    // donde sourcesMentioning venía del LLM sin validación (era un número que el
+    // modelo afirmaba sin contar ocurrencias reales en las fuentes). Esto violaba
+    // R3/R4 del brief. Ahora calculamos server-side: contamos cuántas fuentes
+    // contienen el name como substring literal (sin regex, solo String.includes).
+    let topScore: string | undefined;
+    if (matches.length > 0) {
+      const topName = matches[0].name.toLowerCase();
+      const validatedMentions = sources.filter((s) => {
+        const text = `${s.title} ${s.snippet ?? ""} ${s.content ?? ""}`.toLowerCase();
+        return text.includes(topName);
+      }).length;
+      topScore = validatedMentions > 0 ? `${validatedMentions}/${sourceCount}` : undefined;
+    } else {
+      topScore = undefined;
+    }
     const status: "ok" | "partial" = sourceCount >= 3 && matches.length >= 1 ? "ok" : "partial";
 
     // 🔴 ITER1-FIX 2: si matches quedó vacío (LLM falló o no devolvió nada),
