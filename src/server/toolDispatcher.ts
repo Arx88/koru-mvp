@@ -55,7 +55,15 @@ export async function executeTool(
     else if (name === "web_search") {
       // Task 15: si el input contiene "compara" o "vs", usar comparison_deep
       const combinedInput = String(args.__userInput ?? "") + " " + String(args.query ?? "");
-      if (/compara/i.test(combinedInput) || /\b(?:vs|versus)\b/i.test(combinedInput)) {
+      const shouldIntercept = /compara/i.test(combinedInput) || /\b(?:vs|versus)\b/i.test(combinedInput);
+      logger.info("executeTool", "web_search interception check", {
+        hasUserInput: !!args.__userInput,
+        userInputPreview: String(args.__userInput ?? "").slice(0, 60),
+        queryPreview: String(args.query ?? "").slice(0, 60),
+        combinedPreview: combinedInput.slice(0, 80),
+        shouldIntercept,
+      });
+      if (shouldIntercept) {
         const handler = TOOL_BOX.get("comparison_deep");
         if (handler) {
           const runResult = await handler.run(
