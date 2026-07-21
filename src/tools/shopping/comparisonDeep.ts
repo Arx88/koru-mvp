@@ -170,42 +170,15 @@ export const comparisonDeep: ToolHandler = {
       }
     }
 
-    // V4 FIX: Recommendation adaptativa — usar TODO el contenido disponible (snippet + content)
-    // y extraer lo que encuentre de forma flexible, no rígida.
+    // 🔴 ITER1-FIX 1: SIEMPRE recommendation honesta cuando no hay extractedData.
+    // NO regex sobre texto libre — fabricaba "Specs: 46 GHz" (de "3.46 GHz") y
+    // "Productos: Samsung Loheer" (regex marca + palabra siguiente).
+    // Si extractComparisonData falla, no hay datos confiables — decirlo.
     let recommendation: string;
     if (extractedData && extractedData.products.length > 0) {
       recommendation = buildPremiumRecommendation(extractedData.products);
     } else {
-      // Usar TODO el texto disponible de los sources (no solo snippets)
-      const allText = sources.map((s: any) => `${s.title ?? ""} ${s.snippet ?? ""} ${s.content ?? ""}`).join(" ");
-
-      // Extracción flexible: buscar cualquier cosa que parezca dato de producto
-      const found: string[] = [];
-
-      // Precios: $629, $859.99, 799 euros, USD 999, £499
-      const prices = allText.match(/\$\s?\d[\d.,]*|\d[\d.,]*\s*(?:dólares?|euros?|USD|EUR|ARS|£|€)/gi);
-      if (prices?.length) found.push(`Precios: ${[...new Set(prices)].slice(0, 4).join(", ")}`);
-
-      // Specs flexibles: RAM, storage, pantalla, cámara, batería, procesador
-      const specs = allText.match(/\d+\s*(?:GB|TB|MP|mAh|GHz|cores?|K|Hz|pulgadas?|inch)\b/gi);
-      if (specs?.length) found.push(`Specs: ${[...new Set(specs)].slice(0, 5).join(", ")}`);
-
-      // Ratings: 4.5/5, 4.7 stars, 9.2/10
-      const ratings = allText.match(/\d\.?\d\s*\/\s*[5-9]\.?\d?|\d\.\d\s*(?:stars?|estrellas?)/gi);
-      if (ratings?.length) found.push(`Ratings: ${[...new Set(ratings)].slice(0, 3).join(", ")}`);
-
-      // Nombres de productos: buscar "iPhone 15", "Samsung Galaxy S24", etc.
-      const productNames = allText.match(/\b(?:iPhone|Samsung|Galaxy|Pixel|Xiaomi|Huawei|OnePlus|Motorola|iPad|MacBook|Dell|HP|Lenovo)\s*\w*\b/gi);
-      if (productNames?.length) {
-        const unique = [...new Set(productNames.map(n => n.trim()))].slice(0, 3);
-        found.push(`Productos: ${unique.join(", ")}`);
-      }
-
-      if (found.length > 0) {
-        recommendation = `${found.join(". ")}. Mirá las opciones arriba para más detalle.`;
-      } else {
-        recommendation = `Encontré ${sources.length} fuentes con reseñas y comparativas sobre "${query}". Cada una tiene información útil — mirá los links arriba.`;
-      }
+      recommendation = `Encontré ${sources.length} fuentes sobre "${query}". Mirá los links arriba.`;
     }
 
     // Mapear products a ComparisonItem[] (shape del UiBlock).
