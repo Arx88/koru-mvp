@@ -1260,8 +1260,11 @@ function comparison(b: Of<"comparison">): KoruPresentation {
     },
   ];
 
-  // Comparison matrix as rows with bars (head-to-head entre las 2 mejores).
-  if (items.length >= 2) {
+  // 🔴 V5: only render the head-to-head "Tabla comparativa" when at least one
+  // item carries a real `score`. Si todos los scores son `undefined` (caso
+  // normal tras eliminar el score fabricado), las barras quedarían en 0 sin
+  // explicación y la sección solo agrega ruido visual.
+  if (items.length >= 2 && items.some((it) => it.score != null)) {
     const ranked = items
       .map((it, i) => ({ it, i }))
       .sort((a, b) => (b.it.score ?? 0) - (a.it.score ?? 0));
