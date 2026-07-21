@@ -1689,13 +1689,18 @@ export async function runSearch(
   const gdelt = mode === "news" || mode === "world" ? await searchGdelt(expanded).catch(() => []) : [];
   const duck = gdelt.length ? [] : await searchDuckDuckGo(expanded).catch(() => []);
   let sources = [...gdelt, ...duck].slice(0, 6);
+  // 🔴 V5: ELIMINADO el score fabricado `Math.max(55, 88 - index * 8)`.
+  // Esa fórmula producía la hallucinación de "comparativa": los items
+  // aparecían con barras de score que NO venían de ningún análisis real,
+  // solo de su posición en la lista de search. Ahora los items se listan
+  // sin score — si el extractor encuentra datos validados (precios, specs),
+  // esos viajan por separado en `deferredDataCard`.
   const comparisonItems = shopping
-    ? sources.slice(0, 4).map((source, index) => ({
+    ? sources.slice(0, 4).map((source) => ({
         title: source.title,
         vendor: source.domain,
         url: source.url,
         evidence: source.snippet,
-        score: Math.max(55, 88 - index * 8),
       }))
     : undefined;
 
@@ -1716,7 +1721,12 @@ export async function runSearch(
   // Composer, no suma latencia al turno. Si encuentra datos validados, se
   // convierten en un data_card que se adjunta al resultado final.
   let deferredDataCard: Promise<UiBlock | null> | undefined;
-  if (extractorCtx && !shopping && sources.length > 0) {
+  // 🔴 V5: REMOVED `!shopping` guard. Antes el extractor anti-alucinación
+  // solo corría en modo research/news, dejando a shopping con la
+  // fabricación de score (arriba). Ahora shopping también pasa por el
+  // extractor — si encuentra precios/specs validados, los adjunta como
+  // data_card separado. Si no, cae al fallback honesto (ver summary).
+  if (extractorCtx && sources.length > 0) {
     const sourcesCopy = sources.map((s) => ({ ...s }));
     const userInput = extractorCtx.userInput;
     const chatFn = extractorCtx.chatFn;
