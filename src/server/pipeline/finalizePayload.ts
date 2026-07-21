@@ -289,7 +289,13 @@ export function hasUsefulBlockContent(block: UiBlock): boolean {
   if (block.type === "weather") {
     return Boolean(block.city || block.now || block.range || block.rain || block.wind || block.advice || block.sources?.length);
   }
-  if (block.type === "comparison") return block.items.length > 0;
+  // 🔴 V5: a comparison card with `items.length === 0` is still useful if it
+  // carries an honest `recommendation` or `sources` (the "Capa 2 honesta" del
+  // plan V5). Antes se descartaba silenciosamente y el usuario perdía el note
+  // honesto — ahora sobrevive si tiene algo que mostrar.
+  if (block.type === "comparison") {
+    return block.items.length > 0 || Boolean(block.recommendation || block.sources?.length);
+  }
   if (block.type === "research_sources") return Boolean(block.summary || block.sources.length);
   if (block.type === "plan") return block.items.length > 0;
   if (block.type === "saved_record") return block.records.length > 0;

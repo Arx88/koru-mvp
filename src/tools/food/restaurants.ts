@@ -8,6 +8,7 @@ import { defineTool, policies, type ToolHandler } from "../types";
 import { searchAndEnrich, usableSources } from "../shared/scrapers";
 import { validateWithCitations, extractionToDataCard } from "../shared/extractor";
 import { fetchJson, fetchText } from "../shared/fetcher";
+import { findBackingSource } from "../../domain/structureExtractor";
 import type { UiBlock } from "../../domain/types";
 import { searchPlacesOSM } from "./osmPlaces";
 
@@ -264,7 +265,7 @@ export async function fetchRestaurantDetails(
 export const restaurantDeepSearch: ToolHandler = {
   definition: defineTool(
     "restaurant_deep_search",
-    "DEEP SEARCH de restaurantes: busca en múltiples fuentes (Google Maps, Yelp, TripAdvisor, guías gastronómicas, periódicos), lee reseñas, extrae rating promedio, platos típicos, precio promedio, ubicación y fotos. Sintetiza un veredicto honesto destacando en qué coinciden las fuentes. Úsala cuando el usuario diga 'buena parrilla en Palermo', 'dónde como sushi en Madrid centro', 'mejor paella de Valencia', 'restaurante italiano romántico'. Esta es la killer feature de Koru: no busca en una sola fuente, LEE varias y dice dónde coinciden.",
+    "Busca un lugar para comer cruzando reseñas de varias fuentes (Google, Yelp, TripAdvisor, periódicos gastronómicos) y sintetiza un veredicto honesto destacando en qué coinciden las fuentes. Úsala cuando el usuario diga 'buena parrilla en Palermo', 'dónde como sushi en Madrid centro', 'mejor paella de Valencia', 'restaurante italiano romántico'. Esta es la killer feature de Koru: no busca en Google, LEE varias reseñas y dice dónde coinciden.",
     {
       type: "object",
       additionalProperties: false,
@@ -281,16 +282,14 @@ export const restaurantDeepSearch: ToolHandler = {
     const mood = String(args.mood ?? "").trim();
     if (!query) return { type: "restaurant_deep_search", status: "failed", error: "Indicá qué y dónde." };
 
-    // 1. DEEP SEARCH: buscar en múltiples fuentes especializadas
+    // 1. Buscar en varias fuentes: reseñas específicas + guías gastronómicas.
     const queries = [
       `${query} ${mood} mejor restaurante reseñas`,
       `${query} recomendado guía gastronómica`,
       `${query} crítica restaurante periódico`,
-      `${query} site:yelp.com OR site:tripadvisor.com OR site:google.com/maps reseñas`,
-      `${query} mejores platos precio promedio ubicación`,
     ];
     const allSources = await Promise.all(queries.map((q) => searchAndEnrich(q, 4)));
-    const sources = usableSources(allSources.flat()).slice(0, 10);
+    const sources = usableSources(allSources.flat()).slice(0, 8);
     const sourceCount = sources.length;
 
     if (sourceCount === 0) {
@@ -308,6 +307,10 @@ export const restaurantDeepSearch: ToolHandler = {
     }
 
     // 2. Extracción estructurada anti-alucinación.
+    // Le pedimos al LLM: top de restaurantes mencionados (con cuántas fuentes los citan),
+    // pros/contras del #1, y una síntesis. Cada item validado contra cita literal.
+    // 🔴 v3: el tipo de matches ahora incluye los campos enriquecidos por Google Places
+    //        (placeId, lat/lng, address, phone, rating, ratingCount, priceLevel, photos, reserveUrl).
     type RestaurantMatch = {
       name: string;
       sourcesMentioning: number;
@@ -324,11 +327,8 @@ export const restaurantDeepSearch: ToolHandler = {
       photos?: string[];
       reserveUrl?: string;
       distanceFromUser?: string;
+      // 🔴 v4: highlights del menú extraídos por scraping del website.
       menuHighlights?: Array<{ dish: string; price?: string }>;
-      typicalDishes?: string[];
-      averagePrice?: string;
-      cuisine?: string;
-      reviewSummary?: string;
     };
     let matches: RestaurantMatch[] = [];
     let pros: string[] = [];
@@ -340,17 +340,12 @@ export const restaurantDeepSearch: ToolHandler = {
         const prompt = [
           `Sos el sintetizador de reseñas de Koru. Analizá las siguientes fuentes sobre "${query}${mood ? ` (contexto: ${mood})` : ""}".`,
           `Devolvé SOLO JSON válido con esta forma exacta:`,
-          `{"matches":[{"name":"Nombre del lugar","sourcesMentioning":N,"quote":"frase corta de una fuente que lo respalda","rating":4.5,"cuisine":"italiana","typicalDishes":["pasta","pizza"],"averagePrice":"€20-30","reviewSummary":"resumen breve"}],"pros":["punto a favor 1","punto a favor 2"],"cons":["a considerar 1","a considerar 2"],"synthesis":"frase de síntesis honesta"}`,
+          `{"matches":[{"name":"Nombre del lugar","sourcesMentioning":N,"quote":"frase corta de una fuente que lo respalda"}],"pros":["punto a favor 1","punto a favor 2"],"cons":["a considerar 1","a considerar 2"],"synthesis":"frase de síntesis honesta"}`,
           `Reglas:`,
           `- "matches": hasta 3 lugares más mencionados, ordenados por sourcesMentioning desc.`,
-          `- "sourcesMentioning": cuántas de las ${sourceCount} fuentes mencionan ese lugar.`,
+          `- "sourcesMentioning": cuántas de las ${sourceCount} fuentes mencionan ese lugar (entero, máximo ${sourceCount}).`,
           `- "quote": frase literal corta (máx 80 chars) que aparezca en alguna fuente.`,
-          `- "rating": si aparece en las fuentes (ej: 4.5). Si no, omitir.`,
-          `- "cuisine": tipo de cocina si se menciona (ej: "italiana", "japonesa").`,
-          `- "typicalDishes": platos mencionados en las reseñas (ej: ["paella", "sangría"]).`,
-          `- "averagePrice": rango de precios si se menciona (ej: "€20-30", "$15-25").`,
-          `- "reviewSummary": 1-2 frases resumiendo qué dicen las reseñas.`,
-          `- "pros"/"cons": del lugar #1, máximo 3 cada uno.`,
+          `- "pros"/"cons": del lugar #1, máximo 3 cada uno, en infinitivo.`,
           `- "synthesis": 1-2 oraciones honestas sobre el cruce de fuentes.`,
           `- NO inventes datos que no estén respaldados por las fuentes.`,
           ``,
@@ -359,21 +354,25 @@ export const restaurantDeepSearch: ToolHandler = {
         ].join("\n");
         const result = await ctx.chatFn(
           [{ role: "system", content: "Sos un asistente que sintetiza reseñas gastronómicas. Devolvés solo JSON." }, { role: "user", content: prompt }],
-          { temperature: 0.2, maxTokens: 1200 },
+          { temperature: 0.2, maxTokens: 800 },
         );
         const jsonText = result.content.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
         const parsed = JSON.parse(jsonText);
         if (Array.isArray(parsed.matches)) {
-          matches = parsed.matches.slice(0, 3).map((m: Record<string, unknown>) => ({
+          // 🔴 V5: anti-hallucination — validate each match's `quote` against
+          // the sources using the SAME validator that `validateWithCitations`
+          // uses internally (findBackingSource, en structureExtractor.ts).
+          // Si la quote del LLM no aparece literalmente en ningún source, el
+          // match se descarta como alucinación. Antes confiábamos en
+          // ctx.chatFn directo y cualquier invento del modelo pasaba al user.
+          const rawMatches = parsed.matches.slice(0, 3).map((m: Record<string, unknown>) => ({
             name: String(m.name ?? "").trim(),
             sourcesMentioning: Math.max(0, Math.min(sourceCount, Number(m.sourcesMentioning ?? 0))),
             quote: m.quote ? String(m.quote).slice(0, 120) : undefined,
-            rating: typeof m.rating === "number" ? m.rating : undefined,
-            cuisine: m.cuisine ? String(m.cuisine) : undefined,
-            typicalDishes: Array.isArray(m.typicalDishes) ? m.typicalDishes.map(String).slice(0, 5) : undefined,
-            averagePrice: m.averagePrice ? String(m.averagePrice) : undefined,
-            reviewSummary: m.reviewSummary ? String(m.reviewSummary).slice(0, 200) : undefined,
-          })).filter((m: { name: string }) => m.name.length > 1);
+          })) as Array<{ name: string; sourcesMentioning: number; quote?: string }>;
+          matches = rawMatches
+            .filter((m) => m.name.length > 1)
+            .filter((m) => typeof m.quote === "string" && m.quote.length > 0 && findBackingSource(m.quote, sources) !== null);
         }
         if (Array.isArray(parsed.pros)) pros = parsed.pros.map((p: unknown) => String(p).trim()).filter(Boolean).slice(0, 3);
         if (Array.isArray(parsed.cons)) cons = parsed.cons.map((c: unknown) => String(c).trim()).filter(Boolean).slice(0, 3);
@@ -385,28 +384,31 @@ export const restaurantDeepSearch: ToolHandler = {
 
     // 3. Fallback léxico de coincidencias si el LLM no devolvió nada.
     if (matches.length === 0 && sourceCount >= 2) {
+      // Detectar nombres propios (Capitalized) repetidos entre fuentes.
       const nameCount = new Map<string, number>();
-      // V4 FIX: stop-words más flexible — incluye combinaciones geográficas
-      const STOP_WORDS = /\b(buenos aires|capital federal|caba|distrito capital|argentina|madrid|españa|estados unidos|estados unidos de américa|mejores? recomendados?|los mejores|las mejores|restaurantes?|guía|guia|reseñas?|reviews?|opiniones|artículo|inicio|sección|más recomendados|ver todo|página|siguiente|anterior|ir|ver|mejor|peor|nuevo|nueva|oferta|ofertas?|descuento|descuentos|envío|envios?|gratis|premium|ahorro|barato|barata|caro|cara|precio|precios?|tripadvisor|google maps|yelp|fork|tenedor|zomato|opentable)\b/i;
       for (const s of sources) {
         const text = `${s.title} ${s.snippet ?? ""} ${s.content ?? ""}`;
         const candidates = text.match(/\b([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+(?:de|del|la|el)\s+|\s+)[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)\b/g) ?? [];
         for (const c of candidates) {
           const lower = c.toLowerCase();
-          if (/restaurante|bar|cafe|parrilla|sushi|trattoria|bistró|bistro|comida|gastronom/.test(lower)) continue;
-          // V3 FIX: filtrar stop-words geográficas y genéricas
-          if (STOP_WORDS.test(c)) continue;
+          // 🔴 V5: filtro expandido — descarta genéricos gastronómicos EN/ES
+          // y adjetivos listicle ("best", "top") que aparecían como falsos
+          // positivos en queries tipo "Best Italian Restaurants".
+          if (/restaurante|restaurants|bar|cafe|parrilla|sushi|trattoria|bistró|bistro|comida|gastronom|italian|french|best|top/.test(lower)) continue;
           nameCount.set(c, (nameCount.get(c) ?? 0) + 1);
         }
       }
       matches = Array.from(nameCount.entries())
-        .filter(([, n]) => n >= 1)
+        .filter(([, n]) => n >= 2)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 3)
         .map(([name, n]): RestaurantMatch => ({ name, sourcesMentioning: Math.min(sourceCount, n) }));
     }
 
-    // 4. Enriquecer top matches con Google Places API o OSM
+    // 🔴 v3: enriquecer top matches con Google Places API (photos, rating, address,
+    //        phone, priceLevel, reserveUrl, lat/lng). Best-effort: si no hay API key
+    //        o falla alguna llamada, simplemente se omite el enriquecimiento y la
+    //        card degradará a la data léxica/LLM que ya teníamos.
     if (matches.length > 0 && process.env.GOOGLE_PLACES_KEY) {
       const enriched = await Promise.all(
         matches.slice(0, 3).map(async (m): Promise<RestaurantMatch> => {
@@ -424,26 +426,36 @@ export const restaurantDeepSearch: ToolHandler = {
               priceLevel: details.priceLevel,
               photos: details.photos,
               reserveUrl: details.reserveUrl,
+              // 🔴 v4: highlights del menú (scraping del website).
               menuHighlights: details.menuHighlights,
             };
           } catch {
+            // Sin enriquecimiento — mantenemos el match como está.
             return m;
           }
         }),
       );
       matches = enriched;
     } else if (matches.length > 0) {
-      // FREE FALLBACK: OSM (Nominatim) para lat/lng/address
+      // 🔴 FREE FALLBACK: sin GOOGLE_PLACES_KEY usamos OSM (Nominatim) para
+      // conseguir al menos lat/lng/address del restaurante. Best-effort: si
+      // no encuentra el lugar, mantenemos el match con la data léxica.
       const enriched = await Promise.all(
         matches.slice(0, 3).map(async (m): Promise<RestaurantMatch> => {
           try {
             const osmPlaces = await searchPlacesOSM(`${m.name} ${query}`);
             const first = osmPlaces[0];
             if (first) {
-              return { ...m, lat: first.lat, lng: first.lng, address: first.name };
+              return {
+                ...m,
+                lat: first.lat,
+                lng: first.lng,
+                address: first.name,
+                // OSM no expone rating/phone/photos; los dejamos como estaban.
+              };
             }
           } catch {
-            // Sin enriquecimiento OSM
+            // Sin enriquecimiento OSM — mantenemos el match como está.
           }
           return m;
         }),
@@ -451,16 +463,7 @@ export const restaurantDeepSearch: ToolHandler = {
       matches = enriched;
     }
 
-    // 5. Generar ficha completa para cada match
-    matches = matches.map(m => ({
-      ...m,
-      // Generar ficha con reseña, platos típicos, precio promedio, ubicación, foto
-      reviewSummary: m.reviewSummary || (m.rating ? `${m.rating}/5 estrellas` : undefined),
-      typicalDishes: m.typicalDishes || m.menuHighlights?.map(h => h.dish),
-      averagePrice: m.averagePrice || (m.priceLevel ? ["€", "€€", "€€€", "€€€€"][m.priceLevel - 1] || "N/A" : undefined),
-    }));
-
-    // 6. Calidad: score del top match sobre el total de fuentes.
+    // 4. Calidad: score del top match sobre el total de fuentes.
     const topScore = matches.length > 0 ? `${matches[0].sourcesMentioning}/${sourceCount}` : undefined;
     const status: "ok" | "partial" = sourceCount >= 3 && matches.length >= 1 ? "ok" : "partial";
 
@@ -468,7 +471,7 @@ export const restaurantDeepSearch: ToolHandler = {
       ? `Solo crucé ${sourceCount} fuente(s). Para una recomendación confiable probá especificar barrio o tipo de cocina. No invento.`
       : `Cruzadas ${sourceCount} fuentes. Cada coincidencia respaldada por cita.`;
 
-    // 7. Generar card visual restaurant_synthesis con ficha completa
+    // Generar card visual restaurant_synthesis para que el frontend lo renderice.
     const deferredDataCard: Promise<UiBlock> = Promise.resolve({
       type: "restaurant_synthesis",
       status,

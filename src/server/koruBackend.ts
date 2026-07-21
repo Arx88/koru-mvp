@@ -1744,13 +1744,18 @@ export async function runSearch(
   const gdelt = mode === "news" || mode === "world" ? await searchGdelt(expanded).catch(() => []) : [];
   const duck = gdelt.length ? [] : await searchDuckDuckGo(expanded).catch(() => []);
   let sources = [...gdelt, ...duck].slice(0, 6);
+  // 🔴 V5: ELIMINADO el score fabricado `Math.max(55, 88 - index * 8)`.
+  // Esa fórmula producía la hallucinación de "comparativa": los items
+  // aparecían con barras de score que NO venían de ningún análisis real,
+  // solo de su posición en la lista de search. Ahora los items se listan
+  // sin score — si el extractor encuentra datos validados (precios, specs),
+  // esos viajan por separado en `deferredDataCard`.
   const comparisonItems = shopping
-    ? sources.slice(0, 4).map((source, index) => ({
+    ? sources.slice(0, 4).map((source) => ({
         title: source.title,
         vendor: source.domain,
         url: source.url,
         evidence: source.snippet,
-        score: Math.max(55, 88 - index * 8),
       }))
     : undefined;
 
@@ -1771,7 +1776,12 @@ export async function runSearch(
   // Composer, no suma latencia al turno. Si encuentra datos validados, se
   // convierten en un data_card que se adjunta al resultado final.
   let deferredDataCard: Promise<UiBlock | null> | undefined;
-  if (extractorCtx && !shopping && sources.length > 0) {
+  // 🔴 V5: REMOVED `!shopping` guard. Antes el extractor anti-alucinación
+  // solo corría en modo research/news, dejando a shopping con la
+  // fabricación de score (arriba). Ahora shopping también pasa por el
+  // extractor — si encuentra precios/specs validados, los adjunta como
+  // data_card separado. Si no, cae al fallback honesto (ver summary).
+  if (extractorCtx && sources.length > 0) {
     const sourcesCopy = sources.map((s) => ({ ...s }));
     const userInput = extractorCtx.userInput;
     const chatFn = extractorCtx.chatFn;
@@ -1803,11 +1813,24 @@ export async function runSearch(
     })();
   }
 
+  // 🔴 V5: recommendation honesta. Cuando el extractor no encuentra datos
+  // validados (o corrió async y todavía no sabemos el resultado), el summary
+  // del shopping card dice simple y honestamente: "Encontré N fuentes sobre
+  // X. Mirá los links arriba para specs y precios." — sin inventar precios,
+  // specs ni scores. Si el extractor deferred sí encuentra datos validados,
+  // esos viajan por separado en deferredDataCard (data_card con quotes
+  // respaldadas) y aparecen debajo del comparison card.
+  const honestShoppingSummary = sources.length
+    ? `Encontré ${sources.length} fuente${sources.length === 1 ? "" : "s"} sobre "${query}". Mirá los links arriba para specs y precios.`
+    : "No pude conseguir fuentes útiles con los conectores abiertos. No inventes resultados.";
+
   return {
     type: "search",
     mode,
     title: shopping ? "Comparativa" : mode === "news" ? "Noticias importantes" : mode === "world" ? "El mundo esta hablando de esto" : "Busqueda",
-    summary: sources.length ? "" : "No pude conseguir fuentes útiles con los conectores abiertos. No inventes resultados.",
+    summary: sources.length
+      ? (shopping ? honestShoppingSummary : "")
+      : "No pude conseguir fuentes útiles con los conectores abiertos. No inventes resultados.",
     sources,
     comparisonItems,
     deferredDataCard,
