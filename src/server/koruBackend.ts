@@ -281,6 +281,22 @@ export const TOOL_DEFINITIONS = [
   {
     type: "function",
     function: {
+      name: "comparison_deep",
+      description: "COMPARACIÓN REAL con scraping de múltiples tiendas (Amazon, eBay, Best Buy, MercadoLibre). Extrae precios, specs, ratings y reviews VALIDADOS contra cita literal del contenido. Genera recommendation basada en datos reales. Úsala SIEMPRE para 'compara X vs Y', 'qué teléfono compro', 'mejor laptop para diseño', 'dónde compro Z más barato'. NUNCA uses web_search ni shopping_compare para comparar productos — usá comparison_deep.",
+      parameters: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          query: { type: "string", description: "Producto a comparar (ej: 'iPhone 15 vs Samsung S24')." },
+          budget: { type: "string", description: "Presupuesto opcional (ej: 'under 500')." },
+        },
+        required: ["query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "plan_day",
       description: "Crea un plan estructurado con pasos accionables. Úsala SIEMPRE que el usuario pida organizar, planificar, estructurar o armar un plan — sea para un día, una semana, un proyecto o cualquier tipo de planificación. Ejemplos: 'organizá mi día', 'planificá una semana ideal', 'armá un plan de estudio', '¿cómo organizo el proyecto?', 'estructurá mi rutina'. Si el usuario da contexto (ej: 'soy diseñador', 'tengo 3 proyectos'), usalo para personalizar los pasos. Pasá los pasos reales del plan en `items`, no un focus genérico.",
       parameters: {
