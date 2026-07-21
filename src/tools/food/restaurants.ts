@@ -386,8 +386,8 @@ export const restaurantDeepSearch: ToolHandler = {
     // 3. Fallback léxico de coincidencias si el LLM no devolvió nada.
     if (matches.length === 0 && sourceCount >= 2) {
       const nameCount = new Map<string, number>();
-      // V3 FIX: stop-words geográficas y genéricas que NO son restaurantes
-      const STOP_WORDS = /\b(buenos aires|capital federal|caba|argentina|madrid|españa|mejores? recomendados?|los mejores|las mejores|restaurantes?|guía|guia|reseñas?|reviews?|opiniones|artículo|inicio|sección|más recomendados|ver todo|página|siguiente|anterior|inicio|ir|ver|mejor|peor|nuevo|nueva|oferta|ofertas?|descuento|descuentos|envío|envios?|gratis|premium|gratis|ahorro|barato|barata|caro|cara|precio|precios?)\b/i;
+      // V4 FIX: stop-words más flexible — incluye combinaciones geográficas
+      const STOP_WORDS = /\b(buenos aires|capital federal|caba|distrito capital|argentina|madrid|españa|estados unidos|estados unidos de américa|mejores? recomendados?|los mejores|las mejores|restaurantes?|guía|guia|reseñas?|reviews?|opiniones|artículo|inicio|sección|más recomendados|ver todo|página|siguiente|anterior|ir|ver|mejor|peor|nuevo|nueva|oferta|ofertas?|descuento|descuentos|envío|envios?|gratis|premium|ahorro|barato|barata|caro|cara|precio|precios?|tripadvisor|google maps|yelp|fork|tenedor|zomato|opentable)\b/i;
       for (const s of sources) {
         const text = `${s.title} ${s.snippet ?? ""} ${s.content ?? ""}`;
         const candidates = text.match(/\b([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+(?:de|del|la|el)\s+|\s+)[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)\b/g) ?? [];

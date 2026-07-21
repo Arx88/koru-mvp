@@ -170,24 +170,41 @@ export const comparisonDeep: ToolHandler = {
       }
     }
 
-    // Recommendation PREMIUM: menciona diferencias específicas entre productos.
-    // V3 FIX: si extractedData es null pero hay sources con snippets que mencionan specs/precios,
-    // generar recommendation del contenido real en vez de plantilla genérica.
+    // V4 FIX: Recommendation adaptativa — usar TODO el contenido disponible (snippet + content)
+    // y extraer lo que encuentre de forma flexible, no rígida.
     let recommendation: string;
     if (extractedData && extractedData.products.length > 0) {
       recommendation = buildPremiumRecommendation(extractedData.products);
     } else {
-      // Buscar specs/precios en los snippets reales de los sources
-      const allSnippets = sources.map((s: any) => `${s.title} ${s.snippet ?? ""}`).join(" ");
-      const priceMatches = allSnippets.match(/\$\d[\d,.]*|\d[\d.,]*\s*(?:dólares|euros|USD|EUR)/gi) || [];
-      const specMatches = allSnippets.match(/\d+\s*(?:GB|TB|MP|mAh|GHz|Hz|cores?|K|p)\b/gi) || [];
-      if (priceMatches.length > 0 || specMatches.length > 0) {
-        const parts: string[] = [];
-        if (specMatches.length > 0) parts.push(`Specs detectadas: ${specMatches.slice(0, 4).join(", ")}`);
-        if (priceMatches.length > 0) parts.push(`Precios encontrados: ${priceMatches.slice(0, 3).join(", ")}`);
-        recommendation = `Encontré ${sources.length} fuentes. ${parts.join(". ")}. Compará las opciones arriba.`;
+      // Usar TODO el texto disponible de los sources (no solo snippets)
+      const allText = sources.map((s: any) => `${s.title ?? ""} ${s.snippet ?? ""} ${s.content ?? ""}`).join(" ");
+
+      // Extracción flexible: buscar cualquier cosa que parezca dato de producto
+      const found: string[] = [];
+
+      // Precios: $629, $859.99, 799 euros, USD 999, £499
+      const prices = allText.match(/\$\s?\d[\d.,]*|\d[\d.,]*\s*(?:dólares?|euros?|USD|EUR|ARS|£|€)/gi);
+      if (prices?.length) found.push(`Precios: ${[...new Set(prices)].slice(0, 4).join(", ")}`);
+
+      // Specs flexibles: RAM, storage, pantalla, cámara, batería, procesador
+      const specs = allText.match(/\d+\s*(?:GB|TB|MP|mAh|GHz|cores?|K|Hz|pulgadas?|inch)\b/gi);
+      if (specs?.length) found.push(`Specs: ${[...new Set(specs)].slice(0, 5).join(", ")}`);
+
+      // Ratings: 4.5/5, 4.7 stars, 9.2/10
+      const ratings = allText.match(/\d\.?\d\s*\/\s*[5-9]\.?\d?|\d\.\d\s*(?:stars?|estrellas?)/gi);
+      if (ratings?.length) found.push(`Ratings: ${[...new Set(ratings)].slice(0, 3).join(", ")}`);
+
+      // Nombres de productos: buscar "iPhone 15", "Samsung Galaxy S24", etc.
+      const productNames = allText.match(/\b(?:iPhone|Samsung|Galaxy|Pixel|Xiaomi|Huawei|OnePlus|Motorola|iPad|MacBook|Dell|HP|Lenovo)\s*\w*\b/gi);
+      if (productNames?.length) {
+        const unique = [...new Set(productNames.map(n => n.trim()))].slice(0, 3);
+        found.push(`Productos: ${unique.join(", ")}`);
+      }
+
+      if (found.length > 0) {
+        recommendation = `${found.join(". ")}. Mirá las opciones arriba para más detalle.`;
       } else {
-        recommendation = `Encontré ${sources.length} fuentes con información sobre "${query}". Te dejo los links con specs y precios para que compares.`;
+        recommendation = `Encontré ${sources.length} fuentes con reseñas y comparativas sobre "${query}". Cada una tiene información útil — mirá los links arriba.`;
       }
     }
 
