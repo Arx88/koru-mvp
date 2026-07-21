@@ -527,7 +527,7 @@ export function normalizeFinalPayload(
     console.warn(`[Koru] LLM returned invalid mascotState: "${mascotState}". Falling back to "idle".`);
   }
   // 🔴 FIX: usar toolBlocks pre-construidos si se pasan (ya enriquecidos con síntesis LLM)
-  const toolBlocks = prebuiltToolBlocks ?? blocksFromToolResults(toolExecutions, request?.input);
+  const toolBlocks = prebuiltToolBlocks ?? blocksFromToolResults(toolExecutions, input);
   // 🔴 FIX CRÍTICO: si hay toolBlocks (datos reales de tools), NO mezclar con modelBlocks
   // del LLM. Los modelBlocks pueden contener pensamiento del LLM en vez de datos reales.
   // Los toolBlocks son la fuente de verdad — los modelBlocks del LLM solo introducen ruido.
