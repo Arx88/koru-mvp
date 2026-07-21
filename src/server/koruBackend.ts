@@ -4453,25 +4453,29 @@ export async function runKoruBackendTurn(
     const currentBlocks = asArray(raw.uiBlocks);
     const hasComparisonCard = currentBlocks.some((b: any) => b?.type === "comparison");
     if (userWantsComparison && !hasComparisonCard) {
-      // Si no hay toolExecutions con sources, ejecutar runSearch directamente
-      const hasSearchResults = toolExecutions.some(t => {
-        const r = t.result as any;
-        return r?.type === "search" && Array.isArray(r?.sources) && r.sources.length > 0;
-      });
-      if (!hasSearchResults) {
-        try {
-          logger.info("runKoruBackendTurn", "Proactive search for comparison", { query: request.input, toolExecCount: toolExecutions.length });
-          const searchData = await runSearch({ query: request.input, mode: "world" } as any, true);
-          logger.info("runKoruBackendTurn", "Proactive search result", { type: searchData.type, sourcesCount: searchData.sources?.length, hasComparisonItems: !!searchData.comparisonItems?.length });
-          toolExecutions.push({ id: `proactive_search_${Date.now()}`, name: "web_search", result: searchData });
-        } catch (err: any) {
-          logger.warn("runKoruBackendTurn", "Proactive search failed", { error: err?.message });
+      // Proactive search: call searchDuckDuckGo directly and build comparison card
+      try {
+        const { searchDuckDuckGo, usableSources } = await import("./../tools/shared/scrapers");
+        const ddgSources = await searchDuckDuckGo(`${request.input} precio specs review`, 5);
+        const usable = usableSources(ddgSources);
+        if (usable.length > 0) {
+          const comparisonItems = usable.map(s => ({
+            title: s.title || s.domain,
+            vendor: s.domain,
+            url: s.url,
+            evidence: (s.snippet ?? "").slice(0, 200),
+          }));
+          const comparisonCard: UiBlock = {
+            type: "comparison",
+            title: "Comparativa",
+            items: comparisonItems,
+            recommendation: `Encontré ${usable.length} fuentes. Te recomiendo revisar ${usable[0].domain} y ${usable[1]?.domain ?? "las demás fuentes"} para detalles.`,
+            sources: usable,
+          } as any;
+          raw.uiBlocks = [...currentBlocks, comparisonCard];
         }
-      }
-      const toolBlocks = blocksFromToolResults(toolExecutions, request.input);
-      logger.info("runKoruBackendTurn", "blocksFromToolResults for comparison", { blockCount: toolBlocks.length, isComparisonQuery: !!userWantsComparison });
-      if (toolBlocks.length > 0) {
-        raw.uiBlocks = toolBlocks;
+      } catch {
+        // sin búsqueda proactiva
       }
     }
     const response = await finalizePayload(request, config, raw, toolExecutions, extractorTimeout);
