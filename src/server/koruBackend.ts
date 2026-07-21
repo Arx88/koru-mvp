@@ -4479,6 +4479,31 @@ export async function runKoruBackendTurn(
       }
     }
     const response = await finalizePayload(request, config, raw, toolExecutions, extractorTimeout);
+    // Task 15: si el usuario pidió comparar y finalizePayload no generó comparison card, agregarla
+    if (userWantsComparison && !response.uiBlocks?.some((b: any) => b?.type === "comparison")) {
+      try {
+        const { searchDuckDuckGo, usableSources } = await import("./../tools/shared/scrapers");
+        const ddgSources = await searchDuckDuckGo(`${request.input} precio specs review`, 5);
+        const usable = usableSources(ddgSources);
+        if (usable.length > 0) {
+          const comparisonCard = {
+            type: "comparison",
+            title: "Comparativa",
+            items: usable.map(s => ({
+              title: s.title || s.domain,
+              vendor: s.domain,
+              url: s.url,
+              evidence: (s.snippet ?? "").slice(0, 200),
+            })),
+            recommendation: `Encontré ${usable.length} fuentes comparando productos. Te recomiendo revisar ${usable[0].domain}.`,
+            sources: usable,
+          };
+          response.uiBlocks = [...(response.uiBlocks || []), comparisonCard] as any;
+        }
+      } catch {
+        // sin card de comparación
+      }
+    }
     return {
       ...response,
       provider,
