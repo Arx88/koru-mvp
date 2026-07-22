@@ -4225,7 +4225,7 @@ export async function runKoruBackendTurn(
             }
             return { ...response, provider, model, fallbackReason: "router-" + route.category };
           }
-          messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }." });
+          messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }. REGLAS PARA EL REPLY: 1) Si una tool devolvió matches=[] o status=partial, NO inventes nombres en tu reply. Decí honestamente que no encontraste opciones específicas. 2) Si ejecutaste múltiples tools, tu reply debe mencionar TODOS los resultados, no solo el primero. 3) Los datos ya están en las cards. Tu reply SOLO debe enmarcar: 1-2 líneas cálidas. 4) NUNCA inventes datos que no estén en los tool results." });
           // OPTIMIZACIÓN: usar Flash para la segunda llamada (síntesis de respuesta)
           const fastConfig2 = { ...config, nvidiaModel: config.nvidiaFastModel || "meta/llama-3.1-8b-instruct" };
           const secondResult = await callProvider(fastConfig2, messages, 30_000, false, "nvidia", undefined, fastConfig2.nvidiaModel);
@@ -4408,7 +4408,7 @@ export async function runKoruBackendTurn(
     // Paso 2: segunda llamada (sin tools) para que el LLM síntetice la respuesta final.
     // Corre EN PARALELO con las extracciones diferidas de estructura (data_card),
     // para que el extractor (~11s) no sume latencia al turno.
-    messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }." });
+    messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }. REGLAS PARA EL REPLY: 1) Si una tool devolvió matches=[] o status=partial, NO inventes nombres en tu reply. Decí honestamente que no encontraste opciones específicas. 2) Si ejecutaste múltiples tools, tu reply debe mencionar TODOS los resultados, no solo el primero. 3) Los datos ya están en las cards. Tu reply SOLO debe enmarcar: 1-2 líneas cálidas. 4) NUNCA inventes datos que no estén en los tool results." });
     const deferredCards = (toolExecutions as ToolExecution[] & { __deferredDataCards?: Array<Promise<UiBlock | null>> }).__deferredDataCards ?? [];
     const [secondResult, ...resolvedCards] = await Promise.all([
       callProvider(config, messages, secondaryTimeout, false, preferredProvider, undefined, modelOverride),
@@ -4587,7 +4587,7 @@ export async function runKoruBackendTurn(
     // El flujo es: ejecutar tool → 2da llamada LLM (sin tools) → reply natural.
     // Paso 2: segunda llamada (sin tools) para que el LLM síntetice la respuesta final.
     messages.push({ role: "user", content: [
-      "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }.",
+      "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }. REGLAS PARA EL REPLY: 1) Si una tool devolvió matches=[] o status=partial, NO inventes nombres en tu reply. Decí honestamente que no encontraste opciones específicas. 2) Si ejecutaste múltiples tools, tu reply debe mencionar TODOS los resultados, no solo el primero. 3) Los datos ya están en las cards. Tu reply SOLO debe enmarcar: 1-2 líneas cálidas. 4) NUNCA inventes datos que no estén en los tool results.",
       "Respondé SOLO con este formato: {\"reply\":\"texto natural en español\",\"mascotState\":\"happy\"}",
       "El campo 'reply' debe ser texto natural conversacional (NO JSON, NO markdown). Ej: 'Te dejé el detalle en la tarjeta.'",
       "NO repitas los datos de la tool en el reply — ya están en la card visual.",
