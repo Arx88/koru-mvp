@@ -32,10 +32,10 @@ const DEEP_INTENT_RE =
 const MAGIC_LABELS: Record<AgentActivityKind, string[]> = {
   thinking: [
     "Mmm, déjame ver…",
-    "Lo estoy oliendo 🌿",
-    "Algo me dice que esto te importa.",
-    "Me meto en el tema un segundo.",
-    "Te escucho. Procesando.",
+    "Dame un segundo…",
+    "Me fijo en lo que me pediste.",
+    "Pensando esto…",
+    "Procesando tu pedido.",
   ],
   saving: [
     "Lo guardo donde corresponde ✨",
@@ -52,11 +52,11 @@ const MAGIC_LABELS: Record<AgentActivityKind, string[]> = {
     "Lo acomodo en pasos chiquitos.",
   ],
   searching: [
-    "Voy a ver qué encuentro 🌎",
-    "Salgo a explorar fuentes.",
-    "Meto la nariz en internet…",
-    "A ver qué dicen por ahí.",
-    "Recolecto señales y vuelvo.",
+    "Buscando información…",
+    "Revisando fuentes…",
+    "Consultando datos…",
+    "A ver qué encuentro…",
+    "Recopilando información…",
   ],
   comparing: [
     "Pongo todo en la mesa y comparo.",

@@ -658,7 +658,7 @@ function ActionButtons({ item, handlers }: { item: KoruTurnItem; handlers: CardA
         ? "Buscando senales reales ahora..."
         : item.webMode === "weather"
           ? "Buscando clima ahora..."
-          : "Consultando fuentes ahora...";
+          : "Buscando información...";
     return <p className="koru-card-note">{label}</p>;
   }
   if (item.status === "executed") {

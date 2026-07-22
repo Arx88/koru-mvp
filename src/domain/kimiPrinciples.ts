@@ -22,7 +22,7 @@ export const KIMI_VOICE = {
   tone: "Voseo rioplatense. Frases cortas con consejo. Humor tímido. Cero jerga.",
   ctaRule: "El CTA dice qué hay del otro lado. Si no puede prometer algo concreto, la card no necesita CTA.",
   forbidden: ["Error 429", "rate limit exceeded", "Resultado de búsqueda generado", "No hay datos disponibles", "Ejecutar protocolo", "Síntesis Deep-Hungry"],
-  loading: "Lo estoy oliendo…",
+  loading: "Procesando…",
   error: "Se nubló el dato — no te muestro números viejos como si fueran de ahora",
   empty: "Todavía no sembraste nada",
   idle: "Koru se durmió un rato — despertalo con un hola",

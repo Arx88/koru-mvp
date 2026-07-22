@@ -9,7 +9,7 @@ export interface TypingDotsProps {
   label?: string;
 }
 
-export function TypingDots({ label = "Lo estoy oliendo…" }: TypingDotsProps) {
+export function TypingDots({ label = "Procesando…" }: TypingDotsProps) {
   return (
     <span
       style={{ display: "inline-flex", alignItems: "center", gap: 6 }}

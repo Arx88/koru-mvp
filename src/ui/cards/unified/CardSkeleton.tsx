@@ -11,7 +11,7 @@ import type { CSSProperties } from "react";
 //   │ │  ▓   │ │  ▓   │ │  ▓   │            │
 //   │ └──────┘ └──────┘ └──────┘            │
 //   │                                      │
-//   │ Lo estoy oliendo…  • • •              │  ← Koru voice + 3 typing dots
+//   │ Procesando…  • • •              │  ← Koru voice + 3 typing dots
 //   └──────────────────────────────────────┘
 //
 // La forma coincide con KoruUnifiedCard/DefaultLayout: top (copy + art),
@@ -134,7 +134,7 @@ export function CardSkeleton() {
             fontStyle: "italic",
           }}
         >
-          Lo estoy oliendo…
+          Procesando…
         </span>
         <TypingDots />
       </div>

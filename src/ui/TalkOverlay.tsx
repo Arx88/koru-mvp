@@ -1205,7 +1205,7 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
                   </div>
                   <div className="koru-bubble ai-bubble">
                     <div className="koru-typing-indicator">
-                      <TypingDots label="Lo estoy oliendo…" />
+                      <TypingDots label="Procesando…" />
                     </div>
                   </div>
                 </div>
