@@ -747,7 +747,7 @@ export type UiBlock =
       venue?: string;
       venueCity?: string;
       attendance?: number;
-      goals?: Array<{ minute: string; team?: string; scorer?: string; text?: string }>;
+      goals?: Array<{ minute: string; team?: string; scorer?: string; text?: string; photo?: string }>;
       yellowCards?: Array<{ minute: string; team?: string; player?: string }>;
       redCards?: Array<{ minute: string; team?: string; player?: string }>;
       substitutions?: Array<{ minute: string; team?: string; playerIn?: string; playerOut?: string }>;

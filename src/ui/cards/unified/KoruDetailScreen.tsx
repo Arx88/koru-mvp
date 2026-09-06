@@ -551,13 +551,21 @@ function SectionBody({ section, block }: { section: DetailSection; block?: UiBlo
               const toggle = s.toggle;
               const stepInner = (
                 <>
-                  <div className="koru-timeline-dot">
-                    {status === "done" ? (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                    ) : (
-                      <Mat>{s.icon ?? "radio_button_unchecked"}</Mat>
-                    )}
-                  </div>
+                  {s.thumbnail ? (
+                    // 🔴 v4: foto real del protagonista (goleador, jugador, equipo)
+                    // en lugar del dot genérico — microdetalle deportivo.
+                    <div className="koru-timeline-dot koru-timeline-thumb">
+                      <img src={s.thumbnail} alt="" loading="lazy" />
+                    </div>
+                  ) : (
+                    <div className="koru-timeline-dot">
+                      {status === "done" ? (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      ) : (
+                        <Mat>{s.icon ?? "radio_button_unchecked"}</Mat>
+                      )}
+                    </div>
+                  )}
                   <div className="koru-timeline-body">
                     <h4 className="tt koru-timeline-name">{s.title}</h4>
                     {s.detail && <span className="koru-timeline-meta">{s.detail}</span>}
@@ -1595,16 +1603,68 @@ export function KoruDetailScreen({
               <path d="M6 4h12v17l-6-4-6 4z" />
             </svg>
           </button>
-          {/* xt-hicon: SVG animado (KoruIcon) en cuadrado de acento. */}
-          <div className="koru-detail-hero-icon xt-hicon" style={{ background: block ? heroIconBg(block) : "linear-gradient(150deg,#8363f9,#523a9e)" }}>
-            {(() => {
-              const kn = iconFromMaterial(headerIcon);
-              if (kn !== "default") {
-                return <KoruIcon name={kn} size={38} style={{ color: "#fff" }} />;
+          {/* xt-hicon: SVG animado (KoruIcon) en cuadrado de acento.
+              🔴 v4 — DUEL HERO para deportes: en live_match/tennis_match el
+              cuadrado de icono genérico se reemplaza por los escudos REALES
+              (o fotos de jugadores) con el marcador al medio. Es el mismo
+              lugar canónico del spec, pero con las identidades reales. */}
+          {(() => {
+            const duel =
+              block?.type === "live_match" ? {
+                leftImg: (block as Extract<UiBlock, { type: "live_match" }>).homeLogo,
+                rightImg: (block as Extract<UiBlock, { type: "live_match" }>).awayLogo,
+                leftName: (block as Extract<UiBlock, { type: "live_match" }>).homeName,
+                rightName: (block as Extract<UiBlock, { type: "live_match" }>).awayName,
+                leftColor: (block as Extract<UiBlock, { type: "live_match" }>).homeColor,
+                rightColor: (block as Extract<UiBlock, { type: "live_match" }>).awayColor,
+                score: `${(block as Extract<UiBlock, { type: "live_match" }>).homeScore ?? 0}-${(block as Extract<UiBlock, { type: "live_match" }>).awayScore ?? 0}`,
+                sub: (block as Extract<UiBlock, { type: "live_match" }>).status,
               }
-              return <Mat>{headerIcon}</Mat>;
-            })()}
-          </div>
+              : block?.type === "tennis_match" ? {
+                leftImg: (block as Extract<UiBlock, { type: "tennis_match" }>).players?.home.logo,
+                rightImg: (block as Extract<UiBlock, { type: "tennis_match" }>).players?.away.logo,
+                leftName: (block as Extract<UiBlock, { type: "tennis_match" }>).players?.home.name,
+                rightName: (block as Extract<UiBlock, { type: "tennis_match" }>).players?.away.name,
+                leftColor: "#6ee7b7",
+                rightColor: "#c4b5fd",
+                score: `${(block as Extract<UiBlock, { type: "tennis_match" }>).sets?.filter((s) => s.winner === "home").length ?? 0}-${(block as Extract<UiBlock, { type: "tennis_match" }>).sets?.filter((s) => s.winner === "away").length ?? 0}`,
+                sub: (block as Extract<UiBlock, { type: "tennis_match" }>).status,
+              }
+              : null;
+            if (duel) {
+              return (
+                <div className="koru-duel-hero">
+                  <div className="koru-duel-side">
+                    {duel.leftImg
+                      ? <img src={duel.leftImg} alt={duel.leftName ?? ""} className="koru-duel-crest" />
+                      : <span className="koru-duel-crest fallback" style={{ background: duel.leftColor ?? "#8363f9" }}>{(duel.leftName ?? "?").slice(0, 2).toUpperCase()}</span>}
+                    <span className="koru-duel-side-name">{duel.leftName}</span>
+                  </div>
+                  <div className="koru-duel-score-wrap">
+                    <span className="koru-duel-score">{duel.score}</span>
+                    {duel.sub && <span className="koru-duel-status">{duel.sub}</span>}
+                  </div>
+                  <div className="koru-duel-side">
+                    {duel.rightImg
+                      ? <img src={duel.rightImg} alt={duel.rightName ?? ""} className="koru-duel-crest" />
+                      : <span className="koru-duel-crest fallback" style={{ background: duel.rightColor ?? "#8363f9" }}>{(duel.rightName ?? "?").slice(0, 2).toUpperCase()}</span>}
+                    <span className="koru-duel-side-name">{duel.rightName}</span>
+                  </div>
+                </div>
+              );
+            }
+            return (
+              <div className="koru-detail-hero-icon xt-hicon" style={{ background: block ? heroIconBg(block) : "linear-gradient(150deg,#8363f9,#523a9e)" }}>
+                {(() => {
+                  const kn = iconFromMaterial(headerIcon);
+                  if (kn !== "default") {
+                    return <KoruIcon name={kn} size={38} style={{ color: "#fff" }} />;
+                  }
+                  return <Mat>{headerIcon}</Mat>;
+                })()}
+              </div>
+            );
+          })()}
           <h1 className="koru-roadmap-title xt-title">{detail.title}</h1>
           {detail.subtitle && <p className="koru-roadmap-subtitle xt-sub">{detail.subtitle}</p>}
         </div>

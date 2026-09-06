@@ -96,6 +96,9 @@ export type DetailStep = {
   status?: "done" | "current" | "pending";
   badge?: string;
   badgeTone?: "done" | "current" | "pending" | "urgent";
+  // 🔴 v4: foto real (jugador, equipo, lugar) junto al título del paso.
+  // Cuando está presente reemplaza al icono — microdetalle de deportes.
+  thumbnail?: string;
   // 🔴 TIER S: metadata para que KoruDetailScreen haga el paso tappable y
   // dispare togglePlanStep. `planId` y `stepId` son sintéticos (derivados del
   // título del bloque + índice del paso) porque los UiBlock `plan` no traen
@@ -186,7 +189,7 @@ export type KoruPresentation = {
    *   - "gallery"   → carrusel horizontal de mini-cards (70×80).
    *   - "banner"    → gradiente full-width (100px) con número grande + label.
    */
-  layout?: "default" | "compact" | "spotlight" | "gallery" | "banner" | "match" | "garden";
+  layout?: "default" | "compact" | "spotlight" | "gallery" | "banner" | "match" | "tennis" | "garden";
 };
 
 /**
@@ -2796,7 +2799,7 @@ function buildMatchDetailSections(
 
   // 🔴 v2: MERGE events en UN solo timeline (goles + tarjetas + cambios)
   // ordenados por minuto — mucho más compacto que 3 secciones separadas.
-  type MergedEvent = { minute: string; minuteNum: number; text: string; sub?: string; icon: string; badge?: string; badgeTone?: "done" | "current" | "pending" | "urgent" };
+  type MergedEvent = { minute: string; minuteNum: number; text: string; sub?: string; icon: string; badge?: string; badgeTone?: "done" | "current" | "pending" | "urgent"; photo?: string };
   const events: MergedEvent[] = [];
   for (const g of b.goals ?? []) {
     const minuteNum = parseInt(g.minute?.replace(/[^\d]/g, "") || "0", 10);
@@ -2808,6 +2811,8 @@ function buildMatchDetailSections(
       icon: "sports_soccer", // ⚽
       badge: "Gol",
       badgeTone: "done",
+      // 🔴 v4: foto real del goleador (si el pipeline la trae).
+      photo: g.photo,
     });
   }
   for (const y of b.yellowCards ?? []) {
@@ -2862,6 +2867,7 @@ function buildMatchDetailSections(
         status: "done" as const,
         badge: e.badge,
         badgeTone: e.badgeTone,
+        thumbnail: e.photo,
       })),
     });
   }
@@ -6303,8 +6309,9 @@ function tennisMatch(b: Of<"tennis_match">): KoruPresentation {
   }
   const homeIntro = [homeName, homeCountry ? `(${homeCountry})` : null, homeRank ? `#${homeRank}` : null].filter(Boolean).join(" ");
   const awayIntro = [awayName, awayCountry ? `(${awayCountry})` : null, awayRank ? `#${awayRank}` : null].filter(Boolean).join(" ");
-  steps.push({ icon: "person", title: homeIntro, detail: "Local", status: "current" });
-  steps.push({ icon: "person", title: awayIntro, detail: "Visitante", status: "current" });
+  // 🔴 v4: fotos reales de los jugadores en el timeline del detalle.
+  steps.push({ icon: "person", title: homeIntro, detail: "Local", status: "current", thumbnail: b.players?.home.logo });
+  steps.push({ icon: "person", title: awayIntro, detail: "Visitante", status: "current", thumbnail: b.players?.away.logo });
 
   for (let i = 0; i < sets.length; i++) {
     const s = sets[i];
@@ -6456,6 +6463,9 @@ function tennisMatch(b: Of<"tennis_match">): KoruPresentation {
         }
       : undefined,
     cta: sections.length > 0 ? { label: live ? "Ver partido en vivo" : "Ver resumen completo" } : undefined,
+    // 🔴 v4: sublayout tenis — duel de fotos reales + sets, como el match
+    // pero protagonizado por jugadores (fotos, ranking, país).
+    layout: "tennis",
   };
 }
 

@@ -1,0 +1,412 @@
+/* ============================================================================
+   PREVIEW HARNESS v4 — estilos del stage (pv-*). El interior del teléfono
+   usa 100% los estilos reales de la app (style.css + koru-motion.css).
+   ========================================================================== */
+
+:root {
+  --pv-bg: #0c0a1a;
+  --pv-panel: #16122b;
+  --pv-ink: #f2efff;
+  --pv-ink-soft: rgba(242, 239, 255, 0.55);
+  --pv-accent: #8363f9;
+  --pv-accent-soft: rgba(131, 99, 249, 0.16);
+  --pv-green: #6ee7b7;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--pv-bg);
+  font-family: "Plus Jakarta Sans", Inter, ui-sans-serif, system-ui, sans-serif;
+  color: var(--pv-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+.pv-stage {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 16px 40px;
+  background:
+    radial-gradient(1100px 600px at 15% -10%, rgba(131, 99, 249, 0.14), transparent 60%),
+    radial-gradient(900px 500px at 90% 110%, rgba(110, 231, 183, 0.07), transparent 55%),
+    var(--pv-bg);
+}
+
+.pv-stage-header {
+  width: 100%;
+  max-width: 1060px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 26px;
+}
+
+.pv-stage-title { display: flex; align-items: center; gap: 14px; }
+
+.pv-stage-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--pv-panel);
+  border: 1px solid rgba(131, 99, 249, 0.35);
+  padding: 6px;
+}
+
+.pv-stage-title h1 {
+  margin: 0;
+  font-family: "Bricolage Grotesque", "Plus Jakarta Sans", sans-serif;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.pv-stage-title p {
+  margin: 3px 0 0;
+  font-size: 12.5px;
+  color: var(--pv-ink-soft);
+}
+
+.pv-stage-badges { display: flex; gap: 8px; }
+
+.pv-badge {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pv-green);
+  background: rgba(110, 231, 183, 0.1);
+  border: 1px solid rgba(110, 231, 183, 0.25);
+  border-radius: 999px;
+  padding: 5px 11px;
+}
+
+.pv-badge:first-child { color: #c4b5fd; background: var(--pv-accent-soft); border-color: rgba(131, 99, 249, 0.4); }
+
+/* ── Phone frame ─────────────────────────────────────────────────────────── */
+.pv-phone {
+  position: relative;
+  width: 430px;
+  height: 932px;
+  max-height: calc(100vh - 150px);
+  border-radius: 54px;
+  background: #05040c;
+  box-shadow:
+    0 0 0 1.5px rgba(255, 255, 255, 0.08),
+    0 0 0 12px #1b1729,
+    0 0 0 13.5px rgba(255, 255, 255, 0.06),
+    0 44px 90px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+}
+
+.pv-statusbar {
+  position: relative;
+  z-index: 30;
+  height: 46px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 26px;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.pv-statusbar-notch {
+  position: absolute;
+  left: 50%;
+  top: 8px;
+  transform: translateX(-50%);
+  width: 108px;
+  height: 30px;
+  border-radius: 999px;
+  background: #05040c;
+}
+
+.pv-statusbar-icons { display: flex; align-items: center; gap: 5px; }
+
+/* Chat dentro del phone — fondo REAL de la app */
+.pv-phone::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("/stitch/chat-bg.png") center top / cover no-repeat, #17123a;
+  z-index: 0;
+}
+
+.pv-chat-header {
+  position: relative;
+  z-index: 20;
+  flex: 0 0 auto;
+  padding: 6px 16px 10px;
+  background: linear-gradient(180deg, rgba(18, 13, 48, 0.88), rgba(18, 13, 48, 0.55));
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.pv-chat-header-row { display: flex; align-items: center; gap: 10px; padding: 2px 2px 8px; }
+
+.pv-koru-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1.5px solid rgba(131, 99, 249, 0.5);
+  background: #221a4e;
+  flex: 0 0 auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.pv-koru-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.pv-chat-header-name {
+  font-family: "Bricolage Grotesque", sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.01em;
+}
+
+.pv-chat-header-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.62);
+  margin-top: 1px;
+}
+
+.pv-presence-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 99px;
+  background: #6ee7b7;
+  box-shadow: 0 0 8px rgba(110, 231, 183, 0.9);
+}
+
+/* Chips de filtro por categoría */
+.pv-filter-row {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px 2px 4px;
+  scrollbar-width: none;
+}
+
+.pv-filter-row::-webkit-scrollbar { display: none; }
+
+.pv-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.72);
+  border-radius: 999px;
+  padding: 5px 11px;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.18s ease;
+}
+
+.pv-chip b {
+  font-weight: 800;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.pv-chip:hover { border-color: rgba(131, 99, 249, 0.5); color: #fff; }
+
+.pv-chip.active {
+  background: var(--pv-accent-soft);
+  border-color: rgba(131, 99, 249, 0.65);
+  color: #fff;
+}
+
+.pv-chip.active b { color: #c4b5fd; }
+
+/* ── Feed ─────────────────────────────────────────────────────────────────── */
+.pv-feed {
+  position: relative;
+  z-index: 10;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 14px 12px 8px;
+  scrollbar-width: none;
+}
+
+.pv-feed::-webkit-scrollbar { display: none; }
+
+.pv-feed-spacer { height: 14px; }
+
+.pv-user-bubble {
+  display: flex;
+  justify-content: flex-end;
+  margin: 10px 6px 2px;
+  animation: pv-in 0.3s ease both;
+}
+
+.pv-user-bubble span {
+  max-width: 75%;
+  background: linear-gradient(135deg, #6d4df2, #8363f9);
+  color: white;
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.42;
+  padding: 10px 15px;
+  border-radius: 20px 20px 6px 20px;
+  box-shadow: 0 6px 18px rgba(109, 77, 242, 0.35);
+}
+
+.pv-koru-bubble {
+  display: flex;
+  gap: 8px;
+  margin: 10px 0 2px;
+  animation: pv-in 0.35s ease both;
+}
+
+.pv-koru-bubble-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 11px;
+  overflow: hidden;
+  flex: 0 0 auto;
+  margin-top: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #221a4e;
+}
+
+.pv-koru-bubble-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.pv-koru-bubble-body {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.pv-koru-text {
+  margin: 0;
+  background: rgba(24, 18, 56, 0.82);
+  backdrop-filter: blur(8px);
+  color: rgba(255, 255, 255, 0.94);
+  font-size: 14.5px;
+  line-height: 1.45;
+  padding: 10px 14px;
+  border-radius: 18px 18px 18px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  max-width: 88%;
+}
+
+.pv-koru-bubble-body .kc { width: 100%; max-width: 100%; }
+
+/* Typing dots */
+.pv-typing {
+  display: flex;
+  gap: 5px;
+  padding: 14px 16px;
+  background: rgba(24, 18, 56, 0.82);
+  border-radius: 18px 18px 18px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.pv-typing span {
+  width: 7px;
+  height: 7px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.55);
+  animation: pv-bounce 1.2s infinite ease-in-out;
+}
+
+.pv-typing span:nth-child(2) { animation-delay: 0.15s; }
+.pv-typing span:nth-child(3) { animation-delay: 0.3s; }
+
+/* ── Composer ────────────────────────────────────────────────────────────── */
+.pv-composer {
+  position: relative;
+  z-index: 20;
+  flex: 0 0 auto;
+  padding: 8px 14px 16px;
+  background: linear-gradient(0deg, rgba(14, 10, 38, 0.92), rgba(14, 10, 38, 0.4));
+  backdrop-filter: blur(14px);
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.pv-composer-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 11px 16px;
+}
+
+.pv-composer-input input {
+  flex: 1 1 auto;
+  background: none;
+  border: none;
+  outline: none;
+  color: rgba(255, 255, 255, 0.85);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: default;
+}
+
+.pv-composer-input input::placeholder { color: rgba(255, 255, 255, 0.4); }
+
+.pv-composer-input .material-symbols-outlined {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 20px;
+}
+
+.pv-composer-input .material-symbols-outlined:last-child {
+  color: #8363f9;
+  background: rgba(131, 99, 249, 0.16);
+  border-radius: 99px;
+  padding: 3px;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+.pv-stage-footer {
+  margin-top: 22px;
+  font-size: 12.5px;
+  color: var(--pv-ink-soft);
+  text-align: center;
+}
+
+.pv-stage-footer b { color: #c4b5fd; }
+
+@keyframes pv-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes pv-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+  30% { transform: translateY(-5px); opacity: 1; }
+}
+
+@media (max-height: 1100px) {
+  .pv-stage { padding-top: 16px; }
+  .pv-stage-header { margin-bottom: 16px; }
+}
+
+@media (max-width: 560px) {
+  .pv-phone { width: 100vw; height: 100vh; max-height: none; border-radius: 0; box-shadow: none; }
+  .pv-stage { padding: 0; }
+  .pv-stage-header, .pv-stage-footer { display: none; }
+}

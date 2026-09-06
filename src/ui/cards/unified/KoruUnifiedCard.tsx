@@ -1191,9 +1191,98 @@ export function KoruUnifiedCard({ block }: { block: UiBlock }) {
   if (layout === "gallery") return <GalleryLayout {...shared} />;
   if (layout === "banner") return <BannerLayout {...shared} />;
   if (layout === "match") return <MatchLayout {...shared} />;
+  if (layout === "tennis") return <TennisLayout {...shared} />;
   if (layout === "garden") return <GardenLayout {...shared} />;
   return <DefaultLayout {...shared} />;
 }
+
+// ============================================================================
+// Layout: TENNIS — duel de jugadores con FOTOS REALES + sets + punto actual.
+// 🔴 v4: sublayout específico para tennis_match. Los escudos del match se
+// convierten en avatares circulares con la foto real del jugador (logo del
+// pipeline: ESPN headshot / foto oficial). Cae a iniciales si no hay foto.
+// ============================================================================
+
+function TennisLayout(props: SharedProps) {
+  const { block, hero, detail, cta, isTappable, open, setOpen, handleClick, handleKeyDown } = props;
+  const b = block as Extract<UiBlock, { type: "tennis_match" }>;
+
+  const home = b.players?.home;
+  const away = b.players?.away;
+  const homeName = home?.name ?? "Local";
+  const awayName = away?.name ?? "Visitante";
+  const sets = b.sets ?? [];
+  const homeSets = sets.filter((s) => s.winner === "home").length;
+  const awaySets = sets.filter((s) => s.winner === "away").length;
+
+  // Avatar del jugador: foto real circular, o iniciales sobre acento.
+  const playerAvatar = (p: { name: string; logo?: string; country?: string; rank?: number } | undefined, name: string, accent: string) =>
+    p?.logo ? (
+      <img src={p.logo} alt={name} className="koru-tennis-avatar-img" loading="lazy" />
+    ) : (
+      <span className="koru-tennis-avatar-fallback" style={{ background: `linear-gradient(140deg, ${accent}, ${accent}cc)` }}>
+        {name.slice(0, 2).toUpperCase()}
+      </span>
+    );
+
+  return (
+    <CardRoot block={block} hero={hero} isTappable={isTappable} open={open} handleClick={handleClick} handleKeyDown={handleKeyDown} className="kc">
+      {/* Kicker: torneo · ronda · estado */}
+      <div className="koru-card-kicker kc-kicker" style={{ color: hero.accent.color }}>
+        <span className={"dot" + (hero.live ? " live" : "")} />
+        {hero.kicker}
+      </div>
+
+      {/* Duel hero: foto + nombre + ranking por lado, sets al medio */}
+      <div className="koru-match-hero koru-tennis-hero">
+        <div className="koru-match-team koru-tennis-player">
+          <div className="koru-match-shield koru-tennis-avatar">{playerAvatar(home, homeName, hero.accent.color)}</div>
+          <span className="koru-match-team-name">{homeName}</span>
+          {home?.rank != null && <span className="koru-tennis-rank">#{home.rank}{home.country ? ` · ${home.country}` : ""}</span>}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <div className="koru-match-score koru-tennis-score">{homeSets}-{awaySets}</div>
+          <span className="koru-match-vs">{b.status === "live" ? (b.currentPoint ?? "VS") : "VS"}</span>
+        </div>
+        <div className="koru-match-team koru-tennis-player">
+          <div className="koru-match-shield koru-tennis-avatar">{playerAvatar(away, awayName, A_TENNIS_AWAY)}</div>
+          <span className="koru-match-team-name">{awayName}</span>
+          {away?.rank != null && <span className="koru-tennis-rank">#{away.rank}{away.country ? ` · ${away.country}` : ""}</span>}
+        </div>
+      </div>
+
+      {/* Strip de sets: 6-4 · 3-6 · 7-6(3) — compacto, escaneable */}
+      {sets.length > 0 && (
+        <div className="koru-tennis-sets">
+          {sets.map((s, i) => {
+            const homeWon = s.winner === "home";
+            const awayWon = s.winner === "away";
+            return (
+              <div key={i} className={"koru-tennis-set" + (s.winner ? " is-won" : "") + (i === sets.length - 1 && !s.winner ? " is-live" : "")}>
+                <span className={"koru-tennis-set-g" + (homeWon ? " win" : "")}>{s.homeGames}</span>
+                <span className="koru-tennis-set-g sep">–</span>
+                <span className={"koru-tennis-set-g" + (awayWon ? " win" : "")}>{s.awayGames}</span>
+                {s.tiebreak && <span className="koru-tennis-set-tb">TB {s.tiebreak.homePts}-{s.tiebreak.awayPts}</span>}
+                <span className="koru-tennis-set-label">SET {i + 1}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Desc (score detallado con juego y punto actual) */}
+      {hero.desc && (
+        <p className="koru-plan-hero-desc kc-desc" style={{ marginTop: 10 }}>{hero.desc}</p>
+      )}
+
+      {isTappable && cta && <KimiCtaButton cta={cta} handleClick={handleClick} />}
+
+      <DetailOverlay open={open} cta={cta} detail={detail} hero={hero} block={block} setOpen={setOpen} />
+    </CardRoot>
+  );
+}
+
+const A_TENNIS_AWAY = "#6d4df2";
 
 // ============================================================================
 // Layout: GARDEN — sublayout Kimi para Memoria (Card 20)
@@ -1306,6 +1395,8 @@ function MatchLayout(props: SharedProps) {
   const teamColor = (name: string, idx: number): string => {
     if (idx === 0 && b.homeTeam?.color) return b.homeTeam.color;
     if (idx === 1 && b.awayTeam?.color) return b.awayTeam.color;
+    if (idx === 0 && b.homeColor) return b.homeColor;
+    if (idx === 1 && b.awayColor) return b.awayColor;
     // Hash simple del nombre → paleta azul/rojo (Kimi FRA vs ESP)
     let h = 0;
     for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) | 0;
@@ -1316,7 +1407,12 @@ function MatchLayout(props: SharedProps) {
   const homeColor = teamColor(homeName, 0);
   const awayColor = teamColor(awayName, 1);
 
-  // Escudo: 2 primeras letras del nombre en mayúscula.
+  // 🔴 v4: escudo REAL del equipo cuando el block trae la URL (ESPN/api-sports).
+  // Cae a las 2 letras si no hay logo — compatibilidad total con el flujo viejo.
+  const shield = (logo: string | undefined, name: string) =>
+    logo ? (
+      <img src={logo} alt={name} className="koru-match-shield-img" loading="lazy" />
+    ) : null;
   const shieldLabel = (n: string) => n.slice(0, 2).toUpperCase();
 
   // Goleadores (si hay en el block)
@@ -1342,8 +1438,8 @@ function MatchLayout(props: SharedProps) {
       {/* Match hero: escudos + score */}
       <div className="koru-match-hero">
         <div className="koru-match-team">
-          <div className="koru-match-shield" style={{ background: `linear-gradient(140deg, ${homeColor}, ${homeColor}cc)` }}>
-            {shieldLabel(homeName)}
+          <div className="koru-match-shield" style={{ background: b.homeLogo ? "transparent" : `linear-gradient(140deg, ${homeColor}, ${homeColor}cc)` }}>
+            {b.homeLogo ? shield(b.homeLogo, homeName) : shieldLabel(homeName)}
           </div>
           <span className="koru-match-team-name">{homeName}</span>
         </div>
@@ -1352,8 +1448,8 @@ function MatchLayout(props: SharedProps) {
           <span className="koru-match-vs">VS</span>
         </div>
         <div className="koru-match-team">
-          <div className="koru-match-shield" style={{ background: `linear-gradient(140deg, ${awayColor}, ${awayColor}cc)` }}>
-            {shieldLabel(awayName)}
+          <div className="koru-match-shield" style={{ background: b.awayLogo ? "transparent" : `linear-gradient(140deg, ${awayColor}, ${awayColor}cc)` }}>
+            {b.awayLogo ? shield(b.awayLogo, awayName) : shieldLabel(awayName)}
           </div>
           <span className="koru-match-team-name">{awayName}</span>
         </div>

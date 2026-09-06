@@ -2740,6 +2740,22 @@ button.koru-stitch-row {
 .koru-timeline-dot .material-symbols-outlined { font-size: 16px; }
 .koru-timeline-dot svg { width: 16px; height: 16px; }
 
+/* 🔴 v4: foto real en el paso (goleadores, jugadores) — círculo 34px. */
+.koru-timeline-thumb {
+  border: 2px solid #c4b5e0;
+  background: #fff;
+  overflow: hidden;
+  padding: 0;
+  box-shadow: 0 3px 10px rgba(56, 43, 140, 0.18);
+}
+.koru-timeline-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 50%;
+}
+
 .koru-timeline-step.is-done .koru-timeline-dot {
   border-color: #c4b5e0;
   color: #c4b5e0;
@@ -8495,6 +8511,38 @@ svg .draw{stroke-dasharray:60;stroke-dashoffset:60;animation:draw 1.6s var(--eas
 .xt-hicon{position:relative;width:76px;height:76px;margin:0 auto 12px;border-radius:26px;display:grid;place-items:center;color:#fff;
   box-shadow:inset 0 2px 0 rgba(255,255,255,.35),inset 0 -12px 20px rgba(0,0,0,.18),0 14px 30px rgba(0,0,0,.4);animation:heroPop .7s var(--ease-spring) both .1s}
 .xt-hicon svg{width:38px;height:38px}
+
+/* 🔴 v4 — DUEL HERO (deportes) en el xt-hero: escudos/fotos reales + marcador. */
+.koru-duel-hero{
+  display:flex;align-items:center;justify-content:center;gap:18px;
+  margin:6px auto 12px;max-width:320px;width:100%;
+  animation:heroPop .7s var(--ease-spring) both .1s;
+}
+.koru-duel-side{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;min-width:0}
+.koru-duel-crest{
+  width:64px;height:64px;object-fit:contain;background:#fff;border-radius:18px;padding:7px;
+  box-shadow:0 10px 26px rgba(0,0,0,.45),inset 0 0 0 1.5px rgba(255,255,255,.25);
+}
+.koru-duel-crest.fallback{
+  display:grid;place-items:center;color:#fff;font:800 20px var(--font-display,'Bricolage Grotesque',serif);
+  object-fit:none;padding:0;
+}
+.koru-duel-side-name{
+  font:700 10px var(--font-sans);letter-spacing:.05em;text-transform:uppercase;
+  color:rgba(255,255,255,.85);text-align:center;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;
+}
+.koru-duel-score-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;flex:0 0 auto}
+.koru-duel-score{
+  font:800 30px var(--font-display,'Bricolage Grotesque',serif);color:#fff;
+  letter-spacing:-.02em;font-variant-numeric:tabular-nums;
+  text-shadow:0 4px 18px rgba(0,0,0,.5);
+}
+.koru-duel-status{
+  font:700 8.5px var(--font-sans);letter-spacing:.12em;text-transform:uppercase;
+  color:#fff;background:rgba(239,68,68,.9);border-radius:999px;padding:3px 9px;
+  box-shadow:0 4px 12px rgba(239,68,68,.4);
+}
 @keyframes heroPop{from{opacity:0;transform:scale(.6) translateY(14px)}to{opacity:1;transform:none}}
 .xt-title{position:relative;text-align:center;font-family:var(--serif);font-weight:800;font-size:26px;color:#fff;letter-spacing:-.01em;animation:heroPop .7s var(--ease-spring) both .18s}
 .xt-sub{position:relative;text-align:center;font-size:14px;color:#cfc4f5;margin-top:6px;letter-spacing:.03em;animation:heroPop .7s var(--ease-spring) both .26s}
@@ -8707,8 +8755,99 @@ svg .draw{stroke-dasharray:60;stroke-dashoffset:60;animation:draw 1.6s var(--eas
   color: #fff;
   box-shadow: 0 6px 14px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.3);
   flex: none;
+  overflow: hidden;
+}
+/* 🔴 v4: escudo real (logo del equipo) — llena el círculo, mismo radio. */
+.koru-match-shield-img {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  display: block;
+  background: #fff;
+  border-radius: 50%;
+  padding: 5px;
 }
 .koru-match-team-name { font: 700 10px var(--font-sans); letter-spacing: 0.05em; color: var(--koru-purple-deep, #382b8c); text-align: center; text-transform: uppercase; }
+
+/* ——— SUBLAYOUT TENNIS (v4 · duel de jugadores) ——— */
+.koru-tennis-player { gap: 3px; }
+.koru-tennis-avatar {
+  width: 52px; height: 52px;
+  background: #fff;
+  box-shadow: 0 6px 16px rgba(56, 43, 140, 0.22), inset 0 0 0 2px rgba(131, 99, 249, 0.25);
+}
+.koru-tennis-avatar-img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 50%;
+}
+.koru-tennis-avatar-fallback {
+  display: grid; place-items: center;
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  color: #fff;
+  font: 800 16px var(--font-display, 'Bricolage Grotesque', serif);
+}
+.koru-tennis-rank {
+  font: 700 9px var(--font-sans);
+  letter-spacing: 0.08em;
+  color: var(--ink-soft, #554a7d);
+  background: rgba(131, 99, 249, 0.1);
+  border-radius: 999px;
+  padding: 2px 7px;
+}
+.koru-tennis-sets {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.koru-tennis-set {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  background: rgba(131, 99, 249, 0.07);
+  border: 1px solid rgba(131, 99, 249, 0.18);
+  border-radius: 10px;
+  padding: 5px 9px 4px;
+  position: relative;
+}
+.koru-tennis-set.is-live {
+  border-color: rgba(239, 68, 68, 0.45);
+  background: rgba(239, 68, 68, 0.06);
+  animation: koru-tennis-live 1.6s ease-in-out infinite;
+}
+@keyframes koru-tennis-live {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  50% { box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.08); }
+}
+.koru-tennis-set-g {
+  font: 800 15px var(--font-display, 'Bricolage Grotesque', serif);
+  color: var(--ink-soft, #554a7d);
+  font-variant-numeric: tabular-nums;
+}
+.koru-tennis-set-g.sep { font-size: 11px; font-weight: 600; color: var(--ink-faint, #a89cc7); }
+.koru-tennis-set-g.win { color: var(--koru-purple-deep, #382b8c); }
+.koru-tennis-set.is-live .koru-tennis-set-g { color: #b91c1c; }
+.koru-tennis-set-tb {
+  font: 700 8.5px var(--font-sans);
+  color: var(--ink-faint, #a89cc7);
+  margin-left: 2px;
+  align-self: center;
+}
+.koru-tennis-set-label {
+  position: absolute;
+  top: -7px;
+  left: 8px;
+  font: 800 7px var(--font-sans);
+  letter-spacing: 0.1em;
+  color: #fff;
+  background: var(--koru-purple-deep, #382b8c);
+  border-radius: 999px;
+  padding: 1.5px 5px;
+}
+.koru-tennis-set.is-live .koru-tennis-set-label { background: #ef4444; }
+.koru-tennis-score { font-size: 28px; min-width: 56px; }
 .koru-match-score {
   font: 800 34px var(--font-display, 'Bricolage Grotesque', serif);
   letter-spacing: -0.02em;
