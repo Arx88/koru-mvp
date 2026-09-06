@@ -1,19 +1,22 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
+import { Leaf, Plus, Paperclip, Mic } from "lucide-react";
 import type { UiBlock } from "./domain/types";
 import { KoruProvider } from "./ui/KoruProvider";
 import { KoruUnifiedCard } from "./ui/cards/unified/KoruUnifiedCard";
 import { ErrorBoundary } from "./ui/ErrorBoundary";
-import { CHAT_CATALOG, CHAT_SCRIPT, type ChatEntry } from "./preview-data";
+import { CHAT_SCRIPT, type ChatEntry } from "./preview-data";
 import "./style.css";
 import "./koru-motion.css";
 import "./preview.css";
 
 // ============================================================================
-// PREVIEW HARNESS v4 — Koru MVP
-// Stage oscuro + phone frame 430px con el chat REAL de Koru (fondo, avatar,
-// tipografía y cards reales del repo). El catálogo vive en preview-data.ts.
+// PREVIEW v5 — RÉPLICA FIEL DEL CHAT REAL DE KORU (TalkOverlay)
+// Mismos tokens, mismo layout, mismas burbujas, mismo composer y mismo fondo
+// de video que la app en producción. Lo ÚNICO rediseñado son las cards.
 // ============================================================================
+
+const KORU_AVATAR = "/stitch/avatar-chat.png";
 
 function StatusBar() {
   return (
@@ -23,81 +26,64 @@ function StatusBar() {
       <div className="pv-statusbar-icons">
         <svg width="17" height="11" viewBox="0 0 17 11" fill="white" opacity="0.9"><path d="M1 8.5c1.8-2 3.9-3 6-3s4.2 1 6 3l-1.4 1.4c-1.3-1.5-2.9-2.3-4.6-2.3s-3.3.8-4.6 2.3L1 8.5Z"/><path d="M4.9 5.2C6 4.4 7.2 4 8.5 4s2.5.4 3.6 1.2l1-1.6C11.7 2.6 10.2 2 8.5 2S5.3 2.6 3.9 3.6l1 1.6Z"/></svg>
         <svg width="16" height="11" viewBox="0 0 16 11" fill="white" opacity="0.9"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.3" y="4.5" width="3" height="6.5" rx="1"/><rect x="8.6" y="2" width="3" height="9" rx="1"/><rect x="12.9" y="0" width="3" height="11" rx="1" opacity="0.4"/></svg>
-        <svg width="25" height="12" viewBox="0 0 25 12" fill="none" opacity="0.9"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="white" stroke-opacity="0.5"/><rect x="2" y="2" width="15" height="7.5" rx="1.8" fill="white"/><path d="M23 4v4c1-.3 1.5-1 1.5-2s-.5-1.7-1.5-2Z" fill="white" fill-opacity="0.6"/></svg>
+        <svg width="25" height="12" viewBox="0 0 25 12" fill="none" opacity="0.9"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="white" strokeOpacity="0.5"/><rect x="2" y="2" width="15" height="7.5" rx="1.8" fill="white"/><path d="M23 4v4c1-.3 1.5-1 1.5-2s-.5-1.7-1.5-2Z" fill="white" fillOpacity="0.6"/></svg>
       </div>
     </div>
   );
 }
 
-function ChatHeader({ filter, setFilter }: { filter: string; setFilter: (v: string) => void }) {
+// ── Burbujas EXACTAS de la app real (style.css 407-500 + tokens :root) ──────
+function UserTurn({ text }: { text: string }) {
   return (
-    <div className="pv-chat-header">
-      <div className="pv-chat-header-row">
-        <div className="pv-koru-avatar">
-          <img src="/stitch/avatar-chat.png" alt="Koru" />
+    <div className="koru-message is-user">
+      <div className="koru-bubble">
+        <p className="koru-message-text">{text}</p>
+      </div>
+    </div>
+  );
+}
+
+function KoruTurn({ children }: { children: ReactNode }) {
+  return (
+    <div className="koru-message is-koru">
+      <div className="koru-row">
+        <div className="koru-avatar">
+          <img src={KORU_AVATAR} alt="Koru" />
         </div>
-        <div className="pv-chat-header-copy">
-          <div className="pv-chat-header-name">Koru</div>
-          <div className="pv-chat-header-status"><i className="pv-presence-dot" />acá, escuchándote</div>
+        <div className="koru-bubble ai-bubble">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function TypingBubble() {
+  return (
+    <div className="koru-message is-koru">
+      <div className="koru-row">
+        <div className="koru-avatar">
+          <img src={KORU_AVATAR} alt="Koru" />
         </div>
-      </div>
-      <div className="pv-filter-row">
-        {CHAT_CATALOG.map((c) => (
-          <button
-            key={c.id}
-            className={"pv-chip" + (filter === c.id ? " active" : "")}
-            onClick={() => setFilter(c.id)}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 13 }}>{c.icon}</span>
-            {c.label}
-            <b>{c.count}</b>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function UserBubble({ text }: { text: string }) {
-  return <div className="pv-user-bubble"><span>{text}</span></div>;
-}
-
-function KoruBubble({ children }: { children: ReactNode }) {
-  return (
-    <div className="pv-koru-bubble">
-      <div className="pv-koru-bubble-avatar">
-        <img src="/stitch/avatar-wink.png" alt="" />
-      </div>
-      <div className="pv-koru-bubble-body">{children}</div>
-    </div>
-  );
-}
-
-function TypingIndicator() {
-  return (
-    <div className="pv-koru-bubble">
-      <div className="pv-koru-bubble-avatar"><img src="/stitch/avatar-chat.png" alt="" /></div>
-      <div className="pv-koru-bubble-body">
-        <div className="pv-typing"><span /><span /><span /></div>
+        <div className="koru-bubble ai-bubble">
+          <div className="koru-typing-indicator">
+            <span className="koru-typing-dot" />
+            <span className="koru-typing-dot" />
+            <span className="koru-typing-dot" />
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
 // ── Chat con auto-scroll y entrada progresiva ──────────────────────────────
-function ChatFeed({ filter }: { filter: string }) {
+function ChatFeed() {
   const feedRef = useRef<HTMLDivElement>(null);
-  const entries = useMemo<ChatEntry[]>(
-    () => CHAT_SCRIPT.filter((e) => filter === "all" || e.tag === filter),
-    [filter],
-  );
   const [visible, setVisible] = useState(0);
-
-  useEffect(() => setVisible(0), [filter]);
+  const entries = useMemo<ChatEntry[]>(() => CHAT_SCRIPT, []);
 
   useEffect(() => {
     if (visible >= entries.length) return;
-    const t = setTimeout(() => setVisible((v) => v + 1), visible === 0 ? 150 : 420);
+    const t = setTimeout(() => setVisible((v) => v + 1), visible === 0 ? 400 : 520);
     return () => clearTimeout(t);
   }, [visible, entries.length]);
 
@@ -106,83 +92,148 @@ function ChatFeed({ filter }: { filter: string }) {
   }, [visible]);
 
   const showTyping = visible < entries.length;
-  const rendered = entries.slice(0, visible);
 
   return (
-    <div className="pv-feed" ref={feedRef}>
-      {rendered.map((e, i) => {
-        if (e.kind === "user") return <UserBubble key={i} text={e.text} />;
-        if (e.kind === "text") {
+    <main ref={feedRef} className="koru-chat-scroll">
+      <div className="koru-thread">
+        {entries.slice(0, visible).map((e, i) => {
+          if (e.kind === "user") return <UserTurn key={i} text={e.text} />;
+          if (e.kind === "text") {
+            return (
+              <KoruTurn key={i}>
+                <p className="koru-message-text">{e.text}</p>
+              </KoruTurn>
+            );
+          }
           return (
-            <KoruBubble key={i}>
-              <p className="pv-koru-text">{e.text}</p>
-            </KoruBubble>
+            <KoruTurn key={i}>
+              {e.intro && <p className="koru-message-text" style={{ marginBottom: 10 }}>{e.intro}</p>}
+              <KoruUnifiedCard block={e.block as UiBlock} />
+            </KoruTurn>
           );
-        }
-        return (
-          <KoruBubble key={i}>
-            {e.intro && <p className="pv-koru-text">{e.intro}</p>}
-            <KoruUnifiedCard block={e.block as UiBlock} />
-          </KoruBubble>
-        );
-      })}
-      {showTyping && <TypingIndicator />}
-      <div className="pv-feed-spacer" />
+        })}
+        {showTyping && <TypingBubble />}
+      </div>
+    </main>
+  );
+}
+
+// ── Footer: quick actions + composer BLANCO réplica exacta ─────────────────
+function ChatFooter() {
+  return (
+    <footer className="koru-chat-footer">
+      <div className="koru-quick-actions">
+        <button type="button" className="koru-quick-action">
+          <span className="material-symbols-outlined">cloud</span>
+          ¿Qué tiempo hace?
+        </button>
+        <button type="button" className="koru-quick-action">
+          <span className="material-symbols-outlined">sports_soccer</span>
+          ¿Cómo salió España?
+        </button>
+        <button type="button" className="koru-quick-action">
+          <span className="material-symbols-outlined">explore</span>
+          Planificame el día
+        </button>
+      </div>
+      <div className="koru-composer">
+        <button type="button" aria-label="Modo efímero" className="koru-composer-icon">
+          <Leaf size={20} />
+        </button>
+        <button type="button" aria-label="Crear" className="koru-composer-icon koru-composer-create">
+          <Plus size={20} />
+        </button>
+        <button type="button" aria-label="Adjuntar archivo" className="koru-composer-icon">
+          <Paperclip size={20} />
+        </button>
+        <div className="koru-composer-field">
+          <input placeholder="Habla con Koru..." readOnly className="koru-composer-input" />
+        </div>
+        <button type="button" aria-label="Hablar" className="koru-mic-button">
+          <Mic size={22} />
+        </button>
+      </div>
+    </footer>
+  );
+}
+
+// ── Suggestion pills (patrón real de la app, top flotante) ─────────────────
+function SuggestionBar() {
+  return (
+    <div className="koru-suggestion-bar">
+      <button type="button" className="koru-suggestion-pill">
+        <span className="material-symbols-outlined">search</span>
+        informe de
+        <span className="topic">energía solar</span>
+      </button>
+      <button type="button" className="koru-suggestion-pill">
+        <span className="material-symbols-outlined">sports_tennis</span>
+        <span className="topic">Alcaraz</span>
+      </button>
     </div>
   );
 }
 
-function Composer() {
+// ── Fondo de video REAL de la app (estado "escuchando") ────────────────────
+function BgVideo() {
   return (
-    <div className="pv-composer">
-      <div className="pv-composer-input">
-        <span className="material-symbols-outlined">mic</span>
-        <input placeholder="Pedile algo a Koru…" readOnly />
-        <span className="material-symbols-outlined">send</span>
+    <div className="koru-bg-stack" aria-hidden="true">
+      <video
+        className="koru-bg-layer is-active"
+        src="/koru-states/estado-trabajando.mp4"
+        poster="/stitch/chat-bg.png"
+        autoPlay
+        muted
+        loop
+        playsInline
+      />
+    </div>
+  );
+}
+
+// ── Phone = koru-chat-screen real, 100% fiel (shell + tokens de la app) ────
+function Phone() {
+  return (
+    <div className="pv-stage-screen">
+      <div className="koru-chat-shell" role="dialog" aria-label="Conversación con Koru">
+        <div className="koru-chat-screen">
+          <StatusBar />
+          <BgVideo />
+          <SuggestionBar />
+          <ChatFeed />
+          <ChatFooter />
+        </div>
       </div>
     </div>
   );
 }
 
-function Phone() {
-  const [filter, setFilter] = useState("all");
-  return (
-    <div className="pv-phone">
-      <StatusBar />
-      <ChatHeader filter={filter} setFilter={setFilter} />
-      <ChatFeed filter={filter} />
-      <Composer />
-    </div>
-  );
-}
-
-// ── Stage ───────────────────────────────────────────────────────────────────
+// ── Stage mínimo: el teléfono ES la estrella. Links discretos abajo. ───────
 function Stage() {
   return (
     <div className="pv-stage">
-      <header className="pv-stage-header">
-        <div className="pv-stage-title">
-          <img src="/favicon.svg" alt="" className="pv-stage-logo" />
-          <div>
-            <h1>Koru · Preview de Cards</h1>
-            <p>v4 — sistema real de cards · fondo, avatar y tipografías reales del repo</p>
-          </div>
-        </div>
-        <div className="pv-stage-badges">
-          <span className="pv-badge">{CHAT_SCRIPT.filter((e) => e.kind === "card").length} cards</span>
-          <span className="pv-badge">{CHAT_CATALOG.length} categorías</span>
-        </div>
-      </header>
       <Phone />
-      <footer className="pv-stage-footer">
-        Tocá cualquier card para abrir su <b>Informe Extenso</b> — el detail screen real de la app.
-      </footer>
+      <nav className="pv-links" aria-label="Propuestas de interior">
+        <a href="/propuesta-a.html" target="_blank" rel="noreferrer">A · Lectura Visual</a>
+        <span className="pv-links-sep">·</span>
+        <a href="/propuesta-b.html" target="_blank" rel="noreferrer">B · Koru te Cuenta</a>
+      </nav>
+      {/* Acceso móvil a las propuestas (el nav superior se oculta en phone) */}
+      <nav className="pv-mobile-links" aria-label="Propuestas de interior (móvil)">
+        <a href="/propuesta-a.html" target="_blank" rel="noreferrer">
+          <span className="material-symbols-outlined">auto_awesome</span>
+          Propuesta A
+        </a>
+        <a href="/propuesta-b.html" target="_blank" rel="noreferrer">
+          <span className="material-symbols-outlined">record_voice_over</span>
+          Propuesta B
+        </a>
+      </nav>
     </div>
   );
 }
 
 // ── Bootstrap ───────────────────────────────────────────────────────────────
-// Estado limpio para el provider real (sin chat viejo persistido).
 try {
   localStorage.setItem("koru.onboarded", "true");
   localStorage.setItem("koru.username", "Arx");

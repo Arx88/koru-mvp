@@ -1,0 +1,848 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Koru · Propuesta A — Lectura Visual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bricolage+Grotesque:wght@600;700;800&display=swap" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" />
+<style>
+/* ══════════════════════════════════════════════════════════════════
+   PROPUESTA A · "LECTURA VISUAL"
+   El interior como revista: el mundo ilustrado del chat sigue vivo,
+   los números son protagonistas y cada sección es un momento visual.
+   Solo assets reales: chat-bg.png, avatar-chat/wink.png, escudos y
+   fotos reales. Tipografías reales: Bricolage Grotesque + Plus Jakarta.
+   ══════════════════════════════════════════════════════════════════ */
+:root{
+  --violet:#8363f9; --violet-2:#a78bfa; --violet-deep:#523a9e;
+  --mint:#6ee7b7; --mint-deep:#2f8f6d;
+  --honey:#f6bd6d; --amber:#f59e0b;
+  --pink:#ff8fb8; --sky:#8ab0ff;
+  --disp:'Bricolage Grotesque',Georgia,serif;
+  --sans:'Plus Jakarta Sans',system-ui,sans-serif;
+  --glass:rgba(16,11,38,.78);
+  --glass-2:rgba(255,255,255,.08);
+  --line:rgba(255,255,255,.16);
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#0b0818}
+body{font-family:var(--sans);color:#fff;-webkit-font-smoothing:antialiased;min-height:100vh}
+.material-symbols-outlined{font-variation-settings:'FILL' 1;line-height:1}
+
+/* ── Stage (entorno de presentación) ─────────────────────────── */
+.stage{min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:26px;
+  padding:44px 18px 60px;position:relative;overflow-x:hidden}
+.stage::before{content:"";position:fixed;inset:0;pointer-events:none;
+  background:radial-gradient(600px 420px at 20% -5%,rgba(131,99,249,.16),transparent 70%),
+             radial-gradient(700px 500px at 85% 110%,rgba(46,143,109,.12),transparent 70%)}
+.stage-head{max-width:560px;text-align:center;position:relative}
+.stage-head .logo-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:14px}
+.stage-head .logo-row img{width:30px;height:30px}
+.stage-head .logo-row .chip-a{font:800 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;
+  color:#0f0b28;background:linear-gradient(135deg,#f6bd6d,#f59e0b);padding:6px 12px;border-radius:999px}
+.stage-head h1{font:800 26px var(--disp);letter-spacing:-.02em}
+.stage-head h1 span{color:var(--violet-2)}
+.stage-head .tagline{margin-top:10px;font-size:14px;line-height:1.6;color:rgba(255,255,255,.72);max-width:470px;margin-inline:auto}
+.principles{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:16px}
+.principles span{font:700 11px var(--sans);color:rgba(255,255,255,.85);border:1px solid var(--line);
+  background:rgba(255,255,255,.06);padding:7px 12px;border-radius:999px;backdrop-filter:blur(8px)}
+.principles span b{color:var(--mint);font-weight:800}
+.stage-foot{max-width:430px;position:relative;margin-top:4px}
+.stage-foot .diff{border:1px solid var(--line);background:rgba(255,255,255,.05);backdrop-filter:blur(10px);
+  border-radius:20px;padding:16px 18px}
+.stage-foot h4{font:800 13px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--honey);margin-bottom:10px}
+.stage-foot li{list-style:none;display:flex;gap:10px;font-size:12.5px;line-height:1.55;color:rgba(255,255,255,.8);margin-bottom:7px}
+.stage-foot li .material-symbols-outlined{font-size:15px;color:var(--mint);margin-top:1px}
+.stage-foot li b{color:#fff}
+
+/* ── Phone frame ─────────────────────────────────────────────── */
+.phone{width:430px;height:932px;flex:none;border-radius:47px;position:relative;overflow:hidden;
+  background:#0d0a1e;border:1px solid rgba(255,255,255,.12);
+  box-shadow:0 0 0 9px #1a1533,0 0 0 10.5px rgba(255,255,255,.09),0 44px 90px rgba(0,0,0,.6);z-index:1}
+.phone .bgworld{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.phone .scrim{position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(9,6,24,.66) 0%,rgba(9,6,24,.46) 14%,rgba(9,6,24,.52) 32%,rgba(9,6,24,.66) 62%,rgba(9,6,24,.88) 100%)}
+.statusbar{position:absolute;top:0;left:0;right:0;height:46px;z-index:34;display:flex;align-items:center;
+  justify-content:space-between;padding:4px 27px 0;font:700 13px var(--sans);pointer-events:none}
+.statusbar .notch{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:118px;height:29px;
+  background:#0b0818;border-radius:999px}
+.statusbar .sicons{display:flex;gap:5.5px;align-items:center;opacity:.95}
+
+/* barra de progreso de lectura */
+.readbar{position:absolute;top:0;left:0;height:3px;width:0%;z-index:36;
+  background:linear-gradient(90deg,var(--mint),var(--violet));transition:width .18s linear;border-radius:0 3px 3px 0}
+
+/* ── Tabs ────────────────────────────────────────────────────── */
+.tabbar{position:absolute;top:47px;left:12px;right:12px;z-index:30;display:flex;gap:4px;
+  background:rgba(16,11,38,.68);backdrop-filter:blur(16px);border:1px solid var(--line);
+  border-radius:999px;padding:5px}
+.tab{flex:1;border:0;background:transparent;color:rgba(255,255,255,.66);font:700 12px var(--sans);
+  padding:9px 0;border-radius:999px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;
+  transition:.25s var(--ease)}
+.tab .material-symbols-outlined{font-size:14px}
+.tab:hover{color:#fff}
+.tab.on{background:rgba(255,255,255,.16);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.22)}
+
+/* ── Screen / panels ─────────────────────────────────────────── */
+.screen{position:absolute;top:47px;left:0;right:0;bottom:0;overflow-y:auto;overscroll-behavior:contain;scroll-behavior:smooth}
+.screen::-webkit-scrollbar{width:0}
+.panel{display:none;padding:64px 20px 118px}
+.panel.on{display:block;animation:panIn .45s var(--ease)}
+@keyframes panIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* reveal on scroll */
+.rv{opacity:0;transform:translateY(18px);transition:opacity .6s var(--ease),transform .6s var(--ease)}
+.rv.in{opacity:1;transform:none}
+
+/* ── Primitivas ──────────────────────────────────────────────── */
+.glass{background:var(--glass);border:1px solid var(--line);border-radius:24px;
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 10px 26px rgba(6,4,20,.35)}
+.fab{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:rgba(15,10,36,.7);
+  backdrop-filter:blur(12px);color:#fff;display:grid;place-items:center;cursor:pointer;transition:.25s var(--ease)}
+.fab:hover{background:rgba(255,255,255,.18);transform:scale(1.06)}
+.fab .material-symbols-outlined{font-size:19px}
+
+/* ── HERO del informe ────────────────────────────────────────── */
+.topnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.topnav .kchip{font:800 10px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:#0f0b28;
+  background:linear-gradient(135deg,#f6bd6d,#f59e0b);padding:8px 13px;border-radius:999px;
+  box-shadow:0 6px 18px rgba(245,158,11,.35)}
+.hero h1{font:800 30px/1.08 var(--disp);letter-spacing:-.02em;margin-bottom:10px;
+  text-shadow:0 2px 14px rgba(6,4,20,.55)}
+.hero .sub{font-size:13.5px;line-height:1.55;color:rgba(255,255,255,.85);max-width:330px;
+  text-shadow:0 1px 8px rgba(6,4,20,.45)}
+.hero .verified{display:flex;align-items:center;gap:7px;margin-top:12px;font:700 11px var(--sans);color:rgba(255,255,255,.68)}
+.hero .verified .material-symbols-outlined{font-size:14px;color:var(--mint)}
+.hero .verified b{color:rgba(255,255,255,.85)}
+
+/* 3 stats protagonistas */
+.stats3{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:20px}
+.stat{padding:13px 6px 11px;border-radius:20px;text-align:center;background:rgba(15,10,36,.74);
+  border:1px solid var(--line);backdrop-filter:blur(18px);box-shadow:0 10px 24px rgba(6,4,20,.3)}
+.stat .material-symbols-outlined{font-size:17px;display:block;margin:0 auto 5px}
+.stat .n{font:800 21px var(--disp);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.stat .l{display:block;font:700 8.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;
+  color:rgba(255,255,255,.58);margin-top:4px}
+.stat.sun .material-symbols-outlined,.stat.sun .n{color:var(--honey)}
+.stat.money .material-symbols-outlined,.stat.money .n{color:var(--violet-2)}
+.stat.pay .material-symbols-outlined,.stat.pay .n{color:var(--mint)}
+
+/* ── Secciones ───────────────────────────────────────────────── */
+.block{margin-top:30px}
+.sec-head{display:flex;align-items:center;gap:12px;margin-bottom:13px}
+.sec-ic{width:40px;height:40px;border-radius:14px;display:grid;place-items:center;flex:none;
+  border:1px solid var(--line);background:rgba(15,10,36,.74);backdrop-filter:blur(14px);box-shadow:0 8px 20px rgba(6,4,20,.28)}
+.sec-ic .material-symbols-outlined{font-size:20px}
+.sec-kicker{display:block;font:800 9.5px var(--sans);letter-spacing:.16em;text-transform:uppercase;margin-bottom:3px}
+.sec-head h2{font:800 20px var(--disp);letter-spacing:-.01em;text-shadow:0 2px 10px rgba(6,4,20,.5)}
+.sec-kicker{text-shadow:0 1px 8px rgba(6,4,20,.5)}
+.ic-honey{color:var(--honey)} .ic-violet{color:var(--violet-2)} .ic-mint{color:var(--mint)}
+.ic-pink{color:var(--pink)} .ic-sky{color:var(--sky)}
+
+/* síntesis: 3 takeaways */
+.tk{display:flex;flex-direction:column;gap:9px}
+.tk-row{display:flex;gap:12px;align-items:flex-start;padding:13px 14px}
+.tk-row .tkic{width:35px;height:35px;border-radius:12px;flex:none;display:grid;place-items:center;
+  background:rgba(255,255,255,.1)}
+.tk-row .tkic .material-symbols-outlined{font-size:17px}
+.tk-row p{font-size:13px;line-height:1.55;color:rgba(255,255,255,.95);text-shadow:0 1px 6px rgba(6,4,20,.4)}
+.tk-row p b{font-weight:800}
+.tk-row.sun b{color:var(--honey)} .tk-row.money b{color:var(--violet-2)} .tk-row.time b{color:var(--mint)}
+.tk-row.sun .tkic .material-symbols-outlined{color:var(--honey)}
+.tk-row.money .tkic .material-symbols-outlined{color:var(--violet-2)}
+.tk-row.time .tkic .material-symbols-outlined{color:var(--mint)}
+
+/* barras de sol */
+.sunlist{display:flex;flex-direction:column;gap:11px;padding:16px 16px 15px}
+.sunrow{display:grid;grid-template-columns:104px 1fr 64px;gap:10px;align-items:center}
+.sunrow .nm{font:700 12.5px var(--sans);line-height:1.15}
+.sunrow .nm small{display:block;font:700 8px var(--sans);letter-spacing:.07em;text-transform:uppercase;
+  color:rgba(255,255,255,.55);margin-top:3px}
+.sunrow .nm small.c-mint{color:var(--mint)} .sunrow .nm small.c-honey{color:var(--honey)} .sunrow .nm small.c-dim{color:rgba(255,255,255,.5)}
+.track{height:12px;border-radius:999px;background:rgba(255,255,255,.12);overflow:hidden;position:relative}
+.fill{height:100%;border-radius:999px;background:linear-gradient(90deg,rgba(246,189,109,.55),var(--honey) 55%,var(--amber));
+  box-shadow:0 0 12px rgba(246,189,109,.35)}
+.fill.dim{background:linear-gradient(90deg,rgba(246,189,109,.3),rgba(246,189,109,.6))}
+.sunrow .vl{font:800 12px var(--sans);text-align:right;font-variant-numeric:tabular-nums;color:rgba(255,255,255,.92)}
+.sunrow .vl small{display:block;font:700 8px var(--sans);color:rgba(255,255,255,.5);letter-spacing:.05em}
+.sunlist .foot-note{margin-top:3px;font:600 10.5px var(--sans);color:rgba(255,255,255,.5);display:flex;gap:6px;align-items:center}
+.sunlist .foot-note .material-symbols-outlined{font-size:13px;color:rgba(255,255,255,.5)}
+
+/* precios */
+.prices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.price{padding:16px 15px 14px;border-radius:22px;background:rgba(15,10,36,.74);border:1px solid var(--line);
+  backdrop-filter:blur(18px);position:relative;overflow:hidden;box-shadow:0 10px 24px rgba(6,4,20,.3)}
+.price.big{grid-column:1/-1;display:flex;align-items:center;gap:15px;padding:18px 18px}
+.price.wide{grid-column:1/-1;display:flex;align-items:center;gap:14px;padding:15px 17px;
+  background:linear-gradient(160deg,rgba(110,231,183,.16),rgba(110,231,183,.05));border-color:rgba(110,231,183,.32)}
+.price.wide .pn{font-size:28px}
+.price.wide .grow{flex:1}
+.price .pic{width:40px;height:40px;border-radius:14px;background:rgba(255,255,255,.1);display:grid;place-items:center;flex:none}
+.price .pic .material-symbols-outlined{font-size:20px}
+.price .pn{font:800 24px var(--disp);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.price.big .pn{font-size:34px}
+.price .pl{font:700 12px var(--sans);margin-top:3px;color:rgba(255,255,255,.85)}
+.price .pd{font:600 10.5px var(--sans);color:rgba(255,255,255,.55);margin-top:2px}
+.price .tag{position:absolute;top:12px;right:12px;font:800 8px var(--sans);letter-spacing:.1em;text-transform:uppercase;
+  padding:4px 8px;border-radius:999px}
+.price.t-honey .pn,.price.t-honey .pic .material-symbols-outlined{color:var(--honey)}
+.price.t-honey .tag{background:rgba(246,189,109,.16);color:var(--honey)}
+.price.t-violet .pn,.price.t-violet .pic .material-symbols-outlined{color:var(--violet-2)}
+.price.t-violet .tag{background:rgba(167,139,250,.16);color:var(--violet-2)}
+.price.t-mint .pn,.price.t-mint .pic .material-symbols-outlined{color:var(--mint)}
+.price.t-mint .tag{background:rgba(110,231,183,.14);color:var(--mint)}
+.price.t-sky .pn,.price.t-sky .pic .material-symbols-outlined{color:var(--sky)}
+
+/* timeline de recupero */
+.tl{position:relative;padding:2px 0 0 2px}
+.tl::before{content:"";position:absolute;left:21px;top:12px;bottom:26px;width:2px;
+  background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,.08))}
+.tl-item{position:relative;padding:0 0 16px 56px}
+.tl-item:last-child{padding-bottom:4px}
+.tl-dot{position:absolute;left:0;top:0;width:44px;height:44px;border-radius:16px;background:rgba(15,10,36,.74);
+  border:1px solid var(--line);backdrop-filter:blur(14px);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;box-shadow:0 8px 20px rgba(6,4,20,.3)}
+.tl-dot .yr{font:800 15px var(--disp);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.tl-dot .yr small{font:800 6.5px var(--sans);letter-spacing:.12em;color:rgba(255,255,255,.5);display:block;margin-bottom:1px}
+.tl-item h4{font:800 13.5px var(--sans);margin-bottom:3px}
+.tl-item p{font-size:12px;line-height:1.5;color:rgba(255,255,255,.78);text-shadow:0 1px 6px rgba(6,4,20,.4)}
+.tl-item.win .tl-dot{background:linear-gradient(160deg,rgba(110,231,183,.9),var(--mint-deep));border-color:transparent;
+  box-shadow:0 8px 22px rgba(110,231,183,.4)}
+.tl-item.win .tl-dot .yr{color:#05301d}
+.tl-item.win .tl-dot .yr small{color:rgba(5,48,29,.6)}
+.tl-item.win h4{color:var(--mint)}
+
+/* trampas */
+.warns{display:flex;flex-direction:column;gap:9px}
+.warn{display:flex;gap:12px;align-items:flex-start;padding:13px 14px;border-radius:20px;
+  background:linear-gradient(160deg,rgba(246,189,109,.13),rgba(246,189,109,.05));
+  border:1px solid rgba(246,189,109,.28)}
+.warn .wic{width:34px;height:34px;border-radius:12px;flex:none;display:grid;place-items:center;background:rgba(246,189,109,.18)}
+.warn .wic .material-symbols-outlined{font-size:17px;color:var(--honey)}
+.warn h5{font:800 13px var(--sans);margin-bottom:2px}
+.warn p{font-size:11.5px;line-height:1.5;color:rgba(255,255,255,.7)}
+
+/* fuentes */
+.srcs{display:flex;gap:9px;flex-wrap:wrap}
+.src{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:999px;
+  background:var(--glass);border:1px solid var(--line);font:700 11.5px var(--sans);color:rgba(255,255,255,.85)}
+.src .dot{width:7px;height:7px;border-radius:50%;background:var(--mint);box-shadow:0 0 8px rgba(110,231,183,.8)}
+.src .material-symbols-outlined{font-size:14px;color:var(--mint)}
+
+/* sticky actions */
+.actions{position:sticky;bottom:0;margin:26px -20px -118px;padding:18px 20px 24px;
+  background:linear-gradient(180deg,rgba(10,7,26,0),rgba(10,7,26,.82) 34%);
+  display:flex;gap:10px}
+.btn{flex:1;border:0;border-radius:999px;padding:16px 0;font:800 13.5px var(--sans);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;transition:.25s var(--ease)}
+.btn .material-symbols-outlined{font-size:17px}
+.btn.primary{background:linear-gradient(135deg,var(--violet-2),var(--violet));color:#fff;
+  box-shadow:0 12px 30px rgba(131,99,249,.45)}
+.btn.primary:hover{transform:translateY(-2px);box-shadow:0 16px 36px rgba(131,99,249,.55)}
+.btn.ghost{background:var(--glass);border:1px solid var(--line);color:#fff;flex:.72;backdrop-filter:blur(14px)}
+.btn.ghost:hover{background:rgba(255,255,255,.14)}
+/* ── CLIMA ───────────────────────────────────────────────────── */
+.w-hero{text-align:center;padding-top:6px}
+.w-hero .city{font:800 12px var(--sans);letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.75)}
+.w-hero .now{font:800 84px/1 var(--disp);letter-spacing:-.04em;margin:6px 0 2px;
+  text-shadow:0 14px 40px rgba(245,158,11,.25);position:relative;display:inline-block}
+.w-hero .now .material-symbols-outlined{position:absolute;right:-52px;top:12px;font-size:42px;color:var(--honey);
+  filter:drop-shadow(0 6px 18px rgba(245,158,11,.5))}
+.w-hero .cond{font:700 15px var(--sans)}
+.w-hero .rng{font:700 12.5px var(--sans);color:rgba(255,255,255,.65);margin-top:4px}
+.w-chips{display:flex;justify-content:center;gap:8px;margin-top:14px;flex-wrap:wrap}
+.w-chip{display:flex;align-items:center;gap:6px;font:700 11px var(--sans);color:rgba(255,255,255,.8);
+  background:var(--glass);border:1px solid var(--line);padding:8px 12px;border-radius:999px;backdrop-filter:blur(12px)}
+.w-chip .material-symbols-outlined{font-size:14px}
+.w-chip.hot .material-symbols-outlined{color:var(--honey)} .w-chip.wind .material-symbols-outlined{color:var(--sky)}
+.w-chip.drop .material-symbols-outlined{color:#7dd3fc} .w-chip.uv .material-symbols-outlined{color:var(--pink)}
+.advice{margin-top:26px;display:flex;gap:13px;align-items:flex-start;padding:15px 16px;border-radius:22px;
+  background:linear-gradient(160deg,rgba(246,189,109,.16),rgba(246,189,109,.05));border:1px solid rgba(246,189,109,.3)}
+.advice .aic{width:38px;height:38px;border-radius:14px;flex:none;display:grid;place-items:center;background:rgba(246,189,109,.2)}
+.advice .aic .material-symbols-outlined{font-size:20px;color:var(--honey)}
+.advice h5{font:800 12px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--honey);margin-bottom:4px}
+.advice p{font-size:13px;line-height:1.55;color:rgba(255,255,255,.9)}
+.hourly{display:flex;gap:8px;overflow-x:auto;padding:6px 2px 4px;margin-top:2px;scrollbar-width:none}
+.hourly::-webkit-scrollbar{display:none}
+.hr-pill{flex:none;min-width:60px;text-align:center;padding:11px 8px 10px;border-radius:18px;
+  background:rgba(15,10,36,.74);border:1px solid var(--line);backdrop-filter:blur(14px)}
+.hr-pill .h{font:700 10px var(--sans);color:rgba(255,255,255,.6)}
+.hr-pill .material-symbols-outlined{font-size:20px;margin:6px 0 5px;color:var(--honey)}
+.hr-pill .t{font:800 15px var(--disp);font-variant-numeric:tabular-nums}
+.hr-pill .u{display:block;font:700 8.5px var(--sans);color:rgba(255,255,255,.5);margin-top:3px}
+.week{display:flex;flex-direction:column;gap:4px;padding:12px 16px}
+.wk{display:grid;grid-template-columns:42px 26px 34px 1fr 34px;gap:10px;align-items:center;padding:7px 0}
+.wk .d{font:800 11px var(--sans);letter-spacing:.1em}
+.wk .material-symbols-outlined{font-size:19px;color:rgba(255,255,255,.85)}
+.wk .lo{font:700 11.5px var(--sans);color:rgba(255,255,255,.5);text-align:right}
+.wk .hi{font:800 12.5px var(--sans);font-variant-numeric:tabular-nums}
+.wk .rngbar{height:7px;border-radius:999px;background:rgba(255,255,255,.12);position:relative}
+.wk .rngbar i{position:absolute;height:100%;border-radius:999px;
+  background:linear-gradient(90deg,#7dd3fc,var(--honey))}
+.wk .material-symbols-outlined.sunny{color:var(--honey)} .wk .material-symbols-outlined.cloudy{color:rgba(255,255,255,.7)}
+.wk .material-symbols-outlined.rainy{color:#7dd3fc}
+
+/* ── PLAN ────────────────────────────────────────────────────── */
+.day-note{display:flex;gap:13px;align-items:flex-start;padding:15px 16px;border-radius:22px;
+  background:linear-gradient(160deg,rgba(110,231,183,.13),rgba(110,231,183,.04));border:1px solid rgba(110,231,183,.3)}
+.day-note .nic{width:38px;height:38px;border-radius:14px;flex:none;display:grid;place-items:center;background:rgba(110,231,183,.16)}
+.day-note .nic .material-symbols-outlined{font-size:20px;color:var(--mint)}
+.day-note h5{font:800 12px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--mint);margin-bottom:4px}
+.day-note p{font-size:13px;line-height:1.55;color:rgba(255,255,255,.9)}
+.plan{position:relative;margin-top:16px}
+.plan::before{content:"";position:absolute;left:66px;top:14px;bottom:14px;width:2px;
+  background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,.07))}
+.pi{position:relative;display:grid;grid-template-columns:56px 22px 1fr;gap:10px;align-items:flex-start;padding-bottom:12px}
+.pi .tm{font:800 11px var(--sans);color:rgba(255,255,255,.75);text-align:right;padding-top:12px;font-variant-numeric:tabular-nums}
+.pi .node{width:14px;height:14px;border-radius:50%;margin-top:12px;justify-self:center;z-index:1;
+  border:2.5px solid #0d0a1e;box-shadow:0 0 0 2px rgba(255,255,255,.25)}
+.pi.p-alta .node{background:var(--violet);box-shadow:0 0 0 2px rgba(131,99,249,.5),0 0 12px rgba(131,99,249,.5)}
+.pi.p-media .node{background:var(--honey);box-shadow:0 0 0 2px rgba(246,189,109,.4)}
+.pi.p-baja .node{background:rgba(255,255,255,.5);box-shadow:0 0 0 2px rgba(255,255,255,.2)}
+.pi .card{padding:12px 14px;border-radius:20px;background:rgba(15,10,36,.74);border:1px solid var(--line);
+  backdrop-filter:blur(16px);box-shadow:0 8px 22px rgba(6,4,20,.28)}
+.pi .card .row1{display:flex;align-items:center;gap:9px}
+.pi .card .aic{width:30px;height:30px;border-radius:11px;background:rgba(255,255,255,.1);display:grid;place-items:center;flex:none}
+.pi .card .aic .material-symbols-outlined{font-size:16px}
+.pi .card h5{font:800 13px var(--sans);flex:1;line-height:1.25}
+.pi .meta{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.pi .m{display:flex;align-items:center;gap:4px;font:700 9.5px var(--sans);color:rgba(255,255,255,.7);
+  background:rgba(255,255,255,.08);padding:4px 8px;border-radius:999px}
+.pi .m .material-symbols-outlined{font-size:11px}
+.pi .m.pr-alta{color:var(--violet-2)} .pi .m.pr-media{color:var(--honey)} .pi .m.pr-baja{color:rgba(255,255,255,.6)}
+.pi.focus .aic .material-symbols-outlined{color:var(--violet-2)}
+.pi.recovery .aic .material-symbols-outlined{color:var(--mint)}
+.pi.admin .aic .material-symbols-outlined{color:var(--sky)}
+.pi.quick .aic .material-symbols-outlined{color:var(--honey)}
+.pi.gap .card{background:transparent;border:1.5px dashed rgba(255,255,255,.22);backdrop-filter:none}
+.pi.gap .card h5{color:rgba(255,255,255,.75)}
+.pi .card p.det{font-size:11px;color:rgba(255,255,255,.55);margin-top:6px;line-height:1.45}
+
+/* ── CLÁSICO ─────────────────────────────────────────────────── */
+.league{display:flex;justify-content:center;margin-bottom:12px}
+.league span{font:800 10px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.75);
+  border:1px solid var(--line);background:var(--glass);padding:7px 13px;border-radius:999px;backdrop-filter:blur(10px)}
+.duel{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin-bottom:6px}
+.dside{display:flex;flex-direction:column;align-items:center;gap:8px}
+.dside .crest{width:62px;height:62px;object-fit:contain;background:#fff;border-radius:19px;padding:8px;
+  box-shadow:0 10px 26px rgba(0,0,0,.45),inset 0 0 0 1.5px rgba(255,255,255,.25)}
+.dside .nm{font:800 10.5px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.85)}
+.dmid{text-align:center}
+.dmid .sc{font:800 46px/1 var(--disp);letter-spacing:-.02em;text-shadow:0 8px 24px rgba(0,0,0,.45);font-variant-numeric:tabular-nums}
+.dmid .sc .sep{color:rgba(255,255,255,.4);margin:0 4px}
+.livepill{display:inline-flex;align-items:center;gap:6px;margin-top:9px;background:rgba(239,68,68,.92);
+  font:800 9.5px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:#fff;
+  padding:5px 11px;border-radius:999px;box-shadow:0 6px 16px rgba(239,68,68,.45)}
+.livepill i{width:6px;height:6px;border-radius:50%;background:#fff;animation:pulse 1.4s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.8)}}
+.venue{display:flex;justify-content:center;gap:14px;margin-top:10px;font:700 10.5px var(--sans);color:rgba(255,255,255,.55)}
+.venue span{display:flex;align-items:center;gap:4px}
+.venue .material-symbols-outlined{font-size:13px}
+.goals{display:flex;flex-direction:column;gap:9px}
+.goal{display:flex;gap:12px;align-items:center;padding:12px 13px;border-radius:20px;
+  background:rgba(15,10,36,.74);border:1px solid var(--line);backdrop-filter:blur(16px);position:relative;overflow:hidden;
+  box-shadow:0 8px 22px rgba(6,4,20,.28)}
+.goal::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px}
+.goal.rm::before{background:var(--sky)} .goal.bcn::before{background:var(--pink)}
+.goal .ph{width:44px;height:44px;border-radius:50%;flex:none;object-fit:cover;
+  border:2.5px solid rgba(255,255,255,.25);box-shadow:0 6px 16px rgba(0,0,0,.4)}
+.goal .who{flex:1}
+.goal .min{font:800 9.5px var(--sans);letter-spacing:.1em;color:rgba(255,255,255,.55);text-transform:uppercase}
+.goal h5{font:800 13.5px var(--sans);margin:2px 0}
+.goal p{font-size:11px;color:rgba(255,255,255,.6)}
+.goal .gic{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;flex:none;background:rgba(255,255,255,.1)}
+.goal .gic .material-symbols-outlined{font-size:17px}
+.goal.rm .gic .material-symbols-outlined{color:var(--sky)} .goal.bcn .gic .material-symbols-outlined{color:var(--pink)}
+.cmps{display:flex;flex-direction:column;gap:13px;padding:15px 16px}
+.cmp .lbl{text-align:center;font:800 9.5px var(--sans);letter-spacing:.16em;text-transform:uppercase;
+  color:rgba(255,255,255,.6);margin-bottom:7px}
+.cmp .bar{display:grid;grid-template-columns:38px 1fr 38px;gap:9px;align-items:center}
+.cmp .v{font:800 12.5px var(--disp);font-variant-numeric:tabular-nums}
+.cmp .v.h{text-align:right;color:var(--sky)} .cmp .v.a{color:var(--pink)}
+.cmp .duo{height:11px;display:flex;border-radius:999px;overflow:hidden;background:rgba(255,255,255,.1)}
+.cmp .duo .fh{background:linear-gradient(90deg,rgba(138,176,255,.45),var(--sky))}
+.cmp .duo .fa{background:linear-gradient(90deg,var(--pink),rgba(255,143,184,.45))}
+.lineups{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.lu{padding:13px 13px 11px;border-radius:20px;background:rgba(15,10,36,.74);border:1px solid var(--line);backdrop-filter:blur(16px)}
+.lu .luh{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+.lu .lun{font:800 11px var(--sans);letter-spacing:.06em;text-transform:uppercase}
+.lu .fch{font:800 9.5px var(--sans);color:var(--mint);background:rgba(110,231,183,.13);padding:4px 8px;border-radius:999px}
+.lu .pl{display:flex;gap:7px;align-items:baseline;font:600 10.5px var(--sans);color:rgba(255,255,255,.82);
+  padding:3.2px 0;border-radius:8px}
+.lu .pl b{font:800 9px var(--disp);color:rgba(255,255,255,.55);width:16px;flex:none;font-variant-numeric:tabular-nums}
+
+/* mini leyenda del stage */
+.legend{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-top:12px}
+.legend span{font:700 10px var(--sans);color:rgba(255,255,255,.6);display:flex;align-items:center;gap:5px}
+.legend .material-symbols-outlined{font-size:12px;color:var(--mint)}
+</style>
+</head>
+<body>
+<div class="stage">
+  <header class="stage-head">
+    <div class="logo-row"><img src="/favicon.svg" alt="Koru" /><span class="chip-a">Propuesta A</span></div>
+    <h1>“Lectura <span>Visual</span>”</h1>
+    <p class="tagline">El interior se lee como una revista: el mundo ilustrado del chat sigue vivo detrás,
+      los números son los protagonistas y cada sección es un momento visual, no una caja de texto.</p>
+    <div class="principles">
+      <span><b>1</b> idea por sección</span>
+      <span>Escaneable en <b>3 segundos</b></span>
+      <span>Números <b>gigantes</b></span>
+      <span>Glass sobre la <b>ilustración</b></span>
+      <span>Cero filas de texto</span>
+    </div>
+  </header>
+
+  <div class="phone">
+    <img class="bgworld" src="/stitch/chat-bg.png" alt="" />
+    <div class="scrim"></div>
+    <div class="statusbar">
+      <span>9:41</span><div class="notch"></div>
+      <div class="sicons">
+        <svg width="17" height="11" viewBox="0 0 17 11" fill="white" opacity=".9"><path d="M1 8.5c1.8-2 3.9-3 6-3s4.2 1 6 3l-1.4 1.4c-1.3-1.5-2.9-2.3-4.6-2.3s-3.3.8-4.6 2.3L1 8.5Z"/><path d="M4.9 5.2C6 4.4 7.2 4 8.5 4s2.5.4 3.6 1.2l1-1.6C11.7 2.6 10.2 2 8.5 2S5.3 2.6 3.9 3.6l1 1.6Z"/></svg>
+        <svg width="16" height="11" viewBox="0 0 16 11" fill="white" opacity=".9"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.3" y="4.5" width="3" height="6.5" rx="1"/><rect x="8.6" y="2" width="3" height="9" rx="1"/><rect x="12.9" y="0" width="3" height="11" rx="1" opacity=".4"/></svg>
+        <svg width="25" height="12" viewBox="0 0 25 12" fill="none" opacity=".9"><rect x=".5" y=".5" width="21" height="11" rx="3" stroke="white" stroke-opacity=".5"/><rect x="2" y="2" width="15" height="7.5" rx="1.8" fill="white"/><path d="M23 4v4c1-.3 1.5-1 1.5-2s-.5-1.7-1.5-2Z" fill="white" fill-opacity=".6"/></svg>
+      </div>
+    </div>
+    <div class="readbar"></div>
+    <nav class="tabbar">
+      <button class="tab on" data-p="p-info"><span class="material-symbols-outlined">description</span>Informe</button>
+      <button class="tab" data-p="p-clima"><span class="material-symbols-outlined">partly_cloudy_day</span>Clima</button>
+      <button class="tab" data-p="p-plan"><span class="material-symbols-outlined">today</span>Plan</button>
+      <button class="tab" data-p="p-match"><span class="material-symbols-outlined">sports_soccer</span>Clásico</button>
+    </nav>
+    <div class="screen" id="screen">
+
+      <!-- ══════════ INFORME · ENERGÍA SOLAR ══════════ -->
+      <section class="panel on" id="p-info">
+        <div class="hero">
+          <div class="topnav">
+            <button class="fab" aria-label="Volver"><span class="material-symbols-outlined">arrow_back</span></button>
+            <span class="kchip">Tu Informe</span>
+            <button class="fab" aria-label="Guardar"><span class="material-symbols-outlined">bookmark</span></button>
+          </div>
+          <h1>Energía solar<br />en España</h1>
+          <p class="sub">Radiación, costos y el punto exacto en que la solar doméstica conviene frente a la red.</p>
+          <div class="verified"><span class="material-symbols-outlined">verified</span>Verificado con <b>IDAE</b> · <b>OMIE</b></div>
+          <div class="stats3">
+            <div class="stat sun"><span class="material-symbols-outlined">wb_sunny</span><span class="n">2.800 h</span><span class="l">Sol al año</span></div>
+            <div class="stat money"><span class="material-symbols-outlined">payments</span><span class="n">€7.400</span><span class="l">3 kWp medio</span></div>
+            <div class="stat pay"><span class="material-symbols-outlined">schedule</span><span class="n">6-8</span><span class="l">Años de recupero</span></div>
+          </div>
+        </div>
+
+        <div class="block rv">
+          <div class="sec-head">
+            <div class="sec-ic"><span class="material-symbols-outlined ic-mint">bolt</span></div>
+            <div><span class="sec-kicker ic-mint">Síntesis</span><h2>La idea en 15 segundos</h2></div>
+          </div>
+          <div class="tk">
+            <div class="tk-row sun glass"><div class="tkic"><span class="material-symbols-outlined">wb_sunny</span></div>
+              <p>España tiene <b>2.800 horas de sol</b> al año: de los mejores lugares de Europa para autoconsumo.</p></div>
+            <div class="tk-row money glass"><div class="tkic"><span class="material-symbols-outlined">payments</span></div>
+              <p>Una instalación típica de 3 kWp cuesta <b>€7.400</b> y ahorra <b>€1.100 al año</b>.</p></div>
+            <div class="tk-row time glass"><div class="tkic"><span class="material-symbols-outlined">schedule</span></div>
+              <p>Con la red subiendo, <b>se paga sola en 6-8 años</b> y sigue produciendo 25.</p></div>
+          </div>
+        </div>
+
+        <div class="block rv">
+          <div class="sec-head">
+            <div class="sec-ic"><span class="material-symbols-outlined ic-honey">wb_sunny</span></div>
+            <div><span class="sec-kicker ic-honey">Radiación</span><h2>Dónde pega más el sol</h2></div>
+          </div>
+          <div class="sunlist glass">
+            <div class="sunrow">
+              <div class="nm">Andalucía<small class="c-mint">Óptimo</small></div>
+              <div class="track"><div class="fill" style="width:100%"></div></div>
+              <div class="vl">1.750<small>kWh/kWp</small></div>
+            </div>
+            <div class="sunrow">
+              <div class="nm">Murcia<small class="c-mint">Óptimo</small></div>
+              <div class="track"><div class="fill" style="width:97%"></div></div>
+              <div class="vl">1.700<small>kWh/kWp</small></div>
+            </div>
+            <div class="sunrow">
+              <div class="nm">Madrid<small class="c-honey">Muy bueno</small></div>
+              <div class="track"><div class="fill" style="width:91%"></div></div>
+              <div class="vl">1.600<small>kWh/kWp</small></div>
+            </div>
+            <div class="sunrow">
+              <div class="nm">Galicia<small class="c-dim">Aceptable</small></div>
+              <div class="track"><div class="fill dim" style="width:71%"></div></div>
+              <div class="vl">1.250<small>kWh/kWp</small></div>
+            </div>
+            <div class="foot-note"><span class="material-symbols-outlined">info</span>Producción anual por cada kWp instalado</div>
+          </div>
+        </div>
+
+        <div class="block rv">
+          <div class="sec-head">
+            <div class="sec-ic"><span class="material-symbols-outlined ic-violet">payments</span></div>
+            <div><span class="sec-kicker ic-violet">Costos</span><h2>Qué cuesta de verdad</h2></div>
+          </div>
+          <div class="prices">
+            <div class="price big t-honey">
+              <div class="pic"><span class="material-symbols-outlined">home</span></div>
+              <div><div class="pn">€7.400</div><div class="pl">3 kWp · la casa típica</div><div class="pd">8 paneles · cubre ~60% del consumo</div></div>
+              <span class="tag">Referencia</span>
+            </div>
+            <div class="price t-violet">
+              <div class="pic"><span class="material-symbols-outlined">battery_charging_full</span></div>
+              <div class="pn">€12.900</div><div class="pl">5 kWp + batería</div><div class="pd">Cubre el 90%</div>
+            </div>
+            <div class="price t-sky">
+              <div class="pic"><span class="material-symbols-outlined">electrical_services</span></div>
+              <div class="pn">€350-600</div><div class="pl">Boletín</div><div class="pd">Si el tablero es viejo</div>
+            </div>
+            <div class="price wide t-mint">
+              <div class="pic"><span class="material-symbols-outlined">savings</span></div>
+              <div class="pn">€1.100</div>
+              <div class="grow"><div class="pl">Ahorro por año</div><div class="pd">Incluye excedentes</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="block rv">
+          <div class="sec-head">
+            <div class="sec-ic"><span class="material-symbols-outlined ic-mint">schedule</span></div>
+            <div><span class="sec-kicker ic-mint">El punto de quiebre</span><h2>Cuándo se recupera</h2></div>
+          </div>
+          <div class="tl">
+            <div class="tl-item">
+              <div class="tl-dot"><span class="yr"><small>AÑO</small>1</span></div>
+              <h4>Arrancá a ahorrar</h4><p>€1.100 al año + deducción de IRPF pendiente de aplicar.</p>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot"><span class="yr"><small>AÑO</small>3</span></div>
+              <h4>La red sigue subiendo</h4><p>El precio de la luz acumula ~12% más: tu ahorro crece solo.</p>
+            </div>
+            <div class="tl-item win">
+              <div class="tl-dot"><span class="yr"><small>AÑO</small>6</span></div>
+              <h4>Se pagó sola</h4><p>La instalación de 3 kWp queda recuperada. Todo lo que sigue es ganancia.</p>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot"><span class="yr"><small>AÑO</small>25</span></div>
+              <h4>Fin de vida útil</h4><p>Los paneles siguen produciendo ~85% de lo original.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="block rv">
+          <div class="sec-head">
+            <div class="sec-ic"><span class="material-symbols-outlined ic-honey">gavel</span></div>
+            <div><span class="sec-kicker ic-honey">Cuidados</span><h2>Las 3 trampas del contrato</h2></div>
+          </div>
+          <div class="warns">
+            <div class="warn"><div class="wic"><span class="material-symbols-outlined">sell</span></div>
+              <div><h5>Precio por panel suelto</h5><p>Pedí siempre la cotización por kWp instalado, no por panel.</p></div></div>
+            <div class="warn"><div class="wic"><span class="material-symbols-outlined">swap_horiz</span></div>
+              <div><h5>Excedentes no incluidos</h5><p>Verificá quién tramita la compensación antes de firmar.</p></div></div>
+            <div class="warn"><div class="wic"><span class="material-symbols-outlined">history_edu</span></div>
+              <div><h5>Garantía de producción</h5><p>Si no la ponen por escrito, no existe.</p></div></div>
+          </div>
+        </div>
+
+        <div class="block rv">
+          <div class="sec-head">
+            <div class="sec-ic"><span class="material-symbols-outlined ic-sky">library_books</span></div>
+            <div><span class="sec-kicker ic-sky">Fuentes</span><h2>De dónde salen los datos</h2></div>
+          </div>
+          <div class="srcs">
+            <div class="src"><span class="dot"></span>idae.es<span class="material-symbols-outlined">verified</span></div>
+            <div class="src"><span class="dot"></span>omie.es<span class="material-symbols-outlined">verified</span></div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn primary"><span class="material-symbols-outlined">bookmark</span>Guardar informe</button>
+          <button class="btn ghost"><span class="material-symbols-outlined">picture_as_pdf</span>PDF</button>
+        </div>
+      </section>
+
+      <!-- ══════════ CLIMA · MADRID ══════════ -->
+      <section class="panel" id="p-clima">
+        <div class="hero">
+          <div class="topnav">
+            <button class="fab" aria-label="Volver"><span class="material-symbols-outlined">arrow_back</span></button>
+            <span class="kchip">Clima</span>
+            <button class="fab" aria-label="Guardar"><span class="material-symbols-outlined">bookmark</span></button>
+          </div>
+          <div class="w-hero">
+            <div class="city">Madrid</div>
+            <div class="now">26°<span class="material-symbols-outlined">wb_sunny</span></div>
+            <div class="cond">Soleado · se sienten 28°</div>
+            <div class="rng">Mín 16° · Máx 31°</div>
+            <div class="w-chips">
+              <span class="w-chip wind"><span class="material-symbols-outlined">air</span>11 km/h NE</span>
+              <span class="w-chip drop"><span class="material-symbols-outlined">water_drop</span>34%</span>
+              <span class="w-chip uv"><span class="material-symbols-outlined">wb_twilight</span>UV 7</span>
+              <span class="w-chip hot"><span class="material-symbols-outlined">umbrella</span>Lluvia 5%</span>
+            </div>
+            <div class="verified" style="justify-content:center"><span class="material-symbols-outlined">verified</span>Hace 4 min · <b>fuente verificada</b></div>
+          </div>
+        </div>
+
+        <div class="advice rv">
+          <div class="aic"><span class="material-symbols-outlined">wb_sunny</span></div>
+          <div>
+            <h5>Para hoy</h5>
+            <p>Sol fuerte entre 13 y 16: gorra y protector si salís a la calle.</p>
+          </div>
+        </div>
+
+        <div class="block rv">
+          <div class="sec-head">
+            <div class="sec-ic"><span class="material-symbols-outlined ic-honey">schedule</span></div>
+            <div><span class="sec-kicker ic-honey">Por hora</span><h2>Cómo viene la tarde</h2></div>
+          </div>
+          <div class="hourly">
+            <div class="hr-pill"><span class="h">10h</span><span class="material-symbols-outlined">wb_sunny</span><span class="t">23°</span><span class="u">UV 4</span></div>
+            <div class="hr-pill"><span class="h">11h</span><span class="material-symbols-outlined">wb_sunny</span><span class="t">25°</span><span class="u">UV 5</span></div>
+            <div class="hr-pill"><span class="h">12h</span><span class="material-symbols-outlined">wb_sunny</span><span class="t">27°</span><span class="u">UV 6</span></div>
+            <div class="hr-pill"><span class="h">13h</span><span class="material-symbols-outlined">clear_day</span><span class="t">29°</span><span class="u">UV 7</span></div>
+            <div class="hr-pill"><span class="h">14h</span><span class="material-symbols-outlined">clear_day</span><span class="t">30°</span><span class="u">UV 7</span></div>
+            <div class="hr-pill"><span class="h">15h</span><span class="material-symbols-outlined">clear_day</span><span class="t">31°</span><span class="u">UV 6</span></div>
+          </div>
+        </div>
+
+        <div class="block rv">
+          <div class="sec-head">
+            <div class="sec-ic"><span class="material-symbols-outlined ic-sky">date_range</span></div>
+            <div><span class="sec-kicker ic-sky">Semana</span><h2>Viene calmando</h2></div>
+          </div>
+          <div class="week glass">
+            <div class="wk"><span class="d">LUN</span><span class="material-symbols-outlined sunny">wb_sunny</span><span class="lo">16°</span>
+              <div class="rngbar"><i style="left:16%;width:78%"></i></div><span class="hi">31°</span></div>
+            <div class="wk"><span class="d">MAR</span><span class="material-symbols-outlined cloudy">partly_cloudy_day</span><span class="lo">17°</span>
+              <div class="rngbar"><i style="left:21%;width:68%"></i></div><span class="hi">30°</span></div>
+            <div class="wk"><span class="d">MIÉ</span><span class="material-symbols-outlined rainy">rainy</span><span class="lo">15°</span>
+              <div class="rngbar"><i style="left:11%;width:58%"></i></div><span class="hi">26°</span></div>
+            <div class="wk"><span class="d">JUE</span><span class="material-symbols-outlined rainy">rainy</span><span class="lo">14°</span>
+              <div class="rngbar"><i style="left:0%;width:53%"></i></div><span class="hi">24°</span></div>
+            <div class="wk"><span class="d">VIE</span><span class="material-symbols-outlined cloudy">partly_cloudy_day</span><span class="lo">15°</span>
+              <div class="rngbar"><i style="left:5%;width:63%"></i></div><span class="hi">27°</span></div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn primary"><span class="material-symbols-outlined">bookmark</span>Guardar clima</button>
+          <button class="btn ghost"><span class="material-symbols-outlined">share</span>Compartir</button>
+        </div>
+      </section>
+
+      <!-- ══════════ PLAN · TU DÍA ══════════ -->
+      <section class="panel" id="p-plan">
+        <div class="hero">
+          <div class="topnav">
+            <button class="fab" aria-label="Volver"><span class="material-symbols-outlined">arrow_back</span></button>
+            <span class="kchip">Tu día</span>
+            <button class="fab" aria-label="Guardar"><span class="material-symbols-outlined">bookmark</span></button>
+          </div>
+          <h1>Tu día,<br />armado a tu energía</h1>
+          <p class="sub">5 bloques ordenados por cómo rinden tus energías, con la ventana de siesta protegida.</p>
+        </div>
+
+        <div class="day-note rv">
+          <div class="nic"><span class="material-symbols-outlined">bedtime</span></div>
+          <div>
+            <h5>La nota de Koru</h5>
+            <p>Te dejé 14 a 16 libre: es cuando más te cuesta concentrarte.</p>
+          </div>
+        </div>
+
+        <div class="plan">
+          <div class="pi p-alta focus rv">
+            <span class="tm">09:00</span><span class="node"></span>
+            <div class="card">
+              <div class="row1"><div class="aic"><span class="material-symbols-outlined">move</span></div><h5>Rutina de fuerza · tren superior</h5></div>
+              <div class="meta"><span class="m"><span class="material-symbols-outlined">timer</span>50 min</span><span class="m pr-alta">Prioridad alta</span><span class="m"><span class="material-symbols-outlined">bolt</span>Focus</span></div>
+              <p class="det">4 series de press + remos — la franja donde mejor rendís con pesas.</p>
+            </div>
+          </div>
+          <div class="pi p-alta focus rv">
+            <span class="tm">10:30</span><span class="node"></span>
+            <div class="card">
+              <div class="row1"><div class="aic"><span class="material-symbols-outlined">book</span></div><h5>Deep work: informe del cliente</h5></div>
+              <div class="meta"><span class="m"><span class="material-symbols-outlined">timer</span>90 min</span><span class="m pr-alta">Prioridad alta</span><span class="m"><span class="material-symbols-outlined">bolt</span>Focus</span></div>
+              <p class="det">Sin notificaciones, teléfono en otro lado.</p>
+            </div>
+          </div>
+          <div class="pi p-media recovery rv">
+            <span class="tm">13:00</span><span class="node"></span>
+            <div class="card">
+              <div class="row1"><div class="aic"><span class="material-symbols-outlined">restaurant</span></div><h5>Almuerzo + caminata</h5></div>
+              <div class="meta"><span class="m"><span class="material-symbols-outlined">timer</span>45 min</span><span class="m pr-media">Prioridad media</span><span class="m"><span class="material-symbols-outlined">spa</span>Recovery</span></div>
+            </div>
+          </div>
+          <div class="pi gap rv">
+            <span class="tm">14:00</span><span class="node"></span>
+            <div class="card">
+              <div class="row1"><div class="aic"><span class="material-symbols-outlined">local_cafe</span></div><h5>Ventana libre</h5></div>
+              <p class="det">14 a 16 sin nada agendado — a propósito.</p>
+            </div>
+          </div>
+          <div class="pi p-alta admin rv">
+            <span class="tm">16:00</span><span class="node"></span>
+            <div class="card">
+              <div class="row1"><div class="aic"><span class="material-symbols-outlined">call</span></div><h5>Llamada con el estudio contable</h5></div>
+              <div class="meta"><span class="m"><span class="material-symbols-outlined">timer</span>30 min</span><span class="m pr-alta">Prioridad alta</span><span class="m"><span class="material-symbols-outlined">gavel</span>Admin</span></div>
+            </div>
+          </div>
+          <div class="pi p-baja quick rv">
+            <span class="tm">18:30</span><span class="node"></span>
+            <div class="card">
+              <div class="row1"><div class="aic"><span class="material-symbols-outlined">shopping_cart</span></div><h5>Supermercado semanal</h5></div>
+              <div class="meta"><span class="m"><span class="material-symbols-outlined">timer</span>40 min</span><span class="m pr-baja">Prioridad baja</span><span class="m"><span class="material-symbols-outlined">shopping_bag</span>Quick</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn primary"><span class="material-symbols-outlined">play_arrow</span>Empezar el día</button>
+          <button class="btn ghost"><span class="material-symbols-outlined">calendar_month</span>Agenda</button>
+        </div>
+      </section>
+
+      <!-- ══════════ CLÁSICO · EN VIVO ══════════ -->
+      <section class="panel" id="p-match">
+        <div class="hero">
+          <div class="topnav">
+            <button class="fab" aria-label="Volver"><span class="material-symbols-outlined">arrow_back</span></button>
+            <span class="kchip">En vivo</span>
+            <button class="fab" aria-label="Guardar"><span class="material-symbols-outlined">bookmark</span></button>
+          </div>
+          <div class="league"><span>LaLiga · Jornada 18</span></div>
+          <div class="duel">
+            <div class="dside"><img class="crest" src="/stitch/sports/real-madrid.png" alt="Real Madrid" /><span class="nm">Real Madrid</span></div>
+            <div class="dmid">
+              <div class="sc">2<span class="sep">–</span>1</div>
+              <span class="livepill"><i></i>78' · 2º tiempo</span>
+            </div>
+            <div class="dside"><img class="crest" src="/stitch/sports/barcelona.png" alt="Barcelona" /><span class="nm">Barcelona</span></div>
+          </div>
+          <div class="venue">
+            <span><span class="material-symbols-outlined">stadium</span>Santiago Bernabéu</span>
+            <span><span class="material-symbols-outlined">groups</span>78.297</span>
+          </div>
+        </div>
+
+        <div class="block rv">
+          <div class="sec-head">
+            <div class="sec-ic"><span class="material-symbols-outlined ic-mint">sports_soccer</span></div>
+            <div><span class="sec-kicker ic-mint">Los goles</span><h2>Cómo llegaron</h2></div>
+          </div>
+          <div class="goals">
+            <div class="goal bcn">
+              <img class="ph" src="/stitch/sports/players/yamal.jpg" alt="Lamine Yamal" />
+              <div class="who"><span class="min">23'</span><h5>Lamine Yamal</h5><p>Asistencia de Pedri · Barcelona</p></div>
+              <div class="gic"><span class="material-symbols-outlined">sports_soccer</span></div>
+            </div>
+            <div class="goal rm">
+              <img class="ph" src="/stitch/sports/players/mbappe.jpg" alt="Kylian Mbappé" />
+              <div class="who"><span class="min">41'</span><h5>Kylian Mbappé</h5><p>De penal · Real Madrid</p></div>
+              <div class="gic"><span class="material-symbols-outlined">sports_soccer</span></div>
+            </div>
+            <div class="goal rm">
+              <img class="ph" src="/stitch/sports/players/vinicius.jpg" alt="Vinícius Jr." />
+              <div class="who"><span class="min">67'</span><h5>Vinícius Júnior</h5><p>Contraataque · Real Madrid</p></div>
+              <div class="gic"><span class="material-symbols-outlined">sports_soccer</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="block rv">
+          <div class="sec-head">
+            <div class="sec-ic"><span class="material-symbols-outlined ic-violet">bar_chart</span></div>
+            <div><span class="sec-kicker ic-violet">El partido en números</span><h2>Quién manda</h2></div>
+          </div>
+          <div class="cmps glass">
+            <div class="cmp"><div class="lbl">Posesión</div>
+              <div class="bar"><span class="v h">46%</span><div class="duo"><div class="fh" style="width:46%"></div><div class="fa" style="width:54%"></div></div><span class="v a">54%</span></div></div>
+            <div class="cmp"><div class="lbl">Tiros</div>
+              <div class="bar"><span class="v h">14</span><div class="duo"><div class="fh" style="width:56%"></div><div class="fa" style="width:44%"></div></div><span class="v a">11</span></div></div>
+            <div class="cmp"><div class="lbl">Tiros al arco</div>
+              <div class="bar"><span class="v h">7</span><div class="duo"><div class="fh" style="width:64%"></div><div class="fa" style="width:36%"></div></div><span class="v a">4</span></div></div>
+            <div class="cmp"><div class="lbl">Córners</div>
+              <div class="bar"><span class="v h">5</span><div class="duo"><div class="fh" style="width:38%"></div><div class="fa" style="width:62%"></div></div><span class="v a">8</span></div></div>
+            <div class="cmp"><div class="lbl">Pases precisos</div>
+              <div class="bar"><span class="v h">312</span><div class="duo"><div class="fh" style="width:43%"></div><div class="fa" style="width:57%"></div></div><span class="v a">415</span></div></div>
+          </div>
+        </div>
+
+        <div class="block rv">
+          <div class="sec-head">
+            <div class="sec-ic"><span class="material-symbols-outlined ic-sky">grid_view</span></div>
+            <div><span class="sec-kicker ic-sky">Alineaciones</span><h2>Quién juega</h2></div>
+          </div>
+          <div class="lineups">
+            <div class="lu">
+              <div class="luh"><span class="lun">Real Madrid</span><span class="fch">4-3-3</span></div>
+              <div class="pl"><b>1</b>Courtois</div><div class="pl"><b>17</b>Alexander-Arnold</div><div class="pl"><b>3</b>Militão</div>
+              <div class="pl"><b>35</b>Rüdiger</div><div class="pl"><b>23</b>Mendy</div><div class="pl"><b>8</b>Valverde</div>
+              <div class="pl"><b>6</b>Tchouaméni</div><div class="pl"><b>10</b>Bellingham</div><div class="pl"><b>7</b>Vinícius Jr.</div>
+              <div class="pl"><b>9</b>Mbappé</div><div class="pl"><b>11</b>Rodrygo</div>
+            </div>
+            <div class="lu">
+              <div class="luh"><span class="lun">Barcelona</span><span class="fch">4-2-3-1</span></div>
+              <div class="pl"><b>13</b>Iñaki Peña</div><div class="pl"><b>23</b>Koundé</div><div class="pl"><b>2</b>Cubarsí</div>
+              <div class="pl"><b>5</b>Iñigo Martínez</div><div class="pl"><b>3</b>Balde</div><div class="pl"><b>8</b>Pedri</div>
+              <div class="pl"><b>16</b>Casadó</div><div class="pl"><b>19</b>Lamine Yamal</div><div class="pl"><b>6</b>Gavi</div>
+              <div class="pl"><b>11</b>Raphinha</div><div class="pl"><b>9</b>Lewandowski</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn primary"><span class="material-symbols-outlined">notifications_active</span>Seguir partido</button>
+          <button class="btn ghost"><span class="material-symbols-outlined">swap_vert</span>Más datos</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <footer class="stage-foot">
+    <div class="diff">
+      <h4>Qué cambia respecto de hoy</h4>
+      <ul>
+        <li><span class="material-symbols-outlined">check</span><span>El fondo <b>ilustrado del chat continúa</b> adentro — adiós al navy plano de dashboard.</span></li>
+        <li><span class="material-symbols-outlined">check</span><span><b>Números protagonistas</b>: cada dato clave vive en tipografía grande, no enterrado en un párrafo.</span></li>
+        <li><span class="material-symbols-outlined">check</span><span>Las filas de texto se convierten en <b>barras de sol, precios en cards y una línea de recupero</b>.</span></li>
+        <li><span class="material-symbols-outlined">check</span><span><b>Cero scroll infinito</b>: la síntesis se escanea en 3 chips, el detalle llega por jerarquía.</span></li>
+      </ul>
+    </div>
+  </footer>
+</div>
+
+<script>
+// Tabs
+const tabs=document.querySelectorAll('.tab'),panels=document.querySelectorAll('.panel'),screen=document.getElementById('screen');
+tabs.forEach(t=>t.addEventListener('click',()=>{
+  tabs.forEach(x=>x.classList.remove('on'));t.classList.add('on');
+  panels.forEach(p=>p.classList.toggle('on',p.id===t.dataset.p));
+  screen.scrollTo({top:0});requestAnimationFrame(updateBar);
+}));
+// Reveal on scroll
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{root:screen,threshold:.12});
+document.querySelectorAll('.rv').forEach(el=>io.observe(el));
+// Barra de progreso de lectura
+function updateBar(){const max=screen.scrollHeight-screen.clientHeight;screen.querySelectorAll('.panel.on .actions').forEach(()=>{});
+  document.querySelector('.readbar').style.width=(max>0?Math.min(100,screen.scrollTop/max*100):0)+'%'}
+screen.addEventListener('scroll',updateBar,{passive:true});
+window.addEventListener('load',updateBar);
+// Contador sutil en stats del hero
+document.querySelectorAll('.stat .n').forEach(el=>{
+  const m=el.textContent.match(/^([€]?)\s*([\d.,]+)(.*)$/);if(!m)return;
+  const target=parseFloat(m[2].replace(/\./g,'').replace(',','.'));if(isNaN(target))return;
+  const t0=performance.now();
+  (function tick(t){const p=Math.min(1,(t-t0)/900),v=target*(1-Math.pow(1-p,3));
+    el.textContent=m[1]+(Math.round(v).toLocaleString('es-ES'))+m[3];if(p<1)requestAnimationFrame(tick)})(t0);
+});
+</script>
+
+</body>
+</html>

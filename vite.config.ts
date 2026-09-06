@@ -1071,6 +1071,9 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         input: {
           main: new URL("./index.html", import.meta.url).pathname,
+          // Harness de preview de cards (showcase de diseños). Se sirve en
+          // /preview.html SIN tocar la app real (index.html = app intacta).
+          preview: new URL("./preview.html", import.meta.url).pathname,
         },
       },
     },
