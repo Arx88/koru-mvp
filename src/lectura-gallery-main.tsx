@@ -37,6 +37,7 @@ import {
   Cake,
   Users,
   Swords,
+  Coffee,
 } from "lucide-react";
 import type { UiBlock } from "./domain/types";
 import { WeatherInterior } from "./ui/cards/lectura/panels/WeatherInterior";
@@ -65,6 +66,7 @@ import { BirthdayCalendarInterior } from "./ui/cards/lectura/panels/BirthdayCale
 import { BirthdayAlarmInterior } from "./ui/cards/lectura/panels/BirthdayAlarmInterior";
 import { SocialInterior } from "./ui/cards/lectura/panels/SocialInterior";
 import { ComparisonInterior } from "./ui/cards/lectura/panels/ComparisonInterior";
+import { ProductInterior } from "./ui/cards/lectura/panels/ProductInterior";
 import {
   weatherBlock,
   planBlock,
@@ -92,6 +94,7 @@ import {
   balarmBlock,
   socialBlock,
   comparisonBlock,
+  productBlock,
 } from "./ui/cards/lectura/fixtures";
 
 type Entry = {
@@ -133,6 +136,7 @@ const CARDS: Entry[] = [
   { id: "balarm", label: "Aviso cumple de Juan", sub: "anillo countdown real (5 días)", icon: Cake, tint: "var(--rose-soft)", color: "var(--rose-ink)", block: balarmBlock, Cmp: BirthdayAlarmInterior },
   { id: "social", label: "Cumple de Juan", sub: "fecha + gifts reales guardados", icon: Users, tint: "var(--rose-soft)", color: "var(--rose-ink)", block: socialBlock, Cmp: SocialInterior },
   { id: "comp", label: "Duelo de in-ear", sub: "3 contendientes + tabla por criterios", icon: Swords, tint: "var(--violet-soft)", color: "var(--violet-ink)", block: comparisonBlock, Cmp: ComparisonInterior },
+  { id: "prod", label: "Cafetera Evo", sub: "foto + score + specs reales", icon: Coffee, tint: "var(--mint-soft)", color: "var(--mint-ink)", block: productBlock, Cmp: ProductInterior },
 ];
 
 

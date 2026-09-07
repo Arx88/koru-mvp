@@ -34,6 +34,7 @@ import { BirthdayCalendarInterior } from "./panels/BirthdayCalendarInterior";
 import { BirthdayAlarmInterior } from "./panels/BirthdayAlarmInterior";
 import { SocialInterior } from "./panels/SocialInterior";
 import { ComparisonInterior } from "./panels/ComparisonInterior";
+import { ProductInterior } from "./panels/ProductInterior";
 
 export interface LecturaInteriorProps<T extends UiBlock = UiBlock> {
   block: T;
@@ -73,6 +74,7 @@ const REGISTRY: Partial<Record<UiBlock["type"], AnyInterior>> = {
   birthday_alarm: BirthdayAlarmInterior as AnyInterior,
   social_interaction: SocialInterior as AnyInterior,
   comparison: ComparisonInterior as AnyInterior,
+  product_analysis: ProductInterior as AnyInterior,
 };
 
 export function lecturaInteriorFor(block: UiBlock): AnyInterior | null {

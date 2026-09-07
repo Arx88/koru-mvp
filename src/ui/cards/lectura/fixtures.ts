@@ -541,3 +541,23 @@ export const comparisonBlock: Extract<UiBlock, { type: "comparison" }> = {
     "El empate técnico era real: por tus llamadas diarias ganaba Bose. Ganó Sony por el combo batería + cancelación con tu teléfono.",
 };
 
+
+export const productBlock: Extract<UiBlock, { type: "product_analysis" }> = {
+  type: "product_analysis",
+  product: {
+    name: "Cafetera De'Longhi Magnifica Evo",
+    image: "/stitch/outfits/prod-espresso.jpg",
+    icon: "coffee",
+    rating: 8.7,
+    reviewCount: "1.204",
+    description: "La que recomiendo de las 14 que analicé para tu cocina y tu café de todos los días.",
+  },
+  specs: [
+    { label: "Espresso", value: "9 bar" },
+    { label: "Vapor", value: "sí, para latte" },
+    { label: "Limpieza", value: "automática" },
+    { label: "Ruido", value: "62 dB" },
+  ],
+  actionLabel: "Guardar para la compra",
+};
+
