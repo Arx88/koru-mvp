@@ -41,3 +41,53 @@ export const weatherBlock: Extract<UiBlock, { type: "weather" }> = {
   ],
   freshnessLabel: "Hace 4 min",
 };
+
+export const planBlock: Extract<UiBlock, { type: "plan" }> = {
+  type: "plan",
+  title: "Tu día",
+  note: "Te dejé la tarde con aire — el hueco grande no lo llené a propósito.",
+  items: [
+    {
+      time: "08:00",
+      title: "Desayuno tranquilo",
+      detail: "Café + tostadas · 25 min antes de arrancar",
+      icon: "home",
+      mode: "recovery",
+      durationMinutes: 25,
+      done: true,
+    },
+    {
+      time: "09:00",
+      title: "Trabajo profundo",
+      detail: "2 h sin notificaciones · después me contás",
+      icon: "book",
+      mode: "focus",
+      durationMinutes: 120,
+      done: true,
+    },
+    {
+      time: "13:30",
+      title: "Almuerzo con Sofi",
+      detail: "Café Oui · reservado para 2 · son 6 cuadras",
+      icon: "message",
+      mode: "quick",
+      durationMinutes: 90,
+    },
+    {
+      time: "18:30",
+      title: "Gym · piernas",
+      detail: "1 h · llevalo liviano, venís del almuerzo largo",
+      icon: "move",
+      mode: "focus",
+      durationMinutes: 60,
+    },
+    {
+      time: "20:30",
+      title: "Cine con Juan",
+      detail: "El Rojo 20:45 · compré las entradas ya",
+      icon: "flag",
+      mode: "quick",
+      durationMinutes: 140,
+    },
+  ],
+};
