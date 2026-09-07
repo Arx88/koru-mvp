@@ -767,3 +767,15 @@ export const electionResultsBlock: Extract<UiBlock, { type: "election_results" }
   ],
 };
 
+
+export const electionVoteBlock: Extract<UiBlock, { type: "election_vote" }> = {
+  type: "election_vote",
+  question: "¿Qué lente uso para ordenar esto?",
+  subtitle: "Para la comparación de candidatos que me pediste: elijo una y armo el análisis desde ahí.",
+  options: [
+    { label: "Economía primero", sub: "empleo, inflación, impuestos — lo que mueve tu bolsillo" },
+    { label: "Seguridad primero", sub: "crimen, justicia, defensa — la calle como prioridad" },
+    { label: "Ambiente primero", sub: "energía, agua, transición — el plazo largo" },
+  ],
+};
+

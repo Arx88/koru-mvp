@@ -47,6 +47,7 @@ import {
   StickyNote,
   FolderOpen,
   Vote,
+  SlidersHorizontal,
 } from "lucide-react";
 import type { UiBlock } from "./domain/types";
 import { WeatherInterior } from "./ui/cards/lectura/panels/WeatherInterior";
@@ -84,6 +85,7 @@ import { LinksInterior } from "./ui/cards/lectura/panels/LinksInterior";
 import { NoteInterior } from "./ui/cards/lectura/panels/NoteInterior";
 import { FilesInterior } from "./ui/cards/lectura/panels/FilesInterior";
 import { ElectInterior } from "./ui/cards/lectura/panels/ElectInterior";
+import { EvoteInterior } from "./ui/cards/lectura/panels/EvoteInterior";
 import {
   weatherBlock,
   planBlock,
@@ -121,6 +123,7 @@ import {
   reviewDocumentBlock,
   resourceBundleBlock,
   electionResultsBlock,
+  electionVoteBlock,
 } from "./ui/cards/lectura/fixtures";
 
 type Entry = {
@@ -172,6 +175,7 @@ const CARDS: Entry[] = [
   { id: "note", label: "Anotame esto", sub: "post-it verbatim + fecha detectada", icon: StickyNote, tint: "var(--honey-soft)", color: "var(--honey-ink)", block: reviewDocumentBlock, Cmp: NoteInterior },
   { id: "files", label: "Archivos del chat", sub: "bandeja con sellos y descarga real", icon: FolderOpen, tint: "var(--mint-soft)", color: "var(--mint-ink)", block: resourceBundleBlock, Cmp: FilesInterior },
   { id: "elect", label: "Así está la cuenta", sub: "escrutinio real + bancas derivadas", icon: Vote, tint: "var(--violet-soft)", color: "var(--violet-ink)", block: electionResultsBlock, Cmp: ElectInterior },
+  { id: "evote", label: "Tu lente de análisis", sub: "opciones reales + voto confirmable", icon: SlidersHorizontal, tint: "var(--violet-soft)", color: "var(--violet-ink)", block: electionVoteBlock, Cmp: EvoteInterior },
 ];
 
 
