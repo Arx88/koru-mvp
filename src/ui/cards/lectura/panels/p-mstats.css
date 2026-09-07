@@ -26,3 +26,6 @@
 .lcr .du-verdict .lucide{font-size:17px;color:var(--mint-ink);flex:none;margin-top:1px}
 .lcr .du-verdict p{font:600 11px/1.55 var(--sans);color:var(--ink-soft)}
 .lcr .du-verdict b{color:var(--mint-ink)}
+/* MstatsInterior — fallback escudo por iniciales cuando no hay asset local */
+.lcr .du-tm .crestito{width:38px;height:38px;flex:none;border-radius:12px;display:flex;align-items:center;justify-content:center;
+          font:800 13px var(--disp);color:var(--ink-soft);background:var(--paper2);border:1px solid var(--linec)}

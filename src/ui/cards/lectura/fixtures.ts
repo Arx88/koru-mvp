@@ -800,3 +800,19 @@ export const matchTimelineBlock: Extract<UiBlock, { type: "match_timeline" }> = 
   },
 };
 
+
+export const matchStatsBlock: Extract<UiBlock, { type: "match_stats" }> = {
+  type: "match_stats",
+  title: "El clásico, en números",
+  homeName: "Real Madrid",
+  awayName: "Barcelona",
+  homeColor: "#4ec99c",
+  awayColor: "#9dbcf3",
+  stats: [
+    { label: "Posesión", home: "58", away: "42", width: "58%" },
+    { label: "Remates al arco", home: "8", away: "5", width: "80%" },
+    { label: "Córners", home: "7", away: "4", width: "56%" },
+    { label: "Faltas", home: "9", away: "11", width: "36%" },
+  ],
+};
+
