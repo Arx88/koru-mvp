@@ -22,6 +22,7 @@ import {
   BookOpen,
   AlarmClock,
   ListChecks,
+  Sunrise,
 } from "lucide-react";
 import type { UiBlock } from "./domain/types";
 import { WeatherInterior } from "./ui/cards/lectura/panels/WeatherInterior";
@@ -35,6 +36,7 @@ import { MovieInterior } from "./ui/cards/lectura/panels/MovieInterior";
 import { BookInterior } from "./ui/cards/lectura/panels/BookInterior";
 import { AlarmInterior } from "./ui/cards/lectura/panels/AlarmInterior";
 import { CheckInterior } from "./ui/cards/lectura/panels/CheckInterior";
+import { BriefInterior } from "./ui/cards/lectura/panels/BriefInterior";
 import {
   weatherBlock,
   planBlock,
@@ -47,6 +49,7 @@ import {
   bookBlock,
   alarmBlock,
   checklistBlock,
+  briefBlock,
 } from "./ui/cards/lectura/fixtures";
 
 type Entry = {
@@ -73,6 +76,7 @@ const CARDS: Entry[] = [
   { id: "book", label: "Lectura de noche", sub: "mesita de luz + vista previa", icon: BookOpen, tint: "var(--honey-soft)", color: "var(--honey-ink)", block: bookBlock, Cmp: BookInterior },
   { id: "alarm", label: "Alarma gym 7:00", sub: "reloj vivo + días reales del repeat", icon: AlarmClock, tint: "var(--honey-soft)", color: "var(--honey-ink)", block: alarmBlock, Cmp: AlarmInterior },
   { id: "check", label: "Checklist notebook", sub: "toggles durables del checklist", icon: ListChecks, tint: "var(--violet-soft)", color: "var(--violet-ink)", block: checklistBlock, Cmp: CheckInterior },
+  { id: "brief", label: "Morning brief", sub: "5 items reales + TTS de la app", icon: Sunrise, tint: "var(--sky-soft)", color: "var(--sky-ink)", block: briefBlock, Cmp: BriefInterior },
 ];
 
 

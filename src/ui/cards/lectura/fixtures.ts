@@ -268,3 +268,16 @@ export const checklistBlock: Extract<UiBlock, { type: "smart_checklist" }> = {
   ],
 };
 
+
+export const briefBlock: Extract<UiBlock, { type: "morning_brief" }> = {
+  type: "morning_brief",
+  greeting: "Buen domingo",
+  items: [
+    { icon: "bell", iconColor: "#e11d48", label: "Hoy no lo olvidés", value: "11:00", variant: "highlight" },
+    { icon: "sports_soccer", iconColor: "#059669", label: "Real Madrid 2–1 Barcelona", value: "2–1" },
+    { icon: "trending_up", iconColor: "#d97706", label: "Tu portfolio", value: "+1,8%" },
+    { icon: "wb_sunny", iconColor: "#2563eb", label: "Amanece despejado", value: "16–29°" },
+    { icon: "flight", iconColor: "#7c3aed", label: "Tu viaje a Madrid", value: "18 d" },
+  ],
+};
+
