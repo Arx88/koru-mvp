@@ -49,6 +49,7 @@ import {
   Vote,
   SlidersHorizontal,
   ChartNoAxesCombined,
+  FileText,
 } from "lucide-react";
 import type { UiBlock } from "./domain/types";
 import { WeatherInterior } from "./ui/cards/lectura/panels/WeatherInterior";
@@ -89,6 +90,7 @@ import { ElectInterior } from "./ui/cards/lectura/panels/ElectInterior";
 import { EvoteInterior } from "./ui/cards/lectura/panels/EvoteInterior";
 import { MtlInterior } from "./ui/cards/lectura/panels/MtlInterior";
 import { MstatsInterior } from "./ui/cards/lectura/panels/MstatsInterior";
+import { InfoInterior } from "./ui/cards/lectura/panels/InfoInterior";
 import {
   weatherBlock,
   planBlock,
@@ -129,6 +131,7 @@ import {
   electionVoteBlock,
   matchTimelineBlock,
   matchStatsBlock,
+  deliverableBlock,
 } from "./ui/cards/lectura/fixtures";
 
 type Entry = {
@@ -183,6 +186,7 @@ const CARDS: Entry[] = [
   { id: "evote", label: "Tu lente de análisis", sub: "opciones reales + voto confirmable", icon: SlidersHorizontal, tint: "var(--violet-soft)", color: "var(--violet-ink)", block: electionVoteBlock, Cmp: EvoteInterior },
   { id: "mtl", label: "Juega Boca", sub: "fixture real + recordatorio durable", icon: CalendarDays, tint: "var(--mint-soft)", color: "var(--mint-ink)", block: matchTimelineBlock, Cmp: MtlInterior },
   { id: "mstats", label: "El clásico en números", sub: "stats reales + barras espejo", icon: ChartNoAxesCombined, tint: "var(--mint-soft)", color: "var(--mint-ink)", block: matchStatsBlock, Cmp: MstatsInterior },
+  { id: "info", label: "Informe solar", sub: "secciones reales + fuentes al pie", icon: FileText, tint: "var(--violet-soft)", color: "var(--violet-ink)", block: deliverableBlock, Cmp: InfoInterior },
 ];
 
 

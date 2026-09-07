@@ -816,3 +816,67 @@ export const matchStatsBlock: Extract<UiBlock, { type: "match_stats" }> = {
   ],
 };
 
+
+export const deliverableBlock: Extract<UiBlock, { type: "deliverable" }> = {
+  type: "deliverable",
+  status: "ready",
+  kicker: "Informe",
+  title: "Energía solar en España",
+  description:
+    "Radiación, costos reales y el punto exacto en que la solar doméstica conviene frente a la red.",
+  topic: "Energía",
+  metrics: [
+    { value: "€1.100/año", label: "La cuenta que importa" },
+    { value: "7,4 años", label: "Payback medio" },
+  ],
+  summary: "Ahorro medio de una casa con 3 kWp, excedentes incluidos.",
+  sections: [
+    {
+      title: "Dónde pega más el sol",
+      kicker: "Producción anual por kWp instalado",
+      kind: "grid",
+      items: [
+        { title: "Andalucía", subtitle: "kWh", badge: "1750" },
+        { title: "Murcia", subtitle: "kWh", badge: "1700" },
+        { title: "Madrid", subtitle: "kWh", badge: "1600" },
+        { title: "Galicia", subtitle: "kWh", badge: "1250" },
+      ],
+    },
+    {
+      title: "Qué cuesta de verdad",
+      kind: "rows",
+      items: [
+        { title: "3 kWp · casa típica", subtitle: "€7.400", badge: "REF" },
+        { title: "5 kWp + batería", subtitle: "€12.900" },
+        { title: "Boletín eléctrico", subtitle: "€350–600" },
+      ],
+    },
+    {
+      title: "Las 3 trampas del contrato",
+      kind: "bullets",
+      bullets: [
+        "El precio “desde” €3.900 es por 1,5 kWp sin instalación — la casa real arranca en €7.400.",
+        "La batería se paga sola solo si la luz nocturna supera el 45% de tu consumo.",
+        "El boletín casi nunca está incluido: sumá €350–600 antes de firmar.",
+      ],
+    },
+    {
+      title: "Cómo se instala",
+      kind: "timeline",
+      items: [
+        { title: "Visita técnica", subtitle: "medición de techo y tablero", badge: "semana 1" },
+        { title: "Obra y conexión", subtitle: "2 días de trabajo", badge: "semana 3" },
+        { title: "Legalización", subtitle: "boletín y alta en distribuidora", badge: "semana 5" },
+      ],
+    },
+    {
+      title: "Contexto",
+      kind: "text",
+      paragraphs: ["El autoconsumo doméstico creció 30% interanual en España, con 2,1 GW instalados solo en el último año."],
+    },
+  ],
+  sources: [
+    { title: "Atlas de radiación solar", url: "https://idae.es/atlas", domain: "idae.es" },
+    { title: "Precio pool OMIE", url: "https://omie.es", domain: "omie.es" },
+  ],
+};
