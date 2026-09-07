@@ -435,3 +435,13 @@ export const routeMapBlock: Extract<UiBlock, { type: "route_map" }> = {
   trafficLevel: "liviano",
 };
 
+
+export const transportBlock: Extract<UiBlock, { type: "transport_compare" }> = {
+  type: "transport_compare",
+  items: [
+    { mode: "Subte D", time: "25 min", icon: "directions_subway", active: true },
+    { mode: "Bus 10 + caminata", time: "41 min", icon: "directions_bus", active: false },
+    { mode: "A pie por Callao", time: "58 min", icon: "directions_walk", active: false },
+  ],
+};
+
