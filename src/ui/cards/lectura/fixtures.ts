@@ -128,3 +128,27 @@ export const liveMatchBlock: Extract<UiBlock, { type: "live_match" }> = {
     { minute: "71'", team: "Real Madrid", scorer: "Mbappé", text: "contraataque en 3 toques, solo ante el arquero", photo: "/stitch/sports/players/mbappe.jpg" },
   ],
 };
+
+export const newsUrgentBlock: Extract<UiBlock, { type: "news_urgent" }> = {
+  type: "news_urgent",
+  headline: "La UE avanza con la batería de 2030: 30% más barata que la china",
+  summary:
+    "El nuevo estándar promete recargar al 80% en 12 minutos. Impacta directo en el auto eléctrico que venís mirando desde junio.",
+  severity: "important",
+  category: "Tech",
+  lastUpdated: "16:20",
+  timeline: [
+    { time: "14:50", event: "Reuters publica el borrador filtrado del estándar", status: "done" },
+    { time: "15:30", event: "La Comisión confirma la ronda de voto de octubre", status: "current" },
+    { time: "—", event: "Respuesta esperada de los fabricantes chinos", status: "pending" },
+  ],
+  factChecks: [
+    { claim: "30% más barata que la china", verdict: "Confirmado: proyección del propio borrador, no dato de mercado", source: "reuters" },
+    { claim: "12 minutos al 80%", verdict: "Solo en estaciones de 800 V — la mayoría no lo tiene aún", source: "iea" },
+  ],
+  sources: [
+    { title: "EU battery standard 2030 draft", url: "https://reuters.com/x", domain: "reuters.com", imageUrl: "/stitch/outfits/news-ev.jpg" },
+    { title: "Brussels rounds of votes", url: "https://bloomberg.com/x", domain: "bloomberg.com" },
+    { title: "CATL responde", url: "https://elpais.com/x", domain: "elpais.com" },
+  ],
+};
