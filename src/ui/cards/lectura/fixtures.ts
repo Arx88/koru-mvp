@@ -660,3 +660,22 @@ export const vaultBlock: Extract<UiBlock, { type: "saved_record" }> = {
   ],
 };
 
+
+export const memoryBlock: Extract<UiBlock, { type: "memory" }> = {
+  type: "memory",
+  title: "Tu archivo de este mes",
+  items: [
+    {
+      domain: "viaje",
+      title: "La ruta de Mallorca que armamos",
+      detail: "Calas escondidas + alquiler de moto en Sóller · presupuesto €900",
+      confidence: 0.91,
+    },
+    { domain: "regalo", title: "El regalo de Maru: el vinilo de Wos", detail: "Edición numerada · Bar Aparte, Palermo", confidence: 0.74 },
+    { domain: "servicio", title: "El técnico de wifi que te funcionó", confidence: 0.66 },
+    { domain: "idea", title: "Idea: menú de cumple de Juan", detail: "parrilla + tarta de la abuela", confidence: 0.8 },
+    { domain: "auto", title: "Auto: cambiar aceite a los 12.000", confidence: 0.55 },
+  ],
+  note: "Todo quedó asociado a tu historial de septiembre.",
+};
+
