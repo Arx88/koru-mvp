@@ -360,3 +360,14 @@ export const cryptoBlock: Extract<UiBlock, { type: "crypto_portfolio" }> = {
   alerts: [{ symbol: "BTC", target: "€4.500", direction: "above" }],
 };
 
+
+export const forexBlock: Extract<UiBlock, { type: "forex" }> = {
+  type: "forex",
+  title: "Dólar oficial · euro",
+  items: [
+    { pair: "USD/EUR", rate: "0,92", change: 0.1, flag: "US", positive: true },
+    { pair: "EUR/ARS", rate: "1.105,0", change: 0.3, flag: "AR", positive: true },
+    { pair: "USD/JPY", rate: "149,2", change: -0.2, flag: "JP", positive: false },
+  ],
+};
+
