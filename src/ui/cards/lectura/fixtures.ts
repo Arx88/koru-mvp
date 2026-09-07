@@ -246,3 +246,12 @@ export const bookBlock: Extract<UiBlock, { type: "book_review" }> = {
   isbn: "978-987-000-000",
   previewUrl: "https://archive.org/embed/dias-venado",
 };
+
+export const alarmBlock: Extract<UiBlock, { type: "alarm" }> = {
+  type: "alarm",
+  title: "Gym de la mañana",
+  time: "07:00",
+  repeat: "lunes a viernes",
+  note: "Te agendé el gym 30 min después de la alarma — así no tenés que pensarlo a las 7.",
+};
+

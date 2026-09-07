@@ -20,6 +20,7 @@ import {
   CookingPot,
   Clapperboard,
   BookOpen,
+  AlarmClock,
 } from "lucide-react";
 import type { UiBlock } from "./domain/types";
 import { WeatherInterior } from "./ui/cards/lectura/panels/WeatherInterior";
@@ -31,6 +32,7 @@ import { RestaurantInterior } from "./ui/cards/lectura/panels/RestaurantInterior
 import { RecipeInterior } from "./ui/cards/lectura/panels/RecipeInterior";
 import { MovieInterior } from "./ui/cards/lectura/panels/MovieInterior";
 import { BookInterior } from "./ui/cards/lectura/panels/BookInterior";
+import { AlarmInterior } from "./ui/cards/lectura/panels/AlarmInterior";
 import {
   weatherBlock,
   planBlock,
@@ -41,6 +43,7 @@ import {
   recipeBlock,
   movieBlock,
   bookBlock,
+  alarmBlock,
 } from "./ui/cards/lectura/fixtures";
 
 type Entry = {
@@ -65,6 +68,7 @@ const CARDS: Entry[] = [
   { id: "recipe", label: "Receta carbonara", sub: "revista · modo cocina real", icon: CookingPot, tint: "var(--honey-soft)", color: "var(--honey-ink)", block: recipeBlock, Cmp: RecipeInterior },
   { id: "movie", label: "Película de hoy", sub: "cartelera + tráiler real", icon: Clapperboard, tint: "var(--violet-soft)", color: "var(--violet-ink)", block: movieBlock, Cmp: MovieInterior },
   { id: "book", label: "Lectura de noche", sub: "mesita de luz + vista previa", icon: BookOpen, tint: "var(--honey-soft)", color: "var(--honey-ink)", block: bookBlock, Cmp: BookInterior },
+  { id: "alarm", label: "Alarma gym 7:00", sub: "reloj vivo + días reales del repeat", icon: AlarmClock, tint: "var(--honey-soft)", color: "var(--honey-ink)", block: alarmBlock, Cmp: AlarmInterior },
 ];
 
 
