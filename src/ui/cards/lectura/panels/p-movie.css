@@ -33,3 +33,6 @@
 .lcr .mv-row .tx b{font:800 11.5px var(--sans);display:block}
 .lcr .mv-row .tx span{font:600 9.5px var(--sans);color:var(--ink-dim);display:block;margin-top:1px}
 .lcr .mv-row .where{flex:none;font:800 9.5px var(--sans);color:var(--mint-ink);background:var(--mint-soft);padding:6px 10px;border-radius:999px}
+
+/* contraste del subtexto de rows (VLM: texto casi invisible) */
+.lcr .mv-rows .mv-row .tx span{color:var(--ink-dim)}

@@ -17,6 +17,9 @@ import {
   Radar,
   Trophy,
   Clock,
+  CookingPot,
+  Clapperboard,
+  BookOpen,
 } from "lucide-react";
 import type { UiBlock } from "./domain/types";
 import { WeatherInterior } from "./ui/cards/lectura/panels/WeatherInterior";
@@ -25,6 +28,9 @@ import { OutfitInterior } from "./ui/cards/lectura/panels/OutfitInterior";
 import { LiveMatchInterior } from "./ui/cards/lectura/panels/LiveMatchInterior";
 import { NewsInterior } from "./ui/cards/lectura/panels/NewsInterior";
 import { RestaurantInterior } from "./ui/cards/lectura/panels/RestaurantInterior";
+import { RecipeInterior } from "./ui/cards/lectura/panels/RecipeInterior";
+import { MovieInterior } from "./ui/cards/lectura/panels/MovieInterior";
+import { BookInterior } from "./ui/cards/lectura/panels/BookInterior";
 import {
   weatherBlock,
   planBlock,
@@ -32,6 +38,9 @@ import {
   liveMatchBlock,
   newsUrgentBlock,
   restaurantBlock,
+  recipeBlock,
+  movieBlock,
+  bookBlock,
 } from "./ui/cards/lectura/fixtures";
 
 type Entry = {
@@ -53,6 +62,9 @@ const CARDS: Entry[] = [
   { id: "match", label: "Clásico en vivo", sub: "marcador + feed de goles con fotos", icon: Radar, tint: "var(--mint-soft)", color: "var(--mint-ink)", block: liveMatchBlock, Cmp: LiveMatchInterior },
   { id: "news", label: "Noticias", sub: "portada de diario · fuentes verificadas", icon: Newspaper, tint: "var(--sky-soft)", color: "var(--sky-ink)", block: newsUrgentBlock, Cmp: NewsInterior },
   { id: "rest", label: "Parrillas", sub: "podio top-3 + plato real de Places", icon: Trophy, tint: "var(--honey-soft)", color: "var(--honey-ink)", block: restaurantBlock, Cmp: RestaurantInterior },
+  { id: "recipe", label: "Receta carbonara", sub: "revista · modo cocina real", icon: CookingPot, tint: "var(--honey-soft)", color: "var(--honey-ink)", block: recipeBlock, Cmp: RecipeInterior },
+  { id: "movie", label: "Película de hoy", sub: "cartelera + tráiler real", icon: Clapperboard, tint: "var(--violet-soft)", color: "var(--violet-ink)", block: movieBlock, Cmp: MovieInterior },
+  { id: "book", label: "Lectura de noche", sub: "mesita de luz + vista previa", icon: BookOpen, tint: "var(--honey-soft)", color: "var(--honey-ink)", block: bookBlock, Cmp: BookInterior },
 ];
 
 
