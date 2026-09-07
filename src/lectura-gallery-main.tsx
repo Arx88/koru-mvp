@@ -41,6 +41,7 @@ import {
   MessageSquareQuote,
   Plane,
   TicketCheck,
+  Vault,
 } from "lucide-react";
 import type { UiBlock } from "./domain/types";
 import { WeatherInterior } from "./ui/cards/lectura/panels/WeatherInterior";
@@ -104,6 +105,7 @@ import {
   reviewScoreBlock,
   travelPlanBlock,
   savedRecordBlock,
+  vaultBlock,
 } from "./ui/cards/lectura/fixtures";
 
 type Entry = {
@@ -149,6 +151,7 @@ const CARDS: Entry[] = [
   { id: "rev", label: "iPhone 16", sub: "barras de reputación por aspecto", icon: MessageSquareQuote, tint: "var(--violet-soft)", color: "var(--violet-ink)", block: reviewScoreBlock, Cmp: ReviewScoreInterior },
   { id: "travel", label: "Madrid 3 días", sub: "itinerario día por día + reservas", icon: Plane, tint: "var(--honey-soft)", color: "var(--honey-ink)", block: travelPlanBlock, Cmp: TravelInterior },
   { id: "saved", label: "Ya quedó en tu agenda", sub: "comprobante del guardado real", icon: TicketCheck, tint: "var(--mint-soft)", color: "var(--mint-ink)", block: savedRecordBlock, Cmp: SavedRecordInterior },
+  { id: "vault", label: "Bóveda de recuerdos", sub: "búsqueda real + grilla de records", icon: Vault, tint: "var(--rose-soft)", color: "var(--rose-ink)", block: vaultBlock, Cmp: SavedRecordInterior },
 ];
 
 

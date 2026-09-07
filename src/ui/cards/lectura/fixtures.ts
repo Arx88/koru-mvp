@@ -647,3 +647,16 @@ export const savedRecordBlock: Extract<UiBlock, { type: "saved_record" }> = {
   ],
 };
 
+
+export const vaultBlock: Extract<UiBlock, { type: "saved_record" }> = {
+  type: "saved_record",
+  title: "Bóveda de recuerdos",
+  records: [
+    { domain: "interest", kind: "idea", title: "Ruta de Mallorca", value: "calas + moto en Sóller · €900" },
+    { domain: "relationship", kind: "gift", title: "Regalo de Maru", value: "vinilo de Wos · Bar Aparte" },
+    { domain: "home", kind: "tool_link", title: "Técnico de wifi", value: "11-3422 · dejó todo andando" },
+    { domain: "relationship", kind: "birthday", title: "Cumple de Maru", value: "12 de septiembre · vino naranja" },
+    { domain: "money", kind: "expense", title: "Café doble", value: "4,20 € · todos los días" },
+  ],
+};
+
