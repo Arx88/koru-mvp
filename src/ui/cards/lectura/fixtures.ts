@@ -414,3 +414,24 @@ export const routeTimelineBlock: Extract<UiBlock, { type: "route_timeline" }> = 
   ],
 };
 
+
+export const routeMapBlock: Extract<UiBlock, { type: "route_map" }> = {
+  type: "route_map",
+  progress: 42,
+  from: "Callao 220",
+  to: "Parque del Retiro",
+  distance: "6,2 km",
+  remaining: "25 min",
+  lat: -34.5837,
+  lng: -58.4088,
+  steps: [
+    { instruction: "Girá a la derecha hacia Av. Santa Fe", distanceMeters: 250, maneuver: "turn-right" },
+    { instruction: "Entrá al subte D en Callao", distanceMeters: 80, maneuver: "enter-station" },
+  ],
+  alternatives: [
+    { mode: "Bus 10 + caminata", time: "41 min", traffic: "moderado" },
+    { mode: "A pie por Callao", time: "58 min", traffic: "liviano" },
+  ],
+  trafficLevel: "liviano",
+};
+

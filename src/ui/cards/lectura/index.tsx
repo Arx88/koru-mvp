@@ -27,6 +27,7 @@ import { ForexInterior } from "./panels/ForexInterior";
 import { MoneyInterior } from "./panels/MoneyInterior";
 import { TickerInterior } from "./panels/TickerInterior";
 import { RouteTimelineInterior } from "./panels/RouteTimelineInterior";
+import { RouteMapInterior } from "./panels/RouteMapInterior";
 
 export interface LecturaInteriorProps<T extends UiBlock = UiBlock> {
   block: T;
@@ -59,6 +60,7 @@ const REGISTRY: Partial<Record<UiBlock["type"], AnyInterior>> = {
   money_summary: MoneyInterior as AnyInterior,
   data_ticker: TickerInterior as AnyInterior,
   route_timeline: RouteTimelineInterior as AnyInterior,
+  route_map: RouteMapInterior as AnyInterior,
 };
 
 export function lecturaInteriorFor(block: UiBlock): AnyInterior | null {

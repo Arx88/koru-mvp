@@ -30,6 +30,7 @@ import {
   Wallet,
   Activity,
   Route,
+  Map,
 } from "lucide-react";
 import type { UiBlock } from "./domain/types";
 import { WeatherInterior } from "./ui/cards/lectura/panels/WeatherInterior";
@@ -51,6 +52,7 @@ import { ForexInterior } from "./ui/cards/lectura/panels/ForexInterior";
 import { MoneyInterior } from "./ui/cards/lectura/panels/MoneyInterior";
 import { TickerInterior } from "./ui/cards/lectura/panels/TickerInterior";
 import { RouteTimelineInterior } from "./ui/cards/lectura/panels/RouteTimelineInterior";
+import { RouteMapInterior } from "./ui/cards/lectura/panels/RouteMapInterior";
 import {
   weatherBlock,
   planBlock,
@@ -71,6 +73,7 @@ import {
   moneyBlock,
   tickerBlock,
   routeTimelineBlock,
+  routeMapBlock,
 } from "./ui/cards/lectura/fixtures";
 
 type Entry = {
@@ -105,6 +108,7 @@ const CARDS: Entry[] = [
   { id: "money", label: "Gastos de agosto", sub: "total real + % por rubro derivado", icon: Wallet, tint: "var(--rose-soft)", color: "var(--rose-ink)", block: moneyBlock, Cmp: MoneyInterior },
   { id: "ticker", label: "Cinta de datos", sub: "marquee con items reales + alerta", icon: Activity, tint: "var(--violet-soft)", color: "var(--violet-ink)", block: tickerBlock, Cmp: TickerInterior },
   { id: "route", label: "Cómo llegar", sub: "4 tramos reales + eta del block", icon: Route, tint: "var(--sky-soft)", color: "var(--sky-ink)", block: routeTimelineBlock, Cmp: RouteTimelineInterior },
+  { id: "rmap", label: "Ruta en vivo", sub: "progreso real + deep link nativo", icon: Map, tint: "var(--violet-soft)", color: "var(--violet-ink)", block: routeMapBlock, Cmp: RouteMapInterior },
 ];
 
 
