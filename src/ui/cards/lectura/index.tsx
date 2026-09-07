@@ -16,6 +16,7 @@ import { NewsInterior } from "./panels/NewsInterior";
 import { RestaurantInterior } from "./panels/RestaurantInterior";
 import { RecipeInterior } from "./panels/RecipeInterior";
 import { MovieInterior } from "./panels/MovieInterior";
+import { BookInterior } from "./panels/BookInterior";
 
 export interface LecturaInteriorProps<T extends UiBlock = UiBlock> {
   block: T;
@@ -37,6 +38,7 @@ const REGISTRY: Partial<Record<UiBlock["type"], AnyInterior>> = {
   restaurant_synthesis: RestaurantInterior as AnyInterior,
   recipe: RecipeInterior as AnyInterior,
   movie_review: MovieInterior as AnyInterior,
+  book_review: BookInterior as AnyInterior,
 };
 
 export function lecturaInteriorFor(block: UiBlock): AnyInterior | null {

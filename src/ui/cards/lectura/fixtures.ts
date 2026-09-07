@@ -231,3 +231,18 @@ export const movieBlock: Extract<UiBlock, { type: "movie_review" }> = {
     { source: "público", score: 81, outOf: 100 },
   ],
 };
+
+export const bookBlock: Extract<UiBlock, { type: "book_review" }> = {
+  type: "book_review",
+  title: "Los días del venado",
+  cover: "/stitch/outfits/book-stack.jpg",
+  author: "Nicolás Petrone",
+  year: "2023",
+  pages: 288,
+  publisher: "Editorial Margen",
+  genre: "Novela",
+  rating: 4.6,
+  synopsis: "La memoria no es un archivo: es un perro que duerme donde quiere. Una familia, un río y la vuelta de todo lo que se fue.",
+  isbn: "978-987-000-000",
+  previewUrl: "https://archive.org/embed/dias-venado",
+};
