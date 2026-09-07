@@ -20,6 +20,7 @@ import { BookInterior } from "./panels/BookInterior";
 import { AlarmInterior } from "./panels/AlarmInterior";
 import { CheckInterior } from "./panels/CheckInterior";
 import { BriefInterior } from "./panels/BriefInterior";
+import { HealthInterior } from "./panels/HealthInterior";
 
 export interface LecturaInteriorProps<T extends UiBlock = UiBlock> {
   block: T;
@@ -45,6 +46,7 @@ const REGISTRY: Partial<Record<UiBlock["type"], AnyInterior>> = {
   alarm: AlarmInterior as AnyInterior,
   smart_checklist: CheckInterior as AnyInterior,
   morning_brief: BriefInterior as AnyInterior,
+  health_reminder: HealthInterior as AnyInterior,
 };
 
 export function lecturaInteriorFor(block: UiBlock): AnyInterior | null {

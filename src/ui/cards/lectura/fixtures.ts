@@ -281,3 +281,14 @@ export const briefBlock: Extract<UiBlock, { type: "morning_brief" }> = {
   ],
 };
 
+
+export const healthBlock: Extract<UiBlock, { type: "health_reminder" }> = {
+  type: "health_reminder",
+  title: "Vitamina D · 2000 UI",
+  icon: "medication",
+  iconColor: "#b45309",
+  bgColor: "#fdf1dd",
+  reminder: "1 comprimido con la cena — mejor absorción con grasas.",
+  actionLabel: "Ya tomé la de hoy",
+};
+
