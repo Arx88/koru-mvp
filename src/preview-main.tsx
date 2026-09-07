@@ -96,6 +96,7 @@ function ChatFeed() {
   return (
     <main ref={feedRef} className="koru-chat-scroll">
       <div className="koru-thread">
+        <WelcomeTurn />
         {entries.slice(0, visible).map((e, i) => {
           if (e.kind === "user") return <UserTurn key={i} text={e.text} />;
           if (e.kind === "text") {
@@ -157,20 +158,53 @@ function ChatFooter() {
   );
 }
 
-// ── Suggestion pills (patrón real de la app, top flotante) ─────────────────
+// ── Suggestion pills (patrón real de la app) → acceso directo a propuestas ─
 function SuggestionBar() {
   return (
     <div className="koru-suggestion-bar">
-      <button type="button" className="koru-suggestion-pill">
-        <span className="material-symbols-outlined">search</span>
-        informe de
-        <span className="topic">energía solar</span>
-      </button>
-      <button type="button" className="koru-suggestion-pill">
-        <span className="material-symbols-outlined">sports_tennis</span>
-        <span className="topic">Alcaraz</span>
-      </button>
+      <a href="/propuesta-a.html" className="koru-suggestion-pill">
+        <span className="material-symbols-outlined">auto_awesome</span>
+        Propuesta
+        <span className="topic">A · Lectura Visual</span>
+      </a>
+      <a href="/propuesta-b.html" className="koru-suggestion-pill">
+        <span className="material-symbols-outlined">record_voice_over</span>
+        Propuesta
+        <span className="topic">B · Koru te Cuenta</span>
+      </a>
     </div>
+  );
+}
+
+// ── Burbuja de bienvenida: explica el showcase + botones a las propuestas ──
+function WelcomeTurn() {
+  return (
+    <KoruTurn>
+      <p className="koru-message-text">
+        ¡Hola Arx! Bienvenido al showcase de los nuevos diseños.
+        Deslizá para ver las cards rediseñadas en el chat y tocá cualquiera
+        para abrir su interior. Para el rediseño del interior completo,
+        te preparé dos propuestas:
+      </p>
+      <div className="pv-welcome-actions">
+        <a className="pv-welcome-btn" href="/propuesta-a.html">
+          <span className="material-symbols-outlined">auto_awesome</span>
+          <span className="pv-welcome-btn-text">
+            <strong>Propuesta A</strong>
+            <small>Lectura Visual · estilo revista</small>
+          </span>
+          <span className="material-symbols-outlined pv-welcome-go">chevron_right</span>
+        </a>
+        <a className="pv-welcome-btn" href="/propuesta-b.html">
+          <span className="material-symbols-outlined">record_voice_over</span>
+          <span className="pv-welcome-btn-text">
+            <strong>Propuesta B</strong>
+            <small>Koru te Cuenta · capítulos a un tap</small>
+          </span>
+          <span className="material-symbols-outlined pv-welcome-go">chevron_right</span>
+        </a>
+      </div>
+    </KoruTurn>
   );
 }
 
@@ -217,17 +251,6 @@ function Stage() {
         <a href="/propuesta-a.html" target="_blank" rel="noreferrer">A · Lectura Visual</a>
         <span className="pv-links-sep">·</span>
         <a href="/propuesta-b.html" target="_blank" rel="noreferrer">B · Koru te Cuenta</a>
-      </nav>
-      {/* Acceso móvil a las propuestas (el nav superior se oculta en phone) */}
-      <nav className="pv-mobile-links" aria-label="Propuestas de interior (móvil)">
-        <a href="/propuesta-a.html" target="_blank" rel="noreferrer">
-          <span className="material-symbols-outlined">auto_awesome</span>
-          Propuesta A
-        </a>
-        <a href="/propuesta-b.html" target="_blank" rel="noreferrer">
-          <span className="material-symbols-outlined">record_voice_over</span>
-          Propuesta B
-        </a>
       </nav>
     </div>
   );
