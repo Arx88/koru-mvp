@@ -152,3 +152,33 @@ export const newsUrgentBlock: Extract<UiBlock, { type: "news_urgent" }> = {
     { title: "CATL responde", url: "https://elpais.com/x", domain: "elpais.com" },
   ],
 };
+
+export const restaurantBlock: Extract<UiBlock, { type: "restaurant_synthesis" }> = {
+  type: "restaurant_synthesis",
+  title: "Parrillas Palermo",
+  query: "parrilla palermo soho",
+  mood: "La parrilla de hoy",
+  status: "ok",
+  matches: [
+    {
+      name: "Don Julio",
+      sourcesMentioning: 3,
+      rating: 4.6,
+      ratingCount: 2400,
+      priceLevel: 3,
+      distanceFromUser: "12 min caminando",
+      photos: ["/stitch/outfits/rest-steak.jpg"],
+      menuHighlights: [
+        { dish: "Ojo de bife", price: "€34" },
+        { dish: "mollejas", price: "€19" },
+      ],
+      reserveUrl: "https://donjulio.com.ar/reserva",
+    },
+    { name: "La Cabrera", sourcesMentioning: 2, rating: 4.5, ratingCount: 3100, priceLevel: 3, distanceFromUser: "18 min" },
+    { name: "Cabaña Las Lilas", sourcesMentioning: 2, rating: 4.4, ratingCount: 5200, priceLevel: 4, distanceFromUser: "25 min" },
+  ],
+  topScore: "9,2",
+  logistics: { travelTime: "12 min caminando", parking: "valet €5", reservationTime: "19:15" },
+  synthesis: "Don Julio gana por vacío y mollejas, pero a las 21 se hace eterno.",
+  whyTonight: "A las 19:15 entramás directo — después de las 21 la fila dobla la manzana.",
+};
