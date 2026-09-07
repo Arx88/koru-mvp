@@ -1,0 +1,38 @@
+/* AUTO-GENERADO de lectura-visual.html #p-mem (scoped .lcr / #p-mem) */
+#p-mem .arc-head{margin:2px 0 14px}
+.lcr .arc-head h1{font:800 26px/1.12 var(--disp);letter-spacing:-.02em}
+.lcr .arc-head h1 small{display:block;font:700 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--pink-ink);margin-bottom:5px}
+.lcr .arc-head p{font:600 12px var(--sans);color:var(--ink-dim);margin-top:6px}
+/* mazo */
+.lcr .arc-stack{position:relative;height:190px;margin-top:6px}
+.lcr .arc-card{position:absolute;left:0;right:0;border-radius:20px;border:1px solid var(--linec);background:#fff;padding:14px 16px;
+          box-shadow:0 14px 34px var(--shadowc)}
+.lcr .arc-card .ac-top{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+.lcr .arc-card .aic{width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:none}
+.lcr .arc-card .aic .lucide{font-size:16px}
+.lcr .arc-card .at{font:800 12.5px var(--sans);color:var(--ink);flex:1}
+.lcr .arc-card .at small{display:block;font:700 9.5px var(--sans);color:var(--ink-faint);letter-spacing:.06em;text-transform:uppercase}
+.lcr .arc-card .ad{font:600 11px/1.5 var(--sans);color:var(--ink-dim)}
+.lcr .arc-card .aph{margin-top:10px;border-radius:12px;overflow:hidden;position:relative}
+.lcr .arc-card .aph img{width:100%;aspect-ratio:16/6.4;object-fit:cover;display:block}
+.lcr .arc-card .aph span{position:absolute;right:8px;bottom:7px;background:rgba(255,255,255,.92);border-radius:999px;
+          padding:4px 9px;font:800 8.5px var(--sans);color:var(--ink);display:flex;align-items:center;gap:4px}
+.lcr .arc-card .aph span .lucide{font-size:9px;color:var(--pink-ink)}
+.lcr .arc-card.c1{top:0;z-index:3;border-left:4px solid var(--pink)}
+.lcr .arc-card.c2{top:38px;z-index:2;transform:scale(.965);transform-origin:top center;opacity:.88}
+.lcr .arc-card.c3{top:74px;z-index:1;transform:scale(.93);transform-origin:top center;opacity:.66}
+.lcr .arc-new{display:inline-flex;align-items:center;gap:5px;font:800 9px var(--sans);letter-spacing:.1em;color:#fff;
+          background:var(--pink);padding:4px 9px;border-radius:999px}
+/* chips por tipo */
+.lcr .arc-rows{margin-top:14px}
+.lcr .arc-rows h3{font:800 14px var(--disp);margin-bottom:8px}
+.lcr .arow{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--linec);border-radius:15px;padding:10px 12px;margin-bottom:7px}
+.lcr .arow .abic{width:32px;height:32px;border-radius:10px;flex:none;display:flex;align-items:center;justify-content:center}
+.lcr .arow .abic .lucide{font-size:17px}
+.lcr .arow .abt{flex:1;min-width:0}
+.lcr .arow .abt b{font:700 11.5px var(--sans);color:var(--ink);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lcr .arow .abt span{font:600 10px var(--sans);color:var(--ink-faint)}
+.lcr .arow .tag{flex:none;font:800 8.5px var(--sans);letter-spacing:.08em;text-transform:uppercase;padding:4px 8px;border-radius:7px}
+.lcr .arc-cap{margin-top:12px;display:flex;align-items:center;gap:8px;font:600 10.5px var(--sans);color:var(--ink-dim);
+          background:var(--paper2);border:1px solid var(--linec);border-radius:13px;padding:10px 12px}
+.lcr .arc-cap .lucide{font-size:15px;color:var(--pink-ink)}

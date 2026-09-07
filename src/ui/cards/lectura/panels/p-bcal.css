@@ -1,0 +1,26 @@
+/* AUTO-GENERADO de lectura-visual.html #p-bcal (scoped .lcr / #p-bcal) */
+#p-bcal .cal2{background:#fff;border:1px solid #f6d3e0;border-radius:24px;padding:16px;box-shadow:0 14px 34px rgba(214,73,127,.12)}
+.lcr .cal2 .cal2-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}
+.lcr .cal2 .cal2-top .mo{font:800 16px var(--disp);color:var(--ink);display:flex;align-items:center;gap:8px}
+.lcr .cal2 .cal2-top .mo .lucide{font-size:18px;color:var(--pink-ink)}
+.lcr .cal2 .cal2-top .n{font:800 10px var(--sans);color:#fff;background:var(--pink);padding:5px 11px;border-radius:999px}
+.lcr .cal2 .cal2-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.lcr .cal2 .dw2{text-align:center;font:800 8.5px var(--sans);color:var(--ink-faint);padding:3px 0;letter-spacing:.06em}
+.lcr .cal2 .day{position:relative;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+          border-radius:11px;font:700 11.5px var(--sans);color:var(--ink-soft)}
+.lcr .cal2 .day .dt{position:absolute;bottom:6px;display:flex;gap:2px}
+.lcr .cal2 .day .dt i{width:4.5px;height:4.5px;border-radius:50%}
+.lcr .cal2 .day.sat{color:var(--ink-faint)}
+.lcr .cal2 .day.today{background:var(--paper3);color:var(--ink);font-weight:800;outline:1.5px dashed var(--violet-ink);outline-offset:-4px}
+.lcr .cal2 .day.bday{background:linear-gradient(160deg,#fdeaF2,#fbd3e2);color:var(--pink-ink);font-weight:800}
+.lcr .cal2 .day.bday.soon{box-shadow:inset 0 0 0 2px var(--pink-ink)}
+.lcr .cal2-legend{display:flex;gap:8px;margin-top:12px}
+.lcr .cal2-legend .l{flex:1;display:flex;align-items:center;gap:7px;background:var(--paper2);border:1px solid var(--linec);
+          border-radius:12px;padding:8px 10px}
+.lcr .cal2-legend .l .lucide{font-size:15px}
+.lcr .cal2-legend .l b{font:800 11.5px var(--sans);color:var(--ink);display:block}
+.lcr .cal2-legend .l span{font:600 9.5px var(--sans);color:var(--ink-faint)}
+.lcr .cal2-buy{margin-top:14px;background:#fff;border:1px solid var(--linec);border-radius:17px;padding:12px 14px;display:flex;gap:10px;align-items:center}
+.lcr .cal2-buy .lucide{font-size:18px;color:var(--pink-ink);flex:none}
+.lcr .cal2-buy p{font:600 11px/1.55 var(--sans);color:var(--ink-soft)}
+.lcr .cal2-buy b{color:var(--pink-ink)}

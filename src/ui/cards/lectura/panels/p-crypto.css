@@ -1,0 +1,40 @@
+/* AUTO-GENERADO de lectura-visual.html #p-crypto (scoped .lcr / #p-crypto) */
+#p-crypto .pf-hero{background:#fff;border:1px solid var(--linec);border-radius:24px;padding:17px;box-shadow:0 14px 34px var(--shadowc);position:relative;overflow:hidden}
+.lcr .pf-hero .ph-top{display:flex;align-items:flex-start;justify-content:space-between}
+.lcr .pf-hero .pl{font:800 9.5px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint)}
+.lcr .pf-hero .pv{font:800 38px/1 var(--disp);letter-spacing:-.02em;margin-top:4px}
+.lcr .pf-hero .pv small{font:800 13px var(--disp);color:var(--ink-dim)}
+.lcr .pf-hero .pd{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.lcr .pf-hero .pd .up{display:flex;align-items:center;gap:5px;font:800 12px var(--sans);color:var(--mint-ink);
+          background:var(--mint-soft);padding:6px 11px;border-radius:999px}
+.lcr .pf-hero .pd .up .lucide{font-size:14px}
+.lcr .pf-hero .pd .sub{font:600 9.5px var(--sans);color:var(--ink-faint)}
+.lcr .pf-chart{margin:12px -4px 0}
+.lcr .pf-chart svg{width:100%;height:118px;display:block}
+.lcr .pf-axis{display:flex;justify-content:space-between;font:700 9px var(--sans);color:var(--ink-faint);padding:4px 4px 0}
+.lcr .pf-chips{display:flex;gap:7px;margin-top:10px}
+.lcr .pf-chips .c{font:700 9.5px var(--sans);color:var(--ink-dim);background:var(--paper2);border:1px solid var(--linec);
+          padding:5px 10px;border-radius:999px;display:flex;align-items:center;gap:5px}
+.lcr .pf-chips .c .lucide{font-size:11px;color:var(--mint-ink)}
+/* holdings */
+.lcr .pf-rows{margin-top:14px;background:#fff;border:1px solid var(--linec);border-radius:22px;padding:5px 16px;box-shadow:0 12px 30px var(--shadowc)}
+.lcr .pf-rows h3{font:800 14px var(--disp);padding:10px 0 4px;display:flex;gap:8px;align-items:center}
+.lcr .pf-rows h3 .lucide{font-size:16px;color:var(--mint-ink)}
+.lcr .pcoin{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid #f2edfa}
+.lcr .pcoin:last-child{border:0}
+.lcr .pcoin .cic{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+          font:800 15px var(--disp);color:#fff;flex:none}
+.lcr .pcoin .btc{background:linear-gradient(160deg,#f7931a,#c96a00)}
+.lcr .pcoin .eth{background:linear-gradient(160deg,#6d4bf0,#4a32b8)}
+.lcr .pcoin .ct{flex:1;min-width:0}
+.lcr .pcoin .ct b{font:800 12.5px var(--sans);color:var(--ink);display:block}
+.lcr .pcoin .ct span{font:600 10.5px var(--sans);color:var(--ink-dim)}
+.lcr .pcoin .spk{width:58px;height:26px;flex:none}
+.lcr .pcoin .cv{width:76px;text-align:right;flex:none}
+.lcr .pcoin .cv b{font:800 12.5px var(--disp);color:var(--ink);display:block}
+.lcr .pcoin .cv span{font:700 10px var(--sans)}
+.lcr .pcoin .cv .u{color:var(--mint-ink)}
+.lcr .pcoin .cv .d{color:var(--rose-ink)}
+.lcr .pf-note{margin-top:14px;background:var(--paper2);border:1px solid var(--linec);border-radius:16px;padding:12px 14px;display:flex;gap:9px}
+.lcr .pf-note .lucide{font-size:16px;color:var(--mint-ink);flex:none;margin-top:1px}
+.lcr .pf-note p{font:600 11px/1.55 var(--sans);color:var(--ink-soft)}

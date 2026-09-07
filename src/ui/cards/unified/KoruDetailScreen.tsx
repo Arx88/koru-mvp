@@ -13,6 +13,7 @@ import {
   weightedAdditive,
 } from "../../../domain/decisionEngine";
 import { KoruIcon, iconFromMaterial } from "./KoruIcons";
+import { lecturaInteriorFor } from "../lectura";
 
 // Pantalla de detalle unificada — misma estética Stitch que PlanRoadmapScreen
 // (koru-roadmap + magical-cards + blobs), pero genérica: renderiza cualquier
@@ -1557,6 +1558,23 @@ export function KoruDetailScreen({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
+  // 🔴 LECTURA VISUAL — integración incremental del catálogo aprobado:
+  // si el UiBlock tiene un interior Lectura registrado (bind real por card),
+  // se renderiza ese diseño en vez del genérico. Los tipos sin registro
+  // siguen cayendo al render de secciones de abajo (cero regresión).
+  const Lectura = block ? lecturaInteriorFor(block) : null;
+  if (Lectura) {
+    return (
+      <Lectura
+        block={block}
+        detail={detail}
+        onClose={onClose}
+        onSave={onSave}
+        onExportPdf={onExportPdf}
+      />
+    );
+  }
+
   const sections = detail.sections ?? [];
   const isEmpty = sections.length === 0;
 
@@ -1982,6 +2000,7 @@ export function KoruDetailScreen({
                     aria-label="Exportar PDF"
                   >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+                    <span>PDF</span>
                   </button>
                 )}
               </>

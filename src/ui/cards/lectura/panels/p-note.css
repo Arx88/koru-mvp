@@ -1,0 +1,27 @@
+/* AUTO-GENERADO de lectura-visual.html #p-note (scoped .lcr / #p-note) */
+#p-note .nt-head{margin:2px 0 14px}
+.lcr .nt-head h1{font:800 26px/1.12 var(--disp);letter-spacing:-.02em}
+.lcr .nt-head h1 small{display:block;font:700 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--honey-ink);margin-bottom:5px}
+.lcr .nt-head p{font:600 12px var(--sans);color:var(--ink-dim);margin-top:6px}
+/* post-it gigante */
+.lcr .note{position:relative;background:linear-gradient(170deg,#fff8e1,#ffefc2);border-radius:4px 4px 18px 4px;
+          padding:26px 20px 22px;box-shadow:0 12px 26px rgba(180,83,9,.16);transform:rotate(-.6deg)}
+.lcr .note .pin{position:absolute;top:-11px;left:50%;transform:translateX(-50%) rotate(3deg);width:30px;height:30px;border-radius:50%;
+          background:radial-gradient(circle at 34% 30%,#ff9ec0,#e2547e 65%,#b13357);box-shadow:0 4px 8px rgba(46,38,80,.3)}
+.lcr .note .nk{font:800 9.5px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:#9a6a00;display:flex;align-items:center;gap:7px}
+.lcr .note .nk .lucide{font-size:13px}
+.lcr .note .when{margin-left:auto;font:700 9px var(--sans);color:#b98c33}
+.lcr .note .txt{font:700 17.5px/1.5 var(--disp);color:#4a3305;margin-top:12px;letter-spacing:-.01em}
+.lcr .note .txt em{font-style:normal;background:linear-gradient(180deg,transparent 62%,#ffd08a 62%)}
+.lcr .note .tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:15px}
+.lcr .note .tags span{font:800 9px var(--sans);letter-spacing:.05em;color:#7a5500;background:rgba(255,255,255,.65);
+          border:1px dashed #e3c07a;padding:5px 10px;border-radius:999px;display:inline-flex;align-items:center;gap:4px}
+.lcr .note .tags span .lucide{font-size:10px}
+.lcr .nt-meta{display:flex;gap:9px;margin-top:14px}
+.lcr .nt-chip{flex:1;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--linec);border-radius:14px;padding:11px 13px}
+.lcr .nt-chip .lucide{font-size:16px}
+.lcr .nt-chip b{font:800 11px var(--sans);display:block}
+.lcr .nt-chip span{font:600 9.5px var(--sans);color:var(--ink-dim);display:block;margin-top:1px}
+.lcr .nt-c1 .lucide{color:var(--honey-ink)}
+.lcr .nt-c2 .lucide{color:var(--violet-ink)}
+.lcr .nt-c3 .lucide{color:var(--mint-ink)}

@@ -1,0 +1,39 @@
+/* AUTO-GENERADO de lectura-visual.html #p-clima (scoped .lcr / #p-clima) */
+#p-clima .wx-now{background:linear-gradient(165deg,#dceaff 0%,#eef5ff 58%,#fdf3e7 100%);
+          border:1px solid #d5e4f8;border-radius:24px;padding:16px 18px;box-shadow:0 14px 34px rgba(81,112,216,.14);position:relative;overflow:hidden}
+#p-clima .wx-now::after{content:"";position:absolute;top:-38px;right:-30px;width:130px;height:130px;border-radius:50%;
+          background:radial-gradient(circle,rgba(246,189,109,.5),rgba(246,189,109,0) 70%)}
+.lcr .wx-top{display:flex;justify-content:space-between;align-items:flex-start}
+.lcr .wx-place{font:800 10px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--sky-ink)}
+.lcr .wx-when{font:600 10.5px var(--sans);color:var(--ink-dim);margin-top:2px}
+.lcr .wx-wicon{width:44px;height:44px;border-radius:15px;background:rgba(255,255,255,.85);display:flex;align-items:center;justify-content:center;
+          box-shadow:0 4px 12px rgba(81,112,216,.15)}
+.lcr .wx-wicon .lucide{font-size:26px;color:var(--honey-ink)}
+.lcr .wx-main{display:flex;align-items:baseline;gap:10px;margin-top:6px}
+.lcr .wx-temp{font:800 72px/1 var(--disp);letter-spacing:-.04em;color:#2a3b66}
+.lcr .wx-meta{font:600 11px/1.65 var(--sans);color:#4a5a86;padding-bottom:10px}
+.lcr .wx-meta b{color:#2a3b66}
+/* arco solar */
+.lcr .wx-arc{margin-top:10px}
+.lcr .wx-arc .arc-cap{display:flex;justify-content:space-between;font:700 9.5px var(--sans);color:#6d7ba3;margin-bottom:2px}
+.lcr .wx-arc .arc-cap span{display:flex;align-items:center;gap:4px}
+.lcr .wx-arc .arc-cap .lucide{font-size:11px;color:var(--honey-ink)}
+/* curva de temperatura por hora */
+.lcr .wx-curve{background:#fff;border:1px solid var(--linec);border-radius:22px;padding:14px 12px 10px;box-shadow:0 12px 30px var(--shadowc)}
+.lcr .wx-curve h3{font:800 14px var(--disp);display:flex;gap:8px;align-items:center;padding:0 4px 8px}
+.lcr .wx-curve h3 .lucide{font-size:16px;color:var(--sky-ink)}
+.lcr .wx-curve svg{width:100%;height:110px;display:block}
+.lcr .wx-curve .xh{display:flex;justify-content:space-between;font:700 9.5px var(--sans);color:var(--ink-faint);padding:4px 6px 0}
+.lcr .wx-hi-lo{display:flex;gap:9px;margin-top:12px}
+.lcr .wx-hi-lo .hl{flex:1;border-radius:16px;padding:10px 12px;display:flex;align-items:center;gap:9px}
+.lcr .wx-hi-lo .hl .lucide{font-size:19px}
+.lcr .wx-hi-lo .hl b{font:800 16px var(--disp);display:block}
+.lcr .wx-hi-lo .hl span{font:700 9.5px var(--sans);color:var(--ink-dim);letter-spacing:.06em;text-transform:uppercase}
+.lcr .wx-days{display:flex;flex-direction:column;gap:8px}
+.lcr .wx-day{display:flex;align-items:center;gap:11px;background:#fff;border:1px solid var(--linec);border-radius:16px;padding:10px 13px}
+.lcr .wx-day .wd{font:800 13px var(--disp);width:38px;color:var(--ink)}
+.lcr .wx-day .wi{width:34px;height:34px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:var(--sky-soft)}
+.lcr .wx-day .wi .lucide{font-size:19px;color:var(--sky-ink)}
+.lcr .wx-day .wbar{flex:1;height:6px;border-radius:3px;background:linear-gradient(90deg,#9dbcf3,#f2c98a);position:relative}
+.lcr .wx-day .wbar i{position:absolute;top:-3px;width:4px;height:12px;border-radius:2px;background:var(--ink);opacity:.55}
+.lcr .wx-day .wtmp{font:800 12px var(--sans);color:var(--ink-soft);width:66px;text-align:right}
