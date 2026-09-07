@@ -292,3 +292,37 @@ export const healthBlock: Extract<UiBlock, { type: "health_reminder" }> = {
   actionLabel: "Ya tomé la de hoy",
 };
 
+export const marketBlock: Extract<UiBlock, { type: "market" }> = {
+  type: "market",
+  title: "AAPL",
+  assets: [
+    {
+      symbol: "AAPL",
+      name: "Apple Inc",
+      category: "NASDAQ",
+      price: "231,40",
+      change: "+1,8% hoy",
+      changeUp: true,
+      iconBg: "#e8f0fe",
+      iconColor: "#2563eb",
+      shape: "rounded",
+    },
+    {
+      symbol: "MSFT",
+      name: "Microsoft",
+      category: "NASDAQ",
+      price: "428,90",
+      change: "+0,6% hoy",
+      changeUp: true,
+    },
+    {
+      symbol: "NVDA",
+      name: "NVIDIA",
+      category: "NASDAQ",
+      price: "118,60",
+      change: "−1,2% hoy",
+      changeUp: false,
+    },
+  ],
+};
+

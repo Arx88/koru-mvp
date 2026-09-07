@@ -24,6 +24,7 @@ import {
   ListChecks,
   Sunrise,
   Pill,
+  CandlestickChart,
 } from "lucide-react";
 import type { UiBlock } from "./domain/types";
 import { WeatherInterior } from "./ui/cards/lectura/panels/WeatherInterior";
@@ -39,6 +40,7 @@ import { AlarmInterior } from "./ui/cards/lectura/panels/AlarmInterior";
 import { CheckInterior } from "./ui/cards/lectura/panels/CheckInterior";
 import { BriefInterior } from "./ui/cards/lectura/panels/BriefInterior";
 import { HealthInterior } from "./ui/cards/lectura/panels/HealthInterior";
+import { MarketInterior } from "./ui/cards/lectura/panels/MarketInterior";
 import {
   weatherBlock,
   planBlock,
@@ -53,6 +55,7 @@ import {
   checklistBlock,
   briefBlock,
   healthBlock,
+  marketBlock,
 } from "./ui/cards/lectura/fixtures";
 
 type Entry = {
@@ -81,6 +84,7 @@ const CARDS: Entry[] = [
   { id: "check", label: "Checklist notebook", sub: "toggles durables del checklist", icon: ListChecks, tint: "var(--violet-soft)", color: "var(--violet-ink)", block: checklistBlock, Cmp: CheckInterior },
   { id: "brief", label: "Morning brief", sub: "5 items reales + TTS de la app", icon: Sunrise, tint: "var(--sky-soft)", color: "var(--sky-ink)", block: briefBlock, Cmp: BriefInterior },
   { id: "health", label: "Vitamina D", sub: "reminder real + complete/snooze", icon: Pill, tint: "var(--rose-soft)", color: "var(--rose-ink)", block: healthBlock, Cmp: HealthInterior },
+  { id: "market", label: "Acciones NASDAQ", sub: "precio latiente + board de assets", icon: CandlestickChart, tint: "var(--sky-soft)", color: "var(--sky-ink)", block: marketBlock, Cmp: MarketInterior },
 ];
 
 
