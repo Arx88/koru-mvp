@@ -629,3 +629,21 @@ export const travelPlanBlock: Extract<UiBlock, { type: "travel_plan" }> = {
   ],
 };
 
+
+export const savedRecordBlock: Extract<UiBlock, { type: "saved_record" }> = {
+  type: "saved_record",
+  title: "Cena en Don Julio",
+  records: [
+    {
+      domain: "interest",
+      kind: "deadline",
+      title: "Reservado para 2",
+      value: "Patio · junto a la parra",
+      person: "Vos",
+      collection: "Reservas",
+      dueHint: "sábado 7 · 21:15",
+      url: "https://donjulio.com/reserva",
+    },
+  ],
+};
+

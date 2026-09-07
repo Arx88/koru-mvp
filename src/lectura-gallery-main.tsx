@@ -40,6 +40,7 @@ import {
   Coffee,
   MessageSquareQuote,
   Plane,
+  TicketCheck,
 } from "lucide-react";
 import type { UiBlock } from "./domain/types";
 import { WeatherInterior } from "./ui/cards/lectura/panels/WeatherInterior";
@@ -71,6 +72,7 @@ import { ComparisonInterior } from "./ui/cards/lectura/panels/ComparisonInterior
 import { ProductInterior } from "./ui/cards/lectura/panels/ProductInterior";
 import { ReviewScoreInterior } from "./ui/cards/lectura/panels/ReviewScoreInterior";
 import { TravelInterior } from "./ui/cards/lectura/panels/TravelInterior";
+import { SavedRecordInterior } from "./ui/cards/lectura/panels/SavedRecordInterior";
 import {
   weatherBlock,
   planBlock,
@@ -101,6 +103,7 @@ import {
   productBlock,
   reviewScoreBlock,
   travelPlanBlock,
+  savedRecordBlock,
 } from "./ui/cards/lectura/fixtures";
 
 type Entry = {
@@ -145,6 +148,7 @@ const CARDS: Entry[] = [
   { id: "prod", label: "Cafetera Evo", sub: "foto + score + specs reales", icon: Coffee, tint: "var(--mint-soft)", color: "var(--mint-ink)", block: productBlock, Cmp: ProductInterior },
   { id: "rev", label: "iPhone 16", sub: "barras de reputación por aspecto", icon: MessageSquareQuote, tint: "var(--violet-soft)", color: "var(--violet-ink)", block: reviewScoreBlock, Cmp: ReviewScoreInterior },
   { id: "travel", label: "Madrid 3 días", sub: "itinerario día por día + reservas", icon: Plane, tint: "var(--honey-soft)", color: "var(--honey-ink)", block: travelPlanBlock, Cmp: TravelInterior },
+  { id: "saved", label: "Ya quedó en tu agenda", sub: "comprobante del guardado real", icon: TicketCheck, tint: "var(--mint-soft)", color: "var(--mint-ink)", block: savedRecordBlock, Cmp: SavedRecordInterior },
 ];
 
 
