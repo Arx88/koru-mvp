@@ -25,6 +25,7 @@ import {
   Sunrise,
   Pill,
   CandlestickChart,
+  Bitcoin,
 } from "lucide-react";
 import type { UiBlock } from "./domain/types";
 import { WeatherInterior } from "./ui/cards/lectura/panels/WeatherInterior";
@@ -41,6 +42,7 @@ import { CheckInterior } from "./ui/cards/lectura/panels/CheckInterior";
 import { BriefInterior } from "./ui/cards/lectura/panels/BriefInterior";
 import { HealthInterior } from "./ui/cards/lectura/panels/HealthInterior";
 import { MarketInterior } from "./ui/cards/lectura/panels/MarketInterior";
+import { CryptoInterior } from "./ui/cards/lectura/panels/CryptoInterior";
 import {
   weatherBlock,
   planBlock,
@@ -56,6 +58,7 @@ import {
   briefBlock,
   healthBlock,
   marketBlock,
+  cryptoBlock,
 } from "./ui/cards/lectura/fixtures";
 
 type Entry = {
@@ -85,6 +88,7 @@ const CARDS: Entry[] = [
   { id: "brief", label: "Morning brief", sub: "5 items reales + TTS de la app", icon: Sunrise, tint: "var(--sky-soft)", color: "var(--sky-ink)", block: briefBlock, Cmp: BriefInterior },
   { id: "health", label: "Vitamina D", sub: "reminder real + complete/snooze", icon: Pill, tint: "var(--rose-soft)", color: "var(--rose-ink)", block: healthBlock, Cmp: HealthInterior },
   { id: "market", label: "Acciones NASDAQ", sub: "precio latiente + board de assets", icon: CandlestickChart, tint: "var(--sky-soft)", color: "var(--sky-ink)", block: marketBlock, Cmp: MarketInterior },
+  { id: "crypto", label: "Portfolio cripto", sub: "sparkline real + alertas activas", icon: Bitcoin, tint: "var(--mint-soft)", color: "var(--mint-ink)", block: cryptoBlock, Cmp: CryptoInterior },
 ];
 
 

@@ -326,3 +326,37 @@ export const marketBlock: Extract<UiBlock, { type: "market" }> = {
   ],
 };
 
+
+export const cryptoBlock: Extract<UiBlock, { type: "crypto_portfolio" }> = {
+  type: "crypto_portfolio",
+  title: "Tu portfolio · cripto",
+  totalValue: "€4.320",
+  weekChange: 4.5,
+  sparkline: [4020, 4050, 3990, 4080, 4110, 4060, 4150, 4180, 4140, 4210, 4180, 4240, 4280, 4250, 4300, 4320],
+  items: [
+    {
+      symbol: "BTC",
+      name: "Bitcoin",
+      price: "61.240 USD",
+      change: 2.4,
+      color: "#f59e0b",
+      bg: "#fffbeb",
+      char: "₿",
+      amount: 0.052,
+      value: "€3.182",
+    },
+    {
+      symbol: "ETH",
+      name: "Ethereum",
+      price: "2.980 USD",
+      change: -1.1,
+      color: "#6d4bf0",
+      bg: "#f1ecfa",
+      char: "Ξ",
+      amount: 0.38,
+      value: "€1.138",
+    },
+  ],
+  alerts: [{ symbol: "BTC", target: "€4.500", direction: "above" }],
+};
+
