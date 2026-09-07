@@ -7968,8 +7968,10 @@ a.koru-dsec-source:hover {
 .koru-dsec-scard {
   scroll-snap-align: start;
 }
+/* 🔴 fix v5: el margen negativo montaba la card siguiente encima del
+   badge de la anterior ("Óptimo" pegado al borde). Gap normal. */
 .koru-dsec-scard:not(:last-child) {
-  margin-right: -20px;
+  margin-right: 0;
 }
 
 /* Item 12 — Badge "NEW": fade after 3s via CSS animation */

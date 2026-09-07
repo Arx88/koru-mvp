@@ -42,13 +42,13 @@ import {
   Plane,
   TicketCheck,
   Vault,
-  Brain,
   Link,
   StickyNote,
   FolderOpen,
   Vote,
   SlidersHorizontal,
   ChartNoAxesCombined,
+  Brain,
   FileText,
 } from "lucide-react";
 import type { UiBlock } from "./domain/types";
@@ -80,16 +80,16 @@ import { SocialInterior } from "./ui/cards/lectura/panels/SocialInterior";
 import { ComparisonInterior } from "./ui/cards/lectura/panels/ComparisonInterior";
 import { ProductInterior } from "./ui/cards/lectura/panels/ProductInterior";
 import { ReviewScoreInterior } from "./ui/cards/lectura/panels/ReviewScoreInterior";
-import { TravelInterior } from "./ui/cards/lectura/panels/TravelInterior";
-import { SavedRecordInterior } from "./ui/cards/lectura/panels/SavedRecordInterior";
-import { MemInterior } from "./ui/cards/lectura/panels/MemInterior";
-import { LinksInterior } from "./ui/cards/lectura/panels/LinksInterior";
 import { NoteInterior } from "./ui/cards/lectura/panels/NoteInterior";
-import { FilesInterior } from "./ui/cards/lectura/panels/FilesInterior";
-import { ElectInterior } from "./ui/cards/lectura/panels/ElectInterior";
 import { EvoteInterior } from "./ui/cards/lectura/panels/EvoteInterior";
-import { MtlInterior } from "./ui/cards/lectura/panels/MtlInterior";
+import { ElectInterior } from "./ui/cards/lectura/panels/ElectInterior";
 import { MstatsInterior } from "./ui/cards/lectura/panels/MstatsInterior";
+import { MemInterior } from "./ui/cards/lectura/panels/MemInterior";
+import { MtlInterior } from "./ui/cards/lectura/panels/MtlInterior";
+import { LinksInterior } from "./ui/cards/lectura/panels/LinksInterior";
+import { FilesInterior } from "./ui/cards/lectura/panels/FilesInterior";
+import { SavedRecordInterior } from "./ui/cards/lectura/panels/SavedRecordInterior";
+import { TravelInterior } from "./ui/cards/lectura/panels/TravelInterior";
 import { InfoInterior } from "./ui/cards/lectura/panels/InfoInterior";
 import {
   weatherBlock,

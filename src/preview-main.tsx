@@ -184,14 +184,14 @@ function WelcomeTurn() {
         ¡Hola Arx! Bienvenido al showcase de los nuevos diseños.
         Deslizá para ver las cards rediseñadas en el chat y tocá cualquiera
         para abrir su interior. Para el rediseño del interior completo,
-        te preparé dos propuestas:
+        te preparé dos propuestas y el catálogo completo:
       </p>
       <div className="pv-welcome-actions">
         <a className="pv-welcome-btn" href="/propuesta-a.html">
           <span className="material-symbols-outlined">auto_awesome</span>
           <span className="pv-welcome-btn-text">
             <strong>Propuesta A</strong>
-            <small>Lectura Visual · estilo revista</small>
+            <small>Lectura Visual · estilo revista · modo claro</small>
           </span>
           <span className="material-symbols-outlined pv-welcome-go">chevron_right</span>
         </a>
@@ -199,7 +199,15 @@ function WelcomeTurn() {
           <span className="material-symbols-outlined">record_voice_over</span>
           <span className="pv-welcome-btn-text">
             <strong>Propuesta B</strong>
-            <small>Koru te Cuenta · flujos completos · modo claro</small>
+            <small>Koru te Cuenta · momentos firma · modo claro</small>
+          </span>
+          <span className="material-symbols-outlined pv-welcome-go">chevron_right</span>
+        </a>
+        <a className="pv-welcome-btn" href="/lectura-visual.html">
+          <span className="material-symbols-outlined">style</span>
+          <span className="pv-welcome-btn-text">
+            <strong>Catálogo completo</strong>
+            <small>Lectura Visual · las 31 cards reales</small>
           </span>
           <span className="material-symbols-outlined pv-welcome-go">chevron_right</span>
         </a>
@@ -250,7 +258,7 @@ function Stage() {
       <nav className="pv-links" aria-label="Propuestas de interior">
         <a href="/propuesta-a.html" target="_blank" rel="noreferrer">A · Lectura Visual</a>
         <span className="pv-links-sep">·</span>
-        <a href="/propuesta-b.html" target="_blank" rel="noreferrer">B · Koru te Cuenta</a>
+        <a href="/propuesta-b-full.html" target="_blank" rel="noreferrer">B · Koru te Cuenta (completa)</a>
       </nav>
     </div>
   );

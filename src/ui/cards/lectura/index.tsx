@@ -36,16 +36,16 @@ import { SocialInterior } from "./panels/SocialInterior";
 import { ComparisonInterior } from "./panels/ComparisonInterior";
 import { ProductInterior } from "./panels/ProductInterior";
 import { ReviewScoreInterior } from "./panels/ReviewScoreInterior";
-import { TravelInterior } from "./panels/TravelInterior";
-import { SavedRecordInterior } from "./panels/SavedRecordInterior";
-import { MemInterior } from "./panels/MemInterior";
-import { LinksInterior } from "./panels/LinksInterior";
 import { NoteInterior } from "./panels/NoteInterior";
-import { FilesInterior } from "./panels/FilesInterior";
-import { ElectInterior } from "./panels/ElectInterior";
 import { EvoteInterior } from "./panels/EvoteInterior";
-import { MtlInterior } from "./panels/MtlInterior";
+import { ElectInterior } from "./panels/ElectInterior";
 import { MstatsInterior } from "./panels/MstatsInterior";
+import { MemInterior } from "./panels/MemInterior";
+import { MtlInterior } from "./panels/MtlInterior";
+import { LinksInterior } from "./panels/LinksInterior";
+import { FilesInterior } from "./panels/FilesInterior";
+import { SavedRecordInterior } from "./panels/SavedRecordInterior";
+import { TravelInterior } from "./panels/TravelInterior";
 import { InfoInterior } from "./panels/InfoInterior";
 
 export interface LecturaInteriorProps<T extends UiBlock = UiBlock> {
@@ -88,16 +88,16 @@ const REGISTRY: Partial<Record<UiBlock["type"], AnyInterior>> = {
   comparison: ComparisonInterior as AnyInterior,
   product_analysis: ProductInterior as AnyInterior,
   review_score: ReviewScoreInterior as AnyInterior,
-  travel_plan: TravelInterior as AnyInterior,
-  saved_record: SavedRecordInterior as AnyInterior,
-  memory: MemInterior as AnyInterior,
-  research_sources: LinksInterior as AnyInterior,
   review_document: NoteInterior as AnyInterior,
-  resource_bundle: FilesInterior as AnyInterior,
-  election_results: ElectInterior as AnyInterior,
   election_vote: EvoteInterior as AnyInterior,
-  match_timeline: MtlInterior as AnyInterior,
+  election_results: ElectInterior as AnyInterior,
   match_stats: MstatsInterior as AnyInterior,
+  memory: MemInterior as AnyInterior,
+  match_timeline: MtlInterior as AnyInterior,
+  research_sources: LinksInterior as AnyInterior,
+  resource_bundle: FilesInterior as AnyInterior,
+  saved_record: SavedRecordInterior as AnyInterior,
+  travel_plan: TravelInterior as AnyInterior,
   deliverable: InfoInterior as AnyInterior,
 };
 

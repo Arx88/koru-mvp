@@ -255,7 +255,6 @@ export const alarmBlock: Extract<UiBlock, { type: "alarm" }> = {
   note: "Te agendé el gym 30 min después de la alarma — así no tenés que pensarlo a las 7.",
 };
 
-
 export const checklistBlock: Extract<UiBlock, { type: "smart_checklist" }> = {
   type: "smart_checklist",
   title: "Lo que falta antes de comprar",
@@ -268,7 +267,6 @@ export const checklistBlock: Extract<UiBlock, { type: "smart_checklist" }> = {
   ],
 };
 
-
 export const briefBlock: Extract<UiBlock, { type: "morning_brief" }> = {
   type: "morning_brief",
   greeting: "Buen domingo",
@@ -280,7 +278,6 @@ export const briefBlock: Extract<UiBlock, { type: "morning_brief" }> = {
     { icon: "flight", iconColor: "#7c3aed", label: "Tu viaje a Madrid", value: "18 d" },
   ],
 };
-
 
 export const healthBlock: Extract<UiBlock, { type: "health_reminder" }> = {
   type: "health_reminder",
@@ -326,7 +323,6 @@ export const marketBlock: Extract<UiBlock, { type: "market" }> = {
   ],
 };
 
-
 export const cryptoBlock: Extract<UiBlock, { type: "crypto_portfolio" }> = {
   type: "crypto_portfolio",
   title: "Tu portfolio · cripto",
@@ -360,7 +356,6 @@ export const cryptoBlock: Extract<UiBlock, { type: "crypto_portfolio" }> = {
   alerts: [{ symbol: "BTC", target: "€4.500", direction: "above" }],
 };
 
-
 export const forexBlock: Extract<UiBlock, { type: "forex" }> = {
   type: "forex",
   title: "Dólar oficial · euro",
@@ -370,7 +365,6 @@ export const forexBlock: Extract<UiBlock, { type: "forex" }> = {
     { pair: "USD/JPY", rate: "149,2", change: -0.2, flag: "JP", positive: false },
   ],
 };
-
 
 export const moneyBlock: Extract<UiBlock, { type: "money_summary" }> = {
   type: "money_summary",
@@ -387,7 +381,6 @@ export const moneyBlock: Extract<UiBlock, { type: "money_summary" }> = {
   recommendation:
     "La baja viene de la comida: 6 menos deliverys que en julio (€182 de diferencia). No cambiaste de dieta, cambiaste de horario de cena.",
 };
-
 
 export const tickerBlock: Extract<UiBlock, { type: "data_ticker" }> = {
   type: "data_ticker",
@@ -414,7 +407,6 @@ export const routeTimelineBlock: Extract<UiBlock, { type: "route_timeline" }> = 
   ],
 };
 
-
 export const routeMapBlock: Extract<UiBlock, { type: "route_map" }> = {
   type: "route_map",
   progress: 42,
@@ -435,7 +427,6 @@ export const routeMapBlock: Extract<UiBlock, { type: "route_map" }> = {
   trafficLevel: "liviano",
 };
 
-
 export const transportBlock: Extract<UiBlock, { type: "transport_compare" }> = {
   type: "transport_compare",
   items: [
@@ -444,7 +435,6 @@ export const transportBlock: Extract<UiBlock, { type: "transport_compare" }> = {
     { mode: "A pie por Callao", time: "58 min", icon: "directions_walk", active: false },
   ],
 };
-
 
 export const deliveryBlock: Extract<UiBlock, { type: "delivery" }> = {
   type: "delivery",
@@ -470,7 +460,6 @@ export const bcalBlock: Extract<UiBlock, { type: "birthday_calendar" }> = {
   daysInMonth: 30,
 };
 
-
 export const balarmBlock: Extract<UiBlock, { type: "birthday_alarm" }> = {
   type: "birthday_alarm",
   name: "Juan",
@@ -479,7 +468,6 @@ export const balarmBlock: Extract<UiBlock, { type: "birthday_alarm" }> = {
   unit: "días",
   eta: "el jueves 10 a las 10:00 te cae el primer aviso",
 };
-
 
 export const socialBlock: Extract<UiBlock, { type: "social_interaction" }> = {
   type: "social_interaction",
@@ -541,7 +529,6 @@ export const comparisonBlock: Extract<UiBlock, { type: "comparison" }> = {
     "El empate técnico era real: por tus llamadas diarias ganaba Bose. Ganó Sony por el combo batería + cancelación con tu teléfono.",
 };
 
-
 export const productBlock: Extract<UiBlock, { type: "product_analysis" }> = {
   type: "product_analysis",
   product: {
@@ -560,7 +547,6 @@ export const productBlock: Extract<UiBlock, { type: "product_analysis" }> = {
   ],
   actionLabel: "Guardar para la compra",
 };
-
 
 export const reviewScoreBlock: Extract<UiBlock, { type: "review_score" }> = {
   type: "review_score",
@@ -629,7 +615,6 @@ export const travelPlanBlock: Extract<UiBlock, { type: "travel_plan" }> = {
   ],
 };
 
-
 export const savedRecordBlock: Extract<UiBlock, { type: "saved_record" }> = {
   type: "saved_record",
   title: "Cena en Don Julio",
@@ -647,7 +632,6 @@ export const savedRecordBlock: Extract<UiBlock, { type: "saved_record" }> = {
   ],
 };
 
-
 export const vaultBlock: Extract<UiBlock, { type: "saved_record" }> = {
   type: "saved_record",
   title: "Bóveda de recuerdos",
@@ -659,7 +643,6 @@ export const vaultBlock: Extract<UiBlock, { type: "saved_record" }> = {
     { domain: "money", kind: "expense", title: "Café doble", value: "4,20 € · todos los días" },
   ],
 };
-
 
 export const memoryBlock: Extract<UiBlock, { type: "memory" }> = {
   type: "memory",
@@ -678,7 +661,6 @@ export const memoryBlock: Extract<UiBlock, { type: "memory" }> = {
   ],
   note: "Todo quedó asociado a tu historial de septiembre.",
 };
-
 
 export const researchSourcesBlock: Extract<UiBlock, { type: "research_sources" }> = {
   type: "research_sources",
@@ -716,14 +698,12 @@ export const researchSourcesBlock: Extract<UiBlock, { type: "research_sources" }
   followUpQuestion: "¿Querés que te avise si baja de precio alguno?",
 };
 
-
 export const reviewDocumentBlock: Extract<UiBlock, { type: "review_document" }> = {
   type: "review_document",
   title: "Anotame esto",
   body:
     "Llamar a la abuela el sábado a las 11 — antes de que llegue Maru. Pedirle la receta del pionono que ella hace con la crema de lado.",
 };
-
 
 export const resourceBundleBlock: Extract<UiBlock, { type: "resource_bundle" }> = {
   type: "resource_bundle",
@@ -753,7 +733,6 @@ export const resourceBundleBlock: Extract<UiBlock, { type: "resource_bundle" }> 
   ],
 };
 
-
 export const electionResultsBlock: Extract<UiBlock, { type: "election_results" }> = {
   type: "election_results",
   title: "Así está la cuenta",
@@ -767,7 +746,6 @@ export const electionResultsBlock: Extract<UiBlock, { type: "election_results" }
   ],
 };
 
-
 export const electionVoteBlock: Extract<UiBlock, { type: "election_vote" }> = {
   type: "election_vote",
   question: "¿Qué lente uso para ordenar esto?",
@@ -778,7 +756,6 @@ export const electionVoteBlock: Extract<UiBlock, { type: "election_vote" }> = {
     { label: "Ambiente primero", sub: "energía, agua, transición — el plazo largo" },
   ],
 };
-
 
 export const matchTimelineBlock: Extract<UiBlock, { type: "match_timeline" }> = {
   type: "match_timeline",
@@ -800,7 +777,6 @@ export const matchTimelineBlock: Extract<UiBlock, { type: "match_timeline" }> = 
   },
 };
 
-
 export const matchStatsBlock: Extract<UiBlock, { type: "match_stats" }> = {
   type: "match_stats",
   title: "El clásico, en números",
@@ -815,7 +791,6 @@ export const matchStatsBlock: Extract<UiBlock, { type: "match_stats" }> = {
     { label: "Faltas", home: "9", away: "11", width: "36%" },
   ],
 };
-
 
 export const deliverableBlock: Extract<UiBlock, { type: "deliverable" }> = {
   type: "deliverable",
