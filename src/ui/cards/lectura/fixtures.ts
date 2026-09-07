@@ -716,3 +716,11 @@ export const researchSourcesBlock: Extract<UiBlock, { type: "research_sources" }
   followUpQuestion: "¿Querés que te avise si baja de precio alguno?",
 };
 
+
+export const reviewDocumentBlock: Extract<UiBlock, { type: "review_document" }> = {
+  type: "review_document",
+  title: "Anotame esto",
+  body:
+    "Llamar a la abuela el sábado a las 11 — antes de que llegue Maru. Pedirle la receta del pionono que ella hace con la crema de lado.",
+};
+

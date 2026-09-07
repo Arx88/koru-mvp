@@ -44,6 +44,7 @@ import {
   Vault,
   Brain,
   Link,
+  StickyNote,
 } from "lucide-react";
 import type { UiBlock } from "./domain/types";
 import { WeatherInterior } from "./ui/cards/lectura/panels/WeatherInterior";
@@ -78,6 +79,7 @@ import { TravelInterior } from "./ui/cards/lectura/panels/TravelInterior";
 import { SavedRecordInterior } from "./ui/cards/lectura/panels/SavedRecordInterior";
 import { MemInterior } from "./ui/cards/lectura/panels/MemInterior";
 import { LinksInterior } from "./ui/cards/lectura/panels/LinksInterior";
+import { NoteInterior } from "./ui/cards/lectura/panels/NoteInterior";
 import {
   weatherBlock,
   planBlock,
@@ -112,6 +114,7 @@ import {
   vaultBlock,
   memoryBlock,
   researchSourcesBlock,
+  reviewDocumentBlock,
 } from "./ui/cards/lectura/fixtures";
 
 type Entry = {
@@ -160,6 +163,7 @@ const CARDS: Entry[] = [
   { id: "vault", label: "Bóveda de recuerdos", sub: "búsqueda real + grilla de records", icon: Vault, tint: "var(--rose-soft)", color: "var(--rose-ink)", block: vaultBlock, Cmp: SavedRecordInterior },
   { id: "mem", label: "Lo nuevo que te guardé", sub: "cascada de memorias + confianza", icon: Brain, tint: "var(--rose-soft)", color: "var(--rose-ink)", block: memoryBlock, Cmp: MemInterior },
   { id: "links", label: "Lectura pendiente", sub: "enlaces reales con preview og:image", icon: Link, tint: "var(--sky-soft)", color: "var(--sky-ink)", block: researchSourcesBlock, Cmp: LinksInterior },
+  { id: "note", label: "Anotame esto", sub: "post-it verbatim + fecha detectada", icon: StickyNote, tint: "var(--honey-soft)", color: "var(--honey-ink)", block: reviewDocumentBlock, Cmp: NoteInterior },
 ];
 
 
