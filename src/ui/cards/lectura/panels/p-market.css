@@ -31,3 +31,8 @@
 .lcr .st-read .rt{flex:1}
 .lcr .st-read .rt b{font:800 12px var(--sans);color:var(--ink);display:block}
 .lcr .st-read .rt span{font:600 10.5px/1.5 var(--sans);color:var(--ink-dim)}
+/* selector de activo */
+.lcr .st-tabs{display:flex;gap:6px;margin:0 0 12px;flex-wrap:wrap}
+.lcr .st-tabs button{border:1px solid #cfe0f6;background:#f2f7fd;color:var(--ink-soft);
+          font:800 11px var(--sans);padding:7px 13px;border-radius:999px;cursor:pointer}
+.lcr .st-tabs button[aria-selected="true"]{background:var(--sky-ink);border-color:var(--sky-ink);color:#fff}

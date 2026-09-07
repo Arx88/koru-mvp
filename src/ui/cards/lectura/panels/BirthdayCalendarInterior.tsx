@@ -10,6 +10,7 @@
  * leyenda muestra el día marcado, sin nombres inventados. Acción:
  * activar aviso → create_commitment durable.
  */
+import { useState } from "react";
 import { CalendarDays, User, Gift, BellRing, PartyPopper } from "lucide-react";
 import type { UiBlock } from "../../../../domain/types";
 import { Ic } from "../Ic";
@@ -30,6 +31,8 @@ export function BirthdayCalendarInterior({ block, onClose, onSave }: LecturaInte
   const startDay = Math.min(7, Math.max(1, block.startDay ?? 1)); // 1 = lunes
   const highlightedDay = block.highlightedDay;
   const month = block.month ?? "este mes";
+  // Día seleccionable: el calendario se toca como calendario de verdad.
+  const [selectedDay, setSelectedDay] = useState<number | null>(highlightedDay ?? null);
 
   const now = new Date();
   const monthMatches = MONTHS[now.getMonth()] === month.toLowerCase();
@@ -82,7 +85,9 @@ export function BirthdayCalendarInterior({ block, onClose, onSave }: LecturaInte
               <Ic i={CalendarDays} className="ic" />
               {month}
             </span>
-            <span className="n">{highlightedDay ? "1 cumple" : "sin marcas"}</span>
+            <span className="n">
+              {daysInMonth} días · arranca en {startDay === 1 ? "lunes" : startDay === 2 ? "martes" : startDay === 3 ? "miércoles" : startDay === 4 ? "jueves" : startDay === 5 ? "viernes" : startDay === 6 ? "sábado" : "domingo"}
+            </span>
           </div>
           <div className="cal2-grid">
             <span className="dw2">L</span><span className="dw2">M</span><span className="dw2">X</span>
@@ -91,26 +96,44 @@ export function BirthdayCalendarInterior({ block, onClose, onSave }: LecturaInte
               if (c.day == null) return <span key={`pad_${i}`} />;
               const isBday = highlightedDay === c.day;
               const isToday = today === c.day;
+              const isSel = selectedDay === c.day;
               const cls = [
                 "day",
                 c.sat && !isBday && !isToday ? "sat" : "",
                 isToday ? "today" : "",
                 isBday ? "bday" : "",
+                isSel ? "sel" : "",
               ]
                 .filter(Boolean)
                 .join(" ");
               return (
-                <span key={`d_${c.day}`} className={cls}>
+                <button
+                  key={`d_${c.day}`}
+                  type="button"
+                  className={cls}
+                  aria-pressed={isSel}
+                  aria-current={isBday ? "date" : undefined}
+                  onClick={() => setSelectedDay(c.day === selectedDay ? null : c.day)}
+                >
                   {c.day}
                   {isBday && (
                     <span className="dt">
                       <i style={{ background: "var(--pink-ink)" }} />
                     </span>
                   )}
-                </span>
+                </button>
               );
             })}
           </div>
+          {selectedDay != null && (
+            <div className="cal2-sel">
+              <Ic i={selectedDay === highlightedDay ? PartyPopper : CalendarDays} className="ic" />
+              <span>
+                <b>Día {selectedDay} de {month.toLowerCase()}</b>
+                {selectedDay === highlightedDay ? " — el cumple marcado del mes" : " — tocá otro día para verlo"}
+              </span>
+            </div>
+          )}
         </div>
 
         {highlightedDay != null && (

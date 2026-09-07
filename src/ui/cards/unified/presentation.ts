@@ -2033,7 +2033,7 @@ function dataCard(b: Of<"data_card">): KoruPresentation {
           ],
         }
       : undefined,
-    cta: items.length > 3 ? { label: "Ver todos" } : undefined,
+    cta: items.length ? { label: items.length > 3 ? "Ver todos los datos" : "Ver datos y citas" } : undefined,
   };
 }
 
@@ -2320,7 +2320,20 @@ function restaurant(b: Of<"restaurant_synthesis">): KoruPresentation {
       desc: heroDesc,
       icon: "restaurant",
       accent: A.amber,
-      metrics: matches.length ? [{ icon: "storefront", label: "Opciones", value: String(matches.length), color: A.amber.color }] : undefined,
+      metrics: [
+        ...(topMatch?.rating
+          ? [{ icon: "star", label: "Rating", value: `${topMatch.rating.toFixed(1).replace(".", ",")}/5`, color: A.amber.color }]
+          : []),
+        ...(topMatch?.priceLevel
+          ? [{ icon: "payments", label: "Precio", value: "$".repeat(Math.max(1, Math.min(4, topMatch.priceLevel))), color: A.pink.color }]
+          : []),
+        ...(topMatch?.distanceFromUser
+          ? [{ icon: "directions_walk", label: "Llegás en", value: topMatch.distanceFromUser, color: A.emerald.color }]
+          : []),
+        ...(matches.length
+          ? [{ icon: "storefront", label: "Comparé", value: `${matches.length} opciones`, color: A.primary.color }]
+          : []),
+      ].slice(0, 4),
     },
     detail: sections.length ? {
       title: topMatch?.name ?? b.title ?? "Restaurantes",
@@ -4191,9 +4204,19 @@ function matchStats(b: Of<"match_stats">): KoruPresentation {
     hero: {
       kicker: "Estadísticas",
       title: heroTitleFrom(b.title, "Partido"),
-      desc: stats[0] ? `${stats[0].label}: ${stats[0].home} — ${stats[0].away}` : undefined,
+      desc: stats.length
+        ? stats.slice(0, 2).map((s) => `${s.label}: ${s.home} — ${s.away}`).join(" · ")
+        : undefined,
       icon: "monitoring",
       accent: A.primary,
+      metrics: stats.slice(0, 3).map((s) => ({
+        icon: "monitoring",
+        label: s.label,
+        value: /pos|posesi|precisi|efectiv/i.test(s.label)
+          ? `${s.home}% — ${s.away}%`
+          : `${s.home} — ${s.away}`,
+        color: A.primary.color,
+      })),
     },
     detail: stats.length
       ? {
@@ -5173,6 +5196,7 @@ function birthdayCalendar(b: Of<"birthday_calendar">): KoruPresentation {
 }
 
 function birthdayAlarm(b: Of<"birthday_alarm">): KoruPresentation {
+  const countdown = b.countdown ? `${b.countdown}${b.unit ? ` ${b.unit}` : ""}` : undefined;
   return {
     hero: {
       kicker: b.eta ? `Alarma · ${b.eta}` : "Cumpleaños",
@@ -5180,8 +5204,30 @@ function birthdayAlarm(b: Of<"birthday_alarm">): KoruPresentation {
       desc: b.date,
       icon: "cake",
       accent: A.amber,
-      artValue: b.countdown ? `${b.countdown}${b.unit ? ` ${b.unit}` : ""}` : undefined,
+      artValue: countdown,
     },
+    detail: {
+      title: b.name ?? "Cumpleaños",
+      subtitle: "CUÁNDO Y CUÁNTO FALTA",
+      sections: [
+        {
+          kind: "rows",
+          icon: "cake",
+          accent: A.amber,
+          title: "El cumple",
+          rows: [
+            ...(b.name ? [{ icon: "person", title: b.name, detail: "Quién cumple" }] : []),
+            ...(b.date ? [{ icon: "event", title: b.date, detail: "La fecha" }] : []),
+            ...(countdown ? [{ icon: "hourglass_top", title: countdown, detail: "Lo que falta" }] : []),
+            ...(b.eta ? [{ icon: "notifications_active", title: b.eta, detail: "Cuándo te aviso" }] : []),
+          ],
+        },
+      ],
+      actions: [
+        { label: "Preparar el regalo", icon: "bookmark", kind: "primary", action: "birthday_alarm:gift" },
+      ],
+    },
+    cta: { label: "Ver el plan del cumple" },
     // 🔴 KIMI v4: layout default .kc (no banner — spec pág. 53 muestra kc normal).
     layout: "default",
   };
@@ -5695,10 +5741,11 @@ function recipeBlock(b: Of<"recipe">): KoruPresentation {
       icon: "restaurant",
       accent: A.emerald,
       metrics: [
-        ...(ingredients.length ? [{ icon: "kitchen", label: "Ingredientes", value: String(ingredients.length), color: A.emerald.color }] : []),
-        ...(b.prepTime ? [{ icon: "schedule", label: "Preparación", value: b.prepTime, color: A.primary.color }] : []),
-        ...(b.cookTime ? [{ icon: "local_fire_department", label: "Cocción", value: b.cookTime, color: A.amber.color }] : []),
-        ...(b.servings ? [{ icon: "groups", label: "Porciones", value: String(b.servings), color: A.purple.color }] : []),
+        ...(ingredients.length ? [{ icon: "kitchen", label: "Ingredientes", value: `${ingredients.length} en total`, color: A.emerald.color }] : []),
+        ...(b.prepTime ? [{ icon: "schedule", label: "Preparación", value: `${b.prepTime} min`, color: A.primary.color }] : []),
+        ...(b.cookTime ? [{ icon: "local_fire_department", label: "Cocción", value: `${b.cookTime} min`, color: A.amber.color }] : []),
+        ...(b.servings ? [{ icon: "groups", label: "Porciones", value: `para ${b.servings}`, color: A.purple.color }] : []),
+        ...(b.nutrition?.kcal ? [{ icon: "bolt", label: "Energía", value: `${b.nutrition.kcal} kcal`, color: A.red.color }] : []),
         ...(difficultyLabel ? [{ icon: "whatshot", label: "Dificultad", value: difficultyLabel, color: difficultyColor ?? A.amber.color }] : []),
       ].slice(0, 4),
     },

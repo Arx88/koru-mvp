@@ -9,7 +9,8 @@
  * La curva semanal NO está en el domain → no se dibuja. Acción:
  * avisame → create_commitment durable.
  */
-import { BellRing, RefreshCw, Banknote, ArrowLeftRight, TrendingUp, TrendingDown } from "lucide-react";
+import { useState } from "react";
+import { BellRing, RefreshCw, Banknote, ArrowLeftRight, TrendingUp, TrendingDown, Calculator } from "lucide-react";
 import type { UiBlock } from "../../../../domain/types";
 import { Ic } from "../Ic";
 import { LecturaShell } from "../LecturaShell";
@@ -40,21 +41,27 @@ function fmt(n: number): string {
 
 export function ForexInterior({ block, onClose, onSave }: LecturaInteriorProps<ForexBlock>) {
   const items = block.items ?? [];
-  const first = items[0];
-  const [from, to] = (first?.pair ?? "").split("/");
-  const rateNum = parseRate(first?.rate);
-  const positive = first?.positive ?? true;
-  const change = first?.change ?? 0;
+  // Calculadora de ventanilla: par elegible + monto editable + resultado
+  // computado del rate REAL del block (mismo patrón del catálogo: cambiar
+  // US$500 hoy → €455). Estado local de la card, nada simulado.
+  const [pairIdx, setPairIdx] = useState(0);
+  const [amount, setAmount] = useState("500");
+  const active = items[Math.min(pairIdx, Math.max(0, items.length - 1))] ?? items[0];
+  const [from, to] = (active?.pair ?? "").split("/");
+  const rateNum = parseRate(active?.rate);
+  const amountNum = Math.max(0, parseFloat(amount.replace(",", ".")) || 0);
+  const conv = rateNum != null ? rateNum * amountNum : null;
+  const positive = active?.positive ?? true;
+  const change = active?.change ?? 0;
   const changeUp = change >= 0;
-  // Conversión real derivada del rate del block (500 unidades base).
-  const conv = rateNum != null ? rateNum * 500 : null;
+  const QUICK = [100, 500, 1000];
 
   return (
     <LecturaShell
       onClose={onClose}
-      onBookmark={onSave ? () => onSave(block.title || first?.pair || "Cotización", first?.rate) : undefined}
+      onBookmark={onSave ? () => onSave(block.title || active?.pair || "Cotización", active?.rate) : undefined}
       chip={{ label: "Divisas", background: "linear-gradient(135deg,#6ee7b7,#2f8f6d)" }}
-      ariaLabel={block.title || first?.pair || "Cotización de divisas"}
+      ariaLabel={block.title || active?.pair || "Cotización de divisas"}
     >
       <div id="p-forex" className="lcr-panel">
         <div className="ev-head rv" style={{ margin: "2px 0 14px" }}>
@@ -69,7 +76,7 @@ export function ForexInterior({ block, onClose, onSave }: LecturaInteriorProps<F
                 marginBottom: "5px",
               }}
             >
-              {block.title || first?.pair || "Divisas"}
+              {block.title || active?.pair || "Divisas"}
             </small>
             {from || "Origen"}
             <br />
@@ -77,24 +84,24 @@ export function ForexInterior({ block, onClose, onSave }: LecturaInteriorProps<F
           </h1>
           <p style={{ font: "600 12px var(--sans)", color: "var(--ink-dim)", marginTop: "6px" }}>
             {items.length > 1
-              ? `${items.length} pares — el que preguntaste arriba, el resto en la ventanilla.`
+              ? `${items.length} pares — elegís el que querés y calculo cuánto te dan de verdad.`
               : "La cotización del block, tal como la trajo la herramienta."}
           </p>
         </div>
 
-        {first && (
+        {active && (
           <div className="fx3-hero rv">
             <div className="fx3-rate">
               <div className="fx3-cur">
                 <span className="fl" style={{ background: "var(--sky-soft)", color: "var(--sky-ink)" }}>
-                  {first.flag || (from?.slice(0, 2) ?? "US")}
+                  {active.flag || (from?.slice(0, 2) ?? "US")}
                 </span>
                 <span>{from || "Origen"}</span>
               </div>
               <div className="fx3-arrow">
                 <Ic i={RefreshCw} className="ic a" />
                 <div className="r">
-                  {first.rate}
+                  {active.rate}
                   <small>
                     {to || "DEST"} POR {from || "ORIG"} 1
                   </small>
@@ -108,14 +115,14 @@ export function ForexInterior({ block, onClose, onSave }: LecturaInteriorProps<F
               </div>
             </div>
 
-            {items.length > 1 ? (
+            {items.length > 1 && (
               <div className="fx3-board">
                 <div className="bh">
                   <span>Par</span>
                   <span>Cotización</span>
                 </div>
                 <div className="bb">
-                  {items.slice(1).map((p: Pair, i) => (
+                  {items.map((p: Pair, i: number) => (
                     <span key={`${p.pair}_${i}`} style={{ display: "contents" }}>
                       <span>
                         <b>{p.pair}</b>
@@ -133,7 +140,9 @@ export function ForexInterior({ block, onClose, onSave }: LecturaInteriorProps<F
                   ))}
                 </div>
               </div>
-            ) : (
+            )}
+
+            {items.length === 1 && (
               <div className="fx3-board">
                 <div className="bh">
                   <span>movimiento</span>
@@ -158,18 +167,70 @@ export function ForexInterior({ block, onClose, onSave }: LecturaInteriorProps<F
               </div>
             )}
 
-            {conv != null && (
-              <div className="fx3-conv">
-                <span>Cambiando 500 {from || "USD"} hoy</span>
-                <b>
-                  → {fmt(conv)} {to || ""}
-                </b>
+            {/* Calculadora de ventanilla — computa del rate real del par activo */}
+            {items.length > 0 && rateNum != null && (
+              <div className="fx3-calc rv">
+                <div className="calc-h">
+                  <Ic i={Calculator} className="ic" />
+                  <span>Calculadora de ventanilla</span>
+                </div>
+                {items.length > 1 && (
+                  <div className="calc-pairs" role="tablist" aria-label="Elegir par">
+                    {items.map((p, i) => (
+                      <button
+                        key={`${p.pair}_${i}`}
+                        type="button"
+                        role="tab"
+                        aria-selected={i === Math.min(pairIdx, items.length - 1)}
+                        onClick={() => setPairIdx(i)}
+                      >
+                        {p.pair}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <label className="calc-amt">
+                  <span>Cantidad en {from || "origen"}</span>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step={50}
+                    aria-label={`Cantidad de ${from || "divisa origen"}`}
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                  />
+                </label>
+                <div className="calc-chips">
+                  {QUICK.map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      aria-pressed={amount === String(v)}
+                      onClick={() => setAmount(String(v))}
+                    >
+                      {v} {from}
+                    </button>
+                  ))}
+                </div>
+                <div className="calc-res">
+                  <span>
+                    {amount || 0} {from} hoy →
+                  </span>
+                  <b>
+                    {conv != null ? fmt(conv) : "—"} {to}
+                  </b>
+                  <small>
+                    al rate real {active.rate} · 1 {from} = {fmt(rateNum)} {to}
+                    {amountNum > 0 && conv != null ? ` · sin comisión estimada` : ""}
+                  </small>
+                </div>
               </div>
             )}
           </div>
         )}
 
-        {!first && (
+        {!active && (
           <div className="fx3-hero rv" style={{ textAlign: "center", padding: "22px 16px" }}>
             <Ic i={ArrowLeftRight} className="ic" style={{ fontSize: 26, color: "var(--ink-faint)" }} />
             <p style={{ font: "600 11px var(--sans)", color: "var(--ink-dim)", marginTop: 8 }}>
@@ -182,12 +243,12 @@ export function ForexInterior({ block, onClose, onSave }: LecturaInteriorProps<F
           <button
             type="button"
             className="btn primary"
-            disabled={!first}
+            disabled={!active}
             onClick={() => {
-              if (!first) return;
+              if (!active) return;
               dispatchCardAction("create_commitment", block, {
-                title: `Aviso ${first.pair}`,
-                dueHint: `${first.pair} llega a ${first.rate}`,
+                title: `Aviso ${active.pair}`,
+                dueHint: `${active.pair} llega a ${active.rate}`,
               });
               onClose();
             }}
@@ -195,7 +256,7 @@ export function ForexInterior({ block, onClose, onSave }: LecturaInteriorProps<F
             <Ic i={BellRing} className="ic" />
             Avisame si se mueve
           </button>
-          <button type="button" className="btn ghost" onClick={() => (onSave ? onSave(block.title || first?.pair || "Cotización", first?.rate) : onClose())}>
+          <button type="button" className="btn ghost" onClick={() => (onSave ? onSave(block.title || active?.pair || "Cotización", active?.rate) : onClose())}>
             <Ic i={Banknote} className="ic" />
             Guardar cotización
           </button>

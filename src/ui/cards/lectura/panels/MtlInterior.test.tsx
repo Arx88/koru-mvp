@@ -46,7 +46,7 @@ describe("MtlInterior", () => {
     render(<MtlInterior block={mtlBlock} onClose={vi.fn()} />);
     expect(screen.getByText("La Bombonera")).toBeInTheDocument();
     expect(screen.getByText("Buenos Aires")).toBeInTheDocument();
-    expect(screen.getByText(/estadio/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/estadio/i).length).toBeGreaterThanOrEqual(2);
   });
 
   it("el extracto real del teamInfo va a la nota", () => {
@@ -68,7 +68,7 @@ describe("MtlInterior", () => {
     expect(events[0]?.action).toBe("create_commitment");
     expect(events[0]?.title).toContain("Juega Boca");
     expect(events[0]?.dueHint).toContain(iso);
-    expect(onClose).toHaveBeenCalled();
+    // v2: el toggle de follow mantiene la card abierta (no cierra)
     window.removeEventListener("koru-card-action", listener);
   });
 

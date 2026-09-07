@@ -38,22 +38,31 @@ describe("DeliveryInterior", () => {
     expect(screen.getAllByText(/entregado/i).length).toBeGreaterThan(0);
   });
 
-  it("primaria despacha complete (o dismiss si llegó) y cierra", () => {
+  it("primaria marca llegado (aria-pressed) y despacha complete", () => {
     const onClose = vi.fn();
     const events: Array<{ action: string; blockData: { type: string } }> = [];
     const listener = (e: Event) => events.push((e as CustomEvent).detail);
     window.addEventListener("koru-card-action", listener);
     render(<DeliveryInterior block={deliveryBlock} onClose={onClose} />);
-    fireEvent.click(screen.getByRole("button", { name: /perfecto, gracias/i }));
+    const btn = screen.getByRole("button", { name: /marcar como llegó/i });
+    expect(btn.getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(btn);
     expect(events[0]?.action).toBe("complete");
     expect(events[0]?.blockData?.type).toBe("delivery");
-    expect(onClose).toHaveBeenCalledTimes(1);
+    // v2: el toggle queda pegado (no cierra la card) y cambia el label
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: /recibido — pedido cerrado/i })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     window.removeEventListener("koru-card-action", listener);
   });
 
-  it("compartir no rompe sin navigator.share (jsdom)", () => {
+  it("copiar tracking usa el trackingId REAL del block (feedback visible)", () => {
     render(<DeliveryInterior block={deliveryBlock} onClose={vi.fn()} />);
-    const btn = screen.getByRole("button", { name: /compartir seguimiento/i });
-    expect(() => fireEvent.click(btn)).not.toThrow();
+    const btn = screen.getByRole("button", { name: /copiar código de seguimiento/i });
+    fireEvent.click(btn);
+    // el label muestra el código copiado (clipboard puede no existir en jsdom)
+    expect(screen.getAllByText(/CA-88213904-AR/i).length).toBeGreaterThanOrEqual(2);
   });
 });

@@ -10,6 +10,7 @@
  * vive en la card de mapa).
  */
 import { Footprints, TrainFront, Bus, Bike, Flag, TriangleAlert, Navigation, Route as RouteIcon, type LucideIcon } from "lucide-react";
+import { useState } from "react";
 import type { UiBlock } from "../../../../domain/types";
 import { Ic } from "../Ic";
 import { LecturaShell } from "../LecturaShell";
@@ -31,6 +32,9 @@ function legIcon(label: string, isEnd: boolean): LucideIcon {
 
 export function RouteTimelineInterior({ block, onClose, onSave }: LecturaInteriorProps<RouteBlock>) {
   const items = block.items ?? [];
+  // Progreso real del usuario: marcar tramo como hecho (toggle, aria-pressed).
+  const [doneLegs, setDoneLegs] = useState<Record<number, boolean>>({});
+  const doneCount = items.filter((_, i) => doneLegs[i]).length;
   const eta = block.eta;
   const first = items[0];
   const last = items[items.length - 1];
@@ -85,8 +89,15 @@ export function RouteTimelineInterior({ block, onClose, onSave }: LecturaInterio
               const isEnd = i === items.length - 1;
               const Icon = legIcon(leg.label, isEnd);
               const tint = leg.color || (isEnd ? "var(--mint-ink)" : "var(--sky-ink)");
+              const legDone = Boolean(doneLegs[i]);
               return (
-                <div className={`rt-leg${isEnd ? " end" : ""}`} key={`leg_${i}_${leg.label}`}>
+                <button
+                  type="button"
+                  className={`rt-leg${isEnd ? " end" : ""}${legDone ? " done" : ""}`}
+                  key={`leg_${i}_${leg.label}`}
+                  aria-pressed={legDone}
+                  onClick={() => setDoneLegs((cur) => ({ ...cur, [i]: !cur[i] }))}
+                >
                   <span className="ic" style={{ color: tint }}>
                     <Ic i={Icon} className="ic" />
                   </span>
@@ -94,7 +105,8 @@ export function RouteTimelineInterior({ block, onClose, onSave }: LecturaInterio
                     <b>{leg.label}</b>
                   </div>
                   {leg.detail ? <p>{leg.detail}</p> : null}
-                </div>
+                  <span className="rt-done">{legDone ? "✓ hecho" : "tocar = hecho"}</span>
+                </button>
               );
             })}
             {items.length === 0 && (
@@ -113,7 +125,7 @@ export function RouteTimelineInterior({ block, onClose, onSave }: LecturaInterio
             <Ic i={Flag} className="ic" />
             <div className="at">
               <b>{last ? (last.label.toLowerCase().startsWith("lleg") ? last.label : `Llegás a ${last.label}`) : eta ? `Llegás en ${eta}` : "Destino"}</b>
-              <span>{items.length} tramos reales del planificador</span>
+              <span>{items.length} tramos reales · vas por {doneCount} de {items.length}</span>
             </div>
             <span className="tm">{eta ?? ""}</span>
           </div>

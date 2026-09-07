@@ -10,6 +10,7 @@
  * (navigator.share/clipboard con el trackingId).
  */
 import { Check, BellRing, Share2, Truck } from "lucide-react";
+import { useState } from "react";
 import type { UiBlock } from "../../../../domain/types";
 import { Ic } from "../Ic";
 import { LecturaShell } from "../LecturaShell";
@@ -24,8 +25,11 @@ const BAR_HEIGHTS = [12, 22, 8, 28, 16, 24, 10, 30, 14, 20, 26, 8, 18, 28, 12, 2
 
 export function DeliveryInterior({ block, onClose, onSave }: LecturaInteriorProps<DeliveryBlock>) {
   const steps = block.steps ?? [];
-  const doneCount = steps.filter((s) => s.done).length;
-  const allDone = steps.length > 0 && doneCount === steps.length;
+  // "Ya llegó" local (marca el último paso) + copiar tracking con feedback.
+  const [arrived, setArrived] = useState(false);
+  const [copiedTrack, setCopiedTrack] = useState(false);
+  const doneCount = steps.filter((s) => s.done).length + (arrived ? 1 : 0);
+  const allDone = steps.length > 0 && doneCount >= steps.length;
 
   const shareTracking = async () => {
     const text = `Seguimiento ${block.carrier ?? "del envío"}: ${block.trackingId ?? "sin código"}${block.estimatedDate ? ` · llega ${block.estimatedDate}` : ""}`;
@@ -129,17 +133,40 @@ export function DeliveryInterior({ block, onClose, onSave }: LecturaInteriorProp
           <button
             type="button"
             className="btn primary"
+            aria-pressed={arrived}
             onClick={() => {
-              dispatchCardAction(allDone ? "dismiss" : "complete", block);
-              onClose();
+              const next = !arrived;
+              setArrived(next);
+              if (next) dispatchCardAction("complete", block);
             }}
           >
             <Ic i={Check} className="ic" />
-            {allDone ? "Ya lo recibí" : "Perfecto, gracias"}
+            {arrived ? "Recibido — pedido cerrado" : allDone ? "Ya lo recibí" : "Marcar como llegó"}
           </button>
-          <button type="button" className="btn ghost" onClick={() => void shareTracking()}>
-            <Ic i={Share2} className="ic" />
-            Compartir seguimiento
+          <button
+            type="button"
+            className="btn ghost"
+            aria-pressed={copiedTrack}
+            onClick={() => {
+              if (block.trackingId) {
+                setCopiedTrack(true);
+                try {
+                  void navigator.clipboard?.writeText(block.trackingId);
+                } catch {
+                  /* clipboard best-effort */
+                }
+                setTimeout(() => setCopiedTrack(false), 1600);
+              } else {
+                void shareTracking();
+              }
+            }}
+          >
+            <Ic i={copiedTrack ? Check : Share2} className="ic" />
+            {copiedTrack
+              ? `Copiado: ${block.trackingId}`
+              : block.trackingId
+                ? "Copiar código de seguimiento"
+                : "Compartir seguimiento"}
           </button>
         </div>
       </div>

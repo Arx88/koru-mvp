@@ -9,10 +9,13 @@
  * están en el block: nada de fechas ni estados inventados.
  * Acción: descargar el archivo (blob real del content si existe).
  */
+import { useState } from "react";
 import {
   FolderOpen,
   CloudUpload,
   Paperclip,
+  Copy,
+  Check,
   Download,
   FileText,
   FileSpreadsheet,
@@ -51,6 +54,8 @@ function contextOf(file: AssistantArtifact): string | null {
 
 export function FilesInterior({ block, onClose, onSave }: LecturaInteriorProps<FilesBlock>) {
   const files = block.files ?? [];
+  // Copiar contenido real del artifact con feedback visible por archivo.
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const title = block.title || "Archivos de tu chat";
 
   const download = (file: AssistantArtifact) => {
@@ -103,10 +108,10 @@ export function FilesInterior({ block, onClose, onSave }: LecturaInteriorProps<F
             const stamp = stampOf(f);
             const Icon = iconOf(f);
             return (
+              <div key={`file_${i}_${f.name}`} className="fl-item">
               <button
                 type="button"
                 className="fl-row"
-                key={`file_${i}_${f.name}`}
                 onClick={() => download(f)}
                 style={{ textAlign: "left", width: "100%" }}
               >
@@ -127,6 +132,27 @@ export function FilesInterior({ block, onClose, onSave }: LecturaInteriorProps<F
                   <span>{f.kind}</span>
                 </div>
               </button>
+              {f.content && (
+                <button
+                  type="button"
+                  className="fl-copy"
+                  aria-pressed={copiedIdx === i}
+                  key={`copy_${i}_${f.name}`}
+                  onClick={() => {
+                    setCopiedIdx(i);
+                    try {
+                      void navigator.clipboard?.writeText(f.content ?? "");
+                    } catch {
+                      /* clipboard best-effort */
+                    }
+                    setTimeout(() => setCopiedIdx((cur) => (cur === i ? null : cur)), 1600);
+                  }}
+                >
+                  <Ic i={copiedIdx === i ? Check : Copy} className="ic" style={{ fontSize: 13 }} />
+                  {copiedIdx === i ? "Copiado" : "Copiar"}
+                </button>
+              )}
+              </div>
             );
           })}
 

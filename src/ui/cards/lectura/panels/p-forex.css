@@ -33,3 +33,25 @@
 .lcr .fx3-note .lucide{font-size:16px;color:var(--honey-ink);flex:none;margin-top:1px}
 .lcr .fx3-note p{font:600 11px/1.55 var(--sans);color:var(--ink-soft)}
 .lcr .fx3-note b{color:var(--honey-ink)}
+/* calculadora de ventanilla — computa del rate real del par activo */
+.lcr .fx3-calc{margin-top:12px;background:#fff;border:1px solid #cfe7d6;border-radius:18px;padding:13px 14px}
+.lcr .fx3-calc .calc-h{display:flex;align-items:center;gap:7px;font:800 12px var(--disp);color:var(--mint-ink);margin-bottom:10px}
+.lcr .fx3-calc .calc-h .lucide{font-size:15px}
+.lcr .fx3-calc .calc-pairs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.lcr .fx3-calc .calc-pairs button{border:1px solid #cfe7d6;background:#f4fbf6;color:var(--ink-soft);
+          font:700 10.5px var(--sans);padding:6px 11px;border-radius:999px;cursor:pointer;transition:all .15s ease}
+.lcr .fx3-calc .calc-pairs button[aria-selected="true"]{background:var(--mint-ink);border-color:var(--mint-ink);color:#fff}
+.lcr .fx3-calc .calc-amt{display:flex;flex-direction:column;gap:5px;margin-bottom:9px}
+.lcr .fx3-calc .calc-amt span{font:700 9.5px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint)}
+.lcr .fx3-calc .calc-amt input{border:1.5px solid #cfe7d6;border-radius:13px;padding:10px 13px;
+          font:800 18px var(--disp);color:var(--ink);background:#fbfefc;outline:none;width:100%}
+.lcr .fx3-calc .calc-amt input:focus{border-color:var(--mint-ink)}
+.lcr .fx3-calc .calc-chips{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.lcr .fx3-calc .calc-chips button{border:1px dashed #b5dcc6;background:transparent;color:var(--ink-soft);
+          font:700 10.5px var(--sans);padding:5px 10px;border-radius:999px;cursor:pointer}
+.lcr .fx3-calc .calc-chips button[aria-pressed="true"]{background:var(--mint-soft);border-style:solid;color:var(--mint-ink)}
+.lcr .fx3-calc .calc-res{display:flex;flex-direction:column;gap:3px;background:var(--mint-soft);
+          border:1px solid #c9edda;border-radius:13px;padding:10px 13px}
+.lcr .fx3-calc .calc-res span{font:700 10px var(--sans);color:var(--ink-dim)}
+.lcr .fx3-calc .calc-res b{font:800 17px var(--disp);color:var(--mint-ink)}
+.lcr .fx3-calc .calc-res small{font:600 9.5px var(--sans);color:var(--ink-faint)}

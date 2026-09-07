@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "qa:grade": "vitest run src/qa"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.1",

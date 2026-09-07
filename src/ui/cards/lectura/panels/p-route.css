@@ -35,3 +35,9 @@
 .lcr .rt-warn .lucide{font-size:16px;color:var(--honey-ink);flex:none;margin-top:1px}
 .lcr .rt-warn p{font:600 10.5px/1.5 var(--sans);color:var(--ink-soft)}
 .lcr .rt-warn b{color:var(--honey-ink)}
+/* tramos como toggles de progreso */
+.lcr .rt-path .rt-leg{all:unset;cursor:pointer;display:flex;flex-direction:column;position:relative}
+.lcr .rt-path .rt-leg:focus-visible{outline:2px solid var(--sky-ink);border-radius:10px}
+.lcr .rt-path .rt-leg.done .lt b{color:var(--mint-ink);text-decoration:line-through;text-decoration-thickness:2px}
+.lcr .rt-path .rt-leg .rt-done{font:700 8.5px var(--sans);color:var(--ink-faint);letter-spacing:.08em;align-self:flex-start;margin-top:2px}
+.lcr .rt-path .rt-leg.done .rt-done{color:var(--mint-ink)}

@@ -8,6 +8,7 @@
  * /stitch/sports, con fallback a iniciales — sin inventar escudos).
  * Veredicto DERIVADO de los números (quién domina en posesión/remates).
  */
+import { useState } from "react";
 import { TrendingUp, Radar, Users } from "lucide-react";
 import type { UiBlock } from "../../../../domain/types";
 import { Ic } from "../Ic";
@@ -65,6 +66,12 @@ export function MstatsInterior({ block, onClose, onSave }: LecturaInteriorProps<
   const homeCrest = crestFor(block.homeName);
   const awayCrest = crestFor(block.awayName);
   const title = block.title || "Quién mandó de verdad";
+  // Vista por equipo: filtra el tablero a los números de un solo lado
+  // (estado real de la card, no simulado).
+  const [view, setView] = useState<"duel" | "home" | "away">("duel");
+  const teamView = view === "home" ? home : view === "away" ? away : null;
+  const wonBy = (side: "home" | "away") =>
+    stats.filter((s) => num(s[side]) > num(s[side === "home" ? "away" : "home"])).length;
 
   const possessionStat = stats.find((s) => /pos|posesi/i.test(s.label));
   const otherStats = stats.filter((s) => s !== possessionStat).slice(0, 4);
@@ -96,6 +103,48 @@ export function MstatsInterior({ block, onClose, onSave }: LecturaInteriorProps<
           <p>Métricas reales del partido — sin narrativa, lo que pasó fue esto.</p>
         </div>
 
+        {stats.length > 1 && (
+          <div className="du-tabs rv" role="tablist" aria-label="Vista de estadísticas">
+            {([
+              ["duel", `Duelo`],
+              ["home", initialsOf(block.homeName) || home],
+              ["away", initialsOf(block.awayName) || away],
+            ] as const).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={view === key}
+                onClick={() => setView(key)}
+                title={key === "home" ? home : key === "away" ? away : "Comparativo de ambos"}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {teamView ? (
+          <div className="du-teamlist rv">
+            <div className="tl-head">
+              <h3>
+                {teamView}
+                <span>
+                  gana en {wonBy(view === "home" ? "home" : "away")} de {stats.length} métricas
+                </span>
+              </h3>
+            </div>
+            {stats.map((s) => (
+              <div className="tl-row" key={`tv_${s.label}`}>
+                <span className="l">{s.label}</span>
+                <b className="v">
+                  {view === "home" ? s.home : s.away}
+                  {/pos|posesi/i.test(s.label) ? "%" : ""}
+                </b>
+              </div>
+            ))}
+          </div>
+        ) : (
         <div className="du-hero rv">
           <div className="du-teams">
             <div className="du-tm">
@@ -166,6 +215,7 @@ export function MstatsInterior({ block, onClose, onSave }: LecturaInteriorProps<
             })}
           </div>
         </div>
+        )}
 
         <div className="du-verdict rv">
           <Ic i={TrendingUp} className="ic" />

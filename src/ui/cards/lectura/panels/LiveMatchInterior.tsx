@@ -7,7 +7,8 @@
  * homePossession/awayPossession y remates. EN VIVO solo si el partido
  * está en juego (minute/status); si no, muestra el estado real.
  */
-import { BellRing, ChartPie, Goal, List, type LucideIcon } from "lucide-react";
+import { useState } from "react";
+import { BellRing, ChartPie, Check, Goal, List, type LucideIcon } from "lucide-react";
 import type { UiBlock } from "../../../../domain/types";
 import { Ic } from "../Ic";
 import { LecturaShell } from "../LecturaShell";
@@ -26,6 +27,8 @@ const isLive = (b: MatchBlock) => {
 };
 
 export function LiveMatchInterior({ block, onClose, onSave }: LecturaInteriorProps<MatchBlock>) {
+  // Follow real del partido: el toggle queda pegado y el aviso se crea 1 vez.
+  const [following, setFollowing] = useState(false);
   const home = block.homeName ?? "Local";
   const away = block.awayName ?? "Visitante";
   const league = block.league ?? "Partido";
@@ -134,14 +137,20 @@ export function LiveMatchInterior({ block, onClose, onSave }: LecturaInteriorPro
           <button
             type="button"
             className="btn primary"
-            onClick={() =>
-              dispatchCardAction("create_commitment", block, {
-                title: `Avisame si hay gol en ${home} vs ${away}`,
-                dueHint: "mientras el partido esté en juego",
-              })
-            }
+            aria-pressed={following}
+            onClick={() => {
+              const next = !following;
+              setFollowing(next);
+              if (next) {
+                dispatchCardAction("create_commitment", block, {
+                  title: `Avisame si hay gol en ${home} vs ${away}`,
+                  dueHint: "mientras el partido esté en juego",
+                });
+              }
+            }}
           >
-            <Ic i={BellRing} className="ic" />Avisame si hay gol
+            <Ic i={following ? Check : BellRing} className="ic" />
+            {following ? "Siguiendo el partido" : "Avisame si hay gol"}
           </button>
           <button
             type="button"

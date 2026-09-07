@@ -16,18 +16,28 @@ describe("BookInterior", () => {
     expect(screen.getByText(/978-987-000-000/i)).toBeInTheDocument();
   });
 
-  it("cover desde el block y rating 4,6", () => {
+  it("cover desde el block y rating 4,6/5 (escala explícita)", () => {
     render(<BookInterior block={bookBlock} onClose={vi.fn()} />);
     expect(screen.getByAltText("Los días del venado")).toHaveAttribute("src", "/stitch/outfits/book-stack.jpg");
-    expect(screen.getByText("4,6")).toBeInTheDocument();
+    expect(screen.getByText("4,6/5")).toBeInTheDocument();
   });
 
-  it("vista previa habilitada con previewUrl; guardar delega en onSave", () => {
-    const onSave = vi.fn();
-    render(<BookInterior block={bookBlock} onClose={vi.fn()} onSave={onSave} />);
+  it("vista previa habilitada; Lo quiero leer dispara commitment real", () => {
+    const events: Array<{ action: string; title?: string }> = [];
+    const listener = (e: Event) => events.push((e as CustomEvent).detail);
+    window.addEventListener("koru-card-action", listener);
+    render(<BookInterior block={bookBlock} onClose={vi.fn()} />);
     expect(screen.getByRole("button", { name: /leer vista previa/i })).toBeEnabled();
-    fireEvent.click(screen.getByRole("button", { name: /guardar para después/i }));
-    expect(onSave).toHaveBeenCalledWith("Los días del venado", "Nicolás Petrone");
+    const want = screen.getByRole("button", { name: /lo quiero leer/i });
+    expect(want).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(want);
+    expect(events[0]?.action).toBe("create_commitment");
+    expect(events[0]?.title).toContain("Los días del venado");
+    expect(screen.getByRole("button", { name: /en tu lista de lectura/i })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    window.removeEventListener("koru-card-action", listener);
   });
 
   it("sin previewUrl ni rating degrada sin inventar", () => {

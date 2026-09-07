@@ -9,7 +9,8 @@
  * cronología viva cuando hay partido en juego (minuto/texto/sub).
  * Acción: recordarme → create_commitment REAL con la fecha del partido.
  */
-import { Calendar, ChartScatter, BellRing, CalendarDays } from "lucide-react";
+import { useState } from "react";
+import { Calendar, ChartScatter, BellRing, CalendarDays, MapPin, Check } from "lucide-react";
 import type { UiBlock } from "../../../../domain/types";
 import { Ic } from "../Ic";
 import { LecturaShell } from "../LecturaShell";
@@ -64,6 +65,8 @@ function countdownFrom(date?: string, time?: string): string | null {
 }
 
 export function MtlInterior({ block, onClose, onSave }: LecturaInteriorProps<MtlBlock>) {
+  // Seguir al equipo + link de Maps al estadio — datos reales del block.
+  const [following, setFollowing] = useState(false);
   const next = block.nextMatch;
   const info = block.teamInfo;
   const items = block.items ?? [];
@@ -172,21 +175,39 @@ export function MtlInterior({ block, onClose, onSave }: LecturaInteriorProps<Mtl
           <button
             type="button"
             className="btn primary"
+            aria-pressed={following}
             onClick={() => {
-              dispatchCardAction("create_commitment", block, {
-                title: `Recordatorio: ${title}`,
-                dueHint: `${next?.date ?? "próximo partido"}${next?.time ? ` · ${next.time}` : ""}`,
-              });
-              onClose();
+              const nextF = !following;
+              setFollowing(nextF);
+              if (nextF) {
+                dispatchCardAction("create_commitment", block, {
+                  title: `Recordatorio: ${title}`,
+                  dueHint: `${next?.date ?? "próximo partido"}${next?.time ? ` · ${next.time}` : ""}`,
+                });
+              }
             }}
           >
-            <Ic i={BellRing} className="ic" />
-            Recordarme antes
+            <Ic i={following ? Check : BellRing} className="ic" />
+            {following ? "Te aviso antes del partido" : "Recordarme antes"}
           </button>
-          <button type="button" className="btn ghost" onClick={() => onClose()}>
-            <Ic i={CalendarDays} className="ic" />
-            Ver todo el mes
-          </button>
+          {info?.stadium ? (
+            <a
+              className="btn ghost"
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                `${info.stadium}${info.location ? ` ${info.location}` : ""}`,
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Ic i={MapPin} className="ic" />
+              Cómo llegar al estadio
+            </a>
+          ) : (
+            <button type="button" className="btn ghost" onClick={() => onClose()}>
+              <Ic i={CalendarDays} className="ic" />
+              Ver todo el mes
+            </button>
+          )}
         </div>
       </div>
     </LecturaShell>

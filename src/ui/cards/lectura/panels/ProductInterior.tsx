@@ -9,7 +9,8 @@
  * price/pros/cons en el domain → no se inventan. Acción primaria con
  * actionLabel REAL del block.
  */
-import { BadgeCheck, ShoppingCart, Scale, Star, ThumbsUp, Package } from "lucide-react";
+import { useState } from "react";
+import { Check,  BadgeCheck, ShoppingCart, Scale, Star, ThumbsUp, Package } from "lucide-react";
 import type { UiBlock } from "../../../../domain/types";
 import { Ic } from "../Ic";
 import { LecturaShell } from "../LecturaShell";
@@ -22,6 +23,8 @@ type Spec = NonNullable<ProdBlock["specs"]>[number];
 const RING_CIRC = 2 * Math.PI * 52;
 
 export function ProductInterior({ block, onClose, onSave }: LecturaInteriorProps<ProdBlock>) {
+  // Guardar para la compra con estado pegado (toggle real, no one-shot).
+  const [saved, setSaved] = useState(false);
   const product = block.product;
   const name = product?.name || block.product?.icon || "Tu producto";
   const rating = product?.rating;
@@ -30,7 +33,7 @@ export function ProductInterior({ block, onClose, onSave }: LecturaInteriorProps
   const scale = rating != null && rating > 10 ? 100 : 10;
   const pct = rating != null ? Math.min(100, Math.max(0, (rating / scale) * 100)) : 0;
   const ringOffset = RING_CIRC * (1 - pct / 100);
-  const ratingLabel = rating != null ? String(rating).replace(".", ",") : null;
+  const ratingLabel = rating != null ? `${String(rating).replace(".", ",")}/${scale}` : null;
 
   return (
     <LecturaShell
@@ -129,9 +132,18 @@ export function ProductInterior({ block, onClose, onSave }: LecturaInteriorProps
         )}
 
         <div className="actions">
-          <button type="button" className="btn primary" onClick={() => (onSave ? onSave(name, ratingLabel ?? undefined) : onClose())}>
-            <Ic i={ShoppingCart} className="ic" />
-            {block.actionLabel || "Guardar para la compra"}
+          <button
+            type="button"
+            className="btn primary"
+            aria-pressed={saved}
+            onClick={() => {
+              const next = !saved;
+              setSaved(next);
+              if (next) onSave?.(name, ratingLabel ?? undefined);
+            }}
+          >
+            <Ic i={saved ? Check : ShoppingCart} className="ic" />
+            {saved ? "Guardado en tu compra" : block.actionLabel || "Guardar para la compra"}
           </button>
           <button type="button" className="btn ghost" onClick={onClose}>
             <Ic i={Scale} className="ic" />

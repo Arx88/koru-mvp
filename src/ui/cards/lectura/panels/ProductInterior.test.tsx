@@ -24,7 +24,8 @@ describe("ProductInterior", () => {
 
   it("el dial usa el rating real (8,7 → arco 87%)", () => {
     render(<ProductInterior block={productBlock} onClose={vi.fn()} />);
-    expect(screen.getByText("8,7")).toBeInTheDocument();
+    // v2: el rating ahora muestra la escala explícita (8,7/10)
+    expect(screen.getByText("8,7/10")).toBeInTheDocument();
     const ring = document.body.querySelector(".prs-dial circle:nth-of-type(2)") as SVGCircleElement;
     const offset = Number(ring.getAttribute("stroke-dashoffset"));
     expect(offset).toBeGreaterThan(30); // 327 * 0.13 ≈ 42

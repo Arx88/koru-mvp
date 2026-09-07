@@ -20,7 +20,10 @@ describe("BirthdayCalendarInterior", () => {
   it("la leyenda muestra el día marcado del block", () => {
     render(<BirthdayCalendarInterior block={bcalBlock} onClose={vi.fn()} />);
     expect(screen.getAllByText(/el 12 de septiembre/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/1 cumple/i)).toBeInTheDocument();
+    // v2: el resumen del mes ahora dice días + arranque (el "1 cumple" vive
+    // en el panel del día seleccionado, que arranca marcado por el fixture)
+    expect(screen.getByText(/30 días · arranca en lunes/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/el cumple marcado del mes/i).length).toBeGreaterThan(0);
   });
 
   it("activar aviso despacha create_commitment con el día y mes reales", () => {

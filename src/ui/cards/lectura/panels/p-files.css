@@ -33,3 +33,9 @@
 .lcr .fl-new .lucide{font-size:18px;color:var(--mint-ink);flex:none}
 .lcr .fl-new p{font:600 10.5px/1.5 var(--sans);color:var(--ink-soft)}
 .lcr .fl-new b{color:var(--mint-ink)}
+/* copiar contenido por archivo */
+.lcr .fl-copy{display:flex;align-items:center;gap:5px;margin:-6px 0 8px auto;
+          border:1px dashed #b5dcc6;background:transparent;color:var(--ink-dim);
+          font:700 9.5px var(--sans);padding:5px 10px;border-radius:999px;cursor:pointer}
+.lcr .fl-copy[aria-pressed="true"]{background:var(--mint-soft);border-style:solid;color:var(--mint-ink)}
+.lcr .fl-item{display:flex;flex-direction:column}

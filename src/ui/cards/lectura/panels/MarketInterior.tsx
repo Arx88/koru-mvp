@@ -10,6 +10,7 @@
  * no se dibujan (nada inventado). Acciones: Alerta → create_commitment
  * durable; Guardar → onSave.
  */
+import { useState } from "react";
 import { CandlestickChart, BellRing, Save, ArrowUpRight, ArrowDownRight, type LucideIcon } from "lucide-react";
 import type { UiBlock } from "../../../../domain/types";
 import { useLivePrice } from "../../unified/useLivePrice";
@@ -26,7 +27,10 @@ const Dir: Partial<Record<"up" | "dn", LucideIcon>> = { up: ArrowUpRight, dn: Ar
 
 export function MarketInterior({ block, onClose, onSave }: LecturaInteriorProps<MarketBlock>) {
   const assets = block.assets ?? [];
-  const first = assets[0];
+  // Selector de activo: el hero y el live price siguen al elegido (estado real).
+  const [assetIdx, setAssetIdx] = useState(0);
+  const active = assets[Math.min(assetIdx, Math.max(0, assets.length - 1))] ?? assets[0];
+  const first = active;
   const { displayPrice, direction } = useLivePrice(first?.price);
   const up = first?.changeUp ?? true;
   const DirIcon = direction ? Dir[direction] : undefined;
@@ -64,6 +68,22 @@ export function MarketInterior({ block, onClose, onSave }: LecturaInteriorProps<
           </p>
         </div>
 
+        {assets.length > 1 && (
+          <div className="st-tabs rv" role="tablist" aria-label="Elegir activo">
+            {assets.map((a, i) => (
+              <button
+                key={a.symbol}
+                type="button"
+                role="tab"
+                aria-selected={i === Math.min(assetIdx, assets.length - 1)}
+                onClick={() => setAssetIdx(i)}
+              >
+                {a.symbol}
+              </button>
+            ))}
+          </div>
+        )}
+
         {first && (
           <div className="st-hero rv">
             <div className="sh-top">
@@ -93,12 +113,15 @@ export function MarketInterior({ block, onClose, onSave }: LecturaInteriorProps<
             </div>
             {assets.length > 1 && (
               <div className="ohlc">
-                {assets.slice(1, 4).map((a) => (
-                  <span key={a.symbol}>
-                    {a.symbol}
-                    <b>{a.price}</b>
-                  </span>
-                ))}
+                {assets
+                  .filter((a) => a !== active)
+                  .slice(0, 3)
+                  .map((a) => (
+                    <span key={a.symbol}>
+                      {a.symbol}
+                      <b>{a.price}</b>
+                    </span>
+                  ))}
               </div>
             )}
           </div>
@@ -127,6 +150,7 @@ export function MarketInterior({ block, onClose, onSave }: LecturaInteriorProps<
                   </b>
                   <span>
                     {a.price} · {a.change}
+                    {a.category ? ` · ${a.category}` : ""}
                   </span>
                 </div>
               </div>

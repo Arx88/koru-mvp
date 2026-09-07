@@ -24,3 +24,12 @@
 .lcr .cal2-buy .lucide{font-size:18px;color:var(--pink-ink);flex:none}
 .lcr .cal2-buy p{font:600 11px/1.55 var(--sans);color:var(--ink-soft)}
 .lcr .cal2-buy b{color:var(--pink-ink)}
+/* días interactivos + panel de día seleccionado */
+.lcr .cal2-grid button.day{all:unset;cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative}
+.lcr .cal2-grid button.day:focus-visible{outline:2px solid var(--pink-ink);border-radius:8px}
+.lcr .cal2-grid button.day.sel{background:var(--pink-soft);border-radius:9px;font-weight:800}
+.lcr .cal2-sel{display:flex;align-items:center;gap:9px;margin-top:10px;background:var(--paper2);
+          border:1px solid var(--linec);border-radius:13px;padding:9px 12px}
+.lcr .cal2-sel .lucide{font-size:15px;color:var(--pink-ink);flex:none}
+.lcr .cal2-sel span{font:600 11.5px/1.5 var(--sans);color:var(--ink-soft)}
+.lcr .cal2-sel b{color:var(--ink)}

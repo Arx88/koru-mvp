@@ -2,15 +2,17 @@
  * BookInterior — card "Lectura de noche" (#p-book), bind real del block
  * `book_review` (Open Library).
  *
- * Mesita de luz: cover real del tool, autor/año/páginas//editorial/ISBN
- * como rows reales, rating→estrellas, vista previa abre previewUrl
- * (embed de Open Library/Archive.org). Sin marcador de lectura en el
- * dominio: no se inventa progreso.
+ * Mesita de luz: cover real del tool, autor/año/páginas/editorial/ISBN
+ * como rows reales, rating→estrellas + "4,6/5" explícito, vista previa
+ * abre previewUrl (embed de Open Library/Archive.org). Toggle "Lo quiero
+ * leer" (aria-pressed) → create_commitment real vía la barra de acciones.
  */
-import { BookOpen, Building2, Calendar, Hash, Quote, ShoppingBag, Star, User, type LucideIcon } from "lucide-react";
+import { useState } from "react";
+import { BookOpen, Building2, Calendar, Check, Hash, Quote, ShoppingBag, Star, User, type LucideIcon } from "lucide-react";
 import type { UiBlock } from "../../../../domain/types";
 import { Ic } from "../Ic";
 import { LecturaShell } from "../LecturaShell";
+import { dispatchCardAction } from "../actions";
 import type { LecturaInteriorProps } from "../index";
 import "./p-book.css";
 
@@ -21,6 +23,8 @@ export function BookInterior({ block, onClose, onSave }: LecturaInteriorProps<Bo
   const rating = block.rating;
   const stars = rating != null ? Math.max(1, Math.round(rating)) : 0;
   const StarIcon: LucideIcon = Star;
+  // Toggle real de intención de lectura → commitment durable.
+  const [wantToRead, setWantToRead] = useState(false);
 
   return (
     <LecturaShell
@@ -58,7 +62,7 @@ export function BookInterior({ block, onClose, onSave }: LecturaInteriorProps<Bo
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Ic key={i} i={StarIcon} className={`ic${i >= stars ? " off" : ""}`} />
                 ))}
-                <b style={{ marginLeft: 6 }}>{String(rating).replace(".", ",")}</b>
+                <b style={{ marginLeft: 6 }}>{String(rating).replace(".", ",")}/5</b>
               </div>
             )}
           </div>
@@ -108,8 +112,23 @@ export function BookInterior({ block, onClose, onSave }: LecturaInteriorProps<Bo
           >
             <Ic i={BookOpen} className="ic" />{block.previewUrl ? "Leer vista previa" : "Sin vista previa"}
           </button>
-          <button type="button" className="btn ghost" onClick={() => (onSave ? onSave(title, block.author) : onClose())}>
-            <Ic i={ShoppingBag} className="ic" />Guardar para después
+          <button
+            type="button"
+            className="btn ghost"
+            aria-pressed={wantToRead}
+            onClick={() => {
+              const next = !wantToRead;
+              setWantToRead(next);
+              if (next) {
+                dispatchCardAction("create_commitment", block, {
+                  title: `Leer “${title}”`,
+                  dueHint: block.pages ? `${block.pages} páginas · ${block.author ?? "lectura"}` : undefined,
+                });
+              }
+            }}
+          >
+            <Ic i={wantToRead ? Check : ShoppingBag} className="ic" />
+            {wantToRead ? "En tu lista de lectura" : "Lo quiero leer"}
           </button>
         </div>
       </div>

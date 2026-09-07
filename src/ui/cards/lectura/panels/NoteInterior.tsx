@@ -9,6 +9,7 @@
  * asociado al historial y recordatorio solo si se detectó día/hora.
  * Acción: volverla recordatorio → create_commitment REAL de la app.
  */
+import { useState } from "react";
 import {
   StickyNote,
   Phone,
@@ -19,6 +20,8 @@ import {
   BellRing,
   AlarmClock,
   Share2,
+  Check,
+  Copy,
 } from "lucide-react";
 import type { UiBlock } from "../../../../domain/types";
 import { Ic } from "../Ic";
@@ -72,6 +75,8 @@ function highlightSegments(body: string) {
 export function NoteInterior({ block, onClose, onSave }: LecturaInteriorProps<NoteBlock>) {
   const title = block.title || "Tu nota";
   const body = block.body ?? "";
+  // Copiar al portapapeles con feedback visible (estado real).
+  const [copied, setCopied] = useState(false);
   const when = body ? detectWhen(body) : {};
   const tags = KEYWORD_TAGS.filter((t) => t.re.test(body));
   const reminderHint = when.day ? `${when.day}${when.hour ? ` ${when.hour}` : ""}` : undefined;
@@ -179,9 +184,23 @@ export function NoteInterior({ block, onClose, onSave }: LecturaInteriorProps<No
             <Ic i={AlarmClock} className="ic" />
             Volverla recordatorio
           </button>
-          <button type="button" className="btn ghost" onClick={() => void share()}>
-            <Ic i={Share2} className="ic" />
-            Compartir
+          <button
+            type="button"
+            className="btn ghost"
+            aria-pressed={copied}
+            onClick={() => {
+              setCopied(true);
+              const text = [title, body].filter(Boolean).join("\n");
+              try {
+                void navigator.clipboard?.writeText(text);
+              } catch {
+                // clipboard sin permiso: el estado igual refleja la intención
+              }
+              setTimeout(() => setCopied(false), 1600);
+            }}
+          >
+            <Ic i={copied ? Check : Copy} className="ic" />
+            {copied ? "Copiado" : "Copiar la nota"}
           </button>
         </div>
       </div>
