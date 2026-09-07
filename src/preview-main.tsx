@@ -199,7 +199,7 @@ function WelcomeTurn() {
           <span className="material-symbols-outlined">record_voice_over</span>
           <span className="pv-welcome-btn-text">
             <strong>Propuesta B</strong>
-            <small>Koru te Cuenta · con todos los flujos</small>
+            <small>Koru te Cuenta · flujos completos · modo claro</small>
           </span>
           <span className="material-symbols-outlined pv-welcome-go">chevron_right</span>
         </a>
