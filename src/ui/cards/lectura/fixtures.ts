@@ -779,3 +779,24 @@ export const electionVoteBlock: Extract<UiBlock, { type: "election_vote" }> = {
   ],
 };
 
+
+export const matchTimelineBlock: Extract<UiBlock, { type: "match_timeline" }> = {
+  type: "match_timeline",
+  title: "Juega Boca, y conviene verlo",
+  teamInfo: {
+    name: "Boca Juniors",
+    stadium: "La Bombonera",
+    location: "Buenos Aires",
+    league: "Liga Profesional",
+    description:
+      "Boca llega con tres victorias seguidas en casa y el clásico de la fecha 6 define la punta del torneo.",
+  },
+  nextMatch: {
+    homeTeam: "Boca Juniors",
+    awayTeam: "River Plate",
+    date: in3Days,
+    time: "21:30",
+    league: "Liga Profesional",
+  },
+};
+

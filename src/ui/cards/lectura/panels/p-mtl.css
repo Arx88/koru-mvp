@@ -28,3 +28,6 @@
 .lcr .fx2-note .lucide{font-size:17px;color:var(--mint-ink);flex:none;margin-top:1px}
 .lcr .fx2-note p{font:600 11px/1.55 var(--sans);color:var(--ink-soft)}
 .lcr .fx2-note b{color:var(--mint-ink)}
+/* MtlInterior — fallback tipográfico cuando el equipo no tiene escudo local */
+.lcr .fx2-tm .nm.crestbig{font:800 15px/1.25 var(--disp);color:var(--ink);background:var(--paper2);
+          border:1px solid #d9ecdb;border-radius:16px;padding:14px 12px;min-height:56px;display:flex;align-items:center;justify-content:center}

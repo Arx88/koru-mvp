@@ -86,6 +86,7 @@ import { NoteInterior } from "./ui/cards/lectura/panels/NoteInterior";
 import { FilesInterior } from "./ui/cards/lectura/panels/FilesInterior";
 import { ElectInterior } from "./ui/cards/lectura/panels/ElectInterior";
 import { EvoteInterior } from "./ui/cards/lectura/panels/EvoteInterior";
+import { MtlInterior } from "./ui/cards/lectura/panels/MtlInterior";
 import {
   weatherBlock,
   planBlock,
@@ -124,6 +125,7 @@ import {
   resourceBundleBlock,
   electionResultsBlock,
   electionVoteBlock,
+  matchTimelineBlock,
 } from "./ui/cards/lectura/fixtures";
 
 type Entry = {
@@ -176,6 +178,7 @@ const CARDS: Entry[] = [
   { id: "files", label: "Archivos del chat", sub: "bandeja con sellos y descarga real", icon: FolderOpen, tint: "var(--mint-soft)", color: "var(--mint-ink)", block: resourceBundleBlock, Cmp: FilesInterior },
   { id: "elect", label: "Así está la cuenta", sub: "escrutinio real + bancas derivadas", icon: Vote, tint: "var(--violet-soft)", color: "var(--violet-ink)", block: electionResultsBlock, Cmp: ElectInterior },
   { id: "evote", label: "Tu lente de análisis", sub: "opciones reales + voto confirmable", icon: SlidersHorizontal, tint: "var(--violet-soft)", color: "var(--violet-ink)", block: electionVoteBlock, Cmp: EvoteInterior },
+  { id: "mtl", label: "Juega Boca", sub: "fixture real + recordatorio durable", icon: CalendarDays, tint: "var(--mint-soft)", color: "var(--mint-ink)", block: matchTimelineBlock, Cmp: MtlInterior },
 ];
 
 

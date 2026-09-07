@@ -44,6 +44,7 @@ import { NoteInterior } from "./panels/NoteInterior";
 import { FilesInterior } from "./panels/FilesInterior";
 import { ElectInterior } from "./panels/ElectInterior";
 import { EvoteInterior } from "./panels/EvoteInterior";
+import { MtlInterior } from "./panels/MtlInterior";
 
 export interface LecturaInteriorProps<T extends UiBlock = UiBlock> {
   block: T;
@@ -93,6 +94,7 @@ const REGISTRY: Partial<Record<UiBlock["type"], AnyInterior>> = {
   resource_bundle: FilesInterior as AnyInterior,
   election_results: ElectInterior as AnyInterior,
   election_vote: EvoteInterior as AnyInterior,
+  match_timeline: MtlInterior as AnyInterior,
 };
 
 export function lecturaInteriorFor(block: UiBlock): AnyInterior | null {
