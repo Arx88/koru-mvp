@@ -470,3 +470,13 @@ export const bcalBlock: Extract<UiBlock, { type: "birthday_calendar" }> = {
   daysInMonth: 30,
 };
 
+
+export const balarmBlock: Extract<UiBlock, { type: "birthday_alarm" }> = {
+  type: "birthday_alarm",
+  name: "Juan",
+  date: "sábado 12 · 21:00",
+  countdown: "5",
+  unit: "días",
+  eta: "el jueves 10 a las 10:00 te cae el primer aviso",
+};
+
