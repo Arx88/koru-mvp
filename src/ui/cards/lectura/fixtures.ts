@@ -724,3 +724,32 @@ export const reviewDocumentBlock: Extract<UiBlock, { type: "review_document" }> 
     "Llamar a la abuela el sábado a las 11 — antes de que llegue Maru. Pedirle la receta del pionono que ella hace con la crema de lado.",
 };
 
+
+export const resourceBundleBlock: Extract<UiBlock, { type: "resource_bundle" }> = {
+  type: "resource_bundle",
+  title: "Archivos de tu chat",
+  summary: "El PDF del boleto ya quedó vinculado a tu viaje a Madrid.",
+  files: [
+    {
+      name: "boletos-madrid-sept.pdf",
+      kind: "document",
+      mimeType: "application/pdf",
+      sizeLabel: "412 KB",
+      content: "IBERIA 0932 · MAD 12:10 → CIBELES 19:42 · asiento 14A",
+    },
+    {
+      name: "gastos-viaje.csv",
+      kind: "csv",
+      mimeType: "text/csv",
+      sizeLabel: "3,4 KB",
+      content: "concepto,monto\nvuelo,320\nhotel,540",
+    },
+    {
+      name: "informe-solar.md",
+      kind: "markdown",
+      mimeType: "text/markdown",
+      sizeLabel: "11 KB",
+    },
+  ],
+};
+

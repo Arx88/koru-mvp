@@ -45,6 +45,7 @@ import {
   Brain,
   Link,
   StickyNote,
+  FolderOpen,
 } from "lucide-react";
 import type { UiBlock } from "./domain/types";
 import { WeatherInterior } from "./ui/cards/lectura/panels/WeatherInterior";
@@ -80,6 +81,7 @@ import { SavedRecordInterior } from "./ui/cards/lectura/panels/SavedRecordInteri
 import { MemInterior } from "./ui/cards/lectura/panels/MemInterior";
 import { LinksInterior } from "./ui/cards/lectura/panels/LinksInterior";
 import { NoteInterior } from "./ui/cards/lectura/panels/NoteInterior";
+import { FilesInterior } from "./ui/cards/lectura/panels/FilesInterior";
 import {
   weatherBlock,
   planBlock,
@@ -115,6 +117,7 @@ import {
   memoryBlock,
   researchSourcesBlock,
   reviewDocumentBlock,
+  resourceBundleBlock,
 } from "./ui/cards/lectura/fixtures";
 
 type Entry = {
@@ -164,6 +167,7 @@ const CARDS: Entry[] = [
   { id: "mem", label: "Lo nuevo que te guardé", sub: "cascada de memorias + confianza", icon: Brain, tint: "var(--rose-soft)", color: "var(--rose-ink)", block: memoryBlock, Cmp: MemInterior },
   { id: "links", label: "Lectura pendiente", sub: "enlaces reales con preview og:image", icon: Link, tint: "var(--sky-soft)", color: "var(--sky-ink)", block: researchSourcesBlock, Cmp: LinksInterior },
   { id: "note", label: "Anotame esto", sub: "post-it verbatim + fecha detectada", icon: StickyNote, tint: "var(--honey-soft)", color: "var(--honey-ink)", block: reviewDocumentBlock, Cmp: NoteInterior },
+  { id: "files", label: "Archivos del chat", sub: "bandeja con sellos y descarga real", icon: FolderOpen, tint: "var(--mint-soft)", color: "var(--mint-ink)", block: resourceBundleBlock, Cmp: FilesInterior },
 ];
 
 
