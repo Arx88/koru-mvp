@@ -54,10 +54,14 @@ export function LinksInterior({ block, onClose, onSave }: LecturaInteriorProps<L
             {title}
           </h1>
           <p>
-            {block.summary ||
-              (sources.length
-                ? "Lo que encontré para vos, con preview de cada página cuando la tiene."
-                : "Todavía no guardamos enlaces de este tema.")}
+            {sources.length > 0
+              ? `${sources.length} fuentes verificadas${
+                  sources.length > 1
+                    ? ` · ${[...new Set(sources.map((s) => s.domain).filter(Boolean))].slice(0, 3).join(" · ")}`
+                    : ""
+                } — tocá cualquiera para abrir la original.`
+              : block.summary ||
+                "Todavía no guardamos enlaces de este tema."}
           </p>
         </div>
 

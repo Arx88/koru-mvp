@@ -38,7 +38,8 @@ describe("LinksInterior", () => {
   it("bindea título, summary y el conteo real de sources", () => {
     render(<LinksInterior block={linksBlock} onClose={vi.fn()} />);
     expect(screen.getByText("La lectura pendiente")).toBeInTheDocument();
-    expect(screen.getByText(/con preview real de cada página/i)).toBeInTheDocument();
+    // v2: el head ahora muestra el conteo + dominios reales (dp verificado)
+    expect(screen.getByText(/3 fuentes verificadas/i)).toBeInTheDocument();
     expect(screen.getByText("3 guardados")).toBeInTheDocument();
   });
 
