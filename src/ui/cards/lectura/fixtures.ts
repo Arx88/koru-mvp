@@ -371,3 +371,20 @@ export const forexBlock: Extract<UiBlock, { type: "forex" }> = {
   ],
 };
 
+
+export const moneyBlock: Extract<UiBlock, { type: "money_summary" }> = {
+  type: "money_summary",
+  title: "Agosto · tus gastos",
+  total: 1850,
+  currency: "€",
+  summaryItems: [
+    { label: "Casa y servicios", value: "€611", detail: "alquiler + luz, igual que julio" },
+    { label: "Comida", value: "€444", detail: "6 deliverys menos que julio" },
+    { label: "Transporte", value: "€296", detail: "abono + 2 taxis" },
+    { label: "Ocio", value: "€240", detail: "cine + una salida" },
+    { label: "Otros", value: "€259", detail: "regalo de Maru y feria" },
+  ],
+  recommendation:
+    "La baja viene de la comida: 6 menos deliverys que en julio (€182 de diferencia). No cambiaste de dieta, cambiaste de horario de cena.",
+};
+
