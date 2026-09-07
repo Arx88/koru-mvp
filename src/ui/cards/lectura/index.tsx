@@ -29,6 +29,7 @@ import { TickerInterior } from "./panels/TickerInterior";
 import { RouteTimelineInterior } from "./panels/RouteTimelineInterior";
 import { RouteMapInterior } from "./panels/RouteMapInterior";
 import { TransportCompareInterior } from "./panels/TransportCompareInterior";
+import { DeliveryInterior } from "./panels/DeliveryInterior";
 
 export interface LecturaInteriorProps<T extends UiBlock = UiBlock> {
   block: T;
@@ -63,6 +64,7 @@ const REGISTRY: Partial<Record<UiBlock["type"], AnyInterior>> = {
   route_timeline: RouteTimelineInterior as AnyInterior,
   route_map: RouteMapInterior as AnyInterior,
   transport_compare: TransportCompareInterior as AnyInterior,
+  delivery: DeliveryInterior as AnyInterior,
 };
 
 export function lecturaInteriorFor(block: UiBlock): AnyInterior | null {

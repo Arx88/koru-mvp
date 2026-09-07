@@ -445,3 +445,19 @@ export const transportBlock: Extract<UiBlock, { type: "transport_compare" }> = {
   ],
 };
 
+
+export const deliveryBlock: Extract<UiBlock, { type: "delivery" }> = {
+  type: "delivery",
+  title: "El regalo de Maru viene en camino",
+  status: "en reparto",
+  carrier: "Correo Argentino",
+  trackingId: "CA-88213904-AR",
+  estimatedDate: "mañana antes de las 14",
+  steps: [
+    { label: "Etiqueta creada", done: true },
+    { label: "Salió del centro logístico", done: true },
+    { label: "Llegó a Buenos Aires", done: true },
+    { label: "En reparto", done: false },
+    { label: "Entregado", done: false },
+  ],
+};
