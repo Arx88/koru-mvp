@@ -28,6 +28,7 @@ import type {
 } from "../../domain/types";
 import { VALID_MASCOT_STATES } from "../../domain/types";
 import { logger } from "../logger";
+import { enrichCaptureBlocks } from "./enrichCaptureBlocks";
 import {
   asArray,
   asRecord,
@@ -523,6 +524,7 @@ export function normalizeFinalPayload(
   toolExecutions: ToolExecution[],
   extractedRaw?: Record<string, unknown>,
   prebuiltToolBlocks?: UiBlock[],
+  state?: KoruState,
 ): KoruBackendTurnResponse {
   const modelBlocks = asArray(raw.uiBlocks).map(normalizeUiBlock).filter((block): block is UiBlock => Boolean(block));
   const mascotState = cleanText(raw.mascotState) || "idle";
@@ -543,6 +545,23 @@ export function normalizeFinalPayload(
   const captures = personalCapturesFromTools(toolExecutions);
   const localActions = localActionsFromTools(toolExecutions);
   const memoryCaptures = memoryCapturesFromTools(toolExecutions);
+  // 🔴 ENRICHMENT (nada simulado): los blocks de captura (money_summary)
+  // se enriquecen con los records REALES del turno + el historial del usuario
+  // (state.records) — summaryItems por categoría, total del día, nota con
+  // contexto. Sin historial, la card queda honesta con el gasto actual.
+  const turnRecordDrafts: Array<Omit<LifeRecord, "id" | "createdAt" | "sourceEntryId">> = [
+    ...normalizeRecords(raw.records),
+    ...captures.flatMap((capture) => capture.records ?? []),
+    ...localActions.flatMap((action) => action.records ?? []),
+    ...toolExecutions.flatMap((execution) => {
+      const data = (execution.result as { records?: unknown })?.records;
+      return Array.isArray(data) ? (data as Array<Omit<LifeRecord, "id" | "createdAt" | "sourceEntryId">>) : [];
+    }),
+  ];
+  const enrichedBlocks = enrichCaptureBlocks(uiBlocks, turnRecordDrafts, state);
+  if (enrichedBlocks !== uiBlocks) {
+    uiBlocks.splice(0, uiBlocks.length, ...enrichedBlocks);
+  }
   const toolResults: ToolResult[] = toolExecutions.map((execution, index) => {
     const resultAny = execution.result as Record<string, unknown>;
     const rawStatus = typeof resultAny?.status === "string" ? resultAny.status : "ok";
@@ -627,7 +646,14 @@ export function normalizeFinalPayload(
     // Si hay un honestReply forzado, usarlo SIEMPRE (prioridad máxima)
     finalReply = honestForcedReply.__honestReplyText || "No encontré datos sobre eso en este momento.";
   } else if (!cleanedReply || isGenericAgentReply(cleanedReply) || looksLikeThinking) {
-    finalReply = blockReply || "Tuve un problema para armar la respuesta. ¿Me lo repetís de otra forma para ayudarte bien?";
+    // 🔴 FIX UX honesto: si las tools corrieron pero no produjeron blocks ni
+    // records, NO decir "Tuve un problema" (culpa a Koru) — decir la verdad:
+    // buscó y no consiguió datos. El mensaje de "problema" queda solo cuando
+    // no hubo tools (fallo real de composición).
+    const honestNoData = toolExecutions.length > 0
+      ? `Busqué, pero no conseguí datos útiles para eso. ¿Probamos con otras palabras?`
+      : "Tuve un problema para armar la respuesta. ¿Me lo repetís de otra forma para ayudarte bien?";
+    finalReply = blockReply || honestNoData;
   } else {
     finalReply = cleanedReply;
   }
@@ -839,19 +865,19 @@ export async function finalizePayload(
 ): Promise<KoruBackendTurnResponse & { memoryFallbackReason?: string; memoryProvider?: "nvidia" | "openrouter" | "minimax" | "bluesminds"; memoryModel?: string }> {
   // OPTIMIZACIÓN: solo saltar el memory extractor para inputs triviales
   if (isTrivialInput(request.input)) {
-    return normalizeFinalPayload(raw, request.input, toolExecutions);
+    return normalizeFinalPayload(raw, request.input, toolExecutions, undefined, undefined, request.state);
   }
   try {
     const extracted = await extractMemoryWithJsonPrompt(request, config, toolExecutions, raw, extractorTimeout);
     return {
-      ...normalizeFinalPayload(raw, request.input, toolExecutions, extracted.raw),
+      ...normalizeFinalPayload(raw, request.input, toolExecutions, extracted.raw, undefined, request.state),
       memoryProvider: extracted.provider,
       memoryModel: extracted.model,
       memoryFallbackReason: extracted.fallbackReason,
     };
   } catch (error) {
     return {
-      ...normalizeFinalPayload(raw, request.input, toolExecutions),
+      ...normalizeFinalPayload(raw, request.input, toolExecutions, undefined, undefined, request.state),
       memoryFallbackReason: error instanceof Error ? error.message : "memory-extractor-failed",
     };
   }
@@ -880,12 +906,12 @@ export async function finalizePayloadWithFastModel(
     if (!isTrivialInput(request.input)) {
       try {
         const extracted = await extractMemoryWithJsonPrompt(request, config, toolExecutions, raw, timeout);
-        return normalizeFinalPayload(raw, request.input, toolExecutions, extracted.raw, prebuiltToolBlocks);
+        return normalizeFinalPayload(raw, request.input, toolExecutions, extracted.raw, prebuiltToolBlocks, request.state);
       } catch {
         // si falla el extractor, igual devolver la respuesta
       }
     }
-    return normalizeFinalPayload(raw, request.input, toolExecutions, undefined, prebuiltToolBlocks);
+    return normalizeFinalPayload(raw, request.input, toolExecutions, undefined, prebuiltToolBlocks, request.state);
   }
 
   // Segunda llamada con Flash model para síntesis
@@ -907,13 +933,13 @@ export async function finalizePayloadWithFastModel(
     if (!isTrivialInput(request.input)) {
       try {
         const extracted = await extractMemoryWithJsonPrompt(request, config, toolExecutions, parsed, timeout);
-        return normalizeFinalPayload(parsed, request.input, toolExecutions, extracted.raw, prebuiltToolBlocks);
+        return normalizeFinalPayload(parsed, request.input, toolExecutions, extracted.raw, prebuiltToolBlocks, request.state);
       } catch {
         // si falla el extractor, igual devolver la respuesta
       }
     }
-    return normalizeFinalPayload(parsed, request.input, toolExecutions, undefined, prebuiltToolBlocks);
+    return normalizeFinalPayload(parsed, request.input, toolExecutions, undefined, prebuiltToolBlocks, request.state);
   } catch {
-    return normalizeFinalPayload(raw, request.input, toolExecutions);
+    return normalizeFinalPayload(raw, request.input, toolExecutions, undefined, undefined, request.state);
   }
 }

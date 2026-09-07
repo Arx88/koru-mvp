@@ -54,6 +54,22 @@ export const newsUrgent: ToolHandler = {
 };
 
 // ─── news_topic ─────────────────────────────────────────────────────────────
+
+/**
+ * Queries de GDELT para un tema: la API trata las palabras sueltas como AND
+ * suelto y los acentos reducen el corpus (ej: "tecnología sourcelang:spa"
+ * devolvía {}). Citamos el tema como frase y probamos variantes: original,
+ * sin acentos y sin filtro de idioma.
+ */
+export function buildGdeltTopicQueries(topic: string): string[] {
+  const trimmed = topic.trim();
+  const normalized = trimmed.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const queries = [`"${trimmed}" sourcelang:spa`];
+  if (normalized !== trimmed) queries.push(`"${normalized}" sourcelang:spa`);
+  queries.push(`"${trimmed}"`);
+  return queries;
+}
+
 export const newsTopic: ToolHandler = {
   definition: defineTool(
     "news_topic",
@@ -67,13 +83,53 @@ export const newsTopic: ToolHandler = {
       required: ["topic"],
     },
   ),
-  policy: policies.readonly("Lee noticias temáticas de GDELT."),
+  policy: policies.readonly("Lee noticias temáticas de GDELT con fallback a búsqueda web abierta."),
   async run(args) {
     const topic = String(args.topic ?? "").trim();
     if (!topic) return { type: "news_topic", status: "failed", error: "Indicá el tema." };
-    const cacheKey = `news_topic:${topic.toLowerCase()}`;
-    const articles = await cached<GdeltArticle[]>(cacheKey, ttls.news, () => queryGdelt(`${topic} sourcelang:spa`, 8));
-    return { type: "news_topic", status: "ok", topic, articles, source: "GDELT" };
+    // 1) GDELT con variantes de query (frase citada, sin acentos, sin filtro).
+    let articles: GdeltArticle[] = [];
+    for (const q of buildGdeltTopicQueries(topic)) {
+      const cacheKey = `news_topic:${q.toLowerCase()}`;
+      articles = await cached<GdeltArticle[]>(cacheKey, ttls.news, () => queryGdelt(q, 8));
+      if (articles.length > 0) break;
+    }
+    if (articles.length > 0) {
+      return { type: "news_topic", status: "ok", topic, articles, source: "GDELT" };
+    }
+    // 2) Fallback REAL: GDELT sin cobertura (acentos/frases) → búsqueda web
+    //    abierta sobre el tema. El usuario tiene que recibir noticias igual.
+    try {
+      const sources = usableSources(await searchAndEnrich(`noticias ${topic}`, 6));
+      if (sources.length > 0) {
+        return {
+          type: "news_topic",
+          status: "ok",
+          topic,
+          articles: sources.map((s) => ({
+            title: s.title,
+            url: s.url,
+            domain: s.domain,
+            summary: (s as { snippet?: string }).snippet ?? "",
+          })),
+          source: "web",
+          note: "GDELT sin cobertura para este tema; busqué en la web abierta.",
+        };
+      }
+    } catch {
+      /* caer al honesto */
+    }
+    // 3) Honesto: no hay cobertura encontrable — forzar reply honesto
+    //    (anti-alucinación) en vez de dejar el pipeline sin card ni texto.
+    return {
+      type: "news_topic",
+      status: "ok",
+      topic,
+      articles: [],
+      source: "GDELT",
+      __forceHonestReply: true,
+      __honestReplyText: `No encontré noticias recientes sobre ${topic}. Probá con un tema más amplio o volvé a preguntar en un rato.`,
+    };
   },
 };
 

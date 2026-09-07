@@ -3838,7 +3838,7 @@ export async function runKoruBackendTurn(
     } catch {
       fastParsed = { reply: cleanReplyText(fastContent) || "Hola. ¿Cómo va todo?", mascotState: "happy" };
     }
-    const fastResponse = normalizeFinalPayload(fastParsed, request.input, []);
+    const fastResponse = normalizeFinalPayload(fastParsed, request.input, [], undefined, undefined, request.state);
     logger.info("runKoruBackendTurn", "Return fast-path", { replyPreview: (fastResponse.reply ?? "").slice(0, 60), provider, model });
     return {
       ...fastResponse,
@@ -3884,9 +3884,9 @@ export async function runKoruBackendTurn(
       let response: KoruBackendTurnResponse;
       try {
         const extracted = await extractMemoryWithJsonPrompt(request, fastConfig, toolExecutions, { reply: effectiveReply, uiBlocks: [] }, 15_000);
-        response = normalizeFinalPayload({ reply: effectiveReply, mascotState: "happy", uiBlocks: [] }, request.input, toolExecutions, extracted.raw);
+        response = normalizeFinalPayload({ reply: effectiveReply, mascotState: "happy", uiBlocks: [] }, request.input, toolExecutions, extracted.raw, undefined, request.state);
       } catch {
-        response = normalizeFinalPayload({ reply: effectiveReply, mascotState: "happy", uiBlocks: [] }, request.input, toolExecutions);
+        response = normalizeFinalPayload({ reply: effectiveReply, mascotState: "happy", uiBlocks: [] }, request.input, toolExecutions, undefined, undefined, request.state);
       }
 
       return { ...response, provider, model, fallbackReason: "fastpath-skip-router" };
@@ -4270,7 +4270,7 @@ export async function runKoruBackendTurn(
             records: asArray(parsedRoute.records || []),
             mascotState: parsedRoute.mascotState,
           };
-          const response2 = normalizeFinalPayload(rawRoute, request.input, toolExecutions);
+          const response2 = normalizeFinalPayload(rawRoute, request.input, toolExecutions, undefined, undefined, request.state);
           // 🔴 Aplicar enriquecimiento también aquí (camino 3: delivered=false, JSON válido)
           if (response2.uiBlocks) {
             for (const block of response2.uiBlocks) {
@@ -4356,16 +4356,30 @@ export async function runKoruBackendTurn(
     const query = toolCalls.find((t) => t.function?.name === "web_search")?.function?.arguments
       ? JSON.parse(toolCalls.find((t) => t.function?.name === "web_search")!.function.arguments).query
       : undefined;
+    // 🔴 FIX: la card de progreso "Buscando..." es un affordance de BÚSQUEDA.
+    // Antes se emitía para TODA tool (gasto, recordatorio, plan, clima, partido)
+    // → el chat mostraba una card "Tu Búsqueda" fantasma que después desaparecía.
+    // Ahora solo se emite cuando hay una tool de búsqueda/investigación real.
+    const SEARCH_TOOLS = new Set([
+      "web_search", "deep_research", "news_topic", "news_urgent", "news_urgent_search",
+      "trending_topic", "trending_twitter", "wikipedia_lookup", "restaurant_deep_search",
+      "comparison_deep", "shopping_compare", "recipe_find", "movie_info", "book_info",
+      "game_info", "person_info", "person_filmography", "dictionary_define",
+    ]);
+    const hasSearchTool = toolCalls.some((t) => SEARCH_TOOLS.has(t.function?.name ?? ""));
+    const loadingBlock: UiBlock | null = hasSearchTool
+      ? { type: "deliverable" as const, status: "working" as const, kicker: "Tu Búsqueda", title: "Buscando", topic: query || request.input, progress: 15, phaseLabel: "Buscando..." }
+      : null;
     const loadingChunk: KoruBackendTurnResponse = {
-      reply: query ? `Buscando "${query}"...` : "Buscando en la web...",
-      uiBlocks: [{ type: "deliverable" as const, status: "working" as const, kicker: "Tu Búsqueda", title: "Buscando", topic: query || request.input, progress: 15, phaseLabel: "Buscando..." }],
+      reply: query ? `Buscando "${query}"...` : hasSearchTool ? "Buscando en la web..." : "Dale, déjame pensarlo...",
+      uiBlocks: loadingBlock ? [loadingBlock] : [],
       suggestedActions: [],
-      understanding: { literalRequest: request.input, userGoal: "Búsqueda web", unstatedNeeds: [], assumptions: [], confidence: 0.8 },
+      understanding: { literalRequest: request.input, userGoal: hasSearchTool ? "Búsqueda web" : "Procesando tu pedido", unstatedNeeds: [], assumptions: [], confidence: 0.8 },
       memoryCandidates: [],
       commitments: [],
       records: [],
       toolResults: [],
-      stateEvents: [{ kind: "searching" as const, label: query ? `Buscando "${query}"` : "Buscando en la web" }],
+      stateEvents: [{ kind: "searching" as const, label: query ? `Buscando "${query}"` : hasSearchTool ? "Buscando en la web" : "Procesando" }],
       mascotState: "working",
       provider,
       model,
