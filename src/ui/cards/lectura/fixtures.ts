@@ -493,3 +493,51 @@ export const socialBlock: Extract<UiBlock, { type: "social_interaction" }> = {
     { emoji: "🛶", title: "Excursión de kayak", detail: "si el 12 se complicaba la logística" },
   ],
 };
+
+export const comparisonBlock: Extract<UiBlock, { type: "comparison" }> = {
+  type: "comparison",
+  title: "El duelo de los in-ear",
+  criteria: ["cancelación", "batería", "llamadas", "compatibilidad", "precio"],
+  items: [
+    {
+      title: "Sony XM5",
+      price: "€189",
+      vendor: "MediaMarkt",
+      url: "https://tienda.example/sony-xm5",
+      score: 92,
+      details: [
+        { label: "Cancelación", positive: true },
+        { label: "Batería", positive: true },
+        { label: "Llamadas", positive: false },
+        { label: "Compatibilidad", positive: true },
+      ],
+    },
+    {
+      title: "Bose QC",
+      price: "€199",
+      vendor: "El Corte Inglés",
+      score: 84,
+      details: [
+        { label: "Cancelación", positive: true },
+        { label: "Batería", positive: false },
+        { label: "Llamadas", positive: true },
+        { label: "Compatibilidad", positive: true },
+      ],
+    },
+    {
+      title: "AirPods 4",
+      price: "€149",
+      vendor: "Apple Store",
+      score: 71,
+      details: [
+        { label: "Cancelación", positive: false },
+        { label: "Batería", positive: false },
+        { label: "Llamadas", positive: true },
+        { label: "Compatibilidad", positive: false },
+      ],
+    },
+  ],
+  recommendation:
+    "El empate técnico era real: por tus llamadas diarias ganaba Bose. Ganó Sony por el combo batería + cancelación con tu teléfono.",
+};
+
