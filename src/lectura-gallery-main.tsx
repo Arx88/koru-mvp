@@ -29,6 +29,7 @@ import {
   ArrowLeftRight,
   Wallet,
   Activity,
+  Route,
 } from "lucide-react";
 import type { UiBlock } from "./domain/types";
 import { WeatherInterior } from "./ui/cards/lectura/panels/WeatherInterior";
@@ -49,6 +50,7 @@ import { CryptoInterior } from "./ui/cards/lectura/panels/CryptoInterior";
 import { ForexInterior } from "./ui/cards/lectura/panels/ForexInterior";
 import { MoneyInterior } from "./ui/cards/lectura/panels/MoneyInterior";
 import { TickerInterior } from "./ui/cards/lectura/panels/TickerInterior";
+import { RouteTimelineInterior } from "./ui/cards/lectura/panels/RouteTimelineInterior";
 import {
   weatherBlock,
   planBlock,
@@ -68,6 +70,7 @@ import {
   forexBlock,
   moneyBlock,
   tickerBlock,
+  routeTimelineBlock,
 } from "./ui/cards/lectura/fixtures";
 
 type Entry = {
@@ -101,6 +104,7 @@ const CARDS: Entry[] = [
   { id: "forex", label: "Dólar oficial", sub: "3 pares reales + conversión derivada", icon: ArrowLeftRight, tint: "var(--mint-soft)", color: "var(--mint-ink)", block: forexBlock, Cmp: ForexInterior },
   { id: "money", label: "Gastos de agosto", sub: "total real + % por rubro derivado", icon: Wallet, tint: "var(--rose-soft)", color: "var(--rose-ink)", block: moneyBlock, Cmp: MoneyInterior },
   { id: "ticker", label: "Cinta de datos", sub: "marquee con items reales + alerta", icon: Activity, tint: "var(--violet-soft)", color: "var(--violet-ink)", block: tickerBlock, Cmp: TickerInterior },
+  { id: "route", label: "Cómo llegar", sub: "4 tramos reales + eta del block", icon: Route, tint: "var(--sky-soft)", color: "var(--sky-ink)", block: routeTimelineBlock, Cmp: RouteTimelineInterior },
 ];
 
 

@@ -402,3 +402,15 @@ export const tickerBlock: Extract<UiBlock, { type: "data_ticker" }> = {
   ],
   alert: "Con lo que queda te sobra para los US$90 de Spotify anual y la suscripción de iCloud.",
 };
+
+export const routeTimelineBlock: Extract<UiBlock, { type: "route_timeline" }> = {
+  type: "route_timeline",
+  eta: "25 min",
+  items: [
+    { label: "Caminá 250 m", detail: "Por Callao hacia el sur, a la sombra de los plátanos.", color: "#2563eb" },
+    { label: "Subte D · 5 paradas", detail: "Callao → Retiro. Andén de la mano derecha.", color: "#b45309" },
+    { label: "Caminá 400 m", detail: "Salida Aduana, cruzás la avenida y entrás por Puerta de España.", color: "#2563eb" },
+    { label: "Llegás al Retiro", detail: "La estación de lagos queda a la izquierda.", color: "#059669" },
+  ],
+};
+
