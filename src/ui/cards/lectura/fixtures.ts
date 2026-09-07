@@ -679,3 +679,40 @@ export const memoryBlock: Extract<UiBlock, { type: "memory" }> = {
   note: "Todo quedó asociado a tu historial de septiembre.",
 };
 
+
+export const researchSourcesBlock: Extract<UiBlock, { type: "research_sources" }> = {
+  type: "research_sources",
+  title: "La lectura pendiente",
+  summary: "Lo que me pediste guardar para después, con preview real de cada página.",
+  sources: [
+    {
+      title: "La carbonara de Roma que sí es carbonara",
+      url: "https://lacucinaitaliana.it/carbonara",
+      domain: "lacucinaitaliana.it",
+      snippet: "La receta original sin crema: guanciale, pecorino y huevo.",
+      imageUrl: "/stitch/outfits/recipe-pasta.jpg",
+    },
+    {
+      title: "Por qué Europa apuesta fuerte a los chips propios",
+      url: "https://eldiario.es/tecnologia/chips-europa",
+      domain: "eldiario.es",
+      snippet: "El plan de la UE para reducir dependencia de Asia en semiconductores.",
+    },
+    {
+      title: "Magnifica Evo a €329 — histórico mínimo",
+      url: "https://tucarro.com/magnifica-evo",
+      domain: "tucarro.com",
+      snippet: "Precio con descuento de temporada.",
+      imageUrl: "/stitch/outfits/prod-espresso.jpg",
+    },
+    {
+      title: "48 horas en Madrid: la guía sin trampas",
+      url: "https://guianaima.com/madrid-48h",
+      domain: "guianaima.com",
+      snippet: "Barrios, horarios y los museos que sí valen la pena.",
+      imageUrl: "/stitch/outfits/travel-madrid.jpg",
+    },
+  ],
+  followUpQuestion: "¿Querés que te avise si baja de precio alguno?",
+};
+

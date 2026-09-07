@@ -39,6 +39,7 @@ import { ReviewScoreInterior } from "./panels/ReviewScoreInterior";
 import { TravelInterior } from "./panels/TravelInterior";
 import { SavedRecordInterior } from "./panels/SavedRecordInterior";
 import { MemInterior } from "./panels/MemInterior";
+import { LinksInterior } from "./panels/LinksInterior";
 
 export interface LecturaInteriorProps<T extends UiBlock = UiBlock> {
   block: T;
@@ -83,6 +84,7 @@ const REGISTRY: Partial<Record<UiBlock["type"], AnyInterior>> = {
   travel_plan: TravelInterior as AnyInterior,
   saved_record: SavedRecordInterior as AnyInterior,
   memory: MemInterior as AnyInterior,
+  research_sources: LinksInterior as AnyInterior,
 };
 
 export function lecturaInteriorFor(block: UiBlock): AnyInterior | null {
