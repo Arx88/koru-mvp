@@ -753,3 +753,17 @@ export const resourceBundleBlock: Extract<UiBlock, { type: "resource_bundle" }> 
   ],
 };
 
+
+export const electionResultsBlock: Extract<UiBlock, { type: "election_results" }> = {
+  type: "election_results",
+  title: "Así está la cuenta",
+  status: "89% contado · mesas 34.312 de 38.540",
+  items: [
+    { name: "Partido A", percent: "34%", detail: "mejoró 2 pts en el sur", done: false, color: "#6d4bf0" },
+    { name: "Partido B", percent: "29%", detail: "fuerte en la costa", done: false, color: "#5170d8" },
+    { name: "Partido C", percent: "18%", done: false, color: "#b45309" },
+    { name: "Partido D", percent: "12%", done: false, color: "#d6497f" },
+    { name: "Otros", percent: "7%", done: false, color: "#9486c2" },
+  ],
+};
+
