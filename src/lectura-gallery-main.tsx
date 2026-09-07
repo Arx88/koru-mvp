@@ -35,6 +35,7 @@ import {
   Package,
   CalendarDays,
   Cake,
+  Users,
 } from "lucide-react";
 import type { UiBlock } from "./domain/types";
 import { WeatherInterior } from "./ui/cards/lectura/panels/WeatherInterior";
@@ -61,6 +62,7 @@ import { TransportCompareInterior } from "./ui/cards/lectura/panels/TransportCom
 import { DeliveryInterior } from "./ui/cards/lectura/panels/DeliveryInterior";
 import { BirthdayCalendarInterior } from "./ui/cards/lectura/panels/BirthdayCalendarInterior";
 import { BirthdayAlarmInterior } from "./ui/cards/lectura/panels/BirthdayAlarmInterior";
+import { SocialInterior } from "./ui/cards/lectura/panels/SocialInterior";
 import {
   weatherBlock,
   planBlock,
@@ -86,6 +88,7 @@ import {
   deliveryBlock,
   bcalBlock,
   balarmBlock,
+  socialBlock,
 } from "./ui/cards/lectura/fixtures";
 
 type Entry = {
@@ -125,6 +128,7 @@ const CARDS: Entry[] = [
   { id: "delivery", label: "Envío de Maru", sub: "ticket con steps reales + tracking", icon: Package, tint: "var(--mint-soft)", color: "var(--mint-ink)", block: deliveryBlock, Cmp: DeliveryInterior },
   { id: "bcal", label: "Cumples de septiembre", sub: "grilla real + día 12 marcado", icon: CalendarDays, tint: "var(--rose-soft)", color: "var(--rose-ink)", block: bcalBlock, Cmp: BirthdayCalendarInterior },
   { id: "balarm", label: "Aviso cumple de Juan", sub: "anillo countdown real (5 días)", icon: Cake, tint: "var(--rose-soft)", color: "var(--rose-ink)", block: balarmBlock, Cmp: BirthdayAlarmInterior },
+  { id: "social", label: "Cumple de Juan", sub: "fecha + gifts reales guardados", icon: Users, tint: "var(--rose-soft)", color: "var(--rose-ink)", block: socialBlock, Cmp: SocialInterior },
 ];
 
 

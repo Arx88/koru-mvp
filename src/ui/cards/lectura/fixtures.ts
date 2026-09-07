@@ -480,3 +480,16 @@ export const balarmBlock: Extract<UiBlock, { type: "birthday_alarm" }> = {
   eta: "el jueves 10 a las 10:00 te cae el primer aviso",
 };
 
+
+export const socialBlock: Extract<UiBlock, { type: "social_interaction" }> = {
+  type: "social_interaction",
+  name: "Juan",
+  event: "cumple",
+  date: "sábado 12 · 21:00",
+  age: "34",
+  remaining: "5 días",
+  gifts: [
+    { emoji: "💿", title: "Vinilo de Wos, edición numerada", detail: "quedan 2 · Bar Aparte, Palermo" },
+    { emoji: "🛶", title: "Excursión de kayak", detail: "si el 12 se complicaba la logística" },
+  ],
+};
