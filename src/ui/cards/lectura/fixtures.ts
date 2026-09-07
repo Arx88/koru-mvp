@@ -561,3 +561,21 @@ export const productBlock: Extract<UiBlock, { type: "product_analysis" }> = {
   actionLabel: "Guardar para la compra",
 };
 
+
+export const reviewScoreBlock: Extract<UiBlock, { type: "review_score" }> = {
+  type: "review_score",
+  title: "iPhone 16: qué dice la gente",
+  buttonLabel: "Guardar reseña",
+  items: [
+    { emoji: "📷", score: "91%", label: "Cámara nocturna", color: "#2f8f6d" },
+    { emoji: "🔋", score: "78%", label: "Batería", color: "#2f8f6d" },
+    { emoji: "🔥", score: "33%", label: "Se calienta jugando", color: "#d6497f" },
+    { emoji: "📦", score: "27%", label: "Extraña el cargador", color: "#d6497f" },
+    { emoji: "⚡", score: "72%", label: "Rapidez", color: "#2f8f6d" },
+  ],
+};
+
+/* ===== Interiores del lote final (12 cards restantes del catálogo) ===== */
+
+const in3Days = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
+

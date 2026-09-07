@@ -38,6 +38,7 @@ import {
   Users,
   Swords,
   Coffee,
+  MessageSquareQuote,
 } from "lucide-react";
 import type { UiBlock } from "./domain/types";
 import { WeatherInterior } from "./ui/cards/lectura/panels/WeatherInterior";
@@ -67,6 +68,7 @@ import { BirthdayAlarmInterior } from "./ui/cards/lectura/panels/BirthdayAlarmIn
 import { SocialInterior } from "./ui/cards/lectura/panels/SocialInterior";
 import { ComparisonInterior } from "./ui/cards/lectura/panels/ComparisonInterior";
 import { ProductInterior } from "./ui/cards/lectura/panels/ProductInterior";
+import { ReviewScoreInterior } from "./ui/cards/lectura/panels/ReviewScoreInterior";
 import {
   weatherBlock,
   planBlock,
@@ -95,6 +97,7 @@ import {
   socialBlock,
   comparisonBlock,
   productBlock,
+  reviewScoreBlock,
 } from "./ui/cards/lectura/fixtures";
 
 type Entry = {
@@ -137,6 +140,7 @@ const CARDS: Entry[] = [
   { id: "social", label: "Cumple de Juan", sub: "fecha + gifts reales guardados", icon: Users, tint: "var(--rose-soft)", color: "var(--rose-ink)", block: socialBlock, Cmp: SocialInterior },
   { id: "comp", label: "Duelo de in-ear", sub: "3 contendientes + tabla por criterios", icon: Swords, tint: "var(--violet-soft)", color: "var(--violet-ink)", block: comparisonBlock, Cmp: ComparisonInterior },
   { id: "prod", label: "Cafetera Evo", sub: "foto + score + specs reales", icon: Coffee, tint: "var(--mint-soft)", color: "var(--mint-ink)", block: productBlock, Cmp: ProductInterior },
+  { id: "rev", label: "iPhone 16", sub: "barras de reputación por aspecto", icon: MessageSquareQuote, tint: "var(--violet-soft)", color: "var(--violet-ink)", block: reviewScoreBlock, Cmp: ReviewScoreInterior },
 ];
 
 
