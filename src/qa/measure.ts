@@ -47,13 +47,16 @@ export function measureDom(root: ParentNode): DomMetrics {
   // ── datos específicos: números con unidad, horas, fechas, monedas,
   // ratings y años — TODO lo que el usuario percibe como “dato concreto”. ──
   const dataRes: RegExp[] = [
-    /\d+(?:[.,]\d+)?\s*(?:%|€|\$|£|°|kcal|kWh|kWp|km\/h|km|kg|min|pts?|goles?|páginas?|pág\b|reseñas?|capítulos?|estrellas?|veces|dB|bar|ml|cm|mm|g\b|m²|USD|EUR|ARS|JPY)/g,
+    /\d+(?:[.,]\d+)?\s*(?:%|€|\$|£|°|kcal|kWh|kWp|km\/h|km|kg|min|pts?|goles?|páginas?|pág\b|reseñas?|capítulos?|estrellas?|veces|movimientos?|dB|bar|ml|cm|mm|g\b|m²|USD|EUR|ARS|JPY)/g,
+    /\b(?:USD|EUR|GBP|ARS|JPY|US\$|C\$)\s?\d+(?:[.,]\d+)?/g,
     /\b\d+(?:[.,]\d+)?\s*(?:km\/h|horas?|hs?|días?|dias?|semanas?|meses?|años?|anos?|minutos?|veces)\b/gi,
     /\b\d{1,2}:\d{2}\b/g,
     /\b\d{1,2}[./-]\d{1,2}(?:[./-]\d{2,4})?\b/g,
     /[€$£]\s?\d+(?:[.,]\d+)?/g,
     /\b\d+(?:[.,]\d+)?\s*\/\s*(?:5|10|100)\b/g,
     /\b(?:19|20)\d{2}\b/g,
+    /\b\d+\s*[–—-]\s*\d+\b/g,
+    /\b\d{1,3}\s*['′]\b/g,
     /\b\d+(?:[.,]\d+)?\s?(?:x|×)\d\b/g,
   ];
   let dataPoints = 0;

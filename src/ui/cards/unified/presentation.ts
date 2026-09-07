@@ -1400,11 +1400,23 @@ function research(b: Of<"research_sources">): KoruPresentation {
     hero: {
       kicker: isReport ? "Tu Informe" : "Tu Búsqueda",
       title: heroTitleFrom(b.title, isReport ? "Investigación" : "Resultados"),
-      desc: heroDesc,
+      // Si el summary viene corto/vacío (fallback de news), el desc muestra
+      // los dominios reales de las fuentes — nunca un hueco mudo.
+      desc: heroDesc || (b.sources?.length
+        ? `${b.sources.length} fuentes reales: ${b.sources.slice(0, 3).map((s) => s.domain ?? s.title ?? "fuente").join(" · ")}`
+        : undefined),
       icon: isReport ? "menu_book" : "travel_explore",
       accent: A.purple,
       metrics: b.sources?.length
-        ? [{ icon: "fact_check", label: "Fuentes verificadas", value: String(b.sources.length), color: A.purple.color }]
+        ? [
+            { icon: "fact_check", label: "Fuentes verificadas", value: String(b.sources.length), color: A.purple.color },
+            ...b.sources.slice(0, 2).map((s) => ({
+              icon: "link",
+              label: s.domain ?? "fuente",
+              value: s.title?.slice(0, 10) ?? "verificado",
+              color: A.primary.color,
+            })),
+          ]
         : undefined,
     },
     detail: {
