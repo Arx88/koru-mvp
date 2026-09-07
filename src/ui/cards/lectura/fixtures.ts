@@ -579,3 +579,53 @@ export const reviewScoreBlock: Extract<UiBlock, { type: "review_score" }> = {
 
 const in3Days = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
 
+export const travelPlanBlock: Extract<UiBlock, { type: "travel_plan" }> = {
+  type: "travel_plan",
+  destination: "Madrid",
+  dates: "3 días · septiembre",
+  travelers: 2,
+  currency: "€",
+  totalBudget: 360,
+  days: [
+    {
+      day: 1,
+      title: "Centro y Austrias",
+      activities: [
+        { time: "10:00", title: "Café en el Passatge", detail: "Churros antes de las 10:30 es tu ventana." },
+        { time: "12:30", title: "Prado · 2 h quirúrgicas", detail: "Goya, Velázquez y la pieza que querías ver." },
+        { time: "15:30", title: "Comida: Casa Mono", detail: "Reservada ya, afuera si el calor lo permite." },
+        { time: "20:00", title: "Vermú + de paseo", detail: "La Latina a esta hora se camina sola." },
+      ],
+    },
+    {
+      day: 2,
+      title: "Malasaña y Chamberí",
+      activities: [
+        { time: "11:00", title: "Mercado de Vallehermoso", detail: "Parada de tortilla en el puesto 14." },
+        { time: "15:30", title: "Comida: Casa Mono", detail: "Reservada ya, sentados afuera." },
+      ],
+    },
+    {
+      day: 3,
+      title: "Retiro y museos",
+      activities: [
+        { time: "09:30", title: "Retiro en bici", detail: "Alquiler al lado de la Puerta de Ángel." },
+      ],
+    },
+  ],
+  reservations: [
+    { provider: "Iberia", type: "Vuelo", detail: "IB 3421 · directo 2h 10m", status: "confirmada", deepLink: "https://iberia.com/checkin" },
+    { provider: "Hotel Regente", type: "Hotel", detail: "3 noches · desayuno incluido", status: "confirmada" },
+  ],
+  packing: [
+    { item: "Zapatillas cómodas", checked: false },
+    { item: "Campera liviana", checked: true },
+    { item: "Adaptador EU", checked: false },
+  ],
+  budget: [
+    { category: "Comida", amount: 180, currency: "€" },
+    { category: "Museos", amount: 60, currency: "€" },
+    { category: "Transporte", amount: 40, currency: "€" },
+  ],
+};
+
