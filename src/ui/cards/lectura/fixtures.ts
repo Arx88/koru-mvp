@@ -461,3 +461,12 @@ export const deliveryBlock: Extract<UiBlock, { type: "delivery" }> = {
     { label: "Entregado", done: false },
   ],
 };
+
+export const bcalBlock: Extract<UiBlock, { type: "birthday_calendar" }> = {
+  type: "birthday_calendar",
+  month: "Septiembre",
+  highlightedDay: 12,
+  startDay: 1,
+  daysInMonth: 30,
+};
+

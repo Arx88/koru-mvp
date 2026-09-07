@@ -33,6 +33,7 @@ import {
   Map,
   Bus,
   Package,
+  CalendarDays,
 } from "lucide-react";
 import type { UiBlock } from "./domain/types";
 import { WeatherInterior } from "./ui/cards/lectura/panels/WeatherInterior";
@@ -57,6 +58,7 @@ import { RouteTimelineInterior } from "./ui/cards/lectura/panels/RouteTimelineIn
 import { RouteMapInterior } from "./ui/cards/lectura/panels/RouteMapInterior";
 import { TransportCompareInterior } from "./ui/cards/lectura/panels/TransportCompareInterior";
 import { DeliveryInterior } from "./ui/cards/lectura/panels/DeliveryInterior";
+import { BirthdayCalendarInterior } from "./ui/cards/lectura/panels/BirthdayCalendarInterior";
 import {
   weatherBlock,
   planBlock,
@@ -80,6 +82,7 @@ import {
   routeMapBlock,
   transportBlock,
   deliveryBlock,
+  bcalBlock,
 } from "./ui/cards/lectura/fixtures";
 
 type Entry = {
@@ -117,6 +120,7 @@ const CARDS: Entry[] = [
   { id: "rmap", label: "Ruta en vivo", sub: "progreso real + deep link nativo", icon: Map, tint: "var(--violet-soft)", color: "var(--violet-ink)", block: routeMapBlock, Cmp: RouteMapInterior },
   { id: "transp", label: "Tablero de salidas", sub: "3 opciones reales + GANA activa", icon: Bus, tint: "var(--sky-soft)", color: "var(--sky-ink)", block: transportBlock, Cmp: TransportCompareInterior },
   { id: "delivery", label: "Envío de Maru", sub: "ticket con steps reales + tracking", icon: Package, tint: "var(--mint-soft)", color: "var(--mint-ink)", block: deliveryBlock, Cmp: DeliveryInterior },
+  { id: "bcal", label: "Cumples de septiembre", sub: "grilla real + día 12 marcado", icon: CalendarDays, tint: "var(--rose-soft)", color: "var(--rose-ink)", block: bcalBlock, Cmp: BirthdayCalendarInterior },
 ];
 
 

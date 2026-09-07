@@ -30,6 +30,7 @@ import { RouteTimelineInterior } from "./panels/RouteTimelineInterior";
 import { RouteMapInterior } from "./panels/RouteMapInterior";
 import { TransportCompareInterior } from "./panels/TransportCompareInterior";
 import { DeliveryInterior } from "./panels/DeliveryInterior";
+import { BirthdayCalendarInterior } from "./panels/BirthdayCalendarInterior";
 
 export interface LecturaInteriorProps<T extends UiBlock = UiBlock> {
   block: T;
@@ -65,6 +66,7 @@ const REGISTRY: Partial<Record<UiBlock["type"], AnyInterior>> = {
   route_map: RouteMapInterior as AnyInterior,
   transport_compare: TransportCompareInterior as AnyInterior,
   delivery: DeliveryInterior as AnyInterior,
+  birthday_calendar: BirthdayCalendarInterior as AnyInterior,
 };
 
 export function lecturaInteriorFor(block: UiBlock): AnyInterior | null {
