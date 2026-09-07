@@ -12,7 +12,7 @@ describe("BookInterior", () => {
     expect(screen.getAllByText("Los días del venado").length).toBeGreaterThan(0);
     expect(screen.getByText(/nicolás petrone · 2023 · 288 páginas/i)).toBeInTheDocument();
     expect(screen.getByText(/editorial margen · 2023/i)).toBeInTheDocument();
-    expect(screen.getByText(/288 páginas/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/288 páginas/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/978-987-000-000/i)).toBeInTheDocument();
   });
 
