@@ -14,6 +14,8 @@ import { OutfitInterior } from "./panels/OutfitInterior";
 import { LiveMatchInterior } from "./panels/LiveMatchInterior";
 import { NewsInterior } from "./panels/NewsInterior";
 import { RestaurantInterior } from "./panels/RestaurantInterior";
+import { RecipeInterior } from "./panels/RecipeInterior";
+import { MovieInterior } from "./panels/MovieInterior";
 
 export interface LecturaInteriorProps<T extends UiBlock = UiBlock> {
   block: T;
@@ -33,6 +35,8 @@ const REGISTRY: Partial<Record<UiBlock["type"], AnyInterior>> = {
   live_match: LiveMatchInterior as AnyInterior,
   news_urgent: NewsInterior as AnyInterior,
   restaurant_synthesis: RestaurantInterior as AnyInterior,
+  recipe: RecipeInterior as AnyInterior,
+  movie_review: MovieInterior as AnyInterior,
 };
 
 export function lecturaInteriorFor(block: UiBlock): AnyInterior | null {

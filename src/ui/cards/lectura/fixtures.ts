@@ -182,3 +182,52 @@ export const restaurantBlock: Extract<UiBlock, { type: "restaurant_synthesis" }>
   synthesis: "Don Julio gana por vacío y mollejas, pero a las 21 se hace eterno.",
   whyTonight: "A las 19:15 entramás directo — después de las 21 la fila dobla la manzana.",
 };
+
+export const recipeBlock: Extract<UiBlock, { type: "recipe" }> = {
+  type: "recipe",
+  title: "La carbonara de verdad",
+  name: "Spaghetti alla carbonara",
+  image: "/stitch/outfits/recipe-pasta.jpg",
+  category: "Pasta",
+  area: "Italiana",
+  description: "Chequeada contra 11 recetas italianas: sin crema, sin cebolla, sin miedo al pecorino.",
+  servings: 2,
+  prepTime: "15",
+  cookTime: "10",
+  difficulty: "easy",
+  ingredients: [
+    { ingredient: "spaghetti nº5", measure: "200 g" },
+    { ingredient: "guanciale", measure: "80 g" },
+    { ingredient: "yemas + 1 huevo", measure: "2" },
+    { ingredient: "pecorino romano", measure: "50 g" },
+    { ingredient: "pimienta negra", measure: "al gusto" },
+  ],
+  steps: [
+    { step: 1, title: "Dorado del guanciale", text: "Tiras gruesas, fuego medio, sin aceite: su grasa es el aceite. 6–7 min.", durationMinutes: 7 },
+    { step: 2, title: "La crema falsa", text: "Yemas + huevo + pecorino + pimienta, batidos hasta pasta densa. Fuera del fuego.", durationMinutes: 3 },
+    { step: 3, title: "El matrimonio", text: "Pasta al dente, mezclá con el guanciale APAGADO y agregá la crema + 3 cucharas de agua.", durationMinutes: 2 },
+  ],
+  tips: ["Si el huevo se te corta, fue temperatura: entibiá el bowl con el vapor de la pasta."],
+  nutrition: { kcal: 386, protein: 16, carbs: 48, fat: 14 },
+  source: { title: "Giallozafferano", url: "https://ricette.example", domain: "giallozafferano.it" },
+};
+
+export const movieBlock: Extract<UiBlock, { type: "movie_review" }> = {
+  type: "movie_review",
+  title: "Blade Runner 2049",
+  poster: "/stitch/outfits/movie-neon.jpg",
+  rating: 8.1,
+  ratingCount: 214000,
+  releaseDate: "2017-10-05",
+  runtime: "2h 14min",
+  director: "Denis Villeneuve",
+  cast: ["Ryan Gosling", "Harrison Ford", "Ana de Armas"],
+  genres: ["Ciencia ficción", "Drama"],
+  overview: "Visualmente la peli más hermosa de la década: cada cuadro es un cuadro. La historia va lenta a propósito — cine contemplativo de domingo a la noche.",
+  trailerUrl: "https://youtube.com/watch?v=gCcx85zbxzE",
+  whereToWatch: ["HBO Max", "Alquilar Apple TV"],
+  ratings: [
+    { source: "críticos", score: 88, outOf: 100 },
+    { source: "público", score: 81, outOf: 100 },
+  ],
+};
