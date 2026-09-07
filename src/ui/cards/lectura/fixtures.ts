@@ -91,3 +91,16 @@ export const planBlock: Extract<UiBlock, { type: "plan" }> = {
     },
   ],
 };
+
+export const outfitBlock: Extract<UiBlock, { type: "outfit" }> = {
+  type: "outfit",
+  title: "Lo que yo te pondría",
+  buttonLabel: "Guardar este look",
+  specs: [
+    { emoji: "🌡️", label: "Temperatura", value: "26°" },
+    { emoji: "🌡️", label: "Mínima noche", value: "19°" },
+    { emoji: "💨", label: "Viento", value: "14 km/h NE" },
+    { emoji: "☀️", label: "Índice UV", value: "6" },
+    { emoji: "☕", label: "Ocasión", value: "café + paseo" },
+  ],
+};

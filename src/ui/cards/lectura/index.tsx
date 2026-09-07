@@ -10,6 +10,7 @@ import type { UiBlock } from "../../../domain/types";
 import type { Detail } from "../unified/presentation";
 import { WeatherInterior } from "./panels/WeatherInterior";
 import { PlanInterior } from "./panels/PlanInterior";
+import { OutfitInterior } from "./panels/OutfitInterior";
 
 export interface LecturaInteriorProps<T extends UiBlock = UiBlock> {
   block: T;
@@ -25,6 +26,7 @@ type AnyInterior = ComponentType<LecturaInteriorProps<any>>;
 const REGISTRY: Partial<Record<UiBlock["type"], AnyInterior>> = {
   weather: WeatherInterior as AnyInterior,
   plan: PlanInterior as AnyInterior,
+  outfit: OutfitInterior as AnyInterior,
 };
 
 export function lecturaInteriorFor(block: UiBlock): AnyInterior | null {
