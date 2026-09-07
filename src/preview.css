@@ -88,9 +88,8 @@ html, body {
 
 .pv-statusbar-icons { display: flex; align-items: center; gap: 5px; }
 
-/* El chat arranca debajo de la status bar (como en un device real) */
-.pv-stage-screen .koru-chat-scroll { padding-top: 118px; }
-.pv-stage-screen .koru-suggestion-bar { top: 98px; }
+/* El chat arranca debajo de la status bar + topbar del showcase (v6) */
+.pv-stage-screen .koru-chat-scroll { padding-top: 172px; }
 
 /* Fade superior más corto que el original: burbujas legibles en reposo,
    solo una franja fina se disuelve hacia la mascota (efecto app real) */
@@ -211,3 +210,185 @@ html, body {
 
 /* ── Preview: card dentro de burbuja blanca respira igual que en la app ──── */
 .koru-message.is-koru .kc { margin: 2px 0 0; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PREVIEW v6 — TOPBAR FUNCIONAL: chips de categoría + controles + búsqueda
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.pv-topbar {
+  position: absolute;
+  top: 84px;
+  left: 0;
+  right: 0;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0 9px;
+  /* Opacidad alta en TODO el alto del topbar: el feed que corre por debajo
+     no debe "fantasmear" a través (lo detectó VLM en la primera pasada). */
+  background: linear-gradient(to bottom, rgba(10, 8, 23, 0.94), rgba(10, 8, 23, 0.88));
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+/* Chips: carrusel horizontal con scroll oculto (como las suggestions de la app) */
+.pv-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 0 12px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  scroll-snap-type: x proximity;
+}
+
+.pv-chips::-webkit-scrollbar { display: none; }
+
+.pv-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 11px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.82);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  cursor: pointer;
+  scroll-snap-align: start;
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.pv-chip .material-symbols-outlined {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.55);
+  transition: color 0.18s ease;
+}
+
+.pv-chip-count {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  padding: 1px 6px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.pv-chip:hover { border-color: rgba(255, 255, 255, 0.3); color: #fff; }
+
+.pv-chip.is-active {
+  background: #8363f9;
+  border-color: #8363f9;
+  color: #fff;
+}
+
+.pv-chip.is-active .material-symbols-outlined { color: rgba(255, 255, 255, 0.9); }
+
+.pv-chip.is-active .pv-chip-count {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
+.pv-chip:focus-visible,
+.pv-ctrl-btn:focus-visible,
+.pv-clear:focus-visible {
+  outline: 2px solid #b9a8f2;
+  outline-offset: 2px;
+}
+
+/* Fila de controles compacta: pausa · velocidad · mostrar todo · progreso */
+.pv-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+}
+
+.pv-ctrl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 9px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.85);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.pv-ctrl-btn[aria-pressed="true"] {
+  background: rgba(131, 99, 249, 0.32);
+  border-color: rgba(131, 99, 249, 0.6);
+  color: #fff;
+}
+
+.pv-ctrl-btn:hover { background: rgba(255, 255, 255, 0.14); }
+
+.pv-ctrl-progress {
+  margin-left: auto;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.5);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Búsqueda en el composer: ícono + limpiar */
+.pv-search-ic {
+  display: grid;
+  place-items: center;
+  color: #a89ad7;
+  margin-right: 8px;
+  flex: 0 0 auto;
+}
+
+.pv-stage-screen .koru-composer-field { padding: 0 6px 0 14px; }
+
+.pv-stage-screen .koru-composer-input::-webkit-search-cancel-button,
+.pv-stage-screen .koru-composer-input::-webkit-search-decoration,
+.pv-stage-screen .koru-composer-input::-webkit-search-results-button {
+  -webkit-appearance: none;
+  display: none;
+}
+
+.pv-clear {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  margin-left: 6px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: #a89ad7;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.pv-clear:hover { background: #f0ebf8; color: #523a9e; }
+
+/* Accesibilidad: sin animaciones si el usuario lo pidió */
+@media (prefers-reduced-motion: reduce) {
+  .pv-chip,
+  .pv-ctrl-btn,
+  .pv-clear,
+  .pv-links a {
+    transition: none;
+  }
+}

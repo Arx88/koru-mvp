@@ -1,5 +1,5 @@
 import type { UiBlock, AssistantSource } from "../../../domain/types";
-import { getCachedRate, formatCurrency } from "../../../tools/travel/currencyConverter";
+import { getCachedRate, formatCurrency, normalizeCurrencyCode } from "../../../tools/travel/currencyConverter";
 import { sortItemsByAisle, categorizeItem, aisleLabelFor } from "../../../domain/aisleMap";
 import { inferStressLevel } from "../../../domain/stressEngine";
 import {
@@ -3825,8 +3825,10 @@ function travelPlan(b: Of<"travel_plan">, ctx?: PresentationContext): KoruPresen
     let totalInUserCurrency = 0;
     let hasAnyConversion = false;
     const budgetTiles: DetailTile[] = budget.map((item) => {
-      const lineCurrency = (item.currency ?? "").toUpperCase();
-      const lineValue = `${lineCurrency}${item.amount.toLocaleString()}`;
+      // 🔴 FIX: normalizar símbolo → código ISO para comparar/convertir
+      // ("€" y "EUR" son la misma moneda), pero formatear con el símbolo.
+      const lineCurrency = normalizeCurrencyCode(item.currency ?? "");
+      const lineValue = formatCurrency(item.amount, lineCurrency);
       // Misma moneda → no hay conversión; sumamos al total directo.
       if (lineCurrency === userCurrency) {
         totalInUserCurrency += item.amount;

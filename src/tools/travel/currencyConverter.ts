@@ -81,6 +81,38 @@ export function getCachedRateDate(from: string, to: string): string | null {
 
 // ─── Formato de moneda ───────────────────────────────────────────────────────
 
+/** Símbolos de moneda ambiguos → código ISO. El backend a veces emite el
+ *  símbolo ("€") en vez del código ("EUR"); esta tabla los normaliza para
+ *  que las comparaciones y las llamadas a la API usen siempre códigos. */
+const SYMBOL_TO_CODE: Record<string, string> = {
+  "€": "EUR",
+  "£": "GBP",
+  "$": "USD",
+  "¥": "JPY",
+  "₩": "KRW",
+  "₹": "INR",
+  "R$": "BRL",
+  "AR$": "ARS",
+  "MX$": "MXN",
+  "C$": "CAD",
+  "A$": "AUD",
+  "Fr": "CHF",
+};
+
+/**
+ * Normaliza una moneda a su código ISO: "€" → "EUR", "AR$" → "ARS",
+ * "eur" → "EUR". Passthrough para códigos ya válidos. Vacío → "".
+ *
+ * Determinístico y síncrono: lo usan los mappers de presentación y el
+ * pre-fetch de tasas del card para que símbolo y código no desincronicen
+ * (bug real: budget en "€" contra userCurrency "EUR" pedía EUR→EUR a la API).
+ */
+export function normalizeCurrencyCode(raw: string): string {
+  const trimmed = (raw ?? "").trim();
+  if (!trimmed) return "";
+  return SYMBOL_TO_CODE[trimmed] ?? trimmed.toUpperCase();
+}
+
 /** Símbolos comunes para las monedas más usadas. Fallback: el código ISO. */
 const CURRENCY_SYMBOLS: Record<string, string> = {
   USD: "$",

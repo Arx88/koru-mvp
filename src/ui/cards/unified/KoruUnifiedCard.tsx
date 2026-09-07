@@ -7,7 +7,7 @@ import { KoruDetailScreen } from "./KoruDetailScreen";
 import { KoruCountUp } from "./KoruCountUp";
 import { useTapRipple } from "./useTapRipple";
 import { useKoru } from "../../KoruProvider";
-import { convertCurrency } from "../../../tools/travel/currencyConverter";
+import { convertCurrency, normalizeCurrencyCode } from "../../../tools/travel/currencyConverter";
 import { KoruIcon, iconFromMaterial } from "./KoruIcons";
 import { LivePrice } from "./useLivePrice";
 
@@ -370,7 +370,19 @@ function CardFoot({
       <div className="src">
         {firstSource ? (
           <>
-            {faviconSrc && <img alt="" src={faviconSrc} loading="lazy" />}
+            {faviconSrc && (
+              <img
+                alt=""
+                src={faviconSrc}
+                loading="lazy"
+                onError={(e) => {
+                  // Degradación honesta: si el favicon externo no carga
+                  // (offline / bloqueador / red lenta) se oculta y queda el
+                  // dominio como referencia — sin ícono roto.
+                  e.currentTarget.style.display = "none";
+                }}
+              />
+            )}
             <span>{firstSource.domain}</span>
           </>
         ) : (
@@ -1119,11 +1131,16 @@ export function KoruUnifiedCard({ block }: { block: UiBlock }) {
     if (budget.length === 0) return;
     let cancelled = false;
     (async () => {
+      // 🔴 FIX: normalizar símbolos ("€" → "EUR") ANTES de filtrar — el
+      // backend a veces emite símbolos y eso pedía conversiones EUR→EUR a
+      // la API (ruido CORS + wasted quota). Mismo código tras normalizar
+      // que userCurrency ⇒ no hay nada que convertir.
       const currenciesToFetch = Array.from(new Set(
         budget
-          .map((b) => (b.currency ?? "").toUpperCase())
+          .map((b) => normalizeCurrencyCode(b.currency ?? ""))
           .filter((c) => c && c !== userCurrency),
       ));
+      if (currenciesToFetch.length === 0) return;
       await Promise.allSettled(
         currenciesToFetch.map((from) => convertCurrency(1, from, userCurrency)),
       );

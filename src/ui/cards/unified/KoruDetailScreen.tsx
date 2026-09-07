@@ -375,6 +375,11 @@ function SourceRow({ source }: { source: DetailSourceRef }) {
           alt=""
           className="koru-source-favicon"
           loading="lazy"
+          onError={(e) => {
+            // Degradación honesta: imagen de source caída → ícono genérico.
+            e.currentTarget.outerHTML =
+              '<span class="material-symbols-outlined koru-dsec-source-icon" style="font-size:16px;color:#8b7fc7">language</span>';
+          }}
         />
       ) : (
         <Mat className="koru-dsec-source-icon">language</Mat>
