@@ -10,7 +10,8 @@ describe("RecipeInterior", () => {
   it("bindea nombre, ingredientes con medida y pasos con duración", () => {
     render(<RecipeInterior block={recipeBlock} onClose={vi.fn()} />);
     expect(screen.getAllByText("Spaghetti alla carbonara").length).toBeGreaterThan(0);
-    expect(screen.getByText(/200 g spaghetti/i)).toBeInTheDocument();
+    expect(screen.getByText("200 g")).toBeInTheDocument();
+    expect(screen.getByText("spaghetti nº5")).toBeInTheDocument();
     expect(screen.getByText("Dorado del guanciale")).toBeInTheDocument();
     expect(screen.getByText("7 min")).toBeInTheDocument();
     expect(screen.getByText(/5 ingredientes/i)).toBeInTheDocument();
