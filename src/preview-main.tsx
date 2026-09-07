@@ -167,7 +167,7 @@ function SuggestionBar() {
         Propuesta
         <span className="topic">A · Lectura Visual</span>
       </a>
-      <a href="/propuesta-b.html" className="koru-suggestion-pill">
+      <a href="/propuesta-b-full.html" className="koru-suggestion-pill">
         <span className="material-symbols-outlined">record_voice_over</span>
         Propuesta
         <span className="topic">B · Koru te Cuenta</span>
@@ -195,11 +195,11 @@ function WelcomeTurn() {
           </span>
           <span className="material-symbols-outlined pv-welcome-go">chevron_right</span>
         </a>
-        <a className="pv-welcome-btn" href="/propuesta-b.html">
+        <a className="pv-welcome-btn" href="/propuesta-b-full.html">
           <span className="material-symbols-outlined">record_voice_over</span>
           <span className="pv-welcome-btn-text">
             <strong>Propuesta B</strong>
-            <small>Koru te Cuenta · capítulos a un tap</small>
+            <small>Koru te Cuenta · con todos los flujos</small>
           </span>
           <span className="material-symbols-outlined pv-welcome-go">chevron_right</span>
         </a>

@@ -1,0 +1,1324 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Koru te Cuenta · Flujos completos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bricolage+Grotesque:wght@600;700;800&display=swap" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" />
+<style>
+/* ══════════════════════════════════════════════════════════════════
+   PROPUESTA B — VERSIÓN COMPLETA "KORU TE CUENTA"
+   Flujos íntegros e interactivos: chat real → tap en la card →
+   interior narrado por capítulos → ¿Querés más? → guardar → volver.
+   Incluye mapa del flujo, anotaciones UX y recorrido automático.
+   Assets 100% reales del repo. Voseo rioplatense.
+   ══════════════════════════════════════════════════════════════════ */
+:root{
+  --violet:#8363f9; --violet-2:#a78bfa;
+  --mint:#6ee7b7; --mint-deep:#2f8f6d;
+  --honey:#f6bd6d; --amber:#f59e0b;
+  --pink:#ff8fb8; --sky:#8ab0ff;
+  --disp:'Bricolage Grotesque',Georgia,serif;
+  --sans:'Plus Jakarta Sans',system-ui,sans-serif;
+  --glass:rgba(15,10,36,.8);
+  --line:rgba(255,255,255,.16);
+  --spring:cubic-bezier(.34,1.56,.64,1);
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#0b0818}
+body{font-family:var(--sans);color:#fff;-webkit-font-smoothing:antialiased;min-height:100vh}
+.material-symbols-outlined{font-variation-settings:'FILL' 1;line-height:1}
+img{user-select:none}
+
+/* ── Stage ───────────────────────────────────────────────────── */
+.stage{min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:26px;
+  padding:40px 16px 70px;position:relative}
+.stage::before{content:"";position:fixed;inset:0;pointer-events:none;
+  background:radial-gradient(620px 420px at 80% -5%,rgba(110,231,183,.13),transparent 70%),
+             radial-gradient(700px 520px at 15% 108%,rgba(131,99,249,.16),transparent 70%)}
+.stage-head{max-width:600px;text-align:center;position:relative}
+.stage-head .logo-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:14px}
+.stage-head .logo-row img{width:30px;height:30px}
+.stage-head .chip-b{font:800 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:#0f0b28;
+  background:linear-gradient(135deg,#6ee7b7,#2f8f6d);padding:6px 12px;border-radius:999px}
+.stage-head h1{font:800 27px var(--disp);letter-spacing:-.02em}
+.stage-head h1 span{color:var(--mint)}
+.stage-head .tagline{margin-top:10px;font-size:14px;line-height:1.6;color:rgba(255,255,255,.72)}
+.stage-head .tagline b{color:#fff}
+.backlink{position:absolute;top:-6px;left:0;font:700 11px var(--sans);color:rgba(255,255,255,.55);
+  text-decoration:none;display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);
+  padding:6px 11px;border-radius:999px;transition:.2s}
+.backlink:hover{color:#fff;background:rgba(255,255,255,.08)}
+
+/* ══ MAPA DEL FLUJO ════════════════════════════════════════════ */
+.flowmap{max-width:760px;width:100%;border:1px solid var(--line);border-radius:26px;
+  background:rgba(255,255,255,.04);backdrop-filter:blur(12px);padding:20px 22px 16px;position:relative}
+.flowmap h2{font:800 15px var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--mint);
+  display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.flowmap h2 .material-symbols-outlined{font-size:18px}
+.fmrow{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+.fmstep{position:relative;text-align:center;padding:12px 4px 10px;border-radius:18px;
+  background:rgba(255,255,255,.05);border:1px solid var(--line);transition:.25s}
+.fmstep:hover{background:rgba(255,255,255,.1);transform:translateY(-2px)}
+.fmstep .fn{position:absolute;top:-9px;left:50%;transform:translateX(-50%);width:20px;height:20px;
+  border-radius:50%;display:grid;place-items:center;font:800 10px var(--sans);color:#04291a;
+  background:var(--mint);box-shadow:0 4px 12px rgba(110,231,183,.5)}
+.fmstep .material-symbols-outlined{font-size:21px;color:var(--violet-2);display:block;margin-bottom:6px}
+.fmstep .ft{font:800 10.5px var(--sans);line-height:1.25;color:#fff}
+.fmstep .fd{font:600 9px var(--sans);line-height:1.35;color:rgba(255,255,255,.55);margin-top:3px}
+.fmstep .fx{font:700 8.5px var(--sans);color:rgba(255,255,255,.4);display:block;margin-top:5px}
+.fmstep .fx b{color:var(--mint);font-weight:800}
+@media (max-width:720px){
+  .fmrow{grid-template-columns:repeat(2,1fr)}
+  .fmstep .fx{display:none}
+}
+
+/* ══ Controles del demo ════════════════════════════════════════ */
+.demobar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center}
+.demobar .flabel{font:800 10px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.5)}
+.dtab{border:1px solid var(--line);background:rgba(255,255,255,.05);color:rgba(255,255,255,.75);
+  font:700 12px var(--sans);padding:9px 14px;border-radius:999px;cursor:pointer;display:inline-flex;
+  align-items:center;gap:6px;transition:.25s var(--spring)}
+.dtab .material-symbols-outlined{font-size:15px}
+.dtab:hover{color:#fff;background:rgba(255,255,255,.12)}
+.dtab.on{background:linear-gradient(135deg,rgba(110,231,183,.25),rgba(47,143,109,.25));color:#fff;
+  border-color:rgba(110,231,183,.55);box-shadow:0 6px 18px rgba(110,231,183,.25)}
+.dsep{width:1px;height:22px;background:var(--line);margin:0 4px}
+.dtour{border:0;background:linear-gradient(135deg,var(--violet),#523a9e);color:#fff;font:800 12px var(--sans);
+  padding:10px 16px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;
+  box-shadow:0 10px 26px rgba(131,99,249,.4);transition:.3s var(--spring)}
+.dtour:hover{transform:translateY(-2px) scale(1.02)}
+.dtour .material-symbols-outlined{font-size:16px}
+.dtour.running{background:linear-gradient(135deg,#ef4444,#b91c1c);box-shadow:0 10px 26px rgba(239,68,68,.4)}
+.dux{border:1px dashed rgba(246,189,109,.5);background:rgba(246,189,109,.08);color:var(--honey);
+  font:800 12px var(--sans);padding:10px 15px;border-radius:999px;cursor:pointer;display:inline-flex;
+  align-items:center;gap:7px;transition:.25s}
+.dux .material-symbols-outlined{font-size:16px}
+.dux.on{background:rgba(246,189,109,.22);border-style:solid;box-shadow:0 6px 18px rgba(246,189,109,.25)}
+
+/* ══ PHONE ═════════════════════════════════════════════════════ */
+.phone{width:430px;height:932px;flex:none;border-radius:47px;position:relative;overflow:hidden;
+  background:#0d0a1e;border:1px solid rgba(255,255,255,.12);
+  box-shadow:0 0 0 9px #1a1533,0 0 0 10.5px rgba(255,255,255,.09),0 44px 90px rgba(0,0,0,.6);z-index:1}
+.phone .bgworld{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.phone .scrim{position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(9,6,24,.68) 0%,rgba(9,6,24,.48) 14%,rgba(9,6,24,.54) 32%,rgba(9,6,24,.68) 62%,rgba(9,6,24,.9) 100%)}
+.statusbar{position:absolute;top:0;left:0;right:0;height:46px;z-index:34;display:flex;align-items:center;
+  justify-content:space-between;padding:4px 27px 0;font:700 13px var(--sans);pointer-events:none;color:#fff}
+.statusbar .notch{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:118px;height:29px;
+  background:#0b0818;border-radius:999px}
+.statusbar .sicons{display:flex;gap:5.5px;align-items:center;opacity:.95}
+/* marcador de vista (demo): CHAT / INTERIOR */
+.viewtag{position:absolute;top:52px;left:50%;transform:translateX(-50%);z-index:33;font:800 9px var(--sans);
+  letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.55);pointer-events:none;
+  background:rgba(15,10,36,.6);border:1px solid var(--line);padding:4px 12px;border-radius:999px;
+  backdrop-filter:blur(8px);transition:.3s}
+.viewtag.vt-int{color:var(--mint);border-color:rgba(110,231,183,.4)}
+
+/* ── VISTA CHAT (réplica del look real de la app: burbujas claras) ── */
+.chatview{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;scroll-behavior:smooth;
+  padding:86px 15px 26px;z-index:10;transition:opacity .35s,transform .5s var(--ease)}
+.chatview::-webkit-scrollbar{width:0}
+.phone.int .chatview{opacity:0;transform:scale(.94) translateY(-14px);pointer-events:none}
+.msg{display:flex;margin-bottom:13px}
+.msg .bub{max-width:86%;padding:11px 14px;border-radius:20px 20px 20px 6px;font-size:13.5px;line-height:1.5}
+.msg.user{justify-content:flex-end}
+.msg.user .bub{background:#f0edff;color:#241d4f;border-radius:20px 20px 6px 20px;font-weight:600}
+.msg.koru{gap:9px;align-items:flex-end}
+.msg.koru .av{width:34px;height:34px;flex:none;border-radius:50%;overflow:hidden;border:2px solid rgba(255,255,255,.25)}
+.msg.koru .av img{width:100%;height:100%;object-fit:cover;display:block}
+.msg.koru .bub{background:#ffffff;color:#241d4f;border-radius:20px 20px 20px 6px;
+  box-shadow:0 10px 26px rgba(6,4,20,.4);flex:0 1 86%}
+.msg.koru .bub p{font-size:13px;color:#3a3260}
+.msg.koru .bub p b{color:#241d4f;font-weight:800}
+.msg.koru .bub .k-tag{color:var(--violet)}
+
+/* card externa COMPACTA (la que vive en el chat — look app real) */
+.xcard{display:block;width:100%;margin-top:9px;background:#fafaff;border:1.5px solid #e5e0ff;
+  border-radius:20px;padding:14px 15px 12px;text-align:left;cursor:pointer;text-decoration:none;
+  transition:.3s var(--spring);box-shadow:0 6px 18px rgba(36,29,95,.12)}
+.xcard:hover{transform:translateY(-2px) scale(1.008);border-color:#c9bcff;box-shadow:0 12px 28px rgba(36,29,95,.2)}
+.xcard:active{transform:scale(.985)}
+.xcard .xc-h{display:flex;align-items:center;gap:9px}
+.xcard .xc-ic{width:37px;height:37px;border-radius:44% 40% 46% 42%/42% 46% 40% 44%;flex:none;
+  display:grid;place-items:center}
+.xcard .xc-ic .material-symbols-outlined{font-size:19px}
+.xcard .xc-k{font:800 8.5px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--violet)}
+.xcard .xc-t{font:800 15px var(--sans);color:#241d4f;letter-spacing:-.01em;line-height:1.2;margin-top:1px}
+.xcard .xc-m{display:flex;gap:7px;margin:11px 0 9px}
+.xcard .xc-cell{flex:1;background:#f2effe;border-radius:13px;padding:8px 6px 7px;text-align:center}
+.xcard .xc-cell .n{font:800 15px var(--disp);letter-spacing:-.02em;color:#241d4f;font-variant-numeric:tabular-nums}
+.xcard .xc-cell .l{display:block;font:700 7.5px var(--sans);letter-spacing:.08em;text-transform:uppercase;
+  color:#7a72a5;margin-top:2px}
+.xcard .xc-f{display:flex;align-items:center;justify-content:space-between;border-top:1px dashed #ddd6ff;
+  padding-top:9px;margin-top:2px}
+.xcard .xc-f .tell{display:flex;align-items:center;gap:6px;font:800 10.5px var(--sans);color:var(--violet)}
+.xcard .xc-f .tell .material-symbols-outlined{font-size:14px}
+.xcard .xc-f .chaps{font:800 9px var(--sans);color:#fff;background:linear-gradient(135deg,var(--violet),#523a9e);
+  padding:4px 10px;border-radius:999px}
+.xcard .xc-duel{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;margin:10px 0 2px}
+.xcard .xc-duel img{width:44px;height:44px;object-fit:contain;background:#fff;border-radius:50%;padding:5px;
+  margin:0 auto;display:block;box-shadow:0 4px 10px rgba(36,29,95,.18)}
+.xcard .xc-duel .nm{font:800 9px var(--sans);text-transform:uppercase;color:#7a72a5;text-align:center;margin-top:4px}
+.xcard .xc-duel .sc{font:800 26px/1 var(--disp);color:#241d4f;text-align:center;font-variant-numeric:tabular-nums}
+.xcard .xc-live{display:inline-flex;align-items:center;gap:5px;font:800 8.5px var(--sans);letter-spacing:.06em;
+  text-transform:uppercase;color:#fff;background:#ef4444;padding:3px 8px;border-radius:999px;margin:0 auto}
+.xcard .xc-live i{width:5px;height:5px;border-radius:50%;background:#fff;animation:pulse 1.4s infinite}
+/* hint del demo */
+.hintpill{display:flex;align-items:center;gap:7px;justify-content:center;margin:2px auto 0;width:fit-content;
+  font:800 10.5px var(--sans);color:var(--mint);border:1.5px dashed rgba(110,231,183,.45);
+  background:rgba(110,231,183,.08);padding:8px 14px;border-radius:999px;animation:bounce 2.2s infinite}
+.hintpill .material-symbols-outlined{font-size:15px}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.8)}}
+
+/* ══ VISTA INTERIOR (el mundo de "Koru te Cuenta") ═════════════ */
+.interior{position:absolute;inset:0;z-index:20;transform:translateY(103%);
+  transition:transform .55s var(--spring);background:#0d0a1e;border-radius:0}
+.phone.int .interior{transform:translateY(0)}
+.interior .bgworld{z-index:0}
+.interior .scrim{z-index:1}
+/* progreso de capítulos */
+.chapdots{position:absolute;top:47px;left:0;right:0;z-index:30;display:flex;align-items:center;
+  justify-content:space-between;padding:12px 16px 10px}
+.chapdots .left{display:flex;gap:8px;align-items:center}
+.dots{display:flex;gap:5px;align-items:center}
+.dot{width:7px;height:7px;border-radius:999px;background:rgba(255,255,255,.28);transition:.4s var(--spring)}
+.dot.on{background:var(--mint);width:20px;box-shadow:0 0 10px rgba(110,231,183,.6)}
+.fab{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:rgba(15,10,36,.7);
+  backdrop-filter:blur(12px);color:#fff;display:grid;place-items:center;cursor:pointer;transition:.25s var(--spring)}
+.fab:hover{background:rgba(255,255,255,.18);transform:scale(1.08)}
+.fab:active{transform:scale(.94)}
+.fab .material-symbols-outlined{font-size:18px}
+.fab.saved{background:rgba(110,231,183,.25);border-color:rgba(110,231,183,.6)}
+.fab.saved .material-symbols-outlined{color:var(--mint)}
+/* readbar */
+.readbar{position:absolute;top:0;left:0;right:0;height:3px;z-index:35;background:rgba(255,255,255,.1)}
+.readbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--mint),var(--violet-2));
+  border-radius:99px;box-shadow:0 0 10px rgba(110,231,183,.5)}
+/* screen de scroll */
+.screen{position:absolute;top:91px;left:0;right:0;bottom:0;overflow-y:auto;overscroll-behavior:contain;
+  scroll-behavior:smooth;z-index:10}
+.screen::-webkit-scrollbar{width:0}
+.panel{display:none;padding:6px 20px 122px}
+.panel.on{display:block}
+.rv{opacity:0;transform:translateY(20px) scale(.98);transition:opacity .55s var(--ease),transform .55s var(--spring)}
+.rv.in{opacity:1;transform:none}
+/* voz de Koru */
+.koru{display:flex;gap:10px;margin:20px 0 12px;align-items:flex-end}
+.koru .av{width:38px;height:38px;flex:none;border-radius:50%;overflow:hidden;position:relative;
+  border:2px solid rgba(255,255,255,.25);box-shadow:0 6px 16px rgba(0,0,0,.4)}
+.koru .av img{width:100%;height:100%;object-fit:cover;display:block}
+.koru .say{position:relative;flex:1;max-width:330px;background:var(--glass);border:1px solid var(--line);
+  border-radius:20px 20px 20px 6px;padding:13px 15px;backdrop-filter:blur(18px);box-shadow:0 10px 26px rgba(6,4,20,.35)}
+.koru .say p{font-size:13.5px;line-height:1.55;color:rgba(255,255,255,.95)}
+.koru .say p b{font-weight:800}
+.koru .say b.k-honey{color:var(--honey)} .koru .say b.k-mint{color:#8ef0c8} .koru .say b.k-violet{color:var(--violet-2)}
+.koru.hero-k{margin-top:4px}
+.koru .say .hl{display:inline-flex;align-items:center;gap:5px;margin-top:9px;font:800 10px var(--sans);
+  letter-spacing:.1em;text-transform:uppercase;color:var(--mint)}
+.koru .say .hl .material-symbols-outlined{font-size:13px}
+/* guijarros */
+.pebbles{display:flex;gap:9px;margin-top:14px}
+.peb{flex:1;padding:13px 8px 11px;text-align:center;position:relative;
+  background:linear-gradient(165deg,rgba(255,255,255,.14),rgba(255,255,255,.05)),var(--glass);
+  border:1px solid var(--line);backdrop-filter:blur(16px);box-shadow:0 10px 24px rgba(6,4,20,.3)}
+.peb:nth-child(1){border-radius:32px 22px 30px 24px/26px 32px 22px 30px}
+.peb:nth-child(2){border-radius:22px 30px 24px 32px/30px 24px 32px 22px}
+.peb:nth-child(3){border-radius:30px 24px 32px 22px/24px 30px 22px 32px}
+.peb .material-symbols-outlined{font-size:16px;display:block;margin:0 auto 4px}
+.peb .n{font:800 19px var(--disp);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.peb .l{display:block;font:700 8.5px var(--sans);letter-spacing:.09em;text-transform:uppercase;
+  color:rgba(255,255,255,.6);margin-top:3px}
+.peb.p-honey .material-symbols-outlined,.peb.p-honey .n{color:var(--honey)}
+.peb.p-violet .material-symbols-outlined,.peb.p-violet .n{color:var(--violet-2)}
+.peb.p-mint .material-symbols-outlined,.peb.p-mint .n{color:var(--mint)}
+/* capítulo */
+.chap{margin-top:30px;display:flex;align-items:center;gap:11px}
+.chap .cn{width:34px;height:34px;flex:none;display:grid;place-items:center;font:800 13px var(--disp);
+  border-radius:12px;background:rgba(255,255,255,.1);border:1px solid var(--line);color:rgba(255,255,255,.85)}
+.chap h3{font:800 17px var(--disp);letter-spacing:-.01em}
+.chap small{display:block;font:800 8.5px var(--sans);letter-spacing:.15em;text-transform:uppercase;
+  color:rgba(255,255,255,.55);margin-bottom:2px}
+/* widget card */
+.wcard{border-radius:24px;background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(18px);
+  box-shadow:0 10px 26px rgba(6,4,20,.35);padding:15px 16px;margin-top:10px}
+/* chips ¿Querés más? */
+.more{margin-top:11px}
+.more-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:7px;border:0;cursor:pointer;
+  padding:12px 0;border-radius:999px;font:800 12px var(--sans);color:rgba(255,255,255,.85);
+  background:rgba(255,255,255,.1);border:1px dashed rgba(255,255,255,.24);transition:.3s var(--spring)}
+.more-btn:hover{background:rgba(255,255,255,.16);transform:scale(1.015)}
+.more-btn:active{transform:scale(.98)}
+.more-btn .material-symbols-outlined{font-size:16px;transition:.4s var(--spring)}
+.more.open .more-btn .material-symbols-outlined{transform:rotate(180deg)}
+.more.open .more-btn{border-style:solid;border-color:rgba(110,231,183,.45);color:var(--mint)}
+.more-body{max-height:0;overflow:hidden;transition:max-height .55s var(--ease)}
+.more.open .more-body{max-height:900px}
+.more-body .inner{padding-top:12px}
+.more-body .inner>*+*{margin-top:9px}
+.more-body p{font-size:12.5px;line-height:1.6;color:rgba(255,255,255,.82)}
+.more-body p b{color:#fff}
+.more-body .datarow{display:flex;align-items:center;gap:9px;padding:10px 13px;border-radius:16px;
+  background:rgba(255,255,255,.07);border:1px solid var(--line)}
+.more-body .datarow .material-symbols-outlined{font-size:16px;color:var(--mint)}
+.more-body .datarow span{font:700 11.5px var(--sans);color:rgba(255,255,255,.85)}
+.more-body .datarow b{margin-left:auto;font:800 13px var(--disp);color:var(--mint);font-variant-numeric:tabular-nums}
+/* acciones fijas al fondo del interior — una por flujo, fuera del scroll */
+.actions{position:absolute;left:0;right:0;bottom:0;z-index:16;display:none;padding:18px 20px 22px;
+  background:linear-gradient(180deg,rgba(9,6,24,0),rgba(9,6,24,.9) 42%)}
+.actions.on{display:flex;gap:10px}
+.btn{flex:1;border:0;border-radius:999px;padding:16px 0;font:800 13.5px var(--sans);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;transition:.3s var(--spring)}
+.btn .material-symbols-outlined{font-size:17px}
+.btn.primary{background:linear-gradient(135deg,var(--mint),var(--mint-deep));color:#04291a;
+  box-shadow:0 12px 30px rgba(110,231,183,.4)}
+.btn.primary:hover{transform:translateY(-2px) scale(1.01)}
+.btn.primary.saved{background:rgba(110,231,183,.18);color:var(--mint);box-shadow:none;
+  border:1.5px solid rgba(110,231,183,.5)}
+.btn.ghost{background:var(--glass);border:1px solid var(--line);color:#fff;flex:.7;backdrop-filter:blur(14px)}
+/* toast */
+.toast{position:absolute;left:50%;bottom:112px;transform:translate(-50%,18px) scale(.9);z-index:40;
+  display:flex;align-items:center;gap:9px;background:rgba(15,10,36,.92);border:1.5px solid rgba(110,231,183,.5);
+  color:#fff;font:800 12.5px var(--sans);padding:12px 18px;border-radius:999px;backdrop-filter:blur(16px);
+  box-shadow:0 16px 40px rgba(6,4,20,.6);opacity:0;pointer-events:none;transition:.45s var(--spring)}
+.toast.show{opacity:1;transform:translate(-50%,0) scale(1)}
+.toast .material-symbols-outlined{font-size:17px;color:var(--mint)}
+
+/* ══ TOUR (recorrido automático) ═══════════════════════════════ */
+.tourcap{position:absolute;left:12px;right:12px;bottom:14px;z-index:38;display:none;align-items:center;gap:10px;
+  background:rgba(15,10,36,.94);border:1.5px solid rgba(167,139,250,.55);border-radius:18px;
+  padding:12px 15px;backdrop-filter:blur(16px);box-shadow:0 16px 40px rgba(6,4,20,.65)}
+.tourcap.show{display:flex}
+.tourcap .tno{width:30px;height:30px;flex:none;border-radius:50%;display:grid;place-items:center;
+  font:800 12px var(--disp);color:#fff;background:linear-gradient(135deg,var(--violet),#523a9e);
+  box-shadow:0 6px 14px rgba(131,99,249,.5)}
+.tourcap .tt{font:800 12.5px var(--sans);line-height:1.35}
+.tourcap .tt small{display:block;font:600 10.5px var(--sans);color:rgba(255,255,255,.6);margin-top:2px}
+.tourcap .skip{border:0;background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);font:800 10px var(--sans);
+  padding:7px 11px;border-radius:999px;cursor:pointer;flex:none;margin-left:auto}
+.tourcap .skip:hover{background:rgba(255,255,255,.2);color:#fff}
+.touring{position:relative;border-radius:16px}
+.touring::after{content:"";position:absolute;inset:-6px;border-radius:22px;border:2.5px solid var(--mint);
+  box-shadow:0 0 0 6px rgba(110,231,183,.22),0 0 30px rgba(110,231,183,.45);pointer-events:none;
+  animation:ringpulse 1.1s infinite}
+@keyframes ringpulse{0%,100%{opacity:1}50%{opacity:.55}}
+.phone.touring-phone .chatview{overflow:hidden}
+.phone.touring-phone .screen{overflow:hidden}
+
+/* ══ PINS de anotaciones UX ════════════════════════════════════ */
+.uxpin{position:absolute;z-index:37;width:24px;height:24px;border-radius:50%;display:none;place-items:center;
+  font:800 11px var(--sans);color:#3d2500;background:var(--honey);cursor:pointer;
+  border:2px solid #0b0818;box-shadow:0 4px 14px rgba(246,189,109,.6);animation:pinpop .5s var(--spring)}
+@keyframes pinpop{from{transform:scale(0)}to{transform:scale(1)}}
+body.ux-on .uxpin{display:grid}
+.uxpin:hover{transform:scale(1.15)}
+/* leyenda */
+.uxlegend{max-width:430px;width:100%;display:none;border:1px solid rgba(246,189,109,.35);border-radius:22px;
+  background:rgba(246,189,109,.06);padding:16px 18px}
+body.ux-on .uxlegend{display:block}
+.uxlegend h4{font:800 12px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--honey);
+  margin-bottom:10px;display:flex;align-items:center;gap:7px}
+.uxlegend h4 .material-symbols-outlined{font-size:15px}
+.uxlegend ol{list-style:none;display:flex;flex-direction:column;gap:8px}
+.uxlegend li{display:flex;gap:10px;align-items:flex-start;font-size:12px;line-height:1.5;color:rgba(255,255,255,.82)}
+.uxlegend li .pn{flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;
+  font:800 10px var(--sans);color:#3d2500;background:var(--honey);margin-top:1px}
+.uxlegend li b{color:#fff}
+
+/* ══ Footer: decisiones UX ═════════════════════════════════════ */
+.foot{max-width:760px;width:100%;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:720px){.foot{grid-template-columns:1fr}}
+.fbox{border:1px solid var(--line);border-radius:22px;background:rgba(255,255,255,.04);
+  backdrop-filter:blur(10px);padding:16px 18px}
+.fbox h4{font:800 12px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--mint);
+  margin-bottom:11px;display:flex;align-items:center;gap:7px}
+.fbox h4 .material-symbols-outlined{font-size:15px}
+.fbox li{list-style:none;display:flex;gap:9px;font-size:12px;line-height:1.55;color:rgba(255,255,255,.8);margin-bottom:8px}
+.fbox li .material-symbols-outlined{font-size:14px;color:var(--mint);margin-top:2px;flex:none}
+.fbox li b{color:#fff}
+/* ══ WIDGETS de capítulos ══════════════════════════════════════ */
+/* barras de sol */
+.sunrow{display:grid;grid-template-columns:100px 1fr 58px;gap:10px;align-items:center;margin-top:11px}
+.sunrow:first-of-type{margin-top:0}
+.sunrow .nm{font:700 12.5px var(--sans);line-height:1.15}
+.sunrow .nm small{display:block;font:700 8px var(--sans);letter-spacing:.07em;text-transform:uppercase;margin-top:3px}
+.sunrow .nm small.c-mint{color:var(--mint)} .sunrow .nm small.c-honey{color:var(--honey)}
+.sunrow .nm small.c-dim{color:rgba(255,255,255,.5)}
+.track{height:14px;border-radius:999px;background:rgba(255,255,255,.12);overflow:hidden;position:relative}
+.fill{height:100%;border-radius:999px;background:linear-gradient(90deg,rgba(246,189,109,.5),var(--honey) 55%,var(--amber));
+  box-shadow:0 0 12px rgba(246,189,109,.35);animation:grow 1s var(--ease) backwards}
+@keyframes grow{from{width:0 !important}}
+.sunrow .vl{font:800 12px var(--sans);text-align:right;font-variant-numeric:tabular-nums}
+.sunrow .vl small{display:block;font:700 8px var(--sans);color:rgba(255,255,255,.5)}
+/* dinero */
+.money-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:22px;
+  background:linear-gradient(165deg,rgba(255,255,255,.12),rgba(255,255,255,.04));border:1px solid var(--line)}
+.money-row+.money-row{margin-top:9px}
+.money-row .mic{width:38px;height:38px;border-radius:50% 42% 50% 44%/44% 50% 42% 50%;flex:none;
+  display:grid;place-items:center;background:rgba(255,255,255,.1)}
+.money-row .mic .material-symbols-outlined{font-size:18px}
+.money-row .mr{flex:1}
+.money-row .mv{font:800 21px var(--disp);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.money-row .ml{font:700 11px var(--sans);color:rgba(255,255,255,.75);margin-top:1px}
+.money-row .tagchip{font:800 8.5px var(--sans);letter-spacing:.08em;text-transform:uppercase;
+  padding:4px 9px;border-radius:999px;flex:none}
+.money-row.t-honey .mv,.money-row.t-honey .mic .material-symbols-outlined{color:var(--honey)}
+.money-row.t-honey .tagchip{background:rgba(246,189,109,.16);color:var(--honey)}
+.money-row.t-violet .mv,.money-row.t-violet .mic .material-symbols-outlined{color:var(--violet-2)}
+.money-row.t-violet .tagchip{background:rgba(167,139,250,.16);color:var(--violet-2)}
+.money-row.t-mint .mv,.money-row.t-mint .mic .material-symbols-outlined{color:var(--mint)}
+.money-row.t-mint .tagchip{background:rgba(110,231,183,.15);color:var(--mint)}
+/* trampas */
+.trap{display:flex;gap:12px;align-items:flex-start;padding:13px 14px;border-radius:24px 18px 24px 18px;
+  background:linear-gradient(160deg,rgba(246,189,109,.14),rgba(246,189,109,.04));border:1px solid rgba(246,189,109,.3)}
+.trap+.trap{margin-top:9px}
+.trap .tic{width:36px;height:36px;border-radius:44% 50% 42% 50%/50% 44% 50% 42%;flex:none;display:grid;
+  place-items:center;background:rgba(246,189,109,.2)}
+.trap .tic .material-symbols-outlined{font-size:18px;color:var(--honey)}
+.trap h5{font:800 13px var(--sans);margin-bottom:2px}
+.trap p{font-size:11.5px;line-height:1.5;color:rgba(255,255,255,.75)}
+/* fuentes */
+.srcs{display:flex;gap:8px;flex-wrap:wrap}
+.src{display:flex;align-items:center;gap:7px;padding:10px 14px;border-radius:999px;
+  background:var(--glass);border:1px solid var(--line);font:700 11.5px var(--sans);color:rgba(255,255,255,.85)}
+.src .material-symbols-outlined{font-size:14px;color:var(--mint)}
+/* clima hero */
+.w-hero{text-align:center;padding-top:2px}
+.w-hero .city{font:800 12px var(--sans);letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.75)}
+.w-hero .bignow{display:flex;align-items:center;justify-content:center;gap:2px;margin:2px 0}
+.w-hero .bignow .t{font:800 76px/1.05 var(--disp);letter-spacing:-.04em;font-variant-numeric:tabular-nums;
+  text-shadow:0 14px 40px rgba(245,158,11,.25)}
+.w-hero .bignow .material-symbols-outlined{font-size:44px;color:var(--honey);filter:drop-shadow(0 6px 18px rgba(245,158,11,.5))}
+.w-hero .cond{font:700 15px var(--sans)}
+.w-hero .rng{font:700 12.5px var(--sans);color:rgba(255,255,255,.66);margin-top:4px}
+.w-chips{display:flex;justify-content:center;gap:7px;margin-top:13px;flex-wrap:wrap}
+.w-chip{display:flex;align-items:center;gap:5px;font:700 11px var(--sans);color:rgba(255,255,255,.85);
+  background:var(--glass);border:1px solid var(--line);padding:8px 11px;border-radius:999px;backdrop-filter:blur(12px)}
+.w-chip .material-symbols-outlined{font-size:13px}
+.w-chip.wind .material-symbols-outlined{color:var(--sky)} .w-chip.drop .material-symbols-outlined{color:#7dd3fc}
+.w-chip.uv .material-symbols-outlined{color:var(--pink)} .w-chip.hot .material-symbols-outlined{color:var(--honey)}
+.hourly{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 2px;scrollbar-width:none}
+.hourly::-webkit-scrollbar{display:none}
+.hr-pill{flex:none;min-width:62px;text-align:center;padding:11px 8px 10px;border-radius:44% 38% 46% 40%/40% 46% 38% 44%;
+  background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(14px)}
+.hr-pill .h{font:700 10px var(--sans);color:rgba(255,255,255,.6)}
+.hr-pill .material-symbols-outlined{font-size:19px;margin:5px 0 4px;color:var(--honey)}
+.hr-pill .t{font:800 14.5px var(--disp);font-variant-numeric:tabular-nums}
+.hr-pill .u{display:block;font:700 8.5px var(--sans);color:rgba(255,255,255,.5);margin-top:2px}
+/* finde */
+.wk{display:grid;grid-template-columns:46px 26px 34px 1fr 40px;gap:10px;align-items:center;padding:6.5px 0}
+.wk .d{font:800 11px var(--sans);letter-spacing:.1em}
+.wk .lo{font:700 11.5px var(--sans);color:rgba(255,255,255,.5);text-align:right}
+.wk .hi{font:800 12.5px var(--sans);font-variant-numeric:tabular-nums;text-align:right}
+.wk .rngbar{height:7px;border-radius:999px;background:rgba(255,255,255,.12);position:relative}
+.wk .rngbar i{position:absolute;height:100%;border-radius:999px;background:linear-gradient(90deg,#7dd3fc,var(--honey))}
+.wk .material-symbols-outlined{font-size:19px}
+.wk .material-symbols-outlined.sunny{color:var(--honey)} .wk .material-symbols-outlined.rainy{color:#7dd3fc}
+/* plan: camino del día */
+.journey{position:relative;padding-left:34px;margin-top:6px}
+.journey::before{content:"";position:absolute;left:15px;top:16px;bottom:16px;width:2.5px;border-radius:99px;
+  background:linear-gradient(180deg,rgba(131,99,249,.6),rgba(246,189,109,.4),rgba(255,255,255,.12))}
+.stop2{position:relative;padding-bottom:13px}
+.stop2::before{content:"";position:absolute;left:-28px;top:14px;width:14px;height:14px;border-radius:50%;
+  border:2.5px solid #0d0a1e;box-shadow:0 0 0 2px rgba(255,255,255,.25)}
+.stop2.p-alta::before{background:var(--violet);box-shadow:0 0 0 2px rgba(131,99,249,.55),0 0 12px rgba(131,99,249,.55)}
+.stop2.p-media::before{background:var(--honey);box-shadow:0 0 0 2px rgba(246,189,109,.4)}
+.stop2.p-baja::before{background:rgba(255,255,255,.5);box-shadow:0 0 0 2px rgba(255,255,255,.2)}
+.stop2 .tm{font:800 11px var(--sans);color:rgba(255,255,255,.6);letter-spacing:.06em}
+.stop2 .card{margin-top:6px;padding:12px 14px;border-radius:26px 20px 26px 20px;background:var(--glass);
+  border:1px solid var(--line);backdrop-filter:blur(16px);box-shadow:0 8px 22px rgba(6,4,20,.3)}
+.stop2 .row1{display:flex;align-items:center;gap:9px}
+.stop2 .aic{width:32px;height:32px;border-radius:44% 50% 40% 52%/52% 40% 50% 44%;background:rgba(255,255,255,.1);
+  display:grid;place-items:center;flex:none}
+.stop2 .aic .material-symbols-outlined{font-size:16px}
+.stop2 h5{font:800 13px var(--sans);flex:1;line-height:1.25}
+.stop2 .meta{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.stop2 .m{display:flex;align-items:center;gap:4px;font:700 9.5px var(--sans);color:rgba(255,255,255,.75);
+  background:rgba(255,255,255,.09);padding:4px 8px;border-radius:999px}
+.stop2 .m .material-symbols-outlined{font-size:11px}
+.stop2 .m.pr-alta{color:var(--violet-2)} .stop2 .m.pr-media{color:var(--honey)}
+.stop2.focus .aic .material-symbols-outlined{color:var(--violet-2)}
+.stop2.recovery .aic .material-symbols-outlined{color:var(--mint)}
+.stop2.quick .aic .material-symbols-outlined{color:var(--honey)}
+.stop2 .card p.det{font-size:11px;color:rgba(255,255,255,.55);margin-top:6px;line-height:1.45}
+/* clásico: duelo + goles */
+.duel{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin:12px 0 4px}
+.dside{display:flex;flex-direction:column;align-items:center;gap:7px}
+.dside .crest{width:60px;height:60px;object-fit:contain;background:#fff;border-radius:44% 40% 46% 42%/42% 46% 40% 44%;
+  padding:7px;box-shadow:0 10px 26px rgba(0,0,0,.45),inset 0 0 0 1.5px rgba(255,255,255,.25)}
+.dside .nm{font:800 10.5px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.85)}
+.dmid{text-align:center}
+.dmid .sc{font:800 44px/1 var(--disp);letter-spacing:-.02em;text-shadow:0 8px 24px rgba(0,0,0,.45);font-variant-numeric:tabular-nums}
+.dmid .sc .sep{color:rgba(255,255,255,.4);margin:0 3px}
+.livepill{display:inline-flex;align-items:center;gap:6px;margin-top:8px;background:rgba(239,68,68,.92);
+  font:800 9.5px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:#fff;
+  padding:5px 11px;border-radius:999px;box-shadow:0 6px 16px rgba(239,68,68,.45)}
+.livepill i{width:6px;height:6px;border-radius:50%;background:#fff;animation:pulse 1.4s infinite}
+.venue{display:flex;justify-content:center;gap:13px;margin-top:9px;font:700 10.5px var(--sans);color:rgba(255,255,255,.55)}
+.venue span{display:flex;align-items:center;gap:4px}
+.venue .material-symbols-outlined{font-size:13px}
+.gchat{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+.grow{display:flex;gap:10px;align-items:center}
+.grow.rev{flex-direction:row-reverse}
+.grow .gph{width:42px;height:42px;border-radius:50%;flex:none;object-fit:cover;
+  border:2.5px solid rgba(255,255,255,.25);box-shadow:0 6px 16px rgba(0,0,0,.4)}
+.grow .gb{flex:1;max-width:300px;background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(16px);
+  padding:11px 14px;box-shadow:0 8px 22px rgba(6,4,20,.3)}
+.grow.rev .gb{background:rgba(20,14,46,.65)}
+.grow .gb .min{font:800 9.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.55)}
+.grow .gb h5{font:800 13.5px var(--sans);margin:1px 0}
+.grow .gb p{font-size:11px;color:rgba(255,255,255,.65)}
+.grow.rm .gb{border-radius:20px 20px 6px 20px}
+.grow.rev .gb{border-radius:20px 20px 20px 6px}
+/* tenis */
+.tduel{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;margin:12px 0 2px}
+.tside{display:flex;flex-direction:column;align-items:center;gap:6px}
+.tside .tph{width:84px;height:84px;border-radius:50%;object-fit:cover;border:3px solid rgba(255,255,255,.3);
+  box-shadow:0 12px 30px rgba(0,0,0,.5)}
+.tside .tn{font:800 13px var(--sans)}
+.tside .trk{display:flex;align-items:center;gap:4px;font:800 10px var(--sans);color:var(--honey)}
+.tside .trk .material-symbols-outlined{font-size:13px}
+.tside .tc{font:700 10px var(--sans);color:rgba(255,255,255,.55)}
+.tsets{display:flex;justify-content:center;gap:6px;margin-top:10px}
+.tset{min-width:52px;text-align:center;padding:8px 10px 7px;border-radius:38% 46% 40% 48%/48% 40% 46% 38%;
+  background:var(--glass);border:1px solid var(--line)}
+.tset.win{border-color:rgba(110,231,183,.5)}
+.tset .sn{font:700 8.5px var(--sans);letter-spacing:.1em;color:rgba(255,255,255,.5);text-transform:uppercase}
+.tset .sv{font:800 16px var(--disp);font-variant-numeric:tabular-nums;margin-top:2px}
+.tset.win .sv{color:var(--mint)}
+/* stats comparativas (clásico) */
+.cmp .lbl{text-align:center;font:800 9.5px var(--sans);letter-spacing:.16em;text-transform:uppercase;
+  color:rgba(255,255,255,.6);margin:12px 0 6px}
+.cmp .bar{display:grid;grid-template-columns:38px 1fr 38px;gap:9px;align-items:center}
+.cmp .v{font:800 12.5px var(--disp);font-variant-numeric:tabular-nums}
+.cmp .v.h{text-align:right;color:var(--sky)} .cmp .v.a{color:var(--pink)}
+.cmp .duo{height:12px;display:flex;border-radius:999px;overflow:hidden;background:rgba(255,255,255,.1)}
+.cmp .duo .fh{background:linear-gradient(90deg,rgba(138,176,255,.45),var(--sky))}
+.cmp .duo .fa{background:linear-gradient(90deg,var(--pink),rgba(255,143,184,.45))}
+.grow .gic{width:34px;height:34px;border-radius:44% 40% 50% 44%;flex:none;display:grid;place-items:center;
+  background:rgba(255,255,255,.1)}
+.grow .gic .material-symbols-outlined{font-size:17px}
+.grow.rm .gic .material-symbols-outlined{color:var(--sky)} .grow.bcn .gic .material-symbols-outlined{color:var(--pink)}
+/* score compacto dentro de la card del chat */
+.xc-duel .dmid .sc{font:800 24px/1 var(--disp);color:#241d4f;letter-spacing:-.02em}
+.xc-duel .dmid .sc .sep{color:#a39bd0;margin:0 2px}
+
+@media (max-width:560px){
+  .phone{width:100%;max-width:430px;height:min(932px,calc(100dvh - 90px));border-radius:34px}
+  .stage{padding:22px 10px 40px;gap:18px}
+  .statusbar,.statusbar .notch{display:none}
+  .chatview{padding-top:54px}
+  .chapdots{top:8px}
+  .screen{top:56px}
+  .backlink{position:static;margin-bottom:10px}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <header class="stage-head">
+    <a class="backlink" href="/preview.html"><span class="material-symbols-outlined">arrow_back</span>Volver al showcase</a>
+    <div class="logo-row"><img src="/favicon.svg" alt="Koru" /><span class="chip-b">Propuesta B · Completa</span></div>
+    <h1>“Koru <span>te Cuenta</span>” — flujos completos</h1>
+    <p class="tagline">El interior de cada card es una <b>conversación enriquecida</b>: Koru te acompaña capítulo a
+      capítulo, te resume con su voz y guarda el detalle a un tap. Acá abajo tenés <b>los 5 flujos íntegros e
+      interactivos</b> — tocá, scrolleá, expandí. Activá las <b>anotaciones UX</b> o dejá que el tour te lo recorra.</p>
+  </header>
+
+  <!-- ══ MAPA DEL FLUJO ══ -->
+  <section class="flowmap">
+    <h2><span class="material-symbols-outlined">route</span>El flujo completo, en 7 pasos</h2>
+    <div class="fmrow">
+      <div class="fmstep"><span class="fn">1</span><span class="material-symbols-outlined">chat_bubble</span>
+        <span class="ft">Pedís algo</span><span class="fd">En el chat, como siempre</span>
+        <span class="fx">en el <b>chat</b></span></div>
+      <div class="fmstep"><span class="fn">2</span><span class="material-symbols-outlined">photo_library</span>
+        <span class="ft">Card compacta</span><span class="fd">Lo esencial a simple vista</span>
+        <span class="fx">en el <b>chat</b></span></div>
+      <div class="fmstep"><span class="fn">3</span><span class="material-symbols-outlined">auto_stories</span>
+        <span class="ft">Tap → Koru narra</span><span class="fd">Se abre el mundo de Koru</span>
+        <span class="fx">en el <b>interior</b></span></div>
+      <div class="fmstep"><span class="fn">4</span><span class="material-symbols-outlined">format_list_numbered</span>
+        <span class="ft">Capítulos</span><span class="fd">Resumen primero, corto</span>
+        <span class="fx">en el <b>interior</b></span></div>
+      <div class="fmstep"><span class="fn">5</span><span class="material-symbols-outlined">expand_circle_down</span>
+        <span class="ft">¿Querés más?</span><span class="fd">El detalle se abre a un tap</span>
+        <span class="fx">en el <b>interior</b></span></div>
+      <div class="fmstep"><span class="fn">6</span><span class="material-symbols-outlined">bookmark_added</span>
+        <span class="ft">Guardás</span><span class="fd">En tu jardín o PDF</span>
+        <span class="fx">en el <b>interior</b></span></div>
+      <div class="fmstep"><span class="fn">7</span><span class="material-symbols-outlined">undo</span>
+        <span class="ft">Volvés al chat</span><span class="fd">Cuando querés, sin perder nada</span>
+        <span class="fx">de vuelta al <b>chat</b></span></div>
+    </div>
+  </section>
+
+  <!-- ══ CONTROLES DEL DEMO ══ -->
+  <div class="demobar">
+    <span class="flabel">Flujo</span>
+    <button class="dtab on" data-f="informe"><span class="material-symbols-outlined">description</span>Informe</button>
+    <button class="dtab" data-f="clima"><span class="material-symbols-outlined">partly_cloudy_day</span>Clima</button>
+    <button class="dtab" data-f="plan"><span class="material-symbols-outlined">today</span>Plan</button>
+    <button class="dtab" data-f="clasico"><span class="material-symbols-outlined">sports_soccer</span>Clásico</button>
+    <button class="dtab" data-f="tenis"><span class="material-symbols-outlined">sports_tennis</span>Tenis</button>
+    <span class="dsep"></span>
+    <button class="dtour" id="tourbtn"><span class="material-symbols-outlined">play_arrow</span>Recorrer el flujo</button>
+    <button class="dux" id="uxbtn"><span class="material-symbols-outlined">school</span>Anotaciones UX</button>
+  </div>
+
+  <!-- ══ PHONE ══ -->
+  <div class="phone" id="phone">
+    <img class="bgworld" src="/stitch/chat-bg.png" alt="" />
+    <div class="scrim"></div>
+    <div class="statusbar">
+      <span>9:41</span><div class="notch"></div>
+      <div class="sicons">
+        <svg width="17" height="11" viewBox="0 0 17 11" fill="white" opacity=".9"><path d="M1 8.5c1.8-2 3.9-3 6-3s4.2 1 6 3l-1.4 1.4c-1.3-1.5-2.9-2.3-4.6-2.3s-3.3.8-4.6 2.3L1 8.5Z"/><path d="M4.9 5.2C6 4.4 7.2 4 8.5 4s2.5.4 3.6 1.2l1-1.6C11.7 2.6 10.2 2 8.5 2S5.3 2.6 3.9 3.6l1 1.6Z"/></svg>
+        <svg width="16" height="11" viewBox="0 0 16 11" fill="white" opacity=".9"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.3" y="4.5" width="3" height="6.5" rx="1"/><rect x="8.6" y="2" width="3" height="9" rx="1"/><rect x="12.9" y="0" width="3" height="11" rx="1" opacity=".4"/></svg>
+        <svg width="25" height="12" viewBox="0 0 25 12" fill="none" opacity=".9"><rect x=".5" y=".5" width="21" height="11" rx="3" stroke="white" stroke-opacity=".5"/><rect x="2" y="2" width="15" height="7.5" rx="1.8" fill="white"/><path d="M23 4v4c1-.3 1.5-1 1.5-2s-.5-1.7-1.5-2Z" fill="white" fill-opacity=".6"/></svg>
+      </div>
+    </div>
+    <div class="viewtag" id="viewtag">Vista · Chat</div>
+
+    <!-- ══ VISTA 1: CHAT (look real de la app — burbujas claras) ══ -->
+    <div class="chatview" id="chatview">
+
+      <!-- INFORME -->
+      <div class="cflow" data-f="informe">
+        <div class="msg user"><div class="bub">haceme un informe de energía solar en España</div></div>
+        <div class="msg koru">
+          <div class="av"><img src="/stitch/avatar-chat.png" alt="Koru" /></div>
+          <div class="bub">
+            <p>¡Listo, Arx! Te armé el informe. Te lo resumo acá, pero si querés que <b>te lo cuente con calma</b>, tocá la card:</p>
+            <button class="xcard" data-pin="2" data-open="informe">
+              <div class="xc-h">
+                <div class="xc-ic" style="background:rgba(246,189,109,.2)"><span class="material-symbols-outlined" style="color:#d97706">wb_sunny</span></div>
+                <div><div class="xc-k">Informe · 2 fuentes oficiales</div><div class="xc-t">Energía solar en España</div></div>
+              </div>
+              <div class="xc-m">
+                <div class="xc-cell"><span class="n">2.800 h</span><span class="l">Sol/año</span></div>
+                <div class="xc-cell"><span class="n">€7.400</span><span class="l">3 kWp</span></div>
+                <div class="xc-cell"><span class="n">6-8</span><span class="l">Años recupero</span></div>
+              </div>
+              <div class="xc-f">
+                <span class="tell"><span class="material-symbols-outlined">auto_stories</span>Koru te lo cuenta</span>
+                <span class="chaps">4 capítulos</span>
+              </div>
+            </button>
+          </div>
+        </div>
+        <div class="hintpill"><span class="material-symbols-outlined">touch_app</span>Tocá la card — Koru te lo cuenta</div>
+      </div>
+
+      <!-- CLIMA -->
+      <div class="cflow" data-f="clima" hidden>
+        <div class="msg user"><div class="bub">qué tiempo hace en madrid?</div></div>
+        <div class="msg koru">
+          <div class="av"><img src="/stitch/avatar-chat.png" alt="Koru" /></div>
+          <div class="bub">
+            <p>¡Día hermoso en Madrid! Mirá:</p>
+            <button class="xcard" data-pin="2" data-open="clima">
+              <div class="xc-h">
+                <div class="xc-ic" style="background:rgba(246,189,109,.2)"><span class="material-symbols-outlined" style="color:#d97706">wb_sunny</span></div>
+                <div><div class="xc-k">Clima · ahora</div><div class="xc-t">Madrid · Soleado</div></div>
+              </div>
+              <div class="xc-m">
+                <div class="xc-cell"><span class="n">24°</span><span class="l">Ahora</span></div>
+                <div class="xc-cell"><span class="n">17°</span><span class="l">Mín</span></div>
+                <div class="xc-cell"><span class="n">26°</span><span class="l">Máx</span></div>
+              </div>
+              <div class="xc-f">
+                <span class="tell"><span class="material-symbols-outlined">auto_stories</span>Koru te lo cuenta</span>
+                <span class="chaps">3 capítulos</span>
+              </div>
+            </button>
+          </div>
+        </div>
+        <div class="hintpill"><span class="material-symbols-outlined">touch_app</span>Tocá la card — Koru te lo cuenta</div>
+      </div>
+
+      <!-- PLAN -->
+      <div class="cflow" data-f="plan" hidden>
+        <div class="msg user"><div class="bub">planificame el día</div></div>
+        <div class="msg koru">
+          <div class="av"><img src="/stitch/avatar-chat.png" alt="Koru" /></div>
+          <div class="bub">
+            <p>Te armé el día con foco en lo importante. Con mirada de aumento:</p>
+            <button class="xcard" data-pin="2" data-open="plan">
+              <div class="xc-h">
+                <div class="xc-ic" style="background:rgba(131,99,249,.18)"><span class="material-symbols-outlined" style="color:#6d4bf0">today</span></div>
+                <div><div class="xc-k">Plan · tu día</div><div class="xc-t">Día con foco + pausas</div></div>
+              </div>
+              <div class="xc-m">
+                <div class="xc-cell"><span class="n">3</span><span class="l">Bloques foco</span></div>
+                <div class="xc-cell"><span class="n">2</span><span class="l">Pausas</span></div>
+                <div class="xc-cell"><span class="n">18:30</span><span class="l">Gym</span></div>
+              </div>
+              <div class="xc-f">
+                <span class="tell"><span class="material-symbols-outlined">auto_stories</span>Koru te lo cuenta</span>
+                <span class="chaps">3 capítulos</span>
+              </div>
+            </button>
+          </div>
+        </div>
+        <div class="hintpill"><span class="material-symbols-outlined">touch_app</span>Tocá la card — Koru te lo cuenta</div>
+      </div>
+
+      <!-- CLÁSICO -->
+      <div class="cflow" data-f="clasico" hidden>
+        <div class="msg user"><div class="bub">cómo va el clásico?</div></div>
+        <div class="msg koru">
+          <div class="av"><img src="/stitch/avatar-chat.png" alt="Koru" /></div>
+          <div class="bub">
+            <p>Se está jugando y va así — te cuento los goles:</p>
+            <button class="xcard" data-pin="2" data-open="clasico">
+              <div class="xc-h">
+                <div class="xc-ic" style="background:rgba(131,99,249,.18)"><span class="material-symbols-outlined" style="color:#6d4bf0">sports_soccer</span></div>
+                <div><div class="xc-k">LaLiga · jornada 11</div><div class="xc-t">El clásico, en vivo</div></div>
+              </div>
+              <div class="xc-duel">
+                <div><img src="/stitch/sports/real-madrid.png" alt="RMA" /><div class="nm">Madrid</div></div>
+                <div class="dmid"><div class="sc">3<span class="sep">–</span>1</div><span class="xc-live"><i></i>78'</span></div>
+                <div><img src="/stitch/sports/barcelona.png" alt="BAR" /><div class="nm">Barça</div></div>
+              </div>
+              <div class="xc-f">
+                <span class="tell"><span class="material-symbols-outlined">auto_stories</span>Koru te lo cuenta</span>
+                <span class="chaps">3 capítulos</span>
+              </div>
+            </button>
+          </div>
+        </div>
+        <div class="hintpill"><span class="material-symbols-outlined">touch_app</span>Tocá la card — Koru te lo cuenta</div>
+      </div>
+
+      <!-- TENIS -->
+      <div class="cflow" data-f="tenis" hidden>
+        <div class="msg user"><div class="bub">cómo va alcaraz?</div></div>
+        <div class="msg koru">
+          <div class="av"><img src="/stitch/avatar-chat.png" alt="Koru" /></div>
+          <div class="bub">
+            <p>Carlitos está ganando la semifinal — te cuento:</p>
+            <button class="xcard" data-pin="2" data-open="tenis">
+              <div class="xc-h">
+                <div class="xc-ic" style="background:rgba(246,189,109,.2)"><span class="material-symbols-outlined" style="color:#d97706">sports_tennis</span></div>
+                <div><div class="xc-k">ATP · Semifinal</div><div class="xc-t">Alcaraz vs Sinner</div></div>
+              </div>
+              <div class="xc-duel">
+                <div><img src="/stitch/sports/players/alcaraz.jpg" style="border-radius:50%;width:44px;height:44px;object-fit:cover" alt="Alcaraz" /><div class="nm">Alcaraz</div></div>
+                <div class="dmid"><div class="sc">2<span class="sep">–</span>1</div><span class="xc-live"><i></i>3º set</span></div>
+                <div><img src="/stitch/sports/players/sinner.jpg" style="border-radius:50%;width:44px;height:44px;object-fit:cover" alt="Sinner" /><div class="nm">Sinner</div></div>
+              </div>
+              <div class="xc-f">
+                <span class="tell"><span class="material-symbols-outlined">auto_stories</span>Koru te lo cuenta</span>
+                <span class="chaps">3 capítulos</span>
+              </div>
+            </button>
+          </div>
+        </div>
+        <div class="hintpill"><span class="material-symbols-outlined">touch_app</span>Tocá la card — Koru te lo cuenta</div>
+      </div>
+    </div>
+
+    <!-- ══ VISTA 2: INTERIOR "KORU TE CUENTA" ══ -->
+    <div class="interior" id="interior">
+      <img class="bgworld" src="/stitch/chat-bg.png" alt="" />
+      <div class="scrim"></div>
+      <div class="readbar"><i id="readfill"></i></div>
+      <div class="chapdots">
+        <div class="left">
+          <button class="fab" id="backbtn" data-pin="4" aria-label="Volver al chat"><span class="material-symbols-outlined">arrow_back</span></button>
+          <div class="dots" id="dots"></div>
+        </div>
+        <button class="fab" id="bookbtn" data-pin="10" aria-label="Guardar"><span class="material-symbols-outlined">bookmark</span></button>
+      </div>
+
+      <div class="screen" id="screen">
+
+        <!-- ── INTERIOR: INFORME ── -->
+        <section class="panel on" data-f="informe">
+          <div class="koru hero-k rv in">
+            <div class="av"><img src="/stitch/avatar-wink.png" alt="Koru" /></div>
+            <div class="say" data-pin="6">
+              <p>¡Hola! Te cuento la <b class="k-violet">energía solar en España</b> en 4 capítulos cortos.
+                 Spoiler: <b class="k-mint">el panel se paga solo en 6-8 años</b>.</p>
+              <span class="hl"><span class="material-symbols-outlined">verified</span>2 fuentes · IDAE + OMIE</span>
+            </div>
+          </div>
+          <div class="pebbles rv" data-pin="8">
+            <div class="peb p-honey"><span class="material-symbols-outlined">wb_sunny</span><span class="n">2.800 h</span><span class="l">Sol al año</span></div>
+            <div class="peb p-violet"><span class="material-symbols-outlined">payments</span><span class="n">€7.400</span><span class="l">3 kWp</span></div>
+            <div class="peb p-mint"><span class="material-symbols-outlined">schedule</span><span class="n">6-8</span><span class="l">Años recupero</span></div>
+          </div>
+
+          <div class="chap rv"><span class="cn">1</span><div><small>Capítulo 1</small><h3>Dónde pega más el sol</h3></div></div>
+          <div class="koru rv"><div class="av"><img src="/stitch/avatar-chat.png" alt="Koru" /></div>
+            <div class="say"><p>Andalucía y Murcia son <b class="k-honey">imbatibles</b>: ~1.750 kWh al año por cada kWp.</p></div></div>
+          <div class="wcard rv">
+            <div class="sunrow"><div class="nm">Andalucía<small class="c-mint">Óptimo</small></div><div class="track"><div class="fill" style="width:100%"></div></div><div class="vl">1.750<small>kWh</small></div></div>
+            <div class="sunrow"><div class="nm">Murcia<small class="c-mint">Óptimo</small></div><div class="track"><div class="fill" style="width:97%"></div></div><div class="vl">1.700<small>kWh</small></div></div>
+            <div class="sunrow"><div class="nm">Madrid<small class="c-honey">Muy bueno</small></div><div class="track"><div class="fill" style="width:91%"></div></div><div class="vl">1.600<small>kWh</small></div></div>
+          </div>
+
+          <div class="chap rv"><span class="cn">2</span><div><small>Capítulo 2</small><h3>La plata</h3></div></div>
+          <div class="koru rv"><div class="av"><img src="/stitch/avatar-chat.png" alt="Koru" /></div>
+            <div class="say"><p>Una casa de 3 kWp sale <b class="k-violet">€7.400</b> instalada, y te ahorra <b class="k-mint">~€980 al año</b> en luz.</p></div></div>
+          <div class="wcard rv">
+            <div class="money-row t-violet"><div class="mic"><span class="material-symbols-outlined">bolt</span></div><div class="mr"><div class="mv">€980</div><div class="ml">Ahorro anual en luz</div></div><span class="tagchip">al año</span></div>
+            <div class="money-row t-mint"><div class="mic"><span class="material-symbols-outlined">trending_up</span></div><div class="mr"><div class="mv">€13.700</div><div class="ml">Ahorro a 14 años</div></div><span class="tagchip">total</span></div>
+          </div>
+          <div class="more rv" data-pin="7">
+            <button class="more-btn"><span class="material-symbols-outlined">expand_more</span>¿Querés más? Detalle de la plata</button>
+            <div class="more-body"><div class="inner">
+              <p>Con el <b>bono de autoconsumo</b> del IDAE devolvés ~€1.900 el primer año, así el recupero baja a <b>5-6 años</b>. Y si inyectás excedente a la red, OMIE te paga ~€0,09/kWh.</p>
+              <div class="datarow"><span class="material-symbols-outlined">savings</span><span>Bono IDAE (hasta 40%)</span><b>€2.960</b></div>
+              <div class="datarow"><span class="material-symbols-outlined">swap_vert</span><span>Excedente a red (año)</span><b>€180</b></div>
+            </div></div>
+          </div>
+
+          <div class="chap rv"><span class="cn">3</span><div><small>Capítulo 3</small><h3>Trampas a evitar</h3></div></div>
+          <div class="koru rv"><div class="av"><img src="/stitch/avatar-chat.png" alt="Koru" /></div>
+            <div class="say"><p>Tres cosas que <b class="k-honey">casi nadie te dice</b> antes de firmar:</p></div></div>
+          <div class="wcard rv">
+            <div class="trap"><div class="tic"><span class="material-symbols-outlined">warning</span></div><div><h5>Panel "gratis"</h5><p>Te atan 20 años a una cuota que sube con la luz. Sale 40% más caro.</p></div></div>
+            <div class="trap"><div class="tic"><span class="material-symbols-outlined">battery_alert</span></div><div><h5>Batería que no necesitás</h5><p>Con horario de discriminación, la batería no se paga sola en tu caso.</p></div></div>
+          </div>
+          <div class="more rv">
+            <button class="more-btn"><span class="material-symbols-outlined">expand_more</span>¿Querés más? La trampa del tamaño</button>
+            <div class="more-body"><div class="inner">
+              <p>Si dimensionás el sistema para el <b>100% de tu consumo</b>, el último 20% de los paneles trabaja a medias en invierno. Con un <b>75-80%</b> la inversión rinde mejor.</p>
+            </div></div>
+          </div>
+
+          <div class="chap rv"><span class="cn">4</span><div><small>Capítulo 4</small><h3>Fuentes y siguiente paso</h3></div></div>
+          <div class="koru rv"><div class="av"><img src="/stitch/avatar-wink.png" alt="Koru" /></div>
+            <div class="say"><p>Todo lo que te conté sale de acá. ¿Lo guardamos en tu jardín para tenerlo a mano?</p></div></div>
+          <div class="wcard rv"><div class="srcs">
+            <span class="src"><span class="material-symbols-outlined">verified</span>IDAE · autoconsumo</span>
+            <span class="src"><span class="material-symbols-outlined">verified</span>OMIE · precios</span>
+          </div></div>
+        </section>
+
+        <!-- ── INTERIOR: CLIMA ── -->
+        <section class="panel" data-f="clima">
+          <div class="koru hero-k rv in">
+            <div class="av"><img src="/stitch/avatar-wink.png" alt="Koru" /></div>
+            <div class="say" data-pin="6">
+              <p>¡Hola! Te cuento el <b class="k-violet">clima de Madrid</b> en 3 capítulos. Hoy: <b class="k-mint">día de sol, aprovechalo</b>.</p>
+            </div>
+          </div>
+          <div class="wcard rv" style="padding-top:10px">
+            <div class="w-hero" data-pin="8">
+              <div class="city">Madrid · ahora</div>
+              <div class="bignow"><span class="material-symbols-outlined">wb_sunny</span><span class="t">24°</span></div>
+              <div class="cond">Soleado · despejado</div>
+              <div class="rng">17° mín · 26° máx</div>
+              <div class="w-chips">
+                <span class="w-chip wind"><span class="material-symbols-outlined">air</span>12 km/h</span>
+                <span class="w-chip drop"><span class="material-symbols-outlined">water_drop</span>34%</span>
+                <span class="w-chip uv"><span class="material-symbols-outlined">wb_twilight</span>UV 6</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="chap rv"><span class="cn">1</span><div><small>Capítulo 1</small><h3>Por horas</h3></div></div>
+          <div class="koru rv"><div class="av"><img src="/stitch/avatar-chat.png" alt="Koru" /></div>
+            <div class="say"><p>Sol firme toda la tarde. La <b class="k-honey">franja dorada</b> es de 15 a 18.</p></div></div>
+          <div class="hourly rv">
+            <div class="hr-pill"><span class="h">14</span><span class="material-symbols-outlined">wb_sunny</span><span class="t">23°</span><span class="u">0%</span></div>
+            <div class="hr-pill"><span class="h">15</span><span class="material-symbols-outlined">wb_sunny</span><span class="t">24°</span><span class="u">0%</span></div>
+            <div class="hr-pill"><span class="h">16</span><span class="material-symbols-outlined">wb_sunny</span><span class="t">24°</span><span class="u">0%</span></div>
+            <div class="hr-pill"><span class="h">17</span><span class="material-symbols-outlined">partly_cloudy_day</span><span class="t">23°</span><span class="u">10%</span></div>
+            <div class="hr-pill"><span class="h">18</span><span class="material-symbols-outlined">partly_cloudy_day</span><span class="t">21°</span><span class="u">10%</span></div>
+            <div class="hr-pill"><span class="h">19</span><span class="material-symbols-outlined">cloud</span><span class="t">19°</span><span class="u">15%</span></div>
+            <div class="hr-pill"><span class="h">20</span><span class="material-symbols-outlined">rainy</span><span class="t">18°</span><span class="u">40%</span></div>
+          </div>
+          <div class="more rv" data-pin="7">
+            <button class="more-btn"><span class="material-symbols-outlined">expand_more</span>¿Querés más? La lluvia de la noche</button>
+            <div class="more-body"><div class="inner">
+              <p>Después de las <b>20</b> entran nubes bajas con <b>40% de probabilidad</b> de lluvia liviana — 1-2mm, sin más. Si salís a cenar afuera, entrá antes de las 22.</p>
+              <div class="datarow"><span class="material-symbols-outlined">umbrella</span><span>Lluvia esperada 20-23h</span><b>1,8 mm</b></div>
+            </div></div>
+          </div>
+
+          <div class="chap rv"><span class="cn">2</span><div><small>Capítulo 2</small><h3>El finde</h3></div></div>
+          <div class="koru rv"><div class="av"><img src="/stitch/avatar-chat.png" alt="Koru" /></div>
+            <div class="say"><p>El <b class="k-mint">sábado es el mejor día</b> para lo tuyo. El domingo se apaga.</p></div></div>
+          <div class="wcard rv">
+            <div class="wk"><span class="d">SÁB</span><span class="material-symbols-outlined sunny">wb_sunny</span><span class="lo">16°</span><div class="rngbar"><i style="left:18%;width:52%"></i></div><span class="hi">27°</span></div>
+            <div class="wk"><span class="d">DOM</span><span class="material-symbols-outlined rainy">rainy</span><span class="lo">14°</span><div class="rngbar"><i style="left:12%;width:36%"></i></div><span class="hi">21°</span></div>
+          </div>
+
+          <div class="chap rv"><span class="cn">3</span><div><small>Capítulo 3</small><h3>Consejo de Koru</h3></div></div>
+          <div class="koru rv"><div class="av"><img src="/stitch/avatar-wink.png" alt="Koru" /></div>
+            <div class="say"><p>Andando al parque a las <b class="k-honey">16</b> tenés 24° y cero riesgo. ¿Lo guardo en tu jardín por si lo necesitás?</p></div></div>
+        </section>
+
+        <!-- ── INTERIOR: PLAN ── -->
+        <section class="panel" data-f="plan">
+          <div class="koru hero-k rv in">
+            <div class="av"><img src="/stitch/avatar-wink.png" alt="Koru" /></div>
+            <div class="say" data-pin="6">
+              <p>¡Hola! Te armé el día en <b class="k-violet">3 momentos</b>, con el foco bien temprano y las pilas cuidadas.</p>
+            </div>
+          </div>
+          <div class="pebbles rv" data-pin="8">
+            <div class="peb p-violet"><span class="material-symbols-outlined">bolt</span><span class="n">3</span><span class="l">Bloques foco</span></div>
+            <div class="peb p-mint"><span class="material-symbols-outlined">self_improvement</span><span class="n">2</span><span class="l">Pausas</span></div>
+            <div class="peb p-honey"><span class="material-symbols-outlined">fitness_center</span><span class="n">18:30</span><span class="l">Gym</span></div>
+          </div>
+
+          <div class="chap rv"><span class="cn">1</span><div><small>Capítulo 1 · Mañana</small><h3>El foco primero</h3></div></div>
+          <div class="koru rv"><div class="av"><img src="/stitch/avatar-chat.png" alt="Koru" /></div>
+            <div class="say"><p>Tu energía pico es de 9 a 12. Ahí va <b class="k-violet">lo difícil</b>, el resto se acomoda solo.</p></div></div>
+          <div class="wcard rv" style="padding:15px 16px 4px">
+            <div class="journey">
+              <div class="stop2 p-alta focus"><span class="tm">09:00 · 25'</span>
+                <div class="card"><div class="row1"><div class="aic"><span class="material-symbols-outlined">bolt</span></div><h5>Informe de energía — revisión final</h5></div>
+                  <div class="meta"><span class="m pr-alta"><span class="material-symbols-outlined">bolt</span>Foco alto</span><span class="m"><span class="material-symbols-outlined">schedule</span>25 min</span></div>
+                  <p class="det">El borrador ya está; falta pulir la sección de trampas y mandarlo.</p></div></div>
+              <div class="stop2 p-media recovery"><span class="tm">09:30 · 10'</span>
+                <div class="card"><div class="row1"><div class="aic"><span class="material-symbols-outlined">local_cafe</span></div><h5>Café + estirar las piernas</h5></div>
+                  <div class="meta"><span class="m"><span class="material-symbols-outlined">schedule</span>10 min</span></div></div></div>
+              <div class="stop2 p-media quick"><span class="tm">11:00 · 15'</span>
+                <div class="card"><div class="row1"><div class="aic"><span class="material-symbols-outlined">mail</span></div><h5>Bandeja de correo liviana</h5></div>
+                  <div class="meta"><span class="m pr-media"><span class="material-symbols-outlined">low_priority</span>Rutina</span></div></div></div>
+            </div>
+          </div>
+          <div class="more rv" data-pin="7">
+            <button class="more-btn"><span class="material-symbols-outlined">expand_more</span>¿Querés más? Por qué foco de 25'</button>
+            <div class="more-body"><div class="inner">
+              <p>25 minutos alinea tu mejor ventana de atención sin quemarte: tras 3 ciclos sumás <b>75' de trabajo profundo</b> — el 80% del valor del día entero.</p>
+            </div></div>
+          </div>
+
+          <div class="chap rv"><span class="cn">2</span><div><small>Capítulo 2 · Tarde</small><h3>Reunión y movimiento</h3></div></div>
+          <div class="koru rv"><div class="av"><img src="/stitch/avatar-chat.png" alt="Koru" /></div>
+            <div class="say"><p>La reunión la puse <b class="k-honey">después del almuerzo</b>, cuando el foco ya bajó. Y el gym cierra el día.</p></div></div>
+          <div class="wcard rv" style="padding:15px 16px 4px">
+            <div class="journey">
+              <div class="stop2 p-baja"><span class="tm">16:00 · 45'</span>
+                <div class="card"><div class="row1"><div class="aic"><span class="material-symbols-outlined">groups</span></div><h5>Reunión con el equipo</h5></div>
+                  <div class="meta"><span class="m"><span class="material-symbols-outlined">schedule</span>45 min</span></div></div></div>
+              <div class="stop2 p-media recovery"><span class="tm">18:30 · 50'</span>
+                <div class="card"><div class="row1"><div class="aic"><span class="material-symbols-outlined">fitness_center</span></div><h5>Gym — piernas</h5></div>
+                  <div class="meta"><span class="m pr-media"><span class="material-symbols-outlined">fitness_center</span>Intensidad media</span></div></div></div>
+            </div>
+          </div>
+
+          <div class="chap rv"><span class="cn">3</span><div><small>Capítulo 3 · Noche</small><h3>Bajar cambios</h3></div></div>
+          <div class="koru rv"><div class="av"><img src="/stitch/avatar-wink.png" alt="Koru" /></div>
+            <div class="say"><p>Cocinar algo simple y una serie. ¿Guardo el plan en tu jardín y te <b class="k-mint">recuerdo</b> el foco de mañana 9:00?</p></div></div>
+        </section>
+
+        <!-- ── INTERIOR: CLÁSICO ── -->
+        <section class="panel" data-f="clasico">
+          <div class="koru hero-k rv in">
+            <div class="av"><img src="/stitch/avatar-wink.png" alt="Koru" /></div>
+            <div class="say" data-pin="6">
+              <p>¡Hola! Te cuento el <b class="k-violet">clásico</b> como si lo estuvieras viendo. Van <b class="k-mint">78'</b> y el Madrid lo está cerrando bien.</p>
+            </div>
+          </div>
+          <div class="wcard rv">
+            <div class="duel">
+              <div class="dside"><img class="crest" src="/stitch/sports/real-madrid.png" alt="RMA" /><span class="nm">Madrid</span></div>
+              <div class="dmid"><div class="sc">3<span class="sep">–</span>1</div><span class="livepill"><i></i>78'</span></div>
+              <div class="dside"><img class="crest" src="/stitch/sports/barcelona.png" alt="BAR" /><span class="nm">Barça</span></div>
+            </div>
+            <div class="venue">
+              <span><span class="material-symbols-outlined">stadium</span>Santiago Bernabéu</span>
+              <span><span class="material-symbols-outlined">leaderboard</span>J11 · LaLiga</span>
+            </div>
+          </div>
+
+          <div class="chap rv"><span class="cn">1</span><div><small>Capítulo 1</small><h3>Los goles, en orden</h3></div></div>
+          <div class="koru rv"><div class="av"><img src="/stitch/avatar-chat.png" alt="Koru" /></div>
+            <div class="say"><p>El Barça abrió el marcador, pero el Madrid lo dio vuelta en <b class="k-honey">14 minutos</b>.</p></div></div>
+          <div class="gchat rv" data-pin="8">
+            <div class="grow rev bcn"><img class="gph" src="/stitch/sports/players/yamal.jpg" alt="Yamal" />
+              <div class="gb"><span class="min">23' · Barcelona</span><h5>Lamine Yamal</h5><p>Asistencia de Pedri. 0-1, el Barça se ponía cómodo.</p></div></div>
+            <div class="grow rm"><img class="gph" src="/stitch/sports/players/mbappe.jpg" alt="Mbappé" />
+              <div class="gb"><span class="min">41' · Madrid</span><h5>Kylian Mbappé</h5><p>Penal tajado a la izquierda. Empate antes del descanso.</p></div></div>
+            <div class="grow rm"><img class="gph" src="/stitch/sports/players/vinicius.jpg" alt="Vinícius" />
+              <div class="gb"><span class="min">67' · Madrid</span><h5>Vinícius Jr.</h5><p>Contraataque letal tras robo de Valverde. 3-1 y a cerrar.</p></div></div>
+          </div>
+          <div class="more rv" data-pin="7">
+            <button class="more-btn"><span class="material-symbols-outlined">expand_more</span>¿Querés más? El gol anulado del Barça</button>
+            <div class="more-body"><div class="inner">
+              <p>Al <b>58'</b> Lewandowski empató de cabeza, pero el VAR lo anuló por <b>offside de 12 cm</b> en la posición de Raphinha. Ese fue el quiebre del partido.</p>
+            </div></div>
+          </div>
+
+          <div class="chap rv"><span class="cn">2</span><div><small>Capítulo 2</small><h3>Cómo va el partido</h3></div></div>
+          <div class="koru rv"><div class="av"><img src="/stitch/avatar-chat.png" alt="Koru" /></div>
+            <div class="say"><p>Dominio madridista tras el 2-1: <b class="k-violet">posesión 58%</b> y el Barça ya sin ideas claras.</p></div></div>
+          <div class="wcard rv">
+            <div class="cmp">
+              <div class="lbl">Posesión</div>
+              <div class="bar"><span class="v h">58%</span><div class="duo"><div class="fh" style="width:58%"></div><div class="fa" style="width:42%"></div></div><span class="v a">42%</span></div>
+              <div class="lbl">Remates al arco</div>
+              <div class="bar"><span class="v h">7</span><div class="duo"><div class="fh" style="width:64%"></div><div class="fa" style="width:36%"></div></div><span class="v a">4</span></div>
+            </div>
+          </div>
+
+          <div class="chap rv"><span class="cn">3</span><div><small>Capítulo 3</small><h3>Lo que viene</h3></div></div>
+          <div class="koru rv"><div class="av"><img src="/stitch/avatar-wink.png" alt="Koru" /></div>
+            <div class="say"><p>El clásico termina y el miércoles hay <b class="k-mint">Champions</b>. ¿Te aviso cuando arranque?</p></div></div>
+        </section>
+
+        <!-- ── INTERIOR: TENIS ── -->
+        <section class="panel" data-f="tenis">
+          <div class="koru hero-k rv in">
+            <div class="av"><img src="/stitch/avatar-wink.png" alt="Koru" /></div>
+            <div class="say" data-pin="6">
+              <p>¡Hola! Te cuento la <b class="k-violet">semifinal</b>: Carlitos está a <b class="k-mint">un juego de la final</b>. Vamos.</p>
+            </div>
+          </div>
+          <div class="wcard rv">
+            <div class="tduel">
+              <div class="tside"><img class="tph" src="/stitch/sports/players/alcaraz.jpg" alt="Alcaraz" /><span class="tn">C. Alcaraz</span><span class="trk"><span class="material-symbols-outlined">military_tech</span>Nº 1 ATP</span><span class="tc">ESP</span></div>
+              <div class="dmid"><div class="sc">2<span class="sep">–</span>1</div><span class="livepill"><i></i>3º set</span></div>
+              <div class="tside"><img class="tph" src="/stitch/sports/players/sinner.jpg" alt="Sinner" /><span class="tn">J. Sinner</span><span class="trk"><span class="material-symbols-outlined">military_tech</span>Nº 2 ATP</span><span class="tc">ITA</span></div>
+            </div>
+            <div class="tsets">
+              <div class="tset win"><span class="sn">S1</span><div class="sv">6-4</div></div>
+              <div class="tset"><span class="sn">S2</span><div class="sv">3-6</div></div>
+              <div class="tset win"><span class="sn">S3</span><div class="sv">5-3</div></div>
+            </div>
+          </div>
+
+          <div class="chap rv"><span class="cn">1</span><div><small>Capítulo 1</small><h3>Los momentos que importan</h3></div></div>
+          <div class="koru rv"><div class="av"><img src="/stitch/avatar-chat.png" alt="Koru" /></div>
+            <div class="say"><p>El partido se rompió con el <b class="k-honey">break del 3º set</b>: 15-40 y dos derechas impecables.</p></div></div>
+          <div class="gchat rv" data-pin="8">
+            <div class="grow rm"><div class="gic"><span class="material-symbols-outlined">sports_tennis</span></div>
+              <div class="gb"><span class="min">2º set · 4-4</span><h5>El break que no fue</h5><p>Sinner tuvo 0-30 al resto; Carlitos lo borró con cuatro saques seguidos.</p></div></div>
+            <div class="grow rev bcn"><div class="gic"><span class="material-symbols-outlined">sports_tennis</span></div>
+              <div class="gb"><span class="min">3º set · 2-1</span><h5>El break de oro</h5><p>Derecha paralela de Alcaraz en el 15-40. De ahí, no miró atrás.</p></div></div>
+          </div>
+          <div class="more rv" data-pin="7">
+            <button class="more-btn"><span class="material-symbols-outlined">expand_more</span>¿Querés más? El punto del partido</button>
+            <div class="more-body"><div class="inner">
+              <p>El mejor punto llegó en el <b>3-2 del 3º set</b>: 22 golpes, defensas imposibles de los dos y remate de Alcaraz <b>de derecha desde la valla</b>. La cancha se vino abajo.</p>
+            </div></div>
+          </div>
+
+          <div class="chap rv"><span class="cn">2</span><div><small>Capítulo 2</small><h3>Los números del duelo</h3></div></div>
+          <div class="koru rv"><div class="av"><img src="/stitch/avatar-chat.png" alt="Koru" /></div>
+            <div class="say"><p>Carlitos está ganando <b class="k-violet">84% de los puntos con primer saque</b>. Esa es la diferencia.</p></div></div>
+          <div class="pebbles rv" data-pin="8">
+            <div class="peb p-mint"><span class="material-symbols-outlined">sports_tennis</span><span class="n">84%</span><span class="l">1er saque</span></div>
+            <div class="peb p-violet"><span class="material-symbols-outlined">playlist_add_check</span><span class="n">4/6</span><span class="l">Breaks</span></div>
+            <div class="peb p-honey"><span class="material-symbols-outlined">timer</span><span class="n">2h 51'</span><span class="l">Duración</span></div>
+          </div>
+
+          <div class="chap rv"><span class="cn">3</span><div><small>Capítulo 3</small><h3>A un paso de la final</h3></div></div>
+          <div class="koru rv"><div class="av"><img src="/stitch/avatar-wink.png" alt="Koru" /></div>
+            <div class="say"><p>Si gana, la final es <b class="k-mint">domingo 16:00</b> contra Djokovic. ¿Te aviso cuando empiece?</p></div></div>
+        </section>
+      </div>
+
+      <!-- actions fijas al fondo del interior (una por flujo) -->
+      <div class="actions on" data-f="informe" data-pin="9">
+        <button class="btn primary" data-save><span class="material-symbols-outlined">bookmark_added</span>Guardar en mi jardín</button>
+        <button class="btn ghost"><span class="material-symbols-outlined">picture_as_pdf</span>PDF</button>
+      </div>
+      <div class="actions" data-f="clima" data-pin="9">
+        <button class="btn primary" data-save><span class="material-symbols-outlined">bookmark_added</span>Guardar en mi jardín</button>
+        <button class="btn ghost"><span class="material-symbols-outlined">notifications</span>Alerta 19h</button>
+      </div>
+      <div class="actions" data-f="plan" data-pin="9">
+        <button class="btn primary" data-save><span class="material-symbols-outlined">bookmark_added</span>Guardar + recordarme</button>
+        <button class="btn ghost"><span class="material-symbols-outlined">edit</span>Ajustar</button>
+      </div>
+      <div class="actions" data-f="clasico" data-pin="9">
+        <button class="btn primary" data-save><span class="material-symbols-outlined">notifications_active</span>Avisarme el miércoles</button>
+        <button class="btn ghost"><span class="material-symbols-outlined">bookmark_added</span>Guardar</button>
+      </div>
+      <div class="actions" data-f="tenis" data-pin="9">
+        <button class="btn primary" data-save><span class="material-symbols-outlined">notifications_active</span>Avisarme la final</button>
+        <button class="btn ghost"><span class="material-symbols-outlined">bookmark_added</span>Guardar</button>
+      </div>
+    </div>
+
+    <!-- toast de guardado -->
+    <div class="toast" id="toast"><span class="material-symbols-outlined">eco</span><span id="toasttxt">Guardado en tu jardín</span></div>
+    <!-- caption del tour -->
+    <div class="tourcap" id="tourcap">
+      <span class="tno" id="tourstep">1</span>
+      <div class="tt" id="tourtext">Paso<small>del recorrido</small></div>
+      <button class="skip" id="tourskip">Saltar</button>
+    </div>
+  </div>
+
+  <!-- ══ LEYENDA UX ══ -->
+  <div class="uxlegend">
+    <h4><span class="material-symbols-outlined">school</span>Anotaciones UX — qué es cada cosa</h4>
+    <ol>
+      <li><span class="pn">1</span><div><b>Pedís algo</b> en el chat — la entrada al flujo es siempre una conversación natural.</div></li>
+      <li><span class="pn">2</span><div><b>Card compacta</b> — lo esencial a simple vista, sin abrir nada. Si te conforma con eso, listo.</div></li>
+      <li><span class="pn">3</span><div><b>Tap en la card</b> — se abre el mundo de Koru con una transición suave. El chat queda esperando.</div></li>
+      <li><span class="pn">4</span><div><b>Volver</b> — la flecha te devuelve al chat cuando querés. Nada te atrapa.</div></li>
+      <li><span class="pn">5</span><div><b>Dots de progreso</b> — en qué capítulo estás y cuánto falta. Se encienden con el scroll.</div></li>
+      <li><span class="pn">6</span><div><b>Koru narra</b> — cada capítulo empieza con su burbuja corta: primero el resumen hablado, después el dato.</div></li>
+      <li><span class="pn">7</span><div><b>¿Querés más?</b> — el detalle está a un tap, cerrado por defecto. Vos decidís cuánto profundizar.</div></li>
+      <li><span class="pn">8</span><div><b>Guijarros</b> — los números clave con forma de las rocas del mundo de Koru, imposible perderlos.</div></li>
+      <li><span class="pn">9</span><div><b>Guardar</b> — cada final tiene un cierre con acción: jardín, PDF, recordatorio o aviso.</div></li>
+      <li><span class="pn">10</span><div><b>Bookmark</b> — atajo fijo arriba para guardar desde cualquier punto, sin llegar al final.</div></li>
+    </ol>
+  </div>
+
+  <!-- ══ FOOTER: decisiones de diseño ══ -->
+  <div class="foot">
+    <div class="fbox">
+      <h4><span class="material-symbols-outlined">psychology</span>Por qué funciona</h4>
+      <ul>
+        <li><span class="material-symbols-outlined">record_voice_over</span><div><b>Koru narra, no muestra un dashboard</b>: cada sección abre con una burbuja corta y humana antes del dato.</div></li>
+        <li><span class="material-symbols-outlined">compress</span><div><b>Resumen primero</b>: en 10 segundos de scroll ya sabés lo esencial; el resto es opcional.</div></li>
+        <li><span class="material-symbols-outlined">touch_app</span><div><b>Control total</b>: el detalle está a un tap, cerrado por defecto — cero muro de texto.</div></li>
+        <li><span class="material-symbols-outlined">category</span><div><b>Un patrón para todo</b>: informe, clima, plan, clásico y tenis usan el mismo esqueleto — se aprende una vez.</div></li>
+      </ul>
+    </div>
+    <div class="fbox">
+      <h4><span class="material-symbols-outlined">construction</span>Cómo se implementa</h4>
+      <ul>
+        <li><span class="material-symbols-outlined">code</span><div><b>KoruDetailScreen</b> pasa de secciones planas a <b>capítulos + burbujas + chips</b> sobre el mismo fondo del mundo.</div></li>
+        <li><span class="material-symbols-outlined">schema</span><div><b>presentation.ts</b> ya devuelve la data necesaria: cada sección se convierte en capítulo con resumen + detalle.</div></li>
+        <li><span class="material-symbols-outlined">animation</span><div><b>Animaciones spring</b> con la curva existente de <b>koru-motion.css</b> — nada nuevo que mantener.</div></li>
+        <li><span class="material-symbols-outlined">verified</span><div><b>La card del chat no cambia</b> (ya está bien en v4): solo el interior se transforma en "Koru te Cuenta".</div></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═════════════ MOTOR DEL DEMO ═════════════ */
+const phone = document.getElementById('phone');
+const chatview = document.getElementById('chatview');
+const interior = document.getElementById('interior');
+const screenEl = document.getElementById('screen');
+const viewtag = document.getElementById('viewtag');
+const dots = document.getElementById('dots');
+const readfill = document.getElementById('readfill');
+const toast = document.getElementById('toast');
+const toasttxt = document.getElementById('toasttxt');
+let current = 'informe';
+let saved = {};
+
+/* ── helpers ── */
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+const wait = (ms) => new Promise(r => setTimeout(r, ms));
+function setView(int){
+  phone.classList.toggle('int', int);
+  viewtag.textContent = int ? 'Vista · Koru te Cuenta' : 'Vista · Chat';
+  viewtag.classList.toggle('vt-int', int);
+}
+function activePanel(){ return $(`.panel[data-f="${current}"]`); }
+
+/* dots según capítulos del panel activo */
+function renderDots(){
+  const n = $$('.chap', activePanel()).length;
+  dots.innerHTML = '';
+  for(let i=0;i<n;i++){ const d=document.createElement('span'); d.className='dot'+(i===0?' on':''); dots.appendChild(d); }
+}
+/* readbar + dots on scroll */
+function onScroll(){
+  const p = activePanel();
+  const max = screenEl.scrollHeight - screenEl.clientHeight;
+  readfill.style.width = Math.min(100, Math.max(4, (screenEl.scrollTop/Math.max(1,max))*100)) + '%';
+  const chaps = $$('.chap', p);
+  const ds = $$('.dot', dots);
+  chaps.forEach((c,i)=>{
+    const r = c.getBoundingClientRect();
+    const on = r.top < screenEl.getBoundingClientRect().top + screenEl.clientHeight*0.6;
+    if(ds[i]) ds[i].classList.toggle('on', on);
+  });
+  /* rv reveal */
+  $$('.rv:not(.in)', p).forEach(el=>{
+    const r = el.getBoundingClientRect();
+    if(r.top < screenEl.getBoundingClientRect().top + screenEl.clientHeight*0.92) el.classList.add('in');
+  });
+}
+screenEl.addEventListener('scroll', onScroll, {passive:true});
+
+/* ── abrir / cerrar interior ── */
+function syncActions(){
+  $$('.actions').forEach(a=>a.classList.toggle('on', a.dataset.f===current));
+}
+function openInterior(f){
+  current = f;
+  $$('.panel').forEach(p=>p.classList.toggle('on', p.dataset.f===f));
+  $$('.cflow').forEach(c=>c.hidden = c.dataset.f!==f);
+  syncActions();
+  setView(true);
+  screenEl.scrollTop = 0;
+  renderDots();
+  $$('.rv', activePanel()).forEach(el=>{el.classList.remove('in'); el.style.transition='none';});
+  requestAnimationFrame(()=>{ $$('.rv', activePanel()).forEach(el=>el.style.transition=''); onScroll(); });
+  placePins();
+}
+function closeInterior(){
+  setView(false);
+  chatview.scrollTop = chatview.scrollHeight;
+  placePins();
+}
+$$('.xcard').forEach(x=>x.addEventListener('click', ()=>openInterior(x.dataset.open)));
+$('#backbtn').addEventListener('click', closeInterior);
+
+/* ── tabs de flujo ── */
+$$('.dtab').forEach(t=>t.addEventListener('click', ()=>{
+  $$('.dtab').forEach(x=>x.classList.toggle('on', x===t));
+  current = t.dataset.f;
+  $$('.cflow').forEach(c=>c.hidden = c.dataset.f!==current);
+  $$('.panel').forEach(p=>p.classList.toggle('on', p.dataset.f===current));
+  syncActions();
+  setView(false);
+  chatview.scrollTop = chatview.scrollHeight;
+  renderDots();
+  placePins();
+}));
+
+/* ── chips ¿Querés más? ── */
+$$('.more-btn').forEach(b=>b.addEventListener('click', ()=>{
+  const m = b.closest('.more');
+  m.classList.toggle('open');
+  b.querySelector('.material-symbols-outlined');
+}));
+
+/* ── guardar ── */
+function showToast(txt){
+  toasttxt.textContent = txt;
+  toast.classList.add('show');
+  setTimeout(()=>toast.classList.remove('show'), 2600);
+}
+function doSave(){
+  if(saved[current]) { showToast('Ya lo tenés guardado 🌱'); return; }
+  saved[current] = true;
+  $$('.actions.on .btn.primary').forEach(b=>{
+    b.classList.add('saved');
+    b.innerHTML = '<span class="material-symbols-outlined">check</span>Guardado en tu jardín';
+  });
+  $('#bookbtn').classList.add('saved');
+  showToast('Guardado en tu jardín 🌱');
+}
+$$('[data-save]').forEach(b=>b.addEventListener('click', doSave));
+$('#bookbtn').addEventListener('click', doSave);
+
+/* ── PINS de anotaciones ── */
+const PINS = [
+  {n:1, view:'chat', sel:'.cflow:not([hidden]) .msg.user', pos:'left'},
+  {n:2, view:'chat', sel:'.cflow:not([hidden]) .xcard', pos:'right'},
+  {n:3, view:'chat', sel:'.cflow:not([hidden]) .hintpill', pos:'right'},
+  {n:4, view:'int',  sel:'#backbtn', pos:'right'},
+  {n:5, view:'int',  sel:'#dots', pos:'bottom'},
+  {n:6, view:'int',  sel:'.panel[data-f="{F}"].on .koru.hero-k .say', pos:'right'},
+  {n:7, view:'int',  sel:'.panel[data-f="{F}"].on .more', pos:'right'},
+  {n:8, view:'int',  sel:'.panel[data-f="{F}"].on .pebbles, .panel[data-f="{F}"].on .w-hero, .panel[data-f="{F}"].on .gchat', pos:'left'},
+  {n:9, view:'int',  sel:'.actions.on', pos:'right'},
+  {n:10, view:'int', sel:'#bookbtn', pos:'left'},
+];
+const pinEls = [];
+for(let i=1;i<=10;i++){
+  const el = document.createElement('div');
+  el.className='uxpin'; el.textContent=i;
+  phone.appendChild(el); pinEls.push(el);
+}
+function placePins(){
+  const isInt = phone.classList.contains('int');
+  const pr = phone.getBoundingClientRect();
+  PINS.forEach(p=>{
+    const el = pinEls[p.n-1];
+    el.style.display='none';
+    if(!document.body.classList.contains('ux-on')) return;
+    if((p.view==='int') !== isInt) return;
+    const sel = p.sel.replaceAll('{F}', current);
+    let target = null;
+    $$(sel).forEach(t=>{ if(!target && t.offsetParent!==null) target = t; });
+    if(!target) return;
+    const r = target.getBoundingClientRect();
+    let x = r.right - pr.left, y = r.top - pr.top + 6;
+    if(p.pos==='right'){ x = r.right - pr.left - 6; }
+    if(p.pos==='left'){ x = r.left - pr.left + 6; }
+    if(p.pos==='bottom'){ x = r.left - pr.left + r.width/2; y = r.bottom - pr.top - 2; }
+    el.style.left = Math.max(6, Math.min(pr.width-30, x-12)) + 'px';
+    el.style.top = Math.max(48, y-12) + 'px';
+    el.style.display = 'grid';
+  });
+}
+$('#uxbtn').addEventListener('click', ()=>{
+  document.body.classList.toggle('ux-on');
+  $('#uxbtn').classList.toggle('on');
+  placePins();
+});
+window.addEventListener('resize', placePins);
+
+/* ═════════════ TOUR AUTOMÁTICO ═════════════ */
+const tourbtn = $('#tourbtn');
+const tourcap = $('#tourcap');
+const tourstep = $('#tourstep');
+const tourtext = $('#tourtext');
+let touring = false, tourTimers = [];
+
+const TOUR = [
+  {t:'1 · Pedís algo en el chat', s:'El flujo empieza como siempre: una conversación natural con Koru.',
+   act(){ setView(false); highlight('.cflow:not([hidden]) .msg.user'); }},
+  {t:'2 · Koru responde con una card compacta', s:'Lo esencial a simple vista — en el chat, sin abrir nada.',
+   act(){ highlight('.cflow:not([hidden]) .xcard'); }},
+  {t:'3 · Tocás la card → Koru te abre su relato', s:'Se desliza el mundo de Koru: fondo, capítulos y su voz.',
+   act(){ unhighlight(); openInterior(current); }},
+  {t:'4 · Koru te cuenta lo esencial', s:'Cada capítulo abre con una burbuja corta — primero el resumen, después el dato.',
+   act(){ screenEl.scrollTo({top:0}); highlight(`.panel[data-f="${current}"] .koru.hero-k .say`); }},
+  {t:'5 · ¿Querés más? — el detalle a un tap', s:'Cerrado por defecto. Lo abrís solo si querés profundizar.',
+   act(){ unhighlight(); const m = $(`.panel[data-f="${current}"] .more`); if(m){ highlightEl(m); m.classList.add('open'); } }},
+  {t:'6 · Números clave, siempre visibles', s:'Los guijarros: forma de las rocas del mundo, imposible perderlos.',
+   act(){ const el = $(`.panel[data-f="${current}"] .pebbles`) || $(`.panel[data-f="${current}"] .gchat`); el && highlightEl(el); el && el.scrollIntoView({behavior:'smooth', block:'center'}); }},
+  {t:'7 · Guardás en tu jardín', s:'Cada flujo cierra con una acción: jardín, PDF, recordatorio o aviso.',
+   act(){ const a = $(`.actions[data-f="${current}"]`); a && highlightEl(a); wait(700).then(()=>doSave()); }},
+  {t:'8 · Volvés al chat cuando querés', s:'La flecha te devuelve. Nada te atrapa.',
+   act(){ unhighlight(); closeInterior(); }},
+];
+
+function highlight(sel){ const el = $(sel); el && highlightEl(el); }
+function highlightEl(el){ unhighlight(); el.classList.add('touring'); phone.classList.add('touring-phone'); }
+function unhighlight(){ $$('.touring').forEach(e=>e.classList.remove('touring')); phone.classList.remove('touring-phone'); }
+
+async function runTour(){
+  if(touring){ stopTour(); return; }
+  touring = true;
+  tourbtn.classList.add('running');
+  tourbtn.innerHTML = '<span class="material-symbols-outlined">stop</span>Detener';
+  setView(false);
+  for(const [i, step] of TOUR.entries()){
+    if(!touring) break;
+    tourstep.textContent = i+1;
+    tourtext.innerHTML = step.t + '<small>' + step.s + '</small>';
+    tourcap.classList.add('show');
+    step.act();
+    placePins();
+    await wait(2600);
+  }
+  stopTour();
+}
+function stopTour(){
+  touring = false;
+  tourTimers.forEach(clearTimeout); tourTimers = [];
+  unhighlight();
+  tourcap.classList.remove('show');
+  tourbtn.classList.remove('running');
+  tourbtn.innerHTML = '<span class="material-symbols-outlined">play_arrow</span>Recorrer el flujo';
+}
+tourbtn.addEventListener('click', runTour);
+$('#tourskip').addEventListener('click', stopTour);
+
+/* ── init ── */
+renderDots();
+chatview.scrollTop = chatview.scrollHeight;
+onScroll();
+</script>
+
+</body>
+</html>
