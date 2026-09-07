@@ -1074,6 +1074,8 @@ export default defineConfig(({ mode }) => {
           // Harness de preview de cards (showcase de diseños). Se sirve en
           // /preview.html SIN tocar la app real (index.html = app intacta).
           preview: new URL("./preview.html", import.meta.url).pathname,
+          // Galería de interiores Lectura INTEGRADOS (app real, fixtures del dominio).
+          lectura: new URL("./lectura.html", import.meta.url).pathname,
         },
       },
     },

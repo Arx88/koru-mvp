@@ -105,7 +105,7 @@ export function WeatherInterior({ block, onClose, onSave }: LecturaInteriorProps
   const curve = buildCurve(hourly);
 
   // máx/mín: del range, si no del primer daily
-  const rangeMatch = (block.range ?? "").match(/(\d+)[°º]?\s*[–—-]\s*(\d+)/);
+  const rangeMatch = (block.range ?? "").match(/(\d+)\s*[°º]?\s*[–—\-/]\s*(\d+)/);
   const lo = rangeMatch ? Number(rangeMatch[1]) : parseTemp(daily[0]?.lo ?? "") ?? null;
   const hi = rangeMatch ? Number(rangeMatch[2]) : parseTemp(daily[0]?.hi ?? "") ?? null;
   const maxHour = (() => {
