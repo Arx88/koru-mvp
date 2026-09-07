@@ -255,3 +255,16 @@ export const alarmBlock: Extract<UiBlock, { type: "alarm" }> = {
   note: "Te agendé el gym 30 min después de la alarma — así no tenés que pensarlo a las 7.",
 };
 
+
+export const checklistBlock: Extract<UiBlock, { type: "smart_checklist" }> = {
+  type: "smart_checklist",
+  title: "Lo que falta antes de comprar",
+  progress: 50,
+  items: [
+    { label: "RAM 32 GB verificada", checked: true },
+    { label: "Garantía internacional", checked: true },
+    { label: "Precio por debajo de €1.200", checked: false },
+    { label: "Teclado español físico", checked: false },
+  ],
+};
+
