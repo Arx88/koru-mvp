@@ -104,3 +104,27 @@ export const outfitBlock: Extract<UiBlock, { type: "outfit" }> = {
     { emoji: "☕", label: "Ocasión", value: "café + paseo" },
   ],
 };
+
+export const liveMatchBlock: Extract<UiBlock, { type: "live_match" }> = {
+  type: "live_match",
+  league: "LaLiga · Jornada 5",
+  status: "en vivo",
+  minute: "78'",
+  time: "domingo 21:00",
+  homeName: "Real Madrid",
+  awayName: "Barcelona",
+  homeScore: 2,
+  awayScore: 1,
+  homeLogo: "/stitch/sports/real-madrid.png",
+  awayLogo: "/stitch/sports/barcelona.png",
+  venue: "Santiago Bernabéu",
+  homePossession: "58%",
+  awayPossession: "42%",
+  homeShots: "12",
+  awayShots: "7",
+  goals: [
+    { minute: "12'", team: "Real Madrid", scorer: "Bellingham", text: "cabezazo tras córner de Rodrygo", photo: "/stitch/sports/players/bellingham.jpg" },
+    { minute: "34'", team: "Barcelona", scorer: "Lamine Yamal", text: "diagonal y definición cruzada", photo: "/stitch/sports/players/yamal.jpg" },
+    { minute: "71'", team: "Real Madrid", scorer: "Mbappé", text: "contraataque en 3 toques, solo ante el arquero", photo: "/stitch/sports/players/mbappe.jpg" },
+  ],
+};

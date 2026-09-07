@@ -47,3 +47,9 @@
 .lcr .pos-track .l{background:linear-gradient(180deg,#7fe3c0,#4ec99c);display:flex;align-items:center;padding-left:12px;font:800 11px var(--sans);color:#05301d}
 .lcr .pos-track .r{background:linear-gradient(180deg,#bcd0f7,#9dbcf3);display:flex;align-items:center;justify-content:flex-end;padding-right:12px;font:800 11px var(--sans);color:#22355c}
 .lcr .pos-ends{display:flex;justify-content:space-between;font:700 10.5px var(--sans);color:var(--ink-dim);margin-top:7px}
+/* fallbacks del bind real: escudo sin logo → iniciales; gol sin foto → icono */
+.lcr .sb-team .sb-ini{width:54px;height:54px;border-radius:16px;background:var(--paper2);border:1px solid var(--linec);
+  display:flex;align-items:center;justify-content:center;font:800 17px var(--disp);color:var(--ink-soft)}
+.lcr .sb-feed .fp .fp-ic{width:100%;height:100%;border-radius:12px;background:var(--mint-soft);color:var(--mint-ink);
+  display:flex;align-items:center;justify-content:center}
+.lcr .sb-feed .fp .fp-ic .lucide{font-size:22px}
