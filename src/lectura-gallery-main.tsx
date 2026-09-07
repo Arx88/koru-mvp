@@ -28,6 +28,7 @@ import {
   Bitcoin,
   ArrowLeftRight,
   Wallet,
+  Activity,
 } from "lucide-react";
 import type { UiBlock } from "./domain/types";
 import { WeatherInterior } from "./ui/cards/lectura/panels/WeatherInterior";
@@ -47,6 +48,7 @@ import { MarketInterior } from "./ui/cards/lectura/panels/MarketInterior";
 import { CryptoInterior } from "./ui/cards/lectura/panels/CryptoInterior";
 import { ForexInterior } from "./ui/cards/lectura/panels/ForexInterior";
 import { MoneyInterior } from "./ui/cards/lectura/panels/MoneyInterior";
+import { TickerInterior } from "./ui/cards/lectura/panels/TickerInterior";
 import {
   weatherBlock,
   planBlock,
@@ -65,6 +67,7 @@ import {
   cryptoBlock,
   forexBlock,
   moneyBlock,
+  tickerBlock,
 } from "./ui/cards/lectura/fixtures";
 
 type Entry = {
@@ -97,6 +100,7 @@ const CARDS: Entry[] = [
   { id: "crypto", label: "Portfolio cripto", sub: "sparkline real + alertas activas", icon: Bitcoin, tint: "var(--mint-soft)", color: "var(--mint-ink)", block: cryptoBlock, Cmp: CryptoInterior },
   { id: "forex", label: "Dólar oficial", sub: "3 pares reales + conversión derivada", icon: ArrowLeftRight, tint: "var(--mint-soft)", color: "var(--mint-ink)", block: forexBlock, Cmp: ForexInterior },
   { id: "money", label: "Gastos de agosto", sub: "total real + % por rubro derivado", icon: Wallet, tint: "var(--rose-soft)", color: "var(--rose-ink)", block: moneyBlock, Cmp: MoneyInterior },
+  { id: "ticker", label: "Cinta de datos", sub: "marquee con items reales + alerta", icon: Activity, tint: "var(--violet-soft)", color: "var(--violet-ink)", block: tickerBlock, Cmp: TickerInterior },
 ];
 
 

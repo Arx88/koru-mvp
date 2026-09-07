@@ -25,6 +25,7 @@ import { MarketInterior } from "./panels/MarketInterior";
 import { CryptoInterior } from "./panels/CryptoInterior";
 import { ForexInterior } from "./panels/ForexInterior";
 import { MoneyInterior } from "./panels/MoneyInterior";
+import { TickerInterior } from "./panels/TickerInterior";
 
 export interface LecturaInteriorProps<T extends UiBlock = UiBlock> {
   block: T;
@@ -55,6 +56,7 @@ const REGISTRY: Partial<Record<UiBlock["type"], AnyInterior>> = {
   crypto_portfolio: CryptoInterior as AnyInterior,
   forex: ForexInterior as AnyInterior,
   money_summary: MoneyInterior as AnyInterior,
+  data_ticker: TickerInterior as AnyInterior,
 };
 
 export function lecturaInteriorFor(block: UiBlock): AnyInterior | null {

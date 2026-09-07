@@ -388,3 +388,17 @@ export const moneyBlock: Extract<UiBlock, { type: "money_summary" }> = {
     "La baja viene de la comida: 6 menos deliverys que en julio (€182 de diferencia). No cambiaste de dieta, cambiaste de horario de cena.",
 };
 
+
+export const tickerBlock: Extract<UiBlock, { type: "data_ticker" }> = {
+  type: "data_ticker",
+  title: "Cupo · dólar · oficial",
+  items: [
+    { label: "US$ CUPO RESTANTE", value: "136", highlight: true },
+    { label: "USD/EUR", value: "0,92" },
+    { label: "EUR/ARS", value: "1.105,0" },
+    { label: "OMIE POOL", value: "€84,2/MWh" },
+    { label: "BITCOIN", value: "61.240" },
+    { label: "ORO", value: "2.331" },
+  ],
+  alert: "Con lo que queda te sobra para los US$90 de Spotify anual y la suscripción de iCloud.",
+};
