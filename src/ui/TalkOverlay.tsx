@@ -88,16 +88,29 @@ function KoruTurnBubble({
   onSetWorldSignals: (enabled: boolean) => void;
 }) {
   const { heading, body } = splitKoruText(turn.text);
+  // 🔴 FIX multi-indicador (queja del usuario: "múltiples PROCESANDO en
+  // simultáneo"): mientras el turno está working con una card de búsqueda
+  // (deliverable working), la burbuja de texto NO se renderiza — la card
+  // esqueleto + el WorkingPanel ya comunican la actividad. Antes se
+  // superponían hasta 3 mensajes "Buscando…" (burbuja + nota de card +
+  // panel inferior). Con el stream cerrado, la burbuja vuelve con el
+  // reply final de la síntesis.
+  const hasWorkingDeliverable = (turn.items ?? []).some(
+    (it) => it.uiBlock?.type === "deliverable" && (it.uiBlock as { status?: string }).status === "working",
+  );
+  const showBubble = !hasWorkingDeliverable && Boolean(heading || body);
   return (
     <div className="koru-message is-koru">
       <div className="koru-row">
         <div className="koru-avatar">
           <img src={KORU_AVATAR} alt="Koru" />
         </div>
-        <div className="koru-bubble ai-bubble">
-          {heading && <h3 className="koru-bubble-heading">{heading}</h3>}
-          <p className="koru-message-text">{body}</p>
-        </div>
+        {showBubble && (
+          <div className="koru-bubble ai-bubble">
+            {heading && <h3 className="koru-bubble-heading">{heading}</h3>}
+            <p className="koru-message-text">{body}</p>
+          </div>
+        )}
       </div>
       {turn.items && turn.items.length > 0 && (
         <div className="koru-cards-row">

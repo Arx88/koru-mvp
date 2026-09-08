@@ -652,14 +652,22 @@ function ActionButtons({ item, handlers }: { item: KoruTurnItem; handlers: CardA
   const extras = secondaryActions(item);
   if (item.status === "rejected") return <p className="koru-card-note">Lo suelto. No hice nada con eso.</p>;
   if (item.status === "working") {
-    const label = item.webMode === "shopping"
-      ? "Comparando fuentes ahora..."
-      : item.webMode === "world"
-        ? "Buscando senales reales ahora..."
-        : item.webMode === "weather"
-          ? "Buscando clima ahora..."
-          : "Buscando información...";
-    return <p className="koru-card-note">{label}</p>;
+    // 🔴 FIX multi-indicador: para la búsqueda (deliverable working) el
+    // esqueleto de la card + WorkingPanel ya comunican la actividad — esta
+    // nota duplicaba un tercer "Buscando…" simultáneo. Solo queda para
+    // acciones no-búsqueda (evento de calendario, etc.) que no tienen card.
+    const isSearchSkeleton = item.uiBlock?.type === "deliverable";
+    if (!isSearchSkeleton) {
+      const label = item.webMode === "shopping"
+        ? "Comparando fuentes ahora..."
+        : item.webMode === "world"
+          ? "Buscando senales reales ahora..."
+          : item.webMode === "weather"
+            ? "Buscando clima ahora..."
+            : "Buscando información...";
+      return <p className="koru-card-note">{label}</p>;
+    }
+    return null;
   }
   if (item.status === "executed") {
     return (
