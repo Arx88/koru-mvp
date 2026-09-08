@@ -1076,6 +1076,9 @@ export default defineConfig(({ mode }) => {
           preview: new URL("./preview.html", import.meta.url).pathname,
           // Galería de interiores Lectura INTEGRADOS (app real, fixtures del dominio).
           lectura: new URL("./lectura.html", import.meta.url).pathname,
+          // Archivo único: chat showcase + galería de interiores en una vista
+          // (también servido online en /all-cards.html).
+          allcards: new URL("./all-cards.html", import.meta.url).pathname,
         },
       },
     },
