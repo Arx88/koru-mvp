@@ -4006,6 +4006,19 @@ a.koru-dsec-source:hover {
   box-shadow: 0 6px 18px rgba(255, 255, 255, 0.5);
 }
 
+/* 🔴 v3 — acción "Ver" (abre Mis Colecciones): mismo lenguaje visual que
+ * is-confirm pero con el acento mint del sistema de guardado. */
+.koru-memory-toast-action.is-view {
+  background: #ffffff;
+  color: #0f766e;
+  border-color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.35);
+}
+
+.koru-memory-toast-action.is-view:hover {
+  box-shadow: 0 6px 18px rgba(255, 255, 255, 0.5);
+}
+
 .koru-memory-toast--confirmed .koru-memory-toast-action,
 .koru-memory-toast--rejected .koru-memory-toast-action,
 .koru-memory-toast--exit .koru-memory-toast-actions {

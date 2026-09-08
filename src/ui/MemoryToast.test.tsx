@@ -120,3 +120,56 @@ describe("MemoryToast v2 · acciones de confirmación", () => {
     }
   });
 });
+
+describe("MemoryToast v3 · guardados con acción Ver → Mis Colecciones", () => {
+  it("kind=saved muestra label e icono de guardado (no de memoria)", () => {
+    render(
+      <MemoryToast
+        kind="saved"
+        text="Creado en Notas"
+        onDismiss={vi.fn()}
+        collection="Notas"
+      />,
+    );
+    expect(screen.getByText("Guardado")).toBeInTheDocument();
+    expect(screen.getByText(/listo, quedó guardado/i)).toBeInTheDocument();
+    // NO habla de "aprendí algo nuevo" (eso es para memorias)
+    expect(screen.queryByText(/aprendí algo nuevo/i)).not.toBeInTheDocument();
+  });
+
+  it("con collection + onOpenCollections muestra el botón Ver", () => {
+    render(
+      <MemoryToast
+        kind="saved"
+        text="Creado en Notas"
+        onDismiss={vi.fn()}
+        collection="Notas"
+        onOpenCollections={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("button", { name: /ver/i })).toBeInTheDocument();
+  });
+
+  it("sin collection NO muestra Ver (toasts genéricos tipo 'Listo ✓')", () => {
+    render(<MemoryToast kind="saved" text="Listo ✓" onDismiss={vi.fn()} onOpenCollections={vi.fn()} />);
+    expect(screen.queryByRole("button", { name: /^ver$/i })).not.toBeInTheDocument();
+  });
+
+  it("Ver llama onOpenCollections con la colección y auto-dismissa", async () => {
+    const user = userEvent.setup();
+    const onOpenCollections = vi.fn();
+    const onDismiss = vi.fn();
+    render(
+      <MemoryToast
+        kind="saved"
+        text="Creado en Notas"
+        onDismiss={onDismiss}
+        collection="Notas"
+        onOpenCollections={onOpenCollections}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /ver/i }));
+    expect(onOpenCollections).toHaveBeenCalledWith("Notas");
+    await waitFor(() => expect(onDismiss).toHaveBeenCalled());
+  });
+});

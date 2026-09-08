@@ -27,11 +27,13 @@
 .lcr .ckitem .ct{flex:1;min-width:0}
 .lcr .ckitem .ct b{font:800 12.5px var(--sans);color:var(--ink);display:block;transition:.2s}
 .lcr .ckitem .ct span{font:600 10.5px var(--sans);color:var(--ink-dim)}
-.lcr .ckitem .cprice{font:800 13px var(--disp);color:var(--ink-soft);flex:none}
+.lcr .ckitem .cprice{flex:none;display:flex;align-items:center;justify-content:center}
+.lcr .ckitem .cprice .lucide{font-size:15px;transition:.2s}
+.lcr .ckitem .cprice .lucide.pend{color:#c9c0e0}
 .lcr .ckitem.done .box{background:var(--mint);border-color:var(--mint)}
 .lcr .ckitem.done .box .lucide{color:#05301d}
-.lcr .ckitem.done .ct b{text-decoration:line-through;text-decoration-thickness:1.5px;color:var(--ink-faint)}
-.lcr .ckitem.done .cprice{color:var(--ink-faint)}
+.lcr .ckitem.done .ct b{text-decoration:line-through;text-decoration-thickness:1.5px;color:#9a90b5}
+.lcr .ckitem.done .cprice .lucide{color:var(--mint-ink)}
 .lcr .ck-barwrap{margin-top:16px;background:var(--paper2);border:1px solid var(--linec);border-radius:16px;padding:12px 14px}
 .lcr .ck-barwrap .bt{display:flex;justify-content:space-between;font:700 10.5px var(--sans);color:var(--ink-dim);margin-bottom:8px}
 .lcr .ck-barwrap .bt b{color:var(--mint-ink);font:800 12px var(--disp)}

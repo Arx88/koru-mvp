@@ -1002,12 +1002,20 @@ export function archivePlan(state: KoruState, planId: string): KoruState {
 }
 
 // ─── Checklists ───
-export function createChecklist(state: KoruState, title: string, items: Omit<ChecklistItem, "id" | "order">[]): KoruState {
+export function createChecklist(
+  state: KoruState,
+  title: string,
+  items: Omit<ChecklistItem, "id" | "order">[],
+  opts?: { id?: string; itemIds?: string[] },
+): KoruState {
   const now = nowIso();
+  // 🔴 ids sintéticos opcionales: Crear→Lista usa los mismos ids que
+  // despacha la card reabierta (checklist_<slug> / citem_<slug>_<i>) para
+  // que el toggle de la card golpee ESTE checklist y no un duplicado.
   const checklist: Checklist = {
-    id: createId("checklist"),
+    id: opts?.id ?? createId("checklist"),
     title,
-    items: items.map((it, i) => ({ ...it, id: createId("citem"), order: i })),
+    items: items.map((it, i) => ({ ...it, id: opts?.itemIds?.[i] ?? createId("citem"), order: i })),
     status: "active",
     createdAt: now,
   };

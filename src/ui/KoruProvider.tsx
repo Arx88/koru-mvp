@@ -99,6 +99,7 @@ import { cacheTurn, isOnline, onOnlineStatusChange, enqueueOfflineMessage, readO
 import { track as analyticsTrack } from "../domain/analytics";
 // 🔴 P2 — Memory conflict resolution modal
 import { MemoryConflictResolver } from "./MemoryConflictResolver";
+import { checklistItemIdFor } from "./cards/lectura/slug";
 export type { KoruTurnItem, KoruChatTurn };
 
 export type Stage = "semilla" | "brote" | "raices" | "nacimiento" | "jardin";
@@ -278,7 +279,7 @@ type KoruContextValue = {
   dismissNudge: (id: string) => void;
   setWorldSignals: (enabled: boolean) => void;
   // 🔴 Memory toast: aparece cuando Koru aprende algo del usuario
-  memoryToast: { id: string; kind: string; text: string } | null;
+  memoryToast: { id: string; kind: string; text: string; collection?: string } | null;
   dismissMemoryToast: () => void;
   confirmMemoryToast: (memoryId: string) => void;
   rejectMemoryToast: (memoryId: string) => void;
@@ -305,12 +306,16 @@ type KoruContextValue = {
   updateRecord: (id: string, patch: Partial<LifeRecord>) => void;
   deleteRecord: (id: string) => void;
   reopenRecord: (record: LifeRecord) => void;
+  // 🔴 v3: Mis Colecciones como pantalla global (toast "Ver", atajos, etc.)
+  collectionsView: { collection?: string } | null;
+  openCollections: (collection?: string) => void;
+  closeCollections: () => void;
   reopenedRecord: LifeRecord | null;
   // 🔴 TIER S — nuevos reducers del store (planes, checklists, hábitos, etc.)
   createPlan: (title: string, steps: Omit<PlanStep, "id" | "order" | "done">[]) => void;
   togglePlanStep: (planId: string, stepId: string) => void;
   archivePlan: (planId: string) => void;
-  createChecklist: (title: string, items: Omit<ChecklistItem, "id" | "order">[]) => void;
+  createChecklist: (title: string, items: Omit<ChecklistItem, "id" | "order">[], opts?: { id?: string; itemIds?: string[] }) => void;
   toggleChecklistItem: (checklistId: string, itemId: string) => void;
   createHabit: (label: string, icon: string, cadence: Habit["cadence"], target: number, unit?: string, anchorTime?: string) => string;
   logHabit: (habitId: string, value: number) => void;
@@ -354,7 +359,13 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   // 🔴 Memory toast: se setea cuando llegan memoryCandidates nuevos y se limpia con dismissMemoryToast.
   // v2: el toast lleva el id REAL de la memoria creada → puede confirmar/rechazar
   // desde el propio toast (el momento de máxima atención) sin buscar la card en el chat.
-  const [memoryToast, setMemoryToast] = useState<{ id: string; kind: string; text: string } | null>(null);
+  // 🔴 memoryToast: para kind="saved" puede llevar `collection` → el toast
+  // muestra la acción "Ver" que abre Mis Colecciones justo en esa colección
+  // (cierra el ciclo Crear → toast → colección → card reabierta).
+  const [memoryToast, setMemoryToast] = useState<{ id: string; kind: string; text: string; collection?: string } | null>(null);
+  // 🔴 v3: Mis Colecciones como pantalla de primer nivel — abrible desde el
+  // toast "Ver" y desde cualquier punto de la app (no solo el CTA de una card).
+  const [collectionsView, setCollectionsView] = useState<{ collection?: string } | null>(null);
   // 🔴 Morning brief state
   const [morningBrief, setMorningBrief] = useState<any | null>(null);
   // 🔴 PWA install prompt
@@ -1219,8 +1230,8 @@ export function KoruProvider({ children }: { children: ReactNode }) {
       saveState(next);
       return next;
     });
-    setMemoryToast({ id: newRecord.id, kind: "saved", text: `Creado en ${newRecord.collection}` });
-    setTimeout(() => setMemoryToast(null), 2500);
+    setMemoryToast({ id: newRecord.id, kind: "saved", text: `Creado en ${newRecord.collection}`, collection: newRecord.collection });
+    setTimeout(() => setMemoryToast(null), 6000);
     // 🔴 v2: analytics — track Create adoption
     analyticsTrack("create_record", { kind: input.kind, collection: newRecord.collection });
     return newRecord;
@@ -1247,8 +1258,20 @@ export function KoruProvider({ children }: { children: ReactNode }) {
 
   function reopenRecord(record: LifeRecord) {
     setReopenedRecord(record);
+    // Si Mis Colecciones estaba abierta, la cerramos: el foco pasa a la card.
+    setCollectionsView(null);
     // 🔴 v2: analytics — track reopen rate
     analyticsTrack("reopen_record", { hasSourceBlock: !!record.sourceBlock, collection: record.collection });
+  }
+
+  // 🔴 v3: abrir Mis Colecciones desde cualquier punto (toast "Ver", etc.).
+  // focusCollection deja al usuario DENTRO de la colección correcta.
+  function openCollections(collection?: string) {
+    setCollectionsView({ collection });
+    analyticsTrack("open_collections", { source: "toast", collection: collection ?? "all" });
+  }
+  function closeCollections() {
+    setCollectionsView(null);
   }
 
   async function submitEntry(
@@ -1776,8 +1799,11 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   function archivePlan(planId: string) {
     commitDomainState((prev) => archivePlanReducer(prev, planId));
   }
-  function createChecklist(title: string, items: Omit<ChecklistItem, "id" | "order">[]) {
-    commitDomainState((prev) => createChecklistReducer(prev, title, items));
+  function createChecklist(title: string, items: Omit<ChecklistItem, "id" | "order">[], opts?: { id?: string; itemIds?: string[] }) {
+    // 🔴 opts: Crear→Lista pasa los ids sintéticos del contrato de la card
+    // (checklist_<slug>/citem_<slug>_<i>) para que el toggle de la card
+    // reabierta golpee este mismo checklist durable.
+    commitDomainState((prev) => createChecklistReducer(prev, title, items, opts));
   }
   function toggleChecklistItem(checklistId: string, itemId: string) {
     commitDomainState((prev) => toggleChecklistItemReducer(prev, checklistId, itemId));
@@ -2006,6 +2032,9 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     updateRecord,
     deleteRecord,
     reopenRecord,
+    collectionsView,
+    openCollections,
+    closeCollections,
     reopenedRecord,
     // 🔴 TIER S — nuevos reducers del store
     createPlan,
@@ -2109,8 +2138,9 @@ export function KoruProvider({ children }: { children: ReactNode }) {
         commitDomainState((prev) => updateWeatherCacheReducer(prev, cache));
       }
       // 🔴 Toast de confirmación (usa el mismo mecanismo que memory toast)
-      setMemoryToast({ id: newRecord.id, kind: "saved", text: `Guardado en ${collection}` });
-      setTimeout(() => setMemoryToast(null), 2500);
+      // 🔴 v3: con collection → el toast ofrece "Ver" que abre Mis Colecciones.
+      setMemoryToast({ id: newRecord.id, kind: "saved", text: `Guardado en ${collection}`, collection });
+      setTimeout(() => setMemoryToast(null), 6000);
       // 🔴 v2: analytics — track chat save (vs Create save)
       analyticsTrack("save_record_via_chat", { collection, hasSourceBlock: !!detail?.blockData });
     };
@@ -2254,15 +2284,14 @@ export function KoruProvider({ children }: { children: ReactNode }) {
             const items = (blockData.items as Array<{ label: string; checked?: boolean }>)
               .map((it, i) => ({ label: it.label, urgency: "normal" as const, doneAt: it.checked ? new Date().toISOString() : undefined }));
             const created = createChecklistReducer(state, blockData.title || "Checklist", items);
-            // Parchear ids para que coincidan con los sintéticos.
-            const slug = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 48) || "untitled";
+            // Parchear ids para que coincidan con los sintéticos (helper compartido).
             const createdChecklists = created.checklists ?? [];
             const patchedChecklists = createdChecklists.map(c =>
               c.id === (createdChecklists[0]?.id ?? "")
                 ? {
                     ...c,
                     id: checklistId,
-                    items: c.items.map((it, i) => ({ ...it, id: `citem_${slug(it.label)}_${i}` })),
+                    items: c.items.map((it, i) => ({ ...it, id: checklistItemIdFor(it.label, i) })),
                   }
                 : c
             );
@@ -2383,5 +2412,13 @@ export function useKoru() {
   const ctx = useContext(KoruContext);
   if (!ctx) throw new Error("useKoru must be used within KoruProvider");
   return ctx;
+}
+
+/** 🔴 useKoruOptional — como useKoru pero devuelve null fuera del provider.
+ * Los interiores Lectura lo usan para hidratar estado VIVO del store cuando
+ * están montados en la app real, sin romper los tests que los renderizan
+ * standalone (sin KoruProvider). */
+export function useKoruOptional() {
+  return useContext(KoruContext);
 }
 

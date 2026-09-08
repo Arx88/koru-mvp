@@ -7,43 +7,45 @@
  * ids sintéticos (`checklist_<slug>` / `citem_<slug>_<i>`) — KoruProvider
  * auto-crea el Checklist durable si no existe y marca el item. El estado
  * local refleja el toggle optimista hasta que la app re-renderiza.
+ * 🔴 HIDRATACIÓN VIVA: si existe un checklist durable con el mismo id
+ * sintético (creado desde Crear→Lista o por un toggle previo), el estado
+ * inicial se hidrata del STORE (doneAt real), no de la foto del block —
+ * así la card reabierta muestra el progreso actual, no uno viejo.
  * Sin items → estado vacío honesto (no se inventa contenido).
  */
 import { useState } from "react";
-import { Check, ListChecks, Save, CircleSlash } from "lucide-react";
+import { Check, Circle, ListChecks, Save, CircleSlash } from "lucide-react";
 import type { UiBlock } from "../../../../domain/types";
 import { Ic } from "../Ic";
 import { LecturaShell } from "../LecturaShell";
 import { dispatchCardAction } from "../actions";
+import { checklistIdFor, checklistItemIdFor } from "../slug";
+import { useKoruOptional } from "../../../KoruProvider";
 import type { LecturaInteriorProps } from "../index";
 import "./p-check.css";
 
 type ChecklistBlock = Extract<UiBlock, { type: "smart_checklist" }>;
 
-function slug(s: string): string {
-  return (
-    s
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_+|_+$/g, "")
-      .slice(0, 48) || "untitled"
-  );
-}
-
 const RING_CIRC = 2 * Math.PI * 52; // 326.7
 
 export function CheckInterior({ block, onClose, onSave }: LecturaInteriorProps<ChecklistBlock>) {
   const items = block.items ?? [];
-  const [localDone, setLocalDone] = useState<boolean[]>(() => items.map((it) => it.checked));
+  const checklistId = checklistIdFor(block.title || "lista");
+  // 🔴 Estado VIVO: si el store tiene el checklist durable con el mismo id
+  // sintético, su doneAt manda sobre el snapshot del block.
+  const koru = useKoruOptional();
+  const durable = koru?.state?.checklists?.find((c) => c.id === checklistId);
+  const [localDone, setLocalDone] = useState<boolean[]>(() =>
+    items.map((it, i) => {
+      const durableItem = durable?.items?.find((di) => di.id === checklistItemIdFor(it.label, i));
+      return durableItem ? Boolean(durableItem.doneAt) : it.checked;
+    }),
+  );
 
   const doneCount = localDone.filter(Boolean).length;
   const total = items.length;
   const pct = block.progress != null ? block.progress : total ? Math.round((doneCount / total) * 100) : 0;
   const ringOffset = RING_CIRC * (1 - pct / 100);
-
-  const checklistId = `checklist_${slug(block.title || "lista")}`;
 
   const toggleItem = (i: number) => {
     if (!items[i]) return;
@@ -52,7 +54,7 @@ export function CheckInterior({ block, onClose, onSave }: LecturaInteriorProps<C
     setLocalDone(next);
     dispatchCardAction("toggle_checklist", block, {
       checklistId,
-      itemId: `citem_${slug(items[i].label)}_${i}`,
+      itemId: checklistItemIdFor(items[i].label, i),
     });
   };
 
@@ -121,7 +123,7 @@ export function CheckInterior({ block, onClose, onSave }: LecturaInteriorProps<C
         <div className="ck-list rv">
           {items.map((it, i) => (
             <button
-              key={`${slug(it.label)}_${i}`}
+              key={`${checklistItemIdFor(it.label, i)}`}
               type="button"
               className={`ckitem${localDone[i] ? " done" : ""}`}
               onClick={() => toggleItem(i)}
@@ -133,7 +135,13 @@ export function CheckInterior({ block, onClose, onSave }: LecturaInteriorProps<C
               <div className="ct">
                 <b>{it.label}</b>
               </div>
-              <span className="cprice">{localDone[i] ? "✓" : "—"}</span>
+              <span
+                className="cprice"
+                aria-hidden="true"
+                title={localDone[i] ? "Completado" : "Pendiente"}
+              >
+                {localDone[i] ? <Ic i={Check} className="ic" /> : <Ic i={Circle} className="ic pend" />}
+              </span>
             </button>
           ))}
           {total === 0 && (

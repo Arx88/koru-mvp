@@ -8,6 +8,11 @@ import { KoruSemanticCard } from "./chatCards";
 import { KoruUnifiedCard } from "./cards/unified/KoruUnifiedCard";
 import { KoruBackground, activityToBgState, type KoruBgState } from "./KoruBackground";
 import { MemoryToast } from "./MemoryToast";
+import { Suspense, lazy } from "react";
+// 🔴 v3: Mis Colecciones code-split (igual que en KoruUnifiedCard).
+const LazyCollectionsScreen = lazy(() =>
+  import("./CollectionsScreen").then((m) => ({ default: m.CollectionsScreen })),
+);
 import { MorningBriefCard } from "./MorningBriefCard";
 import { CreateScreen } from "./create/CreateScreen";
 import { TypingDots } from "./TypingDots";
@@ -364,6 +369,9 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
     dismissMemoryToast,
     confirmMemoryToast,
     rejectMemoryToast,
+    collectionsView,
+    openCollections,
+    closeCollections,
     morningBrief,
     dismissMorningBrief,
     memories,
@@ -1110,7 +1118,8 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
         {/* Fondo dinámico — cambia según el estado de Koru */}
         <KoruBackground state={bgState} />
 
-        {/* 🔴 Memory toast: aparece cuando Koru aprende algo del usuario */}
+        {/* 🔴 Memory toast: aparece cuando Koru aprende algo del usuario.
+            * Para guardados (Crear / Guardar card) ofrece "Ver" → Mis Colecciones. */}
         {memoryToast && (
           <MemoryToast
             key={memoryToast.id}
@@ -1120,6 +1129,8 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
             memoryId={memoryToast.id.startsWith("toast_") ? undefined : memoryToast.id}
             onConfirm={confirmMemoryToast}
             onReject={rejectMemoryToast}
+            collection={memoryToast.collection}
+            onOpenCollections={openCollections}
           />
         )}
 
@@ -1669,6 +1680,18 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
           // 🔴 key forzado para que se monte fresh cada vez
           key={`reopened-${reopenedRecord.id}`}
         />
+      )}
+
+      {/* 🔴 v3: Mis Colecciones como pantalla global — abrible desde el toast
+          * "Ver" (y desde cualquier punto futuro). focusCollection deja al
+          * usuario dentro de la colección correcta. */}
+      {collectionsView && (
+        <Suspense fallback={null}>
+          <LazyCollectionsScreen
+            focusCollection={collectionsView.collection}
+            onClose={closeCollections}
+          />
+        </Suspense>
       )}
     </div>
   );

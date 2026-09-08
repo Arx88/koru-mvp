@@ -10,9 +10,14 @@ type MemoryToastProps = {
   memoryId?: string;
   onConfirm?: (id: string) => void;
   onReject?: (id: string) => void;
+  /** 🔴 v3 — para kind="saved": abre Mis Colecciones en la colección donde
+   *  quedó lo guardado (cierra el ciclo Crear → toast "Ver" → colección). */
+  collection?: string;
+  onOpenCollections?: (collection?: string) => void;
 };
 
 const KIND_LABELS: Record<string, { label: string; icon: string }> = {
+  saved: { label: "Guardado", icon: "bookmark_added" },
   preference: { label: "Preferencia", icon: "favorite" },
   routine: { label: "Rutina", icon: "schedule" },
   goal: { label: "Objetivo", icon: "flag" },
@@ -25,11 +30,24 @@ const KIND_LABELS: Record<string, { label: string; icon: string }> = {
   task: { label: "Tarea", icon: "task_alt" },
 };
 
-export function MemoryToast({ kind, text, onDismiss, memoryId, onConfirm, onReject }: MemoryToastProps) {
+export function MemoryToast({
+  kind,
+  text,
+  onDismiss,
+  memoryId,
+  onConfirm,
+  onReject,
+  collection,
+  onOpenCollections,
+}: MemoryToastProps) {
   const [phase, setPhase] = useState<"enter" | "visible" | "exit" | "confirmed" | "rejected">("enter");
+  const isSaved = kind === "saved";
   const kindInfo = KIND_LABELS[kind] ?? { label: "Memoria", icon: "neurology" };
-  const canConfirm = Boolean(memoryId && onConfirm);
-  const canReject = Boolean(memoryId && onReject);
+  // Guardar/Soltar son acciones de MEMORIA — nunca para guardados (kind=saved).
+  const canConfirm = !isSaved && Boolean(memoryId && onConfirm);
+  const canReject = !isSaved && Boolean(memoryId && onReject);
+  // "Ver" solo para guardados con colección real (no para "Listo ✓" genéricos)
+  const canView = isSaved && Boolean(collection && onOpenCollections);
 
   useEffect(() => {
     const t1 = setTimeout(() => setPhase("visible"), 50);
@@ -71,6 +89,15 @@ export function MemoryToast({ kind, text, onDismiss, memoryId, onConfirm, onReje
     }, 1000);
   };
 
+  const handleView = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!onOpenCollections) return;
+    if ("vibrate" in navigator) navigator.vibrate(12);
+    onOpenCollections(collection);
+    setPhase("exit");
+    setTimeout(onDismiss, 300);
+  };
+
   return (
     <div
       className={`koru-memory-toast koru-memory-toast--${phase}`}
@@ -94,7 +121,9 @@ export function MemoryToast({ kind, text, onDismiss, memoryId, onConfirm, onReje
                 ? "Guardado en tu jardín"
                 : phase === "rejected"
                   ? "Soltado"
-                  : "Aprendí algo nuevo sobre vos"}
+                  : isSaved
+                    ? "Listo, quedó guardado"
+                    : "Aprendí algo nuevo sobre vos"}
             </span>
           </div>
           <p className="koru-memory-toast-body">"{text}"</p>
@@ -120,6 +149,18 @@ export function MemoryToast({ kind, text, onDismiss, memoryId, onConfirm, onReje
                   Soltar
                 </button>
               )}
+            </div>
+          )}
+          {canView && phase !== "confirmed" && phase !== "rejected" && (
+            <div className="koru-memory-toast-actions">
+              <button
+                type="button"
+                className="koru-memory-toast-action is-view"
+                onClick={handleView}
+              >
+                <span className="material-symbols-outlined">folder_open</span>
+                Ver
+              </button>
             </div>
           )}
         </div>

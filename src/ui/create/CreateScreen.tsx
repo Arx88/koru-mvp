@@ -1,6 +1,7 @@
 import { useState, useRef, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useKoru } from "../KoruProvider";
+import { checklistIdFor, checklistItemIdFor } from "../cards/lectura/slug";
 import type {
   LifeRecordKind,
   LifeDomain,
@@ -719,26 +720,42 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
     if (selected === "lista") {
       const items = listItems.filter(i => i.trim());
       const listText = items.map(i => `• ${i}`).join("\n");
+      const listTitle = title.trim() || "Lista sin título";
+      // 🔴 CONEXIÓN REAL: el record lleva un sourceBlock `smart_checklist` —
+      // al reabrirlo desde Colecciones muestra la card interactiva (CheckInterior)
+      // con anillo de progreso y toggles legítimos, no un editor de texto plano.
+      const checklistSourceBlock: UiBlock = {
+        type: "smart_checklist",
+        title: listTitle,
+        items: items.map(it => ({ label: it, checked: false })),
+      };
       // 🔴 GAP-3: además del LifeRecord (para Collections), persistimos un
       // Checklist durable en el store — habilita toggles, completado, etc.
+      // 🔴 ids sintéticos del contrato de la card: el toggle de la card
+      // reabierta golpeará EXACTAMENTE este checklist (sin duplicados).
       if (items.length > 0) {
         createChecklist(
-          title.trim() || "Lista sin título",
+          listTitle,
           items.map(it => ({ label: it, urgency: "normal" as const })),
+          {
+            id: checklistIdFor(listTitle),
+            itemIds: items.map((it, i) => checklistItemIdFor(it, i)),
+          },
         );
         // 🔴 TIER S: también persistimos una ShoppingList durable — habilita
         // toggleShoppingItem, totalSpent, etc. Los items se mapean a
         // ShoppingItem input shape { name } (sin qty/price por ahora).
         createShoppingList(
-          title.trim() || "Lista sin título",
+          listTitle,
           items.map(it => ({ name: it })),
         );
       }
       await persist({
-        title: title.trim() || "Lista sin título",
+        title: listTitle,
         collection: finalCollection,
         notes: listText,
         kind,
+        sourceBlock: items.length > 0 ? checklistSourceBlock : undefined,
       });
       return;
     }
@@ -1027,11 +1044,20 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
     }
 
     // nota (default)
+    // 🔴 CONEXIÓN REAL: el record lleva un sourceBlock `review_document` —
+    // al reabrirlo desde Colecciones muestra la card de post-it (NoteInterior)
+    // con el texto VERBATIM, tags derivados y acción "Volverla recordatorio",
+    // no un editor de texto plano.
     await persist({
       title: title.trim() || "Nota sin título",
       collection: finalCollection,
       notes: notes.trim() || undefined,
       kind,
+      sourceBlock: {
+        type: "review_document",
+        title: title.trim() || "Nota sin título",
+        body: notes.trim(),
+      },
     });
   }
 
