@@ -4659,6 +4659,7 @@ export async function runKoruBackendTurn(
       uiBlocks: asArray(parsedSim.uiBlocks || []),
       suggestedActions: asArray(parsedSim.suggestedActions || []),
       memoryCandidates: asArray(parsedSim.memoryCandidates || []),
+      archiveMemoryIds: asArray(parsedSim.archiveMemoryIds || []),
       commitments: asArray(parsedSim.commitments || []),
       records: asArray(parsedSim.records || []),
       mascotState: parsedSim.mascotState,
@@ -4688,7 +4689,7 @@ export async function runKoruBackendTurn(
         // anterior era clima).
         const retryResult = await callProvider(config, [
           ...messages,
-          { role: "user", content: `Tu respuesta anterior no era JSON válido. El usuario te preguntó AHORA: «${request.input.slice(0, 300)}». REGLA ABSOLUTA: Solo respondé con JSON puro válido, sin texto extra, sin markdown. Usá este formato exacto: {"reply":"tu respuesta al usuario","mascotState":"idle","uiBlocks":[],"suggestedActions":[],"memoryCandidates":[],"commitments":[],"records":[]}` },
+          { role: "user", content: `Tu respuesta anterior no era JSON válido. El usuario te preguntó AHORA: «${request.input.slice(0, 300)}». REGLA ABSOLUTA: Solo respondé con JSON puro válido, sin texto extra, sin markdown. Usá este formato exacto: {"reply":"tu respuesta al usuario","mascotState":"idle","uiBlocks":[],"suggestedActions":[],"memoryCandidates":[],"archiveMemoryIds":[],"commitments":[],"records":[]}` },
         ], 20_000, false, preferredProvider);
         parsed = JSON.parse(extractJsonBlock(cleanText(retryResult.message.content, "")));
         logger.info("runKoruBackendTurn", "JSON retry succeeded (all providers)");
@@ -4747,6 +4748,9 @@ export async function runKoruBackendTurn(
     uiBlocks: asArray(parsed.uiBlocks || []),
     suggestedActions: asArray(parsed.suggestedActions || []),
     memoryCandidates: asArray(parsed.memoryCandidates || []),
+    // 🔴 CADENA DE ARCHIVO: path sin tools (charla/memoria pura) — el caso MÁS
+    // común de contradicción ("ya no me gusta el verde") pasa por acá.
+    archiveMemoryIds: asArray(parsed.archiveMemoryIds || []),
     commitments: asArray(parsed.commitments || []),
     records: asArray(parsed.records || []),
     mascotState: parsed.mascotState,
