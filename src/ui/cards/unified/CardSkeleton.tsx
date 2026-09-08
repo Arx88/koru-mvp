@@ -18,8 +18,6 @@ import type { CSSProperties } from "react";
 // métricas 3-up, footer. El usuario "ve" la card que va a llegar antes de
 // que exista — sin spinner, sin ambigüedad.
 
-const FONT_HEADING = '"Bricolage Grotesque", "Plus Jakarta Sans", sans-serif';
-
 const lineBase: CSSProperties = {
   background: "linear-gradient(90deg, #e4ddf7, #f6f3fe, #e4ddf7)",
   backgroundSize: "200% 100%",
@@ -109,7 +107,12 @@ export function CardSkeleton() {
         </div>
       </div>
 
-      {/* Footer — voz de Koru mientras trabaja */}
+      {/* Footer — latido visual silencioso. 🔴 FIX INDICADOR ÚNICO (2026-09-09):
+          este esqueleto aparece SIEMPRE junto al WorkingPanel ("Sumergiéndome en
+          tu búsqueda…") para búsquedas — el texto "Procesando…" acá creaba un
+          SEGUNDO mensaje de progreso simultáneo (la queja del usuario). El
+          esqueleto es puro placeholder visual; el WorkingPanel es el único que
+          comunica progreso. Icono + dots quedan como latido sutil, sin texto. */}
       <div
         className="kc-foot"
         style={{
@@ -119,23 +122,12 @@ export function CardSkeleton() {
           alignItems: "center",
           gap: 8,
         }}
+        aria-hidden="true"
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(131,99,249,0.7)" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(131,99,249,0.7)" strokeWidth="2.2" strokeLinecap="round">
           <circle cx="11" cy="11" r="6.5" />
           <path d="M15.5 15.5L20 20" />
         </svg>
-        <span
-          style={{
-            fontFamily: FONT_HEADING,
-            fontSize: 12,
-            fontWeight: 600,
-            color: "#6b5f8c",
-            letterSpacing: "0.01em",
-            fontStyle: "italic",
-          }}
-        >
-          Procesando…
-        </span>
         <TypingDots />
       </div>
     </div>
