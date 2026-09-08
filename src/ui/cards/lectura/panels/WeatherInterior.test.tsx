@@ -35,11 +35,12 @@ describe("WeatherInterior", () => {
 
   it("genera la curva de temperatura desde hourly (pico etiquetado)", () => {
     renderCard();
-    expect(screen.getByText("29° máx")).toBeInTheDocument(); // máximo del fixture
+    expect(screen.getByText("28° máx")).toBeInTheDocument(); // máximo del fixture
+    // título derivado de la primera hora real del pronóstico (13:00 → tarde)
     expect(screen.getByText("Cómo viene la tarde")).toBeInTheDocument();
     // etiquetas horarias del block
-    expect(screen.getByText("15")).toBeInTheDocument();
-    expect(screen.getByText("22")).toBeInTheDocument();
+    expect(screen.getByText("13:00")).toBeInTheDocument();
+    expect(screen.getByText("20:00")).toBeInTheDocument();
   });
 
   it("muestra máx/mín desde range y la semana desde daily", () => {
@@ -48,6 +49,23 @@ describe("WeatherInterior", () => {
     expect(screen.getByText("19°")).toBeInTheDocument();
     expect(screen.getByText("Lun")).toBeInTheDocument();
     expect(screen.getByText("Dom")).toBeInTheDocument();
+  });
+
+  it("FIX PUESTA DE SOL: muestra las horas reales de amanecer/atardecer del block", () => {
+    renderCard();
+    expect(screen.getByText(/amanecer 07:37/i)).toBeInTheDocument();
+    expect(screen.getByText(/atardecer 20:29/i)).toBeInTheDocument();
+  });
+
+  it("sin horas de sol: el arco no inventa horas (etiquetas limpias)", () => {
+    render(
+      <WeatherInterior
+        block={{ type: "weather", city: "Lisboa", now: "20°", condition: "Nublado" }}
+        onClose={vi.fn()}
+      />,
+    );
+    expect(screen.getByText(/^amanecer$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^atardecer$/i)).toBeInTheDocument();
   });
 
   it("muestra el título de semana derivado de la tendencia real", () => {
@@ -95,6 +113,7 @@ describe("WeatherInterior", () => {
     expect(screen.getByText("Ahora en Lisboa")).toBeInTheDocument();
     expect(screen.getByText("20°")).toBeInTheDocument();
     expect(screen.queryByText("Cómo viene la tarde")).toBeNull();
+    expect(screen.queryByText("Cómo sigue el día")).toBeNull();
     expect(screen.queryByText("Lun")).toBeNull();
   });
 

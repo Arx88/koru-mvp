@@ -11,8 +11,8 @@ describe("BriefInterior", () => {
   it("bindea greeting y todos los items del block", () => {
     render(<BriefInterior block={briefBlock} onClose={vi.fn()} />);
     expect(screen.getByText(/mientras dormías/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/buen domingo/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/real madrid 2–1 barcelona/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/buen martes/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/el clásico anoche/i)).toBeInTheDocument();
     expect(screen.getByText(/\+1,8%/i)).toBeInTheDocument();
     expect(screen.getByText(/tu viaje a madrid/i)).toBeInTheDocument();
     expect(screen.getByText(/5 items de tu día/i)).toBeInTheDocument();
@@ -52,6 +52,6 @@ describe("BriefInterior", () => {
   it("sin items ni greeting degrada sin inventar contenido", () => {
     render(<BriefInterior block={{ type: "morning_brief", items: [] }} onClose={vi.fn()} />);
     expect(screen.getByText(/todavía no hay nada para contarte/i)).toBeInTheDocument();
-    expect(screen.queryByText(/buen domingo/i)).toBeNull();
+    expect(screen.queryByText(/buen martes/i)).toBeNull();
   });
 });

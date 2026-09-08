@@ -677,20 +677,23 @@ function weather(b: Of<"weather">): KoruPresentation {
   // 🔴 v2: icono dinámico según condición (antes siempre partly_cloudy_day)
   // 🔴 KIMI v3: nombres alineados con KoruIcons (weather_rain, weather_snow, etc.)
   //   para que el .kc-art renderice el SVG animado (rays/cloudmove/raindrops/bolt/snow).
+  // 🔴 FIX IDIOMA: wttr.in puede entregar la condición en inglés ("Sunny",
+  //   "Light rain") — los patterns ahora cubren ES + EN para que el icono
+  //   y el acento no se rompan si la traducción de fuente falta.
   const condition = (b.condition ?? "").toLowerCase();
   const weatherIcon = /tormenta|thunder|storm/.test(condition) ? "thunderstorm"
-    : /lluvia|rain|drizzle/.test(condition) ? "rainy"
+    : /lluvia|rain|drizzle|chubasco|shower/.test(condition) ? "rainy"
     : /nieve|snow|nev/.test(condition) ? "ac_unit"
-    : /niebla|fog|bruma|mist/.test(condition) ? "foggy"
-    : /nublado|cloud|cubier/.test(condition) ? "cloud"
+    : /niebla|fog|bruma|mist|haze/.test(condition) ? "foggy"
+    : /nublado|cloud|cubier|overcast/.test(condition) ? "cloud"
     : /noche|night|moon|bedtime|despejado nocturno/.test(condition) ? "bedtime"
-    : /sol|soleado|clear|despej/.test(condition) ? "wb_sunny"
+    : /soleado|despej|sunny|clear/.test(condition) ? "wb_sunny"
     : "partly_cloudy_day";
 
   // 🔴 v2: accent dinámico según condición (día soleado = amber, lluvia = blue, nieve = primary)
-  const weatherAccent = /lluvia|rain|storm|tormenta/.test(condition) ? A.blue
+  const weatherAccent = /lluvia|rain|storm|tormenta|chubasco|shower/.test(condition) ? A.blue
     : /nieve|snow|nev/.test(condition) ? A.primary
-    : /sol|soleado|clear|despej/.test(condition) ? A.amber
+    : /soleado|despej|sunny|clear/.test(condition) ? A.amber
     : A.primary;
 
   // 🔴 KIMI v5 — orden canónico del spec (card 03): Lluvia → Empieza → Viento.

@@ -20,15 +20,19 @@ export const weatherBlock: Extract<UiBlock, { type: "weather" }> = {
   humidity: "38%",
   uv: "6",
   advice: "Ligero para la tarde, algo abrigado para la noche.",
+  // FIX PUESTA DE SOL: horas reales de Madrid a principios de septiembre —
+  // antes el fixture no traía horas y el arco las ocultaba.
+  sunrise: "07:37",
+  sunset: "20:29",
   hourly: [
-    { hour: "15", temp: "26°", conditionIcon: "partly_cloudy_day", rainPct: 5, uv: 5 },
-    { hour: "16", temp: "27°", conditionIcon: "partly_cloudy_day", rainPct: 5, uv: 5 },
-    { hour: "17", temp: "28°", conditionIcon: "clear_day", rainPct: 0, uv: 4 },
-    { hour: "18", temp: "29°", conditionIcon: "clear_day", rainPct: 0, uv: 3 },
-    { hour: "19", temp: "27°", conditionIcon: "partly_cloudy_day", rainPct: 10, uv: 2 },
-    { hour: "20", temp: "24°", conditionIcon: "cloudy", rainPct: 15, uv: 1 },
-    { hour: "21", temp: "22°", conditionIcon: "cloudy", rainPct: 20, uv: 0 },
-    { hour: "22", temp: "20°", conditionIcon: "partly_cloudy_night", rainPct: 20, uv: 0 },
+    { hour: "13:00", temp: "25°", conditionIcon: "partly_cloudy_day", rainPct: 5, uv: 5 },
+    { hour: "14:00", temp: "26°", conditionIcon: "partly_cloudy_day", rainPct: 5, uv: 5 },
+    { hour: "15:00", temp: "27°", conditionIcon: "clear_day", rainPct: 0, uv: 4 },
+    { hour: "16:00", temp: "28°", conditionIcon: "clear_day", rainPct: 0, uv: 3 },
+    { hour: "17:00", temp: "28°", conditionIcon: "partly_cloudy_day", rainPct: 10, uv: 2 },
+    { hour: "18:00", temp: "27°", conditionIcon: "cloudy", rainPct: 15, uv: 1 },
+    { hour: "19:00", temp: "24°", conditionIcon: "cloudy", rainPct: 20, uv: 0 },
+    { hour: "20:00", temp: "22°", conditionIcon: "partly_cloudy_night", rainPct: 20, uv: 0 },
   ],
   daily: [
     { dayAbbrev: "Lun", hi: "28°", lo: "18°", conditionIcon: "clear_day" },
@@ -269,10 +273,11 @@ export const checklistBlock: Extract<UiBlock, { type: "smart_checklist" }> = {
 
 export const briefBlock: Extract<UiBlock, { type: "morning_brief" }> = {
   type: "morning_brief",
-  greeting: "Buen domingo",
+  greeting: "Buen martes",
   items: [
     { icon: "bell", iconColor: "#e11d48", label: "Hoy no lo olvidés", value: "11:00", variant: "highlight" },
-    { icon: "sports_soccer", iconColor: "#059669", label: "Real Madrid 2–1 Barcelona", value: "2–1" },
+    // FIX REDUNDANCIA: el valor ya trae el resultado; el label presenta el evento.
+    { icon: "sports_soccer", iconColor: "#059669", label: "El clásico anoche", value: "2–1" },
     { icon: "trending_up", iconColor: "#d97706", label: "Tu portfolio", value: "+1,8%" },
     { icon: "wb_sunny", iconColor: "#2563eb", label: "Amanece despejado", value: "16–29°" },
     { icon: "flight", iconColor: "#7c3aed", label: "Tu viaje a Madrid", value: "18 d" },
@@ -328,7 +333,9 @@ export const cryptoBlock: Extract<UiBlock, { type: "crypto_portfolio" }> = {
   title: "Tu portfolio · cripto",
   totalValue: "€4.320",
   weekChange: 4.5,
-  sparkline: [4020, 4050, 3990, 4080, 4110, 4060, 4150, 4180, 4140, 4210, 4180, 4240, 4280, 4250, 4300, 4320],
+  // FIX COHERENCIA: la curva arranca en €4.134 y termina en €4.320 = +4,5%
+  // EXACTO (antes la sparkline mostraba +7,5% y contradecía al número).
+  sparkline: [4134, 4110, 4090, 4150, 4120, 4180, 4160, 4210, 4190, 4240, 4225, 4270, 4255, 4290, 4305, 4320],
   items: [
     {
       symbol: "BTC",
@@ -456,7 +463,9 @@ export const bcalBlock: Extract<UiBlock, { type: "birthday_calendar" }> = {
   type: "birthday_calendar",
   month: "Septiembre",
   highlightedDay: 12,
-  startDay: 1,
+  // FIX CALENDARIO: septiembre real arranca en martes (el 1) → startDay 2
+  // (1=lunes). Antes decía 1 y la grilla mentía contra el calendario real.
+  startDay: 2,
   daysInMonth: 30,
 };
 
@@ -464,7 +473,8 @@ export const balarmBlock: Extract<UiBlock, { type: "birthday_alarm" }> = {
   type: "birthday_alarm",
   name: "Juan",
   date: "sábado 12 · 21:00",
-  countdown: "5",
+  // FIX COUNTDOWN: del martes 8 al sábado 12 son 4 días (antes decía 5).
+  countdown: "4",
   unit: "días",
   eta: "el jueves 10 a las 10:00 te cae el primer aviso",
 };
@@ -475,7 +485,7 @@ export const socialBlock: Extract<UiBlock, { type: "social_interaction" }> = {
   event: "cumple",
   date: "sábado 12 · 21:00",
   age: "34",
-  remaining: "5 días",
+  remaining: "4 días",
   gifts: [
     { emoji: "💿", title: "Vinilo de Wos, edición numerada", detail: "quedan 2 · Bar Aparte, Palermo" },
     { emoji: "🛶", title: "Excursión de kayak", detail: "si el 12 se complicaba la logística" },

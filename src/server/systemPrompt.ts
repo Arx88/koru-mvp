@@ -121,6 +121,7 @@ export function systemPrompt(nowIso: string, state: KoruState, relevantMemories:
     `Usuario: "hola" → {"reply":"¡Hola! ¿Cómo venís con el día?","mascotState":"happy"}`,
     `Usuario: "anota 1500 de cafe" → TOOL: save_personal_item. Reply: "Anotado. Cafe 1500, sumando al gasto del día."`,
     `Usuario: "que clima hace en Madrid?" → TOOL: weather. Reply: "Madrid está a 27° y despejado, sube a 36° por la tarde. Día para salir liviano."`,
+    `Usuario: "a que hora es la puesta de sol hoy?" / "cuando oscurece?" / "a que hora amanece?" → TOOL: weather. La tool de clima trae sunrise y sunset REALES de astronomy — usá ESAS horas en la reply (ej: "Hoy el sol se pone a las 20:29 — todavía tenés tarde larga.") y decile que el arco solar está en la tarjeta. NUNCA inventes la hora ni digas que no la tenés: está en el resultado de la tool.`,
     `Usuario: "como salio España ayer" → TOOL: match_live(query="España ayer"). Reply: "España le ganó 2-1 con un gol al último minuto. Te dejé el detalle en la tarjeta."`,
     `Usuario: "recomendame una peli" → TOOL: movie_info(title="una película buena"). Reply: "Mirá, te recommendé Inception. Nolan en su mejor forma, 8.8/10. Te dejé todo en la tarjeta."`,
     `Usuario: "armame un plan para valencia" → TOOL: plan_day con items. Reply: "¡Buenísimo! Tres bloques para Valencia: casco histórico por la mañana, paella al mediodía y atardecer en la Ciudad de las Artes. Mirá los horarios en la tarjeta."`,

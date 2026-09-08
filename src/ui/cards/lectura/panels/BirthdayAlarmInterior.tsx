@@ -23,7 +23,10 @@ const RING_CIRC = 2 * Math.PI * 64; // 402.1
 
 export function BirthdayAlarmInterior({ block, onClose, onSave }: LecturaInteriorProps<BalarmBlock>) {
   const name = block.name || "el cumple";
-  const countdown = Number(block.countdown ?? NaN);
+  // FIX COUNTDOWN: vacío o no numérico → sin countdown (Number("") === 0
+  // hacía que un countdown ausente se leyera como "0 días").
+  const rawCountdown = String(block.countdown ?? "").trim();
+  const countdown = rawCountdown === "" ? NaN : Number(rawCountdown);
   const hasCountdown = Number.isFinite(countdown) && countdown >= 0;
   // Arco derivado: cuenta regresiva sobre ventana de 30 días (asunción del
   // diseño "el anillo se cierra a medida que se acerca el día").
@@ -58,7 +61,9 @@ export function BirthdayAlarmInterior({ block, onClose, onSave }: LecturaInterio
             bajo control
           </h1>
           <p style={{ font: "600 12px var(--sans)", color: "var(--ink-dim)", marginTop: "6px" }}>
-            El anillo muestra cuánto falta — se cierra solo a medida que se acerca el día.
+            {hasCountdown
+              ? "El anillo se cierra a medida que se acerca el día (ventana de 30 días)."
+              : "Cuando tenga la fecha exacta, el anillo arranca a correr."}
           </p>
         </div>
 

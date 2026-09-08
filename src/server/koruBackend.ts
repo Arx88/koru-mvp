@@ -1388,6 +1388,66 @@ async function geocodeCity(city: string): Promise<{ name: string; latitude: numb
   };
 }
 
+// ─── FIX SUNSET/IDIOMA: helpers de wttr.in ─────────────────────────────────
+// wttr.in (format=j1) entrega la condición en inglés ("Sunny", "Light rain")
+// y la astronomía como "6:42 AM"/"7:15 PM". Antes la card mostraba el inglés
+// crudo como título, "Sunny" como nombre de icono y un arco solar hardcodeado
+// 7→21 h sin horas. Estos helpers traducen y parsean a datos REALES.
+
+/** "6:42 AM" | "6:42" | "06:42" → "06:42" (24h). Devuelve undefined si no parsea. */
+function parseWttrTime(raw?: string): string | undefined {
+  if (!raw) return undefined;
+  const m = raw.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+  if (!m) return undefined;
+  let h = parseInt(m[1], 10);
+  const min = parseInt(m[2], 10);
+  if (Number.isNaN(h) || Number.isNaN(min)) return undefined;
+  if (m[3]) {
+    const pm = /pm/i.test(m[3]);
+    if (pm && h < 12) h += 12;
+    if (!pm && h === 12) h = 0;
+  }
+  if (h > 23 || min > 59) return undefined;
+  return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
+}
+
+/** Condición inglesa de wttr.in → español legible (para el título de la card). */
+function translateWttrCondition(desc: string): string {
+  const d = (desc || "").toLowerCase().trim();
+  if (!d) return "";
+  if (/sunny/.test(d)) return "Soleado";
+  if (/clear/.test(d)) return "Despejado";
+  if (/partly cloudy/.test(d)) return "Parcialmente nublado";
+  if (/cloudy|overcast/.test(d)) return "Nublado";
+  if (/mist|fog/.test(d)) return "Niebla";
+  if (/patchy light rain|light rain|light drizzle/.test(d)) return "Lluvia ligera";
+  if (/moderate rain/.test(d)) return "Lluvia moderada";
+  if (/heavy rain|torrential/.test(d)) return "Lluvia fuerte";
+  if (/thundery|thunder/.test(d)) return "Tormenta";
+  if (/light snow|patchy snow/.test(d)) return "Nevada ligera";
+  if (/snow|blizzard/.test(d)) return "Nieve";
+  if (/shower/.test(d)) return "Chubascos";
+  if (/drizzle/.test(d)) return "Llovizna";
+  if (/freezing|ice/.test(d)) return "Helada";
+  if (/windy|blustery/.test(d)) return "Ventoso";
+  if (/humid|haze/.test(d)) return "Bruma húmeda";
+  return "";
+}
+
+/** Condición inglesa de wttr.in → nombre de Material Symbol VÁLIDO (iconos). */
+function wttrConditionIcon(desc: string): string {
+  const es = translateWttrCondition(desc);
+  const e = es || desc.toLowerCase();
+  if (/tormenta/.test(e)) return "thunderstorm";
+  if (/lluvia|llovizna|chubasco/.test(e)) return "rainy";
+  if (/nieve|nevada|helada/.test(e)) return "ac_unit";
+  if (/niebla|bruma/.test(e)) return "foggy";
+  if (/nublado|nube/.test(e)) return "cloud";
+  if (/soleado|despej/.test(e)) return "wb_sunny";
+  if (/parcial/.test(e)) return "partly_cloudy_day";
+  return "cloud";
+}
+
 export async function getWeather(args: Record<string, unknown>): Promise<WeatherData> {
   const requestedCity = cleanText(args.city);
   if (!requestedCity) {
@@ -1407,10 +1467,13 @@ export async function getWeather(args: Record<string, unknown>): Promise<Weather
     const wttrRes = await fetchWithTimeout(wttrUrl, { headers: { "User-Agent": "Koru/1.0" } }, 10_000);
     if (wttrRes.ok) {
       const wttr = await wttrRes.json() as {
-        current_condition?: Array<{ temp_C?: string; humidity?: string; windspeedKmph?: string; weatherDesc?: Array<{ value?: string }> }>;
+        current_condition?: Array<{ temp_C?: string; humidity?: string; windspeedKmph?: string; FeelsLikeC?: string; weatherDesc?: Array<{ value?: string }> }>;
         // Task 12-FIX: wttr.in devuelve mintempC/maxtempC como string plano ("36"),
         // no como string[]. El type anterior causaba que "36"[0] = "3" → range "3°-2°".
-        weather?: Array<{ date?: string; mintempC?: string; maxtempC?: string; hourly?: Array<{ time?: string; tempC?: string; chanceofrain?: string; weatherDesc?: Array<{ value?: string }>; uvIndex?: string }> }>;
+        // FIX SUNSET: wttr.in j1 trae astronomy[0].sunrise/sunset ("6:42 AM") —
+        // se parsean a HH:MM 24h reales para el arco solar de la card (antes el arco
+        // usaba 7→21 h hardcodeadas y ni siquiera mostraba las horas).
+        weather?: Array<{ date?: string; mintempC?: string; maxtempC?: string; astronomy?: Array<{ sunrise?: string; sunset?: string }>; hourly?: Array<{ time?: string; tempC?: string; chanceofrain?: string; weatherDesc?: Array<{ value?: string }>; uvIndex?: string }> }>;
         nearest_area?: Array<{ areaName?: Array<{ value?: string }>; country?: Array<{ value?: string }> }>;
       };
       const cur = wttr.current_condition?.[0];
@@ -1420,7 +1483,15 @@ export async function getWeather(args: Record<string, unknown>): Promise<Weather
       const temp = cur?.temp_C ? parseInt(cur.temp_C) : undefined;
       const wind = cur?.windspeedKmph ? parseInt(cur.windspeedKmph) : undefined;
       const humidity = cur?.humidity ? parseInt(cur.humidity) : undefined;
+      // FIX FEEL: sensación térmica REAL (FeelsLikeC de wttr.in); antes era temp-2 inventada.
+      const feelLike = cur?.FeelsLikeC ? parseInt(cur.FeelsLikeC) : undefined;
       const desc = cur?.weatherDesc?.[0]?.value?.trim() ?? "";
+      // FIX IDIOMA: wttr.in devuelve la condición en inglés ("Sunny", "Partly cloudy")
+      // y la UI la mostraba cruda. Se traduce a ES y se mapea a icono MS válido.
+      const conditionEs = translateWttrCondition(desc);
+      // FIX SUNSET: horas reales de astronomy (hoy) en HH:MM 24h.
+      const sunrise = parseWttrTime(wttr.weather?.[0]?.astronomy?.[0]?.sunrise);
+      const sunset = parseWttrTime(wttr.weather?.[0]?.astronomy?.[0]?.sunset);
       // Task 12-FIX: maxtempC/mintempC son strings, no arrays. parseInt directo.
       const max = wttr.weather?.[0]?.maxtempC ? parseInt(wttr.weather[0].maxtempC) : undefined;
       const min = wttr.weather?.[0]?.mintempC ? parseInt(wttr.weather[0].mintempC) : undefined;
@@ -1449,7 +1520,9 @@ export async function getWeather(args: Record<string, unknown>): Promise<Weather
           hourlyData.push({
             hour: hTime ? `${String(hTime).padStart(2, "0")}:00` : "",
             temp: `${hTemp}°`,
-            conditionIcon: hDesc || "cloud",
+            // FIX ICONOS: antes se pasaba la descripción EN INGLÉS ("Sunny") como
+            // nombre de icono → el scroller mostraba texto roto. Ahora icono MS real.
+            conditionIcon: wttrConditionIcon(hDesc),
             rainPct: hRain ?? 0,
             uv: hUV,
           });
@@ -1468,22 +1541,24 @@ export async function getWeather(args: Record<string, unknown>): Promise<Weather
         const dateStr = w?.date ?? "";
         let dayAbbrev = dayNames[new Date().getDay()];
         if (dateStr) {
-          const d = new Date(dateStr);
-          if (!isNaN(d.getTime())) dayAbbrev = dayNames[d.getDay()];
+          // FIX DÍA: wttr date "2026-09-08" se parsea como UTC medianoche; con
+          // getDay() en tz del server puede caer al día anterior. Se fuerza UTC.
+          const d = new Date(`${dateStr}T00:00:00Z`);
+          if (!isNaN(d.getTime())) dayAbbrev = dayNames[d.getUTCDay()];
         }
         if (dMax !== undefined && dMin !== undefined) {
           dailyData.push({
             dayAbbrev: i === 0 ? "Hoy" : dayAbbrev,
             hi: `${dMax}°`,
             lo: `${dMin}°`,
-            conditionIcon: dDesc || "cloud",
+            conditionIcon: wttrConditionIcon(dDesc),
           });
         }
       }
 
       if (temp !== undefined) {
         const advice = [
-          `${Math.round(temp)} C ahora`,
+          `${Math.round(temp)}° ahora`,
           rain !== undefined && rain >= 50 ? "conviene paraguas" : rain !== undefined ? "lluvia poco probable" : undefined,
           min !== undefined && min <= 10 ? "lleva abrigo si sales tarde" : undefined,
         ].filter(Boolean).join("; ");
@@ -1491,16 +1566,18 @@ export async function getWeather(args: Record<string, unknown>): Promise<Weather
           type: "weather",
           city: country ? `${cityName}, ${country}` : cityName,
           now: `${Math.round(temp)}°`,
-          condition: desc || undefined,
+          condition: conditionEs || undefined,
           range: min !== undefined && max !== undefined ? `${Math.round(min)}°–${Math.round(max)}°` : undefined,
           rain: rain !== undefined ? `${rain}%` : undefined,
           wind: wind !== undefined ? `${Math.round(wind)} km/h` : undefined,
           humidity: humidity !== undefined ? `${humidity}%` : undefined,
-          feel: temp !== undefined ? `${Math.round(temp - 2)}°` : undefined,
+          feel: feelLike !== undefined ? `${feelLike}°` : undefined,
           uv: wttr.weather?.[0]?.hourly?.[0]?.uvIndex ? parseInt(wttr.weather[0].hourly[0].uvIndex) : undefined,
           advice: advice || "Clima consultado.",
           hourly: hourlyData.length > 0 ? hourlyData : undefined,
           daily: dailyData.length > 0 ? dailyData : undefined,
+          sunrise,
+          sunset,
           sources: [sourceFromUrl("wttr.in", "https://wttr.in/", "Datos de clima en tiempo real.")],
         } as WeatherData;
       }
@@ -1523,35 +1600,44 @@ export async function getWeather(args: Record<string, unknown>): Promise<Weather
     const url = new URL("https://api.open-meteo.com/v1/forecast");
     url.searchParams.set("latitude", String(location.latitude));
     url.searchParams.set("longitude", String(location.longitude));
-    url.searchParams.set("current", "temperature_2m,precipitation,wind_speed_10m");
-    url.searchParams.set("daily", "temperature_2m_max,temperature_2m_min,precipitation_probability_max");
+    url.searchParams.set("current", "temperature_2m,precipitation,wind_speed_10m,apparent_temperature");
+    // FIX SUNSET: open-meteo también entrega sunrise/sunset en daily — se piden.
+    url.searchParams.set("daily", "temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset,weather_code");
     url.searchParams.set("timezone", "auto");
     const response = await fetchWithTimeout(url.toString(), { headers: { Accept: "application/json" } }, 10_000);
     const data = await response.json().catch(() => ({})) as {
-      current?: { temperature_2m?: number; wind_speed_10m?: number };
-      daily?: { temperature_2m_max?: number[]; temperature_2m_min?: number[]; precipitation_probability_max?: number[] };
+      current?: { temperature_2m?: number; wind_speed_10m?: number; apparent_temperature?: number; weather_code?: number };
+      daily?: { temperature_2m_max?: number[]; temperature_2m_min?: number[]; precipitation_probability_max?: number[]; sunrise?: string[]; sunset?: string[]; weathercode?: number[] };
     };
     const temp = data.current?.temperature_2m;
     const max = data.daily?.temperature_2m_max?.[0];
     const min = data.daily?.temperature_2m_min?.[0];
     const rain = data.daily?.precipitation_probability_max?.[0];
     const wind = data.current?.wind_speed_10m;
+    // FIX FEEL + SUNSET: sensación real (apparent_temperature) y horas reales.
+    const feel = data.current?.apparent_temperature;
+    const omSunrise = data.daily?.sunrise?.[0] ? parseWttrTime(data.daily.sunrise[0].slice(11, 16)) : undefined;
+    const omSunset = data.daily?.sunset?.[0] ? parseWttrTime(data.daily.sunset[0].slice(11, 16)) : undefined;
     if (temp !== undefined) {
       const advice = [
-        `${Math.round(temp)} C ahora`,
+        `${Math.round(temp)}° ahora`,
         rain !== undefined && rain >= 50 ? "conviene paraguas" : rain !== undefined ? "lluvia poco probable" : undefined,
         min !== undefined && min <= 10 ? "lleva abrigo si sales tarde" : undefined,
       ].filter(Boolean).join("; ");
       return {
         type: "weather",
         city: location.name,
-        now: `${Math.round(temp)} C`,
-        range: min !== undefined && max !== undefined ? `${Math.round(min)}-${Math.round(max)} C` : undefined,
+        now: `${Math.round(temp)}°`,
+        condition: mapOmCondition(data.current?.weather_code ?? data.daily?.weathercode?.[0]),
+        range: min !== undefined && max !== undefined ? `${Math.round(min)}°–${Math.round(max)}°` : undefined,
         rain: rain !== undefined ? `${rain}%` : undefined,
         wind: wind !== undefined ? `${Math.round(wind)} km/h` : undefined,
+        feel: feel !== undefined ? `${Math.round(feel)}°` : undefined,
+        sunrise: omSunrise,
+        sunset: omSunset,
         advice: advice || "Clima consultado.",
         sources: [sourceFromUrl("Open-Meteo", "https://open-meteo.com/", "Datos abiertos de clima.")],
-      };
+      } as WeatherData;
     }
   } catch {
     // open-meteo también falló
@@ -1564,6 +1650,21 @@ export async function getWeather(args: Record<string, unknown>): Promise<Weather
     advice: "No pude obtener el clima en este momento.",
     sources: [],
   };
+}
+
+/** WMO code de open-meteo → condición en español (mismo vocabulario que wttr). */
+function mapOmCondition(code?: number): string | undefined {
+  if (code == null || !Number.isFinite(code)) return undefined;
+  if (code === 0) return "Soleado";
+  if (code >= 1 && code <= 3) return "Parcialmente nublado";
+  if (code >= 45 && code <= 48) return "Niebla";
+  if (code >= 51 && code <= 57) return "Llovizna";
+  if (code >= 61 && code <= 67) return "Lluvia";
+  if (code >= 71 && code <= 77) return "Nieve";
+  if (code >= 80 && code <= 82) return "Chubascos";
+  if (code >= 85 && code <= 86) return "Chubascos de nieve";
+  if (code >= 95 && code <= 99) return "Tormenta";
+  return undefined;
 }
 
 function htmlText(raw: string): string {

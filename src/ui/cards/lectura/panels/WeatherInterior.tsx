@@ -40,7 +40,7 @@ function wxIcon(kind?: string): LucideIcon {
   if (/(snow|nieve)/.test(k)) return CloudRain;
   if (/(partly.*night|night|noche)/.test(k)) return CloudMoon;
   if (/(partly|parcial|nubos)/.test(k)) return CloudSun;
-  if (/(clear|despej|sol)/.test(k)) return Sun;
+  if (/(clear|despej|sol|sunny)/.test(k)) return Sun;
   if (/(cloud|nubl)/.test(k)) return Cloud;
   if (/(moon|luna)/.test(k)) return Moon;
   return CloudSun;
@@ -82,11 +82,46 @@ function buildCurve(hourly: NonNullable<WeatherBlock["hourly"]>) {
   };
 }
 
-/** Posición del sol en el arco según la hora local (7→21 h). */
-function sunPosition(now = new Date()) {
+/** Posición del sol en el arco según la hora REAL entre sunrise y sunset.
+ *
+ * FIX PUESTA DE SOL: antes la posición estaba hardcodeada a un día de 7→21 h
+ * y el arco ni siquiera mostraba las horas. Ahora:
+ *  - el fracción de arco recorrida se calcula contra las horas reales del
+ *    proveedor (block.sunrise/sunset);
+ *  - de noche (antes del amanecer / después del atardecer) el sol queda pegado
+ *    al horizonte del lado que corresponde (no flota en un arco falso).
+ */
+function sunPosition(sunrise: string | undefined, sunset: string | undefined, now = new Date()) {
   const h = now.getHours() + now.getMinutes() / 60;
-  const f = Math.min(0.97, Math.max(0.02, (h - 7) / 14));
-  return { x: 8 + f * 344, y: 66 - 45 * Math.sin(f * Math.PI) };
+  const rise = parseHHMM(sunrise);
+  const set = parseHHMM(sunset);
+  let f: number;
+  if (rise != null && set != null && set > rise) {
+    f = (h - rise) / (set - rise);
+    f = Math.min(1, Math.max(0, f));
+  } else {
+    // Sin horas reales no se dibuja posición inventada: fallback neutro al mediodía
+    // solo si el proveedor no trajo astronomía (la card oculta las horas igual).
+    f = 0.5;
+  }
+  return { x: 8 + f * 344, y: 66 - 45 * Math.sin(f * Math.PI), f };
+}
+
+/** "07:12" → 7.2 (horas decimales). undefined si no parsea. */
+function parseHHMM(raw?: string): number | null {
+  if (!raw) return null;
+  const m = raw.match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return null;
+  return parseInt(m[1], 10) + parseInt(m[2], 10) / 60;
+}
+
+/** Título honesto de la curva según la primera hora del pronóstico. */
+function curveTitle(hourly: WeatherBlock["hourly"]): string {
+  const first = parseHHMM(hourly?.[0]?.hour ?? "");
+  if (first == null) return "Cómo sigue el clima";
+  if (first < 12) return "Cómo sigue el día";
+  if (first < 19) return "Cómo viene la tarde";
+  return "Cómo viene la noche";
 }
 
 export function WeatherInterior({ block, onClose, onSave }: LecturaInteriorProps<WeatherBlock>) {
@@ -133,7 +168,12 @@ export function WeatherInterior({ block, onClose, onSave }: LecturaInteriorProps
   const hiMax = Math.max(...his, -Infinity);
   const weekSpan = Math.max(1, hiMax - hiMin);
 
-  const sun = sunPosition();
+  // El sol se posiciona contra la MISMA referencia temporal que muestra la card
+  // (verifiedAt del dato; si no, el reloj vivo) — así no hay desfase visual.
+  const sunRef = new Date(block.verifiedAt ?? Date.now());
+  const sun = sunPosition(block.sunrise, block.sunset, sunRef);
+  const hasSunHours = parseHHMM(block.sunrise) != null && parseHHMM(block.sunset) != null;
+  const isNight = hasSunHours && (sun.f <= 0 || sun.f >= 1);
   const ConditionIcon = wxIcon(block.condition ?? hourly[0]?.conditionIcon);
 
   return (
@@ -165,13 +205,38 @@ export function WeatherInterior({ block, onClose, onSave }: LecturaInteriorProps
           </div>
           <div className="wx-arc rv">
             <div className="arc-cap">
-              <span><Ic i={Sunrise} className="ic" />amanecer</span>
-              <span>atardecer<Ic i={Sunset} className="ic" /></span>
+              <span>
+                <Ic i={Sunrise} className="ic" />
+                {/* FIX PUESTA DE SOL: horas REALES del proveedor (antes solo decía "amanecer" sin hora). */}
+                {block.sunrise ? `amanecer ${block.sunrise}` : "amanecer"}
+              </span>
+              <span>
+                {block.sunset ? `atardecer ${block.sunset}` : "atardecer"}
+                <Ic i={Sunset} className="ic" />
+              </span>
             </div>
-            <svg viewBox="0 0 360 74" style={{ width: "100%", height: "74px", display: "block" }}>
+            <svg viewBox="0 0 360 74" style={{ width: "100%", height: "74px", display: "block" }} role="img" aria-label={hasSunHours ? `Arco solar de ${block.sunrise} a ${block.sunset}` : "Arco solar"}>
               <path d="M8 66 A 172 172 0 0 1 352 66" fill="none" stroke="#c9d9f5" strokeWidth="3" strokeDasharray="1 7" strokeLinecap="round" />
-              <path d={`M8 66 A 172 172 0 0 1 ${sun.x.toFixed(1)} ${sun.y.toFixed(1)}`} fill="none" stroke="#f6bd6d" strokeWidth="3.5" strokeLinecap="round" opacity=".9" />
-              <circle cx={sun.x.toFixed(1)} cy={sun.y.toFixed(1)} r="11" fill="#fde9c8" stroke="#f59e0b" strokeWidth="3.5" />
+              {/* tramo andado del día: solo si hay horas reales (si no, arco completo tenue) */}
+              <path
+                d="M8 66 A 172 172 0 0 1 352 66"
+                fill="none"
+                stroke="#f6bd6d"
+                strokeWidth="3.5"
+                strokeLinecap="round"
+                opacity=".9"
+                pathLength={100}
+                strokeDasharray={hasSunHours ? `${Math.round(sun.f * 100)} 100` : "0 100"}
+              />
+              {/* sol visible SOLO de día; de noche queda bajo el horizonte (semicírculo chico) */}
+              {isNight ? (
+                <>
+                  <circle cx={sun.f <= 0 ? 10 : 350} cy={72} r={6} fill="#c9d9f5" opacity=".8" />
+                  <path d={sun.f <= 0 ? "M4 66 A 172 172 0 0 1 14 63" : "M346 63 A 172 172 0 0 1 356 66"} fill="none" stroke="#8ab0ff" strokeWidth="3" strokeLinecap="round" opacity=".7" />
+                </>
+              ) : (
+                <circle cx={sun.x.toFixed(1)} cy={sun.y.toFixed(1)} r="11" fill="#fde9c8" stroke="#f59e0b" strokeWidth="3.5" />
+              )}
               <line x1="4" y1="66" x2="356" y2="66" stroke="#c9d9f5" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </div>
@@ -179,7 +244,9 @@ export function WeatherInterior({ block, onClose, onSave }: LecturaInteriorProps
 
         {curve && (
           <div className="wx-curve rv" style={{ marginTop: "14px" }}>
-            <h3><Ic i={ChartLine} className="ic" />Cómo viene la tarde</h3>
+            {/* Título derivado del rango REAL de horas del pronóstico (antes decía
+                "la tarde" aunque el pronóstico empezara a la mañana). */}
+            <h3><Ic i={ChartLine} className="ic" />{curveTitle(hourly)}</h3>
             <svg viewBox="0 0 340 110">
               <defs>
                 <linearGradient id="p-clima-wxf" x1="0" y1="0" x2="0" y2="1">
@@ -209,7 +276,7 @@ export function WeatherInterior({ block, onClose, onSave }: LecturaInteriorProps
               <Ic i={Sun} className="ic ic-spin" style={{ color: "var(--honey-ink)" }} />
               <div>
                 <b style={{ color: "var(--honey-ink)" }}>{hi}°</b>
-                <span>Máxima{maxHour ? ` · ${maxHour}h` : ""}</span>
+                <span>Máxima{maxHour ? ` · ${maxHour.replace(":00", "")}h` : ""}</span>
               </div>
             </div>
             <div className="hl" style={{ background: "var(--sky-soft)" }}>

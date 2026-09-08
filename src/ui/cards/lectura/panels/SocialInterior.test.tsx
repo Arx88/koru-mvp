@@ -12,7 +12,7 @@ describe("SocialInterior", () => {
     // h1 con <br/> parte el texto → verificar via aria-label del dialog
     expect(document.body.querySelector('[aria-label="El cumple de Juan"]')).toBeTruthy();
     expect(screen.getAllByText(/sábado 12 · 21:00/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/faltan 5 días/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/faltan 4 días/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/34/i).length).toBeGreaterThan(0);
   });
 

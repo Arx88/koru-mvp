@@ -7,11 +7,12 @@ import { bcalBlock } from "../fixtures";
 // grilla derivada (daysInMonth/startDay), día marcado, aviso → commitment.
 
 describe("BirthdayCalendarInterior", () => {
-  it("construye la grilla real: 30 días, empieza lunes, 12 marcado", () => {
+  it("construye la grilla real: 30 días, empieza martes (septiembre real), 12 marcado", () => {
     render(<BirthdayCalendarInterior block={bcalBlock} onClose={vi.fn()} />);
     const days = document.body.querySelectorAll(".cal2-grid .day");
     expect(days.length).toBe(30);
-    expect(days[0].textContent).toBe("1"); // lunes 1
+    // FIX CALENDARIO: septiembre real arranca en martes → el 1 cae en la 2ª columna
+    expect(days[0].textContent).toBe("1");
     const bday = document.body.querySelector(".cal2-grid .day.bday");
     expect(bday?.textContent).toContain("12");
     expect(screen.getAllByText(/septiembre/i).length).toBeGreaterThan(0);
@@ -20,9 +21,8 @@ describe("BirthdayCalendarInterior", () => {
   it("la leyenda muestra el día marcado del block", () => {
     render(<BirthdayCalendarInterior block={bcalBlock} onClose={vi.fn()} />);
     expect(screen.getAllByText(/el 12 de septiembre/i).length).toBeGreaterThan(0);
-    // v2: el resumen del mes ahora dice días + arranque (el "1 cumple" vive
-    // en el panel del día seleccionado, que arranca marcado por el fixture)
-    expect(screen.getByText(/30 días · arranca en lunes/i)).toBeInTheDocument();
+    // FIX CALENDARIO: con startDay 2 (martes) el resumen dice "arranca en martes"
+    expect(screen.getByText(/30 días · arranca en martes/i)).toBeInTheDocument();
     expect(screen.getAllByText(/el cumple marcado del mes/i).length).toBeGreaterThan(0);
   });
 

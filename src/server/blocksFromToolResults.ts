@@ -58,6 +58,10 @@ export function blocksFromToolResults(results: ToolExecution[], userInput?: stri
         advice: weather.advice,
         hourly: (weather as any).hourly,
         daily: (weather as any).daily,
+        // FIX SUNSET: horas reales de salida/puesta del sol (wttr.in astronomy /
+        // open-meteo daily) para el arco solar del interior de clima.
+        sunrise: (weather as any).sunrise,
+        sunset: (weather as any).sunset,
         sourceStatus: weather.sources.length ? "verified" as const : "failed" as const,
         sources: weather.sources,
       });
@@ -79,6 +83,8 @@ export function blocksFromToolResults(results: ToolExecution[], userInput?: stri
         condition: r.condition,
         hourly: Array.isArray(r.hourly) ? r.hourly : undefined,
         daily: Array.isArray(r.daily) ? r.daily : undefined,
+        sunrise: typeof r.sunrise === "string" ? r.sunrise : undefined,
+        sunset: typeof r.sunset === "string" ? r.sunset : undefined,
         verifiedAt: r.verifiedAt,
         freshnessLabel: r.freshnessLabel,
         sourceStatus: "verified" as const,

@@ -426,6 +426,100 @@ export async function runSearch(
   };
 }
 
+// ─── FIX CUMPLEAÑOS: derivación de calendario/countdown desde fecha REAL ────
+
+const MONTH_NAMES = [
+  "enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+];
+
+/** Intenta parsear una fecha de texto libre ES/ISO:
+ *  "12 de septiembre", "sábado 12", "12/09", "2026-09-12", "12 sep".
+ *  Devuelve { day, monthIdx, year } o null. El año se asume: el próximo
+ *  cumpleaños (si el día ya pasó este año, año+1). */
+function parseEventDate(raw: string): { day: number; monthIdx: number; year: number } | null {
+  const s = (raw || "").toLowerCase().trim();
+  if (!s) return null;
+  // ISO completo: 2026-09-12
+  const iso = s.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) {
+    const d = new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+    if (!isNaN(d.getTime())) return { day: d.getDate(), monthIdx: d.getMonth(), year: d.getFullYear() };
+  }
+  // "12 de septiembre" / "12 septiembre" / "12 sep" / "sabado 12 de septiembre"
+  const named = s.match(/(\d{1,2})\s*(?:de\s+)?([a-záéíóúñ]{3,})/);
+  if (named) {
+    const day = parseInt(named[1], 10);
+    const monthWord = named[2].normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const monthIdx = MONTH_NAMES.findIndex((m) => m.startsWith(monthWord.slice(0, Math.min(4, monthWord.length))));
+    if (day >= 1 && day <= 31 && monthIdx >= 0) {
+      const now = new Date();
+      let year = now.getFullYear();
+      const candidate = new Date(year, monthIdx, day);
+      if (candidate.getTime() < now.getTime() - 24 * 60 * 60 * 1000) year += 1;
+      return { day, monthIdx, year };
+    }
+  }
+  // "12/09" o "12-09" (día/mes)
+  const numeric = s.match(/\b(\d{1,2})[/-](\d{1,2})\b/);
+  if (numeric) {
+    const day = parseInt(numeric[1], 10);
+    const monthIdx = parseInt(numeric[2], 10) - 1;
+    if (day >= 1 && day <= 31 && monthIdx >= 0 && monthIdx <= 11) {
+      const now = new Date();
+      let year = now.getFullYear();
+      const candidate = new Date(year, monthIdx, day);
+      if (candidate.getTime() < now.getTime() - 24 * 60 * 60 * 1000) year += 1;
+      return { day, monthIdx, year };
+    }
+  }
+  return null;
+}
+
+/** Grilla de calendario REAL para birthday_calendar:
+ *  month + daysInMonth + startDay (1=lunes) + highlightedDay desde la fecha. */
+function deriveRealCalendar(raw: string, args: Record<string, unknown>):
+  { month: string; highlightedDay?: number; startDay: number; daysInMonth: number } {
+  const parsed = parseEventDate(raw);
+  const now = new Date();
+  const year = parsed?.year ?? now.getFullYear();
+  const monthIdx = parsed?.monthIdx ?? now.getMonth();
+  // días reales del mes (0 = último día del mes anterior)
+  const daysInMonth = new Date(year, monthIdx + 1, 0).getDate();
+  // día de semana del 1: 0=domingo … 6=sábado → 1=lunes … 7=domingo
+  const firstDow = new Date(year, monthIdx, 1).getDay();
+  const startDay = ((firstDow + 6) % 7) + 1;
+  // día marcado SOLO si la fecha real lo trae (o args explícitas del LLM)
+  const highlightedDay = parsed?.day
+    ?? (typeof args.highlightedDay === "number" ? args.highlightedDay : undefined);
+  return { month: MONTH_NAMES[monthIdx], highlightedDay, startDay, daysInMonth };
+}
+
+/** Countdown REAL para birthday_alarm: días que faltan hasta la fecha;
+ *  eta solo si hay hora concreta (sin hora no se inventa). */
+function deriveRealCountdown(raw: string, timeHint: string):
+  { date: string; countdown: string; eta?: string } {
+  const parsed = parseEventDate(raw);
+  if (!parsed) {
+    // Sin fecha real: NO se inventa countdown — la card muestra el evento sin anillo engañoso.
+    return { date: raw || "fecha pendiente", countdown: "", eta: timeHint || undefined };
+  }
+  const target = new Date(parsed.year, parsed.monthIdx, parsed.day);
+  if (timeHint && /\d{1,2}:\d{2}/.test(timeHint)) {
+    const hm = timeHint.match(/(\d{1,2}):(\d{2})/);
+    if (hm) target.setHours(parseInt(hm[1], 10), parseInt(hm[2], 10), 0, 0);
+  }
+  const today = new Date();
+  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const days = Math.round((target.getTime() - startOfDay.getTime()) / (24 * 60 * 60 * 1000));
+  const dateLabel = `${MONTH_NAMES[parsed.monthIdx]} ${parsed.day}`;
+  return {
+    date: dateLabel,
+    countdown: String(Math.max(0, days)),
+    eta: timeHint && /\d{1,2}:\d{2}/.test(timeHint) ? timeHint : undefined,
+  };
+}
+
 export function planFromState(state: KoruState, args: Record<string, unknown>): PlanData {
   const openCommitments = state.commitments.filter((item) => item.status === "open").slice(0, 5);
   const recentRecords = state.records.slice(0, 5);
@@ -968,14 +1062,20 @@ export function personalCaptureFromArgs(args: Record<string, unknown>, input = "
 
   if (effectiveUiBlockType === "birthday_calendar") {
     const personName = cleanText(cleanArgs.person) || title;
+    // FIX CALENDARIO REAL: antes los defaults eran "Junio 2025", startDay 6 y
+    // daysInMonth 13 — un mes de 13 días que no existe. Ahora la grilla se
+    // deriva de la FECHA REAL (dueText/title/args): mes, días del mes y día de
+    // semana del 1 (1=lunes) salen del calendario de verdad. Sin fecha
+    // parseable → grilla del mes en curso (mes real, sin día marcado inventado).
+    const cal = deriveRealCalendar(dueText || title || "", cleanArgs);
     return {
       type: "personal_capture",
       block: {
         type: "birthday_calendar",
-        month: dueText || "Junio 2025",
-        highlightedDay: typeof cleanArgs.highlightedDay === "number" ? cleanArgs.highlightedDay : 12,
-        startDay: typeof cleanArgs.startDay === "number" ? cleanArgs.startDay : 6,
-        daysInMonth: typeof cleanArgs.daysInMonth === "number" ? cleanArgs.daysInMonth : 13,
+        month: cal.month,
+        highlightedDay: cal.highlightedDay,
+        startDay: cal.startDay,
+        daysInMonth: cal.daysInMonth,
       },
       records: [{ ...baseRecord, title: `Cumpleaños de ${personName}`, kind: "birthday" }],
       memoryCandidates,
@@ -984,15 +1084,20 @@ export function personalCaptureFromArgs(args: Record<string, unknown>, input = "
 
   if (effectiveUiBlockType === "birthday_alarm") {
     const personName = cleanText(cleanArgs.person) || title;
+    // FIX COUNTDOWN REAL: antes countdown default "08" y eta "En 30m" salían
+    // de la nada (el anillo mostraba una cuenta regresiva inventada). Ahora el
+    // countdown se calcula contra la fecha REAL del evento; eta solo si hay
+    // hora concreta (sin hora no se inventa "En 30m").
+    const alarm = deriveRealCountdown(dueText || title || "", time);
     return {
       type: "personal_capture",
       block: {
         type: "birthday_alarm",
         name: `Cumpleaños ${personName}`,
-        date: dueText || "12 jul",
-        countdown: cleanText(cleanArgs.countdown, "08"),
-        unit: cleanText(cleanArgs.unit, "días"),
-        eta: time || "En 30m",
+        date: alarm.date,
+        countdown: alarm.countdown,
+        unit: "días",
+        eta: alarm.eta,
       },
       records: [{ ...baseRecord, title: `Cumpleaños de ${personName}`, kind: "birthday" }],
       memoryCandidates,

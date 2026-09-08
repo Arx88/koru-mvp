@@ -464,6 +464,10 @@ export type UiBlock =
       hourly?: Array<{ hour: string; temp: string; conditionIcon: string; rainPct: number; uv: number }>;
       /** Pronóstico por día (próximos 7 días). */
       daily?: Array<{ dayAbbrev: string; hi: string; lo: string; conditionIcon: string }>;
+      /** Hora local de salida del sol (HH:MM, 24h) — del proveedor, no calculada a mano. */
+      sunrise?: string;
+      /** Hora local de puesta del sol (HH:MM, 24h) — del proveedor, no calculada a mano. */
+      sunset?: string;
       /** ISO timestamp de cuándo se verificó el dato. */
       verifiedAt?: string;
       /** Etiqueta legible de antigüedad (ej. "Hace 2 min"). */

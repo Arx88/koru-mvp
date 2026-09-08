@@ -10,19 +10,20 @@ describe("BirthdayAlarmInterior", () => {
   it("bindea nombre, countdown, unit, fecha y eta del block", () => {
     render(<BirthdayAlarmInterior block={balarmBlock} onClose={vi.fn()} />);
     expect(screen.getAllByText(/el cumple de juan/i).length).toBeGreaterThan(0);
-    expect(screen.getByText("5")).toBeInTheDocument();
+    // FIX COUNTDOWN: fixture alineado a la fecha real (mar 8 → sáb 12 = 4 días)
+    expect(screen.getByText("4")).toBeInTheDocument();
     expect(screen.getByText("DÍAS")).toBeInTheDocument();
     expect(screen.getAllByText(/sábado 12 · 21:00/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/jueves 10 a las 10:00/i)).toBeInTheDocument();
   });
 
-  it("el arco del anillo se deriva del countdown (5/30 restante)", () => {
+  it("el arco del anillo se deriva del countdown (4/30 restante)", () => {
     render(<BirthdayAlarmInterior block={balarmBlock} onClose={vi.fn()} />);
     const ring = document.body.querySelector(".cd-ring circle:nth-of-type(2)") as SVGCircleElement;
-    // progress = 1 - 5/30 ≈ 0.833 → offset ≈ 402 * 0.167 ≈ 67
+    // progress = 1 - 4/30 ≈ 0.867 → offset ≈ 402 * 0.133 ≈ 53
     const offset = Number(ring.getAttribute("stroke-dashoffset"));
-    expect(offset).toBeGreaterThan(55);
-    expect(offset).toBeLessThan(85);
+    expect(offset).toBeGreaterThan(40);
+    expect(offset).toBeLessThan(70);
   });
 
   it("así está perfecto despacha complete con el block", () => {
@@ -40,6 +41,13 @@ describe("BirthdayAlarmInterior", () => {
 
   it("sin countdown muestra guion y arco vacío (no inventa)", () => {
     render(<BirthdayAlarmInterior block={{ type: "birthday_alarm", name: "Sofi", date: "27" }} onClose={vi.fn()} />);
+    expect(screen.getByText("—")).toBeInTheDocument();
+    const ring = document.body.querySelector(".cd-ring circle:nth-of-type(2)") as SVGCircleElement;
+    expect(Number(ring.getAttribute("stroke-dashoffset"))).toBeGreaterThan(395);
+  });
+
+  it("FIX COUNTDOWN: countdown vacío no se lee como 0 días (cadena vacía → sin anillo)", () => {
+    render(<BirthdayAlarmInterior block={{ type: "birthday_alarm", name: "Sofi", date: "septiembre 27", countdown: "" }} onClose={vi.fn()} />);
     expect(screen.getByText("—")).toBeInTheDocument();
     const ring = document.body.querySelector(".cd-ring circle:nth-of-type(2)") as SVGCircleElement;
     expect(Number(ring.getAttribute("stroke-dashoffset"))).toBeGreaterThan(395);

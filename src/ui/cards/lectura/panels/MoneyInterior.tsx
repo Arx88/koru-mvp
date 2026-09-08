@@ -91,10 +91,17 @@ export function MoneyInterior({ block, onClose, onSave }: LecturaInteriorProps<M
           <div className="mo-stack">
             {items.map((it, i) => {
               const n = nums[i];
-              const pct = n != null && numTotal > 0 ? Math.max(4, Math.round((n / numTotal) * 100)) : null;
+              // FIX PROPORCIÓN: ancho EXACTO (n/total) — antes Math.max(4, …)
+              // forzaba un mínimo del 4% por segmento y con muchos rubros chicos
+              // la suma superaba el 100% → flex distorsionaba la barra (mentía).
+              const pct = n != null && numTotal > 0 ? (n / numTotal) * 100 : null;
               if (pct == null) return null;
               return (
-                <i key={`${it.label}_${i}`} style={{ width: `${(pct * 100) / 100}%`, background: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }} aria-label={it.label} />
+                <i
+                  key={`${it.label}_${i}`}
+                  style={{ width: `${pct}%`, background: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }}
+                  aria-label={`${it.label}: ${pct.toFixed(0)}%`}
+                />
               );
             })}
           </div>

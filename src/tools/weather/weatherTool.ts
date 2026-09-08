@@ -36,6 +36,10 @@ export type WeatherResult = {
   freshnessLabel: string;
   /** Ciudad canónica devuelta por el geocoder (útil para UI / logs). */
   city?: string;
+  /** FIX SUNSET: hora local de salida del sol (HH:MM, 24h) — de open-meteo daily. */
+  sunrise?: string;
+  /** FIX SUNSET: hora local de puesta del sol (HH:MM, 24h) — de open-meteo daily. */
+  sunset?: string;
 };
 
 // ---- Open-Meteo response shapes --------------------------------------------
@@ -71,6 +75,9 @@ type ForecastResponse = {
     weathercode: number[];
     temperature_2m_max: number[];
     temperature_2m_min: number[];
+    /** FIX SUNSET: open-meteo entrega sunrise/sunset ISO local ("2026-09-08T07:12"). */
+    sunrise?: string[];
+    sunset?: string[];
   };
 };
 
@@ -193,7 +200,7 @@ async function fetchForecast(lat: number, lng: number): Promise<ForecastResponse
     latitude: String(lat),
     longitude: String(lng),
     hourly: "temperature_2m,precipitation_probability,uv_index,weathercode",
-    daily: "weathercode,temperature_2m_max,temperature_2m_min",
+    daily: "weathercode,temperature_2m_max,temperature_2m_min,sunrise,sunset",
     timezone: "auto",
     forecast_days: "7",
   });
@@ -215,6 +222,13 @@ async function fetchForecast(lat: number, lng: number): Promise<ForecastResponse
 }
 
 // ---- Normalización a WeatherResult ------------------------------------------
+
+/** "2026-09-08T07:12" → "07:12" (hora local del sitio, ya viene en tz auto). */
+function extractHHMM(iso?: string): string | undefined {
+  if (!iso) return undefined;
+  const m = iso.match(/T(\d{2}:\d{2})/);
+  return m ? m[1] : undefined;
+}
 
 function buildHourly(fx: ForecastResponse): WeatherHourlyItem[] {
   const hourly = fx.hourly;
@@ -316,6 +330,9 @@ export async function fetchWeather(city: string): Promise<WeatherResult> {
   const current = buildCurrent(fx);
   const hourly = buildHourly(fx);
   const daily = buildDaily(fx);
+  // FIX SUNSET: horas reales del sol (hoy) desde open-meteo daily.sunrise/sunset.
+  const sunrise = extractHHMM(fx.daily?.sunrise?.[0]);
+  const sunset = extractHHMM(fx.daily?.sunset?.[0]);
 
   const verifiedAtMs = nowMs;
   const result: WeatherResult = {
@@ -327,6 +344,8 @@ export async function fetchWeather(city: string): Promise<WeatherResult> {
     verifiedAt: new Date(verifiedAtMs).toISOString(),
     freshnessLabel: formatFreshness(verifiedAtMs),
     city: geo.canonical,
+    sunrise,
+    sunset,
   };
 
   cache.set(key, { result, verifiedAtMs });

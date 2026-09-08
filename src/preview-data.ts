@@ -272,6 +272,10 @@ const weatherMadrid: UiBlock = {
   humidity: "34%",
   uv: "7",
   advice: "Sol fuerte entre 13 y 16: gorra y protector si salís a la calle.",
+  // FIX PUESTA DE SOL: horas reales de Madrid (septiembre) para el arco solar
+  // del interior — antes el arco no tenía horas y fingía un día 7→21 fijo.
+  sunrise: "07:37",
+  sunset: "20:29",
   hourly: [
     { hour: "10h", temp: "23°", conditionIcon: "wb_sunny", rainPct: 0, uv: 4 },
     { hour: "11h", temp: "25°", conditionIcon: "wb_sunny", rainPct: 0, uv: 5 },

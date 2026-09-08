@@ -169,7 +169,8 @@ export function BriefInterior({ block, onClose, onSave }: LecturaInteriorProps<B
               </div>
               <div className="v">
                 <b>{it.value}</b>
-                <span>hoy</span>
+                {/* FIX ETIQUETA: antes decía "hoy" fijo — mentía para items que
+                    no son de hoy (ej. "Tu viaje a Madrid · 18 d"). Solo el valor. */}
               </div>
             </div>
           ))}

@@ -11,6 +11,7 @@
  * convención documentada en el domain. "Compartir mi llegada" usa
  * navigator.share (con fallback a clipboard).
  */
+import { useLayoutEffect, useRef, useState } from "react";
 import { MapPin, Flag, Navigation, Route as RouteIcon, Footprints, Car, Gauge, BellRing, Share2 } from "lucide-react";
 import type { UiBlock } from "../../../../domain/types";
 import { Ic } from "../Ic";
@@ -20,7 +21,8 @@ import "./p-rmap.css";
 
 type MapBlock = Extract<UiBlock, { type: "route_map" }>;
 
-/** Ruta esquemática del catálogo con fade del tramo andado (progress). */
+/** Ruta esquemática del catálogo: lo andado se dibuja con pathLength
+ *  REAL (antes la línea completa se veía igual al 5% o al 95% — mentía). */
 const ROUTE_D = "M70 240 L146 240 L146 205 L244 205 L244 110 L320 58";
 
 export function RouteMapInterior({ block, onClose, onSave }: LecturaInteriorProps<MapBlock>) {
@@ -28,6 +30,22 @@ export function RouteMapInterior({ block, onClose, onSave }: LecturaInteriorProp
   const arrived = progress >= 100;
   const next = arrived ? undefined : block.steps?.[0];
   const hasGeo = block.lat != null && block.lng != null;
+  // FIX PROGRESO: el punto vivo se posiciona sobre el path en el avance REAL
+  // (getPointAtLength sobre el path ref). Antes estaba fijo en CSS (right:46%)
+  // sin importar el % — "diseño que finge".
+  const pathRef = useRef<SVGPathElement | null>(null);
+  const [liveDot, setLiveDot] = useState<{ x: number; y: number } | null>(null);
+  useLayoutEffect(() => {
+    const path = pathRef.current;
+    if (!path || typeof path.getTotalLength !== "function") return;
+    try {
+      const total = path.getTotalLength();
+      const pt = path.getPointAtLength((progress / 100) * total);
+      setLiveDot({ x: pt.x, y: pt.y });
+    } catch {
+      // jsdom sin layout SVG — el punto queda oculto, la ruta no miente
+    }
+  }, [progress]);
 
   const openNativeMaps = () => {
     if (!hasGeo) return;
@@ -110,16 +128,33 @@ export function RouteMapInterior({ block, onClose, onSave }: LecturaInteriorProp
               <path d="M0 110 L390 110" /><path d="M0 205 L390 205" />
               <path d="M100 0 L100 300" /><path d="M198 0 L198 300" /><path d="M290 0 L290 300" />
             </g>
-            {/* tramo restante (sólido) + tramo andado (desvanecido según progress) */}
-            <path d={ROUTE_D} fill="none" stroke="#5170d8" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" opacity={progress >= 100 ? 0.25 : 0.85} />
+            {/* FIX PROGRESO REAL: tramo andado sólido + tramo restante punteado,
+                ambos desde el avance REAL del block (pathLength=100). Antes la
+                ruta entera se dibujaba igual sin importar el % declarado. */}
+            <path
+              ref={pathRef}
+              d={ROUTE_D}
+              fill="none"
+              stroke="#5170d8"
+              strokeWidth="7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity={arrived ? 0.25 : 0.85}
+              pathLength={100}
+              strokeDasharray={`${Math.round(progress)} 100`}
+            />
             <path d={ROUTE_D} fill="none" stroke="#8ab0ff" strokeWidth="3" strokeLinecap="round" strokeDasharray="1 12" />
             <circle cx="176" cy="120" r="26" fill="#c9e4c9" opacity=".7" />
             <rect x="262" y="220" width="52" height="34" rx="7" fill="#e6d9f5" />
             <text x="288" y="241" textAnchor="middle" fontFamily="var(--sans)" fontWeight="700" fontSize="9" fill="#6d4bf0">
               {(block.to ?? "DESTINO").slice(0, 10).toUpperCase()}
             </text>
+            {/* El punto vivo HTML (pulso) queda alineado al avance real del path */}
           </svg>
-          <div className="mp-live" data-progress={Math.round(progress)}><span className="pulse" /></div>
+          {/* punto vivo HTML (pulso) alineado al avance real; sin posición medible se oculta */}
+          <div className="mp-live" data-progress={Math.round(progress)} style={liveDot ? { top: `${(liveDot.y / 300) * 100}%`, left: `${(liveDot.x / 390) * 100}%`, right: "auto" } : { display: "none" }}>
+            <span className="pulse" />
+          </div>
           <div className="mp-bottom">
             <div className="bic">
               <Ic i={Navigation} className="ic" />
