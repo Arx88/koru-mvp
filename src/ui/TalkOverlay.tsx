@@ -651,7 +651,7 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
     if (processing || isRecording || wheelOpen) return;
     // No activar si el touch empieza en un botón o input
     const target = e.target as HTMLElement;
-    if (target.closest("button, input, textarea, .koru-composer, .koru-back-button, .koru-suggestion-pill, .koru-wheel-overlay")) return;
+    if (target.closest("button, input, textarea, .koru-composer, .koru-suggestion-pill, .koru-wheel-overlay")) return;
 
     // Registrar posición inicial para detectar si es scroll vs long-press
     const clientX = "touches" in e ? e.touches[0]?.clientX : (e as React.MouseEvent).clientX;
@@ -1195,21 +1195,6 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
           </div>
         )}
 
-        {/* 🔴 FIX (2026-09-10): botón HOY visible arriba a la izquierda — antes la
-            única forma de llegar al dashboard era el wheel oculto (long-press).
-            El usuario lo pidió explícito: "un botón para volver al dashboard Hoy
-            es lo que falta para que los hábitos existan en la vida diaria". */}
-        {!onboarding && (
-          <button
-            type="button"
-            className="koru-back-button"
-            onClick={onClose}
-            aria-label="Ir al dashboard Hoy"
-            title="Hoy"
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 22 }}>home</span>
-          </button>
-        )}
         <h1 className="koru-sr-heading">Koru</h1>
 
         {/* Suggestion Pills — temas de conversaciones anteriores */}

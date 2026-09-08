@@ -349,29 +349,6 @@
   );
 }
 
-.koru-back-button {
-  position: absolute;
-  top: 18px;
-  left: 16px;
-  z-index: 30;
-  display: grid;
-  width: 44px;
-  height: 44px;
-  place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.22);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  color: #ffffff;
-  box-shadow: 0 4px 12px rgba(18, 10, 50, 0.18);
-  transition: transform 160ms ease, border-color 160ms ease;
-}
-
-.koru-back-button:active {
-  transform: scale(0.96);
-}
-
 .koru-sr-heading {
   position: absolute;
   width: 1px;
