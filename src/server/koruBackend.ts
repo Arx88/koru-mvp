@@ -1778,6 +1778,44 @@ async function searchDuckDuckGoLite(query: string): Promise<AssistantSource[]> {
   return sources;
 }
 
+/**
+ * 🔴 FIX CONNECTORS (2026-09-09): Tavily — buscador diseñado para agentes de IA.
+ * OPCIONAL vía env `TAVILY_API_KEY` (Render → Environment → Add). Free tier:
+ * 1.000 créditos/mes, signup solo con email (tavily.com). Cuando la key existe
+ * es el conector PRIMARIO — las búsquedas dejan de depender del scraping de
+ * buscadores públicos que bloquean IPs de datacenter (DDG "anomaly", Bing con
+ * resultados envenenados, GDELT rate-limit compartido, Reddit 403). Sin key,
+ * el comportamiento es exactamente el mismo de siempre (cadena keyless).
+ * Falla silenciosamente (key inválida, quota agotada) → cae a la cadena local.
+ */
+async function searchTavily(query: string): Promise<AssistantSource[]> {
+  const key = process.env.TAVILY_API_KEY;
+  if (!key) return [];
+  try {
+    const response = await fetchWithTimeout("https://api.tavily.com/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        api_key: key,
+        query,
+        search_depth: "basic",
+        max_results: 6,
+        include_answer: false,
+      }),
+    }, 10_000);
+    if (!response.ok) return [];
+    const data = await response.json().catch(() => ({})) as {
+      results?: Array<{ title?: string; url?: string; content?: string }>;
+    };
+    return (data.results ?? [])
+      .filter((r) => r.title && r.url && /^https?:\/\//i.test(r.url))
+      .slice(0, 6)
+      .map((r) => sourceFromUrl(r.title!, r.url!, (r.content ?? "").slice(0, 260)));
+  } catch {
+    return [];
+  }
+}
+
 async function searchGdelt(query: string): Promise<AssistantSource[]> {
   const url = new URL("https://api.gdeltproject.org/api/v2/doc/doc");
   url.searchParams.set("query", query);
@@ -1927,9 +1965,15 @@ export async function runSearch(
       : shopping
         ? `${query} precio opiniones entrega`
         : query;
+  // 🔴 Cadena de conectores (FIX 2026-09-09, de más a menos confiable):
+  //   1. Tavily (solo con TAVILY_API_KEY) — API real sin anti-bot
+  //   2. GDELT para news/world (índice noticioso, API pública)
+  //   3. DDG html → DDG lite (scraping, bloqueo intermitente por IP)
+  //   4. GDELT universal (query limpia) como último recurso keyless
   const gdelt = mode === "news" || mode === "world" ? await searchGdelt(expanded).catch(() => []) : [];
-  const duck = gdelt.length ? [] : await searchDuckDuckGo(expanded).catch(() => []);
-  let sources = [...gdelt, ...duck].slice(0, 6);
+  const tavily = gdelt.length ? [] : await searchTavily(query).catch(() => []);
+  const duck = gdelt.length || tavily.length ? [] : await searchDuckDuckGo(expanded).catch(() => []);
+  let sources = [...gdelt, ...tavily, ...duck].slice(0, 6);
   // 🔴 FIX CONNECTORS (2026-09-09): último recurso para research/shopping
   // cuando DDG está bloqueado desde la IP del server (Render) incluso con UA
   // de navegador. GDELT es una API pública sin scraping (sin anti-bot) y ya
