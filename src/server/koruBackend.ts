@@ -806,6 +806,16 @@ export function formatRouteDuration(seconds: unknown): string | undefined {
   return rem ? `${h}h ${rem}m` : `${h}h`;
 }
 
+/**
+ * 🔴 FIX BÚSQUEDAS ROTAS (2026-09-09): UA de navegador real para todos los
+ * fetches web que simulan un navegador (scraping de buscadores, páginas de
+ * fuentes). Los UAs custom ("KoruAgent/1.0") disparan los detectores anti-bot
+ * (DuckDuckGo "anomaly", Bing resultados envenenados). Este UA es el mismo
+ * string que envía un Chrome desktop auténtico.
+ */
+export const BROWSER_USER_AGENT =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
+
 export async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -1680,10 +1690,18 @@ function htmlText(raw: string): string {
 }
 
 async function searchDuckDuckGo(query: string): Promise<AssistantSource[]> {
-  const response = await fetchWithTimeout(`https://duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
+  // 🔴 FIX BÚSQUEDAS ROTAS EN PRODUCCIÓN (2026-09-09): DuckDuckGo sirve una
+  // página de "anomaly" (anti-bot) a los User-Agents que no parecen navegador
+  // real — "Mozilla/5.0 KoruAgent/1.0" dispara el bloqueo desde IPs de
+  // datacenter (Render). Con un UA de Chrome auténtico DDG responde 200 con
+  // resultados normales (verificado: 10 resultados, 0 anomaly). Además usamos
+  // el endpoint canónico html.duckduckgo.com (evita el 302 de duckduckgo.com)
+  // y pedimos contenido en español con Accept-Language.
+  const response = await fetchWithTimeout(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
     headers: {
-      "User-Agent": "Mozilla/5.0 KoruAgent/1.0",
+      "User-Agent": BROWSER_USER_AGENT,
       Accept: "text/html",
+      "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
     },
   }, 10_000);
   const html = await response.text();
@@ -1720,7 +1738,12 @@ async function searchGdelt(query: string): Promise<AssistantSource[]> {
   url.searchParams.set("format", "json");
   url.searchParams.set("maxrecords", "6");
   url.searchParams.set("sort", "HybridRel");
-  const response = await fetchWithTimeout(url.toString(), { headers: { Accept: "application/json" } }, 10_000);
+  const response = await fetchWithTimeout(url.toString(), {
+    headers: {
+      "User-Agent": BROWSER_USER_AGENT,
+      Accept: "application/json",
+    },
+  }, 10_000);
   const data = await response.json().catch(() => ({})) as { articles?: Array<{ title?: string; url?: string; domain?: string; seendate?: string }> };
   return (data.articles ?? [])
     .filter((item) => item.title && item.url)
@@ -1789,7 +1812,13 @@ function resolveImageUrl(src: string, baseUrl: string): string {
 
 async function fetchPageContent(url: string, maxChars = 1200): Promise<{ text: string; imageUrl?: string }> {
   try {
-    const res = await fetchWithTimeout(url, { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" } }, 15_000);
+    const res = await fetchWithTimeout(url, {
+      headers: {
+        "User-Agent": BROWSER_USER_AGENT,
+        Accept: "text/html",
+        "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
+      },
+    }, 15_000);
     const html = await res.text();
 
     // 🔴 FIX P2.2: extraer imagen principal

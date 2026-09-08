@@ -7,7 +7,7 @@
  */
 
 import type { AssistantSource } from "../../domain/types";
-import { fetchText, domainFromUrl, normalize, truncate } from "./fetcher";
+import { fetchText, domainFromUrl, normalize, truncate, BROWSER_USER_AGENT } from "./fetcher";
 import { limiters } from "./rateLimiter";
 
 /** Limpia HTML a texto plano. */
@@ -27,9 +27,17 @@ function htmlToText(html: string): string {
 /** Busca en DuckDuckGo HTML (sin key) y devuelve hasta `max` fuentes. */
 export async function searchDuckDuckGo(query: string, max = 6): Promise<AssistantSource[]> {
   await limiters.duckduckgo.acquire();
-  const url = `https://duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+  // 🔴 FIX BÚSQUEDAS ROTAS (2026-09-09): endpoint canónico html.duckduckgo.com
+  // (evita el 302 de duckduckgo.com) + UA de navegador real y Accept-Language —
+  // el UA por defecto "KoruLocal/1.0" dispara el anti-bot "anomaly" de DDG
+  // desde IPs de datacenter. fetchText permite sobreescribir el UA vía headers.
+  const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
   const result = await fetchText(url, {
-    headers: { Accept: "text/html" },
+    headers: {
+      "User-Agent": BROWSER_USER_AGENT,
+      Accept: "text/html",
+      "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
+    },
     timeoutMs: 12_000,
   });
   if (!result.ok) return [];
@@ -60,7 +68,11 @@ export async function searchDuckDuckGo(query: string, max = 6): Promise<Assistan
 /** Lee el contenido principal de una URL (article/main/párrafos largos). */
 export async function fetchPageContent(url: string, maxChars = 1500): Promise<string> {
   const result = await fetchText(url, {
-    headers: { Accept: "text/html" },
+    headers: {
+      "User-Agent": BROWSER_USER_AGENT,
+      Accept: "text/html",
+      "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
+    },
     timeoutMs: 9_000,
   });
   if (!result.ok) return "";

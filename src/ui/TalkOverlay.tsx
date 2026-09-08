@@ -1239,8 +1239,14 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
             {/* 🔴 Typing indicator — tres puntos animados cuando Koru está procesando.
                 Kimi audit: reemplazamos los puntos sueltos por <TypingDots> con la
                 voz mágica "Lo estoy oliendo…" para que el usuario sienta que Koru
-                está presente, no esperando en frío. */}
-            {processing && !isListening && !workingDeliverable && !hasStreamingKoruTurn && (
+                está presente, no esperando en frío.
+                🔴 FIX INDICADOR ÚNICO (2026-09-09): los puntos NUNCA coexisten con
+                el WorkingPanel (actividades deep: "Sumergiéndome en tu búsqueda…"
+                + "Procesando…" al mismo tiempo = la queja del usuario) ni con el
+                footer hint. El label rotativo de la actividad ("Pensando esto…",
+                "Buscando información…") vive AHORA en los propios puntos — un solo
+                indicador visible en todo momento. */}
+            {processing && !isListening && !workingDeliverable && !hasStreamingKoruTurn && activity?.depth !== "deep" && (
               <div className="koru-message is-koru">
                 <div className="koru-row">
                   <div className="koru-avatar">
@@ -1248,7 +1254,7 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
                   </div>
                   <div className="koru-bubble ai-bubble">
                     <div className="koru-typing-indicator">
-                      <TypingDots label="Procesando…" />
+                      <TypingDots label={activity?.label ?? "Procesando…"} />
                     </div>
                   </div>
                 </div>
@@ -1325,12 +1331,11 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
           <WorkingPanel phase={phase} kind={activity?.kind} deliverable={workingDeliverable} />
         ) : (
         <footer className="koru-chat-footer">
-          {processing && !isListening && activity && (
-            <div className="koru-activity-hint" role="status" aria-live="polite">
-              <span className="koru-activity-dot" />
-              {activity.label}
-            </div>
-          )}
+            {/* 🔴 FIX INDICADOR ÚNICO (2026-09-09): el hint de actividad del footer
+                se ELIMINÓ — su label rotativo ("Pensando esto…", "Buscando
+                información…") vive ahora en los TypingDots del chat. Antes había
+                DOS textos simultáneos ("Procesando…" + "Pensando…" = la queja del
+                usuario de múltiples PROCESANDO a la vez). */}
             {/* 🔴 Offline cache — banner shown when browser loses connectivity */}
             {!online && (
               <p className="koru-footer-error" role="status" aria-live="polite">

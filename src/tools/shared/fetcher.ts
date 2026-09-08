@@ -4,7 +4,19 @@
  * garantizar cortesía de red y trazabilidad.
  */
 
-const KORU_USER_AGENT = "KoruLocal/1.0 (+local-first assistant)";
+/**
+ * 🔴 FIX BÚSQUEDAS ROTAS EN PRODUCCIÓN (2026-09-09):
+ * UA por defecto de navegador real. El anterior "KoruLocal/1.0 (+local-first
+ * assistant)" disparaba los detectores anti-bot (DuckDuckGo "anomaly" 202,
+ * Reddit sirviendo HTML en vez de JSON). Un UA de Chrome auténtico es el que
+ * cualquier API pública recibe de navegadores de verdad, y las tools pueden
+ * sobreescribirlo vía headers cuando la política del proveedor pide un UA
+ * identificable (Wikipedia: WIKI_HEADERS en knowledge.ts / people.ts).
+ */
+export const BROWSER_USER_AGENT =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
+
+const KORU_USER_AGENT = BROWSER_USER_AGENT;
 
 export type FetchOptions = {
   method?: "GET" | "POST";
