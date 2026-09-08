@@ -1697,6 +1697,15 @@ async function searchDuckDuckGo(query: string): Promise<AssistantSource[]> {
   // resultados normales (verificado: 10 resultados, 0 anomaly). Además usamos
   // el endpoint canónico html.duckduckgo.com (evita el 302 de duckduckgo.com)
   // y pedimos contenido en español con Accept-Language.
+  // Si el endpoint HTML da 0 fuentes (bloqueo intermitente por reputación de
+  // IP), reintentamos por lite.duckduckgo.com — endpoint legacy con detección
+  // anti-bot menos agresiva (verificado 200 + resultados reales con UA real).
+  const sources = await searchDuckDuckGoHtml(query);
+  if (sources.length > 0) return sources;
+  return searchDuckDuckGoLite(query);
+}
+
+async function searchDuckDuckGoHtml(query: string): Promise<AssistantSource[]> {
   const response = await fetchWithTimeout(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
     headers: {
       "User-Agent": BROWSER_USER_AGENT,
@@ -1707,6 +1716,44 @@ async function searchDuckDuckGo(query: string): Promise<AssistantSource[]> {
   const html = await response.text();
   const sources: AssistantSource[] = [];
   const resultRe = /<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a[^>]+class="result__snippet"[^>]*>([\s\S]*?)<\/a>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = resultRe.exec(html)) && sources.length < 6) {
+    const rawUrl = match[1];
+    let url = rawUrl;
+    try {
+      const parsed = new URL(rawUrl, "https://duckduckgo.com");
+      url = parsed.searchParams.get("uddg") ?? parsed.href;
+    } catch {
+      url = rawUrl;
+    }
+    if (!/^https?:\/\//i.test(url)) continue;
+    const domain = (() => {
+      try {
+        return new URL(url).hostname;
+      } catch {
+        return "";
+      }
+    })();
+    if (/duckduckgo\.com|google\.com|bing\.com/i.test(domain)) continue;
+    sources.push(sourceFromUrl(htmlText(match[2]), url, htmlText(match[3]).slice(0, 260)));
+  }
+  return sources;
+}
+
+/** 🔴 FIX CONNECTORS: endpoint lite.duckduckgo.com (layout tabla, distinta
+ * detección anti-bot). Estructura: <a ... href="...uddg=..." class='result-link'>
+ * + <td class='result-snippet'>. Mismo decoding uddg que el endpoint html. */
+async function searchDuckDuckGoLite(query: string): Promise<AssistantSource[]> {
+  const response = await fetchWithTimeout(`https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(query)}`, {
+    headers: {
+      "User-Agent": BROWSER_USER_AGENT,
+      Accept: "text/html",
+      "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
+    },
+  }, 10_000);
+  const html = await response.text();
+  const sources: AssistantSource[] = [];
+  const resultRe = /<a[^>]*href="([^"]+)"[^>]*class=['"]result-link['"][^>]*>([\s\S]*?)<\/a>[\s\S]*?<td[^>]*class=['"]result-snippet['"][^>]*>([\s\S]*?)<\/td>/gi;
   let match: RegExpExecArray | null;
   while ((match = resultRe.exec(html)) && sources.length < 6) {
     const rawUrl = match[1];
@@ -1883,6 +1930,16 @@ export async function runSearch(
   const gdelt = mode === "news" || mode === "world" ? await searchGdelt(expanded).catch(() => []) : [];
   const duck = gdelt.length ? [] : await searchDuckDuckGo(expanded).catch(() => []);
   let sources = [...gdelt, ...duck].slice(0, 6);
+  // 🔴 FIX CONNECTORS (2026-09-09): último recurso para research/shopping
+  // cuando DDG está bloqueado desde la IP del server (Render) incluso con UA
+  // de navegador. GDELT es una API pública sin scraping (sin anti-bot) y ya
+  // funciona en producción para los modos news/world — acá la extendemos como
+  // fallback universal con la query LIMPIA (sin sufijos "precio opiniones"
+  // que contaminarían el índice noticioso de GDELT).
+  if (sources.length === 0 && mode !== "news" && mode !== "world") {
+    const gdeltFallback = await searchGdelt(query).catch(() => []);
+    sources = gdeltFallback.slice(0, 6);
+  }
   // 🔴 V5: ELIMINADO el score fabricado `Math.max(55, 88 - index * 8)`.
   // Esa fórmula producía la hallucinación de "comparativa": los items
   // aparecían con barras de score que NO venían de ningún análisis real,

@@ -24,8 +24,17 @@ function htmlToText(html: string): string {
     .trim();
 }
 
-/** Busca en DuckDuckGo HTML (sin key) y devuelve hasta `max` fuentes. */
+/** Busca en DuckDuckGo HTML (sin key) y devuelve hasta `max` fuentes.
+ * 🔴 FIX CONNECTORS (2026-09-09): si el endpoint HTML da 0 fuentes (anti-bot
+ * intermitente por reputación de IP en datacenters), reintenta por
+ * lite.duckduckgo.com — endpoint legacy con detección menos agresiva. */
 export async function searchDuckDuckGo(query: string, max = 6): Promise<AssistantSource[]> {
+  const htmlSources = await searchDuckDuckGoHtmlEndpoint(query, max);
+  if (htmlSources.length > 0) return htmlSources;
+  return searchDuckDuckGoLiteEndpoint(query, max);
+}
+
+async function searchDuckDuckGoHtmlEndpoint(query: string, max = 6): Promise<AssistantSource[]> {
   await limiters.duckduckgo.acquire();
   // 🔴 FIX BÚSQUEDAS ROTAS (2026-09-09): endpoint canónico html.duckduckgo.com
   // (evita el 302 de duckduckgo.com) + UA de navegador real y Accept-Language —
@@ -40,11 +49,54 @@ export async function searchDuckDuckGo(query: string, max = 6): Promise<Assistan
     },
     timeoutMs: 12_000,
   });
+  return parseDdgHtmlResults(result.ok ? result.text ?? "" : "", max);
+}
+
+/** Endpoint lite.duckduckgo.com: layout de tabla (<a class='result-link'> +
+ * <td class='result-snippet'>), misma decodificación uddg. */
+async function searchDuckDuckGoLiteEndpoint(query: string, max = 6): Promise<AssistantSource[]> {
+  await limiters.duckduckgo.acquire();
+  const url = `https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(query)}`;
+  const result = await fetchText(url, {
+    headers: {
+      "User-Agent": BROWSER_USER_AGENT,
+      Accept: "text/html",
+      "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
+    },
+    timeoutMs: 12_000,
+  });
   if (!result.ok) return [];
+  const html = result.text ?? "";
+  const sources: AssistantSource[] = [];
+  const resultRe = /<a[^>]*href="([^"]+)"[^>]*class=['"]result-link['"][^>]*>([\s\S]*?)<\/a>[\s\S]*?<td[^>]*class=['"]result-snippet['"][^>]*>([\s\S]*?)<\/td>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = resultRe.exec(html)) && sources.length < max) {
+    let linkUrl = match[1];
+    try {
+      const parsed = new URL(linkUrl, "https://duckduckgo.com");
+      linkUrl = parsed.searchParams.get("uddg") ?? parsed.href;
+    } catch {
+      // mantener url cruda
+    }
+    if (!/^https?:\/\//i.test(linkUrl)) continue;
+    const domain = domainFromUrl(linkUrl);
+    if (/duckduckgo\.com|google\.com|bing\.com/i.test(domain)) continue;
+    sources.push({
+      title: htmlToText(match[2]),
+      url: linkUrl,
+      domain,
+      snippet: truncate(htmlToText(match[3]), 280),
+    });
+  }
+  return sources;
+}
+
+/** Parser compartido del HTML de html.duckduckgo.com. */
+function parseDdgHtmlResults(html: string, max: number): AssistantSource[] {
   const sources: AssistantSource[] = [];
   const resultRe = /<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a[^>]+class="result__snippet"[^>]*>([\s\S]*?)<\/a>/gi;
   let match: RegExpExecArray | null;
-  while ((match = resultRe.exec(result.text!)) && sources.length < max) {
+  while ((match = resultRe.exec(html)) && sources.length < max) {
     let linkUrl = match[1];
     try {
       const parsed = new URL(linkUrl, "https://duckduckgo.com");
