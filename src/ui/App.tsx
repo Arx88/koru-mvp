@@ -18,6 +18,7 @@ function KoruApp() {
     completeOnboarding,
     state,
     dismissNudge,
+    openCollections,
     updateUserProfile,
     updatePreferences,
     setLanguage,
@@ -81,6 +82,10 @@ function KoruApp() {
                 onSearch={() => setScreen("chat")}
                 onTalk={() => setScreen("chat")}
                 onDismissNudge={dismissNudge}
+                // 🔴 FIX (2026-09-10): "Guardados" → Mis Colecciones. La vista
+                // vive dentro del chat overlay: abrimos colecciones y volvemos
+                // al chat para montarla.
+                onOpenCollections={() => { openCollections(); setScreen("chat"); }}
                 // 🔴 TIER S: wiring de reducers a widgets del HomeScreen.
                 // - onLogWater → logWellbeing("water", ml, "ml") en KoruProvider.
                 // - onLogHabit → logHabit(habitId, 1) en KoruProvider.

@@ -567,3 +567,24 @@ export function lastKoruTurnIsStreaming(turns: KoruChatTurn[]): boolean {
   }
   return false;
 }
+
+/**
+ * 🔴 FIX CRÍTICO (bug en vivo 2026-09-10): red de seguridad del CLIENTE para
+ * el leak de JSON crudo. Si el backend (o cualquier path de stream) manda un
+ * reply que es en realidad el JSON de respuesta (`{"reply": "...",
+ * "mascotState": "happy"}`), extraer el texto interno ANTES de renderizarlo
+ * como burbuja. El usuario final nunca debe ver la tubería interna.
+ */
+export function sanitizeReplyText(text: string): string {
+  const trimmed = (text ?? "").trim();
+  if (!trimmed.startsWith("{") || !trimmed.includes("\"reply\"")) return text ?? "";
+  const match = trimmed.match(/"\s*reply\s*"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+  if (!match) return text ?? "";
+  let recovered: string;
+  try {
+    recovered = JSON.parse(`"${match[1]}"`);
+  } catch {
+    recovered = match[1].replace(/\\n/g, " ").replace(/\\"/g, "\"").trim();
+  }
+  return recovered.trim() || (text ?? "");
+}

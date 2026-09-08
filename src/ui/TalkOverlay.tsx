@@ -17,6 +17,7 @@ import { MorningBriefCard } from "./MorningBriefCard";
 import { CreateScreen } from "./create/CreateScreen";
 import { TypingDots } from "./TypingDots";
 import { lastKoruTurnIsStreaming } from "../domain/turn";
+import { renderMarkdownBody, CopyButton } from "./MarkdownMessage";
 
 // TalkOverlay = réplica Stitch "Chat con Koru": paisaje nocturno ilustrado a
 // pantalla completa, conversación anclada abajo con burbujas claras (usuario
@@ -99,6 +100,7 @@ function KoruTurnBubble({
     (it) => it.uiBlock?.type === "deliverable" && (it.uiBlock as { status?: string }).status === "working",
   );
   const showBubble = !hasWorkingDeliverable && Boolean(heading || body);
+  const turnDone = turn.status !== "working";
   return (
     <div className="koru-message is-koru">
       <div className="koru-row">
@@ -108,10 +110,13 @@ function KoruTurnBubble({
         {showBubble && (
           <div className="koru-bubble ai-bubble">
             {heading && <h3 className="koru-bubble-heading">{heading}</h3>}
-            <p className="koru-message-text">{body}</p>
+            {/* 🔴 UX (2026-09-10): render de markdown (listas, negritas, links) */}
+            <div className="koru-message-text">{renderMarkdownBody(body)}</div>
           </div>
         )}
       </div>
+      {/* 🔴 UX (2026-09-10): copiar el mensaje — feedback inmediato, discreto */}
+      {showBubble && turnDone && (heading || body) && <CopyButton text={turn.text} />}
       {turn.items && turn.items.length > 0 && (
         <div className="koru-cards-row">
           {turn.items.map((item) => (
@@ -1190,7 +1195,21 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
           </div>
         )}
 
-        {/* 🔴 FIX: back-button eliminado — el wheel (long-press) es la única navegación */}
+        {/* 🔴 FIX (2026-09-10): botón HOY visible arriba a la izquierda — antes la
+            única forma de llegar al dashboard era el wheel oculto (long-press).
+            El usuario lo pidió explícito: "un botón para volver al dashboard Hoy
+            es lo que falta para que los hábitos existan en la vida diaria". */}
+        {!onboarding && (
+          <button
+            type="button"
+            className="koru-back-button"
+            onClick={onClose}
+            aria-label="Ir al dashboard Hoy"
+            title="Hoy"
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 22 }}>home</span>
+          </button>
+        )}
         <h1 className="koru-sr-heading">Koru</h1>
 
         {/* Suggestion Pills — temas de conversaciones anteriores */}

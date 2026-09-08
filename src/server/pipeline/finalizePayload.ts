@@ -77,13 +77,57 @@ import {
   memoryCapturesFromTools,
 } from "../memoryExtractor";
 
+/**
+ * 🔴 FIX CRÍTICO (bug en vivo 2026-09-10): el LLM a veces devuelve el JSON
+ * de respuesta como texto crudo — completo pero INVÁLIDO (truncado, coma
+ * colgante, escape roto) — y JSON.parse falla. Los paths de recuperación de
+ * texto plano mostraban `{"reply": "...", "mascotState": "happy"}` ENTERO al
+ * usuario: la tubería interna a la vista.
+ *
+ * Este helper extrae el campo "reply" con regex aunque el JSON global no
+ * parseé. Devuelve null si el texto no es un JSON con reply.
+ */
+export function extractReplyFromJsonish(text: string): string | null {
+  if (!text || !text.includes("\"reply\"")) return null;
+  const match = text.match(/"\s*reply\s*"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+  if (!match) return null;
+  const raw = match[1];
+  try {
+    const unescaped = JSON.parse(`"${raw}"`);
+    if (typeof unescaped === "string" && unescaped.trim()) return unescaped;
+  } catch {
+    /* JSON inválido dentro del string — devolver el crudo sanitizado */
+  }
+  return raw
+    .replace(/\\n/g, " ")
+    .replace(/\\"/g, "\"")
+    .replace(/\\t/g, " ")
+    .replace(/\\\\/g, "\\")
+    .trim() || null;
+}
+
 export function cleanReplyText(value: unknown): string {
-  // 🔴 FIX P0: stripar reasoning PRIMERO, antes de cualquier otra limpieza
-  return stripReasoning(cleanText(value))
+  // 🔴 FIX P0: stripar reasoning PRIMERO, antes de cualquier otra limpieza.
+  // 🔴 FIX markdown (2026-09-10): NO usamos cleanText acá — su `\s+ → " "`
+  // aplanaba los saltos de línea y las listas del reply morían en una línea.
+  // Normalizamos CRLF y espacios/tabs, conservando \n.
+  const asStr = typeof value === "string" ? value : value == null ? "" : String(value);
+  const stripped = stripReasoning(asStr.replace(/\r\n?/g, "\n").replace(/[ \t]{2,}/g, " "));
+  // 🔴 FIX CRÍTICO (2026-09-10): si el "texto" es en realidad el JSON de
+  // respuesta (parse fallido aguas arriba), extraer el reply interno en vez
+  // de mostrar la tubería cruda al usuario.
+  const jsonRecovered = extractReplyFromJsonish(stripped);
+  const base = jsonRecovered !== null ? jsonRecovered : stripped;
+  return base
     .replace(/\*?\s*uiBlock\s*:\s*[a-z_]+\s*\*?/gi, "")
     .replace(/\buiBlocks?\b\s*[:=]\s*\[[\s\S]*$/i, "")
     .replace(/\b(Hola|Gracias|Perfecto|Listo)(?=[A-ZÁÉÍÓÚÑ])/g, "$1 ")
-    .replace(/\s+/g, " ")
+    // 🔴 FIX markdown: preservar saltos de línea (listas, párrafos) — antes
+    // `\s+ → " "` aplanaba todo a una línea y el render de markdown del chat
+    // no tenía con qué trabajar. Espacios/tabs colapsan, líneas se conservan.
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/\s+\n/g, "\n")
     .trim();
 }
 

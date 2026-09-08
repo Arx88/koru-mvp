@@ -567,14 +567,26 @@ export async function koruRequestHandler(req: http.IncomingMessage, res: http.Se
 
       // 🔴 LLM prompt — formato especificado:
       // { greeting: string, items: [{icon, label, value}], reflection: string }
+      // 🔴 FIX ANTI-NOMBRE-INVENTADO (2026-09-10): el brief decía "Buen día,
+      // Camila" a un usuario que se llama distinto — el LLM inventaba el
+      // nombre cuando el userName llegaba vacío. Reglas duras: usar SOLO el
+      // nombre real del state o NINGUNO; jamás fabricar datos.
+      const nameRule = userName?.trim()
+        ? `El nombre del usuario es EXACTAMENTE "${userName.trim()}". Usalo en el greeting tal cual (o ningún nombre). NUNCA uses otro nombre ni inventes uno.`
+        : `NO conocés el nombre del usuario. El greeting NO puede contener ningún nombre de persona — saludo genérico sin nombre. NUNCA inventes un nombre.`;
       const briefMessages = [
         {
           role: "system" as const,
-          content: `Sos Koru. Generá el morning brief para ${userName}. Hoy es ${today}. Eventos: ${JSON.stringify(todayEvents.map((e: any) => e.title))}. Deadlines: ${JSON.stringify(todayCommitments.map((c: any) => c.title))}. Clima: ${weatherStr}. Último sentimiento registrado: ${lastSentiment}. Memorias relevantes: ${JSON.stringify(memories.map((m: any) => `[${m.kind}] ${m.text}`))}. Generá: greeting, 3-item summary, reflection. Respondé en JSON: { greeting: string, items: [{icon, label, value}], reflection: string }`,
+          content: `Sos Koru. Generá el morning brief para ${userName || "el usuario"}. Hoy es ${today}. Eventos: ${JSON.stringify(todayEvents.map((e: any) => e.title))}. Deadlines: ${JSON.stringify(todayCommitments.map((c: any) => c.title))}. Clima: ${weatherStr}. Último sentimiento registrado: ${lastSentiment}. Memorias relevantes: ${JSON.stringify(memories.map((m: any) => `[${m.kind}] ${m.text}`))}.
+REGLAS ABSOLUTAS:
+- ${nameRule}
+- NO INVENTES DATOS: cada item del brief debe salir EXCLUSIVAMENTE de los eventos/deadlines/clima/memorias de arriba. Si no hay datos de una categoría, NO la menciones ni le pongas valores genéricos.
+- Si no hay eventos ni deadlines, los items deben ser sobre lo que SÍ hay (clima, memorias) o un item honesto tipo "agenda despejada".
+Generá: greeting, 3-item summary, reflection. Respondé SOLO con JSON: { greeting: string, items: [{icon, label, value}], reflection: string }`,
         },
         {
           role: "user" as const,
-          content: `Generá el morning brief ahora. Recordá: greeting cálido y personalizado, 3 items con icon (material symbols), label corto y value concreto, reflection breve para cerrar.`,
+          content: `Generá el morning brief ahora. Recordá: greeting cálido (con el nombre real o sin nombre), 3 items con icon (material symbols), label corto y value concreto SOLO de los datos provistos, reflection breve para cerrar.`,
         },
       ];
 

@@ -83,6 +83,44 @@ export function greetingTurn(userName?: string): KoruChatTurn {
   };
 }
 
+/**
+ * 🔴 FIX "CAMILA" (bug en vivo 2026-09-10): el morning brief llegaba con un
+ * nombre INVENTADO por el LLM ("¡Buen día, Camila!") para un usuario con otro
+ * nombre. Red de seguridad del cliente: si hay userName real y el greeting
+ * contiene un nombre que NO es el suyo (palabra capitalizada standalone),
+ * reemplazarlo por el real. Si no hay userName, quitar cualquier nombre
+ * inventado (quedar solo el saludo).
+ */
+export function sanitizeBriefGreeting(greeting: string, userName?: string): string {
+  const g = (greeting ?? "").trim();
+  if (!g) return "";
+  const real = (userName ?? "").trim();
+  if (real && g.toLowerCase().includes(real.toLowerCase())) return g;
+  // Buscar "nombre propio sospechoso": palabra capitalizada (no al inicio de
+  // oración tras signo) de 3-16 letras, sin ser palabra común de saludo.
+  const COMMON = /^(?:Buen|Buenos|Buena|Hola|Hey|Día|Dias|Días|Tardes|Noches|Lunes|Martes|Miércoles|Jueves|Viernes|Sábado|Domingo|Empecemos|Arranquemos|Vamos|Que|Qué|Hoy|Un|Una|El|La|Este|Esta|Listo|Vamos)$/i;
+  const words = g.split(/\s+/);
+  for (let i = 1; i < words.length; i++) {
+    const w = words[i].replace(/[^\p{L}\p{M}'-]/gu, "");
+    // Si la palabra PREVIA termina en puntuación de oración, esta palabra abre
+    // oración (capitalizada por gramática, no por ser nombre propio).
+    const opensSentence = /[.:!¡¿?]$/.test(words[i - 1] ?? "");
+    if (!opensSentence && w.length >= 3 && w.length <= 16 && /^\p{Lu}/u.test(w) && !COMMON.test(w)) {
+      // Candidato a nombre inventado — reemplazar por el real o eliminar.
+      // Conservar la puntuación que rodea la palabra ("Camila!" → "Facundo!").
+      const trailing = (words[i].match(/[^\p{L}\p{M}'-]+$/u) ?? [""])[0];
+      if (real) {
+        words[i] = real + trailing;
+        return words.join(" ").replace(/\s{2,}/g, " ").replace(/,(\S)/g, ", $1").replace(/(\S),/g, "$1,");
+      }
+      // Sin nombre real: sacar el nombre y la coma previa.
+      const cleaned = words.slice(0, i).join(" ").replace(/[,\s]+$/, "") + (i < words.length - 1 ? " " + words.slice(i + 1).join(" ") : "");
+      return cleaned.replace(/\s{2,}/g, " ").trim();
+    }
+  }
+  return g;
+}
+
 export function readChatTurns(userName?: string): KoruChatTurn[] {
   try {
     const raw = localStorage.getItem(CHAT_STORAGE_KEY);

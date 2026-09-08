@@ -34,6 +34,10 @@ export interface HomeScreenProps {
   onSearch: () => void;
   onTalk: () => void;
   onDismissNudge: (nudgeId: string) => void;
+  // 🔴 FIX (2026-09-10): acceso a Mis Colecciones desde el dashboard — antes
+  // solo se llegaba con el aviso "Ver" del toast (efímero) y Koru no podía
+  // mandar al usuario a ver sus guardados.
+  onOpenCollections?: () => void;
   // 🔴 TIER S: callbacks para invocar reducers del store desde los widgets.
   onLogWater?: (ml: number) => void;
   onLogHabit?: (habitId: string) => void;
@@ -95,6 +99,7 @@ export function HomeScreen({
   onSearch,
   onTalk,
   onDismissNudge,
+  onOpenCollections,
   onLogWater,
   onLogHabit,
   onRefreshWeather,
@@ -185,7 +190,13 @@ export function HomeScreen({
     const rutina = openCommitments.filter((c) => !!c.recurrence);
     const opcional = openCommitments.filter((c) => !c.dueAt && !c.recurrence);
 
-    const activeNudges = (state.nudges ?? []).filter((n) => !n.dismissed);
+    // 🔴 FIX (2026-09-10): los nudges marcados [proactive_shown] ya fueron
+    // inyectados como mensaje de chat — NO re-mostrarlos como cards en Home
+    // (el usuario veía el marcador interno "[proactive_shown] Buenos días"
+    // en la sección "Koru te sugiere").
+    const activeNudges = (state.nudges ?? []).filter(
+      (n) => !n.dismissed && !n.title.startsWith("[proactive_shown]"),
+    );
 
     return {
       today,
@@ -897,6 +908,9 @@ export function HomeScreen({
           <section style={{ display: "flex", gap: 10, paddingBottom: 32 }}>
             <QuickAction icon="add_circle" label="Crear" onClick={onCreate} />
             <QuickAction icon="search" label="Buscar" onClick={onSearch} />
+            {onOpenCollections && (
+              <QuickAction icon="bookmarks" label="Guardados" onClick={onOpenCollections} />
+            )}
             <QuickAction
               icon="graphic_eq"
               label="Hablar con Koru"
@@ -1318,7 +1332,8 @@ function NudgeCard({
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ fontSize: 13, fontWeight: 700, color: "#1a1a2e", margin: 0 }}>
-            {nudge.title}
+            {/* 🔴 FIX: nunca renderizar el marcador interno [proactive_shown] */}
+            {nudge.title.replace(/^\[proactive_shown\]\s*/i, "")}
           </p>
           {nudge.body && (
             <p

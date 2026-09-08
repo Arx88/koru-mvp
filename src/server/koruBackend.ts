@@ -1779,14 +1779,134 @@ async function searchDuckDuckGoLite(query: string): Promise<AssistantSource[]> {
 }
 
 /**
- * 🔴 FIX CONNECTORS (2026-09-09): Tavily — buscador diseñado para agentes de IA.
- * OPCIONAL vía env `TAVILY_API_KEY` (Render → Environment → Add). Free tier:
- * 1.000 créditos/mes, signup solo con email (tavily.com). Cuando la key existe
- * es el conector PRIMARIO — las búsquedas dejan de depender del scraping de
- * buscadores públicos que bloquean IPs de datacenter (DDG "anomaly", Bing con
- * resultados envenenados, GDELT rate-limit compartido, Reddit 403). Sin key,
- * el comportamiento es exactamente el mismo de siempre (cadena keyless).
- * Falla silenciosamente (key inválida, quota agotada) → cae a la cadena local.
+ * 🔴 FIX CONNECTORS KEYLESS (2026-09-10, "sin depender de Tavily"):
+ * Los buscadores de scraping (DDG html/lite) bloquean la IP de datacenter de
+ * Render de forma intermitente. Estas 3 fuentes son RSS/JSON públicos que SÍ
+ * responden a IPs de datacenter sin key ni signup:
+ *   - Bing News RSS (format=rss): artículos reales, URL decodificable del
+ *     wrapper apiclick.aspx. Verificado: "airpods analisis" → análisis de
+ *     Xataka-style en español con mkt=es-ES.
+ *   - Google News RSS (news.google.com/rss/search): redirect 302 → 200 con
+ *     -L; artículos de WIRED/Applesfera/etc. Links de redirección válidos.
+ *   - HN Algolia (hn.algolia.com/api/v1/search): JSON de Hacker News —
+ *     ideal para reviews de tech y productos digitales.
+ */
+/** Unescape de entidades XML (&amp; &lt; &#243;...) para links/títulos RSS. */
+function xmlUnescape(text: string): string {
+  return text
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#(\d+);/g, (_, code) => {
+      try { return String.fromCodePoint(Number(code)); } catch { return ""; }
+    })
+    .replace(/&amp;/g, "&");
+}
+
+async function searchBingNewsRss(query: string): Promise<AssistantSource[]> {
+  const response = await fetchWithTimeout(
+    `https://www.bing.com/news/search?q=${encodeURIComponent(query)}&format=rss&setLang=es&mkt=es-ES`,
+    {
+      headers: {
+        "User-Agent": BROWSER_USER_AGENT,
+        Accept: "application/rss+xml, application/xml, text/xml",
+        "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
+      },
+      redirect: "follow",
+    },
+    10_000,
+  );
+  const xml = await response.text();
+  const sources: AssistantSource[] = [];
+  const itemRe = /<item>([\s\S]*?)<\/item>/gi;
+  let item: RegExpExecArray | null;
+  while ((item = itemRe.exec(xml)) && sources.length < 6) {
+    const block = item[1];
+    const title = htmlText(xmlUnescape(block.match(/<title>([\s\S]*?)<\/title>/i)?.[1] ?? ""));
+    const rawLink = xmlUnescape(block.match(/<link>([\s\S]*?)<\/link>/i)?.[1] ?? "").trim();
+    const desc = htmlText(xmlUnescape(block.match(/<description>([\s\S]*?)<\/description>/i)?.[1] ?? ""));
+    if (!title || !rawLink) continue;
+    // Bing envuelve las URLs en apiclick.aspx?...&url=<REAL_URL>&... — decodificar.
+    let url = rawLink;
+    try {
+      const parsed = new URL(rawLink);
+      if (/bing\.com$/i.test(parsed.hostname) && parsed.searchParams.get("url")) {
+        url = parsed.searchParams.get("url")!;
+      }
+    } catch { /* mantener rawLink */ }
+    if (!/^https?:\/\//i.test(url)) continue;
+    let domain = "";
+    try { domain = new URL(url).hostname; } catch { /* */ }
+    if (/bing\.com|bing\.net|microsoft\.com/i.test(domain)) continue;
+    const cleanTitle = title.replace(/\s*[-–|]\s*[^-–|]{2,25}$/, (m) => (domain && m.toLowerCase().includes(domain.split(".")[0]) ? "" : m)).trim() || title;
+    sources.push(sourceFromUrl(cleanTitle, url, desc.replace(/<[^>]+>/g, " ").slice(0, 260)));
+  }
+  return sources;
+}
+
+async function searchGoogleNewsRss(query: string): Promise<AssistantSource[]> {
+  const response = await fetchWithTimeout(
+    `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=es`,
+    {
+      headers: {
+        "User-Agent": BROWSER_USER_AGENT,
+        Accept: "application/rss+xml, application/xml, text/xml",
+        "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
+      },
+      redirect: "follow",
+    },
+    10_000,
+  );
+  const xml = await response.text();
+  const sources: AssistantSource[] = [];
+  const itemRe = /<item>([\s\S]*?)<\/item>/gi;
+  let item: RegExpExecArray | null;
+  while ((item = itemRe.exec(xml)) && sources.length < 6) {
+    const block = item[1];
+    const title = htmlText(xmlUnescape(block.match(/<title>([\s\S]*?)<\/title>/i)?.[1] ?? ""));
+    const rawLink = xmlUnescape(block.match(/<link>([\s\S]*?)<\/link>/i)?.[1] ?? "").trim();
+    const desc = htmlText(xmlUnescape(block.match(/<description>([\s\S]*?)<\/description>/i)?.[1] ?? ""));
+    const pubDate = block.match(/<pubDate>([\s\S]*?)<\/pubDate>/i)?.[1]?.trim() ?? "";
+    if (!title || !rawLink || !/^https?:\/\//i.test(rawLink)) continue;
+    // El título de GNews viene "Titular - Medio" — extraer el medio como dominio.
+    const dashIdx = title.lastIndexOf(" - ");
+    const publisher = dashIdx > 10 ? title.slice(dashIdx + 3).trim() : "";
+    const cleanTitle = dashIdx > 10 ? title.slice(0, dashIdx).trim() : title;
+    sources.push(sourceFromUrl(cleanTitle, rawLink, desc.slice(0, 260) || (publisher ? `${publisher} · ${pubDate}` : pubDate)));
+  }
+  return sources;
+}
+
+async function searchHnAlgolia(query: string): Promise<AssistantSource[]> {
+  const response = await fetchWithTimeout(
+    `https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(query)}&hitsPerPage=6`,
+    {
+      headers: {
+        "User-Agent": BROWSER_USER_AGENT,
+        Accept: "application/json",
+      },
+    },
+    8_000,
+  );
+  const data = await response.json().catch(() => ({})) as {
+    hits?: Array<{ title?: string; url?: string; objectID?: string; points?: number; num_comments?: number }>;
+  };
+  return (data.hits ?? [])
+    .filter((hit) => hit.title && hit.url && /^https?:\/\//i.test(hit.url))
+    .slice(0, 6)
+    .map((hit) => sourceFromUrl(
+      hit.title!,
+      hit.url!,
+      `${hit.points ?? 0} puntos · ${hit.num_comments ?? 0} comentarios en Hacker News`,
+    ));
+}
+
+/**
+ * 🔴 Tavily (opcional, ÚLTIMO recurso — NO dependencia): buscador para agentes
+ * de IA vía env `TAVILY_API_KEY`. La cadena keyless de arriba funciona SIN key;
+ * si el usuario alguna vez setea la key, rescata cuando TODO lo keyless falló.
+ * (2026-09-10: antes era conector PRIMARIO — ahora es el final de la cadena.)
  */
 async function searchTavily(query: string): Promise<AssistantSource[]> {
   const key = process.env.TAVILY_API_KEY;
@@ -1965,25 +2085,33 @@ export async function runSearch(
       : shopping
         ? `${query} precio opiniones entrega`
         : query;
-  // 🔴 Cadena de conectores (FIX 2026-09-09, de más a menos confiable):
-  //   1. Tavily (solo con TAVILY_API_KEY) — API real sin anti-bot
-  //   2. GDELT para news/world (índice noticioso, API pública)
-  //   3. DDG html → DDG lite (scraping, bloqueo intermitente por IP)
-  //   4. GDELT universal (query limpia) como último recurso keyless
+  // 🔴 Cadena de conectores KEYLESS (2026-09-10, "sin depender de Tavily"):
+  //   1. GDELT para news/world (índice noticioso, API pública)
+  //   2. DDG html → DDG lite (scraping, bloqueo intermitente por IP)
+  //   3. Google News RSS (público, sin key, funciona desde datacenter)
+  //   4. Bing News RSS (público, sin key, mkt=es-ES, URLs decodificables)
+  //   5. HN Algolia para research/shopping de tech (JSON público)
+  //   6. GDELT universal (query limpia) como último recurso keyless
+  //   7. Tavily SOLO con TAVILY_API_KEY y si TODO lo anterior falló — nunca
+  //      una dependencia: la cadena es 100% funcional sin key.
   const gdelt = mode === "news" || mode === "world" ? await searchGdelt(expanded).catch(() => []) : [];
-  const tavily = gdelt.length ? [] : await searchTavily(query).catch(() => []);
-  const duck = gdelt.length || tavily.length ? [] : await searchDuckDuckGo(expanded).catch(() => []);
-  let sources = [...gdelt, ...tavily, ...duck].slice(0, 6);
-  // 🔴 FIX CONNECTORS (2026-09-09): último recurso para research/shopping
-  // cuando DDG está bloqueado desde la IP del server (Render) incluso con UA
-  // de navegador. GDELT es una API pública sin scraping (sin anti-bot) y ya
-  // funciona en producción para los modos news/world — acá la extendemos como
-  // fallback universal con la query LIMPIA (sin sufijos "precio opiniones"
-  // que contaminarían el índice noticioso de GDELT).
-  if (sources.length === 0 && mode !== "news" && mode !== "world") {
-    const gdeltFallback = await searchGdelt(query).catch(() => []);
-    sources = gdeltFallback.slice(0, 6);
+  let sources = gdelt.length ? gdelt : [];
+  if (sources.length === 0) sources = await searchDuckDuckGo(expanded).catch(() => []);
+  if (sources.length === 0) sources = await searchGoogleNewsRss(query).catch(() => []);
+  if (sources.length === 0) sources = await searchBingNewsRss(query).catch(() => []);
+  if (sources.length === 0 && (mode === "research" || shopping)) {
+    sources = await searchHnAlgolia(query).catch(() => []);
   }
+  // 🔴 FIX CONNECTORS (2026-09-09): GDELT universal con la query LIMPIA (sin
+  // sufijos "precio opiniones" que contaminarían el índice noticioso).
+  if (sources.length === 0 && mode !== "news" && mode !== "world") {
+    sources = await searchGdelt(query).catch(() => []);
+  }
+  // Tavily: ÚLTIMO recurso y solo si hay key (no es dependencia).
+  if (sources.length === 0) {
+    sources = await searchTavily(query).catch(() => []);
+  }
+  sources = sources.slice(0, 6);
   // 🔴 V5: ELIMINADO el score fabricado `Math.max(55, 88 - index * 8)`.
   // Esa fórmula producía la hallucinación de "comparativa": los items
   // aparecían con barras de score que NO venían de ningún análisis real,
@@ -3374,6 +3502,57 @@ export function explicitProductReviewQuery(input: string): string | null {
   return product;
 }
 
+/**
+ * 🔴 FIX CLIMA EN MULTI-INTENT (bug en vivo 2026-09-10): "¿Qué tengo hoy?
+ * También dime cómo está el clima" — el LLM respondía la agenda desde contexto
+ * y NUNCA llamaba la tool de clima. El usuario pedía clima explícito y no
+ * llegaba. Detección determinista de intención de clima en el input.
+ */
+export function mentionsWeatherIntent(input: string): boolean {
+  return /\b(?:clima|temperatura|llover|llueve|lluvia|va a llover|hace?\s+calor|hace?\s+fr[ií]o|paraguas|amanec(?:e|er)|atardec(?:e|er)|puesta\s+de\s+sol|va\s+a\s+est[ae]r?\s+el\s+d[ií]a|qu[eé]\s+tiempo\s+(?:hace|va\s+a\s+hacer)|c[oó]mo\s+est[aá]\s+(?:el\s+)?tiempo)\b/i.test(input);
+}
+
+/**
+ * Resuelve la ciudad del usuario para inyecciones de weather: cache real →
+ * perfil (homeCity/location) → moneda (EUR→Madrid, ARS→Buenos Aires).
+ * NUNCA inventa una ciudad al azar. Devuelve null si no hay señal.
+ */
+export function resolveWeatherCity(state: unknown): string | null {
+  const s = (state ?? {}) as Record<string, any>;
+  const cacheCity = typeof s.weatherCache?.city === "string" ? s.weatherCache.city.trim() : "";
+  if (cacheCity) return cacheCity;
+  const profile = s.userProfile ?? {};
+  const profileCity = [profile.homeCity, profile.location].find((c: unknown) => typeof c === "string" && String(c).trim());
+  if (profileCity) return String(profileCity).trim();
+  const currency = typeof profile.currency === "string" ? profile.currency : "";
+  if (currency === "EUR") return "Madrid";
+  if (currency === "ARS") return "Buenos Aires";
+  return null;
+}
+
+/**
+ * 🔴 Inyección determinista de weather post-LLM: si el input pide clima y el
+ * LLM NO emitió la tool (respondió solo la otra intención desde contexto),
+ * inyectarla nosotros con la ciudad resuelta. Sin ciudad conocida NO se
+ * inyecta — el LLM pide la ciudad (comportamiento correcto ya verificado).
+ * Función pura para testeo: devuelve los toolCalls nuevos a pushear.
+ */
+export function weatherToolCallsToInject(
+  input: string,
+  existingToolNames: string[],
+  state: unknown,
+): Array<{ id: string; type: "function"; function: { name: string; arguments: string } }> {
+  if (!mentionsWeatherIntent(input)) return [];
+  if (existingToolNames.includes("weather") || existingToolNames.includes("weather_forecast")) return [];
+  const city = resolveWeatherCity(state);
+  if (!city) return [];
+  return [{
+    id: `weather_intent_${Date.now()}`,
+    type: "function",
+    function: { name: "weather", arguments: JSON.stringify({ city }) },
+  }];
+}
+
 // ═════════════════ DEEP RESEARCH — el entregable estrella ═════════════════
 // Flujo completo del "informe que excede lo esperado": el usuario pide un
 // informe/investigación → sub-búsquedas → síntesis → UN bloque "deliverable"
@@ -4532,7 +4711,8 @@ export async function runKoruBackendTurn(
             return { ...response, provider, model, fallbackReason: "router-" + route.category + "-invalid-json" };
           }
           const rawRoute = {
-            reply: cleanText(parsedRoute.reply, secondContent),
+            // 🔴 FIX JSON crudo (2026-09-10): extraer reply de un content JSON-ish
+            reply: cleanText(parsedRoute.reply) || cleanReplyText(secondContent),
             understanding: parsedRoute.understanding || {},
             uiBlocks: asArray(parsedRoute.uiBlocks || []),
             suggestedActions: asArray(parsedRoute.suggestedActions || []),
@@ -4635,6 +4815,27 @@ export async function runKoruBackendTurn(
     }
   }
 
+  // 🔴 FIX CLIMA EN MULTI-INTENT (2026-09-10): "¿Qué tengo hoy? También dime
+  // cómo está el clima" — el LLM respondía la agenda desde contexto y JAMÁS
+  // llamaba weather (queja del usuario en vivo). Inyección determinista:
+  // si el input pide clima y no hay tool de clima emitida, la agregamos con
+  // la ciudad REAL del usuario (cache → perfil → moneda). Cubre también el
+  // caso "intención sin acción" (cero tool calls).
+  {
+    const weatherInject = weatherToolCallsToInject(
+      inputTrimmed,
+      toolCalls.map((t) => t.function?.name ?? ""),
+      request.state,
+    );
+    if (weatherInject.length > 0) {
+      toolCalls.push(...weatherInject);
+      logger.info("runKoruBackendTurn", "Weather intent INJECTED (LLM missed it)", {
+        city: JSON.parse(weatherInject[0].function.arguments).city,
+        totalTools: toolCalls.length,
+      });
+    }
+  }
+
   // V3 FIX: Multi-intent determinista — si el input contiene conectores y el LLM
   // solo emitió 1 tool_call, agregar un segundo tool_call para el segundo intent.
   if (toolCalls.length === 1 && /\b(y|además|también|por otro lado)\b/i.test(request.input)) {
@@ -4653,15 +4854,20 @@ export async function runKoruBackendTurn(
     }
     // Si llamó restaurant y el input menciona "clima/tiempo"
     else if (existingTool === "restaurant_deep_search" && /clima|tiempo|lluvia|sol/i.test(request.input)) {
-      toolCalls.push({
-        id: `multi_intent_${Date.now()}`,
-        type: "function",
-        function: {
-          name: "weather",
-          arguments: JSON.stringify({ city: "Buenos Aires" }),
-        },
-      });
-      logger.info("runKoruBackendTurn", "Multi-intent detected: added weather", { originalTool: existingTool, totalTools: toolCalls.length });
+      // 🔴 FIX ciudad mock: antes estaba hardcodeada "Buenos Aires" — un usuario
+      // de Madrid veía el clima de una ciudad que no es la suya. Ciudad REAL.
+      const city = resolveWeatherCity(request.state);
+      if (city) {
+        toolCalls.push({
+          id: `multi_intent_${Date.now()}`,
+          type: "function",
+          function: {
+            name: "weather",
+            arguments: JSON.stringify({ city }),
+          },
+        });
+        logger.info("runKoruBackendTurn", "Multi-intent detected: added weather", { city, originalTool: existingTool, totalTools: toolCalls.length });
+      }
     }
   }
 
@@ -4952,7 +5158,10 @@ export async function runKoruBackendTurn(
       return { ...response, provider, model, fallbackReason: (fallbackReason ? fallbackReason + " + " : "") + "simulated-tool-invalid-json" };
     }
     const rawSim = {
-      reply: cleanText(parsedSim.reply, secondContent),
+      // 🔴 FIX JSON crudo (2026-09-10): si el parsed no tiene reply válido y el
+      // contenido crudo ERA un JSON con reply, extraerlo en vez de mostrar la
+      // tubería (`{"reply":...}`) al usuario.
+      reply: cleanText(parsedSim.reply) || cleanReplyText(secondContent),
       understanding: parsedSim.understanding || {},
       uiBlocks: asArray(parsedSim.uiBlocks || []),
       suggestedActions: asArray(parsedSim.suggestedActions || []),

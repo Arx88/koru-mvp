@@ -88,11 +88,11 @@ import { inferActivity, type AgentActivity } from "../domain/agentKernel";
 import { shouldAutoRunAction } from "../domain/toolRegistry";
 import { checkDueReminders, syncScheduledReminders, scheduleReminderNotification, schedulePreciseTimeout, requestNotificationPermission } from "./NotificationManager";
 import { speak, isVoiceEnabled, setVoiceEnabled, stopSpeaking } from "../domain/koruVoice";
-import { actionToTurnItem, applyBackendTurnToState, type KoruTurnItem, type KoruChatTurn } from "../domain/turn";
+import { actionToTurnItem, applyBackendTurnToState, lastKoruTurnIsStreaming, sanitizeReplyText, type KoruTurnItem, type KoruChatTurn } from "../domain/turn";
 // Fase 2.6: audit extraído a módulo propio
 import { auditEnabled, auditSessionId, writeAuditEvent, auditStateSnapshot, auditTurnItems, auditStateDelta } from "./audit";
 // Fase 2.6: adapters extraídos a módulo propio
-import { stageForEnergy as stageForEnergyImpl, domainStageToNew, domainStatusToMemoryStatus, domainKindToCategory, greetingTurn, readChatTurns, saveChatTurns, patchUiBlockWithWebResult, actionConfirmationText, CHAT_STORAGE_KEY } from "./adapters";
+import { stageForEnergy as stageForEnergyImpl, domainStageToNew, domainStatusToMemoryStatus, domainKindToCategory, greetingTurn, readChatTurns, saveChatTurns, patchUiBlockWithWebResult, actionConfirmationText, sanitizeBriefGreeting, CHAT_STORAGE_KEY } from "./adapters";
 // 🔴 Offline cache — IndexedDB-backed 24h rolling window + offline message queue
 import { cacheTurn, isOnline, onOnlineStatusChange, enqueueOfflineMessage, readOfflineQueue, dequeueOfflineMessage, type CachedTurn } from "../domain/offlineCache";
 // 🔴 v2: Analytics — tracking de Create adoption + reopen rate
@@ -577,9 +577,10 @@ export function KoruProvider({ children }: { children: ReactNode }) {
                     variant: "highlight" as const,
                   });
                 }
+                const cleanGreeting = sanitizeBriefGreeting(String(brief.greeting ?? ""), persisted.userName);
                 const briefBlock: UiBlock = {
                   type: "morning_brief",
-                  greeting: String(brief.greeting ?? ""),
+                  greeting: cleanGreeting,
                   items: uiItems,
                 };
                 // 🔴 Backwards-compat: MorningBriefCard espera un shape legacy
@@ -587,7 +588,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
                 // los items del nuevo brief a los campos legacy para que la
                 // card vieja siga renderizando algo útil.
                 const legacyBrief = {
-                  greeting: String(brief.greeting ?? ""),
+                  greeting: cleanGreeting,
                   weather: (brief.items ?? []).find((it: any) => /clima|weather/i.test(String(it.label ?? "")))?.value ?? "",
                   tasks: (brief.items ?? [])
                     .filter((it: any) => /pendiente|deadline|tarea|evento|commit/i.test(String(it.label ?? "")))
@@ -1336,7 +1337,8 @@ export function KoruProvider({ children }: { children: ReactNode }) {
           const koruTurn: KoruChatTurn = {
             id: koruTurnId,
             role: "koru",
-            text: chunk.reply,
+            // 🔴 FIX JSON crudo: red de seguridad del cliente (bug en vivo 2026-09-10)
+            text: sanitizeReplyText(chunk.reply ?? ""),
             createdAt: new Date().toISOString(),
             items: blocksToItems(chunk.uiBlocks),
             status: "working" as const,
@@ -1378,7 +1380,8 @@ export function KoruProvider({ children }: { children: ReactNode }) {
               mergedItems.forEach((it) => { if (it.uiBlock?.type) streamedItemsByType.set(it.uiBlock.type, it); });
               return {
                 ...turn,
-                text: chunk.reply,
+                // 🔴 FIX JSON crudo: red de seguridad del cliente (bug en vivo 2026-09-10)
+                text: sanitizeReplyText(chunk.reply ?? ""),
                 items: mergedItems,
                 mascotState: chunk.mascotState ?? turn.mascotState,
                 status: isDone ? ("done" as const) : ("working" as const),
@@ -1469,7 +1472,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
         commitChatTurns((prev) =>
           prev.map((turn) =>
             turn.id === koruTurnId
-              ? { ...turn, text: agentResult.reply, items: stableItems, status: "done" as const, mascotState: agentResult.mascotState ?? "idle" }
+              ? { ...turn, text: sanitizeReplyText(agentResult.reply ?? ""), items: stableItems, status: "done" as const, mascotState: agentResult.mascotState ?? "idle" }
               : turn,
           ),
         );
