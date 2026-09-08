@@ -48,6 +48,16 @@ import { SavedRecordInterior } from "./panels/SavedRecordInterior";
 import { TravelInterior } from "./panels/TravelInterior";
 import { InfoInterior } from "./panels/InfoInterior";
 import { DataInterior } from "./panels/DataInterior";
+import { ReminderInterior } from "./panels/ReminderInterior";
+import { ShopInterior } from "./panels/ShopInterior";
+import { ReviewQuoteInterior } from "./panels/ReviewQuoteInterior";
+import { TennisInterior } from "./panels/TennisInterior";
+import { WebNavInterior } from "./panels/WebNavInterior";
+import { SignalInterior } from "./panels/SignalInterior";
+import { GenerationInterior } from "./panels/GenerationInterior";
+import { ClarifyInterior } from "./panels/ClarifyInterior";
+import { ActivityInterior } from "./panels/ActivityInterior";
+import { UniversalInterior } from "./panels/UniversalInterior";
 
 export interface LecturaInteriorProps<T extends UiBlock = UiBlock> {
   block: T;
@@ -101,6 +111,25 @@ const REGISTRY: Partial<Record<UiBlock["type"], AnyInterior>> = {
   travel_plan: TravelInterior as AnyInterior,
   deliverable: InfoInterior as AnyInterior,
   data_card: DataInterior as AnyInterior,
+  // 🔴 Cierre de la deuda de estética: los 15 tipos que caían al render
+  // genérico Kimi (oscuro, viejo) ahora tienen interior Lectura Visual.
+  // 9 a medida + UniversalInterior de respaldo para los de baja frecuencia
+  // (y cualquier tipo futuro que se registre acá). CERO "VER MÁS" viejo.
+  reminder: ReminderInterior as AnyInterior,
+  shopping_list: ShopInterior as AnyInterior,
+  review_quote: ReviewQuoteInterior as AnyInterior,
+  tennis_match: TennisInterior as AnyInterior,
+  web_nav: WebNavInterior as AnyInterior,
+  proactive_signal: SignalInterior as AnyInterior,
+  generation: GenerationInterior as AnyInterior,
+  clarifying_question: ClarifyInterior as AnyInterior,
+  activity_group: ActivityInterior as AnyInterior,
+  decision_support: UniversalInterior as AnyInterior,
+  travel_planner: UniversalInterior as AnyInterior,
+  wellbeing: UniversalInterior as AnyInterior,
+  activity_tracker: UniversalInterior as AnyInterior,
+  urgent_now: UniversalInterior as AnyInterior,
+  exercise_plan: UniversalInterior as AnyInterior,
 };
 
 export function lecturaInteriorFor(block: UiBlock): AnyInterior | null {

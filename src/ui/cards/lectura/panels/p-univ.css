@@ -1,0 +1,69 @@
+/* UniversalInterior (#p-univ) — respaldo Lectura Visual para tipos sin
+   interior a medida: texto en banda, tiles, filas, chips, timeline, fuentes. */
+.lcr #p-univ .un-head{margin:2px 0 14px}
+.lcr #p-univ .un-head h1{font:800 25px/1.14 var(--disp);letter-spacing:-.02em}
+.lcr #p-univ .un-head h1 small{display:block;font:700 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--violet-ink);margin-bottom:5px}
+.lcr #p-univ .un-head p{font:600 12px/1.55 var(--sans);color:var(--ink-dim);margin-top:6px}
+.lcr #p-univ .un-sub{display:flex;align-items:center;gap:7px;font:700 10.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;margin-bottom:9px}
+.lcr #p-univ .un-sub .dot{width:7px;height:7px;border-radius:50%}
+.lcr #p-univ .un-card{background:#fff;border:1px solid var(--linec);border-radius:18px;box-shadow:0 10px 26px var(--shadowc);padding:13px 15px;margin-top:12px}
+.lcr #p-univ .un-text{font:600 12.5px/1.65 var(--sans);color:var(--ink)}
+.lcr #p-univ .un-block{margin-top:12px}
+.lcr #p-univ .un-tiles{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.lcr #p-univ .un-tile{background:#fff;border:1px solid var(--linec);border-radius:16px;padding:11px 12px;box-shadow:0 8px 20px var(--shadowc);min-width:0}
+.lcr #p-univ .un-tile .lbl{font:700 10px var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-dim);display:block}
+.lcr #p-univ .un-tile .val{font:800 17px var(--disp);display:block;margin-top:3px;letter-spacing:-.01em}
+.lcr #p-univ .un-rows{display:flex;flex-direction:column;gap:8px}
+.lcr #p-univ .un-row{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;background:#fff;border:1px solid var(--linec);border-radius:15px;padding:11px 14px;box-shadow:0 8px 20px var(--shadowc);font-family:var(--sans);text-align:left;cursor:default}
+.lcr #p-univ .un-row.tap,.lcr #p-univ .un-step.tap{cursor:pointer}
+.lcr #p-univ .un-row.tap:active,.lcr #p-univ .un-step.tap:active{background:#f8f5fe;transform:scale(.99)}
+.lcr #p-univ .un-step.tap{width:100%;font-family:var(--sans);text-align:left;background:none;border:0;padding:0 0 14px;position:relative;display:flex;gap:11px}
+.lcr #p-univ .un-row.urgent{background:#fff7f8;border-color:#f9d3da}
+.lcr #p-univ .un-row:active{background:#f8f5fe}
+.lcr #p-univ .un-row .rw-t{min-width:0}
+.lcr #p-univ .un-row .rw-t b{font:700 12.5px/1.3 var(--sans);color:var(--ink);display:block}
+.lcr #p-univ .un-row .rw-t span{font:600 10.5px/1.45 var(--sans);color:var(--ink-soft);display:block;margin-top:2px}
+.lcr #p-univ .un-row .rw-side{display:flex;align-items:center;gap:7px;flex:none}
+.lcr #p-univ .un-row .rw-side em{font:700 10.5px var(--sans);color:var(--ink-faint);font-style:normal}
+.lcr #p-univ .un-badge{display:inline-flex;align-items:center;gap:4px;font:800 9.5px var(--sans);letter-spacing:.05em;border-radius:8px;padding:3px 8px}
+.lcr #p-univ .un-badge .lucide{font-size:11px}
+.lcr #p-univ .un-badge.tone-done{color:var(--mint-ink);background:var(--mint-soft)}
+.lcr #p-univ .un-badge.tone-current{color:var(--violet-ink);background:var(--violet-soft)}
+.lcr #p-univ .un-badge.tone-pending{color:var(--ink-dim);background:var(--paper2)}
+.lcr #p-univ .un-badge.tone-urgent{color:var(--rose-ink);background:#fdeef0}
+.lcr #p-univ .un-chips{display:flex;flex-wrap:wrap;gap:7px}
+.lcr #p-univ .un-chips.wide{flex-direction:column;gap:8px}
+.lcr #p-univ .un-chips.wide .un-chip{flex-direction:row;align-items:center;gap:7px;width:100%;text-align:left;padding:10px 13px;border-radius:14px}
+.lcr #p-univ .un-chips.wide .un-chip::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--violet)}
+.lcr #p-univ .un-chips.wide .un-chip b{font:700 11.5px/1.5 var(--sans);flex:1}
+.lcr #p-univ .un-chip{display:inline-flex;flex-direction:column;align-items:center;gap:1px;border:1px solid var(--linec);background:#fff;border-radius:12px;padding:7px 12px;min-width:44px}
+.lcr #p-univ .un-chip b{font:800 14px var(--disp);color:var(--ink)}
+.lcr #p-univ .un-chip em{font:700 9px var(--sans);color:var(--ink-faint);font-style:normal;letter-spacing:.05em}
+.lcr #p-univ .un-scroll{display:flex;flex-direction:column;gap:9px}
+.lcr #p-univ .un-scard{display:flex;gap:11px;background:#fff;border:1px solid var(--linec);border-radius:16px;padding:11px;box-shadow:0 8px 20px var(--shadowc)}
+.lcr #p-univ .un-scard img{width:64px;height:64px;border-radius:12px;object-fit:cover;flex:none}
+.lcr #p-univ .un-scard .usc-t{min-width:0}
+.lcr #p-univ .un-scard .usc-t b{font:800 12.5px/1.3 var(--sans);color:var(--ink);display:block}
+.lcr #p-univ .un-scard .usc-t span{font:600 10.5px/1.45 var(--sans);color:var(--ink-soft);display:block;margin-top:2px}
+.lcr #p-univ .un-scard .usc-m{font:700 10px var(--sans);color:var(--violet-ink);font-style:normal;display:block;margin-top:4px}
+.lcr #p-univ .un-timeline{display:flex;flex-direction:column;position:relative}
+.lcr #p-univ .un-step{display:flex;gap:11px;position:relative;padding-bottom:14px}
+.lcr #p-univ .un-step:last-child{padding-bottom:0}
+.lcr #p-univ .un-step::before{content:"";position:absolute;left:13px;top:28px;bottom:2px;width:2px;background:var(--linec)}
+.lcr #p-univ .un-step:last-child::before{display:none}
+.lcr #p-univ .un-step .node{flex:none;width:27px;height:27px;border-radius:10px;background:#fff;border:1.5px solid var(--linec);color:var(--ink-dim);font:800 11.5px var(--sans);display:flex;align-items:center;justify-content:center;z-index:1}
+.lcr #p-univ .un-step.status-done .node{background:var(--mint-soft);border-color:#c9ecdc;color:var(--mint-ink)}
+.lcr #p-univ .un-step.status-current .node{background:var(--violet-soft);border-color:#e0d5f8;color:var(--violet-ink);box-shadow:0 0 0 4px rgba(131,99,249,.12)}
+.lcr #p-univ .un-step .node .lucide{font-size:13px}
+.lcr #p-univ .un-step .stm-t{padding-top:3px;min-width:0}
+.lcr #p-univ .un-step .stm-t b{font:700 12.5px/1.3 var(--sans);color:var(--ink);display:block}
+.lcr #p-univ .un-step .stm-t span{font:600 10.5px/1.45 var(--sans);color:var(--ink-soft);display:block;margin-top:2px}
+.lcr #p-univ .un-step.status-done .stm-t b{color:var(--ink-faint)}
+.lcr #p-univ .un-sources{display:flex;flex-wrap:wrap}
+.lcr #p-univ .un-src{display:inline-flex;align-items:center;gap:6px;font:800 10.5px var(--sans);color:var(--violet-ink);text-decoration:none;background:#fff;border:1px solid var(--linec);border-radius:10px;padding:5px 10px;margin:0 6px 6px 0}
+.lcr #p-univ .un-src .lucide{font-size:12px}
+.lcr #p-univ .un-src:active{transform:scale(.96)}
+.lcr #p-univ .un-src.is-plain{color:var(--ink-faint)}
+.lcr #p-univ .un-empty{display:flex;flex-direction:column;align-items:center;gap:8px;background:#fff;border:1px solid var(--linec);border-radius:18px;padding:18px 14px;margin-top:12px}
+.lcr #p-univ .un-empty .lucide{font-size:20px;color:var(--ink-faint)}
+.lcr #p-univ .un-empty p{font:600 11.5px/1.5 var(--sans);color:var(--ink-faint);text-align:center}

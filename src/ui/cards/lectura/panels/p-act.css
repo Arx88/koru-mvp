@@ -1,0 +1,34 @@
+/* ActivityInterior (#p-act) — estética Lectura Visual: anillo de energía,
+   secciones por tono, tiles label→value y filas con meta. */
+.lcr #p-act .ac-head{margin:2px 0 14px}
+.lcr #p-act .ac-head h1{font:800 25px/1.14 var(--disp);letter-spacing:-.02em}
+.lcr #p-act .ac-head h1 small{display:block;font:700 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--violet-ink);margin-bottom:5px}
+.lcr #p-act .ac-head p{font:600 12px/1.55 var(--sans);color:var(--ink-dim);margin-top:6px}
+.lcr #p-act .ac-energy{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--linec);border-radius:20px;box-shadow:0 12px 30px var(--shadowc);padding:14px 16px}
+.lcr #p-act .ac-ring{position:relative;width:92px;height:92px;flex:none}
+.lcr #p-act .ac-ring svg{width:100%;height:100%;display:block}
+.lcr #p-act .ac-ring-val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.lcr #p-act .ac-ring-val b{font:800 20px var(--disp);color:var(--ink)}
+.lcr #p-act .ac-ring-val span{font:700 8.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);margin-top:3px}
+.lcr #p-act .ac-energy-txt .fk{display:flex;align-items:center;gap:6px;font:700 10.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim)}
+.lcr #p-act .ac-energy-txt .fk .lucide{font-size:13px;color:var(--honey-ink)}
+.lcr #p-act .ac-energy-txt .fnm{font:800 16px var(--disp);color:var(--ink);margin-top:5px}
+.lcr #p-act .ac-sec{margin-top:12px}
+.lcr #p-act .ac-sec-title{display:flex;align-items:center;gap:7px;font:700 11px var(--sans);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+.lcr #p-act .ac-sec-title .dot{width:7px;height:7px;border-radius:50%}
+.lcr #p-act .ac-tiles{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.lcr #p-act .ac-tile{background:#fff;border:1px solid var(--linec);border-radius:16px;padding:11px 12px;box-shadow:0 8px 20px var(--shadowc);min-width:0}
+.lcr #p-act .ac-tile.urgent{background:#fff7f8}
+.lcr #p-act .ac-tile .lbl{font:700 10px var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-dim);display:block}
+.lcr #p-act .ac-tile .val{font:800 17px var(--disp);color:var(--ink);display:block;margin-top:3px}
+.lcr #p-act .ac-tile em{font:600 10px/1.4 var(--sans);color:var(--ink-faint);font-style:normal;display:block;margin-top:3px}
+.lcr #p-act .ac-rows{display:flex;flex-direction:column;gap:8px}
+.lcr #p-act .ac-row{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border:1px solid var(--linec);border-radius:15px;padding:11px 14px;box-shadow:0 8px 20px var(--shadowc)}
+.lcr #p-act .ac-row .rw-t{min-width:0}
+.lcr #p-act .ac-row .rw-t b{font:700 12.5px/1.3 var(--sans);color:var(--ink);display:block}
+.lcr #p-act .ac-row .rw-t span{font:600 10.5px var(--sans);color:var(--ink-faint)}
+.lcr #p-act .ac-row .rw-go{display:inline-flex;align-items:center;gap:3px;font:800 10.5px var(--sans);color:var(--violet-ink);flex:none}
+.lcr #p-act .ac-row .rw-go .lucide{font-size:13px}
+.lcr #p-act .ac-empty{display:flex;flex-direction:column;align-items:center;gap:8px;background:#fff;border:1px solid var(--linec);border-radius:18px;padding:18px 14px}
+.lcr #p-act .ac-empty .lucide{font-size:20px;color:var(--ink-faint)}
+.lcr #p-act .ac-empty p{font:600 11.5px/1.5 var(--sans);color:var(--ink-faint);text-align:center}

@@ -1,0 +1,29 @@
+/* SignalInterior (#p-signal) — estética Lectura Visual: aviso con banda de
+   severidad, cuerpo claro, cifras en filas, pregunta de Koru y fuentes. */
+.lcr #p-signal .sg-hero{position:relative;background:#fff;border:1px solid var(--linec);border-radius:22px;box-shadow:0 12px 30px var(--shadowc);padding:16px 15px 14px;display:flex;gap:12px;align-items:flex-start;overflow:hidden}
+.lcr #p-signal .sg-band{position:absolute;left:0;top:0;bottom:0;width:5px}
+.lcr #p-signal .sg-icon{flex:none;width:44px;height:44px;border-radius:15px;background:var(--paper2);display:flex;align-items:center;justify-content:center;color:var(--ink-soft)}
+.lcr #p-signal .sg-icon .lucide{font-size:21px}
+.lcr #p-signal .sg-meta{min-width:0;flex:1}
+.lcr #p-signal .sg-cat{font:800 10px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-dim)}
+.lcr #p-signal .sg-meta h1{font:800 20px/1.2 var(--disp);letter-spacing:-.015em;color:var(--ink);margin:4px 0 0}
+.lcr #p-signal .sg-time{display:inline-flex;align-items:center;gap:5px;font:700 10.5px var(--sans);color:var(--ink-faint);margin-top:6px}
+.lcr #p-signal .sg-time .lucide{font-size:12px}
+.lcr #p-signal .sg-body{margin-top:12px;background:var(--paper2);border:1px solid var(--linec);border-radius:16px;padding:13px 15px}
+.lcr #p-signal .sg-body p{font:600 12.5px/1.65 var(--sans);color:var(--ink)}
+.lcr #p-signal .sg-sub{font:700 10.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:8px}
+.lcr #p-signal .sg-facts{margin-top:12px;background:#fff;border:1px solid var(--linec);border-radius:18px;box-shadow:0 10px 26px var(--shadowc);padding:12px 15px}
+.lcr #p-signal .sg-row{display:flex;align-items:baseline;gap:10px;padding:7px 0;grid-template-columns:auto 1fr}
+.lcr #p-signal .sg-row+.sg-row{border-top:1px solid #f2eefb}
+.lcr #p-signal .sg-row span{font:700 11px var(--sans);letter-spacing:.05em;text-transform:uppercase;color:var(--ink-dim)}
+.lcr #p-signal .sg-row b{font:800 16px var(--disp);color:var(--ink);margin-left:auto}
+.lcr #p-signal .sg-row em{flex-basis:100%;font:600 10.5px var(--sans);color:var(--ink-faint);font-style:normal;margin-top:-3px}
+.lcr #p-signal .sg-question{display:flex;gap:10px;align-items:flex-start;background:var(--violet-soft);border:1px solid #e3d9f7;border-radius:18px;padding:12px 14px;margin-top:12px}
+.lcr #p-signal .sg-question>.lucide{flex:none;font-size:17px;color:var(--violet-ink);margin-top:2px}
+.lcr #p-signal .sg-question b{display:block;font:800 11px var(--sans);color:var(--violet-ink);letter-spacing:.04em}
+.lcr #p-signal .sg-question span{font:600 12px/1.5 var(--sans);color:var(--ink-soft)}
+.lcr #p-signal .sg-sources{margin-top:12px}
+.lcr #p-signal .sg-src{display:inline-flex;align-items:center;gap:6px;font:800 10.5px var(--sans);color:var(--violet-ink);text-decoration:none;background:#fff;border:1px solid var(--linec);border-radius:10px;padding:5px 10px;margin:0 6px 6px 0}
+.lcr #p-signal .sg-src .lucide{font-size:12px}
+.lcr #p-signal .sg-src:active{transform:scale(.96)}
+.lcr #p-signal .sg-src.is-plain{color:var(--ink-faint)}

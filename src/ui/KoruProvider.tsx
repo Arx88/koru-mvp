@@ -2414,6 +2414,20 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("koru-card-action", onCardAction as EventListener);
   }, []);
 
+  // 🔴 Puente koru:chat-send — los interiores Lectura (p.ej. las opciones de
+  // una clarifying_question) envían la respuesta del usuario al chat REAL:
+  // pasa por sendMessage → pipeline completo (sin atajos ni simulación).
+  useEffect(() => {
+    const onChatSend = (e: Event) => {
+      const text = (e as CustomEvent).detail?.text;
+      if (typeof text === "string" && text.trim()) {
+        void sendMessageRef.current?.(text.trim());
+      }
+    };
+    window.addEventListener("koru:chat-send", onChatSend as EventListener);
+    return () => window.removeEventListener("koru:chat-send", onChatSend as EventListener);
+  }, []);
+
   return (
     <>
       <KoruContext.Provider value={value}>{children}</KoruContext.Provider>

@@ -1,0 +1,30 @@
+/* WebNavInterior (#p-nav) — estética Lectura Visual: síntesis en banda,
+   hallazgos numerados, fichas de fuente linkeables con dominio y snippet. */
+.lcr #p-nav .nav-head{margin:2px 0 14px}
+.lcr #p-nav .nav-head h1{font:800 24px/1.14 var(--disp);letter-spacing:-.02em}
+.lcr #p-nav .nav-head h1 small{display:block;font:700 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--sky-ink);margin-bottom:5px}
+.lcr #p-nav .nav-query{display:flex;align-items:center;gap:6px;font:600 12px var(--sans);color:var(--ink-dim);margin-top:6px}
+.lcr #p-nav .nav-query .lucide{font-size:13px;color:var(--sky-ink)}
+.lcr #p-nav .nav-synth{display:flex;gap:10px;align-items:flex-start;background:linear-gradient(165deg,#eef3ff,#fff 70%);border:1px solid #dde7fc;border-radius:18px;padding:13px 14px;box-shadow:0 10px 26px var(--shadowc)}
+.lcr #p-nav .nav-synth>.lucide{flex:none;font-size:17px;color:var(--sky-ink);margin-top:1px}
+.lcr #p-nav .nav-synth p{font:600 12.5px/1.6 var(--sans);color:var(--ink)}
+.lcr #p-nav .nav-sub{display:flex;align-items:center;gap:7px;font:700 10.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:9px}
+.lcr #p-nav .nav-sub .lucide{font-size:13px;color:var(--sky-ink)}
+.lcr #p-nav .nav-findings{background:#fff;border:1px solid var(--linec);border-radius:18px;box-shadow:0 10px 26px var(--shadowc);padding:12px 14px;margin-top:12px}
+.lcr #p-nav .nav-find{display:flex;gap:10px;align-items:flex-start;padding:6px 0}
+.lcr #p-nav .nav-find+.nav-find{border-top:1px solid #f2eefb}
+.lcr #p-nav .nav-find .idx{flex:none;width:20px;height:20px;border-radius:7px;background:var(--sky-soft);color:var(--sky-ink);font:800 10.5px var(--sans);display:flex;align-items:center;justify-content:center;margin-top:1px}
+.lcr #p-nav .nav-find p{font:600 12px/1.55 var(--sans);color:var(--ink-soft)}
+.lcr #p-nav .nav-results{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.lcr #p-nav .nav-card{display:block;background:#fff;border:1px solid var(--linec);border-radius:18px;box-shadow:0 10px 26px var(--shadowc);padding:13px 15px 11px;text-decoration:none;position:relative}
+.lcr #p-nav .nav-card:active{transform:scale(.98)}
+.lcr #p-nav .nav-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px}
+.lcr #p-nav .nav-card .dom{font:800 10px var(--sans);letter-spacing:.05em;color:var(--sky-ink);background:var(--sky-soft);border:1px solid #ccdcff;border-radius:8px;padding:3px 8px;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lcr #p-nav .nav-card .rt{font:700 10px var(--sans);color:var(--ink-faint)}
+.lcr #p-nav .nav-card b{font:800 13.5px/1.35 var(--sans);color:var(--ink);display:block}
+.lcr #p-nav .nav-card p{font:600 11px/1.5 var(--sans);color:var(--ink-soft);margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.lcr #p-nav .nav-card .open{display:inline-flex;align-items:center;gap:5px;margin-top:8px;font:800 10.5px var(--sans);color:var(--violet-ink)}
+.lcr #p-nav .nav-card .open .lucide{font-size:12px}
+.lcr #p-nav .nav-empty{display:flex;flex-direction:column;align-items:center;gap:8px;background:#fff;border:1px solid var(--linec);border-radius:18px;padding:18px 14px;margin-top:12px}
+.lcr #p-nav .nav-empty .lucide{font-size:20px;color:var(--ink-faint)}
+.lcr #p-nav .nav-empty p{font:600 11.5px/1.5 var(--sans);color:var(--ink-faint);text-align:center}

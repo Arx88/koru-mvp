@@ -1,0 +1,55 @@
+/* TennisInterior (#p-tennis) — estética Lectura Visual: scoreboard azul cielo
+   con fotos reales, tabla de sets, punto actual, duelos espejo y h2h. */
+.lcr #p-tennis .tn-head{margin:2px 0 14px}
+.lcr #p-tennis .tn-head h1{font:800 23px/1.15 var(--disp);letter-spacing:-.02em}
+.lcr #p-tennis .tn-head h1 small{display:block;font:700 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--sky-ink);margin-bottom:5px}
+.lcr #p-tennis .tn-head p{font:600 12px/1.55 var(--sans);color:var(--ink-dim);margin-top:6px}
+.lcr #p-tennis .tn-board{background:linear-gradient(165deg,#eef3ff,#fff 55%);border:1px solid #dde7fc;border-radius:22px;box-shadow:0 12px 30px var(--shadowc);padding:14px 16px;position:relative;overflow:hidden}
+.lcr #p-tennis .tn-board::before{content:"";position:absolute;inset:0 0 auto;height:4px;background:linear-gradient(90deg,#8ab0ff,#5170d8)}
+.lcr #p-tennis .tn-row.player{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0}
+.lcr #p-tennis .tn-p{display:flex;align-items:center;gap:11px;min-width:0}
+.lcr #p-tennis .tn-p img,.lcr #p-tennis .tn-ava{width:44px;height:44px;border-radius:16px;object-fit:cover;flex:none;background:var(--sky-soft);display:flex;align-items:center;justify-content:center;font:800 15px var(--disp);color:var(--sky-ink)}
+.lcr #p-tennis .tn-name{min-width:0}
+.lcr #p-tennis .tn-name b{font:800 15px/1.2 var(--sans);color:var(--ink);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lcr #p-tennis .tn-name span{font:600 10.5px var(--sans);color:var(--ink-faint);letter-spacing:.03em}
+.lcr #p-tennis .tn-sets b{font:800 24px/1 var(--disp);color:var(--ink);min-width:20px;text-align:center}
+.lcr #p-tennis .tn-status{display:flex;align-items:center;gap:10px;margin-top:10px;padding-top:10px;border-top:1.5px dashed #d9e4fb}
+.lcr #p-tennis .tn-badge{display:inline-flex;align-items:center;gap:6px;font:800 10px var(--sans);letter-spacing:.12em;color:var(--sky-ink);background:var(--sky-soft);border:1px solid #ccdcff;border-radius:9px;padding:4px 9px}
+.lcr #p-tennis .tn-badge.live{color:#fff;background:linear-gradient(135deg,#e6566e,#c62b46);border-color:transparent}
+.lcr #p-tennis .live-dot{width:6px;height:6px;border-radius:50%;background:#fff;animation:tn-live 1.2s ease-in-out infinite}
+@keyframes tn-live{0%,100%{opacity:1}50%{opacity:.3}}
+.lcr #p-tennis .tn-point{display:inline-flex;align-items:center;gap:6px;font:700 12px var(--sans);color:var(--ink-soft)}
+.lcr #p-tennis .tn-point .lucide{font-size:14px;color:var(--sky-ink)}
+.lcr #p-tennis .tn-point b{font:800 14px var(--disp);color:var(--ink)}
+.lcr #p-tennis .tn-bp{font:800 10px var(--sans);font-style:normal;color:var(--rose-ink);background:#fdeef0;border:1px solid #f9d3da;border-radius:8px;padding:2px 7px;margin-left:2px}
+.lcr #p-tennis .tn-sets-table{background:#fff;border:1px solid var(--linec);border-radius:18px;box-shadow:0 10px 26px var(--shadowc);padding:12px 14px;margin-top:12px;overflow-x:auto}
+.lcr #p-tennis .tn-grid{display:grid;grid-template-columns:minmax(96px,1.4fr) repeat(auto-fit,minmax(44px,1fr));align-items:center;gap:2px;padding:4px 0}
+.lcr #p-tennis .tn-grid-name{font:700 12px var(--sans);color:var(--ink-soft);display:flex;align-items:center;gap:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lcr #p-tennis .tn-grid-set{font:700 10px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);text-align:center}
+.lcr #p-tennis .tn-grid-set.now{color:var(--sky-ink)}
+.lcr #p-tennis .tn-grid-val{position:relative;font:800 17px var(--disp);color:var(--ink-soft);text-align:center}
+.lcr #p-tennis .tn-grid-val.win{color:var(--ink)}
+.lcr #p-tennis .tn-grid-val.now{color:var(--sky-ink);background:var(--sky-soft);border-radius:9px}
+.lcr #p-tennis .tn-grid-val small{font:700 9px var(--sans);color:var(--ink-faint);position:absolute;top:-4px;right:6px}
+.lcr #p-tennis .srv-dot{width:7px;height:7px;border-radius:50%;background:#e8714a;box-shadow:0 0 0 3px rgba(232,113,74,.2);animation:tn-live 1.6s ease-in-out infinite;flex:none}
+.lcr #p-tennis .tn-sub{display:flex;align-items:center;gap:7px;font:700 10.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:9px}
+.lcr #p-tennis .tn-sub .lucide{font-size:13px;color:var(--sky-ink)}
+.lcr #p-tennis .tn-points,.lcr #p-tennis .tn-stats,.lcr #p-tennis .tn-h2h{background:#fff;border:1px solid var(--linec);border-radius:18px;box-shadow:0 10px 26px var(--shadowc);padding:12px 14px;margin-top:12px}
+.lcr #p-tennis .tn-pts-row{display:flex;flex-wrap:wrap;gap:7px}
+.lcr #p-tennis .tn-pt{font:800 11px var(--sans);color:var(--ink-soft);background:var(--paper2);border:1px solid var(--linec);border-radius:9px;padding:4px 9px}
+.lcr #p-tennis .tn-pt.w{color:var(--mint-ink);background:var(--mint-soft);border-color:#c9ecdc}
+.lcr #p-tennis .tn-pt.l{color:var(--rose-ink);background:#fdeef0;border-color:#f9d3da}
+.lcr #p-tennis .tn-stat{padding:7px 0}
+.lcr #p-tennis .tn-stat-vals{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:5px}
+.lcr #p-tennis .tn-stat-vals b{font:800 15px var(--disp);color:var(--ink-soft);min-width:44px}
+.lcr #p-tennis .tn-stat-vals b.lead{color:var(--ink)}
+.lcr #p-tennis .tn-stat-vals b:last-child{text-align:right}
+.lcr #p-tennis .tn-stat-vals span{flex:1;text-align:center;font:700 10.5px var(--sans);letter-spacing:.04em;color:var(--ink-dim);text-transform:uppercase}
+.lcr #p-tennis .tn-stat-bars{display:flex;gap:3px;height:5px}
+.lcr #p-tennis .tn-stat-bars i{border-radius:4px;transition:width .5s var(--ease)}
+.lcr #p-tennis .tn-stat-bars .h{background:linear-gradient(90deg,#8ab0ff,#5170d8)}
+.lcr #p-tennis .tn-stat-bars .a{background:#e3e9f7}
+.lcr #p-tennis .tn-h2h-body{display:flex;flex-direction:column;gap:2px}
+.lcr #p-tennis .tn-h2h-body b{font:800 20px var(--disp);color:var(--ink)}
+.lcr #p-tennis .tn-h2h-body span{font:600 11.5px/1.5 var(--sans);color:var(--ink-soft)}
+.lcr #p-tennis .tn-h2h-body em{font:700 10.5px var(--sans);color:var(--sky-ink);font-style:normal;margin-top:2px}

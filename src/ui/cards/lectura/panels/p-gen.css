@@ -1,0 +1,25 @@
+/* GenerationInterior (#p-gen) — estética Lectura Visual: prompt en banda miel,
+   grid de variantes con seed, preview y tips numerados. */
+.lcr #p-gen .gen-head{margin:2px 0 14px}
+.lcr #p-gen .gen-head h1{font:800 25px/1.14 var(--disp);letter-spacing:-.02em}
+.lcr #p-gen .gen-head h1 small{display:block;font:700 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--honey-ink);margin-bottom:5px}
+.lcr #p-gen .gen-head p{font:600 12px/1.55 var(--sans);color:var(--ink-dim);margin-top:6px}
+.lcr #p-gen .gen-prompt{position:relative;background:linear-gradient(165deg,#fdf1dd,#fff 65%);border:1px solid #f3e2c4;border-radius:18px;padding:13px 15px;box-shadow:0 10px 26px var(--shadowc)}
+.lcr #p-gen .gp-label{display:flex;align-items:center;gap:7px;font:700 10.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--honey-ink);margin-bottom:7px}
+.lcr #p-gen .gp-label .lucide{font-size:13px}
+.lcr #p-gen .gen-prompt p{font:500 12.5px/1.6 var(--disp);font-style:italic;color:var(--ink)}
+.lcr #p-gen .gen-sub{display:flex;align-items:center;gap:7px;font:700 10.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:9px}
+.lcr #p-gen .gen-sub .lucide{font-size:13px;color:var(--honey-ink)}
+.lcr #p-gen .gen-images,.lcr #p-gen .gen-preview,.lcr #p-gen .gen-tips{margin-top:12px;background:#fff;border:1px solid var(--linec);border-radius:18px;box-shadow:0 10px 26px var(--shadowc);padding:12px 14px}
+.lcr #p-gen .gen-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.lcr #p-gen .gen-grid.single{grid-template-columns:1fr}
+.lcr #p-gen .gen-grid figure{margin:0;overflow:hidden;border-radius:13px;background:var(--paper2)}
+.lcr #p-gen .gen-grid img{display:block;width:100%;aspect-ratio:1;object-fit:cover}
+.lcr #p-gen .gen-grid figcaption{display:flex;align-items:center;justify-content:space-between;padding:6px 9px;font:800 10px var(--sans)}
+.lcr #p-gen .gen-grid figcaption span{color:var(--honey-ink);letter-spacing:.08em}
+.lcr #p-gen .gen-grid figcaption em{font:600 9.5px var(--sans);color:var(--ink-faint);font-style:normal}
+.lcr #p-gen .gen-preview p{font:600 12.5px/1.65 var(--sans);color:var(--ink)}
+.lcr #p-gen .gen-tip{display:flex;gap:10px;align-items:flex-start;padding:6px 0}
+.lcr #p-gen .gen-tip+.gen-tip{border-top:1px solid #f2eefb}
+.lcr #p-gen .gen-tip .idx{flex:none;width:20px;height:20px;border-radius:7px;background:var(--honey-soft);color:var(--honey-ink);font:800 10.5px var(--sans);display:flex;align-items:center;justify-content:center;margin-top:1px}
+.lcr #p-gen .gen-tip p{font:600 11.5px/1.55 var(--sans);color:var(--ink-soft)}

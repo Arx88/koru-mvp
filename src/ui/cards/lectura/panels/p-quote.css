@@ -1,0 +1,20 @@
+/* ReviewQuoteInterior (#p-quote) — estética Lectura Visual: recorte de prensa
+   con comilla flotante, cita itálica, atribución y chips de temas. */
+.lcr #p-quote .q-head{margin:2px 0 14px}
+.lcr #p-quote .q-head h1{font:800 26px/1.12 var(--disp);letter-spacing:-.02em}
+.lcr #p-quote .q-head h1 small{display:block;font:700 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--violet-ink);margin-bottom:5px}
+.lcr #p-quote .q-head p{font:600 12px/1.55 var(--sans);color:var(--ink-dim);margin-top:6px}
+.lcr #p-quote .q-clip{position:relative;background:#fff;border:1px solid var(--linec);border-radius:20px;box-shadow:0 12px 30px var(--shadowc);padding:30px 18px 14px;margin:0}
+.lcr #p-quote .q-clip::before{content:"";position:absolute;inset:0 0 auto;height:5px;border-radius:20px 20px 0 0;background:linear-gradient(90deg,#8363f9,#c4b5fd)}
+.lcr #p-quote .qmark{position:absolute;top:-16px;left:16px;width:38px;height:38px;border-radius:14px;background:linear-gradient(135deg,#8363f9,#c4b5fd);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 18px rgba(109,75,240,.35);transform:rotate(-6deg)}
+.lcr #p-quote .qmark .lucide{font-size:18px}
+.lcr #p-quote blockquote{font:500 15px/1.62 var(--disp);font-style:italic;color:var(--ink);letter-spacing:-.005em}
+.lcr #p-quote blockquote.empty{font:600 12px/1.6 var(--sans);color:var(--ink-faint);font-style:normal}
+.lcr #p-quote figcaption{display:flex;align-items:center;gap:7px;margin-top:13px;padding-top:11px;border-top:1.5px dashed #e3dcf1;font:800 11px var(--sans);color:var(--ink-soft)}
+.lcr #p-quote figcaption .lucide{font-size:14px;color:var(--violet-ink)}
+.lcr #p-quote figcaption em{font:600 10.5px var(--sans);color:var(--ink-faint);font-style:normal}
+.lcr #p-quote .q-tags{margin-top:12px}
+.lcr #p-quote .q-tags-label{display:flex;align-items:center;gap:6px;font:700 10.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:8px}
+.lcr #p-quote .q-tags-label .lucide{font-size:13px}
+.lcr #p-quote .q-chips{display:flex;flex-wrap:wrap;gap:7px}
+.lcr #p-quote .q-chip{font:700 11px var(--sans);color:var(--violet-ink);background:var(--violet-soft);border:1px solid #e0d5f8;border-radius:10px;padding:5px 10px}

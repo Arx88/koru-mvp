@@ -56,8 +56,15 @@ describe("LecturaShell", () => {
 });
 
 describe("lecturaInteriorFor", () => {
-  it("devuelve null para tipos sin interior registrado (cae al genérico)", () => {
+  it("cobertura total: todos los tipos del chat tienen interior Lectura (cero genérico)", () => {
+    // v2 — la deuda de estética está cerrada: incluso los antes "huérfanos"
+    // (tennis_match, reminder, shopping_list…) tienen interior registrado.
     const block = { type: "tennis_match" } as UiBlock;
+    expect(lecturaInteriorFor(block)).not.toBeNull();
+  });
+
+  it("un tipo desconocido (futuro) sigue devolviendo null — cae al genérico", () => {
+    const block = { type: "no_existe_todavia" } as unknown as UiBlock;
     expect(lecturaInteriorFor(block)).toBeNull();
   });
 });

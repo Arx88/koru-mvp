@@ -56,7 +56,9 @@ describe("KoruDetailScreen × registro Lectura (lote final)", () => {
     unmount();
   });
 
-  it("un tipo SIN registro sigue cayendo al genérico (cero regresión)", () => {
+  it("shopping_list ya NO cae al genérico: tiene interior Lectura propio", () => {
+    // v2 — cierre de la deuda de estética: el "Ver más" de la lista de compras
+    // abre el ShopInterior (#p-shop) en estética Lectura Visual.
     render(
       <KoruDetailScreen
         detail={{ title: "Shopping", sections: [{ kind: "text", icon: "cart", accent: { color: "#8363f9", soft: "rgba(131,99,249,0.12)" }, title: "Lista", body: "Café" }] }}
@@ -65,7 +67,7 @@ describe("KoruDetailScreen × registro Lectura (lote final)", () => {
         block={{ type: "shopping_list", items: ["Café"] }}
       />,
     );
-    expect(document.body.querySelector(".koru-roadmap-screen")).toBeTruthy();
-    expect(document.body.querySelector(".lcr")).toBeNull();
+    expect(document.body.querySelector(".koru-roadmap-screen")).toBeNull();
+    expect(document.body.querySelector("#p-shop")).toBeTruthy();
   });
 });
