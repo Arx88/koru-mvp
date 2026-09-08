@@ -180,7 +180,7 @@ export const personFilmography: ToolHandler = {
 export const movieInfo: ToolHandler = {
   definition: defineTool(
     "movie_info",
-    "Información de películas y series: sinopsis, reparto, año, rating, géneros y dónde verla. Usala cuando el usuario pregunte por una película específica, pida recomendaciones ('recomendame una peli'), o quiera saber de qué trata una película. Si el usuario no nombra una película específica, elegí una buena y buscala.",
+    "Información de PELÍCULAS Y SERIES: sinopsis, reparto, año, rating, géneros y dónde verla. Usala cuando el usuario pregunte por una película específica, pida recomendaciones ('recomendame una peli'), o quiera saber de qué trata una película. Si el usuario no nombra una película específica, elegí una buena y buscala. NUNCA la uses para consolas, gadgets, auriculares, teléfonos ni ningún producto físico ('review de airpods', 'reseña de la nintendo switch') — eso es shopping_compare.",
     {
       type: "object",
       additionalProperties: false,

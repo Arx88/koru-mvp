@@ -355,6 +355,10 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   const [onboarded, setOnboarded] = useState(() => localStorage.getItem("koru.onboarded") === "true");
   const [userName, setUserName] = useState(() => localStorage.getItem("koru.username") ?? "");
   const [processing, setProcessing] = useState(false);
+  // 🔴 Espejo ref de `processing` para listeners de eventos (koru:proactive)
+  // que no se resuscriben en cada render: leen el valor actual sin re-crear el
+  // addEventListener. Se actualiza en submitEntry (únicos dos puntos de cambio).
+  const processingRef = useRef(false);
   const [activity, setActivity] = useState<AgentActivity | null>(null);
   // 🔴 Memory toast: se setea cuando llegan memoryCandidates nuevos y se limpia con dismissMemoryToast.
   // v2: el toast lleva el id REAL de la memoria creada → puede confirmar/rechazar
@@ -650,9 +654,12 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     // Inyectar el nudge en state.nudges — el heartbeat (60s) lo convertirá en
     // chat turn en su próximo tick. También inyectamos un chat turn directo
     // para que el saludo aparezca de inmediato, sin esperar al heartbeat.
+    // 🔴 FIX DUPLICACIÓN (bug en vivo 2026-09-08): el nudge se marca
+    // `[proactive_shown]` AL INYECTAR el turn directo — antes quedaba sin marcar
+    // y el heartbeat (60s) lo volvía a inyectar como mensaje repetido.
     commitDomainState((prev) => ({
       ...prev,
-      nudges: [...(prev.nudges ?? []), nudge],
+      nudges: [...(prev.nudges ?? []), { ...nudge, title: `[proactive_shown] ${nudge.title}` }],
     }));
 
     const proactiveTurn: KoruChatTurn = {
@@ -812,12 +819,24 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // ── Escuchar mensajes proactivos del engine ──
+  // 🔴 FIX (bug en vivo 2026-09-08): el endpoint /api/koru/proactive y el
+  // scheduler del morning brief disparaban el MISMO saludo por caminos
+  // distintos → "Buenos días / Tu brief matutino…" aparecía 2+ veces, incluso
+  // en mitad de una conversación en proceso. Reglas nuevas:
+  //  1. Si hay un turno en procesamiento, NO inyectar (se pierde el mensaje
+  //     proactivo: son nudges efímeros, no contenido pedido por el usuario).
+  //  2. Si los últimos 6 turns ya contienen un texto equivalente (normalizado
+  //     por primeras 60 letras), NO inyectar el duplicado.
   useEffect(() => {
     const onProactive = (e: Event) => {
       const turn = (e as CustomEvent).detail as KoruChatTurn;
-      if (turn && turn.text) {
-        commitChatTurns((prev) => [...prev, turn].slice(-120));
-      }
+      if (!turn || !turn.text) return;
+      if (processingRef.current) return;
+      const signature = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase().slice(0, 60);
+      const sig = signature(turn.text);
+      const recent = chatTurnsRef.current.slice(-6);
+      if (recent.some((t) => signature(t.text ?? "") === sig)) return;
+      commitChatTurns((prev) => [...prev, turn].slice(-120));
     };
     window.addEventListener("koru:proactive", onProactive);
     return () => window.removeEventListener("koru:proactive", onProactive);
@@ -1280,6 +1299,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     history: KoruChatTurn[] = chatTurnsRef.current,
   ) {
     setProcessing(true);
+    processingRef.current = true;
     let koruTurnId: string | null = null;
     // Trackea los items creados durante el stream para preservar sus ids al
     // reemplazar con el resultado final. Sin esto, el resultado final crea items
@@ -1518,6 +1538,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
       return { response: agentResult.reply, items: result.items, state: result.state, mascotState: agentResult.mascotState, koruTurnId };
     } finally {
       setProcessing(false);
+      processingRef.current = false;
       setActivity(null);
       setPhase(null);
     }

@@ -16,6 +16,7 @@ const LazyCollectionsScreen = lazy(() =>
 import { MorningBriefCard } from "./MorningBriefCard";
 import { CreateScreen } from "./create/CreateScreen";
 import { TypingDots } from "./TypingDots";
+import { lastKoruTurnIsStreaming } from "../domain/turn";
 
 // TalkOverlay = réplica Stitch "Chat con Koru": paisaje nocturno ilustrado a
 // pantalla completa, conversación anclada abajo con burbujas claras (usuario
@@ -530,6 +531,14 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
     return null;
   }, [chatTurns]);
 
+  // 🔴 FIX PROCESANDO MÚLTIPLE (bug en vivo 2026-09-08): mientras el turno de
+  // Koru ya está streamteando (status "working" con texto/cards visibles), el
+  // TypingDots "Procesando…" NO debe duplicarse abajo — el propio turno ya
+  // comunica actividad ("Buscando X…", notas "Buscando información…" de los
+  // items, WorkingPanel). El TypingDots queda reservado para el intervalo real
+  // previo al primer chunk (enviado → primera señal del backend).
+  const hasStreamingKoruTurn = useMemo(() => lastKoruTurnIsStreaming(chatTurns), [chatTurns]);
+
   // 🔴 KORU 3.0 — Smart suggestions rotativas por categoría.
   const smartSuggestions = useMemo(() => {
     const categories = [
@@ -567,10 +576,15 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
   const suggestionPills = useMemo<SuggestionPill[]>(() => {
     // Recorrer TODOS los chatTurns (no solo visibleTurns) para encontrar temas anteriores
     const userTurns = chatTurns.filter(t => t.role === "user");
-    if (userTurns.length < 1) return [];
+    // 🔴 FIX (bug en vivo 2026-09-08): el último user turn es la pregunta que
+    // el usuario ACABA de mandar — mostrarla como chip arriba duplica el
+    // mensaje en pantalla y se lee como UI rota. Los chips son para VOLVER a
+    // temas anteriores, así que excluimos el turno más reciente.
+    const olderUserTurns = userTurns.slice(0, -1);
+    if (olderUserTurns.length < 1) return [];
 
-    // Tomar los últimos 5 user turns (incluyendo el más reciente)
-    const recentUserTurns = userTurns.slice(-5);
+    // Tomar los últimos 4 user turns anteriores al actual
+    const recentUserTurns = olderUserTurns.slice(-4);
     if (recentUserTurns.length === 0) return [];
 
     return recentUserTurns
@@ -1213,7 +1227,7 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
                 Kimi audit: reemplazamos los puntos sueltos por <TypingDots> con la
                 voz mágica "Lo estoy oliendo…" para que el usuario sienta que Koru
                 está presente, no esperando en frío. */}
-            {processing && !isListening && !workingDeliverable && (
+            {processing && !isListening && !workingDeliverable && !hasStreamingKoruTurn && (
               <div className="koru-message is-koru">
                 <div className="koru-row">
                   <div className="koru-avatar">

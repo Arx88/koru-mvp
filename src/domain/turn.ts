@@ -550,3 +550,20 @@ export function applyBackendTurnToState(
   saveState(next);
   return { state: next, items, entry };
 }
+
+/**
+ * 🔴 FIX PROCESANDO MÚLTIPLE (2026-09-08): ¿hay un turno de Koru streamteando
+ * ahora? Mientras el último turno de Koru está en status "working" (texto
+ * "Buscando X…" y/o cards cargando), el TypingDots global "Procesando…" NO debe
+ * duplicarse: el propio turno ya comunica la actividad. Se usa en TalkOverlay
+ * para reservar el TypingDots al intervalo real entre el envío y el primer
+ * chunk del backend.
+ */
+export function lastKoruTurnIsStreaming(turns: KoruChatTurn[]): boolean {
+  for (let i = turns.length - 1; i >= 0; i--) {
+    const turn = turns[i];
+    if (turn.role === "user") return false; // el stream del turno anterior ya cerró
+    if (turn.role === "koru") return turn.status === "working";
+  }
+  return false;
+}

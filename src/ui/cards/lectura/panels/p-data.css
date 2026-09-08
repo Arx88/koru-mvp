@@ -1,0 +1,23 @@
+/* DataInterior (#p-data) — estética Lectura Visual, mismo lenguaje que p-rev/p-saved:
+   hoja blanca con sombra suave, filas label→value, cita con comilla flotante. */
+#p-data .dt-head{margin:2px 0 14px}
+.lcr .dt-head h1{font:800 26px/1.12 var(--disp);letter-spacing:-.02em}
+.lcr .dt-head h1 small{display:block;font:700 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--mint-ink);margin-bottom:5px}
+.lcr .dt-head p{font:600 12px/1.55 var(--sans);color:var(--ink-dim);margin-top:6px}
+.lcr .dt-list{display:flex;flex-direction:column;gap:10px}
+.lcr .dt-row{background:#fff;border:1px solid var(--linec);border-radius:18px;padding:13px 15px 11px;box-shadow:0 10px 26px var(--shadowc)}
+.lcr .dt-line{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.lcr .dt-label{font:700 11px var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-dim);flex:none;max-width:46%}
+.lcr .dt-value{font:800 19px var(--disp);color:var(--ink);text-align:right;letter-spacing:-.01em}
+.lcr .dt-detail{font:600 11px/1.5 var(--sans);color:var(--ink-soft);margin-top:5px}
+.lcr .dt-quote{position:relative;margin-top:9px;padding-top:9px;border-top:1.5px dashed #e3dcf1}
+.lcr .dt-quote p{font:500 11.5px/1.6 var(--sans);color:var(--ink-soft);font-style:italic}
+.lcr .dt-quote p::before{content:"“";font:800 15px var(--disp);color:var(--violet)}
+.lcr .dt-quote p::after{content:"”";font:800 15px var(--disp);color:var(--violet)}
+.lcr .dt-src{display:inline-flex;align-items:center;gap:6px;margin-top:7px;font:800 10px var(--sans);color:var(--violet-ink);text-decoration:none}
+.lcr .dt-src .lucide{font-size:12px}
+.lcr .dt-src:active{transform:scale(.97)}
+.lcr .dt-src.is-plain{color:var(--mint-ink);cursor:default}
+.lcr .dt-src.is-plain:active{transform:none}
+#p-data .actions{margin-top:14px}
+#p-data .actions .btn.primary{text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:7px}

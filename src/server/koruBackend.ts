@@ -249,7 +249,7 @@ export const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "web_search",
-      description: "ULTIMO RECURSO. Busca información en internet cuando NINGUNA tool específica aplica. NO uses web_search para: criptomonedas (usá crypto_price), acciones (stock_quote), clima (weather), deportes (match_live/match_schedule/tennis_live), restaurantes (restaurant_deep_search), recetas (recipe_find), películas (movie_info), libros (book_info), rutas (route_traffic), Wikipedia (wikipedia_lookup). web_search SÍ es para: noticias generales (no deportivas), eventos actuales, figuras públicas, tendencias, avances científicos, política, cultura, o cualquier tema que cambie con el tiempo Y que no tenga una tool específica. Si el usuario pregunta por un partido de fútbol o el precio de BTC, NO uses web_search — usá match_live o crypto_price respectivamente.",
+      description: "ULTIMO RECURSO. Busca información en internet cuando NINGUNA tool específica aplica. NO uses web_search para: criptomonedas (crypto_price), acciones (stock_quote), clima (weather), deportes (match_live/match_schedule/tennis_live), restaurantes (restaurant_deep_search), recetas (recipe_find), películas y series (movie_info), libros (book_info), rutas (route_traffic), Wikipedia (wikipedia_lookup), REVIEWS O RESEÑAS DE PRODUCTOS (shopping_compare). web_search SÍ es para: noticias generales (no deportivas), eventos actuales, figuras públicas, tendencias, avances científicos, política, cultura, o cualquier tema que cambie con el tiempo Y que no tenga una tool específica. Si el usuario pregunta por un partido de fútbol, el precio de BTC o un review de un producto, NO uses web_search — usá match_live, crypto_price o shopping_compare respectivamente.",
       parameters: {
         type: "object",
         additionalProperties: false,
@@ -265,7 +265,7 @@ export const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "shopping_compare",
-      description: "Compara productos con evidencia de precios, fuentes y pros/contras cuando el usuario esté considerando una compra o necesite evaluar opciones de productos. El usuario puede expresar esto de muchas formas: pidiendo recomendaciones de algo para comprar, mencionando que necesita un producto, comparando dos cosas, buscando la mejor opción, o preguntando dónde comprar algo. También activa cuando el usuario pide review o comparativa de productos técnicos. NOTA: Para comparaciones específicas tipo 'compara X vs Y', usá comparison_deep que hace scraping real de Amazon/eBay/Best Buy.",
+      description: "Compara productos y busca reviews de productos con evidencia de precios, fuentes y pros/contras cuando el usuario esté considerando una compra o necesite evaluar un producto. El usuario puede expresar esto de muchas formas: pidiendo recomendaciones de algo para comprar, mencionando que necesita un producto, comparando dos cosas, buscando la mejor opción, preguntando dónde comprar algo, o pidiendo REVIEW/RESEÑA/ANÁLISIS/OPINIONES de un producto concreto ('dame review de airpods', 'reseña de la nintendo switch', 'qué tal está el dyson v15'). NOTA: Para comparaciones específicas tipo 'compara X vs Y', usá comparison_deep que hace scraping real de Amazon/eBay/Best Buy.",
       parameters: {
         type: "object",
         additionalProperties: false,
@@ -3219,6 +3219,31 @@ function searchLabelFromInput(input: string): string {
   return `Buscando ${shortened}…`;
 }
 
+// ═════════════════ FIX ROUTING — review/reseña de PRODUCTO ═════════════════
+// 🔴 Bug reproducido en vivo (2026-09-08): "dame review de airpods" → el LLM
+// NO llamó ninguna tool y respondió "Busco reseñas recientes…" (intención sin
+// acción). "dame review de nintendo switch" → movie_info → card "Tu Película"
+// con el artículo de Wikipedia "List of Nintendo Switch games". Un review de
+// PRODUCTO tiene que ir a shopping_compare (búsqueda multi-fuente + extractor
+// validado + comparison/data_card). Este helper detecta el patrón explícito
+// para que runKoruBackendTurn corrija/inyecte la tool de forma determinista.
+export function explicitProductReviewQuery(input: string): string | null {
+  const clean = input.trim().replace(/\s+/g, " ");
+  if (!clean) return null;
+  const m =
+    clean.match(/\b(?:review|rese[nñ]as?|reviews|an[aá]lisis|opiniones?|cr[ií]ticas?|evaluaci[oó]n|veredicto)\b\s*(?:de\s+|del\s+|sobre\s+)?(?:el|la|los|las|un|una)?\s*(.{2,80})/i) ??
+    clean.match(/\b(?:qu[eé]\s+tal\s+(?:est[aá]|es|va))\s+(?:el|la|un|una)?\s*(.{2,80})/i) ??
+    clean.match(/\b(?:vale\s+la\s+pena)\s+(?:el|la|un|una|comprarse)?\s*(.{2,80})/i);
+  if (!m) return null;
+  let product = (m[1] ?? "").trim().replace(/[.?!¡]+$/g, "");
+  product = product.replace(/^(?:de\s+)?(?:la|el|los|las|un|una|mi|tu)\s+/i, "").trim();
+  if (product.length < 2) return null;
+  // NO es producto de shopping: cine/series/libros/juegos/música/restaurantes/
+  // recetas/hoteles/lugares — dejar que el LLM las enrute a sus tools.
+  if (/\b(?:pel[ií]cula?|pelis?|serie|series|movie|film|documental|temporada|episodio|libro|novela|juego|canci[oó]n|[aá]lbum|restaurante|receta|hotel|bar|caf[eé]s?|lugar|ciudad|pa[ií]s)\b/i.test(product)) return null;
+  return product;
+}
+
 // ═════════════════ DEEP RESEARCH — el entregable estrella ═════════════════
 // Flujo completo del "informe que excede lo esperado": el usuario pide un
 // informe/investigación → sub-búsquedas → síntesis → UN bloque "deliverable"
@@ -4437,6 +4462,48 @@ export async function runKoruBackendTurn(
   fallbackReason = firstResult.fallbackReason;
   const firstMessage = firstResult.message;
   const toolCalls = asArray(firstMessage.tool_calls) as ProviderToolCall[];
+
+  // 🔴 FIX ROUTING — review/reseña de PRODUCTO (bug en vivo 2026-09-08):
+  // 1) "dame review de nintendo switch" → LLM eligió movie_info → card
+  //    "Tu Película" con Wikipedia. 2) "dame review de airpods" → LLM no
+  //    llamó NINGUNA tool y respondió "Busco reseñas…" (intención sin acción).
+  // Corrección determinista: si el input pide explícitamente un review de
+  // producto, sobreescribir la tool mal enrutada (o inyectarla si no hay) por
+  // shopping_compare con el query extraído.
+  const productReviewQuery = explicitProductReviewQuery(inputTrimmed);
+  if (productReviewQuery) {
+    const MISROUTED_REVIEW_TOOLS = new Set([
+      "movie_info", "book_info", "game_info", "wikipedia_lookup",
+      "web_search", "news_urgent_search", "news_topic", "trending_topic",
+    ]);
+    const misroutedIdx = toolCalls.findIndex((t) => MISROUTED_REVIEW_TOOLS.has(t.function?.name ?? ""));
+    if (misroutedIdx >= 0) {
+      logger.info("runKoruBackendTurn", "Product review routing CORRECTED", {
+        from: toolCalls[misroutedIdx].function?.name,
+        to: "shopping_compare",
+        query: productReviewQuery,
+      });
+      toolCalls[misroutedIdx] = {
+        id: `review_fix_${Date.now()}`,
+        type: "function",
+        function: { name: "shopping_compare", arguments: JSON.stringify({ query: productReviewQuery }) },
+      };
+    } else if (toolCalls.length === 0) {
+      // El LLM respondió con texto de intención ("Busco reseñas recientes…")
+      // sin ejecutar nada. Inyectar la tool nosotros.
+      logger.info("runKoruBackendTurn", "Product review routing INJECTED (LLM emitted no tool call)", {
+        query: productReviewQuery,
+      });
+      toolCalls.push({
+        id: `review_fix_${Date.now()}`,
+        type: "function",
+        function: { name: "shopping_compare", arguments: JSON.stringify({ query: productReviewQuery }) },
+      });
+      // El reply de intención del LLM no puede ser la respuesta final: el flujo
+      // de abajo reemplaza el texto al sintetizar tras ejecutar la tool.
+      firstMessage.content = "";
+    }
+  }
 
   // V3 FIX: Multi-intent determinista — si el input contiene conectores y el LLM
   // solo emitió 1 tool_call, agregar un segundo tool_call para el segundo intent.
