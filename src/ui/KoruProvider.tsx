@@ -704,22 +704,33 @@ export function KoruProvider({ children }: { children: ReactNode }) {
         if (activeNudges.length > 0) {
           // Solo inyectar 1 mensaje proactivo por heartbeat tick (no spamear)
           const nudge = activeNudges[0];
-          const proactiveTurn: KoruChatTurn = {
-            id: `proactive_hb_${Date.now()}`,
-            role: "koru",
-            text: nudge.title + (nudge.body ? `\n${nudge.body}` : ""),
-            createdAt: new Date().toISOString(),
-            status: "done" as const,
-            mascotState: "happy" as const,
-          };
-          // Marcar como mostrado para no repetir
-          commitDomainState((prev) => ({
-            ...prev,
-            nudges: (prev.nudges ?? []).map(n =>
-              n.id === nudge.id ? { ...n, title: `[proactive_shown] ${n.title}` } : n
-            ),
-          }));
-          commitChatTurns((prev) => [...prev, proactiveTurn].slice(-120));
+          // 🔴 FIX duplicación (2026-09-10): el mount effect y el primer tick
+          // del heartbeat podían inyectar el MISMO nudge ("Esto quedó
+          // pendiente" ×2) por caminos distintos. Misma dedupe por firma de
+          // texto que usa el listener koru:proactive.
+          const signature = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase().slice(0, 60);
+          const candidateText = nudge.title + (nudge.body ? `\n${nudge.body}` : "");
+          const alreadyInChat = chatTurnsRef.current.slice(-6).some(
+            (t) => signature(t.text ?? "") === signature(candidateText),
+          );
+          if (!alreadyInChat) {
+            const proactiveTurn: KoruChatTurn = {
+              id: `proactive_hb_${Date.now()}`,
+              role: "koru",
+              text: candidateText,
+              createdAt: new Date().toISOString(),
+              status: "done" as const,
+              mascotState: "happy" as const,
+            };
+            // Marcar como mostrado para no repetir
+            commitDomainState((prev) => ({
+              ...prev,
+              nudges: (prev.nudges ?? []).map(n =>
+                n.id === nudge.id ? { ...n, title: `[proactive_shown] ${n.title}` } : n
+              ),
+            }));
+            commitChatTurns((prev) => [...prev, proactiveTurn].slice(-120));
+          }
         }
       }
     };
@@ -860,11 +871,16 @@ export function KoruProvider({ children }: { children: ReactNode }) {
         kind: "action" as const,
       }));
     const nudgeItems = domainState.nudges
-      .filter((nudge) => !nudge.dismissed)
+      // 🔴 FIX (2026-09-10): los nudges marcados [proactive_shown] ya fueron
+      // inyectados como mensaje de chat — el marcador interno NO puede
+      // filtrarse a los widgets (el usuario veía "[proactive_shown] Esto
+      // quedó pendiente" en Prioridades). El compromiso subyacente sigue
+      // apareciendo por la lista de commitments de abajo.
+      .filter((nudge) => !nudge.dismissed && !nudge.title.startsWith("[proactive_shown]"))
       .slice(0, 2)
       .map((nudge) => ({
         id: nudge.id,
-        label: nudge.title,
+        label: nudge.title.replace(/^\[proactive_shown\]\s*/i, ""),
         detail: nudge.body || nudge.reason,
         done: false,
         kind: "nudge" as const,
