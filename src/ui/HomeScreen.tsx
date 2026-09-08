@@ -885,7 +885,7 @@ export function HomeScreen({
                 </div>
                 <div>
                   <h3 className="koru-module-title">Bienestar</h3>
-                  <p className="koru-module-kicker">Tmate un respiro</p>
+                  <p className="koru-module-kicker">Tomate un respiro</p>
                 </div>
               </div>
             </div>

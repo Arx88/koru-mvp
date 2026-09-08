@@ -2,7 +2,6 @@ import { Suspense, lazy, useState } from "react";
 import { KoruProvider, useKoru } from "./KoruProvider";
 import { KoruIconSprite } from "./KoruIconSprite";
 import { MemoryScreen } from "./MemoryScreen";
-import { PermissionsScreen } from "./PermissionsScreen";
 import { HistoryScreen } from "./HistoryScreen";
 import { TalkOverlay } from "./TalkOverlay";
 import { HomeScreen } from "./HomeScreen";
@@ -16,7 +15,7 @@ const LazyCreateScreen = lazy(() =>
   import("./create/CreateScreen").then((m) => ({ default: m.CreateScreen })),
 );
 
-type Screen = "chat" | "hoy" | "memoria" | "permisos" | "historial" | "configuracion";
+type Screen = "chat" | "hoy" | "memoria" | "historial" | "configuracion";
 
 function KoruApp() {
   // 🔴 FIX (2026-09-09): "Crear" desde el Home abre la CreateScreen REAL
@@ -131,7 +130,6 @@ function KoruApp() {
               />
           )}
           {screen === "memoria" && <MemoryScreen />}
-          {screen === "permisos" && <PermissionsScreen />}
           {screen === "historial" && <HistoryScreen />}
           {screen === "configuracion" && (
               <SettingsScreen
