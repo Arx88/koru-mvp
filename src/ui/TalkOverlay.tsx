@@ -951,13 +951,34 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
 
     // Onboarding conversacional: interceptar el nombre
     if (onboardingPhaseRef.current === "waiting_for_name") {
-      // El usuario respondió su nombre. Guardarlo y completar onboarding.
-      const name = clean.length > 30 ? clean.slice(0, 30).trim() : clean;
-      // Capitalizar primera letra
-      const capitalizedName = name.charAt(0).toUpperCase() + name.slice(1);
+      // 🔴 FIX (2026-09-09): antes CUALQUIER texto se guardaba verbatim como
+      // nombre ("no quiero decirte", "dale dale" → perfil con nombre basura
+      // persistido). Ahora: solo se acepta si parece un nombre (letras, sin
+      // frases largas, sin interjecciones); si no, se usa "amigo" y el texto
+      // va al chat normal.
+      const NAME_BLOCKLIST = new Set([
+        "dale", "jaja", "jeje", "nada", "ok", "okay", "si", "sí", "no", "nope",
+        "hm", "mmm", "vos", "yo", "que", "quien", "como", "callate", "cállate",
+      ]);
+      const words = clean.toLowerCase().split(/\s+/).filter(Boolean);
+      const looksLikeName =
+        /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ' -]{2,30}$/.test(clean) &&
+        !/\s.{0,30}\b(no|sos|callate|cállate|porque|quiero|decir)\b/i.test(clean) &&
+        words.length > 0 &&
+        !words.some(w => NAME_BLOCKLIST.has(w));
+      if (looksLikeName) {
+        const name = clean.length > 30 ? clean.slice(0, 30).trim() : clean;
+        // Capitalizar primera letra
+        const capitalizedName = name.charAt(0).toUpperCase() + name.slice(1);
+        setOnboardingPhase("done");
+        onOnboardingComplete?.(capitalizedName);
+        return; // NO enviar al backend — es el nombre, no un mensaje normal
+      }
+      // No parece un nombre → completar con el fallback y seguir la
+      // conversación real (el mensaje se procesa como chat normal).
       setOnboardingPhase("done");
-      onOnboardingComplete?.(capitalizedName);
-      return; // NO enviar al backend — es el nombre, no un mensaje normal
+      onOnboardingComplete?.("amigo");
+      // NO return: cae al sendMessage de abajo con el texto original.
     }
 
     await sendMessage(clean, source);
@@ -1346,7 +1367,7 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
                 Sin conexión. Tus mensajes se guardan y se envían automáticamente al volver.
               </p>
             )}
-            {ephemeral && <p className="koru-footer-note">Modo efimero activo - esta charla no guardara memoria nueva</p>}
+            {ephemeral && <p className="koru-footer-note">Modo efímero activo — esta charla no guardará memoria nueva</p>}
             {micError && <p className="koru-footer-error">{micError}</p>}
 
             {/* 🔴 KORU 3.0 — Quick actions: smartSuggestions rotativas.

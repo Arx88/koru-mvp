@@ -1,21 +1,26 @@
-import { Moon, Volume2 } from "lucide-react";
+import { Moon } from "lucide-react";
 import { useKoru } from "./KoruProvider";
 import { cn } from "../lib/utils";
 
 export function PermissionsScreen() {
-  const { permissions, togglePermission, ephemeral, setEphemeral, voiceEnabled, toggleVoice } = useKoru();
+  // 🔴 FIX (2026-09-09): "Modo efímero" estaba DUPLICADO en esta pantalla (la
+  // card destacada + el perm4 de la lista) y la "Voz de Koru" tenía OTRO
+  // toggle independiente del de Ajustes (dos fuentes de verdad → doble TTS).
+  // Ahora: efímero solo desde la card destacada, voz solo en Ajustes.
+  const { permissions, togglePermission, ephemeral, setEphemeral } = useKoru();
+  const listPermissions = permissions.filter((p) => p.id !== "perm4");
 
   return (
     <div className="flex h-full flex-col px-6 pb-4 pt-8">
       <header className="animate-rise">
         <h1 className="font-serif text-2xl text-bark">Permisos</h1>
         <p className="mt-1 text-sm text-earth">
-          Un contrato de confianza. Tú decides qué puede hacer Koru.
+          Un contrato de confianza. Vos decidís qué puede hacer Koru.
         </p>
       </header>
 
       <ul className="mt-6 flex flex-col gap-3">
-        {permissions.map((perm) => (
+        {listPermissions.map((perm) => (
           <li key={perm.id} className="flex items-center gap-4 rounded-xl border border-sand bg-card p-4">
             <div className="flex-1">
               <p className="text-[15px] font-medium text-bark">{perm.title}</p>
@@ -41,20 +46,6 @@ export function PermissionsScreen() {
           </p>
         </div>
         <Toggle checked={ephemeral} onChange={() => setEphemeral(!ephemeral)} label="Modo efímero" />
-      </div>
-
-      {/* 🔴 Voice toggle — Koru habla sus respuestas */}
-      <div className="mt-3 flex items-center gap-4 rounded-xl border border-leaf bg-warm-white/60 p-4">
-        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-leaf/40 text-forest">
-          <Volume2 className="h-5 w-5" />
-        </span>
-        <div className="flex-1">
-          <p className="text-[15px] font-medium text-bark">Voz de Koru</p>
-          <p className="mt-0.5 text-sm leading-snug text-earth">
-            Koru habla sus respuestas en voz alta.
-          </p>
-        </div>
-        <Toggle checked={voiceEnabled} onChange={toggleVoice} label="Voz de Koru" />
       </div>
 
       <p className="mt-auto pt-6 text-center text-xs leading-relaxed text-stone">

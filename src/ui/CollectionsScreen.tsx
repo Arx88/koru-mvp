@@ -296,14 +296,24 @@ export function CollectionsScreen({
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        // 🔴 FIX (2026-09-09): orden de cierre en cascada — antes, con el
+        // menú popover abierto en la raíz, Escape cerraba el modal COMPLETO
+        // (menú + editor + pantalla) de golpe. Ahora: primero el popover,
+        // luego el editor, luego subir de carpeta, y al final cerrar.
+        if (menuFor) {
+          setMenuFor(null);
+          return;
+        }
+        if (editing) {
+          setEditing(null);
+          return;
+        }
         // 🔴 Folders: si estamos en una sub-carpeta, Escape sube un nivel
         // antes de cerrar el modal completo (patrón "back" natural).
-        if (currentPath.length > 0 && !menuFor && !editing) {
+        if (currentPath.length > 0) {
           setCurrentPath((prev) => prev.slice(0, -1));
           return;
         }
-        setMenuFor(null);
-        setEditing(null);
         onClose();
       }
     };
@@ -607,40 +617,67 @@ export function CollectionsScreen({
                     const visual = recordVisual(record);
                     const tileStyle = iconTileStyle(visual.accent);
                     return record.url ? (
-                      <a
+                      // 🔴 FIX (2026-09-09): los enlaces guardados no tenían NI
+                      // editar NI eliminar (solo abrir) — el menú more_vert solo
+                      // existía en la rama sin URL. Ahora: fila contenedora con
+                      // el link (flex 1) + el mismo menú de editar/eliminar.
+                      <div
                         key={record.id}
-                        className="koru-challenge-row koru-collection-link"
-                        href={record.url}
-                        target="_blank"
-                        rel="noreferrer"
+                        className="koru-challenge-row koru-collection-row-tappable"
+                        style={{ gap: 4, padding: "14px 12px" }}
                       >
-                        <div className="koru-challenge-lock koru-collection-icon-tile" style={tileStyle}>
-                          <Mat>{visual.icon}</Mat>
-                        </div>
-                        <div className="koru-collection-body">
-                          <p className="koru-challenge-name">{record.title}</p>
-                          {/* 🔴 FIX v3 #7: tags como chips */}
-                          {record.tags && record.tags.length > 0 ? (
-                            <div className="koru-collection-tags">
-                              {record.tags.map((t) => (
-                                <span key={t} className="koru-collection-tag">#{t}</span>
-                              ))}
-                            </div>
-                          ) : null}
-                          {/* 🔴 FIX v3 #6: markdown para notas */}
-                          {record.notes && hasMarkdown(record.notes) ? (
-                            <div
-                              className="koru-challenge-desc koru-collection-md"
-                              dangerouslySetInnerHTML={{ __html: renderMarkdown(record.notes) }}
-                            />
-                          ) : (
-                            <p className="koru-challenge-desc">
-                              {record.notes || record.url.replace(/^https?:\/\/(www\.)?/, "").split("/")[0]}
-                            </p>
-                          )}
-                        </div>
-                        <Mat className="koru-collection-open">open_in_new</Mat>
-                      </a>
+                        <a
+                          className="koru-collection-link"
+                          href={record.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0, textDecoration: "none", color: "inherit" }}
+                        >
+                          <div className="koru-challenge-lock koru-collection-icon-tile" style={tileStyle}>
+                            <Mat>{visual.icon}</Mat>
+                          </div>
+                          <div className="koru-collection-body">
+                            <p className="koru-challenge-name">{record.title}</p>
+                            {/* 🔴 FIX v3 #7: tags como chips */}
+                            {record.tags && record.tags.length > 0 ? (
+                              <div className="koru-collection-tags">
+                                {record.tags.map((t) => (
+                                  <span key={t} className="koru-collection-tag">#{t}</span>
+                                ))}
+                              </div>
+                            ) : null}
+                            {/* 🔴 FIX v3 #6: markdown para notas */}
+                            {record.notes && hasMarkdown(record.notes) ? (
+                              <div
+                                className="koru-challenge-desc koru-collection-md"
+                                dangerouslySetInnerHTML={{ __html: renderMarkdown(record.notes) }}
+                              />
+                            ) : (
+                              <p className="koru-challenge-desc">
+                                {record.notes || record.url.replace(/^https?:\/\/(www\.)?/, "").split("/")[0]}
+                              </p>
+                            )}
+                          </div>
+                          <Mat className="koru-collection-open">open_in_new</Mat>
+                        </a>
+                        <button
+                          type="button"
+                          className="koru-collection-row-menu"
+                          aria-label="Más opciones"
+                          aria-haspopup="menu"
+                          aria-expanded={menuFor?.id === record.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const btn = e.currentTarget;
+                            const rect = btn.getBoundingClientRect();
+                            setMenuFor((prev) =>
+                              prev?.id === record.id ? null : { id: record.id, rect },
+                            );
+                          }}
+                        >
+                          <Mat>more_vert</Mat>
+                        </button>
+                      </div>
                     ) : (
                       <div
                         key={record.id}

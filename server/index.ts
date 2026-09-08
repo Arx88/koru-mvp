@@ -21,6 +21,7 @@ import { readFileSync, existsSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runKoruBackendTurn, type KoruBackendTurnRequest, type ProviderConfig } from "../src/server/koruBackend.ts";
+import { localDateISO } from "../src/domain/localDate.ts";
 import { exchangeCodeForToken } from "../src/tools/calendar/googleCalendar.ts";
 import { corsOrigin, rateLimitAllow, isAuthorized, securityHeaders } from "./middleware.ts";
 
@@ -476,6 +477,31 @@ export async function koruRequestHandler(req: http.IncomingMessage, res: http.Se
     return;
   }
 
+  // ── /api/koru/weather — clima fresco para el HomeScreen ──────
+  // 🔴 FIX (2026-09-09): antes el botón "Actualizar"/"Traer clima" del Home
+  // solo re-estampaba fetchedAt (o no hacía nada sin cache) — el usuario
+  // seguía viendo el dato de hace horas creyéndolo fresco. Este endpoint usa
+  // el MISMO pipeline getWeather del agente (wttr.in → open-meteo con
+  // geocoding), así el Home refresca con datos reales sin pasar por el chat.
+  if (url === "/api/koru/weather" && req.method === "POST") {
+    try {
+      const raw = await readBody(req);
+      const body = JSON.parse(raw || "{}");
+      const city = typeof body?.city === "string" ? body.city.trim() : "";
+      if (!city) {
+        sendJson(res, 400, { error: "Falta la ciudad." });
+        return;
+      }
+      const { getWeather } = await import("../src/server/koruBackend.ts");
+      const data = await getWeather({ city });
+      sendJson(res, 200, data);
+    } catch (err: any) {
+      console.error("[koru-weather]", err?.message);
+      sendJson(res, 500, { error: err?.message ?? "Error al traer el clima." });
+    }
+    return;
+  }
+
   // ── /api/koru/proactive — proactive engine ───────────────────
   if (url === "/api/koru/proactive" && req.method === "POST") {
     try {
@@ -506,8 +532,25 @@ export async function koruRequestHandler(req: http.IncomingMessage, res: http.Se
       const body = JSON.parse(raw || "{}");
       const { state } = body;
 
+      // 🔴 FIX (2026-09-09): el server corre en UTC (Render) — "hoy" calculado
+      // con now.toISOString() era el día del SERVER, no el del usuario. El
+      // cliente manda su fecha local y su offset; el server cae a UTC solo
+      // si no vienen.
+      const clientToday: string = typeof body?.clientToday === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.clientToday)
+        ? body.clientToday
+        : localDateISO();
+      const tzOffsetMin = Number.isFinite(Number(body?.tzOffsetMin)) ? Number(body.tzOffsetMin) : 0;
+      // Día local (del usuario) de un timestamp: UTC - offset (getTimezoneOffset
+      // devuelve positivo al oeste de UTC, negativo al este).
+      const localDayOf = (ts: string): string => {
+        const t = Date.parse(ts);
+        if (!Number.isFinite(t)) return "";
+        const shifted = new Date(t - tzOffsetMin * 60_000);
+        return localDateISO(shifted);
+      };
+
       const now = new Date();
-      const hour = now.getHours();
+      const hour = now.getUTCHours() - Math.floor(tzOffsetMin / 60);
       const isMorning = hour >= 5 && hour <= 11;
 
       if (!isMorning) {
@@ -516,7 +559,7 @@ export async function koruRequestHandler(req: http.IncomingMessage, res: http.Se
       }
 
       // Verificar si ya se mostró hoy
-      const today = now.toISOString().slice(0, 10);
+      const today = clientToday;
       if (state?.lastBriefDate === today) {
         sendJson(res, 200, { shouldShow: false, reason: "already_shown" });
         return;
@@ -531,11 +574,11 @@ export async function koruRequestHandler(req: http.IncomingMessage, res: http.Se
       //   - confirmed/candidate memories (para contexto de personalidad)
       const userName = state?.userName ?? "";
 
-      // Today's calendar events
+      // Today's calendar events (día LOCAL del usuario)
       const todayEvents = (state?.calendarEvents ?? []).filter((ev: any) => {
         try {
           if (!ev?.startsAt) return false;
-          return new Date(ev.startsAt).toISOString().slice(0, 10) === today;
+          return localDayOf(ev.startsAt) === today;
         } catch { return false; }
       }).slice(0, 5);
 
@@ -543,7 +586,7 @@ export async function koruRequestHandler(req: http.IncomingMessage, res: http.Se
       const todayCommitments = (state?.commitments ?? []).filter((c: any) => {
         if (c?.status !== "open") return false;
         try {
-          if (c.dueAt && new Date(c.dueAt).toISOString().slice(0, 10) === today) return true;
+          if (c.dueAt && localDayOf(c.dueAt) === today) return true;
         } catch {}
         const hint = String(c?.dueHint ?? "").toLowerCase();
         return hint.includes("hoy") || hint.includes("today") || hint.includes(today);

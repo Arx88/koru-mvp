@@ -1,4 +1,5 @@
 import { applyBackendTurnToState } from "./turn";
+import { localDateISO, shiftDateISO } from "./localDate";
 // Fase 2.14: brain.ts eliminado (motor client-side legacy).
 // submitReflection se mantiene como stub que lanza error — el flujo
 // activo usa runBackendAgentTurn via KoruProvider.submitEntry.
@@ -1077,13 +1078,13 @@ export function computeStreak(habitId: string, logs: HabitLog[]): number {
   const habitLogs = logs.filter(l => l.habitId === habitId).sort((a, b) => b.date.localeCompare(a.date));
   if (habitLogs.length === 0) return 0;
   let streak = 0;
-  let expectedDate = new Date().toISOString().slice(0, 10);
+  // 🔴 FIX (2026-09-09): fecha LOCAL (antes UTC → racha se rompía/resetaba
+  // tras ~21:00 en Latinoamérica) y aritmética de días sin toISOString().
+  let expectedDate = localDateISO();
   for (const log of habitLogs) {
     if (log.date === expectedDate) {
       streak++;
-      const d = new Date(expectedDate);
-      d.setDate(d.getDate() - 1);
-      expectedDate = d.toISOString().slice(0, 10);
+      expectedDate = shiftDateISO(expectedDate, -1);
     } else if (log.date < expectedDate) {
       break;
     }
@@ -1206,13 +1207,20 @@ export function toggleShoppingItem(state: KoruState, listId: string, itemId: str
 // ─── Wellbeing ───
 export function logWellbeing(state: KoruState, metric: WellbeingLog["metric"], value: number, unit: string, source: WellbeingLog["source"] = "manual"): KoruState {
   const now = nowIso();
-  const today = now.slice(0, 10);
+  // 🔴 FIX (2026-09-09): fecha LOCAL — en UTC el "hoy" saltaba de día tras ~21:00
+  // en Latinoamérica y el log se guardaba con la fecha de mañana.
+  const today = localDateISO();
+  const existing = (state.wellbeingLogs ?? []).find(l => l.date === today && l.metric === metric);
+  // 🔴 FIX (2026-09-09): ACUMULAR en vez de reemplazar. Antes cada tap de
+  // "+250ml" borraba el log previo del día → la barra quedaba clavada en
+  // 250/2000 para siempre. Los logs con source != "manual" (importados del
+  // agente) siguen siendo snapshot del valor reportado.
+  const accumulated = source === "manual" && existing ? (existing.value ?? 0) + value : value;
   const log: WellbeingLog = {
     id: createId("wblog"),
     date: today,
-    metric, value, unit, source,
+    metric, value: accumulated, unit, source,
   };
-  // Replace existing log for today+metric
   const wellbeingLogs = [
     log,
     ...(state.wellbeingLogs ?? []).filter(l => !(l.date === today && l.metric === metric)),

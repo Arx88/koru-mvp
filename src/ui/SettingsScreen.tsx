@@ -101,7 +101,7 @@ const SECTIONS: SectionMeta[] = [
   { id: "perfil",         title: "Perfil",            kicker: "QUIÉN ERES",        icon: User,          accent: "#8127cf", tint: "#f3e8ff", keywords: ["nombre", "cumpleaños", "ciudad", "zona horaria", "timezone", "name", "birthday", "location"] },
   { id: "idioma",         title: "Idioma",            kicker: "ESPAÑOL / ENGLISH", icon: Languages,     accent: "#2563eb", tint: "#dbeafe", keywords: ["language", "español", "english", "spanish"] },
   { id: "apariencia",     title: "Apariencia",        kicker: "TEMA Y TIPOGRAFÍA", icon: Palette,       accent: "#db2777", tint: "#fce7f3", keywords: ["theme", "font", "tamaño", "haptics", "sonidos", "contraste", "movimiento", "dark", "light"] },
-  { id: "notificaciones", title: "Notificaciones",    kicker: "ALERTEX Y DND",     icon: Bell,          accent: "#ea580c", tint: "#ffedd5", keywords: ["push", "dnd", "sonidos", "no molestar", "permiso"] },
+  { id: "notificaciones", title: "Notificaciones",    kicker: "ALERTAS Y DND",     icon: Bell,          accent: "#ea580c", tint: "#ffedd5", keywords: ["push", "dnd", "sonidos", "no molestar", "permiso"] },
   { id: "privacidad",     title: "Privacidad",        kicker: "TUS DATOS",         icon: Shield,        accent: "#16a34a", tint: "#dcfce7", keywords: ["ephemeral", "durable", "retention", "export", "eliminar", "lock", "webauthn", "borrar"] },
   { id: "integraciones",  title: "Integraciones",     kicker: "CONECTAR SERVICIOS",icon: Plug,          accent: "#0891b2", tint: "#cffafe", keywords: ["google", "calendar", "plaid", "tink", "banco", "crypto", "exchange", "sincronizar"] },
   { id: "memoria",        title: "Gestión de memoria",kicker: "LO QUE KORU SABE",  icon: Brain,         accent: "#7c3aed", tint: "#ede9fe", keywords: ["memoria", "memories", "forget", "olvidar", "sensible", "confianza"] },
@@ -1235,7 +1235,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
                 )}
 
                 {meta.id === "idioma" && (
-                  <Row label="Idioma de la interfaz y respuestas" hint="Koru te responderá en el idioma elegido.">
+                  <Row label="Idioma de las respuestas de Koru" hint="Koru te responderá en el idioma elegido.">
                     <RadioGroup
                       value={state.language ?? "es"}
                       onChange={(lang) => props.onUpdateLanguage(lang)}
@@ -1256,7 +1256,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
                         options={[
                           { value: "light", label: "Claro" },
                           { value: "dark", label: "Oscuro", disabled: true, badge: "próximamente" },
-                          { value: "auto", label: "Automático" },
+                          { value: "auto", label: "Automático", disabled: true, badge: "próximamente" },
                         ]}
                       />
                     </Field>
@@ -1272,18 +1272,41 @@ export function SettingsScreen(props: SettingsScreenProps) {
                       />
                     </Field>
                     <Row label="Hápticos" hint="Vibración al tocar">
-                      <Toggle
-                        checked={prefs.haptics}
-                        onChange={(v) => props.onUpdatePreferences({ haptics: v })}
-                        aria-label="Hápticos"
-                      />
+                      {/* 🔴 FIX (2026-09-09): toggle placebo → badge honesto
+                          (nada consumía prefs.haptics). */}
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          padding: "4px 10px",
+                          borderRadius: 999,
+                          background: "#fde68a",
+                          color: "#92400e",
+                          fontSize: 11,
+                          fontWeight: 700,
+                        }}
+                      >
+                        <Lock size={12} /> próximamente
+                      </span>
                     </Row>
                     <Row label="Sonidos" hint="Efectos de sonido de la interfaz">
-                      <Toggle
-                        checked={prefs.sounds}
-                        onChange={(v) => props.onUpdatePreferences({ sounds: v })}
-                        aria-label="Sonidos"
-                      />
+                      {/* 🔴 FIX (2026-09-09): ídem haptics. */}
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          padding: "4px 10px",
+                          borderRadius: 999,
+                          background: "#fde68a",
+                          color: "#92400e",
+                          fontSize: 11,
+                          fontWeight: 700,
+                        }}
+                      >
+                        <Lock size={12} /> próximamente
+                      </span>
                     </Row>
                     <Row
                       label="Movimiento reducido"
@@ -1368,20 +1391,25 @@ export function SettingsScreen(props: SettingsScreenProps) {
                         <span style={{ color: "#64748b", fontSize: 13 }}>N/A</span>
                       )}
                     </Row>
-                    <Row label="Sonidos por evento" hint="Personaliza qué eventos suenan">
-                      <SelectInput
-                        value="default"
-                        ariaLabel="Sonido por evento"
-                        onChange={() => {
-                          /* placeholder — los sonidos se integran después */
+                    <Row label="Sonidos por evento" hint="Personalizá qué eventos suenan">
+                      {/* 🔴 FIX (2026-09-09): era un select 100% no-op (elegías
+                          algo y nada cambiaba — placeholder comentado). Badge
+                          honesto hasta que exista el motor de sonidos. */}
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          padding: "4px 10px",
+                          borderRadius: 999,
+                          background: "#fde68a",
+                          color: "#92400e",
+                          fontSize: 11,
+                          fontWeight: 700,
                         }}
-                        options={[
-                          { value: "default", label: "Por defecto" },
-                          { value: "gentle", label: "Suave" },
-                          { value: "chime", label: "Campana" },
-                          { value: "none", label: "Sin sonido" },
-                        ]}
-                      />
+                      >
+                        <Lock size={12} /> próximamente
+                      </span>
                     </Row>
                     <Field label="Horario No Molestar">
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1451,7 +1479,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
                           fontWeight: 700,
                         }}
                       >
-                        <Lock size={12} /> próximoamente
+                        <Lock size={12} /> próximamente
                       </span>
                     </Row>
                     <Row
@@ -1475,12 +1503,24 @@ export function SettingsScreen(props: SettingsScreenProps) {
                       />
                     </Row>
                     <Row label="Retención de memoria" hint="Auto-archivar recuerdos antiguos">
-                      <SelectInput
-                        value={retention}
-                        ariaLabel="Retención de memoria"
-                        onChange={setRetention}
-                        options={RETENTION_OPTIONS}
-                      />
+                      {/* 🔴 FIX (2026-09-09): el select escribía solo
+                          localStorage ("el reducer no existe aún") — nada se
+                          archivaba. Badge honesto hasta implementarlo. */}
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          padding: "4px 10px",
+                          borderRadius: 999,
+                          background: "#fde68a",
+                          color: "#92400e",
+                          fontSize: 11,
+                          fontWeight: 700,
+                        }}
+                      >
+                        <Lock size={12} /> próximamente
+                      </span>
                     </Row>
                     <Row label="Exportar mis datos" hint="Descarga un JSON con todo tu estado" stacked>
                       <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
@@ -1614,7 +1654,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
                               ? `${ethBalance} ETH${ethTokenCount != null && ethTokenCount > 0 ? ` · ${ethTokenCount} token(s)` : ""}`
                               : ethLoading
                                 ? "Consultando…"
-                                : ethError ?? "Sin key — dirección pública"}
+                                : ethError ?? "Dirección pública sin configurar"}
                           </div>
                         </div>
                       </div>
@@ -1647,18 +1687,15 @@ export function SettingsScreen(props: SettingsScreenProps) {
                       </div>
                     </div>
 
-                    <IntegrationRow
-                      icon={<Bitcoin size={16} />}
-                      title="Exchanges de crypto"
-                      connected={integrations.crypto?.connected ?? false}
-                      lastSync={integrations.crypto?.lastSync}
-                      onConnect={() => connectIntegration("crypto")}
-                      onDisconnect={() => disconnectIntegration("crypto")}
-                    />
+                    {/* 🔴 FIX (2026-09-09): eliminada la fila "Exchanges de
+                        crypto" — su botón "Conectar" fabricaba al instante
+                        "Conectado ✓ / Última sync: ahora" sin conectar nada a
+                        ningún exchange. Lo REAL de la sección (importar CSV
+                        bancario + consultar wallet ETH) queda intacto. */}
                     <p style={{ margin: "10px 0 0", fontSize: 11, color: "#94a3b8" }}>
-                      Las conexiones son placeholders visuales por ahora. La sincronización real
-                      arriveá con OAuth en una próxima iteración. CSV y Wallet ETH ya funcionan
-                      sin configuración extra.
+                      CSV bancario y Wallet ETH ya funcionan sin configuración
+                      extra. Más integraciones llegarán con OAuth en una próxima
+                      iteración.
                     </p>
                   </>
                 )}
@@ -1751,13 +1788,10 @@ export function SettingsScreen(props: SettingsScreenProps) {
 
                 {meta.id === "accesibilidad" && (
                   <>
-                    <Row label="Hints para lector de pantalla" hint="Descripciones adicionales en ARIA">
-                      <Toggle
-                        checked={prefs.highContrast}
-                        onChange={(v) => props.onUpdatePreferences({ highContrast: v })}
-                        aria-label="Hints para lector de pantalla"
-                      />
-                    </Row>
+                    {/* 🔴 FIX (2026-09-09): eliminada la fila "Hints para
+                        lector de pantalla" — estaba cableada a la MISMA
+                        variable que "Alto contraste" (tres filas moviendo un
+                        solo toggle). El alto contraste real vive en Apariencia. */}
                     <Row
                       label="Movimiento reducido"
                       hint={systemReducedMotion ? "Activado por tu sistema." : "Sincronizado con Apariencia."}
@@ -1794,49 +1828,16 @@ export function SettingsScreen(props: SettingsScreenProps) {
                       controles · Enter o Espacio para activar · Esc para cerrar dialogs.
                     </div>
 
-                    {/* 🔴 KIMI — Dev/reference: galería de iconos animados.
-                        Botón que navega a ?icons=1 (App.tsx intercepta el query
-                        param y renderiza <IconGallery/> en lugar del flujo normal). */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const url = new URL(window.location.href);
-                        url.searchParams.set("icons", "1");
-                        window.location.href = url.toString();
-                      }}
-                      style={{
-                        marginTop: 12,
-                        width: "100%",
-                        padding: "10px 14px",
-                        borderRadius: 12,
-                        border: "1px solid rgba(131,99,249,0.3)",
-                        background: "rgba(131,99,249,0.08)",
-                        color: "#523a9e",
-                        fontSize: 13,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        fontFamily: "inherit",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 8,
-                      }}
-                    >
-                      <span className="material-symbols-outlined" aria-hidden="true" style={{ fontSize: 18 }}>
-                        animation
-                      </span>
-                      Ver galería de iconos
-                    </button>
+                    {/* 🔴 FIX (2026-09-09): botón a la galería de iconos
+                        (herramienta dev de referencia) ELIMINADO de producción.
+                        La ruta ?icons=1 sigue disponible en dev. */}
                   </>
                 )}
               </SectionCard>
             );
           })}
 
-          {/* Footer hint */}
-          <div style={{ padding: "8px 4px 16px", textAlign: "center", color: "#94a3b8", fontSize: 11 }}>
-            Koru · Ajustes integrados v1
-          </div>
+          {/* Footer hint — texto de versión interna eliminado (jerga dev). */}
         </div>
 
         {/* 🔴 v4: Memory graph modal — portal que renderiza el force-directed

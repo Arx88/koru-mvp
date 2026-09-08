@@ -72,6 +72,15 @@ const KIND_MAP: Record<Template, LifeRecordKind> = {
 
 type RutinaCadence = "daily" | "weekly" | "mon-fri" | "custom";
 
+// 🔴 FIX (2026-09-09): labels humanizados para las notas de rutinas —
+// antes persistían el enum inglés ("Cadencia: daily").
+const RUTINA_CADENCE_LABEL: Record<RutinaCadence, string> = {
+  daily: "Diaria",
+  weekly: "Semanal",
+  "mon-fri": "Lunes a Viernes",
+  custom: "Personalizada",
+};
+
 type ExerciseSetInput = { name: string; sets: string; reps: string; weight: string };
 type SessionInput = { dayLabel: string; exercises: ExerciseSetInput[] };
 
@@ -369,6 +378,9 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
   const [listItems, setListItems] = useState<string[]>([""]);
   const [collection, setCollection] = useState("");
   const [saving, setSaving] = useState(false);
+  // 🔴 FIX (2026-09-09): feedback de error de guardado (antes fallaba en
+  // silencio con un rejection no manejado).
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Receta
   const [ingredients, setIngredients] = useState<string[]>([""]);
@@ -692,6 +704,7 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
     const finalTags = tags.length > 0 ? tags : undefined;
     const finalAttachments = attachments.length > 0 ? attachments : undefined;
     setSaving(true);
+    setSaveError(null);
     try {
       await createRecord({
         title: args.title,
@@ -703,6 +716,14 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
         sourceBlock: args.sourceBlock,
         attachments: finalAttachments,
       });
+    } catch (err) {
+      // 🔴 FIX (2026-09-09): guardado SIN manejo de errores — si createRecord
+      // rechazaba, quedaba un unhandled rejection, cero feedback y el form
+      // se reseteaba como si hubiera guardado. Ahora: error visible + el
+      // form NO se resetea (los datos quedan para reintentar).
+      console.error("[create] error al guardar:", err);
+      setSaveError("No pude guardar. Revisá la conexión y probá de nuevo.");
+      return;
     } finally {
       setSaving(false);
     }
@@ -762,6 +783,12 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
 
     if (selected === "gasto") {
       const amt = parseFloat(amount) || 0;
+      // 🔴 FIX (2026-09-09): antes se podía guardar "Gasto · EUR 0" — sin
+      // validación de monto. Ahora exige monto > 0.
+      if (amt <= 0) {
+        setSaveError("Ingresá un monto mayor a cero para guardar el gasto.");
+        return;
+      }
       await persist({
         title: title.trim() || "Gasto",
         collection: finalCollection,
@@ -785,7 +812,7 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
     if (selected === "rutina") {
       const target = parseFloat(rutinaTarget) || 0;
       const rutinaText = [
-        `Cadencia: ${rutinaCadence}`,
+        `Cadencia: ${RUTINA_CADENCE_LABEL[rutinaCadence] ?? rutinaCadence}`,
         `Meta: ${target} ${rutinaUnit || ""}`.trim(),
         rutinaAnchorTime ? `Ancla: ${rutinaAnchorTime}` : null,
       ].filter(Boolean).join("\n");
@@ -912,19 +939,18 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
     if (selected === "decision") {
       const facIds = factors.map(f => f.id);
       const decText = [
-        deadline ? `Deadline: ${deadline}` : null,
+        deadline ? `Vencimiento: ${deadline}` : null,
         "Factores:",
         ...factors.filter(f => f.label.trim()).map(f => `  • ${f.label} (${f.direction === "higherIsBetter" ? "↑" : "↓"})`),
         "Opciones:",
         ...options.filter(o => o.label.trim()).map(o => `  • ${o.label}`),
       ].filter(Boolean).join("\n");
-      // Embed structured payload (factor scores) as a JSON footer for later reopening.
-      const optionsWithScores = options.filter(o => o.label.trim()).map(o => ({
-        label: o.label,
-        factorScores: Object.fromEntries(facIds.map(id => [id, o.factorScores[id] ?? 0])),
-      }));
-      const structured = JSON.stringify({ weeks: null, factors: factors.filter(f => f.label.trim()), options: optionsWithScores, deadline: deadline || undefined });
-      const fullNotes = `${decText}\n\n---\n${structured}`;
+      // 🔴 FIX (2026-09-09): payload estructurado (JSON con ids fac_xxx/opt_xxx
+      // y enums en inglés) ELIMINADO de notes — nadie lo parseaba (la
+      // reapertura usa sourceBlock) y el usuario veía el JSON crudo en Mis
+      // Colecciones. La decisión estructurada persiste aparte vía
+      // createDecision (store real) más abajo.
+      const fullNotes = decText;
       // 🔴 GAP-2: además del LifeRecord, persistimos una Decision durable en
       // el store y disparamos el motor (computeDecision) para poblar el
       // resultado: recommendation, perOptionScore, perOptionProbability y
@@ -2100,7 +2126,10 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
                   saving ||
                   (!title.trim() && selected !== "gasto") ||
                   // 🔴 TIER S: plan requiere al menos un step con título.
-                  (selected === "plan" && !planSteps.some(s => s.title.trim()))
+                  (selected === "plan" && !planSteps.some(s => s.title.trim())) ||
+                  // 🔴 FIX (2026-09-09): gasto exige monto > 0 — antes se podía
+                  // guardar "Gasto · ARS 0" sin validar nada.
+                  (selected === "gasto" && !(parseFloat(amount) > 0))
                 }
                 style={{ background: currentTpl?.accent }}
               >
@@ -2111,6 +2140,25 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
                 )}
               </button>
             </div>
+            {/* 🔴 FIX (2026-09-09): error de guardado visible — antes el fallo
+                era silencioso (rejection no manejado) y el form se reseteaba
+                como si hubiera guardado. */}
+            {saveError && (
+              <p
+                role="alert"
+                style={{
+                  margin: "10px 0 0",
+                  padding: "10px 12px",
+                  borderRadius: 10,
+                  background: "rgba(185, 28, 28, 0.08)",
+                  color: "#b91c1c",
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+              >
+                {saveError}
+              </p>
+            )}
           </div>
         )}
       </div>

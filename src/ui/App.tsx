@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Suspense, lazy, useState } from "react";
 import { KoruProvider, useKoru } from "./KoruProvider";
 import { KoruIconSprite } from "./KoruIconSprite";
 import { MemoryScreen } from "./MemoryScreen";
@@ -9,10 +9,21 @@ import { HomeScreen } from "./HomeScreen";
 import { SettingsScreen } from "./SettingsScreen";
 import { IconGallery } from "./IconGallery";
 import { KoruMicrodetails } from "./cards/unified/KoruMicrodetails";
+import { fetchWeatherForCity } from "../domain/weatherClient";
+
+// 🔴 CreateScreen code-split (mismo patrón que TalkOverlay).
+const LazyCreateScreen = lazy(() =>
+  import("./create/CreateScreen").then((m) => ({ default: m.CreateScreen })),
+);
 
 type Screen = "chat" | "hoy" | "memoria" | "permisos" | "historial" | "configuracion";
 
 function KoruApp() {
+  // 🔴 FIX (2026-09-09): "Crear" desde el Home abre la CreateScreen REAL
+  // (antes mandaba al chat — el wheel ya abría CreateScreen; dos rutas
+  // distintas para el mismo concepto). Igual que TalkOverlay: overlay lazy
+  // sobre cualquier pantalla.
+  const [showCreate, setShowCreate] = useState(false);
   const {
     onboarded,
     completeOnboarding,
@@ -78,7 +89,7 @@ function KoruApp() {
               <HomeScreen
                 state={state}
                 onNavigate={(s) => setScreen(s as Screen)}
-                onCreate={() => setScreen("chat")}
+                onCreate={() => setShowCreate(true)}
                 onSearch={() => setScreen("chat")}
                 onTalk={() => setScreen("chat")}
                 onDismissNudge={dismissNudge}
@@ -97,13 +108,25 @@ function KoruApp() {
                 onLogHabit={(habitId) => logHabit(habitId, 1)}
                 onPauseHabit={(habitId) => pauseHabit(habitId)}
                 onResumeHabit={(habitId) => resumeHabit(habitId)}
-                onRefreshWeather={() => {
-                  if (state.weatherCache) {
-                    updateWeatherCache({
-                      ...state.weatherCache,
-                      fetchedAt: new Date().toISOString(),
-                    });
+                onRefreshWeather={async () => {
+                  // 🔴 FIX (2026-09-09): fetch REAL. Antes este handler solo
+                  // re-estampaba fetchedAt del cache existente ("dato antiguo"
+                  // desaparecía pero el dato seguía siendo de hace horas) y sin
+                  // cache era un no-op total. Ahora pega al endpoint
+                  // /api/koru/weather (mismo pipeline del agente) y devuelve
+                  // true/false para que el widget muestre error honesto.
+                  const city =
+                    state.weatherCache?.city?.trim() ||
+                    state.userProfile?.homeCity?.trim() ||
+                    state.userProfile?.location?.trim();
+                  if (!city) return false;
+                  const result = await fetchWeatherForCity(city);
+                  if (result.ok) {
+                    updateWeatherCache(result.cache);
+                    return true;
                   }
+                  console.warn("[weather] refresh falló:", result.error);
+                  return false;
                 }}
               />
           )}
@@ -133,6 +156,36 @@ function KoruApp() {
           )}
         </div>
       </div>
+      {/* 🔴 FIX (2026-09-09): CreateScreen accesible desde el Home — mismo
+          overlay lazy + AI-assist que usa el chat. Antes "Crear" en Home
+          abría el chat (la ruta INFERIOR) cuando existe una pantalla de
+          creación directa (el wheel del chat ya la abría). */}
+      <Suspense fallback={null}>
+        {showCreate && (
+          <LazyCreateScreen
+            onClose={() => setShowCreate(false)}
+            onAiAssist={async (template, title) => {
+              try {
+                const res = await fetch("/api/koru/ai-assist", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ template, title }),
+                });
+                if (!res.ok) return { suggestions: [] };
+                const data = await res.json();
+                const suggestions = Array.isArray(data?.suggestions)
+                  ? data.suggestions.filter(
+                      (s: any) => s && typeof s.field === "string" && typeof s.value === "string",
+                    )
+                  : [];
+                return { suggestions };
+              } catch {
+                return { suggestions: [] };
+              }
+            }}
+          />
+        )}
+      </Suspense>
     </main>
   );
 }
@@ -140,7 +193,10 @@ function KoruApp() {
 export function App() {
   // 🔴 KIMI — Hidden route: ?icons=1 → galería de iconos animados (dev/ref).
   // Se evalúa en cada render para reaccionar a cambios de URL sin reload.
+  // 🔴 FIX (2026-09-09): gateada a DEV — antes cualquier usuario de producción
+  // podía entrar a la galería con ?icons=1 (herramienta interna de referencia).
   const showIcons =
+    import.meta.env.DEV &&
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).get("icons") === "1";
   if (showIcons) return <IconGallery />;

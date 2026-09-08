@@ -933,6 +933,40 @@ function koruBackendAgent(env: Record<string, string>): Plugin {
         }
       });
 
+      // 🔴 FIX (2026-09-09): clima fresco para el HomeScreen en dev — mismo
+      // pipeline getWeather del agente (wttr.in → open-meteo). En producción lo
+      // sirve server/index.ts (/api/koru/weather).
+      server.middlewares.use("/api/koru/weather", async (req, res) => {
+        if (req.method !== "POST") {
+          res.statusCode = 405;
+          res.setHeader("Allow", "POST");
+          res.end();
+          return;
+        }
+        const chunks: Buffer[] = [];
+        for await (const chunk of req) chunks.push(Buffer.from(chunk));
+        const raw = Buffer.concat(chunks).toString("utf8");
+        try {
+          const body = JSON.parse(raw || "{}");
+          const city = typeof body?.city === "string" ? body.city.trim() : "";
+          if (!city) {
+            res.statusCode = 400;
+            res.setHeader("Content-Type", "application/json");
+            res.end(JSON.stringify({ error: "Falta la ciudad." }));
+            return;
+          }
+          const { getWeather } = await import("./src/server/koruBackend.ts");
+          const data = await getWeather({ city });
+          res.statusCode = 200;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify(data));
+        } catch (err: any) {
+          res.statusCode = 500;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ error: err?.message ?? "Error al traer el clima." }));
+        }
+      });
+
       server.middlewares.use("/api/koru/turn", async (req, res) => {
         if (req.method !== "POST") {
           res.statusCode = 405;

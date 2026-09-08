@@ -3,11 +3,13 @@ import { foldAccents } from "./commitments";
 import { buildProactiveNudges } from "./heartbeatProactive";
 import { dueLabel } from "./time";
 import type { KoruState, ProactiveNudge } from "./types";
+import { localDateISO } from "./localDate";
 
 type NudgeDraft = Omit<ProactiveNudge, "id" | "createdAt">;
 
 function sameDay(a: Date, b: Date): boolean {
-  return a.toISOString().slice(0, 10) === b.toISOString().slice(0, 10);
+  // 🔴 FIX: fecha LOCAL (antes UTC → "hoy" saltaba de día tras ~21:00 en LATAM)
+  return localDateISO(a) === localDateISO(b);
 }
 
 function formatRelativeDay(date: Date, now: Date): string {
@@ -39,7 +41,7 @@ function hasFreshRun(state: KoruState, now: Date): boolean {
 }
 
 function hasDailyCapacity(state: KoruState, now: Date): boolean {
-  const today = now.toISOString().slice(0, 10);
+  const today = localDateISO(now);
   const count = state.heartbeat.dailyNudgeDate === today ? state.heartbeat.dailyNudgeCount : 0;
   return count < state.heartbeat.maxNudgesPerDay;
 }

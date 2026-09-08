@@ -278,7 +278,7 @@ function MemoryDetail({
         {/* Origin info */}
         <div className="mt-4 rounded-xl bg-warm-white/60 backdrop-blur-sm p-4 border border-sand/50">
           <p className="text-xs font-semibold text-earth flex items-center gap-1">
-            <Sprout className="h-3 w-3" /> Ver raíces
+            <Sprout className="h-3 w-3" /> Origen
           </p>
           <p className="mt-1 text-sm leading-relaxed text-earth">{memory.origin}</p>
           <p className="mt-2 text-xs text-stone">{memory.savedOn}</p>
@@ -296,7 +296,7 @@ function MemoryDetail({
         <div className="mt-4 flex items-center justify-between rounded-xl border border-sand/50 bg-warm-white/40 backdrop-blur-sm px-4 py-3">
           <div>
             <p className="text-sm font-medium text-bark">Usarla para sugerencias</p>
-            <p className="text-xs text-earth">Puedes guardarla sin que aparezca proactivamente.</p>
+            <p className="text-xs text-earth">Podés guardarla sin que aparezca proactivamente.</p>
           </div>
           <button
             type="button"

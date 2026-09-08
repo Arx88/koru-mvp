@@ -9143,3 +9143,35 @@ svg .draw{stroke-dasharray:60;stroke-dashoffset:60;animation:draw 1.6s var(--eas
   border: 1.5px solid rgba(131, 99, 249, 0.3);
 }
 
+
+/* 🔴 FIX (2026-09-09): preferencias de Ajustes APLICADAS de verdad.
+   KoruProvider setea estas clases en <html> según prefs del usuario.
+   Antes los toggles eran placebo (se guardaban y nada los consumía). */
+html.koru-high-contrast {
+  filter: contrast(1.15) saturate(1.05);
+}
+html.koru-reduced-motion *,
+html.koru-reduced-motion *::before,
+html.koru-reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+/* 🔴 FIX (2026-09-09): botón "Más tarde" del morning brief — salida suave
+   además del CTA principal (antes no se podía posponer). */
+.koru-morning-brief-later {
+  flex: 0 0 auto;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 160ms ease;
+}
+.koru-morning-brief-later:hover {
+  background: rgba(255, 255, 255, 0.22);
+}

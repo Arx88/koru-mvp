@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type {
   AssistantAction,
   UiBlock,
@@ -84,6 +84,7 @@ import { runBackendAgentTurn } from "../domain/backendAgentClient";
 import { buildHeartbeatNudges } from "../domain/heartbeat";
 import { runWebNavigation, webResultToPayload } from "../domain/web";
 import { dueLabel } from "../domain/time";
+import { localDateISO } from "../domain/localDate";
 import { inferActivity, type AgentActivity } from "../domain/agentKernel";
 import { shouldAutoRunAction } from "../domain/toolRegistry";
 import { checkDueReminders, syncScheduledReminders, scheduleReminderNotification, schedulePreciseTimeout, requestNotificationPermission } from "./NotificationManager";
@@ -132,11 +133,14 @@ export type Memory = {
 
 export type HistoryEntry = {
   id: string;
+  /** Fecha LOCAL YYYY-MM-DD — para agrupar por día en el Historial. */
+  date: string;
   time: string;
   kind: "check-in" | "memoria" | "cierre";
   title: string;
   detail: string;
   reason?: string;
+  /** Solo check-ins: energía REAL otorgada (energyAwarded). */
   energy?: number;
 };
 
@@ -508,7 +512,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
         // mostró hoy leyendo state.lastBriefDate sin tocar localStorage.
         const now = new Date();
         const hour = now.getHours();
-        const today = now.toISOString().slice(0, 10);
+        const today = localDateISO(now); // 🔴 FIX: día LOCAL (antes UTC)
         const lastBriefDate = persisted.lastBriefDate ?? localStorage.getItem("koru.lastBriefDate");
         if (hour >= 5 && hour <= 11 && lastBriefDate !== today) {
           try {
@@ -543,7 +547,13 @@ export function KoruProvider({ children }: { children: ReactNode }) {
             const res = await fetch("/api/koru/morning-brief", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ state: stateForBrief }),
+              // 🔴 FIX: clientToday + tzOffsetMin para que el server (UTC en
+              // Render) calcule el "hoy" del USUARIO, no el del datacenter.
+              body: JSON.stringify({
+                state: stateForBrief,
+                clientToday: localDateISO(),
+                tzOffsetMin: new Date().getTimezoneOffset(),
+              }),
             });
             if (res.ok) {
               const data = await res.json();
@@ -617,6 +627,37 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     return () => { cancelled = true; };
   }, []);
 
+  // 🔴 FIX (2026-09-09): preferencias visuales APLICADAS de verdad.
+  // Antes fontScale / highContrast / reducedMotion (desde Ajustes) se
+  // guardaban en el store sin que NADA las consumiera — toggles placebo que
+  // minaban la confianza. Este efecto las aplica al <html>:
+  //   • fontScale → font-size raíz (escala toda la UI, que usa rem)
+  //   • highContrast → clase koru-high-contrast (filtro de contraste)
+  //   • reducedMotion → clase koru-reduced-motion (mata animaciones)
+  const prefsFontScale = domainState.preferences?.fontScale;
+  const prefsHighContrast = domainState.preferences?.highContrast;
+  const prefsReducedMotion = domainState.preferences?.reducedMotion;
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const root = document.documentElement;
+    const scale = prefsFontScale ?? "medium";
+    root.style.fontSize = scale === "small" ? "14px" : scale === "large" ? "18px" : "";
+    root.classList.toggle("koru-high-contrast", !!prefsHighContrast);
+    root.classList.toggle("koru-reduced-motion", !!prefsReducedMotion);
+  }, [prefsFontScale, prefsHighContrast, prefsReducedMotion]);
+
+  // 🔴 FIX (2026-09-09): DND REAL — dentro de la ventana "No molestar"
+  // (dndStartHour..dndEndHour de Ajustes) no se disparan notificaciones de
+  // recordatorios. Antes las horas se guardaban sin que nada las leyera.
+  const inDndWindow = useCallback((): boolean => {
+    const prefs = domainStateRef.current?.preferences;
+    const start = prefs?.dndStartHour;
+    const end = prefs?.dndEndHour;
+    if (start == null || end == null) return false;
+    const hour = new Date().getHours();
+    return start === end ? false : start < end ? hour >= start && hour < end : hour >= start || hour < end;
+  }, []);
+
   // 🔴 Morning brief scheduler (sin LLM) — se ejecuta en mount y cada vez que
   // `state.lastBriefDate` cambia. Si es de mañana (5-11h) y todavía no se
   // mostró el brief hoy, dispatchea un nudge proactivo "Buenos días" y marca
@@ -629,7 +670,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const now = new Date();
     const hour = now.getHours();
-    const today = now.toISOString().slice(0, 10);
+    const today = localDateISO(now); // 🔴 FIX: día LOCAL (antes UTC)
     // Solo dentro de la ventana matutina.
     if (hour < 5 || hour > 11) return;
     // Si ya se mostró el brief hoy (según state.lastBriefDate), no repetir.
@@ -644,7 +685,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     const nudge: ProactiveNudge = {
       id: createId("nudge"),
       title: "Buenos días",
-      body: "Tu brief matutino está listo. Tocá para revisar el día.",
+      body: "Arranco el día con vos. Pedime el resumen cuando quieras.",
       reason: "morning-brief",
       priority: "medium",
       createdAt: new Date().toISOString(),
@@ -681,11 +722,18 @@ export function KoruProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const runHeartbeat = () => {
-      // 🔴 Proactividad: check due reminders y disparar notificaciones
-      const userId = domainStateRef.current?.userId ?? "default";
-      const { fired, overdue } = checkDueReminders(userId);
-      if (fired.length > 0 || overdue.length > 0) {
-        console.log("[Koru] Reminders fired:", fired.length, "overdue:", overdue.length);
+      // 🔴 Proactividad: check due reminders y disparar notificaciones.
+      // 🔴 FIX (2026-09-09): dentro de la ventana "No molestar" (Ajustes →
+      // Notificaciones) NO se disparan notificaciones — antes las horas de DND
+      // se guardaban sin que ningún código las consultara.
+      if (inDndWindow()) {
+        console.log("[Koru] DND activo — notificaciones postergadas");
+      } else {
+        const userId = domainStateRef.current?.userId ?? "default";
+        const { fired, overdue } = checkDueReminders(userId);
+        if (fired.length > 0 || overdue.length > 0) {
+          console.log("[Koru] Reminders fired:", fired.length, "overdue:", overdue.length);
+        }
       }
 
       commitDomainState((prev) => {
@@ -775,10 +823,27 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     }
   }, [chatTurns, domainState.ephemeralMode, language]);
 
-  // 🔴 KORU 3.0 — TTS: cuando koruVoiceEnabled está activo y llega un nuevo
-  // turno de Koru con texto, reproducirlo con SpeechSynthesis del navegador.
+  // 🔴 KORU 3.0 — TTS: cuando koruVoiceEnabled está activo y llega un turno
+  // de Koru FINAL (status done — antes hablaba el primer chunk parcial del
+  // streaming), reproducirlo con SpeechSynthesis del navegador.
   // Solo se reproduce el ÚLTIMO turno (no re-reproduce al cargar historial).
+  // 🔴 FIX (2026-09-09): única fuente de verdad = preferences.koruVoiceEnabled.
+  // Antes existían DOS toggles (Permisos → localStorage, Ajustes → prefs) con
+  // DOS pipelines que podían hablar la MISMA respuesta dos veces. El toggle
+  // de Permisos se eliminó; el flag legacy de localStorage se migra 1 vez.
   const lastSpokenTurnRef = useRef<string | null>(null);
+  // Migración one-time: si el usuario había activado la voz desde Permisos
+  // (localStorage) la llevamos a prefs para que un solo toggle gobierne.
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("koru.voiceEnabled") === "true") {
+        const prefs = domainStateRef.current?.preferences;
+        if (prefs && !prefs.koruVoiceEnabled) {
+          updatePreferences({ koruVoiceEnabled: true });
+        }
+      }
+    } catch { /* best-effort */ }
+  }, []);
   useEffect(() => {
     const prefs = domainStateRef.current?.preferences;
     if (!prefs?.koruVoiceEnabled) {
@@ -789,6 +854,9 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     if (chatTurns.length === 0) return;
     const lastTurn = chatTurns[chatTurns.length - 1];
     if (lastTurn.role !== "koru") return;
+    // 🔴 FIX: hablar SOLO el turno terminado — durante streaming el texto
+    // crece chunk a chunk y se hablaba el primer fragmento parcial.
+    if ((lastTurn as { status?: string }).status !== "done") return;
     if (lastTurn.text.trim().length < 2) return;
     // No repetir el mismo turno
     if (lastSpokenTurnRef.current === lastTurn.id) return;
@@ -917,11 +985,19 @@ export function KoruProvider({ children }: { children: ReactNode }) {
       })),
   [domainState.memories]);
 
+  // 🔴 Historial: check-ins + cierres + memorias confirmadas.
+  // FIX (2026-09-09): (1) cada entry lleva `date` (fecha LOCAL) para agrupar
+  // por día — antes solo hh:mm y días distintos se mezclaban; (2) la energía
+  // inventada (+14 hardcode en acciones, con claim falso de "raíz nueva")
+  // eliminada — solo los check-ins tienen energía REAL (energyAwarded);
+  // (3) memorias confirmadas como entries "memoria" (antes ese kind era
+  // código muerto que jamás se renderizaba).
   const history: HistoryEntry[] = useMemo(() => {
     const entries: HistoryEntry[] = [];
     for (const entry of domainState.entries.slice(0, 20)) {
       entries.push({
         id: entry.id,
+        date: localDateISO(new Date(entry.createdAt)),
         time: new Date(entry.createdAt).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }),
         kind: "check-in",
         title: "Check-in",
@@ -933,16 +1009,27 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     for (const action of domainState.actions.filter((a) => a.status === "executed").slice(0, 20)) {
       entries.push({
         id: action.id,
+        date: localDateISO(new Date(action.executedAt ?? action.createdAt)),
         time: new Date(action.executedAt ?? action.createdAt).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }),
         kind: "cierre",
         title: action.title,
         detail: action.result ?? action.body,
-        reason: "Accion aprobada y ejecutada por Koru",
-        energy: 14,
+        reason: "Acción aprobada y ejecutada por Koru",
       });
     }
-    return entries.slice(0, 30);
-  }, [domainState.actions, domainState.entries]);
+    for (const mem of domainState.memories.filter((m) => m.status === "confirmed").slice(0, 10)) {
+      entries.push({
+        id: mem.id,
+        date: localDateISO(new Date(mem.createdAt)),
+        time: new Date(mem.createdAt).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }),
+        kind: "memoria",
+        title: "Koru aprendió algo",
+        detail: mem.text.slice(0, 120),
+        reason: "Memoria confirmada",
+      });
+    }
+    return entries.sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time)).slice(0, 30);
+  }, [domainState.actions, domainState.entries, domainState.memories]);
 
   const permissions: Permission[] = useMemo(() => [
     {
@@ -1492,10 +1579,9 @@ export function KoruProvider({ children }: { children: ReactNode }) {
               : turn,
           ),
         );
-        // 🔴 Voice: si voice está activado, Koru habla la respuesta
-        if (voiceEnabled && agentResult.reply) {
-          speak(agentResult.reply);
-        }
+        // 🔴 FIX (2026-09-09): speak() DUPLICADO eliminado — el efecto de TTS
+        // (arriba) ya habla el turno final con prefs.koruVoiceEnabled; con
+        // ambos toggles activos Koru hablaba la respuesta DOS veces.
         // 🔴 Memory toast: si hay memoryCandidates en la respuesta, mostrar toast.
         // Buscar en memoryCandidates top-level Y dentro de toolResults (save_memory tool).
         const topCandidates = (agentResult.memoryCandidates ?? []);
@@ -2058,6 +2144,9 @@ export function KoruProvider({ children }: { children: ReactNode }) {
       setVoiceEnabledState(next);
       setVoiceEnabled(next);
       localStorage.setItem("koru.voiceEnabled", String(next));
+      // 🔴 FIX: el toggle también sincroniza prefs para que la voz tenga UNA
+      // sola fuente de verdad (el TTS del pipeline lee prefs).
+      updatePreferences({ koruVoiceEnabled: next });
       if (!next) stopSpeaking();
     },
     speakReply: (text: string) => {
@@ -2382,6 +2471,20 @@ export function KoruProvider({ children }: { children: ReactNode }) {
           );
           setMemoryToast({ id: `action_${Date.now()}`, kind: "saved", text: "Entrenamiento registrado ✓" });
           setTimeout(() => setMemoryToast(null), 2000);
+        }
+      } else if (action === "meditation_complete") {
+        // 🔴 FIX (2026-09-09): las sesiones de meditación terminadas caían en el
+        // vacío — MeditationOverlay despacha este evento pero nadie lo escuchaba
+        // (sin stats, sin historial). Ahora se registra en wellbeingLogs con la
+        // duración REAL (min), acumulativa por día, y toast de confirmación.
+        const completed = detail?.completed !== false;
+        const seconds = Number(detail?.duration ?? 0);
+        const minutes = Math.max(1, Math.round(seconds / 60));
+        if (completed && seconds > 0) {
+          logWellbeing("meditation", minutes, "min");
+          const label = String(detail?.session ?? "Meditación");
+          setMemoryToast({ id: `action_${Date.now()}`, kind: "saved", text: `${label}: ${minutes} min registrados ✓` });
+          setTimeout(() => setMemoryToast(null), 2500);
         }
       } else if (action === "reserve") {
         // 🔴 v3: abrir reserveUrl del top match del restaurant_synthesis block.

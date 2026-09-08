@@ -1,4 +1,5 @@
 import { foldAccents } from "./commitments";
+import { localDateISO } from "./localDate";
 
 export type RecurrenceRule = "daily" | "weekly" | "monthly";
 
@@ -166,14 +167,16 @@ export function dueLabel(dueAt: string | undefined, fallback = "sin fecha", now 
   if (!dueAt) return fallback;
   const due = new Date(dueAt);
   if (Number.isNaN(due.getTime())) return fallback;
-  const date = due.toISOString().slice(0, 10);
-  const today = now.toISOString().slice(0, 10);
+  // 🔴 FIX: comparación de días en LOCAL (antes UTC → "hoy"/"mañana" mal
+  // tras ~21:00 en Latinoamérica).
+  const date = localDateISO(due);
+  const today = localDateISO(now);
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
   const day =
     date === today
       ? "hoy"
-      : date === tomorrow.toISOString().slice(0, 10)
+      : date === localDateISO(tomorrow)
         ? "mañana"
         : new Intl.DateTimeFormat("es", { weekday: "short", day: "2-digit", month: "short" }).format(due);
   return `${day} ${new Intl.DateTimeFormat("es", { hour: "2-digit", minute: "2-digit" }).format(due)}`;

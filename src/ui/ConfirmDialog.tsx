@@ -38,10 +38,14 @@ export function ConfirmDialog({
         <h3 className="koru-confirm-title">{title}</h3>
         {message && <p className="koru-confirm-message">{message}</p>}
         <div className="koru-confirm-actions">
+          {/* 🔴 FIX (2026-09-09): autoFocus estaba en el botón CONFIRMAR —
+              en diálogos destructivos ("Eliminar") un Enter accidental
+              ejecutaba la acción de borrar. El foco inicial va a Cancelar. */}
           <button
             type="button"
             className="koru-confirm-btn koru-confirm-cancel"
             onClick={onCancel}
+            autoFocus
           >
             {cancelLabel}
           </button>
@@ -49,7 +53,6 @@ export function ConfirmDialog({
             type="button"
             className={"koru-confirm-btn koru-confirm-accept" + (destructive ? " is-destructive" : "")}
             onClick={onConfirm}
-            autoFocus
           >
             {confirmLabel}
           </button>

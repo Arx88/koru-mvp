@@ -20,6 +20,7 @@
 
 import type { WellbeingLog, DailyEntry, Habit, HabitLog } from "./types";
 import { computeStreak } from "./store";
+import { localDateISO } from "./localDate";
 
 export type StressLevel = "bajo" | "medio" | "alto";
 
@@ -32,7 +33,8 @@ export type StressInference = {
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  // 🔴 FIX: fecha LOCAL (antes UTC)
+  return localDateISO();
 }
 
 function parseDateDay(iso: string): number {

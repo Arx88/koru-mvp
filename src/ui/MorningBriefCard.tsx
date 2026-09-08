@@ -11,7 +11,6 @@ type MorningBrief = {
 
 export function MorningBriefCard({ brief, onStart }: { brief: MorningBrief; onStart: () => void }) {
   const [visible, setVisible] = useState(false);
-
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 50);
     return () => clearTimeout(t);
@@ -72,14 +71,25 @@ export function MorningBriefCard({ brief, onStart }: { brief: MorningBrief; onSt
           )}
         </div>
 
-        {/* CTA */}
-        <button
-          type="button"
-          onClick={onStart}
-          className="koru-morning-brief-cta"
-        >
-          Empezar el día
-        </button>
+        {/* CTA — 🔴 FIX (2026-09-09): agregado "Más tarde" — antes la única
+            salida de la card era "Empezar el día" (sin posponer). Ambos
+            descartan la card; el CTA principal además reporta el evento. */}
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <button
+            type="button"
+            onClick={onStart}
+            className="koru-morning-brief-cta"
+          >
+            Empezar el día
+          </button>
+          <button
+            type="button"
+            onClick={onStart}
+            className="koru-morning-brief-later"
+          >
+            Más tarde
+          </button>
+        </div>
       </div>
     </div>
   );
