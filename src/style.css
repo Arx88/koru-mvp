@@ -3922,6 +3922,96 @@ a.koru-dsec-source:hover {
     opacity 0.25s ease-in;
 }
 
+/* 🔴 v2 — fases de confirmación/rechazo: el toast CAMBIA de color suave
+   y celebra antes de retirarse (microdetalle: el usuario ve el efecto de
+   su acción, no un cierre a ciegas). */
+.koru-memory-toast--confirmed {
+  background: linear-gradient(135deg, rgba(110, 231, 183, 0.96) 0%, rgba(52, 211, 153, 0.96) 100%);
+  box-shadow:
+    0 12px 36px rgba(16, 185, 129, 0.35),
+    0 4px 12px rgba(16, 185, 129, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transform: translateX(-50%) translateY(0) scale(1.03);
+  opacity: 1;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.4s ease, box-shadow 0.4s ease;
+}
+
+.koru-memory-toast--confirmed .koru-memory-toast-icon .material-symbols-outlined,
+.koru-memory-toast--confirmed .koru-memory-toast-title,
+.koru-memory-toast--confirmed .koru-memory-toast-tag {
+  color: #064e3b;
+}
+
+.koru-memory-toast--rejected {
+  background: linear-gradient(135deg, rgba(196, 181, 213, 0.96) 0%, rgba(169, 155, 190, 0.96) 100%);
+  transform: translateX(-50%) translateY(0) scale(0.97);
+  opacity: 0.92;
+  transition: transform 0.3s ease, background 0.35s ease;
+}
+
+.koru-memory-toast--rejected .koru-memory-toast-icon .material-symbols-outlined,
+.koru-memory-toast--rejected .koru-memory-toast-title,
+.koru-memory-toast--rejected .koru-memory-toast-tag {
+  color: #4a3f63;
+}
+
+/* 🔴 v2 — acciones dentro del toast: el momento de máxima atención.
+   Guardar (primario, mint) / Soltar (fantasma). Spring en tap. */
+.koru-memory-toast-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.koru-memory-toast-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition:
+    transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.koru-memory-toast-action .material-symbols-outlined {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.koru-memory-toast-action:hover {
+  transform: translateY(-1px);
+}
+
+.koru-memory-toast-action:active {
+  transform: scale(0.94);
+}
+
+.koru-memory-toast-action.is-confirm {
+  background: #ffffff;
+  color: #4f46e5;
+  border-color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.35);
+}
+
+.koru-memory-toast-action.is-confirm:hover {
+  box-shadow: 0 6px 18px rgba(255, 255, 255, 0.5);
+}
+
+.koru-memory-toast--confirmed .koru-memory-toast-action,
+.koru-memory-toast--rejected .koru-memory-toast-action,
+.koru-memory-toast--exit .koru-memory-toast-actions {
+  display: none;
+}
+
 .koru-memory-toast-glow {
   position: absolute;
   top: -50%;
@@ -4114,6 +4204,26 @@ a.koru-dsec-source:hover {
 
 .animate-subtle-pulse {
   animation: koru-subtle-pulse 2.5s ease-in-out infinite;
+}
+
+/* 🔴 Memory garden — celebración al confirmar (regar): rebote con ring de
+   luz forest. Duración corta (1.6s) para no distraer. */
+.animate-memory-burst {
+  animation: koru-memory-burst 1.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes koru-memory-burst {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(124, 92, 219, 0.0); }
+  30% {
+    transform: scale(1.06);
+    box-shadow: 0 0 0 6px rgba(124, 92, 219, 0.22), 0 8px 24px rgba(124, 92, 219, 0.18);
+  }
+  55% { transform: scale(0.985); }
+  75% { transform: scale(1.015); }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 10px rgba(124, 92, 219, 0.0), 0 0 0 0 rgba(124, 92, 219, 0.0);
+  }
 }
 
 /* Line clamp utility */

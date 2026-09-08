@@ -339,12 +339,65 @@ function KimiCtaButton({
 /** Card foot — source info (favicon + domain) + icon action buttons.
  *  Solo se renderiza si el bloque trae `sources` (mostramos el primero)
  *  o si hay CTA tap-target (acciones save/share/open siempre útiles). */
+
+/** 🔴 FIX BOTÓN MUERTO — metadatos de guardado derivados del propio block.
+ *  Sin switch gigante: lee los campos opcionales que CASI TODOS los bloques
+ *  comparten (title / kicker / description / hero / city / summary) y cae
+ *  a un label legible por tipo. Esto es lo que viaja al record guardado. */
+function blockSaveMeta(block: UiBlock): { title: string; collection: string; notes?: string } {
+  const anyBlock = block as Record<string, unknown>;
+  const title = String(
+    anyBlock.title ?? anyBlock.heading ?? (anyBlock.hero as Record<string, unknown> | undefined)?.title ?? anyBlock.kicker ?? anyBlock.topic ?? "",
+  ).trim();
+  const notes = String(
+    anyBlock.description ?? anyBlock.summary ?? (anyBlock.reply as string | undefined) ?? "",
+  ).trim() || undefined;
+  const city = typeof anyBlock.city === "string" ? anyBlock.city.trim() : "";
+  const collectionByType: Partial<Record<string, string>> = {
+    weather: "Clima",
+    deliverable: "Informes",
+    research_sources: "Lectura",
+    restaurant_synthesis: "Restaurantes",
+    comparison: "Comparativas",
+    product_analysis: "Productos",
+    review_score: "Reseñas",
+    review_document: "Documentos",
+    live_match: "Deportes",
+    match_timeline: "Deportes",
+    match_stats: "Deportes",
+    crypto_portfolio: "Cripto",
+    market: "Mercados",
+    forex: "Mercados",
+    money_summary: "Gastos",
+    plan: "Planes",
+    travel_plan: "Viajes",
+    travel_planner: "Viajes",
+    route_timeline: "Rutas",
+    route_map: "Rutas",
+    recipe: "Recetas",
+    movie_review: "Películas",
+    book_review: "Lectura",
+    news_urgent: "Noticias",
+    saved_record: "Guardados",
+    outfit: "Estilo",
+    morning_brief: "Resúmenes",
+  };
+  const collection = collectionByType[block.type] ?? "Notas";
+  return {
+    title: title || `Card de ${collection.toLowerCase()}${city ? ` · ${city}` : ""}`,
+    collection: city ? `${collection} · ${city}` : collection,
+    notes,
+  };
+}
+
 function CardFoot({
   block,
   cta,
+  onOpenCard,
 }: {
   block: UiBlock;
   cta?: Cta;
+  onOpenCard?: () => void;
 }) {
   // Solo bloques con sources los muestran en el foot. Type guard: el campo
   // `sources` es opcional y solo algunos UiBlock lo traen.
@@ -356,13 +409,49 @@ function CardFoot({
     ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(firstSource.domain)}&sz=32`
     : undefined;
 
+  // ── Guardar / Compartir / Abrir — 100% conectados ──
+  // "save" → koru-save-record (handler real de KoruProvider: crea el record
+  //           en domainState, persiste, muestra toast y analytics).
+  // "share" → Web Share API con fallback a clipboard.
+  // "open"  → abre el CTA o la primera fuente.
+  const blockMeta = blockSaveMeta(block);
+
   const dispatchAction = (action: "save" | "share" | "open") => {
     if ("vibrate" in navigator) navigator.vibrate(12);
-    window.dispatchEvent(
-      new CustomEvent("koru-card-foot-action", {
-        detail: { action, blockType: block.type, blockData: block, source: firstSource },
-      }),
-    );
+    if (action === "save") {
+      // 🔴 FIX: antes se despachaba "koru-card-foot-action", un evento que
+      // NADIE escuchaba → botón muerto. Ahora usa el flujo REAL de guardado.
+      window.dispatchEvent(
+        new CustomEvent("koru-save-record", {
+          detail: {
+            title: blockMeta.title,
+            collection: `Koru · ${blockMeta.collection}`,
+            notes: blockMeta.notes,
+            url: firstSource?.url,
+            blockData: block,
+          },
+        }),
+      );
+      return;
+    }
+    if (action === "share") {
+      const shareUrl = firstSource?.url ?? location.href;
+      const shareText = `${blockMeta.title}${blockMeta.notes ? ` — ${blockMeta.notes}` : ""}`;
+      if (navigator.share) {
+        navigator.share({ title: blockMeta.title, text: shareText, url: shareUrl }).catch(() => undefined);
+      } else if (navigator.clipboard) {
+        navigator.clipboard.writeText(`${shareText}\n${shareUrl}`).catch(() => undefined);
+      }
+      return;
+    }
+    if (action === "open") {
+      // Fuente verificable → abrir su URL; si no, abrir el detail de la card.
+      if (firstSource?.url) {
+        window.open(firstSource.url, "_blank", "noopener,noreferrer");
+      } else {
+        onOpenCard?.();
+      }
+    }
   };
 
   return (
@@ -651,7 +740,7 @@ function DefaultLayout(props: SharedProps) {
       {/* 🔴 KIMI v4: card foot SOLO cuando hay sources (spec pág. 27 — el .kc-foot
           solo aparece en cards con fuentes verificables). Sin sources, no se renderiza. */}
       {("sources" in block && Array.isArray((block as { sources?: unknown }).sources) && ((block as { sources?: unknown[] }).sources?.length ?? 0) > 0) && (
-        <CardFoot block={block} cta={cta} />
+        <CardFoot block={block} cta={cta} onOpenCard={() => setOpen(true)} />
       )}
 
       <InlineActions actions={actions} block={block} accentColor={hero.accent.color} />

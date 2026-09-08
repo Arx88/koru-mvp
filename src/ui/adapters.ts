@@ -42,10 +42,18 @@ export function domainStageToNew(stage: KoruStage): Stage {
 }
 
 export function domainStatusToMemoryStatus(memory: MemoryFact): "reciente" | "confirmada" | "dudosa" | "importante" | "sensible" {
+  // 🔴 FIX: el orden importa. Antes una CANDIDATA con confianza >= 0.8 se
+  // mostraba como "importante" — lo que (a) miente (no está confirmada) y
+  // (b) ocultaba el botón de confirmar en el jardín. Ahora "importante" es
+  // exclusivo de memorias CONFIRMADAS de alta confianza, y las candidatas
+  // siempre aparecen como lo que son: algo que pide atención del usuario.
   if (memory.sensitivity === "sensitive") return "sensible";
-  if (memory.status === "confirmed") return "confirmada";
-  if (memory.confidence >= 0.8) return "importante";
-  if (memory.confidence >= 0.6) return "dudosa";
+  if (memory.status === "confirmed") {
+    return memory.confidence >= 0.8 ? "importante" : "confirmada";
+  }
+  if (memory.status === "candidate") {
+    return memory.confidence >= 0.6 ? "dudosa" : "reciente";
+  }
   return "reciente";
 }
 

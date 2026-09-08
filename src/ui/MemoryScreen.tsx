@@ -74,6 +74,9 @@ export function MemoryScreen() {
   const { memories, roots, confirmMemory, pruneMemory, editMemory, toggleMemoryUse } = useKoru();
   const [selected, setSelected] = useState<Memory | null>(null);
   const [staggerIndex, setStaggerIndex] = useState(0);
+  // 🔴 Microdetalle: al confirmar (regar), la card del jardín celebra con un
+  // burst breve — el usuario VE que esa planta pasó a raíz.
+  const [justConfirmedId, setJustConfirmedId] = useState<string | null>(null);
   const needAttention = memories.filter((m) => m.status === "dudosa" || m.status === "reciente").length;
 
   // Stagger animation: cards appear one by one
@@ -111,6 +114,7 @@ export function MemoryScreen() {
           const meta = STATUS_META[m.status];
           const Icon = meta.icon;
           const isVisible = idx < staggerIndex;
+          const isBursting = justConfirmedId === m.id;
           return (
             <button
               key={m.id}
@@ -121,6 +125,7 @@ export function MemoryScreen() {
                 "transition-all duration-300",
                 isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3",
                 "hover:shadow-[0_8px_24px_var(--card-glow)] hover:-translate-y-0.5 active:scale-[0.97]",
+                isBursting && "animate-memory-burst",
                 meta.ring,
               )}
               style={{
@@ -179,7 +184,13 @@ export function MemoryScreen() {
         <MemoryDetail
           memory={selected}
           onClose={() => setSelected(null)}
-          onConfirm={() => { confirmMemory(selected.id); setSelected(null); }}
+          onConfirm={() => {
+            confirmMemory(selected.id);
+            if ("vibrate" in navigator) navigator.vibrate([10, 30, 14]);
+            setJustConfirmedId(selected.id);
+            setSelected(null);
+            setTimeout(() => setJustConfirmedId(null), 1800);
+          }}
           onPrune={() => { pruneMemory(selected.id); setSelected(null); }}
           onEdit={(text) => { editMemory(selected.id, text); setSelected((current) => current ? { ...current, text } : current); }}
           onToggleUse={() => { toggleMemoryUse(selected.id); setSelected((current) => current ? { ...current, useForSuggestions: !current.useForSuggestions } : current); }}
@@ -201,7 +212,11 @@ function MemoryDetail({
 }) {
   const meta = STATUS_META[memory.status];
   const [draft, setDraft] = useState(memory.text);
-  const canConfirm = memory.status === "dudosa" || memory.status === "reciente" || memory.status === "sensible";
+  // 🔴 FIX: el gating de "confirmar" depende del estado REAL del dominio, no
+  // del status cosmético. Antes: candidatas con confianza ≥0.8 se mostraban
+  // como "importante" y NO tenían forma de confirmarse desde el jardín.
+  const domainStatus = memory.domainStatus ?? (memory.status === "confirmada" ? "confirmed" : "candidate");
+  const canConfirm = domainStatus === "candidate";
   const changed = draft.trim() && draft.trim() !== memory.text;
 
   return (
@@ -309,7 +324,7 @@ function MemoryDetail({
             <button
               type="button"
               onClick={onConfirm}
-              className="flex flex-1 items-center justify-center gap-2 rounded-full bg-forest py-3 text-sm font-semibold text-cream transition-all active:scale-[0.97] cursor-pointer hover:shadow-lg hover:shadow-forest/30"
+              className="flex flex-1 items-center justify-center gap-2 rounded-full bg-forest py-3 text-sm font-semibold text-cream transition-all active:scale-[0.97] cursor-pointer hover:shadow-lg hover:shadow-forest/30 animate-subtle-pulse"
             >
               <Check className="h-4 w-4" /> Regar (confirmar)
             </button>

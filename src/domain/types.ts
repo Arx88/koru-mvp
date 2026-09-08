@@ -53,6 +53,7 @@ export const VALID_MASCOT_STATES: MascotState[] = [
 ];
 
 export type RelevantMemory = {
+  id: string;
   text: string;
   kind: MemoryKind;
   confidence: number;

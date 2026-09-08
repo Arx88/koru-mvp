@@ -362,6 +362,8 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
     setEphemeral,
     memoryToast,
     dismissMemoryToast,
+    confirmMemoryToast,
+    rejectMemoryToast,
     morningBrief,
     dismissMorningBrief,
     memories,
@@ -1115,6 +1117,9 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
             kind={memoryToast.kind}
             text={memoryToast.text}
             onDismiss={dismissMemoryToast}
+            memoryId={memoryToast.id.startsWith("toast_") ? undefined : memoryToast.id}
+            onConfirm={confirmMemoryToast}
+            onReject={rejectMemoryToast}
           />
         )}
 

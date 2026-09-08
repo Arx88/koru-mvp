@@ -1,0 +1,122 @@
+/**
+ * 🔴 MemoryToast v2 — el toast de memoria es un momento de CONFIRMACIÓN, no
+ * solo una notificación. Tests de las acciones Guardar/Soltar y de las
+ * fases visuales que celebran la acción.
+ */
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
+import { MemoryToast } from "./MemoryToast";
+
+describe("MemoryToast v2 · acciones de confirmación", () => {
+  it("sin memoryId NO muestra acciones (modo notificación, ej. records guardados)", () => {
+    render(<MemoryToast kind="preference" text="Le encanta el sushi." onDismiss={vi.fn()} />);
+    expect(screen.queryByRole("button", { name: /guardar/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /soltar/i })).not.toBeInTheDocument();
+  });
+
+  it("con memoryId + handlers muestra Guardar y Soltar", () => {
+    render(
+      <MemoryToast
+        kind="preference"
+        text="Le encanta el sushi."
+        onDismiss={vi.fn()}
+        memoryId="mem_123"
+        onConfirm={vi.fn()}
+        onReject={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("button", { name: /guardar/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /soltar/i })).toBeInTheDocument();
+  });
+
+  it("Guardar llama onConfirm con el id de la memoria", async () => {
+    const user = userEvent.setup();
+    const onConfirm = vi.fn();
+    render(
+      <MemoryToast
+        kind="wellbeing"
+        text="Es celíaco."
+        onDismiss={vi.fn()}
+        memoryId="mem_cel"
+        onConfirm={onConfirm}
+        onReject={vi.fn()}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /guardar/i }));
+    expect(onConfirm).toHaveBeenCalledWith("mem_cel");
+  });
+
+  it("Soltar llama onReject con el id", async () => {
+    const user = userEvent.setup();
+    const onReject = vi.fn();
+    render(
+      <MemoryToast
+        kind="preference"
+        text="Le gusta el té."
+        onDismiss={vi.fn()}
+        memoryId="mem_tea"
+        onConfirm={vi.fn()}
+        onReject={onReject}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /soltar/i }));
+    expect(onReject).toHaveBeenCalledWith("mem_tea");
+  });
+
+  it("tras confirmar, el título cambia a 'Guardado en tu jardín' (feedback visible)", async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryToast
+        kind="preference"
+        text="Le encanta el sushi."
+        onDismiss={vi.fn()}
+        memoryId="mem_1"
+        onConfirm={vi.fn()}
+        onReject={vi.fn()}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /guardar/i }));
+    expect(screen.getByText(/guardado en tu jardín/i)).toBeInTheDocument();
+  });
+
+  it("tras soltar, el título cambia a 'Soltado'", async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryToast
+        kind="preference"
+        text="Le gusta el té."
+        onDismiss={vi.fn()}
+        memoryId="mem_2"
+        onConfirm={vi.fn()}
+        onReject={vi.fn()}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /soltar/i }));
+    expect(screen.getByText(/^soltado$/i)).toBeInTheDocument();
+  });
+
+  it("confirmar programa el auto-dismiss del toast", async () => {
+    const user = userEvent.setup();
+    const onDismiss = vi.fn();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      render(
+        <MemoryToast
+          kind="preference"
+          text="Le encanta el sushi."
+          onDismiss={onDismiss}
+          memoryId="mem_3"
+          onConfirm={vi.fn()}
+          onReject={vi.fn()}
+        />,
+      );
+      await user.click(screen.getByRole("button", { name: /guardar/i }));
+      // 1400ms de celebración + 320ms de salida
+      vi.advanceTimersByTime(1800);
+      await waitFor(() => expect(onDismiss).toHaveBeenCalled());
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});

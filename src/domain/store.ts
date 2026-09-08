@@ -849,31 +849,60 @@ export function selectRelevantMemories(
   input: string,
   maxResults = 5,
 ): RelevantMemory[] {
+  // 🔴 CEREBRO v2 — recuperación híbrida SIN hardcodeo de contenidos:
+  // 1. Coincidencia léxica normalizada (sin acentos, sin stopwords ES) —
+  //    captura "sushi" aunque el usuario escriba "Sushí".
+  // 2. Señales suaves: recencia (7d), confianza confirmada, uso permitido.
+  // 3. NADA de reglas por contenido: la interpretación semántica la hace
+  //    el LLM cuando ve la lista completa en el system prompt.
+  const STOPWORDS = new Set([
+    "que", "como", "donde", "cuando", "cual", "quien", "para", "por", "con",
+    "los", "las", "una", "unos", "unas", "del", "por", "mas", "muy", "hoy",
+    "ayer", "mañana", "este", "esta", "eso", "esa", "the", "and", "for",
+    "con", "sin", "sobre", "entre", "hasta", "desde", "todo", "toda",
+  ]);
+  const normalize = (word: string) =>
+    word.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
   const inputWords = new Set(
-    input.toLowerCase().split(/\W+/).filter(w => w.length > 3),
+    input
+      .toLowerCase()
+      .split(/\W+/)
+      .map(normalize)
+      .filter((w) => w.length > 2 && !STOPWORDS.has(w)),
   );
 
-  if (inputWords.size === 0) return [];
+  const now = Date.now();
+  const active = memories.filter((m) => m.status === "confirmed" || m.status === "candidate");
 
-  const scored = memories
-    .filter(m => m.status === "confirmed" || m.status === "candidate")
-    .map(m => {
-      const textLower = m.text.toLowerCase();
-      const matchCount = Array.from(inputWords).filter(w => textLower.includes(w)).length;
-      const createdTime = new Date(m.createdAt).getTime();
-      const recencyBonus = !isNaN(createdTime) && Date.now() - createdTime < 7 * 24 * 60 * 60 * 1000 ? 0.2 : 0;
-      const score = matchCount * 0.5 + recencyBonus + (m.confidence ?? 0.7) * 0.3;
-      return { memory: m, score };
-    })
+  const scored = active.map((m) => {
+    const memoryWords = m.text
+      .toLowerCase()
+      .split(/\W+/)
+      .map(normalize)
+      .filter((w) => w.length > 2);
+    const matchCount = Array.from(inputWords).filter((w) =>
+      // Match exacto o por prefijo (≥4 chars): cubre inflexiones del español
+      // (cena/cenar, domingo/domingos) sin falsos positivos de 2-3 letras.
+      memoryWords.some((mw) => mw === w || (mw.length >= 4 && w.length >= 4 && (mw.startsWith(w) || w.startsWith(mw)))),
+    ).length;
+    const createdTime = new Date(m.createdAt).getTime();
+    const recencyBonus = !isNaN(createdTime) && now - createdTime < 7 * 24 * 60 * 60 * 1000 ? 0.2 : 0;
+    const confirmedBonus = m.status === "confirmed" ? 0.15 : 0;
+    const usable = m.useForSuggestions !== false ? 0.1 : 0;
+    const score = matchCount * 0.5 + recencyBonus + confirmedBonus + usable + (m.confidence ?? 0.7) * 0.3;
+    return { memory: m, score };
+  });
+
+  return scored
     .sort((a, b) => b.score - a.score)
     .slice(0, maxResults)
     .map(({ memory }) => ({
+      id: memory.id,
       text: memory.text,
       kind: memory.kind,
       confidence: memory.confidence ?? 0.7,
     }));
-
-  return scored;
 }
 
 // ═══════════════════════════════════════════════════════════════

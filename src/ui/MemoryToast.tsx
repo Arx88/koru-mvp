@@ -4,6 +4,12 @@ type MemoryToastProps = {
   kind: string;
   text: string;
   onDismiss: () => void;
+  /** 🔴 v2 — confirmación EN el toast (el momento de mayor atención del usuario).
+   *  Si viene el id, el toast ofrece Guardar/Soltar y la confirmación deja
+   *  de depender de encontrar la card RECUERDO en el scroll del chat. */
+  memoryId?: string;
+  onConfirm?: (id: string) => void;
+  onReject?: (id: string) => void;
 };
 
 const KIND_LABELS: Record<string, { label: string; icon: string }> = {
@@ -19,9 +25,11 @@ const KIND_LABELS: Record<string, { label: string; icon: string }> = {
   task: { label: "Tarea", icon: "task_alt" },
 };
 
-export function MemoryToast({ kind, text, onDismiss }: MemoryToastProps) {
-  const [phase, setPhase] = useState<"enter" | "visible" | "exit">("enter");
+export function MemoryToast({ kind, text, onDismiss, memoryId, onConfirm, onReject }: MemoryToastProps) {
+  const [phase, setPhase] = useState<"enter" | "visible" | "exit" | "confirmed" | "rejected">("enter");
   const kindInfo = KIND_LABELS[kind] ?? { label: "Memoria", icon: "neurology" };
+  const canConfirm = Boolean(memoryId && onConfirm);
+  const canReject = Boolean(memoryId && onReject);
 
   useEffect(() => {
     const t1 = setTimeout(() => setPhase("visible"), 50);
@@ -29,8 +37,38 @@ export function MemoryToast({ kind, text, onDismiss }: MemoryToastProps) {
   }, []);
 
   const handleDismiss = () => {
+    if (phase === "confirmed" || phase === "rejected") {
+      onDismiss();
+      return;
+    }
     setPhase("exit");
     setTimeout(onDismiss, 300);
+  };
+
+  const handleConfirm = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!memoryId || !onConfirm) return;
+    if ("vibrate" in navigator) navigator.vibrate([12, 40, 18]);
+    setPhase("confirmed");
+    onConfirm(memoryId);
+    // La confirmación queda visible 1.4s (microdetalle: el usuario VE que se
+    // guardó antes de que el toast se retire).
+    setTimeout(() => {
+      setPhase("exit");
+      setTimeout(onDismiss, 320);
+    }, 1400);
+  };
+
+  const handleReject = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!memoryId || !onReject) return;
+    if ("vibrate" in navigator) navigator.vibrate(8);
+    setPhase("rejected");
+    onReject(memoryId);
+    setTimeout(() => {
+      setPhase("exit");
+      setTimeout(onDismiss, 320);
+    }, 1000);
   };
 
   return (
@@ -43,15 +81,47 @@ export function MemoryToast({ kind, text, onDismiss }: MemoryToastProps) {
       <div className="koru-memory-toast-glow" aria-hidden="true" />
       <div className="koru-memory-toast-content">
         <div className="koru-memory-toast-icon">
-          <span className="material-symbols-outlined">{kindInfo.icon}</span>
+          <span className="material-symbols-outlined">
+            {phase === "confirmed" ? "check_circle" : phase === "rejected" ? "do_not_disturb_on" : kindInfo.icon}
+          </span>
           <div className="koru-memory-toast-pulse" aria-hidden="true" />
         </div>
         <div className="koru-memory-toast-text">
           <div className="koru-memory-toast-label">
             <span className="koru-memory-toast-tag">{kindInfo.label}</span>
-            <span className="koru-memory-toast-title">Aprendí algo nuevo sobre vos</span>
+            <span className="koru-memory-toast-title">
+              {phase === "confirmed"
+                ? "Guardado en tu jardín"
+                : phase === "rejected"
+                  ? "Soltado"
+                  : "Aprendí algo nuevo sobre vos"}
+            </span>
           </div>
           <p className="koru-memory-toast-body">"{text}"</p>
+          {(canConfirm || canReject) && phase !== "confirmed" && phase !== "rejected" && (
+            <div className="koru-memory-toast-actions">
+              {canConfirm && (
+                <button
+                  type="button"
+                  className="koru-memory-toast-action is-confirm"
+                  onClick={handleConfirm}
+                >
+                  <span className="material-symbols-outlined">check</span>
+                  Guardar
+                </button>
+              )}
+              {canReject && (
+                <button
+                  type="button"
+                  className="koru-memory-toast-action is-reject"
+                  onClick={handleReject}
+                >
+                  <span className="material-symbols-outlined">close</span>
+                  Soltar
+                </button>
+              )}
+            </div>
+          )}
         </div>
         <button
           type="button"

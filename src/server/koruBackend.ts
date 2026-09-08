@@ -450,7 +450,16 @@ export const TOOL_DEFINITIONS = [
             description: "Visual cards shown to the user. Each item MUST include a 'type' field. Available types: weather, restaurant_synthesis, comparison, product_analysis, smart_checklist, outfit, review_score, review_document, review_quote, plan, saved_record, personal_query, match_timeline, live_match, match_stats, crypto_portfolio, market, forex, election_results, election_vote, data_ticker, route_timeline, transport_compare, route_map, travel_planner, birthday_calendar, birthday_alarm, social_interaction, local_action, research_sources, data_card, web_nav, money_summary, morning_brief, generation.",
           },
           suggestedActions: { type: "array", items: { type: "object" } },
-          memoryCandidates: { type: "array", items: { type: "object" } },
+          memoryCandidates: {
+            type: "array",
+            items: { type: "object" },
+            description: "Durable facts about the user revealed in this turn (preferences, profile, routines, goals, relationships, wellbeing). ALWAYS include kind + text (3rd person) + confidence. If the user mentions a city/country/location about themselves, add it with kind:profile. Dedupe by meaning against the memories listed in the system prompt.",
+          },
+          archiveMemoryIds: {
+            type: "array",
+            items: { type: "string" },
+            description: "IDs of EXISTING memories (from the system prompt list) that this turn contradicts or supersedes. Example: user says 'dejé de comer sushi' → archive the id of the 'Le encanta el sushi' memory. Only include ids that appear in the system prompt memory list. Empty array when nothing changes.",
+          },
           commitments: { type: "array", items: { type: "object" } },
           records: { type: "array", items: { type: "object" } },
           sentiment: { type: "string", enum: ["calm", "heavy", "busy", "good"] },
@@ -2699,11 +2708,17 @@ export function cityMemorySuggestion(toolCalls: ProviderToolCall[], state: KoruS
 }
 
 export function buildMessages(request: KoruBackendTurnRequest): ChatMessage[] {
-  const relevantMemories = selectRelevantMemories(
-    request.state.memories || [],
-    request.input,
-    5,
+  // 🔴 CEREBRO v2 — el LLM ve TODAS las memorias activas (hasta 30), ordenadas
+  // por relevancia léxica. La selección semántica ("que calor" ↔ "helado")
+  // la hace el propio LLM al ver la lista completa — no un pre-filtro frágil.
+  // Cada memoria viaja con su ID para que el agente pueda archivarla
+  // (archiveMemoryIds) cuando el usuario la contradice.
+  const activeMemories = (request.state.memories || []).filter(
+    (m) => m.status === "confirmed" || m.status === "candidate",
   );
+  const relevantMemories = activeMemories.length > 30
+    ? selectRelevantMemories(activeMemories, request.input, 30)
+    : selectRelevantMemories(activeMemories, request.input, activeMemories.length);
 
   const history = request.history.slice(-10).map((turn): ChatMessage => ({
     role: turn.role === "assistant" ? "assistant" : "user",
@@ -4266,6 +4281,7 @@ export async function runKoruBackendTurn(
             uiBlocks: asArray(parsedRoute.uiBlocks || []),
             suggestedActions: asArray(parsedRoute.suggestedActions || []),
             memoryCandidates: asArray(parsedRoute.memoryCandidates || []),
+            archiveMemoryIds: asArray(parsedRoute.archiveMemoryIds || []),
             commitments: asArray(parsedRoute.commitments || []),
             records: asArray(parsedRoute.records || []),
             mascotState: parsedRoute.mascotState,
@@ -4490,10 +4506,24 @@ export async function runKoruBackendTurn(
       uiBlocks: asArray(parsed.uiBlocks || []),
       suggestedActions: asArray(parsed.suggestedActions || []),
       memoryCandidates: asArray(parsed.memoryCandidates || []),
+      // 🔴 CADENA DE ARCHIVO CERRADA: el segundo call del Composer puede
+      // decidir archivar memorias contradictorias (los IDs viajan en el
+      // system prompt). También se preservan los que pudo emitir el primer
+      // call en deliver_response.
+      archiveMemoryIds: [
+        ...asArray((delivered as Record<string, unknown> | null)?.archiveMemoryIds),
+        ...asArray(parsed.archiveMemoryIds),
+      ],
       commitments: asArray(parsed.commitments || []),
       records: asArray(parsed.records || []),
       mascotState: parsed.mascotState,
     };
+    // 🔴 El primer call (deliver_response) también pudo extraer memorias que
+    // el Composer no repitió: se fusionan (finalizePayload deduplica).
+    const deliveredCandidates = asArray((delivered as Record<string, unknown> | null)?.memoryCandidates);
+    if (deliveredCandidates.length > 0) {
+      raw.memoryCandidates = [...raw.memoryCandidates, ...deliveredCandidates];
+    }
     const cityAction = cityMemorySuggestion(toolCalls, request.state);
     if (cityAction) raw.suggestedActions = [...asArray(raw.suggestedActions), cityAction];
 

@@ -5,7 +5,7 @@ import { MtlInterior } from "./MtlInterior";
 // MtlInterior — bind real del block `match_timeline`: nextMatch con escudos
 // por lookup, meta desde teamInfo, extracto real a la nota, items en vivo.
 
-const iso = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
+const iso = "2026-09-11"; // fija: el test del countdown usa su propia fecha
 
 const mtlBlock = {
   type: "match_timeline" as const,
@@ -38,8 +38,22 @@ describe("MtlInterior", () => {
   });
 
   it("el countdown se deriva de la fecha ISO (3 días)", () => {
-    render(<MtlInterior block={mtlBlock} onClose={vi.fn()} />);
-    expect(screen.getByText(/en 3 días/i)).toBeInTheDocument();
+    // 🔴 Fake system time → determinista: now = 5 sep 2026 12:00, partido
+    // 8 sep 21:30 → diff 3.39 días → "en 3 días". Antes el test dependía
+    // de la hora real de ejecución (2/3/4 según el momento del día).
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 8, 5, 12, 0, 0));
+    try {
+      render(
+        <MtlInterior
+          block={{ ...mtlBlock, nextMatch: { ...mtlBlock.nextMatch, date: "2026-09-08" } }}
+          onClose={vi.fn()}
+        />,
+      );
+      expect(screen.getByText(/en 3 días/i)).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("la meta usa estadio y sede REALES del teamInfo", () => {

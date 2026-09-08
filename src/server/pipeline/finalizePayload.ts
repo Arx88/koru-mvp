@@ -727,7 +727,12 @@ export function normalizeFinalPayload(
       ...memoryCaptures.flatMap((capture) => capture.memoryCandidates ?? []),
     ].slice(0, 6),
     // 🔴 NUEVO: IDs de memorias que el LLM decidió archivar (contradicciones/cambios)
+    // Fusiona: (a) el raw del path principal (segundo call del Composer /
+    // deliver_response), (b) el extractor dedicado (extractedRaw).
     archiveMemoryIds: [
+      ...(Array.isArray((raw as Record<string, unknown>).archiveMemoryIds)
+        ? (raw as { archiveMemoryIds: unknown[] }).archiveMemoryIds
+        : []),
       ...(Array.isArray(extractedRaw?.archiveMemoryIds) ? extractedRaw.archiveMemoryIds : []),
     ].filter((id: any) => typeof id === "string" && id.length > 0).slice(0, 10),
     commitments: uniqueCommitments([

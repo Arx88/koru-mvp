@@ -55,10 +55,16 @@ export function systemPrompt(nowIso: string, state: KoruState, relevantMemories:
     `- 🔴 CRÍTICO — RECORDATORIOS CON CONTEXTO: Si el usuario dice "activa un recordatorio", "recordame", "avisame" sin especificar QUÉ recordar, NO pidas aclaración. Usá el TEMA del último intercambio como título.`,
     `- 🔴 CRÍTICO — SIEMPRE EJECUTÁ LA TOOL: Cuando el usuario pide un recordatorio/alarma/gasto, EJECUTÁ la tool. NO digas "Listo, guardado" sin ejecutar la tool.`,
     ``,
-    `Memorias relevantes para esta conversación (usalas para personalizar tu respuesta):`,
+    `Memorias de ${state.userName?.trim() || "mi amigo"} (lo que Koru sabe de él/ella — usalas SIEMPRE que sean relevantes, aunque el vínculo sea semántico y no literal):`,
     ...(relevantMemories.length
-      ? relevantMemories.map(m => `- [${m.kind}] ${m.text.replace(/[\n\r`]+/g, " ").trim()}`)
-      : ["- No hay memorias relevantes aún."]),
+      ? relevantMemories.map(m => `- ${m.id} [${m.kind}] ${m.text.replace(/[\n\r`]+/g, " ").trim()}`)
+      : ["- No hay memorias aún."]),
+    ``,
+    `REGLAS DE MEMORIA (para el campo archiveMemoryIds de tu respuesta):`,
+    `- Si el usuario CONTRADICE o SUPERA una memoria de la lista (ej: "ya no juego al tenis", "me mude a Barcelona", "dejé de comer sushi"), incluí el ID de esa memoria en archiveMemoryIds. Koru la archiva automáticamente.`,
+    `- Si el usuario menciona SU ciudad/país/barrio y no hay ninguna memoria de ubicación, agregala como memoryCandidate con kind: profile.`,
+    `- No repitas (dupliques) memorias que ya están en la lista: compará por SIGNIFICADO.`,
+    `- El vínculo semántico importa: si dice "que calor" y hay una memoria de que le gusta el helado, USALA. Si pide una receta y es alérgico a algo, ADAPTÁ la respuesta.`,
     ``,
     `Pendientes abiertos actuales del usuario:`,
     ...((Array.isArray(state.commitments) ? state.commitments : []).filter(c => c && c.status === "open").slice(0, 5).map(c => `- ${String(c.title ?? "").replace(/[\n\r`]+/g, " ").trim()} (${(c.dueHint || "sin fecha").replace(/[\n\r`]+/g, " ").trim()})`) || ["- Ninguno"]),

@@ -120,6 +120,9 @@ export type Memory = {
   id: string;
   text: string;
   status: MemoryStatus;
+  /** 🔴 Estado real del dominio (candidate/confirmed/...) — el display status
+   *  ("importante"/"dudosa"/...) es cosmético y NO debe gating de acciones. */
+  domainStatus?: "candidate" | "confirmed" | "rejected" | "superseded" | "archived";
   category: MemoryCategory;
   origin: string;
   savedOn: string;
@@ -277,6 +280,8 @@ type KoruContextValue = {
   // 🔴 Memory toast: aparece cuando Koru aprende algo del usuario
   memoryToast: { id: string; kind: string; text: string } | null;
   dismissMemoryToast: () => void;
+  confirmMemoryToast: (memoryId: string) => void;
+  rejectMemoryToast: (memoryId: string) => void;
   // 🔴 Morning brief
   morningBrief: any | null;
   dismissMorningBrief: () => void;
@@ -346,7 +351,9 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   const [userName, setUserName] = useState(() => localStorage.getItem("koru.username") ?? "");
   const [processing, setProcessing] = useState(false);
   const [activity, setActivity] = useState<AgentActivity | null>(null);
-  // 🔴 Memory toast: se setea cuando llegan memoryCandidates nuevos y se limpia con dismissMemoryToast
+  // 🔴 Memory toast: se setea cuando llegan memoryCandidates nuevos y se limpia con dismissMemoryToast.
+  // v2: el toast lleva el id REAL de la memoria creada → puede confirmar/rechazar
+  // desde el propio toast (el momento de máxima atención) sin buscar la card en el chat.
   const [memoryToast, setMemoryToast] = useState<{ id: string; kind: string; text: string } | null>(null);
   // 🔴 Morning brief state
   const [morningBrief, setMorningBrief] = useState<any | null>(null);
@@ -851,6 +858,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
         id: m.id,
         text: m.text,
         status: domainStatusToMemoryStatus(m),
+        domainStatus: m.status,
         category: domainKindToCategory(m.kind),
         origin: m.rootQuote || "Extraído de tu conversación reciente.",
         useForSuggestions: m.useForSuggestions !== false,
@@ -1447,8 +1455,16 @@ export function KoruProvider({ children }: { children: ReactNode }) {
             return norm === normalizedNew;
           });
           if (!alreadyExists) {
+            // 🔴 v2: el id del toast es el id REAL de la memoria creada este
+            // turno (addedMemories se calculó arriba contra previousState) →
+            // el toast puede confirmar/rechazar con efecto real.
+            const prevIds = new Set(previousState.memories.map((m: any) => m.id));
+            const freshWithId = (result.state.memories ?? []).find(
+              (m: any) => !prevIds.has(m.id) && (m.status === "candidate" || m.status === "confirmed") &&
+                m.text && m.text.toLowerCase().includes(normalizedNew.slice(0, 24)),
+            );
             setMemoryToast({
-              id: `toast_${Date.now()}`,
+              id: freshWithId?.id ?? `toast_${Date.now()}`,
               kind: first.kind,
               text: first.text,
             });
@@ -1945,6 +1961,16 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     dismissNudge: (id: string) => commitDomainState((prev) => dismissNudge(prev, id)),
     memoryToast,
     dismissMemoryToast: () => setMemoryToast(null),
+    // 🔴 v2: confirmar/rechazar desde el propio toast — reutiliza los reducers
+    // reales del store (audit event + persistencia + update del chat item).
+    confirmMemoryToast: (memoryId: string) => {
+      confirmMemory(memoryId);
+      setMemoryToast(null);
+    },
+    rejectMemoryToast: (memoryId: string) => {
+      pruneMemory(memoryId);
+      setMemoryToast(null);
+    },
     morningBrief,
     dismissMorningBrief: () => setMorningBrief(null),
     showInstallPrompt,
