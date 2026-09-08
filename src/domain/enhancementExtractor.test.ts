@@ -1,9 +1,15 @@
-import { describe, expect, it } from "vitest";
-import { extractOpportunities } from "./enhancementExtractor";
+import { describe, expect, it, beforeEach } from "vitest";
+import { extractOpportunities, clearEnhancementCache } from "./enhancementExtractor";
 import { createInitialState } from "./store";
 import type { ExtractorContext } from "./enhancementExtractor";
 
 describe("Koru enhancement extractor", () => {
+  // El caché de la Fase 4.6 comparte key entre casos con el mismo contexto:
+  // se limpia antes de cada test para aislar el comportamiento bajo prueba.
+  beforeEach(() => {
+    clearEnhancementCache();
+  });
+
   const baseState = createInitialState();
 
   const makeCtx = (overrides: Partial<ExtractorContext> = {}): ExtractorContext => ({

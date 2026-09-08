@@ -146,7 +146,7 @@ type Entry = {
   Cmp: React.ComponentType<any>;
 };
 
-const CARDS: Entry[] = [
+export const CARDS: Entry[] = [
   { id: "weather", label: "Clima Madrid", sub: "estación meteorológica · arco solar real", icon: CloudSun, tint: "var(--sky-soft)", color: "var(--sky-ink)", block: weatherBlock, Cmp: WeatherInterior },
   { id: "plan", label: "Tu día", sub: "agenda-timeline con AHORA vivo", icon: Clock, tint: "var(--mint-soft)", color: "var(--mint-ink)", block: planBlock, Cmp: PlanInterior },
   { id: "outfit", label: "Qué me pongo", sub: "look board con productos reales", icon: Shirt, tint: "var(--sky-soft)", color: "var(--sky-ink)", block: outfitBlock, Cmp: OutfitInterior },
@@ -190,7 +190,9 @@ const CARDS: Entry[] = [
 ];
 
 
-function Gallery() {
+/** `showFooter=false` oculta los links del harness original (usado por el
+ *  archivo único all-cards, donde /preview.html no existe como ruta). */
+export function Gallery({ showFooter = true }: { showFooter?: boolean } = {}) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [saved, setSaved] = useState<string[]>([]);
   const entry = CARDS.find((c) => c.id === openId);
@@ -247,12 +249,19 @@ function Gallery() {
       {saved.length > 0 && (
         <p className="gal-saved">Guardado en tu jardín 🌱: {saved.join(" · ")}</p>
       )}
-      <footer className="gal-foot">
-        <a href="/preview.html">← showcase del chat</a> ·{" "}
-        <a href="/lectura-visual.html">catálogo de diseño</a>
-      </footer>
+      {showFooter && (
+        <footer className="gal-foot">
+          <a href="/preview.html">← showcase del chat</a> ·{" "}
+          <a href="/lectura-visual.html">catálogo de diseño</a>
+        </footer>
+      )}
     </div>
   );
 }
 
-createRoot(document.getElementById("root")!).render(<Gallery />);
+// Bootstrap: solo monta si hay #root (los tests y el harness all-cards
+// importan <Gallery/> como componente, sin página propia).
+const rootEl = document.getElementById("root");
+if (rootEl) {
+  createRoot(rootEl).render(<Gallery />);
+}

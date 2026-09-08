@@ -36,12 +36,14 @@ type MockRes = {
   body: string;
   ended: boolean;
   writeHead: (status: number, headers?: Record<string, string | string[]>) => void;
+  setHeader: (name: string, value: string | string[]) => void;
   end: (data?: string | Buffer) => void;
 };
 
 type MockReq = {
   url: string;
   method: string;
+  headers: Record<string, string>;
   bodyChunks: Buffer[];
   [Symbol.asyncIterator](): AsyncIterator<Buffer>;
 };
@@ -52,6 +54,9 @@ function makeReq(method: string, url: string, body?: unknown): MockReq {
   return {
     url,
     method,
+    // El middleware real (corsOrigin) lee req.headers.origin — el mock
+    // lleva headers vacíos por defecto (sin CORS allow-origin).
+    headers: {},
     bodyChunks: chunks,
     async *[Symbol.asyncIterator]() {
       for (const c of chunks) yield c;
@@ -65,6 +70,11 @@ function makeRes(): MockRes {
     headers: {},
     body: "",
     ended: false,
+    setHeader(name, value) {
+      // El middleware securityHeaders (server/middleware.ts) setea headers
+      // de seguridad sobre el res real — el mock los acumula igual que writeHead.
+      res.headers[name] = value;
+    },
     writeHead(status, headers) {
       res.statusCode = status;
       if (headers) res.headers = { ...res.headers, ...headers };

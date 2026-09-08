@@ -1,10 +1,32 @@
 import { describe, it, expect } from "vitest";
 import { SemanticRouter } from "../domain/semanticRouter";
 
+// Preflight: estos tests son INTEGRACIÓN real contra Ollama (embeddings
+// nomic-embed-text) corriendo en la máquina del usuario. Si el servidor no
+// está alcanzable (CI/contenedor/otra red), el fetch sin timeout colgaba
+// 30s POR CASO y la suite tardaba minutos en fallar. Con el preflight
+// (HEAD con timeout de 1.5s) se saltan limpio y solo corren donde hay
+// embeddings reales disponibles.
+
+const OLLAMA_BASE = "http://172.23.144.1:11434";
+
+async function ollamaAvailable(): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 1500);
+    const res = await fetch(`${OLLAMA_BASE}/api/version`, { signal: controller.signal });
+    clearTimeout(timer);
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+const available = await ollamaAvailable();
+
 async function buildEmbedFn() {
-  const baseUrl = "http://172.23.144.1:11434";
   return async (text: string) => {
-    const r = await fetch(`${baseUrl}/api/embeddings`, {
+    const r = await fetch(`${OLLAMA_BASE}/api/embeddings`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ model: "nomic-embed-text", prompt: text }),
@@ -47,7 +69,7 @@ const cases: { category: string; expectedCategory: string; expectedTool?: string
   { category: "01-morning-3", expectedCategory: "conversation" },
 ];
 
-describe("router intent (batch)", { sequential: true, timeout: 120_000 }, () => {
+describe.skipIf(!available)("router intent (batch) — requiere Ollama alcanzable", { sequential: true, timeout: 120_000 }, () => {
   for (const c of cases) {
     it(`${c.category} → ${c.expectedCategory}`, { timeout: 30_000 }, async () => {
       const router = await withRouter();

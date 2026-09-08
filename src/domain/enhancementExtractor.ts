@@ -194,20 +194,35 @@ export type ExtractorContext = {
 
 // Fase 4.6: caché por hash de input+intent. Evita re-llamar al LLM
 // para el mismo input (ej: "hola" dicho 3 veces en la sesión).
-const enhancementCache = new Map<string, RawOpportunity[]>();
+// FIX: entradas con timestamp — el TTL (5 min) antes estaba declarado
+// pero nunca se aplicaba, así que el caché vivía para siempre.
+type CacheEntry = { at: number; value: RawOpportunity[] };
+const enhancementCache = new Map<string, CacheEntry>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
 
 function hashKey(ctx: ExtractorContext): string {
-  // Hash simple: input + intent + toolResults length
+  // Hash simple: input + intent + toolResults length + uiBlocks length.
+  // FIX: antes interpolaba el objeto intent ("[object Object]"), colapsando
+  // contextos distintos en la misma key.
   const toolCount = ctx.toolResults?.length ?? 0;
-  return `${ctx.input.slice(0, 200)}|${ctx.intent}|${toolCount}`;
+  const blockCount = ctx.uiBlocks?.length ?? 0;
+  const intentKey = ctx.intent
+    ? `${ctx.intent.domain ?? "?"}/${ctx.intent.kind ?? "?"}/${ctx.intent.confidence ?? "?"}`
+    : "none";
+  return `${ctx.input.slice(0, 200)}|${intentKey}|${toolCount}|${blockCount}`;
+}
+
+/** Limpieza del caché (tests y runtime: ej. tras un cambio de estado global). */
+export function clearEnhancementCache(): void {
+  enhancementCache.clear();
 }
 
 export async function extractOpportunities(ctx: ExtractorContext, chatFn?: ChatFn): Promise<RawOpportunity[]> {
-  // Fase 4.6: check caché
+  // Fase 4.6: check caché (con TTL real — expira a los 5 minutos)
   const key = hashKey(ctx);
   const cached = enhancementCache.get(key);
-  if (cached) return cached;
+  if (cached && Date.now() - cached.at < CACHE_TTL) return cached.value;
+  if (cached) enhancementCache.delete(key);
   // Si hay chatFn externo, usarlo (por ejemplo, el mismo provider que el backend principal)
   if (chatFn) {
     try {
@@ -221,7 +236,7 @@ export async function extractOpportunities(ctx: ExtractorContext, chatFn?: ChatF
       const result = (opportunities as unknown[])
         .map(normalizeOpportunity)
         .filter((o): o is RawOpportunity => o !== null && o.confidence >= 0.65);
-      enhancementCache.set(key, result);
+      enhancementCache.set(key, { at: Date.now(), value: result });
       return result;
     } catch (err) {
       console.warn("[Koru] extractOpportunities (chatFn) failed:", err instanceof Error ? err.message : err);
@@ -236,7 +251,7 @@ export async function extractOpportunities(ctx: ExtractorContext, chatFn?: ChatF
 
   try {
     const result = await callExtractorLlm(ctx.runtime, ctx.input, ctx.intent, ctx.uiBlocks, ctx.toolResults, ctx.state);
-    enhancementCache.set(key, result);
+    enhancementCache.set(key, { at: Date.now(), value: result });
     return result;
   } catch (err) {
     console.warn("[Koru] extractOpportunities (fallback LLM) failed:", err instanceof Error ? err.message : err);

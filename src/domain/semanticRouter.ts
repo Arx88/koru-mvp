@@ -99,7 +99,9 @@ export type RouteTool =
 // de pedir esa intención. El router las compara por SIGNIFICADO, no por palabra.
 // Se amplían cuando detectemos una clasificación errónea en uso real.
 
-const ROUTE_EXAMPLES: Array<{ category: RouteCategory; tool?: RouteTool; text: string }> = [
+// Exportado para que los tests deriven sus mocks de LA MISMA lista (sin
+// duplicar textos que se desincronizan al ampliar el catálogo).
+export const ROUTE_EXAMPLES: Array<{ category: RouteCategory; tool?: RouteTool; text: string }> = [
   // world_info → web_search: información del mundo exterior que cambia con el tiempo.
   // (NO incluye resultados deportivos — esos van a sports/match_live)
   { category: "world_info", tool: "web_search", text: "¿qué pasó hoy en el mundo?" },

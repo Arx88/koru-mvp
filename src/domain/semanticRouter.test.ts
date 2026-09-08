@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { SemanticRouter, cosineSimilarity, type EmbedFn } from "./semanticRouter";
+import { SemanticRouter, cosineSimilarity, ROUTE_EXAMPLES, type EmbedFn, type RouteCategory, type RouteTool } from "./semanticRouter";
+import { foldAccents } from "./commitments";
 
 // ── cosineSimilarity: matemática pura ──────────────────────────────
 
@@ -26,103 +27,74 @@ describe("cosineSimilarity", () => {
   it("devuelve 0 para vectores con norma cero (seguridad)", () => {
     expect(cosineSimilarity([0, 0, 0], [1, 2, 3])).toBe(0);
   });
+
+  it("NO confunde magnitud con dirección (un vector chico positivo no es ortogonal)", () => {
+    // Regresión del mock viejo: [0.01, ...] apunta a la dirección de todos-unos
+    // y tiene similitud ALTA contra cualquier vector positivo. El coseno mide
+    // dirección, no magnitud.
+    const sim = cosineSimilarity([0.01, 0.01, 0.01], [1, 2, 3]);
+    expect(sim).toBeGreaterThan(0.9);
+  });
 });
 
 // ── SemanticRouter: lógica de routing con embedFn mock ─────────────
-// El mock produce vectores predecibles para poder testear el comportamiento
-// del router (umbral, fallback, inicialización) sin depender de Ollama.
+// El mock produce vectores DETERMINÍSTICOS derivados de ROUTE_EXAMPLES
+// (la lista real del router, importada): cada par (categoría, tool) recibe
+// su propia dirección one-hot, así el vecino más cercano de un mensaje es
+// exactamente el ejemplo esperado y el margen entre categorías queda enorme.
+// El vector "desconocido" vive en una dimensión DEDICADA: coseno ≈ 0.1 contra
+// cualquier par (dirección distinta, no magnitud chica como el mock viejo).
 
 describe("SemanticRouter", () => {
-  // Mock: cada texto se mapea a un vector distinto por categoría.
-  // Mock determinista: clasifica por categoría usando tags en el texto.
-  // Los ejemplos modelo reales (definidos en semanticRouter.ts) se embeden
-  // según su propia categoría, simulando que embeddings reales agrupan
-  // textos de la misma intención. Para inputs de test, usamos palabras
-  // que caen en la rama correcta del mock.
-  const VECTOR_WORLD = [0.9, 0.1, 0.1, 0.1, 0.1, 0.1];
-  const VECTOR_WEATHER = [0.1, 0.9, 0.1, 0.1, 0.1, 0.1];
-  const VECTOR_CONVERSATION = [0.1, 0.1, 0.9, 0.1, 0.1, 0.1];
-  const VECTOR_ACTION = [0.1, 0.1, 0.1, 0.9, 0.1, 0.1];
-  const VECTOR_PERSONAL = [0.1, 0.1, 0.1, 0.1, 0.9, 0.1];
-  const VECTOR_PLANNING = [0.1, 0.1, 0.1, 0.1, 0.1, 0.9];
-  // Ortogonal a TODO: vector cero modificado para similitud muy baja.
-  const VECTOR_UNKNOWN = [0.01, 0.01, 0.01, 0.01, 0.01, 0.01];
+  // ── Vectores por par (categoría, tool) + dimensión extra p/ desconocido ──
+  const pairs = ROUTE_EXAMPLES.map((e) => `${e.category}::${e.tool ?? "none"}`);
+  const uniquePairs = [...new Set(pairs)];
+  const pairIndex = new Map(uniquePairs.map((p, i) => [p, i]));
+  const DIM = uniquePairs.length + 1; // +1: dimensión exclusiva del "desconocido"
+  const UNKNOWN_DIM = uniquePairs.length;
 
-  // Mapeo texto→categoría para los ejemplos modelo reales (definidos en el router).
-  // Esto hace que el mock embeda los ejemplos de cada categoría con su vector,
-  // simulando embeddings reales que agrupan intenciones similares.
-  const EXAMPLE_CATEGORIES: Record<string, string> = {
-    "¿qué pasó hoy en el mundial?": "world",
-    "resultados de la copa": "world",
-    "últimas noticias de tecnología": "world",
-    "¿cómo le fue a Boca?": "world",
-    "¿qué pasó en Argentina hoy?": "world",
-    "precio del dólar hoy": "world",
-    "¿quién ganó el partido?": "world",
-    "che, ¿qué onda lo de ayer?": "world",
-    "buscar refuerzos del Madrid": "world",
-    "fichajes del mercado de pases": "world",
-    "buscá información sobre el tema": "world",
-    "¿qué tiempo hace?": "weather",
-    "¿necesito paraguas?": "weather",
-    "¿qué me pongo hoy?": "weather",
-    "¿hace frío afuera?": "weather",
-    "¿va a llover?": "weather",
-    "¿cómo está el día?": "weather",
-    "¿qué auriculares compro?": "shopping",
-    "necesito una batería externa": "shopping",
-    "¿dónde compro X más barato?": "shopping",
-    "¿cuál es mejor, A o B?": "shopping",
-    "recomendame un celular": "shopping",
-    "¿cómo organizo hoy?": "planning",
-    "tengo muchas cosas": "planning",
-    "¿qué hago primero?": "planning",
-    "ayudame a planificar el día": "planning",
-    "no me da el tiempo": "planning",
-    "¿cuánto gasté?": "personal",
-    "¿qué tenía para comer?": "personal",
-    "¿qué pendientes tengo?": "personal",
-    "¿recordás lo que te dije?": "personal",
-    "¿qué links guardé?": "personal",
-    "hola Koru": "conversation",
-    "buenos días": "conversation",
-    "gracias": "conversation",
-    "¿cómo estás?": "conversation",
-    "hoy estoy reventada": "conversation",
-    "te quiero contar algo": "conversation",
-    "qué lindo día": "conversation",
-    "me aburro": "conversation",
-    "creame una alarma": "action",
-    "recordame llamar al médico": "action",
-    "guardá esto": "action",
-    "anotá un gasto": "action",
-    "tengo que comprar leche": "action",
-  };
+  function pairVec(category: RouteCategory, tool?: RouteTool): number[] {
+    const v = new Array<number>(DIM).fill(0.05);
+    const idx = pairIndex.get(`${category}::${tool ?? "none"}`);
+    if (idx === undefined) return unknownVec();
+    v[idx] = 0.95;
+    return v;
+  }
+
+  function unknownVec(): number[] {
+    const v = new Array<number>(DIM).fill(0.05);
+    v[UNKNOWN_DIM] = 0.95;
+    return v;
+  }
+
+  /** Vector del par al que pertenece un texto de ejemplo (match insensible a
+   *  tildes, como hace el router con foldAccents en ambos lados). */
+  function pairVecForText(text: string): number[] {
+    const folded = foldAccents(text);
+    const ex = ROUTE_EXAMPLES.find((e) => foldAccents(e.text) === folded);
+    return ex ? pairVec(ex.category, ex.tool) : unknownVec();
+  }
+
+  const base = new Array<number>(DIM).fill(0.1);
 
   function mockEmbedFn(text: string): Promise<number[]> {
-    const lower = text.toLowerCase().trim();
-    // 1. Si es un ejemplo modelo conocido, usar su vector de categoría.
-    const exampleCat = EXAMPLE_CATEGORIES[text] ?? EXAMPLE_CATEGORIES[lower];
-    if (exampleCat) {
-      const v = {
-        world: VECTOR_WORLD, weather: VECTOR_WEATHER, conversation: VECTOR_CONVERSATION,
-        action: VECTOR_ACTION, personal: VECTOR_PERSONAL, planning: VECTOR_PLANNING,
-        shopping: VECTOR_WORLD, // shopping usa web_search-like, agrupamos con world para el mock
-      }[exampleCat] ?? VECTOR_UNKNOWN;
-      return Promise.resolve(v);
+    // 1. Texto idéntico a un ejemplo (folded) → vector de su par.
+    const folded = foldAccents(text);
+    const ex = ROUTE_EXAMPLES.find((e) => foldAccents(e.text) === folded);
+    if (ex) return Promise.resolve(pairVec(ex.category, ex.tool));
+    // 2. Inputs de test: clasificar por palabras representativas al par
+    //    dominante de esa categoría (primer par declarado de la categoría).
+    if (/(mundial|boca|noticias|refuerzos|partido|dolar|ayer|madrid)/.test(folded)) {
+      return Promise.resolve(pairVecForText("últimas noticias de tecnología"));
     }
-    // 2. Para inputs de test, clasificar por palabras representativas.
-    if (/(mundial|boca|noticias|refuerzos|partido|dolar|ayer|madrid)/.test(lower)) {
-      return Promise.resolve(VECTOR_WORLD);
+    if (/(clima|lluvia|frio|campera|tiempo|hace|buenos aires)/.test(folded)) {
+      return Promise.resolve(pairVecForText("¿qué tiempo hace?"));
     }
-    if (/(clima|lluvia|fr[ií]o|campera|tiempo|hace|buenos aires)/.test(lower)) {
-      return Promise.resolve(VECTOR_WEATHER);
+    if (/(hola|gracias|como estas|reventada)/.test(folded)) {
+      return Promise.resolve(pairVecForText("hola Koru"));
     }
-    if (/(hola|gracias|c[oó]mo est[aá]s|reventada)/.test(lower)) {
-      return Promise.resolve(VECTOR_CONVERSATION);
-    }
-    // 3. Desconocido real: vector casi cero → similitud baja con todo.
-    return Promise.resolve(VECTOR_UNKNOWN);
+    // 3. Desconocido real: dimensión dedicada → similitud ~0.1 contra todo.
+    return Promise.resolve(unknownVec());
   }
 
   it("inicializa embediendo los ejemplos una sola vez", async () => {
@@ -137,7 +109,7 @@ describe("SemanticRouter", () => {
     // Llamar initialize de nuevo no debe embedir otra vez.
     await router.initialize();
     expect(callCount).toBe(initialCount);
-    expect(callCount).toBeGreaterThan(0);
+    expect(callCount).toBe(ROUTE_EXAMPLES.length);
   });
 
   it("clasifica mensaje de world_info con tool web_search", async () => {
@@ -165,10 +137,10 @@ describe("SemanticRouter", () => {
 
   it("cae a conversation cuando la confianza es baja (umbral)", async () => {
     const mixedEmbed: EmbedFn = async (text) => {
-      // Solo el input de test usa vector ortogonal; los ejemplos modelo usan
-      // mockEmbedFn para no colisionar con el vector del input.
-      if (text === "zxcv qwer asdf") {
-        return [-0.9, -0.9, -0.9, -0.1, -0.1, -0.1];
+      // Solo el input de test usa un vector NEGATIVO (dirección opuesta a los
+      // pares positivos → similitud negativa); los ejemplos van por mockEmbedFn.
+      if (foldAccents(text) === "zxcv qwer asdf") {
+        return new Array<number>(DIM).fill(-0.9);
       }
       return mockEmbedFn(text);
     };
@@ -179,8 +151,10 @@ describe("SemanticRouter", () => {
   });
 
   it("es agnóstico al proveedor: funciona con cualquier embedFn", async () => {
-    // Simula otro proveedor de embeddings (OpenAI, etc.) con vectores distintos.
-    const otherProvider: EmbedFn = async () => [0.95, 0.05, 0.05, 0.05, 0.05, 0.05];
+    // Simula otro proveedor (dimensionalidad igual, dirección distinta).
+    const v = new Array<number>(DIM).fill(0.05);
+    v[0] = 0.95;
+    const otherProvider: EmbedFn = async () => v;
     const router = new SemanticRouter(otherProvider);
     await router.initialize();
     const result = await router.route("cualquier cosa con vector world-like");
@@ -196,30 +170,29 @@ describe("SemanticRouter", () => {
   });
 
   it("maneja mensajes vacíos sin romper", async () => {
-    // Mensaje vacío: el mock devuelve VECTOR_UNKNOWN (ortogonal tras el fix).
-    // Pero más importante: no debe lanzar excepción.
+    // Mensaje vacío: vector desconocido (dimensión dedicada). No debe lanzar.
     const router = new SemanticRouter(mockEmbedFn);
     const result = await router.route("");
     expect(result).toBeDefined();
     expect(result.confidence).toBeGreaterThanOrEqual(0);
   });
 
-  // ── Nuevos handlers de extractToolArgs ───────────────────────────
-  // Usamos un embedFn determinista que da un vector "especial" solo al
-  // ejemplo target y al input del test, garantizando que ese ejemplo gane.
+  // ── extractToolArgs: el truco special/base contra el texto FOLDEADO ──
+  // El router embedea foldAccents(texto) en ambos lados (ejemplos y mensaje),
+  // así que la comparación del mock también se hace sobre el texto foldedeado.
 
   it("extrae query para match_schedule y match_live", async () => {
     const target = "juega Boca hoy";
-    const special = [0.99, 0.01, 0.01, 0.01, 0.01, 0.01];
-    const base = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1];
-    const embedFn: EmbedFn = async (text) => (text === target ? special : base);
+    const special = pairVecForText(target);
+    const embedFn: EmbedFn = async (text) => (foldAccents(text) === foldAccents(target) ? special : base);
     const router = new SemanticRouter(embedFn);
     const result = await router.route(target);
     expect(result.tool).toBe("match_schedule");
     expect(result.toolArgs).toEqual({ query: target });
 
     const target2 = "tabla de la liga";
-    const embedFn2: EmbedFn = async (text) => (text === target2 ? special : base);
+    const special2 = pairVecForText(target2);
+    const embedFn2: EmbedFn = async (text) => (foldAccents(text) === foldAccents(target2) ? special2 : base);
     const router2 = new SemanticRouter(embedFn2);
     const result2 = await router2.route(target2);
     expect(result2.tool).toBe("match_live");
@@ -228,20 +201,20 @@ describe("SemanticRouter", () => {
 
   it("extrae coin para crypto_price", async () => {
     const target = "precio del bitcoin";
-    const special = [0.99, 0.01, 0.01, 0.01, 0.01, 0.01];
-    const base = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1];
-    const embedFn: EmbedFn = async (text) => (text === target ? special : base);
+    const special = pairVecForText(target);
+    const embedFn: EmbedFn = async (text) => (foldAccents(text) === foldAccents(target) ? special : base);
     const router = new SemanticRouter(embedFn);
     const result = await router.route(target);
     expect(result.tool).toBe("crypto_price");
-    expect(result.toolArgs).toEqual({ coin: target });
+    // El extractor actual aísla la moneda real del mensaje (mejor que pasar
+    // el texto completo — comportamiento tras la refactorización del router).
+    expect(result.toolArgs).toEqual({ coin: "bitcoin" });
   });
 
   it("extrae symbol para stock_quote", async () => {
     const target = "cotización de Apple";
-    const special = [0.99, 0.01, 0.01, 0.01, 0.01, 0.01];
-    const base = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1];
-    const embedFn: EmbedFn = async (text) => (text === target ? special : base);
+    const special = pairVecForText(target);
+    const embedFn: EmbedFn = async (text) => (foldAccents(text) === foldAccents(target) ? special : base);
     const router = new SemanticRouter(embedFn);
     const result = await router.route(target);
     expect(result.tool).toBe("stock_quote");
@@ -250,9 +223,8 @@ describe("SemanticRouter", () => {
 
   it("extrae defaults para currency_convert", async () => {
     const target = "precio del dólar";
-    const special = [0.99, 0.01, 0.01, 0.01, 0.01, 0.01];
-    const base = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1];
-    const embedFn: EmbedFn = async (text) => (text === target ? special : base);
+    const special = pairVecForText(target);
+    const embedFn: EmbedFn = async (text) => (foldAccents(text) === foldAccents(target) ? special : base);
     const router = new SemanticRouter(embedFn);
     const result = await router.route(target);
     expect(result.tool).toBe("currency_convert");
@@ -261,9 +233,8 @@ describe("SemanticRouter", () => {
 
   it("extrae query para route_traffic", async () => {
     const target = "cómo llego a Palermo";
-    const special = [0.99, 0.01, 0.01, 0.01, 0.01, 0.01];
-    const base = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1];
-    const embedFn: EmbedFn = async (text) => (text === target ? special : base);
+    const special = pairVecForText(target);
+    const embedFn: EmbedFn = async (text) => (foldAccents(text) === foldAccents(target) ? special : base);
     const router = new SemanticRouter(embedFn);
     const result = await router.route(target);
     expect(result.tool).toBe("route_traffic");
@@ -272,9 +243,8 @@ describe("SemanticRouter", () => {
 
   it("extrae destination para travel_itinerary", async () => {
     const target = "quiero viajar a Madrid";
-    const special = [0.99, 0.01, 0.01, 0.01, 0.01, 0.01];
-    const base = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1];
-    const embedFn: EmbedFn = async (text) => (text === target ? special : base);
+    const special = pairVecForText(target);
+    const embedFn: EmbedFn = async (text) => (foldAccents(text) === foldAccents(target) ? special : base);
     const router = new SemanticRouter(embedFn);
     const result = await router.route(target);
     expect(result.tool).toBe("travel_itinerary");
@@ -284,16 +254,16 @@ describe("SemanticRouter", () => {
   it("extrae args para review → shopping_compare y web_search", async () => {
     const target1 = "review de auriculares";
     const target2 = "opiniones del iPhone 16";
-    const special = [0.99, 0.01, 0.01, 0.01, 0.01, 0.01];
-    const base = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1];
 
-    const embedFn1: EmbedFn = async (text) => (text === target1 ? special : base);
+    const special1 = pairVecForText(target1);
+    const embedFn1: EmbedFn = async (text) => (foldAccents(text) === foldAccents(target1) ? special1 : base);
     const router1 = new SemanticRouter(embedFn1);
     const result1 = await router1.route(target1);
     expect(result1.tool).toBe("shopping_compare");
     expect(result1.toolArgs).toEqual({ query: target1, mode: "shopping" });
 
-    const embedFn2: EmbedFn = async (text) => (text === target2 ? special : base);
+    const special2 = pairVecForText(target2);
+    const embedFn2: EmbedFn = async (text) => (foldAccents(text) === foldAccents(target2) ? special2 : base);
     const router2 = new SemanticRouter(embedFn2);
     const result2 = await router2.route(target2);
     expect(result2.tool).toBe("web_search");
@@ -302,9 +272,8 @@ describe("SemanticRouter", () => {
 
   it("enruta birthday hacia save_personal_item", async () => {
     const target = "cumpleaños de Ana";
-    const special = [0.99, 0.01, 0.01, 0.01, 0.01, 0.01];
-    const base = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1];
-    const embedFn: EmbedFn = async (text) => (text === target ? special : base);
+    const special = pairVecForText(target);
+    const embedFn: EmbedFn = async (text) => (foldAccents(text) === foldAccents(target) ? special : base);
     const router = new SemanticRouter(embedFn);
     const result = await router.route(target);
     expect(result.tool).toBe("save_personal_item");
