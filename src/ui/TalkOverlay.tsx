@@ -7,6 +7,7 @@ import type { AgentActivityKind } from "../domain/agentKernel";
 import { KoruSemanticCard } from "./chatCards";
 import { KoruUnifiedCard } from "./cards/unified/KoruUnifiedCard";
 import { KoruBackground, activityToBgState, type KoruBgState } from "./KoruBackground";
+import { MichiHeader } from "./MichiHeader";
 import { MemoryToast } from "./MemoryToast";
 import { Suspense, lazy } from "react";
 // 🔴 v3: Mis Colecciones code-split (igual que en KoruUnifiedCard).
@@ -26,7 +27,8 @@ import { renderMarkdownBody, CopyButton } from "./MarkdownMessage";
 // panel claro de Stitch con la barra REAL sincronizada a las fases del
 // pipeline, y el plan entregado se renderiza como la hoja "Tu Plan" (cards).
 
-const KORU_AVATAR = "/stitch/avatar-chat.png";
+// 🐱 Michi (antes Koru) — avatar del gato 3D naranja (diseño v7)
+const KORU_AVATAR = "/stitch/michi-avatar.png";
 
 // El diseño Stitch muestra las respuestas de Koru con un saludo corto en
 // negrita violeta y el cuerpo debajo. El texto del backend es libre: si la
@@ -105,7 +107,7 @@ function KoruTurnBubble({
     <div className="koru-message is-koru">
       <div className="koru-row">
         <div className="koru-avatar">
-          <img src={KORU_AVATAR} alt="Koru" />
+          <img src={KORU_AVATAR} alt="Michi" />
         </div>
         {showBubble && (
           <div className="koru-bubble ai-bubble">
@@ -151,7 +153,7 @@ function ListeningBubble({ interimText }: { interimText: string }) {
     <div className="koru-message is-koru">
       <div className="koru-row">
         <div className="koru-avatar">
-          <img src={KORU_AVATAR} alt="Koru" />
+          <img src={KORU_AVATAR} alt="Michi" />
         </div>
         <div className="koru-bubble ai-bubble">
           <p className="koru-message-text">{interimText || "Te escucho..."}</p>
@@ -811,7 +813,7 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
 
     const onExportPdf = async (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      const title = detail?.blockTitle || "Conversación con Koru";
+      const title = detail?.blockTitle || "Conversación con Michi";
       const blockData = detail?.blockData;
       try {
         // 🔴 Si viene blockData, exportamos SOLO ese deliverable (modo limpio para compartir)
@@ -1157,10 +1159,10 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
   }, [handleImageUpload]);
 
   return (
-    <div className="koru-chat-shell" role="dialog" aria-modal="true" aria-label="Conversacion con Koru">
+    <div className="koru-chat-shell" role="dialog" aria-modal="true" aria-label="Conversación con Michi">
       <section
         className="koru-chat-screen"
-        aria-label="Conversacion con Koru"
+        aria-label="Conversación con Michi"
         onTouchStart={handleLongPressStart}
         onTouchEnd={handleLongPressCancel}
         onTouchMove={handleLongPressTouchMove}
@@ -1171,7 +1173,10 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
         {/* Fondo dinámico — cambia según el estado de Koru */}
         <KoruBackground state={bgState} />
 
-        {/* 🔴 Memory toast: aparece cuando Koru aprende algo del usuario.
+        {/* 🐱 Header Michi v7 — identidad + nivel + XP + burger */}
+        <MichiHeader />
+
+        {/* 🔴 Memory toast: aparece cuando Michi aprende algo del usuario.
             * Para guardados (Crear / Guardar card) ofrece "Ver" → Mis Colecciones. */}
         {memoryToast && (
           <MemoryToast
@@ -1199,13 +1204,13 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
 
         {/* 🔴 PWA install prompt */}
         {showInstallPrompt && (
-          <div className="koru-install-prompt" role="dialog" aria-label="Instalar Koru">
+          <div className="koru-install-prompt" role="dialog" aria-label="Instalar Michi">
             <div className="koru-install-prompt-content">
               <div className="koru-install-prompt-icon">
                 <span className="material-symbols-outlined">install_mobile</span>
               </div>
               <div className="koru-install-prompt-text">
-                <strong>Instalá Koru</strong>
+                <strong>Instalá Michi</strong>
                 <p>Acceso rápido desde tu pantalla de inicio</p>
               </div>
               <div className="koru-install-prompt-actions">
@@ -1216,7 +1221,7 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
           </div>
         )}
 
-        <h1 className="koru-sr-heading">Koru</h1>
+        <h1 className="koru-sr-heading">Michi</h1>
 
         {/* Suggestion Pills — temas de conversaciones anteriores */}
         {suggestionPills.length > 0 && !processing && (
@@ -1275,7 +1280,7 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
               <div className="koru-message is-koru">
                 <div className="koru-row">
                   <div className="koru-avatar">
-                    <img src={KORU_AVATAR} alt="Koru" />
+                    <img src={KORU_AVATAR} alt="Michi" />
                   </div>
                   <div className="koru-bubble ai-bubble">
                     <div className="koru-typing-indicator">
@@ -1291,10 +1296,10 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
               <div className="koru-message is-koru">
                 <div className="koru-row">
                   <div className="koru-avatar">
-                    <img src={KORU_AVATAR} alt="Koru" />
+                    <img src={KORU_AVATAR} alt="Michi" />
                   </div>
                   <div className="koru-bubble ai-bubble">
-                    <h3 className="koru-bubble-heading">Hola, soy Koru 🌿</h3>
+                    <h3 className="koru-bubble-heading">Hola, soy Michi 🐱</h3>
                     <p className="koru-message-text">Tu asistente personal. Puedo ayudarte con clima, gastos, recordatorios, búsquedas y mucho más.</p>
                     <p className="koru-message-text" style={{ marginTop: 8, fontWeight: 600 }}>¿Qué necesitás hoy?</p>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 12 }}>
@@ -1338,7 +1343,7 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
               <div className="koru-message is-koru">
                 <div className="koru-row">
                   <div className="koru-avatar">
-                    <img src={KORU_AVATAR} alt="Koru" />
+                    <img src={KORU_AVATAR} alt="Michi" />
                   </div>
                   <div className="koru-bubble ai-bubble">
                     <h3 className="koru-bubble-heading">Por cierto, ¿cómo te llamo? 😊</h3>
@@ -1468,7 +1473,7 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
                       void handleTextSubmit();
                     }
                   }}
-                  placeholder="Habla con Koru..."
+                  placeholder="Habla con Michi..."
                   disabled={processing}
                   className="koru-composer-input"
                 />
@@ -1612,7 +1617,7 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
                   window.dispatchEvent(new CustomEvent("koru-save-record", {
                     detail: {
                       title: saveModal.title,
-                      collection: `Koru · ${collection}`,
+                      collection: `Michi · ${collection}`,
                       kind: "idea",
                       notes: saveModal.subtitle,
                     }
@@ -1622,8 +1627,8 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
               >
                 <span className="material-symbols-outlined">eco</span>
                 <div>
-                  <strong>Que Koru se encargue</strong>
-                  <small>Koru agrupa por tema automáticamente</small>
+                  <strong>Que Michi se encargue</strong>
+                  <small>Michi agrupa por tema automáticamente</small>
                 </div>
               </button>
 

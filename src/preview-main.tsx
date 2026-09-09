@@ -24,7 +24,7 @@ import "./preview.css";
 // El script cubre los 55 tipos renderizables de UiBlock (ver preview-data.ts).
 // ============================================================================
 
-const KORU_AVATAR = "/stitch/avatar-chat.png";
+const KORU_AVATAR = "/stitch/michi-avatar.png";
 
 // ── Utilidades ─────────────────────────────────────────────────────────────
 const SPEEDS: Array<{ label: string; ms: number }> = [
@@ -53,7 +53,7 @@ function KoruTurn({ children }: { children: ReactNode }) {
     <div className="koru-message is-koru">
       <div className="koru-row">
         <div className="koru-avatar">
-          <img src={KORU_AVATAR} alt="Koru" />
+          <img src={KORU_AVATAR} alt="Michi" />
         </div>
         <div className="koru-bubble ai-bubble">{children}</div>
       </div>
@@ -66,7 +66,7 @@ function TypingBubble() {
     <div className="koru-message is-koru">
       <div className="koru-row">
         <div className="koru-avatar">
-          <img src={KORU_AVATAR} alt="Koru" />
+          <img src={KORU_AVATAR} alt="Michi" />
         </div>
         <div className="koru-bubble ai-bubble">
           <div className="koru-typing-indicator">
@@ -147,7 +147,7 @@ function ChatFeed({
       className="koru-chat-scroll"
       onScroll={onScroll}
       role="log"
-      aria-label="Conversación con Koru"
+      aria-label="Conversación con Michi"
     >
       <div className="koru-thread">
         <WelcomeTurn />
@@ -309,7 +309,7 @@ function WelcomeTurn() {
     <KoruTurn>
       <p className="koru-message-text">
         ¡Hola Arx! Bienvenido al showcase del sistema completo: una conversación
-        con los <strong>55 tipos de card</strong> que Koru sabe renderizar.
+        con los <strong>55 tipos de card</strong> que Michi sabe renderizar.
         Deslizá para verlas llegar, filtrá por categoría arriba o buscá
         («clima», «boca», «dólar»…) y tocá cualquier card para abrir su interior.
       </p>
@@ -406,7 +406,7 @@ function Phone() {
 
   return (
     <div className="pv-stage-screen">
-      <div className="koru-chat-shell" role="dialog" aria-label="Conversación con Koru">
+      <div className="koru-chat-shell" role="dialog" aria-label="Conversación con Michi">
         <div className="koru-chat-screen">
           <StatusBar />
           <BgVideo />

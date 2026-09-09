@@ -341,7 +341,7 @@ function MemoryDetail({
           </button>
         </div>
         <p className="mt-3 text-center text-xs text-stone">
-          Podar borra el recuerdo sin drama. Koru no se marchita.
+          Podar borra el recuerdo sin drama. Michi no se marchita.
         </p>
       </div>
     </div>

@@ -863,7 +863,7 @@ export function queryPersonalContextFromState(state: KoruState, args: Record<str
           mode: index === 0 ? "focus" : "quick",
           rationale: item.dueHint,
         })),
-        note: "Los ordene desde lo que Koru tiene guardado.",
+        note: "Los ordene desde lo que Michi tiene guardado.",
       },
     };
   }

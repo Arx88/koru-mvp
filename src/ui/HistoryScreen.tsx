@@ -40,7 +40,7 @@ export function HistoryScreen() {
       <header className="animate-rise">
         <h1 className="font-serif text-2xl text-bark">Historial</h1>
         <p className="mt-1 text-sm text-earth">
-          Cada acción de Koru deja un rastro que podés revisar.
+          Cada acción de Michi deja un rastro que podés revisar.
         </p>
       </header>
 
@@ -51,7 +51,7 @@ export function HistoryScreen() {
           </span>
           <p className="text-[15px] font-medium text-bark">Todavía no hay actividad</p>
           <p className="max-w-[26ch] text-sm leading-snug text-earth">
-            Cuando hagas check-ins, confirmes memorias o ejecutes acciones de Koru, van a aparecer acá.
+            Cuando hagas check-ins, confirmes memorias o ejecutes acciones de Michi, van a aparecer acá.
           </p>
         </div>
       ) : (

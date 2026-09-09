@@ -251,7 +251,7 @@ function renderItem(item: NonNullable<PdfTurn["items"]>[number]): string {
 
 function renderTurn(turn: PdfTurn): string {
   const role = turn.role === "user" ? "user" : "koru";
-  const roleLabel = turn.role === "user" ? "Tú" : "Koru";
+  const roleLabel = turn.role === "user" ? "Tú" : "Michi";
   const time = formatTime(turn.createdAt);
   const timeHtml = time ? `<span class="turn-time">${time}</span>` : "";
   const avatarHtml = turn.role === "koru"
@@ -280,7 +280,7 @@ function renderTurn(turn: PdfTurn): string {
  * Includes Koru branding (forest/cream palette, mascot emoji, header bar).
  */
 export function buildPdfHtml(req: PdfExportRequest): string {
-  const title = req.title || "Conversación con Koru";
+  const title = req.title || "Conversación con Michi";
   const userName = req.userName || "";
   const generatedAt = req.generatedAt || new Date().toISOString();
   const turnsHtml = (req.turns || []).map(renderTurn).join("");
@@ -300,7 +300,7 @@ export function buildPdfHtml(req: PdfExportRequest): string {
     @page {
       margin: 22mm 18mm 26mm 18mm;
       @bottom-center {
-        content: "Koru · Página " counter(page) " de " counter(pages);
+        content: "Michi · Página " counter(page) " de " counter(pages);
         font-size: 9px;
         color: #8a9990;
       }
@@ -501,17 +501,17 @@ export function buildPdfHtml(req: PdfExportRequest): string {
   <div class="brand-header">
     <div class="brand-logo">🌿</div>
     <div>
-      <div class="brand-name">Koru</div>
+      <div class="brand-name">Michi</div>
       <div class="brand-tagline">Tu asistente personal</div>
     </div>
   </div>
   <h1>${esc(title)}</h1>
   <div class="meta">
-    ${userName ? `Conversación entre <strong>${esc(userName)}</strong> y Koru. ` : ""}Generado el ${esc(formatTime(generatedAt))}.
+    ${userName ? `Conversación entre <strong>${esc(userName)}</strong> y Michi. ` : ""}Generado el ${esc(formatTime(generatedAt))}.
   </div>
   ${bodyContent}
   <div class="footer">
-    Generado por Koru — koru-mvp.onrender.com · Documento confidencial
+    Generado por Michi — koru-mvp.onrender.com · Documento confidencial
   </div>
   <div class="print-bar no-print">
     <button onclick="window.print()">Guardar como PDF / Imprimir</button>

@@ -25,5 +25,5 @@ export const KIMI_VOICE = {
   loading: "Procesando…",
   error: "Se nubló el dato — no te muestro números viejos como si fueran de ahora",
   empty: "Todavía no sembraste nada",
-  idle: "Koru se durmió un rato — despertalo con un hola",
+  idle: "Michi se durmió un rato — despertalo con un hola",
 } as const;

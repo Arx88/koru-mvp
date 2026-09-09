@@ -282,7 +282,7 @@ export function MemoryConflictResolver({
                   lineHeight: 1.4,
                 }}
               >
-                Koru aprendió algo que parece contradecir lo que ya sabía.
+                Michi aprendió algo que parece contradecir lo que ya sabía.
                 Elegí cuál versión conservar.
               </p>
             </div>

@@ -1424,7 +1424,7 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
                     {aiLoading ? (
                       <><Mat className="koru-spin">progress_activity</Mat></>
                     ) : (
-                      <>✨ Koru sugiere</>
+                      <>✨ Michi sugiere</>
                     )}
                   </button>
                 )}

@@ -329,7 +329,7 @@ export const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "query_personal_context",
-      description: "Consulta el contexto personal guardado de Koru para responder preguntas sobre gastos, comida en casa, tareas pendientes, links guardados, notas médicas, personas que conoce, o lo que Koru recuerda. Úsala SIEMPRE que la pregunta pueda resolverse con los datos personales del usuario. NO uses esta herramienta para hechos del mundo exterior.",
+      description: "Consulta el contexto personal guardado de Michi para responder preguntas sobre gastos, comida en casa, tareas pendientes, links guardados, notas médicas, personas que conoce, o lo que Michi recuerda. Úsala SIEMPRE que la pregunta pueda resolverse con los datos personales del usuario. NO uses esta herramienta para hechos del mundo exterior.",
       parameters: {
         type: "object",
         additionalProperties: false,
@@ -411,7 +411,7 @@ export const TOOL_DEFINITIONS = [
           url: { type: "string" },
           collection: { type: "string", description: "Optional named collection/folder, e.g. Mis enlaces, Regalos mama, Ideas de videos." },
           tags: { type: "array", items: { type: "string" } },
-          rememberAs: { type: "string", description: "A durable memory sentence if this is a user preference, identity, routine, goal, relationship detail, or personal context Koru should reuse." },
+          rememberAs: { type: "string", description: "A durable memory sentence if this is a user preference, identity, routine, goal, relationship detail, or personal context Michi should reuse." },
           memoryKind: { type: "string", enum: ["profile", "routine", "preference", "goal", "relationship", "boundary", "retail", "wellbeing", "task"] },
           sensitivity: { type: "string", enum: ["normal", "sensitive"] },
           useForSuggestions: { type: "boolean" },
@@ -426,7 +426,7 @@ export const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "deliver_response",
-      description: "Deliver the final Koru response after tools. This is the only valid final answer.",
+      description: "Deliver the final Michi response after tools. This is the only valid final answer.",
       parameters: {
         type: "object",
         additionalProperties: false,
@@ -1049,7 +1049,7 @@ async function callOpenRouterCandidate(
       Authorization: `Bearer ${key}`,
       "Content-Type": "application/json",
       "HTTP-Referer": "https://koru-mvp.onrender.com",
-      "X-OpenRouter-Title": "Koru Personal Assistant",
+      "X-OpenRouter-Title": "Michi Personal Assistant",
     },
     body: JSON.stringify(body),
   }, timeoutMs);
@@ -1474,7 +1474,7 @@ export async function getWeather(args: Record<string, unknown>): Promise<Weather
   // open-meteo como fallback si wttr.in falla.
   try {
     const wttrUrl = `https://wttr.in/${encodeURIComponent(requestedCity)}?format=j1`;
-    const wttrRes = await fetchWithTimeout(wttrUrl, { headers: { "User-Agent": "Koru/1.0" } }, 10_000);
+    const wttrRes = await fetchWithTimeout(wttrUrl, { headers: { "User-Agent": "Michi/1.0" } }, 10_000);
     if (wttrRes.ok) {
       const wttr = await wttrRes.json() as {
         current_condition?: Array<{ temp_C?: string; humidity?: string; windspeedKmph?: string; FeelsLikeC?: string; weatherDesc?: Array<{ value?: string }> }>;
@@ -2501,7 +2501,7 @@ export function queryPersonalContextFromState(state: KoruState, args: Record<str
           mode: index === 0 ? "focus" : "quick",
           rationale: item.dueHint,
         })),
-        note: "Los ordene desde lo que Koru tiene guardado.",
+        note: "Los ordene desde lo que Michi tiene guardado.",
       },
     };
   }
@@ -3469,7 +3469,7 @@ function searchLabelFromInput(input: string): string {
   }
   // Quitar saludos y cortesías comunes al inicio que no aportan al tema.
   const stripped = clean
-    .replace(/^(hola|buenas|buenos d[ií]as|buenas tardes|buenas noches|che|hey|koru|por favor|podr[ií]as|puedes|me dec[ií]s|decime|dame|quiero saber|necesito saber|busc[aá]\s*(info|informaci[oó]n|datos)?\s*(sobre|de|acerca)?)\b[,\s]*/gi, "")
+    .replace(/^(hola|buenas|buenos d[ií]as|buenas tardes|buenas noches|che|hey|koru|michi|por favor|podr[ií]as|puedes|me dec[ií]s|decime|dame|quiero saber|necesito saber|busc[aá]\s*(info|informaci[oó]n|datos)?\s*(sobre|de|acerca)?)\b[,\s]*/gi, "")
     .replace(/^(paso|pas[oó]|que paso|qué pasó|qu[eé] tal|c[oó]mo (va|le va|est[aá]))\s+(con|el|la|los|las)?\s*/i, "")
     .trim();
   if (stripped.length < 5) return "Buscando en la web…";
@@ -3765,7 +3765,7 @@ function fallbackDeliverable(topic: string, sources: AssistantSource[]): Pick<De
         kicker: "PANORAMA",
         kind: "text",
         paragraphs: [
-          `El pedido fue armar un informe sobre ${topic}. Koru encontró fuentes reales y preparó esta versión trazable como respaldo.`,
+          `El pedido fue armar un informe sobre ${topic}. Michi encontró fuentes reales y preparó esta versión trazable como respaldo.`,
           snippets.slice(0, 2).join(" ") || `Hay ${usable.length || sources.length} fuentes disponibles para profundizar el análisis.`,
         ],
       },
@@ -3951,7 +3951,7 @@ async function runDeepResearchFlow(
       {
         role: "system",
         content: [
-          "Sos Koru, redactor de informes personales. Escribís en español rioplatense, cálido pero preciso.",
+          "Sos Michi, redactor de informes personales. Escribís en español rioplatense, cálido pero preciso.",
           "Tu informe debe EXCEDER lo que el usuario espera: completo, con datos concretos, bien organizado.",
           "Usá EXCLUSIVAMENTE la información de las fuentes provistas más conocimiento general verificable. NUNCA inventes cifras que no puedas respaldar.",
           "Respondés SOLO con JSON válido, sin markdown ni texto extra.",
@@ -4986,7 +4986,7 @@ export async function runKoruBackendTurn(
           reply: cleanReplyText(secondContent) || "No pude armar una respuesta clara. ¿Me lo repetís de otra forma?",
           understanding: {
             literalRequest: request.input,
-            userGoal: "Resolver el pedido con ayuda de Koru.",
+            userGoal: "Resolver el pedido con ayuda de Michi.",
             unstatedNeeds: [],
             assumptions: [],
             confidence: 0.45,
@@ -5150,7 +5150,7 @@ export async function runKoruBackendTurn(
     } catch {
       const rawFallback: Record<string, unknown> = {
         reply: cleanReplyText(secondContent) || "No pude armar una respuesta clara. ¿Me lo repetís de otra forma?",
-        understanding: { literalRequest: request.input, userGoal: "Resolver el pedido con ayuda de Koru.", unstatedNeeds: [], assumptions: [], confidence: 0.45 },
+        understanding: { literalRequest: request.input, userGoal: "Resolver el pedido con ayuda de Michi.", unstatedNeeds: [], assumptions: [], confidence: 0.45 },
         uiBlocks: blocksFromToolResults(toolExecutions, request.input),
         suggestedActions: [], memoryCandidates: [], commitments: [], records: [], mascotState: "thinking",
       };

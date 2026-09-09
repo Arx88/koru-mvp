@@ -1,11 +1,11 @@
 {
-  "name": "Koru",
-  "short_name": "Koru",
+  "name": "Michi",
+  "short_name": "Michi",
   "description": "Tu asistente personal inteligente",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#14102a",
-  "theme_color": "#7c5cdb",
+  "theme_color": "#6D52F8",
   "orientation": "portrait",
   "icons": [
     {
@@ -15,6 +15,11 @@
       "purpose": "any maskable"
     }
   ],
-  "permissions": ["notifications"],
-  "categories": ["productivity", "lifestyle"]
+  "permissions": [
+    "notifications"
+  ],
+  "categories": [
+    "productivity",
+    "lifestyle"
+  ]
 }

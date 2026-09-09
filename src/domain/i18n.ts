@@ -24,7 +24,7 @@ const STRINGS = {
     "common.ajustes": "Ajustes",
     "common.cargando": "Cargando...",
 
-    "onboarding.title": "Soy Koru",
+    "onboarding.title": "Soy Michi",
     "onboarding.subtitle": "Un asistente que escucha, ordena y recuerda con tu permiso. Cuentame de ti y yo ordeno el resto.",
     "onboarding.review_title": "Cuentame de ti",
     "onboarding.review_subtitle": "Dime solo lo que quieras que use para ayudarte mejor. Si algo no aplica, dejalo vacio.",
@@ -51,7 +51,7 @@ const STRINGS = {
     "memory.title": "Mi jardín",
     "memory.search_placeholder": "Buscar memorias...",
 
-    "chat.placeholder": "Habla con Koru...",
+    "chat.placeholder": "Habla con Michi...",
     "chat.mod_efimero": "Modo efimero activo - esta charla no guardara memoria nueva",
     "chat.adjuntar": "Adjuntar archivo",
     "chat.quick_actions.wb_sunny": "¿Qué tal el día?",

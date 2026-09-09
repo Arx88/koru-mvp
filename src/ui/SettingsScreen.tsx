@@ -1002,7 +1002,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
             <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: "#8127cf", letterSpacing: "-0.02em" }}>
               Ajustes
             </h1>
-            <p style={{ margin: 0, fontSize: 12, color: "#64748b" }}>Personalizá tu Koru</p>
+            <p style={{ margin: 0, fontSize: 12, color: "#64748b" }}>Personalizá tu Michi</p>
           </div>
           <button
             type="button"
@@ -1235,7 +1235,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
                 )}
 
                 {meta.id === "idioma" && (
-                  <Row label="Idioma de las respuestas de Koru" hint="Koru te responderá en el idioma elegido.">
+                  <Row label="Idioma de las respuestas de Michi" hint="Michi te responderá en el idioma elegido.">
                     <RadioGroup
                       value={state.language ?? "es"}
                       onChange={(lang) => props.onUpdateLanguage(lang)}
@@ -1329,19 +1329,19 @@ export function SettingsScreen(props: SettingsScreenProps) {
                         aria-label="Alto contraste"
                       />
                     </Row>
-                    {/* 🔴 KORU 3.0 — Voz de Koru: TTS del navegador para que Koru "hable" sus respuestas */}
+                    {/* 🔴 KORU 3.0 — Voz de Michi: TTS del navegador para que Koru "hable" sus respuestas */}
                     <Row
-                      label="Voz de Koru"
+                      label="Voz de Michi"
                       hint={
                         typeof window !== "undefined" && "speechSynthesis" in window
-                          ? "Koru leerá sus respuestas en voz alta"
+                          ? "Michi leerá sus respuestas en voz alta"
                           : "No soportado en este navegador"
                       }
                     >
                       <Toggle
                         checked={prefs.koruVoiceEnabled ?? false}
                         onChange={(v) => props.onUpdatePreferences({ koruVoiceEnabled: v })}
-                        aria-label="Voz de Koru"
+                        aria-label="Voz de Michi"
                       />
                     </Row>
                     {(prefs.koruVoiceEnabled ?? false) && (

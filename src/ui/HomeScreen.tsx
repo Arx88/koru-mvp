@@ -338,7 +338,7 @@ export function HomeScreen({
         <header className="koru-detail-sticky-head">
           <button
             type="button"
-            aria-label="Hablar con Koru"
+            aria-label="Hablar con Michi"
             className="koru-detail-sticky-back"
             onClick={onTalk}
           >
@@ -348,7 +348,7 @@ export function HomeScreen({
             <span className="material-symbols-outlined">eco</span>
           </div>
           <div style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1 }}>
-            <span className="koru-detail-mini-title">Koru</span>
+            <span className="koru-detail-mini-title">Michi</span>
             {/* 🔴 FIX: el saludo "Buenos días, {name}" estaba DUPLICADO en el
                 mismo viewport (header + hero, a ~100px). El saludo vive solo en
                 el hero; acá un subtítulo descriptivo. */}
@@ -400,7 +400,7 @@ export function HomeScreen({
                       parts.push(`${deadlinesToday.length} vencimiento${deadlinesToday.length === 1 ? "" : "s"}`);
                     }
                     if (parts.length === 0) {
-                      return <>Tu día está despejado. Contale a Koru qué querés hacer hoy.</>;
+                      return <>Tu día está despejado. Contale a Michi qué querés hacer hoy.</>;
                     }
                     return <>Tenés <b>{parts.join(" y ")}</b> hoy.</>;
                   })()}
@@ -964,7 +964,7 @@ export function HomeScreen({
           {activeNudges.length > 0 && (
             <section>
               <div style={sectionHeadStyle}>
-                <h3 style={sectionTitleStyle}>Koru te sugiere</h3>
+                <h3 style={sectionTitleStyle}>Michi te sugiere</h3>
                 <span style={sectionHintStyle}>
                   {activeNudges.length} nudge{activeNudges.length === 1 ? "" : "s"}
                 </span>
@@ -991,7 +991,7 @@ export function HomeScreen({
             )}
             <QuickAction
               icon="graphic_eq"
-              label="Hablar con Koru"
+              label="Hablar con Michi"
               onClick={onTalk}
               highlight
             />

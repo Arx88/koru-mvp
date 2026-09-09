@@ -60,7 +60,7 @@ export function buildMemoryExtractorMessages(
     {
       role: "system",
       content: [
-        "Sos el extractor de memoria de Koru. Devolvé SOLO JSON válido, sin markdown.",
+        "Sos el extractor de memoria de Michi. Devolvé SOLO JSON válido, sin markdown.",
         'Schema: {"memoryCandidates":[],"archiveMemoryIds":[],"behaviorNotes":[]}',
         "",
         "Tu trabajo: analizar lo que el usuario dijo y compararlo con sus memorias existentes.",
@@ -105,7 +105,7 @@ export function buildMemoryExtractorMessages(
         `Mensaje del usuario: "${request.input}"`,
         "",
         composedRaw
-          ? `Respuesta de Koru: "${cleanText(composedRaw.reply)}"`
+          ? `Respuesta de Michi: "${cleanText(composedRaw.reply)}"`
           : "",
         "",
         "Tool observations:",

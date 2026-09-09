@@ -159,6 +159,7 @@ export const ROUTE_EXAMPLES: Array<{ category: RouteCategory; tool?: RouteTool; 
 
   // conversation: saludos, charla, emociones, agradecimientos. Sin tool.
   { category: "conversation", text: "hola Koru" },
+  { category: "conversation", text: "hola michi" },
   { category: "conversation", text: "buenos días" },
   { category: "conversation", text: "gracias" },
   { category: "conversation", text: "¿cómo estás?" },

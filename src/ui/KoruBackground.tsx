@@ -36,17 +36,20 @@ interface StateAsset {
 }
 
 // Single source of truth: estado → asset
-// "escuchando" usa el video de "trabajando" en loop suave — NO el de "durmiendo".
-// El de "durmiendo" solo se activa tras 5 min de inactividad real.
+// 🐱 Michi v7: los estados de reposo/trabajo usan la cala fantástica
+// (fondo aprobado v7, sin personaje). Los videos del fantasma quedan
+// solo para estados transitorios (buscando/memoria/durmiendo) hasta
+// que existan renders del gato. Los PNG que faltaban en el repo
+// (construyendo/habitos/productos/recetas) ahora apuntan a la cala.
 export const STATE_REGISTRY: Record<KoruBgState, StateAsset> = {
-  escuchando: { type: "video", src: "/koru-states/estado-trabajando.mp4" },
-  trabajando: { type: "video", src: "/koru-states/estado-trabajando.mp4" },
+  escuchando: { type: "image", src: "/stitch/chat-bg.jpg" },
+  trabajando: { type: "image", src: "/stitch/chat-bg.jpg" },
   buscando: { type: "video", src: "/koru-states/estado-buscando.mp4" },
   memoria: { type: "video", src: "/koru-states/estado-memoria.mp4" },
-  construyendo: { type: "image", src: "/koru-states/estado-construyendo.png" },
-  habitos: { type: "image", src: "/koru-states/estado-habitos.png" },
-  productos: { type: "image", src: "/koru-states/estado-productos.png" },
-  recetas: { type: "image", src: "/koru-states/estado-recetas.png" },
+  construyendo: { type: "image", src: "/stitch/chat-bg.jpg" },
+  habitos: { type: "image", src: "/stitch/chat-bg.jpg" },
+  productos: { type: "image", src: "/stitch/chat-bg.jpg" },
+  recetas: { type: "image", src: "/stitch/chat-bg.jpg" },
   durmiendo: { type: "video", src: "/koru-states/estado-durmiendo.mp4" },
 };
 

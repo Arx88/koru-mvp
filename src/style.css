@@ -9175,3 +9175,452 @@ html.koru-reduced-motion *::after {
 .koru-morning-brief-later:hover {
   background: rgba(255, 255, 255, 0.22);
 }
+/* ═══════════════════════════════════════════════════════════════════════
+   🐱 MICHI v7 — CAPA DE DISEÑO APROBADA (porte del estilo-v2.html)
+   La app pasa a llamarse Michi y adopta el lineamiento v7:
+   · Paleta: violeta #6D52F8 · oro #FDC533 · verde #2FC86E
+     periwinkle #E3EFFD · cielo #007BF9 · tinta #1E1B4B
+   · Tipografía: Nunito (800/900 para títulos)
+   · Cards: blanco sólido, radio 22, sombra 0 16px 34px
+   · Chat: burbujas blancas con cola, avatar del gato
+   · Header: NIVEL + estrella + barra XP + burger (nuevo)
+   Esta capa vive al FINAL del archivo: la cascada gana a los estilos
+   previos con la misma especificidad. Revertible: borrar el bloque.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── 0) Tokens v7 (sobrescriben los legados) ─────────────────────────── */
+:root {
+  /* Paleta Michi v7 */
+  --michi-violet: #6D52F8;
+  --michi-violet-deep: #5940E0;
+  --michi-gold: #FDC533;
+  --michi-gold-soft: #FFD95A;
+  --michi-green: #2FC86E;
+  --michi-green-soft: #E2F8EC;
+  --michi-peri: #E3EFFD;
+  --michi-peri2: #EAF2FD;
+  --michi-sky: #007BF9;
+  --michi-ink: #1E1B4B;
+  --michi-ink-soft: #6E7594;
+  --michi-ink-faint: #A6ACCB;
+  --michi-card: #FFFFFF;
+  --michi-r-card: 22px;
+  --michi-r-bub: 20px;
+  --michi-sh-card: 0 16px 34px rgba(23, 32, 102, 0.28);
+  --michi-sh-bub: 0 6px 16px rgba(23, 32, 102, 0.13);
+  --michi-sh-dock: 0 16px 36px rgba(23, 32, 102, 0.28);
+  --michi-sh-btn: 0 6px 14px rgba(109, 82, 248, 0.34);
+
+  /* Aliases legados → v7 (los .kc y componentes viejos heredan el look) */
+  --koru-purple: #6D52F8;
+  --koru-purple-dark: #5940E0;
+  --koru-purple-deep: #1E1B4B;
+  --koru-purple-soft: rgba(109, 82, 248, 0.12);
+  --koru-purple-border: rgba(109, 82, 248, 0.25);
+  --koru-surface: #ffffff;
+  --koru-surface-soft: #ffffff;
+  --koru-user: #ffffff;
+  --koru-shadow-lg: 0 16px 34px rgba(23, 32, 102, 0.28);
+  --koru-radius-xl: 22px;
+
+  --ink: #1E1B4B;
+  --ink-soft: #6E7594;
+  --ink-faint: #A6ACCB;
+  --purple: #6D52F8;
+  --purple-d: #5940E0;
+  --purple-deep: #1E1B4B;
+  --serif: 'Nunito', 'Plus Jakarta Sans', system-ui, sans-serif;
+  --sans: 'Nunito', 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-display: 'Nunito', 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-sans: 'Nunito', 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+@theme inline {
+  --font-sans: 'Nunito', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: 'Nunito', 'Plus Jakarta Sans', ui-serif, Georgia, serif;
+  --font-heading: 'Nunito', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ── 1) Header Michi v7 (identidad + nivel + XP + burger) ────────────── */
+.michi-hdr {
+  position: relative;
+  z-index: 6;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: max(10px, env(safe-area-inset-top, 0px)) 15px 8px 14px;
+  pointer-events: none; /* el header es identidad; no bloquea el fondo */
+}
+.michi-hdr > * { pointer-events: auto; }
+
+.michi-catwrap { position: relative; flex: none; }
+
+.michi-catav {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  background: #fff;
+  box-shadow: 0 6px 16px rgba(23, 32, 102, 0.3);
+}
+
+.michi-dot {
+  position: absolute;
+  right: -1px;
+  bottom: 1px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--michi-green);
+  border: 2.5px solid #fff;
+}
+
+.michi-id { flex: 1; min-width: 0; }
+
+.michi-id h2 {
+  color: #fff;
+  font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif;
+  font-size: 21px;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  line-height: 1.02;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+}
+
+.michi-id h2 .michi-spark { flex: none; fill: #fff; }
+
+.michi-id p {
+  color: rgba(255, 255, 255, 0.95);
+  font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif;
+  font-size: 10.5px;
+  font-weight: 700;
+  margin: 3px 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* nivel: pill + barra + texto apilados (sin contenedor) */
+.michi-lvl {
+  flex: none;
+  width: 118px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+}
+
+.michi-lvl-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: linear-gradient(180deg, #7C5FF9, #6D52F8);
+  border-radius: 11px;
+  padding: 4px 10px 4px 9px;
+  box-shadow: 0 4px 12px rgba(84, 52, 190, 0.36);
+}
+
+.michi-lvl-pill svg { flex: none; }
+
+.michi-lvl-pill span {
+  color: #fff;
+  font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.michi-xpbar {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.34);
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+
+.michi-xpbar i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #F6D868, #FDC533);
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.michi-xptxt {
+  color: #fff;
+  font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-shadow: 0 1px 4px rgba(10, 40, 100, 0.4);
+}
+
+.michi-mbtn {
+  flex: none;
+  width: 33px;
+  height: 33px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  background: linear-gradient(180deg, #45A2FF, #2C8DF6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 9px rgba(3, 62, 150, 0.3);
+}
+.michi-mbtn:active { transform: scale(0.93); }
+
+/* ── 2) Layout del chat con header en flujo ──────────────────────────── */
+.koru-suggestion-bar { top: 84px; }
+
+.koru-chat-scroll {
+  padding: 12px 20px 12px;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 24px, black 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, black 24px, black 100%);
+}
+
+/* ── 3) Burbujas v7: blancas, tinta, cola 6px, avatar gato ───────────── */
+.koru-bubble { box-shadow: var(--michi-sh-bub); }
+
+.koru-message.is-user .koru-bubble {
+  margin-left: 24px;
+  border-radius: var(--michi-r-bub);
+  border-bottom-right-radius: 6px;
+  background: #ffffff;
+  padding: 10px 15px 11px;
+  box-shadow: var(--michi-sh-bub);
+}
+
+.koru-message.is-koru .koru-bubble {
+  flex: 1;
+  min-width: 0;
+  border-radius: var(--michi-r-bub);
+  border-bottom-left-radius: 6px;
+  background: #ffffff;
+  padding: 10px 15px 11px;
+  box-shadow: var(--michi-sh-bub);
+}
+
+.koru-row { gap: 8px; align-items: flex-end; }
+
+.koru-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 0 2px #ffffff, 0 4px 12px rgba(23, 32, 102, 0.25);
+}
+
+.koru-cards-row {
+  width: calc(100% - 48px);
+  margin-left: 48px;
+}
+
+.koru-message-text {
+  color: var(--michi-ink);
+  font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.koru-message.is-user .koru-message-text { font-size: 15px; }
+
+.koru-bubble-heading {
+  color: var(--michi-violet);
+  font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.3;
+  margin-bottom: 6px;
+}
+
+/* ── 4) Card mold v7: blanco, radio 22, sombra profunda, CTA pill ────── */
+.koru-plan-hero {
+  border-radius: var(--michi-r-card);
+  background: #ffffff;
+  padding: 20px 20px 18px;
+  box-shadow: var(--michi-sh-card);
+  font-family: 'Nunito', 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+.koru-plan-hero-kicker {
+  color: var(--michi-violet);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.koru-plan-hero-title {
+  margin-bottom: 6px;
+  color: var(--michi-ink);
+  font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif;
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.koru-plan-hero-desc {
+  margin-top: 6px;
+  padding-right: 4px;
+  color: var(--michi-ink-soft);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.koru-plan-hero-cta {
+  margin-top: 16px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #7C5FF9, #6D52F8);
+  color: #ffffff;
+  padding: 13px 0;
+  font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  box-shadow: var(--michi-sh-btn);
+  transition: transform 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.koru-plan-hero-cta:active { transform: scale(0.97); }
+
+.koru-plan-hero.is-tappable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 40px rgba(23, 32, 102, 0.32);
+}
+
+/* molde .kc (unified card) → lineamiento v7 */
+.kc {
+  border-radius: var(--michi-r-card);
+  background: #ffffff;
+  border: 1px solid rgba(109, 82, 248, 0.1);
+  box-shadow: var(--michi-sh-card);
+  padding: 18px 18px 14px;
+}
+
+.kc:hover {
+  box-shadow: 0 20px 42px rgba(23, 32, 102, 0.32);
+}
+
+.kc-title {
+  font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif;
+  font-weight: 800;
+  font-size: 21px;
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  color: var(--michi-ink);
+}
+
+.kc-kicker {
+  font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif;
+  font-weight: 800;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+}
+
+.kc-desc { font-size: 12.5px; color: var(--michi-ink-soft); font-weight: 600; }
+
+.kc-m {
+  background: var(--michi-peri2);
+  border: 1px solid rgba(109, 82, 248, 0.08);
+  border-radius: 14px;
+}
+
+.kc-m .ml { font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif; }
+
+.kc-m .mv {
+  font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif;
+  color: var(--michi-ink);
+}
+
+.kc-cta {
+  background: linear-gradient(120deg, #7C5FF9 0%, #6D52F8 55%, #5940E0 120%);
+  font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif;
+  font-weight: 800;
+  box-shadow: var(--michi-sh-btn), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.kc-foot .src { font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif; }
+
+/* ── 5) Composer v7: dock blanco, mic violeta ────────────────────────── */
+.koru-composer {
+  border-radius: 26px;
+  padding: 7px;
+  box-shadow: var(--michi-sh-dock);
+}
+
+.koru-composer-field {
+  border: none;
+  background: #EFF4FD;
+  border-radius: 999px;
+  margin: 0 6px;
+}
+
+.koru-composer-input {
+  color: var(--michi-ink);
+  font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+}
+
+.koru-composer-input::placeholder { color: #9AA6C8; font-weight: 700; }
+
+.koru-mic-button {
+  background: var(--michi-violet);
+  box-shadow: var(--michi-sh-btn);
+}
+
+.koru-quick-action {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #ffffff;
+  font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+}
+
+.koru-quick-action:hover {
+  background: rgba(255, 255, 255, 0.32);
+  border-color: rgba(255, 255, 255, 0.55);
+  color: #ffffff;
+}
+
+.koru-suggestion-pill {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #ffffff;
+  font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+}
+
+/* ── 6) Fin de la capa Michi v7 ──────────────────────────────────────── */
+
+/* ── 7) MichiMascot (onboarding) — gato flotante con anillo ─────────── */
+.michi-mascot-float {
+  animation: michiFloat 3.2s ease-in-out infinite;
+}
+@keyframes michiFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+.michi-mascot-ring {
+  box-shadow: 0 0 0 4px #ffffff, 0 14px 30px rgba(23, 32, 102, 0.3);
+}
+@media (prefers-reduced-motion: reduce) {
+  .michi-mascot-float { animation: none; }
+}
+
+/* ── 8) Fix coachmark: anclar al composer (no al footer) para que la
+   flecha apunte al botón + como corresponde ─────────────────────────── */
+.koru-composer { position: relative; }

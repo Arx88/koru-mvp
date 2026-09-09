@@ -95,7 +95,7 @@ describe("pdfExport module", () => {
       const html = buildPdfHtml(sampleTurns);
       expect(html).toContain("Alex");
       expect(html).toContain("Conversación entre");
-      expect(html).toContain("y Koru");
+      expect(html).toContain("y Michi");
     });
 
     it("handles empty turns array gracefully", () => {
@@ -126,7 +126,7 @@ describe("pdfExport module", () => {
       expect(html).toContain('class="brand-logo"');
       expect(html).toContain("🌿");
       expect(html).toContain('class="brand-name"');
-      expect(html).toContain("Koru");
+      expect(html).toContain("Michi");
     });
 
     it("includes the @page rule with footer page numbers", () => {
@@ -315,7 +315,7 @@ describe("pdfExport module", () => {
     it("includes footer with Koru branding", () => {
       const html = buildPdfHtml(sampleTurns);
       expect(html).toContain('class="footer"');
-      expect(html).toContain("Generado por Koru");
+      expect(html).toContain("Generado por Michi");
       expect(html).toContain("koru-mvp.onrender.com");
     });
 

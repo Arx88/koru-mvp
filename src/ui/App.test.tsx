@@ -84,7 +84,7 @@ vi.mock("../domain/backendAgentClient", () => ({
 /**
  * NEW onboarding flow (Sprint 4 redesign):
  * 1. App renders → TalkOverlay with onboarding=true, phase="greeting"
- * 2. Greeting shows "Hola, soy Koru" + quick-action chips
+ * 2. Greeting shows "Hola, soy Michi" + quick-action chips
  * 3. User clicks a chip OR types a message → sendMessage → after 3s, phase="waiting_for_name"
  * 4. User types name → onOnboardingComplete called → onboarded=true
  * 5. Press Escape (or click close) → App.tsx setScreen("hoy") → Home screen
@@ -92,11 +92,11 @@ vi.mock("../domain/backendAgentClient", () => ({
 async function completeConversationalOnboarding(user: ReturnType<typeof userEvent.setup>) {
   // Wait for greeting to appear
   await waitFor(() => {
-    expect(screen.getByText(/hola, soy koru/i)).toBeInTheDocument();
+    expect(screen.getByText(/hola, soy michi/i)).toBeInTheDocument();
   }, { timeout: 3000 });
 
   // Type any message to start the conversation (will trigger greeting → waiting_for_name transition)
-  const input = screen.getByPlaceholderText(/habla con koru|hablá con koru|pregunta|hablemos/i);
+  const input = screen.getByPlaceholderText(/habla con michi|habla con koru|hablá con koru|pregunta|hablemos/i);
   await user.type(input, "Hola{Enter}");
 
   // Wait for the "waiting_for_name" phase to kick in (3s setTimeout in TalkOverlay)
@@ -119,8 +119,8 @@ describe("Koru MVP UI", () => {
 
   it("shows onboarding greeting when first visited", () => {
     render(<App />);
-    // New conversational onboarding shows "Hola, soy Koru 🌿"
-    expect(screen.getByText(/hola, soy koru/i)).toBeInTheDocument();
+    // New conversational onboarding shows "Hola, soy Michi 🐱"
+    expect(screen.getByText(/hola, soy michi/i)).toBeInTheDocument();
   });
 
   it("completes conversational onboarding and shows home screen after Escape", async () => {
@@ -137,7 +137,7 @@ describe("Koru MVP UI", () => {
     // onboarded name (e.g. "Buenos días, Alex"). The greeting appears in both
     // the sticky header and the hero, so we assert at least one match.
     await waitFor(() => {
-      expect(screen.getByText(/^Koru$/)).toBeInTheDocument();
+      expect(screen.getByText(/^Michi$/)).toBeInTheDocument();
       expect(
         screen.getAllByText(/buenos días, alex|buenas tardes, alex|buenas noches, alex/i)
           .length,
@@ -152,11 +152,11 @@ describe("Koru MVP UI", () => {
     await completeConversationalOnboarding(user);
 
     // Type the "many things" message — mock returns a clarifying question
-    const input = screen.getByPlaceholderText(/habla con koru|hablá con koru|pregunta|hablemos/i);
+    const input = screen.getByPlaceholderText(/habla con michi|habla con koru|hablá con koru|pregunta|hablemos/i);
     await user.type(input, "Tengo muchas cosas en la cabeza y no se por donde empezar{Enter}");
 
     expect((await screen.findAllByText(/encontrar el primer paso real/i, {}, { timeout: 3000 })).length).toBeGreaterThan(0);
-    const chat = screen.getByRole("region", { name: /conversacion con koru/i });
+    const chat = screen.getByRole("region", { name: /conversaci[oó]n con (koru|michi)/i });
     expect(chat).toHaveTextContent(/responder/i);
 
     await user.type(input, "Tengo que lanzar Koru, hablar con mi socio, preparar una demo y comparar proveedores{Enter}");
@@ -176,12 +176,12 @@ describe("Koru MVP UI", () => {
 
     await completeConversationalOnboarding(user);
 
-    const input = screen.getByPlaceholderText(/habla con koru|hablá con koru|pregunta|hablemos/i);
+    const input = screen.getByPlaceholderText(/habla con michi|habla con koru|hablá con koru|pregunta|hablemos/i);
     await user.type(input, "estoy quemado{Enter}");
 
     // The mock returns a reply about preparing something to help — wait for that text
     await waitFor(() => {
-      const chat = screen.getByRole("region", { name: /conversacion con koru/i });
+      const chat = screen.getByRole("region", { name: /conversaci[oó]n con (koru|michi)/i });
       expect(chat).toHaveTextContent(/querés que prepare|estoy aca para seguir/i);
     }, { timeout: 5000 });
   }, 20000);

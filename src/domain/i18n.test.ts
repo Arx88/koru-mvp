@@ -5,7 +5,7 @@ describe("i18n module", () => {
   describe("t() translation resolver", () => {
     it("returns Spanish string by default", () => {
       expect(t("common.hablar_koru")).toBe("Hablar con Koru");
-      expect(t("onboarding.title")).toBe("Soy Koru");
+      expect(t("onboarding.title")).toBe("Soy Michi");
     });
 
     it("returns English string when lang=en", () => {

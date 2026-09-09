@@ -16,7 +16,7 @@ export async function callOpenRouterCandidate(
       Authorization: `Bearer ${key}`,
       "Content-Type": "application/json",
       "HTTP-Referer": "http://localhost:5173",
-      "X-OpenRouter-Title": "Koru Agent Loop",
+      "X-OpenRouter-Title": "Michi Agent Loop",
     },
     body: JSON.stringify({
       model,
