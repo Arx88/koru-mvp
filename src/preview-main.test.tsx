@@ -40,7 +40,7 @@ describe("preview-main v6 · showcase funcional", () => {
     // Quick actions funcionales al pie
     expect(screen.getByRole("button", { name: /¿cómo va el clásico\?/i })).toBeInTheDocument();
     // El feed es un log accesible
-    expect(screen.getByRole("log", { name: /conversación con koru/i })).toBeInTheDocument();
+    expect(screen.getByRole("log", { name: /conversación con michi/i })).toBeInTheDocument();
   });
 
   it("«Mostrar todo» revela el script completo y apaga el typing indicator", async () => {
