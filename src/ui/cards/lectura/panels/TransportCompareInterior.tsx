@@ -36,7 +36,7 @@ export function TransportCompareInterior({ block, onClose, onSave }: LecturaInte
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave("Tablero de salidas", best?.time) : undefined}
-      chip={{ label: "Transporte", background: "linear-gradient(135deg,#93c5fd,#3b82f6)" }}
+      chip={{ label: "Transporte", background: "linear-gradient(135deg,#93c5fd,#007BF9)" }}
       ariaLabel="Tablero de salidas"
     >
       <div id="p-transp" className="lcr-panel">

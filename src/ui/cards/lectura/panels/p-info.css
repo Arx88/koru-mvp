@@ -15,9 +15,9 @@
 .lcr .rep-axis{margin-top:14px;padding-top:12px;border-top:1px dashed #d9cff2}
 .lcr .rep-axis .ra-track{position:relative;height:34px}
 .lcr .rep-axis .ra-line{position:absolute;top:15px;left:0;right:0;height:4px;border-radius:2px;
-          background:linear-gradient(90deg,#e5b25c 0%,#e5b25c 28%,#6ee7b7 28%,#6ee7b7 100%)}
+          background:linear-gradient(90deg,#e5b25c 0%,#e5b25c 28%,#4BDD8C 28%,#4BDD8C 100%)}
 .lcr .rep-axis .ra-dot{position:absolute;top:8px;left:28%;width:18px;height:18px;border-radius:50%;
-          background:#fff;border:4px solid var(--mint-ink);box-shadow:0 2px 8px rgba(31,122,92,.4)}
+          background:#fff;border:4px solid var(--mint-ink);box-shadow:0 2px 8px rgba(14,158,76,.4)}
 .lcr .rep-axis .ra-tag{position:absolute;top:-12px;left:28%;transform:translateX(-50%);
           font:800 9.5px var(--sans);color:#05301d;background:var(--mint);padding:3px 8px;border-radius:999px;white-space:nowrap}
 .lcr .rep-axis .ra-ends{display:flex;justify-content:space-between;font:700 9.5px var(--sans);color:var(--ink-faint);margin-top:8px}
@@ -32,7 +32,7 @@
 .lcr .rrow .rn sup{font:800 9px var(--sans);color:var(--violet-ink);background:var(--violet-soft);padding:1px 5px;border-radius:6px}
 .lcr .rrow .rtrack{height:9px;border-radius:5px;background:#f1ecfa;position:relative;overflow:hidden}
 .lcr .rrow .rtrack i{position:absolute;inset:0 auto 0 0;border-radius:5px;
-          background:linear-gradient(90deg,#f6bd6d,#f59e0b)}
+          background:linear-gradient(90deg,#FFD75E,#FDC533)}
 .lcr .rrow .rval{font:800 12px var(--disp);color:var(--ink);text-align:right}
 .lcr .rrow .rval small{display:block;font:600 9px var(--sans);color:var(--ink-faint);letter-spacing:.04em}
 /* datasheet con puntos de guía */

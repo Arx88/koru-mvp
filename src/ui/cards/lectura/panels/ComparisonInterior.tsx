@@ -35,7 +35,7 @@ export function ComparisonInterior({ block, onClose, onSave }: LecturaInteriorPr
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(block.title || "Comparativa", winner?.title) : undefined}
-      chip={{ label: "Duelo", background: "linear-gradient(135deg,#c4b5fd,#8b5cf6)" }}
+      chip={{ label: "Duelo", background: "linear-gradient(135deg,#c4b5fd,#6D52F8)" }}
       ariaLabel={block.title || "Comparativa"}
     >
       <div id="p-comp" className="lcr-panel">

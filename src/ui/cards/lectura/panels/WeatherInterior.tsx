@@ -180,7 +180,7 @@ export function WeatherInterior({ block, onClose, onSave }: LecturaInteriorProps
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(`Clima ${city}`, block.condition) : undefined}
-      chip={{ label: "Clima", background: "linear-gradient(135deg,#8ab0ff,#5170d8)" }}
+      chip={{ label: "Clima", background: "linear-gradient(135deg,#8ab0ff,#1A237E)" }}
       ariaLabel={`Clima ${city}`}
     >
       <div id="p-clima" className="lcr-panel">
@@ -221,7 +221,7 @@ export function WeatherInterior({ block, onClose, onSave }: LecturaInteriorProps
               <path
                 d="M8 66 A 172 172 0 0 1 352 66"
                 fill="none"
-                stroke="#f6bd6d"
+                stroke="#FFD75E"
                 strokeWidth="3.5"
                 strokeLinecap="round"
                 opacity=".9"
@@ -235,7 +235,7 @@ export function WeatherInterior({ block, onClose, onSave }: LecturaInteriorProps
                   <path d={sun.f <= 0 ? "M4 66 A 172 172 0 0 1 14 63" : "M346 63 A 172 172 0 0 1 356 66"} fill="none" stroke="#8ab0ff" strokeWidth="3" strokeLinecap="round" opacity=".7" />
                 </>
               ) : (
-                <circle cx={sun.x.toFixed(1)} cy={sun.y.toFixed(1)} r="11" fill="#fde9c8" stroke="#f59e0b" strokeWidth="3.5" />
+                <circle cx={sun.x.toFixed(1)} cy={sun.y.toFixed(1)} r="11" fill="#fde9c8" stroke="#FDC533" strokeWidth="3.5" />
               )}
               <line x1="4" y1="66" x2="356" y2="66" stroke="#c9d9f5" strokeWidth="2" strokeLinecap="round" />
             </svg>
@@ -260,9 +260,9 @@ export function WeatherInterior({ block, onClose, onSave }: LecturaInteriorProps
                 <line x1="0" y1="88" x2="340" y2="88" />
               </g>
               <path d={curve.area} fill="url(#p-clima-wxf)" />
-              <path d={curve.line} fill="none" stroke="#5170d8" strokeWidth="3.5" strokeLinecap="round" />
-              <circle cx={curve.peak.x} cy={curve.peak.y} r="6" fill="#fff" stroke="#f59e0b" strokeWidth="3" />
-              <text x={curve.peak.x} y={Math.max(12, curve.peak.y - 12)} textAnchor="middle" fontFamily="Plus Jakarta Sans" fontWeight="800" fontSize="11" fill="#b45309">{curve.peak.label}</text>
+              <path d={curve.line} fill="none" stroke="#1A237E" strokeWidth="3.5" strokeLinecap="round" />
+              <circle cx={curve.peak.x} cy={curve.peak.y} r="6" fill="#fff" stroke="#FDC533" strokeWidth="3" />
+              <text x={curve.peak.x} y={Math.max(12, curve.peak.y - 12)} textAnchor="middle" fontFamily="Plus Jakarta Sans" fontWeight="800" fontSize="11" fill="#B07E00">{curve.peak.label}</text>
             </svg>
             <div className="xh">
               {curve.labels.map((l, i) => <span key={i}>{l}</span>)}

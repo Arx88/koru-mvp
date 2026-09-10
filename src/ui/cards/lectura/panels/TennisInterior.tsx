@@ -71,7 +71,7 @@ export function TennisInterior({ block, onClose, onSave }: LecturaInteriorProps<
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(`${home?.name ?? "Local"} vs ${away?.name ?? "Visitante"}`, tournament ? `${tournament.name} · ${tournament.round}` : undefined) : undefined}
-      chip={{ label: "Tenis", background: "linear-gradient(135deg,#8ab0ff,#5170d8)" }}
+      chip={{ label: "Tenis", background: "linear-gradient(135deg,#8ab0ff,#1A237E)" }}
       ariaLabel={`Tenis: ${home?.name ?? ""} vs ${away?.name ?? ""}`}
     >
       <div id="p-tennis" className="lcr-panel">

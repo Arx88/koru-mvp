@@ -70,7 +70,7 @@ export function OutfitInterior({ block, onClose, onSave }: LecturaInteriorProps<
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(block.title ?? "Look del día", temp ? `${temp} de día` : undefined) : undefined}
-      chip={{ label: "Qué me pongo", background: "linear-gradient(135deg,#8ab0ff,#5170d8)" }}
+      chip={{ label: "Qué me pongo", background: "linear-gradient(135deg,#8ab0ff,#1A237E)" }}
       ariaLabel={block.title ?? "Look del día"}
     >
       <div id="p-outfit" className="lcr-panel">

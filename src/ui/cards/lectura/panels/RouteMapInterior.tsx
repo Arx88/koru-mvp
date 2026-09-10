@@ -135,7 +135,7 @@ export function RouteMapInterior({ block, onClose, onSave }: LecturaInteriorProp
               ref={pathRef}
               d={ROUTE_D}
               fill="none"
-              stroke="#5170d8"
+              stroke="#1A237E"
               strokeWidth="7"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -146,7 +146,7 @@ export function RouteMapInterior({ block, onClose, onSave }: LecturaInteriorProp
             <path d={ROUTE_D} fill="none" stroke="#8ab0ff" strokeWidth="3" strokeLinecap="round" strokeDasharray="1 12" />
             <circle cx="176" cy="120" r="26" fill="#c9e4c9" opacity=".7" />
             <rect x="262" y="220" width="52" height="34" rx="7" fill="#e6d9f5" />
-            <text x="288" y="241" textAnchor="middle" fontFamily="var(--sans)" fontWeight="700" fontSize="9" fill="#6d4bf0">
+            <text x="288" y="241" textAnchor="middle" fontFamily="var(--sans)" fontWeight="700" fontSize="9" fill="#6D52F8">
               {(block.to ?? "DESTINO").slice(0, 10).toUpperCase()}
             </text>
             {/* El punto vivo HTML (pulso) queda alineado al avance real del path */}

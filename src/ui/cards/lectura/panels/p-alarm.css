@@ -1,10 +1,10 @@
 /* AUTO-GENERADO de lectura-visual.html #p-alarm (scoped .lcr / #p-alarm) */
 #p-alarm .cl-hero{background:linear-gradient(170deg,#fdf1dd,#fff 70%);border:1px solid #f0dfc0;border-radius:24px;
-          padding:18px;text-align:center;box-shadow:0 14px 34px rgba(180,83,9,.13)}
+          padding:18px;text-align:center;box-shadow:0 14px 34px rgba(176,126,0,.13)}
 .lcr .cl-face{position:relative;width:170px;height:170px;margin:0 auto;border-radius:50%;
-          background:#fff;border:6px solid #f6bd6d;box-shadow:inset 0 0 0 4px #fff,0 12px 26px rgba(180,83,9,.2)}
+          background:#fff;border:6px solid #FFD75E;box-shadow:inset 0 0 0 4px #fff,0 12px 26px rgba(176,126,0,.2)}
 .lcr .cl-face .tick{position:absolute;top:7px;left:50%;width:2.5px;height:8px;background:#d9c9a8;border-radius:2px;transform-origin:50% 78px}
-.lcr .cl-face .tick.big{width:3.5px;height:12px;background:#b45309}
+.lcr .cl-face .tick.big{width:3.5px;height:12px;background:#B07E00}
 .lcr .cl-face .h{position:absolute;top:34px;left:50%;width:5px;height:45px;background:var(--ink);border-radius:4px;transform-origin:50% 51px;transform:translateX(-50%) rotate(210deg)}
 .lcr .cl-face .m{position:absolute;top:22px;left:50%;width:4px;height:58px;background:var(--ink-soft);border-radius:4px;transform-origin:50% 63px;transform:translateX(-50%) rotate(0deg)}
 .lcr .cl-face .s{position:absolute;top:18px;left:50%;width:2px;height:62px;background:var(--rose);border-radius:2px;transform-origin:50% 67px;transform:translateX(-50%) rotate(90deg)}

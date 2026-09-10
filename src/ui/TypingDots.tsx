@@ -23,7 +23,7 @@ export function TypingDots({ label = "Procesando…" }: TypingDotsProps) {
             width: 6,
             height: 6,
             borderRadius: "50%",
-            background: "var(--koru-purple, #8363f9)",
+            background: "var(--koru-purple, #6D52F8)",
             animation: "koru-typing-bounce 1.4s ease-in-out infinite",
             animationDelay: "-0.32s",
           }}
@@ -33,7 +33,7 @@ export function TypingDots({ label = "Procesando…" }: TypingDotsProps) {
             width: 6,
             height: 6,
             borderRadius: "50%",
-            background: "var(--koru-purple, #8363f9)",
+            background: "var(--koru-purple, #6D52F8)",
             animation: "koru-typing-bounce 1.4s ease-in-out infinite",
             animationDelay: "-0.16s",
           }}
@@ -43,7 +43,7 @@ export function TypingDots({ label = "Procesando…" }: TypingDotsProps) {
             width: 6,
             height: 6,
             borderRadius: "50%",
-            background: "var(--koru-purple, #8363f9)",
+            background: "var(--koru-purple, #6D52F8)",
             animation: "koru-typing-bounce 1.4s ease-in-out infinite",
           }}
         />

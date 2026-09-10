@@ -8,8 +8,8 @@
 .lcr .tkk-hero .cutr{right:-12px}
 .lcr .tkk-top{padding:16px 18px 8px;text-align:center}
 .lcr .tkk-top .ok{width:54px;height:54px;border-radius:50%;margin:0 auto 10px;
-          background:linear-gradient(160deg,#6ee7b7,#2f8f6d);display:flex;align-items:center;justify-content:center;
-          box-shadow:0 8px 20px rgba(31,122,92,.32)}
+          background:linear-gradient(160deg,#4BDD8C,#22B35F);display:flex;align-items:center;justify-content:center;
+          box-shadow:0 8px 20px rgba(14,158,76,.32)}
 .lcr .tkk-top .ok .lucide{font-size:28px;color:#05301d}
 .lcr .tkk-top .tq{font:800 19px var(--disp);color:var(--ink)}
 .lcr .tkk-top .ts{font:600 11px var(--sans);color:var(--ink-dim);margin-top:3px}

@@ -49,7 +49,7 @@ export function BirthdayCalendarInterior({ block, onClose, onSave }: LecturaInte
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(`Cumples de ${month}`, highlightedDay ? `día ${highlightedDay}` : undefined) : undefined}
-      chip={{ label: "Cumples", background: "linear-gradient(135deg,#fda4af,#e11d48)" }}
+      chip={{ label: "Cumples", background: "linear-gradient(135deg,#FF9EBE,#FF5A60)" }}
       ariaLabel={`Calendario de cumpleaños de ${month}`}
     >
       <div id="p-bcal" className="lcr-panel">

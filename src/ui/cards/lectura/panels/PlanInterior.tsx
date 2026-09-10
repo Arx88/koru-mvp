@@ -124,7 +124,7 @@ export function PlanInterior({
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(block.title ?? "Tu día", `${items.length} momentos`) : undefined}
-      chip={{ label: "Tu día", background: "linear-gradient(135deg,#6ee7b7,#1f7a5c)" }}
+      chip={{ label: "Tu día", background: "linear-gradient(135deg,#4BDD8C,#1f7a5c)" }}
       ariaLabel={block.title ?? "Tu día"}
     >
       <div id="p-plan" className="lcr-panel">

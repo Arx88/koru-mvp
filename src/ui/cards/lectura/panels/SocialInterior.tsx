@@ -37,7 +37,7 @@ export function SocialInterior({ block, onClose, onSave }: LecturaInteriorProps<
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(`El ${event} de ${name}`, date) : undefined}
-      chip={{ label: "Evento", background: "linear-gradient(135deg,#fda4af,#e11d48)" }}
+      chip={{ label: "Evento", background: "linear-gradient(135deg,#FF9EBE,#FF5A60)" }}
       ariaLabel={`El ${event} de ${name}`}
     >
       <div id="p-social" className="lcr-panel">

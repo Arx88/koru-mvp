@@ -67,7 +67,7 @@ import { CollectionsScreen } from "../../CollectionsScreen";
 //   banner   → gradiente full-width (100px) con número grande + label.
 
 const FONT_HEADING = '"Bricolage Grotesque", "Plus Jakarta Sans", sans-serif';
-const COLOR_INK = "#382b8c";
+const COLOR_INK = "#1E1B4B";
 const COLOR_INK_MUTED = "#6b5f8c";
 const COLOR_INK_TENUE = "#a99bbe";
 
@@ -979,13 +979,13 @@ function GalleryLayout(props: SharedProps) {
   // Paleta rotativa para que cada mini-card tenga su gradiente propio.
   const gradients = [
     `linear-gradient(135deg, ${hero.accent.color}, ${hero.accent.soft})`,
-    "linear-gradient(135deg, #ec4899, rgba(236,72,153,0.18))",
-    "linear-gradient(135deg, #2563eb, rgba(37,99,235,0.18))",
-    "linear-gradient(135deg, #059669, rgba(16,185,129,0.18))",
-    "linear-gradient(135deg, #d97706, rgba(217,119,6,0.18))",
-    "linear-gradient(135deg, #8127cf, rgba(129,39,207,0.18))",
-    "linear-gradient(135deg, #0284c7, rgba(2,132,199,0.18))",
-    "linear-gradient(135deg, #e11d48, rgba(225,29,72,0.18))",
+    "linear-gradient(135deg, #F65E9B, rgba(246,94,155,0.18))",
+    "linear-gradient(135deg, #007BF9, rgba(0,123,249,0.18))",
+    "linear-gradient(135deg, #2FC86E, rgba(47,200,110,0.18))",
+    "linear-gradient(135deg, #F0A11C, rgba(240,161,28,0.18))",
+    "linear-gradient(135deg, #5940E0, rgba(89,64,224,0.18))",
+    "linear-gradient(135deg, #007BF9, rgba(0,123,249,0.18))",
+    "linear-gradient(135deg, #FF5A60, rgba(255,90,96,0.18))",
   ];
 
   return (
@@ -1411,7 +1411,7 @@ function GardenLayout(props: SharedProps) {
       )}
       <div className="koru-garden-hero" style={{ margin: "-18px -18px 14px" }}>
         <div className="glow" />
-        <KoruIcon name="memory" size={48} style={{ color: "var(--leaf, #7ed491)" }} />
+        <KoruIcon name="memory" size={48} style={{ color: "var(--leaf, #4BDD8C)" }} />
         <div className="koru-card-kicker kc-kicker" style={{ color: "rgba(239,234,255,0.85)" }}>
           <span className={"dot" + (hero.live ? " live" : "")} />
           {hero.kicker}
@@ -1506,7 +1506,7 @@ function MatchLayout(props: SharedProps) {
     // Hash simple del nombre → paleta azul/rojo (Kimi FRA vs ESP)
     let h = 0;
     for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) | 0;
-    const palette = ["#4a6cf7", "#ff7d6b", "#46c293", "#f6bd6d", "#a855f7"];
+    const palette = ["#5B41EE", "#FF5A60", "#2FC86E", "#FFD75E", "#8B6DFF"];
     return palette[Math.abs(h) % palette.length];
   };
 

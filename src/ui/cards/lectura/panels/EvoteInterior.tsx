@@ -57,7 +57,7 @@ export function EvoteInterior({ block, onClose, onSave }: LecturaInteriorProps<E
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(question, subtitle) : undefined}
-      chip={{ label: "Tu voto", background: "linear-gradient(135deg,#a78bfa,#6d4bf0)" }}
+      chip={{ label: "Tu voto", background: "linear-gradient(135deg,#8B6DFF,#6D52F8)" }}
       ariaLabel={question}
     >
       <div id="p-evote" className="lcr-panel">

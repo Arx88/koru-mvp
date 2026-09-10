@@ -45,9 +45,9 @@ export function ForexPanel() {
                   <g stroke="#f1ecfa" strokeWidth="1">
                     <line x1="0" y1="18" x2="320" y2="18" /><line x1="0" y1="44" x2="320" y2="44" /><line x1="0" y1="70" x2="320" y2="70" />
                   </g>
-                  <path d="M4 52 L57 46 L110 50 L163 40 L216 44 L269 36 L316 38" fill="none" stroke="#2f8f6d" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                  <circle cx="4" cy="52" r="4.5" fill="#fff" stroke="#2f8f6d" strokeWidth="2.5" />
-                  <circle cx="316" cy="38" r="4.5" fill="#fff" stroke="#2f8f6d" strokeWidth="2.5" />
+                  <path d="M4 52 L57 46 L110 50 L163 40 L216 44 L269 36 L316 38" fill="none" stroke="#22B35F" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                  <circle cx="4" cy="52" r="4.5" fill="#fff" stroke="#22B35F" strokeWidth="2.5" />
+                  <circle cx="316" cy="38" r="4.5" fill="#fff" stroke="#22B35F" strokeWidth="2.5" />
                 </svg>
                 <div className="wk"><span>lun</span><span>mar</span><span>mié</span><span>jue</span><span>vie</span><span>hoy</span></div>
               </div>

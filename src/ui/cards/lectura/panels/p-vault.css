@@ -7,7 +7,7 @@
 .lcr .vt-safe{background:#fff;border:1px solid #eccfdd;border-radius:24px;overflow:hidden}
 .lcr .vt-top{display:flex;align-items:center;gap:13px;padding:16px 17px;background:linear-gradient(160deg,var(--pink-soft),#fff 80%)}
 .lcr .vt-dial{flex:none;width:56px;height:56px;border-radius:50%;background:radial-gradient(circle at 34% 30%,#ffe9f1,#ffb9d0 60%,#e26d99);
-          display:grid;place-items:center;color:#8c2f56;box-shadow:0 6px 16px rgba(214,73,127,.28),inset 0 0 0 3px rgba(255,255,255,.5)}
+          display:grid;place-items:center;color:#8c2f56;box-shadow:0 6px 16px rgba(194,65,95,.28),inset 0 0 0 3px rgba(255,255,255,.5)}
 .lcr .vt-dial .lucide{font-size:24px}
 .lcr .vt-top .t{flex:1;min-width:0}
 .lcr .vt-top .t b{font:800 16px var(--disp);display:block}

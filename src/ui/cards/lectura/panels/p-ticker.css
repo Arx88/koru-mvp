@@ -1,6 +1,6 @@
 /* AUTO-GENERADO de lectura-visual.html #p-ticker (scoped .lcr / #p-ticker) */
 #p-ticker .tt2-hero{background:#fff;border:1px solid var(--linec);border-radius:24px;padding:0;box-shadow:0 14px 34px var(--shadowc);overflow:hidden}
-.lcr .tt2-tape{background:linear-gradient(90deg,#2e2650,#3d3273);padding:9px 0;overflow:hidden;white-space:nowrap;position:relative}
+.lcr .tt2-tape{background:linear-gradient(90deg,#1E1B4B,#3d3273);padding:9px 0;overflow:hidden;white-space:nowrap;position:relative}
 .lcr .tt2-tape .lane{display:inline-block;animation:tape 22s linear infinite}
 @keyframes tape{
 from{transform:translateX(0)}to{transform:translateX(-50%)}
@@ -19,9 +19,9 @@ from{transform:translateX(0)}to{transform:translateX(-50%)}
 .lcr .tt2-gauge .gt{display:flex;justify-content:space-between;font:700 9.5px var(--sans);color:var(--ink-faint);margin-bottom:7px}
 .lcr .tt2-gauge .gt b{color:var(--ink)}
 .lcr .tt2-track{height:12px;border-radius:6px;background:#f4f0fb;position:relative}
-.lcr .tt2-track i{display:block;height:100%;width:68%;border-radius:6px;background:linear-gradient(90deg,#6ee7b7,#2f8f6d)}
+.lcr .tt2-track i{display:block;height:100%;width:68%;border-radius:6px;background:linear-gradient(90deg,#4BDD8C,#22B35F)}
 .lcr .tt2-track em{position:absolute;top:-2px;left:68%;transform:translateX(-50%);width:16px;height:16px;border-radius:50%;
-          background:#fff;border:3.5px solid var(--mint-ink);box-shadow:0 2px 6px rgba(31,122,92,.3)}
+          background:#fff;border:3.5px solid var(--mint-ink);box-shadow:0 2px 6px rgba(14,158,76,.3)}
 .lcr .tt2-gauge .gl{display:flex;justify-content:space-between;font:600 9.5px var(--sans);color:var(--ink-dim);margin-top:7px}
 .lcr .tt2-what{margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:9px}
 .lcr .tt2-w{background:#fff;border:1px solid var(--linec);border-radius:15px;padding:10px 12px}

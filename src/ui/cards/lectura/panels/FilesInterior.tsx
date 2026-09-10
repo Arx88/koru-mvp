@@ -77,7 +77,7 @@ export function FilesInterior({ block, onClose, onSave }: LecturaInteriorProps<F
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(title, `${files.length} archivos`) : undefined}
-      chip={{ label: "Archivos", background: "linear-gradient(135deg,#6ee7b7,#059669)" }}
+      chip={{ label: "Archivos", background: "linear-gradient(135deg,#4BDD8C,#2FC86E)" }}
       ariaLabel={title}
     >
       <div id="p-files" className="lcr-panel">

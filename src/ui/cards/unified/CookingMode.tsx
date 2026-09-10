@@ -238,9 +238,9 @@ export function CookingMode({ title, steps, block, onClose }: CookingModeProps) 
             width: 40,
             height: 40,
             borderRadius: 999,
-            border: "1px solid rgba(131, 99, 249, 0.18)",
+            border: "1px solid rgba(109, 82, 248, 0.18)",
             background: "rgba(255, 255, 255, 0.7)",
-            color: "#4648d4",
+            color: "#5940E0",
             display: "grid",
             placeItems: "center",
             cursor: "pointer",
@@ -251,7 +251,7 @@ export function CookingMode({ title, steps, block, onClose }: CookingModeProps) 
           <span className="material-symbols-outlined" style={{ fontSize: 22 }}>close</span>
         </button>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: "#8363f9", letterSpacing: 0.6, textTransform: "uppercase" }}>
+          <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: "#6D52F8", letterSpacing: 0.6, textTransform: "uppercase" }}>
             Modo cocina
           </p>
           <h2 style={{
@@ -274,7 +274,7 @@ export function CookingMode({ title, steps, block, onClose }: CookingModeProps) 
           <span style={{ fontSize: 12, fontWeight: 700, color: "#6b5f8c" }}>
             Paso {current + 1} de {total}
           </span>
-          <span style={{ fontSize: 12, fontWeight: 700, color: "#4648d4" }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "#5940E0" }}>
             {Math.round(progress * 100)}%
           </span>
         </div>
@@ -283,7 +283,7 @@ export function CookingMode({ title, steps, block, onClose }: CookingModeProps) 
           style={{
             height: 8,
             borderRadius: 999,
-            background: "rgba(131, 99, 249, 0.15)",
+            background: "rgba(109, 82, 248, 0.15)",
             overflow: "hidden",
           }}
         >
@@ -291,7 +291,7 @@ export function CookingMode({ title, steps, block, onClose }: CookingModeProps) 
             style={{
               width: `${progress * 100}%`,
               height: "100%",
-              background: "linear-gradient(90deg, #8363f9, #4648d4)",
+              background: "linear-gradient(90deg, #6D52F8, #5940E0)",
               borderRadius: 999,
               transition: "width 320ms ease",
             }}
@@ -325,7 +325,7 @@ export function CookingMode({ title, steps, block, onClose }: CookingModeProps) 
               fontSize: 48,
               fontWeight: 700,
               lineHeight: 1,
-              color: "#4648d4",
+              color: "#5940E0",
               letterSpacing: -1,
             }}
           >
@@ -336,7 +336,7 @@ export function CookingMode({ title, steps, block, onClose }: CookingModeProps) 
             style={{
               fontSize: 12,
               fontWeight: 700,
-              color: "#8363f9",
+              color: "#6D52F8",
               letterSpacing: 0.6,
               textTransform: "uppercase",
             }}
@@ -365,7 +365,7 @@ export function CookingMode({ title, steps, block, onClose }: CookingModeProps) 
               padding: "18px 20px",
               borderRadius: 20,
               background: "rgba(255, 255, 255, 0.7)",
-              border: "1px solid rgba(131, 99, 249, 0.18)",
+              border: "1px solid rgba(109, 82, 248, 0.18)",
               backdropFilter: "blur(8px)",
               display: "flex",
               flexDirection: "column",
@@ -373,7 +373,7 @@ export function CookingMode({ title, steps, block, onClose }: CookingModeProps) 
               gap: 10,
             }}
           >
-            <span style={{ fontSize: 11, fontWeight: 700, color: "#8363f9", letterSpacing: 0.6, textTransform: "uppercase" }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#6D52F8", letterSpacing: 0.6, textTransform: "uppercase" }}>
               {paused ? "Pausado" : "En curso"}
             </span>
             <span
@@ -382,7 +382,7 @@ export function CookingMode({ title, steps, block, onClose }: CookingModeProps) 
                 fontSize: 44,
                 fontWeight: 700,
                 lineHeight: 1,
-                color: remaining <= 5 && !paused ? "#e8593c" : "#4648d4",
+                color: remaining <= 5 && !paused ? "#FF4D54" : "#5940E0",
                 fontVariantNumeric: "tabular-nums",
               }}
             >
@@ -396,8 +396,8 @@ export function CookingMode({ title, steps, block, onClose }: CookingModeProps) 
               }}
               style={{
                 marginTop: 2,
-                background: paused ? "#4648d4" : "rgba(70, 72, 212, 0.12)",
-                color: paused ? "#fff" : "#4648d4",
+                background: paused ? "#5940E0" : "rgba(89, 64, 224, 0.12)",
+                color: paused ? "#fff" : "#5940E0",
                 border: "none",
                 borderRadius: 999,
                 padding: "8px 18px",
@@ -423,7 +423,7 @@ export function CookingMode({ title, steps, block, onClose }: CookingModeProps) 
             style={{
               marginTop: "auto",
               paddingTop: 14,
-              borderTop: "1px solid rgba(131, 99, 249, 0.14)",
+              borderTop: "1px solid rgba(109, 82, 248, 0.14)",
               display: "flex",
               flexWrap: "wrap",
               gap: 6,
@@ -441,8 +441,8 @@ export function CookingMode({ title, steps, block, onClose }: CookingModeProps) 
                     statuses[i] === "done"
                       ? "#22a06b"
                       : i === current
-                        ? "#4648d4"
-                        : "rgba(131, 99, 249, 0.2)",
+                        ? "#5940E0"
+                        : "rgba(109, 82, 248, 0.2)",
                 }}
               />
             ))}
@@ -459,7 +459,7 @@ export function CookingMode({ title, steps, block, onClose }: CookingModeProps) 
           gap: 10,
           flexShrink: 0,
           background: "rgba(255, 255, 255, 0.6)",
-          borderTop: "1px solid rgba(131, 99, 249, 0.12)",
+          borderTop: "1px solid rgba(109, 82, 248, 0.12)",
           backdropFilter: "blur(12px)",
         }}
       >
@@ -471,9 +471,9 @@ export function CookingMode({ title, steps, block, onClose }: CookingModeProps) 
             flex: 1,
             padding: "14px 12px",
             borderRadius: 14,
-            border: "1px solid rgba(70, 72, 212, 0.18)",
+            border: "1px solid rgba(89, 64, 224, 0.18)",
             background: "rgba(255, 255, 255, 0.8)",
-            color: "#4648d4",
+            color: "#5940E0",
             fontSize: 14,
             fontWeight: 700,
             cursor: current === 0 ? "not-allowed" : "pointer",
@@ -495,12 +495,12 @@ export function CookingMode({ title, steps, block, onClose }: CookingModeProps) 
             padding: "14px 12px",
             borderRadius: 14,
             border: "none",
-            background: "linear-gradient(135deg, #8363f9, #4648d4)",
+            background: "linear-gradient(135deg, #6D52F8, #5940E0)",
             color: "#fff",
             fontSize: 14,
             fontWeight: 800,
             cursor: "pointer",
-            boxShadow: "0 8px 20px rgba(131, 99, 249, 0.32)",
+            boxShadow: "0 8px 20px rgba(109, 82, 248, 0.32)",
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
@@ -548,7 +548,7 @@ export function CookingMode({ title, steps, block, onClose }: CookingModeProps) 
                 height: 48,
                 borderRadius: 999,
                 background: "rgba(232, 89, 60, 0.12)",
-                color: "#e8593c",
+                color: "#FF4D54",
                 display: "grid",
                 placeItems: "center",
                 margin: "0 auto 12px",
@@ -588,7 +588,7 @@ export function CookingMode({ title, steps, block, onClose }: CookingModeProps) 
                   padding: "12px 10px",
                   borderRadius: 12,
                   border: "none",
-                  background: "#e8593c",
+                  background: "#FF4D54",
                   color: "#fff",
                   fontSize: 13,
                   fontWeight: 800,

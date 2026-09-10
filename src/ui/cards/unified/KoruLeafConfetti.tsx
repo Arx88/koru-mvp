@@ -37,7 +37,7 @@ export function KoruLeafConfetti({ active, count = 24, duration = 2600, onComple
     const left = Math.random() * 100;
     const delay = Math.random() * 600;
     const scale = 0.7 + Math.random() * 0.8;
-    const hue = Math.random() > 0.5 ? "var(--leaf, #7ed491)" : "var(--miel-1, #f6bd6d)";
+    const hue = Math.random() > 0.5 ? "var(--leaf, #4BDD8C)" : "var(--miel-1, #FFD75E)";
     return (
       <i
         key={i}

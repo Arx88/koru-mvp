@@ -111,16 +111,16 @@ html, body {
 .pv-links a {
   color: var(--pv-link);
   text-decoration: none;
-  border: 1px solid rgba(131, 99, 249, 0.35);
+  border: 1px solid rgba(109, 82, 248, 0.35);
   border-radius: 999px;
   padding: 6px 14px;
   transition: all 0.18s ease;
 }
 
 .pv-links a:hover {
-  background: rgba(131, 99, 249, 0.18);
+  background: rgba(109, 82, 248, 0.18);
   color: #fff;
-  border-color: rgba(131, 99, 249, 0.6);
+  border-color: rgba(109, 82, 248, 0.6);
 }
 
 .pv-links-sep { opacity: 0.4; }
@@ -158,7 +158,7 @@ html, body {
   padding: 10px 12px;
   border-radius: 14px;
   background: #f4f1ff;
-  border: 1.5px solid rgba(131, 99, 249, 0.35);
+  border: 1.5px solid rgba(109, 82, 248, 0.35);
   text-decoration: none;
   color: #241d4f;
   transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
@@ -167,13 +167,13 @@ html, body {
 .pv-welcome-btn:active {
   transform: scale(0.98);
   background: #ece6ff;
-  border-color: rgba(131, 99, 249, 0.7);
+  border-color: rgba(109, 82, 248, 0.7);
 }
 
 .pv-welcome-btn .material-symbols-outlined {
   flex: 0 0 auto;
   font-size: 22px;
-  color: #8363f9;
+  color: #6D52F8;
 }
 
 .pv-welcome-btn-text {
@@ -287,8 +287,8 @@ html, body {
 .pv-chip:hover { border-color: rgba(255, 255, 255, 0.3); color: #fff; }
 
 .pv-chip.is-active {
-  background: #8363f9;
-  border-color: #8363f9;
+  background: #6D52F8;
+  border-color: #6D52F8;
   color: #fff;
 }
 
@@ -332,8 +332,8 @@ html, body {
 }
 
 .pv-ctrl-btn[aria-pressed="true"] {
-  background: rgba(131, 99, 249, 0.32);
-  border-color: rgba(131, 99, 249, 0.6);
+  background: rgba(109, 82, 248, 0.32);
+  border-color: rgba(109, 82, 248, 0.6);
   color: #fff;
 }
 
@@ -381,7 +381,7 @@ html, body {
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.pv-clear:hover { background: #f0ebf8; color: #523a9e; }
+.pv-clear:hover { background: #f0ebf8; color: #5940E0; }
 
 /* Accesibilidad: sin animaciones si el usuario lo pidió */
 @media (prefers-reduced-motion: reduce) {

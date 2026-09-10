@@ -92,7 +92,7 @@ export function TravelInterior({ block, onClose, onSave }: LecturaInteriorProps<
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(title, block.dates) : undefined}
-      chip={{ label: "Viaje", background: "linear-gradient(135deg,#fbbf24,#b45309)" }}
+      chip={{ label: "Viaje", background: "linear-gradient(135deg,#FDC533,#B07E00)" }}
       ariaLabel={title}
     >
       <div id="p-travel" className="lcr-panel">
@@ -316,7 +316,7 @@ export function TravelInterior({ block, onClose, onSave }: LecturaInteriorProps<
                         display: "block",
                         height: "100%",
                         width: `${pct}%`,
-                        background: "linear-gradient(90deg,#fbbf24,#b45309)",
+                        background: "linear-gradient(90deg,#FDC533,#B07E00)",
                         borderRadius: "5px",
                       }}
                     />

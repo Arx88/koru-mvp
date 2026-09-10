@@ -14,7 +14,7 @@
 .lcr #p-shop .shitem:active{background:#f8f5fe}
 .lcr #p-shop .shitem .box{flex:none;width:22px;height:22px;border-radius:8px;background:var(--mint-soft);display:flex;align-items:center;justify-content:center;color:transparent;transition:all .25s var(--ease)}
 .lcr #p-shop .shitem .box .lucide{font-size:13px}
-.lcr #p-shop .shitem.done .box{background:linear-gradient(135deg,#6ee7b7,#059669);color:#fff}
+.lcr #p-shop .shitem.done .box{background:linear-gradient(135deg,#4BDD8C,#2FC86E);color:#fff}
 .lcr #p-shop .shitem .st{flex:1;min-width:0}
 .lcr #p-shop .shitem .st b{font:700 13px/1.35 var(--sans);color:var(--ink);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lcr #p-shop .shitem.done .st b{text-decoration:line-through;color:var(--ink-faint)}

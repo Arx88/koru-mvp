@@ -48,7 +48,7 @@ export function ShopInterior({ block, onClose, onSave }: LecturaInteriorProps<Sh
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(block.title || "Lista de compras", `${doneCount}/${total}`) : undefined}
-      chip={{ label: "Lista", background: "linear-gradient(135deg,#6ee7b7,#059669)" }}
+      chip={{ label: "Lista", background: "linear-gradient(135deg,#4BDD8C,#2FC86E)" }}
       ariaLabel={block.title || "Lista de compras"}
     >
       <div id="p-shop" className="lcr-panel">

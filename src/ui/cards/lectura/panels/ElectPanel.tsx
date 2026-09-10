@@ -24,7 +24,7 @@ export function ElectPanel() {
                   <div className="ring">
                     <svg viewBox="0 0 54 54">
                       <circle cx="27" cy="27" r="23" fill="none" stroke="#eee8f8" strokeWidth="6" />
-                      <circle cx="27" cy="27" r="23" fill="none" stroke="#6d4bf0" strokeWidth="6" strokeLinecap="round" strokeDasharray="144.5" strokeDashoffset="15.9" />
+                      <circle cx="27" cy="27" r="23" fill="none" stroke="#6D52F8" strokeWidth="6" strokeLinecap="round" strokeDasharray="144.5" strokeDashoffset="15.9" />
                     </svg>
                     <span className="rv2">89%</span>
                   </div>
@@ -34,18 +34,18 @@ export function ElectPanel() {
                   </div>
                 </div>
                 <div className="el-bar">
-                  <i className="lead" style={{ "width": "34%", "background": "#6d4bf0" }}>34%</i>
-                  <i style={{ "width": "29%", "background": "#5170d8" }}>29%</i>
-                  <i style={{ "width": "18%", "background": "#b45309" }}>18%</i>
+                  <i className="lead" style={{ "width": "34%", "background": "#6D52F8" }}>34%</i>
+                  <i style={{ "width": "29%", "background": "#1A237E" }}>29%</i>
+                  <i style={{ "width": "18%", "background": "#B07E00" }}>18%</i>
                   <i style={{ "width": "12%", "background": "#d6497f" }}>12%</i>
-                  <i style={{ "width": "7%", "background": "#9486c2" }} aria-label="Otros 7%"></i>
+                  <i style={{ "width": "7%", "background": "#A6ACCB" }} aria-label="Otros 7%"></i>
                 </div>
                 <div className="el-legend">
-                  <div className="el-row win"><span className="sw2" style={{ "background": "#6d4bf0" }}></span><b>Partido A<small>mejoró 2 pts en el sur</small></b><span className="pv">34,1%</span><span className="seats"><i style={{ "background": "#6d4bf0" }}></i><i style={{ "background": "#6d4bf0" }}></i><i style={{ "background": "#6d4bf0" }}></i><i style={{ "background": "#6d4bf0" }}></i><i style={{ "background": "#6d4bf0" }}></i><i style={{ "background": "#6d4bf0" }}></i></span></div>
-                  <div className="el-row"><span className="sw2" style={{ "background": "#5170d8" }}></span><b>Partido B<small>fuerte en la costa</small></b><span className="pv">28,8%</span><span className="seats"><i style={{ "background": "#5170d8" }}></i><i style={{ "background": "#5170d8" }}></i><i style={{ "background": "#5170d8" }}></i><i style={{ "background": "#5170d8" }}></i><i style={{ "background": "#5170d8" }}></i></span></div>
-                  <div className="el-row"><span className="sw2" style={{ "background": "#b45309" }}></span><b>Partido C<small>cede terreno urbano</small></b><span className="pv">18,2%</span><span className="seats"><i style={{ "background": "#b45309" }}></i><i style={{ "background": "#b45309" }}></i><i style={{ "background": "#b45309" }}></i></span></div>
+                  <div className="el-row win"><span className="sw2" style={{ "background": "#6D52F8" }}></span><b>Partido A<small>mejoró 2 pts en el sur</small></b><span className="pv">34,1%</span><span className="seats"><i style={{ "background": "#6D52F8" }}></i><i style={{ "background": "#6D52F8" }}></i><i style={{ "background": "#6D52F8" }}></i><i style={{ "background": "#6D52F8" }}></i><i style={{ "background": "#6D52F8" }}></i><i style={{ "background": "#6D52F8" }}></i></span></div>
+                  <div className="el-row"><span className="sw2" style={{ "background": "#1A237E" }}></span><b>Partido B<small>fuerte en la costa</small></b><span className="pv">28,8%</span><span className="seats"><i style={{ "background": "#1A237E" }}></i><i style={{ "background": "#1A237E" }}></i><i style={{ "background": "#1A237E" }}></i><i style={{ "background": "#1A237E" }}></i><i style={{ "background": "#1A237E" }}></i></span></div>
+                  <div className="el-row"><span className="sw2" style={{ "background": "#B07E00" }}></span><b>Partido C<small>cede terreno urbano</small></b><span className="pv">18,2%</span><span className="seats"><i style={{ "background": "#B07E00" }}></i><i style={{ "background": "#B07E00" }}></i><i style={{ "background": "#B07E00" }}></i></span></div>
                   <div className="el-row"><span className="sw2" style={{ "background": "#d6497f" }}></span><b>Partido D</b><span className="pv">12,4%</span><span className="seats"><i style={{ "background": "#d6497f" }}></i><i style={{ "background": "#d6497f" }}></i></span></div>
-                  <div className="el-row"><span className="sw2" style={{ "background": "#9486c2" }}></span><b>Otros</b><span className="pv">6,5%</span><span className="seats"><i style={{ "background": "#9486c2" }}></i></span></div>
+                  <div className="el-row"><span className="sw2" style={{ "background": "#A6ACCB" }}></span><b>Otros</b><span className="pv">6,5%</span><span className="seats"><i style={{ "background": "#A6ACCB" }}></i></span></div>
                 </div>
               </div>
               <div className="el-note rv">

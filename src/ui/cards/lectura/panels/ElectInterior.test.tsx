@@ -24,7 +24,7 @@ describe("ElectInterior", () => {
     expect(screen.getAllByText(/89% contado/i).length).toBeGreaterThan(0);
     expect(screen.getByText("89%")).toBeInTheDocument();
     // el anillo usa strokeDashoffset derivado del 89%
-    const ring = document.body.querySelector(".el-progress circle[stroke='#6d4bf0']");
+    const ring = document.body.querySelector(".el-progress circle[stroke='#6D52F8']");
     expect(ring?.getAttribute("stroke-dashoffset")).toBe(String(144.5 * (1 - 0.89)));
   });
 

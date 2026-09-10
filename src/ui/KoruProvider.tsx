@@ -573,7 +573,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
                   .filter((it: any) => it && typeof it === "object")
                   .map((it: any, idx: number) => ({
                     icon: String(it.icon ?? "wb_sunny"),
-                    iconColor: idx === 0 ? "#6ee7b7" : "#a99be0",
+                    iconColor: idx === 0 ? "#4BDD8C" : "#a99be0",
                     label: String(it.label ?? ""),
                     value: String(it.value ?? ""),
                     variant: "default" as const,
@@ -581,7 +581,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
                 if (brief.reflection) {
                   uiItems.push({
                     icon: "lightbulb",
-                    iconColor: "#fbbf24",
+                    iconColor: "#FDC533",
                     label: "Reflexión",
                     value: String(brief.reflection),
                     variant: "highlight" as const,

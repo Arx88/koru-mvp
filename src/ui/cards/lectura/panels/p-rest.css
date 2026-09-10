@@ -5,9 +5,9 @@
 .lcr .pod-head p{font:600 12px var(--sans);color:var(--ink-dim);margin-top:6px}
 /* podio */
 .lcr .pod{position:relative;background:#fff;border:1px solid #f0e0c2;border-radius:24px;padding:16px 14px 0;
-          box-shadow:0 14px 34px rgba(180,83,9,.12);overflow:hidden}
+          box-shadow:0 14px 34px rgba(176,126,0,.12);overflow:hidden}
 .lcr .pod::before{content:"";position:absolute;inset:0;
-          background:radial-gradient(320px 130px at 50% -30px,rgba(246,189,109,.28),transparent 70%)}
+          background:radial-gradient(320px 130px at 50% -30px,rgba(253,197,51,.28),transparent 70%)}
 .lcr .pod-l1{position:relative;border:1.5px solid #eec983;border-radius:18px;padding:12px 14px;
           background:linear-gradient(160deg,#fff9ec,#fdf2d9);display:flex;gap:12px;align-items:center}
 .lcr .pod-l1 .medal{flex:none;width:54px;height:54px;border-radius:50%;position:relative;

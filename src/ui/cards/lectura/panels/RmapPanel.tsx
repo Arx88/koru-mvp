@@ -37,12 +37,12 @@ export function RmapPanel() {
                     <path d="M0 110 L390 110" /><path d="M0 205 L390 205" />
                     <path d="M100 0 L100 300" /><path d="M198 0 L198 300" /><path d="M290 0 L290 300" />
                   </g>
-                  <path d="M70 240 L146 240 L146 205 L244 205 L244 110 L320 58" fill="none" stroke="#5170d8" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" opacity=".85" />
+                  <path d="M70 240 L146 240 L146 205 L244 205 L244 110 L320 58" fill="none" stroke="#1A237E" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" opacity=".85" />
                   <path d="M70 240 L146 240 L146 205 L244 205 L244 110 L320 58" fill="none" stroke="#8ab0ff" strokeWidth="3" strokeLinecap="round" strokeDasharray="1 12" />
                   <circle cx="176" cy="120" r="26" fill="#c9e4c9" opacity=".7" />
                   <text x="176" y="125" textAnchor="middle" fontFamily="Material Symbols Outlined" fontSize="14" fill="#1f7a5c">park</text>
                   <rect x="262" y="220" width="52" height="34" rx="7" fill="#e6d9f5" />
-                  <text x="288" y="241" textAnchor="middle" fontFamily="Plus Jakarta Sans" fontWeight="700" fontSize="9" fill="#6d4bf0">RETIRO</text>
+                  <text x="288" y="241" textAnchor="middle" fontFamily="Plus Jakarta Sans" fontWeight="700" fontSize="9" fill="#6D52F8">RETIRO</text>
                 </svg>
                 <div className="mp-live"><span className="pulse"></span></div>
                 <div className="mp-bottom">

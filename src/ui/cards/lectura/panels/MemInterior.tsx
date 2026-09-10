@@ -83,7 +83,7 @@ export function MemInterior({ block, onClose, onSave }: LecturaInteriorProps<Mem
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(title, `${items.length} recuerdos`) : undefined}
-      chip={{ label: "Memoria", background: "linear-gradient(135deg,#fda4af,#e11d48)" }}
+      chip={{ label: "Memoria", background: "linear-gradient(135deg,#FF9EBE,#FF5A60)" }}
       ariaLabel={title}
     >
       <div id="p-mem" className="lcr-panel">

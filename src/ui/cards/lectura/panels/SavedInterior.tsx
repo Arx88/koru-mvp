@@ -60,7 +60,7 @@ export function SavedInterior({ block, onClose, onSave }: LecturaInteriorProps<S
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(title, record?.collection) : undefined}
-      chip={{ label: "Guardado", background: "linear-gradient(135deg,#6ee7b7,#059669)" }}
+      chip={{ label: "Guardado", background: "linear-gradient(135deg,#4BDD8C,#2FC86E)" }}
       ariaLabel={title}
     >
       <div id="p-saved" className="lcr-panel">

@@ -48,7 +48,7 @@ function TypingDots() {
     width: 5,
     height: 5,
     borderRadius: "50%",
-    background: "rgba(131, 99, 249, 0.55)",
+    background: "rgba(109, 82, 248, 0.55)",
     display: "inline-block",
     animation: "koru-shimmer-bar 1.2s ease-in-out infinite",
   };
@@ -92,7 +92,7 @@ export function CardSkeleton() {
                 minWidth: 0,
                 padding: "12px 10px",
                 borderRadius: 14,
-                background: "rgba(131, 99, 249, 0.06)",
+                background: "rgba(109, 82, 248, 0.06)",
                 display: "flex",
                 flexDirection: "column",
                 gap: 8,
@@ -124,7 +124,7 @@ export function CardSkeleton() {
         }}
         aria-hidden="true"
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(131,99,249,0.7)" strokeWidth="2.2" strokeLinecap="round">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(109,82,248,0.7)" strokeWidth="2.2" strokeLinecap="round">
           <circle cx="11" cy="11" r="6.5" />
           <path d="M15.5 15.5L20 20" />
         </svg>

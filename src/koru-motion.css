@@ -15,8 +15,8 @@
    KEYFRAMES BASE
    ─────────────────────────────────────────────────────────────────────── */
 @keyframes kcIn { from { opacity: 0; transform: translateY(20px) scale(0.96) } to { opacity: 1; transform: translateY(0) scale(1) } }
-@keyframes livePulse { 0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.55) } 70% { box-shadow: 0 0 0 7px rgba(239,68,68,0) } 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0) } }
-@keyframes livePulseG { 0% { box-shadow: 0 0 0 0 rgba(245,158,11,0.55) } 70% { box-shadow: 0 0 0 7px rgba(245,158,11,0) } 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0) } }
+@keyframes livePulse { 0% { box-shadow: 0 0 0 0 rgba(255,77,84,0.55) } 70% { box-shadow: 0 0 0 7px rgba(255,77,84,0) } 100% { box-shadow: 0 0 0 0 rgba(255,77,84,0) } }
+@keyframes livePulseG { 0% { box-shadow: 0 0 0 0 rgba(253,197,51,0.55) } 70% { box-shadow: 0 0 0 7px rgba(253,197,51,0) } 100% { box-shadow: 0 0 0 0 rgba(253,197,51,0) } }
 @keyframes twinkle { 0%, 100% { opacity: 0.15; transform: scale(0.7) } 50% { opacity: 0.95; transform: scale(1.15) } }
 @keyframes sheen { 0%, 55% { left: -70% } 85%, 100% { left: 135% } }
 @keyframes koru-shimmer-bar { 0% { background-position: -200% 0 } 100% { background-position: 200% 0 } }
@@ -26,8 +26,8 @@
    ─────────────────────────────────────────────────────────────────────── */
 @keyframes bubbleIn { from { opacity: 0; transform: translateY(12px) scale(0.97) } to { opacity: 1; transform: none } }
 @keyframes moonGlow {
-  0%, 100% { box-shadow: 0 0 30px 8px rgba(255,233,184,0.3), 0 0 90px 30px rgba(255,233,184,0.1) }
-  50%      { box-shadow: 0 0 40px 12px rgba(255,233,184,0.45), 0 0 110px 40px rgba(255,233,184,0.16) }
+  0%, 100% { box-shadow: 0 0 30px 8px rgba(255,246,220,0.3), 0 0 90px 30px rgba(255,246,220,0.1) }
+  50%      { box-shadow: 0 0 40px 12px rgba(255,246,220,0.45), 0 0 110px 40px rgba(255,246,220,0.16) }
 }
 @keyframes breathe { 0%, 100% { transform: translateX(-50%) translateY(0) scale(1) } 50% { transform: translateX(-50%) translateY(-6px) scale(1.02) } }
 @keyframes rise { 0% { transform: translateY(105vh) translateX(0); opacity: 0 } 8% { opacity: 0.8 } 90% { opacity: 0.5 } 100% { transform: translateY(-8vh) translateX(40px); opacity: 0 } }
@@ -41,7 +41,7 @@
 @keyframes cloudmove { 0%, 100% { transform: translateX(0) } 50% { transform: translateX(3px) } }
 @keyframes raindrops { 0% { transform: translateY(-1px); opacity: 0.9 } 50% { transform: translateY(3px); opacity: 0.6 } 100% { transform: translateY(-1px); opacity: 0.9 } }
 @keyframes snow { 0% { transform: translateY(-1px); opacity: 0.9 } 50% { transform: translateY(3px); opacity: 0.5 } 100% { transform: translateY(-1px); opacity: 0.9 } }
-@keyframes bolt { 0%, 100% { opacity: 1; filter: drop-shadow(0 0 4px rgba(245,158,11,0.6)) } 50% { opacity: 0.4; filter: none } }
+@keyframes bolt { 0%, 100% { opacity: 1; filter: drop-shadow(0 0 4px rgba(253,197,51,0.6)) } 50% { opacity: 0.4; filter: none } }
 @keyframes ballb { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-3px) } }
 @keyframes bellswing { 0%, 100% { transform: rotate(-8deg) } 50% { transform: rotate(8deg) } }
 @keyframes heartb { 0%, 100% { transform: scale(1) } 50% { transform: scale(1.12) } }

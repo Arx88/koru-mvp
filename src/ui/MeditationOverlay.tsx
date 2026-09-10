@@ -171,7 +171,7 @@ export function MeditationOverlay({ session, onClose }: MeditationOverlayProps) 
         overflow: "hidden",
         background: "linear-gradient(180deg, #efe6ff 0%, #f5edff 50%, #faf6ff 100%)",
         fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif',
-        color: "#382b8c",
+        color: "#1E1B4B",
       }}
     >
       {/* ── Aurora blobs (decorativos, pseudo-random) ───────────────────── */}
@@ -184,7 +184,7 @@ export function MeditationOverlay({ session, onClose }: MeditationOverlayProps) 
           width: "70vw",
           height: "70vw",
           borderRadius: "50%",
-          background: "radial-gradient(circle at 30% 30%, rgba(131, 99, 249, 0.45), transparent 60%)",
+          background: "radial-gradient(circle at 30% 30%, rgba(109, 82, 248, 0.45), transparent 60%)",
           filter: "blur(40px)",
           animation: "koru-breathe 8s ease-in-out infinite",
           pointerEvents: "none",
@@ -199,7 +199,7 @@ export function MeditationOverlay({ session, onClose }: MeditationOverlayProps) 
           width: "80vw",
           height: "80vw",
           borderRadius: "50%",
-          background: "radial-gradient(circle at 60% 50%, rgba(70, 72, 212, 0.35), transparent 60%)",
+          background: "radial-gradient(circle at 60% 50%, rgba(89, 64, 224, 0.35), transparent 60%)",
           filter: "blur(50px)",
           animation: "koru-breathe 10s ease-in-out infinite",
           pointerEvents: "none",
@@ -214,7 +214,7 @@ export function MeditationOverlay({ session, onClose }: MeditationOverlayProps) 
           width: "55vw",
           height: "55vw",
           borderRadius: "50%",
-          background: "radial-gradient(circle at 50% 50%, rgba(236, 72, 153, 0.22), transparent 60%)",
+          background: "radial-gradient(circle at 50% 50%, rgba(246, 94, 155, 0.22), transparent 60%)",
           filter: "blur(45px)",
           animation: "koru-breathe 9s ease-in-out infinite 1s",
           pointerEvents: "none",
@@ -241,9 +241,9 @@ export function MeditationOverlay({ session, onClose }: MeditationOverlayProps) 
             width: 40,
             height: 40,
             borderRadius: 999,
-            border: "1px solid rgba(131, 99, 249, 0.18)",
+            border: "1px solid rgba(109, 82, 248, 0.18)",
             background: "rgba(255, 255, 255, 0.55)",
-            color: "#4648d4",
+            color: "#5940E0",
             display: "grid",
             placeItems: "center",
             cursor: "pointer",
@@ -254,14 +254,14 @@ export function MeditationOverlay({ session, onClose }: MeditationOverlayProps) 
           <span className="material-symbols-outlined" style={{ fontSize: 22 }}>close</span>
         </button>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: "#8363f9", letterSpacing: 0.6, textTransform: "uppercase" }}>
+          <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: "#6D52F8", letterSpacing: 0.6, textTransform: "uppercase" }}>
             Sesión de meditación
           </p>
           <h2 style={{
             margin: 0,
             fontSize: 16,
             fontWeight: 800,
-            color: "#382b8c",
+            color: "#1E1B4B",
             whiteSpace: "nowrap",
             overflow: "hidden",
             textOverflow: "ellipsis",
@@ -274,7 +274,7 @@ export function MeditationOverlay({ session, onClose }: MeditationOverlayProps) 
             className="material-symbols-outlined"
             style={{
               fontSize: 22,
-              color: "#8363f9",
+              color: "#6D52F8",
               background: "rgba(255, 255, 255, 0.55)",
               width: 38,
               height: 38,
@@ -317,7 +317,7 @@ export function MeditationOverlay({ session, onClose }: MeditationOverlayProps) 
               position: "absolute",
               inset: 0,
               borderRadius: "50%",
-              background: "radial-gradient(circle at 50% 50%, rgba(131, 99, 249, 0.18), transparent 70%)",
+              background: "radial-gradient(circle at 50% 50%, rgba(109, 82, 248, 0.18), transparent 70%)",
               transform: phase === "inhale" ? "scale(1.08)" : "scale(0.92)",
               transition: "transform 4000ms ease-in-out",
             }}
@@ -332,9 +332,9 @@ export function MeditationOverlay({ session, onClose }: MeditationOverlayProps) 
               height: 180,
               borderRadius: "50%",
               background:
-                "radial-gradient(circle at 30% 30%, #c4a7ff 0%, #8363f9 55%, #4648d4 100%)",
+                "radial-gradient(circle at 30% 30%, #c4a7ff 0%, #6D52F8 55%, #5940E0 100%)",
               boxShadow:
-                "0 20px 60px rgba(131, 99, 249, 0.45), inset 0 0 40px rgba(255, 255, 255, 0.25)",
+                "0 20px 60px rgba(109, 82, 248, 0.45), inset 0 0 40px rgba(255, 255, 255, 0.25)",
               transform: phase === "inhale" ? "scale(1.18)" : "scale(0.92)",
               transition: "transform 4000ms ease-in-out",
             }}
@@ -393,7 +393,7 @@ export function MeditationOverlay({ session, onClose }: MeditationOverlayProps) 
             fontSize: 56,
             fontWeight: 700,
             lineHeight: 1,
-            color: "#382b8c",
+            color: "#1E1B4B",
             fontVariantNumeric: "tabular-nums",
             letterSpacing: -1,
           }}
@@ -411,7 +411,7 @@ export function MeditationOverlay({ session, onClose }: MeditationOverlayProps) 
             marginTop: 14,
             height: 6,
             borderRadius: 999,
-            background: "rgba(131, 99, 249, 0.16)",
+            background: "rgba(109, 82, 248, 0.16)",
             overflow: "hidden",
           }}
         >
@@ -419,7 +419,7 @@ export function MeditationOverlay({ session, onClose }: MeditationOverlayProps) 
             style={{
               width: `${progress * 100}%`,
               height: "100%",
-              background: "linear-gradient(90deg, #8363f9, #4648d4)",
+              background: "linear-gradient(90deg, #6D52F8, #5940E0)",
               borderRadius: 999,
               transition: "width 800ms ease",
             }}
@@ -448,9 +448,9 @@ export function MeditationOverlay({ session, onClose }: MeditationOverlayProps) 
             flex: 1,
             padding: "14px 12px",
             borderRadius: 14,
-            border: "1px solid rgba(70, 72, 212, 0.18)",
+            border: "1px solid rgba(89, 64, 224, 0.18)",
             background: "rgba(255, 255, 255, 0.7)",
-            color: "#4648d4",
+            color: "#5940E0",
             fontSize: 14,
             fontWeight: 700,
             cursor: "pointer",
@@ -474,12 +474,12 @@ export function MeditationOverlay({ session, onClose }: MeditationOverlayProps) 
             padding: "14px 12px",
             borderRadius: 14,
             border: "none",
-            background: "linear-gradient(135deg, #8363f9, #4648d4)",
+            background: "linear-gradient(135deg, #6D52F8, #5940E0)",
             color: "#fff",
             fontSize: 14,
             fontWeight: 800,
             cursor: "pointer",
-            boxShadow: "0 8px 20px rgba(131, 99, 249, 0.32)",
+            boxShadow: "0 8px 20px rgba(109, 82, 248, 0.32)",
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
@@ -524,8 +524,8 @@ export function MeditationOverlay({ session, onClose }: MeditationOverlayProps) 
                 width: 48,
                 height: 48,
                 borderRadius: 999,
-                background: "rgba(131, 99, 249, 0.14)",
-                color: "#8363f9",
+                background: "rgba(109, 82, 248, 0.14)",
+                color: "#6D52F8",
                 display: "grid",
                 placeItems: "center",
                 margin: "0 auto 12px",
@@ -566,7 +566,7 @@ export function MeditationOverlay({ session, onClose }: MeditationOverlayProps) 
                   padding: "12px 10px",
                   borderRadius: 12,
                   border: "none",
-                  background: "#4648d4",
+                  background: "#5940E0",
                   color: "#fff",
                   fontSize: 13,
                   fontWeight: 800,

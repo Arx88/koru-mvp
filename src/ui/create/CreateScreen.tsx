@@ -40,18 +40,18 @@ type TemplateDef = {
 };
 
 const TEMPLATES: TemplateDef[] = [
-  { id: "nota", label: "Nota", icon: "sticky_note_2", desc: "Anotá una idea o pensamiento", collection: "Notas", accent: "#8363f9" },
+  { id: "nota", label: "Nota", icon: "sticky_note_2", desc: "Anotá una idea o pensamiento", collection: "Notas", accent: "#6D52F8" },
   { id: "lista", label: "Lista", icon: "checklist", desc: "Lista de tareas o compras", collection: "Listas", accent: "#2d6a4f" },
-  { id: "gasto", label: "Gasto", icon: "payments", desc: "Registrá un gasto", collection: "Gastos", accent: "#f59e0b" },
+  { id: "gasto", label: "Gasto", icon: "payments", desc: "Registrá un gasto", collection: "Gastos", accent: "#FDC533" },
   { id: "enlace", label: "Enlace", icon: "link", desc: "Guardá un link para después", collection: "Enlaces", accent: "#06b6d4" },
-  { id: "receta", label: "Receta", icon: "restaurant", desc: "Creá tu propia receta", collection: "Recetas", accent: "#ec4899" },
-  { id: "rutina", label: "Rutina", icon: "repeat", desc: "Hábito diario o semanal", collection: "Rutinas", accent: "#3b82f6" },
+  { id: "receta", label: "Receta", icon: "restaurant", desc: "Creá tu propia receta", collection: "Recetas", accent: "#F65E9B" },
+  { id: "rutina", label: "Rutina", icon: "repeat", desc: "Hábito diario o semanal", collection: "Rutinas", accent: "#007BF9" },
   { id: "ejercicio", label: "Ejercicio", icon: "fitness_center", desc: "Plan de entrenamiento", collection: "Ejercicio", accent: "#2d6a4f" },
-  { id: "memoria", label: "Memoria", icon: "psychology", desc: "Recuerdo o hecho", collection: "Memoria", accent: "#8127cf" },
-  { id: "decision", label: "Decisión", icon: "psychology_alt", desc: "Decisión estructurada", collection: "Decisiones", accent: "#8127cf" },
+  { id: "memoria", label: "Memoria", icon: "psychology", desc: "Recuerdo o hecho", collection: "Memoria", accent: "#5940E0" },
+  { id: "decision", label: "Decisión", icon: "psychology_alt", desc: "Decisión estructurada", collection: "Decisiones", accent: "#5940E0" },
   // 🔴 TIER S: plantilla "plan" — invoca createPlan(title, steps) del store
   // además del LifeRecord. Cada step tiene title + detail + priority select.
-  { id: "plan", label: "Plan", icon: "rocket_launch", desc: "Plan con pasos", collection: "Planes", accent: "#8363f9" },
+  { id: "plan", label: "Plan", icon: "rocket_launch", desc: "Plan con pasos", collection: "Planes", accent: "#6D52F8" },
 ];
 
 // 🔴 v2: cada template mapea a un LifeRecordKind VÁLIDO del enum.
@@ -1483,7 +1483,7 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
                   )}
                 </button>
                 {ocrError && (
-                  <div style={{ marginTop: 6, fontSize: 12, color: "#dc2626" }}>
+                  <div style={{ marginTop: 6, fontSize: 12, color: "#FF4D54" }}>
                     {ocrError}
                   </div>
                 )}
@@ -1493,8 +1493,8 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
                       marginTop: 8,
                       padding: 8,
                       borderRadius: 8,
-                      border: "1px solid rgba(131, 99, 249, 0.14)",
-                      background: "rgba(131, 99, 249, 0.04)",
+                      border: "1px solid rgba(109, 82, 248, 0.14)",
+                      background: "rgba(109, 82, 248, 0.04)",
                       fontSize: 12,
                       maxHeight: 160,
                       overflowY: "auto",

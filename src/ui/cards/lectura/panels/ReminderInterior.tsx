@@ -38,7 +38,7 @@ export function ReminderInterior({ block, onClose, onSave }: LecturaInteriorProp
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(title, block.dueText) : undefined}
-      chip={{ label: "Recordatorio", background: "linear-gradient(135deg,#fda4af,#e6566e)" }}
+      chip={{ label: "Recordatorio", background: "linear-gradient(135deg,#FF9EBE,#FF5A60)" }}
       ariaLabel={title}
     >
       <div id="p-rem" className="lcr-panel">

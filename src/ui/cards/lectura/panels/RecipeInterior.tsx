@@ -52,7 +52,7 @@ export function RecipeInterior({ block, onClose, onSave }: LecturaInteriorProps<
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(name, block.category) : undefined}
-      chip={{ label: "Cocina", background: "linear-gradient(135deg,#f6bd6d,#f59e0b)" }}
+      chip={{ label: "Cocina", background: "linear-gradient(135deg,#FFD75E,#FDC533)" }}
       ariaLabel={name}
     >
       <div id="p-recipe" className="lcr-panel">

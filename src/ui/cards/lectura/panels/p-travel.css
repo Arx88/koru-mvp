@@ -4,7 +4,7 @@
           text-align:center;cursor:pointer;transition:.2s}
 .lcr .it-day span{font:700 8.5px var(--sans);letter-spacing:.1em;color:var(--ink-faint);text-transform:uppercase;display:block}
 .lcr .it-day b{font:800 15px var(--disp);color:var(--ink);display:block;margin-top:2px}
-.lcr .it-day.on{background:#fff;border-color:var(--honey-ink);box-shadow:0 8px 20px rgba(180,83,9,.14)}
+.lcr .it-day.on{background:#fff;border-color:var(--honey-ink);box-shadow:0 8px 20px rgba(176,126,0,.14)}
 .lcr .it-day.on b{color:var(--honey-ink)}
 .lcr .it-day.on span{color:var(--honey-ink)}
 .lcr .it-card{background:#fff;border:1px solid var(--linec);border-radius:22px;padding:15px;box-shadow:0 12px 30px var(--shadowc)}

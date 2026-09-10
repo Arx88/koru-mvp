@@ -38,7 +38,7 @@ export function ReviewScoreInterior({ block, onClose, onSave }: LecturaInteriorP
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(block.title || "Reputación", aspects[0]?.label) : undefined}
-      chip={{ label: "Reputación", background: "linear-gradient(135deg,#c4b5fd,#8b5cf6)" }}
+      chip={{ label: "Reputación", background: "linear-gradient(135deg,#c4b5fd,#6D52F8)" }}
       ariaLabel={block.title || "Reputación"}
     >
       <div id="p-rev" className="lcr-panel">

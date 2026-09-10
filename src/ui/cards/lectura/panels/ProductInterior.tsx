@@ -39,7 +39,7 @@ export function ProductInterior({ block, onClose, onSave }: LecturaInteriorProps
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(name, ratingLabel ?? undefined) : undefined}
-      chip={{ label: "Producto", background: "linear-gradient(135deg,#6ee7b7,#2f8f6d)" }}
+      chip={{ label: "Producto", background: "linear-gradient(135deg,#4BDD8C,#22B35F)" }}
       ariaLabel={name}
     >
       <div id="p-prod" className="lcr-panel">
@@ -87,8 +87,8 @@ export function ProductInterior({ block, onClose, onSave }: LecturaInteriorProps
               />
               <defs>
                 <linearGradient id="p-prod-prsG" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0" stopColor="#6ee7b7" />
-                  <stop offset="1" stopColor="#2f8f6d" />
+                  <stop offset="0" stopColor="#4BDD8C" />
+                  <stop offset="1" stopColor="#22B35F" />
                 </linearGradient>
               </defs>
             </svg>

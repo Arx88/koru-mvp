@@ -275,11 +275,11 @@ export const briefBlock: Extract<UiBlock, { type: "morning_brief" }> = {
   type: "morning_brief",
   greeting: "Buen martes",
   items: [
-    { icon: "bell", iconColor: "#e11d48", label: "Hoy no lo olvidés", value: "11:00", variant: "highlight" },
+    { icon: "bell", iconColor: "#FF5A60", label: "Hoy no lo olvidés", value: "11:00", variant: "highlight" },
     // FIX REDUNDANCIA: el valor ya trae el resultado; el label presenta el evento.
-    { icon: "sports_soccer", iconColor: "#059669", label: "El clásico anoche", value: "2–1" },
-    { icon: "trending_up", iconColor: "#d97706", label: "Tu portfolio", value: "+1,8%" },
-    { icon: "wb_sunny", iconColor: "#2563eb", label: "Amanece despejado", value: "16–29°" },
+    { icon: "sports_soccer", iconColor: "#2FC86E", label: "El clásico anoche", value: "2–1" },
+    { icon: "trending_up", iconColor: "#F0A11C", label: "Tu portfolio", value: "+1,8%" },
+    { icon: "wb_sunny", iconColor: "#007BF9", label: "Amanece despejado", value: "16–29°" },
     { icon: "flight", iconColor: "#7c3aed", label: "Tu viaje a Madrid", value: "18 d" },
   ],
 };
@@ -288,7 +288,7 @@ export const healthBlock: Extract<UiBlock, { type: "health_reminder" }> = {
   type: "health_reminder",
   title: "Vitamina D · 2000 UI",
   icon: "medication",
-  iconColor: "#b45309",
+  iconColor: "#B07E00",
   bgColor: "#fdf1dd",
   reminder: "1 comprimido con la cena — mejor absorción con grasas.",
   actionLabel: "Ya tomé la de hoy",
@@ -306,7 +306,7 @@ export const marketBlock: Extract<UiBlock, { type: "market" }> = {
       change: "+1,8% hoy",
       changeUp: true,
       iconBg: "#e8f0fe",
-      iconColor: "#2563eb",
+      iconColor: "#007BF9",
       shape: "rounded",
     },
     {
@@ -342,7 +342,7 @@ export const cryptoBlock: Extract<UiBlock, { type: "crypto_portfolio" }> = {
       name: "Bitcoin",
       price: "61.240 USD",
       change: 2.4,
-      color: "#f59e0b",
+      color: "#FDC533",
       bg: "#fffbeb",
       char: "₿",
       amount: 0.052,
@@ -353,7 +353,7 @@ export const cryptoBlock: Extract<UiBlock, { type: "crypto_portfolio" }> = {
       name: "Ethereum",
       price: "2.980 USD",
       change: -1.1,
-      color: "#6d4bf0",
+      color: "#6D52F8",
       bg: "#f1ecfa",
       char: "Ξ",
       amount: 0.38,
@@ -407,10 +407,10 @@ export const routeTimelineBlock: Extract<UiBlock, { type: "route_timeline" }> = 
   type: "route_timeline",
   eta: "25 min",
   items: [
-    { label: "Caminá 250 m", detail: "Por Callao hacia el sur, a la sombra de los plátanos.", color: "#2563eb" },
-    { label: "Subte D · 5 paradas", detail: "Callao → Retiro. Andén de la mano derecha.", color: "#b45309" },
-    { label: "Caminá 400 m", detail: "Salida Aduana, cruzás la avenida y entrás por Puerta de España.", color: "#2563eb" },
-    { label: "Llegás al Retiro", detail: "La estación de lagos queda a la izquierda.", color: "#059669" },
+    { label: "Caminá 250 m", detail: "Por Callao hacia el sur, a la sombra de los plátanos.", color: "#007BF9" },
+    { label: "Subte D · 5 paradas", detail: "Callao → Retiro. Andén de la mano derecha.", color: "#B07E00" },
+    { label: "Caminá 400 m", detail: "Salida Aduana, cruzás la avenida y entrás por Puerta de España.", color: "#007BF9" },
+    { label: "Llegás al Retiro", detail: "La estación de lagos queda a la izquierda.", color: "#2FC86E" },
   ],
 };
 
@@ -748,9 +748,9 @@ export const electionResultsBlock: Extract<UiBlock, { type: "election_results" }
   title: "Así está la cuenta",
   status: "89% contado · mesas 34.312 de 38.540",
   items: [
-    { name: "Partido A", percent: "34%", detail: "mejoró 2 pts en el sur", done: false, color: "#6d4bf0" },
+    { name: "Partido A", percent: "34%", detail: "mejoró 2 pts en el sur", done: false, color: "#6D52F8" },
     { name: "Partido B", percent: "29%", detail: "fuerte en la costa", done: false, color: "#5170d8" },
-    { name: "Partido C", percent: "18%", done: false, color: "#b45309" },
+    { name: "Partido C", percent: "18%", done: false, color: "#B07E00" },
     { name: "Partido D", percent: "12%", done: false, color: "#d6497f" },
     { name: "Otros", percent: "7%", done: false, color: "#9486c2" },
   ],

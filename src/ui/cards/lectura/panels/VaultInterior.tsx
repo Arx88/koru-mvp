@@ -93,7 +93,7 @@ export function VaultInterior({ block, onClose, onSave }: LecturaInteriorProps<V
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(title, `${records.length} recuerdos`) : undefined}
-      chip={{ label: "Bóveda", background: "linear-gradient(135deg,#fda4af,#e11d48)" }}
+      chip={{ label: "Bóveda", background: "linear-gradient(135deg,#FF9EBE,#FF5A60)" }}
       ariaLabel={title}
     >
       <div id="p-vault" className="lcr-panel">

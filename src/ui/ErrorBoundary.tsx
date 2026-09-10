@@ -21,7 +21,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <p style={{ fontWeight: 700, marginBottom: 8 }}>Algo salió mal</p>
           <p style={{ fontSize: 13 }}>{this.state.error?.message}</p>
           <button onClick={() => this.setState({ hasError: false, error: undefined })}
-            style={{ marginTop: 12, padding: "8px 16px", borderRadius: 12, border: "1.5px solid rgba(131,99,249,0.25)", background: "rgba(131,99,249,0.08)", color: "#523a9e", cursor: "pointer", fontWeight: 700 }}>
+            style={{ marginTop: 12, padding: "8px 16px", borderRadius: 12, border: "1.5px solid rgba(109,82,248,0.25)", background: "rgba(109,82,248,0.08)", color: "#5940E0", cursor: "pointer", fontWeight: 700 }}>
             Reintentar
           </button>
         </div>

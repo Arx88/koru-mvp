@@ -35,7 +35,7 @@ export function WebNavInterior({ block, onClose, onSave }: LecturaInteriorProps<
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(title, block.summary?.slice?.(0, 60) ?? `${results.length} fuentes`) : undefined}
-      chip={{ label: "Búsqueda", background: "linear-gradient(135deg,#8ab0ff,#5170d8)" }}
+      chip={{ label: "Búsqueda", background: "linear-gradient(135deg,#8ab0ff,#1A237E)" }}
       ariaLabel={title}
     >
       <div id="p-nav" className="lcr-panel">

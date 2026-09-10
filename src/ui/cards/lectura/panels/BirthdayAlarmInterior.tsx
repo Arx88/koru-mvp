@@ -38,7 +38,7 @@ export function BirthdayAlarmInterior({ block, onClose, onSave }: LecturaInterio
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(`Aviso del cumple de ${name}`, block.date) : undefined}
-      chip={{ label: "Aviso", background: "linear-gradient(135deg,#fda4af,#e11d48)" }}
+      chip={{ label: "Aviso", background: "linear-gradient(135deg,#FF9EBE,#FF5A60)" }}
       ariaLabel={`Aviso del cumple de ${name}`}
     >
       <div id="p-balarm" className="lcr-panel">
@@ -85,7 +85,7 @@ export function BirthdayAlarmInterior({ block, onClose, onSave }: LecturaInterio
               />
               <defs>
                 <linearGradient id="p-balarm-cdG" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0" stopColor="#ff8fb8" />
+                  <stop offset="0" stopColor="#FF9EBE" />
                   <stop offset="1" stopColor="#d6497f" />
                 </linearGradient>
               </defs>

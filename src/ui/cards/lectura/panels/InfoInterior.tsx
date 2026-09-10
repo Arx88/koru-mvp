@@ -201,7 +201,7 @@ export function InfoInterior({ block, onClose, onSave }: LecturaInteriorProps<In
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(block.title, block.topic) : undefined}
-      chip={{ label: block.kicker || "Informe", background: "linear-gradient(135deg,#a78bfa,#6d4bf0)" }}
+      chip={{ label: block.kicker || "Informe", background: "linear-gradient(135deg,#8B6DFF,#6D52F8)" }}
       ariaLabel={block.title}
     >
       <div id="p-info" className="lcr-panel">
@@ -237,7 +237,7 @@ export function InfoInterior({ block, onClose, onSave }: LecturaInteriorProps<In
                   display: "block",
                   height: "100%",
                   width: `${Math.min(block.progress ?? 0, 100)}%`,
-                  background: "linear-gradient(90deg,#a78bfa,#6d4bf0)",
+                  background: "linear-gradient(90deg,#8B6DFF,#6D52F8)",
                   borderRadius: "6px",
                   transition: "width .4s var(--ease)",
                 }}

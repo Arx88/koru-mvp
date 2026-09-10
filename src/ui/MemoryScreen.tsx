@@ -17,8 +17,8 @@ const STATUS_META: Record<MemoryStatus, { label: string; icon: typeof Leaf; tint
     icon: Leaf,
     tint: "text-forest",
     ring: "border-leaf",
-    glow: "rgba(124, 92, 219, 0.18)",
-    gradient: "linear-gradient(135deg, rgba(124, 92, 219, 0.10), rgba(201, 189, 245, 0.05))",
+    glow: "rgba(109, 82, 248, 0.18)",
+    gradient: "linear-gradient(135deg, rgba(109, 82, 248, 0.10), rgba(201, 189, 245, 0.05))",
   },
   dudosa: {
     label: "Dudosa",
@@ -33,8 +33,8 @@ const STATUS_META: Record<MemoryStatus, { label: string; icon: typeof Leaf; tint
     icon: TreePine,
     tint: "text-forest",
     ring: "border-forest",
-    glow: "rgba(124, 92, 219, 0.25)",
-    gradient: "linear-gradient(135deg, rgba(124, 92, 219, 0.15), rgba(201, 189, 245, 0.08))",
+    glow: "rgba(109, 82, 248, 0.25)",
+    gradient: "linear-gradient(135deg, rgba(109, 82, 248, 0.15), rgba(201, 189, 245, 0.08))",
   },
   sensible: {
     label: "Sensible",
@@ -224,7 +224,7 @@ function MemoryDetail({
       <button type="button" aria-label="Cerrar" className="absolute inset-0 cursor-pointer" onClick={onClose} />
       <div
         className="relative w-full max-w-md rounded-t-3xl bg-card p-6 pb-8 animate-slide-up overflow-hidden"
-        style={{ boxShadow: "0 -8px 40px rgba(46, 38, 80, 0.15)" }}
+        style={{ boxShadow: "0 -8px 40px rgba(30, 27, 75, 0.15)" }}
       >
         {/* Decorative gradient top */}
         <div

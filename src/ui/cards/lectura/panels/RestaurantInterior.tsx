@@ -34,7 +34,7 @@ export function RestaurantInterior({ block, onClose, onSave }: LecturaInteriorPr
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(top ? top.name : (block.title ?? "Restaurantes"), block.query) : undefined}
-      chip={{ label: "Dónde comer", background: "linear-gradient(135deg,#f6bd6d,#f59e0b)" }}
+      chip={{ label: "Dónde comer", background: "linear-gradient(135deg,#FFD75E,#FDC533)" }}
       ariaLabel={block.title ?? block.query ?? "Restaurantes"}
     >
       <div id="p-rest" className="lcr-panel">

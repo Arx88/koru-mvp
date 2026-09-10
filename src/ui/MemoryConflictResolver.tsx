@@ -76,7 +76,7 @@ function MemoryCard({
         borderRadius: 16,
         border: selected
           ? `2px solid ${accent}`
-          : "2px solid rgba(129, 39, 207, 0.12)",
+          : "2px solid rgba(89, 64, 224, 0.12)",
         background: selected
           ? "rgba(255,255,255,0.92)"
           : "rgba(255,255,255,0.62)",
@@ -231,7 +231,7 @@ export function MemoryConflictResolver({
           borderRadius: 24,
           background:
             "linear-gradient(160deg, #f0dbff 0%, #f5e8ff 45%, #f8f9ff 100%)",
-          boxShadow: "0 24px 60px rgba(129, 39, 207, 0.30)",
+          boxShadow: "0 24px 60px rgba(89, 64, 224, 0.30)",
           maxHeight: "92vh",
           overflowY: "auto",
         }}
@@ -255,7 +255,7 @@ export function MemoryConflictResolver({
                 width: 36,
                 height: 36,
                 borderRadius: 12,
-                background: "#8127cf",
+                background: "#5940E0",
                 color: "#ffffff",
                 flexShrink: 0,
               }}
@@ -298,7 +298,7 @@ export function MemoryConflictResolver({
               width: 32,
               height: 32,
               borderRadius: 999,
-              border: "1px solid rgba(129, 39, 207, 0.2)",
+              border: "1px solid rgba(89, 64, 224, 0.2)",
               background: "rgba(255,255,255,0.7)",
               color: "#7c3aed",
               cursor: "pointer",
@@ -345,12 +345,12 @@ export function MemoryConflictResolver({
                 width: 28,
                 height: 28,
                 borderRadius: 999,
-                background: "#8127cf",
+                background: "#5940E0",
                 color: "#ffffff",
                 fontSize: 10,
                 fontWeight: 900,
                 letterSpacing: 0.5,
-                boxShadow: "0 2px 6px rgba(129, 39, 207, 0.4)",
+                boxShadow: "0 2px 6px rgba(89, 64, 224, 0.4)",
               }}
             >
               VS
@@ -413,7 +413,7 @@ export function MemoryConflictResolver({
             style={{
               padding: "8px 14px",
               borderRadius: 10,
-              border: "1px solid rgba(129, 39, 207, 0.2)",
+              border: "1px solid rgba(89, 64, 224, 0.2)",
               background: "transparent",
               color: "#6d28d9",
               fontSize: 13,
@@ -433,8 +433,8 @@ export function MemoryConflictResolver({
               gap: 6,
               padding: "8px 16px",
               borderRadius: 10,
-              border: "1px solid #8127cf",
-              background: canConfirm ? "#8127cf" : "rgba(129, 39, 207, 0.35)",
+              border: "1px solid #5940E0",
+              background: canConfirm ? "#5940E0" : "rgba(89, 64, 224, 0.35)",
               color: "#ffffff",
               fontSize: 13,
               fontWeight: 700,

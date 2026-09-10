@@ -29,9 +29,9 @@ function Mat({ children, style }: { children: string; style?: React.CSSPropertie
 type Category = { icon: string; label: string; color: string };
 
 const DEFAULT_CATS: Category[] = [
-  { icon: "fitness_center", label: "Entrenamientos", color: "#8363f9" },
-  { icon: "potted_plant", label: "Nutrición", color: "#059669" },
-  { icon: "dark_mode", label: "Hábitos", color: "#d97706" },
+  { icon: "fitness_center", label: "Entrenamientos", color: "#6D52F8" },
+  { icon: "potted_plant", label: "Nutrición", color: "#2FC86E" },
+  { icon: "dark_mode", label: "Hábitos", color: "#F0A11C" },
 ];
 
 // Deriva hasta 3 categorías del contenido real del plan; si no se puede
@@ -43,9 +43,9 @@ function deriveCategories(items: AssistantPlanItem[]): Category[] {
   if (/nutri|comida|dieta|desayun|almuerz|cena|proteína|proteina/.test(text)) found.push(DEFAULT_CATS[1]);
   if (/hábito|habito|dormir|sueño|agua|pantalla|meditar|rutina/.test(text)) found.push(DEFAULT_CATS[2]);
   if (/estudi|leer|curso|aprend/.test(text) && found.length < 3)
-    found.push({ icon: "menu_book", label: "Aprendizaje", color: "#2563eb" });
+    found.push({ icon: "menu_book", label: "Aprendizaje", color: "#007BF9" });
   if (/trabajo|tarea|proyecto|reunión|reunion/.test(text) && found.length < 3)
-    found.push({ icon: "work", label: "Trabajo", color: "#4648d4" });
+    found.push({ icon: "work", label: "Trabajo", color: "#5940E0" });
   return found.length ? found.slice(0, 3) : DEFAULT_CATS;
 }
 

@@ -76,7 +76,7 @@ function KoruApp() {
               onClick={() => setScreen("chat")}
               aria-label="Volver al chat"
               className="fixed top-4 left-4 z-50 flex h-11 w-11 items-center justify-center rounded-full border border-white/35 bg-white/22 backdrop-blur-md text-white shadow-lg transition-transform active:scale-95"
-              style={{ background: "rgba(131, 99, 249, 0.9)" }}
+              style={{ background: "rgba(109, 82, 248, 0.9)" }}
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                 <path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" />

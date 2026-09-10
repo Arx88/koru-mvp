@@ -19,7 +19,7 @@
 .lcr .bk-prog .prow2 b{font:800 17px var(--disp)}
 .lcr .bk-prog .prow2 span{font:600 10px var(--sans);color:var(--ink-dim)}
 .lcr .bk-prog .bar2{height:9px;border-radius:999px;background:var(--paper3);margin-top:9px;overflow:hidden}
-.lcr .bk-prog .bar2 i{display:block;height:100%;width:62%;border-radius:999px;background:linear-gradient(90deg,#6ee7b7,#2f8f6d)}
+.lcr .bk-prog .bar2 i{display:block;height:100%;width:62%;border-radius:999px;background:linear-gradient(90deg,#4BDD8C,#22B35F)}
 .lcr .bk-prog .meta2{display:flex;justify-content:space-between;margin-top:7px;font:700 9.5px var(--sans);color:var(--ink-faint)}
 .lcr .bk-quote{margin-top:12px;background:var(--paper2);border:1px solid #ded1fb;border-radius:18px;padding:15px 17px;position:relative}
 .lcr .bk-quote .qi{position:absolute;top:-11px;left:14px;width:26px;height:26px;border-radius:50%;background:var(--violet-ink);color:#fff;

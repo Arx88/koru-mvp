@@ -330,7 +330,7 @@ export function WorkoutSession({ plan, session, onClose }: Props) {
           onClick={handleFinish}
           aria-label="Finalizar sesión"
           style={{
-            background: confirmingFinish ? "#dc2626" : "rgba(255,255,255,0.15)",
+            background: confirmingFinish ? "#FF4D54" : "rgba(255,255,255,0.15)",
             color: "#ffffff",
             border: "1px solid rgba(255,255,255,0.25)",
             borderRadius: 999,
@@ -490,8 +490,8 @@ export function WorkoutSession({ plan, session, onClose }: Props) {
                   marginTop: 8,
                   padding: 16,
                   borderRadius: 16,
-                  background: "rgba(220,38,38,0.15)",
-                  border: "1px solid rgba(220,38,38,0.4)",
+                  background: "rgba(255,77,84,0.15)",
+                  border: "1px solid rgba(255,77,84,0.4)",
                 }}
               >
                 <p style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 600, color: "#ffffff" }}>
@@ -523,7 +523,7 @@ export function WorkoutSession({ plan, session, onClose }: Props) {
                       padding: "12px 10px",
                       borderRadius: 12,
                       border: "none",
-                      background: "#dc2626",
+                      background: "#FF4D54",
                       color: "#ffffff",
                       fontSize: 13,
                       fontWeight: 800,

@@ -28,7 +28,7 @@ export function HealthInterior({ block, onClose, onSave }: LecturaInteriorProps<
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(title, reminder.slice(0, 60)) : undefined}
-      chip={{ label: "Salud", background: "linear-gradient(135deg,#fda4af,#e11d48)" }}
+      chip={{ label: "Salud", background: "linear-gradient(135deg,#FF9EBE,#FF5A60)" }}
       ariaLabel={title}
     >
       <div id="p-health" className="lcr-panel">

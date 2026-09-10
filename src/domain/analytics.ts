@@ -114,7 +114,7 @@ export function getMetrics(): {
  */
 export function report(): void {
   const m = getMetrics();
-  console.log("%c📊 Koru Analytics Report", "font-size:16px;font-weight:bold;color:#8363f9");
+  console.log("%c📊 Koru Analytics Report", "font-size:16px;font-weight:bold;color:#6D52F8");
   console.log(`User: ${m.userId} (first seen: ${m.firstSeen})`);
   console.log(`Total events tracked: ${m.totalEvents}`);
   console.log(`%cCreate feature:`, "font-weight:bold");

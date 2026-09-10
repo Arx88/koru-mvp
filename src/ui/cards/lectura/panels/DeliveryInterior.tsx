@@ -50,7 +50,7 @@ export function DeliveryInterior({ block, onClose, onSave }: LecturaInteriorProp
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(`Envío ${block.carrier ?? ""}`.trim(), block.trackingId) : undefined}
-      chip={{ label: "Envío", background: "linear-gradient(135deg,#6ee7b7,#2f8f6d)" }}
+      chip={{ label: "Envío", background: "linear-gradient(135deg,#4BDD8C,#22B35F)" }}
       ariaLabel={block.title ?? "Seguimiento del envío"}
     >
       <div id="p-saved" className="lcr-panel">

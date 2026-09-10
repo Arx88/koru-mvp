@@ -41,7 +41,7 @@ export function ElectInterior({ block, onClose, onSave }: LecturaInteriorProps<E
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(title, status) : undefined}
-      chip={{ label: "Elecciones", background: "linear-gradient(135deg,#a78bfa,#6d4bf0)" }}
+      chip={{ label: "Elecciones", background: "linear-gradient(135deg,#8B6DFF,#6D52F8)" }}
       ariaLabel={title}
     >
       <div id="p-elect" className="lcr-panel">
@@ -68,7 +68,7 @@ export function ElectInterior({ block, onClose, onSave }: LecturaInteriorProps<E
                     cy="27"
                     r="23"
                     fill="none"
-                    stroke="#6d4bf0"
+                    stroke="#6D52F8"
                     strokeWidth="6"
                     strokeLinecap="round"
                     strokeDasharray={RING_C}

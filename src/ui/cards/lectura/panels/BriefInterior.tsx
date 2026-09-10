@@ -108,7 +108,7 @@ export function BriefInterior({ block, onClose, onSave }: LecturaInteriorProps<B
         onClose();
       }}
       onBookmark={onSave ? () => onSave(block.greeting || "Morning brief", `${items.length} items`) : undefined}
-      chip={{ label: "Brief", background: "linear-gradient(135deg,#93c5fd,#3b82f6)" }}
+      chip={{ label: "Brief", background: "linear-gradient(135deg,#93c5fd,#007BF9)" }}
       ariaLabel={block.greeting || "Morning brief"}
     >
       <div id="p-brief" className="lcr-panel">

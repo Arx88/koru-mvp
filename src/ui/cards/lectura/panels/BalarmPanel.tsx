@@ -26,7 +26,7 @@ export function BalarmPanel() {
                     <circle cx="75" cy="75" r="64" fill="none" stroke="#fbd9e6" strokeWidth="13" />
                     <circle cx="75" cy="75" r="64" fill="none" stroke="url(#p-balarm-cdG)" strokeWidth="13" strokeLinecap="round" strokeDasharray="402" strokeDashoffset="115" />
                     <defs><linearGradient id="p-balarm-cdG" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0" stopColor="#ff8fb8" /><stop offset="1" stopColor="#d6497f" />
+                      <stop offset="0" stopColor="#FF9EBE" /><stop offset="1" stopColor="#d6497f" />
                     </linearGradient></defs>
                   </svg>
                   <div className="cv"><b>5</b><span>DÍAS</span></div>

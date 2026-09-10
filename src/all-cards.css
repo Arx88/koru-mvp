@@ -2,7 +2,7 @@
    ALL-CARDS — chrome del archivo único (chat showcase + galería de interiores).
    Todo lo que se ve dentro de cada vista son clases 100% de la app; acá solo
    viven la barra superior y los fondos por modo, con los mismos colores y
-   tipografías de Koru (noche #0a0817, violeta #8363f9, catálogo lavanda).
+   tipografías de Koru (noche #0a0817, violeta #6D52F8, catálogo lavanda).
    ========================================================================== */
 
 /* Fondos por modo: chat = noche de la app · galería = lavanda del catálogo */
@@ -11,8 +11,8 @@ body.ac-mode--chat {
 }
 body.ac-mode--gallery {
   background:
-    radial-gradient(620px 420px at 80% -5%, rgba(110, 231, 183, 0.2), transparent 70%),
-    radial-gradient(700px 520px at 15% 108%, rgba(131, 99, 249, 0.13), transparent 70%),
+    radial-gradient(620px 420px at 80% -5%, rgba(75, 221, 140, 0.2), transparent 70%),
+    radial-gradient(700px 520px at 15% 108%, rgba(109, 82, 248, 0.13), transparent 70%),
     #f3eefb;
 }
 
@@ -42,7 +42,7 @@ body.ac-mode--gallery {
 body.ac-mode--gallery .ac-bar {
   background: rgba(243, 238, 251, 0.92);
   border-bottom: 1px solid #e9e2f8;
-  color: #2e2650;
+  color: #1E1B4B;
 }
 
 .ac-logo {
@@ -83,7 +83,7 @@ body.ac-mode--gallery .ac-bar {
 }
 
 body.ac-mode--gallery .ac-switch {
-  background: rgba(46, 38, 80, 0.06);
+  background: rgba(30, 27, 75, 0.06);
   border-color: #e9e2f8;
 }
 
@@ -112,13 +112,13 @@ body.ac-mode--gallery .ac-switch button {
 }
 
 body.ac-mode--gallery .ac-switch button:hover {
-  color: #2e2650;
+  color: #1E1B4B;
 }
 
 .ac-switch button.is-active {
-  background: #8363f9;
+  background: #6D52F8;
   color: #fff;
-  box-shadow: 0 4px 12px rgba(131, 99, 249, 0.35);
+  box-shadow: 0 4px 12px rgba(109, 82, 248, 0.35);
 }
 
 .ac-switch button:focus-visible {

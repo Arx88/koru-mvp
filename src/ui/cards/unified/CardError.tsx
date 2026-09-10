@@ -27,13 +27,13 @@ export function CardError({
   title,
   message,
   onRetry,
-  accent = "#d97706",
+  accent = "#F0A11C",
 }: CardErrorProps) {
   const iconBoxStyle: CSSProperties = {
     width: 40,
     height: 40,
     borderRadius: 12,
-    background: `rgba(217, 119, 6, 0.14)`,
+    background: `rgba(240, 161, 28, 0.14)`,
     color: accent,
     display: "grid",
     placeItems: "center",
@@ -74,7 +74,7 @@ export function CardError({
             className="kc-title"
             style={{
               margin: "4px 0 6px",
-              color: "var(--koru-purple-deep, #382b8c)",
+              color: "var(--koru-purple-deep, #1E1B4B)",
               fontFamily: FONT_HEADING,
               fontSize: 18,
               fontWeight: 800,
@@ -88,7 +88,7 @@ export function CardError({
             className="kc-desc"
             style={{
               margin: 0,
-              color: "var(--ink2, #554a7d)",
+              color: "var(--ink2, #6E7594)",
               fontSize: 12,
               lineHeight: 1.45,
               marginBottom: 12,
@@ -115,7 +115,7 @@ export function CardError({
               style={{
                 flex: "0 0 auto",
                 padding: "12px 18px",
-                background: `linear-gradient(120deg, var(--brasa-1, #ff7d6b), ${accent})`,
+                background: `linear-gradient(120deg, var(--brasa-1, #FF5A60), ${accent})`,
                 color: "#fff",
               }}
             >

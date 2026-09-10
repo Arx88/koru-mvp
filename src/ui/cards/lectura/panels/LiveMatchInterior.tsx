@@ -48,7 +48,7 @@ export function LiveMatchInterior({ block, onClose, onSave }: LecturaInteriorPro
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(`${home} vs ${away}`, `${league}${block.minute ? ` · ${block.minute}` : ""}`) : undefined}
-      chip={{ label: "En vivo", background: "linear-gradient(135deg,#6ee7b7,#1f7a5c)" }}
+      chip={{ label: "En vivo", background: "linear-gradient(135deg,#4BDD8C,#1f7a5c)" }}
       ariaLabel={`${home} vs ${away}`}
     >
       <div id="p-match" className="lcr-panel">

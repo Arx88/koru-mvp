@@ -17,16 +17,16 @@ type AccentColor = {
 };
 
 const ACCENTS: Record<string, AccentColor> = {
-  weather: { bg: "rgba(59, 130, 246, 0.08)", text: "#3b82f6", border: "rgba(59, 130, 246, 0.2)", gradient: "linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(59, 130, 246, 0.03))" },
+  weather: { bg: "rgba(0, 123, 249, 0.08)", text: "#007BF9", border: "rgba(0, 123, 249, 0.2)", gradient: "linear-gradient(135deg, rgba(0, 123, 249, 0.12), rgba(0, 123, 249, 0.03))" },
   sports: { bg: "rgba(34, 197, 94, 0.08)", text: "#22c55e", border: "rgba(34, 197, 94, 0.2)", gradient: "linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(34, 197, 94, 0.03))" },
-  food: { bg: "rgba(249, 115, 22, 0.08)", text: "#f97316", border: "rgba(249, 115, 22, 0.2)", gradient: "linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(249, 115, 22, 0.03))" },
-  media: { bg: "rgba(139, 92, 246, 0.08)", text: "#8b5cf6", border: "rgba(139, 92, 246, 0.2)", gradient: "linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(139, 92, 246, 0.03))" },
+  food: { bg: "rgba(249, 115, 22, 0.08)", text: "#F0A11C", border: "rgba(249, 115, 22, 0.2)", gradient: "linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(249, 115, 22, 0.03))" },
+  media: { bg: "rgba(109, 82, 248, 0.08)", text: "#6D52F8", border: "rgba(109, 82, 248, 0.2)", gradient: "linear-gradient(135deg, rgba(109, 82, 248, 0.12), rgba(109, 82, 248, 0.03))" },
   knowledge: { bg: "rgba(99, 102, 241, 0.08)", text: "#6366f1", border: "rgba(99, 102, 241, 0.2)", gradient: "linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(99, 102, 241, 0.03))" },
-  shopping: { bg: "rgba(245, 158, 11, 0.08)", text: "#f59e0b", border: "rgba(245, 158, 11, 0.2)", gradient: "linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(245, 158, 11, 0.03))" },
-  crypto: { bg: "rgba(249, 115, 22, 0.08)", text: "#f97316", border: "rgba(249, 115, 22, 0.2)", gradient: "linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(249, 115, 22, 0.03))" },
-  memory: { bg: "rgba(124, 92, 219, 0.08)", text: "#7c5cdb", border: "rgba(124, 92, 219, 0.2)", gradient: "linear-gradient(135deg, rgba(124, 92, 219, 0.12), rgba(124, 92, 219, 0.03))" },
-  plan: { bg: "rgba(16, 185, 129, 0.08)", text: "#10b981", border: "rgba(16, 185, 129, 0.2)", gradient: "linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(16, 185, 129, 0.03))" },
-  default: { bg: "rgba(124, 92, 219, 0.08)", text: "#7c5cdb", border: "rgba(124, 92, 219, 0.2)", gradient: "linear-gradient(135deg, rgba(124, 92, 219, 0.12), rgba(124, 92, 219, 0.03))" },
+  shopping: { bg: "rgba(253, 197, 51, 0.08)", text: "#FDC533", border: "rgba(253, 197, 51, 0.2)", gradient: "linear-gradient(135deg, rgba(253, 197, 51, 0.12), rgba(253, 197, 51, 0.03))" },
+  crypto: { bg: "rgba(249, 115, 22, 0.08)", text: "#F0A11C", border: "rgba(249, 115, 22, 0.2)", gradient: "linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(249, 115, 22, 0.03))" },
+  memory: { bg: "rgba(109, 82, 248, 0.08)", text: "#6D52F8", border: "rgba(109, 82, 248, 0.2)", gradient: "linear-gradient(135deg, rgba(109, 82, 248, 0.12), rgba(109, 82, 248, 0.03))" },
+  plan: { bg: "rgba(47, 200, 110, 0.08)", text: "#10b981", border: "rgba(47, 200, 110, 0.2)", gradient: "linear-gradient(135deg, rgba(47, 200, 110, 0.12), rgba(47, 200, 110, 0.03))" },
+  default: { bg: "rgba(109, 82, 248, 0.08)", text: "#6D52F8", border: "rgba(109, 82, 248, 0.2)", gradient: "linear-gradient(135deg, rgba(109, 82, 248, 0.12), rgba(109, 82, 248, 0.03))" },
 };
 
 function getAccentForBlock(block: UiBlock): AccentColor {

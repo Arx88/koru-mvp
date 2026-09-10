@@ -91,7 +91,7 @@ export function MstatsInterior({ block, onClose, onSave }: LecturaInteriorProps<
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(title, `${home} vs ${away}`) : undefined}
-      chip={{ label: "Stats", background: "linear-gradient(135deg,#34d399,#059669)" }}
+      chip={{ label: "Stats", background: "linear-gradient(135deg,#34d399,#2FC86E)" }}
       ariaLabel={title}
     >
       <div id="p-mstats" className="lcr-panel">

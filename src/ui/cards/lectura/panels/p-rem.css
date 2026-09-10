@@ -6,9 +6,9 @@
 .lcr #p-rem .rem-head p{font:600 12px/1.55 var(--sans);color:var(--ink-dim);margin-top:6px}
 .lcr #p-rem .rem-hero{position:relative;background:#fff;border:1px solid var(--linec);border-radius:22px;padding:18px 16px 16px;box-shadow:0 12px 30px var(--shadowc);display:flex;flex-direction:column;align-items:center;gap:8px;overflow:hidden}
 .lcr #p-rem .rem-hero::before{content:"";position:absolute;inset:0 0 auto;height:64px;background:radial-gradient(120% 100% at 50% 0,#fdeef2 0%,transparent 70%);pointer-events:none}
-.lcr #p-rem .rem-bell{position:relative;width:56px;height:56px;border-radius:18px;background:linear-gradient(135deg,#fda4af,#e6566e);display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 10px 22px rgba(230,86,110,.32);margin-top:4px}
+.lcr #p-rem .rem-bell{position:relative;width:56px;height:56px;border-radius:18px;background:linear-gradient(135deg,#FF9EBE,#FF5A60);display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 10px 22px rgba(255,90,96,.32);margin-top:4px}
 .lcr #p-rem .rem-bell .lucide{font-size:26px}
-.lcr #p-rem .rem-bell .pulse{position:absolute;inset:-7px;border-radius:24px;border:2px solid rgba(230,86,110,.45);animation:rem-pulse 2.2s var(--ease) infinite}
+.lcr #p-rem .rem-bell .pulse{position:absolute;inset:-7px;border-radius:24px;border:2px solid rgba(255,90,96,.45);animation:rem-pulse 2.2s var(--ease) infinite}
 @keyframes rem-pulse{0%{transform:scale(.9);opacity:.9}70%{transform:scale(1.14);opacity:0}100%{transform:scale(1.14);opacity:0}}
 .lcr #p-rem .rem-when{display:flex;flex-direction:column;align-items:center;line-height:1}
 .lcr #p-rem .rem-when .lead{font:700 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--rose-ink)}

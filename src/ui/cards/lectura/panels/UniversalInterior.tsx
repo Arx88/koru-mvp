@@ -41,7 +41,7 @@ export function UniversalInterior({ block, detail, onClose, onSave }: LecturaInt
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(title, subtitle) : undefined}
-      chip={{ label: "Detalle", background: "linear-gradient(135deg,#c4b5fd,#8b5cf6)" }}
+      chip={{ label: "Detalle", background: "linear-gradient(135deg,#c4b5fd,#6D52F8)" }}
       ariaLabel={title}
     >
       <div id="p-univ" className="lcr-panel">
@@ -94,7 +94,7 @@ function blockTitle(block: UiBlock): string | undefined {
 }
 
 function SectionBlock({ section, index, block }: { section: DetailSection; index: number; block: UiBlock }) {
-  const accent = section.accent?.color ?? "#8363f9";
+  const accent = section.accent?.color ?? "#6D52F8";
   const head = (
     <div className="un-sub" style={{ color: accent }}>
       <span className="dot" style={{ background: accent }} aria-hidden="true" />

@@ -1,13 +1,13 @@
 /* AUTO-GENERADO de lectura-visual.html #p-clima (scoped .lcr / #p-clima) */
 #p-clima .wx-now{background:linear-gradient(165deg,#dceaff 0%,#eef5ff 58%,#fdf3e7 100%);
-          border:1px solid #d5e4f8;border-radius:24px;padding:16px 18px;box-shadow:0 14px 34px rgba(81,112,216,.14);position:relative;overflow:hidden}
+          border:1px solid #d5e4f8;border-radius:24px;padding:16px 18px;box-shadow:0 14px 34px rgba(26,35,126,.14);position:relative;overflow:hidden}
 #p-clima .wx-now::after{content:"";position:absolute;top:-38px;right:-30px;width:130px;height:130px;border-radius:50%;
-          background:radial-gradient(circle,rgba(246,189,109,.5),rgba(246,189,109,0) 70%)}
+          background:radial-gradient(circle,rgba(253,197,51,.5),rgba(253,197,51,0) 70%)}
 .lcr .wx-top{display:flex;justify-content:space-between;align-items:flex-start}
 .lcr .wx-place{font:800 10px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--sky-ink)}
 .lcr .wx-when{font:600 10.5px var(--sans);color:var(--ink-dim);margin-top:2px}
 .lcr .wx-wicon{width:44px;height:44px;border-radius:15px;background:rgba(255,255,255,.85);display:flex;align-items:center;justify-content:center;
-          box-shadow:0 4px 12px rgba(81,112,216,.15)}
+          box-shadow:0 4px 12px rgba(26,35,126,.15)}
 .lcr .wx-wicon .lucide{font-size:26px;color:var(--honey-ink)}
 .lcr .wx-main{display:flex;align-items:baseline;gap:10px;margin-top:6px}
 .lcr .wx-temp{font:800 72px/1 var(--disp);letter-spacing:-.04em;color:#2a3b66}

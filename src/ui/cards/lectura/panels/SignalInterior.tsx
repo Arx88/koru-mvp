@@ -19,10 +19,10 @@ import "./p-signal.css";
 type SignalBlock = Extract<UiBlock, { type: "proactive_signal" }>;
 
 const SEVERITY_STYLE: Record<string, { label: string; chip: string; band: string }> = {
-  info: { label: "Info", chip: "linear-gradient(135deg,#8ab0ff,#5170d8)", band: "linear-gradient(90deg,#8ab0ff,#5170d8)" },
-  useful: { label: "Útil", chip: "linear-gradient(135deg,#6ee7b7,#059669)", band: "linear-gradient(90deg,#6ee7b7,#059669)" },
-  important: { label: "Importante", chip: "linear-gradient(135deg,#f6bd6d,#b45309)", band: "linear-gradient(90deg,#f6bd6d,#b45309)" },
-  urgent: { label: "Urgente", chip: "linear-gradient(135deg,#ff8fb8,#c62b46)", band: "linear-gradient(90deg,#e6566e,#c62b46)" },
+  info: { label: "Info", chip: "linear-gradient(135deg,#8ab0ff,#1A237E)", band: "linear-gradient(90deg,#8ab0ff,#1A237E)" },
+  useful: { label: "Útil", chip: "linear-gradient(135deg,#4BDD8C,#2FC86E)", band: "linear-gradient(90deg,#4BDD8C,#2FC86E)" },
+  important: { label: "Importante", chip: "linear-gradient(135deg,#FFD75E,#B07E00)", band: "linear-gradient(90deg,#FFD75E,#B07E00)" },
+  urgent: { label: "Urgente", chip: "linear-gradient(135deg,#FF9EBE,#D63856)", band: "linear-gradient(90deg,#FF5A60,#D63856)" },
 };
 
 const CATEGORY_LABEL: Record<string, string> = {

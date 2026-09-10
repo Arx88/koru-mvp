@@ -48,7 +48,7 @@ export function DataInterior({ block, onClose, onSave }: LecturaInteriorProps<Da
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(title, undefined) : undefined}
-      chip={{ label: "Datos", background: "linear-gradient(135deg,#6ee7b7,#059669)" }}
+      chip={{ label: "Datos", background: "linear-gradient(135deg,#4BDD8C,#2FC86E)" }}
       ariaLabel={title}
     >
       <div id="p-data" className="lcr-panel">

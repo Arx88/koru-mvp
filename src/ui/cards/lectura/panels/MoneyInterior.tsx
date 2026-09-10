@@ -20,7 +20,7 @@ import "./p-money.css";
 type MoneyBlock = Extract<UiBlock, { type: "money_summary" }>;
 type SumItem = NonNullable<MoneyBlock["summaryItems"]>[number];
 
-const CATEGORY_COLORS = ["#d6497f", "#b45309", "#5170d8", "#6d4bf0", "#9486c2", "#2f8f6d", "#c2410c"];
+const CATEGORY_COLORS = ["#d6497f", "#B07E00", "#1A237E", "#6D52F8", "#A6ACCB", "#22B35F", "#c2410c"];
 const CATEGORY_ICONS: LucideIcon[] = [Wallet, Receipt, PiggyBank, Sparkles, TrendingDown, Wallet, Receipt];
 
 /** "€611" | "611" | "1.234,50" → number | null */
@@ -61,7 +61,7 @@ export function MoneyInterior({ block, onClose, onSave }: LecturaInteriorProps<M
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(block.title || "Resumen de gastos", totalLabel) : undefined}
-      chip={{ label: "Plata", background: "linear-gradient(135deg,#fda4af,#e11d48)" }}
+      chip={{ label: "Plata", background: "linear-gradient(135deg,#FF9EBE,#FF5A60)" }}
       ariaLabel={block.title || "Resumen de gastos"}
     >
       <div id="p-money" className="lcr-panel">

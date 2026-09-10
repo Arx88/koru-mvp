@@ -41,12 +41,12 @@ function progressKey(title: string | undefined, items: AssistantPlanItem[]): str
 
 function habitIconFor(label: string): { icon: string; bg: string; color: string } {
   const l = label.toLowerCase();
-  if (/agua|hidrat|beber/.test(l)) return { icon: "water_drop", bg: "#dbeafe", color: "#3b82f6" };
+  if (/agua|hidrat|beber/.test(l)) return { icon: "water_drop", bg: "#dbeafe", color: "#007BF9" };
   if (/dormir|suen|descans/.test(l)) return { icon: "bedtime", bg: "#e0e7ff", color: "#6366f1" };
-  if (/pantalla|celular|movil/.test(l)) return { icon: "devices", bg: "#ffedd5", color: "#f97316" };
+  if (/pantalla|celular|movil/.test(l)) return { icon: "devices", bg: "#ffedd5", color: "#F0A11C" };
   if (/comida|comer|nutri|dieta/.test(l)) return { icon: "restaurant", bg: "#dcfce7", color: "#22c55e" };
-  if (/ejercicio|entren|correr|gym/.test(l)) return { icon: "fitness_center", bg: "#fce7f3", color: "#ec4899" };
-  return { icon: "check_circle", bg: "#f3e8ff", color: "#a855f7" };
+  if (/ejercicio|entren|correr|gym/.test(l)) return { icon: "fitness_center", bg: "#fce7f3", color: "#F65E9B" };
+  return { icon: "check_circle", bg: "#f3e8ff", color: "#8B6DFF" };
 }
 
 export function PlanRoadmapScreen({
@@ -228,7 +228,7 @@ export function PlanRoadmapScreen({
             </div>
             <div className="koru-metric-grid">
               <div className="koru-metric-tile">
-                <div className="koru-progress-ring" style={{ "--ring-pct": minutesPct, color: "#ef4444", marginBottom: 8 } as CSSProperties}>
+                <div className="koru-progress-ring" style={{ "--ring-pct": minutesPct, color: "#FF4D54", marginBottom: 8 } as CSSProperties}>
                   <Mat>local_fire_department</Mat>
                 </div>
                 <h4 className="koru-metric-label">Minutos Activos</h4>
@@ -371,8 +371,8 @@ export function PlanRoadmapScreen({
                         gap: 10,
                         padding: "10px 12px",
                         borderRadius: 12,
-                        border: "1px solid rgba(220, 38, 38, 0.2)",
-                        background: "rgba(220, 38, 38, 0.04)",
+                        border: "1px solid rgba(255, 77, 84, 0.2)",
+                        background: "rgba(255, 77, 84, 0.04)",
                         color: "#0b1c30",
                         cursor: "pointer",
                         textAlign: "left",
@@ -380,7 +380,7 @@ export function PlanRoadmapScreen({
                         fontWeight: 600,
                       }}
                     >
-                      <span className="material-symbols-outlined" style={{ color: "#dc2626", fontSize: 20 }}>archive</span>
+                      <span className="material-symbols-outlined" style={{ color: "#FF4D54", fontSize: 20 }}>archive</span>
                       <span style={{ flex: 1, minWidth: 0 }}>
                         Archivar plan “{plan.title}” (archivePlan)
                       </span>

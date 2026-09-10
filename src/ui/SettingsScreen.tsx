@@ -98,8 +98,8 @@ type SectionMeta = {
 };
 
 const SECTIONS: SectionMeta[] = [
-  { id: "perfil",         title: "Perfil",            kicker: "QUIÉN ERES",        icon: User,          accent: "#8127cf", tint: "#f3e8ff", keywords: ["nombre", "cumpleaños", "ciudad", "zona horaria", "timezone", "name", "birthday", "location"] },
-  { id: "idioma",         title: "Idioma",            kicker: "ESPAÑOL / ENGLISH", icon: Languages,     accent: "#2563eb", tint: "#dbeafe", keywords: ["language", "español", "english", "spanish"] },
+  { id: "perfil",         title: "Perfil",            kicker: "QUIÉN ERES",        icon: User,          accent: "#5940E0", tint: "#f3e8ff", keywords: ["nombre", "cumpleaños", "ciudad", "zona horaria", "timezone", "name", "birthday", "location"] },
+  { id: "idioma",         title: "Idioma",            kicker: "ESPAÑOL / ENGLISH", icon: Languages,     accent: "#007BF9", tint: "#dbeafe", keywords: ["language", "español", "english", "spanish"] },
   { id: "apariencia",     title: "Apariencia",        kicker: "TEMA Y TIPOGRAFÍA", icon: Palette,       accent: "#db2777", tint: "#fce7f3", keywords: ["theme", "font", "tamaño", "haptics", "sonidos", "contraste", "movimiento", "dark", "light"] },
   { id: "notificaciones", title: "Notificaciones",    kicker: "ALERTAS Y DND",     icon: Bell,          accent: "#ea580c", tint: "#ffedd5", keywords: ["push", "dnd", "sonidos", "no molestar", "permiso"] },
   { id: "privacidad",     title: "Privacidad",        kicker: "TUS DATOS",         icon: Shield,        accent: "#16a34a", tint: "#dcfce7", keywords: ["ephemeral", "durable", "retention", "export", "eliminar", "lock", "webauthn", "borrar"] },
@@ -221,7 +221,7 @@ function Toggle({
         border: "none",
         padding: 0,
         cursor: disabled ? "not-allowed" : "pointer",
-        background: checked ? "#8127cf" : "#cbd5e1",
+        background: checked ? "#5940E0" : "#cbd5e1",
         opacity: disabled ? 0.5 : 1,
         transition: "background-color 160ms ease",
         flex: "0 0 auto",
@@ -264,7 +264,7 @@ function Row({
         justifyContent: stacked ? "flex-start" : "space-between",
         gap: stacked ? 8 : 12,
         padding: "10px 0",
-        borderBottom: "1px solid rgba(129, 39, 207, 0.08)",
+        borderBottom: "1px solid rgba(89, 64, 224, 0.08)",
       }}
     >
       <div style={{ minWidth: 0, flex: "1 1 auto" }}>
@@ -354,7 +354,7 @@ function ProfileField({
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div style={{ padding: "10px 0", borderBottom: "1px solid rgba(129, 39, 207, 0.08)" }}>
+    <div style={{ padding: "10px 0", borderBottom: "1px solid rgba(89, 64, 224, 0.08)" }}>
       <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: "#0b1c30", marginBottom: 6 }}>
         {label}
       </label>
@@ -388,9 +388,9 @@ function RadioGroup<T extends string>({
               gap: 6,
               padding: "7px 12px",
               borderRadius: 999,
-              border: active ? "1px solid #8127cf" : "1px solid #e2d4f5",
+              border: active ? "1px solid #5940E0" : "1px solid #e2d4f5",
               background: active ? "#f3e8ff" : "rgba(255,255,255,0.7)",
-              color: active ? "#8127cf" : "#0b1c30",
+              color: active ? "#5940E0" : "#0b1c30",
               fontSize: 13,
               fontWeight: 600,
               cursor: opt.disabled ? "not-allowed" : "pointer",
@@ -465,7 +465,7 @@ function SelectInput<T extends string>({
           top: "50%",
           transform: "translateY(-50%)",
           pointerEvents: "none",
-          color: "#8127cf",
+          color: "#5940E0",
         }}
       />
     </div>
@@ -485,9 +485,9 @@ function PillButton({
 }) {
   const styles: Record<string, React.CSSProperties> = {
     default: { background: "rgba(255,255,255,0.85)", color: "#0b1c30", border: "1px solid #e2d4f5" },
-    primary: { background: "#8127cf", color: "#ffffff", border: "1px solid #8127cf" },
+    primary: { background: "#5940E0", color: "#ffffff", border: "1px solid #5940E0" },
     danger:  { background: "#fee2e2", color: "#b91c1c", border: "1px solid #fecaca" },
-    ghost:   { background: "transparent", color: "#8127cf", border: "1px dashed #c4b5fd" },
+    ghost:   { background: "transparent", color: "#5940E0", border: "1px dashed #c4b5fd" },
   };
   return (
     <button
@@ -999,7 +999,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
           }}
         >
           <div>
-            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: "#8127cf", letterSpacing: "-0.02em" }}>
+            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: "#5940E0", letterSpacing: "-0.02em" }}>
               Ajustes
             </h1>
             <p style={{ margin: 0, fontSize: 12, color: "#64748b" }}>Personalizá tu Michi</p>
@@ -1017,7 +1017,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
               borderRadius: 999,
               border: "1px solid rgba(255,255,255,0.7)",
               background: "rgba(255,255,255,0.6)",
-              color: "#8127cf",
+              color: "#5940E0",
               cursor: "pointer",
             }}
           >
@@ -1131,18 +1131,18 @@ export function SettingsScreen(props: SettingsScreenProps) {
                         padding: 12,
                         borderRadius: 14,
                         background: "rgba(243, 232, 255, 0.45)",
-                        border: "1px solid rgba(129, 39, 207, 0.12)",
+                        border: "1px solid rgba(89, 64, 224, 0.12)",
                       }}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                         <span
                           className="material-symbols-outlined"
-                          style={{ fontSize: 18, color: "#8127cf" }}
+                          style={{ fontSize: 18, color: "#5940E0" }}
                           aria-hidden
                         >
                           group
                         </span>
-                        <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#8127cf" }}>
+                        <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#5940E0" }}>
                           Personas
                         </h4>
                       </div>
@@ -1195,7 +1195,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
                                 padding: "8px 10px",
                                 borderRadius: 10,
                                 background: "rgba(255,255,255,0.7)",
-                                border: "1px solid rgba(129, 39, 207, 0.08)",
+                                border: "1px solid rgba(89, 64, 224, 0.08)",
                                 fontSize: 13,
                                 color: "#0b1c30",
                               }}
@@ -1560,7 +1560,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
                         justifyContent: "space-between",
                         gap: 10,
                         padding: "12px 0",
-                        borderBottom: "1px solid rgba(129, 39, 207, 0.08)",
+                        borderBottom: "1px solid rgba(89, 64, 224, 0.08)",
                       }}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
@@ -1627,7 +1627,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
                         flexDirection: "column",
                         gap: 8,
                         padding: "12px 0",
-                        borderBottom: "1px solid rgba(129, 39, 207, 0.08)",
+                        borderBottom: "1px solid rgba(89, 64, 224, 0.08)",
                       }}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -1874,7 +1874,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
                 padding: 20,
                 borderRadius: 20,
                 background: "#ffffff",
-                boxShadow: "0 24px 60px rgba(129, 39, 207, 0.25)",
+                boxShadow: "0 24px 60px rgba(89, 64, 224, 0.25)",
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, color: "#b91c1c" }}>
@@ -1956,7 +1956,7 @@ function IntegrationRow({
         justifyContent: "space-between",
         gap: 10,
         padding: "12px 0",
-        borderBottom: "1px solid rgba(129, 39, 207, 0.08)",
+        borderBottom: "1px solid rgba(89, 64, 224, 0.08)",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
@@ -2034,7 +2034,7 @@ function HistoryEntryRow({
         marginBottom: 6,
         borderRadius: 10,
         background: "rgba(255,255,255,0.55)",
-        border: "1px solid rgba(129, 39, 207, 0.06)",
+        border: "1px solid rgba(89, 64, 224, 0.06)",
         fontSize: 12,
       }}
     >
@@ -2048,8 +2048,8 @@ function HistoryEntryRow({
           width: 8,
           height: 8,
           borderRadius: 999,
-          background: "#8127cf",
-          boxShadow: "0 0 0 3px rgba(129, 39, 207, 0.15)",
+          background: "#5940E0",
+          boxShadow: "0 0 0 3px rgba(89, 64, 224, 0.15)",
         }}
       />
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center" }}>
@@ -2164,7 +2164,7 @@ function MemoryRow({
         padding: 10,
         borderRadius: 12,
         background: "rgba(255,255,255,0.6)",
-        border: "1px solid rgba(129, 39, 207, 0.06)",
+        border: "1px solid rgba(89, 64, 224, 0.06)",
       }}
     >
       <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
@@ -2354,7 +2354,7 @@ function MemoryRow({
               gap: 6,
               padding: "5px 10px",
               borderRadius: 8,
-              border: "1px solid rgba(129, 39, 207, 0.18)",
+              border: "1px solid rgba(89, 64, 224, 0.18)",
               background: "rgba(255,255,255,0.7)",
               color: "#6d28d9",
               fontSize: 11,
@@ -2395,7 +2395,7 @@ function MemoryRow({
                   top: 8,
                   bottom: 8,
                   width: 2,
-                  background: "rgba(129, 39, 207, 0.15)",
+                  background: "rgba(89, 64, 224, 0.15)",
                   borderRadius: 1,
                 }}
               />

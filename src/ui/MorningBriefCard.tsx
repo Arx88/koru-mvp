@@ -26,7 +26,7 @@ export function MorningBriefCard({ brief, onStart }: { brief: MorningBrief; onSt
       <div className="koru-morning-brief-content">
         {/* Greeting */}
         <div className="koru-morning-brief-header">
-          <Sparkles className="h-5 w-5 text-[#6ee7b7]" />
+          <Sparkles className="h-5 w-5 text-[#4BDD8C]" />
           <h2 className="koru-morning-brief-greeting">{brief.greeting}</h2>
         </div>
 
@@ -42,7 +42,7 @@ export function MorningBriefCard({ brief, onStart }: { brief: MorningBrief; onSt
           {/* Tasks */}
           {brief.tasks && brief.tasks.length > 0 && (
             <div className="koru-morning-brief-section">
-              <CheckCircle2 className="h-4 w-4 text-[#6ee7b7]" />
+              <CheckCircle2 className="h-4 w-4 text-[#4BDD8C]" />
               <div>
                 <p className="koru-morning-brief-label">Pendientes de hoy</p>
                 <ul>
@@ -65,7 +65,7 @@ export function MorningBriefCard({ brief, onStart }: { brief: MorningBrief; onSt
           {/* Suggestion */}
           {brief.suggestion && (
             <div className="koru-morning-brief-section koru-morning-brief-suggestion">
-              <Lightbulb className="h-4 w-4 text-[#fbbf24]" />
+              <Lightbulb className="h-4 w-4 text-[#FDC533]" />
               <p>{brief.suggestion}</p>
             </div>
           )}

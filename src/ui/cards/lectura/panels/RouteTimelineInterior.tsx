@@ -43,7 +43,7 @@ export function RouteTimelineInterior({ block, onClose, onSave }: LecturaInterio
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(first?.label ?? "Tu ruta", eta) : undefined}
-      chip={{ label: "Ruta", background: "linear-gradient(135deg,#93c5fd,#3b82f6)" }}
+      chip={{ label: "Ruta", background: "linear-gradient(135deg,#93c5fd,#007BF9)" }}
       ariaLabel="Cómo llegar"
     >
       <div id="p-route" className="lcr-panel">

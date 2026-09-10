@@ -38,7 +38,7 @@ export interface PriceHistoryChartProps {
 const wrapStyle: CSSProperties = {
   padding: "12px 14px",
   borderRadius: 14,
-  border: "1px solid rgba(131, 99, 249, 0.14)",
+  border: "1px solid rgba(109, 82, 248, 0.14)",
   background: "rgba(255, 255, 255, 0.6)",
 };
 
@@ -72,8 +72,8 @@ const tileStyle: CSSProperties = {
   flex: "1 1 80px",
   padding: "8px 10px",
   borderRadius: 10,
-  background: "rgba(131, 99, 249, 0.06)",
-  border: "1px solid rgba(131, 99, 249, 0.10)",
+  background: "rgba(109, 82, 248, 0.06)",
+  border: "1px solid rgba(109, 82, 248, 0.10)",
 };
 
 const tileLabelStyle: CSSProperties = {
@@ -150,11 +150,11 @@ export function PriceHistoryChart({ title, asin, currentPrice }: PriceHistoryCha
             </div>
             <div style={tileStyle}>
               <div style={tileLabelStyle}>Actual</div>
-              <div style={{ ...tileValueStyle, color: "#2563eb" }}>${state.data.current}</div>
+              <div style={{ ...tileValueStyle, color: "#007BF9" }}>${state.data.current}</div>
             </div>
             <div style={tileStyle}>
               <div style={tileLabelStyle}>Máximo</div>
-              <div style={{ ...tileValueStyle, color: "#dc2626" }}>${state.data.highest}</div>
+              <div style={{ ...tileValueStyle, color: "#FF4D54" }}>${state.data.highest}</div>
             </div>
           </div>
         </>

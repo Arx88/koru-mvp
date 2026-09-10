@@ -59,16 +59,16 @@ function collectionIcon(name: string): string {
 type RecordVisual = { icon: string; accent: string };
 
 const RECORD_VISUALS: Partial<Record<LifeRecordKind, RecordVisual>> = {
-  expense: { icon: "payments", accent: "#d97706" },
-  shopping_item: { icon: "shopping_cart", accent: "#ec4899" },
-  idea: { icon: "sticky_note_2", accent: "#8363f9" },
-  tool_link: { icon: "link", accent: "#3b82f6" },
-  recommendation: { icon: "restaurant", accent: "#059669" },
-  decision: { icon: "psychology_alt", accent: "#8127cf" },
-  birthday: { icon: "cake", accent: "#ec4899" },
+  expense: { icon: "payments", accent: "#F0A11C" },
+  shopping_item: { icon: "shopping_cart", accent: "#F65E9B" },
+  idea: { icon: "sticky_note_2", accent: "#6D52F8" },
+  tool_link: { icon: "link", accent: "#007BF9" },
+  recommendation: { icon: "restaurant", accent: "#2FC86E" },
+  decision: { icon: "psychology_alt", accent: "#5940E0" },
+  birthday: { icon: "cake", accent: "#F65E9B" },
 };
 
-const DEFAULT_VISUAL: RecordVisual = { icon: "bookmark", accent: "#8363f9" };
+const DEFAULT_VISUAL: RecordVisual = { icon: "bookmark", accent: "#6D52F8" };
 
 function recordVisual(record: LifeRecord): RecordVisual {
   // Si el record tiene URL pero NO es tool_link, igualmente usamos el visual
@@ -597,8 +597,8 @@ export function CollectionsScreen({
                               margin: "10px 0 6px",
                               padding: "6px 10px",
                               borderRadius: 8,
-                              background: "rgba(131, 99, 249, 0.08)",
-                              color: "#4f46e5",
+                              background: "rgba(109, 82, 248, 0.08)",
+                              color: "#5940E0",
                               fontSize: 11,
                               fontWeight: 800,
                               letterSpacing: 0.6,

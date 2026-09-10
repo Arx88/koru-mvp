@@ -1,6 +1,6 @@
 /* AUTO-GENERADO de lectura-visual.html #p-transp (scoped .lcr / #p-transp) */
-#p-transp .db-hero{background:linear-gradient(175deg,#2e2650 0%,#3d3273 100%);border-radius:24px;padding:17px;
-          box-shadow:0 18px 40px rgba(46,38,80,.3);position:relative;overflow:hidden}
+#p-transp .db-hero{background:linear-gradient(175deg,#1E1B4B 0%,#3d3273 100%);border-radius:24px;padding:17px;
+          box-shadow:0 18px 40px rgba(30,27,75,.3);position:relative;overflow:hidden}
 .lcr .db-hero::after{content:"";position:absolute;inset:0;
           background:repeating-linear-gradient(0deg,rgba(255,255,255,.03) 0 3px,transparent 3px 6px)}
 .lcr .db-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px;position:relative}
@@ -12,7 +12,7 @@
 .lcr .db-row .ln{font:800 16px var(--disp);color:#fff;text-align:center;width:100%}
 .lcr .db-row .ln small{display:block;font:700 7.5px var(--sans);letter-spacing:.1em;color:rgba(255,255,255,.55);margin-top:1px}
 .lcr .db-row .ln.d{color:var(--mint)}
-.lcr .db-row .ln.b{color:#f6bd6d}
+.lcr .db-row .ln.b{color:#FFD75E}
 .lcr .db-row .ln.t{color:#8ab0ff}
 .lcr .db-row .dst{font:700 12px var(--sans);color:#fff}
 .lcr .db-row .dst small{display:block;font:600 9.5px var(--sans);color:rgba(255,255,255,.6);margin-top:2px}
@@ -20,7 +20,7 @@
 .lcr .db-row.next .eta{background:var(--mint);color:#05301d}
 .lcr .db-row.next{border-color:var(--mint)}
 .lcr .db-adv{margin-top:6px;position:relative;display:flex;align-items:center;gap:8px;font:700 10px var(--sans);color:#fff;
-          background:rgba(110,231,183,.16);border:1px dashed rgba(110,231,183,.5);border-radius:12px;padding:9px 12px}
+          background:rgba(75,221,140,.16);border:1px dashed rgba(75,221,140,.5);border-radius:12px;padding:9px 12px}
 .lcr .db-adv .lucide{font-size:14px;color:var(--mint)}
 .lcr .db-compare{margin-top:14px;background:#fff;border:1px solid var(--linec);border-radius:22px;padding:14px 16px;box-shadow:0 12px 30px var(--shadowc)}
 .lcr .db-compare h3{font:800 14px var(--disp);margin-bottom:10px;display:flex;gap:8px;align-items:center}

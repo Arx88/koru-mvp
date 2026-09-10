@@ -74,7 +74,7 @@ export function CryptoInterior({ block, onClose, onSave }: LecturaInteriorProps<
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(block.title || "Portfolio cripto", block.totalValue) : undefined}
-      chip={{ label: "Cripto", background: "linear-gradient(135deg,#6ee7b7,#2f8f6d)" }}
+      chip={{ label: "Cripto", background: "linear-gradient(135deg,#4BDD8C,#22B35F)" }}
       ariaLabel={block.title || "Portfolio cripto"}
     >
       <div id="p-crypto" className="lcr-panel">
@@ -130,8 +130,8 @@ export function CryptoInterior({ block, onClose, onSave }: LecturaInteriorProps<
               <svg viewBox="0 0 340 118">
                 <defs>
                   <linearGradient id="p-crypto-pfA" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stopColor={weekUp ? "#6ee7b7" : "#f6a5bb"} stopOpacity=".45" />
-                    <stop offset="1" stopColor={weekUp ? "#6ee7b7" : "#f6a5bb"} stopOpacity="0" />
+                    <stop offset="0" stopColor={weekUp ? "#4BDD8C" : "#f6a5bb"} stopOpacity=".45" />
+                    <stop offset="1" stopColor={weekUp ? "#4BDD8C" : "#f6a5bb"} stopOpacity="0" />
                   </linearGradient>
                 </defs>
                 <g stroke="#f1ecfa" strokeWidth="1">
@@ -143,7 +143,7 @@ export function CryptoInterior({ block, onClose, onSave }: LecturaInteriorProps<
                 <path
                   d={spark.line}
                   fill="none"
-                  stroke={weekUp ? "#2f8f6d" : "#c2410c"}
+                  stroke={weekUp ? "#22B35F" : "#c2410c"}
                   strokeWidth="3"
                   strokeLinecap="round"
                 />
@@ -187,7 +187,7 @@ export function CryptoInterior({ block, onClose, onSave }: LecturaInteriorProps<
               const share = shares[i];
               return (
                 <div className="pcoin" key={`${c.symbol}_${i}`}>
-                  <div className="cic" style={{ background: c.bg || "#fffbeb", color: c.color || "#f59e0b" }}>
+                  <div className="cic" style={{ background: c.bg || "#fffbeb", color: c.color || "#FDC533" }}>
                     {c.char || c.symbol?.[0] || "?"}
                   </div>
                   <div className="ct">

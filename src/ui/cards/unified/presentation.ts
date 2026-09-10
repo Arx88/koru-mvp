@@ -204,20 +204,23 @@ export interface DetailAction {
   action: string;
 }
 
-// ---- Paleta Stitch ----------------------------------------------------------
-
+// ---- Paleta Michi v7 (estilo-v2) ---------------------------------------------
+// 🐱 v7.1 — migración total de los accents: la paleta "Stitch" legada
+// (#6D52F8 / #5940E0 / #5940E0 + Tailwind emerald/amber/rose) era el motivo
+// por el que las cards se veían "como las antiguas". Ahora todos los tiles,
+// kickers e iconos de métricas usan la paleta aprobada del sistema v7.
 const A = {
-  violet: { color: "#8363f9", soft: "rgba(131,99,249,0.12)" },
-  primary: { color: "#4648d4", soft: "rgba(70,72,212,0.10)" },
-  purple: { color: "#8127cf", soft: "rgba(129,39,207,0.12)" },
-  emerald: { color: "#059669", soft: "rgba(16,185,129,0.12)" },
-  amber: { color: "#d97706", soft: "rgba(217,119,6,0.12)" },
-  blue: { color: "#2563eb", soft: "rgba(37,99,235,0.12)" },
-  sky: { color: "#0284c7", soft: "rgba(2,132,199,0.12)" },
-  rose: { color: "#e11d48", soft: "rgba(225,29,72,0.12)" },
-  pink: { color: "#ec4899", soft: "rgba(236,72,153,0.12)" },
-  indigo: { color: "#4f46e5", soft: "rgba(79,70,229,0.10)" },
-  red: { color: "#dc2626", soft: "rgba(220,38,38,0.12)" },
+  violet: { color: "#6D52F8", soft: "rgba(109,82,248,0.12)" },
+  primary: { color: "#5940E0", soft: "rgba(89,64,224,0.12)" },
+  purple: { color: "#5940E0", soft: "rgba(89,64,224,0.12)" },
+  emerald: { color: "#2FC86E", soft: "rgba(47,200,110,0.14)" },
+  amber: { color: "#F0A11C", soft: "rgba(253,197,51,0.26)" },
+  blue: { color: "#007BF9", soft: "rgba(0,123,249,0.12)" },
+  sky: { color: "#007BF9", soft: "rgba(0,123,249,0.12)" },
+  rose: { color: "#FF5A60", soft: "rgba(255,90,96,0.14)" },
+  pink: { color: "#F65E9B", soft: "rgba(246,94,155,0.14)" },
+  indigo: { color: "#5940E0", soft: "rgba(89,64,224,0.10)" },
+  red: { color: "#FF4D54", soft: "rgba(255,77,84,0.14)" },
 } satisfies Record<string, Accent>;
 
 // ---- helpers ----------------------------------------------------------------

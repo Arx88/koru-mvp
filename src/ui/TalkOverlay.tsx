@@ -24,7 +24,7 @@ import { renderMarkdownBody, CopyButton } from "./MarkdownMessage";
 // TalkOverlay = réplica Stitch "Chat con Koru": paisaje nocturno ilustrado a
 // pantalla completa, conversación anclada abajo con burbujas claras (usuario
 // #F0F4FF / Koru #F8F4FA + avatar circular) y composer blanco con hoja (eco),
-// campo "Habla con Koru..." y botón #7C5FF6. El estado "trabajando" es el
+// campo "Habla con Koru..." y botón #6D52F8. El estado "trabajando" es el
 // panel claro de Stitch con la barra REAL sincronizada a las fases del
 // pipeline, y el plan entregado se renderiza como la hoja "Tu Plan" (cards).
 
@@ -1326,8 +1326,8 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
                             gap: 4,
                             padding: "6px 12px",
                             borderRadius: 999,
-                            background: "rgba(131, 99, 249, 0.12)",
-                            color: "#523A9E",
+                            background: "rgba(109, 82, 248, 0.12)",
+                            color: "#5940E0",
                             fontSize: 12,
                             fontWeight: 600,
                             border: "none",
@@ -1335,7 +1335,7 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
                             fontFamily: "inherit",
                           }}
                         >
-                          <span className="material-symbols-outlined" style={{ fontSize: 14, color: "#8363F9" }}>{chip.icon}</span>
+                          <span className="material-symbols-outlined" style={{ fontSize: 14, color: "#6D52F8" }}>{chip.icon}</span>
                           {chip.text}
                         </button>
                       ))}

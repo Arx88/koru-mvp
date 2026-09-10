@@ -44,7 +44,7 @@ export function LinksInterior({ block, onClose, onSave }: LecturaInteriorProps<L
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(title, `${sources.length} enlaces`) : undefined}
-      chip={{ label: "Enlaces", background: "linear-gradient(135deg,#7dd3fc,#0369a1)" }}
+      chip={{ label: "Enlaces", background: "linear-gradient(135deg,#5FB0FF,#0369a1)" }}
       ariaLabel={title}
     >
       <div id="p-links" className="lcr-panel">

@@ -28,7 +28,7 @@ export function GenerationInterior({ block, onClose, onSave }: LecturaInteriorPr
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(title, block.style) : undefined}
-      chip={{ label: "Generación", background: "linear-gradient(135deg,#f6bd6d,#b45309)" }}
+      chip={{ label: "Generación", background: "linear-gradient(135deg,#FFD75E,#B07E00)" }}
       ariaLabel={title}
     >
       <div id="p-gen" className="lcr-panel">

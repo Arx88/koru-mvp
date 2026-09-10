@@ -32,7 +32,7 @@ export function ClarifyInterior({ block, onClose }: LecturaInteriorProps<Clarify
   return (
     <LecturaShell
       onClose={onClose}
-      chip={{ label: "Pregunta", background: "linear-gradient(135deg,#c4b5fd,#8b5cf6)" }}
+      chip={{ label: "Pregunta", background: "linear-gradient(135deg,#c4b5fd,#6D52F8)" }}
       ariaLabel={title}
     >
       <div id="p-clar" className="lcr-panel">

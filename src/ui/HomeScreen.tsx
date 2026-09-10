@@ -319,7 +319,7 @@ export function HomeScreen({
             className="material-symbols-outlined"
             style={{
               fontSize: 22,
-              color: "#8363f9",
+              color: "#6D52F8",
               transform: refreshing ? undefined : `rotate(${pull * 3}deg)`,
               opacity: refreshing ? 1 : Math.min(1, pull / PULL_THRESHOLD),
               animation: refreshing ? "koru-spin 1s linear infinite" : undefined,
@@ -417,7 +417,7 @@ export function HomeScreen({
               >
                 <span
                   className="material-symbols-outlined"
-                  style={{ fontSize: 56, color: "#4648d4" }}
+                  style={{ fontSize: 56, color: "#5940E0" }}
                 >
                   eco
                 </span>
@@ -433,7 +433,7 @@ export function HomeScreen({
                   className="koru-module-icon"
                   style={
                     {
-                      "--module-color": "#4648d4",
+                      "--module-color": "#5940E0",
                       "--module-bg": "#ece8ff",
                     } as CSSProperties
                   }
@@ -451,7 +451,7 @@ export function HomeScreen({
                 icon="event"
                 label="Eventos hoy"
                 value={eventsToday.length}
-                accent="#4648d4"
+                accent="#5940E0"
                 soft="#ece8ff"
                 // 🔴 FIX: antes navegaba a HISTORIAL (log de actividad, no la
                 // agenda). Ahora baja al Calendario del día; sin eventos, te
@@ -465,7 +465,7 @@ export function HomeScreen({
                 icon="task_alt"
                 label="Vencimientos hoy"
                 value={deadlinesToday.length}
-                accent="#e8593c"
+                accent="#FF4D54"
                 soft="#ffe7e1"
                 // 🔴 FIX: antes abría el chat SIN contexto (había que
                 // preguntarle a Koru cuáles eran). Ahora baja a Prioridades
@@ -619,9 +619,9 @@ export function HomeScreen({
                             width: 28,
                             height: 28,
                             borderRadius: 999,
-                            border: "1px solid rgba(131, 99, 249, 0.18)",
-                            background: "rgba(131, 99, 249, 0.08)",
-                            color: "#8363f9",
+                            border: "1px solid rgba(109, 82, 248, 0.18)",
+                            background: "rgba(109, 82, 248, 0.08)",
+                            color: "#6D52F8",
                             cursor: "pointer",
                             display: "grid",
                             placeItems: "center",
@@ -652,7 +652,7 @@ export function HomeScreen({
                     className="koru-module-icon"
                     style={
                       {
-                        "--module-color": "#8363f9",
+                        "--module-color": "#6D52F8",
                         "--module-bg": "#efe6ff",
                       } as CSSProperties
                     }
@@ -679,19 +679,19 @@ export function HomeScreen({
                         gap: 10,
                         padding: "8px 10px",
                         borderRadius: 12,
-                        background: "rgba(131, 99, 249, 0.06)",
-                        border: "1px dashed rgba(131, 99, 249, 0.25)",
+                        background: "rgba(109, 82, 248, 0.06)",
+                        border: "1px dashed rgba(109, 82, 248, 0.25)",
                       }}
                     >
                       <span
                         className="material-symbols-outlined"
                         style={{
                           fontSize: 20,
-                          color: "#8363f9",
+                          color: "#6D52F8",
                           width: 32,
                           height: 32,
                           borderRadius: 999,
-                          background: "rgba(131, 99, 249, 0.12)",
+                          background: "rgba(109, 82, 248, 0.12)",
                           display: "grid",
                           placeItems: "center",
                           flexShrink: 0,
@@ -737,7 +737,7 @@ export function HomeScreen({
                             padding: "6px 12px",
                             borderRadius: 999,
                             border: "none",
-                            background: "#8363f9",
+                            background: "#6D52F8",
                             color: "#fff",
                             fontSize: 12,
                             fontWeight: 700,
@@ -774,11 +774,11 @@ export function HomeScreen({
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
                       <span
                         className="material-symbols-outlined"
-                        style={{ fontSize: 16, color: "#4648d4" }}
+                        style={{ fontSize: 16, color: "#5940E0" }}
                       >
                         schedule
                       </span>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: "#4648d4" }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#5940E0" }}>
                         {timeLabel(e.startsAt) || "—"}
                       </span>
                     </div>
@@ -816,7 +816,7 @@ export function HomeScreen({
                   className="koru-module-icon"
                   style={
                     {
-                      "--module-color": "#e8593c",
+                      "--module-color": "#FF4D54",
                       "--module-bg": "#ffe7e1",
                     } as CSSProperties
                   }
@@ -834,7 +834,7 @@ export function HomeScreen({
                 label="Urgente"
                 icon="priority_high"
                 count={urgente.length}
-                accent="#e8593c"
+                accent="#FF4D54"
                 soft="#ffe7e1"
               />
               <PriorityTile
@@ -848,7 +848,7 @@ export function HomeScreen({
                 label="Rutina"
                 icon="repeat"
                 count={rutina.length}
-                accent="#4648d4"
+                accent="#5940E0"
                 soft="#ece8ff"
               />
               <PriorityTile
@@ -876,7 +876,7 @@ export function HomeScreen({
                   className="koru-module-icon"
                   style={
                     {
-                      "--module-color": "#8363f9",
+                      "--module-color": "#6D52F8",
                       "--module-bg": "#efe6ff",
                     } as CSSProperties
                   }
@@ -903,7 +903,7 @@ export function HomeScreen({
                       gap: 12,
                       padding: "12px 14px",
                       borderRadius: 14,
-                      border: "1px solid rgba(131, 99, 249, 0.14)",
+                      border: "1px solid rgba(109, 82, 248, 0.14)",
                       background: "linear-gradient(135deg, rgba(239, 230, 255, 0.6), rgba(245, 237, 255, 0.4))",
                       cursor: "pointer",
                       textAlign: "left",
@@ -914,7 +914,7 @@ export function HomeScreen({
                       className="material-symbols-outlined animate-breathe"
                       style={{
                         fontSize: 24,
-                        color: "#8363f9",
+                        color: "#6D52F8",
                         background: "rgba(255, 255, 255, 0.7)",
                         width: 42,
                         height: 42,
@@ -927,7 +927,7 @@ export function HomeScreen({
                       {s.icon ?? "self_improvement"}
                     </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#382b8c" }}>
+                      <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#1E1B4B" }}>
                         {s.label}
                       </p>
                       {s.description && (
@@ -944,11 +944,11 @@ export function HomeScreen({
                         padding: "5px 10px",
                         borderRadius: 999,
                         background: "#fff",
-                        color: "#4648d4",
+                        color: "#5940E0",
                         fontSize: 11,
                         fontWeight: 700,
                         flexShrink: 0,
-                        border: "1px solid rgba(70, 72, 212, 0.12)",
+                        border: "1px solid rgba(89, 64, 224, 0.12)",
                       }}
                     >
                       <span className="material-symbols-outlined" style={{ fontSize: 13 }}>schedule</span>
@@ -1019,7 +1019,7 @@ export default HomeScreen;
 // ═══════════════════════════════════════════════════════════════════════════
 
 const brandIconStyle: CSSProperties = {
-  background: "linear-gradient(135deg, #8363f9, #4648d4)",
+  background: "linear-gradient(135deg, #6D52F8, #5940E0)",
   color: "#fff",
 };
 
@@ -1039,7 +1039,7 @@ const sectionHeadStyle: CSSProperties = {
 const sectionTitleStyle: CSSProperties = {
   fontSize: 14,
   fontWeight: 800,
-  color: "#382b8c",
+  color: "#1E1B4B",
   margin: 0,
 };
 
@@ -1069,7 +1069,7 @@ const tileBaseStyle: CSSProperties = {
   background: "linear-gradient(180deg, #ffffff 0%, #faf7ff 100%)",
   border: "1px solid rgba(255, 255, 255, 0.8)",
   borderRadius: 18,
-  boxShadow: "0 8px 24px rgba(130, 39, 207, 0.06)",
+  boxShadow: "0 8px 24px rgba(89, 64, 224, 0.06)",
 };
 
 function ItemTile({
@@ -1255,7 +1255,7 @@ function ClimaWidget({
           className="material-symbols-outlined"
           style={{
             fontSize: 32,
-            color: "#8363f9",
+            color: "#6D52F8",
             background: "#ece8ff",
             width: 52,
             height: 52,
@@ -1289,7 +1289,7 @@ function ClimaWidget({
             disabled={busy || onBusy}
             onClick={() => void doRefresh()}
             style={{
-              background: busy ? "#6d70e0" : "#4648d4",
+              background: busy ? "#6d70e0" : "#5940E0",
               color: "#fff",
               border: "none",
               borderRadius: 999,
@@ -1313,7 +1313,7 @@ function ClimaWidget({
             type="button"
             onClick={() => onNavigate("configuracion")}
             style={{
-              background: "#4648d4",
+              background: "#5940E0",
               color: "#fff",
               border: "none",
               borderRadius: 999,
@@ -1380,7 +1380,7 @@ function ClimaWidget({
         </div>
         {today && (
           <div style={{ textAlign: "right", flexShrink: 0 }}>
-            <p style={{ fontSize: 12, color: "#e8593c", fontWeight: 700, margin: 0 }}>
+            <p style={{ fontSize: 12, color: "#FF4D54", fontWeight: 700, margin: 0 }}>
               {today.hi}
             </p>
             <p style={{ fontSize: 12, color: "#3a8dde", fontWeight: 700, margin: 0 }}>
@@ -1397,8 +1397,8 @@ function ClimaWidget({
             disabled={busy || onBusy}
             onClick={() => void doRefresh()}
             style={{
-              background: "rgba(70, 72, 212, 0.1)",
-              color: "#4648d4",
+              background: "rgba(89, 64, 224, 0.1)",
+              color: "#5940E0",
               border: "none",
               borderRadius: 999,
               padding: "6px 10px",
@@ -1435,7 +1435,7 @@ function NudgeCard({
   onAct: () => void;
 }) {
   const accent =
-    nudge.priority === "high" ? "#e8593c" : nudge.priority === "medium" ? "#f0a830" : "#4648d4";
+    nudge.priority === "high" ? "#FF4D54" : nudge.priority === "medium" ? "#f0a830" : "#5940E0";
   const soft =
     nudge.priority === "high" ? "#ffe7e1" : nudge.priority === "medium" ? "#fff1d6" : "#ece8ff";
 
@@ -1534,10 +1534,10 @@ function QuickAction({
       style={{
         flex: 1,
         background: highlight
-          ? "linear-gradient(135deg, #8363f9, #4648d4)"
+          ? "linear-gradient(135deg, #6D52F8, #5940E0)"
           : "rgba(255, 255, 255, 0.85)",
-        color: highlight ? "#fff" : "#4648d4",
-        border: highlight ? "none" : "1px solid rgba(70, 72, 212, 0.15)",
+        color: highlight ? "#fff" : "#5940E0",
+        border: highlight ? "none" : "1px solid rgba(89, 64, 224, 0.15)",
         borderRadius: 16,
         padding: "12px 8px",
         display: "flex",
@@ -1546,8 +1546,8 @@ function QuickAction({
         gap: 4,
         cursor: "pointer",
         boxShadow: highlight
-          ? "0 8px 20px rgba(131, 99, 249, 0.28)"
-          : "0 4px 12px rgba(130, 39, 207, 0.05)",
+          ? "0 8px 20px rgba(109, 82, 248, 0.28)"
+          : "0 4px 12px rgba(89, 64, 224, 0.05)",
         fontWeight: 700,
         fontSize: 11,
       }}

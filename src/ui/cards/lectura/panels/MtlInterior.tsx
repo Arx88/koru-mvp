@@ -89,7 +89,7 @@ export function MtlInterior({ block, onClose, onSave }: LecturaInteriorProps<Mtl
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(title, next?.date) : undefined}
-      chip={{ label: "Fixture", background: "linear-gradient(135deg,#34d399,#059669)" }}
+      chip={{ label: "Fixture", background: "linear-gradient(135deg,#34d399,#2FC86E)" }}
       ariaLabel={title}
     >
       <div id="p-mtl" className="lcr-panel">

@@ -40,7 +40,7 @@ export function ActivityInterior({ block, onClose, onSave }: LecturaInteriorProp
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(title, block.subtitle) : undefined}
-      chip={{ label: "Panorama", background: "linear-gradient(135deg,#c4b5fd,#8b5cf6)" }}
+      chip={{ label: "Panorama", background: "linear-gradient(135deg,#c4b5fd,#6D52F8)" }}
       ariaLabel={title}
     >
       <div id="p-act" className="lcr-panel">
@@ -71,7 +71,7 @@ export function ActivityInterior({ block, onClose, onSave }: LecturaInteriorProp
                 />
                 <defs>
                   <linearGradient id="acG" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stopColor="#f6bd6d" />
+                    <stop offset="0" stopColor="#FFD75E" />
                     <stop offset="1" stopColor="#e8714a" />
                   </linearGradient>
                 </defs>

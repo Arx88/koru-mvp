@@ -33,10 +33,10 @@ export function MarketPanel() {
                     <g stroke="#f1ecfa" strokeWidth="1">
                       <line x1="0" y1="22" x2="340" y2="22" /><line x1="0" y1="52" x2="340" y2="52" /><line x1="0" y1="82" x2="340" y2="82" />
                     </g>
-                    <path d="M4 66 C 20 62, 34 68, 50 60 C 68 51, 84 56, 100 48 C 118 40, 134 44, 150 38 C 168 31, 184 34, 200 28 C 218 22, 236 26, 252 19 C 268 13, 286 15, 302 10 C 316 6, 328 6, 336 5" fill="none" stroke="#5170d8" strokeWidth="3" strokeLinecap="round" />
+                    <path d="M4 66 C 20 62, 34 68, 50 60 C 68 51, 84 56, 100 48 C 118 40, 134 44, 150 38 C 168 31, 184 34, 200 28 C 218 22, 236 26, 252 19 C 268 13, 286 15, 302 10 C 316 6, 328 6, 336 5" fill="none" stroke="#1A237E" strokeWidth="3" strokeLinecap="round" />
                     <line x1="0" y1="46" x2="340" y2="46" stroke="#c9d9f5" strokeWidth="1.5" strokeDasharray="4 5" />
-                    <text x="334" y="42" textAnchor="end" fontFamily="Plus Jakarta Sans" fontWeight="700" fontSize="9" fill="#7d70a8">prev. cierre 227,28</text>
-                    <circle cx="336" cy="5" r="5" fill="#fff" stroke="#5170d8" strokeWidth="3" />
+                    <text x="334" y="42" textAnchor="end" fontFamily="Plus Jakarta Sans" fontWeight="700" fontSize="9" fill="#6E7594">prev. cierre 227,28</text>
+                    <circle cx="336" cy="5" r="5" fill="#fff" stroke="#1A237E" strokeWidth="3" />
                   </svg>
                 </div>
                 <div className="ohlc">

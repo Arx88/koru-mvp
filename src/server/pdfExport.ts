@@ -108,13 +108,13 @@ function renderItem(item: NonNullable<PdfTurn["items"]>[number]): string {
 
   // Type-specific accent color (matches Koru brand palette)
   const accentByType: Record<string, string> = {
-    weather: "#3b82f6",
+    weather: "#007BF9",
     plan: "#2d6a4f",
-    comparison: "#8b5cf6",
-    crypto_portfolio: "#f59e0b",
-    live_match: "#ef4444",
-    match_timeline: "#ef4444",
-    recipe: "#ec4899",
+    comparison: "#6D52F8",
+    crypto_portfolio: "#FDC533",
+    live_match: "#FF4D54",
+    match_timeline: "#FF4D54",
+    recipe: "#F65E9B",
     movie_info: "#6366f1",
     book_info: "#0ea5e9",
     research_sources: "#14b8a6",
@@ -199,7 +199,7 @@ function renderItem(item: NonNullable<PdfTurn["items"]>[number]): string {
       const y = h - ((v - min) / range) * h;
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     }).join(" ");
-    const changeColor = (item.change24h ?? 0) >= 0 ? "#10b981" : "#ef4444";
+    const changeColor = (item.change24h ?? 0) >= 0 ? "#2FC86E" : "#FF4D54";
     bodyHtml += `
       <div class="crypto-card">
         ${item.price != null ? `<div class="crypto-price" style="color: ${changeColor}">$${esc(item.price.toLocaleString())}</div>` : ""}
@@ -431,9 +431,9 @@ export function buildPdfHtml(req: PdfExportRequest): string {
       font-size: 9px; padding: 1px 6px; border-radius: 4px;
       color: white; font-weight: 600;
     }
-    .priority-alta { background: #ef4444; }
-    .priority-media { background: #f59e0b; }
-    .priority-baja { background: #10b981; }
+    .priority-alta { background: #FF4D54; }
+    .priority-media { background: #FDC533; }
+    .priority-baja { background: #2FC86E; }
     .li-dur { font-size: 10px; color: #8a9990; }
     /* Summary grid (weather/forex) */
     .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin: 8px 0; }
@@ -449,7 +449,7 @@ export function buildPdfHtml(req: PdfExportRequest): string {
     .match-team { font-size: 14px; font-weight: 600; flex: 1; text-align: center; }
     .match-score { font-size: 24px; font-weight: 800; flex: 0 0 auto; padding: 0 12px; }
     .match-vs { color: #8a9990; margin: 0 4px; font-size: 16px; }
-    .match-status { text-align: center; font-size: 10px; color: #ef4444; font-weight: 600; margin-top: 4px; }
+    .match-status { text-align: center; font-size: 10px; color: #FF4D54; font-weight: 600; margin-top: 4px; }
     .match-timeline { padding-left: 16px; font-size: 11px; }
     .match-timeline li { margin-bottom: 2px; }
     .ev-minute { font-weight: 700; color: #2d6a4f; }
@@ -457,10 +457,10 @@ export function buildPdfHtml(req: PdfExportRequest): string {
     .comparison-table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 11px; }
     .comparison-table th { background: #2d6a4f; color: white; padding: 6px 8px; text-align: left; font-size: 10px; text-transform: uppercase; }
     .comparison-table td { padding: 6px 8px; border-bottom: 1px solid #e3e8e5; }
-    .comparison-table .stars { color: #f59e0b; letter-spacing: 1px; }
+    .comparison-table .stars { color: #FDC533; letter-spacing: 1px; }
     .pros-cons td { background: #fafaf5; font-size: 10px; }
-    .pros { color: #10b981; margin-bottom: 2px; }
-    .cons { color: #ef4444; }
+    .pros { color: #2FC86E; margin-bottom: 2px; }
+    .cons { color: #FF4D54; }
     /* Crypto */
     .crypto-card { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .crypto-price { font-size: 22px; font-weight: 800; }

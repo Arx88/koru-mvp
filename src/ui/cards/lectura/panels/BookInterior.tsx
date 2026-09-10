@@ -30,7 +30,7 @@ export function BookInterior({ block, onClose, onSave }: LecturaInteriorProps<Bo
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(title, block.author) : undefined}
-      chip={{ label: "Lectura", background: "linear-gradient(135deg,#f6bd6d,#f59e0b)" }}
+      chip={{ label: "Lectura", background: "linear-gradient(135deg,#FFD75E,#FDC533)" }}
       ariaLabel={title}
     >
       <div id="p-book" className="lcr-panel">

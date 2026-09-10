@@ -27,7 +27,7 @@ export function MovieInterior({ block, onClose, onSave }: LecturaInteriorProps<M
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(title, block.genres?.[0]) : undefined}
-      chip={{ label: "Cine", background: "linear-gradient(135deg,#8363f9,#6d4bf0)" }}
+      chip={{ label: "Cine", background: "linear-gradient(135deg,#6D52F8,#6D52F8)" }}
       ariaLabel={title}
     >
       <div id="p-movie" className="lcr-panel">

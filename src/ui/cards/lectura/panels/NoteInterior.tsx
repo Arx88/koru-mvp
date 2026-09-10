@@ -95,7 +95,7 @@ export function NoteInterior({ block, onClose, onSave }: LecturaInteriorProps<No
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(title, body.slice(0, 60)) : undefined}
-      chip={{ label: "Nota", background: "linear-gradient(135deg,#fbbf24,#b45309)" }}
+      chip={{ label: "Nota", background: "linear-gradient(135deg,#FDC533,#B07E00)" }}
       ariaLabel={title}
     >
       <div id="p-note" className="lcr-panel">

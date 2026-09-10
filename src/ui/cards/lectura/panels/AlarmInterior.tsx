@@ -85,7 +85,7 @@ export function AlarmInterior({ block, onClose, onSave }: LecturaInteriorProps<A
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(block.title || time12, block.repeat) : undefined}
-      chip={{ label: "Alarma", background: "linear-gradient(135deg,#f6bd6d,#f59e0b)" }}
+      chip={{ label: "Alarma", background: "linear-gradient(135deg,#FFD75E,#FDC533)" }}
       ariaLabel={block.title || `Alarma ${time12}`}
     >
       <div id="p-alarm" className="lcr-panel">

@@ -12,15 +12,15 @@ import { cosineSimilarity } from "../domain/memory/embeddings";
 
 // ───────── Paleta por MemoryKind ─────────
 const KIND_COLORS: Record<MemoryKind, string> = {
-  profile: "#8363f9",
-  routine: "#059669",
-  preference: "#d97706",
-  goal: "#dc2626",
-  relationship: "#ec4899",
+  profile: "#6D52F8",
+  routine: "#2FC86E",
+  preference: "#F0A11C",
+  goal: "#FF4D54",
+  relationship: "#F65E9B",
   boundary: "#0f172a",
-  retail: "#0284c7",
+  retail: "#007BF9",
   wellbeing: "#10b981",
-  task: "#4f46e5",
+  task: "#5940E0",
 };
 
 const EDGE_THRESHOLD = 0.5;

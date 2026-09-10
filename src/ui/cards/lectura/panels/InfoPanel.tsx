@@ -42,7 +42,7 @@ export function InfoPanel() {
                 <div className="rrow"><div className="rn">Murcia</div><div className="rtrack"><i style={{ "width": "97%" }}></i></div><div className="rval">1.700<small>kWh</small></div></div>
                 <div className="rrow"><div className="rn">Madrid</div><div className="rtrack"><i style={{ "width": "91%" }}></i></div><div className="rval">1.600<small>kWh</small></div></div>
                 <div className="rrow"><div className="rn">Valencia</div><div className="rtrack"><i style={{ "width": "86%" }}></i></div><div className="rval">1.540<small>kWh</small></div></div>
-                <div className="rrow"><div className="rn">Galicia<sup>2</sup></div><div className="rtrack"><i style={{ "width": "71%", "background": "linear-gradient(90deg,#cfc2ef,#a78bfa)" }}></i></div><div className="rval">1.250<small>kWh</small></div></div>
+                <div className="rrow"><div className="rn">Galicia<sup>2</sup></div><div className="rtrack"><i style={{ "width": "71%", "background": "linear-gradient(90deg,#cfc2ef,#8B6DFF)" }}></i></div><div className="rval">1.250<small>kWh</small></div></div>
               </div>
               <div className="rep-sheet rv" style={{ "marginTop": "14px" }}>
                 <h3><Ic i={Banknote} className="ic" />Qué cuesta de verdad</h3>

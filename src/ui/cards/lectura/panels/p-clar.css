@@ -1,8 +1,8 @@
 /* ClarifyInterior (#p-clar) — estética Lectura Visual: pregunta grande en
    violeta, opciones como botones completos con flecha de envío. */
 .lcr #p-clar .cl-hero{background:#fff;border:1px solid var(--linec);border-radius:22px;box-shadow:0 12px 30px var(--shadowc);padding:18px 16px;display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden}
-.lcr #p-clar .cl-hero::before{content:"";position:absolute;inset:0 0 auto;height:4px;background:linear-gradient(90deg,#8363f9,#c4b5fd)}
-.lcr #p-clar .cl-q{width:44px;height:44px;border-radius:15px;background:linear-gradient(135deg,#8363f9,#c4b5fd);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 18px rgba(109,75,240,.32)}
+.lcr #p-clar .cl-hero::before{content:"";position:absolute;inset:0 0 auto;height:4px;background:linear-gradient(90deg,#6D52F8,#c4b5fd)}
+.lcr #p-clar .cl-q{width:44px;height:44px;border-radius:15px;background:linear-gradient(135deg,#6D52F8,#c4b5fd);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 18px rgba(109,82,248,.32)}
 .lcr #p-clar .cl-q .lucide{font-size:22px}
 .lcr #p-clar .cl-kicker{font:700 10.5px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--violet-ink);margin-top:2px}
 .lcr #p-clar .cl-hero h1{font:800 21px/1.25 var(--disp);letter-spacing:-.015em;color:var(--ink)}

@@ -325,18 +325,18 @@ export const dataChart: ToolHandler = {
       labels.forEach((label, i) => {
         const w = (values[i] / max) * (width - 160);
         const y = i * (barH + 6) + 10;
-        svgBody += `<rect x="150" y="${y}" width="${w}" height="${barH}" fill="#3b82f6" rx="3"/><text x="10" y="${y + barH / 2 + 5}" font-size="13">${label}</text><text x="${155 + w}" y="${y + barH / 2 + 5}" font-size="13">${values[i]}</text>`;
+        svgBody += `<rect x="150" y="${y}" width="${w}" height="${barH}" fill="#007BF9" rx="3"/><text x="10" y="${y + barH / 2 + 5}" font-size="13">${label}</text><text x="${155 + w}" y="${y + barH / 2 + 5}" font-size="13">${values[i]}</text>`;
       });
     } else if (chartType === "line") {
       const stepX = (width - 60) / Math.max(values.length - 1, 1);
       const points = values.map((v, i) => `${30 + i * stepX},${chartH - 20 - (v / max) * (chartH - 40)}`).join(" ");
-      svgBody = `<polyline points="${points}" fill="none" stroke="#3b82f6" stroke-width="2"/>${labels.map((l, i) => `<text x="${30 + i * stepX - 10}" y="${chartH - 5}" font-size="11">${l}</text>`).join("")}`;
+      svgBody = `<polyline points="${points}" fill="none" stroke="#007BF9" stroke-width="2"/>${labels.map((l, i) => `<text x="${30 + i * stepX - 10}" y="${chartH - 5}" font-size="11">${l}</text>`).join("")}`;
     } else {
       // pie: ángulos
       const total = values.reduce((s, v) => s + Math.abs(v), 0) || 1;
       let acc = 0;
       const cx = width / 2; const cy = chartH / 2; const r = Math.min(cx, cy) - 10;
-      const colors = ["#3b82f6", "#ef4444", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899"];
+      const colors = ["#007BF9", "#FF4D54", "#2FC86E", "#FDC533", "#6D52F8", "#F65E9B"];
       values.forEach((v, i) => {
         const start = (acc / total) * 2 * Math.PI;
         acc += Math.abs(v);

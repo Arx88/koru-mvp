@@ -60,7 +60,7 @@ export function ForexInterior({ block, onClose, onSave }: LecturaInteriorProps<F
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(block.title || active?.pair || "Cotización", active?.rate) : undefined}
-      chip={{ label: "Divisas", background: "linear-gradient(135deg,#6ee7b7,#2f8f6d)" }}
+      chip={{ label: "Divisas", background: "linear-gradient(135deg,#4BDD8C,#22B35F)" }}
       ariaLabel={block.title || active?.pair || "Cotización de divisas"}
     >
       <div id="p-forex" className="lcr-panel">

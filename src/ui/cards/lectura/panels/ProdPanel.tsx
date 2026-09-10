@@ -44,7 +44,7 @@ export function ProdPanel() {
                     <circle cx="60" cy="60" r="52" fill="none" stroke="#eee8f8" strokeWidth="11" />
                     <circle cx="60" cy="60" r="52" fill="none" stroke="url(#p-prod-prsG)" strokeWidth="11" strokeLinecap="round" strokeDasharray="327" strokeDashoffset="42" />
                     <defs><linearGradient id="p-prod-prsG" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0" stopColor="#6ee7b7" /><stop offset="1" stopColor="#2f8f6d" />
+                      <stop offset="0" stopColor="#4BDD8C" /><stop offset="1" stopColor="#22B35F" />
                     </linearGradient></defs>
                   </svg>
                   <div className="dval"><b>8,7</b><span>SCORE</span></div>

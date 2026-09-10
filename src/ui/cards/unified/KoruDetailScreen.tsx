@@ -83,7 +83,7 @@ function ComparisonBar({ bar }: { bar: NonNullable<DetailRow["bar"]> }) {
   const homePct = total > 0 ? Math.max(2, Math.min(98, (homeValue / total) * 100)) : 50;
   const awayPct = 100 - homePct;
   const hc = homeColor || "#2d6a4f";
-  const ac = awayColor || "#8363f9";
+  const ac = awayColor || "#6D52F8";
   return (
     <div className="koru-comparison-bar" role="presentation">
       <span className="koru-comparison-value home" style={{ color: hc }}>
@@ -118,7 +118,7 @@ function moduleStyle(accent: Accent): CSSProperties {
  * - live_match / tennis_match: esmeralda
  * - crypto_portfolio / market / forex / data_ticker: amber (miel)
  * - shopping_list: amber
- * - alarm: violet (spec card 13 dominio VIOLETA #8363f9)
+ * - alarm: violet (spec card 13 dominio VIOLETA #6D52F8)
  * - reminder: violet
  * - memory: emerald
  * - restaurant_synthesis / recipe: amber
@@ -130,26 +130,26 @@ function heroGlowColor(block: UiBlock): string {
   const t = block.type;
   if (t === "weather") {
     const condition = ("condition" in block && typeof block.condition === "string" ? block.condition : "").toLowerCase();
-    if (/lluvia|rain/.test(condition)) return "#2563eb";
-    if (/sol|soleado|clear/.test(condition)) return "#f59e0b";
-    if (/nieve|snow/.test(condition)) return "#8363f9";
-    return "#2563eb";
+    if (/lluvia|rain/.test(condition)) return "#007BF9";
+    if (/sol|soleado|clear/.test(condition)) return "#FDC533";
+    if (/nieve|snow/.test(condition)) return "#6D52F8";
+    return "#007BF9";
   }
-  if (t === "live_match" || t === "tennis_match") return "#2f8f6d";
-  if (t === "crypto_portfolio" || t === "market" || t === "forex" || t === "data_ticker") return "#f59e0b";
-  if (t === "shopping_list") return "#f59e0b";
-  // 🔴 KIMI v4 — spec card 13 alarmas dominio VIOLETA (#8363f9), no rose.
-  if (t === "alarm") return "#8363f9";
-  if (t === "reminder") return "#8363f9";
-  if (t === "memory") return "#46c293";
-  if (t === "restaurant_synthesis" || t === "recipe") return "#f59e0b";
-  if (t === "comparison") return "#ec4899";
-  if (t === "morning_brief") return "#f6bd6d";
-  if (t === "news_urgent") return "#ff7d6b";
-  if (t === "birthday_alarm") return "#ec4899";
-  if (t === "exercise_plan") return "#2f8f6d";
-  if (t === "travel_plan" || t === "route_map") return "#3b82f6";
-  return "#8363f9"; // violet default
+  if (t === "live_match" || t === "tennis_match") return "#22B35F";
+  if (t === "crypto_portfolio" || t === "market" || t === "forex" || t === "data_ticker") return "#FDC533";
+  if (t === "shopping_list") return "#FDC533";
+  // 🔴 KIMI v4 — spec card 13 alarmas dominio VIOLETA (#6D52F8), no rose.
+  if (t === "alarm") return "#6D52F8";
+  if (t === "reminder") return "#6D52F8";
+  if (t === "memory") return "#2FC86E";
+  if (t === "restaurant_synthesis" || t === "recipe") return "#FDC533";
+  if (t === "comparison") return "#F65E9B";
+  if (t === "morning_brief") return "#FFD75E";
+  if (t === "news_urgent") return "#FF5A60";
+  if (t === "birthday_alarm") return "#F65E9B";
+  if (t === "exercise_plan") return "#22B35F";
+  if (t === "travel_plan" || t === "route_map") return "#007BF9";
+  return "#6D52F8"; // violet default
 }
 
 /**
@@ -160,29 +160,29 @@ function heroIconBg(block: UiBlock): string {
   const t = block.type;
   if (t === "weather") {
     const condition = ("condition" in block && typeof block.condition === "string" ? block.condition : "").toLowerCase();
-    if (/lluvia|rain/.test(condition)) return "linear-gradient(150deg,#60a5fa,#2563eb 70%,#1d4ed8)";
-    if (/sol|soleado|clear/.test(condition)) return "linear-gradient(150deg,#f6bd6d,#f59e0b 65%,#d97706)";
-    if (/nieve|snow/.test(condition)) return "linear-gradient(150deg,#c9bdf5,#8363f9)";
-    if (/tormenta|thunder|storm/.test(condition)) return "linear-gradient(150deg,#f6bd6d,#1d4ed8)";
-    return "linear-gradient(150deg,#60a5fa,#2563eb)";
+    if (/lluvia|rain/.test(condition)) return "linear-gradient(150deg,#5FB0FF,#007BF9 70%,#1A237E)";
+    if (/sol|soleado|clear/.test(condition)) return "linear-gradient(150deg,#FFD75E,#FDC533 65%,#F0A11C)";
+    if (/nieve|snow/.test(condition)) return "linear-gradient(150deg,#C9D2F6,#6D52F8)";
+    if (/tormenta|thunder|storm/.test(condition)) return "linear-gradient(150deg,#FFD75E,#1A237E)";
+    return "linear-gradient(150deg,#5FB0FF,#007BF9)";
   }
-  if (t === "live_match" || t === "tennis_match") return "linear-gradient(150deg,#46c293,#2f8f6d 60%,#257a5c)";
-  if (t === "crypto_portfolio" || t === "market" || t === "forex" || t === "data_ticker") return "linear-gradient(150deg,#f6bd6d,#f59e0b 65%,#d97706)";
-  if (t === "shopping_list") return "linear-gradient(150deg,#f6bd6d,#f59e0b)";
+  if (t === "live_match" || t === "tennis_match") return "linear-gradient(150deg,#2FC86E,#22B35F 60%,#0E9E4C)";
+  if (t === "crypto_portfolio" || t === "market" || t === "forex" || t === "data_ticker") return "linear-gradient(150deg,#FFD75E,#FDC533 65%,#F0A11C)";
+  if (t === "shopping_list") return "linear-gradient(150deg,#FFD75E,#FDC533)";
   // 🔴 KIMI v4 — spec card 13 alarmas dominio VIOLETA, gradiente c9bdf5→8363f9→523a9e.
-  if (t === "alarm") return "linear-gradient(150deg,#c9bdf5,#8363f9 65%,#523a9e)";
-  if (t === "reminder") return "linear-gradient(150deg,#8363f9,#523a9e)";
-  if (t === "memory") return "linear-gradient(150deg,#7ed491,#2f8f6d)";
-  if (t === "restaurant_synthesis") return "linear-gradient(150deg,#f6bd6d,#f59e0b)";
-  if (t === "recipe") return "linear-gradient(150deg,#ff7d6b,#d63b2f)";
-  if (t === "comparison") return "linear-gradient(150deg,#ff8fb8,#ec4899)";
-  if (t === "morning_brief") return "linear-gradient(150deg,#f6bd6d,#f59e0b)";
-  if (t === "news_urgent") return "linear-gradient(150deg,#ff7d6b,#d63b2f)";
-  if (t === "birthday_alarm") return "linear-gradient(150deg,#ff8fb8,#ec4899)";
-  if (t === "exercise_plan") return "linear-gradient(150deg,#7ed491,#2f8f6d)";
-  if (t === "travel_plan") return "linear-gradient(150deg,#60a5fa,#3b82f6)";
-  if (t === "route_map") return "linear-gradient(150deg,#7dd3fc,#38bdf8)";
-  return "linear-gradient(150deg,#8363f9,#523a9e)";
+  if (t === "alarm") return "linear-gradient(150deg,#C9D2F6,#6D52F8 65%,#5940E0)";
+  if (t === "reminder") return "linear-gradient(150deg,#6D52F8,#5940E0)";
+  if (t === "memory") return "linear-gradient(150deg,#4BDD8C,#22B35F)";
+  if (t === "restaurant_synthesis") return "linear-gradient(150deg,#FFD75E,#FDC533)";
+  if (t === "recipe") return "linear-gradient(150deg,#FF5A60,#FF4D54)";
+  if (t === "comparison") return "linear-gradient(150deg,#FF9EBE,#F65E9B)";
+  if (t === "morning_brief") return "linear-gradient(150deg,#FFD75E,#FDC533)";
+  if (t === "news_urgent") return "linear-gradient(150deg,#FF5A60,#FF4D54)";
+  if (t === "birthday_alarm") return "linear-gradient(150deg,#FF9EBE,#F65E9B)";
+  if (t === "exercise_plan") return "linear-gradient(150deg,#4BDD8C,#22B35F)";
+  if (t === "travel_plan") return "linear-gradient(150deg,#5FB0FF,#007BF9)";
+  if (t === "route_map") return "linear-gradient(150deg,#5FB0FF,#5FB0FF)";
+  return "linear-gradient(150deg,#6D52F8,#5940E0)";
 }
 
 /**
@@ -636,7 +636,7 @@ function SectionBody({ section, block }: { section: DetailSection; block?: UiBlo
 function FormationPitch({ pitch }: { pitch: NonNullable<Extract<DetailSection, { kind: "pitch" }>["pitch"]> }) {
   const { homeFormation, awayFormation, homePlayers, awayPlayers, homeColor, awayColor, homeName, awayName } = pitch;
   const hc = homeColor || "#2d6a4f";
-  const ac = awayColor || "#8363f9";
+  const ac = awayColor || "#6D52F8";
 
   // Parse formation string "4-3-3" → [4, 3, 3]
   function parseFormation(f: string): number[] {
@@ -801,7 +801,7 @@ function DecisionSensitivityPanel({ block }: { block: Extract<UiBlock, { type: "
             margin: "0 0 4px",
             fontSize: 11,
             fontWeight: 800,
-            color: "#4f46e5",
+            color: "#5940E0",
             letterSpacing: 0.4,
             textTransform: "uppercase",
           }}
@@ -822,7 +822,7 @@ function DecisionSensitivityPanel({ block }: { block: Extract<UiBlock, { type: "
             const y = i * rowH + 6;
             const barLen = Math.max(2, (row.scoreChange / maxChange) * barMax);
             const flip = row.result.wouldFlip;
-            const barColor = flip ? "#f59e0b" : "#6366f1";
+            const barColor = flip ? "#FDC533" : "#6366f1";
             const label =
               row.factor.label.length > 16
                 ? row.factor.label.slice(0, 15) + "…"
@@ -842,7 +842,7 @@ function DecisionSensitivityPanel({ block }: { block: Extract<UiBlock, { type: "
                 <rect x={barX} y={y} width={barMax} height={14} rx={3} fill="rgba(0,0,0,0.05)" />
                 <rect x={barX} y={y} width={barLen} height={14} rx={3} fill={barColor} />
                 {flip && (
-                  <text x={barX + barMax + 6} y={y + 12} fontSize={10} fill="#b45309" fontWeight={700}>
+                  <text x={barX + barMax + 6} y={y + 12} fontSize={10} fill="#B07E00" fontWeight={700}>
                     ⚠
                   </text>
                 )}
@@ -855,7 +855,7 @@ function DecisionSensitivityPanel({ block }: { block: Extract<UiBlock, { type: "
             style={{
               margin: "8px 0 0",
               fontSize: 12,
-              color: "#b45309",
+              color: "#B07E00",
               fontWeight: 700,
             }}
           >
@@ -894,10 +894,10 @@ function DecisionPreMortemPanel({ block }: { block: Extract<UiBlock, { type: "de
     <div style={{ padding: "0 16px 16px" }}>
       <div
         style={{
-          background: "rgba(245,158,11,0.05)",
+          background: "rgba(253,197,51,0.05)",
           borderRadius: 18,
           padding: "16px 18px",
-          border: "1px solid rgba(245,158,11,0.22)",
+          border: "1px solid rgba(253,197,51,0.22)",
         }}
       >
         <p
@@ -905,7 +905,7 @@ function DecisionPreMortemPanel({ block }: { block: Extract<UiBlock, { type: "de
             margin: "0 0 4px",
             fontSize: 11,
             fontWeight: 800,
-            color: "#b45309",
+            color: "#B07E00",
             letterSpacing: 0.4,
             textTransform: "uppercase",
           }}
@@ -924,7 +924,7 @@ function DecisionPreMortemPanel({ block }: { block: Extract<UiBlock, { type: "de
                 key={entry.optionId}
                 style={{
                   borderRadius: 12,
-                  border: "1px solid rgba(245,158,11,0.25)",
+                  border: "1px solid rgba(253,197,51,0.25)",
                   background: "#fff",
                   overflow: "hidden",
                 }}
@@ -953,7 +953,7 @@ function DecisionPreMortemPanel({ block }: { block: Extract<UiBlock, { type: "de
                     className="material-symbols-outlined"
                     style={{
                       fontSize: 18,
-                      color: "#b45309",
+                      color: "#B07E00",
                       transition: "transform 0.15s",
                       transform: isOpen ? "rotate(180deg)" : "none",
                     }}
@@ -972,15 +972,15 @@ function DecisionPreMortemPanel({ block }: { block: Extract<UiBlock, { type: "de
                           style={{
                             padding: "8px 10px",
                             borderRadius: 8,
-                            background: "rgba(245,158,11,0.06)",
-                            border: "1px solid rgba(245,158,11,0.15)",
+                            background: "rgba(253,197,51,0.06)",
+                            border: "1px solid rgba(253,197,51,0.15)",
                           }}
                         >
                           <p
                             style={{
                               margin: "0 0 6px",
                               fontSize: 12,
-                              color: "#b45309",
+                              color: "#B07E00",
                               lineHeight: 1.4,
                             }}
                           >
@@ -1001,11 +1001,11 @@ function DecisionPreMortemPanel({ block }: { block: Extract<UiBlock, { type: "de
                                 borderRadius: 8,
                                 border:
                                   status === "mitigated"
-                                    ? "2px solid #059669"
+                                    ? "2px solid #2FC86E"
                                     : "1px solid rgba(0,0,0,0.12)",
                                 background:
                                   status === "mitigated" ? "rgba(5,150,105,0.10)" : "#fff",
-                                color: status === "mitigated" ? "#059669" : "#5a5a72",
+                                color: status === "mitigated" ? "#2FC86E" : "#5a5a72",
                                 fontSize: 11,
                                 fontWeight: 700,
                                 cursor: "pointer",
@@ -1027,11 +1027,11 @@ function DecisionPreMortemPanel({ block }: { block: Extract<UiBlock, { type: "de
                                 borderRadius: 8,
                                 border:
                                   status === "accepted"
-                                    ? "2px solid #b45309"
+                                    ? "2px solid #B07E00"
                                     : "1px solid rgba(0,0,0,0.12)",
                                 background:
-                                  status === "accepted" ? "rgba(245,158,11,0.12)" : "#fff",
-                                color: status === "accepted" ? "#b45309" : "#5a5a72",
+                                  status === "accepted" ? "rgba(253,197,51,0.12)" : "#fff",
+                                color: status === "accepted" ? "#B07E00" : "#5a5a72",
                                 fontSize: 11,
                                 fontWeight: 700,
                                 cursor: "pointer",
@@ -1087,10 +1087,10 @@ function RecipeServingsScaler({ block }: { block: Extract<UiBlock, { type: "reci
     <div style={{ padding: "0 16px 16px" }}>
       <div
         style={{
-          background: "rgba(16,185,129,0.05)",
+          background: "rgba(47,200,110,0.05)",
           borderRadius: 18,
           padding: "16px 18px",
-          border: "1px solid rgba(16,185,129,0.22)",
+          border: "1px solid rgba(47,200,110,0.22)",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 8 }}>
@@ -1099,7 +1099,7 @@ function RecipeServingsScaler({ block }: { block: Extract<UiBlock, { type: "reci
               margin: 0,
               fontSize: 11,
               fontWeight: 800,
-              color: "#059669",
+              color: "#2FC86E",
               letterSpacing: 0.4,
               textTransform: "uppercase",
             }}
@@ -1115,9 +1115,9 @@ function RecipeServingsScaler({ block }: { block: Extract<UiBlock, { type: "reci
                 width: 32,
                 height: 32,
                 borderRadius: 10,
-                border: "1px solid rgba(16,185,129,0.30)",
+                border: "1px solid rgba(47,200,110,0.30)",
                 background: "#fff",
-                color: "#059669",
+                color: "#2FC86E",
                 fontSize: 18,
                 fontWeight: 800,
                 cursor: "pointer",
@@ -1139,9 +1139,9 @@ function RecipeServingsScaler({ block }: { block: Extract<UiBlock, { type: "reci
                 width: 32,
                 height: 32,
                 borderRadius: 10,
-                border: "1px solid rgba(16,185,129,0.30)",
+                border: "1px solid rgba(47,200,110,0.30)",
                 background: "#fff",
-                color: "#059669",
+                color: "#2FC86E",
                 fontSize: 18,
                 fontWeight: 800,
                 cursor: "pointer",
@@ -1179,7 +1179,7 @@ function RecipeServingsScaler({ block }: { block: Extract<UiBlock, { type: "reci
                   <span style={{ fontSize: 13, color: "#1a1a2e", fontWeight: 600 }}>
                     {ing.ingredient}
                   </span>
-                  <span style={{ fontSize: 12, color: changed ? "#059669" : "#5a5a72", fontWeight: 700 }}>
+                  <span style={{ fontSize: 12, color: changed ? "#2FC86E" : "#5a5a72", fontWeight: 700 }}>
                     {changed ? `${original} → ${scaled}` : original}
                   </span>
                 </div>
@@ -1223,10 +1223,10 @@ function DecisionOutcomePanel({ block }: { block: Extract<UiBlock, { type: "deci
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 22, color: "#4f46e5" }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 22, color: "#5940E0" }}>
               check_circle
             </span>
-            <span style={{ fontSize: 13, fontWeight: 800, color: "#4f46e5", letterSpacing: 0.4, textTransform: "uppercase" }}>
+            <span style={{ fontSize: 13, fontWeight: 800, color: "#5940E0", letterSpacing: 0.4, textTransform: "uppercase" }}>
               Decidiste
             </span>
           </div>
@@ -1245,7 +1245,7 @@ function DecisionOutcomePanel({ block }: { block: Extract<UiBlock, { type: "deci
                   className="material-symbols-outlined"
                   style={{
                     fontSize: 14,
-                    color: i < outcome.satisfaction1to5 ? "#f59e0b" : "rgba(0,0,0,0.18)",
+                    color: i < outcome.satisfaction1to5 ? "#FDC533" : "rgba(0,0,0,0.18)",
                   }}
                 >
                   star
@@ -1284,9 +1284,9 @@ function DecisionOutcomePanel({ block }: { block: Extract<UiBlock, { type: "deci
 }
 
 function satisfactionColor(rating: number): string {
-  if (rating >= 4) return "#059669";
-  if (rating <= 2) return "#dc2626";
-  return "#d97706";
+  if (rating >= 4) return "#2FC86E";
+  if (rating <= 2) return "#FF4D54";
+  return "#F0A11C";
 }
 
 // 🔴 v4 — Inline editor: opción elegida → satisfaction rating → submit.
@@ -1322,7 +1322,7 @@ function DecisionOutcomeEditor({
             border: "1px solid rgba(99,102,241,0.18)",
           }}
         >
-          <p style={{ margin: "0 0 4px", fontSize: 11, fontWeight: 800, color: "#4f46e5", letterSpacing: 0.4, textTransform: "uppercase" }}>
+          <p style={{ margin: "0 0 4px", fontSize: 11, fontWeight: 800, color: "#5940E0", letterSpacing: 0.4, textTransform: "uppercase" }}>
             ¿Ya decidiste?
           </p>
           <p style={{ margin: "0 0 12px", fontSize: 15, fontWeight: 700, color: "#1a1a2e" }}>
@@ -1342,7 +1342,7 @@ function DecisionOutcomeEditor({
                   flex: 1,
                   padding: "10px 0",
                   borderRadius: 12,
-                  border: rating === n ? "2px solid #4f46e5" : "1px solid rgba(0,0,0,0.12)",
+                  border: rating === n ? "2px solid #5940E0" : "1px solid rgba(0,0,0,0.12)",
                   background: rating === n ? "rgba(99,102,241,0.10)" : "#fff",
                   cursor: "pointer",
                   display: "flex",
@@ -1353,7 +1353,7 @@ function DecisionOutcomeEditor({
               >
                 <span
                   className="material-symbols-outlined"
-                  style={{ fontSize: 18, color: rating >= n ? "#f59e0b" : "rgba(0,0,0,0.25)" }}
+                  style={{ fontSize: 18, color: rating >= n ? "#FDC533" : "rgba(0,0,0,0.25)" }}
                 >
                   star
                 </span>
@@ -1415,7 +1415,7 @@ function DecisionOutcomeEditor({
           border: "1px solid rgba(99,102,241,0.18)",
         }}
       >
-        <p style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 800, color: "#4f46e5", letterSpacing: 0.4, textTransform: "uppercase" }}>
+        <p style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 800, color: "#5940E0", letterSpacing: 0.4, textTransform: "uppercase" }}>
           ¿Ya decidiste?
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -1442,7 +1442,7 @@ function DecisionOutcomeEditor({
               }}
             >
               <span>{o.label}</span>
-              <span className="material-symbols-outlined" style={{ fontSize: 18, color: "#4f46e5" }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 18, color: "#5940E0" }}>
                 arrow_forward
               </span>
             </button>
@@ -1603,7 +1603,7 @@ export function KoruDetailScreen({
           style={{ background: block ? heroGradientBg(block) : "linear-gradient(170deg,#2c1f5e,#1c1445 60%,#120d31)" }}
         >
           {/* glow: div absolutamente posicionado con color del acento del bloque. */}
-          <div className="glow" style={{ background: block ? heroGlowColor(block) : "#8363f9" }} />
+          <div className="glow" style={{ background: block ? heroGlowColor(block) : "#6D52F8" }} />
           {/* back: botón volver con SVG (igual al spec). Mismo handler que el sticky. */}
           <button
             type="button"
@@ -1648,7 +1648,7 @@ export function KoruDetailScreen({
                 rightImg: (block as Extract<UiBlock, { type: "tennis_match" }>).players?.away.logo,
                 leftName: (block as Extract<UiBlock, { type: "tennis_match" }>).players?.home.name,
                 rightName: (block as Extract<UiBlock, { type: "tennis_match" }>).players?.away.name,
-                leftColor: "#6ee7b7",
+                leftColor: "#4BDD8C",
                 rightColor: "#c4b5fd",
                 score: `${(block as Extract<UiBlock, { type: "tennis_match" }>).sets?.filter((s) => s.winner === "home").length ?? 0}-${(block as Extract<UiBlock, { type: "tennis_match" }>).sets?.filter((s) => s.winner === "away").length ?? 0}`,
                 sub: (block as Extract<UiBlock, { type: "tennis_match" }>).status,
@@ -1660,7 +1660,7 @@ export function KoruDetailScreen({
                   <div className="koru-duel-side">
                     {duel.leftImg
                       ? <img src={duel.leftImg} alt={duel.leftName ?? ""} className="koru-duel-crest" />
-                      : <span className="koru-duel-crest fallback" style={{ background: duel.leftColor ?? "#8363f9" }}>{(duel.leftName ?? "?").slice(0, 2).toUpperCase()}</span>}
+                      : <span className="koru-duel-crest fallback" style={{ background: duel.leftColor ?? "#6D52F8" }}>{(duel.leftName ?? "?").slice(0, 2).toUpperCase()}</span>}
                     <span className="koru-duel-side-name">{duel.leftName}</span>
                   </div>
                   <div className="koru-duel-score-wrap">
@@ -1670,14 +1670,14 @@ export function KoruDetailScreen({
                   <div className="koru-duel-side">
                     {duel.rightImg
                       ? <img src={duel.rightImg} alt={duel.rightName ?? ""} className="koru-duel-crest" />
-                      : <span className="koru-duel-crest fallback" style={{ background: duel.rightColor ?? "#8363f9" }}>{(duel.rightName ?? "?").slice(0, 2).toUpperCase()}</span>}
+                      : <span className="koru-duel-crest fallback" style={{ background: duel.rightColor ?? "#6D52F8" }}>{(duel.rightName ?? "?").slice(0, 2).toUpperCase()}</span>}
                     <span className="koru-duel-side-name">{duel.rightName}</span>
                   </div>
                 </div>
               );
             }
             return (
-              <div className="koru-detail-hero-icon xt-hicon" style={{ background: block ? heroIconBg(block) : "linear-gradient(150deg,#8363f9,#523a9e)" }}>
+              <div className="koru-detail-hero-icon xt-hicon" style={{ background: block ? heroIconBg(block) : "linear-gradient(150deg,#6D52F8,#5940E0)" }}>
                 {(() => {
                   const kn = iconFromMaterial(headerIcon);
                   if (kn !== "default") {
@@ -1752,12 +1752,12 @@ export function KoruDetailScreen({
                 padding: "16px 18px",
                 borderRadius: 18,
                 border: "none",
-                background: "linear-gradient(135deg, #8363f9, #4648d4)",
+                background: "linear-gradient(135deg, #6D52F8, #5940E0)",
                 color: "#fff",
                 fontSize: 15,
                 fontWeight: 800,
                 cursor: "pointer",
-                boxShadow: "0 10px 24px rgba(131, 99, 249, 0.30)",
+                boxShadow: "0 10px 24px rgba(109, 82, 248, 0.30)",
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",

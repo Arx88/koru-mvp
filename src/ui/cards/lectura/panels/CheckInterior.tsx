@@ -62,7 +62,7 @@ export function CheckInterior({ block, onClose, onSave }: LecturaInteriorProps<C
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(block.title || "Checklist", `${doneCount}/${total}`) : undefined}
-      chip={{ label: "Checklist", background: "linear-gradient(135deg,#c4b5fd,#8b5cf6)" }}
+      chip={{ label: "Checklist", background: "linear-gradient(135deg,#c4b5fd,#6D52F8)" }}
       ariaLabel={block.title || "Checklist"}
     >
       <div id="p-check" className="lcr-panel">
@@ -97,8 +97,8 @@ export function CheckInterior({ block, onClose, onSave }: LecturaInteriorProps<C
                 />
                 <defs>
                   <linearGradient id="p-check-ckG" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stopColor="#6ee7b7" />
-                    <stop offset="1" stopColor="#2f8f6d" />
+                    <stop offset="0" stopColor="#4BDD8C" />
+                    <stop offset="1" stopColor="#22B35F" />
                   </linearGradient>
                 </defs>
               </svg>

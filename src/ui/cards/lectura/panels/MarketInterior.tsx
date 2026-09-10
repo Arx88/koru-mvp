@@ -39,7 +39,7 @@ export function MarketInterior({ block, onClose, onSave }: LecturaInteriorProps<
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(first ? `${first.symbol} · ${first.name}` : "Mercado", first?.price) : undefined}
-      chip={{ label: "Mercado", background: "linear-gradient(135deg,#93c5fd,#3b82f6)" }}
+      chip={{ label: "Mercado", background: "linear-gradient(135deg,#93c5fd,#007BF9)" }}
       ariaLabel={first ? `${first.symbol} ${first.name}` : "Mercado"}
     >
       <div id="p-market" className="lcr-panel">
