@@ -16,11 +16,13 @@ import { MichiCat } from "./v8Shared";
 import { MichiLevel } from "./MichiHeaderV8";
 
 export function MichiAvatarsPage({
-  onProgress, onLocked, onBack,
+  onProgress, onLocked, onBack, userAvatar, onPersonalAvatar,
 }: {
   onProgress: () => void;
   onLocked: (avatar: { id: string; name: string; level: number }) => void;
   onBack: () => void;
+  userAvatar: string;
+  onPersonalAvatar: () => void;
 }) {
   return (
     <main className="mx-avatars" aria-label="Colección de avatares">
@@ -38,6 +40,12 @@ export function MichiAvatarsPage({
           <Star fill="#ffe34e" className="mx-gold-star" /> Nivel 7 <ChevronRight size={21} />
         </button>
       </section>
+
+      <button type="button" className="mx-personal-entry" onClick={onPersonalAvatar}>
+        <img src={userAvatar} alt="" width={52} height={52} />
+        <span><strong>Tu avatar de conversación</strong><small>15 retratos para tus mensajes</small></span>
+        <ChevronRight size={20} />
+      </button>
 
       <section className="mx-collection">
         <div className="mx-collection-heading">
@@ -96,9 +104,9 @@ export function MichiAvatarsPage({
 /* ---------- Pantalla completa (shell + fondo + header + modales) ---------- */
 import { useState } from "react";
 import { KoruBackground } from "../KoruBackground";
-import { BubbleShapes, useMichiLandscape } from "./v8Shared";
+import { BubbleShapes, useMichiLandscape, useMichiUserAvatar } from "./v8Shared";
 import { MichiHeaderV8, type MichiMenuAction } from "./MichiHeaderV8";
-import { MichiProgressDialog, MichiLockedDialog } from "./MichiDialogs";
+import { MichiProgressDialog, MichiLockedDialog, MichiUserAvatarDialog } from "./MichiDialogs";
 
 export function MichiAvatarsScreen({
   onBack,
@@ -108,7 +116,8 @@ export function MichiAvatarsScreen({
   onMenuAction: (action: MichiMenuAction) => void;
 }) {
   const { activeArt } = useMichiLandscape();
-  const [modal, setModal] = useState<"progress" | { locked: { id: string; name: string; level: number } } | null>(null);
+  const { userAvatar, chooseUserAvatar } = useMichiUserAvatar();
+  const [modal, setModal] = useState<"progress" | "personal" | { locked: { id: string; name: string; level: number } } | null>(null);
 
   return (
     <div className="koru-chat-shell" role="dialog" aria-modal="true" aria-label="Colección de avatares de Michi">
@@ -126,7 +135,10 @@ export function MichiAvatarsScreen({
           onProgress={() => setModal("progress")}
           onLocked={(avatar) => setModal({ locked: avatar })}
           onBack={onBack}
+          userAvatar={userAvatar}
+          onPersonalAvatar={() => setModal("personal")}
         />
+        {modal === "personal" && <MichiUserAvatarDialog userAvatar={userAvatar} onChoose={chooseUserAvatar} onClose={() => setModal(null)} />}
         {modal === "progress" && <MichiProgressDialog onClose={() => setModal(null)} />}
         {modal && typeof modal === "object" && "locked" in modal && (
           <MichiLockedDialog avatar={modal.locked} onClose={() => setModal(null)} />

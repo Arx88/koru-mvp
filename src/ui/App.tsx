@@ -1,6 +1,7 @@
 import { Suspense, lazy, useState } from "react";
 import { KoruProvider, useKoru } from "./KoruProvider";
 import { KoruIconSprite } from "./KoruIconSprite";
+import { MichiPage } from "./michi/MichiPage";
 import { MemoryScreen } from "./MemoryScreen";
 import { HistoryScreen } from "./HistoryScreen";
 import { TalkOverlay } from "./TalkOverlay";
@@ -87,22 +88,6 @@ function KoruApp() {
     <main className="flex min-h-dvh justify-center bg-background">
       <div className="flex min-h-dvh w-full max-w-md flex-col bg-background">
         <div className="flex-1 overflow-y-auto">
-          {/* Back button flotante para volver al chat
-              (oculto en "hoy": el HomeScreen es un full-takeover con su propio header) */}
-          {screen !== "hoy" && (
-            <button
-              type="button"
-              onClick={() => setScreen("chat")}
-              aria-label="Volver al chat"
-              className="fixed top-4 left-4 z-50 flex h-11 w-11 items-center justify-center rounded-full border border-white/35 bg-white/22 backdrop-blur-md text-white shadow-lg transition-transform active:scale-95"
-              style={{ background: "rgba(109, 82, 248, 0.9)" }}
-            >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                <path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-          )}
-
           {screen === "hoy" && (
               <HomeScreen
                 state={state}
@@ -148,8 +133,8 @@ function KoruApp() {
                 }}
               />
           )}
-          {screen === "memoria" && <MemoryScreen />}
-          {screen === "historial" && <HistoryScreen />}
+          {screen === "memoria" && <MichiPage onBack={() => setScreen("chat")}><MemoryScreen /></MichiPage>}
+          {screen === "historial" && <MichiPage onBack={() => setScreen("chat")}><HistoryScreen /></MichiPage>}
           {screen === "configuracion" && (
               <SettingsScreen
                 state={state}

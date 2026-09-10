@@ -1,3 +1,4 @@
+import { MichiCat } from "./michi/v8Shared";
 import { useState, useEffect } from "react";
 import { Leaf, Scissors, Sprout, TreePine, X, Check, Lock, Sparkles } from "lucide-react";
 import { useKoru, type Memory, type MemoryStatus } from "./KoruProvider";
@@ -88,14 +89,14 @@ export function MemoryScreen() {
   }, [memories.length, staggerIndex]);
 
   return (
-    <div className="flex h-full flex-col px-6 pb-4 pt-8">
+    <div className="mx-page-content flex h-full flex-col px-6 pb-4 pt-8">
       {/* Animated header */}
       <header className="animate-rise relative">
         <div className="absolute -top-2 -left-2 h-20 w-20 rounded-full bg-forest/10 blur-2xl pointer-events-none" />
         <div className="relative">
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-forest" />
-            <h1 className="font-serif text-2xl text-bark">Mi jardín</h1>
+            <h1 className="font-serif text-2xl text-bark">Memoria</h1>
           </div>
           <p className="mt-1 text-sm text-earth">
             {memories.length} plantas · {roots} raíces
@@ -121,7 +122,7 @@ export function MemoryScreen() {
               type="button"
               onClick={() => setSelected(m)}
               className={cn(
-                "group relative flex flex-col items-start gap-3 overflow-hidden rounded-2xl border p-4 text-left cursor-pointer",
+                "mx-memory-card group relative flex flex-col items-start gap-3 overflow-hidden rounded-2xl border p-4 text-left cursor-pointer",
                 "transition-all duration-300",
                 isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3",
                 "hover:shadow-[0_8px_24px_var(--card-glow)] hover:-translate-y-0.5 active:scale-[0.97]",
@@ -167,10 +168,10 @@ export function MemoryScreen() {
 
         {/* Empty state */}
         {memories.length === 0 && (
-          <div className="col-span-2 flex flex-col items-center justify-center gap-3 py-16 text-center">
+          <div className="mx-empty col-span-2 flex flex-col items-center justify-center gap-3 py-16 text-center">
             <div className="relative">
               <div className="absolute inset-0 bg-forest/10 blur-2xl rounded-full" />
-              <Sprout className="relative h-12 w-12 text-leaf" />
+              <MichiCat size={88} sparkle />
             </div>
             <p className="text-sm text-earth max-w-[200px]">
               Tu jardín está vacío. Contame algo sobre vos y lo plantaré aquí.

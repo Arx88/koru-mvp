@@ -2257,7 +2257,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     exportData,
     deleteAllData,
     resetChat,
-  }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, domainState, domainState.records, permissions, processing, activity, phase, chatTurns, selectedModel, memoryToast, morningBrief, showInstallPrompt, installPromptEvent, voiceEnabled, language, online, reopenedRecord, pendingMemoryConflict]);
+  }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, domainState, domainState.records, permissions, processing, activity, phase, chatTurns, selectedModel, memoryToast, morningBrief, showInstallPrompt, installPromptEvent, voiceEnabled, language, online, reopenedRecord, collectionsView, pendingMemoryConflict]);
 
   // 🔴 v2: Listener para guardar record desde el detail screen (botón Guardar informe)
   // CAMBIO: ya NO pasa por el LLM (5-15s de espera + contaminación del chat).

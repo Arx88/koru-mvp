@@ -137,7 +137,7 @@ export function MichiLandscapeDialog({
 }
 
 /* ---------- Avatar personal del usuario ---------- */
-export const PERSONAL_AVATAR_OPTIONS = [DEFAULT_USER_AVATAR, art(20), art(21), art(22), art(23), art(24), art(25)];
+export const PERSONAL_AVATAR_OPTIONS = [DEFAULT_USER_AVATAR, art(20), art(21), art(22), art(23), art(24), art(25), ...MICHI_AVATARS.map(a => MICHI_AVATAR_SRC(a.id))];
 
 export function MichiUserAvatarDialog({
   userAvatar, onChoose, onClose,
@@ -149,7 +149,7 @@ export function MichiUserAvatarDialog({
   return (
     <DialogShell
       title="¿Con quién hablo hoy?"
-      description="Elegí tu avatar para la conversación."
+      description="Elegí entre 15 retratos para acompañar tus mensajes."
       onClose={onClose}
     >
       <div className="mx-personal-grid">
@@ -159,9 +159,10 @@ export function MichiUserAvatarDialog({
             type="button"
             className={userAvatar === src ? "active" : ""}
             onClick={() => { onChoose(src); onClose(); }}
-            aria-label={`Elegir avatar ${i + 1}`}
+            aria-label={i < 7 ? `Elegir retrato ${i + 1}` : `Elegir ${MICHI_AVATARS[i - 7].name}`}
+            aria-pressed={userAvatar === src}
           >
-            <img src={src} alt={`Avatar ${i + 1}`} />
+            <img src={src} alt="" width={72} height={72} loading="lazy" />
             {userAvatar === src && (
               <svg viewBox="0 0 24 24" width={16} height={16} fill="none" stroke="white" strokeWidth={3.5}>
                 <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />

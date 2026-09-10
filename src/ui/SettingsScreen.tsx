@@ -1,3 +1,5 @@
+import { MichiPageBackdrop } from "./michi/MichiPage";
+import { MichiCat } from "./michi/v8Shared";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   X,
@@ -978,13 +980,12 @@ export function SettingsScreen(props: SettingsScreenProps) {
   }
 
   return (
-    <div className="koru-roadmap" role="dialog" aria-label="Ajustes">
+    <div className="koru-roadmap mx-secondary mx-settingsscreen" role="dialog" aria-label="Ajustes">
       <div className="koru-roadmap-screen">
-        <div className="koru-roadmap-blob-1" />
-        <div className="koru-roadmap-blob-2" />
+        <MichiPageBackdrop />
 
         {/* Sticky header */}
-        <header
+        <header className="mx-settings-header"
           style={{
             position: "sticky",
             top: 0,
@@ -999,11 +1000,12 @@ export function SettingsScreen(props: SettingsScreenProps) {
             WebkitBackdropFilter: "blur(8px)",
           }}
         >
-          <div>
+          <MichiCat size={48} />
+          <div style={{ flex: 1 }}>
             <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: "#5940E0", letterSpacing: "-0.02em" }}>
               Ajustes
             </h1>
-            <p style={{ margin: 0, fontSize: 12, color: "#64748b" }}>Personalizá tu Michi</p>
+            <p style={{ margin: 0, fontSize: 14, color: "var(--mx-muted)" }}>Personalizá tu Michi</p>
           </div>
           <button
             type="button"

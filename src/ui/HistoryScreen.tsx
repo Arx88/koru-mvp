@@ -1,4 +1,5 @@
-import { Bell, Leaf, MoonStar, Sprout } from "lucide-react";
+import { MichiCat } from "./michi/v8Shared";
+import { Bell, Leaf, MoonStar } from "lucide-react";
 import { useKoru, type HistoryEntry } from "./KoruProvider";
 import { cn } from "../lib/utils";
 import { localDateISO, shiftDateISO } from "../domain/localDate";
@@ -36,7 +37,7 @@ export function HistoryScreen() {
   }
 
   return (
-    <div className="flex h-full flex-col px-6 pb-4 pt-8">
+    <div className="mx-page-content flex h-full flex-col px-6 pb-4 pt-8">
       <header className="animate-rise">
         <h1 className="font-serif text-2xl text-bark">Historial</h1>
         <p className="mt-1 text-sm text-earth">
@@ -45,9 +46,9 @@ export function HistoryScreen() {
       </header>
 
       {history.length === 0 ? (
-        <div className="mt-10 flex flex-col items-center gap-3 rounded-xl border border-sand bg-card p-8 text-center">
+        <div className="mx-empty mt-10 flex flex-col items-center gap-3 rounded-xl border border-sand bg-card p-8 text-center">
           <span className="flex h-12 w-12 items-center justify-center rounded-full bg-sand/40">
-            <Sprout className="h-6 w-6 text-earth" />
+            <MichiCat size={72} />
           </span>
           <p className="text-[15px] font-medium text-bark">Todavía no hay actividad</p>
           <p className="max-w-[26ch] text-sm leading-snug text-earth">
@@ -78,7 +79,7 @@ function HistoryRow({ entry }: { entry: HistoryEntry }) {
   const meta = KIND_META[entry.kind];
   const Icon = meta.icon;
   return (
-    <li className="flex gap-3 rounded-xl border border-sand bg-card p-4">
+    <li className="mx-history-card flex gap-3 rounded-xl border border-sand bg-card p-4">
       <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full", meta.bg)}>
         <Icon className={cn("h-4 w-4", meta.tint)} />
       </span>
