@@ -1419,7 +1419,7 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
                     className="koru-create-ai-pill"
                     onClick={handleAiAssist}
                     disabled={aiLoading}
-                    title="Koru sugiere campos"
+                    title="Michi sugiere campos"
                   >
                     {aiLoading ? (
                       <><Mat className="koru-spin">progress_activity</Mat></>

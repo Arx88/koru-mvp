@@ -153,7 +153,7 @@ export function BriefInterior({ block, onClose, onSave }: LecturaInteriorProps<B
             </div>
           </div>
           <span className="ava">
-            <img src="/stitch/avatar-wink.png" alt="Koru" />
+            <img src="/stitch/michi-avatar.png" alt="Michi" />
             <span>tu brief de siempre</span>
           </span>
         </div>

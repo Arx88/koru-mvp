@@ -87,7 +87,7 @@ export function AllCardsPage() {
   return (
     <div className={`ac-app ac-view--${mode}`}>
       <header className="ac-bar">
-        <img className="ac-logo" src="/stitch/avatar-wink.png" alt="Koru" width={30} height={30} />
+        <img className="ac-logo" src="/stitch/michi-avatar.png" alt="Michi" width={30} height={30} />
         <div className="ac-title">
           <strong>Todas las cards de tu app</strong>
           <small>

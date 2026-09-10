@@ -99,3 +99,20 @@
   .lcr .lcr-screen{padding:14px 16px 30px}
   .lcr .actions{margin-left:-16px;margin-right:-16px}
 }
+
+/* 🐱 v7.1 — avatar del gato en los chips "tu brief de siempre":
+   antes el fantasma (avatar-wink.png) traía su propio círculo dibujado
+   en el PNG; michi-avatar.png necesita el redondeo por CSS. */
+.ava {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ava img {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 2px #ffffff, 0 4px 10px rgba(23, 32, 102, 0.22);
+}

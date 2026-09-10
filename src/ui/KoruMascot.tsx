@@ -64,7 +64,7 @@ export function KoruMascot({
       <div className={cn("relative", state !== "listening" && "animate-breathe")} style={{ width: px, height: px }}>
         <img
           src={MASCOT_IMAGE[state]}
-          alt="Koru, tu asistente"
+          alt="Michi, tu asistente"
           width={px}
           height={px}
           style={{

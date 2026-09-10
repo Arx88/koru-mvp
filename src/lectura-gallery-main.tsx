@@ -214,7 +214,7 @@ export function Gallery({ showFooter = true }: { showFooter?: boolean } = {}) {
   return (
     <div className="gal">
       <header className="gal-head">
-        <img src="/stitch/avatar-wink.png" alt="Koru" width={34} height={34} />
+        <img src="/stitch/michi-avatar.png" alt="Michi" width={34} height={34} />
         <div>
           <h1>Lectura Visual <span>· integrada</span></h1>
           <p>

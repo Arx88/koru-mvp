@@ -91,7 +91,7 @@ export function LecturaShell({
                 : undefined
             }
           >
-            {chip?.label ?? "Koru"}
+            {chip?.label ?? "Michi"}
           </span>
           {onBookmark ? (
             <button type="button" className="fab" aria-label="Guardar" onClick={onBookmark}>

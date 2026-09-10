@@ -37,7 +37,7 @@ export function BriefPanel() {
                     <span><Ic i={Droplets} className="ic" />UV 4 a las 11</span>
                   </div>
                 </div>
-                <span className="ava"><img src="/stitch/avatar-wink.png" alt="Koru" /><span>tu brief de siempre</span></span>
+                <span className="ava"><img src="/stitch/michi-avatar.png" alt="Michi" /><span>tu brief de siempre</span></span>
               </div>
               <div className="bf-list rv">
                 <div className="bf-item urgent">

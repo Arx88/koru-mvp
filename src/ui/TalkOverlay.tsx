@@ -8,6 +8,7 @@ import { KoruSemanticCard } from "./chatCards";
 import { KoruUnifiedCard } from "./cards/unified/KoruUnifiedCard";
 import { KoruBackground, activityToBgState, type KoruBgState } from "./KoruBackground";
 import { MichiHeader } from "./MichiHeader";
+import { MichiMascot } from "./MichiMascot";
 import { MemoryToast } from "./MemoryToast";
 import { Suspense, lazy } from "react";
 // 🔴 v3: Mis Colecciones code-split (igual que en KoruUnifiedCard).
@@ -192,7 +193,9 @@ const MAGIC_MOTTOS = [
 
 // Mapeo de fase interna → label visible + icono Material Symbols.
 // El demo muestra 4 chips: Entendí, Busqué, Comparando, Redactar.
-/** 🔴 FIX UX: Icono ilustrado según el tipo de tarea para el WorkingPanel */
+/** 🔴 FIX UX: Icono ilustrado según el tipo de tarea para el WorkingPanel
+ *  🐱 v7.1: el fallback "michi" renderiza al gato flotando (MichiMascot)
+ *  en lugar del fantasma blanco de Koru (working-illustration.png). */
 function getTaskIllustration(kicker?: string, kind?: string): string {
   const k = (kicker ?? "").toLowerCase();
   if (k.includes("pel") || k.includes("movie")) return "/stitch/icons/search-web.png";
@@ -206,7 +209,7 @@ function getTaskIllustration(kicker?: string, kind?: string): string {
   if (k.includes("cotiz") || k.includes("dolar") || k.includes("crypto") || k.includes("finanz")) return "/stitch/icons/finance.png";
   if (k.includes("compar") || k.includes("compr") || k.includes("shop")) return "/stitch/icons/shopping.png";
   if (k.includes("viaje") || k.includes("travel") || k.includes("ruta")) return "/stitch/icons/travel.png";
-  return "/stitch/working-illustration.png";
+  return "michi";
 }
 
 // 🔴 FIX UX: chips de progreso DINÁMICOS según el tipo de tarea.
@@ -323,7 +326,11 @@ function WorkingPanel({ phase, kind, deliverable }: { phase: string | null; kind
 
   return (
     <section className="koru-working-panel" role="status" aria-live="polite">
-      <img src={getTaskIllustration(deliverable?.kicker, kind)} alt="" className="koru-working-illustration" />
+      {getTaskIllustration(deliverable?.kicker, kind) === "michi" ? (
+        <MichiMascot size="md" className="koru-working-mascot" />
+      ) : (
+        <img src={getTaskIllustration(deliverable?.kicker, kind)} alt="" className="koru-working-illustration" />
+      )}
       <div className="koru-working-copy">
         <h2>{copy.title}</h2>
         <p>{copy.subtitle}</p>

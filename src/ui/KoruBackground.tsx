@@ -36,21 +36,22 @@ interface StateAsset {
 }
 
 // Single source of truth: estado → asset
-// 🐱 Michi v7: los estados de reposo/trabajo usan la cala fantástica
-// (fondo aprobado v7, sin personaje). Los videos del fantasma quedan
-// solo para estados transitorios (buscando/memoria/durmiendo) hasta
-// que existan renders del gato. Los PNG que faltaban en el repo
-// (construyendo/habitos/productos/recetas) ahora apuntan a la cala.
+// 🐱 Michi v7.1 — migración total: TODOS los estados usan la cala
+// fantástica (fondo aprobado v7, sin personaje). Los videos del
+// fantasma de Koru (/koru-states/*.mp4) quedaron fuera: era el último
+// residuo visual del diseño viejo. La diferenciación por estado ahora
+// es un matiz sutil vía CSS (ver capa v7.1 §12 en style.css:
+// data-state="buscando/memoria/durmiendo" → filtros).
 export const STATE_REGISTRY: Record<KoruBgState, StateAsset> = {
   escuchando: { type: "image", src: "/stitch/chat-bg.jpg" },
   trabajando: { type: "image", src: "/stitch/chat-bg.jpg" },
-  buscando: { type: "video", src: "/koru-states/estado-buscando.mp4" },
-  memoria: { type: "video", src: "/koru-states/estado-memoria.mp4" },
+  buscando: { type: "image", src: "/stitch/chat-bg.jpg" },
+  memoria: { type: "image", src: "/stitch/chat-bg.jpg" },
   construyendo: { type: "image", src: "/stitch/chat-bg.jpg" },
   habitos: { type: "image", src: "/stitch/chat-bg.jpg" },
   productos: { type: "image", src: "/stitch/chat-bg.jpg" },
   recetas: { type: "image", src: "/stitch/chat-bg.jpg" },
-  durmiendo: { type: "video", src: "/koru-states/estado-durmiendo.mp4" },
+  durmiendo: { type: "image", src: "/stitch/chat-bg.jpg" },
 };
 
 /**
@@ -157,6 +158,7 @@ export const KoruBackground = memo(function KoruBackground({ state }: KoruBackgr
         return (
           <div
             key={s}
+            data-state={s}
             className={`koru-bg-layer${isActive ? " is-active" : ""}`}
           >
             {asset.type === "video" ? (

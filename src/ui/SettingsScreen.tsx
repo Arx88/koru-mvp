@@ -1494,7 +1494,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
                     </Row>
                     <Row
                       label="Memoria durable"
-                      hint="Koru recordará entre sesiones."
+                      hint="Michi recordará entre sesiones."
                     >
                       <Toggle
                         checked={state.durableMemoryEnabled}
@@ -1768,7 +1768,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
                     <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 320, overflowY: "auto", paddingRight: 4 }}>
                       {filteredMemories.length === 0 && (
                         <div style={{ padding: 16, textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
-                          {state.memories.length === 0 ? "Koru todavía no registró memorias." : "Sin memorias para este filtro."}
+                          {state.memories.length === 0 ? "Michi todavía no registró memorias." : "Sin memorias para este filtro."}
                         </div>
                       )}
                       {filteredMemories.map((m) => (

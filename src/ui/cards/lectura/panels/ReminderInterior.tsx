@@ -49,8 +49,8 @@ export function ReminderInterior({ block, onClose, onSave }: LecturaInteriorProp
           </h1>
           <p>
             {due
-              ? "Koru te avisa cuando llegue el momento. Tocá «ya está» cuando lo hagas."
-              : "Koru te lo tiene presente. Sin fecha concreta, no inventa una."}
+              ? "Michi te avisa cuando llegue el momento. Tocá «ya está» cuando lo hagas."
+              : "Michi te lo tiene presente. Sin fecha concreta, no inventa una."}
           </p>
         </div>
 

@@ -475,7 +475,7 @@ function CardFoot({
             <span>{firstSource.domain}</span>
           </>
         ) : (
-          <span>Koru</span>
+          <span>Michi</span>
         )}
       </div>
       <div className="acts">

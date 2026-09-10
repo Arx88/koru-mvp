@@ -1,7 +1,7 @@
-// Koru Service Worker — notificaciones push y background sync
+// Michi Service Worker — notificaciones push y background sync
 // Mobile-first: funciona en PWA standalone
 
-const CACHE_NAME = "koru-v1";
+const CACHE_NAME = "michi-v2";
 const STATIC_ASSETS = ["/", "/index.html", "/favicon.svg"];
 
 self.addEventListener("install", (event) => {
@@ -27,10 +27,10 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data.json();
   } catch {
-    data = { title: "Koru", body: event.data.text() };
+    data = { title: "Michi", body: event.data.text() };
   }
   event.waitUntil(
-    self.registration.showNotification(data.title ?? "Koru", {
+    self.registration.showNotification(data.title ?? "Michi", {
       body: data.body ?? "",
       icon: "/favicon.svg",
       badge: "/favicon.svg",

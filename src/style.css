@@ -9624,3 +9624,203 @@ html.koru-reduced-motion *::after {
 /* ── 8) Fix coachmark: anclar al composer (no al footer) para que la
    flecha apunte al botón + como corresponde ─────────────────────────── */
 .koru-composer { position: relative; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   v7.1 — MIGRACIÓN TOTAL (sin residuos de Koru)
+   Hallazgo: los tokens legados estaban re-declarados DENTRO de
+   .koru-chat-shell, así que los alias :root de la sección 0 nunca
+   llegaban al contenido del chat. Textos #301c70, acentos #7c5ff6 /
+   #8363f9, bordes finos y Plus Jakarta Sans seguían gobernando las
+   cards semánticas y módulos → "cards como las antiguas". Esta capa
+   los sobrescribe al final de la cascada con la paleta Michi v7.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── 9) El chat-shell hereda la paleta Michi v7 ───────────────────────── */
+.koru-chat-shell {
+  --koru-bg: #6D52F8;
+  --koru-surface: #ffffff;
+  --koru-surface-soft: #ffffff;
+  --koru-inner: #EAF2FD;               /* periwinkle 2 v7 */
+  --koru-user: #ffffff;
+  --koru-border: rgba(109, 82, 248, 0.10);
+  --koru-border-strong: rgba(109, 82, 248, 0.24);
+  --koru-text: #1E1B4B;                /* tinta v7 */
+  --koru-text-soft: #6E7594;           /* tinta suave v7 */
+  --koru-muted: #A6ACCB;               /* tinta tenue v7 */
+  --koru-pill: rgba(255, 255, 255, 0.86);
+  --koru-accent: #6D52F8;              /* violeta v7 */
+  --koru-accent-soft: #E3EFFD;         /* periwinkle v7 */
+  --koru-accent-strong: #5940E0;       /* violeta profundo v7 */
+  --koru-amber: #FDC533;               /* oro v7 */
+  --koru-amber-soft: #FFF6DC;
+  --koru-purple: #6D52F8;
+  --koru-purple-soft: #E3EFFD;
+  --koru-mic: #6D52F8;
+  --koru-heart: #FF8A80;
+  --koru-shadow: 0 6px 16px rgba(23, 32, 102, 0.13);
+  font-family: 'Nunito', 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+/* ── 10) Cards semánticas del chat → molde v7 ─────────────────────────── */
+/* Contenedores tipo card (panel de actividad, stitch card): blanco,
+   radio 22 y sombra profunda, como el molde .kc. */
+.koru-activity-module,
+.koru-stitch-card {
+  border: 1px solid rgba(109, 82, 248, 0.10);
+  border-radius: var(--michi-r-card);
+  background: #ffffff;
+  box-shadow: var(--michi-sh-card);
+  font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif;
+}
+
+/* Módulos internos (dentro de burbujas/cards): periwinkle suave v7,
+   mismo tratamiento que .kc-m. */
+.koru-plan,
+.koru-context-review,
+.koru-decision-card,
+.koru-question-card,
+.koru-reminder-card,
+.koru-web-module,
+.koru-list-module,
+.koru-inline-card {
+  border: 1px solid rgba(109, 82, 248, 0.08);
+  border-radius: 16px;
+  background: var(--michi-peri2);
+}
+
+.koru-inline-tag,
+.koru-card-kicker {
+  color: var(--michi-violet);
+}
+
+.koru-card-result,
+.koru-card-note {
+  color: var(--michi-ink-soft);
+}
+
+.koru-activity-lead strong,
+.koru-list-module strong,
+.koru-decision-card strong,
+.koru-question-card strong,
+.koru-reminder-card strong {
+  color: var(--michi-ink);
+  font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif;
+}
+
+/* Pills v7: blanca con borde violeta; la primaria, gradiente violeta */
+.koru-pill-button {
+  border: 1px solid rgba(109, 82, 248, 0.24);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--michi-ink);
+  box-shadow: 0 4px 10px rgba(23, 32, 102, 0.10);
+  font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif;
+  font-weight: 800;
+}
+
+.koru-pill-button.is-primary {
+  border-color: transparent;
+  background: linear-gradient(120deg, #7C5FF9 0%, #6D52F8 55%, #5940E0 120%);
+  color: #ffffff;
+  box-shadow: var(--michi-sh-btn);
+}
+
+/* ── 11) Coachmark "Crear" + toasts → v7 ──────────────────────────────── */
+/* El coachmark era una burbuja oscura #523a9e→#382b8c (look Koru viejo):
+   pasa a card blanca v7 con icono en periwinkle y tinta Michi. */
+.koru-create-coachmark-bubble {
+  background: #ffffff;
+  color: var(--michi-ink);
+  border: 1px solid rgba(109, 82, 248, 0.12);
+  border-radius: 18px;
+  box-shadow: 0 16px 34px rgba(23, 32, 102, 0.28);
+  font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif;
+}
+
+.koru-create-coachmark-bubble .material-symbols-outlined:first-child {
+  color: var(--michi-violet);
+  background: var(--michi-peri);
+  border-radius: 12px;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 0;
+}
+
+.koru-create-coachmark-text strong {
+  color: var(--michi-ink);
+  font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif;
+  font-weight: 800;
+}
+
+.koru-create-coachmark-text span {
+  color: var(--michi-ink-soft);
+  opacity: 1;
+  font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif;
+}
+
+.koru-create-coachmark-text span strong {
+  color: var(--michi-violet);
+}
+
+.koru-create-coachmark-close {
+  color: var(--michi-ink-soft);
+}
+
+.koru-create-coachmark-close:hover {
+  color: var(--michi-ink);
+  background: var(--michi-peri);
+}
+
+.koru-create-coachmark-arrow {
+  background: #ffffff;
+}
+
+/* Memory toast y nav toast: indigo viejo → violeta Michi v7 */
+.koru-memory-toast {
+  background: linear-gradient(135deg, rgba(109, 82, 248, 0.97) 0%, rgba(89, 64, 224, 0.97) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 20px;
+  box-shadow:
+    0 16px 36px rgba(23, 32, 102, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif;
+}
+
+.koru-nav-toast-content {
+  background: linear-gradient(135deg, #6D52F8 0%, #5940E0 100%);
+  border-radius: 999px;
+  box-shadow: 0 12px 32px rgba(109, 82, 248, 0.45);
+  font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif;
+  font-weight: 800;
+}
+
+/* ── 12) Fondos por estado: la cala v7 + tinte sutil por estado ───────── */
+/* Todos los estados usan la ilustración v7; el matiz los diferencia:
+   buscando = un toque más vivo · memoria = lavanda · durmiendo = noche. */
+.koru-bg-layer[data-state="buscando"] img,
+.koru-bg-layer[data-state="buscando"] video {
+  filter: saturate(1.08);
+}
+
+.koru-bg-layer[data-state="memoria"] img,
+.koru-bg-layer[data-state="memoria"] video {
+  filter: saturate(0.9) hue-rotate(-10deg) brightness(0.97);
+}
+
+.koru-bg-layer[data-state="durmiendo"] img,
+.koru-bg-layer[data-state="durmiendo"] video {
+  filter: brightness(0.55) saturate(0.65);
+}
+
+/* ── 13) WorkingPanel: el gato Michi como ilustración fallback ────────── */
+/* Reemplaza al fantasma blanco (working-illustration.png). MichiMascot
+   trae su propio glow + destellos; acá solo se centra y respira. */
+.koru-working-mascot {
+  margin: 0 auto 4px;
+  display: flex;
+  justify-content: center;
+}
