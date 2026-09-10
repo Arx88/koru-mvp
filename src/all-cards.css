@@ -60,7 +60,7 @@ body.ac-mode--gallery .ac-bar {
 }
 
 .ac-title strong {
-  font: 800 14px/1.15 var(--font-display, "Bricolage Grotesque", Georgia, serif);
+  font: 800 14px/1.15 var(--font-display, "Nunito", system-ui, sans-serif);
   letter-spacing: -0.01em;
 }
 

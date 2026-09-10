@@ -66,7 +66,7 @@ import { CollectionsScreen } from "../../CollectionsScreen";
 //   gallery  → carrusel horizontal de mini-cards (70×80).
 //   banner   → gradiente full-width (100px) con número grande + label.
 
-const FONT_HEADING = '"Bricolage Grotesque", "Plus Jakarta Sans", sans-serif';
+const FONT_HEADING = '"Nunito", "Plus Jakarta Sans", system-ui, sans-serif';
 const COLOR_INK = "#1E1B4B";
 const COLOR_INK_MUTED = "#6b5f8c";
 const COLOR_INK_TENUE = "#a99bbe";

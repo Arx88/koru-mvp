@@ -365,7 +365,7 @@ export function MeditationOverlay({ session, onClose }: MeditationOverlayProps) 
             <p
               style={{
                 margin: "4px 0 0",
-                fontFamily: '"Bricolage Grotesque", Georgia, serif',
+                fontFamily: '"Nunito", "Plus Jakarta Sans", system-ui, sans-serif',
                 fontSize: 32,
                 fontWeight: 700,
                 lineHeight: 1,
@@ -389,7 +389,7 @@ export function MeditationOverlay({ session, onClose }: MeditationOverlayProps) 
         <p
           style={{
             margin: 0,
-            fontFamily: '"Bricolage Grotesque", Georgia, serif',
+            fontFamily: '"Nunito", "Plus Jakarta Sans", system-ui, sans-serif',
             fontSize: 56,
             fontWeight: 700,
             lineHeight: 1,

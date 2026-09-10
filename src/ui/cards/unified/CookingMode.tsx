@@ -321,7 +321,7 @@ export function CookingMode({ title, steps, block, onClose }: CookingModeProps) 
           <span
             aria-hidden
             style={{
-              fontFamily: '"Bricolage Grotesque", Georgia, serif',
+              fontFamily: '"Nunito", "Plus Jakarta Sans", system-ui, sans-serif',
               fontSize: 48,
               fontWeight: 700,
               lineHeight: 1,
@@ -378,7 +378,7 @@ export function CookingMode({ title, steps, block, onClose }: CookingModeProps) 
             </span>
             <span
               style={{
-                fontFamily: '"Bricolage Grotesque", Georgia, serif',
+                fontFamily: '"Nunito", "Plus Jakarta Sans", system-ui, sans-serif',
                 fontSize: 44,
                 fontWeight: 700,
                 lineHeight: 1,
