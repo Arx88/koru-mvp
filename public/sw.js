@@ -1,11 +1,11 @@
 // Michi Service Worker — notificaciones push y background sync
 // Mobile-first: funciona en PWA standalone
 
-// 🐱 v8 — michi-v4: precache de los 5 paisajes del usuario (art-09/17/11/12/13)
+// 🐱 v8 — michi-v5: precache de los 5 paisajes del usuario (art-09/17/11/12/13)
 // + avatar del gato (art-19) + avatar del usuario + banner de Playita, para
 // que el crossfade entre franjas horarias y la página de avatares funcionen
 // instantáneo y offline.
-const CACHE_NAME = "michi-v4";
+const CACHE_NAME = "michi-v5";
 const STATIC_ASSETS = [
   "/",
   "/index.html",
