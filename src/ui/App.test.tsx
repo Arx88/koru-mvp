@@ -131,13 +131,21 @@ describe("Koru MVP UI", () => {
 
     // After onboarding completes, App still shows TalkOverlay (screen="chat").
     // Press Escape to trigger onClose → setScreen("hoy") → Home screen.
+    // (v8.1: el coachmark de Crear aparece tras el 2do mensaje del usuario —
+    // el primer Escape lo descarta, el segundo cierra el chat.)
+    await user.keyboard("{Escape}");
+    await waitFor(() => {
+      expect(document.querySelector(".koru-create-coachmark")).toBeNull();
+    }, { timeout: 2000 });
     await user.keyboard("{Escape}");
 
     // Home dashboard shows the Koru brand + a time-of-day greeting with the
     // onboarded name (e.g. "Buenos días, Alex"). The greeting appears in both
     // the sticky header and the hero, so we assert at least one match.
+    // (v8: el header Michi + el sr-heading del TalkOverlay en desmontaje
+    // pueden coexistir un instante → getAllByText en vez de getByText.)
     await waitFor(() => {
-      expect(screen.getByText(/^Michi$/)).toBeInTheDocument();
+      expect(screen.getAllByText(/^Michi$/).length).toBeGreaterThan(0);
       expect(
         screen.getAllByText(/buenos días, alex|buenas tardes, alex|buenas noches, alex/i)
           .length,

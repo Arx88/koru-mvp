@@ -764,13 +764,21 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
         const overlayOpen = document.querySelector(
           ".mx-menu, .mx-dialog-overlay, .koru-wheel-overlay, .koru-save-overlay, .mx-opts, .koru-create-coachmark",
         );
-        if (overlayOpen) return;
+        if (overlayOpen) {
+          // 🐱 v8.1 — el coachmark de Crear es un tip informativo sin handler
+          // propio de Escape: si es lo único abierto, Escape lo descarta
+          // (antes quedaba totalmente tragado y el usuario no podía salir).
+          if (overlayOpen.classList.contains("koru-create-coachmark") && showCreateCoachmark) {
+            dismissCreateCoachmark();
+          }
+          return;
+        }
         onClose();
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
+  }, [onClose, showCreateCoachmark, dismissCreateCoachmark]);
 
   // 🔴 Listener para guardar informe desde el detail screen
   useEffect(() => {

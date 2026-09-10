@@ -28,16 +28,16 @@
   --mc-sh-card: 0 16px 34px rgba(23, 32, 102, 0.28);
   --mc-sh-bub: 0 6px 16px rgba(23, 32, 102, 0.13);
   --mc-sh-btn: 0 6px 14px rgba(109, 82, 248, 0.34);
-  --mc-hero-clima: url(/michi/heroes/clima.jpg);
-  --mc-hero-cripto: url(/michi/heroes/cripto-b.jpg);
-  --mc-hero-futbol: url(/michi/heroes/futbol.jpg);
-  --mc-hero-tenis: url(/michi/heroes/tenis-s.jpg);
-  --mc-hero-receta: url(/michi/heroes/receta.jpg);
-  --mc-hero-fit: url(/michi/heroes/fit-s.jpg);
-  --mc-hero-trabajo: url(/michi/heroes/trabajo.jpg);
-  --mc-hero-game: url(/michi/heroes/game-s.jpg);
-  --mc-hero-compras: url(/michi/heroes/compras.jpg);
-  --mc-hero-dormir: url(/michi/heroes/dormir-s.jpg);
+  --mc-hero-clima: url(/assets/art-18.webp);
+  --mc-hero-cripto: url(/assets/art-07.webp);
+  --mc-hero-futbol: url(/assets/art-06.webp);
+  --mc-hero-tenis: url(/assets/art-08.webp);
+  --mc-hero-receta: url(/assets/art-03.webp);
+  --mc-hero-fit: url(/assets/art-00.webp);
+  --mc-hero-trabajo: url(/assets/art-01.webp);
+  --mc-hero-game: url(/assets/art-01.webp);
+  --mc-hero-compras: url(/assets/art-04.webp);
+  --mc-hero-dormir: url(/assets/art-05.webp);
 }
 
 /* ---------- badges de ícono (kawaii sólido) ---------- */
@@ -100,10 +100,11 @@
    ============================================================ */
 .mc-icard {
   position: relative;
-  border-radius: var(--mc-r-card);
-  background: #fff;
-  box-shadow: var(--mc-sh-card);
-  overflow: hidden;
+  isolation: isolate;
+  width: 100%;
+  border-radius: 27px 29px 28px 30px;
+  background: #f8fdff;
+  filter: drop-shadow(0 5px 8px #019fc32b);
   transition: transform 0.12s;
 }
 .mc-icard:active {
@@ -111,45 +112,38 @@
 }
 .mc-ihero {
   position: relative;
-  height: 132px;
-  border-radius: 20px 20px 12px 12px;
-  overflow: hidden;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  aspect-ratio: 1.62;
   background-image: var(--mc-h, var(--mc-hero-clima));
   background-size: cover;
-  background-position: center 64%;
-}
-.mc-ihero::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(13, 44, 110, 0.3) 0%,
-    rgba(13, 44, 110, 0.04) 38%,
-    rgba(13, 44, 110, 0) 55%,
-    rgba(13, 44, 110, 0.3) 100%
-  );
+  background-position: center 57%;
+  border-radius: 28px 31px 0 0;
+  border: 1.5px solid #dfffff;
+  border-bottom: 0;
+  padding: 11px 12px;
+  box-shadow: inset 1px 2px 4px #bfffffc9;
+  overflow: hidden;
+  transform: skewY(-1.3deg);
+  margin-bottom: -8px;
 }
 .mc-locpill {
-  position: absolute;
-  top: 9px;
-  left: 9px;
-  z-index: 2;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  background: rgba(33, 48, 185, 0.78);
+  gap: 4px;
+  width: max-content;
+  max-width: 100%;
+  background: linear-gradient(100deg, #5361ff, #1554f9);
   color: #fff;
-  border-radius: 9px;
-  padding: 4px 10px 4px 8px;
-  font-size: 10.5px;
+  border-radius: 17px;
+  padding: 3px 7px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.01em;
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
-  box-shadow: 0 4px 10px rgba(13, 30, 110, 0.28);
-  max-width: calc(100% - 18px);
   white-space: nowrap;
+  box-shadow: 0 1px 4px #659fff55;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -167,8 +161,8 @@
   gap: 4px;
   background: rgba(255, 77, 84, 0.94);
   color: #fff;
-  border-radius: 9px;
-  padding: 4px 8px;
+  border-radius: 17px;
+  padding: 3px 8px;
   font-size: 9px;
   font-weight: 900;
   letter-spacing: 0.06em;
@@ -197,35 +191,33 @@
   }
 }
 .mc-hero-data {
-  position: absolute;
-  left: 13px;
-  top: 28px;
-  z-index: 2;
-  max-width: calc(100% - 60px);
+  margin-top: 6px;
+  max-width: calc(100% - 52px);
 }
 .mc-bigval {
   display: block;
   font-size: 38px;
   font-weight: 900;
-  line-height: 1.02;
-  letter-spacing: -0.025em;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
   color: #fff;
-  text-shadow: 0 3px 10px rgba(10, 42, 104, 0.5);
+  text-shadow: 0 1px 2px #5ed7ff50, 0 2px 10px rgba(13, 44, 110, 0.35);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .mc-bigval.md {
-  font-size: 26px;
+  font-size: 25px;
+  line-height: 1.35;
 }
 .mc-bigsub {
   display: block;
-  font-size: 13.5px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 900;
   color: #fff;
   margin-top: 4px;
   letter-spacing: -0.01em;
-  text-shadow: 0 2px 7px rgba(10, 42, 104, 0.55);
+  text-shadow: 0 1px 4px #5ed7ff40, 0 2px 8px rgba(13, 44, 110, 0.4);
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -239,48 +231,58 @@
   font-weight: 700;
   color: rgba(255, 255, 255, 0.97);
   margin-top: 2px;
-  text-shadow: 0 1px 5px rgba(10, 42, 104, 0.6);
+  text-shadow: 0 1px 4px rgba(13, 44, 110, 0.45);
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* panel blanco inferior (solapa la ilustración) */
+/* panel blanco inferior (el hero lo solapa con margin-bottom negativo) */
 .mc-ipanel {
   position: relative;
   z-index: 3;
-  margin: -14px 3px 0;
-  border-radius: 15px;
-  background: #fff;
-  padding: 8px 6px 6px;
-  box-shadow: 0 6px 16px rgba(23, 32, 102, 0.12);
+  margin: 0 3px;
+  border-radius: 24px 23px 25px 27px;
+  background: linear-gradient(130deg, #fff, #f6fdff);
+  padding: 8px 10px 10px;
+  box-shadow: inset 1px 1px 5px white;
+  transform: rotate(0.35deg);
 }
 .mc-tiles {
-  display: flex;
-  gap: 7px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 8px;
 }
 .mc-tile {
-  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 58px;
   min-width: 0;
-  background: #f3f6fd;
-  border-radius: 11px;
-  padding: 6px 3px 6px;
-  text-align: center;
+  background: linear-gradient(140deg, #fff, #f0faff);
+  box-shadow: inset 0 1px 3px #e8ecf5, 0 2px 3px #718aae25;
+  border: 1px solid #edf0f7;
+  border-radius: 15px;
+  padding: 4px 9px;
+  text-align: left;
 }
 .mc-tile .e {
   display: block;
-  font-size: 17px;
-  line-height: 1.1;
-  color: #6e7594;
+  font-size: 20px;
+  line-height: 1.15;
+  color: #08ade9;
 }
 .mc-tile .e .material-symbols-outlined {
-  font-size: 17px;
+  font-size: 20px;
+  font-variation-settings: "FILL" 0.8, "wght" 550;
 }
 .mc-tile .k {
   display: block;
-  font-size: 8.5px;
-  color: #7982b4;
-  font-weight: 800;
+  font-size: 9px;
+  color: #7d7aa8;
+  font-weight: 700;
   letter-spacing: 0.02em;
   margin-top: 3px;
   white-space: nowrap;
@@ -291,7 +293,7 @@
   display: block;
   font-size: 10.5px;
   font-weight: 900;
-  color: var(--mc-navy);
+  color: #20117d;
   margin-top: 1px;
   letter-spacing: -0.01em;
   white-space: nowrap;
@@ -300,47 +302,40 @@
 }
 .mc-cta {
   position: relative;
-  overflow: hidden;
   width: 100%;
   margin-top: 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  background: linear-gradient(180deg, #7a5df9, #5b41ee);
+  gap: 5px;
+  background: linear-gradient(105deg, #5d36ff, #613bfa);
   color: #fff;
   border: none;
-  border-radius: 16px;
+  border-radius: 22px;
   font-family: inherit;
-  font-size: 11.5px;
+  font-size: 10.5px;
   font-weight: 800;
   letter-spacing: -0.005em;
-  padding: 8px 6px 9px;
-  box-shadow: 0 7px 15px rgba(91, 65, 238, 0.36);
-  transition: transform 0.12s;
+  min-height: 29px;
+  padding: 7px 6px 8px;
+  box-shadow: 0 4px 7px #5549df1c, inset 0 1px 2px #9a7dff66;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
-.mc-cta::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 10%;
-  right: 10%;
-  height: 46%;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0));
-  border-radius: 0 0 60% 60%;
-  pointer-events: none;
+.mc-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px #573efa4d, inset 0 1px 2px #9a7dff66;
 }
 .mc-cta:active {
   transform: translateY(1px);
 }
 .mc-cta .material-symbols-outlined {
   flex: none;
-  font-size: 13px;
+  font-size: 14px;
 }
 .mc-cta.ok {
-  background: linear-gradient(180deg, #3bd67f, #23b363);
-  box-shadow: 0 7px 15px rgba(35, 179, 99, 0.34);
+  background: linear-gradient(105deg, #2fc86e, #23b363);
+  box-shadow: 0 4px 7px rgba(35, 179, 99, 0.2), inset 0 1px 2px rgba(180, 255, 210, 0.4);
 }
 /* radar hora a hora (expandible) */
 .mc-radar {
@@ -424,10 +419,11 @@
    CARD MISIÓN — blanca, interactiva (listas / planes / agenda)
    ============================================================ */
 .mc-card {
-  background: var(--mc-card);
-  border-radius: var(--mc-r-card);
+  position: relative;
+  background: #f8fdff;
+  border-radius: 27px 29px 28px 30px;
   padding: 13px 16px 14px;
-  box-shadow: var(--mc-sh-card);
+  filter: drop-shadow(0 5px 8px #019fc32b);
   border: none;
   transition: transform 0.12s;
 }
@@ -593,13 +589,13 @@
    ============================================================ */
 .mc-kcard {
   position: relative;
+  isolation: isolate;
   width: 100%;
   margin: 3px auto 9px;
   flex: none;
-  border-radius: 22px;
-  background: #fff;
-  overflow: hidden;
-  box-shadow: 0 16px 34px rgba(23, 32, 102, 0.28);
+  border-radius: 27px 29px 28px 30px;
+  background: #f8fdff;
+  filter: drop-shadow(0 5px 8px #019fc32b);
   transition: transform 0.12s;
 }
 .mc-kcard:active {
@@ -607,42 +603,50 @@
 }
 .mc-kcard .mc-art {
   position: relative;
+  color: white;
+  aspect-ratio: 2.02;
   background-size: cover;
-  background-position: center;
+  background-position: center 57%;
+  border-radius: 28px 31px 0 0;
+  border: 1.5px solid #dfffff;
+  border-bottom: 0;
+  padding: 11px 12px;
+  box-shadow: inset 1px 2px 4px #bfffffc9;
   overflow: hidden;
+  transform: skewY(-1.3deg);
+  margin-bottom: -8px;
 }
-.mc-kcard .mc-art::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(13, 44, 110, 0.18) 0%,
-    rgba(13, 44, 110, 0) 30%,
-    rgba(13, 44, 110, 0) 62%,
-    rgba(13, 44, 110, 0.22) 100%
-  );
+.mc-kbody {
+  position: relative;
+  z-index: 3;
+  margin: 0 3px;
+  border-radius: 24px 23px 25px 27px;
+  background: linear-gradient(130deg, #fff, #f6fdff);
+  box-shadow: inset 1px 1px 5px white;
+  transform: rotate(0.35deg);
+  padding: 9px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 .mc-gpill {
   position: absolute;
-  top: 11px;
-  left: 11px;
+  top: 9px;
+  left: 9px;
   z-index: 3;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  background: rgba(15, 24, 110, 0.82);
+  gap: 4px;
+  background: linear-gradient(100deg, #5361ff, #1554f9);
   color: #fff;
-  border-radius: 10px;
-  padding: 5px 11px 5px 9px;
-  font-size: 10.5px;
+  border-radius: 17px;
+  padding: 3px 7px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.01em;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  box-shadow: 0 4px 10px rgba(13, 30, 110, 0.4);
-  max-width: calc(100% - 22px);
   white-space: nowrap;
+  box-shadow: 0 1px 4px #659fff55;
+  max-width: calc(100% - 22px);
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -652,16 +656,16 @@
 }
 .mc-lchip {
   position: absolute;
-  top: 11px;
-  right: 11px;
+  top: 9px;
+  right: 9px;
   z-index: 3;
   display: inline-flex;
   align-items: center;
   gap: 5px;
   background: rgba(255, 77, 84, 0.96);
   color: #fff;
-  border-radius: 10px;
-  padding: 4.5px 9.5px;
+  border-radius: 17px;
+  padding: 3px 9px;
   font-size: 9px;
   font-weight: 900;
   letter-spacing: 0.07em;
@@ -677,109 +681,65 @@
   animation: mc-pulse 1.2s infinite;
 }
 
-/* ---------- CRIPTO (glass oscuro full-bleed) ---------- */
-.mc-c-crypto {
-  background: #0d1240;
-  min-height: 237px;
-}
-.mc-c-crypto .mc-cbg {
-  position: absolute;
-  inset: 0;
+/* ---------- CRIPTO (hero Stock del usuario + tiles de monedas) ---------- */
+.mc-c-crypto .mc-art {
   background-image: var(--mc-hero-cripto);
-  background-size: cover;
-  background-position: center 38%;
+  background-position: center 40%;
 }
-.mc-c-crypto .mc-cshade {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background: linear-gradient(180deg, rgba(8, 12, 52, 0.66) 0%, rgba(8, 12, 52, 0.1) 30%, rgba(8, 12, 52, 0.06) 54%, rgba(8, 12, 52, 0.93) 70%),
-    linear-gradient(76deg, rgba(8, 12, 52, 0.62) 0%, rgba(8, 12, 52, 0) 52%);
-}
-.mc-c-crypto .mc-ctop {
-  position: absolute;
-  z-index: 2;
-  top: 11px;
-  left: 11px;
-  right: 11px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-.mc-cr-pf {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: rgba(10, 16, 70, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.32);
-  color: #fff;
-  border-radius: 10px;
-  padding: 4.5px 10px;
-  font-size: 10px;
-  font-weight: 800;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  box-shadow: 0 4px 10px rgba(4, 8, 40, 0.35);
-  white-space: nowrap;
-  flex: none;
-}
-.mc-cr-pf b {
-  font-weight: 900;
-  letter-spacing: -0.01em;
-}
-.mc-cr-pf .u {
-  color: #7cffb2;
-  font-weight: 900;
-}
-.mc-cr-price {
-  position: absolute;
-  z-index: 2;
-  left: 14px;
-  bottom: 100px;
-  color: #fff;
-}
-.mc-cr-price .v {
-  font-size: 30px;
-  font-weight: 900;
-  letter-spacing: -0.03em;
-  line-height: 1;
-  text-shadow: 0 3px 12px rgba(4, 8, 40, 0.75);
-}
-.mc-cr-price .s {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 6px;
-}
-.mc-cr-price .s .up {
+.mc-cr-chg {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  color: #7cffb2;
-  font-size: 11.5px;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(13, 44, 110, 0.5);
+}
+.mc-cr-chg .material-symbols-outlined {
+  font-size: 11px;
+  flex: none;
+}
+.mc-cr-chg.up { color: #d6ffe6; }
+.mc-cr-chg.dn { color: #ffdfe2; }
+.mc-cr-spark {
+  position: absolute;
+  right: 8px;
+  bottom: 6px;
+  width: 118px;
+  height: 38px;
+  z-index: 2;
+  filter: drop-shadow(0 3px 6px rgba(4, 8, 40, 0.35));
+}
+.mc-cr-tile {
+  cursor: pointer;
+  border: 1px solid #edf0f7;
+  font-family: inherit;
+}
+.mc-cr-tile.on {
+  border-color: #9a7dff;
+  box-shadow: inset 0 1px 3px #e8ecf5, 0 2px 6px rgba(93, 54, 255, 0.22);
+}
+.mc-cr-ic {
+  font-size: 18px;
+  color: #7044f4;
   font-weight: 900;
 }
-.mc-cr-price .s .up .material-symbols-outlined {
-  font-size: 11px;
+.mc-cr-trend {
+  font-size: 9px;
+  font-weight: 900;
+  margin-top: 1px;
 }
-.mc-cr-price .s .m {
-  color: rgba(255, 255, 255, 0.96);
-  font-size: 10.5px;
-  font-weight: 700;
-}
+.mc-cr-trend.up { color: #1a9e4c; }
+.mc-cr-trend.dn { color: #d64550; }
 .mc-cr-range {
-  position: absolute;
-  z-index: 2;
-  left: 14px;
-  bottom: 62px;
-  width: 150px;
+  margin: 2px 2px 0;
 }
 .mc-cr-range .bar {
   position: relative;
   height: 4px;
   border-radius: 2.5px;
-  background: rgba(255, 255, 255, 0.3);
+  background: #e8ecf5;
   margin: 0 4px;
 }
 .mc-cr-range .cur {
@@ -788,8 +748,8 @@
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: #7cffb2;
-  box-shadow: 0 0 0 2.5px rgba(124, 255, 178, 0.3);
+  background: #5d36ff;
+  box-shadow: 0 0 0 2.5px rgba(93, 54, 255, 0.25);
 }
 .mc-cr-range .lb {
   display: flex;
@@ -797,70 +757,24 @@
   margin-top: 5px;
   font-size: 8.5px;
   font-weight: 800;
-  color: rgba(255, 255, 255, 0.88);
+  color: #7d7aa8;
   letter-spacing: 0.03em;
-}
-.mc-cr-coins {
-  position: absolute;
-  z-index: 2;
-  left: 12px;
-  right: 12px;
-  bottom: 13px;
-  display: flex;
-  gap: 6px;
-}
-.mc-coin {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  background: rgba(255, 255, 255, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.26);
-  color: #fff;
-  border-radius: 11px;
-  padding: 6.5px 3px;
-  font-size: 10.5px;
-  font-weight: 800;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  cursor: pointer;
-  white-space: nowrap;
-}
-.mc-coin b {
-  font-weight: 900;
-}
-.mc-coin .u {
-  color: #7cffb2;
-  font-weight: 900;
-}
-.mc-coin .d {
-  color: #ffb4bc;
-  font-weight: 900;
-}
-.mc-coin.on {
-  background: rgba(255, 255, 255, 0.92);
-  color: #1a237e;
-  border-color: transparent;
-  box-shadow: 0 4px 12px rgba(4, 8, 40, 0.4);
 }
 
 /* ---------- FÚTBOL (art + scoreboard broadcast) ---------- */
-.mc-c-futbol {
-  display: flex;
-  flex-direction: column;
-}
 .mc-c-futbol .mc-art {
-  height: 52px;
-  flex: none;
   background-image: var(--mc-hero-futbol);
-  background-position: center 30%;
+  background-position: center 42%;
 }
 .mc-fu-body {
-  flex: 1;
-  min-height: 0;
-  padding: 9px 14px 12px;
-  background: #fff;
+  position: relative;
+  z-index: 3;
+  margin: 0 3px;
+  border-radius: 24px 23px 25px 27px;
+  background: linear-gradient(130deg, #fff, #f6fdff);
+  box-shadow: inset 1px 1px 5px white;
+  transform: rotate(0.35deg);
+  padding: 9px 12px 12px;
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -951,10 +865,10 @@
 .mc-fu-team .nm {
   font-size: 11px;
   font-weight: 900;
-  color: var(--mc-ink);
+  color: #20117d;
   white-space: nowrap;
   max-width: 100%;
-  line-height: 1;
+  line-height: 1.35;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -992,58 +906,22 @@
 }
 .mc-c-futbol .mc-cta {
   margin-top: 4px;
-  border-radius: 12px;
-  padding: 6.5px 8px 7.5px;
-  font-size: 11px;
 }
 
-/* ---------- TENIS (horizontal: datos + arte) ---------- */
-.mc-c-tenis {
-  display: flex;
+/* ---------- TENIS (hero Tennis del usuario + panel) ---------- */
+.mc-c-tenis .mc-art {
+  background-image: var(--mc-hero-tenis);
+  background-position: center 45%;
 }
-.mc-te-data {
-  flex: 1;
-  min-width: 0;
-  padding: 12px 12px 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-.mc-te-lbl {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 9.5px;
-  font-weight: 900;
-  color: #7982b4;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-}
-.mc-te-lbl .mc-ib {
-  width: 19px;
-  height: 19px;
-  border-radius: 7px;
-  box-shadow: none;
-}
-.mc-te-title {
-  margin: 0;
-  font-size: 15.5px;
-  font-weight: 900;
-  letter-spacing: -0.02em;
-  color: var(--mc-ink);
-  line-height: 1.1;
-  font-family: inherit;
-}
-.mc-te-title em {
+.mc-bigsub em {
   font-style: normal;
-  color: var(--mc-ink-faint);
   font-weight: 800;
-  font-size: 11.5px;
+  font-size: 11px;
+  opacity: 0.9;
 }
 .mc-te-ranks {
   display: flex;
   gap: 5px;
-  margin-top: 1px;
   flex-wrap: wrap;
 }
 .mc-te-ranks .rk {
@@ -1052,8 +930,8 @@
   gap: 4.5px;
   font-size: 9px;
   font-weight: 900;
-  color: #7982b4;
-  background: #f1f4fb;
+  color: #7d7aa8;
+  background: #f0faff;
   border-radius: 8px;
   padding: 3px 8px;
 }
@@ -1062,7 +940,7 @@
   color: #2e7cf6;
 }
 .mc-te-h2h {
-  background: #f5f8fd;
+  background: #f6fbff;
   border-radius: 12px;
   padding: 6px 10px 7px;
 }
@@ -1072,14 +950,14 @@
   align-items: baseline;
   font-size: 8.5px;
   font-weight: 900;
-  color: #8a93c2;
+  color: #7d7aa8;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   margin-bottom: 5px;
 }
 .mc-te-h2h .hd b {
   font-size: 11px;
-  color: var(--mc-ink);
+  color: #20117d;
   letter-spacing: -0.01em;
 }
 .mc-te-h2h .bar {
@@ -1101,9 +979,9 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 800;
-  color: var(--mc-ink-soft);
+  color: #5a5f8a;
 }
 .mc-te-row .material-symbols-outlined {
   font-size: 14px;
@@ -1111,57 +989,24 @@
   flex: none;
 }
 .mc-te-row b {
-  color: var(--mc-ink);
+  color: #20117d;
   font-weight: 900;
-}
-.mc-te-link {
-  margin-top: auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  width: 100%;
-  background: var(--mc-peri2);
-  color: var(--mc-violet);
-  border: none;
-  border-radius: 13px;
-  font-family: inherit;
-  font-size: 11.5px;
-  font-weight: 900;
-  padding: 7.5px 6px 8.5px;
-  cursor: pointer;
-}
-.mc-te-art {
-  width: 116px;
-  flex: none;
-  background-image: var(--mc-hero-tenis);
-  background-size: cover;
-  background-position: 90% 38%;
-  position: relative;
-}
-.mc-te-art::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(270deg, rgba(13, 44, 110, 0) 62%, rgba(13, 44, 110, 0.14));
 }
 
 /* ---------- RECETA (art + pills de ingredientes) ---------- */
-.mc-c-receta {
-  display: flex;
-  flex-direction: column;
-}
 .mc-c-receta .mc-art {
-  height: 76px;
-  flex: none;
   background-image: var(--mc-hero-receta);
-  background-position: center 38%;
+  background-position: center 42%;
 }
 .mc-re-body {
-  flex: 1;
-  min-height: 0;
+  position: relative;
+  z-index: 3;
+  margin: 0 3px;
+  border-radius: 24px 23px 25px 27px;
+  background: linear-gradient(130deg, #fff, #f6fdff);
+  box-shadow: inset 1px 1px 5px white;
+  transform: rotate(0.35deg);
   padding: 10px 12px 12px;
-  background: #fff;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -1207,8 +1052,7 @@
 .mc-re-pills {
   display: flex;
   gap: 5px;
-  flex-wrap: nowrap;
-  overflow: hidden;
+  flex-wrap: wrap;
 }
 .mc-re-pill {
   display: inline-flex;
@@ -1272,10 +1116,11 @@
 .mc-re-meta {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  flex-wrap: wrap;
   font-size: 11px;
   font-weight: 800;
-  color: var(--mc-ink-soft);
+  color: #5a5f8a;
 }
 .mc-re-meta .m {
   display: inline-flex;
@@ -1293,54 +1138,16 @@
 }
 .mc-c-receta .mc-cta {
   margin-top: auto;
-  border-radius: 13px;
-  padding: 6.5px 8px 8px;
-  font-size: 11px;
 }
 
-/* ---------- FITNESS (art izq + anillo de progreso) ---------- */
-.mc-c-fit {
-  display: flex;
-}
-.mc-fi-art {
-  width: 114px;
-  flex: none;
+/* ---------- FITNESS (hero Fitness del usuario + anillo) ---------- */
+.mc-c-fit .mc-art {
   background-image: var(--mc-hero-fit);
-  background-size: cover;
-  background-position: center;
+  background-position: center 40%;
 }
-.mc-fi-data {
-  flex: 1;
-  min-width: 0;
-  padding: 12px 13px 12px 11px;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-.mc-fi-hd {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 13.5px;
-  font-weight: 900;
-  color: var(--mc-ink);
-}
-.mc-fi-streak {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 9.5px;
-  font-weight: 900;
-  color: #c25a00;
-  background: #fef0e4;
-  border-radius: 9px;
-  padding: 3.5px 8px;
-  flex: none;
-}
-.mc-fi-streak .material-symbols-outlined {
-  font-size: 10.5px;
-  color: #e6770f;
+.mc-lchip.up {
+  background: rgba(47, 200, 110, 0.94);
+  box-shadow: 0 4px 10px rgba(20, 140, 70, 0.3);
 }
 .mc-fi-main {
   display: flex;
@@ -1369,13 +1176,13 @@
 .mc-fi-ring .rt b {
   font-size: 16px;
   font-weight: 900;
-  color: var(--mc-ink);
+  color: #20117d;
   line-height: 1;
 }
 .mc-fi-ring .rt span {
   font-size: 8px;
   font-weight: 800;
-  color: #8a93c2;
+  color: #7d7aa8;
   margin-top: 1.5px;
 }
 .mc-fi-list {
@@ -1388,15 +1195,22 @@
 .mc-fi-it {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11.5px;
+  gap: 5px;
+  font-size: 10.5px;
   font-weight: 800;
-  color: var(--mc-ink-soft);
+  color: #5a5f8a;
   white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mc-fi-it > span:last-child {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .mc-fi-it b {
-  color: var(--mc-ink);
+  color: #20117d;
   font-weight: 900;
 }
 .mc-fi-week {
@@ -1420,7 +1234,7 @@
   width: 100%;
   max-width: 16px;
   border-radius: 3.5px;
-  background: #e7ecf9;
+  background: #e4edf8;
   height: var(--h, 10px);
 }
 .mc-fi-week .wb.on .bar {
@@ -1429,29 +1243,12 @@
 .mc-fi-week .lb {
   font-size: 8px;
   font-weight: 900;
-  color: #8a93c2;
+  color: #7d7aa8;
   text-transform: uppercase;
   line-height: 1;
 }
 .mc-fi-week .wb.on .lb {
   color: #6d52f8;
-}
-.mc-fi-cta {
-  margin-top: auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  background: linear-gradient(180deg, #3bd67f, #23b363);
-  color: #fff;
-  border: none;
-  border-radius: 13px;
-  font-family: inherit;
-  font-size: 11.5px;
-  font-weight: 900;
-  padding: 7.5px 6px 8.5px;
-  box-shadow: 0 6px 13px rgba(35, 179, 99, 0.34);
-  cursor: pointer;
 }
 
 /* ---------- TRABAJO/FOCO (full-bleed + panel frosted) ---------- */
@@ -1570,105 +1367,10 @@
   text-shadow: 0 1px 5px rgba(6, 10, 44, 0.65);
 }
 
-/* ---------- GAMING (horizontal oscuro + arte) ---------- */
-.mc-c-game {
-  display: flex;
-  background: linear-gradient(150deg, #232b63 0%, #141949 62%, #0d1240 100%);
-}
-.mc-ga-data {
-  flex: 1;
-  min-width: 0;
-  padding: 12px 12px 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  color: #fff;
-}
-.mc-ga-lbl {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 9.5px;
-  font-weight: 900;
-  color: #c9d2f6;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-}
-.mc-ga-lbl .mc-ib {
-  width: 19px;
-  height: 19px;
-  border-radius: 7px;
-  box-shadow: none;
-}
-.mc-ga-trow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.mc-ga-trow > div:first-child {
-  flex: 1;
-  min-width: 0;
-}
-.mc-ga-title {
-  margin: 0;
-  font-size: 15.5px;
-  font-weight: 900;
-  letter-spacing: -0.015em;
-  line-height: 1.12;
-  font-family: inherit;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.mc-ga-sub {
-  font-size: 10.5px;
-  font-weight: 700;
-  color: #c9d2f6;
-  margin-top: 3px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.mc-ga-desc {
-  font-size: 10px;
-  font-weight: 700;
-  color: #c9d2f6;
-  line-height: 1.45;
-  margin-top: 5px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-.mc-ga-ms {
-  flex: none;
-  margin-left: auto;
-  width: 41px;
-  height: 41px;
-  border-radius: 10.5px;
-  background: linear-gradient(160deg, #4bdd8c, #22b35f);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  box-shadow: 0 5px 12px rgba(34, 179, 95, 0.45);
-}
-.mc-ga-ms b {
-  font-size: 17.5px;
-  font-weight: 900;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  text-shadow: 0 1px 3px rgba(10, 90, 45, 0.4);
-}
-.mc-ga-ms span {
-  font-size: 6.5px;
-  font-weight: 900;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  margin-top: 2.5px;
-  opacity: 0.95;
+/* ---------- GAMING (hero Inform del usuario + panel claro) ---------- */
+.mc-c-game .mc-art {
+  background-image: var(--mc-hero-game);
+  background-position: center 42%;
 }
 .mc-ga-stars {
   display: flex;
@@ -1676,23 +1378,23 @@
   gap: 2.5px;
 }
 .mc-ga-stars .material-symbols-outlined {
-  font-size: 12px;
-  color: #ffd75e;
+  font-size: 13px;
+  color: #f5a623;
   font-variation-settings: "FILL" 1;
 }
 .mc-ga-stars .material-symbols-outlined.dim {
-  color: #4a5590;
+  color: #e4e9f5;
 }
 .mc-ga-stars b {
   font-size: 11.5px;
   font-weight: 900;
-  color: #fff;
+  color: #20117d;
   margin-left: 4px;
 }
 .mc-ga-stars .ga-meta {
   font-size: 9.5px;
   font-weight: 800;
-  color: #b9c3f0;
+  color: #7d7aa8;
 }
 .mc-ga-chips {
   display: flex;
@@ -1701,68 +1403,31 @@
   overflow: hidden;
 }
 .mc-ga-chip {
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: #f0faff;
+  border: 1px solid #edf0f7;
   border-radius: 8px;
   padding: 3.5px 8px;
   font-size: 9.5px;
   font-weight: 800;
-  color: #e8ecff;
+  color: #5a5f8a;
   flex: none;
   white-space: nowrap;
 }
-.mc-ga-cta {
-  margin-top: auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  background: rgba(255, 255, 255, 0.18);
-  border: 1px solid rgba(255, 255, 255, 0.32);
-  color: #fff;
-  border-radius: 12.5px;
-  font-family: inherit;
-  font-size: 11.5px;
-  font-weight: 900;
-  padding: 7px 6px 8px;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  cursor: pointer;
-}
-.mc-ga-art {
-  width: 116px;
-  flex: none;
-  position: relative;
-  background-image: var(--mc-hero-game);
-  background-size: 100% auto;
-  background-position: center 42%;
-  background-repeat: no-repeat;
-  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 16%, #000 84%, transparent 100%);
-  mask-image: linear-gradient(180deg, transparent 0%, #000 16%, #000 84%, transparent 100%);
-}
-.mc-ga-art::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(270deg, rgba(13, 18, 64, 0) 55%, rgba(13, 18, 64, 0.55));
-}
 
 /* ---------- COMPRAS (art + filas de ofertas) ---------- */
-.mc-c-shop {
-  display: flex;
-  flex-direction: column;
-}
 .mc-c-shop .mc-art {
-  height: 52px;
-  flex: none;
   background-image: var(--mc-hero-compras);
-  background-position: center 38%;
+  background-position: center 45%;
 }
 .mc-sh-body {
-  flex: 1;
-  min-height: 0;
+  position: relative;
+  z-index: 3;
+  margin: 0 3px;
+  border-radius: 24px 23px 25px 27px;
+  background: linear-gradient(130deg, #fff, #f6fdff);
+  box-shadow: inset 1px 1px 5px white;
+  transform: rotate(0.35deg);
   padding: 10px 12px 12px;
-  background: #fff;
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -1845,67 +1510,30 @@
 }
 .mc-c-shop .mc-cta {
   margin-top: auto;
-  border-radius: 13px;
-  padding: 6px 8px 7.5px;
-  font-size: 11px;
 }
 
-/* ---------- DORMIR (nocturna, arte fundido) ---------- */
-.mc-c-sleep {
-  background: linear-gradient(135deg, #0f1748 0%, #1b2866 55%, #28377e 100%);
-  min-height: 200px;
-}
-.mc-sl-art {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 160px;
+/* ---------- DORMIR (hero Sleep del usuario + panel claro) ---------- */
+.mc-c-sleep .mc-art {
   background-image: var(--mc-hero-dormir);
-  background-size: cover;
-  background-position: 96% 30%;
-  -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.55) 6%, #000 18%, #000 86%, rgba(0, 0, 0, 0.45) 100%);
-  mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.55) 6%, #000 18%, #000 86%, rgba(0, 0, 0, 0.45) 100%);
+  background-position: center 40%;
 }
-.mc-sl-data {
-  position: relative;
+.mc-sl-moon {
+  position: absolute;
+  top: 38px;
+  right: 11px;
   z-index: 2;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: 200px;
-}
-.mc-sl-hd {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #fff6d8, #ffe9a8 52%, #f5d879);
+  box-shadow: 0 0 20px 3px rgba(255, 224, 130, 0.4);
   display: flex;
   align-items: center;
-  gap: 7px;
+  justify-content: center;
 }
-.mc-sl-hd .tt {
-  font-size: 14.5px;
-  font-weight: 900;
-  color: #fff;
-  letter-spacing: -0.01em;
-  line-height: 1.15;
-}
-.mc-sl-chip {
-  flex: none;
-  background: rgba(255, 255, 255, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  color: #fff;
-  border-radius: 8px;
-  padding: 3px 8px;
-  font-size: 9.5px;
-  font-weight: 900;
-  letter-spacing: 0.02em;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-}
-.mc-sl-sub {
-  font-size: 11px;
-  font-weight: 700;
-  color: #d3dbf8;
-  line-height: 1.45;
+.mc-sl-moon .material-symbols-outlined {
+  font-size: 17px;
+  color: #8c6a1d;
 }
 .mc-sl-fases {
   display: flex;
@@ -1918,13 +1546,13 @@
   align-items: baseline;
   font-size: 8.5px;
   font-weight: 900;
-  color: #c9d2f6;
+  color: #7d7aa8;
   letter-spacing: 0.09em;
   text-transform: uppercase;
 }
 .mc-sl-fases .fl b {
   font-size: 10.5px;
-  color: #fff;
+  color: #20117d;
   letter-spacing: 0;
 }
 .mc-sl-fases .fb {
@@ -1932,7 +1560,7 @@
   height: 10px;
   border-radius: 5px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.15);
+  background: #e4edf8;
 }
 .mc-sl-fases .fb i {
   display: block;
@@ -1943,7 +1571,7 @@
   gap: 7px;
   font-size: 8px;
   font-weight: 800;
-  color: #c9d2f6;
+  color: #5a5f8a;
   white-space: nowrap;
 }
 .mc-sl-fases .cap i {
@@ -1960,63 +1588,28 @@
 }
 .mc-sl-stats {
   display: flex;
-  gap: 5px;
+  gap: 6px;
 }
 .mc-sl-stat {
   flex: 1;
-  background: rgba(255, 255, 255, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  border-radius: 10px;
-  padding: 6px 8px 6.5px;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: linear-gradient(140deg, #fff, #f0faff);
+  border: 1px solid #edf0f7;
+  border-radius: 12px;
+  padding: 6px 10px 6.5px;
+  box-shadow: inset 0 1px 3px #e8ecf5;
 }
 .mc-sl-stat b {
   display: block;
   font-size: 11.5px;
   font-weight: 900;
-  color: #fff;
+  color: #20117d;
 }
 .mc-sl-stat span {
   display: block;
   font-size: 8.5px;
   font-weight: 800;
-  color: #d6def9;
+  color: #7d7aa8;
   margin-top: 0.5px;
-}
-.mc-sl-cta {
-  margin-top: auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  background: rgba(255, 255, 255, 0.22);
-  border: 1px solid rgba(255, 255, 255, 0.36);
-  color: #fff;
-  border-radius: 12.5px;
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 900;
-  padding: 7px 6px 8px;
-  cursor: pointer;
-}
-.mc-sl-moon {
-  position: absolute;
-  top: 14px;
-  right: 15px;
-  z-index: 2;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 38% 32%, #fff6d8, #ffe9a8 52%, #f5d879);
-  box-shadow: 0 0 20px 3px rgba(255, 224, 130, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.mc-sl-moon .material-symbols-outlined {
-  font-size: 17px;
-  color: #8c6a1d;
 }
 
 /* ---------- extensiones Michi v8 (contenido real de los blocks) ---------- */

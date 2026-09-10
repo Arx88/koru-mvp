@@ -181,7 +181,11 @@ function heroVarFor(block: UiBlock): string {
   if (t === "exercise_plan" || t === "activity_tracker" || t === "health_reminder") return "var(--mc-hero-fit)";
   if (t === "wellbeing") return "var(--mc-hero-dormir)";
   if (t === "movie_review" || t === "book_review") return "var(--mc-hero-game)";
-  // informes / research / decisiones / rutas / artículos → mundo de trabajo
+  if (t === "crypto_portfolio" || t === "forex" || t === "market" || t === "data_ticker") return "var(--mc-hero-cripto)";
+  if (t === "live_match" || t === "match_stats" || t === "match_timeline") return "var(--mc-hero-futbol)";
+  if (t === "tennis_match") return "var(--mc-hero-tenis)";
+  if (t === "product_analysis" || t === "comparison") return "url(/assets/art-02.webp)";
+  // informes / research / decisiones / rutas / artículos → Inform del usuario
   return "var(--mc-hero-trabajo)";
 }
 
@@ -221,7 +225,7 @@ export function MichiIcard(props: MichiProps) {
   const bigmin = isWeather && wb.range ? wb.range : hero.desc;
   const valIsLong = (bigval ?? "").length > 6;
 
-  const metrics = (hero.metrics ?? []).slice(0, 4);
+  const metrics = (hero.metrics ?? []).slice(0, 3);
   const hourly = (wb.hourly ?? []).slice(0, 7);
   const daily = (wb.daily ?? []).slice(0, 7);
   // desc no usada como bigmin → se muestra como nota del panel (contenido real)
@@ -638,65 +642,76 @@ export function MichiCrypto(props: MichiProps) {
 
   return (
     <div className="mc-kcard mc-c-crypto" {...tapProps}>
-      <div className="mc-cbg" />
-      <div className="mc-cshade" />
-      <div className="mc-ctop">
+      {/* ---- HERO ilustrado (Stock del usuario, art-07) ---- */}
+      <div className="mc-art">
         <span className="mc-gpill"><MIcon name="monitoring" size={13} /> {main?.sub ?? main?.label ?? hero.kicker}</span>
-        {b.totalValue && (
-          <span className="mc-cr-pf">Portafolio <b>{b.totalValue}</b></span>
+        {hero.live && <span className="mc-lchip">En vivo</span>}
+        <div className="mc-hero-data">
+          <span className="mc-bigval md">{price}</span>
+          <span className={`mc-cr-chg${up ? " up" : " dn"}`}>
+            <MIcon name={up ? "trending_up" : "trending_down"} size={11} />
+            {change ?? "—"} · 24 h
+          </span>
+        </div>
+        {spark && (
+          <svg className="mc-cr-spark" viewBox="0 0 92 34" preserveAspectRatio="none">
+            <path d={spark.area} fill={up ? "rgba(124,255,178,.25)" : "rgba(255,180,188,.22)"} />
+            <path d={spark.line} fill="none" stroke={up ? "#7CFFB2" : "#FFB4BC"} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="91" cy={spark.lastY} r="2.6" fill={up ? "#7CFFB2" : "#FFB4BC"} />
+          </svg>
         )}
       </div>
-      <div className="mc-cr-price">
-        <span className="v">{price}</span>
-        <span className="s">
-          <span className="up">
-            <MIcon name="trending_up" size={11} />
-            {change ?? "—"}
-          </span>
-          <span className="m">· 24 h</span>
-        </span>
+
+      {/* ---- PANEL blanco (weather-bottom del usuario) ---- */}
+      <div className="mc-kbody">
+        {coins.length > 0 && (
+          <div className="mc-tiles">
+            {coins.map((it, i) => (
+              <button
+                key={i}
+                type="button"
+                aria-pressed={i === active}
+                className={`mc-tile mc-cr-tile${i === active ? " on" : ""}`}
+                onClick={(e) => { e.stopPropagation(); setActive(i); }}
+              >
+                <span className="e mc-cr-ic">{it.char ?? it.label.slice(0, 1)}</span>
+                <span className="k">{it.label}</span>
+                {it.val && <span className="v">{it.val}</span>}
+                {it.change && <span className={`mc-cr-trend${it.up === false ? " dn" : " up"}`}>{it.change}</span>}
+              </button>
+            ))}
+          </div>
+        )}
+        {coins.length === 0 && (hero.metrics ?? []).length > 0 && (
+          <div className="mc-tiles">
+            {(hero.metrics ?? []).slice(0, 3).map((m, i) => (
+              <div key={i} className="mc-tile">
+                <span className="e">{isEmoji(m.icon) ? m.icon : <MIcon name={m.icon} size={20} />}</span>
+                <span className="k">{m.label}</span>
+                {m.value && <span className="v">{m.value}</span>}
+              </div>
+            ))}
+          </div>
+        )}
+        {(min || max) && (
+          <div className="mc-cr-range">
+            <div className="bar"><i className="cur" style={{ left: "62%" }} /></div>
+            <div className="lb"><span>mín {min ?? "—"}</span><span>máx {max ?? "—"}</span></div>
+          </div>
+        )}
+        {b.alert && <p className="mc-note" style={{ margin: "2px 2px 0" }}>{b.alert}</p>}
+        {isTappable && (
+          <button
+            className="mc-cta"
+            type="button"
+            onClick={handleClick as unknown as React.MouseEventHandler<HTMLButtonElement>}
+          >
+            <SparkIcon />
+            {cta?.label ?? "Ver el detalle"}
+            <ArrowIcon />
+          </button>
+        )}
       </div>
-      {(min || max) && (
-        <div className="mc-cr-range">
-          <div className="bar"><i className="cur" style={{ left: "62%" }} /></div>
-          <div className="lb"><span>mín {min ?? "—"}</span><span>máx {max ?? "—"}</span></div>
-        </div>
-      )}
-      {spark && (
-        <svg className="mc-cr-spark" viewBox="0 0 92 34" preserveAspectRatio="none" style={{ position: "absolute", right: 13, bottom: 44, width: 152, height: 46, zIndex: 2, filter: "drop-shadow(0 3px 6px rgba(4,8,40,.5))" }}>
-          <path d={spark.area} fill={up ? "rgba(124,255,178,.20)" : "rgba(255,180,188,.18)"} />
-          <path d={spark.line} fill="none" stroke={up ? "#7CFFB2" : "#FFB4BC"} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
-          <circle cx="91" cy={spark.lastY} r="2.6" fill={up ? "#7CFFB2" : "#FFB4BC"} />
-        </svg>
-      )}
-      {coins.length > 0 && (
-        <div className="mc-cr-coins">
-          {coins.map((it, i) => (
-            <button key={i} type="button" aria-pressed={i === active} className={`mc-coin${i === active ? " on" : ""}`} onClick={(e) => { e.stopPropagation(); setActive(i); }}>
-              {it.char && <b style={{ fontWeight: 900 }}>{it.char}</b>}
-              {it.label}
-              {it.change && <b className={it.up === false ? "d" : "u"}>{it.change}</b>}
-            </button>
-          ))}
-        </div>
-      )}
-      {b.alert && (
-        <p style={{ position: "absolute", left: 14, right: 14, bottom: coins.length > 0 ? 52 : 48, zIndex: 2, margin: 0, fontSize: 9.5, fontWeight: 800, color: "rgba(255,255,255,.92)", textShadow: "0 1px 5px rgba(4,8,40,.6)", lineHeight: 1.45 }}>
-          {b.alert}
-        </p>
-      )}
-      {isTappable && (
-        <button
-          className="mc-cta"
-          type="button"
-          style={{ position: "absolute", left: 12, right: 12, bottom: 13, zIndex: 3 }}
-          onClick={handleClick as unknown as React.MouseEventHandler<HTMLButtonElement>}
-        >
-          <SparkIcon />
-          {cta?.label ?? "Ver el detalle"}
-          <ArrowIcon />
-        </button>
-      )}
       {overlay}
     </div>
   );
@@ -884,18 +899,21 @@ export function MichiFit(props: MichiProps) {
 
   return (
     <div className="mc-kcard mc-c-fit" {...tapProps}>
-      <div className="mc-fi-art" />
-      <div className="mc-fi-data">
-        <div className="mc-fi-hd">
-          <span className="mc-ib md green"><MIcon name="favorite" size={13} /></span>
-          {hero.title}
-          {prog && (
-            <span className="mc-fi-streak"><MIcon name="local_fire_department" size={10} />{prog}</span>
-          )}
-        </div>
-        {dayLabels.length > 0 && (
-          <span className="mc-fi-day">{dayLabels[0]}{dayLabels.length > 1 ? ` · +${dayLabels.length - 1} sesiones` : ""}</span>
+      {/* ---- HERO ilustrado (Fitness del usuario, art-00) ---- */}
+      <div className="mc-art">
+        <span className="mc-gpill"><MIcon name="favorite" size={13} /> {hero.title}</span>
+        {prog && (
+          <span className="mc-lchip up"><MIcon name="local_fire_department" size={10} />{prog}</span>
         )}
+        <div className="mc-hero-data">
+          <span className="mc-bigval md">{doneMin ? `${doneMin}'` : "—"}</span>
+          <span className="mc-bigsub">de {totalMin} min · {dayLabels[0] ?? "rutina"}</span>
+          {dayLabels.length > 1 && <span className="mc-bigmin">+{dayLabels.length - 1} sesiones esta semana</span>}
+        </div>
+      </div>
+
+      {/* ---- PANEL blanco (weather-bottom del usuario) ---- */}
+      <div className="mc-kbody">
         <div className="mc-fi-main">
           <div className="mc-fi-ring">
             <svg viewBox="0 0 64 64">
@@ -904,7 +922,7 @@ export function MichiFit(props: MichiProps) {
                   <stop offset="0" stopColor="#8B6DFF" /><stop offset="1" stopColor="#2E7CF6" />
                 </linearGradient>
               </defs>
-              <circle cx="32" cy="32" r={R} fill="none" stroke="#EDF1FB" strokeWidth="7.5" />
+              <circle cx="32" cy="32" r={R} fill="none" stroke="#E4EDF8" strokeWidth="7.5" />
               <circle cx="32" cy="32" r={R} fill="none" stroke="url(#mc-rg)" strokeWidth="7.5"
                 strokeLinecap="round" strokeDasharray={`${(CIRC * pct).toFixed(0)} ${CIRC.toFixed(0)}`} />
             </svg>
@@ -930,7 +948,7 @@ export function MichiFit(props: MichiProps) {
           ))}
         </div>
         <button
-          className="mc-fi-cta"
+          className="mc-cta ok"
           type="button"
           onClick={handleClick as unknown as React.MouseEventHandler<HTMLButtonElement>}
         >
@@ -976,21 +994,19 @@ export function MichiGame(props: MichiProps) {
 
   return (
     <div className="mc-kcard mc-c-game" {...tapProps}>
-      <div className="mc-ga-data">
-        <div className="mc-ga-lbl">
-          <span className="mc-ib md vio"><MIcon name="videogame_asset" size={13} /></span>
-          {hero.kicker}
+      {/* ---- HERO ilustrado (Inform del usuario, art-01; poster real si existe) ---- */}
+      <div className="mc-art" style={img ? { backgroundImage: `url(${img})`, backgroundSize: "cover" } : undefined}>
+        <span className="mc-gpill"><MIcon name="movie" size={13} /> {hero.kicker}</span>
+        {meta != null && <span className="mc-lchip">meta {String(meta).slice(0, 3)}</span>}
+        <div className="mc-hero-data">
+          <span className="mc-bigval md">{b.rating ?? "4,5"}</span>
+          <span className="mc-bigsub">{hero.title}</span>
+          {(byline || genre) && <span className="mc-bigmin">{[byline, genre].filter(Boolean).join(" · ")}</span>}
         </div>
-        <div className="mc-ga-trow">
-          <div>
-            <h3 className="mc-ga-title">{hero.title}</h3>
-            {(byline || genre) && <div className="mc-ga-sub">{[byline, genre].filter(Boolean).join(" · ")}</div>}
-            {(b.overview ?? (b as { synopsis?: string }).synopsis) && <div className="mc-ga-desc">“{String(b.overview ?? (b as { synopsis?: string }).synopsis).slice(0, 90)}{String(b.overview ?? (b as { synopsis?: string }).synopsis).length > 90 ? "…" : ""}”</div>}
-          </div>
-          {meta != null && (
-            <span className="mc-ga-ms"><b>{String(meta).slice(0, 3)}</b><span>meta</span></span>
-          )}
-        </div>
+      </div>
+
+      {/* ---- PANEL blanco (weather-bottom del usuario) ---- */}
+      <div className="mc-kbody">
         <div className="mc-ga-stars">
           {[0, 1, 2, 3, 4].map((i) => (
             <Mat key={i} className={i < stars ? "" : "dim"}>star</Mat>
@@ -998,6 +1014,11 @@ export function MichiGame(props: MichiProps) {
           <b>{b.rating ?? "4,5"}</b>
           {b.ratings && <span className="ga-meta">· {b.ratings.length} fuentes</span>}
         </div>
+        {(b.overview ?? (b as { synopsis?: string }).synopsis) && (
+          <p className="mc-note" style={{ margin: "2px 2px 0" }}>
+            “{String(b.overview ?? (b as { synopsis?: string }).synopsis).slice(0, 110)}{String(b.overview ?? (b as { synopsis?: string }).synopsis).length > 110 ? "…" : ""}”
+          </p>
+        )}
         {chips.length > 0 && (
           <div className="mc-ga-chips">
             {chips.slice(0, 3).map((c, i) => <span key={i} className="mc-ga-chip">{c}</span>)}
@@ -1005,16 +1026,16 @@ export function MichiGame(props: MichiProps) {
         )}
         {isTappable && (
           <button
-            className="mc-ga-cta"
+            className="mc-cta"
             type="button"
             onClick={handleClick as unknown as React.MouseEventHandler<HTMLButtonElement>}
           >
-            <MIcon name="play_arrow" size={13} />
+            <SparkIcon />
             {cta?.label ?? "Ver trailer y reseña"}
+            <ArrowIcon />
           </button>
         )}
       </div>
-      <div className="mc-ga-art" style={img ? { backgroundImage: `url(${img})`, backgroundSize: "cover" } : undefined} />
       {overlay}
     </div>
   );
@@ -1140,14 +1161,19 @@ export function MichiSleep(props: MichiProps) {
 
   return (
     <div className="mc-kcard mc-c-sleep" {...tapProps}>
-      <div className="mc-sl-art" />
-      <span className="mc-sl-moon"><MIcon name="bedtime" size={17} style={{ color: "#8C6A1D" }} /></span>
-      <div className="mc-sl-data">
-        <div className="mc-sl-hd">
-          <h3 className="tt">{hero.title}</h3>
-          {chip && <span className="mc-sl-chip">{chip}</span>}
+      {/* ---- HERO ilustrado (Sleep del usuario, art-05) ---- */}
+      <div className="mc-art">
+        <span className="mc-gpill"><MIcon name="bedtime" size={13} /> {hero.title}</span>
+        {chip && <span className="mc-lchip">{chip}</span>}
+        <div className="mc-hero-data">
+          <span className="mc-bigval md">{chip ?? "🌙"}</span>
+          <span className="mc-bigsub">{hero.desc ?? b.reminder ?? b.note ?? b.advice ?? b.suggestion ?? "Dormí bien — mañana seguimos"}</span>
         </div>
-        <span className="mc-sl-sub">{hero.desc ?? b.reminder ?? b.note ?? b.advice ?? b.suggestion ?? "Dormí bien — mañana seguimos"}</span>
+        <span className="mc-sl-moon"><MIcon name="bedtime" size={17} style={{ color: "#8C6A1D" }} /></span>
+      </div>
+
+      {/* ---- PANEL blanco (weather-bottom del usuario) ---- */}
+      <div className="mc-kbody">
         <div className="mc-sl-fases">
           <div className="fl"><span>Fases de anoche</span><b>7h 12</b></div>
           <div className="fb">
@@ -1170,20 +1196,22 @@ export function MichiSleep(props: MichiProps) {
         )}
         {b.actionLabel && (
           <button
-            className="mc-sl-cta"
+            className="mc-cta ok"
             type="button"
             aria-pressed={tookAction}
             onClick={(e) => { e.stopPropagation(); setTookAction((t) => !t); }}
           >
+            <SparkIcon />
             {tookAction ? "¡Listo! ✓" : b.actionLabel}
           </button>
         )}
         {isTappable && (
           <button
-            className="mc-sl-cta"
+            className="mc-cta"
             type="button"
             onClick={handleClick as unknown as React.MouseEventHandler<HTMLButtonElement>}
           >
+            <SparkIcon />
             {cta?.label ?? "Ver el detalle"}
             <ArrowIcon />
           </button>
@@ -1411,18 +1439,27 @@ export function MichiTenis(props: MichiProps) {
 
   return (
     <div className="mc-kcard mc-c-tenis" {...tapProps}>
-      <div className="mc-te-data">
-        <div className="mc-te-lbl">
-          <span className="mc-ib md blue"><MIcon name="sports_tennis" size={13} /></span>
-          {tourLabel || hero.kicker}
+      {/* ---- HERO ilustrado (Tenis del usuario, art-08) ---- */}
+      <div className="mc-art">
+        <span className="mc-gpill"><MIcon name="sports_tennis" size={13} /> {tourLabel || hero.kicker}</span>
+        {b.currentPoint && <span className="mc-lchip">{b.currentPoint}</span>}
+        <div className="mc-hero-data">
+          <span className="mc-bigval md">{h2hLabel ?? `${homeSets}–${awaySets}`}</span>
+          <span className="mc-bigsub">{home?.name ?? "Local"} <em>vs</em> {away?.name ?? "Visitante"}</span>
+          {(b.status ?? setsScore) && (
+            <span className="mc-bigmin">{[b.status, setsScore && `sets ${setsScore}`].filter(Boolean).join(" · ")}</span>
+          )}
         </div>
-        <h4 className="mc-te-title">
-          {home?.name ?? "Local"} <em>vs</em> {away?.name ?? "Visitante"}
-        </h4>
-        <div className="mc-te-ranks">
-          {(home?.country ?? home?.rank) && <span className="rk"><i>{home?.country ?? "—"}</i> {home?.rank ? `Nº ${home.rank}` : ""}</span>}
-          {(away?.country ?? away?.rank) && <span className="rk"><i>{away?.country ?? "—"}</i> {away?.rank ? `Nº ${away.rank}` : ""}</span>}
-        </div>
+      </div>
+
+      {/* ---- PANEL blanco (weather-bottom del usuario) ---- */}
+      <div className="mc-kbody">
+        {(home?.country ?? home?.rank ?? away?.country ?? away?.rank) && (
+          <div className="mc-te-ranks">
+            {(home?.country ?? home?.rank) && <span className="rk"><i>{home?.country ?? "—"}</i> {home?.rank ? `Nº ${home.rank}` : ""}</span>}
+            {(away?.country ?? away?.rank) && <span className="rk"><i>{away?.country ?? "—"}</i> {away?.rank ? `Nº ${away.rank}` : ""}</span>}
+          </div>
+        )}
         <div className="mc-te-h2h">
           <div className="hd"><span>{b.currentPoint ? `${b.status ?? "Live"} · ${b.currentPoint}` : (b.status ?? "Próximo partido")}</span><b>{h2hLabel ?? `${homeSets}–${awaySets}`}</b></div>
           <div className="bar">
@@ -1452,16 +1489,16 @@ export function MichiTenis(props: MichiProps) {
         </div>
         {isTappable && (
           <button
-            className="mc-te-link"
+            className="mc-cta"
             type="button"
             onClick={handleClick as unknown as React.MouseEventHandler<HTMLButtonElement>}
           >
+            <SparkIcon />
             {cta?.label ?? "Ver dónde verlo"}
             <ArrowIcon />
           </button>
         )}
       </div>
-      <div className="mc-te-art" />
       {overlay}
     </div>
   );
