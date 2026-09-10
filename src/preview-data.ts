@@ -155,6 +155,67 @@ const elClasico: UiBlock = {
       ],
     },
   },
+  // 🔴 FIX DOBLE CARD (demo) — el fixture del mismo equipo viaja DENTRO de la
+  // card de resultado como `upcoming` (sección "Próximos partidos" del
+  // interior). Antes esto generaba una segunda card de fixture suelta.
+  upcoming: [
+    { homeTeam: "Real Madrid", awayTeam: "Rayo Vallecano", date: "2026-09-12T19:00:00Z", time: "21:00", league: "LaLiga" },
+    { homeTeam: "Las Palmas", awayTeam: "Real Madrid", date: "2026-09-17T20:00:00Z", time: "22:00", league: "LaLiga" },
+    { homeTeam: "Real Madrid", awayTeam: "Alavés", date: "2026-09-24T19:30:00Z", time: "21:30", league: "LaLiga" },
+  ],
+};
+
+// ── DEPORTES: partido PROGRAMADO (Boca hoy) — FIX "0-0 inventado": la hora
+// es la estrella, el badge dice PRÓXIMO, y la extensión trae info + alineaciones ──
+const bocaHoy: UiBlock = {
+  type: "live_match",
+  league: "Liga Profesional · Fecha 12",
+  status: "Scheduled",
+  state: "pre",
+  time: "21:30",
+  homeName: "Boca Juniors",
+  awayName: "Central Córdoba",
+  homeLogo: `${S}/boca-juniors.png`,
+  awayLogo: undefined,
+  homeColor: "#103f79",
+  awayColor: "#000000",
+  venue: "La Bombonera",
+  venueCity: "Buenos Aires",
+  lineups: {
+    "Boca Juniors": {
+      formation: "4-4-2",
+      starters: [
+        { number: "1", name: "Marchesín", position: "POR" },
+        { number: "4", name: "Figal", position: "DFC" },
+        { number: "6", name: "Costa", position: "DFC" },
+        { number: "3", name: "Sarraf", position: "LI" },
+        { number: "2", name: "Advíncula", position: "LD" },
+        { number: "8", name: "Fernández", position: "MC" },
+        { number: "5", name: "Espinosa", position: "MC" },
+        { number: "10", name: "Cavani", position: "DC" },
+        { number: "7", name: "Blanco", position: "EI" },
+        { number: "11", name: "Tabarez", position: "ED" },
+        { number: "9", name: "Zeballos", position: "DC" },
+      ],
+      subs: [{ number: "21", name: "Pavón", position: "EI" }],
+    },
+    "Central Córdoba": {
+      formation: "5-3-2",
+      starters: [
+        { number: "12", name: "Kenny", position: "POR" },
+        { number: "2", name: "Quiroga", position: "DFC" },
+        { number: "6", name: "Franco", position: "DFC" },
+        { number: "3", name: "Ojeda", position: "DFC" },
+        { number: "4", name: "Baez", position: "DFC" },
+        { number: "8", name: "Ramos", position: "MC" },
+        { number: "5", name: "Villar", position: "MC" },
+        { number: "7", name: "Lencioni", position: "MC" },
+        { number: "9", name: "Renzi", position: "DC" },
+        { number: "11", name: "Miranda", position: "EI" },
+      ],
+      subs: [{ number: "17", name: "Alvez", position: "DC" }],
+    },
+  },
 };
 
 // ── DEPORTES: Tenis (fotos reales de Alcaraz y Sinner) ──
@@ -700,6 +761,8 @@ export const CHAT_SCRIPT: ChatEntry[] = [
   { kind: "card", tag: "deportes", intro: "Lo sigo minuto a minuto, va 2-1:", block: elClasico },
   { kind: "user", tag: "deportes", text: "y el partido de alcaraz?" },
   { kind: "card", tag: "deportes", intro: "Semifinal apretada, va el 4º set:", block: alcarazSinner },
+  { kind: "user", tag: "deportes", text: "el partido de boca de hoy" },
+  { kind: "card", tag: "deportes", intro: "Hoy a las 21:30 en la Bombonera:", block: bocaHoy },
   { kind: "user", tag: "deportes", text: "cuándo juega boca?" },
   { kind: "card", tag: "deportes", block: matchTimelineBlock },
   { kind: "user", tag: "deportes", text: "el clásico en números" },

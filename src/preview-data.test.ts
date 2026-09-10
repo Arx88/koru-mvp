@@ -95,11 +95,15 @@ describe("preview-data · cobertura del sistema", () => {
     expect(unexpected).toEqual([]);
   });
 
-  it("saved_record aparece exactamente 2 veces (router comprobante/bóveda) y el resto 1", () => {
+  it("saved_record 2 veces (router comprobante/bóveda), live_match 2 veces (en vivo vs programado), el resto 1", () => {
     const counts = new Map<string, number>();
     for (const t of blockTypes(CHAT_SCRIPT)) counts.set(t, (counts.get(t) ?? 0) + 1);
     expect(counts.get("saved_record")).toBe(2);
-    const others = [...counts.entries()].filter(([t]) => t !== "saved_record");
+    // 🔴 FIX FOOTBALL PREVIEW — live_match ahora aparece 2 veces a propósito:
+    // una EN VIVO (el clásico) y una PROGRAMADA (Boca hoy) para demostrar el
+    // fix del "0-0 inventado" en ambos frentes (card + interior).
+    expect(counts.get("live_match")).toBe(2);
+    const others = [...counts.entries()].filter(([t]) => t !== "saved_record" && t !== "live_match");
     for (const [t, n] of others) expect(n, `tipo ${t} repetido ${n} veces`).toBe(1);
   });
 });

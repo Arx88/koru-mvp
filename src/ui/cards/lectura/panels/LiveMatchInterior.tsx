@@ -6,9 +6,14 @@
  * feed de goles foto-primero (photo del tool), barra de posesión desde
  * homePossession/awayPossession y remates. EN VIVO solo si el partido
  * está en juego (minute/status); si no, muestra el estado real.
+ *
+ * 🔴 FIX PROGRAMADO — si el partido todavía no arrancó (state "pre" /
+ * status Scheduled), el scoreboard muestra la HORA y "PRÓXIMO" en vez de un
+ * "0-0" inventado, y el interior agrega info del encuentro (estadio/ciudad)
+ * + alineaciones confirmadas si las hay + próximos del mismo equipo.
  */
 import { useState } from "react";
-import { BellRing, ChartPie, Check, Goal, List, type LucideIcon } from "lucide-react";
+import { BellRing, CalendarDays, ChartPie, Check, Goal, List, MapPin, Users, type LucideIcon } from "lucide-react";
 import type { UiBlock } from "../../../../domain/types";
 import { Ic } from "../Ic";
 import { LecturaShell } from "../LecturaShell";
@@ -26,6 +31,12 @@ const isLive = (b: MatchBlock) => {
   return Number.isFinite(min) && min > 0 && min <= 120;
 };
 
+const isPre = (b: MatchBlock) => {
+  if (b.state === "pre") return true;
+  const s = (b.status ?? "").toLowerCase();
+  return /scheduled|not started|pr[oó]xim|upcoming|programado/.test(s) && !isLive(b);
+};
+
 export function LiveMatchInterior({ block, onClose, onSave }: LecturaInteriorProps<MatchBlock>) {
   // Follow real del partido: el toggle queda pegado y el aviso se crea 1 vez.
   const [following, setFollowing] = useState(false);
@@ -33,6 +44,7 @@ export function LiveMatchInterior({ block, onClose, onSave }: LecturaInteriorPro
   const away = block.awayName ?? "Visitante";
   const league = block.league ?? "Partido";
   const live = isLive(block);
+  const pre = isPre(block);
   const minute = parseInt(block.minute ?? "", 10);
   const minuteOk = Number.isFinite(minute);
   const minutePct = minuteOk ? Math.min(100, (minute / 90) * 100) : 0;
@@ -40,6 +52,8 @@ export function LiveMatchInterior({ block, onClose, onSave }: LecturaInteriorPro
   const homePos = parseInt(block.homePossession ?? "", 10);
   const awayPos = parseInt(block.awayPossession ?? "", 10);
   const hasPos = Number.isFinite(homePos) && Number.isFinite(awayPos);
+  const upcoming = block.upcoming ?? [];
+  const kickoff = block.time ?? block.minute ?? "";
 
   const feedRef = ({ current: null } as { current: HTMLDivElement | null });
   const GoalIcon: LucideIcon = Goal;
@@ -48,17 +62,21 @@ export function LiveMatchInterior({ block, onClose, onSave }: LecturaInteriorPro
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(`${home} vs ${away}`, `${league}${block.minute ? ` · ${block.minute}` : ""}`) : undefined}
-      chip={{ label: "En vivo", background: "linear-gradient(135deg,#4BDD8C,#1f7a5c)" }}
+      chip={pre
+        ? { label: "Próximo", background: "linear-gradient(135deg,#FFB020,#e08900)" }
+        : { label: "En vivo", background: "linear-gradient(135deg,#4BDD8C,#1f7a5c)" }}
       ariaLabel={`${home} vs ${away}`}
     >
       <div id="p-match" className="lcr-panel">
         <div className="sb rv">
           <div className="sb-top">
-            <span className="sb-comp">{league}{block.time ? ` · ${block.time}` : ""}</span>
+            <span className="sb-comp">{league}{block.time && !pre ? ` · ${block.time}` : ""}</span>
             {live ? (
               <span className="sb-live"><span className="dot"></span>EN VIVO</span>
+            ) : pre ? (
+              <span className="sb-comp" style={{ fontWeight: 900 }}>PRÓXIMO</span>
             ) : (
-              <span className="sb-comp">{block.status ?? "Programado"}</span>
+              <span className="sb-comp">{block.status ?? "Final"}</span>
             )}
           </div>
           <div className="sb-score">
@@ -70,11 +88,17 @@ export function LiveMatchInterior({ block, onClose, onSave }: LecturaInteriorPro
               )}
               <span className="nm">{home}</span>
             </div>
-            <div className="sb-nums">
-              <span className="g">{block.homeScore ?? 0}</span>
-              <span className="sep">–</span>
-              <span className="g">{block.awayScore ?? 0}</span>
-            </div>
+            {pre ? (
+              <div className="sb-nums">
+                <span className="g" style={{ fontSize: 30 }}>{kickoff || "—"}</span>
+              </div>
+            ) : (
+              <div className="sb-nums">
+                <span className="g">{block.homeScore ?? 0}</span>
+                <span className="sep">–</span>
+                <span className="g">{block.awayScore ?? 0}</span>
+              </div>
+            )}
             <div className="sb-team">
               {block.awayLogo ? (
                 <img src={block.awayLogo} alt={away} />
@@ -85,13 +109,72 @@ export function LiveMatchInterior({ block, onClose, onSave }: LecturaInteriorPro
             </div>
           </div>
           <div className="sb-min">
-            {minuteOk ? <b>{block.minute}</b> : <b>{block.time ?? ""}</b>}
-            <span>{block.status ?? (live ? "en juego" : "")}</span>
+            {pre ? (
+              <>
+                <b>VS</b>
+                <span>arranca {kickoff || "por confirmar"}</span>
+              </>
+            ) : (
+              <>
+                {minuteOk ? <b>{block.minute}</b> : <b>{block.time ?? ""}</b>}
+                <span>{block.status ?? (live ? "en juego" : "")}</span>
+              </>
+            )}
           </div>
           {live && minuteOk && (
             <div className="sb-bar"><i style={{ width: `${minutePct}%` }}></i></div>
           )}
         </div>
+
+        {pre && (
+          <div className="sb-feed rv" style={{ gap: 10 }}>
+            <h3><Ic i={CalendarDays} className="ic" />Info del partido</h3>
+            {[
+              block.venue ? { icon: MapPin, label: "Estadio", value: block.venue } : null,
+              block.venueCity ? { icon: MapPin, label: "Ciudad", value: block.venueCity } : null,
+              league !== "Partido" ? { icon: CalendarDays, label: "Competencia", value: league } : null,
+              kickoff ? { icon: CalendarDays, label: "Arranca", value: kickoff } : null,
+            ].filter(Boolean).map((row: any) => (
+              <div key={row.label} className="frow" style={{ padding: "2px 0" }}>
+                <span className="fmin" style={{ minWidth: 26 }}><Ic i={row.icon} className="ic" /></span>
+                <div className="ft">
+                  <span style={{ fontSize: 10, fontWeight: 800, color: "#8A93C2", textTransform: "uppercase", letterSpacing: ".06em" }}>{row.label}</span>
+                  <b style={{ display: "block", fontSize: 13 }}>{row.value}</b>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {pre && block.lineups && (
+          <div className="sb-feed rv">
+            <h3><Ic i={Users} className="ic" />Alineaciones confirmadas</h3>
+            {Object.entries(block.lineups).map(([team, side]) => (
+              <div className="frow" key={team} style={{ padding: "4px 0" }}>
+                <span className="fmin" style={{ minWidth: 34 }}>{side.formation ?? ""}</span>
+                <div className="ft">
+                  <b>{team}</b>
+                  <span>{(side.starters ?? []).slice(0, 11).map(p => p.name).join(" · ")}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {pre && upcoming.length > 0 && (
+          <div className="sb-feed rv">
+            <h3><Ic i={CalendarDays} className="ic" />Próximos partidos</h3>
+            {upcoming.slice(0, 4).map((um, i) => (
+              <div className="frow" key={`up_${i}`} style={{ padding: "4px 0" }}>
+                <span className="fmin" style={{ minWidth: 40, fontSize: 10 }}>{um.time ?? ""}</span>
+                <div className="ft">
+                  <b style={{ fontSize: 12 }}>{um.homeTeam} vs {um.awayTeam}</b>
+                  <span>{um.league ?? ""}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {goals.length > 0 && (
           <div className="sb-feed rv" ref={feedRef}>
@@ -143,22 +226,28 @@ export function LiveMatchInterior({ block, onClose, onSave }: LecturaInteriorPro
               setFollowing(next);
               if (next) {
                 dispatchCardAction("create_commitment", block, {
-                  title: `Avisame si hay gol en ${home} vs ${away}`,
-                  dueHint: "mientras el partido esté en juego",
+                  title: pre
+                    ? `Recordatorio: ${home} vs ${away}${kickoff ? ` (${kickoff})` : ""}`
+                    : `Avisame si hay gol en ${home} vs ${away}`,
+                  dueHint: pre
+                    ? `${kickoff || "cuando arranque el partido"}`
+                    : "mientras el partido esté en juego",
                 });
               }
             }}
           >
             <Ic i={following ? Check : BellRing} className="ic" />
-            {following ? "Siguiendo el partido" : "Avisame si hay gol"}
+            {following ? (pre ? "Te aviso antes del pitazo" : "Siguiendo el partido") : (pre ? "Avisame cuando arranque" : "Avisame si hay gol")}
           </button>
-          <button
-            type="button"
-            className="btn ghost"
-            onClick={() => feedRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-          >
-            <Ic i={List} className="ic" />Ver goles
-          </button>
+          {goals.length > 0 && (
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={() => feedRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            >
+              <Ic i={List} className="ic" />Ver goles
+            </button>
+          )}
         </div>
       </div>
     </LecturaShell>

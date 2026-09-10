@@ -735,6 +735,8 @@ export type UiBlock =
       league?: string;
       time?: string;
       status?: string;
+      /** Estado ESPN del evento: "pre" (programado) | "in" (en vivo) | "post" (terminado). */
+      state?: string;
       homeName?: string;
       awayName?: string;
       homeScore?: number;
@@ -755,7 +757,15 @@ export type UiBlock =
         rightPercent: number;
         leftColor?: string;
         rightColor?: string;
+        /** 🔴 FIX STATS FABRICADAS — valores absolutos reales (24·4 tiros),
+         *  para no mostrar porcentajes disfrazados de números. */
+        home?: number;
+        away?: number;
       }>;
+      // 🔴 FIX DOBLE CARD — próximos partidos del mismo equipo (viene del
+      // match_schedule del mismo turno). El interior los muestra como
+      // sección "Próximos partidos" en vez de una segunda card de fixture.
+      upcoming?: Array<{ homeTeam?: string; awayTeam?: string; date?: string; time?: string; league?: string }>;
       // 🔴 v2: datos ricos desde ESPN /summary
       homeColor?: string;
       awayColor?: string;

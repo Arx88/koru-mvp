@@ -30,6 +30,11 @@ import {
 
 export function blocksFromToolResults(results: ToolExecution[], userInput?: string): UiBlock[] {
   const blocks: UiBlock[] = [];
+  // 🔴 FIX DOBLE CARD — resultados de deportes (match_live + match_schedule)
+  // se resuelven AL FINAL del loop, juntos, para poder mergear y evitar la
+  // doble card (resultado + fixture) cuando el LLM llama las dos tools para
+  // la misma pregunta ("el partido de X").
+  const sports: { live: any | null; schedule: any | null } = { live: null, schedule: null };
   // 🔴 Task 15-FIX1: ELIMINADO `isComparisonQuery` regex.
   // Antes: si el input matcheaba `/compara/i` o `/\bvs\b/i`, el mapper
   // interceptaba resultados de `web_search` y generaba una comparison card
@@ -225,40 +230,10 @@ export function blocksFromToolResults(results: ToolExecution[], userInput?: stri
       continue;
     }
     if (result.type === "match_schedule") {
-      const r = result as any;
-      const matches = r.matches || [];
-      const teamName = r.team || r.query || "Equipo";
-      blocks.push({
-        type: "match_timeline" as const,
-        title: teamName,
-        items: matches.slice(0, 5).map((m: any) => {
-          // Determinar el rival (el equipo que NO es el consultado)
-          const homeLower = (m.homeTeam ?? "").toLowerCase();
-          const teamLower = teamName.toLowerCase();
-          const isHome = homeLower.includes(teamLower) || teamLower.includes(homeLower);
-          const opponent = isHome ? m.awayTeam : m.homeTeam;
-          const homeTeam = m.homeTeam ?? teamName;
-          const awayTeam = m.awayTeam ?? opponent ?? "Rival";
-          // Formatear fecha legible
-          let minute = "—";
-          if (m.date) {
-            const d = new Date(m.date);
-            if (!isNaN(d.getTime())) {
-              minute = `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}`;
-            }
-          }
-          return {
-            minute,
-            text: `${homeTeam} vs ${awayTeam}`,
-            sub: `${m.league ?? ""}${m.time ? " · " + m.time : ""}`,
-            active: true,
-          };
-        }),
-        // 🔴 KORU 3.0 — pasar teamInfo/nextMatch/wikiExtract si están disponibles
-        teamInfo: r.teamInfo,
-        nextMatch: r.nextMatch,
-        wikipediaExtract: r.wikipediaExtract,
-      });
+      // 🔴 FIX DOBLE CARD — guardamos el resultado y lo resolvemos DESPUÉS del
+      // loop junto con match_live (merge en buildSportsBlocks). Si ya se
+      // guardó otro match_schedule (raro), el último gana.
+      sports.schedule = result as any;
       continue;
     }
     if (result.type === "match_live") {
@@ -271,111 +246,10 @@ export function blocksFromToolResults(results: ToolExecution[], userInput?: stri
         // y fuerce un reply honesto en vez de dejar al LLM inventar.
         (result as any).__forceHonestReply = true;
         (result as any).__honestReplyText = r.note || r.error || `No encontré partidos recientes para "${r.query ?? ''}". La temporada puede estar en receso.`;
+        sports.live = null; // sin resultado jugado
         continue; // NO generar block — sin card, sin alucinación
       }
-      // El tool match_live devuelve { matches: [{homeTeam:"Spain", awayTeam:"Belgium", homeScore:2, awayScore:1, status:"Full Time", date:..., live:false}] }
-      // (strings, no objetos). Soportamos también la forma legacy (r.homeTeam como objeto).
-      const matches = Array.isArray(r.matches) ? r.matches : [];
-      if (matches.length === 0 && (r.homeName || r.homeTeam)) {
-        // Forma legacy: un solo partido en la raíz
-        matches.push({
-          homeTeam: typeof r.homeTeam === "string" ? r.homeTeam : r.homeTeam?.name,
-          awayTeam: typeof r.awayTeam === "string" ? r.awayTeam : r.awayTeam?.name,
-          homeScore: r.homeScore ?? r.homeTeam?.score,
-          awayScore: r.awayScore ?? r.awayTeam?.score,
-          status: r.status,
-          date: r.date,
-          live: r.live,
-        });
-      }
-      // Si hay UN partido, mostramos la card hero live_match con los datos reales.
-      if (matches.length >= 1) {
-        const m = matches[0];
-        const homeName = String(m.homeTeam ?? "Local");
-        const awayName = String(m.awayTeam ?? "Visitante");
-        const homeScore = Number(m.homeScore ?? 0);
-        const awayScore = Number(m.awayScore ?? 0);
-        const status = String(m.status ?? (m.live ? "En vivo" : "Final"));
-        const homeInitials = m.homeAbbrev ?? initialsFromName(homeName);
-        const awayInitials = m.awayAbbrev ?? initialsFromName(awayName);
-        const dateStr = m.date ? formatMatchDate(m.date) : "";
-        // 🔴 FIX TYPO: "Posesion" → "Posesión" (con s y acento)
-        const homePossessionNum = Number.parseFloat(m.homePossession ?? m.detailedStats?.find(s => s.label === "Posesión")?.home?.toString() ?? "50") || 50;
-        const awayPossessionNum = Number.parseFloat(m.awayPossession ?? m.detailedStats?.find(s => s.label === "Posesión")?.away?.toString() ?? "50") || 50;
-        // 🔴 FIX BUG: "Tiros" era "0% - 0%" (porcentaje). Ahora es número absoluto.
-        const homeShotsNum = Number(m.homeShots ?? m.detailedStats?.find(s => s.label === "Tiros")?.home ?? 0);
-        const awayShotsNum = Number(m.awayShots ?? m.detailedStats?.find(s => s.label === "Tiros")?.away ?? 0);
-        // Para que la barrita funcione, calculamos porcentaje relativo
-        const totalShots = homeShotsNum + awayShotsNum;
-        const homeShotsPct = totalShots > 0 ? Math.round((homeShotsNum / totalShots) * 100) : 50;
-        const awayShotsPct = totalShots > 0 ? 100 - homeShotsPct : 50;
-        blocks.push({
-          type: "live_match" as const,
-          homeName,
-          awayName,
-          homeScore,
-          awayScore,
-          homeInitials,
-          awayInitials,
-          minute: m.minute ?? m.time,
-          globalAgg: status + (dateStr ? ` · ${dateStr}` : ""),
-          homePossession: m.homePossession,
-          awayPossession: m.awayPossession,
-          homeShots: m.homeShots,
-          awayShots: m.awayShots,
-          time: m.minute ?? m.time,
-          status,
-          homeTeam: { name: homeName, abbrev: homeInitials, color: m.homeColor, score: homeScore },
-          awayTeam: { name: awayName, abbrev: awayInitials, color: m.awayColor, score: awayScore },
-          // 🔴 FIX TYPO: "Posesion" → "Posesión"
-          stats: [
-            { label: "Posesión", leftPercent: homePossessionNum, rightPercent: awayPossessionNum, leftColor: m.homeColor, rightColor: m.awayColor },
-            { label: "Tiros", leftPercent: homeShotsPct, rightPercent: awayShotsPct, leftColor: m.homeColor, rightColor: m.awayColor },
-          ],
-          // 🔴 v2: datos ricos del /summary
-          homeColor: m.homeColor,
-          awayColor: m.awayColor,
-          homeLogo: m.homeLogo,
-          awayLogo: m.awayLogo,
-          homeAbbrev: m.homeAbbrev,
-          awayAbbrev: m.awayAbbrev,
-          league: m.league,
-          venue: m.venue,
-          venueCity: m.venueCity,
-          attendance: m.attendance,
-          goals: m.goals,
-          yellowCards: m.yellowCards,
-          redCards: m.redCards,
-          substitutions: m.substitutions,
-          lineups: m.lineups,
-          detailedStats: m.detailedStats,
-        });
-        // Si hay múltiples partidos, agregamos un match_timeline con el resto.
-        if (matches.length > 1) {
-          blocks.push({
-            type: "match_timeline" as const,
-            items: matches.slice(1, 5).map((mm: any) => ({
-              minute: mm.date ? new Date(mm.date).getDate() + "'" : "—",
-              text: `${mm.homeTeam ?? "?"} ${mm.homeScore ?? "?"} - ${mm.awayScore ?? "?"} ${mm.awayTeam ?? "?"}`,
-              sub: mm.status ?? (mm.live ? "En vivo" : "Final"),
-              active: !!mm.live,
-            })),
-          });
-        }
-      }
-      // 🔴 KORU 3.0 — Si no hay matches pero hay teamInfo/nextMatch/wikiExtract,
-      // generar un match_timeline con esa info para que el detail screen la muestre.
-      if (matches.length === 0 && (r.teamInfo || r.nextMatch || r.wikipediaExtract)) {
-        blocks.push({
-          type: "match_timeline" as const,
-          title: r.teamInfo?.name || r.query || "Equipo",
-          items: [],
-          teamInfo: r.teamInfo,
-          nextMatch: r.nextMatch,
-          wikipediaExtract: r.wikipediaExtract,
-        });
-        continue;
-      }
+      sports.live = r;
       continue;
     }
     if (result.type === "route_traffic") {
@@ -1271,5 +1145,293 @@ export function blocksFromToolResults(results: ToolExecution[], userInput?: stri
       continue;
     }
   }
+  // 🔴 FIX DOBLE CARD — resolver deportes con merge (una sola historia por
+  // equipo: resultado con próximos adentro, o fixture enriquecido).
+  buildSportsBlocks(sports, blocks);
   return blocks;
 }
+
+/* ============================================================================
+ * 🔴 FIX DEPORTES (doble card + placeholders + stats fabricadas)
+ *
+ * Reglas de merge entre match_live y match_schedule:
+ * 1. match_live encontró partido JUGADO/EN VIVO → card resultado (live_match).
+ *    Los próximos del match_schedule se pegan como `upcoming` (sección
+ *    "Próximos partidos" del interior). NO se emite fixture aparte.
+ * 2. match_live encontró partido PROGRAMADO (fallback de futuro) o es el
+ *    fallback de info de equipo → card de FIXTURE única (match_timeline) con
+ *    items + nextMatch + teamInfo + wiki.
+ * 3. Sin datos de ningún lado → CERO cards (antes: card vacía
+ *    "PARTIDO Local 0-0 Visitante FINAL").
+ * 4. `stats` del live_match SOLO con datos reales (antes: Posesión/Tiros
+ *    50%-50% fabricados para cualquier partido).
+ * ==========================================================================*/
+
+/** ¿El partido todavía no arrancó? (ESPN: state "pre" / status "Scheduled") */
+function isScheduledMatch(m: any): boolean {
+  if (!m) return false;
+  if (m.state === "pre") return true;
+  return /scheduled|not started|pre|pr[óo]xim|upcoming|por jugar/i.test(String(m.status ?? ""));
+}
+
+/** "2026-09-12T00:30Z" → "21:30" (hora local del servidor formateada) */
+function kickoffTimeFrom(date?: string): string | undefined {
+  if (!date) return undefined;
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return undefined;
+  return d.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
+}
+
+/** "2026-09-12T00:30Z" → "sáb 12/09" */
+function shortDateFrom(date?: string): string {
+  if (!date) return "—";
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return "—";
+  const dias = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+  return `${dias[d.getDay()]} ${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}`;
+}
+
+function buildSportsBlocks(sports: { live: any | null; schedule: any | null }, blocks: UiBlock[]): void {
+  const live = sports.live;
+  const schedule = sports.schedule;
+  if (!live && !schedule) return;
+
+  // ── Normalizar los matches de match_live (incluye forma legacy) ──────────
+  const liveMatches: any[] = Array.isArray(live?.matches) ? [...live.matches] : [];
+  if (liveMatches.length === 0 && (live?.homeName || live?.homeTeam)) {
+    liveMatches.push({
+      homeTeam: typeof live.homeTeam === "string" ? live.homeTeam : live.homeTeam?.name,
+      awayTeam: typeof live.awayTeam === "string" ? live.awayTeam : live.awayTeam?.name,
+      homeScore: live.homeScore ?? live.homeTeam?.score,
+      awayScore: live.awayScore ?? live.awayTeam?.score,
+      status: live.status,
+      date: live.date,
+      live: live.live,
+    });
+  }
+  // Fallback de info de equipo: match_live devolvió teamInfo + nextMatch sin
+  // partidos jugados ("No hay partidos recientes") → va como fixture/info.
+  const liveIsInfoFallback = !!(live?.teamInfo && /no hay partidos recientes/i.test(String(live?.note ?? "")));
+
+  const schedMatches: any[] = Array.isArray(schedule?.matches) ? schedule.matches : [];
+
+  // ── ¿Los dos resultados hablan del mismo equipo? ─────────────────────────
+  const teamsOf = (m: any) => [String(m?.homeTeam ?? ""), String(m?.awayTeam ?? "")].map(t => t.toLowerCase());
+  const sameTeamUniverse =
+    liveMatches.length > 0 && schedMatches.length > 0 &&
+    liveMatches.some(m1 => schedMatches.some(m2 =>
+      teamsOf(m1).some(t1 => t1 && teamsOf(m2).some(t2 => t2 && (t1.includes(t2) || t2.includes(t1))))
+    ));
+
+  // ── CASO 1: partido jugado/en vivo → card resultado ─────────────────────
+  const firstLive = liveMatches[0];
+  if (liveMatches.length > 0 && !liveIsInfoFallback && !isScheduledMatch(firstLive)) {
+    const m = firstLive;
+    const homeName = String(m.homeTeam ?? "Local");
+    const awayName = String(m.awayTeam ?? "Visitante");
+    const homeScore = Number(m.homeScore ?? 0);
+    const awayScore = Number(m.awayScore ?? 0);
+    const status = String(m.status ?? (m.live ? "En vivo" : "Final"));
+    const homeInitials = m.homeAbbrev ?? initialsFromName(homeName);
+    const awayInitials = m.awayAbbrev ?? initialsFromName(awayName);
+    const dateStr = m.date ? formatMatchDate(m.date) : "";
+
+    // 🔴 FIX STATS FABRICADAS — solo stats reales del /summary. Antes se
+    // inventaban "Posesión 50%-50%" y "Tiros 50%-50%" para cualquier partido.
+    const realStats: Array<{ label: string; leftPercent: number; rightPercent: number; leftColor?: string; rightColor?: string; home?: number; away?: number }> = [];
+    const possession = m.detailedStats?.find((s: any) => s.label === "Posesión");
+    if (possession) {
+      realStats.push({
+        label: "Posesión",
+        leftPercent: Math.round(Number(possession.home ?? 50)),
+        rightPercent: Math.round(Number(possession.away ?? 50)),
+        leftColor: m.homeColor, rightColor: m.awayColor,
+        home: Number(possession.home ?? 50), away: Number(possession.away ?? 50),
+      });
+    } else if (m.homePossession != null && m.awayPossession != null) {
+      realStats.push({
+        label: "Posesión",
+        leftPercent: Math.round(Number(m.homePossession)), rightPercent: Math.round(Number(m.awayPossession)),
+        leftColor: m.homeColor, rightColor: m.awayColor,
+        home: Number(m.homePossession), away: Number(m.awayPossession),
+      });
+    }
+    const shots = m.detailedStats?.find((s: any) => s.label === "Tiros");
+    const homeShotsNum = Number(shots?.home ?? m.homeShots ?? NaN);
+    const awayShotsNum = Number(shots?.away ?? m.awayShots ?? NaN);
+    if (Number.isFinite(homeShotsNum) && Number.isFinite(awayShotsNum)) {
+      const total = homeShotsNum + awayShotsNum;
+      realStats.push({
+        label: "Tiros",
+        leftPercent: total > 0 ? Math.round((homeShotsNum / total) * 100) : 50,
+        rightPercent: total > 0 ? 100 - Math.round((homeShotsNum / total) * 100) : 50,
+        leftColor: m.homeColor, rightColor: m.awayColor,
+        home: homeShotsNum, away: awayShotsNum,
+      });
+    }
+
+    // 🔴 FIX DOBLE CARD — próximos del schedule como `upcoming` del resultado
+    // (sección "Próximos partidos" del interior), sin card de fixture aparte.
+    const upcoming = sameTeamUniverse
+      ? schedMatches.slice(0, 4).map((um: any) => ({
+          homeTeam: um.homeTeam,
+          awayTeam: um.awayTeam,
+          date: um.date,
+          time: um.time ?? kickoffTimeFrom(um.date),
+          league: um.league,
+        })).filter((um: any) => um.homeTeam || um.awayTeam)
+      : undefined;
+
+    blocks.push({
+      type: "live_match" as const,
+      homeName,
+      awayName,
+      homeScore,
+      awayScore,
+      homeInitials,
+      awayInitials,
+      minute: m.minute ?? m.time,
+      globalAgg: status + (dateStr ? ` · ${dateStr}` : ""),
+      homePossession: m.homePossession,
+      awayPossession: m.awayPossession,
+      homeShots: m.homeShots,
+      awayShots: m.awayShots,
+      time: m.minute ?? m.time,
+      status,
+      state: m.state ?? (isScheduledMatch(m) ? "pre" : m.live ? "in" : "post"),
+      homeTeam: { name: homeName, abbrev: homeInitials, color: m.homeColor, score: homeScore },
+      awayTeam: { name: awayName, abbrev: awayInitials, color: m.awayColor, score: awayScore },
+      stats: realStats.length > 0 ? realStats : undefined,
+      // 🔴 v2: datos ricos del /summary
+      homeColor: m.homeColor,
+      awayColor: m.awayColor,
+      homeLogo: m.homeLogo,
+      awayLogo: m.awayLogo,
+      homeAbbrev: m.homeAbbrev,
+      awayAbbrev: m.awayAbbrev,
+      league: m.league,
+      venue: m.venue,
+      venueCity: m.venueCity,
+      attendance: m.attendance,
+      goals: m.goals,
+      yellowCards: m.yellowCards,
+      redCards: m.redCards,
+      substitutions: m.substitutions,
+      lineups: m.lineups,
+      detailedStats: m.detailedStats,
+      upcoming,
+    } as UiBlock);
+
+    // Otros resultados del mismo query (rondas de varios días) → mini timeline
+    if (liveMatches.length > 1) {
+      blocks.push({
+        type: "match_timeline" as const,
+        title: `${homeName} · otros resultados`,
+        items: liveMatches.slice(1, 5).map((mm: any) => ({
+          minute: mm.date ? shortDateFrom(mm.date) : "—",
+          text: `${mm.homeTeam ?? "?"} ${mm.homeScore ?? "?"}-${mm.awayScore ?? "?"} ${mm.awayTeam ?? "?"}`,
+          sub: mm.status ?? (mm.live ? "En vivo" : "Final"),
+          active: !!mm.live,
+        })),
+      } as UiBlock);
+    }
+    // El schedule era de OTRO equipo (raro pero posible) → fixture aparte
+    if (schedMatches.length > 0 && !sameTeamUniverse) {
+      pushFixtureCard(schedule, blocks);
+    }
+    return;
+  }
+
+  // ── CASO 2: sin partido jugado → UNA card de fixture/info enriquecida ────
+  // Fuentes posibles de items: match_schedule (normal) o el partido programado
+  // que match_live encontró en su fallback de futuro.
+  const scheduledFromLive = liveMatches.find(m => isScheduledMatch(m));
+  const infoFromLive = live?.teamInfo || live?.nextMatch || live?.wikipediaExtract;
+
+  if (schedMatches.length > 0) {
+    // Fixture del schedule + contexto (teamInfo/wiki) del schedule o del
+    // fallback de match_live (el que tenga data gana).
+    const merged: any = { ...schedule };
+    if (!merged.teamInfo && live?.teamInfo) merged.teamInfo = live.teamInfo;
+    if (!merged.wikipediaExtract && live?.wikipediaExtract) merged.wikipediaExtract = live.wikipediaExtract;
+    pushFixtureCard(merged, blocks);
+    return;
+  }
+
+  if (scheduledFromLive) {
+    // match_live encontró el próximo partido → fixture card con ese match
+    pushFixtureCard(
+      {
+        team: live?.teamInfo?.name ?? live?.query ?? `${scheduledFromLive.homeTeam ?? ""} ${scheduledFromLive.awayTeam ?? ""}`.trim(),
+        matches: [scheduledFromLive],
+        teamInfo: live?.teamInfo,
+        wikipediaExtract: live?.wikipediaExtract,
+        nextMatch: {
+          homeTeam: scheduledFromLive.homeTeam,
+          awayTeam: scheduledFromLive.awayTeam,
+          date: scheduledFromLive.date,
+          time: scheduledFromLive.time ?? kickoffTimeFrom(scheduledFromLive.date),
+          league: scheduledFromLive.league,
+        },
+      },
+      blocks,
+    );
+    return;
+  }
+
+  if (infoFromLive) {
+    // Fallback puro de info de equipo (sin fixture): card de equipo
+    blocks.push({
+      type: "match_timeline" as const,
+      title: live.teamInfo?.name || live.query || "Equipo",
+      items: [],
+      teamInfo: live.teamInfo,
+      nextMatch: live.nextMatch,
+      wikipediaExtract: live.wikipediaExtract,
+    } as UiBlock);
+    return;
+  }
+
+  // ── CASO 3: sin ningún dato → cero cards ─────────────────────────────────
+}
+
+/** Card de fixture enriquecida: items + nextMatch (para el interior Mtl) +
+ *  teamInfo + wiki. Título = nombre real del equipo, no el query crudo. */
+function pushFixtureCard(schedule: any, blocks: UiBlock[]): void {
+  const matches: any[] = Array.isArray(schedule?.matches) ? schedule.matches : [];
+  const teamInfo = schedule?.teamInfo;
+  const wiki = schedule?.wikipediaExtract;
+  const teamName = String(teamInfo?.name ?? schedule?.team ?? schedule?.query ?? "").trim();
+
+  // 🔴 FIX: sin items, sin nextMatch, sin teamInfo y sin wiki → NO emitir card
+  // (antes: card vacía "PARTIDO Local 0-0 Visitante FINAL").
+  if (matches.length === 0 && !schedule?.nextMatch && !teamInfo && !wiki) return;
+
+  const first = matches[0];
+  const nextMatch =
+    schedule?.nextMatch ??
+    (first
+      ? {
+          homeTeam: first.homeTeam,
+          awayTeam: first.awayTeam,
+          date: first.date,
+          time: first.time ?? kickoffTimeFrom(first.date),
+          league: first.league,
+        }
+      : undefined);
+
+  blocks.push({
+    type: "match_timeline" as const,
+    title: teamName || (nextMatch ? `${nextMatch.homeTeam ?? ""} vs ${nextMatch.awayTeam ?? ""}` : "Próximo partido"),
+    items: matches.slice(0, 5).map((m: any) => ({
+      minute: shortDateFrom(m.date),
+      text: `${m.homeTeam ?? "?"} vs ${m.awayTeam ?? "?"}`,
+      sub: `${m.league ?? ""}${m.time ?? kickoffTimeFrom(m.date) ? ` · ${m.time ?? kickoffTimeFrom(m.date)}` : ""}`,
+      active: true,
+    })),
+    teamInfo,
+    nextMatch,
+    wikipediaExtract: wiki,
+  } as UiBlock);
+}
+

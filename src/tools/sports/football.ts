@@ -612,26 +612,8 @@ export const matchLive: ToolHandler = {
     // 2. Info de Wikipedia sobre el equipo
     // 3. Noticias recientes (GDELT)
     // Esto da valor al usuario aunque no haya partido jugado.
-
-    // Buscar ID del equipo en TheSportsDB
-    let teamInfo: { id: string; name: string; stadium?: string; location?: string; league?: string; description?: string } | null = null;
-    try {
-      const searchRes = await fetchJson<{ teams?: Array<{ idTeam?: string; strTeam?: string; strStadium?: string; strLocation?: string; strLeague?: string; strDescriptionES?: string; strDescriptionEN?: string }> }>(
-        `${TSDB_BASE}/searchteams.php?t=${encodeURIComponent(query)}`,
-        { timeoutMs: 8_000 },
-      );
-      if (searchRes.ok && searchRes.data?.teams && searchRes.data.teams.length > 0) {
-        const t = searchRes.data.teams[0];
-        teamInfo = {
-          id: t.idTeam ?? "",
-          name: t.strTeam ?? query,
-          stadium: t.strStadium,
-          location: t.strLocation,
-          league: t.strLeague,
-          description: t.strDescriptionES || t.strDescriptionEN,
-        };
-      }
-    } catch { /* ignore */ }
+    // (fetchTeamContext comparte el lookup de equipo + Wikipedia con match_schedule.)
+    const { teamInfo, wikipediaExtract: wikiExtract, wikiSource } = await fetchTeamContext(query);
 
     // Si encontramos el team, buscar próximo partido
     let nextMatch: TsdbEvent | null = null;
@@ -646,27 +628,6 @@ export const matchLive: ToolHandler = {
         }
       } catch { /* ignore */ }
     }
-
-    // Wikipedia info
-    let wikiExtract: string | null = null;
-    let wikiSource: { title: string; url: string; domain: string; snippet: string } | null = null;
-    try {
-      const wikiRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(`${query} football team`)}&format=json&origin=*&srlimit=1`, { signal: AbortSignal.timeout(9000) });
-      const wikiData = await wikiRes.json() as { query?: { search?: Array<{ title: string; snippet: string }> } };
-      const results = wikiData.query?.search ?? [];
-      if (results.length > 0) {
-        const title = results[0].title;
-        const summaryRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`, { signal: AbortSignal.timeout(9000) });
-        const summary = await summaryRes.json() as { extract?: string; content_urls?: { desktop?: { page: string } } };
-        wikiExtract = summary.extract ?? null;
-        wikiSource = {
-          title,
-          url: summary.content_urls?.desktop?.page ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`,
-          domain: "wikipedia.org",
-          snippet: results[0].snippet?.replace(/<[^>]+>/g, "") ?? "",
-        };
-      }
-    } catch { /* ignore */ }
 
     // Si tenemos datos adicionales, devolver status "ok" con info útil
     if (teamInfo || nextMatch || wikiExtract) {
@@ -775,6 +736,58 @@ export const leagueStandings: ToolHandler = {
   },
 };
 
+// ─── fetchTeamContext ───────────────────────────────────────────────────────
+// 🔴 FIX CARD FIXTURE — contexto de equipo compartido (TheSportsDB searchteams
+// + extracto de Wikipedia). Lo usan tanto el fallback de match_live como el
+// path principal de match_schedule (que antes llegaba sin teamInfo/nextMatch
+// y la card de fixture quedaba vacía por dentro).
+async function fetchTeamContext(teamQuery: string): Promise<{
+  teamInfo: { id: string; name: string; stadium?: string; location?: string; league?: string; description?: string } | null;
+  wikipediaExtract: string | null;
+  wikiSource: { title: string; url: string; domain: string; snippet: string } | null;
+}> {
+  let teamInfo: { id: string; name: string; stadium?: string; location?: string; league?: string; description?: string } | null = null;
+  try {
+    const searchRes = await fetchJson<{ teams?: Array<{ idTeam?: string; strTeam?: string; strStadium?: string; strLocation?: string; strLeague?: string; strDescriptionES?: string; strDescriptionEN?: string }> }>(
+      `${TSDB_BASE}/searchteams.php?t=${encodeURIComponent(teamQuery)}`,
+      { timeoutMs: 8_000 },
+    );
+    if (searchRes.ok && searchRes.data?.teams && searchRes.data.teams.length > 0) {
+      const t = searchRes.data.teams[0];
+      teamInfo = {
+        id: t.idTeam ?? "",
+        name: t.strTeam ?? teamQuery,
+        stadium: t.strStadium,
+        location: t.strLocation,
+        league: t.strLeague,
+        description: t.strDescriptionES || t.strDescriptionEN,
+      };
+    }
+  } catch { /* ignore */ }
+
+  let wikipediaExtract: string | null = null;
+  let wikiSource: { title: string; url: string; domain: string; snippet: string } | null = null;
+  try {
+    const wikiRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(`${teamQuery} football team`)}&format=json&origin=*&srlimit=1`, { signal: AbortSignal.timeout(9000) });
+    const wikiData = await wikiRes.json() as { query?: { search?: Array<{ title: string; snippet: string }> } };
+    const results = wikiData.query?.search ?? [];
+    if (results.length > 0) {
+      const title = results[0].title;
+      const summaryRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`, { signal: AbortSignal.timeout(9000) });
+      const summary = await summaryRes.json() as { extract?: string; content_urls?: { desktop?: { page: string } } };
+      wikipediaExtract = summary.extract ?? null;
+      wikiSource = {
+        title,
+        url: summary.content_urls?.desktop?.page ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`,
+        domain: "wikipedia.org",
+        snippet: results[0].snippet?.replace(/<[^>]+>/g, "") ?? "",
+      };
+    }
+  } catch { /* ignore */ }
+
+  return { teamInfo, wikipediaExtract, wikiSource };
+}
+
 // ─── match_schedule ─────────────────────────────────────────────────────────
 export const matchSchedule: ToolHandler = {
   definition: defineTool(
@@ -865,12 +878,33 @@ export const matchSchedule: ToolHandler = {
       .slice(0, next);
 
     if (upcomingEspn.length > 0) {
+      // 🔴 FIX CARD FIXTURE — el path ESPN devolvía SOLO matches: la card de
+      // fixture quedaba sin nextMatch (interior sin partido protagonista) y
+      // sin teamInfo (interior sin estadio/liga). Enriquecemos en paralelo
+      // con el mismo contexto de equipo que usa el fallback (searchteams +
+      // Wikipedia). Si falla, seguimos devolviendo los matches (compatible).
+      const first = upcomingEspn[0];
+      const ctx = await fetchTeamContext(team || league);
+      // Hora de inicio legible desde el ISO (normalizeEspnEvent no trae "time").
+      const kickoff = first.date
+        ? (() => { const d = new Date(first.date as string); return isNaN(d.getTime()) ? undefined : d.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false }); })()
+        : undefined;
       return {
         type: "match_schedule",
         status: "ok",
         team: team || league,
         matches: upcomingEspn,
-        source: "ESPN",
+        nextMatch: {
+          homeTeam: first.homeTeam,
+          awayTeam: first.awayTeam,
+          date: first.date,
+          time: kickoff,
+          league: first.league,
+        },
+        teamInfo: ctx.teamInfo ?? undefined,
+        wikipediaExtract: ctx.wikipediaExtract ?? undefined,
+        sources: ctx.wikiSource ? [ctx.wikiSource] : undefined,
+        source: ctx.teamInfo ? "ESPN + TheSportsDB + Wikipedia" : "ESPN",
         sourceUrl: "https://www.espn.com/soccer/",
       };
     }

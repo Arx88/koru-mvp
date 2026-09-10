@@ -1280,6 +1280,13 @@ export function MichiFocus(props: MichiProps) {
 
 /* ============================================================================
    FUTBOL — art + scoreboard broadcast (escudos reales + goles + posesión)
+   🔴 FIX PLACEHOLDERS — tres variantes reales:
+   1) match_timeline CON items → card de FIXTURE (lista de próximos partidos,
+      NO un scoreboard "Local 0-0 Visitante").
+   2) match_timeline sin items pero con teamInfo → card de EQUIPO (nombre,
+      estadio, liga, descripción — sin marcador fantasma).
+   3) live_match programado (state "pre") → muestra la HORA del partido en
+      vez de un "0-0" inventado.
    ============================================================================ */
 
 export function MichiFutbol(props: MichiProps) {
@@ -1288,29 +1295,147 @@ export function MichiFutbol(props: MichiProps) {
     homeName?: string; awayName?: string; homeScore?: number; awayScore?: number;
     homeTeam?: { name?: string; score?: number; color?: string }; awayTeam?: { name?: string; score?: number; color?: string };
     homeLogo?: string; awayLogo?: string; homeColor?: string; awayColor?: string;
-    league?: string; status?: string; minute?: string;
+    league?: string; status?: string; state?: string; minute?: string; time?: string; date?: string;
     goals?: { scorer?: string; text?: string; minute?: string; photo?: string }[];
     detailedStats?: { label?: string; home?: number; away?: number; leftPercent?: number; rightPercent?: number }[];
     stats?: { label?: string; home?: number; away?: number; leftPercent?: number; rightPercent?: number }[];
     // match_timeline
-    teamInfo?: { name?: string; stadium?: string; league?: string; description?: string };
-    nextMatch?: { homeTeam?: string; awayTeam?: string; date?: string; time?: string; league?: string };
+    title?: string;
+    items?: { minute?: string; text?: string; sub?: string; active?: boolean }[];
+    teamInfo?: { name?: string; stadium?: string; location?: string; league?: string; description?: string };
+    nextMatch?: { match?: string; homeTeam?: string; awayTeam?: string; date?: string; time?: string; league?: string };
+    wikipediaExtract?: string;
+    upcoming?: { homeTeam?: string; awayTeam?: string; date?: string; time?: string; league?: string }[];
   };
 
-  // match_timeline: partido futuro → equipos desde nextMatch, "score" = hora
+  const tapProps = isTappable
+    ? { onClick: handleClick, onKeyDown: handleKeyDown, role: "button" as const, tabIndex: 0 }
+    : {};
+
+  // ── VARIANTE FIXTURE (match_timeline con partidos) ────────────────────────
+  const fixtureItems = (b.items ?? []).filter((it) => it.text);
+  if (fixtureItems.length > 0) {
+    const next = b.nextMatch;
+    const firstText = fixtureItems[0]?.text ?? "";
+    const firstDate = fixtureItems[0]?.minute ?? "";
+    return (
+      <div className="mc-kcard mc-c-futbol" {...tapProps}>
+        <div className="mc-art">
+          <span className="mc-gpill"><MIcon name="event" size={13} /> {b.teamInfo?.league ?? next?.league ?? hero.kicker}</span>
+        </div>
+        <div className="mc-fu-body">
+          <div className="mc-fu-league">
+            <span className="mc-ib red"><MIcon name="calendar_month" size={13} /></span>
+            <h4 style={{ margin: 0, fontSize: "inherit", fontWeight: "inherit", letterSpacing: "inherit", textTransform: "inherit", color: "inherit", fontFamily: "inherit" }}>
+              {b.teamInfo?.name ?? b.title ?? next?.league ?? "Próximos partidos"}
+            </h4>
+            <span className="st">{fixtureItems.length} PRÓXIMOS</span>
+          </div>
+          {next && (next.homeTeam || next.awayTeam) ? (
+            <div className="mc-fu-score">
+              <div className="mc-fu-team">
+                <div className="mc-crest" style={{ background: b.homeLogo ? "#F5F7FC" : undefined }}>
+                  <span className="nm" style={{ fontSize: 12, fontWeight: 900, color: "#1A237E" }}>{(next.homeTeam ?? "—").slice(0, 2).toUpperCase()}</span>
+                </div>
+                <span className="nm">{next.homeTeam ?? "—"}</span>
+              </div>
+              <div className="mc-fu-mid">
+                <span className="mc-fu-num" style={{ fontSize: 18 }}>{next.time ?? firstDate}</span>
+                <span className="mc-fu-st">{firstDate || "PRÓXIMO"}</span>
+              </div>
+              <div className="mc-fu-team">
+                <div className="mc-crest" style={{ background: b.awayLogo ? "#F5F7FC" : undefined }}>
+                  <span className="nm" style={{ fontSize: 12, fontWeight: 900, color: "#1A237E" }}>{(next.awayTeam ?? "—").slice(0, 2).toUpperCase()}</span>
+                </div>
+                <span className="nm">{next.awayTeam ?? "—"}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="mc-fu-league" style={{ marginBottom: 2 }}>
+              <span className="st" style={{ background: "#EEF2FF", color: "#1D3FA8" }}>{firstText || "Fixture"}</span>
+            </div>
+          )}
+          {fixtureItems.slice(0, 3).map((it, i) => (
+            <div key={`fx_${i}`} className="mc-fu-pos">
+              <span className="lb" style={{ minWidth: 42 }}>{it.minute ?? "—"}</span>
+              <span style={{ fontSize: 10.5, fontWeight: 800, color: "#1E1B4B", flex: 1, lineHeight: 1.35 }}>{it.text}</span>
+              {it.sub ? <span style={{ fontSize: 9, fontWeight: 700, color: "#6E7594", maxWidth: 96, textAlign: "right", lineHeight: 1.3 }}>{it.sub}</span> : null}
+            </div>
+          ))}
+          {b.teamInfo?.description && (
+            <p style={{ margin: 0, fontSize: 10.5, fontWeight: 700, color: "#6E7594", lineHeight: 1.5 }}>
+              {b.teamInfo.description.slice(0, 110)}{b.teamInfo.description.length > 110 ? "…" : ""}
+            </p>
+          )}
+          {isTappable && (
+            <button className="mc-cta" type="button" onClick={handleClick as unknown as React.MouseEventHandler<HTMLButtonElement>}>
+              <SparkIcon />
+              {cta?.label ?? "Ver fixture"}
+              <ArrowIcon />
+            </button>
+          )}
+        </div>
+        {overlay}
+      </div>
+    );
+  }
+
+  // ── VARIANTE EQUIPO (sin partidos: info del equipo) ───────────────────────
+  if (!b.homeName && !b.homeTeam?.name && !b.nextMatch?.homeTeam && (b.teamInfo || b.wikipediaExtract)) {
+    const info = b.teamInfo;
+    return (
+      <div className="mc-kcard mc-c-futbol" {...tapProps}>
+        <div className="mc-art">
+          <span className="mc-gpill"><MIcon name="shield" size={13} /> {info?.league ?? "Info del equipo"}</span>
+        </div>
+        <div className="mc-fu-body">
+          <div className="mc-fu-league">
+            <span className="mc-ib red"><MIcon name="shield" size={13} /></span>
+            <h4 style={{ margin: 0, fontSize: "inherit", fontWeight: "inherit", letterSpacing: "inherit", textTransform: "inherit", color: "inherit", fontFamily: "inherit" }}>
+              {info?.name ?? b.title ?? "Equipo"}
+            </h4>
+            <span className="st">EQUIPO</span>
+          </div>
+          {[
+            info?.stadium ? { icon: "stadium", label: "Estadio", value: info.stadium } : null,
+            info?.location ? { icon: "location_on", label: "Sede", value: info.location } : null,
+            info?.league ? { icon: "emoji_events", label: "Liga", value: info.league } : null,
+          ].filter(Boolean).map((row: any) => (
+            <div key={row.label} className="mc-fu-pos">
+              <span className="lb" style={{ minWidth: 52 }}>{row.label}</span>
+              <span style={{ fontSize: 10.5, fontWeight: 800, color: "#1E1B4B" }}>{row.value}</span>
+            </div>
+          ))}
+          {(b.wikipediaExtract ?? info?.description) && (
+            <p style={{ margin: 0, fontSize: 10.5, fontWeight: 700, color: "#6E7594", lineHeight: 1.5 }}>
+              {(b.wikipediaExtract ?? info?.description ?? "").slice(0, 130)}{(b.wikipediaExtract ?? info?.description ?? "").length > 130 ? "…" : ""}
+            </p>
+          )}
+          {isTappable && (
+            <button className="mc-cta" type="button" onClick={handleClick as unknown as React.MouseEventHandler<HTMLButtonElement>}>
+              <SparkIcon />
+              {cta?.label ?? "Ver detalle"}
+              <ArrowIcon />
+            </button>
+          )}
+        </div>
+        {overlay}
+      </div>
+    );
+  }
+
+  // ── VARIANTE PARTIDO (live_match: en vivo / final / programado) ───────────
   const isFuture = !b.homeName && !b.homeTeam?.name && !!b.nextMatch?.homeTeam;
+  const isPre = b.state === "pre" || /scheduled|not started|pr[óo]xim|upcoming/i.test(String(b.status ?? ""));
   const homeName = (isFuture ? b.nextMatch?.homeTeam : (b.homeName ?? b.homeTeam?.name ?? "Local"))?.toString() ?? "Local";
   const awayName = (isFuture ? b.nextMatch?.awayTeam : (b.awayName ?? b.awayTeam?.name ?? "Visitante"))?.toString() ?? "Visitante";
-  const matchTime = isFuture ? b.nextMatch?.time : undefined;
+  const matchTime = isFuture ? b.nextMatch?.time : (b.time ?? b.minute);
   const homeScore = b.homeScore ?? b.homeTeam?.score ?? 0;
   const awayScore = b.awayScore ?? b.awayTeam?.score ?? 0;
   const goals = (b.goals ?? []).slice(0, 2);
   const possessionStat = (b.detailedStats?.find((s) => s.label === "Posesión") ?? b.stats?.find((s) => s.label === "Posesión"));
   const homePoss = possessionStat ? Math.round(possessionStat.home ?? possessionStat.leftPercent ?? 50) : 50;
-
-  const tapProps = isTappable
-    ? { onClick: handleClick, onKeyDown: handleKeyDown, role: "button" as const, tabIndex: 0 }
-    : {};
+  const kickoffLabel = matchTime ?? (b.date ? b.date.slice(0, 10) : undefined);
 
   return (
     <div className="mc-kcard mc-c-futbol" {...tapProps}>
@@ -1324,7 +1449,7 @@ export function MichiFutbol(props: MichiProps) {
           <h4 style={{ margin: 0, fontSize: "inherit", fontWeight: "inherit", letterSpacing: "inherit", textTransform: "inherit", color: "inherit", fontFamily: "inherit" }}>
             {b.league ?? b.teamInfo?.league ?? b.nextMatch?.league ?? "PARTIDO"}
           </h4>
-          <span className="st">{b.status ?? (hero.live ? "EN JUEGO" : isFuture ? "PRÓXIMO" : "FINAL")}</span>
+          <span className="st">{b.status ?? (hero.live ? "EN JUEGO" : isFuture || isPre ? "PRÓXIMO" : "FINAL")}</span>
         </div>
         <div className="mc-fu-score">
           <div className="mc-fu-team">
@@ -1334,9 +1459,9 @@ export function MichiFutbol(props: MichiProps) {
             <span className="nm">{homeName}</span>
           </div>
           <div className="mc-fu-mid">
-            {isFuture ? (
+            {isFuture || isPre ? (
               <>
-                <span className="mc-fu-num" style={{ fontSize: 18 }}>{matchTime ?? "—"}</span>
+                <span className="mc-fu-num" style={{ fontSize: 18 }}>{kickoffLabel ?? "—"}</span>
                 <span className="mc-fu-st">PRÓXIMO</span>
               </>
             ) : (
@@ -1365,11 +1490,10 @@ export function MichiFutbol(props: MichiProps) {
             ))}
           </div>
         )}
-        {b.teamInfo?.description && (
-          <p style={{ margin: 0, fontSize: 10.5, fontWeight: 700, color: "#6E7594", lineHeight: 1.5 }}>{b.teamInfo.description}</p>
-        )}
-        {(b.stats ?? []).filter((st) => st.label !== "Posesión").slice(0, 2).map((st, i) => (
-          <div key={i} className="mc-fu-pos">
+        {/* 🔴 FIX STATS FABRICADAS — valores absolutos reales (24·4), no
+            porcentajes disfrazados; sin stats no se inventa la fila. */}
+        {(b.detailedStats ?? b.stats ?? []).filter((st) => st.label !== "Posesión").slice(0, 2).map((st, i) => (
+          <div key={`st_${i}`} className="mc-fu-pos">
             <span className="lb" style={{ minWidth: 56 }}>{st.label}</span>
             <div style={{ display: "flex", gap: 4, fontSize: 9.5, fontWeight: 900, color: "#1E1B4B" }}>
               <span style={{ color: "#1D3FA8" }}>{st.home ?? st.leftPercent ?? "—"}</span>
@@ -1378,7 +1502,7 @@ export function MichiFutbol(props: MichiProps) {
             </div>
           </div>
         ))}
-        {possessionStat && (
+        {possessionStat && (possessionStat.home != null || possessionStat.leftPercent != null) && (
           <div className="mc-fu-pos">
             <span className="lb">Posesión</span>
             <div className="mc-fu-duel">
@@ -1386,6 +1510,15 @@ export function MichiFutbol(props: MichiProps) {
               <i className="r" style={{ width: `${100 - homePoss}%` }} />
             </div>
             <span className="lb" style={{ color: "#1D3FA8" }}>{homePoss}%</span>
+          </div>
+        )}
+        {b.upcoming && b.upcoming.length > 0 && (
+          <div className="mc-fu-pos">
+            <span className="lb" style={{ minWidth: 52 }}>Próximo</span>
+            <span style={{ fontSize: 10, fontWeight: 800, color: "#1E1B4B", flex: 1 }}>
+              {b.upcoming[0].homeTeam} vs {b.upcoming[0].awayTeam}
+              {b.upcoming[0].time ? ` · ${b.upcoming[0].time}` : ""}
+            </span>
           </div>
         )}
         {isTappable && (

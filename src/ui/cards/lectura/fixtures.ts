@@ -769,7 +769,15 @@ export const electionVoteBlock: Extract<UiBlock, { type: "election_vote" }> = {
 
 export const matchTimelineBlock: Extract<UiBlock, { type: "match_timeline" }> = {
   type: "match_timeline",
-  title: "Juega Boca, y conviene verlo",
+  title: "Boca Juniors",
+  // 🔴 FIX CARD FIXTURE — items con los próximos partidos: la card de chat
+  // los muestra como lista (antes: scoreboard fantasma "Local 0-0 Visitante").
+  items: [
+    { minute: "dom 14/09", text: "Boca Juniors vs River Plate", sub: "Liga Profesional · 21:30", active: true },
+    { minute: "mié 17/09", text: "Independiente vs Boca Juniors", sub: "Liga Profesional · 21:00" },
+    { minute: "dom 21/09", text: "Boca Juniors vs San Lorenzo", sub: "Liga Profesional · 17:45" },
+    { minute: "sáb 27/09", text: "Racing vs Boca Juniors", sub: "Liga Profesional · 19:00" },
+  ],
   teamInfo: {
     name: "Boca Juniors",
     stadium: "La Bombonera",

@@ -2754,7 +2754,9 @@ function liveMatch(b: Of<"live_match">): KoruPresentation {
   const status = clean(b.status);
   const live = /in progress|live|halftime|en vivo/i.test(status);
   const finished = !live && (!status || /final|finished|ended|ft/i.test(status));
-  const scheduled = !live && /scheduled|programado|upcoming|próximamente/i.test(status);
+  // 🔴 FIX PARTIDO PROGRAMADO — detectar "pre" de ESPN y status en inglés;
+  // antes un partido a jugarse mostraba marcador "0-0" inventado.
+  const scheduled = b.state === "pre" || (!live && !finished && /scheduled|not started|programado|upcoming|pr[oó]xim/i.test(status ?? ""));
   const kickerParts: string[] = [];
   if (live) kickerParts.push("En vivo");
   if (league) kickerParts.push(league);
@@ -2845,31 +2847,111 @@ function liveMatch(b: Of<"live_match">): KoruPresentation {
 
   // 🔴 v2: detail screen con secciones ricas — hero, goles, tarjetas, stats con barras, alineaciones
   const hasRichData = !!(b.goals?.length || b.yellowCards?.length || b.detailedStats?.length || b.lineups);
+
+  // 🔴 FIX DOBLE CARD — sección "Próximos partidos" con el fixture del mismo
+  // equipo (viene mergeado del match_schedule del mismo turno).
+  const upcomingSection: NonNullable<KoruPresentation["detail"]>["sections"][number] | undefined =
+    b.upcoming && b.upcoming.length > 0
+      ? {
+          kind: "timeline",
+          icon: "event",
+          accent: A.amber,
+          title: "Próximos partidos",
+          subtitle: `${b.upcoming.length} EN CALENDARIO`,
+          steps: b.upcoming.slice(0, 4).map((um) => ({
+            icon: "sports_soccer",
+            title: `${um.homeTeam ?? "?"} vs ${um.awayTeam ?? "?"}`,
+            detail: [um.league, um.time].filter(Boolean).join(" · "),
+            status: "pending" as const,
+          })),
+        }
+      : undefined;
+
+  // 🔴 FIX "SIN DATOS EN LA EXTENSIÓN" — un partido programado también abre
+  // su ficha: info del encuentro (fecha/hora/estadio) + alineaciones si hay.
+  const kickoffInfoRows = [
+    ...(b.time || b.minute ? [{ title: "Hora", detail: `${b.time ?? b.minute}` }] : []),
+    ...(league ? [{ title: "Competencia", detail: league }] : []),
+    ...(clean(b.venue) ? [{ title: "Estadio", detail: clean(b.venue)! }] : []),
+    ...(clean(b.venueCity) ? [{ title: "Ciudad", detail: clean(b.venueCity)! }] : []),
+  ];
+
   const detail = hasRichData ? {
     title,
     subtitle: ctxLine || kicker,
-    sections: buildMatchDetailSections(b, homeName, awayName),
+    sections: [
+      ...buildMatchDetailSections(b, homeName, awayName),
+      ...(upcomingSection ? [upcomingSection] : []),
+    ],
+  } : scheduled ? {
+    title,
+    subtitle: league ?? kicker,
+    sections: [
+      ...(kickoffInfoRows.length > 0
+        ? [{
+            kind: "rows" as const,
+            icon: "event",
+            accent: A.amber,
+            title: "Info del partido",
+            rows: kickoffInfoRows,
+          }]
+        : []),
+      ...(b.lineups ? [{
+        kind: "rows" as const,
+        icon: "groups",
+        accent: A.emerald,
+        title: "Alineaciones",
+        rows: Object.entries(b.lineups).flatMap(([, side]) => {
+          const starters = (side.starters ?? []).slice(0, 11).map(p => p.name).filter(Boolean);
+          return starters.length > 0
+            ? [{ title: side.formation ?? "Formation", detail: starters.join(" · ") }]
+            : [];
+        }),
+      }] : []),
+      ...(upcomingSection ? [upcomingSection] : []),
+    ].filter((s: any) => (s.kind === "rows" ? (s.rows?.length ?? 0) > 0 : true)),
   } : b.stats?.length ? {
     title,
     subtitle: league ?? kicker,
-    sections: [{
-      kind: "rows" as const,
-      icon: "monitoring",
-      accent: A.emerald,
-      title: "Estadísticas",
-      rows: b.stats.map((s) => ({ title: s.label, detail: `${s.leftPercent}% — ${s.rightPercent}%` })),
-    }],
+    sections: [
+      {
+        kind: "rows" as const,
+        icon: "monitoring",
+        accent: A.emerald,
+        title: "Estadísticas",
+        rows: b.stats.map((s) => ({ title: s.label, detail: s.home != null && s.away != null ? `${s.home} — ${s.away}` : `${s.leftPercent}% — ${s.rightPercent}%` })),
+      },
+      ...(upcomingSection ? [upcomingSection] : []),
+    ],
+  } : (kickoffInfoRows.length > 0 || upcomingSection) ? {
+    // 🔴 FIX — partido terminado sin /summary: info mínima real (no "50%-50%").
+    title,
+    subtitle: ctxLine || kicker,
+    sections: [
+      ...(kickoffInfoRows.length > 0
+        ? [{
+            kind: "rows" as const,
+            icon: "info",
+            accent: A.emerald,
+            title: "Info del partido",
+            rows: [{ title: "Estado", detail: status ?? "Final" }, ...kickoffInfoRows],
+          }]
+        : []),
+      ...(upcomingSection ? [upcomingSection] : []),
+    ],
   } : undefined;
 
   return {
     hero: {
-      kicker,
+      kicker: scheduled && !league ? "Próximo partido" : (scheduled ? `Próximo partido · ${league}` : kicker),
       title: up(title),
       desc,
       icon: "sports_soccer",
-      accent: live ? A.red : A.emerald,
-      artValue: score,
-      metrics: metrics.length > 0 ? metrics : undefined,
+      accent: live ? A.red : scheduled ? A.amber : A.emerald,
+      // 🔴 FIX 0-0 INVENTADO — partido programado: la hora es la estrella,
+      // no un marcador "0-0" de un partido que no arrancó.
+      artValue: scheduled ? (b.time ?? b.minute ?? "—") : score,
+      metrics: scheduled ? undefined : (metrics.length > 0 ? metrics : undefined),
       live,
     },
     detail: detail ? {
@@ -2879,7 +2961,9 @@ function liveMatch(b: Of<"live_match">): KoruPresentation {
         { label: "Compartir", icon: "share", kind: "secondary", action: "match:share" },
       ],
     } : detail,
-    cta: hasRichData || b.stats?.length ? { label: hasRichData ? "Ver la ficha del partido" : "Ver estadísticas" } : undefined,
+    cta: hasRichData || b.stats?.length || scheduled || upcomingSection
+      ? { label: scheduled ? "Ver ficha del próximo partido" : hasRichData ? "Ver la ficha del partido" : b.stats?.length ? "Ver estadísticas" : "Ver detalle" }
+      : undefined,
     // 🔴 KIMI v3: sublayout match con escudos + score grande + goleadores + posesión
     layout: "match",
   };
@@ -3062,6 +3146,22 @@ function urgentNow(b: Of<"urgent_now">): KoruPresentation {
       icon: b.icon || "priority_high",
       accent: A.red,
     },
+    // 🔴 FIX SIN EXT — urgent_now también abre su interior Lectura (chip rojo
+    // + headline). Antes: card con acciones inline pero sin extensión.
+    detail: {
+      title: heroTitleFrom(b.headline, "Aviso"),
+      subtitle: b.eyebrow ?? "AHORA",
+      sections: [
+        {
+          kind: "text",
+          icon: b.icon || "priority_high",
+          accent: A.red,
+          title: "Qué está pasando",
+          body: b.description ?? b.headline,
+        },
+      ],
+    },
+    cta: { label: "Ver detalle" },
     // 🔴 v2: acciones inline para urgent (antes era surface muerta)
     actions: [
       { label: "Entendido", icon: "check", kind: "primary", action: "dismiss" },
@@ -3291,6 +3391,25 @@ function healthReminder(b: Of<"health_reminder">): KoruPresentation {
       icon: b.icon || "medication",
       accent: A.rose,
     },
+    // 🔴 FIX SIN EXT — health_reminder también abre su interior Lectura
+    // (pastillero/anillo de racha). Antes: card con acciones pero sin extensión.
+    detail: {
+      title: heroTitleFrom(b.title, "Recordatorio"),
+      subtitle: "SALUD",
+      sections: [
+        {
+          kind: "rows",
+          icon: b.icon || "medication",
+          accent: A.rose,
+          title: "Tu recordatorio",
+          rows: [
+            { title: "Qué hacer", detail: b.reminder },
+            ...(b.actionLabel ? [{ title: "Acción", detail: b.actionLabel }] : []),
+          ],
+        },
+      ],
+    },
+    cta: { label: "Ver detalle" },
     // 🔴 v2: acciones inline para health reminder (antes era surface muerta)
     actions: [
       { label: "Tomé la dosis", icon: "check", kind: "primary", action: "complete" },
@@ -5174,8 +5293,10 @@ function routeMap(b: Of<"route_map">): KoruPresentation {
  * Mapea un maneuver de Google Maps (turn-left, roundabout-right, merge, etc.)
  * a un ícono Material Symbols. Default: "turn_straight".
  */
-function maneuverToIcon(maneuver: string): string {
-  const m = maneuver.trim().toLowerCase();
+function maneuverToIcon(maneuver?: string): string {
+  // 🔴 FIX defensivo: steps sin maneuver (ej. fuentes de route_traffic)
+  // crasheaban acá con "Cannot read properties of undefined (reading 'trim')".
+  const m = (maneuver ?? "").trim().toLowerCase();
   if (!m || m === "straight") return "straight";
   if (m.includes("turn-left")) return "turn_left";
   if (m.includes("turn-right")) return "turn_right";
