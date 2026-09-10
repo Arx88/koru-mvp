@@ -68,7 +68,11 @@ async function postAgentTurn(
     timeout = window.setTimeout(() => controller.abort(), timeoutMs);
   };
   try {
-    const payload = onChunk ? { ...(body as Record<string, unknown>), stream: true } : body;
+    // 🔴 tzOffsetMin: para que day_info (y cualquier tool de fecha) calcule
+    // el "hoy" del USUARIO y no el del datacenter (UTC en Render).
+    const payload = onChunk
+      ? { ...(body as Record<string, unknown>), stream: true, tzOffsetMin: new Date().getTimezoneOffset() }
+      : { ...(body as Record<string, unknown>), tzOffsetMin: new Date().getTimezoneOffset() };
     const response = await fetch("/api/koru/turn", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

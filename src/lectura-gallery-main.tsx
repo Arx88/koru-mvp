@@ -9,6 +9,7 @@
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./lectura-gallery.css";
+import "./michi-cards.css";
 import type { LucideIcon } from "lucide-react";
 import {
   CloudSun,

@@ -10,6 +10,7 @@ import { useKoru } from "../../KoruProvider";
 import { convertCurrency, normalizeCurrencyCode } from "../../../tools/travel/currencyConverter";
 import { KoruIcon, iconFromMaterial } from "./KoruIcons";
 import { LivePrice } from "./useLivePrice";
+import { MichiCard, michiDesignFor } from "./MichiLayouts";
 
 /** Hook: detecta si el navegador está offline. */
 function useOnlineStatus(): boolean {
@@ -66,7 +67,7 @@ import { CollectionsScreen } from "../../CollectionsScreen";
 //   gallery  → carrusel horizontal de mini-cards (70×80).
 //   banner   → gradiente full-width (100px) con número grande + label.
 
-const FONT_HEADING = '"Nunito", "Plus Jakarta Sans", system-ui, sans-serif';
+const FONT_HEADING = '"Nunito", system-ui, sans-serif';
 const COLOR_INK = "#1E1B4B";
 const COLOR_INK_MUTED = "#6b5f8c";
 const COLOR_INK_TENUE = "#a99bbe";
@@ -1291,6 +1292,41 @@ export function KoruUnifiedCard({ block }: { block: UiBlock }) {
     isIdle,
     isOnline,
   };
+
+  // 🔴 MICHI v8 — TODO card de chat se renderiza con el sistema "mini-mundo"
+  // de la referencia (estilo-v2.html). El único escape es "compact" (alarmas,
+  // reminders, signals): filas mínimas que no son cards de contenido.
+  // El DetailOverlay lo renderiza cada layout Michi vía prop `overlay`.
+  if (layout !== "compact") {
+    const design = michiDesignFor(block);
+    const michiOverlay = (
+      <DetailOverlay open={open} cta={cta} detail={detail} hero={hero} block={block} setOpen={setOpen} />
+    );
+    // CardFoot solo en cards con fuentes verificables (spec: el foot no
+    // aparece en cards sin sources) — mismo guard que el DefaultLayout viejo.
+    const hasSources =
+      "sources" in block &&
+      Array.isArray((block as { sources?: unknown }).sources) &&
+      (((block as { sources?: unknown[] }).sources?.length ?? 0) > 0);
+    const michiFoot = hasSources ? (
+      <CardFoot block={block} cta={cta} onOpenCard={() => setOpen(true)} />
+    ) : undefined;
+    return (
+      <MichiCard
+        design={design}
+        block={block}
+        hero={hero}
+        cta={cta}
+        detail={detail}
+        actions={actions}
+        isTappable={isTappable}
+        handleClick={handleClick}
+        handleKeyDown={handleKeyDown}
+        overlay={michiOverlay}
+        foot={michiFoot}
+      />
+    );
+  }
 
   if (layout === "compact") return <CompactLayout {...shared} />;
   if (layout === "spotlight") return <SpotlightLayout {...shared} />;

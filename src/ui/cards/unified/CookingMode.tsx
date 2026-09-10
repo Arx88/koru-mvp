@@ -215,7 +215,7 @@ export function CookingMode({ title, steps, block, onClose }: CookingModeProps) 
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
-        fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif',
+        fontFamily: '"Nunito", system-ui, sans-serif',
         color: "#1a1a2e",
       }}
     >
@@ -321,7 +321,7 @@ export function CookingMode({ title, steps, block, onClose }: CookingModeProps) 
           <span
             aria-hidden
             style={{
-              fontFamily: '"Nunito", "Plus Jakarta Sans", system-ui, sans-serif',
+              fontFamily: '"Nunito", system-ui, sans-serif',
               fontSize: 48,
               fontWeight: 700,
               lineHeight: 1,
@@ -378,7 +378,7 @@ export function CookingMode({ title, steps, block, onClose }: CookingModeProps) 
             </span>
             <span
               style={{
-                fontFamily: '"Nunito", "Plus Jakarta Sans", system-ui, sans-serif',
+                fontFamily: '"Nunito", system-ui, sans-serif',
                 fontSize: 44,
                 fontWeight: 700,
                 lineHeight: 1,

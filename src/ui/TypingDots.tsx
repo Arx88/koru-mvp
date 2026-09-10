@@ -49,7 +49,7 @@ export function TypingDots({ label = "Procesando…" }: TypingDotsProps) {
         />
       </span>
       {label ? (
-        <span style={{ fontSize: 11, color: "var(--ink-faint, #a89ad7)" }}>{label}</span>
+        <span style={{ fontSize: 11, color: "var(--ink-faint, #A6ACCB)" }}>{label}</span>
       ) : null}
     </span>
   );

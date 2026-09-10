@@ -691,6 +691,20 @@ export type UiBlock =
       }>;
     }
   | {
+      /** Día/fecha actual — tool `day_info` (local, sin red). Preguntas
+       * tipo "¿qué día es hoy?" responden con esta card en vez de texto plano. */
+      type: "day_info";
+      weekday: string;
+      dateLabel: string;
+      weekNumber: number;
+      year: number;
+      dayProgress: number;
+      yearProgress: number;
+      daysToWeekend: number;
+      isWeekend: boolean;
+      target?: { label: string; daysLeft: number; dateLabel: string };
+    }
+  | {
       type: "wellbeing";
       title?: string;
       emoji?: string;

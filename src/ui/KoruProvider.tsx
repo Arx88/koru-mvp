@@ -380,7 +380,11 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   const [installPromptEvent, setInstallPromptEvent] = useState<any>(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   // 🔴 Voice (TTS)
-  const [voiceEnabled, setVoiceEnabledState] = useState(() => localStorage.getItem("koru.voiceEnabled") === "true");
+  // 🐱 v7.5 — FIX VOZ FANTASMA: el estado inicial YA NO lee localStorage.
+  // El legacy "koru.voiceEnabled" era el bug que re-activaba la voz en cada
+  // sesión aunque el usuario la hubiera apagado en Ajustes (la migración de
+  // abajo la volvía a prender). Única fuente de verdad: preferences.
+  const [voiceEnabled, setVoiceEnabledState] = useState(false);
   const [phase, setPhase] = useState<string | null>(null);
   const [chatTurns, setChatTurns] = useState<KoruChatTurn[]>(() => readChatTurns(localStorage.getItem("koru.username") ?? ""));
   // Clave versionada (v2): la clave vieja "koru.selected-model" quedaba pegada con
@@ -496,8 +500,24 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     void loadPersistedState().then(async (persisted) => {
       if (!cancelled) {
+        commitDomainState(persisted);
+        // 🐱 v7.5 — RESET one-time de la voz fantasma, POST-LOAD: el estado
+        // persistido puede traer koruVoiceEnabled=true de la era de los dos
+        // toggles (bug: la voz se re-activaba sola en cada sesión). Lo
+        // apagamos UNA vez por dispositivo; si el usuario la quiere, la
+        // activa explícitamente en Ajustes → Apariencia → "Voz de Michi".
+        try {
+          if (localStorage.getItem("michi.voiceReset.v1") !== "1") {
+            localStorage.setItem("michi.voiceReset.v1", "1");
+            localStorage.removeItem("koru.voiceEnabled");
+            if (persisted.preferences?.koruVoiceEnabled) {
+              updatePreferences({ koruVoiceEnabled: false });
+              stopSpeaking();
+            }
+          }
+        } catch { /* best-effort */ }
         const nudges = buildHeartbeatNudges(persisted);
-        commitDomainState(nudges.length > 0 ? applyHeartbeatNudges(persisted, nudges) : persisted);
+        if (nudges.length > 0) commitDomainState((prev) => applyHeartbeatNudges(prev, nudges));
         // 🔴 Sincronizar reminders con notificaciones del navegador
         const userId = persisted.userId ?? "default";
         syncScheduledReminders(persisted.commitments ?? [], userId);
@@ -832,18 +852,11 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   // DOS pipelines que podían hablar la MISMA respuesta dos veces. El toggle
   // de Permisos se eliminó; el flag legacy de localStorage se migra 1 vez.
   const lastSpokenTurnRef = useRef<string | null>(null);
-  // Migración one-time: si el usuario había activado la voz desde Permisos
-  // (localStorage) la llevamos a prefs para que un solo toggle gobierne.
-  useEffect(() => {
-    try {
-      if (localStorage.getItem("koru.voiceEnabled") === "true") {
-        const prefs = domainStateRef.current?.preferences;
-        if (prefs && !prefs.koruVoiceEnabled) {
-          updatePreferences({ koruVoiceEnabled: true });
-        }
-      }
-    } catch { /* best-effort */ }
-  }, []);
+  // 🐱 v7.5 — RESET one-time de la voz fantasma: ver el bloque dentro del
+  // loadPersistedState().then() más abajo — corre DESPUÉS de cargar el estado
+  // persistido (IndexedDB). Un efecto de mount corría ANTES y el estado
+  // persistido (con la voz prendida de la era de los dos toggles) lo pisaba
+  // al resolver, reviviendo la voz contra la voluntad del usuario.
   useEffect(() => {
     const prefs = domainStateRef.current?.preferences;
     if (!prefs?.koruVoiceEnabled) {
@@ -2143,9 +2156,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
       const next = !voiceEnabled;
       setVoiceEnabledState(next);
       setVoiceEnabled(next);
-      localStorage.setItem("koru.voiceEnabled", String(next));
-      // 🔴 FIX: el toggle también sincroniza prefs para que la voz tenga UNA
-      // sola fuente de verdad (el TTS del pipeline lee prefs).
+      // 🐱 v7.5 — sin localStorage: prefs es la única fuente de verdad.
       updatePreferences({ koruVoiceEnabled: next });
       if (!next) stopSpeaking();
     },

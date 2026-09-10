@@ -39,6 +39,7 @@ import type {
   UserPreferences,
 } from "../domain/types";
 import { getGoogleAuthUrl } from "../tools/calendar/googleCalendar";
+import { stopSpeaking } from "../domain/koruVoice";
 import { MemoryGraph } from "./MemoryGraph";
 import { parseBankCSV } from "../tools/money/csvImport";
 import { fetchWalletBalance, isValidEthAddress } from "../tools/money/etherscanReader";
@@ -100,7 +101,7 @@ type SectionMeta = {
 const SECTIONS: SectionMeta[] = [
   { id: "perfil",         title: "Perfil",            kicker: "QUIÉN ERES",        icon: User,          accent: "#5940E0", tint: "#f3e8ff", keywords: ["nombre", "cumpleaños", "ciudad", "zona horaria", "timezone", "name", "birthday", "location"] },
   { id: "idioma",         title: "Idioma",            kicker: "ESPAÑOL / ENGLISH", icon: Languages,     accent: "#007BF9", tint: "#dbeafe", keywords: ["language", "español", "english", "spanish"] },
-  { id: "apariencia",     title: "Apariencia",        kicker: "TEMA Y TIPOGRAFÍA", icon: Palette,       accent: "#db2777", tint: "#fce7f3", keywords: ["theme", "font", "tamaño", "haptics", "sonidos", "contraste", "movimiento", "dark", "light"] },
+  { id: "apariencia",     title: "Apariencia",        kicker: "TEMA, VOZ Y TIPOGRAFÍA", icon: Palette,       accent: "#db2777", tint: "#fce7f3", keywords: ["theme", "font", "tamaño", "haptics", "sonidos", "contraste", "movimiento", "dark", "light", "voz", "voice", "tts", "habla", "leer", "lee", "silenciar", "volumen", "velocidad"] },
   { id: "notificaciones", title: "Notificaciones",    kicker: "ALERTAS Y DND",     icon: Bell,          accent: "#ea580c", tint: "#ffedd5", keywords: ["push", "dnd", "sonidos", "no molestar", "permiso"] },
   { id: "privacidad",     title: "Privacidad",        kicker: "TUS DATOS",         icon: Shield,        accent: "#16a34a", tint: "#dcfce7", keywords: ["ephemeral", "durable", "retention", "export", "eliminar", "lock", "webauthn", "borrar"] },
   { id: "integraciones",  title: "Integraciones",     kicker: "CONECTAR SERVICIOS",icon: Plug,          accent: "#0891b2", tint: "#cffafe", keywords: ["google", "calendar", "plaid", "tink", "banco", "crypto", "exchange", "sincronizar"] },
@@ -1340,7 +1341,12 @@ export function SettingsScreen(props: SettingsScreenProps) {
                     >
                       <Toggle
                         checked={prefs.koruVoiceEnabled ?? false}
-                        onChange={(v) => props.onUpdatePreferences({ koruVoiceEnabled: v })}
+                        onChange={(v) => {
+                          // 🐱 v7.5 — apagar = silencio INMEDIATO (cancela la
+                          // síntesis en curso, no solo la próxima respuesta).
+                          if (!v) stopSpeaking();
+                          props.onUpdatePreferences({ koruVoiceEnabled: v });
+                        }}
                         aria-label="Voz de Michi"
                       />
                     </Row>

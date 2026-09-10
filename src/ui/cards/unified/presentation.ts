@@ -418,6 +418,8 @@ export function toPresentation(block: UiBlock, ctx?: PresentationContext): KoruP
       return restaurant(block);
     case "morning_brief":
       return morningBrief(block);
+    case "day_info":
+      return dayInfo(block);
     case "wellbeing":
       return wellbeing(block);
     case "live_match":
@@ -2479,6 +2481,72 @@ function morningBrief(b: Of<"morning_brief">): KoruPresentation {
     // 🔴 KIMI D2/D6: banner = gradiente full-width con número grande + label.
     // El saludo matutino es el hero — el molde banner le da la noche + glow.
     // 🔴 KIMI v4: layout default .kc (no banner — spec pág. 83 muestra kc con kc-art sun + 3 kc-m).
+    layout: "default",
+  };
+}
+
+// ── day_info: "¿qué día es hoy?" con card, no texto plano ─────────────────────────────
+function dayInfo(b: Of<"day_info">): KoruPresentation {
+  const weekdayCap = b.weekday.charAt(0).toUpperCase() + b.weekday.slice(1);
+  const weekendValue = b.isWeekend ? "¡Sí, disfrutalo!" : `${b.daysToWeekend} ${b.daysToWeekend === 1 ? "día" : "días"}`;
+  const targetTile: DetailTile[] = b.target
+    ? [{
+        icon: "event",
+        label: b.target.label,
+        value: `${b.target.daysLeft} ${Math.abs(b.target.daysLeft) === 1 ? "día" : "días"}`,
+        color: A.rose.color,
+      }]
+    : [];
+
+  return {
+    hero: {
+      kicker: "HOY",
+      title: weekdayCap,
+      desc: b.dateLabel,
+      icon: "today",
+      accent: A.violet,
+      metrics: [
+        { icon: "calendar_month", label: "Semana", value: String(b.weekNumber), color: A.primary.color },
+        { icon: "celebration", label: "Finde en", value: weekendValue, color: A.emerald.color },
+        { icon: "hourglass_top", label: "Del día", value: `${b.dayProgress}%`, color: A.amber.color },
+      ],
+    },
+    detail: {
+      title: `${weekdayCap} · ${b.dateLabel}`,
+      subtitle: "TU DÍA EN NÚMEROS",
+      sections: [
+        {
+          kind: "tiles",
+          icon: "today",
+          accent: A.violet,
+          title: "El día de hoy",
+          subtitle: "DATOS EXACTOS DE TU ZONA HORARIA",
+          tiles: [
+            { icon: "event", label: "Fecha", value: b.dateLabel, color: A.violet.color },
+            { icon: "calendar_month", label: "Semana del año", value: `${b.weekNumber} de 52`, color: A.primary.color },
+            { icon: "celebration", label: "Finde", value: b.isWeekend ? "Ya estás en él" : `Faltan ${b.daysToWeekend} ${b.daysToWeekend === 1 ? "día" : "días"}`, color: A.emerald.color },
+            { icon: "hourglass_top", label: "Día transcurrido", value: `${b.dayProgress}%`, color: A.amber.color },
+            { icon: "north_east", label: "Año ${b.year}", value: `${b.yearProgress}% recorrido`, color: A.pink.color },
+            ...targetTile,
+          ],
+        },
+        {
+          kind: "text",
+          icon: "auto_awesome",
+          accent: A.primary,
+          title: "Michi te cuenta",
+          subtitle: "CONTEXTO",
+          body: b.target
+            ? `Hoy es ${b.weekday} ${b.dateLabel}. Para el ${b.target.dateLabel} faltan ${b.target.daysLeft} ${Math.abs(b.target.daysLeft) === 1 ? "día" : "días"} — el año ya va ${b.yearProgress}% recorrido. Si querés, armo un plan para aprovechar la semana.`
+            : `Hoy es ${b.weekday}, ${b.dateLabel} — semana ${b.weekNumber} del año. ${b.isWeekend ? "Es finde: buen momento para lo que venís postergando." : `Van ${b.dayProgress}% del día y queda bastante para aprovecharlo.`} Si querés, te organizo el resto con un plan.`,
+        },
+      ],
+      actions: [
+        { label: "Organizá mi día", icon: "calendar", kind: "primary", action: "prompt:organizá mi día" },
+        { label: "¿Qué tal el día?", icon: "search", kind: "secondary", action: "prompt:¿qué tal el día?" },
+      ],
+    },
+    cta: { label: "Ver números" },
     layout: "default",
   };
 }

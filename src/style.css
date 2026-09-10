@@ -68,7 +68,7 @@
      `--font-display` para títulos hero, `--font-sans` para cuerpo,
      `--font-mono` para números/código. (Los tokens @theme inline debajo
      alimentan Tailwind; estos en :root son para CSS crudo.) */
-  --font-display: 'Nunito', 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-display: 'Nunito', system-ui, sans-serif;
   --font-sans: 'Nunito', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
@@ -113,8 +113,8 @@
 
 @theme inline {
   --font-sans: "Nunito", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: 'Nunito', 'Plus Jakarta Sans', system-ui, sans-serif;
-  --font-heading: 'Nunito', 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-serif: 'Nunito', system-ui, sans-serif;
+  --font-heading: 'Nunito', system-ui, sans-serif;
   --font-mono: ui-monospace, monospace;
 
   /* Koru 2.0: los nombres de token son legado-verde, pero los valores son la
@@ -4700,20 +4700,23 @@ a.koru-dsec-source:hover {
   display: none;
 }
 
+/* 🔴 v7.4 — Calzadas al spec v7 (.qpill de estilo-v2): pills BLANCAS con
+   tinta violeta #3D2E96 + icono violeta #6D52F8. Antes eran violeta 22%
+   translúcido con texto lavanda e iconos #C9D2F6 — gris invisible sobre el
+   fondo ilustrado (queja de contraste del usuario). */
 .koru-quick-action {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
   border-radius: 999px;
-  border: 1px solid rgba(139, 109, 255, 0.3);
-  background: rgba(109, 82, 248, 0.22);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  color: #e8e0ff;
+  border: none;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 12px rgba(23, 32, 102, 0.16);
+  color: #3D2E96;
   font-family: 'Nunito', sans-serif;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
   transition: all 0.2s;
@@ -4721,9 +4724,9 @@ a.koru-dsec-source:hover {
 }
 
 .koru-quick-action:hover {
-  background: rgba(109, 82, 248, 0.35);
-  border-color: rgba(139, 109, 255, 0.5);
+  background: linear-gradient(180deg, #6D5BF9, #4A41EE);
   color: #ffffff;
+  box-shadow: 0 6px 14px rgba(74, 65, 238, 0.44);
   transform: translateY(-1px);
 }
 
@@ -4733,7 +4736,12 @@ a.koru-dsec-source:hover {
 
 .koru-quick-action .material-symbols-outlined {
   font-size: 16px;
-  color: #C9D2F6;
+  color: #6D52F8;
+}
+
+.koru-quick-action:hover .material-symbols-outlined,
+.koru-quick-action:focus-visible .material-symbols-outlined {
+  color: #ffffff;
 }
 
 @media (max-width: 480px) {
@@ -4741,6 +4749,113 @@ a.koru-dsec-source:hover {
     padding: 7px 12px;
     font-size: 12px;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   🐱 v7.5 — Voz en vivo: pill "Michi está hablando" + Silenciar
+   Queja: "ni siquiera veo cómo desactivarlo". Botón de silencio inmediato
+   SIEMPRE visible mientras habla + apagado definitivo (voice_over_off).
+   ═══════════════════════════════════════════════════════════════════════════ */
+.koru-voice-live {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 auto 8px;
+  width: fit-content;
+  padding: 6px 8px 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 10px 26px rgba(23, 32, 102, 0.24);
+  font-family: 'Nunito', sans-serif;
+  animation: koru-voice-pop 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes koru-voice-pop {
+  from { transform: translateY(8px) scale(0.92); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.koru-voice-live-label {
+  font-size: 12px;
+  font-weight: 800;
+  color: #1E1B4B;
+  white-space: nowrap;
+}
+
+/* Ecualizador animado — 4 barras violeta que laten */
+.koru-voice-eq {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 14px;
+}
+
+.koru-voice-eq i {
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #6D52F8, #5940E0);
+  animation: koru-voice-eq 900ms ease-in-out infinite;
+}
+
+.koru-voice-eq i:nth-child(1) { height: 6px; animation-delay: 0ms; }
+.koru-voice-eq i:nth-child(2) { height: 12px; animation-delay: 120ms; }
+.koru-voice-eq i:nth-child(3) { height: 8px; animation-delay: 240ms; }
+.koru-voice-eq i:nth-child(4) { height: 11px; animation-delay: 360ms; }
+
+@keyframes koru-voice-eq {
+  0%, 100% { transform: scaleY(0.55); }
+  50% { transform: scaleY(1); }
+}
+
+.koru-voice-live-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 6px 12px;
+  background: linear-gradient(180deg, #6D5BF9, #4A41EE);
+  color: #fff;
+  font-family: 'Nunito', sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(74, 65, 238, 0.36);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.koru-voice-live-btn:active {
+  transform: scale(0.94);
+}
+
+.koru-voice-live-off {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 999px;
+  background: #EAF2FD;
+  color: #5940E0;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.koru-voice-live-off:hover {
+  background: #E3EFFD;
+}
+
+.koru-voice-live-off:active {
+  transform: scale(0.92);
+}
+
+.koru-voice-live-off .material-symbols-outlined {
+  font-size: 17px;
+  color: #5940E0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .koru-voice-eq i { animation: none; }
+  .koru-voice-live { animation: none; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -5253,7 +5368,7 @@ a.koru-dsec-source:hover {
   font-weight: 700;
   color: #1E1B4B;
   margin: 0;
-  font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Nunito', sans-serif;
 }
 
 /* Template picker */
@@ -5913,9 +6028,11 @@ a.koru-dsec-source:hover {
 .koru-create-toggle-switch.on { background: #5940E0; }
 .koru-create-toggle-switch.on::after { transform: translateX(16px); }
 
-/* Composer + button */
+/* Composer + button — 🐱 v7.5: ahora es círculo violeta como los demás .dbtn
+   de la referencia; el icono va en BLANCO (antes era icono violeta suelto
+   sobre fondo blanco). */
 .koru-composer-create {
-  color: #5940E0 !important;
+  color: #ffffff !important;
 }
 .koru-composer-create:active { transform: scale(0.95); }
 
@@ -6618,7 +6735,7 @@ a.koru-dsec-source:hover {
   font-weight: 700;
   color: #1a2a20;
   margin: 0 0 8px;
-  font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Nunito', sans-serif;
 }
 
 .koru-confirm-message {
@@ -7319,7 +7436,7 @@ a.koru-dsec-source:hover {
   animation: koru-spin 1.2s linear infinite;
 }
 .koru-nav-toast-text {
-  font-family: 'Nunito', 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Nunito', sans-serif;
 }
 
 /* Sources con favicon */
@@ -8186,7 +8303,7 @@ a.koru-dsec-source:hover {
 }
 
 .koru-icon-gallery-title {
-  font-family: 'Nunito', 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-family: 'Nunito', system-ui, sans-serif;
   font-size: 18px;
   font-weight: 700;
   margin: 0;
@@ -8457,7 +8574,7 @@ a.koru-dsec-source:hover {
   --purple: #6D52F8;
   --purple-d: #5940E0;
   --purple-deep: #1E1B4B;
-  --serif: 'Nunito', 'Plus Jakarta Sans', system-ui, sans-serif;
+  --serif: 'Nunito', system-ui, sans-serif;
   --sans: "Nunito", system-ui, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, monospace;
   --mint: #2FC86E;
@@ -9274,7 +9391,7 @@ html.koru-reduced-motion *::after {
 
 .michi-id h2 {
   color: #fff;
-  font-family: 'Nunito', 'Nunito', sans-serif;
+  font-family: 'Nunito', sans-serif;
   font-size: 21px;
   font-weight: 900;
   letter-spacing: -0.01em;
@@ -9289,7 +9406,7 @@ html.koru-reduced-motion *::after {
 
 .michi-id p {
   color: rgba(255, 255, 255, 0.95);
-  font-family: 'Nunito', 'Nunito', sans-serif;
+  font-family: 'Nunito', sans-serif;
   font-size: 10.5px;
   font-weight: 700;
   margin: 3px 0 0;
@@ -9322,7 +9439,7 @@ html.koru-reduced-motion *::after {
 
 .michi-lvl-pill span {
   color: #fff;
-  font-family: 'Nunito', 'Nunito', sans-serif;
+  font-family: 'Nunito', sans-serif;
   font-size: 11.5px;
   font-weight: 800;
   letter-spacing: 0.01em;
@@ -9347,7 +9464,7 @@ html.koru-reduced-motion *::after {
 
 .michi-xptxt {
   color: #fff;
-  font-family: 'Nunito', 'Nunito', sans-serif;
+  font-family: 'Nunito', sans-serif;
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.03em;
@@ -9417,7 +9534,7 @@ html.koru-reduced-motion *::after {
 
 .koru-message-text {
   color: var(--michi-ink);
-  font-family: 'Nunito', 'Nunito', sans-serif;
+  font-family: 'Nunito', sans-serif;
   font-size: 15px;
   font-weight: 600;
   line-height: 1.45;
@@ -9427,7 +9544,7 @@ html.koru-reduced-motion *::after {
 
 .koru-bubble-heading {
   color: var(--michi-violet);
-  font-family: 'Nunito', 'Nunito', sans-serif;
+  font-family: 'Nunito', sans-serif;
   font-size: 17px;
   font-weight: 800;
   line-height: 1.3;
@@ -9455,7 +9572,7 @@ html.koru-reduced-motion *::after {
 .koru-plan-hero-title {
   margin-bottom: 6px;
   color: var(--michi-ink);
-  font-family: 'Nunito', 'Nunito', sans-serif;
+  font-family: 'Nunito', sans-serif;
   font-size: 21px;
   font-weight: 800;
   line-height: 1.2;
@@ -9477,7 +9594,7 @@ html.koru-reduced-motion *::after {
   background: linear-gradient(180deg, #7C5FF9, #6D52F8);
   color: #ffffff;
   padding: 13px 0;
-  font-family: 'Nunito', 'Nunito', sans-serif;
+  font-family: 'Nunito', sans-serif;
   font-size: 14px;
   font-weight: 800;
   box-shadow: var(--michi-sh-btn);
@@ -9505,7 +9622,7 @@ html.koru-reduced-motion *::after {
 }
 
 .kc-title {
-  font-family: 'Nunito', 'Nunito', sans-serif;
+  font-family: 'Nunito', sans-serif;
   font-weight: 800;
   font-size: 21px;
   line-height: 1.12;
@@ -9514,7 +9631,7 @@ html.koru-reduced-motion *::after {
 }
 
 .kc-kicker {
-  font-family: 'Nunito', 'Nunito', sans-serif;
+  font-family: 'Nunito', sans-serif;
   font-weight: 800;
   font-size: 10px;
   letter-spacing: 0.14em;
@@ -9528,21 +9645,21 @@ html.koru-reduced-motion *::after {
   border-radius: 14px;
 }
 
-.kc-m .ml { font-family: 'Nunito', 'Nunito', sans-serif; }
+.kc-m .ml { font-family: 'Nunito', sans-serif; }
 
 .kc-m .mv {
-  font-family: 'Nunito', 'Nunito', sans-serif;
+  font-family: 'Nunito', sans-serif;
   color: var(--michi-ink);
 }
 
 .kc-cta {
   background: linear-gradient(120deg, #7C5FF9 0%, #6D52F8 55%, #5940E0 120%);
-  font-family: 'Nunito', 'Nunito', sans-serif;
+  font-family: 'Nunito', sans-serif;
   font-weight: 800;
   box-shadow: var(--michi-sh-btn), inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
-.kc-foot .src { font-family: 'Nunito', 'Nunito', sans-serif; }
+.kc-foot .src { font-family: 'Nunito', sans-serif; }
 
 /* ── 5) Composer v7: dock blanco, mic violeta ────────────────────────── */
 .koru-composer {
@@ -9560,7 +9677,7 @@ html.koru-reduced-motion *::after {
 
 .koru-composer-input {
   color: var(--michi-ink);
-  font-family: 'Nunito', 'Nunito', sans-serif;
+  font-family: 'Nunito', sans-serif;
   font-weight: 700;
 }
 
@@ -9571,30 +9688,40 @@ html.koru-reduced-motion *::after {
   box-shadow: var(--michi-sh-btn);
 }
 
+/* 🔴 v7.4 — Pills calzadas al spec v7 (.qpill estilo-v2): BLANCAS con tinta
+   violeta #3D2E96 + icono #6D52F8. El glass blanco 0.2 translúcido de v7.1
+   fue pensado para el fondo OSCURO de videos — sobre la ilustración clara
+   de chat-bg.jpg el texto blanco quedaba gris/invisible (queja de contraste). */
 .koru-quick-action {
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  color: #ffffff;
-  font-family: 'Nunito', 'Nunito', sans-serif;
-  font-weight: 700;
+  background: rgba(255, 255, 255, 0.95);
+  border: none;
+  box-shadow: 0 4px 12px rgba(23, 32, 102, 0.16);
+  color: #3D2E96;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
 }
 
 .koru-quick-action:hover {
-  background: rgba(255, 255, 255, 0.32);
-  border-color: rgba(255, 255, 255, 0.55);
+  background: linear-gradient(180deg, #6D5BF9, #4A41EE);
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(74, 65, 238, 0.44);
+}
+
+.koru-quick-action .material-symbols-outlined {
+  color: #6D52F8;
+}
+
+.koru-quick-action:hover .material-symbols-outlined {
   color: #ffffff;
 }
 
 .koru-suggestion-pill {
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.32);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  color: #ffffff;
-  font-family: 'Nunito', 'Nunito', sans-serif;
-  font-weight: 700;
+  background: rgba(255, 255, 255, 0.95);
+  border: none;
+  box-shadow: 0 4px 12px rgba(23, 32, 102, 0.16);
+  color: #3D2E96;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
 }
 
 /* ── 6) Fin de la capa Michi v7 ──────────────────────────────────────── */
@@ -9663,7 +9790,7 @@ html.koru-reduced-motion *::after {
   border-radius: var(--michi-r-card);
   background: #ffffff;
   box-shadow: var(--michi-sh-card);
-  font-family: 'Nunito', 'Nunito', sans-serif;
+  font-family: 'Nunito', sans-serif;
 }
 
 /* Módulos internos (dentro de burbujas/cards): periwinkle suave v7,
@@ -9697,7 +9824,7 @@ html.koru-reduced-motion *::after {
 .koru-question-card strong,
 .koru-reminder-card strong {
   color: var(--michi-ink);
-  font-family: 'Nunito', 'Nunito', sans-serif;
+  font-family: 'Nunito', sans-serif;
 }
 
 /* Pills v7: blanca con borde violeta; la primaria, gradiente violeta */
@@ -9707,7 +9834,7 @@ html.koru-reduced-motion *::after {
   background: #ffffff;
   color: var(--michi-ink);
   box-shadow: 0 4px 10px rgba(23, 32, 102, 0.10);
-  font-family: 'Nunito', 'Nunito', sans-serif;
+  font-family: 'Nunito', sans-serif;
   font-weight: 800;
 }
 
@@ -9727,7 +9854,7 @@ html.koru-reduced-motion *::after {
   border: 1px solid rgba(109, 82, 248, 0.12);
   border-radius: 18px;
   box-shadow: 0 16px 34px rgba(23, 32, 102, 0.28);
-  font-family: 'Nunito', 'Nunito', sans-serif;
+  font-family: 'Nunito', sans-serif;
 }
 
 .koru-create-coachmark-bubble .material-symbols-outlined:first-child {
@@ -9745,14 +9872,14 @@ html.koru-reduced-motion *::after {
 
 .koru-create-coachmark-text strong {
   color: var(--michi-ink);
-  font-family: 'Nunito', 'Nunito', sans-serif;
+  font-family: 'Nunito', sans-serif;
   font-weight: 800;
 }
 
 .koru-create-coachmark-text span {
   color: var(--michi-ink-soft);
   opacity: 1;
-  font-family: 'Nunito', 'Nunito', sans-serif;
+  font-family: 'Nunito', sans-serif;
 }
 
 .koru-create-coachmark-text span strong {
@@ -9780,32 +9907,31 @@ html.koru-reduced-motion *::after {
   box-shadow:
     0 16px 36px rgba(23, 32, 102, 0.38),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  font-family: 'Nunito', 'Nunito', sans-serif;
+  font-family: 'Nunito', sans-serif;
 }
 
 .koru-nav-toast-content {
   background: linear-gradient(135deg, #6D52F8 0%, #5940E0 100%);
   border-radius: 999px;
   box-shadow: 0 12px 32px rgba(109, 82, 248, 0.45);
-  font-family: 'Nunito', 'Nunito', sans-serif;
+  font-family: 'Nunito', sans-serif;
   font-weight: 800;
 }
 
-/* ── 12) Fondos por estado: la cala v7 + tinte sutil por estado ───────── */
-/* Todos los estados usan la ilustración v7; el matiz los diferencia:
-   buscando = un toque más vivo · memoria = lavanda · durmiendo = noche. */
-.koru-bg-layer[data-state="buscando"] img,
-.koru-bg-layer[data-state="buscando"] video {
+/* ── 12) Fondos por momento del día + matiz sutil por estado ────── */
+/* 🐱 v7.5: el fondo base lo elige la hora (madrugada→anochecer) en
+   KoruBackground; el estado del agente aplica SOLO un matiz encima
+   de la capa activa (buscando = más vivo · memoria = lavanda ·
+   durmiendo = oscurecido para “noche profunda”). */
+.koru-bg-stack[data-agent-state="buscando"] .koru-bg-layer.is-active img {
   filter: saturate(1.08);
 }
 
-.koru-bg-layer[data-state="memoria"] img,
-.koru-bg-layer[data-state="memoria"] video {
+.koru-bg-stack[data-agent-state="memoria"] .koru-bg-layer.is-active img {
   filter: saturate(0.9) hue-rotate(-10deg) brightness(0.97);
 }
 
-.koru-bg-layer[data-state="durmiendo"] img,
-.koru-bg-layer[data-state="durmiendo"] video {
+.koru-bg-stack[data-agent-state="durmiendo"] .koru-bg-layer.is-active img {
   filter: brightness(0.55) saturate(0.65);
 }
 

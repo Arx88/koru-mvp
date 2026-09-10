@@ -9,7 +9,7 @@ import type { CSSProperties } from "react";
 // La promesa "te aviso cuando vuelva 🌿" compromete a Koru a una acción
 // futura (no es un error que se evapora): refuerza el contrato de honestidad.
 
-const FONT_HEADING = '"Nunito", "Plus Jakarta Sans", system-ui, sans-serif';
+const FONT_HEADING = '"Nunito", system-ui, sans-serif';
 
 const DEFAULT_TITLE = "Se nubló el dato";
 const DEFAULT_MESSAGE =

@@ -24,11 +24,14 @@ import {
   queryPersonalContextFromState,
   memoryCaptureFromArgs,
   personalCaptureFromArgs,
+  dayInfoFromArgs,
 } from "./koruBackend";
 
 export type ExecuteToolContext = {
   userInput: string;
   chatFn: ExtractorChatFn;
+  /** Offset de tz del cliente (minutos, getTimezoneOffset) — para day_info. */
+  tzOffsetMin?: number;
 };
 
 export type ExecuteToolResult = {
@@ -98,6 +101,7 @@ export async function executeTool(
     else if (name === "calendar_reminder") result = localReminderFromArgs(args, cleanText(args.__userInput)) as unknown as Record<string, unknown>;
     else if (name === "alarm") result = localAlarmFromArgs(args, cleanText(args.__userInput)) as unknown as Record<string, unknown>;
     else if (name === "plan_day") result = planFromState(state, args) as unknown as Record<string, unknown>;
+    else if (name === "day_info") result = dayInfoFromArgs(args, extractorCtx?.tzOffsetMin) as unknown as Record<string, unknown>;
     else if (name === "query_personal_context") result = queryPersonalContextFromState(state, args) as unknown as Record<string, unknown>;
     else if (name === "save_memory") result = memoryCaptureFromArgs(args, cleanText(args.__userInput)) as unknown as Record<string, unknown>;
     else if (name === "save_personal_item") result = personalCaptureFromArgs(args, cleanText(args.__userInput)) as unknown as Record<string, unknown>;

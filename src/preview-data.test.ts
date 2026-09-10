@@ -17,9 +17,9 @@ import {
 // tipo sin cobertura), este test lo atrapa antes de que llegue al preview.
 // ============================================================================
 
-/** Los 55 tipos renderizables de UiBlock (domain/types.ts) que el showcase
+/** Los 56 tipos renderizables de UiBlock (domain/types.ts) que el showcase
  *  debe cubrir. "article" no es un UiBlock standalone (solo vive anidado en
- *  web_nav.results) por eso no está. */
+ *  web_nav.results) por eso no está. v7.4: +day_info (¿qué día es hoy?). */
 const EXPECTED_TYPES: string[] = [
   "activity_group",
   "activity_tracker",
@@ -32,6 +32,7 @@ const EXPECTED_TYPES: string[] = [
   "crypto_portfolio",
   "data_card",
   "data_ticker",
+  "day_info",
   "decision_support",
   "deliverable",
   "delivery",

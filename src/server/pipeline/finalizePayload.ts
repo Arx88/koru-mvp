@@ -734,6 +734,7 @@ export function normalizeFinalPayload(
     "deliverable", "market", "forex", "data_card", "web_nav",
     "restaurant_synthesis", "research_sources", "comparison",
     "crypto_portfolio", "data_ticker", "product_analysis",
+    "day_info", // la fecha va en la card, no en el texto
     "generation", // 🔴 FIX GAP-1: image_generate
   ]);
   const hasInformativeBlock = uiBlocks.some(b => informativeBlockTypes.has(b.type));

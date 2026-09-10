@@ -42,7 +42,7 @@ export function RmapPanel() {
                   <circle cx="176" cy="120" r="26" fill="#c9e4c9" opacity=".7" />
                   <text x="176" y="125" textAnchor="middle" fontFamily="Material Symbols Outlined" fontSize="14" fill="#1f7a5c">park</text>
                   <rect x="262" y="220" width="52" height="34" rx="7" fill="#e6d9f5" />
-                  <text x="288" y="241" textAnchor="middle" fontFamily="Plus Jakarta Sans" fontWeight="700" fontSize="9" fill="#6D52F8">RETIRO</text>
+                  <text x="288" y="241" textAnchor="middle" fontFamily="Nunito" fontWeight="700" fontSize="9" fill="#6D52F8">RETIRO</text>
                 </svg>
                 <div className="mp-live"><span className="pulse"></span></div>
                 <div className="mp-bottom">

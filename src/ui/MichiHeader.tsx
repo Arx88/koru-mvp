@@ -9,7 +9,7 @@
  * todavía no existe en el backend): Nivel 7 · 320/500 XP (64%).
  */
 
-export function MichiHeader({ subtitle = "Siempre acá para vos" }: { subtitle?: string }) {
+export function MichiHeader({ subtitle = "Siempre acá para vos", onMenu }: { subtitle?: string; onMenu?: () => void }) {
   return (
     <header className="michi-hdr">
       <div className="michi-catwrap">
@@ -40,7 +40,9 @@ export function MichiHeader({ subtitle = "Siempre acá para vos" }: { subtitle?:
         <div className="michi-xptxt">320 / 500 XP</div>
       </div>
 
-      <button type="button" className="michi-mbtn" aria-label="Menú">
+      {/* 🐱 v7.5 — burger cableado: abre el wheel radial (Ajustes/Memoria/…).
+          Antes era un botón muerto — parte de la auditoría de settings. */}
+      <button type="button" className="michi-mbtn" aria-label="Menú" onClick={onMenu}>
         <svg width="16" height="11" viewBox="0 0 17 12" aria-hidden="true">
           <rect x="0" y="0" width="17" height="2.2" rx="1.1" fill="#fff" />
           <rect x="0" y="4.9" width="17" height="2.2" rx="1.1" fill="#fff" />

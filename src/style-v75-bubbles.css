@@ -1,0 +1,299 @@
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   🐱 v7.5 — BURBUJAS DEL CHAT: porte fiel del diseño v7 (estilo-v2.html)
+   Referencia exacta: .bub 13px/600 blanco · radios 18 + cola 6 · colitas
+   ::after · avatar Michi 34px · meta con hora + ✓✓ + avatar usuario 25px
+   con anillo blanco · firma ✦ violeta al final del texto de Michi.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* — Columna del usuario: burbuja + meta apiladas, ancho máx 74% — */
+.koru-user-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  max-width: 74%;
+}
+
+/* — Burbuja del usuario: blanca, radio 18, esquina inf-der 6 + colita — */
+.koru-message.is-user .koru-bubble {
+  margin-left: 0;
+  background: #FFFFFF;
+  border-radius: 18px;
+  border-bottom-right-radius: 6px;
+  padding: 8px 13px 9px;
+  box-shadow: 0 6px 16px rgba(23, 32, 102, 0.13);
+  position: relative;
+}
+
+.user-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: -5px;
+  width: 14px;
+  height: 14px;
+  background: #FFFFFF;
+  border-radius: 0 4px 12px 12px;
+  clip-path: polygon(0 0, 100% 100%, 0 100%);
+}
+
+/* — Meta del usuario: hora + ✓✓ + avatar (como .meta/.uAv de la ref) — */
+.koru-user-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0 4px 2px;
+}
+
+.koru-user-time {
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 9.5px;
+  font-weight: 800;
+  font-family: 'Nunito', sans-serif;
+  text-shadow: 0 1px 3px rgba(23, 32, 102, 0.35);
+}
+
+.koru-user-checks {
+  color: #FFFFFF;
+  font-size: 10px;
+  font-weight: 900;
+  text-shadow: 0 1px 3px rgba(23, 32, 102, 0.35);
+}
+
+/* Avatar del USUARIO — 25px, anillo blanco 1.5px, sombra suave */
+.koru-user-av {
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  flex: none;
+  background: url('/michi/user-avatar.png') center / 100% no-repeat;
+  margin-bottom: 2px;
+  box-shadow: 0 0 0 1.5px #FFFFFF, 0 2px 6px rgba(23, 32, 102, 0.22);
+}
+
+/* — Burbuja de Michi: blanca, radio 18, esquina inf-izq 6 + colita — */
+.koru-message.is-koru .koru-bubble {
+  background: #FFFFFF;
+  border-radius: 18px;
+  border-bottom-left-radius: 6px;
+  padding: 8px 13px 9px;
+  box-shadow: 0 6px 16px rgba(23, 32, 102, 0.13);
+  position: relative;
+}
+
+.ai-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: -5px;
+  width: 14px;
+  height: 14px;
+  background: #FFFFFF;
+  border-radius: 4px 0 12px 12px;
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+}
+
+/* — Avatar de Michi: 56 → 34px (proporción exacta de la referencia) — */
+.koru-avatar {
+  width: 34px;
+  height: 34px;
+  box-shadow: 0 3px 8px rgba(23, 32, 102, 0.22);
+}
+
+.koru-row {
+  gap: 8px;
+}
+
+/* — Tipografía de burbujas: 13px/600/1.42 Nunito (referencia .bub) — */
+.koru-bubble .koru-message-text,
+.koru-message-text {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.42;
+  color: #1E1B4B;
+}
+
+.koru-message.is-user .koru-message-text {
+  font-size: 13px;
+}
+
+.koru-bubble-heading {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #1E1B4B;
+  margin-bottom: 5px;
+  letter-spacing: -0.01em;
+}
+
+/* — Firma ✦ violeta al final del texto de Michi (referencia .sig) — */
+.koru-bubble-sig {
+  display: inline-flex;
+  vertical-align: -2px;
+  margin-left: 5px;
+}
+
+.koru-bubble-sig svg {
+  width: 11px;
+  height: 11px;
+  fill: #6D52F8;
+}
+
+/* — Entrada de burbujas: pop suave con rebote (solo la más reciente) — */
+.koru-thread > .koru-message:last-child {
+  animation: koru-bub-in 340ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes koru-bub-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .koru-thread > .koru-message:last-child {
+    animation: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   🐱 v7.5 — MICRODETALLES del diseño v7 (estilo-v2.html)
+   · dot del header latiendo (pulse 1.2s, referencia .dot)
+   · pills rápidas compactas 31px con separadores ✦ dorados (referencia .qpills)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* — Dot "en línea" del header: latido suave — */
+.michi-dot {
+  animation: michi-dot-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes michi-dot-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.88); }
+}
+
+/* — Pills rápidas del composer: proporciones exactas de la referencia — */
+.koru-quick-actions {
+  gap: 6px;
+  justify-content: safe center;
+  padding: 0 2px 8px;
+}
+
+/* Separadores ✦ dorados (referencia .qpills::before/::after) */
+.koru-quick-actions::before,
+.koru-quick-actions::after {
+  content: '✦';
+  color: #FDC533;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 2px 5px rgba(120, 80, 0, 0.3);
+  flex: none;
+  align-self: center;
+}
+
+.koru-quick-action {
+  height: 31px;
+  padding: 0 12px;
+  gap: 5px;
+  border-radius: 16px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: -0.005em;
+}
+
+.koru-quick-action .material-symbols-outlined {
+  font-size: 15px;
+}
+
+@media (max-width: 480px) {
+  .koru-quick-action {
+    padding: 0 11px;
+    font-size: 10.5px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .michi-dot {
+    animation: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   🐱 v7.5 — COMPOSER: porte fiel del diseño v7 (.dock/.dbtn/.dfield)
+   FIX del residuo de contraste: los iconos eran #a89ad7 (lavanda gris del
+   diseño viejo — la queja de "iconos grises que no se ven"). Ahora son
+   círculos violeta #6D52F8 con iconos BLANCOS, como la referencia .dbtn.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.koru-composer {
+  height: 58px;
+  gap: 7px;
+  padding: 7px;
+  border-radius: 25px;
+  box-shadow: 0 16px 36px rgba(23, 32, 102, 0.28);
+}
+
+.koru-composer-icon {
+  width: 40px;
+  height: 40px;
+  margin-left: 0;
+  background: linear-gradient(180deg, #6D52F8, #5940E0);
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(109, 82, 248, 0.34);
+  transition: transform 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.koru-composer-icon:hover {
+  background: linear-gradient(180deg, #6D52F8, #5940E0);
+  color: #ffffff;
+}
+
+.koru-composer-icon:active {
+  transform: scale(0.93);
+}
+
+.koru-composer-icon:disabled {
+  opacity: 0.45;
+}
+
+/* Modo efímero activo: violeta profundo sólido + anillo */
+.koru-composer-icon.is-active {
+  background: #5940E0;
+  color: #ffffff;
+  box-shadow: 0 0 0 2px #FFFFFF, 0 6px 14px rgba(109, 82, 248, 0.5);
+}
+
+.koru-composer-create {
+  background: linear-gradient(180deg, #6D52F8, #5940E0);
+}
+
+/* Campo: pastilla peri como .dfield (#EFF4FD), texto tinta */
+.koru-composer-field {
+  border: none;
+  background: #EFF4FD;
+  margin: 0 2px;
+  border-radius: 20px;
+  padding: 0 14px;
+}
+
+.koru-composer-input {
+  color: #1E1B4B;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.koru-composer-input::placeholder {
+  color: #9AA6C8;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+/* Botón mic/send: mismo tamaño 40px que los demás dbtn */
+.koru-mic-button {
+  width: 40px;
+  height: 40px;
+  margin-right: 0;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #6D52F8, #5940E0);
+  box-shadow: 0 6px 14px rgba(109, 82, 248, 0.34);
+}

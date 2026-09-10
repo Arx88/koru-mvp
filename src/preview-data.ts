@@ -613,6 +613,22 @@ export const CHAT_SCRIPT: ChatEntry[] = [
   // ── MAÑANA ──
   { kind: "user", tag: "dia", text: "buen día koru" },
   { kind: "card", tag: "dia", intro: "Buen día, Arx. Acá va tu resumen:", block: briefBlock },
+  { kind: "user", tag: "dia", text: "qué día es hoy?" },
+  {
+    kind: "card",
+    tag: "dia",
+    block: {
+      type: "day_info",
+      weekday: "jueves",
+      dateLabel: "10 de septiembre de 2026",
+      weekNumber: 37,
+      year: 2026,
+      dayProgress: 34,
+      yearProgress: 69,
+      daysToWeekend: 2,
+      isWeekend: false,
+    } satisfies UiBlock,
+  },
   { kind: "user", tag: "dia", text: "qué tiempo hace en madrid?" },
   { kind: "card", tag: "dia", block: weatherMadrid },
   { kind: "user", tag: "dia", text: "qué me pongo?" },

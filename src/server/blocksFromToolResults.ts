@@ -25,6 +25,7 @@ import {
   type PersonalCaptureData,
   type PersonalQueryData,
   type LocalActionData,
+  type DayInfoData,
 } from "./koruBackend";
 
 export function blocksFromToolResults(results: ToolExecution[], userInput?: string): UiBlock[] {
@@ -40,6 +41,23 @@ export function blocksFromToolResults(results: ToolExecution[], userInput?: stri
   // cards sin citas respaldadas.
   for (const execution of results) {
     const result = execution.result;
+    if (result.type === "day_info") {
+      const day = result as DayInfoData;
+      if (day.status !== "ok") continue;
+      blocks.push({
+        type: "day_info" as const,
+        weekday: day.weekday,
+        dateLabel: day.dateLabel,
+        weekNumber: day.weekNumber,
+        year: day.year,
+        dayProgress: day.dayProgress,
+        yearProgress: day.yearProgress,
+        daysToWeekend: day.daysToWeekend,
+        isWeekend: day.isWeekend,
+        target: day.target,
+      });
+      continue;
+    }
     if (result.type === "weather") {
       const weather = result as WeatherData;
       if (weather.status === "need_city" || !cleanText(weather.city)) continue;

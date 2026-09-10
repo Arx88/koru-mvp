@@ -170,7 +170,7 @@ export function MeditationOverlay({ session, onClose }: MeditationOverlayProps) 
         zIndex: 300,
         overflow: "hidden",
         background: "linear-gradient(180deg, #efe6ff 0%, #f5edff 50%, #faf6ff 100%)",
-        fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif',
+        fontFamily: '"Nunito", system-ui, sans-serif',
         color: "#1E1B4B",
       }}
     >
@@ -365,7 +365,7 @@ export function MeditationOverlay({ session, onClose }: MeditationOverlayProps) 
             <p
               style={{
                 margin: "4px 0 0",
-                fontFamily: '"Nunito", "Plus Jakarta Sans", system-ui, sans-serif',
+                fontFamily: '"Nunito", system-ui, sans-serif',
                 fontSize: 32,
                 fontWeight: 700,
                 lineHeight: 1,
@@ -389,7 +389,7 @@ export function MeditationOverlay({ session, onClose }: MeditationOverlayProps) 
         <p
           style={{
             margin: 0,
-            fontFamily: '"Nunito", "Plus Jakarta Sans", system-ui, sans-serif',
+            fontFamily: '"Nunito", system-ui, sans-serif',
             fontSize: 56,
             fontWeight: 700,
             lineHeight: 1,

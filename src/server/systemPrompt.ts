@@ -85,6 +85,7 @@ export function systemPrompt(nowIso: string, state: KoruState, relevantMemories:
     ``,
     `Instrucciones técnicas:`,
     `Ejemplos de cuándo usar cada herramienta (la forma de preguntar no importa; lo que importa es la intención):`,
+    `  - day_info: FECHA Y DÍA ACTUAL. "¿Qué día es hoy?" / "¿Qué fecha es?" / "¿Qué día de la semana somos?" / "¿Es finde?" / "¿Cuánto queda del año?" / "¿Cuántos días faltan para Navidad?" (target: 2026-12-25). SIEMPRE usala para la fecha de HOY — la respuesta llega como card, nunca como texto suelto. NO para fechas históricas.`,
     `  - weather: "¿Qué me pongo?" / "¿Hace frío?" / "¿Llevo paraguas?" / "¿Cómo está afuera?" / "¿Qué tal el día?" / "¿Necesito campera?"`,
     `  - match_live: RESULTADOS DE FÚTBOL. "¿Cómo salió España ayer?" / "¿Cómo le fue a Boca?" / "¿Va ganando el Madrid?" / "Resultado de Argentina" / "Quién ganó el partido". INCLUYE selecciones nacionales. NUNCA uses web_search para esto.`,
     `  - match_schedule: PRÓXIMOS partidos. "Cuándo juega Boca" / "A qué hora juega Real Madrid" / "Fixture de la champions".`,

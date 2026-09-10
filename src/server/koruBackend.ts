@@ -82,6 +82,10 @@ export type KoruBackendTurnRequest = {
   history: KoruConversationMessage[];
   state: KoruState;
   model?: string;
+  /** Offset de tz del CLIENTE en minutos (getTimezoneOffset(): Madrid UTC+2 → -120).
+   * Lo manda el cliente en cada turn para que tools de fecha (day_info)
+   * calculen el "hoy" del usuario y no el del datacenter UTC. */
+  tzOffsetMin?: number;
   
 };
 
@@ -204,6 +208,23 @@ export type LocalActionData = {
   commitments?: Omit<Commitment, "id" | "createdAt" | "sourceEntryId">[];
 };
 
+/** Resultado crudo de la tool day_info (antes del mapeo a UiBlock). */
+export type DayInfoData = {
+  type: "day_info";
+  status: "ok" | "failed";
+  weekday: string;
+  dateLabel: string;
+  weekNumber: number;
+  year: number;
+  dayProgress: number;
+  yearProgress: number;
+  daysToWeekend: number;
+  isWeekend: boolean;
+  hours?: number;
+  minutes?: number;
+  target?: { label: string; daysLeft: number; dateLabel: string };
+};
+
 export type PersonalCaptureData = {
   type: "personal_capture";
   block: UiBlock;
@@ -229,6 +250,21 @@ export type MemoryCaptureData = {
 import { ALL_TOOL_DEFINITIONS as EXTERNAL_TOOL_DEFINITIONS, TOOL_BOX } from "../tools/toolbox";
 
 export const TOOL_DEFINITIONS = [
+  {
+    type: "function",
+    function: {
+      name: "day_info",
+      description: "Devuelve el día y la fecha ACTUALES con precisión total (día de la semana, fecha completa, semana del año, avance del día y del año, cuánto falta para el finde). USALA SIEMPRE ante: '¿qué día es hoy?', '¿qué fecha es?', '¿qué día de la semana somos?', '¿es finde?', '¿cuánto queda del año?', '¿cuántos días faltan para...?'. Es local e instantánea (sin red). Para '¿cuántos días faltan para X?' pasá target con la fecha destino en ISO (ej: '2026-12-25'). NO la uses para fechas históricas pasadas (usá web_search).",
+      parameters: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          target: { type: "string", description: "Fecha destino opcional en ISO (YYYY-MM-DD) para calcular días restantes, ej: '2026-12-25' para Navidad." },
+        },
+        required: [],
+      },
+    },
+  },
   {
     type: "function",
     function: {
@@ -447,7 +483,7 @@ export const TOOL_DEFINITIONS = [
           uiBlocks: {
             type: "array",
             items: { type: "object" },
-            description: "Visual cards shown to the user. Each item MUST include a 'type' field. Available types: weather, restaurant_synthesis, comparison, product_analysis, smart_checklist, outfit, review_score, review_document, review_quote, plan, saved_record, personal_query, match_timeline, live_match, match_stats, crypto_portfolio, market, forex, election_results, election_vote, data_ticker, route_timeline, transport_compare, route_map, travel_planner, birthday_calendar, birthday_alarm, social_interaction, local_action, research_sources, data_card, web_nav, money_summary, morning_brief, generation.",
+            description: "Visual cards shown to the user. Each item MUST include a 'type' field. Available types: weather, restaurant_synthesis, comparison, product_analysis, smart_checklist, outfit, review_score, review_document, review_quote, plan, saved_record, personal_query, match_timeline, live_match, match_stats, crypto_portfolio, market, forex, election_results, election_vote, data_ticker, route_timeline, transport_compare, route_map, travel_planner, birthday_calendar, birthday_alarm, social_interaction, local_action, research_sources, data_card, web_nav, money_summary, morning_brief, day_info, generation.",
           },
           suggestedActions: { type: "array", items: { type: "object" } },
           memoryCandidates: {
@@ -2263,6 +2299,92 @@ export function planFromState(state: KoruState, args: Record<string, unknown>): 
   };
 }
 
+// ── day_info: fecha/día actual del USUARIO (no del server) ──────────────────────────────────
+// tzOffsetMin = getTimezoneOffset() del cliente (Madrid UTC+2 → -120).
+// Sin tz (fallback): se usa la hora local del server.
+const DIAS_ES = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+const MESES_ES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+
+export function dayInfoFromArgs(
+  args: Record<string, unknown>,
+  tzOffsetMin?: number,
+): DayInfoData {
+  // "Ahora" en la tz del cliente: desplazamos el epoch y leemos en UTC.
+  const nowMs = Date.now();
+  const shifted = typeof tzOffsetMin === "number" && Number.isFinite(tzOffsetMin)
+    ? new Date(nowMs - tzOffsetMin * 60_000)
+    : new Date();
+  const year = shifted.getUTCFullYear();
+  const month = shifted.getUTCMonth();
+  const day = shifted.getUTCDate();
+  const weekdayIdx = shifted.getUTCDay();
+  const hours = shifted.getUTCHours();
+  const minutes = shifted.getUTCMinutes();
+
+  const startOfDay = Date.UTC(year, month, day);
+  const endOfDay = startOfDay + 24 * 60 * 60 * 1000;
+  const dayProgress = Math.round(((nowMs - tzOffsetMinAdj(tzOffsetMin) - startOfDay) / (endOfDay - startOfDay)) * 100);
+
+  const startOfYear = Date.UTC(year, 0, 1);
+  const endOfYear = Date.UTC(year + 1, 0, 1);
+  const yearProgress = Math.round((((nowMs - tzOffsetMinAdj(tzOffsetMin)) - startOfYear) / (endOfYear - startOfYear)) * 100);
+
+  // Semana ISO 8601
+  const isoWeek = (() => {
+    const d = new Date(Date.UTC(year, month, day));
+    const dayNum = (d.getUTCDay() + 6) % 7;
+    d.setUTCDate(d.getUTCDate() - dayNum + 3);
+    const firstThursday = d.getTime();
+    d.setUTCMonth(0, 1);
+    if (d.getUTCDay() !== 4) {
+      d.setUTCMonth(0, 1 + ((4 - d.getUTCDay()) + 7) % 7);
+    }
+    return 1 + Math.round((firstThursday - d.getTime()) / (7 * 24 * 60 * 60 * 1000));
+  })();
+
+  const isWeekend = weekdayIdx === 0 || weekdayIdx === 6;
+  const daysToWeekend = isWeekend ? 0 : 6 - weekdayIdx;
+
+  // Target opcional ("cuántos días faltan para X")
+  let target: DayInfoData["target"];
+  const rawTarget = cleanText(args.target);
+  if (rawTarget) {
+    const m = rawTarget.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (m) {
+      const tYear = Number(m[1]);
+      const tMonth = Number(m[2]) - 1;
+      const tDay = Number(m[3]);
+      const targetMs = Date.UTC(tYear, tMonth, tDay);
+      const daysLeft = Math.round((targetMs - startOfDay) / (24 * 60 * 60 * 1000));
+      target = {
+        label: `${DIAS_ES[new Date(targetMs).getUTCDay()]} ${tDay} de ${MESES_ES[tMonth]}`,
+        daysLeft,
+        dateLabel: `${tDay} de ${MESES_ES[tMonth]} de ${tYear}`,
+      };
+    }
+  }
+
+  return {
+    type: "day_info",
+    status: "ok",
+    weekday: DIAS_ES[weekdayIdx],
+    dateLabel: `${day} de ${MESES_ES[month]} de ${year}`,
+    weekNumber: isoWeek,
+    year,
+    dayProgress: Math.max(0, Math.min(100, dayProgress)),
+    yearProgress: Math.max(0, Math.min(100, yearProgress)),
+    daysToWeekend,
+    isWeekend,
+    hours,
+    minutes,
+    target,
+  } as DayInfoData;
+}
+
+function tzOffsetMinAdj(tzOffsetMin?: number): number {
+  return typeof tzOffsetMin === "number" && Number.isFinite(tzOffsetMin) ? tzOffsetMin : 0;
+}
+
 export function localReminderFromArgs(args: Record<string, unknown>, input = ""): LocalActionData {
   const title = cleanText(args.title, input || "Recordatorio");
   const dueText = cleanText(args.dueText ?? args.dueHint ?? args.startsAt, "sin fecha");
@@ -3144,7 +3266,7 @@ async function executeProviderToolCalls(
     const d = await r.json().catch(() => ({}));
     return { content: d.message?.content ?? "" };
   };
-  const extractorCtx = { userInput: request.input, chatFn: extractorChatFn };
+  const extractorCtx = { userInput: request.input, chatFn: extractorChatFn, tzOffsetMin: request.tzOffsetMin };
   const deferredDataCards: Array<Promise<UiBlock | null>> = [];
 
   for (const call of toolCalls) {

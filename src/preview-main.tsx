@@ -7,6 +7,7 @@ import { KoruUnifiedCard } from "./ui/cards/unified/KoruUnifiedCard";
 import { ErrorBoundary } from "./ui/ErrorBoundary";
 import { CHAT_SCRIPT, CHAT_CATALOG, entriesForTag, searchScript, type ChatEntry } from "./preview-data";
 import "./style.css";
+import "./michi-cards.css";
 import "./koru-motion.css";
 import "./preview.css";
 

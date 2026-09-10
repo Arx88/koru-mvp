@@ -262,7 +262,7 @@ export function WeatherInterior({ block, onClose, onSave }: LecturaInteriorProps
               <path d={curve.area} fill="url(#p-clima-wxf)" />
               <path d={curve.line} fill="none" stroke="#1A237E" strokeWidth="3.5" strokeLinecap="round" />
               <circle cx={curve.peak.x} cy={curve.peak.y} r="6" fill="#fff" stroke="#FDC533" strokeWidth="3" />
-              <text x={curve.peak.x} y={Math.max(12, curve.peak.y - 12)} textAnchor="middle" fontFamily="Plus Jakarta Sans" fontWeight="800" fontSize="11" fill="#B07E00">{curve.peak.label}</text>
+              <text x={curve.peak.x} y={Math.max(12, curve.peak.y - 12)} textAnchor="middle" fontFamily="Nunito" fontWeight="800" fontSize="11" fill="#B07E00">{curve.peak.label}</text>
             </svg>
             <div className="xh">
               {curve.labels.map((l, i) => <span key={i}>{l}</span>)}

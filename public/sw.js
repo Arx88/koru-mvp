@@ -1,8 +1,21 @@
 // Michi Service Worker — notificaciones push y background sync
 // Mobile-first: funciona en PWA standalone
 
-const CACHE_NAME = "michi-v2";
-const STATIC_ASSETS = ["/", "/index.html", "/favicon.svg"];
+// 🐱 v7.5 — michi-v3: precache de los 5 fondos por momento del día + avatar
+// del usuario (para que el cambio de fondo al cruzar las 6/8/17/20h sea
+// instantáneo y funcione offline).
+const CACHE_NAME = "michi-v3";
+const STATIC_ASSETS = [
+  "/",
+  "/index.html",
+  "/favicon.svg",
+  "/michi/fondos/madrugada.jpg",
+  "/michi/fondos/amanecer.jpg",
+  "/michi/fondos/dia.jpg",
+  "/michi/fondos/atardecer.jpg",
+  "/michi/fondos/anochecer.jpg",
+  "/michi/user-avatar.png",
+];
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();

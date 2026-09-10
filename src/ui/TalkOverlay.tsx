@@ -1,6 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUp, Image as ImageIcon, Leaf, Mic, MicOff, Paperclip, Plus } from "lucide-react";
 import { createSpeechSession, getSpeechSupport } from "../domain/speech";
+import { stopSpeaking } from "../domain/koruVoice";
 import { cn } from "../lib/utils";
 import { useKoru, PHASE_ORDER, type KoruChatTurn, type KoruTurnItem } from "./KoruProvider";
 import type { AgentActivityKind } from "../domain/agentKernel";
@@ -115,6 +116,14 @@ function KoruTurnBubble({
             {heading && <h3 className="koru-bubble-heading">{heading}</h3>}
             {/* 🔴 UX (2026-09-10): render de markdown (listas, negritas, links) */}
             <div className="koru-message-text">{renderMarkdownBody(body)}</div>
+            {/* 🐱 v7.5 — firma ✦ violeta al final del texto (estilo-v2 .sig) */}
+            {turnDone && body && (
+              <span className="koru-bubble-sig" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M12 1.6c.86 5.5 4.9 9.54 10.4 10.4-5.5.86-9.54 4.9-10.4 10.4-.86-5.5-4.9-9.54-10.4-10.4C7.1 11.14 11.14 7.1 12 1.6Z" />
+                </svg>
+              </span>
+            )}
           </div>
         )}
       </div>
@@ -140,10 +149,28 @@ function KoruTurnBubble({
 }
 
 function UserTurnBubble({ turn }: { turn: KoruChatTurn }) {
+  // 🐱 v7.5 — porte fiel del diseño v7 (estilo-v2.html): burbuja blanca con
+  // colita + meta con hora, ✓✓ y el AVATAR DEL USUARIO (25px, anillo blanco).
+  const time = (() => {
+    try {
+      const d = new Date(turn.createdAt);
+      if (Number.isNaN(d.getTime())) return "";
+      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+    } catch {
+      return "";
+    }
+  })();
   return (
     <div className="koru-message is-user">
-      <div className="koru-bubble user-bubble">
-        <p className="koru-message-text">{turn.text}</p>
+      <div className="koru-user-col">
+        <div className="koru-bubble user-bubble">
+          <p className="koru-message-text">{turn.text}</p>
+        </div>
+        <div className="koru-user-meta">
+          {time && <span className="koru-user-time">{time}</span>}
+          <span className="koru-user-checks" aria-label="Mensaje enviado">✓✓</span>
+          <span className="koru-user-av" role="img" aria-label="Tu avatar" />
+        </div>
       </div>
     </div>
   );
@@ -413,6 +440,8 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
     language,
     reopenedRecord,
     reopenRecord,
+    state: koruDomainState,
+    updatePreferences,
   } = useKoru();
   const [inputText, setInputText] = useState("");
   const [isListening, setIsListening] = useState(false);
@@ -439,6 +468,29 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
   const [interimText, setInterimText] = useState("");
   const [speechStatus] = useState(() => getSpeechSupport());
   const [micError, setMicError] = useState("");
+
+  // ===== 🐱 v7.5 — Voz de Michi: pill "Silenciar" visible mientras habla =====
+  // Queja del usuario: "tiene la voz activa sin que yo la haya activado, ni
+  // siquiera veo cómo desactivarlo en settings". Ahora: (1) la voz arranca
+  // OFF por defecto y el flag legacy quedó reseteado (KoruProvider), (2) el
+  // toggle vive en Ajustes → Apariencia (buscable por "voz"), y (3) si está
+  // hablando, esta pill flotante da un botón de silencio INMEDIATO.
+  const voiceOn = koruDomainState?.preferences?.koruVoiceEnabled === true;
+  const [michiSpeaking, setMichiSpeaking] = useState(false);
+  useEffect(() => {
+    if (!voiceOn || typeof window === "undefined" || !("speechSynthesis" in window)) {
+      setMichiSpeaking(false);
+      return;
+    }
+    const id = window.setInterval(() => {
+      try {
+        setMichiSpeaking(window.speechSynthesis.speaking || window.speechSynthesis.pending);
+      } catch {
+        setMichiSpeaking(false);
+      }
+    }, 400);
+    return () => window.clearInterval(id);
+  }, [voiceOn]);
 
   // ===== Estado del fondo dinámico =====
   // Detecta el estado actual (trabajando, buscando, memoria, etc.) y lo pasa al KoruBackground.
@@ -1181,7 +1233,7 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
         <KoruBackground state={bgState} />
 
         {/* 🐱 Header Michi v7 — identidad + nivel + XP + burger */}
-        <MichiHeader />
+        <MichiHeader onMenu={() => { setWheelOpen(true); setWheelActive(null); }} />
 
         {/* 🔴 Memory toast: aparece cuando Michi aprende algo del usuario.
             * Para guardados (Crear / Guardar card) ofrece "Ver" → Mis Colecciones. */}
@@ -1230,30 +1282,11 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
 
         <h1 className="koru-sr-heading">Michi</h1>
 
-        {/* Suggestion Pills — temas de conversaciones anteriores */}
-        {suggestionPills.length > 0 && !processing && (
-          <div className="koru-suggestion-bar">
-            {suggestionPills.map((pill) => (
-              <button
-                key={pill.id}
-                type="button"
-                className="koru-suggestion-pill"
-                onClick={() => {
-                  // Tap en pill = reenviar ese mensaje como nuevo turno
-                  // (alternativa más simple: scroll al turno, pero como solo
-                  // mostramos el último intercambio, reenviar es más útil)
-                  const originalTurn = chatTurns.find(t => t.id === pill.turnId);
-                  if (originalTurn) {
-                    submitText(originalTurn.text, "typed");
-                  }
-                }}
-              >
-                <span className="material-symbols-outlined">{pill.icon}</span>
-                {pill.topic}
-              </button>
-            ))}
-          </div>
-        )}
+        {/* 🔴 v7.4 — Suggestion Pills ELIMINADAS a pedido del usuario:
+            los chips de conversación bajo la barra de XP/Michi ensuciaban la
+            parte superior del chat. Las sugerencias útiles viven abajo
+            (koru-quick-actions junto al composer). suggestionPills (memo) y
+            su CSS quedan sin uso — retirados del render. */}
 
         <main ref={scrollRef} className="koru-chat-scroll">
           <div className="koru-thread">
@@ -1298,7 +1331,9 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
               </div>
             )}
 
-            {/* Onboarding conversacional — greeting con chips */}
+            {/* Onboarding conversacional — greeting (🔴 v7.4: chips de conversación
+                ELIMINADOS a pedido — el onboarding queda texto limpio; las sugerencias
+                rotativas viven abajo, junto al composer) */}
             {onboarding && onboardingPhase === "greeting" && !processing && (
               <div className="koru-message is-koru">
                 <div className="koru-row">
@@ -1309,37 +1344,6 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
                     <h3 className="koru-bubble-heading">Hola, soy Michi 🐱</h3>
                     <p className="koru-message-text">Tu asistente personal. Puedo ayudarte con clima, gastos, recordatorios, búsquedas y mucho más.</p>
                     <p className="koru-message-text" style={{ marginTop: 8, fontWeight: 600 }}>¿Qué necesitás hoy?</p>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 12 }}>
-                      {[
-                        { icon: "cloud", text: "¿Qué tiempo hace?" },
-                        { icon: "savings", text: "Anota un gasto" },
-                        { icon: "search", text: "Buscá algo" },
-                        { icon: "sports_soccer", text: "¿Cómo salió España?" },
-                      ].map((chip) => (
-                        <button
-                          key={chip.text}
-                          type="button"
-                          onClick={() => submitText(chip.text, "typed")}
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 4,
-                            padding: "6px 12px",
-                            borderRadius: 999,
-                            background: "rgba(109, 82, 248, 0.12)",
-                            color: "#5940E0",
-                            fontSize: 12,
-                            fontWeight: 600,
-                            border: "none",
-                            cursor: "pointer",
-                            fontFamily: "inherit",
-                          }}
-                        >
-                          <span className="material-symbols-outlined" style={{ fontSize: 14, color: "#6D52F8" }}>{chip.icon}</span>
-                          {chip.text}
-                        </button>
-                      ))}
-                    </div>
                   </div>
                 </div>
               </div>
@@ -1367,7 +1371,7 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
         {processing && !isListening && (workingDeliverable || activity?.depth === "deep") ? (
           <WorkingPanel phase={phase} kind={activity?.kind} deliverable={workingDeliverable} />
         ) : (
-        <footer className="koru-chat-footer">
+        <footer className="koru-chat-footer" data-voice-on={voiceOn ? "1" : "0"} data-speaking={michiSpeaking ? "1" : "0"}>
             {/* 🔴 FIX INDICADOR ÚNICO (2026-09-09): el hint de actividad del footer
                 se ELIMINÓ — su label rotativo ("Pensando esto…", "Buscando
                 información…") vive ahora en los TypingDots del chat. Antes había
@@ -1381,6 +1385,40 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
             )}
             {ephemeral && <p className="koru-footer-note">Modo efímero activo — esta charla no guardará memoria nueva</p>}
             {micError && <p className="koru-footer-error">{micError}</p>}
+
+            {/* 🐱 v7.5 — Voz en vivo: pill con silencio inmediato mientras
+                Michi habla (la respuesta a "no veo cómo desactivarlo"). */}
+            {michiSpeaking && (
+              <div className="koru-voice-live" role="status" aria-live="polite">
+                <span className="koru-voice-eq" aria-hidden="true">
+                  <i /><i /><i /><i />
+                </span>
+                <span className="koru-voice-live-label">Michi está hablando</span>
+                <button
+                  type="button"
+                  className="koru-voice-live-btn"
+                  onClick={() => {
+                    stopSpeaking();
+                    setMichiSpeaking(false);
+                  }}
+                >
+                  Silenciar
+                </button>
+                <button
+                  type="button"
+                  className="koru-voice-live-off"
+                  aria-label="Desactivar la voz de Michi en ajustes"
+                  title="Desactivar la voz para siempre"
+                  onClick={() => {
+                    stopSpeaking();
+                    setMichiSpeaking(false);
+                    updatePreferences({ koruVoiceEnabled: false });
+                  }}
+                >
+                  <span className="material-symbols-outlined">voice_over_off</span>
+                </button>
+              </div>
+            )}
 
             {/* 🔴 KORU 3.0 — Quick actions: smartSuggestions rotativas.
                 Antes eran 5 sugerencias fijas que nunca cambiaban.

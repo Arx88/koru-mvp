@@ -25,6 +25,7 @@ import { Stage } from "./preview-main";
 import { Gallery, CARDS } from "./lectura-gallery-main";
 import { CHAT_SCRIPT } from "./preview-data";
 import "./style.css";
+import "./michi-cards.css";
 import "./koru-motion.css";
 import "./preview.css";
 import "./lectura-gallery.css";

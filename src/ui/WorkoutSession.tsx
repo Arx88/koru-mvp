@@ -273,7 +273,7 @@ export function WorkoutSession({ plan, session, onClose }: Props) {
     display: "flex",
     flexDirection: "column",
     overflow: "hidden",
-    fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif',
+    fontFamily: '"Nunito", system-ui, sans-serif',
   };
 
   return createPortal(
