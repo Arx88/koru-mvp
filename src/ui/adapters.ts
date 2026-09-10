@@ -126,7 +126,14 @@ export function readChatTurns(userName?: string): KoruChatTurn[] {
     const raw = localStorage.getItem(CHAT_STORAGE_KEY);
     if (!raw) return [greetingTurn(userName)];
     const parsed = JSON.parse(raw) as KoruChatTurn[];
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : [greetingTurn(userName)];
+    if (!Array.isArray(parsed) || parsed.length === 0) return [greetingTurn(userName)];
+    // 🐱 v7.6 — infinite scroll: el historial persistido se muestra
+    // COMPLETO en el feed. Un turno que quedó "working" al cerrar la app
+    // (stream interrumpido) renderizaría su card esqueleto "Buscando…"
+    // POR SIEMPRE — lo normalizamos a done al cargar.
+    return parsed.map((turn) =>
+      turn && turn.status === "working" ? { ...turn, status: "done" as const, items: [] } : turn,
+    );
   } catch {
     return [greetingTurn(userName)];
   }

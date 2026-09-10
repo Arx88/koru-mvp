@@ -133,6 +133,12 @@ export function renderMarkdownBody(text: string): ReactNode[] {
 /**
  * 🔴 UX (2026-09-10): botón de copiar debajo del mensaje de Koru.
  * Clipboard API con fallback a execCommand (navegadores viejos / permisos).
+ * 🐱 v7.6 — REDISEÑADO a pedido del usuario: antes era una CAJA blanca con
+ * texto "Copiar" que el flex column estiraba a casi todo el ancho ("demasiado
+ * invasivo con esa caja tan larga"). Ahora: icono fantasma redondo de 28px,
+ * sin texto ni caja, semitransparente (al 50%) — solo se hace presente en
+ * hover/active y al confirmar (check verde). El ancho del botón se fija en
+ * 28px (align-self: flex-start) para que NUNCA más se estire.
  */
 export function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -164,34 +170,16 @@ export function CopyButton({ text }: { text: string }) {
       type="button"
       onClick={onCopy}
       aria-label={copied ? "Copiado" : "Copiar mensaje"}
-      className="koru-copy-button"
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 4,
-        marginTop: 4,
-        marginLeft: 66,
-        border: "none",
-        background: "rgba(255, 255, 255, 0.92)",
-        color: copied ? "#23B363" : "#3D2E96",
-        fontSize: 11,
-        fontWeight: 700,
-        cursor: "pointer",
-        padding: "3px 9px",
-        borderRadius: 999,
-        boxShadow: "0 2px 8px rgba(23, 32, 102, 0.14)",
-        transition: "color 150ms ease, background 150ms ease",
-        WebkitTapHighlightColor: "transparent",
-      }}
+      title={copied ? "Copiado" : "Copiar mensaje"}
+      className={copied ? "koru-copy-button is-copied" : "koru-copy-button"}
     >
       <span
         className="material-symbols-outlined"
         aria-hidden
-        style={{ fontSize: 14, lineHeight: 1, fontVariationSettings: copied ? "'FILL' 1" : undefined }}
+        style={{ fontSize: 16, lineHeight: 1 }}
       >
         {copied ? "check_circle" : "content_copy"}
       </span>
-      <span>{copied ? "Copiado" : "Copiar"}</span>
     </button>
   );
 }

@@ -2,8 +2,10 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    🐱 v7.5 — BURBUJAS DEL CHAT: porte fiel del diseño v7 (estilo-v2.html)
    Referencia exacta: .bub 13px/600 blanco · radios 18 + cola 6 · colitas
-   ::after · avatar Michi 34px · meta con hora + ✓✓ + avatar usuario 25px
-   con anillo blanco · firma ✦ violeta al final del texto de Michi.
+   ::after · meta con hora + ✓✓ + avatar usuario 25px
+   con anillo blanco.
+   🐱 v7.6 — feedback del usuario: avatar Michi 34 → 44px, firma ✦
+   ELIMINADA, botón copiar icono fantasma, cards alineadas al avatar.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* — Columna del usuario: burbuja + meta apiladas, ancho máx 74% — */
@@ -94,15 +96,32 @@
   clip-path: polygon(100% 0, 100% 100%, 0 100%);
 }
 
-/* — Avatar de Michi: 56 → 34px (proporción exacta de la referencia) — */
+/* — Avatar de Michi: 34 → 44px (v7.6, pedido directo del usuario:
+   "la foto de perfil de MICHI en los mensajes es muy pequeña") — */
 .koru-avatar {
-  width: 34px;
-  height: 34px;
-  box-shadow: 0 3px 8px rgba(23, 32, 102, 0.22);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px #FFFFFF, 0 4px 12px rgba(23, 32, 102, 0.25);
+}
+
+.koru-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .koru-row {
   gap: 8px;
+  align-items: flex-end;
+}
+
+/* — Cards del turno: alineadas a la burbuja (avatar 44 + gap 8 = 52px) — */
+.koru-cards-row {
+  width: calc(100% - 52px);
+  margin-left: 52px;
+  margin-top: 4px;
+  margin-bottom: 8px;
 }
 
 /* — Tipografía de burbujas: 13px/600/1.42 Nunito (referencia .bub) — */
@@ -126,22 +145,59 @@
   letter-spacing: -0.01em;
 }
 
-/* — Firma ✦ violeta al final del texto de Michi (referencia .sig) — */
-.koru-bubble-sig {
-  display: inline-flex;
-  vertical-align: -2px;
-  margin-left: 5px;
-}
-
-.koru-bubble-sig svg {
-  width: 11px;
-  height: 11px;
-  fill: #6D52F8;
-}
-
 /* — Entrada de burbujas: pop suave con rebote (solo la más reciente) — */
 .koru-thread > .koru-message:last-child {
   animation: koru-bub-in 340ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* 🐱 v7.6 — BOTÓN COPIAR: icono fantasma redondo 28px, SIN texto ni caja.
+   Antes: caja blanca con texto "Copiar" que el flex column (align-items
+   stretch) estiraba a casi todo el ancho — "demasiado invasivo con esa
+   caja tan larga". Ahora: fantasma violeta al 50%, alineado bajo la
+   burbuja (avatar 44 + gap 8 = 52px), se revela en hover/active y
+   confirma con check verde lleno. */
+.koru-copy-button {
+  align-self: flex-start;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 2px 0 0 52px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #6D52F8;
+  opacity: 0.62;
+  cursor: pointer;
+  transition: opacity 150ms ease, background-color 150ms ease, color 150ms ease, transform 150ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.koru-copy-button:hover {
+  opacity: 1;
+  background: rgba(109, 82, 248, 0.10);
+}
+
+.koru-copy-button:active {
+  transform: scale(0.88);
+}
+
+.koru-copy-button .material-symbols-outlined {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.koru-copy-button.is-copied {
+  color: #23B363;
+  opacity: 1;
+  background: rgba(35, 179, 99, 0.10);
+}
+
+.koru-copy-button.is-copied .material-symbols-outlined {
+  font-variation-settings: 'FILL' 1;
 }
 
 @keyframes koru-bub-in {
@@ -296,4 +352,69 @@
   border-radius: 999px;
   background: linear-gradient(180deg, #6D52F8, #5940E0);
   box-shadow: 0 6px 14px rgba(109, 82, 248, 0.34);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   🐱 v7.6 — WORKING PANEL FLOTANTE + COMPOSER SIEMPRE VIVO
+   Antes: el WorkingPanel REEMPLAZABA al composer durante búsquedas profundas
+   (minutos sin poder escribir). Ahora: panel COMPACTO flotando sobre el dock;
+   el composer queda SIEMPRE disponible (cola de turnos) como en el demo.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.koru-working-dock {
+  flex: 0 0 auto;
+  padding: 0 14px;
+  margin-bottom: -6px;
+  z-index: 30;
+}
+
+.koru-working-dock .koru-working-panel {
+  border-radius: 24px;
+  padding: 14px 18px 12px;
+  box-shadow: 0 18px 44px rgba(23, 32, 102, 0.30);
+  animation: koru-bub-in 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.koru-working-dock .koru-working-illustration {
+  max-width: 84px;
+  margin-bottom: 0;
+}
+
+.koru-working-dock .koru-working-mascot {
+  transform: scale(0.55);
+  margin: -18px 0 -14px;
+}
+
+.koru-working-dock .koru-working-copy {
+  margin: 6px 0 4px;
+}
+
+.koru-working-dock .koru-working-copy h2 {
+  font-size: 15.5px;
+}
+
+.koru-working-dock .koru-working-copy p {
+  font-size: 12px;
+}
+
+.koru-working-dock .koru-working-motto {
+  display: none; /* compacto: el motto largo no cabe flotando */
+}
+
+.koru-working-dock .koru-working-chips {
+  gap: 5px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.koru-working-dock .koru-working-chip {
+  font-size: 10.5px;
+  padding: 4px 9px;
+  gap: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .koru-working-dock .koru-working-panel {
+    animation: none;
+  }
 }

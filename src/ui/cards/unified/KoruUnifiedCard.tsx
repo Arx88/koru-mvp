@@ -11,6 +11,7 @@ import { convertCurrency, normalizeCurrencyCode } from "../../../tools/travel/cu
 import { KoruIcon, iconFromMaterial } from "./KoruIcons";
 import { LivePrice } from "./useLivePrice";
 import { MichiCard, michiDesignFor } from "./MichiLayouts";
+import { MichiWeatherCard } from "./MichiWeather";
 
 /** Hook: detecta si el navegador está offline. */
 function useOnlineStatus(): boolean {
@@ -1297,6 +1298,12 @@ export function KoruUnifiedCard({ block }: { block: UiBlock }) {
   // de la referencia (estilo-v2.html). El único escape es "compact" (alarmas,
   // reminders, signals): filas mínimas que no son cards de contenido.
   // El DetailOverlay lo renderiza cada layout Michi vía prop `overlay`.
+
+  // 🐱 v8 — La card de CLIMA usa el diseño exacto del usuario (su WeatherCard):
+  // hero art-18 + pill ubicación + temperatura 48px + 3 métricas + CTA violeta.
+  if (block.type === "weather" && layout !== "compact") {
+    return <MichiWeatherCard block={block as Extract<UiBlock, { type: "weather" }>} />;
+  }
   if (layout !== "compact") {
     const design = michiDesignFor(block);
     const michiOverlay = (

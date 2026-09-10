@@ -1,5 +1,8 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp, Image as ImageIcon, Leaf, Mic, MicOff, Paperclip, Plus } from "lucide-react";
+import {
+  ArrowUp, CloudSun, MapPin, Lightbulb, ClipboardCheck, Image as ImageIcon,
+  Leaf, Mic, MicOff, Paperclip, Plus, RotateCcw, Square, UserRound, X,
+} from "lucide-react";
 import { createSpeechSession, getSpeechSupport } from "../domain/speech";
 import { stopSpeaking } from "../domain/koruVoice";
 import { cn } from "../lib/utils";
@@ -7,9 +10,14 @@ import { useKoru, PHASE_ORDER, type KoruChatTurn, type KoruTurnItem } from "./Ko
 import type { AgentActivityKind } from "../domain/agentKernel";
 import { KoruSemanticCard } from "./chatCards";
 import { KoruUnifiedCard } from "./cards/unified/KoruUnifiedCard";
-import { KoruBackground, activityToBgState, type KoruBgState } from "./KoruBackground";
-import { MichiHeader } from "./MichiHeader";
-import { MichiMascot } from "./MichiMascot";
+import { KoruBackground } from "./KoruBackground";
+import { MichiHeaderV8, type MichiMenuAction } from "./michi/MichiHeaderV8";
+import {
+  BubbleShapes, MichiCat, MICHI_CAT_AVATAR, useMichiLandscape, useMichiUserAvatar,
+} from "./michi/v8Shared";
+import {
+  MichiProgressDialog, MichiLandscapeDialog, MichiUserAvatarDialog, MichiResetDialog,
+} from "./michi/MichiDialogs";
 import { MemoryToast } from "./MemoryToast";
 import { Suspense, lazy } from "react";
 // 🔴 v3: Mis Colecciones code-split (igual que en KoruUnifiedCard).
@@ -18,7 +26,7 @@ const LazyCollectionsScreen = lazy(() =>
 );
 import { MorningBriefCard } from "./MorningBriefCard";
 import { CreateScreen } from "./create/CreateScreen";
-import { TypingDots } from "./TypingDots";
+import { MichiMascot } from "./MichiMascot";
 import { lastKoruTurnIsStreaming } from "../domain/turn";
 import { renderMarkdownBody, CopyButton } from "./MarkdownMessage";
 
@@ -30,7 +38,7 @@ import { renderMarkdownBody, CopyButton } from "./MarkdownMessage";
 // pipeline, y el plan entregado se renderiza como la hoja "Tu Plan" (cards).
 
 // 🐱 Michi (antes Koru) — avatar del gato 3D naranja (diseño v7)
-const KORU_AVATAR = "/stitch/michi-avatar.png";
+const KORU_AVATAR = MICHI_CAT_AVATAR;
 
 // El diseño Stitch muestra las respuestas de Koru con un saludo corto en
 // negrita violeta y el cuerpo debajo. El texto del backend es libre: si la
@@ -79,6 +87,7 @@ const TurnItemCard = memo(function TurnItemCard({
 
 function KoruTurnBubble({
   turn,
+  userAvatar,
   onReview,
   onConfirmMemory,
   onPruneMemory,
@@ -86,6 +95,7 @@ function KoruTurnBubble({
   onSetWorldSignals,
 }: {
   turn: KoruChatTurn;
+  userAvatar: string;
   onReview: (id: string, approve: boolean) => void;
   onConfirmMemory: (id: string) => void;
   onPruneMemory: (id: string) => void;
@@ -93,44 +103,32 @@ function KoruTurnBubble({
   onSetWorldSignals: (enabled: boolean) => void;
 }) {
   const { heading, body } = splitKoruText(turn.text);
-  // 🔴 FIX multi-indicador (queja del usuario: "múltiples PROCESANDO en
-  // simultáneo"): mientras el turno está working con una card de búsqueda
-  // (deliverable working), la burbuja de texto NO se renderiza — la card
-  // esqueleto + el WorkingPanel ya comunican la actividad. Antes se
-  // superponían hasta 3 mensajes "Buscando…" (burbuja + nota de card +
-  // panel inferior). Con el stream cerrado, la burbuja vuelve con el
-  // reply final de la síntesis.
+  // 🔴 FIX multi-indicador: mientras el turno está working con una card de
+  // búsqueda (deliverable working), la burbuja de texto NO se renderiza — la
+  // card esqueleto + el WorkingPanel ya comunican la actividad.
   const hasWorkingDeliverable = (turn.items ?? []).some(
     (it) => it.uiBlock?.type === "deliverable" && (it.uiBlock as { status?: string }).status === "working",
   );
   const showBubble = !hasWorkingDeliverable && Boolean(heading || body);
   const turnDone = turn.status !== "working";
   return (
-    <div className="koru-message is-koru">
-      <div className="koru-row">
-        <div className="koru-avatar">
-          <img src={KORU_AVATAR} alt="Michi" />
-        </div>
+    <div className="mx-group">
+      <div className="mx-row from-koru">
+        <MichiCat sparkle={turn.id === "welcome-michi"} />
         {showBubble && (
-          <div className="koru-bubble ai-bubble">
-            {heading && <h3 className="koru-bubble-heading">{heading}</h3>}
-            {/* 🔴 UX (2026-09-10): render de markdown (listas, negritas, links) */}
-            <div className="koru-message-text">{renderMarkdownBody(body)}</div>
-            {/* 🐱 v7.5 — firma ✦ violeta al final del texto (estilo-v2 .sig) */}
-            {turnDone && body && (
-              <span className="koru-bubble-sig" aria-hidden="true">
-                <svg viewBox="0 0 24 24">
-                  <path d="M12 1.6c.86 5.5 4.9 9.54 10.4 10.4-5.5.86-9.54 4.9-10.4 10.4-.86-5.5-4.9-9.54-10.4-10.4C7.1 11.14 11.14 7.1 12 1.6Z" />
-                </svg>
-              </span>
-            )}
+          <div className="mx-bubble mx-koru">
+            {heading && <p className="mx-heading">{heading}</p>}
+            {/* 🔴 UX: render de markdown (listas, negritas, links) */}
+            <div className="mx-text">{renderMarkdownBody(body)}</div>
+            {/* 🐱 v7.6 — firma ✦ ELIMINADA: "símbolo raro" al final de TODOS los
+                mensajes. Sin adorno, como su referencia. */}
           </div>
         )}
       </div>
-      {/* 🔴 UX (2026-09-10): copiar el mensaje — feedback inmediato, discreto */}
-      {showBubble && turnDone && (heading || body) && <CopyButton text={turn.text} />}
+      {/* 🔴 UX: copiar mensaje — icono fantasma 28px discreto (v7.6) */}
+      {showBubble && turnDone && (heading || body) && <div className="mx-copy"><CopyButton text={turn.text} /></div>}
       {turn.items && turn.items.length > 0 && (
-        <div className="koru-cards-row">
+        <div className="mx-cards">
           {turn.items.map((item) => (
             <TurnItemCard
               key={item.id}
@@ -148,28 +146,33 @@ function KoruTurnBubble({
   );
 }
 
-function UserTurnBubble({ turn }: { turn: KoruChatTurn }) {
-  // 🐱 v7.5 — porte fiel del diseño v7 (estilo-v2.html): burbuja blanca con
-  // colita + meta con hora, ✓✓ y el AVATAR DEL USUARIO (25px, anillo blanco).
+function UserTurnBubble({ turn, userAvatar }: { turn: KoruChatTurn; userAvatar: string }) {
+  // 🐱 v8 — porte 1:1 del usuario: burbuja lavanda con silueta Bézier
+  // (bubble-user) + meta con avatar 41px, hora y ✓✓ en blanco.
   const time = (() => {
     try {
       const d = new Date(turn.createdAt);
       if (Number.isNaN(d.getTime())) return "";
-      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+      return d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
     } catch {
       return "";
     }
   })();
   return (
-    <div className="koru-message is-user">
-      <div className="koru-user-col">
-        <div className="koru-bubble user-bubble">
-          <p className="koru-message-text">{turn.text}</p>
+    <div className="mx-group">
+      <div className="mx-row from-user">
+        <div className="mx-bubble mx-user">
+          <p className="mx-text">{turn.text}</p>
         </div>
-        <div className="koru-user-meta">
-          {time && <span className="koru-user-time">{time}</span>}
-          <span className="koru-user-checks" aria-label="Mensaje enviado">✓✓</span>
-          <span className="koru-user-av" role="img" aria-label="Tu avatar" />
+        <div className="mx-usermeta">
+          <img src={userAvatar} alt="Tu avatar" />
+          <span>
+            {time}{" "}
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-label="Mensaje enviado">
+              <path d="M2 12l4 4L11 7" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M11 12l4 4L20 7" strokeLinecap="round" strokeLinejoin="round" opacity="0.75" transform="translate(3,5)" />
+            </svg>
+          </span>
         </div>
       </div>
     </div>
@@ -178,13 +181,11 @@ function UserTurnBubble({ turn }: { turn: KoruChatTurn }) {
 
 function ListeningBubble({ interimText }: { interimText: string }) {
   return (
-    <div className="koru-message is-koru">
-      <div className="koru-row">
-        <div className="koru-avatar">
-          <img src={KORU_AVATAR} alt="Michi" />
-        </div>
-        <div className="koru-bubble ai-bubble">
-          <p className="koru-message-text">{interimText || "Te escucho..."}</p>
+    <div className="mx-group">
+      <div className="mx-row from-koru">
+        <MichiCat />
+        <div className="mx-bubble mx-koru">
+          <p className="mx-text">{interimText || "Te escucho..."}</p>
         </div>
       </div>
     </div>
@@ -406,7 +407,7 @@ function WorkingPanel({ phase, kind, deliverable }: { phase: string | null; kind
     </section>
   );
 }
-export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingComplete }: { onClose: () => void; onNavigate?: (tab: "hoy" | "memoria" | "historial" | "configuracion") => void; onboarding?: boolean; onOnboardingComplete?: (name: string, facts?: string[]) => void }) {
+export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnboardingComplete }: { onClose: () => void; onNavigate?: (tab: "hoy" | "memoria" | "historial" | "configuracion") => void; onAvatares?: () => void; onboarding?: boolean; onOnboardingComplete?: (name: string, facts?: string[]) => void }) {
   const {
     chatTurns,
     sendMessage,
@@ -442,6 +443,7 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
     reopenRecord,
     state: koruDomainState,
     updatePreferences,
+    resetChat,
   } = useKoru();
   const [inputText, setInputText] = useState("");
   const [isListening, setIsListening] = useState(false);
@@ -492,45 +494,17 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
     return () => window.clearInterval(id);
   }, [voiceOn]);
 
-  // ===== Estado del fondo dinámico =====
-  // Detecta el estado actual (trabajando, buscando, memoria, etc.) y lo pasa al KoruBackground.
-  // Trackea idle para activar "durmiendo" solo tras 5 min de inactividad real.
-  //
-  // BUG FIX: El idle timer NO arranca desde el montaje del componente.
-  // Arranca desde la ÚLTIMA interacción real del usuario (mensaje enviado,
-  // typing en el input, o procesando una respuesta).
-  // Mientras el usuario no haya interactuado, no se considera "idle" —
-  // está en "escuchando" (esperando input), no "durmiendo".
-  const [idleMs, setIdleMs] = useState(0);
-  const lastInteractionRef = useRef<number | null>(null); // null = sin interacción aún
-  const hasChatStarted = chatTurns.length > 0;
-
-  // Reset del idle timer cuando hay actividad real del usuario
-  useEffect(() => {
-    // Solo marcamos interacción si hay chat, o está procesando, o está escuchando voz
-    if (chatTurns.length > 0 || processing || isListening) {
-      lastInteractionRef.current = Date.now();
-    }
-  }, [chatTurns.length, processing, isListening]);
-
-  // Reset también cuando el usuario escribe (input cambia de vacío a algo)
-  useEffect(() => {
-    if (inputText.trim().length > 0) {
-      lastInteractionRef.current = Date.now();
-    }
-  }, [inputText]);
-
-  // Tick cada 5s para recalcular idle (no cada 1s — menos renders)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (lastInteractionRef.current === null) {
-        setIdleMs(0);
-      } else {
-        setIdleMs(Date.now() - lastInteractionRef.current);
-      }
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
+  // ===== 🐱 v8 — Estado del design system del usuario =====
+  // Paisaje (auto por franja horaria + override persistido) y avatar del
+  // usuario (user-reference.webp por defecto, elegible desde el popover +).
+  const { activeArt, override: landscapeOverride, chooseLandscape } = useMichiLandscape();
+  const { userAvatar, chooseUserAvatar } = useMichiUserAvatar();
+  const [modal, setModal] = useState<
+    "progress" | "landscape" | "user-avatar" | "reset" | null
+  >(null);
+  // Categoría seleccionada del composer (su .category-chip .selected)
+  const [category, setCategory] = useState("Clima");
+  const [optsOpen, setOptsOpen] = useState(false);
 
   const lastUserText = useMemo(() => {
     for (let i = chatTurns.length - 1; i >= 0; i--) {
@@ -538,10 +512,6 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
     }
     return undefined;
   }, [chatTurns]);
-  const bgState: KoruBgState = useMemo(
-    () => activityToBgState(activity?.kind, processing, isListening, lastUserText, idleMs, hasChatStarted),
-    [activity?.kind, processing, isListening, lastUserText, idleMs, hasChatStarted],
-  );
   const [transcribing, setTranscribing] = useState(false);
   const [analyzingImage, setAnalyzingImage] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -566,6 +536,9 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
   const wheelOverlayRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const turnCountRef = useRef(chatTurns.length);
+  // 🐱 v7.6 — Infinite scroll: "pegado al fondo" mientras el usuario no
+  // scrollee arriba a leer el historial (≤140px del fondo = stick).
+  const stickToBottomRef = useRef(true);
 
   // Fase 1 (audit visual): auto-dismiss del error de micrófono tras 4s.
   // Antes el error "No pude transcribir: not-allowed" se quedaba pegado en
@@ -576,21 +549,14 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
     micErrorTimerRef.current = setTimeout(() => setMicError(""), 4000);
   }, []);
 
-  // UX Stitch: NO es un chat con historial. Es interaccion inmediata de un solo
-  // turno: en pantalla solo vive el intercambio ACTUAL (ultimo mensaje del
-  // usuario + la respuesta de Koru a ese mensaje). Al decir algo nuevo, lo
-  // anterior desaparece. El registro completo queda en Historial.
-  const visibleTurns = useMemo(() => {
-    let lastUserIdx = -1;
-    for (let i = chatTurns.length - 1; i >= 0; i--) {
-      if (chatTurns[i].role === "user") {
-        lastUserIdx = i;
-        break;
-      }
-    }
-    if (lastUserIdx === -1) return chatTurns;
-    return chatTurns.slice(lastUserIdx);
-  }, [chatTurns]);
+  // 🐱 v7.6 — INFINITE SCROLL como el demo (estilo-v2.html): TODO el
+  // historial de la conversación (hasta 120 turns persistidos) vive en el
+  // feed y se recorre scrolleando hacia arriba. Antes: "respuesta única" —
+  // solo se veía el ÚLTIMO intercambio y el resto del historial (con SUS
+  // CARDS incluidas) desaparecía al enviar un mensaje nuevo. Ese slice era
+  // la causa #1 de la queja "las cards no salen": se renderizaban bien y
+  // luego el slice las ocultaba del feed.
+  const visibleTurns = chatTurns;
 
   // Entregable en curso (informe/investigación): su bloque "working" trae el
   // progreso REAL del pipeline. Mientras exista, el composer cede el lugar al
@@ -617,35 +583,6 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
   // items, WorkingPanel). El TypingDots queda reservado para el intervalo real
   // previo al primer chunk (enviado → primera señal del backend).
   const hasStreamingKoruTurn = useMemo(() => lastKoruTurnIsStreaming(chatTurns), [chatTurns]);
-
-  // 🔴 KORU 3.0 — Smart suggestions rotativas por categoría.
-  const smartSuggestions = useMemo(() => {
-    const categories = [
-      { icon: "cloud", items: ["¿Qué tiempo hace?", "¿Necesito paraguas?", "¿Hace frío afuera?", "¿Qué tal el día?"] },
-      { icon: "savings", items: ["Anota un gasto", "¿Cuánto gasté ayer?", "Anota 1500 de café"] },
-      { icon: "sports_soccer", items: ["¿Cuándo juega Boca?", "¿Cómo le fue a Argentina?", "Resultado de Liverpool"] },
-      { icon: "currency_bitcoin", items: ["¿A cuánto está el BTC?", "Precio de Ethereum", "Cotización de Solana"] },
-      { icon: "restaurant", items: ["Receta de pasta", "¿Dónde como sushi?", "¿Qué cocino hoy?"] },
-      { icon: "task_alt", items: ["Recordame llamar a Juan", "Activá una alarma", "Organizá mi día"] },
-      { icon: "auto_awesome", items: ["Hacé un informe de IA", "¿Qué pasó hoy?", "¿Qué es la fotosíntesis?"] },
-      { icon: "movie", items: ["Info de Inception", "¿Qué película veo?", "Recomendame una peli"] },
-      { icon: "map", items: ["¿Cómo llego al aeropuerto?", "Planificá un viaje a Madrid"] },
-    ];
-    const seed = new Date().toDateString() + `-${chatTurns.length}`;
-    let hash = 0;
-    for (let i = 0; i < seed.length; i++) hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0;
-    const catOrder = [...categories].sort((a, b) =>
-      ((hash + a.icon.charCodeAt(0)) % 100) - ((hash + b.icon.charCodeAt(0)) % 100)
-    );
-    const picked: { icon: string; text: string }[] = [];
-    for (let i = 0; i < Math.min(5, catOrder.length); i++) {
-      picked.push({
-        icon: catOrder[i].icon,
-        text: catOrder[i].items[Math.abs(hash + i * 7) % catOrder[i].items.length],
-      });
-    }
-    return picked;
-  }, [chatTurns.length]);
 
   // ── Sugerencias de temas: extrae topics de los user turns anteriores ──
   // Solo aparecen si hay charla previa (más de 1 user turn en el historial completo).
@@ -819,7 +756,17 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") {
+        // 🐱 v8 — si hay una UI superpuesta abierta (menú del header, modal
+        // del design system, wheel, coachmark o CreateScreen), Escape la
+        // cierra a ELLA — no al chat entero (onClose tiraba el overlay y
+        // dejaba al usuario en "Hoy" sin querer).
+        const overlayOpen = document.querySelector(
+          ".mx-menu, .mx-dialog-overlay, .koru-wheel-overlay, .koru-save-overlay, .mx-opts, .koru-create-coachmark",
+        );
+        if (overlayOpen) return;
+        onClose();
+      }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -930,23 +877,42 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
     return () => window.removeEventListener("koru-export-pdf", onExportPdf as EventListener);
   }, [chatTurns, userName, language]);
 
+  // 🐱 v7.6 — Auto-scroll INTELIGENTE para infinite scroll:
+  // · Montaje: con historial restaurado, anclar abajo (mensaje más reciente)
+  // · Mientras procesa/streaming: seguir abajo SOLO si el usuario está pegado
+  //   al fondo. Si scrolleó arriba a leer el historial, NO lo arrastramos.
   useEffect(() => {
     const node = scrollRef.current;
     if (!node) return;
-    if (processing || isListening) {
-      node.scrollTop = node.scrollHeight;
-      return;
-    }
+    const jump = () => { node.scrollTop = node.scrollHeight; };
+    jump();
+    const t = setTimeout(jump, 350); // re-anclaje tras fonts/cards/images
+    return () => clearTimeout(t);
+  }, []);
+
+  // 🐱 v7.6 — Trackear "pegado al fondo": stick = a ≤140px del final.
+  useEffect(() => {
+    const node = scrollRef.current;
+    if (!node) return;
+    const onScroll = () => {
+      stickToBottomRef.current = node.scrollHeight - node.scrollTop - node.clientHeight < 140;
+    };
+    node.addEventListener("scroll", onScroll, { passive: true });
+    return () => node.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const node = scrollRef.current;
+    if (!node) return;
     const previousCount = turnCountRef.current;
     turnCountRef.current = chatTurns.length;
-    if (chatTurns.length > previousCount) {
-      // 🔴 FIX: scrollear al final para mostrar la card completa + CTA
-      // Delay para esperar a que las cards se rendericen
-      setTimeout(() => {
-        if (node) {
-          node.scrollTop = node.scrollHeight;
-        }
-      }, 300);
+    const grew = chatTurns.length > previousCount;
+    if ((processing || isListening || grew) && stickToBottomRef.current) {
+      // Delay para esperar a que las cards se rendericen (layout final)
+      const t = setTimeout(() => {
+        if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      }, processing ? 120 : 300);
+      return () => clearTimeout(t);
     }
   }, [chatTurns, processing, isListening, interimText]);
 
@@ -1009,6 +975,9 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
   const submitText = useCallback(async (text: string, source: "typed" | "speech") => {
     const clean = text.trim();
     if (!clean) return;
+    // 🐱 v7.6 — Al enviar, pegarse al fondo (aunque estuviera arriba leyendo):
+    // el propio mensaje del usuario lo baja. Como WhatsApp/Telegram.
+    stickToBottomRef.current = true;
 
     // Onboarding conversacional: interceptar el nombre
     if (onboardingPhaseRef.current === "waiting_for_name") {
@@ -1229,11 +1198,22 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
         onMouseUp={handleLongPressCancel}
         onMouseLeave={handleLongPressCancel}
       >
-        {/* Fondo dinámico — cambia según el estado de Koru */}
-        <KoruBackground state={bgState} />
+        {/* 🐱 v8 — Definiciones de formas Bézier (burbujas + composer) del usuario */}
+        <BubbleShapes />
 
-        {/* 🐱 Header Michi v7 — identidad + nivel + XP + burger */}
-        <MichiHeader onMenu={() => { setWheelOpen(true); setWheelActive(null); }} />
+        {/* 🐱 v8 — Fondo: paisaje del usuario (auto por hora o elegido a mano) */}
+        <KoruBackground activeArt={activeArt} />
+
+        {/* 🐱 v8 — Header del usuario: status bar + Michi + nivel/XP + menú */}
+        <MichiHeaderV8
+          onMenuAction={(action) => {
+            if (action === "progress") setModal("progress");
+            else if (action === "landscape") setModal("landscape");
+            else if (action === "avatares") onAvatares?.();
+            else onNavigate?.(action);
+          }}
+          onAvatares={() => onAvatares?.()}
+        />
 
         {/* 🔴 Memory toast: aparece cuando Michi aprende algo del usuario.
             * Para guardados (Crear / Guardar card) ofrece "Ver" → Mis Colecciones. */}
@@ -1292,11 +1272,12 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
           <div className="koru-thread">
             {visibleTurns.map((turn) =>
               turn.role === "user" ? (
-                <UserTurnBubble key={turn.id} turn={turn} />
+                <UserTurnBubble key={turn.id} turn={turn} userAvatar={userAvatar} />
               ) : (
                 <KoruTurnBubble
                   key={turn.id}
                   turn={turn}
+                  userAvatar={userAvatar}
                   onReview={handleReview}
                   onConfirmMemory={confirmMemory}
                   onPruneMemory={pruneMemory}
@@ -1317,16 +1298,10 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
                 "Buscando información…") vive AHORA en los propios puntos — un solo
                 indicador visible en todo momento. */}
             {processing && !isListening && !workingDeliverable && !hasStreamingKoruTurn && activity?.depth !== "deep" && (
-              <div className="koru-message is-koru">
-                <div className="koru-row">
-                  <div className="koru-avatar">
-                    <img src={KORU_AVATAR} alt="Michi" />
-                  </div>
-                  <div className="koru-bubble ai-bubble">
-                    <div className="koru-typing-indicator">
-                      <TypingDots label={activity?.label ?? "Procesando…"} />
-                    </div>
-                  </div>
+              <div className="mx-typing-row">
+                <MichiCat size={36} />
+                <div className="mx-typing" aria-label="Michi está escribiendo">
+                  <i /><i /><i />
                 </div>
               </div>
             )}
@@ -1335,15 +1310,13 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
                 ELIMINADOS a pedido — el onboarding queda texto limpio; las sugerencias
                 rotativas viven abajo, junto al composer) */}
             {onboarding && onboardingPhase === "greeting" && !processing && (
-              <div className="koru-message is-koru">
-                <div className="koru-row">
-                  <div className="koru-avatar">
-                    <img src={KORU_AVATAR} alt="Michi" />
-                  </div>
-                  <div className="koru-bubble ai-bubble">
-                    <h3 className="koru-bubble-heading">Hola, soy Michi 🐱</h3>
-                    <p className="koru-message-text">Tu asistente personal. Puedo ayudarte con clima, gastos, recordatorios, búsquedas y mucho más.</p>
-                    <p className="koru-message-text" style={{ marginTop: 8, fontWeight: 600 }}>¿Qué necesitás hoy?</p>
+              <div className="mx-group">
+                <div className="mx-row from-koru">
+                  <MichiCat sparkle />
+                  <div className="mx-bubble mx-koru">
+                    <p className="mx-heading">Hola, soy Michi 🐱</p>
+                    <div className="mx-text">Tu asistente personal. Puedo ayudarte con clima, gastos, recordatorios, búsquedas y mucho más.</div>
+                    <div className="mx-text" style={{ marginTop: 6, fontWeight: 800 }}>¿Qué necesitás hoy?</div>
                   </div>
                 </div>
               </div>
@@ -1351,14 +1324,12 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
 
             {/* Onboarding conversacional — pregunta del nombre */}
             {onboarding && onboardingPhase === "waiting_for_name" && !processing && (
-              <div className="koru-message is-koru">
-                <div className="koru-row">
-                  <div className="koru-avatar">
-                    <img src={KORU_AVATAR} alt="Michi" />
-                  </div>
-                  <div className="koru-bubble ai-bubble">
-                    <h3 className="koru-bubble-heading">Por cierto, ¿cómo te llamo? 😊</h3>
-                    <p className="koru-message-text">Así puedo personalizar mis respuestas y recordarte cosas más fácil.</p>
+              <div className="mx-group">
+                <div className="mx-row from-koru">
+                  <MichiCat />
+                  <div className="mx-bubble mx-koru">
+                    <p className="mx-heading">Por cierto, ¿cómo te llamo? 😊</p>
+                    <div className="mx-text">Así puedo personalizar mis respuestas y recordarte cosas más fácil.</div>
                   </div>
                 </div>
               </div>
@@ -1368,15 +1339,17 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
           </div>
         </main>
 
-        {processing && !isListening && (workingDeliverable || activity?.depth === "deep") ? (
-          <WorkingPanel phase={phase} kind={activity?.kind} deliverable={workingDeliverable} />
-        ) : (
+        {/* 🐱 v7.6 — WorkingPanel FLOTANTE sobre el composer (antes lo
+            REEMPLAZABA: durante una búsqueda profunda el composer desaparecía
+            por minutos y el usuario no podía seguir escribiendo — inaceptable
+            con la cola de turnos). El panel ahora es compacto y vive ENCIMA
+            del dock; el composer queda SIEMPRE disponible como en el demo. */}
+        {processing && !isListening && (workingDeliverable || activity?.depth === "deep") && (
+          <div className="koru-working-dock">
+            <WorkingPanel phase={phase} kind={activity?.kind} deliverable={workingDeliverable} />
+          </div>
+        )}
         <footer className="koru-chat-footer" data-voice-on={voiceOn ? "1" : "0"} data-speaking={michiSpeaking ? "1" : "0"}>
-            {/* 🔴 FIX INDICADOR ÚNICO (2026-09-09): el hint de actividad del footer
-                se ELIMINÓ — su label rotativo ("Pensando esto…", "Buscando
-                información…") vive ahora en los TypingDots del chat. Antes había
-                DOS textos simultáneos ("Procesando…" + "Pensando…" = la queja del
-                usuario de múltiples PROCESANDO a la vez). */}
             {/* 🔴 Offline cache — banner shown when browser loses connectivity */}
             {!online && (
               <p className="koru-footer-error" role="status" aria-live="polite">
@@ -1420,30 +1393,48 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
               </div>
             )}
 
-            {/* 🔴 KORU 3.0 — Quick actions: smartSuggestions rotativas.
-                Antes eran 5 sugerencias fijas que nunca cambiaban.
-                Ahora rotan por categoría (clima, deportes, crypto, recetas, etc.)
-                basadas en el día + cantidad de turns. */}
-            {!inputText.trim() && !processing && !isListening && !isRecording && (
-              <div className="koru-quick-actions">
-                {smartSuggestions.map((chip) => (
-                  <button
-                    key={chip.text}
-                    type="button"
-                    className="koru-quick-action"
-                    onClick={() => {
-                      setInputText(chip.text);
-                      inputRef.current?.focus();
-                    }}
-                  >
-                    <span className="material-symbols-outlined">{chip.icon}</span>
-                    {chip.text}
-                  </button>
-                ))}
-              </div>
-            )}
+            {/* 🐱 v8 — Chips de categoría del usuario (Clima / Lugares / Ideas /
+                Tareas): chips blancos rotados con iconos violeta; el seleccionado
+                queda con gradiente violeta. En su demo eran respuestas fijas —
+                acá cada chip dispara el mensaje al agente REAL de Michi. */}
+            <nav className="mx-chips" aria-label="Temas para conversar">
+              {([
+                ["Clima", CloudSun, "¿Cómo está el clima hoy?"],
+                ["Lugares", MapPin, "¿Qué lugares me recomendás para salir?"],
+                ["Ideas", Lightbulb, "Dame ideas para hoy"],
+                ["Tareas", ClipboardCheck, "¿Qué tareas tengo pendientes hoy?"],
+              ] as const).map(([name, Icon, preset]) => (
+                <button
+                  key={name}
+                  type="button"
+                  className={`mx-chip ${category === name ? "selected" : ""}`}
+                  onClick={() => {
+                    setCategory(name);
+                    if (!online) {
+                      void queueOfflineMessage(preset);
+                      return;
+                    }
+                    void submitText(preset, "typed");
+                  }}
+                >
+                  <Icon size={19} />
+                  <span>{name}</span>
+                </button>
+              ))}
+            </nav>
 
-            <div className="koru-composer">
+            {/* 🐱 v8 — Composer del usuario: forma orgánica (clipPath
+                composer-shape), botones redondos violeta (radial #aa89ff →
+                #5d3ee7) e input pastilla #e9efff. El + abre el popover de
+                opciones (Mi avatar / Nueva conversación / Crear / Adjuntar /
+                Modo efímero) con el estilo .composer-options. */}
+            <form
+              className="mx-composer"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void handleTextSubmit();
+              }}
+            >
               {/* 🔴 v2: coachmark para Create — aparece después del 2do mensaje */}
               {showCreateCoachmark && (
                 <div className="koru-create-coachmark" role="dialog" aria-label="Tip: Crear">
@@ -1465,33 +1456,55 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
                   <div className="koru-create-coachmark-arrow" />
                 </div>
               )}
-              {/* 🔴 Composer: ephemeral (toggle rápido) + crear + adjuntar + input + mic/send */}
-              <button
-                type="button"
-                onClick={() => setEphemeral(!ephemeral)}
-                aria-label={ephemeral ? "Desactivar modo efimero" : "Activar modo efimero"}
-                className={cn("koru-composer-icon", ephemeral && "is-active")}
-              >
-                <Leaf size={20} />
-              </button>
-              {/* 🔴 v2: botón + para crear contenido estructurado (Nota/Lista/Gasto/Enlace) */}
-              <button
-                type="button"
-                onClick={() => setShowCreate(true)}
-                aria-label="Crear"
-                className="koru-composer-icon koru-composer-create"
-              >
-                <Plus size={20} />
-              </button>
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={transcribing || processing || analyzingImage}
-                aria-label="Adjuntar archivo"
-                className={cn("koru-composer-icon", (transcribing || analyzingImage) && "is-active")}
-              >
-                <Paperclip size={20} />
-              </button>
+              <div style={{ position: "relative", flexShrink: 0 }}>
+                <button
+                  type="button"
+                  className="mx-round mx-add"
+                  aria-label="Más opciones"
+                  aria-expanded={optsOpen}
+                  onClick={() => setOptsOpen((v) => !v)}
+                >
+                  {optsOpen ? <X /> : <Plus />}
+                </button>
+                {optsOpen && (
+                  <div className="mx-opts" role="menu">
+                    <button type="button" onClick={() => { setOptsOpen(false); setModal("user-avatar"); }}>
+                      <UserRound size={19} /> Mi avatar
+                    </button>
+                    <button type="button" onClick={() => { setOptsOpen(false); setShowCreate(true); }}>
+                      <Plus size={19} /> Crear nota, lista o gasto
+                    </button>
+                    <button
+                      type="button"
+                      disabled={transcribing || analyzingImage}
+                      onClick={() => { setOptsOpen(false); fileInputRef.current?.click(); }}
+                    >
+                      <Paperclip size={19} /> Adjuntar archivo
+                    </button>
+                    <button type="button" onClick={() => { setOptsOpen(false); setEphemeral(!ephemeral); }} style={ephemeral ? { background: "#e7f9ef" } : undefined}>
+                      <Leaf size={19} /> {ephemeral ? "Desactivar modo efímero" : "Modo efímero"}
+                    </button>
+                    <button type="button" onClick={() => { setOptsOpen(false); setModal("reset"); }}>
+                      <RotateCcw size={19} /> Nueva conversación
+                    </button>
+                  </div>
+                )}
+              </div>
+              <input
+                ref={inputRef}
+                value={inputText}
+                onChange={(event) => setInputText(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    void handleTextSubmit();
+                  }
+                }}
+                placeholder={isRecording ? "Grabando… te escucho" : "Habla con Michi..."}
+                aria-label="Mensaje para Michi"
+                maxLength={1500}
+                autoComplete="off"
+              />
               <input
                 ref={fileInputRef}
                 type="file"
@@ -1507,46 +1520,36 @@ export function TalkOverlay({ onClose, onNavigate, onboarding, onOnboardingCompl
                 }}
                 className="hidden"
               />
-              <div className="koru-composer-field">
-                <input
-                  ref={inputRef}
-                  value={inputText}
-                  onChange={(event) => setInputText(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      event.preventDefault();
-                      void handleTextSubmit();
-                    }
-                  }}
-                  placeholder="Habla con Michi..."
-                  disabled={processing}
-                  className="koru-composer-input"
-                />
-              </div>
-              {speechStatus.supported || true ? (
-                <button
-                  type="button"
-                  onClick={inputText.trim() ? () => void handleTextSubmit() : toggleMediaRecorder}
-                  disabled={processing && !inputText.trim()}
-                  aria-label={inputText.trim() ? "Enviar" : isRecording ? "Detener grabación" : "Hablar"}
-                  className={cn("koru-mic-button", isRecording && "is-listening")}
-                >
-                  {inputText.trim() ? <ArrowUp size={22} /> : isRecording ? <MicOff size={22} /> : <Mic size={22} />}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => void handleTextSubmit()}
-                  disabled={!inputText.trim() || processing}
-                  aria-label="Enviar"
-                  className="koru-mic-button"
-                >
-                  <ArrowUp size={24} />
-                </button>
-              )}
-            </div>
+              <button
+                type={inputText.trim() ? "submit" : "button"}
+                onClick={inputText.trim() ? undefined : toggleMediaRecorder}
+                aria-label={inputText.trim() ? "Enviar mensaje" : isRecording ? "Detener grabación" : "Dictar mensaje"}
+                className={`mx-round ${isRecording ? "mx-listening" : ""}`}
+              >
+                {inputText.trim() ? <ArrowUp /> : isRecording ? <Square size={20} fill="white" /> : <Mic />}
+              </button>
+            </form>
           </footer>
+
+        {/* 🐱 v8 — Modales del design system del usuario (progreso / paisaje /
+            avatar personal / nueva conversación) */}
+        {modal === "progress" && <MichiProgressDialog onClose={() => setModal(null)} />}
+        {modal === "landscape" && (
+          <MichiLandscapeDialog
+            active={activeArt}
+            override={landscapeOverride}
+            onChoose={(n) => chooseLandscape(n)}
+            onClose={() => setModal(null)}
+          />
         )}
+        {modal === "user-avatar" && (
+          <MichiUserAvatarDialog
+            userAvatar={userAvatar}
+            onChoose={chooseUserAvatar}
+            onClose={() => setModal(null)}
+          />
+        )}
+        {modal === "reset" && <MichiResetDialog onConfirm={resetChat} onClose={() => setModal(null)} />}
 
         {/* Wheel Overlay — long-press navigation */}
         {wheelOpen && (

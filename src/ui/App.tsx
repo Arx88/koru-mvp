@@ -6,6 +6,7 @@ import { HistoryScreen } from "./HistoryScreen";
 import { TalkOverlay } from "./TalkOverlay";
 import { HomeScreen } from "./HomeScreen";
 import { SettingsScreen } from "./SettingsScreen";
+import { MichiAvatarsScreen } from "./michi/MichiAvatars";
 import { IconGallery } from "./IconGallery";
 import { KoruMicrodetails } from "./cards/unified/KoruMicrodetails";
 import { fetchWeatherForCity } from "../domain/weatherClient";
@@ -15,7 +16,7 @@ const LazyCreateScreen = lazy(() =>
   import("./create/CreateScreen").then((m) => ({ default: m.CreateScreen })),
 );
 
-type Screen = "chat" | "hoy" | "memoria" | "historial" | "configuracion";
+type Screen = "chat" | "hoy" | "memoria" | "historial" | "configuracion" | "avatares";
 
 function KoruApp() {
   // 🔴 FIX (2026-09-09): "Crear" desde el Home abre la CreateScreen REAL
@@ -57,8 +58,26 @@ function KoruApp() {
       <TalkOverlay
         onClose={() => setScreen("hoy")}
         onNavigate={(tab) => setScreen(tab as Screen)}
+        onAvatares={() => setScreen("avatares")}
         onboarding={!onboarded}
         onOnboardingComplete={completeOnboarding}
+      />
+    );
+  }
+
+  // 🐱 v8 — Pantalla de avatares desbloqueables (diseño del usuario)
+  if (screen === "avatares") {
+    return (
+      <MichiAvatarsScreen
+        onBack={() => setScreen("chat")}
+        onMenuAction={(action) => {
+          if (action === "avatares") return;
+          if (action === "hoy" || action === "memoria" || action === "historial" || action === "configuracion") {
+            setScreen(action);
+          } else {
+            setScreen("chat");
+          }
+        }}
       />
     );
   }

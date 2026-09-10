@@ -350,6 +350,9 @@ type KoruContextValue = {
   updateHeartbeat: (patch: Partial<HeartbeatSettings>) => void;
   exportData: () => void;
   deleteAllData: () => void;
+  // 🐱 v8 — "Nueva conversación" (su modal reset): borra el historial del
+  // chat (solo el chat — NO la memoria/hábitos/datos) y deja el saludo.
+  resetChat: () => void;
 };
 
 const KoruContext = createContext<KoruContextValue | null>(null);
@@ -438,6 +441,14 @@ export function KoruProvider({ children }: { children: ReactNode }) {
       return resolved;
     });
   }
+
+  // 🐱 v7.6 — COLA DE TURNOS (infinite scroll UX): el usuario puede seguir
+  // escribiendo mientras Michi procesa (como el demo estilo-v2). Antes el
+  // composer quedaba DISABLED hasta 3 minutos con el backend frío de Render
+  // — la causa #2 de "las cards no salen" (el usuario esperaba trabado sin
+  // poder hacer nada). Ahora: cada submitEntry se encola y corre cuando
+  // termina el anterior; el mensaje del usuario aparece al instante.
+  const submitQueueRef = useRef<Promise<unknown>>(Promise.resolve());
 
   useEffect(() => {
     domainStateRef.current = domainState;
@@ -1691,7 +1702,12 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     });
     setActivity(inferActivity(cleanText));
     try {
-      const result = await submitEntry(cleanText, transcriptSource, historyBeforeUser);
+      // 🐱 v7.6 — Encolar detrás del turno en curso (si lo hay). El historial
+      // se resuelve AL EJECUTAR (chatTurnsRef.current) para que incluya los
+      // turnos que llegaron mientras esperaba en la cola.
+      const run = submitQueueRef.current.then(() => submitEntry(cleanText, transcriptSource));
+      submitQueueRef.current = run.catch(() => undefined);
+      const result = await run;
       let koruTurn: KoruChatTurn | undefined;
       if (!result.koruTurnId) {
         koruTurn = {
@@ -1754,14 +1770,34 @@ export function KoruProvider({ children }: { children: ReactNode }) {
       return koruTurn ?? null;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Fallo desconocido del agente.";
+      const errorText = `No pude contactar bien al agente ahora. No voy a inventarte una respuesta. Detalle: ${message}`;
       const errorTurn: KoruChatTurn = {
         id: createId("turn"),
         role: "koru",
-        text: `No pude contactar bien al agente ahora. No voy a inventarte una respuesta. Detalle: ${message}`,
+        text: errorText,
         createdAt: new Date().toISOString(),
         status: "error",
       };
-      commitChatTurns((prev) => [...prev, errorTurn].slice(-120));
+      // 🐱 v7.6 — CAUSA #3 de "las cards no salen": si el stream aborta
+      // (idle timeout 180s / red caída), el turno koru creado durante el
+      // streaming quedaba con status "working" PARA SIEMPRE → su card
+      // esqueleto "Buscando…" colgada eternamente y la burbuja oculta.
+      // Ahora: el turno working se PARCHEA con el texto de error (la
+      // card esqueleto desaparece) en lugar de APPENDIXAR otro turno.
+      commitChatTurns((prev) => {
+        const lastWorkingIdx = [...prev].reverse().findIndex((t) => t.role === "koru" && t.status === "working");
+        if (lastWorkingIdx === -1) return [...prev, errorTurn].slice(-120);
+        const realIdx = prev.length - 1 - lastWorkingIdx;
+        const patched = [...prev];
+        patched[realIdx] = {
+          ...patched[realIdx],
+          text: errorText,
+          items: [],
+          status: "error" as const,
+          mascotState: "idle" as const,
+        };
+        return patched.slice(-120);
+      });
       writeAuditEvent({
         type: "turn_error",
         input: cleanText,
@@ -2090,6 +2126,15 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  // 🐱 v8 — "Nueva conversación" del popover del composer (su diseño reset):
+  // limpia SOLO la conversación (persistida en koru.infinite.conversation.v1)
+  // y deja el turno de saludo fresco. La memoria y el resto del estado NO se
+  // tocan — a diferencia de deleteAllData.
+  function resetChat() {
+    saveChatTurns([], false);
+    setChatTurns([greetingTurn(localStorage.getItem("koru.username") ?? "")]);
+  }
+
   const value = useMemo<KoruContextValue>(() => ({
     state: domainState,
     energy,
@@ -2211,6 +2256,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     updateHeartbeat,
     exportData,
     deleteAllData,
+    resetChat,
   }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, domainState, domainState.records, permissions, processing, activity, phase, chatTurns, selectedModel, memoryToast, morningBrief, showInstallPrompt, installPromptEvent, voiceEnabled, language, online, reopenedRecord, pendingMemoryConflict]);
 
   // 🔴 v2: Listener para guardar record desde el detail screen (botón Guardar informe)

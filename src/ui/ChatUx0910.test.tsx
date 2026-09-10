@@ -44,14 +44,17 @@ describe("renderMarkdownBody", () => {
 });
 
 describe("CopyButton", () => {
-  it("copia al clipboard y muestra feedback 'Copiado'", async () => {
+  it("copia al clipboard y confirma con aria-label (icon-only v7.6, sin caja)", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.assign(navigator, { clipboard: { writeText } });
     render(<CopyButton text="Mensaje para copiar" />);
     const btn = screen.getByRole("button", { name: /copiar mensaje/i });
+    // 🐱 v7.6: icono fantasma — SIN label textual visible ("Copiar") ni caja:
+    // el único contenido es el icono (ligadura material-symbols).
+    expect(btn.textContent).not.toMatch(/copiar|copiado/i);
     fireEvent.click(btn);
     expect(writeText).toHaveBeenCalledWith("Mensaje para copiar");
-    expect(await screen.findByText("Copiado")).toBeTruthy();
+    await screen.findByRole("button", { name: "Copiado" });
   });
 });
 

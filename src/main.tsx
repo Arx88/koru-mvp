@@ -6,6 +6,7 @@ import "./koru-motion.css";
 import "./style.css";
 import "./style-v75-bubbles.css";
 import "./michi-cards.css";
+import "./michi-v8.css";
 
 const isPreview = new URLSearchParams(location.search).get("preview") === "cards";
 

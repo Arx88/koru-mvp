@@ -1,20 +1,23 @@
 // Michi Service Worker — notificaciones push y background sync
 // Mobile-first: funciona en PWA standalone
 
-// 🐱 v7.5 — michi-v3: precache de los 5 fondos por momento del día + avatar
-// del usuario (para que el cambio de fondo al cruzar las 6/8/17/20h sea
-// instantáneo y funcione offline).
-const CACHE_NAME = "michi-v3";
+// 🐱 v8 — michi-v4: precache de los 5 paisajes del usuario (art-09/17/11/12/13)
+// + avatar del gato (art-19) + avatar del usuario + banner de Playita, para
+// que el crossfade entre franjas horarias y la página de avatares funcionen
+// instantáneo y offline.
+const CACHE_NAME = "michi-v4";
 const STATIC_ASSETS = [
   "/",
   "/index.html",
   "/favicon.svg",
-  "/michi/fondos/madrugada.jpg",
-  "/michi/fondos/amanecer.jpg",
-  "/michi/fondos/dia.jpg",
-  "/michi/fondos/atardecer.jpg",
-  "/michi/fondos/anochecer.jpg",
-  "/michi/user-avatar.png",
+  "/assets/art-09.webp",
+  "/assets/art-17.webp",
+  "/assets/art-11.webp",
+  "/assets/art-12.webp",
+  "/assets/art-13.webp",
+  "/assets/art-19.webp",
+  "/assets/user-reference.webp",
+  "/assets/playita-banner.webp",
 ];
 
 self.addEventListener("install", (event) => {
