@@ -113,6 +113,8 @@ export async function executeTool(
           userInput: cleanText(args.__userInput),
           state,
           chatFn: extractorCtx?.chatFn as never,
+          // 🔴 FIX TZ: hora del CLIENTE para formatear fixtures en su tz local
+          tzOffsetMin: extractorCtx?.tzOffsetMin,
         });
         result = runResult as Record<string, unknown>;
         deferredDataCard = runResult.deferredDataCard;

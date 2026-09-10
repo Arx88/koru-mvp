@@ -3,9 +3,37 @@
  * API: TheSportsDB (key pública gratuita "3"). 1.200+ competencias.
  */
 
-import { defineTool, policies, type ToolHandler } from "../types";
+import { defineTool, policies, type ToolRunContext, type ToolHandler } from "../types";
 import { fetchJson } from "../shared/fetcher";
 import { cached, ttls } from "../shared/cache";
+
+/**
+ * 🔴 FIX TZ — Hora de kickoff en la tz del USUARIO, no la del server.
+ * El server corre en UTC (Render): un partido de Boca a las 21:30 AR
+ * (2026-09-12T00:30Z) se mostraba como "00:30" — 2,5h off para Madrid.
+ * getTimezoneOffset() del cliente: Madrid UTC+2 → -120 (local = UTC − offset).
+ * Sin tzOffsetMin (tests/dev): mantiene el comportamiento legacy (hora del server).
+ */
+export function formatKickoffUserTz(
+  date: string | Date | undefined | null,
+  tzOffsetMin?: number,
+  opts?: { withDate?: boolean },
+): string | undefined {
+  if (!date) return undefined;
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return undefined;
+  const hasTz = typeof tzOffsetMin === "number" && Number.isFinite(tzOffsetMin);
+  const target = hasTz ? new Date(d.getTime() - tzOffsetMin * 60_000) : d;
+  const timeOpts: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit", hour12: false };
+  if (hasTz) timeOpts.timeZone = "UTC"; // leemos la epoch desplazada tal cual
+  const time = target.toLocaleTimeString("es-AR", timeOpts);
+  if (opts?.withDate) {
+    const dateOpts: Intl.DateTimeFormatOptions = { weekday: "short", day: "2-digit", month: "2-digit" };
+    if (hasTz) dateOpts.timeZone = "UTC";
+    return `${target.toLocaleDateString("es-AR", dateOpts)} ${time}`;
+  }
+  return time;
+}
 
 const TSDB_KEY = "3"; // Key pública gratuita de TheSportsDB.
 const TSDB_BASE = `https://www.thesportsdb.com/api/v1/json/${TSDB_KEY}`;
@@ -480,7 +508,7 @@ export const matchLive: ToolHandler = {
     },
   ),
   policy: policies.readonly("Lee resultados deportivos de ESPN y TheSportsDB."),
-  async run(args) {
+  async run(args, ctx?: ToolRunContext) {
     // Fallback a __userInput si el LLM no pasa query (caso: "Como salió España ayer" sin args)
     const query = String(args.query ?? args.__userInput ?? "").trim();
     if (!query) return { type: "match_live", status: "failed", error: "Indicá el partido." };
@@ -636,8 +664,8 @@ export const matchLive: ToolHandler = {
       if (teamInfo?.location) infoSections.push(`Ubicación: ${teamInfo.location}`);
       if (teamInfo?.league) infoSections.push(`Liga: ${teamInfo.league}`);
       if (nextMatch) {
-        const d = nextMatch.strTimestamp ? new Date(nextMatch.strTimestamp) : null;
-        infoSections.push(`Próximo partido: ${nextMatch.strEvent} ${d ? `(${d.toLocaleDateString("es")} ${d.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })})` : ""}`);
+        const kickoffLabel = formatKickoffUserTz(nextMatch.strTimestamp, ctx?.tzOffsetMin, { withDate: true });
+        infoSections.push(`Próximo partido: ${nextMatch.strEvent} ${kickoffLabel ? `(${kickoffLabel})` : ""}`);
       }
 
       return {
@@ -805,7 +833,7 @@ export const matchSchedule: ToolHandler = {
     },
   ),
   policy: policies.readonly("Lee fixture deportivo público."),
-  async run(args) {
+  async run(args, runCtx?: ToolRunContext) {
     // 🔴 KORU 3.0 — fallback a __userInput cuando el LLM no pasa team
     // (caso: detector de simulated tool call extrae solo el nombre, sin args)
     const team = String(args.team ?? args.__userInput ?? "").trim();
@@ -885,10 +913,9 @@ export const matchSchedule: ToolHandler = {
       // Wikipedia). Si falla, seguimos devolviendo los matches (compatible).
       const first = upcomingEspn[0];
       const ctx = await fetchTeamContext(team || league);
-      // Hora de inicio legible desde el ISO (normalizeEspnEvent no trae "time").
-      const kickoff = first.date
-        ? (() => { const d = new Date(first.date as string); return isNaN(d.getTime()) ? undefined : d.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false }); })()
-        : undefined;
+      // 🔴 FIX TZ — hora de kickoff en la tz del USUARIO (antes: hora del server
+      // = UTC en Render → “00:30” para un partido 21:30 AR / 02:30 Madrid).
+      const kickoff = formatKickoffUserTz(first.date as string, runCtx?.tzOffsetMin);
       return {
         type: "match_schedule",
         status: "ok",

@@ -4322,12 +4322,24 @@ function matchTimeline(b: Of<"match_timeline">): KoruPresentation {
     }
   }
 
+  // 🔴 FIX TZ/ISO — formatear la fecha del próximo partido en la tz del
+  // BROWSER (= tz del usuario) en vez de mostrar el ISO crudo
+  // "2026-09-12T00:30Z". Corre client-side, así que new Date(iso) + métodos
+  // locales ya caen en la tz correcta.
+  const prettyDate = nextMatch?.date
+    ? (() => {
+        const d = new Date(nextMatch.date as string);
+        if (isNaN(d.getTime())) return nextMatch.date as string;
+        return d.toLocaleDateString("es-AR", { weekday: "short", day: "2-digit", month: "2-digit" });
+      })()
+    : undefined;
+
   // Sección 2: Próximo partido (tiles)
   if (nextMatch) {
     const tiles: any[] = [];
     if (nextMatch.match) tiles.push({ label: "Partido", value: nextMatch.match });
     else if (nextMatch.homeTeam && nextMatch.awayTeam) tiles.push({ label: "Partido", value: `${nextMatch.homeTeam} vs ${nextMatch.awayTeam}` });
-    if (nextMatch.date) tiles.push({ label: "Fecha", value: nextMatch.date });
+    if (prettyDate) tiles.push({ label: "Fecha", value: prettyDate });
     if (nextMatch.time) tiles.push({ label: "Hora", value: nextMatch.time });
     if (nextMatch.league) tiles.push({ label: "Liga", value: nextMatch.league });
     if (tiles.length > 0) {
@@ -4381,7 +4393,7 @@ function matchTimeline(b: Of<"match_timeline">): KoruPresentation {
   const kicker = hasItems ? "Fixture" : (hasTeamInfo ? "Info del equipo" : "Partido");
   const desc = hasItems
     ? (now ? `${now.minute} · ${now.text}` : undefined)
-    : (nextMatch ? `Próximo: ${nextMatch.date ?? "fecha por confirmar"}` : (teamInfo?.league ?? undefined));
+    : (nextMatch ? `Próximo: ${prettyDate ?? nextMatch.date ?? "fecha por confirmar"}` : (teamInfo?.league ?? undefined));
 
   return {
     hero: {

@@ -3337,7 +3337,7 @@ export async function buildEnhancementInstruction(
   enhancementActions: KoruSuggestedAction[];
 }> {
   try {
-    const uiBlocks = blocksFromToolResults(toolExecutions, request.input);
+    const uiBlocks = blocksFromToolResults(toolExecutions, request.input, request.tzOffsetMin);
 
     const toolBlocks: ToolResult[] = toolExecutions.flatMap((t) => {
       const resultStatus = (t.result as Record<string, unknown> | undefined)?.status;
@@ -4447,7 +4447,7 @@ export async function runKoruBackendTurn(
       // El reply se genera con replyFromBlocks (mecánico pero rápido).
       // Esto elimina los timeouts causados por múltiples LLM calls.
       const fastConfig = { ...config, nvidiaModel: config.nvidiaModel };
-      const toolBlocks = blocksFromToolResults(toolExecutions, request.input);
+      const toolBlocks = blocksFromToolResults(toolExecutions, request.input, request.tzOffsetMin);
       const blockReply = replyFromBlocks(toolBlocks, request.input);
       const taskKicker = fastPathKickerForCategory(routeCategory ?? "conversation");
       const effectiveReply = blockReply || `Te dejé ${taskKicker.toLowerCase()} en la tarjeta.`;
@@ -4811,7 +4811,7 @@ export async function runKoruBackendTurn(
             const rawFallback: Record<string, unknown> = {
               reply: cleanReplyText(secondContent) || "No pude armar una respuesta clara. ¿Me lo repetís de otra forma?",
               understanding: { literalRequest: request.input, userGoal: route.category, unstatedNeeds: [], assumptions: [], confidence: 0.45 },
-              uiBlocks: blocksFromToolResults(toolExecutions, request.input),
+              uiBlocks: blocksFromToolResults(toolExecutions, request.input, request.tzOffsetMin),
               suggestedActions: [], memoryCandidates: [], commitments: [], records: [], mascotState: "thinking",
             };
             const response = await finalizeFromPlainText(rawFallback, [syntheticToolCall], request, config, toolExecutions, extractorTimeout);
@@ -5039,7 +5039,7 @@ export async function runKoruBackendTurn(
 
     // Emitir chunk intermedio con los resultados de tools para progreso en tiempo real
     if (onChunk && toolExecutions.length > 0) {
-      const intermediateBlocks = blocksFromToolResults(toolExecutions, request.input).map((b) => {
+      const intermediateBlocks = blocksFromToolResults(toolExecutions, request.input, request.tzOffsetMin).map((b) => {
         if (b.type === "web_nav") return null as any; // 🔴 FIX: no more web_nav loading
         return b;
       });
@@ -5113,7 +5113,7 @@ export async function runKoruBackendTurn(
             assumptions: [],
             confidence: 0.45,
           },
-          uiBlocks: [...validDeferredCards, ...blocksFromToolResults(toolExecutions, request.input)],
+          uiBlocks: [...validDeferredCards, ...blocksFromToolResults(toolExecutions, request.input, request.tzOffsetMin)],
           suggestedActions: [],
           memoryCandidates: [],
           commitments: [],
@@ -5273,7 +5273,7 @@ export async function runKoruBackendTurn(
       const rawFallback: Record<string, unknown> = {
         reply: cleanReplyText(secondContent) || "No pude armar una respuesta clara. ¿Me lo repetís de otra forma?",
         understanding: { literalRequest: request.input, userGoal: "Resolver el pedido con ayuda de Michi.", unstatedNeeds: [], assumptions: [], confidence: 0.45 },
-        uiBlocks: blocksFromToolResults(toolExecutions, request.input),
+        uiBlocks: blocksFromToolResults(toolExecutions, request.input, request.tzOffsetMin),
         suggestedActions: [], memoryCandidates: [], commitments: [], records: [], mascotState: "thinking",
       };
       const response = await finalizeFromPlainText(rawFallback, [syntheticToolCall], request, config, toolExecutions, extractorTimeout);
@@ -5346,7 +5346,7 @@ export async function runKoruBackendTurn(
           assumptions: [],
           confidence: 0.45,
         },
-        uiBlocks: blocksFromToolResults(toolExecutions, request.input),
+        uiBlocks: blocksFromToolResults(toolExecutions, request.input, request.tzOffsetMin),
         suggestedActions: [],
         memoryCandidates: [],
         commitments: [],

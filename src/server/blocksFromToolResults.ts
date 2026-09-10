@@ -11,6 +11,7 @@ import type {
   AssistantSource,
   UiBlock,
 } from "../domain/types";
+import { formatKickoffUserTz } from "../tools/sports/football";
 import {
   cleanText,
   formatCompactNumber,
@@ -28,7 +29,7 @@ import {
   type DayInfoData,
 } from "./koruBackend";
 
-export function blocksFromToolResults(results: ToolExecution[], userInput?: string): UiBlock[] {
+export function blocksFromToolResults(results: ToolExecution[], userInput?: string, tzOffsetMin?: number): UiBlock[] {
   const blocks: UiBlock[] = [];
   // 🔴 FIX DOBLE CARD — resultados de deportes (match_live + match_schedule)
   // se resuelven AL FINAL del loop, juntos, para poder mergear y evitar la
@@ -1147,7 +1148,7 @@ export function blocksFromToolResults(results: ToolExecution[], userInput?: stri
   }
   // 🔴 FIX DOBLE CARD — resolver deportes con merge (una sola historia por
   // equipo: resultado con próximos adentro, o fixture enriquecido).
-  buildSportsBlocks(sports, blocks);
+  buildSportsBlocks(sports, blocks, tzOffsetMin);
   return blocks;
 }
 
@@ -1174,24 +1175,35 @@ function isScheduledMatch(m: any): boolean {
   return /scheduled|not started|pre|pr[óo]xim|upcoming|por jugar/i.test(String(m.status ?? ""));
 }
 
-/** "2026-09-12T00:30Z" → "21:30" (hora local del servidor formateada) */
-function kickoffTimeFrom(date?: string): string | undefined {
+/** "2026-09-12T00:30Z" → "02:30" con tz Madrid (antes: hora del server/UTC) */
+function kickoffTimeFrom(date?: string, tzOffsetMin?: number): string | undefined {
   if (!date) return undefined;
-  const d = new Date(date);
-  if (isNaN(d.getTime())) return undefined;
-  return d.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
+  // 🔴 FIX TZ — delega en el helper de football.ts: hora local del usuario
+  // (antes: hora del server = UTC en producción → "00:30" para 21:30 AR).
+  return formatKickoffUserTz(date, tzOffsetMin);
 }
 
 /** "2026-09-12T00:30Z" → "sáb 12/09" */
-function shortDateFrom(date?: string): string {
+function shortDateFrom(date?: string, tzOffsetMin?: number): string {
   if (!date) return "—";
   const d = new Date(date);
   if (isNaN(d.getTime())) return "—";
-  const dias = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
-  return `${dias[d.getDay()]} ${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}`;
+  // 🔴 FIX TZ — día de semana + fecha en la tz del usuario (getTimezoneOffset:
+  // Madrid UTC+2 → -120). Sin tz: comportamiento legacy (hora del server).
+  const hasTz = typeof tzOffsetMin === "number" && Number.isFinite(tzOffsetMin);
+  const target = hasTz ? new Date(d.getTime() - tzOffsetMin * 60_000) : d;
+  const fmt = new Intl.DateTimeFormat("es-AR", {
+    ...(hasTz ? { timeZone: "UTC" as const } : {}),
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit",
+  });
+  const parts = fmt.formatToParts(target);
+  const get = (t: string) => parts.find(p => p.type === t)?.value ?? "";
+  return `${get("weekday")} ${get("day")}/${get("month")}`;
 }
 
-function buildSportsBlocks(sports: { live: any | null; schedule: any | null }, blocks: UiBlock[]): void {
+function buildSportsBlocks(sports: { live: any | null; schedule: any | null }, blocks: UiBlock[], tzOffsetMin?: number): void {
   const live = sports.live;
   const schedule = sports.schedule;
   if (!live && !schedule) return;
@@ -1277,7 +1289,7 @@ function buildSportsBlocks(sports: { live: any | null; schedule: any | null }, b
           homeTeam: um.homeTeam,
           awayTeam: um.awayTeam,
           date: um.date,
-          time: um.time ?? kickoffTimeFrom(um.date),
+          time: um.time ?? kickoffTimeFrom(um.date, tzOffsetMin),
           league: um.league,
         })).filter((um: any) => um.homeTeam || um.awayTeam)
       : undefined;
@@ -1328,7 +1340,7 @@ function buildSportsBlocks(sports: { live: any | null; schedule: any | null }, b
         type: "match_timeline" as const,
         title: `${homeName} · otros resultados`,
         items: liveMatches.slice(1, 5).map((mm: any) => ({
-          minute: mm.date ? shortDateFrom(mm.date) : "—",
+          minute: mm.date ? shortDateFrom(mm.date, tzOffsetMin) : "—",
           text: `${mm.homeTeam ?? "?"} ${mm.homeScore ?? "?"}-${mm.awayScore ?? "?"} ${mm.awayTeam ?? "?"}`,
           sub: mm.status ?? (mm.live ? "En vivo" : "Final"),
           active: !!mm.live,
@@ -1337,7 +1349,7 @@ function buildSportsBlocks(sports: { live: any | null; schedule: any | null }, b
     }
     // El schedule era de OTRO equipo (raro pero posible) → fixture aparte
     if (schedMatches.length > 0 && !sameTeamUniverse) {
-      pushFixtureCard(schedule, blocks);
+      pushFixtureCard(schedule, blocks, tzOffsetMin);
     }
     return;
   }
@@ -1354,7 +1366,7 @@ function buildSportsBlocks(sports: { live: any | null; schedule: any | null }, b
     const merged: any = { ...schedule };
     if (!merged.teamInfo && live?.teamInfo) merged.teamInfo = live.teamInfo;
     if (!merged.wikipediaExtract && live?.wikipediaExtract) merged.wikipediaExtract = live.wikipediaExtract;
-    pushFixtureCard(merged, blocks);
+    pushFixtureCard(merged, blocks, tzOffsetMin);
     return;
   }
 
@@ -1370,11 +1382,12 @@ function buildSportsBlocks(sports: { live: any | null; schedule: any | null }, b
           homeTeam: scheduledFromLive.homeTeam,
           awayTeam: scheduledFromLive.awayTeam,
           date: scheduledFromLive.date,
-          time: scheduledFromLive.time ?? kickoffTimeFrom(scheduledFromLive.date),
+          time: scheduledFromLive.time ?? kickoffTimeFrom(scheduledFromLive.date, tzOffsetMin),
           league: scheduledFromLive.league,
         },
       },
       blocks,
+      tzOffsetMin,
     );
     return;
   }
@@ -1397,7 +1410,7 @@ function buildSportsBlocks(sports: { live: any | null; schedule: any | null }, b
 
 /** Card de fixture enriquecida: items + nextMatch (para el interior Mtl) +
  *  teamInfo + wiki. Título = nombre real del equipo, no el query crudo. */
-function pushFixtureCard(schedule: any, blocks: UiBlock[]): void {
+function pushFixtureCard(schedule: any, blocks: UiBlock[], tzOffsetMin?: number): void {
   const matches: any[] = Array.isArray(schedule?.matches) ? schedule.matches : [];
   const teamInfo = schedule?.teamInfo;
   const wiki = schedule?.wikipediaExtract;
@@ -1415,7 +1428,7 @@ function pushFixtureCard(schedule: any, blocks: UiBlock[]): void {
           homeTeam: first.homeTeam,
           awayTeam: first.awayTeam,
           date: first.date,
-          time: first.time ?? kickoffTimeFrom(first.date),
+          time: first.time ?? kickoffTimeFrom(first.date, tzOffsetMin),
           league: first.league,
         }
       : undefined);
@@ -1424,9 +1437,9 @@ function pushFixtureCard(schedule: any, blocks: UiBlock[]): void {
     type: "match_timeline" as const,
     title: teamName || (nextMatch ? `${nextMatch.homeTeam ?? ""} vs ${nextMatch.awayTeam ?? ""}` : "Próximo partido"),
     items: matches.slice(0, 5).map((m: any) => ({
-      minute: shortDateFrom(m.date),
+      minute: shortDateFrom(m.date, tzOffsetMin),
       text: `${m.homeTeam ?? "?"} vs ${m.awayTeam ?? "?"}`,
-      sub: `${m.league ?? ""}${m.time ?? kickoffTimeFrom(m.date) ? ` · ${m.time ?? kickoffTimeFrom(m.date)}` : ""}`,
+      sub: `${m.league ?? ""}${m.time ?? kickoffTimeFrom(m.date, tzOffsetMin) ? ` · ${m.time ?? kickoffTimeFrom(m.date, tzOffsetMin)}` : ""}`,
       active: true,
     })),
     teamInfo,
