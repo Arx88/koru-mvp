@@ -24,6 +24,7 @@ const LazyCollectionsScreen = lazy(() =>
   import("./CollectionsScreen").then((m) => ({ default: m.CollectionsScreen })),
 );
 import { MorningBriefCard } from "./MorningBriefCard";
+import { MichiSaveSheet } from "./michi/MichiSaveSheet";
 import { CreateScreen } from "./create/CreateScreen";
 import { MichiResearchLoading } from "./michi/MichiResearchLoading";
 import { lastKoruTurnIsStreaming } from "../domain/turn";
@@ -303,7 +304,6 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
   const [wheelActive, setWheelActive] = useState<string | null>(null);
   // 🔴 Estado para el modal de guardar informe
   const [saveModal, setSaveModal] = useState<{ title: string; subtitle?: string; blockData: any } | null>(null);
-  const [saveFolderMode, setSaveFolderMode] = useState(false);
   // Onboarding conversacional: "greeting" → "waiting_for_name" → "done"
   const [onboardingPhase, setOnboardingPhase] = useState<"greeting" | "waiting_for_name" | "done">(
     onboarding ? "greeting" : "done"
@@ -1012,6 +1012,7 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
         {memoryToast && (
           <MemoryToast
             key={memoryToast.id}
+            confirmed={koruDomainState.memories.some(memory => memory.id === memoryToast.id && memory.status === "confirmed")}
             kind={memoryToast.kind}
             text={memoryToast.text}
             onDismiss={dismissMemoryToast}
@@ -1442,113 +1443,22 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
         )}
       </section>
 
-      {/* 🔴 Modal de Guardar Informe — elegir carpeta o "Que Koru se encargue" */}
-      {saveModal && (
-        <div
-          className="koru-save-overlay"
-          onClick={(e) => { if (e.target === e.currentTarget) setSaveModal(null); }}
-        >
-          <div className="koru-save-modal">
-            <h2 className="koru-save-title">Guardar informe</h2>
-            <p className="koru-save-subtitle">{saveModal.title}</p>
-
-            <div className="koru-save-options">
-              <button
-                className="koru-save-option koru-save-option-koru"
-                onClick={() => {
-                  // "Que Koru se encargue" — guardar con colección automática
-                  const block = saveModal.blockData;
-                  const collection = block?.topic || block?.kicker || "Informes";
-                  // Disparar save como record
-                  window.dispatchEvent(new CustomEvent("koru-save-record", {
-                    detail: {
-                      title: saveModal.title,
-                      collection: `Michi · ${collection}`,
-                      kind: "idea",
-                      notes: saveModal.subtitle,
-                    }
-                  }));
-                  setSaveModal(null);
-                }}
-              >
-                <span className="material-symbols-outlined">eco</span>
-                <div>
-                  <strong>Que Michi se encargue</strong>
-                  <small>Michi agrupa por tema automáticamente</small>
-                </div>
-              </button>
-
-              <button
-                className="koru-save-option"
-                onClick={() => setSaveFolderMode(true)}
-              >
-                <span className="material-symbols-outlined">create_new_folder</span>
-                <div>
-                  <strong>Elegir carpeta</strong>
-                  <small>Poné el nombre que quieras</small>
-                </div>
-              </button>
-
-              {/* 🔴 v2: input inline para nombre de carpeta (reemplaza prompt()) */}
-              {saveFolderMode && (
-                <div className="koru-save-folder-input">
-                  <input
-                    type="text"
-                    placeholder="Nombre de la carpeta"
-                    defaultValue="Informes"
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        const val = (e.target as HTMLInputElement).value.trim();
-                        if (val) {
-                          window.dispatchEvent(new CustomEvent("koru-save-record", {
-                            detail: {
-                              title: saveModal.title,
-                              collection: val,
-                              kind: "idea",
-                              notes: saveModal.subtitle,
-                            }
-                          }));
-                          setSaveModal(null);
-                          setSaveFolderMode(false);
-                        }
-                      } else if (e.key === "Escape") {
-                        setSaveFolderMode(false);
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="koru-save-folder-confirm"
-                    onClick={(e) => {
-                      const input = (e.currentTarget.parentElement?.querySelector("input") as HTMLInputElement);
-                      const val = input?.value.trim();
-                      if (val) {
-                        window.dispatchEvent(new CustomEvent("koru-save-record", {
-                          detail: {
-                            title: saveModal.title,
-                            collection: val,
-                            kind: "idea",
-                            notes: saveModal.subtitle,
-                          }
-                        }));
-                        setSaveModal(null);
-                        setSaveFolderMode(false);
-                      }
-                    }}
-                  >
-                    <span className="material-symbols-outlined">check</span>
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <button className="koru-save-cancel" onClick={() => { setSaveModal(null); setSaveFolderMode(false); }}>
-              Cancelar
-            </button>
-          </div>
-        </div>
-      )}
+      {saveModal && <MichiSaveSheet
+        title={saveModal.title}
+        automaticCollection={`Michi · ${saveModal.blockData?.topic || saveModal.blockData?.kicker || "Informes"}`}
+        collections={[...new Set(koruDomainState.records.map(record => record.collection).filter((collection): collection is string => Boolean(collection)))]}
+        onClose={() => setSaveModal(null)}
+        onSave={collection => {
+          window.dispatchEvent(new CustomEvent("koru-save-record", { detail: {
+            title: saveModal.title,
+            collection,
+            kind: "idea",
+            notes: saveModal.subtitle,
+            blockData: saveModal.blockData,
+          } }));
+          setSaveModal(null);
+        }}
+      />}
 
       {/* 🔴 v2: CreateScreen — modal para crear Nota/Lista/Gasto/Enlace sin LLM. */}
       {showCreate && (

@@ -1,0 +1,35 @@
+.ms-save-dialog { position:fixed; inset:auto 12px max(12px,env(safe-area-inset-bottom)); width:calc(100% - 24px); max-width:430px; max-height:calc(100dvh - 24px); margin:0 auto; padding:0; overflow:auto; overscroll-behavior:contain; border:1px solid #edffff; border-radius:31px; color:#101967; background:#f2f7ff; font-family:"Nunito",sans-serif; box-shadow:0 20px 80px #042f7655,inset 0 1px 3px white; }
+.ms-save-dialog:focus { outline:none; }
+.ms-save-dialog::backdrop { background:#05285799; }
+.ms-save-hero { position:relative; height:153px; overflow:hidden; background:#6ad9ff; }
+.ms-save-hero img { display:block; width:100%; height:100%; object-fit:cover; object-position:center 54%; }
+.ms-save-hero::after { content:""; position:absolute; inset:auto 0 0; height:25px; background:linear-gradient(transparent,#f2f7ff); }
+.ms-save-handle { position:absolute; top:12px; left:50%; transform:translateX(-50%); width:47px; height:5px; border-radius:8px; background:#ffffffd9; }
+.ms-save-body { padding:0 18px 18px; }
+.ms-save-body h2 { margin:0 0 5px; color:#11185e; font-size:1.65rem; font-weight:950; line-height:1.2; letter-spacing:-.4px; }
+.ms-save-subtitle { margin:0 0 17px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#343f8b; font-size:.86rem; }
+.ms-save-options { display:grid; gap:10px; margin:0; padding:0; border:0; min-width:0; }
+.ms-save-option { display:flex; align-items:center; gap:11px; min-height:68px; padding:9px 10px; border:1.5px solid #fff; border-radius:18px; background:linear-gradient(115deg,#fff,#f2f8ff); box-shadow:0 3px 8px #5054b50c; cursor:pointer; }
+.ms-save-option.is-selected { border-color:#997dff; background:linear-gradient(115deg,#fff,#eef0ff); box-shadow:0 2px 6px #8878d526; }
+.ms-option-icon { display:grid; place-items:center; flex-shrink:0; height:42px; width:42px; border-radius:15px; }
+.ms-option-icon.is-michi { background:linear-gradient(135deg,#b383ff,#6531f5); color:white; box-shadow:inset 0 2px 3px #dfc3ff,0 3px 5px #785ad633; }
+.ms-option-icon.is-folder { background:linear-gradient(130deg,white,#ecf4ff); border:1px solid #dadcff; box-shadow:0 2px 5px #657bc91c; }
+.ms-option-copy { display:flex; flex:1; flex-direction:column; gap:4px; min-width:0; }
+.ms-option-copy strong { color:#171765; font-size:.88rem; font-weight:900; line-height:1.2; }
+.ms-option-copy small { color:#7774ba; font-size:.72rem; line-height:1.35; }
+.ms-save-option input { appearance:none; flex-shrink:0; width:21px; height:21px; border:2px solid #d4d9fc; border-radius:50%; background:transparent; cursor:pointer; }
+.ms-save-option input:checked { border-color:#7242ff; background:radial-gradient(circle,#7546ff 0 43%,transparent 46%); }
+.ms-save-option:focus-within { outline:2px solid #6744eb; outline-offset:2px; }
+.ms-folder-field { display:grid; gap:6px; margin-top:13px; color:#343583; font-size:.78rem; font-weight:800; }
+.ms-folder-field input { width:100%; min-height:44px; padding:10px 12px; border:1px solid #bcb8ef; border-radius:13px; background:#fff; color:#1e246d; font:inherit; }
+.ms-save-actions { display:flex; gap:12px; margin-top:18px; }
+.ms-save-actions button { display:flex; align-items:center; justify-content:center; gap:9px; flex:1; min-height:48px; border-radius:18px; font:900 1rem "Nunito",sans-serif; cursor:pointer; }
+.ms-save-cancel { border:1px solid #d8d9fb; color:#7670bf; background:#eaeefd; }
+.ms-save-confirm { border:1px solid #bea4ff; color:white; background:linear-gradient(135deg,#a967ff,#6938ff 52%,#5931f1); box-shadow:inset 0 2px 5px #e5c4ffa3,0 5px 10px #7450df26; }
+.ms-save-confirm:disabled { opacity:.45; cursor:not-allowed; }
+.ms-save-actions button:focus-visible,.ms-folder-field input:focus-visible { outline:3px solid #7241eb; outline-offset:3px; }
+.ms-save-error { color:#963464; font-size:.8rem; margin-top:10px; }
+@media(prefers-reduced-motion:no-preference) { .ms-save-dialog[open] { animation:ms-sheet-in 200ms ease-out; } @keyframes ms-sheet-in { from { transform:translateY(30px); opacity:0; } } .ms-save-actions button:active { transform:scale(.98); } }
+.koru-reduced-motion .ms-save-dialog { animation:none!important; }
+@media(max-width:360px) { .ms-save-hero { height:133px; } .ms-save-body { padding-inline:13px; } .ms-save-option { gap:8px; padding-inline:8px; } .ms-option-copy strong { font-size:.8rem; } .ms-option-copy small { font-size:.67rem; } .ms-option-icon { width:35px; height:35px; } }
+@media(max-height:600px) { .ms-save-hero { height:105px; } }
