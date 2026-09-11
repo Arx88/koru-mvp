@@ -54,6 +54,10 @@ export const MICHI_AVATAR_SRC = (id: string) =>
     ? `/assets/michi-world/${id}.webp`
     : `/assets/avatar-${id}.webp`;
 
+/** Banner panorámico del avatar (ilustración completa, ya incluye al gato). */
+export const MICHI_AVATAR_BANNER = (id: string) =>
+  `/assets/michi-world/banner-${id}.webp`;
+
 export function migratePersonalAvatar(src: string | null): string {
   if (PERSONAL_AVATARS.some((a) => a.src === src)) return src!;
   const legacy = src?.match(/art-(2[0-5])\.webp$/);

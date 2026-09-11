@@ -86,9 +86,11 @@ test("all 28 companions load, locked choices stay locked, unlocked choices persi
       exact: true,
     })
     .click();
-  await expect(page.locator(".mw-equipped")).toHaveAttribute(
-    "src",
-    "/assets/michi-world/companion-01.webp",
+  // El banner del avatar equipado es una ilustración completa (incluye al gato),
+  // por eso llega como background-image del hero de la colección.
+  await expect(page.locator(".mx-banner")).toHaveCSS(
+    "background-image",
+    /banner-companion-01\.webp/,
   );
   await page
     .getByRole("button", { name: "Volver al chat", exact: true })

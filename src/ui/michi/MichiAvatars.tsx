@@ -2,7 +2,7 @@ import { useMichiProgress } from "./useMichiProgress";
 /** La colección usa la energía real y conserva el Michi equipado. */
 
 import { LockKeyhole, Star, ChevronRight, Check, Sparkle, ArrowLeft } from "lucide-react";
-import { MICHI_AVATARS, MICHI_AVATAR_SRC } from "./v8Shared";
+import { MICHI_AVATARS, MICHI_AVATAR_SRC, MICHI_AVATAR_BANNER } from "./v8Shared";
 import { MichiCat } from "./v8Shared";
 import { MichiLevel } from "./MichiHeaderV8";
 
@@ -19,8 +19,10 @@ export function MichiAvatarsPage({
   return (
     <main className="mx-avatars mw-avatar-collection" aria-label="Colección de avatares">
       <button type="button" className="mx-back mw-avatar-back" onClick={onBack} aria-label="Volver al chat"><ArrowLeft size={18} /> Volver al chat</button>
-      <section className={`mx-banner mw-companion-banner ${active.id === "playita" ? "is-playita" : ""}`}>
-        <img className="mw-equipped" src={MICHI_AVATAR_SRC(active.id)} alt={active.name} />
+      <section
+        className="mx-banner mw-companion-banner"
+        style={{ backgroundImage: `url("${MICHI_AVATAR_BANNER(active.id)}")` }}
+      >
         <span className="mx-banner-label">
           <LockKeyhole size={12} fill="white" /> Tu avatar actual
         </span>

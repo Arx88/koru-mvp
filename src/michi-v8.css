@@ -974,13 +974,23 @@ a {
   aspect-ratio: 2.23;
   padding: 21px 19px 15px;
   color: white;
-  background-image: url("/assets/playita-banner.webp");
-  background-size: 100% 100%;
+  background-size: cover;
+  background-position: center;
   border-radius: 32px 35px 27px 32px;
   border: 1.5px solid #cefffd;
   box-shadow: inset 2px 2px 4px #edffff, 0 2px 4px #019fd42b;
   transform: rotate(-1deg);
   text-align: left;
+}
+/* Scrim de tinta Michi sobre el banner: garantiza legibilidad del texto blanco
+   sobre ilustraciones claras (cielo, playa, escenas diurnas). */
+.mx-banner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(93deg, #151077d9 0%, #151077a8 34%, #15107738 62%, #15107700 78%);
+  pointer-events: none;
 }
 .mx-banner-label {
   font-size: 10px;

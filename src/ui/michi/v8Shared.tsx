@@ -13,7 +13,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { MICHI_AVATAR_SRC, PERSONAL_AVATARS, migratePersonalAvatar } from "./avatarCatalog";
 import { useMichiProgress } from "./useMichiProgress";
-export { MICHI_AVATARS, MICHI_AVATAR_SRC } from "./avatarCatalog";
+export { MICHI_AVATARS, MICHI_AVATAR_SRC, MICHI_AVATAR_BANNER } from "./avatarCatalog";
 
 /* ---------- Arte del usuario ---------- */
 export const art = (n: number) => `/assets/art-${String(n).padStart(2, "0")}.webp`;

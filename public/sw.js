@@ -1,11 +1,11 @@
 // Michi Service Worker — notificaciones push y background sync
 // Mobile-first: funciona en PWA standalone
 
-// 🐱 v8.2 — michi-v7: fix fútbol v2 (partidos pasados, copas, escudos,
-// placeholders 0-0 ni stats fabricadas, extensiones con datos reales). El SW no
-// intercepta fetch, pero se bumpea la caché siguiendo la convención de release:
-// al cambiar sw.js el navegador reinstala y el activate limpia cachés viejas.
-const CACHE_NAME = "michi-v7";
+// 🐱 v8.3 — michi-v8: banners por avatar en la colección (28 ilustraciones del
+// gato, una por avatar equipado). El SW no intercepta fetch, pero se bumpea la
+// caché siguiendo la convención de release: al cambiar sw.js el navegador
+// reinstala y el activate limpia cachés viejas.
+const CACHE_NAME = "michi-v8";
 const STATIC_ASSETS = [
   "/",
   "/index.html",
@@ -17,7 +17,34 @@ const STATIC_ASSETS = [
   "/assets/art-13.webp",
   "/assets/art-19.webp",
   "/assets/user-reference.webp",
-  "/assets/playita-banner.webp",
+  "/assets/michi-world/banner-aventurero.webp",
+  "/assets/michi-world/banner-companion-01.webp",
+  "/assets/michi-world/banner-companion-02.webp",
+  "/assets/michi-world/banner-companion-03.webp",
+  "/assets/michi-world/banner-companion-04.webp",
+  "/assets/michi-world/banner-companion-05.webp",
+  "/assets/michi-world/banner-companion-06.webp",
+  "/assets/michi-world/banner-companion-07.webp",
+  "/assets/michi-world/banner-companion-08.webp",
+  "/assets/michi-world/banner-companion-09.webp",
+  "/assets/michi-world/banner-companion-10.webp",
+  "/assets/michi-world/banner-companion-11.webp",
+  "/assets/michi-world/banner-companion-12.webp",
+  "/assets/michi-world/banner-companion-13.webp",
+  "/assets/michi-world/banner-companion-14.webp",
+  "/assets/michi-world/banner-companion-15.webp",
+  "/assets/michi-world/banner-companion-16.webp",
+  "/assets/michi-world/banner-companion-17.webp",
+  "/assets/michi-world/banner-companion-18.webp",
+  "/assets/michi-world/banner-companion-19.webp",
+  "/assets/michi-world/banner-companion-20.webp",
+  "/assets/michi-world/banner-cool.webp",
+  "/assets/michi-world/banner-corazones.webp",
+  "/assets/michi-world/banner-dormilon.webp",
+  "/assets/michi-world/banner-explorador.webp",
+  "/assets/michi-world/banner-gamer.webp",
+  "/assets/michi-world/banner-mago.webp",
+  "/assets/michi-world/banner-playita.webp",
 ];
 
 self.addEventListener("install", (event) => {
