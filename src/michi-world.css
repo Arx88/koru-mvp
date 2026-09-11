@@ -171,8 +171,9 @@
 .mw-avatar-screen { height:100dvh!important; min-height:0!important; }
 .mw-avatar-collection .mw-avatar-back { display:flex; align-items:center; gap:7px; width:max-content; margin:2px 20px 13px; padding:10px 14px; font-size:0.75rem; color:#1449b2; border:1px solid white; background:#f1fbffed; border-radius:22px; box-shadow:inset 0 2px 2px white,0 3px 9px #279ae422; }
 .mw-companion-banner { min-height:178px; margin:0 18px 15px; overflow:hidden; padding:18px!important; }
-/* El banner del avatar equipado llega por style inline (ilustración completa);
-   el texto siempre por encima del scrim ::before. */
+/* Fallback celeste original del hero (lo pisa el banner inline del avatar equipado). */
+.mw-companion-banner:not(.is-playita) { background-image:linear-gradient(110deg,#41b9f8,#7fdcfd); }
+/* El texto queda por encima del background del hero. */
 .mw-companion-banner > * { position:relative; z-index:1; }
 .mw-companion-banner h2 { font-size:1.875rem; margin:14px 0 5px; }
 .mw-companion-banner > p { font-size:0.625rem; margin-bottom:10px; }

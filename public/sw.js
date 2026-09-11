@@ -1,11 +1,12 @@
 // Michi Service Worker — notificaciones push y background sync
 // Mobile-first: funciona en PWA standalone
 
-// 🐱 v8.3 — michi-v8: banners por avatar en la colección (28 ilustraciones del
-// gato, una por avatar equipado). El SW no intercepta fetch, pero se bumpea la
-// caché siguiendo la convención de release: al cambiar sw.js el navegador
-// reinstala y el activate limpia cachés viejas.
-const CACHE_NAME = "michi-v8";
+// 🐱 v8.4 — michi-v9: revert del scrim del hero de avatares (banner a brillo
+// pleno, sin velo de tinta) y restaurado el gradiente celeste original como
+// fallback. El SW no intercepta fetch, pero se bumpea la caché siguiendo la
+// convención de release: al cambiar sw.js el navegador reinstala y el activate
+// limpia cachés viejas.
+const CACHE_NAME = "michi-v9";
 const STATIC_ASSETS = [
   "/",
   "/index.html",
