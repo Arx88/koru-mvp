@@ -45,22 +45,34 @@ const ESPN_BASE = "https://site.api.espn.com/apis/site/v2/sports/soccer";
 // OPTIMIZACIÓN: reducir de 15 a 8 ligas para menos fetches paralelos.
 // Las selecciones nacionales son las más importantes (fifa.world + uefa.euro).
 // Para clubes, solo top 5 ligas + Champions.
-const ESPN_LEAGUES = [
-  // Selecciones nacionales (prioridad — la mayoría de queries son selecciones)
-  { id: "fifa.world", name: "FIFA World Cup / International Friendlies" },
-  { id: "uefa.euro", name: "UEFA Euro" },
-  { id: "uefa.nations", name: "UEFA Nations League" },
-  // 🔴 KORU 3.0 — agregar ligas argentinas y sudamericanas para que
-  // "cuando juega Boca" funcione. ESPN tiene arg.1 (Primera División Argentina)
-  // y bra.1 (Brasileirão), entre otras.
-  { id: "arg.1", name: "Argentine Primera División" },
-  { id: "bra.1", name: "Brasileirão Série A" },
-  // Top 5 ligas de clubes europeas
-  { id: "eng.1", name: "Premier League" },
-  { id: "esp.1", name: "La Liga" },
-  { id: "ita.1", name: "Serie A" },
-  { id: "ger.1", name: "Bundesliga" },
-  { id: "uefa.champions", name: "Champions League" },
+const ESPN_LEAGUES: Array<{ id: string; name: string; aliases?: string[] }> = [
+  // ── Copas internacionales ──
+  { id: "uefa.champions", name: "UEFA Champions League", aliases: ["champions", "champions league", "copa de europa", "ucl", "orejona"] },
+  { id: "uefa.europa", name: "UEFA Europa League", aliases: ["europa league", "copa uefa", "uel"] },
+  // ── Selecciones nacionales (la mayoría de queries de selecciones) ──
+  { id: "fifa.world", name: "FIFA World Cup / International Friendlies", aliases: ["mundial", "world cup", "amistoso", "amistosos", "eliminatorias"] },
+  { id: "uefa.euro", name: "UEFA Euro", aliases: ["eurocopa"] },
+  { id: "uefa.nations", name: "UEFA Nations League", aliases: ["nations league", "liga de naciones"] },
+  // ── Conmebol ──
+  { id: "conmebol.libertadores", name: "Copa Libertadores", aliases: ["libertadores", "copa libertadores"] },
+  { id: "conmebol.sudamericana", name: "Copa Sudamericana", aliases: ["sudamericana", "copa sudamericana"] },
+  // ── Argentina ──
+  { id: "arg.1", name: "Argentine Primera División", aliases: ["liga argentina", "primera division argentina", "futbol argentino", "torneo argentino"] },
+  { id: "arg.copa", name: "Copa Argentina", aliases: ["copa argentina"] },
+  // ── Brasil ──
+  { id: "bra.1", name: "Brasileirão Série A", aliases: ["brasileirao", "liga brasileira"] },
+  // ── Top 5 ligas europeas ──
+  { id: "eng.1", name: "Premier League", aliases: ["premier", "premier league", "liga inglesa"] },
+  { id: "esp.1", name: "La Liga", aliases: ["la liga", "laliga", "liga espanola", "liga de espana"] },
+  { id: "ita.1", name: "Serie A", aliases: ["serie a", "liga italiana", "calcio"] },
+  { id: "ger.1", name: "Bundesliga", aliases: ["bundesliga", "liga alemana"] },
+  { id: "fra.1", name: "Ligue 1", aliases: ["ligue 1", "liga francesa"] },
+  // ── Copas domésticas ──
+  { id: "esp.copa_del_rey", name: "Copa del Rey", aliases: ["copa del rey", "copa de espana"] },
+  { id: "eng.fa", name: "FA Cup", aliases: ["fa cup", "copa inglesa"] },
+  { id: "eng.league_cup", name: "English League Cup", aliases: ["carabao", "league cup", "carabao cup"] },
+  { id: "ita.coppa_italia", name: "Coppa Italia", aliases: ["coppa italia", "copa italia"] },
+  { id: "ger.dfb_pokal", name: "DFB Pokal", aliases: ["dfb pokal", "copa alemana"] },
 ];
 
 // Sinónimos de selecciones nacionales → mapeo a nombres ESPN.
@@ -89,13 +101,50 @@ const NATIONAL_TEAM_SYNONYMS: Array<{ canonical: string; aliases: string[] }> = 
 // ESPN los registra con nombres en inglés o abreviados. Esto permite
 // que "cuando juega Boca" → match con "Boca Juniors" en ESPN arg.1.
 const CLUB_SYNONYMS: Array<{ canonical: string; aliases: string[] }> = [
+  // ── Clubes europeos top (ESPN displayName como canonical) ──
+  // 🔴 FIX "no trae escudos": antes SOLO había clubes sudamericanos →
+  // "cómo salió el partido de barcelona" con query crudo nunca matcheaba.
+  { canonical: "Barcelona", aliases: ["barcelona", "barça", "barca", "barsa", "fc barcelona", "azulgrana"] },
+  { canonical: "Real Madrid", aliases: ["real madrid", "madrid", "merengues", "blancos"] },
+  { canonical: "Atlético Madrid", aliases: ["atletico madrid", "atletico de madrid", "atleti", "colchoneros"] },
+  { canonical: "Athletic Bilbao", aliases: ["athletic bilbao", "athletic club", "bilbao", "leones"] },
+  { canonical: "Sevilla", aliases: ["sevilla", "sevillistas"] },
+  { canonical: "Real Betis", aliases: ["betis", "real betis", "verdiblancos"] },
+  { canonical: "Valencia", aliases: ["valencia", "valencianistas"] },
+  { canonical: "Villarreal", aliases: ["villarreal", "submarino amarillo"] },
+  { canonical: "Arsenal", aliases: ["arsenal", "gunners"] },
+  { canonical: "Chelsea", aliases: ["chelsea", "blues de londres"] },
+  { canonical: "Liverpool", aliases: ["liverpool", "anfield", "reds de liverpool"] },
+  { canonical: "Manchester City", aliases: ["manchester city", "man city", "cityzens", "citizens"] },
+  { canonical: "Manchester United", aliases: ["manchester united", "man united", "man utd", "diablos rojos"] },
+  { canonical: "Tottenham Hotspur", aliases: ["tottenham", "spurs", "tottenham hotspur"] },
+  { canonical: "Newcastle United", aliases: ["newcastle", "newcastle united", "magpies"] },
+  { canonical: "Bayern Munich", aliases: ["bayern", "bayern munich", "bayern munchen", "bayern münchen"] },
+  { canonical: "Borussia Dortmund", aliases: ["dortmund", "borussia dortmund", "bvb"] },
+  { canonical: "RB Leipzig", aliases: ["leipzig", "rb leipzig"] },
+  { canonical: "Bayer Leverkusen", aliases: ["leverkusen", "bayer leverkusen"] },
+  { canonical: "Internazionale", aliases: ["inter", "internazionale", "inter milan", "inter de milan", "nerazzurri"] },
+  { canonical: "AC Milan", aliases: ["milan", "ac milan", "rossoneri"] },
+  { canonical: "Juventus", aliases: ["juventus", "juve", "vecchia signora"] },
+  { canonical: "Napoli", aliases: ["napoli", "partenopei"] },
+  { canonical: "AS Roma", aliases: ["roma", "as roma", "giallorossi"] },
+  { canonical: "Lazio", aliases: ["lazio", "biancocelesti"] },
+  { canonical: "Paris Saint-Germain", aliases: ["psg", "paris saint germain", "paris saint-germain", "paris"] },
+  { canonical: "Marseille", aliases: ["marsella", "marseille"] },
+  { canonical: "Lyon", aliases: ["lyon"] },
+  { canonical: "Ajax", aliases: ["ajax", "amsterdam"] },
+  { canonical: "PSV Eindhoven", aliases: ["psv", "psv eindhoven"] },
+  { canonical: "Benfica", aliases: ["benfica"] },
+  { canonical: "FC Porto", aliases: ["porto", "fc porto"] },
+  { canonical: "Sporting CP", aliases: ["sporting", "sporting cp", "sporting de lisboa"] },
+  // ── Clubes sudamericanos ──
   { canonical: "Boca Juniors", aliases: ["boca", "boca juniors", "xeneizes", "azul y oro"] },
   { canonical: "River Plate", aliases: ["river", "river plate", "millonarios", "gallinas"] },
   { canonical: "Racing Club", aliases: ["racing", "racing club", "la academia"] },
   { canonical: "Independiente", aliases: ["independiente", "el rojo", "rey de copas"] },
   { canonical: "San Lorenzo", aliases: ["san lorenzo", "cuervos", "cyclone"] },
   { canonical: "Estudiantes", aliases: ["estudiantes", "estudiantes de la plata", "pincharrata"] },
-  { canonical: "Rosario Central", aliases: ["rosario central", "central", "canalla"] },
+  { canonical: "Rosario Central", aliases: ["rosario central", "canalla"] },
   { canonical: "Newell's Old Boys", aliases: ["newells", "newell's", "leprosos"] },
   { canonical: "Flamengo", aliases: ["flamengo", "mengao"] },
   { canonical: "Palmeiras", aliases: ["palmeiras", "verdao"] },
@@ -104,7 +153,7 @@ const CLUB_SYNONYMS: Array<{ canonical: string; aliases: string[] }> = [
   { canonical: "Santos", aliases: ["santos", "peixe"] },
   { canonical: "Atlético Mineiro", aliases: ["atletico mineiro", "galo"] },
   { canonical: "Grêmio", aliases: ["gremio", "grêmio", "tricolor gaucho"] },
-  { canonical: "Internacional", aliases: ["internacional", "inter", "colorados"] },
+  { canonical: "Internacional", aliases: ["internacional", "colorados"] },
 ];
 
 /**
@@ -133,40 +182,6 @@ function detectNationalTeam(queryLower: string): string | null {
     }
   }
   return null;
-}
-
-/**
- * Calcula fechas a buscar basado en el query del usuario.
- * "ayer" → fecha de ayer.
- * "hoy" / "en vivo" → fecha de hoy.
- * "mañana" → fecha de mañana.
- * Sin indicador → busca hoy + ayer (3 días de ventana) para captar últimos resultados.
- */
-function detectDatesToQuery(queryLower: string): string[] {
-  const dates: string[] = [];
-  const now = new Date();
-  const fmt = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, "");
-
-  if (/\bayer\b|\bd'?ayer\b|last match|último partido|ultimo partido/.test(queryLower)) {
-    const y = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    dates.push(fmt(y));
-    // También 2 días atrás por si el partido fue de madrugada
-    const y2 = new Date(now.getTime() - 48 * 60 * 60 * 1000);
-    dates.push(fmt(y2));
-  } else if (/\bhoy\b|\btoday\b|\ben vivo\b|\blive\b/.test(queryLower)) {
-    dates.push(fmt(now));
-  } else if (/\bmañana\b|\bmanana\b|\btomorrow\b/.test(queryLower)) {
-    const t = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    dates.push(fmt(t));
-  } else {
-    // Sin indicador: ventana de 3 días (ayer + hoy + anteayer) para captar último resultado
-    dates.push(fmt(now));
-    const y = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    dates.push(fmt(y));
-    const y2 = new Date(now.getTime() - 48 * 60 * 60 * 1000);
-    dates.push(fmt(y2));
-  }
-  return [...new Set(dates)];
 }
 
 type EspnEvent = {
@@ -229,54 +244,144 @@ type EspnSummary = {
   gameInfo?: { venue?: { fullName?: string; address?: { city?: string; country?: string } }; attendance?: number };
 };
 
-async function searchEspnScoreboards(query: string): Promise<Array<{ event: EspnEvent; leagueId: string; leagueName: string }>> {
-  const queryLower = query.toLowerCase();
-  const results: Array<{ event: EspnEvent; leagueId: string; leagueName: string }> = [];
-  const datesToQuery = detectDatesToQuery(queryLower);
-  const nationalTeam = detectNationalTeam(queryLower);
-  const club = detectClub(queryLower);
-
-  // Si detectamos selección nacional o club, agregamos el canonical name al query
-  // para que el filtro por nombre funcione (España → "Spain", Boca → "Boca Juniors")
-  const matchTerms = [queryLower];
-  if (nationalTeam) matchTerms.push(nationalTeam.toLowerCase());
-  if (club) matchTerms.push(club.toLowerCase());
-
-  // Buscar en paralelo en todas las ligas × todas las fechas relevantes
-  const promises: Promise<void>[] = [];
+/**
+ * 🔴 FIX COPAS — detecta si el query menciona una LIGA/COPA (no un equipo):
+ * "cómo salió la copa del rey" / "partido de la champions" / "libertadores".
+ * Antes estos queries caían al filtro por equipo → 0 resultados → siempre
+ * terminaban en la card de PRÓXIMO partido.
+ */
+function detectLeague(queryLower: string): { id: string; name: string } | null {
   for (const league of ESPN_LEAGUES) {
-    for (const date of datesToQuery) {
-      promises.push((async () => {
-        try {
-          const url = `${ESPN_BASE}/${league.id}/scoreboard?dates=${date}`;
-          const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
-          if (!res.ok) return;
-          const data = await res.json() as { events?: EspnEvent[] };
-          const events = data.events ?? [];
-          const matching = events.filter(e => {
-            const eventName = (e.name ?? "").toLowerCase();
-            const comps = e.competitions ?? [];
-            const teams = comps.flatMap(c => (c.competitors ?? []).map(comp => comp.team?.displayName?.toLowerCase() ?? ""));
-            return matchTerms.some(term =>
-              eventName.includes(term) || teams.some(t => t.includes(term))
-            );
-          });
-          for (const m of matching) {
-            results.push({ event: m, leagueId: league.id, leagueName: league.name });
-          }
-        } catch { /* league/date timeout — skip */ }
-      })());
+    for (const alias of league.aliases ?? []) {
+      const re = new RegExp(`\\b${alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
+      if (re.test(queryLower)) return { id: league.id, name: league.name };
     }
   }
-  await Promise.all(promises);
+  return null;
+}
 
-  // Dedupe por id (mismo evento puede aparecer en múltiples fechas)
+/**
+ * 🔴 FIX QUERY CRUDO — extrae palabras clave del query cuando el LLM pasa el
+ * input completo ("cómo salió el partido de barcelona" en vez de "barcelona").
+ * Filtra stopwords y devuelve tokens ≥4 chars para matchear contra equipos.
+ */
+const QUERY_STOPWORDS = new Set([
+  "como", "salió", "salio", "salieron", "partido", "partidos", "equipo", "futbol",
+  "fútbol", "cuando", "juega", "juegan", "jugar", "ayer", "anoche", "mañana",
+  "manana", "hoy", "anteayer", "resultado", "resultados", "ganó", "gano",
+  "perdió", "perdio", "empató", "empato", "ganaron", "dime", "decime", "quiero",
+  "saber", "último", "ultimo", "próximo", "proximo", "proximos", "donde",
+  "mira", "mirá", "ver", "puede", "podes", "podés", "sobre", "info", "dato",
+  "datos", "dame", "traeme", "busca", "buscame",
+]);
+
+function contentTokens(queryLower: string): string[] {
+  return queryLower
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // quitar acentos para tokenizar
+    .split(/[^a-z0-9]+/i)
+    .filter(t => t.length >= 4 && !QUERY_STOPWORDS.has(t));
+}
+
+/** Estado del evento ESPN: "pre" (por jugar) | "in" (en vivo) | "post" (terminado). */
+function espnEventState(e: EspnEvent): "pre" | "in" | "post" {
+  return (e.status?.type?.state as "pre" | "in" | "post") ?? "pre";
+}
+
+/**
+ * 🔴 FIX VENTANA DE FECHAS + RANGOS — antes: 3 días por día (9 ligas × 3
+ * fetches) y los partidos de mitad de semana (Real Madrid juega martes, se
+ * pregunta el viernes) quedaban FUERA → no_data → card de próximo partido.
+ * Ahora: UN fetch por liga con rango `dates=START-END` (ESPN lo soporta),
+ * ventana de 12 días atrás + 14 adelante, cacheado 60s anti rate-limit.
+ */
+async function searchEspnScoreboards(
+  query: string,
+  opts: { fromDays?: number; toDays?: number } = {},
+): Promise<Array<{ event: EspnEvent; leagueId: string; leagueName: string }>> {
+  const fromDays = opts.fromDays ?? 12;
+  const toDays = opts.toDays ?? 14;
+  const queryLower = query.toLowerCase();
+  const results: Array<{ event: EspnEvent; leagueId: string; leagueName: string }> = [];
+
+  const now = new Date();
+  const fmt = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, "");
+  const range = `${fmt(new Date(now.getTime() - fromDays * 86_400_000))}-${fmt(new Date(now.getTime() + toDays * 86_400_000))}`;
+
+  const nationalTeam = detectNationalTeam(queryLower);
+  const club = detectClub(queryLower);
+  const leagueHit = detectLeague(queryLower);
+  // 🔴 Canonical detectado → matcheo PRECISO por nombre de equipo. Sin
+  // canonical → fallback por tokens (equipos fuera del diccionario).
+  const hasCanonical = !!(nationalTeam || club);
+
+  // Términos de matcheo: canonical detectado + query completo + tokens del query
+  const matchTerms: string[] = [queryLower];
+  if (nationalTeam) matchTerms.push(nationalTeam.toLowerCase());
+  if (club) matchTerms.push(club.toLowerCase());
+  const tokens = contentTokens(queryLower);
+
+  // ¿El query ES una liga/copa? → traer TODOS los eventos de esa liga
+  // ("cómo salió la copa del rey de ayer" → eventos de esp.copa_del_rey).
+  const leagueMode = !!leagueHit && !club && !nationalTeam;
+
+  const fetchLeague = async (league: { id: string; name: string }): Promise<void> => {
+    try {
+      const cacheKey = `espn:sb:${league.id}:${range}`;
+      const data = await cached<{ events?: EspnEvent[] }>(cacheKey, 60 * 1000, async () => {
+        const res = await fetch(`${ESPN_BASE}/${league.id}/scoreboard?dates=${range}`, {
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!res.ok) return {};
+        return await res.json() as { events?: EspnEvent[] };
+      });
+      const events = (data?.events ?? []).filter(Boolean);
+      for (const e of events) {
+        const isLeagueEvents = leagueHit?.id === league.id;
+        if (leagueMode && isLeagueEvents) {
+          // Query de copa/liga → todos los eventos de esa liga
+          results.push({ event: e, leagueId: league.id, leagueName: league.name });
+          continue;
+        }
+        const eventName = (e.name ?? "").toLowerCase();
+        const comps = e.competitions ?? [];
+        const teams = comps.flatMap(c => (c.competitors ?? []).map(comp => comp.team?.displayName?.toLowerCase() ?? ""));
+        const termMatch = matchTerms.some(term =>
+          term.length >= 3 && (eventName.includes(term) || teams.some(t => t.includes(term)))
+        );
+        // 🔴 Fallback por tokens SOLO sin canonical: si el query dice "real
+        // madrid", el canonical ya matchea preciso; los tokens sueltos
+        // ("madrid") traerían partidos de Atlético Madrid por error.
+        const tokenMatch = !termMatch && !hasCanonical && teams.some(t =>
+          tokens.some(tok => t.length >= 4 && (t.includes(tok) || tok.includes(t)))
+        );
+        if (termMatch || tokenMatch) {
+          results.push({ event: e, leagueId: league.id, leagueName: league.name });
+        }
+      }
+    } catch { /* league timeout — skip */ }
+  };
+
+  await Promise.all(ESPN_LEAGUES.map(fetchLeague));
+
+  // Dedupe por id (mismo evento puede aparecer en múltiples ligas/fechas)
   const seen = new Set<string>();
   const deduped = results.filter(({ event: e }) => {
     const id = e.id ?? `${e.name ?? ""}-${e.date ?? ""}`;
     if (seen.has(id)) return false;
     seen.add(id);
     return true;
+  });
+
+  // 🔴 ORDEN DETERMINISTA — antes dependía del orden de completitud de las
+  // promesas: "Barcelona" podía devolver un partido viejo en vez del último.
+  // Prioridad: terminados/en vivo primero (más reciente primero), luego futuros.
+  const eventDate = (e: EspnEvent) => new Date(e.date ?? e.competitions?.[0]?.date ?? 0).getTime() || 0;
+  const stateOf = (e: EspnEvent) => espnEventState(e);
+  deduped.sort((a, b) => {
+    const sa = stateOf(a.event), sb = stateOf(b.event);
+    const aDone = sa !== "pre", bDone = sb !== "pre";
+    if (aDone !== bDone) return aDone ? -1 : 1; // jugados/en vivo primero
+    return eventDate(b.event) - eventDate(a.event); // más reciente primero
   });
   return deduped;
 }
@@ -513,76 +618,40 @@ export const matchLive: ToolHandler = {
     const query = String(args.query ?? args.__userInput ?? "").trim();
     if (!query) return { type: "match_live", status: "failed", error: "Indicá el partido." };
 
-    // FIX: usar ESPN como fuente principal (TheSportsDB free no tiene datos recientes)
-    // ESPN busca en 11 ligas en paralelo y filtra por nombre de equipo
-    let espnResults = await searchEspnScoreboards(query);
+    // FIX: usar ESPN como fuente principal. 🔴 FIX VENTANA: rango de 12 días
+    // atrás + 14 adelante en UN fetch por liga — captura partidos de mitad de
+    // semana (Real Madrid martes, pregunta el viernes) que antes quedaban fuera.
+    const espnResults = await searchEspnScoreboards(query);
 
-    // 🔴 KORU 3.0 — Si no encuentra resultados pasados y el query NO menciona
-    // "ayer/hoy/resultado" (es decir, podría ser pregunta de fixture), buscar
-    // también en próximos 5 días. Esto rescata "cuando juega X" que llegó a
-    // match_live por error del LLM.
-    if (espnResults.length === 0 && !/\b(ayer|hoy|resultado|como (le fue|salio|salio)|como le fue|salio)\b/i.test(query)) {
-      const queryLower = query.toLowerCase();
-      const nationalTeam = detectNationalTeam(queryLower);
-      const club = detectClub(queryLower);
-      const matchTerms = [queryLower];
-      if (nationalTeam) matchTerms.push(nationalTeam.toLowerCase());
-      if (club) matchTerms.push(club.toLowerCase());
+    // 🔴 Clasificación: jugados/en vivo para el resultado; futuros como `upcoming`
+    // (sección "Próximos partidos" de la card, sin fixture aparte).
+    const playedOrLive = espnResults.filter(r => espnEventState(r.event) !== "pre");
+    const espnUpcoming = espnResults.filter(r => espnEventState(r.event) === "pre");
 
-      const now = new Date();
-      const fmt = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, "");
-      const futureDates: string[] = [];
-      for (let i = 0; i < 5; i++) {
-        const d = new Date(now.getTime() + i * 24 * 60 * 60 * 1000);
-        futureDates.push(fmt(d));
-      }
+    if (playedOrLive.length > 0) {
+      // 🔴 Tomar el partido más reciente jugado y enriquecerlo con /summary
+      const first = playedOrLive[0];
+      const playedMatches = playedOrLive.slice(0, 5).map(({ event }) => normalizeEspnEvent(event, first.leagueName));
+      // Próximos del MISMO equipo (para la sección "Próximos partidos")
+      const teamLower = (detectClub(query.toLowerCase()) ?? detectNationalTeam(query.toLowerCase()) ?? query).toLowerCase();
+      const upcomingSameTeam = espnUpcoming
+        .filter(r => {
+          const comps = r.event.competitions ?? [];
+          const teams = comps.flatMap(c => (c.competitors ?? []).map(comp => comp.team?.displayName?.toLowerCase() ?? ""));
+          return teams.some(t => t.includes(teamLower) || teamLower.includes(t));
+        })
+        .slice(0, 4)
+        .map(({ event }) => normalizeEspnEvent(event));
 
-      const futurePromises: Promise<void>[] = [];
-      const futureResults: Array<{ event: EspnEvent; leagueId: string; leagueName: string }> = [];
-      for (const lg of ESPN_LEAGUES) {
-        for (const date of futureDates) {
-          futurePromises.push((async () => {
-            try {
-              const url = `${ESPN_BASE}/${lg.id}/scoreboard?dates=${date}`;
-              const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
-              if (!res.ok) return;
-              const data = await res.json() as { events?: EspnEvent[] };
-              const events = data.events ?? [];
-              const matching = events.filter(e => {
-                const eventName = (e.name ?? "").toLowerCase();
-                const comps = e.competitions ?? [];
-                const teams = comps.flatMap(c => (c.competitors ?? []).map(comp => comp.team?.displayName?.toLowerCase() ?? ""));
-                return matchTerms.some(term =>
-                  eventName.includes(term) || teams.some(t => t.includes(term))
-                );
-              });
-              for (const m of matching) {
-                futureResults.push({ event: m, leagueId: lg.id, leagueName: lg.name });
-              }
-            } catch { /* league/date timeout — skip */ }
-          })());
-        }
-      }
-      await Promise.all(futurePromises);
-      // Dedupe
-      const seen = new Set<string>();
-      espnResults = futureResults.filter(({ event: e }) => {
-        const id = e.id ?? `${e.name ?? ""}-${e.date ?? ""}`;
-        if (seen.has(id)) return false;
-        seen.add(id);
-        return true;
-      });
-    }
+      // 🔴 Enriquecer con contexto del equipo (estadio, wiki) → interior más rico
+      const teamContextPromise = fetchTeamContext(teamLower);
+      const summaryPromise = first.event.id ? fetchEspnSummary(first.leagueId, first.event.id) : Promise.resolve(null);
+      const [summary, teamContext] = await Promise.all([summaryPromise, teamContextPromise]);
 
-    if (espnResults.length > 0) {
-      // 🔴 Tomar el primer match y enriquecerlo con /summary (goles, tarjetas, alineaciones, stats)
-      const first = espnResults[0];
-      const matches = espnResults.slice(0, 5).map(({ event }) => normalizeEspnEvent(event, first.leagueName));
-
+      const matches = playedMatches;
       // Enriquecer el primer match con datos del /summary
       let enriched: { goals?: any[]; yellowCards?: any[]; redCards?: any[]; substitutions?: any[]; lineups?: any; detailedStats?: any[]; venue?: string; venueCity?: string; attendance?: number } = {};
-      if (first.event.id) {
-        const summary = await fetchEspnSummary(first.leagueId, first.event.id);
+      if (summary) {
         const events = parseKeyEvents(summary);
         const lineups = parseRosters(summary);
         const detailedStats = parseBoxscore(summary, matches[0]?.homeTeam, matches[0]?.awayTeam);
@@ -607,9 +676,34 @@ export const matchLive: ToolHandler = {
         status: "ok",
         query,
         matches,
+        upcoming: upcomingSameTeam.length > 0 ? upcomingSameTeam : undefined,
+        teamInfo: teamContext.teamInfo ?? undefined,
+        wikipediaExtract: teamContext.wikipediaExtract ?? undefined,
+        sources: teamContext.wikiSource ? [teamContext.wikiSource] : undefined,
         source: "ESPN",
         sourceUrl: "https://www.espn.com/soccer/",
         text: matches.map(m => `${m.homeTeam} ${m.homeScore ?? "?"} - ${m.awayScore ?? "?"} ${m.awayTeam} (${m.status})`).join("; "),
+      };
+    }
+
+    // 🔴 Solo hay partidos FUTUROS ("cuando juega X" llegó a match_live):
+    // devolver próximo + contexto, para que blocks arme la fixture enriquecida.
+    if (espnUpcoming.length > 0) {
+      const first = espnUpcoming[0];
+      const upcomingMatches = espnUpcoming.slice(0, 5).map(({ event }) => normalizeEspnEvent(event, first.leagueName));
+      const teamLower = (detectClub(query.toLowerCase()) ?? detectNationalTeam(query.toLowerCase()) ?? query).toLowerCase();
+      const teamContext = await fetchTeamContext(teamLower);
+      return {
+        type: "match_live",
+        status: "ok",
+        query,
+        matches: upcomingMatches,
+        teamInfo: teamContext.teamInfo ?? undefined,
+        wikipediaExtract: teamContext.wikipediaExtract ?? undefined,
+        sources: teamContext.wikiSource ? [teamContext.wikiSource] : undefined,
+        source: "ESPN",
+        sourceUrl: "https://www.espn.com/soccer/",
+        text: upcomingMatches.map(m => `${m.homeTeam} vs ${m.awayTeam} (${m.status})`).join("; "),
       };
     }
 
@@ -796,19 +890,34 @@ async function fetchTeamContext(teamQuery: string): Promise<{
   let wikipediaExtract: string | null = null;
   let wikiSource: { title: string; url: string; domain: string; snippet: string } | null = null;
   try {
-    const wikiRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(`${teamQuery} football team`)}&format=json&origin=*&srlimit=1`, { signal: AbortSignal.timeout(9000) });
+    // 🔴 FIX WIKI — buscar con el nombre LIMPIO del equipo (strTeam de TSDB)
+    // en vez de `${teamQuery} football team`: "real madrid football team"
+    // devolvía "Real Madrid Castilla" (la filial) como primer resultado.
+    const wikiQuery = teamInfo?.name ?? teamQuery;
+    const wikiRes = await fetch(`https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(wikiQuery)}&format=json&origin=*&srlimit=3`, {
+      signal: AbortSignal.timeout(9000),
+      // 🔴 FIX 403 — Wikipedia bloquea el UA default de Node (403 Forbidden).
+      // La API pide un UA descriptivo con contacto.
+      headers: { "User-Agent": "MichiApp/1.0 (+https://koru-mvp.onrender.com; sports assistant)" },
+    });
     const wikiData = await wikiRes.json() as { query?: { search?: Array<{ title: string; snippet: string }> } };
     const results = wikiData.query?.search ?? [];
-    if (results.length > 0) {
-      const title = results[0].title;
-      const summaryRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`, { signal: AbortSignal.timeout(9000) });
+    // Preferir el resultado cuyo título empiece con el nombre del equipo (evita
+    // filiales/duplicados: "Real Madrid CF" > "Real Madrid Castilla").
+    const clean = wikiQuery.toLowerCase().trim();
+    const best = results.find(r => r.title.toLowerCase().startsWith(clean.slice(0, 12))) ?? results[0];
+    if (best) {
+      const summaryRes = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(best.title)}`, {
+        signal: AbortSignal.timeout(9000),
+        headers: { "User-Agent": "MichiApp/1.0 (+https://koru-mvp.onrender.com; sports assistant)" },
+      });
       const summary = await summaryRes.json() as { extract?: string; content_urls?: { desktop?: { page: string } } };
       wikipediaExtract = summary.extract ?? null;
       wikiSource = {
-        title,
-        url: summary.content_urls?.desktop?.page ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`,
-        domain: "wikipedia.org",
-        snippet: results[0].snippet?.replace(/<[^>]+>/g, "") ?? "",
+        title: best.title,
+        url: summary.content_urls?.desktop?.page ?? `https://es.wikipedia.org/wiki/${encodeURIComponent(best.title)}`,
+        domain: "es.wikipedia.org",
+        snippet: best.snippet?.replace(/<[^>]+>/g, "") ?? "",
       };
     }
   } catch { /* ignore */ }
@@ -841,62 +950,15 @@ export const matchSchedule: ToolHandler = {
     const next = Number(args.next ?? 5);
     if (!team && !league) return { type: "match_schedule", status: "failed", error: "Indicá equipo o liga." };
 
-    // 🔴 KORU 3.0 — ESPN PRIMARIO para fixture (mucho mejor que TheSportsDB free).
-    // ESPN scoreboard devuelve partidos futuros cuando pedimos fechas futuras.
-    // Buscamos en los próximos 7 días en paralelo en todas las ligas.
-    const queryLower = (team || league).toLowerCase();
-    const nationalTeam = detectNationalTeam(queryLower);
-    const club = detectClub(queryLower);
-    const matchTerms = [queryLower];
-    if (nationalTeam) matchTerms.push(nationalTeam.toLowerCase());
-    if (club) matchTerms.push(club.toLowerCase());
-
+    // 🔴 KORU 3.0 — ESPN PRIMARIO para fixture. 🔴 FIX RANGOS: UN fetch por liga
+    // con dates=START-END (antes: 7 fetches por día por liga = 63 requests →
+    // rate-limit 429 de ESPN) + detección de COPAS ("copa del rey", "libertadores")
+    // + sinónimos de clubes europeos + fallback por tokens para query crudo.
+    const espnResults = await searchEspnScoreboards(team || league);
     const now = new Date();
-    const fmt = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, "");
-    const futureDates: string[] = [];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(now.getTime() + i * 24 * 60 * 60 * 1000);
-      futureDates.push(fmt(d));
-    }
-    const espnResults: Array<{ event: EspnEvent; leagueId: string; leagueName: string }> = [];
-    const espnPromises: Promise<void>[] = [];
-    for (const lg of ESPN_LEAGUES) {
-      for (const date of futureDates) {
-        espnPromises.push((async () => {
-          try {
-            const url = `${ESPN_BASE}/${lg.id}/scoreboard?dates=${date}`;
-            const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
-            if (!res.ok) return;
-            const data = await res.json() as { events?: EspnEvent[] };
-            const events = data.events ?? [];
-            const matching = events.filter(e => {
-              const eventName = (e.name ?? "").toLowerCase();
-              const comps = e.competitions ?? [];
-              const teams = comps.flatMap(c => (c.competitors ?? []).map(comp => comp.team?.displayName?.toLowerCase() ?? ""));
-              return matchTerms.some(term =>
-                eventName.includes(term) || teams.some(t => t.includes(term))
-              );
-            });
-            for (const m of matching) {
-              espnResults.push({ event: m, leagueId: lg.id, leagueName: lg.name });
-            }
-          } catch { /* league/date timeout — skip */ }
-        })());
-      }
-    }
-    await Promise.all(espnPromises);
-
-    // Dedupe por id
-    const seen = new Set<string>();
-    const dedupedEspn = espnResults.filter(({ event: e }) => {
-      const id = e.id ?? `${e.name ?? ""}-${e.date ?? ""}`;
-      if (seen.has(id)) return false;
-      seen.add(id);
-      return true;
-    });
 
     // Filtrar solo partidos futuros
-    const upcomingEspn = dedupedEspn
+    const upcomingEspn = espnResults
       .map(({ event, leagueName }) => normalizeEspnEvent(event, leagueName))
       .filter(m => {
         const d = m.date ? new Date(m.date) : null;
@@ -916,6 +978,8 @@ export const matchSchedule: ToolHandler = {
       // 🔴 FIX TZ — hora de kickoff en la tz del USUARIO (antes: hora del server
       // = UTC en Render → “00:30” para un partido 21:30 AR / 02:30 Madrid).
       const kickoff = formatKickoffUserTz(first.date as string, runCtx?.tzOffsetMin);
+      // 🔴 FIX ESCUDOS — nextMatch ahora lleva logos/abreviaturas/colores REALES
+      // de ESPN: la card de fixture renderiza el escudo en vez de iniciales.
       return {
         type: "match_schedule",
         status: "ok",
@@ -927,6 +991,12 @@ export const matchSchedule: ToolHandler = {
           date: first.date,
           time: kickoff,
           league: first.league,
+          homeLogo: first.homeLogo,
+          awayLogo: first.awayLogo,
+          homeAbbrev: first.homeAbbrev,
+          awayAbbrev: first.awayAbbrev,
+          homeColor: first.homeColor,
+          awayColor: first.awayColor,
         },
         teamInfo: ctx.teamInfo ?? undefined,
         wikipediaExtract: ctx.wikipediaExtract ?? undefined,
@@ -1052,18 +1122,24 @@ export const matchSchedule: ToolHandler = {
       let wikiExtract: string | null = null;
       let wikiSource: { title: string; url: string; domain: string; snippet: string } | null = null;
       try {
-        const wikiRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(`${team || league} football team`)}&format=json&origin=*&srlimit=1`, { signal: AbortSignal.timeout(9000) });
+        const wikiRes = await fetch(`https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(`${team || league} football team`)}&format=json&origin=*&srlimit=1`, {
+          signal: AbortSignal.timeout(9000),
+          headers: { "User-Agent": "MichiApp/1.0 (+https://koru-mvp.onrender.com; sports assistant)" },
+        });
         const wikiData = await wikiRes.json() as { query?: { search?: Array<{ title: string; snippet: string }> } };
         const results = wikiData.query?.search ?? [];
         if (results.length > 0) {
           const title = results[0].title;
-          const summaryRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`, { signal: AbortSignal.timeout(9000) });
+          const summaryRes = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`, {
+            signal: AbortSignal.timeout(9000),
+            headers: { "User-Agent": "MichiApp/1.0 (+https://koru-mvp.onrender.com; sports assistant)" },
+          });
           const summary = await summaryRes.json() as { extract?: string; content_urls?: { desktop?: { page: string } } };
           wikiExtract = summary.extract ?? null;
           wikiSource = {
             title,
-            url: summary.content_urls?.desktop?.page ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`,
-            domain: "wikipedia.org",
+            url: summary.content_urls?.desktop?.page ?? `https://es.wikipedia.org/wiki/${encodeURIComponent(title)}`,
+            domain: "es.wikipedia.org",
             snippet: results[0].snippet?.replace(/<[^>]+>/g, "") ?? "",
           };
         }

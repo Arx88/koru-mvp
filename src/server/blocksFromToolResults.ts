@@ -1148,7 +1148,7 @@ export function blocksFromToolResults(results: ToolExecution[], userInput?: stri
   }
   // 🔴 FIX DOBLE CARD — resolver deportes con merge (una sola historia por
   // equipo: resultado con próximos adentro, o fixture enriquecido).
-  buildSportsBlocks(sports, blocks, tzOffsetMin);
+  buildSportsBlocks(sports, blocks, tzOffsetMin, userInput);
   return blocks;
 }
 
@@ -1203,7 +1203,7 @@ function shortDateFrom(date?: string, tzOffsetMin?: number): string {
   return `${get("weekday")} ${get("day")}/${get("month")}`;
 }
 
-function buildSportsBlocks(sports: { live: any | null; schedule: any | null }, blocks: UiBlock[], tzOffsetMin?: number): void {
+function buildSportsBlocks(sports: { live: any | null; schedule: any | null }, blocks: UiBlock[], tzOffsetMin?: number, userInput?: string): void {
   const live = sports.live;
   const schedule = sports.schedule;
   if (!live && !schedule) return;
@@ -1226,6 +1226,18 @@ function buildSportsBlocks(sports: { live: any | null; schedule: any | null }, b
   const liveIsInfoFallback = !!(live?.teamInfo && /no hay partidos recientes/i.test(String(live?.note ?? "")));
 
   const schedMatches: any[] = Array.isArray(schedule?.matches) ? schedule.matches : [];
+
+  // 🔴 FIX INTENCIÓN — "cuando juega X" con AMBOS tools: el usuario pregunta
+  // por el PRÓXIMO partido → card de fixture (aunque match_live haya
+  // encontrado el último resultado, que va como contexto, no como card).
+  const fixtureIntent = /\b(cu[aá]ndo\s+juega|cu[aá]ndo\s+juegan|qu[eé]\s+hora|a\s+qu[eé]\s+hora|pr[oó]xim[oa]?\s+partidos?|fixture|pr[oó]ximo\s+partido|cu[aá]ndo\s+es\s+el\s+partido|agenda|calendario)\b/i.test(userInput ?? "");
+  if (fixtureIntent && schedMatches.length > 0) {
+    const mergedFi: any = { ...schedule };
+    if (!mergedFi.teamInfo && live?.teamInfo) mergedFi.teamInfo = live.teamInfo;
+    if (!mergedFi.wikipediaExtract && live?.wikipediaExtract) mergedFi.wikipediaExtract = live.wikipediaExtract;
+    pushFixtureCard(mergedFi, blocks, tzOffsetMin);
+    return;
+  }
 
   // ── ¿Los dos resultados hablan del mismo equipo? ─────────────────────────
   const teamsOf = (m: any) => [String(m?.homeTeam ?? ""), String(m?.awayTeam ?? "")].map(t => t.toLowerCase());
@@ -1284,15 +1296,33 @@ function buildSportsBlocks(sports: { live: any | null; schedule: any | null }, b
 
     // 🔴 FIX DOBLE CARD — próximos del schedule como `upcoming` del resultado
     // (sección "Próximos partidos" del interior), sin card de fixture aparte.
-    const upcoming = sameTeamUniverse
+    // 🔴 FIX VENTANA: si match_live ya trae sus propios upcoming (rango de
+    // fechas ESPN), se usan como base y el schedule solo los completa.
+    const liveUpcoming = Array.isArray(live?.upcoming) ? live.upcoming : [];
+    const upcomingSource = sameTeamUniverse
       ? schedMatches.slice(0, 4).map((um: any) => ({
           homeTeam: um.homeTeam,
           awayTeam: um.awayTeam,
           date: um.date,
           time: um.time ?? kickoffTimeFrom(um.date, tzOffsetMin),
           league: um.league,
+          homeLogo: um.homeLogo,
+          awayLogo: um.awayLogo,
+          homeAbbrev: um.homeAbbrev,
+          awayAbbrev: um.awayAbbrev,
         })).filter((um: any) => um.homeTeam || um.awayTeam)
-      : undefined;
+      : liveUpcoming.map((um: any) => ({
+          homeTeam: um.homeTeam,
+          awayTeam: um.awayTeam,
+          date: um.date,
+          time: um.time ?? kickoffTimeFrom(um.date, tzOffsetMin),
+          league: um.league,
+          homeLogo: um.homeLogo,
+          awayLogo: um.awayLogo,
+          homeAbbrev: um.homeAbbrev,
+          awayAbbrev: um.awayAbbrev,
+        })).filter((um: any) => um.homeTeam || um.awayTeam);
+    const upcoming = upcomingSource.length > 0 ? upcomingSource.slice(0, 4) : undefined;
 
     blocks.push({
       type: "live_match" as const,
@@ -1332,6 +1362,10 @@ function buildSportsBlocks(sports: { live: any | null; schedule: any | null }, b
       lineups: m.lineups,
       detailedStats: m.detailedStats,
       upcoming,
+      // 🔴 FIX INTERIOR VACÍO — contexto del equipo + Wikipedia para la
+      // sección "Sobre el equipo" (match_live ahora trae fetchTeamContext).
+      teamInfo: live?.teamInfo,
+      wikipediaExtract: live?.wikipediaExtract,
     } as UiBlock);
 
     // Otros resultados del mismo query (rondas de varios días) → mini timeline
@@ -1344,6 +1378,10 @@ function buildSportsBlocks(sports: { live: any | null; schedule: any | null }, b
           text: `${mm.homeTeam ?? "?"} ${mm.homeScore ?? "?"}-${mm.awayScore ?? "?"} ${mm.awayTeam ?? "?"}`,
           sub: mm.status ?? (mm.live ? "En vivo" : "Final"),
           active: !!mm.live,
+          homeLogo: mm.homeLogo,
+          awayLogo: mm.awayLogo,
+          homeTeam: mm.homeTeam,
+          awayTeam: mm.awayTeam,
         })),
       } as UiBlock);
     }
@@ -1384,6 +1422,12 @@ function buildSportsBlocks(sports: { live: any | null; schedule: any | null }, b
           date: scheduledFromLive.date,
           time: scheduledFromLive.time ?? kickoffTimeFrom(scheduledFromLive.date, tzOffsetMin),
           league: scheduledFromLive.league,
+          homeLogo: scheduledFromLive.homeLogo,
+          awayLogo: scheduledFromLive.awayLogo,
+          homeAbbrev: scheduledFromLive.homeAbbrev,
+          awayAbbrev: scheduledFromLive.awayAbbrev,
+          homeColor: scheduledFromLive.homeColor,
+          awayColor: scheduledFromLive.awayColor,
         },
       },
       blocks,
@@ -1430,6 +1474,13 @@ function pushFixtureCard(schedule: any, blocks: UiBlock[], tzOffsetMin?: number)
           date: first.date,
           time: first.time ?? kickoffTimeFrom(first.date, tzOffsetMin),
           league: first.league,
+          // 🔴 FIX ESCUDOS — logos/abreviaturas/colores reales de ESPN
+          homeLogo: first.homeLogo,
+          awayLogo: first.awayLogo,
+          homeAbbrev: first.homeAbbrev,
+          awayAbbrev: first.awayAbbrev,
+          homeColor: first.homeColor,
+          awayColor: first.awayColor,
         }
       : undefined);
 
@@ -1441,6 +1492,11 @@ function pushFixtureCard(schedule: any, blocks: UiBlock[], tzOffsetMin?: number)
       text: `${m.homeTeam ?? "?"} vs ${m.awayTeam ?? "?"}`,
       sub: `${m.league ?? ""}${m.time ?? kickoffTimeFrom(m.date, tzOffsetMin) ? ` · ${m.time ?? kickoffTimeFrom(m.date, tzOffsetMin)}` : ""}`,
       active: true,
+      // 🔴 FIX ESCUDOS — logos por partido para la lista de próximos
+      homeLogo: m.homeLogo,
+      awayLogo: m.awayLogo,
+      homeTeam: m.homeTeam,
+      awayTeam: m.awayTeam,
     })),
     teamInfo,
     nextMatch,

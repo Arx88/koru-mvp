@@ -101,7 +101,9 @@ describe("MtlInterior", () => {
       />,
     );
     expect(screen.getByText(/45\+2′ gol de boca · 61′ roja para el visitante/i)).toBeInTheDocument();
-    expect(screen.getByText(/cuando haya fecha confirmada/i)).toBeInTheDocument();
+    // 🔴 v2: con items presentes y sin nextMatch, el subtítulo describe los
+    // partidos de la ventana (antes: "cuando haya fecha confirmada").
+    expect(screen.getByText(/partidos de la ventana de espn/i)).toBeInTheDocument();
     expect(document.body.querySelector(".fx2-teams")).toBeNull();
   });
 });

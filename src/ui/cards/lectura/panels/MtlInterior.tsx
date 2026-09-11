@@ -72,8 +72,10 @@ export function MtlInterior({ block, onClose, onSave }: LecturaInteriorProps<Mtl
   const items = block.items ?? [];
   const home = next?.homeTeam;
   const away = next?.awayTeam;
-  const homeCrest = crestFor(home);
-  const awayCrest = crestFor(away);
+  // 🔴 FIX ESCUDOS — logo real de ESPN (nextMatch del block) con fallback al
+  // mapa local de escudos y, último recurso, iniciales.
+  const homeCrest = (next as any)?.homeLogo ?? crestFor(home);
+  const awayCrest = (next as any)?.awayLogo ?? crestFor(away);
   const league = next?.league ?? info?.league;
   const countdown = countdownFrom(next?.date, next?.time);
   const title = block.title || (next ? `${home} vs ${away}` : info?.name || "Próximo partido");
@@ -101,7 +103,9 @@ export function MtlInterior({ block, onClose, onSave }: LecturaInteriorProps<Mtl
           <p>
             {next
               ? "Te lo agendo con recordatorio antes del pitazo inicial. Así llega el día sin apuro."
-              : "Cuando haya fecha confirmada, te lo agendo con recordatorio."}
+              : items.length > 0
+                ? "Los partidos de la ventana de ESPN, con escudos y horarios reales."
+                : "Cuando haya fecha confirmada, te lo agendo con recordatorio."}
           </p>
         </div>
 
@@ -168,6 +172,28 @@ export function MtlInterior({ block, onClose, onSave }: LecturaInteriorProps<Mtl
                 .map((it) => `${it.minute ? `${it.minute}′ ` : ""}${it.text}`)
                 .join(" · ")}
             </p>
+          </div>
+        )}
+
+        {/* 🔴 FIX ESCUDOS — lista de próximos con mini-escudos reales por partido */}
+        {items.length > 1 && (
+          <div className="fx2-note rv">
+            <Ic i={CalendarDays} className="ic" />
+            <div style={{ display: "flex", flexDirection: "column", gap: 7, flex: 1 }}>
+              {items.slice(0, 4).map((it: any, idx: number) => (
+                <div key={`upc_${idx}`} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, fontWeight: 700, color: "#4B5266" }}>
+                  <span style={{ minWidth: 46, color: "#8A90A8", fontWeight: 800 }}>{it.minute ?? "—"}</span>
+                  {(it.homeLogo || it.awayLogo) && (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3, flexShrink: 0 }}>
+                      {it.homeLogo && <img src={it.homeLogo} alt="" style={{ width: 18, height: 18, objectFit: "contain" }} loading="lazy" />}
+                      {it.awayLogo && <img src={it.awayLogo} alt="" style={{ width: 18, height: 18, objectFit: "contain" }} loading="lazy" />}
+                    </span>
+                  )}
+                  <span style={{ flex: 1, lineHeight: 1.35 }}>{it.text}</span>
+                  {it.sub && <span style={{ color: "#8A90A8", fontSize: 9.5, textAlign: "right", lineHeight: 1.3 }}>{it.sub}</span>}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

@@ -13,7 +13,7 @@
  * + alineaciones confirmadas si las hay + próximos del mismo equipo.
  */
 import { useState } from "react";
-import { BellRing, CalendarDays, ChartPie, Check, Goal, List, MapPin, Users, type LucideIcon } from "lucide-react";
+import { BellRing, CalendarDays, ChartPie, Check, Goal, Info, List, MapPin, Shield, Users, type LucideIcon } from "lucide-react";
 import type { UiBlock } from "../../../../domain/types";
 import { Ic } from "../Ic";
 import { LecturaShell } from "../LecturaShell";
@@ -53,6 +53,11 @@ export function LiveMatchInterior({ block, onClose, onSave }: LecturaInteriorPro
   const awayPos = parseInt(block.awayPossession ?? "", 10);
   const hasPos = Number.isFinite(homePos) && Number.isFinite(awayPos);
   const upcoming = block.upcoming ?? [];
+  // 🔴 FIX INTERIOR VACÍO — contexto del equipo + Wikipedia (match_live ahora
+  // trae fetchTeamContext) para la sección "Sobre el equipo".
+  const teamInfo = (block as any).teamInfo as { name?: string; stadium?: string; location?: string; league?: string; description?: string } | undefined;
+  const wiki = (block as any).wikipediaExtract as string | undefined;
+  const aboutText = teamInfo?.description ?? wiki;
   const kickoff = block.time ?? block.minute ?? "";
 
   const feedRef = ({ current: null } as { current: HTMLDivElement | null });
@@ -164,9 +169,15 @@ export function LiveMatchInterior({ block, onClose, onSave }: LecturaInteriorPro
         {pre && upcoming.length > 0 && (
           <div className="sb-feed rv">
             <h3><Ic i={CalendarDays} className="ic" />Próximos partidos</h3>
-            {upcoming.slice(0, 4).map((um, i) => (
+            {upcoming.slice(0, 4).map((um: any, i) => (
               <div className="frow" key={`up_${i}`} style={{ padding: "4px 0" }}>
                 <span className="fmin" style={{ minWidth: 40, fontSize: 10 }}>{um.time ?? ""}</span>
+                {(um.homeLogo || um.awayLogo) && (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 3, flexShrink: 0, width: 44, justifyContent: "center" }}>
+                    {um.homeLogo && <img src={um.homeLogo} alt="" style={{ width: 17, height: 17, objectFit: "contain" }} loading="lazy" />}
+                    {um.awayLogo && <img src={um.awayLogo} alt="" style={{ width: 17, height: 17, objectFit: "contain" }} loading="lazy" />}
+                  </span>
+                )}
                 <div className="ft">
                   <b style={{ fontSize: 12 }}>{um.homeTeam} vs {um.awayTeam}</b>
                   <span>{um.league ?? ""}</span>
@@ -213,6 +224,32 @@ export function LiveMatchInterior({ block, onClose, onSave }: LecturaInteriorPro
               <span>Remates {block.homeShots ?? "–"} – {block.awayShots ?? "–"}</span>
               <span>posesión a favor de {homePos > awayPos ? home : away}</span>
             </div>
+          </div>
+        )}
+
+        {/* 🔴 FIX INTERIOR VACÍO — sección "Sobre el equipo": estadio/sede/liga
+            + resumen de Wikipedia (match_live trae fetchTeamContext). */}
+        {(teamInfo || aboutText) && (
+          <div className="sb-feed rv">
+            <h3><Ic i={Shield} className="ic" />Sobre {teamInfo?.name ?? home}</h3>
+            {[
+              teamInfo?.stadium ? { icon: MapPin, label: "Estadio", value: teamInfo.stadium } : null,
+              teamInfo?.location ? { icon: MapPin, label: "Sede", value: teamInfo.location } : null,
+              teamInfo?.league ? { icon: Info, label: "Liga", value: teamInfo.league } : null,
+            ].filter(Boolean).map((row: any) => (
+              <div key={row.label} className="frow" style={{ padding: "2px 0" }}>
+                <span className="fmin" style={{ minWidth: 26 }}><Ic i={row.icon} className="ic" /></span>
+                <div className="ft">
+                  <span style={{ fontSize: 10, fontWeight: 800, color: "#8A93C2", textTransform: "uppercase", letterSpacing: ".06em" }}>{row.label}</span>
+                  <b style={{ display: "block", fontSize: 13 }}>{row.value}</b>
+                </div>
+              </div>
+            ))}
+            {aboutText && (
+              <p style={{ margin: "8px 0 0", fontSize: 11.5, fontWeight: 600, color: "#6E7594", lineHeight: 1.55 }}>
+                {aboutText.slice(0, 320)}{aboutText.length > 320 ? "…" : ""}
+              </p>
+            )}
           </div>
         )}
 

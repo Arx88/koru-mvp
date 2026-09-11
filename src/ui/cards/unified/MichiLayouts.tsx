@@ -1301,11 +1301,11 @@ export function MichiFutbol(props: MichiProps) {
     stats?: { label?: string; home?: number; away?: number; leftPercent?: number; rightPercent?: number }[];
     // match_timeline
     title?: string;
-    items?: { minute?: string; text?: string; sub?: string; active?: boolean }[];
+    items?: { minute?: string; text?: string; sub?: string; active?: boolean; homeLogo?: string; awayLogo?: string; homeTeam?: string; awayTeam?: string }[];
     teamInfo?: { name?: string; stadium?: string; location?: string; league?: string; description?: string };
-    nextMatch?: { match?: string; homeTeam?: string; awayTeam?: string; date?: string; time?: string; league?: string };
+    nextMatch?: { match?: string; homeTeam?: string; awayTeam?: string; date?: string; time?: string; league?: string; homeLogo?: string; awayLogo?: string; homeAbbrev?: string; awayAbbrev?: string; homeColor?: string; awayColor?: string };
     wikipediaExtract?: string;
-    upcoming?: { homeTeam?: string; awayTeam?: string; date?: string; time?: string; league?: string }[];
+    upcoming?: { homeTeam?: string; awayTeam?: string; date?: string; time?: string; league?: string; homeLogo?: string; awayLogo?: string; homeAbbrev?: string; awayAbbrev?: string }[];
   };
 
   const tapProps = isTappable
@@ -1314,6 +1314,9 @@ export function MichiFutbol(props: MichiProps) {
 
   // ── VARIANTE FIXTURE (match_timeline con partidos) ────────────────────────
   const fixtureItems = (b.items ?? []).filter((it) => it.text);
+  // 🔴 Mini card "otros resultados": los items son PASADOS, no próximos —
+  // el chip no debe mentir ("2 PRÓXIMOS" sobre resultados ya jugados).
+  const isResultsList = /otros resultados/i.test(b.title ?? "");
   if (fixtureItems.length > 0) {
     const next = b.nextMatch;
     const firstText = fixtureItems[0]?.text ?? "";
@@ -1329,13 +1332,17 @@ export function MichiFutbol(props: MichiProps) {
             <h4 style={{ margin: 0, fontSize: "inherit", fontWeight: "inherit", letterSpacing: "inherit", textTransform: "inherit", color: "inherit", fontFamily: "inherit" }}>
               {b.teamInfo?.name ?? b.title ?? next?.league ?? "Próximos partidos"}
             </h4>
-            <span className="st">{fixtureItems.length} PRÓXIMOS</span>
+            <span className="st">{isResultsList ? `${fixtureItems.length} JUGADOS` : `${fixtureItems.length} PRÓXIMOS`}</span>
           </div>
-          {next && (next.homeTeam || next.awayTeam) ? (
+          {next && !isResultsList && (next.homeTeam || next.awayTeam) ? (
             <div className="mc-fu-score">
               <div className="mc-fu-team">
-                <div className="mc-crest" style={{ background: b.homeLogo ? "#F5F7FC" : undefined }}>
-                  <span className="nm" style={{ fontSize: 12, fontWeight: 900, color: "#1A237E" }}>{(next.homeTeam ?? "—").slice(0, 2).toUpperCase()}</span>
+                <div className="mc-crest" style={{ background: next.homeLogo ? "#F5F7FC" : next.homeColor ? `${next.homeColor}1A` : undefined }}>
+                  {next.homeLogo ? (
+                    <img src={next.homeLogo} alt={next.homeTeam ?? ""} style={{ width: "100%", height: "100%", objectFit: "contain", padding: 3 }} loading="lazy" />
+                  ) : (
+                    <span className="nm" style={{ fontSize: 12, fontWeight: 900, color: "#1A237E" }}>{(next.homeTeam ?? "—").slice(0, 2).toUpperCase()}</span>
+                  )}
                 </div>
                 <span className="nm">{next.homeTeam ?? "—"}</span>
               </div>
@@ -1344,8 +1351,12 @@ export function MichiFutbol(props: MichiProps) {
                 <span className="mc-fu-st">{firstDate || "PRÓXIMO"}</span>
               </div>
               <div className="mc-fu-team">
-                <div className="mc-crest" style={{ background: b.awayLogo ? "#F5F7FC" : undefined }}>
-                  <span className="nm" style={{ fontSize: 12, fontWeight: 900, color: "#1A237E" }}>{(next.awayTeam ?? "—").slice(0, 2).toUpperCase()}</span>
+                <div className="mc-crest" style={{ background: next.awayLogo ? "#F5F7FC" : next.awayColor ? `${next.awayColor}1A` : undefined }}>
+                  {next.awayLogo ? (
+                    <img src={next.awayLogo} alt={next.awayTeam ?? ""} style={{ width: "100%", height: "100%", objectFit: "contain", padding: 3 }} loading="lazy" />
+                  ) : (
+                    <span className="nm" style={{ fontSize: 12, fontWeight: 900, color: "#1A237E" }}>{(next.awayTeam ?? "—").slice(0, 2).toUpperCase()}</span>
+                  )}
                 </div>
                 <span className="nm">{next.awayTeam ?? "—"}</span>
               </div>
@@ -1358,6 +1369,16 @@ export function MichiFutbol(props: MichiProps) {
           {fixtureItems.slice(0, 3).map((it, i) => (
             <div key={`fx_${i}`} className="mc-fu-pos">
               <span className="lb" style={{ minWidth: 42 }}>{it.minute ?? "—"}</span>
+              {(it as any).homeLogo || (it as any).awayLogo ? (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, flexShrink: 0 }}>
+                  {(it as any).homeLogo ? (
+                    <img src={(it as any).homeLogo} alt="" style={{ width: 16, height: 16, objectFit: "contain" }} loading="lazy" />
+                  ) : null}
+                  {(it as any).awayLogo ? (
+                    <img src={(it as any).awayLogo} alt="" style={{ width: 16, height: 16, objectFit: "contain" }} loading="lazy" />
+                  ) : null}
+                </span>
+              ) : null}
               <span style={{ fontSize: 10.5, fontWeight: 800, color: "#1E1B4B", flex: 1, lineHeight: 1.35 }}>{it.text}</span>
               {it.sub ? <span style={{ fontSize: 9, fontWeight: 700, color: "#6E7594", maxWidth: 96, textAlign: "right", lineHeight: 1.3 }}>{it.sub}</span> : null}
             </div>

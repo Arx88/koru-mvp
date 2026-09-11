@@ -763,9 +763,16 @@ export type UiBlock =
         away?: number;
       }>;
       // 🔴 FIX DOBLE CARD — próximos partidos del mismo equipo (viene del
-      // match_schedule del mismo turno). El interior los muestra como
-      // sección "Próximos partidos" en vez de una segunda card de fixture.
-      upcoming?: Array<{ homeTeam?: string; awayTeam?: string; date?: string; time?: string; league?: string }>;
+      // match_schedule del mismo turno o del propio match_live con rangos).
+      // El interior los muestra como sección "Próximos partidos".
+      upcoming?: Array<{
+        homeTeam?: string; awayTeam?: string; date?: string; time?: string; league?: string;
+        homeLogo?: string; awayLogo?: string; homeAbbrev?: string; awayAbbrev?: string;
+      }>;
+      // 🔴 FIX INTERIOR VACÍO — contexto del equipo (estadio/liga/descripción) y
+      // Wikipedia para la sección "Sobre el equipo" del interior/extensión.
+      teamInfo?: { name: string; stadium?: string; location?: string; league?: string; description?: string };
+      wikipediaExtract?: string;
       // 🔴 v2: datos ricos desde ESPN /summary
       homeColor?: string;
       awayColor?: string;
@@ -913,10 +920,18 @@ export type UiBlock =
   | {
       type: "match_timeline";
       title?: string;
-      items?: Array<{ minute: string; text: string; sub?: string; active?: boolean; now?: boolean }>;
+      items?: Array<{
+        minute: string; text: string; sub?: string; active?: boolean; now?: boolean;
+        /** 🔴 FIX ESCUDOS — logos/abreviaturas reales de ESPN por partido. */
+        homeLogo?: string; awayLogo?: string; homeTeam?: string; awayTeam?: string;
+      }>;
       /** 🔴 KORU 3.0 — Campos adicionales para cuando no hay partido jugado */
       teamInfo?: { name: string; stadium?: string; location?: string; league?: string; description?: string };
-      nextMatch?: { match?: string; homeTeam?: string; awayTeam?: string; date?: string; time?: string; league?: string };
+      /** 🔴 FIX ESCUDOS — nextMatch con logos/abreviaturas/colores reales de ESPN. */
+      nextMatch?: {
+        match?: string; homeTeam?: string; awayTeam?: string; date?: string; time?: string; league?: string;
+        homeLogo?: string; awayLogo?: string; homeAbbrev?: string; awayAbbrev?: string; homeColor?: string; awayColor?: string;
+      };
       wikipediaExtract?: string;
     }
   | {
