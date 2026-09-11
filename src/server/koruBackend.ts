@@ -1341,6 +1341,21 @@ export async function callProvider(
     }
   };
 
+  // OpenRouter es el último eslabón de la cadena: si falla, su error es el que
+  // sale al usuario y tapa el motivo real por el que cayeron los anteriores
+  // (ej. NVIDIA 404 + AI Native Studio caído). Le agregamos las causas
+  // acumuladas para que el mensaje final cuente la cadena completa.
+  const failOpenRouter = async (): Promise<ProviderResult> => {
+    try {
+      return await callOpenRouter(config, messages, Math.min(115_000, timeoutMs), toolsEnabled);
+    } catch (err: any) {
+      if (failures.length && err && typeof err === "object") {
+        err.message = `${err.message ?? String(err)} | Causas previas: ${failures.join(" | ")}`;
+      }
+      throw err;
+    }
+  };
+
   // SALTO DIRECTO si el usuario eligió un provider específico
   if (preferredProvider === "bluesminds" && bluesmindsAvailable) {
     try {
@@ -1384,7 +1399,7 @@ export async function callProvider(
   }
 
   if (preferredProvider === "openrouter" && config.openRouterKeys.length) {
-    return callOpenRouter(config, messages, Math.min(115_000, timeoutMs), toolsEnabled);
+    return failOpenRouter();
   }
 
   // FLUJO NORMAL (sin preferencia o preferencia fallida)
@@ -1424,7 +1439,7 @@ export async function callProvider(
   }
 
   if (!nvidiaAvailable) {
-    return callOpenRouter(config, messages, Math.min(115_000, timeoutMs), toolsEnabled);
+    return failOpenRouter();
   }
 
   // Si el usuario eligió OpenRouter, saltamos NVIDIA en el flujo normal
@@ -1467,7 +1482,7 @@ export async function callProvider(
   }
 
   if (config.openRouterKeys.length) {
-    return callOpenRouter(config, messages, Math.min(115_000, timeoutMs), toolsEnabled);
+    return failOpenRouter();
   }
 
   const causes = failures.length ? ` Causas: ${failures.join(" | ")}` : "";

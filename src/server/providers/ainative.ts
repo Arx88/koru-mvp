@@ -22,6 +22,7 @@
 import type { ToolDefinition } from "../../tools/types";
 import type { ProviderConfig, ChatMessage, ProviderResult, ProviderMessage } from "./types";
 import { fetchWithTimeout, providerUrl } from "./fetch";
+import { ProviderConfigError, classifyProviderStatus, providerErrorDetail } from "./types";
 import { asArray, asRecord, asString, cleanText } from "../json";
 import { CORE_TOOL_DEFINITIONS } from "../koruBackend";
 
@@ -103,10 +104,19 @@ async function callAINativeOnce(
   const data = await response.json().catch(() => ({})) as Record<string, unknown>;
 
   if (!response.ok) {
-    const errMsg = String(data?.error || data?.detail || `HTTP ${response.status}`);
+    // `String(data.error)` daba literalmente "[object Object]": el motivo real del
+    // proveedor se perdía y el log decía solo "AINative 502: [object Object]".
+    const detail = providerErrorDetail(data);
+    const errMsg = detail ?? `HTTP ${response.status}`;
+    // 401/403 (credencial) y 404/410 (modelo inexistente o retirado) NO se
+    // arreglan reintentando ni rotando de modelo, así que se clasifican aparte
+    // en vez de disfrazarse de tropiezo transitorio como el 429.
+    if (classifyProviderStatus(response.status) !== "transient") {
+      throw new ProviderConfigError("AI Native Studio", response.status, detail);
+    }
     const err = new Error(`AINative ${response.status}: ${errMsg.slice(0, 200)}`);
     // Rate limits: NO re-throw como RateLimitError — dejamos que callProvider
-    // caiga al siguiente provider (OpenRouter). Pero si es 401/403, sí re-throw.
+    // caiga al siguiente provider (OpenRouter).
     if (response.status === 429 || errMsg.toLowerCase().includes("rate limit")) {
       err.name = "RateLimitError";
     }

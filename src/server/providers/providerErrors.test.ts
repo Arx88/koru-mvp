@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   ProviderConfigError,
   classifyProviderStatus,
@@ -7,6 +7,7 @@ import {
   providerErrorDetail,
 } from "./types";
 import { providerResultIsValid, isRateLimitError } from "./index";
+import { callProvider } from "../koruBackend";
 
 describe("classifyProviderStatus", () => {
   it("trata 401/403 como credencial, no como saturación", () => {
@@ -95,5 +96,55 @@ describe("describeProviderFailures", () => {
     // El literal del AggregateError estaba en la blacklist: ya no debería producirse.
     expect(providerResultIsValid({ provider: "openrouter", message: { content: failures.message } })).toBe(true);
     expect(providerResultIsValid({ provider: "openrouter", message: { content: "All promises were rejected" } })).toBe(false);
+  });
+});
+
+describe("callProvider — el último eslabón no borra las causas anteriores", () => {
+  // Reproduce el fallo real de produccción: NVIDIA 404 (modelo sin prefijo),
+  // AI Native Studio caído y OpenRouter sin cuota. Antes del arreglo, el error
+  // de OpenRouter salía solo y tapaba el 404 — el que de verdad hay que ver.
+  const config = {
+    nvidiaApiKey: "fake-nvidia-key",
+    nvidiaBaseUrl: "https://integrate.api.nvidia.com",
+    nvidiaModel: "nemotron-3.5-lightning-30b-a3b",
+    openRouterKeys: ["fake-or-key"],
+    openRouterModels: ["openrouter/free"],
+    ainativeApiKey: "fake-ainative-key",
+  };
+  const messages = [{ role: "user" as const, content: "hola" }];
+
+  beforeEach(() => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: unknown) => {
+        const u = String(url);
+        if (u.includes("nvidia")) {
+          return new Response(JSON.stringify({ error: { message: "page not found" } }), { status: 404 });
+        }
+        if (u.includes("ainative")) {
+          return new Response(JSON.stringify({ error: { message: "upstream unavailable" } }), { status: 502 });
+        }
+        if (u.includes("openrouter")) {
+          return new Response(
+            JSON.stringify({ error: { message: "Rate limit exceeded: free-models-per-day" } }),
+            { status: 429 },
+          );
+        }
+        return new Response("{}", { status: 200 });
+      }),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("dice que OpenRouter se quedó sin cuota Y que NVIDIA tiene el modelo mal", async () => {
+    const err = await callProvider(config as never, messages as never, 5_000, false).catch((e: unknown) => e);
+    expect(isRateLimitError(err)).toBe(true);
+    expect((err as Error).message).toContain("openrouter/free");
+    expect((err as Error).message).toContain("404");
+    expect((err as Error).message).toContain("NVIDIA");
+    expect((err as Error).message).toContain("AI Native Studio");
   });
 });
