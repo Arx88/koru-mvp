@@ -1,11 +1,11 @@
 // Michi Service Worker — notificaciones push y background sync
 // Mobile-first: funciona en PWA standalone
 
-// 🐱 v8.1 — michi-v6: fix cards de fútbol (una sola card por consulta, sin
+// 🐱 v8.2 — michi-v7: fix fútbol v2 (partidos pasados, copas, escudos,
 // placeholders 0-0 ni stats fabricadas, extensiones con datos reales). El SW no
 // intercepta fetch, pero se bumpea la caché siguiendo la convención de release:
 // al cambiar sw.js el navegador reinstala y el activate limpia cachés viejas.
-const CACHE_NAME = "michi-v6";
+const CACHE_NAME = "michi-v7";
 const STATIC_ASSETS = [
   "/",
   "/index.html",
