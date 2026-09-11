@@ -974,8 +974,8 @@ a {
   aspect-ratio: 2.23;
   padding: 21px 19px 15px;
   color: white;
-  background-size: cover;
-  background-position: center;
+  background-image: url("/assets/playita-banner.webp");
+  background-size: 100% 100%;
   border-radius: 32px 35px 27px 32px;
   border: 1.5px solid #cefffd;
   box-shadow: inset 2px 2px 4px #edffff, 0 2px 4px #019fd42b;
@@ -1579,7 +1579,15 @@ a {
 /* ---------- RESPONSIVE (sus media queries) ---------- */
 @media (min-width: 700px) {
   .koru-chat-screen {
-    min-height: max(835px, 100svh);
+    /* Antes: min-height: max(835px, 100svh). El shell es position: fixed con
+       inset: 0, o sea que mide exactamente el viewport. Forzar 835px de alto
+       adentro hacía que, en cualquier ventana >=700px de ancho y <835px de
+       alto —la mayoría de laptops, tablets en landscape y TODO teléfono en
+       landscape— el composer con el botón de enviar quedara por debajo del
+       borde inferior. Y como el shell está fijo y el body no scrollea, no
+       había forma de alcanzarlo: la app quedaba inusable.
+       100% = la altura real del shell, nunca más. */
+    min-height: 100%;
   }
 }
 @media (max-width: 440px) {
