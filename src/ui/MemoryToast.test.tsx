@@ -64,7 +64,7 @@ describe("MemoryToast v2 · acciones de confirmación", () => {
     expect(onReject).toHaveBeenCalledWith("mem_tea");
   });
 
-  it("tras confirmar, el título cambia a 'Guardado en tu jardín' (feedback visible)", async () => {
+  it("tras confirmar, el título cambia a 'Recuerdo guardado' (feedback visible)", async () => {
     const user = userEvent.setup();
     render(
       <MemoryToast
@@ -77,7 +77,7 @@ describe("MemoryToast v2 · acciones de confirmación", () => {
       />,
     );
     await user.click(screen.getByRole("button", { name: /guardar/i }));
-    expect(screen.getByText(/guardado en tu jardín/i)).toBeInTheDocument();
+    expect(screen.getByText(/recuerdo guardado/i)).toBeInTheDocument();
   });
 
   it("tras soltar, el título cambia a 'Soltado'", async () => {
@@ -93,7 +93,7 @@ describe("MemoryToast v2 · acciones de confirmación", () => {
       />,
     );
     await user.click(screen.getByRole("button", { name: /soltar/i }));
-    expect(screen.getByText(/^soltado$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^recuerdo soltado$/i)).toBeInTheDocument();
   });
 
   it("confirmar programa el auto-dismiss del toast", async () => {
@@ -112,7 +112,7 @@ describe("MemoryToast v2 · acciones de confirmación", () => {
         />,
       );
       await user.click(screen.getByRole("button", { name: /guardar/i }));
-      // 1400ms de celebración + 320ms de salida
+      // 1600ms de confirmación + 200ms de salida
       vi.advanceTimersByTime(1800);
       await waitFor(() => expect(onDismiss).toHaveBeenCalled());
     } finally {
@@ -132,7 +132,7 @@ describe("MemoryToast v3 · guardados con acción Ver → Mis Colecciones", () =
       />,
     );
     expect(screen.getByText("Guardado")).toBeInTheDocument();
-    expect(screen.getByText(/listo, quedó guardado/i)).toBeInTheDocument();
+    expect(screen.getByText("Creado en Notas")).toBeInTheDocument();
     // NO habla de "aprendí algo nuevo" (eso es para memorias)
     expect(screen.queryByText(/aprendí algo nuevo/i)).not.toBeInTheDocument();
   });

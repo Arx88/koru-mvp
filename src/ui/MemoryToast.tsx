@@ -1,184 +1,53 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Check, FolderOpen, Heart, PawPrint, X } from "lucide-react";
+import "./michi/michi-memory-toast.css";
 
 type MemoryToastProps = {
   kind: string;
   text: string;
   onDismiss: () => void;
-  /** 🔴 v2 — confirmación EN el toast (el momento de mayor atención del usuario).
-   *  Si viene el id, el toast ofrece Guardar/Soltar y la confirmación deja
-   *  de depender de encontrar la card RECUERDO en el scroll del chat. */
   memoryId?: string;
+  confirmed?: boolean;
   onConfirm?: (id: string) => void;
   onReject?: (id: string) => void;
-  /** 🔴 v3 — para kind="saved": abre Mis Colecciones en la colección donde
-   *  quedó lo guardado (cierra el ciclo Crear → toast "Ver" → colección). */
   collection?: string;
   onOpenCollections?: (collection?: string) => void;
 };
 
-const KIND_LABELS: Record<string, { label: string; icon: string }> = {
-  saved: { label: "Guardado", icon: "bookmark_added" },
-  preference: { label: "Preferencia", icon: "favorite" },
-  routine: { label: "Rutina", icon: "schedule" },
-  goal: { label: "Objetivo", icon: "flag" },
-  profile: { label: "Perfil", icon: "person" },
-  relationship: { label: "Relación", icon: "groups" },
-  wellbeing: { label: "Bienestar", icon: "spa" },
-  health: { label: "Salud", icon: "health_and_safety" },
-  retail: { label: "Compra", icon: "shopping_bag" },
-  boundary: { label: "Límite", icon: "block" },
-  task: { label: "Tarea", icon: "task_alt" },
-};
-
-export function MemoryToast({
-  kind,
-  text,
-  onDismiss,
-  memoryId,
-  onConfirm,
-  onReject,
-  collection,
-  onOpenCollections,
-}: MemoryToastProps) {
-  const [phase, setPhase] = useState<"enter" | "visible" | "exit" | "confirmed" | "rejected">("enter");
-  const isSaved = kind === "saved";
-  const kindInfo = KIND_LABELS[kind] ?? { label: "Memoria", icon: "neurology" };
-  // Guardar/Soltar son acciones de MEMORIA — nunca para guardados (kind=saved).
-  const canConfirm = !isSaved && Boolean(memoryId && onConfirm);
-  const canReject = !isSaved && Boolean(memoryId && onReject);
-  // "Ver" solo para guardados con colección real (no para "Listo ✓" genéricos)
-  const canView = isSaved && Boolean(collection && onOpenCollections);
-
-  useEffect(() => {
-    const t1 = setTimeout(() => setPhase("visible"), 50);
-    return () => clearTimeout(t1);
-  }, []);
-
-  const handleDismiss = () => {
-    if (phase === "confirmed" || phase === "rejected") {
-      onDismiss();
-      return;
-    }
-    setPhase("exit");
-    setTimeout(onDismiss, 300);
+export function MemoryToast({ kind, text, onDismiss, memoryId, confirmed = false, onConfirm, onReject, collection, onOpenCollections }: MemoryToastProps) {
+  const [phase, setPhase] = useState<"visible" | "confirmed" | "rejected" | "exit">("visible");
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  const later = (callback: () => void, delay: number) => { timers.current.push(setTimeout(callback, delay)); };
+  const dismiss = () => {
+    timers.current.forEach(clearTimeout);
+    setPhase("exit"); later(onDismiss, 200);
   };
-
-  const handleConfirm = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!memoryId || !onConfirm) return;
-    if ("vibrate" in navigator) navigator.vibrate([12, 40, 18]);
-    setPhase("confirmed");
-    onConfirm(memoryId);
-    // La confirmación queda visible 1.4s (microdetalle: el usuario VE que se
-    // guardó antes de que el toast se retire).
-    setTimeout(() => {
-      setPhase("exit");
-      setTimeout(onDismiss, 320);
-    }, 1400);
+  const savedRecord = kind === "saved";
+  const savedMemory = confirmed || phase === "confirmed";
+  const canConfirm = !savedRecord && !savedMemory && phase === "visible" && Boolean(memoryId && onConfirm);
+  const canReject = !savedRecord && !savedMemory && phase === "visible" && Boolean(memoryId && onReject);
+  const title = phase === "rejected" ? "Recuerdo soltado" : savedRecord ? "Guardado" : savedMemory ? "Recuerdo guardado" : canConfirm ? "¿Guardamos este recuerdo?" : "Un nuevo recuerdo";
+  const complete = (action: "confirmed" | "rejected") => {
+    if (!memoryId || phase !== "visible") return;
+    setPhase(action);
+    if (action === "confirmed") onConfirm?.(memoryId); else onReject?.(memoryId);
+    later(dismiss, action === "confirmed" ? 1600 : 1200);
   };
-
-  const handleReject = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!memoryId || !onReject) return;
-    if ("vibrate" in navigator) navigator.vibrate(8);
-    setPhase("rejected");
-    onReject(memoryId);
-    setTimeout(() => {
-      setPhase("exit");
-      setTimeout(onDismiss, 320);
-    }, 1000);
-  };
-
-  const handleView = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!onOpenCollections) return;
-    if ("vibrate" in navigator) navigator.vibrate(12);
-    onOpenCollections(collection);
-    setPhase("exit");
-    setTimeout(onDismiss, 300);
-  };
-
-  return (
-    <div
-      className={`koru-memory-toast koru-memory-toast--${phase}`}
-      role="status"
-      aria-live="polite"
-      onClick={handleDismiss}
-    >
-      <div className="koru-memory-toast-glow" aria-hidden="true" />
-      <div className="koru-memory-toast-content">
-        <div className="koru-memory-toast-icon">
-          <span className="material-symbols-outlined">
-            {phase === "confirmed" ? "check_circle" : phase === "rejected" ? "do_not_disturb_on" : kindInfo.icon}
-          </span>
-          <div className="koru-memory-toast-pulse" aria-hidden="true" />
-        </div>
-        <div className="koru-memory-toast-text">
-          <div className="koru-memory-toast-label">
-            <span className="koru-memory-toast-tag">{kindInfo.label}</span>
-            <span className="koru-memory-toast-title">
-              {phase === "confirmed"
-                ? "Guardado en tu jardín"
-                : phase === "rejected"
-                  ? "Soltado"
-                  : isSaved
-                    ? "Listo, quedó guardado"
-                    : "Aprendí algo nuevo sobre vos"}
-            </span>
-          </div>
-          <p className="koru-memory-toast-body">"{text}"</p>
-          {(canConfirm || canReject) && phase !== "confirmed" && phase !== "rejected" && (
-            <div className="koru-memory-toast-actions">
-              {canConfirm && (
-                <button
-                  type="button"
-                  className="koru-memory-toast-action is-confirm"
-                  onClick={handleConfirm}
-                >
-                  <span className="material-symbols-outlined">check</span>
-                  Guardar
-                </button>
-              )}
-              {canReject && (
-                <button
-                  type="button"
-                  className="koru-memory-toast-action is-reject"
-                  onClick={handleReject}
-                >
-                  <span className="material-symbols-outlined">close</span>
-                  Soltar
-                </button>
-              )}
-            </div>
-          )}
-          {canView && phase !== "confirmed" && phase !== "rejected" && (
-            <div className="koru-memory-toast-actions">
-              <button
-                type="button"
-                className="koru-memory-toast-action is-view"
-                onClick={handleView}
-              >
-                <span className="material-symbols-outlined">folder_open</span>
-                Ver
-              </button>
-            </div>
-          )}
-        </div>
-        <button
-          type="button"
-          className="koru-memory-toast-close"
-          aria-label="Cerrar"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleDismiss();
-          }}
-        >
-          <span className="material-symbols-outlined">close</span>
-        </button>
+  return <div className={`mt-memory-toast is-${phase}`} aria-label="Notificación de Michi">
+    <div className="mt-heart-bubble" aria-hidden="true">{phase === "rejected" ? <X size={27} /> : savedRecord ? <Check size={28} /> : <Heart size={30} fill="#ff4e97" stroke="#ff7daf" strokeWidth={1.3} />}</div>
+    <div className="mt-memory-copy">
+      <div role="status" aria-live="polite" aria-atomic="true">
+        <span className="mt-memory-label"><PawPrint size={16} fill="#ffe059" color="#ffe059" aria-hidden="true" />{title}</span>
+        <p className="mt-memory-text">{text}</p>
       </div>
-      <div className="koru-memory-toast-progress" aria-hidden="true">
-        <div className="koru-memory-toast-progress-bar" />
-      </div>
+      {(canConfirm || canReject) && <div className="mt-memory-actions">
+        {canConfirm && <button type="button" className="mt-memory-confirm" onClick={() => complete("confirmed")}><Check size={14} />Guardar</button>}
+        {canReject && <button type="button" onClick={() => complete("rejected")}><X size={14} />Soltar</button>}
+      </div>}
+      {savedRecord && collection && onOpenCollections && <div className="mt-memory-actions"><button type="button" onClick={() => { onOpenCollections(collection); dismiss(); }}><FolderOpen size={15} />Ver</button></div>}
     </div>
-  );
+    <img className="mt-memory-michi" src="/assets/michi-icons/memory-michi.webp" width="300" height="300" alt="" aria-hidden="true" />
+    <button type="button" className="mt-memory-close" aria-label="Cerrar" onClick={dismiss}><X size={20} /></button>
+  </div>;
 }

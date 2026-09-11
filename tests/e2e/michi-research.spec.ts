@@ -7,7 +7,7 @@ test("research is one illustrated panel in the conversation and keeps the compos
   await expect(page.locator(".koru-working-dock, .mx-typing-row, .koru-card-skeleton")).toHaveCount(0);
   const bar = page.getByRole("progressbar", { name: "Progreso de la tarea" });
   await expect(bar).toHaveAttribute("aria-valuenow", "15");
-  expect(await page.locator(".mr-art img").evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
+  await expect.poll(() => page.locator(".mr-art img").evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
   const input = page.getByPlaceholder("Habla con Michi...");
   await expect(input).toBeEnabled();
   await input.fill("También tené en cuenta los costos");
@@ -54,3 +54,4 @@ test("missing progress is indeterminate and fits 320px with reduced motion", asy
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await expect(page.getByPlaceholder("Habla con Michi...")).toBeVisible();
 });
+

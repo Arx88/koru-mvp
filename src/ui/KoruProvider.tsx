@@ -1627,9 +1627,10 @@ export function KoruProvider({ children }: { children: ReactNode }) {
         if (allCandidates.length > 0 && !previousState.ephemeralMode && previousState.durableMemoryEnabled) {
           const first = allCandidates[0];
           // Solo mostrar si NO existe ya una memoria con el mismo texto (deduplicación visual)
-          const normalizedNew = first.text.toLowerCase().replace(/[áéíóú]/g, (m: string) => ({ á: "a", é: "e", í: "i", ó: "o", ú: "u" }[m]!)).replace(/[^a-z0-9\s]/g, "").trim();
+          const normalizeToastText = (value: string) => value.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().replace(/[^a-z0-9\s]/g, "").trim();
+          const normalizedNew = normalizeToastText(first.text);
           const alreadyExists = previousState.memories.some((existing: any) => {
-            const norm = existing.text.toLowerCase().replace(/[áéíóú]/g, (m: string) => ({ á: "a", é: "e", í: "i", ó: "o", ú: "u" }[m]!)).replace(/[^a-z0-9\s]/g, "").trim();
+            const norm = normalizeToastText(existing.text);
             return norm === normalizedNew;
           });
           if (!alreadyExists) {
@@ -1639,15 +1640,15 @@ export function KoruProvider({ children }: { children: ReactNode }) {
             const prevIds = new Set(previousState.memories.map((m: any) => m.id));
             const freshWithId = (result.state.memories ?? []).find(
               (m: any) => !prevIds.has(m.id) && (m.status === "candidate" || m.status === "confirmed") &&
-                m.text && m.text.toLowerCase().includes(normalizedNew.slice(0, 24)),
+                m.text && normalizeToastText(m.text) === normalizedNew,
             );
             setMemoryToast({
               id: freshWithId?.id ?? `toast_${Date.now()}`,
               kind: first.kind,
               text: first.text,
             });
-            // Auto-dismiss después de 6 segundos
-            setTimeout(() => {
+            // Las decisiones de memoria permanecen hasta confirmar, soltar o cerrar.
+            if (!freshWithId || freshWithId.status === "confirmed") setTimeout(() => {
               setMemoryToast((current) => (current?.text === first.text ? null : current));
             }, 6000);
           }
@@ -2250,11 +2251,9 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     // reales del store (audit event + persistencia + update del chat item).
     confirmMemoryToast: (memoryId: string) => {
       confirmMemory(memoryId);
-      setMemoryToast(null);
     },
     rejectMemoryToast: (memoryId: string) => {
       pruneMemory(memoryId);
-      setMemoryToast(null);
     },
     morningBrief,
     dismissMorningBrief: () => setMorningBrief(null),
