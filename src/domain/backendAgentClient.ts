@@ -73,7 +73,7 @@ async function postAgentTurn(
     const payload = onChunk
       ? { ...(body as Record<string, unknown>), stream: true, tzOffsetMin: new Date().getTimezoneOffset() }
       : { ...(body as Record<string, unknown>), tzOffsetMin: new Date().getTimezoneOffset() };
-    const response = await fetch("/api/koru/turn", {
+    const response = await fetch("/api/michi/turn", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),

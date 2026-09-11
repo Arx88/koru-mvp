@@ -7,6 +7,7 @@
  * con el mismo wiring que KoruDetailScreen (onClose/onSave/acciones).
  */
 import { useState } from "react";
+import { migrateLocalStorageNamespace } from "./domain/namespaceMigration";
 import { createRoot } from "react-dom/client";
 import "./lectura-gallery.css";
 import "./michi-cards.css";
@@ -264,5 +265,7 @@ export function Gallery({ showFooter = true }: { showFooter?: boolean } = {}) {
 // importan <Gallery/> como componente, sin página propia).
 const rootEl = document.getElementById("root");
 if (rootEl) {
+// 🐱 Migración de namespace koru.* → michi.* (localStorage compartido con la app).
+migrateLocalStorageNamespace();
   createRoot(rootEl).render(<Gallery />);
 }

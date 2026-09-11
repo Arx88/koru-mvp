@@ -190,7 +190,7 @@ export const ocrText: ToolHandler = {
     if (!imageUrl) return { type: "ocr_text", status: "failed", error: "Indicá la imagen." };
 
     // Fase 3.8: usar VLM cloud (z-ai-web-dev-sdk) en lugar de delegar a web_search.
-    // El endpoint /api/koru/vlm está disponible en el servidor Vite.
+    // El endpoint /api/michi/vlm está disponible en el servidor Vite.
     try {
       // Si es una URL remota, fetchar la imagen y convertir a base64.
       let base64: string;
@@ -201,7 +201,7 @@ export const ocrText: ToolHandler = {
         const buf = await imgRes.arrayBuffer();
         base64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
       }
-      const vlmRes = await fetch("/api/koru/vlm", {
+      const vlmRes = await fetch("/api/michi/vlm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ image_base64: base64, prompt }),

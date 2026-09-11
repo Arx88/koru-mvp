@@ -16,7 +16,7 @@ import type { KoruTurnItem, KoruChatTurn } from "../domain/turn";
 import { createId } from "../domain/store";
 import type { Stage } from "./KoruProvider";
 
-const CHAT_STORAGE_KEY = "koru.infinite.conversation.v1";
+const CHAT_STORAGE_KEY = "michi.infinite.conversation.v1";
 const STAGE_ORDER: Stage[] = ["semilla", "brote", "raices", "nacimiento", "jardin"];
 
 // Re-export para que KoruProvider pueda usarlo

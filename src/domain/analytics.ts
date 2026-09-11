@@ -15,7 +15,7 @@
  * 3. Create→Chat ratio: items created via Create vs items saved via chat
  */
 
-const STORAGE_KEY = "koru.analytics.v1";
+const STORAGE_KEY = "michi.analytics.v1";
 const MAX_EVENTS = 500; // cap para no llenar localStorage
 
 export type AnalyticsEvent = {

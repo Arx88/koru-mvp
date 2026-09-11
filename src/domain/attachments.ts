@@ -21,11 +21,29 @@
  * continues to work — attachments just don't persist across reloads.
  */
 
-const DB_NAME = "koru-attachments";
+const DB_NAME = "michi-attachments"; // era "koru-attachments" (migrado por namespaceMigration)
 const DB_VERSION = 1;
 const STORE_ATTACHMENTS = "attachments";
 
 let dbPromise: Promise<IDBDatabase | null> | null = null;
+
+export function upgradeSchema(db: IDBDatabase): void {
+  // Out-of-line keys: we pass the key explicitly on put() instead of
+  // using a keyPath. This lets us store the Blob directly as the value
+  // (Blobs aren't structured-clonable through keyPath indirection
+  // in older browsers — direct put() is the safe path).
+  if (!db.objectStoreNames.contains(STORE_ATTACHMENTS)) {
+    db.createObjectStore(STORE_ATTACHMENTS);
+  }
+}
+
+/** Migración koru-attachments → michi-attachments (ver namespaceMigration.ts). */
+export const LEGACY_DB_MIGRATION = {
+  from: "koru-attachments",
+  to: DB_NAME,
+  version: DB_VERSION,
+  upgrade: upgradeSchema,
+};
 
 function openDb(): Promise<IDBDatabase | null> {
   if (typeof indexedDB === "undefined") return Promise.resolve(null);
@@ -33,16 +51,7 @@ function openDb(): Promise<IDBDatabase | null> {
   dbPromise = new Promise((resolve) => {
     try {
       const req = indexedDB.open(DB_NAME, DB_VERSION);
-      req.onupgradeneeded = () => {
-        const db = req.result;
-        // Out-of-line keys: we pass the key explicitly on put() instead of
-        // using a keyPath. This lets us store the Blob directly as the value
-        // (Blobs aren't structured-clonable through keyPath indirection
-        // in older browsers — direct put() is the safe path).
-        if (!db.objectStoreNames.contains(STORE_ATTACHMENTS)) {
-          db.createObjectStore(STORE_ATTACHMENTS);
-        }
-      };
+      req.onupgradeneeded = () => upgradeSchema(req.result);
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => resolve(null);
     } catch {

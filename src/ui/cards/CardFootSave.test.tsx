@@ -56,7 +56,7 @@ describe("CardFoot · Guardar / Compartir / Abrir conectados", () => {
     // El listener de KoruProvider escribe en localStorage (legacy cache)
     // → verificamos que el record quedó guardado con el título del block.
     await waitFor(() => {
-      const stored = localStorage.getItem("koru.mvp.state.v1");
+      const stored = localStorage.getItem("michi.mvp.state.v1");
       expect(stored).toBeTruthy();
       const state = JSON.parse(stored!);
       const saved = (state.records ?? []).find((r: any) =>

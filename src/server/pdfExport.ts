@@ -16,8 +16,8 @@
  *
  * Strategy:
  * - buildPdfHtml() renders the content as styled HTML with Koru branding.
- * - Endpoint /api/koru/export-pdf returns the HTML with Content-Type: text/html.
- * - Endpoint /api/koru/export-deliverable exports a single block (plan, recipe,
+ * - Endpoint /api/michi/export-pdf returns the HTML with Content-Type: text/html.
+ * - Endpoint /api/michi/export-deliverable exports a single block (plan, recipe,
  *   comparison, etc.) instead of the whole chat.
  * - The frontend opens the HTML in a new tab; window.print() auto-fires on load.
  */

@@ -7,7 +7,7 @@ import type { Commitment } from "../domain/types";
 // Multi-cuenta: cada usuario tiene sus propios recordatorios programados
 // ═══════════════════════════════════════════════════════════════════════════
 
-const SCHEDULED_KEY = "koru.scheduledReminders";
+const SCHEDULED_KEY = "michi.scheduledReminders";
 
 type ScheduledReminder = {
   commitmentId: string;

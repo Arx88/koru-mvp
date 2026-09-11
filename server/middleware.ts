@@ -5,10 +5,10 @@
  *   permitido, undefined si no. Reemplaza el `Access-Control-Allow-Origin: "*"`
  *   que exponía todos los endpoints a cualquier sitio web.
  * - rateLimitAllow(req): Map<ip, {count, resetAt}> en memoria. 30 req/min por IP
- *   para los endpoints costosos (/api/koru/turn, /api/koru/vlm, /api/koru/asr,
+ *   para los endpoints costosos (/api/michi/turn, /api/michi/vlm, /api/michi/asr,
  *   /koru-audit/log).
  * - isAuthorized(req): si KORU_API_KEY está seteada, exige
- *   `Authorization: Bearer <key>` en /api/koru/*. Si no está seteada, loggea
+ *   `Authorization: Bearer <key>` en /api/michi/* (alias /api/koru/*). Si no está seteada, loggea
  *   warning en startup y permite todo (modo dev-friendly).
  * - securityHeaders(res): headers defensivos estándar (X-Content-Type-Options,
  *   X-Frame-Options, Referrer-Policy, Permissions-Policy).
@@ -33,9 +33,9 @@ export function corsOrigin(req: http.IncomingMessage): string | undefined {
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 30;
 const RATE_LIMITED_PATHS = new Set([
-  "/api/koru/turn",
-  "/api/koru/vlm",
-  "/api/koru/asr",
+  "/api/michi/turn",
+  "/api/michi/vlm",
+  "/api/michi/asr",
   "/koru-audit/log",
 ]);
 
@@ -68,13 +68,13 @@ export function rateLimitAllow(req: http.IncomingMessage): boolean {
 const KORU_API_KEY = process.env.KORU_API_KEY?.trim();
 
 if (!KORU_API_KEY) {
-  console.warn("[koru] KORU_API_KEY no seteada — /api/koru/* endpoints permiten acceso anónimo. Seteala en prod.");
+  console.warn("[koru] KORU_API_KEY no seteada — /api/michi/* (alias /api/koru/*) permiten acceso anónimo. Seteala en prod.");
 }
 
 export function isAuthorized(req: http.IncomingMessage): boolean {
   if (!KORU_API_KEY) return true;
   const url = req.url ?? "";
-  if (!url.startsWith("/api/koru/")) return true;
+  if (!url.startsWith("/api/michi/")) return true;
   const auth = req.headers.authorization ?? "";
   const expected = `Bearer ${KORU_API_KEY}`;
   return auth === expected;

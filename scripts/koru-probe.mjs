@@ -1,4 +1,4 @@
-// Koru live probe — calls production /api/koru/turn with a single message
+// Koru live probe — calls production /api/michi/turn with a single message
 // Usage: node /home/z/my-project/scripts/koru-probe.mjs "tu pregunta"
 import { readFileSync } from "node:fs";
 
@@ -29,9 +29,9 @@ const body = {
 };
 
 const start = Date.now();
-console.log(`▶ POST ${URL}/api/koru/turn — "${input.slice(0, 80)}"`);
+console.log(`▶ POST ${URL}/api/michi/turn — "${input.slice(0, 80)}"`);
 try {
-  const res = await fetch(`${URL}/api/koru/turn`, {
+  const res = await fetch(`${URL}/api/michi/turn`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),

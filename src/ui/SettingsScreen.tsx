@@ -568,7 +568,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
   // en localStorage + balance en estado.
   const [ethAddress, setEthAddress] = useState<string>(() => {
     try {
-      return localStorage.getItem("koru.ethWalletAddress") ?? "";
+      return localStorage.getItem("michi.ethWalletAddress") ?? "";
     } catch {
       return "";
     }
@@ -584,13 +584,13 @@ export function SettingsScreen(props: SettingsScreenProps) {
 
   // Retention (local — el reducer no existe aún; se persiste en localStorage)
   const [retention, setRetention] = useState<string>(
-    () => localStorage.getItem("koru.memoryRetentionDays") ?? "90",
+    () => localStorage.getItem("michi.memoryRetentionDays") ?? "90",
   );
 
   // Integraciones (placeholder visual, persistido en localStorage)
   const [integrations, setIntegrations] = useState<Record<string, { connected: boolean; lastSync?: string }>>(() => {
     try {
-      const raw = localStorage.getItem("koru.integrations");
+      const raw = localStorage.getItem("michi.integrations");
       if (raw) return JSON.parse(raw) as Record<string, { connected: boolean; lastSync?: string }>;
     } catch {
       /* noop */
@@ -599,13 +599,13 @@ export function SettingsScreen(props: SettingsScreenProps) {
   });
 
   // 🔴 Google Calendar OAuth — flag "pending" persistido en
-  // `koru.integrations.googleCalendar` mientras el usuario completa el flujo
+  // `michi.integrations.googleCalendar` mientras el usuario completa el flujo
   // de OAuth en la pestaña abierta por getGoogleAuthUrl(). El callback real
   // (redirect URI + exchangeCodeForToken) todavía no está implementado, así
   // que el estado queda en "pending" hasta que el backend lo confirme.
   const [googleCalendarStatus, setGoogleCalendarStatus] = useState<"idle" | "pending" | "connected">(() => {
     try {
-      const raw = localStorage.getItem("koru.integrations");
+      const raw = localStorage.getItem("michi.integrations");
       if (raw) {
         const parsed = JSON.parse(raw) as Record<string, unknown>;
         const flag = parsed.googleCalendar;
@@ -621,10 +621,10 @@ export function SettingsScreen(props: SettingsScreenProps) {
     try {
       // Persistir el flag `googleCalendar` junto al resto de integraciones.
       // El shape del resto (`{connected, lastSync}`) se mantiene intacto.
-      const raw = localStorage.getItem("koru.integrations");
+      const raw = localStorage.getItem("michi.integrations");
       const parsed: Record<string, unknown> = raw ? JSON.parse(raw) : {};
       parsed.googleCalendar = googleCalendarStatus;
-      localStorage.setItem("koru.integrations", JSON.stringify(parsed));
+      localStorage.setItem("michi.integrations", JSON.stringify(parsed));
     } catch {
       /* noop */
     }
@@ -635,7 +635,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
       // 🔴 Merge: preservar el flag `googleCalendar` (string) que se persiste
       // por separado arriba. Si hacemos `JSON.stringify(integrations)` a secas,
       // pisamos el campo `googleCalendar` y lo perdemos.
-      const raw = localStorage.getItem("koru.integrations");
+      const raw = localStorage.getItem("michi.integrations");
       const parsed: Record<string, unknown> = raw ? JSON.parse(raw) : {};
       // Sobreponer el estado "vivo" de integrations (calendar/banks/crypto).
       Object.assign(parsed, integrations);
@@ -645,7 +645,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
       } else {
         delete parsed.googleCalendar;
       }
-      localStorage.setItem("koru.integrations", JSON.stringify(parsed));
+      localStorage.setItem("michi.integrations", JSON.stringify(parsed));
     } catch {
       /* noop */
     }
@@ -654,7 +654,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
 
   useEffect(() => {
     try {
-      localStorage.setItem("koru.memoryRetentionDays", retention);
+      localStorage.setItem("michi.memoryRetentionDays", retention);
     } catch {
       /* noop */
     }
@@ -737,7 +737,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
       setEthBalance(null);
       setEthTokenCount(null);
       try {
-        localStorage.removeItem("koru.ethWalletAddress");
+        localStorage.removeItem("michi.ethWalletAddress");
       } catch { /* noop */ }
       return;
     }
@@ -748,7 +748,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
       return;
     }
     try {
-      localStorage.setItem("koru.ethWalletAddress", trimmed);
+      localStorage.setItem("michi.ethWalletAddress", trimmed);
     } catch { /* noop */ }
     setEthLoading(true);
     try {
@@ -814,7 +814,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
       attempts++;
       // 1) Chequeo local — barato, sin red.
       try {
-        const raw = localStorage.getItem("koru.integrations");
+        const raw = localStorage.getItem("michi.integrations");
         if (raw) {
           const parsed = JSON.parse(raw) as Record<string, unknown>;
           if (parsed.googleCalendar === "connected") {
@@ -839,10 +839,10 @@ export function SettingsScreen(props: SettingsScreenProps) {
             setGoogleCalendarStatus("connected");
             // Reflejarlo también en localStorage por si el popup no llegó.
             try {
-              const r = localStorage.getItem("koru.integrations");
+              const r = localStorage.getItem("michi.integrations");
               const p: Record<string, unknown> = r ? JSON.parse(r) : {};
               p.googleCalendar = "connected";
-              localStorage.setItem("koru.integrations", JSON.stringify(p));
+              localStorage.setItem("michi.integrations", JSON.stringify(p));
             } catch {
               /* noop */
             }

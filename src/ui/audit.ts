@@ -7,8 +7,8 @@
 import type { KoruState } from "../domain/types";
 import type { KoruTurnItem } from "../domain/turn";
 
-const AUDIT_FLAG_KEY = "koru.audit.enabled";
-const AUDIT_SESSION_KEY = "koru.audit.session";
+const AUDIT_FLAG_KEY = "michi.audit.enabled";
+const AUDIT_SESSION_KEY = "michi.audit.session";
 
 export function auditEnabled(): boolean {
   try {

@@ -11,14 +11,14 @@ export type WeatherFetchResult =
  * Antes "Actualizar" solo re-estampaba fetchedAt (el dato de hace horas se
  * mostraba como fresco) y "Traer clima" sin cache era un no-op total (ni
  * siquiera navegaba a configuración). Ahora ambos pegan al endpoint
- * /api/koru/weather, que usa el MISMO pipeline getWeather del agente
+ * /api/michi/weather, que usa el MISMO pipeline getWeather del agente
  * (wttr.in → open-meteo con geocoding) — datos reales sin pasar por el chat.
  */
 export async function fetchWeatherForCity(city: string): Promise<WeatherFetchResult> {
   const clean = city.trim();
   if (!clean) return { ok: false, error: "Falta la ciudad." };
   try {
-    const res = await fetch("/api/koru/weather", {
+    const res = await fetch("/api/michi/weather", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ city: clean }),

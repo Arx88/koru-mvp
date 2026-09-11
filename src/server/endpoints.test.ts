@@ -1,5 +1,5 @@
 /**
- * Endpoints tests — POST /api/koru/ai-assist, POST /api/koru/morning-brief,
+ * Endpoints tests — POST /api/michi/ai-assist, POST /api/michi/morning-brief,
  * GET /api/integrations/google-calendar/callback.
  *
  * Estrategia: mockeamos las dependencias externas (LLM via callProvider /
@@ -102,12 +102,34 @@ function call(req: MockReq, res: MockRes): Promise<void> {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// /api/koru/ai-assist
+// /api/michi/ai-assist
 // ═══════════════════════════════════════════════════════════════════════════
-describe("POST /api/koru/ai-assist", () => {
+describe("POST /api/michi/ai-assist", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (inferProviderFromModel as ReturnType<typeof vi.fn>).mockReturnValue("nvidia");
+  });
+
+  it("alias legacy /api/koru/ai-assist responde igual (compat de namespace)", async () => {
+    (callProvider as ReturnType<typeof vi.fn>).mockResolvedValue({
+      message: {
+        content: JSON.stringify({
+          suggestions: [
+            { field: "collection", label: "Colección", value: "Gastos" },
+            { field: "currency", label: "Moneda", value: "ARS" },
+          ],
+        }),
+      },
+    });
+
+    // El path viejo se normaliza a /api/michi/* dentro del handler (alias).
+    const req = makeReq("POST", "/api/koru/ai-assist", { template: "gasto", title: "Café" });
+    const res = makeRes();
+    await call(req, res);
+
+    expect(res.statusCode).toBe(200);
+    const body = jsonBody(res);
+    expect(Array.isArray(body?.suggestions)).toBe(true);
   });
 
   it("returns suggestions array for gasto+Café when LLM responds valid JSON", async () => {
@@ -123,7 +145,7 @@ describe("POST /api/koru/ai-assist", () => {
       },
     });
 
-    const req = makeReq("POST", "/api/koru/ai-assist", { template: "gasto", title: "Café" });
+    const req = makeReq("POST", "/api/michi/ai-assist", { template: "gasto", title: "Café" });
     const res = makeRes();
     await call(req, res);
 
@@ -146,7 +168,7 @@ describe("POST /api/koru/ai-assist", () => {
     // El endpoint valida que template y title sean no-vacíos; con title vacío
     // devuelve 400 + { error, suggestions: [] }. El contrato de la UI depende
     // de que siempre exista el campo `suggestions` (aunque sea vacío).
-    const req = makeReq("POST", "/api/koru/ai-assist", { template: "gasto", title: "" });
+    const req = makeReq("POST", "/api/michi/ai-assist", { template: "gasto", title: "" });
     const res = makeRes();
     await call(req, res);
 
@@ -160,7 +182,7 @@ describe("POST /api/koru/ai-assist", () => {
   it("returns empty suggestions (not error 500) when LLM fails", async () => {
     (callProvider as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("LLM timeout"));
 
-    const req = makeReq("POST", "/api/koru/ai-assist", { template: "gasto", title: "Café" });
+    const req = makeReq("POST", "/api/michi/ai-assist", { template: "gasto", title: "Café" });
     const res = makeRes();
     await call(req, res);
 
@@ -173,9 +195,9 @@ describe("POST /api/koru/ai-assist", () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
-// /api/koru/morning-brief
+// /api/michi/morning-brief
 // ═══════════════════════════════════════════════════════════════════════════
-describe("POST /api/koru/morning-brief", () => {
+describe("POST /api/michi/morning-brief", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (inferProviderFromModel as ReturnType<typeof vi.fn>).mockReturnValue("nvidia");
@@ -215,7 +237,7 @@ describe("POST /api/koru/morning-brief", () => {
       memories: [],
     };
 
-    const req = makeReq("POST", "/api/koru/morning-brief", { state });
+    const req = makeReq("POST", "/api/michi/morning-brief", { state });
     const res = makeRes();
     await call(req, res);
 
@@ -249,7 +271,7 @@ describe("POST /api/koru/morning-brief", () => {
       memories: [],
     };
 
-    const req = makeReq("POST", "/api/koru/morning-brief", { state });
+    const req = makeReq("POST", "/api/michi/morning-brief", { state });
     const res = makeRes();
     await call(req, res);
 

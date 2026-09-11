@@ -17,12 +17,12 @@ export async function emitResearch(page: Page, chunk: unknown, done = false) {
 export async function openResearch(page: Page) {
   await page.clock.install({ time: new Date("2026-09-11T12:00:00") });
   await page.addInitScript(initial => {
-    localStorage.setItem("koru.onboarded", "true");
+    localStorage.setItem("michi.onboarded", "true");
     localStorage.setItem("michi.landscape", "17");
     const original = window.fetch.bind(window);
     window.fetch = (input, init) => {
       const url = typeof input === "string" ? input : input instanceof Request ? input.url : input.toString();
-      if (!url.includes("/api/koru/turn")) return original(input, init);
+      if (!url.includes("/api/michi/turn")) return original(input, init);
       return Promise.resolve(new Response(new ReadableStream({ start(controller) {
         const encode = (chunk: unknown) => new TextEncoder().encode(JSON.stringify(chunk) + "\n");
         (window as any).__researchEmit = (chunk: unknown, done: boolean) => { controller.enqueue(encode(chunk)); if (done) controller.close(); };

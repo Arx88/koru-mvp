@@ -1,6 +1,8 @@
 import { useSyncExternalStore } from "react";
 import { useKoruOptional } from "../KoruProvider";
-import { MICHI_AVATARS } from "./avatarCatalog";
+import { MICHI_AVATARS, progressForEnergy } from "./avatarCatalog";
+
+export { progressForEnergy };
 
 const KEY = "michi.companion-avatar";
 const listeners = new Set<() => void>();
@@ -18,15 +20,6 @@ function subscribe(listener: () => void) {
   return () => {
     listeners.delete(listener);
     window.removeEventListener("storage", listener);
-  };
-}
-export function progressForEnergy(energy: number) {
-  const xp = Math.max(0, Math.floor(Number.isFinite(energy) ? energy : 0));
-  return {
-    xp,
-    level: 1 + Math.floor(xp / 100),
-    inLevel: xp % 100,
-    remaining: 100 - (xp % 100),
   };
 }
 export function useMichiProgress() {

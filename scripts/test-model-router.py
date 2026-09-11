@@ -8,7 +8,7 @@ import time
 import urllib.request
 import sys
 
-API_URL = "http://localhost:3000/api/koru/turn"
+API_URL = "http://localhost:3000/api/michi/turn"
 MODEL = "nvidia/nemotron-3-ultra-550b-a55b"
 STATE = {
     "memories": [],

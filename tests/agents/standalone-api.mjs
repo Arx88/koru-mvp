@@ -23,7 +23,7 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  if (req.url !== "/api/koru/turn" || req.method !== "POST") {
+  if (req.url !== "/api/michi/turn" || req.method !== "POST") {
     res.writeHead(404, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ error: "Not found" }));
     return;
@@ -43,5 +43,5 @@ const server = createServer(async (req, res) => {
 });
 
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(`🌿 Koru standalone API listening on http://0.0.0.0:${PORT}/api/koru/turn`);
+  console.log(`🌿 Koru standalone API listening on http://0.0.0.0:${PORT}/api/michi/turn`);
 });

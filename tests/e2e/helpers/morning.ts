@@ -2,8 +2,8 @@ import type { Page } from "@playwright/test";
 
 export async function openMorning(page: Page, { city = "Valencia", missing = false, offline = false, crowded = false }: { city?: string; missing?: boolean; offline?: boolean; crowded?: boolean } = {}) {
   await page.clock.setFixedTime(new Date("2026-09-11T07:30:00"));
-  await page.addInitScript(() => { localStorage.setItem("koru.onboarded", "true"); localStorage.setItem("michi.landscape", "17"); });
-  await page.route("**/api/koru/morning-brief", route => route.fulfill({ json: {
+  await page.addInitScript(() => { localStorage.setItem("michi.onboarded", "true"); localStorage.setItem("michi.landscape", "17"); });
+  await page.route("**/api/michi/morning-brief", route => route.fulfill({ json: {
     shouldShow: true, date: "2026-09-11", brief: {
       greeting: crowded ? "Buenos días, Juan. Un nuevo día para disfrutar juntos." : "Buenos días,",
       items: crowded ? [

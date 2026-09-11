@@ -7,7 +7,7 @@ async function navigate(page: Page, label: string) {
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.setItem("koru.onboarded", "true");
+    localStorage.setItem("michi.onboarded", "true");
     localStorage.setItem("michi.landscape", "17");
   });
   await page.goto("/");

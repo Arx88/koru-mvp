@@ -649,7 +649,7 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
     setSelected(tpl);
     // 🔴 Smart defaults: recordar último collection usado por template
     const last = (() => {
-      try { return localStorage.getItem(`koru.create.lastCollection.${tpl}`); } catch { return null; }
+      try { return localStorage.getItem(`michi.create.lastCollection.${tpl}`); } catch { return null; }
     })();
     setLastUsedCollection(last);
     // 🔴 Folders: si el padre nos pasó initialCollection (path completo
@@ -664,7 +664,7 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
   }
 
   function rememberCollection(template: Template, coll: string) {
-    try { localStorage.setItem(`koru.create.lastCollection.${template}`, coll); } catch { /* ignore */ }
+    try { localStorage.setItem(`michi.create.lastCollection.${template}`, coll); } catch { /* ignore */ }
   }
 
   // ---------------------------------------------------------------------------

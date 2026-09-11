@@ -2,6 +2,10 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { App } from "./ui/App";
 import { DevCardPreview } from "./ui/DevCardPreview";
+import { migrateLocalStorageNamespace, migrateIndexedDbNamespaces } from "./domain/namespaceMigration";
+import { LEGACY_DB_MIGRATION as LEGACY_STATE_DB } from "./domain/persistence";
+import { LEGACY_DB_MIGRATION as LEGACY_OFFLINE_DB } from "./domain/offlineCache";
+import { LEGACY_DB_MIGRATION as LEGACY_ATTACHMENTS_DB } from "./domain/attachments";
 import "./koru-motion.css";
 import "./style.css";
 import "./style-v75-bubbles.css";
@@ -21,8 +25,16 @@ if ("serviceWorker" in navigator && !isPreview) {
   });
 }
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    {isPreview ? <DevCardPreview /> : <App />}
-  </React.StrictMode>,
-);
+// 🐱 Migración de namespace koru.* → michi.*: corre ANTES del primer render
+// para que ningún módulo lea storage viejo. Idempotente y sin riesgo de boot
+// bloqueado (el delete de DBs viejas es fire-and-forget).
+async function bootstrap() {
+  migrateLocalStorageNamespace();
+  await migrateIndexedDbNamespaces([LEGACY_STATE_DB, LEGACY_OFFLINE_DB, LEGACY_ATTACHMENTS_DB]);
+  ReactDOM.createRoot(document.getElementById("root")!).render(
+    <React.StrictMode>
+      {isPreview ? <DevCardPreview /> : <App />}
+    </React.StrictMode>,
+  );
+}
+void bootstrap();

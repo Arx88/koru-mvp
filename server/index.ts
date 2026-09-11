@@ -207,6 +207,15 @@ export async function koruRequestHandler(req: http.IncomingMessage, res: http.Se
     return;
   }
 
+  // 🐱 Alias de compatibilidad: /api/koru/* → /api/michi/* (mismo handler).
+  // El namespace koru quedó deprecado en el rebrand; los bundles viejos que la
+  // PWA instalada tenga cacheados siguen llamando /api/koru/*. Normalizar
+  // req.url antes que todo (rate limit, auth y rutas ven el path canónico).
+  const rawUrl = req.url ?? "";
+  if (rawUrl.startsWith("/api/koru/")) {
+    req.url = "/api/michi/" + rawUrl.slice("/api/koru/".length);
+  }
+
   const url = req.url ?? "";
   const path = url.split("?")[0];
 
@@ -217,7 +226,7 @@ export async function koruRequestHandler(req: http.IncomingMessage, res: http.Se
   }
 
   // ── API key opcional (Task 9-ENG-FIX-v2) ──────────────────────────
-  if (path.startsWith("/api/koru/") && !isAuthorized(req)) {
+  if (path.startsWith("/api/michi/") && !isAuthorized(req)) {
     sendJson(res, 401, { error: "Unauthorized — falta o es inválida la API key." });
     return;
   }
@@ -236,7 +245,7 @@ export async function koruRequestHandler(req: http.IncomingMessage, res: http.Se
   }
 
   // ── /api/koru/models ──────────────────────────────────────────
-  if (url.startsWith("/api/koru/models") && req.method === "GET") {
+  if (url.startsWith("/api/michi/models") && req.method === "GET") {
     const predefined: Array<{ id: string; provider: string; label: string }> = [];
     if (config.nvidiaApiKey) {
       predefined.push({ id: config.nvidiaModel, provider: "nvidia", label: "NVIDIA Nemotron 3 Ultra" });
@@ -249,7 +258,7 @@ export async function koruRequestHandler(req: http.IncomingMessage, res: http.Se
   }
 
   // ── /api/koru/vlm (análisis de imágenes con VLM) ─────────────
-  if (url === "/api/koru/vlm" && req.method === "POST") {
+  if (url === "/api/michi/vlm" && req.method === "POST") {
     try {
       const raw = await readBody(req);
       const body = JSON.parse(raw || "{}");
@@ -280,7 +289,7 @@ export async function koruRequestHandler(req: http.IncomingMessage, res: http.Se
   }
 
   // ── /api/koru/asr (transcripción de audio) ───────────────────
-  if (url === "/api/koru/asr" && req.method === "POST") {
+  if (url === "/api/michi/asr" && req.method === "POST") {
     try {
       const raw = await readBody(req);
       const body = JSON.parse(raw || "{}");
@@ -307,7 +316,7 @@ export async function koruRequestHandler(req: http.IncomingMessage, res: http.Se
   }
 
   // ── /api/koru/turn (chat principal con NDJSON streaming) ─────
-  if (url.startsWith("/api/koru/turn") && req.method === "POST") {
+  if (url.startsWith("/api/michi/turn") && req.method === "POST") {
     try {
       const raw = await readBody(req);
       const request = JSON.parse(raw || "{}");
@@ -483,7 +492,7 @@ export async function koruRequestHandler(req: http.IncomingMessage, res: http.Se
   // seguía viendo el dato de hace horas creyéndolo fresco. Este endpoint usa
   // el MISMO pipeline getWeather del agente (wttr.in → open-meteo con
   // geocoding), así el Home refresca con datos reales sin pasar por el chat.
-  if (url === "/api/koru/weather" && req.method === "POST") {
+  if (url === "/api/michi/weather" && req.method === "POST") {
     try {
       const raw = await readBody(req);
       const body = JSON.parse(raw || "{}");
@@ -503,7 +512,7 @@ export async function koruRequestHandler(req: http.IncomingMessage, res: http.Se
   }
 
   // ── /api/koru/proactive — proactive engine ───────────────────
-  if (url === "/api/koru/proactive" && req.method === "POST") {
+  if (url === "/api/michi/proactive" && req.method === "POST") {
     try {
       const raw = await readBody(req);
       const body = JSON.parse(raw || "{}");
@@ -526,7 +535,7 @@ export async function koruRequestHandler(req: http.IncomingMessage, res: http.Se
   }
 
   // ── /api/koru/morning-brief — brief matutino automático ──────
-  if (url === "/api/koru/morning-brief" && req.method === "POST") {
+  if (url === "/api/michi/morning-brief" && req.method === "POST") {
     try {
       const raw = await readBody(req);
       const body = JSON.parse(raw || "{}");
@@ -703,7 +712,7 @@ Generá: greeting, 3-item summary, reflection. Respondé SOLO con JSON: { greeti
   // Body: { template: string, title: string, language?: "es"|"en" }
   // Usa el mismo LLM client que el chat principal (callProvider).
   // Timeout: 10s. Si el LLM falla, devuelve { suggestions: [] }.
-  if (url === "/api/koru/ai-assist" && req.method === "POST") {
+  if (url === "/api/michi/ai-assist" && req.method === "POST") {
     try {
       const raw = await readBody(req);
       const body = JSON.parse(raw || "{}");
@@ -797,7 +806,7 @@ Generá: greeting, 3-item summary, reflection. Respondé SOLO con JSON: { greeti
   }
 
   // ── /api/koru/export-pdf — export chat session to real PDF (puppeteer) ──
-  if (url === "/api/koru/export-pdf" && req.method === "POST") {
+  if (url === "/api/michi/export-pdf" && req.method === "POST") {
     try {
       const raw = await readBody(req);
       const body = JSON.parse(raw || "{}");
@@ -845,7 +854,7 @@ Generá: greeting, 3-item summary, reflection. Respondé SOLO con JSON: { greeti
   // Body: { block: UiBlock, userName?, language?, title? }
   // Renders just that one deliverable (plan / recipe / comparison / etc.)
   // without the surrounding chat — much cleaner for sharing.
-  if (url === "/api/koru/export-deliverable" && req.method === "POST") {
+  if (url === "/api/michi/export-deliverable" && req.method === "POST") {
     try {
       const raw = await readBody(req);
       const body = JSON.parse(raw || "{}");

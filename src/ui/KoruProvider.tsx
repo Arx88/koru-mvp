@@ -31,6 +31,7 @@ import {
   applyHeartbeatNudges,
   addOnboardingMemories,
   approveAndExecuteAction,
+  awardLevelUpEnergy,
   completeCommitment,
   confirmMemory as confirmMemoryInStore,
   createId,
@@ -80,6 +81,7 @@ import {
   resolveMemoryConflict as resolveMemoryConflictReducer,
 } from "../domain/store";
 import { computeDecision } from "../domain/decisionEngine";
+import { MICHI_AVATARS, progressForEnergy } from "./michi/avatarCatalog";
 import { runBackendAgentTurn } from "../domain/backendAgentClient";
 import { buildHeartbeatNudges } from "../domain/heartbeat";
 import { runWebNavigation, webResultToPayload } from "../domain/web";
@@ -360,8 +362,8 @@ const KoruContext = createContext<KoruContextValue | null>(null);
 export function KoruProvider({ children }: { children: ReactNode }) {
   const [domainState, setDomainState] = useState<KoruState>(() => createInitialState());
   const [stateLoaded, setStateLoaded] = useState(false);
-  const [onboarded, setOnboarded] = useState(() => localStorage.getItem("koru.onboarded") === "true");
-  const [userName, setUserName] = useState(() => localStorage.getItem("koru.username") ?? "");
+  const [onboarded, setOnboarded] = useState(() => localStorage.getItem("michi.onboarded") === "true");
+  const [userName, setUserName] = useState(() => localStorage.getItem("michi.username") ?? "");
   const [processing, setProcessing] = useState(false);
   // 🔴 Espejo ref de `processing` para listeners de eventos (koru:proactive)
   // que no se resuscriben en cada render: leen el valor actual sin re-crear el
@@ -385,23 +387,23 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   // 🔴 Voice (TTS)
   // 🐱 v7.5 — FIX VOZ FANTASMA: el estado inicial YA NO lee localStorage.
-  // El legacy "koru.voiceEnabled" era el bug que re-activaba la voz en cada
+  // El legacy koru.voiceEnabled era el bug que re-activaba la voz en cada
   // sesión aunque el usuario la hubiera apagado en Ajustes (la migración de
   // abajo la volvía a prender). Única fuente de verdad: preferences.
   const [voiceEnabled, setVoiceEnabledState] = useState(false);
   const [phase, setPhase] = useState<string | null>(null);
-  const [chatTurns, setChatTurns] = useState<KoruChatTurn[]>(() => readChatTurns(localStorage.getItem("koru.username") ?? ""));
-  // Clave versionada (v2): la clave vieja "koru.selected-model" quedaba pegada con
+  const [chatTurns, setChatTurns] = useState<KoruChatTurn[]>(() => readChatTurns(localStorage.getItem("michi.username") ?? ""));
+  // Clave versionada (v2): la clave vieja koru.selected-model quedaba pegada con
   // modelos de prueba (ej. llama3.1:8b) y pisaba silenciosamente al proveedor
   // principal (BlueSminds) en CADA turno. v2 arranca en Automático para todos;
   // elegir un modelo vuelve a ser una decisión explícita del usuario.
   const [selectedModel, setSelectedModel] = useState<string | null>(() => {
-    localStorage.removeItem("koru.selected-model");
-    return localStorage.getItem("koru.selected-model.v2") ?? null;
+    localStorage.removeItem("michi.selected-model");
+    return localStorage.getItem("michi.selected-model.v2") ?? null;
   });
   // 🔴 i18n — preferred language. Persisted in localStorage so the LLM and UI honor it.
   const [language, setLanguageState] = useState<"es" | "en">(() => {
-    const stored = localStorage.getItem("koru.language");
+    const stored = localStorage.getItem("michi.language");
     return stored === "en" ? "en" : "es";
   });
   // 🔴 Offline cache — track browser online/offline status
@@ -466,7 +468,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
       e.preventDefault();
       setInstallPromptEvent(e);
       // Show after 30s if not dismissed
-      const dismissed = localStorage.getItem("koru.installDismissed");
+      const dismissed = localStorage.getItem("michi.installDismissed");
       if (!dismissed) {
         setTimeout(() => setShowInstallPrompt(true), 30_000);
       }
@@ -484,11 +486,11 @@ export function KoruProvider({ children }: { children: ReactNode }) {
       const params = new URLSearchParams(window.location.search);
       if (params.get("koruAudit") !== "1" || params.get("reset") !== "1") return;
       const sessionId = `audit_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-      sessionStorage.setItem("koru.audit.enabled", "1");
-      sessionStorage.setItem("koru.audit.session", sessionId);
+      sessionStorage.setItem("michi.audit.enabled", "1");
+      sessionStorage.setItem("michi.audit.session", sessionId);
       localStorage.removeItem(CHAT_STORAGE_KEY);
-      localStorage.removeItem("koru.onboarded");
-      localStorage.removeItem("koru.username");
+      localStorage.removeItem("michi.onboarded");
+      localStorage.removeItem("michi.username");
       const fresh = resetState();
       commitDomainState(fresh);
       setOnboarded(false);
@@ -522,7 +524,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
         try {
           if (localStorage.getItem("michi.voiceReset.v1") !== "1") {
             localStorage.setItem("michi.voiceReset.v1", "1");
-            localStorage.removeItem("koru.voiceEnabled");
+            localStorage.removeItem("michi.voiceEnabled");
             if (persisted.preferences?.koruVoiceEnabled) {
               updatePreferences({ koruVoiceEnabled: false });
               stopSpeaking();
@@ -546,7 +548,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
         const now = new Date();
         const hour = now.getHours();
         const today = localDateISO(now); // 🔴 FIX: día LOCAL (antes UTC)
-        const lastBriefDate = persisted.lastBriefDate ?? localStorage.getItem("koru.lastBriefDate");
+        const lastBriefDate = persisted.lastBriefDate ?? localStorage.getItem("michi.lastBriefDate");
         if (hour >= 5 && hour <= 11 && lastBriefDate !== today) {
           try {
             // 🔴 FULL state: el endpoint necesita calendarEvents (eventos de
@@ -577,7 +579,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
               })),
               lastBriefDate,
             };
-            const res = await fetch("/api/koru/morning-brief", {
+            const res = await fetch("/api/michi/morning-brief", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               // 🔴 FIX: clientToday + tzOffsetMin para que el server (UTC en
@@ -640,7 +642,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
                   suggestion: brief.reflection ?? "",
                 };
                 setMorningBrief(legacyBrief);
-                localStorage.setItem("koru.lastBriefDate", data.date ?? today);
+                localStorage.setItem("michi.lastBriefDate", data.date ?? today);
                 // 🔴 TIER S: persistir el brief en el store (state.lastBriefDate
                 // + state.lastBriefBlock) vía el reducer setLastBrief. Así
                 // otras pantallas pueden inspeccionar si ya se mostró hoy sin
@@ -696,7 +698,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   // mostró el brief hoy, dispatchea un nudge proactivo "Buenos días" y marca
   // `lastBriefDate = today` para no repetir.
   //
-  // A diferencia del useEffect de arriba (que llama a /api/koru/morning-brief
+  // A diferencia del useEffect de arriba (que llama a /api/michi/morning-brief
   // y genera el brief real con un LLM), este efecto es best-effort: solo
   // muestra el saludo y deja el flag. Si el backend responde con un brief
   // completo, ese flujo (asíncrono) lo reemplaza / enriquece.
@@ -927,7 +929,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // ── Escuchar mensajes proactivos del engine ──
-  // 🔴 FIX (bug en vivo 2026-09-08): el endpoint /api/koru/proactive y el
+  // 🔴 FIX (bug en vivo 2026-09-08): el endpoint /api/michi/proactive y el
   // scheduler del morning brief disparaban el MISMO saludo por caminos
   // distintos → "Buenos días / Tu brief matutino…" aparecía 2+ veces, incluso
   // en mitad de una conversación en proceso. Reglas nuevas:
@@ -1077,8 +1079,8 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     const previousState = domainStateRef.current;
     setUserName(cleanName);
     setOnboarded(true);
-    localStorage.setItem("koru.onboarded", "true");
-    localStorage.setItem("koru.username", cleanName);
+    localStorage.setItem("michi.onboarded", "true");
+    localStorage.setItem("michi.username", cleanName);
     commitChatTurns((prev) => {
       if (prev.length === 0) return [greetingTurn(cleanName)];
       if (prev.length === 1 && prev[0].role === "koru") {
@@ -1308,7 +1310,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   // via the useEffect above so the backend LLM sees it on the next turn.
   function setLanguage(lang: "es" | "en") {
     setLanguageState(lang);
-    localStorage.setItem("koru.language", lang);
+    localStorage.setItem("michi.language", lang);
   }
 
   // 🔴 Offline cache — queue a message that was typed while offline.
@@ -1677,9 +1679,78 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  // 🐱 /levelup — comando local de prueba: sube un nivel al Michi (energía
+  // REAL +100) sin pasar por el pipeline del LLM. Responde en el chat con el
+  // nivel alcanzado y los avatares desbloqueados.
+  async function handleLevelUpCommand(transcriptSource: DailyEntry["transcriptSource"]): Promise<KoruChatTurn | null> {
+    const previousState = domainStateRef.current;
+    const historyBeforeUser = chatTurnsRef.current;
+    const userTurn: KoruChatTurn = {
+      id: createId("turn"),
+      role: "user",
+      text: "/levelup",
+      createdAt: new Date().toISOString(),
+      status: "done",
+    };
+    commitChatTurns((prev) => [...prev, userTurn].slice(-120));
+    writeAuditEvent({
+      type: "user_message",
+      turn: userTurn,
+      transcriptSource,
+      historyBeforeUser: historyBeforeUser.map((turn) => ({
+        id: turn.id,
+        role: turn.role,
+        text: turn.text,
+        createdAt: turn.createdAt,
+        status: turn.status,
+        items: auditTurnItems(turn.items),
+      })),
+      stateBefore: auditStateSnapshot(previousState),
+    });
+
+    const next = awardLevelUpEnergy(previousState, 100);
+    commitDomainState(next);
+    const progress = progressForEnergy(next.trustedEnergy);
+    const parts = [`¡Subí al nivel ${progress.level}! 🎉`];
+    const newlyUnlocked = MICHI_AVATARS.filter((a) => a.level === progress.level);
+    if (newlyUnlocked.length > 0) {
+      parts.push(
+        `Desbloqueé a ${newlyUnlocked.map((a) => a.name).join(" y ")} — tocá mi avatar para verlo en la colección.`,
+      );
+    }
+    const nextUnlock = MICHI_AVATARS.find((a) => a.level > progress.level);
+    if (nextUnlock) parts.push(`Próximo desbloqueo: ${nextUnlock.name} en el nivel ${nextUnlock.level}.`);
+
+    const koruTurn: KoruChatTurn = {
+      id: createId("turn"),
+      role: "koru",
+      text: parts.join(" "),
+      createdAt: new Date().toISOString(),
+      status: "done",
+      mascotState: "happy",
+    };
+    commitChatTurns((prev) => [...prev, koruTurn].slice(-120));
+    writeAuditEvent({
+      type: "koru_message",
+      turn: {
+        id: koruTurn.id,
+        role: koruTurn.role,
+        text: koruTurn.text,
+        createdAt: koruTurn.createdAt,
+        status: koruTurn.status,
+        items: auditTurnItems(koruTurn.items),
+      },
+      stateAfter: auditStateSnapshot(next),
+    });
+    return koruTurn;
+  }
+
   async function sendMessage(text: string, transcriptSource: DailyEntry["transcriptSource"] = "typed") {
     const cleanText = text.trim();
     if (!cleanText) return null;
+    if (cleanText.toLowerCase() === "/levelup") {
+      return handleLevelUpCommand(transcriptSource);
+    }
     const previousState = domainStateRef.current;
     const userTurn: KoruChatTurn = {
       id: createId("turn"),
@@ -2123,8 +2194,8 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     const fresh = resetState();
     commitDomainState(() => fresh);
     try {
-      localStorage.removeItem("koru.username");
-      localStorage.removeItem("koru.onboarded");
+      localStorage.removeItem("michi.username");
+      localStorage.removeItem("michi.onboarded");
     } catch {
       /* noop */
     }
@@ -2136,7 +2207,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   // tocan — a diferencia de deleteAllData.
   function resetChat() {
     saveChatTurns([], false);
-    setChatTurns([greetingTurn(localStorage.getItem("koru.username") ?? "")]);
+    setChatTurns([greetingTurn(localStorage.getItem("michi.username") ?? "")]);
   }
 
   const value = useMemo<KoruContextValue>(() => ({
@@ -2198,7 +2269,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     },
     dismissInstallPrompt: () => {
       setShowInstallPrompt(false);
-      localStorage.setItem("koru.installDismissed", "1");
+      localStorage.setItem("michi.installDismissed", "1");
     },
     voiceEnabled,
     toggleVoice: () => {

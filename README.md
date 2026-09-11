@@ -717,7 +717,7 @@ Si todo falla, te dice "Se nubló el dato" y te explica por qué en `fallbackRea
 
 ```
 1. Usuario escribe → TalkOverlay → submitEntry
-2. backendAgentClient → POST /api/koru/turn (streaming NDJSON)
+2. backendAgentClient → POST /api/michi/turn (streaming NDJSON; /api/koru/* queda como alias de compatibilidad)
 3. buildMessages (systemPrompt + memorias relevantes + historial)
 4. SemanticRouter (Ollama nomic-embed-text) → decide tool ANTES del LLM
 5. callProvider (fallback chain: MiniMax → NVIDIA → OpenRouter)

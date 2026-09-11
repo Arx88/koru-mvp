@@ -398,7 +398,7 @@ story.append(p("La arquitectura de proactividad debe tener 4 capas:"))
 story.append(h3("Capa 1: Heartbeat Mejorado (frontend)"))
 story.append(p("Cada 60s, el heartbeat checkea: commitments por vencer, rutinas según hora/dia, clima relevante, inactividad. Cuando detecta algo, NO solo genera un nudge invisible — genera un MENSAJE de Koru que aparece en el chat como si Koru lo hubiera dicho."))
 story.append(h3("Capa 2: LLM Proactive Generator (backend)"))
-story.append(p("Nuevo endpoint /api/koru/proactive que recibe el state completo del usuario y genera un mensaje proactivo natural. El LLM recibe las memorias, commitments, hora actual, clima (si hay ciudad) y decide si hay algo que decir. Si no hay nada, devuelve vacio."))
+story.append(p("Nuevo endpoint /api/michi/proactive que recibe el state completo del usuario y genera un mensaje proactivo natural. El LLM recibe las memorias, commitments, hora actual, clima (si hay ciudad) y decide si hay algo que decir. Si no hay nada, devuelve vacio."))
 story.append(h3("Capa 3: Notification Scheduler (frontend)"))
 story.append(p("schedulePreciseTimeout para recordatorios + notificaciones del navegador. Si el tab esta abierto, el mensaje aparece en el chat. Si esta cerrado, notificacion del navegador. Si el usuario no interactua, se guarda como pendiente para la proxima apertura."))
 story.append(h3("Capa 4: Morning Brief Scheduler (frontend + backend)"))
@@ -1195,11 +1195,11 @@ story.append(section_table([
 story.append(h2("B.2 Endpoints Propuestos"))
 story.append(section_table([
     ["Endpoint", "Metodo", "Funcion", "Prioridad"],
-    ["/api/koru/turn", "POST", "Procesa mensaje (existente)", "Mantener"],
-    ["/api/koru/proactive", "POST", "Genera mensaje proactivo (fix)", "Sprint 1"],
-    ["/api/koru/morning-brief", "POST", "Genera brief matutino (nuevo)", "Sprint 1"],
-    ["/api/koru/generate-pdf", "POST", "Genera documento PDF (nuevo)", "Sprint 2"],
-    ["/api/koru/voice-stt", "POST", "Speech to text (nuevo)", "Sprint 4"],
+    ["/api/michi/turn", "POST", "Procesa mensaje (existente)", "Mantener"],
+    ["/api/michi/proactive", "POST", "Genera mensaje proactivo (fix)", "Sprint 1"],
+    ["/api/michi/morning-brief", "POST", "Genera brief matutino (nuevo)", "Sprint 1"],
+    ["/api/michi/generate-pdf", "POST", "Genera documento PDF (nuevo)", "Sprint 2"],
+    ["/api/michi/voice-stt", "POST", "Speech to text (nuevo)", "Sprint 4"],
     ["/api/health", "GET", "Health check (existente)", "Mantener"],
 ]))
 
@@ -1255,8 +1255,8 @@ story.append(section_table([
 story.append(h2("A.2 Endpoints del Backend"))
 story.append(section_table([
     ["Endpoint", "Metodo", "Funcion"],
-    ["/api/koru/turn", "POST", "Procesa un mensaje del usuario (streaming NDJSON)"],
-    ["/api/koru/proactive", "POST", "Genera mensaje proactivo (roto — state vacio)"],
+    ["/api/michi/turn", "POST", "Procesa un mensaje del usuario (streaming NDJSON)"],
+    ["/api/michi/proactive", "POST", "Genera mensaje proactivo (roto — state vacio)"],
     ["/api/health", "GET", "Health check"],
 ]))
 

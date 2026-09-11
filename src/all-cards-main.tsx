@@ -17,6 +17,7 @@
  * archivo único no existen esas rutas.
  */
 import { useEffect, useState } from "react";
+import { migrateLocalStorageNamespace } from "./domain/namespaceMigration";
 import { createRoot } from "react-dom/client";
 import { MessagesSquare, LayoutGrid } from "lucide-react";
 import { KoruProvider } from "./ui/KoruProvider";
@@ -42,7 +43,7 @@ function readInitialMode(): Mode {
   try {
     const hash = window.location.hash.replace(/^#\/?/, "");
     if (hash === "galeria" || hash === "gallery" || hash === "interiores") return "gallery";
-    if (localStorage.getItem("koru.allcards.mode") === "gallery") return "gallery";
+    if (localStorage.getItem("michi.allcards.mode") === "gallery") return "gallery";
   } catch {
     /* file:// o storage bloqueado — default chat */
   }
@@ -59,7 +60,7 @@ export function AllCardsPage() {
     cl.remove("ac-mode--chat", "ac-mode--gallery");
     cl.add(mode === "chat" ? "ac-mode--chat" : "ac-mode--gallery");
     try {
-      localStorage.setItem("koru.allcards.mode", mode);
+      localStorage.setItem("michi.allcards.mode", mode);
       window.history.replaceState(null, "", mode === "chat" ? "#/chat" : "#/galeria");
     } catch {
       /* noop */
@@ -126,6 +127,8 @@ export function AllCardsPage() {
 // Bootstrap: monta solo con #root (los tests renderizan <AllCardsPage/> directo).
 const rootEl = document.getElementById("root");
 if (rootEl) {
+// 🐱 Migración de namespace koru.* → michi.* (localStorage compartido con la app).
+migrateLocalStorageNamespace();
   createRoot(rootEl).render(
     <ErrorBoundary>
       <KoruProvider>

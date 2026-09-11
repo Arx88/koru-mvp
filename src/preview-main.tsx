@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, memo, type ReactNode } from "react";
+import { migrateLocalStorageNamespace } from "./domain/namespaceMigration";
 import { createRoot } from "react-dom/client";
 import { Leaf, Plus, Paperclip, Mic, Search, X, Play, Pause, FastForward } from "lucide-react";
 import type { UiBlock } from "./domain/types";
@@ -452,14 +453,16 @@ export function Stage() {
 
 // ── Bootstrap (monta solo si hay #root: los tests renderizan <Stage/> directo) ─
 try {
-  localStorage.setItem("koru.onboarded", "true");
-  localStorage.setItem("koru.username", "Arx");
-  localStorage.setItem("koru.language", "es");
-  localStorage.removeItem("koru.installDismissed");
+  localStorage.setItem("michi.onboarded", "true");
+  localStorage.setItem("michi.username", "Arx");
+  localStorage.setItem("michi.language", "es");
+  localStorage.removeItem("michi.installDismissed");
 } catch { /* noop */ }
 
 const rootEl = document.getElementById("root");
 if (rootEl) {
+// 🐱 Migración de namespace koru.* → michi.* (localStorage compartido con la app).
+migrateLocalStorageNamespace();
   const root = createRoot(rootEl);
   root.render(
     <ErrorBoundary>

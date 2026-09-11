@@ -116,7 +116,7 @@ function KoruApp() {
                   // re-estampaba fetchedAt del cache existente ("dato antiguo"
                   // desaparecía pero el dato seguía siendo de hace horas) y sin
                   // cache era un no-op total. Ahora pega al endpoint
-                  // /api/koru/weather (mismo pipeline del agente) y devuelve
+                  // /api/michi/weather (mismo pipeline del agente) y devuelve
                   // true/false para que el widget muestre error honesto.
                   const city =
                     state.weatherCache?.city?.trim() ||
@@ -168,7 +168,7 @@ function KoruApp() {
             onClose={() => setShowCreate(false)}
             onAiAssist={async (template, title) => {
               try {
-                const res = await fetch("/api/koru/ai-assist", {
+                const res = await fetch("/api/michi/ai-assist", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ template, title }),

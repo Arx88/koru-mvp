@@ -50,7 +50,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 async function runOne(scn) {
   const start = Date.now();
   try {
-    const res = await fetch(`${URL}/api/koru/turn`, {
+    const res = await fetch(`${URL}/api/michi/turn`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(baseBody(scn.input)),

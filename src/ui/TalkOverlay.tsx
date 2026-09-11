@@ -235,7 +235,7 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
   const [showCreate, setShowCreate] = useState(false);
   // 🔴 v2: coachmark para Create — se muestra después del 2do mensaje del usuario
   const [showCreateCoachmark, setShowCreateCoachmark] = useState(() => {
-    return localStorage.getItem("koru.createCoachmarkSeen") !== "true";
+    return localStorage.getItem("michi.createCoachmarkSeen") !== "true";
   });
   const [wheelOpen, setWheelOpen] = useState(false);
 
@@ -250,7 +250,7 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
 
   function dismissCreateCoachmark() {
     setShowCreateCoachmark(false);
-    localStorage.setItem("koru.createCoachmarkSeen", "true");
+    localStorage.setItem("michi.createCoachmarkSeen", "true");
   }
   const [interimText, setInterimText] = useState("");
   const [speechStatus] = useState(() => getSpeechSupport());
@@ -616,7 +616,7 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
       try {
         // 🔴 Si viene blockData, exportamos SOLO ese deliverable (modo limpio para compartir)
         if (blockData) {
-          await downloadPdf("/api/koru/export-deliverable", {
+          await downloadPdf("/api/michi/export-deliverable", {
             block: blockData,
             title,
             userName,
@@ -653,7 +653,7 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
               sparkline: (it.uiBlock as any)?.sparkline,
             })),
           }));
-        await downloadPdf("/api/koru/export-pdf", {
+        await downloadPdf("/api/michi/export-pdf", {
           title,
           userName,
           language,
@@ -722,7 +722,7 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
     if (onboarding) return;
     proactiveCheckedRef.current = true;
 
-    const lastSeen = parseInt(localStorage.getItem("koru.lastSeen") ?? "0", 10) || Date.now();
+    const lastSeen = parseInt(localStorage.getItem("michi.lastSeen") ?? "0", 10) || Date.now();
 
     (async () => {
       try {
@@ -735,7 +735,7 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
           userName: (history?.[0] as any)?.userName ?? "",
         };
 
-        const res = await fetch("/api/koru/proactive", {
+        const res = await fetch("/api/michi/proactive", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -761,7 +761,7 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
       }
     })();
 
-    localStorage.setItem("koru.lastSeen", String(Date.now()));
+    localStorage.setItem("michi.lastSeen", String(Date.now()));
   }, [onboarding]);
 
   const submitText = useCallback(async (text: string, source: "typed" | "speech") => {
@@ -834,7 +834,7 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
 
   // Fase FIX: grabar audio con MediaRecorder API (funciona en todos los navegadores)
   // en lugar de SpeechRecognition que solo funciona en Chrome/Edge.
-  // Graba → convierte a base64 → manda a /api/koru/asr → transcribe → envía como mensaje.
+  // Graba → convierte a base64 → manda a /api/michi/asr → transcribe → envía como mensaje.
   const toggleMediaRecorder = useCallback(async () => {
     if (isRecording) {
       // Detener grabación
@@ -867,7 +867,7 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
           setTranscribing(true);
           showMicError("Transcribiendo audio...");
           try {
-            const res = await fetch("/api/koru/asr", {
+            const res = await fetch("/api/michi/asr", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ audio_base64: base64 }),
@@ -897,7 +897,7 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
     }
   }, [isRecording, showMicError, submitText]);
 
-  // Fase 2.1 — Subir nota de voz: transcribe audio via /api/koru/asr y lo
+  // Fase 2.1 — Subir nota de voz: transcribe audio via /api/michi/asr y lo
   // manda como mensaje normal. Permite grabar audios largos sin SpeechRecognition
   // en vivo (que tiene timeout ~60s y no funciona en todos los navegadores).
   const handleAudioUpload = useCallback(async (file: File) => {
@@ -910,7 +910,7 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
       const base64 = btoa(
         String.fromCharCode(...new Uint8Array(buf)),
       );
-      const res = await fetch("/api/koru/asr", {
+      const res = await fetch("/api/michi/asr", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ audio_base64: base64 }),
@@ -949,7 +949,7 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
     try {
       const buf = await file.arrayBuffer();
       const base64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
-      const res = await fetch("/api/koru/vlm", {
+      const res = await fetch("/api/michi/vlm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ image_base64: base64 }),
@@ -1554,13 +1554,13 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
       {showCreate && (
           <CreateScreen
             onClose={() => setShowCreate(false)}
-            // 🔴 AI-assist — delega al backend /api/koru/ai-assist, que usa el
+            // 🔴 AI-assist — delega al backend /api/michi/ai-assist, que usa el
             // mismo LLM client que el chat principal (callProvider) con timeout
             // de 10s. Si el LLM falla, el endpoint devuelve { suggestions: [] }
             // y el botón simplemente no muestra sugerencias (graceful degrade).
             onAiAssist={async (template, title) => {
               try {
-                const res = await fetch("/api/koru/ai-assist", {
+                const res = await fetch("/api/michi/ai-assist", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ template, title }),

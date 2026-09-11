@@ -1,12 +1,12 @@
 import type { KoruState } from "./types";
 
-const DB_NAME = "koru-local-first";
+const DB_NAME = "michi-local-first"; // era "koru-local-first" (migrado por namespaceMigration)
 const DB_VERSION = 2; // 🔴 Subido a v2 para agregar el store de cuentas
 const STATE_STORE = "state";
 const ACCOUNTS_STORE = "accounts";
 const LEGACY_SNAPSHOT_KEY = "current"; // backward compat
-export const LEGACY_STORAGE_KEY = "koru.mvp.state.v1";
-const ACTIVE_USER_KEY = "koru.activeUserId";
+export const LEGACY_STORAGE_KEY = "michi.mvp.state.v1"; // era koru.mvp.state.v1
+const ACTIVE_USER_KEY = "michi.activeUserId"; // era koru.activeUserId
 
 type PersistedSnapshot = {
   key: string;
@@ -25,6 +25,24 @@ function hasIndexedDb(): boolean {
   return typeof indexedDB !== "undefined";
 }
 
+export function upgradeSchema(database: IDBDatabase): void {
+  if (!database.objectStoreNames.contains(STATE_STORE)) {
+    database.createObjectStore(STATE_STORE, { keyPath: "key" });
+  }
+  // 🔴 Multi-cuenta: store para listar todas las cuentas
+  if (!database.objectStoreNames.contains(ACCOUNTS_STORE)) {
+    database.createObjectStore(ACCOUNTS_STORE, { keyPath: "userId" });
+  }
+}
+
+/** Migración koru-local-first → michi-local-first (ver namespaceMigration.ts). */
+export const LEGACY_DB_MIGRATION = {
+  from: "koru-local-first",
+  to: DB_NAME,
+  version: DB_VERSION,
+  upgrade: upgradeSchema,
+};
+
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     if (!hasIndexedDb()) {
@@ -33,16 +51,7 @@ function openDatabase(): Promise<IDBDatabase> {
     }
 
     const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => {
-      const database = request.result;
-      if (!database.objectStoreNames.contains(STATE_STORE)) {
-        database.createObjectStore(STATE_STORE, { keyPath: "key" });
-      }
-      // 🔴 Multi-cuenta: store para listar todas las cuentas
-      if (!database.objectStoreNames.contains(ACCOUNTS_STORE)) {
-        database.createObjectStore(ACCOUNTS_STORE, { keyPath: "userId" });
-      }
-    };
+    request.onupgradeneeded = () => upgradeSchema(request.result);
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error ?? new Error("No pude abrir IndexedDB."));
   });

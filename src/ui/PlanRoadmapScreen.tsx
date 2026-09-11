@@ -36,7 +36,7 @@ function progressKey(title: string | undefined, items: AssistantPlanItem[]): str
   const sig = `${title ?? "plan"}::${items.map((i) => i.title).join("|")}`;
   let hash = 0;
   for (let i = 0; i < sig.length; i++) hash = (hash * 31 + sig.charCodeAt(i)) | 0;
-  return `koru.plan.progress.${Math.abs(hash).toString(36)}`;
+  return `michi.plan.progress.${Math.abs(hash).toString(36)}`;
 }
 
 function habitIconFor(label: string): { icon: string; bg: string; color: string } {

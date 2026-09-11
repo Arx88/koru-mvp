@@ -32,7 +32,11 @@ const MIME: Record<string, string> = {
 };
 
 const server = createServer(async (req, res) => {
-  const url = req.url || "/";
+  // 🐱 Alias de compatibilidad: /api/koru/* → /api/michi/* (mismo handler).
+  const rawUrl = req.url || "/";
+  const url = rawUrl.startsWith("/api/koru/")
+    ? "/api/michi/" + rawUrl.slice("/api/koru/".length)
+    : rawUrl;
   console.log(`${new Date().toISOString()} ${req.method} ${url}`);
 
   // CORS
@@ -47,7 +51,7 @@ const server = createServer(async (req, res) => {
   }
 
   // API: /api/koru/turn
-  if (url === "/api/koru/turn" && req.method === "POST") {
+  if (url === "/api/michi/turn" && req.method === "POST") {
     const chunks: Buffer[] = [];
     for await (const chunk of req) chunks.push(Buffer.from(chunk));
     const raw = Buffer.concat(chunks).toString("utf8");
@@ -87,7 +91,7 @@ const server = createServer(async (req, res) => {
   }
 
   // API: /api/koru/models
-  if (url === "/api/koru/models" && req.method === "GET") {
+  if (url === "/api/michi/models" && req.method === "GET") {
     const models: any[] = [];
     if (config.nvidiaApiKey) {
       models.push({ id: config.nvidiaModel, provider: "nvidia", label: "NVIDIA Nemotron 3 Ultra" });

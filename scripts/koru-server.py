@@ -97,7 +97,7 @@ class KoruHandler(http.server.SimpleHTTPRequestHandler):
             headers = {k: v for k, v in self.headers.items() if k.lower() != "host"}
 
             # For streaming, we need to handle chunked response
-            if self.path == "/api/koru/turn" and body and b'"stream":true' in body:
+            if self.path == "/api/michi/turn" and body and b'"stream":true' in body:
                 req = urllib.request.Request(url, data=body, headers={**headers, "Content-Type": "application/json"}, method=method)
                 resp = urllib.request.urlopen(req, timeout=120)
 

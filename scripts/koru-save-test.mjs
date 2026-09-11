@@ -11,7 +11,7 @@ const baseBody = (input, state = null, history = []) => ({
 });
 
 async function callKoru(input, state, history = []) {
-  const res = await fetch(`${URL}/api/koru/turn`, {
+  const res = await fetch(`${URL}/api/michi/turn`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(baseBody(input, state, history)),

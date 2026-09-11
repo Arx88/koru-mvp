@@ -6,7 +6,7 @@
  *    "Buscando..." (texto del turno), "Buscando información..." (nota del item)
  *    y "Procesando…" (TypingDots global).
  *  - "Buenos días / Tu brief matutino está listo…" aparecía 2 veces
- *    (scheduler del morning brief + endpoint /api/koru/proactive) y además se
+ *    (scheduler del morning brief + endpoint /api/michi/proactive) y además se
  *    inyectaba en MEDIO de una conversación en proceso.
  *
  * Este archivo testea la lógica pura extraída: lastKoruTurnIsStreaming

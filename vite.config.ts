@@ -788,7 +788,13 @@ function koruBackendAgent(env: Record<string, string>): Plugin {
   return {
     name: "koru-backend-agent",
     configureServer(server) {
-      server.middlewares.use("/api/koru/models", async (req, res) => {
+      // 🐱 Endpoints canónicos /api/michi/* con alias /api/koru/* (namespace
+      // deprecado en el rebrand; bundles viejos cacheados siguen llamándolo).
+      const useApi = (endpoint: string, handler: (req: any, res: any) => void) => {
+        server.middlewares.use(endpoint, handler);
+        server.middlewares.use(endpoint.replace("/api/michi/", "/api/koru/"), handler);
+      };
+      useApi("/api/michi/models", async (req: any, res: any) => {
         if (req.method !== "GET") {
           res.statusCode = 405;
           res.setHeader("Allow", "GET");
@@ -842,7 +848,7 @@ function koruBackendAgent(env: Record<string, string>): Plugin {
       // Fase 3.8 — VLM para análisis de imágenes (OCR, descripción, etc.).
       // El cliente sube una imagen (base64), este endpoint la analiza con
       // z-ai-web-dev-sdk VLM y devuelve el texto/análisis.
-      server.middlewares.use("/api/koru/vlm", async (req, res) => {
+      useApi("/api/michi/vlm", async (req, res) => {
         if (req.method !== "POST") {
           res.statusCode = 405;
           res.setHeader("Allow", "POST");
@@ -892,8 +898,8 @@ function koruBackendAgent(env: Record<string, string>): Plugin {
       // Fase 2.1 — ASR para notas de voz.
       // El cliente graba audio (MediaRecorder) o sube un archivo .wav/.mp3,
       // lo manda como base64, este endpoint lo transcribe con z-ai-web-dev-sdk
-      // y devuelve el texto. El cliente lo manda como mensaje normal a /api/koru/turn.
-      server.middlewares.use("/api/koru/asr", async (req, res) => {
+      // y devuelve el texto. El cliente lo manda como mensaje normal a /api/michi/turn.
+      useApi("/api/michi/asr", async (req, res) => {
         if (req.method !== "POST") {
           res.statusCode = 405;
           res.setHeader("Allow", "POST");
@@ -935,8 +941,8 @@ function koruBackendAgent(env: Record<string, string>): Plugin {
 
       // 🔴 FIX (2026-09-09): clima fresco para el HomeScreen en dev — mismo
       // pipeline getWeather del agente (wttr.in → open-meteo). En producción lo
-      // sirve server/index.ts (/api/koru/weather).
-      server.middlewares.use("/api/koru/weather", async (req, res) => {
+      // sirve server/index.ts (/api/michi/weather, alias /api/koru/*).
+      useApi("/api/michi/weather", async (req, res) => {
         if (req.method !== "POST") {
           res.statusCode = 405;
           res.setHeader("Allow", "POST");
@@ -967,7 +973,7 @@ function koruBackendAgent(env: Record<string, string>): Plugin {
         }
       });
 
-      server.middlewares.use("/api/koru/turn", async (req, res) => {
+      useApi("/api/michi/turn", async (req, res) => {
         if (req.method !== "POST") {
           res.statusCode = 405;
           res.setHeader("Allow", "POST");
@@ -995,7 +1001,7 @@ function koruBackendAgent(env: Record<string, string>): Plugin {
           if (!request.input?.trim() || !request.state || !Array.isArray(request.history)) {
             res.statusCode = 400;
             res.setHeader("Content-Type", "application/json");
-            res.end(JSON.stringify({ error: "Payload incompleto para /api/koru/turn." }));
+            res.end(JSON.stringify({ error: "Payload incompleto para /api/michi/turn." }));
             return;
           }
 

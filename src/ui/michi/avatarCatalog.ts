@@ -64,3 +64,19 @@ export function migratePersonalAvatar(src: string | null): string {
   if (legacy) return PERSONAL_AVATARS[Number(legacy[1]) - 11].src;
   return PERSONAL_AVATARS[0].src;
 }
+
+/**
+ * Progreso del Michi a partir de la energía real (trustedEnergy).
+ * Vive acá (catálogo puro, sin imports de la app) para que tanto
+ * useMichiProgress como KoruProvider la compartan sin ciclos de imports.
+ * 100 puntos de energía = exactamente 1 nivel.
+ */
+export function progressForEnergy(energy: number) {
+  const xp = Math.max(0, Math.floor(Number.isFinite(energy) ? energy : 0));
+  return {
+    xp,
+    level: 1 + Math.floor(xp / 100),
+    inLevel: xp % 100,
+    remaining: 100 - (xp % 100),
+  };
+}

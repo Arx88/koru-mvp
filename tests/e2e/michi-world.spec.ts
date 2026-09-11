@@ -45,7 +45,7 @@ async function seed(page: Page, energy: number, withMemory = false) {
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.setItem("koru.onboarded", "true");
+    localStorage.setItem("michi.onboarded", "true");
     localStorage.setItem("michi.landscape", "17");
   });
   await page.goto("/");
@@ -239,7 +239,7 @@ test("settings keeps its hero clear and saves appearance choices", async ({ page
 
 test("morning startup preserves saved progress and memories across reloads", async ({ page }) => {
   await page.clock.setFixedTime(new Date("2026-09-11T07:30:00"));
-  await page.route("**/api/koru/morning-brief", route => route.fulfill({ json: { shouldShow: false } }));
+  await page.route("**/api/michi/morning-brief", route => route.fulfill({ json: { shouldShow: false } }));
   await seed(page, 4400, true);
   await navigate(page, "Mis avatares");
   await expect(page.locator(".mx-banner-level")).toContainText("Nivel 45");

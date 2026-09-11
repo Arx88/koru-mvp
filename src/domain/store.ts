@@ -287,6 +287,28 @@ export function confirmMemory(state: KoruState, id: string): KoruState {
   return next;
 }
 
+/**
+ * 🐱 /levelup — comando local de prueba: otorga energía REAL (trustedEnergy)
+ * sin pasar por el pipeline del LLM. 100 puntos = exactamente 1 nivel
+ * (ver progressForEnergy en ui/michi/avatarCatalog.ts). Persiste igual que
+ * confirmMemory: IDB + snapshot efímero si corresponde.
+ */
+export function awardLevelUpEnergy(state: KoruState, amount = 100): KoruState {
+  const now = nowIso();
+  const next = {
+    ...state,
+    trustedEnergy: state.trustedEnergy + amount,
+    updatedAt: now,
+  };
+  next.stage = stageFor(next);
+  if (state.ephemeralMode) {
+    saveEphemeralSessionSnapshot(state, next);
+  } else {
+    saveState(next);
+  }
+  return next;
+}
+
 export function rejectMemory(state: KoruState, id: string): KoruState {
   const now = nowIso();
   const next = {

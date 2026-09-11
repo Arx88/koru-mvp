@@ -1,3 +1,4 @@
+import { migrateLocalStorageNamespace } from "./domain/namespaceMigration";
 import { createRoot } from "react-dom/client";
 import type { UiBlock } from "./domain/types";
 import { KoruProvider } from "./ui/KoruProvider";
@@ -32,6 +33,8 @@ if (mode === "list") {
   } else {
     // Réplica mínima del lienzo del chat (fondo de la app real en claro):
     // la card se monta igual que en TalkOverlay — dentro de la burbuja de Michi.
+// 🐱 Migración de namespace koru.* → michi.* (localStorage compartido con la app).
+migrateLocalStorageNamespace();
     createRoot(root).render(
       <KoruProvider>
         <div

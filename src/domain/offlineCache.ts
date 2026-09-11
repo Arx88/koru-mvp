@@ -17,7 +17,7 @@
  *   in some browsers) we silently no-op. The app still works online.
  */
 
-const DB_NAME = "koru-offline";
+const DB_NAME = "michi-offline"; // era "koru-offline" (migrado por namespaceMigration)
 const DB_VERSION = 1;
 const STORE_TURNS = "turns";
 const STORE_QUEUE = "queue";
@@ -43,21 +43,30 @@ export type QueuedMessage = {
 
 let dbPromise: Promise<IDBDatabase | null> | null = null;
 
+export function upgradeSchema(db: IDBDatabase): void {
+  if (!db.objectStoreNames.contains(STORE_TURNS)) {
+    db.createObjectStore(STORE_TURNS, { keyPath: "id" });
+  }
+  if (!db.objectStoreNames.contains(STORE_QUEUE)) {
+    db.createObjectStore(STORE_QUEUE, { keyPath: "id" });
+  }
+}
+
+/** Migración koru-offline → michi-offline (ver namespaceMigration.ts). */
+export const LEGACY_DB_MIGRATION = {
+  from: "koru-offline",
+  to: DB_NAME,
+  version: DB_VERSION,
+  upgrade: upgradeSchema,
+};
+
 function openDb(): Promise<IDBDatabase | null> {
   if (typeof indexedDB === "undefined") return Promise.resolve(null);
   if (dbPromise) return dbPromise;
   dbPromise = new Promise((resolve) => {
     try {
       const req = indexedDB.open(DB_NAME, DB_VERSION);
-      req.onupgradeneeded = () => {
-        const db = req.result;
-        if (!db.objectStoreNames.contains(STORE_TURNS)) {
-          db.createObjectStore(STORE_TURNS, { keyPath: "id" });
-        }
-        if (!db.objectStoreNames.contains(STORE_QUEUE)) {
-          db.createObjectStore(STORE_QUEUE, { keyPath: "id" });
-        }
-      };
+      req.onupgradeneeded = () => upgradeSchema(req.result);
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => resolve(null);
     } catch {
