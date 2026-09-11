@@ -27,6 +27,7 @@ import type {
   UiBlock,
 } from "../../domain/types";
 import { VALID_MASCOT_STATES } from "../../domain/types";
+import { normalizeStickerId } from "../../domain/stickers";
 import { logger } from "../logger";
 import { enrichCaptureBlocks } from "./enrichCaptureBlocks";
 import {
@@ -578,6 +579,9 @@ export function normalizeFinalPayload(
   if (mascotState !== "idle" && !VALID_MASCOT_STATES.includes(mascotState as MascotState)) {
     console.warn(`[Koru] LLM returned invalid mascotState: "${mascotState}". Falling back to "idle".`);
   }
+  // 🐱 Sticker de actitud: valida contra el catálogo; ids inválidos se descartan
+  // en silencio (el sticker es opcional, no hay fallback forzado).
+  const sticker = normalizeStickerId(raw.sticker);
   // 🔴 FIX: usar toolBlocks pre-construidos si se pasan (ya enriquecidos con síntesis LLM)
   const toolBlocks = prebuiltToolBlocks ?? blocksFromToolResults(toolExecutions, input);
   // 🔴 FIX CRÍTICO: si hay toolBlocks (datos reales de tools), NO mezclar con modelBlocks
@@ -818,6 +822,7 @@ export function normalizeFinalPayload(
     ],
     provider: "nvidia",
     mascotState: validatedMascotState,
+    sticker,
     skippedBecauseBoundary: [...new Set([
       ...asArray(raw.skippedBecauseBoundary).map((v) => cleanText(v)).filter(Boolean),
       ...asArray(extractedRaw?.skippedBecauseBoundary).map((v) => cleanText(v)).filter(Boolean),

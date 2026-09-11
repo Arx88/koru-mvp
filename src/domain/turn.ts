@@ -63,6 +63,8 @@ export type KoruChatTurn = {
   liked?: boolean;
   status?: "done" | "working" | "error";
   mascotState?: MascotState;
+  /** 🐱 Sticker de actitud que Michi mandó con este reply (id del catálogo). */
+  sticker?: string;
 };
 
 function defaultActionSteps(kind: AssistantAction["kind"]): string[] {

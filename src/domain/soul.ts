@@ -22,9 +22,9 @@ export const koruSoulCapsule = {
     ],
   },
   defaults: {
-    warmth: 7,
+    warmth: 8,
     directness: 6,
-    humor: 3,
+    humor: 6,
     detail: 5,
     proactivity: 3,
   } satisfies VoicePreference,

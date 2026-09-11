@@ -28,6 +28,7 @@ import { MichiSaveSheet } from "./michi/MichiSaveSheet";
 import { CreateScreen } from "./create/CreateScreen";
 import { MichiResearchLoading } from "./michi/MichiResearchLoading";
 import { lastKoruTurnIsStreaming } from "../domain/turn";
+import { normalizeStickerId, stickerSrc, STICKER_HINTS } from "../domain/stickers";
 import { renderMarkdownBody, CopyButton } from "./MarkdownMessage";
 
 // TalkOverlay = réplica Stitch "Chat con Koru": paisaje nocturno ilustrado a
@@ -103,6 +104,10 @@ function KoruTurnBubble({
   onSetWorldSignals: (enabled: boolean) => void;
 }) {
   const { heading, body } = splitKoruText(turn.text);
+  // 🐱 Sticker de actitud — el LLM lo elige en el JSON final; se muestra
+  // grande, sin burbuja (estilo WhatsApp/Telegram), alineado a la columna
+  // del texto de Michi.
+  const stickerId = normalizeStickerId(turn.sticker);
   // La investigación en curso tiene un único panel en el hilo; no duplicar
   // su estado con una burbuja vacía o un esqueleto de la futura tarjeta.
   const hasWorkingDeliverable = (turn.items ?? []).some(
@@ -111,7 +116,7 @@ function KoruTurnBubble({
   const showBubble = !hasWorkingDeliverable && Boolean(heading || body);
   const turnDone = turn.status !== "working";
   const visibleItems = turn.items?.filter(item => !(item.uiBlock?.type === "deliverable" && item.uiBlock.status === "working"));
-  if (!showBubble && !visibleItems?.length) return null;
+  if (!showBubble && !visibleItems?.length && !stickerId) return null;
   return (
     <div className="mx-group">
       <div className="mx-row from-koru">
@@ -125,7 +130,29 @@ function KoruTurnBubble({
                 mensajes. Sin adorno, como su referencia. */}
           </div>
         )}
+        {/* 🐱 Turno sticker-solo: el sticker ocupa el lugar de la burbuja,
+            pegado al gato (reacción grande, estilo Telegram). */}
+        {!showBubble && stickerId && (
+          <img
+            className="mx-sticker"
+            src={stickerSrc(stickerId)}
+            alt={`Sticker de Michi: ${STICKER_HINTS[stickerId]}`}
+            draggable={false}
+          />
+        )}
       </div>
+      {/* 🐱 Texto + sticker: el sticker va abajo, alineado a la columna del
+          texto (sin burbuja — es un sticker, no una card). */}
+      {showBubble && stickerId && (
+        <div className="mx-row from-koru">
+          <img
+            className="mx-sticker mx-sticker-below"
+            src={stickerSrc(stickerId)}
+            alt={`Sticker de Michi: ${STICKER_HINTS[stickerId]}`}
+            draggable={false}
+          />
+        </div>
+      )}
       {/* 🔴 UX: copiar mensaje — icono fantasma 28px discreto (v7.6) */}
       {showBubble && turnDone && (heading || body) && <div className="mx-copy"><CopyButton text={turn.text} /></div>}
       {visibleItems && visibleItems.length > 0 && (

@@ -1476,6 +1476,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
             items: blocksToItems(chunk.uiBlocks),
             status: "working" as const,
             mascotState: chunk.mascotState ?? "working",
+            sticker: chunk.sticker,
           };
           (koruTurn.items ?? []).forEach((it) => { if (it.uiBlock?.type) streamedItemsByType.set(it.uiBlock.type, it); });
           commitChatTurns((prev) => [...prev, koruTurn].slice(-120));
@@ -1517,6 +1518,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
                 text: sanitizeReplyText(chunk.reply ?? ""),
                 items: mergedItems,
                 mascotState: chunk.mascotState ?? turn.mascotState,
+                sticker: chunk.sticker ?? turn.sticker,
                 status: isDone ? ("done" as const) : ("working" as const),
               };
             }),
@@ -1605,7 +1607,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
         commitChatTurns((prev) =>
           prev.map((turn) =>
             turn.id === koruTurnId
-              ? { ...turn, text: sanitizeReplyText(agentResult.reply ?? ""), items: stableItems, status: "done" as const, mascotState: agentResult.mascotState ?? "idle" }
+              ? { ...turn, text: sanitizeReplyText(agentResult.reply ?? ""), items: stableItems, status: "done" as const, mascotState: agentResult.mascotState ?? "idle", sticker: agentResult.sticker ?? turn.sticker }
               : turn,
           ),
         );

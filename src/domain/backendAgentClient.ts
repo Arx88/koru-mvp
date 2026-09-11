@@ -37,6 +37,7 @@ export type KoruBackendTurnResponse = {
   toolResults: ToolResult[];
   stateEvents: Array<{ kind: "thinking" | "searching" | "comparing" | "planning" | "saving" | "done"; label: string }>;
   mascotState?: MascotState;
+  sticker?: string;
   provider: "nvidia" | "openrouter" | "minimax" | "bluesminds";
   model?: string;
   fallbackReason?: string;

@@ -127,6 +127,7 @@ export type KoruBackendTurnResponse = {
   model?: string;
   fallbackReason?: string;
   mascotState?: MascotState;
+  sticker?: string;
   skippedBecauseBoundary?: string[];
   behaviorNotes?: string[];
 };
@@ -506,6 +507,11 @@ export const TOOL_DEFINITIONS = [
           commitments: { type: "array", items: { type: "object" } },
           records: { type: "array", items: { type: "object" } },
           sentiment: { type: "string", enum: ["calm", "heavy", "busy", "good"] },
+          sticker: {
+            type: "string",
+            enum: ["hi", "good-morning", "love", "nice", "okey", "so-happy", "hahaha", "wow", "omg", "tough-guy", "verguenza", "tasty", "cook", "working-on-it", "zzz"],
+            description: "Optional Michi sticker (cat with sunglasses) shown with the reply. ONE per reply. Send it at STRONG emotional moments (something funny, great news, opening greeting, food, attitude); skip on neutral/data turns. If sent, do NOT also put an emoji in the reply text.",
+          },
         },
         required: ["reply", "understanding", "uiBlocks", "suggestedActions", "memoryCandidates", "commitments", "records"],
       },
@@ -5271,6 +5277,9 @@ export async function runKoruBackendTurn(
       commitments: asArray(parsed.commitments || []),
       records: asArray(parsed.records || []),
       mascotState: parsed.mascotState,
+      // 🐱 Sticker de actitud: el Composer (2da llamada) puede emitirlo; si no,
+      // cae al que dejó el primer call en deliver_response.
+      sticker: parsed.sticker ?? (delivered as Record<string, unknown> | null)?.sticker,
     };
     // 🔴 El primer call (deliver_response) también pudo extraer memorias que
     // el Composer no repitió: se fusionan (finalizePayload deduplica).
@@ -5511,6 +5520,8 @@ export async function runKoruBackendTurn(
     commitments: asArray(parsed.commitments || []),
     records: asArray(parsed.records || []),
     mascotState: parsed.mascotState,
+    // 🐱 Sticker de actitud (path sin tools — charla pura, el caso más común).
+    sticker: parsed.sticker,
   };
   const cityAction = cityMemorySuggestion(toolCalls, request.state);
   if (cityAction) raw.suggestedActions = [...asArray(raw.suggestedActions), cityAction];

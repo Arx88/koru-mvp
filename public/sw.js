@@ -1,12 +1,11 @@
 // Michi Service Worker — notificaciones push y background sync
 // Mobile-first: funciona en PWA standalone
 
-// 🐱 v8.4 — michi-v9: revert del scrim del hero de avatares (banner a brillo
-// pleno, sin velo de tinta) y restaurado el gradiente celeste original como
-// fallback. El SW no intercepta fetch, pero se bumpea la caché siguiendo la
-// convención de release: al cambiar sw.js el navegador reinstala y el activate
-// limpia cachés viejas.
-const CACHE_NAME = "michi-v9";
+// 🐱 v8.5 — michi-v10: sistema de Stickers de actitud (15 webp en
+// /assets/stickers/) + tono más cercano/cool/gracioso. El SW no intercepta
+// fetch, pero se bumpea la caché siguiendo la convención de release: al
+// cambiar sw.js el navegador reinstala y el activate limpia cachés viejas.
+const CACHE_NAME = "michi-v10";
 const STATIC_ASSETS = [
   "/",
   "/index.html",
@@ -46,6 +45,21 @@ const STATIC_ASSETS = [
   "/assets/michi-world/banner-gamer.webp",
   "/assets/michi-world/banner-mago.webp",
   "/assets/michi-world/banner-playita.webp",
+  "/assets/stickers/hi.webp",
+  "/assets/stickers/good-morning.webp",
+  "/assets/stickers/love.webp",
+  "/assets/stickers/nice.webp",
+  "/assets/stickers/okey.webp",
+  "/assets/stickers/so-happy.webp",
+  "/assets/stickers/hahaha.webp",
+  "/assets/stickers/wow.webp",
+  "/assets/stickers/omg.webp",
+  "/assets/stickers/tough-guy.webp",
+  "/assets/stickers/verguenza.webp",
+  "/assets/stickers/tasty.webp",
+  "/assets/stickers/cook.webp",
+  "/assets/stickers/working-on-it.webp",
+  "/assets/stickers/zzz.webp",
 ];
 
 self.addEventListener("install", (event) => {
