@@ -359,6 +359,7 @@ const KoruContext = createContext<KoruContextValue | null>(null);
 
 export function KoruProvider({ children }: { children: ReactNode }) {
   const [domainState, setDomainState] = useState<KoruState>(() => createInitialState());
+  const [stateLoaded, setStateLoaded] = useState(false);
   const [onboarded, setOnboarded] = useState(() => localStorage.getItem("koru.onboarded") === "true");
   const [userName, setUserName] = useState(() => localStorage.getItem("koru.username") ?? "");
   const [processing, setProcessing] = useState(false);
@@ -512,6 +513,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     void loadPersistedState().then(async (persisted) => {
       if (!cancelled) {
         commitDomainState(persisted);
+        setStateLoaded(true);
         // 🐱 v7.5 — RESET one-time de la voz fantasma, POST-LOAD: el estado
         // persistido puede traer koruVoiceEnabled=true de la era de los dos
         // toggles (bug: la voz se re-activaba sola en cada sesión). Lo
@@ -699,6 +701,8 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   // muestra el saludo y deja el flag. Si el backend responde con un brief
   // completo, ese flujo (asíncrono) lo reemplaza / enriquece.
   useEffect(() => {
+    // The greeting reducer persists immediately; wait for the real account state.
+    if (!stateLoaded) return;
     const now = new Date();
     const hour = now.getHours();
     const today = localDateISO(now); // 🔴 FIX: día LOCAL (antes UTC)
@@ -749,7 +753,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     // setLastBriefReducer + saveState, así que también persiste en localStorage.
     setLastBrief(today);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [domainState.lastBriefDate]);
+  }, [domainState.lastBriefDate, stateLoaded]);
 
   useEffect(() => {
     const runHeartbeat = () => {
@@ -1038,7 +1042,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
         kind: "cierre",
         title: action.title,
         detail: action.result ?? action.body,
-        reason: "Acción aprobada y ejecutada por Koru",
+        reason: "Acción aprobada y completada por Michi",
       });
     }
     for (const mem of domainState.memories.filter((m) => m.status === "confirmed").slice(0, 10)) {
@@ -1047,7 +1051,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
         date: localDateISO(new Date(mem.createdAt)),
         time: new Date(mem.createdAt).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }),
         kind: "memoria",
-        title: "Koru aprendió algo",
+        title: "Michi guardó un recuerdo",
         detail: mem.text.slice(0, 120),
         reason: "Memoria confirmada",
       });
@@ -2257,7 +2261,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     exportData,
     deleteAllData,
     resetChat,
-  }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, domainState, domainState.records, permissions, processing, activity, phase, chatTurns, selectedModel, memoryToast, morningBrief, showInstallPrompt, installPromptEvent, voiceEnabled, language, online, reopenedRecord, pendingMemoryConflict]);
+  }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, domainState, domainState.records, permissions, processing, activity, phase, chatTurns, selectedModel, memoryToast, morningBrief, showInstallPrompt, installPromptEvent, voiceEnabled, language, online, reopenedRecord, collectionsView, pendingMemoryConflict]);
 
   // 🔴 v2: Listener para guardar record desde el detail screen (botón Guardar informe)
   // CAMBIO: ya NO pasa por el LLM (5-15s de espera + contaminación del chat).

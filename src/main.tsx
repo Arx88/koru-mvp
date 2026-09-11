@@ -7,6 +7,8 @@ import "./style.css";
 import "./style-v75-bubbles.css";
 import "./michi-cards.css";
 import "./michi-v8.css";
+import "./michi-pages.css";
+import "./michi-world.css";
 
 const isPreview = new URLSearchParams(location.search).get("preview") === "cards";
 
