@@ -54,6 +54,13 @@ import {
 } from "./pipeline/finalizePayload";
 import { blocksFromToolResults } from "./blocksFromToolResults";
 import { callAINative } from "./providers/ainative";
+import {
+  ProviderConfigError,
+  classifyProviderStatus,
+  providerErrorDetail,
+  isProviderConfigError,
+  describeProviderFailures,
+} from "./providers/types";
 
 // Re-export for backwards compatibility (test files import blocksFromToolResults
 // from koruBackend).
@@ -756,7 +763,7 @@ export function stripReasoning(text: string): string {
   // 3. AGRESIVO: si empieza con patrón de thinking en inglés, strip total
   //    Patrones ampliados para cubrir más variantes del CoT de Nemotron.
   const thinkingStartPatterns = [
-    /^(the user|the user is|the user wants|the user is asking|i should|i need to|let me|let's think|i'll|i will|i am going to|first,?\s*i|now i|the question|looking at|analyzing|to answer this|based on the|so,?\s*i|this is a|this is an|let's consider|step by step|i have to|i must|i'm going to|the request|the input|the message|i want to|i can|i could|i'm thinking|okay,?\s*(so|i|let|the)|alright,?\s*(so|i|let|the))\b/i,
+    /^(the user|the user is|the user wants|the user is asking|i should|i need to|let me|let's think|i'll|i will|i am going to|first,?\s*i|now i|the question|looking at|analyzing|to answer this|based on the|so,?\s*i|this is a|this is an|let's consider|step by step|i have to|i must|i'm going to|the request|the input|the message|i want to|i can|i could|i'm thinking|okay,?\s*(so|i|let|the)|alright,?\s*(so|i|let|the)|here'?s (a |the )?thinking|here is (a |the )?thinking|thinking process)\b/i,
   ];
   const trimmed = out.trim();
   if (trimmed.length > 20 && thinkingStartPatterns.some(re => re.test(trimmed))) {
@@ -764,7 +771,7 @@ export function stripReasoning(text: string): string {
   }
   // 4. AGRESIVO: si contiene múltiples indicadores de thinking, es thinking
   //    aunque no empiece exactamente con un patrón.
-  const thinkingIndicators = (out.match(/\b(i need to|let me|i should|i will|i'll|i am going to|i'm going to|i have to|i must|the user|i want to|i can|step by step|let's think|i think|i believe|first i|then i|next i|finally i)\b/gi) || []).length;
+  const thinkingIndicators = (out.match(/\b(i need to|let me|i should|i will|i'll|i am going to|i'm going to|i have to|i must|the user|i want to|i can|step by step|let's think|i think|i believe|first i|then i|next i|finally i|here'?s a thinking|thinking process|analyze user input|determine response)\b/gi) || []).length;
   if (thinkingIndicators >= 2 && trimmed.length > 30) {
     return "";
   }
@@ -1022,6 +1029,14 @@ async function callNvidia(
     top_p: 0.95,
     max_tokens: 8192,
     stream: false,
+    // 🔴 thinking:false es lo que MANTIENE el content limpio. Verificado contra la
+    // API real: sin este flag, nemotron-3.5-lightning-30b-a3b mete su CoT en
+    // `content` ("Here's a thinking process: 1. **Analyze User Input:** …") y el
+    // usuario lo ve como si fuera la respuesta. Con el flag devuelve "Hola.".
+    // El fix existía SOLO en la copia muerta de providers/nvidia.ts, así que el
+    // camino vivo nunca lo mandaba. Los modelos que no piensan lo ignoran (se
+    // probó meta/muse-glimmer-30b: HTTP 200).
+    chat_template_kwargs: { thinking: false },
   };
   // FIX: retry automático para NVIDIA (1 retry con backoff de 2s).
   // ~20% de las requests dan timeout transient.
@@ -1042,8 +1057,19 @@ async function callNvidia(
     }, timeoutMs);
   }
   const data = await response.json().catch(() => ({}));
-  if (!response.ok || !hasUsableAssistantMessage(data)) {
-    throw new Error(`NVIDIA returned ${response.status}`);
+  if (!response.ok) {
+    const detail = providerErrorDetail(data);
+    // 429 y 5xx son transitorios: se reintentan o se rota de proveedor.
+    // 401/403 (credencial) y 404/410 (modelo inexistente o retirado) NO — y el
+    // mensaje tiene que decirlo, en vez de esconderse en un "falló" genérico
+    // que el flujo trataba como tropiezo pasajero durante 16 turnos seguidos.
+    if (classifyProviderStatus(response.status) !== "transient") {
+      throw new ProviderConfigError("NVIDIA", response.status, detail);
+    }
+    throw new Error(`NVIDIA returned ${response.status}${detail ? `: ${detail}` : ""}`);
+  }
+  if (!hasUsableAssistantMessage(data)) {
+    throw new Error("NVIDIA devolvió una respuesta sin contenido utilizable.");
   }
   const choice = asRecord(asArray(asRecord(data).choices)[0]);
   return {
@@ -1090,15 +1116,24 @@ async function callOpenRouterCandidate(
     body: JSON.stringify(body),
   }, timeoutMs);
   const data = await response.json().catch(() => ({}));
-  if (!response.ok || !hasUsableAssistantMessage(data)) {
+  if (!response.ok) {
     // 🔴 KORU 3.0 — Detectar rate limit de OpenRouter (429)
-    const errMsg = `OpenRouter ${model} returned ${response.status}`;
+    const detail = providerErrorDetail(data);
+    const errMsg = `OpenRouter ${model} returned ${response.status}${detail ? `: ${detail}` : ""}`;
     if (response.status === 429) {
       const err = new Error(errMsg);
       err.name = "RateLimitError";
       throw err;
     }
+    // Rotar de candidato sirve para un 429, no para un 403 de la key ni un 410
+    // del modelo: esos son configuración y hay que reportarlos como tales.
+    if (classifyProviderStatus(response.status) !== "transient") {
+      throw new ProviderConfigError(`OpenRouter ${model}`, response.status, detail);
+    }
     throw new Error(errMsg);
+  }
+  if (!hasUsableAssistantMessage(data)) {
+    throw new Error(`OpenRouter ${model} devolvió una respuesta sin contenido utilizable.`);
   }
   const choice = asRecord(asArray(asRecord(data).choices)[0]);
   return {
@@ -1113,7 +1148,28 @@ async function callOpenRouter(config: ProviderConfig, messages: ChatMessage[], t
     .slice(0, 3)
     .flatMap((key) => config.openRouterModels.slice(0, 3).map((model) => ({ key, model })));
   if (!candidates.length) throw new Error("OpenRouter fallback is not configured.");
-  return Promise.any(candidates.map((candidate) => callOpenRouterCandidate(candidate.key, candidate.model, messages, timeoutMs, toolsEnabled)));
+  try {
+    return await Promise.any(candidates.map((candidate) => callOpenRouterCandidate(candidate.key, candidate.model, messages, timeoutMs, toolsEnabled)));
+  } catch (err: any) {
+    // 🔴 `Promise.any` descarta los N rechazos individuales y Node tira
+    // `AggregateError: All promises were rejected`. Recuperamos las causas reales
+    // (403 de la key, 410 del modelo, 429 de cuota) para que el log diga qué
+    // pasó y para que un fallo 100% por cuota se detecte como rate limit: antes
+    // el AggregateError no matcheaba `isRateLimitError` y el 429 se perdía.
+    const causes: unknown[] = Array.isArray(err?.errors) ? err.errors : [err];
+    const { message, allRateLimited, configErrors } = describeProviderFailures(causes);
+    logger.error("callOpenRouter", `Los ${candidates.length} candidatos de OpenRouter fallaron`, {
+      causes: message,
+      allRateLimited,
+      configErrorCount: configErrors.length,
+    });
+    if (allRateLimited) {
+      const rateErr = new Error(`OpenRouter agotó la cuota en los ${candidates.length} candidatos: ${message}`);
+      rateErr.name = "RateLimitError";
+      throw rateErr;
+    }
+    throw new Error(`OpenRouter falló en los ${candidates.length} candidatos — ${message}`);
+  }
 }
 
 async function callBlueSmindsCandidate(
@@ -1270,11 +1326,27 @@ export async function callProvider(
   const bluesmindsModel = config.bluesmindsModel ?? "mimo-v2.5";
   const bluesmindsAvailable = bluesmindsKeys.length > 0 && bluesmindsModel.length > 0;
 
+  // Acumula por qué cayó cada proveedor para poder decir la causa real al final,
+  // en vez de un genérico "ningún proveedor respondió" que no distingue entre
+  // "todos saturados" (esperá) y "las credenciales están mal" (cambialas).
+  const failures: string[] = [];
+  const noteFailure = (label: string, err: any) => {
+    failures.push(`${label}: ${err?.message ?? String(err)}`);
+    if (isProviderConfigError(err)) {
+      logger.error("callProvider", `${label} rechazó la configuración — reintentar o rotar NO lo arregla`, {
+        status: err.status,
+        kind: err.kind,
+        reason: err?.message,
+      });
+    }
+  };
+
   // SALTO DIRECTO si el usuario eligió un provider específico
   if (preferredProvider === "bluesminds" && bluesmindsAvailable) {
     try {
       return await callBlueSminds(config, messages, Math.min(60_000, timeoutMs), toolsEnabled);
     } catch (err: any) {
+      noteFailure("BlueSminds", err);
       if (isRateLimitError(err)) throw err;
       logger.warn("callProvider", "Preferred BlueSminds failed, falling through", { reason: err?.message });
     }
@@ -1289,6 +1361,7 @@ export async function callProvider(
       }
       logger.warn("callProvider", "Preferred MiniMax responded but invalid, falling through");
     } catch (err: any) {
+      noteFailure("MiniMax", err);
       logger.warn("callProvider", "Preferred MiniMax failed, falling through", { reason: err?.message });
     }
   }
@@ -1301,6 +1374,7 @@ export async function callProvider(
     } catch (err: any) {
       // 🔴 KORU 3.0 — rate limit: NO re-throw, caer al siguiente provider.
       // Antes se re-throw y el error llegaba al usuario sin intentar fallback.
+      noteFailure("NVIDIA", err);
       if (isRateLimitError(err)) {
         logger.warn("callProvider", "Preferred NVIDIA rate-limited (429), falling through to OpenRouter/other");
       } else {
@@ -1325,6 +1399,7 @@ export async function callProvider(
       logger.warn("callProvider", "BlueSminds responded but invalid, falling through");
     } catch (err: any) {
       // 🔴 KORU 3.0 — rate limit: caer al siguiente, no re-throw
+      noteFailure("BlueSminds", err);
       if (isRateLimitError(err)) {
         logger.warn("callProvider", "BlueSminds rate-limited (429), falling through");
       } else {
@@ -1343,6 +1418,7 @@ export async function callProvider(
       }
       logger.warn("callProvider", "MiniMax responded but invalid, falling through");
     } catch (err: any) {
+      noteFailure("MiniMax", err);
       logger.warn("callProvider", "MiniMax failed, falling through", { reason: err?.message });
     }
   }
@@ -1359,6 +1435,7 @@ export async function callProvider(
       logger.warn("callProvider", "NVIDIA responded but invalid, falling back");
     } catch (err: any) {
       // 🔴 KORU 3.0 — rate limit: caer a AI Native Studio, no re-throw
+      noteFailure("NVIDIA", err);
       if (isRateLimitError(err)) {
         logger.warn("callProvider", "NVIDIA rate-limited (429), falling back to AI Native Studio");
       } else {
@@ -1380,6 +1457,7 @@ export async function callProvider(
       }
       logger.warn("callProvider", "AI Native Studio responded but invalid, falling through to OpenRouter");
     } catch (err: any) {
+      noteFailure("AI Native Studio", err);
       if (isRateLimitError(err)) {
         logger.warn("callProvider", "AI Native Studio rate-limited, falling through to OpenRouter");
       } else {
@@ -1392,7 +1470,8 @@ export async function callProvider(
     return callOpenRouter(config, messages, Math.min(115_000, timeoutMs), toolsEnabled);
   }
 
-  throw new Error("Ningún proveedor de IA respondió. Verificá la conexión o las credenciales.");
+  const causes = failures.length ? ` Causas: ${failures.join(" | ")}` : "";
+  throw new Error(`Ningún proveedor de IA respondió. Verificá la conexión o las credenciales.${causes}`);
 }
 
 class RateLimitError extends Error {
@@ -1405,6 +1484,21 @@ class RateLimitError extends Error {
 function isRateLimitError(error: unknown): boolean {
   const msg = String(error instanceof Error ? error.message : error).toLowerCase();
   return msg.includes("429") || msg.includes("rate limit") || msg.includes("too many requests") || msg.includes("quota") || msg.includes("free-models-per-day");
+}
+
+/**
+ * Mensaje accionable para el usuario. La diferencia importa: un proveedor
+ * saturado se arregla esperando, una credencial rechazada o un modelo retirado
+ * NO. Antes ambos casos caían en la misma disculpa genérica.
+ */
+function providerConfigReply(err: ProviderConfigError): string {
+  if (err.kind === "auth") {
+    return "No pude conectarme al modelo: el proveedor rechazó la credencial. No es algo que se arregle esperando — hay que revisar la API key.";
+  }
+  if (err.kind === "model") {
+    return "El modelo configurado no está disponible (fue retirado o no existe). Hay que actualizar el nombre del modelo en la configuración.";
+  }
+  return `El proveedor rechazó la configuración (HTTP ${err.status}). Revisá los ajustes del modelo.`;
 }
 
 export function sourceFromUrl(title: string, url: string, snippet?: string): AssistantSource {
@@ -4885,7 +4979,26 @@ export async function runKoruBackendTurn(
       return { reply: err.message, uiBlocks: [], suggestedActions: [], understanding: { literalRequest: request.input, userGoal: "Rate limit", unstatedNeeds: [], assumptions: [], confidence: 0 }, memoryCandidates: [], commitments: [], records: [], toolResults: [], stateEvents: [], mascotState: "tired", provider: "openrouter", model: "rate-limited", fallbackReason: "rate-limit" };
     }
     // Fallback sin tools si el modelo no las soporta o devolvió respuesta vacía
-    firstResult = await callProvider(config, messages, secondaryTimeout, false, preferredProvider, undefined, modelOverride);
+    try {
+      firstResult = await callProvider(config, messages, secondaryTimeout, false, preferredProvider, undefined, modelOverride);
+    } catch (err2: any) {
+      // Si TODOS los proveedores cayeron por configuración, el usuario merece
+      // saber que no es temporal: reintentar el mismo mensaje no lo va a arreglar.
+      if (isProviderConfigError(err2)) {
+        logger.error("runKoruBackendTurn", "Todos los proveedores cayeron por configuración, no por saturación", { reason: err2.message });
+        return {
+          reply: providerConfigReply(err2),
+          uiBlocks: [],
+          suggestedActions: [],
+          understanding: { literalRequest: request.input, userGoal: "Proveedor no disponible", unstatedNeeds: [], assumptions: [], confidence: 0 },
+          memoryCandidates: [], commitments: [], records: [], toolResults: [], stateEvents: [],
+          mascotState: "tired",
+          provider, model,
+          fallbackReason: "provider-config-error",
+        };
+      }
+      throw err2;
+    }
     fallbackReason = (fallbackReason ? fallbackReason + " + " : "") + "no-tools-fallback";
   }
   provider = firstResult.provider;

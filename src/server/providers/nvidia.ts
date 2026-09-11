@@ -4,6 +4,7 @@ import { fetchWithTimeout, providerUrl } from "./fetch";
 import { asArray, asRecord, asString, cleanText } from "../json";
 import { ALL_TOOL_DEFINITIONS, CORE_TOOL_DEFINITIONS, hasUsableAssistantMessage } from "../koruBackend";
 import { isOllamaUrl } from "./ollama";
+import { ProviderConfigError, classifyProviderStatus, providerErrorDetail } from "./types";
 
 export async function callNvidia(
   config: ProviderConfig,
@@ -122,17 +123,25 @@ async function callNvidiaOnce(
     body: JSON.stringify(body),
   }, timeoutMs);
   const data = await response.json().catch(() => ({}));
-  if (!response.ok || !hasUsableAssistantMessage(data)) {
+  if (!response.ok) {
     // 🔴 KORU 3.0 — Si es 429 (rate limit), tirar RateLimitError para que
     // callProvider caiga al siguiente provider (OpenRouter, BlueSminds, etc).
     // Antes tiraba Error genérico y callProvider no detectaba que era rate limit.
-    const msg = `NVIDIA returned ${response.status}`;
+    const detail = providerErrorDetail(data);
+    const msg = `NVIDIA returned ${response.status}${detail ? `: ${detail}` : ""}`;
     if (response.status === 429) {
       const err = new Error(msg);
       err.name = "RateLimitError";
       throw err;
     }
+    // 401/403/404/410 no se arreglan reintentando: son credencial o modelo.
+    if (classifyProviderStatus(response.status) !== "transient") {
+      throw new ProviderConfigError("NVIDIA", response.status, detail);
+    }
     throw new Error(msg);
+  }
+  if (!hasUsableAssistantMessage(data)) {
+    throw new Error("NVIDIA devolvió una respuesta sin contenido utilizable.");
   }
   const choice = asRecord(asArray(asRecord(data).choices)[0]);
   return {

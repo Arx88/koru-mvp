@@ -2,6 +2,8 @@ import type { ProviderConfig, ChatMessage, ProviderResult, ProviderMessage, LlmP
 import { fetchWithTimeout } from "./fetch";
 import { asArray, asRecord, asString } from "../json";
 import { ALL_TOOL_DEFINITIONS, hasUsableAssistantMessage } from "../koruBackend";
+import { logger } from "../logger";
+import { ProviderConfigError, classifyProviderStatus, providerErrorDetail, describeProviderFailures } from "./types";
 
 export async function callOpenRouterCandidate(
   key: string,
@@ -29,9 +31,21 @@ export async function callOpenRouterCandidate(
     }),
   }, timeoutMs);
   const data = await response.json().catch(() => ({}));
-  if (!response.ok || !hasUsableAssistantMessage(data)) {
-    // eslint-disable-next-line no-console
-    throw new Error(`OpenRouter ${model} returned ${response.status}`);
+  if (!response.ok) {
+    const detail = providerErrorDetail(data);
+    const msg = `OpenRouter ${model} returned ${response.status}${detail ? `: ${detail}` : ""}`;
+    if (response.status === 429) {
+      const err = new Error(msg);
+      err.name = "RateLimitError";
+      throw err;
+    }
+    if (classifyProviderStatus(response.status) !== "transient") {
+      throw new ProviderConfigError(`OpenRouter ${model}`, response.status, detail);
+    }
+    throw new Error(msg);
+  }
+  if (!hasUsableAssistantMessage(data)) {
+    throw new Error(`OpenRouter ${model} devolvió una respuesta sin contenido utilizable.`);
   }
   const choice = asRecord(asArray(asRecord(data).choices)[0]);
   return {
@@ -51,7 +65,24 @@ export async function callOpenRouter(
     .slice(0, 3)
     .flatMap((key) => config.openRouterModels.slice(0, 3).map((model) => ({ key, model })));
   if (!candidates.length) throw new Error("OpenRouter fallback is not configured.");
-  return Promise.any(candidates.map((candidate) => callOpenRouterCandidate(candidate.key, candidate.model, messages, timeoutMs, toolsEnabled)));
+  try {
+    return await Promise.any(candidates.map((candidate) => callOpenRouterCandidate(candidate.key, candidate.model, messages, timeoutMs, toolsEnabled)));
+  } catch (err: any) {
+    // `Promise.any` pierde los N rechazos individuales en un AggregateError.
+    const causes: unknown[] = Array.isArray(err?.errors) ? err.errors : [err];
+    const { message, allRateLimited, configErrors } = describeProviderFailures(causes);
+    logger.error("callOpenRouter", `Los ${candidates.length} candidatos de OpenRouter fallaron`, {
+      causes: message,
+      allRateLimited,
+      configErrorCount: configErrors.length,
+    });
+    if (allRateLimited) {
+      const rateErr = new Error(`OpenRouter agotó la cuota en los ${candidates.length} candidatos: ${message}`);
+      rateErr.name = "RateLimitError";
+      throw rateErr;
+    }
+    throw new Error(`OpenRouter falló en los ${candidates.length} candidatos — ${message}`);
+  }
 }
 
 export const openRouterProvider: LlmProvider = {

@@ -136,3 +136,48 @@ describe("sanitizeBriefGreeting — fin del 'Buen día, Camila'", () => {
     expect(sanitizeBriefGreeting("Buen día, empecemos con todo", "Facundo")).toBe("Buen día, empecemos con todo");
   });
 });
+
+describe("stripReasoning — CoT de nemotron-3.5-lightning-30b-a3b", () => {
+  // Texto REAL devuelto por la API de NVIDIA cuando NO se manda
+  // `chat_template_kwargs: { thinking: false }`. Su frase inicial es
+  // "Here's a thinking process:", que los patrones viejos no cubrían
+  // (buscaban "The user is asking", "I need to", etc.).
+  // Ojo: este fixture tiene a propósito UN solo indicador viejo (ninguno de los
+  // patrones originales: "I need to", "Let me", "The user", etc.). Así el test
+  // prueba de verdad el patrón nuevo, y no pasa por casualidad con la regla de
+  // "2+ indicadores" que ya existía.
+  const COT_SIMPLE = `Here's a thinking process:
+
+1.  **Analyze User Input:**
+   - User says: "deci hola en una palabra"
+
+2.  **Determine Response:**
+   - A greeting is requested.
+   - Respond with "Hola".`;
+
+  it("CoT conversacional, sin JSON: se descarta por completo", () => {
+    expect(cleanReplyText(COT_SIMPLE)).toBe("");
+  });
+
+  it("no filtra el preámbulo de razonamiento al usuario", () => {
+    const out = cleanReplyText(COT_SIMPLE);
+    expect(out).not.toContain("thinking process");
+    expect(out).not.toContain("Analyze User Input");
+    expect(out).not.toContain("Determine Response");
+  });
+
+  it("CoT con un JSON de ejemplo embebido: el razonamiento previo no pasa", () => {
+    const withJson = `Here's a thinking process:
+
+1.  **Analyze User Input:**
+   - The requested format is {"reply":"...","mascotState":"idle"}
+   - I need to fill the reply field with something appropriate.`;
+    const out = cleanReplyText(withJson);
+    expect(out).not.toContain("thinking process");
+    expect(out).not.toContain("Analyze User Input");
+  });
+
+  it("una respuesta legítima no se toca", () => {
+    expect(cleanReplyText("¡Hola! ¿Cómo va todo?")).toBe("¡Hola! ¿Cómo va todo?");
+  });
+});
