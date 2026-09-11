@@ -36,6 +36,10 @@ export type WeatherResult = {
   freshnessLabel: string;
   /** Ciudad canónica devuelta por el geocoder (útil para UI / logs). */
   city?: string;
+  /** Verified conditions for the greeting; absent upstream values remain absent. */
+  windKmh?: number;
+  rainPct?: number;
+  uv?: number;
   /** FIX SUNSET: hora local de salida del sol (HH:MM, 24h) — de open-meteo daily. */
   sunrise?: string;
   /** FIX SUNSET: hora local de puesta del sol (HH:MM, 24h) — de open-meteo daily. */
@@ -62,6 +66,7 @@ type ForecastResponse = {
     time: string;
     temperature_2m: number;
     weather_code: number;
+    wind_speed_10m?: number;
   };
   hourly?: {
     time: string[];
@@ -199,6 +204,8 @@ async function fetchForecast(lat: number, lng: number): Promise<ForecastResponse
   const params = new URLSearchParams({
     latitude: String(lat),
     longitude: String(lng),
+    current: "temperature_2m,weather_code,wind_speed_10m",
+    wind_speed_unit: "kmh",
     hourly: "temperature_2m,precipitation_probability,uv_index,weathercode",
     daily: "weathercode,temperature_2m_max,temperature_2m_min,sunrise,sunset",
     timezone: "auto",
@@ -300,6 +307,21 @@ function buildCurrent(fx: ForecastResponse): { now: string; condition: string; c
   return { now: "—", condition: "Sin datos", conditionIcon: "cloud" };
 }
 
+/** Use the forecast location's local clock, not the browser's timezone. */
+function greetingConditions(fx: ForecastResponse): Pick<WeatherResult, "windKmh" | "rainPct" | "uv"> {
+  const valid = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value) && value >= 0;
+  const wind = fx.current?.wind_speed_10m;
+  const currentTime = fx.current?.time;
+  const index = currentTime ? (fx.hourly?.time.findIndex(time => time >= currentTime) ?? -1) : -1;
+  const rain = index >= 0 ? fx.hourly?.precipitation_probability?.[index] : undefined;
+  const uv = index >= 0 ? fx.hourly?.uv_index?.[index] : undefined;
+  return {
+    ...(valid(wind) ? { windKmh: Math.round(wind) } : {}),
+    ...(valid(rain) && rain <= 100 ? { rainPct: Math.round(rain) } : {}),
+    ...(valid(uv) ? { uv: Math.round(uv * 10) / 10 } : {}),
+  };
+}
+
 // ---- API pública -------------------------------------------------------------
 
 /**
@@ -344,6 +366,7 @@ export async function fetchWeather(city: string): Promise<WeatherResult> {
     verifiedAt: new Date(verifiedAtMs).toISOString(),
     freshnessLabel: formatFreshness(verifiedAtMs),
     city: geo.canonical,
+    ...greetingConditions(fx),
     sunrise,
     sunset,
   };

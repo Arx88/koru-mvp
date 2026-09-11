@@ -1243,6 +1243,8 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
         {morningBrief && (
           <MorningBriefCard
             brief={morningBrief}
+            city={koruDomainState.userProfile?.location || koruDomainState.userProfile?.homeCity || koruDomainState.weatherCache?.city}
+            onLater={dismissMorningBrief}
             onStart={() => {
               dismissMorningBrief();
             }}

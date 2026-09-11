@@ -276,3 +276,27 @@ describe("weatherTool — errores", () => {
     await expect(fetchWeather("   ")).rejects.toThrow(/Ciudad no encontrada/);
   });
 });
+
+describe("greeting conditions preserve evidence", () => {
+  beforeEach(() => __clearWeatherCache());
+  afterEach(() => vi.unstubAllGlobals());
+  it("uses the location clock and requests current wind in km/h", async () => {
+    const mock = installFetchMock(url => url.includes("geocoding") ? { json: makeGeoResponse("Valencia") } : { json: {
+      current: { time: "2026-09-11T07:30", temperature_2m: 23, weather_code: 0, wind_speed_10m: 23 },
+      hourly: { time: ["2026-09-11T07:00", "2026-09-11T08:00"], temperature_2m: [21,23], precipitation_probability: [99,6], uv_index: [1,4], weathercode: [0,0] }
+    } });
+    const result = await fetchWeather("Valencia");
+    expect(result).toMatchObject({ windKmh: 23, rainPct: 6, uv: 4 });
+    const request = new URL(String(mock.mock.calls[1][0]));
+    expect(request.searchParams.get("current")).toContain("wind_speed_10m");
+    expect(request.searchParams.get("wind_speed_unit")).toBe("kmh");
+  });
+  it.each([null, undefined, -1, Number.NaN])("does not turn missing or invalid observations into zero (%s)", async value => {
+    installFetchMock(url => url.includes("geocoding") ? { json: makeGeoResponse("Valencia") } : { json: {
+      current: { time: "2026-09-11T07:30", temperature_2m: 23, weather_code: 0, wind_speed_10m: value },
+      hourly: { time: ["2026-09-11T08:00"], temperature_2m: [23], precipitation_probability: [value], uv_index: [value], weathercode: [0] }
+    } });
+    const result = await fetchWeather("Valencia");
+    expect(result.windKmh).toBeUndefined(); expect(result.rainPct).toBeUndefined(); expect(result.uv).toBeUndefined();
+  });
+});
