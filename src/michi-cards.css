@@ -38,6 +38,12 @@
   --mc-hero-game: url(/assets/art-01.webp);
   --mc-hero-compras: url(/assets/art-04.webp);
   --mc-hero-dormir: url(/assets/art-05.webp);
+  /* 🐱 v8.1 FIX LEGIBILIDAD (VLM audit + medición PIL): 7/9 artes de hero son
+     demasiado claras en la zona de texto (brillo 142-151) y el texto blanco
+     (.mc-bigval/.mc-bigsub/.mc-bigmin) quedaba ilegible (contraste ~1:1).
+     Scrim de tinta Michi #151077 arriba (donde vive el texto) que se disuelve
+     hacia abajo: la ilustración queda visible y el texto legible (≥8:1). */
+  --mc-scrim: linear-gradient(180deg, rgba(21, 16, 119, 0.60) 0%, rgba(21, 16, 119, 0.34) 40%, rgba(21, 16, 119, 0.10) 68%, rgba(21, 16, 119, 0) 100%);
 }
 
 /* ---------- badges de ícono (kawaii sólido) ---------- */
@@ -117,8 +123,8 @@
   flex-direction: column;
   gap: 4px;
   aspect-ratio: 1.62;
-  background-image: var(--mc-h, var(--mc-hero-clima));
-  background-size: cover;
+  background-image: var(--mc-scrim), var(--mc-h, var(--mc-hero-clima));
+  background-size: cover, cover;
   background-position: center 57%;
   border-radius: 28px 31px 0 0;
   border: 1.5px solid #dfffff;
@@ -683,7 +689,8 @@
 
 /* ---------- CRIPTO (hero Stock del usuario + tiles de monedas) ---------- */
 .mc-c-crypto .mc-art {
-  background-image: var(--mc-hero-cripto);
+  background-image: var(--mc-scrim), var(--mc-hero-cripto);
+  background-size: cover, cover;
   background-position: center 40%;
 }
 .mc-cr-chg {
@@ -763,7 +770,8 @@
 
 /* ---------- FÚTBOL (art + scoreboard broadcast) ---------- */
 .mc-c-futbol .mc-art {
-  background-image: var(--mc-hero-futbol);
+  background-image: var(--mc-scrim), var(--mc-hero-futbol);
+  background-size: cover, cover;
   background-position: center 42%;
 }
 .mc-fu-body {
@@ -910,7 +918,8 @@
 
 /* ---------- TENIS (hero Tennis del usuario + panel) ---------- */
 .mc-c-tenis .mc-art {
-  background-image: var(--mc-hero-tenis);
+  background-image: var(--mc-scrim), var(--mc-hero-tenis);
+  background-size: cover, cover;
   background-position: center 45%;
 }
 .mc-bigsub em {
@@ -995,7 +1004,8 @@
 
 /* ---------- RECETA (art + pills de ingredientes) ---------- */
 .mc-c-receta .mc-art {
-  background-image: var(--mc-hero-receta);
+  background-image: var(--mc-scrim), var(--mc-hero-receta);
+  background-size: cover, cover;
   background-position: center 42%;
 }
 .mc-re-body {
@@ -1142,7 +1152,8 @@
 
 /* ---------- FITNESS (hero Fitness del usuario + anillo) ---------- */
 .mc-c-fit .mc-art {
-  background-image: var(--mc-hero-fit);
+  background-image: var(--mc-scrim), var(--mc-hero-fit);
+  background-size: cover, cover;
   background-position: center 40%;
 }
 .mc-lchip.up {
@@ -1369,7 +1380,8 @@
 
 /* ---------- GAMING (hero Inform del usuario + panel claro) ---------- */
 .mc-c-game .mc-art {
-  background-image: var(--mc-hero-game);
+  background-image: var(--mc-scrim), var(--mc-hero-game);
+  background-size: cover, cover;
   background-position: center 42%;
 }
 .mc-ga-stars {
@@ -1416,7 +1428,8 @@
 
 /* ---------- COMPRAS (art + filas de ofertas) ---------- */
 .mc-c-shop .mc-art {
-  background-image: var(--mc-hero-compras);
+  background-image: var(--mc-scrim), var(--mc-hero-compras);
+  background-size: cover, cover;
   background-position: center 45%;
 }
 .mc-sh-body {
@@ -1514,7 +1527,8 @@
 
 /* ---------- DORMIR (hero Sleep del usuario + panel claro) ---------- */
 .mc-c-sleep .mc-art {
-  background-image: var(--mc-hero-dormir);
+  background-image: var(--mc-scrim), var(--mc-hero-dormir);
+  background-size: cover, cover;
   background-position: center 40%;
 }
 .mc-sl-moon {

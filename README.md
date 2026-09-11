@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🌱 Koru
+# 🐱 Michi
 
 ### _Un compañero que escucha, ordena y recuerda — con tu permiso._
 
@@ -15,15 +15,15 @@
 
 ---
 
-> _"Koru no se alimenta de secretos."_
+> _"Michi no se alimenta de secretos."_
 
-Koru es una mascota virtual que vive en tu teléfono. La abrís, le hablás como a un amigo, y ella **ordena tu día**: te recuerda cosas, anota tus gastos, busca en la web, te hace un informe, te sugiere una receta con lo que tenés en la heladera, te avisa si llové, te cuenta cómo le fue a tu equipo. Y **memoriza lo que le contás** — pero solo cuando vos querés.
+Michi es una mascota virtual que vive en tu teléfono. La abrís, le hablás como a un amigo, y ella **ordena tu día**: te recuerda cosas, anota tus gastos, busca en la web, te hace un informe, te sugiere una receta con lo que tenés en la heladera, te avisa si llové, te cuenta cómo le fue a tu equipo. Y **memoriza lo que le contás** — pero solo cuando vos querés.
 
 No es un chatbot que escupe texto. Es un operador: cuando le pedís algo, **devuelve una card visual** con los datos organizados, fuentes verificables y botones para actuar.
 
 ```
 Vos:    "anotá $1500 que gasté en café y medialunas"
-Koru:   "Listo, anoté los 500 pesos de café y medialunas. ¡Buen provecho!"
+Michi:   "Listo, anoté los 500 pesos de café y medialunas. ¡Buen provecho!"
         ┌─────────────────────────────┐
         │ 💸 Tus Finanzas              │
         │                              │
@@ -36,7 +36,7 @@ Koru:   "Listo, anoté los 500 pesos de café y medialunas. ¡Buen provecho!"
 
 ---
 
-## ✨ ¿Qué puedo pedirle a Koru?
+## ✨ ¿Qué puedo pedirle a Michi?
 
 Acá van ejemplos **reales**, escritos como los escribiría un humano (sin tildes, vago, conversacional). Todos estos están en los tests E2E y funcionan hoy.
 
@@ -44,7 +44,7 @@ Acá van ejemplos **reales**, escritos como los escribiría un humano (sin tilde
 
 ```
 Vos:    "el martes q viene tengo q ir al dentista a las 18"
-Koru:   "Anotado. Te aviso el martes a las 17:30 así llegás tranquilo."
+Michi:   "Anotado. Te aviso el martes a las 17:30 así llegás tranquilo."
         → crea compromiso + recordatorio
 
 Vos:    "no me olvides llamar a mi vieja mañana"
@@ -59,7 +59,7 @@ Vos:    "necesito levantarme a las 6 el sabado"
 
 ```
 Vos:    "anotá $1500 que gasté en café y medialunas"
-Koru:   "Listo, anoté los 500 pesos de café y medialunas. ¡Buen provecho!"
+Michi:   "Listo, anoté los 500 pesos de café y medialunas. ¡Buen provecho!"
         → card "Tus Finanzas" con ARS 500
 
 Vos:    "gaste 23000 en super, 8900 en farmacia y 12000 en nafta"
@@ -67,11 +67,11 @@ Vos:    "anota gasto de 100 euros en supermercado"
 Vos:    "pague 8 euros de farmacia hoy"
 
 Vos:    "cuanto gaste esta semana?"
-Koru:   "Esta semana gastaste 20 euros: 12 en supermercado y 8 en farmacia."
+Michi:   "Esta semana gastaste 20 euros: 12 en supermercado y 8 en farmacia."
         → card "Dinero" con desglose
 
 Vos:    "Puedo permitirme comprar una silla de 90 euros?"
-Koru:   "Mirá tus gastos de los últimos 7 días..."
+Michi:   "Mirá tus gastos de los últimos 7 días..."
         → card "Decisión" con "Mi voto: Yo esperaría" + justificación
 ```
 
@@ -79,7 +79,7 @@ Koru:   "Mirá tus gastos de los últimos 7 días..."
 
 ```
 Vos:    "necesito leche, huevos, pan y queso para el super"
-Koru:   "Listo, guardé la lista: leche, huevos, pan y queso. ¡Que vaya bien la compra!"
+Michi:   "Listo, guardé la lista: leche, huevos, pan y queso. ¡Que vaya bien la compra!"
         ┌─────────────────────────────┐
         │ 📝 Tu Lista · LISTA DE COMPRAS│
         │    Ítems: 4                   │
@@ -95,7 +95,7 @@ Vos:    "donde compro mas barato airpods"
 
 ```
 Vos:    "¿qué clima hace en Madrid?"
-Koru:   "En Madrid hace 34°C ahora, con máximas de 37°C y mínimas de 21°C.
+Michi:   "En Madrid hace 34°C ahora, con máximas de 37°C y mínimas de 21°C.
         No hay probabilidad de lluvia y el viento está a 10 km/h.
         Día para ir ligero de ropa y llevar agua."
         ┌─────────────────────────────────────┐
@@ -118,7 +118,7 @@ Vos:    "esta para shorts?"
 
 ```
 Vos:    "tengo pollo y arroz q hago"
-Koru:   "Mirá estas opciones con lo que tenés..."
+Michi:   "Mirá estas opciones con lo que tenés..."
         → card con recetas que matchean tus ingredientes
 
 Vos:    "algo rapido de cenar"
@@ -132,7 +132,7 @@ Vos:    "postre facil y rapido"
 
 ```
 Vos:    "mejor parrilla de Palermo"
-Koru:   "Cruzé 5 fuentes y esto es lo que encontré."
+Michi:   "Cruzé 5 fuentes y esto es lo que encontré."
         ┌─────────────────────────────────────────────┐
         │ 🍖 DeepHungry Synthesis · 5 fuentes           │
         │                                                │
@@ -171,7 +171,7 @@ Si solo encuentra 2 fuentes, **no inventa**. Te muestra una caja ámbar:
 
 ```
 Vos:    "como salio España ayer"
-Koru:   "España le ganó 2-1. Te dejé el detalle en la tarjeta."
+Michi:   "España le ganó 2-1. Te dejé el detalle en la tarjeta."
         → card LiveMatch con tabs Stats / Lineups / Timeline
 
 Vos:    "como le fue a Boca"
@@ -184,12 +184,12 @@ Vos:    "como va la champions"
 
 ```
 Vos:    "a cuanto esta el bitcoin"
-Koru:   → card CryptoPortfolio con precio en vivo
+Michi:   → card CryptoPortfolio con precio en vivo
 
 Vos:    "como esta el btc"
 Vos:    "precio del bitcoin"
 Vos:    "a cuanto está el dólar"
-Koru:   → card "Dato de Hoy · DÓLAR · Blue subió 1,2%"
+Michi:   → card "Dato de Hoy · DÓLAR · Blue subió 1,2%"
         OFICIAL $1.185 / BLUE $1.320 / MEP $1.292
 ```
 
@@ -211,7 +211,7 @@ Vos:    "de q trata interstellar"
 Vos:    "quiero un informe sobre Age of Empires 2: su historia, civilizaciones
         y cómo se juega hoy"
 
-Koru:   "¡Buenísimo! 🏰 Me pongo a investigar y te armo el informe."
+Michi:   "¡Buenísimo! 🏰 Me pongo a investigar y te armo el informe."
 
         ┌─────────────────────────────────────────┐
         │ 🔍 Trabajando en tu informe...           │
@@ -247,17 +247,17 @@ Koru:   "¡Buenísimo! 🏰 Me pongo a investigar y te armo el informe."
         │  [Ver informe completo →]                │
         └─────────────────────────────────────────┘
 
-Koru:   "¡Listo! Tu informe sobre Age of Empires 2 está terminado.
+Michi:   "¡Listo! Tu informe sobre Age of Empires 2 está terminado.
         Lo investigué en 18 fuentes."
 ```
 
 ### 🧠 Memoria — el Jardín
 
-Koru **no guarda nada sin tu permiso**. Cuando mencionás algo personal, ella te lo muestra como candidato y vos decidís:
+Michi **no guarda nada sin tu permiso**. Cuando mencionás algo personal, ella te lo muestra como candidato y vos decidís:
 
 ```
 Vos:    "me encanta el helado de pistacho"
-Koru:   → card memoria candidata "Te encanta el helado de pistacho"
+Michi:   → card memoria candidata "Te encanta el helado de pistacho"
         [🌊 Regar]  [✂️ Poda]  [📋 Archivar]
 
 Vos:    "estoy aprendiendo japonés los martes"
@@ -268,51 +268,51 @@ Vos:    "estoy ahorrando para un viaje a japon"
 Vos:    "trabajo de programador"
 ```
 
-Después, **Koru usa esa memoria** en contextos no relacionados:
+Después, **Michi usa esa memoria** en contextos no relacionados:
 
 ```
-Vos:    "que calor"        → Koru sugiere helado (recordó pistacho)
-Vos:    "que hago este finde"  → Koru sugiere practicar japonés
-Vos:    "tirame una receta" → Koru excluye morrón de las opciones
-Vos:    "que hago con mi sueldo" → Koru recuerda tu ahorro para Japón
-Vos:    "que tal el dia"  → Koru sabe que te gusta correr por la mañana
+Vos:    "que calor"        → Michi sugiere helado (recordó pistacho)
+Vos:    "que hago este finde"  → Michi sugiere practicar japonés
+Vos:    "tirame una receta" → Michi excluye morrón de las opciones
+Vos:    "que hago con mi sueldo" → Michi recuerda tu ahorro para Japón
+Vos:    "que tal el dia"  → Michi sabe que te gusta correr por la mañana
 ```
 
 ### 🌍 Radar del mundo
 
 ```
 Vos:    "El mundo está hablando de esto en IA, te enteraste?"
-Koru:   → card "El mundo" con señales recientes
+Michi:   → card "El mundo" con señales recientes
         [Seguir radar]
 
-Koru (proactivo, luego): "Te voy a traer este radar cada mañana."
+Michi (proactivo, luego): "Te voy a traer este radar cada mañana."
 ```
 
-### 🌧️ Anti-alucinación — Koru no inventa
+### 🌧️ Anti-alucinación — Michi no inventa
 
 ```
 Vos:    "¿cómo le fue a River Plate en el último partido?"
-Koru:   "Busqué en las noticias pero no apareció el resultado concreto
+Michi:   "Busqué en las noticias pero no apareció el resultado concreto
         del último partido (ni el rival ni el marcador). ¿Querés que
         intente una búsqueda más específica o preferís mirar directo
         en 365Scores / la web oficial?"
 
 Vos:    "¿qué paso en el mundo hoy?"
-Koru:   "No pude conseguir noticias frescas con las fuentes abiertas
+Michi:   "No pude conseguir noticias frescas con las fuentes abiertas
         ahora mismo. ¿Querés que lo intente más tarde?"
 ```
 
-Esto es **deliberado**. Koru prefiere decir "no sé" antes que inventar un resultado o un número.
+Esto es **deliberado**. Michi prefiere decir "no sé" antes que inventar un resultado o un número.
 
 ---
 
-## 🌅 Un día con Koru
+## 🌅 Un día con Michi
 
 ### 8:00 — Despertar
 
 ```
 Vos:    "buen día"
-Koru:   "Hola. ¿Cómo va todo?"
+Michi:   "Hola. ¿Cómo va todo?"
         [mascota: happy]
 ```
 
@@ -320,7 +320,7 @@ Koru:   "Hola. ¿Cómo va todo?"
 
 ```
 Vos:    "anotá $1500 que gasté en café y medialunas"
-Koru:   "Listo, anoté los 500 pesos de café y medialunas. ¡Buen provecho!"
+Michi:   "Listo, anoté los 500 pesos de café y medialunas. ¡Buen provecho!"
         → card "Tus Finanzas" con ARS 500
 ```
 
@@ -328,7 +328,7 @@ Koru:   "Listo, anoté los 500 pesos de café y medialunas. ¡Buen provecho!"
 
 ```
 Vos:    "necesito leche, huevos, pan y queso para el super"
-Koru:   "Listo, guardé la lista: leche, huevos, pan y queso.
+Michi:   "Listo, guardé la lista: leche, huevos, pan y queso.
         ¡Que vaya bien la compra!"
         → card "Tu Lista · LISTA DE COMPRAS · Ítems: 4"
 ```
@@ -337,7 +337,7 @@ Koru:   "Listo, guardé la lista: leche, huevos, pan y queso.
 
 ```
 Vos:    "¿qué clima hace en Madrid hoy?"
-Koru:   "En Madrid hace 34°C ahora, con máximas de 37°C y mínimas de 21°C.
+Michi:   "En Madrid hace 34°C ahora, con máximas de 37°C y mínimas de 21°C.
         No hay probabilidad de lluvia y el viento está a 10 km/h.
         Día para ir ligero de ropa y llevar agua."
         → card "Tu Clima · Madrid, España"
@@ -347,7 +347,7 @@ Koru:   "En Madrid hace 34°C ahora, con máximas de 37°C y mínimas de 21°C.
 
 ```
 Vos:    "¿cómo le fue a River Plate en el último partido?"
-Koru:   "Busqué en las noticias pero no apareció el resultado concreto.
+Michi:   "Busqué en las noticias pero no apareció el resultado concreto.
         ¿Querés que intente una búsqueda más específica?"
         → (no inventa resultado — anti-alucinación)
 ```
@@ -358,28 +358,28 @@ Koru:   "Busqué en las noticias pero no apareció el resultado concreto.
 Vos:    "quiero un informe sobre Age of Empires 2: su historia,
         civilizaciones y cómo se juega hoy"
 
-Koru:   "¡Buenísimo! 🏰 Me pongo a investigar y te armo el informe."
+Michi:   "¡Buenísimo! 🏰 Me pongo a investigar y te armo el informe."
         → WorkingPanel con 4 fases de búsqueda
         → (90 segundos después)
         → card "Tu Informe · AGE OF EMPIRES II: HISTORIA"
 
-Koru:   "¡Listo! Tu informe está terminado. Lo investigué en 18 fuentes."
+Michi:   "¡Listo! Tu informe está terminado. Lo investigué en 18 fuentes."
 ```
 
 ### 20:00 — Cena
 
 ```
 Vos:    "¿qué puedo cenar esta noche?"
-Koru:   "¿En qué barrio o ciudad estás? Así te busco opciones cerca."
+Michi:   "¿En qué barrio o ciudad estás? Así te busco opciones cerca."
 Vos:    "estoy en Palermo, Buenos Aires"
-Koru:   → card RestaurantSynthesis con top coincidencias
+Michi:   → card RestaurantSynthesis con top coincidencias
 ```
 
 ### 23:00 — Cierre del día
 
 ```
 Vos:    "anotá que hoy fue un buen día"
-Koru:   "Listo, guardado. Qué lindo que haya sido un buen día 🌿"
+Michi:   "Listo, guardado. Qué lindo que haya sido un buen día 🌿"
         [mascota: affectionate]
         → card "Guardado en · GUARDADO · Hoy fue un buen día"
 ```
@@ -392,11 +392,11 @@ Koru:   "Listo, guardado. Qué lindo que haya sido un buen día 🌿"
 
 ---
 
-## 💜 La personalidad de Koru
+## 💜 La personalidad de Michi
 
-Koru tiene un **tono calibrado**: cálido pero directriz, con humor tímido. Voseo rioplatense. Frases cortas. Cero jerga.
+Michi tiene un **tono calibrado**: cálido pero directriz, con humor tímido. Voseo rioplatense. Frases cortas. Cero jerga.
 
-### Lo que Koru **sí** dice
+### Lo que Michi **sí** dice
 
 | Situación | Frase típica |
 |---|---|
@@ -404,20 +404,20 @@ Koru tiene un **tono calibrado**: cálido pero directriz, con humor tímido. Vos
 | Guardado | "Listo, guardado en {colección}." |
 | Error | "Se nubló el dato — no te muestro números viejos como si fueran de ahora" |
 | Vacío | "Todavía no sembraste nada" |
-| Idle | "Koru se durmió un rato — despertalo con un hola" |
+| Idle | "Michi se durmió un rato — despertalo con un hola" |
 | Cansancio del usuario | "Te entiendo. Si querés, bajo el ritmo y ordenamos lo mínimo indispensable para hoy." |
 | Cumpleaños | "¡Feliz cumple! 🌿" |
 | Saludo | "Hola. ¿Cómo va todo?" |
 
-### Lo que Koru **nunca** dice
+### Lo que Michi **nunca** dice
 
 > "Te extrañe" / "No me abandones" / "Soy la única persona que te entiende" / "Si no vuelves me marchito" / "Siempre estaré aquí para ti" / "Yo sé lo que necesitas mejor que tú"
 
-Koru no es **dependiente**. No es **empalagosa**. No te convierte todo en plan. Respeta tu estado emocional.
+Michi no es **dependiente**. No es **empalagosa**. No te convierte todo en plan. Respeta tu estado emocional.
 
 ### Las 4 personas que evaluamos
 
-Koru se prueba contra 4 perfiles reales con voces distintas:
+Michi se prueba contra 4 perfiles reales con voces distintas:
 
 | | Persona | Voz | Cómo la usa |
 |---|---|---|---|
@@ -432,7 +432,7 @@ Cada uno recibe respuestas con **tono ajustado a su voz**.
 
 ## 🎭 Los 16 estados de la mascota
 
-Koru se renderiza como una mascota animada que refleja lo que está pasando:
+Michi se renderiza como una mascota animada que refleja lo que está pasando:
 
 | Estado | Cuándo lo ves |
 |---|---|
@@ -457,7 +457,7 @@ Koru se renderiza como una mascota animada que refleja lo que está pasando:
 
 ## 🧠 El Jardín de la Memoria
 
-La memoria de Koru es **confirmable, no absorbente**. No como otros asistentes que absorben todo sin pedir permiso.
+La memoria de Michi es **confirmable, no absorbente**. No como otros asistentes que absorben todo sin pedir permiso.
 
 ### Cómo funciona
 
@@ -465,7 +465,7 @@ La memoria de Koru es **confirmable, no absorbente**. No como otros asistentes q
 1. Vos mencionás algo personal
    "estoy aprendiendo japonés los martes"
 
-2. Koru lo propone como candidato
+2. Michi lo propone como candidato
    ┌──────────────────────────────────────┐
    │ 🌱 Memoria candidata                  │
    │                                       │
@@ -480,14 +480,14 @@ La memoria de Koru es **confirmable, no absorbente**. No como otros asistentes q
    ✂️ Poda   →  se descarta para siempre
    📋 Archivar  →  se guarda pero no se usa en sugerencias
 
-4. Koru la usa después, en contexto no relacionado
+4. Michi la usa después, en contexto no relacionado
    Vos: "que hago este finde?"
-   Koru: "... ¿quizás practicar japonés? Sé que los martes es tu día."
+   Michi: "... ¿quizás practicar japonés? Sé que los martes es tu día."
 ```
 
 ### Las 5 etapas del jardín
 
-Tu relación con Koru crece con la confianza:
+Tu relación con Michi crece con la confianza:
 
 ```
 seed → sprout → roots → born → garden
@@ -496,13 +496,13 @@ seed → sprout → roots → born → garden
    empezando   construida      total
 ```
 
-Cuantas más memorias confirmás, más crece el jardín. Koru no te pide todo de entrada — te lo pregunta cuando es relevante.
+Cuantas más memorias confirmás, más crece el jardín. Michi no te pide todo de entrada — te lo pregunta cuando es relevante.
 
 ---
 
-## 🛡️ Lo que Koru NO hace sin tu permiso
+## 🛡️ Lo que Michi NO hace sin tu permiso
 
-Koru tiene **boundaries explícitas**. Cada tool declara su nivel de riesgo:
+Michi tiene **boundaries explícitas**. Cada tool declara su nivel de riesgo:
 
 | Tool | Riesgo | Requiere aprobación |
 |---|---|---|
@@ -521,7 +521,7 @@ Y **siempre** te explica qué no hizo y por qué:
 
 ```
 Vos:    "mandale un mensaje a mi jefe que me voy a casa"
-Koru:   "Te armé el borrador del mensaje. Antes de enviarlo
+Michi:   "Te armé el borrador del mensaje. Antes de enviarlo
         necesito que lo apruebes — no envío mensajes en tu
         nombre sin tu visto bueno."
         → card MessageDraft + botón [Aprobar y enviar]
@@ -531,11 +531,11 @@ Koru:   "Te armé el borrador del mensaje. Antes de enviarlo
 
 ## ✨ El "+1" — Enhancement Engine
 
-Después de cada respuesta, Koru propone **una** acción contextual como botón clickeable. No te inunda con opciones. Solo una, la más relevante.
+Después de cada respuesta, Michi propone **una** acción contextual como botón clickeable. No te inunda con opciones. Solo una, la más relevante.
 
 ```
 Vos:    "anota que gasté 18 euros en farmacia"
-Koru:   "Guardado: 18 EUR en farmacia."
+Michi:   "Guardado: 18 EUR en farmacia."
 
         ┌─────────────────────────────────────────┐
         │ 💡 Como fue farmacia, ¿quieres que deje  │
@@ -548,7 +548,7 @@ Koru:   "Guardado: 18 EUR en farmacia."
 
 ```
 Vos:    "estoy quemado, no puedo con todo"
-Koru:   "Te creo. Hoy no hace falta convertir todo en una montaña."
+Michi:   "Te creo. Hoy no hace falta convertir todo en una montaña."
 
         ┌─────────────────────────────────────────┐
         │ 💡 ¿Querés que sugiera pausas?            │
@@ -557,20 +557,20 @@ Koru:   "Te creo. Hoy no hace falta convertir todo en una montaña."
         └─────────────────────────────────────────┘
 ```
 
-Si aceptás, Koru ejecuta la acción. Si la rechazás, **aprende** y no te lo vuelve a proponer con esa frecuencia.
+Si aceptás, Michi ejecuta la acción. Si la rechazás, **aprende** y no te lo vuelve a proponer con esa frecuencia.
 
 ---
 
 ## 📴 Offline-first
 
-Koru funciona **sin internet** para lo básico:
+Michi funciona **sin internet** para lo básico:
 
 - ✅ Ver tus gastos, listas, memorias y compromisos guardados
 - ✅ Crear nuevas notas, gastos, recordatorios (se encolan)
 - ✅ Ver el historial completo de turnos
 - ✅ Onboarding y ajustes
 
-Cuando recuperás conexión, **Koru replay** automáticamente todo lo que hiciste offline:
+Cuando recuperás conexión, **Michi replay** automáticamente todo lo que hiciste offline:
 
 ```
 [Offline] "anota 25 euros de farmacia"     → se encola
@@ -584,14 +584,14 @@ El cache de respuestas del LLM dura 24 horas en IndexedDB.
 
 ## 🌐 Idiomas
 
-Koru habla **español** e **inglés**, y detecta automáticamente cuál estás usando:
+Michi habla **español** e **inglés**, y detecta automáticamente cuál estás usando:
 
 ```
 Vos:    "good morning, how are you?"
-Koru:   "Hey! I'm doing good. What's up?"
+Michi:   "Hey! I'm doing good. What's up?"
 
 Vos:    "buenas, como andás?"
-Koru:   "Buenas. Todo tranqui por acá. ¿Vos?"
+Michi:   "Buenas. Todo tranqui por acá. ¿Vos?"
 ```
 
 Podés forzar el idioma en Ajustes si querés.
@@ -604,7 +604,7 @@ Podés forzar el idioma en Ajustes si querés.
 
 1. Abrí https://koru-mvp.onrender.com en tu móvil (Chrome / Safari)
 2. Menú → **"Agregar a pantalla de inicio"**
-3. Ícono de Koru aparece en tu home
+3. Ícono de Michi aparece en tu home
 4. Abrilo → pantalla completa, sin barra del navegador
 
 ### Como APK Android
@@ -641,7 +641,7 @@ npm run dev
 
 ## 🎨 Galería de cards
 
-Koru tiene **56 tipos de cards visuales** organizadas en 13 dominios. Algunas de las más usadas:
+Michi tiene **56 tipos de cards visuales** organizadas en 13 dominios. Algunas de las más usadas:
 
 ### ☀️ WeatherCard
 Ciudad · temperatura actual · min/max · viento · probabilidad de lluvia · advice ("Día para salir ligero")
@@ -689,7 +689,7 @@ Lista de fuentes verificadas con icono "verified" + link al original
 
 ## 🛠️ Para desarrolladores
 
-> Esta sección es **reference material**. Si solo querés usar Koru, no la necesitás.
+> Esta sección es **reference material**. Si solo querés usar Michi, no la necesitás.
 
 ### Stack
 
@@ -704,7 +704,7 @@ Lista de fuentes verificadas con icono "verified" + link al original
 
 ### Proveedores LLM con fallback
 
-Koru prueba en este orden hasta que uno responde:
+Michi prueba en este orden hasta que uno responde:
 
 1. **MiniMax** (si está configurado) — `MiniMax-M2.7`
 2. **NVIDIA Integrate** — `nvidia/nemotron-3-ultra-550b-a55b` (default)
@@ -794,7 +794,7 @@ npx playwright test   # 13 E2E (Playwright desktop + Pixel 7)
 | **F2** Personalización | 🚧 Plan | Voice preferences ajustables · APK Android firmado |
 | **F3** Proactividad avanzada | 📋 Plan | Heartbeat con nudges contextuales (clima, tráfico, medicación, resultados) |
 | **F4** Multi-dispositivo | 📋 Plan | Sync opcional cifrada entre dispositivos |
-| **F5** Koru-Qwen 27B local | 📋 Plan | Fine-tuning propio · 100% offline · pipeline en `finetune/` |
+| **F5** Michi-Qwen 27B local | 📋 Plan | Fine-tuning propio · 100% offline · pipeline en `finetune/` |
 
 ---
 
@@ -804,10 +804,10 @@ npx playwright test   # 13 E2E (Playwright desktop + Pixel 7)
 
 5 principios no negociables:
 
-1. **Memoria confirmable.** Vos sos el único dueño de tu memoria. Koru propone, vos decidís.
-2. **Boundaries explícitas.** Koru nunca hace algo sensible sin aprobación. Y siempre explica qué no hizo y por qué.
+1. **Memoria confirmable.** Vos sos el único dueño de tu memoria. Michi propone, vos decidís.
+2. **Boundaries explícitas.** Michi nunca hace algo sensible sin aprobación. Y siempre explica qué no hizo y por qué.
 3. **Anti-alucinación estructural.** Todo dato en una respuesta debe tener una cita literal verificable. Si no la tiene, no se incluye.
-4. **Enhancement "+1".** Koru no solo responde — propone la próxima acción relevante como botón clickeable. Vos decidís si la ejecutás.
+4. **Enhancement "+1".** Michi no solo responde — propone la próxima acción relevante como botón clickeable. Vos decidís si la ejecutás.
 5. **Personalidad calibrada.** Cálido pero directriz. No empalagoso. No convierte todo a plan. Respeta tu estado emocional.
 
 ---
@@ -822,8 +822,8 @@ Las skills en `skills/` son catálogo del **z-ai-web-dev-sdk** y mantienen sus p
 
 <div align="center">
 
-**Abrí Koru y contale algo. Ella escucha, ordena y recuerda — con tu permiso.**
+**Abrí Michi y contale algo. Ella escucha, ordena y recuerda — con tu permiso.**
 
-[🌱 Usar Koru →](https://koru-mvp.onrender.com) · [🐛 Reportar bug](https://github.com/Arx88/koru-mvp/issues)
+[🐱 Usar Michi →](https://koru-mvp.onrender.com) · [🐛 Reportar bug](https://github.com/Arx88/koru-mvp/issues)
 
 </div>

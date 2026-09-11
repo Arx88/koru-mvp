@@ -4862,13 +4862,14 @@ a.koru-dsec-source:hover {
    PWA Install Prompt — banner inferior para instalar la app
    ═══════════════════════════════════════════════════════════════════════════ */
 
+/* 🐱 v8.1 FIX SOLAPAMIENTO (VLM audit): antes position:fixed bottom:16px →
+   flotaba encima de los chips de sugerencia y del composer. Ahora es un
+   elemento de flujo del footer (encima de .mx-chips): centrado con margin
+   auto, el footer cede su lugar y nada se solapa. */
 .koru-install-prompt {
-  position: fixed;
-  bottom: 16px;
-  left: 50%;
-  transform: translateX(-50%);
+  position: relative;
+  margin: 0 auto 10px;
   width: min(440px, calc(100% - 32px));
-  z-index: 9997;
   background: linear-gradient(135deg, rgba(30, 27, 75, 0.97) 0%, rgba(89, 64, 224, 0.97) 100%);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
@@ -6861,11 +6862,13 @@ a.koru-dsec-source:hover {
 }
 
 /* 🔴 v2: Create coachmark — tooltip que aparece después del 2do mensaje */
+/* 🐱 v8.1 FIX SOLAPAMIENTO (VLM audit): antes position:absolute bottom:100%
+   dentro del form → la burbuja tapaba los chips de sugerencia. Ahora es
+   elemento de flujo del footer (entre chips y composer): la flecha sigue
+   apuntando al botón + y nada queda cubierto. */
 .koru-create-coachmark {
-  position: absolute;
-  bottom: 100%;
-  left: 12px;
-  margin-bottom: 8px;
+  position: relative;
+  margin: 0 2px 8px 12px;
   z-index: 30;
   animation: koru-coachmark-in 0.3s ease-out;
 }

@@ -1249,25 +1249,6 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
           />
         )}
 
-        {/* 🔴 PWA install prompt */}
-        {showInstallPrompt && (
-          <div className="koru-install-prompt" role="dialog" aria-label="Instalar Michi">
-            <div className="koru-install-prompt-content">
-              <div className="koru-install-prompt-icon">
-                <span className="material-symbols-outlined">install_mobile</span>
-              </div>
-              <div className="koru-install-prompt-text">
-                <strong>Instalá Michi</strong>
-                <p>Acceso rápido desde tu pantalla de inicio</p>
-              </div>
-              <div className="koru-install-prompt-actions">
-                <button type="button" onClick={() => void installApp()} className="koru-install-prompt-accept">Instalar</button>
-                <button type="button" onClick={dismissInstallPrompt} className="koru-install-prompt-dismiss">Ahora no</button>
-              </div>
-            </div>
-          </div>
-        )}
-
         <h1 className="koru-sr-heading">Michi</h1>
 
         {/* 🔴 v7.4 — Suggestion Pills ELIMINADAS a pedido del usuario:
@@ -1401,6 +1382,29 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
               </div>
             )}
 
+            {/* 🔴 PWA install prompt — 🐱 v8.1 FIX SOLAPAMIENTO: antes era
+                position:fixed bottom:16px y flotaba ENCIMA de los chips de
+                sugerencia y del composer (VLM audit). Ahora vive en el flujo
+                del footer, encima de los chips: el footer cede su lugar y nada
+                se solapa por construcción. */}
+            {showInstallPrompt && (
+              <div className="koru-install-prompt" role="dialog" aria-label="Instalar Michi">
+                <div className="koru-install-prompt-content">
+                  <div className="koru-install-prompt-icon">
+                    <span className="material-symbols-outlined">install_mobile</span>
+                  </div>
+                  <div className="koru-install-prompt-text">
+                    <strong>Instalá Michi</strong>
+                    <p>Acceso rápido desde tu pantalla de inicio</p>
+                  </div>
+                  <div className="koru-install-prompt-actions">
+                    <button type="button" onClick={() => void installApp()} className="koru-install-prompt-accept">Instalar</button>
+                    <button type="button" onClick={dismissInstallPrompt} className="koru-install-prompt-dismiss">Ahora no</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* 🐱 v8 — Chips de categoría del usuario (Clima / Lugares / Ideas /
                 Tareas): chips blancos rotados con iconos violeta; el seleccionado
                 queda con gradiente violeta. En su demo eran respuestas fijas —
@@ -1431,6 +1435,33 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
               ))}
             </nav>
 
+            {/* 🔴 v2: coachmark para Create — aparece después del 2do mensaje.
+                🐱 v8.1 FIX SOLAPAMIENTO: antes era position:absolute bottom:100%
+                DENTRO del form composer y su burbuja tapaba los chips de
+                sugerencia (VLM audit). Ahora es elemento de flujo del footer,
+                entre los chips y el composer: la flecha sigue apuntando al botón
+                + y nada queda cubierto. */}
+            {showCreateCoachmark && (
+              <div className="koru-create-coachmark" role="dialog" aria-label="Tip: Crear">
+                <div className="koru-create-coachmark-bubble">
+                  <span className="material-symbols-outlined">tips_and_updates</span>
+                  <div className="koru-create-coachmark-text">
+                    <strong>¿Querés anotar algo rápido?</strong>
+                    <span>Tocá el <strong>+</strong> abajo para crear notas, listas, gastos y más.</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="koru-create-coachmark-close"
+                    aria-label="Cerrar"
+                    onClick={dismissCreateCoachmark}
+                  >
+                    <span className="material-symbols-outlined">close</span>
+                  </button>
+                </div>
+                <div className="koru-create-coachmark-arrow" />
+              </div>
+            )}
+
             {/* 🐱 v8 — Composer del usuario: forma orgánica (clipPath
                 composer-shape), botones redondos violeta (radial #aa89ff →
                 #5d3ee7) e input pastilla #e9efff. El + abre el popover de
@@ -1443,27 +1474,6 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
                 void handleTextSubmit();
               }}
             >
-              {/* 🔴 v2: coachmark para Create — aparece después del 2do mensaje */}
-              {showCreateCoachmark && (
-                <div className="koru-create-coachmark" role="dialog" aria-label="Tip: Crear">
-                  <div className="koru-create-coachmark-bubble">
-                    <span className="material-symbols-outlined">tips_and_updates</span>
-                    <div className="koru-create-coachmark-text">
-                      <strong>¿Querés anotar algo rápido?</strong>
-                      <span>Tocá el <strong>+</strong> abajo para crear notas, listas, gastos y más.</span>
-                    </div>
-                    <button
-                      type="button"
-                      className="koru-create-coachmark-close"
-                      aria-label="Cerrar"
-                      onClick={dismissCreateCoachmark}
-                    >
-                      <span className="material-symbols-outlined">close</span>
-                    </button>
-                  </div>
-                  <div className="koru-create-coachmark-arrow" />
-                </div>
-              )}
               <div style={{ position: "relative", flexShrink: 0 }}>
                 <button
                   type="button"
