@@ -6,8 +6,7 @@ import {
 import { createSpeechSession, getSpeechSupport } from "../domain/speech";
 import { stopSpeaking } from "../domain/koruVoice";
 import { cn } from "../lib/utils";
-import { useKoru, PHASE_ORDER, type KoruChatTurn, type KoruTurnItem } from "./KoruProvider";
-import type { AgentActivityKind } from "../domain/agentKernel";
+import { useKoru, type KoruChatTurn, type KoruTurnItem } from "./KoruProvider";
 import { KoruSemanticCard } from "./chatCards";
 import { KoruUnifiedCard } from "./cards/unified/KoruUnifiedCard";
 import { KoruBackground } from "./KoruBackground";
@@ -26,7 +25,7 @@ const LazyCollectionsScreen = lazy(() =>
 );
 import { MorningBriefCard } from "./MorningBriefCard";
 import { CreateScreen } from "./create/CreateScreen";
-import { MichiMascot } from "./MichiMascot";
+import { MichiResearchLoading } from "./michi/MichiResearchLoading";
 import { lastKoruTurnIsStreaming } from "../domain/turn";
 import { renderMarkdownBody, CopyButton } from "./MarkdownMessage";
 
@@ -103,14 +102,15 @@ function KoruTurnBubble({
   onSetWorldSignals: (enabled: boolean) => void;
 }) {
   const { heading, body } = splitKoruText(turn.text);
-  // 🔴 FIX multi-indicador: mientras el turno está working con una card de
-  // búsqueda (deliverable working), la burbuja de texto NO se renderiza — la
-  // card esqueleto + el WorkingPanel ya comunican la actividad.
+  // La investigación en curso tiene un único panel en el hilo; no duplicar
+  // su estado con una burbuja vacía o un esqueleto de la futura tarjeta.
   const hasWorkingDeliverable = (turn.items ?? []).some(
     (it) => it.uiBlock?.type === "deliverable" && (it.uiBlock as { status?: string }).status === "working",
   );
   const showBubble = !hasWorkingDeliverable && Boolean(heading || body);
   const turnDone = turn.status !== "working";
+  const visibleItems = turn.items?.filter(item => !(item.uiBlock?.type === "deliverable" && item.uiBlock.status === "working"));
+  if (!showBubble && !visibleItems?.length) return null;
   return (
     <div className="mx-group">
       <div className="mx-row from-koru">
@@ -127,9 +127,9 @@ function KoruTurnBubble({
       </div>
       {/* 🔴 UX: copiar mensaje — icono fantasma 28px discreto (v7.6) */}
       {showBubble && turnDone && (heading || body) && <div className="mx-copy"><CopyButton text={turn.text} /></div>}
-      {turn.items && turn.items.length > 0 && (
+      {visibleItems && visibleItems.length > 0 && (
         <div className="mx-cards">
-          {turn.items.map((item) => (
+          {visibleItems.map((item) => (
             <TurnItemCard
               key={item.id}
               item={item}
@@ -192,221 +192,6 @@ function ListeningBubble({ interimText }: { interimText: string }) {
   );
 }
 
-// Panel "Trabajando..." (réplica Stitch, paso 3 de flujo-informe-aoe2.html):
-// reemplaza al composer SOLO cuando la actividad es "deep" (investigacion o
-// plan reales, no un dato en vivo). El % es REAL: sale de la fase emitida
-// por el backend (thinking → searching → comparing → planning → saving →
-// done). El titulo se adapta a que esta armando Koru.
-// Incluye chips de fases visuales (como en el demo pantalla 2):
-// ✓ Entendí el pedido | ✓ Busqué 4 fuentes | ● Comparando datos | Redactar informe
-const WORKING_COPY: Partial<Record<AgentActivityKind, { title: string; subtitle: string }>> = {
-  planning: { title: "Tejiendo tu plan…", subtitle: "Cada nudo en su lugar ✨" },
-  searching: { title: "Saliendo a explorar…", subtitle: "Vuelvo con lo que encuentre 🌎" },
-  writing: { title: "Escribiendo con calma…", subtitle: "Palabra por palabra ✍️" },
-  comparing: { title: "Cruzando opciones…", subtitle: "Pesando lo que importa 🤝" },
-};
-
-// 🔴 Voz mágica para el motto inferior del WorkingPanel.
-// Rota aleatoriamente para que se sienta vivo, no mecánico.
-const MAGIC_MOTTOS = [
-  "Cada paso cuenta. Seguís bien.",
-  "Me llevo tu pedido en serio 🌿",
-  "Sin apuro, pero sin pausa.",
-  "Lo que vale no se apura.",
-  "Acá estamos, dale que sale.",
-  "El camino se hace caminando.",
-  "Ya lo tengo casi, aguantá.",
-  "Tu paciencia se nota. Gracias.",
-];
-
-// Mapeo de fase interna → label visible + icono Material Symbols.
-// El demo muestra 4 chips: Entendí, Busqué, Comparando, Redactar.
-/** 🔴 FIX UX: Icono ilustrado según el tipo de tarea para el WorkingPanel
- *  🐱 v7.1: el fallback "michi" renderiza al gato flotando (MichiMascot)
- *  en lugar del fantasma blanco de Koru (working-illustration.png). */
-function getTaskIllustration(kicker?: string, kind?: string): string {
-  const k = (kicker ?? "").toLowerCase();
-  if (k.includes("pel") || k.includes("movie")) return "/stitch/icons/search-web.png";
-  if (k.includes("receta") || k.includes("recipe") || k.includes("comida")) return "/stitch/icons/wellness.png";
-  if (k.includes("clima") || k.includes("weather")) return "/stitch/icons/search-web.png";
-  if (k.includes("partido") || k.includes("match") || k.includes("deport")) return "/stitch/icons/sports.png";
-  if (k.includes("libro") || k.includes("book")) return "/stitch/icons/search-knowledge.png";
-  if (k.includes("búsqueda") || k.includes("search") || k.includes("web")) return "/stitch/icons/search-web.png";
-  if (k.includes("informe") || k.includes("reporte") || k.includes("investigaci")) return "/stitch/icons/tech-analysis.png";
-  if (k.includes("plan")) return "/stitch/icons/tasks.png";
-  if (k.includes("cotiz") || k.includes("dolar") || k.includes("crypto") || k.includes("finanz")) return "/stitch/icons/finance.png";
-  if (k.includes("compar") || k.includes("compr") || k.includes("shop")) return "/stitch/icons/shopping.png";
-  if (k.includes("viaje") || k.includes("travel") || k.includes("ruta")) return "/stitch/icons/travel.png";
-  return "michi";
-}
-
-// 🔴 FIX UX: chips de progreso DINÁMICOS según el tipo de tarea.
-// Cada tipo de tool tiene sus propios pasos específicos, no genéricos.
-// Esto sigue la idea de la imagen del usuario: "Leí tus mensajes" → "Detecté 12 tareas" → etc.
-const TASK_PHASES: Record<string, Array<{ phase: string; label: string; icon: string }>> = {
-  // Informes / deep research
-  informe: [
-    { phase: "thinking", label: "Entendí el pedido", icon: "check_circle" },
-    { phase: "searching", label: "Buscando fuentes", icon: "travel_explore" },
-    { phase: "comparing", label: "Cruzando datos", icon: "compare_arrows" },
-    { phase: "planning", label: "Redactando informe", icon: "edit_note" },
-  ],
-  // Películas
-  pelicula: [
-    { phase: "thinking", label: "Identificando la película", icon: "movie" },
-    { phase: "searching", label: "Buscando en TMDB y Wikipedia", icon: "travel_explore" },
-    { phase: "comparing", label: "Cruzando datos", icon: "compare_arrows" },
-    { phase: "planning", label: "Armando la ficha", icon: "edit_note" },
-  ],
-  // Recetas
-  receta: [
-    { phase: "thinking", label: "Buscando la receta", icon: "restaurant" },
-    { phase: "searching", label: "Consultando fuentes", icon: "travel_explore" },
-    { phase: "comparing", label: "Organizando ingredientes", icon: "kitchen" },
-    { phase: "planning", label: "Armando la receta", icon: "edit_note" },
-  ],
-  // Clima
-  clima: [
-    { phase: "thinking", label: "Detectando tu ciudad", icon: "location_on" },
-    { phase: "searching", label: "Consultando el clima", icon: "cloud" },
-    { phase: "planning", label: "Preparando el reporte", icon: "wb_sunny" },
-  ],
-  // Deportes
-  deportes: [
-    { phase: "thinking", label: "Identificando el equipo", icon: "sports_soccer" },
-    { phase: "searching", label: "Buscando el resultado", icon: "travel_explore" },
-    { phase: "planning", label: "Armando el resumen", icon: "sports_score" },
-  ],
-  // Búsqueda web
-  web: [
-    { phase: "thinking", label: "Entendiendo tu búsqueda", icon: "check_circle" },
-    { phase: "searching", label: "Buscando en la web", icon: "travel_explore" },
-    { phase: "comparing", label: "Filtrando resultados", icon: "filter_list" },
-    { phase: "planning", label: "Preparando respuesta", icon: "edit_note" },
-  ],
-  // Libros
-  libro: [
-    { phase: "thinking", label: "Identificando el libro", icon: "menu_book" },
-    { phase: "searching", label: "Buscando en fuentes", icon: "travel_explore" },
-    { phase: "planning", label: "Armando la ficha", icon: "edit_note" },
-  ],
-  // Default (genérico)
-  default: [
-    { phase: "thinking", label: "Entendí el pedido", icon: "check_circle" },
-    { phase: "searching", label: "Buscando información", icon: "travel_explore" },
-    { phase: "comparing", label: "Procesando datos", icon: "compare_arrows" },
-    { phase: "planning", label: "Preparando respuesta", icon: "edit_note" },
-  ],
-};
-
-/** Determina qué set de chips usar según el kicker del deliverable o el activity kind */
-function getTaskPhases(kicker?: string, kind?: string): Array<{ phase: string; label: string; icon: string }> {
-  const k = (kicker ?? "").toLowerCase();
-  if (k.includes("informe") || k.includes("reporte") || k.includes("investigaci")) return TASK_PHASES.informe;
-  if (k.includes("pel") || k.includes("movie") || k.includes("film")) return TASK_PHASES.pelicula;
-  if (k.includes("receta") || k.includes("recipe") || k.includes("comida")) return TASK_PHASES.receta;
-  if (k.includes("clima") || k.includes("weather") || k.includes("tiempo")) return TASK_PHASES.clima;
-  if (k.includes("partido") || k.includes("match") || k.includes("deport")) return TASK_PHASES.deportes;
-  if (k.includes("libro") || k.includes("book")) return TASK_PHASES.libro;
-  if (k.includes("búsqueda") || k.includes("search") || k.includes("web")) return TASK_PHASES.web;
-  if (kind === "searching") return TASK_PHASES.web;
-  if (kind === "saving") return TASK_PHASES.default;
-  return TASK_PHASES.default;
-}
-
-type WorkingDeliverable = { kicker: string; progress?: number; phaseLabel?: string };
-
-function WorkingPanel({ phase, kind, deliverable }: { phase: string | null; kind?: AgentActivityKind; deliverable?: WorkingDeliverable | null }) {
-  const idx = phase ? (PHASE_ORDER as readonly string[]).indexOf(phase) : -1;
-  const doneIdx = PHASE_ORDER.length - 1;
-  const pct = deliverable?.progress != null
-    ? Math.min(100, Math.max(0, Math.round(deliverable.progress)))
-    : idx >= 0 ? Math.round(((idx + 1) / doneIdx) * 100) : null;
-
-  // 🔴 FIX UX: usar chips dinámicos según el tipo de tarea
-  const taskChips = getTaskPhases(deliverable?.kicker, kind);
-
-  // 🔴 Voz mágica — el título del deliverable no dice "Trabajando en..." (frío),
-  // sino que abraza con una frase cálida + nombre del deliverable.
-  const kicker = deliverable?.kicker?.toLowerCase() ?? "";
-  const friendlyTitle = deliverable
-    ? `Sumergiéndome en ${kicker.startsWith("tu") ? kicker : `tu ${kicker}`}…`
-    : null;
-
-  const copy = deliverable
-    ? {
-        title: friendlyTitle ?? "Trabajando…",
-        subtitle: deliverable.phaseLabel ?? "Me llevo esto en serio 🌿",
-      }
-    : (kind && WORKING_COPY[kind]) ?? { title: "Trabajando…", subtitle: "Me llevo esto en serio 🌿" };
-
-  const phaseIdx = phase ? (PHASE_ORDER as readonly string[]).indexOf(phase) : -1;
-  const chips = taskChips.map((chip, i) => {
-    if (phaseIdx < 0) return { ...chip, status: "pending" as const };
-    if (i < phaseIdx) return { ...chip, status: "done" as const };
-    if (i === phaseIdx) return { ...chip, status: "active" as const };
-    return { ...chip, status: "pending" as const };
-  });
-
-  // 🔴 Motto mágico rotativo — se elige uno al azar al render para que se
-  // sienta vivo, no como una frase repetida mecánicamente.
-  const motto = MAGIC_MOTTOS[Math.floor(Math.random() * MAGIC_MOTTOS.length)];
-
-  return (
-    <section className="koru-working-panel" role="status" aria-live="polite">
-      {getTaskIllustration(deliverable?.kicker, kind) === "michi" ? (
-        <MichiMascot size="md" className="koru-working-mascot" />
-      ) : (
-        <img src={getTaskIllustration(deliverable?.kicker, kind)} alt="" className="koru-working-illustration" />
-      )}
-      <div className="koru-working-copy">
-        <h2>{copy.title}</h2>
-        <p>{copy.subtitle}</p>
-      </div>
-      <div className="koru-working-progress">
-        <div
-          className="koru-progress"
-          role="progressbar"
-          aria-label="Progreso del plan"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={pct ?? undefined}
-        >
-          {pct === null ? (
-            <span className="koru-progress-bar is-indeterminate" />
-          ) : (
-            <span className="koru-progress-bar" style={{ width: `${pct}%` }} />
-          )}
-        </div>
-        {pct !== null && <span className="koru-working-pct">{pct}%</span>}
-      </div>
-      {/* Chips de fases — réplica exacta del demo pantalla 2 */}
-      <div className="koru-working-chips">
-        {chips.map((chip, i) => (
-          <span key={i} className={`koru-working-chip is-${chip.status}`}>
-            {chip.status === "done" ? (
-              <span className="material-symbols-outlined koru-working-chip-icon is-done">check_circle</span>
-            ) : chip.status === "active" ? (
-              <span className="koru-working-chip-dot" />
-            ) : (
-              <span className="material-symbols-outlined koru-working-chip-icon is-pending">{chip.icon}</span>
-            )}
-            {chip.label}
-          </span>
-        ))}
-      </div>
-      <p className="koru-working-motto">
-        <svg fill="none" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 2L15 9L22 12L15 15L12 22L9 15L2 12L9 9L12 2Z" fill="currentColor" />
-        </svg>
-        {motto}
-        <svg fill="currentColor" height="18" viewBox="0 0 24 24" width="18" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 21.35L10.55 20.03C5.4 15.36 2 12.28 2 8.5C2 5.42 4.42 3 7.5 3C9.24 3 10.91 3.81 12 5.09C13.09 3.81 14.76 3 16.5 3C19.58 3 22 5.42 22 8.5C22 12.28 18.6 15.36 13.45 20.04L12 21.35Z" />
-        </svg>
-      </p>
-    </section>
-  );
-}
 export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnboardingComplete }: { onClose: () => void; onNavigate?: (tab: "hoy" | "memoria" | "historial" | "configuracion") => void; onAvatares?: () => void; onboarding?: boolean; onOnboardingComplete?: (name: string, facts?: string[]) => void }) {
   const {
     chatTurns,
@@ -558,9 +343,8 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
   // luego el slice las ocultaba del feed.
   const visibleTurns = chatTurns;
 
-  // Entregable en curso (informe/investigación): su bloque "working" trae el
-  // progreso REAL del pipeline. Mientras exista, el composer cede el lugar al
-  // panel "Trabajando en tu informe".
+  // El entregable aporta el progreso emitido por la tarea. El panel vive
+  // dentro del hilo y mantiene el composer disponible.
   const workingDeliverable = useMemo(() => {
     for (let i = chatTurns.length - 1; i >= 0; i--) {
       const turn = chatTurns[i];
@@ -568,7 +352,7 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
       for (const item of turn.items ?? []) {
         const block = item.uiBlock;
         if (block?.type === "deliverable" && block.status === "working") {
-          return { kicker: block.kicker, progress: block.progress, phaseLabel: block.phaseLabel };
+          return { id: turn.id, kicker: block.kicker, progress: block.progress, phaseLabel: block.phaseLabel };
         }
       }
       break; // solo el último turno de Koru cuenta
@@ -1326,20 +1110,14 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
               </div>
             )}
 
+            {processing && !isListening && (workingDeliverable || activity?.depth === "deep") && (
+              <MichiResearchLoading key={workingDeliverable?.id ?? "pending-research"} phase={phase} kind={activity?.kind} deliverable={workingDeliverable} />
+            )}
+
             {isListening && <ListeningBubble interimText={interimText} />}
           </div>
         </main>
 
-        {/* 🐱 v7.6 — WorkingPanel FLOTANTE sobre el composer (antes lo
-            REEMPLAZABA: durante una búsqueda profunda el composer desaparecía
-            por minutos y el usuario no podía seguir escribiendo — inaceptable
-            con la cola de turnos). El panel ahora es compacto y vive ENCIMA
-            del dock; el composer queda SIEMPRE disponible como en el demo. */}
-        {processing && !isListening && (workingDeliverable || activity?.depth === "deep") && (
-          <div className="koru-working-dock">
-            <WorkingPanel phase={phase} kind={activity?.kind} deliverable={workingDeliverable} />
-          </div>
-        )}
         <footer className="koru-chat-footer" data-voice-on={voiceOn ? "1" : "0"} data-speaking={michiSpeaking ? "1" : "0"}>
             {/* 🔴 Offline cache — banner shown when browser loses connectivity */}
             {!online && (
@@ -1443,7 +1221,7 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
                 sugerencia (VLM audit). Ahora es elemento de flujo del footer,
                 entre los chips y el composer: la flecha sigue apuntando al botón
                 + y nada queda cubierto. */}
-            {showCreateCoachmark && (
+            {showCreateCoachmark && !processing && (
               <div className="koru-create-coachmark" role="dialog" aria-label="Tip: Crear">
                 <div className="koru-create-coachmark-bubble">
                   <span className="material-symbols-outlined">tips_and_updates</span>
