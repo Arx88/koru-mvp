@@ -1,10 +1,10 @@
 /* MICHI secondary surfaces. Keep the illustrated chat's visual vocabulary. */
 :root {
   --mx-ink: #151077;
-  --mx-muted: #5e6085;
+  --mx-muted: #6578ac;
   --mx-sky: #26bdf2;
-  --mx-surface: #fffefa;
-  --mx-soft: #f2f4ff;
+  --mx-surface: #f8fcff;
+  --mx-soft: #eaf5ff;
   --mx-border: #dedff2;
   --mx-accent: #6752dc;
   --mx-radius: 26px 30px 25px 28px;
@@ -58,8 +58,8 @@
   padding: max(16px, env(safe-area-inset-top)) 20px 12px;
   color: white;
 }
-.mx-page-nav > span:not(.mx-cat) { flex: 1; font-size: 22px; font-weight: 900; text-shadow: 0 2px 6px #15107740; }
-.mx-page-nav-caption { display: block; font-size: 12px; font-weight: 700; }
+.mx-page-nav > span:not(.mx-cat) { flex: 1; font-size:1.375rem; font-weight: 900; text-shadow: 0 2px 6px #15107740; }
+.mx-page-nav-caption { display: block; font-size:0.75rem; font-weight: 700; }
 .mx-page-nav button {
   display: grid;
   place-items: center;
@@ -79,10 +79,10 @@
   padding: 24px 18px;
   border: 1px solid white;
   border-radius: 32px 30px 0 0;
-  background: #fffefaf5;
+  background: #f8fcfff2;
   animation: mx-page-enter 240ms var(--mx-ease) both;
 }
-.mx-page-content h1 { font-family: "Nunito", sans-serif; font-size: 28px; font-weight: 900; color: var(--mx-ink); }
+.mx-page-content h1 { font-family: "Nunito", sans-serif; font-size:1.75rem; font-weight: 900; color: var(--mx-ink); }
 .mx-page-content > header p { color: var(--mx-muted); line-height: 1.6; }
 .mx-page-content > .overflow-y-auto { overflow: visible; }
 .mx-page-content .text-bark { color: var(--mx-ink); }
@@ -94,12 +94,12 @@
   box-shadow: var(--mx-shadow);
   min-height: 166px;
 }
-.mx-memory-card > span.text-\[13px\] { font-size: 15px; line-height: 1.5; }
+.mx-memory-card > span.text-\[13px\] { font-size:0.9375rem; line-height: 1.5; }
 .mx-history-card { border-color: var(--mx-border); background: white; border-radius: var(--mx-radius); box-shadow: var(--mx-shadow); }
 .mx-history-card > div { min-width: 0; overflow-wrap: anywhere; }
 .mx-empty { border: 0; background: var(--mx-soft); border-radius: var(--mx-radius); padding: 40px 22px; gap: 20px; }
 .mx-empty > span { width: 80px; height: 80px; background: transparent; }
-.mx-empty p { font-size: 15px; line-height: 1.6; }
+.mx-empty p { font-size:0.9375rem; line-height: 1.6; }
 
 /* Existing dashboard and settings retain their working controls and data. */
 .mx-secondary .koru-roadmap-modules { padding: 16px 16px 32px; gap: 18px; }
@@ -125,14 +125,14 @@
   padding: 14px 16px !important;
   border: 1px solid #ffffffad;
   border-radius: 24px;
-  background: #fffefaf5 !important;
+  background: #f8fcfff2 !important;
   box-shadow: var(--mx-shadow);
   top: max(8px, env(safe-area-inset-top));
 }
 .mx-settings-header h1 { color: var(--mx-ink) !important; }
 .mx-settings-header + div { margin-top: 18px; }
 .mx-secondary .koru-detail-mini-icon { background: transparent !important; }
-.mx-secondary input { min-height: 44px; font-size: 16px !important; }
+.mx-secondary input { min-height: 44px; font-size:1rem !important; }
 
 /* The Create portal shares the same shell, cards and field treatment. */
 .mx-create .koru-create-header {
@@ -141,18 +141,18 @@
   gap: 10px;
   border: 1px solid white;
   border-radius: 24px;
-  background: #fffefaf5;
+  background: #f8fcfff2;
   box-shadow: var(--mx-shadow);
   top: max(8px, env(safe-area-inset-top));
 }
-.mx-create .koru-create-title { font-size: 21px; font-weight: 900; color: var(--mx-ink); }
+.mx-create .koru-create-title { font-size:1.3125rem; font-weight: 900; color: var(--mx-ink); }
 .mx-create .koru-create-templates { padding: 6px 16px 32px; gap: 14px; }
 .mx-create .koru-create-template { padding: 18px; border: 1px solid white; border-radius: var(--mx-radius); background: var(--mx-surface); box-shadow: var(--mx-shadow); }
-.mx-create .koru-create-template-label { color: var(--mx-ink); font-size: 17px; font-weight: 900; }
+.mx-create .koru-create-template-label { color: var(--mx-ink); font-size:1.0625rem; font-weight: 900; }
 .mx-create .koru-create-template-desc { color: var(--mx-muted); line-height: 1.5; }
 .mx-create .koru-create-template-icon { border-radius: 17px 20px 16px 19px; width: 48px; height: 48px; }
 .mx-create .koru-create-form { margin: 0 12px; padding: 22px 18px; border-radius: var(--mx-radius); background: var(--mx-surface); box-shadow: var(--mx-shadow); }
-.mx-create .koru-create-field :is(input,textarea,select) { background: var(--mx-soft); border-color: var(--mx-border); border-radius: 16px; font-size: 16px; min-height: 48px; color: var(--mx-ink); }
+.mx-create .koru-create-field :is(input,textarea,select) { background: var(--mx-soft); border-color: var(--mx-border); border-radius: 16px; font-size:1rem; min-height: 48px; color: var(--mx-ink); }
 .mx-create .koru-create-actions { position: sticky; bottom: 0; padding: 12px 0 max(12px, env(safe-area-inset-bottom)); background: var(--mx-surface); }
 .mx-create .koru-create-action-save { background: var(--mx-accent); }
 .mx-create :is(.koru-create-close,.koru-create-back,.koru-create-attach-btn) { width: 44px; height: 44px; flex-shrink: 0; }
@@ -177,7 +177,7 @@
 .mx-personal-entry { display: flex; align-items: center; gap: 12px; width: calc(100% - 40px); margin: 0 20px 16px; padding: 14px 18px; border: 1px solid white; border-radius: var(--mx-radius); color: var(--mx-ink); background: var(--mx-surface); box-shadow: var(--mx-shadow); text-align: left; }
 .mx-personal-entry img { border-radius: 50%; object-fit: cover; }
 .mx-personal-entry > span { flex: 1; min-width: 0; }
-.mx-personal-entry strong { display: block; font-size: 15px; }
+.mx-personal-entry strong { display: block; font-size:0.9375rem; }
 .mx-personal-entry small { color: var(--mx-muted); }
 .mx-personal-entry:focus-visible { outline: 3px solid var(--mx-accent); outline-offset: 3px; }
 @keyframes mx-page-enter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
@@ -186,7 +186,7 @@
   .mx-page-content > .grid { grid-template-columns: 1fr; }
   .mx-page-content .mx-empty { grid-column: 1; }
   .mx-today-cat { width: 64px !important; height: 64px !important; }
-  .mx-create .koru-create-title { font-size: 18px; }
+  .mx-create .koru-create-title { font-size:1.125rem; }
 }
 @media (prefers-reduced-motion: reduce) {
   :is(.mx-page-shell,.mx-secondary,.mx-create,.mx-avatars,.mx-dialog,.koru-chat-screen) *,

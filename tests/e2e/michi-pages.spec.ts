@@ -49,11 +49,12 @@ test("all 15 personal avatars load and the choice survives a reload", async ({ p
     await img.scrollIntoViewIfNeeded();
     await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
   }
-  await picker.getByRole("button", { name: "Elegir Explorador", exact: true }).click();
+  expect(new Set(await picker.locator(".mx-personal-grid img").evaluateAll(imgs => imgs.map(img => img.getAttribute("src")))).size).toBe(15);
+  await picker.getByRole("button", { name: "Elegir retrato 15", exact: true }).click();
   await page.reload();
   await navigate(page, "Mis avatares");
   await page.getByRole("button", { name: /Tu avatar de conversación/ }).click();
-  await expect(page.getByRole("button", { name: "Elegir Explorador", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Elegir retrato 15", exact: true })).toHaveAttribute("aria-pressed", "true");
 });
 
 test("reduced motion removes page entrance animation", async ({ page }) => {

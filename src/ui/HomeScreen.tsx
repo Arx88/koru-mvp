@@ -1,3 +1,4 @@
+import { WorldObject } from "./michi/WorldObject";
 import { MichiPageBackdrop } from "./michi/MichiPage";
 import { MichiCat } from "./michi/v8Shared";
 import { useCallback, useMemo, useRef, useState, type CSSProperties, type TouchEvent } from "react";
@@ -368,11 +369,11 @@ export function HomeScreen({
         <div className="koru-roadmap-modules">
           {/* ── Hero de saludo ─────────────────────────────────────────────── */}
           <section
-            className="koru-plan-hero is-tappable"
+            className="koru-plan-hero mw-today-hero is-tappable"
             onClick={onTalk}
             role="button"
             tabIndex={0}
-            aria-label={`Hablar con Koru — ${greeting}${name ? ", " + name : ""}`}
+            aria-label={`Hablar con Michi — ${greeting}${name ? ", " + name : ""}`}
             onKeyDown={(e) => {
               // 🔴 FIX a11y: role=button sin onKeyDown no respondía a Enter/Espacio.
               if (e.key === "Enter" || e.key === " ") {
@@ -411,6 +412,21 @@ export function HomeScreen({
             </div>
           </section>
 
+          {/* ── Quick actions row ───────────────────────────────────────────── */}
+          <section className="mw-quick-actions" aria-label="A mano con Michi">
+            <QuickAction icon="add_circle" label="Crear" onClick={onCreate} />
+            <QuickAction icon="search" label="Buscar" onClick={onSearch} />
+            {onOpenCollections && (
+              <QuickAction icon="bookmarks" label="Guardados" onClick={onOpenCollections} />
+            )}
+            <QuickAction
+              icon="graphic_eq"
+              label="Hablar con Michi"
+              onClick={onTalk}
+              highlight
+            />
+          </section>
+
           {/* ── Items del día (2x2) ─────────────────────────────────────────── */}
           <section className="koru-magical-card" style={{ padding: 18 }}>
             <div className="koru-module-head" style={{ marginBottom: 12 }}>
@@ -424,11 +440,11 @@ export function HomeScreen({
                     } as CSSProperties
                   }
                 >
-                  <span className="material-symbols-outlined">today</span>
+                  <WorldObject kind="today" />
                 </div>
                 <div>
-                  <h3 className="koru-module-title">Items del día</h3>
-                  <p className="koru-module-kicker">Lo que manda hoy</p>
+                  <h3 className="koru-module-title">Tu día, a tu ritmo</h3>
+                  <p className="koru-module-kicker">PEQUEÑOS PASOS, GRAN DÍA</p>
                 </div>
               </div>
             </div>
@@ -968,20 +984,7 @@ export function HomeScreen({
             </section>
           )}
 
-          {/* ── Quick actions row ───────────────────────────────────────────── */}
-          <section style={{ display: "flex", gap: 10, paddingBottom: 32 }}>
-            <QuickAction icon="add_circle" label="Crear" onClick={onCreate} />
-            <QuickAction icon="search" label="Buscar" onClick={onSearch} />
-            {onOpenCollections && (
-              <QuickAction icon="bookmarks" label="Guardados" onClick={onOpenCollections} />
-            )}
-            <QuickAction
-              icon="graphic_eq"
-              label="Hablar con Michi"
-              onClick={onTalk}
-              highlight
-            />
-          </section>
+
         </div>
       </div>
 
@@ -1539,9 +1542,7 @@ function QuickAction({
         fontSize: 11,
       }}
     >
-      <span className="material-symbols-outlined" style={{ fontSize: 24 }}>
-        {icon}
-      </span>
+      {label === "Crear" || label === "Guardados" ? <WorldObject kind={label === "Crear" ? "create" : "memory"} /> : <span className="material-symbols-outlined" style={{ fontSize: 24 }} aria-hidden="true">{icon}</span>}
       {label}
     </button>
   );

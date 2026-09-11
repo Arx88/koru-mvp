@@ -4,18 +4,21 @@
  *
  * 🐱 Fuente de verdad visual definitiva: su proyecto.
  * - BubbleShapes: los 4 clipPaths Bézier de burbujas/composer (sus paths exactos)
- * - MICHI_AVATARS: 8 avatares desbloqueables (Playita en uso, resto por nivel)
+ * - MICHI_AVATARS: 28 avatares desbloqueables por nivel
  * - MICHI_SCENERY: 5 paisajes (Amanecer/Día/Atardecer/Crepúsculo/Noche)
  * - useMichiLandscape: auto por franja horaria + override persistido
- * - useMichiUserAvatar: avatar del usuario (user-reference.webp default)
+ * - useMichiUserAvatar: 15 retratos del usuario, con elección compartida y persistida
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { MICHI_AVATAR_SRC, PERSONAL_AVATARS, migratePersonalAvatar } from "./avatarCatalog";
+import { useMichiProgress } from "./useMichiProgress";
+export { MICHI_AVATARS, MICHI_AVATAR_SRC } from "./avatarCatalog";
 
 /* ---------- Arte del usuario ---------- */
 export const art = (n: number) => `/assets/art-${String(n).padStart(2, "0")}.webp`;
 export const MICHI_CAT_AVATAR = art(19);
-export const DEFAULT_USER_AVATAR = "/assets/user-reference.webp";
+export const DEFAULT_USER_AVATAR = PERSONAL_AVATARS[0].src;
 
 /* ---------- Definiciones de formas (sus clipPaths exactos) ---------- */
 export function BubbleShapes() {
@@ -40,18 +43,6 @@ export function BubbleShapes() {
 }
 
 /* ---------- Avatares desbloqueables (su lib/koru.js) ---------- */
-export const MICHI_AVATARS = [
-  { id: "playita", name: "Playita", level: 7, motto: "Relájate, todo va a estar bien" },
-  { id: "corazones", name: "Corazones", level: 10 },
-  { id: "cool", name: "Cool", level: 15 },
-  { id: "dormilon", name: "Dormilón", level: 20 },
-  { id: "gamer", name: "Gamer", level: 25 },
-  { id: "aventurero", name: "Aventurero", level: 30 },
-  { id: "mago", name: "Mago", level: 35 },
-  { id: "explorador", name: "Explorador", level: 40 },
-] as const;
-export const MICHI_AVATAR_SRC = (id: string) => `/assets/avatar-${id}.webp`;
-
 /* ---------- Paisajes (su Modals.jsx scenery) ---------- */
 export const MICHI_SCENERY = [
   { art: 9, name: "Amanecer" },
@@ -114,21 +105,28 @@ export function useMichiLandscape() {
 }
 
 /* ---------- Hook: avatar del usuario ---------- */
+const personalListeners = new Set<() => void>();
+let sessionAvatar = DEFAULT_USER_AVATAR;
+function personalSnapshot() {
+  try { return migratePersonalAvatar(localStorage.getItem(USER_AVATAR_KEY) || sessionAvatar); }
+  catch { return sessionAvatar; }
+}
+function subscribePersonal(listener: () => void) {
+  personalListeners.add(listener);
+  window.addEventListener("storage", listener);
+  return () => { personalListeners.delete(listener); window.removeEventListener("storage", listener); };
+}
 export function useMichiUserAvatar() {
-  const [userAvatar, setUserAvatar] = useState<string>(() => {
-    try {
-      return localStorage.getItem(USER_AVATAR_KEY) || DEFAULT_USER_AVATAR;
-    } catch {
-      return DEFAULT_USER_AVATAR;
-    }
-  });
+  const userAvatar = useSyncExternalStore(subscribePersonal, personalSnapshot, () => DEFAULT_USER_AVATAR);
   const chooseUserAvatar = (src: string) => {
-    setUserAvatar(src);
+    if (!PERSONAL_AVATARS.some(a => a.src === src)) return;
+    sessionAvatar = src;
     try {
       localStorage.setItem(USER_AVATAR_KEY, src);
     } catch {
       /* noop */
     }
+    personalListeners.forEach(listener => listener());
   };
   return { userAvatar, chooseUserAvatar };
 }
@@ -143,9 +141,10 @@ export function MichiCat({
   sparkle?: boolean;
   size?: number;
 }) {
+  const { active } = useMichiProgress();
   return (
     <span className={`mx-cat ${className}`} style={size ? { width: size, height: size } : undefined}>
-      <img src={MICHI_CAT_AVATAR} alt="Michi" draggable={false} />
+      <img src={MICHI_AVATAR_SRC(active.id)} alt="Michi" draggable={false} />
       {sparkle && (
         <svg className="mx-spark" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M12 2l1.8 5.4L19 9l-5.2 1.6L12 16l-1.8-5.4L5 9l5.2-1.6L12 2z" />

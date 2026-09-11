@@ -20,6 +20,13 @@ export type ToolRunContext = {
   userInput: string;
   /** Estado actual de Koru (memorias, records, commitments). */
   state: KoruState;
+  /**
+   * Offset de tz del CLIENTE en minutos (getTimezoneOffset(): Madrid UTC+2 → -120).
+   * Las tools que formatean fechas/horas (fixtures, próximos partidos) deben
+   * usarlo para mostrar la hora LOCAL del usuario y no la del server (UTC en
+   * producción). Ver `formatKickoffUserTz` en football.ts.
+   */
+  tzOffsetMin?: number;
   /** Señal de cancelación si el usuario cierra el chat mientras corre la tool. */
   signal?: AbortSignal;
   /** Callback opcional para emitir notas de progreso durante tools largas. */

@@ -1,14 +1,5 @@
-/**
- * MichiHeaderV8 — Header del design system del usuario (porte 1:1 de su Header.jsx).
- *
- * 🐱 Status bar (hora real del dispositivo + Signal/Wifi/Battery),
- * avatar del gato 68px rotado -7° con dot verde online, "Michi ✨" +
- * tagline "Siempre acá para vos ✨", widget de Nivel 7 con barra XP dorada,
- * menú dropdown "Tu pequeño mundo" (su .koru-menu).
- *
- * Nivel 7 · 320/500 XP — datos de ejemplo como en su referencia (la capa de
- * gamificación del backend no existe todavía).
- */
+import { useMichiProgress } from "./useMichiProgress";
+/** Cabecera compartida, paisaje y progreso de la aventura de Michi. */
 
 import { useEffect, useRef, useState } from "react";
 import {
@@ -36,6 +27,7 @@ function useClock() {
 
 /* Su widget .level — pill violeta + XP + caption */
 export function MichiLevel({ onClick, compact = false }: { onClick?: () => void; compact?: boolean }) {
+  const { level, inLevel } = useMichiProgress();
   return (
     <button
       type="button"
@@ -45,13 +37,13 @@ export function MichiLevel({ onClick, compact = false }: { onClick?: () => void;
     >
       <span className="mx-lvl-label">
         <Star fill="#ffe24b" className="mx-gold-star" size={18} />
-        <span>Nivel 7{compact ? " / 50" : ""}</span>
+        <span>Nivel {level}</span>
         {compact && <ChevronRight size={21} />}
       </span>
       <span className="mx-xp-track">
-        <span style={{ width: compact ? "22%" : "60%" }} />
+        <span style={{ width: `${inLevel}%` }} />
       </span>
-      {!compact && <span className="mx-xp-cap">320 / 500 XP</span>}
+      {!compact && <span className="mx-xp-cap">{inLevel} / 100 XP</span>}
     </button>
   );
 }

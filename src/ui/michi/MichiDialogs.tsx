@@ -1,13 +1,7 @@
-/**
- * MichiDialogs — Modales del design system del usuario (porte 1:1 de su Modals.jsx).
- *
- * 🐱 progress: Nivel 7 + barra XP + próxima sorpresa (Corazones · Nivel 10)
- * 🐱 locked: avatar bloqueado con arte + "Se desbloquea en el nivel X"
- * 🐱 landscape: 5 paisajes (Amanecer/Día/Atardecer/Crepúsculo/Noche) + Auto
- * 🐱 user-avatar: avatar personal (user-reference + art 20-25)
- * 🐱 reset: ¿Una nueva aventura? (Me quedo acá / Empezar de nuevo)
- * 🐱 hourly: radar del clima hora por hora (datos REALES del bloque weather)
- */
+import { PERSONAL_AVATARS } from "./avatarCatalog";
+import { useMichiProgress } from "./useMichiProgress";
+import { useEffect, useRef } from "react";
+/** Diálogos accesibles de progreso, paisajes y los 15 retratos personales. */
 
 import { X, Star, LockKeyhole, Sun, MapPin, Sparkle } from "lucide-react";
 import { art, MICHI_AVATARS, MICHI_AVATAR_SRC, MICHI_SCENERY, DEFAULT_USER_AVATAR } from "./v8Shared";
@@ -21,9 +15,27 @@ function DialogShell({
   children?: React.ReactNode;
   locked?: boolean;
 }) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null;
+    const dialog = dialogRef.current;
+    const focusable = () => Array.from(dialog?.querySelectorAll<HTMLElement>('button:not(:disabled), [href], input:not(:disabled), select, textarea, [tabindex="0"]') ?? []);
+    focusable()[0]?.focus();
+    const keydown = (event: KeyboardEvent) => {
+      if(event.key === "Escape") { event.preventDefault(); closeRef.current(); }
+      if(event.key !== "Tab") return;
+      const items = focusable(), first = items[0], last = items[items.length - 1];
+      if(event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if(!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    };
+    dialog?.addEventListener("keydown", keydown);
+    return () => { dialog?.removeEventListener("keydown", keydown); previous?.focus(); };
+  }, []);
   return (
     <div className="mx-dialog-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className={`mx-dialog ${locked ? "locked" : ""}`} role="dialog" aria-modal="true" aria-label={title}>
+      <div ref={dialogRef} className={`mx-dialog ${locked ? "locked" : ""}`} role="dialog" aria-modal="true" aria-label={title}>
         <button type="button" className="mx-dialog-close" aria-label="Cerrar" onClick={onClose}>
           <X size={15} />
         </button>
@@ -37,7 +49,7 @@ function DialogShell({
 
 /* ---------- Progreso ---------- */
 export function MichiProgressDialog({ onClose }: { onClose: () => void }) {
-  const next = MICHI_AVATARS[1];
+  const { next, level, inLevel, remaining } = useMichiProgress();
   return (
     <DialogShell
       title="Tu aventura, paso a paso"
@@ -45,30 +57,31 @@ export function MichiProgressDialog({ onClose }: { onClose: () => void }) {
       onClose={onClose}
     >
       <div className="mx-progress-number">
-        <Star /> Nivel 7
+        <Star /> Nivel {level}
       </div>
       <div
         className="mx-dialog-xp"
         role="progressbar"
-        aria-valuenow={320}
+        aria-valuenow={inLevel}
         aria-valuemin={0}
-        aria-valuemax={500}
+        aria-valuemax={100}
         aria-label="Experiencia"
       >
-        <span />
+        <span style={{ width: `${inLevel}%` }} />
       </div>
       <div className="mx-xp-detail">
-        <strong>320 / 500 XP</strong>
-        <span>180 XP para el nivel 8</span>
+        <strong>{inLevel} / 100 XP</strong>
+        <span>{remaining} XP para el nivel {level + 1}</span>
       </div>
-      <div className="mx-next-unlock">
+      {next && <div className="mx-next-unlock">
         <img src={MICHI_AVATAR_SRC(next.id)} alt={`${next.name}`} />
         <div>
           <strong>Tu próxima sorpresa</strong>
           <span>{next.name} · Nivel {next.level}</span>
         </div>
         <LockKeyhole size={19} />
-      </div>
+      </div>}
+      <p className="mw-progress-help">Cada 100 puntos de energía ganados en la app suman un nivel. Confirmar recuerdos y completar acciones aprobadas hace avanzar tu aventura.</p>
     </DialogShell>
   );
 }
@@ -78,7 +91,7 @@ export function MichiLockedDialog({ avatar, onClose }: { avatar: { id: string; n
   return (
     <DialogShell
       title="Un nuevo amigo te espera"
-      description="Cada nivel trae una nueva sorpresa."
+      description="Seguí sumando aventuras con Michi."
       onClose={onClose}
       locked
     >
@@ -137,7 +150,7 @@ export function MichiLandscapeDialog({
 }
 
 /* ---------- Avatar personal del usuario ---------- */
-export const PERSONAL_AVATAR_OPTIONS = [DEFAULT_USER_AVATAR, art(20), art(21), art(22), art(23), art(24), art(25), ...MICHI_AVATARS.map(a => MICHI_AVATAR_SRC(a.id))];
+export const PERSONAL_AVATAR_OPTIONS = PERSONAL_AVATARS.map(a => a.src);
 
 export function MichiUserAvatarDialog({
   userAvatar, onChoose, onClose,
@@ -159,7 +172,7 @@ export function MichiUserAvatarDialog({
             type="button"
             className={userAvatar === src ? "active" : ""}
             onClick={() => { onChoose(src); onClose(); }}
-            aria-label={i < 7 ? `Elegir retrato ${i + 1}` : `Elegir ${MICHI_AVATARS[i - 7].name}`}
+            aria-label={`Elegir retrato ${i + 1}`}
             aria-pressed={userAvatar === src}
           >
             <img src={src} alt="" width={72} height={72} loading="lazy" />

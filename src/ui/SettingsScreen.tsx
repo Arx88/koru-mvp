@@ -1,8 +1,10 @@
+import { MichiProfile } from "./michi/MichiProfile";
 import { MichiPageBackdrop } from "./michi/MichiPage";
-import { MichiCat } from "./michi/v8Shared";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   X,
+  ArrowLeft,
+  Play,
   Search,
   ChevronDown,
   User,
@@ -36,7 +38,6 @@ import type {
   MemoryEditHistoryEntry,
   MemoryFact,
   MemoryKind,
-  Person,
   UserProfile,
   UserPreferences,
 } from "../domain/types";
@@ -101,30 +102,14 @@ type SectionMeta = {
 };
 
 const SECTIONS: SectionMeta[] = [
-  { id: "perfil",         title: "Perfil",            kicker: "QUIÉN ERES",        icon: User,          accent: "#5940E0", tint: "#f3e8ff", keywords: ["nombre", "cumpleaños", "ciudad", "zona horaria", "timezone", "name", "birthday", "location"] },
-  { id: "idioma",         title: "Idioma",            kicker: "ESPAÑOL / ENGLISH", icon: Languages,     accent: "#007BF9", tint: "#dbeafe", keywords: ["language", "español", "english", "spanish"] },
-  { id: "apariencia",     title: "Apariencia",        kicker: "TEMA, VOZ Y TIPOGRAFÍA", icon: Palette,       accent: "#db2777", tint: "#fce7f3", keywords: ["theme", "font", "tamaño", "haptics", "sonidos", "contraste", "movimiento", "dark", "light", "voz", "voice", "tts", "habla", "leer", "lee", "silenciar", "volumen", "velocidad"] },
-  { id: "notificaciones", title: "Notificaciones",    kicker: "ALERTAS Y DND",     icon: Bell,          accent: "#ea580c", tint: "#ffedd5", keywords: ["push", "dnd", "sonidos", "no molestar", "permiso"] },
-  { id: "privacidad",     title: "Privacidad",        kicker: "TUS DATOS",         icon: Shield,        accent: "#16a34a", tint: "#dcfce7", keywords: ["ephemeral", "durable", "retention", "export", "eliminar", "lock", "webauthn", "borrar"] },
+  { id: "perfil",         title: "Perfil",            kicker: "Tu información personal",        icon: User,          accent: "#007bff", tint: "#dceeff", keywords: ["nombre", "cumpleaños", "ciudad", "zona horaria", "timezone", "name", "birthday", "location"] },
+  { id: "idioma",         title: "Idioma",            kicker: "Español / English", icon: Languages,     accent: "#007BF9", tint: "#dbeafe", keywords: ["language", "español", "english", "spanish"] },
+  { id: "apariencia",     title: "Apariencia",        kicker: "Tema, colores y tamaño de fuente", icon: Palette,       accent: "#db2777", tint: "#fce7f3", keywords: ["theme", "font", "tamaño", "haptics", "sonidos", "contraste", "movimiento", "dark", "light", "voz", "voice", "tts", "habla", "leer", "lee", "silenciar", "volumen", "velocidad"] },
+  { id: "notificaciones", title: "Notificaciones",    kicker: "Alertas y recordatorios",     icon: Bell,          accent: "#ea580c", tint: "#ffedd5", keywords: ["push", "dnd", "sonidos", "no molestar", "permiso"] },
+  { id: "privacidad",     title: "Privacidad",        kicker: "Tus datos, tu control",         icon: Shield,        accent: "#16a34a", tint: "#dcfce7", keywords: ["ephemeral", "durable", "retention", "export", "eliminar", "lock", "webauthn", "borrar"] },
   { id: "integraciones",  title: "Integraciones",     kicker: "CONECTAR SERVICIOS",icon: Plug,          accent: "#0891b2", tint: "#cffafe", keywords: ["google", "calendar", "plaid", "tink", "banco", "crypto", "exchange", "sincronizar"] },
-  { id: "memoria",        title: "Gestión de memoria",kicker: "LO QUE KORU SABE",  icon: Brain,         accent: "#7c3aed", tint: "#ede9fe", keywords: ["memoria", "memories", "forget", "olvidar", "sensible", "confianza"] },
-  { id: "accesibilidad",  title: "Accesibilidad",     kicker: "INCLUSIÓN",         icon: Accessibility, accent: "#0d9488", tint: "#ccfbf1", keywords: ["screen reader", "lector", "movimiento", "contraste", "teclado", "keyboard", "a11y"] },
-];
-
-// Zonas horarias comunes para el override manual (lista corta + auto).
-const COMMON_TIMEZONES = [
-  "auto",
-  "America/Argentina/Buenos_Aires",
-  "America/Montevideo",
-  "America/Santiago",
-  "America/Bogota",
-  "America/Mexico_City",
-  "America/Lima",
-  "Europe/Madrid",
-  "Europe/London",
-  "US/Eastern",
-  "US/Pacific",
-  "UTC",
+  { id: "memoria",        title: "Gestión de memoria",kicker: "Lo que Michi recuerda",  icon: Brain,         accent: "#7c3aed", tint: "#ede9fe", keywords: ["memoria", "memories", "forget", "olvidar", "sensible", "confianza"] },
+  { id: "accesibilidad",  title: "Accesibilidad",     kicker: "A TU RITMO",         icon: Accessibility, accent: "#0d9488", tint: "#ccfbf1", keywords: ["screen reader", "lector", "movimiento", "contraste", "teclado", "keyboard", "a11y"] },
 ];
 
 const MEMORY_KIND_LABEL: Record<MemoryKind, string> = {
@@ -161,14 +146,6 @@ const RETENTION_OPTIONS: Array<{ value: string; label: string }> = [
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function detectTimezone(): string {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-  } catch {
-    return "UTC";
-  }
-}
 
 function prefersReducedMotion(): boolean {
   try {
@@ -259,7 +236,7 @@ function Row({
   stacked?: boolean;
 }) {
   return (
-    <div
+    <div className="mi-setting-row"
       style={{
         display: "flex",
         flexDirection: stacked ? "column" : "row",
@@ -310,54 +287,9 @@ function TextInput(props: {
   );
 }
 
-/**
- * 🔴 TIER S: ProfileField — wrapper sobre TextInput que commitea el valor al
- * reducer (vía onCommit) SOLO en blur, no en cada keystroke. Así evitamos
- * re-renderizar todo el state tree + persistir en localStorage por cada tecla.
- * Mantiene estado local para que el input siga siendo responsivo.
- */
-function ProfileField({
-  label,
-  value,
-  onCommit,
-  placeholder,
-  type,
-  ariaLabel,
-}: {
-  label: string;
-  value: string;
-  onCommit: (v: string) => void;
-  placeholder?: string;
-  type?: string;
-  ariaLabel?: string;
-}) {
-  const [local, setLocal] = useState(value);
-  // Sync local state when the external value changes (ej. after onCommit
-  // propagates back via props, or when another screen edits the profile).
-  useEffect(() => {
-    setLocal(value);
-  }, [value]);
-  return (
-    <Field label={label}>
-      <TextInput
-        value={local}
-        type={type}
-        placeholder={placeholder}
-        ariaLabel={ariaLabel}
-        onChange={setLocal}
-        // 🔴 TIER S: commit on blur — llama a onCommit que eventualmente
-        // invoca al reducer updateUserProfile.
-        onBlur={() => {
-          if (local !== value) onCommit(local);
-        }}
-      />
-    </Field>
-  );
-}
-
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div style={{ padding: "10px 0", borderBottom: "1px solid rgba(89, 64, 224, 0.08)" }}>
+    <div className="mi-setting-field" style={{ padding: "10px 0", borderBottom: "1px solid rgba(89, 64, 224, 0.08)" }}>
       <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: "#0b1c30", marginBottom: 6 }}>
         {label}
       </label>
@@ -376,7 +308,7 @@ function RadioGroup<T extends string>({
   onChange: (v: T) => void;
 }) {
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+    <div className="mi-segmented" style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
       {options.map((opt) => {
         const active = value === opt.value;
         return (
@@ -384,6 +316,7 @@ function RadioGroup<T extends string>({
             key={opt.value}
             type="button"
             disabled={opt.disabled}
+            aria-pressed={active}
             onClick={() => !opt.disabled && onChange(opt.value)}
             style={{
               display: "inline-flex",
@@ -529,13 +462,15 @@ function SectionCard({
   const Icon = meta.icon;
   return (
     <section
-      className="koru-magical-card"
+      className="koru-magical-card mw-settings-section"
       style={{ "--module-color": meta.accent, "--module-bg": meta.tint } as React.CSSProperties}
-      aria-expanded={expanded}
+      data-section={meta.id}
     >
       <button
         type="button"
         onClick={onToggle}
+        aria-expanded={expanded}
+        aria-controls={`settings-${meta.id}`}
         aria-label={`${expanded ? "Contraer" : "Expandir"} sección ${meta.title}`}
         style={{
           display: "flex",
@@ -576,7 +511,7 @@ function SectionCard({
           }}
         />
       </button>
-      {expanded && <div style={{ marginTop: 14 }}>{children}</div>}
+      {expanded && <div id={`settings-${meta.id}`} className="mi-settings-content">{children}</div>}
     </section>
   );
 }
@@ -603,8 +538,8 @@ export function SettingsScreen(props: SettingsScreenProps) {
   const { createRecord } = useKoru();
 
   const [query, setQuery] = useState("");
-  const [expanded, setExpanded] = useState<Set<SectionId>>(() => new Set<SectionId>(["perfil"]));
-  const [autoTz] = useState(() => detectTimezone());
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [expanded, setExpanded] = useState<Set<SectionId>>(() => new Set<SectionId>(["apariencia"]));
 
   // Memoria: filtros + búsqueda
   const [memKindFilter, setMemKindFilter] = useState<"all" | MemoryKind>("all");
@@ -612,9 +547,6 @@ export function SettingsScreen(props: SettingsScreenProps) {
 
   // 🔴 TIER S: Personas sub-form (under Perfil). Captura name + relationship
   // + birthday y llama a props.onAddPerson → addPerson reducer del store.
-  const [newPersonName, setNewPersonName] = useState("");
-  const [newPersonRelationship, setNewPersonRelationship] = useState("");
-  const [newPersonBirthday, setNewPersonBirthday] = useState("");
 
   // Notificaciones: estado de permiso push
   const [pushGranted, setPushGranted] = useState<NotificationPermission | "unsupported">(() => {
@@ -968,68 +900,25 @@ export function SettingsScreen(props: SettingsScreenProps) {
   // 🔴 TIER S: handler para agregar una Person al store. Limpia el form
   // después de invocar al reducer (vía props.onAddPerson). El name es
   // obligatorio; relationship y birthday son opcionales.
-  function handleAddPerson() {
-    const name = newPersonName.trim();
-    if (!name) return;
-    const relationship = newPersonRelationship.trim() || undefined;
-    const birthday = newPersonBirthday.trim() || undefined;
-    props.onAddPerson?.(name, relationship, birthday);
-    setNewPersonName("");
-    setNewPersonRelationship("");
-    setNewPersonBirthday("");
-  }
+
 
   return (
     <div className="koru-roadmap mx-secondary mx-settingsscreen" role="dialog" aria-label="Ajustes">
       <div className="koru-roadmap-screen">
         <MichiPageBackdrop />
 
-        {/* Sticky header */}
-        <header className="mx-settings-header"
-          style={{
-            position: "sticky",
-            top: 0,
-            zIndex: 20,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 12,
-            padding: "16px 20px 12px",
-            background: "linear-gradient(180deg, rgba(240,219,255,0.95) 0%, rgba(240,219,255,0.85) 70%, rgba(240,219,255,0) 100%)",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-          }}
-        >
-          <MichiCat size={48} />
-          <div style={{ flex: 1 }}>
-            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: "#5940E0", letterSpacing: "-0.02em" }}>
-              Ajustes
-            </h1>
-            <p style={{ margin: 0, fontSize: 14, color: "var(--mx-muted)" }}>Personalizá tu Michi</p>
-          </div>
-          <button
-            type="button"
-            onClick={props.onClose}
-            aria-label="Cerrar ajustes"
-            style={{
-              display: "flex",
-              width: 40,
-              height: 40,
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: 999,
-              border: "1px solid rgba(255,255,255,0.7)",
-              background: "rgba(255,255,255,0.6)",
-              color: "#5940E0",
-              cursor: "pointer",
-            }}
-          >
-            <X size={18} />
-          </button>
+        <header className="mi-settings-header">
+          <button className="mi-round-back" type="button" onClick={props.onClose} aria-label="Cerrar ajustes"><ArrowLeft size={22} /></button>
+          <div><h1>Ajustes</h1><p>Personaliza tu Michi</p></div>
+          <button className="mi-search-toggle" type="button" aria-label="Buscar ajustes" aria-expanded={searchOpen} onClick={() => setSearchOpen(v => !v)}><Search size={20} /></button>
         </header>
+        <div className="mi-settings-hero">
+          <p>Aquí puedes ajustar la app a tu gusto. ¿En qué te ayudo hoy? <span>💙</span></p>
+          <img src="/assets/michi-icons/settings-michi.webp" alt="Michi con gafas de sol y un engranaje azul" width="210" height="210" />
+        </div>
 
         {/* Search bar */}
-        <div style={{ padding: "0 20px 12px" }}>
+        <div hidden={!searchOpen} style={{ padding: "0 20px 12px" }}>
           <div style={{ position: "relative" }}>
             <Search
               size={16}
@@ -1082,161 +971,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
                 expanded={isExpanded}
                 onToggle={() => toggleSection(meta.id)}
               >
-                {meta.id === "perfil" && (
-                  <>
-                    {/* 🔴 TIER S: Perfil fields commit on blur via ProfileField,
-                        que eventualmente invoca al reducer updateUserProfile
-                        (wired en App.tsx: onUpdateProfile={(p) => updateUserProfile(p)}). */}
-                    <ProfileField
-                      label="Nombre"
-                      value={profile.name ?? ""}
-                      placeholder="¿Cómo te llamás?"
-                      ariaLabel="Nombre"
-                      onCommit={(v) => props.onUpdateProfile({ name: v })}
-                    />
-                    <ProfileField
-                      label="Cumpleaños"
-                      value={profile.birthday ?? ""}
-                      type="date"
-                      ariaLabel="Cumpleaños"
-                      onCommit={(v) => props.onUpdateProfile({ birthday: v })}
-                    />
-                    <ProfileField
-                      label="Ciudad / Ubicación"
-                      value={profile.location ?? profile.homeCity ?? ""}
-                      placeholder="Ej. Buenos Aires"
-                      ariaLabel="Ciudad"
-                      onCommit={(v) =>
-                        props.onUpdateProfile({ location: v, homeCity: v })
-                      }
-                    />
-                    <Field label={`Zona horaria (detectada: ${autoTz})`}>
-                      <SelectInput
-                        value={profile.timezone && profile.timezone !== "auto" ? profile.timezone : "auto"}
-                        ariaLabel="Zona horaria"
-                        onChange={(v) =>
-                          props.onUpdateProfile({ timezone: v === "auto" ? autoTz : v })
-                        }
-                        options={COMMON_TIMEZONES.map((tz) => ({
-                          value: tz,
-                          label: tz === "auto" ? `Automática (${autoTz})` : tz,
-                        }))}
-                      />
-                    </Field>
-
-                    {/* 🔴 TIER S: Personas — sub-section under Perfil.
-                        Form simple: name + relationship + birthday.
-                        On save → props.onAddPerson → addPerson reducer.
-                        Lista las personas ya guardadas en state.people. */}
-                    <div
-                      style={{
-                        marginTop: 16,
-                        padding: 12,
-                        borderRadius: 14,
-                        background: "rgba(243, 232, 255, 0.45)",
-                        border: "1px solid rgba(89, 64, 224, 0.12)",
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                        <span
-                          className="material-symbols-outlined"
-                          style={{ fontSize: 18, color: "#5940E0" }}
-                          aria-hidden
-                        >
-                          group
-                        </span>
-                        <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#5940E0" }}>
-                          Personas
-                        </h4>
-                      </div>
-
-                      <Field label="Nombre">
-                        <TextInput
-                          value={newPersonName}
-                          onChange={setNewPersonName}
-                          placeholder="Ej. María González"
-                          ariaLabel="Nombre de la persona"
-                        />
-                      </Field>
-                      <Field label="Relación (opcional)">
-                        <TextInput
-                          value={newPersonRelationship}
-                          onChange={setNewPersonRelationship}
-                          placeholder="Ej. Madre / Amiga / Colega"
-                          ariaLabel="Relación"
-                        />
-                      </Field>
-                      <Field label="Cumpleaños (opcional)">
-                        <TextInput
-                          value={newPersonBirthday}
-                          onChange={setNewPersonBirthday}
-                          type="date"
-                          ariaLabel="Cumpleaños de la persona"
-                        />
-                      </Field>
-                      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
-                        <PillButton
-                          variant="primary"
-                          onClick={handleAddPerson}
-                          disabled={!newPersonName.trim() || !props.onAddPerson}
-                        >
-                          <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>person_add</span>
-                          Agregar persona
-                        </PillButton>
-                      </div>
-
-                      {(state.people ?? []).length > 0 && (
-                        <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
-                          {(state.people as Person[]).map((p) => (
-                            <div
-                              key={p.id}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                                gap: 8,
-                                padding: "8px 10px",
-                                borderRadius: 10,
-                                background: "rgba(255,255,255,0.7)",
-                                border: "1px solid rgba(89, 64, 224, 0.08)",
-                                fontSize: 13,
-                                color: "#0b1c30",
-                              }}
-                            >
-                              <div style={{ minWidth: 0 }}>
-                                <div style={{ fontWeight: 600 }}>{p.name}</div>
-                                <div style={{ fontSize: 11, color: "#64748b" }}>
-                                  {[p.relationship, p.birthday].filter(Boolean).join(" · ") || "Sin detalles"}
-                                </div>
-                              </div>
-                              {p.birthday && (
-                                <span
-                                  style={{
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    gap: 3,
-                                    padding: "2px 6px",
-                                    borderRadius: 6,
-                                    background: "#fde68a",
-                                    color: "#92400e",
-                                    fontSize: 10,
-                                    fontWeight: 700,
-                                    flexShrink: 0,
-                                  }}
-                                  title={`Cumpleaños: ${p.birthday}`}
-                                >
-                                  <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>cake</span>
-                                  {p.birthday.slice(5)}
-                                </span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-
+                {meta.id === "perfil" && <MichiProfile profile={profile} onUpdate={props.onUpdateProfile} people={state.people ?? []} onAddPerson={props.onAddPerson} memoryCount={state.memories.filter(m => m.status === "confirmed").length} />}
                 {meta.id === "idioma" && (
                   <Row label="Idioma de las respuestas de Michi" hint="Michi te responderá en el idioma elegido.">
                     <RadioGroup
@@ -1258,11 +993,12 @@ export function SettingsScreen(props: SettingsScreenProps) {
                         onChange={(v) => props.onUpdatePreferences({ theme: v })}
                         options={[
                           { value: "light", label: "Claro" },
-                          { value: "dark", label: "Oscuro", disabled: true, badge: "próximamente" },
-                          { value: "auto", label: "Automático", disabled: true, badge: "próximamente" },
+                          { value: "dark", label: "Oscuro", disabled: true },
+                          { value: "auto", label: "Automático", disabled: true },
                         ]}
                       />
                     </Field>
+                    <p className="mi-theme-note">Oscuro y automático estarán disponibles próximamente.</p>
                     <Field label="Tamaño de fuente">
                       <RadioGroup
                         value={prefs.fontScale}
@@ -1274,6 +1010,48 @@ export function SettingsScreen(props: SettingsScreenProps) {
                         ]}
                       />
                     </Field>
+                    {/* 🔴 KORU 3.0 — Voz de Michi: TTS del navegador para que Koru "hable" sus respuestas */}
+                    <Row
+                      label="Voz de Michi"
+                      hint={
+                        typeof window !== "undefined" && "speechSynthesis" in window
+                          ? "Michi leerá sus respuestas en voz alta"
+                          : "No soportado en este navegador"
+                      }
+                    >
+                      <Toggle
+                        checked={prefs.koruVoiceEnabled ?? false}
+                        onChange={(v) => {
+                          // 🐱 v7.5 — apagar = silencio INMEDIATO (cancela la
+                          // síntesis en curso, no solo la próxima respuesta).
+                          if (!v) stopSpeaking();
+                          props.onUpdatePreferences({ koruVoiceEnabled: v });
+                        }}
+                        aria-label="Voz de Michi"
+                      />
+                    </Row>
+                    {(prefs.koruVoiceEnabled ?? false) && (
+                      <Row label="Velocidad de voz" hint={`Velocidad: ${(prefs.koruVoiceRate ?? 1.0).toFixed(1)}x`}>
+                        <input
+                          type="range"
+                          min={0.5}
+                          max={2}
+                          step={0.1}
+                          value={prefs.koruVoiceRate ?? 1.0}
+                          onChange={(e) => props.onUpdatePreferences({ koruVoiceRate: parseFloat(e.target.value) })}
+                          style={{ width: 120 }}
+                          aria-label="Velocidad de voz"
+                        />
+                      </Row>
+                    )}
+                    <button type="button" className="mi-voice-preview" disabled={typeof window === "undefined" || !("speechSynthesis" in window)} onClick={() => {
+                      stopSpeaking();
+                      const sample = new SpeechSynthesisUtterance(state.language === "en" ? "Hi! I'm Michi. Let's make your day a little easier." : "¡Hola! Soy Michi. Estoy aquí para acompañarte y hacer tu día un poquito más fácil.");
+                      sample.lang = state.language === "en" ? "en-US" : "es-ES";
+                      sample.rate = prefs.koruVoiceRate ?? 1;
+                      window.speechSynthesis.speak(sample);
+                    }}><span><Play size={19} fill="currentColor" /></span>Escuchar muestra de voz<span className="mi-wave" aria-hidden="true">{Array.from({length:11},(_,i) => <i key={i} />)}</span></button>
+                    <details className="mi-advanced"><summary>Más opciones de apariencia</summary>
                     <Row label="Hápticos" hint="Vibración al tocar">
                       {/* 🔴 FIX (2026-09-09): toggle placebo → badge honesto
                           (nada consumía prefs.haptics). */}
@@ -1332,40 +1110,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
                         aria-label="Alto contraste"
                       />
                     </Row>
-                    {/* 🔴 KORU 3.0 — Voz de Michi: TTS del navegador para que Koru "hable" sus respuestas */}
-                    <Row
-                      label="Voz de Michi"
-                      hint={
-                        typeof window !== "undefined" && "speechSynthesis" in window
-                          ? "Michi leerá sus respuestas en voz alta"
-                          : "No soportado en este navegador"
-                      }
-                    >
-                      <Toggle
-                        checked={prefs.koruVoiceEnabled ?? false}
-                        onChange={(v) => {
-                          // 🐱 v7.5 — apagar = silencio INMEDIATO (cancela la
-                          // síntesis en curso, no solo la próxima respuesta).
-                          if (!v) stopSpeaking();
-                          props.onUpdatePreferences({ koruVoiceEnabled: v });
-                        }}
-                        aria-label="Voz de Michi"
-                      />
-                    </Row>
-                    {(prefs.koruVoiceEnabled ?? false) && (
-                      <Row label="Velocidad de voz" hint={`Velocidad: ${(prefs.koruVoiceRate ?? 1.0).toFixed(1)}x`}>
-                        <input
-                          type="range"
-                          min={0.5}
-                          max={2}
-                          step={0.1}
-                          value={prefs.koruVoiceRate ?? 1.0}
-                          onChange={(e) => props.onUpdatePreferences({ koruVoiceRate: parseFloat(e.target.value) })}
-                          style={{ width: 120 }}
-                          aria-label="Velocidad de voz"
-                        />
-                      </Row>
-                    )}
+                    </details>
                   </>
                 )}
 

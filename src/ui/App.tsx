@@ -133,7 +133,7 @@ function KoruApp() {
                 }}
               />
           )}
-          {screen === "memoria" && <MichiPage onBack={() => setScreen("chat")}><MemoryScreen /></MichiPage>}
+          {screen === "memoria" && <MichiPage onBack={() => setScreen("chat")}><MemoryScreen onTalk={() => setScreen("chat")} /></MichiPage>}
           {screen === "historial" && <MichiPage onBack={() => setScreen("chat")}><HistoryScreen /></MichiPage>}
           {screen === "configuracion" && (
               <SettingsScreen

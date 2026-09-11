@@ -1,3 +1,4 @@
+import { WorldObject } from "../michi/WorldObject";
 import { MichiPageBackdrop } from "../michi/MichiPage";
 import { MichiCat } from "../michi/v8Shared";
 import { useState, useRef, useMemo, useEffect } from "react";
@@ -1332,7 +1333,7 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
               <Mat>arrow_back_ios_new</Mat>
             </button>
           ) : (
-            <MichiCat size={44} />
+            <WorldObject kind="create" />
           )}
           <h1 className="koru-create-title">
             {selected ? TEMPLATES.find(t => t.id === selected)!.label : "¿Qué querés crear?"}
@@ -1358,6 +1359,7 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
           </button>
         </div>
 
+        {!selected && <div className="mw-create-intro"><span className="mw-eyebrow">CREAMOS JUNTOS</span><h2>Una idea, un nuevo plan.</h2><WorldObject kind="create" /><p>Una nota, un plan, algo que no querés olvidar.</p></div>}
         {!selected ? (
           <div className="koru-create-templates">
             {TEMPLATES.map((tpl) => (
@@ -1368,7 +1370,7 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
                 onClick={() => selectTemplate(tpl.id)}
               >
                 <div className="koru-create-template-icon" style={{ background: `${tpl.accent}20`, color: tpl.accent }}>
-                  <Mat>{tpl.icon}</Mat>
+                  <img src={`/assets/michi-icons/${({nota:"notes",lista:"shopping",gasto:"money",enlace:"research",receta:"cooking",rutina:"alarm",ejercicio:"exercise",memoria:"memory",decision:"product_war",plan:"map"})[tpl.id]}.webp`} alt="" width="49" height="49" />
                 </div>
                 <div className="koru-create-template-body">
                   <span className="koru-create-template-label">{tpl.label}</span>
