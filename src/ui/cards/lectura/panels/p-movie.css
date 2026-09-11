@@ -20,7 +20,7 @@
 .lcr .mv-verdict .stars{display:flex;align-items:center;gap:9px}
 .lcr .mv-verdict .stars .st3{display:flex;gap:2px}
 .lcr .mv-verdict .stars .st3 .lucide{font-size:17px;color:var(--honey-ink)}
-.lcr .mv-verdict .stars .st3 .lucide.off{color:#eee8f8}
+.lcr .mv-verdict .stars .st3 .lucide.off{color:#E6EEFA}
 .lcr .mv-verdict .stars b{font:800 22px var(--disp)}
 .lcr .mv-verdict .stars span{font:700 10px var(--sans);color:var(--ink-dim);margin-left:auto}
 .lcr .mv-verdict p{font:600 11.5px/1.6 var(--sans);color:var(--ink-soft);margin-top:9px}

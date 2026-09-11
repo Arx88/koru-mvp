@@ -10,7 +10,7 @@
 .lcr .dt-label{font:700 11px var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-dim);flex:none;max-width:46%}
 .lcr .dt-value{font:800 19px var(--disp);color:var(--ink);text-align:right;letter-spacing:-.01em}
 .lcr .dt-detail{font:600 11px/1.5 var(--sans);color:var(--ink-soft);margin-top:5px}
-.lcr .dt-quote{position:relative;margin-top:9px;padding-top:9px;border-top:1.5px dashed #e3dcf1}
+.lcr .dt-quote{position:relative;margin-top:9px;padding-top:9px;border-top:1.5px dashed #C9D8F2}
 .lcr .dt-quote p{font:500 11.5px/1.6 var(--sans);color:var(--ink-soft);font-style:italic}
 .lcr .dt-quote p::before{content:"“";font:800 15px var(--disp);color:var(--violet)}
 .lcr .dt-quote p::after{content:"”";font:800 15px var(--disp);color:var(--violet)}

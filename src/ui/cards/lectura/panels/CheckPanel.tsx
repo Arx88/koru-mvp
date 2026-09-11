@@ -22,7 +22,7 @@ export function CheckPanel() {
               <div className="ck-hero rv">
                 <div className="ck-ring">
                   <svg viewBox="0 0 120 120">
-                    <circle cx="60" cy="60" r="52" fill="none" stroke="#eee8f8" strokeWidth="11" />
+                    <circle cx="60" cy="60" r="52" fill="none" stroke="#E6EEFA" strokeWidth="11" />
                     <circle id="p-check-ckarc" cx="60" cy="60" r="52" fill="none" stroke="url(#p-check-ckG)" strokeWidth="11" strokeLinecap="round" strokeDasharray="327" strokeDashoffset="163" />
                     <defs><linearGradient id="p-check-ckG" x1="0" y1="0" x2="1" y2="1">
                       <stop offset="0" stopColor="#4BDD8C" /><stop offset="1" stopColor="#22B35F" />

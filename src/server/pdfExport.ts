@@ -255,7 +255,7 @@ function renderTurn(turn: PdfTurn): string {
   const time = formatTime(turn.createdAt);
   const timeHtml = time ? `<span class="turn-time">${time}</span>` : "";
   const avatarHtml = turn.role === "koru"
-    ? `<div class="turn-avatar koru-avatar">🌿</div>`
+    ? `<div class="turn-avatar koru-avatar">🐱</div>`
     : `<div class="turn-avatar user-avatar">👤</div>`;
   const itemsHtml = Array.isArray(turn.items) && turn.items.length > 0
     ? `<div class="turn-items">${turn.items.map(renderItem).join("")}</div>`

@@ -4,19 +4,19 @@ import { t, buildLanguageInstruction, detectLanguage, isSupportedLanguage, DEFAU
 describe("i18n module", () => {
   describe("t() translation resolver", () => {
     it("returns Spanish string by default", () => {
-      expect(t("common.hablar_koru")).toBe("Hablar con Koru");
+      expect(t("common.hablar_koru")).toBe("Hablar con Michi");
       expect(t("onboarding.title")).toBe("Soy Michi");
     });
 
     it("returns English string when lang=en", () => {
-      expect(t("common.hablar_koru", "en")).toBe("Talk to Koru");
-      expect(t("onboarding.title", "en")).toBe("I'm Koru");
+      expect(t("common.hablar_koru", "en")).toBe("Talk to Michi");
+      expect(t("onboarding.title", "en")).toBe("I'm Michi");
     });
 
     it("falls back to Spanish if key missing in English map", () => {
       // All current keys exist in both, but the fallback path should still work.
       // We test the contract by simulating a missing-key scenario via the resolver.
-      expect(t("chat.placeholder", "en")).toBe("Talk to Koru...");
+      expect(t("chat.placeholder", "en")).toBe("Talk to Michi...");
     });
 
     it("returns the literal key if unknown (graceful degradation)", () => {

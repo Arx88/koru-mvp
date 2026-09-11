@@ -154,7 +154,7 @@ export function NoteInterior({ block, onClose, onSave }: LecturaInteriorProps<No
           <div className="nt-chip nt-c2">
             <Ic i={Brain} className="ic" />
             <div>
-              <b>Koru lo conectó</b>
+              <b>Michi lo conectó</b>
               <span>a tu historial</span>
             </div>
           </div>

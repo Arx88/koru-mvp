@@ -50,7 +50,7 @@
 /* alternativas */
 .lcr .lk-alts{margin-top:14px}
 .lcr .lk-alts h3{font:800 14px var(--disp);margin-bottom:8px}
-.lcr .lk-alt{display:flex;align-items:center;gap:10px;border:1px dashed #d9cff2;border-radius:15px;padding:10px 12px;margin-bottom:7px;background:rgba(255,255,255,.6)}
+.lcr .lk-alt{display:flex;align-items:center;gap:10px;border:1px dashed #C9D8F2;border-radius:15px;padding:10px 12px;margin-bottom:7px;background:rgba(255,255,255,.6)}
 .lcr .lk-alt .aic{width:30px;height:30px;border-radius:10px;background:var(--paper3);display:flex;align-items:center;justify-content:center;flex:none}
 .lcr .lk-alt .aic .lucide{font-size:16px;color:var(--violet-ink)}
 .lcr .lk-alt b{font:700 11.5px var(--sans);color:var(--ink)}

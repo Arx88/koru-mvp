@@ -41,7 +41,7 @@ export function UniversalInterior({ block, detail, onClose, onSave }: LecturaInt
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(title, subtitle) : undefined}
-      chip={{ label: "Detalle", background: "linear-gradient(135deg,#c4b5fd,#6D52F8)" }}
+      chip={{ label: "Detalle", background: "linear-gradient(135deg,#8B6DFF,#6D52F8)" }}
       ariaLabel={title}
     >
       <div id="p-univ" className="lcr-panel">

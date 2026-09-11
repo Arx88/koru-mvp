@@ -153,7 +153,7 @@ export const lyricsFind: ToolHandler = {
 export const deepResearch: ToolHandler = {
   definition: defineTool(
     "deep_research",
-    "Investigación profunda: abre múltiples fuentes, contrasta, valida con citas y sintetiza con referencias. Úsala cuando el usuario diga 'investigá si conviene alquilar o comprar', 'investigá tratamientos para el insomnio', 'estudiá este tema a fondo'. Esta es la killer feature de investigación de Koru.",
+    "Investigación profunda: abre múltiples fuentes, contrasta, valida con citas y sintetiza con referencias. Úsala cuando el usuario diga 'investigá si conviene alquilar o comprar', 'investigá tratamientos para el insomnio', 'estudiá este tema a fondo'. Esta es la killer feature de investigación de Michi.",
     {
       type: "object",
       additionalProperties: false,

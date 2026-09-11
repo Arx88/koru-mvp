@@ -23,7 +23,7 @@ const TONE_COLOR: Record<string, { ink: string; soft: string; line: string }> = 
   green: { ink: "var(--mint-ink)", soft: "var(--mint-soft)", line: "#c9ecdc" },
   blue: { ink: "var(--sky-ink)", soft: "var(--sky-soft)", line: "#ccdcff" },
   amber: { ink: "var(--honey-ink)", soft: "var(--honey-soft)", line: "#f3e2c4" },
-  purple: { ink: "var(--violet-ink)", soft: "var(--violet-soft)", line: "#e0d5f8" },
+  purple: { ink: "var(--violet-ink)", soft: "var(--violet-soft)", line: "#C9D8F2" },
   red: { ink: "var(--rose-ink)", soft: "#fdeef0", line: "#f9d3da" },
   neutral: { ink: "var(--ink-dim)", soft: "var(--paper2)", line: "var(--linec)" },
 };
@@ -40,7 +40,7 @@ export function ActivityInterior({ block, onClose, onSave }: LecturaInteriorProp
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(title, block.subtitle) : undefined}
-      chip={{ label: "Panorama", background: "linear-gradient(135deg,#c4b5fd,#6D52F8)" }}
+      chip={{ label: "Panorama", background: "linear-gradient(135deg,#8B6DFF,#6D52F8)" }}
       ariaLabel={title}
     >
       <div id="p-act" className="lcr-panel">
@@ -56,7 +56,7 @@ export function ActivityInterior({ block, onClose, onSave }: LecturaInteriorProp
           <div className="ac-energy rv">
             <div className="ac-ring">
               <svg viewBox="0 0 110 110">
-                <circle cx="55" cy="55" r="44" fill="none" stroke="#eee8f8" strokeWidth="10" />
+                <circle cx="55" cy="55" r="44" fill="none" stroke="#E6EEFA" strokeWidth="10" />
                 <circle
                   cx="55"
                   cy="55"

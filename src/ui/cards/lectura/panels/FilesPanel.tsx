@@ -47,7 +47,7 @@ export function FilesPanel() {
                 </div>
                 <div className="fl-row">
                   <div className="th"><img src="/stitch/outfits/solar-panels-2.jpg" alt="Informe solar" /><div className="ft doc"><span>DOC</span></div></div>
-                  <div className="tx"><b>informe-solar-koru.pdf</b><span>el análisis que armamos juntos · 14 páginas</span></div>
+                  <div className="tx"><b>informe-solar-michi.pdf</b><span>el análisis que armamos juntos · 14 páginas</span></div>
                   <div className="sz"><b>3,1 MB</b><span>5 ago</span></div>
                 </div>
                 <div className="fl-new">

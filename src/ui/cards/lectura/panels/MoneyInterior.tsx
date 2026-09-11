@@ -168,7 +168,7 @@ export function MoneyInterior({ block, onClose, onSave }: LecturaInteriorProps<M
             onClick={() => {
               dispatchCardAction("create_commitment", block, {
                 title: `Tope ${block.title || "de gastos"}`,
-                dueHint: total != null ? `tope en ${totalLabel}` : "definir con Koru",
+                dueHint: total != null ? `tope en ${totalLabel}` : "definir con Michi",
               });
               onClose();
             }}

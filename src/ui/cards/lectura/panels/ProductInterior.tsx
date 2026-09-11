@@ -73,7 +73,7 @@ export function ProductInterior({ block, onClose, onSave }: LecturaInteriorProps
         <div className="prs-hero rv">
           <div className="prs-dial">
             <svg viewBox="0 0 120 120">
-              <circle cx="60" cy="60" r="52" fill="none" stroke="#eee8f8" strokeWidth="11" />
+              <circle cx="60" cy="60" r="52" fill="none" stroke="#E6EEFA" strokeWidth="11" />
               <circle
                 cx="60"
                 cy="60"
@@ -111,7 +111,7 @@ export function ProductInterior({ block, onClose, onSave }: LecturaInteriorProps
             {rating != null && (
               <span className="stamp">
                 <Ic i={BadgeCheck} className="ic" style={{ fontSize: "11px" }} />
-                ANÁLISIS DE KORU
+                ANÁLISIS DE MICHI
               </span>
             )}
           </div>

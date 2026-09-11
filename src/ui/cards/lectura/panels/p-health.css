@@ -33,10 +33,10 @@
 .lcr .po-stock{margin-top:14px;background:#fff;border:1px solid var(--linec);border-radius:17px;padding:12px 14px}
 .lcr .po-stock h4{font:800 13px var(--disp);display:flex;gap:8px;align-items:center;margin-bottom:9px}
 .lcr .po-stock h4 .lucide{font-size:15px;color:var(--honey-ink)}
-.lcr .po-bar{height:10px;border-radius:5px;background:#f4f0fb;overflow:hidden;margin-bottom:6px}
+.lcr .po-bar{height:10px;border-radius:5px;background:#E6EEFA;overflow:hidden;margin-bottom:6px}
 .lcr .po-bar i{display:block;height:100%;width:63%;border-radius:5px;background:linear-gradient(90deg,#FFD75E,#FDC533)}
 .lcr .po-stock .tx{display:flex;justify-content:space-between;font:600 10.5px var(--sans);color:var(--ink-dim)}
 .lcr .po-stock .tx b{color:var(--ink)}
-.lcr .po-buy{margin-top:9px;display:flex;align-items:center;gap:9px;background:var(--paper2);border:1px dashed #d9cff2;border-radius:13px;padding:9px 11px}
+.lcr .po-buy{margin-top:9px;display:flex;align-items:center;gap:9px;background:var(--paper2);border:1px dashed #C9D8F2;border-radius:13px;padding:9px 11px}
 .lcr .po-buy .lucide{font-size:15px;color:var(--violet-ink)}
 .lcr .po-buy p{font:600 10.5px/1.5 var(--sans);color:var(--ink-soft)}

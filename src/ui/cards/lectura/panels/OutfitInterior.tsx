@@ -96,7 +96,7 @@ export function OutfitInterior({ block, onClose, onSave }: LecturaInteriorProps<
             <img src="/stitch/outfits/outfit-man-2.jpg" alt="Look completo del día" />
             <span className="fit"><Ic i={Shirt} className="ic" />el look completo</span>
             <div className="brand">
-              <span className="b1"><Ic i={BadgeCheck} className="ic" />look armado por Koru</span>
+              <span className="b1"><Ic i={BadgeCheck} className="ic" />look armado por Michi</span>
               <span className="b2">3 piezas · 1 detalle</span>
             </div>
           </div>

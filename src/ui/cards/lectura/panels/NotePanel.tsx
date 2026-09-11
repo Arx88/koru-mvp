@@ -23,7 +23,7 @@ export function NotePanel() {
       <div id="p-note" className="lcr-panel">
       <div className="nt-head rv">
                 <h1><small>Guardado en tu bóveda</small>“Anotame<br />esto”</h1>
-                <p>Le pediste a Koru que lo guarde y quedó así: tal cual lo dijiste, con su contexto.</p>
+                <p>Le pediste a Michi que lo guarde y quedó así: tal cual lo dijiste, con su contexto.</p>
               </div>
               <div className="note rv">
                 <span className="pin"></span>
@@ -37,7 +37,7 @@ export function NotePanel() {
               </div>
               <div className="nt-meta rv">
                 <div className="nt-chip nt-c1"><Ic i={Clock} className="ic" /><div><b>Se volvió recuerdo</b><span>asociado al sábado</span></div></div>
-                <div className="nt-chip nt-c2"><Ic i={Brain} className="ic" /><div><b>Koru lo conectó</b><span>con el regalo de Maru</span></div></div>
+                <div className="nt-chip nt-c2"><Ic i={Brain} className="ic" /><div><b>Michi lo conectó</b><span>con el regalo de Maru</span></div></div>
                 <div className="nt-chip nt-c3"><Ic i={BellRing} className="ic" /><div><b>Recordatorio</b><span>sáb 10:45</span></div></div>
               </div>
               

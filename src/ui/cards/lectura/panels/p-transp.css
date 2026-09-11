@@ -25,7 +25,7 @@
 .lcr .db-compare{margin-top:14px;background:#fff;border:1px solid var(--linec);border-radius:22px;padding:14px 16px;box-shadow:0 12px 30px var(--shadowc)}
 .lcr .db-compare h3{font:800 14px var(--disp);margin-bottom:10px;display:flex;gap:8px;align-items:center}
 .lcr .db-compare h3 .lucide{font-size:16px;color:var(--sky-ink)}
-.lcr .cmp-row{display:grid;grid-template-columns:30px 1fr auto auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #f2edfa}
+.lcr .cmp-row{display:grid;grid-template-columns:30px 1fr auto auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #E6EEFA}
 .lcr .cmp-row:last-child{border:0}
 .lcr .cmp-row .ci{width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center}
 .lcr .cmp-row .ci .lucide{font-size:16px}

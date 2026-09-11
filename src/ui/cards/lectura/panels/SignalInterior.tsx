@@ -1,5 +1,5 @@
 /**
- * SignalInterior — card "Aviso de Koru" (#p-signal), bind real del block
+ * SignalInterior — card "Aviso de Michi" (#p-signal), bind real del block
  * `proactive_signal` (category + severity + title + body + summaryItems +
  * sources + timestampLabel + followUpQuestion).
  *
@@ -49,9 +49,9 @@ export function SignalInterior({ block, onClose, onSave }: LecturaInteriorProps<
   return (
     <LecturaShell
       onClose={onClose}
-      onBookmark={onSave ? () => onSave(block.title || "Aviso de Koru", catLabel) : undefined}
+      onBookmark={onSave ? () => onSave(block.title || "Aviso de Michi", catLabel) : undefined}
       chip={{ label: catLabel, background: sev.chip }}
-      ariaLabel={block.title || "Aviso de Koru"}
+      ariaLabel={block.title || "Aviso de Michi"}
     >
       <div id="p-signal" className="lcr-panel">
         <div className="sg-hero rv">
@@ -63,7 +63,7 @@ export function SignalInterior({ block, onClose, onSave }: LecturaInteriorProps<
             <span className="sg-cat">
               {catLabel} · {sev.label}
             </span>
-            <h1>{String(block.title ?? "Aviso de Koru")}</h1>
+            <h1>{String(block.title ?? "Aviso de Michi")}</h1>
             {block.timestampLabel && (
               <span className="sg-time">
                 <Ic i={Clock} className="ic" />
@@ -96,7 +96,7 @@ export function SignalInterior({ block, onClose, onSave }: LecturaInteriorProps<
           <div className="sg-question rv">
             <Ic i={HelpCircle} className="ic" />
             <div>
-              <b>Koru te pregunta</b>
+              <b>Michi te pregunta</b>
               <span>{String(block.followUpQuestion)}</span>
             </div>
           </div>

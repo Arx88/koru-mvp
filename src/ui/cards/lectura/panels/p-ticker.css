@@ -18,7 +18,7 @@ from{transform:translateX(0)}to{transform:translateX(-50%)}
 .lcr .tt2-gauge{margin-top:13px}
 .lcr .tt2-gauge .gt{display:flex;justify-content:space-between;font:700 9.5px var(--sans);color:var(--ink-faint);margin-bottom:7px}
 .lcr .tt2-gauge .gt b{color:var(--ink)}
-.lcr .tt2-track{height:12px;border-radius:6px;background:#f4f0fb;position:relative}
+.lcr .tt2-track{height:12px;border-radius:6px;background:#E6EEFA;position:relative}
 .lcr .tt2-track i{display:block;height:100%;width:68%;border-radius:6px;background:linear-gradient(90deg,#4BDD8C,#22B35F)}
 .lcr .tt2-track em{position:absolute;top:-2px;left:68%;transform:translateX(-50%);width:16px;height:16px;border-radius:50%;
           background:#fff;border:3.5px solid var(--mint-ink);box-shadow:0 2px 6px rgba(14,158,76,.3)}

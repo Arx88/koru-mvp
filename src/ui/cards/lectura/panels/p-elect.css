@@ -11,7 +11,7 @@
 .lcr .el-bar i{position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap;font:800 10px var(--sans);color:#fff}
 .lcr .el-bar i.lead::after{content:"";position:absolute;inset:0;border:2.5px solid var(--ink);border-radius:9px}
 .lcr .el-legend{display:flex;flex-direction:column;gap:0}
-.lcr .el-row{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid #f2edfa}
+.lcr .el-row{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid #E6EEFA}
 .lcr .el-row:last-child{border:0}
 .lcr .el-row .sw2{width:11px;height:11px;border-radius:4px;flex:none}
 .lcr .el-row b{font:800 12px var(--sans);color:var(--ink);flex:1}
@@ -20,7 +20,7 @@
 .lcr .el-row .seats{display:flex;gap:2px;width:56px;justify-content:flex-end}
 .lcr .el-row .seats i{width:5px;height:14px;border-radius:2px}
 .lcr .el-row.win .sw2{box-shadow:0 0 0 2.5px var(--ink)}
-.lcr .el-note{margin-top:14px;background:var(--violet-soft);border:1px solid #e2d6fb;border-radius:16px;padding:12px 14px;display:flex;gap:9px}
+.lcr .el-note{margin-top:14px;background:var(--violet-soft);border:1px solid #C9D8F2;border-radius:16px;padding:12px 14px;display:flex;gap:9px}
 .lcr .el-note .lucide{font-size:16px;color:var(--violet-ink);flex:none;margin-top:1px}
 .lcr .el-note p{font:600 11px/1.55 var(--sans);color:var(--ink-soft)}
 .lcr .el-note b{color:var(--violet-ink)}

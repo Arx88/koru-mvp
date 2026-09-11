@@ -18,7 +18,7 @@
 .lcr .du-bars .row{display:grid;grid-template-columns:1fr 46px 1fr;gap:8px;align-items:center}
 .lcr .du-bars .lbar{height:9px;border-radius:4px;background:linear-gradient(90deg,#4ec99c,#7fe3c0)}
 .lcr .du-bars .rbar{height:9px;border-radius:4px;background:linear-gradient(90deg,#9dbcf3,#bcd0f7);justify-self:end}
-.lcr .du-bars .lbar i, .lcr .du-bars .rbar i{display:block;height:100%;background:#f4f0fb;border-radius:4px}
+.lcr .du-bars .lbar i, .lcr .du-bars .rbar i{display:block;height:100%;background:#E6EEFA;border-radius:4px}
 .lcr .du-bars .lbar i{margin-left:auto}
 .lcr .du-bars .num{text-align:center;font:800 11px var(--disp);color:var(--ink)}
 .lcr .du-bars .num small{display:block;font:600 8px var(--sans);color:var(--ink-faint);letter-spacing:.06em}

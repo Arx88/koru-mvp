@@ -115,7 +115,7 @@ export const quoteOfDay: ToolHandler = {
 export const selfHealthCheck: ToolHandler = {
   definition: defineTool(
     "self_health_check",
-    "Diagnóstico honesto del estado de Koru: providers disponibles, Ollama, latencia, número de tools activas. Úsala cuando el usuario diga 'Koru, estás bien?', 'estado de tus servicios', 'autodiagnóstico', 'funcionan tus herramientas?'.",
+    "Diagnóstico honesto del estado de Michi: providers disponibles, Ollama, latencia, número de tools activas. Úsala cuando el usuario diga 'Michi, estás bien?', 'estado de tus servicios', 'autodiagnóstico', 'funcionan tus herramientas?'.",
     {
       type: "object",
       additionalProperties: false,

@@ -1160,7 +1160,7 @@ function shoppingList(b: Of<"shopping_list">): KoruPresentation {
       kind: "text",
       icon: "auto_awesome",
       accent: A.violet,
-      title: "Koru suma",
+      title: "Michi suma",
       subtitle: "MAGIA",
       body: `🧀 Lista compartida sincronizada con quien cocina\n💸 Al pagar, se anota en tus gastos de comida solo\n🔁 Los básicos que comprás seguido los puedo avisar cuando estén por faltar`,
     });
@@ -1685,7 +1685,7 @@ function savedRecord(b: Of<"saved_record">): KoruPresentation {
         subtitle: "EDICIONES",
         steps: [
           { icon: "event", title: "Ocurrió", detail: first.happenedAt, status: "done" as const },
-          { icon: "bookmark_add", title: "Guardado en Koru", detail: first.happenedAt, status: "current" as const },
+          { icon: "bookmark_add", title: "Guardado en Michi", detail: first.happenedAt, status: "current" as const },
         ],
       });
     }
@@ -2230,7 +2230,7 @@ function restaurant(b: Of<"restaurant_synthesis">): KoruPresentation {
       icon: "auto_awesome",
       accent: A.violet,
       title: "Por qué esta noche",
-      subtitle: "KORU CRUZÓ",
+      subtitle: "MICHI CRUZÓ",
       body: whyTonightBody,
     });
   }
@@ -2402,7 +2402,7 @@ function morningBrief(b: Of<"morning_brief">): KoruPresentation {
   // 🔴 KIMI D2: hero.icon "wb_sunny" → MomentoVivo elige animación de sol.
   // 🔴 KIMI D3: reflexión proactiva de Koru (sección "Koru se adelantó").
   const reflectionBody = b.greeting
-    ? `${b.greeting}.${items[0] ? ` Hoy: ${items[0].label} — ${items[0].value}.` : ""} Koru cruzó tu memoria y tu agenda para armar esto; si querés, lo desplegás en historia.`
+    ? `${b.greeting}.${items[0] ? ` Hoy: ${items[0].label} — ${items[0].value}.` : ""} Michi cruzó tu memoria y tu agenda para armar esto; si querés, lo desplegás en historia.`
     : undefined;
 
   const sections: DetailSection[] = [];
@@ -2411,7 +2411,7 @@ function morningBrief(b: Of<"morning_brief">): KoruPresentation {
       kind: "text",
       icon: "auto_awesome",
       accent: A.violet,
-      title: "Koru se adelantó",
+      title: "Michi se adelantó",
       subtitle: "PROACTIVO",
       body: reflectionBody,
     });
@@ -4982,7 +4982,7 @@ function cryptoPortfolio(b: Of<"crypto_portfolio">): KoruPresentation {
       kind: "text",
       icon: "auto_awesome",
       accent: A.violet,
-      title: "Lectura de Koru",
+      title: "Lectura de Michi",
       subtitle: "PARA TU CASO",
       body: insightParts.join(" "),
     });

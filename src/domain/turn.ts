@@ -238,7 +238,7 @@ function uiBlockTitle(block: UiBlock): string {
   if (block.type === "saved_record") return "Guardado";
   if (block.type === "money_summary") return "Dinero";
   if (block.type === "proactive_signal") return block.title;
-  return "Koru";
+  return "Michi";
 }
 
 function uiBlockBody(block: UiBlock): string {

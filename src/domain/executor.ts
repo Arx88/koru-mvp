@@ -122,7 +122,7 @@ export function executeApprovedAction(
 
   nudges.push({
     id: createId("nudge"),
-    title: action.kind === "draft_message" ? "Borrador preparado" : "Hecho por Koru",
+    title: action.kind === "draft_message" ? "Borrador preparado" : "Hecho por Michi",
     body: result,
     reason: "Acción aprobada por ti.",
     priority: "medium",

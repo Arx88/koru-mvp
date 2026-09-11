@@ -19,7 +19,7 @@ export function VaultPanel() {
     <>
       <div id="p-vault" className="lcr-panel">
       <div className="vt-head rv">
-                <h1><small>Tu bóveda de recuerdos</small>Todo lo que Koru<br />sabe de vos</h1>
+                <h1><small>Tu bóveda de recuerdos</small>Todo lo que Michi<br />sabe de vos</h1>
                 <p>Cada cosa que me contás queda acá adentro: viajes, personas, gastos, ideas. Privada, buscable y siempre a mano.</p>
               </div>
               <div className="vt-safe rv">

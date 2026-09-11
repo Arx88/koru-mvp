@@ -219,7 +219,7 @@ export function CryptoInterior({ block, onClose, onSave }: LecturaInteriorProps<
               )
                 .map((a) => `${a.symbol} ${a.direction === "above" ? "cruce al alza en" : "baja a"} ${a.target}`)
                 .join(" · ")}
-              . Koru vigila, vos no tenés que acordarte.
+              . Michi vigila, vos no tenés que acordarte.
             </p>
           </div>
         ) : null}

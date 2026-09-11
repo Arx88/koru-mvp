@@ -11,7 +11,7 @@ import { defineTool, policies, type ToolHandler, type ToolRunContext } from "../
 export const priceHistory: ToolHandler = {
   definition: defineTool(
     "price_history",
-    "Muestra el histórico de precios que Koru registró para un producto (cuando el usuario lo anotó antes). Úsala cuando el usuario pregunte '¿cómo varió el precio de X?', 'historial de precios de Y'. Lee records tipo 'shopping_item' o 'expense' que coincidan.",
+    "Muestra el histórico de precios que Michi registró para un producto (cuando el usuario lo anotó antes). Úsala cuando el usuario pregunte '¿cómo varió el precio de X?', 'historial de precios de Y'. Lee records tipo 'shopping_item' o 'expense' que coincidan.",
     {
       type: "object",
       additionalProperties: false,

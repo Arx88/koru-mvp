@@ -8,10 +8,10 @@
 .lcr #p-shop .sh-ticket-head{display:flex;align-items:center;gap:8px;padding:0 16px 11px;font:800 11px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--mint-ink)}
 .lcr #p-shop .sh-ticket-head .lucide{font-size:15px}
 .lcr #p-shop .sh-ticket-head .sh-pct{margin-left:auto;color:var(--ink)}
-.lcr #p-shop .perf{flex:1;height:0;border-top:2px dashed #e3dcf1}
+.lcr #p-shop .perf{flex:1;height:0;border-top:2px dashed #C9D8F2}
 .lcr #p-shop .sh-list{display:flex;flex-direction:column}
-.lcr #p-shop .shitem{display:flex;align-items:center;gap:10px;padding:11px 16px;background:none;border:0;border-top:1px solid #f2eefb;cursor:pointer;text-align:left;font-family:var(--sans)}
-.lcr #p-shop .shitem:active{background:#f8f5fe}
+.lcr #p-shop .shitem{display:flex;align-items:center;gap:10px;padding:11px 16px;background:none;border:0;border-top:1px solid #E6EEFA;cursor:pointer;text-align:left;font-family:var(--sans)}
+.lcr #p-shop .shitem:active{background:#EFF5FE}
 .lcr #p-shop .shitem .box{flex:none;width:22px;height:22px;border-radius:8px;background:var(--mint-soft);display:flex;align-items:center;justify-content:center;color:transparent;transition:all .25s var(--ease)}
 .lcr #p-shop .shitem .box .lucide{font-size:13px}
 .lcr #p-shop .shitem.done .box{background:linear-gradient(135deg,#4BDD8C,#2FC86E);color:#fff}
@@ -23,7 +23,7 @@
 .lcr #p-shop .shitem .dot .pend{color:#d9d2ef}
 .lcr #p-shop .shitem.done .dot{color:var(--mint-ink)}
 .lcr #p-shop .sh-ticket-foot{display:flex;align-items:center;gap:8px;padding:11px 16px 13px;font:700 10.5px var(--sans);letter-spacing:.05em;color:var(--ink-dim);background:#fbf9ff}
-.lcr #p-shop .sh-note{display:flex;gap:10px;align-items:flex-start;background:var(--violet-soft);border:1px solid #e3d9f7;border-radius:18px;padding:12px 14px;margin-top:12px}
+.lcr #p-shop .sh-note{display:flex;gap:10px;align-items:flex-start;background:var(--violet-soft);border:1px solid #C9D8F2;border-radius:18px;padding:12px 14px;margin-top:12px}
 .lcr #p-shop .sh-note .nic{flex:none;width:34px;height:34px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;color:var(--violet-ink);box-shadow:0 4px 10px var(--shadowc)}
 .lcr #p-shop .sh-note .nic .lucide{font-size:17px}
 .lcr #p-shop .sh-note .nt{display:flex;flex-direction:column;gap:2px;min-width:0}

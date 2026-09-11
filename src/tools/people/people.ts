@@ -9,7 +9,7 @@ import { cached, ttls } from "../shared/cache";
 import { limiters } from "../shared/rateLimiter";
 
 // Wikipedia API requiere User-Agent válido (sino devuelve 403).
-const WIKI_HEADERS = { "User-Agent": "KoruBot/1.0 (personal assistant; contact: dev@koru.app)" };
+const WIKI_HEADERS = { "User-Agent": "MichiApp/1.0 (+https://koru-mvp.onrender.com; personal assistant)" };
 
 // 🔴 v4: Formatea un monto en dólares (TMDB trae budget/revenue en USD enteros).
 //  - budget: siempre en millones (150_000_000 → "$150M")
@@ -96,7 +96,7 @@ export const personInfo: ToolHandler = {
 export const personFollow: ToolHandler = {
   definition: defineTool(
     "person_follow",
-    "Guarda una persona como favorita para que Koru te avise cuando haya noticias suyas. Úsala cuando el usuario diga 'seguí a Tarantino', 'avisame cuando saque algo Elon Musk', 'vigilar a X'.",
+    "Guarda una persona como favorita para que Michi te avise cuando haya noticias suyas. Úsala cuando el usuario diga 'seguí a Tarantino', 'avisame cuando saque algo Elon Musk', 'vigilar a X'.",
     {
       type: "object",
       additionalProperties: false,

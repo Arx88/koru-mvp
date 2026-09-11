@@ -156,7 +156,7 @@ export function AlarmInterior({ block, onClose, onSave }: LecturaInteriorProps<A
               <Ic i={Brain} className="ic" />
             </div>
             <div className="nt">
-              <b>La nota de Koru</b>
+              <b>La nota de Michi</b>
               <span>{block.note}</span>
             </div>
           </div>

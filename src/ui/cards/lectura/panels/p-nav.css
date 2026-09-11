@@ -12,7 +12,7 @@
 .lcr #p-nav .nav-sub .lucide{font-size:13px;color:var(--sky-ink)}
 .lcr #p-nav .nav-findings{background:#fff;border:1px solid var(--linec);border-radius:18px;box-shadow:0 10px 26px var(--shadowc);padding:12px 14px;margin-top:12px}
 .lcr #p-nav .nav-find{display:flex;gap:10px;align-items:flex-start;padding:6px 0}
-.lcr #p-nav .nav-find+.nav-find{border-top:1px solid #f2eefb}
+.lcr #p-nav .nav-find+.nav-find{border-top:1px solid #E6EEFA}
 .lcr #p-nav .nav-find .idx{flex:none;width:20px;height:20px;border-radius:7px;background:var(--sky-soft);color:var(--sky-ink);font:800 10.5px var(--sans);display:flex;align-items:center;justify-content:center;margin-top:1px}
 .lcr #p-nav .nav-find p{font:600 12px/1.55 var(--sans);color:var(--ink-soft)}
 .lcr #p-nav .nav-results{display:flex;flex-direction:column;gap:10px;margin-top:12px}

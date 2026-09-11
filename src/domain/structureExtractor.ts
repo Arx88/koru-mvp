@@ -126,7 +126,7 @@ export function findBackingSource(quote: string, sources: AssistantSource[]): As
 
 function buildExtractorPrompt(userInput: string, sources: AssistantSource[]): { system: string; user: string } {
   const system = [
-    "Sos el extractor de datos de Koru. Tu trabajo: leer contenido web y extraer DATOS CONCRETOS que respondan al pedido del usuario.",
+    "Sos el extractor de datos de Michi. Tu trabajo: leer contenido web y extraer DATOS CONCRETOS que respondan al pedido del usuario.",
     "",
     "Reglas ABSOLUTAS (no negociables):",
     "1. Solo extraés datos que aparezcan LITERALMENTE en el contenido. Nunca inventás ni completás de memoria.",
@@ -335,7 +335,7 @@ const COMPARISON_EXPECTED_FIELDS = 5;
 
 function buildComparisonPrompt(userInput: string, sources: AssistantSource[]): { system: string; user: string } {
   const system = [
-    "Sos el extractor de comparación de productos de Koru. Tu trabajo: leer contenido web y extraer PRODUCTOS COMPLETOS con sus specs, precio, rating, pros y contras.",
+    "Sos el extractor de comparación de productos de Michi. Tu trabajo: leer contenido web y extraer PRODUCTOS COMPLETOS con sus specs, precio, rating, pros y contras.",
     "",
     "Reglas ABSOLUTAS (no negociables):",
     "1. Solo extraés datos que aparezcan LITERALMENTE en el contenido. Nunca inventás ni completás de memoria.",

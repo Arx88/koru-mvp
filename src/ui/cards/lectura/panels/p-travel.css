@@ -13,7 +13,7 @@
 .lcr .it-card .it-city .ci .lucide{font-size:17px;color:var(--honey-ink)}
 .lcr .it-card .it-city .w{font:700 10px var(--sans);color:var(--ink-dim);display:flex;align-items:center;gap:5px}
 .lcr .it-card .it-city .w .lucide{font-size:13px;color:var(--honey-ink)}
-.lcr .mom{display:grid;grid-template-columns:44px 1fr;gap:11px;padding:9px 0;border-top:1px solid #f2edfa;align-items:start}
+.lcr .mom{display:grid;grid-template-columns:44px 1fr;gap:11px;padding:9px 0;border-top:1px solid #E6EEFA;align-items:start}
 .lcr .mom .mk{font:700 9.5px var(--sans);color:var(--ink-faint);text-align:right;padding-top:3px}
 .lcr .mom .mk b{display:block;font:800 13px var(--disp);color:var(--ink)}
 .lcr .mom .mc .t{font:800 12.5px var(--sans);color:var(--ink);display:flex;align-items:center;gap:7px}

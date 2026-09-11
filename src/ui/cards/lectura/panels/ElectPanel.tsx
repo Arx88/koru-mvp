@@ -23,7 +23,7 @@ export function ElectPanel() {
                 <div className="el-progress">
                   <div className="ring">
                     <svg viewBox="0 0 54 54">
-                      <circle cx="27" cy="27" r="23" fill="none" stroke="#eee8f8" strokeWidth="6" />
+                      <circle cx="27" cy="27" r="23" fill="none" stroke="#E6EEFA" strokeWidth="6" />
                       <circle cx="27" cy="27" r="23" fill="none" stroke="#6D52F8" strokeWidth="6" strokeLinecap="round" strokeDasharray="144.5" strokeDashoffset="15.9" />
                     </svg>
                     <span className="rv2">89%</span>

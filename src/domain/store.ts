@@ -512,7 +512,7 @@ export function approveAndExecuteAction(state: KoruState, id: string): KoruState
         createdAt: now,
         source: "action_executed",
         points: 14,
-        explanation: "Koru preparo una accion aprobada.",
+        explanation: "Michi preparó una acción aprobada.",
       },
       ...state.energyEvents,
     ],

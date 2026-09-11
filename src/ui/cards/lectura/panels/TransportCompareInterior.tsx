@@ -107,7 +107,7 @@ export function TransportCompareInterior({ block, onClose, onSave }: LecturaInte
                 </span>
                 <span className="cn">
                   {m.mode}
-                  <small>{m.active ? "recomendado por Koru" : "alternativa"}</small>
+                  <small>{m.active ? "recomendado por Michi" : "alternativa"}</small>
                 </span>
                 <span className="cv">
                   {m.time}

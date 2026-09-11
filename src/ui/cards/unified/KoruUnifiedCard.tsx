@@ -427,7 +427,7 @@ function CardFoot({
         new CustomEvent("koru-save-record", {
           detail: {
             title: blockMeta.title,
-            collection: `Koru · ${blockMeta.collection}`,
+            collection: `Michi · ${blockMeta.collection}`,
             notes: blockMeta.notes,
             url: firstSource?.url,
             blockData: block,

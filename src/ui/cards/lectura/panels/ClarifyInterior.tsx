@@ -32,7 +32,7 @@ export function ClarifyInterior({ block, onClose }: LecturaInteriorProps<Clarify
   return (
     <LecturaShell
       onClose={onClose}
-      chip={{ label: "Pregunta", background: "linear-gradient(135deg,#c4b5fd,#6D52F8)" }}
+      chip={{ label: "Pregunta", background: "linear-gradient(135deg,#8B6DFF,#6D52F8)" }}
       ariaLabel={title}
     >
       <div id="p-clar" className="lcr-panel">
@@ -47,7 +47,7 @@ export function ClarifyInterior({ block, onClose }: LecturaInteriorProps<Clarify
 
         {options.length > 0 && (
           <div className="cl-options rv">
-            <div className="cl-sub">Tocá una y Koru sigue</div>
+            <div className="cl-sub">Tocá una y Michi sigue</div>
             {options.map((opt) => (
               <button key={`opt_${opt}`} type="button" className="cl-opt" onClick={() => answer(opt)}>
                 <span>{opt}</span>
@@ -60,7 +60,7 @@ export function ClarifyInterior({ block, onClose }: LecturaInteriorProps<Clarify
         {options.length === 0 && (
           <div className="cl-manual rv">
             <Ic i={MessageCircle} className="ic" />
-            <p>Contasela en el chat y Koru arma el resto.</p>
+            <p>Contasela en el chat y Michi arma el resto.</p>
           </div>
         )}
 

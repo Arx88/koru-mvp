@@ -27,7 +27,7 @@ export function ReviewQuoteInterior({ block, onClose, onSave }: LecturaInteriorP
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(sourceName || "Cita de reseña", quote.slice(0, 60)) : undefined}
-      chip={{ label: "Reseña", background: "linear-gradient(135deg,#c4b5fd,#6D52F8)" }}
+      chip={{ label: "Reseña", background: "linear-gradient(135deg,#8B6DFF,#6D52F8)" }}
       ariaLabel={sourceName || "Cita de reseña"}
     >
       <div id="p-quote" className="lcr-panel">

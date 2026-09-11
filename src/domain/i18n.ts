@@ -15,7 +15,7 @@ export const DEFAULT_LANGUAGE: KoruLanguage = "es";
 
 const STRINGS = {
   es: {
-    "common.hablar_koru": "Hablar con Koru",
+    "common.hablar_koru": "Hablar con Michi",
     "common.escribir": "o escribir",
     "common.volver": "Volver",
     "common.guardar": "Guardar",
@@ -41,7 +41,7 @@ const STRINGS = {
     "nav.configuracion": "Configuracion",
 
     "settings.title": "Modelo de IA",
-    "settings.subtitle": "Seleccioná el modelo que Koru usará para procesar tus mensajes. Los modelos más grandes son más inteligentes pero tardan más.",
+    "settings.subtitle": "Seleccioná el modelo que Michi usará para procesar tus mensajes. Los modelos más grandes son más inteligentes pero tardan más.",
     "settings.auto": "Automático (predeterminado)",
     "settings.tip_title": "Consejo",
     "settings.language_title": "Idioma",
@@ -61,10 +61,10 @@ const STRINGS = {
     "chat.quick_actions.calendar_today": "Planifica mi día",
 
     "permissions.title": "Permisos",
-    "permissions.subtitle": "Koru no se alimenta de secretos",
+    "permissions.subtitle": "Michi no se alimenta de secretos",
   },
   en: {
-    "common.hablar_koru": "Talk to Koru",
+    "common.hablar_koru": "Talk to Michi",
     "common.escribir": "or write",
     "common.volver": "Back",
     "common.guardar": "Save",
@@ -73,7 +73,7 @@ const STRINGS = {
     "common.ajustes": "Settings",
     "common.cargando": "Loading...",
 
-    "onboarding.title": "I'm Koru",
+    "onboarding.title": "I'm Michi",
     "onboarding.subtitle": "An assistant that listens, organizes and remembers with your permission. Tell me about yourself and I'll handle the rest.",
     "onboarding.review_title": "Tell me about you",
     "onboarding.review_subtitle": "Tell me only what you want me to use to help you better. If something doesn't apply, leave it blank.",
@@ -90,7 +90,7 @@ const STRINGS = {
     "nav.configuracion": "Settings",
 
     "settings.title": "AI Model",
-    "settings.subtitle": "Select the model Koru will use to process your messages. Larger models are smarter but take longer.",
+    "settings.subtitle": "Select the model Michi will use to process your messages. Larger models are smarter but take longer.",
     "settings.auto": "Automatic (default)",
     "settings.tip_title": "Tip",
     "settings.language_title": "Language",
@@ -100,7 +100,7 @@ const STRINGS = {
     "memory.title": "My garden",
     "memory.search_placeholder": "Search memories...",
 
-    "chat.placeholder": "Talk to Koru...",
+    "chat.placeholder": "Talk to Michi...",
     "chat.mod_efimero": "Ephemeral mode active — this chat won't store new memories",
     "chat.adjuntar": "Attach file",
     "chat.quick_actions.wb_sunny": "How's the day?",
@@ -110,7 +110,7 @@ const STRINGS = {
     "chat.quick_actions.calendar_today": "Plan my day",
 
     "permissions.title": "Permissions",
-    "permissions.subtitle": "Koru doesn't feed on secrets",
+    "permissions.subtitle": "Michi doesn't feed on secrets",
   },
 } as const;
 

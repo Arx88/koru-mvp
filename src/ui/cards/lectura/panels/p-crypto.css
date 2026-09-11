@@ -20,7 +20,7 @@
 .lcr .pf-rows{margin-top:14px;background:#fff;border:1px solid var(--linec);border-radius:22px;padding:5px 16px;box-shadow:0 12px 30px var(--shadowc)}
 .lcr .pf-rows h3{font:800 14px var(--disp);padding:10px 0 4px;display:flex;gap:8px;align-items:center}
 .lcr .pf-rows h3 .lucide{font-size:16px;color:var(--mint-ink)}
-.lcr .pcoin{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid #f2edfa}
+.lcr .pcoin{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid #E6EEFA}
 .lcr .pcoin:last-child{border:0}
 .lcr .pcoin .cic{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;
           font:800 15px var(--disp);color:#fff;flex:none}

@@ -62,7 +62,7 @@ export function CheckInterior({ block, onClose, onSave }: LecturaInteriorProps<C
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(block.title || "Checklist", `${doneCount}/${total}`) : undefined}
-      chip={{ label: "Checklist", background: "linear-gradient(135deg,#c4b5fd,#6D52F8)" }}
+      chip={{ label: "Checklist", background: "linear-gradient(135deg,#8B6DFF,#6D52F8)" }}
       ariaLabel={block.title || "Checklist"}
     >
       <div id="p-check" className="lcr-panel">
@@ -82,7 +82,7 @@ export function CheckInterior({ block, onClose, onSave }: LecturaInteriorProps<C
           <div className="ck-hero rv">
             <div className="ck-ring">
               <svg viewBox="0 0 120 120">
-                <circle cx="60" cy="60" r="52" fill="none" stroke="#eee8f8" strokeWidth="11" />
+                <circle cx="60" cy="60" r="52" fill="none" stroke="#E6EEFA" strokeWidth="11" />
                 <circle
                   cx="60"
                   cy="60"
@@ -151,7 +151,7 @@ export function CheckInterior({ block, onClose, onSave }: LecturaInteriorProps<C
               </span>
               <div className="ct">
                 <b>Lista vacía</b>
-                <span>cuando Koru arme la lista, los items aparecen acá</span>
+                <span>cuando Michi arme la lista, los items aparecen acá</span>
               </div>
             </div>
           )}

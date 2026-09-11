@@ -2,8 +2,8 @@
 #p-saved .tkk-hero{position:relative;background:#fff;border:1px solid var(--linec);border-radius:22px;
           box-shadow:0 14px 34px var(--shadowc);padding:0;overflow:hidden}
 .lcr .tkk-hero::before{content:"";position:absolute;left:0;right:0;top:86px;height:2px;
-          background:repeating-linear-gradient(90deg,#d9cff2 0 8px,transparent 8px 16px)}
-.lcr .tkk-hero .cutl, .lcr .tkk-hero .cutr{position:absolute;top:76px;width:22px;height:22px;border-radius:50%;background:#f4f0fb;border:1px solid var(--linec)}
+          background:repeating-linear-gradient(90deg,#C9D8F2 0 8px,transparent 8px 16px)}
+.lcr .tkk-hero .cutl, .lcr .tkk-hero .cutr{position:absolute;top:76px;width:22px;height:22px;border-radius:50%;background:#E6EEFA;border:1px solid var(--linec)}
 .lcr .tkk-hero .cutl{left:-12px}
 .lcr .tkk-hero .cutr{right:-12px}
 .lcr .tkk-top{padding:16px 18px 8px;text-align:center}
@@ -16,9 +16,9 @@
 .lcr .tkk-lines{padding:14px 18px 10px;margin-top:4px}
 .lcr .trow{display:flex;align-items:baseline;gap:8px;padding:6px 0;font-size:12px}
 .lcr .trow .tn{font:600 11.5px var(--sans);color:var(--ink-soft)}
-.lcr .trow .dots{flex:1;border-bottom:2px dotted #e3dcf1;transform:translateY(-3px)}
+.lcr .trow .dots{flex:1;border-bottom:2px dotted #C9D8F2;transform:translateY(-3px)}
 .lcr .trow .tv{font:800 12px var(--disp);color:var(--ink)}
-.lcr .trow.total{margin-top:4px;padding-top:10px;border-top:1.5px dashed #d9cff2}
+.lcr .trow.total{margin-top:4px;padding-top:10px;border-top:1.5px dashed #C9D8F2}
 .lcr .trow.total .tn{font:800 11px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--mint-ink)}
 .lcr .trow.total .tv{font:800 17px var(--disp);color:var(--mint-ink)}
 .lcr .tkk-code{padding:10px 0 18px;text-align:center;background:linear-gradient(180deg,#fff,var(--paper2))}

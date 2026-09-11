@@ -10,7 +10,7 @@
 .lcr .pr-card .pt{flex:1;min-width:0}
 .lcr .pr-card .pt b{font:800 13.5px var(--sans);color:var(--ink);display:block}
 .lcr .pr-card .pt span{font:600 11px/1.45 var(--sans);color:var(--ink-dim)}
-.lcr .pr-card .chk{width:26px;height:26px;border-radius:50%;border:2px solid #d9cff2;flex:none;
+.lcr .pr-card .chk{width:26px;height:26px;border-radius:50%;border:2px solid #C9D8F2;flex:none;
           display:flex;align-items:center;justify-content:center;transition:.2s}
 .lcr .pr-card .chk .lucide{font-size:15px;color:transparent;transition:.2s}
 .lcr .pr-card.sel{border-color:var(--mint);background:linear-gradient(160deg,#f0fbf4,#fff);box-shadow:0 12px 28px rgba(14,158,76,.16)}

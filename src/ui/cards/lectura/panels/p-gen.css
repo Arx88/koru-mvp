@@ -20,6 +20,6 @@
 .lcr #p-gen .gen-grid figcaption em{font:600 9.5px var(--sans);color:var(--ink-faint);font-style:normal}
 .lcr #p-gen .gen-preview p{font:600 12.5px/1.65 var(--sans);color:var(--ink)}
 .lcr #p-gen .gen-tip{display:flex;gap:10px;align-items:flex-start;padding:6px 0}
-.lcr #p-gen .gen-tip+.gen-tip{border-top:1px solid #f2eefb}
+.lcr #p-gen .gen-tip+.gen-tip{border-top:1px solid #E6EEFA}
 .lcr #p-gen .gen-tip .idx{flex:none;width:20px;height:20px;border-radius:7px;background:var(--honey-soft);color:var(--honey-ink);font:800 10.5px var(--sans);display:flex;align-items:center;justify-content:center;margin-top:1px}
 .lcr #p-gen .gen-tip p{font:600 11.5px/1.55 var(--sans);color:var(--ink-soft)}

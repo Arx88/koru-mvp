@@ -62,7 +62,7 @@ export function ElectInterior({ block, onClose, onSave }: LecturaInteriorProps<E
             <div className="el-progress">
               <div className="ring">
                 <svg viewBox="0 0 54 54" aria-hidden="true">
-                  <circle cx="27" cy="27" r="23" fill="none" stroke="#eee8f8" strokeWidth="6" />
+                  <circle cx="27" cy="27" r="23" fill="none" stroke="#E6EEFA" strokeWidth="6" />
                   <circle
                     cx="27"
                     cy="27"

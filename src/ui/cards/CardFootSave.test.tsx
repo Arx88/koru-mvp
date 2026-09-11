@@ -43,7 +43,7 @@ describe("CardFoot · Guardar / Compartir / Abrir conectados", () => {
       const detail = (heard[0] as CustomEvent).detail;
       expect(detail.title).toContain("Sushi sin gluten");
       expect(detail.blockData?.type).toBe("research_sources");
-      expect(detail.collection).toContain("Koru ·");
+      expect(detail.collection).toContain("Michi ·");
     } finally {
       window.removeEventListener("koru-save-record", listener);
     }

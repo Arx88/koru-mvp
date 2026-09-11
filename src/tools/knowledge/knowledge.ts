@@ -13,7 +13,7 @@ import { cosineSimilarity, makeEmbedFn, isOllamaAvailable } from "../shared/embe
 export const memorySave: ToolHandler = {
   definition: defineTool(
     "memory_save",
-    "Guarda algo que Koru debe recordar del usuario de forma duradera. Úsala cuando el usuario diga 'soy alérgico a la penicilina', 'mi mamá se llama Marta', 'trabajo como diseñador', 'vivo en Madrid'.",
+    "Guarda algo que Michi debe recordar del usuario de forma duradera. Úsala cuando el usuario diga 'soy alérgico a la penicilina', 'mi mamá se llama Marta', 'trabajo como diseñador', 'vivo en Madrid'.",
     {
       type: "object",
       additionalProperties: false,
@@ -49,7 +49,7 @@ export const memorySave: ToolHandler = {
 export const memorySearch: ToolHandler = {
   definition: defineTool(
     "memory_search",
-    "Busca en lo que Koru sabe del usuario (memoria semántica). Úsala cuando el usuario diga 'qué te dije sobre mi familia?', 'recordás algo de mi dieta?', 'tengo algo guardado sobre X'. Búsqueda por significado, no por palabra exacta.",
+    "Busca en lo que Michi sabe del usuario (memoria semántica). Úsala cuando el usuario diga 'qué te dije sobre mi familia?', 'recordás algo de mi dieta?', 'tengo algo guardado sobre X'. Búsqueda por significado, no por palabra exacta.",
     {
       type: "object",
       additionalProperties: false,
@@ -173,7 +173,7 @@ export const memoryEdit: ToolHandler = {
 export const memoryGardenShow: ToolHandler = {
   definition: defineTool(
     "memory_garden_show",
-    "Muestra todas las memorias guardadas (el jardín de Koru). Úsala cuando el usuario diga 'mostrame mi jardín', 'qué sabés de mí', 'lista de memorias'.",
+    "Muestra todas las memorias guardadas (el jardín de Michi). Úsala cuando el usuario diga 'mostrame mi jardín', 'qué sabés de mí', 'lista de memorias'.",
     {
       type: "object",
       additionalProperties: false,
@@ -199,7 +199,7 @@ export const memoryGardenShow: ToolHandler = {
 type WikiSummary = { type?: string; title?: string; description?: string; extract?: string; content_urls?: { desktop?: { page?: string } }; thumbnail?: { source?: string } };
 
 // Wikipedia API requiere User-Agent válido (sino devuelve 403).
-const WIKI_HEADERS = { "User-Agent": "KoruBot/1.0 (personal assistant; contact: dev@koru.app)" };
+const WIKI_HEADERS = { "User-Agent": "MichiApp/1.0 (+https://koru-mvp.onrender.com; personal assistant)" };
 
 export const wikipediaLookup: ToolHandler = {
   definition: defineTool(

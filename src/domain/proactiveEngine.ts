@@ -1,7 +1,7 @@
 /**
  * Proactive Engine — Fase 1: "El compañero que te espera"
  *
- * Cuando el usuario abre la app, Koru verifica si hay algo relevante
+ * Cuando el usuario abre la app, Michi verifica si hay algo relevante
  * que pasó en el mundo y le manda un mensaje proactivo CON PERSONALIDAD.
  *
  * NO es hardcodeado: el LLM decide qué tools correr basándose en las
@@ -43,7 +43,7 @@ export type ProactiveMessage = {
 
 // ── Paso 1: El LLM decide qué tools consultar ──
 
-const TRIGGER_SYSTEM_PROMPT = `Sos Koru, un asistente personal. Vas a decidir si hay algo del mundo exterior que deberías chequear para el usuario, basándote en sus memories.
+const TRIGGER_SYSTEM_PROMPT = `Sos Michi, un asistente personal. Vas a decidir si hay algo del mundo exterior que deberías chequear para el usuario, basándote en sus memories.
 
 Mirá las memories del usuario y decidí:
 1. ¿Tu equipo jugó hoy o ayer? → usá match_live
@@ -220,10 +220,10 @@ export async function collectEvents(
 
 // ── Paso 3: Generar mensaje con personalidad ──
 
-const MESSAGE_SYSTEM_PROMPT = `Sos Koru, el asistente personal de Juan. Estás a punto de mandarle un mensaje proactivo — algo que pasó en el mundo que le interesa, sin que él te haya preguntado.
+const MESSAGE_SYSTEM_PROMPT = `Sos Michi, el asistente personal del usuario (su nombre real llega en el mensaje). Estás a punto de mandarle un mensaje proactivo — algo que pasó en el mundo que le interesa, sin que él te haya preguntado.
 
 REGLAS CRÍTICAS:
-- Hablá como un AMIGO, no como un asistente. No digas "Te informo que..." — decí "¡Juan!" o "Che, Juan..."
+- Hablá como un AMIGO, no como un asistente. No digas "Te informo que..." — decí "¡{su nombre}!" o "Che, {su nombre}..."
 - Si su equipo ganó, celebrá CON él. Usá "ganamos" o "perdimos" si seguís a ese equipo también.
 - Si su equipo perdió, mostrá empatía real. No seas frío.
 - Si es clima, sed práctico y cercano. "Llevá paraguas" no "Se recomienda llevar paraguas".
@@ -286,18 +286,18 @@ export async function generateProactiveMessage(
     const isDraw = homeScore === awayScore;
 
     if (isLive) {
-      reply = `Están jugando, Juan! ${homeTeam} ${homeScore} - ${awayScore} ${awayTeam} (${status}). Entrá que te paso el detalle.`;
+      reply = `Están jugando, ${userName}! ${homeTeam} ${homeScore} - ${awayScore} ${awayTeam} (${status}). Entrá que te paso el detalle.`;
       mascotState = "thinking";
     } else if (userWon) {
-      reply = `GANAMOS, Juan! ${homeTeam} ${homeScore} - ${awayScore} ${awayTeam}. Te dejo el resultado por si no lo viste.`;
+      reply = `GANAMOS, ${userName}! ${homeTeam} ${homeScore} - ${awayScore} ${awayTeam}. Te dejo el resultado por si no lo viste.`;
       mascotState = "celebrating";
     } else if (isDraw) {
-      reply = `Empatamos, Juan. ${homeTeam} ${homeScore} - ${awayScore} ${awayTeam}. No estuvo mal, pero podría haber sido mejor.`;
+      reply = `Empatamos, ${userName}. ${homeTeam} ${homeScore} - ${awayScore} ${awayTeam}. No estuvo mal, pero podría haber sido mejor.`;
       mascotState = "thinking";
     } else {
       const lostTeam = userIsHome ? homeTeam : userIsAway ? awayTeam : homeTeam;
       const wonTeam = userIsHome ? awayTeam : userIsAway ? homeTeam : awayTeam;
-      reply = `Uf, Juan... cayó ${lostTeam} ${homeScore}-${awayScore} contra ${wonTeam}. Duele, pero hay que seguir.`;
+      reply = `Uf, ${userName}... cayó ${lostTeam} ${homeScore}-${awayScore} contra ${wonTeam}. Duele, pero hay que seguir.`;
       mascotState = "worried";
     }
   } else if (event.type === "weather_alert") {
@@ -306,30 +306,30 @@ export async function generateProactiveMessage(
     const temp = d.now ?? "?";
     const city = d.city ?? "";
     if (rain > 60) {
-      reply = `Juan, llueve en ${city} (${rain}% probabilidad). Llev\u00e1 paraguas si sal\u00eds.`;
+      reply = `${userName}, llueve en ${city} (${rain}% probabilidad). Llev\u00e1 paraguas si sal\u00eds.`;
       mascotState = "worried";
     } else {
-      reply = `Juan, ${temp} en ${city}. ${rain > 30 ? "Hay chance de lluvia, ojo." : "D\u00eda lindo por ahora."}`;
+      reply = `${userName}, ${temp} en ${city}. ${rain > 30 ? "Hay chance de lluvia, ojo." : "D\u00eda lindo por ahora."}`;
       mascotState = "happy";
     }
   } else if (event.type === "overdue_commitment") {
     const d = event.data as any;
     const items = d.commitments ?? [];
     if (items.length === 1) {
-      reply = `Juan, hace tiempo que ten\u00e9s pendiente: ${items[0].title}. \u00bfLo hac\u00e9s hoy?`;
+      reply = `${userName}, hace tiempo que ten\u00e9s pendiente: ${items[0].title}. \u00bfLo hac\u00e9s hoy?`;
     } else {
-      reply = `Juan, ten\u00e9s ${items.length} pendientes atrasados. \u00bfLos ordenamos?`;
+      reply = `${userName}, ten\u00e9s ${items.length} pendientes atrasados. \u00bfLos ordenamos?`;
     }
     mascotState = "thinking";
   } else if (event.type === "upcoming_birthday") {
     const d = event.data as any;
-    reply = `Juan, se acerca un cumplea\u00f1os: ${d.text}. \u00bfTen\u00e9s regalo?`;
+    reply = `${userName}, se acerca un cumplea\u00f1os: ${d.text}. \u00bfTen\u00e9s regalo?`;
     mascotState = "happy";
   } else if (event.type === "inactivity") {
     const d = event.data as any;
     const days = d.days ?? 0;
     if (days >= 7) {
-      reply = `Juan, te extra\u00e9 estos ${days} d\u00edas. \u00bfTodo bien?`;
+      reply = `${userName}, te extra\u00e9 estos ${days} d\u00edas. \u00bfTodo bien?`;
       mascotState = "worried";
     } else {
       // No mostrar mensaje de inactividad para menos de 7 días

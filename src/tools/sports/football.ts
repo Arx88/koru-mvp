@@ -1175,7 +1175,7 @@ export const matchSchedule: ToolHandler = {
 export const teamFollow: ToolHandler = {
   definition: defineTool(
     "team_follow",
-    "Guarda un equipo como favorito para que Koru te avise cuando juegue o termine el partido. Úsala cuando el usuario diga 'seguí a Boca', 'ségal a Real Madrid', 'avisame cuando juegue Nadal'. Crea una memory tipo 'interest'.",
+    "Guarda un equipo como favorito para que Michi te avise cuando juegue o termine el partido. Úsala cuando el usuario diga 'seguí a Boca', 'ségal a Real Madrid', 'avisame cuando juegue Nadal'. Crea una memory tipo 'interest'.",
     {
       type: "object",
       additionalProperties: false,

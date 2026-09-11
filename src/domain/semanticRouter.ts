@@ -948,7 +948,7 @@ export function keywordFastPath(message: string): RouteResult | null {
       confidence: 0.99,
       toolArgs: {
         title: "Informe guardado",
-        collection: collection || "Koru · Informes",
+        collection: collection || "Michi · Informes",
         uiBlockType: "saved_record",
         recordKind: "idea",
         note: "Guardado desde chat",

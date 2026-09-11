@@ -383,10 +383,10 @@ export const calendarExportIcs: ToolHandler = {
       return Number.isFinite(ts) && ts >= now - 7 * 24 * 60 * 60 * 1000 && ts <= until;
     });
     const fmt = (iso: string) => iso.replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
-    const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Koru//Local//ES"];
+    const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Michi//Local//ES"];
     for (const e of events) {
       lines.push("BEGIN:VEVENT");
-      lines.push(`UID:${e.id}@koru`);
+      lines.push(`UID:${e.id}@michi`);
       lines.push(`DTSTAMP:${fmt(new Date().toISOString())}`);
       lines.push(`DTSTART:${fmt(e.startsAt)}`);
       if (e.endsAt) lines.push(`DTEND:${fmt(e.endsAt)}`);
@@ -400,8 +400,8 @@ export const calendarExportIcs: ToolHandler = {
       type: "calendar_export_ics",
       status: "ok",
       eventCount: events.length,
-      artifact: { name: "koru-agenda.ics", kind: "document" as const, mimeType: "text/calendar", sizeLabel: `${events.length} eventos`, content },
-      block: { type: "resource_bundle", title: "Agenda exportada", files: [{ name: "koru-agenda.ics", kind: "document" as const, mimeType: "text/calendar", sizeLabel: `${events.length} eventos`, content }] },
+      artifact: { name: "michi-agenda.ics", kind: "document" as const, mimeType: "text/calendar", sizeLabel: `${events.length} eventos`, content },
+      block: { type: "resource_bundle", title: "Agenda exportada", files: [{ name: "michi-agenda.ics", kind: "document" as const, mimeType: "text/calendar", sizeLabel: `${events.length} eventos`, content }] },
     };
   },
 };

@@ -72,7 +72,7 @@ export function HealthInterior({ block, onClose, onSave }: LecturaInteriorProps<
               <Ic i={BellRing} className="ic" style={{ color: "var(--sky-ink)" }} />
               <div>
                 <b>Recordatorio activo</b>
-                <span>Koru te avisa cuando toque</span>
+                <span>Michi te avisa cuando toque</span>
               </div>
             </div>
           </div>

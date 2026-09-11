@@ -838,7 +838,7 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
             userName,
             language,
             generatedAt: new Date().toISOString(),
-          }, `koru-${(title || "deliverable").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40)}-${Date.now()}.pdf`);
+          }, `michi-${(title || "deliverable").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40)}-${Date.now()}.pdf`);
           return;
         }
         // 🔴 Si no, exportamos la conversación completa (últimos 50 turns)
@@ -875,7 +875,7 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
           language,
           turns,
           generatedAt: new Date().toISOString(),
-        }, `koru-conversacion-${Date.now()}.pdf`);
+        }, `michi-conversacion-${Date.now()}.pdf`);
       } catch (err) {
         console.error("[export-pdf]", err);
         alert("No se pudo generar el PDF. Intentá de nuevo.");

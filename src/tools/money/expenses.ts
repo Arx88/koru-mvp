@@ -167,7 +167,7 @@ export const expenseAlert: ToolHandler = {
 export const budgetSet: ToolHandler = {
   definition: defineTool(
     "budget_set",
-    "Establece un presupuesto mensual para una categoría o gasto total. Úsala cuando el usuario diga 'poneme 400 de comida este mes', 'límite de 1000 de gastos'. Se guarda como memory para que Koru avise al acercarse al límite.",
+    "Establece un presupuesto mensual para una categoría o gasto total. Úsala cuando el usuario diga 'poneme 400 de comida este mes', 'límite de 1000 de gastos'. Se guarda como memory para que Michi avise al acercarse al límite.",
     {
       type: "object",
       additionalProperties: false,

@@ -416,7 +416,7 @@ export const rssDigest: ToolHandler = {
 export const newsRadarTopic: ToolHandler = {
   definition: defineTool(
     "news_radar_topic",
-    "Configura un radar: monitorea un tema en fuentes múltiples y Koru te avisará cuando aparezca novedad. Úsala cuando el usuario diga 'avisame cuando salga algo sobre el nuevo Zelda', 'radar de IA generativa', 'vigilar tema X'.",
+    "Configura un radar: monitorea un tema en fuentes múltiples y Michi te avisará cuando aparezca novedad. Úsala cuando el usuario diga 'avisame cuando salga algo sobre el nuevo Zelda', 'radar de IA generativa', 'vigilar tema X'.",
     {
       type: "object",
       additionalProperties: false,

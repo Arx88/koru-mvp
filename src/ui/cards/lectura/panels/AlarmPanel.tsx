@@ -45,7 +45,7 @@ export function AlarmPanel() {
               </div>
               <div className="cl-note rv">
                 <div className="nic"><Ic i={Brain} className="ic" /></div>
-                <div className="nt"><b>La nota de Koru</b><span>Te agendé el gym 30 min después de la alarma — así no tenés que pensarlo a las 7 de la mañana.</span></div>
+                <div className="nt"><b>La nota de Michi</b><span>Te agendé el gym 30 min después de la alarma — así no tenés que pensarlo a las 7 de la mañana.</span></div>
               </div>
               
                       <div className="actions">

@@ -26,7 +26,7 @@ export const docCreateMd: ToolHandler = {
     const title = String(args.title ?? "").trim();
     const content = String(args.content ?? "").trim();
     if (!title || !content) return { type: "doc_create_md", status: "failed", error: "Indicá título y contenido." };
-    const body = `# ${title}\n\n_Generado por Koru el ${new Date().toISOString().slice(0, 10)}._\n\n${content}\n`;
+    const body = `# ${title}\n\n_Generado por Michi el ${new Date().toISOString().slice(0, 10)}._\n\n${content}\n`;
     const artifact: AssistantArtifact = {
       name: `${title.replace(/[^a-z0-9áéíóúñ ]/gi, "").trim().replace(/\s+/g, "_").slice(0, 40) || "documento"}.md`,
       kind: "markdown",
@@ -68,7 +68,7 @@ export const docCreatePdf: ToolHandler = {
     if (!title || !content) return { type: "doc_create_pdf", status: "failed", error: "Indicá título y contenido." };
     const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${title}</title>
 <style>body{font-family:Georgia,serif;max-width:780px;margin:40px auto;padding:0 20px;line-height:1.6;color:#222}h1{border-bottom:2px solid #444;padding-bottom:8px}</style>
-</head><body><h1>${title}</h1><p><em>Generado por Koru el ${new Date().toISOString().slice(0, 10)}.</em></p>${content.split(/\n+/).map((p) => `<p>${p}</p>`).join("\n")}</body></html>`;
+</head><body><h1>${title}</h1><p><em>Generado por Michi el ${new Date().toISOString().slice(0, 10)}.</em></p>${content.split(/\n+/).map((p) => `<p>${p}</p>`).join("\n")}</body></html>`;
     const artifact: AssistantArtifact = {
       name: `${title.replace(/[^a-z0-9áéíóúñ ]/gi, "").trim().replace(/\s+/g, "_").slice(0, 40) || "documento"}.html`,
       kind: "document",

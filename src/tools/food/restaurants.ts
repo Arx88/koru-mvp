@@ -265,7 +265,7 @@ export async function fetchRestaurantDetails(
 export const restaurantDeepSearch: ToolHandler = {
   definition: defineTool(
     "restaurant_deep_search",
-    "Busca un lugar para comer cruzando reseñas de varias fuentes (Google, Yelp, TripAdvisor, periódicos gastronómicos) y sintetiza un veredicto honesto destacando en qué coinciden las fuentes. Úsala cuando el usuario diga 'buena parrilla en Palermo', 'dónde como sushi en Madrid centro', 'mejor paella de Valencia', 'restaurante italiano romántico'. Esta es la killer feature de Koru: no busca en Google, LEE varias reseñas y dice dónde coinciden.",
+    "Busca un lugar para comer cruzando reseñas de varias fuentes (Google, Yelp, TripAdvisor, periódicos gastronómicos) y sintetiza un veredicto honesto destacando en qué coinciden las fuentes. Úsala cuando el usuario diga 'buena parrilla en Palermo', 'dónde como sushi en Madrid centro', 'mejor paella de Valencia', 'restaurante italiano romántico'. Esta es la killer feature de Michi: no busca en Google, LEE varias reseñas y dice dónde coinciden.",
     {
       type: "object",
       additionalProperties: false,
@@ -338,7 +338,7 @@ export const restaurantDeepSearch: ToolHandler = {
     if (ctx.chatFn) {
       try {
         const prompt = [
-          `Sos el sintetizador de reseñas de Koru. Analizá las siguientes fuentes sobre "${query}${mood ? ` (contexto: ${mood})` : ""}".`,
+          `Sos el sintetizador de reseñas de Michi. Analizá las siguientes fuentes sobre "${query}${mood ? ` (contexto: ${mood})` : ""}".`,
           `Devolvé SOLO JSON válido con esta forma exacta:`,
           `{"matches":[{"name":"Nombre del lugar","sourcesMentioning":N,"quote":"frase corta de una fuente que lo respalda"}],"pros":["punto a favor 1","punto a favor 2"],"cons":["a considerar 1","a considerar 2"],"synthesis":"frase de síntesis honesta"}`,
           `Reglas:`,

@@ -35,7 +35,7 @@ export function ComparisonInterior({ block, onClose, onSave }: LecturaInteriorPr
     <LecturaShell
       onClose={onClose}
       onBookmark={onSave ? () => onSave(block.title || "Comparativa", winner?.title) : undefined}
-      chip={{ label: "Duelo", background: "linear-gradient(135deg,#c4b5fd,#6D52F8)" }}
+      chip={{ label: "Duelo", background: "linear-gradient(135deg,#8B6DFF,#6D52F8)" }}
       ariaLabel={block.title || "Comparativa"}
     >
       <div id="p-comp" className="lcr-panel">
@@ -103,7 +103,7 @@ export function ComparisonInterior({ block, onClose, onSave }: LecturaInteriorPr
         )}
 
         {criteria.length > 0 && (
-          <div className="vs-note rv" style={{ background: "var(--paper2)", borderColor: "#d9cff2" }}>
+          <div className="vs-note rv" style={{ background: "var(--paper2)", borderColor: "#C9D8F2" }}>
             <Ic i={ListFilter} className="ic" />
             <p>
               Criterios de tu comparativa: <b>{criteria.join(" · ")}</b>.

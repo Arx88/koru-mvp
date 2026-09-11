@@ -35,9 +35,9 @@
 .lcr .vt-mem.no-ph .mt2{padding:13px 12px 14px}
 .lcr .vt-mem.no-ph .mi2{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;margin-bottom:9px}
 .lcr .vt-mem.no-ph .mi2 .lucide{font-size:17px}
-.lcr .vt-stats{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid #f2edfa}
+.lcr .vt-stats{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid #E6EEFA}
 .lcr .vt-stat{text-align:center;padding:12px 6px 11px}
-.lcr .vt-stat+.vt-stat{border-left:1px solid #f2edfa}
+.lcr .vt-stat+.vt-stat{border-left:1px solid #E6EEFA}
 .lcr .vt-stat .lucide{font-size:15px}
 .lcr .vt-stat b{font:800 15px var(--disp);display:block;margin-top:3px}
 .lcr .vt-stat span{font:700 8px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint)}

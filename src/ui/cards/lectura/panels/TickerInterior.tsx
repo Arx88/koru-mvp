@@ -81,7 +81,7 @@ export function TickerInterior({ block, onClose, onSave }: LecturaInteriorProps<
                 <small> {main.label}</small>
               </div>
               <div className="sub">
-                {main.highlight ? "marcado como importante por Koru" : `dato 1 de ${items.length} de tu cinta`}
+                {main.highlight ? "marcado como importante por Michi" : `dato 1 de ${items.length} de tu cinta`}
               </div>
               <div className="tt2-gauge">
                 <div className="gt">
@@ -110,7 +110,7 @@ export function TickerInterior({ block, onClose, onSave }: LecturaInteriorProps<
                 {it.label}
               </span>
               <b>{it.value}</b>
-              <span>{it.highlight ? "destacado por Koru" : "dato de la cinta"}</span>
+              <span>{it.highlight ? "destacado por Michi" : "dato de la cinta"}</span>
             </div>
           ))}
         </div>

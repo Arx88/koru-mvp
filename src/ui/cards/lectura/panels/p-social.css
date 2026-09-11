@@ -30,7 +30,7 @@
 .lcr .ev-gift{margin-top:14px;background:#fff;border:1px solid var(--linec);border-radius:17px;padding:12px 14px}
 .lcr .ev-gift h4{font:800 13px var(--disp);display:flex;gap:8px;align-items:center;margin-bottom:9px}
 .lcr .ev-gift h4 .lucide{font-size:15px;color:var(--pink-ink)}
-.lcr .gopt{display:flex;align-items:center;gap:11px;padding:8px 0;border-top:1px solid #f2edfa}
+.lcr .gopt{display:flex;align-items:center;gap:11px;padding:8px 0;border-top:1px solid #E6EEFA}
 .lcr .gopt .gic{width:36px;height:36px;border-radius:12px;flex:none;display:flex;align-items:center;justify-content:center}
 .lcr .gopt .gic .lucide{font-size:19px}
 .lcr .gopt .gt{flex:1}

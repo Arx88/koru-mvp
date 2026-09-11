@@ -258,7 +258,7 @@ export function InfoInterior({ block, onClose, onSave }: LecturaInteriorProps<In
             </div>
             {block.summary && <div className="rc-sub">{block.summary.slice(0, 120)}{block.summary.length > 120 ? "…" : ""}</div>}
             {metrics.length > 1 && (
-              <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: "1px dashed #d9cff2" }}>
+              <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: "1px dashed #C9D8F2" }}>
                 {metrics.slice(1).map((m) => (
                   <div className="ds-row" key={`metric_${m.label}`}>
                     <span className="dn">{m.label}</span>

@@ -32,7 +32,7 @@ export type RawOpportunity = {
 
 function systemPrompt(): string {
   return [
-    "Sos el detector de oportunidades de Koru, un asistente personal con memoria.",
+    "Sos el detector de oportunidades de Michi, un asistente personal con memoria.",
     "Tu trabajo es analizar el mensaje del usuario + contexto personal y detectar si existe UN SOLO enhancement (+1) útil.",
     "",
     "Reglas de oro:",

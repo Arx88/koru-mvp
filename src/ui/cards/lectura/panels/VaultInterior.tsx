@@ -1,5 +1,5 @@
 /**
- * VaultInterior — card "Todo lo que Koru sabe de vos" (#p-vault), bind real
+ * VaultInterior — card "Todo lo que Michi sabe de vos" (#p-vault), bind real
  * del block `saved_record` (records[] múltiples — la colección/bóveda).
  *
  * Los records[] REALES (LifeRecord) arman la grilla: kind como categoría,
@@ -100,7 +100,7 @@ export function VaultInterior({ block, onClose, onSave }: LecturaInteriorProps<V
         <div className="vt-head rv">
           <h1>
             <small>{title}</small>
-            Todo lo que Koru
+            Todo lo que Michi
             <br />
             sabe de vos
           </h1>

@@ -1,7 +1,7 @@
 import type { KoruState, RelevantMemory } from "../domain/types";
 
 /**
- * Construye el system prompt completo para el LLM de Koru.
+ * Construye el system prompt completo para el LLM de Michi.
  *
  * Extraído de koruBackend.ts (Task 11-PARTITION) para reducir el tamaño del
  * módulo orquestador. Sin cambios de comportamiento respecto al original.
@@ -56,7 +56,7 @@ export function systemPrompt(nowIso: string, state: KoruState, relevantMemories:
     `- 🔴 CRÍTICO — SIEMPRE EJECUTÁ LA TOOL: Cuando el usuario pide un recordatorio/alarma/gasto, EJECUTÁ la tool. NO digas "Listo, guardado" sin ejecutar la tool.`,
     ``,
     `=== CONOCIMIENTO DE LA APP (dónde viven las cosas) ===`,
-    `Vos vivís dentro de la app Koru y la conocés perfectamente. Pantallas:`,
+    `Vos vivís dentro de la app Michi y la conocés perfectamente. Pantallas:`,
     `- Hoy: el dashboard del día (eventos, deadlines, hábitos, hidratación, clima, bienestar).`,
     `- Memoria: los recuerdos confirmados sobre el usuario.`,
     `- Historial: conversaciones pasadas.`,
@@ -66,13 +66,13 @@ export function systemPrompt(nowIso: string, state: KoruState, relevantMemories:
     `- 🔴 CRÍTICO — PREGUNTAS "DÓNDE VEO/ESTÁ": si el usuario pregunta dónde ver lo que guardó ("donde veo mis guardados", "donde están mis notas/rayitos/informes guardados"), la respuesta es Mis Colecciones — botón "Guardados" en Hoy. Respondé con esa ubicación real. NO digas que no sabés y NO le devuelvas la pregunta a él: VOS conocés la app.`,
     `  Ejemplo: "donde veo mis cosas guardadas?" → "Todo lo que guardamos queda en Mis Colecciones: botón Guardados en la pantalla Hoy (llegás con la rueda: mantené presionado el chat y soltá en Home) y lo ves todo ordenado."`,
     ``,
-    `Memorias de ${state.userName?.trim() || "mi amigo"} (lo que Koru sabe de él/ella — usalas SIEMPRE que sean relevantes, aunque el vínculo sea semántico y no literal):`,
+    `Memorias de ${state.userName?.trim() || "mi amigo"} (lo que Michi sabe de él/ella — usalas SIEMPRE que sean relevantes, aunque el vínculo sea semántico y no literal):`,
     ...(relevantMemories.length
       ? relevantMemories.map(m => `- ${m.id} [${m.kind}] ${m.text.replace(/[\n\r`]+/g, " ").trim()}`)
       : ["- No hay memorias aún."]),
     ``,
     `REGLAS DE MEMORIA (para el campo archiveMemoryIds de tu respuesta):`,
-    `- Si el usuario CONTRADICE o SUPERA una memoria de la lista (ej: "ya no juego al tenis", "me mude a Barcelona", "dejé de comer sushi"), incluí el ID de esa memoria en archiveMemoryIds. Koru la archiva automáticamente.`,
+    `- Si el usuario CONTRADICE o SUPERA una memoria de la lista (ej: "ya no juego al tenis", "me mude a Barcelona", "dejé de comer sushi"), incluí el ID de esa memoria en archiveMemoryIds. Michi la archiva automáticamente.`,
     `- Si el usuario menciona SU ciudad/país/barrio y no hay ninguna memoria de ubicación, agregala como memoryCandidate con kind: profile.`,
     `- No repitas (dupliques) memorias que ya están en la lista: compará por SIGNIFICADO.`,
     `- El vínculo semántico importa: si dice "que calor" y hay una memoria de que le gusta el helado, USALA. Si pide una receta y es alérgico a algo, ADAPTÁ la respuesta.`,

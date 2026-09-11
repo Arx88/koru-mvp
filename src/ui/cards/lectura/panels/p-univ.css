@@ -16,10 +16,10 @@
 .lcr #p-univ .un-rows{display:flex;flex-direction:column;gap:8px}
 .lcr #p-univ .un-row{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;background:#fff;border:1px solid var(--linec);border-radius:15px;padding:11px 14px;box-shadow:0 8px 20px var(--shadowc);font-family:var(--sans);text-align:left;cursor:default}
 .lcr #p-univ .un-row.tap,.lcr #p-univ .un-step.tap{cursor:pointer}
-.lcr #p-univ .un-row.tap:active,.lcr #p-univ .un-step.tap:active{background:#f8f5fe;transform:scale(.99)}
+.lcr #p-univ .un-row.tap:active,.lcr #p-univ .un-step.tap:active{background:#EFF5FE;transform:scale(.99)}
 .lcr #p-univ .un-step.tap{width:100%;font-family:var(--sans);text-align:left;background:none;border:0;padding:0 0 14px;position:relative;display:flex;gap:11px}
 .lcr #p-univ .un-row.urgent{background:#fff7f8;border-color:#f9d3da}
-.lcr #p-univ .un-row:active{background:#f8f5fe}
+.lcr #p-univ .un-row:active{background:#EFF5FE}
 .lcr #p-univ .un-row .rw-t{min-width:0}
 .lcr #p-univ .un-row .rw-t b{font:700 12.5px/1.3 var(--sans);color:var(--ink);display:block}
 .lcr #p-univ .un-row .rw-t span{font:600 10.5px/1.45 var(--sans);color:var(--ink-soft);display:block;margin-top:2px}
@@ -53,7 +53,7 @@
 .lcr #p-univ .un-step:last-child::before{display:none}
 .lcr #p-univ .un-step .node{flex:none;width:27px;height:27px;border-radius:10px;background:#fff;border:1.5px solid var(--linec);color:var(--ink-dim);font:800 11.5px var(--sans);display:flex;align-items:center;justify-content:center;z-index:1}
 .lcr #p-univ .un-step.status-done .node{background:var(--mint-soft);border-color:#c9ecdc;color:var(--mint-ink)}
-.lcr #p-univ .un-step.status-current .node{background:var(--violet-soft);border-color:#e0d5f8;color:var(--violet-ink);box-shadow:0 0 0 4px rgba(109,82,248,.12)}
+.lcr #p-univ .un-step.status-current .node{background:var(--violet-soft);border-color:#C9D8F2;color:var(--violet-ink);box-shadow:0 0 0 4px rgba(109,82,248,.12)}
 .lcr #p-univ .un-step .node .lucide{font-size:13px}
 .lcr #p-univ .un-step .stm-t{padding-top:3px;min-width:0}
 .lcr #p-univ .un-step .stm-t b{font:700 12.5px/1.3 var(--sans);color:var(--ink);display:block}

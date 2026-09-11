@@ -23,7 +23,7 @@ export function LecturaShell({
   onClose,
   onBookmark,
   chip,
-  ariaLabel = "Detalle de Koru",
+  ariaLabel = "Detalle de Michi",
 }: {
   children: ReactNode;
   onClose: () => void;

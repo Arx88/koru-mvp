@@ -28,7 +28,7 @@
 /* pasos */
 .lcr .rc-steps{margin-top:12px;display:flex;flex-direction:column;gap:0;background:#fff;border:1px solid var(--linec);border-radius:20px;padding:5px 15px}
 .lcr .rc-step{display:grid;grid-template-columns:30px 1fr;gap:11px;padding:12px 0;align-items:start}
-.lcr .rc-step+.rc-step{border-top:1px solid #f2edfa}
+.lcr .rc-step+.rc-step{border-top:1px solid #E6EEFA}
 .lcr .rc-step .n{width:26px;height:26px;border-radius:50%;background:var(--honey-soft);color:var(--honey-ink);
           display:grid;place-items:center;font:800 12px var(--disp)}
 .lcr .rc-step b{font:800 12.5px var(--sans);display:block}
