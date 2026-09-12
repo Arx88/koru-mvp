@@ -48,6 +48,7 @@ import {
   setHeartbeatEnabled,
   setWorldSignalsEnabled,
   toggleMemorySuggestions,
+  updateUserName,
   toggleEphemeralMode,
   updateHeartbeatSettings,
   updateMemoryText,
@@ -516,6 +517,16 @@ export function KoruProvider({ children }: { children: ReactNode }) {
       if (!cancelled) {
         commitDomainState(persisted);
         setStateLoaded(true);
+        // 🔴 FIX "no me nombra" (2026-09-12): si el estado persistido perdió el
+        // userName (restore de cache, migración, reset parcial) pero el
+        // onboarding local lo tiene en michi.username, restaurarlo — el LLM
+        // no puede nombrar al usuario si el state viaja sin nombre.
+        try {
+          const localName = (localStorage.getItem("michi.username") ?? "").trim();
+          if (localName && !(persisted.userName ?? "").trim()) {
+            commitDomainState((prev) => updateUserName(prev, localName));
+          }
+        } catch { /* best-effort */ }
         // 🐱 v7.5 — RESET one-time de la voz fantasma, POST-LOAD: el estado
         // persistido puede traer koruVoiceEnabled=true de la era de los dos
         // toggles (bug: la voz se re-activaba sola en cada sesión). Lo
@@ -1084,7 +1095,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     commitChatTurns((prev) => {
       if (prev.length === 0) return [greetingTurn(cleanName)];
       if (prev.length === 1 && prev[0].role === "koru") {
-        return [{ ...prev[0], text: `Hola, ${cleanName}. Cuéntame cómo estás.` }];
+        return [{ ...prev[0], text: `¡Hola, ${cleanName}! ¿Cómo andás? Contame.` }];
       }
       return prev;
     });

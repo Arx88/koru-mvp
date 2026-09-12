@@ -22,7 +22,7 @@ import { validateToolResults } from "../domain/toolValidator";
 import { SemanticRouter, type EmbedFn, type RouteResult, type RouteCategory, keywordFastPath } from "../domain/semanticRouter";
 import { logger, dump } from "./logger";
 import type { ToolDefinition } from "../tools/types";
-import { systemPrompt, formatDateLong, formatTimeShort, formatTemporalContext } from "./systemPrompt";
+import { systemPrompt, formatDateLong, formatTimeShort, formatTemporalContext, ensureNameInGreeting } from "./systemPrompt";
 import { executeTool } from "./toolDispatcher";
 import {
   buildMemoryExtractorMessages,
@@ -4526,6 +4526,12 @@ export async function runKoruBackendTurn(
       fastParsed = { reply: cleanReplyText(fastContent) || "Hola. ¿Cómo va todo?", mascotState: "happy" };
     }
     const fastResponse = normalizeFinalPayload(fastParsed, request.input, [], undefined, undefined, request.state);
+    // 🔴 BUG EN VIVO 2026-09-12 ("no me nombra"): los saludos del fast-path
+    // deben usar el nombre del usuario. El LLM fast lo omite ~la mitad de las
+    // veces — pulido determinístico (solo openers de saludo, ver systemPrompt.ts).
+    if (typeof fastResponse.reply === "string") {
+      fastResponse.reply = ensureNameInGreeting(fastResponse.reply, request.state.userName);
+    }
     logger.info("runKoruBackendTurn", "Return fast-path", { replyPreview: (fastResponse.reply ?? "").slice(0, 60), provider, model });
     return {
       ...fastResponse,
