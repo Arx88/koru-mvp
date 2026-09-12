@@ -11,6 +11,7 @@ import { convertCurrency, normalizeCurrencyCode } from "../../../tools/travel/cu
 import { KoruIcon, iconFromMaterial } from "./KoruIcons";
 import { LivePrice } from "./useLivePrice";
 import { MichiCard, michiDesignFor } from "./MichiLayouts";
+import { isMichiNews } from "./MichiNewCards";
 import { MichiWeatherCard } from "./MichiWeather";
 
 /** Hook: detecta si el navegador está offline. */
@@ -1304,7 +1305,7 @@ export function KoruUnifiedCard({ block }: { block: UiBlock }) {
   if (block.type === "weather" && layout !== "compact") {
     return <MichiWeatherCard block={block as Extract<UiBlock, { type: "weather" }>} />;
   }
-  if (layout !== "compact") {
+  if (layout !== "compact" || isMichiNews(block)) {
     const design = michiDesignFor(block);
     const michiOverlay = (
       <DetailOverlay open={open} cta={cta} detail={detail} hero={hero} block={block} setOpen={setOpen} />

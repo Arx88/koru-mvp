@@ -1471,8 +1471,9 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
       </section>
 
       {saveModal && <MichiSaveSheet
+        heading={saveModal.blockData?.type === "recipe" ? "Guardar receta" : saveModal.blockData?.type === "news_urgent" || saveModal.blockData?.mode === "news" ? "Guardar noticia" : "Guardar informe"}
         title={saveModal.title}
-        automaticCollection={`Michi · ${saveModal.blockData?.topic || saveModal.blockData?.kicker || "Informes"}`}
+        automaticCollection={`Michi · ${saveModal.blockData?.type === "recipe" ? "Recetas" : saveModal.blockData?.type === "news_urgent" || saveModal.blockData?.mode === "news" ? "Noticias" : saveModal.blockData?.topic || saveModal.blockData?.kicker || "Informes"}`}
         collections={[...new Set(koruDomainState.records.map(record => record.collection).filter((collection): collection is string => Boolean(collection)))]}
         onClose={() => setSaveModal(null)}
         onSave={collection => {

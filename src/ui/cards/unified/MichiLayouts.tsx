@@ -3,6 +3,7 @@ import type { ReactNode, CSSProperties } from "react";
 import type { UiBlock } from "../../../domain/types";
 import type { Hero, Detail, KoruPresentation } from "./presentation";
 import { KoruIcon, iconFromMaterial } from "./KoruIcons";
+import { isMichiNews, MichiNewsCards, MichiRecipeCard, MichiMarketCard } from "./MichiNewCards";
 
 /* ============================================================================
    MICHI v7 — CARDS "MINI-MUNDO" (port fiel del diseño de public/estilo-v2.html)
@@ -16,7 +17,7 @@ export type MichiDesign =
   | "icard" | "mission" | "crypto" | "receta" | "fit" | "focus"
   | "game" | "shop" | "sleep" | "futbol" | "tenis";
 
-type MichiProps = {
+export type MichiProps = {
   block: UiBlock;
   hero: Hero;
   cta?: Cta;
@@ -1663,6 +1664,9 @@ export function MichiTenis(props: MichiProps) {
    ============================================================================ */
 
 export function MichiCard(props: MichiProps & { design: MichiDesign }) {
+  if (isMichiNews(props.block)) return <MichiNewsCards {...props} />;
+  if (props.block.type === "recipe") return <MichiRecipeCard {...props} />;
+  if (props.block.type === "crypto_portfolio" || props.block.type === "market") return <MichiMarketCard {...props} />;
   const { design } = props;
   switch (design) {
     case "mission": return <MichiMission {...props} />;

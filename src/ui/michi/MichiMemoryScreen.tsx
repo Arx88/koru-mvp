@@ -8,6 +8,7 @@ import {
   Sparkles,
   Trash2,
   X,
+  PawPrint, Heart, Clock3, Laptop, Music2, Tv, BookHeart, Briefcase, Users, Target, Activity,
 } from "lucide-react";
 import { useKoru, type Memory, type MemoryStatus } from "../KoruProvider";
 import { WorldObject } from "./WorldObject";
@@ -56,26 +57,28 @@ export function MemoryScreen({ onTalk }: { onTalk?: () => void }) {
     <div className="mx-page-content mw-memory">
       <header className="mw-memory-heading">
         <div><span className="mw-eyebrow">MICHI SE ACUERDA</span><h1>Memoria</h1><p>Tus gustos, tu gente y lo que te importa. Cada recuerdo ayuda a Michi a conocerte mejor.</p></div>
-        <WorldObject kind="memory" />
+        <img className="mh-header-art" src="/assets/michi-cards/memory.webp" alt="" width="400" height="400" />
       </header>
       <div className="mw-memory-tickets" aria-label="Resumen de recuerdos">
         <div>
+          <BookHeart className="mh-ticket-icon" />
           <strong>{memories.length}</strong>
           <span>recuerdos</span>
         </div>
         <div>
+          <Clock3 className="mh-ticket-icon" />
           <strong>{pending}</strong>
           <span>por confirmar</span>
         </div>
         <div>
-          <LockKeyhole size={20} />
+          <Heart className="mh-ticket-icon" fill="#ff4e91" />
+          <strong>{memories.length - pending}</strong>
           <span>vos decidís</span>
         </div>
       </div>
       <section className="mw-pocket-content" aria-label="Tus recuerdos">
         <div className="mw-section-title">
-          <h2>Recuerdos contigo</h2>
-          <WorldObject kind="memory" />
+          <PawPrint size={27} fill="#4f7cff" /><div><h2>Recuerdos contigo</h2><p>Todo lo que vamos aprendiendo juntos.</p></div>
         </div>
         {memories.length > 0 && (
           <>
@@ -115,6 +118,8 @@ export function MemoryScreen({ onTalk }: { onTalk?: () => void }) {
                   onClick={() => setSelectedId(memory.id)}
                   type="button"
                 >
+                  <MemoryIcon memory={memory} />
+                  <span className="mh-memory-copy">
                   <span className="mw-keepsake-top">
                     <span>{CATEGORIES[memory.category]}</span>
                     <span
@@ -132,6 +137,7 @@ export function MemoryScreen({ onTalk }: { onTalk?: () => void }) {
                   <span className="mw-keepsake-foot">
                     {memory.savedOn}
                     <ChevronRight size={17} />
+                  </span>
                   </span>
                 </button>
               </li>
@@ -164,6 +170,7 @@ export function MemoryScreen({ onTalk }: { onTalk?: () => void }) {
           {notice}
         </p>
       </section>
+      <p className="mh-memory-footer"><PawPrint size={20} fill="currentColor" />Conocerte hace todo más especial <Heart size={14} fill="currentColor" /></p>
       {selected && (
         <MemoryDetail
           key={selected.id}
@@ -185,6 +192,12 @@ export function MemoryScreen({ onTalk }: { onTalk?: () => void }) {
       )}
     </div>
   );
+}
+
+function MemoryIcon({ memory }: { memory: Memory }) {
+  const text = memory.text.toLocaleLowerCase();
+  const Icon = /guitarr|música|musica|canción/.test(text) ? Music2 : /serie|película|pelicula|televis/.test(text) ? Tv : /\bia\b|informe|tecnolog|computador/.test(text) ? Laptop : ({ trabajo: Briefcase, relacion: Users, objetivo: Target, salud: Activity, rutina: Clock3, preferencia: Heart })[memory.category];
+  return <span className="mh-memory-icon" aria-hidden="true"><Icon size={30} /></span>;
 }
 
 function MemoryDetail({

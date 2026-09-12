@@ -90,7 +90,7 @@ export const cryptoPrice: ToolHandler = {
       const data = await cached<any>(cacheKey, ttls.crypto, async () => {
         await limiters.coingecko.acquire();
         const result = await fetchJson<any>(
-          `https://api.coingecko.com/api/v3/coins/${encodeURIComponent(coinId)}?localization=false&tickers=false&community_data=false&developer_data=false&sparkline=false`,
+          `https://api.coingecko.com/api/v3/coins/${encodeURIComponent(coinId)}?localization=false&tickers=false&community_data=false&developer_data=false&sparkline=true`,
           { timeoutMs: 8_000 },
         );
         if (!result.ok) throw new Error(result.error);
@@ -103,6 +103,11 @@ export const cryptoPrice: ToolHandler = {
           change7dPct: typeof md.price_change_percentage_7d === "number" ? Number(md.price_change_percentage_7d.toFixed(2)) : undefined,
           high24h: md.high_24h?.[vs],
           low24h: md.low_24h?.[vs],
+          volume24h: md.total_volume?.[vs],
+          // CoinGecko's seven-day sparkline is denominated in USD.
+          series: vs === "usd" && Array.isArray(md.sparkline_in_7d?.price)
+            ? [{ label: "1S", values: md.sparkline_in_7d.price.filter((value: unknown) => typeof value === "number" && Number.isFinite(value)) }]
+            : undefined,
         });
       }
     } catch { /* CoinGecko failed */ }
