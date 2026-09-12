@@ -133,5 +133,6 @@ const REGISTRY: Partial<Record<UiBlock["type"], AnyInterior>> = {
 };
 
 export function lecturaInteriorFor(block: UiBlock): AnyInterior | null {
+  if ((block.type === "research_sources" && block.mode === "news") || (block.type === "proactive_signal" && block.category === "news")) return NewsInterior as AnyInterior;
   return REGISTRY[block.type] ?? null;
 }

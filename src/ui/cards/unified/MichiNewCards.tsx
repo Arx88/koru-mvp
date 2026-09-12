@@ -4,10 +4,9 @@ import type { UiBlock, AssistantSource } from "../../../domain/types";
 import { useKoru } from "../../KoruProvider";
 import type { MichiProps } from "./MichiLayouts";
 import "./michi-new-cards.css";
+import { MichiNewsInterior, type NewsStoryBlock } from "../lectura/panels/MichiNewsInterior";
 
 const art = (name: string) => `/assets/michi-cards/${name}.webp`;
-const safeUrl = (url?: string) => url && /^https?:\/\//i.test(url) ? url : undefined;
-
 function SaveButton({ block, title, heart = false }: { block: UiBlock; title: string; heart?: boolean }) {
   const { records } = useKoru();
   const saved = records.some(record => record.title === title && record.sourceBlock?.type === block.type);
@@ -24,8 +23,9 @@ export function isMichiNews(block: UiBlock) {
 
 type Story = { title: string; summary?: string; source?: AssistantSource; updated?: string; category?: string; urgent?: boolean; block: UiBlock };
 export function MichiNewsCards(props: MichiProps) {
-  const { block, hero, handleClick, overlay } = props;
+  const { block, hero, overlay } = props;
   const [active, setActive] = useState(0);
+  const [reading, setReading] = useState<NewsStoryBlock | null>(null);
   const start = useRef<number | null>(null);
   const { records } = useKoru();
   const stories: Story[] = block.type === "research_sources" && block.sources.length ? block.sources.map(source => ({
@@ -47,13 +47,14 @@ export function MichiNewsCards(props: MichiProps) {
         </div>
         <div className="mn-content">{story.category && <span className="mn-category">{story.category}</span>}<h3>{story.title}</h3>{story.summary && <p className="mn-description">{story.summary}</p>}
           <div className="mn-news-meta">{story.source?.domain && <span><Newspaper size={18} />{story.source.domain}</span>}{story.updated && <span><Clock3 size={18} />{story.updated}</span>}
-            {!story.urgent && (safeUrl(story.source?.url) ? <a className="mn-arrow" href={safeUrl(story.source?.url)} target="_blank" rel="noopener noreferrer" aria-label={`Leer ${story.title}`}><ArrowRight size={22} /></a> : <button type="button" className="mn-arrow" onClick={handleClick} aria-label={`Leer ${story.title}`}><ArrowRight size={22} /></button>)}
+            {!story.urgent && <button type="button" className="mn-arrow" onClick={() => setReading(story.block as NewsStoryBlock)} aria-label={`Leer ${story.title}`}><ArrowRight size={22} /></button>}
           </div>
-          {story.urgent && <button type="button" className="mn-cta" onClick={handleClick}><Radio size={21} />Ver cobertura y detalles<ArrowRight size={20} /></button>}
+          {story.urgent && <button type="button" className="mn-cta" onClick={() => setReading(story.block as NewsStoryBlock)}><Radio size={21} />Ver cobertura y detalles<ArrowRight size={20} /></button>}
         </div>
       </article>)}
     </div>
     {stories.length > 1 && <div className="mn-carousel-controls"><button type="button" aria-label="Noticia anterior" disabled={stories.length < 2} onClick={() => move(-1)}><ArrowLeft size={18} /></button><div className="mn-dots">{stories.map((story, index) => <button key={index} type="button" aria-label={`Ver noticia ${index + 1}: ${story.title}`} aria-current={index === current ? "true" : undefined} onClick={() => setActive(index)}><span /></button>)}</div><button type="button" aria-label="Noticia siguiente" disabled={stories.length < 2} onClick={() => move(1)}><ArrowRight size={18} /></button><span className="sr-only" aria-live="polite">Noticia {current + 1} de {stories.length}</span></div>}
+    {reading && <MichiNewsInterior block={reading} onClose={() => setReading(null)} onSave={(title, subtitle) => { window.dispatchEvent(new CustomEvent("koru-save-deliverable", { detail: { title, subtitle, blockType: reading.type, blockData: reading } })); setReading(null); }} />}
     {overlay}
   </section>;
 }

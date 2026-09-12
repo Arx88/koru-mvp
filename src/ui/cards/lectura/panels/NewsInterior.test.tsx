@@ -12,7 +12,7 @@ describe("NewsInterior", () => {
     render(<NewsInterior block={newsUrgentBlock} onClose={vi.fn()} />);
     expect(screen.getByText(/batería de 2030/i)).toBeInTheDocument();
     expect(screen.getByText(/recargar al 80% en 12 minutos/i)).toBeInTheDocument();
-    expect(screen.getByText(/tech · solo lo tuyo/i)).toBeInTheDocument();
+    expect(screen.getByText(/^tech$/i)).toBeInTheDocument();
   });
 
   it("foto de portada desde la primera fuente con imageUrl", () => {
@@ -29,8 +29,9 @@ describe("NewsInterior", () => {
 
   it("masthead cuenta las fuentes reales y marca verificado", () => {
     render(<NewsInterior block={newsUrgentBlock} onClose={vi.fn()} />);
-    expect(screen.getByText("3 FUENTES")).toBeInTheDocument();
-    expect(screen.getByText("VERIFICADO")).toBeInTheDocument();
+    expect(screen.getByText("3 fuentes")).toBeInTheDocument();
+    expect(screen.queryByText("VERIFICADO")).toBeNull();
+    expect(screen.getByText("Qué dicen las verificaciones")).toBeInTheDocument();
   });
 
   it("seguir la historia despacha create_commitment", () => {

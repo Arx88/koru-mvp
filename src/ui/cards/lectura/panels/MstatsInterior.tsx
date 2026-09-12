@@ -74,7 +74,7 @@ export function MstatsInterior({ block, onClose, onSave }: LecturaInteriorProps<
     stats.filter((s) => num(s[side]) > num(s[side === "home" ? "away" : "home"])).length;
 
   const possessionStat = stats.find((s) => /pos|posesi/i.test(s.label));
-  const otherStats = stats.filter((s) => s !== possessionStat).slice(0, 4);
+  const otherStats = stats.filter((s) => s !== possessionStat);
 
   const homePos = possessionStat ? num(possessionStat.home) : null;
   const awayPos = possessionStat ? num(possessionStat.away) : null;
@@ -88,7 +88,7 @@ export function MstatsInterior({ block, onClose, onSave }: LecturaInteriorProps<
       : null;
 
   return (
-    <LecturaShell
+    <LecturaShell variant="football"
       onClose={onClose}
       onBookmark={onSave ? () => onSave(title, `${home} vs ${away}`) : undefined}
       chip={{ label: "Stats", background: "linear-gradient(135deg,#34d399,#2FC86E)" }}
@@ -100,7 +100,7 @@ export function MstatsInterior({ block, onClose, onSave }: LecturaInteriorProps<
             <small>{block.title ? block.title : "El partido, en números"}</small>
             {home} <span style={{ color: "var(--ink-faint)" }}>vs</span> {away}
           </h1>
-          <p>Métricas reales del partido — sin narrativa, lo que pasó fue esto.</p>
+          <p>Compara a los equipos y explora sus números.</p>
         </div>
 
         {stats.length > 1 && (
@@ -130,7 +130,7 @@ export function MstatsInterior({ block, onClose, onSave }: LecturaInteriorProps<
               <h3>
                 {teamView}
                 <span>
-                  gana en {wonBy(view === "home" ? "home" : "away")} de {stats.length} métricas
+                  valor mayor en {wonBy(view === "home" ? "home" : "away")} de {stats.length} métricas
                 </span>
               </h3>
             </div>
@@ -184,34 +184,10 @@ export function MstatsInterior({ block, onClose, onSave }: LecturaInteriorProps<
             {otherStats.map((s) => {
               const homeVal = num(s.home);
               const awayVal = num(s.away);
-              const homeW = num(s.width.replace("%", ""));
-              // barra espejo del rival: mismo ancho relativo escalado por valor
-              const awayW = homeVal > 0 ? (awayVal / homeVal) * homeW : 0;
-              return (
-                <div className="db" key={`stat_${s.label}`}>
-                  <div className="lbl">{s.label}</div>
-                  <div className="row">
-                    <div className="lbar" style={{ width: `${Math.min(homeW, 100)}%` }}>
-                      <i style={{ width: "10%" }} />
-                    </div>
-                    <div className="num">
-                      {s.home}
-                      <small>{initialsOf(block.homeName) || "H"}</small>
-                    </div>
-                    <div className="rbar" style={{ width: `${Math.min(awayW, 100)}%` }}>
-                      <i style={{ width: "10%" }} />
-                    </div>
-                  </div>
-                  <div className="row" style={{ marginTop: "4px" }}>
-                    <div className="lbar" style={{ width: "0" }} />
-                    <div className="num">
-                      {s.away}
-                      <small>{initialsOf(block.awayName) || "A"}</small>
-                    </div>
-                    <div className="rbar" style={{ width: "0" }} />
-                  </div>
-                </div>
-              );
+              const total = homeVal + awayVal;
+              const homeW = total > 0 ? Math.max(0, Math.min(100, homeVal / total * 100)) : 50;
+              return <div className="db md-duel" key={`stat_${s.label}`}><div className="md-duel-values"><b>{s.home}</b><span>{s.label}</span><b>{s.away}</b></div><div className="md-duel-track" aria-hidden="true"><i style={{width:`${homeW}%`}} /><i style={{width:`${100-homeW}%`}} /></div></div>;
+
             })}
           </div>
         </div>
@@ -221,12 +197,12 @@ export function MstatsInterior({ block, onClose, onSave }: LecturaInteriorProps<
           <Ic i={TrendingUp} className="ic" />
           <p>
             {dominator
-              ? `${dominator} manda en los números`
-              : "Partido parejo en los números"}
+              ? `${dominator} tuvo más posesión`
+              : stats.length ? "Comparativo del partido" : "Todavía no hay estadísticas disponibles"}
             {possessionStat
               ? ` — ${possessionStat.label} ${possessionStat.home}/${possessionStat.away}`
               : ""}
-            . Lo que pase de aquí es narrativa: esto es lo que pasó.
+            .
           </p>
         </div>
 

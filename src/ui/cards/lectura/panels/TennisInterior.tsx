@@ -49,8 +49,8 @@ export function TennisInterior({ block, onClose, onSave }: LecturaInteriorProps<
   const home = players?.home;
   const away = players?.away;
   const sets = (block.sets ?? []).filter(Boolean);
-  const currentSet = block.currentSet;
-  const isLive = block.status === "live" || Boolean(currentSet);
+  const isLive = block.status === "live" || (!block.status && Boolean(block.currentSet));
+  const currentSet = isLive ? block.currentSet : undefined;
   const tournament = block.tournament;
   const lastPoints = (block.lastPoints ?? []).slice(-5);
   const h2h = block.h2h;
@@ -68,7 +68,7 @@ export function TennisInterior({ block, onClose, onSave }: LecturaInteriorProps<
   ];
 
   return (
-    <LecturaShell
+    <LecturaShell variant="tennis"
       onClose={onClose}
       onBookmark={onSave ? () => onSave(`${home?.name ?? "Local"} vs ${away?.name ?? "Visitante"}`, tournament ? `${tournament.name} · ${tournament.round}` : undefined) : undefined}
       chip={{ label: "Tenis", background: "linear-gradient(135deg,#8ab0ff,#1A237E)" }}
@@ -149,7 +149,7 @@ export function TennisInterior({ block, onClose, onSave }: LecturaInteriorProps<
         {/* TABLA DE SETS: games por set + tiebreak */}
         {sets.length > 0 && (
           <div className="tn-sets-table rv">
-            <div className="tn-grid">
+            <div className="tn-grid" style={{ gridTemplateColumns: `minmax(82px, 1.5fr) repeat(${sets.length + (currentSet ? 1 : 0)}, minmax(30px, 1fr))` }}>
               <div className="tn-grid-name" />
               {sets.map((s, i) => (
                 <div key={`seth_${i}`} className="tn-grid-set">
@@ -158,7 +158,7 @@ export function TennisInterior({ block, onClose, onSave }: LecturaInteriorProps<
               ))}
               {currentSet && <div className="tn-grid-set now">ahora</div>}
             </div>
-            <div className="tn-grid">
+            <div className="tn-grid" style={{ gridTemplateColumns: `minmax(82px, 1.5fr) repeat(${sets.length + (currentSet ? 1 : 0)}, minmax(30px, 1fr))` }}>
               <div className="tn-grid-name srv">
                 {currentSet?.server === "home" && <i className="srv-dot" title="Al saque" />}
                 {home?.name?.split(/\s+/).pop() ?? "Local"}
@@ -171,7 +171,7 @@ export function TennisInterior({ block, onClose, onSave }: LecturaInteriorProps<
               ))}
               {currentSet && <div className="tn-grid-val now">{currentSet.gamesHome}</div>}
             </div>
-            <div className="tn-grid">
+            <div className="tn-grid" style={{ gridTemplateColumns: `minmax(82px, 1.5fr) repeat(${sets.length + (currentSet ? 1 : 0)}, minmax(30px, 1fr))` }}>
               <div className="tn-grid-name srv">
                 {currentSet?.server === "away" && <i className="srv-dot" title="Al saque" />}
                 {away?.name?.split(/\s+/).pop() ?? "Visitante"}
@@ -208,13 +208,13 @@ export function TennisInterior({ block, onClose, onSave }: LecturaInteriorProps<
         )}
 
         {/* STATS en duelo espejo */}
-        {statDuels.some((d) => d.h > 0 || d.a > 0) && (
+        {Boolean(block.stats && Object.values(block.stats).some(Boolean)) && (
           <div className="tn-stats rv">
             <div className="tn-sub">
               <Ic i={Trophy} className="ic" />
               Los duelos del partido
             </div>
-            {statDuels.map((d) => {
+            {statDuels.filter((_, index) => [block.stats?.aces, block.stats?.doubleFaults, block.stats?.firstServePct, block.stats?.breakPointsWon][index] != null).map((d) => {
               const bar = duelBar(d.h, d.a);
               return (
                 <div key={`st_${d.label}`} className="tn-stat">

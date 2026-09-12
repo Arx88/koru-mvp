@@ -49,16 +49,15 @@ describe("MstatsInterior", () => {
     expect(screen.getByText(/faltas/i)).toBeInTheDocument();
     const rows = document.body.querySelectorAll(".du-bars .db");
     expect(rows.length).toBe(3); // posesión va al track, no a du-bars
-    const firstRow = rows[0];
-    const lbars = firstRow?.querySelectorAll(".lbar");
-    expect(lbars?.[0]?.getAttribute("style")).toContain("width: 80%");
-    // barra espejo del rival: 5/8 × 80% = 50%
-    expect(firstRow?.querySelector(".rbar")?.getAttribute("style")).toContain("width: 50%");
+    expect(rows[0]?.textContent).toContain("8");
+    expect(rows[0]?.textContent).toContain("5");
+    expect(parseFloat(rows[0]?.querySelector("i")?.style.width || "0")).toBeCloseTo(8 / 13 * 100);
+
   });
 
   it("el veredicto se deriva de la posesión real (Real Madrid manda)", () => {
     render(<MstatsInterior block={mstatsBlock} onClose={vi.fn()} />);
-    expect(screen.getByText(/real madrid manda en los números/i)).toBeInTheDocument();
+    expect(screen.getByText(/real madrid tuvo más posesión/i)).toBeInTheDocument();
     expect(screen.getByText(/posesión 58\/42/i)).toBeInTheDocument();
   });
 
@@ -89,6 +88,6 @@ describe("MstatsInterior", () => {
     );
     expect(document.body.querySelector(".du-pos")).toBeNull();
     expect(document.body.querySelectorAll(".du-bars .db").length).toBe(0);
-    expect(screen.getByText(/partido parejo en los números/i)).toBeInTheDocument();
+    expect(screen.getByText(/todavía no hay estadísticas disponibles/i)).toBeInTheDocument();
   });
 });

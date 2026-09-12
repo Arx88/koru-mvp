@@ -12,7 +12,7 @@
  * "0-0" inventado, y el interior agrega info del encuentro (estadio/ciudad)
  * + alineaciones confirmadas si las hay + próximos del mismo equipo.
  */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { BellRing, CalendarDays, ChartPie, Check, Goal, Info, List, MapPin, Shield, Users, type LucideIcon } from "lucide-react";
 import type { UiBlock } from "../../../../domain/types";
 import { Ic } from "../Ic";
@@ -26,7 +26,7 @@ type MatchBlock = Extract<UiBlock, { type: "live_match" }>;
 const isLive = (b: MatchBlock) => {
   const s = (b.status ?? "").toLowerCase();
   const min = parseInt(b.minute ?? "", 10);
-  if (/final|terminad|ended/.test(s)) return false;
+  if (b.state === "pre" || b.state === "post" || /final|terminad|ended|cancel|postpon|suspend/.test(s)) return false;
   if (/en vivo|live|1st|2nd|half|jueg/.test(s)) return true;
   return Number.isFinite(min) && min > 0 && min <= 120;
 };
@@ -60,16 +60,16 @@ export function LiveMatchInterior({ block, onClose, onSave }: LecturaInteriorPro
   const aboutText = teamInfo?.description ?? wiki;
   const kickoff = block.time ?? block.minute ?? "";
 
-  const feedRef = ({ current: null } as { current: HTMLDivElement | null });
+  const feedRef = useRef<HTMLDivElement>(null);
   const GoalIcon: LucideIcon = Goal;
 
   return (
-    <LecturaShell
+    <LecturaShell variant="football"
       onClose={onClose}
       onBookmark={onSave ? () => onSave(`${home} vs ${away}`, `${league}${block.minute ? ` · ${block.minute}` : ""}`) : undefined}
       chip={pre
         ? { label: "Próximo", background: "linear-gradient(135deg,#FFB020,#e08900)" }
-        : { label: "En vivo", background: "linear-gradient(135deg,#4BDD8C,#1f7a5c)" }}
+        : { label: live ? "En vivo" : block.status || "Partido", background: "linear-gradient(135deg,#4BDD8C,#1f7a5c)" }}
       ariaLabel={`${home} vs ${away}`}
     >
       <div id="p-match" className="lcr-panel">
@@ -99,9 +99,9 @@ export function LiveMatchInterior({ block, onClose, onSave }: LecturaInteriorPro
               </div>
             ) : (
               <div className="sb-nums">
-                <span className="g">{block.homeScore ?? 0}</span>
+                <span className="g">{block.homeScore ?? "–"}</span>
                 <span className="sep">–</span>
-                <span className="g">{block.awayScore ?? 0}</span>
+                <span className="g">{block.awayScore ?? "–"}</span>
               </div>
             )}
             <div className="sb-team">
@@ -222,7 +222,7 @@ export function LiveMatchInterior({ block, onClose, onSave }: LecturaInteriorPro
             </div>
             <div className="pos-ends">
               <span>Remates {block.homeShots ?? "–"} – {block.awayShots ?? "–"}</span>
-              <span>posesión a favor de {homePos > awayPos ? home : away}</span>
+              <span>{homePos === awayPos ? "posesión equilibrada" : `posesión a favor de ${homePos > awayPos ? home : away}`}</span>
             </div>
           </div>
         )}
@@ -254,10 +254,11 @@ export function LiveMatchInterior({ block, onClose, onSave }: LecturaInteriorPro
         )}
 
         <div className="actions">
-          <button
+          {(pre || live) && <button
             type="button"
             className="btn primary"
             aria-pressed={following}
+            disabled={following}
             onClick={() => {
               const next = !following;
               setFollowing(next);
@@ -275,7 +276,8 @@ export function LiveMatchInterior({ block, onClose, onSave }: LecturaInteriorPro
           >
             <Ic i={following ? Check : BellRing} className="ic" />
             {following ? (pre ? "Te aviso antes del pitazo" : "Siguiendo el partido") : (pre ? "Avisame cuando arranque" : "Avisame si hay gol")}
-          </button>
+          </button>}
+          {!pre && !live && <button type="button" className="btn primary" onClick={onClose}>Volver al chat</button>}
           {goals.length > 0 && (
             <button
               type="button"

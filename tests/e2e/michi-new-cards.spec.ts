@@ -6,8 +6,9 @@ test("news carousel selects real stories and saves only the selected article",as
  await expect(page.locator(".mn-news-card.is-active h3")).toHaveText(NEWS.sources[0].title);
  await page.getByRole("button",{name:"Noticia siguiente",exact:true}).click();
  await expect(page.locator(".mn-news-card.is-active h3")).toHaveText(NEWS.sources[1].title);
- await expect(page.locator(".mn-news-card.is-active a")).toHaveAttribute("href",NEWS.sources[1].url);
- await page.locator(".mn-news-card.is-active .mn-save").click();
+ await page.getByRole("button",{name:`Leer ${NEWS.sources[1].title}`,exact:true}).click();
+ await expect(page.locator(".md-sources a")).toHaveAttribute("href",NEWS.sources[1].url);
+ await page.getByRole("button",{name:"Guardar",exact:true}).click();
  await page.getByRole("dialog",{name:"Guardar noticia"}).getByRole("button",{name:"Guardar",exact:true}).click();
  await expect.poll(async()=>(await persistedState(page)).records[0]?.sourceBlock?.sources?.[0]?.url).toBe(NEWS.sources[1].url);
  await page.getByRole("button",{name:"Noticia anterior",exact:true}).click();
