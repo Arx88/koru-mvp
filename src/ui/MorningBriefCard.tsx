@@ -99,8 +99,8 @@ export function MorningBriefCard({ brief, city, onStart, onLater = onStart }: {
           </div>
         </header>
         <div className="mm-body">
-          {weatherState === "ready" && weather ? <WeatherPanel weather={weather} /> : <div className="mm-weather-message" role="status"><Cloud size={23} /><p>{weatherState === "loading" ? "Mirando el tiempo en tu ciudad…" : brief.weather || (location ? "Ahora no pude consultar el tiempo." : "Agregá tu ciudad en Perfil para ver el tiempo.")}</p></div>}
-          <div className="mm-suggestion"><Lightbulb size={28} aria-hidden="true" /><p>{brief.suggestion || "Un paso a la vez. Estoy acá para acompañarte en lo que traiga el día."}</p></div>
+          {weatherState === "ready" && weather ? <WeatherPanel weather={weather} /> : <div className="mm-weather-message" role="status"><Cloud size={23} /><p>{weatherState === "loading" ? "Mirando el tiempo en tu ciudad…" : brief.weather || (location ? "Ahora no pude consultar el tiempo." : "Agrega tu ciudad en Perfil para ver el tiempo.")}</p></div>}
+          <div className="mm-suggestion"><Lightbulb size={28} aria-hidden="true" /><p>{brief.suggestion || "Un paso a la vez. Estoy aquí para acompañarte en lo que traiga el día."}</p></div>
           {(tasks.length > 0 || brief.memoryHighlight) && <details className="mm-plans"><summary><CheckCircle2 size={17} />{tasks.length ? `${tasks.length} pendiente${tasks.length === 1 ? "" : "s"} para hoy` : "Un recuerdo para acompañarte"}</summary>
             {tasks.length > 0 && <ul>{tasks.map((task, index) => <li key={index}>{task}</li>)}</ul>}
             {brief.memoryHighlight && <p className="mm-memory"><Heart size={16} />{brief.memoryHighlight}</p>}

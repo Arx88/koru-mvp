@@ -541,8 +541,8 @@ function EmptyState({
 
   const iconColor = empty.accent?.color ?? accentColor;
   const iconBg = empty.accent?.soft ?? accentSoft;
-  const title = empty.title ?? "No hay nada acá todavía";
-  const desc = empty.desc ?? "Pedime algo y lo busco";
+  const title = empty.title ?? "No hay nada aquí todavía";
+  const desc = empty.desc ?? "Pídeme algo y lo busco";
 
   const handleCta = () => {
     if ("vibrate" in navigator) navigator.vibrate(15);

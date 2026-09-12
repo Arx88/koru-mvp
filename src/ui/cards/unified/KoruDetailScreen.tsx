@@ -17,7 +17,7 @@ import { lecturaInteriorFor } from "../lectura";
 
 // Pantalla de detalle unificada — misma estética Stitch que PlanRoadmapScreen
 // (koru-roadmap + magical-cards + blobs), pero genérica: renderiza cualquier
-// conjunto de secciones normalizadas. Cada UiBlock que abre su CTA cae acá,
+// conjunto de secciones normalizadas. Cada UiBlock que abre su CTA cae aquí,
 // así informe, clima, mercados, etc. comparten un único lenguaje visual.
 
 function Mat({ children, className = "" }: { children: string; className?: string }) {
@@ -1709,7 +1709,7 @@ export function KoruDetailScreen({
               <span className="koru-detail-empty-desc">
                 {block?.type === "match_timeline" || block?.type === "live_match"
                   ? "El partido aún no se jugó. Te dejo lo que sé del equipo, sede y contexto mientras llega la fecha."
-                  : "No hay secciones para mostrar. Pedime más info sobre este tema y la busco."}
+                  : "No hay secciones para mostrar. Pídeme más info sobre este tema y la busco."}
               </span>
             </div>
           ) : (

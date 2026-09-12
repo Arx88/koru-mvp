@@ -50,7 +50,7 @@ export const stockQuote: ToolHandler = {
   policy: policies.readonly("Lee cotizaciones públicas."),
   async run(args) {
     const symbol = String(args.symbol ?? "").trim().toLowerCase();
-    if (!symbol) return { type: "stock_quote", status: "failed", error: "Indicá el símbolo." };
+    if (!symbol) return { type: "stock_quote", status: "failed", error: "Indica el símbolo." };
 
     const cacheKey = `stock:${symbol}`;
     const row = await cached<StooqRow>(cacheKey, ttls.crypto, async () => {

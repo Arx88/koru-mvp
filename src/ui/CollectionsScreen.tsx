@@ -5,7 +5,7 @@ import { useKoru } from "./KoruProvider";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { categorizeItem, aisleLabelFor, aisleOrderFor } from "../domain/aisleMap";
 
-// Mis Colecciones — la promesa "Listo, guardado en Sitios de IA" cierra acá:
+// Mis Colecciones — la promesa "Listo, guardado en Sitios de IA" cierra aquí:
 // TODO lo guardado, agrupado por colección, navegable en un tap. Misma
 // estética Stitch del roadmap (fondo lila, magical-cards). Los enlaces abren
 // en pestaña nueva; el resto muestra su valor/nota.
@@ -553,9 +553,9 @@ export function CollectionsScreen({
             <div className="koru-magical-card module-challenges">
               <p className="koru-collections-empty">
                 {query.trim()
-                  ? "Nada coincide con tu búsqueda. Probá con otra palabra."
+                  ? "Nada coincide con tu búsqueda. Prueba con otra palabra."
                   : currentPath.length === 0
-                    ? "Decime \"guardame este enlace\" o \"anotá esto\" y lo vas a encontrar acá, ordenado solo."
+                    ? "Dime \"guárdame este enlace\" o \"anota esto\" y lo vas a encontrar aquí, ordenado solo."
                     : `Esta carpeta está vacía. Tap \"+\" para crear algo en ${currentPathString}.`}
               </p>
             </div>

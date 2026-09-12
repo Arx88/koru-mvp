@@ -28,7 +28,7 @@ export const playerStats: ToolHandler = {
   policy: policies.readonly("Busca stats en Wikipedia."),
   async run(args) {
     const name = String(args.name ?? "").trim();
-    if (!name) return { type: "player_stats", status: "failed", error: "Indicá el nombre." };
+    if (!name) return { type: "player_stats", status: "failed", error: "Indica el nombre." };
     // Fase 3.2: usar Wikipedia API directamente.
     try {
       const searchUrl = `https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(`${name} deportista`)}&format=json&origin=*&srlimit=3`;
@@ -69,7 +69,7 @@ export const tournamentBracket: ToolHandler = {
   policy: policies.readonly("Busca llave de torneo en Wikipedia."),
   async run(args) {
     const tournament = String(args.tournament ?? "").trim();
-    if (!tournament) return { type: "tournament_bracket", status: "failed", error: "Indicá el torneo." };
+    if (!tournament) return { type: "tournament_bracket", status: "failed", error: "Indica el torneo." };
     try {
       const searchUrl = `https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(`${tournament} torneo 2025`)}&format=json&origin=*&srlimit=3`;
       const res = await fetch(searchUrl, { signal: AbortSignal.timeout(9000) });
@@ -108,7 +108,7 @@ export const sportsNews: ToolHandler = {
   policy: policies.readonly("Lee noticias deportivas de GDELT."),
   async run(args) {
     const topic = String(args.topic ?? "").trim();
-    if (!topic) return { type: "sports_news", status: "failed", error: "Indicá tema." };
+    if (!topic) return { type: "sports_news", status: "failed", error: "Indica tema." };
     // Fase 3.2: usar GDELT API directamente en lugar de delegar.
     try {
       const url = new URL("https://api.gdeltproject.org/api/v2/doc/doc");
@@ -146,7 +146,7 @@ export const golfLeaderboard: ToolHandler = {
   policy: policies.readonly("Lee leaderboard de golf."),
   async run(args) {
     const tournament = String(args.tournament ?? "").trim();
-    if (!tournament) return { type: "golf_leaderboard", status: "failed", error: "Indicá el torneo." };
+    if (!tournament) return { type: "golf_leaderboard", status: "failed", error: "Indica el torneo." };
 
     const cacheKey = `golf:${tournament.toLowerCase()}`;
     const data = await cached<{ leaders?: Array<{ name?: string; score?: string; thru?: string }> }>(cacheKey, ttls.sportsLive, async () => {

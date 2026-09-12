@@ -46,7 +46,7 @@ export function SavedPanel() {
               </div>
               <div className="tkk-note rv">
                 <Ic i={BellRing} className="ic" />
-                <p>Te aviso el sábado a las 19:30 con tiempo de sobra. Si querés cambiar la mesa o el horario, decime y lo rehago — <b>el código no cambia</b>.</p>
+                <p>Te aviso el sábado a las 19:30 con tiempo de sobra. Si quieres cambiar la mesa o el horario, dime y lo rehago — <b>el código no cambia</b>.</p>
               </div>
               
                       <div className="actions">

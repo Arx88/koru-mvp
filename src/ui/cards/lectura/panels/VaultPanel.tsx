@@ -19,8 +19,8 @@ export function VaultPanel() {
     <>
       <div id="p-vault" className="lcr-panel">
       <div className="vt-head rv">
-                <h1><small>Tu bóveda de recuerdos</small>Todo lo que Michi<br />sabe de vos</h1>
-                <p>Cada cosa que me contás queda acá adentro: viajes, personas, gastos, ideas. Privada, buscable y siempre a mano.</p>
+                <h1><small>Tu bóveda de recuerdos</small>Todo lo que Michi<br />sabe de ti</h1>
+                <p>Cada cosa que me cuentas queda aquí adentro: viajes, personas, gastos, ideas. Privada, buscable y siempre a mano.</p>
               </div>
               <div className="vt-safe rv">
                 <div className="vt-top">
@@ -47,7 +47,7 @@ export function VaultPanel() {
                   </div>
                   <div className="vt-mem">
                     <div className="mp"><img src="/stitch/sports/players/bellingham.jpg" alt="Bellingham" /><span className="mk2">Deporte</span></div>
-                    <div className="mt2"><b>Sos del Real Madrid</b><span>desde el gol de La Decimocuarta</span></div>
+                    <div className="mt2"><b>Eres del Real Madrid</b><span>desde el gol de La Decimocuarta</span></div>
                   </div>
                   <div className="vt-mem no-ph">
                     <div className="mt2">

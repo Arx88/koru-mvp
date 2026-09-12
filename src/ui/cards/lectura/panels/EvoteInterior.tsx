@@ -66,7 +66,7 @@ export function EvoteInterior({ block, onClose, onSave }: LecturaInteriorProps<E
             <div className="pr-q">{question}</div>
             <p className="pr-sub" style={{ marginTop: "8px" }}>
               {subtitle ||
-                "Elegí una opción y arma el análisis desde ahí. Tocá una para continuar."}
+                "Elige una opción y arma el análisis desde ahí. Toca una para continuar."}
             </p>
           </div>
           {options.map((o, i) => {
@@ -126,7 +126,7 @@ export function EvoteInterior({ block, onClose, onSave }: LecturaInteriorProps<E
             onClick={() => chosen && confirm(chosen.label, chosen.sub)}
           >
             <Ic i={SlidersHorizontal} className="ic" />
-            {chosen ? `Usar: ${chosen.label}` : "Elegí una opción"}
+            {chosen ? `Usar: ${chosen.label}` : "Elige una opción"}
           </button>
           <button
             type="button"

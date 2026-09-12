@@ -30,7 +30,7 @@ export function MichiAvatarsPage({
           {active.name}
         </h2>
         <p>
-          Siempre con vos <Sparkle fill="white" size={14} />
+          Siempre contigo <Sparkle fill="white" size={14} />
         </p>
         <button type="button" onClick={onProgress} className="mx-banner-level">
           <Star fill="#ffe34e" className="mx-gold-star" /> Nivel {level} <ChevronRight size={21} />
@@ -87,7 +87,7 @@ export function MichiAvatarsPage({
         <MichiCat sparkle />
         <div>
           <strong>¡Sigue usando la app cada día!</strong>
-          <p>Subí de nivel y desbloqueá nuevos avatares.</p>
+          <p>Sube de nivel y desbloquea nuevos avatares.</p>
         </div>
         <MichiLevel compact onClick={onProgress} />
       </section>

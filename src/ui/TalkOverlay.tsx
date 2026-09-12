@@ -1254,8 +1254,8 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
                 <div className="koru-create-coachmark-bubble">
                   <span className="material-symbols-outlined">tips_and_updates</span>
                   <div className="koru-create-coachmark-text">
-                    <strong>¿Querés anotar algo rápido?</strong>
-                    <span>Tocá el <strong>+</strong> abajo para crear notas, listas, gastos y más.</span>
+                    <strong>¿Quieres anotar algo rápido?</strong>
+                    <span>Toca el <strong>+</strong> abajo para crear notas, listas, gastos y más.</span>
                   </div>
                   <button
                     type="button"
@@ -1395,7 +1395,7 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
             <div className="koru-wheel-container">
               <div className="koru-wheel-hint">
                 <span className="material-symbols-outlined">touch_app</span>
-                Deslizá y soltá sobre una opción
+                Desliza y suelta sobre una opción
               </div>
 
               <button

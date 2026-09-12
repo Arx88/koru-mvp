@@ -43,10 +43,10 @@ type TemplateDef = {
 };
 
 const TEMPLATES: TemplateDef[] = [
-  { id: "nota", label: "Nota", icon: "sticky_note_2", desc: "Anotá una idea o pensamiento", collection: "Notas", accent: "#6D52F8" },
+  { id: "nota", label: "Nota", icon: "sticky_note_2", desc: "Anota una idea o pensamiento", collection: "Notas", accent: "#6D52F8" },
   { id: "lista", label: "Lista", icon: "checklist", desc: "Lista de tareas o compras", collection: "Listas", accent: "#2d6a4f" },
   { id: "gasto", label: "Gasto", icon: "payments", desc: "Registrá un gasto", collection: "Gastos", accent: "#FDC533" },
-  { id: "enlace", label: "Enlace", icon: "link", desc: "Guardá un link para después", collection: "Enlaces", accent: "#06b6d4" },
+  { id: "enlace", label: "Enlace", icon: "link", desc: "Guarda un link para después", collection: "Enlaces", accent: "#06b6d4" },
   { id: "receta", label: "Receta", icon: "restaurant", desc: "Creá tu propia receta", collection: "Recetas", accent: "#F65E9B" },
   { id: "rutina", label: "Rutina", icon: "repeat", desc: "Hábito diario o semanal", collection: "Rutinas", accent: "#007BF9" },
   { id: "ejercicio", label: "Ejercicio", icon: "fitness_center", desc: "Plan de entrenamiento", collection: "Ejercicio", accent: "#2d6a4f" },
@@ -344,7 +344,7 @@ function FolderPicker({
 
           <div className="koru-folder-picker-hint">
             <Mat>info</Mat>
-            <span>Usá / para subcarpetas (ej: Trabajo/Proyectos)</span>
+            <span>Usa / para subcarpetas (ej: Trabajo/Proyectos)</span>
           </div>
         </div>
       )}
@@ -482,8 +482,8 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
       if (result.items.length === 0) {
         setOcrError(
           result.rawText
-            ? "No detecté items con precio en el recibo. Probá con otra foto."
-            : "OCR no reconoció texto. Probá con una foto más nítida.",
+            ? "No detecté items con precio en el recibo. Prueba con otra foto."
+            : "OCR no reconoció texto. Prueba con una foto más nítida.",
         );
         return;
       }
@@ -725,7 +725,7 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
       // se reseteaba como si hubiera guardado. Ahora: error visible + el
       // form NO se resetea (los datos quedan para reintentar).
       console.error("[create] error al guardar:", err);
-      setSaveError("No pude guardar. Revisá la conexión y probá de nuevo.");
+      setSaveError("No pude guardar. Revisá la conexión y prueba de nuevo.");
       return;
     } finally {
       setSaving(false);
@@ -1336,7 +1336,7 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
             <WorldObject kind="create" />
           )}
           <h1 className="koru-create-title">
-            {selected ? TEMPLATES.find(t => t.id === selected)!.label : "¿Qué querés crear?"}
+            {selected ? TEMPLATES.find(t => t.id === selected)!.label : "¿Qué quieres crear?"}
           </h1>
           {/* 🔴 Paperclip — visible solo cuando hay un template seleccionado,
               abre el picker de archivos. Disponible en TODOS los templates. */}
@@ -1359,7 +1359,7 @@ export function CreateScreen({ onClose, onAiAssist, initialCollection }: Props) 
           </button>
         </div>
 
-        {!selected && <div className="mw-create-intro"><span className="mw-eyebrow">CREAMOS JUNTOS</span><h2>Una idea, un nuevo plan.</h2><WorldObject kind="create" /><p>Una nota, un plan, algo que no querés olvidar.</p></div>}
+        {!selected && <div className="mw-create-intro"><span className="mw-eyebrow">CREAMOS JUNTOS</span><h2>Una idea, un nuevo plan.</h2><WorldObject kind="create" /><p>Una nota, un plan, algo que no quieres olvidar.</p></div>}
         {!selected ? (
           <div className="koru-create-templates">
             {TEMPLATES.map((tpl) => (

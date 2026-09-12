@@ -754,7 +754,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
     try {
       const result = await fetchWalletBalance(trimmed);
       if (result == null) {
-        setEthError("No pude consultar el balance. Probá de nuevo en unos segundos.");
+        setEthError("No pude consultar el balance. Prueba de nuevo en unos segundos.");
         setEthBalance(null);
         setEthTokenCount(null);
       } else {
@@ -824,7 +824,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
           }
           // Si el usuario canceló en Google, el popup manda ?error=… → el
           // callback escribe error HTML y NO toca el flag (queda "pending").
-          // No hay nada que hacer acá; seguimos polleando hasta timeout.
+          // No hay nada que hacer aquí; seguimos polleando hasta timeout.
         }
       } catch {
         /* noop */

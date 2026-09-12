@@ -47,7 +47,7 @@ type WikiSummary = {
 export const personInfo: ToolHandler = {
   definition: defineTool(
     "person_info",
-    "Biografía, edad, profesión, obras y premios de una figura pública. Úsala cuando el usuario diga 'quién es Taylor Swift?', 'decime de Messi', 'info de Nolan', 'cuántos años tiene Spielberg'.",
+    "Biografía, edad, profesión, obras y premios de una figura pública. Úsala cuando el usuario diga 'quién es Taylor Swift?', 'dime de Messi', 'info de Nolan', 'cuántos años tiene Spielberg'.",
     {
       type: "object",
       additionalProperties: false,
@@ -62,7 +62,7 @@ export const personInfo: ToolHandler = {
   async run(args) {
     const name = String(args.name ?? "").trim();
     const lang = String(args.lang ?? "es").trim();
-    if (!name) return { type: "person_info", status: "failed", error: "Indicá el nombre." };
+    if (!name) return { type: "person_info", status: "failed", error: "Indica el nombre." };
 
     const cacheKey = `person:${lang}:${name.toLowerCase()}`;
     const summary = await cached<WikiSummary>(cacheKey, ttls.reference, async () => {
@@ -76,7 +76,7 @@ export const personInfo: ToolHandler = {
     });
 
     if (summary.type === "not_found" || !summary.extract) {
-      return { type: "person_info", status: "ok", name, note: `No encontré "${name}" en Wikipedia (${lang}). Probá en inglés o con otro nombre.` };
+      return { type: "person_info", status: "ok", name, note: `No encontré "${name}" en Wikipedia (${lang}). Prueba en inglés o con otro nombre.` };
     }
 
     return {
@@ -96,7 +96,7 @@ export const personInfo: ToolHandler = {
 export const personFollow: ToolHandler = {
   definition: defineTool(
     "person_follow",
-    "Guarda una persona como favorita para que Michi te avise cuando haya noticias suyas. Úsala cuando el usuario diga 'seguí a Tarantino', 'avisame cuando saque algo Elon Musk', 'vigilar a X'.",
+    "Guarda una persona como favorita para que Michi te avise cuando haya noticias suyas. Úsala cuando el usuario diga 'seguí a Tarantino', 'avísame cuando saque algo Elon Musk', 'vigilar a X'.",
     {
       type: "object",
       additionalProperties: false,
@@ -109,7 +109,7 @@ export const personFollow: ToolHandler = {
   policy: policies.localWrite("Guarda persona favorita como memory."),
   async run(args) {
     const name = String(args.name ?? "").trim();
-    if (!name) return { type: "person_follow", status: "failed", error: "Indicá el nombre." };
+    if (!name) return { type: "person_follow", status: "failed", error: "Indica el nombre." };
     return {
       type: "person_follow",
       status: "ok",
@@ -146,7 +146,7 @@ export const personFilmography: ToolHandler = {
   async run(args) {
     const name = String(args.name ?? "").trim();
     const kind = String(args.kind ?? "any");
-    if (!name) return { type: "person_filmography", status: "failed", error: "Indicá el nombre." };
+    if (!name) return { type: "person_filmography", status: "failed", error: "Indica el nombre." };
     const kindQuery = kind === "film" ? "filmografía películas" : kind === "music" ? "discografía álbumes" : kind === "books" ? "libros obra" : "filmografía discografía libros";
     // Fase 3.1: usar Wikipedia API directamente en lugar de delegar a web_search.
     try {
@@ -180,7 +180,7 @@ export const personFilmography: ToolHandler = {
 export const movieInfo: ToolHandler = {
   definition: defineTool(
     "movie_info",
-    "Información de PELÍCULAS Y SERIES: sinopsis, reparto, año, rating, géneros y dónde verla. Usala cuando el usuario pregunte por una película específica, pida recomendaciones ('recomendame una peli'), o quiera saber de qué trata una película. Si el usuario no nombra una película específica, elegí una buena y buscala. NUNCA la uses para consolas, gadgets, auriculares, teléfonos ni ningún producto físico ('review de airpods', 'reseña de la nintendo switch') — eso es shopping_compare.",
+    "Información de PELÍCULAS Y SERIES: sinopsis, reparto, año, rating, géneros y dónde verla. Usala cuando el usuario pregunte por una película específica, pida recomendaciones ('recomendame una peli'), o quiera saber de qué trata una película. Si el usuario no nombra una película específica, elige una buena y buscala. NUNCA la uses para consolas, gadgets, auriculares, teléfonos ni ningún producto físico ('review de airpods', 'reseña de la nintendo switch') — eso es shopping_compare.",
     {
       type: "object",
       additionalProperties: false,
@@ -195,7 +195,7 @@ export const movieInfo: ToolHandler = {
   async run(args) {
     const title = String(args.title ?? "").trim();
     const year = String(args.year ?? "").trim();
-    if (!title) return { type: "movie_info", status: "failed", error: "Indicá el título." };
+    if (!title) return { type: "movie_info", status: "failed", error: "Indica el título." };
 
     // 🔴 FIX P2: enriquecer con TMDB (poster, rating, géneros, estreno, runtime, sinopsis original)
     // TMDB soporta 2 métodos de auth:
@@ -409,7 +409,7 @@ export const movieInfo: ToolHandler = {
         return {
           type: "movie_info",
           status: "failed",
-          error: `No pude encontrar la película "${title}" en mis fuentes. Probá con web_search.`,
+          error: `No pude encontrar la película "${title}" en mis fuentes. Prueba con web_search.`,
           query: title,
         };
       }
@@ -500,7 +500,7 @@ export const bookInfo: ToolHandler = {
   async run(args) {
     const title = String(args.title ?? "").trim();
     const author = String(args.author ?? "").trim();
-    if (!title) return { type: "book_info", status: "failed", error: "Indicá el título." };
+    if (!title) return { type: "book_info", status: "failed", error: "Indica el título." };
 
     const cacheKey = `book:${title.toLowerCase()}:${author.toLowerCase()}`;
     const book = await cached<OlBook | null>(cacheKey, ttls.reference, async () => {
@@ -586,7 +586,7 @@ export const gameInfo: ToolHandler = {
   policy: policies.readonly("Lee info de RAWG y Wikipedia."),
   async run(args) {
     const title = String(args.title ?? "").trim();
-    if (!title) return { type: "game_info", status: "failed", error: "Indicá el título del juego." };
+    if (!title) return { type: "game_info", status: "failed", error: "Indica el título del juego." };
 
     // 1. Buscar en RAWG
     let game: RawgGame | null = null;

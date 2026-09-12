@@ -60,7 +60,7 @@ test("no city needs no forecast and reduced motion is respected", async ({ page 
   page.on("request", request => { if(request.url().includes("open-meteo.com")) forecastCalls++; });
   await openMorning(page, { city: "" });
   const dialog = page.getByRole("dialog", { name: "Buenos días," });
-  await expect(dialog.getByRole("status")).toContainText("Agregá tu ciudad");
+  await expect(dialog.getByRole("status")).toContainText("Agrega tu ciudad");
   expect(forecastCalls).toBe(0);
   expect(await dialog.evaluate(el => getComputedStyle(el).animationName)).toBe("none");
   await dialog.getByRole("button", { name: "Cerrar saludo" }).click();

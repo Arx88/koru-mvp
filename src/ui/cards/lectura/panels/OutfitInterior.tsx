@@ -53,7 +53,7 @@ function adviceNotes(specs: Spec[] | undefined): Array<{ icon: LucideIcon; tint:
       icon: Sun,
       tint: "var(--honey-soft)",
       label: "Sol:",
-      text: `índice ${uv} — el lino claro marca transpiración, llevá repuesto si vas a caminar.`,
+      text: `índice ${uv} — el lino claro marca transpiración, lleva repuesto si vas a caminar.`,
     });
   }
   return notes;
@@ -139,7 +139,7 @@ export function OutfitInterior({ block, onClose, onSave }: LecturaInteriorProps<
         )}
 
         <div className="lk-alts rv" ref={altsRef}>
-          <h3>Si querés otra línea</h3>
+          <h3>Si quieres otra línea</h3>
           <div className="lk-alt">
             <div className="aic"><Ic i={Shirt} className="ic" /></div>
             <div><b>Versión relaxed</b><br /><span>remera oversize blanca + jeans claros</span></div>

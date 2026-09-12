@@ -24,14 +24,14 @@ export const priceHistory: ToolHandler = {
   policy: policies.readonly("Lee histórico local de precios."),
   async run(args, ctx: ToolRunContext) {
     const q = String(args.query ?? "").trim().toLowerCase();
-    if (!q) return { type: "price_history", status: "failed", error: "Indicá el producto." };
+    if (!q) return { type: "price_history", status: "failed", error: "Indica el producto." };
     const matches = (ctx.state.records ?? [])
       .filter((r) => (r.kind === "shopping_item" || r.kind === "expense") && r.title.toLowerCase().includes(q) && typeof r.amount === "number")
       .sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1))
       .slice(-15)
       .map((r) => ({ date: r.createdAt.slice(0, 10), title: r.title, amount: r.amount as number, currency: r.currency ?? "EUR" }));
     if (matches.length === 0) {
-      return { type: "price_history", status: "ok", query: args.query, samples: [], note: "Todavía no registraste precios de ese producto. Empezá a anotarlos cuando los veas." };
+      return { type: "price_history", status: "ok", query: args.query, samples: [], note: "Todavía no registraste precios de ese producto. Empieza a anotarlos cuando los veas." };
     }
     const amounts = matches.map((m) => m.amount);
     const first = amounts[0] ?? 0;
@@ -95,7 +95,7 @@ export const budgetCheck: ToolHandler = {
   policy: policies.readonly("Compara gastos vs presupuesto guardado."),
   async run(args, ctx: ToolRunContext) {
     const category = String(args.category ?? "").trim().toLowerCase();
-    if (!category) return { type: "budget_check", status: "failed", error: "Indicá categoría." };
+    if (!category) return { type: "budget_check", status: "failed", error: "Indica categoría." };
 
     // Buscar presupuesto en memorias.
     const budgetMemory = (ctx.state.memories ?? []).find(

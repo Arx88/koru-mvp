@@ -64,7 +64,7 @@ function weatherWakeUpNudge(state: KoruState, now: Date): NudgeDraft | null {
 
   return {
     title: "Buen día",
-    body: "¿Querés que consulte el clima para que salgas preparado?",
+    body: "¿Quieres que consulte el clima para que salgas preparado?",
     reason: "Hora de despertar detectada en rutina",
     priority: "medium",
     source: "heartbeat",
@@ -83,8 +83,8 @@ function meetingTrafficNudge(state: KoruState, now: Date): NudgeDraft | null {
   if (wasRecentlyNudged(state, `traffic-${upcomingMeeting.id}`, now)) return null;
 
   return {
-    title: "Salí con tiempo",
-    body: `Tenés "${upcomingMeeting.title}" en ${upcomingMeeting.location} dentro de poco. ¿Querés que revise el tráfico?`,
+    title: "Sal con tiempo",
+    body: `Tienes "${upcomingMeeting.title}" en ${upcomingMeeting.location} dentro de poco. ¿Quieres que revise el tráfico?`,
     reason: "Reunión con ubicación próxima",
     priority: "high",
     source: "heartbeat",
@@ -102,7 +102,7 @@ function energyPauseNudge(state: KoruState, now: Date): NudgeDraft | null {
 
   return {
     title: "¿Una pausa?",
-    body: "Veo que venís con poca energía. Un respiro de 10 minutos puede cambiar la tarde.",
+    body: "Veo que vienes con poca energía. Un respiro de 10 minutos puede cambiar la tarde.",
     reason: "Energía baja detectada en últimas entradas",
     priority: "medium",
     source: "heartbeat",
@@ -154,7 +154,7 @@ function routineReminderNudge(state: KoruState, now: Date): NudgeDraft | null {
 
   return {
     title: "Rutina de hoy",
-    body: `Recordá que tenés en tu rutina: "${routineMem.text}". ¿Ya lo hiciste?`,
+    body: `Recuerda que tienes en tu rutina: "${routineMem.text}". ¿Ya lo hiciste?`,
     reason: "Rutina confirmada sin registro hoy",
     priority: "medium",
     source: "heartbeat",

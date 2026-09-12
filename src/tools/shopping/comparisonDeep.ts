@@ -47,7 +47,7 @@ function buildPremiumRecommendation(products: ComparisonProduct[]): string {
     if (p.price) parts.push(`a ${p.price.value}`);
     if (p.rating) parts.push(`con rating ${p.rating.value}/5`);
     parts.push(`(${p.score}/10 datos respaldados)`);
-    return parts.join(" ") + ". Probá con un término más específico para comparar.";
+    return parts.join(" ") + ". Prueba con un término más específico para comparar.";
   }
 
   // Ordenar por score (mayor primero) y por precio (menor primero).
@@ -116,7 +116,7 @@ function mapProductsToItems(products: ComparisonProduct[]) {
 export const comparisonDeep: ToolHandler = {
   definition: defineTool(
     "comparison_deep",
-    "Compara productos haciendo scraping real de múltiples tiendas (Amazon, eBay, Best Buy, MercadoLibre). Extrae precios, specs, ratings y reviews VALIDADOS contra cita literal del contenido. Genera recommendation basada en diferencias reales (no plantilla). Úsala cuando el usuario diga 'compara X vs Y', 'qué teléfono compro', 'dónde compro Z más barato', 'ayudame a buscar un X'. NUNCA uses web_search para comparar productos — usá esta tool.",
+    "Compara productos haciendo scraping real de múltiples tiendas (Amazon, eBay, Best Buy, MercadoLibre). Extrae precios, specs, ratings y reviews VALIDADOS contra cita literal del contenido. Genera recommendation basada en diferencias reales (no plantilla). Úsala cuando el usuario diga 'compara X vs Y', 'qué teléfono compro', 'dónde compro Z más barato', 'ayudame a buscar un X'. NUNCA uses web_search para comparar productos — usa esta tool.",
     {
       type: "object",
       additionalProperties: false,
@@ -131,7 +131,7 @@ export const comparisonDeep: ToolHandler = {
   async run(args, ctx) {
     const query = String(args.query ?? "").trim();
     const budget = String(args.budget ?? "").trim();
-    if (!query) return { type: "comparison_deep", status: "failed", error: "Indicá qué comparar." };
+    if (!query) return { type: "comparison_deep", status: "failed", error: "Indica qué comparar." };
 
     const storeQueries = [
       `${query} ${budget} precio specs review site:amazon.com OR site:ebay.com OR site:bestbuy.com`,
@@ -149,7 +149,7 @@ export const comparisonDeep: ToolHandler = {
         type: "comparison",
         title: `Comparativa: ${query}`,
         items: [],
-        recommendation: `No pude encontrar productos para comparar con las búsquedas: ${storeQueries.join("; ")}. Probá con un término más específico.`,
+        recommendation: `No pude encontrar productos para comparar con las búsquedas: ${storeQueries.join("; ")}. Prueba con un término más específico.`,
         sources: [],
       } as UiBlock);
       return { type: "comparison_deep", status: "failed", query, error: "No pude encontrar productos.", deferredDataCard: failedCard };
@@ -162,7 +162,7 @@ export const comparisonDeep: ToolHandler = {
     if (ctx.chatFn) {
       try {
         extractedData = await validateComparisonWithCitations(
-          `Compará productos para: "${query}". Extraé name, price, specs, rating, pros y cons de cada producto encontrado. Cada campo con cita literal.`,
+          `Compará productos para: "${query}". Extrae name, price, specs, rating, pros y cons de cada producto encontrado. Cada campo con cita literal.`,
           sources, ctx.chatFn,
         );
       } catch {
@@ -178,7 +178,7 @@ export const comparisonDeep: ToolHandler = {
     if (extractedData && extractedData.products.length > 0) {
       recommendation = buildPremiumRecommendation(extractedData.products);
     } else {
-      recommendation = `Encontré ${sources.length} fuentes sobre "${query}". Mirá los links arriba.`;
+      recommendation = `Encontré ${sources.length} fuentes sobre "${query}". Mira los links arriba.`;
     }
 
     // Mapear products a ComparisonItem[] (shape del UiBlock).

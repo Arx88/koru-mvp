@@ -65,7 +65,7 @@ export const recipeFind: ToolHandler = {
   policy: policies.readonly("Lee recetas públicas."),
   async run(args) {
     const query = String(args.query ?? "").trim();
-    if (!query) return { type: "recipe_find", status: "failed", error: "Indicá qué receta." };
+    if (!query) return { type: "recipe_find", status: "failed", error: "Indica qué receta." };
 
     const cacheKey = `recipe:${query.toLowerCase()}`;
     const meals = await cached<MealDbMeal[]>(cacheKey, ttls.reference, async () => {
@@ -139,7 +139,7 @@ export const recipeByIngredients: ToolHandler = {
   policy: policies.readonly("Busca recetas por ingredientes."),
   async run(args) {
     const list = Array.isArray(args.ingredients) ? args.ingredients.map(String).filter(Boolean) : [];
-    if (list.length === 0) return { type: "recipe_by_ingredients", status: "failed", error: "Indicá los ingredientes." };
+    if (list.length === 0) return { type: "recipe_by_ingredients", status: "failed", error: "Indica los ingredientes." };
     // TheMealDB soporta filtro por 1 ingrediente principal.
     const main = list[0];
     const cacheKey = `recipe_ing:${main.toLowerCase()}`;
@@ -166,7 +166,7 @@ export const recipeByIngredients: ToolHandler = {
 export const recipeSave: ToolHandler = {
   definition: defineTool(
     "recipe_save",
-    "Guarda una receta para consultarl después. Úsala cuando el usuario diga 'guardá esa carbonara', 'esta de tortilla dejala', 'guardo esa receta'.",
+    "Guarda una receta para consultarl después. Úsala cuando el usuario diga 'guarda esa carbonara', 'esta de tortilla dejala', 'guardo esa receta'.",
     {
       type: "object",
       additionalProperties: false,
@@ -182,7 +182,7 @@ export const recipeSave: ToolHandler = {
   policy: policies.localWrite("Guarda receta como record."),
   async run(args) {
     const title = String(args.title ?? "").trim();
-    if (!title) return { type: "recipe_save", status: "failed", error: "Indicá el título." };
+    if (!title) return { type: "recipe_save", status: "failed", error: "Indica el título." };
     const record: Omit<LifeRecord, "id" | "createdAt" | "sourceEntryId"> = {
       domain: "home",
       kind: "recommendation",
@@ -219,7 +219,7 @@ export const recipeShow: ToolHandler = {
   policy: policies.readonly("Lee receta guardada."),
   async run(args, ctx: ToolRunContext) {
     const q = String(args.query ?? "").trim().toLowerCase();
-    if (!q) return { type: "recipe_show", status: "failed", error: "Indicá qué receta buscar." };
+    if (!q) return { type: "recipe_show", status: "failed", error: "Indica qué receta buscar." };
     const matches = (ctx.state.records ?? [])
       .filter((r) => r.collection === "Recetas" && r.title.toLowerCase().includes(q))
       .slice(-5)
@@ -248,7 +248,7 @@ export const foodInfo: ToolHandler = {
   policy: policies.readonly("Lee producto de Open Food Facts."),
   async run(args) {
     const barcode = String(args.barcode ?? "").replace(/\D/g, "");
-    if (!barcode) return { type: "food_info", status: "failed", error: "Indicá el código de barras." };
+    if (!barcode) return { type: "food_info", status: "failed", error: "Indica el código de barras." };
 
     const cacheKey = `off:${barcode}`;
     const product = await cached<OpenFoodFactsProduct>(cacheKey, ttls.reference, async () => {
@@ -306,7 +306,7 @@ export const winePairing: ToolHandler = {
   policy: policies.readonly("Reglas locales de maridaje."),
   async run(args) {
     const food = String(args.food ?? "").trim().toLowerCase();
-    if (!food) return { type: "wine_pairing", status: "failed", error: "Indicá la comida." };
+    if (!food) return { type: "wine_pairing", status: "failed", error: "Indica la comida." };
 
     const pairings: Array<{ match: RegExp; wines: string[] }> = [
       { match: /cordero|chivo|venado|caza|parrilla|asado|carne roja|res/i, wines: ["Malbec", "Cabernet Sauvignon", "Tempranillo"] },
@@ -434,7 +434,7 @@ export const nutritionCalc: ToolHandler = {
   async run(args) {
     const food = String(args.food ?? "").trim();
     const quantity = String(args.quantity ?? "").trim();
-    if (!food) return { type: "nutrition_calc", status: "failed", error: "Indicá el alimento." };
+    if (!food) return { type: "nutrition_calc", status: "failed", error: "Indica el alimento." };
 
     const match = bestMatch(food);
     if (!match) {
@@ -443,9 +443,9 @@ export const nutritionCalc: ToolHandler = {
         status: "ok",
         food,
         quantity,
-        note: `No tengo datos nutricionales para "${food}". Probá con un alimento más común (ej: pollo, arroz, huevo).`,
+        note: `No tengo datos nutricionales para "${food}". Prueba con un alimento más común (ej: pollo, arroz, huevo).`,
         items: [],
-        block: { type: "data_card", title: food, items: [{ label: "Sin datos", value: "Alimento no encontrado", detail: "Usá un nombre más común" }] },
+        block: { type: "data_card", title: food, items: [{ label: "Sin datos", value: "Alimento no encontrado", detail: "Usa un nombre más común" }] },
       };
     }
 

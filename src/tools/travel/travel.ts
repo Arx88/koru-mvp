@@ -27,7 +27,7 @@ export const flightSearch: ToolHandler = {
   async run(args, ctx) {
     const query = String(args.query ?? "").trim();
     const budget = String(args.budget ?? "").trim();
-    if (!query) return { type: "flight_search", status: "failed", error: "Indicá ruta y fecha." };
+    if (!query) return { type: "flight_search", status: "failed", error: "Indica ruta y fecha." };
     const sources = usableSources(await searchAndEnrich(`${query} pasaje vuelo precio ${budget}`, 5));
     let dataCard: UiBlock | null = null;
     if (ctx.chatFn && sources.length > 0) {
@@ -56,7 +56,7 @@ export const flightTrack: ToolHandler = {
   policy: policies.readonly("Lee estado de vuelo público."),
   async run(args) {
     const flight = String(args.flight ?? "").trim();
-    if (!flight) return { type: "flight_track", status: "failed", error: "Indicá el número de vuelo." };
+    if (!flight) return { type: "flight_track", status: "failed", error: "Indica el número de vuelo." };
     // OpenSky requiere login para búsquedas por callsign; usamos scraping como fallback.
     const sources = usableSources(await searchAndEnrich(`${flight} flight status live arrivals`, 4));
     return {
@@ -86,7 +86,7 @@ export const hotelSearch: ToolHandler = {
   policy: policies.readonly("Busca hospedajes públicos."),
   async run(args, ctx) {
     const query = String(args.query ?? "").trim();
-    if (!query) return { type: "hotel_search", status: "failed", error: "Indicá destino y noches." };
+    if (!query) return { type: "hotel_search", status: "failed", error: "Indica destino y noches." };
     const sources = usableSources(await searchAndEnrich(`${query} hotel hostel precio rating`, 5));
     let dataCard: UiBlock | null = null;
     if (ctx.chatFn && sources.length > 0) {
@@ -117,7 +117,7 @@ export const routePlan: ToolHandler = {
     const origin = String(args.origin ?? "").trim();
     const destination = String(args.destination ?? "").trim();
     const mode = String(args.mode ?? "driving");
-    if (!origin || !destination) return { type: "route_plan", status: "failed", error: "Indicá origen y destino." };
+    if (!origin || !destination) return { type: "route_plan", status: "failed", error: "Indica origen y destino." };
     // Fase 3.4: usar Open-Meteo geocoding + OSRM para rutas reales.
     try {
       // Geocoding de origen y destino
@@ -127,7 +127,7 @@ export const routePlan: ToolHandler = {
       ]) as [{ results?: Array<{ latitude: number; longitude: number; name: string }> }, { results?: Array<{ latitude: number; longitude: number; name: string }> }];
       const orig = origGeo.results?.[0];
       const dest = destGeo.results?.[0];
-      if (!orig || !dest) return { type: "route_plan", status: "ok", origin, destination, mode, note: "No pude geolocalizar origen o destino. Probá con nombres de ciudad más específicos." };
+      if (!orig || !dest) return { type: "route_plan", status: "ok", origin, destination, mode, note: "No pude geolocalizar origen o destino. Prueba con nombres de ciudad más específicos." };
       // OSRM driving route
       const profile = mode === "walking" ? "foot" : "driving";
       const osrmUrl = `https://router.project-osrm.org/route/v1/${profile}/${orig.longitude},${orig.latitude};${dest.longitude},${dest.latitude}?overview=false`;
@@ -168,7 +168,7 @@ export const transportNearby: ToolHandler = {
   async run(args) {
     const location = String(args.location ?? "").trim();
     const transportType = String(args.type ?? "any");
-    if (!location) return { type: "transport_nearby", status: "failed", error: "Indicá ubicación." };
+    if (!location) return { type: "transport_nearby", status: "failed", error: "Indica ubicación." };
     // Fase 3.4: usar Open-Meteo geocoding + Overpass API para transporte real.
     try {
       const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&format=json`, { signal: AbortSignal.timeout(15000) });
@@ -207,7 +207,7 @@ export const currencyAtm: ToolHandler = {
   policy: policies.readonly("Busca tasa de cambio via Frankfurter API."),
   async run(args) {
     const location = String(args.location ?? "").trim();
-    if (!location) return { type: "currency_atm", status: "failed", error: "Indicá ubicación." };
+    if (!location) return { type: "currency_atm", status: "failed", error: "Indica ubicación." };
     // Fase 3.3: usar Frankfurter API para tasa del día + Wikipedia para info de cajeros.
     try {
       // Tasa USD→EUR como referencia de cambio del día
@@ -219,7 +219,7 @@ export const currencyAtm: ToolHandler = {
         type: "currency_atm",
         status: "ok",
         location,
-        text: eurRate ? `Tasa del día (${date}): 1 USD = ${eurRate} EUR. Para cajeros específicos en ${location}, te sugiero buscar en Google Maps "cajero automático" o "casa de cambio" en esa zona.` : `No pude obtener la tasa del día. Para cajeros en ${location}, buscá en Google Maps.`,
+        text: eurRate ? `Tasa del día (${date}): 1 USD = ${eurRate} EUR. Para cajeros específicos en ${location}, te sugiero buscar en Google Maps "cajero automático" o "casa de cambio" en esa zona.` : `No pude obtener la tasa del día. Para cajeros en ${location}, busca en Google Maps.`,
         rate: eurRate ? `${eurRate}` : undefined,
         date,
       };
@@ -249,7 +249,7 @@ export const visaCheck: ToolHandler = {
   async run(args, ctx) {
     const destination = String(args.destination ?? "").trim();
     const passport = String(args.passport ?? "").trim();
-    if (!destination || !passport) return { type: "visa_check", status: "failed", error: "Indicá destino y pasaporte." };
+    if (!destination || !passport) return { type: "visa_check", status: "failed", error: "Indica destino y pasaporte." };
     const sources = usableSources(await searchAndEnrich(`requisitos visa ${destination} pasaporte ${passport} 2025 oficial`, 5));
     let dataCard: UiBlock | null = null;
     if (ctx.chatFn && sources.length > 0) {
@@ -288,7 +288,7 @@ export const travelItinerary: ToolHandler = {
     const destination = String(args.destination ?? "").trim();
     const days = Number(args.days ?? 0);
     const interests = Array.isArray(args.interests) ? args.interests.map(String) : [];
-    if (!destination || days <= 0) return { type: "travel_itinerary", status: "failed", error: "Indicá destino y días." };
+    if (!destination || days <= 0) return { type: "travel_itinerary", status: "failed", error: "Indica destino y días." };
     const sources = usableSources(await searchAndEnrich(`itinerario ${days} días en ${destination} ${interests.join(" ")} qué ver`, 5));
     let dataCard: UiBlock | null = null;
     if (ctx.chatFn && sources.length > 0) {
@@ -326,7 +326,7 @@ export const weatherTravel: ToolHandler = {
   async run(args) {
     const destination = String(args.destination ?? "").trim();
     const date = String(args.date ?? "").trim();
-    if (!destination || !date) return { type: "weather_travel", status: "failed", error: "Indicá destino y fecha." };
+    if (!destination || !date) return { type: "weather_travel", status: "failed", error: "Indica destino y fecha." };
     // Fase 3.3: usar Open-Meteo geocoding + current weather + Wikipedia para histórico.
     try {
       // 1. Geocoding: obtener lat/lon del destino
@@ -375,7 +375,7 @@ export const languagePhrase: ToolHandler = {
   async run(args, ctx) {
     const language = String(args.language ?? "").trim();
     const context = String(args.context ?? "").trim();
-    if (!language) return { type: "language_phrase", status: "failed", error: "Indicá el idioma." };
+    if (!language) return { type: "language_phrase", status: "failed", error: "Indica el idioma." };
     if (!ctx.chatFn) {
       return {
         type: "language_phrase",
@@ -384,11 +384,11 @@ export const languagePhrase: ToolHandler = {
         note: "Para generar frases hace falta el LLM local (Ollama). Configurá el modelo en Settings.",
       };
     }
-    const prompt = `Generá 12 frases útiles en ${language} para viajar${context ? ` (contexto: ${context})` : ""}. Formato: "ES|<traducción>|<pronunciación aproximada>". Incluí: saludo, gracias, por favor, ¿dónde está...?, ¿cuánto cuesta?, números 1-5, ayuda, baño. Solo las líneas, sin explicaciones.`;
+    const prompt = `Genera 12 frases útiles en ${language} para viajar${context ? ` (contexto: ${context})` : ""}. Formato: "ES|<traducción>|<pronunciación aproximada>". Incluye: saludo, gracias, por favor, ¿dónde está...?, ¿cuánto cuesta?, números 1-5, ayuda, baño. Solo las líneas, sin explicaciones.`;
     try {
       const result = await ctx.chatFn(
         [
-          { role: "system", content: "Sos un asistente de viaje. Generás frases prácticas concisas." },
+          { role: "system", content: "Eres un asistente de viaje. Generás frases prácticas concisas." },
           { role: "user", content: prompt },
         ],
         { temperature: 0.3, maxTokens: 600 },

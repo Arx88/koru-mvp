@@ -7,7 +7,7 @@
  * ventanilla con TODOS los pares del block (rate + change con flecha
  * real de positive). Conversión derivada del rate REAL (US$500 × rate).
  * La curva semanal NO está en el domain → no se dibuja. Acción:
- * avisame → create_commitment durable.
+ * avísame → create_commitment durable.
  */
 import { useState } from "react";
 import { BellRing, RefreshCw, Banknote, ArrowLeftRight, TrendingUp, TrendingDown, Calculator } from "lucide-react";
@@ -84,7 +84,7 @@ export function ForexInterior({ block, onClose, onSave }: LecturaInteriorProps<F
           </h1>
           <p style={{ font: "600 12px var(--sans)", color: "var(--ink-dim)", marginTop: "6px" }}>
             {items.length > 1
-              ? `${items.length} pares — elegís el que querés y calculo cuánto te dan de verdad.`
+              ? `${items.length} pares — elegís el que quieres y calculo cuánto te dan de verdad.`
               : "La cotización del block, tal como la trajo la herramienta."}
           </p>
         </div>

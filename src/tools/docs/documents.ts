@@ -10,7 +10,7 @@ import type { AssistantArtifact } from "../../domain/types";
 export const docCreateMd: ToolHandler = {
   definition: defineTool(
     "doc_create_md",
-    "Genera un documento Markdown (.md) con estructura: encabezados, listas, código, tablas. Úsala cuando el usuario diga 'hacé un doc con la minuta', 'escribí un README', 'documentá esta idea'.",
+    "Genera un documento Markdown (.md) con estructura: encabezados, listas, código, tablas. Úsala cuando el usuario diga 'haz un doc con la minuta', 'escribe un README', 'documenta esta idea'.",
     {
       type: "object",
       additionalProperties: false,
@@ -25,7 +25,7 @@ export const docCreateMd: ToolHandler = {
   async run(args) {
     const title = String(args.title ?? "").trim();
     const content = String(args.content ?? "").trim();
-    if (!title || !content) return { type: "doc_create_md", status: "failed", error: "Indicá título y contenido." };
+    if (!title || !content) return { type: "doc_create_md", status: "failed", error: "Indica título y contenido." };
     const body = `# ${title}\n\n_Generado por Michi el ${new Date().toISOString().slice(0, 10)}._\n\n${content}\n`;
     const artifact: AssistantArtifact = {
       name: `${title.replace(/[^a-z0-9áéíóúñ ]/gi, "").trim().replace(/\s+/g, "_").slice(0, 40) || "documento"}.md`,
@@ -50,7 +50,7 @@ export const docCreateMd: ToolHandler = {
 export const docCreatePdf: ToolHandler = {
   definition: defineTool(
     "doc_create_pdf",
-    "Genera un PDF con formato (encabezados, párrafos, tablas). Úsala cuando el usuario diga 'pasá eso a PDF', 'hacé un informe en PDF del viaje', 'documento PDF con estos apuntes'.",
+    "Genera un PDF con formato (encabezados, párrafos, tablas). Úsala cuando el usuario diga 'pasa eso a PDF', 'haz un informe en PDF del viaje', 'documento PDF con estos apuntes'.",
     {
       type: "object",
       additionalProperties: false,
@@ -65,7 +65,7 @@ export const docCreatePdf: ToolHandler = {
   async run(args) {
     const title = String(args.title ?? "").trim();
     const content = String(args.content ?? "").trim();
-    if (!title || !content) return { type: "doc_create_pdf", status: "failed", error: "Indicá título y contenido." };
+    if (!title || !content) return { type: "doc_create_pdf", status: "failed", error: "Indica título y contenido." };
     const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${title}</title>
 <style>body{font-family:Georgia,serif;max-width:780px;margin:40px auto;padding:0 20px;line-height:1.6;color:#222}h1{border-bottom:2px solid #444;padding-bottom:8px}</style>
 </head><body><h1>${title}</h1><p><em>Generado por Michi el ${new Date().toISOString().slice(0, 10)}.</em></p>${content.split(/\n+/).map((p) => `<p>${p}</p>`).join("\n")}</body></html>`;
@@ -93,7 +93,7 @@ export const docCreatePdf: ToolHandler = {
 export const docCreateWord: ToolHandler = {
   definition: defineTool(
     "doc_create_word",
-    "Genera un documento Word (.doc) editable. Úsala cuando el usuario diga 'hacé un CV en Word', 'documento con estos apuntes', 'Word con la minuta'.",
+    "Genera un documento Word (.doc) editable. Úsala cuando el usuario diga 'haz un CV en Word', 'documento con estos apuntes', 'Word con la minuta'.",
     {
       type: "object",
       additionalProperties: false,
@@ -108,7 +108,7 @@ export const docCreateWord: ToolHandler = {
   async run(args) {
     const title = String(args.title ?? "").trim();
     const content = String(args.content ?? "").trim();
-    if (!title || !content) return { type: "doc_create_word", status: "failed", error: "Indicá título y contenido." };
+    if (!title || !content) return { type: "doc_create_word", status: "failed", error: "Indica título y contenido." };
     const html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word'><head><meta charset="utf-8"><title>${title}</title></head><body><h1>${title}</h1>${content.split(/\n+/).map((p) => `<p>${p}</p>`).join("\n")}</body></html>`;
     const artifact: AssistantArtifact = {
       name: `${title.replace(/[^a-z0-9áéíóúñ ]/gi, "").trim().replace(/\s+/g, "_").slice(0, 40) || "documento"}.doc`,
@@ -147,7 +147,7 @@ export const docCreateExcel: ToolHandler = {
   async run(args) {
     const title = String(args.title ?? "").trim();
     const rows = Array.isArray(args.rows) ? args.rows : [];
-    if (!title || rows.length === 0) return { type: "doc_create_excel", status: "failed", error: "Indicá título y filas." };
+    if (!title || rows.length === 0) return { type: "doc_create_excel", status: "failed", error: "Indica título y filas." };
     const escape = (s: string) => `"${String(s ?? "").replace(/"/g, '""')}"`;
     const csv = rows.map((row) => (Array.isArray(row) ? row : []).map((c) => escape(String(c))).join(",")).join("\n");
     const artifact: AssistantArtifact = {
@@ -172,7 +172,7 @@ export const docCreateExcel: ToolHandler = {
 export const ocrText: ToolHandler = {
   definition: defineTool(
     "ocr_text",
-    "Extrae texto de una imagen (ticket, cartel, documento, captura). Úsala cuando el usuario diga 'leé este ticket de compra', 'qué dice este cartel?', 'extraé el texto de esta imagen'. Usa VLM cloud (z-ai-web-dev-sdk).",
+    "Extrae texto de una imagen (ticket, cartel, documento, captura). Úsala cuando el usuario diga 'leé este ticket de compra', 'qué dice este cartel?', 'extrae el texto de esta imagen'. Usa VLM cloud (z-ai-web-dev-sdk).",
     {
       type: "object",
       additionalProperties: false,
@@ -186,8 +186,8 @@ export const ocrText: ToolHandler = {
   policy: policies.readonly("Procesa imagen con VLM cloud."),
   async run(args, _ctx: ToolRunContext) {
     const imageUrl = String(args.imageUrl ?? "").trim();
-    const prompt = String(args.prompt ?? "Extraé todo el texto visible en la imagen, preservando estructura.").trim();
-    if (!imageUrl) return { type: "ocr_text", status: "failed", error: "Indicá la imagen." };
+    const prompt = String(args.prompt ?? "Extrae todo el texto visible en la imagen, preservando estructura.").trim();
+    if (!imageUrl) return { type: "ocr_text", status: "failed", error: "Indica la imagen." };
 
     // Fase 3.8: usar VLM cloud (z-ai-web-dev-sdk) en lugar de delegar a web_search.
     // El endpoint /api/michi/vlm está disponible en el servidor Vite.
@@ -222,7 +222,7 @@ export const ocrText: ToolHandler = {
 export const dataAnalyze: ToolHandler = {
   definition: defineTool(
     "data_analyze",
-    "Analiza datos pegados (CSV, tabla, lista de números) calculando media, mediana, suma, máx, mín, tendencias y top. Úsala cuando el usuario diga 'analizá estos gastos', 'tendencia de mis ventas', 'resumen estadístico de estos datos'.",
+    "Analiza datos pegados (CSV, tabla, lista de números) calculando media, mediana, suma, máx, mín, tendencias y top. Úsala cuando el usuario diga 'analiza estos gastos', 'tendencia de mis ventas', 'resumen estadístico de estos datos'.",
     {
       type: "object",
       additionalProperties: false,
@@ -313,7 +313,7 @@ export const dataChart: ToolHandler = {
     const labels = Array.isArray(args.labels) ? args.labels.map(String) : [];
     const values = Array.isArray(args.values) ? args.values.map(Number) : [];
     if (!title || labels.length === 0 || values.length === 0) {
-      return { type: "data_chart", status: "failed", error: "Indicá título, etiquetas y valores." };
+      return { type: "data_chart", status: "failed", error: "Indica título, etiquetas y valores." };
     }
     // SVG simple embebido en HTML (sin dependencias). Barras por defecto.
     const max = Math.max(...values, 1);

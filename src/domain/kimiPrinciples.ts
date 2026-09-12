@@ -1,9 +1,9 @@
 /** Koru Design Principles — Kimi Tier-S audit */
 
 export const KIMI_PILLARS = {
-  calido: "Voseo rioplatense, humor tímido, cero jerga. La temperatura de una taza de café en las manos: ámbar, miel, papel.",
+  calido: "Español neutro cálido, humor tímido, cero jerga. La temperatura de una taza de café en las manos: ámbar, miel, papel.",
   magico: "Noche estrellada, islas flotantes, luciérnagas, brillo de luna. La magia es coherente: siempre la misma física de luz.",
-  vivo: "Nada está quieto sin razón. Los datos laten, las hojas respiran, la mascota duerme si la abandonás 5 minutos.",
+  vivo: "Nada está quieto sin razón. Los datos laten, las hojas respiran, la mascota duerme si la abandonas 5 minutos.",
   util: "Cada card responde qué pasó y qué hago. El extendido siempre paga. La belleza jamás estorba a la función.",
   tuyo: "Memoria-jardín, modo efímero, tus colecciones. Koru es tuyo: te conoce cada día más y te lo demuestra.",
 } as const;
@@ -19,7 +19,7 @@ export const KIMI_DECISIONS = {
 } as const;
 
 export const KIMI_VOICE = {
-  tone: "Voseo rioplatense. Frases cortas con consejo. Humor tímido. Cero jerga.",
+  tone: "Español neutro cálido. Frases cortas con consejo. Humor tímido. Cero jerga.",
   ctaRule: "El CTA dice qué hay del otro lado. Si no puede prometer algo concreto, la card no necesita CTA.",
   forbidden: ["Error 429", "rate limit exceeded", "Resultado de búsqueda generado", "No hay datos disponibles", "Ejecutar protocolo", "Síntesis Deep-Hungry"],
   loading: "Procesando…",

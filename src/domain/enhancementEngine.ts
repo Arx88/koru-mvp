@@ -215,7 +215,7 @@ export function enhancementPrompt(candidates: EnhancementCandidate[]): string {
       return `- Después de cumplir el pedido principal, preguntá: "${c.action.question}" (razón: ${c.rationale})`;
     }
     if (c.action.mode === "suggest") {
-      return `- Después de cumplir, sugerí: "${c.action.text}" (razón: ${c.rationale})`;
+      return `- Después de cumplir, sugiere: "${c.action.text}" (razón: ${c.rationale})`;
     }
     if (c.action.mode === "auto") {
       return `- Después de cumplir, hacelo directo: "${c.action.text}" (razón: ${c.rationale})`;
@@ -224,7 +224,7 @@ export function enhancementPrompt(candidates: EnhancementCandidate[]): string {
   });
 
   return [
-    "Instrucción de valor adicional (+1): después de responder el pedido principal, agregá UN SOLO extra contextual que sea útil.",
+    "Instrucción de valor adicional (+1): después de responder el pedido principal, agrega UN SOLO extra contextual que sea útil.",
     ...lines,
     "Reglas del +1: no hagas preguntas antes de cumplir el pedido principal. El extra viene DESPUÉS. Si no aplica, no lo menciones.",
   ].join("\n");

@@ -91,7 +91,7 @@ export function MichiLockedDialog({ avatar, onClose }: { avatar: { id: string; n
   return (
     <DialogShell
       title="Un nuevo amigo te espera"
-      description="Seguí sumando aventuras con Michi."
+      description="Sigue sumando aventuras con Michi."
       onClose={onClose}
       locked
     >
@@ -119,7 +119,7 @@ export function MichiLandscapeDialog({
   return (
     <DialogShell
       title="Tu mundo, tu momento"
-      description="Elegí el paisaje que va con vos."
+      description="Elige el paisaje que va contigo."
       onClose={onClose}
     >
       <div className="mx-landscape-grid">
@@ -162,7 +162,7 @@ export function MichiUserAvatarDialog({
   return (
     <DialogShell
       title="¿Con quién hablo hoy?"
-      description="Elegí entre 15 retratos para acompañar tus mensajes."
+      description="Elige entre 15 retratos para acompañar tus mensajes."
       onClose={onClose}
     >
       <div className="mx-personal-grid">
@@ -198,7 +198,7 @@ export function MichiResetDialog({ onConfirm, onClose }: { onConfirm: () => void
     >
       <div className="mx-reset-actions">
         <button type="button" className="mx-dialog-secondary" onClick={onClose}>
-          Me quedo acá
+          Me quedo aquí
         </button>
         <button
           type="button"
@@ -244,7 +244,7 @@ export function MichiHourlyDialog({
         </div>
       ) : (
         <p style={{ fontSize: 13, color: "#7d7aa8" }}>
-          Todavía no tengo el detalle hora por hora — pedime "¿cómo sigue el clima por hora?" y lo busco.
+          Todavía no tengo el detalle hora por hora — pídeme "¿cómo sigue el clima por hora?" y lo busco.
         </p>
       )}
       <button type="button" className="mx-dialog-primary" onClick={onClose}>

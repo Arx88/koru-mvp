@@ -226,7 +226,7 @@ export function MstatsInterior({ block, onClose, onSave }: LecturaInteriorProps<
             {possessionStat
               ? ` — ${possessionStat.label} ${possessionStat.home}/${possessionStat.away}`
               : ""}
-            . Lo que pase de acá es narrativa: esto es lo que pasó.
+            . Lo que pase de aquí es narrativa: esto es lo que pasó.
           </p>
         </div>
 

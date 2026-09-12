@@ -41,7 +41,7 @@ export const currencyConvert: ToolHandler = {
       return { type: "currency_convert", status: "failed", error: "El monto debe ser un número positivo." };
     }
     if (!from || !to || from.length !== 3 || to.length !== 3) {
-      return { type: "currency_convert", status: "failed", error: "Indicá monedas de 3 letras (ej: USD, EUR, ARS)." };
+      return { type: "currency_convert", status: "failed", error: "Indica monedas de 3 letras (ej: USD, EUR, ARS)." };
     }
 
     const cacheKey = `fx:${from}:${to}`;

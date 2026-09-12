@@ -9,7 +9,7 @@
  * todavía no existe en el backend): Nivel 7 · 320/500 XP (64%).
  */
 
-export function MichiHeader({ subtitle = "Siempre acá para vos", onMenu }: { subtitle?: string; onMenu?: () => void }) {
+export function MichiHeader({ subtitle = "Siempre aquí para ti", onMenu }: { subtitle?: string; onMenu?: () => void }) {
   return (
     <header className="michi-hdr">
       <div className="michi-catwrap">

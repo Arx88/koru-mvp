@@ -95,7 +95,7 @@ export function MemInterior({ block, onClose, onSave }: LecturaInteriorProps<Mem
           <p>
             {items.length
               ? "Esto lo retengo solito: cuando me vuelvas a preguntar, ya lo voy a saber."
-              : "Todavía no hay nada nuevo esta vez — lo que me cuentes queda acá."}
+              : "Todavía no hay nada nuevo esta vez — lo que me cuentes queda aquí."}
           </p>
         </div>
 

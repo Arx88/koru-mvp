@@ -108,7 +108,7 @@ describe("preview-main v6 · showcase funcional", () => {
     render(<Showcase />);
     const input = screen.getByRole("searchbox", { name: /buscar en la conversación/i });
     await user.type(input, "zxqxqinexistente");
-    expect(screen.getByText(/nada por acá con ese filtro/i)).toBeInTheDocument();
+    expect(screen.getByText(/nada por aquí con ese filtro/i)).toBeInTheDocument();
     // Con query activa no hay botón «Mostrar todo» (ya estamos en modo pantalla)
     expect(screen.queryByRole("button", { name: /mostrar todo/i })).not.toBeInTheDocument();
   });

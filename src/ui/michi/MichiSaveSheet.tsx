@@ -54,7 +54,7 @@ export function MichiSaveSheet({ title, heading = "Guardar informe", automaticCo
           </label>
           <label className={`ms-save-option ${mode === "folder" ? "is-selected" : ""}`}>
             <span className="ms-option-icon is-folder" aria-hidden="true"><FolderHeart fill="#2697ff" color="#145bff" size={28} /></span>
-            <span className="ms-option-copy"><strong>Elegir carpeta</strong><small>Poné el nombre que quieras</small></span>
+            <span className="ms-option-copy"><strong>Elegir carpeta</strong><small>Pon el nombre que quieras</small></span>
             <input type="radio" name="save-destination" value="folder" checked={mode === "folder"} onChange={() => setMode("folder")} />
           </label>
         </fieldset>

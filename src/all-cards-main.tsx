@@ -93,7 +93,7 @@ export function AllCardsPage() {
         <div className="ac-title">
           <strong>Todas las cards de tu app</strong>
           <small>
-            {CARD_COUNT} cards en el chat · {INTERIOR_COUNT} interiores extensibles · tocá cualquier card
+            {CARD_COUNT} cards en el chat · {INTERIOR_COUNT} interiores extensibles · toca cualquier card
           </small>
         </div>
         <div className="ac-switch" role="tablist" aria-label="Vistas del archivo">

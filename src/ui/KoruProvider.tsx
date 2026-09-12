@@ -733,7 +733,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     const nudge: ProactiveNudge = {
       id: createId("nudge"),
       title: "Buenos días",
-      body: "Arranco el día con vos. Pedime el resumen cuando quieras.",
+      body: "Arranco el día contigo. Pídeme el resumen cuando quieras.",
       reason: "morning-brief",
       priority: "medium",
       createdAt: new Date().toISOString(),
@@ -1095,7 +1095,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     commitChatTurns((prev) => {
       if (prev.length === 0) return [greetingTurn(cleanName)];
       if (prev.length === 1 && prev[0].role === "koru") {
-        return [{ ...prev[0], text: `¡Hola, ${cleanName}! ¿Cómo andás? Contame.` }];
+        return [{ ...prev[0], text: `¡Hola, ${cleanName}! ¿Cómo estás? ¿Qué me cuentas?` }];
       }
       return prev;
     });

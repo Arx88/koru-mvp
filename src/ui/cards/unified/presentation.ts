@@ -495,7 +495,7 @@ export function toPresentation(block: UiBlock, ctx?: PresentationContext): KoruP
     case "exercise_plan":
       return exercisePlan(block);
     case "plan":
-      // El plan conserva su render canónico (PlanHeroCard); si llegara acá,
+      // El plan conserva su render canónico (PlanHeroCard); si llegara aquí,
       // damos un hero equivalente por robustez.
       return planFallback(block);
     default: {
@@ -514,7 +514,7 @@ const DELIVERABLE_SECTION_ACCENTS: Accent[] = [A.amber, A.primary, A.emerald, A.
 
 /**
  * ENTREGABLE (deep_research) — el bloque ya llega con la forma del molde:
- * kicker/título/descripción/categorías/métricas + secciones tipadas. Acá solo
+ * kicker/título/descripción/categorías/métricas + secciones tipadas. Aquí solo
  * se traduce cada sección a su DetailSection y se anexan las fuentes.
  */
 function deliverable(b: Of<"deliverable">): KoruPresentation {
@@ -657,7 +657,7 @@ function clarifying(b: Of<"clarifying_question">): KoruPresentation {
     },
     detail: b.options?.length
       ? {
-          title: b.title || "Elegí una opción",
+          title: b.title || "Elige una opción",
           subtitle: b.question,
           sections: [
             {
@@ -891,7 +891,7 @@ function alarm(b: Of<"alarm">, ctx?: PresentationContext): KoruPresentation {
     const avg = sleepTiles.reduce((sum, t) => sum + parseFloat(t.value), 0) / sleepTiles.length;
     sections.push({ kind: "tiles", icon: "monitoring", accent: A.emerald, title: "Tu semana de sueño", subtitle: `PROMEDIO ${avg.toFixed(1)}H`, tiles: sleepTiles });
   } else {
-    sections.push({ kind: "text", icon: "monitoring", accent: A.emerald, title: "Tu semana de sueño", subtitle: "AÚN SIN DATOS", body: "Cuando registres tus horas de sueño (con 'dormí 7 horas'), voy a mostrarte tu semana acá." });
+    sections.push({ kind: "text", icon: "monitoring", accent: A.emerald, title: "Tu semana de sueño", subtitle: "AÚN SIN DATOS", body: "Cuando registres tus horas de sueño (con 'dormí 7 horas'), voy a mostrarte tu semana aquí." });
   }
 
   // 3. Detalles tiles (when / frequency / note).
@@ -1203,8 +1203,8 @@ function shoppingList(b: Of<"shopping_list">): KoruPresentation {
       : {
           icon: "shopping_basket",
           title: "Tu lista está vacía",
-          desc: "Anotá el primer ítem: 'agregá leche a la lista'",
-          cta: { label: "Anotar primer ítem", action: "prompt:agregá leche a la lista" },
+          desc: "Anota el primer ítem: 'agrega leche a la lista'",
+          cta: { label: "Anotar primer ítem", action: "prompt:agrega leche a la lista" },
         },
   };
 }
@@ -1226,7 +1226,7 @@ function comparison(b: Of<"comparison">): KoruPresentation {
       empty: {
         icon: "search_off",
         title: "Todavía no sembraste nada",
-        desc: "Cuando tengas dos opciones, las comparo. Probá: 'compará iPhone vs Samsung'",
+        desc: "Cuando tengas dos opciones, las comparo. Prueba: 'compará iPhone vs Samsung'",
         cta: { label: "Empezar comparación", action: "prompt:compará X vs Y" },
       },
     };
@@ -1548,7 +1548,7 @@ function money(b: Of<"money_summary">): KoruPresentation {
       empty: {
         icon: "account_balance_wallet",
         title: "Todavía no veo movimientos",
-        desc: "Anotá un gasto y armo el mapa. Probá: 'gasté 12€ en café'",
+        desc: "Anota un gasto y armo el mapa. Prueba: 'gasté 12€ en café'",
         cta: { label: "Anotar un gasto", action: "prompt:gasté 12€ en café" },
       },
     };
@@ -1972,8 +1972,8 @@ function webNav(b: Of<"web_nav">): KoruPresentation {
       empty: {
         icon: "search_off",
         title: "No encontré nada",
-        desc: "Probá con otra búsqueda. Si querés, reformulo con sinónimos o amplío el rango.",
-        cta: { label: "Reformular búsqueda", action: "prompt:buscá de otra forma" },
+        desc: "Prueba con otra búsqueda. Si quieres, reformulo con sinónimos o amplío el rango.",
+        cta: { label: "Reformular búsqueda", action: "prompt:busca de otra forma" },
       },
     };
   }
@@ -2261,7 +2261,7 @@ function restaurant(b: Of<"restaurant_synthesis">): KoruPresentation {
       logRows.push({
         icon: "event_seat",
         title: `Mesa ${clean(log.reservationTime)}`,
-        detail: "Si llegás 10 min antes, te sentás directo",
+        detail: "Si llegas 10 min antes, te sientas directo",
         badge: clean(log.reservationTime),
         badgeTone: "done" as const,
       });
@@ -2348,7 +2348,7 @@ function restaurant(b: Of<"restaurant_synthesis">): KoruPresentation {
           ? [{ icon: "payments", label: "Precio", value: "$".repeat(Math.max(1, Math.min(4, topMatch.priceLevel))), color: A.pink.color }]
           : []),
         ...(topMatch?.distanceFromUser
-          ? [{ icon: "directions_walk", label: "Llegás en", value: topMatch.distanceFromUser, color: A.emerald.color }]
+          ? [{ icon: "directions_walk", label: "Llegas en", value: topMatch.distanceFromUser, color: A.emerald.color }]
           : []),
         ...(matches.length
           ? [{ icon: "storefront", label: "Comparé", value: `${matches.length} opciones`, color: A.primary.color }]
@@ -2402,7 +2402,7 @@ function morningBrief(b: Of<"morning_brief">): KoruPresentation {
   // 🔴 KIMI D2: hero.icon "wb_sunny" → MomentoVivo elige animación de sol.
   // 🔴 KIMI D3: reflexión proactiva de Koru (sección "Koru se adelantó").
   const reflectionBody = b.greeting
-    ? `${b.greeting}.${items[0] ? ` Hoy: ${items[0].label} — ${items[0].value}.` : ""} Michi cruzó tu memoria y tu agenda para armar esto; si querés, lo desplegás en historia.`
+    ? `${b.greeting}.${items[0] ? ` Hoy: ${items[0].label} — ${items[0].value}.` : ""} Michi cruzó tu memoria y tu agenda para armar esto; si quieres, lo desplegás en historia.`
     : undefined;
 
   const sections: DetailSection[] = [];
@@ -2450,7 +2450,7 @@ function morningBrief(b: Of<"morning_brief">): KoruPresentation {
       empty: {
         icon: "wb_twilight",
         title: "Todavía no armé tu día",
-        desc: "Pedime el resumen cuando arranques. Probá: 'buenos días' o 'resumen del día'",
+        desc: "Pídeme el resumen cuando arranques. Prueba: 'buenos días' o 'resumen del día'",
         cta: { label: "Armar mi día", action: "prompt:buenos días" },
       },
       layout: "default",
@@ -2537,12 +2537,12 @@ function dayInfo(b: Of<"day_info">): KoruPresentation {
           title: "Michi te cuenta",
           subtitle: "CONTEXTO",
           body: b.target
-            ? `Hoy es ${b.weekday} ${b.dateLabel}. Para el ${b.target.dateLabel} faltan ${b.target.daysLeft} ${Math.abs(b.target.daysLeft) === 1 ? "día" : "días"} — el año ya va ${b.yearProgress}% recorrido. Si querés, armo un plan para aprovechar la semana.`
-            : `Hoy es ${b.weekday}, ${b.dateLabel} — semana ${b.weekNumber} del año. ${b.isWeekend ? "Es finde: buen momento para lo que venís postergando." : `Van ${b.dayProgress}% del día y queda bastante para aprovecharlo.`} Si querés, te organizo el resto con un plan.`,
+            ? `Hoy es ${b.weekday} ${b.dateLabel}. Para el ${b.target.dateLabel} faltan ${b.target.daysLeft} ${Math.abs(b.target.daysLeft) === 1 ? "día" : "días"} — el año ya va ${b.yearProgress}% recorrido. Si quieres, armo un plan para aprovechar la semana.`
+            : `Hoy es ${b.weekday}, ${b.dateLabel} — semana ${b.weekNumber} del año. ${b.isWeekend ? "Es finde: buen momento para lo que vienes postergando." : `Van ${b.dayProgress}% del día y queda bastante para aprovecharlo.`} Si quieres, te organizo el resto con un plan.`,
         },
       ],
       actions: [
-        { label: "Organizá mi día", icon: "calendar", kind: "primary", action: "prompt:organizá mi día" },
+        { label: "Organizá mi día", icon: "calendar", kind: "primary", action: "prompt:organiza mi día" },
         { label: "¿Qué tal el día?", icon: "search", kind: "secondary", action: "prompt:¿qué tal el día?" },
       ],
     },
@@ -4809,8 +4809,8 @@ function memoryBlock(b: Of<"memory">): KoruPresentation {
       : {
           icon: "spa",
           title: "Tu jardín está empezando",
-          desc: "Contame algo sobre vos y lo voy a recordar. Cada cosa que confirmás, lo riego y crece.",
-          cta: { label: "Sembrar el primer recuerdo", action: "prompt:recordá que " },
+          desc: "Cuéntame algo sobre ti y lo voy a recordar. Cada cosa que confirmás, lo riego y crece.",
+          cta: { label: "Sembrar el primer recuerdo", action: "prompt:recuerda que " },
         },
     // 🔴 KIMI v3: sublayout garden con hero verde/dorado + CTAs Regar/Podar.
     layout: "garden",
@@ -5307,7 +5307,7 @@ function routeMap(b: Of<"route_map">): KoruPresentation {
  */
 function maneuverToIcon(maneuver?: string): string {
   // 🔴 FIX defensivo: steps sin maneuver (ej. fuentes de route_traffic)
-  // crasheaban acá con "Cannot read properties of undefined (reading 'trim')".
+  // crasheaban aquí con "Cannot read properties of undefined (reading 'trim')".
   const m = (maneuver ?? "").trim().toLowerCase();
   if (!m || m === "straight") return "straight";
   if (m.includes("turn-left")) return "turn_left";
@@ -5379,7 +5379,7 @@ function birthdayCalendar(b: Of<"birthday_calendar">): KoruPresentation {
   ];
 
   // 🔴 KIMI v6 — Agenda del día eliminada (era MOCK sin datos del backend).
-  // Si en el futuro el backend manda `b.dayAgenda`, se puede agregar acá.
+  // Si en el futuro el backend manda `b.dayAgenda`, se puede agregar aquí.
 
   return {
     hero: {
@@ -5486,7 +5486,7 @@ function smartChecklist(b: Of<"smart_checklist">): KoruPresentation {
   const done = items.filter((i) => i.checked).length;
   // 🔴 TIER S: id sintético del Checklist durable. Misma convención de slug
   // que createChecklist en KoruProvider: si el usuario crea un checklist desde
-  // CreateScreen con el mismo título, el toggle acá lo encontrará.
+  // CreateScreen con el mismo título, el toggle aquí lo encontrará.
   const checklistId = `checklist_${slug(clean(b.title) || "lista")}`;
   return {
     hero: {
@@ -5639,7 +5639,7 @@ function planFallback(b: Of<"plan">): KoruPresentation {
   if (hasMore) {
     metrics.push({ icon: "more_horiz", label: `+${items.length - 3} más`, color: A.violet.color });
   }
-  // Title: NO usar heroTitleFrom acá porque uppercasea todo ("Tu Día" → "DÍA").
+  // Title: NO usar heroTitleFrom aquí porque uppercasea todo ("Tu Día" → "DÍA").
   // El plan es un caso especial: el título se muestra en title case natural.
   const rawTitle = clean(b.title) ?? "";
   const heroTitle = rawTitle && rawTitle.length > 1
@@ -5647,7 +5647,7 @@ function planFallback(b: Of<"plan">): KoruPresentation {
     : "Tu día";
   // 🔴 TIER S: id sintético del Plan durable. Misma convención de slug que
   // createPlan en KoruProvider: si el usuario crea un plan desde CreateScreen
-  // con el mismo título, el toggle acá lo encontrará.
+  // con el mismo título, el toggle aquí lo encontrará.
   const planId = `plan_${slug(rawTitle || "tu_dia")}`;
 
   // 🔴 Kimi card 15 — step count as artValue ("2/7") + time distribution as
@@ -5945,7 +5945,7 @@ function recipeBlock(b: Of<"recipe">): KoruPresentation {
       icon: "smart_display",
       accent: A.red,
       title: "Video de la receta",
-      subtitle: "MIRÁ CÓMO SE HACE",
+      subtitle: "MIRA CÓMO SE HACE",
       sources: [{ title: "Ver receta en video", url: b.videoUrl, domain: "YouTube" }],
     });
   }

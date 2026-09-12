@@ -185,7 +185,7 @@ export const budgetSet: ToolHandler = {
     const limit = Number(args.limit);
     const currency = String(args.currency ?? "EUR").toUpperCase();
     if (!category || !Number.isFinite(limit)) {
-      return { type: "budget_set", status: "failed", error: "Indicá categoría y límite." };
+      return { type: "budget_set", status: "failed", error: "Indica categoría y límite." };
     }
     return {
       type: "budget_set",
@@ -210,7 +210,7 @@ export const budgetSet: ToolHandler = {
 export const subscriptionReminder: ToolHandler = {
   definition: defineTool(
     "subscription_reminder",
-    "Programa un recordatorio para una suscripción o cobro recurrente (Netflix, Spotify, gimnasio). Úsala cuando el usuario diga 'avisame antes de que cobren Spotify', 'recordame la cuota del gym cada mes'. Crea un commitment recurrente.",
+    "Programa un recordatorio para una suscripción o cobro recurrente (Netflix, Spotify, gimnasio). Úsala cuando el usuario diga 'avísame antes de que cobren Spotify', 'recuérdame la cuota del gym cada mes'. Crea un commitment recurrente.",
     {
       type: "object",
       additionalProperties: false,
@@ -228,7 +228,7 @@ export const subscriptionReminder: ToolHandler = {
   async run(args) {
     const name = String(args.name ?? "").trim();
     const dueText = String(args.dueText ?? "").trim();
-    if (!name || !dueText) return { type: "subscription_reminder", status: "failed", error: "Indicá nombre y fecha." };
+    if (!name || !dueText) return { type: "subscription_reminder", status: "failed", error: "Indica nombre y fecha." };
     const recurrence = String(args.recurrence ?? "monthly") as "daily" | "weekly" | "monthly";
     const amount = args.amount;
     const currency = String(args.currency ?? "EUR").toUpperCase();
@@ -307,14 +307,14 @@ export const inflationData: ToolHandler = {
   policy: policies.readonly("Lee IPC público de FRED."),
   async run(args) {
     const country = String(args.country ?? "").trim();
-    if (!country) return { type: "inflation_data", status: "failed", error: "Indicá país." };
+    if (!country) return { type: "inflation_data", status: "failed", error: "Indica país." };
     // FRED es complejo de usar sin key aquí; devolvemos dato estructurado + nota.
     // Para una implementación real se usaría FRED API con key gratuita.
     return {
       type: "inflation_data",
       status: "not_configured",
       country,
-      note: "Para datos de inflación oficiales, configurala fuente (FRED API key gratuita) en .env. Mientras tanto podés consultar https://fred.stlouisfed.org o el INE/BCRA de tu país.",
+      note: "Para datos de inflación oficiales, configura la fuente (FRED API key gratuita) en .env. Mientras tanto puedes consultar https://fred.stlouisfed.org o el INE/BCRA de tu país.",
       sourceUrl: "https://fred.stlouisfed.org/categories/9",
     };
   },

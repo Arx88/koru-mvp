@@ -114,7 +114,7 @@ export function MichiProfile({
         </div>
         <p className="mw-profile-line">
           <MapPin size={14} />
-          {profile.location || profile.homeCity || "Agregá tu ciudad"}
+          {profile.location || profile.homeCity || "Agrega tu ciudad"}
         </p>
         <div className="mw-passport-stats">
           <span>
@@ -229,7 +229,7 @@ export function MichiProfile({
               <WorldObject kind="profile" />
               <span>
                 <small>Tu avatar de conversación</small>
-                <strong>Elegí entre 15 avatares</strong>
+                <strong>Elige entre 15 avatares</strong>
               </span>
               <ChevronRight size={18} />
             </button>
@@ -254,7 +254,7 @@ export function MichiProfile({
               <Plus size={18} />
             </button>
           </div>
-          <p>Las personas que querés tener presentes.</p>
+          <p>Las personas que quieres tener presentes.</p>
           {people.length ? (
             <ul>
               {people.map((p) => (
@@ -272,7 +272,7 @@ export function MichiProfile({
             </ul>
           ) : (
             <p className="mw-people-empty">
-              Tu gente también tiene un lugar acá.
+              Tu gente también tiene un lugar aquí.
             </p>
           )}
           {personOpen && (

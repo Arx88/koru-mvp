@@ -76,7 +76,7 @@ export function greetingTurn(userName?: string): KoruChatTurn {
   return {
     id: createId("turn"),
     role: "koru",
-    text: `¡Hola${userName ? `, ${userName}` : ""}! ¿Cómo andás? Contame.`,
+    text: `¡Hola${userName ? `, ${userName}` : ""}! ¿Cómo estás? ¿Qué me cuentas?`,
     createdAt: new Date().toISOString(),
     status: "done",
     mascotState: "happy",

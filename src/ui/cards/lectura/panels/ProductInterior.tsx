@@ -48,7 +48,7 @@ export function ProductInterior({ block, onClose, onSave }: LecturaInteriorProps
             <small>Veredicto de compra</small>
             {name}
           </h1>
-          <p>{product?.description ?? "El producto que analicé para vos, con lo que importa de verdad."}</p>
+          <p>{product?.description ?? "El producto que analicé para ti, con lo que importa de verdad."}</p>
         </div>
 
         {product?.image && (

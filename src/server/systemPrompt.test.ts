@@ -6,7 +6,7 @@
  */
 import { describe, it, expect } from "vitest";
 import type { KoruState, RelevantMemory } from "../types";
-import { ensureNameInGreeting } from "./systemPrompt";
+import { ensureNameInGreeting, neutralizeRioplatense } from "./systemPrompt";
 
 // Import dinámico para evitar cargar todo el módulo del backend
 // (que tiene dependencias de Vite).
@@ -47,7 +47,7 @@ describe("systemPrompt snapshot", () => {
     const fs = require("fs");
     const src = fs.readFileSync("./src/server/systemPrompt.ts", "utf8");
     expect(src).toContain("CRÍTICO");
-    expect(src).toContain("NO inventés los datos");
+    expect(src).toContain("NO inventes los datos");
     expect(src).toContain("status \"failed\"");
   });
 
@@ -57,17 +57,71 @@ describe("systemPrompt snapshot", () => {
     // Identidad: amigo primero, servicio después.
     expect(src).toContain("el amigo de");
     expect(src).not.toMatch(/Sos el asistente personal de/);
+    expect(src).not.toMatch(/^.*`Sos Michi/m); // identidad en tuteo neutral
     // Ban explícito de frases de call-center (el marcador #1 de IA).
     expect(src).toContain("NO FRASES DE ASISTENTE");
     expect(src).toContain("¿En qué puedo ayudarte hoy?");
     // El nombre del usuario se usa como lo usa un amigo (primer saludo incluido).
     expect(src).toContain("como lo usa un amigo");
     expect(src).toContain("PRIMER saludo");
-    // Los few-shots de saludo usan el nombre real y voseo correcto.
-    expect(src).toContain(`¡Hola, \${displayName}! ¿Cómo andás?`);
+    // Los few-shots de saludo usan el nombre real y español neutro.
+    expect(src).toContain(`¡Hola, \${displayName}! ¿Cómo estás?`);
     expect(src).toContain("todo bien michi?");
     // Contraejemplos del cliché de asistente.
     expect(src).toContain("frase de asistente — prohibida");
+  });
+
+  it("español NEUTRO, no argentino (feedback: 'no debe sonar ARGENTINO')", () => {
+    const fs = require("fs");
+    const src = fs.readFileSync("./src/server/systemPrompt.ts", "utf8");
+    // Instrucción de idioma: neutro + ban explícito del voseo rioplatense.
+    expect(src).toContain("español NEUTRO");
+    expect(src).toContain("PROHIBIDO el voseo argentino/rioplatense");
+    // La regla de cercanía ya no enseña "che" como alternativa.
+    expect(src).not.toContain('a veces "che"');
+    // El few-shot de saludo alternativo está en neutro, no en voseo.
+    expect(src).toContain("¡Por aquí muy bien! ¿Y tú?");
+    // Contraejemplo explícito del voseo en few-shots.
+    expect(src).toContain("voseo argentino — prohibido");
+  });
+
+  describe("neutralizeRioplatense (red de seguridad determinística)", () => {
+    it("reescribe las formas voseantes más comunes", () => {
+      expect(neutralizeRioplatense("¡Hola, che! ¿Cómo andás? ¿Querés un café?"))
+        .toBe("¡Hola! ¿Cómo estás? ¿Quieres un café?");
+      expect(neutralizeRioplatense("Contame qué tenés para hoy."))
+        .toBe("Cuéntame qué tienes para hoy.");
+      expect(neutralizeRioplatense("Sos el mejor, mirá esto."))
+        .toBe("Eres el mejor, mira esto.");
+    });
+
+    it("corrige 'vos' según su función (preposiciones primero)", () => {
+      expect(neutralizeRioplatense("Esto es para vos."))
+        .toBe("Esto es para ti.");
+      expect(neutralizeRioplatense("¿Y vos qué decís?"))
+        .toBe("¿Y tú qué dices?");
+      expect(neutralizeRioplatense("Vos sos re bueno."))
+        .toBe("Tú eres muy bueno.");
+    });
+
+    it("traduce modismos argentinos", () => {
+      expect(neutralizeRioplatense("Acá re bien, ni ahí con eso."))
+        .toBe("Aquí muy bien, para nada con eso.");
+    });
+
+    it("no toca texto neutro", () => {
+      const neutral = "¡Hola, Arx! ¿Cómo estás? Te dejé el detalle en la tarjeta.";
+      expect(neutralizeRioplatense(neutral)).toBe(neutral);
+      const data = "Madrid está a 27° y despejado, sube a 36° por la tarde.";
+      expect(neutralizeRioplatense(data)).toBe(data);
+    });
+
+    it("respeta mayúsculas iniciales", () => {
+      expect(neutralizeRioplatense("Mirá lo que encontré."))
+        .toBe("Mira lo que encontré.");
+      expect(neutralizeRioplatense("Tenés razón."))
+        .toBe("Tienes razón.");
+    });
   });
 
   describe("ensureNameInGreeting (bug en vivo: 'no me nombra')", () => {

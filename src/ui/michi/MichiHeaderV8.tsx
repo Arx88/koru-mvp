@@ -98,7 +98,7 @@ export function MichiHeaderV8({ onMenuAction, onAvatares }: {
             <Sparkle fill="white" />
           </h1>
           <span>
-            Siempre acá para vos <Sparkle fill="white" size={13} />
+            Siempre aquí para ti <Sparkle fill="white" size={13} />
           </span>
         </div>
         <MichiLevel onClick={() => go("progress")} />

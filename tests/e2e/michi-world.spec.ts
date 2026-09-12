@@ -181,7 +181,7 @@ test("memories can be edited, confirmed, searched, excluded and forgotten", asyn
     page.getByRole("button", { name: /Mi café favorito lleva avena/ }),
   ).toBeVisible();
   await page.getByLabel("Buscar recuerdos").fill("inexistente");
-  await expect(page.getByText("No aparece por acá")).toBeVisible();
+  await expect(page.getByText("No aparece por aquí")).toBeVisible();
   await page.getByLabel("Buscar recuerdos").fill("");
   await page
     .getByRole("button", { name: "Volver al chat", exact: true })

@@ -38,7 +38,7 @@ export function MichiResearchLoading({ phase, kind, deliverable }: {
       <Sparkles className="mr-spark mr-spark-right" size={18} />
     </div>
     <section className="mr-panel" aria-labelledby="mr-title">
-      <h2 id="mr-title">{planning ? "Estoy armando tu plan" : writing ? "Estoy preparando tu texto" : "Estoy investigando"}<span>para vos</span></h2>
+      <h2 id="mr-title">{planning ? "Estoy armando tu plan" : writing ? "Estoy preparando tu texto" : "Estoy investigando"}<span>para ti</span></h2>
       <p className="mr-description">{planning ? "Ordenando tus ideas y preparando pasos claros para ayudarte a avanzar." : writing ? "Dándole forma a tus ideas y cuidando cada detalle de la respuesta." : "Reuniendo información, comparando fuentes y organizando una respuesta clara."}</p>
       <div className="mr-progress-row">
         <div className="mr-progress" role="progressbar" aria-label="Progreso de la tarea" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress} aria-valuetext={progress === undefined ? currentLabel : `${progress}%. ${currentLabel}`}>
@@ -54,7 +54,7 @@ export function MichiResearchLoading({ phase, kind, deliverable }: {
         </li>)}
       </ol>
       <p className={currentLabel === steps[active].label ? "sr-only" : "mr-live"} role="status" aria-live="polite" aria-atomic="true">{currentLabel}</p>
-      <p className="mr-hint"><Clock3 size={16} aria-hidden="true" /><span>{takingLonger ? "Sigo trabajando. Podés seguir escribiendo mientras termino." : "Podés seguir escribiendo mientras trabajo."}</span></p>
+      <p className="mr-hint"><Clock3 size={16} aria-hidden="true" /><span>{takingLonger ? "Sigo trabajando. Puedes seguir escribiendo mientras termino." : "Puedes seguir escribiendo mientras trabajo."}</span></p>
       <div className="mr-clouds mr-clouds-bottom" aria-hidden="true"><i /><i /><i /></div>
     </section>
   </div>;

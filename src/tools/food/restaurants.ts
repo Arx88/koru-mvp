@@ -280,7 +280,7 @@ export const restaurantDeepSearch: ToolHandler = {
   async run(args, ctx) {
     const query = String(args.query ?? "").trim();
     const mood = String(args.mood ?? "").trim();
-    if (!query) return { type: "restaurant_deep_search", status: "failed", error: "Indicá qué y dónde." };
+    if (!query) return { type: "restaurant_deep_search", status: "failed", error: "Indica qué y dónde." };
 
     // 1. Buscar en varias fuentes: reseñas específicas + guías gastronómicas.
     const queries = [
@@ -338,8 +338,8 @@ export const restaurantDeepSearch: ToolHandler = {
     if (ctx.chatFn) {
       try {
         const prompt = [
-          `Sos el sintetizador de reseñas de Michi. Analizá las siguientes fuentes sobre "${query}${mood ? ` (contexto: ${mood})` : ""}".`,
-          `Devolvé SOLO JSON válido con esta forma exacta:`,
+          `Eres el sintetizador de reseñas de Michi. Analiza las siguientes fuentes sobre "${query}${mood ? ` (contexto: ${mood})` : ""}".`,
+          `Devuelve SOLO JSON válido con esta forma exacta:`,
           `{"matches":[{"name":"Nombre del lugar","sourcesMentioning":N,"quote":"frase corta de una fuente que lo respalda"}],"pros":["punto a favor 1","punto a favor 2"],"cons":["a considerar 1","a considerar 2"],"synthesis":"frase de síntesis honesta"}`,
           `Reglas:`,
           `- "matches": hasta 3 lugares más mencionados, ordenados por sourcesMentioning desc.`,
@@ -353,7 +353,7 @@ export const restaurantDeepSearch: ToolHandler = {
           ...sources.map((s, i) => `[${i + 1}] ${s.title} (${s.domain})\n${s.snippet ?? s.content ?? ""}`),
         ].join("\n");
         const result = await ctx.chatFn(
-          [{ role: "system", content: "Sos un asistente que sintetiza reseñas gastronómicas. Devolvés solo JSON." }, { role: "user", content: prompt }],
+          [{ role: "system", content: "Eres un asistente que sintetiza reseñas gastronómicas. Devolvés solo JSON." }, { role: "user", content: prompt }],
           { temperature: 0.2, maxTokens: 800 },
         );
         const jsonText = result.content.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
@@ -471,7 +471,7 @@ export const restaurantDeepSearch: ToolHandler = {
     const note = matches.length === 0
       ? "No pude identificar restaurantes específicos en las fuentes. Revisá los links abajo."
       : status === "partial"
-        ? `Solo crucé ${sourceCount} fuente(s). Para una recomendación confiable probá especificar barrio o tipo de cocina. No invento.`
+        ? `Solo crucé ${sourceCount} fuente(s). Para una recomendación confiable prueba especificar barrio o tipo de cocina. No invento.`
         : `Cruzadas ${sourceCount} fuentes. Cada coincidencia respaldada por cita.`;
 
     // Generar card visual restaurant_synthesis para que el frontend lo renderice.
@@ -536,7 +536,7 @@ export const restaurantReviewAggregate: ToolHandler = {
   async run(args, ctx) {
     const restaurant = String(args.restaurant ?? "").trim();
     const city = String(args.city ?? "").trim();
-    if (!restaurant) return { type: "restaurant_review_aggregate", status: "failed", error: "Indicá el restaurante." };
+    if (!restaurant) return { type: "restaurant_review_aggregate", status: "failed", error: "Indica el restaurante." };
 
     const query = `${restaurant} ${city} reseña opinión pros contras`.trim();
     const sources = await searchAndEnrich(query, 5);
@@ -582,7 +582,7 @@ export const menuExtract: ToolHandler = {
   async run(args) {
     const restaurant = String(args.restaurant ?? "").trim();
     const city = String(args.city ?? "").trim();
-    if (!restaurant) return { type: "menu_extract", status: "failed", error: "Indicá el restaurante." };
+    if (!restaurant) return { type: "menu_extract", status: "failed", error: "Indica el restaurante." };
     const sources = await searchAndEnrich(`${restaurant} ${city} menú carta precios`, 4);
     return {
       type: "menu_extract",

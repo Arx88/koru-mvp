@@ -361,7 +361,7 @@ export function MemoryGraph({ memories, onClose }: MemoryGraphProps) {
           </div>
         </div>
         <p style={{ margin: "8px 4px 0", fontSize: 11, color: "#5a5a72" }}>
-          {embedded.length} memorias · {edgesRef.current.length} conexiones (similitud &gt; {EDGE_THRESHOLD}) · tocá un nodo para ver el texto.
+          {embedded.length} memorias · {edgesRef.current.length} conexiones (similitud &gt; {EDGE_THRESHOLD}) · toca un nodo para ver el texto.
         </p>
       </div>
     </div>,

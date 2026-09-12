@@ -86,7 +86,7 @@ export const newsTopic: ToolHandler = {
   policy: policies.readonly("Lee noticias temáticas de GDELT con fallback a búsqueda web abierta."),
   async run(args) {
     const topic = String(args.topic ?? "").trim();
-    if (!topic) return { type: "news_topic", status: "failed", error: "Indicá el tema." };
+    if (!topic) return { type: "news_topic", status: "failed", error: "Indica el tema." };
     // 1) GDELT con variantes de query (frase citada, sin acentos, sin filtro).
     let articles: GdeltArticle[] = [];
     for (const q of buildGdeltTopicQueries(topic)) {
@@ -128,7 +128,7 @@ export const newsTopic: ToolHandler = {
       articles: [],
       source: "GDELT",
       __forceHonestReply: true,
-      __honestReplyText: `No encontré noticias recientes sobre ${topic}. Probá con un tema más amplio o volvé a preguntar en un rato.`,
+      __honestReplyText: `No encontré noticias recientes sobre ${topic}. Prueba con un tema más amplio o volvé a preguntar en un rato.`,
     };
   },
 };
@@ -329,7 +329,7 @@ export const trendingGithub: ToolHandler = {
 export const rssSubscribe: ToolHandler = {
   definition: defineTool(
     "rss_subscribe",
-    "Suscribe a un feed RSS como fuente para tu radar personal. Úsala cuando el usuario diga 'seguí el feed de The Verge', 'sumá El Chiringuito', 'agregá este RSS'.",
+    "Suscribe a un feed RSS como fuente para tu radar personal. Úsala cuando el usuario diga 'seguí el feed de The Verge', 'sumá El Chiringuito', 'agrega este RSS'.",
     {
       type: "object",
       additionalProperties: false,
@@ -344,7 +344,7 @@ export const rssSubscribe: ToolHandler = {
   async run(args) {
     const name = String(args.name ?? "").trim();
     const url = String(args.url ?? "").trim();
-    if (!name || !url) return { type: "rss_subscribe", status: "failed", error: "Indicá nombre y URL del feed." };
+    if (!name || !url) return { type: "rss_subscribe", status: "failed", error: "Indica nombre y URL del feed." };
     return {
       type: "rss_subscribe",
       status: "ok",
@@ -390,7 +390,7 @@ export const rssDigest: ToolHandler = {
       .filter((f): f is { name: string; url: string } => !!f);
 
     if (feeds.length === 0) {
-      return { type: "rss_digest", status: "ok", hours, items: [], note: "No tenés feeds suscritos. Usá rss_subscribe para agregar." };
+      return { type: "rss_digest", status: "ok", hours, items: [], note: "No tienes feeds suscritos. Usa rss_subscribe para agregar." };
     }
 
     const since = Date.now() - hours * 60 * 60 * 1000;
@@ -416,7 +416,7 @@ export const rssDigest: ToolHandler = {
 export const newsRadarTopic: ToolHandler = {
   definition: defineTool(
     "news_radar_topic",
-    "Configura un radar: monitorea un tema en fuentes múltiples y Michi te avisará cuando aparezca novedad. Úsala cuando el usuario diga 'avisame cuando salga algo sobre el nuevo Zelda', 'radar de IA generativa', 'vigilar tema X'.",
+    "Configura un radar: monitorea un tema en fuentes múltiples y Michi te avisará cuando aparezca novedad. Úsala cuando el usuario diga 'avísame cuando salga algo sobre el nuevo Zelda', 'radar de IA generativa', 'vigilar tema X'.",
     {
       type: "object",
       additionalProperties: false,
@@ -429,7 +429,7 @@ export const newsRadarTopic: ToolHandler = {
   policy: policies.localWrite("Configura radar como memory/nudge."),
   async run(args) {
     const topic = String(args.topic ?? "").trim();
-    if (!topic) return { type: "news_radar_topic", status: "failed", error: "Indicá el tema." };
+    if (!topic) return { type: "news_radar_topic", status: "failed", error: "Indica el tema." };
     return {
       type: "news_radar_topic",
       status: "ok",
@@ -465,7 +465,7 @@ export const worldSignal: ToolHandler = {
   policy: policies.readonly("Analiza señales globales de GDELT GKG."),
   async run(args) {
     const topic = String(args.topic ?? "").trim();
-    if (!topic) return { type: "world_signal", status: "failed", error: "Indicá el tema." };
+    if (!topic) return { type: "world_signal", status: "failed", error: "Indica el tema." };
     const cacheKey = `world:${topic.toLowerCase()}`;
     const articles = await cached<GdeltArticle[]>(cacheKey, ttls.news, () => queryGdelt(`${topic} (tono:positivo OR tono:negativo) sourcelang:spa`, 8));
     if (articles.length === 0) {

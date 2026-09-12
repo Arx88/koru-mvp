@@ -49,7 +49,7 @@ const EMPATHY_MAP: Record<string, string> = {
 const CLOSERS: Array<{ match: (p: { directness: number }) => boolean; text: string }> = [
   { match: (p) => p.directness >= 8, text: "Dime el siguiente dato y avanzo." },
   { match: (p) => p.directness >= 6, text: "Podemos seguir desde ahi." },
-  { match: () => true, text: "Estoy aca para seguir." },
+  { match: () => true, text: "Estoy aquí para seguir." },
 ];
 
 /**
@@ -88,7 +88,7 @@ export function renderKoruResponse(params: {
       meeting_brief: "Puedo dejar la reunion ordenada en puntos accionables.",
       day_plan: "Te lo ordene en pasos concretos.",
       structured_note: "Guardado.",
-      money_summary: "Te dejo el numero y el criterio, sin vueltas.",
+      money_summary: "Te dejo el numero y el criterio, sin rodeos.",
       decision_support: "Te doy mi voto con el supuesto visible.",
       file_bundle: "Te prepare el archivo para revisar.",
       reminder: "Lo dejo visible para que no se pierda.",

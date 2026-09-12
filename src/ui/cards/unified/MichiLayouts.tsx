@@ -1106,7 +1106,7 @@ export function MichiShop(props: MichiProps) {
         {(b.note || total > 0) && (
           <div className="mc-sh-save">
             <MIcon name="check_circle" size={12} />
-            {b.note ?? `Ya tenés ${checkedCount} de ${total} listos`}{b.dueText ? ` · ${b.dueText}` : ""}
+            {b.note ?? `Ya tienes ${checkedCount} de ${total} listos`}{b.dueText ? ` · ${b.dueText}` : ""}
           </div>
         )}
         {isTappable && (

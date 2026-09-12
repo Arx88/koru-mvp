@@ -61,7 +61,7 @@ export function CompPanel() {
                 <div className="vt-row"><span className="vt-k">Vos en llamadas</span><span>Claras</span><span className="best">Mejor mic</span><span>Buenas</span></div>
                 <div className="vt-row"><span className="vt-k">Con tu Android</span><span className="best">Full + LDAC</span><span>Full</span><span>Limitado¹</span></div>
                 <div className="vt-row"><span className="vt-k">Precio</span><span>€189</span><span>€199</span><span className="best">€149</span></div>
-                <div className="vt-row final"><span className="vt-k">Veredicto</span><span className="best">GANA</span><span>Si vivís al teléfono</span><span>Si sos todo Apple</span></div>
+                <div className="vt-row final"><span className="vt-k">Veredicto</span><span className="best">GANA</span><span>Si vivís al teléfono</span><span>Si eres todo Apple</span></div>
               </div>
               <div className="vs-note rv">
                 <Ic i={Brain} className="ic" />

@@ -28,6 +28,7 @@ import type {
 } from "../../domain/types";
 import { VALID_MASCOT_STATES } from "../../domain/types";
 import { normalizeStickerId } from "../../domain/stickers";
+import { neutralizeRioplatense } from "../systemPrompt";
 import { logger } from "../logger";
 import { enrichCaptureBlocks } from "./enrichCaptureBlocks";
 import {
@@ -700,7 +701,7 @@ export function normalizeFinalPayload(
     // no hubo tools (fallo real de composición).
     const honestNoData = toolExecutions.length > 0
       ? `Busqué, pero no conseguí datos útiles para eso. ¿Probamos con otras palabras?`
-      : "Tuve un problema para armar la respuesta. ¿Me lo repetís de otra forma para ayudarte bien?";
+      : "Tuve un problema para armar la respuesta. ¿Me lo repites de otra forma para ayudarte bien?";
     finalReply = blockReply || honestNoData;
   } else {
     finalReply = cleanedReply;
@@ -762,7 +763,11 @@ export function normalizeFinalPayload(
     }
   }
   const result: KoruBackendTurnResponse = {
-    reply: finalReply,
+    // 🔴 "no debe sonar ARGENTINO" (2026-09-12): red de seguridad determinística
+    // — el prompt ya pide español neutro, pero si el LLM deja escapar voseo
+    // rioplatense ("querés", "sos", "contame", "che"...), se reescribe aquí.
+    // Este es el chokepoint único: TODOS los replies pasan por acá.
+    reply: neutralizeRioplatense(finalReply),
     uiBlocks,
     suggestedActions: normalizeSuggestedActions(raw.suggestedActions),
     understanding: normalizeUnderstanding(raw.understanding, input),

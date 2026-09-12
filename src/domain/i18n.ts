@@ -134,7 +134,7 @@ export function buildLanguageInstruction(lang: KoruLanguage): string {
     return `LANGUAGE: Reply to the user in English. The user prefers English. Use natural, warm, friendly English (American). You may still understand Spanish input — just reply in English.`;
   }
   // Spanish (default) — keep current behavior
-  return `LANGUAGE: Respondé al usuario en español (rioplatense, voseo natural).`;
+  return `LANGUAGE: Responde al usuario en español neutro (latinoamericano estándar, tuteo). Prohibido el voseo rioplatense.`;
 }
 
 /**

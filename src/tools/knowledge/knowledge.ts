@@ -28,7 +28,7 @@ export const memorySave: ToolHandler = {
   policy: policies.localWrite("Guarda memoria duradera."),
   async run(args) {
     const text = String(args.text ?? "").trim();
-    if (!text) return { type: "memory_save", status: "failed", error: "Indicá qué recordar." };
+    if (!text) return { type: "memory_save", status: "failed", error: "Indica qué recordar." };
     return {
       type: "memory_save",
       status: "ok",
@@ -62,7 +62,7 @@ export const memorySearch: ToolHandler = {
   policy: policies.readonly("Busca en memorias del usuario."),
   async run(args, ctx: ToolRunContext) {
     const query = String(args.query ?? "").trim();
-    if (!query) return { type: "memory_search", status: "failed", error: "Indicá qué buscar." };
+    if (!query) return { type: "memory_search", status: "failed", error: "Indica qué buscar." };
     const memories = (ctx.state.memories ?? []).filter((m) => m.status === "confirmed");
 
     if (memories.length === 0) {
@@ -114,7 +114,7 @@ export const memorySearch: ToolHandler = {
       query,
       mode: "lexical",
       matches: matches.map((s) => ({ text: s.memory.text, kind: s.memory.kind })),
-      note: "Búsqueda léxica. Para semántica, activá Ollama.",
+      note: "Búsqueda léxica. Para semántica, activa Ollama.",
     };
   },
 };
@@ -123,7 +123,7 @@ export const memorySearch: ToolHandler = {
 export const memoryForget: ToolHandler = {
   definition: defineTool(
     "memory_forget",
-    "Elimina una memoria guardada. Úsala cuando el usuario diga 'olvidá lo de la alergia', 'borrá que vivía en Madrid', 'ya no quiero que recuerdes X'.",
+    "Elimina una memoria guardada. Úsala cuando el usuario diga 'olvida lo de la alergia', 'borra que vivía en Madrid', 'ya no quiero que recuerdes X'.",
     {
       type: "object",
       additionalProperties: false,
@@ -136,7 +136,7 @@ export const memoryForget: ToolHandler = {
   policy: policies.localWrite("Marca memoria como rejected."),
   async run(args, ctx: ToolRunContext) {
     const q = String(args.query ?? "").trim().toLowerCase();
-    if (!q) return { type: "memory_forget", status: "failed", error: "Indicá qué olvidar." };
+    if (!q) return { type: "memory_forget", status: "failed", error: "Indica qué olvidar." };
     const match = (ctx.state.memories ?? []).find((m) => m.text.toLowerCase().includes(q));
     if (!match) return { type: "memory_forget", status: "ok", found: false, query: args.query, note: "No encontré esa memoria." };
     return { type: "memory_forget", status: "ok", found: true, text: match.text, id: match.id, note: "El store la marcará como rejected." };
@@ -162,7 +162,7 @@ export const memoryEdit: ToolHandler = {
   async run(args, ctx: ToolRunContext) {
     const q = String(args.query ?? "").trim().toLowerCase();
     const newText = String(args.newText ?? "").trim();
-    if (!q || !newText) return { type: "memory_edit", status: "failed", error: "Indicá qué editar y el nuevo texto." };
+    if (!q || !newText) return { type: "memory_edit", status: "failed", error: "Indica qué editar y el nuevo texto." };
     const match = (ctx.state.memories ?? []).find((m) => m.text.toLowerCase().includes(q));
     if (!match) return { type: "memory_edit", status: "ok", found: false, query: args.query, note: "No encontré esa memoria." };
     return { type: "memory_edit", status: "ok", found: true, oldText: match.text, newText, id: match.id };
@@ -219,7 +219,7 @@ export const wikipediaLookup: ToolHandler = {
   async run(args) {
     const query = String(args.query ?? "").trim();
     const lang = String(args.lang ?? "es").trim();
-    if (!query) return { type: "wikipedia_lookup", status: "failed", error: "Indicá el tema." };
+    if (!query) return { type: "wikipedia_lookup", status: "failed", error: "Indica el tema." };
 
     // 🔴 FIX: hacer search primero para encontrar el título correcto.
     // Antes se iba directo a /page/summary/{query} y fallaba con "AOE2", "btc",
@@ -281,7 +281,7 @@ export const dictionaryDefine: ToolHandler = {
   policy: policies.readonly("Lee Free Dictionary API."),
   async run(args) {
     const word = String(args.word ?? "").trim();
-    if (!word) return { type: "dictionary_define", status: "failed", error: "Indicá la palabra." };
+    if (!word) return { type: "dictionary_define", status: "failed", error: "Indica la palabra." };
     const cacheKey = `dict:${word.toLowerCase()}`;
     const entries = await cached<DictEntry[]>(cacheKey, ttls.reference, async () => {
       const r = await fetchJson<DictEntry[]>(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`, { timeoutMs: 9_000 });
@@ -320,7 +320,7 @@ export const slangTranslate: ToolHandler = {
   async run(args, ctx) {
     const term = String(args.term ?? "").trim();
     const region = String(args.region ?? "").trim();
-    if (!term) return { type: "slang_translate", status: "failed", error: "Indicá el modismo." };
+    if (!term) return { type: "slang_translate", status: "failed", error: "Indica el modismo." };
     if (!ctx.chatFn) return { type: "slang_translate", status: "not_configured", note: "Necesito el LLM local (Ollama) para explicar modismos." };
     try {
       const r = await ctx.chatFn(
@@ -438,7 +438,7 @@ export const mathCalc: ToolHandler = {
   policy: policies.readonly("Cálculo local."),
   async run(args) {
     const expr = String(args.expression ?? "").trim();
-    if (!expr) return { type: "math_calc", status: "failed", error: "Indicá la expresión." };
+    if (!expr) return { type: "math_calc", status: "failed", error: "Indica la expresión." };
     // Normalizamos: % de/of → *0.01*, sqrt → Math.sqrt, × → *, ÷ → /
     let safe = expr
       .replace(/[×x]/gi, "*")

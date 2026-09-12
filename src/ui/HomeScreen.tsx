@@ -205,7 +205,7 @@ export function HomeScreen({
       (h) => !habitLogsToday.some((l) => l.habitId === h.id && l.date === today),
     );
     // 🔴 TIER S: streak por hábito via computeStreak reducer (función pura).
-    // Lo precomputamos acá para que el render sólo haga un lookup por id.
+    // Lo precomputamos aquí para que el render sólo haga un lookup por id.
     // Incluimos los pausados también: la racha se conserva aunque el hábito
     // esté pausado (no se resetea).
     const streakByHabitId: Record<string, number> = {};
@@ -353,7 +353,7 @@ export function HomeScreen({
             <span className="koru-detail-mini-title">Michi</span>
             {/* 🔴 FIX: el saludo "Buenos días, {name}" estaba DUPLICADO en el
                 mismo viewport (header + hero, a ~100px). El saludo vive solo en
-                el hero; acá un subtítulo descriptivo. */}
+                el hero; aquí un subtítulo descriptivo. */}
             <span className="koru-detail-mini-sub">Tu día de un vistazo</span>
           </div>
           <button
@@ -391,7 +391,7 @@ export function HomeScreen({
                 </h2>
                 <p className="koru-plan-hero-desc">
                   {(() => {
-                    // 🔴 FIX: antes mostraba "Tenés 0 eventos y 3 deadlines" con
+                    // 🔴 FIX: antes mostraba "Tienes 0 eventos y 3 deadlines" con
                     // ceros literales y "deadline" sin traducir. Ahora arma la
                     // frase solo con las categorías con datos, en español.
                     const parts: string[] = [];
@@ -402,9 +402,9 @@ export function HomeScreen({
                       parts.push(`${deadlinesToday.length} vencimiento${deadlinesToday.length === 1 ? "" : "s"}`);
                     }
                     if (parts.length === 0) {
-                      return <>Tu día está despejado. Contale a Michi qué querés hacer hoy.</>;
+                      return <>Tu día está despejado. Cuéntale a Michi qué quieres hacer hoy.</>;
                     }
-                    return <>Tenés <b>{parts.join(" y ")}</b> hoy.</>;
+                    return <>Tienes <b>{parts.join(" y ")}</b> hoy.</>;
                   })()}
                 </p>
               </div>
@@ -1226,9 +1226,9 @@ function ClimaWidget({
       const ok = await onRefresh();
       // 🔴 Honestidad: si el fetch falló, aviso en vez de dejar el dato viejo
       // mostrado como fresco (que era la queja del refresh placebo).
-      if (!ok) setError("No pude actualizar el clima. Probá de nuevo.");
+      if (!ok) setError("No pude actualizar el clima. Prueba de nuevo.");
     } catch {
-      setError("No pude actualizar el clima. Probá de nuevo.");
+      setError("No pude actualizar el clima. Prueba de nuevo.");
     } finally {
       setBusy(false);
     }
@@ -1261,7 +1261,7 @@ function ClimaWidget({
             {city ? `Clima de ${city}` : "Sin ciudad configurada"}
           </p>
           <p style={{ fontSize: 12, color: "#6b5f8c", marginTop: 2, marginBottom: 0 }}>
-            {city ? "Tocá traer y lo busco ahora mismo." : "Configurá tu ciudad en Ajustes para ver el clima del día."}
+            {city ? "Toca traer y lo busco ahora mismo." : "Configura tu ciudad en Ajustes para ver el clima del día."}
           </p>
           {error && (
             <p style={{ fontSize: 12, color: "#b3261e", marginTop: 4, marginBottom: 0, fontWeight: 600 }} role="alert">

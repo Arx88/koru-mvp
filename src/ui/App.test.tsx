@@ -59,12 +59,12 @@ vi.mock("../domain/backendAgentClient", () => ({
     if (lower.includes("estoy quemado")) {
       return {
         ...base,
-        reply: "Entiendo, te veo agotado. ¿Querés que prepare algo para ayudarte?",
+        reply: "Entiendo, te veo agotado. ¿Quieres que prepare algo para ayudarte?",
         mascotState: "thinking" as const,
         uiBlocks: [],
         suggestedActions: [{
           id: "sugg_1",
-          label: "¿Querés que prepare alarmas para las tomas?",
+          label: "¿Quieres que prepare alarmas para las tomas?",
           kind: "approve" as const,
           requiresApproval: true,
           payload: { enhancementType: "health_followup" },
@@ -190,7 +190,7 @@ describe("Koru MVP UI", () => {
     // The mock returns a reply about preparing something to help — wait for that text
     await waitFor(() => {
       const chat = screen.getByRole("region", { name: /conversaci[oó]n con (koru|michi)/i });
-      expect(chat).toHaveTextContent(/querés que prepare|estoy aca para seguir/i);
+      expect(chat).toHaveTextContent(/quieres que prepare|estoy aqui para seguir/i);
     }, { timeout: 5000 });
   }, 20000);
 });

@@ -214,12 +214,12 @@ export function CryptoInterior({ block, onClose, onSave }: LecturaInteriorProps<
           <div className="pf-note rv">
             <Ic i={Lightbulb} className="ic" />
             <p>
-              Tenés {block.alerts.length} {block.alerts.length === 1 ? "alerta activa" : "alertas activas"}:{Object.values(
+              Tienes {block.alerts.length} {block.alerts.length === 1 ? "alerta activa" : "alertas activas"}:{Object.values(
                 block.alerts,
               )
                 .map((a) => `${a.symbol} ${a.direction === "above" ? "cruce al alza en" : "baja a"} ${a.target}`)
                 .join(" · ")}
-              . Michi vigila, vos no tenés que acordarte.
+              . Michi vigila, vos no tienes que acordarte.
             </p>
           </div>
         ) : null}

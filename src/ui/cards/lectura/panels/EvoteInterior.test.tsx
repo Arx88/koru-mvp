@@ -29,7 +29,7 @@ describe("EvoteInterior", () => {
 
   it("sin preselección: el primario arranca deshabilitado", () => {
     render(<EvoteInterior block={evoteBlock} onClose={vi.fn()} />);
-    const primary = screen.getByRole("button", { name: /elegí una opción/i });
+    const primary = screen.getByRole("button", { name: /elige una opción/i });
     expect(primary).toBeDisabled();
   });
 
@@ -81,8 +81,8 @@ describe("EvoteInterior", () => {
       />,
     );
     expect(screen.getByText(/¿dulce o salado\?/i)).toBeInTheDocument();
-    expect(screen.getByText(/elegí una opción y arma el análisis/i)).toBeInTheDocument();
+    expect(screen.getByText(/elige una opción y arma el análisis/i)).toBeInTheDocument();
     expect(document.body.querySelector(".pr-card")).toBeNull();
-    expect(screen.getByRole("button", { name: /elegí una opción/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /elige una opción/i })).toBeDisabled();
   });
 });

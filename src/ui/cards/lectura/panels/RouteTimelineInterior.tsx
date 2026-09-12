@@ -135,7 +135,7 @@ export function RouteTimelineInterior({ block, onClose, onSave }: LecturaInterio
           <div className="rt-warn rv">
             <Ic i={TriangleAlert} className="ic" />
             <p>
-              Esta ruta tiene <b>{items.length - 1} transbordos</b> — si preferís menos cambios, pedime la alternativa directa.
+              Esta ruta tiene <b>{items.length - 1} transbordos</b> — si preferís menos cambios, pídeme la alternativa directa.
             </p>
           </div>
         )}

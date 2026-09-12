@@ -62,7 +62,7 @@ export const cryptoPrice: ToolHandler = {
   async run(args) {
     const raw = String(args.coin ?? "").trim().toLowerCase();
     const vs = String(args.vsCurrency ?? "usd").toLowerCase().trim();
-    if (!raw) return { type: "crypto_price", status: "failed", error: "Indicá la cripto." };
+    if (!raw) return { type: "crypto_price", status: "failed", error: "Indica la cripto." };
 
     const ticker = raw in TICKER_MAP ? raw : Object.keys(TICKER_MAP).find(k => TICKER_MAP[k] === raw) ?? raw;
     const coinId = TICKER_MAP[ticker] ?? TICKER_MAP[raw] ?? raw;

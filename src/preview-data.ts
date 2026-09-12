@@ -14,7 +14,7 @@ import type { UiBlock, AssistantPlanItem } from "./domain/types";
 //     ui/cards/lectura/fixtures.ts (mismos datos que la galería /lectura.html
 //     y los tests de interiores). CERO duplicación con fixtures.
 //  2. Los 5 "momentos hero" del showcase (informe, clima, plan, clásico,
-//     tenis) viven acá porque son variantes más ricas (lineups, secciones,
+//     tenis) viven aquí porque son variantes más ricas (lineups, secciones,
 //     fuentes) que el fixture mínimo.
 //  3. El catálogo de categorías se DERIVA del script (deriveCatalog) para que
 //     los contadores nunca se desincronicen del contenido.
@@ -376,7 +376,7 @@ const planDia: UiBlock = {
 const clarifyingFinde: UiBlock = {
   type: "clarifying_question",
   title: "Antes de armarte el plan",
-  question: "¿Querés algo tranqui en casa o una escapada corta?",
+  question: "¿Quieres algo tranqui en casa o una escapada corta?",
   expectedSlot: "tipo de plan",
   options: ["Tranqui en casa", "Escapada de un día", "Finde completo afuera"],
 };
@@ -530,7 +530,7 @@ const generacionWallpaper: UiBlock = {
   actionLabel: "Ver variantes",
   actionIcon: "style",
   tips: [
-    "Pedí paleta exacta: “usá #b8a9e8 y #f6c6a0” para clavar el tono",
+    "Pedí paleta exacta: “usa #b8a9e8 y #f6c6a0” para clavar el tono",
     "Sumá “sin texto” para evitar tipografías raras",
     "Pedí series: “dame 3 con distinto peso de grano”",
   ],
@@ -564,7 +564,7 @@ const decisionAlquiler: UiBlock = {
     "Chamberí te suma 25 min de viaje por día",
     "En marzo terminan dos obras ruidosas en tu cuadra",
   ],
-  recommendation: "Renegociar: pedí congelar el precio 6 meses a cambio de firma anual — con tu historial de pagos lo tenés fácil.",
+  recommendation: "Renegociar: pedí congelar el precio 6 meses a cambio de firma anual — con tu historial de pagos lo tienes fácil.",
 };
 
 // ── CUERPO ────────────────────────────────────────────────────────────────
@@ -641,7 +641,7 @@ const urgentePaquete: UiBlock = {
   iconColor: "#b3261e",
   iconBg: "#fdeceb",
   headline: "El repartidor está en el portón",
-  description: "DHL intenta entregar tu paquete desde hace 4 minutos. Si no respondés, lo deja en el kiosco de la esquina y vuelve mañana.",
+  description: "DHL intenta entregar tu paquete desde hace 4 minutos. Si no respondes, lo deja en el kiosco de la esquina y vuelve mañana.",
 };
 
 // ── VIAJES ──────────────────────────────────────────────────────────────
@@ -667,13 +667,13 @@ const vueloMadrid: UiBlock = {
 // datos reales del dominio.
 export const CHAT_SCRIPT: ChatEntry[] = [
   // ── ARRANQUE ──
-  { kind: "text", tag: "dia", text: "¡Hola, Arx! ¿Cómo va todo? Acá listo para lo que necesités." },
+  { kind: "text", tag: "dia", text: "¡Hola, Arx! ¿Cómo va todo? Aquí listo para lo que necesites." },
   { kind: "user", tag: "dia", text: "organizame algo para el finde" },
   { kind: "card", tag: "dia", block: clarifyingFinde },
 
   // ── MAÑANA ──
   { kind: "user", tag: "dia", text: "buen día koru" },
-  { kind: "card", tag: "dia", intro: "Buen día, Arx. Acá va tu resumen:", block: briefBlock },
+  { kind: "card", tag: "dia", intro: "Buen día, Arx. Aquí va tu resumen:", block: briefBlock },
   { kind: "user", tag: "dia", text: "qué día es hoy?" },
   {
     kind: "card",
@@ -696,18 +696,18 @@ export const CHAT_SCRIPT: ChatEntry[] = [
   { kind: "card", tag: "dia", intro: "Para hoy te armaría esto:", block: outfitBlock },
   { kind: "user", tag: "dia", text: "planificame el día" },
   { kind: "card", tag: "dia", intro: "Te armé el día con tus energías en mente:", block: planDia },
-  { kind: "user", tag: "dia", text: "recordame llamar al dentista a las 16" },
+  { kind: "user", tag: "dia", text: "recuérdame llamar al dentista a las 16" },
   { kind: "card", tag: "dia", intro: "Anotado:", block: reminderDentista },
   { kind: "user", tag: "dia", text: "anotame: reunión con Marcos el jueves 10:30" },
   { kind: "card", tag: "dia", intro: "Lo dejé tal cual me lo dictaste:", block: reviewDocumentBlock },
   { kind: "user", tag: "dia", text: "armame la lista del super" },
   { kind: "card", tag: "dia", intro: "Con lo que falta de la semana:", block: superSemanal },
-  { kind: "user", tag: "dia", text: "despertame mañana 6:30" },
+  { kind: "user", tag: "dia", text: "despiértame mañana 6:30" },
   { kind: "card", tag: "dia", intro: "Alarma lista:", block: alarmBlock },
   { kind: "user", tag: "dia", text: "me tomé la vitamina hoy?" },
   { kind: "card", tag: "dia", intro: "Todavía no — te la debo:", block: healthBlock },
   { kind: "user", tag: "dia", text: "cómo vengo?" },
-  { kind: "card", tag: "dia", intro: "Así venís hoy:", block: bienestarHoy },
+  { kind: "card", tag: "dia", intro: "Así vienes hoy:", block: bienestarHoy },
   { kind: "text", tag: "dia", text: "Antes de que salgas, algo que te conviene saber:" },
   { kind: "card", tag: "dia", block: senalFrente },
   { kind: "user", tag: "dia", text: "cómo viene mi semana?" },
@@ -723,21 +723,21 @@ export const CHAT_SCRIPT: ChatEntry[] = [
   { kind: "user", tag: "informes", text: "haceme un informe de energía solar en españa" },
   { kind: "card", tag: "informes", intro: "Listo, te lo armé con fuentes oficiales:", block: informeSolar },
   { kind: "user", tag: "informes", text: "pasame las fuentes del informe" },
-  { kind: "card", tag: "informes", intro: "Acá está lo que usé:", block: researchSourcesBlock },
+  { kind: "card", tag: "informes", intro: "Aquí está lo que usé:", block: researchSourcesBlock },
   { kind: "user", tag: "informes", text: "tirame datos duros del precio de la luz" },
   { kind: "card", tag: "informes", intro: "Verificados contra OMIE y REE:", block: datosLuz },
-  { kind: "user", tag: "informes", text: "buscá cafés de especialidad en madrid" },
+  { kind: "user", tag: "informes", text: "busca cafés de especialidad en madrid" },
   { kind: "card", tag: "informes", intro: "Esto encontré:", block: busquedaCafe },
   { kind: "user", tag: "informes", text: "generame un concepto de wallpaper" },
-  { kind: "card", tag: "informes", intro: "Mirá qué te preparé:", block: generacionWallpaper },
+  { kind: "card", tag: "informes", intro: "Mira qué te preparé:", block: generacionWallpaper },
 
   // ── MEMORIA ──
   { kind: "user", tag: "memoria", text: "qué me guardaste hoy?" },
   { kind: "card", tag: "memoria", intro: "Tres cosas nuevas:", block: memoryBlock },
   { kind: "user", tag: "memoria", text: "guardame la carbonara en mi agenda" },
   { kind: "card", tag: "memoria", block: savedRecordBlock },
-  { kind: "user", tag: "memoria", text: "qué tenés en la bóveda?" },
-  { kind: "card", tag: "memoria", intro: "Esto guardé de vos:", block: vaultBlock },
+  { kind: "user", tag: "memoria", text: "qué tienes en la bóveda?" },
+  { kind: "card", tag: "memoria", intro: "Esto guardé de ti:", block: vaultBlock },
   { kind: "user", tag: "memoria", text: "pasame los archivos del informe" },
   { kind: "card", tag: "memoria", block: resourceBundleBlock },
   { kind: "card", tag: "memoria", intro: "¡Arx, esto no espera:", block: urgentePaquete },

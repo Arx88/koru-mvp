@@ -12,7 +12,7 @@ import { cached, ttls } from "../shared/cache";
 export const medicationReminder: ToolHandler = {
   definition: defineTool(
     "medication_reminder",
-    "Organiza un esquema de medicación y programa recordatorios horarios. Úsala cuando el usuario diga 'recordame el ibuprofeno cada 8 horas por 5 días', 'necesito tomar amoxicilina cada 12 horas', 'avisame la pastilla de la presión'.",
+    "Organiza un esquema de medicación y programa recordatorios horarios. Úsala cuando el usuario diga 'recuérdame el ibuprofeno cada 8 horas por 5 días', 'necesito tomar amoxicilina cada 12 horas', 'avísame la pastilla de la presión'.",
     {
       type: "object",
       additionalProperties: false,
@@ -29,7 +29,7 @@ export const medicationReminder: ToolHandler = {
   async run(args) {
     const name = String(args.name ?? "").trim();
     const frequency = String(args.frequency ?? "").trim();
-    if (!name || !frequency) return { type: "medication_reminder", status: "failed", error: "Indicá medicamento y frecuencia." };
+    if (!name || !frequency) return { type: "medication_reminder", status: "failed", error: "Indica medicamento y frecuencia." };
     const record: Omit<LifeRecord, "id" | "createdAt" | "sourceEntryId"> = {
       domain: "health",
       kind: "medication",
@@ -67,7 +67,7 @@ export const sleepTrack: ToolHandler = {
   policy: policies.localWrite("Registra sueño."),
   async run(args, ctx: ToolRunContext) {
     const hours = Number(args.hours);
-    if (!Number.isFinite(hours) || hours < 0 || hours > 24) return { type: "sleep_track", status: "failed", error: "Indicá horas válidas (0-24)." };
+    if (!Number.isFinite(hours) || hours < 0 || hours > 24) return { type: "sleep_track", status: "failed", error: "Indica horas válidas (0-24)." };
     const record: Omit<LifeRecord, "id" | "createdAt" | "sourceEntryId"> = {
       domain: "health",
       kind: "sleep",
@@ -96,7 +96,7 @@ export const sleepTrack: ToolHandler = {
 export const hydrationRemind: ToolHandler = {
   definition: defineTool(
     "hydration_remind",
-    "Programa recordatorios para tomar agua según tu rutina. Úsala cuando el usuario diga 'avisame cada 2 horas que tome agua', 'recordame hidratación', 'necesito beber más agua'.",
+    "Programa recordatorios para tomar agua según tu rutina. Úsala cuando el usuario diga 'avísame cada 2 horas que tome agua', 'recuérdame hidratación', 'necesito beber más agua'.",
     {
       type: "object",
       additionalProperties: false,
@@ -149,7 +149,7 @@ export const moodTrack: ToolHandler = {
   policy: policies.localWrite("Registra ánimo."),
   async run(args) {
     const mood = String(args.mood ?? "").trim();
-    if (!mood) return { type: "mood_track", status: "failed", error: "Indicá tu ánimo." };
+    if (!mood) return { type: "mood_track", status: "failed", error: "Indica tu ánimo." };
     const record: Omit<LifeRecord, "id" | "createdAt" | "sourceEntryId"> = {
       domain: "health",
       kind: "medical_info",
@@ -184,7 +184,7 @@ export const habitStreak: ToolHandler = {
   policy: policies.readonly("Cuenta racha de hábito."),
   async run(args, ctx: ToolRunContext) {
     const habit = String(args.habit ?? "").trim().toLowerCase();
-    if (!habit) return { type: "habit_streak", status: "failed", error: "Indicá el hábito." };
+    if (!habit) return { type: "habit_streak", status: "failed", error: "Indica el hábito." };
     const today = new Date();
     const days: string[] = [];
     // Buscar records/entries que mencionen el hábito en últimos 30 días.
@@ -219,7 +219,7 @@ export const airQualityAdvice: ToolHandler = {
       properties: {
         lat: { type: "number" },
         lng: { type: "number" },
-        city: { type: "string", description: "Nombre de ciudad (si no tenés coords)." },
+        city: { type: "string", description: "Nombre de ciudad (si no tienes coords)." },
       },
       required: [],
     },
@@ -229,7 +229,7 @@ export const airQualityAdvice: ToolHandler = {
     const lat = Number(args.lat);
     const lng = Number(args.lng);
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      return { type: "air_quality_advice", status: "failed", error: "Indicá lat y lng (o usá weather_full que geolocaliza)." };
+      return { type: "air_quality_advice", status: "failed", error: "Indica lat y lng (o usa weather_full que geolocaliza)." };
     }
     const cacheKey = `aq:${lat.toFixed(2)}:${lng.toFixed(2)}`;
     const data = await cached<{ current?: { pm2_5?: number; pm10?: number; european_aqi?: number; us_aqi?: number } }>(cacheKey, ttls.weatherNow, async () => {
@@ -248,9 +248,9 @@ export const airQualityAdvice: ToolHandler = {
     let advice: string;
     if (pm25 <= 12) { level = "Buena"; advice = "Aire limpio: ideal para actividad al aire libre."; }
     else if (pm25 <= 35) { level = "Moderada"; advice = "Aceptable; sensibles pueden reducir esfuerzo prolongado."; }
-    else if (pm25 <= 55) { level = "Poco saludable (sensibles)"; advice = "Conviene entrenar indoor si tenés asma o afecciones."; }
+    else if (pm25 <= 55) { level = "Poco saludable (sensibles)"; advice = "Conviene entrenar indoor si tienes asma o afecciones."; }
     else if (pm25 <= 150) { level = "Poco saludable"; advice = "Evitá ejercicio intenso al aire libre."; }
-    else { level = "Mala"; advice = "Quedate indoor, cerrá ventanas, usa purificador si tenés."; }
+    else { level = "Mala"; advice = "Quédate en interior, cierra ventanas, usa purificador si tienes."; }
     return {
       type: "air_quality_advice",
       status: "ok",

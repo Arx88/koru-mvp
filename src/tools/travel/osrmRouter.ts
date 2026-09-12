@@ -67,7 +67,7 @@ function instructionForStep(step: OsrmRouteStep): string {
     case "depart":
       return `Salí${street}`;
     case "arrive":
-      return `Llegás a destino${street}`;
+      return `Llegas a destino${street}`;
     case "turn":
       switch (m.modifier) {
         case "left": return `Girá a la izquierda${street}`;

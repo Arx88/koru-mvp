@@ -160,7 +160,7 @@ function ChatFeed({
         {browseMode && entries.length === 0 && (
           <KoruTurn>
             <p className="koru-message-text">
-              Nada por acá con ese filtro. Probá con «clima», «boca», «dólar» o tocá «Todo».
+              Nada por aquí con ese filtro. Prueba con «clima», «boca», «dólar» o toca «Todo».
             </p>
           </KoruTurn>
         )}
@@ -312,8 +312,8 @@ function WelcomeTurn() {
       <p className="koru-message-text">
         ¡Hola Arx! Bienvenido al showcase del sistema completo: una conversación
         con los <strong>55 tipos de card</strong> que Michi sabe renderizar.
-        Deslizá para verlas llegar, filtrá por categoría arriba o buscá
-        («clima», «boca», «dólar»…) y tocá cualquier card para abrir su interior.
+        Desliza para verlas llegar, filtra por categoría arriba o busca
+        («clima», «boca», «dólar»…) y toca cualquier card para abrir su interior.
       </p>
       <div className="pv-welcome-actions">
         <a className="pv-welcome-btn" href="/lectura.html">

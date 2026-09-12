@@ -111,7 +111,7 @@ export function RouteMapInterior({ block, onClose, onSave }: LecturaInteriorProp
           <div className="mp-pin">
             <span className="pchip">
               <Ic i={MapPin} className="ic" style={{ color: "var(--violet-ink)" }} />
-              {block.from ?? "Vos acá"}
+              {block.from ?? "Vos aquí"}
             </span>
             <span className="pchip">
               <Ic i={Flag} className="ic" style={{ color: "var(--mint-ink)" }} />
@@ -200,7 +200,7 @@ export function RouteMapInterior({ block, onClose, onSave }: LecturaInteriorProp
             <Ic i={BellRing} className="ic" />
             <p>
               Alternativas reales del planificador:{" "}
-              {block.alternatives.map((a) => `${a.mode} (${a.time})`).join(" · ")}. Si algo cambia en el camino, el plan B ya está anotado acá.
+              {block.alternatives.map((a) => `${a.mode} (${a.time})`).join(" · ")}. Si algo cambia en el camino, el plan B ya está anotado aquí.
             </p>
           </div>
         ) : null}

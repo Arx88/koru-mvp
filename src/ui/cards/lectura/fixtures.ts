@@ -3,7 +3,7 @@
  *
  * Datos representativos del dominio real (contrato de src/domain/types.ts)
  * para tests y para la galería de verificación visual. Cada card integrada
- * agrega su fixture acá.
+ * agrega su fixture aquí.
  */
 import type { UiBlock } from "../../../domain/types";
 
@@ -63,7 +63,7 @@ export const planBlock: Extract<UiBlock, { type: "plan" }> = {
     {
       time: "09:00",
       title: "Trabajo profundo",
-      detail: "2 h sin notificaciones · después me contás",
+      detail: "2 h sin notificaciones · después me cuentas",
       icon: "book",
       mode: "focus",
       durationMinutes: 120,
@@ -80,7 +80,7 @@ export const planBlock: Extract<UiBlock, { type: "plan" }> = {
     {
       time: "18:30",
       title: "Gym · piernas",
-      detail: "1 h · llevalo liviano, venís del almuerzo largo",
+      detail: "1 h · llevalo liviano, vienes del almuerzo largo",
       icon: "move",
       mode: "focus",
       durationMinutes: 60,
@@ -137,7 +137,7 @@ export const newsUrgentBlock: Extract<UiBlock, { type: "news_urgent" }> = {
   type: "news_urgent",
   headline: "La UE avanza con la batería de 2030: 30% más barata que la china",
   summary:
-    "El nuevo estándar promete recargar al 80% en 12 minutos. Impacta directo en el auto eléctrico que venís mirando desde junio.",
+    "El nuevo estándar promete recargar al 80% en 12 minutos. Impacta directo en el auto eléctrico que vienes mirando desde junio.",
   severity: "important",
   category: "Tech",
   lastUpdated: "16:20",
@@ -209,7 +209,7 @@ export const recipeBlock: Extract<UiBlock, { type: "recipe" }> = {
   steps: [
     { step: 1, title: "Dorado del guanciale", text: "Tiras gruesas, fuego medio, sin aceite: su grasa es el aceite. 6–7 min.", durationMinutes: 7 },
     { step: 2, title: "La crema falsa", text: "Yemas + huevo + pecorino + pimienta, batidos hasta pasta densa. Fuera del fuego.", durationMinutes: 3 },
-    { step: 3, title: "El matrimonio", text: "Pasta al dente, mezclá con el guanciale APAGADO y agregá la crema + 3 cucharas de agua.", durationMinutes: 2 },
+    { step: 3, title: "El matrimonio", text: "Pasta al dente, mezclá con el guanciale APAGADO y agrega la crema + 3 cucharas de agua.", durationMinutes: 2 },
   ],
   tips: ["Si el huevo se te corta, fue temperatura: entibiá el bowl con el vapor de la pasta."],
   nutrition: { kcal: 386, protein: 16, carbs: 48, fat: 14 },
@@ -256,7 +256,7 @@ export const alarmBlock: Extract<UiBlock, { type: "alarm" }> = {
   title: "Gym de la mañana",
   time: "07:00",
   repeat: "lunes a viernes",
-  note: "Te agendé el gym 30 min después de la alarma — así no tenés que pensarlo a las 7.",
+  note: "Te agendé el gym 30 min después de la alarma — así no tienes que pensarlo a las 7.",
 };
 
 export const checklistBlock: Extract<UiBlock, { type: "smart_checklist" }> = {
@@ -705,7 +705,7 @@ export const researchSourcesBlock: Extract<UiBlock, { type: "research_sources" }
       imageUrl: "/stitch/outfits/travel-madrid.jpg",
     },
   ],
-  followUpQuestion: "¿Querés que te avise si baja de precio alguno?",
+  followUpQuestion: "¿Quieres que te avise si baja de precio alguno?",
 };
 
 export const reviewDocumentBlock: Extract<UiBlock, { type: "review_document" }> = {

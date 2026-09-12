@@ -10,7 +10,7 @@ import type { LifeRecord, Commitment } from "../../domain/types";
 export const noteWrite: ToolHandler = {
   definition: defineTool(
     "note_write",
-    "Crea una nota de texto rápida. Úsala cuando el usuario diga 'anota: comprar pan', 'nota: idea de regalo para Lu', 'poné en notas que debo llamar al médico'.",
+    "Crea una nota de texto rápida. Úsala cuando el usuario diga 'anota: comprar pan', 'nota: idea de regalo para Lu', 'pon en notas que debo llamar al médico'.",
     {
       type: "object",
       additionalProperties: false,
@@ -24,7 +24,7 @@ export const noteWrite: ToolHandler = {
   policy: policies.localWrite("Guarda nota."),
   async run(args) {
     const text = String(args.text ?? "").trim();
-    if (!text) return { type: "note_write", status: "failed", error: "Indicá el texto." };
+    if (!text) return { type: "note_write", status: "failed", error: "Indica el texto." };
     const record: Omit<LifeRecord, "id" | "createdAt" | "sourceEntryId"> = {
       domain: "capture",
       kind: "idea",
@@ -72,7 +72,7 @@ export const noteShow: ToolHandler = {
 export const noteSearch: ToolHandler = {
   definition: defineTool(
     "note_search",
-    "Busca en tus notas por texto o palabra clave. Úsala cuando el usuario diga 'qué anoté sobre vacaciones?', 'buscá en mis notas X', 'tengo algo sobre contabilidad?'.",
+    "Busca en tus notas por texto o palabra clave. Úsala cuando el usuario diga 'qué anoté sobre vacaciones?', 'busca en mis notas X', 'tengo algo sobre contabilidad?'.",
     {
       type: "object",
       additionalProperties: false,
@@ -85,7 +85,7 @@ export const noteSearch: ToolHandler = {
   policy: policies.readonly("Busca en notas."),
   async run(args, ctx: ToolRunContext) {
     const q = String(args.query ?? "").trim().toLowerCase();
-    if (!q) return { type: "note_search", status: "failed", error: "Indicá qué buscar." };
+    if (!q) return { type: "note_search", status: "failed", error: "Indica qué buscar." };
     const matches = (ctx.state.records ?? [])
       .filter((r) => (r.kind === "idea" || r.kind === "recommendation") && `${r.title} ${r.value} ${r.notes ?? ""}`.toLowerCase().includes(q))
       .slice(-15)
@@ -113,7 +113,7 @@ export const projectCreate: ToolHandler = {
   policy: policies.localWrite("Crea proyecto como memory."),
   async run(args) {
     const name = String(args.name ?? "").trim();
-    if (!name) return { type: "project_create", status: "failed", error: "Indicá el nombre." };
+    if (!name) return { type: "project_create", status: "failed", error: "Indica el nombre." };
     return {
       type: "project_create",
       status: "ok",
@@ -136,7 +136,7 @@ export const projectCreate: ToolHandler = {
 export const projectAdd: ToolHandler = {
   definition: defineTool(
     "project_add",
-    "Agrega una nota, recurso o tarea a un proyecto existente. Úsala cuando el usuario diga 'sumá esto al proyecto Viaje a Japón', 'agregá este link al proyecto Renovar'.",
+    "Agrega una nota, recurso o tarea a un proyecto existente. Úsala cuando el usuario diga 'sumá esto al proyecto Viaje a Japón', 'agrega este link al proyecto Renovar'.",
     {
       type: "object",
       additionalProperties: false,
@@ -153,7 +153,7 @@ export const projectAdd: ToolHandler = {
   async run(args) {
     const project = String(args.project ?? "").trim();
     const title = String(args.title ?? "").trim();
-    if (!project || !title) return { type: "project_add", status: "failed", error: "Indicá proyecto y título." };
+    if (!project || !title) return { type: "project_add", status: "failed", error: "Indica proyecto y título." };
     const record: Omit<LifeRecord, "id" | "createdAt" | "sourceEntryId"> = {
       domain: "capture",
       kind: "idea",
@@ -189,7 +189,7 @@ export const projectShow: ToolHandler = {
   policy: policies.readonly("Lee proyecto guardado."),
   async run(args, ctx: ToolRunContext) {
     const project = String(args.project ?? "").trim();
-    if (!project) return { type: "project_show", status: "failed", error: "Indicá el proyecto." };
+    if (!project) return { type: "project_show", status: "failed", error: "Indica el proyecto." };
     const items = (ctx.state.records ?? [])
       .filter((r) => r.collection === project)
       .slice(-20)
@@ -203,7 +203,7 @@ export const projectShow: ToolHandler = {
 export const taskCreate: ToolHandler = {
   definition: defineTool(
     "task_create",
-    "Crea una tarea con fecha y prioridad. Úsala cuando el usuario diga 'tarea: llamar al dentista mañana', 'para el viernes: enviar CV', 'agregá a pendientes comprar regalo'.",
+    "Crea una tarea con fecha y prioridad. Úsala cuando el usuario diga 'tarea: llamar al dentista mañana', 'para el viernes: enviar CV', 'agrega a pendientes comprar regalo'.",
     {
       type: "object",
       additionalProperties: false,
@@ -219,7 +219,7 @@ export const taskCreate: ToolHandler = {
   async run(args) {
     const title = String(args.title ?? "").trim();
     const dueText = String(args.dueText ?? "").trim();
-    if (!title) return { type: "task_create", status: "failed", error: "Indicá la tarea." };
+    if (!title) return { type: "task_create", status: "failed", error: "Indica la tarea." };
     const commitment: Omit<Commitment, "id" | "createdAt" | "sourceEntryId"> = {
       title,
       dueHint: dueText || "sin fecha",
@@ -285,7 +285,7 @@ export const taskDone: ToolHandler = {
   policy: policies.localWrite("Marca tarea como hecha."),
   async run(args, ctx: ToolRunContext) {
     const q = String(args.query ?? "").trim().toLowerCase();
-    if (!q) return { type: "task_done", status: "failed", error: "Indicá qué tarea completar." };
+    if (!q) return { type: "task_done", status: "failed", error: "Indica qué tarea completar." };
     const match = (ctx.state.commitments ?? []).find((c) => c.status === "open" && c.title.toLowerCase().includes(q));
     if (!match) {
       return { type: "task_done", status: "ok", found: false, query: args.query, note: "No encontré esa tarea abierta." };
@@ -315,7 +315,7 @@ export const calendarAdd: ToolHandler = {
   async run(args) {
     const title = String(args.title ?? "").trim();
     const date = String(args.date ?? "").trim();
-    if (!title || !date) return { type: "calendar_add", status: "failed", error: "Indicá título y fecha." };
+    if (!title || !date) return { type: "calendar_add", status: "failed", error: "Indica título y fecha." };
     return {
       type: "calendar_add",
       status: "ok",
@@ -424,7 +424,7 @@ export const countdown: ToolHandler = {
   policy: policies.readonly("Cálculo de fechas local."),
   async run(args) {
     const dateStr = String(args.date ?? "").trim();
-    if (!dateStr) return { type: "countdown", status: "failed", error: "Indicá la fecha." };
+    if (!dateStr) return { type: "countdown", status: "failed", error: "Indica la fecha." };
     const date = new Date(dateStr);
     if (Number.isNaN(date.getTime())) {
       // 🔴 FIX: mapear festividades comunes a fechas concretas
@@ -464,7 +464,7 @@ export const countdown: ToolHandler = {
         }
       }
     }
-    if (Number.isNaN(date.getTime())) return { type: "countdown", status: "no_data", date: dateStr, error: `No pude interpretar "${dateStr}" como fecha. Probá con "25 de diciembre" o "2025-12-25".` };
+    if (Number.isNaN(date.getTime())) return { type: "countdown", status: "no_data", date: dateStr, error: `No pude interpretar "${dateStr}" como fecha. Prueba con "25 de diciembre" o "2025-12-25".` };
     const now = new Date();
     const diffMs = date.getTime() - now.getTime();
     const days = Math.floor(Math.abs(diffMs) / (24 * 60 * 60 * 1000));
@@ -487,14 +487,14 @@ export const countdown: ToolHandler = {
 export const reminderSet: ToolHandler = {
   definition: defineTool(
     "reminder_set",
-    "Programa un recordatorio. USÁ ESTA TOOL (no save_memory) cuando el usuario diga 'recordame', 'activa un recordatorio', 'avisame', 'no me olvides', 'recuérdame'. Si el usuario NO especifica qué recordar, usá el tema del último mensaje del asistente como title. Si el usuario NO especifica cuándo, dejá dueText='próximamente' y dueAt vacío. El usuario puede decir la hora de cualquier forma: 'en 60 segundos', 'mañana a las 9', 'el 20 del mes que viene'. Vos calculás el timestamp ISO 8601 si podés; si no podés, dejá dueAt vacío y el sistema igual crea el recordatorio.",
+    "Programa un recordatorio. USA ESTA TOOL (no save_memory) cuando el usuario diga 'recuérdame', 'activa un recordatorio', 'avísame', 'no me olvides', 'recuérdame'. Si el usuario NO especifica qué recordar, usa el tema del último mensaje del asistente como title. Si el usuario NO especifica cuándo, deja dueText='próximamente' y dueAt vacío. El usuario puede decir la hora de cualquier forma: 'en 60 segundos', 'mañana a las 9', 'el 20 del mes que viene'. Vos calculás el timestamp ISO 8601 si puedes; si no puedes, deja dueAt vacío y el sistema igual crea el recordatorio.",
     {
       type: "object",
       additionalProperties: false,
       properties: {
-        title: { type: "string", description: "Qué recordar (ej: 'Llamar a mi tía', 'Partido de Boca', 'Pagar el alquiler'). Si el usuario no especificó qué, usá el tema del contexto conversacional." },
+        title: { type: "string", description: "Qué recordar (ej: 'Llamar a mi tía', 'Partido de Boca', 'Pagar el alquiler'). Si el usuario no especificó qué, usa el tema del contexto conversacional." },
         dueText: { type: "string", description: "Texto legible del cuándo (ej: 'en 60 segundos', 'mañana a las 9', 'próximamente')." },
-        dueAt: { type: "string", description: "Timestamp ISO 8601 (ej: '2026-07-15T18:00:00.000Z'). OPCIONAL — si no podés calcularlo, dejá vacío. El recordatorio se crea igual con dueText." },
+        dueAt: { type: "string", description: "Timestamp ISO 8601 (ej: '2026-07-15T18:00:00.000Z'). OPCIONAL — si no puedes calcularlo, deja vacío. El recordatorio se crea igual con dueText." },
         note: { type: "string" },
       },
       required: ["title", "dueText"],
@@ -506,7 +506,7 @@ export const reminderSet: ToolHandler = {
     const title = String(args.title ?? args.__userInput ?? "").trim();
     const dueText = String(args.dueText ?? "próximamente").trim();
     const dueAt = String(args.dueAt ?? "").trim();
-    if (!title) return { type: "reminder_set", status: "failed", error: "Indicá qué recordar." };
+    if (!title) return { type: "reminder_set", status: "failed", error: "Indica qué recordar." };
     // Validar dueAt si está presente
     let dueDate: Date | null = null;
     if (dueAt) {
@@ -532,14 +532,14 @@ export const reminderSet: ToolHandler = {
 export const alarmSet: ToolHandler = {
   definition: defineTool(
     "alarm_set",
-    "Crea una alarma, despertador o temporizador. Úsala cuando el usuario pida 'activá un temporizador de X minutos', 'poné una alarma para las 7', 'despertame a las 6', 'cronómetro de 5 minutos'. Si el usuario pide un temporizador de X minutos, calculá la hora futura = ahora + X minutos. Si no podés calcular el timestamp exacto, pasá time='en X minutos' y dejá dueAt vacío.",
+    "Crea una alarma, despertador o temporizador. Úsala cuando el usuario pida 'activa un temporizador de X minutos', 'pon una alarma para las 7', 'despiértame a las 6', 'cronómetro de 5 minutos'. Si el usuario pide un temporizador de X minutos, calculá la hora futura = ahora + X minutos. Si no puedes calcular el timestamp exacto, pasa time='en X minutos' y deja dueAt vacío.",
     {
       type: "object",
       additionalProperties: false,
       properties: {
         title: { type: "string" },
         time: { type: "string", description: "Hora legible (ej: '7am', '16:30', '6 de la mañana')." },
-        dueAt: { type: "string", description: "Timestamp ISO 8601. OPCIONAL — si no podés calcularlo, dejá vacío." },
+        dueAt: { type: "string", description: "Timestamp ISO 8601. OPCIONAL — si no puedes calcularlo, deja vacío." },
         repeat: { type: "string", description: "Repetición (ej: 'diario', 'semanal', 'lunes a viernes')." },
         note: { type: "string" },
       },
@@ -551,7 +551,7 @@ export const alarmSet: ToolHandler = {
     const title = String(args.title ?? "").trim();
     const time = String(args.time ?? "").trim();
     const dueAt = String(args.dueAt ?? "").trim();
-    if (!title || !time) return { type: "alarm_set", status: "failed", error: "Indicá título y hora." };
+    if (!title || !time) return { type: "alarm_set", status: "failed", error: "Indica título y hora." };
     const block = { type: "alarm" as const, title, time, repeat: args.repeat ? String(args.repeat) : undefined, note: args.note ? String(args.note) : undefined };
     const commitment: Omit<Commitment, "id" | "createdAt" | "sourceEntryId"> = {
       title, dueHint: time, status: "open",

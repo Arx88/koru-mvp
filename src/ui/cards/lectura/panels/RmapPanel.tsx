@@ -25,7 +25,7 @@ export function RmapPanel() {
               </div>
               <div className="mp-map rv">
                 <div className="mp-pin">
-                  <span className="pchip"><Ic i={MapPin} className="ic" style={{ "color": "var(--violet-ink)" }} />Vos acá</span>
+                  <span className="pchip"><Ic i={MapPin} className="ic" style={{ "color": "var(--violet-ink)" }} />Tú aquí</span>
                   <span className="pchip"><Ic i={Flag} className="ic" style={{ "color": "var(--mint-ink)" }} />Retiro · 6,2 km</span>
                 </div>
                 <svg className="map" viewBox="0 0 390 300">

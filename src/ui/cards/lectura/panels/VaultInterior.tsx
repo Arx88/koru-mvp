@@ -1,5 +1,5 @@
 /**
- * VaultInterior — card "Todo lo que Michi sabe de vos" (#p-vault), bind real
+ * VaultInterior — card "Todo lo que Michi sabe de ti" (#p-vault), bind real
  * del block `saved_record` (records[] múltiples — la colección/bóveda).
  *
  * Los records[] REALES (LifeRecord) arman la grilla: kind como categoría,
@@ -102,12 +102,12 @@ export function VaultInterior({ block, onClose, onSave }: LecturaInteriorProps<V
             <small>{title}</small>
             Todo lo que Michi
             <br />
-            sabe de vos
+            sabe de ti
           </h1>
           <p>
             {records.length
-              ? "Cada cosa que me contás queda acá adentro. Privada, buscable y siempre a mano."
-              : "Por ahora está vacía: cada cosa que me cuentes va quedando acá."}
+              ? "Cada cosa que me cuentas queda aquí adentro. Privada, buscable y siempre a mano."
+              : "Por ahora está vacía: cada cosa que me cuentes va quedando aquí."}
           </p>
         </div>
 
@@ -134,7 +134,7 @@ export function VaultInterior({ block, onClose, onSave }: LecturaInteriorProps<V
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="buscá por título, persona, nota…"
+              placeholder="busca por título, persona, nota…"
               aria-label="Buscar en la bóveda"
               style={{ flex: 1, border: "none", outline: "none", background: "transparent", font: "600 11.5px var(--sans)", color: "var(--ink)" }}
             />
@@ -165,7 +165,7 @@ export function VaultInterior({ block, onClose, onSave }: LecturaInteriorProps<V
             })}
             {filtered.length === 0 && query && (
               <p style={{ gridColumn: "1/-1", font: "600 11px var(--sans)", color: "var(--ink-dim)", padding: "8px 2px" }}>
-                Nada con “{query}” por ahora — probá con otra palabra.
+                Nada con “{query}” por ahora — prueba con otra palabra.
               </p>
             )}
           </div>

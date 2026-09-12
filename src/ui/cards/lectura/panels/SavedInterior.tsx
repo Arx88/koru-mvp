@@ -119,8 +119,8 @@ export function SavedInterior({ block, onClose, onSave }: LecturaInteriorProps<S
           <div className="tkk-note rv">
             <Ic i={BellRing} className="ic" />
             <p>
-              Te lo recuerdo para <b>{record.dueHint}</b> con tiempo de sobra. Si querés cambiar
-              algo, decime y lo rehago — <b>el código no cambia</b>.
+              Te lo recuerdo para <b>{record.dueHint}</b> con tiempo de sobra. Si quieres cambiar
+              algo, dime y lo rehago — <b>el código no cambia</b>.
             </p>
           </div>
         )}

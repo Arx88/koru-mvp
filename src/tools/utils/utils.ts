@@ -25,7 +25,7 @@ export const urlShorten: ToolHandler = {
   policy: policies.readonly("Acorta URL via is.gd."),
   async run(args) {
     const url = String(args.url ?? "").trim();
-    if (!url || !/^https?:\/\//i.test(url)) return { type: "url_shorten", status: "failed", error: "Indicá una URL válida (con http/https)." };
+    if (!url || !/^https?:\/\//i.test(url)) return { type: "url_shorten", status: "failed", error: "Indica una URL válida (con http/https)." };
     const cacheKey = `short:${url}`;
     const short = await cached<string>(cacheKey, ttls.reference, async () => {
       const r = await fetchJson<{ shorturl?: string }>(`https://is.gd/create.php?format=json&url=${encodeURIComponent(url)}`, { timeoutMs: 15_000 });

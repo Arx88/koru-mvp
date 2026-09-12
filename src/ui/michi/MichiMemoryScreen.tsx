@@ -73,7 +73,7 @@ export function MemoryScreen({ onTalk }: { onTalk?: () => void }) {
         <div>
           <Heart className="mh-ticket-icon" fill="#ff4e91" />
           <strong>{memories.length - pending}</strong>
-          <span>vos decidís</span>
+          <span>tú decides</span>
         </div>
       </div>
       <section className="mw-pocket-content" aria-label="Tus recuerdos">
@@ -87,7 +87,7 @@ export function MemoryScreen({ onTalk }: { onTalk?: () => void }) {
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Buscá un recuerdo…"
+                placeholder="Busca un recuerdo…"
                 aria-label="Buscar recuerdos"
               />
             </label>
@@ -147,13 +147,13 @@ export function MemoryScreen({ onTalk }: { onTalk?: () => void }) {
           <div className="mw-pocket-empty">
             <h3>
               {memories.length
-                ? "No aparece por acá"
+                ? "No aparece por aquí"
                 : "Nuestro primer recuerdo\nnos está esperando"}
             </h3>
             <p>
               {memories.length
-                ? "Probá con otras palabras o cambiá el filtro."
-                : "Tu café favorito, alguien que querés, un sueño pendiente… Contáselo a Michi y elegí qué conservar."}
+                ? "Prueba con otras palabras o cambia el filtro."
+                : "Tu café favorito, alguien que quieres, un sueño pendiente… Cuéntaselo a Michi y elige qué conservar."}
             </p>
             {!memories.length && onTalk && (
               <button className="mw-primary" type="button" onClick={onTalk}>
@@ -164,7 +164,7 @@ export function MemoryScreen({ onTalk }: { onTalk?: () => void }) {
           </div>
         )}
         <p className="mw-memory-promise">
-          <LockKeyhole size={14} /> Podés editar u olvidar cualquier recuerdo.
+          <LockKeyhole size={14} /> Puedes editar u olvidar cualquier recuerdo.
         </p>
         <p role="status" className="mw-status">
           {notice}
@@ -244,7 +244,7 @@ function MemoryDetail({
         <span className="mw-eyebrow">{CATEGORIES[memory.category]}</span>
         <h2 id="memory-detail-title">Lo que Michi recuerda</h2>
         <p className="mw-dialog-intro">
-          Así lo recuerda Michi. Podés cambiarlo.
+          Así lo recuerda Michi. Puedes cambiarlo.
         </p>
         <label className="mw-field">
           Tu recuerdo
@@ -288,7 +288,7 @@ function MemoryDetail({
         )}
         {forget ? (
           <div className="mw-forget-confirm">
-            <p>¿Querés que Michi olvide este recuerdo?</p>
+            <p>¿Quieres que Michi olvide este recuerdo?</p>
             <button type="button" onClick={onForget}>
               Sí, olvidar
             </button>

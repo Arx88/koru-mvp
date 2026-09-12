@@ -31,7 +31,7 @@ test("Create saves a note that can be found in Collections", async ({ page }) =>
   await editor.getByPlaceholder("Ej: Idea para el proyecto").fill("Prueba visual MICHI");
   await editor.getByPlaceholder("Escribí lo que quieras recordar...").fill("Una nota guardada desde la nueva interfaz.");
   await editor.getByRole("button", { name: /Guardar/ }).click();
-  await expect(editor.getByRole("heading", { name: "¿Qué querés crear?" })).toBeVisible();
+  await expect(editor.getByRole("heading", { name: "¿Qué quieres crear?" })).toBeVisible();
   await editor.getByRole("button", { name: "Cerrar", exact: true }).click();
   await expect(editor).not.toBeVisible();
   await expect(page.getByRole("region", { name: "Hoy — Michi" })).toBeVisible();

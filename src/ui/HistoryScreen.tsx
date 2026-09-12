@@ -53,7 +53,7 @@ export function HistoryScreen() {
           <WorldObject kind="history" />
           <p className="text-[15px] font-medium text-bark">Todavía no hay actividad</p>
           <p className="max-w-[26ch] text-sm leading-snug text-earth">
-            Tus charlas, los recuerdos que confirmes y las acciones completadas van a dejar su huellita acá.
+            Tus charlas, los recuerdos que confirmes y las acciones completadas van a dejar su huellita aquí.
           </p>
         </div>
       ) : (

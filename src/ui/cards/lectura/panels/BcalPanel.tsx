@@ -41,7 +41,7 @@ export function BcalPanel() {
               </div>
               <div className="cal2-buy rv">
                 <Ic i={Gift} className="ic" />
-                <p>Para Juan ya tenés el vinilo elegido (€38). Para Sofi y Papá te propongo ideas <b>el 20</b> — con margen para envíos normales.</p>
+                <p>Para Juan ya tienes el vinilo elegido (€38). Para Sofi y Papá te propongo ideas <b>el 20</b> — con margen para envíos normales.</p>
               </div>
               
                       <div className="actions">

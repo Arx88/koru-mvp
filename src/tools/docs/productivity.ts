@@ -29,7 +29,7 @@ export const summarizeUrl: ToolHandler = {
   policy: policies.readonly("Lee y resume URL pública."),
   async run(args, ctx) {
     const url = String(args.url ?? "").trim();
-    if (!url) return { type: "summarize_url", status: "failed", error: "Indicá la URL." };
+    if (!url) return { type: "summarize_url", status: "failed", error: "Indica la URL." };
     if (!ctx.chatFn) {
       return { type: "summarize_url", status: "not_configured", url, note: "Para resumir necesito el LLM local (Ollama). Configuralo en Settings." };
     }
@@ -63,7 +63,7 @@ export const summarizeText: ToolHandler = {
     try {
       const r = await ctx.chatFn(
         [
-          { role: "system", content: "Sos un asistente que resume en español. Devolvé solo 5 bullets concisos del texto, sin intro ni outro." },
+          { role: "system", content: "Eres un asistente que resume en español. Devuelve solo 5 bullets concisos del texto, sin intro ni outro." },
           { role: "user", content: `${args.focus ? `Foco: ${args.focus}\n\n` : ""}${text.slice(0, 8000)}` },
         ],
         { temperature: 0.2, maxTokens: 500 },
@@ -80,7 +80,7 @@ export const summarizeText: ToolHandler = {
 export const translate: ToolHandler = {
   definition: defineTool(
     "translate",
-    "Traduce texto entre idiomas. Úsala cuando el usuario diga 'traducí esto al japonés', 'cómo se dice gracias en árabe', 'pasá este texto a inglés'.",
+    "Traduce texto entre idiomas. Úsala cuando el usuario diga 'traduce esto al japonés', 'cómo se dice gracias en árabe', 'pasa este texto a inglés'.",
     {
       type: "object",
       additionalProperties: false,
@@ -96,12 +96,12 @@ export const translate: ToolHandler = {
   async run(args, ctx) {
     const text = String(args.text ?? "").trim();
     const to = String(args.to ?? "").trim();
-    if (!text || !to) return { type: "translate", status: "failed", error: "Indicá texto e idioma destino." };
+    if (!text || !to) return { type: "translate", status: "failed", error: "Indica texto e idioma destino." };
     if (!ctx.chatFn) return { type: "translate", status: "not_configured", note: "Necesito el LLM local (Ollama) para traducir." };
     try {
       const r = await ctx.chatFn(
         [
-          { role: "system", content: `Sos traductor experto. Traducí al ${to}${args.from ? ` desde el ${args.from}` : ""}. Devolvé SOLO la traducción, sin explicaciones ni comillas.` },
+          { role: "system", content: `Eres traductor experto. Traduce al ${to}${args.from ? ` desde el ${args.from}` : ""}. Devuelve SOLO la traducción, sin explicaciones ni comillas.` },
           { role: "user", content: text },
         ],
         { temperature: 0.2, maxTokens: 1000 },
@@ -132,7 +132,7 @@ export const lyricsFind: ToolHandler = {
   async run(args) {
     const artist = String(args.artist ?? "").trim();
     const title = String(args.title ?? "").trim();
-    if (!artist || !title) return { type: "lyrics_find", status: "failed", error: "Indicá artista y título." };
+    if (!artist || !title) return { type: "lyrics_find", status: "failed", error: "Indica artista y título." };
     const cacheKey = `lyrics:${artist.toLowerCase()}:${title.toLowerCase()}`;
     const lyrics = await cached<string>(cacheKey, ttls.reference, async () => {
       const r = await fetchJson<{ lyrics?: string }>(
@@ -143,7 +143,7 @@ export const lyricsFind: ToolHandler = {
       return r.data!.lyrics?.trim() ?? "";
     });
     if (!lyrics) {
-      return { type: "lyrics_find", status: "ok", artist, title, lyrics: "", note: "No encontré esa letra. Probá con otro nombre." };
+      return { type: "lyrics_find", status: "ok", artist, title, lyrics: "", note: "No encontré esa letra. Prueba con otro nombre." };
     }
     return { type: "lyrics_find", status: "ok", artist, title, lyrics };
   },
@@ -166,7 +166,7 @@ export const deepResearch: ToolHandler = {
   policy: policies.readonly("Investigación web multi-fuente."),
   async run(args, ctx) {
     const query = String(args.query ?? "").trim();
-    if (!query) return { type: "deep_research", status: "failed", error: "Indicá el tema." };
+    if (!query) return { type: "deep_research", status: "failed", error: "Indica el tema." };
     const queries = [query, `${query} análisis pros contras`, `${query} fuentes confiables 2025`];
     const all = await Promise.all(queries.map((q) => searchAndEnrich(q, 4)));
     const sources = usableSources(all.flat()).slice(0, 8);
@@ -189,7 +189,7 @@ export const deepResearch: ToolHandler = {
 export const extractActionItems: ToolHandler = {
   definition: defineTool(
     "extract_action_items",
-    "Extrae tareas/puntos de acción de notas, minuta de reunión o email. Úsala cuando el usuario diga 'qué tareas surgen de esta minuta?', 'extraé los action items de este email', 'puntos pendientes de esta nota'.",
+    "Extrae tareas/puntos de acción de notas, minuta de reunión o email. Úsala cuando el usuario diga 'qué tareas surgen de esta minuta?', 'extrae los action items de este email', 'puntos pendientes de esta nota'.",
     {
       type: "object",
       additionalProperties: false,
@@ -207,7 +207,7 @@ export const extractActionItems: ToolHandler = {
     try {
       const r = await ctx.chatFn(
         [
-          { role: "system", content: "Extraé las tareas/puntos de acción del texto. Devolvé solo la lista, una tarea por línea, en infinitivo. Sin intro." },
+          { role: "system", content: "Extrae las tareas/puntos de acción del texto. Devuelve solo la lista, una tarea por línea, en infinitivo. Sin intro." },
           { role: "user", content: text.slice(0, 6000) },
         ],
         { temperature: 0.1, maxTokens: 400 },
@@ -240,12 +240,12 @@ export const emailDraft: ToolHandler = {
   policy: policies.readonly("Genera borrador de email."),
   async run(args, ctx) {
     const purpose = String(args.purpose ?? "").trim();
-    if (!purpose) return { type: "email_draft", status: "failed", error: "Indicá el propósito." };
+    if (!purpose) return { type: "email_draft", status: "failed", error: "Indica el propósito." };
     if (!ctx.chatFn) return { type: "email_draft", status: "not_configured", note: "Necesito el LLM local (Ollama) para redactar." };
     try {
       const r = await ctx.chatFn(
         [
-          { role: "system", content: `Redactás emails en español, tono ${args.tone ?? "cordial"}. Devolvé solo el cuerpo del email (con saludo y despedida), sin asunto ni explicaciones.` },
+          { role: "system", content: `Redactás emails en español, tono ${args.tone ?? "cordial"}. Devuelve solo el cuerpo del email (con saludo y despedida), sin asunto ni explicaciones.` },
           { role: "user", content: `Para: ${args.recipient ?? "(destinatario)"}\nPropósito: ${purpose}` },
         ],
         { temperature: 0.4, maxTokens: 500 },
@@ -275,7 +275,7 @@ export const messageDraft: ToolHandler = {
   policy: policies.readonly("Genera borrador de mensaje."),
   async run(args, ctx) {
     const purpose = String(args.purpose ?? "").trim();
-    if (!purpose) return { type: "message_draft", status: "failed", error: "Indicá el propósito." };
+    if (!purpose) return { type: "message_draft", status: "failed", error: "Indica el propósito." };
     if (!ctx.chatFn) return { type: "message_draft", status: "not_configured", note: "Necesito el LLM local (Ollama) para redactar." };
     try {
       const r = await ctx.chatFn(
@@ -309,7 +309,7 @@ export const copyToClipboard: ToolHandler = {
   policy: policies.localWrite("Copia al portapapeles."),
   async run(args) {
     const text = String(args.text ?? "");
-    if (!text) return { type: "copy_to_clipboard", status: "failed", error: "Indicá el texto." };
+    if (!text) return { type: "copy_to_clipboard", status: "failed", error: "Indica el texto." };
     // En el cliente, KoruProvider usará navigator.clipboard. La tool solo registra la intención.
     return { type: "copy_to_clipboard", status: "ok", text, length: text.length, note: "Texto listo para copiar (la UI lo pondrá en el portapapeles)." };
   },
@@ -334,7 +334,7 @@ export const qrGenerate: ToolHandler = {
   async run(args) {
     const text = String(args.text ?? "").trim();
     const size = Number(args.size ?? 300);
-    if (!text) return { type: "qr_generate", status: "failed", error: "Indicá el texto." };
+    if (!text) return { type: "qr_generate", status: "failed", error: "Indica el texto." };
     const url = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(text)}`;
     return { type: "qr_generate", status: "ok", text, size, qrUrl: url, source: "GoQR", sourceUrl: "https://goqr.me/" };
   },
@@ -361,7 +361,7 @@ export const sunriseSunset: ToolHandler = {
     const lat = Number(args.lat);
     const lng = Number(args.lng);
     const date = String(args.date ?? "").trim();
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return { type: "sunrise_sunset", status: "failed", error: "Indicá lat y lng." };
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return { type: "sunrise_sunset", status: "failed", error: "Indica lat y lng." };
     const cacheKey = `sun:${lat}:${lng}:${date}`;
     const data = await cached<{ results?: { sunrise?: string; sunset?: string; solar_noon?: string; day_length?: number } }>(cacheKey, ttls.weatherNow, async () => {
       const params = new URLSearchParams({ lat: String(lat), lng: String(lng), formatted: "0" });
@@ -434,7 +434,7 @@ export const holidays: ToolHandler = {
   async run(args) {
     const cc = String(args.countryCode ?? "").toUpperCase().trim();
     const year = Number(args.year ?? new Date().getFullYear());
-    if (cc.length !== 2) return { type: "holidays", status: "failed", error: "Indicá código de país de 2 letras." };
+    if (cc.length !== 2) return { type: "holidays", status: "failed", error: "Indica código de país de 2 letras." };
     const cacheKey = `hol:${cc}:${year}`;
     const data = await cached<Array<{ date: string; localName?: string; name?: string; types?: string[] }>>(cacheKey, ttls.reference, async () => {
       const r = await fetchJson(`https://date.nager.at/api/v3/PublicHolidays/${year}/${cc}`, { timeoutMs: 9_000 });
@@ -463,7 +463,7 @@ export const timeZone: ToolHandler = {
   policy: policies.readonly("Conversión de zona horaria local."),
   async run(args) {
     const city = String(args.city ?? "").trim();
-    if (!city) return { type: "time_zone", status: "failed", error: "Indicá la ciudad o zona." };
+    if (!city) return { type: "time_zone", status: "failed", error: "Indica la ciudad o zona." };
     // Mapa de ciudades comunes → IANA.
     const map: Record<string, string> = {
       "tokyo": "Asia/Tokyo", "nueva york": "America/New_York", "new york": "America/New_York",
@@ -480,7 +480,7 @@ export const timeZone: ToolHandler = {
       const offsetH = -(new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "shortOffset" }).formatToParts(now).find((p) => p.type === "timeZoneName")?.value ?? "");
       return { type: "time_zone", status: "ok", city, timezone: tz, currentTime: time, offset: offsetH, yourTime: now.toLocaleTimeString("es") };
     } catch {
-      return { type: "time_zone", status: "failed", error: `No reconocí la zona horaria de "${city}". Usá formato IANA como Europe/Madrid.` };
+      return { type: "time_zone", status: "failed", error: `No reconocí la zona horaria de "${city}". Usa formato IANA como Europe/Madrid.` };
     }
   },
 };

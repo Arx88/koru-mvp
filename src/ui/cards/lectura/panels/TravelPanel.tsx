@@ -67,7 +67,7 @@ export function TravelPanel() {
                 </div>
                 <div className="mom">
                   <span className="mk"><b>20:00</b>noche</span>
-                  <div className="mc"><span className="t"><Ic i={Martini} className="ic" />Vermú + de paseo</span><p>Sin plan fijo: la Latina a esta hora se camina sola. Te dejo 3 barras por si querés parar.</p></div>
+                  <div className="mc"><span className="t"><Ic i={Martini} className="ic" />Vermú + de paseo</span><p>Sin plan fijo: la Latina a esta hora se camina sola. Te dejo 3 barras por si quieres parar.</p></div>
                 </div>
                 <div className="it-food">
                   <Ic i={Sparkles} className="ic" />

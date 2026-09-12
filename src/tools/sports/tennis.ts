@@ -563,7 +563,7 @@ export const tennisLive: ToolHandler = {
       return {
         type: "tennis_live",
         status: "failed",
-        error: "Indicá el jugador o partido de tenis.",
+        error: "Indica el jugador o partido de tenis.",
       };
     }
     try {

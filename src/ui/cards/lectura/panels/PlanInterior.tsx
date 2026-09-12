@@ -189,7 +189,7 @@ export function PlanInterior({
             <div className="gic"><Ic i={Flower} className="ic ic-sway" /></div>
             <div>
               <h5>El hueco de {fmtHour(gap.from)} a {fmtHour(gap.to)} es tuyo</h5>
-              <p>{Math.round(gap.minutes / 60)} h libres — si querés lo dejo así, o te sugiero algo liviano.</p>
+              <p>{Math.round(gap.minutes / 60)} h libres — si quieres lo dejo así, o te sugiero algo liviano.</p>
             </div>
           </div>
         )}

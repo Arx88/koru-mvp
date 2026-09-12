@@ -44,5 +44,5 @@ export async function openResearch(page: Page) {
   const input = page.getByPlaceholder("Habla con Michi...");
   await input.fill("¿Podés investigarlo por mí?");
   await input.press("Enter");
-  await page.getByRole("heading", { name: "Estoy investigando para vos" }).waitFor();
+  await page.getByRole("heading", { name: "Estoy investigando para ti" }).waitFor();
 }

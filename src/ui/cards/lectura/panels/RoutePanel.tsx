@@ -20,12 +20,12 @@ export function RoutePanel() {
     <>
       <div id="p-route" className="lcr-panel">
       <div className="ev-head rv" style={{ "margin": "2px 0 14px" }}>
-                <h1 style={{ "font": "800 26px/1.12 var(--disp)", "letterSpacing": "-.02em" }}><small style={{ "display": "block", "font": "700 11px var(--sans)", "letterSpacing": ".14em", "textTransform": "uppercase", "color": "var(--sky-ink)", "marginBottom": "5px" }}>Acá → Parque del Retiro</small>25 minutos,<br />dos cambios</h1>
+                <h1 style={{ "font": "800 26px/1.12 var(--disp)", "letterSpacing": "-.02em" }}><small style={{ "display": "block", "font": "700 11px var(--sans)", "letterSpacing": ".14em", "textTransform": "uppercase", "color": "var(--sky-ink)", "marginBottom": "5px" }}>Aquí → Parque del Retiro</small>25 minutos,<br />dos cambios</h1>
                 <p style={{ "font": "600 12px var(--sans)", "color": "var(--ink-dim)", "marginTop": "6px" }}>La ruta que te recomiendo hoy — no la más corta, la que menos caminás al sol.</p>
               </div>
               <div className="rt-hero rv">
                 <div className="rt-ends">
-                  <div className="rt-end"><span className="dot2 a"></span><span className="nm">Estás acá · Callao 220</span></div>
+                  <div className="rt-end"><span className="dot2 a"></span><span className="nm">Estás aquí · Callao 220</span></div>
                   <div className="rt-eta"><b>25 min</b><span>llegás 16:05</span></div>
                 </div>
                 <div className="rt-path">

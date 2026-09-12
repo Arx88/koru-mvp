@@ -78,7 +78,7 @@ export const imageGenerate: ToolHandler = {
       return {
         type: "image_generate",
         status: "failed",
-        error: "Indicá qué imagen querés generar (prompt vacío).",
+        error: "Indica qué imagen quieres generar (prompt vacío).",
       };
     }
 

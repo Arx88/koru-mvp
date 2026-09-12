@@ -262,7 +262,7 @@ export const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "day_info",
-      description: "Devuelve el día y la fecha ACTUALES con precisión total (día de la semana, fecha completa, semana del año, avance del día y del año, cuánto falta para el finde). USALA SIEMPRE ante: '¿qué día es hoy?', '¿qué fecha es?', '¿qué día de la semana somos?', '¿es finde?', '¿cuánto queda del año?', '¿cuántos días faltan para...?'. Es local e instantánea (sin red). Para '¿cuántos días faltan para X?' pasá target con la fecha destino en ISO (ej: '2026-12-25'). NO la uses para fechas históricas pasadas (usá web_search).",
+      description: "Devuelve el día y la fecha ACTUALES con precisión total (día de la semana, fecha completa, semana del año, avance del día y del año, cuánto falta para el finde). USALA SIEMPRE ante: '¿qué día es hoy?', '¿qué fecha es?', '¿qué día de la semana somos?', '¿es finde?', '¿cuánto queda del año?', '¿cuántos días faltan para...?'. Es local e instantánea (sin red). Para '¿cuántos días faltan para X?' pasa target con la fecha destino en ISO (ej: '2026-12-25'). NO la uses para fechas históricas pasadas (usa web_search).",
       parameters: {
         type: "object",
         additionalProperties: false,
@@ -293,7 +293,7 @@ export const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "web_search",
-      description: "ULTIMO RECURSO. Busca información en internet cuando NINGUNA tool específica aplica. NO uses web_search para: criptomonedas (crypto_price), acciones (stock_quote), clima (weather), deportes (match_live/match_schedule/tennis_live), restaurantes (restaurant_deep_search), recetas (recipe_find), películas y series (movie_info), libros (book_info), rutas (route_traffic), Wikipedia (wikipedia_lookup), REVIEWS O RESEÑAS DE PRODUCTOS (shopping_compare). web_search SÍ es para: noticias generales (no deportivas), eventos actuales, figuras públicas, tendencias, avances científicos, política, cultura, o cualquier tema que cambie con el tiempo Y que no tenga una tool específica. Si el usuario pregunta por un partido de fútbol, el precio de BTC o un review de un producto, NO uses web_search — usá match_live, crypto_price o shopping_compare respectivamente.",
+      description: "ULTIMO RECURSO. Busca información en internet cuando NINGUNA tool específica aplica. NO uses web_search para: criptomonedas (crypto_price), acciones (stock_quote), clima (weather), deportes (match_live/match_schedule/tennis_live), restaurantes (restaurant_deep_search), recetas (recipe_find), películas y series (movie_info), libros (book_info), rutas (route_traffic), Wikipedia (wikipedia_lookup), REVIEWS O RESEÑAS DE PRODUCTOS (shopping_compare). web_search SÍ es para: noticias generales (no deportivas), eventos actuales, figuras públicas, tendencias, avances científicos, política, cultura, o cualquier tema que cambie con el tiempo Y que no tenga una tool específica. Si el usuario pregunta por un partido de fútbol, el precio de BTC o un review de un producto, NO uses web_search — usa match_live, crypto_price o shopping_compare respectivamente.",
       parameters: {
         type: "object",
         additionalProperties: false,
@@ -309,7 +309,7 @@ export const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "shopping_compare",
-      description: "Compara productos y busca reviews de productos con evidencia de precios, fuentes y pros/contras cuando el usuario esté considerando una compra o necesite evaluar un producto. El usuario puede expresar esto de muchas formas: pidiendo recomendaciones de algo para comprar, mencionando que necesita un producto, comparando dos cosas, buscando la mejor opción, preguntando dónde comprar algo, o pidiendo REVIEW/RESEÑA/ANÁLISIS/OPINIONES de un producto concreto ('dame review de airpods', 'reseña de la nintendo switch', 'qué tal está el dyson v15'). NOTA: Para comparaciones específicas tipo 'compara X vs Y', usá comparison_deep que hace scraping real de Amazon/eBay/Best Buy.",
+      description: "Compara productos y busca reviews de productos con evidencia de precios, fuentes y pros/contras cuando el usuario esté considerando una compra o necesite evaluar un producto. El usuario puede expresar esto de muchas formas: pidiendo recomendaciones de algo para comprar, mencionando que necesita un producto, comparando dos cosas, buscando la mejor opción, preguntando dónde comprar algo, o pidiendo REVIEW/RESEÑA/ANÁLISIS/OPINIONES de un producto concreto ('dame review de airpods', 'reseña de la nintendo switch', 'qué tal está el dyson v15'). NOTA: Para comparaciones específicas tipo 'compara X vs Y', usa comparison_deep que hace scraping real de Amazon/eBay/Best Buy.",
       parameters: {
         type: "object",
         additionalProperties: false,
@@ -326,7 +326,7 @@ export const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "comparison_deep",
-      description: "COMPARACIÓN REAL con scraping de múltiples tiendas (Amazon, eBay, Best Buy, MercadoLibre). Extrae precios, specs, ratings y reviews VALIDADOS contra cita literal del contenido. Genera recommendation basada en datos reales. Úsala SIEMPRE para 'compara X vs Y', 'qué teléfono compro', 'mejor laptop para diseño', 'dónde compro Z más barato'. NUNCA uses web_search ni shopping_compare para comparar productos — usá comparison_deep.",
+      description: "COMPARACIÓN REAL con scraping de múltiples tiendas (Amazon, eBay, Best Buy, MercadoLibre). Extrae precios, specs, ratings y reviews VALIDADOS contra cita literal del contenido. Genera recommendation basada en datos reales. Úsala SIEMPRE para 'compara X vs Y', 'qué teléfono compro', 'mejor laptop para diseño', 'dónde compro Z más barato'. NUNCA uses web_search ni shopping_compare para comparar productos — usa comparison_deep.",
       parameters: {
         type: "object",
         additionalProperties: false,
@@ -342,7 +342,7 @@ export const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "plan_day",
-      description: "Crea un plan estructurado con pasos accionables. Úsala SIEMPRE que el usuario pida organizar, planificar, estructurar o armar un plan — sea para un día, una semana, un proyecto o cualquier tipo de planificación. Ejemplos: 'organizá mi día', 'planificá una semana ideal', 'armá un plan de estudio', '¿cómo organizo el proyecto?', 'estructurá mi rutina'. Si el usuario da contexto (ej: 'soy diseñador', 'tengo 3 proyectos'), usalo para personalizar los pasos. Pasá los pasos reales del plan en `items`, no un focus genérico.",
+      description: "Crea un plan estructurado con pasos accionables. Úsala SIEMPRE que el usuario pida organizar, planificar, estructurar o armar un plan — sea para un día, una semana, un proyecto o cualquier tipo de planificación. Ejemplos: 'organiza mi día', 'planifica una semana ideal', 'arma un plan de estudio', '¿cómo organizo el proyecto?', 'estructura mi rutina'. Si el usuario da contexto (ej: 'soy diseñador', 'tengo 3 proyectos'), úsalo para personalizar los pasos. Pasa los pasos reales del plan en `items`, no un focus genérico.",
       parameters: {
         type: "object",
         additionalProperties: false,
@@ -350,7 +350,7 @@ export const TOOL_DEFINITIONS = [
           focus: { type: "string", description: "Tema general del plan (ej: 'Semana ideal para diseñador', 'Plan de estudio para Python')." },
           items: {
             type: "array",
-            description: "Los pasos reales del plan. Pasá entre 3 y 8 pasos con título, horario/bloque y prioridad.",
+            description: "Los pasos reales del plan. Pasa entre 3 y 8 pasos con título, horario/bloque y prioridad.",
             items: {
               type: "object",
               properties: {
@@ -390,7 +390,7 @@ export const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "save_memory",
-      description: "Guarda información DURADERA y REUTILIZABLE sobre el usuario: preferencias, identidad, rutinas, objetivos, relaciones, límites, bienestar, equipos/temas a seguir. NO uses save_memory para recordatorios puntuales (usá reminder_set), ni para alarmas (alarm_set), ni para gastos (save_personal_item). Ej: 'me encanta el helado' → save_memory; 'recordame llamar a Juan' → reminder_set (NO save_memory).",
+      description: "Guarda información DURADERA y REUTILIZABLE sobre el usuario: preferencias, identidad, rutinas, objetivos, relaciones, límites, bienestar, equipos/temas a seguir. NO uses save_memory para recordatorios puntuales (usa reminder_set), ni para alarmas (alarm_set), ni para gastos (save_personal_item). Ej: 'me encanta el helado' → save_memory; 'recuérdame llamar a Juan' → reminder_set (NO save_memory).",
       parameters: {
         type: "object",
         additionalProperties: false,
@@ -419,12 +419,12 @@ export const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "save_personal_item",
-      description: "Guarda items personales: gastos, listas de compras, ideas, notas, enlaces, cumpleaños, información de salud. NO uses para recordatorios con fecha/hora (usá reminder_set), ni para alarmas (alarm_set). Ej: 'anotá 1500 de café' → save_personal_item con uiBlockType='saved_record'; 'recordame llamar a Juan' → reminder_set (NO save_personal_item).",
+      description: "Guarda items personales: gastos, listas de compras, ideas, notas, enlaces, cumpleaños, información de salud. NO uses para recordatorios con fecha/hora (usa reminder_set), ni para alarmas (alarm_set). Ej: 'anota 1500 de café' → save_personal_item con uiBlockType='saved_record'; 'recuérdame llamar a Juan' → reminder_set (NO save_personal_item).",
       parameters: {
         type: "object",
         additionalProperties: false,
         properties: {
-          uiBlockType: { type: "string", enum: ["shopping_list", "saved_record", "money_summary", "birthday_calendar", "birthday_alarm", "social_interaction"], description: "Tipo de item a guardar. NO usar 'reminder' ni 'alarm' — para esos usá reminder_set o alarm_set." },
+          uiBlockType: { type: "string", enum: ["shopping_list", "saved_record", "money_summary", "birthday_calendar", "birthday_alarm", "social_interaction"], description: "Tipo de item a guardar. NO usar 'reminder' ni 'alarm' — para esos usa reminder_set o alarm_set." },
           title: { type: "string" },
           dueText: { type: "string" },
           time: { type: "string" },
@@ -2335,12 +2335,12 @@ export async function runSearch(
   // 🔴 V5: recommendation honesta. Cuando el extractor no encuentra datos
   // validados (o corrió async y todavía no sabemos el resultado), el summary
   // del shopping card dice simple y honestamente: "Encontré N fuentes sobre
-  // X. Mirá los links arriba para specs y precios." — sin inventar precios,
+  // X. Mira los links arriba para specs y precios." — sin inventar precios,
   // specs ni scores. Si el extractor deferred sí encuentra datos validados,
   // esos viajan por separado en deferredDataCard (data_card con quotes
   // respaldadas) y aparecen debajo del comparison card.
   const honestShoppingSummary = sources.length
-    ? `Encontré ${sources.length} fuente${sources.length === 1 ? "" : "s"} sobre "${query}". Mirá los links arriba para specs y precios.`
+    ? `Encontré ${sources.length} fuente${sources.length === 1 ? "" : "s"} sobre "${query}". Mira los links arriba para specs y precios.`
     : "No pude conseguir fuentes útiles con los conectores abiertos. No inventes resultados.";
 
   return {
@@ -4123,8 +4123,8 @@ async function runDeepResearchFlow(
   let queries: string[] = [];
   try {
     const subqResult = await callProvider(config, [
-      { role: "system", content: `Sos un planificador de investigación. Respondés SOLO con JSON válido, sin texto extra. ${researchTemporal}` },
-      { role: "user", content: `Tema de investigación: "${topic}". Devolvé SOLO este JSON: {"queries":["q1","q2","q3","q4"]} con 4 búsquedas web en español, cortas y distintas entre sí, que cubran: 1) qué es / panorama general, 2) historia o contexto, 3) noticias y actualidad reciente, 4) datos, cifras o análisis experto.` },
+      { role: "system", content: `Eres un planificador de investigación. Respondes SOLO con JSON válido, sin texto extra. ${researchTemporal}` },
+      { role: "user", content: `Tema de investigación: "${topic}". Devuelve SOLO este JSON: {"queries":["q1","q2","q3","q4"]} con 4 búsquedas web en español, cortas y distintas entre sí, que cubran: 1) qué es / panorama general, 2) historia o contexto, 3) noticias y actualidad reciente, 4) datos, cifras o análisis experto.` },
     ], planningTimeout, false, preferredProvider);
     const parsed = asRecord(JSON.parse(extractJsonBlock(cleanText(subqResult.message.content, ""))));
     queries = asArray(parsed.queries).map((q) => cleanText(q)).filter(Boolean).slice(0, 5);
@@ -4164,7 +4164,7 @@ async function runDeepResearchFlow(
       reply: `No pude encontrar información sobre "${topic}". ¿Te referís a una película, libro, persona o tema específico? Si me das el nombre exacto o más contexto, lo intento de nuevo.`,
       uiBlocks: [{
         type: "clarifying_question" as const,
-        question: `No encontré nada sobre "${topic}". ¿Podés darme el nombre exacto o más contexto?`,
+        question: `No encontré nada sobre "${topic}". ¿Puedes darme el nombre exacto o más contexto?`,
         options: [],
       }],
       toolCalls: [],
@@ -4188,20 +4188,20 @@ async function runDeepResearchFlow(
       {
         role: "system",
         content: [
-          "Sos Michi, redactor de informes personales. Escribís en español rioplatense, cálido pero preciso.",
+          "Eres Michi, redactor de informes personales. Escribes en español neutro e internacional, cálido pero preciso.",
           "Tu informe debe EXCEDER lo que el usuario espera: completo, con datos concretos, bien organizado.",
-          "Usá EXCLUSIVAMENTE la información de las fuentes provistas más conocimiento general verificable. NUNCA inventes cifras que no puedas respaldar.",
-          "Respondés SOLO con JSON válido, sin markdown ni texto extra.",
+          "Usa EXCLUSIVAMENTE la información de las fuentes provistas más conocimiento general verificable. NUNCA inventes cifras que no puedas respaldar.",
+          "Respondes SOLO con JSON válido, sin markdown ni texto extra.",
           researchTemporal,
         ].join("\n"),
       },
       {
         role: "user",
         content: [
-          `Armá un informe completo sobre: "${topic}".`,
-          `Estructura JSON EXACTA (respetá tipos y límites):`,
+          `Arma un informe completo sobre: "${topic}".`,
+          `Estructura JSON EXACTA (respeta tipos y límites):`,
           `{"title":"máx 28 caracteres, será el título de la tarjeta","description":"1-2 líneas que enganchen","summary":"párrafo de síntesis de 60-90 palabras","categories":[{"icon":"nombre_material_symbol","label":"máx 14 chars"} x3],"metrics":[{"value":"dato corto REAL de las fuentes (año, cifra, cantidad)","label":"qué es"} x3],"sections":[{"icon":"nombre_material_symbol","kicker":"subtítulo corto en mayúsculas","title":"título del módulo","kind":"text|bullets|timeline|grid|rows","paragraphs":["solo si kind=text"],"bullets":["solo si kind=bullets"],"items":[{"title":"...","subtitle":"...","badge":"opcional corto"}]} x4-5]}`,
-          `Guía de sections: 1º una síntesis (kind text), después historia/contexto (timeline con items título=año o hito), después el desarrollo del tema (grid o rows), después actualidad/noticias (bullets o rows). Variá los kinds.`,
+          `Guía de sections: 1º una síntesis (kind text), después historia/contexto (timeline con items título=año o hito), después el desarrollo del tema (grid o rows), después actualidad/noticias (bullets o rows). Varía los kinds.`,
           ``,
           `FUENTES (${allSources.length}):`,
           corpus.join("\n").slice(0, 9000),
@@ -4663,8 +4663,8 @@ export async function runKoruBackendTurn(
       synthMessagesLex.push({
         role: "user",
         content: [
-          "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks.",
-          "Respondé SOLO con este JSON:",
+          "REGLA ABSOLUTA: Solo responde con JSON puro válido. Sin markdown, sin backticks.",
+          "Responde SOLO con este JSON:",
           '{"reply":"1-2 lineas cortas","mascotState":"happy","summary":"sintesis de 60-120 palabras con datos concretos","sections":[{"title":"Sintesis","kind":"text","paragraphs":["texto redactado"]},{"title":"Datos clave","kind":"bullets","bullets":["dato 1","dato 2"]}]}',
           "Reglas:",
           "- reply: SOLO enmarca. Ej: 'Te dejé el detalle en la tarjeta.'",
@@ -4819,8 +4819,8 @@ export async function runKoruBackendTurn(
             synthMessages2.push({
               role: "user",
               content: [
-                "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks.",
-                "Respondé SOLO con este JSON:",
+                "REGLA ABSOLUTA: Solo responde con JSON puro válido. Sin markdown, sin backticks.",
+                "Responde SOLO con este JSON:",
                 '{"reply":"1-2 lineas cortas","mascotState":"happy","summary":"sintesis de 60-120 palabras con datos concretos","sections":[{"title":"Sintesis","kind":"text","paragraphs":["texto redactado"]},{"title":"Datos clave","kind":"bullets","bullets":["dato 1","dato 2"]}]}',
                 "Reglas:",
                 "- reply: SOLO enmarca. Ej: 'Te dejé el detalle en la tarjeta.'",
@@ -4918,7 +4918,7 @@ export async function runKoruBackendTurn(
             }
             return { ...response, provider, model, fallbackReason: "router-" + route.category };
           }
-          messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }. REGLAS PARA EL REPLY: 1) Si una tool devolvió matches=[] o status=partial, NO inventes nombres en tu reply. Decí honestamente que no encontraste opciones específicas. 2) Si ejecutaste múltiples tools, tu reply debe mencionar TODOS los resultados, no solo el primero. 3) Los datos ya están en las cards. Tu reply SOLO debe enmarcar: 1-2 líneas cálidas. 4) NUNCA inventes datos que no estén en los tool results." });
+          messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo responde con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }. REGLAS PARA EL REPLY: 1) Si una tool devolvió matches=[] o status=partial, NO inventes nombres en tu reply. Di honestamente que no encontraste opciones específicas. 2) Si ejecutaste múltiples tools, tu reply debe mencionar TODOS los resultados, no solo el primero. 3) Los datos ya están en las cards. Tu reply SOLO debe enmarcar: 1-2 líneas cálidas. 4) NUNCA inventes datos que no estén en los tool results." });
           // OPTIMIZACIÓN: usar Flash para la segunda llamada (síntesis de respuesta)
           const fastConfig2 = { ...config, nvidiaModel: config.nvidiaFastModel || "meta/llama-3.1-8b-instruct" };
           const secondResult = await callProvider(fastConfig2, messages, 30_000, false, "nvidia", undefined, fastConfig2.nvidiaModel);
@@ -5204,7 +5204,7 @@ export async function runKoruBackendTurn(
     // Paso 2: segunda llamada (sin tools) para que el LLM síntetice la respuesta final.
     // Corre EN PARALELO con las extracciones diferidas de estructura (data_card),
     // para que el extractor (~11s) no sume latencia al turno.
-    messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }. REGLAS PARA EL REPLY: 1) Si una tool devolvió matches=[] o status=partial, NO inventes nombres en tu reply. Decí honestamente que no encontraste opciones específicas. 2) Si ejecutaste múltiples tools, tu reply debe mencionar TODOS los resultados, no solo el primero. 3) Los datos ya están en las cards. Tu reply SOLO debe enmarcar: 1-2 líneas cálidas. 4) NUNCA inventes datos que no estén en los tool results." });
+    messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo responde con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }. REGLAS PARA EL REPLY: 1) Si una tool devolvió matches=[] o status=partial, NO inventes nombres en tu reply. Di honestamente que no encontraste opciones específicas. 2) Si ejecutaste múltiples tools, tu reply debe mencionar TODOS los resultados, no solo el primero. 3) Los datos ya están en las cards. Tu reply SOLO debe enmarcar: 1-2 líneas cálidas. 4) NUNCA inventes datos que no estén en los tool results." });
     const deferredCards = (toolExecutions as ToolExecution[] & { __deferredDataCards?: Array<Promise<UiBlock | null>> }).__deferredDataCards ?? [];
     const [secondResult, ...resolvedCards] = await Promise.all([
       callProvider(config, messages, secondaryTimeout, false, preferredProvider, undefined, modelOverride),
@@ -5400,8 +5400,8 @@ export async function runKoruBackendTurn(
     // El flujo es: ejecutar tool → 2da llamada LLM (sin tools) → reply natural.
     // Paso 2: segunda llamada (sin tools) para que el LLM síntetice la respuesta final.
     messages.push({ role: "user", content: [
-      "REGLA ABSOLUTA: Solo respondé con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }. REGLAS PARA EL REPLY: 1) Si una tool devolvió matches=[] o status=partial, NO inventes nombres en tu reply. Decí honestamente que no encontraste opciones específicas. 2) Si ejecutaste múltiples tools, tu reply debe mencionar TODOS los resultados, no solo el primero. 3) Los datos ya están en las cards. Tu reply SOLO debe enmarcar: 1-2 líneas cálidas. 4) NUNCA inventes datos que no estén en los tool results.",
-      "Respondé SOLO con este formato: {\"reply\":\"texto natural en español\",\"mascotState\":\"happy\"}",
+      "REGLA ABSOLUTA: Solo responde con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }. REGLAS PARA EL REPLY: 1) Si una tool devolvió matches=[] o status=partial, NO inventes nombres en tu reply. Di honestamente que no encontraste opciones específicas. 2) Si ejecutaste múltiples tools, tu reply debe mencionar TODOS los resultados, no solo el primero. 3) Los datos ya están en las cards. Tu reply SOLO debe enmarcar: 1-2 líneas cálidas. 4) NUNCA inventes datos que no estén en los tool results.",
+      "Responde SOLO con este formato: {\"reply\":\"texto natural en español\",\"mascotState\":\"happy\"}",
       "El campo 'reply' debe ser texto natural conversacional (NO JSON, NO markdown). Ej: 'Te dejé el detalle en la tarjeta.'",
       "NO repitas los datos de la tool en el reply — ya están en la card visual.",
     ].join("\n") });
@@ -5450,7 +5450,7 @@ export async function runKoruBackendTurn(
     const isOllama = config.nvidiaBaseUrl.includes(":11434") || config.nvidiaBaseUrl.includes("ollama");
     // 🔴 KIMI v6 — Retry para TODOS los providers (no solo Ollama).
     // El provider NVIDIA Nemotron a veces devuelve JSON inválido. Un retry
-    // con re-prompt "REGLA ABSOLUTA: Solo respondé con JSON puro válido"
+    // con re-prompt "REGLA ABSOLUTA: Solo responde con JSON puro válido"
     // rescata ~80% de los casos.
     const shouldRetry = true; // 🔴 KIMI v6: siempre retry
     if (isOllama || shouldRetry) {
@@ -5461,7 +5461,7 @@ export async function runKoruBackendTurn(
         // anterior era clima).
         const retryResult = await callProvider(config, [
           ...messages,
-          { role: "user", content: `Tu respuesta anterior no era JSON válido. El usuario te preguntó AHORA: «${request.input.slice(0, 300)}». REGLA ABSOLUTA: Solo respondé con JSON puro válido, sin texto extra, sin markdown. Usá este formato exacto: {"reply":"tu respuesta al usuario","mascotState":"idle","uiBlocks":[],"suggestedActions":[],"memoryCandidates":[],"archiveMemoryIds":[],"commitments":[],"records":[]}` },
+          { role: "user", content: `Tu respuesta anterior no era JSON válido. El usuario te preguntó AHORA: «${request.input.slice(0, 300)}». REGLA ABSOLUTA: Solo responde con JSON puro válido, sin texto extra, sin markdown. Usa este formato exacto: {"reply":"tu respuesta al usuario","mascotState":"idle","uiBlocks":[],"suggestedActions":[],"memoryCandidates":[],"archiveMemoryIds":[],"commitments":[],"records":[]}` },
         ], 20_000, false, preferredProvider);
         parsed = JSON.parse(extractJsonBlock(cleanText(retryResult.message.content, "")));
         logger.info("runKoruBackendTurn", "JSON retry succeeded (all providers)");
