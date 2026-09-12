@@ -802,17 +802,26 @@ export function applyHeartbeatNudges(
   runAt = new Date(),
 ): KoruState {
   const now = runAt.toISOString();
-  const day = now.slice(0, 10);
+  // 🔴 FIX SPAM (2026-09-12): día LOCAL (antes UTC — el conteo diario
+  // cambiaba de día a medianoche UTC, inconsistente con localDateISO del
+  // resto del heartbeat).
+  const day = localDateISO(runAt);
   const countToday = state.heartbeat.dailyNudgeDate === day ? state.heartbeat.dailyNudgeCount : 0;
   const allowed = Math.max(0, state.heartbeat.maxNudgesPerDay - countToday);
+  // 🔴 FIX SPAM (2026-09-12): la key de dedupe era `source|sourceId|title`,
+  // pero el marcado de mostrado MUTA el title ("[proactive_shown] ¿Una pausa?")
+  // → la key ya no matcheaba → el mismo nudge podía re-agregarse como
+  // "fresh" con nuevo id (duplicados + conteo diario inflado). La key
+  // correcta es source+sourceId, que es exactamente lo que bloquea
+  // wasRecentlyNudged por 20h.
   const existingKeys = new Set(
     state.nudges
       .filter((nudge) => !nudge.dismissed)
-      .map((nudge) => `${nudge.source ?? "brain"}|${nudge.sourceId ?? ""}|${nudge.title}`),
+      .map((nudge) => `${nudge.source ?? "brain"}|${nudge.sourceId ?? ""}`),
   );
   const fresh = nudges
     .filter((nudge) => {
-      const key = `${nudge.source ?? "heartbeat"}|${nudge.sourceId ?? ""}|${nudge.title}`;
+      const key = `${nudge.source ?? "heartbeat"}|${nudge.sourceId ?? ""}`;
       if (existingKeys.has(key)) return false;
       existingKeys.add(key);
       return true;
@@ -837,6 +846,26 @@ export function applyHeartbeatNudges(
       remindedIds.has(commitment.id) ? { ...commitment, remindedAt: now } : commitment,
     ),
     updatedAt: now,
+  };
+  saveState(next);
+  return next;
+}
+
+/**
+ * 🔴 FIX SPAM (2026-09-12): marca un nudge como mostrado en el chat y —a
+ * diferencia del updater inline que se usaba antes— PERSISTE el estado.
+ * Antes el marcado "[proactive_shown]" vivía solo en memoria de React:
+ * al recargar la app el nudge volvía a estar "sin mostrar" y el primer
+ * tick del heartbeat (60s) lo re-inyectaba al chat → el mismo mensaje
+ * aparecía una y otra vez en cada recarga (spam del "¿Una pausa?").
+ */
+export function markNudgeShown(state: KoruState, nudgeId: string, shownAt = new Date()): KoruState {
+  const next = {
+    ...state,
+    nudges: (state.nudges ?? []).map((n) =>
+      n.id === nudgeId ? { ...n, title: `[proactive_shown] ${n.title}` } : n,
+    ),
+    updatedAt: shownAt.toISOString(),
   };
   saveState(next);
   return next;

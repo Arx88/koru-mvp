@@ -29,6 +29,7 @@ import type {
 } from "../domain/types";
 import {
   applyHeartbeatNudges,
+  markNudgeShown,
   addOnboardingMemories,
   approveAndExecuteAction,
   awardLevelUpEnergy,
@@ -819,12 +820,12 @@ export function KoruProvider({ children }: { children: ReactNode }) {
               mascotState: "happy" as const,
             };
             // Marcar como mostrado para no repetir
-            commitDomainState((prev) => ({
-              ...prev,
-              nudges: (prev.nudges ?? []).map(n =>
-                n.id === nudge.id ? { ...n, title: `[proactive_shown] ${n.title}` } : n
-              ),
-            }));
+            // 🔴 FIX SPAM (2026-09-12): antes el marcado era un updater inline
+            // que NO persistía — al recargar la app, el nudge volvía a estar
+            // "sin mostrar" y se re-inyectaba al chat en cada recarga. El
+            // reducer markNudgeShown persiste via saveState (mismo patrón que
+            // applyHeartbeatNudges).
+            commitDomainState((prev) => markNudgeShown(prev, nudge.id));
             commitChatTurns((prev) => [...prev, proactiveTurn].slice(-120));
           }
         }

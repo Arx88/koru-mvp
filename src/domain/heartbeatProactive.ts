@@ -6,6 +6,14 @@
  * - No repetir el mismo nudge en 20h.
  * - Solo dentro de horas activas y con capacidad diaria.
  * - Prioridad: alta = evita problemas reales; media = mejora día; baja = no se muestra.
+ *
+ * 🔴 FIX SPAM (2026-09-12): eliminado energyPauseNudge ("¿Una pausa?...").
+ * Su trigger era semánticamente FALSO: leía energyAwarded < 10 como "usuario
+ * con poca energía", pero energyAwarded es la energía que Michi OTORGA por
+ * interactuar (6-18 por turno; un chat normal sin cards da 8) → para
+ * conversación normal la condición estaba SIEMPRE en true y el nudge salía
+ * cada ciclo en la ventana 14-18h sin que nada real lo triggeree. Sin señal
+ * real de energía del usuario en el estado, el nudge no debe existir.
  */
 
 import { foldAccents } from "./commitments";
@@ -38,15 +46,6 @@ function fanTeam(state: KoruState): string | null {
   if (!teamMemory) return null;
   const match = teamMemory.text.match(/\b(Boca|River|Barcelona|Real Madrid|Juventus|Milan|Inter|PSG|Bayern|Liverpool|Manchester City|Manchester United|Chelsea|Arsenal)\b/i);
   return match ? match[1] : null;
-}
-
-function lastEntriesEnergy(state: KoruState): "low" | "medium" | "high" {
-  const recent = state.entries.slice(0, 5);
-  if (recent.length < 2) return "medium";
-  const lowCount = recent.filter((e) => e.energyAwarded < 10).length;
-  if (lowCount >= 3) return "low";
-  if (lowCount >= 1) return "medium";
-  return "high";
 }
 
 // ── Generadores de nudges proactivos ───────────────────────────────
@@ -89,24 +88,6 @@ function meetingTrafficNudge(state: KoruState, now: Date): NudgeDraft | null {
     priority: "high",
     source: "heartbeat",
     sourceId: `traffic-${upcomingMeeting.id}`,
-  };
-}
-
-function energyPauseNudge(state: KoruState, now: Date): NudgeDraft | null {
-  const energy = lastEntriesEnergy(state);
-  if (energy !== "low") return null;
-  // Solo entre las 14:00 y 18:00 (siesta/tarde)
-  const hour = now.getHours();
-  if (hour < 14 || hour > 18) return null;
-  if (wasRecentlyNudged(state, "energy-pause", now)) return null;
-
-  return {
-    title: "¿Una pausa?",
-    body: "Veo que vienes con poca energía. Un respiro de 10 minutos puede cambiar la tarde.",
-    reason: "Energía baja detectada en últimas entradas",
-    priority: "medium",
-    source: "heartbeat",
-    sourceId: "energy-pause",
   };
 }
 
@@ -168,7 +149,6 @@ export function buildProactiveNudges(state: KoruState, now = new Date()): NudgeD
   const candidates = [
     weatherWakeUpNudge(state, now),
     meetingTrafficNudge(state, now),
-    energyPauseNudge(state, now),
     sportsResultNudge(state, now),
     routineReminderNudge(state, now),
   ].filter((n): n is NudgeDraft => Boolean(n));
