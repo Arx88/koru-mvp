@@ -3554,8 +3554,8 @@ function buildEmbedFn(baseUrl: string): EmbedFn {
  * no-crítico pero útil para elegir la tool correcta sin llamar al LLM.
  *
  * Ahora: si hay NVIDIA_API_KEY (que siempre hay en producción), usamos
- * el endpoint de embeddings de NVIDIA (model nvidia/nemotron-340b-embedding
- * o nvolve-embed-v1). Si no, caemos al fallback léxico del SemanticRouter.
+ * el endpoint de embeddings de NVIDIA (model nvidia/nemotron-3-embed-1b).
+ * Si no, caemos al fallback léxico del SemanticRouter.
  */
 function buildNvidiaEmbedFn(apiKey: string, baseUrl: string): EmbedFn {
   const url = `${baseUrl.replace(/\/+$/, "")}/v1/embeddings`;
@@ -3570,7 +3570,11 @@ function buildNvidiaEmbedFn(apiKey: string, baseUrl: string): EmbedFn {
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: "nvidia/nv-embedqa-e5-v5",
+          // 🔴 FIX (2026-09-12): nv-embedqa-e5-v5 llegó a su fin de vida el
+          // 2026-08-25 (410 Gone) → el router semántico llevaba 2 semanas CAÍDO
+          // en silencio (cada turno caía al flujo nativo sin red de seguridad).
+          // Reemplazo verificado vivo: nemotron-3-embed-1b (2048 dims).
+          model: "nvidia/nemotron-3-embed-1b",
           input: [text],
           input_type: "query",
         }),
@@ -3788,6 +3792,92 @@ export function weatherToolCallsToInject(
     type: "function",
     function: { name: "weather", arguments: JSON.stringify({ city }) },
   }];
+}
+
+// ═════════════════ FIX CARDS — crypto/receta en texto plano ═════════════════
+// 🔴 Bug en vivo (2026-09-12): "cuánto está el bitcoin" o "dame una receta de X"
+// llegaban a veces como TEXTO plano sin tarjeta. Causa raíz: cuando el LLM
+// responde sin llamar la tool (providers débiles en tool-calling con 135 tools,
+// o el primer call falla y el reintento corre SIN tools), no había red de
+// seguridad para estas intenciones — el clima y los reviews de producto SÍ la
+// tienen (weatherToolCallsToInject / explicitProductReviewQuery). Encima, los
+// blocks crypto/receta que el LLM inventa en JSON se descartan en
+// normalizeUiBlock (anti-alucinación: inventaría precios), así que el resultado
+// final era texto sin card. Misma técnica que clima: detección determinista +
+// corrección/inyección post-LLM. Los datos de la card salen SIEMPRE de la tool
+// real, nunca del texto del modelo.
+
+/**
+ * Detecta pedido EXPLÍCITO de precio de cripto y extrae la moneda.
+ * Requiere (a) mencionar una cripto conocida Y (b) intención de precio/
+ * cotización — así no secuestra "qué es bitcoin" (wikipedia) ni "compré
+ * bitcoin, anótalo" (save). El input que es SOLO el ticker ("btc?", "ETH")
+ * cuenta como intención implícita de precio.
+ * Función pura: devuelve { coin } lista para crypto_price, o null.
+ */
+export function cryptoPriceArgsFromInput(input: string): { coin: string } | null {
+  const n = input.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  if (!n) return null;
+  const COIN_RE = /\b(bitcoin|btc|ethereum|eth|ether|cripto|criptomonedas?|cryptomonedas?|crypto|usdt|usdc|tether|solana|sol|cardano|ada|dogecoin|doge|litecoin|ltc|xrp|ripple|bnb|polkadot|dot|chainlink|avalanche|avax|polygon|matic)\b/;
+  const coinMatch = n.match(COIN_RE);
+  if (!coinMatch) return null;
+  // Input que es SOLO el ticker ("btc?", "ETH") → intención de precio implícita.
+  if (new RegExp(`^(?:${COIN_RE.source})\\??$`).test(n)) return { coin: coinMatch[1] };
+  const hasPriceIntent =
+    /\b(precio|precios|cotizacion|cotizaciones|cotiza|a\s+cuanto|cuanto\s+esta|cuanto\s+vale|cuanto\s+cuesta|cuanta|valen|vale|cuesta|cuestan|como\s+va|como\s+viene|como\s+sigue|como\s+anda|va\s+el|va\s+la|subio|subida|bajo|bajada|subiendo|bajando|grafico|grafica|tendencia|mercado|capitalizacion|market\s+cap|volumen|en\s+que\s+punto)\b/.test(n);
+  if (!hasPriceIntent) return null;
+  // Reutilizar la extracción afinada del detector de llamadas simuladas
+  // ("precio del ether" → ether, "a cuanto sta el btc" → btc).
+  const extracted = extractArgsFromUserInput("crypto_price", input);
+  const coin = typeof extracted.coin === "string" && extracted.coin.trim().length >= 2
+    ? extracted.coin.trim()
+    : coinMatch[1];
+  return { coin };
+}
+
+/**
+ * Detecta pedido EXPLÍCITO de receta y extrae el query de búsqueda.
+ * NO dispara para "guarda esta receta" / "muéstrame la receta guardada"
+ * (esas van a recipe_save / recipe_show, las resuelve el LLM) ni para
+ * pedidos sin plato ("dame una receta" a secas → el LLM pide aclaración).
+ * Función pura: devuelve { query } lista para recipe_find, o null.
+ */
+export function recipeArgsFromInput(input: string): { query: string } | null {
+  const n = input.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  if (!n) return null;
+  // Intents de guardar/mostrar recetas YA guardadas → no es búsqueda nueva.
+  if (/\b(guarda|guardar|guardalo|guardame|salva|salvar|salvalo|mostrame|muestrame|muestra|ensename|cual\s+era|recuerdo|apunta|anota)\b/.test(n)) return null;
+  const hasRecipeIntent =
+    /\b(receta|recetas|recetario|que\s+cocino|que\s+puedo\s+cocinar|que\s+hago\s+de\s+comer|que\s+hago\s+de\s+comida|como\s+cocino|como\s+preparo|cocinar\s+algo|algo\s+para\s+cocinar|se\s+cocina)\b/.test(n) ||
+    (/\bcomo\s+hago\b/.test(n) &&
+      /\b(comida|comer|plato|pasta|lasana|arroz|pollo|carne|pescado|torta|tortilla|postre|sopa|ensalada|pizza|huevos?|pan|flan|empanadas?|milanesas?|guiso)\b/.test(n));
+  if (!hasRecipeIntent) return null;
+  // Extracción afinada del detector de llamadas simuladas ("receta de pasta" → pasta).
+  const extracted = extractArgsFromUserInput("recipe_find", input);
+  let query = typeof extracted.query === "string" ? extracted.query.trim() : "";
+  // Si el query arrastró prefijos ("buscame recetas de postre"), limpiarlos.
+  query = query
+    .replace(/^.*?\b(?:recetas?|recetario)\b\s*/i, "")
+    .replace(/^(?:de\s+|del\s+|para\s+|una?\s+|unas?\s+|faciles?\s+|rapidas?\s+|ricas?\s+)+/i, "")
+    .trim();
+  if (!query) {
+    // Fallback: todo lo que sigue a "receta/recetas/recetario" en el input crudo.
+    query = n
+      .replace(/^.*?\b(?:recetas?|recetario)\b\s*/i, "")
+      .replace(/^(?:de\s+|del\s+|para\s+|una?\s+|unas?\s+|faciles?\s+|rapidas?\s+|ricas?\s+|buscame\s+|busca\s+|dame\s+|quiero\s+|necesito\s+|encuentrame\s+)+/i, "")
+      .trim();
+  }
+  query = query
+    .replace(/\b(por favor|plis|please|michi|koru|gracias)\b/gi, "")
+    .replace(/^(?:una?|unas?|el|la|los|las|un|del|de)\s+/i, "")
+    .replace(/[?¿!¡.,;:]+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  // Pedidos SIN plato concreto ("dame una receta", "qué cocino?") → null:
+  // el LLM pide aclaración o usa recipe_by_ingredients con el estado.
+  const queryNorm = query.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  if (!queryNorm || /^(?:una?|unas?|el|la|los|las)?\s*(?:recetas?|cocino|cocinar|cocina|comer|cenar|almorzar|algo|comida|plato|que\s+cocino|que\s+hago)?\s*\??$/i.test(queryNorm)) return null;
+  return { query };
 }
 
 // ═════════════════ DEEP RESEARCH — el entregable estrella ═════════════════
@@ -4728,6 +4818,43 @@ export async function runKoruBackendTurn(
           confidence: route.confidence.toFixed(2),
           durationMs: Date.now() - routeStart,
         });
+        // 🔴 FIX CARDS (2026-09-12): intenciones EXPLÍCITAS ganan al router. El
+        // router embebe "cuánto está el btc" → world_info (web_search genérico:
+        // card deliverable en vez de la card crypto) y "dame una receta de X"
+        // puede caer bajo el umbral. Si el input pide explícitamente precio de
+        // cripto o una receta, enrutar directo a la tool específica.
+        {
+          const GENERIC_ROUTE_TOOLS = new Set(["web_search", "wikipedia_lookup", "deep_research"]);
+          const explicitCrypto = cryptoPriceArgsFromInput(inputTrimmed);
+          if (explicitCrypto && (!route.tool || GENERIC_ROUTE_TOOLS.has(route.tool))) {
+            logger.info("runKoruBackendTurn", "Router override: crypto price explícito → crypto_price", {
+              coin: explicitCrypto.coin,
+              routerTool: route.tool ?? "none",
+              routerCategory: route.category,
+              routerConfidence: route.confidence.toFixed(2),
+            });
+            route.tool = "crypto_price";
+            route.toolArgs = { coin: explicitCrypto.coin };
+            route.category = "market";
+            route.confidence = Math.max(route.confidence, 0.99);
+            routeCategory = route.category;
+          } else {
+            const explicitRecipe = recipeArgsFromInput(inputTrimmed);
+            if (explicitRecipe && (!route.tool || GENERIC_ROUTE_TOOLS.has(route.tool))) {
+              logger.info("runKoruBackendTurn", "Router override: receta explícita → recipe_find", {
+                query: explicitRecipe.query,
+                routerTool: route.tool ?? "none",
+                routerCategory: route.category,
+                routerConfidence: route.confidence.toFixed(2),
+              });
+              route.tool = "recipe_find";
+              route.toolArgs = { query: explicitRecipe.query };
+              route.category = "food";
+              route.confidence = Math.max(route.confidence, 0.99);
+              routeCategory = route.category;
+            }
+          }
+        }
         // web_search es la tool mas generica del router (world_info agarra
         // de todo). Es la que mas dispara "buscando en la web" de mas —
         // le pedimos confianza extra por encima del umbral base del router
@@ -4773,7 +4900,12 @@ export async function runKoruBackendTurn(
           // 🔴 FIX CRÍTICO: si la tool del router devolvió no_data/failed (ej: recipe_find
           // no encontró recetas), hacer fallback automático a web_search ANTES de intentar
           // sintetizar. Sin esto, el usuario ve "Tuve un problema para armar la respuesta".
-          if (delivered && toolExecutions.length > 0) {
+          // 🔴 FIX CARDS (2026-09-12): `delivered` es SIEMPRE null en el path del router
+          // (executeProviderToolCalls solo devuelve args ante deliver_response, y el
+          // router nunca enruta a esa tool) → este fallback era CÓDIGO MUERTO: jamás
+          // disparó y "receta de milanesas" caía en texto sin card. Patrón correcto =
+          // el del path léxico (KIMI v7): solo chequear toolExecutions.
+          if (toolExecutions.length > 0) {
             const lastResult = toolExecutions[toolExecutions.length - 1]?.result as any;
             const toolFailed = lastResult?.status === "no_data" || lastResult?.status === "failed";
             const isLocalAction = ["reminder_set", "alarm_set", "countdown", "save_personal_item", "save_memory", "plan_day", "query_personal_context"].includes(route.tool ?? "");
@@ -4781,7 +4913,12 @@ export async function runKoruBackendTurn(
               logger.info("runKoruBackendTurn", "Router tool failed, falling back to web_search", {
                 failedTool: route.tool, status: lastResult?.status,
               });
-              const fallbackQuery = route.toolArgs?.query || route.toolArgs?.title || request.input;
+              const rawFallbackQuery = route.toolArgs?.query || route.toolArgs?.title || request.input;
+              // recipe_find sin resultados → prefix "receta" para que la búsqueda web
+              // apunte a sitios de cocina y no a resultados genéricos del plato.
+              const fallbackQuery = route.tool === "recipe_find" && rawFallbackQuery && !/\breceta\b/i.test(String(rawFallbackQuery))
+                ? `receta ${rawFallbackQuery}`
+                : rawFallbackQuery;
               const fallbackToolCall: ProviderToolCall = {
                 id: `router_fallback_${Date.now()}`,
                 type: "function",
@@ -5098,6 +5235,53 @@ export async function runKoruBackendTurn(
     }
   }
 
+  // 🔴 FIX CARDS (2026-09-12): "cuánto está el bitcoin" / "dame una receta de X"
+  // en TEXTO plano cuando el LLM no llamaba la tool (providers débiles en
+  // tool-calling con 135 tools, o reintento sin tools tras fallar el primer
+  // call — este bloque corre DESPUÉS de ese fallback, así que cubre ambos).
+  // Misma técnica que clima/review: si el LLM enrutó a una tool genérica
+  // (web_search/wikipedia), se CORRIGE; si no llamó nada, se INYECTA. Los
+  // datos de la card salen siempre de la tool real (anti-alucinación intacta).
+  let recipeIntentArgs: { query: string } | null = null;
+  {
+    const GENERIC_LLM_TOOLS = ["web_search", "wikipedia_lookup"];
+    const injectOrCorrect = (
+      name: "crypto_price" | "recipe_find",
+      args: Record<string, unknown>,
+      idPrefix: string,
+      skipTools: Set<string>,
+    ) => {
+      if (toolCalls.some((t) => skipTools.has(t.function?.name ?? ""))) return;
+      const call = {
+        id: `${idPrefix}_${Date.now()}`,
+        type: "function" as const,
+        function: { name, arguments: JSON.stringify(args) },
+      };
+      const misroutedIdx = toolCalls.findIndex((t) => GENERIC_LLM_TOOLS.includes(t.function?.name ?? ""));
+      if (misroutedIdx >= 0) {
+        logger.info("runKoruBackendTurn", `${idPrefix} CORRECTED (tool genérica → ${name})`, {
+          from: toolCalls[misroutedIdx].function?.name,
+          ...args,
+        });
+        toolCalls[misroutedIdx] = call;
+      } else {
+        logger.info("runKoruBackendTurn", `${idPrefix} INJECTED (LLM no llamó la tool)`, {
+          ...args,
+          totalTools: toolCalls.length + 1,
+        });
+        toolCalls.push(call);
+      }
+    };
+    const cryptoInject = cryptoPriceArgsFromInput(inputTrimmed);
+    if (cryptoInject) {
+      injectOrCorrect("crypto_price", cryptoInject, "crypto_intent", new Set(["crypto_price", "stock_quote", "exchange_history", "currency_convert"]));
+    }
+    recipeIntentArgs = recipeArgsFromInput(inputTrimmed);
+    if (recipeIntentArgs) {
+      injectOrCorrect("recipe_find", recipeIntentArgs, "recipe_intent", new Set(["recipe_find", "recipe_by_ingredients", "recipe_save", "recipe_show"]));
+    }
+  }
+
   // V3 FIX: Multi-intent determinista — si el input contiene conectores y el LLM
   // solo emitió 1 tool_call, agregar un segundo tool_call para el segundo intent.
   if (toolCalls.length === 1 && /\b(y|además|también|por otro lado)\b/i.test(request.input)) {
@@ -5172,6 +5356,30 @@ export async function runKoruBackendTurn(
     messages.push({ role: "assistant", content: "", tool_calls: toolCalls });
 
     const delivered = await executeProviderToolCalls(toolCalls, messages, request, toolExecutions, config);
+
+    // 🔴 FIX CARDS (2026-09-12): fallback a web_search en el flujo NATIVO cuando
+    // recipe_find no encuentra nada. TheMealDB indexa nombres EN inglés: "receta
+    // de milanesas" → 0 resultados → sin este fix el usuario ve "no encontré
+    // recetas" en TEXTO sin tarjeta (el fallback ya existía en el path del
+    // router, pero acá no). La ejecución fallida se quita para no ensuciar el reply.
+    {
+      const failedRecipeIdx = toolExecutions.findIndex((e) =>
+        e.name === "recipe_find" && ((e.result as any)?.status === "no_data" || (e.result as any)?.status === "failed"));
+      const hasWebSearch = toolCalls.some((t) => t.function?.name === "web_search");
+      if (failedRecipeIdx >= 0 && !hasWebSearch) {
+        const failedQuery = cleanText((toolExecutions[failedRecipeIdx].result as any)?.query);
+        const fallbackQuery = `receta ${failedQuery || recipeIntentArgs?.query || inputTrimmed}`.trim();
+        logger.info("runKoruBackendTurn", "recipe_find sin resultados en flujo nativo → fallback web_search", { fallbackQuery });
+        const fallbackToolCall: ProviderToolCall = {
+          id: `recipe_fallback_${Date.now()}`,
+          type: "function",
+          function: { name: "web_search", arguments: JSON.stringify({ query: fallbackQuery, mode: "research" }) },
+        };
+        messages.push({ role: "assistant", content: "", tool_calls: [fallbackToolCall] });
+        await executeProviderToolCalls([fallbackToolCall], messages, request, toolExecutions, config);
+        toolExecutions.splice(failedRecipeIdx, 1);
+      }
+    }
     // 🔴 KORU 3.0 — SIEMPRE hacer síntesis LLM después de tools nativas.
     // Antes: si delivered=true, saltaba la síntesis y el reply quedaba
     // como JSON crudo o texto de thinking del LLM.

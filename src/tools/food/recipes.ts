@@ -49,6 +49,88 @@ function extractIngredients(meal: MealDbMeal): Array<{ ingredient: string; measu
 }
 
 // ─── recipe_find ────────────────────────────────────────────────────────────
+// 🔴 FIX CARDS (2026-09-12): TheMealDB indexa en INGLÉS — "receta de pollo"
+// devolvía 0 resultados y el usuario se quedaba sin tarjeta. Dos mejoras:
+// 1) Diccionario ES→EN de términos culinarios comunes aplicado al query.
+// 2) Si la búsqueda por nombre falla, segundo intento por INGREDIENTE
+//    (filter.php?i=) completando cada match con lookup.php?i= (el filtro
+//    no trae instrucciones; lookup sí).
+const ES_EN_FOOD: Record<string, string> = {
+  pollo: "chicken", carne: "beef", res: "beef", ternera: "beef", cerdo: "pork",
+  pescado: "fish", salmon: "salmon", atun: "tuna", camarones: "shrimp",
+  gambas: "prawns", langostinos: "prawns", arroz: "rice", fideos: "noodles",
+  espaguetis: "spaghetti", espagueti: "spaghetti", tallarines: "spaghetti",
+  sopa: "soup", guiso: "stew", estofado: "stew", torta: "cake", bizcocho: "cake",
+  galletas: "cookies", flan: "flan", postre: "dessert", postres: "dessert",
+  pan: "bread", huevo: "egg", huevos: "eggs", queso: "cheese", ensalada: "salad",
+  papas: "potato", patatas: "potato", papa: "potato", batata: "sweet potato",
+  tomate: "tomato", tomates: "tomato", cebolla: "onion", cebollas: "onion",
+  ajo: "garlic", ajos: "garlic", zanahoria: "carrot", champinones: "mushroom",
+  hongos: "mushroom", setas: "mushroom", lentejas: "lentils", garbanzos: "chickpea",
+  porotos: "beans", judias: "beans", habichuelas: "beans", maiz: "corn",
+  choclo: "corn", elote: "corn", calabaza: "pumpkin", zapallo: "pumpkin",
+  brocoli: "broccoli", coliflor: "cauliflower", espinaca: "spinach",
+  lechuga: "lettuce", palta: "avocado", aguacate: "avocado", platano: "banana",
+  banana: "banana", manzana: "apple", pera: "pear", durazno: "peach",
+  frutilla: "strawberry", fresa: "strawberry", frambuesa: "raspberry",
+  mora: "blackberry", naranja: "orange", limon: "lemon", miel: "honey",
+  crema: "cream", nata: "cream", leche: "milk", manteca: "butter",
+  mantequilla: "butter", harina: "flour", azucar: "sugar", chocolate: "chocolate",
+  chicharron: "pork", costillas: "ribs", albondigas: "meatballs",
+  chorizo: "chorizo", jamon: "ham", tocino: "bacon", panceta: "bacon",
+  hamburguesa: "hamburger", pizza: "pizza", lasana: "lasagne", canelones: "cannelloni",
+  ravioles: "ravioli", gnocchi: "gnocchi", empanada: "empanada", tacos: "tacos",
+  // 🔴 FIX: milanesa(s) no existe en el índice EN — "breaded" encuentra
+  // "Breaded Steak Recipe (Lomo de Res Apanado)", el equivalente exacto.
+  milanesa: "breaded", milanesas: "breaded",
+  burrito: "burrito", quesadilla: "quesadilla", ceviche: "ceviche",
+  paella: "paella", risotto: "risotto", carbonara: "carbonara",
+};
+
+// Conectores españoles que no aportan al índice EN ("sopa DE tomate").
+const ES_CONNECTORS = new Set(["de", "del", "la", "el", "los", "las", "un", "una", "unos", "unas", "con", "y", "en", "al"]);
+// Tipos de plato: si quedan primero en inglés, invertir ("soup tomato" → "tomato soup").
+const DISH_TYPES = new Set(["soup", "salad", "stew", "cake", "dessert", "bread", "curry", "pie", "risotto", "paella"]);
+
+export function translateQueryToEnglish(query: string): string {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  const translated = words
+    .map((w) => {
+      const stem = w.replace(/(es|s)$/, "");
+      return ES_EN_FOOD[w] ?? ES_EN_FOOD[stem] ?? w;
+    })
+    .filter((w) => w.length > 0 && !ES_CONNECTORS.has(w));
+  if (translated.length > 1 && DISH_TYPES.has(translated[0])) {
+    translated.reverse();
+  }
+  return translated.join(" ");
+}
+
+async function searchMealsByName(translated: string): Promise<MealDbMeal[]> {
+  const r = await fetchJson<{ meals?: MealDbMeal[] }>(
+    `${MEALDB_BASE}/search.php?s=${encodeURIComponent(translated)}`,
+    { timeoutMs: 9_000 },
+  );
+  if (!r.ok) throw new Error(r.error);
+  return r.data!.meals ?? [];
+}
+
+async function searchMealsByIngredient(ingredient: string): Promise<MealDbMeal[]> {
+  const f = await fetchJson<{ meals?: MealDbMeal[] }>(
+    `${MEALDB_BASE}/filter.php?i=${encodeURIComponent(ingredient)}`,
+    { timeoutMs: 9_000 },
+  );
+  if (!f.ok || !f.data?.meals?.length) return [];
+  const ids = f.data.meals.slice(0, 5).map((m) => m.idMeal).filter(Boolean) as string[];
+  const full = await Promise.all(ids.map(async (id) => {
+    try {
+      const l = await fetchJson<{ meals?: MealDbMeal[] }>(`${MEALDB_BASE}/lookup.php?i=${id}`, { timeoutMs: 9_000 });
+      return l.ok ? (l.data?.meals?.[0] ?? null) : null;
+    } catch { return null; }
+  }));
+  return full.filter((m): m is MealDbMeal => m !== null);
+}
+
 export const recipeFind: ToolHandler = {
   definition: defineTool(
     "recipe_find",
@@ -67,14 +149,23 @@ export const recipeFind: ToolHandler = {
     const query = String(args.query ?? "").trim();
     if (!query) return { type: "recipe_find", status: "failed", error: "Indica qué receta." };
 
-    const cacheKey = `recipe:${query.toLowerCase()}`;
+    // 🔴 FIX: traducir términos españoles antes de golpear TheMealDB (índice EN).
+    const translated = translateQueryToEnglish(query) || query;
+    const cacheKey = `recipe:${translated.toLowerCase()}`;
     const meals = await cached<MealDbMeal[]>(cacheKey, ttls.reference, async () => {
-      const r = await fetchJson<{ meals?: MealDbMeal[] }>(
-        `${MEALDB_BASE}/search.php?s=${encodeURIComponent(query)}`,
-        { timeoutMs: 9_000 },
-      );
-      if (!r.ok) throw new Error(r.error);
-      return r.data!.meals ?? [];
+      let found = await searchMealsByName(translated);
+      if (found.length === 0) {
+        // 2do intento: por ingrediente principal ("pollo" → filter.php?i=chicken).
+        const mainIngredient = translated.split(/\s+/).find((w) => w.length >= 3);
+        if (mainIngredient) {
+          try {
+            found = await searchMealsByIngredient(mainIngredient);
+          } catch {
+            found = [];
+          }
+        }
+      }
+      return found;
     });
 
     if (meals.length === 0) {
