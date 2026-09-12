@@ -88,7 +88,7 @@ export function MtlInterior({ block, onClose, onSave }: LecturaInteriorProps<Mtl
   else if (league) meta.push({ label: "Liga", value: league });
 
   return (
-    <LecturaShell
+    <LecturaShell variant="football"
       onClose={onClose}
       onBookmark={onSave ? () => onSave(title, next?.date) : undefined}
       chip={{ label: "Fixture", background: "linear-gradient(135deg,#34d399,#2FC86E)" }}
@@ -158,50 +158,19 @@ export function MtlInterior({ block, onClose, onSave }: LecturaInteriorProps<Mtl
             <Ic i={ChartScatter} className="ic" />
             <p>
               {extract.slice(0, 220)}
-              {extract.length > 220 ? "…" : ""} <b>Te aviso antes del partido.</b>
+              {extract.length > 220 ? "…" : ""}
             </p>
           </div>
         )}
 
-        {items.length > 0 && (
-          <div className="fx2-note rv">
-            <Ic i={CalendarDays} className="ic" />
-            <p>
-              {items
-                .slice(-4)
-                .map((it) => `${it.minute ? `${it.minute}′ ` : ""}${it.text}`)
-                .join(" · ")}
-            </p>
-          </div>
-        )}
-
-        {/* 🔴 FIX ESCUDOS — lista de próximos con mini-escudos reales por partido */}
-        {items.length > 1 && (
-          <div className="fx2-note rv">
-            <Ic i={CalendarDays} className="ic" />
-            <div style={{ display: "flex", flexDirection: "column", gap: 7, flex: 1 }}>
-              {items.slice(0, 4).map((it: any, idx: number) => (
-                <div key={`upc_${idx}`} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, fontWeight: 700, color: "#4B5266" }}>
-                  <span style={{ minWidth: 46, color: "#8A90A8", fontWeight: 800 }}>{it.minute ?? "—"}</span>
-                  {(it.homeLogo || it.awayLogo) && (
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3, flexShrink: 0 }}>
-                      {it.homeLogo && <img src={it.homeLogo} alt="" style={{ width: 18, height: 18, objectFit: "contain" }} loading="lazy" />}
-                      {it.awayLogo && <img src={it.awayLogo} alt="" style={{ width: 18, height: 18, objectFit: "contain" }} loading="lazy" />}
-                    </span>
-                  )}
-                  <span style={{ flex: 1, lineHeight: 1.35 }}>{it.text}</span>
-                  {it.sub && <span style={{ color: "#8A90A8", fontSize: 9.5, textAlign: "right", lineHeight: 1.3 }}>{it.sub}</span>}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {items.length > 0 && <section className="md-section"><h2><CalendarDays size={21} />La actividad de tu equipo</h2><ol className="md-timeline">{items.map((item, index) => <li key={index}><span className="md-time">{item.minute || "Partido"}</span><p>{item.text}</p>{item.sub && <small>{item.sub}</small>}</li>)}</ol></section>}
 
         <div className="actions">
           <button
             type="button"
             className="btn primary"
             aria-pressed={following}
+            disabled={following}
             onClick={() => {
               const nextF = !following;
               setFollowing(nextF);
@@ -231,7 +200,7 @@ export function MtlInterior({ block, onClose, onSave }: LecturaInteriorProps<Mtl
           ) : (
             <button type="button" className="btn ghost" onClick={() => onClose()}>
               <Ic i={CalendarDays} className="ic" />
-              Ver todo el mes
+              Volver al chat
             </button>
           )}
         </div>

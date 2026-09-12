@@ -66,7 +66,7 @@ describe("MtlInterior", () => {
   it("el extracto real del teamInfo va a la nota", () => {
     render(<MtlInterior block={mtlBlock} onClose={vi.fn()} />);
     expect(screen.getByText(/tres victorias seguidas en casa/i)).toBeInTheDocument();
-    expect(screen.getByText(/te aviso antes del partido/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", {name:/recordarme antes/i})).toBeInTheDocument();
   });
 
   it("recordarme despacha create_commitment con fecha real", () => {
@@ -100,7 +100,9 @@ describe("MtlInterior", () => {
         onClose={vi.fn()}
       />,
     );
-    expect(screen.getByText(/45\+2′ gol de boca · 61′ roja para el visitante/i)).toBeInTheDocument();
+    expect(screen.getByText("Gol de Boca")).toBeInTheDocument();
+    expect(screen.getByText("Roja para el visitante")).toBeInTheDocument();
+    expect(screen.getByText("cabeza")).toBeInTheDocument();
     // 🔴 v2: con items presentes y sin nextMatch, el subtítulo describe los
     // partidos de la ventana (antes: "cuando haya fecha confirmada").
     expect(screen.getByText(/partidos de la ventana de espn/i)).toBeInTheDocument();
