@@ -11,7 +11,7 @@ export const URGENT = {type:"news_urgent",headline:"Alerta por tormenta que avan
 export const BLOCKS = {news:{...NEWS,sources:NEWS.sources.slice(0,1)},carousel:NEWS,urgent:URGENT,recipe:RECIPE,crypto:CRYPTO,stocks:STOCK};
 export async function openNewCard(page:Page,kind:keyof typeof BLOCKS) {
  await openResearch(page);
- await emitResearch(page,{...researchChunk("done",100),reply:"Acá está lo que me pediste.",uiBlocks:[BLOCKS[kind]],mascotState:"happy"},true);
+ await emitResearch(page,{...researchChunk("done",100),reply:"Aquí está lo que me pediste.",uiBlocks:[BLOCKS[kind]],mascotState:"happy"},true);
  await page.locator(".mn-card").first().waitFor();
  await page.locator(".mn-card").first().evaluate(el=>{ const scroller=el.closest("main"); if(scroller)scroller.scrollTop=scroller.scrollHeight; });
 }
