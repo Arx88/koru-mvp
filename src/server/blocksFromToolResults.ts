@@ -192,10 +192,13 @@ export function blocksFromToolResults(results: ToolExecution[], userInput?: stri
           symbol: r.symbol || "BTC",
           name: r.coin || "Bitcoin",
           price: `${r.price} ${r.currency || "USD"}`,
-          change: r.change24hPct ?? 0,
+          change: r.change24hPct,
           color: "#f59e0b",
           bg: "#fffbeb",
           char: r.symbol?.[0] || "₿",
+          marketCap: typeof r.marketCap === "number" ? formatCompactNumber(r.marketCap, r.currency || "USD") : undefined,
+          volume: typeof r.volume24h === "number" ? formatCompactNumber(r.volume24h, r.currency || "USD") : undefined,
+          series: Array.isArray(r.series) ? r.series : undefined,
         }],
         sources: r.source ? [{ title: r.source, url: r.sourceUrl || "", domain: r.source }] : [],
       });
@@ -209,9 +212,11 @@ export function blocksFromToolResults(results: ToolExecution[], userInput?: stri
         assets: [{
           symbol: String(r.symbol ?? "STOCK"),
           name: String(r.name ?? r.symbol ?? "Accion"),
-          price: r.close != null ? String(r.close) : "?",
+          price: r.close != null ? `${r.close}${r.currency ? ` ${r.currency}` : ""}` : "Cotización no disponible",
           change: r.change24hPct != null ? `${r.change24hPct >= 0 ? "up" : "down"} ${Math.abs(r.change24hPct)}%` : "-",
           changeUp: Number(r.change24hPct ?? 0) >= 0,
+          volume: typeof r.volume === "number" ? new Intl.NumberFormat("es", { notation: "compact" }).format(r.volume) : undefined,
+          series: Array.isArray(r.series) ? r.series : undefined,
         }],
       });
       continue;
@@ -981,6 +986,7 @@ export function blocksFromToolResults(results: ToolExecution[], userInput?: stri
       blocks.push({
         type: "research_sources" as const,
         title: r.topic ?? r.query ?? "Noticias",
+        mode: "news",
         summary: (r.summary ?? "").slice(0, 800),
         sources: items.slice(0, 6).map((a: any) => ({
           title: a.title ?? a.headline ?? "",

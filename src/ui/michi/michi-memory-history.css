@@ -1,0 +1,59 @@
+.mw-memory.mx-page-content,.mw-history.mx-page-content { padding:8px 14px 28px; }
+.mw-memory .mw-memory-heading,.mw-history header { min-height:166px; border-radius:29px; padding:19px 18px; display:block; overflow:hidden; background:radial-gradient(ellipse at 0 100%,#fff 0,transparent 55%),linear-gradient(120deg,#eae5ff,#d8f6ff); }
+.mw-memory .mw-memory-heading>div { position:relative; width:58%; z-index:1; }
+.mw-memory .mw-memory-heading h1,.mw-history header h1 { font-size:32px; color:#10085d; letter-spacing:-.7px; }
+.mw-memory .mw-memory-heading p { font-size:12px; line-height:1.42; color:#262079; }
+.mw-memory .mh-header-art,.mw-history header .mh-header-art { position:absolute; right:-8px; bottom:-10px; width:51%; height:100%; object-fit:contain; object-position:bottom right; }
+.mw-memory .mw-eyebrow { font-size:10px; color:#5747d0; }
+.mw-memory .mw-memory-tickets { gap:6px; margin:10px 0 12px; }
+.mw-memory .mw-memory-tickets>div { display:grid; grid-template-columns:29px 1fr; grid-template-rows:1fr auto; gap:2px 3px; border-radius:18px; padding:9px 5px; min-height:62px; }
+.mh-ticket-icon { grid-row:span 2; width:27px; height:34px; padding:3px; border-radius:11px; color:#6151f5; background:#e3e9ff; }
+.mw-memory-tickets>div:nth-child(2) .mh-ticket-icon { color:#b78314; background:#fff0c3; }
+.mw-memory-tickets>div:nth-child(3) .mh-ticket-icon { color:#ff4e91; background:#ffe0ef; }
+.mw-memory .mw-memory-tickets strong { text-align:center; font-size:27px; }
+.mw-memory .mw-memory-tickets span { text-align:center; font-size:9px; line-height:1.1; }
+.mw-memory .mw-pocket-content { border-radius:25px; background:linear-gradient(130deg,#ffffffef,#eaf9fff0); padding:16px 12px; }
+.mw-memory .mw-section-title { justify-content:flex-start; gap:9px; }
+.mw-memory .mw-section-title>svg { color:#4f7cff; flex-shrink:0; }
+.mw-memory .mw-section-title h2 { font-size:21px; letter-spacing:-.4px; }
+.mw-memory .mw-section-title p { font-size:12px; color:#687ccc; margin:1px 0 0; }
+.mw-memory .mw-search { margin-top:13px; border-radius:16px; }
+.mw-memory .mw-filters button { min-height:38px; font-size:11px; }
+.mw-memory .mw-keepsake { display:flex; align-items:center; gap:10px; padding:12px 9px; border-radius:21px; }
+.mh-memory-icon { width:48px; height:58px; border-radius:15px; flex-shrink:0; display:grid; place-items:center; color:#6541ff; background:linear-gradient(130deg,#eee6ff,#c7dcff); }
+.mh-memory-icon svg { filter:drop-shadow(0 3px 2px #7068e84d); }
+.mw-memory-list li:nth-child(3n+2) .mh-memory-icon { color:#fc9860; background:linear-gradient(120deg,#e5edff,#cbf2ff); }
+.mh-memory-copy { flex:1; min-width:0; display:block; }
+.mw-memory .mw-keepsake-top { flex-wrap:wrap; gap:5px; }
+.mw-memory .mw-keepsake-top>span:first-child { color:#3f7aff; font-size:10px; }
+.mw-memory .mw-keepsake-top>span:last-child { font-size:9px; border-radius:14px; padding:4px 6px; }
+.mw-memory .mw-keepsake p { font-size:14px; line-height:1.3; font-weight:850; margin:7px 0; }
+.mw-memory .mw-keepsake-foot { font-size:10px; }
+.mh-memory-footer { display:flex; align-items:center; justify-content:center; gap:6px; margin:14px 0 0; padding:13px 8px; border:1px solid white; border-radius:30px; background:#ffffffdf; color:#5979e6; font-size:11px; }
+.mw-history header { min-height:123px; padding-right:43%; }
+.mw-history header .mh-header-art { width:48%; }
+.mw-history header .mw-eyebrow { font-size:9px; position:relative; z-index:1; }
+.mw-history header h1 { font-size:29px; position:relative; z-index:1; }
+.mw-history header p { font-size:12px; line-height:1.4; position:relative; z-index:1; }
+.mw-history ol { list-style:none; padding:0; gap:15px; margin-top:15px; }
+.mw-history ol>li>p { display:flex; align-items:center; gap:9px; max-width:100%; padding:7px 12px; border-radius:25px; text-transform:none; letter-spacing:0; color:#271187; font-size:13px; margin-bottom:7px; }
+.mw-history ol>li>p span { font-size:11px; font-weight:500; color:#6a78b1; }
+.mw-history ul { padding:0; list-style:none; gap:7px; }
+.mw-history .mh-history-row { display:block; position:relative; padding:0; border-radius:20px; overflow:hidden; }
+.mh-history-toggle { display:flex; align-items:center; gap:10px; width:100%; padding:12px 11px; text-align:left; color:#140b5c; border:0; background:transparent; cursor:pointer; }
+.mh-history-toggle>span { width:46px; height:46px; background:#ffe1ed; color:#ff3c8a; }
+.mh-history-toggle>span svg { width:24px; height:24px; color:inherit; }
+.is-cierre .mh-history-toggle>span { color:#7234f9; background:#e7e2ff; }
+.is-memoria .mh-history-toggle>span { color:#12bb85; background:#d7fcec; }
+.mh-history-toggle>div { min-width:0; }
+.mh-history-toggle p { color:#161063; margin:0; font-size:13px; font-weight:850; line-height:1.3; }
+.mh-history-toggle p.mt-0\.5 { color:#6978b8; font-size:12px; font-weight:500; margin-top:3px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.mh-history-toggle .text-xs { font-size:10px; color:#6d7db9; flex-shrink:0; }
+.mh-history-tag { display:inline-block; margin-top:6px; background:#e3dfff; color:#6436f4; border-radius:12px; padding:2px 7px; font-size:10px; font-weight:750; }
+.mh-energy { display:inline-flex; align-items:center; gap:2px; float:right; margin-top:7px; font-size:10px; color:#773fff; font-weight:850; }
+.mh-history-chevron { flex-shrink:0; color:#4316d7; }
+.mh-history-toggle[aria-expanded=true]>.mh-history-chevron { transform:rotate(90deg); }
+.mh-history-detail { padding:0 16px 15px 67px; font-size:13px; color:#6978b8; }
+.mh-history-detail p { margin:6px 0; overflow-wrap:anywhere; }
+.mh-history-toggle:focus-visible { outline:3px solid #6652fa; outline-offset:-3px; border-radius:20px; }
+@media(max-width:350px) { .mw-memory .mw-memory-heading { min-height:172px; padding:17px 13px; } .mw-memory .mw-memory-heading h1 { font-size:28px; } .mw-memory .mh-header-art { width:47%; } .mw-memory .mw-section-title h2 { font-size:18px; } .mw-memory .mw-keepsake { gap:7px; } .mh-memory-icon { width:38px; height:47px; } .mw-history header { padding-left:13px; } .mw-history header h1 { font-size:27px; } .mh-history-toggle { gap:7px; padding:11px 8px; } .mh-history-toggle>span { width:38px; height:38px; } }

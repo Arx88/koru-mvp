@@ -813,6 +813,9 @@ export type UiBlock =
         price: string;
         change: string;
         changeUp: boolean;
+        marketCap?: string;
+        volume?: string;
+        series?: Array<{ label: string; values: number[] }>;
         icon?: string;
         iconBg?: string;
         iconColor?: string;
@@ -996,6 +999,9 @@ export type UiBlock =
         change: number;
         color: string;
         bg: string;
+        marketCap?: string;
+        volume?: string;
+        series?: Array<{ label: string; values: number[] }>;
         char?: string;
         /** 🔴 KIMI Card 06 — cantidad de la moneda (ej: 0.042). */
         amount?: number;

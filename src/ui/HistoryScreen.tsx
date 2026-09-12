@@ -1,5 +1,6 @@
 import { WorldObject } from "./michi/WorldObject";
-import { Bell, Heart, MoonStar } from "lucide-react";
+import { Bell, Heart, Sparkles, CalendarDays, ChevronRight, Zap } from "lucide-react";
+import { useState } from "react";
 import { useKoru, type HistoryEntry } from "./KoruProvider";
 import { cn } from "../lib/utils";
 import { localDateISO, shiftDateISO } from "../domain/localDate";
@@ -7,7 +8,7 @@ import { localDateISO, shiftDateISO } from "../domain/localDate";
 const KIND_META = {
   "check-in": { icon: Bell, tint: "text-gold", bg: "bg-gold/15" },
   memoria: { icon: Heart, tint: "text-moss", bg: "bg-moss/15" },
-  cierre: { icon: MoonStar, tint: "text-forest", bg: "bg-forest/10" },
+  cierre: { icon: Sparkles, tint: "text-forest", bg: "bg-forest/10" },
 } as const;
 
 /** Etiqueta del día: Hoy / Ayer / fecha corta. */
@@ -40,7 +41,7 @@ export function HistoryScreen() {
     <div className="mx-page-content mw-history flex h-full flex-col px-6 pb-4 pt-8">
       <header className="animate-rise">
         <span className="mw-eyebrow">PASO A PASO CON MICHI</span>
-        <WorldObject kind="history" />
+        <img className="mh-header-art" src="/assets/michi-cards/history.webp" alt="" width="400" height="400" />
         <h1 className="font-serif text-2xl text-bark">Historial</h1>
         <p className="mt-1 text-sm text-earth">
           Lo que hicimos juntos, un día a la vez.
@@ -60,7 +61,7 @@ export function HistoryScreen() {
           {groups.map((group) => (
             <li key={group.date}>
               <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-stone">
-                {dayLabel(group.date)}
+                <CalendarDays size={21} /><strong>{dayLabel(group.date)}</strong><span>{group.entries.length} {group.entries.length === 1 ? "actividad" : "actividades"}</span>
               </p>
               <ul className="flex flex-col gap-3">
                 {group.entries.map((entry) => (
@@ -76,10 +77,12 @@ export function HistoryScreen() {
 }
 
 function HistoryRow({ entry }: { entry: HistoryEntry }) {
+  const [expanded, setExpanded] = useState(false);
   const meta = KIND_META[entry.kind];
   const Icon = meta.icon;
   return (
-    <li className="mx-history-card flex gap-3 rounded-xl border border-sand bg-card p-4">
+    <li className={`mx-history-card mh-history-row is-${entry.kind}`}>
+      <button type="button" className="mh-history-toggle" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>
       <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full", meta.bg)}>
         <Icon className={cn("h-4 w-4", meta.tint)} />
       </span>
@@ -89,19 +92,17 @@ function HistoryRow({ entry }: { entry: HistoryEntry }) {
           <span className="text-xs text-stone">{entry.time}</span>
         </div>
         <p className="mt-0.5 text-sm leading-snug text-earth">{entry.detail}</p>
-        {entry.reason && (
-          <p className="mt-2 rounded-lg bg-warm-white px-3 py-2 text-xs leading-relaxed text-earth">
-            <span className="font-semibold">Por qué: </span>
-            {entry.reason}
-          </p>
-        )}
+        <span className="mh-history-tag">{entry.kind === "check-in" ? "Rutina diaria" : entry.kind === "memoria" ? "Recuerdo guardado" : "Acción completada"}</span>
         {/* 🔴 FIX: antes decía "+14 energía · raíz nueva" para TODO — energía
             inventada y raíces que no se crearon. Solo el energyAwarded REAL
             de los check-ins se muestra, sin claims falsos. */}
         {entry.kind === "check-in" && entry.energy ? (
-          <p className="mt-2 text-xs font-medium text-moss">+{entry.energy} energía</p>
+          <span className="mh-energy"><Zap size={14} fill="currentColor" />+{entry.energy} energía</span>
         ) : null}
       </div>
+      <ChevronRight className="mh-history-chevron" size={20} />
+      </button>
+      {expanded && <div className="mh-history-detail"><p>{entry.detail}</p>{entry.reason && <p><strong>Por qué: </strong>{entry.reason}</p>}<small>{dayLabel(entry.date)} · {entry.time}</small></div>}
     </li>
   );
 }

@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { FolderHeart, PawPrint, Sparkles } from "lucide-react";
 import "./michi-save.css";
 
-export function MichiSaveSheet({ title, automaticCollection, collections = [], onSave, onClose }: {
+export function MichiSaveSheet({ title, heading = "Guardar informe", automaticCollection, collections = [], onSave, onClose }: {
   title: string;
+  heading?: string;
   automaticCollection: string;
   collections?: string[];
   onSave: (collection: string) => void;
@@ -42,7 +43,7 @@ export function MichiSaveSheet({ title, automaticCollection, collections = [], o
     }}>
       <div className="ms-save-hero" aria-hidden="true"><img src="/assets/michi-icons/save-michi.webp" alt="" width="1000" height="500" /><span className="ms-save-handle" /></div>
       <div className="ms-save-body">
-        <h2 id="ms-save-title">Guardar informe</h2>
+        <h2 id="ms-save-title">{heading}</h2>
         <p className="ms-save-subtitle" title={title}>{title}</p>
         <fieldset className="ms-save-options">
           <legend className="sr-only">Dónde guardar el informe</legend>
