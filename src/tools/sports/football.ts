@@ -293,7 +293,23 @@ function espnEventState(e: EspnEvent): "pre" | "in" | "post" {
  * pregunta el viernes) quedaban FUERA → no_data → card de próximo partido.
  * Ahora: UN fetch por liga con rango `dates=START-END` (ESPN lo soporta),
  * ventana de 12 días atrás + 14 adelante, cacheado 60s anti rate-limit.
+ *
+ * 🔴 FIX MUNDIAL (2026-09-12) — dos bugs encadenados con selecciones nacionales:
+ * 1) VENTANA CORTA: una selección puede no jugar por meses (post-Mundial,
+ * ventanas de amistosos). "quién ganó la final del Mundial" a 55 días de la
+ * final (19/7/2026) caía FUERA de los 12 días → 0 resultados → el LLM
+ * alucinaba ("esa final no existió").
+ * 2) CAP DE 100 EVENTOS DE ESPN: NO se puede simplemente ensanchar la ventana —
+ * `dates=` con >100 eventos devuelve los MÁS VIEJOS y CORTA los más nuevos
+ * (verificado: rango 11/6→19/7 completo = 100 eventos hasta el 12/7, SIN la
+ * final). Solución: back-fill por CHUNKS de ~30 días, del más reciente hacia
+ * atrás, CORTANDO al primer chunk con match del equipo (el usuario quiere el
+ * último partido jugado, no todo el historial).
+ * Las selecciones juegan en ≤3 ligas ESPN → solo se fetchean esas (más rápido
+ * que las 19 ligas de clubes).
  */
+const NATIONAL_LEAGUE_IDS = new Set(["fifa.world", "uefa.euro", "uefa.nations"]);
+
 async function searchEspnScoreboards(
   query: string,
   opts: { fromDays?: number; toDays?: number } = {},
@@ -304,12 +320,15 @@ async function searchEspnScoreboards(
   const results: Array<{ event: EspnEvent; leagueId: string; leagueName: string }> = [];
 
   const now = new Date();
+  const DAY_MS = 86_400_000;
   const fmt = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, "");
-  const range = `${fmt(new Date(now.getTime() - fromDays * 86_400_000))}-${fmt(new Date(now.getTime() + toDays * 86_400_000))}`;
 
   const nationalTeam = detectNationalTeam(queryLower);
   const club = detectClub(queryLower);
   const leagueHit = detectLeague(queryLower);
+  // 🔴 FIX MUNDIAL: intención de selección (equipo nacional o liga de
+  // selecciones como el Mundial) → solo ligas de selecciones + back-fill.
+  const nationalIntent = !!nationalTeam || (!!leagueHit && NATIONAL_LEAGUE_IDS.has(leagueHit.id));
   // 🔴 Canonical detectado → matcheo PRECISO por nombre de equipo. Sin
   // canonical → fallback por tokens (equipos fuera del diccionario).
   const hasCanonical = !!(nationalTeam || club);
@@ -324,44 +343,90 @@ async function searchEspnScoreboards(
   // ("cómo salió la copa del rey de ayer" → eventos de esp.copa_del_rey).
   const leagueMode = !!leagueHit && !club && !nationalTeam;
 
+  const fetchRange = async (
+    league: { id: string; name: string },
+    startDate: Date,
+    endDate: Date,
+  ): Promise<EspnEvent[]> => {
+    const range = `${fmt(startDate)}-${fmt(endDate)}`;
+    const cacheKey = `espn:sb:${league.id}:${range}`;
+    const data = await cached<{ events?: EspnEvent[] }>(cacheKey, 60 * 1000, async () => {
+      const res = await fetch(`${ESPN_BASE}/${league.id}/scoreboard?dates=${range}`, {
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!res.ok) return {};
+      return await res.json() as { events?: EspnEvent[] };
+    });
+    return (data?.events ?? []).filter(Boolean);
+  };
+
+  const matchesQuery = (e: EspnEvent, leagueId: string): boolean => {
+    if (leagueMode && leagueHit?.id === leagueId) {
+      // Query de copa/liga → todos los eventos de esa liga
+      return true;
+    }
+    const eventName = (e.name ?? "").toLowerCase();
+    const comps = e.competitions ?? [];
+    const teams = comps.flatMap(c => (c.competitors ?? []).map(comp => comp.team?.displayName?.toLowerCase() ?? ""));
+    const termMatch = matchTerms.some(term =>
+      term.length >= 3 && (eventName.includes(term) || teams.some(t => t.includes(term)))
+    );
+    // 🔴 Fallback por tokens SOLO sin canonical: si el query dice "real
+    // madrid", el canonical ya matchea preciso; los tokens sueltos
+    // ("madrid") traerían partidos de Atlético Madrid por error.
+    const tokenMatch = !termMatch && !hasCanonical && teams.some(t =>
+      tokens.some(tok => t.length >= 4 && (t.includes(tok) || tok.includes(t)))
+    );
+    return termMatch || tokenMatch;
+  };
+
   const fetchLeague = async (league: { id: string; name: string }): Promise<void> => {
     try {
-      const cacheKey = `espn:sb:${league.id}:${range}`;
-      const data = await cached<{ events?: EspnEvent[] }>(cacheKey, 60 * 1000, async () => {
-        const res = await fetch(`${ESPN_BASE}/${league.id}/scoreboard?dates=${range}`, {
-          signal: AbortSignal.timeout(8000),
-        });
-        if (!res.ok) return {};
-        return await res.json() as { events?: EspnEvent[] };
-      });
-      const events = (data?.events ?? []).filter(Boolean);
-      for (const e of events) {
-        const isLeagueEvents = leagueHit?.id === league.id;
-        if (leagueMode && isLeagueEvents) {
-          // Query de copa/liga → todos los eventos de esa liga
-          results.push({ event: e, leagueId: league.id, leagueName: league.name });
-          continue;
-        }
-        const eventName = (e.name ?? "").toLowerCase();
-        const comps = e.competitions ?? [];
-        const teams = comps.flatMap(c => (c.competitors ?? []).map(comp => comp.team?.displayName?.toLowerCase() ?? ""));
-        const termMatch = matchTerms.some(term =>
-          term.length >= 3 && (eventName.includes(term) || teams.some(t => t.includes(term)))
+      if (!nationalIntent) {
+        // Comportamiento clásico de clubes: UNA ventana (pasado → futuro).
+        const events = await fetchRange(
+          league,
+          new Date(now.getTime() - fromDays * DAY_MS),
+          new Date(now.getTime() + toDays * DAY_MS),
         );
-        // 🔴 Fallback por tokens SOLO sin canonical: si el query dice "real
-        // madrid", el canonical ya matchea preciso; los tokens sueltos
-        // ("madrid") traerían partidos de Atlético Madrid por error.
-        const tokenMatch = !termMatch && !hasCanonical && teams.some(t =>
-          tokens.some(tok => t.length >= 4 && (t.includes(tok) || tok.includes(t)))
-        );
-        if (termMatch || tokenMatch) {
-          results.push({ event: e, leagueId: league.id, leagueName: league.name });
+        for (const e of events) {
+          if (matchesQuery(e, league.id)) {
+            results.push({ event: e, leagueId: league.id, leagueName: league.name });
+          }
         }
+        return;
+      }
+
+      // 🔴 FIX MUNDIAL: back-fill por chunks para selecciones. Chunk A =
+      // ventana estándar (incluye futuro); B..E = ~30 días hacia atrás.
+      // Corta al PRIMER chunk con match: el más reciente es el que importa.
+      const CHUNKS: Array<[number, number]> = [
+        [fromDays, -toDays], // A: [12d atrás, 14d adelante]
+        [42, 12], [72, 42], [102, 72], [132, 102],
+      ];
+      for (const [startBack, endBack] of CHUNKS) {
+        const events = await fetchRange(
+          league,
+          new Date(now.getTime() - startBack * DAY_MS),
+          new Date(now.getTime() - endBack * DAY_MS),
+        );
+        let found = 0;
+        for (const e of events) {
+          if (matchesQuery(e, league.id)) {
+            results.push({ event: e, leagueId: league.id, leagueName: league.name });
+            found++;
+          }
+        }
+        if (found > 0) break; // último partido del equipo encontrado → suficiente
       }
     } catch { /* league timeout — skip */ }
   };
 
-  await Promise.all(ESPN_LEAGUES.map(fetchLeague));
+  const leaguesToFetch = nationalIntent
+    ? ESPN_LEAGUES.filter(l => NATIONAL_LEAGUE_IDS.has(l.id))
+    : ESPN_LEAGUES;
+
+  await Promise.all(leaguesToFetch.map(fetchLeague));
 
   // Dedupe por id (mismo evento puede aparecer en múltiples ligas/fechas)
   const seen = new Set<string>();
@@ -751,7 +816,13 @@ export const matchLive: ToolHandler = {
       } catch { /* ignore */ }
     }
 
-    // Si tenemos datos adicionales, devolver status "ok" con info útil
+    // 🔴 FIX MUNDIAL (2026-09-12): este branch devuelveía status "ok" con
+    // matches=[] + Wikipedia del equipo → el LLM sintetizaba libre y NEGABA
+    // eventos reales ("esa final no existió, nunca se cruzaron en una final
+    // de Copa del Mundo") mezclando wiki stale con su conocimiento paramétrico.
+    // status "no_data" activa: (a) __forceHonestReply en blocksFromToolResults,
+    // (b) el fallback a web_search de los 3 paths (router/léxico/nativo).
+    // Se mantiene teamInfo/wiki/nextMatch adjuntos para contexto si hace falta.
     if (teamInfo || nextMatch || wikiExtract) {
       const infoSections: string[] = [];
       if (teamInfo?.stadium) infoSections.push(`Estadio: ${teamInfo.stadium}`);
@@ -764,16 +835,16 @@ export const matchLive: ToolHandler = {
 
       return {
         type: "match_live",
-        status: "ok",
+        status: "no_data",
         query,
         matches: nextMatch ? [normalizeEvent(nextMatch)] : [],
-        text: `No hay partidos recientes de "${query}". Pero te dejo info útil del equipo${infoSections.length > 0 ? ": " + infoSections.join(" · ") : "."}`,
+        text: `No encontré ese partido en mis fuentes (ESPN/TheSportsDB). Puede ser de una fecha anterior a mi ventana de búsqueda o de una competencia que no cubro todavía.`,
         teamInfo,
         nextMatch: nextMatch ? normalizeEvent(nextMatch) : undefined,
         wikipediaExtract: wikiExtract,
         sources: wikiSource ? [wikiSource] : undefined,
         source: teamInfo ? "TheSportsDB + Wikipedia" : "Wikipedia",
-        note: `No hay partidos recientes. Te mostramos info del equipo y próximo fixture.`,
+        note: `No encontré ese partido en mis fuentes deportivas (ESPN/TheSportsDB). Puede ser de una fecha o competencia fuera de mi cobertura.`,
       };
     }
 

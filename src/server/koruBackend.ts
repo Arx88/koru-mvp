@@ -5055,7 +5055,7 @@ export async function runKoruBackendTurn(
             }
             return { ...response, provider, model, fallbackReason: "router-" + route.category };
           }
-          messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo responde con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }. REGLAS PARA EL REPLY: 1) Si una tool devolvió matches=[] o status=partial, NO inventes nombres en tu reply. Di honestamente que no encontraste opciones específicas. 2) Si ejecutaste múltiples tools, tu reply debe mencionar TODOS los resultados, no solo el primero. 3) Los datos ya están en las cards. Tu reply SOLO debe enmarcar: 1-2 líneas cálidas. 4) NUNCA inventes datos que no estén en los tool results." });
+          messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo responde con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }. REGLAS PARA EL REPLY: 1) Si una tool devolvió matches=[] o status=partial, NO inventes nombres en tu reply. Di honestamente que no encontraste opciones específicas. 2) Si ejecutaste múltiples tools, tu reply debe mencionar TODOS los resultados, no solo el primero. 3) Los datos ya están en las cards. Tu reply SOLO debe enmarcar: 1-2 líneas cálidas. 4) NUNCA inventes datos que no estén en los tool results. 5) 🔴 ANTI-NEGACIÓN: si una tool no encontró el dato (matches=[] o no_data), PROHIBIDO afirmar que un evento o hecho NO ocurrió ('esa final no existió', 'nunca se cruzaron') ni completarlo desde tu memoria: tu conocimiento tiene fecha de corte y los eventos recientes pueden ser posteriores a ella. Di honestamente que no lo encontraste en tus fuentes y nada más. 6) En resultados deportivos: el marcador que cites en el reply debe ser SIEMPRE el del PRIMER match del tool result (el más reciente jugado). Los partidos de 'otros resultados' son contexto secundario — jamás cites su marcador como si fuera el principal." });
           // OPTIMIZACIÓN: usar Flash para la segunda llamada (síntesis de respuesta)
           const fastConfig2 = { ...config, nvidiaModel: config.nvidiaFastModel || "meta/llama-3.1-8b-instruct" };
           const secondResult = await callProvider(fastConfig2, messages, 30_000, false, "nvidia", undefined, fastConfig2.nvidiaModel);
@@ -5358,26 +5358,48 @@ export async function runKoruBackendTurn(
     const delivered = await executeProviderToolCalls(toolCalls, messages, request, toolExecutions, config);
 
     // 🔴 FIX CARDS (2026-09-12): fallback a web_search en el flujo NATIVO cuando
-    // recipe_find no encuentra nada. TheMealDB indexa nombres EN inglés: "receta
-    // de milanesas" → 0 resultados → sin este fix el usuario ve "no encontré
-    // recetas" en TEXTO sin tarjeta (el fallback ya existía en el path del
-    // router, pero acá no). La ejecución fallida se quita para no ensuciar el reply.
+    // una tool no encuentra nada. Nació para recipe_find (TheMealDB indexa EN
+    // inglés: "receta de milanesas" → 0 resultados), y 🔴 FIX MUNDIAL
+    // (2026-09-12) lo GENERALIZA: cualquier tool de datos externos con status
+    // no_data/failed dispara web_search antes de sintetizar — sin esto el LLM
+    // recibe "no encontré partidos" y confabula ("esa final no existió").
+    // Mismo patrón que el path del router (línea ~4908) y el léxico (~4717).
+    // Tools locales/de contexto personal quedan excluidas (no se buscan en la web).
     {
-      const failedRecipeIdx = toolExecutions.findIndex((e) =>
-        e.name === "recipe_find" && ((e.result as any)?.status === "no_data" || (e.result as any)?.status === "failed"));
-      const hasWebSearch = toolCalls.some((t) => t.function?.name === "web_search");
-      if (failedRecipeIdx >= 0 && !hasWebSearch) {
-        const failedQuery = cleanText((toolExecutions[failedRecipeIdx].result as any)?.query);
-        const fallbackQuery = `receta ${failedQuery || recipeIntentArgs?.query || inputTrimmed}`.trim();
-        logger.info("runKoruBackendTurn", "recipe_find sin resultados en flujo nativo → fallback web_search", { fallbackQuery });
+      const LOCAL_TOOLS = new Set([
+        "reminder_set", "alarm_set", "countdown", "save_personal_item", "save_memory",
+        "plan_day", "query_personal_context", "team_follow", "save_link", "save_for_later",
+      ]);
+      const failedIdx = toolExecutions.findIndex((e) => {
+        const r = e.result as any;
+        const failed = !!r && (r.status === "no_data" || r.status === "failed");
+        return failed && !LOCAL_TOOLS.has(e.name);
+      });
+      const hasWebSearch = toolCalls.some((t) => t.function?.name === "web_search")
+        || toolExecutions.some((e) => e.name === "web_search");
+      if (failedIdx >= 0 && !hasWebSearch) {
+        const failedTool = toolExecutions[failedIdx];
+        const failedQuery = cleanText((failedTool.result as any)?.query)
+          || cleanText((failedTool.result as any)?.title)
+          || inputTrimmed;
+        // 🔴 El query crudo del usuario preserva la intención completa: el query
+        // de la tool puede estar recortado ("argentina" en vez de "quién ganó
+        // la final del mundial argentina españa") y la búsqueda web saldría vaga.
+        // Para recetas mantenemos el prefix "receta" (sitios de cocina primero).
+        const fallbackQuery = failedTool.name === "recipe_find" && !/\breceta\b/i.test(inputTrimmed)
+          ? `receta ${inputTrimmed}`.trim()
+          : inputTrimmed || failedQuery;
+        logger.info("runKoruBackendTurn", "Native tool sin datos → fallback web_search", {
+          failedTool: failedTool.name, status: (failedTool.result as any)?.status, fallbackQuery,
+        });
         const fallbackToolCall: ProviderToolCall = {
-          id: `recipe_fallback_${Date.now()}`,
+          id: `native_fallback_${Date.now()}`,
           type: "function",
           function: { name: "web_search", arguments: JSON.stringify({ query: fallbackQuery, mode: "research" }) },
         };
         messages.push({ role: "assistant", content: "", tool_calls: [fallbackToolCall] });
         await executeProviderToolCalls([fallbackToolCall], messages, request, toolExecutions, config);
-        toolExecutions.splice(failedRecipeIdx, 1);
+        toolExecutions.splice(failedIdx, 1);
       }
     }
     // 🔴 KORU 3.0 — SIEMPRE hacer síntesis LLM después de tools nativas.
@@ -5412,7 +5434,7 @@ export async function runKoruBackendTurn(
     // Paso 2: segunda llamada (sin tools) para que el LLM síntetice la respuesta final.
     // Corre EN PARALELO con las extracciones diferidas de estructura (data_card),
     // para que el extractor (~11s) no sume latencia al turno.
-    messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo responde con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }. REGLAS PARA EL REPLY: 1) Si una tool devolvió matches=[] o status=partial, NO inventes nombres en tu reply. Di honestamente que no encontraste opciones específicas. 2) Si ejecutaste múltiples tools, tu reply debe mencionar TODOS los resultados, no solo el primero. 3) Los datos ya están en las cards. Tu reply SOLO debe enmarcar: 1-2 líneas cálidas. 4) NUNCA inventes datos que no estén en los tool results." });
+    messages.push({ role: "user", content: "REGLA ABSOLUTA: Solo responde con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }. REGLAS PARA EL REPLY: 1) Si una tool devolvió matches=[] o status=partial, NO inventes nombres en tu reply. Di honestamente que no encontraste opciones específicas. 2) Si ejecutaste múltiples tools, tu reply debe mencionar TODOS los resultados, no solo el primero. 3) Los datos ya están en las cards. Tu reply SOLO debe enmarcar: 1-2 líneas cálidas. 4) NUNCA inventes datos que no estén en los tool results. 5) 🔴 ANTI-NEGACIÓN: si una tool no encontró el dato (matches=[] o no_data), PROHIBIDO afirmar que un evento o hecho NO ocurrió ('esa final no existió', 'nunca se cruzaron') ni completarlo desde tu memoria: tu conocimiento tiene fecha de corte y los eventos recientes pueden ser posteriores a ella. Di honestamente que no lo encontraste en tus fuentes y nada más. 6) En resultados deportivos: el marcador que cites en el reply debe ser SIEMPRE el del PRIMER match del tool result (el más reciente jugado). Los partidos de 'otros resultados' son contexto secundario — jamás cites su marcador como si fuera el principal." });
     const deferredCards = (toolExecutions as ToolExecution[] & { __deferredDataCards?: Array<Promise<UiBlock | null>> }).__deferredDataCards ?? [];
     const [secondResult, ...resolvedCards] = await Promise.all([
       callProvider(config, messages, secondaryTimeout, false, preferredProvider, undefined, modelOverride),
@@ -5608,7 +5630,7 @@ export async function runKoruBackendTurn(
     // El flujo es: ejecutar tool → 2da llamada LLM (sin tools) → reply natural.
     // Paso 2: segunda llamada (sin tools) para que el LLM síntetice la respuesta final.
     messages.push({ role: "user", content: [
-      "REGLA ABSOLUTA: Solo responde con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }. REGLAS PARA EL REPLY: 1) Si una tool devolvió matches=[] o status=partial, NO inventes nombres en tu reply. Di honestamente que no encontraste opciones específicas. 2) Si ejecutaste múltiples tools, tu reply debe mencionar TODOS los resultados, no solo el primero. 3) Los datos ya están en las cards. Tu reply SOLO debe enmarcar: 1-2 líneas cálidas. 4) NUNCA inventes datos que no estén en los tool results.",
+      "REGLA ABSOLUTA: Solo responde con JSON puro válido. Sin markdown, sin backticks, sin texto introductorio, sin explicaciones. El JSON debe empezar con { y terminar con }. REGLAS PARA EL REPLY: 1) Si una tool devolvió matches=[] o status=partial, NO inventes nombres en tu reply. Di honestamente que no encontraste opciones específicas. 2) Si ejecutaste múltiples tools, tu reply debe mencionar TODOS los resultados, no solo el primero. 3) Los datos ya están en las cards. Tu reply SOLO debe enmarcar: 1-2 líneas cálidas. 4) NUNCA inventes datos que no estén en los tool results. 5) 🔴 ANTI-NEGACIÓN: si una tool no encontró el dato (matches=[] o no_data), PROHIBIDO afirmar que un evento o hecho NO ocurrió ('esa final no existió', 'nunca se cruzaron') ni completarlo desde tu memoria: tu conocimiento tiene fecha de corte y los eventos recientes pueden ser posteriores a ella. Di honestamente que no lo encontraste en tus fuentes y nada más. 6) En resultados deportivos: el marcador que cites en el reply debe ser SIEMPRE el del PRIMER match del tool result (el más reciente jugado). Los partidos de 'otros resultados' son contexto secundario — jamás cites su marcador como si fuera el principal.",
       "Responde SOLO con este formato: {\"reply\":\"texto natural en español\",\"mascotState\":\"happy\"}",
       "El campo 'reply' debe ser texto natural conversacional (NO JSON, NO markdown). Ej: 'Te dejé el detalle en la tarjeta.'",
       "NO repitas los datos de la tool en el reply — ya están en la card visual.",

@@ -707,6 +707,50 @@ export function normalizeFinalPayload(
     finalReply = cleanedReply;
   }
 
+  // 🔴 FIX MUNDIAL/CARDS (2026-09-12): si el reply PROMETE una tarjeta que no
+  // existe ("te dejé el detalle en la tarjeta") pero no se generó ningún
+  // uiBlock, el reply está mintiendo → quitar la promesa. El LLM copia esa
+  // frase de los ejemplos de los prompts de síntesis aunque no haya card.
+  // Patrones que NO se tocan: "tarjeta roja/amarilla" (fútbol) — solo promesas
+  // del tipo "en la tarjeta" / "te dejé … tarjeta".
+  if (uiBlocks.length === 0) {
+    const cardPromisePattern =
+      /[^.!?\n]*\b(?:en\s+la\s+(?:tarjeta|card)|te\s+dej[eé][^.!?\n]{0,60}\b(?:tarjeta|card)|(?:tarjeta|card)\s+(?:de\s+)?arriba)\b[^.!?\n]*[.!?\n]?/gi;
+    if (cardPromisePattern.test(finalReply)) {
+      const stripped = finalReply.replace(cardPromisePattern, " ").replace(/\s{2,}/g, " ").trim();
+      finalReply = stripped.length >= 10
+        ? stripped
+        : "Busqué, pero no conseguí datos suficientes para armarte la tarjeta. ¿Probamos con otras palabras?";
+    }
+  }
+
+  // 🔴 FIX MUNDIAL-2 (2026-09-12): verificación de marcador. Observado en vivo:
+  // el reply decía "España le ganó 2-1 a Argentina con gol de Ferran Torres al
+  // 106'" — mezcló el marcador de OTRO match de la sección "otros resultados"
+  // (semifinal Spain 2-1 Belgium) con el gol de la FINAL (1-0). La card era
+  // correcta; el reply mentía. Si el primer block es un live_match jugado con
+  // marcador real y el reply cita pares de dígitos que NO incluyen ese
+  // marcador (en ningún orden), el reply está mal → respuesta determinista
+  // desde el block (misma fuente de verdad que la card).
+  {
+    const firstBlock = uiBlocks[0] as any;
+    if (firstBlock?.type === "live_match") {
+      const hs = Number(firstBlock.homeScore);
+      const as = Number(firstBlock.awayScore);
+      const played = firstBlock.state === "post" || firstBlock.state === "in"
+        || /final|en vivo|live|ft|full/i.test(String(firstBlock.status ?? ""));
+      if (Number.isFinite(hs) && Number.isFinite(as) && played) {
+        const pairs = [...finalReply.matchAll(/\b(\d{1,2})\s*[-–]\s*(\d{1,2})\b/g)]
+          .map(m => [Number(m[1]), Number(m[2])] as const);
+        const scoreMentioned = pairs.some(([a, b]) => (a === hs && b === as) || (a === as && b === hs));
+        if (pairs.length > 0 && !scoreMentioned) {
+          finalReply = blockReply
+            || `${firstBlock.homeName ?? "?"} ${hs} - ${as} ${firstBlock.awayName ?? "?"}. Te dejo el detalle en la tarjeta.`;
+        }
+      }
+    }
+  }
+
   // 🔴 FIX CALIDAD: si el LLM dice "guardado/anotado/recordatorio" pero NO se creó
   // ningún commitment ni record, el LLM está mintiendo (dijo que guardó pero no lo hizo).
   // Crear un commitment sintético a partir del input para que al menos quede registrado.
