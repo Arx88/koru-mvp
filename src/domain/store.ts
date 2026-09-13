@@ -16,7 +16,7 @@ import {
   writeLegacyState,
   writePersistedState,
 } from "./persistence";
-import type { LearningPreference, RelevantMemory } from "./types";
+import type { LearningPreference, MichiActivityKind, RelevantMemory, TicTacMichProgress } from "./types";
 import { koruSoulCapsule } from "./soul";
 import { dueAtFromText, nextDueAtFromRecurrence } from "./time";
 import {
@@ -26,6 +26,12 @@ import {
   normalizeSchoolProgress,
   SCHOOL_XP_PER_ANSWER,
 } from "./michiSchool";
+import {
+  createTicTacProgress,
+  normalizeTicTacProgress,
+  recordTicTacResult,
+} from "./ticTacMich";
+import { ACTIVITY_PAUSE_MS } from "./michiActivities";
 import type {
   CalendarEvent,
   Commitment,
@@ -135,6 +141,8 @@ export function createInitialState(userId: string = "default"): KoruState {
     worldSignalsEnabled: false,
     learningPreferences: [],
     michiSchool: createSchoolProgress(),
+    ticTacMich: createTicTacProgress(),
+    michiInvites: {},
     language: "es",
     // 🔴 KORU 3.0 — preferences default con voz de Koru desactivada
     preferences: {
@@ -173,6 +181,11 @@ function normalizeState(parsed?: Partial<KoruState> | null): KoruState {
     // 🔴 KORU 3.0 — merge preferences para no perder campos al cargar estado viejo
     preferences: { ...initial.preferences, ...parsed.preferences },
     michiSchool: normalizeSchoolProgress(parsed.michiSchool),
+    ticTacMich: normalizeTicTacProgress(parsed.ticTacMich),
+    michiInvites: {
+      lastOfferedAt: parsed.michiInvites?.lastOfferedAt,
+      pausedUntil: parsed.michiInvites?.pausedUntil ?? {},
+    },
     memories: (parsed.memories ?? []).map((memory) => ({
       useForSuggestions: memory.useForSuggestions ?? memory.sensitivity === "normal",
       ...memory,
@@ -343,6 +356,61 @@ export function completeMichiSchoolQuestion(state: KoruState, questionId: string
     updatedAt: now,
   };
   next.stage = stageFor(next);
+  saveState(next);
+  return next;
+}
+
+/**
+ * 🔴 MICHI CONSCIENTE (2026-09-13) — registra una partida terminada de Tic Tac
+ * Mich en el estado central. Antes el resultado vivía SOLO en localStorage: la
+ * pantalla lo mostraba, pero el prompt nunca lo veía, así que Michi no podía
+ * comentar ni una partida ni proponer una revancha con datos reales.
+ * Idempotente por `playedAt` (protección contra StrictMode / doble render).
+ */
+export function recordTicTacMatch(
+  state: KoruState,
+  result: NonNullable<TicTacMichProgress["lastResult"]>,
+  difficulty: TicTacMichProgress["difficulty"],
+  playedAt: string = nowIso(),
+): KoruState {
+  const current = normalizeTicTacProgress(state.ticTacMich);
+  const nextProgress = recordTicTacResult(current, result, difficulty, playedAt);
+  if (nextProgress.lastPlayedAt === current.lastPlayedAt) return state;
+  const next: KoruState = { ...state, ticTacMich: nextProgress, updatedAt: nowIso() };
+  saveState(next);
+  return next;
+}
+
+/** Marca que Michi propuso una actividad: abre el cooldown global de propuestas. */
+export function markActivityInviteOffered(state: KoruState, at: string = nowIso()): KoruState {
+  const next: KoruState = {
+    ...state,
+    michiInvites: { ...state.michiInvites, lastOfferedAt: at },
+    updatedAt: nowIso(),
+  };
+  saveState(next);
+  return next;
+}
+
+/**
+ * "Más tarde": esa actividad queda en pausa (el usuario pidió que no insista).
+ * Vive en el estado y no en memoria, para que sobreviva al reload — un
+ * "más tarde" que se olvida es exactamente el spam que hay que evitar.
+ */
+export function pauseActivityInvite(
+  state: KoruState,
+  activity: MichiActivityKind,
+  now: Date = new Date(),
+): KoruState {
+  const until = new Date(now.getTime() + ACTIVITY_PAUSE_MS).toISOString();
+  const next: KoruState = {
+    ...state,
+    michiInvites: {
+      ...state.michiInvites,
+      pausedUntil: { ...state.michiInvites?.pausedUntil, [activity]: until },
+    },
+    updatedAt: nowIso(),
+  };
   saveState(next);
   return next;
 }

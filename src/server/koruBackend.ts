@@ -14,6 +14,7 @@ import type {
 } from "../domain/types";
 import { VALID_MASCOT_STATES } from "../domain/types";
 import { selectRelevantMemories } from "../domain/store";
+import { schoolSnapshot, ticTacSnapshot } from "../domain/michiActivities";
 import { generateEnhancements, enhancementPrompt } from "../domain/enhancementEngine";
 import { extractOpportunities } from "../domain/enhancementExtractor";
 import { extractStructuredData, type ChatFn as ExtractorChatFn, type ExtractionResult } from "../domain/structureExtractor";
@@ -3208,7 +3209,7 @@ export function profileCityFromState(state: KoruState): string | null {
 }
 
 
-function stateSummary(state: KoruState): string {
+export function stateSummary(state: KoruState): string {
   // Defensive: el frontend a veces envia state sin memories/commitments/records
   // (cuando IndexedDB aun no hydrateó o el state viene de localStorage legacy).
   // Sin estos guards, .filter() crash con "Cannot read properties of undefined"
@@ -3251,6 +3252,11 @@ function stateSummary(state: KoruState): string {
     "Cosas que guardaste (últimas 8):",
     recordTitles,
     `Saved collection count: ${collectionCount}`,
+    // 🔴 MICHI CONSCIENTE (2026-09-13): sus dos juegos dejan de ser islas. Sin
+    // estas líneas Michi no sabía que existían ("¿qué me toca en la escuela?"
+    // era una pregunta al aire).
+    `Michi School (grado, pregunta actual, aciertos): ${schoolSnapshot(state)}`,
+    `Tic Tac Mich (partidas jugadas y último resultado): ${ticTacSnapshot(state)}`,
   ].join("\n");
 }
 

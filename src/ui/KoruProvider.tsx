@@ -9,6 +9,7 @@ import type {
   LifeRecord,
   LifeDomain,
   LifeRecordKind,
+  MichiActivityKind,
   MascotState,
   MemoryFact,
   CommitmentStatus,
@@ -35,6 +36,9 @@ import {
   approveAndExecuteAction,
   awardLevelUpEnergy,
   completeMichiSchoolQuestion as completeMichiSchoolQuestionReducer,
+  markActivityInviteOffered as markActivityInviteOfferedReducer,
+  pauseActivityInvite as pauseActivityInviteReducer,
+  recordTicTacMatch as recordTicTacMatchReducer,
   completeCommitment,
   confirmMemory as confirmMemoryInStore,
   createId,
@@ -84,6 +88,9 @@ import {
   snoozeCommitment as snoozeCommitmentReducer,
   resolveMemoryConflict as resolveMemoryConflictReducer,
 } from "../domain/store";
+// 🔴 MICHI CONSCIENTE (2026-09-13) — la propuesta de jugar/estudiar la decide el
+// dominio, no el modelo: señal del mensaje + puertas del estado.
+import { buildActivityInvite } from "../domain/michiActivities";
 import { computeDecision } from "../domain/decisionEngine";
 import { MICHI_AVATARS, progressForEnergy } from "./michi/avatarCatalog";
 import { runBackendAgentTurn } from "../domain/backendAgentClient";
@@ -360,6 +367,12 @@ type KoruContextValue = {
   // chat (solo el chat — NO la memoria/hábitos/datos) y deja el saludo.
   resetChat: () => void;
   completeMichiSchoolQuestion: (questionId: string) => void;
+  /** 🔴 MICHI CONSCIENTE — registra una partida terminada de Tic Tac Mich. */
+  recordTicTacMatch: (result: "you" | "michi" | "draw", difficulty: "calm" | "clever") => void;
+  /** "Más tarde": pausa esa actividad para que Michi no vuelva a proponerla. */
+  dismissActivityInvite: (activity: MichiActivityKind) => void;
+  /** Aceptó: la card se retira (ya se fue a la pantalla). */
+  acceptActivityInvite: (activity: MichiActivityKind) => void;
 };
 
 const KoruContext = createContext<KoruContextValue | null>(null);
@@ -1796,6 +1809,15 @@ export function KoruProvider({ children }: { children: ReactNode }) {
       const run = submitQueueRef.current.then(() => submitEntry(cleanText, transcriptSource));
       submitQueueRef.current = run.catch(() => undefined);
       const result = await run;
+      // 🔴 MICHI CONSCIENTE (2026-09-13) — ¿corresponde que Michi le proponga
+      // jugar o estudiar? Lo decide el dominio (señal del mensaje + puertas del
+      // estado), no el modelo: el prompt recibe la MISMA puerta, así que el
+      // texto y la card nacen de la misma verdad y no pueden contradecirse.
+      const activityInvite = buildActivityInvite({ text: cleanText, state: result.state });
+      if (activityInvite) {
+        // Se consume el presupuesto: no hay otra propuesta hasta que pase el cooldown.
+        commitDomainState((prev) => markActivityInviteOfferedReducer(prev));
+      }
       let koruTurn: KoruChatTurn | undefined;
       if (!result.koruTurnId) {
         koruTurn = {
@@ -1806,6 +1828,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
           items: result.items,
           status: "done",
           mascotState: result.mascotState ?? "idle",
+          invite: activityInvite ?? undefined,
         };
         commitChatTurns((prev) => [...prev, koruTurn!].slice(-120));
         writeAuditEvent({
@@ -1832,7 +1855,13 @@ export function KoruProvider({ children }: { children: ReactNode }) {
               }
               return newItem;
             });
-            return { ...turn, items: mergedItems, status: "done" as const, mascotState: result.mascotState ?? "idle" };
+            return {
+              ...turn,
+              items: mergedItems,
+              status: "done" as const,
+              mascotState: result.mascotState ?? "idle",
+              invite: activityInvite ?? turn.invite,
+            };
           }),
         );
         koruTurn = chatTurnsRef.current.find((t) => t.id === result.koruTurnId);
@@ -2227,6 +2256,42 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     commitDomainState((prev) => completeMichiSchoolQuestionReducer(prev, questionId));
   }
 
+  function recordTicTacMatch(result: "you" | "michi" | "draw", difficulty: "calm" | "clever") {
+    // El timestamp se calcula FUERA del updater: dentro, StrictMode lo invocaría
+    // dos veces con instantes distintos (el post-mortem de ProactiveNudge.shownAt
+    // documenta el mismo tropiezo).
+    const playedAt = new Date().toISOString();
+    commitDomainState((prev) => recordTicTacMatchReducer(prev, result, difficulty, playedAt));
+  }
+
+  function acceptActivityInvite(activity: MichiActivityKind) {
+    // Sin esto, al volver de la pantalla la propuesta seguiría con sus botones
+    // como si el usuario no hubiera hecho nada.
+    const resolvedAt = new Date().toISOString();
+    commitChatTurns((prev) =>
+      prev.map((turn) =>
+        turn.invite && turn.invite.activity === activity && !turn.invite.resolution
+          ? { ...turn, invite: { ...turn.invite, resolution: "accepted" as const, resolvedAt } }
+          : turn,
+      ),
+    );
+  }
+
+  function dismissActivityInvite(activity: MichiActivityKind) {
+    // 1) Persistente: la puerta cierra esa actividad por 4 h (sobrevive al reload).
+    const now = new Date();
+    commitDomainState((prev) => pauseActivityInviteReducer(prev, activity, now));
+    // 2) Visual: la card abierta se marca como resuelta para no seguir ofreciendo.
+    const resolvedAt = now.toISOString();
+    commitChatTurns((prev) =>
+      prev.map((turn) =>
+        turn.invite && turn.invite.activity === activity && !turn.invite.resolution
+          ? { ...turn, invite: { ...turn.invite, resolution: "later" as const, resolvedAt } }
+          : turn,
+      ),
+    );
+  }
+
   const value = useMemo<KoruContextValue>(() => ({
     state: domainState,
     energy,
@@ -2348,6 +2413,9 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     deleteAllData,
     resetChat,
     completeMichiSchoolQuestion,
+    recordTicTacMatch,
+    dismissActivityInvite,
+    acceptActivityInvite,
   }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, domainState, domainState.records, permissions, processing, activity, phase, chatTurns, selectedModel, memoryToast, morningBrief, showInstallPrompt, installPromptEvent, voiceEnabled, language, online, reopenedRecord, collectionsView, pendingMemoryConflict]);
 
   // 🔴 v2: Listener para guardar record desde el detail screen (botón Guardar informe)

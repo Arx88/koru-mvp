@@ -8,6 +8,7 @@ import { stopSpeaking } from "../domain/koruVoice";
 import { cn } from "../lib/utils";
 import { useKoru, type KoruChatTurn, type KoruTurnItem } from "./KoruProvider";
 import { KoruSemanticCard } from "./chatCards";
+import { ActivityInviteCard } from "./ActivityInviteCard";
 import { KoruUnifiedCard } from "./cards/unified/KoruUnifiedCard";
 import { KoruBackground } from "./KoruBackground";
 import { MichiHeaderV8, type MichiMenuAction } from "./michi/MichiHeaderV8";
@@ -94,6 +95,8 @@ function KoruTurnBubble({
   onPruneMemory,
   onCompleteCommitment,
   onSetWorldSignals,
+  onInvitePlay,
+  onInviteLater,
 }: {
   turn: KoruChatTurn;
   userAvatar: string;
@@ -102,6 +105,8 @@ function KoruTurnBubble({
   onPruneMemory: (id: string) => void;
   onCompleteCommitment: (id: string) => void;
   onSetWorldSignals: (enabled: boolean) => void;
+  onInvitePlay: (activity: "school" | "ticTac") => void;
+  onInviteLater: (activity: "school" | "ticTac") => void;
 }) {
   const { heading, body } = splitKoruText(turn.text);
   // 🐱 Sticker de actitud — el LLM lo elige en el JSON final; se muestra
@@ -152,6 +157,12 @@ function KoruTurnBubble({
             draggable={false}
           />
         </div>
+      )}
+      {/* 🔴 MICHI CONSCIENTE (2026-09-13) — propuesta de jugar/estudiar.
+          Va justo debajo de la burbuja: si el estado ya cerró la puerta, este
+          bloque no existe (la decisión es del dominio, no de esta vista). */}
+      {turn.invite && (
+        <ActivityInviteCard invite={turn.invite} onPlay={onInvitePlay} onLater={onInviteLater} />
       )}
       {/* 🔴 UX: copiar mensaje — icono fantasma 28px discreto (v7.6) */}
       {showBubble && turnDone && (heading || body) && <div className="mx-copy"><CopyButton text={turn.text} /></div>}
@@ -220,7 +231,7 @@ function ListeningBubble({ interimText }: { interimText: string }) {
   );
 }
 
-export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnboardingComplete }: { onClose: () => void; onNavigate?: (tab: "hoy" | "memoria" | "historial" | "configuracion" | "school") => void; onAvatares?: () => void; onboarding?: boolean; onOnboardingComplete?: (name: string, facts?: string[]) => void }) {
+export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnboardingComplete }: { onClose: () => void; onNavigate?: (tab: "hoy" | "memoria" | "historial" | "configuracion" | "school" | "tictac") => void; onAvatares?: () => void; onboarding?: boolean; onOnboardingComplete?: (name: string, facts?: string[]) => void }) {
   const {
     chatTurns,
     sendMessage,
@@ -229,6 +240,8 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
     pruneMemory,
     completeCommitment,
     setWorldSignals,
+    dismissActivityInvite,
+    acceptActivityInvite,
     processing,
     activity,
     phase,
@@ -1086,6 +1099,13 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
                   onPruneMemory={pruneMemory}
                   onCompleteCommitment={completeCommitment}
                   onSetWorldSignals={setWorldSignals}
+                  onInvitePlay={(activity) => {
+                    acceptActivityInvite(activity);
+                    // El dominio nombra la actividad "ticTac"; la ruta de pantalla
+                    // (Screen en App.tsx) es "tictac". Traducción en la frontera.
+                    onNavigate?.(activity === "school" ? "school" : "tictac");
+                  }}
+                  onInviteLater={dismissActivityInvite}
                 />
               ),
             )}
@@ -1542,4 +1562,3 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
     </div>
   );
 }
-

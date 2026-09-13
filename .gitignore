@@ -80,3 +80,5 @@ minimax-oauth-token.json
 opencode.json
 a.out
 server-bundle.mjs
+
+!public/assets/tic-tac-mich/*.png

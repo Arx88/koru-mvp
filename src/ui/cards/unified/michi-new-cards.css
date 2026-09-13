@@ -81,3 +81,4 @@
 @media(max-width:350px) { .mn-content { padding:14px 12px; } .mn-card h3 { font-size:20px; } .mn-description { font-size:13px; } .mn-recipe-metrics { gap:4px; } .mn-recipe-metrics>div { display:flex; flex-direction:column; text-align:center; padding:8px 3px; } .mn-news-badge { font-size:10px; padding:5px 7px; } .mn-market-content { padding:13px 11px 0; } .mn-cta { font-size:13px!important; gap:6px; } }
 @media(max-width:350px) { .mn-periods { position:static; margin:7px 0; } }
 .mx-cards:has(.mn-card) { width:96%; margin-left:2%; margin-top:12px; }
+.mn-history-state{text-align:center;font-size:12px;color:#7770b1;margin:8px 0}.mn-history-state button{border:1px solid #b4a1ff;border-radius:12px;background:#f2edff;color:#5935bc;min-height:40px;padding:8px 14px;font-weight:750}.mn-history-source{font-size:10px;color:#7972a7;text-align:right;margin:6px 0}

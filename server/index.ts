@@ -492,6 +492,15 @@ export async function koruRequestHandler(req: http.IncomingMessage, res: http.Se
   // seguía viendo el dato de hace horas creyéndolo fresco. Este endpoint usa
   // el MISMO pipeline getWeather del agente (wttr.in → open-meteo con
   // geocoding), así el Home refresca con datos reales sin pasar por el chat.
+  if (url === "/api/michi/crypto-history" && req.method === "POST") {
+    try {
+      const body=JSON.parse(await readBody(req)||"{}");
+      const {getCryptoHistory}=await import("../src/tools/money/cryptoHistory.ts");
+      const history=await getCryptoHistory(String(body.symbol||""),String(body.currency||"USD"));
+      sendJson(res,200,history);
+    } catch { sendJson(res,503,{error:"Historial no disponible. Volvé a intentar."}); }
+    return;
+  }
   if (url === "/api/michi/weather" && req.method === "POST") {
     try {
       const raw = await readBody(req);

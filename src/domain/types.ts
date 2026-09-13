@@ -177,6 +177,46 @@ export type MichiSchoolProgress = {
   graduatedGrades: number[];
 };
 
+/**
+ * 🔴 MICHI CONSCIENTE (2026-09-13) — actividades propias de Michi.
+ *
+ * Michi School y Tic Tac Mich dejan de ser islas: el progreso y los
+ * resultados viven en KoruState (viajan al prompt) y habilitan —o no— que
+ * Michi proponga jugar o estudiar. La lógica de la propuesta (señal + puertas)
+ * vive en src/domain/michiActivities.ts.
+ */
+export type MichiActivityKind = "school" | "ticTac";
+
+/** Resultado de Tic Tac Mich en el estado central (antes vivía SOLO en localStorage). */
+export type TicTacMichProgress = {
+  wins: { you: number; michi: number; draw: number };
+  lastResult?: "you" | "michi" | "draw";
+  lastPlayedAt?: string;
+  difficulty?: "calm" | "clever";
+};
+
+/** Invitación concreta que la UI dibuja como card (Jugar / Más tarde). */
+export type MichiActivityInvite = {
+  id: string;
+  activity: MichiActivityKind;
+  /** playful = aburrimiento; gentle = tristeza/bajón (acompañar, no entretener). */
+  tone: "playful" | "gentle";
+  title: string;
+  body: string;
+  ctaLabel: string;
+  /** Cómo terminó: aceptada (fue a la pantalla) o "más tarde". */
+  resolution?: "accepted" | "later";
+  resolvedAt?: string;
+};
+
+/** Presupuesto de invitaciones: cooldown global + pausa por actividad. */
+export type MichiInviteState = {
+  /** Última vez que Michi propuso algo (ISO). Abre el cooldown de propuestas. */
+  lastOfferedAt?: string;
+  /** "Más tarde" por actividad (ISO): mientras no venza, esa actividad no se propone. */
+  pausedUntil?: Partial<Record<MichiActivityKind, string>>;
+};
+
 export type ProactiveNudge = {
   id: string;
   title: string;
@@ -1652,6 +1692,10 @@ export type KoruState = {
   lastBriefDate?: string;
   lastBriefBlock?: UiBlock;
   michiSchool?: MichiSchoolProgress;
+  /** 🔴 MICHI CONSCIENTE — progreso de Tic Tac Mich en el estado (no en localStorage). */
+  ticTacMich?: TicTacMichProgress;
+  /** 🔴 MICHI CONSCIENTE — presupuesto de invitaciones (cooldown global + "más tarde"). */
+  michiInvites?: MichiInviteState;
 };
 
 export type KoruAnalysis = {

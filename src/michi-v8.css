@@ -2001,3 +2001,107 @@ a {
 .koru-chat-screen .mc-tile .v {
   color: #20117d;
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   🔴 MICHI CONSCIENTE (2026-09-13) — card de propuesta de actividad.
+
+   Michi propone Michi School o Tic Tac Mich cuando el usuario se aburre o
+   está bajón. Dos acciones y nada más: aceptar (abre la pantalla) o
+   "Más tarde" (que se recuerda 4 h: un más-tarde que se olvida es spam).
+   Mismos márgenes que .mx-cards (14% / 76%) para no romper la columna.
+   ══════════════════════════════════════════════════════════════════════ */
+.koru-invite {
+  margin: 5px 0 3px 14%;
+  width: 76%;
+  padding: 12px 13px 13px;
+  border-radius: 18px;
+  border: 1px solid rgba(109, 82, 248, 0.22);
+  background: linear-gradient(180deg, #ffffff, #f7f4ff);
+  box-shadow: 0 6px 18px rgba(109, 82, 248, 0.1);
+}
+/* Bajón/tristeza: tono suave (azul), no la energía violeta del juego. */
+.koru-invite.is-gentle {
+  border-color: rgba(0, 123, 249, 0.22);
+  background: linear-gradient(180deg, #ffffff, #f2f6ff);
+}
+.koru-invite.is-resolved {
+  border-style: dashed;
+  background: #ffffff;
+  box-shadow: none;
+}
+.koru-invite-top {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+}
+.koru-invite-emoji {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  font-size: 23px;
+  background: rgba(109, 82, 248, 0.1);
+}
+.koru-invite.is-gentle .koru-invite-emoji {
+  background: rgba(0, 123, 249, 0.1);
+}
+.koru-invite-copy {
+  min-width: 0;
+}
+.koru-invite-title {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 800;
+  color: var(--koru-text, #1e1b4b);
+}
+.koru-invite-body {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--koru-meta, #7566a0);
+}
+.koru-invite-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.koru-invite-play,
+.koru-invite-later {
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 800;
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 15px;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.2s ease;
+}
+.koru-invite-play {
+  background: var(--koru-purple, #6d52f8);
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(109, 82, 248, 0.35);
+}
+.koru-invite-play:active {
+  transform: scale(0.97);
+}
+.koru-invite-later {
+  background: rgba(109, 82, 248, 0.08);
+  color: var(--koru-purple-dark, #5940e0);
+}
+.koru-invite-later:active {
+  transform: scale(0.97);
+}
+.koru-invite-resolved {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--koru-meta, #7566a0);
+}
+.koru-invite-resolved b {
+  color: var(--koru-text, #1e1b4b);
+}

@@ -942,6 +942,12 @@ function koruBackendAgent(env: Record<string, string>): Plugin {
       // 🔴 FIX (2026-09-09): clima fresco para el HomeScreen en dev — mismo
       // pipeline getWeather del agente (wttr.in → open-meteo). En producción lo
       // sirve server/index.ts (/api/michi/weather, alias /api/koru/*).
+      useApi("/api/michi/crypto-history", async (req, res) => {
+        res.setHeader("Content-Type","application/json");
+        if(req.method!=="POST"){res.statusCode=405;res.end();return;}
+        try{const chunks:Buffer[]=[];for await(const chunk of req)chunks.push(Buffer.from(chunk));const body=JSON.parse(Buffer.concat(chunks).toString("utf8")||"{}");const {getCryptoHistory}=await import("./src/tools/money/cryptoHistory");res.end(JSON.stringify(await getCryptoHistory(String(body.symbol||""),String(body.currency||"USD"))));}
+        catch{res.statusCode=503;res.end(JSON.stringify({error:"Historial no disponible. Volvé a intentar."}));}
+      });
       useApi("/api/michi/weather", async (req, res) => {
         if (req.method !== "POST") {
           res.statusCode = 405;

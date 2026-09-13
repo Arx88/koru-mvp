@@ -5,12 +5,12 @@ import { useEffect, useRef, useState } from "react";
 import {
   Menu, Star, Sparkle, MessageCircle, PawPrint, Palette, ChevronRight,
   Signal, Wifi, BatteryFull, Home, Brain, History, Settings,
-  GraduationCap,
+  GraduationCap, Gamepad2,
 } from "lucide-react";
 import { MichiCat } from "./v8Shared";
 
 export type MichiMenuAction =
-  | "progress" | "landscape" | "avatares" | "school" | "hoy" | "memoria" | "historial" | "configuracion";
+  | "progress" | "landscape" | "avatares" | "school" | "tictac" | "hoy" | "memoria" | "historial" | "configuracion";
 
 function useClock() {
   const [time, setTime] = useState(() =>
@@ -134,6 +134,7 @@ export function MichiHeaderV8({ onMenuAction, onAvatares }: {
                 <button type="button" role="menuitem" className="mx-menu-item" onClick={() => go("landscape")}>
                   <Palette /> Cambiar paisaje <ChevronRight size={16} className="mx-menu-endicon" />
                 </button>
+                <button type="button" role="menuitem" className="mx-menu-item" onClick={() => go("tictac")}><Gamepad2 /> Tic Tac Mich <span className="mx-menu-new">Nuevo</span><ChevronRight size={16} className="mx-menu-endicon" /></button>
                 <div className="mx-menu-sep" />
                 <button type="button" role="menuitem" className="mx-menu-item" onClick={() => go("hoy")}>
                   <Home /> Hoy <ChevronRight size={16} className="mx-menu-endicon" />

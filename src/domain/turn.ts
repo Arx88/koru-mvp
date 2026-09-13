@@ -14,6 +14,7 @@ import type {
   MascotState,
   MemoryFact,
   MemoryStatus,
+  MichiActivityInvite,
   ModelCall,
   UiBlock,
 } from "./types";
@@ -65,6 +66,13 @@ export type KoruChatTurn = {
   mascotState?: MascotState;
   /** 🐱 Sticker de actitud que Michi mandó con este reply (id del catálogo). */
   sticker?: string;
+  /**
+   * 🔴 MICHI CONSCIENTE (2026-09-13) — propuesta de actividad (Michi School o
+   * Tic Tac Mich) que acompaña a este turno. La decide el dominio
+   * (michiActivities.ts: señal del mensaje + puertas del estado), no el modelo,
+   * así que el texto y la card no pueden contradecirse.
+   */
+  invite?: MichiActivityInvite;
 };
 
 function defaultActionSteps(kind: AssistantAction["kind"]): string[] {

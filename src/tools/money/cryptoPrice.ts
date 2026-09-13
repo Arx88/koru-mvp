@@ -8,6 +8,7 @@ import { defineTool, policies, type ToolHandler } from "../types";
 import { fetchJson } from "../shared/fetcher";
 import { cached, ttls } from "../shared/cache";
 import { limiters } from "../shared/rateLimiter";
+import { getCryptoHistory } from "./cryptoHistory";
 
 const TICKER_MAP: Record<string, string> = {
   btc: "bitcoin", eth: "ethereum", sol: "solana", ada: "cardano", dot: "polkadot",
@@ -72,18 +73,23 @@ export const cryptoPrice: ToolHandler = {
     const cacheKey = `crypto:${coinId}:${vs}`;
 
     // Helper to normalize result
-    const makeResult = (price: number, change24hPct: number | undefined, source: string, sourceUrl: string, extra?: Record<string, unknown>) => ({
+    const makeResult = async (price: number, change24hPct: number | undefined, source: string, sourceUrl: string, extra?: Record<string, unknown>) => {
+      const currency=["Binance","KuCoin","OKX"].includes(source)?"USDT":source==="Kraken"?"USD":vs.toUpperCase();
+      let history;
+      if(!Array.isArray(extra?.series)||!extra.series.some((s:any)=>s.values?.length>1)) {try{history=await getCryptoHistory(symbol,currency);}catch{/* Keep the real quote even when history is unavailable. */}}
+      return {
       type: "crypto_price" as const,
       status: "ok" as const,
       coin: displayName,
       symbol,
       price,
-      currency: vs.toUpperCase(),
+      currency,
       change24hPct: typeof change24hPct === "number" ? Number(change24hPct.toFixed(2)) : undefined,
       source,
       sourceUrl,
       ...extra,
-    });
+      ...(history?{series:history.series,historySource:history.source}:{}),
+    };};
 
     // 1. CoinGecko (ricos datos)
     try {
@@ -114,7 +120,7 @@ export const cryptoPrice: ToolHandler = {
 
     // 2. Binance (alta rate limit, sin key)
     const binanceSymbol = BINANCE_SYMBOL_MAP[ticker];
-    if (binanceSymbol) {
+    if (binanceSymbol && (vs === "usd" || vs === "usdt")) {
       try {
         const result = await fetchJson<any>(
           `https://api.binance.com/api/v3/ticker/24hr?symbol=${binanceSymbol}`,
@@ -150,7 +156,7 @@ export const cryptoPrice: ToolHandler = {
 
     // 4. KuCoin (free, no key)
     const kucoinSymbol = KUCOIN_SYMBOL_MAP[ticker];
-    if (kucoinSymbol) {
+    if (kucoinSymbol && (vs === "usd" || vs === "usdt")) {
       try {
         const result = await fetchJson<any>(
           `https://api.kucoin.com/api/v1/market/stats?symbol=${kucoinSymbol}`,
@@ -173,7 +179,7 @@ export const cryptoPrice: ToolHandler = {
 
     // 5. OKX (free, no key)
     const okxSymbol = OKX_SYMBOL_MAP[ticker];
-    if (okxSymbol) {
+    if (okxSymbol && (vs === "usd" || vs === "usdt")) {
       try {
         const result = await fetchJson<any>(
           `https://www.okx.com/api/v5/market/ticker?instId=${okxSymbol}`,
@@ -196,7 +202,7 @@ export const cryptoPrice: ToolHandler = {
 
     // 6. Kraken (free, no key)
     const krakenSymbol = KRAKEN_SYMBOL_MAP[ticker];
-    if (krakenSymbol) {
+    if (krakenSymbol && vs === "usd") {
       try {
         const result = await fetchJson<any>(
           `https://api.kraken.com/0/public/Ticker?pair=${krakenSymbol}`,
