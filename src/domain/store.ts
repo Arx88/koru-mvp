@@ -5,6 +5,7 @@ import { localDateISO, shiftDateISO } from "./localDate";
 // activo usa runBackendAgentTurn via KoruProvider.submitEntry.
 import { executeApprovedAction } from "./executor";
 import { commitmentIdentityKey, mergeDueHint, uniqueCommitmentList } from "./commitments";
+import { SHOWN_TITLE_PREFIX, nudgeDedupeKey, stripShownMarker } from "./heartbeat";
 import { createDefaultRuntimeSettings, runFreeLlmEmbedding } from "./freellmapi";
 import {
   clearLegacyState,
@@ -185,7 +186,7 @@ function normalizeState(parsed?: Partial<KoruState> | null): KoruState {
     records: parsed.records ?? [],
     entries: parsed.entries ?? [],
     energyEvents: parsed.energyEvents ?? [],
-    nudges: parsed.nudges ?? [],
+    nudges: normalizeNudges(parsed.nudges ?? []),
     modelCalls: parsed.modelCalls ?? [],
   } as KoruState;
 }
@@ -833,6 +834,48 @@ export function updateHeartbeatSettings(
   return next;
 }
 
+/**
+ * 🔴 FIX SPAM (2026-09-13): colapsa los nudges duplicados que quedaron en
+ * estados persistidos por la key de dedupe vieja (`source|sourceId|title`).
+ * Como el título cambia con el tiempo para el MISMO commitment ("Que no se
+ * pierda" → "Esto es para hoy" → "Esto quedó pendiente"), cada variante entró
+ * como nudge nuevo: un solo commitment podía dejar 3 nudges vivos, y el gate de
+ * inyección los drenaba al chat de a uno por sesión (11 mensajes repetidos en
+ * una instalación real).
+ *
+ * Reglas:
+ *  - Solo se colapsan grupos con `sourceId` (sin él no hay identidad estable).
+ *  - Sobrevive el más nuevo: es el contenido más actual.
+ *  - Si alguno del grupo ya se mostró, el sobreviviente queda mostrado → un
+ *    usuario con el estado envenenado no vuelve a ver el mismo mensaje.
+ *  - El marcador viejo del título se convierte a `shownAt` una sola vez.
+ */
+export function normalizeNudges(nudges: ProactiveNudge[]): ProactiveNudge[] {
+  const out: ProactiveNudge[] = [];
+  const indexByKey = new Map<string, number>();
+  for (const nudge of nudges ?? []) {
+    const legacyShown = !nudge.shownAt && (nudge.title ?? "").startsWith(SHOWN_TITLE_PREFIX);
+    const cleaned = stripShownMarker(nudge.title);
+    const normalized: ProactiveNudge = legacyShown
+      ? { ...nudge, title: cleaned, shownAt: nudge.createdAt ?? new Date().toISOString() }
+      : { ...nudge, title: cleaned };
+    const key = nudge.sourceId ? nudgeDedupeKey(nudge) : "";
+    const prevIndex = key ? indexByKey.get(key) : undefined;
+    if (prevIndex === undefined) {
+      if (key) indexByKey.set(key, out.length);
+      out.push(normalized);
+      continue;
+    }
+    const kept = out[prevIndex];
+    const keptTime = Date.parse(kept.createdAt) || 0;
+    const nextTime = Date.parse(normalized.createdAt) || 0;
+    const newer = nextTime >= keptTime ? normalized : kept;
+    const older = nextTime >= keptTime ? kept : normalized;
+    out[prevIndex] = { ...newer, shownAt: newer.shownAt ?? older.shownAt };
+  }
+  return out;
+}
+
 export function applyHeartbeatNudges(
   state: KoruState,
   nudges: Array<Omit<ProactiveNudge, "id" | "createdAt">>,
@@ -845,20 +888,19 @@ export function applyHeartbeatNudges(
   const day = localDateISO(runAt);
   const countToday = state.heartbeat.dailyNudgeDate === day ? state.heartbeat.dailyNudgeCount : 0;
   const allowed = Math.max(0, state.heartbeat.maxNudgesPerDay - countToday);
-  // 🔴 FIX SPAM (2026-09-12): la key de dedupe era `source|sourceId|title`,
-  // pero el marcado de mostrado MUTA el title ("[proactive_shown] ¿Una pausa?")
-  // → la key ya no matcheaba → el mismo nudge podía re-agregarse como
-  // "fresh" con nuevo id (duplicados + conteo diario inflado). La key
-  // correcta es source+sourceId, que es exactamente lo que bloquea
-  // wasRecentlyNudged por 20h.
+  // 🔴 FIX SPAM (2026-09-13): la key sale de `nudgeDedupeKey` (source|sourceId)
+  // y es LA MISMA en los dos lados (antes el lado "existente" defaulteaba a
+  // "brain" y el lado "draft" a "heartbeat": los nudges sin source no se
+  // reconocían entre sí). Nunca incluir el título: cambia para el mismo
+  // commitment y hacía entrar cada variante como nudge nuevo.
   const existingKeys = new Set(
     state.nudges
       .filter((nudge) => !nudge.dismissed)
-      .map((nudge) => `${nudge.source ?? "brain"}|${nudge.sourceId ?? ""}`),
+      .map((nudge) => nudgeDedupeKey(nudge)),
   );
   const fresh = nudges
     .filter((nudge) => {
-      const key = `${nudge.source ?? "heartbeat"}|${nudge.sourceId ?? ""}`;
+      const key = nudgeDedupeKey(nudge);
       if (existingKeys.has(key)) return false;
       existingKeys.add(key);
       return true;
@@ -889,18 +931,21 @@ export function applyHeartbeatNudges(
 }
 
 /**
- * 🔴 FIX SPAM (2026-09-12): marca un nudge como mostrado en el chat y —a
- * diferencia del updater inline que se usaba antes— PERSISTE el estado.
- * Antes el marcado "[proactive_shown]" vivía solo en memoria de React:
- * al recargar la app el nudge volvía a estar "sin mostrar" y el primer
- * tick del heartbeat (60s) lo re-inyectaba al chat → el mismo mensaje
- * aparecía una y otra vez en cada recarga (spam del "¿Una pausa?").
+ * 🔴 FIX SPAM (2026-09-12): marca un nudge como mostrado y PERSISTE el estado
+ * (antes el marcado vivía solo en memoria de React y al recargar la app el
+ * nudge volvía a estar "sin mostrar" → se re-inyectaba en cada recarga).
+ *
+ * 🔴 FIX SPAM (2026-09-13): el marcado ya no reescribe el `title` a
+ * "[proactive_shown] …" sino que setea `shownAt`. El prefijo tenía dos
+ * defectos: se filtraba a los widgets (había que limpiarlo en cada consumidor)
+ * y, como esto corre dentro de un updater de React, con StrictMode se aplicaba
+ * DOS veces → "[proactive_shown] [proactive_shown] …". `shownAt` es idempotente.
  */
 export function markNudgeShown(state: KoruState, nudgeId: string, shownAt = new Date()): KoruState {
   const next = {
     ...state,
     nudges: (state.nudges ?? []).map((n) =>
-      n.id === nudgeId ? { ...n, title: `[proactive_shown] ${n.title}` } : n,
+      n.id === nudgeId ? { ...n, shownAt: n.shownAt ?? shownAt.toISOString() } : n,
     ),
     updatedAt: shownAt.toISOString(),
   };

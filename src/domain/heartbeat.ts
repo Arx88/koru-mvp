@@ -7,6 +7,51 @@ import { localDateISO } from "./localDate";
 
 type NudgeDraft = Omit<ProactiveNudge, "id" | "createdAt">;
 
+/* ── Estado "ya mostrado" de un nudge ──────────────────────────────────────
+ * 🔴 FIX SPAM (2026-09-13): el marcado era reescribir el `title` a
+ * "[proactive_shown] …". Dos consecuencias medidas en producción:
+ *  1. El prefijo se filtraba a los widgets y había que limpiarlo a mano en
+ *     CADA consumidor (Home, prioridades).
+ *  2. El marcado corría dentro de un updater de React → con StrictMode se
+ *     aplicaba dos veces y quedaba "[proactive_shown] [proactive_shown] …".
+ * Ahora el marcado es el campo `shownAt` (idempotente). El prefijo viejo se
+ * sigue reconociendo para no revivir nudges ya mostrados en estados
+ * persistidos por versiones anteriores.
+ */
+export const SHOWN_TITLE_PREFIX = "[proactive_shown]";
+
+/**
+ * Clave estable de un nudge. NUNCA incluir el `title`: el título cambia con el
+ * tiempo para el MISMO commitment ("Que no se pierda" → "Esto es para hoy" →
+ * "Esto quedó pendiente"), así que meter el título en la clave hacía que cada
+ * variante entrara como nudge nuevo.
+ */
+export function nudgeDedupeKey(nudge: Pick<ProactiveNudge, "source" | "sourceId">): string {
+  return `${nudge.source ?? "brain"}|${nudge.sourceId ?? ""}`;
+}
+
+export function isNudgeShown(nudge: Pick<ProactiveNudge, "title" | "shownAt">): boolean {
+  return Boolean(nudge.shownAt) || (nudge.title ?? "").startsWith(SHOWN_TITLE_PREFIX);
+}
+
+export function stripShownMarker(title: string): string {
+  return (title ?? "").replace(/^\[proactive_shown\]\s*/i, "");
+}
+
+/**
+ * El nudge que corresponde inyectar en el chat: el primero pendiente. Un nudge
+ * descartado o ya mostrado (`shownAt`) no se vuelve a inyectar NUNCA.
+ *
+ * 🔴 FIX SPAM (2026-09-13): antes esto era "el primero cuyo título no empiece
+ * con [proactive_shown]" + dedupe por "mismo texto en los últimos 6 turnos del
+ * chat". Cuando el texto salía de esa ventana, el MISMO mensaje volvía al chat.
+ * Reproducido en producción: 6 turnos de chat y el nudge "Esto quedó pendiente /
+ * Llamar al dentista" reapareció (13ª vez).
+ */
+export function pickNudgeToInject(nudges: ProactiveNudge[] | undefined): ProactiveNudge | undefined {
+  return (nudges ?? []).find((nudge) => !nudge.dismissed && !isNudgeShown(nudge));
+}
+
 function sameDay(a: Date, b: Date): boolean {
   // 🔴 FIX: fecha LOCAL (antes UTC → "hoy" saltaba de día tras ~21:00 en LATAM)
   return localDateISO(a) === localDateISO(b);

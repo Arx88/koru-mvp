@@ -27,6 +27,7 @@ import type {
   ProactiveNudge,
   Attachment,
 } from "../domain/types";
+import { isNudgeShown, pickNudgeToInject, stripShownMarker } from "../domain/heartbeat";
 import {
   applyHeartbeatNudges,
   markNudgeShown,
@@ -747,12 +748,14 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     // Inyectar el nudge en state.nudges — el heartbeat (60s) lo convertirá en
     // chat turn en su próximo tick. También inyectamos un chat turn directo
     // para que el saludo aparezca de inmediato, sin esperar al heartbeat.
-    // 🔴 FIX DUPLICACIÓN (bug en vivo 2026-09-08): el nudge se marca
-    // `[proactive_shown]` AL INYECTAR el turn directo — antes quedaba sin marcar
-    // y el heartbeat (60s) lo volvía a inyectar como mensaje repetido.
+    // 🔴 FIX DUPLICACIÓN (bug en vivo 2026-09-08): el nudge se marca como
+    // mostrado AL INYECTAR el turn directo — antes quedaba sin marcar y el
+    // heartbeat (60s) lo volvía a inyectar como mensaje repetido.
+    // 🔴 FIX SPAM (2026-09-13): el marcado es `shownAt`, no un prefijo en el
+    // título (ver markNudgeShown en domain/store.ts).
     commitDomainState((prev) => ({
       ...prev,
-      nudges: [...(prev.nudges ?? []), { ...nudge, title: `[proactive_shown] ${nudge.title}` }],
+      nudges: [...(prev.nudges ?? []), { ...nudge, shownAt: new Date().toISOString() }],
     }));
 
     const proactiveTurn: KoruChatTurn = {
@@ -797,39 +800,30 @@ export function KoruProvider({ children }: { children: ReactNode }) {
       // Esto hace que Koru "hable" proactivamente, no solo muestre items invisibles.
       const state = domainStateRef.current;
       if (state && !state.ephemeralMode) {
-        const activeNudges = (state.nudges ?? []).filter(n =>
-          !n.dismissed && !n.title.startsWith("[proactive_shown]")
-        );
-        if (activeNudges.length > 0) {
-          // Solo inyectar 1 mensaje proactivo por heartbeat tick (no spamear)
-          const nudge = activeNudges[0];
-          // 🔴 FIX duplicación (2026-09-10): el mount effect y el primer tick
-          // del heartbeat podían inyectar el MISMO nudge ("Esto quedó
-          // pendiente" ×2) por caminos distintos. Misma dedupe por firma de
-          // texto que usa el listener koru:proactive.
-          const signature = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase().slice(0, 60);
-          const candidateText = nudge.title + (nudge.body ? `\n${nudge.body}` : "");
-          const alreadyInChat = chatTurnsRef.current.slice(-6).some(
-            (t) => signature(t.text ?? "") === signature(candidateText),
-          );
-          if (!alreadyInChat) {
-            const proactiveTurn: KoruChatTurn = {
-              id: `proactive_hb_${Date.now()}`,
-              role: "koru",
-              text: candidateText,
-              createdAt: new Date().toISOString(),
-              status: "done" as const,
-              mascotState: "happy" as const,
-            };
-            // Marcar como mostrado para no repetir
-            // 🔴 FIX SPAM (2026-09-12): antes el marcado era un updater inline
-            // que NO persistía — al recargar la app, el nudge volvía a estar
-            // "sin mostrar" y se re-inyectaba al chat en cada recarga. El
-            // reducer markNudgeShown persiste via saveState (mismo patrón que
-            // applyHeartbeatNudges).
-            commitDomainState((prev) => markNudgeShown(prev, nudge.id));
-            commitChatTurns((prev) => [...prev, proactiveTurn].slice(-120));
-          }
+        // 🔴 FIX SPAM (2026-09-13): el gate era "nudge cuyo título no empiece con
+        // [proactive_shown]" + dedupe por "mismo texto en los últimos 6 turnos".
+        // Cuando el texto salía de esa ventana, el MISMO mensaje volvía al chat:
+        // reproducido en producción (6 turnos y "Esto quedó pendiente / Llamar
+        // al dentista" reapareció). Ahora el estado "ya mostrado" es durable
+        // (`shownAt`) y no depende de la ventana del chat.
+        const nudge = pickNudgeToInject(state.nudges);
+        if (nudge) {
+          const proactiveTurn: KoruChatTurn = {
+            id: `proactive_hb_${Date.now()}`,
+            role: "koru",
+            text: nudge.title + (nudge.body ? `\n${nudge.body}` : ""),
+            createdAt: new Date().toISOString(),
+            status: "done" as const,
+            mascotState: "happy" as const,
+          };
+          // Marcar como mostrado para no repetir nunca más.
+          // 🔴 FIX SPAM (2026-09-12): antes el marcado era un updater inline
+          // que NO persistía — al recargar la app, el nudge volvía a estar
+          // "sin mostrar" y se re-inyectaba al chat en cada recarga. El
+          // reducer markNudgeShown persiste via saveState (mismo patrón que
+          // applyHeartbeatNudges).
+          commitDomainState((prev) => markNudgeShown(prev, nudge.id));
+          commitChatTurns((prev) => [...prev, proactiveTurn].slice(-120));
         }
       }
     };
@@ -983,16 +977,18 @@ export function KoruProvider({ children }: { children: ReactNode }) {
         kind: "action" as const,
       }));
     const nudgeItems = domainState.nudges
-      // 🔴 FIX (2026-09-10): los nudges marcados [proactive_shown] ya fueron
-      // inyectados como mensaje de chat — el marcador interno NO puede
-      // filtrarse a los widgets (el usuario veía "[proactive_shown] Esto
-      // quedó pendiente" en Prioridades). El compromiso subyacente sigue
-      // apareciendo por la lista de commitments de abajo.
-      .filter((nudge) => !nudge.dismissed && !nudge.title.startsWith("[proactive_shown]"))
+      // 🔴 FIX (2026-09-10): los nudges ya inyectados como mensaje de chat NO
+      // se re-muestran como cards (el usuario veía el marcador interno
+      // "[proactive_shown] Esto quedó pendiente" en Prioridades). El compromiso
+      // subyacente sigue apareciendo por la lista de commitments de abajo.
+      // 🔴 FIX SPAM (2026-09-13): el criterio es `isNudgeShown` (shownAt), no el
+      // prefijo del título — y `stripShownMarker` queda sólo como red para
+      // estados persistidos viejos.
+      .filter((nudge) => !nudge.dismissed && !isNudgeShown(nudge))
       .slice(0, 2)
       .map((nudge) => ({
         id: nudge.id,
-        label: nudge.title.replace(/^\[proactive_shown\]\s*/i, ""),
+        label: stripShownMarker(nudge.title),
         detail: nudge.body || nudge.reason,
         done: false,
         kind: "nudge" as const,

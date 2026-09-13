@@ -4,6 +4,7 @@ import { MichiCat } from "./michi/v8Shared";
 import { useCallback, useMemo, useRef, useState, type CSSProperties, type TouchEvent } from "react";
 import type { KoruState, ProactiveNudge } from "../domain/types";
 import { computeStreak } from "../domain/store";
+import { isNudgeShown, stripShownMarker } from "../domain/heartbeat";
 import { localDateISO } from "../domain/localDate";
 import { MeditationOverlay, type MeditationSession } from "./MeditationOverlay";
 
@@ -238,12 +239,13 @@ export function HomeScreen({
     const rutinaIds = new Set(rutina.map((c) => c.id));
     const opcional = openCommitments.filter((c) => !clasificadosIds.has(c.id) && !rutinaIds.has(c.id));
 
-    // 🔴 FIX (2026-09-10): los nudges marcados [proactive_shown] ya fueron
-    // inyectados como mensaje de chat — NO re-mostrarlos como cards en Home
-    // (el usuario veía el marcador interno "[proactive_shown] Buenos días"
-    // en la sección "Koru te sugiere").
+    // 🔴 FIX (2026-09-10): los nudges ya inyectados como mensaje de chat NO se
+    // re-muestran como cards en Home (el usuario veía el marcador interno
+    // "[proactive_shown] Buenos días" en la sección "Koru te sugiere").
+    // 🔴 FIX SPAM (2026-09-13): el criterio es `isNudgeShown` (shownAt), no el
+    // prefijo del título.
     const activeNudges = (state.nudges ?? []).filter(
-      (n) => !n.dismissed && !n.title.startsWith("[proactive_shown]"),
+      (n) => !n.dismissed && !isNudgeShown(n),
     );
 
     return {
@@ -1450,7 +1452,7 @@ function NudgeCard({
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ fontSize: 13, fontWeight: 700, color: "#1a1a2e", margin: 0 }}>
             {/* 🔴 FIX: nunca renderizar el marcador interno [proactive_shown] */}
-            {nudge.title.replace(/^\[proactive_shown\]\s*/i, "")}
+            {stripShownMarker(nudge.title)}
           </p>
           {nudge.body && (
             <p

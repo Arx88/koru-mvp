@@ -187,6 +187,11 @@ export type ProactiveNudge = {
   source?: "brain" | "heartbeat" | "calendar" | "commitment";
   sourceId?: string;
   dismissed?: boolean;
+  // 🔴 FIX SPAM (2026-09-13): marca durable de "ya inyectado en el chat".
+  // Reemplaza al hack de reescribir el `title` a "[proactive_shown] …", que
+  // se filtraba a los widgets y se duplicaba bajo StrictMode (el marcado
+  // corría dentro de un updater de React, que se invoca dos veces).
+  shownAt?: string;
 };
 
 export type CalendarAttendee = {
