@@ -36,6 +36,8 @@ stitch-ref/
 test-results/
 .worktrees/
 *.png
+!public/assets/michi-school/*.png
+!public/assets/michi-moments/*.png
 .debug-*
 .demo-*
 .dom-check.mjs

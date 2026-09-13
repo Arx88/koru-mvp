@@ -168,6 +168,15 @@ export type EnergyEvent = {
   explanation: string;
 };
 
+export type MichiSchoolProgress = {
+  currentGrade: number;
+  questionIndex: number;
+  correctInGrade: number;
+  totalCorrect: number;
+  completedQuestionIds: string[];
+  graduatedGrades: number[];
+};
+
 export type ProactiveNudge = {
   id: string;
   title: string;
@@ -1637,6 +1646,7 @@ export type KoruState = {
   weatherCache?: WeatherCache;
   lastBriefDate?: string;
   lastBriefBlock?: UiBlock;
+  michiSchool?: MichiSchoolProgress;
 };
 
 export type KoruAnalysis = {

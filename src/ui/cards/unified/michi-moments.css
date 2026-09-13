@@ -1,0 +1,25 @@
+.mm-card { overflow:hidden; border:2px solid #ffffffdd; border-radius:28px; background:#f7f8ff; box-shadow:0 12px 30px #203c7d26,0 0 8px #9fedff90; color:#111477; font-family:"Nunito",system-ui,sans-serif; }
+.mm-art { position:relative; aspect-ratio:1.48; background-color:#59b7ff; background-size:cover; background-position:center; }
+.mm-label { position:absolute; left:14px; top:14px; display:flex; align-items:center; gap:9px; padding:7px 12px 7px 7px; border-radius:22px; background:#f8f7ffdf; color:#371ad5; font-size:13px; font-weight:800; }
+.mm-label>svg { box-sizing:content-box; padding:7px; border-radius:50%; color:#fff; background:linear-gradient(140deg,#a45fff,#4522ff); }
+.mm-label small { display:block; font-size:12px; font-weight:600; }
+.mm-panel { position:relative; margin-top:-18px; padding:17px 15px 13px; border-radius:26px 26px 0 0; background:linear-gradient(140deg,#fff,#f1f5ff); }
+.mm-panel h3 { margin:0 0 7px; color:#101071; font-size:clamp(22px,5.8vw,29px); line-height:1.15; letter-spacing:-.035em; font-weight:900; overflow-wrap:anywhere; }
+.mm-panel p { margin:6px 0 14px; color:#7574b9; font-size:15px; line-height:1.4; }
+.mm-date { display:flex; align-items:center; gap:9px; margin:10px 0; color:#262293; font-size:14px; }
+.mm-metrics { display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0,1fr); margin:15px 0; gap:8px; }
+.mm-metrics>div { padding:8px; border-radius:13px; background:#f5f5ff; min-width:0; }
+.mm-metrics strong,.mm-metrics small { display:block; overflow-wrap:anywhere; }.mm-metrics strong{font-size:13px;color:#272089}.mm-metrics small{font-size:11px;color:#7873b5}
+.mm-cta { display:flex; justify-content:center; align-items:center; gap:10px; width:100%; min-height:47px; padding:10px 16px; border:0; border-radius:25px; background:linear-gradient(130deg,#a64eff,#632dff 45%,#4228ff); color:white; font:800 16px "Nunito",system-ui,sans-serif; cursor:pointer; box-shadow:inset 0 1px 2px #ffffff66,0 5px 12px #703fff25; }
+.mm-cta:focus-visible{outline:3px solid #129dff;outline-offset:3px}.mm-cta:active{transform:scale(.985)}
+.mm-eyebrow{font-size:16px;font-weight:850;display:block;margin-bottom:6px}.mm-alarm h3{font-size:clamp(42px,14vw,64px);font-variant-numeric:tabular-nums;letter-spacing:-.06em}
+.mm-saved .mm-art {aspect-ratio:2.5}.mm-saved h3{font-size:22px}
+/* Match summary keeps the existing data and detail actions. */
+.mc-c-futbol>.mc-art { background-image:url('/assets/michi-moments/football.png'); background-size:cover; background-position:center; min-height:170px; aspect-ratio:2; }
+.mc-c-futbol>.mc-art .mc-hero-data { display:none; }
+.mc-c-futbol .mc-fu-body { background:linear-gradient(140deg,#fff,#f0f5ff); padding:16px; border-radius:26px 26px 0 0; }
+.mc-c-futbol .mc-fu-num { font-size:38px; letter-spacing:.02em; color:#10106c; }
+.mc-c-futbol .mc-crest { width:54px; height:62px; background:transparent; border-radius:0; box-shadow:none; }
+.mc-c-futbol .mc-fu-team .nm { font-size:13px; line-height:1.2; }
+.mc-c-futbol .mc-fu-pos { min-height:34px; }.mc-c-futbol .mc-fu-pos .lb { font-size:12px; }
+.mc-c-futbol .mc-cta { min-height:46px; font-size:15px; background:linear-gradient(130deg,#a64eff,#632dff 45%,#4228ff);border-radius:24px; }

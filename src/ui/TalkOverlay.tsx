@@ -220,7 +220,7 @@ function ListeningBubble({ interimText }: { interimText: string }) {
   );
 }
 
-export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnboardingComplete }: { onClose: () => void; onNavigate?: (tab: "hoy" | "memoria" | "historial" | "configuracion") => void; onAvatares?: () => void; onboarding?: boolean; onOnboardingComplete?: (name: string, facts?: string[]) => void }) {
+export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnboardingComplete }: { onClose: () => void; onNavigate?: (tab: "hoy" | "memoria" | "historial" | "configuracion" | "school") => void; onAvatares?: () => void; onboarding?: boolean; onOnboardingComplete?: (name: string, facts?: string[]) => void }) {
   const {
     chatTurns,
     sendMessage,

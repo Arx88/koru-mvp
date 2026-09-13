@@ -33,6 +33,7 @@ import {
   addOnboardingMemories,
   approveAndExecuteAction,
   awardLevelUpEnergy,
+  completeMichiSchoolQuestion as completeMichiSchoolQuestionReducer,
   completeCommitment,
   confirmMemory as confirmMemoryInStore,
   createId,
@@ -357,6 +358,7 @@ type KoruContextValue = {
   // 🐱 v8 — "Nueva conversación" (su modal reset): borra el historial del
   // chat (solo el chat — NO la memoria/hábitos/datos) y deja el saludo.
   resetChat: () => void;
+  completeMichiSchoolQuestion: (questionId: string) => void;
 };
 
 const KoruContext = createContext<KoruContextValue | null>(null);
@@ -2225,6 +2227,10 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     setChatTurns([greetingTurn(localStorage.getItem("michi.username") ?? "")]);
   }
 
+  function completeMichiSchoolQuestion(questionId: string) {
+    commitDomainState((prev) => completeMichiSchoolQuestionReducer(prev, questionId));
+  }
+
   const value = useMemo<KoruContextValue>(() => ({
     state: domainState,
     energy,
@@ -2345,6 +2351,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     exportData,
     deleteAllData,
     resetChat,
+    completeMichiSchoolQuestion,
   }), [energy, roots, stage, userName, onboarded, ephemeral, priorities, memories, history, domainState, domainState.records, permissions, processing, activity, phase, chatTurns, selectedModel, memoryToast, morningBrief, showInstallPrompt, installPromptEvent, voiceEnabled, language, online, reopenedRecord, collectionsView, pendingMemoryConflict]);
 
   // 🔴 v2: Listener para guardar record desde el detail screen (botón Guardar informe)

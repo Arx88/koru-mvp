@@ -8,6 +8,7 @@ import { TalkOverlay } from "./TalkOverlay";
 import { HomeScreen } from "./HomeScreen";
 import { SettingsScreen } from "./SettingsScreen";
 import { MichiAvatarsScreen } from "./michi/MichiAvatars";
+import { MichiSchoolScreen } from "./michi/MichiSchoolScreen";
 import { IconGallery } from "./IconGallery";
 import { KoruMicrodetails } from "./cards/unified/KoruMicrodetails";
 import { fetchWeatherForCity } from "../domain/weatherClient";
@@ -17,7 +18,7 @@ const LazyCreateScreen = lazy(() =>
   import("./create/CreateScreen").then((m) => ({ default: m.CreateScreen })),
 );
 
-type Screen = "chat" | "hoy" | "memoria" | "historial" | "configuracion" | "avatares";
+type Screen = "chat" | "hoy" | "memoria" | "historial" | "configuracion" | "avatares" | "school";
 
 function KoruApp() {
   // 🔴 FIX (2026-09-09): "Crear" desde el Home abre la CreateScreen REAL
@@ -73,7 +74,7 @@ function KoruApp() {
         onBack={() => setScreen("chat")}
         onMenuAction={(action) => {
           if (action === "avatares") return;
-          if (action === "hoy" || action === "memoria" || action === "historial" || action === "configuracion") {
+          if (action === "hoy" || action === "memoria" || action === "historial" || action === "configuracion" || action === "school") {
             setScreen(action);
           } else {
             setScreen("chat");
@@ -81,6 +82,10 @@ function KoruApp() {
         }}
       />
     );
+  }
+
+  if (screen === "school") {
+    return <MichiSchoolScreen onBack={() => setScreen("chat")} />;
   }
 
   // Pantallas del wheel — con back button para volver al chat

@@ -18,6 +18,13 @@ import {
 import type { LearningPreference, RelevantMemory } from "./types";
 import { koruSoulCapsule } from "./soul";
 import { dueAtFromText, nextDueAtFromRecurrence } from "./time";
+import {
+  advanceSchoolProgress,
+  createSchoolProgress,
+  currentSchoolQuestion,
+  normalizeSchoolProgress,
+  SCHOOL_XP_PER_ANSWER,
+} from "./michiSchool";
 import type {
   CalendarEvent,
   Commitment,
@@ -126,6 +133,7 @@ export function createInitialState(userId: string = "default"): KoruState {
     actionPreparationEnabled: true,
     worldSignalsEnabled: false,
     learningPreferences: [],
+    michiSchool: createSchoolProgress(),
     language: "es",
     // 🔴 KORU 3.0 — preferences default con voz de Koru desactivada
     preferences: {
@@ -163,6 +171,7 @@ function normalizeState(parsed?: Partial<KoruState> | null): KoruState {
     voicePreference: { ...initial.voicePreference, ...parsed.voicePreference },
     // 🔴 KORU 3.0 — merge preferences para no perder campos al cargar estado viejo
     preferences: { ...initial.preferences, ...parsed.preferences },
+    michiSchool: normalizeSchoolProgress(parsed.michiSchool),
     memories: (parsed.memories ?? []).map((memory) => ({
       useForSuggestions: memory.useForSuggestions ?? memory.sensitivity === "normal",
       ...memory,
@@ -306,6 +315,34 @@ export function awardLevelUpEnergy(state: KoruState, amount = 100): KoruState {
   } else {
     saveState(next);
   }
+  return next;
+}
+
+/** Registra una respuesta correcta de Michi School una sola vez y suma XP global. */
+export function completeMichiSchoolQuestion(state: KoruState, questionId: string): KoruState {
+  const progress = normalizeSchoolProgress(state.michiSchool);
+  if (!questionId || progress.completedQuestionIds.includes(questionId) || currentSchoolQuestion(progress).id !== questionId) return state;
+
+  const now = nowIso();
+  const next: KoruState = {
+    ...state,
+    michiSchool: advanceSchoolProgress(progress, questionId),
+    trustedEnergy: state.trustedEnergy + SCHOOL_XP_PER_ANSWER,
+    totalEnergy: state.totalEnergy + SCHOOL_XP_PER_ANSWER,
+    energyEvents: [
+      {
+        id: createId("energy"),
+        createdAt: now,
+        source: "michi_school",
+        points: SCHOOL_XP_PER_ANSWER,
+        explanation: "Respuesta correcta en Michi School.",
+      },
+      ...state.energyEvents,
+    ],
+    updatedAt: now,
+  };
+  next.stage = stageFor(next);
+  saveState(next);
   return next;
 }
 

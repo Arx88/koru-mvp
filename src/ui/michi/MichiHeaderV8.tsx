@@ -5,11 +5,12 @@ import { useEffect, useRef, useState } from "react";
 import {
   Menu, Star, Sparkle, MessageCircle, PawPrint, Palette, ChevronRight,
   Signal, Wifi, BatteryFull, Home, Brain, History, Settings,
+  GraduationCap,
 } from "lucide-react";
 import { MichiCat } from "./v8Shared";
 
 export type MichiMenuAction =
-  | "progress" | "landscape" | "avatares" | "hoy" | "memoria" | "historial" | "configuracion";
+  | "progress" | "landscape" | "avatares" | "school" | "hoy" | "memoria" | "historial" | "configuracion";
 
 function useClock() {
   const [time, setTime] = useState(() =>
@@ -126,6 +127,9 @@ export function MichiHeaderV8({ onMenuAction, onAvatares }: {
                 </button>
                 <button type="button" role="menuitem" className="mx-menu-item" onClick={() => go("progress")}>
                   <Star /> Mi progreso <ChevronRight size={16} className="mx-menu-endicon" />
+                </button>
+                <button type="button" role="menuitem" className="mx-menu-item mx-menu-school" onClick={() => go("school")}>
+                  <GraduationCap /> Michi School <span className="mx-menu-new">Nuevo</span><ChevronRight size={16} className="mx-menu-endicon" />
                 </button>
                 <button type="button" role="menuitem" className="mx-menu-item" onClick={() => go("landscape")}>
                   <Palette /> Cambiar paisaje <ChevronRight size={16} className="mx-menu-endicon" />
