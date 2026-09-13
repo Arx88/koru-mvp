@@ -80,6 +80,27 @@ function MIcon({ name, size = 16, style }: { name: string; size?: number; style?
 }
 
 /** ¿El string parece emoji? (los hourly traen conditionIcon emoji o material) */
+/* 🔴 FIX (2026-09-13): el estado del partido llega del proveedor en INGLÉS
+   ("Final Score - After Extra Time") y se mostraba tal cual en una app en
+   español. Traduce los casos conocidos y deja el resto como venga. */
+function localizeMatchStatus(status?: string, live?: boolean, upcoming?: boolean): string {
+  if (upcoming) return "PRÓXIMO";
+  if (live) return "EN JUEGO";
+  if (!status) return "FINAL";
+  const s = status.toLowerCase();
+  const extra = /extra time|alargue|prórroga|prorroga/.test(s) ? " · alargue" : "";
+  if (/penalt|shootout/.test(s)) return "Final · penales";
+  // 🔴 `\b` obligatorio: sin él, "Suspend**ed** by weather" matcheaba `ended` y se
+  // mostraba como "Final". Lo cachó el test de estados desconocidos.
+  if (/\b(final|full.?time|ended|ft)\b/.test(s)) return `Final${extra}`;
+  if (/half.?time|medio tiempo|\bht\b/.test(s)) return "Entretiempo";
+  if (/cancel/.test(s)) return "Cancelado";
+  if (/postpon/.test(s)) return "Postergado";
+  if (/scheduled|not started/.test(s)) return "PRÓXIMO";
+  return status.toUpperCase();
+}
+
+/** ¿El string parece emoji? (los hourly traen conditionIcon emoji o material) */
 function isEmoji(s: string | undefined): boolean {
   if (!s) return false;
   return /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(s) && !/^[a-z_]+$/i.test(s);
@@ -1459,6 +1480,7 @@ export function MichiFutbol(props: MichiProps) {
   const possessionStat = (b.detailedStats?.find((s) => s.label === "Posesión") ?? b.stats?.find((s) => s.label === "Posesión"));
   const homePoss = possessionStat ? Math.round(possessionStat.home ?? possessionStat.leftPercent ?? 50) : 50;
   const kickoffLabel = matchTime ?? (b.date ? b.date.slice(0, 10) : undefined);
+  const statusLabel = localizeMatchStatus(b.status, hero.live, isFuture || isPre);
 
   return (
     <div className="mc-kcard mc-c-futbol" {...tapProps}>
@@ -1469,10 +1491,10 @@ export function MichiFutbol(props: MichiProps) {
       <div className="mc-fu-body">
         <div className="mc-fu-league">
           <span className="mc-ib red"><MIcon name="sports_soccer" size={13} /></span>
-          <h4 style={{ margin: 0, fontSize: "inherit", fontWeight: "inherit", letterSpacing: "inherit", textTransform: "inherit", color: "inherit", fontFamily: "inherit" }}>
-            {b.league ?? b.teamInfo?.league ?? b.nextMatch?.league ?? "PARTIDO"}
-          </h4>
-          <span className="st">{b.status ?? (hero.live ? "EN JUEGO" : isFuture || isPre ? "PRÓXIMO" : "FINAL")}</span>
+          {/* 🔴 FIX (2026-09-13): el nombre de la liga ya se muestra arriba, en la
+              píldora sobre el arte (mc-gpill). Repetirlo acá era el MISMO texto
+              dos veces a un centímetro, y encima partido en 3 renglones a 9.5px. */}
+          <span className="st">{statusLabel}</span>
         </div>
         <div className="mc-fu-score">
           <div className="mc-fu-team">
@@ -1490,7 +1512,7 @@ export function MichiFutbol(props: MichiProps) {
             ) : (
               <>
                 <span className="mc-fu-num">{homeScore}-{awayScore}</span>
-                <span className="mc-fu-st">{b.status ?? (hero.live ? "EN JUEGO" : "FINAL")}</span>
+                <span className="mc-fu-st">{statusLabel}</span>
               </>
             )}
           </div>
@@ -1505,7 +1527,12 @@ export function MichiFutbol(props: MichiProps) {
           <div style={{ display: "flex", gap: 5 }}>
             {goals.map((g, i) => (
               <div key={i} className="mc-fi-it" style={{ background: "#F7F9FE", borderRadius: 12, padding: "5px 7px" }}>
-                <span className="mc-ib md gold" style={{ width: 20, height: 20, borderRadius: 7.5 }}><Mat>soccer</Mat>⚽</span>
+                {/* 🔴 FIX (2026-09-13): `<Mat>soccer</Mat>` usaba un nombre de
+                    Material Icons LEGACY, que no existe como ligadura en Material
+                    Symbols Outlined → se renderizaba el TEXTO "soccer" (81px)
+                    desbordando el badge de 20px y pisando el nombre del goleador.
+                    El ⚽ ya comunica lo mismo. */}
+                <span className="mc-ib md gold" aria-hidden="true" style={{ width: 20, height: 20, borderRadius: 7.5 }}>⚽</span>
                 <span style={{ fontSize: 10, fontWeight: 900, color: "#1E1B4B" }}>
                   {g.scorer ?? g.text ?? "Gol"}{g.minute ? ` · ${g.minute}'` : ""}
                 </span>

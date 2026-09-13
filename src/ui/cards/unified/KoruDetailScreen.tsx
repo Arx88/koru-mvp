@@ -1700,7 +1700,10 @@ export function KoruDetailScreen({
         <div className="koru-roadmap-modules xt-body">
           {isEmpty ? (
             <div className="koru-unified-empty koru-detail-empty">
-              <Mat>soccer</Mat>
+              {/* 🔴 FIX (2026-09-13): "soccer" es un nombre de Material Icons
+                  legacy, sin ligadura en Material Symbols Outlined → se veía el
+                  texto literal "soccer" en vez del ícono. */}
+              <Mat>sports_soccer</Mat>
               <span className="koru-detail-empty-title">
                 {block?.type === "match_timeline" || block?.type === "live_match"
                   ? "Partido próximo"

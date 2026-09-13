@@ -15,7 +15,11 @@
 .mm-eyebrow{font-size:16px;font-weight:850;display:block;margin-bottom:6px}.mm-alarm h3{font-size:clamp(42px,14vw,64px);font-variant-numeric:tabular-nums;letter-spacing:-.06em}
 .mm-saved .mm-art {aspect-ratio:2.5}.mm-saved h3{font-size:22px}
 /* Match summary keeps the existing data and detail actions. */
-.mc-c-futbol>.mc-art { background-image:url('/assets/michi-moments/football.png'); background-size:cover; background-position:center; min-height:170px; aspect-ratio:2; }
+/* 🔴 FIX (2026-09-13): `min-height:170px` + `aspect-ratio:2` forzaba al arte a
+   340px de ancho dentro de una card de 298px → el arte se salía 42px por el
+   costado y se veía al lado del panel blanco (medido en producción).
+   `width:100%` + alto fijo lo deja adentro de la card. */
+.mc-c-futbol>.mc-art { background-image:url('/assets/michi-moments/football.png'); background-size:cover; background-position:center; width:100%; height:170px; }
 .mc-c-futbol>.mc-art .mc-hero-data { display:none; }
 .mc-c-futbol .mc-fu-body { background:linear-gradient(140deg,#fff,#f0f5ff); padding:16px; border-radius:26px 26px 0 0; }
 .mc-c-futbol .mc-fu-num { font-size:38px; letter-spacing:.02em; color:#10106c; }
