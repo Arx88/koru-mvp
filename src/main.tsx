@@ -15,6 +15,7 @@ import "./michi-pages.css";
 import "./michi-world.css";
 import "./ui/michi/michi-memory-history.css";
 import "./ui/michi/michi-school.css";
+import "./ui/michi/michi-school-polish.css";
 
 const isPreview = new URLSearchParams(location.search).get("preview") === "cards";
 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { createInitialState, completeMichiSchoolQuestion } from "../../domain/store";
 import { questionsForGrade } from "../../domain/michiSchool";
@@ -11,6 +11,22 @@ vi.mock("../KoruProvider", () => ({ useKoru: () => {
   return { state, energy: state.trustedEnergy, completeMichiSchoolQuestion: (id: string) => setState(prev => completeMichiSchoolQuestion(prev, id)) };
 } }));
 afterEach(cleanup);
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
+});
+
+it("pausa y retoma la misma pregunta sin otorgar experiencia", () => {
+  const onBack=vi.fn();
+  render(<MichiSchoolScreen onBack={onBack}/>);
+  fireEvent.click(screen.getByRole("button",{name:"Pausar Michi School"}));
+  expect(screen.getByRole("dialog",{name:"Un recreo con Michi"})).toBeTruthy();
+  fireEvent.click(screen.getByRole("button",{name:"Seguir aprendiendo"}));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.getByLabelText("0 puntos de experiencia")).toBeTruthy();
+  expect(screen.getByRole("heading",{level:1}).textContent).toBe(questionsForGrade(1)[0].question);
+  expect(onBack).not.toHaveBeenCalled();
+});
 
 it("no suma XP por un error y permite aprender hasta completar un grado", () => {
   render(<MichiSchoolScreen onBack={vi.fn()} />);

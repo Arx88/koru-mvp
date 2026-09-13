@@ -1,12 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArrowLeft,
+  Pause,
   ArrowRight,
   BookOpenCheck,
   Check,
   Earth,
   Lightbulb,
-  PawPrint,
   RotateCcw,
   Sparkles,
   Star,
@@ -37,6 +36,11 @@ export function MichiSchoolScreen({ onBack }: { onBack: () => void }) {
   const [solved, setSolved] = useState(false);
   const [showFact, setShowFact] = useState(false);
   const [showGradeResult, setShowGradeResult] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const pauseDialog = useRef<HTMLDialogElement>(null);
+  const resultDialog = useRef<HTMLDialogElement>(null);
+  const questionHeading = useRef<HTMLHeadingElement>(null);
+  const previousQuestion = useRef(questionId);
 
   const question = useMemo(
     () => MICHI_SCHOOL_QUESTIONS.find((item) => item.id === questionId) ?? liveQuestion,
@@ -45,13 +49,29 @@ export function MichiSchoolScreen({ onBack }: { onBack: () => void }) {
   const questionNumber = Math.max(1, questionsForGrade(question.grade).findIndex((item) => item.id === question.id) + 1);
   const progress = progressForEnergy(energy);
   const allGradesComplete = school.graduatedGrades.includes(SCHOOL_MAX_GRADE);
+  const resultVisible = showGradeResult || (allGradesComplete && !solved);
+
+  useEffect(() => {
+    if (paused) pauseDialog.current?.showModal();
+    else pauseDialog.current?.close();
+  }, [paused]);
+
+  useEffect(() => {
+    if (resultVisible) resultDialog.current?.showModal();
+    else resultDialog.current?.close();
+  }, [resultVisible]);
+
+  useEffect(() => {
+    if (previousQuestion.current !== questionId) questionHeading.current?.focus({ preventScroll: true });
+    previousQuestion.current = questionId;
+  }, [questionId]);
 
   useEffect(() => {
     if (!solved && selected === null) setQuestionId(liveQuestion.id);
   }, [liveQuestion.id, selected, solved]);
 
   function chooseAnswer(index: number) {
-    if (solved) return;
+    if (solved || paused) return;
     setSelected(index);
     setShowFact(false);
     if (index === question.answer) {
@@ -83,20 +103,19 @@ export function MichiSchoolScreen({ onBack }: { onBack: () => void }) {
   const selectedWrong = selected !== null && selected !== question.answer;
 
   return (
-    <main className="ms-school" aria-label="Michi School">
+    <main className={`ms-school ${solved ? "ms-celebrating" : ""} ${paused ? "ms-paused" : ""}`} aria-label="Michi School">
       <div className="ms-school-bg" aria-hidden="true" />
       <div className="ms-school-shade" aria-hidden="true" />
+      <div className="ms-motes" aria-hidden="true">{Array.from({length: 7}, (_, i) => <i key={i} />)}</div>
 
       <header className="ms-school-topbar">
-        <button className="ms-round-control" type="button" onClick={onBack} aria-label="Salir de Michi School">
-          <ArrowLeft />
+        <button className="ms-round-control" type="button" onClick={() => setPaused(true)} aria-label="Pausar Michi School">
+          <Pause fill="currentColor" />
         </button>
         <div className="ms-school-logo" aria-label="Michi School">
-          <PawPrint className="ms-logo-paw" fill="currentColor" />
-          <span>Michi</span>
-          <strong>School</strong>
+          <img src="/assets/michi-school/logo-v2.png" alt="" />
         </div>
-        <div className="ms-xp-pill" aria-label={`${energy} puntos de experiencia`}>
+        <div key={energy} className={`ms-xp-pill ${solved ? "ms-xp-earned" : ""}`} aria-label={`${energy} puntos de experiencia`}>
           <Star fill="currentColor" />
           <span>{energy} XP</span>
         </div>
@@ -117,9 +136,9 @@ export function MichiSchoolScreen({ onBack }: { onBack: () => void }) {
 
       <div className="ms-hero-spacer" aria-hidden="true" />
 
-      <section className="ms-question-card" aria-labelledby="ms-question-title">
+      <section key={question.id} className="ms-question-card" aria-labelledby="ms-question-title">
         <div className="ms-category-chip"><Earth /> {question.category}</div>
-        <h1 id="ms-question-title">{question.question}</h1>
+        <h1 id="ms-question-title" ref={questionHeading} tabIndex={-1}>{question.question}</h1>
 
         <div className="ms-options" role="group" aria-label="Opciones de respuesta">
           {question.options.map((option, index) => {
@@ -178,8 +197,17 @@ export function MichiSchoolScreen({ onBack }: { onBack: () => void }) {
         </button>
       </nav>
 
-      {(showGradeResult || (allGradesComplete && !solved)) && (
-        <div className="ms-result-backdrop" role="dialog" aria-modal="true" aria-labelledby="ms-result-title">
+      <dialog ref={pauseDialog} className="ms-modal ms-pause-modal" aria-labelledby="ms-pause-title" onCancel={() => setPaused(false)}>
+        <section className="ms-result-card">
+          <img className="ms-pause-logo" src="/assets/michi-school/logo-v2.png" alt="" />
+          <h2 id="ms-pause-title">Un recreo con Michi</h2>
+          <p>Tu progreso está guardado. Seguimos en el grado {question.grade}, pregunta {questionNumber}.</p>
+          <button type="button" onClick={() => setPaused(false)}>Seguir aprendiendo <ArrowRight /></button>
+          <button type="button" className="ms-exit-button" onClick={onBack}>Volver al chat</button>
+        </section>
+      </dialog>
+
+        <dialog ref={resultDialog} className="ms-modal" aria-labelledby="ms-result-title" onCancel={event => event.preventDefault()}>
           <section className="ms-result-card">
             <div className="ms-result-glow" aria-hidden="true" />
             <span className="ms-trophy"><Trophy fill="currentColor" /></span>
@@ -196,8 +224,7 @@ export function MichiSchoolScreen({ onBack }: { onBack: () => void }) {
               {allGradesComplete ? "Volver con Michi" : `Empezar Grado ${school.currentGrade}`} <ArrowRight />
             </button>
           </section>
-        </div>
-      )}
+        </dialog>
     </main>
   );
 }

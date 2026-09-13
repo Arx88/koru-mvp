@@ -1,0 +1,56 @@
+/* Reference-matched artwork, controls and motion. */
+.ms-school { --ms-ease:cubic-bezier(.2,.75,.25,1); }
+.ms-school-bg {background-image:url('/assets/michi-school/classroom-v2.png'),url('/assets/michi-school/classroom-v2.png');background-position:center top,center bottom;background-repeat:no-repeat;background-size:100% auto;background-color:#675074}
+.ms-school-logo {width:90px;height:78px;filter:drop-shadow(0 3px 0 #1d136b40)}
+.ms-school-logo img,.ms-pause-logo {display:block;object-fit:contain;clip-path:polygon(48.7% 5.4%,52.5% 2.3%,55.8% 2.8%,58% 4.5%,59.6% 7%,60% 10.6%,63.2% 12.8%,65% 16%,65.3% 20%,64.3% 24.5%,61% 27.5%,67% 26.5%,70% 28%,72.5% 32%,73.4% 36.5%,76% 36.7%,77.5% 32%,81% 28%,85% 27.5%,88% 30%,90% 33%,91% 36%,91% 39%,89.5% 42.7%,91% 46%,91% 57%,90% 59%,94% 65%,94.5% 71%,94% 82%,94.7% 87%,94% 92%,91% 95%,86% 96%,81% 93%,77% 95%,72% 94%,70% 92%,67% 95%,62% 96%,57% 93%,53% 95%,50% 93%,46% 95%,40% 92%,36% 95%,31% 93%,28% 92%,25% 95%,20% 96%,15% 94%,12% 91%,10.5% 88%,10.4% 84%,12% 81%,10.8% 77%,10.8% 73%,12.3% 69%,10% 66%,9% 61%,9% 43%,10% 38%,12% 34%,15% 31%,20% 30%,24% 32%,26% 35%,29% 30%,33% 28%,36% 29%,33% 25%,32.5% 20%,34% 15%,38% 11%,39% 7%,42% 3%,45% 2.5%)}
+.ms-school-logo img {position:absolute;left:-10%;top:3px;width:120%;height:auto;}
+.ms-round-control svg {width:22px;height:22px;stroke-width:3}
+.ms-xp-pill {font-variant-numeric:tabular-nums}
+.ms-xp-earned {animation:ms-xp-bump .55s var(--ms-ease)}
+.ms-question-card {animation:ms-question-enter .35s var(--ms-ease)}
+.ms-question-card h1 {outline:none;text-wrap:pretty}
+.ms-option {transition:background .2s,border-color .2s,box-shadow .2s,transform .18s var(--ms-ease)}
+.ms-option.is-correct {box-shadow:inset 0 1px 5px #fff9,0 0 0 1px #ffffffaa}
+.ms-option-status {animation:ms-check-in .35s var(--ms-ease)}
+.ms-option.is-wrong {animation:ms-retry .28s ease-out}
+.ms-option:disabled {opacity:1;cursor:default}
+.ms-feedback.is-correct .ms-feedback-icon {animation:ms-check-in .4s var(--ms-ease)}
+.ms-school-actions button {transition:transform .18s var(--ms-ease),box-shadow .2s,filter .2s}
+.ms-next-button svg {transition:transform .2s var(--ms-ease)}
+.ms-school button:active:not(:disabled) {transform:scale(.97)}
+.ms-question-card button:focus-visible {outline-color:#157aff}
+.ms-modal {position:fixed;inset:0;margin:auto;padding:0;border:0;width:min(430px,calc(100vw - 36px));max-height:calc(100dvh - 40px);overflow:auto;background:transparent;color:#11106d}
+.ms-modal::backdrop {background:#14103a99;backdrop-filter:blur(9px)}
+.ms-modal[open] {animation:ms-question-enter .3s var(--ms-ease)}
+.ms-modal .ms-result-card {width:100%;box-sizing:border-box}
+.ms-pause-logo {display:block;width:120px;height:100px;object-fit:contain;margin:auto}
+.ms-pause-modal .ms-result-card>button {margin-top:15px}
+.ms-result-card>button.ms-exit-button {background:transparent;box-shadow:none;border:1px solid #d4cefc;color:#7165bb;margin-top:8px}
+.ms-motes {position:absolute;inset:0 0 auto;height:300px;pointer-events:none;z-index:-1}
+.ms-motes i {position:absolute;width:3px;height:3px;border-radius:50%;background:#fff4af;box-shadow:0 0 6px 2px #ffedb466;animation:ms-mote 6s ease-in-out infinite}
+.ms-motes i:nth-child(1){left:13%;top:34%;animation-delay:-1s}.ms-motes i:nth-child(2){left:76%;top:62%;animation-delay:-3s}.ms-motes i:nth-child(3){left:85%;top:29%;animation-delay:-5s}.ms-motes i:nth-child(4){left:28%;top:52%;animation-delay:-2s}.ms-motes i:nth-child(5){left:67%;top:39%;animation-delay:-4s}.ms-motes i:nth-child(6){left:9%;top:75%;animation-delay:-3.5s}.ms-motes i:nth-child(7){left:89%;top:83%;animation-delay:-.5s}
+.ms-paused .ms-motes i {animation-play-state:paused}
+@keyframes ms-mote {0%,100%{opacity:.2;transform:translateY(4px) scale(.8)}50%{opacity:.85;transform:translateY(-7px) scale(1.1)}}
+@keyframes ms-question-enter {from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+@keyframes ms-check-in {0%{transform:scale(.6)}65%{transform:scale(1.12)}100%{transform:scale(1)}}
+@keyframes ms-xp-bump {0%{opacity:.5;transform:translateY(6px) scale(.8)}60%{transform:translateY(-2px) scale(1.08)}100%{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes ms-retry {25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+@media(orientation:portrait),(min-height:601px){
+ .ms-school{padding-top:max(26px,env(safe-area-inset-top))}
+ .ms-school-logo{top:-13px}
+ .ms-school-topbar{height:57px;align-items:center}
+ .ms-lesson-progress{width:46%;margin:2px auto 0;height:47px}
+ .ms-grade-line{top:79px;left:24px;font-size:10px}
+ .ms-hero-spacer{height:max(124px,calc(min(100vw,470px) * .725 - 132px))}
+ .ms-question-card{padding:10px 12px 11px;border-radius:25px}
+ .ms-question-card h1{margin:11px 20px 12px;font-size:clamp(18px,4.7vw,22px)}
+ .ms-category-chip{margin-left:7px}
+ .ms-options{margin:0 15px}
+ .ms-feedback.is-correct{min-height:84px}
+ .ms-feedback p{font-size:12px;line-height:1.38}
+ .ms-option.is-correct{background:linear-gradient(105deg,#d9ffe7,#c8f9e0)}
+ .ms-school-actions{margin-top:12px}
+}
+@media(hover:hover){.ms-option:not(:disabled):hover{border-color:#9182f2;box-shadow:0 3px 12px #7468d41c}.ms-school-actions button:not(:disabled):hover{filter:brightness(1.08)}.ms-next-button:not(:disabled):hover svg{transform:translateX(3px)}}
+@media(max-width:359px){.ms-options{margin:0 6px}.ms-question-card h1{margin-left:10px;margin-right:10px}.ms-xp-pill{font-size:11px;padding:8px}.ms-school-actions button{font-size:12px;padding:8px 11px}}
+@media(prefers-reduced-motion:reduce){.ms-school *,.ms-school *::before,.ms-school *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}

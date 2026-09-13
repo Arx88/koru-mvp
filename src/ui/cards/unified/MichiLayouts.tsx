@@ -5,6 +5,7 @@ import type { Hero, Detail, KoruPresentation } from "./presentation";
 import { KoruIcon, iconFromMaterial } from "./KoruIcons";
 import { isMichiNews, MichiNewsCards, MichiRecipeCard, MichiMarketCard } from "./MichiNewCards";
 import { MichiMomentCard } from "./MichiMomentCard";
+import { MichiFootballMatch } from "./MichiFootballMatch";
 
 /* ============================================================================
    MICHI v7 — CARDS "MINI-MUNDO" (port fiel del diseño de public/estilo-v2.html)
@@ -83,7 +84,7 @@ function MIcon({ name, size = 16, style }: { name: string; size?: number; style?
 /* 🔴 FIX (2026-09-13): el estado del partido llega del proveedor en INGLÉS
    ("Final Score - After Extra Time") y se mostraba tal cual en una app en
    español. Traduce los casos conocidos y deja el resto como venga. */
-function localizeMatchStatus(status?: string, live?: boolean, upcoming?: boolean): string {
+export function localizeMatchStatus(status?: string, live?: boolean, upcoming?: boolean): string {
   if (upcoming) return "PRÓXIMO";
   if (live) return "EN JUEGO";
   if (!status) return "FINAL";
@@ -1313,6 +1314,7 @@ export function MichiFocus(props: MichiProps) {
    ============================================================================ */
 
 export function MichiFutbol(props: MichiProps) {
+  if (props.block.type === "live_match") return <MichiFootballMatch {...props} block={props.block} />;
   const { block, hero, cta, isTappable, handleClick, handleKeyDown, overlay } = props;
   const b = block as {
     homeName?: string; awayName?: string; homeScore?: number; awayScore?: number;
