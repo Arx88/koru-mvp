@@ -24,6 +24,9 @@
 .lcr .dside .dph{width:52px;height:52px;border-radius:17px;display:flex;align-items:center;justify-content:center;margin:0 auto}
 .lcr .dside .dph .lucide{font-size:28px}
 .lcr .dside .dnm{text-align:center;font:800 13.5px var(--sans);color:var(--ink);margin-top:8px;line-height:1.3}
+/* La tienda va en su propia línea: antes se pegaba al título en el podio
+   ("Sony XM5MediaMarkt", "Bose QCECorte Inglés"). */
+.lcr .dside .dnm small{display:block;font:700 11px var(--sans);color:var(--ink-dim);margin-top:2px}
 .lcr .dside .dsc{text-align:center;font:800 11px var(--sans);color:var(--ink-dim);margin-top:2px}
 .lcr .dside .tally{display:flex;justify-content:center;gap:4px;margin-top:9px}
 .lcr .dside .tally i{width:8px;height:16px;border-radius:4px;background:#E6EEFA}

@@ -137,9 +137,15 @@ export function ComparisonInterior({ block, onClose, onSave }: LecturaInteriorPr
                     return (
                       <span key={`c_${j}_${it.title}`} className={m?.positive ? "best" : undefined}>
                         {m ? (
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          <span
+                            style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+                            title={m.value ? `${m.label}: ${m.value}` : m.label}
+                          >
                             {m.positive ? <Ic i={Check} className="ic" style={{ fontSize: 11 }} /> : <Ic i={X} className="ic" style={{ fontSize: 11 }} />}
-                            {m.label}
+                            {/* El dato del contendiente. Antes acá se repetía el
+                                nombre del criterio ("✓ Cancelación" dentro de la
+                                fila Cancelación): la celda no decía nada. */}
+                            {m.value ?? (m.positive ? "Sí" : "No")}
                           </span>
                         ) : (
                           "—"
