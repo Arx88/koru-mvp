@@ -28,6 +28,9 @@ import { CHAT_SCRIPT } from "./preview-data";
 import "./style.css";
 import "./michi-cards.css";
 import "./koru-motion.css";
+// 🐱 Igual que la app real: sin michi-v8.css las cards de la familia `mx-`
+// (MichiWeatherCard y sus diálogos) se veían sin estilo en este archivo.
+import "./michi-v8.css";
 import "./preview.css";
 import "./lectura-gallery.css";
 import "./all-cards.css";

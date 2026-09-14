@@ -10,6 +10,10 @@ import { CHAT_SCRIPT, CHAT_CATALOG, entriesForTag, searchScript, type ChatEntry 
 import "./style.css";
 import "./michi-cards.css";
 import "./koru-motion.css";
+// 🐱 La app real (main.tsx) monta también michi-v8.css: sin él las cards de la
+// familia `mx-` (MichiWeatherCard y diálogos) se veían SIN estilo acá, y este
+// showcase mostraba una app que no existe.
+import "./michi-v8.css";
 import "./preview.css";
 
 // ============================================================================

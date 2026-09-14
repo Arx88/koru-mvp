@@ -7,6 +7,11 @@ import { AUDIT_BLOCKS, AUDIT_LIST } from "./audit-data";
 import "./style.css";
 import "./michi-cards.css";
 import "./koru-motion.css";
+// 🐱 El chat real (main.tsx) monta también michi-v8.css — la familia `mx-*
+// (MichiWeatherCard, diálogos) vive AHÍ. Sin este import el harness mostraba
+// esas cards sin estilo: la weather card parecía una lista rota cuando en la
+// app es el diseño portado del proyecto del usuario.
+import "./michi-v8.css";
 
 // ============================================================================
 // AUDIT HARNESS — renderiza UNA card por vez para captura y juicio.
