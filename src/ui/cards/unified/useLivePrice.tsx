@@ -5,6 +5,7 @@
 // ════════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useRef } from "react";
+import { parsePriceNumber } from "./money";
 
 /**
  * Simula un precio que "late" cada ~3s con un random-walk pequeño (±0.15%).
@@ -53,37 +54,6 @@ export function useLivePrice(basePrice: string | undefined, intervalMs = 3000) {
   }, [basePrice, intervalMs]);
 
   return { displayPrice, direction };
-}
-
-/** Parsea "$64.230" → 64230, "1.250,50" → 1250.5, "AR$ 1.250.500" → 1250500. */
-function parsePriceNumber(s: string): number | null {
-  if (!s) return null;
-  // Quitar todo lo que no sea dígito, coma o punto
-  const cleaned = s.replace(/[^\d.,]/g, "");
-  if (!cleaned) return null;
-
-  // Detectar formato: si hay coma y punto, asumir formato es-AR (1.250,50)
-  if (cleaned.includes(",") && cleaned.includes(".")) {
-    // Si la coma está después del punto → punto es miles, coma es decimal
-    if (cleaned.lastIndexOf(",") > cleaned.lastIndexOf(".")) {
-      return parseFloat(cleaned.replace(/\./g, "").replace(",", "."));
-    }
-    // Si el punto está después de la coma → coma es miles, punto es decimal
-    return parseFloat(cleaned.replace(/,/g, ""));
-  }
-  // Sólo coma → coma es decimal (formato es-AR sin miles)
-  if (cleaned.includes(",")) {
-    return parseFloat(cleaned.replace(",", "."));
-  }
-  // Sólo punto → punto es decimal (formato en-US)
-  if (cleaned.includes(".")) {
-    // Si hay múltiples puntos → son separadores de miles (1.250.500)
-    const parts = cleaned.split(".");
-    if (parts.length > 2) return parseFloat(parts.join(""));
-    return parseFloat(cleaned);
-  }
-  // Sólo dígitos
-  return parseFloat(cleaned);
 }
 
 /** Formatea el número nuevo respetando la estructura del original. */

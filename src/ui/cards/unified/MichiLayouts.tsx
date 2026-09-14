@@ -6,6 +6,7 @@ import { KoruIcon, iconFromMaterial } from "./KoruIcons";
 import { isMichiNews, MichiNewsCards, MichiRecipeCard, MichiMarketCard } from "./MichiNewCards";
 import { MichiMomentCard } from "./MichiMomentCard";
 import { MichiFootballMatch } from "./MichiFootballMatch";
+import { moneyEsAr } from "./money";
 
 /* ============================================================================
    MICHI v7 — CARDS "MINI-MUNDO" (port fiel del diseño de public/estilo-v2.html)
@@ -624,13 +625,26 @@ export function MichiCrypto(props: MichiProps) {
 
   // Normalizar monedas: crypto items / forex items (pair+rate) / market assets / ticker
   const rawCoins: { label: string; sub?: string; val?: string; change?: string; up?: boolean; char?: string }[] = [];
+  /** El precio del bloc llega como string crudo del backend ("77312.805 USD")
+   *  o ya formateado ("$2.847.600"): `moneyEsAr` normaliza sólo el primero. */
+  const money = (v: unknown) => (v == null ? undefined : moneyEsAr(v));
+  /** `change24hPct ?? 0` del backend no es un dato: 0 significa "la fuente no
+   *  publica la variación". Mostrarlo es afirmar un movimiento que no existe. */
+  const changeOf = (value: unknown): { change?: string; up?: boolean } => {
+    if (typeof value === "number") {
+      if (value === 0) return {};
+      return { change: `${value > 0 ? "+" : ""}${value}%`.replace(".", ","), up: value >= 0 };
+    }
+    if (typeof value === "string" && value.trim()) return { change: value, up: !/^[-−]/.test(value.trim()) };
+    return {};
+  };
+
   for (const it of (b.items ?? []) as Record<string, unknown>[]) {
     rawCoins.push({
       label: String(it.symbol ?? it.pair ?? it.label ?? it.name ?? "—"),
       sub: it.name != null ? String(it.name) : undefined,
-      val: it.price != null ? String(it.price) : it.rate != null ? String(it.rate) : it.value != null ? String(it.value) : undefined,
-      change: it.change != null ? (typeof it.change === "number" ? `${it.change > 0 ? "+" : ""}${it.change}%`.replace(".", ",") : String(it.change)) : undefined,
-      up: typeof it.change === "number" ? it.change >= 0 : typeof it.positive === "boolean" ? it.positive : undefined,
+      val: money(it.price ?? it.rate ?? it.value),
+      ...changeOf(it.change),
       char: it.char != null ? String(it.char) : undefined,
     });
   }
@@ -638,7 +652,7 @@ export function MichiCrypto(props: MichiProps) {
     rawCoins.push({
       label: String(a.symbol ?? a.name ?? "—"),
       sub: a.name != null ? String(a.name) : undefined,
-      val: a.price != null ? String(a.price) : undefined,
+      val: money(a.price),
       change: a.change != null ? String(a.change) : undefined,
       up: typeof a.changeUp === "boolean" ? a.changeUp : undefined,
     });
@@ -672,9 +686,9 @@ export function MichiCrypto(props: MichiProps) {
         {hero.live && <span className="mc-lchip">En vivo</span>}
         <div className="mc-hero-data">
           <span className="mc-bigval md">{price}</span>
-          <span className={`mc-cr-chg${up ? " up" : " dn"}`}>
-            <MIcon name={up ? "trending_up" : "trending_down"} size={11} />
-            {change ?? "—"} · 24 h
+          <span className={`mc-cr-chg${change ? (up ? " up" : " dn") : ""}`}>
+            {change ? <MIcon name={up ? "trending_up" : "trending_down"} size={11} /> : null}
+            {change ? `${change} · 24 h` : "Sin variación 24 h"}
           </span>
         </div>
         {spark && (

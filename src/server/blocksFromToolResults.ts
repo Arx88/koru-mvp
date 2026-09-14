@@ -29,6 +29,20 @@ import {
   type DayInfoData,
 } from "./koruBackend";
 
+/** Monto con el locale del producto: miles con punto y decimal con coma
+ *  ("77.312,81 USD"), con decimales proporcionales al tamaño del número para
+ *  no aplastar un satoshi ("0,00042 BTC"). */
+function formatMoneyEs(value: number, currency?: string): string {
+  if (!Number.isFinite(value)) return "?";
+  const abs = Math.abs(value);
+  const number = new Intl.NumberFormat("es-ES", {
+    minimumFractionDigits: abs >= 1 ? 2 : 0,
+    maximumFractionDigits: abs >= 1 ? 2 : abs >= 0.01 ? 4 : 6,
+  }).format(value);
+  const code = (currency ?? "").trim().toUpperCase();
+  return code ? `${number} ${code}` : number;
+}
+
 export function blocksFromToolResults(results: ToolExecution[], userInput?: string, tzOffsetMin?: number): UiBlock[] {
   const blocks: UiBlock[] = [];
   // 🔴 FIX DOBLE CARD — resultados de deportes (match_live + match_schedule)
@@ -191,7 +205,9 @@ export function blocksFromToolResults(results: ToolExecution[], userInput?: stri
         items: [{
           symbol: r.symbol || "BTC",
           name: r.coin || "Bitcoin",
-          price: `${r.price} ${r.currency || "USD"}`,
+          // Antes: `${Number}` crudo → la card imprimía "77312.805 USD" mientras
+          // el texto del chat decía "USD 77.312,80". Dos locales en pantalla.
+          price: formatMoneyEs(Number(r.price), r.currency || "USD"),
           change: r.change24hPct,
           color: "#f59e0b",
           bg: "#fffbeb",
@@ -212,7 +228,7 @@ export function blocksFromToolResults(results: ToolExecution[], userInput?: stri
         assets: [{
           symbol: String(r.symbol ?? "STOCK"),
           name: String(r.name ?? r.symbol ?? "Accion"),
-          price: r.close != null ? `${r.close}${r.currency ? ` ${r.currency}` : ""}` : "Cotización no disponible",
+          price: r.close != null ? formatMoneyEs(Number(r.close)) : "Cotización no disponible",
           change: r.change24hPct != null ? `${r.change24hPct >= 0 ? "up" : "down"} ${Math.abs(r.change24hPct)}%` : "-",
           changeUp: Number(r.change24hPct ?? 0) >= 0,
           volume: typeof r.volume === "number" ? new Intl.NumberFormat("es", { notation: "compact" }).format(r.volume) : undefined,
@@ -426,7 +442,7 @@ export function blocksFromToolResults(results: ToolExecution[], userInput?: stri
       const price = typeof crypto.price === "number" ? crypto.price : undefined;
       const currency = String(crypto.currency ?? "USD");
       if (price !== undefined) {
-        items.push({ label: "Precio", value: new Intl.NumberFormat("en-US", { style: "currency", currency }).format(price) });
+        items.push({ label: "Precio", value: formatMoneyEs(price, currency) });
       }
       if (typeof crypto.marketCap === "number") {
         items.push({ label: "Market Cap", value: formatCompactNumber(crypto.marketCap, currency) });

@@ -1320,7 +1320,10 @@ export type AssistantActionPayload = {
     url?: string;
     evidence?: string;
     score?: number;
-    details?: Array<{ label: string; positive?: boolean }>;
+    /** `label` = el CRITERIO (fila de la tabla); `value` = el dato real de ese
+     *  contendiente ("-35 dB", "8 h", "€189"). Sin `value` la card solo podía
+     *  repetir el nombre del criterio dentro de su propia fila. */
+    details?: Array<{ label: string; positive?: boolean; value?: string }>;
   }>;
   planItems?: AssistantPlanItem[];
   steps?: string[];

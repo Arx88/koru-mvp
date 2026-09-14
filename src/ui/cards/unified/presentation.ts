@@ -8,6 +8,7 @@ import {
   estimateKcal,
 } from "../../../domain/strengthEngine";
 import { suggestWinePairing } from "../../../tools/food/winePairing";
+import { moneyEsAr } from "./money";
 
 // ============================================================================
 // Modelo de presentación unificado (una sola fuente de verdad para TODAS las
@@ -22,6 +23,18 @@ export type Accent = {
   /** fondo suave del chip de icono */
   soft: string;
 };
+
+/** Une valor + unidad con un espacio. Antes se concatenaban en seco y la card
+ *  imprimía "Hechotren superior" (activity_tracker) o "1.780kcal activas".
+ *  Los símbolos que van pegados (%, °, €) no reciben espacio. */
+export function unitJoined(value: unknown, unit?: string | null): string {
+  const v = value == null ? "" : String(value).trim();
+  const u = (unit ?? "").trim();
+  if (!v) return u;
+  if (!u) return v;
+  if (/^[%°]/.test(u)) return `${v}${u}`;
+  return `${v} ${u}`;
+}
 
 /** Métrica de la fila 3-up del hero. Con `value` = tile; sin `value` = chip. */
 export type HeroMetric = {
@@ -3195,7 +3208,7 @@ function market(b: Of<"market">): KoruPresentation {
       rows: assets.map((a) => ({
         icon: a.changeUp ? "trending_up" : "trending_down",
         title: `${a.name} · ${a.symbol}`,
-        detail: a.price,
+        detail: moneyEsAr(a.price),
         meta: a.change,
         badgeTone: a.changeUp ? "done" : "urgent",
       })),
@@ -3237,7 +3250,7 @@ function market(b: Of<"market">): KoruPresentation {
         badge: a.change,
         badgeColor: a.changeUp ? A.emerald.color : A.red.color,
         title: a.name,
-        detail: `${a.symbol} · ${a.price}`,
+        detail: `${a.symbol} · ${moneyEsAr(a.price)}`,
         metrics: a.category ? [a.category] : undefined,
       })),
     });
@@ -3269,7 +3282,7 @@ function market(b: Of<"market">): KoruPresentation {
       icon: "trending_up",
       accent: A.emerald,
       // 🔴 KIMI D7: el precio (artValue) es la idea #1; el P&L va como metric.
-      artValue: first?.price,
+      artValue: moneyEsAr(first?.price),
       metrics: [
         ...(pnlChange ? [{ icon: first?.changeUp ? "trending_up" : "trending_down" as const, label: "P&L", value: pnlChange, color: first?.changeUp ? A.emerald.color : A.red.color }] : []),
         ...assets.slice(0, 2).map((a) => ({
@@ -3429,7 +3442,7 @@ function activityTracker(b: Of<"activity_tracker">): KoruPresentation {
       desc: b.subtitle,
       icon: "monitoring",
       accent: A.emerald,
-      metrics: metrics.slice(0, 3).map((m) => ({ icon: m.icon, label: m.label, value: `${m.value}${m.unit ?? ""}`, color: m.iconColor })),
+      metrics: metrics.slice(0, 3).map((m) => ({ icon: m.icon, label: m.label, value: unitJoined(m.value, m.unit), color: m.iconColor })),
     },
     detail: metrics.length
       ? {
@@ -3441,7 +3454,7 @@ function activityTracker(b: Of<"activity_tracker">): KoruPresentation {
               icon: "monitoring",
               accent: A.emerald,
               title: "Métricas",
-              tiles: metrics.map((m) => ({ icon: m.icon, label: m.label, value: `${m.value}${m.unit ?? ""}`, color: m.iconColor })),
+              tiles: metrics.map((m) => ({ icon: m.icon, label: m.label, value: unitJoined(m.value, m.unit), color: m.iconColor })),
             },
           ],
         }
@@ -4856,13 +4869,17 @@ function cryptoPortfolio(b: Of<"crypto_portfolio">): KoruPresentation {
   const items = b.items ?? [];
   // 🔴 FIX: usar coin icon (char) + color si están disponibles, calcular agregados
   const totalChange = items.length ? items.reduce((sum, it) => sum + (it.change ?? 0), 0) / items.length : 0;
+  // El backend manda `change24hPct ?? 0` cuando la fuente no publica variación.
+  // Sin este guard la card afirmaba "▲ +0,0% en 24h" (y pintaba la tendencia de
+  // verde) sobre un dato que en realidad no existe: peor que no mostrarlo.
+  const hasChange = items.some((it) => typeof it.change === "number" && it.change !== 0);
   // 🔴 KIMI Card 06 (jerarquía es ley): el total del portafolio es la idea #1.
   // Orden de preferencia para el artValue del hero:
   //   1. `b.totalValue` (string formateado, ej: "$2.847.600")
   //   2. `b.title` si parece un monto (empieza con $ o dígito)
   //   3. `items[0].price` (fallback honesto: la primer moneda como referencia)
   const titleLooksLikeAmount = /^[ $\u20B9\u20AC\u00A3\d]/.test(clean(b.title) ?? "");
-  const totalArt = clean(b.totalValue) || (titleLooksLikeAmount ? clean(b.title) : items[0]?.price);
+  const totalArt = moneyEsAr(clean(b.totalValue) || (titleLooksLikeAmount ? clean(b.title) : items[0]?.price));
 
   // 🔴 KIMI Card 06 — kicker con delta semanal upfront (▲ +3.1% esta semana).
   // Solo se agrega si el backend trae `weekChange`; si no, queda "Tu Portafolio".
@@ -4910,15 +4927,15 @@ function cryptoPortfolio(b: Of<"crypto_portfolio">): KoruPresentation {
           ? `${it.name} · ${formatAmount(amountNum)}`
           : `${it.name} · ${it.symbol}`;
         // 🔴 KIMI Card 06 — meta con delta arrow ("▲ +2.4%"); badge con value ("$2.697").
-        const meta = `${arrow} ${sign}${it.change.toFixed(1)}%`;
-        const badge = it.value ? it.value : (it.change >= 0 ? "Sube" : "Baja");
+        const meta = hasChange ? `${arrow} ${sign}${it.change.toFixed(1)}%` : undefined;
+        const badge = it.value ? moneyEsAr(it.value) : undefined;
         return {
           icon: it.char || "currency_bitcoin",
           title,
-          detail: it.price,
+          detail: moneyEsAr(it.price),
           meta,
           badge,
-          badgeTone: it.change >= 0 ? "done" : "urgent",
+          badgeTone: hasChange && it.change < 0 ? "urgent" : "done",
         };
       }),
     });
@@ -4936,8 +4953,8 @@ function cryptoPortfolio(b: Of<"crypto_portfolio">): KoruPresentation {
       tiles: items.map((it) => ({
         icon: it.char || "currency_bitcoin",
         label: it.symbol,
-        value: it.value || it.price,
-        color: it.change >= 0 ? A.emerald.color : A.red.color,
+        value: moneyEsAr(it.value || it.price),
+        color: hasChange ? (it.change >= 0 ? A.emerald.color : A.red.color) : A.purple.color,
       })),
     });
   }
@@ -4962,7 +4979,7 @@ function cryptoPortfolio(b: Of<"crypto_portfolio">): KoruPresentation {
   }
 
   // 5. Insight de Koru como texto — la "lectura" del portafolio (D3).
-  if (items.length) {
+  if (items.length && hasChange) {
     const winners = items.filter((it) => it.change >= 0);
     const losers = items.filter((it) => it.change < 0);
     const insightParts: string[] = [];
@@ -5012,16 +5029,8 @@ function cryptoPortfolio(b: Of<"crypto_portfolio">): KoruPresentation {
     };
   }
 
-  return {
-    hero: {
-      kicker,
-      title: heroTitleFrom(b.title, "Cripto"),
-      desc: items[0] ? `${items[0].name} · ${items[0].price}` : undefined,
-      icon: "currency_bitcoin",
-      accent: A.amber,
-      // 🔴 KIMI Card 06: el total del portafolio es la idea #1 — artValue manda.
-      artValue: totalArt,
-      metrics: [
+  const changeMetrics: HeroMetric[] = hasChange
+    ? [
         { icon: totalChange >= 0 ? "trending_up" : "trending_down", label: "Cambio 24h", value: `${totalChange >= 0 ? "+" : ""}${totalChange.toFixed(1)}%`, color: totalChange >= 0 ? A.emerald.color : A.red.color },
         ...items.slice(0, 2).map((it) => ({
           icon: it.change >= 0 ? "trending_up" : "trending_down",
@@ -5029,12 +5038,26 @@ function cryptoPortfolio(b: Of<"crypto_portfolio">): KoruPresentation {
           value: `${it.change >= 0 ? "+" : ""}${it.change}%`,
           color: it.change >= 0 ? A.emerald.color : A.red.color,
         })),
-      ].slice(0, 3),
+      ].slice(0, 3)
+    : [];
+
+  return {
+    hero: {
+      kicker,
+      title: heroTitleFrom(b.title, "Cripto"),
+      desc: items[0] ? `${items[0].name} · ${moneyEsAr(items[0].price)}` : undefined,
+      icon: "currency_bitcoin",
+      accent: A.amber,
+      // 🔴 KIMI Card 06: el total del portafolio es la idea #1 — artValue manda.
+      artValue: totalArt,
+      metrics: changeMetrics.length ? changeMetrics : undefined,
     },
     detail: sections.length > 0
       ? {
           title: "Tu Portafolio",
-          subtitle: `${items.length} activo${items.length > 1 ? "s" : ""} · cambio promedio ${totalChange >= 0 ? "+" : ""}${totalChange.toFixed(1)}%`,
+          subtitle: hasChange
+            ? `${items.length} activo${items.length > 1 ? "s" : ""} · cambio promedio ${totalChange >= 0 ? "+" : ""}${totalChange.toFixed(1)}%`
+            : `${items.length} activo${items.length > 1 ? "s" : ""}`,
           sections,
           actions: [
             { label: "Nueva alerta", icon: "bell", kind: "primary", action: "crypto:alert" },
@@ -5052,13 +5075,13 @@ function forex(b: Of<"forex">): KoruPresentation {
     hero: {
       kicker: "Divisas",
       title: heroTitleFrom(b.title, "Divisas"),
-      desc: items[0] ? `${items[0].pair} · ${items[0].rate}` : undefined,
+      desc: items[0] ? `${items[0].pair} · ${moneyEsAr(items[0].rate)}` : undefined,
       icon: "currency_exchange",
       accent: A.primary,
       metrics: items.slice(0, 3).map((it) => ({
         icon: it.positive ? "trending_up" : "trending_down",
         label: it.pair,
-        value: it.rate,
+        value: moneyEsAr(it.rate),
         color: it.positive ? A.emerald.color : A.red.color,
       })),
     },
@@ -5071,7 +5094,7 @@ function forex(b: Of<"forex">): KoruPresentation {
               icon: "currency_exchange",
               accent: A.primary,
               title: "Pares",
-              rows: items.map((it) => ({ title: it.pair, detail: it.rate, meta: `${it.change >= 0 ? "+" : ""}${it.change}%`, badgeTone: it.positive ? "done" : "urgent" })),
+              rows: items.map((it) => ({ title: it.pair, detail: moneyEsAr(it.rate), meta: `${it.change >= 0 ? "+" : ""}${it.change}%`, badgeTone: it.positive ? "done" : "urgent" })),
             },
           ],
         }
