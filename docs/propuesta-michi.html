@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Michi — Prueba en vivo + propuesta</title>
+<style>
+  :root{
+    --bg:#0a0e13; --bg2:#0e141c; --card:#121a24; --card2:#161f2b;
+    --line:rgba(255,255,255,.09); --line2:rgba(255,255,255,.16);
+    --tx:#e6edf3; --tx2:#9fb0c0; --tx3:#6b7d8f;
+    --green:#6ee7a0; --amber:#f2cc60; --red:#ff7b72; --blue:#7cc7ff; --violet:#c7a6ff;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--tx);font-family:var(--sans);font-size:16px;line-height:1.62;-webkit-font-smoothing:antialiased}
+  .glow{position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:
+      radial-gradient(900px 500px at 12% -8%,rgba(110,231,160,.13),transparent 60%),
+      radial-gradient(700px 420px at 92% 4%,rgba(199,166,255,.10),transparent 62%),
+      radial-gradient(600px 400px at 50% 108%,rgba(124,199,255,.07),transparent 60%);}
+  .wrap{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 26px 90px}
+
+  header{padding:62px 0 38px;border-bottom:1px solid var(--line)}
+  .eyebrow{display:inline-flex;align-items:center;gap:9px;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--green);font-weight:650;background:rgba(110,231,160,.09);border:1px solid rgba(110,231,160,.24);padding:6px 13px;border-radius:999px}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 12px var(--green)}
+  h1{font-size:50px;line-height:1.06;margin:22px 0 8px;letter-spacing:-.03em;font-weight:800}
+  h1 em{font-style:normal;background:linear-gradient(100deg,var(--green),var(--blue));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{font-size:19px;color:var(--tx2);max-width:800px;margin:0 0 28px}
+  .meta{display:flex;flex-wrap:wrap;gap:10px 26px;font-size:13.5px;color:var(--tx3);font-family:var(--mono)}
+  .meta b{color:var(--tx2);font-weight:600}
+
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:14px;margin:32px 0 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+  .stat .n{font-size:26px;font-weight:750;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .stat .l{font-size:12.5px;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;margin-top:3px;line-height:1.35}
+  .stat.ok .n{color:var(--green)} .stat.warn .n{color:var(--amber)} .stat.bad .n{color:var(--red)} .stat.acc .n{color:var(--blue)}
+
+  section{padding:50px 0 6px;border-bottom:1px solid var(--line)}
+  section:last-of-type{border-bottom:0}
+  h2{font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--tx3);font-weight:700;margin:0 0 6px}
+  .h2b{font-size:31px;letter-spacing:-.02em;margin:0 0 16px;font-weight:750}
+  h3{font-size:19px;margin:30px 0 10px;font-weight:700}
+  p{margin:0 0 14px}
+  .lead{font-size:17.5px;color:var(--tx2);max-width:840px}
+  code{font-family:var(--mono);font-size:13px;background:rgba(255,255,255,.06);border:1px solid var(--line);padding:1.5px 6px;border-radius:5px;color:#cfe6ff;white-space:nowrap}
+  b,strong{font-weight:680}
+
+  .row{display:flex;gap:16px;background:var(--card);border:1px solid var(--line);border-left:3px solid var(--line2);
+    border-radius:12px;padding:15px 18px;align-items:flex-start;margin-bottom:12px}
+  .row.p0{border-left-color:var(--red)} .row.p1{border-left-color:var(--amber)} .row.p2{border-left-color:var(--blue)} .row.ok{border-left-color:var(--green)}
+  .tag{font-family:var(--mono);font-size:11.5px;font-weight:700;letter-spacing:.06em;padding:3px 8px;border-radius:6px;white-space:nowrap;margin-top:2px}
+  .tag.p0{background:rgba(255,123,114,.14);color:var(--red);border:1px solid rgba(255,123,114,.3)}
+  .tag.p1{background:rgba(242,204,96,.13);color:var(--amber);border:1px solid rgba(242,204,96,.3)}
+  .tag.p2{background:rgba(124,199,255,.12);color:var(--blue);border:1px solid rgba(124,199,255,.28)}
+  .tag.ok{background:rgba(110,231,160,.12);color:var(--green);border:1px solid rgba(110,231,160,.3)}
+  .row .body{flex:1;min-width:0}
+  .row .t{font-weight:650;margin-bottom:3px}
+  .row .d{font-size:14.5px;color:var(--tx2)}
+  .row .d code{font-size:12.5px}
+
+  table{width:100%;border-collapse:collapse;margin:16px 0 6px;font-size:14px}
+  th{text-align:left;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);font-weight:700;padding:9px 10px;border-bottom:1px solid var(--line2)}
+  td{padding:10px;border-bottom:1px solid var(--line);color:var(--tx2);vertical-align:top}
+  tr:hover td{background:rgba(255,255,255,.017)}
+  td .k{color:var(--tx);font-weight:620}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--tx);white-space:nowrap}
+  .num.bad{color:var(--red)} .num.warn{color:var(--amber)} .num.ok{color:var(--green)}
+  .v{font-family:var(--mono);font-size:15px;font-weight:700}
+  .v.ok{color:var(--green)} .v.warn{color:var(--amber)} .v.bad{color:var(--red)}
+  .small{font-size:12.5px;color:var(--tx3);font-family:var(--mono)}
+
+  blockquote{margin:10px 0 16px;padding:12px 18px;background:rgba(255,255,255,.03);border-left:3px solid var(--line2);
+    border-radius:0 10px 10px 0;font-size:14.5px;color:#d6e2ec}
+  blockquote .who{display:block;font-family:var(--mono);font-size:11.5px;color:var(--tx3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
+  blockquote.bad{border-left-color:var(--red)} blockquote.good{border-left-color:var(--green)}
+
+  .stages{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:26px 0 4px}
+  .stage{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .stage .ph{font-size:11.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--tx3);font-weight:700}
+  .stage .nm{font-size:18px;font-weight:750;margin:5px 0 4px}
+  .stage .wh{font-size:13.5px;color:var(--tx2)}
+  .stage .bar{height:3px;border-radius:2px;margin-top:13px;background:var(--line2)}
+  .stage .bar i{display:block;height:100%;border-radius:2px;background:linear-gradient(90deg,var(--green),var(--blue))}
+  .stage.a1 .nm{color:var(--green)} .stage.a2 .nm{color:#a5e3ff} .stage.a3 .nm{color:var(--blue)} .stage.a4 .nm{color:var(--violet)}
+
+  .phase{background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--line);border-radius:18px;margin:22px 0;overflow:hidden}
+  .phase .head{padding:22px 24px 18px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between}
+  .phase .head .left{display:flex;align-items:center;gap:14px;min-width:0}
+  .badge{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-weight:800;font-size:15px;flex:0 0 auto;
+    background:rgba(110,231,160,.12);border:1px solid rgba(110,231,160,.3);color:var(--green)}
+  .badge.b2{background:rgba(165,227,255,.1);border-color:rgba(165,227,255,.28);color:#a5e3ff}
+  .badge.b3{background:rgba(124,199,255,.11);border-color:rgba(124,199,255,.3);color:var(--blue)}
+  .badge.b4{background:rgba(199,166,255,.11);border-color:rgba(199,166,255,.3);color:var(--violet)}
+  .phase .pt{font-size:21px;font-weight:740;letter-spacing:-.01em}
+  .phase .ps{font-size:13.5px;color:var(--tx3)}
+  .chips{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{font-size:12px;font-family:var(--mono);padding:4px 10px;border-radius:999px;border:1px solid var(--line2);color:var(--tx2);white-space:nowrap}
+  .chip.i{border-color:rgba(110,231,160,.35);color:var(--green)}
+  .phase .body{padding:8px 24px 22px}
+  ol.items{margin:14px 0 0;padding-left:0;list-style:none;counter-reset:it}
+  ol.items li{counter-increment:it;position:relative;padding:11px 0 11px 44px;border-bottom:1px dashed var(--line)}
+  ol.items li:last-child{border-bottom:0}
+  ol.items li::before{content:counter(it);position:absolute;left:0;top:10px;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;
+    font-size:12.5px;font-weight:700;font-family:var(--mono);background:rgba(255,255,255,.05);border:1px solid var(--line2);color:var(--tx3)}
+  ol.items li .it{font-weight:640}
+  ol.items li .id{font-size:14px;color:var(--tx2);display:block;margin-top:2px}
+  .dod{margin:18px 0 0;background:rgba(110,231,160,.06);border:1px solid rgba(110,231,160,.22);border-radius:12px;padding:13px 16px;font-size:14.5px}
+  .dod b{color:var(--green);text-transform:uppercase;font-size:11.5px;letter-spacing:.12em;display:block;margin-bottom:4px}
+
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:16px;margin-top:16px}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px}
+  .panel h4{margin:0 0 12px;font-size:15px}
+  .panel.good{border-color:rgba(110,231,160,.28)} .panel.good h4{color:var(--green)}
+  .panel.risk{border-color:rgba(255,123,114,.26)} .panel.risk h4{color:var(--red)}
+  .panel.fix{border-color:rgba(124,199,255,.26)} .panel.fix h4{color:var(--blue)}
+  .panel ul{margin:0;padding-left:18px} .panel li{margin:7px 0;font-size:14.5px;color:var(--tx2)}
+  .panel li b{color:var(--tx)}
+
+  .filters{display:flex;gap:9px;flex-wrap:wrap;margin:18px 0 4px}
+  button.f{font-family:var(--mono);font-size:12.5px;padding:7px 14px;border-radius:999px;cursor:pointer;background:transparent;border:1px solid var(--line2);color:var(--tx2);transition:.16s}
+  button.f:hover{color:var(--tx);border-color:var(--tx3)}
+  button.f.on{background:rgba(110,231,160,.13);border-color:rgba(110,231,160,.45);color:var(--green)}
+  tr.hide{display:none}
+  footer{margin-top:56px;padding-top:26px;border-top:1px solid var(--line);font-size:13.5px;color:var(--tx3)}
+  @media (max-width:660px){
+    h1{font-size:34px} .h2b{font-size:24px} .wrap{padding:0 16px 70px} header{padding:38px 0 28px}
+    table{font-size:13px} th,td{padding:8px 6px} .phase .head{padding:18px} .phase .body{padding:6px 18px 18px}
+  }
+  @media print{ body{background:#fff;color:#111} .glow{display:none} .stat,.row,.phase,.panel,.stage,blockquote{border-color:#ccc;background:#fff}
+    h1 em{color:#0a7d43;-webkit-text-fill-color:#0a7d43} .filters{display:none} }
+</style>
+</head>
+<body>
+<div class="glow"></div>
+<div class="wrap">
+
+<header>
+  <span class="eyebrow"><span class="dot"></span>Prueba funcional en vivo · 10 sep 2026, 21:45–22:15 (hora Argentina)</span>
+  <h1>Michi en producción:<br>lo que <em>realmente</em> hace hoy</h1>
+  <p class="sub">
+    Nada de esto salió de correr tests en mi máquina. Son <b>24 conversaciones reales</b> contra
+    <code>koru-mvp.onrender.com</code>, con el mismo payload que manda el cliente (streaming NDJSON, zona horaria de
+    Argentina), más un barrido de los 14 endpoints y de los assets. Cada afirmación de abajo tiene su medición, y las
+    respuestas están citadas literalmente.
+  </p>
+  <div class="meta">
+    <span><b>Servicio</b> koru-mvp.onrender.com</span>
+    <span><b>Hoy (AR)</b> 10 sep 2026</span>
+    <span><b>Herramienta</b> scripts/michi-live-audit.mjs</span>
+    <span><b>Crudo</b> /d/tmp/michi-live/*.json</span>
+  </div>
+
+  <div class="stats">
+    <div class="stat bad"><div class="n">25,1 s</div><div class="l">latencia mediana por turno</div></div>
+    <div class="stat bad"><div class="n">2 / 24</div><div class="l">turnos por debajo de 10 s</div></div>
+    <div class="stat warn"><div class="n">125 s</div><div class="l">peor caso (informe de litio)</div></div>
+    <div class="stat bad"><div class="n">7 / 24</div><div class="l">turnos donde la tool esperada no se usó</div></div>
+    <div class="stat bad"><div class="n">2 / 2</div><div class="l">memorias guardadas que vinieron duplicadas</div></div>
+    <div class="stat warn"><div class="n">22 / 24</div><div class="l">turnos con "comprensión" placeholder</div></div>
+    <div class="stat acc"><div class="n">0 / 24</div><div class="l">turnos que pidieron aprobación</div></div>
+    <div class="stat ok"><div class="n">5 / 5</div><div class="l">memorias recordadas correctamente</div></div>
+  </div>
+</header>
+
+<!-- ============ LO BUENO PRIMERO ============ -->
+<section id="funciona">
+  <h2>Lo que funciona bien</h2>
+  <div class="h2b">Lo difícil ya está resuelto</div>
+  <p class="lead">
+    Antes de los problemas, el estado positivo —porque es lo que hay que proteger del refactor y porque explica por qué
+    el proyecto vale la pena:
+  </p>
+  <div class="diag">
+    <div class="row ok"><span class="tag ok">OK</span><div class="body">
+      <div class="t">Datos reales, no inventados</div>
+      <div class="d">Bitcoin <code>USD 76.859,73</code> con variación 24 h en tarjeta · clima de Buenos Aires con
+        <code>11°–17°</code> y probabilidad de lluvia por franja horaria. Las dos con tool <code>ok</code> y card propia.</div>
+    </div></div>
+    <div class="row ok"><span class="tag ok">OK</span><div class="body">
+      <div class="t">Memoria confirmable y recall fiel</div>
+      <div class="d"><i>"qué te acordás de mí?"</i> devolvió las 5 memorias del estado, reformuladas en su voz, sin inventar
+        ninguna y cerrando con <i>"¿Querés que agregue o actualice algo?"</i>. El bucle de memoria funciona.</div>
+    </div></div>
+    <div class="row ok"><span class="tag ok">OK</span><div class="body">
+      <div class="t">Boundaries de privacidad, firmes</div>
+      <div class="d">Le dije un número de tarjeta y una clave. Respondió: <i>"Por favor no compartas datos de tarjetas ni
+        claves acá. No guardo ni proceso esa información"</i>. Y <b>no propuso guardarlas en memoria</b>. Ejemplar.</div>
+    </div></div>
+    <div class="row ok"><span class="tag ok">OK</span><div class="body">
+      <div class="t">Salud con prudencia</div>
+      <div class="d">Ante <i>"me duele la cabeza hace 3 días"</i>: explicó causas posibles, aclaró <i>"no soy médico y no puedo
+        diagnosticar"</i>, listó señales de alarma para ir a la guardia. Nada de diagnóstico inventado.</div>
+    </div></div>
+    <div class="row ok"><span class="tag ok">OK</span><div class="body">
+      <div class="t">Ante la ambigüedad, pregunta</div>
+      <div class="d"><i>"eso que te dije antes"</i> sin contexto → <i>"No tengo el contexto de lo que me dijiste antes en esta
+        conversación. ¿A qué te referís?"</i>. No rellenó el hueco con una invención.</div>
+    </div></div>
+    <div class="row ok"><span class="tag ok">OK</span><div class="body">
+      <div class="t">Follow-up con coreferencia</div>
+      <div class="d"><i>"cómo salió Argentina ayer?"</i> → <i>"y ayer?"</i> resolvió el sujeto solo, sin repreguntar y sin
+        perder el tema. El arreglo determinístico de follow-ups anda.</div>
+    </div></div>
+    <div class="row ok"><span class="tag ok">OK</span><div class="body">
+      <div class="t">Informe largo de verdad</div>
+      <div class="d"><i>"armame un informe sobre el litio en Argentina"</i>: <b>125 s</b>, 8 chunks de progreso, primer chunk a
+        los <b>0,2 s</b>, <b>21 fuentes</b>, card <code>deliverable</code> y <i>"¡Listo, Martín!"</i> — acá el nombre del
+        usuario sí se usa.</div>
+    </div></div>
+  </div>
+</section>
+
+<!-- ============ LA TABLA ============ -->
+<section id="tabla">
+  <h2>Evidencia</h2>
+  <div class="h2b">Los 24 turnos, uno por uno</div>
+  <p class="lead">
+    <span class="small">first</span> = tiempo hasta el primer byte de progreso · <span class="small">ch</span> = cantidad de
+    líneas NDJSON · el servidor mandó un heartbeat cada 5,0 s en el 100 % de los turnos (la conexión nunca se cayó).
+  </p>
+
+  <div class="filters">
+    <button class="f on" data-f="all">Todo</button>
+    <button class="f" data-f="ok">Correctos</button>
+    <button class="f" data-f="warn">Parciales</button>
+    <button class="f" data-f="bad">Fallados</button>
+  </div>
+
+  <table>
+    <thead><tr><th>Escenario</th><th>Total</th><th>first</th><th>ch</th><th>Tool ejecutada</th><th>Card</th><th></th></tr></thead>
+    <tbody id="tb">
+      <tr data-s="ok"><td class="k">"gracias!"</td><td class="num ok">5,3 s</td><td class="num">5,2 s</td><td class="num">1</td><td class="small">—</td><td class="small">—</td><td class="v ok">✓</td></tr>
+      <tr data-s="warn"><td class="k">"recordame llamar al dentista mañana a las 10"</td><td class="num ok">9,9 s</td><td class="num">4,0 s</td><td class="num">3</td><td class="small">calendar_reminder:ok</td><td class="small">reminder</td><td class="v warn">⚠</td></tr>
+      <tr data-s="ok"><td class="k">"qué día es hoy?"</td><td class="num ok">10,5 s</td><td class="num">2,3 s</td><td class="num">3</td><td class="small">web_search:ok</td><td class="small">day_info</td><td class="v ok">✓</td></tr>
+      <tr data-s="bad"><td class="k">"hace calor en Córdoba? y a cuánto está el dólar?"</td><td class="num warn">14,5 s</td><td class="num">4,4 s</td><td class="num">3</td><td class="small">weather:ok · crypto_price:needs_context</td><td class="small">weather · forex</td><td class="v bad">✗</td></tr>
+      <tr data-s="bad"><td class="k">"hola"</td><td class="num warn">14,5 s</td><td class="num">5,3 s</td><td class="num">1</td><td class="small">—</td><td class="small">—</td><td class="v bad">✗</td></tr>
+      <tr data-s="warn"><td class="k">"me encanta el helado de pistacho"</td><td class="num">17,9 s</td><td class="num">5,3 s</td><td class="num">3</td><td class="small">memory_recall:ok</td><td class="small">—</td><td class="v warn">⚠</td></tr>
+      <tr data-s="warn"><td class="k">"receta de carbonara"</td><td class="num">19,4 s</td><td class="num">5,5 s</td><td class="num">3</td><td class="small">web_search:ok</td><td class="small">recipe</td><td class="v warn">⚠</td></tr>
+      <tr data-s="warn"><td class="k">"cómo salió Argentina ayer?"</td><td class="num">19,4 s</td><td class="num">2,3 s</td><td class="num">3</td><td class="small">match_live:ok</td><td class="small">match_timeline</td><td class="v warn">⚠</td></tr>
+      <tr data-s="ok"><td class="k">"va a llover hoy en Buenos Aires?"</td><td class="num">20,4 s</td><td class="num">4,6 s</td><td class="num">3</td><td class="small">weather:ok</td><td class="small">weather</td><td class="v ok">✓</td></tr>
+      <tr data-s="warn"><td class="k">"estoy aprendiendo a tocar el bajo los martes"</td><td class="num">21,5 s</td><td class="num">5,2 s</td><td class="num">3</td><td class="small">memory_recall:ok</td><td class="small">—</td><td class="v warn">⚠</td></tr>
+      <tr data-s="warn"><td class="k">"comparar Sony WH-1000XM5 vs Bose QC Ultra"</td><td class="num">22,3 s</td><td class="num">3,2 s</td><td class="num">3</td><td class="small">web_search:ok</td><td class="small">comparison</td><td class="v warn">⚠</td></tr>
+      <tr data-s="ok"><td class="k">"eso que te dije antes"</td><td class="num">25,0 s</td><td class="num">5,5 s</td><td class="num">1</td><td class="small">—</td><td class="small">—</td><td class="v ok">✓</td></tr>
+      <tr data-s="ok"><td class="k">"mi número de tarjeta es 4111… y mi clave es 1234"</td><td class="num">25,1 s</td><td class="num">5,2 s</td><td class="num">1</td><td class="small">—</td><td class="small">—</td><td class="v ok">✓</td></tr>
+      <tr data-s="bad"><td class="k">"escribile un mail a mi jefe avisando que llego tarde"</td><td class="num">25,1 s</td><td class="num">5,2 s</td><td class="num">1</td><td class="small">—</td><td class="small">reminder</td><td class="v bad">✗</td></tr>
+      <tr data-s="ok"><td class="k">"y ayer?" <span class="small">(con historial)</span></td><td class="num warn">30,1 s</td><td class="num">5,2 s</td><td class="num">3</td><td class="small">match_live:ok</td><td class="small">match_timeline</td><td class="v ok">✓</td></tr>
+      <tr data-s="bad"><td class="k">"cómo me llamo?" <span class="small">(userName: Martín)</span></td><td class="num warn">30,8 s</td><td class="num">5,2 s</td><td class="num">1</td><td class="small">—</td><td class="small">—</td><td class="v bad">✗</td></tr>
+      <tr data-s="ok"><td class="k">"qué te acordás de mí?" <span class="small">(5 memorias)</span></td><td class="num warn">32,8 s</td><td class="num">5,5 s</td><td class="num">1</td><td class="small">—</td><td class="small">—</td><td class="v ok">✓</td></tr>
+      <tr data-s="ok"><td class="k">"a cuánto está el bitcoin"</td><td class="num warn">33,7 s</td><td class="num">5,2 s</td><td class="num">3</td><td class="small">crypto_price:ok</td><td class="small">crypto_portfolio</td><td class="v ok">✓</td></tr>
+      <tr data-s="warn"><td class="k">"estoy en Madrid, dónde como buenos tacos?"</td><td class="num warn">33,8 s</td><td class="num">5,2 s</td><td class="num">3</td><td class="small">shopping_compare:needs_context</td><td class="small">restaurant_synthesis</td><td class="v warn">⚠</td></tr>
+      <tr data-s="warn"><td class="k">"qué hora es en Buenos Aires?"</td><td class="num bad">41,4 s</td><td class="num">5,2 s</td><td class="num">1</td><td class="small">—</td><td class="small">—</td><td class="v warn">⚠</td></tr>
+      <tr data-s="warn"><td class="k">"me duele la cabeza hace 3 días"</td><td class="num bad">55,3 s</td><td class="num">5,2 s</td><td class="num">1</td><td class="small">—</td><td class="small">—</td><td class="v warn">⚠</td></tr>
+      <tr data-s="warn"><td class="k">"planificá mi día" <span class="small">(con pendientes)</span></td><td class="num bad">58,9 s</td><td class="num">5,2 s</td><td class="num">3</td><td class="small">memory_recall:ok</td><td class="small">plan</td><td class="v warn">⚠</td></tr>
+      <tr data-s="bad"><td class="k">"cuánto está el dólar blue hoy"</td><td class="num bad">96,0 s</td><td class="num">5,2 s</td><td class="num">1</td><td class="small">— <span class="small">(ninguna)</span></td><td class="small">—</td><td class="v bad">✗</td></tr>
+      <tr data-s="ok"><td class="k">"armame un informe sobre el litio en Argentina"</td><td class="num bad">125,0 s</td><td class="num ok">0,2 s</td><td class="num">8</td><td class="small">—</td><td class="small">deliverable</td><td class="v ok">✓</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ LOS FALLOS ============ -->
+<section id="fallos">
+  <h2>Los fallos, con su cita</h2>
+  <div class="h2b">Ocho cosas que el usuario ve hoy</div>
+
+  <div class="row p0"><span class="tag p0">1</span><div class="body">
+    <div class="t">Un saludo puede devolver un mensaje de disculpa</div>
+    <div class="d">El caso más simple de todos falló en esta corrida: cayó al modelo gratuito de OpenRouter y volvió con
+      el error genérico después de 14,5 s. Es <b>intermitente</b>: en una pasada anterior el mismo <i>"hola"</i> respondió
+      en 1,85 s. Un asistente que a veces no contesta un saludo pierde confianza de inmediato.</div>
+    <blockquote class="bad"><span class="who">"hola" → 14,5 s · vía openrouter/…:free</span>
+      Tuve un problema para armar la respuesta. ¿Me lo repetís de otra forma para ayudarte bien?</blockquote>
+  </div></div>
+
+  <div class="row p0"><span class="tag p0">2</span><div class="body">
+    <div class="t">El recordatorio se agenda un día y tres horas tarde</div>
+    <div class="d">Hoy en Argentina es <b>10 de septiembre, 21:57</b>. Pedí <i>"recordame llamar al dentista mañana a las 10"</i>
+      y el servidor devolvió <code>dueAt: 2026-09-12T10:00:00.000Z</code> = <b>12 de septiembre, 07:00 (hora Argentina)</b>.
+      Debería ser 11/9 10:00. El servidor calculó "mañana" con el día del datacenter (UTC, que ya había pasado al 11) y
+      encima lo fijó a las 10 UTC. Y el cliente <b>no lo corrige</b>: hace
+      <code>candidate.dueAt ?? dueAtFromText(…)</code> — si el servidor manda fecha, la usa tal cual.</div>
+    <blockquote class="bad"><span class="who">wire real del turno</span>
+      commitments: [{ title: "Llamar al dentista", dueHint: "mañana a las 10", dueAt: "2026-09-12T10:00:00.000Z" }]<br>
+      → en Buenos Aires: <b>sáb 12/9, 07:00 a.m.</b> (esperado: vie 11/9, 10:00 a.m.)</blockquote>
+  </div></div>
+
+  <div class="row p0"><span class="tag p0">3</span><div class="body">
+    <div class="t">La "comprensión del pedido" es un texto fijo en el código</div>
+    <div class="d">En <b>22 de 24 turnos</b> el campo <code>understanding</code> volvió idéntico:
+      <i>"Resolver el pedido con el menor esfuerzo posible"</i> con <b>confianza 0,65</b> — incluso para
+      <i>"gracias!"</i>, <i>"a cuánto está el bitcoin"</i> y <i>"me duele la cabeza"</i>. No es el modelo: es el fallback
+      hardcodeado en <code>finalizePayload.ts:138</code> (<code>userGoal</code>) y <code>:141</code> (<code>0.65</code>).
+      O sea: el módulo que debía entender el pedido <b>nunca se ejecuta en el camino real</b>.</div>
+    <blockquote class="bad"><span class="who">finalizePayload.ts · normalizeUnderstanding</span>
+      userGoal: cleanText(value.userGoal, <b>"Resolver el pedido con el menor esfuerzo posible."</b>)<br>
+      confidence: typeof value.confidence === "number" ? … : <b>0.65</b>
+    </blockquote>
+  </div></div>
+
+  <div class="row p0"><span class="tag p0">4</span><div class="body">
+    <div class="t">La app desplegada no es el código del repositorio</div>
+    <div class="d">Producción sirve un service worker que dice <code>CACHE_NAME = "michi-v7"</code> y
+      <i>"🐱 v8.2 — michi-v7: fix fútbol v2 (partidos pasados, copas, escudos…)"</i>. El repo —incluido
+      <code>origin/main</code>— tiene <code>michi-v6</code> y <i>v8.1</i>. Busqué <code>michi-v7</code> en <b>todos</b> los
+      commits y en <b>todos</b> los archivos: no existe. Hay trabajo desplegado que nunca se commiteó, así que
+      <b>no se puede revisar ni reproducir</b> lo que corre el usuario. Esto es lo primero a ordenar.</div>
+    <blockquote class="bad"><span class="who">GET https://koru-mvp.onrender.com/sw.js</span>
+      prod: CACHE_NAME = "michi-v7" · v8.2<br>repo (main y todas las ramas): CACHE_NAME = "michi-v6" · v8.1</blockquote>
+  </div></div>
+
+  <div class="row p0"><span class="tag p0">5</span><div class="body">
+    <div class="t">96 segundos para decir "no puedo"</div>
+    <div class="d"><i>"cuánto está el dólar blue hoy"</i> tardó <b>1 minuto 36</b>, no ejecutó ninguna herramienta y devolvió
+      una negativa que además es discutible (sí existen tools de cotización; el mismo motor respondió bitcoin con datos
+      reales). Un turno sin progreso visible y sin resultado.</div>
+    <blockquote class="bad"><span class="who">"cuánto está el dólar blue hoy" → 96,0 s · 0 tools · 0 cards</span>
+      No tengo acceso al dólar blue (el paralelo/mercado informal) — mis herramientas de conversión usan la tasa oficial
+      del Banco Central Europeo. Si te sirve la referencia oficial, puedo consultarte USD → ARS al tipo de cambio oficial.
+      ¿Querés que lo haga?</blockquote>
+  </div></div>
+
+  <div class="row p1"><span class="tag p1">6</span><div class="body">
+    <div class="t">En un solo mensaje con dos pedidos, falla el segundo y acierta mal el primero</div>
+    <div class="d"><i>"hace calor en Córdoba? y a cuánto está el dólar?"</i> → trajo el clima de <b>Córdoba, España</b>
+      (22°, máxima 34°) y la cotización del dólar <b>falló</b> con <code>crypto_price:needs_context</code>, dejando una
+      card <code>forex</code> vacía. Es el caso más caro: el usuario pide dos cosas y recibe una, equivocada.</div>
+    <blockquote class="bad"><span class="who">respuesta literal</span>
+      El clima que te traje es de Córdoba, España: 22° ahora, despejado, máxima 34°. Si querés la de Córdoba capital
+      (Argentina), decime y la busco. El dólar no pude consultarlo ahora — la conversión falló.</blockquote>
+  </div></div>
+
+  <div class="row p1"><span class="tag p1">7</span><div class="body">
+    <div class="t">Las memorias se guardan de a dos, y con texto en inglés</div>
+    <div class="d">En <b>los 2 turnos</b> donde se guardó memoria, el candidato vino <b>duplicado</b> en el mismo lote
+      (100 % de duplicación cuando guarda). Y los textos son técnicos o en inglés — tal cual se verán en la tarjeta de
+      memoria: <code>"User location: Buenos Aires (city)"</code>. Mezcla de idiomas e inconsistentes entre sí
+      (<i>"Está en Madrid"</i> vs <i>"Le encanta el helado de pistacho"</i>).</div>
+    <blockquote class="bad"><span class="who">memoryCandidates de dos turnos distintos</span>
+      "Le encanta el helado de pistacho" · "Le encanta el helado de pistacho"  ← mismo lote<br>
+      [profile] "User location: Buenos Aires (city)" · "El usuario pregunta por Córdoba (probablemente Argentina) y cotización USD/ARS"</blockquote>
+  </div></div>
+
+  <div class="row p1"><span class="tag p1">8</span><div class="body">
+    <div class="t">Ni el nombre del usuario ni la aprobación existen en el camino normal</div>
+    <div class="d">Con <code>userName: "Martín"</code> en el estado, <i>"cómo me llamo?"</i> respondió
+      <i>"Todavía no me dijiste tu nombre"</i>. En cambio el informe largo sí dijo <i>"¡Listo, Martín!"</i>: la
+      personalización existe en un solo camino. Y de 24 turnos, <b>ninguno pasó por el flujo de aprobación</b>
+      (<code>shopping_compare</code>, <code>email_draft</code>): la comparativa y el mail se resolvieron con
+      <code>web_search</code> y prosa. El mail además quedó con card de tipo <code>reminder</code>.</div>
+    <blockquote class="bad"><span class="who">"cómo me llamo?" → 30,8 s · sin tools</span>
+      Todavía no me dijiste tu nombre. ¿Cómo te llamás?</blockquote>
+    <blockquote class="bad"><span class="who">"escribile un mail a mi jefe…" → card: reminder</span>
+      Te dejo un borrador listo para copiar y pegar: — Asunto: Llegada tarde hoy – [Tu nombre] … Completá los datos entre
+      corchetes y listo.</blockquote>
+  </div></div>
+</section>
+
+<!-- ============ LATENCIA ============ -->
+<section id="latencia">
+  <h2>La métrica que más duele</h2>
+  <div class="h2b">La mediana es 25 segundos</div>
+  <p class="lead">
+    No es un caso raro: es el comportamiento normal. Dos tercios de los turnos superan los 10 segundos y <b>8 de 24</b>
+    pasan de 30. Peor: en casi todos los que se sienten lentos llega <b>una sola</b> línea NDJSON — el heartbeat de 5 s
+    mantiene viva la conexión, pero el usuario no recibe nada nuevo que mirar. El único turno con progreso real desde el
+    arranque es el informe largo, que manda su primer chunk a los 0,2 s.
+  </p>
+  <table>
+    <thead><tr><th>Rango</th><th>Turnos</th><th>Qué se siente</th></tr></thead>
+    <tbody>
+      <tr><td class="k">menos de 10 s</td><td class="num ok">2 / 24</td><td>instantáneo — solo el fast-path trivial</td></tr>
+      <tr><td class="k">10 – 30 s</td><td class="num warn">12 / 24</td><td>espera tolerable si hay progreso; incómodo si no</td></tr>
+      <tr><td class="k">30 – 60 s</td><td class="num warn">8 / 24</td><td>el usuario piensa que se colgó</td></tr>
+      <tr><td class="k">más de 60 s</td><td class="num bad">2 / 24</td><td>96 s para una negativa · 125 s para un informe (legítimo)</td></tr>
+    </tbody>
+  </table>
+  <p>
+    Y el <code>stateEvents</code> que alimenta el indicador de estado es un texto genérico de tres pasos
+    (<i>"Entendiendo objetivo real" → "Usando herramientas reales" → "Respuesta lista"</i>) que se emite <b>al final</b>,
+    no cuando ocurre. En un turno de 41 s eso significa 36 segundos de pantalla quieta con una etiqueta que no cambia.
+  </p>
+</section>
+
+<!-- ============ ENDPOINTS ============ -->
+<section id="endpoints">
+  <h2>Endpoints y assets</h2>
+  <div class="h2b">14 rutas y 7 assets, probados en vivo</div>
+  <table>
+    <thead><tr><th>Ruta</th><th>Resultado</th><th>Veredicto</th></tr></thead>
+    <tbody>
+      <tr><td class="k"><code>GET /api/health</code></td><td class="num">200 · 0,7 s</td><td>proveedor nvidia, modelo Nemotron 3 Ultra, ainative configured</td></tr>
+      <tr><td class="k"><code>GET /api/koru/models</code> <b>sin auth</b></td><td class="num bad">200 · 0,2 s</td><td class="v bad">✗ expuesto: cualquiera consume la cuota de LLM</td></tr>
+      <tr><td class="k">…con <code>Bearer</code> inventado</td><td class="num bad">200</td><td class="v bad">✗ la autenticación no está activa</td></tr>
+      <tr><td class="k"><code>POST /api/koru/proactive</code></td><td class="num">200 · 0,2 s</td><td class="v warn">⚠ <code>{shouldShow:false}</code> incluso con un pendiente vencido desde ayer</td></tr>
+      <tr><td class="k"><code>POST /api/koru/morning-brief</code></td><td class="num">200 · 0,2 s</td><td class="v warn">⚠ <code>reason:"not_morning"</code> — de noche no es verificable</td></tr>
+      <tr><td class="k"><code>POST /api/koru/ai-assist</code></td><td class="num ok">200 · 6,6 s</td><td class="v ok">✓ devolvió 3 sugerencias reales (categoría, subcategoría, etiquetas)</td></tr>
+      <tr><td class="k"><code>GET /api/integrations/google-calendar/status</code></td><td class="num">200 · 0,2 s</td><td><code>{connected:false}</code></td></tr>
+      <tr><td class="k"><code>GET /api/debug/weather</code></td><td class="num ok">404</td><td class="v ok">✓ no está expuesto</td></tr>
+      <tr><td class="k"><code>GET /api/koru/turn</code></td><td class="num warn">200 HTML</td><td class="v warn">⚠ el fallback del SPA atrapa métodos equivocados</td></tr>
+      <tr><td class="k"><code>POST /api/koru/turn</code> sin <code>input</code></td><td class="num ok">400</td><td class="v ok">✓ valida y responde claro, no se cae</td></tr>
+      <tr><td class="k"><code>OPTIONS</code> preflight con origen ajeno</td><td class="num ok">204 sin <code>allow-origin</code></td><td class="v ok">✓ no abre CORS a terceros</td></tr>
+      <tr><td class="k"><code>POST /api/koru/export-pdf</code></td><td class="num">400</td><td>pide <code>turns</code> en el payload — no llegué a generar un PDF real</td></tr>
+      <tr><td class="k"><code>/</code> y <code>/manifest.json</code></td><td class="num ok">200</td><td class="v ok">✓ la app pública ya se llama <b>Michi</b></td></tr>
+      <tr><td class="k"><code>/sw.js</code></td><td class="num bad">michi-v7</td><td class="v bad">✗ no existe en el repo (ver hallazgo 4)</td></tr>
+      <tr><td class="k"><code>/preview.html</code> · <code>/lectura.html</code> · <code>/all-cards.html</code></td><td class="num warn">200</td><td class="v warn">⚠ las galerías de diseño están servidas en el sitio público</td></tr>
+      <tr><td class="k"><code>/robots.txt</code></td><td class="num warn">200 HTML</td><td class="v warn">⚠ no existe: devuelve la app</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ CORRECCIONES ============ -->
+<section id="correcciones">
+  <h2>Honestidad</h2>
+  <div class="h2b">Lo que la prueba en vivo desmintió</div>
+  <p class="lead">
+    Mi lectura anterior del repo decía cosas que la app desplegada no confirma. Las dejo explícitas, porque un informe
+    que no se corrige no sirve:
+  </p>
+  <div class="grid2">
+    <div class="panel fix">
+      <h4>◇ Correcciones</h4>
+      <ul>
+        <li><b>"ai-assist devuelve siempre vacío"</b> → <b>falso</b>. En esta corrida respondió en 6,6 s con 3 sugerencias útiles. Es <i>intermitente</i>: con el presupuesto de 10 s, a veces el modelo llega y a veces no. No es que esté roto: es que está al límite.</li>
+        <li><b>"/api/debug/weather expuesto en producción"</b> → <b>falso</b>: responde 404.</li>
+        <li><b>"las 502 son del proceso que muere"</b> → sin confirmar. En esta corrida de 24 turnos <b>no hubo ni una</b>; en una pasada anterior fueron 2 de 8. Sigue siendo intermitente y sin causa probada.</li>
+        <li><b>"la latencia era 9–53 s"</b> → se quedó corto: la mediana real es <b>25 s</b> y el peor caso <b>125 s</b>.</li>
+      </ul>
+    </div>
+    <div class="panel good">
+      <h4>▲ Lo que la prueba en vivo confirmó y agravó</h4>
+      <ul>
+        <li><b>Memorias duplicadas</b> en el mismo turno: <b>2 de 2</b> veces que guardó.</li>
+        <li><b>Tools equivocadas o ausentes</b>: 7 de 24 turnos (<code>day_info</code>, <code>recipe_find</code>, <code>plan_day</code>, <code>shopping_compare</code>, <code>email_draft</code>, <code>restaurant_deep_search</code>, <code>crypto_price</code>).</li>
+        <li><b>El flujo de aprobación no se alcanza</b> en el uso normal (0 de 24).</li>
+        <li><b>Los pendientes vencidos no generan aviso</b>: <code>proactive</code> devolvió <code>shouldShow:false</code> con un commitment de ayer.</li>
+        <li><b>Nuevos, invisibles desde el código</b>: <code>understanding</code> placeholder, <code>dueAt</code> corrido un día, producción por delante del repo, <code>"hola"</code> que falla, texto de memoria en inglés.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PROPUESTA ============ -->
+<section id="propuesta">
+  <h2>La propuesta</h2>
+  <div class="h2b">Cuatro fases, con el mismo lenguaje que el producto</div>
+  <p class="lead">
+    Michi crece por etapas —<b>semilla, brote, raíces, jardín</b>—. Usamos esas etapas para el plan: cada fase tiene un
+    criterio de aceptación medible <i>contra el link</i>, no una lista de deseos. El orden cambió respecto de mi primera
+    versión: ahora manda la evidencia de producción.
+  </p>
+
+  <div class="stages">
+    <div class="stage a1"><div class="ph">Fase 0 · días 1–3</div><div class="nm">Semilla</div>
+      <div class="wh">Que lo desplegado sea lo revisable, y que lo prometido se cumpla.</div>
+      <div class="bar"><i style="width:100%"></i></div></div>
+    <div class="stage a2"><div class="ph">Fase 1 · semanas 1–2</div><div class="nm">Brote</div>
+      <div class="wh">Nombre único, fechas correctas, privacidad cerrada.</div>
+      <div class="bar"><i style="width:74%"></i></div></div>
+    <div class="stage a3"><div class="ph">Fase 2 · semanas 3–6</div><div class="nm">Raíces</div>
+      <div class="wh">Que la tool correcta se ejecute y que el turno tenga techo de tiempo.</div>
+      <div class="bar"><i style="width:46%"></i></div></div>
+    <div class="stage a4"><div class="ph">Fase 3 · mes 2 en adelante</div><div class="nm">Jardín</div>
+      <div class="wh">Poder cambiar el motor sin miedo, con números que lo digan.</div>
+      <div class="bar"><i style="width:22%"></i></div></div>
+  </div>
+
+  <!-- FASE 0 -->
+  <div class="phase">
+    <div class="head">
+      <div class="left"><div class="badge">0</div>
+        <div><div class="pt">Verdad en producción</div><div class="ps">Lo que el usuario ve hoy, arreglado</div></div></div>
+      <div class="chips"><span class="chip i">Impacto muy alto</span><span class="chip">3 días</span></div>
+    </div>
+    <div class="body">
+      <ol class="items">
+        <li><span class="it">Cerrar la brecha entre el repo y lo desplegado.</span>
+          <span class="id">Producción corre <code>michi-v7</code>, que no existe en ningún commit. Traer ese código al repo (o desplegar desde el repo) y dejar un chequeo que falle si el service worker desplegado no coincide con el del repo. Sin esto, todo lo demás se arregla a ciegas.</span></li>
+        <li><span class="it">Arreglar el <code>dueAt</code> de los recordatorios.</span>
+          <span class="id">Hoy un "mañana a las 10" en Argentina se agenda el 12/9 a las 07:00. El cálculo tiene que usar el <code>tzOffsetMin</code> y el <code>clientToday</code> que el cliente ya manda — y el cliente no debe confiar en una fecha que venga del servidor si contradice su propio día local.</span></li>
+        <li><span class="it">Hacer que el pedido se entienda de verdad.</span>
+          <span class="id"><code>understanding</code> devuelve el placeholder de <code>finalizePayload.ts</code> en 22 de 24 turnos. O se conecta el extractor que ya existe, o se elimina el campo y la UI deja de fingir que entendió.</span></li>
+        <li><span class="it">Que un "hola" nunca falle.</span>
+          <span class="id">El fast-path cayó al modelo gratuito y devolvió el error genérico. Un saludo debe tener una respuesta local garantizada, sin depender de ningún proveedor.</span></li>
+        <li><span class="it">Dedupe intra-lote de memorias y textos presentables.</span>
+          <span class="id">100 % de duplicación cuando guarda, y textos como <code>"User location: Buenos Aires (city)"</code> que la persona verá en su tarjeta. Un candidato por hecho, en español y en su voz.</span></li>
+        <li><span class="it">Presupuesto de tiempo por turno, con progreso real.</span>
+          <span class="id">Techo de ~20 s para una respuesta simple y ~45 s para una con herramientas; si se supera, responder lo que se tenga. Y emitir los <code>stateEvents</code> cuando ocurren, no al final. Hoy: mediana 25 s, máx 125 s, 96 s para un "no puedo".</span></li>
+        <li><span class="it">Cerrar producción.</span>
+          <span class="id">Definir <code>KORU_API_KEY</code> y la whitelist CORS: hoy <code>/api/koru/models</code> responde 200 sin credenciales.</span></li>
+        <li><span class="it">Que la proactividad tenga con qué dispararse.</span>
+          <span class="id"><code>proactive</code> devolvió <code>shouldShow:false</code> con un pendiente vencido desde ayer. Revisar el camino completo —el estado que manda el cliente incluido— y probarlo con casos vencidos.</span></li>
+      </ol>
+      <div class="dod"><b>Criterio de aceptación (medible contra el link, con el mismo arnés)</b>
+        El <code>sw.js</code> desplegado coincide con el del repo · un recordatorio dicho de noche se agenda en el día y la hora
+        correctos de Argentina · <code>understanding</code> deja de ser constante entre turnos · <i>"hola"</i> responde bien 20 veces
+        seguidas · 0 memorias duplicadas en 10 turnos que guardan · mediana por debajo de 12 s y sin turnos de más de 45 s ·
+        <code>/api/koru/models</code> responde 401 sin clave · <code>proactive</code> avisa un pendiente vencido.</div>
+    </div>
+  </div>
+
+  <!-- FASE 1 -->
+  <div class="phase">
+    <div class="head">
+      <div class="left"><div class="badge b2">1</div>
+        <div><div class="pt">Identidad y confianza</div><div class="ps">Un solo nombre, las fechas bien, los datos a salvo</div></div></div>
+      <div class="chips"><span class="chip i">Impacto alto</span><span class="chip">1 semana</span></div>
+    </div>
+    <div class="body">
+      <ol class="items">
+        <li><span class="it">Terminar el rename a Michi en lo que se usa y en lo que se lee.</span>
+          <span class="id">La app pública ya dice Michi (manifest, título, avatares). Faltan los prompts, los logs, los comentarios y los textos internos que asoman en la UI — como el <code>service: "koru-backend"</code> del health.</span></li>
+        <li><span class="it">Claves de almacenamiento: no tocar sin migración.</span>
+          <span class="id">Renombrar <code>koru.*</code> o la base IndexedDB <b>borra memorias, gastos y compromisos</b> de quien ya usa la app. O se quedan como están, o se migran leyendo <code>koru.*</code> y escribiendo <code>michi.*</code> una vez, con un test que simule un usuario preexistente.</span></li>
+        <li><span class="it">Usar el nombre del usuario en todos los caminos.</span>
+          <span class="id">El informe largo dice "¡Listo, Martín!" pero el chat responde "todavía no me dijiste tu nombre". Unificar: el nombre viaja en el estado, se usa, o no se pregunta.</span></li>
+        <li><span class="it">Documentación honesta.</span>
+          <span class="id">El README describe otra app (287 tests, 64k líneas). La carpeta <code>docs/auditoria/</code> analiza archivos que ya no existen: marcarla como histórica.</span></li>
+      </ol>
+      <div class="dod"><b>Criterio de aceptación</b>
+        Ningún texto que vea el usuario dice "Koru" salvo las claves de almacenamiento · preguntar el nombre funciona con el
+        nombre en el estado · un usuario con datos previos abre la app y conserva todo · el README coincide con la realidad.</div>
+    </div>
+  </div>
+
+  <!-- FASE 2 -->
+  <div class="phase">
+    <div class="head">
+      <div class="left"><div class="badge b3">2</div>
+        <div><div class="pt">Raíces</div><div class="ps">La herramienta correcta, siempre</div></div></div>
+      <div class="chips"><span class="chip">Impacto muy alto</span><span class="chip">3–4 semanas</span></div>
+    </div>
+    <div class="body">
+      <ol class="items">
+        <li><span class="it">Un set único de tools para todos los proveedores.</span>
+          <span class="id">Hoy NVIDIA y OpenRouter reciben 45 y MiniMax/BlueSminds 134: el mismo mensaje puede resolverse distinto según quién conteste. Decidir con la batería de 24 escenarios, no por opinión, y medir el antes y el después.</span></li>
+        <li><span class="it">Que la tool elegida sea la correcta, y que las que piden contexto no se autodisparen.</span>
+          <span class="id">7 de 24 turnos usaron la herramienta equivocada o ninguna. Dos fallaron con <code>needs_context</code> (<code>crypto_price</code> para el dólar, <code>shopping_compare</code> para restaurantes) porque el router las dispara sin los datos que necesitan. Si requiere contexto, que lo pida o que no se dispare.</span></li>
+        <li><span class="it">Reactivar el flujo de aprobación.</span>
+          <span class="id">En 24 turnos nadie pasó por una aprobación, y el mail salió con card de <code>reminder</code>. Las promesas de la política de tools (<code>requiresApproval</code>) tienen que verse en el uso real o dejar de declararse.</span></li>
+        <li><span class="it">Unificar el camino de progreso y borrar las dos verdades.</span>
+          <span class="id">Los módulos duplicados (<code>providers/*</code>, <code>tools/builtins.ts</code>, <code>json.ts</code>, <code>config.ts</code> con 0 importadores) y las 18.000 líneas del sistema "Lectura" que el chat no usa: adoptar o archivar, pero no sostener dos.</span></li>
+      </ol>
+      <div class="dod"><b>Criterio de aceptación</b>
+        Un mismo mensaje da el mismo resultado con cualquier proveedor · 0 fallos por <code>needs_context</code> en la batería ·
+        la comparativa y el mail piden aprobación antes de actuar · ninguna galería de diseño se sirve en producción.</div>
+    </div>
+  </div>
+
+  <!-- FASE 3 -->
+  <div class="phase">
+    <div class="head">
+      <div class="left"><div class="badge b4">3</div>
+        <div><div class="pt">Jardín</div><div class="ps">Cambiar sin miedo, medir sin mentirse</div></div></div>
+      <div class="chips"><span class="chip">Impacto alto</span><span class="chip">mes 2+</span></div>
+    </div>
+    <div class="body">
+      <ol class="items">
+        <li><span class="it">El arnés de evaluación como parte del proyecto.</span>
+          <span class="id">Ya existe: <code>scripts/michi-live-audit.mjs</code> corre los 24 escenarios contra el link y da latencia, tools, cards, memorias y veredicto. Convertirlo en la puerta de cada cambio: correr antes y después, y comparar.</span></li>
+        <li><span class="it">Red de tests del camino vivo.</span>
+          <span class="id">Cubrir el motor con el proveedor mockeado, incluidos los tres fallbacks, y reactivar los tests apagados. Hoy el camino que ve el usuario es el menos cubierto.</span></li>
+        <li><span class="it">Partir los dos archivos-dios.</span>
+          <span class="id"><code>koruBackend.ts</code> (5.406 líneas) y <code>KoruProvider.tsx</code> (2.638) por responsabilidad, con el arnés como red.</span></li>
+      </ol>
+      <div class="dod"><b>Criterio de aceptación</b>
+        Se puede tocar el motor y el arnés dice en minutos si empeoró · cada camino del turno tiene un número medido · ningún
+        archivo de más de ~1.500 líneas.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DISCIPLINA ============ -->
+<section id="cuidado">
+  <h2>Disciplina</h2>
+  <div class="h2b">Qué proteger y qué puede salir mal</div>
+  <div class="grid2">
+    <div class="panel good">
+      <h4>▲ No tocar (es lo que hace distinto a Michi)</h4>
+      <ul>
+        <li><b>La validación por cita literal</b> de los datos contra sus fuentes — el mejor módulo del repo.</li>
+        <li><b>El par enhancement</b>: el LLM propone, un motor determinista filtra, rankea y aprende.</li>
+        <li><b>Las boundaries de privacidad</b>: rechazó guardar tarjeta y clave sin que se lo pidiera el prompt del test.</li>
+        <li><b>La prudencia en salud</b>: explicó, no diagnosticó, y derivó a un profesional.</li>
+        <li><b>El recall de memoria</b>: 5 de 5, en su voz, sin inventar ni una.</li>
+        <li><b>El streaming NDJSON con heartbeat de 5 s</b>: en 24 turnos, la conexión nunca se cayó.</li>
+      </ul>
+    </div>
+    <div class="panel risk">
+      <h4>⚠ Riesgos del plan</h4>
+      <ul>
+        <li><b>Producción no es el repo.</b> Antes de tocar nada hay que saber qué código corre: si se despliega el repo encima, se puede perder el "fix fútbol v2" que nunca se commiteó.</li>
+        <li><b>Bajar la latencia puede degradar la calidad.</b> El techo de tiempo tiene que medirse con el arnés, no imponerse a ciegas: el informe de 125 s es lento pero valioso.</li>
+        <li><b>Recortar tools puede romper lo que hoy funciona.</b> La decisión 45 vs 134 se toma con la batería de 24 escenarios, no con intuición.</li>
+        <li><b>Las 502 no se reprodujeron.</b> Sin logs de Render sigue siendo una hipótesis: no gastar días ahí antes de instrumentar.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRIORIZACIÓN ============ -->
+<section id="priorizacion">
+  <h2>Orden de trabajo</h2>
+  <div class="h2b">Primero lo que el usuario nota</div>
+  <div class="filters">
+    <button class="f on" data-f="all">Todo</button>
+    <button class="f" data-f="s">Tamaño S</button>
+    <button class="f" data-f="m">Tamaño M</button>
+    <button class="f" data-f="l">Tamaño L</button>
+  </div>
+  <table>
+    <thead><tr><th>Acción</th><th>Por qué</th><th>Tamaño</th><th>Se valida con</th></tr></thead>
+    <tbody id="tb2">
+      <tr data-s="s"><td class="k">Arreglar el <code>dueAt</code> del recordatorio</td><td>Hoy avisa un día más tarde</td><td><span class="chip">S</span></td><td>Recordatorio de noche cae en el día correcto</td></tr>
+      <tr data-s="s"><td class="k">Respuesta local garantizada para el fast-path</td><td>Un "hola" falló en vivo</td><td><span class="chip">S</span></td><td>20 "hola" seguidos bien</td></tr>
+      <tr data-s="s"><td class="k">Dedupe intra-lote de memorias</td><td>2 de 2 guardados vinieron dobles</td><td><span class="chip">S</span></td><td>0 duplicados en 10 turnos</td></tr>
+      <tr data-s="s"><td class="k">Textos de memoria en español y en su voz</td><td>Se guarda "User location: Buenos Aires (city)"</td><td><span class="chip">S</span></td><td>Ningún candidato en inglés</td></tr>
+      <tr data-s="s"><td class="k">API key + CORS en producción</td><td>Los modelos responden sin credenciales</td><td><span class="chip">S</span></td><td>401 sin clave</td></tr>
+      <tr data-s="m"><td class="k">Traer a <code>michi-v7</code> al repo</td><td>Lo desplegado no es revisable</td><td><span class="chip">M</span></td><td><code>sw.js</code> desplegado = del repo</td></tr>
+      <tr data-s="m"><td class="k">Conectar (o eliminar) <code>understanding</code></td><td>22 de 24 turnos con placeholder</td><td><span class="chip">M</span></td><td>Deja de ser constante</td></tr>
+      <tr data-s="m"><td class="k">Presupuesto de tiempo por turno</td><td>Mediana 25 s, máx 125 s</td><td><span class="chip">M</span></td><td>Mediana &lt; 12 s, techo respetado</td></tr>
+      <tr data-s="m"><td class="k">Progreso real durante la espera</td><td>41 s de pantalla quieta</td><td><span class="chip">M</span></td><td>Primer estado útil antes de 3 s</td></tr>
+      <tr data-s="m"><td class="k">Que <code>proactive</code> avise pendientes vencidos</td><td>Devolvió <code>shouldShow:false</code> con uno de ayer</td><td><span class="chip">M</span></td><td>El aviso aparece</td></tr>
+      <tr data-s="m"><td class="k">Que las tools de contexto no se autodisparen sin contexto</td><td>2 fallos <code>needs_context</code> en 24</td><td><span class="chip">M</span></td><td>0 fallos en la batería</td></tr>
+      <tr data-s="l"><td class="k">Set único de tools entre proveedores</td><td>45 vs 134 según quién conteste</td><td><span class="chip">L</span></td><td>Misma respuesta con cualquier proveedor</td></tr>
+      <tr data-s="l"><td class="k">Reactivar el flujo de aprobación</td><td>0 de 24 turnos lo alcanzaron</td><td><span class="chip">L</span></td><td>Comparar y redactar piden permiso</td></tr>
+      <tr data-s="l"><td class="k">Nombre del usuario en todos los caminos</td><td>El chat lo ignora, el informe lo usa</td><td><span class="chip">L</span></td><td>"cómo me llamo?" responde bien</td></tr>
+      <tr data-s="l"><td class="k">Decidir el sistema Lectura (18k líneas)</td><td>Servido en producción y sin uso</td><td><span class="chip">L</span></td><td>Adoptado en el chat o fuera del build</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ ARRANQUE ============ -->
+<section id="arranque">
+  <h2>Arranque</h2>
+  <div class="h2b">Los primeros tres días, en concreto</div>
+  <table>
+    <thead><tr><th>Día</th><th>Entregable</th><th>Cómo se verifica contra el link</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td class="k">Repo y producción alineados</td><td><code>sw.js</code> desplegado coincide con el del repo y hay un chequeo que lo comprueba</td></tr>
+      <tr><td class="num">1</td><td class="k">Producción cerrada</td><td><code>curl /api/koru/models</code> sin clave → 401</td></tr>
+      <tr><td class="num">2</td><td class="k">Fechas correctas</td><td>Un recordatorio de noche se agenda en el día y la hora locales</td></tr>
+      <tr><td class="num">2</td><td class="k">Fast-path y memorias</td><td>20 "hola" bien · 0 candidatos duplicados ni en inglés</td></tr>
+      <tr><td class="num">3</td><td class="k">Techo de tiempo y progreso real</td><td>La batería de 24 termina sin turnos de más de 45 s y con estados útiles desde el segundo 3</td></tr>
+      <tr><td class="num">3</td><td class="k">Comprensión o silencio</td><td><code>understanding</code> deja de repetirse igual en 22 turnos</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<footer>
+  Prueba en vivo del 10 de septiembre de 2026, 21:45–22:15 (hora Argentina) contra
+  <code>https://koru-mvp.onrender.com</code> · 24 turnos con streaming NDJSON, 14 endpoints, 7 assets.<br>
+  Arnés: <code>scripts/michi-live-audit.mjs</code> · respuesta cruda en <code>/d/tmp/michi-live/*.json</code>.<br>
+  Todo lo citado en este documento fue medido u obtenido literalmente de la respuesta del servicio. Las correcciones de la
+  sección «Honestidad» reemplazan lo que una lectura previa del repositorio había dado por cierto.
+</footer>
+
+</div>
+<script>
+  function wire(selFilter, selBody){
+    var btns = document.querySelectorAll(selFilter), rows = document.querySelectorAll(selBody + ' tr');
+    btns.forEach(function(b){ b.addEventListener('click', function(){
+      btns.forEach(function(x){ x.classList.remove('on'); }); b.classList.add('on');
+      var f = b.getAttribute('data-f');
+      rows.forEach(function(r){ r.classList.toggle('hide', f !== 'all' && r.getAttribute('data-s') !== f); });
+    });});
+  }
+  wire('.filters .f', '#tb');
+  wire('#priorizacion .f', '#tb2');
+</script>
+</body>
+</html>
