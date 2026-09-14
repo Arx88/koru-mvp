@@ -25,6 +25,30 @@ type MapBlock = Extract<UiBlock, { type: "route_map" }>;
  *  REAL (antes la línea completa se veía igual al 5% o al 95% — mentía). */
 const ROUTE_D = "M70 240 L146 240 L146 205 L244 205 L244 110 L320 58";
 
+/** Traduce el enum de maniobra de Google Maps a lenguaje humano. Antes la
+ *  card le mostraba el crudo al usuario: "250 m · turn-right". */
+function maneuverLabel(maneuver?: string): string {
+  const m = (maneuver ?? "").trim().toLowerCase();
+  if (!m) return "";
+  if (m.includes("turn-slight-left")) return "girá levemente a la izquierda";
+  if (m.includes("turn-slight-right")) return "girá levemente a la derecha";
+  if (m.includes("turn-sharp-left")) return "girá cerrado a la izquierda";
+  if (m.includes("turn-sharp-right")) return "girá cerrado a la derecha";
+  if (m.includes("turn-left")) return "girá a la izquierda";
+  if (m.includes("turn-right")) return "girá a la derecha";
+  if (m.includes("uturn") || m.includes("u-turn")) return "cambio de sentido";
+  if (m.includes("roundabout")) return "entrá en la rotonda";
+  if (m.includes("merge")) return "incorporate";
+  if (m.includes("fork")) return "tomá la bifurcación";
+  if (m.includes("ramp")) return "tomá la rampa";
+  if (m.includes("keep-left")) return "mantenete a la izquierda";
+  if (m.includes("keep-right")) return "mantenete a la derecha";
+  if (m.includes("depart")) return "arrancá";
+  if (m.includes("arrive")) return "llegás al destino";
+  if (m === "straight") return "seguí derecho";
+  return "";
+}
+
 export function RouteMapInterior({ block, onClose, onSave }: LecturaInteriorProps<MapBlock>) {
   const progress = Math.min(100, Math.max(0, block.progress ?? 0));
   const arrived = progress >= 100;
@@ -169,7 +193,7 @@ export function RouteMapInterior({ block, onClose, onSave }: LecturaInteriorProp
               </b>
               <span>
                 {next && next.distanceMeters
-                  ? `${next.distanceMeters} m · ${next.maneuver}`
+                  ? `${next.distanceMeters} m${maneuverLabel(next.maneuver) ? ` · ${maneuverLabel(next.maneuver)}` : ""}`
                   : `${block.steps?.length ?? 0} pasos de navegación`}
               </span>
             </div>

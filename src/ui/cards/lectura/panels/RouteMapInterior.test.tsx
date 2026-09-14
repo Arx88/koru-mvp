@@ -19,7 +19,9 @@ describe("RouteMapInterior", () => {
   it("el siguiente paso es el primer step real del block", () => {
     render(<RouteMapInterior block={routeMapBlock} onClose={vi.fn()} />);
     expect(screen.getByText(/siguiente: girá a la derecha hacia av\. santa fe/i)).toBeInTheDocument();
-    expect(screen.getByText(/250 m · turn-right/i)).toBeInTheDocument();
+    // El enum crudo de Google Maps no se muestra al usuario (antes: "250 m · turn-right").
+    expect(screen.getByText(/250 m · girá a la derecha/i)).toBeInTheDocument();
+    expect(screen.queryByText(/turn-right/i)).not.toBeInTheDocument();
   });
 
   it("las alternativas reales van en la nota", () => {
