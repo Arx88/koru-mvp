@@ -3892,12 +3892,17 @@ export function recipeArgsFromInput(input: string): { query: string } | null {
 // (hoja Stitch) con módulos, métricas y fuentes reales. El progreso que ve el
 // usuario es el del pipeline REAL, no una animación.
 
-function explicitDeliverableTopic(input: string, history?: KoruConversationMessage[]): string | null {
+export function explicitDeliverableTopic(input: string, history?: KoruConversationMessage[]): string | null {
   const clean = input.trim().replace(/\s+/g, " ");
   if (!clean) return null;
   // FIX: regex más estricta. Antes matcheaba "investigación" suelto y disparaba
   // deep research para "como le fue a River". Ahora requiere combinaciones explícitas.
-  const hasDeliverableCue = /\b(?:informe\s+(?:sobre|de|del|acerca)|reporte\s+(?:sobre|de|del|acerca)|dossier|investigaci[oó]n\s+(?:sobre|de|del|acerca)|investig[aá]me|resumen completo|contame todo sobre|quiero saber todo sobre|explicame en profundidad|estudi[aá]me|hac[eé]\s+(?:un\s+)?informe|hac[eé]\s+(?:un\s+)?reporte)\b|an[aá]lisis\s+(?:completo|profundo|detallado|serio)/i.test(clean);
+  // 🔴 FIX (2026-09-14): se aceptan las mismas formas que el router semántico ya
+  // usa como ejemplos de deep_research ("investigá todo sobre X",
+  // "investigación profunda sobre X"). Antes solo entraba "investigáme" y un
+  // pedido legítimo como "investigá todo sobre la dieta keto" no era reconocido
+  // como informe.
+  const hasDeliverableCue = /\b(?:informe\s+(?:sobre|de|del|acerca)|reporte\s+(?:sobre|de|del|acerca)|dossier|investigaci[oó]n\s+(?:profunda\s+|seria\s+|completa\s+)?(?:sobre|de|del|acerca)|investig[aá](?:me)?(?:\s+todo)?\s+(?:sobre|acerca de|del|de)|resumen completo|contame todo sobre|quiero saber todo sobre|explicame en profundidad|estudi[aá](?:me)?|hac[eé]\s+(?:un\s+)?informe|hac[eé]\s+(?:un\s+)?reporte)\b|an[aá]lisis\s+(?:completo|profundo|detallado|serio)/i.test(clean);
   if (!hasDeliverableCue) return null;
 
   const topicPatterns = [
@@ -3922,22 +3927,53 @@ function explicitDeliverableTopic(input: string, history?: KoruConversationMessa
     topic = clean.replace(/[.?!]+$/g, "");
   }
 
-  // 🔴 FIX P2.1 — Resolución de coreferencias
-  // Si el tópico tiene pronombres/demostrativos ("esa película", "ese libro", "eso"),
-  // buscar en el historial reciente el sustantivo al que se refiere.
-  if (history && history.length > 0 && /\b(esa|ese|eso|este|esta|esto|la|el|lo|aquell[ao])\b/i.test(topic)) {
-    const resolved = resolveCoreference(topic, history);
-    if (resolved) {
-      topic = resolved;
-    } else {
-      // Si no pudimos resolver, devolver null para que caiga a clarifying_question
-      // en vez de armar un informe sobre "esa película" literal.
-      logger.info("explicitDeliverableTopic", "Coreference unresolved, returning null", { topic, historyLength: history.length });
-      return null;
-    }
+  // 🔴 FIX (2026-09-14) — "el informe habla del tema ANTERIOR".
+  // ANTES esta guarda se disparaba con CUALQUIER artículo: el regex incluía
+  // `la|el|lo`, así que temas legítimos como "la IA en la última semana" o
+  // "el Mundial 2026" entraban a resolveCoreference, que reemplazaba el tema
+  // PEDIDO por un nombre propio recolectado del historial. Bug en vivo:
+  // el usuario pidió un informe sobre la IA y recibió el informe del BTC
+  // ("Tu informe sobre El BTC está en USD está terminado").
+  // AHORA la correferencia corre SOLO si el tema es una referencia vacía
+  // ("eso", "esa película", "lo de antes") sin contenido propio: un tema con
+  // sustantivo/sigla/nombre propio es autosuficiente y NO se toca.
+  if (isBareReference(topic)) {
+    const resolved = history && history.length > 0 ? resolveCoreference(topic, history, input) : null;
+    if (resolved) return resolved;
+    // Sin antecedente claro: devolvemos null para que el flujo normal pida
+    // aclaración, en vez de armar un informe sobre "esa película" literal.
+    logger.info("explicitDeliverableTopic", "Bare reference without antecedent — falling back to normal flow", {
+      topic,
+      historyLength: history?.length ?? 0,
+    });
+    return null;
   }
 
   return topic;
+}
+
+/**
+ * 🔴 FIX (2026-09-14) — ¿el tema es SOLO una referencia deíctica ("eso",
+ * "esa película", "lo mismo", "lo de antes") o trae contenido propio?
+ *
+ * Se saca el envoltorio del pedido, artículos, demostrativos, palabras
+ * deícticas y el sustantivo genérico de entidad ("película", "libro",
+ * "tema"…). Si NO queda nada sustantivo, el tema es una mera referencia y
+ * necesita correferencia; si queda cualquier sigla/sustantivo ("IA", "BTC",
+ * "Revolución Francesa", "Mundial 2026"), el tema se usa tal cual.
+ */
+export function isBareReference(topic: string): boolean {
+  const stripped = topic
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[¿?¡!.,;:()"'`]/g, " ")
+    .replace(/\b(?:esa|ese|eso|esas|esos|este|esta|esto|estas|estos|aquel|aquella|aquello|aquellos|aquellas|mismo|misma|mismos|mismas|anterior|anteriores|previo|previa|ultimo|ultima|ultimos|ultimas|antes)\b/g, " ")
+    .replace(/\b(?:pelicula|pelic|serie|libro|documental|juego|juegos|cancion|tema|persona|actor|actriz|autor|artista|equipo|partido|lugar|ciudad|pais|empresa|app|producto|cosa|noticia|noticias|caso|dato|datos|estudio|informe|reporte|dossier|analisis|investigacion|resumen)\b/g, " ")
+    .replace(/\b(?:sobre|acerca|de|del|para|con|y|o|que|lo|la|el|los|las|un|una|unos|unas|es|son|hay|trata|habla)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return stripped.length < 3;
 }
 
 /**
@@ -3945,22 +3981,47 @@ function explicitDeliverableTopic(input: string, history?: KoruConversationMessa
  *
  * Estrategia:
  * 1. Detectar el tipo de entidad (película, libro, persona, tema) por la palabra que acompaña al demostrativo.
- * 2. Buscar en los últimos 6 mensajes del historial (de atrás para adelante) la entidad concreta.
+ * 2. Buscar en los últimos 8 mensajes del historial la entidad concreta.
  * 3. Si se encuentra, devolver el nombre resuelto. Si no, devolver null.
  *
  * Ejemplos:
  *  - "esa película" + historial con "obsesión" → "película obsesión"
  *  - "ese libro" + historial con "cien años de soledad" → "libro cien años de soledad"
  *  - "eso" + historial con "la teoría de la relatividad" → "la teoría de la relatividad"
+ *
+ * 🔴 FIX (2026-09-14):
+ *  - `currentInput` se descarta POR CONTENIDO, no por posición. El viejo
+ *    `slice(-6, -1)` asumía que el input actual venía como último ítem del
+ *    historial: cuando no venía, descartaba el turno inmediatamente anterior y
+ *    la correferencia resolvía a un tema aún más viejo (off-by-one real).
+ *  - Los mensajes que son el propio PEDIDO del informe se ignoran (si no, el
+ *    referente podía salir del mismo texto que pidió el informe).
+ *  - Se prefieren los mensajes del USUARIO: el referente lo introdujo el
+ *    usuario, no Michi.
  */
-function resolveCoreference(topic: string, history: KoruConversationMessage[]): string | null {
+export function resolveCoreference(topic: string, history: KoruConversationMessage[], currentInput = ""): string | null {
   // Detectar tipo de entidad
   const entityMatch = topic.match(/\b(pel[ií]cula|pel[ií]c|serie|libro|documental|juego|canci[oó]n|tema|persona|actor|actriz|autor|artista|equipo|partido|lugar|ciudad|pa[ií]s|empresa|app|producto)\b/i);
   const entityType = entityMatch?.[1]?.toLowerCase() ?? "";
 
-  // Buscar en los últimos 6 mensajes (de atrás para adelante, omitiendo el último que es el input actual)
-  const recent = history.slice(-6, -1).reverse();
-  for (const msg of recent) {
+  // Historial reciente, del más nuevo al más viejo, sin el input actual ni los
+  // mensajes que son (parte de) un pedido de informe.
+  const current = currentInput.trim().toLowerCase();
+  const recent = history
+    .slice(-8)
+    .filter((msg) => {
+      const content = (msg.content ?? "").trim();
+      if (!content) return false;
+      if (content.toLowerCase() === current) return false;
+      if (/\b(?:informe|reporte|dossier|resumen|investigaci[oó]n|an[aá]lisis)\b/i.test(content)) return false;
+      return true;
+    })
+    .reverse();
+  const ordered = [
+    ...recent.filter((msg) => msg.role === "user"),
+    ...recent.filter((msg) => msg.role !== "user"),
+  ];
+  for (const msg of ordered) {
     if (msg.role !== "assistant" && msg.role !== "user") continue;
     const content = (msg.content ?? "").trim();
     if (!content) continue;
@@ -3987,10 +4048,23 @@ function resolveCoreference(topic: string, history: KoruConversationMessage[]): 
         }
       }
     } else {
-      // Sin tipo de entidad claro ("eso", "esto"), tomar el último mensaje del asistente
-      // como referencia y extraer el sujeto principal
+      // 🔴 FIX (2026-09-14): sin tipo de entidad ("eso", "esto") el referente es
+      // el TEMA del último mensaje del USUARIO con contenido propio. Antes se
+      // buscaba una frase con mayúscula inicial en los mensajes de Michi, pero
+      // los usuarios escriben en minúsculas: la correferencia fallaba o —peor—
+      // devolvía cualquier frase capitalizada del historial.
+      if (msg.role === "user") {
+        const candidate = content
+          .replace(/[¿?¡!]+/g, " ")
+          .replace(/\s+/g, " ")
+          .trim()
+          .replace(/[.,;:]+$/, "");
+        if (candidate.length >= 8 && !isBareReference(candidate)) {
+          return candidate.slice(0, 120);
+        }
+      }
+      // Fallback: frase con mayúscula inicial del mensaje de Michi.
       if (msg.role === "assistant") {
-        // Buscar nombres propios o frases largas
         const m = content.match(/([A-ZÁÉÍÓÚÑ][\wáéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ\w][\wáéíóúñ]+){0,4})/);
         if (m && m[1].length >= 4) {
           return m[1].trim();
