@@ -2,18 +2,15 @@
  * MarketInterior — card "Acción al detalle" (#p-market), bind real del
  * block `market` (assets[]).
  *
- * Hero de cotización del primer activo con useLivePrice — el MISMO hook
- * de la app para el precio latiente (random-walk ±0.15% sobre el base,
- * idéntico al comportamiento de la card compacta Trading). Change chip
- * desde change/changeUp reales. Board con todos los assets (icon/bg/
- * shape reales del block). OHLC/52-semanas NO están en el domain:
- * no se dibujan (nada inventado). Acciones: Alerta → create_commitment
- * durable; Guardar → onSave.
+ * Hero de cotización del primer activo con el price REAL del block — sin
+ * random-walk simulado (dato inventado en UI). Change chip desde
+ * change/changeUp reales. Board con todos los assets (icon/bg/shape reales
+ * del block). OHLC/52-semanas NO están en el domain: no se dibujan (nada
+ * inventado). Acciones: Alerta → create_commitment durable; Guardar → onSave.
  */
 import { useState } from "react";
 import { CandlestickChart, BellRing, Save, ArrowUpRight, ArrowDownRight, type LucideIcon } from "lucide-react";
 import type { UiBlock } from "../../../../domain/types";
-import { useLivePrice } from "../../unified/useLivePrice";
 import { Ic } from "../Ic";
 import { LecturaShell } from "../LecturaShell";
 import { dispatchCardAction } from "../actions";
@@ -27,13 +24,13 @@ const Dir: Partial<Record<"up" | "dn", LucideIcon>> = { up: ArrowUpRight, dn: Ar
 
 export function MarketInterior({ block, onClose, onSave }: LecturaInteriorProps<MarketBlock>) {
   const assets = block.assets ?? [];
-  // Selector de activo: el hero y el live price siguen al elegido (estado real).
+  // Selector de activo: el hero sigue al elegido (estado real).
   const [assetIdx, setAssetIdx] = useState(0);
   const active = assets[Math.min(assetIdx, Math.max(0, assets.length - 1))] ?? assets[0];
   const first = active;
-  const { displayPrice, direction } = useLivePrice(first?.price);
+  const displayPrice = first?.price;
   const up = first?.changeUp ?? true;
-  const DirIcon = direction ? Dir[direction] : undefined;
+  const DirIcon = up ? Dir.up : Dir.dn;
 
   return (
     <LecturaShell
@@ -104,7 +101,7 @@ export function MarketInterior({ block, onClose, onSave }: LecturaInteriorProps<
                 en vivo
               </span>
             </div>
-            <div className="px" style={direction === "up" ? { color: "var(--mint-ink)" } : direction === "dn" ? { color: "var(--rose-ink)" } : undefined}>
+            <div className="px" style={{ color: up ? "var(--mint-ink)" : "var(--rose-ink)" }}>
               {displayPrice ?? first.price}
             </div>
             <div className="chg" style={{ color: up ? "var(--mint-ink)" : "var(--rose-ink)" }}>

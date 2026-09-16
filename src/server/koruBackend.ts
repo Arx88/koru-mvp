@@ -54,6 +54,7 @@ import {
   isGenericAgentReply,
 } from "./pipeline/finalizePayload";
 import { blocksFromToolResults } from "./blocksFromToolResults";
+import { computeAbsenceContext, formatAbsenceContext } from "../domain/absence";
 import { callAINative } from "./providers/ainative";
 import {
   ProviderConfigError,
@@ -3322,12 +3323,23 @@ export function buildMessages(request: KoruBackendTurnRequest): ChatMessage[] {
     ? selectRelevantMemories(activeMemories, request.input, 30)
     : selectRelevantMemories(activeMemories, request.input, activeMemories.length);
 
+  const lastTurnAt = request.history
+    .map((turn) => turn.createdAt)
+    .filter((value): value is string => Boolean(value) && Number.isFinite(Date.parse(value!)))
+    .sort((a, b) => Date.parse(b) - Date.parse(a))[0];
+  const absence = computeAbsenceContext({
+    lastTurnAt,
+    entries: request.state.entries,
+    commitments: request.state.commitments,
+    history: request.history,
+  });
+  const absencePrompt = formatAbsenceContext(absence).join("\n");
   const history = request.history.slice(-10).map((turn): ChatMessage => ({
     role: turn.role === "assistant" ? "assistant" : "user",
     content: turn.content,
   }));
   return [
-    { role: "system", content: systemPrompt(new Date().toISOString(), request.state, relevantMemories) },
+    { role: "system", content: [systemPrompt(new Date().toISOString(), request.state, relevantMemories), absencePrompt].filter(Boolean).join("\n\n") },
     ...history,
     { role: "user", content: request.input },
   ];

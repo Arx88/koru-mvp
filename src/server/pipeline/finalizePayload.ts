@@ -751,6 +751,21 @@ export function normalizeFinalPayload(
     }
   }
 
+  // 🔴 P0 ANTI-ALUCINACIÓN (2026-09-14): fact-check determinista del reply
+  // contra los toolResults del turno. Observado en vivo: la tool de clima
+  // falló (wttr.in caído, status "failed") y el reply IGUAL decía "27° y
+  // despejado" — el LLM fabricó el dato que no tenía. Regla: si hubo tools y
+  // TODAS fallaron (ninguna "ok"/"verified"), no existe dato real que citar →
+  // cualquier cifra o dato específico en el reply es fabricación y se
+  // reemplaza por la respuesta honesta. Si AL MENOS una tool tuvo éxito, el
+  // reply queda intacto (los datos parciales los encuadra el LLM con las
+  // cards reales).
+  const anyToolOk = toolResults.some((tr) => tr.status === "ok");
+  const allToolsFailed = toolExecutions.length > 0 && !anyToolOk;
+  if (allToolsFailed && /[\d°]|[Dd]espejado|[Ss]oleado|[Ll]uvia|[Nn]ublado|°C|km\/h|%/.test(finalReply)) {
+    finalReply = "No pude verificar eso con fuentes ahora mismo — la consulta a los datos falló. ¿Lo reintentamos en un rato?";
+  }
+
   // 🔴 FIX CALIDAD: si el LLM dice "guardado/anotado/recordatorio" pero NO se creó
   // ningún commitment ni record, el LLM está mintiendo (dijo que guardó pero no lo hizo).
   // Crear un commitment sintético a partir del input para que al menos quede registrado.

@@ -76,6 +76,9 @@ tests/agents/reports/
 .env
 .env.*
 minimax-oauth-token.json
+# Tokens OAuth de Google Calendar en runtime (escritos por server/index.ts).
+# NO trackear: contendría accessToken/refreshToken reales.
+koru-integrations.json
 .opencode.json
 opencode.json
 a.out

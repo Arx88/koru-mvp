@@ -45,10 +45,13 @@ export const currencyConvert: ToolHandler = {
     }
 
     const cacheKey = `fx:${from}:${to}`;
-    const rate = await cached<number>(cacheKey, ttls.currency, async () => {
+    // Siempre pedimos la tasa unitaria (amount=1) para que la caché del par
+    // sirva a cualquier importe: reutilizar el monto convertido del primer
+    // request devolvía números incorrectos a todos los pedidos posteriores.
+    const unitRate = await cached<number>(cacheKey, ttls.currency, async () => {
       await limiters.frankfurter.acquire();
       const result = await fetchJson<FrankfurterResponse>(
-        `https://api.frankfurter.app/latest?amount=${encodeURIComponent(amount)}&from=${from}&to=${to}`,
+        `https://api.frankfurter.app/latest?amount=1&from=${from}&to=${to}`,
         { timeoutMs: 15_000 },
       );
       if (!result.ok) throw new Error(result.error);
@@ -57,9 +60,7 @@ export const currencyConvert: ToolHandler = {
       return rateValue;
     });
 
-    // Frankfurter devuelve el resultado para el `amount` pedido; normalizamos a tasa unitaria.
-    const converted = rate;
-    const unitRate = converted / amount;
+    const converted = unitRate * amount;
 
     return {
       type: "currency_convert",

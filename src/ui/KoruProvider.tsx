@@ -860,6 +860,19 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // 🔴 SW bridge: el service worker manda { type: "CHECK_REMINDERS" } desde
+  // periodicsync/sync — era un mensaje huérfano (nadie lo escuchaba). Ahora
+  // revisa los recordatorios vencidos al recibirlo.
+  useEffect(() => {
+    const onSwMessage = (event: MessageEvent) => {
+      if ((event.data as { type?: string })?.type !== "CHECK_REMINDERS") return;
+      const userId = domainStateRef.current?.userId ?? "default";
+      checkDueReminders(userId);
+    };
+    navigator.serviceWorker?.addEventListener("message", onSwMessage);
+    return () => navigator.serviceWorker?.removeEventListener("message", onSwMessage);
+  }, []);
+
   useEffect(() => {
     saveChatTurns(chatTurns, !domainState.ephemeralMode);
     // 🔴 Offline cache — also persist last turn to IndexedDB for 24h rolling window.

@@ -5,7 +5,7 @@
 // /assets/stickers/) + tono más cercano/cool/gracioso. El SW no intercepta
 // fetch, pero se bumpea la caché siguiendo la convención de release: al
 // cambiar sw.js el navegador reinstala y el activate limpia cachés viejas.
-const CACHE_NAME = "michi-v10";
+const CACHE_NAME = "michi-v11";
 const STATIC_ASSETS = [
   "/",
   "/index.html",
@@ -113,6 +113,47 @@ self.addEventListener("notificationclick", (event) => {
       if (self.clients.openWindow) {
         return self.clients.openWindow("/");
       }
+    })
+  );
+});
+
+// 🔴 OFFLINE (2026-09-14): fetch handler con estrategia stale-while-revalidate.
+// Antes el SW no interceptaba nada: sin conexión la app moría en blanco.
+// - Navegación → red primero, caché si falla (offline usable).
+// - Assets same-origin estáticos → caché primero, revalida por detrás.
+// - API/NDJSON/terceros → NUNCA se cachean (datos vivos).
+self.addEventListener("fetch", (event) => {
+  const req = event.request;
+  if (req.method !== "GET") return;
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;
+  if (url.pathname.startsWith("/api/")) return;
+
+  if (req.mode === "navigate") {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put("/", copy)).catch(() => {});
+          return res;
+        })
+        .catch(() => caches.match("/").then((hit) => hit || caches.match("/index.html")))
+    );
+    return;
+  }
+
+  event.respondWith(
+    caches.match(req).then((cached) => {
+      const network = fetch(req)
+        .then((res) => {
+          if (res.ok && res.type === "basic") {
+            const copy = res.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(req, copy)).catch(() => {});
+          }
+          return res;
+        })
+        .catch(() => cached);
+      return cached || network;
     })
   );
 });

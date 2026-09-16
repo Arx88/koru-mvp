@@ -202,7 +202,7 @@ function renderItem(item: NonNullable<PdfTurn["items"]>[number]): string {
     const changeColor = (item.change24h ?? 0) >= 0 ? "#2FC86E" : "#FF4D54";
     bodyHtml += `
       <div class="crypto-card">
-        ${item.price != null ? `<div class="crypto-price" style="color: ${changeColor}">$${esc(item.price.toLocaleString())}</div>` : ""}
+        ${item.price != null ? `<div class="crypto-price" style="color: ${changeColor}">$${esc(item.price.toLocaleString("en-US"))}</div>` : ""}
         ${item.change24h != null ? `<div class="crypto-change" style="color: ${changeColor}">${item.change24h >= 0 ? "+" : ""}${esc(item.change24h)}%</div>` : ""}
         <svg class="sparkline" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
           <polyline points="${points}" fill="none" stroke="${changeColor}" stroke-width="1.5" />

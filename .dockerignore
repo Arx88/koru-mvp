@@ -7,8 +7,13 @@ scripts
 manual-audits
 logs
 *.log
-.env.local
-.env.example
+# Secretos: ninguna variante de .env ni tokens locales viajan al build context
+.env
+.env.*
+*.pem
+*.key
+minimax-oauth-token.json
+koru-integrations.json
 .deprecated
 .kimchi
 finetune

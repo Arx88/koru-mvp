@@ -6,8 +6,19 @@ import { createInitialState } from "./store";
 describe("heartbeatProactive", () => {
   const baseState = createInitialState();
 
+  // 🔴 FIX TZ: los tests usaban fechas UTC ("...Z") comparadas contra getHours()
+  // LOCAL — el resultado dependía de la tz de la máquina (verde en CI-UTC,
+  // rojo en UTC+2). El helper fija el instante en la MISMA hora local
+  // cualquiera sea la zona: nunca más rojo por desfase.
+  const atLocal = (dayOffset: number, hour: number, minute = 0) => {
+    const d = new Date();
+    d.setDate(d.getDate() + dayOffset);
+    d.setHours(hour, minute, 0, 0);
+    return d;
+  };
+
   it("never includes low-priority nudges", () => {
-    const nudges = buildProactiveNudges(baseState, new Date("2026-06-16T08:00:00.000Z"));
+    const nudges = buildProactiveNudges(baseState, atLocal(0, 8));
     expect(nudges.every((n) => n.priority !== "low")).toBe(true);
   });
 
@@ -27,7 +38,7 @@ describe("heartbeatProactive", () => {
         },
       ],
     };
-    const nudges = buildProactiveNudges(state, new Date("2026-06-16T08:15:00.000Z"));
+    const nudges = buildProactiveNudges(state, atLocal(0, 8, 15));
     expect(nudges.some((n) => n.sourceId === "weather-wakeup")).toBe(true);
   });
 
@@ -48,7 +59,7 @@ describe("heartbeatProactive", () => {
         },
       ],
     };
-    const nudges = buildProactiveNudges(state, new Date("2026-06-16T08:15:00.000Z"));
+    const nudges = buildProactiveNudges(state, atLocal(0, 8, 15));
     expect(nudges.some((n) => n.sourceId === "weather-wakeup")).toBe(false);
   });
 
@@ -69,7 +80,7 @@ describe("heartbeatProactive", () => {
         energyAwarded: 8, // chat sin cards/tools → típico 6-9
       })),
     };
-    const nudges = buildProactiveNudges(chatNormal, new Date("2026-06-16T15:00:00.000Z"));
+    const nudges = buildProactiveNudges(chatNormal, atLocal(0, 15));
     expect(nudges.some((n) => n.sourceId === "energy-pause")).toBe(false);
     expect(nudges.some((n) => n.title === "¿Una pausa?")).toBe(false);
   });

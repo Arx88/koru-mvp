@@ -126,7 +126,9 @@ function routineReminderNudge(state: KoruState, now: Date): NudgeDraft | null {
   );
   if (!routineMem) return null;
 
-  const hour = now.getUTCHours();
+  // Consistencia A7: hora LOCAL del usuario — el heartbeat corre en el cliente,
+  // donde getHours() ya es la hora del usuario (la rutina "a las 8" es su hora).
+  const hour = now.getHours();
   const routineHourMatch = routineMem.text.match(/\b(7|8|9|10|11|12|13|14|15|16|17|18|19|20|21):?(00|30)?\b/);
   if (routineHourMatch) {
     const routineHour = parseInt(routineHourMatch[1], 10);

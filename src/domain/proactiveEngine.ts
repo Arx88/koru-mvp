@@ -17,6 +17,7 @@
 
 import type { KoruState, MemoryFact } from "../domain/types";
 import type { ProviderConfig, ProviderResult, ChatMessage } from "../server/koruBackend";
+import { computeAbsenceContext } from "./absence";
 
 // ── Types ──
 
@@ -197,12 +198,16 @@ export async function collectEvents(
         }
 
         case "inactivity_check": {
-          const daysSinceLastSeen = Math.floor((Date.now() - lastSeen) / (24 * 60 * 60 * 1000));
-          if (daysSinceLastSeen >= 3) {
+          // computeAbsenceContext toma el MÁS RECIENTE de lastSeen / entries —
+          // así una apertura fantasma (entró pero no escribió) no fabrica una
+          // ausencia de conversación más larga que la real.
+          const absence = computeAbsenceContext({ lastSeenMs: lastSeen, entries: state.entries, commitments: state.commitments });
+          const daysSinceLastSeen = absence.days;
+          if (daysSinceLastSeen >= 7) {
             events.push({
               type: "inactivity",
-              data: { days: daysSinceLastSeen },
-              priority: daysSinceLastSeen >= 7 ? "high" : "low",
+              data: { days: daysSinceLastSeen, overdueWhileAway: absence.overdueWhileAway },
+              priority: "high",
               summary: `Usuario inactivo por ${daysSinceLastSeen} días`,
             });
           }
@@ -243,6 +248,7 @@ export async function generateProactiveMessage(
   memories: MemoryFact[],
   config: ProviderConfig,
   userName: string,
+  lastSeenOfTurn = Date.now(),
 ): Promise<ProactiveMessage | null> {
   // Template-based message generation (sin LLM para evitar timeout)
   // El LLM se usa solo si está disponible, pero el template es el fallback
@@ -330,7 +336,14 @@ export async function generateProactiveMessage(
     const d = event.data as any;
     const days = d.days ?? 0;
     if (days >= 7) {
-      reply = `${userName}, te extra\u00e9 estos ${days} d\u00edas. \u00bfTodo bien?`;
+      // 🔴 Reencuentro honesto: el HECHO computado (días + digest de pendientes
+      // vencidos) viene en el evento desde computeAbsenceContext — no es opinión
+      // del modelo. Voz neutra internacional (sin voseo), calidez sin reproche.
+      const overdue: Array<{ title: string; dueHint: string }> = Array.isArray(d.overdueWhileAway) ? d.overdueWhileAway : [];
+      const digest = overdue.length
+        ? ` Mientras no entrabas venció esto: ${overdue.map((o) => `"${o.title}"`).join(", ")}.`
+        : "";
+      reply = `¡${userName}! Qué bueno leerte de nuevo — no entrabas hace ${days} días. ¿Todo bien?${digest}`;
       mascotState = "worried";
     } else {
       // No mostrar mensaje de inactividad para menos de 7 días
@@ -599,6 +612,6 @@ export async function runProactiveCheck(
 
   // Paso 3: Generar mensaje
   // Usar template-based generation (sin LLM, más confiable)
-  const message = await generateProactiveMessage(events, memories, config, userName);
+  const message = await generateProactiveMessage(events, memories, config, userName, lastSeen);
   return message;
 }
