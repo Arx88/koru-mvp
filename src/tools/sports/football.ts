@@ -1108,7 +1108,15 @@ export const matchLive: ToolHandler = {
           // respuestas vacías durante todo el TTL).
           res = { events: [], failed: true };
         } else {
-          const raw = result.data?.event ?? result.data?.events ?? [];
+          // 🔴 FIX OTRO DEPORTE (2026-09-16) — searchevents.php busca por TEXTO
+          // en TODOS los deportes: "Boca Juniors" devuelve, además del fútbol,
+          // un partido de BÁSQUET contra "NBA G League United" (2026-09-24) que
+          // ordenado por fecha quedaba PRIMERO y se mostraba como si fuera el
+          // próximo partido del club ("cuándo juega Boca" → card de básquet).
+          // match_live es una tool de fútbol (todas sus ligas ESPN son de
+          // soccer): los eventos de otro deporte se descartan.
+          const all = result.data?.event ?? result.data?.events ?? [];
+          const raw = all.filter(e => !e.strSport || /soccer/i.test(String(e.strSport)));
           // Más reciente primero: TSDB puede devolver varias temporadas.
           const sorted = [...raw].sort((a, b) =>
             String(b.strTimestamp ?? b.dateEvent ?? "").localeCompare(String(a.strTimestamp ?? a.dateEvent ?? "")),
@@ -1295,7 +1303,7 @@ async function fetchTeamContext(teamQuery: string): Promise<{
   wikiSource: { title: string; url: string; domain: string; snippet: string } | null;
 }> {
   let teamInfo: { id: string; name: string; stadium?: string; location?: string; league?: string; description?: string } | null = null;
-  type TsdbTeam = { idTeam?: string; strTeam?: string; strStadium?: string; strLocation?: string; strLeague?: string; strDescriptionES?: string; strDescriptionEN?: string };
+  type TsdbTeam = { idTeam?: string; strTeam?: string; strStadium?: string; strLocation?: string; strLeague?: string; strDescriptionES?: string; strDescriptionEN?: string; strSport?: string };
   try {
     // 🔴 CACHE TSDB (2026-09-15) — la key pública ("3") tiene límite de ~30
     // requests por minuto: al pasarlo responde HTTP 429 y todos los equipos
@@ -1315,7 +1323,13 @@ async function fetchTeamContext(teamQuery: string): Promise<{
       }
     }
     if (teams && teams.length > 0) {
-      const t = teams[0];
+      // 🔴 FIX OTRO DEPORTE (2026-09-16) — searchteams.php también devuelve
+      // equipos homónimos de otros deportes (el "Boca Juniors" de básquet, por
+      // ejemplo). Como match_live es una tool de fútbol, se prefiere el club de
+      // soccer; si no hay ninguno se mantiene el primer resultado (no romper
+      // consultas de otros deportes).
+      const soccer = teams.filter(t => !t.strSport || /soccer/i.test(String(t.strSport)));
+      const t = soccer[0] ?? teams[0];
       teamInfo = {
         id: t.idTeam ?? "",
         name: t.strTeam ?? teamQuery,

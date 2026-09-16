@@ -20,7 +20,7 @@ import { tsdbQueryCandidates } from "./football";
 
 type MockOptions = {
   espnSingleDayFails?: boolean;
-  tsdb?: "pair-ok" | "empty" | "down";
+  tsdb?: "pair-ok" | "empty" | "down" | "cross-sport";
 };
 
 const ESPN_ERROR = { code: 400, message: "Failed to get events endpoint." };
@@ -67,6 +67,44 @@ function installFetch(opts: MockOptions) {
     // ── TheSportsDB ──
     if (url.includes("thesportsdb.com")) {
       if (opts.tsdb === "down") return jsonResponse({ message: "rate limit" }, 429);
+      // Homónimo de OTRO deporte primero: TSDB tiene un "Boca Juniors" de
+      // básquet además del club de fútbol.
+      if (opts.tsdb === "cross-sport") {
+        if (url.includes("searchteams.php")) {
+          return jsonResponse({ teams: [
+            { idTeam: "basket-boca", strTeam: "Boca Juniors", strSport: "Basketball", strLeague: "Argentinian Basketball" },
+            { idTeam: "soccer-boca", strTeam: "Boca Juniors", strSport: "Soccer", strLeague: "Argentinian Primera Division" },
+          ] });
+        }
+        if (url.includes("eventslast.php")) {
+          const id = new URL(url).searchParams.get("id");
+          if (id === "basket-boca") {
+            return jsonResponse({ results: [{
+              strEvent: "Boca Juniors vs NBA G League United", strSport: "Basketball", strLeague: "NBA G League",
+              strHomeTeam: "Boca Juniors", strAwayTeam: "NBA G League United", strTimestamp: "2026-09-24T00:00:00",
+              intHomeScore: "88", intAwayScore: "91", strStatus: "FT",
+            }] });
+          }
+          return jsonResponse({ results: [{
+            strEvent: "Boca Juniors vs São Paulo", strSport: "Soccer", strLeague: "Copa Sudamericana",
+            strHomeTeam: "Boca Juniors", strAwayTeam: "São Paulo", strTimestamp: "2026-09-16T00:30:00",
+            intHomeScore: "1", intAwayScore: "1", strStatus: "FT",
+          }] });
+        }
+        if (url.includes("searchevents.php")) {
+          // El partido de básquet es MÁS RECIENTE/futuro → ordenado, queda primero.
+          return jsonResponse({ event: [
+            { idEvent: "nba1", strEvent: "Boca Juniors vs NBA G League United", strSport: "Basketball", strLeague: "NBA G League",
+              strHomeTeam: "Boca Juniors", strAwayTeam: "NBA G League United", strTimestamp: "2026-09-24T00:00:00",
+              intHomeScore: null, intAwayScore: null, strStatus: "NS" },
+            { idEvent: "sa1", strEvent: "Boca Juniors vs São Paulo", strSport: "Soccer", strLeague: "Copa Sudamericana",
+              strHomeTeam: "Boca Juniors", strAwayTeam: "São Paulo", strTimestamp: "2026-09-16T00:30:00",
+              intHomeScore: "1", intAwayScore: "1", strStatus: "FT" },
+          ] });
+        }
+        if (url.includes("eventsnext.php")) return jsonResponse({ events: [] });
+        return jsonResponse({});
+      }
       if (url.includes("searchteams.php")) {
         return jsonResponse({ teams: [{ idTeam: "135156", strTeam: "Independiente", strLeague: "Argentinian Primera Division" }] });
       }
@@ -165,6 +203,34 @@ describe("match_live con fuentes caídas (determinista, sin red)", () => {
     expect(live.note).toMatch(/Probá de nuevo en unos minutos/i);
     // Sin matches: no hay dato que mostrar (y sin status "no_data" no se dispara
     // el plan B de búsqueda web que generaba la card genérica).
+  });
+
+  it("TSDB devuelve un partido de BÁSQUET del homónimo → se descarta y queda el de fútbol", async () => {
+    installFetch({ espnSingleDayFails: true, tsdb: "cross-sport" });
+    const matchLive = await freshMatchLive();
+    const live: any = await matchLive.run({ query: "cuándo juega Boca", __userInput: "cuándo juega Boca" }, {} as any);
+
+    // El evento de básquet (2026-09-24) ordenaba primero por fecha; no debe
+    // aparecer un partido de la NBA G League en una consulta de fútbol.
+    const text = JSON.stringify(live);
+    expect(text).not.toMatch(/nba g league/i);
+    expect(live.status).toBe("ok");
+    expect(live.source).toBe("TheSportsDB");
+    expect(live.matches[0].awayTeam).toBe("São Paulo");
+    expect(live.matches[0].homeTeam).toBe("Boca Juniors");
+  });
+
+  it("searchteams devuelve el homónimo de básquet primero → el resultado sale del club de fútbol", async () => {
+    installFetch({ espnSingleDayFails: true, tsdb: "cross-sport" });
+    const matchLive = await freshMatchLive();
+    const live: any = await matchLive.run({ query: "como salio Boca", __userInput: "como salio Boca" }, {} as any);
+
+    expect(live.status).toBe("ok");
+    expect(live.matches[0].awayTeam).toBe("São Paulo");
+    expect(live.matches[0].homeTeam).toBe("Boca Juniors");
+    expect(JSON.stringify(live)).not.toMatch(/nba g league/i);
+    // El equipo elegido es el de fútbol, no el de básquet.
+    expect(live.teamInfo?.id).toBe("soccer-boca");
   });
 
   it("las fuentes responden pero no hay partido → \"no_data\" (no es fuente caída)", async () => {
