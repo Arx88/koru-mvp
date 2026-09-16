@@ -486,7 +486,16 @@ async function searchEspnScoreboardsImpl(
   // partido está en el PASADO, así que el barrido no gasta presupuesto en días
   // futuros (y los homónimos de otros países los filtra el filtro de par exacto
   // del final: "Independiente Santa Fe" ya no puede colarse).
-  const pairQuery = detectClubs((opts.pairText ?? query).toLowerCase()).length >= 2;
+  const clubsInQuery = detectClubs((opts.pairText ?? query).toLowerCase());
+  const pairQuery = clubsInQuery.length >= 2;
+  /** El partido ENTRE esos dos clubes (el único que responde la pregunta). */
+  const eventHasBothClubs = (e: EspnEvent): boolean =>
+    pairQuery && clubsInQuery.every(c => eventTeamNames(e).some(t => t.includes(c.toLowerCase())));
+  // 🔴 FIX CORTE POR PAR ENCONTRADO (2026-09-16) — el partido entre dos clubes es
+  // ÚNICO: una vez que aparece, seguir barriendo días de las otras competiciones es
+  // gastar requests para descartar. Medido: el clásico seguía gastando ~40 requests
+  // después de haber encontrado el partido.
+  let pairFound = false;
 
   const fetchRange = async (
     league: { id: string; name: string },
@@ -568,10 +577,12 @@ async function searchEspnScoreboardsImpl(
         anyOk = true;
         out.push(...r.events);
         if (r.events.some(e => espnEventState(e) !== "pre" && matchesQuery(e, league.id))) hit = true;
+        if (r.events.some(eventHasBothClubs)) pairFound = true;
       }
-      // Corte temprano: ya hay un partido JUGADO del equipo consultado en esta liga.
+      // Corte temprano: ya hay un partido JUGADO del equipo consultado en esta liga
+      // (o, si la consulta nombra dos clubes, ya apareció el partido entre ellos).
       // Se deja de gastar presupuesto y se lo reserva para las demás.
-      if (hit) break;
+      if (hit || pairFound) break;
     }
     return { events: out, failed: !anyOk };
   };
@@ -597,6 +608,9 @@ async function searchEspnScoreboardsImpl(
   };
 
   const fetchLeague = async (league: { id: string; name: string }): Promise<void> => {
+    // Si la consulta es de dos clubes y el partido entre ellos YA apareció, esta
+    // liga no puede aportar nada (el partido es único).
+    if (pairFound) return;
     let anyOk = false;
     let anyFailed = false;
     try {
@@ -613,6 +627,7 @@ async function searchEspnScoreboardsImpl(
         for (const e of wide.events) {
           if (matchesQuery(e, league.id)) {
             results.push({ event: e, leagueId: league.id, leagueName: league.name });
+            if (eventHasBothClubs(e)) pairFound = true;
           }
         }
         return;
@@ -703,7 +718,6 @@ async function searchEspnScoreboardsImpl(
   //      ellos → quedarse con los eventos que contienen a los dos;
   //   2) si hay eventos con el nombre de equipo EXACTO del canónico, descartar
   //      los que solo matchean por parecido.
-  const clubsInQuery = detectClubs((opts.pairText ?? query).toLowerCase());
   if (clubsInQuery.length >= 2) {
     // Solo el partido ENTRE esos dos clubes responde la pregunta. Si no está,
     // se devuelve vacío a propósito: mejor "no tengo el dato" que mostrarle al
