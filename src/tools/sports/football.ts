@@ -28,22 +28,58 @@ import {
 export function formatKickoffUserTz(
   date: string | Date | undefined | null,
   tzOffsetMin?: number,
-  opts?: { withDate?: boolean },
+  opts?: { withDate?: boolean; timeZone?: string },
 ): string | undefined {
   if (!date) return undefined;
   const d = new Date(date);
   if (isNaN(d.getTime())) return undefined;
   const hasTz = typeof tzOffsetMin === "number" && Number.isFinite(tzOffsetMin);
+  // 🔴 FIX HORA SIN CLIENTE (2026-09-16) — el offset llega sólo cuando hay
+  // cliente; los turnos del motor proactivo (avisos de partido) corren sin uno y
+  // la hora caía al reloj del server (UTC en Render): la notificación de un
+  // partido de las 21:15 en Buenos Aires decía "00:15". Si falta el offset, se
+  // formatea con el huso IANA del PERFIL.
+  const zone = !hasTz ? validTimeZone(opts?.timeZone) : undefined;
   const target = hasTz ? new Date(d.getTime() - tzOffsetMin * 60_000) : d;
   const timeOpts: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit", hour12: false };
   if (hasTz) timeOpts.timeZone = "UTC"; // leemos la epoch desplazada tal cual
+  else if (zone) timeOpts.timeZone = zone;
   const time = target.toLocaleTimeString("es-AR", timeOpts);
   if (opts?.withDate) {
     const dateOpts: Intl.DateTimeFormatOptions = { weekday: "short", day: "2-digit", month: "2-digit" };
     if (hasTz) dateOpts.timeZone = "UTC";
+    else if (zone) dateOpts.timeZone = zone;
     return `${target.toLocaleDateString("es-AR", dateOpts)} ${time}`;
   }
   return time;
+}
+
+/**
+ * Huso del usuario para formatear horas de partidos.
+ * Preferencia: el offset que manda el cliente — exacto para la fecha del partido
+ * (un solo número cubre el DST del día). Si no hay cliente (turnos del motor
+ * proactivo), el huso IANA del perfil.
+ */
+function userTimeZone(runCtx?: ToolRunContext): string | undefined {
+  const offset = runCtx?.tzOffsetMin;
+  if (typeof offset === "number" && Number.isFinite(offset)) return undefined;
+  return validTimeZone(runCtx?.state?.userProfile?.timezone);
+}
+
+/**
+ * Huso horario IANA válido ("America/Argentina/Buenos_Aires"), o `undefined`.
+ * `Intl` LANZA con un nombre desconocido, así que hay que validarlo antes de
+ * usarlo: un perfil con "auto" o basura no puede romper el formateo de la hora.
+ */
+export function validTimeZone(tz?: string): string | undefined {
+  const name = String(tz ?? "").trim();
+  if (!name || name === "auto") return undefined;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: name });
+    return name;
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -1114,10 +1150,10 @@ async function fetchTsdbSearchEvents(text: string): Promise<{ events: TsdbEvent[
  * `strTime`/`strTimestamp`; sin esto la card de fixture quedaba sin escudo y con
  * la hora del server (o vacía).
  */
-function normalizeTsdbUpcoming(events: TsdbEvent[], tzOffsetMin?: number) {
+function normalizeTsdbUpcoming(events: TsdbEvent[], tzOffsetMin?: number, timeZone?: string) {
   return events.map(e => ({
     ...normalizeEvent(e),
-    time: formatKickoffUserTz(e.strTimestamp ?? e.dateEvent, tzOffsetMin) ?? e.strTime,
+    time: formatKickoffUserTz(e.strTimestamp ?? e.dateEvent, tzOffsetMin, { timeZone }) ?? e.strTime,
   }));
 }
 
@@ -1460,7 +1496,7 @@ export const matchLive: ToolHandler = withTelemetry({
       if (teamInfo?.location) infoSections.push(`Ubicación: ${teamInfo.location}`);
       if (teamInfo?.league) infoSections.push(`Liga: ${teamInfo.league}`);
       if (nextMatch) {
-        const kickoffLabel = formatKickoffUserTz(nextMatch.strTimestamp, ctx?.tzOffsetMin, { withDate: true });
+        const kickoffLabel = formatKickoffUserTz(nextMatch.strTimestamp, ctx?.tzOffsetMin, { withDate: true, timeZone: userTimeZone(ctx) });
         infoSections.push(`Próximo partido: ${nextMatch.strEvent} ${kickoffLabel ? `(${kickoffLabel})` : ""}`);
       }
 
@@ -1746,7 +1782,8 @@ async function buildFixturePayload(
   const ctx = ctxIn ?? await fetchTeamContext(teamLabel || first?.homeTeam || "", { national });
   // 🔴 FIX TZ — hora de kickoff en la tz del USUARIO (antes: hora del server
   // = UTC en Render → “00:30” para un partido 21:30 AR / 02:30 Madrid).
-  const kickoff = formatKickoffUserTz(first?.date, runCtx?.tzOffsetMin);
+  const userTz = userTimeZone(runCtx);
+  const kickoff = formatKickoffUserTz(first?.date, runCtx?.tzOffsetMin, { timeZone: userTz });
   return {
     type: "match_schedule",
     status: "ok",
@@ -1755,8 +1792,11 @@ async function buildFixturePayload(
     nextMatch: {
       homeTeam: first?.homeTeam,
       awayTeam: first?.awayTeam,
-      date: first?.date,
-      time: kickoff ?? first?.time,
+      date: first?.date,        time: kickoff ?? first?.time,
+      // Huso con el que se formateó `time` (null = hora del runtime): el modelo
+      // necesita saberlo para NO afirmar una hora de otra zona (pasó en vivo:
+      // respondió "a las 00:15" de un partido de las 21:15).
+      timeZone: userTz,
       league: first?.league,
       homeLogo: first?.homeLogo,
       awayLogo: first?.awayLogo,
@@ -1765,6 +1805,7 @@ async function buildFixturePayload(
       homeColor: first?.homeColor,
       awayColor: first?.awayColor,
     },
+    timeZone: userTz,
     teamInfo: ctx.teamInfo ?? undefined,
     wikipediaExtract: ctx.wikipediaExtract ?? undefined,
     sources: ctx.wikiSource ? [ctx.wikiSource] : undefined,
@@ -1991,7 +2032,7 @@ export const matchSchedule: ToolHandler = withTelemetry({
     const ctx = tsdbTeamInfo || tsdbWiki
       ? { teamInfo: tsdbTeamInfo, wikipediaExtract: tsdbWiki, wikiSource: tsdbWikiSource }
       : undefined;
-    return await buildFixturePayload(normalizeTsdbUpcoming(upcoming, runCtx?.tzOffsetMin), teamLabel || league, runCtx, "TheSportsDB", ctx, resolved?.national);
+    return await buildFixturePayload(normalizeTsdbUpcoming(upcoming, runCtx?.tzOffsetMin, userTimeZone(runCtx)), teamLabel || league, runCtx, "TheSportsDB", ctx, resolved?.national);
   },
 });
 
