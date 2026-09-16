@@ -257,6 +257,7 @@ type EspnEvent = {
   name?: string;
   date?: string;
   status?: { type?: { description?: string; detail?: string; state?: string } };
+  season?: { displayName?: string };
   competitions?: Array<{
     date?: string;
     venue?: { fullName?: string; address?: { city?: string; country?: string } };
@@ -267,6 +268,9 @@ type EspnEvent = {
         displayName?: string;
         shortDisplayName?: string;
         logo?: string;
+        /** 🔴 El calendario POR EQUIPO (`/schedule?fixture=true`) no manda
+         *  `logo` singular: trae `logos[]`. Sin esto el fixture salía sin escudo. */
+        logos?: Array<{ href?: string }>;
         color?: string;
         alternateColor?: string;
         abbreviation?: string;
@@ -689,7 +693,12 @@ function normalizeEspnEvent(e: EspnEvent, leagueName?: string) {
   const competitors = comp?.competitors ?? [];
   const home = competitors.find(c => c.homeAway === "home");
   const away = competitors.find(c => c.homeAway === "away");
-  const status = e.status?.type?.description ?? e.status?.type?.detail ?? "?";
+  // 🔴 FIX EVENTOS SIN STATUS (2026-09-16) — los eventos del calendario por
+  // equipo no traen `status`: sin este fallback la card de fixture recibía "?" y
+  // se dibujaba como si el partido ya hubiera terminado.
+  const stateRaw = e.status?.type?.state;
+  const status = e.status?.type?.description ?? e.status?.type?.detail
+    ?? (stateRaw === "post" ? "Finalizado" : stateRaw === "in" ? "En vivo" : "Programado");
   const venue = comp?.venue;
   return {
     id: e.id,
@@ -699,8 +708,10 @@ function normalizeEspnEvent(e: EspnEvent, leagueName?: string) {
     awayTeam: away?.team?.displayName,
     homeShortName: home?.team?.shortDisplayName,
     awayShortName: away?.team?.shortDisplayName,
-    homeLogo: home?.team?.logo,
-    awayLogo: away?.team?.logo,
+    // El calendario por equipo trae `logos[]` (no `logo`): sin el fallback el
+    // fixture salía sin escudo.
+    homeLogo: home?.team?.logo ?? home?.team?.logos?.[0]?.href,
+    awayLogo: away?.team?.logo ?? away?.team?.logos?.[0]?.href,
     homeColor: home?.team?.color ? `#${home.team.color}` : undefined,
     awayColor: away?.team?.color ? `#${away.team.color}` : undefined,
     homeAbbrev: home?.team?.abbreviation,
@@ -708,7 +719,8 @@ function normalizeEspnEvent(e: EspnEvent, leagueName?: string) {
     homeScore: home?.score != null ? Number(home.score) : undefined,
     awayScore: away?.score != null ? Number(away.score) : undefined,
     status,
-    state: e.status?.type?.state, // "pre" | "in" | "post"
+    // "pre" | "in" | "post" — default "pre" (sin status = partido por jugar)
+    state: stateRaw ?? "pre",
     date: comp?.date ?? e.date,
     live: /in progress|live|halftime/i.test(status),
     league: leagueName,
@@ -721,6 +733,98 @@ function normalizeEspnEvent(e: EspnEvent, leagueName?: string) {
 // 🔴 ESPN /summary — extrae goles, tarjetas, sustituciones, alineaciones, stats.
 // Se llama DESPUÉS de identificar el match en /scoreboard. Si falla, se sigue
 // usando solo el scoreboard (compatible hacia atrás).
+/**
+ * 🔴 FIX FIXTURE POR EQUIPO (2026-09-16) — por qué existe este camino:
+ * ESPN RECHAZA los rangos de fechas con HTTP 400 de forma caprichosa
+ * (`dates=20260916-20261016` → 400, pero cada día suelto → 200). El barrido día
+ * por día reparte su presupuesto entre ~20 ligas, así que un partido a 4+ días
+ * vista quedaba FUERA y "cuándo juega Boca" terminaba sin card, aunque ESPN
+ * tuviera el partido (Boca en San Lorenzo, 20/09).
+ *
+ * Este camino no depende de rangos: resuelve el equipo (liga + id) y pide su
+ * CALENDARIO completo. DOS requests y ya está el fixture de la temporada.
+ *
+ * OJO: el host de `common/v3/search` responde **403** si se le manda un
+ * `User-Agent` propio (verificado); por eso el fetch va sin headers.
+ */
+async function fetchEspnTeamFixture(
+  teamQuery: string,
+  limit = 5,
+): Promise<{ events: Array<{ event: EspnEvent; leagueId: string; leagueName: string }>; teamName?: string; teamId?: string; leagueId?: string } | null> {
+  const q = String(teamQuery ?? "").trim();
+  if (!q) return null;
+  const cacheKey = `espn:teamfixture:${q.toLowerCase()}:${limit}`;
+  try {
+    const resolved = await cached(cacheKey, ttls.sportsStandings, async () => {
+      type SearchItem = { id?: string; type?: string; displayName?: string; sport?: string; league?: string | string[] };
+      const searchRes = await fetch(
+        `https://site.api.espn.com/apis/common/v3/search?query=${encodeURIComponent(q)}&limit=10&type=team`,
+        { signal: AbortSignal.timeout(8_000) },
+      );
+      if (!searchRes.ok) return null;
+      const data = await searchRes.json() as { items?: SearchItem[] };
+      const leagueOf = (it: SearchItem) => Array.isArray(it.league) ? String(it.league[0] ?? "") : String(it.league ?? "");
+      const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+      const target = norm(q);
+      const candidates = (data.items ?? []).filter(it => it.type === "team" && it.id);
+      if (candidates.length === 0) return null;
+      // Elegir el equipo correcto: evita el femenino/filial ("Real Madrid" → esp.1
+      // y no esp.w.1 ni "Real Madrid Castilla").
+      const best = candidates
+        .map(it => {
+          const name = norm(it.displayName ?? "");
+          const league = leagueOf(it);
+          let score = 0;
+          if (name === target) score += 6;
+          else if (name.startsWith(target) || target.startsWith(name)) score += 4;
+          else if (name.includes(target)) score += 2;
+          if (ESPN_LEAGUES.some(l => l.id === league)) score += 3;
+          if (/\.w\.|_w\./.test(league) || /\b(women|fem|u1[5-9]|u2[0-3]|ii|iii|castilla|reserves?)\b/i.test(it.displayName ?? "")) score -= 6;
+          return { it, score };
+        })
+        .sort((a, b) => b.score - a.score)[0]?.it ?? null;
+      if (!best?.id) return null;
+      const leagueId = leagueOf(best);
+      if (!leagueId) return null;
+      return { teamId: String(best.id), teamName: best.displayName ?? q, leagueId };
+    });
+    if (!resolved?.teamId || !resolved.leagueId) return null;
+
+    const schedule = await cached(
+      `espn:teamschedule:${resolved.leagueId}:${resolved.teamId}`,
+      ttls.sportsStandings,
+      async () => {
+        const r = await fetch(
+          `https://site.api.espn.com/apis/site/v2/sports/soccer/${resolved.leagueId}/teams/${resolved.teamId}/schedule?fixture=true`,
+          { signal: AbortSignal.timeout(9_000) },
+        );
+        if (!r.ok) return [] as EspnEvent[];
+        const j = await r.json() as { events?: EspnEvent[] };
+        return (j.events ?? []).filter(Boolean);
+      },
+    );
+
+    const nowMs = Date.now();
+    const upcoming = schedule
+      .filter(e => {
+        const t = new Date(e.date ?? e.competitions?.[0]?.date ?? "").getTime();
+        return Number.isFinite(t) && t >= nowMs - 3 * 60 * 60 * 1000;
+      })
+      .sort((a, b) => String(a.date ?? "").localeCompare(String(b.date ?? "")))
+      .slice(0, limit);
+
+    const leagueName = ESPN_LEAGUES.find(l => l.id === resolved.leagueId)?.name ?? resolved.leagueId;
+    return {
+      events: upcoming.map(event => ({ event, leagueId: resolved.leagueId!, leagueName })),
+      teamName: resolved.teamName,
+      teamId: resolved.teamId,
+      leagueId: resolved.leagueId,
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function fetchEspnSummary(leagueId: string, eventId: string): Promise<EspnSummary | null> {
   try {
     const url = `${ESPN_BASE}/${leagueId}/summary?event=${eventId}`;
@@ -888,6 +992,55 @@ type TsdbEvent = {
  * el código, `eventsnextteam.php?id=`, devuelve **404** → nunca había próximo
  * partido desde TheSportsDB.
  */
+/**
+ * 🔴 `searchevents.php` POR TEXTO — un solo lugar para los tres detalles que
+ * estaban mal repartidos por el archivo:
+ *  (a) la respuesta viene en la clave `event` (SINGULAR): leer `.events` daba []
+ *      siempre (dejaba sin fixture y sin resultado al fallback de TheSportsDB);
+ *  (b) la búsqueda es por texto en TODOS los deportes: "Boca Juniors" traía su
+ *      partido de básquet contra NBA G League United, que por ser futuro quedaba
+ *      primero y se mostraba como el próximo partido del club;
+ *  (c) los fallos de la key pública (429) NO se cachean, para no dejar al equipo
+ *      sin datos durante todo el TTL.
+ * Devuelve los partidos de fútbol, más reciente primero, y `failed` para poder
+ * distinguir "la fuente no respondió" de "la fuente dice que no hay partidos".
+ */
+async function fetchTsdbSearchEvents(text: string): Promise<{ events: TsdbEvent[]; failed: boolean }> {
+  const q = String(text ?? "").trim();
+  if (!q) return { events: [], failed: false };
+  const cacheKey = `tsdb:search:${q.toLowerCase()}`;
+  const hit = getCached<TsdbEvent[]>(cacheKey);
+  if (hit) return { events: hit, failed: false };
+  try {
+    const r = await fetchJson<{ event?: TsdbEvent[]; events?: TsdbEvent[] }>(
+      `${TSDB_BASE}/searchevents.php?e=${encodeURIComponent(q)}`,
+      { timeoutMs: 9_000 },
+    );
+    if (!r.ok) return { events: [], failed: true };
+    const all = r.data?.event ?? r.data?.events ?? [];
+    const soccer = all.filter(e => !e.strSport || /soccer/i.test(String(e.strSport)));
+    const sorted = [...soccer].sort((a, b) =>
+      String(b.strTimestamp ?? b.dateEvent ?? "").localeCompare(String(a.strTimestamp ?? a.dateEvent ?? "")),
+    );
+    setCached(cacheKey, sorted, ttls.sportsLive);
+    return { events: sorted, failed: false };
+  } catch {
+    return { events: [], failed: true };
+  }
+}
+
+/**
+ * 🔴 Escudos + fecha/hora de los partidos de TheSportsDB. TSDB solo da badges y
+ * `strTime`/`strTimestamp`; sin esto la card de fixture quedaba sin escudo y con
+ * la hora del server (o vacía).
+ */
+function normalizeTsdbUpcoming(events: TsdbEvent[], tzOffsetMin?: number) {
+  return events.map(e => ({
+    ...normalizeEvent(e),
+    time: formatKickoffUserTz(e.strTimestamp ?? e.dateEvent, tzOffsetMin) ?? e.strTime,
+  }));
+}
+
 async function fetchTsdbNextEvents(teamId: string, limit = 4): Promise<TsdbEvent[]> {
   if (!teamId) return [];
   try {
@@ -983,7 +1136,7 @@ export const matchLive: ToolHandler = {
       const playedMatches = playedOrLive.slice(0, 5).map(({ event }) => normalizeEspnEvent(event, first.leagueName));
       // Próximos del MISMO equipo (para la sección "Próximos partidos")
       const teamLower = (detectClub(query.toLowerCase()) ?? detectNationalTeam(query.toLowerCase()) ?? query).toLowerCase();
-      const upcomingSameTeam = espnUpcoming
+      let upcomingSameTeam = espnUpcoming
         .filter(r => {
           const comps = r.event.competitions ?? [];
           const teams = comps.flatMap(c => (c.competitors ?? []).map(comp => comp.team?.displayName?.toLowerCase() ?? ""));
@@ -991,6 +1144,16 @@ export const matchLive: ToolHandler = {
         })
         .slice(0, 4)
         .map(({ event }) => normalizeEspnEvent(event));
+      // 🔴 FIX PRÓXIMOS DEL RESULTADO (2026-09-16) — misma limitación que el
+      // fixture: si ESPN rechazó los rangos, `espnUpcoming` queda vacío y la card
+      // de resultado salía SIN la sección "Próximos partidos". El calendario del
+      // equipo (2 requests) los trae igual.
+      if (upcomingSameTeam.length === 0) {
+        const teamFixture = await fetchEspnTeamFixture(teamLower, 4);
+        if (teamFixture) {
+          upcomingSameTeam = teamFixture.events.map(({ event, leagueName }) => normalizeEspnEvent(event, leagueName));
+        }
+      }
 
       // 🔴 Enriquecer con contexto del equipo (estadio, wiki) → interior más rico
       const teamContextPromise = fetchTeamContext(teamLower);
@@ -1106,41 +1269,12 @@ export const matchLive: ToolHandler = {
     //     "Equipo vs Equipo" (frase cruda → {"event":null}).
     // Además: un error de red se distinguía mal (throw) — ahora se contabiliza
     // para poder decir honestamente "no pude consultar" en vez de "no hay partido".
+    // (Los detalles de clave/deporte/caché viven en fetchTsdbSearchEvents, que
+    //  comparten match_live y match_schedule.)
     let tsdbFailed = 0;
     let tsdbAnswered = false;
     for (const tsdbQuery of tsdbQueryCandidates(pairText)) {
-      const tsdbCacheKey = `match_live:tsdb:${tsdbQuery.toLowerCase()}`;
-      const cachedHits = getCached<TsdbEvent[]>(tsdbCacheKey);
-      let res: { events: TsdbEvent[]; failed: boolean };
-      if (cachedHits) {
-        res = { events: cachedHits, failed: false };
-      } else {
-        const result = await fetchJson<{ event?: TsdbEvent[]; events?: TsdbEvent[] }>(
-          `${TSDB_BASE}/searchevents.php?e=${encodeURIComponent(tsdbQuery)}`,
-          { timeoutMs: 9_000 },
-        );
-        if (!result.ok) {
-          // 429 de la key pública: NO se cachea (un fallo cacheado dejaría
-          // respuestas vacías durante todo el TTL).
-          res = { events: [], failed: true };
-        } else {
-          // 🔴 FIX OTRO DEPORTE (2026-09-16) — searchevents.php busca por TEXTO
-          // en TODOS los deportes: "Boca Juniors" devuelve, además del fútbol,
-          // un partido de BÁSQUET contra "NBA G League United" (2026-09-24) que
-          // ordenado por fecha quedaba PRIMERO y se mostraba como si fuera el
-          // próximo partido del club ("cuándo juega Boca" → card de básquet).
-          // match_live es una tool de fútbol (todas sus ligas ESPN son de
-          // soccer): los eventos de otro deporte se descartan.
-          const all = result.data?.event ?? result.data?.events ?? [];
-          const raw = all.filter(e => !e.strSport || /soccer/i.test(String(e.strSport)));
-          // Más reciente primero: TSDB puede devolver varias temporadas.
-          const sorted = [...raw].sort((a, b) =>
-            String(b.strTimestamp ?? b.dateEvent ?? "").localeCompare(String(a.strTimestamp ?? a.dateEvent ?? "")),
-          );
-          setCached(tsdbCacheKey, sorted, ttls.sportsLive);
-          res = { events: sorted, failed: false };
-        }
-      }
+      const res = await fetchTsdbSearchEvents(tsdbQuery);
       if (res.failed) tsdbFailed++;
       else tsdbAnswered = true;
       if (res.events.length > 0) {
@@ -1395,6 +1529,51 @@ async function fetchTeamContext(teamQuery: string): Promise<{
   return { teamInfo, wikipediaExtract, wikiSource };
 }
 
+/**
+ * Arma el payload de fixture (match_schedule "ok") a partir de partidos YA
+ * normalizados: `nextMatch` (el partido protagonista del interior), contexto de
+ * equipo + Wikipedia, y la hora de kickoff en la tz del USUARIO. Lo comparten el
+ * camino de ESPN (scoreboard o calendario por equipo) y el de TheSportsDB, así
+ * la card sale igual por cualquiera de las fuentes.
+ */
+async function buildFixturePayload(
+  upcomingMatches: any[],
+  teamLabel: string,
+  runCtx?: ToolRunContext,
+  source = "ESPN",
+  ctxIn?: { teamInfo: { id: string; name: string; stadium?: string; location?: string; league?: string; description?: string } | null; wikipediaExtract: string | null; wikiSource: { title: string; url: string; domain: string; snippet: string } | null },
+) {
+  const first = upcomingMatches[0];
+  const ctx = ctxIn ?? await fetchTeamContext(teamLabel || first?.homeTeam || "");
+  // 🔴 FIX TZ — hora de kickoff en la tz del USUARIO (antes: hora del server
+  // = UTC en Render → “00:30” para un partido 21:30 AR / 02:30 Madrid).
+  const kickoff = formatKickoffUserTz(first?.date, runCtx?.tzOffsetMin);
+  return {
+    type: "match_schedule",
+    status: "ok",
+    team: teamLabel,
+    matches: upcomingMatches,
+    nextMatch: {
+      homeTeam: first?.homeTeam,
+      awayTeam: first?.awayTeam,
+      date: first?.date,
+      time: kickoff ?? first?.time,
+      league: first?.league,
+      homeLogo: first?.homeLogo,
+      awayLogo: first?.awayLogo,
+      homeAbbrev: first?.homeAbbrev,
+      awayAbbrev: first?.awayAbbrev,
+      homeColor: first?.homeColor,
+      awayColor: first?.awayColor,
+    },
+    teamInfo: ctx.teamInfo ?? undefined,
+    wikipediaExtract: ctx.wikipediaExtract ?? undefined,
+    sources: ctx.wikiSource ? [ctx.wikiSource] : undefined,
+    source: ctx.teamInfo ? `${source} + Wikipedia` : source,
+    sourceUrl: source === "ESPN" ? "https://www.espn.com/soccer/" : "https://www.thesportsdb.com/",
+  };
+}
+
 // ─── match_schedule ─────────────────────────────────────────────────────────
 export const matchSchedule: ToolHandler = {
   definition: defineTool(
@@ -1420,6 +1599,18 @@ export const matchSchedule: ToolHandler = {
     const next = Number(args.next ?? 5);
     if (!team && !league) return { type: "match_schedule", status: "failed", error: "Indicá equipo o liga." };
 
+    // 🔴 FIX FIXTURE VACÍO (2026-09-16) — PRIMERO el calendario POR EQUIPO de
+    // ESPN: dos requests, sin depender de los rangos de fecha (que ESPN rechaza
+    // con 400) ni del presupuesto del barrido día por día. Antes, "cuándo juega
+    // Boca" no mostraba NADA aunque ESPN tuviera el partido a 4 días vista.
+    if (team) {
+      const teamFixture = await fetchEspnTeamFixture(team, Math.max(next, 5));
+      if (teamFixture && teamFixture.events.length > 0) {
+        const upcomingMatches = teamFixture.events.map(({ event, leagueName }) => normalizeEspnEvent(event, leagueName));
+        return await buildFixturePayload(upcomingMatches, team, runCtx, "ESPN");
+      }
+    }
+
     // 🔴 KORU 3.0 — ESPN PRIMARIO para fixture. 🔴 FIX RANGOS: UN fetch por liga
     // con dates=START-END (antes: 7 fetches por día por liga = 63 requests →
     // rate-limit 429 de ESPN) + detección de COPAS ("copa del rey", "libertadores")
@@ -1439,56 +1630,35 @@ export const matchSchedule: ToolHandler = {
       .slice(0, next);
 
     if (upcomingEspn.length > 0) {
-      // 🔴 FIX CARD FIXTURE — el path ESPN devolvía SOLO matches: la card de
-      // fixture quedaba sin nextMatch (interior sin partido protagonista) y
-      // sin teamInfo (interior sin estadio/liga). Enriquecemos en paralelo
-      // con el mismo contexto de equipo que usa el fallback (searchteams +
-      // Wikipedia). Si falla, seguimos devolviendo los matches (compatible).
-      const first = upcomingEspn[0];
-      const ctx = await fetchTeamContext(team || league);
-      // 🔴 FIX TZ — hora de kickoff en la tz del USUARIO (antes: hora del server
-      // = UTC en Render → “00:30” para un partido 21:30 AR / 02:30 Madrid).
-      const kickoff = formatKickoffUserTz(first.date as string, runCtx?.tzOffsetMin);
-      // 🔴 FIX ESCUDOS — nextMatch ahora lleva logos/abreviaturas/colores REALES
-      // de ESPN: la card de fixture renderiza el escudo en vez de iniciales.
-      return {
-        type: "match_schedule",
-        status: "ok",
-        team: team || league,
-        matches: upcomingEspn,
-        nextMatch: {
-          homeTeam: first.homeTeam,
-          awayTeam: first.awayTeam,
-          date: first.date,
-          time: kickoff,
-          league: first.league,
-          homeLogo: first.homeLogo,
-          awayLogo: first.awayLogo,
-          homeAbbrev: first.homeAbbrev,
-          awayAbbrev: first.awayAbbrev,
-          homeColor: first.homeColor,
-          awayColor: first.awayColor,
-        },
-        teamInfo: ctx.teamInfo ?? undefined,
-        wikipediaExtract: ctx.wikipediaExtract ?? undefined,
-        sources: ctx.wikiSource ? [ctx.wikiSource] : undefined,
-        source: ctx.teamInfo ? "ESPN + TheSportsDB + Wikipedia" : "ESPN",
-        sourceUrl: "https://www.espn.com/soccer/",
-      };
+      return await buildFixturePayload(upcomingEspn, team || league, runCtx, "ESPN");
     }
 
     // Fallback: TheSportsDB
+    // 🔴 FIX FIXTURE VACÍO (2026-09-16) — este fallback leía `.events` del
+    // endpoint que responde con la clave SINGULAR `event`, así que devolvía []
+    // SIEMPRE (mismo bug ya arreglado en match_live): el fixture nunca salía de
+    // TheSportsDB, y "cuándo juega Boca" terminaba sin card.
     let events: TsdbEvent[] = [];
+    let tsdbTeamInfo: { id: string; name: string; stadium?: string; location?: string; league?: string; description?: string } | null = null;
+    let tsdbWiki: string | null = null;
+    let tsdbWikiSource: { title: string; url: string; domain: string; snippet: string } | null = null;
     if (team) {
-      const cacheKey = `team_next:${team.toLowerCase()}`;
-      events = await cached<TsdbEvent[]>(cacheKey, ttls.sportsStandings, async () => {
-        const r = await fetchJson<{ events?: TsdbEvent[] }>(
-          `${TSDB_BASE}/searchevents.php?e=${encodeURIComponent(team)}`,
-          { timeoutMs: 9_000 },
-        );
-        if (!r.ok) throw new Error(r.error);
-        return r.data!.events ?? [];
-      });
+      const found = await fetchTsdbSearchEvents(team);
+      events = found.events;
+    }
+    // OJO: el segundo lookup es INDEPENDIENTE del primero — un 429 en la búsqueda
+    // por texto no debe impedir el fixture por id de equipo.
+    if (events.length === 0 && team) {
+      // 🔴 FIX PRÓXIMOS PARTIDOS POR EQUIPO (2026-09-16) — `eventsnext.php`
+      // (por id de equipo) ES el endpoint de fixture y responde; antes se
+      // llamaba a `eventsnextteam.php`, que da 404.
+      const teamCtx = await fetchTeamContext(team);
+      tsdbTeamInfo = teamCtx.teamInfo;
+      tsdbWiki = teamCtx.wikipediaExtract;
+      tsdbWikiSource = teamCtx.wikiSource;
+      if (teamCtx.teamInfo?.id) {
+        events = await fetchTsdbNextEvents(teamCtx.teamInfo.id, Math.max(next, 5));
+      }
     }
     if (events.length === 0 && league) {
       const cacheKey = `league_search:${league.toLowerCase()}`;
@@ -1632,13 +1802,14 @@ export const matchSchedule: ToolHandler = {
       return { type: "match_schedule", status: "ok", team: team || league, matches: [], note: "No encontré próximos partidos." };
     }
 
-    return {
-      type: "match_schedule",
-      status: "ok",
-      team: team || league,
-      matches: upcoming.map(normalizeEvent),
-      source: "TheSportsDB",
-    };
+    // 🔴 FIX CARD FIXTURE (2026-09-16) — el path de TheSportsDB devolvía SOLO
+    // matches: la card quedaba sin partido protagonista (`nextMatch`, el interior
+    // que muestra rival/fecha/hora) y sin contexto de equipo (estadio, wiki).
+    // Ahora se enriquece igual que el path de ESPN.
+    const ctx = tsdbTeamInfo || tsdbWiki
+      ? { teamInfo: tsdbTeamInfo, wikipediaExtract: tsdbWiki, wikiSource: tsdbWikiSource }
+      : undefined;
+    return await buildFixturePayload(normalizeTsdbUpcoming(upcoming, runCtx?.tzOffsetMin), team || league, runCtx, "TheSportsDB", ctx);
   },
 };
 

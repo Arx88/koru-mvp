@@ -1494,15 +1494,22 @@ function buildSportsBlocks(sports: { live: any | null; schedule: any | null }, b
     return;
   }
 
-  if (infoFromLive) {
+  // 🔴 FIX CARD DE EQUIPO (2026-09-16) — un `match_schedule` SIN partidos futuros
+  // pero con contexto de equipo devolvía CERO cards, aunque su propio mensaje
+  // decía "te mostramos info del equipo" ("cuándo juega Boca" → respuesta sin
+  // nada que mirar). La info del equipo del schedule ahora se muestra igual que
+  // la de match_live.
+  const infoFromSchedule = schedule && (schedule.teamInfo || schedule.wikipediaExtract || schedule.nextMatch) ? schedule : null;
+  const infoSource = infoFromLive ? live : infoFromSchedule;
+  if (infoSource) {
     // Fallback puro de info de equipo (sin fixture): card de equipo
     blocks.push({
       type: "match_timeline" as const,
-      title: live.teamInfo?.name || live.query || "Equipo",
+      title: infoSource.teamInfo?.name || infoSource.team || infoSource.query || "Equipo",
       items: [],
-      teamInfo: live.teamInfo,
-      nextMatch: live.nextMatch,
-      wikipediaExtract: live.wikipediaExtract,
+      teamInfo: infoSource.teamInfo,
+      nextMatch: infoSource.nextMatch,
+      wikipediaExtract: infoSource.wikipediaExtract,
     } as UiBlock);
     return;
   }
