@@ -29,6 +29,24 @@ import {
   type DayInfoData,
 } from "./koruBackend";
 
+/**
+ * Tools cuyo resultado es UN DATO puntual (marcador, precio, clima, ruta).
+ * Si una de estas falla, el plan B (web_search) NO puede responder la pregunta:
+ * devuelve páginas genéricas. En ese caso la card de búsqueda se omite y el
+ * chat dice la verdad ("ahora no puedo, probá más tarde") en vez de mostrar una
+ * tarjeta vacía que no contesta nada.
+ */
+const DIRECT_DATA_TOOLS = new Set([
+  "match_live",
+  "match_schedule",
+  "league_standings",
+  "team_follow",
+  "crypto_price",
+  "weather",
+  "currency_convert",
+  "route_traffic",
+]);
+
 /** Monto con el locale del producto: miles con punto y decimal con coma
  *  ("77.312,81 USD"), con decimales proporcionales al tamaño del número para
  *  no aplastar un satoshi ("0,00042 BTC"). */
@@ -263,7 +281,10 @@ export function blocksFromToolResults(results: ToolExecution[], userInput?: stri
       // 🔴 FIX CRÍTICO Anti-alucinación: si match_live devuelve status "no_data",
       // NO generar block (evita card vacía o con datos inventados).
       // El reply se forzará a ser honesto en normalizeFinalPayload.
-      if (r.status === "no_data" || r.status === "failed") {
+      // 🔴 FIX FUENTE CAÍDA (2026-09-15): "unavailable" = no se PUDO consultar
+      // (ESPN 400 + TheSportsDB caído). Mismo trato: sin card, y el mensaje que
+      // explica que ahora no se puede y hay que probar más tarde.
+      if (r.status === "no_data" || r.status === "failed" || r.status === "unavailable") {
         // Marcar este tool execution para que normalizeFinalPayload sepa que no hay datos
         // y fuerce un reply honesto en vez de dejar al LLM inventar.
         (result as any).__forceHonestReply = true;
@@ -303,11 +324,26 @@ export function blocksFromToolResults(results: ToolExecution[], userInput?: stri
     }
     if (result.type === "search") {
       const search = result as SearchData;
+      const sources = (search.sources ?? []).filter((s) => s.url?.startsWith("http")).slice(0, 6);
+
+      // 🔴 FIX CARD BASURA (2026-09-15) — cuando un pedido de DATO falla
+      // (ej: "cómo salió Independiente con San Lorenzo" con la fuente caída), el
+      // sistema cae a web_search como plan B. Esa búsqueda NO responde la
+      // pregunta: devuelve páginas genéricas (la Wikipedia del club). Mostrar esa
+      // card con el tema placeholder "Busqueda" era peor que no mostrar nada.
+      // Regla: si la búsqueda es el plan B de una tool de dato puntual y no trae
+      // datos estructurados verificados, NO hay card — solo el mensaje honesto.
+      if ((result as any).__fallbackFor && DIRECT_DATA_TOOLS.has(String((result as any).__fallbackFor)) && !(search.extractedData?.items.length)) {
+        (result as any).__forceHonestReply = true;
+        (result as any).__honestReplyText =
+          "Ahora mismo no puedo confirmarte ese dato: las fuentes no me dieron una respuesta confiable. Probá de nuevo en unos minutos.";
+        continue;
+      }
+
       // 🔴 FIX UX SISTÉMICO: en vez de generar web_nav/research_sources (solo links),
       // generar un DELIVERABLE con contenido estructurado como muestra el demo.
       // El deliverable tiene: summary (síntesis), metrics, sections (datos + fuentes).
       // El detail screen muestra módulos ricos, no solo una lista de enlaces.
-      const sources = (search.sources ?? []).filter((s) => s.url?.startsWith("http")).slice(0, 6);
 
       // 🔴 Task 15-FIX1: ELIMINADO el branch `isComparisonQuery && sources.length > 0`.
       // Antes este branch generaba una comparison card shallow con `pros: []`,

@@ -495,7 +495,11 @@ export async function runSearch(
   return {
     type: "search",
     mode,
-    title: shopping ? "Comparativa" : mode === "news" ? "Noticias importantes" : mode === "world" ? "El mundo esta hablando de esto" : "Busqueda",
+    // 🔴 FIX TEMA PLACEHOLDER (2026-09-15) — el modo genérico devolvía la
+    // etiqueta interna "Busqueda" como `title`, y blocksFromToolResults la usa
+    // como TEMA de la card: el usuario veía "Encontré 6 fuentes sobre 'Busqueda'"
+    // en vez de su consulta. Ahora viaja la consulta real.
+    title: shopping ? "Comparativa" : mode === "news" ? "Noticias importantes" : mode === "world" ? "El mundo esta hablando de esto" : cleanText(query, "Busqueda"),
     summary: sources.length ? "" : "No pude conseguir fuentes útiles con los conectores abiertos. No inventes resultados.",
     sources,
     comparisonItems,

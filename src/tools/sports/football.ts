@@ -5,7 +5,7 @@
 
 import { defineTool, policies, type ToolRunContext, type ToolHandler } from "../types";
 import { fetchJson } from "../shared/fetcher";
-import { cached, ttls } from "../shared/cache";
+import { cached, getCached, setCached, ttls } from "../shared/cache";
 
 /**
  * 🔴 FIX TZ — Hora de kickoff en la tz del USUARIO, no la del server.
@@ -155,6 +155,74 @@ const CLUB_SYNONYMS: Array<{ canonical: string; aliases: string[] }> = [
   { canonical: "Grêmio", aliases: ["gremio", "grêmio", "tricolor gaucho"] },
   { canonical: "Internacional", aliases: ["internacional", "colorados"] },
 ];
+
+/**
+ * Detecta los clubes mencionados en el query y devuelve sus canonical names,
+ * ordenados por APARICIÓN en el texto (no por orden del diccionario: el orden
+ * importa para armar consultas "local vs visitante").
+ *
+ * 🔴 FIX 2026-09-15 — el texto del usuario suele venir sin espacios entre
+ * nombres propios ("Como salio independiente con sanlorenzo"): además del match
+ * por palabra, se compara la versión SIN espacios, así "san lorenzo" matchea
+ * "sanlorenzo". Sin esto, TheSportsDB recibía la frase cruda y devolvía null.
+ */
+function detectClubs(queryLower: string, limit = 2): string[] {
+  const squash = (s: string) => s.toLowerCase().replace(/[^a-z0-9áéíóúñü]/g, "");
+  const squashedQuery = squash(queryLower);
+  const hits: Array<{ canonical: string; index: number }> = [];
+
+  for (const club of CLUB_SYNONYMS) {
+    let best = -1;
+    for (const alias of club.aliases) {
+      const re = new RegExp(`\\b${alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
+      const m = re.exec(queryLower);
+      if (m) best = best < 0 ? m.index : Math.min(best, m.index);
+      // Alias multi-palabra también sin espacios ("san lorenzo" ~ "sanlorenzo")
+      if (alias.includes(" ")) {
+        const flat = squash(alias);
+        const idx = flat ? squashedQuery.indexOf(flat) : -1;
+        if (idx >= 0) best = best < 0 ? idx : Math.min(best, idx);
+      }
+    }
+    if (best >= 0) hits.push({ canonical: club.canonical, index: best });
+  }
+
+  hits.sort((a, b) => a.index - b.index);
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const hit of hits) {
+    if (seen.has(hit.canonical)) continue;
+    seen.add(hit.canonical);
+    out.push(hit.canonical);
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
+/**
+ * 🔴 FIX CONSULTA TSDB (2026-09-15) — TheSportsDB `searchevents.php` exige el
+ * formato "Equipo vs Equipo": con la frase cruda del usuario
+ * ("Como salio independiente con sanlorenzo") devuelve `{"event":null}`,
+ * mientras que "Independiente vs San Lorenzo" devuelve el partido.
+ * Candidatos en orden de probabilidad; la frase cruda va última por
+ * compatibilidad con queries que ya venían en formato correcto.
+ */
+export function tsdbQueryCandidates(rawQuery: string): string[] {
+  const q = String(rawQuery ?? "").trim();
+  if (!q) return [];
+  const clubs = detectClubs(q.toLowerCase());
+  const out: string[] = [];
+  if (clubs.length >= 2) {
+    out.push(`${clubs[0]} vs ${clubs[1]}`);
+    out.push(`${clubs[1]} vs ${clubs[0]}`);
+  } else if (clubs.length === 1) {
+    // Un solo club: TSDB espera el par, pero el nombre canónico cubre
+    // consultas del tipo "cuando juega Boca".
+    out.push(clubs[0]);
+  }
+  out.push(q);
+  return [...new Set(out)];
+}
 
 /**
  * Detecta si el query menciona un club sudamericano y devuelve el canonical name.
@@ -313,7 +381,7 @@ const NATIONAL_LEAGUE_IDS = new Set(["fifa.world", "uefa.euro", "uefa.nations"])
 async function searchEspnScoreboards(
   query: string,
   opts: { fromDays?: number; toDays?: number } = {},
-): Promise<Array<{ event: EspnEvent; leagueId: string; leagueName: string }>> {
+): Promise<{ events: Array<{ event: EspnEvent; leagueId: string; leagueName: string }>; okLeagues: number; failedLeagues: number }> {
   const fromDays = opts.fromDays ?? 12;
   const toDays = opts.toDays ?? 14;
   const queryLower = query.toLowerCase();
@@ -343,21 +411,97 @@ async function searchEspnScoreboards(
   // ("cómo salió la copa del rey de ayer" → eventos de esp.copa_del_rey).
   const leagueMode = !!leagueHit && !club && !nationalTeam;
 
+  // 🔴 FIX FUENTE CAÍDA (2026-09-15) — ESPN RECHAZA rangos de forma caprichosa
+  // y verificada: `dates=20260901-20260929` → HTTP 200 (45 eventos), pero
+  // `dates=20260903-20260929` (la ventana que usa esta tool) → HTTP 400
+  // {"code":400,"message":"Failed to get events endpoint."}. El barrido mostró
+  // que la aceptación no depende de la duración: 0901-0929 (200) y 0901-0927
+  // (400) — es una lotería interna de ESPN.
+  // Antes: `if (!res.ok) return {}` → el 400 se leía como "sin partidos" y el
+  // turno terminaba diciéndole al usuario que el partido no existe.
+  // Ahora: (a) el fallo se distingue de "sin eventos"; (b) si el rango falla se
+  // barre día por día (los días sueltos SÍ responden) con presupuesto compartido
+  // entre ligas para no martillar la API.
+  // Presupuesto compartido entre ligas para el barrido día por día. 80 alcanza
+  // para que cada una de las ~20 ligas mire los últimos 4 días (que es donde
+  // está el partido que el usuario pregunta) sin martillar la API.
+  const DAY_SWEEP_BUDGET = 80;
+  const sweepBudget = { left: DAY_SWEEP_BUDGET };
+  let okLeagues = 0;
+  let failedLeagues = 0;
+  // Consulta de DOS clubes ("cómo salió independiente con sanlorenzo"): el
+  // partido está en el PASADO, así que el barrido no gasta presupuesto en días
+  // futuros (y los homónimos de otros países los filtra el filtro de par exacto
+  // del final: "Independiente Santa Fe" ya no puede colarse).
+  const pairQuery = detectClubs(queryLower).length >= 2;
+
   const fetchRange = async (
     league: { id: string; name: string },
     startDate: Date,
     endDate: Date,
-  ): Promise<EspnEvent[]> => {
-    const range = `${fmt(startDate)}-${fmt(endDate)}`;
+  ): Promise<{ events: EspnEvent[]; failed: boolean }> => {
+    // 🔴 FIX DÍA SUELTO (2026-09-15): `dates=20260913-20260913` (rango con el
+    // mismo día en ambos extremos) → HTTP 400; `dates=20260913` → HTTP 200.
+    const startStamp = fmt(startDate);
+    const endStamp = fmt(endDate);
+    const range = startStamp === endStamp ? startStamp : `${startStamp}-${endStamp}`;
     const cacheKey = `espn:sb:${league.id}:${range}`;
-    const data = await cached<{ events?: EspnEvent[] }>(cacheKey, 60 * 1000, async () => {
-      const res = await fetch(`${ESPN_BASE}/${league.id}/scoreboard?dates=${range}`, {
-        signal: AbortSignal.timeout(8000),
+    try {
+      const data = await cached<{ events?: EspnEvent[] } | null>(cacheKey, 60 * 1000, async () => {
+        const res = await fetch(`${ESPN_BASE}/${league.id}/scoreboard?dates=${range}`, {
+          signal: AbortSignal.timeout(8000),
+        });
+        // null = la fuente falló (HTTP 400/500) ≠ {} = la liga no tiene eventos
+        if (!res.ok) return null;
+        return await res.json() as { events?: EspnEvent[] };
       });
-      if (!res.ok) return {};
-      return await res.json() as { events?: EspnEvent[] };
+      if (!data) return { events: [], failed: true };
+      return { events: (data.events ?? []).filter(Boolean), failed: false };
+    } catch {
+      return { events: [], failed: true };
+    }
+  };
+
+  /**
+   * Eventos de una ventana. Camino feliz: UN fetch por rango. Si ESPN lo rechaza
+   * (400) o la request revienta, barre día por día — priorizando los días más
+   * cercanos a hoy (pasado antes que futuro, que es lo que pregunta el usuario
+   * con "cómo salió"). `failed` significa que NINGÚN día respondió: eso es
+   * "fuente caída", no "sin partidos".
+   */
+  const fetchWindow = async (
+    league: { id: string; name: string },
+    startDate: Date,
+    endDate: Date,
+  ): Promise<{ events: EspnEvent[]; failed: boolean }> => {
+    const wide = await fetchRange(league, startDate, endDate);
+    if (!wide.failed) return wide;
+
+    let days: Date[] = [];
+    for (let t = startDate.getTime(); t <= endDate.getTime(); t += DAY_MS) days.push(new Date(t));
+    // Dos clubes = resultado de un partido ya jugado → solo días pasados.
+    if (pairQuery) days = days.filter(d => d.getTime() <= now.getTime() + 12 * 60 * 60 * 1000);
+    days.sort((a, b) => {
+      const da = Math.abs(a.getTime() - now.getTime());
+      const db = Math.abs(b.getTime() - now.getTime());
+      if (da !== db) return da - db; // lo más cercano a hoy primero
+      return a.getTime() < b.getTime() ? -1 : 1; // empate → el pasado manda
     });
-    return (data?.events ?? []).filter(Boolean);
+
+    const out: EspnEvent[] = [];
+    let anyOk = false;
+    for (const day of days) {
+      if (sweepBudget.left <= 0) break;
+      sweepBudget.left--;
+      const r = await fetchRange(league, day, day);
+      if (r.failed) continue;
+      anyOk = true;
+      out.push(...r.events);
+      // Corte temprano: ya hay un partido JUGADO del equipo consultado en esta
+      // liga. Se deja de gastar presupuesto y se lo reserva para las demás.
+      if (r.events.some(e => espnEventState(e) !== "pre" && matchesQuery(e, league.id))) break;
+    }
+    return { events: out, failed: !anyOk };
   };
 
   const matchesQuery = (e: EspnEvent, leagueId: string): boolean => {
@@ -381,15 +525,20 @@ async function searchEspnScoreboards(
   };
 
   const fetchLeague = async (league: { id: string; name: string }): Promise<void> => {
+    let anyOk = false;
+    let anyFailed = false;
     try {
       if (!nationalIntent) {
         // Comportamiento clásico de clubes: UNA ventana (pasado → futuro).
-        const events = await fetchRange(
+        // (fetchWindow barre día por día si ESPN rechaza el rango completo.)
+        const wide = await fetchWindow(
           league,
           new Date(now.getTime() - fromDays * DAY_MS),
           new Date(now.getTime() + toDays * DAY_MS),
         );
-        for (const e of events) {
+        anyOk = !wide.failed;
+        anyFailed = wide.failed;
+        for (const e of wide.events) {
           if (matchesQuery(e, league.id)) {
             results.push({ event: e, leagueId: league.id, leagueName: league.name });
           }
@@ -405,13 +554,14 @@ async function searchEspnScoreboards(
         [42, 12], [72, 42], [102, 72], [132, 102],
       ];
       for (const [startBack, endBack] of CHUNKS) {
-        const events = await fetchRange(
+        const chunk = await fetchWindow(
           league,
           new Date(now.getTime() - startBack * DAY_MS),
           new Date(now.getTime() - endBack * DAY_MS),
         );
+        if (chunk.failed) anyFailed = true; else anyOk = true;
         let found = 0;
-        for (const e of events) {
+        for (const e of chunk.events) {
           if (matchesQuery(e, league.id)) {
             results.push({ event: e, leagueId: league.id, leagueName: league.name });
             found++;
@@ -419,12 +569,26 @@ async function searchEspnScoreboards(
         }
         if (found > 0) break; // último partido del equipo encontrado → suficiente
       }
-    } catch { /* league timeout — skip */ }
+    } catch {
+      anyFailed = true;
+    } finally {
+      // Contabilidad por LIGA (no por fetch): sirve para distinguir "ninguna
+      // fuente respondió" de "respondieron y no hay partidos".
+      if (anyOk) okLeagues++;
+      else if (anyFailed) failedLeagues++;
+    }
   };
 
+  // 🔴 FIX CONSULTA DE COPA/LIGA (2026-09-15) — "cómo salió la champions"
+  // fetcheaba las 20 ligas y el presupuesto del barrido se repartía entre todas:
+  // si ESPN rechazaba el rango, la liga pedida quedaba sin días barridos → no_data.
+  // Si el query ES una copa/liga, alcanza con esa competencia (y sobra presupuesto).
+  const leagueOnly = leagueMode && leagueHit ? ESPN_LEAGUES.filter(l => l.id === leagueHit.id) : [];
   const leaguesToFetch = nationalIntent
     ? ESPN_LEAGUES.filter(l => NATIONAL_LEAGUE_IDS.has(l.id))
-    : ESPN_LEAGUES;
+    : leagueOnly.length > 0
+      ? leagueOnly
+      : ESPN_LEAGUES;
 
   await Promise.all(leaguesToFetch.map(fetchLeague));
 
@@ -448,7 +612,72 @@ async function searchEspnScoreboards(
     if (aDone !== bDone) return aDone ? -1 : 1; // jugados/en vivo primero
     return eventDate(b.event) - eventDate(a.event); // más reciente primero
   });
-  return deduped;
+
+  // 🔴 FIX PARTIDO EQUIVOCADO (2026-09-15) — con "independiente con sanlorenzo"
+  // el matcheo por substring devolvía "Independiente Santa Fe" (Colombia) y
+  // "Independiente Rivadavia" (Mendoza) en vez del clásico de Avellaneda.
+  // Dos filtros de precisión, en orden; si ninguno aplica se devuelve todo el set
+  // (para no romper consultas vagas tipo "cómo salió el rojo"):
+  //   1) si la consulta nombra DOS clubes, el usuario quiere el partido entre
+  //      ellos → quedarse con los eventos que contienen a los dos;
+  //   2) si hay eventos con el nombre de equipo EXACTO del canónico, descartar
+  //      los que solo matchean por parecido.
+  const clubsInQuery = detectClubs(queryLower);
+  if (clubsInQuery.length >= 2) {
+    // Solo el partido ENTRE esos dos clubes responde la pregunta. Si no está,
+    // se devuelve vacío a propósito: mejor "no tengo el dato" que mostrarle al
+    // usuario el partido de un homónimo (era el reclamo del bug reportado).
+    const pair = deduped.filter(({ event }) => {
+      const teams = eventTeamNames(event);
+      return clubsInQuery.every(c => teams.some(t => t.includes(c.toLowerCase())));
+    });
+    return { events: pair, okLeagues, failedLeagues };
+  }
+  const canonicalTeam = club ?? nationalTeam;
+  if (canonicalTeam) {
+    const target = canonicalTeam.toLowerCase();
+    const exact = deduped.filter(({ event }) => eventTeamNames(event).some(t => t === target));
+    if (exact.length > 0) return { events: exact, okLeagues, failedLeagues };
+  }
+
+  return { events: deduped, okLeagues, failedLeagues };
+}
+
+/**
+ * 🔴 FIX RESULTADO DE EQUIPO (2026-09-15) — `eventslast.php` de TheSportsDB:
+ * los últimos partidos JUGADOS del equipo, con marcador. Fuente que sí responde
+ * cuando ESPN rechaza el rango (HTTP 400) y solo devuelve fixtures.
+ * (Verificado: Boca → "Boca Juniors 3-1 Central Córdoba, FT, 2026-09-12".)
+ */
+async function fetchTsdbLastEvents(teamId: string, limit = 5): Promise<TsdbEvent[]> {
+  if (!teamId) return [];
+  try {
+    const cacheKey = `tsdb:last:${teamId}`;
+    const hit = getCached<TsdbEvent[]>(cacheKey);
+    if (hit) return hit;
+    const r = await fetchJson<{ results?: TsdbEvent[] }>(
+      `${TSDB_BASE}/eventslast.php?id=${encodeURIComponent(teamId)}`,
+      { timeoutMs: 9_000 },
+    );
+    // Solo se cachean aciertos: un 429 cacheado dejaría al equipo sin
+    // resultados (y envenenaría el turno siguiente).
+    if (!r.ok) return [];
+    const raw = r.data?.results ?? [];
+    const sorted = [...raw].sort((a, b) =>
+      String(b.strTimestamp ?? b.dateEvent ?? "").localeCompare(String(a.strTimestamp ?? a.dateEvent ?? "")),
+    ).slice(0, limit);
+    setCached(cacheKey, sorted, ttls.sportsLive);
+    return sorted;
+  } catch {
+    return [];
+  }
+}
+
+/** Nombres de equipo (displayName) de un evento ESPN, en minúsculas. */
+function eventTeamNames(e: EspnEvent): string[] {
+  return (e.competitions ?? []).flatMap(c =>
+    (c.competitors ?? []).map(comp => comp.team?.displayName?.toLowerCase() ?? ""),
+  ).filter(Boolean);
 }
 
 function normalizeEspnEvent(e: EspnEvent, leagueName?: string) {
@@ -632,16 +861,50 @@ type TsdbEvent = {
   idEvent?: string;
   strEvent?: string;
   strLeague?: string;
+  strLeagueBadge?: string;
   dateEvent?: string;
   strTime?: string;
   strHomeTeam?: string;
   strAwayTeam?: string;
+  // 🔴 FIX ESCUDOS (2026-09-15): TSDB trae los badges reales de cada equipo
+  // (verificado en eventslast.php: r2.thesportsdb.com/.../team/badge/...png).
+  // Sin esto, los resultados que resuelve TSDB salían sin escudo.
+  strHomeTeamBadge?: string;
+  strAwayTeamBadge?: string;
+  strVenue?: string;
   intHomeScore?: string | null;
   intAwayScore?: string | null;
   strTimestamp?: string;
   strStatus?: string;
   strSport?: string;
 };
+
+/**
+ * 🔴 FIX PRÓXIMOS PARTIDOS (2026-09-15) — el endpoint correcto es
+ * `eventsnext.php?id=` (verificado HTTP 200 → {"events":[...]}); el que usaba
+ * el código, `eventsnextteam.php?id=`, devuelve **404** → nunca había próximo
+ * partido desde TheSportsDB.
+ */
+async function fetchTsdbNextEvents(teamId: string, limit = 4): Promise<TsdbEvent[]> {
+  if (!teamId) return [];
+  try {
+    const cacheKey = `tsdb:next:${teamId}`;
+    const hit = getCached<TsdbEvent[]>(cacheKey);
+    if (hit) return hit;
+    const r = await fetchJson<{ events?: TsdbEvent[] }>(
+      `${TSDB_BASE}/eventsnext.php?id=${encodeURIComponent(teamId)}`,
+      { timeoutMs: 9_000 },
+    );
+    if (!r.ok) return [];
+    const next = [...(r.data?.events ?? [])].sort((a, b) =>
+      String(a.strTimestamp ?? a.dateEvent ?? "").localeCompare(String(b.strTimestamp ?? b.dateEvent ?? "")),
+    ).slice(0, limit);
+    setCached(cacheKey, next, ttls.sportsLive);
+    return next;
+  } catch {
+    return [];
+  }
+}
 
 function normalizeEvent(e: TsdbEvent) {
   const homeScore = e.intHomeScore != null && e.intHomeScore !== "" ? Number(e.intHomeScore) : undefined;
@@ -652,6 +915,10 @@ function normalizeEvent(e: TsdbEvent) {
     match: `${e.strHomeTeam ?? "?"} vs ${e.strAwayTeam ?? "?"}`,
     homeTeam: e.strHomeTeam,
     awayTeam: e.strAwayTeam,
+    homeLogo: e.strHomeTeamBadge || undefined,
+    awayLogo: e.strAwayTeamBadge || undefined,
+    leagueBadge: e.strLeagueBadge || undefined,
+    venue: e.strVenue || undefined,
     homeScore,
     awayScore,
     status: e.strStatus ?? (live ? "en juego" : homeScore !== undefined ? "finalizado" : "programado"),
@@ -686,7 +953,8 @@ export const matchLive: ToolHandler = {
     // FIX: usar ESPN como fuente principal. 🔴 FIX VENTANA: rango de 12 días
     // atrás + 14 adelante en UN fetch por liga — captura partidos de mitad de
     // semana (Real Madrid martes, pregunta el viernes) que antes quedaban fuera.
-    const espnResults = await searchEspnScoreboards(query);
+    const espn = await searchEspnScoreboards(query);
+    const espnResults = espn.events;
 
     // 🔴 Clasificación: jugados/en vivo para el resultado; futuros como `upcoming`
     // (sección "Próximos partidos" de la card, sin fixture aparte).
@@ -751,6 +1019,47 @@ export const matchLive: ToolHandler = {
       };
     }
 
+    // 🔴 FIX RESULTADO DE EQUIPO (2026-09-15) — "cómo salió boca" llegaba acá
+    // (ESPN solo devolvía partidos FUTUROS) y el turno terminaba con la card de
+    // FIXTURE en vez del resultado. Si el usuario pide un RESULTADO y TheSportsDB
+    // tiene los últimos partidos jugados del equipo, esos son la respuesta.
+    // No aplica a consultas de dos clubes: ahí manda el par exacto (más abajo).
+    const queryClubs = detectClubs(query.toLowerCase());
+    // OJO con los acentos: `\b` en JS es ASCII, así que `\bsali[oó]\b` NUNCA
+    // matchea "salió" (la ó no es carácter de palabra → no hay borde después).
+    // Se normaliza el texto (sin acentos) antes de evaluar.
+    const resultIntentText = String(args.__userInput ?? query)
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+    const asksForResult = /\b(salio|resultado|resultados|gano|perdio|empato|empate|marcador|como le fue|que resultado|ayer|anoche|anteayer)\b/i.test(
+      resultIntentText,
+    );
+    if (asksForResult && queryClubs.length < 2) {
+      const teamForLast = queryClubs[0] ?? detectNationalTeam(query.toLowerCase()) ?? query;
+      const ctxForLast = await fetchTeamContext(teamForLast);
+      const lastPlayed = ctxForLast.teamInfo?.id ? await fetchTsdbLastEvents(ctxForLast.teamInfo.id) : [];
+      if (lastPlayed.length > 0) {
+        const playedMatches = lastPlayed.map(normalizeEvent);
+        // Próximos del mismo equipo: la card de resultado muestra la sección
+        // "Próximos partidos" (antes solo la traía el path de ESPN).
+        const nextUp = ctxForLast.teamInfo?.id ? await fetchTsdbNextEvents(ctxForLast.teamInfo.id) : [];
+        return {
+          type: "match_live",
+          status: "ok",
+          query,
+          matches: playedMatches,
+          upcoming: nextUp.length > 0 ? nextUp.map(normalizeEvent) : undefined,
+          source: "TheSportsDB",
+          sourceUrl: "https://www.thesportsdb.com/",
+          teamInfo: ctxForLast.teamInfo ?? undefined,
+          wikipediaExtract: ctxForLast.wikipediaExtract ?? undefined,
+          sources: ctxForLast.wikiSource ? [ctxForLast.wikiSource] : undefined,
+          text: playedMatches.map(m => `${m.homeTeam} ${m.homeScore ?? "?"} - ${m.awayScore ?? "?"} ${m.awayTeam} (${m.status})`).join("; "),
+        };
+      }
+    }
+
     // 🔴 Solo hay partidos FUTUROS ("cuando juega X" llegó a match_live):
     // devolver próximo + contexto, para que blocks arme la fixture enriquecida.
     if (espnUpcoming.length > 0) {
@@ -773,24 +1082,69 @@ export const matchLive: ToolHandler = {
     }
 
     // Fallback: TheSportsDB
-    const cacheKey = `match_live:${query.toLowerCase()}`;
-    const events = await cached<TsdbEvent[]>(cacheKey, ttls.sportsLive, async () => {
-      const result = await fetchJson<{ events?: TsdbEvent[] }>(
-        `${TSDB_BASE}/searchevents.php?e=${encodeURIComponent(query)}`,
-        { timeoutMs: 9_000 },
-      );
-      if (!result.ok) throw new Error(result.error);
-      return result.data!.events ?? [];
-    });
+    // 🔴 FIX FUENTE SECUNDARIA (2026-09-15) — dos bugs que la dejaban inservible:
+    // (a) `searchevents.php` devuelve la clave `event` (SINGULAR); el código leía
+    //     `.events` → SIEMPRE [] (por eso el fallback caía a Wikipedia con
+    //     source "Wikipedia" en vez de dar el partido).
+    // (b) la consulta era la frase CRUDA del usuario: ese endpoint exige
+    //     "Equipo vs Equipo" (frase cruda → {"event":null}).
+    // Además: un error de red se distinguía mal (throw) — ahora se contabiliza
+    // para poder decir honestamente "no pude consultar" en vez de "no hay partido".
+    let tsdbFailed = 0;
+    let tsdbAnswered = false;
+    for (const tsdbQuery of tsdbQueryCandidates(query)) {
+      const tsdbCacheKey = `match_live:tsdb:${tsdbQuery.toLowerCase()}`;
+      const cachedHits = getCached<TsdbEvent[]>(tsdbCacheKey);
+      let res: { events: TsdbEvent[]; failed: boolean };
+      if (cachedHits) {
+        res = { events: cachedHits, failed: false };
+      } else {
+        const result = await fetchJson<{ event?: TsdbEvent[]; events?: TsdbEvent[] }>(
+          `${TSDB_BASE}/searchevents.php?e=${encodeURIComponent(tsdbQuery)}`,
+          { timeoutMs: 9_000 },
+        );
+        if (!result.ok) {
+          // 429 de la key pública: NO se cachea (un fallo cacheado dejaría
+          // respuestas vacías durante todo el TTL).
+          res = { events: [], failed: true };
+        } else {
+          const raw = result.data?.event ?? result.data?.events ?? [];
+          // Más reciente primero: TSDB puede devolver varias temporadas.
+          const sorted = [...raw].sort((a, b) =>
+            String(b.strTimestamp ?? b.dateEvent ?? "").localeCompare(String(a.strTimestamp ?? a.dateEvent ?? "")),
+          );
+          setCached(tsdbCacheKey, sorted, ttls.sportsLive);
+          res = { events: sorted, failed: false };
+        }
+      }
+      if (res.failed) tsdbFailed++;
+      else tsdbAnswered = true;
+      if (res.events.length > 0) {
+        return {
+          type: "match_live",
+          status: "ok",
+          query,
+          matches: res.events.slice(0, 5).map(normalizeEvent),
+          source: "TheSportsDB",
+          sourceUrl: "https://www.thesportsdb.com/",
+        };
+      }
+    }
 
-    if (events.length > 0) {
+    // 🔴 FIX FUENTES CAÍDAS (2026-09-15) — si NINGUNA fuente respondió (ESPN
+    // rechazando el rango en todas las ligas y TheSportsDB caído), el problema no
+    // es "no hay partido": es que no se pudo consultar. Devolver "unavailable"
+    // hace que el chat diga la verdad ("probá de nuevo en unos minutos") y, sobre
+    // todo, que NO dispare el fallback a web_search — que antes terminaba en una
+    // card de búsqueda genérica sin relación con la pregunta.
+    if (espn.okLeagues === 0 && espn.failedLeagues > 0 && tsdbFailed > 0 && !tsdbAnswered) {
       return {
         type: "match_live",
-        status: "ok",
+        status: "unavailable",
         query,
-        matches: events.slice(0, 5).map(normalizeEvent),
-        source: "TheSportsDB",
-        sourceUrl: "https://www.thesportsdb.com/",
+        matches: [],
+        source: "ESPN + TheSportsDB",
+        note: "Ahora mismo no puedo consultar los resultados deportivos: las fuentes (ESPN y TheSportsDB) no están respondiendo. Probá de nuevo en unos minutos.",
       };
     }
 
@@ -807,7 +1161,8 @@ export const matchLive: ToolHandler = {
     if (teamInfo?.id) {
       try {
         const nextRes = await fetchJson<{ events?: TsdbEvent[] }>(
-          `${TSDB_BASE}/eventsnextteam.php?id=${teamInfo.id}`,
+          // 🔴 FIX 2026-09-15: `eventsnextteam.php` da 404; el endpoint real es `eventsnext.php`.
+        `${TSDB_BASE}/eventsnext.php?id=${teamInfo.id}`,
           { timeoutMs: 8_000 },
         );
         if (nextRes.ok && nextRes.data?.events && nextRes.data.events.length > 0) {
@@ -940,13 +1295,27 @@ async function fetchTeamContext(teamQuery: string): Promise<{
   wikiSource: { title: string; url: string; domain: string; snippet: string } | null;
 }> {
   let teamInfo: { id: string; name: string; stadium?: string; location?: string; league?: string; description?: string } | null = null;
+  type TsdbTeam = { idTeam?: string; strTeam?: string; strStadium?: string; strLocation?: string; strLeague?: string; strDescriptionES?: string; strDescriptionEN?: string };
   try {
-    const searchRes = await fetchJson<{ teams?: Array<{ idTeam?: string; strTeam?: string; strStadium?: string; strLocation?: string; strLeague?: string; strDescriptionES?: string; strDescriptionEN?: string }> }>(
-      `${TSDB_BASE}/searchteams.php?t=${encodeURIComponent(teamQuery)}`,
-      { timeoutMs: 8_000 },
-    );
-    if (searchRes.ok && searchRes.data?.teams && searchRes.data.teams.length > 0) {
-      const t = searchRes.data.teams[0];
+    // 🔴 CACHE TSDB (2026-09-15) — la key pública ("3") tiene límite de ~30
+    // requests por minuto: al pasarlo responde HTTP 429 y todos los equipos
+    // quedaban sin contexto. El lookup de equipo es dato casi estático → 24 h.
+    // IMPORTANTE: solo se cachean ACIERTOS. Si se cacheara el 429, el equipo
+    // quedaría "sin contexto" por un día entero.
+    const teamCacheKey = `tsdb:team:${teamQuery.toLowerCase()}`;
+    let teams = getCached<TsdbTeam[]>(teamCacheKey);
+    if (!teams) {
+      const searchRes = await fetchJson<{ teams?: TsdbTeam[] }>(
+        `${TSDB_BASE}/searchteams.php?t=${encodeURIComponent(teamQuery)}`,
+        { timeoutMs: 8_000 },
+      );
+      if (searchRes.ok) {
+        teams = searchRes.data?.teams ?? [];
+        setCached(teamCacheKey, teams, ttls.reference);
+      }
+    }
+    if (teams && teams.length > 0) {
+      const t = teams[0];
       teamInfo = {
         id: t.idTeam ?? "",
         name: t.strTeam ?? teamQuery,
@@ -1025,7 +1394,8 @@ export const matchSchedule: ToolHandler = {
     // con dates=START-END (antes: 7 fetches por día por liga = 63 requests →
     // rate-limit 429 de ESPN) + detección de COPAS ("copa del rey", "libertadores")
     // + sinónimos de clubes europeos + fallback por tokens para query crudo.
-    const espnResults = await searchEspnScoreboards(team || league);
+    const espnSearch = await searchEspnScoreboards(team || league);
+    const espnResults = espnSearch.events;
     const now = new Date();
 
     // Filtrar solo partidos futuros
