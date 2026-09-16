@@ -55,6 +55,65 @@ export function formatKickoffUserTz(
 }
 
 /**
+ * ISO del kickoff con el offset de la zona del usuario EXPLÍCITO
+ * ("2026-09-20T14:45:00-03:00"), o `undefined` si no hay zona que aplicar.
+ *
+ * 🔴 FIX HORA AMBIGUA (2026-09-16) — el payload del fixture mandaba el instante
+ * UTC crudo (`"2026-09-20T17:45Z"`) junto a la hora local (`time: "14:45"`): el
+ * modelo leía las DOS y elegía. En vivo respondió "el sábado 20 de septiembre a
+ * las 17:45 (hora Argentina)" — hora UTC con etiqueta argentina, y un día
+ * equivocado. Con la fecha ya expresada en la zona del usuario, `date` y `time`
+ * dicen lo mismo y el offset viaja en el propio dato.
+ *
+ * El instante NO cambia (sigue siendo el mismo momento): sólo se reescribe la
+ * representación, así que `new Date(date)` en el cliente pinta igual que antes.
+ */
+export function toLocalIso(
+  date: string | Date | undefined | null,
+  tzOffsetMin?: number,
+  timeZone?: string,
+): string | undefined {
+  if (!date) return undefined;
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return undefined;
+  const hasTz = typeof tzOffsetMin === "number" && Number.isFinite(tzOffsetMin);
+  if (hasTz) {
+    // `tzOffsetMin` es el offset de `Date.getTimezoneOffset()` (UTC − local),
+    // así que el signo del offset local se invierte: 180 → UTC−03:00.
+    const abs = Math.abs(tzOffsetMin);
+    const sign = tzOffsetMin > 0 ? "-" : "+";
+    const hhmm = `${String(Math.floor(abs / 60)).padStart(2, "0")}:${String(abs % 60).padStart(2, "0")}`;
+    return `${isoParts(new Date(d.getTime() - tzOffsetMin * 60_000), "UTC")}${sign}${hhmm}`;
+  }
+  const zone = validTimeZone(timeZone);
+  if (!zone) return undefined;
+  const offsetName = new Intl.DateTimeFormat("en-US", { timeZone: zone, timeZoneName: "longOffset" })
+    .formatToParts(d)
+    .find(p => p.type === "timeZoneName")?.value ?? "GMT";
+  const sign = offsetName.includes("-") ? "-" : "+";
+  const hhmm = offsetName.replace("GMT", "").replace(/^[+-]/, "") || "00:00";
+  return `${isoParts(d, zone)}${sign}${hhmm}`;
+}
+
+/** "YYYY-MM-DDTHH:MM:SS" del instante leído en `timeZone` (sin offset). */
+function isoParts(d: Date, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    // `h23` y no `hour12:false`: en varias zonas/locales el segundo rinde "24"
+    // para la medianoche.
+    hourCycle: "h23",
+  }).formatToParts(d);
+  const get = (type: string) => parts.find(p => p.type === type)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}:${get("second")}`;
+}
+
+/**
  * Huso del usuario para formatear horas de partidos.
  * Preferencia: el offset que manda el cliente — exacto para la fecha del partido
  * (un solo número cubre el DST del día). Si no hay cliente (turnos del motor
@@ -1783,27 +1842,43 @@ async function buildFixturePayload(
   // 🔴 FIX TZ — hora de kickoff en la tz del USUARIO (antes: hora del server
   // = UTC en Render → “00:30” para un partido 21:30 AR / 02:30 Madrid).
   const userTz = userTimeZone(runCtx);
-  const kickoff = formatKickoffUserTz(first?.date, runCtx?.tzOffsetMin, { timeZone: userTz });
+  const off = runCtx?.tzOffsetMin;
+  const kickoff = formatKickoffUserTz(first?.date, off, { timeZone: userTz });
+  // 🔴 FIX HORA AMBIGUA — cada partido lleva su fecha EN LA ZONA DEL USUARIO
+  // (`2026-09-20T14:45:00-03:00`) y su hora local, así que lo que lee el modelo
+  // y lo que dibuja la card ya no pueden discrepar. El `matches[]` del camino de
+  // ESPN no traía ni hora: ahora ambos caminos salen iguales.
+  const matches = upcomingMatches.map(m => ({
+    ...m,
+    date: toLocalIso(m.date, off, userTz) ?? m.date,
+    time: m.time ?? formatKickoffUserTz(m.date, off, { timeZone: userTz }),
+  }));
+  const main = matches[0] ?? first;
   return {
     type: "match_schedule",
     status: "ok",
     team: teamLabel,
-    matches: upcomingMatches,
+    matches,
     nextMatch: {
-      homeTeam: first?.homeTeam,
-      awayTeam: first?.awayTeam,
-      date: first?.date,        time: kickoff ?? first?.time,
-      // Huso con el que se formateó `time` (null = hora del runtime): el modelo
-      // necesita saberlo para NO afirmar una hora de otra zona (pasó en vivo:
-      // respondió "a las 00:15" de un partido de las 21:15).
+      homeTeam: main?.homeTeam,
+      awayTeam: main?.awayTeam,
+      date: main?.date,
+      time: main?.time ?? kickoff,
+      // Frase única (fecha + hora local) para que el modelo no tenga que
+      // combinar campos ni calcular el día de la semana.
+      when: formatKickoffUserTz(first?.date, off, { withDate: true, timeZone: userTz }),
+      // Huso con el que se formateó `time` (undefined = cuando mandó el cliente,
+      // la zona ya viaja en el offset de `date`): el modelo necesita saberlo para
+      // NO afirmar una hora de otra zona (pasó en vivo: respondió "a las 00:15"
+      // de un partido de las 21:15).
       timeZone: userTz,
-      league: first?.league,
-      homeLogo: first?.homeLogo,
-      awayLogo: first?.awayLogo,
-      homeAbbrev: first?.homeAbbrev,
-      awayAbbrev: first?.awayAbbrev,
-      homeColor: first?.homeColor,
-      awayColor: first?.awayColor,
+      league: main?.league,
+      homeLogo: main?.homeLogo,
+      awayLogo: main?.awayLogo,
+      homeAbbrev: main?.homeAbbrev,
+      awayAbbrev: main?.awayAbbrev,
+      homeColor: main?.homeColor,
+      awayColor: main?.awayColor,
     },
     timeZone: userTz,
     teamInfo: ctx.teamInfo ?? undefined,

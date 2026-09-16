@@ -7,7 +7,7 @@
 //   shortDateFrom / pushFixtureCard
 // - presentation.ts formatea la fecha del próximo partido en el browser
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { formatKickoffUserTz } from "../tools/sports/football";
+import { formatKickoffUserTz, toLocalIso } from "../tools/sports/football";
 import { blocksFromToolResults } from "../server/blocksFromToolResults";
 
 // Partido real: Boca vs Central Córdoba, ESPN ISO 2026-09-12T00:30Z
@@ -183,6 +183,13 @@ describe("match_schedule sin cliente: la card usa el huso del perfil", () => {
     );
     expect(sched.nextMatch?.time).toBe("21:30");
     expect(sched.timeZone).toBe("America/Argentina/Buenos_Aires");
+    // La fecha también sale en esa zona: el modelo no puede leer "00:30Z" y
+    // afirmar una hora que no es la que ve el usuario.
+    expect(sched.nextMatch?.date).toBe(toLocalIso(kickoff, undefined, "America/Argentina/Buenos_Aires"));
+    expect(sched.nextMatch?.date).toMatch(/-03:00$/);
+    expect(sched.nextMatch?.when).toContain("21:30");
+    // El camino de ESPN no traía hora por partido: ahora la trae, en la misma zona.
+    expect(sched.matches?.[0]?.time).toBe("21:30");
   });
 
   it("con tzOffsetMin, manda el cliente y no se consulta el perfil", async () => {
@@ -196,5 +203,60 @@ describe("match_schedule sin cliente: la card usa el huso del perfil", () => {
     // -180 (= UTC-3) → mismo resultado que el huso argentino, pero por el offset.
     expect(sched.nextMatch?.time).toBe("21:30");
     expect(sched.timeZone).toBeUndefined();
+    // El offset viaja en el propio dato cuando no hay huso IANA (caso normal: hay
+    // cliente con el perfil en Madrid, así que el huso del perfil no se usa).
+    expect(sched.nextMatch?.date).toMatch(/-03:00$/);
+    expect(sched.nextMatch?.date).toContain("21:30");
+    expect(sched.nextMatch?.when).toContain("21:30");
+  });
+});
+
+/**
+ * 🔴 FIX HORA AMBIGUA (2026-09-16) — el payload mandaba el instante UTC crudo
+ * junto a la hora local; el modelo leía los dos y elegía. En vivo respondió "el
+ * sábado 20 de septiembre a las 17:45 (hora Argentina)" para un partido que era
+ * DOMINGO 14:45 en Argentina. `toLocalIso` reescribe la fecha en la zona del
+ * usuario (mismo instante, offset explícito) para que `date` y `time` digan lo
+ * mismo.
+ */
+describe("toLocalIso — fecha del kickoff en la zona del usuario", () => {
+  it("offset del cliente: 00:30Z con UTC-3 → viernes 11/09 21:30-03:00", () => {
+    expect(toLocalIso(BOCA_ISO, 180)).toBe("2026-09-11T21:30:00-03:00");
+  });
+
+  it("huso IANA del perfil: mismo instante → mismo ISO que por offset", () => {
+    expect(toLocalIso(BOCA_ISO, undefined, "America/Argentina/Buenos_Aires")).toBe("2026-09-11T21:30:00-03:00");
+  });
+
+  it("Madrid: sábado 02:30 con +02:00", () => {
+    expect(toLocalIso(BOCA_ISO, -120)).toBe("2026-09-12T02:30:00+02:00");
+  });
+
+  it("husos no enteros: +05:30 (India) y +12:45 (Chatham)", () => {
+    expect(toLocalIso("2026-09-20T17:45:00Z", undefined, "Asia/Kolkata")).toBe("2026-09-20T23:15:00+05:30");
+    expect(toLocalIso("2026-09-20T17:45:00Z", undefined, "Pacific/Chatham")).toBe("2026-09-21T06:30:00+12:45");
+  });
+
+  it("UTC y medianoche: rinde 00:00 (no 24) con +00:00", () => {
+    expect(toLocalIso("2026-09-20T00:00:00Z", undefined, "UTC")).toBe("2026-09-20T00:00:00+00:00");
+    expect(toLocalIso("2026-09-20T00:00:00Z", 0)).toBe("2026-09-20T00:00:00+00:00");
+  });
+
+  it("DST: el offset sale de la FECHA del partido, no de hoy", () => {
+    expect(toLocalIso("2026-01-15T12:00:00Z", undefined, "Europe/Madrid")).toBe("2026-01-15T13:00:00+01:00");
+    expect(toLocalIso("2026-07-15T12:00:00Z", undefined, "Europe/Madrid")).toBe("2026-07-15T14:00:00+02:00");
+  });
+
+  it("es el MISMO instante: el cliente lo pinta como antes", () => {
+    expect(new Date(toLocalIso(BOCA_ISO, 180)!).getTime()).toBe(new Date(BOCA_ISO).getTime());
+    expect(new Date(toLocalIso(BOCA_ISO, undefined, "Europe/Madrid")!).getTime()).toBe(new Date(BOCA_ISO).getTime());
+  });
+
+  it("sin zona usable → undefined (se conserva el ISO crudo, no se inventa una hora)", () => {
+    expect(toLocalIso(BOCA_ISO)).toBeUndefined();
+    expect(toLocalIso(BOCA_ISO, undefined, "auto")).toBeUndefined();
+    expect(toLocalIso(BOCA_ISO, undefined, "Marte/Olympus")).toBeUndefined();
+    expect(toLocalIso("no-es-fecha", 180)).toBeUndefined();
+    expect(toLocalIso(undefined, 180)).toBeUndefined();
   });
 });
