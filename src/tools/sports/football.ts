@@ -225,6 +225,32 @@ export function tsdbQueryCandidates(rawQuery: string): string[] {
 }
 
 /**
+ * 🔴 FIX NOMBRE DE EQUIPO SUCIO (2026-09-16) — el router llega a pasar la frase
+ * ENTERA como equipo: para "cuándo juega Boca" la tool recibió
+ * team="cuándo juega Boca". Con eso ESPN no resuelve ningún equipo, TheSportsDB
+ * busca la frase y la Wikipedia devuelve cualquier cosa (Riquelme en lugar del
+ * club) → la card de fixture quedaba vacía con la info de otra persona.
+ *
+ * Devuelve el club/selección REAL si aparece en el texto (diccionario propio) y,
+ * si no, limpia las palabras de la pregunta para quedarse con el nombre
+ * ("próximos partidos de Real Madrid" → "Real Madrid").
+ */
+export function cleanTeamQuery(raw: string): string {
+  const text = String(raw ?? "").replace(/[¿?¡!]/g, " ").replace(/\s+/g, " ").trim();
+  if (!text) return "";
+  const lower = text.toLowerCase();
+  const club = detectClub(lower) ?? detectNationalTeam(lower);
+  if (club) return club;
+  const LEAD = /^(cu[aá]ndo|a\s+qu[eé]\s+hora|qu[eé]\s+hora|qu[eé]\s+d[ií]a|cu[aá]l|pr[oó]xim\w*|fixture|calendario|agenda|partidos?|juega|juegan|jugar|hay|es|el|la|los|las|de|del|vs)\s+/i;
+  let out = text;
+  for (let prev = ""; out !== prev; ) {
+    prev = out;
+    out = out.replace(LEAD, "").trim();
+  }
+  return out || text;
+}
+
+/**
  * Detecta si el query menciona un club sudamericano y devuelve el canonical name.
  */
 function detectClub(queryLower: string): string | null {
@@ -1594,7 +1620,10 @@ export const matchSchedule: ToolHandler = {
   async run(args, runCtx?: ToolRunContext) {
     // 🔴 KORU 3.0 — fallback a __userInput cuando el LLM no pasa team
     // (caso: detector de simulated tool call extrae solo el nombre, sin args)
-    const team = String(args.team ?? args.__userInput ?? "").trim();
+    // 🔴 FIX NOMBRE DE EQUIPO SUCIO (2026-09-16) — ver cleanTeamQuery: el router
+    // puede pasar la frase entera ("cuándo juega Boca") o vacío (cae a
+    // __userInput, que también es la frase).
+    const team = cleanTeamQuery(String(args.team ?? args.__userInput ?? ""));
     const league = String(args.league ?? "").trim();
     const next = Number(args.next ?? 5);
     if (!team && !league) return { type: "match_schedule", status: "failed", error: "Indicá equipo o liga." };

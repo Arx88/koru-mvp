@@ -12,6 +12,10 @@
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { blocksFromToolResults } from "../../server/blocksFromToolResults";
+import { cleanTeamQuery } from "./football";
+
+/** URLs que pidió la tool en el test (para verificar con qué nombre se consultó). */
+const captured: string[] = [];
 
 type Mode = "espn-team-calendar" | "tsdb-singular-key";
 
@@ -36,8 +40,10 @@ const espnScheduleEvent = (home: string, away: string, id: string, date: string)
 });
 
 function installFetch(mode: Mode) {
+  captured.length = 0;
   vi.stubGlobal("fetch", async (input: RequestInfo | URL) => {
     const url = String(input);
+    captured.push(url);
 
     // ── ESPN ──
     if (url.includes("site.api.espn.com") || url.includes("sports.core.api.espn.com")) {
@@ -112,7 +118,48 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+describe("cleanTeamQuery — sacar el nombre del equipo de la frase del usuario", () => {
+  const cases: Array<[string, string]> = [
+    ["cuándo juega Boca", "Boca Juniors"],
+    ["cuando juega san lorenzo", "San Lorenzo"],
+    ["próximos partidos de Real Madrid", "Real Madrid"],
+    ["cuándo juega Messi", "Messi"],
+    ["Boca Juniors", "Boca Juniors"],
+    ["¿cuándo juega el rojo?", "Independiente"],
+  ];
+  for (const [input, expected] of cases) {
+    it(`"${input}" → "${expected}"`, () => {
+      expect(cleanTeamQuery(input)).toBe(expected);
+    });
+  }
+
+  it("no deja basura de la pregunta cuando el nombre no está en el diccionario", () => {
+    // Equipo fuera del diccionario propio: la limpieza es por palabras de la
+    // pregunta, no por conocimiento del club.
+    const out = cleanTeamQuery("próximos partidos de Kashiwa Reysol");
+    expect(out).toBe("Kashiwa Reysol");
+    expect(out).not.toMatch(/pr[oó]xim|partidos/i);
+  });
+});
+
 describe("fixture: calendario por equipo de ESPN", () => {
+  it("la frase entera como `team` (router) → se consulta el club real, no la frase", async () => {
+    // Caso real del deploy (2026-09-16): la tool recibió team="cuándo juega Boca",
+    // ESPN resolvía cualquier cosa, TSDB buscaba la frase y la wiki devolvía a
+    // Riquelme → card de equipo vacía en vez del fixture.
+    installFetch("espn-team-calendar");
+    const matchSchedule = await freshMatchSchedule();
+    const sched: any = await matchSchedule.run({ team: "cuándo juega Boca", __userInput: "cuándo juega Boca" }, { tzOffsetMin: 180 } as any);
+
+    expect(sched.status).toBe("ok");
+    expect(sched.team).toBe("Boca Juniors");
+    expect(sched.matches.length).toBe(2);
+    const searches = captured.filter(u => u.includes("common/v3/search"));
+    expect(searches.length).toBeGreaterThan(0);
+    expect(searches[0]).toMatch(/query=boca/i);
+    expect(searches[0]).not.toMatch(/cu[aá]ndo/i);
+  });
+
   it("rangos de ESPN rechazados (400) → el fixture sale del calendario del equipo", async () => {
     installFetch("espn-team-calendar");
     const matchSchedule = await freshMatchSchedule();
