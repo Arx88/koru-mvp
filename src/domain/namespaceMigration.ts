@@ -72,6 +72,12 @@ function openLegacySource(name: string): Promise<IDBDatabase | null> {
       if (typeof indexedDB === "undefined") return resolve(null);
       // Sin versión: abre la DB existente tal cual (nunca dispara upgrade).
       const req = indexedDB.open(name);
+      // A pending deletion in another tab can queue open without onblocked.
+      let expired = false;
+      const timer = setTimeout(() => {
+        expired = true;
+        resolve(null);
+      }, 3000);
       req.onupgradeneeded = () => {
         // No existía: open está creando una v1 vacía. Abortar el versionchange
         // descarta la DB recién creada (comportamiento del spec de IndexedDB),
@@ -82,9 +88,18 @@ function openLegacySource(name: string): Promise<IDBDatabase | null> {
           /* noop */
         }
       };
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => resolve(null);
-      req.onblocked = () => resolve(null);
+      req.onsuccess = () => {
+        clearTimeout(timer);
+        if (expired) req.result.close();
+        else resolve(req.result);
+      };
+      const unavailable = () => {
+        clearTimeout(timer);
+        expired = true;
+        resolve(null);
+      };
+      req.onerror = unavailable;
+      req.onblocked = unavailable;
     } catch {
       resolve(null);
     }
