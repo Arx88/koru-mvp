@@ -21,15 +21,17 @@ import { tsdbQueryCandidates } from "./football";
 type MockOptions = {
   espnSingleDayFails?: boolean;
   tsdb?: "pair-ok" | "empty" | "down" | "cross-sport";
+  /** Suma un partido de un HOMÓNIMO (Independiente Santa Fe) a lo que devuelve ESPN. */
+  espnDecoy?: boolean;
 };
 
 const ESPN_ERROR = { code: 400, message: "Failed to get events endpoint." };
 
-function espnEvent(home: string, away: string, homeScore: string | undefined, awayScore: string | undefined, state: "pre" | "post") {
+function espnEvent(home: string, away: string, homeScore: string | undefined, awayScore: string | undefined, state: "pre" | "post", date = "2026-09-13T22:15Z") {
   return {
     id: `ev-${home}-${away}`,
     name: `${away} at ${home}`,
-    date: "2026-09-13T22:15Z",
+    date,
     status: { type: { state, description: state === "post" ? "Full Time" : "Scheduled" } },
     competitions: [
       {
@@ -61,7 +63,13 @@ function installFetch(opts: MockOptions) {
       // El bug real: los RANGOS son una lotería (400) y los días sueltos responden.
       if (isRange) return jsonResponse(ESPN_ERROR, 400);
       if (opts.espnSingleDayFails) return jsonResponse(ESPN_ERROR, 400);
-      return jsonResponse({ events: [espnEvent("Independiente", "San Lorenzo", "1", "1", "post")] });
+      const events = [espnEvent("Independiente", "San Lorenzo", "1", "1", "post")];
+      if (opts.espnDecoy) {
+        // Señuelo MÁS RECIENTE y con el nombre EXACTO del club pedido: sin el
+        // texto completo del usuario, el matcheo por nombre suelto lo elige a él.
+        events.push(espnEvent("Independiente", "Vasco da Gama", "3", "1", "post", "2026-09-15T22:15Z"));
+      }
+      return jsonResponse({ events });
     }
 
     // ── TheSportsDB ──
@@ -203,6 +211,23 @@ describe("match_live con fuentes caídas (determinista, sin red)", () => {
     expect(live.note).toMatch(/Probá de nuevo en unos minutos/i);
     // Sin matches: no hay dato que mostrar (y sin status "no_data" no se dispara
     // el plan B de búsqueda web que generaba la card genérica).
+  });
+
+  it("query recortado a UN club + __userInput con el par → sale el par, no el homónimo", async () => {
+    // Caso real del deploy (2026-09-16): el router llamó a la tool con
+    // query="independiente", y el matcheo por substring mostraba
+    // "Vasco da Gama 2-0 Independiente Santa Fe" como si fuera el clásico.
+    installFetch({ espnDecoy: true });
+    const matchLive = await freshMatchLive();
+    const live: any = await matchLive.run(
+      { query: "independiente", __userInput: "como salió independiente con san lorenzo" },
+      {} as any,
+    );
+
+    expect(live.status).toBe("ok");
+    expect(live.matches[0].homeTeam).toBe("Independiente");
+    expect(live.matches[0].awayTeam).toBe("San Lorenzo");
+    expect(JSON.stringify(live)).not.toMatch(/vasco/i);
   });
 
   it("TSDB devuelve un partido de BÁSQUET del homónimo → se descarta y queda el de fútbol", async () => {

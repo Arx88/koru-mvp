@@ -380,11 +380,14 @@ const NATIONAL_LEAGUE_IDS = new Set(["fifa.world", "uefa.euro", "uefa.nations"])
 
 async function searchEspnScoreboards(
   query: string,
-  opts: { fromDays?: number; toDays?: number } = {},
+  opts: { fromDays?: number; toDays?: number; pairText?: string } = {},
 ): Promise<{ events: Array<{ event: EspnEvent; leagueId: string; leagueName: string }>; okLeagues: number; failedLeagues: number }> {
   const fromDays = opts.fromDays ?? 12;
   const toDays = opts.toDays ?? 14;
   const queryLower = query.toLowerCase();
+  // 🔴 FIX PAR PERDIDO (2026-09-16): el texto para detectar "el partido entre
+  // estos dos clubes" puede ser el del USUARIO (más rico) aunque el `query` de la
+  // tool venga recortado a un solo club. Ver matchLive.
   const results: Array<{ event: EspnEvent; leagueId: string; leagueName: string }> = [];
 
   const now = new Date();
@@ -433,7 +436,7 @@ async function searchEspnScoreboards(
   // partido está en el PASADO, así que el barrido no gasta presupuesto en días
   // futuros (y los homónimos de otros países los filtra el filtro de par exacto
   // del final: "Independiente Santa Fe" ya no puede colarse).
-  const pairQuery = detectClubs(queryLower).length >= 2;
+  const pairQuery = detectClubs((opts.pairText ?? query).toLowerCase()).length >= 2;
 
   const fetchRange = async (
     league: { id: string; name: string },
@@ -622,7 +625,7 @@ async function searchEspnScoreboards(
   //      ellos → quedarse con los eventos que contienen a los dos;
   //   2) si hay eventos con el nombre de equipo EXACTO del canónico, descartar
   //      los que solo matchean por parecido.
-  const clubsInQuery = detectClubs(queryLower);
+  const clubsInQuery = detectClubs((opts.pairText ?? query).toLowerCase());
   if (clubsInQuery.length >= 2) {
     // Solo el partido ENTRE esos dos clubes responde la pregunta. Si no está,
     // se devuelve vacío a propósito: mejor "no tengo el dato" que mostrarle al
@@ -950,10 +953,23 @@ export const matchLive: ToolHandler = {
     const query = String(args.query ?? args.__userInput ?? "").trim();
     if (!query) return { type: "match_live", status: "failed", error: "Indicá el partido." };
 
+    // 🔴 FIX PAR PERDIDO (2026-09-16) — el router/LLM suele REDUCIR la consulta a
+    // un solo club: para "como salió independiente con san lorenzo" llamó a la
+    // tool con query="independiente". Sin los dos clubes, el filtro de par no
+    // corría y el matcheo por substring devolvía el partido de un homónimo
+    // ("Vasco da Gama vs Independiente Santa Fe"). El texto REAL del usuario
+    // viaja siempre en `args.__userInput`, así que se usa ESE para detectar el
+    // par cuando nombra más clubes que el query de la tool (y solo en ese caso:
+    // si el LLM pasó un query más específico, manda el query).
+    const userText = String(args.__userInput ?? "").trim();
+    const pairText = userText && detectClubs(userText.toLowerCase()).length > detectClubs(query.toLowerCase()).length
+      ? userText
+      : query;
+
     // FIX: usar ESPN como fuente principal. 🔴 FIX VENTANA: rango de 12 días
     // atrás + 14 adelante en UN fetch por liga — captura partidos de mitad de
     // semana (Real Madrid martes, pregunta el viernes) que antes quedaban fuera.
-    const espn = await searchEspnScoreboards(query);
+    const espn = await searchEspnScoreboards(query, { pairText });
     const espnResults = espn.events;
 
     // 🔴 Clasificación: jugados/en vivo para el resultado; futuros como `upcoming`
@@ -1024,7 +1040,7 @@ export const matchLive: ToolHandler = {
     // FIXTURE en vez del resultado. Si el usuario pide un RESULTADO y TheSportsDB
     // tiene los últimos partidos jugados del equipo, esos son la respuesta.
     // No aplica a consultas de dos clubes: ahí manda el par exacto (más abajo).
-    const queryClubs = detectClubs(query.toLowerCase());
+    const queryClubs = detectClubs(pairText.toLowerCase());
     // OJO con los acentos: `\b` en JS es ASCII, así que `\bsali[oó]\b` NUNCA
     // matchea "salió" (la ó no es carácter de palabra → no hay borde después).
     // Se normaliza el texto (sin acentos) antes de evaluar.
@@ -1092,7 +1108,7 @@ export const matchLive: ToolHandler = {
     // para poder decir honestamente "no pude consultar" en vez de "no hay partido".
     let tsdbFailed = 0;
     let tsdbAnswered = false;
-    for (const tsdbQuery of tsdbQueryCandidates(query)) {
+    for (const tsdbQuery of tsdbQueryCandidates(pairText)) {
       const tsdbCacheKey = `match_live:tsdb:${tsdbQuery.toLowerCase()}`;
       const cachedHits = getCached<TsdbEvent[]>(tsdbCacheKey);
       let res: { events: TsdbEvent[]; failed: boolean };
