@@ -5,12 +5,12 @@
  * Total y weekChange reales del block; la curva del hero se dibuja desde
  * block.sparkline (number[] REAL) — sin sparkline no hay curva (no se
  * inventa). Monedas desde items[] con char/color/bg reales, price/change,
- * share % derivado solo si value y totalValue son parseables. Sin
- * random-walk simulado: el precio mostrado es el dato real del block.
- * Alerts del block como chips reales. Acción: Alerta → create_commitment durable.
+ * share % derivado solo si value y totalValue son parseables. Alerts del
+ * block como chips reales. Acción: Alerta → create_commitment durable.
  */
 import { BellRing, TrendingUp, TrendingDown, ChartPie, Lightbulb, Zap, Coins, History, type LucideIcon } from "lucide-react";
 import type { UiBlock } from "../../../../domain/types";
+import { useLivePrice } from "../../unified/useLivePrice";
 import { Ic } from "../Ic";
 import { LecturaShell } from "../LecturaShell";
 import { dispatchCardAction } from "../actions";
@@ -55,7 +55,7 @@ function sparkPath(data: number[], w = 340, h = 118, pad = 8): { line: string; a
 export function CryptoInterior({ block, onClose, onSave }: LecturaInteriorProps<CryptoBlock>) {
   const items = block.items ?? [];
   const first = items[0];
-  const displayPrice = first?.price;
+  const { displayPrice, direction } = useLivePrice(first?.price);
   const week = block.weekChange ?? 0;
   const weekUp = week >= 0;
   const spark = block.sparkline && block.sparkline.length > 1 ? sparkPath(block.sparkline) : null;
@@ -105,7 +105,7 @@ export function CryptoInterior({ block, onClose, onSave }: LecturaInteriorProps<
           <div className="ph-top">
             <div>
               <div className="pl">{block.totalValue ? "Valor hoy" : first ? `${first.symbol} hoy` : "Cripto"}</div>
-              <div className="pv">
+              <div className="pv" style={direction === "up" ? { color: "var(--mint-ink)" } : direction === "dn" ? { color: "var(--rose-ink)" } : undefined}>
                 {block.totalValue ?? displayPrice ?? first?.price ?? "—"}
               </div>
             </div>

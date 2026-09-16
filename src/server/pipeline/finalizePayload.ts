@@ -31,6 +31,8 @@ import { normalizeStickerId } from "../../domain/stickers";
 import { neutralizeRioplatense } from "../systemPrompt";
 import { logger } from "../logger";
 import { enrichCaptureBlocks } from "./enrichCaptureBlocks";
+import { allowsOptionalSuggestions, polishConversationReply } from "../conversationExperience";
+import type { KoruConversationMessage } from "../../domain/types";
 import {
   asArray,
   asRecord,
@@ -571,6 +573,7 @@ export function normalizeFinalPayload(
   extractedRaw?: Record<string, unknown>,
   prebuiltToolBlocks?: UiBlock[],
   state?: KoruState,
+  history: KoruConversationMessage[] = [],
 ): KoruBackendTurnResponse {
   const modelBlocks = asArray(raw.uiBlocks).map(normalizeUiBlock).filter((block): block is UiBlock => Boolean(block));
   const mascotState = cleanText(raw.mascotState) || "idle";
@@ -805,30 +808,23 @@ export function normalizeFinalPayload(
   if (finalReply.length > 250 && hasInformativeBlock) {
     const firstSentence = finalReply.match(/^.{1,200}?[.!?](\s|$)/)?.[0];
     if (firstSentence && firstSentence.length < finalReply.length) {
-      // Solo agregar "Te dejé el detalle en la tarjeta" si no lo dice ya
-      const trimmed = firstSentence.trim();
-      if (/tarjeta/i.test(trimmed)) {
-        finalReply = trimmed;
-      } else {
-        finalReply = trimmed + " Te dejé el detalle en la tarjeta.";
-      }
+      finalReply = firstSentence.trim();
     }
   }
-  // Si el reply menciona "tarjeta" dos veces, limpiar
   if (hasInformativeBlock) {
-    finalReply = finalReply.replace(/Te dejé el detalle en la tarjeta\.?\s*$/i, "").trim();
-    if (!/tarjeta/i.test(finalReply)) {
-      finalReply += " Te dejé el detalle en la tarjeta.";
-    }
+    const withoutBoilerplate = finalReply.replace(/Te dejé el detalle en la tarjeta\.?\s*$/i, "").trim();
+    if (withoutBoilerplate) finalReply = withoutBoilerplate;
   }
   const result: KoruBackendTurnResponse = {
     // 🔴 "no debe sonar ARGENTINO" (2026-09-12): red de seguridad determinística
     // — el prompt ya pide español neutro, pero si el LLM deja escapar voseo
     // rioplatense ("querés", "sos", "contame", "che"...), se reescribe aquí.
     // Este es el chokepoint único: TODOS los replies pasan por acá.
-    reply: neutralizeRioplatense(finalReply),
+    reply: neutralizeRioplatense(polishConversationReply(finalReply, input, history)),
     uiBlocks,
-    suggestedActions: normalizeSuggestedActions(raw.suggestedActions),
+    suggestedActions: allowsOptionalSuggestions(input, history) && state?.voicePreference?.proactivity !== 0
+      ? normalizeSuggestedActions(raw.suggestedActions)
+      : [],
     understanding: normalizeUnderstanding(raw.understanding, input),
     // 🔴 ARQUITECTURA NUEVA: el LLM es el ÚNICO extractor de memoria.
     // No hay más síntesis determinística con regex. El LLM ve las memorias
@@ -984,19 +980,19 @@ export async function finalizePayload(
 ): Promise<KoruBackendTurnResponse & { memoryFallbackReason?: string; memoryProvider?: "nvidia" | "openrouter" | "minimax" | "bluesminds"; memoryModel?: string }> {
   // OPTIMIZACIÓN: solo saltar el memory extractor para inputs triviales
   if (isTrivialInput(request.input)) {
-    return normalizeFinalPayload(raw, request.input, toolExecutions, undefined, undefined, request.state);
+    return normalizeFinalPayload(raw, request.input, toolExecutions, undefined, undefined, request.state, request.history);
   }
   try {
     const extracted = await extractMemoryWithJsonPrompt(request, config, toolExecutions, raw, extractorTimeout);
     return {
-      ...normalizeFinalPayload(raw, request.input, toolExecutions, extracted.raw, undefined, request.state),
+      ...normalizeFinalPayload(raw, request.input, toolExecutions, extracted.raw, undefined, request.state, request.history),
       memoryProvider: extracted.provider,
       memoryModel: extracted.model,
       memoryFallbackReason: extracted.fallbackReason,
     };
   } catch (error) {
     return {
-      ...normalizeFinalPayload(raw, request.input, toolExecutions, undefined, undefined, request.state),
+      ...normalizeFinalPayload(raw, request.input, toolExecutions, undefined, undefined, request.state, request.history),
       memoryFallbackReason: error instanceof Error ? error.message : "memory-extractor-failed",
     };
   }
@@ -1025,12 +1021,12 @@ export async function finalizePayloadWithFastModel(
     if (!isTrivialInput(request.input)) {
       try {
         const extracted = await extractMemoryWithJsonPrompt(request, config, toolExecutions, raw, timeout);
-        return normalizeFinalPayload(raw, request.input, toolExecutions, extracted.raw, prebuiltToolBlocks, request.state);
+        return normalizeFinalPayload(raw, request.input, toolExecutions, extracted.raw, prebuiltToolBlocks, request.state, request.history);
       } catch {
         // si falla el extractor, igual devolver la respuesta
       }
     }
-    return normalizeFinalPayload(raw, request.input, toolExecutions, undefined, prebuiltToolBlocks, request.state);
+    return normalizeFinalPayload(raw, request.input, toolExecutions, undefined, prebuiltToolBlocks, request.state, request.history);
   }
 
   // Segunda llamada con Flash model para síntesis
@@ -1052,13 +1048,13 @@ export async function finalizePayloadWithFastModel(
     if (!isTrivialInput(request.input)) {
       try {
         const extracted = await extractMemoryWithJsonPrompt(request, config, toolExecutions, parsed, timeout);
-        return normalizeFinalPayload(parsed, request.input, toolExecutions, extracted.raw, prebuiltToolBlocks, request.state);
+        return normalizeFinalPayload(parsed, request.input, toolExecutions, extracted.raw, prebuiltToolBlocks, request.state, request.history);
       } catch {
         // si falla el extractor, igual devolver la respuesta
       }
     }
-    return normalizeFinalPayload(parsed, request.input, toolExecutions, undefined, prebuiltToolBlocks, request.state);
+    return normalizeFinalPayload(parsed, request.input, toolExecutions, undefined, prebuiltToolBlocks, request.state, request.history);
   } catch {
-    return normalizeFinalPayload(raw, request.input, toolExecutions, undefined, undefined, request.state);
+    return normalizeFinalPayload(raw, request.input, toolExecutions, undefined, undefined, request.state, request.history);
   }
 }

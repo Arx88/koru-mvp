@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { createSpeechSession, getSpeechSupport } from "../domain/speech";
 import { stopSpeaking } from "../domain/koruVoice";
+import { canDeliverProactive, remainingProactiveCapacity, reserveProactiveDelivery } from "../domain/proactiveDelivery";
 import { cn } from "../lib/utils";
 import { useKoru, type KoruChatTurn, type KoruTurnItem } from "./KoruProvider";
 import { KoruSemanticCard } from "./chatCards";
@@ -756,13 +757,19 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
   // El engine corre en el server, lee las memories del usuario y decide si
   // hay un evento relevante (partido, lluvia, pendiente, cumpleaños).
   // Si lo hay, genera un mensaje CON PERSONALIDAD y lo muestra como primer turn.
-  const proactiveCheckedRef = useRef(false);
+  const proactiveContextRef = useRef({ state: koruDomainState, busy: false, turns: chatTurns });
+  proactiveContextRef.current = {
+    state: koruDomainState,
+    busy: processing || Boolean(inputText.trim()) || isListening || isRecording || transcribing || analyzingImage || showCreate || Boolean(modal),
+    turns: chatTurns,
+  };
   useEffect(() => {
-    if (proactiveCheckedRef.current) return;
     if (onboarding) return;
-    proactiveCheckedRef.current = true;
-
+    const initial = proactiveContextRef.current;
     const lastSeen = parseInt(localStorage.getItem("michi.lastSeen") ?? "0", 10) || Date.now();
+    localStorage.setItem("michi.lastSeen", String(Date.now()));
+    if (initial.busy || !canDeliverProactive(initial.state, new Date())) return;
+    const controller = new AbortController();
 
     (async () => {
       try {
@@ -777,6 +784,7 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
         };
 
         const res = await fetch("/api/michi/proactive", {
+          signal: controller.signal,
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -787,6 +795,15 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
         if (!res.ok) return;
         const data = await res.json();
         if (data.shouldShow && data.reply) {
+          const current = proactiveContextRef.current;
+          if (controller.signal.aborted || current.busy || current.turns !== initial.turns ||
+            !canDeliverProactive(current.state, new Date())) return;
+          const dedupKey = typeof data.dedupKey === "string" && data.dedupKey.trim()
+            ? data.dedupKey : `reply:${String(data.reply).trim()}`;
+          const shownKey = "michi.proactiveShown";
+          const delivery = reserveProactiveDelivery(localStorage.getItem(shownKey), dedupKey, Date.now(), remainingProactiveCapacity(current.state, new Date()));
+          if (!delivery.allowed) return;
+          localStorage.setItem(shownKey, JSON.stringify(delivery.shown));
           const proactiveTurn: KoruChatTurn = {
             id: `proactive_${Date.now()}`,
             role: "koru",
@@ -802,7 +819,7 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
       }
     })();
 
-    localStorage.setItem("michi.lastSeen", String(Date.now()));
+    return () => controller.abort();
   }, [onboarding]);
 
   const submitText = useCallback(async (text: string, source: "typed" | "speech") => {

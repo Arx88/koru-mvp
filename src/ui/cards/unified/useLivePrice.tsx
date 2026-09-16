@@ -22,5 +22,10 @@ export function useLivePrice(basePrice: string | undefined, _intervalMs = 3000) 
 export function LivePrice({ value, className }: { value: string | undefined; className?: string }) {
   const { displayPrice, direction } = useLivePrice(value);
   const flashClass = direction === "up" ? "up" : direction === "dn" ? "dn" : "";
-  return <span className={`koru-live-price ${flashClass} ${className ?? ""}`}>{displayPrice}</span>;
+  return (
+    <span className={`koru-live-price ${flashClass} ${className ?? ""}`}>
+      <span className="koru-live-dot" aria-hidden="true" />
+      {displayPrice}
+    </span>
+  );
 }

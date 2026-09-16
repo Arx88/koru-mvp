@@ -25,6 +25,7 @@ import { logger, dump } from "./logger";
 import type { ToolDefinition } from "../tools/types";
 import { systemPrompt, formatDateLong, formatTimeShort, formatTemporalContext, ensureNameInGreeting } from "./systemPrompt";
 import { executeTool } from "./toolDispatcher";
+import { conversationGuidance } from "./conversationExperience";
 import {
   buildMemoryExtractorMessages,
   extractMemoryWithJsonPrompt,
@@ -3342,7 +3343,7 @@ export function buildMessages(request: KoruBackendTurnRequest): ChatMessage[] {
     content: turn.content,
   }));
   return [
-    { role: "system", content: [systemPrompt(new Date().toISOString(), request.state, relevantMemories), absencePrompt].filter(Boolean).join("\n\n") },
+    { role: "system", content: [systemPrompt(new Date().toISOString(), request.state, relevantMemories), absencePrompt, conversationGuidance(request.input, request.history, request.state)].filter(Boolean).join("\n\n") },
     ...history,
     { role: "user", content: request.input },
   ];
@@ -4723,7 +4724,7 @@ export async function runKoruBackendTurn(
     } catch {
       fastParsed = { reply: cleanReplyText(fastContent) || "Hola. ¿Cómo va todo?", mascotState: "happy" };
     }
-    const fastResponse = normalizeFinalPayload(fastParsed, request.input, [], undefined, undefined, request.state);
+    const fastResponse = normalizeFinalPayload(fastParsed, request.input, [], undefined, undefined, request.state, request.history);
     // 🔴 BUG EN VIVO 2026-09-12 ("no me nombra"): los saludos del fast-path
     // deben usar el nombre del usuario. El LLM fast lo omite ~la mitad de las
     // veces — pulido determinístico (solo openers de saludo, ver systemPrompt.ts).
@@ -4775,9 +4776,9 @@ export async function runKoruBackendTurn(
       let response: KoruBackendTurnResponse;
       try {
         const extracted = await extractMemoryWithJsonPrompt(request, fastConfig, toolExecutions, { reply: effectiveReply, uiBlocks: [] }, 15_000);
-        response = normalizeFinalPayload({ reply: effectiveReply, mascotState: "happy", uiBlocks: [] }, request.input, toolExecutions, extracted.raw, undefined, request.state);
+        response = normalizeFinalPayload({ reply: effectiveReply, mascotState: "happy", uiBlocks: [] }, request.input, toolExecutions, extracted.raw, undefined, request.state, request.history);
       } catch {
-        response = normalizeFinalPayload({ reply: effectiveReply, mascotState: "happy", uiBlocks: [] }, request.input, toolExecutions, undefined, undefined, request.state);
+        response = normalizeFinalPayload({ reply: effectiveReply, mascotState: "happy", uiBlocks: [] }, request.input, toolExecutions, undefined, undefined, request.state, request.history);
       }
 
       return { ...response, provider, model, fallbackReason: "fastpath-skip-router" };
@@ -5212,7 +5213,7 @@ export async function runKoruBackendTurn(
             records: asArray(parsedRoute.records || []),
             mascotState: parsedRoute.mascotState,
           };
-          const response2 = normalizeFinalPayload(rawRoute, request.input, toolExecutions, undefined, undefined, request.state);
+          const response2 = normalizeFinalPayload(rawRoute, request.input, toolExecutions, undefined, undefined, request.state, request.history);
           // 🔴 Aplicar enriquecimiento también aquí (camino 3: delivered=false, JSON válido)
           if (response2.uiBlocks) {
             for (const block of response2.uiBlocks) {

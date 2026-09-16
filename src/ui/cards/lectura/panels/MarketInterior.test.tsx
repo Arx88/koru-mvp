@@ -17,7 +17,7 @@ describe("MarketInterior", () => {
     expect(screen.getByText(/3 activos/i)).toBeInTheDocument();
   });
 
-  it("el hero muestra el price real del block (sin precio simulado)", () => {
+  it("el precio latiente parte del price real del block", () => {
     vi.useFakeTimers();
     try {
       render(<MarketInterior block={marketBlock} onClose={vi.fn()} />);

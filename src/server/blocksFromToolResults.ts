@@ -746,6 +746,38 @@ export function blocksFromToolResults(results: ToolExecution[], userInput?: stri
       continue;
     }
 
+    if (result.type === "recipe_show") {
+      const r = result as any;
+      if (r.status !== "ok" || !Array.isArray(r.recipes)) continue;
+      for (const saved of r.recipes) {
+        const title = cleanText(saved.title);
+        if (!title) continue;
+        const instructions = typeof saved.steps === "string" ? saved.steps.trim() : "";
+        const steps = instructions.split(/\r?\n/).map((text: string) => text.trim()).filter(Boolean);
+        let source: { title: string; url: string; domain: string } | undefined;
+        try {
+          const url = new URL(saved.source);
+          if (url.protocol === "https:" || url.protocol === "http:") {
+            source = { title: "Fuente guardada", url: url.href, domain: url.hostname };
+          }
+        } catch {
+          // Saved source labels are not necessarily URLs.
+        }
+        blocks.push({
+          type: "recipe",
+          name: title,
+          title,
+          instructions: instructions || undefined,
+          ingredients: typeof saved.ingredients === "string"
+            ? saved.ingredients.split(",").map((ingredient: string) => ingredient.trim()).filter(Boolean).map((ingredient: string) => ({ ingredient }))
+            : undefined,
+          steps: steps.length ? steps.map((text: string, index: number) => ({ step: index + 1, text })) : undefined,
+          source,
+        });
+      }
+      continue;
+    }
+
     // recipe_find: usar el nuevo tipo recipe con ingredientes estructurados + video
     if (result.type === "recipe_find") {
       const r = result as any;
