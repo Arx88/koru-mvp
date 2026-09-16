@@ -45,6 +45,30 @@ describe("audit fútbol v2: partido pasado, copas, escudos, interior rico", () =
     expect(String(live.matches[0].league ?? "")).toMatch(/champions/i);
   }, 90_000);
 
+  it("cobertura: clubes FUERA del diccionario propio resuelven por ESPN", async () => {
+    // Antes el diccionario escrito a mano (CLUB_SYNONYMS) decidía quién era el
+    // equipo: los clubes que no estaban en la lista caían al barrido de ~20 ligas
+    // (caro y a 4+ días vista sin resultados). Ahora el club se resuelve por la
+    // búsqueda de entidades de ESPN (ver src/tools/sports/espn.ts).
+    for (const club of ["Talleres", "Instituto"]) {
+      const sched: any = await matchSchedule.run({ team: club, __userInput: `cuándo juega ${club}` }, runCtx);
+      expect(sched.status).toBe("ok");
+      expect((sched.matches ?? []).length).toBeGreaterThan(0);
+      expect(sched.nextMatch?.homeLogo).toBeTruthy();
+      // El fixture es de ESE club (nombre canónico de ESPN, con la ciudad).
+      const involved = `${sched.nextMatch?.homeTeam} ${sched.nextMatch?.awayTeam}`.toLowerCase();
+      expect(involved).toContain(club.toLowerCase());
+    }
+  }, 120_000);
+
+  it("cobertura: una SELECCIÓN trae su fixture por calendario (id por competencia)", async () => {
+    const sched: any = await matchSchedule.run({ team: "España", __userInput: "cuándo juega España" }, runCtx);
+    expect(sched.status).toBe("ok");
+    expect((sched.matches ?? []).length).toBeGreaterThan(0);
+    const involved = `${sched.nextMatch?.homeTeam} ${sched.nextMatch?.awayTeam}`;
+    expect(involved).toMatch(/spain/i);
+  }, 120_000);
+
   it("intención de fixture: 'cuando juega boca' → UNA card de fixture con escudo", async () => {
     const live: any = await matchLive.run({ query: "Boca Juniors", __userInput: "cuando juega boca" }, runCtx);
     const sched: any = await matchSchedule.run({ team: "Boca Juniors", __userInput: "cuando juega boca" }, runCtx);

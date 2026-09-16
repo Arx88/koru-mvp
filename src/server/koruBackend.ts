@@ -2348,7 +2348,10 @@ export async function runSearch(
   return {
     type: "search",
     mode,
-    title: shopping ? "Comparativa" : mode === "news" ? "Noticias importantes" : mode === "world" ? "El mundo esta hablando de esto" : "Busqueda",
+    // 🔴 FIX TEMA PLACEHOLDER (2026-09-15) — el modo genérico devolvía la
+    // etiqueta interna "Busqueda" como `title`, y blocksFromToolResults la usa
+    // como TEMA de la card ("Encontré 6 fuentes sobre 'Busqueda'").
+    title: shopping ? "Comparativa" : mode === "news" ? "Noticias importantes" : mode === "world" ? "El mundo esta hablando de esto" : cleanText(query, "Busqueda"),
     summary: sources.length
       ? (shopping ? honestShoppingSummary : "")
       : "No pude conseguir fuentes útiles con los conectores abiertos. No inventes resultados.",
@@ -3368,6 +3371,19 @@ function toolCallArgs(call: ProviderToolCall): Record<string, unknown> {
 
 
 
+
+/**
+ * 🔴 FIX CARD BASURA (2026-09-15) — marca la búsqueda web que se disparó como
+ * PLAN B de una tool de dato que falló (marcador, precio, clima...). Esa
+ * búsqueda no responde la pregunta: sin esta marca, blocksFromToolResults
+ * renderizaba una card genérica con tema placeholder ("Encontré 6 fuentes sobre
+ * 'Busqueda'") que el usuario veía como respuesta a algo que no preguntó.
+ */
+export function markFallbackSearch(toolExecutions: ToolExecution[], failedTool: string): void {
+  const last = toolExecutions[toolExecutions.length - 1];
+  if (!last || last.name !== "web_search" || !last.result) return;
+  (last.result as Record<string, unknown>).__fallbackFor = failedTool;
+}
 
 async function executeProviderToolCalls(
   toolCalls: ProviderToolCall[],
@@ -4822,6 +4838,7 @@ export async function runKoruBackendTurn(
           };
           messages.push({ role: "assistant", content: "", tool_calls: [fallbackToolCall] });
           await executeProviderToolCalls([fallbackToolCall], messages, request, toolExecutions, config);
+          markFallbackSearch(toolExecutions, lexicalRoute.tool ?? "web_search");
           const failedIdx = toolExecutions.findIndex(e => (e.result as any)?.status === "no_data" || (e.result as any)?.status === "failed");
           if (failedIdx >= 0) toolExecutions.splice(failedIdx, 1);
         }
@@ -5018,6 +5035,7 @@ export async function runKoruBackendTurn(
               };
               messages.push({ role: "assistant", content: "", tool_calls: [fallbackToolCall] });
               await executeProviderToolCalls([fallbackToolCall], messages, request, toolExecutions, config);
+              markFallbackSearch(toolExecutions, route.tool ?? "web_search");
               // Limpiar la tool fallida de toolExecutions
               const failedIdx = toolExecutions.findIndex(e => (e.result as any)?.status === "no_data" || (e.result as any)?.status === "failed");
               if (failedIdx >= 0) toolExecutions.splice(failedIdx, 1);
@@ -5491,6 +5509,7 @@ export async function runKoruBackendTurn(
         };
         messages.push({ role: "assistant", content: "", tool_calls: [fallbackToolCall] });
         await executeProviderToolCalls([fallbackToolCall], messages, request, toolExecutions, config);
+        markFallbackSearch(toolExecutions, failedTool.name);
         toolExecutions.splice(failedIdx, 1);
       }
     }

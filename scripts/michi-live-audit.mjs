@@ -116,6 +116,27 @@ const SCENARIOS = [
   { id: "investigacion", cat: "deep", input: "armame un informe sobre el litio en Argentina",
     expect: { note: "deep research: varias búsquedas + deliverable" }, budget: 180000 },
 
+  // 🔴 REGRESIÓN (2026-09-14) — "el informe habla del tema ANTERIOR".
+  // El usuario venía hablando del BTC y pidió un informe sobre la IA: el motor
+  // de informes pisaba el tema pedido con el viejo ("Tu informe sobre El BTC
+  // está en USD está terminado"). Este escenario exige que el entregable sea
+  // del tema PEDIDO y que no mencione el anterior.
+  { id: "informe-tema", cat: "deep", input: "hacé un informe sobre la IA en la última semana",
+    history: [
+      { role: "user", content: "¿El BTC está en USD?" },
+      { role: "assistant", content: "El BTC está en USD 77.796,41. Te dejé la cotización con variación 24h en la tarjeta." },
+      { role: "user", content: "¿y el ethereum?" },
+      { role: "assistant", content: "El ethereum está en 2.100 USD." },
+    ],
+    expect: { note: "deep research del tema PEDIDO (IA), no del anterior (BTC)" }, budget: 240000,
+    check: (r) => {
+      const flags = [];
+      const txt = `${r.reply} ${JSON.stringify(r.blocks)}`.toLowerCase();
+      if (/\bbtc\b|ethereum|solana/.test(txt)) flags.push("TEMA_VIEJO (el informe es del tema anterior)");
+      if (!/\bia\b|inteligencia artificial/.test(txt)) flags.push("TEMA_PEDIDO_AUSENTE (no habla de IA)");
+      return flags;
+    } },
+
   { id: "lugares", cat: "lugares", input: "estoy en Madrid, dónde puedo comer buenos tacos?",
     expect: { tool: "restaurant_deep_search" }, budget: 90000 },
 
