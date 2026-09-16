@@ -770,9 +770,10 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
         // Esto desbloquea todos los triggers del proactive engine.
         const stateToSend = {
           memories: (memories ?? []).filter((m: any) => m.status === "confirmed" || m.status === "candidate").slice(0, 20).map((m: any) => ({ kind: m.kind, text: m.text })),
-          commitments: [],
+          commitments: koruDomainState.commitments.filter((item) => item.status === "open"),
+          entries: koruDomainState.entries.map(({ createdAt }) => ({ createdAt })),
           records: [],
-          userName: (history?.[0] as any)?.userName ?? "",
+          userName: userName || koruDomainState.userName || "",
         };
 
         const res = await fetch("/api/michi/proactive", {

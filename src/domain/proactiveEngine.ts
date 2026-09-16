@@ -248,7 +248,6 @@ export async function generateProactiveMessage(
   memories: MemoryFact[],
   config: ProviderConfig,
   userName: string,
-  lastSeenOfTurn = Date.now(),
 ): Promise<ProactiveMessage | null> {
   // Template-based message generation (sin LLM para evitar timeout)
   // El LLM se usa solo si está disponible, pero el template es el fallback
@@ -612,6 +611,6 @@ export async function runProactiveCheck(
 
   // Paso 3: Generar mensaje
   // Usar template-based generation (sin LLM, más confiable)
-  const message = await generateProactiveMessage(events, memories, config, userName, lastSeen);
+  const message = await generateProactiveMessage(events, memories, config, userName);
   return message;
 }

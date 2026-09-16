@@ -8,9 +8,10 @@ import { SemanticRouter } from "../domain/semanticRouter";
 // (HEAD con timeout de 1.5s) se saltan limpio y solo corren donde hay
 // embeddings reales disponibles.
 
-const OLLAMA_BASE = "http://172.23.144.1:11434";
+const OLLAMA_BASE = process.env.OLLAMA_URL?.replace(/\/$/, "");
 
 async function ollamaAvailable(): Promise<boolean> {
+  if (!OLLAMA_BASE) return false;
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 1500);

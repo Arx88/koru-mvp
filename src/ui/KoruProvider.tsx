@@ -865,7 +865,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
   // revisa los recordatorios vencidos al recibirlo.
   useEffect(() => {
     const onSwMessage = (event: MessageEvent) => {
-      if ((event.data as { type?: string })?.type !== "CHECK_REMINDERS") return;
+      if ((event.data as { type?: string })?.type !== "CHECK_REMINDERS" || inDndWindow()) return;
       const userId = domainStateRef.current?.userId ?? "default";
       checkDueReminders(userId);
     };

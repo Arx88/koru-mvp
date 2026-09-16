@@ -1,11 +1,8 @@
 // Michi Service Worker — notificaciones push y background sync
 // Mobile-first: funciona en PWA standalone
 
-// 🐱 v8.5 — michi-v10: sistema de Stickers de actitud (15 webp en
-// /assets/stickers/) + tono más cercano/cool/gracioso. El SW no intercepta
-// fetch, pero se bumpea la caché siguiendo la convención de release: al
-// cambiar sw.js el navegador reinstala y el activate limpia cachés viejas.
-const CACHE_NAME = "michi-v11";
+// Only public application assets belong in this cache, never user data.
+const CACHE_NAME = "michi-v12";
 const STATIC_ASSETS = [
   "/",
   "/index.html",
@@ -65,17 +62,18 @@ const STATIC_ASSETS = [
 self.addEventListener("install", (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS)).catch(() => {})
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.allSettled(STATIC_ASSETS.map((asset) => cache.add(new Request(asset, { credentials: "omit" }))))
+    )
   );
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
+      Promise.all(keys.filter((k) => /^michi-v\d+$/.test(k) && k !== CACHE_NAME).map((k) => caches.delete(k)))
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 // Push notifications (para futuro push server)
@@ -117,45 +115,35 @@ self.addEventListener("notificationclick", (event) => {
   );
 });
 
-// 🔴 OFFLINE (2026-09-14): fetch handler con estrategia stale-while-revalidate.
-// Antes el SW no interceptaba nada: sin conexión la app moría en blanco.
-// - Navegación → red primero, caché si falla (offline usable).
-// - Assets same-origin estáticos → caché primero, revalida por detrás.
-// - API/NDJSON/terceros → NUNCA se cachean (datos vivos).
 self.addEventListener("fetch", (event) => {
   const req = event.request;
-  if (req.method !== "GET") return;
   const url = new URL(req.url);
-  if (url.origin !== self.location.origin) return;
-  if (url.pathname.startsWith("/api/")) return;
+  if (req.method !== "GET" || url.origin !== self.location.origin || url.search || req.headers.has("authorization")) return;
+  const shell = url.pathname === "/" || url.pathname === "/index.html";
+  const asset = url.pathname === "/favicon.svg" || /^\/assets\/.+\.(?:js|css|webp|png|jpg|jpeg|svg|woff2?|ico)$/.test(url.pathname);
+  if (!shell && !asset) return;
 
-  if (req.mode === "navigate") {
-    event.respondWith(
-      fetch(req)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put("/", copy)).catch(() => {});
-          return res;
-        })
-        .catch(() => caches.match("/").then((hit) => hit || caches.match("/index.html")))
-    );
-    return;
-  }
-
-  event.respondWith(
-    caches.match(req).then((cached) => {
-      const network = fetch(req)
-        .then((res) => {
-          if (res.ok && res.type === "basic") {
-            const copy = res.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(req, copy)).catch(() => {});
-          }
-          return res;
-        })
-        .catch(() => cached);
-      return cached || network;
-    })
-  );
+  const unavailable = () => new Response("Sin conexión. Vuelve a intentarlo cuando recuperes internet.", {
+    status: 503,
+    headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
+  });
+  const cached = caches.open(CACHE_NAME).then((cache) => cache.match(shell ? "/" : req));
+  const network = fetch(new Request(req, { credentials: "omit" })).then(async (res) => {
+    if (res.ok && res.type === "basic" && !res.redirected && !/no-store|private/i.test(res.headers.get("cache-control") || "")) {
+      const copy = res.clone();
+      await caches.open(CACHE_NAME).then((cache) => cache.put(shell ? "/" : req, copy)).catch(() => {});
+    }
+    return res;
+  }).catch(() => null);
+  event.waitUntil(network.then(() => {}));
+  event.respondWith((async () => {
+    if (shell) {
+      const response = await network;
+      if (response?.ok) return response;
+      return await cached || response || unavailable();
+    }
+    return await cached || await network || unavailable();
+  })());
 });
 
 // Periodic Background Sync (Chrome/Edge — cuando soporta)

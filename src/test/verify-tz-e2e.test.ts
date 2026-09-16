@@ -6,7 +6,7 @@ import { blocksFromToolResults } from "../server/blocksFromToolResults";
 
 const TZ_MADRID = -120; // getTimezoneOffset() CEST (UTC+2)
 
-describe("e2e FIX TZ: fixture de Boca con cliente Madrid", () => {
+describe.skipIf(process.env.KORU_LIVE_API !== "1")("e2e FIX TZ: fixture de Boca con cliente Madrid", () => {
   it("muestra hora de Madrid, no UTC crudo", async () => {
     const runResult: any = await matchSchedule.run(
       { team: "Boca Juniors", __userInput: "cuando juega boca" },

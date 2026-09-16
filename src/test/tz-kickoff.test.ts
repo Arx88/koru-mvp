@@ -23,9 +23,10 @@ describe("formatKickoffUserTz", () => {
     expect(formatKickoffUserTz(BOCA_ISO, 180)).toBe("21:30");
   });
 
-  it("sin tz (legacy): hora del runtime (UTC en CI) → 00:30", () => {
-    // En vitest el container corre UTC: comportamiento legacy documentado.
-    expect(formatKickoffUserTz(BOCA_ISO, undefined)).toBe("00:30");
+  it("sin tz usa la hora local del runtime", () => {
+    const date = new Date(BOCA_ISO);
+    const expected = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+    expect(formatKickoffUserTz(BOCA_ISO, undefined)).toBe(expected);
   });
 
   it("withDate: fecha completa en tz del usuario (Madrid → sábado)", () => {
@@ -92,11 +93,14 @@ describe("blocksFromToolResults con tzOffsetMin (fixture card)", () => {
     expect((fixture as any).items?.[0]?.sub).toContain("21:30");
   });
 
-  it("sin tz (legacy): fecha/hora del runtime (UTC) — no rompe", () => {
+  it("sin tz usa la fecha y hora local del runtime", () => {
     const blocks = blocksFromToolResults([scheduleResult] as any, "cuando juega boca");
     const fixture = blocks.find((b) => b.type === "match_timeline");
-    expect((fixture as any).items?.[0]?.minute).toMatch(/s[aá]b.*12\/09/i); // UTC
-    expect((fixture as any).items?.[0]?.sub).toContain("00:30");
+    const date = new Date(BOCA_ISO);
+    const day = `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}`;
+    const time = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+    expect((fixture as any).items?.[0]?.minute).toContain(day);
+    expect((fixture as any).items?.[0]?.sub).toContain(time);
   });
 });
 

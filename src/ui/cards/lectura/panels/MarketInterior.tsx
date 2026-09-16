@@ -98,7 +98,7 @@ export function MarketInterior({ block, onClose, onSave }: LecturaInteriorProps<
                   borderRadius: "999px",
                 }}
               >
-                en vivo
+                última consulta
               </span>
             </div>
             <div className="px" style={{ color: up ? "var(--mint-ink)" : "var(--rose-ink)" }}>

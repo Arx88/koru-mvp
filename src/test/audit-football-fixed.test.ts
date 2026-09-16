@@ -11,7 +11,7 @@ import { toPresentation } from "../ui/cards/unified/presentation";
 
 const QUERIES = (process.env.KORU_QUERIES ?? "Barcelona||Boca Juniors||Real Madrid").split("||");
 
-describe("audit: pipeline fútbol CON FIXES", () => {
+describe.skipIf(process.env.KORU_LIVE_API !== "1")("audit: pipeline fútbol CON FIXES", () => {
   for (const q of QUERIES) {
     it(`query: "${q}"`, async () => {
       const state: any = { memories: [], records: [], commitments: [] };

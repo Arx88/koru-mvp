@@ -10,7 +10,7 @@ import { blocksFromToolResults } from "../server/blocksFromToolResults";
 const state: any = { memories: [], records: [], commitments: [] };
 const runCtx: any = { userInput: "", state, tzOffsetMin: -120 };
 
-describe("audit fútbol v2: partido pasado, copas, escudos, interior rico", () => {
+describe.skipIf(process.env.KORU_LIVE_API !== "1")("audit fútbol v2: partido pasado, copas, escudos, interior rico", () => {
   it("partido pasado: match_live encuentra el resultado (ventana 12 días)", async () => {
     const live: any = await matchLive.run({ query: "Real Madrid ayer", __userInput: "Real Madrid ayer" }, runCtx);
     // Real Madrid jugó el 08/09 (Champions) — dentro de la ventana de 12 días.
