@@ -33,6 +33,7 @@
 
 import { fetchJson } from "../shared/fetcher";
 import { cachedSoft, ttls } from "../shared/cache";
+import { countRequest, noteSource, type SourceStatus } from "../shared/telemetry";
 
 /** Base de la API pública de ESPN para fútbol. */
 export const ESPN_SITE_BASE = "https://site.api.espn.com/apis/site/v2/sports/soccer";
@@ -185,11 +186,15 @@ export async function resolveEspnTeam(
   const q = String(query ?? "").replace(/\s+/g, " ").trim();
   if (!q) return null;
   const searchLimit = opts.searchLimit ?? 10;
+  const t0 = Date.now();
+  let fromNetwork = false;
   const items = await cachedSoft<EspnSearchItem[]>(
     `espn:resolve:${q.toLowerCase()}:${searchLimit}`,
     opts.ttlMs ?? ttls.reference,
     ttls.negative,
     async () => {
+      fromNetwork = true;
+      countRequest();
       const r = await fetchJson<{ items?: EspnSearchItem[] }>(
         `${ESPN_SEARCH_URL}?query=${encodeURIComponent(q)}&limit=${searchLimit}&type=team&sport=soccer`,
         { timeoutMs: 8_000 },
@@ -201,7 +206,14 @@ export async function resolveEspnTeam(
       return usable.length > 0 ? usable : null;
     },
   );
-  if (!items || items.length === 0) return null;
+  // El estado "ok" describe la RESOLUCIÓN (no el HTTP): la búsqueda puede
+  // responder 200 y no haber ningún candidato usable.
+  const status: SourceStatus = fromNetwork ? "ok" : "cache";
+  const ms = Date.now() - t0;
+  if (!items || items.length === 0) {
+    noteSource("espn:search", fromNetwork ? "empty" : status, `query="${q}" (sin resultados)`, ms);
+    return null;
+  }
 
   const target = normalizeEspnText(q);
   let best: EspnSearchItem | null = null;
@@ -213,10 +225,17 @@ export async function resolveEspnTeam(
       bestScore = score;
     }
   }
-  if (!best || bestScore <= 0) return null;
+  if (!best || bestScore <= 0) {
+    noteSource("espn:search", fromNetwork ? "empty" : status, `query="${q}" (${items.length} candidatos, ninguno usable)`, ms);
+    return null;
+  }
   const leagueId = espnItemLeague(best);
-  if (!leagueId || !best.id) return null;
+  if (!leagueId || !best.id) {
+    noteSource("espn:search", fromNetwork ? "empty" : status, `query="${q}" (candidato sin id/liga)`, ms);
+    return null;
+  }
 
+  noteSource("espn:search", status, `query="${q}" → ${leagueId}/${best.id} "${best.displayName ?? q}" (score ${bestScore})`, ms);
   return {
     teamId: String(best.id),
     teamName: best.displayName ?? q,
@@ -225,6 +244,46 @@ export async function resolveEspnTeam(
     national: isNationalTeamLeague(leagueId),
     score: bestScore,
   };
+}
+
+/** Prefijo de país de un id de liga del catálogo: "arg.1" → "arg". */
+function leagueCountry(leagueId: string): string {
+  return leagueId.split(".")[0] ?? "";
+}
+
+/**
+ * Confederación continental de cada país del catálogo. Sirve para saber qué copas
+ * internacionales puede jugar un club de ese país.
+ */
+const CONTINENTAL_BY_COUNTRY: Record<string, string> = {
+  arg: "conmebol", bra: "conmebol", col: "conmebol", chi: "conmebol", uru: "conmebol",
+  par: "conmebol", per: "conmebol", ecu: "conmebol", ven: "conmebol", bol: "conmebol",
+  esp: "uefa", eng: "uefa", ita: "uefa", ger: "uefa", fra: "uefa", por: "uefa", ned: "uefa",
+};
+
+/**
+ * 🔴 FIX COSTO DEL SCOREBOARD (2026-09-16) — de las competiciones donde un club
+ * PUEDE jugar, según su liga: la propia, las de su país, las de su confederación y
+ * las de FIFA. Medido en vivo: la consulta del clásico Independiente–San Lorenzo
+ * barría las 20 ligas del catálogo para descartar 19 → 104 requests; con este
+ * filtro queda en las que importan (arg.1, arg.copa, conmebol.*, fifa.world).
+ *
+ * Devuelve `undefined` sin ligas resueltas: ahí NO se restringe nada (mejor gastar
+ * requests que perder el partido cuando no sabemos de quién se habla).
+ */
+export function probableLeaguesFor(leagueIds: string[]): string[] | undefined {
+  const ids = [...new Set(leagueIds.filter(Boolean))];
+  if (ids.length === 0) return undefined;
+  const countries = new Set(ids.map(leagueCountry).filter(c => c && !/^(fifa|uefa|conmebol|concacaf|caf|afc|club)$/.test(c)));
+  const confederations = new Set([...countries].map(c => CONTINENTAL_BY_COUNTRY[c]).filter(Boolean));
+  const out = new Set(ids);
+  for (const league of ESPN_LEAGUES) {
+    const country = leagueCountry(league.id);
+    if (countries.has(country)) out.add(league.id); // mismo país: liga + copa doméstica
+    else if (confederations.has(country)) out.add(league.id); // copas de su confederación
+    else if (country === "fifa") out.add(league.id); // Mundial / amistosos
+  }
+  return [...out];
 }
 
 /**
@@ -239,11 +298,15 @@ export async function fetchEspnTeamSchedule<E = unknown>(
   teamId: string,
 ): Promise<E[] | null> {
   if (!leagueId || !teamId) return null;
-  return cachedSoft<E[]>(
+  const t0 = Date.now();
+  let fromNetwork = false;
+  const events = await cachedSoft<E[]>(
     `espn:teamschedule:${leagueId}:${teamId}`,
     ttls.sportsStandings,
     ttls.negative,
     async () => {
+      fromNetwork = true;
+      countRequest();
       const r = await fetchJson<{ events?: E[] }>(
         `${ESPN_SITE_BASE}/${leagueId}/teams/${teamId}/schedule?fixture=true`,
         { timeoutMs: 9_000 },
@@ -252,4 +315,7 @@ export async function fetchEspnTeamSchedule<E = unknown>(
       return (r.data?.events ?? []).filter(Boolean);
     },
   );
+  const status: SourceStatus = !fromNetwork ? "cache" : events === null ? "failed" : events.length > 0 ? "ok" : "empty";
+  noteSource("espn:team-schedule", status, `${leagueId}/${teamId}`, Date.now() - t0);
+  return events;
 }

@@ -96,11 +96,36 @@ function installFetch(mode: Mode) {
     }
 
     // ── Wikipedia ──
+    // Se devuelven DOS candidatos con el homónimo colombiano PRIMERO (el caso real
+    // que rompía la card): el código tiene que descartarlo por su descripción.
     if (url.includes("es.wikipedia.org")) {
       if (url.includes("rest_v1/page/summary")) {
-        return jsonResponse({ extract: "El Club Atlético Boca Juniors es una entidad deportiva argentina.", content_urls: { desktop: { page: "https://es.wikipedia.org/wiki/Boca_Juniors" } } });
+        const title = decodeURIComponent(url.split("/page/summary/")[1] ?? "");
+        if (/de Cali/i.test(title)) {
+          return jsonResponse({
+            description: "club de fútbol Colombiano",
+            extract: "Boca Juniors de Cali es un club de fútbol colombiano.",
+            content_urls: { desktop: { page: `https://es.wikipedia.org/wiki/${encodeURIComponent(title)}` } },
+          });
+        }
+        if (/desambiguaci/i.test(title)) {
+          return jsonResponse({ description: "página de desambiguación de Wikimedia", extract: "Página de desambiguación." });
+        }
+        return jsonResponse({
+          description: "club deportivo de Buenos Aires, Argentina",
+          extract: "El Club Atlético Boca Juniors es una entidad deportiva argentina.",
+          content_urls: { desktop: { page: `https://es.wikipedia.org/wiki/${encodeURIComponent(title)}` } },
+        });
       }
-      return jsonResponse({ query: { search: [{ title: "Boca Juniors", snippet: "club de fútbol argentino" }] } });
+      return jsonResponse({
+        query: {
+          search: [
+            { title: "Boca Juniors (desambiguación)", snippet: "página de desambiguación" },
+            { title: "Boca Juniors de Cali", snippet: "club de fútbol colombiano" },
+            { title: "Club Atlético Boca Juniors", snippet: "club de fútbol argentino" },
+          ],
+        },
+      });
     }
 
     return jsonResponse({});
@@ -205,6 +230,62 @@ describe("fixture: fallback de TheSportsDB", () => {
     expect(sched.matches[0].awayTeam).toBe("Vélez");
     expect(sched.nextMatch?.homeLogo).toContain("boca.png");
     expect(sched.source).toContain("TheSportsDB");
+  });
+});
+
+describe("wiki del equipo: el artículo se VERIFICA antes de usarlo", () => {
+  it("descarta el homónimo de otro país y la desambiguación, y se queda con el club", async () => {
+    // Caso real (visto en la telemetría del deploy): "Boca Juniors" traía el
+    // artículo de "Boca Juniors de Cali" → el interior de la card hablaba del club
+    // colombiano. El candidato listado primero acá es el equivocado a propósito.
+    installFetch("espn-team-calendar");
+    const matchSchedule = await freshMatchSchedule();
+    const sched: any = await matchSchedule.run({ team: "Boca Juniors" }, { tzOffsetMin: 180 } as any);
+
+    expect(sched.sources?.[0]?.title).toBe("Club Atlético Boca Juniors");
+    expect(sched.wikipediaExtract).toContain("Boca Juniors");
+    expect(sched.wikipediaExtract).not.toMatch(/colombiano/i);
+  });
+
+  it("la búsqueda pide un 'club de fútbol' (no el nombre pelado, que es ambiguo)", async () => {
+    installFetch("espn-team-calendar");
+    const matchSchedule = await freshMatchSchedule();
+    await matchSchedule.run({ team: "Boca Juniors" }, { tzOffsetMin: 180 } as any);
+
+    const wikiSearch = captured.find(u => u.includes("list=search"));
+    expect(wikiSearch).toBeDefined();
+    expect(decodeURIComponent(wikiSearch!)).toContain("club de fútbol");
+  });
+});
+
+describe("telemetría de la corrida (por dónde pasó y qué costó)", () => {
+  it("el resultado dice qué fuentes se intentaron y cuántas requests gastó", async () => {
+    installFetch("espn-team-calendar");
+    const matchSchedule = await freshMatchSchedule();
+    const sched: any = await matchSchedule.run({ team: "Boca Juniors", __userInput: "cuando juega boca" }, { tzOffsetMin: 180 } as any);
+
+    expect(sched.telemetry).toBeDefined();
+    const sources = sched.telemetry.sourcesTried.map((s: any) => s.source);
+    // El fixture salió del calendario del equipo: eso es lo que tiene que decir la
+    // telemetría (antes, con 8 caminos y todos mudos, no había forma de saberlo).
+    expect(sources).toContain("espn:search");
+    expect(sources).toContain("espn:team-schedule");
+    expect(sched.telemetry.requests).toBeGreaterThan(0);
+    // La resolución deja el club canónico y su liga en el detalle (diagnóstico).
+    const search = sched.telemetry.sourcesTried.find((s: any) => s.source === "espn:search");
+    expect(search.status).toBe("ok");
+    expect(search.detail).toContain("arg.1/5");
+  });
+
+  it("la segunda corrida se sirve de caché y gasta menos requests", async () => {
+    installFetch("espn-team-calendar");
+    const matchSchedule = await freshMatchSchedule();
+    const runCtx: any = { tzOffsetMin: 180 };
+    const first: any = await matchSchedule.run({ team: "Boca Juniors" }, runCtx);
+    const second: any = await matchSchedule.run({ team: "Boca Juniors" }, runCtx);
+
+    expect(second.telemetry.cacheHits).toBeGreaterThan(0);
+    expect(second.telemetry.requests).toBeLessThan(first.telemetry.requests);
   });
 });
 

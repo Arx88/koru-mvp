@@ -148,6 +148,45 @@ describe("resolveEspnTeam — clubes que el diccionario propio no conoce", () =>
   });
 });
 
+describe("probableLeaguesFor — dónde PUEDE jugar el club resuelto", () => {
+  it("un club argentino: su liga, la copa de su país, la copa de su confederación y FIFA", async () => {
+    const { probableLeaguesFor } = await freshEspn();
+    const ids = probableLeaguesFor(["arg.1"])!;
+    expect(ids).toContain("arg.1");
+    expect(ids).toContain("arg.copa");
+    expect(ids).toContain("conmebol.libertadores");
+    expect(ids).toContain("conmebol.sudamericana");
+    expect(ids).toContain("fifa.world");
+    // No tiene por qué jugar la Copa del Rey ni la Premier.
+    expect(ids).not.toContain("esp.copa_del_rey");
+    expect(ids).not.toContain("eng.1");
+    expect(ids.length).toBeLessThan(8);
+  });
+
+  it("un club español: sus copas son las europeas, no las sudamericanas", async () => {
+    const { probableLeaguesFor } = await freshEspn();
+    const ids = probableLeaguesFor(["esp.1"])!;
+    expect(ids).toContain("esp.copa_del_rey");
+    expect(ids).toContain("uefa.champions");
+    expect(ids).not.toContain("conmebol.libertadores");
+  });
+
+  it("sin liga resuelta NO se restringe (undefined) — mejor gastar requests que perder el partido", async () => {
+    const { probableLeaguesFor } = await freshEspn();
+    expect(probableLeaguesFor([])).toBeUndefined();
+    expect(probableLeaguesFor(["", ""])).toBeUndefined();
+  });
+
+  it("una liga fuera del catálogo no deja la lista vacía (cae a todas)", async () => {
+    const { probableLeaguesFor } = await freshEspn();
+    const ids = probableLeaguesFor(["jpn.1"])!;
+    // jpn.1 no está en el catálogo: sólo aporta FIFA, así que el scoreboard se
+    // queda sin restricción efectiva (ver leaguesToFetch: probable vacío → todas).
+    expect(ids).toContain("jpn.1");
+    expect(ids.some(id => id === "arg.1" || id === "esp.1")).toBe(false);
+  });
+});
+
 describe("fetchEspnTeamSchedule — calendario por equipo", () => {
   it("devuelve los eventos y los cachea", async () => {
     const calls = installFetch(url => url.includes("/schedule")

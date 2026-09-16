@@ -6,11 +6,14 @@
 import { defineTool, policies, type ToolRunContext, type ToolHandler } from "../types";
 import { fetchJson } from "../shared/fetcher";
 import { cached, getCached, setCached, ttls } from "../shared/cache";
+import { countRequest, noteSource, requestBudgetLeft, withTelemetry } from "../shared/telemetry";
 import {
   ESPN_LEAGUES,
   ESPN_SITE_BASE,
   NATIONAL_LEAGUE_IDS,
   fetchEspnTeamSchedule,
+  normalizeEspnText,
+  probableLeaguesFor,
   resolveEspnTeam,
   type ResolvedEspnTeam,
 } from "./espn";
@@ -43,7 +46,14 @@ export function formatKickoffUserTz(
   return time;
 }
 
-const TSDB_KEY = "3"; // Key pública gratuita de TheSportsDB.
+/**
+ * Key de TheSportsDB desde el entorno.
+ * 🔴 HIGIENE (2026-09-16) — el default "3" es la key pública COMPARTIDA: cualquiera
+ * que use esta app la comparte con el resto del mundo, así que el rate-limit
+ * (~30 req/min) lo pagan desconocidos. Con TSDB_KEY propia en el entorno, cada
+ * despliegue tiene su cuota.
+ */
+const TSDB_KEY = process.env.TSDB_KEY?.trim() || "3";
 const TSDB_BASE = `https://www.thesportsdb.com/api/v1/json/${TSDB_KEY}`;
 // Catálogo de ligas, resolvedor de equipos y calendario por equipo: viven en
 // ./espn para que todas las tools deportivas compartan UNA fuente de verdad.
@@ -380,9 +390,43 @@ function espnEventState(e: EspnEvent): "pre" | "in" | "post" {
  * Las selecciones juegan en ≤3 ligas ESPN → solo se fetchean esas (más rápido
  * que las 19 ligas de clubes).
  */
+/**
+ * Envuelve el barrido para dejar asentado su costo y su resultado en la
+ * telemetría de la corrida: "no encontré nada" y "ninguna liga respondió" se ven
+ * iguales desde afuera, y no lo son.
+ */
 async function searchEspnScoreboards(
   query: string,
-  opts: { fromDays?: number; toDays?: number; pairText?: string; resolvedTeam?: ResolvedEspnTeam | null } = {},
+  opts: {
+    fromDays?: number;
+    toDays?: number;
+    pairText?: string;
+    resolvedTeam?: ResolvedEspnTeam | null;
+    probableLeagueIds?: string[];
+  } = {},
+): Promise<{ events: Array<{ event: EspnEvent; leagueId: string; leagueName: string }>; okLeagues: number; failedLeagues: number }> {
+  const t0 = Date.now();
+  const out = await searchEspnScoreboardsImpl(query, opts);
+  const total = out.okLeagues + out.failedLeagues;
+  noteSource(
+    "espn:scoreboard",
+    out.events.length > 0 ? "ok" : out.okLeagues > 0 ? "empty" : out.failedLeagues > 0 ? "failed" : "empty",
+    `${out.events.length} eventos · ${out.okLeagues}/${total} ligas ok`,
+    Date.now() - t0,
+  );
+  return out;
+}
+
+async function searchEspnScoreboardsImpl(
+  query: string,
+  opts: {
+    fromDays?: number;
+    toDays?: number;
+    pairText?: string;
+    resolvedTeam?: ResolvedEspnTeam | null;
+    /** Competiciones donde el club resuelto PUEDE jugar (ver probableLeaguesFor). */
+    probableLeagueIds?: string[];
+  } = {},
 ): Promise<{ events: Array<{ event: EspnEvent; leagueId: string; leagueName: string }>; okLeagues: number; failedLeagues: number }> {
   const fromDays = opts.fromDays ?? 12;
   const toDays = opts.toDays ?? 14;
@@ -457,6 +501,7 @@ async function searchEspnScoreboards(
     const cacheKey = `espn:sb:${league.id}:${range}`;
     try {
       const data = await cached<{ events?: EspnEvent[] } | null>(cacheKey, 60 * 1000, async () => {
+        countRequest();
         const res = await fetch(`${ESPN_BASE}/${league.id}/scoreboard?dates=${range}`, {
           signal: AbortSignal.timeout(8000),
         });
@@ -499,16 +544,34 @@ async function searchEspnScoreboards(
 
     const out: EspnEvent[] = [];
     let anyOk = false;
+    // 🔴 FIX LATENCIA (2026-09-16) — los días se pedían de a UNO: con el barrido ya
+    // restringido a las 5 competiciones del club, el presupuesto se concentra y
+    // cada liga mira ~9 días = 9 round-trips secuenciales (medido: 3,5s). Se piden
+    // en lotes de 3 (mismo total de requests, un tercio de la espera) sin perder el
+    // corte temprano: alcanza con encontrar un partido jugado del equipo en el lote.
+    const BATCH = 3;
+    const planned: Date[] = [];
+    // Doble techo: el presupuesto del barrido (local a esta liga) y el de la
+    // CORRIDA COMPLETA (telemetry.requestBudgetLeft). El segundo es el que impide
+    // que las ligas × días se conviertan en cientos de requests.
     for (const day of days) {
-      if (sweepBudget.left <= 0) break;
+      if (sweepBudget.left <= 0 || requestBudgetLeft() <= planned.length) break;
       sweepBudget.left--;
-      const r = await fetchRange(league, day, day);
-      if (r.failed) continue;
-      anyOk = true;
-      out.push(...r.events);
-      // Corte temprano: ya hay un partido JUGADO del equipo consultado en esta
-      // liga. Se deja de gastar presupuesto y se lo reserva para las demás.
-      if (r.events.some(e => espnEventState(e) !== "pre" && matchesQuery(e, league.id))) break;
+      planned.push(day);
+    }
+    for (let i = 0; i < planned.length; i += BATCH) {
+      const batch = planned.slice(i, i + BATCH);
+      const settled = await Promise.all(batch.map(day => fetchRange(league, day, day)));
+      let hit = false;
+      for (const r of settled) {
+        if (r.failed) continue;
+        anyOk = true;
+        out.push(...r.events);
+        if (r.events.some(e => espnEventState(e) !== "pre" && matchesQuery(e, league.id))) hit = true;
+      }
+      // Corte temprano: ya hay un partido JUGADO del equipo consultado en esta liga.
+      // Se deja de gastar presupuesto y se lo reserva para las demás.
+      if (hit) break;
     }
     return { events: out, failed: !anyOk };
   };
@@ -593,11 +656,20 @@ async function searchEspnScoreboards(
   // si ESPN rechazaba el rango, la liga pedida quedaba sin días barridos → no_data.
   // Si el query ES una copa/liga, alcanza con esa competencia (y sobra presupuesto).
   const leagueOnly = leagueMode && leagueHit ? ESPN_LEAGUES.filter(l => l.id === leagueHit.id) : [];
+  // 🔴 FIX COSTO DEL SCOREBOARD (2026-09-16) — si el club está resuelto (o los dos
+  // del par), se fetchean sólo las competiciones donde PUEDE jugar: su liga, la copa
+  // de su país, las copas de su confederación y las de FIFA (ver probableLeaguesFor).
+  // Medido: el clásico Independiente–San Lorenzo barría 20 ligas → 104 requests.
+  const probable = opts.probableLeagueIds && opts.probableLeagueIds.length > 0
+    ? ESPN_LEAGUES.filter(l => opts.probableLeagueIds!.includes(l.id))
+    : [];
   const leaguesToFetch = nationalIntent
     ? ESPN_LEAGUES.filter(l => NATIONAL_LEAGUE_IDS.has(l.id))
     : leagueOnly.length > 0
       ? leagueOnly
-      : ESPN_LEAGUES;
+      : probable.length > 0
+        ? probable
+        : ESPN_LEAGUES;
 
   await Promise.all(leaguesToFetch.map(fetchLeague));
 
@@ -660,24 +732,34 @@ async function searchEspnScoreboards(
  */
 async function fetchTsdbLastEvents(teamId: string, limit = 5): Promise<TsdbEvent[]> {
   if (!teamId) return [];
+  const t0 = Date.now();
   try {
     const cacheKey = `tsdb:last:${teamId}`;
     const hit = getCached<TsdbEvent[]>(cacheKey);
-    if (hit) return hit;
+    if (hit) {
+      noteSource("tsdb:eventslast", "cache", `teamId=${teamId}`);
+      return hit;
+    }
+    countRequest();
     const r = await fetchJson<{ results?: TsdbEvent[] }>(
       `${TSDB_BASE}/eventslast.php?id=${encodeURIComponent(teamId)}`,
       { timeoutMs: 9_000 },
     );
     // Solo se cachean aciertos: un 429 cacheado dejaría al equipo sin
     // resultados (y envenenaría el turno siguiente).
-    if (!r.ok) return [];
+    if (!r.ok) {
+      noteSource("tsdb:eventslast", "failed", `teamId=${teamId} ${r.error ?? ""}`.trim(), Date.now() - t0);
+      return [];
+    }
     const raw = r.data?.results ?? [];
     const sorted = [...raw].sort((a, b) =>
       String(b.strTimestamp ?? b.dateEvent ?? "").localeCompare(String(a.strTimestamp ?? a.dateEvent ?? "")),
     ).slice(0, limit);
+    noteSource("tsdb:eventslast", sorted.length > 0 ? "ok" : "empty", `teamId=${teamId} → ${sorted.length}`, Date.now() - t0);
     setCached(cacheKey, sorted, ttls.sportsLive);
     return sorted;
-  } catch {
+  } catch (err) {
+    noteSource("tsdb:eventslast", "failed", err instanceof Error ? err.message : String(err), Date.now() - t0);
     return [];
   }
 }
@@ -793,12 +875,19 @@ async function fetchEspnTeamFixture(
 }
 
 async function fetchEspnSummary(leagueId: string, eventId: string): Promise<EspnSummary | null> {
+  const t0 = Date.now();
+  countRequest();
   try {
     const url = `${ESPN_BASE}/${leagueId}/summary?event=${eventId}`;
     const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      noteSource("espn:summary", "failed", `HTTP ${res.status}`, Date.now() - t0);
+      return null;
+    }
+    noteSource("espn:summary", "ok", `${leagueId}/${eventId}`, Date.now() - t0);
     return await res.json() as EspnSummary;
-  } catch {
+  } catch (err) {
+    noteSource("espn:summary", "failed", err instanceof Error ? err.message : String(err), Date.now() - t0);
     return null;
   }
 }
@@ -977,21 +1066,31 @@ async function fetchTsdbSearchEvents(text: string): Promise<{ events: TsdbEvent[
   if (!q) return { events: [], failed: false };
   const cacheKey = `tsdb:search:${q.toLowerCase()}`;
   const hit = getCached<TsdbEvent[]>(cacheKey);
-  if (hit) return { events: hit, failed: false };
+  if (hit) {
+    noteSource("tsdb:searchevents", "cache", `"${q}"`);
+    return { events: hit, failed: false };
+  }
+  const t0 = Date.now();
   try {
+    countRequest();
     const r = await fetchJson<{ event?: TsdbEvent[]; events?: TsdbEvent[] }>(
       `${TSDB_BASE}/searchevents.php?e=${encodeURIComponent(q)}`,
       { timeoutMs: 9_000 },
     );
-    if (!r.ok) return { events: [], failed: true };
+    if (!r.ok) {
+      noteSource("tsdb:searchevents", "failed", `"${q}" ${r.error ?? ""}`.trim(), Date.now() - t0);
+      return { events: [], failed: true };
+    }
     const all = r.data?.event ?? r.data?.events ?? [];
     const soccer = all.filter(e => !e.strSport || /soccer/i.test(String(e.strSport)));
     const sorted = [...soccer].sort((a, b) =>
       String(b.strTimestamp ?? b.dateEvent ?? "").localeCompare(String(a.strTimestamp ?? a.dateEvent ?? "")),
     );
+    noteSource("tsdb:searchevents", sorted.length > 0 ? "ok" : "empty", `"${q}" → ${sorted.length} eventos`, Date.now() - t0);
     setCached(cacheKey, sorted, ttls.sportsLive);
     return { events: sorted, failed: false };
-  } catch {
+  } catch (err) {
+    noteSource("tsdb:searchevents", "failed", err instanceof Error ? err.message : String(err), Date.now() - t0);
     return { events: [], failed: true };
   }
 }
@@ -1010,21 +1109,31 @@ function normalizeTsdbUpcoming(events: TsdbEvent[], tzOffsetMin?: number) {
 
 async function fetchTsdbNextEvents(teamId: string, limit = 4): Promise<TsdbEvent[]> {
   if (!teamId) return [];
+  const t0 = Date.now();
   try {
     const cacheKey = `tsdb:next:${teamId}`;
     const hit = getCached<TsdbEvent[]>(cacheKey);
-    if (hit) return hit;
+    if (hit) {
+      noteSource("tsdb:eventsnext", "cache", `teamId=${teamId}`);
+      return hit;
+    }
+    countRequest();
     const r = await fetchJson<{ events?: TsdbEvent[] }>(
       `${TSDB_BASE}/eventsnext.php?id=${encodeURIComponent(teamId)}`,
       { timeoutMs: 9_000 },
     );
-    if (!r.ok) return [];
+    if (!r.ok) {
+      noteSource("tsdb:eventsnext", "failed", `teamId=${teamId} ${r.error ?? ""}`.trim(), Date.now() - t0);
+      return [];
+    }
     const next = [...(r.data?.events ?? [])].sort((a, b) =>
       String(a.strTimestamp ?? a.dateEvent ?? "").localeCompare(String(b.strTimestamp ?? b.dateEvent ?? "")),
     ).slice(0, limit);
+    noteSource("tsdb:eventsnext", next.length > 0 ? "ok" : "empty", `teamId=${teamId} → ${next.length}`, Date.now() - t0);
     setCached(cacheKey, next, ttls.sportsLive);
     return next;
-  } catch {
+  } catch (err) {
+    noteSource("tsdb:eventsnext", "failed", err instanceof Error ? err.message : String(err), Date.now() - t0);
     return [];
   }
 }
@@ -1054,7 +1163,10 @@ function normalizeEvent(e: TsdbEvent) {
 }
 
 // ─── match_live ─────────────────────────────────────────────────────────────
-export const matchLive: ToolHandler = {
+// `withTelemetry` mide la corrida y le adjunta `telemetry` al resultado: qué
+// fuentes se intentaron, con qué resultado y cuántas requests costó (ver
+// ../shared/telemetry). Sin esto, un turno que sale mal es una caja negra.
+export const matchLive: ToolHandler = withTelemetry({
   definition: defineTool(
     "match_live",
     "Obtén el marcador en vivo o resultado FINAL de un partido. Úsala SIEMPRE que el usuario pregunte por un resultado deportivo (fútbol): '¿cómo salió España ayer?', '¿cómo le fue a Boca?', '¿va ganando el Madrid?', 'resultado de Barcelona', 'quién ganó Argentina'. Devuelve equipos, marcador, minuto/estado, liga, fecha. Cubre selecciones nacionales (España, Argentina, Francia, etc) y clubes de las principales ligas. NUNCA uses web_search para resultados de partidos — esta tool tiene datos exactos en tiempo real desde ESPN.",
@@ -1091,10 +1203,21 @@ export const matchLive: ToolHandler = {
     // scoreboard para clubes que NO están en el diccionario propio (los que antes
     // dependían del matcheo por tokens). Con dos clubes manda el par: el partido es
     // el que los enfrenta, no el de cada uno por separado.
-    const singleClub = detectClubs(pairText.toLowerCase()).length < 2;
+    const pairClubs = detectClubs(pairText.toLowerCase());
+    const singleClub = pairClubs.length < 2;
     const resolvedTeam = singleClub
       ? await resolveEspnTeam(detectClub(pairText.toLowerCase()) ?? detectNationalTeam(pairText.toLowerCase()) ?? query)
       : null;
+    // 🔴 FIX COSTO (2026-09-16) — con el par (o el club) resuelto, el scoreboard se
+    // limita a las competiciones donde PUEDE estar el partido. Medido: el clásico
+    // Independiente–San Lorenzo costaba 104 requests y ahora cuesta una fracción;
+    // si la resolución falla no se restringe nada (mejor gastar que perder el dato).
+    const resolvedForLeagues = singleClub
+      ? [resolvedTeam]
+      : await Promise.all(pairClubs.map(c => resolveEspnTeam(c)));
+    const probableLeagueIds = probableLeaguesFor(
+      resolvedForLeagues.map(r => r?.leagueId ?? "").filter(Boolean),
+    );
     // Nombre canónico para "los próximos del MISMO equipo" y para el contexto de
     // equipo/Wikipedia: con un alias ("barca") la wiki devolvía cualquier cosa.
     const teamLower = String(
@@ -1104,7 +1227,7 @@ export const matchLive: ToolHandler = {
     // FIX: usar ESPN como fuente principal. 🔴 FIX VENTANA: rango de 12 días
     // atrás + 14 adelante en UN fetch por liga — captura partidos de mitad de
     // semana (Real Madrid martes, pregunta el viernes) que antes quedaban fuera.
-    const espn = await searchEspnScoreboards(query, { pairText, resolvedTeam });
+    const espn = await searchEspnScoreboards(query, { pairText, resolvedTeam, probableLeagueIds });
     const espnResults = espn.events;
 
     // 🔴 Clasificación: jugados/en vivo para el resultado; futuros como `upcoming`
@@ -1138,7 +1261,7 @@ export const matchLive: ToolHandler = {
       }
 
       // 🔴 Enriquecer con contexto del equipo (estadio, wiki) → interior más rico
-      const teamContextPromise = fetchTeamContext(teamLower);
+      const teamContextPromise = fetchTeamContext(teamLower, { national: resolvedTeam?.national });
       const summaryPromise = first.event.id ? fetchEspnSummary(first.leagueId, first.event.id) : Promise.resolve(null);
       const [summary, teamContext] = await Promise.all([summaryPromise, teamContextPromise]);
 
@@ -1198,7 +1321,7 @@ export const matchLive: ToolHandler = {
     );
     if (asksForResult && queryClubs.length < 2) {
       const teamForLast = queryClubs[0] ?? detectNationalTeam(query.toLowerCase()) ?? query;
-      const ctxForLast = await fetchTeamContext(teamForLast);
+      const ctxForLast = await fetchTeamContext(teamForLast, { national: resolvedTeam?.national });
       const lastPlayed = ctxForLast.teamInfo?.id ? await fetchTsdbLastEvents(ctxForLast.teamInfo.id) : [];
       if (lastPlayed.length > 0) {
         const playedMatches = lastPlayed.map(normalizeEvent);
@@ -1226,7 +1349,7 @@ export const matchLive: ToolHandler = {
     if (espnUpcoming.length > 0) {
       const first = espnUpcoming[0];
       const upcomingMatches = espnUpcoming.slice(0, 5).map(({ event }) => normalizeEspnEvent(event, first.leagueName));
-      const teamContext = await fetchTeamContext(teamLower);
+      const teamContext = await fetchTeamContext(teamLower, { national: resolvedTeam?.national });
       return {
         type: "match_live",
         status: "ok",
@@ -1293,7 +1416,7 @@ export const matchLive: ToolHandler = {
     // 3. Noticias recientes (GDELT)
     // Esto da valor al usuario aunque no haya partido jugado.
     // (fetchTeamContext comparte el lookup de equipo + Wikipedia con match_schedule.)
-    const { teamInfo, wikipediaExtract: wikiExtract, wikiSource } = await fetchTeamContext(query);
+    const { teamInfo, wikipediaExtract: wikiExtract, wikiSource } = await fetchTeamContext(query, { national: resolvedTeam?.national });
 
     // Si encontramos el team, buscar próximo partido
     let nextMatch: TsdbEvent | null = null;
@@ -1351,7 +1474,7 @@ export const matchLive: ToolHandler = {
       note: `No encontré partidos de "${query}" en este momento. La temporada puede estar en receso.`,
     };
   },
-};
+});
 
 // ─── league_standings ───────────────────────────────────────────────────────
 export const leagueStandings: ToolHandler = {
@@ -1428,7 +1551,40 @@ export const leagueStandings: ToolHandler = {
 // + extracto de Wikipedia). Lo usan tanto el fallback de match_live como el
 // path principal de match_schedule (que antes llegaba sin teamInfo/nextMatch
 // y la card de fixture quedaba vacía por dentro).
-async function fetchTeamContext(teamQuery: string): Promise<{
+/**
+ * Títulos que NO son el club: femenil, juveniles, filiales, otras disciplinas
+ * (fútbol sala/playa) y páginas que no son entidades deportivas. Se descartan por
+ * TÍTULO antes de gastar una request en su resumen.
+ */
+const WIKI_REJECT_TITLE = /femenin|women|juvenil|sub-?\d|f[uú]tbol sala|futsal|playa|baloncesto|voleibol|rugby|desambiguaci[oó]n|estadio|hinchada|basílica/i;
+
+/**
+ * Descripciones que indican que el artículo NO es el club/la selección buscada.
+ * Medido: la descripción de Wikipedia distingue el club real ("club deportivo de
+ * Buenos Aires, Argentina") de sus vecinos ("página de desambiguación", "ciudad",
+ * "rivalidad de fútbol", "río", "mártir"…).
+ */
+const WIKI_REJECT_DESC = /desambiguaci[oó]n|rivalidad|cl[aá]sico|estadio|hinchada|historia|ciudad|comuna|municipio|departamento|r[ií]o|santo|m[aá]rtir|pel[ií]cula|baloncesto|voleibol|femenino|filial|rugby|pol[ií]tico|basílica|virgen|abogado|futbolista|noble|pa[ií]s/i;
+
+/** Resumen REST de un artículo; `null` si no existe. */
+async function fetchWikiSummary(title: string): Promise<{ extract?: string; description?: string; content_urls?: { desktop?: { page: string } } } | null> {
+  countRequest();
+  try {
+    const res = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`, {
+      signal: AbortSignal.timeout(9000),
+      headers: { "User-Agent": "MichiApp/1.0 (+https://koru-mvp.onrender.com; sports assistant)" },
+    });
+    if (!res.ok) return null;
+    return await res.json() as { extract?: string; description?: string; content_urls?: { desktop?: { page: string } } };
+  } catch {
+    return null;
+  }
+}
+
+async function fetchTeamContext(
+  teamQuery: string,
+  opts: { national?: boolean } = {},
+): Promise<{
   teamInfo: { id: string; name: string; stadium?: string; location?: string; league?: string; description?: string } | null;
   wikipediaExtract: string | null;
   wikiSource: { title: string; url: string; domain: string; snippet: string } | null;
@@ -1443,7 +1599,11 @@ async function fetchTeamContext(teamQuery: string): Promise<{
     // quedaría "sin contexto" por un día entero.
     const teamCacheKey = `tsdb:team:${teamQuery.toLowerCase()}`;
     let teams = getCached<TsdbTeam[]>(teamCacheKey);
-    if (!teams) {
+    if (teams) {
+      noteSource("tsdb:searchteams", "cache", `"${teamQuery}"`);
+    } else {
+      const t0 = Date.now();
+      countRequest();
       const searchRes = await fetchJson<{ teams?: TsdbTeam[] }>(
         `${TSDB_BASE}/searchteams.php?t=${encodeURIComponent(teamQuery)}`,
         { timeoutMs: 8_000 },
@@ -1452,6 +1612,12 @@ async function fetchTeamContext(teamQuery: string): Promise<{
         teams = searchRes.data?.teams ?? [];
         setCached(teamCacheKey, teams, ttls.reference);
       }
+      noteSource(
+        "tsdb:searchteams",
+        searchRes.ok ? ((teams?.length ?? 0) > 0 ? "ok" : "empty") : "failed",
+        `"${teamQuery}" ${searchRes.ok ? `→ ${teams?.length ?? 0}` : searchRes.error ?? ""}`.trim(),
+        Date.now() - t0,
+      );
     }
     if (teams && teams.length > 0) {
       // 🔴 FIX OTRO DEPORTE (2026-09-16) — searchteams.php también devuelve
@@ -1478,8 +1644,18 @@ async function fetchTeamContext(teamQuery: string): Promise<{
     // 🔴 FIX WIKI — buscar con el nombre LIMPIO del equipo (strTeam de TSDB)
     // en vez de `${teamQuery} football team`: "real madrid football team"
     // devolvía "Real Madrid Castilla" (la filial) como primer resultado.
+    // 🔴 FIX WIKI EQUIVOCADA (2026-09-16) — "Boca Juniors" traía el artículo de
+    // "Boca Juniors de Cali" (el club colombiano): el heurístico anterior promovía
+    // cualquier título que EMPEZARA con el nombre, incluso por encima del primer
+    // resultado, que era el correcto. Ahora: (a) la consulta pide explícitamente un
+    // club de fútbol (o una selección) — medido: eso pone al club en el 1er puesto;
+    // (b) se VERIFICA la descripción del artículo y se prueba el siguiente candidato
+    // si es una desambiguación, una ciudad, una rivalidad, etc.
     const wikiQuery = teamInfo?.name ?? teamQuery;
-    const wikiRes = await fetch(`https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(wikiQuery)}&format=json&origin=*&srlimit=3`, {
+    const wikiSearch = opts.national ? `${wikiQuery} selección de fútbol` : `${wikiQuery} club de fútbol`;
+    const wikiT0 = Date.now();
+    countRequest();
+    const wikiRes = await fetch(`https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(wikiSearch)}&format=json&origin=*&srlimit=5`, {
       signal: AbortSignal.timeout(9000),
       // 🔴 FIX 403 — Wikipedia bloquea el UA default de Node (403 Forbidden).
       // La API pide un UA descriptivo con contacto.
@@ -1487,25 +1663,52 @@ async function fetchTeamContext(teamQuery: string): Promise<{
     });
     const wikiData = await wikiRes.json() as { query?: { search?: Array<{ title: string; snippet: string }> } };
     const results = wikiData.query?.search ?? [];
-    // Preferir el resultado cuyo título empiece con el nombre del equipo (evita
-    // filiales/duplicados: "Real Madrid CF" > "Real Madrid Castilla").
-    const clean = wikiQuery.toLowerCase().trim();
-    const best = results.find(r => r.title.toLowerCase().startsWith(clean.slice(0, 12))) ?? results[0];
-    if (best) {
-      const summaryRes = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(best.title)}`, {
-        signal: AbortSignal.timeout(9000),
-        headers: { "User-Agent": "MichiApp/1.0 (+https://koru-mvp.onrender.com; sports assistant)" },
-      });
-      const summary = await summaryRes.json() as { extract?: string; content_urls?: { desktop?: { page: string } } };
-      wikipediaExtract = summary.extract ?? null;
+    // Se evalúan los primeros candidatos en ORDEN DE RELEVANCIA (la consulta ya
+    // sesga hacia el club) y se acepta el primero cuya descripción pase el filtro.
+    // Si ninguno pasa, se usa el primero que al menos no sea una desambiguación.
+    type WikiEntry = {
+      title: string;
+      snippet?: string;
+      summary: { extract?: string; description?: string; content_urls?: { desktop?: { page: string } } };
+    };
+    // El club lleva el nombre AL FINAL del título ("Club Atlético Boca Juniors"),
+    // mientras que el homónimo de otro país lo lleva adelante y agrega el lugar
+    // ("Boca Juniors de Cali"): es el desempate cuando los dos parecen clubes.
+    const nameNorm = normalizeEspnText(wikiQuery);
+    const endsWithName = (title: string): boolean => {
+      const t = normalizeEspnText(title);
+      return t === nameNorm || t.endsWith(` ${nameNorm}`);
+    };
+    let chosen: WikiEntry | null = null;
+    let fallback: WikiEntry | null = null;
+    for (const cand of results.slice(0, 3)) {
+      if (WIKI_REJECT_TITLE.test(cand.title)) continue;
+      const summary = await fetchWikiSummary(cand.title);
+      if (!summary) continue;
+      const entry = { title: cand.title, snippet: cand.snippet, summary };
+      const desc = summary.description ?? "";
+      if (!fallback && !/desambiguaci[oó]n/i.test(desc)) fallback = entry;
+      if (WIKI_REJECT_DESC.test(desc)) continue;
+      if (!chosen) chosen = entry;
+      if (endsWithName(cand.title)) {
+        chosen = entry; // el nombre al final del título: no hay mejor candidato
+        break;
+      }
+    }
+    const pick = chosen ?? fallback;
+    if (pick) {
+      wikipediaExtract = pick.summary.extract ?? null;
       wikiSource = {
-        title: best.title,
-        url: summary.content_urls?.desktop?.page ?? `https://es.wikipedia.org/wiki/${encodeURIComponent(best.title)}`,
+        title: pick.title,
+        url: pick.summary.content_urls?.desktop?.page ?? `https://es.wikipedia.org/wiki/${encodeURIComponent(pick.title)}`,
         domain: "es.wikipedia.org",
-        snippet: best.snippet?.replace(/<[^>]+>/g, "") ?? "",
+        snippet: pick.snippet?.replace(/<[^>]+>/g, "") ?? "",
       };
     }
-  } catch { /* ignore */ }
+    noteSource("wikipedia", wikiSource ? "ok" : "empty", `"${wikiSearch}" → ${wikiSource?.title ?? "(sin artículo usable)"}`, Date.now() - wikiT0);
+  } catch (err) {
+    noteSource("wikipedia", "failed", err instanceof Error ? err.message : String(err));
+  }
 
   return { teamInfo, wikipediaExtract, wikiSource };
 }
@@ -1523,9 +1726,10 @@ async function buildFixturePayload(
   runCtx?: ToolRunContext,
   source = "ESPN",
   ctxIn?: { teamInfo: { id: string; name: string; stadium?: string; location?: string; league?: string; description?: string } | null; wikipediaExtract: string | null; wikiSource: { title: string; url: string; domain: string; snippet: string } | null },
+  national?: boolean,
 ) {
   const first = upcomingMatches[0];
-  const ctx = ctxIn ?? await fetchTeamContext(teamLabel || first?.homeTeam || "");
+  const ctx = ctxIn ?? await fetchTeamContext(teamLabel || first?.homeTeam || "", { national });
   // 🔴 FIX TZ — hora de kickoff en la tz del USUARIO (antes: hora del server
   // = UTC en Render → “00:30” para un partido 21:30 AR / 02:30 Madrid).
   const kickoff = formatKickoffUserTz(first?.date, runCtx?.tzOffsetMin);
@@ -1556,7 +1760,9 @@ async function buildFixturePayload(
 }
 
 // ─── match_schedule ─────────────────────────────────────────────────────────
-export const matchSchedule: ToolHandler = {
+// Ver la nota de `withTelemetry` en matchLive: acá importa el doble, porque esta
+// tool tiene ocho caminos de fallback y sin telemetría no se sabe cuál corrió.
+export const matchSchedule: ToolHandler = withTelemetry({
   definition: defineTool(
     "match_schedule",
     "Lista los próximos partidos (fixture) de un equipo o liga con fecha, rival y hora. Úsala cuando el usuario pregunte 'próximos partidos de Boca', 'cuándo juega Messi', 'fixture de la Champions'.",
@@ -1595,7 +1801,7 @@ export const matchSchedule: ToolHandler = {
       const teamFixture = await fetchEspnTeamFixture(team, Math.max(next, 5), resolved);
       if (teamFixture && teamFixture.events.length > 0) {
         const upcomingMatches = teamFixture.events.map(({ event, leagueName }) => normalizeEspnEvent(event, leagueName));
-        return await buildFixturePayload(upcomingMatches, resolved?.teamName ?? team, runCtx, "ESPN");
+        return await buildFixturePayload(upcomingMatches, resolved?.teamName ?? team, runCtx, "ESPN", undefined, resolved?.national);
       }
       // El calendario del equipo quedó vacío (o no resolvió): sigue el scoreboard,
       // que cubre el resto de competencias del club/selección.
@@ -1711,88 +1917,57 @@ export const matchSchedule: ToolHandler = {
         .sort((a, b) => (a.strTimestamp ?? "") > (b.strTimestamp ?? "") ? 1 : -1)
         .slice(0, next);
 
-      // 🔴 KORU 3.0 — Verificar si los partidos del fallback incluyen al equipo
-      const teamLower = (team || league).toLowerCase();
-      const matchesIncludeTeam = fallbackUpcoming.some(e => {
-        const home = (e.strHomeTeam ?? "").toLowerCase();
-        const away = (e.strAwayTeam ?? "").toLowerCase();
-        return home.includes(teamLower) || away.includes(teamLower) ||
-               teamLower.includes(home) || teamLower.includes(away);
-      });
+      // 🔴 KORU 3.0 — Verificar si los partidos del fallback incluyen al equipo.
+      // 🔴 FIX NOMBRE CORTO (2026-09-16) — la comparación por substring con nombres
+      // de menos de 4 letras matchea cualquier cosa ("real" ⊂ "Real Sociedad" ⊂
+      // "Real Madrid"); esos casos quedan sólo para la comparación exacta.
+      // 🔴 FIX MATCHES AJENOS (2026-09-16) — antes, si UN partido de la lista
+      // incluía al equipo, se devolvían TODOS (el usuario pedía los de Boca y veía
+      // seis partidos de otras ligas).
+      const teamLower = (teamLabel || team || league).toLowerCase();
+      const sameTeam = (name: string): boolean => {
+        const n = (name ?? "").toLowerCase();
+        if (!n) return false;
+        if (n === teamLower) return true;
+        return teamLower.length >= 4 && n.length >= 4 && (n.includes(teamLower) || teamLower.includes(n));
+      };
+      const ownUpcoming = fallbackUpcoming.filter(e => sameTeam(e.strHomeTeam ?? "") || sameTeam(e.strAwayTeam ?? ""));
 
-      // Si hay partidos Y incluyen al equipo, devolverlos
-      if (fallbackUpcoming.length > 0 && matchesIncludeTeam) {
+      // Sólo sirven si son DEL equipo consultado.
+      if (ownUpcoming.length > 0) {
         return {
           type: "match_schedule",
           status: "ok",
-          team: team || league,
-          matches: fallbackUpcoming.map(normalizeEvent),
+          team: teamLabel || league,
+          matches: ownUpcoming.map(normalizeEvent),
           source: "TheSportsDB (liga popular)",
           note: `Próximos partidos de ligas destacadas.`,
         };
       }
 
-      // 🔴 KORU 3.0 — Fallback enriquecido: traer info del equipo + Wikipedia
-      // cuando no hay partidos del equipo o los partidos no lo incluyen
-      let teamInfo: { id: string; name: string; stadium?: string; location?: string; league?: string; description?: string } | null = null;
-      try {
-        const searchRes = await fetchJson<{ teams?: Array<{ idTeam?: string; strTeam?: string; strStadium?: string; strLocation?: string; strLeague?: string; strDescriptionES?: string; strDescriptionEN?: string }> }>(
-          `${TSDB_BASE}/searchteams.php?t=${encodeURIComponent(team || league)}`,
-          { timeoutMs: 8_000 },
-        );
-        if (searchRes.ok && searchRes.data?.teams && searchRes.data.teams.length > 0) {
-          const t = searchRes.data.teams[0];
-          teamInfo = {
-            id: t.idTeam ?? "",
-            name: t.strTeam ?? (team || league),
-            stadium: t.strStadium,
-            location: t.strLocation,
-            league: t.strLeague,
-            description: t.strDescriptionES || t.strDescriptionEN,
-          };
-        }
-      } catch { /* ignore */ }
-
-      let wikiExtract: string | null = null;
-      let wikiSource: { title: string; url: string; domain: string; snippet: string } | null = null;
-      try {
-        const wikiRes = await fetch(`https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(`${team || league} football team`)}&format=json&origin=*&srlimit=1`, {
-          signal: AbortSignal.timeout(9000),
-          headers: { "User-Agent": "MichiApp/1.0 (+https://koru-mvp.onrender.com; sports assistant)" },
-        });
-        const wikiData = await wikiRes.json() as { query?: { search?: Array<{ title: string; snippet: string }> } };
-        const results = wikiData.query?.search ?? [];
-        if (results.length > 0) {
-          const title = results[0].title;
-          const summaryRes = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`, {
-            signal: AbortSignal.timeout(9000),
-            headers: { "User-Agent": "MichiApp/1.0 (+https://koru-mvp.onrender.com; sports assistant)" },
-          });
-          const summary = await summaryRes.json() as { extract?: string; content_urls?: { desktop?: { page: string } } };
-          wikiExtract = summary.extract ?? null;
-          wikiSource = {
-            title,
-            url: summary.content_urls?.desktop?.page ?? `https://es.wikipedia.org/wiki/${encodeURIComponent(title)}`,
-            domain: "es.wikipedia.org",
-            snippet: results[0].snippet?.replace(/<[^>]+>/g, "") ?? "",
-          };
-        }
-      } catch { /* ignore */ }
+      // 🔴 KORU 3.0 — Fallback enriquecido: info del equipo + Wikipedia cuando no
+      // hay partidos del equipo o los partidos no lo incluyen.
+      // 🔴 CONSOLIDACIÓN (2026-09-16) — este bloque duplicaba el lookup de
+      // TheSportsDB y la Wikipedia de `fetchTeamContext`, con dos defectos propios:
+      // buscaba en la wiki EN ESPAÑOL la frase en inglés (`"${team} football team"`)
+      // y se quedaba con el primer resultado sin verificar. Ahora usa el mismo
+      // camino (nombre canónico + filtro por descripción) que el resto de la tool.
+      const { teamInfo, wikipediaExtract: wikiExtract, wikiSource } = await fetchTeamContext(teamLabel || league, { national: resolved?.national });
 
       if (teamInfo || wikiExtract) {
         return {
           type: "match_schedule",
           status: "ok",
-          team: team || league,
+          team: teamLabel || league,
           matches: [],
           teamInfo: teamInfo ?? undefined,
           wikipediaExtract: wikiExtract ?? undefined,
           sources: wikiSource ? [wikiSource] : undefined,
           source: teamInfo ? "TheSportsDB + Wikipedia" : "Wikipedia",
-          note: `No hay próximos partidos de "${team || league}" programados. Te mostramos info del equipo.`,
+          note: `No hay próximos partidos de "${teamLabel || league}" programados. Te mostramos info del equipo.`,
         };
       }
-      return { type: "match_schedule", status: "ok", team: team || league, matches: [], note: "No encontré próximos partidos." };
+      return { type: "match_schedule", status: "ok", team: teamLabel || league, matches: [], note: "No encontré próximos partidos." };
     }
 
     // 🔴 FIX CARD FIXTURE (2026-09-16) — el path de TheSportsDB devolvía SOLO
@@ -1802,9 +1977,9 @@ export const matchSchedule: ToolHandler = {
     const ctx = tsdbTeamInfo || tsdbWiki
       ? { teamInfo: tsdbTeamInfo, wikipediaExtract: tsdbWiki, wikiSource: tsdbWikiSource }
       : undefined;
-    return await buildFixturePayload(normalizeTsdbUpcoming(upcoming, runCtx?.tzOffsetMin), teamLabel || league, runCtx, "TheSportsDB", ctx);
+    return await buildFixturePayload(normalizeTsdbUpcoming(upcoming, runCtx?.tzOffsetMin), teamLabel || league, runCtx, "TheSportsDB", ctx, resolved?.national);
   },
-};
+});
 
 // ─── team_follow ────────────────────────────────────────────────────────────
 export const teamFollow: ToolHandler = {
