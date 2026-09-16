@@ -38,6 +38,28 @@ export async function cached<T>(key: string, ttlMs: number, fn: () => Promise<T>
   return value;
 }
 
+/**
+ * Cache con TTL diferenciado para ACIERTO y FALLO.
+ *
+ * `fn` devuelve `null` para señalar un fallo de fuente (HTTP no-ok, respuesta
+ * ilegible, búsqueda sin resultados): ese `null` se cachea `failTtlMs` (corto),
+ * así el turno siguiente no vuelve a golpear una API caída, pero tampoco queda
+ * envenenado cuando la fuente se recupera. Los aciertos —incluido el "no hay
+ * resultados" legítimo, que el caller representa con `[]`— se cachean `ttlMs`.
+ */
+export async function cachedSoft<T>(
+  key: string,
+  ttlMs: number,
+  failTtlMs: number,
+  fn: () => Promise<T | null>,
+): Promise<T | null> {
+  const hit = getCached<T | null>(key);
+  if (hit !== undefined) return hit;
+  const value = await fn();
+  setCached(key, value, value === null ? failTtlMs : ttlMs);
+  return value;
+}
+
 /** Limpia entradas expiradas (llamar periódicamente). */
 export function pruneCache(): void {
   const now = Date.now();
@@ -54,6 +76,11 @@ export const ttls = {
   weatherForecast: 30 * 60 * 1000,
   /** Resultados deportivos en vivo: 30 s. */
   sportsLive: 30 * 1000,
+  /**
+   * Fallos de fuente: 60 s. No es "frescura", es NO volver a martillar una API
+   * que acaba de responder 429/400 en el turno siguiente (ver `cachedSoft`).
+   */
+  negative: 60 * 1000,
   /** Tabla de posiciones: 5 min. */
   sportsStandings: 5 * 60 * 1000,
   /** Divisas: 1 h. */

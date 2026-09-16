@@ -6,6 +6,14 @@
 import { defineTool, policies, type ToolRunContext, type ToolHandler } from "../types";
 import { fetchJson } from "../shared/fetcher";
 import { cached, getCached, setCached, ttls } from "../shared/cache";
+import {
+  ESPN_LEAGUES,
+  ESPN_SITE_BASE,
+  NATIONAL_LEAGUE_IDS,
+  fetchEspnTeamSchedule,
+  resolveEspnTeam,
+  type ResolvedEspnTeam,
+} from "./espn";
 
 /**
  * 🔴 FIX TZ — Hora de kickoff en la tz del USUARIO, no la del server.
@@ -37,43 +45,9 @@ export function formatKickoffUserTz(
 
 const TSDB_KEY = "3"; // Key pública gratuita de TheSportsDB.
 const TSDB_BASE = `https://www.thesportsdb.com/api/v1/json/${TSDB_KEY}`;
-const ESPN_BASE = "https://site.api.espn.com/apis/site/v2/sports/soccer";
-
-// Ligas ESPN con IDs conocidos para buscar resultados.
-// INCLUYE selecciones nacionales (fifa.world, uefa.euro, etc) — sin esto,
-// "cómo salió España ayer" no encuentra nada porque España no juega en ligas de clubes.
-// OPTIMIZACIÓN: reducir de 15 a 8 ligas para menos fetches paralelos.
-// Las selecciones nacionales son las más importantes (fifa.world + uefa.euro).
-// Para clubes, solo top 5 ligas + Champions.
-const ESPN_LEAGUES: Array<{ id: string; name: string; aliases?: string[] }> = [
-  // ── Copas internacionales ──
-  { id: "uefa.champions", name: "UEFA Champions League", aliases: ["champions", "champions league", "copa de europa", "ucl", "orejona"] },
-  { id: "uefa.europa", name: "UEFA Europa League", aliases: ["europa league", "copa uefa", "uel"] },
-  // ── Selecciones nacionales (la mayoría de queries de selecciones) ──
-  { id: "fifa.world", name: "FIFA World Cup / International Friendlies", aliases: ["mundial", "world cup", "amistoso", "amistosos", "eliminatorias"] },
-  { id: "uefa.euro", name: "UEFA Euro", aliases: ["eurocopa"] },
-  { id: "uefa.nations", name: "UEFA Nations League", aliases: ["nations league", "liga de naciones"] },
-  // ── Conmebol ──
-  { id: "conmebol.libertadores", name: "Copa Libertadores", aliases: ["libertadores", "copa libertadores"] },
-  { id: "conmebol.sudamericana", name: "Copa Sudamericana", aliases: ["sudamericana", "copa sudamericana"] },
-  // ── Argentina ──
-  { id: "arg.1", name: "Argentine Primera División", aliases: ["liga argentina", "primera division argentina", "futbol argentino", "torneo argentino"] },
-  { id: "arg.copa", name: "Copa Argentina", aliases: ["copa argentina"] },
-  // ── Brasil ──
-  { id: "bra.1", name: "Brasileirão Série A", aliases: ["brasileirao", "liga brasileira"] },
-  // ── Top 5 ligas europeas ──
-  { id: "eng.1", name: "Premier League", aliases: ["premier", "premier league", "liga inglesa"] },
-  { id: "esp.1", name: "La Liga", aliases: ["la liga", "laliga", "liga espanola", "liga de espana"] },
-  { id: "ita.1", name: "Serie A", aliases: ["serie a", "liga italiana", "calcio"] },
-  { id: "ger.1", name: "Bundesliga", aliases: ["bundesliga", "liga alemana"] },
-  { id: "fra.1", name: "Ligue 1", aliases: ["ligue 1", "liga francesa"] },
-  // ── Copas domésticas ──
-  { id: "esp.copa_del_rey", name: "Copa del Rey", aliases: ["copa del rey", "copa de espana"] },
-  { id: "eng.fa", name: "FA Cup", aliases: ["fa cup", "copa inglesa"] },
-  { id: "eng.league_cup", name: "English League Cup", aliases: ["carabao", "league cup", "carabao cup"] },
-  { id: "ita.coppa_italia", name: "Coppa Italia", aliases: ["coppa italia", "copa italia"] },
-  { id: "ger.dfb_pokal", name: "DFB Pokal", aliases: ["dfb pokal", "copa alemana"] },
-];
+// Catálogo de ligas, resolvedor de equipos y calendario por equipo: viven en
+// ./espn para que todas las tools deportivas compartan UNA fuente de verdad.
+const ESPN_BASE = ESPN_SITE_BASE;
 
 // Sinónimos de selecciones nacionales → mapeo a nombres ESPN.
 // "España" puede aparecer como "Spain" en ESPN. Esto dispara el match.
@@ -406,18 +380,15 @@ function espnEventState(e: EspnEvent): "pre" | "in" | "post" {
  * Las selecciones juegan en ≤3 ligas ESPN → solo se fetchean esas (más rápido
  * que las 19 ligas de clubes).
  */
-const NATIONAL_LEAGUE_IDS = new Set(["fifa.world", "uefa.euro", "uefa.nations"]);
-
 async function searchEspnScoreboards(
   query: string,
-  opts: { fromDays?: number; toDays?: number; pairText?: string } = {},
+  opts: { fromDays?: number; toDays?: number; pairText?: string; resolvedTeam?: ResolvedEspnTeam | null } = {},
 ): Promise<{ events: Array<{ event: EspnEvent; leagueId: string; leagueName: string }>; okLeagues: number; failedLeagues: number }> {
   const fromDays = opts.fromDays ?? 12;
   const toDays = opts.toDays ?? 14;
-  const queryLower = query.toLowerCase();
-  // 🔴 FIX PAR PERDIDO (2026-09-16): el texto para detectar "el partido entre
-  // estos dos clubes" puede ser el del USUARIO (más rico) aunque el `query` de la
-  // tool venga recortado a un solo club. Ver matchLive.
+  const queryLower = query.toLowerCase();    // 🔴 FIX PAR PERDIDO (2026-09-16): el texto para detectar "el partido entre
+    // estos dos clubes" puede ser el del USUARIO (más rico) aunque el `query` de la
+    // tool venga recortado a un solo club. Ver matchLive.
   const results: Array<{ event: EspnEvent; leagueId: string; leagueName: string }> = [];
 
   const now = new Date();
@@ -430,14 +401,19 @@ async function searchEspnScoreboards(
   // 🔴 FIX MUNDIAL: intención de selección (equipo nacional o liga de
   // selecciones como el Mundial) → solo ligas de selecciones + back-fill.
   const nationalIntent = !!nationalTeam || (!!leagueHit && NATIONAL_LEAGUE_IDS.has(leagueHit.id));
+  // 🔴 FIX COBERTURA (2026-09-16) — el resolver de ESPN aporta el nombre CANÓNICO
+  // de clubes que no están en el diccionario propio (Talleres, Instituto…). Sin
+  // esto, esos clubes dependían del matcheo por tokens, que es impreciso.
+  const resolvedCanonical = opts.resolvedTeam && opts.resolvedTeam.score >= 4 ? opts.resolvedTeam.teamName : null;
   // 🔴 Canonical detectado → matcheo PRECISO por nombre de equipo. Sin
   // canonical → fallback por tokens (equipos fuera del diccionario).
-  const hasCanonical = !!(nationalTeam || club);
+  const hasCanonical = !!(nationalTeam || club || resolvedCanonical);
 
   // Términos de matcheo: canonical detectado + query completo + tokens del query
   const matchTerms: string[] = [queryLower];
   if (nationalTeam) matchTerms.push(nationalTeam.toLowerCase());
   if (club) matchTerms.push(club.toLowerCase());
+  if (resolvedCanonical) matchTerms.push(resolvedCanonical.toLowerCase());
   const tokens = contentTokens(queryLower);
 
   // ¿El query ES una liga/copa? → traer TODOS los eventos de esa liga
@@ -768,67 +744,31 @@ function normalizeEspnEvent(e: EspnEvent, leagueName?: string) {
  * tuviera el partido (Boca en San Lorenzo, 20/09).
  *
  * Este camino no depende de rangos: resuelve el equipo (liga + id) y pide su
- * CALENDARIO completo. DOS requests y ya está el fixture de la temporada.
+ * CALENDARIO completo. DOS requests y ya está el fixture de la temporada (para
+ * selecciones también: el calendario es por competencia, ver ./espn).
  *
- * OJO: el host de `common/v3/search` responde **403** si se le manda un
- * `User-Agent` propio (verificado); por eso el fetch va sin headers.
+ * La resolución del club vive en ./espn (compartida con match_live): ahí están
+ * los supuestos verificados de la búsqueda de ESPN y el filtro `sport=soccer`
+ * que impide que un homónimo de otro deporte se cuele.
  */
 async function fetchEspnTeamFixture(
   teamQuery: string,
   limit = 5,
-): Promise<{ events: Array<{ event: EspnEvent; leagueId: string; leagueName: string }>; teamName?: string; teamId?: string; leagueId?: string } | null> {
+  resolvedTeam?: ResolvedEspnTeam | null,
+): Promise<{ events: Array<{ event: EspnEvent; leagueId: string; leagueName: string }>; teamName?: string; teamId?: string; leagueId?: string; resolved?: ResolvedEspnTeam } | null> {
   const q = String(teamQuery ?? "").trim();
   if (!q) return null;
-  const cacheKey = `espn:teamfixture:${q.toLowerCase()}:${limit}`;
   try {
-    const resolved = await cached(cacheKey, ttls.sportsStandings, async () => {
-      type SearchItem = { id?: string; type?: string; displayName?: string; sport?: string; league?: string | string[] };
-      const searchRes = await fetch(
-        `https://site.api.espn.com/apis/common/v3/search?query=${encodeURIComponent(q)}&limit=10&type=team`,
-        { signal: AbortSignal.timeout(8_000) },
-      );
-      if (!searchRes.ok) return null;
-      const data = await searchRes.json() as { items?: SearchItem[] };
-      const leagueOf = (it: SearchItem) => Array.isArray(it.league) ? String(it.league[0] ?? "") : String(it.league ?? "");
-      const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-      const target = norm(q);
-      const candidates = (data.items ?? []).filter(it => it.type === "team" && it.id);
-      if (candidates.length === 0) return null;
-      // Elegir el equipo correcto: evita el femenino/filial ("Real Madrid" → esp.1
-      // y no esp.w.1 ni "Real Madrid Castilla").
-      const best = candidates
-        .map(it => {
-          const name = norm(it.displayName ?? "");
-          const league = leagueOf(it);
-          let score = 0;
-          if (name === target) score += 6;
-          else if (name.startsWith(target) || target.startsWith(name)) score += 4;
-          else if (name.includes(target)) score += 2;
-          if (ESPN_LEAGUES.some(l => l.id === league)) score += 3;
-          if (/\.w\.|_w\./.test(league) || /\b(women|fem|u1[5-9]|u2[0-3]|ii|iii|castilla|reserves?)\b/i.test(it.displayName ?? "")) score -= 6;
-          return { it, score };
-        })
-        .sort((a, b) => b.score - a.score)[0]?.it ?? null;
-      if (!best?.id) return null;
-      const leagueId = leagueOf(best);
-      if (!leagueId) return null;
-      return { teamId: String(best.id), teamName: best.displayName ?? q, leagueId };
-    });
-    if (!resolved?.teamId || !resolved.leagueId) return null;
-
-    const schedule = await cached(
-      `espn:teamschedule:${resolved.leagueId}:${resolved.teamId}`,
-      ttls.sportsStandings,
-      async () => {
-        const r = await fetch(
-          `https://site.api.espn.com/apis/site/v2/sports/soccer/${resolved.leagueId}/teams/${resolved.teamId}/schedule?fixture=true`,
-          { signal: AbortSignal.timeout(9_000) },
-        );
-        if (!r.ok) return [] as EspnEvent[];
-        const j = await r.json() as { events?: EspnEvent[] };
-        return (j.events ?? []).filter(Boolean);
-      },
-    );
+    // `resolvedTeam` ya viene resuelto por el caller (y está cacheado): se evita
+    // una segunda vuelta por la búsqueda de entidades.
+    const resolved = resolvedTeam !== undefined ? resolvedTeam : await resolveEspnTeam(q);
+    if (!resolved) return null;
+    // OJO: vale también para SELECCIONES. ESPN expone el id de la selección por
+    // competencia ("Spain" = 164 en uefa.nations, 17640 en fifa.wworldq.uefa) y su
+    // calendario trae los partidos de ESA competencia; cuando queda vacío, el
+    // scoreboard (más abajo en matchSchedule) sigue siendo el fallback.
+    const schedule = await fetchEspnTeamSchedule<EspnEvent>(resolved.leagueId, resolved.teamId);
+    if (!schedule) return null;
 
     const nowMs = Date.now();
     const upcoming = schedule
@@ -839,12 +779,13 @@ async function fetchEspnTeamFixture(
       .sort((a, b) => String(a.date ?? "").localeCompare(String(b.date ?? "")))
       .slice(0, limit);
 
-    const leagueName = ESPN_LEAGUES.find(l => l.id === resolved.leagueId)?.name ?? resolved.leagueId;
+    const leagueName = resolved.leagueName ?? resolved.leagueId;
     return {
-      events: upcoming.map(event => ({ event, leagueId: resolved.leagueId!, leagueName })),
+      events: upcoming.map(event => ({ event, leagueId: resolved.leagueId, leagueName })),
       teamName: resolved.teamName,
       teamId: resolved.teamId,
       leagueId: resolved.leagueId,
+      resolved,
     };
   } catch {
     return null;
@@ -1145,10 +1086,25 @@ export const matchLive: ToolHandler = {
       ? userText
       : query;
 
+    // 🔴 FIX COBERTURA (2026-09-16) — un solo club: resolverlo contra ESPN da el
+    // nombre CANÓNICO y su liga, que es lo que hace preciso el matcheo del
+    // scoreboard para clubes que NO están en el diccionario propio (los que antes
+    // dependían del matcheo por tokens). Con dos clubes manda el par: el partido es
+    // el que los enfrenta, no el de cada uno por separado.
+    const singleClub = detectClubs(pairText.toLowerCase()).length < 2;
+    const resolvedTeam = singleClub
+      ? await resolveEspnTeam(detectClub(pairText.toLowerCase()) ?? detectNationalTeam(pairText.toLowerCase()) ?? query)
+      : null;
+    // Nombre canónico para "los próximos del MISMO equipo" y para el contexto de
+    // equipo/Wikipedia: con un alias ("barca") la wiki devolvía cualquier cosa.
+    const teamLower = String(
+      resolvedTeam?.teamName ?? detectClub(query.toLowerCase()) ?? detectNationalTeam(query.toLowerCase()) ?? query,
+    ).toLowerCase();
+
     // FIX: usar ESPN como fuente principal. 🔴 FIX VENTANA: rango de 12 días
     // atrás + 14 adelante en UN fetch por liga — captura partidos de mitad de
     // semana (Real Madrid martes, pregunta el viernes) que antes quedaban fuera.
-    const espn = await searchEspnScoreboards(query, { pairText });
+    const espn = await searchEspnScoreboards(query, { pairText, resolvedTeam });
     const espnResults = espn.events;
 
     // 🔴 Clasificación: jugados/en vivo para el resultado; futuros como `upcoming`
@@ -1160,8 +1116,8 @@ export const matchLive: ToolHandler = {
       // 🔴 Tomar el partido más reciente jugado y enriquecerlo con /summary
       const first = playedOrLive[0];
       const playedMatches = playedOrLive.slice(0, 5).map(({ event }) => normalizeEspnEvent(event, first.leagueName));
-      // Próximos del MISMO equipo (para la sección "Próximos partidos")
-      const teamLower = (detectClub(query.toLowerCase()) ?? detectNationalTeam(query.toLowerCase()) ?? query).toLowerCase();
+      // Próximos del MISMO equipo (para la sección "Próximos partidos"):
+      // `teamLower` es el nombre canónico resuelto más arriba.
       let upcomingSameTeam = espnUpcoming
         .filter(r => {
           const comps = r.event.competitions ?? [];
@@ -1175,7 +1131,7 @@ export const matchLive: ToolHandler = {
       // de resultado salía SIN la sección "Próximos partidos". El calendario del
       // equipo (2 requests) los trae igual.
       if (upcomingSameTeam.length === 0) {
-        const teamFixture = await fetchEspnTeamFixture(teamLower, 4);
+        const teamFixture = await fetchEspnTeamFixture(teamLower, 4, resolvedTeam);
         if (teamFixture) {
           upcomingSameTeam = teamFixture.events.map(({ event, leagueName }) => normalizeEspnEvent(event, leagueName));
         }
@@ -1270,7 +1226,6 @@ export const matchLive: ToolHandler = {
     if (espnUpcoming.length > 0) {
       const first = espnUpcoming[0];
       const upcomingMatches = espnUpcoming.slice(0, 5).map(({ event }) => normalizeEspnEvent(event, first.leagueName));
-      const teamLower = (detectClub(query.toLowerCase()) ?? detectNationalTeam(query.toLowerCase()) ?? query).toLowerCase();
       const teamContext = await fetchTeamContext(teamLower);
       return {
         type: "match_live",
@@ -1632,19 +1587,28 @@ export const matchSchedule: ToolHandler = {
     // ESPN: dos requests, sin depender de los rangos de fecha (que ESPN rechaza
     // con 400) ni del presupuesto del barrido día por día. Antes, "cuándo juega
     // Boca" no mostraba NADA aunque ESPN tuviera el partido a 4 días vista.
+    let resolved: ResolvedEspnTeam | null = null;
     if (team) {
-      const teamFixture = await fetchEspnTeamFixture(team, Math.max(next, 5));
+      // El club canónico de ESPN alimenta la búsqueda, la card y el contexto de
+      // equipo/Wikipedia (con un alias tipo "barca", la wiki devolvía otra cosa).
+      resolved = await resolveEspnTeam(team);
+      const teamFixture = await fetchEspnTeamFixture(team, Math.max(next, 5), resolved);
       if (teamFixture && teamFixture.events.length > 0) {
         const upcomingMatches = teamFixture.events.map(({ event, leagueName }) => normalizeEspnEvent(event, leagueName));
-        return await buildFixturePayload(upcomingMatches, team, runCtx, "ESPN");
+        return await buildFixturePayload(upcomingMatches, resolved?.teamName ?? team, runCtx, "ESPN");
       }
+      // El calendario del equipo quedó vacío (o no resolvió): sigue el scoreboard,
+      // que cubre el resto de competencias del club/selección.
     }
+
+    // Nombre canónico para los lookups de nombre libre (TheSportsDB, Wikipedia).
+    const teamLabel = resolved?.teamName ?? team;
 
     // 🔴 KORU 3.0 — ESPN PRIMARIO para fixture. 🔴 FIX RANGOS: UN fetch por liga
     // con dates=START-END (antes: 7 fetches por día por liga = 63 requests →
     // rate-limit 429 de ESPN) + detección de COPAS ("copa del rey", "libertadores")
     // + sinónimos de clubes europeos + fallback por tokens para query crudo.
-    const espnSearch = await searchEspnScoreboards(team || league);
+    const espnSearch = await searchEspnScoreboards(team || league, { resolvedTeam: resolved });
     const espnResults = espnSearch.events;
     const now = new Date();
 
@@ -1672,7 +1636,7 @@ export const matchSchedule: ToolHandler = {
     let tsdbWiki: string | null = null;
     let tsdbWikiSource: { title: string; url: string; domain: string; snippet: string } | null = null;
     if (team) {
-      const found = await fetchTsdbSearchEvents(team);
+      const found = await fetchTsdbSearchEvents(teamLabel);
       events = found.events;
     }
     // OJO: el segundo lookup es INDEPENDIENTE del primero — un 429 en la búsqueda
@@ -1681,7 +1645,7 @@ export const matchSchedule: ToolHandler = {
       // 🔴 FIX PRÓXIMOS PARTIDOS POR EQUIPO (2026-09-16) — `eventsnext.php`
       // (por id de equipo) ES el endpoint de fixture y responde; antes se
       // llamaba a `eventsnextteam.php`, que da 404.
-      const teamCtx = await fetchTeamContext(team);
+      const teamCtx = await fetchTeamContext(teamLabel);
       tsdbTeamInfo = teamCtx.teamInfo;
       tsdbWiki = teamCtx.wikipediaExtract;
       tsdbWikiSource = teamCtx.wikiSource;
@@ -1838,7 +1802,7 @@ export const matchSchedule: ToolHandler = {
     const ctx = tsdbTeamInfo || tsdbWiki
       ? { teamInfo: tsdbTeamInfo, wikipediaExtract: tsdbWiki, wikiSource: tsdbWikiSource }
       : undefined;
-    return await buildFixturePayload(normalizeTsdbUpcoming(upcoming, runCtx?.tzOffsetMin), team || league, runCtx, "TheSportsDB", ctx);
+    return await buildFixturePayload(normalizeTsdbUpcoming(upcoming, runCtx?.tzOffsetMin), teamLabel || league, runCtx, "TheSportsDB", ctx);
   },
 };
 
