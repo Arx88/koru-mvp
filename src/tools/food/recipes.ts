@@ -153,11 +153,19 @@ export const recipeFind: ToolHandler = {
     const query = String(args.query ?? "").trim();
     if (!query) return { type: "recipe_find", status: "failed", error: "Indica qué receta." };
     if (recipeConstraints(query).constrained) {
+      let detail = "sin-callback";
       try {
         const proposal = await proposeRecipe(query, ctx);
-        if (proposal) return { type: "recipe_find", status: "ok", query, recipes: [proposal], source: "Propuesta de Michi" };
-      } catch { /* Una propuesta no validada nunca se sustituye por una receta que ignora restricciones. */ }
-      return { type: "recipe_find", status: "unavailable", query, recipes: [], note: "No pude preparar una receta que respete todas esas condiciones. No voy a sustituirla por otra que las ignore." };
+        if ("recipe" in proposal) return { type: "recipe_find", status: "ok", query, recipes: [proposal.recipe], source: "Propuesta de Michi" };
+        detail = proposal.error;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "";
+        detail = /abort|timeout|timed out/i.test(message) ? "provider-timeout"
+          : /429|rate.limit/i.test(message) ? "provider-rate-limit"
+          : /401|403|404|configuration|configur/i.test(message) ? "provider-configuration"
+          : "provider-error";
+      }
+      return { type: "recipe_find", status: "unavailable", query, recipes: [], note: "No pude preparar una receta que respete todas esas condiciones. No voy a sustituirla por otra que las ignore.", detail };
     }
 
     // 🔴 FIX: traducir términos españoles antes de golpear TheMealDB (índice EN).
