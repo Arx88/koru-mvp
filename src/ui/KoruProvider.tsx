@@ -328,6 +328,7 @@ type KoruContextValue = {
   openCollections: (collection?: string) => void;
   closeCollections: () => void;
   reopenedRecord: LifeRecord | null;
+  closeReopenedRecord: () => void;
   // 🔴 TIER S — nuevos reducers del store (planes, checklists, hábitos, etc.)
   createPlan: (title: string, steps: Omit<PlanStep, "id" | "order" | "done">[]) => void;
   togglePlanStep: (planId: string, stepId: string) => void;
@@ -2389,6 +2390,7 @@ export function KoruProvider({ children }: { children: ReactNode }) {
     openCollections,
     closeCollections,
     reopenedRecord,
+    closeReopenedRecord: () => setReopenedRecord(null),
     // 🔴 TIER S — nuevos reducers del store
     createPlan,
     togglePlanStep,

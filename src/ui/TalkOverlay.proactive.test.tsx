@@ -36,6 +36,40 @@ async function open() {
   return view;
 }
 
+describe("reopened saved record", () => {
+  it("keeps the original card inside the mobile screen and exposes close", async () => {
+    const showModal = vi.fn(function (this: HTMLDialogElement) { this.open = true; });
+    const close = vi.fn(function (this: HTMLDialogElement) { this.open = false; });
+    const originalShow = Object.getOwnPropertyDescriptor(HTMLDialogElement.prototype, "showModal");
+    const originalClose = Object.getOwnPropertyDescriptor(HTMLDialogElement.prototype, "close");
+    Object.defineProperty(HTMLDialogElement.prototype, "showModal", { configurable: true, value: showModal });
+    Object.defineProperty(HTMLDialogElement.prototype, "close", { configurable: true, value: close });
+    const closeRecord = vi.fn();
+    context.value.closeReopenedRecord = closeRecord;
+    context.value.reopenedRecord = {
+      id: "record-test", title: "Clase de inglés",
+      sourceBlock: { type: "saved_record", records: [{ id: "record-test", title: "Clase de inglés", collection: "Clases", kind: "note" }] },
+    };
+    const view = await open();
+    const sheet = screen.getByRole("dialog", { name: "Elemento guardado" });
+    expect(sheet.closest(".koru-chat-screen")).not.toBeNull();
+    expect(sheet.textContent).toContain("Clase de inglés");
+    expect(showModal).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole("button", { name: "Cerrar elemento guardado" }));
+    expect(closeRecord).toHaveBeenCalledOnce();
+    fireEvent(sheet, new Event("cancel", { bubbles: false, cancelable: true }));
+    expect(closeRecord).toHaveBeenCalledTimes(2);
+    context.value.reopenedRecord = null;
+    view.rerender(<TalkOverlay onClose={() => {}} />);
+    expect(screen.queryByRole("dialog", { name: "Elemento guardado" })).toBeNull();
+    expect(close).toHaveBeenCalledOnce();
+    if (originalShow) Object.defineProperty(HTMLDialogElement.prototype, "showModal", originalShow);
+    else Reflect.deleteProperty(HTMLDialogElement.prototype, "showModal");
+    if (originalClose) Object.defineProperty(HTMLDialogElement.prototype, "close", originalClose);
+    else Reflect.deleteProperty(HTMLDialogElement.prototype, "close");
+  });
+});
+
 describe("TalkOverlay proactive delivery", () => {
   it("dispatches the same server event only once across two openings", async () => {
     const first = await open();

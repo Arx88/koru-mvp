@@ -10,7 +10,7 @@ import { cn } from "../lib/utils";
 import { useKoru, type KoruChatTurn, type KoruTurnItem } from "./KoruProvider";
 import { KoruSemanticCard } from "./chatCards";
 import { ActivityInviteCard } from "./ActivityInviteCard";
-import { KoruUnifiedCard } from "./cards/unified/KoruUnifiedCard";
+import { ReopenedRecordSheet } from "./ReopenedRecordSheet";
 import { KoruBackground } from "./KoruBackground";
 import { MichiHeaderV8, type MichiMenuAction } from "./michi/MichiHeaderV8";
 import {
@@ -267,6 +267,7 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
     userName,
     language,
     reopenedRecord,
+    closeReopenedRecord,
     reopenRecord,
     state: koruDomainState,
     updatePreferences,
@@ -1506,6 +1507,9 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
             </div>
           </div>
         )}
+        {reopenedRecord?.sourceBlock && (
+          <ReopenedRecordSheet record={reopenedRecord} onClose={closeReopenedRecord} key={reopenedRecord.id} />
+        )}
       </section>
 
       {saveModal && <MichiSaveSheet
@@ -1557,14 +1561,6 @@ export function TalkOverlay({ onClose, onNavigate, onAvatares, onboarding, onOnb
           />
       )}
 
-      {/* 🔴 v2: reopenedRecord — reabre el bloque original de un record guardado */}
-      {reopenedRecord?.sourceBlock && (
-        <KoruUnifiedCard
-          block={reopenedRecord.sourceBlock}
-          // 🔴 key forzado para que se monte fresh cada vez
-          key={`reopened-${reopenedRecord.id}`}
-        />
-      )}
 
       {/* 🔴 v3: Mis Colecciones como pantalla global — abrible desde el toast
           * "Ver" (y desde cualquier punto futuro). focusCollection deja al
