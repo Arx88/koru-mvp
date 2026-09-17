@@ -55,6 +55,7 @@ import {
   isGenericAgentReply,
 } from "./pipeline/finalizePayload";
 import { blocksFromToolResults } from "./blocksFromToolResults";
+import { recipeConstraints } from "../tools/food/recipeProposal";
 import { computeAbsenceContext, formatAbsenceContext } from "../domain/absence";
 import { callAINative } from "./providers/ainative";
 import {
@@ -3423,7 +3424,14 @@ async function executeProviderToolCalls(
     const name = call.function.name;
     const args = { ...toolCallArgs(call), __userInput: request.input };
     if (name === "deliver_response") return args;
-    const { result: toolResult, deferredDataCard } = await executeTool(name, args, request.state, extractorCtx);
+    const toolContext = name === "recipe_find" ? {
+      ...extractorCtx,
+      chatFn: async (msgs: Parameters<ExtractorChatFn>[0]) => {
+        const response = await callProvider(config, msgs as ChatMessage[], 45_000, false, inferProviderFromModel(request.model ?? config.nvidiaModel), undefined, config.nvidiaModel);
+        return { content: response.message.content ?? "" };
+      },
+    } : extractorCtx;
+    const { result: toolResult, deferredDataCard } = await executeTool(name, args, request.state, toolContext);
     toolExecutions.push({ id: call.id, name, result: toolResult });
     if (deferredDataCard) deferredDataCards.push(deferredDataCard);
     messages.push({
@@ -3888,11 +3896,11 @@ export function recipeArgsFromInput(input: string): { query: string } | null {
       /\b(comida|comer|plato|pasta|lasana|arroz|pollo|carne|pescado|torta|tortilla|postre|sopa|ensalada|pizza|huevos?|pan|flan|empanadas?|milanesas?|guiso)\b/.test(n));
   if (!hasRecipeIntent) return null;
   // Extracción afinada del detector de llamadas simuladas ("receta de pasta" → pasta).
-  const extracted = extractArgsFromUserInput("recipe_find", input);
+  const culinaryInput = input.split(/[.!?]\s+(?=(?:dame|mostrame|mu[eé]strame|no\s+me|no\s+quiero)\b)/i)[0];
+  const extracted = extractArgsFromUserInput("recipe_find", culinaryInput);
   let query = typeof extracted.query === "string" ? extracted.query.trim() : "";
-  // Si el query arrastró prefijos ("buscame recetas de postre"), limpiarlos.
   query = query
-    .replace(/^.*?\b(?:recetas?|recetario)\b\s*/i, "")
+    .replace(/^(?:(?:buscame|busca|dame|quiero|necesito|encuentrame)\s+)?(?:recetas?|recetario)\b\s*/i, "")
     .replace(/^(?:de\s+|del\s+|para\s+|una?\s+|unas?\s+|faciles?\s+|rapidas?\s+|ricas?\s+)+/i, "")
     .trim();
   if (!query) {
@@ -4703,6 +4711,20 @@ export async function runKoruBackendTurn(
   const modelOverride = request.model
     ? request.model  // usuario eligió explícitamente — respetar
     : selectModelForInput(inputTrimmed, config, trivial, false);  // Automático — router decide
+  const recipeRequest = recipeArgsFromInput(inputTrimmed);
+  if (recipeRequest && recipeConstraints(recipeRequest.query).constrained) {
+    await executeProviderToolCalls([{
+      id: `recipe_${Date.now()}`, type: "function",
+      function: { name: "recipe_find", arguments: JSON.stringify(recipeRequest) },
+    }], messages, request, toolExecutions, config);
+    const recipeResult = toolExecutions[0]?.result as Record<string, unknown>;
+    const ready = recipeResult?.status === "ok";
+    const response = normalizeFinalPayload({
+      reply: ready ? "Te dejé una propuesta con cantidades y pasos en la tarjeta." : String(recipeResult?.note ?? "No pude preparar la receta en este momento."),
+      uiBlocks: [], suggestedActions: [], mascotState: ready ? "happy" : "idle",
+    }, request.input, toolExecutions, undefined, undefined, request.state, request.history);
+    return { ...response, provider: preferredProvider ?? "nvidia", model: config.nvidiaModel, fallbackReason: "constrained-recipe" };
+  }
   const deliverableTopic = explicitDeliverableTopic(inputTrimmed, request.history);
   if (deliverableTopic) {
     logger.info("runKoruBackendTurn", "Explicit deliverable request detected", { topic: deliverableTopic });

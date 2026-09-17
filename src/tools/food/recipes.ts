@@ -9,6 +9,7 @@ import { fetchJson } from "../shared/fetcher";
 import { cached, ttls } from "../shared/cache";
 import { limiters } from "../shared/rateLimiter";
 import { fetchNutrition } from "./nutritionOFF";
+import { proposeRecipe, recipeConstraints } from "./recipeProposal";
 
 const MEALDB_KEY = "1"; // key pública gratuita.
 const MEALDB_BASE = `https://www.themealdb.com/api/json/v1/${MEALDB_KEY}`;
@@ -85,6 +86,8 @@ const ES_EN_FOOD: Record<string, string> = {
   milanesa: "breaded", milanesas: "breaded",
   burrito: "burrito", quesadilla: "quesadilla", ceviche: "ceviche",
   paella: "paella", risotto: "risotto", carbonara: "carbonara",
+  vegetariana: "vegetarian", vegetariano: "vegetarian",
+  vegana: "vegan", vegano: "vegan",
 };
 
 // Conectores españoles que no aportan al índice EN ("sopa DE tomate").
@@ -93,11 +96,12 @@ const ES_CONNECTORS = new Set(["de", "del", "la", "el", "los", "las", "un", "una
 const DISH_TYPES = new Set(["soup", "salad", "stew", "cake", "dessert", "bread", "curry", "pie", "risotto", "paella"]);
 
 export function translateQueryToEnglish(query: string): string {
-  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  const words = query.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
   const translated = words
     .map((w) => {
-      const stem = w.replace(/(es|s)$/, "");
-      return ES_EN_FOOD[w] ?? ES_EN_FOOD[stem] ?? w;
+      const key = w.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const stem = key.replace(/(es|s)$/, "");
+      return ES_EN_FOOD[key] ?? ES_EN_FOOD[stem] ?? key;
     })
     .filter((w) => w.length > 0 && !ES_CONNECTORS.has(w));
   if (translated.length > 1 && DISH_TYPES.has(translated[0])) {
@@ -145,9 +149,16 @@ export const recipeFind: ToolHandler = {
     },
   ),
   policy: policies.readonly("Lee recetas públicas."),
-  async run(args) {
+  async run(args, ctx) {
     const query = String(args.query ?? "").trim();
     if (!query) return { type: "recipe_find", status: "failed", error: "Indica qué receta." };
+    if (recipeConstraints(query).constrained) {
+      try {
+        const proposal = await proposeRecipe(query, ctx);
+        if (proposal) return { type: "recipe_find", status: "ok", query, recipes: [proposal], source: "Propuesta de Michi" };
+      } catch { /* Una propuesta no validada nunca se sustituye por una receta que ignora restricciones. */ }
+      return { type: "recipe_find", status: "unavailable", query, recipes: [], note: "No pude preparar una receta que respete todas esas condiciones. No voy a sustituirla por otra que las ignore." };
+    }
 
     // 🔴 FIX: traducir términos españoles antes de golpear TheMealDB (índice EN).
     const translated = translateQueryToEnglish(query) || query;

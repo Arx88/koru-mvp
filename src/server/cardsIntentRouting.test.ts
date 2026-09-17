@@ -46,6 +46,11 @@ describe("recipeArgsFromInput — inyección determinista de recipe_find", () =>
     expect(recipeArgsFromInput("buscame recetas de postre por favor")).toEqual({ query: "postre" });
   });
 
+  it("preserva restricciones cuando se vuelve a mencionar receta en las instrucciones", () => {
+    const result = recipeArgsFromInput("Quiero una receta vegetariana para dos, lista en 20 minutos, con garbanzos, tomate y huevos. Dame cantidades exactas y pasos en una tarjeta de receta. No me ofrezcas recordatorios.");
+    expect(result?.query).toBe("vegetariana para dos, lista en 20 minutos, con garbanzos, tomate y huevos");
+  });
+
   it("NO dispara para guardar/mostrar recetas ya guardadas (recipe_save/show)", () => {
     expect(recipeArgsFromInput("guarda esta receta de pollo")).toBeNull();
     expect(recipeArgsFromInput("muéstrame la receta del flan que guardé")).toBeNull();
@@ -63,6 +68,11 @@ describe("recipeArgsFromInput — inyección determinista de recipe_find", () =>
 });
 
 describe("translateQueryToEnglish — puente ES→EN para TheMealDB", () => {
+  it("traduce los términos exactos del pedido con restricciones", () => {
+    expect(translateQueryToEnglish("garbanzos,")).toBe("chickpea");
+    expect(translateQueryToEnglish("vegetariana")).toBe("vegetarian");
+  });
+
   it("traduce ingredientes comunes al índice inglés", () => {
     expect(translateQueryToEnglish("pollo")).toBe("chicken");
     expect(translateQueryToEnglish("carne")).toBe("beef");

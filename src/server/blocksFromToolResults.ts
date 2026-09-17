@@ -805,12 +805,15 @@ export function blocksFromToolResults(results: ToolExecution[], userInput?: stri
         image: first.thumbnail,
         category: first.category,
         area: first.area,
-        description: instructions.slice(0, 200),
+        description: first.generated ? first.description : instructions.slice(0, 200),
+        servings: first.servings,
+        prepTime: first.prepTime,
+        cookTime: first.cookTime,
         instructions: instructions.slice(0, 1500),
         videoUrl: first.videoUrl,
         ingredients: Array.isArray(first.ingredients) ? first.ingredients : undefined,
         steps: steps.length > 0 ? steps : undefined,
-        source: { title: "TheMealDB", url: "https://www.themealdb.com/", domain: "themealdb.com" },
+        source: first.generated ? undefined : { title: "TheMealDB", url: "https://www.themealdb.com/", domain: "themealdb.com" },
         // 🔴 FREE: nutrición promedio del ingrediente principal (Open Food Facts).
         nutrition: first.nutrition,
       });
