@@ -31,6 +31,7 @@
  */
 
 import { foldAccents } from "./commitments";
+import { declinesOptionalSuggestions } from "./optionalSuggestions";
 import {
   currentSchoolQuestion,
   normalizeSchoolProgress,
@@ -222,6 +223,7 @@ export function buildActivityInvite(input: {
   state: KoruState;
   now?: Date;
 }): MichiActivityInvite | null {
+  if (declinesOptionalSuggestions(input.text) || input.state.voicePreference?.proactivity === 0) return null;
   const now = input.now ?? new Date();
   const signal = detectActivitySignal(input.text);
   if (signal !== "bored" && signal !== "low") return null;

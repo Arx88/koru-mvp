@@ -117,6 +117,23 @@ describe("puertas de la propuesta", () => {
 });
 
 describe("invitación", () => {
+  it.each([
+    "Hoy tuve un día horrible. No quiero consejos ni preguntas, solo compañía.",
+    "Estoy triste, solo acompañame",
+    "Me aburro pero no quiero juegos",
+    "Estoy triste. Sin consejos, por favor",
+    "Me aburro. No me ofrezcas actividades",
+  ])("respeta el límite sin depender del cooldown: %s", (text) => {
+    expect(activityOfferGate(stateWith(), NOW).allowed).toHaveLength(2);
+    expect(buildActivityInvite({ text, state: stateWith(), now: NOW })).toBeNull();
+  });
+
+  it("respeta proactividad desactivada", () => {
+    const state = stateWith();
+    state.voicePreference = { ...state.voicePreference, proactivity: 0 };
+    expect(buildActivityInvite({ text: "me aburro", state, now: NOW })).toBeNull();
+  });
+
   it("aburrimiento → Tic Tac, tono juguetón, con el marcador real", () => {
     const invite = buildActivityInvite({
       text: "me aburro",

@@ -1,16 +1,16 @@
 import type { KoruConversationMessage, KoruState } from "../domain/types";
+import { declinesOptionalSuggestions } from "../domain/optionalSuggestions";
 
 const fold = (text: string) => text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 const sentences = (text: string) => text.match(/[^.!?\n]+[.!?]?/g)?.map(s => s.trim()).filter(Boolean) ?? [];
 const optionalOffer = /^(?:¿?\s*)?(?:quieres|queres|te gustaria|te apetece|puedo|si quieres|si queres)\b/;
 const genericCloser = /^(?:¿\s*)?(?:hay algo mas(?: en lo que (?:pueda|te pueda) ayudarte)?|necesitas algo mas|en que mas (?:puedo|te puedo) ayudarte)[?!.]*$/i;
-const declinedOffer = /\b(?:no (?:quiero|necesito) (?:que me (?:ofrezcas|sugieras|recuerdes)|(?:mas )?(?:sugerencias|recordatorios|propuestas|ofertas))|no me (?:ofrezcas|sugieras|recuerdes)|sin (?:sugerencias|recordatorios)|dejalo|no insistas|solo responde)\b/;
 
 export function allowsOptionalSuggestions(input: string, history: KoruConversationMessage[] = []): boolean {
   const current = fold(input);
-  if (declinedOffer.test(current)) return false;
+  if (declinesOptionalSuggestions(input)) return false;
   if (/\b(?:sugiere|sugerime|recomienda|recomendame|dame (?:ideas|opciones)|que (?:me recomiendas|puedo hacer)|recuerdame|recordame)\b/.test(current)) return true;
-  return !history.filter(t => t.role === "user").slice(-3).some(t => declinedOffer.test(fold(t.content)));
+  return !history.filter(t => t.role === "user").slice(-3).some(t => declinesOptionalSuggestions(t.content));
 }
 
 export function conversationGuidance(input: string, history: KoruConversationMessage[], state: KoruState): string {

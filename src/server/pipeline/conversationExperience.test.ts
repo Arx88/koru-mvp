@@ -37,6 +37,17 @@ describe("conversation experience through the real finalizer", () => {
     expect(allowsOptionalSuggestions("Ahora recuérdame comprar garbanzos", history)).toBe(true);
   });
 
+  it("honors companionship without advice in both prompt and finalizer", () => {
+    const input = "Hoy tuve un día horrible. No quiero consejos ni preguntas, solo compañía.";
+    const state = createInitialState();
+    expect(allowsOptionalSuggestions(input)).toBe(false);
+    expect(allowsOptionalSuggestions("Sigo triste", [{ role: "user", content: input }])).toBe(false);
+    expect(buildMessages({ input, history: [], state })[0].content).toContain("No añadas ofertas opcionales");
+    const result = normalizeFinalPayload({ reply: "Estoy aquí contigo. ¿Quieres estudiar un rato?", suggestedActions: [{ id: "s1", label: "Estudiar", kind: "approve", requiresApproval: true }] }, input, [], undefined, undefined, state, []);
+    expect(result.reply).toBe("Estoy aquí contigo.");
+    expect(result.suggestedActions).toEqual([]);
+  });
+
   it("does not mistake food preferences for refusal of help", () => {
     expect(allowsOptionalSuggestions("No quiero pescado" )).toBe(true);
     expect(allowsOptionalSuggestions("Otra cena", [{ role: "user", content: "No quiero pescado" }])).toBe(true);
